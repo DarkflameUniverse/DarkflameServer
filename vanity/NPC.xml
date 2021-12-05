@@ -381,6 +381,20 @@
             </locations>
         </zone>
     </npc>
+    <npc name="HappyAngryCatfish - Explorer" lot="2279">
+	<equipment>8613, 13000, 7570</equipment>
+	<phrases>
+	    <phrase>The red parrot can be very difficult to find!</phrase>
+	    <phrase>Some say there are elephants in this forest.</phrase>
+	    <phrase>I think I may be lost...</phrase>
+	    <phrase>I'm feeling a bit emotionally conflicted right now</phrase>
+	</phrases>
+	<zone id="1300">
+	    <locations>
+		<location x="-171.555" y="246.415" z="-147.429" rw="0.553211" rx="0" ry="0.623498" rz="0" />
+	    </locations>
+	</zone>
+     </npc>
 	<npc name="Max - Developer" lot="9749">
         <equipment>4523, 2517, 11909</equipment>
         <phrases>
