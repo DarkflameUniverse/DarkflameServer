@@ -45,6 +45,8 @@ If you're using a DLU client, then you don't need to change anything. But if you
 ### Linux builds
 Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed.
 
+cmake must be version 3.12 or higher!
+
 **Build the repository**
 ```bash
 # Create the build directory, preserving it if it already exists
