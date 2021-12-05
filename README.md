@@ -46,6 +46,7 @@ If you're using a DLU client, then you don't need to change anything. But if you
 Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available.
 
 **Build the repository**
+
 You can either run `build.sh` when in the root folder of the repository:
 
 ```bash
