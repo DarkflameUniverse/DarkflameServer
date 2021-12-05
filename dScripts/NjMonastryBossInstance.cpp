@@ -16,7 +16,7 @@
 // // // // // // //
 
 void NjMonastryBossInstance::OnStartup(Entity *self) {
-    auto spawnerNames = std::vector { LedgeFrakjawSpawner, LowerFrakjawSpawner, BaseEnemiesSpawner + std::to_string(1),
+    auto spawnerNames = std::vector<std::string> { LedgeFrakjawSpawner, LowerFrakjawSpawner, BaseEnemiesSpawner + std::to_string(1),
                                       BaseEnemiesSpawner + std::to_string(2), BaseEnemiesSpawner + std::to_string(3),
                                       BaseEnemiesSpawner + std::to_string(4), CounterweightSpawner };
 

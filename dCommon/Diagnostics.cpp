@@ -2,8 +2,9 @@
 
 // If we're on Win32, we'll include our minidump writer
 #ifdef _WIN32
-#include <Dbghelp.h>
+
 #include <Windows.h>
+#include <Dbghelp.h>
 
 #include "Game.h"
 #include "dLogger.h"
