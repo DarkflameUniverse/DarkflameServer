@@ -2,8 +2,8 @@
 
 // If we're on Win32, we'll include our minidump writer
 #ifdef _WIN32
+#include <Windows.h> // Windows.h needs to be included before Dbghelp.h or it spits out errors
 #include <Dbghelp.h>
-#include <Windows.h>
 
 #include "Game.h"
 #include "dLogger.h"
