@@ -36,6 +36,12 @@ git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 
 Some tools utilized to streamline the setup process require Python 3, make sure you have it installed.
 
+**Choosing the right version for your client**
+DLU clients identify themselves using a higher version number than the regular live clients out there.
+This was done make sure that older and incomplete clients wouldn't produce false positive bug reports for us, and because we made bug fixes and new content for the client. 
+
+If you're using a DLU client, then you don't need to change anything. But if you're using any other client, you'll have to go into the "CMakeVariables.txt" file and change it to match your client's version. (likely 171022)
+
 ### Linux builds
 Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed.
 
@@ -128,7 +134,10 @@ This repository does not distribute any LEGO® Universe files. A full install of
 Known good SHA256 checksums of the client:
 - `8f6c7e84eca3bab93232132a88c4ae6f8367227d7eafeaa0ef9c40e86c14edf5` (packed client, rar compressed)
 - `c1531bf9401426042e8bab2de04ba1b723042dc01d9907c2635033d417de9e05` (packed client, includes extra locales, rar compressed)
-- `0d862f71eedcadc4494c4358261669721b40b2131101cbd6ef476c5a6ec6775b` (unpacked client, includes extra locales, rar compressed) 
+- `0d862f71eedcadc4494c4358261669721b40b2131101cbd6ef476c5a6ec6775b` (unpacked client, includes extra locales, rar compressed)
+
+Known good *SHA1* checksum of the DLU client:
+- `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed) 
 
 How to generate a SHA256 checksum:
 ```bash

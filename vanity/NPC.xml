@@ -1,0 +1,426 @@
+<npcs>
+    <npc name="Wincent - Developer" lot="2279">
+        <equipment>6802, 2519, 2623, 14806</equipment>
+        <phrases>
+            <phrase>Sorry for the mess.</phrase>
+            <phrase>To future endeavours!</phrase>
+            <phrase>What could imagination bring to light?</phrase>
+            <phrase>Vroom vroom...</phrase>
+            <phrase>Take care to preserve the universe.</phrase>
+            <phrase>Builders of the world, unite!</phrase>
+            <phrase>Everything is awesome!</phrase>
+            <phrase>I hope my behaviors are behaving themselves.</phrase>
+        </phrases>
+        <zone id="1200">
+            <locations>
+                <location x="-352.5" y="287.6" z="217.7" rw="-0.095" rx="0.0" ry="0.995" rz="0.0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Neal - Paradox Scout" lot="6738">
+        <equipment>9950, 9944, 14102, 14092</equipment>
+        <phrases>
+            <phrase>Hello Explorer! It's great to see you made it!</phrase>
+            <phrase>Have you heard about Darkflame?</phrase>
+            <phrase>I've traveled across this entire system, but nothing beats the view here.</phrase>
+        </phrases>
+        <zone id="1200">
+            <locations>
+                <location x="163.835" y="330.756" z="-141.933" rw="0.774887" rx="0.0" ry="-0.6321" rz="0.0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="averysumner - Destroyer of Worlds" lot="11235">
+        <equipment></equipment>
+        <phrases>
+            <phrase>cmerw[acowipaejio;fawjioefasdl;kfjm;</phrase>
+            <phrase>I, for one, welcome our new robot overlords.</phrase>
+            <phrase>zxnpoasdfiopwemsadf'kawpfo[ekasdf;'s</phrase>
+            <phrase>*teleports behind you*</phrase>
+        </phrases>
+        <script name="scripts\02_server\DLU\DLUVanityNPC.lua" />
+        <flags>
+            <flag name="teleport" value="1" />
+        </flags>
+        <zone id="1200">
+            <locations>
+                <location x="-361.583" y="285.541" z="64.4695" rw="0.785518" rx="0.0" ry="0.618838" rz="0.0" />
+                <location x="178.188" y="354.528" z="-173.932" rw="0.734375" rx="0.0" ry="-0.678744" rz="0.0" />
+                <location x="-318.569" y="287.637695" z="226.728" rw="-0.289502" rx="0.0" ry="0.957178" rz="0.0" />
+                <location x="389.093" y="295.119" z="-647.583" rw="0.851229" rx="0.0" ry="-0.524795" rz="0.0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="NinjaOfLU - Resident Physicist" lot="12260">
+        <equipment>4360, 2523, 5659, 10067</equipment>
+        <phrases>
+            <phrase>Congratulations! I don't see too many people around here!</phrase>
+            <phrase>Got any spring shoes?</phrase>
+            <phrase>I miss the quip!</phrase>
+            <phrase>Want to talk about physics?</phrase>
+            <phrase>Hang on, this isn't the DLU forums!</phrase>
+            <phrase>What if we're all just Boltzmann brains?</phrase>
+            <phrase>Hahaha! The universe? A computer program? How unlikely!</phrase>
+            <phrase>I have been idle for 10 minutes, and will be returned to the login screen in 5 minutes.</phrase>
+            <phrase>Of what has one to be proud, if dnot one's friends?</phrase>
+        </phrases>
+        <zone id="1100">
+            <locations>
+                <location x="287" y="451" z="-98" rw="-0.320221" rx="0" ry="0.947343" rz="0" />
+            </locations>
+        </zone>
+        <zone id="1800">
+            <locations>
+                <location x="798" y="93" z="325" rw="-0.095" rx="0.0" ry="0.995" rz="0.0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="BlasterBuilder - Race Ace" lot="8205">
+        <equipment>14098, 8539, 14096, 14092</equipment>
+        <phrases>
+            <phrase>LEGO Universe... LEGO Universe... LEGO Universe... LEGO Universe...</phrase>
+            <phrase>So, they say the Maelstrom is chaos, but isn't Imagination also chaos?</phrase>
+            <phrase>The Sentinels have always given me cop vibes...</phrase>
+            <phrase>Where's Bob, you ask? Yeah, I dunno.</phrase>
+            <phrase>Bob's supposed to meet me here. I wonder where he is.</phrase>
+            <phrase>Hhhh... Fantastic.</phrase>
+            <phrase>Quicksicles are really nice, except for the 5 seconds of withdrawal.</phrase>
+            <phrase>Vroom vroom.</phrase>
+            <phrase>VROOM VROOM!</phrase>
+            <phrase>So I've been thinking: shouldn't every game have mood bars and randomized weather?</phrase>
+            <phrase>If there are two things I hate more than anything else, it's gender and Maelstrom.</phrase>
+            <phrase>Ah, sunny day. Unless you haven't defeated the Spider Queen yet, in which case, wow, it's raining ash.</phrase>
+            <phrase>I've been given the power to add to the game's canon: gender is over.</phrase>
+            <phrase>Wisdom is a circle. What you receive, you must give back.</phrase>
+            <phrase>AAAAAAAAAAAGHHH!</phrase>
+            <phrase>I kind of liked the atmosphere better when it was raining ash, but this is fine too I guess.</phrase>
+            <phrase>The current temperature in Avant Gardens is 112 degrees Fahrenheit!</phrase>
+            <phrase>The current temperature in Avant Gardens is 38 degrees Fahrenheit!</phrase>
+            <phrase>Gather uh banana</phrase>
+            <phrase>I've done nothing all day. Why am I here?</phrase>
+        </phrases>
+        <zone id="1100">
+            <locations>
+                <location x="444.318" y="421.154" z="54.4241" rw="0.877539" rx="0.0" ry="0.479506" rz="0.0" />
+            </locations>
+        </zone>
+    </npc>
+    <!-- Mick - Brick Market Broker -->
+    <npc name="Mick - Brick Market Broker" lot="6876">
+        <equipment>2519, 4091, 5128, 7990</equipment>
+        <phrases>
+            <phrase>Still can't believe we made it through that 2012 recession.</phrase>
+            <phrase>What's your market on Red Parrots?</phrase>
+            <phrase>Heard the news? Prices for brick #14451 are going to the moon!</phrase>
+            <phrase>Heard the news? Prices for brick #13191 are going to the moon!</phrase>
+            <phrase>Heard the news? Prices for brick #4718 are going to the moon!</phrase>
+            <phrase>Invest in grey kepis while you still can, they're a steal right now!</phrase>
+            <phrase>I really need to get rid of these Maelstrom Bricks, how about 80 cents on the dollar?</phrase>
+            <phrase>Don't buy at Darby's, the prices might seem good but the fees are outrageous.</phrase>
+            <phrase>I know a guy that sells jetpacks, it ain't cheap but everything has a price.</phrase>
+            <phrase>You know Dr. Overbuild? He keeps ignoring my calls.</phrase>
+        </phrases>
+        <zone id="1100">
+            <locations>
+                <location x="449.725" y="414.926" z="180.539" rw="0.180645" rx="0.0" ry="0.983548" rz="0.0" />
+            </locations>
+        </zone>
+    </npc>
+    <!-- Knightoffaith - Sage of Wanderlust -->
+    <npc name="Knightoffaith - Sage of Wanderlust" lot="12260">
+        <equipment>7359, 7368, 7380, 7392, 7403, 8456</equipment>
+        <phrases>
+            <phrase>Come and join me - take a look at the beauty that still remains even amidst the chaos</phrase>
+            <phrase>If it's a bit scuffed, you're doing it right</phrase>
+            <phrase>Always have things - and people - you care about</phrase>
+            <phrase>Careful, you get me talking and you might not be home in time for dinner!</phrase>
+            <phrase>If all else fails, try changing the long to a long long</phrase>
+            <phrase>If you do one thing - let it be to always hold respect for everyone</phrase>
+            <phrase>Never settle for mediocraty - seek excellence in all things</phrase>
+            <phrase>You ever heard the one about the octapus, the shark, and the - oh, nevermind</phrase>
+            <phrase>To imagination! May its spark never be extinguished.</phrase>
+            <phrase>Don't look at me, it was Sam's turn to look after Burno!</phrase>
+            <phrase>The Universe is beautiful - take some time to enjoy it</phrase>
+        </phrases>
+        <zone id="1100">
+            <locations>
+                <location x="-381.053" y="367.787" z="-60.1185" rw="-0.14307" rx="0" ry="0.989713" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Snifflegully - DLU Alpha Tester" lot="2281">
+        <equipment>15975, 7492, 12690, 12472</equipment>
+        <phrases>
+            <phrase>Praise the cube!</phrase>
+            <phrase>Congratulations, you have finished the 'Talk to Snifflegully any%' speedrun!</phrase>
+            <phrase>Fun fact: you can find R2-D2 bricks sold in Nexus Tower.</phrase>
+            <phrase>Have you found my other friends across the Nimbus System?</phrase>
+            <phrase>This game is fun.</phrase>
+            <phrase>Embrace the Sentinel meta!</phrase>
+            <phrase>Hope you enjoy DLU as much as I have, explorer!</phrase>
+            <phrase>There are many more memories still to be made.</phrase>
+        </phrases>
+        <zone id="1200">
+            <locations>
+                <location x="-429.296" y="291.058" z="212.918" rw="0.339487" rx="0" ry="0.940611" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Hollis - Master Builder" lot="9893">
+        <equipment>4465, 2517, 6855, 8532, 9615</equipment>
+        <phrases>
+            <phrase>Visit Starbase 3001 and blast off to the awesome worlds built by the World Builder League!</phrase>
+            <phrase>I single-handedly built everything you see around you. Well, maybe half of it. Ok, none of it. But I once built a pretty cool house on Nimbus Rock!</phrase>
+            <phrase>I once was told there was an elusive wizard living in the outskirts of Nimbus Station who will give you magical wizard powers if you catch him. I never did find that guy.</phrase>
+            <phrase>I checked the forecast for today, and the gravity on Moonbase will be perfect for jumping around! Which is the same as every day, but still.</phrase>
+            <phrase>There are many amazing properties to explore across the universe. You can visit some of them from the launchpads right here in Brick Annex.</phrase>
+            <phrase>Don't stop believing! Uhh, I mean building. Don't stop building!</phrase>
+        </phrases>
+        <zone id="1200">
+            <locations>
+                <location x="-317.509" y="287.652" z="191.86" rw="0.57124" rx="0" ry="-0.820783" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Xiphoseer - Database Scout" lot="12260">
+        <equipment>2632, 12754, 8645, 8468</equipment>
+        <phrases>
+            <phrase>Oh no, not that old list again</phrase>
+            <phrase>Have you seen this new thing I added?</phrase>
+            <phrase>This soundtrack is great!</phrase>
+            <phrase>lu:explorer</phrase>
+            <phrase>I've been to the plains of Avant Gardens!</phrase>
+            <phrase>It's a hash map, duh</phrase>
+            <phrase>Look at that view!</phrase>
+            <phrase>Oxidize!</phrase>
+        </phrases>
+        <zone id="1300">
+            <locations>
+                <location x="283.986" y="261.208" z="-128.466" rw="0.70207" rx="0" ry="0.712108" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Simon - External Archeologist" lot="7128">
+        <equipment>7363, 7371, 7383, 7395, 7405, 8462</equipment>
+        <phrases>
+            <phrase>I want to build a castle, but first I need to build the bricks.</phrase>
+            <phrase>Why make it easy when you can do it complicated</phrase>
+            <phrase>When you do extra steps, you can always customize the steps without redoing the whole staircase</phrase>
+            <phrase>Who needs lamps, when you have Tiki Torches</phrase>
+        </phrases>
+        <zone id="1300">
+            <locations>
+                <location x="204.93" y="294.784" z="471.537" rw="0.85015" rx="0" ry="-0.52654" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Bricknave - Treasure Hunter" lot="2279">
+        <equipment>7486, 7510, 7462, 8539</equipment>
+        <phrases>
+            <phrase>During my very first expedition, Stromlings were called Darklings, and they dropped entire treasure chests!</phrase>
+            <phrase>Legend has it that building a mysterious idol was the key to Gnarled Forest survival.</phrase>
+            <phrase>I was a member of an Inner Circle during the original Alpha Test expedition.</phrase>
+            <phrase>Did Johnny Thunder send you? A pal of Thunder is a pal of mine!</phrase>
+            <phrase>Did you know that some guy with green pants, a gray jacket, sunglasses, and a laser whip once impersonated Johnny Thunder?</phrase>
+            <phrase>Every time you build, you discover a piece of yourself.</phrase>
+            <phrase>There's treasure inside of all of us. It's called Imagination.</phrase>
+            <phrase>Stromlings! Why did it have to be Stromlings?</phrase>
+        </phrases>
+        <zone id="1300">
+            <locations>
+                <location x="-47.6296" y="322.527" z="533.5" rw="0.145135" rx="0" ry="0.989412" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Jamie - Shenanigans Enthusiast" lot="9893">
+        <equipment>12915, 9683, 10476, 13342, 14166</equipment>
+        <phrases>
+            <phrase>sup lol</phrase>
+            <phrase>How long have I been standing here?</phrase>
+            <phrase>Wait, did the game close yet?</phrase>
+            <phrase>... What year is it?</phrase>
+        </phrases>
+        <zone id="1400">
+            <locations>
+                <location x="-490.608" y="51.9449" z="-347.747" rw="0.594978" rx="0" ry="-0.803742" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Wicked" lot="7412">
+        <equipment>8287, 2957, 7523, 16613</equipment>
+        <phrases></phrases>
+        <zone id="1400">
+            <locations>
+                <location x="264.506" y="339.931" z="54.1201" rw="0.715223" rx="0" ry="0.698896" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Krysto - Sentinal Veteran" lot="12260">
+        <equipment>12651, 12648, 10158, 5694, 16619, 9681, 8286</equipment>
+        <phrases>
+            <phrase>Need a pick me up? Interact with the consoles here to restore your health and armor!</phrase>
+            <phrase>Did I ever tell you about that one time I broke the mail?</phrase>
+            <phrase>Can I interest you in a surprise model pack? No? Ok...</phrase>
+            <phrase>Headed to Forbidden Valley? Watch out for flying Ronin!</phrase>
+            <phrase>If you run into Sensei Wu, tell him he still owes me that red kabuto.</phrase>
+            <phrase>If you see another me running around, please inform Wisp Lee immediately.</phrase>
+            <phrase>What do you mean my title is misspelled?</phrase>
+            <phrase>When I was your age, numbers were illegal.</phrase>
+        </phrases>
+        <zone id="1900">
+            <locations>
+                <location x="-493.724" y="1124.05" z="-76.6355" rw="0.1719" rx="0" ry="0.985114" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    12651
+    <npc name="Matthew - ?????" lot="2279">
+        <equipment>9856, 7793, 6928, 6927</equipment>
+        <phrases>
+            <phrase>I think I have a migraine from staring at this for so long</phrase>
+            <phrase>Anything but Portabello</phrase>
+        </phrases>
+        <zone id="1900">
+            <locations>
+                <location x="-227.621" y="1188.28" z="145.734" rw="-0.254353" rx="0" ry="0.967111" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Raine" lot="9893">
+        <equipment>13342, 7370, 7382</equipment>
+        <phrases>
+            <phrase>Per Aspera ad Astra</phrase>
+        </phrases>
+        <zone id="1900">
+            <locations>
+                <location x="-190.673" y="1218.34" z="221.6" rw="0.972371" rx="0" ry="-0.233441" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Brickgirl - Explorer" lot="12260">
+        <equipment>12781, 12686, 13000, 12802, 12678, 12095</equipment>
+        <phrases>
+            <phrase>Imagination will often carry us to worlds that never were, but without it we go nowhere.</phrase>
+            <phrase>I love this view over to Butterscorch. Look at it for a while and admire the changing stars in the sky.</phrase>
+            <phrase>Have you tried those buttery croissants from “Farnham Spoon” they are delicious! I might just go and have another</phrase>
+            <phrase>Have fun!</phrase>
+        </phrases>
+        <zone id="1800">
+            <locations>
+                <location x="-39.2259" y="96.8605" z="-550.077" rw="0.815145" rx="0" ry="-0.579257" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Sam - The Avianite" lot="2281">
+        <equipment>12563, 12565, 12567, 12949, 12947, 7570</equipment>
+        <phrases>
+            <phrase>Nice finding me! Now take a moment to take a deep breath, in... And out... NOW GET BACK TO YOUR QUEST!</phrase>
+            <phrase>Wu once told me, "The path we seek is never a straight line"."</phrase>
+            <phrase>Stop! I'm from the future to warn you that there will be snakes, ninja robots! More snakes, ghosts, sky pirates, snakes that make snakes! Bikers, dragon hunters... Wait what do you mean it hasn't happened yet?</phrase>
+        </phrases>
+        <zone id="2000">
+            <locations>
+                <location x="-119.269" y="230.372" z="226.63" rw="0.381416" rx="0" ry="0.924404" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="lcdr - Dab Specialist" lot="8657">
+        <equipment>15931, 4298, 2526</equipment>
+        <phrases>
+            <phrase>Hello there.</phrase>
+            <phrase>May the Bodge be with you.</phrase>
+            <phrase>The Bodge is what gives a programmer his power. It's an energy field created by all sketchy programs. It surrounds us and penetrates us. It binds the program together.</phrase>
+            <phrase>LEGO Universe truly is the Dark Souls of LEGO games.</phrase>
+            <phrase>I'm gonna get DLU to compile on my machine one day, I swear.</phrase>
+            <phrase>Hold on, I need to reconfigure my input bindings - my foot pedals aren't mapped yet.</phrase>
+            <phrase>If you're having trouble playing, make sure your input piano has at least two octaves available.</phrase>
+            <phrase>Finally, unsigned bool.</phrase>
+            <phrase>If you find a stray PC on the side of the road, give it shelter.</phrase>
+            <phrase>Place Nate on your Property. Do it now.</phrase>
+            <phrase>Playpen balls are legos.</phrase>
+            <phrase>Gonk.</phrase>
+            <phrase>There is a theory which states that if ever anyone discovers exactly what the Universe is for and why it is here, it will instantly disappear and be replaced by something even more bizarre and inexplicable. There is another theory, which states that this has already happened.</phrase>
+        </phrases>
+        <zone id="1200">
+            <locations>
+                <location x="197.549" y="259.137" z="-587.759" rw="0.873694" rx="0" ry="0.486475" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="zaop - Assembly Scientist" lot="2279">
+        <equipment>12099, 3010, 10067, 7503</equipment>
+        <phrases>
+            <phrase>Hi!</phrase>
+            <phrase>If you get in trouble, just go back in time.</phrase>
+            <phrase>Hello!</phrase>
+            <phrase>Particles were not supposed to be looked at!</phrase>
+            <phrase>Direction and magnitude!</phrase>
+            <phrase>Good to see you here!</phrase>
+            <phrase>Oh, that's not a bug, it's a surprise feature.</phrase>
+            <phrase>Hello again, it's been a while!</phrase>
+            <phrase>What on earth is a Boltzmann brain?</phrase>
+            <phrase>Thanks for stopping by!</phrase>
+            <phrase>Where have you been? We've been looking for you since 2012!</phrase>
+            <phrase>Careful now with that shovel!</phrase>
+            <phrase>Go find my friends scattered across the rest of the Universe!</phrase>
+            <phrase>Excuse me, do you know the way to Frostburgh?</phrase>
+            <phrase>What are those Paradox scientists up to these days?</phrase>
+        </phrases>
+        <zone id="1100">
+            <locations>
+                <location x="436.949" y="415.264" z="151.381" rw="0.528425" rx="0" ry="0.84898" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <npc name="Ben" lot="2279">
+        <equipment>8664, 4065, 2587</equipment>
+        <phrases></phrases>
+        <zone id="1200">
+            <locations>
+                <location x="284.538" y="260.627" z="-506.692" rw="0.819721" rx="0" ry="0.572763" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+	<npc name="Max - Developer" lot="9749">
+        <equipment>4523, 2517, 11909</equipment>
+        <phrases>
+            <phrase>Some people know me as "Darwin"; but that's been a while!</phrase>
+            <phrase>Per aspera ad astra!</phrase>
+            <phrase>Oh, hi there!</phrase>
+            <phrase>If you see a certain wizard, say hi to him for me!</phrase>
+            <phrase>Persue your goals, I believe in you!</phrase>
+            <phrase>Something to think about: "I like red shirts. Some people don't, but that's okay. It's for me, not them."</phrase>
+            <phrase>Working as intended</phrase>
+            <phrase>I love cats, little meow meows</phrase>
+			<phrase>It's not perfect, but it works!</phrase>
+        </phrases>
+        <zone id="1201">
+            <locations>
+                <location x="197.709" y="179.335" z="-8.05284" rw="0.544424" rx="0" ry="-0.83881" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+    <party zone="1200" chance="0.0">
+        <locations>
+            <location x="-24.3963" y="291.542" z="-117.871" rw="0.480946" rx="0" ry="0.87675" rz="0" />
+            <location x="-16.9897" y="291.584" z="-112.438" rw="0.0677884" rx="0" ry="0.9977" rz="0" />
+            <location x="-3.52143" y="291.66" z="-118.186" rw="0.519658" rx="0" ry="-0.854375" rz="0" />
+            <location x="-4.54551" y="291.661" z="-131.914" rw="0.916747" rx="0" ry="-0.399469" rz="0" />
+            <location x="-18.8573" y="291.566" z="-136.347" rw="0.983708" rx="0" ry="0.179772" rz="0" />
+            <location x="-17.0958" y="291.824" z="-127.153" rw="0.999554" rx="0" ry="0.0298604" rz="0" />
+            <location x="-10.9727" y="291.868" z="-125.387" rw="0.861138" rx="0" ry="0.508372" rz="0" />
+            <location x="-21.9406" y="291.284" z="-139.761" rw="0.990094" rx="0" ry="0.140407" rz="0" />
+            <location x="4.54396" y="291.19" z="-131.908" rw="0.929764" rx="0" ry="-0.368157" rz="0" />
+            <location x="-0.189393" y="291.105" z="-109.617" rw="-0.124242" rx="0" ry="0.992252" rz="0" />
+        </locations>
+    </party>
+    <partyphrases>
+        <phrase>Hi there!</phrase>
+        <phrase>Hi!</phrase>
+        <phrase>Hahaha!</phrase>
+        <phrase>Hello there!</phrase>
+
+        <phrase>:D</phrase>
+        <phrase>:P</phrase>
+    </partyphrases>
+</npcs>

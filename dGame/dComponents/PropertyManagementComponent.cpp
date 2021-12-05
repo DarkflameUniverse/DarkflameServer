@@ -1,0 +1,849 @@
+﻿#include "PropertyManagementComponent.h"
+
+#include <sstream>
+
+#include "EntityManager.h"
+#include "PropertyDataMessage.h"
+#include "UserManager.h"
+#include "GameMessages.h"
+#include "Character.h"
+#include "CDClientDatabase.h"
+#include "dZoneManager.h"
+#include "Game.h"
+#include "Item.h"
+#include "Database.h"
+#include "../dWorldServer/ObjectIDManager.h"
+#include "Player.h"
+#include "RocketLaunchpadControlComponent.h"
+#include "PropertyEntranceComponent.h"
+
+#include <vector>
+#include "CppScripts.h"
+
+PropertyManagementComponent* PropertyManagementComponent::instance = nullptr;
+
+PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Component(parent)
+{
+	this->owner = LWOOBJID_EMPTY;
+	this->templateId = 0;
+	this->propertyId = LWOOBJID_EMPTY;
+	this->models = {};
+	this->propertyName = "";
+	this->propertyDescription = "";
+	this->privacyOption = PropertyPrivacyOption::Private;
+	this->originalPrivacyOption = PropertyPrivacyOption::Private;
+
+	instance = this;
+
+	const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
+	
+	const auto zoneId = worldId.GetMapID();
+	const auto cloneId = worldId.GetCloneID();
+
+	std::stringstream query;
+
+	query << "SELECT id FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
+
+	auto result = CDClientDatabase::ExecuteQuery(query.str());
+
+	if (result.eof() || result.fieldIsNull(0))
+	{
+		return;
+	}
+	
+	templateId = result.getIntField(0);
+
+	result.finalize();
+
+	auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
+
+	propertyLookup->setInt(1, templateId);
+	propertyLookup->setInt64(2, cloneId);
+
+	auto* propertyEntry = propertyLookup->executeQuery();
+
+	if (propertyEntry->next())
+	{
+		this->propertyId = propertyEntry->getUInt64(1);
+		this->owner = propertyEntry->getUInt64(2);
+		this->owner = GeneralUtils::SetBit(this->owner, OBJECT_BIT_CHARACTER);
+		this->owner = GeneralUtils::SetBit(this->owner, OBJECT_BIT_PERSISTENT);
+		this->propertyName = propertyEntry->getString(5).c_str();
+		this->propertyDescription = propertyEntry->getString(6).c_str();
+		this->privacyOption = static_cast<PropertyPrivacyOption>(propertyEntry->getUInt(9));
+		this->claimedTime = propertyEntry->getUInt64(13);
+
+		Load();
+	}
+
+	delete propertyLookup;
+}
+
+LWOOBJID PropertyManagementComponent::GetOwnerId() const
+{
+	return owner;
+}
+
+Entity* PropertyManagementComponent::GetOwner() const
+{
+	return EntityManager::Instance()->GetEntity(owner);
+}
+
+void PropertyManagementComponent::SetOwner(Entity* value)
+{
+	owner = value->GetObjectID();
+}
+
+std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const
+{
+	const auto zoneId = dZoneManager::Instance()->GetZone()->GetWorldID();
+	
+	std::stringstream query {};
+
+	query << "SELECT path FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
+	
+	auto result = CDClientDatabase::ExecuteQuery(query.str());
+
+	std::vector<NiPoint3> paths {};
+	
+	if (result.eof())
+	{
+		return paths;
+	}
+
+	std::vector<float> points;
+	
+	std::istringstream stream(result.getStringField(0));
+	std::string token;
+
+	while (std::getline(stream, token, ' '))
+	{
+		try
+		{
+			auto value = std::stof(token);
+
+			points.push_back(value);
+		}
+		catch (std::invalid_argument& exception)
+		{
+			Game::logger->Log("PropertyManagementComponent", "Failed to parse value (%s): (%s)!\n", token.c_str(), exception.what());
+		}
+	}
+
+	for (auto i = 0u; i < points.size(); i += 3)
+	{
+		paths.emplace_back(points[i], points[i + 1], points[i + 2]);
+	}
+
+	return paths;
+}
+
+PropertyPrivacyOption PropertyManagementComponent::GetPrivacyOption() const
+{
+	return privacyOption;
+}
+
+void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value) 
+{
+	if (owner == LWOOBJID_EMPTY) return;
+
+	if (value == static_cast<PropertyPrivacyOption>(3)) // Client sends 3 for private for some reason, but expects 0 in return?
+	{
+		value = PropertyPrivacyOption::Private;
+	}
+
+	privacyOption = value;
+
+	auto* propertyUpdate = Database::CreatePreppedStmt("UPDATE properties SET privacy_option = ? WHERE id = ?;");
+
+	propertyUpdate->setInt(1, static_cast<int32_t>(value));
+	propertyUpdate->setInt64(2, propertyId);
+
+	propertyUpdate->executeUpdate();
+}
+
+void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::string description)
+{
+	if (owner == LWOOBJID_EMPTY) return;
+
+	propertyName = name;
+
+	propertyDescription = description;
+
+	auto* propertyUpdate = Database::CreatePreppedStmt("UPDATE properties SET name = ?, description = ? WHERE id = ?;");
+
+	propertyUpdate->setString(1, name.c_str());
+	propertyUpdate->setString(2, description.c_str());
+	propertyUpdate->setInt64(3, propertyId);
+
+	propertyUpdate->executeUpdate();
+
+	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
+}
+
+void PropertyManagementComponent::Claim(const LWOOBJID playerId)
+{
+	if (owner != LWOOBJID_EMPTY)
+	{
+		return;
+	}
+	
+	SetOwnerId(playerId);
+
+	auto* zone = dZoneManager::Instance()->GetZone();
+
+	const auto& worldId = zone->GetZoneID();
+	const auto zoneId = worldId.GetMapID();
+	const auto cloneId = worldId.GetCloneID();
+
+	auto* entity = EntityManager::Instance()->GetEntity(playerId);
+
+	auto* user = entity->GetParentUser();
+
+	propertyId = ObjectIDManager::GenerateRandomObjectID();
+	
+	auto* insertion = Database::CreatePreppedStmt(
+		"INSERT INTO properties"
+		"(id, owner_id, template_id, clone_id, name, description, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, zone_id)"
+		"VALUES (?, ?, ?, ?, ?, '', 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?)"
+	);
+	insertion->setUInt64(1, propertyId);
+	insertion->setUInt64(2, (uint32_t) playerId);
+	insertion->setUInt(3, templateId);
+	insertion->setUInt64(4, cloneId);
+	insertion->setString(5, zone->GetZoneName().c_str());
+	insertion->setInt(6, zoneId);
+
+	// Try and execute the query, print an error if it fails.
+	try
+	{
+		insertion->execute();
+	}
+	catch (sql::SQLException& exception)
+	{
+		Game::logger->Log("PropertyManagementComponent", "Failed to execute query: (%s)!\n", exception.what());
+
+		throw exception;
+	}
+
+	auto* zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
+    for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControlObject)) {
+        script->OnZonePropertyRented(zoneControlObject, entity);
+    }
+}
+
+void PropertyManagementComponent::OnStartBuilding() 
+{
+	auto* ownerEntity = GetOwner();
+
+	if (ownerEntity == nullptr) return;
+
+	const auto players = Player::GetAllPlayers();
+
+	LWOMAPID zoneId = 1100;
+
+	const auto entrance = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_PROPERTY_ENTRANCE);
+
+	originalPrivacyOption = privacyOption;
+
+	SetPrivacyOption(PropertyPrivacyOption::Private); // Cant visit player which is building
+
+	if (!entrance.empty())
+	{
+		auto* rocketPad = entrance[0]->GetComponent<RocketLaunchpadControlComponent>();
+
+		if (rocketPad != nullptr)
+		{
+			zoneId = rocketPad->GetDefaultZone();
+		}
+	}
+
+	for (auto* player : players)
+	{
+		if (player == ownerEntity) continue;
+
+		player->SendToZone(zoneId);
+	}
+}
+
+void PropertyManagementComponent::OnFinishBuilding()
+{
+	auto* ownerEntity = GetOwner();
+
+	if (ownerEntity == nullptr) return;
+
+	SetPrivacyOption(originalPrivacyOption);
+
+	UpdateApprovedStatus(false);
+}
+
+void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation)
+{
+	Game::logger->Log("PropertyManagementComponent", "Placing model <%f, %f, %f>\n", position.x, position.y, position.z);
+
+	auto* entity = GetOwner();
+
+	if (entity == nullptr)
+	{
+		return;
+	}
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+	if (inventoryComponent == nullptr)
+	{
+		return;
+	}
+
+	auto* item = inventoryComponent->FindItemById(id);
+
+	if (item == nullptr)
+	{
+		Game::logger->Log("PropertyManagementComponent", "Failed to find item with id %d\n", id);
+
+		return;
+	}
+
+	NiQuaternion originalRotation = rotation;
+
+	const auto modelLOT = item->GetLot();
+
+	if (rotation != NiQuaternion::IDENTITY)
+	{
+		rotation = { rotation.w, rotation.z, rotation.y, rotation.x };
+	}
+
+	if (item->GetLot() == 6662) {
+		LWOOBJID spawnerID = item->GetSubKey();
+
+		EntityInfo info;
+		info.lot = 14;
+		info.pos = {};
+		info.rot = {};
+		info.spawner = nullptr;
+		info.spawnerID = spawnerID;
+		info.spawnerNodeID = 0;
+
+		for (auto* setting : item->GetConfig()) {
+			info.settings.push_back(setting->Copy());
+		}
+
+		Entity* newEntity = EntityManager::Instance()->CreateEntity(info);
+		if (newEntity != nullptr) {
+			EntityManager::Instance()->ConstructEntity(newEntity);
+
+			//Make sure the propMgmt doesn't delete our model after the server dies
+			//Trying to do this after the entity is constructed. Shouldn't really change anything but
+			//There was an issue with builds not appearing since it was placed above ConstructEntity.
+			PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), spawnerID);
+		}
+
+		item->SetCount(item->GetCount() - 1);
+		//item->UnEquip();
+
+		return;
+	}
+	
+	item->SetCount(item->GetCount() - 1);
+	//item->UnEquip();
+
+	auto* node = new SpawnerNode();
+
+	node->position = position;
+	node->rotation = rotation;
+
+	ObjectIDManager::Instance()->RequestPersistentID([this, node, modelLOT, entity, position, rotation, originalRotation](uint32_t persistentId)
+		{
+			SpawnerInfo info{};
+
+			info.templateID = modelLOT;
+			info.nodes = { node };
+			info.templateScale = 1.0f;
+			info.activeOnLoad = true;
+			info.amountMaintained = 1;
+			info.respawnTime = 10;
+
+			info.emulated = true;
+			info.emulator = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
+
+			LWOOBJID id = static_cast<LWOOBJID>(persistentId) | 1ull << OBJECT_BIT_CLIENT;
+
+			info.spawnerID = id;
+			
+			const auto spawnerId = dZoneManager::Instance()->MakeSpawner(info);
+
+			auto* spawner = dZoneManager::Instance()->GetSpawner(spawnerId);
+
+			auto* model = spawner->Spawn();
+
+			models.insert_or_assign(model->GetObjectID(), spawnerId);
+
+			GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), position, m_Parent->GetObjectID(), 14, originalRotation);
+
+			GameMessages::SendUGCEquipPreCreateBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), 0, spawnerId);
+
+			GameMessages::SendGetModelsOnProperty(entity->GetObjectID(), GetModels(), UNASSIGNED_SYSTEM_ADDRESS);
+
+			//item->SetCount(item->GetCount() - 1);
+
+			EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelPlaced(entity);
+		});
+}
+
+void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int deleteReason)
+{
+	Game::logger->Log("PropertyManagementComponent", "Delete model: (%llu) (%i)\n", id, deleteReason);
+
+	auto* entity = GetOwner();
+
+	if (entity == nullptr)
+	{
+		return;
+	}
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+	if (inventoryComponent == nullptr)
+	{
+		return;
+	}
+
+	const auto index = models.find(id);
+
+	if (index == models.end())
+	{
+		Game::logger->Log("PropertyManagementComponent", "Failed to find model\n");
+
+		return;
+	}
+
+	const auto spawnerId = index->second;
+	
+	auto* spawner = dZoneManager::Instance()->GetSpawner(spawnerId);
+
+	models.erase(id);
+	
+	if (spawner == nullptr)
+	{
+		Game::logger->Log("PropertyManagementComponent", "Failed to find spawner\n");
+	}
+
+	auto* model = EntityManager::Instance()->GetEntity(id);
+
+	if (model == nullptr)
+	{
+		Game::logger->Log("PropertyManagementComponent", "Failed to find model entity\n");
+
+		return;
+	}
+
+	EntityManager::Instance()->DestructEntity(model);
+
+	Game::logger->Log("PropertyManagementComponent", "Deleting model LOT %i\n", model->GetLOT());
+
+	if (model->GetLOT() == 14)
+	{
+		//add it to the inv
+		std::vector<LDFBaseData*> settings;
+
+		//fill our settings with BBB gurbage
+		LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintid", model->GetVar<LWOOBJID>(u"blueprintid"));
+		LDFBaseData* userModelDesc = new LDFData<std::u16string>(u"userModelDesc", u"A cool model you made!");
+		LDFBaseData* userModelHasBhvr = new LDFData<bool>(u"userModelHasBhvr", false);
+		LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", model->GetVar<LWOOBJID>(u"userModelID"));
+		LDFBaseData* userModelMod = new LDFData<bool>(u"userModelMod", false);
+		LDFBaseData* userModelName = new LDFData<std::u16string>(u"userModelName", u"My Cool Model");
+		LDFBaseData* propertyObjectID = new LDFData<bool>(u"userModelOpt", true);
+		LDFBaseData* modelType = new LDFData<int>(u"userModelPhysicsType", 2);
+
+		settings.push_back(ldfBlueprintID);
+		settings.push_back(userModelDesc);
+		settings.push_back(userModelHasBhvr);
+		settings.push_back(userModelID);
+		settings.push_back(userModelMod);
+		settings.push_back(userModelName);
+		settings.push_back(propertyObjectID);
+		settings.push_back(modelType);
+
+		inventoryComponent->AddItem(6662, 1, HIDDEN, settings, LWOOBJID_EMPTY, false, false, spawnerId, INVALID, 13, false, -1);
+		auto* item = inventoryComponent->FindItemBySubKey(spawnerId);
+
+		if (item == nullptr) {
+			return;
+		}
+
+		if (deleteReason == 0)
+		{
+			//item->Equip();
+		}
+
+		if (deleteReason == 0 || deleteReason == 2)
+		{
+			GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), item->GetId(), item->GetCount());
+		}
+
+		GameMessages::SendGetModelsOnProperty(entity->GetObjectID(), GetModels(), UNASSIGNED_SYSTEM_ADDRESS);
+
+		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), NiPoint3::ZERO, LWOOBJID_EMPTY, 16, NiQuaternion::IDENTITY);
+
+		if (spawner != nullptr)
+		{
+			dZoneManager::Instance()->RemoveSpawner(spawner->m_Info.spawnerID);
+		}
+		else
+		{
+			model->Smash(SILENT);
+		}
+
+		item->SetCount(0, true, false, false);
+
+		return;
+	}
+	
+	inventoryComponent->AddItem(model->GetLOT(), 1, INVALID, {}, LWOOBJID_EMPTY, false);
+
+	auto* item = inventoryComponent->FindItemByLot(model->GetLOT());
+
+	if (item == nullptr) {
+		return;
+	}
+
+	switch (deleteReason)
+	{
+	case 0: // Pickup
+	{
+		item->Equip();
+
+		GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), item->GetId(), item->GetCount());
+		EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelPickedUp(entity);
+
+		break;
+	}
+	case 1: // Return to inv
+	{
+		EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelRemoved(entity);
+
+		break;
+	}
+	case 2: // Break apart
+	{
+		item->SetCount(item->GetCount() - 1);
+
+		Game::logger->Log("BODGE TIME", "YES IT GOES HERE");
+
+		break;
+	}
+	default:
+	{
+		Game::logger->Log("PropertyManagementComponent", "Invalid delete reason\n");
+	}
+	}
+	
+	GameMessages::SendGetModelsOnProperty(entity->GetObjectID(), GetModels(), UNASSIGNED_SYSTEM_ADDRESS);
+
+	GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), NiPoint3::ZERO, LWOOBJID_EMPTY, 16, NiQuaternion::IDENTITY);
+
+	if (spawner != nullptr)
+	{
+		dZoneManager::Instance()->RemoveSpawner(spawner->m_Info.spawnerID);
+	}
+	else
+	{
+		model->Smash(SILENT);
+	}
+}
+
+void PropertyManagementComponent::UpdateApprovedStatus(const bool value)
+{
+	if (owner == LWOOBJID_EMPTY) return;
+	
+	auto* update = Database::CreatePreppedStmt("UPDATE properties SET mod_approved = ? WHERE id = ?;");
+
+	update->setBoolean(1, value);
+	update->setInt64(2, propertyId);
+
+	update->executeUpdate();
+
+	delete update;
+}
+
+void PropertyManagementComponent::Load()
+{
+	if (propertyId == LWOOBJID_EMPTY)
+	{
+		return;
+	}
+	
+	auto* lookup = Database::CreatePreppedStmt("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id FROM properties_contents WHERE property_id = ?;");
+
+	lookup->setUInt64(1, propertyId);
+	
+	auto* lookupResult = lookup->executeQuery();
+
+	while (lookupResult->next())
+	{
+		const LWOOBJID id = lookupResult->getUInt64(1);
+		const LOT lot = lookupResult->getInt(2);
+
+		const NiPoint3 position = 
+		{
+			static_cast<float>(lookupResult->getDouble(3)),
+			static_cast<float>(lookupResult->getDouble(4)),
+			static_cast<float>(lookupResult->getDouble(5))
+		};
+
+		const NiQuaternion rotation =
+		{
+			static_cast<float>(lookupResult->getDouble(9)),
+			static_cast<float>(lookupResult->getDouble(6)),
+			static_cast<float>(lookupResult->getDouble(7)),
+			static_cast<float>(lookupResult->getDouble(8))
+		};
+
+		auto* node = new SpawnerNode();
+
+		node->position = position;
+		node->rotation = rotation;
+		
+		SpawnerInfo info{};
+
+		info.templateID = lot;
+		info.nodes = { node };
+		info.templateScale = 1.0f;
+		info.activeOnLoad = true;
+		info.amountMaintained = 1;
+		info.respawnTime = 10;
+
+		//info.emulated = true;
+		//info.emulator = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
+
+		info.spawnerID = id;
+
+		std::vector<LDFBaseData*> settings;
+
+		//BBB property models need to have extra stuff set for them:
+		if (lot == 14) {
+			LWOOBJID blueprintID = lookupResult->getUInt(10);
+			blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_CHARACTER);
+			blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_PERSISTENT);
+
+			LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintid", blueprintID);
+			LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
+			LDFBaseData* modelType = new LDFData<int>(u"modelType", 2);
+			LDFBaseData* propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
+			LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", id);
+
+			settings.push_back(ldfBlueprintID);
+			settings.push_back(componentWhitelist);
+			settings.push_back(modelType);
+			settings.push_back(propertyObjectID);
+			settings.push_back(userModelID);
+		}
+
+		node->config = settings;
+
+		const auto spawnerId = dZoneManager::Instance()->MakeSpawner(info);
+
+		auto* spawner = dZoneManager::Instance()->GetSpawner(spawnerId);
+
+		auto* model = spawner->Spawn();
+
+		models.insert_or_assign(model->GetObjectID(), spawnerId);
+
+		/*
+		EntityInfo info;
+		info.lot = lot;
+		info.pos = position;
+		info.rot = rotation;
+		info.settings = settings;
+		info.spawnerID = id;
+
+		auto* model = EntityManager::Instance()->CreateEntity(info);
+
+		EntityManager::Instance()->ConstructEntity(model);
+
+		models.insert_or_assign(model->GetObjectID(), id);
+		*/
+	}
+
+	delete lookup;
+}
+
+void PropertyManagementComponent::Save()
+{
+	if (propertyId == LWOOBJID_EMPTY)
+	{
+		return;
+	}
+
+	auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+	auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
+	auto* lookup = Database::CreatePreppedStmt("SELECT id FROM properties_contents WHERE property_id = ?;");
+	auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
+
+	lookup->setUInt64(1, propertyId);
+
+	auto* lookupResult = lookup->executeQuery();
+
+	std::vector<LWOOBJID> present;
+
+	while (lookupResult->next())
+	{
+		const auto dbId = lookupResult->getUInt64(1);
+
+		present.push_back(dbId);
+	}
+
+	delete lookupResult;
+
+	std::vector<LWOOBJID> modelIds;
+	
+	for (const auto& pair : models)
+	{
+		const auto id = pair.second;
+
+		modelIds.push_back(id);
+
+		auto* entity = EntityManager::Instance()->GetEntity(pair.first);
+
+		if (entity == nullptr)
+		{
+			continue;
+		}
+
+		const auto position = entity->GetPosition();
+		const auto rotation = entity->GetRotation();
+
+		if (std::find(present.begin(), present.end(), id) == present.end())
+		{
+			insertion->setInt64(1, id);
+			insertion->setUInt64(2, propertyId);
+			insertion->setNull(3, 0);
+			insertion->setInt(4, entity->GetLOT());
+			insertion->setDouble(5, position.x);
+			insertion->setDouble(6, position.y);
+			insertion->setDouble(7, position.z);
+			insertion->setDouble(8, rotation.x);
+			insertion->setDouble(9, rotation.y);
+			insertion->setDouble(10, rotation.z);
+			insertion->setDouble(11, rotation.w);
+
+			insertion->execute();
+		}
+		else
+		{
+			update->setDouble(1, position.x);
+			update->setDouble(2, position.y);
+			update->setDouble(3, position.z);
+			update->setDouble(4, rotation.x);
+			update->setDouble(5, rotation.y);
+			update->setDouble(6, rotation.z);
+			update->setDouble(7, rotation.w);
+
+			update->setInt64(8, id);
+
+			update->executeUpdate();
+		}
+	}
+
+	for (auto id : present)
+	{
+		if (std::find(modelIds.begin(), modelIds.end(), id) != modelIds.end())
+		{
+			continue;
+		}
+
+		remove->setInt64(1, id);
+
+		remove->execute();
+	}
+
+	auto* removeUGC = Database::CreatePreppedStmt("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents);");
+
+	removeUGC->execute();
+
+	delete removeUGC;
+	delete insertion;
+	delete update;
+	delete lookup;
+	delete remove;
+}
+
+void PropertyManagementComponent::AddModel(LWOOBJID modelId, LWOOBJID spawnerId) 
+{
+	models[modelId] = spawnerId;
+}
+
+PropertyManagementComponent* PropertyManagementComponent::Instance()
+{
+	return instance;
+}
+
+void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author) const
+{
+	if (author == LWOOBJID_EMPTY) {
+		author = m_Parent->GetObjectID();
+	}
+
+    const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
+    const auto zoneId = worldId.GetMapID();
+
+    Game::logger->Log("Properties", "Getting property info for %d\n", zoneId);
+	GameMessages::PropertyDataMessage message = GameMessages::PropertyDataMessage(zoneId);
+
+	const auto isClaimed = GetOwnerId() != LWOOBJID_EMPTY;
+
+	LWOOBJID ownerId = GetOwnerId();
+	std::string ownerName = "";
+	std::string name = "";
+	std::string description = "";
+	uint64_t claimed = 0;
+	char privacy = 0;
+	
+	if (isClaimed) {
+		const auto cloneId = worldId.GetCloneID();
+
+		auto* nameLookup = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE prop_clone_id = ?;");
+		nameLookup->setUInt64(1, cloneId);
+
+		auto* nameResult = nameLookup->executeQuery();
+		if (nameResult->next()) {
+			ownerName = nameResult->getString(1).c_str();
+		}
+
+		delete nameResult;
+		delete nameLookup;
+
+		name = propertyName;
+		description = propertyDescription;
+		claimed = claimedTime;
+		privacy = static_cast<char>(this->privacyOption);
+	}
+
+	message.OwnerId = ownerId;
+	message.OwnerName = ownerName;
+	message.Name = name;
+	message.Description = description;
+	message.ClaimedTime = claimed;
+	message.PrivacyOption = privacy;
+	
+	message.Paths = GetPaths();
+
+	SendDownloadPropertyData(author, message, UNASSIGNED_SYSTEM_ADDRESS);
+}
+
+void PropertyManagementComponent::OnUse(Entity* originator) 
+{
+	OnQueryPropertyData(originator, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::SendOpenPropertyManagment(m_Parent->GetObjectID(), originator->GetSystemAddress());
+}
+
+void PropertyManagementComponent::SetOwnerId(const LWOOBJID value)
+{
+	owner = value;
+}
+
+const std::map<LWOOBJID, LWOOBJID>& PropertyManagementComponent::GetModels() const
+{
+	return models;
+}

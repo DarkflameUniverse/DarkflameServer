@@ -1,0 +1,13 @@
+[submodule "thirdparty/cpp-httplib"]
+	path = thirdparty/cpp-httplib
+	url = https://github.com/yhirose/cpp-httplib
+[submodule "thirdparty/tinyxml2"]
+	path = thirdparty/tinyxml2
+	url = https://github.com/leethomason/tinyxml2
+[submodule "thirdparty/recastnavigation"]
+	path = thirdparty/recastnavigation
+	url = https://github.com/recastnavigation/recastnavigation
+[submodule "thirdparty/libbcrypt"]
+	path = thirdparty/libbcrypt
+	url = https://github.com/trusch/libbcrypt.git
+

@@ -1,0 +1,17 @@
+Checks: '-*,readability-*,performance-*,modernize-*,-modernize-use-trailing-return-type,bugprone-*'
+WarningsAsErrors: true
+HeaderFilterRegex: ''
+FormatStyle: none
+CheckOptions:
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.ClassMethodCase
+    value: CamelCase
+  - key: readability-identifier-naming.ClassMemberPrefix
+    value: m_
+  - key: readability-identifier-naming.ClassMemberCase
+    value: CamelCase
+  - key: readability-identifier-naming.ClassConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase

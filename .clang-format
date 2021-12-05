@@ -1,0 +1,37 @@
+---
+BraceWrapping: 
+  AfterCaseLabel: false
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterObjCDeclaration: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+  BeforeLambdaBody: false
+  BeforeWhile: false
+BreakBeforeBraces: Attach
+ColumnLimit: 0
+IndentWidth: 4
+IndentCaseLabels: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '<[[:alnum:].]+\.h>'
+    Priority: 1
+  - Regex: '<[[:alnum:].]+>'
+    Priority: 2
+  - Regex: '.*/.*'
+    Priority: 3
+  - Regex: '.*'
+    Priority: 4
+DerivePointerAlignment: false
+PointerAlignment: Left
+...
