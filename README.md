@@ -111,7 +111,7 @@ apt update && apt upgrade
 # Make sure the gcc, cmake, and build-essentials are installed
 sudo apt install gcc
 sudo apt install cmake
-sudo apt install build-essentials
+sudo apt install build-essential
 ```
 
 [**Follow the Linux instructions**](#linux-builds)
