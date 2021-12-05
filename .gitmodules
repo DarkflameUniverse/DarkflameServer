@@ -10,4 +10,3 @@
 [submodule "thirdparty/libbcrypt"]
 	path = thirdparty/libbcrypt
 	url = https://github.com/trusch/libbcrypt.git
-
