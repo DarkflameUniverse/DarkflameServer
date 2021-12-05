@@ -1,6 +1,8 @@
 temp/
 cmake-build-debug/
 RelWithDebInfo/
+.env
+mariadb/
 
 # Third party libraries
 thirdparty/mysql/

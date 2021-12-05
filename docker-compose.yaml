@@ -1,0 +1,19 @@
+version: '3'
+services:
+  # lu: https://github.com/jgkawell/DarkflameServer
+  lu-database:
+    image: lscr.io/linuxserver/mariadb:10.5.13
+    container_name: lu-database
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - MYSQL_ROOT_PASSWORD=${LUDB_ROOT_ACCESS_PASSWORD}
+      - TZ=${TZ}
+      - MYSQL_DATABASE=${LUDB_USER_DB_NAME}
+      - MYSQL_USER=${LUDB_MYSQL_USER}
+      - MYSQL_PASSWORD=${LUDB_DATABASE_PASSWORD}
+    volumes:
+      - ./mariadb:/config
+    ports:
+      - 3306:3306
+    restart: unless-stopped
