@@ -156,7 +156,7 @@ certutil -hashfile <file> SHA256
 
 **Setup resource directory**
 * In the `build` directory create a `res` directory if it does not already exist.
-* Copy over or create symlinks from `macros`, `BrickModels`, `chatplus_en_us.txt`, and `maps` in your client `res` directory to the server `build/res` directory
+* Copy over or create symlinks from `macros`, `BrickModels`, `chatplus_en_us.txt`, `names`, and `maps` in your client `res` directory to the server `build/res` directory
 * Unzip the navmeshes [here](./resources/navmeshes.zip) and place them in `build/res/maps/navmeshes`
 
 **Setup locale**
