@@ -36,7 +36,8 @@ git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 
 Some tools utilized to streamline the setup process require Python 3, make sure you have it installed.
 
-**Choosing the right version for your client**
+
+### Choosing the right version for your client
 DLU clients identify themselves using a higher version number than the regular live clients out there.
 This was done make sure that older and incomplete clients wouldn't produce false positive bug reports for us, and because we made bug fixes and new content for the client. 
 
