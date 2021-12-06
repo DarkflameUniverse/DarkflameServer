@@ -40,7 +40,7 @@ Some tools utilized to streamline the setup process require Python 3, make sure 
 DLU clients identify themselves using a higher version number than the regular live clients out there.
 This was done make sure that older and incomplete clients wouldn't produce false positive bug reports for us, and because we made bug fixes and new content for the client. 
 
-If you're using a DLU client, then you don't need to change anything. But if you're using any other client, you'll have to go into the "CMakeVariables.txt" file and change it to match your client's version. (likely 171022)
+If you're using a DLU client you'll have to go into the "CMakeVariables.txt" file and change the NET_VERSION variable to 171023 to match the modified client's version number.
 
 ### Linux builds
 Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed.
