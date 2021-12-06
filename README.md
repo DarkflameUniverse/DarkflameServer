@@ -125,6 +125,19 @@ Initial setup can vary drastically based on which operating system or distributi
 * Create a database for Darkflame Universe to use
 * Run each SQL file in the order at which they appear [here](migrations/dlu/) on the database
 
+#### MariaDB in Docker
+
+A quick way to set up the database is to run it in Docker.
+
+Requirements:
+- [docker](https://docs.docker.com/get-docker/)
+- [docker-compose](https://docs.docker.com/compose/install/)
+
+Steps:
+1. Copy the `example.env` file to `.env`
+2. Edit the values in `.env` as needed
+3. Launch using the command: `docker-compose up -d lu-database
+
 ### Resources
 
 **LEGO® Universe 1.10.64**

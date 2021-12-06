@@ -1,6 +1,6 @@
 version: '3'
 services:
-  # lu: https://github.com/jgkawell/DarkflameServer
+  # mariadb: https://github.com/linuxserver/docker-mariadb
   lu-database:
     image: lscr.io/linuxserver/mariadb:10.5.13
     container_name: lu-database
