@@ -136,7 +136,7 @@ Requirements:
 Steps:
 1. Copy the `example.env` file to `.env`
 2. Edit the values in `.env` as needed
-3. Launch using the command: `docker-compose up -d lu-database
+3. Launch using the command: `docker-compose up -d lu-database`
 
 ### Resources
 
