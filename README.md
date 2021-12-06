@@ -224,6 +224,7 @@ To connect to a server follow these steps:
 * Open it in a text editor and locate where it says `AUTHSERVERIP=0:`
 * Replace the contents after to `:` and the following `,` with what you configured as the server's public facing IP. For example `AUTHSERVERIP=0:localhost` for locally hosted servers
 * Launch `legouniverse.exe`, through `wine` if on a Unix-like operating system
+* Note that if you are on WSL2, you will need to configure the public IP in the server and client to be the IP of the WSL2 instance and not localhost, which can be found by running `ifconfig` in the terminal. Windows defaults to WSL1, so this will not apply to most users.
 
 ### Survival
 
