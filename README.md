@@ -120,7 +120,7 @@ sudo apt install build-essential
 ## Setting up the environment
 
 ### Database
-Darkflame Universe utilizes a MySQL/MariaDB database for account and character information.
+Darkflame Universe utilizes a MariaDB database for account and character information.
 
 Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
 * Create a database for Darkflame Universe to use
