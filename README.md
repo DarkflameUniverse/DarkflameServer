@@ -77,8 +77,8 @@ sudo ln -s /usr/local/mysql-connector-c++/lib64/libssl.1.1.dylib /path/to/build/
 sudo ln -s /usr/local/mysql-connector-c++/lib64/libcrypto.1.1.dylib /path/to/build/folder/libcrypto.1.1.dylib
 ```
 
-### Windows builds (native)
-Ensure that you have either the [MSVC](https://visualstudio.microsoft.com/vs/) or the [Clang](https://github.com/llvm/llvm-project/releases/) (recommended) compiler installed. You will also need to install [CMake](https://cmake.org/download/).
+### Windows builds (native) (CURRENTLY BROKEN ONCE COMPILED)
+~~Ensure that you have either the [MSVC](https://visualstudio.microsoft.com/vs/) or the [Clang](https://github.com/llvm/llvm-project/releases/) (recommended) compiler installed. You will also need to install [CMake](https://cmake.org/download/).
 
 **Build the repository**
 ```batch
@@ -92,7 +92,7 @@ cmake ..
 :: Run CMake with build flag to build
 cmake --build .
 ```
-
+~~
 
 ### Windows builds (WSL)
 This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11.
