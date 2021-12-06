@@ -43,7 +43,7 @@ This was done make sure that older and incomplete clients wouldn't produce false
 If you're using a DLU client, then you don't need to change anything. But if you're using any other client, you'll have to go into the "CMakeVariables.txt" file and change it to match your client's version. (likely 171022)
 
 ### Linux builds
-Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed.
+Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available.
 
 **Build the repository**
 ```bash
@@ -111,7 +111,7 @@ apt update && apt upgrade
 # Make sure the gcc, cmake, and build-essentials are installed
 sudo apt install gcc
 sudo apt install cmake
-sudo apt install build-essentials
+sudo apt install build-essential
 ```
 
 [**Follow the Linux instructions**](#linux-builds)
@@ -156,7 +156,7 @@ certutil -hashfile <file> SHA256
 
 **Setup resource directory**
 * In the `build` directory create a `res` directory if it does not already exist.
-* Copy over or create symlinks from `macros`, `BrickModels`, `chatplus_en_us.txt`, and `maps` in your client `res` directory to the server `build/res` directory
+* Copy over or create symlinks from `macros`, `BrickModels`, `chatplus_en_us.txt`, `names`, and `maps` in your client `res` directory to the server `build/res` directory
 * Unzip the navmeshes [here](./resources/navmeshes.zip) and place them in `build/res/maps/navmeshes`
 
 **Setup locale**
