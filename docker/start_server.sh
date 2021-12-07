@@ -48,6 +48,40 @@ function update_ini_values() {
     update_ini worldconfig.ini max_clients $MAX_CLIENTS
 }
 
+function symlink_client_files() {
+    ln -s /client/client/res/macros/ /app/res/macros
+    ln -s /client/client/res/BrickModels/ /app/res/BrickModels
+    ln -s /client/client/res/chatplus_en_us.txt /app/res/chatplus_en_us.txt
+    ln -s /client/client/res/names/ /app/res/names
+    ln -s /client/client/res/maps/ /app/res/maps
+    ln -s /client/client/locale/locale.xml /app/locale/locale.xml
+}
+
+function fdb_to_sqlite() {
+    echo "Run fdb_to_sqlite"
+    python3 /app/utils/fdb_to_sqlite.py /client/client/res/CDClient.fdb --sqlite_path /app/res/CDServer.sqlite 
+
+    (
+        cd /app/migrations/cdserver
+        readarray -d '' entries < <(printf '%s\0' *.sql | sort -zV)
+        for entry in "${entries[@]}"; do
+            echo "Execute $entry"
+            sqlite3 ../../res/CDServer.sqlite < $entry
+        done
+    )
+}
+
+function run_db_migrations() {
+    (
+        cd /app/migrations/dlu
+        readarray -d '' entries < <(printf '%s\0' *.sql | sort -zV)
+        for entry in "${entries[@]}"; do
+            echo "Execute $entry"
+            mysql -h"$DATABASE_HOST" -P"$DATABASE_PORT" -u"$DATABASE_USER" -p"$DATABASE_PASSWORD" $DATABASE < $entry
+        done
+    )
+}
+
 set_defaults
 
 check_sql_connection
@@ -64,14 +98,21 @@ if [[ ! -f "/client/extracted" ]]; then
     echo "Start client resource extraction"
 
     python3 /app/utils/pkextractor.py /client/ /client/
-    
+
     touch /client/extracted
 else
     echo "Client already extracted. Skip this step"
     echo "If you want to force re-extract, just delete the file called \"extracted\" in the client directory"
 fi
 
-while [[ 1 ]]; do
-    sleep 1
-    echo "Hello"
-done
+symlink_client_files
+
+fdb_to_sqlite
+
+run_db_migrations
+
+echo "Start MasterServer"
+
+./MasterServer
+
+tail -f /dev/null

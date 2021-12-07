@@ -23,6 +23,7 @@ services:
       dockerfile: ./docker/Dockerfile
       args:
         - BUILD_THREADS=${BUILD_THREADS:-1}
+        - BUILD_VERSION=${BUILD_VERSION:-171022}
     environment:
       - DATABASE=${MARIADB_DATABASE:-darkflame}
       - DATABASE_HOST=database
