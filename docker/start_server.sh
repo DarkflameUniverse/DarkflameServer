@@ -80,17 +80,6 @@ function fdb_to_sqlite() {
     )
 }
 
-function run_db_migrations() {
-    (
-        cd /app/migrations/dlu
-        readarray -d '' entries < <(printf '%s\0' *.sql | sort -zV)
-        for entry in "${entries[@]}"; do
-            echo "Execute $entry"
-            mysql -h"$DATABASE_HOST" -P"$DATABASE_PORT" -u"$DATABASE_USER" -p"$DATABASE_PASSWORD" $DATABASE < $entry
-        done
-    )
-}
-
 set_defaults
 
 check_sql_connection
@@ -117,8 +106,6 @@ fi
 symlink_client_files
 
 fdb_to_sqlite
-
-run_db_migrations
 
 echo "Start MasterServer"
 
