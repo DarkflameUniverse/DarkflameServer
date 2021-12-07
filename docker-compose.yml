@@ -11,6 +11,7 @@ services:
       - MARIADB_DATABASE=${MARIADB_DATABASE:-darkflame}
     volumes:
       - database:/var/lib/mysql
+      - migrations/dlu:/docker-entrypoint-initdb.d
     networks:
       - darkflame
 
