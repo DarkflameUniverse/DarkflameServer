@@ -295,6 +295,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 
 	std::unordered_map<char, char> unacceptedItems;
 	bool bAllClean = Game::chatFilter->IsSentenceOkay(message, user->GetLastUsedChar()->GetGMLevel());
+	Game::logger->Log("BALLCLEAN", "%s", bAllClean?"Is Clean":"IS NOT CLEAN!!!");
 	if (!bAllClean) {
 		unacceptedItems.insert(std::make_pair((char)0, (char)message.length()));
 	}
