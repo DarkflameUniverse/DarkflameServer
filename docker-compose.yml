@@ -71,14 +71,17 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - "~/Desktop/Files/LU/files/account/credentials.py:/app/credentials.py"
-      - "~/Desktop/Files/LU/files/account/resources.py:/app/resources.py"
+      - "./resources/account/credentials.py:/app/credentials.py"
+      - "./resources/account/resources.py:/app/resources.py"
 
   #
   # Darkflame Universe: 
   # The master server
   #
   dlu-master:
+    args:
+      - BUILD_VERSION=171022
+      - BUILD_ARGS=-j2
     build: .
     container_name: dlu-master
     depends_on:
@@ -95,12 +98,12 @@ services:
       - "2005:2005/udp"
       - "3000-3300:3000-3300/udp"
     volumes:
-      - "~/Desktop/Files/LU/files/authconfig.ini:/opt/darkflame-universe/authconfig.ini"
-      - "~/Desktop/Files/LU/files/chatconfig.ini:/opt/darkflame-universe/chatconfig.ini"
-      - "~/Desktop/Files/LU/files/masterconfig.ini:/opt/darkflame-universe/masterconfig.ini"
-      - "~/Desktop/Files/LU/files/worldconfig.ini:/opt/darkflame-universe/worldconfig.ini"
-      - "~/Desktop/Files/LU/files/locale/:/opt/darkflame-universe/locale/"
-      - "~/Desktop/Files/LU/files/res/:/opt/darkflame-universe/res/"
+      - "./resources/authconfig.ini:/opt/darkflame-universe/authconfig.ini"
+      - "./resources/chatconfig.ini:/opt/darkflame-universe/chatconfig.ini"
+      - "./resources/masterconfig.ini:/opt/darkflame-universe/masterconfig.ini"
+      - "./resources/worldconfig.ini:/opt/darkflame-universe/worldconfig.ini"
+      - "./resources/locale/:/opt/darkflame-universe/locale/"
+      - "./resources/res/:/opt/darkflame-universe/res/"
       
 # Volumes
 volumes:
