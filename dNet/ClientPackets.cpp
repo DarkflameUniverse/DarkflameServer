@@ -64,6 +64,8 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 
 	std::string playerName = user->GetLastUsedChar()->GetName();
 	bool isMythran = user->GetLastUsedChar()->GetGMLevel() > 0;
+	Game::logger->Log("IsUserMythran", "%s", isMythran?"Yes, they are mythran\n":"No, they are not mythran\n");
+	Game::logger->Log("IsMessageApproved", "%s", user->GetLastChatMessageApproved()?"Yes, Their message is approved\n":"No, their message is not approved\n");
 
 	if (!user->GetLastChatMessageApproved() && !isMythran) return;
 
