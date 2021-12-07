@@ -3,6 +3,8 @@ cmake-build-debug/
 RelWithDebInfo/
 .env
 mariadb/
+client/
+docker/
 
 # Third party libraries
 thirdparty/mysql/
