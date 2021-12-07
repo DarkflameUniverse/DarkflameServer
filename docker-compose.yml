@@ -42,6 +42,19 @@ services:
     ports:
       - 80:80
 
+  account-manager:
+    container_name: DarkFlameAccountManager
+    build:
+      context: .
+      dockerfile: ./docker/AccountManager.Dockerfile
+    environment:
+      - DATABASE=${MARIADB_DATABASE:-darkflame}
+      - DATABASE_HOST=database
+      - DATABASE_USER=${MARIADB_USER:-darkflame}
+      - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
+    ports:
+      - 5000:5000
+
 networks:
   darkflame:
     
