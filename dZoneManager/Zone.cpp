@@ -43,15 +43,7 @@ void Zone::LoadZoneIntoMemory() {
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 	if (m_ZoneFilePath == "ERR") return;
 
-	// try to open with regular cased path first
 	std::ifstream file(m_ZoneFilePath, std::ios::binary);
-	if (!file) {
-		// if that fails try the path in lowercase
-		std::transform(m_ZoneFilePath.begin(), m_ZoneFilePath.end(), m_ZoneFilePath.begin(), ::tolower);
-
-		file.open(m_ZoneFilePath, std::ios::binary);
-	}
-
 	if (file) {
 		BinaryIO::BinaryRead(file, m_ZoneFileFormatVersion);
 		
@@ -180,7 +172,8 @@ std::string Zone::GetFilePathForZoneID() {
 	CDZoneTableTable * zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
 	const CDZoneTable* zone = zoneTable->Query(this->GetZoneID().GetMapID());
 	if (zone != nullptr) {
-		std::string toReturn = "./res/maps/" + zone->zoneName;
+        std::string toReturn = "./res/maps/" + zone->zoneName;
+        std::transform(toReturn.begin(), toReturn.end(), toReturn.begin(), ::tolower);
 		return toReturn;
 	}
 
