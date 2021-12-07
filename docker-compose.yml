@@ -32,6 +32,16 @@ services:
     volumes:
       - $CLIENT_PATH:/client
 
+  brickbuildfix:
+    container_name: DarkFlameBrickBuildFix
+    networks:
+      - darkflame
+    build:
+      context: .
+      dockerfile: ./docker/brickfix.Dockerfile
+    ports:
+      - 80:80
+
 networks:
   darkflame:
     
