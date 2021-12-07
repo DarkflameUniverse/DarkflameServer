@@ -3,7 +3,7 @@ version: "3"
 services:
   database:
     container_name: DarkflameDatabase
-    image: mariadb:latest
+    image: mariadb:10.6
     environment:
       - MARIADB_USER=${MARIADB_USER:-darkflame}
       - MARIADB_PASSWORD=${MARIADB_PASSWORD:-darkflame}
@@ -71,6 +71,8 @@ services:
       timeout: 3s
       retries: 3
       start_period: 40s
+    depends_on:
+      - database
 
 networks:
   darkflame:
