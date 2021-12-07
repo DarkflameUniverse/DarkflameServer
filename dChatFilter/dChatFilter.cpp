@@ -21,8 +21,9 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 		ReadWordlistPlaintext(filepath + ".txt");
 		if (!m_DontGenerateDCF) ExportWordlistToDCF(filepath + ".dcf");
 	}
-	else {
-		ReadWordlistDCF(filepath + ".dcf");
+	else if (!ReadWordlistDCF(filepath + ".dcf")) {
+		ReadWordlistPlaintext(filepath + ".txt");
+		ExportWordlistToDCF(filepath + ".dcf");
 	}
 
 	//Read player names that are ok as well:
@@ -46,24 +47,24 @@ void dChatFilter::ReadWordlistPlaintext(const std::string& filepath) {
 	if (file) {
 		std::string line;
 		while (std::getline(file, line)) {
+			line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 			std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
 			m_Words.push_back(CalculateHash(line));
 		}
 	}
 }
 
-void dChatFilter::ReadWordlistDCF(const std::string& filepath) {
+bool dChatFilter::ReadWordlistDCF(const std::string& filepath) {
 	std::ifstream file(filepath, std::ios::binary);
 	if (file) {
 		fileHeader hdr;
 		BinaryIO::BinaryRead(file, hdr);
 		if (hdr.header != header) {
-			std::cout << "Wrong file header!" << std::endl;
 			file.close();
-			return;
+			return false;
 		}
 
-		if (hdr.formatVersion <= formatVersion) {
+		if (hdr.formatVersion == formatVersion) {
 			size_t wordsToRead = 0;
 			BinaryIO::BinaryRead(file, wordsToRead);
 			m_Words.reserve(wordsToRead);
@@ -73,17 +74,20 @@ void dChatFilter::ReadWordlistDCF(const std::string& filepath) {
 				BinaryIO::BinaryRead(file, word);
 				m_Words.push_back(word);
 			}
+
+			return true;
 		}
 		else {
-			std::cout << "Newer file or corrupt" << std::endl;
 			file.close();
-			return;
+			return false;
 		}
 	}
+
+	return false;
 }
 
 void dChatFilter::ExportWordlistToDCF(const std::string& filepath) {
-	std::ofstream file(filepath, std::ios::binary);
+	std::ofstream file(filepath, std::ios::binary | std::ios_base::out);
 	if (file) {
 		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::header));
 		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::formatVersion));

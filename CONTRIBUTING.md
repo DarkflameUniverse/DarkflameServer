@@ -52,7 +52,7 @@ This project has gone through multiple iterations of coding style. In the code y
 
 ### General
 
-Use 4 spaces instead of the tab character.
+**Never** use spaces instead of tabs. 1 Tab = 4 space character's width by default.
 
 Use typically trailing braces everywhere (if, else, functions, structures, typedefs, class definitions, etc.)
 

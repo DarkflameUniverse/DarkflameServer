@@ -6,7 +6,7 @@
 
 namespace dChatFilterDCF {
 	static const uint32_t header = ('D' + ('C' << 8) + ('F' << 16) + ('B' << 24));
-	static const uint32_t formatVersion = 1;
+	static const uint32_t formatVersion = 2;
 
 	struct fileHeader {
 		uint32_t header;
@@ -21,7 +21,7 @@ public:
 	~dChatFilter();
 
 	void ReadWordlistPlaintext(const std::string & filepath);
-	void ReadWordlistDCF(const std::string & filepath);
+	bool ReadWordlistDCF(const std::string & filepath);
 	void ExportWordlistToDCF(const std::string & filepath);
 	bool IsSentenceOkay(const std::string& message, int gmLevel);
 

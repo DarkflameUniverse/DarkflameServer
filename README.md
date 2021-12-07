@@ -36,14 +36,17 @@ git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 
 Some tools utilized to streamline the setup process require Python 3, make sure you have it installed.
 
-**Choosing the right version for your client**
+
+### Choosing the right version for your client
 DLU clients identify themselves using a higher version number than the regular live clients out there.
 This was done make sure that older and incomplete clients wouldn't produce false positive bug reports for us, and because we made bug fixes and new content for the client. 
 
-If you're using a DLU client, then you don't need to change anything. But if you're using any other client, you'll have to go into the "CMakeVariables.txt" file and change it to match your client's version. (likely 171022)
+If you're using a DLU client you'll have to go into the "CMakeVariables.txt" file and change the NET_VERSION variable to 171023 to match the modified client's version number.
 
 ### Linux builds
 Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available.
+
+cmake must be version 3.12 or higher!
 
 **Build the repository**
 ```bash
@@ -78,7 +81,7 @@ sudo ln -s /usr/local/mysql-connector-c++/lib64/libcrypto.1.1.dylib /path/to/bui
 ```
 
 ### Windows builds (native)
-Ensure that you have either the [MSVC](https://visualstudio.microsoft.com/vs/) or the [Clang](https://github.com/llvm/llvm-project/releases/) (recommended) compiler installed. You will also need to install [CMake](https://cmake.org/download/).
+Ensure that you have either the [MSVC](https://visualstudio.microsoft.com/vs/) or the [Clang](https://github.com/llvm/llvm-project/releases/) (recommended) compiler installed. You will also need to install [CMake](https://cmake.org/download/). Currently on native Windows the server will only work in Release mode.
 
 **Build the repository**
 ```batch
@@ -223,6 +226,7 @@ To connect to a server follow these steps:
 * Open it in a text editor and locate where it says `AUTHSERVERIP=0:`
 * Replace the contents after to `:` and the following `,` with what you configured as the server's public facing IP. For example `AUTHSERVERIP=0:localhost` for locally hosted servers
 * Launch `legouniverse.exe`, through `wine` if on a Unix-like operating system
+* Note that if you are on WSL2, you will need to configure the public IP in the server and client to be the IP of the WSL2 instance and not localhost, which can be found by running `ifconfig` in the terminal. Windows defaults to WSL1, so this will not apply to most users.
 
 ### Survival
 
