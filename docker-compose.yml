@@ -53,8 +53,26 @@ services:
       - "8080:80"
     restart: always
 
+  # 
+  # Darkflame Universe
+  # The account manager
   #
-  # Darkflame Universe:
+  dlu-account:
+    build: https://github.com/jaller200/AccountManager.git#main
+    container_name: dlu-account
+    depends_on:
+      - mariadb
+    image: darkflame-universe-account:1.0.0
+    networks:
+      - darkflame_net
+    ports:
+      - "5000:5000"
+    volumes:
+      - "~/Desktop/Files/LU/files/account/credentials.py:/app/credentials.py"
+      - "~/Desktop/Files/LU/files/account/resources.py:/app/resources.py"
+
+  #
+  # Darkflame Universe: 
   # The master server
   #
   dlu-master:
