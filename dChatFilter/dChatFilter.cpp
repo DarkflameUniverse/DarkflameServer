@@ -102,26 +102,14 @@ bool dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel) {
 	if (message.empty()) return true;
 
 	std::stringstream sMessage(message);
-	std::string segment;
+	std::string line;
 	std::regex reg("(!*|\\?*|\\;*|\\.*|\\,*)");
 
-
-		
-
-	#ifdef _win32 
-	while (std::getline(file, line)) {
+	while (std::getline(sMessage, line)) {
 		line.erase(std::remove(line.begin(), line.end(), '\r'), line.end()); //Remove nix line-endings
 		std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
-		m_Words.push_back(CalculateHash(line));
-	#else 
-	while (std::getline(sMessage, segment, ' ')) {
-	#endif
-
-
-		std::transform(segment.begin(), segment.end(), segment.begin(), ::tolower); //Transform to lowercase
-			segment = std::regex_replace(segment, reg, "");
-
-		size_t hash = CalculateHash(segment);
+		line = std::regex_replace(line, reg, "");
+		size_t hash = CalculateHash(line);
 
 		if (std::find(m_UserUnapprovedWordCache.begin(), m_UserUnapprovedWordCache.end(), hash) != m_UserUnapprovedWordCache.end()) {
 			return false;
