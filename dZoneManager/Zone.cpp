@@ -35,7 +35,7 @@ void Zone::Initalize()
 	LoadZoneIntoMemory();
 	LoadLevelsIntoMemory();
 	m_CheckSum = CalculateChecksum();
-	Game::logger->Log("Zone", "Calculated checksum is " + std::to_string(m_CheckSum));
+    Game::logger->Log("Zone", "Calculated checksum is %i \n", m_CheckSum);
 }
 
 void Zone::LoadZoneIntoMemory() {
