@@ -113,9 +113,9 @@ class PKExtractor:
         original_md5 = self.records[path][4]
 
         dir, filename = os.path.split(path)
-        out = os.path.join(outdir, dir)
+        out = os.path.join(outdir, dir.lower())
         os.makedirs(out, exist_ok=True)
-        out_file_path = os.path.join(out, filename)
+        out_file_path = os.path.join(out, filename.lower())
 
         if os.path.isfile(out_file_path):
             with open(out_file_path, "rb") as f:

@@ -45,6 +45,9 @@ function update_database_ini_values_for() {
     update_ini $INI_FILE mysql_database $DATABASE
     update_ini $INI_FILE mysql_username $DATABASE_USER
     update_ini $INI_FILE mysql_password $DATABASE_PASSWORD
+    if [[ "$INI_FILE" != "worldconfig.ini" ]]; then
+        update_ini $INI_FILE external_ip $EXTERNAL_IP
+    fi
 }
 
 function update_ini_values() {
@@ -62,8 +65,14 @@ function symlink_client_files() {
     ln -s /client/client/res/BrickModels/ /app/res/BrickModels
     ln -s /client/client/res/chatplus_en_us.txt /app/res/chatplus_en_us.txt
     ln -s /client/client/res/names/ /app/res/names
-    ln -s /client/client/res/maps/ /app/res/maps
     ln -s /client/client/locale/locale.xml /app/locale/locale.xml
+    (
+        cd /client/client/res/maps
+        readarray -d '' entries < <(printf '%s\0' * | sort -zV)
+        for entry in "${entries[@]}"; do
+            ln -s /client/client/res/maps/$entry /app/res/maps/
+        done
+    )
 }
 
 function fdb_to_sqlite() {

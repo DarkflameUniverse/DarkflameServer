@@ -37,8 +37,7 @@ RUN echo "Build server" && \
     cmake .. && \
     make -j $BUILD_THREADS
 
-RUN mkdir -p /build/build/res/maps/navmeshes/ && \
-    unzip /build/resources/navmeshes.zip -d /build/build/res/maps
+RUN unzip /build/resources/navmeshes.zip -d /build/build/res/maps
 
 FROM gcc:11 as runtime
 

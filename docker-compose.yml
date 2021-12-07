@@ -30,6 +30,7 @@ services:
       - DATABASE_HOST=database
       - DATABASE_USER=${MARIADB_USER:-darkflame}
       - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
+      - EXTERNAL_IP=${EXTERNAL_IP:-localhost}
     volumes:
       - ${CLIENT_PATH:?err}:/client
     depends_on:
