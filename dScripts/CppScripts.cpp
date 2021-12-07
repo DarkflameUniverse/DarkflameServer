@@ -15,6 +15,7 @@
 //VE / AG scripts:
 #include "AgShipPlayerDeathTrigger.h"
 #include "AgShipPlayerShockServer.h"
+#include "AgShipShake.h"
 #include "AgSpaceStuff.h"
 #include "AgImagSmashable.h"
 #include "NpcNpSpacemanBob.h"
@@ -290,7 +291,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new AgShipPlayerDeathTrigger();
 	else if (scriptName == "scripts\\ai\\NP\\L_NPC_NP_SPACEMAN_BOB.lua")
 		script = new NpcNpSpacemanBob();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_SPACE_STUFF.lua") // Broken, will (sometimes) display all animations at once on initial login
+	else if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_SHAKE.lua")
+		script = new AgShipShake();
+	else if (scriptName == "scripts\\ai\\AG\\L_AG_SPACE_STUFF.lua")
 		script = new AgSpaceStuff();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_SHOCK_SERVER.lua")
 		script = new AgShipPlayerShockServer();
