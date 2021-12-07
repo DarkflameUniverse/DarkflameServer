@@ -41,6 +41,12 @@ services:
       dockerfile: ./docker/brickfix.Dockerfile
     ports:
       - 80:80
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 2m
+      timeout: 3s
+      retries: 3
+      start_period: 40s
 
   account-manager:
     container_name: DarkFlameAccountManager
@@ -57,6 +63,12 @@ services:
       - ACCOUNT_SECRET=${ACCOUNT_MANAGER_SECRET:?err}
     ports:
       - 5000:5000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 2m
+      timeout: 3s
+      retries: 3
+      start_period: 40s
 
 networks:
   darkflame:
