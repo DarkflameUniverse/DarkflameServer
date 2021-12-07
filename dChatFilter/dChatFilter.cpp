@@ -83,7 +83,7 @@ void dChatFilter::ReadWordlistDCF(const std::string& filepath) {
 }
 
 void dChatFilter::ExportWordlistToDCF(const std::string& filepath) {
-	std::ofstream file(filepath, std::ios::binary);
+	std::ofstream file(filepath, std::ios::binary | std::ios_base::out );
 	if (file) {
 		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::header));
 		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::formatVersion));
@@ -110,22 +110,16 @@ bool dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel) {
 		segment = std::regex_replace(segment, reg, "");
 
 		size_t hash = CalculateHash(segment);
-		Game::logger->Log("SEGMENT", "Word: %s  Hash: %zu", segment.c_str(), hash);
 
 		if (std::find(m_UserUnapprovedWordCache.begin(), m_UserUnapprovedWordCache.end(), hash) != m_UserUnapprovedWordCache.end()) {
-			Game::logger->Log("SENTENCEOKAY", "SENTENCE IS UNNAPROVED");
 			return false;
 		}
 
-		bool a = IsInWordlist(hash);
-		Game::logger->Log("ISWORDLIST", "ISINWORDLIST: %s", a?"YES":"NO");
-		if (!a) {
-			Game::logger->Log("SENTENCEOKAY", "SENTENCE IS NOT IN WORDLIST");
+		if (!IsInWordlist(hash)) {
 			m_UserUnapprovedWordCache.push_back(hash);
 			return false;
 		}
 	}
-	Game::logger->Log("SENTENCEOKAY", "SENTENCE IS OKAY TO SEND");
 
 	return true;
 }
