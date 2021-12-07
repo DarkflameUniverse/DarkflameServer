@@ -2,6 +2,7 @@
 #include <fstream>
 #include <future>
 #include <sstream>
+#include <algorithm>
 
 #include "Database.h"
 #include "Game.h"
@@ -25,38 +26,46 @@ UserManager * UserManager::m_Address = nullptr;
 uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle);
 uint32_t FindCharPantsID(uint32_t pantsColor);
 
+inline void StripCR(std::string& str) {
+	str.erase(std::remove(str.begin(), str.end(), '\r'), str.end());
+}
+
 void UserManager::Initialize() {
 	std::string firstNamePath = "./res/names/minifigname_first.txt";
-    std::string middleNamePath = "./res/names/minifigname_middle.txt";
-    std::string lastNamePath = "./res/names/minifigname_last.txt";
-    std::string line;
+	std::string middleNamePath = "./res/names/minifigname_middle.txt";
+	std::string lastNamePath = "./res/names/minifigname_last.txt";
+	std::string line;
 
-    std::fstream fnFile(firstNamePath, std::ios::in);
-    std::fstream mnFile(middleNamePath, std::ios::in);
-    std::fstream lnFile(lastNamePath, std::ios::in);
+	std::fstream fnFile(firstNamePath, std::ios::in);
+	std::fstream mnFile(middleNamePath, std::ios::in);
+	std::fstream lnFile(lastNamePath, std::ios::in);
 
-    while (std::getline(fnFile, line, '\n')) {
+	while (std::getline(fnFile, line, '\n')) {
 		std::string name = line;
-        m_FirstNames.push_back(name);
-    }
+		StripCR(name);
+		m_FirstNames.push_back(name);
+	}
 
-    while (std::getline(mnFile, line, '\n')) {
+	while (std::getline(mnFile, line, '\n')) {
 		std::string name = line;
-        m_MiddleNames.push_back(name);
-    }
+		StripCR(name);
+		m_MiddleNames.push_back(name);
+	}
 
-    while (std::getline(lnFile, line, '\n')) {
+	while (std::getline(lnFile, line, '\n')) {
 		std::string name = line;
-        m_LastNames.push_back(name);
-    }
+		StripCR(name);
+		m_LastNames.push_back(name);
+	}
 
-    fnFile.close();
-    mnFile.close();
-    lnFile.close();
+	fnFile.close();
+	mnFile.close();
+	lnFile.close();
 	
 	//Load our pre-approved names:
 	std::fstream chatList("./res/chatplus_en_us.txt", std::ios::in);
 	while (std::getline(chatList, line, '\n')) {
+		StripCR(line);
 		m_PreapprovedNames.push_back(line);
 	}
 	
