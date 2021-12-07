@@ -44,7 +44,7 @@ function update_database_ini_values_for() {
     update_ini $INI_FILE mysql_host $DATABASE_HOST
     update_ini $INI_FILE mysql_database $DATABASE
     update_ini $INI_FILE mysql_username $DATABASE_USER
-    update_ini $INI_FILE mysql_password $USE_DATABASE_PASSWORD
+    update_ini $INI_FILE mysql_password $DATABASE_PASSWORD
 }
 
 function update_ini_values() {
@@ -75,7 +75,7 @@ function fdb_to_sqlite() {
         readarray -d '' entries < <(printf '%s\0' *.sql | sort -zV)
         for entry in "${entries[@]}"; do
             echo "Execute $entry"
-            sqlite3 ../../res/CDServer.sqlite < $entry
+            sqlite3 /app/res/CDServer.sqlite < $entry
         done
     )
 }
