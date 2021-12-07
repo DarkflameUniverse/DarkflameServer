@@ -30,7 +30,7 @@ services:
       - DATABASE_USER=${MARIADB_USER:-darkflame}
       - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
     volumes:
-      - $CLIENT_PATH:/client
+      - ${CLIENT_PATH:?err}:/client
     depends_on:
       - database
 
