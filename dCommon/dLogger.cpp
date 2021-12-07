@@ -92,8 +92,8 @@ void dLogger::Log(const char * className, const char * format, ...) {
 
 	va_end(args);
 
-	if (m_logToConsole) std::cout << "[" << "timeStr" << "] [" << className << "]: " << message;
-	mFile << "[" << "timeStr" << "] [" << className << "]: " << message;
+	if (m_logToConsole) std::cout << "[" << timeStr << "] [" << className << "]: " << message;
+	mFile << "[" << timeStr << "] [" << className << "]: " << message;
 #else
 	time_t t = time(NULL);
     struct tm * time = localtime(&t);

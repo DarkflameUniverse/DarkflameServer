@@ -153,27 +153,26 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, const LWOOB
     delete gmlevel;
     delete chatmode;
     delete name;
-
+    
+#ifdef _WIN32
+    bitStream.Write<uint32_t>(data.GetNumberOfBytesUsed() + 1);
+    bitStream.Write<uint8_t>(0);
+    bitStream.Write((char*)data.GetData(), data.GetNumberOfBytesUsed());
+#else 
     //Compress the data before sending:
     const int reservedSize = 5 * 1024 * 1024;
     uint8_t compressedData[reservedSize];
     size_t size = ZCompression::Compress(data.GetData(), data.GetNumberOfBytesUsed(), compressedData, reservedSize);
 
     bitStream.Write<uint32_t>(size + 9); //size of data + header bytes (8)
-    bitStream.Write<uint8_t>(1); //compressed boolean, true
+    bitStream.Write<uint8_t>(1);         //compressed boolean, true
     bitStream.Write<uint32_t>(data.GetNumberOfBytesUsed());
     bitStream.Write<uint32_t>(size);
-    
+
     for (size_t i = 0; i < size; i++)
         bitStream.Write(compressedData[i]);
-    
-	/*
-    uint32_t dataSize = data.GetNumberOfBytesUsed();
-    bitStream.Write(dataSize + 8);                     // The data size
-    bitStream.Write(static_cast<uint8_t>(0));          // Data is not compressed
-    bitStream.Write(data);                             // Write the data
-	*/
-    
+#endif
+
     PacketUtils::SavePacket("chardata.bin", (const char *)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
     SEND_PACKET
     Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu\n", objectID);
