@@ -11,7 +11,7 @@ services:
       - MARIADB_DATABASE=${MARIADB_DATABASE:-darkflame}
     volumes:
       - database:/var/lib/mysql
-      - migrations/dlu:/docker-entrypoint-initdb.d
+      - ./migrations/dlu:/docker-entrypoint-initdb.d
     networks:
       - darkflame
 
@@ -34,6 +34,11 @@ services:
       - ${CLIENT_PATH:?err}:/client
     depends_on:
       - database
+    ports:
+      - "1001:1001/udp"
+      - "2000:2000/udp"
+      - "2005:2005/udp"
+      - "3000-3300:3000-3300/udp"
 
   brickbuildfix:
     container_name: DarkFlameBrickBuildFix
