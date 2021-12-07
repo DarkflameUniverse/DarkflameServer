@@ -46,6 +46,8 @@ If you're using a DLU client you'll have to go into the "CMakeVariables.txt" fil
 ### Linux builds
 Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available.
 
+cmake must be version 3.12 or higher!
+
 **Build the repository**
 ```bash
 # Create the build directory, preserving it if it already exists
