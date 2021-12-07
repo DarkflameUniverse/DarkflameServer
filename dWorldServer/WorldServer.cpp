@@ -833,7 +833,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (packet->data[1] != WORLD) return;
-
+	
 	switch (packet->data[3]) {
 		case MSG_WORLD_CLIENT_VALIDATION: {
 			std::string username = PacketUtils::ReadString(0x08, packet, true);
