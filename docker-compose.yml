@@ -54,6 +54,7 @@ services:
       - DATABASE_HOST=database
       - DATABASE_USER=${MARIADB_USER:-darkflame}
       - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
+      - ACCOUNT_SECRET=${ACCOUNT_MANAGER_SECRET:?err}
     ports:
       - 5000:5000
 
