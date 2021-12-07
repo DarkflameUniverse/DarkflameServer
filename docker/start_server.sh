@@ -39,13 +39,22 @@ function update_ini() {
     sed -i "/^$KEY=/s/=.*/=$NEW_VALUE/" $INI_FILE
 }
 
+function update_database_ini_values_for() {
+    INI_FILE=$1
+    update_ini $INI_FILE mysql_host $DATABASE_HOST
+    update_ini $INI_FILE mysql_database $DATABASE
+    update_ini $INI_FILE mysql_username $DATABASE_USER
+    update_ini $INI_FILE mysql_password $USE_DATABASE_PASSWORD
+}
+
 function update_ini_values() {
-    update_ini worldconfig.ini mysql_host $DATABASE_HOST
-    update_ini worldconfig.ini mysql_database $DATABASE
-    update_ini worldconfig.ini mysql_username $DATABASE_USER
-    update_ini worldconfig.ini mysql_password $USE_DATABASE_PASSWORD
     update_ini worldconfig.ini chat_server_port $CHAT_SERVER_PORT
     update_ini worldconfig.ini max_clients $MAX_CLIENTS
+
+    update_database_ini_values_for masterconfig.ini
+    update_database_ini_values_for authconfig.ini
+    update_database_ini_values_for chatconfig.ini
+    update_database_ini_values_for worldconfig.ini
 }
 
 function symlink_client_files() {

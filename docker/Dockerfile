@@ -5,12 +5,13 @@ WORKDIR /build
 RUN --mount=type=cache,target=/var/cache/apt \
     echo "Install build dependencies" && \
     apt update && \
-    apt install gcc cmake zlib1g-dev make build-essential g++ unzip ca-certificates wget -yqq --no-install-recommends && \
+    apt remove -y libmysqlcppconn7v5 libmysqlcppconn-dev && \
+    apt install cmake zlib1g-dev make gcc g++ build-essential unzip ca-certificates wget -yqq --no-install-recommends && \
     rm -rf /var/lib/apt/lists/* && \
     update-ca-certificates && \
-    wget https://dev.mysql.com/get/Downloads/Connector-C++/libmysqlcppconn9_8.0.27-1debian11_amd64.deb -O /tmp/libmysqlcppconn.deb && \
-    dpkg -i /tmp/libmysqlcppconn.deb && \
-    rm /tmp/libmysqlcppconn.deb
+    wget https://dev.mysql.com/get/Downloads/Connector-C++/libmysqlcppconn9_8.0.27-1debian11_amd64.deb -O /tmp/libmysqlcppconn9_8.0.27-1debian11_amd64.deb && \
+    dpkg -i /tmp/libmysqlcppconn9_8.0.27-1debian11_amd64.deb && \
+    rm -rf /tmp/libmysqlcppconn9_8.0.27-1debian11_amd64.deb
 
 COPY dAuthServer/ /build/dAuthServer
 COPY dChatServer/ /build/dChatServer
@@ -36,7 +37,7 @@ ARG BUILD_VERSION=171022
 RUN echo "Build server" && \
     mkdir -p build && \
     cd build && \
-    sed -i -e "s/171023/${BUILD_VERSION}/g" ../CMakeVariables.txt && \ 
+    sed -i -e "s/171022/${BUILD_VERSION}/g" ../CMakeVariables.txt && \ 
     cmake .. && \
     make -j $BUILD_THREADS
 
@@ -54,11 +55,12 @@ COPY --from=build /build/migrations /app/migrations
 RUN --mount=type=cache,target=/var/cache/apt \ 
     apt update && \
     apt install mariadb-client python3 sqlite3 ca-certificates wget -yqq --no-install-recommends && \
+    apt remove -y libmysqlcppconn7v5 libmysqlcppconn-dev && \
     rm -rf /var/lib/apt/lists/* && \
     update-ca-certificates && \
-    wget https://dev.mysql.com/get/Downloads/Connector-C++/libmysqlcppconn9_8.0.27-1debian11_amd64.deb -O /tmp/libmysqlcppconn.deb && \
-    dpkg -i /tmp/libmysqlcppconn.deb && \
-    rm /tmp/libmysqlcppconn.deb
+    wget https://dev.mysql.com/get/Downloads/Connector-C++/libmysqlcppconn9_8.0.27-1debian11_amd64.deb -O /tmp/libmysqlcppconn9_8.0.27-1debian11_amd64.deb && \
+    dpkg -i /tmp/libmysqlcppconn9_8.0.27-1debian11_amd64.deb && \
+    rm -rf /tmp/libmysqlcppconn9_8.0.27-1debian11_amd64.deb
 
 ADD docker/*.py /app/utils/
 
