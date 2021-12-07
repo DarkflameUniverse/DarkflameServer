@@ -113,7 +113,6 @@ bool dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel) {
 		line.erase(std::remove(line.begin(), line.end(), '\r'), line.end()); //Remove nix line-endings
 		std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
 		m_Words.push_back(CalculateHash(line));
-	}
 	#else 
 	while (std::getline(sMessage, segment, ' ')) {
 	#endif
