@@ -1,0 +1,38 @@
+version: "3"
+
+services:
+  database:
+    container_name: DarkflameDatabase
+    image: mariadb:latest
+    environment:
+      - MARIADB_USER=${MARIADB_USER:-darkflame}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD:-darkflame}
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-darkflame}
+      - MARIADB_DATABASE=${MARIADB_DATABASE:-darkflame}
+    volumes:
+      - database:/var/lib/mysql
+    networks:
+      - darkflame
+
+  darkflame:
+    container_name: DarkFlameServer
+    networks:
+      - darkflame
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        - BUILD_THREADS=${BUILD_THREADS:-1}
+    environment:
+      - DATABASE=${MARIADB_DATABASE:-darkflame}
+      - DATABASE_HOST=database
+      - DATABASE_USER=${MARIADB_USER:-darkflame}
+      - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
+    volumes:
+      - $CLIENT_PATH:/client
+
+networks:
+  darkflame:
+    
+volumes:
+  database:
