@@ -1,0 +1,94 @@
+version: "3.9"
+services:
+
+  #
+  # Portainer:
+  # Used for managing Docker containers and administration.
+  #
+  portainer:
+    container_name: portainer
+    image: portainer/portainer:latest
+    networks:
+      - darkflame_net
+    ports:
+      - "9000:9000"
+    volumes:
+      - portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  #
+  # MariaDB:
+  # A port of MySQL used as the database
+  #
+  mariadb:
+    command: --default-authentication-plugin=mysql_native_password
+    container_name: mariadb
+    image: mariadb:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+    networks:
+      - darkflame_net
+    ports:
+      - "3306:3306"
+    restart: always
+    volumes:
+      - db_data:/var/lib/mysql
+      - db_conf:/etc/mysql
+
+  #
+  # phpMyAdmin:
+  # A web GUI that allows you to easily access the MariaDB database
+  #
+  phpmyadmin:
+    container_name: phpmyadmin
+    depends_on:
+      - mariadb
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_PORT=3306
+    image: phpmyadmin/phpmyadmin:latest
+    networks:
+      - darkflame_net
+    ports:
+      - "8080:80"
+    restart: always
+
+  #
+  # Darkflame Universe:
+  # The master server
+  #
+  dlu-master:
+    build: .
+    container_name: dlu-master
+    depends_on:
+      - mariadb
+    environment:
+      - SERVER_DELAY=0
+      - SERVER_TYPE=master
+    image: darkflame-universe:1.0.0
+    networks:
+      - darkflame_net
+    ports:
+      - "1001:1001/udp"
+      - "2000:2000/udp"
+      - "2005:2005/udp"
+      - "3000-3300:3000-3300/udp"
+    volumes:
+      - "~/Desktop/Files/LU/files/authconfig.ini:/opt/darkflame-universe/authconfig.ini"
+      - "~/Desktop/Files/LU/files/chatconfig.ini:/opt/darkflame-universe/chatconfig.ini"
+      - "~/Desktop/Files/LU/files/masterconfig.ini:/opt/darkflame-universe/masterconfig.ini"
+      - "~/Desktop/Files/LU/files/worldconfig.ini:/opt/darkflame-universe/worldconfig.ini"
+      - "~/Desktop/Files/LU/files/locale/:/opt/darkflame-universe/locale/"
+      - "~/Desktop/Files/LU/files/res/:/opt/darkflame-universe/res/"
+      
+# Volumes
+volumes:
+  db_data:
+  db_conf:
+  portainer_data:
+
+# Networks
+networks:
+  darkflame_net:
+    driver: bridge
+  
