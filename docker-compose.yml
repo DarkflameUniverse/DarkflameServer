@@ -44,6 +44,8 @@ services:
 
   account-manager:
     container_name: DarkFlameAccountManager
+    networks:
+      - darkflame
     build:
       context: .
       dockerfile: ./docker/AccountManager.Dockerfile
