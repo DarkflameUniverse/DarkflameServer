@@ -162,15 +162,6 @@ certutil -hashfile <file> SHA256
 * Copy over or create symlinks from `macros`, `BrickModels`, `chatplus_en_us.txt`, `names`, and `maps` in your client `res` directory to the server `build/res` directory
 * Unzip the navmeshes [here](./resources/navmeshes.zip) and place them in `build/res/maps/navmeshes`
 
-**Fix chatplus_en_us.txt**
-* If the file has been made in windows it has to be converted to support unix. Inside of WSL run this command
-* Move yourself into build/res using cd if you are not yet in there.
-```bash
-cd build/res
-sudo apt install dos2unix
-dos2unix -o chatplus_en_us.txt chatplus_en_us.txt
-```
-
 **Setup locale**
 * In the `build` directory create a `locale` directory if it does not already exist
 * Copy over or create symlinks from `locale.xml` in your client `locale` directory to the `build/locale` directory
