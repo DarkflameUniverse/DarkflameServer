@@ -27,9 +27,15 @@ function symlink_config_files() {
     ln -s /configs/worldconfig.ini /app/worldconfig.ini
 }
 
-# setup symlinks for volume files
-symlink_client_files
-symlink_config_files
+if [[ ! -f "/app/initialized" ]]; then
+    # setup symlinks for volume files
+    symlink_client_files
+    symlink_config_files
+    # do not run symlinks more than once
+    touch /app/initialized
+else
+    echo "Server already initialized"
+fi
 
 # start the server
 echo "Start MasterServer"

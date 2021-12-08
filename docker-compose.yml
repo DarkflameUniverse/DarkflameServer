@@ -33,7 +33,7 @@ services:
       - 3306:3306 # (optional) ports only exposed so that DB management tools can connect
 
   darkflame:
-    container_name: DarkFlameServer
+    container_name: DarkflameServer
     networks:
       - darkflame
     build:
@@ -54,7 +54,7 @@ services:
       - "3000-3300:3000-3300/udp"
 
   brickbuildfix:
-    container_name: DarkFlameBrickBuildFix
+    container_name: DarkflameBrickBuildFix
     networks:
       - darkflame
     build:
@@ -70,7 +70,7 @@ services:
       start_period: 40s
 
   account-manager:
-    container_name: DarkFlameAccountManager
+    container_name: DarkflameAccountManager
     networks:
       - darkflame
     build:
