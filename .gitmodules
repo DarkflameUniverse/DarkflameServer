@@ -19,3 +19,6 @@
 [submodule "thirdparty/AccountManager"]
 	path = thirdparty/AccountManager
 	url = https://github.com/DarkflameUniverse/AccountManager
+[submodule "thirdparty/mariadb-connector-cpp"]
+	path = thirdparty/mariadb-connector-cpp
+	url = https://github.com/mariadb-corporation/mariadb-connector-cpp.git
