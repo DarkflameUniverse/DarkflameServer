@@ -30,8 +30,10 @@ services:
       - database:/var/lib/mysql
     networks:
       - darkflame
-    ports:
-      - 3306:3306 # (optional) ports only exposed so that DB management tools can connect
+    # (optional) ports only exposed so that DB management tools can connect
+    # Remove the # of the next two lines to expose your database
+    # ports:
+    #    - 3306:3306
 
   darkflame:
     container_name: DarkflameServer

@@ -31,6 +31,9 @@ function update_ini_values() {
     update_ini worldconfig.ini chat_server_port $CHAT_SERVER_PORT
     update_ini worldconfig.ini max_clients $MAX_CLIENTS
 
+    # always use the internal docker hostname
+    update_ini masterconfig.ini master_ip "darkflame"
+
     update_database_ini_values_for masterconfig.ini
     update_database_ini_values_for authconfig.ini
     update_database_ini_values_for chatconfig.ini
