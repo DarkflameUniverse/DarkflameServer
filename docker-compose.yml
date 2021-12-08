@@ -15,7 +15,7 @@ services:
     networks:
       - darkflame
     ports:
-      - 3306:3306
+      - 3306:3306 # (optional) ports only exposed so that DB management tools can connect
 
   darkflame:
     container_name: DarkFlameServer
