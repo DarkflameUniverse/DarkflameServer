@@ -95,7 +95,7 @@ if (__include_backtrace__ AND __compile_backtrace__)
 
     link_directories(${backtrace_SOURCE_DIR}/.libs/)
     include_directories(${backtrace_SOURCE_DIR})
-endif(__include_backtrace__ AND __compile_backtrace__)
+endif(__include_backtrace__)
 
 endif()
 endif(UNIX)
