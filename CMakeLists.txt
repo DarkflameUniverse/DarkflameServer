@@ -221,10 +221,7 @@ if(UNIX)
     if(APPLE)
         link_directories(/usr/local/mysql-connector-c++/lib64/)
     else()
-        link_directories(${mysql_SOURCE_DIR}/lib64/)
-
-        # Link to libmysqlcppconn on Linux
-        set(MYSQL_LIB mysqlcppconn)
+        set(MYSQL_LIB mariadbconncpp)
     endif(APPLE)
 endif(UNIX)
 if(WIN32)
@@ -375,6 +372,23 @@ if(MSVC)
     # Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
     add_compile_options("/wd4267")
 endif(MSVC)
+
+include(ExternalProject)
+ExternalProject_Add(mariadb_connector_cpp
+					SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
+					CMAKE_ARGS -D_GLIBCXX_USE_CXX11_ABI=0
+							   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+					PREFIX ${PROJECT_BINARY_DIR}/mariadbcpp
+					BUILD_COMMAND make
+					PATCH_COMMAND mv ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test
+					#renaming test folder stops it from being built
+					INSTALL_COMMAND "")
+ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
+
+add_library (mariadbconncpp UNKNOWN IMPORTED)
+set_property(TARGET mariadbconncpp PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/libmariadbcpp.so)
+target_include_directories(mariadbconncpp INTERFACE ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include)
+add_dependencies(mariadbconncpp mariadb_connector_cpp)
 
 # 3rdparty static libraries:
 #add_library(zlib ${SOURCES_ZLIB})

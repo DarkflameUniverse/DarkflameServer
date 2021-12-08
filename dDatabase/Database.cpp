@@ -10,20 +10,20 @@ sql::Driver * Database::driver;
 sql::Connection * Database::con;
 
 void Database::Connect(const string& host, const string& database, const string& username, const string& password) {
-	driver = get_driver_instance();
+	driver = sql::mariadb::get_driver_instance();
 
 	//To bypass debug issues:
 	std::string newHost = "tcp://" + host;
-	const char* szHost = newHost.c_str();
 	const char* szDatabase = database.c_str();
-	const char* szUsername = username.c_str();
-	const char* szPassword = password.c_str();
-
-	con = driver->connect(szHost, szUsername, szPassword);
+    
+    sql::Properties properties;
+    properties["hostName"] = newHost.c_str();
+    properties["user"] = username.c_str();
+    properties["password"] = password.c_str();
+    properties["autoReconnect"] = "true";
+	
+    con = driver->connect(properties);
 	con->setSchema(szDatabase);
-
-	bool myTrue = true;
-	con->setClientOption("MYSQL_OPT_RECONNECT", &myTrue);
 } //Connect
 
 void Database::Destroy(std::string source) {
