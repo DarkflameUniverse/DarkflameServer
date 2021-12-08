@@ -51,7 +51,6 @@
 #include "NpcCowboyServer.h"
 #include "ZoneAgMedProperty.h"
 #include "AgStromlingProperty.h"
-#include "AgDarklingMech.h"
 #include "AgDarkSpiderling.h"
 #include "PropertyFXDamage.h"
 #include "AgPropguards.h"
@@ -377,7 +376,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_STROMBIE_PROPERTY.lua")
 	    script = new AgStromlingProperty();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_DARKLING_MECH.lua")
-	    script = new AgDarklingMech();
+	    script = new BaseEnemyMech();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_DARK_SPIDERLING.lua")
 	    script = new AgDarkSpiderling();
 	else if (scriptName == "scripts\\ai\\PROPERTY\\L_PROP_GUARDS.lua")
