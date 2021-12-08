@@ -1,7 +1,20 @@
 #pragma once
 
 #include <string>
+
+#if defined(MARIADB_CONNECTOR)
 #include <mariadb/conncpp.hpp>
+#elif defined(MYSQL_CONNECTOR)
+#include <mysql_connection.h>
+#include <cppconn/driver.h>
+#include <cppconn/exception.h>
+#include <cppconn/resultset.h>
+#include <cppconn/statement.h>
+#include <cppconn/prepared_statement.h>
+#include <cppconn/sqlstring.h>
+#else
+#error "Connector not defined"
+#endif
 
 class MySqlException : public std::runtime_error {
 public:
