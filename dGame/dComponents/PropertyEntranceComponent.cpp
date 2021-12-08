@@ -159,8 +159,8 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
 		const auto propertyId = propertyEntry->getUInt64(1);
 		const auto owner = propertyEntry->getUInt64(2);
         const auto cloneId = propertyEntry->getUInt64(4);
-        const auto name = propertyEntry->getString(5).asStdString();
-        const auto description = propertyEntry->getString(6).asStdString();
+        const auto name = std::string(propertyEntry->getString(5).c_str());
+        const auto description = std::string(propertyEntry->getString(6).c_str());
 		const auto privacyOption = propertyEntry->getInt(9);
 		const auto reputation = propertyEntry->getInt(15);
 
@@ -183,7 +183,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
         else
         {
             entry.IsOwner = owner == entity->GetObjectID();
-            entry.OwnerName = nameResult->getString(1).asStdString();
+            entry.OwnerName = std::string(nameResult->getString(1).c_str());
         }
 		
         if (!moderating)
