@@ -46,7 +46,7 @@ function update_database_ini_values_for() {
     update_ini $INI_FILE mysql_username $DATABASE_USER
     update_ini $INI_FILE mysql_password $DATABASE_PASSWORD
     if [[ "$INI_FILE" != "worldconfig.ini" ]]; then
-        update_ini $INI_FILE external_ip $EXTERNAL_IP
+        update_ini $INI_FILE external_ip "darkflame"
     fi
 }
 
