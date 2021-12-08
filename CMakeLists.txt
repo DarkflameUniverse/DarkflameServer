@@ -64,18 +64,7 @@ set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCL
 add_library(ZLIB::ZLIB ALIAS zlib) # You're welcome
 
 endif(WIN32)
-if(UNIX)
-if(APPLE)
-else()
 include(FetchContent)
-
-FetchContent_Declare(
-    mysql
-    URL https://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-8.0.27-linux-glibc2.12-x86-64bit.tar.gz
-    URL_HASH MD5=12f086b76c11022cc7139b41a36cdf9e
-)
-
-FetchContent_MakeAvailable(mysql)
 
 if (__include_backtrace__ AND __compile_backtrace__)
     FetchContent_Declare(
@@ -96,9 +85,6 @@ if (__include_backtrace__ AND __compile_backtrace__)
     link_directories(${backtrace_SOURCE_DIR}/.libs/)
     include_directories(${backtrace_SOURCE_DIR})
 endif(__include_backtrace__)
-
-endif()
-endif(UNIX)
 
 # Set the version
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
@@ -364,13 +350,14 @@ RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 ${PROJECT_SOURCE_DIR}/dPhysics/*.cpp
 )
 
+#if (UNIX AND NOT APPLE)
 include(ExternalProject)
 ExternalProject_Add(mariadb_connector_cpp
 					SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
 					CMAKE_ARGS -D_GLIBCXX_USE_CXX11_ABI=0
 							   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 					PREFIX ${PROJECT_BINARY_DIR}/mariadbcpp
-					BUILD_COMMAND make
+					BUILD_COMMAND cmake --build .
 					PATCH_COMMAND mv ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test
 					#renaming test folder stops it from being built
 					INSTALL_COMMAND "")
@@ -380,6 +367,7 @@ add_library (mariadbconncpp UNKNOWN IMPORTED)
 set_property(TARGET mariadbconncpp PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/libmariadbcpp.so)
 target_include_directories(mariadbconncpp INTERFACE ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include)
 add_dependencies(mariadbconncpp mariadb_connector_cpp)
+#endif()
 
 # 3rdparty static libraries:
 #add_library(zlib ${SOURCES_ZLIB})
@@ -478,6 +466,12 @@ endif(UNIX)
 if(WIN32)
 target_link_libraries(ChatServer ws2_32)
 endif(WIN32)
+
+#if (WIN32 OR APPLE)
+add_compile_definitions(MYSQL_CONNECTOR)
+#elseif(UNIX)
+add_compile_definitions(MARIADB_CONNECTOR)
+#endif
 
 # Compiler flags:
 # Disabled deprecated warnings as the MySQL includes have deprecated code in them. 
