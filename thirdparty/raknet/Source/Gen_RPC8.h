@@ -133,6 +133,7 @@ namespace GenRPC
 #define AUTO_RPC_ABI_PPC          4   // first 6 args (even if float) in int reg; first 13 floats in reg.
 // parameter passing area with shadow area.
 
+#define AUTO_RPC_ABI_AARCH64      5
 
 // Configure the parameters for the system.
 #if defined(__i386__) || defined( _M_IX86 ) || defined( __INTEL__ )
@@ -175,6 +176,18 @@ typedef double        HardwareReal;
 // NB OS's differ over.
 typedef unsigned long long NaturalWord;
 typedef double         HardwareReal;  // could be changed to __float128 on AMD64/nonwin
+
+#elif defined ( __aarch64__ )
+typedef unsigned long long NaturalWord;
+typedef double HardwareReal;
+#define AUTO_RPC_AUTORPC_WORD 64
+#define AUTO_RPC_INT_REG_PARAMS 8
+#define AUTO_RPC_FLOAT_REG_PARAMS 8
+#define AUTO_RPC_INT_SHADOW_OF_FLOATS 0
+#define AUTO_RPC_ALLOC_SEPARATE_FLOATS 1
+#define AUTO_RPC_CREATE_FLOAT_MAP 0
+#define AUTO_RPC_PARAMETER_REFERENCE_THRESHOLD 0
+#define AUTO_RPC_ABI AUTO_RPC_ABI_AARCH64
 
 #elif defined ( _PS3 )
 typedef double HardwareReal;

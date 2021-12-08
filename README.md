@@ -80,6 +80,23 @@ sudo ln -s /usr/local/mysql-connector-c++/lib64/libssl.1.1.dylib /path/to/build/
 sudo ln -s /usr/local/mysql-connector-c++/lib64/libcrypto.1.1.dylib /path/to/build/folder/libcrypto.1.1.dylib
 ```
 
+### Raspberry Pi builds (Tested on Ubuntu 20.04 LTS)
+**Download precompiled MySQL connector**
+```bash
+# Install required tools
+sudo apt-get -y install libmysqlcppconn-dev libboost-all-dev
+
+mkdir -p build
+cd build
+
+# Run CMake to generate make files
+cmake ..
+
+# Run make to build the project. To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `make -j8`
+make
+
+```
+
 ### Windows builds (native)
 Ensure that you have either the [MSVC](https://visualstudio.microsoft.com/vs/) or the [Clang](https://github.com/llvm/llvm-project/releases/) (recommended) compiler installed. You will also need to install [CMake](https://cmake.org/download/). Currently on native Windows the server will only work in Release mode.
 

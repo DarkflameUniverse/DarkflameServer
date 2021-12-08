@@ -69,6 +69,8 @@ if(APPLE)
 else()
 include(FetchContent)
 
+if(NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64") 
+
 FetchContent_Declare(
     mysql
     URL https://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-8.0.27-linux-glibc2.12-x86-64bit.tar.gz
@@ -76,6 +78,8 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(mysql)
+endif(NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+
 
 if (__include_backtrace__ AND __compile_backtrace__)
     FetchContent_Declare(
@@ -163,8 +167,12 @@ if(UNIX)
         include_directories(/usr/local/mysql-connector-c++/include/jdbc/)
         include_directories(/usr/local/mysql-connector-c++/include/jdbc/cppconn/)
     else()
-        include_directories(${mysql_SOURCE_DIR}/include/jdbc/)
-        include_directories(${mysql_SOURCE_DIR}/include/jdbc/cppconn/)
+        if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64") 
+            include_directories(/usr/include)
+        else()
+            include_directories(${mysql_SOURCE_DIR}/include/jdbc/)
+            include_directories(${mysql_SOURCE_DIR}/include/jdbc/cppconn/)
+        endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
     endif(APPLE)
 endif(UNIX)
 if(WIN32)
@@ -207,13 +215,13 @@ include_directories(${PROJECT_SOURCE_DIR}/dScripts/)
 
 # Default to linking to libmysql
 set(MYSQL_LIB mysql)
-if(WIN32)
-set(MYSQL_LIB mysqlcppconn)
-endif(WIN32)
+if(WIN32 OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    set(MYSQL_LIB mysqlcppconn)
+endif(WIN32 OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 
 # Lib folders:
 link_directories(${PROJECT_BINARY_DIR})
-if(UNIX)
+if(UNIX AND NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
     if(APPLE)
         link_directories(/usr/local/mysql-connector-c++/lib64/)
     else()
@@ -222,9 +230,9 @@ if(UNIX)
         # Link to libmysqlcppconn on Linux
         set(MYSQL_LIB mysqlcppconn)
     endif(APPLE)
-endif(UNIX)
+endif(UNIX AND NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 if(WIN32)
-link_directories(${mysql_SOURCE_DIR}/lib64/vs14)
+    link_directories(${mysql_SOURCE_DIR}/lib64/vs14)
 endif(WIN32)
 
 # Source Code
@@ -470,7 +478,7 @@ endif(WIN32)
 # Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
-if(UNIX)
+if(UNIX AND NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
     if(APPLE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -Wno-unused-result -Wno-unknown-pragmas -fpermissive -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -fPIC")
     else()
@@ -483,4 +491,4 @@ if(UNIX)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
     endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
-endif(UNIX)
+endif(UNIX AND NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
