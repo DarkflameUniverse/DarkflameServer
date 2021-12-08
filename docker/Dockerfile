@@ -43,7 +43,7 @@ FROM gcc:11 as runtime
 
 RUN --mount=type=cache,id=runtime-apt-cache,target=/var/cache/apt \
     apt update && \
-    apt install mariadb-client python3 sudo sqlite3 -yqq --no-install-recommends && \
+    apt install sudo -yqq --no-install-recommends && \
     apt remove -y libmysqlcppconn7v5 libmysqlcppconn-dev && \
     rm -rf /var/lib/apt/lists/*
 
@@ -51,16 +51,9 @@ WORKDIR /app
 
 COPY --from=build /build/build /app
 
-COPY --from=build /build/migrations /app/migrations
-
+RUN mkdir /app/logs
 RUN mkdir -p /build/build && ln -s /app/_deps /build/build/_deps
 
-ADD docker/*.py /app/utils/
-
 COPY docker/start_server.sh /start_server.sh
-
-RUN chmod +x /start_server.sh
-
-RUN mkdir /app/logs
 
 CMD [ "/start_server.sh" ]
