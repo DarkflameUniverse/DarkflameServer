@@ -1222,19 +1222,13 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 }
 
 void Entity::Update(const float deltaTime) {
-	int timerSize = m_Timers.size();
-	for (int i = 0; i < timerSize; i++) {
+	for (int i = 0; i < m_Timers.size(); i++) {
 		m_Timers[i]->Update(deltaTime);
 		if (m_Timers[i]->GetTime() <= 0) {
 			const auto timerName = m_Timers[i]->GetName();
 
-			do { //sometimes, due to a race condition, m_Timers.erase doesn't actually erase, repeat until it does
-				if (m_Timers[i]->GetName() != timerName) {
-					break;
-				}
-				delete m_Timers[i];
-				m_Timers.erase(m_Timers.begin() + i);
-			} while (m_Timers.size() == timerSize); //timer size indicates whether it's actually successfully been erased or not
+			delete m_Timers[i];
+			m_Timers.erase(m_Timers.begin() + i);
 
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
