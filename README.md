@@ -119,6 +119,10 @@ sudo apt install build-essential
 
 [**Follow the Linux instructions**](#linux-builds)
 
+###ARM builds
+aarch64 builds should work as is using the linux build steps.
+MacOS has not been tested for ARM builds.
+
 ## Setting up the environment
 
 ### Database
