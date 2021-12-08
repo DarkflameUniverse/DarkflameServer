@@ -21,10 +21,10 @@ function symlink_client_files() {
 function symlink_config_files() {
     echo "Creating symlinks for config files"
     rm /app/*.ini
-    ln -s /configs/authconfig.ini /app/authconfig.ini
-    ln -s /configs/chatconfig.ini /app/chatconfig.ini
-    ln -s /configs/masterconfig.ini /app/masterconfig.ini
-    ln -s /configs/worldconfig.ini /app/worldconfig.ini
+    ln -s /shared_configs/configs/authconfig.ini /app/authconfig.ini
+    ln -s /shared_configs/configs/chatconfig.ini /app/chatconfig.ini
+    ln -s /shared_configs/configs/masterconfig.ini /app/masterconfig.ini
+    ln -s /shared_configs/configs/worldconfig.ini /app/worldconfig.ini
 }
 
 if [[ ! -f "/app/initialized" ]]; then
@@ -36,6 +36,11 @@ if [[ ! -f "/app/initialized" ]]; then
 else
     echo "Server already initialized"
 fi
+
+while [ ! -f "/client/migrated" ]; do
+    echo "Client setup not finished. Waiting for setup container to complete"
+    sleep 1
+done
 
 # start the server
 echo "Start MasterServer"
