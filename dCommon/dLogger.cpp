@@ -44,8 +44,8 @@ void dLogger::LogBasic(const char * format, ...) {
 	vsprintf_s(message, format, args);
 	va_end(args);
 
-	if (m_logToConsole) std::cout << "[" << "time machine broke" << "] " << message;
-	mFile << "[" << "time" << "] " << message;
+	if (m_logToConsole) std::cout << "[" << timeStr << "] " << message;
+	mFile << "[" << timeStr << "] " << message;
 #else
 	time_t t = time(NULL);
     struct tm * time = localtime(&t);
