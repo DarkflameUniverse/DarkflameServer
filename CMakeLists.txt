@@ -169,7 +169,11 @@ if(UNIX)
     else()
         if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64") 
             include_directories(/usr/include)
+<<<<<<< HEAD
         else()
+=======
+        else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+>>>>>>> b6a397b (fix formatting to match original.)
             include_directories(${mysql_SOURCE_DIR}/include/jdbc/)
             include_directories(${mysql_SOURCE_DIR}/include/jdbc/cppconn/)
         endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
