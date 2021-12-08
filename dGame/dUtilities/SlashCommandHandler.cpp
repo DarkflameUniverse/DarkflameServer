@@ -397,6 +397,20 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			ChatPackets::SendSystemMessage(sysAddr, u"Map: " + (GeneralUtils::to_u16string(zoneId.GetMapID())) + u"\nClone: " + (GeneralUtils::to_u16string(zoneId.GetCloneID())) + u"\nInstance: " + (GeneralUtils::to_u16string(zoneId.GetInstanceID())));
 		}
 
+		if (chatCommand == "seteyes" && args.size() == 1) {
+            int32_t eyesID;
+            if (!GeneralUtils::TryParse(args[0], eyesID)) {
+                ChatPackets::SendSystemMessage(sysAddr, u"Invalid eyes ID.");
+                return;
+            }
+			LWOOBJID preDestructionID = entity->GetObjectID();
+			EntityManager::Instance()->DestructEntity(entity, sysAddr);
+			auto* charComp = entity->GetComponent<CharacterComponent>();
+			charComp->m_Character->SetEyes(eyesID);
+			EntityManager::Instance()->ConstructEntity(entity);
+			ChatPackets::SendSystemMessage(sysAddr, u"Eyes set to " + (GeneralUtils::to_u16string(eyesID)));
+		}
+
 		if (entity->GetGMLevel() == 0) return;
     }
 
