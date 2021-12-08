@@ -33,7 +33,7 @@ ARG BUILD_VERSION=171022
 RUN echo "Build server" && \
     mkdir -p build && \
     cd build && \
-    sed -i -e "s/171022/${BUILD_VERSION}/g" ../CMakeVariables.txt && \ 
+    sed -i -e "s/171022/${BUILD_VERSION}/g" ../CMakeVariables.txt && \
     cmake .. && \
     make -j $BUILD_THREADS
 
@@ -41,7 +41,7 @@ RUN unzip /build/resources/navmeshes.zip -d /build/build/res/maps
 
 FROM gcc:11 as runtime
 
-RUN --mount=type=cache,id=runtime-apt-cache,target=/var/cache/apt \ 
+RUN --mount=type=cache,id=runtime-apt-cache,target=/var/cache/apt \
     apt update && \
     apt install mariadb-client python3 sudo sqlite3 -yqq --no-install-recommends && \
     apt remove -y libmysqlcppconn7v5 libmysqlcppconn-dev && \
@@ -60,5 +60,7 @@ ADD docker/*.py /app/utils/
 COPY docker/start_server.sh /start_server.sh
 
 RUN chmod +x /start_server.sh
+
+RUN mkdir /app/logs
 
 CMD [ "/start_server.sh" ]

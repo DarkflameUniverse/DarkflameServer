@@ -12,6 +12,7 @@ function set_defaults() {
 
     CHAT_SERVER_PORT=${CHAT_SERVER_PORT:-2005}
     MAX_CLIENTS=${MAX_CLIENTS:-999}
+    EXTERNAL_IP=${EXTERNAL_IP:-localhost}
 
     echo "Start server with configuration:"
     echo "===== Database Config ========="
@@ -23,6 +24,7 @@ function set_defaults() {
     echo "===== Other settings =========="
     echo "Chat server port: $CHAT_SERVER_PORT"
     echo "Max clients: $MAX_CLIENTS"
+    echo "External IP: $EXTERNAL_IP"
 }
 
 function check_sql_connection() {
@@ -46,7 +48,7 @@ function update_database_ini_values_for() {
     update_ini $INI_FILE mysql_username $DATABASE_USER
     update_ini $INI_FILE mysql_password $DATABASE_PASSWORD
     if [[ "$INI_FILE" != "worldconfig.ini" ]]; then
-        update_ini $INI_FILE external_ip "darkflame"
+        update_ini $INI_FILE external_ip $EXTERNAL_IP
     fi
 }
 
@@ -64,29 +66,25 @@ function symlink_client_files() {
     ln -s /client/client/res/macros/ /app/res/macros
     ln -s /client/client/res/BrickModels/ /app/res/BrickModels
     ln -s /client/client/res/chatplus_en_us.txt /app/res/chatplus_en_us.txt
+    ln -s /client/client/res/maps/ /app/res/maps
     ln -s /client/client/res/names/ /app/res/names
     ln -s /client/client/locale/locale.xml /app/locale/locale.xml
-    (
-        cd /client/client/res/maps
-        readarray -d '' entries < <(printf '%s\0' * | sort -zV)
-        for entry in "${entries[@]}"; do
-            ln -s /client/client/res/maps/$entry /app/res/maps/
-        done
-    )
 }
 
 function fdb_to_sqlite() {
     echo "Run fdb_to_sqlite"
-    python3 /app/utils/fdb_to_sqlite.py /client/client/res/CDClient.fdb --sqlite_path /app/res/CDServer.sqlite 
+    python3 /app/utils/fdb_to_sqlite.py /client/client/res/cdclient.fdb --sqlite_path /client/client/res/CDServer.sqlite
 
     (
         cd /app/migrations/cdserver
         readarray -d '' entries < <(printf '%s\0' *.sql | sort -zV)
         for entry in "${entries[@]}"; do
             echo "Execute $entry"
-            sqlite3 /app/res/CDServer.sqlite < $entry
+            sqlite3 /client/client/res/CDServer.sqlite < $entry
         done
     )
+
+    ln -s /client/client/res/CDServer.sqlite /app/res/CDServer.sqlite
 }
 
 set_defaults
