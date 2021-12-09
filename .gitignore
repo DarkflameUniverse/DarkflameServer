@@ -1,6 +1,7 @@
 temp/
 cmake-build-debug/
 RelWithDebInfo/
+docker/configs
 
 # Third party libraries
 thirdparty/mysql/

@@ -1,9 +1,26 @@
 version: "3"
 
 services:
+  setup:
+    container_name: DarkflameSetup
+    build:
+      context: .
+      dockerfile: ./docker/setup.Dockerfile
+    environment:
+      - DATABASE=${MARIADB_DATABASE:-darkflame}
+      - DATABASE_HOST=database
+      - DATABASE_USER=${MARIADB_USER:-darkflame}
+      - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
+      - EXTERNAL_IP=${EXTERNAL_IP:-darkflame}
+    volumes:
+      - ${CLIENT_PATH:?err}:/client
+      - shared_configs:/docker/
+
   database:
     container_name: DarkflameDatabase
-    image: mariadb:10.6
+    build:
+      context: .
+      dockerfile: ./docker/database.Dockerfile
     environment:
       - MARIADB_USER=${MARIADB_USER:-darkflame}
       - MARIADB_PASSWORD=${MARIADB_PASSWORD:-darkflame}
@@ -11,12 +28,14 @@ services:
       - MARIADB_DATABASE=${MARIADB_DATABASE:-darkflame}
     volumes:
       - database:/var/lib/mysql
-      - ./migrations/dlu:/docker-entrypoint-initdb.d
     networks:
       - darkflame
+    # You can expose these so that DB management tools can connect (WARNING: INSECURE)
+    # ports:
+    #   - 3306:3306
 
   darkflame:
-    container_name: DarkFlameServer
+    container_name: DarkflameServer
     networks:
       - darkflame
     build:
@@ -25,13 +44,9 @@ services:
       args:
         - BUILD_THREADS=${BUILD_THREADS:-1}
         - BUILD_VERSION=${BUILD_VERSION:-171022}
-    environment:
-      - DATABASE=${MARIADB_DATABASE:-darkflame}
-      - DATABASE_HOST=database
-      - DATABASE_USER=${MARIADB_USER:-darkflame}
-      - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
     volumes:
       - ${CLIENT_PATH:?err}:/client
+      - shared_configs:/shared_configs
     depends_on:
       - database
     ports:
@@ -41,7 +56,7 @@ services:
       - "3000-3300:3000-3300/udp"
 
   brickbuildfix:
-    container_name: DarkFlameBrickBuildFix
+    container_name: DarkflameBrickBuildFix
     networks:
       - darkflame
     build:
@@ -57,7 +72,7 @@ services:
       start_period: 40s
 
   account-manager:
-    container_name: DarkFlameAccountManager
+    container_name: DarkflameAccountManager
     networks:
       - darkflame
     build:
@@ -82,6 +97,7 @@ services:
 
 networks:
   darkflame:
-    
+
 volumes:
   database:
+  shared_configs:
