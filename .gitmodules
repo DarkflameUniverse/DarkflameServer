@@ -10,3 +10,6 @@
 [submodule "thirdparty/libbcrypt"]
 	path = thirdparty/libbcrypt
 	url = https://github.com/trusch/libbcrypt.git
+[submodule "thirdparty/docker-utils"]
+	path = thirdparty/docker-utils
+	url = https://github.com/TheNoim/utils
