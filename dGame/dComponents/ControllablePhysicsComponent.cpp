@@ -40,6 +40,18 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), radius, false);
 		m_dpEntity->SetCollisionGroup(COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_FRIENDLY);
 		dpWorld::Instance().AddEntity(m_dpEntity);
+
+		auto triggers = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_PHANTOM_PHYSICS);
+
+		for (auto* trigger : triggers) {
+			for (const auto* event : trigger->GetTrigger()->events) {
+				if (event->eventID == "OnEnter") {
+					if (dpCollisionChecks::AreColliding(trigger->GetComponent<PhantomPhysicsComponent>()->GetdpEntity(), this->m_dpEntity)) {
+						trigger->TriggerEvent("OnEnter", this->m_Parent);
+					}
+				}
+			}
+		}
 	}
 }
 
