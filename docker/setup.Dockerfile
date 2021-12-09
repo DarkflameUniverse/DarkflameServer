@@ -7,7 +7,7 @@ WORKDIR /setup
 # copy needed files from repo
 COPY resources/ resources/
 COPY migrations/cdserver/ migrations/cdserver
-ADD docker/*.py utils/
+ADD thirdparty/docker-utils/utils/*.py utils/
 
 COPY docker/setup.sh /setup.sh
 
