@@ -36,11 +36,88 @@ In general, we follow the "fork-and-pull" Git workflow
 - Open a PR in our repository.
 
 PRs should include (when applicable):
+- A descriptive title that covers the **entire** content of the pull request
 - Description
 - Motivation and Context
 - Type of Changes
 - How Has This Been Tested?
 - Screenshots
+
+## Commits
+
+Commits to this project should be concise, descriptive and to the point. Writing proper commits helps define a clear project history and makes it easier to browse the source and pinpoint issues. Although this might seem trivial, a pull request with improperly formatted commits will not be accepted. An overview of good commit practices can be found in [this](https://cbea.ms/git-commit/) article. In a nutshell, a good commit has:
+
+#### one conceptual change with a subject line that reflects it
+
+The subject line of the commit is what you specify when doing `git commit -m "<subject-line>"`.  When making commit, make sure that you create it for one conceptual change. E.g. do not use a commit to dump all the changes you have locally, but split your changes into commits that conceptually make sense and use the subject line to refelct that. Some examples:
+
+**Bad:**
+Commit message: `Document MovementAIComponent and add Avant Gardens Mech Scripts and fix Entity.cpp bug causing infinite loops`
+Changed files:
+- MovementAIComponent.cpp
+- AgMechScript.cpp
+- Entity.cpp
+
+**Good:**
+
+Commit message: `Document MovementAIComponent`
+Changed files:
+- MovementAIComponent.cpp
+
+Commit message: `Add Avant Gardens Mech Scripts`
+Changed files:
+- AgMechScript.cpp
+
+Commit message: `Fix Entity.cpp bug causing infinite loops`
+Changed files:
+- Entity.cpp
+
+Not only does this logically make more sense, it'll make it easier to revert a conceptual change once something wrong with it. If you commit using the bad example but your bugfix turned out to introduce an even worse bug, all your changes have to be reverted, even though your other changes might not be broken. Splitting your commits into conceptually unique commits makes it easier to find and revert issues.
+
+#### an imperative subject line
+
+In the subject line it's also important to have an imperative writing style that covers the contents of your commit so that it easily reflects what it'll do when applied. We pick an imperative writing style so that all commits have equal tonality. An easy check for this is placing `When applied, this commit will ...` in front of your commit message and checking if that makes sense. Some examples:
+
+**Bad:**
+```
+Nice commit :) -> "When applied, this commit will nice commit :)"
+```
+
+**Bad:**
+```
+fixed bug -> "When applied, this commit will fixed bug"
+```
+
+**Good:**
+```
+Fix Entity.cpp bug causing infinite loop -> "When applied, this commit will fix Entity.cpp bug causing infinite loop"
+```
+
+**Good:**
+```
+Add Avant Gardens mech scripts -> "When applied, this commit will add Avant Gardens mech scripts"
+```
+
+#### a subject line and a body
+
+A good commit has a subject line that summarizes the change and a body that further describes the context required to understand the change. In this body you don't have to explain *what* the change was, as the code should reflect that, but *why* a change was made. Some examples:
+
+**Bad:**
+```
+Add Avant Gardens mech scripts
+
+Added the Avant Gardens mech scripts by creaing a new file called
+AgMechScripts.cpp and then adding the proper event handlers to that
+to send events to the client regarding changes of the mech.
+```
+
+**Good:**
+```
+Add Avant Gardens mech scripts
+
+Added the Avant Gardens mech scripts as they were previously not
+added, which produced InvalidScript errors.
+```
 
 ## Development Resources
 
