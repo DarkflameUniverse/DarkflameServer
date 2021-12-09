@@ -1,0 +1,53 @@
+name: Installation Issue
+description: Report issues installing the DarkflameServer on your system
+title: "BUILD: "
+labels: ["build", "triage"]
+
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      options:
+        - label: >
+            I have read the [installation guide](https://github.com/DarkflameUniverse/DarkflameServer/blob/main/README.md).
+          required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: >
+        Please provide on which platform you've tried to install DarkflameServer
+      options:
+        - Windows
+        - WSL1
+        - WSL2
+        - macOS
+        - Ubuntu
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Architecture
+      description: >
+        Please provide on which architecture you've tried to install DarkflameServer
+      options:
+        - x86
+        - ARM
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: >
+        If possible, please copy and paste the error logs when attempting to install DarkflameServer.
+      value: >
+        <details>
+
+
+        Replace this line with the error logs.
+
+
+        </details>
