@@ -29,8 +29,9 @@ services:
       - ./migrations/dlu:/docker-entrypoint-initdb.d
     networks:
       - darkflame
-    ports:
-      - 3306:3306 # (optional) ports only exposed so that DB management tools can connect
+    # You can expose these so that DB management tools can connect (WARNING: INSECURE)
+    # ports:
+    #   - 3306:3306
 
   darkflame:
     container_name: DarkflameServer
