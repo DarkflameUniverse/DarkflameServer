@@ -460,7 +460,7 @@ void ChatPacketHandler::HandleTeamPromote(Packet* packet)
 	
 	std::string promotedPlayer = PacketUtils::ReadString(0x14, packet, true);
 
-	Game::logger->Log("ChatPacketHandler", "(%llu) promiting (%s) to team leader\n", playerID, promotedPlayer.c_str());
+	Game::logger->Log("ChatPacketHandler", "(%llu) promoting (%s) to team leader\n", playerID, promotedPlayer.c_str());
 
 	auto* promoted = playerContainer.GetPlayerData(promotedPlayer);
 

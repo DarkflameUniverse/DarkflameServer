@@ -237,7 +237,7 @@ void Inventory::AddManagedItem(Item* item)
 
 	if (slots.find(slot) != slots.end())
 	{
-		Game::logger->Log("Inventory", "Attempting to add an item with and already present slot (%i)!\n", slot);
+		Game::logger->Log("Inventory", "Attempting to add an item with an already present slot (%i)!\n", slot);
 
 		return;
 	}

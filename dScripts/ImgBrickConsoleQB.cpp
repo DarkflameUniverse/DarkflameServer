@@ -275,7 +275,7 @@ void ImgBrickConsoleQB::OnTimerDone(Entity* self, std::string timerName)
 {
     if (timerName == "reset")
     {
-        Game::logger->Log("ImgBrickConsoleQB", "Reseting...\n");
+        Game::logger->Log("ImgBrickConsoleQB", "Resetting...\n");
 
         auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
