@@ -775,6 +775,15 @@ void Entity::Initialize()
 
 	TriggerEvent("OnCreate");
 
+	// so basically unless you leave and reenter the moonbase bubble (not something you can do), the physics effect will not trigger on the client
+	// one solution of this was change the OnEnter event to a OnCreate event
+	// but this required changing client files so instead that solution we can bodge 
+	if (m_Trigger && Game::server->GetZoneID() == 1603) {
+		if (m_Trigger->id == 11) {
+			TriggerEvent("OnEnter");
+		}
+	}
+
 	if (m_Character) {
 		auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 		auto* characterComponent = GetComponent<CharacterComponent>();
