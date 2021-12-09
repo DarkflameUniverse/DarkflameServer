@@ -3,9 +3,6 @@
 
 void AmDarklingMech::OnStartup(Entity* self) 
 {
-    auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
-
-    destroyableComponent->SetFaction(4);
-
+    BaseEnemyMech::OnStartup(self);
     qbTurretLOT = 13171;
 }
