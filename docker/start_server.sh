@@ -21,10 +21,10 @@ function symlink_client_files() {
 function symlink_config_files() {
     echo "Creating symlinks for config files"
     rm /app/*.ini
-    ln -s /configs/authconfig.ini /app/authconfig.ini
-    ln -s /configs/chatconfig.ini /app/chatconfig.ini
-    ln -s /configs/masterconfig.ini /app/masterconfig.ini
-    ln -s /configs/worldconfig.ini /app/worldconfig.ini
+    ln -s /shared_configs/configs/authconfig.ini /app/authconfig.ini
+    ln -s /shared_configs/configs/chatconfig.ini /app/chatconfig.ini
+    ln -s /shared_configs/configs/masterconfig.ini /app/masterconfig.ini
+    ln -s /shared_configs/configs/worldconfig.ini /app/worldconfig.ini
 }
 
 if [[ ! -f "/app/initialized" ]]; then

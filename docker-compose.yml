@@ -14,11 +14,13 @@ services:
       - EXTERNAL_IP=${EXTERNAL_IP:-darkflame}
     volumes:
       - ${CLIENT_PATH:?err}:/client
-      - ./docker/:/docker/
+      - shared_configs:/docker/
 
   database:
     container_name: DarkflameDatabase
-    image: mariadb:10.6
+    build:
+      context: .
+      dockerfile: ./docker/database.Dockerfile
     environment:
       - MARIADB_USER=${MARIADB_USER:-darkflame}
       - MARIADB_PASSWORD=${MARIADB_PASSWORD:-darkflame}
@@ -26,7 +28,6 @@ services:
       - MARIADB_DATABASE=${MARIADB_DATABASE:-darkflame}
     volumes:
       - database:/var/lib/mysql
-      - ./migrations/dlu:/docker-entrypoint-initdb.d
     networks:
       - darkflame
     # You can expose these so that DB management tools can connect (WARNING: INSECURE)
@@ -45,7 +46,7 @@ services:
         - BUILD_VERSION=${BUILD_VERSION:-171022}
     volumes:
       - ${CLIENT_PATH:?err}:/client
-      - ./docker/configs/:/configs
+      - shared_configs:/shared_configs
     depends_on:
       - database
     ports:
@@ -99,3 +100,4 @@ networks:
 
 volumes:
   database:
+  shared_configs:
