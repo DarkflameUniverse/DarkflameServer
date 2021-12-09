@@ -58,7 +58,7 @@ update_ini_values
 
 if [[ ! -d "/client" ]]; then
     echo "Client not found."
-    echo "Did you forgot to mount the client into the \"/client\" directory?"
+    echo "Did you forget to mount the client into the \"/client\" directory?"
     exit 1
 fi
 
@@ -69,8 +69,8 @@ if [[ ! -f "/client/extracted" ]]; then
 
     touch /client/extracted
 else
-    echo "Client already extracted. Skip this step"
-    echo "If you want to force re-extract, just delete the file called \"extracted\" in the client directory"
+    echo "Client already extracted. Skip this step..."
+    echo "If you want to force a re-extract, just delete the file called \"extracted\" in the client directory"
 fi
 
 if [[ ! -f "/client/migrated" ]]; then
@@ -80,6 +80,6 @@ if [[ ! -f "/client/migrated" ]]; then
 
     touch /client/migrated
 else
-    echo "Client db already migrated. Skip this step"
-    echo "If you want to force re-migrate, just delete the file called \"migrated\" in the client directory"
+    echo "Client db already migrated. Skip this step..."
+    echo "If you want to force a re-migrate, just delete the file called \"migrated\" in the client directory"
 fi

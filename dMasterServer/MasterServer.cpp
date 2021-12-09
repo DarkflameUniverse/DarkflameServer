@@ -159,9 +159,9 @@ int main(int argc, char** argv) {
 
 	auto master_server_ip = config.GetValue("master_ip");
 
-    if (master_server_ip == "") {
-        master_server_ip = Game::server->GetIP();
-    }
+	if (master_server_ip == "") {
+		master_server_ip = Game::server->GetIP();
+	}
 
 	//If we found a server, update it's IP and port to the current one.
 	if (result->next()) {
