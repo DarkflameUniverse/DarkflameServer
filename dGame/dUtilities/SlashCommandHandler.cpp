@@ -397,20 +397,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			ChatPackets::SendSystemMessage(sysAddr, u"Map: " + (GeneralUtils::to_u16string(zoneId.GetMapID())) + u"\nClone: " + (GeneralUtils::to_u16string(zoneId.GetCloneID())) + u"\nInstance: " + (GeneralUtils::to_u16string(zoneId.GetInstanceID())));
 		}
 
-		if (chatCommand == "seteyes" && args.size() == 1) {
-            int32_t eyesID;
-            if (!GeneralUtils::TryParse(args[0], eyesID)) {
-                ChatPackets::SendSystemMessage(sysAddr, u"Invalid eyes ID.");
-                return;
-            }
-			LWOOBJID preDestructionID = entity->GetObjectID();
-			EntityManager::Instance()->DestructEntity(entity, sysAddr);
-			auto* charComp = entity->GetComponent<CharacterComponent>();
-			charComp->m_Character->SetEyes(eyesID);
-			EntityManager::Instance()->ConstructEntity(entity);
-			ChatPackets::SendSystemMessage(sysAddr, u"Eyes set to " + (GeneralUtils::to_u16string(eyesID)));
-		}
-
 		if (entity->GetGMLevel() == 0) return;
     }
 
@@ -421,6 +407,48 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
     stmt->execute();
     delete stmt;
 	
+	if (chatCommand == "setMinifig" && args.size() == 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_FORUM_MODERATOR) { // could break characters so only allow if GM > 0
+		int32_t minifigItemId;
+		if (!GeneralUtils::TryParse(args[1], minifigItemId)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig Item Id ID.");
+			return;
+		}
+		EntityManager::Instance()->DestructEntity(entity, sysAddr);
+		auto* charComp = entity->GetComponent<CharacterComponent>();
+		std::string lowerName = args[0];
+		if (lowerName.empty()) return;
+		std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+		if (lowerName == "eyebrows") {
+			charComp->m_Character->SetEyebrows(minifigItemId);
+		} else if (lowerName == "eyes") {
+			charComp->m_Character->SetEyes(minifigItemId);
+		} else if (lowerName == "haircolor") {
+			charComp->m_Character->SetHairColor(minifigItemId);
+		} else if (lowerName == "hairstyle") {
+			charComp->m_Character->SetHairStyle(minifigItemId);
+		} else if (lowerName == "pants") {
+			charComp->m_Character->SetPantsColor(minifigItemId);
+		} else if (lowerName == "leftHand") {
+			charComp->m_Character->SetLeftHand(minifigItemId);
+		} else if (lowerName == "mouth") {
+			charComp->m_Character->SetMouth(minifigItemId);
+		} else if (lowerName == "righthand") {
+			charComp->m_Character->SetRightHand(minifigItemId);
+		} else if (lowerName == "shirt") {
+			charComp->m_Character->SetShirtColor(minifigItemId);
+		} else if (lowerName == "hands") {
+			charComp->m_Character->SetLeftHand(minifigItemId);
+			charComp->m_Character->SetRightHand(minifigItemId);
+		} else {
+			EntityManager::Instance()->ConstructEntity(entity);
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig item to change, try one of the following: Eyebrows, Eyes, HairColor, HairStyle, Pants, LeftHand, Mouth, RightHand, Shirt, Hands");
+			return;
+		}
+		
+		EntityManager::Instance()->ConstructEntity(entity);
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(lowerName) + u" set to " + (GeneralUtils::to_u16string(minifigItemId)));
+	}
+
 	if (chatCommand == "list-spawns" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		for (const auto& pair : EntityManager::Instance()->GetSpawnPointEntities()) {
 			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(pair.first));
@@ -441,6 +469,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		entity->GetCharacter()->UnlockEmote(emoteID);
+	}
+
+	if (chatCommand == "force-save" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		entity->GetCharacter()->SaveXMLToDatabase();
 	}
 
 	if (chatCommand == "kill" && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
