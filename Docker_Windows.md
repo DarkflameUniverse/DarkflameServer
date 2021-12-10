@@ -19,7 +19,7 @@
 
 ![Disable Autostart](docker/images/DD_General_Settings.png)
 
-8. Download the DarkflameServer repository and extract it to a location of your choice. TODO submodules were not downloaded for me...
+8. Download the DarkflameServer repository and extract it to a location of your choice.
 9. Inside the extracted folder, copy `.env.example` and name the copy `.env`
 10. Open `.env` with notepad by right-clicking it and selecting _Open With_ -> _More apps_ -> _Notepad_.
 11. Change the text after `CLIENT_PATH=` to the location of your client. The folder you are pointing to must contain a folder called `client` which should contain the client files. Use `/` instead of `\`. For example, if you have `legouniverse.exe` at `C:\Users\someone\Downloads\LU\client\legouniverse.exe`, enter `C:/Users/someone/Downloads/LU`
