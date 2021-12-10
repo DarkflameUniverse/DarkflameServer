@@ -351,14 +351,18 @@ ${PROJECT_SOURCE_DIR}/dPhysics/*.cpp
 )
 
 #if (UNIX AND NOT APPLE)
+
 include(ExternalProject)
+if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/")
+	file(RENAME "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/" "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test/")
+endif()
+
 ExternalProject_Add(mariadb_connector_cpp
 					SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
 					CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0"
 								-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 					PREFIX ${PROJECT_BINARY_DIR}/mariadbcpp
 					BUILD_COMMAND cmake --build .
-					PATCH_COMMAND mv ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test
 					#renaming test folder stops it from being built
 					INSTALL_COMMAND "")
 ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
