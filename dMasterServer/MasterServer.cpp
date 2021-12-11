@@ -72,6 +72,7 @@ int main(int argc, char** argv) {
 	dConfig config("masterconfig.ini");
 	Game::config = &config;
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
+	Game::logger->SetLogDebugStatements(bool(std::stoi(config.GetValue("log_debug_statements"))));
 
 	//Connect to CDClient
 	try {
@@ -320,11 +321,13 @@ dLogger* SetupLogger() {
 	std::string logPath =
 		"./logs/MasterServer_" + std::to_string(time(nullptr)) + ".log";
 	bool logToConsole = false;
+	bool logDebugStatements = false;
 #ifdef _DEBUG
 	logToConsole = true;
+	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole);
+	return new dLogger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {
