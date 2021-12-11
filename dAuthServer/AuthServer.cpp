@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
 	dConfig config("authconfig.ini");
 	Game::config = &config;
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
+	Game::logger->SetLogDebugStatements(bool(std::stoi(config.GetValue("log_debug_statements"))));
 
 	//Connect to the MySQL Database
 	std::string mysql_host = config.GetValue("mysql_host");
@@ -152,11 +153,13 @@ int main(int argc, char** argv) {
 dLogger * SetupLogger() {
 	std::string logPath = "./logs/AuthServer_" + std::to_string(time(nullptr)) + ".log";
 	bool logToConsole = false;
+	bool logDebugStatements = false;
 #ifdef _DEBUG
 	logToConsole = true;
+	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole);
+	return new dLogger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {

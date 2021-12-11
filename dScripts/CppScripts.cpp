@@ -781,11 +781,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = invalidToReturn;
 	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua")
 		script = invalidToReturn;
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_SHAKE.lua")
-		script = invalidToReturn; //Set ship shake to not log it is missing, it is implemented in AgSpaceStuff
 	else if (script == invalidToReturn) {
 		if (scriptName.length() > 0)
-			Game::logger->Log("CppScripts", "Attempted to load CppScript for '" + scriptName + "', but returned InvalidScript.\n");
+			Game::logger->LogDebug("CppScripts", "Attempted to load CppScript for '" + scriptName + "', but returned InvalidScript.\n");
+			// information not really needed for sys admins but is for developers
 
 		script = invalidToReturn;
 	}

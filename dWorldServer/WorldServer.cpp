@@ -136,6 +136,7 @@ int main(int argc, char** argv) {
 	dConfig config("worldconfig.ini");
 	Game::config = &config;
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
+	Game::logger->SetLogDebugStatements(bool(std::stoi(config.GetValue("log_debug_statements"))));
 	if (config.GetValue("disable_chat") == "1") chatDisabled = true;
 
 	// Connect to CDClient
@@ -503,11 +504,13 @@ int main(int argc, char** argv) {
 dLogger * SetupLogger(int zoneID, int instanceID) {
 	std::string logPath = "./logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log";
 	bool logToConsole = false;
+	bool logDebugStatements = false;
 #ifdef _DEBUG
 	logToConsole = true;
+	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole);
+	return new dLogger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacketChat(Packet* packet) {
