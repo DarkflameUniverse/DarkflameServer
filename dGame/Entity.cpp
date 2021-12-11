@@ -1646,11 +1646,12 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 bool Entity::CanPickupCoins(uint64_t count) { // bool because we are returning whether they can pick up the coins
 	if (!IsPlayer()) return false;
-	auto droppedcoins = static_cast<Player*>(this)->GetDroppedCoins();
+	auto * player = static_cast<Player*>(this);
+	auto droppedcoins = player->GetDroppedCoins();
 	if (count > droppedcoins) { 
 		return false;
 	} else {
-		static_cast<Player*>(this)->SetDroppedCoins(droppedcoins - count);
+		player->SetDroppedCoins(droppedcoins - count);
 		return true;
 	}
 }
