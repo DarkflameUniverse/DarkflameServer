@@ -1032,7 +1032,7 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 	}
 
 	if (item == LOT_NULL && currency != 0) {
-		entity->DropCoins(currency);
+		entity->RegisterCoinDrop(currency);
 	}
 
 	if (spawnPos != NiPoint3::ZERO) {
@@ -5239,7 +5239,7 @@ void GameMessages::HandlePickupCurrency(RakNet::BitStream* inStream, Entity* ent
 	if (currency == 0) return;
 
 	auto* ch = entity->GetCharacter();
-	if (entity->PickupCoins(currency)) {
+	if (entity->CanPickupCoins(currency)) {
 		ch->SetCoins(ch->GetCoins() + currency);
 	}
 }

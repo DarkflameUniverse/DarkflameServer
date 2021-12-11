@@ -1644,7 +1644,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 	droppedLoot.erase(objectID);
 }
 
-bool Entity::PickupCoins(uint64_t count) { // bool because we are returning whether they can pick up the coins
+bool Entity::CanPickupCoins(uint64_t count) { // bool because we are returning whether they can pick up the coins
 	if (!IsPlayer()) return false;
 	auto droppedcoins = static_cast<Player*>(this)->GetDroppedCoins();
 	if (count > droppedcoins) { 
@@ -1655,7 +1655,7 @@ bool Entity::PickupCoins(uint64_t count) { // bool because we are returning whet
 	}
 }
 
-void Entity::DropCoins(uint64_t count) {
+void Entity::RegisterCoinDrop(uint64_t count) {
 	if (!IsPlayer()) return;
 	auto droppedcoins = static_cast<Player*>(this)->GetDroppedCoins();
 	droppedcoins += count;
