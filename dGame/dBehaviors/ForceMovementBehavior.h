@@ -9,6 +9,11 @@ public:
 	Behavior* m_hitEnemyAction;
 
 	Behavior* m_hitFactionAction;
+
+        float_t  m_Duration;
+        float_t m_Forward;
+        float_t m_Left;
+        float_t m_Yaw;
 	
 	/*
 	 * Inherited
@@ -18,7 +23,11 @@ public:
 	{
 	}
 
+        void Calculate(BehaviorContext *context, RakNet::BitStream *bitStream, BehaviorBranchContext branch) override;
+
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+
+        void SyncCalculation(BehaviorContext *context, RakNet::BitStream *bitStream, BehaviorBranchContext branch) override;
 
 	void Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 	
