@@ -259,11 +259,12 @@ public:
 	 */
 	void UpdatePlayerStatistic(StatisticID updateID, uint64_t updateValue = 1);
 
-private:
     /**
      * Character info regarding this character, including clothing styles, etc.
      */
-	Character* m_Character;
+    Character* m_Character;
+private:
+    
 
     /**
      * Whether this character is racing
