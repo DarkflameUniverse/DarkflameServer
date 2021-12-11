@@ -352,6 +352,26 @@ void CharacterComponent::LoadFromXML() {
 }
 
 void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
+    tinyxml2::XMLElement* minifig = doc->FirstChildElement("obj")->FirstChildElement("mf");
+	if (!minifig) {
+		Game::logger->Log("CharacterComponent", "Failed to find mf tag while updating XML!\n");
+		return;
+	}
+
+    // write minifig information that might have been changed by commands 
+
+    minifig->SetAttribute("es", m_Character->GetEyebrows());
+    minifig->SetAttribute("ess", m_Character->GetEyes());
+    minifig->SetAttribute("hc", m_Character->GetHairColor());
+    minifig->SetAttribute("hs", m_Character->GetHairStyle());
+    minifig->SetAttribute("l", m_Character->GetPantsColor());
+    minifig->SetAttribute("lh", m_Character->GetLeftHand());
+    minifig->SetAttribute("ms", m_Character->GetMouth());
+    minifig->SetAttribute("rh", m_Character->GetRightHand());
+    minifig->SetAttribute("t", m_Character->GetShirtColor());
+
+    // done with minifig
+
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
 		Game::logger->Log("CharacterComponent", "Failed to find char tag while updating XML!\n");
