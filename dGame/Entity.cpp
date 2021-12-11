@@ -1658,9 +1658,10 @@ bool Entity::CanPickupCoins(uint64_t count) { // bool because we are returning w
 
 void Entity::RegisterCoinDrop(uint64_t count) {
 	if (!IsPlayer()) return;
-	auto droppedcoins = static_cast<Player*>(this)->GetDroppedCoins();
+	auto * player = static_cast<Player*>(this);
+	auto droppedcoins = player->GetDroppedCoins();
 	droppedcoins += count;
-	static_cast<Player*>(this)->SetDroppedCoins(droppedcoins);
+	player->SetDroppedCoins(droppedcoins);
 }
 
 void Entity::AddChild(Entity* child) {
