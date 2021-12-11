@@ -1768,6 +1768,7 @@ void Entity::HandleTriggerCommand(std::string id, std::string target, std::strin
 			else if (argArray[0] == "repulse") effectType = 2;
 			else if (argArray[0] == "gravity") effectType = 3;
 			else if (argArray[0] == "friction") effectType = 4;
+
 			phanPhys->SetEffectType(effectType);
 			phanPhys->SetDirectionalMultiplier(std::stof(argArray[1]));
 			if (argArray.size() > 4) {
@@ -1780,6 +1781,10 @@ void Entity::HandleTriggerCommand(std::string id, std::string target, std::strin
 			if (argArray.size() > 5) {
 				phanPhys->SetMin(std::stoi(argArray[6]));
 				phanPhys->SetMax(std::stoi(argArray[7]));
+			}
+
+			if (target == "self") {
+				EntityManager::Instance()->ConstructEntity(this);
 			}
 		}
 		else if (id == "updateMission") {
