@@ -718,7 +718,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
                 m_Started = true;
 
-                Game::logger->Log("RacingControlComponent", "Starting rase\n");
+                Game::logger->Log("RacingControlComponent", "Starting race\n");
 
                 EntityManager::Instance()->SerializeEntity(m_Parent);
 
@@ -871,7 +871,7 @@ void RacingControlComponent::Update(float deltaTime) {
             }
 
             Game::logger->Log("RacingControlComponent",
-                              "Rached point (%i)/(%i)\n", player.respawnIndex,
+                              "Reached point (%i)/(%i)\n", player.respawnIndex,
                               path->pathWaypoints.size());
 
             break;

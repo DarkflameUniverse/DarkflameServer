@@ -15,7 +15,6 @@
 //VE / AG scripts:
 #include "AgShipPlayerDeathTrigger.h"
 #include "AgShipPlayerShockServer.h"
-#include "AgShipShake.h"
 #include "AgSpaceStuff.h"
 #include "AgImagSmashable.h"
 #include "NpcNpSpacemanBob.h"
@@ -52,7 +51,6 @@
 #include "NpcCowboyServer.h"
 #include "ZoneAgMedProperty.h"
 #include "AgStromlingProperty.h"
-#include "AgDarklingMech.h"
 #include "AgDarkSpiderling.h"
 #include "PropertyFXDamage.h"
 #include "AgPropguards.h"
@@ -291,9 +289,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new AgShipPlayerDeathTrigger();
 	else if (scriptName == "scripts\\ai\\NP\\L_NPC_NP_SPACEMAN_BOB.lua")
 		script = new NpcNpSpacemanBob();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_SHAKE.lua")
-		script = new AgShipShake();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_SPACE_STUFF.lua")
+	else if (scriptName == "scripts\\ai\\AG\\L_AG_SPACE_STUFF.lua") // Broken, will (sometimes) display all animations at once on initial login
 		script = new AgSpaceStuff();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_SHOCK_SERVER.lua")
 		script = new AgShipPlayerShockServer();
@@ -380,7 +376,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_STROMBIE_PROPERTY.lua")
 	    script = new AgStromlingProperty();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_DARKLING_MECH.lua")
-	    script = new AgDarklingMech();
+	    script = new BaseEnemyMech();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_DARK_SPIDERLING.lua")
 	    script = new AgDarkSpiderling();
 	else if (scriptName == "scripts\\ai\\PROPERTY\\L_PROP_GUARDS.lua")
