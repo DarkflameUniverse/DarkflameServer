@@ -1644,24 +1644,24 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 	droppedLoot.erase(objectID);
 }
 
-bool Entity::CanPickupCoins(uint64_t count) { // bool because we are returning whether they can pick up the coins
+bool Entity::CanPickupCoins(uint64_t count) {
 	if (!IsPlayer()) return false;
-	auto * player = static_cast<Player*>(this);
-	auto droppedcoins = player->GetDroppedCoins();
-	if (count > droppedcoins) { 
+	auto* player = static_cast<Player*>(this);
+	auto droppedCoins = player->GetDroppedCoins();
+	if (count > droppedCoins) { 
 		return false;
 	} else {
-		player->SetDroppedCoins(droppedcoins - count);
+		player->SetDroppedCoins(droppedCoins - count);
 		return true;
 	}
 }
 
 void Entity::RegisterCoinDrop(uint64_t count) {
 	if (!IsPlayer()) return;
-	auto * player = static_cast<Player*>(this);
-	auto droppedcoins = player->GetDroppedCoins();
-	droppedcoins += count;
-	player->SetDroppedCoins(droppedcoins);
+	auto* player = static_cast<Player*>(this);
+	auto droppedCoins = player->GetDroppedCoins();
+	droppedCoins += count;
+	player->SetDroppedCoins(droppedCoins);
 }
 
 void Entity::AddChild(Entity* child) {
