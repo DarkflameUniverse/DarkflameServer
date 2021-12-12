@@ -14,7 +14,8 @@
 
 using namespace dChatFilterDCF;
 
-dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
+dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF, int chatFilterGMLevel) {
+	m_FilterGMLevel = chatFilterGMLevel;
 	m_DontGenerateDCF = dontGenerateDCF;
 
 	if (!BinaryIO::DoesFileExist(filepath + ".dcf") || m_DontGenerateDCF) {
@@ -102,7 +103,7 @@ void dChatFilter::ExportWordlistToDCF(const std::string& filepath) {
 }
 
 bool dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel) {
-	if (gmLevel > GAME_MASTER_LEVEL_FORUM_MODERATOR) return true; //If anything but a forum mod, return true.
+	if (gmLevel >= m_FilterGMLevel) return true;
 	if (message.empty()) return true;
 
 	std::stringstream sMessage(message);

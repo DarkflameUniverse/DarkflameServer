@@ -17,7 +17,7 @@ namespace dChatFilterDCF {
 class dChatFilter
 {
 public:
-	dChatFilter(const std::string& filepath, bool dontGenerateDCF);
+	dChatFilter(const std::string& filepath, bool dontGenerateDCF, int chatFilterGMLevel);
 	~dChatFilter();
 
 	void ReadWordlistPlaintext(const std::string & filepath);
@@ -27,6 +27,7 @@ public:
 
 private:
 	bool m_DontGenerateDCF;
+	bool m_FilterGMLevel;
 	std::vector<size_t> m_Words;
 	std::vector<size_t> m_UserUnapprovedWordCache;
 
