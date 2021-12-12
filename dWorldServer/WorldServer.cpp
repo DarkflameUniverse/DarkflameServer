@@ -838,7 +838,31 @@ void HandlePacket(Packet* packet) {
 		case MSG_WORLD_CLIENT_VALIDATION: {
 			std::string username = PacketUtils::ReadString(0x08, packet, true);
 			std::string sessionKey = PacketUtils::ReadString(74, packet, true);
+			std::string fdbChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
 
+			if (bool(std::stoi(Game::config->GetValue("check_fdb")))) {
+				std::ifstream fileStream;
+				fileStream.open ("res/CDServer.fdb", std::ios::binary | std::ios::in);
+				fileStream.seekg (0, std::ios::end);
+				uint64_t fileStreamLength = fileStream.tellg();
+				fileStream.seekg (0, std::ios::beg);
+				char * fileStreamData = new char[fileStreamLength + 1];
+				fileStream.read(fileStreamData, fileStreamLength);
+
+				*(fileStreamData + (fileStreamLength + 1)) = 0x00; // null terminate the string 
+
+				MD5 md5 = MD5(fileStreamData, fileStreamLength + 1);
+				std::string ourFdbChecksum = md5.hexdigest();
+
+				Game::logger->Log("WorldServer", "Got client checksum %s and we have server checksum %s. \n", fdbChecksum.c_str(), ourFdbChecksum.c_str());
+
+				if (fdbChecksum != ourFdbChecksum) {
+					Game::logger->Log("WorldServer", "Client checksum does not match server checksum.\n");
+					Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
+					return;
+				}
+			}
+			
 			//Request the session info from Master:
 			CBITSTREAM;
 			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_REQUEST_SESSION_KEY);
