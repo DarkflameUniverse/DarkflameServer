@@ -46,19 +46,12 @@ if(WIN32)
 include(FetchContent)
 
 FetchContent_Declare(
-    mysql
-    URL https://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-8.0.27-winx64.zip
-    URL_HASH MD5=e3c53f6e4d0a72fde2713f7597bf9468
-)
-
-FetchContent_Declare(
     zlib
     URL https://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
     URL_HASH MD5=9d6a627693163bbbf3f26403a3a0b0b1
 )
 
 FetchContent_MakeAvailable(zlib)
-FetchContent_MakeAvailable(mysql)
 
 set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
 set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}") # Why?
@@ -147,20 +140,9 @@ configure_file("${CMAKE_SOURCE_DIR}/vanity/NPC.xml" "${CMAKE_BINARY_DIR}/vanity/
 
 # 3rdparty includes
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/raknet/Source/)
-if(UNIX)
-    if(APPLE)
+if(UNIX AND APPLE)
         include_directories(/usr/local/include/)
-        include_directories(/usr/local/mysql-connector-c++/include/jdbc/)
-        include_directories(/usr/local/mysql-connector-c++/include/jdbc/cppconn/)
-    else()
-        include_directories(${mysql_SOURCE_DIR}/include/jdbc/)
-        include_directories(${mysql_SOURCE_DIR}/include/jdbc/cppconn/)
-    endif(APPLE)
-endif(UNIX)
-if(WIN32)
-include_directories(${mysql_SOURCE_DIR}/include/jdbc)
-include_directories(${mysql_SOURCE_DIR}/include/jdbc/cppconn)
-endif(WIN32)
+endif(UNIX AND APPLE)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Recast/Include)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Detour/Include)
@@ -195,24 +177,8 @@ include_directories(${PROJECT_SOURCE_DIR}/thirdparty/cpplinq/)
 include_directories(${PROJECT_SOURCE_DIR}/dNet/)
 include_directories(${PROJECT_SOURCE_DIR}/dScripts/)
 
-# Default to linking to libmysql
-set(MYSQL_LIB mysql)
-if(WIN32)
-set(MYSQL_LIB mysqlcppconn)
-endif(WIN32)
-
 # Lib folders:
 link_directories(${PROJECT_BINARY_DIR})
-if(UNIX)
-    if(APPLE)
-        link_directories(/usr/local/mysql-connector-c++/lib64/)
-    else()
-        set(MYSQL_LIB mariadbconncpp)
-    endif(APPLE)
-endif(UNIX)
-if(WIN32)
-link_directories(${mysql_SOURCE_DIR}/lib64/vs14)
-endif(WIN32)
 
 # Source Code
 file(
@@ -359,26 +325,41 @@ if(MSVC)
     add_compile_options("/wd4267")
 endif(MSVC)
 
-include(ExternalProject)
+# mariadb connector cpp
+
+# Just use prebuilt binaries for windows. ClangCL can't compile the connector but can link with a standard msvc compiled one.
+# need connector/c  - https://dlm.mariadb.com/1936366/connectors/c/connector-c-3.2.5/mariadb-connector-c-3.2.5-win64.msi
+# and connector/cpp - https://dlm.mariadb.com/1683453/connectors/cpp/connector-cpp-1.0.1/mariadb-connector-cpp-1.0.1-win64.msi
+# also will need to unpack the msi's using msi exec.
+
+# for now it works using normal msvc compiler
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/")
+    # renaming test folder stops it from being built, saves some time when compiling
 	file(RENAME "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/" "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test/")
 endif()
 
+include(ExternalProject)
 ExternalProject_Add(mariadb_connector_cpp
 					SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
-					CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0"
+					CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= -D_GLIBCXX_USE_CXX11_ABI=0 /EHsc"
 								-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-					PREFIX ${PROJECT_BINARY_DIR}/mariadbcpp
-					BUILD_COMMAND cmake --build .
-					#renaming test folder stops it from being built
+                               -DWITH_MSI=OFF
+					PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
+					BUILD_COMMAND cmake --build . --config RelWithDebInfo
 					INSTALL_COMMAND "")
-ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
 
-add_library (mariadbconncpp UNKNOWN IMPORTED)
-set_property(TARGET mariadbconncpp PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/libmariadbcpp.so)
-target_include_directories(mariadbconncpp INTERFACE ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include)
-add_dependencies(mariadbconncpp mariadb_connector_cpp)
-#endif()
+ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
+add_library (mariadbConnCpp SHARED IMPORTED)
+if(WIN32)
+    set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll")
+    set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_IMPLIB "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
+else()
+    set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/libmariadbcpp.so")
+endif()
+set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_LOCATION ${MARIADB_SHARED_LIBRARY_LOCATION})
+target_include_directories(mariadbConnCpp INTERFACE "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
+add_dependencies(mariadbConnCpp mariadb_connector_cpp)
 
 # 3rdparty static libraries:
 #add_library(zlib ${SOURCES_ZLIB})
@@ -399,6 +380,10 @@ add_library(dPhysics ${SOURCES_DPHYSICS})
 target_link_libraries(dNet dCommon) #Needed because otherwise linker errors occur.
 target_link_libraries(dCommon ZLIB::ZLIB)
 target_link_libraries(dCommon libbcrypt)
+target_link_libraries(dDatabase mariadbConnCpp)
+target_link_libraries(dNet dDatabase)
+target_link_libraries(dGame dDatabase)
+target_link_libraries(dChatFilter dDatabase)
 
 if(WIN32)
 target_link_libraries(raknet ws2_32)
@@ -421,7 +406,7 @@ target_link_libraries(WorldServer dPhysics)
 target_link_libraries(WorldServer detour)
 target_link_libraries(WorldServer recast)
 target_link_libraries(WorldServer raknet)
-target_link_libraries(WorldServer ${MYSQL_LIB})
+target_link_libraries(WorldServer mariadbConnCpp)
 if(UNIX)
 target_link_libraries(WorldServer pthread)
 target_link_libraries(WorldServer dl)
@@ -441,7 +426,7 @@ target_link_libraries(AuthServer dCommon)
 target_link_libraries(AuthServer dDatabase)
 target_link_libraries(AuthServer dNet)
 target_link_libraries(AuthServer raknet)
-target_link_libraries(AuthServer ${MYSQL_LIB})
+target_link_libraries(AuthServer mariadbConnCpp)
 if(UNIX)
 target_link_libraries(AuthServer pthread)
 target_link_libraries(AuthServer dl)
@@ -452,7 +437,7 @@ target_link_libraries(MasterServer dCommon)
 target_link_libraries(MasterServer dDatabase)
 target_link_libraries(MasterServer dNet)
 target_link_libraries(MasterServer raknet)
-target_link_libraries(MasterServer ${MYSQL_LIB})
+target_link_libraries(MasterServer mariadbConnCpp)
 if(UNIX)
 target_link_libraries(MasterServer pthread)
 target_link_libraries(MasterServer dl)
@@ -464,17 +449,11 @@ target_link_libraries(ChatServer dChatFilter)
 target_link_libraries(ChatServer dDatabase)
 target_link_libraries(ChatServer dNet)
 target_link_libraries(ChatServer raknet)
-target_link_libraries(ChatServer ${MYSQL_LIB})
+target_link_libraries(ChatServer mariadbConnCpp)
 if(UNIX)
 target_link_libraries(ChatServer pthread)
 target_link_libraries(ChatServer dl)
 endif(UNIX)
-
-#if (WIN32 OR APPLE)
-add_compile_definitions(MYSQL_CONNECTOR)
-#elseif(UNIX)
-add_compile_definitions(MARIADB_CONNECTOR)
-#endif
 
 # Compiler flags:
 # Disabled deprecated warnings as the MySQL includes have deprecated code in them. 

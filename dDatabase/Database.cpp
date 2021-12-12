@@ -18,7 +18,6 @@ void Database::Connect(const string& host, const string& database, const string&
 	const char* szUsername = username.c_str();
 	const char* szPassword = password.c_str();
 
-#if defined(MARIADB_CONNECTOR)
 	driver = sql::mariadb::get_driver_instance();
     
     sql::Properties properties;
@@ -28,15 +27,7 @@ void Database::Connect(const string& host, const string& database, const string&
     properties["autoReconnect"] = "true";
     con = driver->connect(properties);
 	con->setSchema(szDatabase);
-#elif defined(MYSQL_CONNECTOR)
-	driver = sql::get_driver_instance();
-    con = driver->connect(szHost, szUsername, szPassword);
-	con->setSchema(szDatabase);
-	bool myTrue = true;
-	con->setClientOption("MYSQL_OPT_RECONNECT", &myTrue);
-#else
-#error "Connector not defined"
-#endif
+
 } //Connect
 
 void Database::Destroy(std::string source) {
