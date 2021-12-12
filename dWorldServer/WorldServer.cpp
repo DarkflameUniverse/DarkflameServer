@@ -239,16 +239,19 @@ int main(int argc, char** argv) {
 		// pre calculate the FDB checksum
 		if (bool(std::stoi(Game::config->GetValue("check_fdb")))) {
 				std::ifstream fileStream;
-				fileStream.open ("res/CDServer.fdb", std::ios::binary | std::ios::in);
+				fileStream.open("res/CDServer.fdb", std::ios::binary | std::ios::in);
 				const int bufferSize = 1024;
 				MD5* md5 = new MD5();
 				
+				std::vector<char> fileStreamBuffer = std::vector<char>(bufferSize, 0);
+
 				while (!fileStream.eof()) {
-					char * fileStreamBuffer = new char[bufferSize];
-					fileStream.read(fileStreamBuffer, bufferSize);
-					std::streamsize size = ((fileStream) ? bufferSize : fileStream.gcount());
-					md5->update(fileStreamBuffer, size);
+					fileStreamBuffer.clear();
+					fileStream.read(fileStreamBuffer.data(), bufferSize);
+					md5->update(fileStreamBuffer.data(), fileStream.gcount());
 				}
+
+				fileStreamBuffer.clear();
 
 				const char* nullTerminateBuffer = "\0";
 				md5->update(nullTerminateBuffer, 1); // null terminate the data

@@ -115,14 +115,6 @@ MD5::MD5(const std::string &text)
     finalize();
 }
 
-// raw md5 construstor
-MD5::MD5(const char * input, size_type length)
-{
-    init();
-    update(input, length);
-    finalize();
-}
-
 //////////////////////////////
 
 void MD5::init()
