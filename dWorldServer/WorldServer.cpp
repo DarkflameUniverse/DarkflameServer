@@ -89,6 +89,7 @@ struct tempSessionInfo {
 std::map<std::string, tempSessionInfo> m_PendingUsers;
 int instanceID = 0;
 int g_CloneID = 0;
+std::string fdbChecksum = "";
 
 int main(int argc, char** argv) {
 	Diagnostics::SetProcessName("World");
@@ -234,6 +235,30 @@ int main(int argc, char** argv) {
 		Game::physicsWorld = &dpWorld::Instance(); //just in case some old code references it
 		dZoneManager::Instance()->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
+
+		// pre calculate the FDB checksum
+		if (bool(std::stoi(Game::config->GetValue("check_fdb")))) {
+				std::ifstream fileStream;
+				fileStream.open ("res/CDServer.fdb", std::ios::binary | std::ios::in);
+				const int bufferSize = 1024;
+				MD5* md5 = new MD5();
+				
+				while (!fileStream.eof()) {
+					char * fileStreamBuffer = new char[bufferSize];
+					fileStream.read(fileStreamBuffer, bufferSize);
+					std::streamsize size = ((fileStream) ? bufferSize : fileStream.gcount());
+					md5->update(fileStreamBuffer, size);
+				}
+
+				const char* nullTerminateBuffer = "\0";
+				md5->update(nullTerminateBuffer, 1); // null terminate the data
+				md5->finalize();
+				fdbChecksum = md5->hexdigest();
+			
+				delete md5;
+
+				Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s\n", fdbChecksum.c_str());
+			}
 	}
 
 	while (true) {
@@ -838,25 +863,11 @@ void HandlePacket(Packet* packet) {
 		case MSG_WORLD_CLIENT_VALIDATION: {
 			std::string username = PacketUtils::ReadString(0x08, packet, true);
 			std::string sessionKey = PacketUtils::ReadString(74, packet, true);
-			std::string fdbChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
+			std::string theirFdbChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
 
-			if (bool(std::stoi(Game::config->GetValue("check_fdb")))) {
-				std::ifstream fileStream;
-				fileStream.open ("res/CDServer.fdb", std::ios::binary | std::ios::in);
-				fileStream.seekg (0, std::ios::end);
-				uint64_t fileStreamLength = fileStream.tellg();
-				fileStream.seekg (0, std::ios::beg);
-				char * fileStreamData = new char[fileStreamLength + 1];
-				fileStream.read(fileStreamData, fileStreamLength);
-
-				*(fileStreamData + (fileStreamLength + 1)) = 0x00; // null terminate the string 
-
-				MD5 md5 = MD5(fileStreamData, fileStreamLength + 1);
-				std::string ourFdbChecksum = md5.hexdigest();
-
-				Game::logger->Log("WorldServer", "Got client checksum %s and we have server checksum %s. \n", fdbChecksum.c_str(), ourFdbChecksum.c_str());
-
-				if (fdbChecksum != ourFdbChecksum) {
+			if (bool(std::stoi(Game::config->GetValue("check_fdb"))) && fdbChecksum != "") { // if fdbChecksum is empty, likely means we are a character server.
+				Game::logger->Log("WorldServer", "Got client checksum %s and we have server checksum %s. \n", theirFdbChecksum.c_str(), fdbChecksum.c_str());
+				if (theirFdbChecksum != fdbChecksum) {
 					Game::logger->Log("WorldServer", "Client checksum does not match server checksum.\n");
 					Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
 					return;
