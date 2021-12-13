@@ -157,18 +157,26 @@ void PetDigServer::HandleBouncerDig(const Entity *self, const Entity *owner) {
 }
 
 /**
- * Progresses the Can You Dig It mission if the player has never completed it yet
+ * Progresses the Can You Dig It mission and the Pet Excavator Achievement if the player has never completed it yet
  * \param owner the owner that just made a pet dig something up
  */
-void PetDigServer::ProgressCanYouDigIt(const Entity* owner) {
+void PetDigServer::ProgressPetDigMissions(const Entity* owner) {
     auto* missionComponent = owner->GetComponent<MissionComponent>();
 
     if (missionComponent != nullptr)
     {
+        // Can You Dig It progress
         const auto digMissionState = missionComponent->GetMissionState(843);
         if (digMissionState == MissionState::MISSION_STATE_ACTIVE)
         {
             missionComponent->ForceProgress(843, 1216, 1);
+        }
+
+        // Pet Excavator progress
+        const auto excavatorMissionState = missionComponent->GetMissionState(505);
+        if (excavatorMissionState == MissionState::MISSION_STATE_ACTIVE)
+        {
+            missionComponent->ForceProgress(505, 767, 1);
         }
     }
 }
