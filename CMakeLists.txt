@@ -334,9 +334,15 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/")
 endif()
 
 include(ExternalProject)
+if(WIN32)
+	set(MARIADB_EXTRA_COMPILE_FLAGS /EHsc)
+else()
+	set(MARIADB_EXTRA_COMPILE_FLAGS -DGLIBCXX_USE_CXX11_ABI=0)
+endif()
+
 ExternalProject_Add(mariadb_connector_cpp
 					SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
-					CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= -D_GLIBCXX_USE_CXX11_ABI=0 /EHsc"
+					CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
 								-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                                 -DWITH_MSI=OFF
 					PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
