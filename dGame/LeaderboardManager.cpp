@@ -97,6 +97,9 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
                     highscore = false;
                 break;
             case Racing:
+                if (time >= storedTime) // Altered 12/12/2021: Racing's leaderboard is based on the shortest time.
+                    highscore = false;
+                break;
             case MonumentRace:
                 if (time > storedTime)
                     highscore = false;
@@ -106,8 +109,11 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
                     highscore = false;
                 break;
             case Survival:
+                if (time <= storedTime) //Altered 12/12/2021: Avant Gardens Survial's leaderboard (in live) was based only on the longest time.
+                    highscore = false;
+                break;
             case SurvivalNS:
-                if (score < storedScore || time >= storedTime)
+                if (time >= storedTime) // Altered 12/12/2021: Battle of Nimbus Station's leaderboard is only based on the shortest time. 
                     highscore = false;
                 break;
             default:
@@ -125,7 +131,7 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
     delete result;
 
     if (any) {
-        auto* statement = Database::CreatePreppedStmt("UPDATE leaderboard SET time = ?, score = ? WHERE character_id = ? AND game_id = ?");
+        auto* statement = Database::CreatePreppedStmt("UPDATE leaderboard SET time = ?, score = ? WHERE character_id = ? AND game_id = ?;"); 
         statement->setInt(1, time);
         statement->setInt(2, score);
         statement->setUInt64(3, character->GetID());
@@ -150,14 +156,44 @@ Leaderboard *LeaderboardManager::GetLeaderboard(uint32_t gameID, InfoType infoTy
 
     std::string query;
     switch (infoType) {
+
+        // Modified 12-12-2021: Not all gamemodes are dictated by the score. Instead, the time dictates the best score.
         case InfoType::Standings:
-            query = leaderboardType == MonumentRace ? standingsQueryAsc : standingsQuery;
+            switch (leaderboardType) {
+                case ShootingGallery: 
+                    query = standingsScoreQuery; // Shooting gallery is based on the highest score.
+                    break;
+                case Survival:
+                    query = standingsTimeQuery; // AG Survival is based on the longest time.
+                    break;
+                default: 
+                    query = standingsTimeQueryAsc; // SurvivalNS, FootRace, MonumentRace, and Racing are all based on the shortest time.
+            }
             break;
         case InfoType::Friends:
-            query = leaderboardType == MonumentRace ? friendsQueryAsc : friendsQuery;
+            switch (leaderboardType) {
+                case ShootingGallery:
+                    query = friendsScoreQuery; // Shooting gallery is based on the highest score.
+                    break;
+                case Survival:
+                    query = friendsTimeQuery; // AG Survival is based on the longest time.
+                    break;
+                default:
+                    query = friendsTimeQueryAsc;  // SurvivalNS, FootRace, MonumentRace, and Racing are all based on the shortest time.
+            }
             break;
+
         default:
-            query = leaderboardType == MonumentRace ? topPlayersQueryAsc : topPlayersQuery;
+            switch (leaderboardType) {
+                case ShootingGallery:
+                    query = topPlayersScoreQuery; // Shooting gallery is based on the highest score.
+                    break;
+                case Survival:
+                    query = topPlayersTimeQuery; // AG Survival is based on the longest time.
+                    break;
+                default:
+                    query = topPlayersTimeQueryAsc;  // SurvivalNS, FootRace, MonumentRace, and Racing are all based on the shortest time.
+            }
     }
 
     auto* statement = Database::CreatePreppedStmt(query);
@@ -220,7 +256,8 @@ LeaderboardType LeaderboardManager::GetLeaderboardType(uint32_t gameID) {
     return LeaderboardType::None;
 }
 
-const std::string LeaderboardManager::topPlayersQuery =
+// Altered 12/12/2021: Renamed the following 6 queries to include "score".
+const std::string LeaderboardManager::topPlayersScoreQuery =
         "WITH leaderboard_vales AS ( "
         "        SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, "
         "RANK() OVER ( ORDER BY l.score DESC, l.time DESC, last_played ) leaderboard_rank "
@@ -231,7 +268,7 @@ const std::string LeaderboardManager::topPlayersQuery =
         "SELECT time, score, leaderboard_rank, id, name, last_played "
         "FROM leaderboard_vales LIMIT 11;";
 
-const std::string LeaderboardManager::friendsQuery =
+const std::string LeaderboardManager::friendsScoreQuery =
         "WITH leaderboard_vales AS ( "
         "    SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, f.friend_id, f.player_id, "
         "           RANK() OVER ( ORDER BY l.score DESC, l.time DESC, last_played ) leaderboard_rank "
@@ -249,7 +286,7 @@ const std::string LeaderboardManager::friendsQuery =
         "FROM leaderboard_vales, personal_values "
         "WHERE leaderboard_rank BETWEEN min_rank AND max_rank AND (player_id = related_player_id OR friend_id = related_player_id);";
 
-const std::string LeaderboardManager::standingsQuery =
+const std::string LeaderboardManager::standingsScoreQuery =
         "WITH leaderboard_vales AS ( "
         "    SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, "
         "           RANK() OVER ( ORDER BY l.score DESC, l.time DESC, last_played ) leaderboard_rank "
@@ -265,7 +302,7 @@ const std::string LeaderboardManager::standingsQuery =
         "FROM leaderboard_vales, personal_values "
         "WHERE leaderboard_rank BETWEEN min_rank AND max_rank;";
 
-const std::string LeaderboardManager::topPlayersQueryAsc =
+const std::string LeaderboardManager::topPlayersScoreQueryAsc =
         "WITH leaderboard_vales AS ( "
         "        SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, "
         "RANK() OVER ( ORDER BY l.score DESC, l.time ASC, last_played ) leaderboard_rank "
@@ -276,7 +313,7 @@ const std::string LeaderboardManager::topPlayersQueryAsc =
         "SELECT time, score, leaderboard_rank, id, name, last_played "
         "FROM leaderboard_vales LIMIT 11;";
 
-const std::string LeaderboardManager::friendsQueryAsc =
+const std::string LeaderboardManager::friendsScoreQueryAsc =
         "WITH leaderboard_vales AS ( "
         "    SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, f.friend_id, f.player_id, "
         "           RANK() OVER ( ORDER BY l.score DESC, l.time ASC, last_played ) leaderboard_rank "
@@ -294,7 +331,7 @@ const std::string LeaderboardManager::friendsQueryAsc =
         "FROM leaderboard_vales, personal_values "
         "WHERE leaderboard_rank BETWEEN min_rank AND max_rank AND (player_id = related_player_id OR friend_id = related_player_id);";
 
-const std::string LeaderboardManager::standingsQueryAsc =
+const std::string LeaderboardManager::standingsScoreQueryAsc =
         "WITH leaderboard_vales AS ( "
         "    SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, "
         "           RANK() OVER ( ORDER BY l.score DESC, l.time ASC, last_played ) leaderboard_rank "
@@ -309,3 +346,94 @@ const std::string LeaderboardManager::standingsQueryAsc =
         "SELECT time, score, leaderboard_rank, id, name, last_played "
         "FROM leaderboard_vales, personal_values "
         "WHERE leaderboard_rank BETWEEN min_rank AND max_rank;";
+
+// Added 12/12/2021: The following 6 queries were added for when the leaderboard is dictated by time.
+const std::string LeaderboardManager::topPlayersTimeQuery =
+"WITH leaderboard_vales AS ( "
+"        SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, "
+"RANK() OVER ( ORDER BY l.time DESC, l.score DESC, last_played ) leaderboard_rank "
+"        FROM leaderboard l "
+"INNER JOIN charinfo c ON l.character_id = c.id "
+"WHERE l.game_id = ? "
+"ORDER BY leaderboard_rank) "
+"SELECT time, score, leaderboard_rank, id, name, last_played "
+"FROM leaderboard_vales LIMIT 11;";
+
+const std::string LeaderboardManager::friendsTimeQuery =
+"WITH leaderboard_vales AS ( "
+"    SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, f.friend_id, f.player_id, "
+"           RANK() OVER ( ORDER BY l.time DESC, l.score DESC, last_played ) leaderboard_rank "
+"    FROM leaderboard l "
+"        INNER JOIN charinfo c ON l.character_id = c.id "
+"        INNER JOIN friends f ON f.player_id = c.id "
+"    WHERE l.game_id = ? "
+"    ORDER BY leaderboard_rank), "
+"     personal_values AS ( "
+"         SELECT id as related_player_id, "
+"                GREATEST(CAST(leaderboard_rank AS SIGNED) - 5, 1) AS min_rank, "
+"                GREATEST(leaderboard_rank + 5, 11) AS max_rank "
+"         FROM leaderboard_vales WHERE leaderboard_vales.id = ? LIMIT 1) "
+"SELECT time, score, leaderboard_rank, id, name, last_played "
+"FROM leaderboard_vales, personal_values "
+"WHERE leaderboard_rank BETWEEN min_rank AND max_rank AND (player_id = related_player_id OR friend_id = related_player_id);";
+
+const std::string LeaderboardManager::standingsTimeQuery =
+"WITH leaderboard_vales AS ( "
+"    SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, "
+"           RANK() OVER ( ORDER BY l.time DESC, l.score DESC, last_played ) leaderboard_rank "
+"    FROM leaderboard l "
+"        INNER JOIN charinfo c ON l.character_id = c.id "
+"    WHERE l.game_id = ? "
+"    ORDER BY leaderboard_rank), "
+"personal_values AS ( "
+"    SELECT GREATEST(CAST(leaderboard_rank AS SIGNED) - 5, 1) AS min_rank, "
+"           GREATEST(leaderboard_rank + 5, 11) AS max_rank "
+"    FROM leaderboard_vales WHERE id = ? LIMIT 1) "
+"SELECT time, score, leaderboard_rank, id, name, last_played "
+"FROM leaderboard_vales, personal_values "
+"WHERE leaderboard_rank BETWEEN min_rank AND max_rank;";
+
+const std::string LeaderboardManager::topPlayersTimeQueryAsc =
+"WITH leaderboard_vales AS ( "
+"        SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, "
+"RANK() OVER ( ORDER BY l.time ASC, l.score DESC, last_played ) leaderboard_rank "
+"        FROM leaderboard l "
+"INNER JOIN charinfo c ON l.character_id = c.id "
+"WHERE l.game_id = ? "
+"ORDER BY leaderboard_rank) "
+"SELECT time, score, leaderboard_rank, id, name, last_played "
+"FROM leaderboard_vales LIMIT 11;";
+
+const std::string LeaderboardManager::friendsTimeQueryAsc =
+"WITH leaderboard_vales AS ( "
+"    SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, f.friend_id, f.player_id, "
+"           RANK() OVER ( ORDER BY l.time ASC, l.score DESC, last_played ) leaderboard_rank "
+"    FROM leaderboard l "
+"        INNER JOIN charinfo c ON l.character_id = c.id "
+"        INNER JOIN friends f ON f.player_id = c.id "
+"    WHERE l.game_id = ? "
+"    ORDER BY leaderboard_rank), "
+"     personal_values AS ( "
+"         SELECT id as related_player_id, "
+"                GREATEST(CAST(leaderboard_rank AS SIGNED) - 5, 1) AS min_rank, "
+"                GREATEST(leaderboard_rank + 5, 11) AS max_rank "
+"         FROM leaderboard_vales WHERE leaderboard_vales.id = ? LIMIT 1) "
+"SELECT time, score, leaderboard_rank, id, name, last_played "
+"FROM leaderboard_vales, personal_values "
+"WHERE leaderboard_rank BETWEEN min_rank AND max_rank AND (player_id = related_player_id OR friend_id = related_player_id);";
+
+const std::string LeaderboardManager::standingsTimeQueryAsc =
+"WITH leaderboard_vales AS ( "
+"    SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, "
+"           RANK() OVER ( ORDER BY l.time ASC, l.score DESC, last_played ) leaderboard_rank "
+"    FROM leaderboard l "
+"        INNER JOIN charinfo c ON l.character_id = c.id "
+"    WHERE l.game_id = ? "
+"    ORDER BY leaderboard_rank), "
+"personal_values AS ( "
+"    SELECT GREATEST(CAST(leaderboard_rank AS SIGNED) - 5, 1) AS min_rank, "
+"           GREATEST(leaderboard_rank + 5, 11) AS max_rank "
+"    FROM leaderboard_vales WHERE id = ? LIMIT 1) "
+"SELECT time, score, leaderboard_rank, id, name, last_played "
+"FROM leaderboard_vales, personal_values "
+"WHERE leaderboard_rank BETWEEN min_rank AND max_rank;";
