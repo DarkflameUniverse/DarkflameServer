@@ -452,7 +452,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityId);
 		}
 
-		Loot::DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
+		LootGenerator::Instance()->DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
 	}
 
 	m_Builder = LWOOBJID_EMPTY;

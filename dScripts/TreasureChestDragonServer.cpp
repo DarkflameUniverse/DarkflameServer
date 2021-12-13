@@ -39,12 +39,12 @@ void TreasureChestDragonServer::OnUse(Entity* self, Entity* user)
 
             if (memberObject == nullptr) continue;
 
-            Loot::DropActivityLoot(memberObject, self, scriptedActivityComponent->GetActivityID(), rating);
+            LootGenerator::Instance()->DropActivityLoot(memberObject, self, scriptedActivityComponent->GetActivityID(), rating);
         }
     }
     else
     {
-        Loot::DropActivityLoot(user, self, scriptedActivityComponent->GetActivityID(), rating);
+        LootGenerator::Instance()->DropActivityLoot(user, self, scriptedActivityComponent->GetActivityID(), rating);
     }
 
     self->Smash(self->GetObjectID());

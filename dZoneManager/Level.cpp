@@ -11,6 +11,8 @@
 #include "GeneralUtils.h"
 #include "Entity.h"
 #include "EntityManager.h"
+#include "CDFeatureGatingTable.h"
+#include "CDClientManager.h"
 
 Level::Level(Zone* parentZone, const std::string& filepath) {
     m_ParentZone = parentZone;

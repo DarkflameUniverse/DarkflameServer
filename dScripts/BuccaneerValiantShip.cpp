@@ -7,7 +7,7 @@ void BuccaneerValiantShip::OnStartup(Entity* self) {
     const auto behavior = 20577;
     const auto skillCastTimer = 1.0F;
 
-    self->AddCallbackTimer(skillCastTimer, [self]() {
+    self->AddCallbackTimer(skillCastTimer, [&]() {
         auto* skillComponent = self->GetComponent<SkillComponent>();
         auto* owner = self->GetOwner();
 

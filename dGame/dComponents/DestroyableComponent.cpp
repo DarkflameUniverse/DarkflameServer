@@ -783,12 +783,12 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 					if (member == nullptr) continue;
 
-					Loot::DropLoot(member, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
+					LootGenerator::Instance()->DropLoot(member, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
 				}
 			}
 			else
 			{
-				Loot::DropLoot(owner, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
+				LootGenerator::Instance()->DropLoot(owner, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
 			}
 		}
 	}
@@ -815,7 +815,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 			coinsTotal -= coinsToLoose;
 		
-			Loot::DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
+			LootGenerator::Instance()->DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
 		}
 
 		character->SetCoins(coinsTotal);
