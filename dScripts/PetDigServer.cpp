@@ -91,7 +91,7 @@ void PetDigServer::OnDie(Entity* self, Entity* killer)
         PetDigServer::HandleBouncerDig(self, owner);
     }
 
-    PetDigServer::ProgressCanYouDigIt(owner);
+    PetDigServer::ProgressPetDigMissions(owner);
 
     self->SetNetworkVar<bool>(u"treasure_dug", true);
     // TODO: Reset other pets
@@ -176,7 +176,11 @@ void PetDigServer::ProgressPetDigMissions(const Entity* owner) {
         const auto excavatorMissionState = missionComponent->GetMissionState(505);
         if (excavatorMissionState == MissionState::MISSION_STATE_ACTIVE)
         {
-            missionComponent->ForceProgress(505, 767, 1);
+            // Only progress when Player is on Pet Cove
+            if (dZoneManager::Instance()->GetZoneID().GetMapID() == 1201) {
+                missionComponent->ForceProgress(505, 767, 1);
+            }
+            
         }
     }
 }
