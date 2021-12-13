@@ -364,30 +364,6 @@ public:
      */
 	void SetAnnouncementMessage(const std::string& value) { m_AnnouncementMessage = value; }
 
-    /**
-     * Gets the subject of a mail message that a character made (reserved for GMs)
-     * @return the title of the announcement a character made
-     */
-	const std::string& GetMailSubject() const { return m_MailSubject; }
-
-    /**
-     * Sets the subject of a mail message a character will make (reserved for GMs)
-     * @param value the subject to set
-     */
-	void SetMailSubject(const std::string& value) { m_MailSubject = value; }
-
-    /**
-     * Gets the body of a mail message a character made (reserved for GMs)
-     * @return the body of the mail
-     */
-	const std::string& GetMailBody() const { return m_MailBody; }
-
-    /**
-     * Sets the body of an mail message to make (reserved for GMs)
-     * @param value the body of the mail message
-     */
-	void SetMailBody(const std::string& value) { m_MailBody = value; }
-
 	/**
 	 * Called when the character has loaded into a zone
 	 */
@@ -618,16 +594,6 @@ private:
      * The body of an announcement this character made (reserved for GMs)
      */
 	std::string m_AnnouncementMessage;
-
-    /**
-     * The subject of a mail message this character made (reserved for GMs)
-     */
-	std::string m_MailSubject;
-
-    /**
-     * The body of a mail message this character made (reserved for GMs)
-     */
-	std::string m_MailBody;
 
     /**
      * The spawn position of this character when loading in

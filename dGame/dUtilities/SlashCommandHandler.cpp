@@ -810,28 +810,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
         }
     }
 
-	if (chatCommand == "setmailsubj" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		if (args.size() < 0) return;
-
-		std::stringstream ss;
-		for (auto string : args)
-			ss << string << " ";
-
-		entity->GetCharacter()->SetMailSubject(ss.str());
-		return;
-	}
-
-	if (chatCommand == "setmailbody" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		if (args.size() < 0) return;
-
-		std::stringstream ss;
-		for (auto string : args)
-			ss << string << " ";
-
-		entity->GetCharacter()->SetMailBody(ss.str());
-		return;
-	}
-
 	if (chatCommand == "mailitem" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR && args.size() >= 2) {
 		const auto& playerName = args[0];
 
@@ -862,17 +840,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		std::string mailSubject = "Lost item";
-		std::string mailBody = "This is a replacement item for one you lost."
-
-		if (entity->GetCharacter()->GetMailSubject().size() != 0) {
-			mailSubject = entity->GetCharacter()->GetMailSubject();
-		}
-
-		if (entity->GetCharacter()->GetMailBody().size() != 0) {
-			mailBody = entity->GetCharacter()->GetMailBody();
-		}
-
 		uint64_t currentTime = time(NULL);
 		sql::PreparedStatement* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
 		ins->setUInt(1, entity->GetObjectID());
@@ -880,8 +847,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		ins->setUInt(3, receiverID);
 		ins->setString(4, playerName);
 		ins->setUInt64(5, currentTime);
-		ins->setString(6, mailSubject);
-		ins->setString(7, mailBody);
+		ins->setString(6, "Lost item");
+		ins->setString(7, "This is a replacement item for one you lost.");
 		ins->setUInt(8, 0);
 		ins->setInt(9, lot);
 		ins->setInt(10, 0);
@@ -889,11 +856,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		ins->execute();
 		delete ins;
 		
-		auto sysMessage = u"Sending item to " + playerName + " with subject \"" + mailSubject + "\" and body \"" + mailBody + "\".";
-		ChatPackets::SendSystemMessage(sysAddr, sysMessage);
-		delete sysMessage;
-		delete mailSubject;
-		delete mailBody;
+		ChatPackets::SendSystemMessage(sysAddr, u"Mail sent");
 
 		return;
 	}
