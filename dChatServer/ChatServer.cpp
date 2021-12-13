@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 	dConfig config("chatconfig.ini");
 	Game::config = &config;
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
-	Game::logger->SetLogDebugStatements(bool(std::stoi(config.GetValue("log_debug_statements"))));
+	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
 
 	//Connect to the MySQL Database
 	std::string mysql_host = config.GetValue("mysql_host");
