@@ -104,13 +104,13 @@ Packet* dServer::ReceiveFromMaster() {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
 
 		if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-			mLogger->Log("Server", "Lost our connection to master, shutting DOWN!\n");
+			mLogger->Log("dServer", "Lost our connection to master, shutting DOWN!\n");
 			mMasterConnectionActive = false;
 			//ConnectToMaster(); //We'll just shut down now
 		}
 	
 		if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
-			mLogger->Log("Server", "Established connection to master\n");
+			mLogger->Log("dServer", "Established connection to master, zone (%i), instance (%i)\n",this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
 			MasterPackets::SendServerInfo(this, packet);
@@ -147,7 +147,7 @@ Packet* dServer::ReceiveFromMaster() {
 					}
 					
 					default:
-						mLogger->Log("Server", "Unknown packet ID from master: %i\n", packet->data[3]);
+						mLogger->Log("dServer", "Unknown packet ID from master: %i\n", packet->data[3]);
 				}
 			}
 		}
