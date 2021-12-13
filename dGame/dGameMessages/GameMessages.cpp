@@ -5673,7 +5673,7 @@ void GameMessages::HandleDoneArrangingWithItem(RakNet::BitStream* inStream, Enti
 			return;
 		}
 
-		Game::logger->Log("GameMessages", "Build area found: %llu", buildArea->GetObjectID());
+		Game::logger->Log("GameMessages", "Build area found: %llu\n", buildArea->GetObjectID());
 
 		GameMessages::SendStartArrangingWithItem(
 			character,
