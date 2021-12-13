@@ -646,7 +646,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MSG_MASTER_SHUTDOWN_UNIVERSE: {
-			Game::logger->Log("MasterServer","Received shutdown universe command, ""shutting down in 10 minutes.\n");
+			Game::logger->Log("MasterServer","Received shutdown universe command, shutting down in 10 minutes.\n");
 			shouldShutdown = true;
 			break;
 		}
@@ -677,7 +677,7 @@ void ShutdownSequence() {
 	auto* objIdManager = ObjectIDManager::TryInstance();
 	if (objIdManager != nullptr) {
 		objIdManager->SaveToDatabase();
-		printf("Saved objidtracker...\n");
+		Game::logger->Log("MasterServer", "Saved ObjectIDTracker to DB\n");
 	}
 
 	auto t = std::chrono::high_resolution_clock::now();
@@ -687,7 +687,8 @@ void ShutdownSequence() {
 		exit(0);
 	}
 
-	printf("Attempting to shutdown instances, max 60 seconds...\n");
+	Game::logger->Log("MasterServer", "Attempting to shutdown instances, max 60 seconds...\n");
+
 	while (true) {
 		auto done = true;
 
