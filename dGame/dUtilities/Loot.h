@@ -2,6 +2,7 @@
 
 #include "dCommonVars.h"
 #include <unordered_map>
+#include "Singleton.h"
 
 class Entity;
 
@@ -38,22 +39,10 @@ namespace Loot {
     };
 }
 
-class LootGenerator;
 
-static LootGenerator* m_Address;
-
-class LootGenerator {
+class LootGenerator : public Singleton<LootGenerator> {
   public:
     LootGenerator();
-
-    
-    static LootGenerator* Instance() {
-        if (!m_Address) {
-            m_Address = new LootGenerator();
-        }
-
-        return m_Address;
-    }
 
     std::unordered_map<LOT, int32_t> RollLootMatrix(Entity* player, uint32_t matrixIndex);
     void GiveLoot(Entity* player, uint32_t matrixIndex);

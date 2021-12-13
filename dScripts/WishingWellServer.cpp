@@ -24,7 +24,7 @@ void WishingWellServer::OnUse(Entity* self, Entity* user)
         GameMessages::SendPlayNDAudioEmitter(self, user->GetSystemAddress(), audio);
     }
 
-    LootGenerator::Instance()->DropActivityLoot(
+    LootGenerator::Instance().DropActivityLoot(
         user,
         self,
         static_cast<uint32_t>(scriptedActivity->GetActivityID()),

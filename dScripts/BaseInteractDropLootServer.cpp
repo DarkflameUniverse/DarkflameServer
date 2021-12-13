@@ -25,7 +25,7 @@ void BaseInteractDropLootServer::BaseUse(Entity* self, Entity* user)
 
     self->SetNetworkVar(u"bInUse", true);
 
-    LootGenerator::Instance()->DropLoot(user, self, lootMatrix, 0, 0);
+    LootGenerator::Instance().DropLoot(user, self, lootMatrix, 0, 0);
 
     self->AddCallbackTimer(cooldownTime, [this, self] () {
         self->SetNetworkVar(u"bInUse", false);

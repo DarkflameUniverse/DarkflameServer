@@ -67,7 +67,7 @@ LootGenerator::LootGenerator() {
         }
 
         // sort in descending order based on randMax
-        std::sort(rarityTable.begin(), rarityTable.end(), [](const RarityTableEntry& x, const RarityTableEntry& y) { return x.randMax < y.randMax; });
+        std::sort(rarityTable.begin(), rarityTable.end(), [](const RarityTableEntry& x, const RarityTableEntry& y) { return x.randMax > y.randMax; });
 
         m_RarityTables.insert({index, rarityTable});
     }
@@ -125,7 +125,7 @@ LootGenerator::LootGenerator() {
 
         // sort by item rarity descending
         std::sort(lootTable.begin(), lootTable.end(), [&](const LootTableEntry& x, const LootTableEntry& y) {
-            return m_ItemRarities[x.itemID] < m_ItemRarities[y.itemID];
+            return m_ItemRarities[x.itemID] > m_ItemRarities[y.itemID];
         });
 
         m_LootTables.insert({index, lootTable});
@@ -191,6 +191,10 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, u
                         else if (missionComponent->GetMissionState(578) == MissionState::MISSION_STATE_COMPLETE)
                             drop.itemID = 8320; // "Paradox Token"
                     }
+
+                    if (drop.itemID == 13763) {
+                        continue;
+                    } // check if we aren't in faction
 
                     if (drops.find(drop.itemID) == drops.end()) {
                         drops.insert({drop.itemID, 1});
