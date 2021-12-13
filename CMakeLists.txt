@@ -58,27 +58,29 @@ set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCL
 add_library(ZLIB::ZLIB ALIAS zlib) # You're welcome
 
 endif(WIN32)
-include(FetchContent)
 
-if (__include_backtrace__ AND __compile_backtrace__)
-    FetchContent_Declare(
-        backtrace
-        GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
-    )
+if(UNIX AND NOT APPLE)
+    include(FetchContent)
+    if (__include_backtrace__ AND __compile_backtrace__)
+        FetchContent_Declare(
+            backtrace
+            GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
+        )
 
-    FetchContent_MakeAvailable(backtrace)
+        FetchContent_MakeAvailable(backtrace)
 
-    if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
-    set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
+        if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
+        set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
 
-    execute_process(
-        COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
-    )
-    endif()
+        execute_process(
+            COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
+        )
+        endif()
 
-    link_directories(${backtrace_SOURCE_DIR}/.libs/)
-    include_directories(${backtrace_SOURCE_DIR})
-endif(__include_backtrace__)
+        link_directories(${backtrace_SOURCE_DIR}/.libs/)
+        include_directories(${backtrace_SOURCE_DIR})
+    endif(__include_backtrace__)
+endif()
 
 # Set the version
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
@@ -344,7 +346,7 @@ ExternalProject_Add(mariadb_connector_cpp
 					SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
 					CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= -D_GLIBCXX_USE_CXX11_ABI=0 /EHsc"
 								-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                               -DWITH_MSI=OFF
+                                -DWITH_MSI=OFF
 					PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
 					BUILD_COMMAND cmake --build . --config RelWithDebInfo
 					INSTALL_COMMAND "")
