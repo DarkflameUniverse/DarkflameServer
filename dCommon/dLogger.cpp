@@ -39,10 +39,9 @@ void dLogger::vLog(const char* format, va_list args) {
 	mFile << "[" << timeStr << "] " << message;
 #else
 	time_t t = time(NULL);
-	struct tm time;
-	localtime_s(&time, &t);
-	char timeStr[70];
-	strftime(timeStr, sizeof(timeStr), "%d-%m-%y %H:%M:%S", &time);
+    struct tm * time = localtime(&t);
+    char timeStr[70];
+    strftime(timeStr, sizeof(timeStr), "%d-%m-%y %H:%M:%S", time);
 	char message[2048];
     vsprintf(message, format, args);
     
