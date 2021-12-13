@@ -631,6 +631,8 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document)
 			{
 				const auto info = Inventory::FindItemComponent(lot);
 
+				RemoveItemSkills(item->GetLot());
+
 				UpdateSlot(info.equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
 
 				AddItemSkills(item->GetLot());
@@ -778,6 +780,7 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 			
 			if (bIsInitialUpdate)
 			{
+				RemoveItemSkills(item.lot);
 				AddItemSkills(item.lot);
 			}
 
@@ -1010,7 +1013,28 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 		item->SetBound(true);
 	}
 
-	GenerateProxies(item);
+	std::vector<Item*> proxies;
+	
+	std::vector<Item*> generatedProxies = GenerateProxies(item);
+	proxies.insert(proxies.end(), generatedProxies.begin(), generatedProxies.end());
+
+	RemoveItemSkills(item->GetLot());
+
+	// Clear skills in slots where the proxies will go
+	for (const auto proxy : proxies) {
+
+		RemoveItemSkills(proxy->GetLot());
+	}
+
+	// Equip proxies
+	for (const auto proxy : proxies) {
+
+		UpdateSlot(proxy->GetInfo().equipLocation, { proxy->GetId(), proxy->GetLot(), proxy->GetCount(), proxy->GetSlot() });
+
+		ApplyBuff(proxy->GetLot());
+	
+		AddItemSkills(proxy->GetLot());
+	}
 	
 	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
 
@@ -1200,15 +1224,6 @@ void InventoryComponent::AddItemSkills(const LOT lot)
 	if (slot == BehaviorSlot::Invalid)
 	{
 		return;
-	}
-	
-	const auto index = m_Skills.find(slot);
-
-	if (index != m_Skills.end())
-	{
-		const auto old = index->second;
-		
-		GameMessages::SendRemoveSkill(m_Parent, old);
 	}
 
 	const auto skill = FindSkill(lot);
@@ -1508,7 +1523,8 @@ std::vector<Item*> InventoryComponent::GenerateProxies(Item* parent)
 
 		auto* proxy = new Item(lot, inventory, inventory->FindEmptySlot(), 1, {}, parent->GetId(), false);
 
-		EquipItem(proxy);
+		std::vector<Item*> generatedProxies = GenerateProxies(proxy);
+		proxies.insert(proxies.end(), generatedProxies.begin(), generatedProxies.end());
 
 		proxies.push_back(proxy);
 	}

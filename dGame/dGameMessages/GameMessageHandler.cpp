@@ -109,6 +109,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 					if (item.lot == 7292) GameMessages::SendSetJetpackMode(entity, true, true, false);
 					if (item.lot == 14442) GameMessages::SendSetJetpackMode(entity, false, true, true);
 
+					inv->RemoveItemSkills(item.lot);
 					inv->AddItemSkills(item.lot);
 				}
 			}
