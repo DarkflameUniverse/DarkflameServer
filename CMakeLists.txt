@@ -337,7 +337,7 @@ endif(MSVC)
 # for now it works using normal msvc compiler
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/")
-    # renaming test folder stops it from being built, saves some time when compiling
+	# renaming test folder stops it from being built, saves some time when compiling
 	file(RENAME "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/" "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test/")
 endif()
 
@@ -351,19 +351,31 @@ endif()
 ExternalProject_Add(mariadb_connector_cpp
 					SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
 					CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
-								-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                                -DWITH_MSI=OFF
+								-DWITH_MSI=OFF
 					PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
 					BUILD_COMMAND cmake --build . --config RelWithDebInfo
 					INSTALL_COMMAND "")
 
 ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
+if(WIN32)
+# Need to copy the dll's to the exes directory once they're built or the exe won't run
+	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+					${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll
+					${BINARY_DIR}/libmariadb/RelWithDebInfo/caching_sha2_password.dll
+					${BINARY_DIR}/libmariadb/RelWithDebInfo/client_ed25519.dll
+					${BINARY_DIR}/libmariadb/RelWithDebInfo/dialog.dll
+					${BINARY_DIR}/libmariadb/RelWithDebInfo/mysql_clear_password.dll
+					${BINARY_DIR}/libmariadb/RelWithDebInfo/sha256_password.dll
+					${PROJECT_BINARY_DIR}/$<CONFIG>)
+endif()
+
 add_library (mariadbConnCpp SHARED IMPORTED)
 if(WIN32)
-    set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll")
-    set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_IMPLIB "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
+	set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll")
+	set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_IMPLIB "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
 else()
-    set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/libmariadbcpp.so")
+	set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/libmariadbcpp.so")
 endif()
 set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_LOCATION ${MARIADB_SHARED_LIBRARY_LOCATION})
 target_include_directories(mariadbConnCpp INTERFACE "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
