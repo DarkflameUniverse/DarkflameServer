@@ -51,7 +51,6 @@ WORKDIR /app
 
 COPY --from=build /build/build /app
 
-RUN mkdir /app/logs
 RUN mkdir -p /build/build && ln -s /app/_deps /build/build/_deps
 
 COPY docker/start_server.sh /start_server.sh
