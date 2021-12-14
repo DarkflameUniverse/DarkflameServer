@@ -32,6 +32,9 @@ jobs:
           name: "Install tinyxml"
           command: "apt install -y libasio-dev libtinyxml2-dev"
       - run:
+          name: "Initiate Submodules"
+          command: "git submodule init && git submodule update --recursive"
+      - run:
           name: "Build"
           command: "mkdir -p build && cd build && cmake .. && make -j8"
 
