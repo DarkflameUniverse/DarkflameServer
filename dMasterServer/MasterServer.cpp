@@ -56,6 +56,10 @@ int main(int argc, char** argv) {
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
 
+#if defined(_WIN32) && defined(MARIADB_PLUGIN_DIR_OVERRIDE)
+	_putenv_s("MARIADB_PLUGIN_DIR", MARIADB_PLUGIN_DIR_OVERRIDE);
+#endif
+
 	//Triggers the shutdown sequence at application exit
 	std::atexit(ShutdownSequence);
 	signal(SIGINT, [](int) { ShutdownSequence(); });

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13)
 project(Darkflame)
 
 # Read variables from file
@@ -371,7 +371,9 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 
 	# MariaDB uses plugins that the database needs to load, the prebuilt binaries by default will try to find the libraries in system directories,
 	# so set this define and the servers will set the MARIADB_PLUGIN_DIR environment variable to the appropriate directory.
+	# Plugin directory is determined at dll load time (this will happen before main()) so we need to delay the dll load so that we can set the environment variable
 	# Binaries built from source point to the correct directory by default
+	add_link_options(/DELAYLOAD:mariadbcpp.dll)
 	add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADB_CPP_CONNECTOR_DIR}/plugin")
 else() # Build from source
 	if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/")
@@ -404,13 +406,16 @@ else() # Build from source
 
 		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll")
 		set(MARIADB_IMPLIB_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
+	elseif(GENERATOR_IS_MULTI_CONFIG)
+		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/libmariadbcpp.so")
+		set(MARIADB_IMPLIB_LOCATION "")
 	else()
 		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/libmariadbcpp.so")
 		set(MARIADB_IMPLIB_LOCATION "")
 	endif()
 	set(MARIADB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
 
-endif(WIN32 AND NOT MARIADB_BUILD_SOURCE)
+endif()
 
 add_library (mariadbConnCpp SHARED IMPORTED)
 set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_LOCATION ${MARIADB_SHARED_LIBRARY_LOCATION})
