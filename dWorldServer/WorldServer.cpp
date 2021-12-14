@@ -239,255 +239,256 @@ int main(int argc, char** argv) {
 
 
 	while (true) {
-try{
-		Metrics::StartMeasurement(MetricVariable::Frame);
-		Metrics::StartMeasurement(MetricVariable::GameLoop);
+		try{
+			Metrics::StartMeasurement(MetricVariable::Frame);
+			Metrics::StartMeasurement(MetricVariable::GameLoop);
 
-		std::clock_t metricCPUTimeStart = std::clock();
+			std::clock_t metricCPUTimeStart = std::clock();
 
-		const auto currentTime = std::chrono::high_resolution_clock::now();
-		float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
-		lastTime = currentTime;
+			const auto currentTime = std::chrono::high_resolution_clock::now();
+			float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+			lastTime = currentTime;
 
-		const auto occupied = UserManager::Instance()->GetUserCount() != 0;
+			const auto occupied = UserManager::Instance()->GetUserCount() != 0;
 
-		if (!ready)
-		{
-			currentFramerate = highFrameRate;
-		}
-		else
-		{
-			currentFramerate = PerformanceManager::GetServerFramerate();
-		}
-		
-		physicsFramerate = PerformanceManager::GetPhysicsFramerate();
-		physicsStepRate = PerformanceManager::GetPhysicsStepRate();
-
-		//Warning if we ran slow
-		if (deltaTime > currentFramerate) {
-			Game::logger->Log("WorldServer", "We're running behind, dT: %f > %f (framerate)\n", deltaTime, currentFramerate);
-		}
-
-		//Check if we're still connected to master:
-		if (!Game::server->GetIsConnectedToMaster()) {
-			framesSinceMasterDisconnect++;
-
-			if (framesSinceMasterDisconnect >= 30) {
-				worldShutdownSequenceStarted = true;
-			}
-		}
-		else framesSinceMasterDisconnect = 0;
-
-		//In world we'd update our other systems here.
-
-		if (zoneID != 0 && deltaTime > 0.0f) {
-			Metrics::StartMeasurement(MetricVariable::Physics);
-			if (physicsStepCount++ >= physicsStepRate) {
-				dpWorld::Instance().StepWorld(deltaTime);
-				physicsStepCount = 0;
-			}
-			Metrics::EndMeasurement(MetricVariable::Physics);
-
-			Metrics::StartMeasurement(MetricVariable::UpdateEntities);
-			EntityManager::Instance()->UpdateEntities(deltaTime);
-			Metrics::EndMeasurement(MetricVariable::UpdateEntities);
-
-			Metrics::StartMeasurement(MetricVariable::Ghosting);
-			if (std::chrono::duration<float>(currentTime - ghostingLastTime).count() >= 1.0f) {
-				EntityManager::Instance()->UpdateGhosting();
-				ghostingLastTime = currentTime;
-			}
-			Metrics::EndMeasurement(MetricVariable::Ghosting);
-
-			Metrics::StartMeasurement(MetricVariable::UpdateSpawners);
-			dZoneManager::Instance()->Update(deltaTime);
-			Metrics::EndMeasurement(MetricVariable::UpdateSpawners);
-		}
-
-		Metrics::StartMeasurement(MetricVariable::PacketHandling);
-
-		//Check for packets here:
-		packet = Game::server->ReceiveFromMaster();
-		if (packet) { //We can get messages not handle-able by the dServer class, so handle them if we returned anything.
-			HandlePacket(packet); 
-			Game::server->DeallocateMasterPacket(packet);
-		}
-
-		//Handle our chat packets:
-		packet = Game::chatServer->Receive();
-		if (packet) {
-			HandlePacketChat(packet);
-			Game::chatServer->DeallocatePacket(packet);
-		}
-
-		//Handle world-specific packets:
-		float timeSpent = 0.0f;
-
-		UserManager::Instance()->DeletePendingRemovals();
-
-		auto t1 = std::chrono::high_resolution_clock::now();
-		for (int curPacket = 0; curPacket < maxPacketsToProcess && timeSpent < maxPacketProcessingTime; curPacket++) {
-			packet = Game::server->Receive();
-			if (packet) {
-				auto t1 = std::chrono::high_resolution_clock::now();
-				HandlePacket(packet);
-				auto t2 = std::chrono::high_resolution_clock::now();
-
-				timeSpent += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-				Game::server->DeallocatePacket(packet);
-				packet = nullptr;
-			}
-			else {
-				break;
-			}
-		}
-
-		Metrics::EndMeasurement(MetricVariable::PacketHandling);
-
-		Metrics::StartMeasurement(MetricVariable::UpdateReplica);
-
-		//Update our replica objects:
-		Game::server->UpdateReplica();
-
-		Metrics::EndMeasurement(MetricVariable::UpdateReplica);
-
-		//Push our log every 15s:
-		if (framesSinceLastFlush >= 1000) {
-			Game::logger->Flush();
-			framesSinceLastFlush = 0;
-		} else framesSinceLastFlush++;
-
-		if (zoneID != 0 && !occupied)
-		{
-			framesSinceLastUser++;
-
-			//If we haven't had any players for a while, time out and shut down:
-			if (framesSinceLastUser == (cloneID != 0 ? 4000 : 40000))
+			if (!ready)
 			{
-				worldShutdownSequenceStarted = true;
+				currentFramerate = highFrameRate;
 			}
-		}
-		else
-		{
-			framesSinceLastUser = 0;
-		}
-
-		//Save all connected users every 10 minutes:
-		if (framesSinceLastUsersSave >= 40000 && zoneID != 0) {
-			UserManager::Instance()->SaveAllActiveCharacters();
-			framesSinceLastUsersSave = 0;
-
-			if (PropertyManagementComponent::Instance() != nullptr) {
-				PropertyManagementComponent::Instance()->Save();
+			else
+			{
+				currentFramerate = PerformanceManager::GetServerFramerate();
 			}
-		}
-		else framesSinceLastUsersSave++;
-
-		//Every 10 min we ping our sql server to keep it alive hopefully:
-		if (framesSinceLastSQLPing >= 40000) {
-			//Find out the master's IP for absolutely no reason:
-			std::string masterIP;
-			int masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
-			}
-
-			delete res;
-			delete stmt;
-
-			framesSinceLastSQLPing = 0;
-		}
-		else framesSinceLastSQLPing++;
-
-		Metrics::EndMeasurement(MetricVariable::GameLoop);
-
-		Metrics::StartMeasurement(MetricVariable::Sleep);
-
-		t += std::chrono::milliseconds(currentFramerate);
-		std::this_thread::sleep_until(t);
-		
-		Metrics::EndMeasurement(MetricVariable::Sleep);
-
-		if (!ready && Game::server->GetIsConnectedToMaster())
-		{
-			// Some delay is required here or else we crash the client?
 			
-			framesSinceMasterStatus++;
+			physicsFramerate = PerformanceManager::GetPhysicsFramerate();
+			physicsStepRate = PerformanceManager::GetPhysicsStepRate();
 
-			if (framesSinceMasterStatus >= 200)
-			{
-				Game::logger->Log("WorldServer", "Finished loading world, ready up!\n");
-
-				MasterPackets::SendWorldReady(Game::server, Game::server->GetZoneID(), Game::server->GetInstanceID());
-
-				ready = true;
+			//Warning if we ran slow
+			if (deltaTime > currentFramerate) {
+				Game::logger->Log("WorldServer", "We're running behind, dT: %f > %f (framerate)\n", deltaTime, currentFramerate);
 			}
-		}
 
-		if (worldShutdownSequenceStarted && !worldShutdownSequenceComplete)
-		{
-			if (framesSinceShutdownSequence == 0) {
+			//Check if we're still connected to master:
+			if (!Game::server->GetIsConnectedToMaster()) {
+				framesSinceMasterDisconnect++;
 
-				ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Server shutting down...", true);
-				
-				for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i)
-				{
-					const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
-
-					auto* entity = Player::GetPlayer(player);
-
-					if (entity != nullptr && entity->GetCharacter() != nullptr)
-					{
-						auto* skillComponent = entity->GetComponent<SkillComponent>();
-
-						if (skillComponent != nullptr)
-						{
-							skillComponent->Reset();
-						}
-
-						entity->GetCharacter()->SaveXMLToDatabase();
-					}
+				if (framesSinceMasterDisconnect >= 30) {
+					worldShutdownSequenceStarted = true;
 				}
+			}
+			else framesSinceMasterDisconnect = 0;
+
+			//In world we'd update our other systems here.
+
+			if (zoneID != 0 && deltaTime > 0.0f) {
+				Metrics::StartMeasurement(MetricVariable::Physics);
+				if (physicsStepCount++ >= physicsStepRate) {
+					dpWorld::Instance().StepWorld(deltaTime);
+					physicsStepCount = 0;
+				}
+				Metrics::EndMeasurement(MetricVariable::Physics);
+
+				Metrics::StartMeasurement(MetricVariable::UpdateEntities);
+				EntityManager::Instance()->UpdateEntities(deltaTime);
+				Metrics::EndMeasurement(MetricVariable::UpdateEntities);
+
+				Metrics::StartMeasurement(MetricVariable::Ghosting);
+				if (std::chrono::duration<float>(currentTime - ghostingLastTime).count() >= 1.0f) {
+					EntityManager::Instance()->UpdateGhosting();
+					ghostingLastTime = currentTime;
+				}
+				Metrics::EndMeasurement(MetricVariable::Ghosting);
+
+				Metrics::StartMeasurement(MetricVariable::UpdateSpawners);
+				dZoneManager::Instance()->Update(deltaTime);
+				Metrics::EndMeasurement(MetricVariable::UpdateSpawners);
+			}
+
+			Metrics::StartMeasurement(MetricVariable::PacketHandling);
+
+			//Check for packets here:
+			packet = Game::server->ReceiveFromMaster();
+			if (packet) { //We can get messages not handle-able by the dServer class, so handle them if we returned anything.
+				HandlePacket(packet); 
+				Game::server->DeallocateMasterPacket(packet);
+			}
+
+			//Handle our chat packets:
+			packet = Game::chatServer->Receive();
+			if (packet) {
+				HandlePacketChat(packet);
+				Game::chatServer->DeallocatePacket(packet);
+			}
+
+			//Handle world-specific packets:
+			float timeSpent = 0.0f;
+
+			UserManager::Instance()->DeletePendingRemovals();
+
+			auto t1 = std::chrono::high_resolution_clock::now();
+			for (int curPacket = 0; curPacket < maxPacketsToProcess && timeSpent < maxPacketProcessingTime; curPacket++) {
+				packet = Game::server->Receive();
+				if (packet) {
+					auto t1 = std::chrono::high_resolution_clock::now();
+					HandlePacket(packet);
+					auto t2 = std::chrono::high_resolution_clock::now();
+
+					timeSpent += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+					Game::server->DeallocatePacket(packet);
+					packet = nullptr;
+				}
+				else {
+					break;
+				}
+			}
+
+			Metrics::EndMeasurement(MetricVariable::PacketHandling);
+
+			Metrics::StartMeasurement(MetricVariable::UpdateReplica);
+
+			//Update our replica objects:
+			Game::server->UpdateReplica();
+
+			Metrics::EndMeasurement(MetricVariable::UpdateReplica);
+
+			//Push our log every 15s:
+			if (framesSinceLastFlush >= 1000) {
+				Game::logger->Flush();
+				framesSinceLastFlush = 0;
+			} else framesSinceLastFlush++;
+
+			if (zoneID != 0 && !occupied)
+			{
+				framesSinceLastUser++;
+
+				//If we haven't had any players for a while, time out and shut down:
+				if (framesSinceLastUser == (cloneID != 0 ? 4000 : 40000))
+				{
+					worldShutdownSequenceStarted = true;
+				}
+			}
+			else
+			{
+				framesSinceLastUser = 0;
+			}
+
+			//Save all connected users every 10 minutes:
+			if (framesSinceLastUsersSave >= 40000 && zoneID != 0) {
+				UserManager::Instance()->SaveAllActiveCharacters();
+				framesSinceLastUsersSave = 0;
 
 				if (PropertyManagementComponent::Instance() != nullptr) {
-					ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Property data saved...", true);
 					PropertyManagementComponent::Instance()->Save();
 				}
+			}
+			else framesSinceLastUsersSave++;
+
+			//Every 10 min we ping our sql server to keep it alive hopefully:
+			if (framesSinceLastSQLPing >= 40000) {
+				//Find out the master's IP for absolutely no reason:
+				std::string masterIP;
+				int masterPort;
+				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
+				auto res = stmt->executeQuery();
+				while (res->next()) {
+					masterIP = res->getString(1).c_str();
+					masterPort = res->getInt(2);
+				}
+
+				delete res;
+				delete stmt;
+
+				framesSinceLastSQLPing = 0;
+			}
+			else framesSinceLastSQLPing++;
+
+			Metrics::EndMeasurement(MetricVariable::GameLoop);
+
+			Metrics::StartMeasurement(MetricVariable::Sleep);
+
+			t += std::chrono::milliseconds(currentFramerate);
+			std::this_thread::sleep_until(t);
+			
+			Metrics::EndMeasurement(MetricVariable::Sleep);
+
+			if (!ready && Game::server->GetIsConnectedToMaster())
+			{
+				// Some delay is required here or else we crash the client?
 				
-				ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Character data saved...", true);
+				framesSinceMasterStatus++;
+
+				if (framesSinceMasterStatus >= 200)
+				{
+					Game::logger->Log("WorldServer", "Finished loading world, ready up!\n");
+
+					MasterPackets::SendWorldReady(Game::server, Game::server->GetZoneID(), Game::server->GetInstanceID());
+
+					ready = true;
+				}
 			}
 
-			framesSinceShutdownSequence++;
-
-			if (framesSinceShutdownSequence == 100)
+			if (worldShutdownSequenceStarted && !worldShutdownSequenceComplete)
 			{
-				while (Game::server->GetReplicaManager()->GetParticipantCount() > 0)
-				{
-					const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
+				if (framesSinceShutdownSequence == 0) {
 
-					Game::server->Disconnect(player, SERVER_DISCON_KICK);
+					ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Server shutting down...", true);
+					
+					for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i)
+					{
+						const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
+
+						auto* entity = Player::GetPlayer(player);
+
+						if (entity != nullptr && entity->GetCharacter() != nullptr)
+						{
+							auto* skillComponent = entity->GetComponent<SkillComponent>();
+
+							if (skillComponent != nullptr)
+							{
+								skillComponent->Reset();
+							}
+
+							entity->GetCharacter()->SaveXMLToDatabase();
+						}
+					}
+
+					if (PropertyManagementComponent::Instance() != nullptr) {
+						ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Property data saved...", true);
+						PropertyManagementComponent::Instance()->Save();
+					}
+					
+					ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Character data saved...", true);
+				}
+
+				framesSinceShutdownSequence++;
+
+				if (framesSinceShutdownSequence == 100)
+				{
+					while (Game::server->GetReplicaManager()->GetParticipantCount() > 0)
+					{
+						const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
+
+						Game::server->Disconnect(player, SERVER_DISCON_KICK);
+					}
+					
+					CBITSTREAM;
+					PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_RESPONSE);
+					Game::server->SendToMaster(&bitStream);
 				}
 				
-				CBITSTREAM;
-				PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_RESPONSE);
-				Game::server->SendToMaster(&bitStream);
+				if (framesSinceShutdownSequence == 300)
+				{
+					break;
+				}
 			}
-			
-			if (framesSinceShutdownSequence == 300)
-			{
-				break;
-			}
-		}
 
-		Metrics::AddMeasurement(MetricVariable::CPUTime, (1e6 * (1000.0 * (std::clock() - metricCPUTimeStart))) / CLOCKS_PER_SEC);
-		Metrics::EndMeasurement(MetricVariable::Frame);
-	} 
-	catch (const std::exception& e) {
-		std::cerr << e.what() << std::endl;
-	} }
+			Metrics::AddMeasurement(MetricVariable::CPUTime, (1e6 * (1000.0 * (std::clock() - metricCPUTimeStart))) / CLOCKS_PER_SEC);
+			Metrics::EndMeasurement(MetricVariable::Frame);
+		} 
+		catch (const std::exception& e) {
+			std::cerr << e.what() << std::endl;
+		} 
+	}
 	
 	//Delete our objects here:
 	if (Game::physicsWorld) Game::physicsWorld = nullptr;
