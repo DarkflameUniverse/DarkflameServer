@@ -129,13 +129,14 @@ int main(int argc, char** argv) {
 	Game::logger->Log("WorldServer", "Compiled on: %s\n", __TIMESTAMP__);
 
 #ifndef _DEBUG
-	Game::logger->SetLogToConsole(true); //By default, turn it back off if not in debug.
+	Game::logger->SetLogToConsole(false); //By default, turn it back off if not in debug.
 #endif
 
 	//Read our config:
 	dConfig config("worldconfig.ini");
 	Game::config = &config;
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
+	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
 	if (config.GetValue("disable_chat") == "1") chatDisabled = true;
 
 	// Connect to CDClient
@@ -507,12 +508,16 @@ try{
 
 dLogger * SetupLogger(int zoneID, int instanceID) {
 	std::string logPath = "./logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log";
-	bool logToConsole = true;
+
+	bool logToConsole = false;
+	bool logDebugStatements = false;
+
 #ifdef _DEBUG
 	logToConsole = true;
+	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole);
+	return new dLogger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacketChat(Packet* packet) {
@@ -1199,7 +1204,7 @@ void HandlePacket(Packet* packet) {
 }
 
 void WorldShutdownSequence()
-{ return;
+{
 	if (worldShutdownSequenceStarted || worldShutdownSequenceComplete)
 	{
 		return;
