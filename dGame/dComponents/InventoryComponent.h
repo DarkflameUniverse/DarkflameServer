@@ -254,8 +254,9 @@ public:
 	/**
 	 * Adds a skill related to a passed item to the currently equipped skills
 	 * @param lot the lot to add a skill for
+	 * @param removePrevious if true, remove the previously equipped skill
 	 */
-	void AddItemSkills(LOT lot);
+	void AddItemSkills(LOT lot, bool removePrevious = true);
 
     /**
      * Removes the skills related to the passed LOT from the currently equipped skills

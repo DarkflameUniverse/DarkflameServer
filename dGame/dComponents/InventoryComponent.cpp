@@ -631,8 +631,6 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document)
 			{
 				const auto info = Inventory::FindItemComponent(lot);
 
-				RemoveItemSkills(item->GetLot());
-
 				UpdateSlot(info.equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
 
 				AddItemSkills(item->GetLot());
@@ -780,7 +778,6 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 			
 			if (bIsInitialUpdate)
 			{
-				RemoveItemSkills(item.lot);
 				AddItemSkills(item.lot);
 			}
 
@@ -1018,13 +1015,17 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 	std::vector<Item*> generatedProxies = GenerateProxies(item);
 	proxies.insert(proxies.end(), generatedProxies.begin(), generatedProxies.end());
 
-	RemoveItemSkills(item->GetLot());
-
 	// Clear skills in slots where the proxies will go
 	for (const auto proxy : proxies) {
 
 		RemoveItemSkills(proxy->GetLot());
 	}
+	
+	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
+
+	ApplyBuff(item->GetLot());
+	
+	AddItemSkills(item->GetLot());
 
 	// Equip proxies
 	for (const auto proxy : proxies) {
@@ -1033,14 +1034,8 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 
 		ApplyBuff(proxy->GetLot());
 	
-		AddItemSkills(proxy->GetLot());
+		AddItemSkills(proxy->GetLot(), false);
 	}
-	
-	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
-
-	ApplyBuff(item->GetLot());
-	
-	AddItemSkills(item->GetLot());
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
@@ -1215,7 +1210,7 @@ LOT InventoryComponent::GetConsumable() const
 	return m_Consumable;
 }
 
-void InventoryComponent::AddItemSkills(const LOT lot)
+void InventoryComponent::AddItemSkills(const LOT lot, bool removePrevious)
 {
 	const auto info = Inventory::FindItemComponent(lot);
 
@@ -1224,6 +1219,18 @@ void InventoryComponent::AddItemSkills(const LOT lot)
 	if (slot == BehaviorSlot::Invalid)
 	{
 		return;
+	}
+
+	if (removePrevious) {
+
+		const auto index = m_Skills.find(slot);
+
+		if (index != m_Skills.end())
+		{
+			const auto old = index->second;
+
+			GameMessages::SendRemoveSkill(m_Parent, old);
+		}
 	}
 
 	const auto skill = FindSkill(lot);
