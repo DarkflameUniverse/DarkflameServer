@@ -36,6 +36,8 @@ public:
 
 	std::map<LWOOBJID, Loot::Info>& GetDroppedLoot();
 
+	uint64_t GetDroppedCoins();
+
 	/**
 	 * Setters
 	 */
@@ -51,6 +53,8 @@ public:
 	void SetGhostOverridePoint(const NiPoint3& value);
 
 	void SetGhostOverride(bool value);
+
+	void SetDroppedCoins(uint64_t value);
 
 	/**
 	 * Wrapper for sending an in-game mail.
@@ -125,6 +129,8 @@ private:
 	std::vector<LWOOBJID> m_LimboConstructions;
 
 	std::map<LWOOBJID, Loot::Info> m_DroppedLoot;
+
+	uint64_t m_DroppedCoins;
 
 	static std::vector<Player*> m_Players;
 };

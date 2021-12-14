@@ -24,6 +24,7 @@ Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Enti
 	m_GMLevel = m_Character->GetGMLevel();
 	m_SystemAddress = m_ParentUser->GetSystemAddress();
 	m_DroppedLoot = {};
+	m_DroppedCoins = 0;
 	
 	m_GhostReferencePoint = NiPoint3::ZERO;
 	m_GhostOverridePoint = NiPoint3::ZERO;
@@ -288,6 +289,14 @@ Player* Player::GetPlayer(LWOOBJID playerID)
 const std::vector<Player*>& Player::GetAllPlayers() 
 {
 	return m_Players;
+}
+
+uint64_t Player::GetDroppedCoins() {
+	return m_DroppedCoins;
+}
+
+void Player::SetDroppedCoins(uint64_t value) {
+	m_DroppedCoins = value;
 }
 
 Player::~Player()
