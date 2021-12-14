@@ -1,0 +1,41 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: ubuntu:latest
+    steps:
+      - checkout
+      - run:
+          name: "Set geographic location"
+          command: "export TZ=Europe/Minsk && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && pwd"
+      - run:
+          name: "Update repos"
+          command: "apt update && apt upgrade -y && apt-get update && apt-get upgrade -y"
+      - run:
+          name: "Installing GCC"
+          command: 'apt update && apt install -y gcc'
+      - run:
+          name: "Install build essential"
+          command: 'apt-get update && apt-get install -y build-essential'
+      - run:
+          name: "Install CMAKE"
+          command: 'apt update && apt install -y libssl-dev cmake'
+      - run:
+          name: "Install git"
+          command: "apt update && apt install git -y"
+      - run:
+          name: "Install ZLib"
+          command: "apt update && apt install -y zlib1g-dev"
+      - run:
+          name: "Install tinyxml"
+          command: "apt install -y libasio-dev libtinyxml2-dev"
+      - run:
+          name: "Build"
+          command: "mkdir -p build && cd build && cmake .. && make -j8"
+
+workflows:
+  server-build:
+    jobs:
+      - build
