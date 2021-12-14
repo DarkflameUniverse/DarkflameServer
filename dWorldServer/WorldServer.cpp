@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
 	Game::logger->Log("WorldServer", "Compiled on: %s\n", __TIMESTAMP__);
 
 #ifndef _DEBUG
-	Game::logger->SetLogToConsole(false); //By default, turn it back off if not in debug.
+	Game::logger->SetLogToConsole(true); //By default, turn it back off if not in debug.
 #endif
 
 	//Read our config:
@@ -236,7 +236,9 @@ int main(int argc, char** argv) {
 		g_CloneID = cloneID;
 	}
 
+
 	while (true) {
+try{
 		Metrics::StartMeasurement(MetricVariable::Frame);
 		Metrics::StartMeasurement(MetricVariable::GameLoop);
 
@@ -481,7 +483,10 @@ int main(int argc, char** argv) {
 
 		Metrics::AddMeasurement(MetricVariable::CPUTime, (1e6 * (1000.0 * (std::clock() - metricCPUTimeStart))) / CLOCKS_PER_SEC);
 		Metrics::EndMeasurement(MetricVariable::Frame);
-	}
+	} 
+	catch (const std::exception& e) {
+		std::cerr << e.what() << std::endl;
+	} }
 	
 	//Delete our objects here:
 	if (Game::physicsWorld) Game::physicsWorld = nullptr;
@@ -502,7 +507,7 @@ int main(int argc, char** argv) {
 
 dLogger * SetupLogger(int zoneID, int instanceID) {
 	std::string logPath = "./logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log";
-	bool logToConsole = false;
+	bool logToConsole = true;
 #ifdef _DEBUG
 	logToConsole = true;
 #endif
@@ -1194,7 +1199,7 @@ void HandlePacket(Packet* packet) {
 }
 
 void WorldShutdownSequence()
-{
+{ return;
 	if (worldShutdownSequenceStarted || worldShutdownSequenceComplete)
 	{
 		return;
