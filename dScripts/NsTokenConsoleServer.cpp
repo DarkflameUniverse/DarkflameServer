@@ -50,19 +50,19 @@ void NsTokenConsoleServer::OnUse(Entity* self, Entity* user)
 
     if (character->GetPlayerFlag(46))
     {
-        inventoryComponent->AddItem(8321, 1);
+        inventoryComponent->AddItem(8321, 5);
     }
     else if (character->GetPlayerFlag(47))
     {
-        inventoryComponent->AddItem(8318, 1);
+        inventoryComponent->AddItem(8318, 5);
     }
     else if (character->GetPlayerFlag(48))
     {
-        inventoryComponent->AddItem(8320, 1);
+        inventoryComponent->AddItem(8320, 5);
     }
     else if (character->GetPlayerFlag(49))
     {
-        inventoryComponent->AddItem(8319, 1);
+        inventoryComponent->AddItem(8319, 5);
     }
 
     missionComponent->ForceProgressTaskType(863, 1, 1, false);

@@ -202,6 +202,9 @@ public:
 	void AddLootItem(const Loot::Info& info);
 	void PickupItem(const LWOOBJID& objectID);
 
+	bool CanPickupCoins(uint64_t count);
+	void RegisterCoinDrop(uint64_t count);
+
 	void ScheduleKillAfterUpdate(Entity* murderer = nullptr);
 	void TriggerEvent(std::string eveneventtID, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
