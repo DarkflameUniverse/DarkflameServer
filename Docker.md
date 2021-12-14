@@ -2,7 +2,7 @@
 
 ## What you need
 
-- Docker (Docker Desktop or on Linux normal Docker)
+- Docker ([Docker Desktop](https://hub.docker.com/editions/community/docker-ce-desktop-mac/) or on Linux normal Docker)
 - Docker-Compose (Included in Docker Desktop)
 - LEGO® Universe Client
 
@@ -13,8 +13,9 @@
 3. Update other values in the `.env` file as need (be sure to update passwords!)
 4. Run `docker compose up -d --build`
 5. Run `docker compose exec darkflame /app/MasterServer -a` and setup your admin account
-6. Now you can see the output of the server with `docker compose logs -f --tail 100` or `docker compose logs -f --tail 100`. This can help you understand issues and there you can also see when the server finishes it's startup.
+6. Now you can see the output of the server with `docker compose logs -f --tail 100`. This can help you understand issues and there you can also see when the server finishes it's startup. Exit this with Ctrl+C.
 7. You're ready to connect your client!
+8. You can stop the server with `docker compose stop` and start it again with `docker compose up -d`
 
 ## Disable brickbuildfix
 
@@ -30,4 +31,4 @@ services:
       - donotstart
 ```
 
-3. Now run `docker compose up -d --build` or `docker-compose up -d --build`
+3. Now run `docker compose up -d --build`.
