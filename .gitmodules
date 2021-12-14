@@ -13,4 +13,4 @@
 # TODO: Merge changes by TheNoim into lcdr's repo and use that
 [submodule "thirdparty/docker-utils"]
 	path = thirdparty/docker-utils
-	url = https://github.com/TheNoim/utils
+	url = https://github.com/TheNoim/lcdr-utils
