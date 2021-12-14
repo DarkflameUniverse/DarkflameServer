@@ -618,18 +618,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "clearinv" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-        auto comp = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
-        if (comp) {
-			for (const auto& item : comp->GetInventories()) {
-				for (const auto& invItem : item.second->GetItems()) {
-					comp->RemoveItem(invItem.second->GetLot(), invItem.second->GetCount(), item.first);
-				}
-			}
-		}
-            
-    }
-
 	if (chatCommand == "addmission" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		if (args.size() == 0) return;
 
