@@ -237,7 +237,7 @@ int main(int argc, char** argv) {
 		g_CloneID = cloneID;
 
 		// pre calculate the FDB checksum
-		if (bool(std::stoi(Game::config->GetValue("check_fdb")))) {
+		if (Game::config->GetValue("check_fdb") == "1") {
 				std::ifstream fileStream;
 				fileStream.open("res/CDServer.fdb", std::ios::binary | std::ios::in);
 				const int bufferSize = 1024;
@@ -868,7 +868,7 @@ void HandlePacket(Packet* packet) {
 			std::string sessionKey = PacketUtils::ReadString(74, packet, true);
 			std::string theirFdbChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
 
-			if (bool(std::stoi(Game::config->GetValue("check_fdb"))) && fdbChecksum != "") { // if fdbChecksum is empty, likely means we are a character server.
+			if (Game::config->GetValue("check_fdb") == "1" && fdbChecksum != "") { // if fdbChecksum is empty, likely means we are a character server.
 				Game::logger->Log("WorldServer", "Got client checksum %s and we have server checksum %s. \n", theirFdbChecksum.c_str(), fdbChecksum.c_str());
 				if (theirFdbChecksum != fdbChecksum) {
 					Game::logger->Log("WorldServer", "Client checksum does not match server checksum.\n");
