@@ -3,8 +3,10 @@
 #include "Database.h"
 #include "EntityManager.h"
 #include "Character.h"
+#include "Game.h"
 #include "GameMessages.h"
 #include "dLogger.h"
+#include "dConfig.h"
 
 Leaderboard::Leaderboard(uint32_t gameID, uint32_t infoType, bool weekly, std::vector<LeaderboardEntry> entries,
                          LWOOBJID relatedPlayer, LeaderboardType leaderboardType) {
@@ -90,6 +92,7 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
         const auto storedTime = result->getInt(1);
         const auto storedScore = result->getInt(2);
         auto highscore = true;
+        bool classicSurvivalScoring = Game::config->GetValue("classic_survival_scoring") == "1";
 
         switch (leaderboardType) {
             case ShootingGallery:
@@ -101,16 +104,23 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
                     highscore = false;
                 break;
             case MonumentRace:
-                if (time > storedTime)
+                if (time >= storedTime)
                     highscore = false;
                 break;
             case FootRace:
-                if (time <= storedTime)
+                if (time >= storedTime)
                     highscore = false;
                 break;
             case Survival:
-                if (time <= storedTime) //Altered 12/12/2021: Avant Gardens Survial's leaderboard (in live) was based only on the longest time.
-                    highscore = false;
+                if (classicSurvivalScoring) {
+                    if (time <= storedTime) { // Based on time (LU live)
+                        highscore = false;
+                    }
+                }
+                else {
+                    if (score <= storedScore) // Based on score (DLU)
+                        highscore = false;
+                }
                 break;
             case SurvivalNS:
                 if (time >= storedTime) // Altered 12/12/2021: Battle of Nimbus Station's leaderboard is only based on the shortest time. 
@@ -131,7 +141,7 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
     delete result;
 
     if (any) {
-        auto* statement = Database::CreatePreppedStmt("UPDATE leaderboard SET time = ?, score = ? WHERE character_id = ? AND game_id = ?;"); 
+        auto* statement = Database::CreatePreppedStmt("UPDATE leaderboard SET time = ?, score = ?, last_played=SYSDATE() WHERE character_id = ? AND game_id = ?;"); 
         statement->setInt(1, time);
         statement->setInt(2, score);
         statement->setUInt64(3, character->GetID());
@@ -140,6 +150,7 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
 
         delete statement;
     } else {
+        // Note: last_played will be set to sysdate by default when inserting into leaderboard
         auto* statement = Database::CreatePreppedStmt("INSERT INTO leaderboard (character_id, game_id, time, score) VALUES (?, ?, ?, ?);");
         statement->setUInt64(1, character->GetID());
         statement->setInt(2, gameID);
@@ -155,16 +166,15 @@ Leaderboard *LeaderboardManager::GetLeaderboard(uint32_t gameID, InfoType infoTy
     auto leaderboardType = GetLeaderboardType(gameID); 
 
     std::string query;
+    bool classicSurvivalScoring = Game::config->GetValue("classic_survival_scoring") == "1";
     switch (infoType) {
-
-        // Modified 12-12-2021: Not all gamemodes are dictated by the score. Instead, the time dictates the best score.
         case InfoType::Standings:
             switch (leaderboardType) {
                 case ShootingGallery: 
                     query = standingsScoreQuery; // Shooting gallery is based on the highest score.
                     break;
                 case Survival:
-                    query = standingsTimeQuery; // AG Survival is based on the longest time.
+                    query = classicSurvivalScoring ? standingsTimeQuery : standingsScoreQuery;
                     break;
                 default: 
                     query = standingsTimeQueryAsc; // SurvivalNS, FootRace, MonumentRace, and Racing are all based on the shortest time.
@@ -176,7 +186,7 @@ Leaderboard *LeaderboardManager::GetLeaderboard(uint32_t gameID, InfoType infoTy
                     query = friendsScoreQuery; // Shooting gallery is based on the highest score.
                     break;
                 case Survival:
-                    query = friendsTimeQuery; // AG Survival is based on the longest time.
+                    query = classicSurvivalScoring ? friendsTimeQuery : friendsScoreQuery;
                     break;
                 default:
                     query = friendsTimeQueryAsc;  // SurvivalNS, FootRace, MonumentRace, and Racing are all based on the shortest time.
@@ -189,7 +199,7 @@ Leaderboard *LeaderboardManager::GetLeaderboard(uint32_t gameID, InfoType infoTy
                     query = topPlayersScoreQuery; // Shooting gallery is based on the highest score.
                     break;
                 case Survival:
-                    query = topPlayersTimeQuery; // AG Survival is based on the longest time.
+                    query = classicSurvivalScoring ? topPlayersTimeQuery : topPlayersScoreQuery;
                     break;
                 default:
                     query = topPlayersTimeQueryAsc;  // SurvivalNS, FootRace, MonumentRace, and Racing are all based on the shortest time.
