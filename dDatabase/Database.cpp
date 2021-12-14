@@ -11,6 +11,10 @@ sql::Connection * Database::con;
 
 void Database::Connect(const string& host, const string& database, const string& username, const string& password) {
 
+#if defined(_WIN32) && defined(MARIADB_PLUGIN_DIR_OVERRIDE)
+	_putenv_s("MARIADB_PLUGIN_DIR", MARIADB_PLUGIN_DIR_OVERRIDE);
+#endif
+
 	//To bypass debug issues:
 	std::string newHost = "tcp://" + host;
 	const char* szHost = newHost.c_str();

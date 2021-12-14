@@ -318,59 +318,104 @@ RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 ${PROJECT_SOURCE_DIR}/dPhysics/*.cpp
 )
 
-
 # mariadb connector cpp
+# On Windows ClangCL can't compile the connector from source but can link to an msvc compiled one,
+# so prefer the prebuilt binaries unless MARIADB_BUILD_SOURCE is specified
+if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
+	set(MARIADB_MSI_DIR "${PROJECT_BINARY_DIR}/msi")
+	set(MARIADB_CONNECTOR_DIR "${PROJECT_BINARY_DIR}/mariadbcpp")
+	set(MARIADB_C_CONNECTOR_DIR "${MARIADB_CONNECTOR_DIR}/MariaDB/MariaDB Connector C 64-bit")
+	set(MARIADB_CPP_CONNECTOR_DIR "${MARIADB_CONNECTOR_DIR}/MariaDB/MariaDB C++ Connector 64-bit")
 
-# Just use prebuilt binaries for windows. ClangCL can't compile the connector but can link with a standard msvc compiled one.
-# need connector/c  - https://dlm.mariadb.com/1936366/connectors/c/connector-c-3.2.5/mariadb-connector-c-3.2.5-win64.msi
-# and connector/cpp - https://dlm.mariadb.com/1683453/connectors/cpp/connector-cpp-1.0.1/mariadb-connector-cpp-1.0.1-win64.msi
-# also will need to unpack the msi's using msi exec.
+	file(MAKE_DIRECTORY "${MARIADB_MSI_DIR}")
+	file(MAKE_DIRECTORY "${MARIADB_CONNECTOR_DIR}")
 
-# for now it works using normal msvc compiler
+	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi" )
+		message("Downloading mariadb connector/c")
+		file(DOWNLOAD https://dlm.mariadb.com/1936366/connectors/c/connector-c-3.2.5/mariadb-connector-c-3.2.5-win64.msi
+			"${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi"
+			EXPECTED_HASH MD5=09d418c290109068a5bea136dafca36b)
+	endif()
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/")
-	# renaming test folder stops it from being built, saves some time when compiling
-	file(RENAME "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/" "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test/")
-endif()
+	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi" )
+		message("Downloading mariadb connector/c++")
+		file(DOWNLOAD https://dlm.mariadb.com/1683453/connectors/cpp/connector-cpp-1.0.1/mariadb-connector-cpp-1.0.1-win64.msi
+			"${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi"
+			EXPECTED_HASH MD5=548e743fbf067d21d42b81d958bf4ed7)
+	endif()
 
-include(ExternalProject)
-if(WIN32)
-	set(MARIADB_EXTRA_COMPILE_FLAGS /EHsc)
-else()
-	set(MARIADB_EXTRA_COMPILE_FLAGS -DGLIBCXX_USE_CXX11_ABI=0)
-endif()
 
-ExternalProject_Add(mariadb_connector_cpp
-					SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
-					CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
-								-DWITH_MSI=OFF
-					PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
-					BUILD_COMMAND cmake --build . --config RelWithDebInfo
-					INSTALL_COMMAND "")
+	file(TO_NATIVE_PATH "${MARIADB_CONNECTOR_DIR}" MSIEXEC_TARGETDIR)
+	# extract msi files without installing to users system
+	if(NOT EXISTS "${MARIADB_C_CONNECTOR_DIR}")
+		file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi" MSI_DIR)
+		execute_process(COMMAND msiexec /a ${MSI_DIR} /qn TARGETDIR=${MSIEXEC_TARGETDIR})
+	endif()
+	
+	if(NOT EXISTS "${MARIADB_CPP_CONNECTOR_DIR}")
+	file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi" MSI_DIR)
+		execute_process(COMMAND msiexec /a ${MSI_DIR} /qn TARGETDIR=${MSIEXEC_TARGETDIR})
+	endif()
+	
+	set(MARIADB_SHARED_LIBRARY_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll")
+	set(MARIADB_IMPLIB_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.lib")
+	set(MARIADB_INCLUDE_DIR "${MARIADB_CPP_CONNECTOR_DIR}/include/mariadb")
 
-ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
-if(WIN32)
-# Need to copy the dll's to the exes directory once they're built or the exe won't run
+	add_custom_target(mariadb_connector_cpp)
 	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
+					COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/$<CONFIG>"
 					COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-					${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll
-					${BINARY_DIR}/libmariadb/RelWithDebInfo/caching_sha2_password.dll
-					${BINARY_DIR}/libmariadb/RelWithDebInfo/client_ed25519.dll
-					${BINARY_DIR}/libmariadb/RelWithDebInfo/dialog.dll
-					${BINARY_DIR}/libmariadb/RelWithDebInfo/mysql_clear_password.dll
-					${BINARY_DIR}/libmariadb/RelWithDebInfo/sha256_password.dll
-					${PROJECT_BINARY_DIR}/$<CONFIG>)
-endif()
+					"${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll"
+					"${MARIADB_C_CONNECTOR_DIR}/lib/libmariadb.dll"
+					"${PROJECT_BINARY_DIR}/$<CONFIG>")
+
+	# MariaDB uses plugins that the database needs to load, the prebuilt binaries by default will try to find the libraries in system directories,
+	# so set this define and the servers will set the MARIADB_PLUGIN_DIR environment variable to the appropriate directory.
+	# Binaries built from source point to the correct directory by default
+	add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADB_CPP_CONNECTOR_DIR}/plugin")
+else() # Build from source
+	if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/")
+		# renaming test folder stops it from being built, saves some time when compiling
+		file(RENAME "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/" "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test/")
+	endif()
+
+	include(ExternalProject)
+	if(WIN32)
+		set(MARIADB_EXTRA_COMPILE_FLAGS /EHsc)
+	else()
+		set(MARIADB_EXTRA_COMPILE_FLAGS -DGLIBCXX_USE_CXX11_ABI=0)
+	endif()
+
+	ExternalProject_Add(mariadb_connector_cpp
+						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
+						CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
+									-DWITH_MSI=OFF
+						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
+						BUILD_COMMAND cmake --build . --config RelWithDebInfo
+						INSTALL_COMMAND "")
+
+	ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
+	if(WIN32)
+		# Need to copy the dll's to the exes directory once they're built or the exe won't run
+		add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
+						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+						${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll
+						${PROJECT_BINARY_DIR}/$<CONFIG>)
+
+		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll")
+		set(MARIADB_IMPLIB_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
+	else()
+		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/libmariadbcpp.so")
+		set(MARIADB_IMPLIB_LOCATION "")
+	endif()
+	set(MARIADB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
+
+endif(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 
 add_library (mariadbConnCpp SHARED IMPORTED)
-if(WIN32)
-	set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll")
-	set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_IMPLIB "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
-else()
-	set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/libmariadbcpp.so")
-endif()
 set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_LOCATION ${MARIADB_SHARED_LIBRARY_LOCATION})
-target_include_directories(mariadbConnCpp INTERFACE "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
+set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_IMPLIB ${MARIADB_IMPLIB_LOCATION})
+target_include_directories(mariadbConnCpp INTERFACE ${MARIADB_INCLUDE_DIR})
 add_dependencies(mariadbConnCpp mariadb_connector_cpp)
 
 # 3rdparty static libraries:
