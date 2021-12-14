@@ -394,7 +394,7 @@ else() # Build from source
 	if(WIN32)
 		set(MARIADB_EXTRA_COMPILE_FLAGS /EHsc)
 	else()
-		set(MARIADB_EXTRA_COMPILE_FLAGS -DGLIBCXX_USE_CXX11_ABI=0)
+		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0)
 	endif()
 
 	ExternalProject_Add(mariadb_connector_cpp
