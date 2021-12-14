@@ -869,11 +869,25 @@ void HandlePacket(Packet* packet) {
 			std::string theirFdbChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
 
 			if (Game::config->GetValue("check_fdb") == "1" && fdbChecksum != "") { // if fdbChecksum is empty, likely means we are a character server.
-				Game::logger->Log("WorldServer", "Got client checksum %s and we have server checksum %s. \n", theirFdbChecksum.c_str(), fdbChecksum.c_str());
-				if (theirFdbChecksum != fdbChecksum) {
-					Game::logger->Log("WorldServer", "Client checksum does not match server checksum.\n");
-					Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
-					return;
+				uint32_t gmLevel = 0;
+				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
+				stmt->setString(1, username.c_str());
+				
+				sql::ResultSet* res = stmt->executeQuery();
+				while (res->next()) {
+					gmLevel = res->getInt(1);
+				}
+
+				delete stmt;
+				delete res;
+
+				if (gmLevel != 9) {
+					Game::logger->Log("WorldServer", "Got client checksum %s and we have server checksum %s. \n", theirFdbChecksum.c_str(), fdbChecksum.c_str());
+					if (theirFdbChecksum != fdbChecksum) {
+						Game::logger->Log("WorldServer", "Client checksum does not match server checksum.\n");
+						Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
+						return;
+					}
 				}
 			}
 			
