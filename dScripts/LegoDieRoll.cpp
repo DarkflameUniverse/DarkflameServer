@@ -39,11 +39,9 @@ void LegoDieRoll::OnTimerDone(Entity* self, std::string timerName) {
             auto* owner = self->GetOwner();
             auto* missionComponent = owner->GetComponent<MissionComponent>();
 
-            if (missionComponent != nullptr)
-            {
+            if (missionComponent != nullptr) {
                 const auto rollMissionState = missionComponent->GetMissionState(756);
-                if (rollMissionState == MissionState::MISSION_STATE_ACTIVE)
-                {
+                if (rollMissionState == MissionState::MISSION_STATE_ACTIVE) {
                     missionComponent->ForceProgress(756, 1103, 1);
                 }
             }
