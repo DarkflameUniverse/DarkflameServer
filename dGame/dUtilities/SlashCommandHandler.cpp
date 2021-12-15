@@ -1714,7 +1714,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				}
 				if (doBreak) break;
 			}
-			Game::logger->Log("Debug", "On roll " + std::to_string(i) + " out of " + std::to_string(loops) + ". \n");
 		}
 
 		std::u16string message = u"Ran loot drops looking for "
