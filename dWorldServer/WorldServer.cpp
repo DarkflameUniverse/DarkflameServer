@@ -1068,7 +1068,7 @@ void HandlePacket(Packet* packet) {
 					uint32_t characterID = c->GetID();
 					uint64_t playerID;
 
-					auto* playerIdStatement = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE id = ?")
+					auto* playerIdStatement = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE id = ?");
 					playerIdStatement->setUInt(characterID);
 					auto res = playerIdStatement->executeQuery();
 					while (res->next())
