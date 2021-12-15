@@ -1065,6 +1065,7 @@ void HandlePacket(Packet* packet) {
 					noBBB:
 
 					//Get the database character and player ID
+					unsigned int zoneID = Game::server->GetZoneID();
 					uint32_t characterID = c->GetID();
 					uint64_t playerID;
 
@@ -1082,8 +1083,16 @@ void HandlePacket(Packet* packet) {
 					
 					if (playerID)//If we were able to retrieve the playerID then add the player to the active player list
 					{
+						auto* setPlayerActiveStatement = Database::CreatePreppedStmt("INSERT INTO 'active_players' ('player_id', 'character_id', 'zone_id') VALUES (?,?,?)");
+						setPlayerActiveStatement->setUInt64(1, playerID);
+						setPlayerActiveStatement->setUInt(2, characterID);
+						setPlayerActiveStatement->setUInt(3, zoneID);
+						setPlayerActiveStatement->execute();
+
+						delete setPlayerActiveStatement;
+
 						std::stringstream outputText;
-						outputText << "Player of ID: " << std::to_string(playerID) << " Logged into world";
+						outputText << "Player of ID: " << std::to_string(playerID) << " Logged into world\n";
 						Game::logger->Log("WorldServer", outputText.str());
 					}
 
