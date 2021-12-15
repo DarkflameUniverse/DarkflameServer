@@ -778,8 +778,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	    script = new ImaginationBackpackHealServer();
 	else if (scriptName == "scripts\\ai\\GENERAL\\L_LEGO_DIE_ROLL.lua")
 		script = new LegoDieRoll();
-  else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
-    script = new BuccaneerValiantShip();
+  	else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
+    	script = new BuccaneerValiantShip();
 
 	//Ignore these scripts:
 	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")
