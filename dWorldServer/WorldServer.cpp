@@ -1083,7 +1083,7 @@ void HandlePacket(Packet* packet) {
 					
 					if (playerID)//If we were able to retrieve the playerID then add the player to the active player list
 					{
-						auto* setPlayerActiveStatement = Database::CreatePreppedStmt("INSERT INTO 'active_players' ('player_id', 'character_id', 'zone_id') VALUES (?,?,?)");
+						auto setPlayerActiveStatement = Database::CreatePreppedStmt("INSERT INTO 'active_players' ('player_id', 'character_id', 'zone_id') VALUES (?,?,?)");
 						setPlayerActiveStatement->setUInt64(1, playerID);
 						setPlayerActiveStatement->setUInt(2, characterID);
 						setPlayerActiveStatement->setUInt(3, zoneID);
