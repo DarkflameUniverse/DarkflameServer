@@ -407,7 +407,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
     stmt->execute();
     delete stmt;
 	
-	if (chatCommand == "setMinifig" && args.size() == 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_FORUM_MODERATOR) { // could break characters so only allow if GM > 0
+	if (chatCommand == "setminifig" && args.size() == 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_FORUM_MODERATOR) { // could break characters so only allow if GM > 0
 		int32_t minifigItemId;
 		if (!GeneralUtils::TryParse(args[1], minifigItemId)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig Item Id ID.");
@@ -434,7 +434,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			charComp->m_Character->SetMouth(minifigItemId);
 		} else if (lowerName == "righthand") {
 			charComp->m_Character->SetRightHand(minifigItemId);
-		} else if (lowerName == "shirt") {
+		} else if (lowerName == "shirtcolor") {
 			charComp->m_Character->SetShirtColor(minifigItemId);
 		} else if (lowerName == "hands") {
 			charComp->m_Character->SetLeftHand(minifigItemId);

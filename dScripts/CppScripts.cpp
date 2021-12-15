@@ -262,6 +262,7 @@
 #include "PropertyDevice.h"
 #include "ImaginationBackpackHealServer.h"
 #include "LegoDieRoll.h"
+#include "BuccaneerValiantShip.h"
 
 // Survival scripts
 #include "AgSurvivalStromling.h"
@@ -777,6 +778,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	    script = new ImaginationBackpackHealServer();
 	else if (scriptName == "scripts\\ai\\GENERAL\\L_LEGO_DIE_ROLL.lua")
 		script = new LegoDieRoll();
+  else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
+    script = new BuccaneerValiantShip();
 
 	//Ignore these scripts:
 	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")
@@ -785,7 +788,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = invalidToReturn;
 	else if (script == invalidToReturn) {
 		if (scriptName.length() > 0)
-			Game::logger->Log("CppScripts", "Attempted to load CppScript for '" + scriptName + "', but returned InvalidScript.\n");
+			Game::logger->LogDebug("CppScripts", "Attempted to load CppScript for '" + scriptName + "', but returned InvalidScript.\n");
+			// information not really needed for sys admins but is for developers
 
 		script = invalidToReturn;
 	}
