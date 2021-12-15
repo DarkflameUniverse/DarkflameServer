@@ -62,24 +62,24 @@ endif(WIN32)
 if(UNIX AND NOT APPLE)
     include(FetchContent)
     if (__include_backtrace__ AND __compile_backtrace__)
-        FetchContent_Declare(
-            backtrace
-            GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
-        )
+		FetchContent_Declare(
+			backtrace
+			GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
+		)
 
-        FetchContent_MakeAvailable(backtrace)
+		FetchContent_MakeAvailable(backtrace)
 
-        if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
-        set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
+		if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
+		set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
 
-        execute_process(
-            COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
-        )
-        endif()
+		execute_process(
+			COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
+		)
+		endif()
 
-        link_directories(${backtrace_SOURCE_DIR}/.libs/)
-        include_directories(${backtrace_SOURCE_DIR})
-    endif(__include_backtrace__)
+		link_directories(${backtrace_SOURCE_DIR}/.libs/)
+		include_directories(${backtrace_SOURCE_DIR})
+	endif(__include_backtrace__)
 endif()
 
 # Set the version
@@ -142,9 +142,9 @@ configure_file("${CMAKE_SOURCE_DIR}/vanity/NPC.xml" "${CMAKE_BINARY_DIR}/vanity/
 
 # 3rdparty includes
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/raknet/Source/)
-if(UNIX AND APPLE)
-        include_directories(/usr/local/include/)
-endif(UNIX AND APPLE)
+if(APPLE)
+	include_directories(/usr/local/include/)
+endif(APPLE)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Recast/Include)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Detour/Include)

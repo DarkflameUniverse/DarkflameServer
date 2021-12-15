@@ -247,15 +247,15 @@ Leaderboard *LeaderboardManager::GetLeaderboard(uint32_t gameID, InfoType infoTy
 
     uint32_t index = 0;
     while (res->next()) {
-        LeaderboardEntry entry;
-        entry.playerID = res->getUInt64(4);
-        entry.playerName = res->getString(5);
-        entry.time = res->getUInt(1);
-        entry.score = res->getUInt(2);
-        entry.placement = res->getUInt(3);
-        entry.lastPlayed = res->getUInt(6);
+		LeaderboardEntry entry;
+		entry.playerID = res->getUInt64(4);
+		entry.playerName = res->getString(5);
+		entry.time = res->getUInt(1);
+		entry.score = res->getUInt(2);
+		entry.placement = res->getUInt(3);
+		entry.lastPlayed = res->getUInt(6);
 
-        entries.push_back(entry);
+		entries.push_back(entry);
         index++;
     }
 

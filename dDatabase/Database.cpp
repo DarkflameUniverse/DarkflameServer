@@ -19,15 +19,14 @@ void Database::Connect(const string& host, const string& database, const string&
 	const char* szPassword = password.c_str();
 
 	driver = sql::mariadb::get_driver_instance();
-    
-    sql::Properties properties;
-    properties["hostName"] = szHost;
-    properties["user"] = szUsername;
-    properties["password"] = szPassword;
-    properties["autoReconnect"] = "true";
-    con = driver->connect(properties);
-	con->setSchema(szDatabase);
 
+	sql::Properties properties;
+	properties["hostName"] = szHost;
+	properties["user"] = szUsername;
+	properties["password"] = szPassword;
+	properties["autoReconnect"] = "true";
+	con = driver->connect(properties);
+	con->setSchema(szDatabase);
 } //Connect
 
 void Database::Destroy(std::string source) {
@@ -79,3 +78,4 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 
 	return stmt;
 } //CreatePreppedStmt
+
