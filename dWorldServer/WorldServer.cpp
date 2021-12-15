@@ -867,6 +867,7 @@ void HandlePacket(Packet* packet) {
 			std::string username = PacketUtils::ReadString(0x08, packet, true);
 			std::string sessionKey = PacketUtils::ReadString(74, packet, true);
 			std::string theirFdbChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
+			theirFdbChecksum = theirFdbChecksum.substr(0, 32); // sometimes client puts a null terminator at the end of the checksum and sometimes doesn't; weird
 
 			if (Game::config->GetValue("check_fdb") == "1" && fdbChecksum != "") { // if fdbChecksum is empty, likely means we are a character server.
 				uint32_t gmLevel = 0;
