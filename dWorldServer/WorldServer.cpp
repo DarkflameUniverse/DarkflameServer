@@ -676,7 +676,7 @@ void MarkPlayerAsActive(uint32_t characterID) {
 		delete setPlayerActiveStatement;
 
 		std::stringstream outputText;
-		outputText << "Player of ID: " << std::to_string(playerID) << " Logged into world\n";
+		outputText << "Character of ID: " << std::to_string(characterID) << " Logged into world\n";
 		Game::logger->Log("WorldServer", outputText.str());//working here
 	}
 }
@@ -693,7 +693,7 @@ void MarkPlayerAsInactive(uint32_t characterID) {
 	delete setPlayerActiveStatement;
 
 	std::stringstream outputText;
-	outputText << "Player of ID: " << std::to_string(playerID) << " Logged into world\n";
+	outputText << "Character of ID: " << std::to_string(characterID) << " left the world\n";
 	Game::logger->Log("WorldServer", outputText.str());//working here
 
 }
