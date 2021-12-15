@@ -434,7 +434,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			charComp->m_Character->SetMouth(minifigItemId);
 		} else if (lowerName == "righthand") {
 			charComp->m_Character->SetRightHand(minifigItemId);
-		} else if (lowerName == "shirt") {
+		} else if (lowerName == "shirtcolor") {
 			charComp->m_Character->SetShirtColor(minifigItemId);
 		} else if (lowerName == "hands") {
 			charComp->m_Character->SetLeftHand(minifigItemId);
