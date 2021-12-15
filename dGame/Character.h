@@ -621,13 +621,15 @@ private:
 
     /**
      * The subject of a mail message this character made (reserved for GMs)
+     * Default: "Lost item"
      */
-    std::string m_MailSubject;
+    std::string m_MailSubject = "Lost item";
 
     /**
      * The body of a mail message this character made (reserved for GMs)
+     * Default: "This is a replacement item for one you lost."
      */
-    std::string m_MailBody;
+    std::string m_MailBody = "This is a replacement item for one you lost.";
 
     /**
      * The spawn position of this character when loading in

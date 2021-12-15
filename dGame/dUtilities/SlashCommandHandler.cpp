@@ -813,8 +813,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "setmailsub" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		// Display help for the user
 		if (args.size() == 0) {
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("Sets the subject of the next mail command used"));
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("/setmailsub <message subject>"));
+			ChatPackets::SendSystemMessage(sysAddr, u"Sets the subject of the next mail command used");
+			ChatPackets::SendSystemMessage(sysAddr, u"/setmailsub <message subject>");
 			return;
 		}
 
@@ -829,8 +829,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "setmailbody" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		// Display help for the user
 		if (args.size() == 0) {
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("Sets the body of the next mail command used"));
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("/setmailbody <message body>"));
+			ChatPackets::SendSystemMessage(sysAddr, u"Sets the body of the next mail command used");
+			ChatPackets::SendSystemMessage(sysAddr, u"/setmailbody <message body>");
 			return;
 		}
 
@@ -845,8 +845,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "mailitem" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
 		// Display help for the user
 		if (args.size() <= 1) {
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("Mails an item to a specified character"));
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("/mailitem <name> <itemid>"));
+			ChatPackets::SendSystemMessage(sysAddr, u"Mails an item to a specified character");
+			ChatPackets::SendSystemMessage(sysAddr, u"/mailitem <name> <itemid>");
 			return;
 		}
 
@@ -886,18 +886,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		ins->setUInt(3, receiverID);
 		ins->setString(4, playerName);
 		ins->setUInt64(5, currentTime);
-		if (entity->GetCharacter()->GetMailSubject().size() != 0) {
-			ins->setString(6, entity->GetCharacter()->GetMailSubject());
-		}
-		else {
-			ins->setString(6, "Lost item");
-		}
-		if (entity->GetCharacter()->GetMailSubject().size() != 0) {
-			ins->setString(7, entity->GetCharacter()->GetMailBody());
-		}
-		else {
-			ins->setString(7, "This is a replacement item for one you lost.");
-		}
+		ins->setString(6, entity->GetCharacter()->GetMailSubject());
+		ins->setString(7, entity->GetCharacter()->GetMailBody());
 		ins->setUInt(8, 0);
 		ins->setInt(9, lot);
 		ins->setInt(10, 0);
@@ -905,11 +895,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		ins->execute();
 		delete ins;
 
-		ChatPackets::SendSystemMessage(
-			sysAddr,
-			GeneralUtils::ASCIIToUTF16("Sending item to " + playerName + " with subject '" + entity->GetCharacter()->GetMailSubject()
-				+ "' and body '" + entity->GetCharacter()->GetMailBody() + "'.")
-		);
+		// Prepare the output string.
+		std::stringstream ss;
+		ss << "Sending item to " << playerName << " with subject '" << entity->GetCharacter()->GetMailSubject() << "' and body '" << entity->GetCharacter()->GetMailBody() << "'.";
+		auto sysMessage = ss.str();
+
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(sysMessage));
 
 		return;
 	}
@@ -917,8 +908,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "mailitemall" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
 		// Display help for the user
 		if (args.size() == 0) {
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("Mails an item to all characters"));
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("/mailitemtoall <itemid>"));
+			ChatPackets::SendSystemMessage(sysAddr, u"Mails an item to all active characters");
+			ChatPackets::SendSystemMessage(sysAddr, u"/mailitemtoall <itemid>");
 			return;
 		}
 
@@ -930,8 +921,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		// Get a list of all characters created on the server
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id, name from charinfo;");
+		// Get a list of all active characters on the server (based on activity_log)
+		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("select c.id, c.name from charinfo c, activity_log l where c.id = l.character_id and l.activity = 0 and l.id = (select max(ll.id) from activity_log ll where l.character_id = ll.character_id);");
 		sql::ResultSet* res = stmt->executeQuery();
 
 		while (res->next()) {
@@ -946,18 +937,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			ins->setUInt(3, receiverID);
 			ins->setString(4, playerName);
 			ins->setUInt64(5, currentTime);
-			if (entity->GetCharacter()->GetMailSubject().size() != 0) {
-				ins->setString(6, entity->GetCharacter()->GetMailSubject());
-			}
-			else {
-				ins->setString(6, "Lost item");
-			}
-			if (entity->GetCharacter()->GetMailSubject().size() != 0) {
-				ins->setString(7, entity->GetCharacter()->GetMailBody());
-			}
-			else {
-				ins->setString(7, "This is a replacement item for one you lost.");
-			}
+			ins->setString(6, entity->GetCharacter()->GetMailSubject());
+			ins->setString(7, entity->GetCharacter()->GetMailBody());
 			ins->setUInt(8, 0);
 			ins->setInt(9, lot);
 			ins->setInt(10, 0);
@@ -965,12 +946,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			ins->execute();
 			delete ins;
 
-			// Output to sender's chat
-			std::string sysMessage = "ItemID " + args[0] + " sent to " + playerName + "(CharID " + std::to_string(receiverID) + ").";
-			ChatPackets::SendSystemMessage(
-				sysAddr,
-				GeneralUtils::ASCIIToUTF16(sysMessage)
-			);
+
+			// Prepare the output string and display in sender's chat.
+			std::stringstream ss;
+			ss << "ItemID " << args[0] << " sent to " << playerName << "(CharID " << std::to_string(receiverID) << ").";
+			auto sysMessage = ss.str();
+
+			ChatPackets::SendSystemMessage(sysAddr,GeneralUtils::ASCIIToUTF16(sysMessage));
 		}
 
 		delete stmt;
