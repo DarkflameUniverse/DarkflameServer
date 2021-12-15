@@ -31,7 +31,6 @@ Development of the latest iteration of Darkflame Universe has been done primaril
 ```bash
 git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 ```
-
 **Python**
 
 Some tools utilized to streamline the setup process require Python 3, make sure you have it installed.
@@ -102,7 +101,7 @@ cd build
 cmake ..
 
 :: Run CMake with build flag to build
-cmake --build .
+cmake --build . --config Release
 ```
 
 Once built you must also move all DLLs from `build/_deps/mysql-src/lib64` or else you encounter missing DLL errors
@@ -129,9 +128,21 @@ sudo apt install build-essential
 
 [**Follow the Linux instructions**](#linux-builds)
 
-###ARM builds
-aarch64 builds should work as is using the linux build steps.
+### ARM builds
+AArch64 builds should work on linux as is using the linux build steps.
 MacOS has not been tested for ARM builds.
+
+### Updating your build
+To update your server to the latest version navigate to your cloned directory
+```bash
+cd <path-to>/DarkflameUniverse
+```
+run the following commands to update to the latest changes
+```bash
+git pull
+git submodule update --init --recursive
+```
+now follow the build section for your system
 
 ## Setting up the environment
 
