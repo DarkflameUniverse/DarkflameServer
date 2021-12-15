@@ -1069,11 +1069,11 @@ void HandlePacket(Packet* packet) {
 					uint64_t playerID;
 
 					auto* playerIdStatement = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE id = ?");
-					playerIdStatement->setUInt(characterID);
+					playerIdStatement->setUInt(1, characterID);
 					auto res = playerIdStatement->executeQuery();
 					while (res->next())
 					{
-						playerID = res->getUInt64();
+						playerID = res->getUInt64(1);
 					}
 
 					delete playerIdStatement;
