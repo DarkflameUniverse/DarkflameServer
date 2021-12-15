@@ -1064,6 +1064,30 @@ void HandlePacket(Packet* packet) {
 
 					noBBB:
 
+					//Get the database character and player ID
+					uint32_t characterID = c->GetID();
+					uint64_t playerID;
+
+					auto* playerIdStatement = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE id = ?")
+					playerIdStatement->setUInt(characterID);
+					auto res = playerIdStatement->executeQuery();
+					while (res->next())
+					{
+						playerID = res->getUInt64();
+					}
+
+					delete playerIdStatement;
+					delete res;
+
+					
+					if (playerID)//If we were able to retrieve the playerID then add the player to the active player list
+					{
+						std::stringstream outputText;
+						outputText << "Player of ID: " << std::to_string(playerID) << " Logged into world";
+						Game::logger->Log("WorldServer", outputText.str());
+					}
+
+
 					// Tell the client it's done loading:
 					GameMessages::SendInvalidZoneTransferList(player, packet->systemAddress, u"https://forms.zohopublic.eu/virtualoffice204/form/DLUInGameSurvey/formperma/kpU-IL5v2-Wt41QcB5UFnYjzlLp-j2LEisF8e11PisU", u"", false, false);
 					GameMessages::SendServerDoneLoadingAllObjects(player, packet->systemAddress);
