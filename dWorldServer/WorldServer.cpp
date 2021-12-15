@@ -1069,7 +1069,7 @@ void HandlePacket(Packet* packet) {
 					uint32_t characterID = c->GetID();
 					uint64_t playerID;
 
-					auto* playerIdStatement = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE id = ?");
+					auto* playerIdStatement = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE id = ?;");
 					playerIdStatement->setUInt(1, characterID);
 					auto res = playerIdStatement->executeQuery();
 					while (res->next())
@@ -1083,7 +1083,7 @@ void HandlePacket(Packet* packet) {
 					
 					if (playerID)//If we were able to retrieve the playerID then add the player to the active player list
 					{
-						auto setPlayerActiveStatement = Database::CreatePreppedStmt("INSERT INTO 'active_players' ('player_id', 'character_id', 'zone_id') VALUES (?,?,?)");
+						auto setPlayerActiveStatement = Database::CreatePreppedStmt("INSERT INTO active_players VALUES (?,?,?);");
 						setPlayerActiveStatement->setUInt64(1, playerID);
 						setPlayerActiveStatement->setUInt(2, characterID);
 						setPlayerActiveStatement->setUInt(3, zoneID);
