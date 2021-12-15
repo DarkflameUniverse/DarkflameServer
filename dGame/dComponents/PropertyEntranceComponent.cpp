@@ -235,3 +235,4 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
         sysAddr
     );
 }
+
