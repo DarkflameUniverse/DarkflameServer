@@ -645,6 +645,59 @@ void HandlePacketChat(Packet* packet) {
 	}
 }
 
+/*
+	Adds the player to the list of active players in the database
+	Should be called when the player loads into a world
+*/
+void MarkPlayerAsActive(uint32_t characterID) {
+	unsigned int zoneID = Game::server->GetZoneID();		
+	uint64_t playerID;
+
+	auto* playerIdStatement = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE id = ?;");
+	playerIdStatement->setUInt(1, characterID);
+	auto res = playerIdStatement->executeQuery();
+	while (res->next())
+	{
+		playerID = res->getUInt64(1);
+	}
+
+	delete playerIdStatement;
+	delete res;
+
+	
+	if (playerID)//If we were able to retrieve the playerID then add the player to the active player list
+	{
+		auto setPlayerActiveStatement = Database::CreatePreppedStmt("INSERT INTO active_players VALUES (?,?,?);");
+		setPlayerActiveStatement->setUInt64(1, playerID);
+		setPlayerActiveStatement->setUInt(2, characterID);
+		setPlayerActiveStatement->setUInt(3, zoneID);
+		setPlayerActiveStatement->execute();
+
+		delete setPlayerActiveStatement;
+
+		std::stringstream outputText;
+		outputText << "Player of ID: " << std::to_string(playerID) << " Logged into world\n";
+		Game::logger->Log("WorldServer", outputText.str());//working here
+	}
+}
+
+/*
+	Removes the player from the list of active players
+	Should be called when the player leaves or transferrs to a different world
+*/
+void MarkPlayerAsInactive(uint32_t characterID) {
+	auto setPlayerActiveStatement = Database::CreatePreppedStmt("DELETE FROM active_players WHERE character_id = ?;");
+	setPlayerActiveStatement->setUInt(1, characterID);
+	setPlayerActiveStatement->execute();
+
+	delete setPlayerActiveStatement;
+
+	std::stringstream outputText;
+	outputText << "Player of ID: " << std::to_string(playerID) << " Logged into world\n";
+	Game::logger->Log("WorldServer", outputText.str());//working here
+
+}
+
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
@@ -664,6 +717,9 @@ void HandlePacket(Packet* packet) {
 		}
 
 		if (entity) {
+			//Remove player from active players table
+			MarkPlayerAsInactive(entity->GetCharacter()->GetID());
+
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 			if (skillComponent != nullptr)
@@ -1064,37 +1120,8 @@ void HandlePacket(Packet* packet) {
 
 					noBBB:
 
-					//Get the database character and player ID
-					unsigned int zoneID = Game::server->GetZoneID();
-					uint32_t characterID = c->GetID();
-					uint64_t playerID;
-
-					auto* playerIdStatement = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE id = ?;");
-					playerIdStatement->setUInt(1, characterID);
-					auto res = playerIdStatement->executeQuery();
-					while (res->next())
-					{
-						playerID = res->getUInt64(1);
-					}
-
-					delete playerIdStatement;
-					delete res;
-
-					
-					if (playerID)//If we were able to retrieve the playerID then add the player to the active player list
-					{
-						auto setPlayerActiveStatement = Database::CreatePreppedStmt("INSERT INTO active_players VALUES (?,?,?);");
-						setPlayerActiveStatement->setUInt64(1, playerID);
-						setPlayerActiveStatement->setUInt(2, characterID);
-						setPlayerActiveStatement->setUInt(3, zoneID);
-						setPlayerActiveStatement->execute();
-
-						delete setPlayerActiveStatement;
-
-						std::stringstream outputText;
-						outputText << "Player of ID: " << std::to_string(playerID) << " Logged into world\n";
-						Game::logger->Log("WorldServer", outputText.str());
-					}
+					//Mark the player as active
+					MarkPlayerAsActive(c->GetID());
 
 
 					// Tell the client it's done loading:
