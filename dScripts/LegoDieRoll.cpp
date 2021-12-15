@@ -36,7 +36,7 @@ void LegoDieRoll::OnTimerDone(Entity* self, std::string timerName) {
 		    GameMessages::SendPlayAnimation(self, u"roll-die-6");
             break;
         default:
-	        Game::logger->Log("LegoDieRoll", "Invalid animation: roll-die-%i\n", dieRoll);
+	        Game::logger->LogDebug("LegoDieRoll", "Invalid animation: roll-die-%i\n", dieRoll);
             break;
         }
     }
