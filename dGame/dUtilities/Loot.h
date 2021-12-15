@@ -7,7 +7,7 @@
 class Entity;
 
 struct RarityTableEntry {
-    uint8_t rarity;
+    uint32_t rarity;
     float randMax;
 };
 
@@ -45,6 +45,7 @@ class LootGenerator : public Singleton<LootGenerator> {
     LootGenerator();
 
     std::unordered_map<LOT, int32_t> RollLootMatrix(Entity* player, uint32_t matrixIndex);
+    std::unordered_map<LOT, int32_t> RollLootMatrix(uint32_t matrixIndex);
     void GiveLoot(Entity* player, uint32_t matrixIndex);
     void GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& result);
     void GiveActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating = 0);

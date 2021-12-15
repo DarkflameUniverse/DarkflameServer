@@ -119,7 +119,7 @@ LootGenerator::LootGenerator() {
         LootTable lootTable;
 
         for (const CDLootTable& entry : entries) {
-            LootTableEntry tableEntry{entry.itemid, entry.MissionDrop};
+            LootTableEntry tableEntry{(LOT)entry.itemid, entry.MissionDrop};
             lootTable.push_back(tableEntry);
         }
 
@@ -195,6 +195,61 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, u
                     if (drop.itemID == 13763) {
                         continue;
                     } // check if we aren't in faction
+
+                    if (drops.find(drop.itemID) == drops.end()) {
+                        drops.insert({drop.itemID, 1});
+                    } else {
+                        ++drops[drop.itemID];
+                    }
+                }
+            }
+        }
+    }
+
+    return drops;
+}
+
+std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(uint32_t matrixIndex) {
+    std::unordered_map<LOT, int32_t> drops;
+
+    LootMatrix matrix = m_LootMatrices[matrixIndex];
+
+    for (const LootMatrixEntry& entry : matrix) {
+        if (GeneralUtils::GenerateRandomNumber<float>(0, 1) < entry.percent) {
+            LootTable lootTable = m_LootTables[entry.lootTableIndex];
+            RarityTable rarityTable = m_RarityTables[entry.rarityTableIndex];
+
+            uint32_t dropCount = GeneralUtils::GenerateRandomNumber<uint32_t>(entry.minDrop, entry.maxDrop);
+            for (uint32_t i = 0; i < dropCount; ++i) {
+                uint32_t maxRarity = 1;
+
+                float rarityRoll = GeneralUtils::GenerateRandomNumber<float>(0, 1);
+
+                for (RarityTableEntry rarity : rarityTable) {
+                    if (rarity.randMax >= rarityRoll) {
+                        maxRarity = rarity.rarity;
+                    } else {
+                        break;
+                    }
+                }
+
+                bool rarityFound = false;
+                std::vector<LootTableEntry> possibleDrops;
+
+                for (const LootTableEntry& loot : lootTable) {
+                    uint32_t rarity = m_ItemRarities[loot.itemID];
+
+                    if (rarity == maxRarity) {
+                        possibleDrops.push_back(loot);
+                        rarityFound = true;
+                    } else if (rarity < maxRarity && !rarityFound) {
+                        possibleDrops.push_back(loot);
+                        maxRarity = rarity;
+                    }
+                }
+
+                if (possibleDrops.size() > 0) {
+                    LootTableEntry drop = possibleDrops[GeneralUtils::GenerateRandomNumber<uint32_t>(0, possibleDrops.size() - 1)];
 
                     if (drops.find(drop.itemID) == drops.end()) {
                         drops.insert({drop.itemID, 1});
