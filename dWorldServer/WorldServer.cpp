@@ -89,7 +89,7 @@ struct tempSessionInfo {
 std::map<std::string, tempSessionInfo> m_PendingUsers;
 int instanceID = 0;
 int g_CloneID = 0;
-std::string fdbChecksum = "";
+std::string databaseChecksum = "";
 
 int main(int argc, char** argv) {
 	Diagnostics::SetProcessName("World");
@@ -239,28 +239,42 @@ int main(int argc, char** argv) {
 		// pre calculate the FDB checksum
 		if (Game::config->GetValue("check_fdb") == "1") {
 				std::ifstream fileStream;
-				fileStream.open("res/CDServer.fdb", std::ios::binary | std::ios::in);
+
+				static const std::vector<std::string> alieses = {
+					"res/CDServers.fdb",
+					"res/cdserver.fdb",
+					"res/CDClient.fdb",
+					"res/cdclient.fdb",
+				};
+				
+				for (const auto& file : alieses) {
+					fileStream.open(file);
+					if (fileStream.is_open()) {
+						break;
+					}
+				}
+
 				const int bufferSize = 1024;
 				MD5* md5 = new MD5();
 				
-				std::vector<char> fileStreamBuffer = std::vector<char>(bufferSize, 0);
+				char fileStreamBuffer[1024] = {};
 
 				while (!fileStream.eof()) {
-					fileStreamBuffer.clear();
-					fileStream.read(fileStreamBuffer.data(), bufferSize);
-					md5->update(fileStreamBuffer.data(), fileStream.gcount());
+					memset(fileStreamBuffer, 0, bufferSize);
+					fileStream.read(fileStreamBuffer, bufferSize);
+					md5->update(fileStreamBuffer, fileStream.gcount());
 				}
 
-				fileStreamBuffer.clear();
+				fileStream.close();
 
 				const char* nullTerminateBuffer = "\0";
 				md5->update(nullTerminateBuffer, 1); // null terminate the data
 				md5->finalize();
-				fdbChecksum = md5->hexdigest();
+				databaseChecksum = md5->hexdigest();
 			
 				delete md5;
 
-				Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s\n", fdbChecksum.c_str());
+				Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s\n", databaseChecksum.c_str());
 			}
 	}
 
@@ -866,15 +880,18 @@ void HandlePacket(Packet* packet) {
 		case MSG_WORLD_CLIENT_VALIDATION: {
 			std::string username = PacketUtils::ReadString(0x08, packet, true);
 			std::string sessionKey = PacketUtils::ReadString(74, packet, true);
-			std::string theirFdbChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
-			theirFdbChecksum = theirFdbChecksum.substr(0, 32); // sometimes client puts a null terminator at the end of the checksum and sometimes doesn't; weird
+			std::string clientDatabaseChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
 
-			if (Game::config->GetValue("check_fdb") == "1" && fdbChecksum != "") { // if fdbChecksum is empty, likely means we are a character server.
+			// sometimes client puts a null terminator at the end of the checksum and sometimes doesn't, weird
+			clientDatabaseChecksum = clientDatabaseChecksum.substr(0, 32);
+
+			// If the check is turned on, validate the client's database checksum.
+			if (Game::config->GetValue("check_fdb") == "1" && !databaseChecksum.empty()) {
 				uint32_t gmLevel = 0;
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
+				auto* stmt = Database::CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
 				stmt->setString(1, username.c_str());
 				
-				sql::ResultSet* res = stmt->executeQuery();
+				auto* res = stmt->executeQuery();
 				while (res->next()) {
 					gmLevel = res->getInt(1);
 				}
@@ -882,13 +899,11 @@ void HandlePacket(Packet* packet) {
 				delete stmt;
 				delete res;
 
-				if (gmLevel != 9) {
-					Game::logger->Log("WorldServer", "Got client checksum %s and we have server checksum %s. \n", theirFdbChecksum.c_str(), fdbChecksum.c_str());
-					if (theirFdbChecksum != fdbChecksum) {
-						Game::logger->Log("WorldServer", "Client checksum does not match server checksum.\n");
-						Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
-						return;
-					}
+				// Developers may skip this check
+				if (gmLevel < 8 && clientDatabaseChecksum != databaseChecksum) {
+					Game::logger->Log("WorldServer", "Client's database checksum does not match the server's, aborting connection.\n");
+					Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
+					return;
 				}
 			}
 			
