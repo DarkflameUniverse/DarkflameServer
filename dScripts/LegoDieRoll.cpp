@@ -33,8 +33,20 @@ void LegoDieRoll::OnTimerDone(Entity* self, std::string timerName) {
 		    GameMessages::SendPlayAnimation(self, u"roll-die-5");
             break;
         case 6:
+            {
 		    GameMessages::SendPlayAnimation(self, u"roll-die-6");
+            // tracking the It's Truly Random Achievement 
+            auto* owner = self->GetOwner();
+            auto* missionComponent = owner->GetComponent<MissionComponent>();
+
+            if (missionComponent != nullptr) {
+                const auto rollMissionState = missionComponent->GetMissionState(756);
+                if (rollMissionState == MissionState::MISSION_STATE_ACTIVE) {
+                    missionComponent->ForceProgress(756, 1103, 1);
+                }
+            }
             break;
+            }
         default:
 	        Game::logger->LogDebug("LegoDieRoll", "Invalid animation: roll-die-%i\n", dieRoll);
             break;
