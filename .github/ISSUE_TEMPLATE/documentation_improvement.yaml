@@ -5,7 +5,9 @@ labels: ["docs", "triage"]
 
 body:
   - type: checkboxes
+    id: checks
     attributes:
+      label: "Make sure you've done the following:"
       options:
         - label: >
             I have checked that this issue has not already been reported.
