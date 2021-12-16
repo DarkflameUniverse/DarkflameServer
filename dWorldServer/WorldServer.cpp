@@ -240,15 +240,15 @@ int main(int argc, char** argv) {
 		if (Game::config->GetValue("check_fdb") == "1") {
 				std::ifstream fileStream;
 
-				static const std::vector<std::string> alieses = {
+				static const std::vector<std::string> aliases = {
 					"res/CDServers.fdb",
 					"res/cdserver.fdb",
 					"res/CDClient.fdb",
 					"res/cdclient.fdb",
 				};
 				
-				for (const auto& file : alieses) {
-					fileStream.open(file);
+				for (const auto& file : aliases) {
+					fileStream.open(file, std::ios::binary | std::ios::in);
 					if (fileStream.is_open()) {
 						break;
 					}
