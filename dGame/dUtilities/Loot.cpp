@@ -37,7 +37,7 @@ LootGenerator::LootGenerator() {
 
     for (const uint32_t itemID : uniqueItems) {
         uint32_t itemComponentID = componentsRegistryTable->GetByIDAndType(itemID, COMPONENT_TYPE_ITEM);
-        CDItemComponent item = itemComponentTable->GetItemComponentByID(itemComponentID);
+        const CDItemComponent& item = itemComponentTable->GetItemComponentByID(itemComponentID);
 
         m_ItemRarities.insert({itemID, item.rarity});
     }
@@ -137,12 +137,12 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, u
 
     std::unordered_map<LOT, int32_t> drops;
 
-    LootMatrix matrix = m_LootMatrices[matrixIndex];
+    const LootMatrix& matrix = m_LootMatrices[matrixIndex];
 
     for (const LootMatrixEntry& entry : matrix) {
         if (GeneralUtils::GenerateRandomNumber<float>(0, 1) < entry.percent) {
-            LootTable lootTable = m_LootTables[entry.lootTableIndex];
-            RarityTable rarityTable = m_RarityTables[entry.rarityTableIndex];
+            const LootTable& lootTable = m_LootTables[entry.lootTableIndex];
+            const RarityTable& rarityTable = m_RarityTables[entry.rarityTableIndex];
 
             uint32_t dropCount = GeneralUtils::GenerateRandomNumber<uint32_t>(entry.minDrop, entry.maxDrop);
             for (uint32_t i = 0; i < dropCount; ++i) {
@@ -150,7 +150,7 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, u
 
                 float rarityRoll = GeneralUtils::GenerateRandomNumber<float>(0, 1);
 
-                for (RarityTableEntry rarity : rarityTable) {
+                for (const RarityTableEntry& rarity : rarityTable) {
                     if (rarity.randMax >= rarityRoll) {
                         maxRarity = rarity.rarity;
                     } else {
@@ -212,12 +212,12 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, u
 std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(uint32_t matrixIndex) {
     std::unordered_map<LOT, int32_t> drops;
 
-    LootMatrix matrix = m_LootMatrices[matrixIndex];
+    const LootMatrix& matrix = m_LootMatrices[matrixIndex];
 
     for (const LootMatrixEntry& entry : matrix) {
         if (GeneralUtils::GenerateRandomNumber<float>(0, 1) < entry.percent) {
-            LootTable lootTable = m_LootTables[entry.lootTableIndex];
-            RarityTable rarityTable = m_RarityTables[entry.rarityTableIndex];
+            const LootTable& lootTable = m_LootTables[entry.lootTableIndex];
+            const RarityTable& rarityTable = m_RarityTables[entry.rarityTableIndex];
 
             uint32_t dropCount = GeneralUtils::GenerateRandomNumber<uint32_t>(entry.minDrop, entry.maxDrop);
             for (uint32_t i = 0; i < dropCount; ++i) {
@@ -225,7 +225,7 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(uint32_t matrixIn
 
                 float rarityRoll = GeneralUtils::GenerateRandomNumber<float>(0, 1);
 
-                for (RarityTableEntry rarity : rarityTable) {
+                for (const RarityTableEntry& rarity : rarityTable) {
                     if (rarity.randMax >= rarityRoll) {
                         maxRarity = rarity.rarity;
                     } else {
@@ -249,7 +249,7 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(uint32_t matrixIn
                 }
 
                 if (possibleDrops.size() > 0) {
-                    LootTableEntry drop = possibleDrops[GeneralUtils::GenerateRandomNumber<uint32_t>(0, possibleDrops.size() - 1)];
+                    const LootTableEntry& drop = possibleDrops[GeneralUtils::GenerateRandomNumber<uint32_t>(0, possibleDrops.size() - 1)];
 
                     if (drops.find(drop.itemID) == drops.end()) {
                         drops.insert({drop.itemID, 1});
@@ -287,7 +287,7 @@ void LootGenerator::GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& r
 
 void LootGenerator::GiveActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating) {
     CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
-    std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
+    std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 
     const CDActivityRewards* selectedReward = nullptr;
     for (const auto& activityReward : activityRewards) {
@@ -303,7 +303,7 @@ void LootGenerator::GiveActivityLoot(Entity* player, Entity* source, uint32_t ac
     uint32_t maxCoins = 0;
 
     CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>("CurrencyTable");
-    std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
+    std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([selectedReward](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
 
     if (currencyTable.size() > 0) {
         minCoins = currencyTable[0].minvalue;
@@ -357,7 +357,7 @@ void LootGenerator::DropLoot(Entity* player, Entity* killedObject, std::unordere
 
 void LootGenerator::DropActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating) {
     CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
-    std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
+    std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 
     const CDActivityRewards* selectedReward = nullptr;
     for (const auto& activityReward : activityRewards) {
@@ -374,7 +374,7 @@ void LootGenerator::DropActivityLoot(Entity* player, Entity* source, uint32_t ac
     uint32_t maxCoins = 0;
 
     CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>("CurrencyTable");
-    std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
+    std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([selectedReward](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
 
     if (currencyTable.size() > 0) {
         minCoins = currencyTable[0].minvalue;
