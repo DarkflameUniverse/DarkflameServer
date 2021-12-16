@@ -667,7 +667,7 @@ void MarkPlayerAsActive(uint32_t characterID) {
 	
 	if (playerID)//If we were able to retrieve the playerID then add the player to the active player list
 	{
-		auto setPlayerActiveStatement = Database::CreatePreppedStmt("INSERT INTO active_players VALUES (?,?,?);");
+		auto setPlayerActiveStatement = Database::CreatePreppedStmt("REPLACE INTO active_players VALUES (?,?,?);");
 		setPlayerActiveStatement->setUInt64(1, playerID);
 		setPlayerActiveStatement->setUInt(2, characterID);
 		setPlayerActiveStatement->setUInt(3, zoneID);
