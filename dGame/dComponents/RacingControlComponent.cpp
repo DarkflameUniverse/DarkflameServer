@@ -317,7 +317,9 @@ void RacingControlComponent::OnRequestDie(Entity *player) {
             return;
         }
 
-        racingPlayer.smashedTimes++;
+        if (!racingPlayer.noSmashOnReload) {
+            racingPlayer.smashedTimes++;
+        }
 
         // Reset player to last checkpoint
         GameMessages::SendRacingSetPlayerResetInfo(
