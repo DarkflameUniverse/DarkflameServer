@@ -60,16 +60,12 @@ public:
     static LeaderboardType GetLeaderboardType(uint32_t gameID);
 private:
     static LeaderboardManager* address;
-
-    // Modified 12/12/2021: Existing queries were renamed to be more descriptive.
     static const std::string topPlayersScoreQuery;
     static const std::string friendsScoreQuery;
     static const std::string standingsScoreQuery;
     static const std::string topPlayersScoreQueryAsc;
     static const std::string friendsScoreQueryAsc;
     static const std::string standingsScoreQueryAsc;
-
-    // Added 12/12/2021: Queries dictated by time are needed for certain minigames.
     static const std::string topPlayersTimeQuery;
     static const std::string friendsTimeQuery;
     static const std::string standingsTimeQuery;

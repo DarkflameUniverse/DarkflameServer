@@ -100,7 +100,7 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
                     highscore = false;
                 break;
             case Racing:
-                if (time >= storedTime) // Altered 12/12/2021: Racing's leaderboard is based on the shortest time.
+                if (time >= storedTime)
                     highscore = false;
                 break;
             case MonumentRace:
@@ -123,7 +123,7 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
                 }
                 break;
             case SurvivalNS:
-                if (time >= storedTime) // Altered 12/12/2021: Battle of Nimbus Station's leaderboard is only based on the shortest time. 
+                if (time >= storedTime)
                     highscore = false;
                 break;
             default:
@@ -266,7 +266,6 @@ LeaderboardType LeaderboardManager::GetLeaderboardType(uint32_t gameID) {
     return LeaderboardType::None;
 }
 
-// Altered 12/12/2021: Renamed the following 6 queries to include "score".
 const std::string LeaderboardManager::topPlayersScoreQuery =
         "WITH leaderboard_vales AS ( "
         "        SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, "
@@ -357,7 +356,6 @@ const std::string LeaderboardManager::standingsScoreQueryAsc =
         "FROM leaderboard_vales, personal_values "
         "WHERE leaderboard_rank BETWEEN min_rank AND max_rank;";
 
-// Added 12/12/2021: The following 6 queries were added for when the leaderboard is dictated by time.
 const std::string LeaderboardManager::topPlayersTimeQuery =
 "WITH leaderboard_vales AS ( "
 "        SELECT l.time, l.score, UNIX_TIMESTAMP(l.last_played) last_played, c.name, c.id, "
