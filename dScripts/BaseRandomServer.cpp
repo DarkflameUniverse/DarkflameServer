@@ -91,7 +91,7 @@ void BaseRandomServer::SetSpawnerNetwork(Entity* self, const std::string& spawne
 
     if (spawnerName == "Named_Enemies")
     {
-        //spawner->Reset();
+        spawner->Reset();
     }
 
     spawner->Activate();
