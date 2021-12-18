@@ -27,7 +27,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	LOT zoneControlTemplate = 2365;
 
 	std::stringstream query;
-	auto result = CDClientDatabase::ExecuteQuery("SELECT zoneControlTemplate, ghostdistance_min, ghostdistance FROM ZoneTable WHERE zoneID = " + std::to_string(zoneID.GetMapID()));
+	auto result = CDClientDatabase::ExecuteQuery("SELECT zoneControlTemplate, ghostdistance_min, ghostdistance, PlayerLoseCoinsOnDeath FROM ZoneTable WHERE zoneID = " + std::to_string(zoneID.GetMapID()));
 
 	if (!result.eof()) {
 		zoneControlTemplate = result.getIntField("zoneControlTemplate", 2365);
@@ -35,6 +35,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 		const auto max = result.getIntField("ghostdistance", 100);
 		EntityManager::Instance()->SetGhostDistanceMax(max + min);
 		EntityManager::Instance()->SetGhostDistanceMin(max);
+        m_PlayerLoseCoinsOnDeath = (result.getIntField("PlayerLoseCoinsOnDeath", 0) != 0);
 	}
 
 	result.finalize();

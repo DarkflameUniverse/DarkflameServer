@@ -26,6 +26,7 @@
 
 #include "MissionComponent.h"
 #include "CharacterComponent.h"
+#include "dZoneManager.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
     m_iArmor = 0;
@@ -794,42 +795,34 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	}
 	else
 	{
-		//Check the CDZoneTable if this zone has drop coins enabled
-		CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
-        if (zoneTable) {
-
+		//Check if this zone allows coin drops
+		if (dZoneManager::Instance()->GetPlayerLoseCoinOnDeath()) 
+		{
 			auto* character = m_Parent->GetCharacter();
-			const CDZoneTable* zone = zoneTable->Query(character->GetZoneID());
+			uint64_t coinsTotal = character->GetCoins();
 
-            if (zone != nullptr) {
-				if (zone->PlayerLoseCoinsOnDeath) 
+			if (coinsTotal > 0) 
+			{
+				uint64_t coinsToLoose = 1;
+
+				if (coinsTotal >= 200) 
 				{
-					//This zone allows coin drops, calculate as normal
-                    uint64_t coinsTotal = character->GetCoins();
+					float hundreth = (coinsTotal / 100.0f);
+					coinsToLoose = static_cast<int>(hundreth);
+				}
 
-                    if (coinsTotal > 0) {
-                        uint64_t coinsToLoose = 1;
+				if (coinsToLoose > 10000) 
+				{
+					coinsToLoose = 10000;
+				}
 
-                        if (coinsTotal >= 200) {
-                            float hundreth = (coinsTotal / 100.0f);
-                            coinsToLoose = static_cast<int>(hundreth);
-                        }
+				coinsTotal -= coinsToLoose;
 
-                        if (coinsToLoose > 10000) {
-                            coinsToLoose = 10000;
-                        }
-
-                        coinsTotal -= coinsToLoose;
-
-                        Loot::DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
-                    }
-
-                    character->SetCoins(coinsTotal);
-                }
-            } else {
-                Game::logger->LogDebug("DestroyableComponent", "Failed to check LoseCoinsOnDeath, zone %i is unknown\n", character->GetZoneID());
+				Loot::DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
 			}
-        }
+
+			character->SetCoins(coinsTotal);
+		}
 
         Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
         for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
