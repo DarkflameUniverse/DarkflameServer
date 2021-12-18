@@ -171,6 +171,16 @@ void BaseRandomServer::NamedEnemyDeath(Entity* self, Spawner* spawner)
     self->AddTimer("SpawnNewEnemy", spawnDelay);
 }
 
+void BaseRandomServer::SpawnersUp(Entity* self) 
+{
+
+}
+
+void BaseRandomServer::SpawnersDown(Entity* self) 
+{
+
+}
+
 void BaseRandomServer::BaseOnTimerDone(Entity* self, const std::string& timerName) 
 {
     NamedTimerDone(self, timerName);
