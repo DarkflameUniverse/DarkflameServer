@@ -91,7 +91,7 @@ void BaseRandomServer::SetSpawnerNetwork(Entity* self, const std::string& spawne
 
     if (spawnerName == "Named_Enemies")
     {
-        spawner->Reset();
+        spawner->SoftReset();
     }
 
     spawner->Activate();
@@ -169,16 +169,6 @@ void BaseRandomServer::NamedEnemyDeath(Entity* self, Spawner* spawner)
     const auto spawnDelay = GeneralUtils::GenerateRandomNumber<float>(1, 2) * 450;
 
     self->AddTimer("SpawnNewEnemy", spawnDelay);
-}
-
-void BaseRandomServer::SpawnersUp(Entity* self) 
-{
-    
-}
-
-void BaseRandomServer::SpawnersDown(Entity* self) 
-{
-    
 }
 
 void BaseRandomServer::BaseOnTimerDone(Entity* self, const std::string& timerName) 

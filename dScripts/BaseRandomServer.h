@@ -25,8 +25,6 @@ public:
     void SpawnSection(Entity* self, const std::string& sectionName, float iMultiplier);
     void SetSpawnerNetwork(Entity* self, const std::string& spawnerName, int32_t spawnNum, LOT spawnLOT);
     BaseRandomServer::Zone* GetRandomLoad(Entity* self, const std::string& sectionName);
-    void SpawnersUp(Entity* self);
-    void SpawnersDown(Entity* self);
     void BaseOnTimerDone(Entity* self, const std::string& timerName);
 
     void NotifySpawnerOfDeath(Entity* self, Spawner* spawner);
