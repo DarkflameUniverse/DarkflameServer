@@ -1691,6 +1691,43 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
+	if (chatCommand == "rollloot" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && args.size() >= 3) {
+		uint32_t lootMatrixIndex = 0;
+		uint32_t targetLot = 0;
+		uint32_t loops = 1;
+
+		if (!GeneralUtils::TryParse(args[0], lootMatrixIndex)) return;
+		if (!GeneralUtils::TryParse(args[1], targetLot)) return;
+		if (!GeneralUtils::TryParse(args[2], loops)) return;
+
+		uint64_t totalRuns = 0;
+
+		for (uint32_t i = 0; i < loops; i++) {
+			while (true) {
+				auto lootRoll = LootGenerator::Instance().RollLootMatrix(lootMatrixIndex);
+				totalRuns += 1;
+				bool doBreak = false;
+				for (const auto& kv : lootRoll) {
+					if ((uint32_t)kv.first == targetLot) {
+						doBreak = true;
+					}
+				}
+				if (doBreak) break;
+			}
+		}
+
+		std::u16string message = u"Ran loot drops looking for "
+			+ GeneralUtils::to_u16string(targetLot) 
+			+ u", " 
+			+ GeneralUtils::to_u16string(loops) 
+			+ u" times. It ran " 
+			+ GeneralUtils::to_u16string(totalRuns) 
+			+ u" times. Averaging out at "
+			+ GeneralUtils::to_u16string((float) totalRuns / loops);
+
+		ChatPackets::SendSystemMessage(sysAddr, message);
+	}
+
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1)
 	{
 		Entity* closest = nullptr;

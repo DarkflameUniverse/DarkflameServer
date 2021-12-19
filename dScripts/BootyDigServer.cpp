@@ -41,7 +41,7 @@ BootyDigServer::OnFireEventServerSide(Entity *self, Entity *sender, std::string 
                 if (renderComponent != nullptr)
                     renderComponent->PlayEffect(7730, u"cast", "bootyshine");
 
-                Loot::DropLoot(player, self, 231, 75, 75);
+                LootGenerator::Instance().DropLoot(player, self, 231, 75, 75);
             }
         }
     } else if (args == "ChestDead") {
