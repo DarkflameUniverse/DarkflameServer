@@ -89,6 +89,7 @@ struct tempSessionInfo {
 std::map<std::string, tempSessionInfo> m_PendingUsers;
 int instanceID = 0;
 int g_CloneID = 0;
+std::string databaseChecksum = "";
 
 int main(int argc, char** argv) {
 	Diagnostics::SetProcessName("World");
@@ -235,6 +236,47 @@ int main(int argc, char** argv) {
 		Game::physicsWorld = &dpWorld::Instance(); //just in case some old code references it
 		dZoneManager::Instance()->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
+
+		// pre calculate the FDB checksum
+		if (Game::config->GetValue("check_fdb") == "1") {
+				std::ifstream fileStream;
+
+				static const std::vector<std::string> aliases = {
+					"res/CDServers.fdb",
+					"res/cdserver.fdb",
+					"res/CDClient.fdb",
+					"res/cdclient.fdb",
+				};
+				
+				for (const auto& file : aliases) {
+					fileStream.open(file, std::ios::binary | std::ios::in);
+					if (fileStream.is_open()) {
+						break;
+					}
+				}
+
+				const int bufferSize = 1024;
+				MD5* md5 = new MD5();
+				
+				char fileStreamBuffer[1024] = {};
+
+				while (!fileStream.eof()) {
+					memset(fileStreamBuffer, 0, bufferSize);
+					fileStream.read(fileStreamBuffer, bufferSize);
+					md5->update(fileStreamBuffer, fileStream.gcount());
+				}
+
+				fileStream.close();
+
+				const char* nullTerminateBuffer = "\0";
+				md5->update(nullTerminateBuffer, 1); // null terminate the data
+				md5->finalize();
+				databaseChecksum = md5->hexdigest();
+			
+				delete md5;
+
+				Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s\n", databaseChecksum.c_str());
+			}
 	}
 
 	while (true) {
@@ -841,7 +883,33 @@ void HandlePacket(Packet* packet) {
 		case MSG_WORLD_CLIENT_VALIDATION: {
 			std::string username = PacketUtils::ReadString(0x08, packet, true);
 			std::string sessionKey = PacketUtils::ReadString(74, packet, true);
+			std::string clientDatabaseChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
 
+			// sometimes client puts a null terminator at the end of the checksum and sometimes doesn't, weird
+			clientDatabaseChecksum = clientDatabaseChecksum.substr(0, 32);
+
+			// If the check is turned on, validate the client's database checksum.
+			if (Game::config->GetValue("check_fdb") == "1" && !databaseChecksum.empty()) {
+				uint32_t gmLevel = 0;
+				auto* stmt = Database::CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
+				stmt->setString(1, username.c_str());
+				
+				auto* res = stmt->executeQuery();
+				while (res->next()) {
+					gmLevel = res->getInt(1);
+				}
+
+				delete stmt;
+				delete res;
+
+				// Developers may skip this check
+				if (gmLevel < 8 && clientDatabaseChecksum != databaseChecksum) {
+					Game::logger->Log("WorldServer", "Client's database checksum does not match the server's, aborting connection.\n");
+					Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
+					return;
+				}
+			}
+			
 			//Request the session info from Master:
 			CBITSTREAM;
 			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_REQUEST_SESSION_KEY);
