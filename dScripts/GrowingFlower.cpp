@@ -10,7 +10,7 @@ void GrowingFlower::OnSkillEventFired(Entity *self, Entity *target, const std::s
         const auto mission1 = self->GetVar<int32_t>(u"missionID");
         const auto mission2 = self->GetVar<int32_t>(u"missionID2");
 
-        Loot::DropActivityLoot(target, self, self->GetLOT(), 0);
+        LootGenerator::Instance().DropActivityLoot(target, self, self->GetLOT(), 0);
 
         auto* missionComponent = target->GetComponent<MissionComponent>();
         if (missionComponent != nullptr) {
