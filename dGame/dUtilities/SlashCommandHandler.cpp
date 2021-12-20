@@ -65,7 +65,7 @@
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
 	std::vector<std::string> args;
-		
+
 	uint32_t breakIndex = 0;
 	for (uint32_t i = 1; i < command.size(); ++i) {
 		if (command[i] == L' ') {
