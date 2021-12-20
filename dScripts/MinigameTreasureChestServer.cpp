@@ -22,10 +22,10 @@ void MinigameTreasureChestServer::OnUse(Entity *self, Entity *user) {
         for (const auto& teamMemberID : team->members) {
             auto* teamMember = EntityManager::Instance()->GetEntity(teamMemberID);
             if (teamMember != nullptr)
-                Loot::DropActivityLoot(teamMember, self, sac->GetActivityID(), CalculateActivityRating(self, teamMemberID));
+                LootGenerator::Instance().DropActivityLoot(teamMember, self, sac->GetActivityID(), CalculateActivityRating(self, teamMemberID));
         }
     } else {
-        Loot::DropActivityLoot(user, self, sac->GetActivityID(), CalculateActivityRating(self, user->GetObjectID()));
+        LootGenerator::Instance().DropActivityLoot(user, self, sac->GetActivityID(), CalculateActivityRating(self, user->GetObjectID()));
     }
 
     sac->PlayerRemove(user->GetObjectID());
