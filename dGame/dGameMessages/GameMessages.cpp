@@ -713,8 +713,6 @@ void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootTyp
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(uint16_t(GAME_MSG_SET_CURRENCY));
 
-	bitStream.Write(currency);
-
 	bitStream.Write(lootType != LOOTTYPE_NONE);
 	if (lootType != LOOTTYPE_NONE) bitStream.Write(lootType);
 
