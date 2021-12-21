@@ -3,6 +3,7 @@
 #include "dCommonVars.h"
 #include <unordered_map>
 #include "Singleton.h"
+#include <vector>
 
 class Entity;
 
