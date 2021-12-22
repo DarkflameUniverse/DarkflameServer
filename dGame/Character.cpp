@@ -567,7 +567,7 @@ const NiPoint3& Character::GetRespawnPoint(LWOMAPID map) const
 	return pair->second;
 }
 
-void Character::SetCoins(int64_t newCoins, int lootType) {
+void Character::SetCoins(int64_t newCoins, int coinSource) {
 	if (newCoins < 0)
 	{
 		newCoins = 0;
@@ -575,7 +575,7 @@ void Character::SetCoins(int64_t newCoins, int lootType) {
 
 	m_Coins = newCoins;
 
-	GameMessages::SendSetCurrency(EntityManager::Instance()->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, lootType);
+	GameMessages::SendSetCurrency(EntityManager::Instance()->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, coinSource);
 }
 
 bool Character::HasBeenToWorld(LWOMAPID mapID) const
