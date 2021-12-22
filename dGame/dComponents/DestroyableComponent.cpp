@@ -818,7 +818,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 			LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
 		}
 
-		character->SetCoins(coinsTotal);
+		character->SetCoins(coinsTotal, 11);
 
         Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
         for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {

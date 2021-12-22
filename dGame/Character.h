@@ -314,7 +314,7 @@ public:
      * @param newCoins the amount of coins to update by
      * @param message whether to notify the client of the change
      */
-    void SetCoins(int64_t newCoins, bool message = true);
+    void SetCoins(int64_t newCoins, int lootType);
 
     /**
      * Get the entity this character belongs to

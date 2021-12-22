@@ -444,7 +444,7 @@ void Mission::YieldRewards() {
 
             auto count = pair.second > 0 ? pair.second : 1;
 
-            // Sanitfy check, 6 is the max any mission yields
+            // Sanity check, 6 is the max any mission yields
             if (count > 6) {
                 count = 0;
             }
@@ -453,7 +453,7 @@ void Mission::YieldRewards() {
         }
 
         if (info->reward_currency_repeatable > 0) {
-            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable);
+            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable, 2);
         }
 
         return;
@@ -481,8 +481,10 @@ void Mission::YieldRewards() {
         inventoryComponent->AddItem(pair.first, count);
     }
 
-    if (info->reward_currency > 0) {
-        character->SetCoins(character->GetCoins() + info->reward_currency, info->isMission);
+    if (info->reward_currency > 0 && info->isMission) {
+        character->SetCoins(character->GetCoins() + info->reward_currency, 2);
+    } else if (info->reward_currency && !info->isMission) {
+        character->SetCoins(character->GetCoins() + info->reward_currency, 5);
     }
 
     if (info->reward_maxinventory > 0) {
