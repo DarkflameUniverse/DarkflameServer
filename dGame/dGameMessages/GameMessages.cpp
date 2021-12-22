@@ -706,7 +706,7 @@ void GameMessages::SendBroadcastTextToChatbox(Entity* entity, const SystemAddres
 	SEND_PACKET_BROADCAST
 }
 
-void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent, int sourceType) {
+void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent, int32_t sourceType) {
 	CBITSTREAM
 	CMSGHEADER
 

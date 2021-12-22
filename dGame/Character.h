@@ -314,7 +314,7 @@ public:
      * @param newCoins the amount of coins to update by
      * @param coinSource The source of the loot
      */
-    void SetCoins(int64_t newCoins, int coinSource);
+    void SetCoins(int64_t newCoins, int32_t coinSource);
 
     /**
      * Get the entity this character belongs to
