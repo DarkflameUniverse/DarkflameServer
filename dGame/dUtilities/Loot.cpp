@@ -137,6 +137,10 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, u
 
     std::unordered_map<LOT, int32_t> drops;
 
+    if (missionComponent == nullptr) {
+        return drops;
+    }
+
     const LootMatrix& matrix = m_LootMatrices[matrixIndex];
 
     for (const LootMatrixEntry& entry : matrix) {
