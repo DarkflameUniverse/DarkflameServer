@@ -453,7 +453,7 @@ void Mission::YieldRewards() {
         }
 
         if (info->reward_currency_repeatable > 0) {
-            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable, 2);
+            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable, COIN_SOURCE_MISSION);
         }
 
         return;
@@ -482,9 +482,9 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_currency > 0 && info->isMission) {
-        character->SetCoins(character->GetCoins() + info->reward_currency, 2);
+        character->SetCoins(character->GetCoins() + info->reward_currency, COIN_SOURCE_MISSION);
     } else if (info->reward_currency && !info->isMission) {
-        character->SetCoins(character->GetCoins() + info->reward_currency, 5);
+        character->SetCoins(character->GetCoins() + info->reward_currency, COIN_SOURCE_ACHIEVEMENT);
     }
 
     if (info->reward_maxinventory > 0) {

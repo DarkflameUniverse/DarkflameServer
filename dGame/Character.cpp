@@ -527,7 +527,7 @@ void Character::OnZoneLoad()
 	 */	
 	if (HasPermission(PermissionMap::Old)) {
 		if (GetCoins() > 1000000) {
-			SetCoins(1000000, 0);
+			SetCoins(1000000, COIN_SOURCE_NONE);
 		}
 	}
 
