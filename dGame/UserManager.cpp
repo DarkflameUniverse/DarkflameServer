@@ -582,7 +582,7 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 	}
 
 	case 3: {
-		shirtID = shirtStyle >= 35 ? 5808 : SHIRT_DARK_GREEN;
+		shirtID = shirtStyle >= 35 ? 5748 : SHIRT_DARK_GREEN;
 		break;
 	}
 
@@ -617,7 +617,7 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 	}
 
 	case 11: {
-		shirtID = shirtStyle >= 35 ? 5802 : SHIRT_MEDIUM_BLUE;
+		shirtID = shirtStyle >= 35 ? 5790 : SHIRT_MEDIUM_BLUE;
 		break;
 	}
 
