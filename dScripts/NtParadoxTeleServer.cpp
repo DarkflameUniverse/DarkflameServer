@@ -88,7 +88,7 @@ void NtParadoxTeleServer::TeleportPlayer(Entity* self, Entity* player)
 
     GameMessages::SendPlayAnimation(player, u"paradox-teleport-in", 4.0f);
 
-    const auto animTime = 4;
+    const auto animTime = 2;
 
     const auto playerID = player->GetObjectID();
     
