@@ -123,7 +123,7 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
                 }
                 break;
             case SurvivalNS:
-                if (time >= storedTime)
+                if (score < storedScore || time >= storedTime)
                     highscore = false;
                 break;
             default:
@@ -150,7 +150,7 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
 
         delete statement;
     } else {
-        // Note: last_played will be set to sysdate by default when inserting into leaderboard
+        // Note: last_played will be set to SYSDATE() by default when inserting into leaderboard
         auto* statement = Database::CreatePreppedStmt("INSERT INTO leaderboard (character_id, game_id, time, score) VALUES (?, ?, ?, ?);");
         statement->setUInt64(1, character->GetID());
         statement->setInt(2, gameID);
@@ -174,13 +174,16 @@ Leaderboard *LeaderboardManager::GetLeaderboard(uint32_t gameID, InfoType infoTy
                     query = standingsScoreQuery; // Shooting gallery is based on the highest score.
                     break;
                 case FootRace:
-                    query = standingsTimeQuery; // The higher your time, the better (for FootRace)
+                    query = standingsTimeQuery; // The higher your time, the better for FootRace.
                     break;
                 case Survival:
                     query = classicSurvivalScoring ? standingsTimeQuery : standingsScoreQuery;
                     break;
+                case SurvivalNS:
+                    query = standingsScoreQueryAsc; // BoNS is scored by highest wave (score) first, then time.
+                    break;
                 default: 
-                    query = standingsTimeQueryAsc; // SurvivalNS, MonumentRace, and Racing are all based on the shortest time.
+                    query = standingsTimeQueryAsc; // MonumentRace and Racing are based on the shortest time.
             }
             break;
         case InfoType::Friends:
@@ -189,13 +192,16 @@ Leaderboard *LeaderboardManager::GetLeaderboard(uint32_t gameID, InfoType infoTy
                     query = friendsScoreQuery; // Shooting gallery is based on the highest score.
                     break;
                 case FootRace:
-                    query = friendsTimeQuery; // The higher your time, the better (for FootRace)
+                    query = friendsTimeQuery; // The higher your time, the better for FootRace.
                     break;
                 case Survival:
                     query = classicSurvivalScoring ? friendsTimeQuery : friendsScoreQuery;
                     break;
+                case SurvivalNS:
+                    query = friendsScoreQueryAsc; // BoNS is scored by highest wave (score) first, then time.
+                    break;
                 default:
-                    query = friendsTimeQueryAsc;  // SurvivalNS, MonumentRace, and Racing are all based on the shortest time.
+                    query = friendsTimeQueryAsc;  // MonumentRace and Racing are based on the shortest time.
             }
             break;
 
@@ -205,13 +211,16 @@ Leaderboard *LeaderboardManager::GetLeaderboard(uint32_t gameID, InfoType infoTy
                     query = topPlayersScoreQuery; // Shooting gallery is based on the highest score.
                     break;
                 case FootRace:
-                    query = topPlayersTimeQuery; // The higher your time, the better (for FootRace)
+                    query = topPlayersTimeQuery; // The higher your time, the better for FootRace.
                     break;
                 case Survival:
                     query = classicSurvivalScoring ? topPlayersTimeQuery : topPlayersScoreQuery;
                     break;
+                case SurvivalNS:
+                    query = topPlayersScoreQueryAsc; // BoNS is scored by highest wave (score) first, then time.
+                    break;
                 default:
-                    query = topPlayersTimeQueryAsc;  // SurvivalNS, MonumentRace, and Racing are all based on the shortest time.
+                    query = topPlayersTimeQueryAsc;  // MonumentRace and Racing are based on the shortest time.
             }
     }
 
