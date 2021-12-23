@@ -5014,9 +5014,11 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	if (emoteID == 0) return;
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
-	MissionComponent* mission = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
-	if (mission) {
-		mission->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, targetID);
+	MissionComponent* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
+
+	//if (missionComponent) { // Altered to prevent "[MissionTask] Failed to find associated entity (0)!" every time a player emoted when not near the target for an active mission/achievement
+	if (missionComponent && targetID != LWOOBJID_EMPTY) {
+			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, targetID);
 	}
 	
 	if (targetID != LWOOBJID_EMPTY)
