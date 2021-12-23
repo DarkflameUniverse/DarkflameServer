@@ -5018,7 +5018,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 
 	//if (missionComponent) { // Altered to prevent "[MissionTask] Failed to find associated entity (0)!" every time a player emoted when not near the target for an active mission/achievement
 	if (missionComponent && targetID != LWOOBJID_EMPTY) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, targetID);
+		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, targetID);
 	}
 	
 	if (targetID != LWOOBJID_EMPTY)
