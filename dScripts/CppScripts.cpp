@@ -199,6 +199,7 @@
 // DLU Scripts
 #include "SbLupTeleport.h"
 #include "DLUVanityNPC.h"
+#include "NsDanceNpcs.h"
 
 // AM Scripts
 #include "AmConsoleTeleportServer.h"
@@ -750,6 +751,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new SbLupTeleport();
 	else if (scriptName == "scripts\\02_server\\DLU\\DLUVanityNPC.lua")
 		script = new DLUVanityNPC();
+	else if (scriptName == "scripts\\02_server\\DLU\\L_NS_DANCE_NPCS.lua") // Needed for the "Boogie Down" Achievement (MissionID = 595)
+		script = new NsDanceNpcs();
 
 	// Survival minigame
 	else if (scriptName == "scripts\\02_server\\Enemy\\Survival\\L_AG_SURVIVAL_STROMBIE.lua")

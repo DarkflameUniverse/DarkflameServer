@@ -501,6 +501,13 @@ void Entity::Initialize()
 		customScriptServer = "scripts\\02_server\\DLU\\L_SB_LUP_TELEPORT.lua";
 	}
 
+	// Custom script for the "Boogie Down" achievement
+	if (m_TemplateID == 5006 || m_TemplateID == 5007 || m_TemplateID == 3002)
+	{
+		hasCustomServerScript = true;
+		customScriptServer = "scripts\\02_server\\DLU\\L_NS_DANCE_NPCS.lua";
+	}
+
 	const auto customScriptServerName = GetVarAsString(u"custom_script_server");
 	const auto customScriptClientName = GetVarAsString(u"custom_script_client");
 
