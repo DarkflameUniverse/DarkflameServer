@@ -177,7 +177,7 @@ typedef double        HardwareReal;
 typedef unsigned long long NaturalWord;
 typedef double         HardwareReal;  // could be changed to __float128 on AMD64/nonwin
 
-#elif defined( __aarch64__ )
+#elif defined( __aarch64__ ) || defined (_M_ARM64)
 #define AUTO_RPC_ABI AUTO_RPC_ABI_AARCH64
 #define AUTO_RPC_AUTORPC_WORD 64
 #define AUTO_RPC_INT_REG_PARAMS 8
