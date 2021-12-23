@@ -391,10 +391,16 @@ else() # Build from source
 		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0)
 	endif()
 
+	if(WIN32)
+		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_MSI=OFF)
+	elseif(APPLE)
+		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_EXTERNAL_ZLIB=ON)
+	endif()
+
 	ExternalProject_Add(mariadb_connector_cpp
 						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
 						CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
-									-DWITH_MSI=OFF
+									${MARIADB_EXTRA_CMAKE_ARGS}
 						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
 						BUILD_COMMAND cmake --build . --config RelWithDebInfo
 						INSTALL_COMMAND "")
@@ -410,10 +416,10 @@ else() # Build from source
 		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll")
 		set(MARIADB_IMPLIB_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
 	elseif(GENERATOR_IS_MULTI_CONFIG)
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/libmariadbcpp.so")
+		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/libmariadbcpp.${CMAKE_SHARED_LIBRARY_SUFFIX}")
 		set(MARIADB_IMPLIB_LOCATION "")
 	else()
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/libmariadbcpp.so")
+		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/libmariadbcpp.${CMAKE_SHARED_LIBRARY_SUFFIX}")
 		set(MARIADB_IMPLIB_LOCATION "")
 	endif()
 	set(MARIADB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
