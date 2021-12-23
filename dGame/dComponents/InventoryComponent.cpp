@@ -296,7 +296,7 @@ void InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 {
 	if (count == 0)
 	{
-		Game::logger->Log("InventoryComponent", "Attempted to remove 0 of item (%i) to the inventory!\n", lot);
+		Game::logger->Log("InventoryComponent", "Attempted to remove 0 of item (%i) from the inventory!\n", lot);
 
 		return;
 	}

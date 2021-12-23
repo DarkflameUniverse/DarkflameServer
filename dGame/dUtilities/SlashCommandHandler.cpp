@@ -407,6 +407,50 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
     stmt->execute();
     delete stmt;
 	
+	if (chatCommand == "setminifig" && args.size() == 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_FORUM_MODERATOR) { // could break characters so only allow if GM > 0
+		int32_t minifigItemId;
+		if (!GeneralUtils::TryParse(args[1], minifigItemId)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig Item Id ID.");
+			return;
+		}
+		EntityManager::Instance()->DestructEntity(entity, sysAddr);
+		auto* charComp = entity->GetComponent<CharacterComponent>();
+		std::string lowerName = args[0];
+		if (lowerName.empty()) return;
+		std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+		if (lowerName == "eyebrows") {
+			charComp->m_Character->SetEyebrows(minifigItemId);
+		} else if (lowerName == "eyes") {
+			charComp->m_Character->SetEyes(minifigItemId);
+		} else if (lowerName == "haircolor") {
+			charComp->m_Character->SetHairColor(minifigItemId);
+		} else if (lowerName == "hairstyle") {
+			charComp->m_Character->SetHairStyle(minifigItemId);
+		} else if (lowerName == "pants") {
+			charComp->m_Character->SetPantsColor(minifigItemId);
+		} else if (lowerName == "lefthand") {
+			charComp->m_Character->SetLeftHand(minifigItemId);
+		} else if (lowerName == "mouth") {
+			charComp->m_Character->SetMouth(minifigItemId);
+		} else if (lowerName == "righthand") {
+			charComp->m_Character->SetRightHand(minifigItemId);
+		} else if (lowerName == "shirtcolor") {
+			charComp->m_Character->SetShirtColor(minifigItemId);
+		} else if (lowerName == "hands") {
+			charComp->m_Character->SetLeftHand(minifigItemId);
+			charComp->m_Character->SetRightHand(minifigItemId);
+		} else {
+			EntityManager::Instance()->ConstructEntity(entity);
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig item to change, try one of the following: Eyebrows, Eyes, HairColor, HairStyle, Pants, LeftHand, Mouth, RightHand, Shirt, Hands");
+			return;
+		}
+		
+		EntityManager::Instance()->ConstructEntity(entity);
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(lowerName) + u" set to " + (GeneralUtils::to_u16string(minifigItemId)));
+
+		GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS); // need to retoggle because it gets reenabled on creation of new character
+	}
+
 	if (chatCommand == "list-spawns" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		for (const auto& pair : EntityManager::Instance()->GetSpawnPointEntities()) {
 			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(pair.first));
@@ -427,6 +471,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		entity->GetCharacter()->UnlockEmote(emoteID);
+	}
+
+	if (chatCommand == "force-save" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		entity->GetCharacter()->SaveXMLToDatabase();
 	}
 
 	if (chatCommand == "kill" && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -1641,6 +1689,43 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		);
 
 		return;
+	}
+
+	if (chatCommand == "rollloot" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && args.size() >= 3) {
+		uint32_t lootMatrixIndex = 0;
+		uint32_t targetLot = 0;
+		uint32_t loops = 1;
+
+		if (!GeneralUtils::TryParse(args[0], lootMatrixIndex)) return;
+		if (!GeneralUtils::TryParse(args[1], targetLot)) return;
+		if (!GeneralUtils::TryParse(args[2], loops)) return;
+
+		uint64_t totalRuns = 0;
+
+		for (uint32_t i = 0; i < loops; i++) {
+			while (true) {
+				auto lootRoll = LootGenerator::Instance().RollLootMatrix(lootMatrixIndex);
+				totalRuns += 1;
+				bool doBreak = false;
+				for (const auto& kv : lootRoll) {
+					if ((uint32_t)kv.first == targetLot) {
+						doBreak = true;
+					}
+				}
+				if (doBreak) break;
+			}
+		}
+
+		std::u16string message = u"Ran loot drops looking for "
+			+ GeneralUtils::to_u16string(targetLot) 
+			+ u", " 
+			+ GeneralUtils::to_u16string(loops) 
+			+ u" times. It ran " 
+			+ GeneralUtils::to_u16string(totalRuns) 
+			+ u" times. Averaging out at "
+			+ GeneralUtils::to_u16string((float) totalRuns / loops);
+
+		ChatPackets::SendSystemMessage(sysAddr, message);
 	}
 
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1)

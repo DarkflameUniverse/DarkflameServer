@@ -73,6 +73,7 @@ namespace Game {
 }
 
 bool chatDisabled = false;
+bool chatConnected = false;
 bool worldShutdownSequenceStarted = false;
 bool worldShutdownSequenceComplete = false;
 void WorldShutdownSequence();
@@ -89,6 +90,7 @@ struct tempSessionInfo {
 std::map<std::string, tempSessionInfo> m_PendingUsers;
 int instanceID = 0;
 int g_CloneID = 0;
+std::string databaseChecksum = "";
 
 int main(int argc, char** argv) {
 	Diagnostics::SetProcessName("World");
@@ -136,6 +138,7 @@ int main(int argc, char** argv) {
 	dConfig config("worldconfig.ini");
 	Game::config = &config;
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
+	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
 	if (config.GetValue("disable_chat") == "1") chatDisabled = true;
 
 	// Connect to CDClient
@@ -185,6 +188,7 @@ int main(int argc, char** argv) {
 
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
+	LootGenerator::Instance();
 	Game::chatFilter = new dChatFilter("./res/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, zoneID);
@@ -209,6 +213,7 @@ int main(int argc, char** argv) {
 	Packet* packet = nullptr;
 	int framesSinceLastFlush = 0;
 	int framesSinceMasterDisconnect = 0;
+	int framesSinceChatDisconnect = 0;
 	int framesSinceLastUsersSave = 0;
 	int framesSinceLastSQLPing = 0;
 	int framesSinceLastUser = 0;
@@ -234,6 +239,47 @@ int main(int argc, char** argv) {
 		Game::physicsWorld = &dpWorld::Instance(); //just in case some old code references it
 		dZoneManager::Instance()->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
+
+		// pre calculate the FDB checksum
+		if (Game::config->GetValue("check_fdb") == "1") {
+				std::ifstream fileStream;
+
+				static const std::vector<std::string> aliases = {
+					"res/CDServers.fdb",
+					"res/cdserver.fdb",
+					"res/CDClient.fdb",
+					"res/cdclient.fdb",
+				};
+				
+				for (const auto& file : aliases) {
+					fileStream.open(file, std::ios::binary | std::ios::in);
+					if (fileStream.is_open()) {
+						break;
+					}
+				}
+
+				const int bufferSize = 1024;
+				MD5* md5 = new MD5();
+				
+				char fileStreamBuffer[1024] = {};
+
+				while (!fileStream.eof()) {
+					memset(fileStreamBuffer, 0, bufferSize);
+					fileStream.read(fileStreamBuffer, bufferSize);
+					md5->update(fileStreamBuffer, fileStream.gcount());
+				}
+
+				fileStream.close();
+
+				const char* nullTerminateBuffer = "\0";
+				md5->update(nullTerminateBuffer, 1); // null terminate the data
+				md5->finalize();
+				databaseChecksum = md5->hexdigest();
+			
+				delete md5;
+
+				Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s\n", databaseChecksum.c_str());
+			}
 	}
 
 	while (true) {
@@ -274,6 +320,19 @@ int main(int argc, char** argv) {
 			}
 		}
 		else framesSinceMasterDisconnect = 0;
+
+		// Check if we're still connected to chat:
+		if (!chatConnected) {
+			framesSinceChatDisconnect++;
+
+			// Attempt to reconnect every 30 seconds.
+			if (framesSinceChatDisconnect >= 2000) {
+				framesSinceChatDisconnect = 0;
+
+				Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
+			}
+		}
+		else framesSinceChatDisconnect = 0;
 
 		//In world we'd update our other systems here.
 
@@ -503,21 +562,27 @@ int main(int argc, char** argv) {
 dLogger * SetupLogger(int zoneID, int instanceID) {
 	std::string logPath = "./logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log";
 	bool logToConsole = false;
+	bool logDebugStatements = false;
 #ifdef _DEBUG
 	logToConsole = true;
+	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole);
+	return new dLogger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacketChat(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		Game::logger->Log("WorldServer", "Lost our connection to chat.\n");
+
+		chatConnected = false;
 	}
 
 	if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
 		Game::logger->Log("WorldServer", "Established connection to chat\n");
 		Game::chatSysAddr = packet->systemAddress;
+
+		chatConnected = true;
 	}
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
@@ -833,12 +898,38 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (packet->data[1] != WORLD) return;
-
+	
 	switch (packet->data[3]) {
 		case MSG_WORLD_CLIENT_VALIDATION: {
 			std::string username = PacketUtils::ReadString(0x08, packet, true);
 			std::string sessionKey = PacketUtils::ReadString(74, packet, true);
+			std::string clientDatabaseChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
 
+			// sometimes client puts a null terminator at the end of the checksum and sometimes doesn't, weird
+			clientDatabaseChecksum = clientDatabaseChecksum.substr(0, 32);
+
+			// If the check is turned on, validate the client's database checksum.
+			if (Game::config->GetValue("check_fdb") == "1" && !databaseChecksum.empty()) {
+				uint32_t gmLevel = 0;
+				auto* stmt = Database::CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
+				stmt->setString(1, username.c_str());
+				
+				auto* res = stmt->executeQuery();
+				while (res->next()) {
+					gmLevel = res->getInt(1);
+				}
+
+				delete stmt;
+				delete res;
+
+				// Developers may skip this check
+				if (gmLevel < 8 && clientDatabaseChecksum != databaseChecksum) {
+					Game::logger->Log("WorldServer", "Client's database checksum does not match the server's, aborting connection.\n");
+					Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
+					return;
+				}
+			}
+			
 			//Request the session info from Master:
 			CBITSTREAM;
 			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_REQUEST_SESSION_KEY);

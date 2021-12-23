@@ -111,6 +111,13 @@ public:
     void SetEffectType(uint32_t type);
 
     /**
+     * Returns the Physics entity for the component 
+     * @return Physics entity for the component
+     */
+
+    dpEntity* GetdpEntity() const { return m_dpEntity; }
+
+    /**
      * Spawns an object at each of the vertices for debugging purposes
      */
     void SpawnVertices();

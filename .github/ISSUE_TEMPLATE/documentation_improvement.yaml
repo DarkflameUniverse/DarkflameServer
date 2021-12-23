@@ -1,0 +1,44 @@
+name: Documentation Improvement
+description: Report wrong or missing documentation
+title: "DOC: "
+labels: ["docs", "triage"]
+
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: "Make sure you've done the following:"
+      options:
+        - label: >
+            I have checked that this issue has not already been reported.
+          required: true
+        - label: >
+            I have validated that the documentation is wrong or missing on the latest version of the main branch of DarkflameServer
+          required: true
+  - type: textarea
+    id: location
+    attributes:
+      label: Location of the documentation
+      description: >
+        Please provide the location of the documentation, e.g. "Entity.cpp" or the
+        URL of the documentation, e.g.
+        "https://github.com/DarkflameUniverse/DarkflameServer/blob/main/README.md"
+      placeholder: https://github.com/DarkflameUniverse/DarkflameServer/blob/main/README.md
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Documentation problem
+      description: >
+        Please provide a description of what documentation you believe needs to be fixed/improved
+    validations:
+      required: true
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested fix for documentation
+      description: >
+        Please explain the suggested fix and **why** it's better than the existing documentation
+    validations:
+      required: true

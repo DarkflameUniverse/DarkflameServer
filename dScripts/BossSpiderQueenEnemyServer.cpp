@@ -243,7 +243,7 @@ void BossSpiderQueenEnemyServer::SpiderWaveManager(Entity* self) {
 			// Prep the selected spider egg
 			//randomEgg:FireEvent{s}erID=self, args="prepEgg"}
 			eggEntity->OnFireEventServerSide(self, "prepEgg");
-			Game::logger->Log("SpiderQueen", "Preppign egg %llu\n", eggEntity->GetObjectID());
+			Game::logger->Log("SpiderQueen", "Prepping egg %llu\n", eggEntity->GetObjectID());
 		
 			// Add the prepped egg to our hatchList
 			hatchList.push_back(eggEntity->GetObjectID());

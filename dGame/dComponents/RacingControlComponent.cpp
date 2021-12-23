@@ -317,7 +317,9 @@ void RacingControlComponent::OnRequestDie(Entity *player) {
             return;
         }
 
-        racingPlayer.smashedTimes++;
+        if (!racingPlayer.noSmashOnReload) {
+            racingPlayer.smashedTimes++;
+        }
 
         // Reset player to last checkpoint
         GameMessages::SendRacingSetPlayerResetInfo(
@@ -390,7 +392,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity *player,
         // Calculate the score, different loot depending on player count
         const auto score = m_LoadedPlayers * 10 + data->finished;
 
-        Loot::GiveActivityLoot(player, m_Parent, m_ActivityID, score);
+        LootGenerator::Instance().GiveActivityLoot(player, m_Parent, m_ActivityID, score);
 
         // Giving rewards
         GameMessages::SendNotifyRacingClient(
@@ -718,7 +720,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
                 m_Started = true;
 
-                Game::logger->Log("RacingControlComponent", "Starting rase\n");
+                Game::logger->Log("RacingControlComponent", "Starting race\n");
 
                 EntityManager::Instance()->SerializeEntity(m_Parent);
 
@@ -871,7 +873,7 @@ void RacingControlComponent::Update(float deltaTime) {
             }
 
             Game::logger->Log("RacingControlComponent",
-                              "Rached point (%i)/(%i)\n", player.respawnIndex,
+                              "Reached point (%i)/(%i)\n", player.respawnIndex,
                               path->pathWaypoints.size());
 
             break;
