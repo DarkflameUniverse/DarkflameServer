@@ -162,6 +162,46 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	//HANDLE ALL NON GM SLASH COMMANDS RIGHT HERE!
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	 
+	if (chatCommand == "verify") { // Redi's Custom Command for Verification Interactions
+			uint32_t id = entity->GetCharacter()->GetID();
+            std::string code = "C_" + gen_random(10);
+			
+			// Check if the verification stage is already done or not.
+			// Displays the Discord ID fetched. 0 Means default/not verified.
+            std::string discordid; 
+            auto stmt = Database::CreatePreppedStmt("SELECT verify_id FROM accounts WHERE id = ? LIMIT 1;");
+            stmt->setInt(1, id);
+
+            sql::ResultSet* res = stmt->executeQuery();
+            
+			if (res->next()) {
+				discordid = res->getString(1);
+			}
+
+			if (discordid != = 0) {
+				std::stringstream message;
+				message << "Your account has already been verified. If you have any questions, please raise it with a Mythran @ Luplo Discord.";
+
+                ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, GeneralUtils::ASCIIToUTF16(message.str()), false);
+				return;
+			}
+
+			delete stmt;
+
+			// Overwrite code with a new one.
+			auto stmt = Database::CreatePreppedStmt("UPDATE accounts SET verify_code = ? WHERE id = ?;");
+            stmt->setString(1, code);
+            stmt->setInt(2, id);
+            stmt->execute();
+            delete stmt;
+
+            std::stringstream message;
+            message << "Your verification code is [" + code + "]. Verify by sending the code to the bot's DMs.";
+
+			ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, GeneralUtils::ASCIIToUTF16(message.str()), false);
+            return;
+	}
 
 	if (chatCommand == "pvp") {
 		auto* character = entity->GetComponent<CharacterComponent>();
@@ -1960,5 +2000,20 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	bitStream.Write(rsMsg);
 
 	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+}
+
+std::string gen_random(const int len) {
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+    std::string tmp_s;
+    tmp_s.reserve(len);
+
+    for (int i = 0; i < len; ++i) {
+        tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
+    return tmp_s;
 }
 
