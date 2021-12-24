@@ -8,7 +8,7 @@ void AgPicnicBlanket::OnUse(Entity *self, Entity *user) {
     self->SetVar<bool>(u"active", true);
 
     auto lootTable = std::unordered_map<LOT, int32_t> {{935, 3}};
-    LootGenerator::Instance().DropLoot(user, self, lootTable, 0, 0);
+    Loot::DropLoot(user, self, lootTable, 0, 0);
 
     self->AddCallbackTimer(5.0f, [self]() {
         self->SetVar<bool>(u"active", false);

@@ -1,389 +1,384 @@
-#include <algorithm>
-
 #include "Loot.h"
+#include "GameMessages.h"
 
-#include "CDComponentsRegistryTable.h"
-#include "CDItemComponentTable.h"
+#include "CDClientManager.h"
 #include "CDLootMatrixTable.h"
 #include "CDLootTableTable.h"
-#include "CDRarityTableTable.h"
-#include "Character.h"
-#include "Entity.h"
-#include "GameMessages.h"
-#include "GeneralUtils.h"
-#include "InventoryComponent.h"
+
+#include "SimplePhysicsComponent.h"
+#include "ControllablePhysicsComponent.h"
+#include "DestroyableComponent.h"
 #include "MissionComponent.h"
+#include "CharacterComponent.h"
+#include "TeamManager.h"
 
-LootGenerator::LootGenerator() {
-    CDLootTableTable* lootTableTable = CDClientManager::Instance()->GetTable<CDLootTableTable>("LootTable");
-    CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-    CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
-    CDLootMatrixTable* lootMatrixTable = CDClientManager::Instance()->GetTable<CDLootMatrixTable>("LootMatrix");
-    CDRarityTableTable* rarityTableTable = CDClientManager::Instance()->GetTable<CDRarityTableTable>("RarityTable");
+#include <algorithm>
 
-    // ==============================
-    // Cache Item Rarities
-    // ==============================
+std::vector<CDLootTable> Loot::GetLootOfRarity(const std::vector<CDLootTable> &lootTable, uint32_t rarity) {
+	std::vector<CDLootTable> refinedLoot;
+	for (auto loot : lootTable) {
+		CDItemComponent item = Inventory::FindItemComponent(loot.itemid);
+		if (item.rarity == rarity) {
+			refinedLoot.push_back(loot);
+		}
+		else if (item.rarity == 0) {
+			refinedLoot.push_back(loot); // powerups
+		}
+	}
 
-    std::vector<uint32_t> uniqueItems;
-
-    for (const CDLootTable& loot : lootTableTable->GetEntries()) {
-        uniqueItems.push_back(loot.itemid);
-    }
-
-    // filter out duplicates
-    std::sort(uniqueItems.begin(), uniqueItems.end());
-    uniqueItems.erase(std::unique(uniqueItems.begin(), uniqueItems.end()), uniqueItems.end());
-
-    for (const uint32_t itemID : uniqueItems) {
-        uint32_t itemComponentID = componentsRegistryTable->GetByIDAndType(itemID, COMPONENT_TYPE_ITEM);
-        const CDItemComponent& item = itemComponentTable->GetItemComponentByID(itemComponentID);
-
-        m_ItemRarities.insert({itemID, item.rarity});
-    }
-
-    // ==============================
-    // Cache Rarity Tables
-    // ==============================
-
-    std::vector<uint32_t> uniqueRarityIndices;
-
-    for (const CDRarityTable& rarity : rarityTableTable->GetEntries()) {
-        uniqueRarityIndices.push_back(rarity.RarityTableIndex);
-    }
-
-    // filter out duplicates
-    std::sort(uniqueRarityIndices.begin(), uniqueRarityIndices.end());
-    uniqueRarityIndices.erase(std::unique(uniqueRarityIndices.begin(), uniqueRarityIndices.end()), uniqueRarityIndices.end());
-
-    for (const uint32_t index : uniqueRarityIndices) {
-        std::vector<CDRarityTable> table = rarityTableTable->Query([index](const CDRarityTable& entry) { return entry.RarityTableIndex == index; });
-
-        RarityTable rarityTable;
-
-        for (const CDRarityTable& entry : table) {
-            RarityTableEntry rarity{entry.rarity, entry.randmax};
-            rarityTable.push_back(rarity);
-        }
-
-        // sort in descending order based on randMax
-        std::sort(rarityTable.begin(), rarityTable.end(), [](const RarityTableEntry& x, const RarityTableEntry& y) { return x.randMax > y.randMax; });
-
-        m_RarityTables.insert({index, rarityTable});
-    }
-
-    // ==============================
-    // Cache Loot Matrices
-    // ==============================
-
-    std::vector<uint32_t> uniqueMatrixIndices;
-
-    for (const CDLootMatrix& matrix : lootMatrixTable->GetEntries()) {
-        uniqueMatrixIndices.push_back(matrix.LootMatrixIndex);
-    }
-
-    // filter out duplicates
-    std::sort(uniqueMatrixIndices.begin(), uniqueMatrixIndices.end());
-    uniqueMatrixIndices.erase(std::unique(uniqueMatrixIndices.begin(), uniqueMatrixIndices.end()), uniqueMatrixIndices.end());
-
-    for (const uint32_t index : uniqueMatrixIndices) {
-        std::vector<CDLootMatrix> matrix = lootMatrixTable->Query([index](const CDLootMatrix& entry) { return entry.LootMatrixIndex == index; });
-
-        LootMatrix lootMatrix;
-
-        for (const CDLootMatrix& entry : matrix) {
-            LootMatrixEntry matrixEntry{entry.LootTableIndex, entry.RarityTableIndex, entry.percent, entry.minToDrop, entry.maxToDrop};
-            lootMatrix.push_back(matrixEntry);
-        }
-
-        m_LootMatrices.insert({index, lootMatrix});
-    }
-
-    // ==============================
-    // Cache Loot Tables
-    // ==============================
-
-    std::vector<uint32_t> uniqueTableIndices;
-
-    for (const CDLootTable& entry : lootTableTable->GetEntries()) {
-        uniqueTableIndices.push_back(entry.LootTableIndex);
-    }
-
-    // filter out duplicates
-    std::sort(uniqueTableIndices.begin(), uniqueTableIndices.end());
-    uniqueTableIndices.erase(std::unique(uniqueTableIndices.begin(), uniqueTableIndices.end()), uniqueTableIndices.end());
-
-    for (const uint32_t index : uniqueTableIndices) {
-        std::vector<CDLootTable> entries = lootTableTable->Query([index](const CDLootTable& entry) { return entry.LootTableIndex == index; });
-
-        LootTable lootTable;
-
-        for (const CDLootTable& entry : entries) {
-            LootTableEntry tableEntry{(LOT)entry.itemid, entry.MissionDrop};
-            lootTable.push_back(tableEntry);
-        }
-
-        // sort by item rarity descending
-        std::sort(lootTable.begin(), lootTable.end(), [&](const LootTableEntry& x, const LootTableEntry& y) {
-            return m_ItemRarities[x.itemID] > m_ItemRarities[y.itemID];
-        });
-
-        m_LootTables.insert({index, lootTable});
-    }
+	return refinedLoot;
 }
 
-std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, uint32_t matrixIndex) {
-    auto* missionComponent = player->GetComponent<MissionComponent>();
+void Loot::GiveLoot(Entity* user, uint32_t lootMatrixID) {
+	user = user->GetOwner(); // If the owner is overwritten, we collect that here
 
-    std::unordered_map<LOT, int32_t> drops;
+	std::unordered_map<LOT, int32_t> result {};
 
-    if (missionComponent == nullptr) {
-        return drops;
-    }
+	CalculateLootMatrix(lootMatrixID, user, result);
 
-    const LootMatrix& matrix = m_LootMatrices[matrixIndex];
-
-    for (const LootMatrixEntry& entry : matrix) {
-        if (GeneralUtils::GenerateRandomNumber<float>(0, 1) < entry.percent) {
-            const LootTable& lootTable = m_LootTables[entry.lootTableIndex];
-            const RarityTable& rarityTable = m_RarityTables[entry.rarityTableIndex];
-
-            uint32_t dropCount = GeneralUtils::GenerateRandomNumber<uint32_t>(entry.minDrop, entry.maxDrop);
-            for (uint32_t i = 0; i < dropCount; ++i) {
-                uint32_t maxRarity = 1;
-
-                float rarityRoll = GeneralUtils::GenerateRandomNumber<float>(0, 1);
-
-                for (const RarityTableEntry& rarity : rarityTable) {
-                    if (rarity.randMax >= rarityRoll) {
-                        maxRarity = rarity.rarity;
-                    } else {
-                        break;
-                    }
-                }
-
-                bool rarityFound = false;
-                std::vector<LootTableEntry> possibleDrops;
-
-                for (const LootTableEntry& loot : lootTable) {
-                    uint32_t rarity = m_ItemRarities[loot.itemID];
-
-                    if (rarity == maxRarity) {
-                        possibleDrops.push_back(loot);
-                        rarityFound = true;
-                    } else if (rarity < maxRarity && !rarityFound) {
-                        possibleDrops.push_back(loot);
-                        maxRarity = rarity;
-                    }
-                }
-
-                if (possibleDrops.size() > 0) {
-                    LootTableEntry drop = possibleDrops[GeneralUtils::GenerateRandomNumber<uint32_t>(0, possibleDrops.size() - 1)];
-
-                    // filter out uneeded mission items
-                    if (drop.isMissionDrop && !missionComponent->RequiresItem(drop.itemID))
-                        continue;
-
-                    // convert faction token proxy
-                    if (drop.itemID == 13763) {
-                        if (missionComponent->GetMissionState(545) == MissionState::MISSION_STATE_COMPLETE)
-                            drop.itemID = 8318; // "Assembly Token"
-                        else if (missionComponent->GetMissionState(556) == MissionState::MISSION_STATE_COMPLETE)
-                            drop.itemID = 8321; // "Venture League Token"
-                        else if (missionComponent->GetMissionState(567) == MissionState::MISSION_STATE_COMPLETE)
-                            drop.itemID = 8319; // "Sentinels Token"
-                        else if (missionComponent->GetMissionState(578) == MissionState::MISSION_STATE_COMPLETE)
-                            drop.itemID = 8320; // "Paradox Token"
-                    }
-
-                    if (drop.itemID == 13763) {
-                        continue;
-                    } // check if we aren't in faction
-
-                    if (drops.find(drop.itemID) == drops.end()) {
-                        drops.insert({drop.itemID, 1});
-                    } else {
-                        ++drops[drop.itemID];
-                    }
-                }
-            }
-        }
-    }
-
-    return drops;
+	GiveLoot(user, result);
 }
 
-std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(uint32_t matrixIndex) {
-    std::unordered_map<LOT, int32_t> drops;
+void Loot::DropLoot(Entity* user, Entity* killedObject, uint32_t lootMatrixID, uint32_t minCoins, uint32_t maxCoins) {
+	user = user->GetOwner(); // If the owner is overwritten, we collect that here
 
-    const LootMatrix& matrix = m_LootMatrices[matrixIndex];
+	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 
-    for (const LootMatrixEntry& entry : matrix) {
-        if (GeneralUtils::GenerateRandomNumber<float>(0, 1) < entry.percent) {
-            const LootTable& lootTable = m_LootTables[entry.lootTableIndex];
-            const RarityTable& rarityTable = m_RarityTables[entry.rarityTableIndex];
+	if (inventoryComponent == nullptr) {
+		return;
+	}
 
-            uint32_t dropCount = GeneralUtils::GenerateRandomNumber<uint32_t>(entry.minDrop, entry.maxDrop);
-            for (uint32_t i = 0; i < dropCount; ++i) {
-                uint32_t maxRarity = 1;
+	std::unordered_map<LOT, int32_t> result {};
 
-                float rarityRoll = GeneralUtils::GenerateRandomNumber<float>(0, 1);
+	CalculateLootMatrix(lootMatrixID, user, result);
 
-                for (const RarityTableEntry& rarity : rarityTable) {
-                    if (rarity.randMax >= rarityRoll) {
-                        maxRarity = rarity.rarity;
-                    } else {
-                        break;
-                    }
-                }
-
-                bool rarityFound = false;
-                std::vector<LootTableEntry> possibleDrops;
-
-                for (const LootTableEntry& loot : lootTable) {
-                    uint32_t rarity = m_ItemRarities[loot.itemID];
-
-                    if (rarity == maxRarity) {
-                        possibleDrops.push_back(loot);
-                        rarityFound = true;
-                    } else if (rarity < maxRarity && !rarityFound) {
-                        possibleDrops.push_back(loot);
-                        maxRarity = rarity;
-                    }
-                }
-
-                if (possibleDrops.size() > 0) {
-                    const LootTableEntry& drop = possibleDrops[GeneralUtils::GenerateRandomNumber<uint32_t>(0, possibleDrops.size() - 1)];
-
-                    if (drops.find(drop.itemID) == drops.end()) {
-                        drops.insert({drop.itemID, 1});
-                    } else {
-                        ++drops[drop.itemID];
-                    }
-                }
-            }
-        }
-    }
-
-    return drops;
+	DropLoot(user, killedObject, result, minCoins, maxCoins);
 }
 
-void LootGenerator::GiveLoot(Entity* player, uint32_t matrixIndex) {
-    player = player->GetOwner(); // If the owner is overwritten, we collect that here
+void Loot::GiveLoot(Entity* user, std::unordered_map<LOT, int32_t>& result) {
+	user = user->GetOwner(); // If the owner is overwritten, we collect that here
 
-    std::unordered_map<LOT, int32_t> result = RollLootMatrix(player, matrixIndex);
+	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 
-    GiveLoot(player, result);
+	if (inventoryComponent == nullptr) {
+		return;
+	}
+
+	for (const auto& pair : result) {
+		inventoryComponent->AddItem(pair.first, pair.second);
+	}
 }
 
-void LootGenerator::GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& result) {
-    player = player->GetOwner(); // if the owner is overwritten, we collect that here
+void Loot::DropLoot(Entity* user, Entity* killedObject, std::unordered_map<LOT, int32_t>& result, uint32_t minCoins, uint32_t maxCoins) {
+	user = user->GetOwner(); // If the owner is overwritten, we collect that here
 
-    auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 
-    if (!inventoryComponent)
-        return;
+	if (inventoryComponent == nullptr) {
+		return;
+	}
 
-    for (const auto& pair : result) {
-        inventoryComponent->AddItem(pair.first, pair.second);
-    }
+	const auto spawnPosition = killedObject->GetPosition();
+	
+	const auto source = killedObject->GetObjectID();
+
+	for (const auto& pair : result) {
+		for (int i = 0; i < pair.second; ++i) {
+			GameMessages::SendDropClientLoot(user, source, pair.first, 0, spawnPosition, 1);
+		}
+	}
+
+	uint32_t coins = (int)(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
+
+	GameMessages::SendDropClientLoot(user, source, LOT_NULL, coins, spawnPosition);
 }
 
-void LootGenerator::GiveActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating) {
-    CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
-    std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
+void Loot::DropActivityLoot(Entity* user, Entity* source, uint32_t activityID, int32_t rating)
+{
+	CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
+	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 
-    const CDActivityRewards* selectedReward = nullptr;
-    for (const auto& activityReward : activityRewards) {
-        if (activityReward.activityRating <= rating && (selectedReward == nullptr || activityReward.activityRating > selectedReward->activityRating)) {
-            selectedReward = &activityReward;
-        }
-    }
+	const CDActivityRewards* selectedReward = nullptr;
+	for (const auto& activityReward : activityRewards)
+	{
+		if (activityReward.activityRating <= rating && (selectedReward == nullptr || activityReward.activityRating > selectedReward->activityRating))
+		{
+			selectedReward = &activityReward;
+		}
+	}
 
-    if (!selectedReward)
-        return;
+	if (selectedReward == nullptr)
+	{
+		return;
+	}
 
-    uint32_t minCoins = 0;
-    uint32_t maxCoins = 0;
+	uint32_t minCoins = 0;
+	uint32_t maxCoins = 0;
 
-    CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>("CurrencyTable");
-    std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([selectedReward](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
+	CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>("CurrencyTable");
+	std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
 
-    if (currencyTable.size() > 0) {
-        minCoins = currencyTable[0].minvalue;
-        maxCoins = currencyTable[0].maxvalue;
-    }
+	if (currencyTable.size() > 0) {
+		minCoins = currencyTable[0].minvalue;
+		maxCoins = currencyTable[0].maxvalue;
+	}
 
-    GiveLoot(player, selectedReward->LootMatrixIndex);
-
-    uint32_t coins = (int)(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
-
-    auto* character = player->GetCharacter();
-
-    character->SetCoins(character->GetCoins() + coins);
+	Loot::DropLoot(user, source, selectedReward->LootMatrixIndex, minCoins, maxCoins);
 }
 
-void LootGenerator::DropLoot(Entity* player, Entity* killedObject, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {
-    player = player->GetOwner(); // if the owner is overwritten, we collect that here
+void Loot::GiveActivityLoot(Entity* user, Entity* source, uint32_t activityID, int32_t rating) 
+{
+	CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
+	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 
-    auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	const CDActivityRewards* selectedReward = nullptr;
+	for (const auto& activityReward : activityRewards)
+	{
+		if (activityReward.activityRating <= rating && (selectedReward == nullptr || activityReward.activityRating > selectedReward->activityRating))
+		{
+			selectedReward = &activityReward;
+		}
+	}
 
-    if (!inventoryComponent)
-        return;
+	if (selectedReward == nullptr)
+	{
+		return;
+	}
 
-    std::unordered_map<LOT, int32_t> result = RollLootMatrix(player, matrixIndex);
+	uint32_t minCoins = 0;
+	uint32_t maxCoins = 0;
 
-    DropLoot(player, killedObject, result, minCoins, maxCoins);
+	CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>("CurrencyTable");
+	std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
+
+	if (currencyTable.size() > 0) {
+		minCoins = currencyTable[0].minvalue;
+		maxCoins = currencyTable[0].maxvalue;
+	}
+
+	Loot::GiveLoot(user, selectedReward->LootMatrixIndex);
+
+	uint32_t coins = (int)(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
+
+	auto* charactert = user->GetCharacter();
+
+	charactert->SetCoins(charactert->GetCoins() + coins);
 }
 
-void LootGenerator::DropLoot(Entity* player, Entity* killedObject, std::unordered_map<LOT, int32_t>& result, uint32_t minCoins, uint32_t maxCoins) {
-    player = player->GetOwner(); // if the owner is overwritten, we collect that here
+void Loot::CalculateLootMatrix(uint32_t lootMatrixID, Entity* user, std::unordered_map<LOT, int32_t>& result) 
+{
+	user = user->GetOwner();
 
-    auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	auto* missionComponent = user->GetComponent<MissionComponent>();
 
-    if (!inventoryComponent)
-        return;
+	// Get our loot for this LOT's lootMatrixID:
+	CDLootMatrixTable* lootMatrixTable = CDClientManager::Instance()->GetTable<CDLootMatrixTable>("LootMatrix");
+	CDLootTableTable* lootTableTable = CDClientManager::Instance()->GetTable<CDLootTableTable>("LootTable");
+	CDRarityTableTable* rarityTableTable = CDClientManager::Instance()->GetTable<CDRarityTableTable>("RarityTable");
 
-    const auto spawnPosition = killedObject->GetPosition();
+	std::vector<CDLootMatrix> lootMatrix = lootMatrixTable->Query([lootMatrixID](CDLootMatrix entry) { return (entry.LootMatrixIndex == lootMatrixID); });
 
-    const auto source = killedObject->GetObjectID();
+	// Now, loop through each entry
+	for (uint32_t i = 0; i < lootMatrix.size(); ++i) {
+		// Now, determine whether or not we should drop this
+		float chanceToDrop = 1.0 - lootMatrix[i].percent;
+		float shouldDrop = GeneralUtils::GenerateRandomNumber<float>(0, 1);
 
-    for (const auto& pair : result) {
-        for (int i = 0; i < pair.second; ++i) {
-            GameMessages::SendDropClientLoot(player, source, pair.first, 0, spawnPosition, 1);
-        }
-    }
+		const auto rarityTableIndex = lootMatrix[i].RarityTableIndex;
 
-    uint32_t coins = (int)(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
+		std::vector<CDRarityTable> rarityTable = rarityTableTable->Query([rarityTableIndex](CDRarityTable entry) { return (entry.RarityTableIndex == rarityTableIndex); });
+		
+		std::sort(rarityTable.begin(), rarityTable.end());
 
-    GameMessages::SendDropClientLoot(player, source, LOT_NULL, coins, spawnPosition);
+		if (shouldDrop < chanceToDrop) {
+			// We are not able to drop this item, so continue
+			continue;
+		}
+
+		// If we reached here, we are able to drop the item
+		uint32_t minToDrop = lootMatrix[i].minToDrop;
+		uint32_t maxToDrop = lootMatrix[i].maxToDrop;
+
+		// Now determine the number we will drop of items from this table
+		uint32_t numToDrop = GeneralUtils::GenerateRandomNumber<uint32_t>(minToDrop, maxToDrop);
+
+		// Now, query the loot matrix index
+		const auto lootTableIndex = lootMatrix[i].LootTableIndex;
+
+		std::vector<CDLootTable> lootTable = lootTableTable->Query([lootTableIndex](CDLootTable entry) { return (entry.LootTableIndex == lootTableIndex); });
+
+		// Now randomize these entries
+		if (lootTable.size() > 1) {
+			std::shuffle(std::begin(lootTable), std::end(lootTable), Game::randomEngine);
+		}
+
+		uint32_t addedItems = 0;
+
+		if (lootTable.empty()) continue;
+
+		while (addedItems < numToDrop) {
+			addedItems++;
+			
+			float rarityRoll = GeneralUtils::GenerateRandomNumber<float>(0, 1);
+
+			// im sorry
+			uint32_t highestRarity = 1; // LOOT_COMMON
+			float highestRandMax = 0.0f;
+			for (const auto& rarity : rarityTable) {
+				if (rarityRoll > rarity.randmax && rarity.randmax > highestRandMax) {
+					highestRandMax = rarity.randmax;
+					highestRarity = rarity.rarity + 1;
+				}
+			}
+
+			std::vector<CDLootTable> refinedLoot;
+
+			if (lootTable.size() == 1)
+			{
+				refinedLoot = lootTable;
+			}
+			else
+			{
+				refinedLoot = GetLootOfRarity(lootTable, highestRarity);
+
+				bool continueLoop = false;
+				while (refinedLoot.empty())
+				{
+					if (highestRarity == 1)
+					{
+						continueLoop = true;
+						break;
+					}
+
+					highestRarity -= 1;
+
+					refinedLoot = GetLootOfRarity(lootTable, highestRarity);
+
+					if (!refinedLoot.empty())
+					{
+						break;
+					}
+				}
+
+				if (continueLoop) continue;
+			}
+			
+			int randomTable = GeneralUtils::GenerateRandomNumber<int>(0, refinedLoot.size() - 1);
+
+			const auto& selectedTable = refinedLoot[randomTable];
+
+			uint32_t itemLOT = selectedTable.itemid;
+			bool isMissionItem = selectedTable.MissionDrop;
+
+			if (isMissionItem && missionComponent != nullptr)
+			{
+                // TODO: this executes a query in a hot path, might be worth refactoring away
+				if (!missionComponent->RequiresItem(itemLOT))
+				{
+					continue;
+				}
+			}
+
+			if (lootTable.size() > numToDrop)
+			{
+				for (size_t i = 0; i < lootTable.size(); i++)
+				{
+					if (lootTable[i].id == selectedTable.id)
+					{
+						lootTable.erase(lootTable.begin() + i);
+
+						break;
+					}
+				}
+			}
+
+			const auto& it = result.find(itemLOT);
+			if (it != result.end()) {
+				it->second++;
+			}
+			else {
+				result.emplace(itemLOT, 1);
+			}
+		}
+	}
+
+	int32_t tokenCount = 0;
+
+	const auto& tokens = result.find(13763);
+
+	if (tokens != result.end()) {
+		tokenCount = tokens->second;
+
+		result.erase(tokens);
+	}
+
+	if (tokenCount == 0 || user == nullptr) {
+		return;
+	}
+
+	if (missionComponent == nullptr) {
+		return;
+	}
+
+	LOT tokenId = -1;
+
+	if (missionComponent->GetMissionState(545) == MissionState::MISSION_STATE_COMPLETE) // "Join Assembly!"
+	{
+		tokenId = 8318; // "Assembly Token"
+	}
+
+	if (missionComponent->GetMissionState(556) == MissionState::MISSION_STATE_COMPLETE) // "Join Venture League!"
+	{
+		tokenId = 8321; // "Venture League Token"
+	}
+
+	if (missionComponent->GetMissionState(567) == MissionState::MISSION_STATE_COMPLETE) // "Join The Sentinels!"
+	{
+		tokenId = 8319; // "Sentinels Token"
+	}
+
+	if (missionComponent->GetMissionState(578) == MissionState::MISSION_STATE_COMPLETE) // "Join Paradox!"
+	{
+		tokenId = 8320; // "Paradox Token"
+	}
+
+	if (tokenId != -1)
+	{
+		result.emplace(tokenId, tokenCount);
+	}
 }
 
-void LootGenerator::DropActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating) {
-    CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
-    std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
+void Loot::DropItem(Entity* user, Entity* sourceObject, LOT item, int32_t currency, int32_t count, bool useTeam, bool freeForAll) 
+{
+	if (sourceObject == nullptr)
+	{
+		return;
+	}
 
-    const CDActivityRewards* selectedReward = nullptr;
-    for (const auto& activityReward : activityRewards) {
-        if (activityReward.activityRating <= rating && (selectedReward == nullptr || activityReward.activityRating > selectedReward->activityRating)) {
-            selectedReward = &activityReward;
-        }
-    }
+	const auto sourceID = sourceObject->GetObjectID();
+	const auto sourcePosition = sourceObject->GetPosition();
 
-    if (selectedReward == nullptr) {
-        return;
-    }
+	// If useTeam, drop the item once for each team member.
+	auto* team = TeamManager::Instance()->GetTeam(user->GetObjectID());
 
-    uint32_t minCoins = 0;
-    uint32_t maxCoins = 0;
+	if (team != nullptr && useTeam)
+	{
+		for (const auto& memberID : team->members)
+		{
+			// Get the team member from its ID.
+			auto* member = EntityManager::Instance()->GetEntity(memberID);
 
-    CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>("CurrencyTable");
-    std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([selectedReward](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
+			if (member == nullptr) 
+			{
+				continue;
+			}
 
-    if (currencyTable.size() > 0) {
-        minCoins = currencyTable[0].minvalue;
-        maxCoins = currencyTable[0].maxvalue;
-    }
+			// Drop the item.
+			GameMessages::SendDropClientLoot(member, sourceID, item, currency, sourcePosition, count);
+		}
 
-    DropLoot(player, source, selectedReward->LootMatrixIndex, minCoins, maxCoins);
+		return;
+	}
+
+	GameMessages::SendDropClientLoot(user, sourceID, item, currency, sourcePosition, count);
 }

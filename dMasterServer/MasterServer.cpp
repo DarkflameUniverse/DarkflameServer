@@ -47,12 +47,9 @@ namespace Game {
 bool shutdownSequenceStarted = false;
 void ShutdownSequence();
 dLogger* SetupLogger();
-void StartAuthServer();
-void StartChatServer();
 void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
 bool shouldShutdown = false;
-SystemAddress chatServerMasterPeerSysAddr;
 
 int main(int argc, char** argv) {
 	Diagnostics::SetProcessName("Master");
@@ -185,12 +182,35 @@ int main(int argc, char** argv) {
 
 	//Depending on the config, start up servers:
 	if (config.GetValue("prestart_servers") != "" && config.GetValue("prestart_servers") == "1") {
-		StartChatServer();
+#ifdef __APPLE__
+		//macOS doesn't need sudo to run on ports < 1024
+		system("./ChatServer&");
+#elif _WIN32
+		system("start ./ChatServer.exe");
+#else
+		if (std::atoi(Game::config->GetValue("use_sudo_chat").c_str())) {
+			system("sudo ./ChatServer&");
+		}
+		else {
+			system("./ChatServer&");
+		}
+#endif
 
 		Game::im->GetInstance(0, false, 0)->SetIsReady(true);
 		Game::im->GetInstance(1000, false, 0)->SetIsReady(true);
 
-		StartAuthServer();
+#ifdef __APPLE__
+		system("./AuthServer&");
+#elif _WIN32
+		system("start ./AuthServer.exe");
+#else
+		if (std::atoi(Game::config->GetValue("use_sudo_auth").c_str())) {
+			system("sudo ./AuthServer&");
+		}
+		else {
+			system("./AuthServer&");
+		}
+#endif
 	}
 
 	auto t = std::chrono::high_resolution_clock::now();
@@ -321,10 +341,6 @@ void HandlePacket(Packet* packet) {
 		if (instance) {
 			Game::im->RemoveInstance(instance); //Delete the old
 		}
-
-		if (packet->systemAddress == chatServerMasterPeerSysAddr && !shouldShutdown) {
-			StartChatServer();
-		}
 	}
 
 	if (packet->data[0] == ID_CONNECTION_LOST) {
@@ -336,10 +352,6 @@ void HandlePacket(Packet* packet) {
 			LWOZONEID zoneID = instance->GetZoneID(); //Get the zoneID so we can recreate a server
 			Game::im->RemoveInstance(instance); //Delete the old
 			//Game::im->GetInstance(zoneID.GetMapID(), false, 0); //Create the new
-		}
-
-		if (packet->systemAddress == chatServerMasterPeerSysAddr && !shouldShutdown) {
-			StartChatServer();
 		}
 	}
 
@@ -427,14 +439,6 @@ void HandlePacket(Packet* packet) {
 				if (instance) {
 					instance->SetSysAddr(packet->systemAddress);
 				}
-			}
-
-			if (theirServerType == ServerType::Chat) {
-				SystemAddress copy;
-				copy.binaryAddress = packet->systemAddress.binaryAddress;
-				copy.port = packet->systemAddress.port;
-
-				chatServerMasterPeerSysAddr = copy;
 			}
 
 			Game::logger->Log("MasterServer", "Received server info, instance: %i port: %i\n", theirInstanceID, theirPort);
@@ -654,37 +658,6 @@ void HandlePacket(Packet* packet) {
 			Game::logger->Log("MasterServer","Unknown master packet ID from server: %i\n",packet->data[3]);
 		}
 	}
-}
-
-void StartChatServer() {
-#ifdef __APPLE__
-		//macOS doesn't need sudo to run on ports < 1024
-		system("./ChatServer&");
-#elif _WIN32
-		system("start ./ChatServer.exe");
-#else
-		if (std::atoi(Game::config->GetValue("use_sudo_chat").c_str())) {
-			system("sudo ./ChatServer&");
-		}
-		else {
-			system("./ChatServer&");
-		}
-#endif
-}
-
-void StartAuthServer() {
-#ifdef __APPLE__
-		system("./AuthServer&");
-#elif _WIN32
-		system("start ./AuthServer.exe");
-#else
-		if (std::atoi(Game::config->GetValue("use_sudo_auth").c_str())) {
-			system("sudo ./AuthServer&");
-		}
-		else {
-			system("./AuthServer&");
-		}
-#endif
 }
 
 void ShutdownSequence() {

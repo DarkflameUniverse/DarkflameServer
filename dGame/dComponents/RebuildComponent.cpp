@@ -85,14 +85,16 @@ void RebuildComponent::Update(float deltaTime) {
 	m_Activator = GetActivator();
 
 	// Serialize the quickbuild every so often, fixes the odd bug where the quickbuild is not buildable
-	/*if (m_SoftTimer > 0.0f) {
+	if (m_SoftTimer > 0.0f) {
 		m_SoftTimer -= deltaTime;
 	}
 	else {
-		m_SoftTimer = 5.0f;
+		if (m_State != REBUILD_BUILDING) {
+			m_SoftTimer = 5.0f;
 
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-	}*/
+			EntityManager::Instance()->SerializeEntity(m_Parent);
+		}
+	}
 
 	switch (m_State) {
 	case REBUILD_OPEN: {
@@ -452,7 +454,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityId);
 		}
 
-		LootGenerator::Instance().DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
+		Loot::DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
 	}
 
 	m_Builder = LWOOBJID_EMPTY;

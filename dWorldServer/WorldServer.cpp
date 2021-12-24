@@ -73,7 +73,6 @@ namespace Game {
 }
 
 bool chatDisabled = false;
-bool chatConnected = false;
 bool worldShutdownSequenceStarted = false;
 bool worldShutdownSequenceComplete = false;
 void WorldShutdownSequence();
@@ -188,7 +187,6 @@ int main(int argc, char** argv) {
 
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
-	LootGenerator::Instance();
 	Game::chatFilter = new dChatFilter("./res/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, zoneID);
@@ -213,7 +211,6 @@ int main(int argc, char** argv) {
 	Packet* packet = nullptr;
 	int framesSinceLastFlush = 0;
 	int framesSinceMasterDisconnect = 0;
-	int framesSinceChatDisconnect = 0;
 	int framesSinceLastUsersSave = 0;
 	int framesSinceLastSQLPing = 0;
 	int framesSinceLastUser = 0;
@@ -320,19 +317,6 @@ int main(int argc, char** argv) {
 			}
 		}
 		else framesSinceMasterDisconnect = 0;
-
-		// Check if we're still connected to chat:
-		if (!chatConnected) {
-			framesSinceChatDisconnect++;
-
-			// Attempt to reconnect every 30 seconds.
-			if (framesSinceChatDisconnect >= 2000) {
-				framesSinceChatDisconnect = 0;
-
-				Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
-			}
-		}
-		else framesSinceChatDisconnect = 0;
 
 		//In world we'd update our other systems here.
 
@@ -574,15 +558,11 @@ dLogger * SetupLogger(int zoneID, int instanceID) {
 void HandlePacketChat(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		Game::logger->Log("WorldServer", "Lost our connection to chat.\n");
-
-		chatConnected = false;
 	}
 
 	if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
 		Game::logger->Log("WorldServer", "Established connection to chat\n");
 		Game::chatSysAddr = packet->systemAddress;
-
-		chatConnected = true;
 	}
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {

@@ -50,7 +50,7 @@ public:
     /*!
       \return The entries
      */
-    const std::vector<CDLootMatrix>& GetEntries(void) const;
+    std::vector<CDLootMatrix> GetEntries(void) const;
     
 };
 

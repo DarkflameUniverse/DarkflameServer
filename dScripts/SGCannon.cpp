@@ -423,7 +423,7 @@ void SGCannon::SpawnNewModel(Entity *self) {
 
             if (lootMatrix != 0) {
                 std::unordered_map<LOT, int32_t> toDrop = {};
-                toDrop = LootGenerator::Instance().RollLootMatrix(player, lootMatrix);
+                Loot::CalculateLootMatrix(lootMatrix, player, toDrop);
 
                 for (auto drop : toDrop) {
                     rewardModel->OnFireEventServerSide(self, ModelToBuildEvent, drop.first);
@@ -581,7 +581,7 @@ void SGCannon::StopGame(Entity *self, bool cancel) {
             );
         }
 
-        LootGenerator::Instance().GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
+        Loot::GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
 
         StopActivity(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable),
                 self->GetVar<uint32_t>(MaxStreakVariable), percentage);
