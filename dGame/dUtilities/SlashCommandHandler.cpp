@@ -1326,7 +1326,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		auto* ch = entity->GetCharacter();
-		ch->SetCoins(ch->GetCoins() + money, COIN_SOURCE_MODERATION);
+		ch->SetCoins(ch->GetCoins() + money, LOOT_SOURCE_MODERATION);
 	}
 
 	if ((chatCommand == "setcurrency") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -1339,7 +1339,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		auto* ch = entity->GetCharacter();
-		ch->SetCoins(money, COIN_SOURCE_MODERATION);
+		ch->SetCoins(money, LOOT_SOURCE_MODERATION);
 	}
 
 	// Allow for this on even while not a GM, as it sometimes toggles incorrrectly.

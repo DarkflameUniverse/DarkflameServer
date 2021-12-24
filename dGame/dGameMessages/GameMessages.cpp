@@ -4684,7 +4684,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 			inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 		}
 
-		character->SetCoins(character->GetCoins() - (coinCost), COIN_SOURCE_VENDOR);
+		character->SetCoins(character->GetCoins() - (coinCost), LOOT_SOURCE_VENDOR);
 		inv->AddItem(item, count);
 	}
 
@@ -4733,7 +4733,7 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar)*count)), COIN_SOURCE_VENDOR);
+	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar)*count)), LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -4795,7 +4795,7 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, Inventory::FindInventoryTypeForLot(item->GetLot()), count, true, false);
-	character->SetCoins(character->GetCoins() - cost, COIN_SOURCE_VENDOR);
+	character->SetCoins(character->GetCoins() - cost, LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -5239,7 +5239,7 @@ void GameMessages::HandlePickupCurrency(RakNet::BitStream* inStream, Entity* ent
 
 	auto* ch = entity->GetCharacter();
 	if (entity->CanPickupCoins(currency)) {
-		ch->SetCoins(ch->GetCoins() + currency, COIN_SOURCE_PICKUP);
+		ch->SetCoins(ch->GetCoins() + currency, LOOT_SOURCE_PICKUP);
 	}
 }
 

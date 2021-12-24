@@ -151,8 +151,8 @@ void Trade::Complete()
 
     if (inventoryA == nullptr || inventoryB == nullptr || characterA == nullptr || characterB == nullptr || missionsA == nullptr || missionsB == nullptr) return;
 
-    characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, COIN_SOURCE_TRADE);
-    characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, COIN_SOURCE_TRADE);
+    characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, LOOT_SOURCE_TRADE);
+    characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, LOOT_SOURCE_TRADE);
 
     for (const auto& tradeItem : m_ItemsA)
     {

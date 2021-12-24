@@ -527,7 +527,7 @@ void Character::OnZoneLoad()
 	 */	
 	if (HasPermission(PermissionMap::Old)) {
 		if (GetCoins() > 1000000) {
-			SetCoins(1000000, COIN_SOURCE_NONE);
+			SetCoins(1000000, LOOT_SOURCE_NONE);
 		}
 	}
 
@@ -567,7 +567,7 @@ const NiPoint3& Character::GetRespawnPoint(LWOMAPID map) const
 	return pair->second;
 }
 
-void Character::SetCoins(int64_t newCoins, int32_t coinSource) {
+void Character::SetCoins(int64_t newCoins, int32_t lootSource) {
 	if (newCoins < 0)
 	{
 		newCoins = 0;
@@ -575,7 +575,7 @@ void Character::SetCoins(int64_t newCoins, int32_t coinSource) {
 
 	m_Coins = newCoins;
 
-	GameMessages::SendSetCurrency(EntityManager::Instance()->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, coinSource);
+	GameMessages::SendSetCurrency(EntityManager::Instance()->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, lootSource);
 }
 
 bool Character::HasBeenToWorld(LWOMAPID mapID) const
