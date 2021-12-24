@@ -62,6 +62,22 @@
 #include "VanityUtilities.h"
 #include "GameConfig.h"
 
+std::string gen_random(const int len) {
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+    std::string tmp_s;
+    tmp_s.reserve(len);
+
+    for (int i = 0; i < len; ++i) {
+        tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
+    return tmp_s;
+}
+
+
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
     std::string chatCommand;
     std::vector<std::string> args;
@@ -170,16 +186,16 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			// Check if the verification stage is already done or not.
 			// Displays the Discord ID fetched. 0 Means default/not verified.
             std::string discordid; 
-            auto stmt = Database::CreatePreppedStmt("SELECT verify_id FROM accounts WHERE id = ? LIMIT 1;");
-            stmt->setInt(1, id);
+            auto grabstmt = Database::CreatePreppedStmt("SELECT verify_id FROM accounts WHERE id = ? LIMIT 1;");
+            grabstmt->setInt(1, id);
 
-            sql::ResultSet* res = stmt->executeQuery();
+            sql::ResultSet* res = grabstmt->executeQuery();
             
 			if (res->next()) {
 				discordid = res->getString(1);
 			}
 
-			if (discordid != = 0) {
+			if (discordid != 0) {
 				std::stringstream message;
 				message << "Your account has already been verified. If you have any questions, please raise it with a Mythran @ Luplo Discord.";
 
@@ -187,14 +203,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				return;
 			}
 
-			delete stmt;
+			delete grabstmt;
 
 			// Overwrite code with a new one.
-			auto stmt = Database::CreatePreppedStmt("UPDATE accounts SET verify_code = ? WHERE id = ?;");
-            stmt->setString(1, code);
-            stmt->setInt(2, id);
-            stmt->execute();
-            delete stmt;
+			auto updatestmt = Database::CreatePreppedStmt("UPDATE accounts SET verify_code = ? WHERE id = ?;");
+            updatestmt->setString(1, code);
+            updatestmt->setInt(2, id);
+            updatestmt->execute();
+            delete updatestmt;
 
             std::stringstream message;
             message << "Your verification code is [" + code + "]. Verify by sending the code to the bot's DMs.";
@@ -2001,19 +2017,3 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 
 	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 }
-
-std::string gen_random(const int len) {
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-    std::string tmp_s;
-    tmp_s.reserve(len);
-
-    for (int i = 0; i < len; ++i) {
-        tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
-    }
-
-    return tmp_s;
-}
-
