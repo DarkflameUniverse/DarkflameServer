@@ -499,6 +499,25 @@ void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID t
 	delete context;
 }
 
+void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID target, LWOOBJID source)
+{
+	auto* context = new BehaviorContext(target);
+
+	context->unmanaged = true;
+	context->caster = target;
+	context->originator = source;
+
+	auto* behavior = Behavior::CreateBehavior(behaviorId);
+
+	auto* bitStream = new RakNet::BitStream();
+
+	behavior->Handle(context, bitStream, { target });
+
+	delete bitStream;
+
+	delete context;	
+}
+
 void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID target)
 {
 	auto* context = new BehaviorContext(target);
