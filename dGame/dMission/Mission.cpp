@@ -473,7 +473,7 @@ void Mission::YieldRewards() {
 
         auto count = pair.second > 0 ? pair.second : 1;
 
-        // Sanitfy check, 6 is the max any mission yields
+        // Sanity check, 6 is the max any mission yields
         if (count > 6) {
             count = 0;
         }
