@@ -36,12 +36,14 @@
 #include "ObjectIDManager.h"
 #include "PacketUtils.h"
 #include "dMessageIdentifiers.h"
+#include "MasterApi.h"
 
 namespace Game {
 	dLogger* logger;
 	dServer* server;
 	InstanceManager* im;
 	dConfig* config;
+	dMasterServerApi* masterApi;
 } //namespace Game
 
 bool shutdownSequenceStarted = false;
@@ -183,6 +185,9 @@ int main(int argc, char** argv) {
 	ObjectIDManager::Instance()->Initialize(Game::logger);
 	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
 
+	dMasterServerApi masterServerApi(Game::config, Game::im);
+	Game::masterApi = &masterServerApi;
+
 	//Depending on the config, start up servers:
 	if (config.GetValue("prestart_servers") != "" && config.GetValue("prestart_servers") == "1") {
 		StartChatServer();
@@ -192,6 +197,9 @@ int main(int argc, char** argv) {
 
 		StartAuthServer();
 	}
+
+	// just before game loop startup master server api
+	Game::masterApi->Listen();
 
 	auto t = std::chrono::high_resolution_clock::now();
 	Packet* packet = nullptr;

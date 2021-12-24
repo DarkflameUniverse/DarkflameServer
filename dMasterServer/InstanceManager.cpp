@@ -412,3 +412,27 @@ void Instance::Shutdown()
 	
 	Game::logger->Log("Instance", "Triggered world shutdown\n");
 }
+
+nlohmann::json Instance::GetJson() {
+	nlohmann::json j;
+
+	j["ip"] = m_IP;
+	j["port"] = m_Port;
+	j["mapId"] = m_ZoneID.GetMapID();
+	j["instanceId"] = m_ZoneID.GetInstanceID();
+	j["cloneId"] = m_ZoneID.GetCloneID();
+	j["maxClientsSoftCap"] = m_MaxClientsSoftCap;
+	j["maxClientsHardCap"] = m_MaxClientsHardCap;
+	j["currentClientCount"] = m_CurrentClientCount;
+	j["players"] = nlohmann::json::array();
+	for (auto& player : m_Players) {
+		j["players"].push_back(player.GetJson());
+	}
+	j["sysAddr"] = m_SysAddr.ToString(true);
+	j["ready"] = m_Ready;
+	j["affirmationTimeout"] = m_AffirmationTimeout;
+	j["isPrivate"] = m_IsPrivate;
+	if (m_IsPrivate) j["password"] = m_Password;
+
+	return j;
+}

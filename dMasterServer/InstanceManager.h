@@ -4,10 +4,18 @@
 #include "RakNetTypes.h"
 #include "dZMCommon.h"
 #include "dLogger.h"
+#include "nlohmann/json.hpp"
 
 struct Player {
 	LWOOBJID id;
 	SystemAddress addr;
+	
+	nlohmann::json GetJson() {
+		nlohmann::json json;
+		json["objId"] = id;
+		json["address"] = addr.ToString(true);
+		return json;
+	}
 };
 
 struct PendingInstanceRequest {
@@ -71,6 +79,8 @@ public:
 	bool GetShutdownComplete() const;
 	
 	void Shutdown();
+
+	nlohmann::json GetJson();
 
 private:
 	std::string m_IP;

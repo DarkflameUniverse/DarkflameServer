@@ -160,6 +160,8 @@ configure_file("${CMAKE_SOURCE_DIR}/vanity/NPC.xml" "${CMAKE_BINARY_DIR}/vanity/
 
 # 3rdparty includes
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/raknet/Source/)
+include_directories(${PROJECT_SOURCE_DIR}/thirdparty/cpp-httplib/)
+include_directories(${PROJECT_SOURCE_DIR}/thirdparty/json/single_include)
 if(UNIX)
     if(APPLE)
         include_directories(/usr/local/include/)
@@ -371,7 +373,6 @@ ${PROJECT_SOURCE_DIR}/dPhysics/*.cpp
 )
 
 # 3rdparty static libraries:
-#add_library(zlib ${SOURCES_ZLIB})
 add_library(raknet ${SOURCES_RAKNET})
 add_library(tinyxml2 ${SOURCES_TINYXML2})
 add_library(detour ${SOURCES_DETOUR})

@@ -9,6 +9,7 @@ public:
 	~dConfig(void);
 
 	const std::string& GetValue(std::string key);
+	bool HasKey(std::string key) { return GetValue(key).size() > 0; }
 
 private:
 	void ProcessLine(const std::string& line);
