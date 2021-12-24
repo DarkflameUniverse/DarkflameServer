@@ -355,6 +355,7 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet)
 		// no more teams greater than 4
 
 		Game::logger->Log("ChatPacketHandler", "Someone tried to invite a 5th player to a team");
+		return;
 	}
 
 	SendTeamInvite(other, player);
