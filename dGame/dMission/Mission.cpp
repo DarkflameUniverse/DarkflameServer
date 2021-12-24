@@ -481,12 +481,10 @@ void Mission::YieldRewards() {
         inventoryComponent->AddItem(pair.first, count);
     }
     
-    int32_t lootSource = LOOT_SOURCE_NONE;
+    int32_t lootSource = LOOT_SOURCE_ACHIEVEMENT;
     if (info->reward_currency > 0) {
         if(info->isMission) {
             lootSource = LOOT_SOURCE_MISSION;
-        } else {
-            lootSource = LOOT_SOURCE_ACHIEVEMENT;
         }
         character->SetCoins(character->GetCoins() + info->reward_currency, lootSource);
     }
