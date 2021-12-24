@@ -183,7 +183,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				std::stringstream message;
 				message << "Your account has already been verified. If you have any questions, please raise it with a Mythran @ Luplo Discord.";
 
-                ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, GeneralUtils::ASCIIToUTF16(message.str()), false);
+                ChatPackets::SendChatMessage(sysAddr, GeneralUtils::ASCIIToUTF16(message.str()));
 				return;
 			}
 
@@ -199,7 +199,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
             std::stringstream message;
             message << "Your verification code is [" + code + "]. Verify by sending the code to the bot's DMs.";
 
-			ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, GeneralUtils::ASCIIToUTF16(message.str()), false);
+			ChatPackets::SendChatMessage(sysAddr, GeneralUtils::ASCIIToUTF16(message.str()));
             return;
 	}
 
