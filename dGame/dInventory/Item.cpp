@@ -333,14 +333,14 @@ bool Item::UseNonEquip()
 		{
 			std::unordered_map<LOT, int32_t> result {};
 
-			result = LootGenerator::Instance().RollLootMatrix(entityParent, pack.LootMatrixIndex);
+			Loot::CalculateLootMatrix(pack.LootMatrixIndex, entityParent, result);
 
 			if (!inventory->GetComponent()->HasSpaceForLoot(result))
 			{
 				return false;
 			}
 
-			LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result);
+			Loot::GiveLoot(inventory->GetComponent()->GetParent(), result);
 		}
 
 		inventory->GetComponent()->RemoveItem(lot, 1);

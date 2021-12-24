@@ -52,6 +52,6 @@ std::vector<CDRarityTable> CDRarityTableTable::Query(std::function<bool(CDRarity
 }
 
 //! Gets all the entries in the table
-const std::vector<CDRarityTable>& CDRarityTableTable::GetEntries(void) const {
+std::vector<CDRarityTable> CDRarityTableTable::GetEntries(void) const {
     return this->entries;
 }

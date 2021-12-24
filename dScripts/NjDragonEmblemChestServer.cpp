@@ -10,6 +10,6 @@ void NjDragonEmblemChestServer::OnUse(Entity *self, Entity *user) {
 
     auto* destroyable = self->GetComponent<DestroyableComponent>();
     if (destroyable != nullptr) {
-        LootGenerator::Instance().DropLoot(user, self, destroyable->GetLootMatrixID(), 0, 0);
+        Loot::DropLoot(user, self, destroyable->GetLootMatrixID(), 0, 0);
     }
 }

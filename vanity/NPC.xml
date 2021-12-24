@@ -414,6 +414,28 @@
             </locations>
         </zone>
     </npc>
+
+    <npc name="Santa" lot="9749">
+        <equipment>4049, 14093, 12283, 14805</equipment>
+        <phrases>
+            <phrase>Ho Ho Ho!</phrase>
+            <phrase>Have you been good this year?</phrase>
+            <phrase>Oh, hi there!</phrase>
+            <phrase>Have you seen rudolph anywhere?</phrase>
+            <phrase>The DLU team have been naughty this year!</phrase>
+            <phrase>Merry everything and happy always!</phrase>
+            <phrase>Got any cookies and milk for me?</phrase>
+            <phrase>Looking for a gift for a friend?</phrase>
+            <phrase>May this Holiday Season sparkle and shine and may all your wishes and dreams come true, Merry Christmas.</phrase>
+			<phrase>Christmas Magic is in the air.</phrase>
+        </phrases>
+        <zone id="1200">
+            <locations>
+                <location x="-24.127136" y="288.89636" z="-85.875641" rw="0.99454451" rx="0" ry="-0.10431319" rz="0" />
+            </locations>
+        </zone>
+    </npc>
+
     <party zone="1200" chance="0.0">
         <locations>
             <location x="-24.3963" y="291.542" z="-117.871" rw="0.480946" rx="0" ry="0.87675" rz="0" />

@@ -54,6 +54,6 @@ std::vector<CDLootTable> CDLootTableTable::Query(std::function<bool(CDLootTable)
 }
 
 //! Gets all the entries in the table
-const std::vector<CDLootTable>& CDLootTableTable::GetEntries(void) const {
+std::vector<CDLootTable> CDLootTableTable::GetEntries(void) const {
     return this->entries;
 }

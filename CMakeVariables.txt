@@ -10,7 +10,7 @@ NET_VERSION=171022
 # Debugging
 # __dynamic=1
 # Set __dynamic to 1 to enable the -rdynamic flag for the linker, yielding some symbols in crashlogs.
-# __ggdb=1
+__ggdb=1
 # Set __ggdb to 1 to enable the -ggdb flag for the linker, including more debug info.
 # __include_backtrace__=1
 # Set __include_backtrace__ to 1 to includes the backtrace library for better crashlogs.

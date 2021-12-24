@@ -24,7 +24,7 @@ void ScriptedPowerupSpawner::OnTimerDone(Entity *self, std::string message) {
                     renderComponent->PlayEffect(0, u"cast", "N_cast");
                 }
 
-                LootGenerator::Instance().DropLoot(owner, self, itemLOT, 0, 1);
+                Loot::DropItem(owner, self, itemLOT, 0, 1, true, true);
             }
 
             // Increment the current cycle

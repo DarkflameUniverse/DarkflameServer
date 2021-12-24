@@ -110,12 +110,16 @@ int main(int argc, char** argv) {
 		//In world we'd update our other systems here.
 
 		//Check for packets here:
-		Game::server->ReceiveFromMaster(); //ReceiveFromMaster also handles the master packets if needed.
-		packet = Game::server->Receive();
-		if (packet) {
-			HandlePacket(packet);
-			Game::server->DeallocatePacket(packet);
-			packet = nullptr;
+		try {
+			Game::server->ReceiveFromMaster(); //ReceiveFromMaster also handles the master packets if needed.
+			packet = Game::server->Receive();
+			if (packet) {
+				HandlePacket(packet);
+				Game::server->DeallocatePacket(packet);
+				packet = nullptr;
+			}
+		} catch (const std::exception &e) {
+			Game::logger->Log("ChatServer", "Bruh moment: %s\n", e.what());
 		}
 
 		//Push our log every 30s:
