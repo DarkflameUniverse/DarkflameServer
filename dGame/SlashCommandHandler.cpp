@@ -196,10 +196,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			}
 
 			if (discordid != "0") {
-				std::stringstream message;
-				message << "Your account has already been verified. If you have any questions, please raise it with a Mythran @ Luplo Discord.";
-
-                ChatPackets::SendChatMessage(sysAddr, GeneralUtils::ASCIIToUTF16(message.str()));
+                            ChatPackets::SendChatMessage(sysAddr, u"Your account has already been verified.If you have any questions, please raise it with a Mythran @Luplo Discord.");
 				return;
 			}
 
@@ -212,10 +209,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
             updatestmt->execute();
             delete updatestmt;
 
-            std::stringstream message;
-            message << "Your verification code is [" + code + "]. Verify by sending the code to the bot's DMs.";
+            // std::stringstream message;
+            // message << "Your verification code is [" + code + "]. Verify by sending the code to the bot's DMs.";
 
-			ChatPackets::SendChatMessage(sysAddr, GeneralUtils::ASCIIToUTF16(message.str()));
+			ChatPackets::SendChatMessage(sysAddr, u"Your verification code is [" + code + u"]. Verify by sending the code to the bot's DMs.");
             return;
 	}
 
