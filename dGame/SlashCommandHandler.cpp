@@ -209,7 +209,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
             updatestmt->execute();
             delete updatestmt;
 
-            // std::stringstream message;
+            std::stringstream message;
             message << "Your verification code is [" << code << "]. Verify by sending the code to the bot's DMs.";
 
 			ChatPackets::SendChatMessage(sysAddr,  GeneralUtils::ASCIIToUTF16(message.str());
