@@ -158,16 +158,9 @@ public:
      * Computes a server-side skill calculation without an associated entity.
      * @param behaviorId the root behavior ID of the skill
      * @param target the explicit target of the skill
-     */
-    static void HandleUnmanaged(uint32_t behaviorId, LWOOBJID target);
-
-    /**
-     * Computes a server-side skill calculation without an associated entity.
-     * @param behaviorId the root behavior ID of the skill
-     * @param target the explicit target of the skill
      * @param source the explicit source of the skill
      */
-    static void HandleUnmanaged(uint32_t behaviorId, LWOOBJID target, LWOOBJID source);
+    static void HandleUnmanaged(uint32_t behaviorId, LWOOBJID target, LWOOBJID source = LWOOBJID_EMPTY);
 
     /**
      * Computes a server-side skill uncast calculation without an associated entity.

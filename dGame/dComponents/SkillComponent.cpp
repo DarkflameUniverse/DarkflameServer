@@ -481,31 +481,12 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	delete bitStream;
 }
 
-void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID target)
-{
-	auto* context = new BehaviorContext(target);
-
-	context->unmanaged = true;
-	context->caster = target;
-
-	auto* behavior = Behavior::CreateBehavior(behaviorId);
-
-	auto* bitStream = new RakNet::BitStream();
-
-	behavior->Handle(context, bitStream, { target });
-
-	delete bitStream;
-
-	delete context;
-}
-
 void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID target, LWOOBJID source)
 {
-	auto* context = new BehaviorContext(target);
+	auto* context = new BehaviorContext(source);
 
 	context->unmanaged = true;
 	context->caster = target;
-	context->originator = source;
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
