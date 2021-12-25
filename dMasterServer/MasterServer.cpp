@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
 	ObjectIDManager::Instance()->Initialize(Game::logger);
 	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
 
-	dMasterServerApi masterServerApi(Game::config, Game::im);
+	dMasterServerApi masterServerApi(Game::config, Game::im, Game::server);
 	Game::masterApi = &masterServerApi;
 
 	//Depending on the config, start up servers:
@@ -502,17 +502,25 @@ void HandlePacket(Packet* packet) {
 
 			LWOMAPID theirZoneID = 0;
 			LWOINSTANCEID theirInstanceID = 0;
+			SystemAddress theirSysAddr;
+			std::string theirUsername;
 
 			inStream.Read(theirZoneID);
 			inStream.Read(theirInstanceID);
+			inStream.Read(theirSysAddr.binaryAddress);
+			inStream.Read(theirSysAddr.port);
+			inStream.Read(theirUsername);
 
 			auto instance =
 				Game::im->FindInstance(theirZoneID, theirInstanceID);
 			if (instance) {
-				instance->AddPlayer(Player());
+				auto currentPlayer = Player();
+				currentPlayer.addr = theirSysAddr;
+				currentPlayer.username = theirUsername;
+				instance->AddPlayer(currentPlayer);
 			}
 			else {
-				printf("Instance missing? What?\n");
+				Game::logger->Log("MasterServer", "Instance missing? What?\n");
 			}
 			break;
 		}
@@ -523,14 +531,20 @@ void HandlePacket(Packet* packet) {
 
 			LWOMAPID theirZoneID = 0;
 			LWOINSTANCEID theirInstanceID = 0;
+			SystemAddress theirSysAddr;
 
 			inStream.Read(theirZoneID);
 			inStream.Read(theirInstanceID);
+			inStream.Read(theirSysAddr.binaryAddress);
+			inStream.Read(theirSysAddr.port);
 
 			auto instance =
 				Game::im->FindInstance(theirZoneID, theirInstanceID);
 			if (instance) {
-				instance->RemovePlayer(Player());
+				auto currentPlayer = Player();
+				currentPlayer.addr = theirSysAddr;
+				currentPlayer.username = ""; // doesn't need username to remove it from the instance
+				instance->RemovePlayer(currentPlayer);
 			}
 			break;
 		}
@@ -657,6 +671,35 @@ void HandlePacket(Packet* packet) {
 			shouldShutdown = true;
 			break;
 		}
+
+		case MSG_MASTER_REGISTER_USER_CHARACTER: {
+			RakNet::BitStream inStream(packet->data, packet->length, false);
+			uint64_t header = inStream.Read(header);
+
+			LWOMAPID theirZoneID = 0;
+			LWOINSTANCEID theirInstanceID = 0;
+			SystemAddress theirSysAddr;
+			std::string theirCharacterName;
+
+			inStream.Read(theirZoneID);
+			inStream.Read(theirInstanceID);
+			inStream.Read(theirSysAddr.binaryAddress);
+			inStream.Read(theirSysAddr.port);
+			theirCharacterName = PacketUtils::ReadString(18, packet, false);
+
+			auto instance =	Game::im->FindInstance(theirZoneID, theirInstanceID);
+			if (instance) {
+				auto currentPlayer = instance->GetPlayer(theirSysAddr);
+				currentPlayer.character = theirCharacterName;
+				instance->UpdatePlayer(currentPlayer);
+			}
+			else {
+				Game::logger->Log("MasterServer", "Instance missing? What?\n");
+			}
+
+			break;
+		}
+			
 
 		default:
 			Game::logger->Log("MasterServer","Unknown master packet ID from server: %i\n",packet->data[3]);

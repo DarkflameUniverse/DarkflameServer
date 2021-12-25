@@ -1,7 +1,9 @@
 #include "MasterApi.h"
 
-dMasterServerApi::dMasterServerApi(dConfig* config, InstanceManager* instanceManager) {
+dMasterServerApi::dMasterServerApi(dConfig* config, InstanceManager* instanceManager, dServer* server) {
     m_HttpServer = new httplib::Server();
+
+    m_Server = server;
 
     m_InstanceManager = instanceManager;
 
@@ -14,7 +16,10 @@ dMasterServerApi::dMasterServerApi(dConfig* config, InstanceManager* instanceMan
 }
 
 void dMasterServerApi::CreateRoutes() {
-    m_HttpServer->Get("/get_instances", [this](const httplib::Request& req, httplib::Response& res) {
+    // Getters
+
+    m_HttpServer->Get("/instances", [this](const httplib::Request& req, httplib::Response& res) {
+        
         auto json = nlohmann::json();
         json["success"] = true;
         json["instances"] = nlohmann::json::array();
@@ -25,6 +30,8 @@ void dMasterServerApi::CreateRoutes() {
         
         res.set_content(json.dump(), "application/json");
     });
+
+    // Setters
 }
 
 bool dMasterServerApi::Listen() {

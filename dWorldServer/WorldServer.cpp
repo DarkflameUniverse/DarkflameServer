@@ -755,6 +755,8 @@ void HandlePacket(Packet* packet) {
 		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_PLAYER_REMOVED);
 		bitStream.Write((LWOMAPID)Game::server->GetZoneID());
 		bitStream.Write((LWOINSTANCEID)instanceID);
+		bitStream.Write<uint32_t>(packet->systemAddress.binaryAddress);
+		bitStream.Write<uint16_t>(packet->systemAddress.port);
 		Game::server->SendToMaster(&bitStream);
 	}
 
@@ -800,7 +802,7 @@ void HandlePacket(Packet* packet) {
 
 				//Verify it:
 				if (userHash != it->second.hash) {
-					Game::logger->Log("WorldServer", "SOMEONE IS TRYING TO HACK? SESSION KEY MISMATCH: ours: %s != master: %s\n", userHash.c_str(), it->second.hash.c_str());
+					Game::logger->Log("WorldServer", "Session key mismatch: ours: %s != master: %s\n", userHash.c_str(), it->second.hash.c_str());
 					Game::server->Disconnect(it->second.sysAddr, SERVER_DISCON_INVALID_SESSION_KEY);
 					return;
 				}
@@ -841,6 +843,9 @@ void HandlePacket(Packet* packet) {
 						PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_PLAYER_ADDED);
 						bitStream.Write((LWOMAPID)Game::server->GetZoneID());
 						bitStream.Write((LWOINSTANCEID)instanceID);
+						bitStream.Write<uint32_t>(it->second.sysAddr.binaryAddress);
+						bitStream.Write<uint16_t>(it->second.sysAddr.port);
+						bitStream.Write(username);
 						Game::server->SendToMaster(&bitStream);
 					}
 				}
@@ -1183,6 +1188,19 @@ void HandlePacket(Packet* packet) {
 						bitStream.Write(player->GetParentUser()->GetMuteExpire());
 
 						Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+					}
+
+					// Notify master that we have loaded a character
+					{
+						CBITSTREAM;
+						PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_REGISTER_USER_CHARACTER);
+						bitStream.Write((LWOMAPID)Game::server->GetZoneID());
+						bitStream.Write((LWOINSTANCEID)instanceID);
+						bitStream.Write<uint32_t>(packet->systemAddress.binaryAddress);
+						bitStream.Write<uint16_t>(packet->systemAddress.port);
+						std::string characterName = c->GetName().size() == 0 ? c->GetUnapprovedName() : c->GetName();
+						PacketUtils::WritePacketString(characterName, 33, &bitStream);
+						Game::server->SendToMaster(&bitStream);
 					}
                 }
 				else {

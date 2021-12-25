@@ -8,10 +8,11 @@
 #include "dConfig.h"
 #include "dCommonVars.h"
 #include "InstanceManager.h"
+#include "MasterPackets.h"
 
 class dMasterServerApi {
 public:
-    dMasterServerApi(dConfig* config, InstanceManager* instanceManager);
+    dMasterServerApi(dConfig* config, InstanceManager* instanceManager, dServer* server);
     ~dMasterServerApi();
 
     /**
@@ -36,6 +37,8 @@ private:
     std::string m_Host;
 
     InstanceManager* m_InstanceManager;
+
+    dServer* m_Server;
 
     httplib::Server* m_HttpServer = nullptr;
     // TODO: Implement a SSL server, this requires OpenSSL and I really didn't feel like shooting myself in the face

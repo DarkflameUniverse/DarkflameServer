@@ -120,7 +120,7 @@ void InstanceManager::AddPlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINS
 	if (inst) {
 		Player player;
 		player.addr = systemAddr;
-		player.id = 0; //TODO: Update this to include the LWOOBJID of the player's character.
+		player.username = "";
 		inst->AddPlayer(player);
 	}
 }
@@ -130,7 +130,7 @@ void InstanceManager::RemovePlayer(SystemAddress systemAddr, LWOMAPID mapID, LWO
 	if (inst) {
 		Player player;
 		player.addr = systemAddr;
-		player.id = 0; //TODO: Update this to include the LWOOBJID of the player's character.
+		player.username = "";
 		inst->RemovePlayer(player);
 	}
 }

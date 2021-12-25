@@ -7,13 +7,17 @@
 #include "nlohmann/json.hpp"
 
 struct Player {
-	LWOOBJID id;
+	std::string username;
 	SystemAddress addr;
+	std::string character;
 	
 	nlohmann::json GetJson() {
 		nlohmann::json json;
-		json["objId"] = id;
+		json["username"] = username;
 		json["address"] = addr.ToString(true);
+		if (character.size() > 0) {
+			json["character"] = character;
+		}
 		return json;
 	}
 };
@@ -64,12 +68,39 @@ public:
 	void SetAffirmationTimeout(const uint32_t value) { m_AffirmationTimeout = value; }
 	uint32_t GetAffirmationTimeout() const { return m_AffirmationTimeout; }
 
-	void AddPlayer(Player player) { /*m_Players.push_back(player);*/ m_CurrentClientCount++; }
+	void AddPlayer(Player player) { 
+		m_Players.push_back(player); 
+		Game::logger->Log("MasterServer", "Player %s joined %i \n", player.username.c_str(), (uint32_t)m_ZoneID.GetMapID());
+		m_CurrentClientCount++; 
+	}
+	
 	void RemovePlayer(Player player) { 
 		m_CurrentClientCount--;
+
 		if (m_CurrentClientCount < 0) m_CurrentClientCount = 0;
-		/*for (size_t i = 0; i < m_Players.size(); ++i) 
-			if (m_Players[i].addr == player.addr) m_Players.erase(m_Players.begin() + i);*/
+
+		for (size_t i = 0; i < m_Players.size(); ++i)  {
+			if (m_Players[i].addr == player.addr) {
+				m_Players.erase(m_Players.begin() + i);
+			}
+		}	 
+	}
+
+	Player GetPlayer(SystemAddress sysAddr) {
+		for (size_t i = 0; i < m_Players.size(); ++i)  {
+			if (m_Players[i].addr == sysAddr) {
+				return m_Players[i];
+			}
+		}	
+	}
+
+	void UpdatePlayer(Player player) { // this will update anything but the sysAddr name 
+		for (size_t i = 0; i < m_Players.size(); ++i)  {
+			if (m_Players[i].addr == player.addr) {
+				
+				m_Players[i] = player; // updated
+			}
+		}	
 	}
 
 	void SetSysAddr(SystemAddress sysAddr) { m_SysAddr = sysAddr; }
