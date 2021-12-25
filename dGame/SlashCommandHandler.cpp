@@ -210,9 +210,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
             delete updatestmt;
 
             // std::stringstream message;
-            // message << "Your verification code is [" + code + "]. Verify by sending the code to the bot's DMs.";
+            message << "Your verification code is [" << code << "]. Verify by sending the code to the bot's DMs.";
 
-			ChatPackets::SendChatMessage(sysAddr, u"Your verification code is [" + code + u"]. Verify by sending the code to the bot's DMs.");
+			ChatPackets::SendChatMessage(sysAddr,  GeneralUtils::ASCIIToUTF16(message.str());
             return;
 	}
 
