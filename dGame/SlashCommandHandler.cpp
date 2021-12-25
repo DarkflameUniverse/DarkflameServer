@@ -186,24 +186,34 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			// Check if the verification stage is already done or not.
 			// Displays the Discord ID fetched. 0 Means default/not verified.
             std::string discordid; 
-            auto grabstmt = Database::CreatePreppedStmt("SELECT verify_id FROM accounts WHERE id = ? LIMIT 1;");
+            auto grabstmt = Database::CreatePreppedStmt("SELECT verify_id FROM discord_verification WHERE acc_id = ? LIMIT 1;");
             grabstmt->setInt(1, id);
 
             sql::ResultSet* res = grabstmt->executeQuery();
             
-			if (res->next()) {
-				discordid = res->getString(1);
-			}
+			if (res->rowsCount() != 1) { // This means that the verification records do not exist. (Hasn't ever been executed.)
+                discordid = "0";
+                auto insertdb = Database::CreatePreppedStmt("INSERT INTO discord_verification (acc_id, verify_id, verify_code) VALUES (?, ?, ?)");
+                insertdb->setInt(1, id);
+                insertdb->setString(2, "0");
+                insertdb->setString(3, code);
+                insertdb->execute();
+				delete insertdb;
+            } else if (res->next()) {
+                discordid = res->getString(1);
+            }
+
+			delete res;
 
 			if (discordid != "0") {
-                ChatPackets::SendSystemMessage(sysAddr, u"Your account has already been verified.If you have any questions, please raise it with a Mythran @Luplo Discord.");
+                ChatPackets::SendSystemMessage(sysAddr, u"Your account has already been verified. If you have any questions, please raise it with a Mythran @Luplo Discord.");
 				return;
 			}
 
 			delete grabstmt;
 
 			// Overwrite code with a new one.
-			auto updatestmt = Database::CreatePreppedStmt("UPDATE accounts SET verify_code = ? WHERE id = ?;");
+			auto updatestmt = Database::CreatePreppedStmt("UPDATE discord_verification SET verify_code = ? WHERE acc_id = ?;");
             updatestmt->setString(1, code);
             updatestmt->setInt(2, id);
             updatestmt->execute();
