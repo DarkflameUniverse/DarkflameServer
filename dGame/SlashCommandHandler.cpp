@@ -195,7 +195,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				discordid = res->getString(1);
 			}
 
-			if (discordid != 0) {
+			if (discordid != "0") {
 				std::stringstream message;
 				message << "Your account has already been verified. If you have any questions, please raise it with a Mythran @ Luplo Discord.";
 
