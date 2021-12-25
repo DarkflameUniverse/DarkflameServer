@@ -196,7 +196,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			}
 
 			if (discordid != "0") {
-                ChatPackets::SendChatMessage(sysAddr, u"Your account has already been verified.If you have any questions, please raise it with a Mythran @Luplo Discord.");
+                ChatPackets::SendSystemMessage(sysAddr, u"Your account has already been verified.If you have any questions, please raise it with a Mythran @Luplo Discord.");
 				return;
 			}
 
