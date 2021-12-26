@@ -77,6 +77,20 @@ std::string gen_random(const int len) {
     return tmp_s;
 }
 
+// This custom function will allow us to resolve Character IDs to its logged account.
+int ResolveAccountId(int charId) {
+    int accid = 0; // Returns 0 if the result was null/empty for the parent function to handle.
+    auto grabstmt = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE id = ? LIMIT 1;");
+    grabstmt->setInt(1, charId);
+
+    sql::ResultSet* res = grabstmt->executeQuery();
+    
+	if (res->next()) accid = res->getInt(1);
+
+	delete grabstmt;
+    return accid;
+}
+
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
     std::string chatCommand;
@@ -180,13 +194,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	 
 	if (chatCommand == "verify") { // Redi's Custom Command for Verification Interactions
-            Game::logger->Log("SlashCommandHandler", "I was called!");
-            std::stringstream test;
-            test << "Your latest message has been heard!";
+            uint32_t id = ResolveAccountId(entity->GetCharacter()->GetID());
 
-            ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(test.str()));
+			if (id == 0) {
+                ChatPackets::SendSystemMessage(sysAddr, u"There was an issue fetching your account details.");
+                return;
+			}
 
-			uint32_t id = entity->GetCharacter()->GetID();
             std::string code = "C_" + gen_random(10);
 			
 			// Check if the verification stage is already done or not.
