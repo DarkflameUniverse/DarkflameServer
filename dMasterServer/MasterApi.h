@@ -9,6 +9,30 @@
 #include "dCommonVars.h"
 #include "InstanceManager.h"
 #include "MasterPackets.h"
+#include "ChatPackets.h"
+#include "WorldPackets.h"
+#include "AMFFormat.h"
+#include "dCommonVars.h"
+#include "dMessageIdentifiers.h"
+#include "PacketUtils.h"
+#include "GameMessages.h"
+#include "dServer.h"
+
+#define API_VERSION "v1"
+
+using namespace nlohmann::detail;
+
+// JSON Helpers
+
+inline bool CheckJSONTypes(nlohmann::json json, std::unordered_map<std::string, value_t> keys) {
+    for (const auto& kv : keys) {
+        if (json.find(kv.first) == json.end() && json[kv.first].size() == 0 && json[kv.first].type() == kv.second) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 class dMasterServerApi {
 public:

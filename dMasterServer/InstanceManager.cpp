@@ -135,9 +135,12 @@ void InstanceManager::RemovePlayer(SystemAddress systemAddr, LWOMAPID mapID, LWO
 	}
 }
 
-std::vector<Instance*> InstanceManager::GetInstances() const
-{
+std::vector<Instance*> InstanceManager::GetInstances() const {
 	return m_Instances;
+}
+
+std::vector<SystemAddress> InstanceManager::GetShutdownInstances() const {
+	return m_ShutdownInstances;
 }
 
 void InstanceManager::AddInstance(Instance* instance) {
@@ -154,6 +157,8 @@ void InstanceManager::RemoveInstance(Instance* instance) {
 			instance->SetShutdownComplete(true);
 			
 			RedirectPendingRequests(instance);
+
+			m_ShutdownInstances.push_back(instance->GetSysAddr());
 			
 			delete m_Instances[i];
 
@@ -411,6 +416,8 @@ void Instance::Shutdown()
 	Game::server->Send(&bitStream, this->m_SysAddr, false);
 	
 	Game::logger->Log("Instance", "Triggered world shutdown\n");
+
+	m_ShutdownRequested = true;
 }
 
 nlohmann::json Instance::GetJson() {

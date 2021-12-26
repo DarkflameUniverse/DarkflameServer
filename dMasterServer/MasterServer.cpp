@@ -443,6 +443,8 @@ void HandlePacket(Packet* packet) {
 				copy.port = packet->systemAddress.port;
 
 				chatServerMasterPeerSysAddr = copy;
+
+				Game::im->SetChatSysAddr(chatServerMasterPeerSysAddr);
 			}
 
 			Game::logger->Log("MasterServer", "Received server info, instance: %i port: %i\n", theirInstanceID, theirPort);

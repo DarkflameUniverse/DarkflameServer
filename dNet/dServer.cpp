@@ -145,6 +145,11 @@ Packet* dServer::ReceiveFromMaster() {
 						return packet;
 						break;
 					}
+
+					case MSG_MASTER_BROADCAST: {
+						return packet;
+						break;
+					}
 					
 					default:
 						mLogger->Log("Server", "Unknown packet ID from master: %i\n", packet->data[3]);

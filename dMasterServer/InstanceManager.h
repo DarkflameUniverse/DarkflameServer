@@ -91,7 +91,9 @@ public:
 			if (m_Players[i].addr == sysAddr) {
 				return m_Players[i];
 			}
-		}	
+		}
+
+		return Player();
 	}
 
 	void UpdatePlayer(Player player) { // this will update anything but the sysAddr name 
@@ -108,6 +110,7 @@ public:
 
 	void SetShutdownComplete(bool value);
 	bool GetShutdownComplete() const;
+	bool GetShutdownRequested() const { return m_ShutdownRequested; }
 	
 	void Shutdown();
 
@@ -125,6 +128,7 @@ private:
 	bool m_Ready;
 	std::vector<PendingInstanceRequest> m_PendingRequests;
 	std::vector<PendingInstanceRequest> m_PendingAffirmations;
+	bool m_ShutdownRequested = false;
 
 	uint32_t m_AffirmationTimeout;
 	
@@ -149,6 +153,7 @@ public:
 	void RemovePlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID);
 
 	std::vector<Instance*> GetInstances() const;
+	std::vector<SystemAddress> GetShutdownInstances() const;
 	void AddInstance(Instance* instance);
 	void RemoveInstance(Instance* instance);
 
@@ -166,12 +171,17 @@ public:
 	Instance* CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password);
 	Instance* FindPrivateInstance(const std::string& password);
 
+	SystemAddress GetChatSysAddr() { return m_ChatAddress; }
+	void SetChatSysAddr(SystemAddress sysAddr) { m_ChatAddress = sysAddr; }
+
 private:
 	dLogger* mLogger;
 	std::string mExternalIP;
 	std::vector<Instance*> m_Instances;
+	std::vector<SystemAddress> m_ShutdownInstances;
 	unsigned short m_LastPort;
 	LWOINSTANCEID m_LastInstanceID;
+	SystemAddress m_ChatAddress;
 
 	//Private functions:
 	bool IsInstanceFull(Instance* instance, bool isFriendTransfer);

@@ -768,6 +768,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (packet->data[1] == MASTER) {
+		if (Game::server->GetMasterSystemAddress() != packet->systemAddress) return;
 		switch (packet->data[3]) {
 			case MSG_MASTER_REQUEST_PERSISTENT_ID_RESPONSE: {
 				uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
@@ -895,8 +896,54 @@ void HandlePacket(Packet* packet) {
 				break;
 			}
 
-			default:
-				Game::logger->Log("WorldServer", "Unknown packet ID from master %i\n", int(packet->data[3]));
+			case MSG_MASTER_BROADCAST: {
+				Game::logger->Log("WorldServer", "Recieved broadcast from master\n");
+
+				RakNet::BitStream inStream(packet->data, packet->length, false);
+				uint64_t header = inStream.Read(header);
+
+				std::string title;
+				std::string body;
+				SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+
+				inStream.Read(title);
+				inStream.Read(body);
+
+				if (inStream.ReadBit()) {
+					std::string tempSysAddr;
+					inStream.Read(tempSysAddr);
+					sysAddr.SetBinaryAddress(tempSysAddr.c_str());
+				}
+
+				AMFArrayValue args;
+				auto* titleValue = new AMFStringValue();
+				titleValue->SetStringValue(title);
+				auto* messageValue = new AMFStringValue();
+				messageValue->SetStringValue(body);
+
+				args.InsertValue("title", titleValue);
+				args.InsertValue("message", messageValue);
+
+				if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
+					GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
+				} else {
+					auto user = UserManager::Instance()->GetUser(sysAddr);
+					if (user) {
+						auto character = EntityManager::Instance()->GetEntity(user->GetLoggedInChar());
+						if (character) {
+							GameMessages::SendUIMessageServerToSingleClient(character, sysAddr, "ToggleAnnounce", &args);
+						}
+					}
+				}
+				
+
+				delete titleValue;
+				delete messageValue;
+				titleValue = nullptr;
+				messageValue = nullptr;
+
+				break;
+			}
 		}
 
 		return;

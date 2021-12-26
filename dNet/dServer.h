@@ -36,6 +36,7 @@ public:
 	const bool GetIsOkay() const { return mIsOkay; }
 	dLogger* GetLogger() const { return mLogger; }
 	const bool GetIsConnectedToMaster() const { return mMasterConnectionActive; }
+	const SystemAddress GetMasterSystemAddress() const { return mMasterSystemAddress; }
 	const unsigned int GetZoneID() const { return mZoneID; }
 	const int GetInstanceID() const { return mInstanceID; }
 	ReplicaManager* GetReplicaManager() { return mReplicaManager; }
