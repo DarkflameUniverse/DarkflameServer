@@ -32,8 +32,10 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	while (res->next()) {
 		FriendData fd;
 		fd.isFTP = false; // not a thing in DLU
-		fd.friendID = res->getInt64(1);
-		if (fd.friendID == playerID) fd.friendID = res->getUInt64(2);
+		fd.friendID = res->getInt(1);
+		int fPlayerID = playerID; // Cast from UInt64 to Int so we can check if the Id matches
+		if (fd.friendID == fPlayerID) fd.friendID = res->getInt(2);
+		delete fPlayerID;
 
 		fd.isBestFriend = res->getInt(3) == 2; //0 = friends, 1 = requested, 2 = bffs
 
@@ -155,7 +157,7 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	LWOOBJID friendID = 0;
 	auto res = stmt->executeQuery();
 	while (res->next()) {
-		friendID = res->getUInt64(1);
+		friendID = res->getInt(1);
 	}
 
 	delete res;
