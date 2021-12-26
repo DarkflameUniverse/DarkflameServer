@@ -180,6 +180,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	 
 	if (chatCommand == "verify") { // Redi's Custom Command for Verification Interactions
+            std::stringstream test;
+            test << "Your latest message has been heard!";
+
+            ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(test.str()));
+            return; // I'm currently testing whether the command is being registered or not.
+
 			uint32_t id = entity->GetCharacter()->GetID();
             std::string code = "C_" + gen_random(10);
 			
@@ -206,7 +212,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			delete res;
 
 			if (discordid != "0") {
-                ChatPackets::SendSystemMessage(sysAddr, u"Your account has already been verified. If you have any questions, please raise it with a Mythran @Luplo Discord.");
+                ChatPackets::SendSystemMessage(sysAddr, u"Your account has already been verified. If you have any questions, please raise it with a Mythran @ Luplo Discord.");
 				return;
 			}
 
