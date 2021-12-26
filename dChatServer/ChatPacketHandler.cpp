@@ -35,7 +35,6 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 		fd.friendID = res->getInt(1);
 		int fPlayerID = playerID; // Cast from UInt64 to Int so we can check if the Id matches
 		if (fd.friendID == fPlayerID) fd.friendID = res->getInt(2);
-		delete fPlayerID;
 
 		fd.isBestFriend = res->getInt(3) == 2; //0 = friends, 1 = requested, 2 = bffs
 
