@@ -23,8 +23,8 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 
 	//Get our friends list from the Db:
 	auto stmt = Database::CreatePreppedStmt("SELECT * FROM friends WHERE player_id = ? OR friend_id = ?");
-	stmt->setUInt64(1, playerID);
-	stmt->setUInt64(2, playerID);
+	stmt->setInt(1, playerID);
+	stmt->setInt(2, playerID);
 
 	std::vector<FriendData> friends;
 
@@ -133,8 +133,8 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 	SendFriendResponse(goonA, goonB, responseCode); //Do we need to send it to both? I think so so both get the updated friendlist but... idk.
 
 	auto stmt = Database::CreatePreppedStmt("INSERT INTO `friends`(`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?)");
-	stmt->setUInt64(1, goonA->playerID);
-	stmt->setUInt64(2, goonB->playerID);
+	stmt->setInt(1, goonA->playerID);
+	stmt->setInt(2, goonB->playerID);
 	stmt->setInt(3, 0);
 	stmt->execute();
 	delete stmt;
@@ -167,16 +167,16 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 
 	//YEET:
 	auto deletestmt = Database::CreatePreppedStmt("DELETE FROM `friends` WHERE player_id=? AND friend_id=? LIMIT 1");
-	deletestmt->setUInt64(1, playerID);
-	deletestmt->setUInt64(2, friendID);
+	deletestmt->setInt(1, playerID);
+	deletestmt->setInt(2, friendID);
 	deletestmt->execute();
 	delete deletestmt;
 
 	//because I'm lazy and they can be reversed:
 	{
 		auto deletestmt = Database::CreatePreppedStmt("DELETE FROM `friends` WHERE player_id=? AND friend_id=? LIMIT 1");
-		deletestmt->setUInt64(1, friendID);
-		deletestmt->setUInt64(2, playerID);
+		deletestmt->setInt(1, friendID);
+		deletestmt->setInt(2, playerID);
 		deletestmt->execute();
 		delete deletestmt;
 	}
