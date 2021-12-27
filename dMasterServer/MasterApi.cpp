@@ -9,7 +9,7 @@ dMasterServerApi::dMasterServerApi(dConfig* config, InstanceManager* instanceMan
 
     if (config->HasKey("api_port") && config->HasKey("api_host_address")) {
         m_Port = std::stoi(config->GetValue("api_port"));
-        m_Host = config->GetValue("api_host_address");
+        m_Host = "127.0.0.1";
         this->CreateRoutes();
         m_ReadyToListen = true;
     }
