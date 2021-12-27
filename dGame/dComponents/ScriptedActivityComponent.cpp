@@ -16,6 +16,7 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 #include "dConfig.h"
+#include "DestroyableComponent.h"
 
 ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent)
 {
@@ -40,6 +41,31 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 			// NOTE: 1301 is GF survival
 			if (m_ActivityInfo.instanceMapID == 1301) {
 			    m_ActivityInfo.instanceMapID = 1302;
+			}
+		}
+	}
+
+	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+
+	if (destroyableComponent) {
+		// check for LMIs and set the loot LMIs
+		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
+		std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) {return (entry.LootMatrixIndex == destroyableComponent->GetLootMatrixID()); });
+
+		uint32_t startingLMI = 0;
+
+		if (activityRewards.size() > 0) {
+			startingLMI = activityRewards[0].LootMatrixIndex;
+		}
+
+		if (startingLMI > 0) {
+			// now time for bodge :)
+
+			std::vector<CDActivityRewards> objectTemplateActivities = activityRewardsTable->Query([=](CDActivityRewards entry) {return (activityRewards[0].objectTemplate == entry.objectTemplate); });
+			for (const auto& item : objectTemplateActivities) {
+				if (item.activityRating > 0 && item.activityRating < 5) {
+					m_ActivityLootMatrices.insert({ item.activityRating, item.LootMatrixIndex });
+				}
 			}
 		}
 	}

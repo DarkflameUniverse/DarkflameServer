@@ -18,14 +18,24 @@ void MinigameTreasureChestServer::OnUse(Entity *self, Entity *user) {
         UpdatePlayer(self, user->GetObjectID());
 
     auto* team = TeamManager::Instance()->GetTeam(user->GetObjectID());
+    uint32_t activityRating = 0;
     if (team != nullptr) {
         for (const auto& teamMemberID : team->members) {
             auto* teamMember = EntityManager::Instance()->GetEntity(teamMemberID);
-            if (teamMember != nullptr)
-                Loot::DropActivityLoot(teamMember, self, sac->GetActivityID(), CalculateActivityRating(self, teamMemberID));
+            if (teamMember != nullptr) {
+                activityRating = CalculateActivityRating(self, teamMemberID);
+
+                if (self->GetLOT() == frakjawChestId) activityRating = team->members.size();
+
+                LootGenerator::Instance().DropActivityLoot(teamMember, self, sac->GetActivityID(), activityRating);
+            }
         }
     } else {
-        Loot::DropActivityLoot(user, self, sac->GetActivityID(), CalculateActivityRating(self, user->GetObjectID()));
+        activityRating = CalculateActivityRating(self, user->GetObjectID());
+
+        if (self->GetLOT() == frakjawChestId) activityRating = 1;
+
+        LootGenerator::Instance().DropActivityLoot(user, self, sac->GetActivityID(), activityRating);
     }
 
     sac->PlayerRemove(user->GetObjectID());
