@@ -550,7 +550,7 @@ void ActivityInstance::RewardParticipant(Entity* participant) {
 			maxCoins = currencyTable[0].maxvalue;
 		}
 
-		Loot::DropLoot(participant, m_Parent, activityRewards[0].LootMatrixIndex, minCoins, maxCoins);
+		LootGenerator::Instance().DropLoot(participant, m_Parent, activityRewards[0].LootMatrixIndex, minCoins, maxCoins);
 	}
 }
 
