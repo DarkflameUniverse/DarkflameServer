@@ -1236,19 +1236,6 @@ void HandlePacket(Packet* packet) {
 
 						Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 					}
-
-					// Notify master that we have loaded a character
-					{
-						CBITSTREAM;
-						PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_REGISTER_USER_CHARACTER);
-						bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-						bitStream.Write((LWOINSTANCEID)instanceID);
-						bitStream.Write<uint32_t>(packet->systemAddress.binaryAddress);
-						bitStream.Write<uint16_t>(packet->systemAddress.port);
-						std::string characterName = c->GetName().size() == 0 ? c->GetUnapprovedName() : c->GetName();
-						PacketUtils::WritePacketString(characterName, 33, &bitStream);
-						Game::server->SendToMaster(&bitStream);
-					}
                 }
 				else {
 					Game::logger->Log("WorldMain", "Couldn't find character to log in with for user %s (%i)!\n", user->GetUsername().c_str(), user->GetAccountID());

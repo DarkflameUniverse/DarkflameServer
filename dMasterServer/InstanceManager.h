@@ -6,22 +6,6 @@
 #include "dLogger.h"
 #include "nlohmann/json.hpp"
 
-struct Player {
-	std::string username;
-	SystemAddress addr;
-	std::string character;
-	
-	nlohmann::json GetJson() {
-		nlohmann::json json;
-		json["username"] = username;
-		json["address"] = addr.ToString(true);
-		if (character.size() > 0) {
-			json["character"] = character;
-		}
-		return json;
-	}
-};
-
 struct PendingInstanceRequest {
 	uint64_t id;
 	bool mythranShift;
@@ -68,41 +52,12 @@ public:
 	void SetAffirmationTimeout(const uint32_t value) { m_AffirmationTimeout = value; }
 	uint32_t GetAffirmationTimeout() const { return m_AffirmationTimeout; }
 
-	void AddPlayer(Player player) { 
-		m_Players.push_back(player); 
-		Game::logger->Log("MasterServer", "Player %s joined %i \n", player.username.c_str(), (uint32_t)m_ZoneID.GetMapID());
+	void AddPlayer() {
 		m_CurrentClientCount++; 
 	}
 	
-	void RemovePlayer(Player player) { 
+	void RemovePlayer() { 
 		m_CurrentClientCount--;
-
-		if (m_CurrentClientCount < 0) m_CurrentClientCount = 0;
-
-		for (size_t i = 0; i < m_Players.size(); ++i)  {
-			if (m_Players[i].addr == player.addr) {
-				m_Players.erase(m_Players.begin() + i);
-			}
-		}	 
-	}
-
-	Player GetPlayer(SystemAddress sysAddr) {
-		for (size_t i = 0; i < m_Players.size(); ++i)  {
-			if (m_Players[i].addr == sysAddr) {
-				return m_Players[i];
-			}
-		}
-
-		return Player();
-	}
-
-	void UpdatePlayer(Player player) { // this will update anything but the sysAddr name 
-		for (size_t i = 0; i < m_Players.size(); ++i)  {
-			if (m_Players[i].addr == player.addr) {
-				
-				m_Players[i] = player; // updated
-			}
-		}	
 	}
 
 	void SetSysAddr(SystemAddress sysAddr) { m_SysAddr = sysAddr; }
@@ -123,7 +78,6 @@ private:
 	int m_MaxClientsSoftCap;
 	int m_MaxClientsHardCap;
 	int m_CurrentClientCount;
-	std::vector<Player> m_Players;
 	SystemAddress m_SysAddr;
 	bool m_Ready;
 	std::vector<PendingInstanceRequest> m_PendingRequests;

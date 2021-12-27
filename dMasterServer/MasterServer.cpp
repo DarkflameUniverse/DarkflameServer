@@ -516,10 +516,7 @@ void HandlePacket(Packet* packet) {
 			auto instance =
 				Game::im->FindInstance(theirZoneID, theirInstanceID);
 			if (instance) {
-				auto currentPlayer = Player();
-				currentPlayer.addr = theirSysAddr;
-				currentPlayer.username = theirUsername;
-				instance->AddPlayer(currentPlayer);
+				instance->AddPlayer();
 			}
 			else {
 				Game::logger->Log("MasterServer", "Instance missing? What?\n");
@@ -543,10 +540,7 @@ void HandlePacket(Packet* packet) {
 			auto instance =
 				Game::im->FindInstance(theirZoneID, theirInstanceID);
 			if (instance) {
-				auto currentPlayer = Player();
-				currentPlayer.addr = theirSysAddr;
-				currentPlayer.username = ""; // doesn't need username to remove it from the instance
-				instance->RemovePlayer(currentPlayer);
+				instance->RemovePlayer();
 			}
 			break;
 		}
@@ -671,34 +665,6 @@ void HandlePacket(Packet* packet) {
 		case MSG_MASTER_SHUTDOWN_UNIVERSE: {
 			Game::logger->Log("MasterServer","Received shutdown universe command, ""shutting down in 10 minutes.\n");
 			shouldShutdown = true;
-			break;
-		}
-
-		case MSG_MASTER_REGISTER_USER_CHARACTER: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
-
-			LWOMAPID theirZoneID = 0;
-			LWOINSTANCEID theirInstanceID = 0;
-			SystemAddress theirSysAddr;
-			std::string theirCharacterName;
-
-			inStream.Read(theirZoneID);
-			inStream.Read(theirInstanceID);
-			inStream.Read(theirSysAddr.binaryAddress);
-			inStream.Read(theirSysAddr.port);
-			theirCharacterName = PacketUtils::ReadString(18, packet, false);
-
-			auto instance =	Game::im->FindInstance(theirZoneID, theirInstanceID);
-			if (instance) {
-				auto currentPlayer = instance->GetPlayer(theirSysAddr);
-				currentPlayer.character = theirCharacterName;
-				instance->UpdatePlayer(currentPlayer);
-			}
-			else {
-				Game::logger->Log("MasterServer", "Instance missing? What?\n");
-			}
-
 			break;
 		}
 			

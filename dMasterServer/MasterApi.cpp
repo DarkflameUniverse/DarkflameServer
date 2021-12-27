@@ -42,6 +42,18 @@ void dMasterServerApi::CreateRoutes() {
         res.set_content(json.dump(), "application/json");
     });
 
+    m_HttpServer->Get("/api/" API_VERSION "/players", [this](const httplib::Request& req, httplib::Response& res) {
+        auto json = nlohmann::json();
+        json["success"] = true;
+        json["players"] = nlohmann::json::array();
+
+        for (auto* item : this->m_Server->GetPlayers()) {
+            json["players"].push_back(item->GetJson());
+        }
+
+        res.set_content(json.dump(), "application/json");
+    });
+
     m_HttpServer->Get("/api/" API_VERSION "/shutdown_status", [this](const httplib::Request& req, httplib::Response& res) {
         // get status of shutdown instances
 

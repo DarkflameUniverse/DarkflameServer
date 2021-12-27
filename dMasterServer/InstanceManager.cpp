@@ -118,20 +118,14 @@ uint32_t InstanceManager::GetFreePort() {
 void InstanceManager::AddPlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID) {
 	Instance* inst = FindInstance(mapID, instanceID);
 	if (inst) {
-		Player player;
-		player.addr = systemAddr;
-		player.username = "";
-		inst->AddPlayer(player);
+		inst->AddPlayer();
 	}
 }
 
 void InstanceManager::RemovePlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID) {
 	Instance* inst = FindInstance(mapID, instanceID);
 	if (inst) {
-		Player player;
-		player.addr = systemAddr;
-		player.username = "";
-		inst->RemovePlayer(player);
+		inst->RemovePlayer();
 	}
 }
 
@@ -431,10 +425,6 @@ nlohmann::json Instance::GetJson() {
 	j["maxClientsSoftCap"] = m_MaxClientsSoftCap;
 	j["maxClientsHardCap"] = m_MaxClientsHardCap;
 	j["currentClientCount"] = m_CurrentClientCount;
-	j["players"] = nlohmann::json::array();
-	for (auto& player : m_Players) {
-		j["players"].push_back(player.GetJson());
-	}
 	j["sysAddr"] = m_SysAddr.ToString(true);
 	j["ready"] = m_Ready;
 	j["affirmationTimeout"] = m_AffirmationTimeout;
