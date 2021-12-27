@@ -769,42 +769,26 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 			if (team != nullptr && m_Parent->GetComponent<BaseCombatAIComponent>() != nullptr)
 			{
 				LWOOBJID specificOwner = LWOOBJID_EMPTY;
-				auto* scriptedActivityComponent = m_Parent->GetComponent<ScriptedActivityComponent>();
-				uint32_t teamSize = team->members.size();
-				uint32_t lootMatrixId = GetLootMatrixID();
 
-				if (scriptedActivityComponent) {
-					lootMatrixId = scriptedActivityComponent->GetLootMatrixForTeamSize(teamSize);
+				if (team->lootOption == 0) // Round robin
+				{
+					specificOwner = TeamManager::Instance()->GetNextLootOwner(team);
 				}
 
-				if (team->lootOption == 0) { // Round robin
-					specificOwner = TeamManager::Instance()->GetNextLootOwner(team);
+				for (const auto memberId : team->members)
+				{
+					if (specificOwner != LWOOBJID_EMPTY && memberId != specificOwner) continue;
 
-					auto* member = EntityManager::Instance()->GetEntity(specificOwner);
+					auto* member = EntityManager::Instance()->GetEntity(memberId);
 
-                    if (member) LootGenerator::Instance().DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins());
-				} 
-				else {
-					for (const auto memberId : team->members) { // Free for all
-						auto* member = EntityManager::Instance()->GetEntity(memberId);
+					if (member == nullptr) continue;
 
-						if (member == nullptr) continue;
-
-<<<<<<< HEAD
 					Loot::DropLoot(member, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
 				}
 			}
 			else
 			{
 				Loot::DropLoot(owner, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
-=======
-						LootGenerator::Instance().DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins()); 
-					}
-				}
-			}
-			else { // drop loot for non team user
-				LootGenerator::Instance().DropLoot(owner, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
->>>>>>> 0a7d9c46eba551b5e2f908caf9c689f4139bffb4
 			}
 		}
 	}
