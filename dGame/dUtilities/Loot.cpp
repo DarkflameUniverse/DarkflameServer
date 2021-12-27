@@ -137,10 +137,6 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, u
 
     std::unordered_map<LOT, int32_t> drops;
 
-    if (missionComponent == nullptr) {
-        return drops;
-    }
-
     const LootMatrix& matrix = m_LootMatrices[matrixIndex];
 
     for (const LootMatrixEntry& entry : matrix) {
@@ -181,11 +177,11 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, u
                     LootTableEntry drop = possibleDrops[GeneralUtils::GenerateRandomNumber<uint32_t>(0, possibleDrops.size() - 1)];
 
                     // filter out uneeded mission items
-                    if (drop.isMissionDrop && !missionComponent->RequiresItem(drop.itemID))
+                    if (drop.isMissionDrop && (missionComponent == nullptr || !missionComponent->RequiresItem(drop.itemID)))
                         continue;
 
                     // convert faction token proxy
-                    if (drop.itemID == 13763) {
+                    if (drop.itemID == 13763 && missionComponent != nullptr) {
                         if (missionComponent->GetMissionState(545) == MissionState::MISSION_STATE_COMPLETE)
                             drop.itemID = 8318; // "Assembly Token"
                         else if (missionComponent->GetMissionState(556) == MissionState::MISSION_STATE_COMPLETE)
