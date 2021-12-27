@@ -11,6 +11,9 @@ CMakeVariables.txt
 build/
 linux_build/
 
+#Res folder ignore as this is for server-templating.
+res/
+
 # Codeblocks
 *.layout
 
