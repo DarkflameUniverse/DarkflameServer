@@ -828,6 +828,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		entity->GetCharacter()->SetMailSender(ss.str());
+		ChatPackets::SendSystemMessage(sysAddr, u"Custom mail sender set.");
 		return;
 	}
 
@@ -844,6 +845,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			ss << string << " ";
 
 		entity->GetCharacter()->SetMailSubject(ss.str());
+		ChatPackets::SendSystemMessage(sysAddr, u"Custom mail subject set.");
 		return;
 	}
 
@@ -860,6 +862,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			ss << string << " ";
 
 		entity->GetCharacter()->SetMailBody(ss.str());
+		ChatPackets::SendSystemMessage(sysAddr, u"Custom mail body set.");
 		return;
 	}
 
