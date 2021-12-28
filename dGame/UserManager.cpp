@@ -566,10 +566,10 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
     }
 }
 
-uint32_t getShirtColorId(uint32_t color) {
+uint32_t GetShirtColorId(uint32_t color) {
 	
 	// get the index of the color in shirtColorVector
-	auto colorId = std::find (shirtColorVector.begin(), shirtColorVector.end(), color);
+	auto colorId = std::find(shirtColorVector.begin(), shirtColorVector.end(), color);
 	return color = std::distance(shirtColorVector.begin(), colorId);
 }
 
