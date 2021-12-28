@@ -868,7 +868,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "mailitem" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
 		// Display help for the user
-		if (args.size() <= 1) {
+		if (args.size() < 2) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Mails an item to a specified character");
 			ChatPackets::SendSystemMessage(sysAddr, u"/mailitem <name> <itemid> <count>");
 			return;
@@ -913,6 +913,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			}
 
 			count = std::stoi(args[2]);
+			
+			if (count < 1)
+			{
+				ChatPackets::SendSystemMessage(sysAddr, u"Cannot send less than 1 of an item. Defaulting to 1.");
+				count = 1;
+			}
 		}
 
 		uint64_t currentTime = time(NULL);
@@ -985,6 +991,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			}
 			
 			count = std::stoi(args[2]);
+
+			if (count < 1)
+			{
+				ChatPackets::SendSystemMessage(sysAddr, u"Cannot send less than 1 of an item. Defaulting to 1.");
+				count = 1;
+			}
 		}
 
 		// Mail each character from the player query.
