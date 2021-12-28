@@ -43,7 +43,8 @@ Instance * InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, L
 		maxPlayers = GetHardCap(mapID);
 	}
 
-    instance = new Instance(mExternalIP, ++m_LastPort, mapID, ++m_LastInstanceID, cloneID, softCap, maxPlayers);
+    uint32_t port = GetFreePort();
+    instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, softCap, maxPlayers);
 
     //Start the actual process:
 #ifdef _WIN32
@@ -59,7 +60,7 @@ Instance * InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, L
 
     cmd.append(std::to_string(mapID));
     cmd.append(" -port ");
-    cmd.append(std::to_string(m_LastPort));
+    cmd.append(std::to_string(port));
     cmd.append(" -instance ");
     cmd.append(std::to_string(m_LastInstanceID));
     cmd.append(" -maxclients ");
@@ -74,8 +75,6 @@ Instance * InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, L
 
     system(cmd.c_str());
 
-    m_LastPort++; //Increment it again because the next port is for World<->Server comm.
-    m_LastPort++; //Increment it again because the next port is for World<->Chat comm.
     m_Instances.push_back(instance);
 
     if (instance) {
@@ -95,6 +94,25 @@ bool InstanceManager::IsPortInUse(uint32_t port) {
 	}
 	
 	return false;
+}
+
+uint32_t InstanceManager::GetFreePort() {
+    uint32_t port = m_LastPort;
+    std::vector<uint32_t> usedPorts;
+    for (Instance* i : m_Instances) {
+        usedPorts.push_back(i->GetPort());
+    }
+    
+    std::sort(usedPorts.begin(), usedPorts.end());
+
+    int portIdx = 0;
+    while (portIdx < usedPorts.size() && port == usedPorts[portIdx]) {
+        //increment by 3 since each instance uses 3 ports (instance, world-server, world-chat)
+        port += 3;
+        portIdx++;
+    }
+
+    return port;
 }
 
 void InstanceManager::AddPlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID) {
@@ -291,7 +309,8 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 
 	int maxPlayers = 999;
 	
-	instance = new Instance(mExternalIP, ++m_LastPort, mapID, ++m_LastInstanceID, cloneID, maxPlayers, maxPlayers, true, password);
+	uint32_t port = GetFreePort();
+	instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, maxPlayers, maxPlayers, true, password);
 
     //Start the actual process:
     std::string cmd = "start ./WorldServer.exe -zone ";
@@ -302,7 +321,7 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 
     cmd.append(std::to_string(mapID));
     cmd.append(" -port ");
-    cmd.append(std::to_string(m_LastPort));
+    cmd.append(std::to_string(port));
     cmd.append(" -instance ");
     cmd.append(std::to_string(m_LastInstanceID));
     cmd.append(" -maxclients ");
@@ -317,8 +336,6 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 
     system(cmd.c_str());
 
-	m_LastPort++; //Increment it again because the next port is for World<->Server comm.
-	m_LastPort++; //Increment it again because the next port is for World<->Chat comm.
 	m_Instances.push_back(instance);
 
 	if (instance) return instance;

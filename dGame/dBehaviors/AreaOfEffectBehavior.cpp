@@ -74,7 +74,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 		includeFaction = 1;
 	}
 
-	for (auto validTarget : context->GetValidTargets(m_ignoreFaction , includeFaction))
+	for (auto validTarget : context->GetValidTargets(m_ignoreFaction , includeFaction, m_TargetSelf == 1))
 	{
 		auto* entity = EntityManager::Instance()->GetEntity(validTarget);
 
@@ -155,4 +155,6 @@ void AreaOfEffectBehavior::Load()
 	this->m_ignoreFaction = GetInt("ignore_faction");
 
 	this->m_includeFaction = GetInt("include_faction");
+
+        this->m_TargetSelf = GetInt("target_self");
 }
