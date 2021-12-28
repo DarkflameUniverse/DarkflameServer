@@ -810,7 +810,67 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
         }
     }
 
-	if (chatCommand == "mailitem" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR && args.size() >= 2) {
+	if (chatCommand == "setmailsender" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		// Display help for the user
+		if (args.size() == 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Sets a custom sender name of the next mail command used, with a maximum of 20 characters");
+			ChatPackets::SendSystemMessage(sysAddr, u"/setmailsender <custom sender name>");
+			return;
+		}
+
+		std::stringstream ss;
+		for (auto string : args)
+			ss << string << " ";
+		
+		if (ss.str().length() > 20) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Custom sender length is too long. A custom sender name must be 20 characters or less.");
+			return;
+		}
+
+		entity->GetCharacter()->SetMailSender(ss.str());
+		return;
+	}
+
+	if (chatCommand == "setmailsub" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		// Display help for the user
+		if (args.size() == 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Sets the subject of the next mail command used");
+			ChatPackets::SendSystemMessage(sysAddr, u"/setmailsub <message subject>");
+			return;
+		}
+
+		std::stringstream ss;
+		for (auto string : args)
+			ss << string << " ";
+
+		entity->GetCharacter()->SetMailSubject(ss.str());
+		return;
+	}
+
+	if (chatCommand == "setmailbody" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		// Display help for the user
+		if (args.size() == 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Sets the body of the next mail command used");
+			ChatPackets::SendSystemMessage(sysAddr, u"/setmailbody <message body>");
+			return;
+		}
+
+		std::stringstream ss;
+		for (auto string : args)
+			ss << string << " ";
+
+		entity->GetCharacter()->SetMailBody(ss.str());
+		return;
+	}
+
+	if (chatCommand == "mailitem" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
+		// Display help for the user
+		if (args.size() <= 1) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Mails an item to a specified character");
+			ChatPackets::SendSystemMessage(sysAddr, u"/mailitem <name> <itemid> <count>");
+			return;
+		}
+
 		const auto& playerName = args[0];
 
 		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id from charinfo WHERE name=? LIMIT 1;");
@@ -828,7 +888,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (receiverID == 0)
 		{
 			ChatPackets::SendSystemMessage(sysAddr, u"Failed to find that player");
-			
+
 			return;
 		}
 
@@ -840,23 +900,123 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
+		int count = 1;
+
+		if (args.size() == 3) {
+			if (!GeneralUtils::TryParse(args[2], count))
+			{
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid item count.");
+				return;
+			}
+
+			count = std::stoi(args[2]);
+		}
+
 		uint64_t currentTime = time(NULL);
 		sql::PreparedStatement* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
 		ins->setUInt(1, entity->GetObjectID());
-		ins->setString(2, "Darkflame Universe");
+		ins->setString(2, entity->GetCharacter()->GetMailSender());
 		ins->setUInt(3, receiverID);
 		ins->setString(4, playerName);
 		ins->setUInt64(5, currentTime);
-		ins->setString(6, "Lost item");
-		ins->setString(7, "This is a replacement item for one you lost.");
+		ins->setString(6, entity->GetCharacter()->GetMailSubject());
+		ins->setString(7, entity->GetCharacter()->GetMailBody());
 		ins->setUInt(8, 0);
 		ins->setInt(9, lot);
 		ins->setInt(10, 0);
-		ins->setInt(11, 1);
+		ins->setInt(11, count);
 		ins->execute();
 		delete ins;
+
+		// Prepare the output string.
+		std::stringstream ss;
+		ss << "Sending " << count << " of item " << lot << " to " << playerName << " with custom sender = '" << entity->GetCharacter()->GetMailSender() << "', subject = '" << entity->GetCharacter()->GetMailSubject() << "', and body '" << entity->GetCharacter()->GetMailBody() << "'.";
+		auto sysMessage = ss.str();
+
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(sysMessage));
+
+		return;
+	}
+
+	if (chatCommand == "mailitemall" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
+		// Display help for the user
+		if (args.size() < 2) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Mails an item to all characters, or all online characters");
+			ChatPackets::SendSystemMessage(sysAddr, u"/mailitemall [all, online] <itemid> <count>");
+			return;
+		}
+
+		sql::PreparedStatement* stmt;
+		if (args[0] == "all") {
+			// Get a list of all characters on the server
+			stmt = Database::CreatePreppedStmt("select c.id, c.name from charinfo c;");
+		}
+		else if (args[0] == "online") {
+			// Get a list of all active characters on the server (based on activity_log)
+			stmt = Database::CreatePreppedStmt("select c.id, c.name from charinfo c, activity_log l where c.id = l.character_id and l.activity = 0 and l.id = (select max(ll.id) from activity_log ll where l.character_id = ll.character_id);");
+		}
+		else {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid all/online argument. Please type 'all' or 'online'.");
+			return;
+		}
+
 		
-		ChatPackets::SendSystemMessage(sysAddr, u"Mail sent");
+		sql::ResultSet* res = stmt->executeQuery();
+
+		uint32_t lot;
+
+		// Validate the given LOT.
+		if (!GeneralUtils::TryParse(args[1], lot))
+		{
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid item lot.");
+			return;
+		}
+
+		int count = 1;
+
+		if (args.size() == 3) {
+			if (!GeneralUtils::TryParse(args[1], count))
+			{
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid item count.");
+				return;
+			}
+			
+			count = std::stoi(args[2]);
+		}
+
+		// Mail each character from the player query.
+		while (res->next()) {
+
+			uint32_t receiverID = res->getUInt("id");
+			auto playerName = res->getString("name");
+
+			uint64_t currentTime = time(NULL);
+			sql::PreparedStatement* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
+			ins->setUInt(1, entity->GetObjectID());
+			ins->setString(2, entity->GetCharacter()->GetMailSender());
+			ins->setUInt(3, receiverID);
+			ins->setString(4, playerName);
+			ins->setUInt64(5, currentTime);
+			ins->setString(6, entity->GetCharacter()->GetMailSubject());
+			ins->setString(7, entity->GetCharacter()->GetMailBody());
+			ins->setUInt(8, 0);
+			ins->setInt(9, lot);
+			ins->setInt(10, 0);
+			ins->setInt(11, count);
+			ins->execute();
+			delete ins;
+
+
+			// Prepare the output string and display in sender's chat.
+			std::stringstream ss;
+			ss << "ItemID " << args[1] << " x" << std::to_string(count) << " sent to " << playerName << "(CharID " << std::to_string(receiverID) << ").";
+			auto sysMessage = ss.str();
+
+			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(sysMessage));
+		}
+
+		delete stmt;
+		delete res;
 
 		return;
 	}

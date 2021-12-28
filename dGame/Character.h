@@ -364,6 +364,42 @@ public:
      */
 	void SetAnnouncementMessage(const std::string& value) { m_AnnouncementMessage = value; }
 
+    /**
+     * Gets the custom sender name of a mail message (reserved for GMs)
+     * @return the custom sender name of the mail
+     */
+    const std::string& GetMailSender() const { return m_MailSender; }
+
+    /**
+     * Sets the custom sender name of the next GM mail message (reserved for GMs)
+     * @param value the custom sender name of the mail message
+     */
+    void SetMailSender(const std::string& value) { m_MailSender = value; }
+    
+    /**
+     * Gets the subject of a mail message that a character made (reserved for GMs)
+     * @return the title of the announcement a character made
+     */
+    const std::string& GetMailSubject() const { return m_MailSubject; }
+
+    /**
+     * Sets the subject of a mail message a character will make (reserved for GMs)
+     * @param value the subject to set
+     */
+    void SetMailSubject(const std::string& value) { m_MailSubject = value; }
+
+    /**
+     * Gets the body of a mail message a character made (reserved for GMs)
+     * @return the body of the mail
+     */
+    const std::string& GetMailBody() const { return m_MailBody; }
+
+    /**
+     * Sets the body of an mail message to make (reserved for GMs)
+     * @param value the body of the mail message
+     */
+    void SetMailBody(const std::string& value) { m_MailBody = value; }
+
 	/**
 	 * Called when the character has loaded into a zone
 	 */
@@ -594,6 +630,24 @@ private:
      * The body of an announcement this character made (reserved for GMs)
      */
 	std::string m_AnnouncementMessage;
+
+    /**
+     * The custom sender name of a mail message this character made (reserved for GMs)
+     * Default: "Darkflame Universe"
+     */
+    std::string m_MailSender = "Darkflame Universe";
+
+    /**
+     * The subject of a mail message this character made (reserved for GMs)
+     * Default: "Lost item"
+     */
+    std::string m_MailSubject = "Lost item";
+
+    /**
+     * The body of a mail message this character made (reserved for GMs)
+     * Default: "This is a replacement item for one you lost."
+     */
+    std::string m_MailBody = "This is a replacement item for one you lost.";
 
     /**
      * The spawn position of this character when loading in
