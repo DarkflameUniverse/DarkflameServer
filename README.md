@@ -289,10 +289,10 @@ Here is a summary of the commands available in-game. All commands are prefixed b
   </tr>
   <tr>
     <td>
-      instance-info
+      instanceinfo
     </td>
     <td>
-      /instance-info
+      /instanceinfo
     </td>
     <td>
       Displays in the chat the current zone, clone, and instance id. 

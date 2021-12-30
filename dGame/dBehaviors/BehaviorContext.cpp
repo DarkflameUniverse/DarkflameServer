@@ -149,7 +149,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bit
 		
 		return;
 	}
-	
+
 	behavior->Sync(this, bitStream, branch);
 }
 
@@ -325,7 +325,7 @@ void BehaviorContext::Reset()
 	this->scheduledUpdates.clear();
 }
 
-std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, int32_t includeFaction) const
+std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, int32_t includeFaction, bool targetSelf) const
 {
 	auto* entity = EntityManager::Instance()->GetEntity(this->caster);
 
@@ -353,21 +353,20 @@ std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, in
 		}
 	}
 
-	if (ignoreFaction || includeFaction || (!entity->HasComponent(COMPONENT_TYPE_PHANTOM_PHYSICS) && !entity->HasComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS) && targets.empty()))
+	if (ignoreFaction || includeFaction || (!entity->HasComponent(COMPONENT_TYPE_PHANTOM_PHYSICS) && targets.empty()))
 	{
-		DestroyableComponent* destroyableComponent;
+                DestroyableComponent* destroyableComponent;
 		if (!entity->TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent))
 		{
 			return targets;
 		}
 		
 		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS);
-
 		for (auto* candidate : entities)
 		{
 			const auto id = candidate->GetObjectID();
 			
-			if (destroyableComponent->CheckValidity(id, ignoreFaction || includeFaction))
+			if ((id != entity->GetObjectID() || targetSelf) && destroyableComponent->CheckValidity(id, ignoreFaction || includeFaction))
 			{
 				targets.push_back(id);
 			}

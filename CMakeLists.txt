@@ -123,6 +123,9 @@ make_directory(${CMAKE_BINARY_DIR}/res)
 # Create a /locale directory
 make_directory(${CMAKE_BINARY_DIR}/locale)
 
+# Create a /logs directory
+make_directory(${CMAKE_BINARY_DIR}/logs)
+
 # Copy ini files on first build
 if (NOT EXISTS ${PROJECT_BINARY_DIR}/authconfig.ini)
     configure_file(
