@@ -4,7 +4,7 @@
 #include "GameMessages.h"
 
 void VeMissionConsole::OnUse(Entity *self, Entity *user) {
-    Loot::DropActivityLoot(user, self, 12551);
+    LootGenerator::Instance().DropActivityLoot(user, self, 12551);
 
     auto* inventoryComponent = user->GetComponent<InventoryComponent>();
     if (inventoryComponent != nullptr) {

@@ -1,0 +1,52 @@
+name: Bug Report
+description: Report incorrect behavior in DarkflameServer
+title: "BUG: "
+labels: ["bug", "triage"]
+
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: "Make sure you've done the following:"
+      options:
+        - label: >
+            I have checked that this issue has not already been reported.
+          required: true
+        - label: >
+            I have validated that this issue is not a syntax error of either MySQL or SQLite.
+          required: true
+        - label: >
+            I have pulled the latest version of the main branch of DarkflameServer and have confirmed that the issue exists there.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Issue Description
+      description: >
+        Please provide a description of the issue. If this is an in-game bug, please also include pictures that showcase the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: >
+        Please provide a concise list of steps needed to reproduce this issue.
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: >
+        Please describe what you expected to happen instead of the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: >
+        Please include the environment you're running DarkflameServer on (for example: Windows, macOS, Ubuntu, WSL, etc).
+    validations:
+      required: true

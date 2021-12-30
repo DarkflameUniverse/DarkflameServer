@@ -13,6 +13,8 @@ public:
 	int32_t m_ignoreFaction;
 
 	int32_t m_includeFaction;
+
+        int32_t m_TargetSelf;
 	
 	/*
 	 * Inherited

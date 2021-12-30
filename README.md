@@ -236,6 +236,8 @@ The client script for the survival minigame has a bug in it which can cause the 
 * Change `PlayerReady(self)` to `onPlayerReady(self)`
 * Save the file, overriding readonly mode if required
 
+If you still experience the bug, try deleting/renaming `res/pack/scripts.pak`.
+
 ### Brick-By-Brick building
 
 Brick-By-Brick building requires `PATCHSERVERIP=0:` in the `boot.cfg` to point to a HTTP server which always returns `HTTP 404 - Not Found` for all requests. This can be achieved by pointing it to `localhost` while having `sudo python -m http.server 80` running in the background.
@@ -287,10 +289,10 @@ Here is a summary of the commands available in-game. All commands are prefixed b
   </tr>
   <tr>
     <td>
-      instance-info
+      instanceinfo
     </td>
     <td>
-      /instance-info
+      /instanceinfo
     </td>
     <td>
       Displays in the chat the current zone, clone, and instance id. 

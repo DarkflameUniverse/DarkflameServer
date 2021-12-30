@@ -102,7 +102,7 @@ struct BehaviorContext
 
 	void Reset();
 
-	std::vector<LWOOBJID> GetValidTargets(int32_t ignoreFaction = 0, int32_t includeFaction = 0) const;
+	std::vector<LWOOBJID> GetValidTargets(int32_t ignoreFaction = 0, int32_t includeFaction = 0, const bool targetSelf = false) const;
 	
 	explicit BehaviorContext(LWOOBJID originator, bool calculation = false);
 

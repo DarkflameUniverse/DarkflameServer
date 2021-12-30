@@ -1,0 +1,40 @@
+name: Feature Request
+description: Suggest an idea for DarkflameServer
+title: "ENH: "
+labels: ["enhancement", "triage"]
+
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: >
+        Please provide a description of what the problem is, e.g. "I wish I could use DarkflameServer to do [...]"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution you'd like
+      description: >
+        Please provide a description of the feature request, e.g. "`SlashCommandHandler.cpp` should get a new command `/unlimited-coins` that [...]", try to write a docstring for the desired feature
+    validations:
+      required: true
+  - type: textarea
+    id: implications
+    attributes:
+      label: Repository breaking implications
+      description: >
+        Please provide a description of how this feature will affect the DarkflameServer repository
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Describe alternatives you've considered
+      description: >
+        Please provide a description of any alternative solutions or features you've considered
+  - type: textarea
+    id: example
+    attributes:
+      label: Additional context
+      description: >
+        Please add any other context, code examples, or references to existing implementations about the feature request here
