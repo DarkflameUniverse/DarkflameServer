@@ -1,6 +1,6 @@
 # Installation under Windows
 ## First Run
-1. Navigate to the [Docker download page](https://hub.docker.com/editions/community/docker-ce-desktop-mac/) and download docker.
+1. Navigate to the [Docker download page](https://www.docker.com/products/docker-desktop) and download docker.
 
     ![Docker Download Page](docker/images/Docker_Download_Page.png)
 
