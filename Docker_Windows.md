@@ -15,7 +15,7 @@
     ![WSL 2 download](docker/images/WSL_2_download.png)
 
 6. Wait until Docker Desktop has started. You may skip the tutorial.
-7. You may want to disable "OpenDocker Dashboard at startup" in _Settings_ -> _General_
+7. You may want to disable "Open Docker Dashboard at startup" in _Settings_ -> _General_
 
     ![Disable Autostart](docker/images/DD_General_Settings.png)
 
