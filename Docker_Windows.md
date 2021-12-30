@@ -34,12 +34,12 @@
 
     ![Open PowerShell](docker/images/Open_Powershell.png)
 
-17. In the new window, paste (with right click) or type `docker-compose up -d --build` and confirm with enter.
+17. In the new window, paste (with right click) or type `docker compose up -d --build` and confirm with enter.
 18. Once you see the blinking cursor and the path again, setup has finished and the server is already running.
 
     ![setup done](docker/images/setup_finished.png)
 
-19. Create an admin account by pasting `docker-compose exec darkflame /app/MasterServer -a` and following the prompts.
+19. Create an admin account by pasting `docker compose exec darkflame /app/MasterServer -a` and following the prompts.
 
     ![admin account creation](docker/images/Account_Creation.png)
 
