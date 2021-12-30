@@ -26,6 +26,8 @@
 12. Inside the downloaded folder, copy `.env.example` and name the copy `.env`
 13. Open `.env` with notepad by right-clicking it and selecting _Open With_ -> _More apps_ -> _Notepad_.
 14. Change the text after `CLIENT_PATH=` to the location of your client. The folder you are pointing to must contain a folder called `client` which should contain the client files. Use `/` instead of `\`. For example, if you have `legouniverse.exe` at `C:\Users\someone\Downloads\LU\client\legouniverse.exe`, enter `C:/Users/someone/Downloads/LU`
+    > If you need the extra performance, place the client files in `\\wsl$\<your linux OS>`
+
 15. Optionally, you can change the number after `BUILD_THREADS=` to the number of cores / threads your processor has. If your computer crashes while building, you can try to reduce this value.
 16. After `ACCOUNT_MANAGER_SECRET=` paste a "SHA 256-bit Key" from https://keygen.io/
 17. If you are not only hosting a local server, change the value after `EXTERNAL_IP=` to the external IP address of your computer.
