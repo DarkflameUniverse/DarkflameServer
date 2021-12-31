@@ -126,28 +126,9 @@ Packet* dServer::ReceiveFromMaster() {
 					}
 
 					//When we handle these packets in World instead dServer, we just return the packet's pointer.
-					case MSG_MASTER_REQUEST_PERSISTENT_ID_RESPONSE: {
-						return packet;
-						break;
-					}
-
-					case MSG_MASTER_SESSION_KEY_RESPONSE: {
-						return packet;
-						break;
-					}
-
-					case MSG_MASTER_SHUTDOWN : {
-						return packet;
-						break;
-					}
-
-					case MSG_MASTER_AFFIRM_TRANSFER_REQUEST: {
-						return packet;
-						break;
-					}
-					
 					default:
 						mLogger->Log("Server", "Unknown packet ID from master: %i\n", packet->data[3]);
+						return packet;
 				}
 			}
 		}
