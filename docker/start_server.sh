@@ -27,6 +27,12 @@ function symlink_config_files() {
     ln -s /shared_configs/configs/worldconfig.ini /app/worldconfig.ini
 }
 
+# check to make sure the setup has completed
+while [ ! -f "/client/extracted" ] || [ ! -f "/client/migrated" ]; do
+    echo "Client setup not finished. Waiting for setup container to complete..."
+    sleep 5
+done
+
 if [[ ! -f "/app/initialized" ]]; then
     # setup symlinks for volume files
     symlink_client_files
@@ -36,12 +42,6 @@ if [[ ! -f "/app/initialized" ]]; then
 else
     echo "Server already initialized"
 fi
-
-# check to make sure the setup has completed
-while [ ! -f "/client/extracted" ] || [ ! -f "/client/migrated" ]; do
-    echo "Client setup not finished. Waiting for setup container to complete..."
-    sleep 5
-done
 
 # start the server
 echo "Starting MasterServer"
