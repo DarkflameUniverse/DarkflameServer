@@ -24,7 +24,7 @@
 10. Type `git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer`
 11. Once the command has completed (you can see you path again and can enter commands), close the window.
 12. Inside the downloaded folder, copy `.env.example` and name the copy `.env`
-13. Open `.env` with notepad by right-clicking it and selecting _Open With_ -> _More apps_ -> _Notepad_.
+13. Open `.env` with Notepad by right-clicking it and selecting _Open With_ -> _More apps_ -> _Notepad_.
 14. Change the text after `CLIENT_PATH=` to the location of your client. The folder you are pointing to must contain a folder called `client` which should contain the client files. Use `/` instead of `\`. For example, if you have `legouniverse.exe` at `C:\Users\someone\Downloads\LU\client\legouniverse.exe`, enter `C:/Users/someone/Downloads/LU`
     > If you need the extra performance, place the client files in `\\wsl$\<your linux OS>\...` to avoid working across file systems, see [Docker Best Practices](https://docs.docker.com/desktop/windows/wsl/#best-practices) and [WSL documentation](https://docs.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems).
 
