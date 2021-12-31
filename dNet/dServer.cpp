@@ -127,7 +127,6 @@ Packet* dServer::ReceiveFromMaster() {
 
 					//When we handle these packets in World instead dServer, we just return the packet's pointer.
 					default:
-						mLogger->Log("Server", "Unknown packet ID from master: %i\n", packet->data[3]);
 						return packet;
 				}
 			}
