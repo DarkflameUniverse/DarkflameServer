@@ -76,7 +76,8 @@ VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
 		m_Inventory.insert({12241, 0}); //Hot cocoa (from fb)
 	}
 
-    if (parent->GetLOT() == 9749 && Game::server->GetZoneID() == 1200) {
+	/*
+    	if (parent->GetLOT() == 9749 && Game::server->GetZoneID() == 1200) {
 		m_Inventory.clear();
 		m_Inventory.insert({12237, 0});
 		m_Inventory.insert({12338, 0});
@@ -85,7 +86,7 @@ VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
 		m_Inventory.insert({12296, 0});
 		m_Inventory.insert({12242, 0});
         m_Inventory.insert({12241, 0});
-	}
+	}*/
 }
 
 VendorComponent::~VendorComponent() = default;
