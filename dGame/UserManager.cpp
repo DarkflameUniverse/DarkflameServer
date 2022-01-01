@@ -577,7 +577,7 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 	
 	shirtStyle--; // to start at 0 instead of 1
 	uint32_t stylesCount = 34;
-	uint32_t colorId = getShirtColorId(shirtColor);
+	uint32_t colorId = GetShirtColorId(shirtColor);
 	
 	uint32_t startID = 4049; // item ID of the shirt with color 0 (red) and style 0 (plain)
 	
