@@ -63,6 +63,7 @@
 #include "GameConfig.h"
 
 std::string gen_random(const int len) {
+    std::srand(std::time(nullptr));
     static const char alphanum[] =
         "0123456789"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
