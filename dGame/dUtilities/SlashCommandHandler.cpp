@@ -61,6 +61,7 @@
 #include "SkillComponent.h"
 #include "VanityUtilities.h"
 #include "GameConfig.h"
+#include "ScriptedActivityComponent.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
     std::string chatCommand;
@@ -384,6 +385,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		if (chatCommand == "resurrect") {
+			ScriptedActivityComponent* scriptedActivityComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<ScriptedActivityComponent>();
+			
+			if (scriptedActivityComponent) { // check if user is in activity world and if so, they can't resurrect
+				ChatPackets::SendSystemMessage(sysAddr, u"You cannot resurrect in an activity world.");
+				return;
+			}
+			
 			GameMessages::SendResurrect(entity);
 		}
 
