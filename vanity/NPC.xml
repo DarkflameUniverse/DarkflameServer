@@ -414,7 +414,7 @@
             </locations>
         </zone>
     </npc>
-
+    <!--
     <npc name="Santa" lot="9749">
         <equipment>4049, 14093, 12283, 14805</equipment>
         <phrases>
@@ -435,6 +435,7 @@
             </locations>
         </zone>
     </npc>
+    -->
 
     <party zone="1200" chance="0.0">
         <locations>
