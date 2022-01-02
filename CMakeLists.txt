@@ -428,8 +428,10 @@ else() # Build from source
 	
 	if(GENERATOR_IS_MULTI_CONFIG)
 		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/${MARIADB_SHARED_LIBRARY_NAME}")
+		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb/RelWithDebInfo")
 	else()
 		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
+		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb")
 	endif()
 
 	set(MARIADB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
@@ -439,16 +441,16 @@ else() # Build from source
 						${PROJECT_BINARY_DIR}/$<CONFIG>/plugins
 
 						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-						${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll
+						${MARIADB_SHARED_LIBRARY_LOCATION}
 						${PROJECT_BINARY_DIR}/$<CONFIG>
-	
+
 						COMMAND ${CMAKE_COMMAND} -E copy_if_different
-						${BINARY_DIR}/libmariadb/RelWithDebInfo/caching_sha2_password${MARIADB_PLUGIN_SUFFIX}
-						${BINARY_DIR}/libmariadb/RelWithDebInfo/client_ed25519${MARIADB_PLUGIN_SUFFIX}
-						${BINARY_DIR}/libmariadb/RelWithDebInfo/dialog${MARIADB_PLUGIN_SUFFIX}
-						${BINARY_DIR}/libmariadb/RelWithDebInfo/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
-						${BINARY_DIR}/libmariadb/RelWithDebInfo/sha256_password${MARIADB_PLUGIN_SUFFIX}
-						${PROJECT_BINARY_DIR}/$<CONFIG>/plugins)
+						${MARIADB_PLUGINS_LOCATION}/caching_sha2_password${MARIADB_PLUGIN_SUFFIX}
+						${MARIADB_PLUGINS_LOCATION}/client_ed25519${MARIADB_PLUGIN_SUFFIX}
+						${MARIADB_PLUGINS_LOCATION}/dialog${MARIADB_PLUGIN_SUFFIX}
+						${MARIADB_PLUGINS_LOCATION}/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
+						${MARIADB_PLUGINS_LOCATION}/sha256_password${MARIADB_PLUGIN_SUFFIX}
+						${PROJECT_BINARY_DIR}/$<CONFIG>plugins)
 endif()
 
 add_library (mariadbConnCpp SHARED IMPORTED)
