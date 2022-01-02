@@ -375,7 +375,6 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	# MariaDB uses plugins that the database needs to load, the prebuilt binaries by default will try to find the libraries in system directories,
 	# so set this define and the servers will set the MARIADB_PLUGIN_DIR environment variable to the appropriate directory.
 	# Plugin directory is determined at dll load time (this will happen before main()) so we need to delay the dll load so that we can set the environment variable
-	# Binaries built from source point to the correct directory by default
 	add_link_options(/DELAYLOAD:mariadbcpp.dll)
 	add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADB_CPP_CONNECTOR_DIR}/plugin")
 else() # Build from source
@@ -387,48 +386,70 @@ else() # Build from source
 	include(ExternalProject)
 	if(WIN32)
 		set(MARIADB_EXTRA_COMPILE_FLAGS /EHsc)
+		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_MSI=OFF)
+	elseif(APPLE)
+		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0)
+		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_EXTERNAL_ZLIB=ON -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR})
 	else()
 		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0)
 	endif()
 
-	if(WIN32)
-		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_MSI=OFF)
-	elseif(APPLE)
-		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_EXTERNAL_ZLIB=ON)
+	if(GENERATOR_IS_MULTI_CONFIG)
+		set(MARIADB_CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR}/$<CONFIG>)
+	else()
+		set(MARIADB_CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR})
 	endif()
 
 	ExternalProject_Add(mariadb_connector_cpp
 						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
 						CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
+									-DCMAKE_INSTALL_PREFIX=${MARIADB_CMAKE_INSTALL_PREFIX} # Points the connector to the correct plugin directory
 									${MARIADB_EXTRA_CMAKE_ARGS}
 						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
 						BUILD_COMMAND cmake --build . --config RelWithDebInfo
 						INSTALL_COMMAND "")
 
 	ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
-	if(WIN32)
-		# Need to copy the dll's to the exes directory once they're built or the exe won't run
-		add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
-						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-						${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll
-						${PROJECT_BINARY_DIR}/$<CONFIG>)
 
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll")
+	if(WIN32)
+		set(MARIADB_SHARED_LIBRARY_NAME mariadbcpp.dll)
+		set(MARIADB_PLUGIN_SUFFIX .dll)
 		set(MARIADB_IMPLIB_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
-	elseif(GENERATOR_IS_MULTI_CONFIG)
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/libmariadbcpp.${CMAKE_SHARED_LIBRARY_SUFFIX}")
-		set(MARIADB_IMPLIB_LOCATION "")
 	else()
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/libmariadbcpp.${CMAKE_SHARED_LIBRARY_SUFFIX}")
-		set(MARIADB_IMPLIB_LOCATION "")
+		set(MARIADB_SHARED_LIBRARY_NAME libmariadbcpp${CMAKE_SHARED_LIBRARY_SUFFIX})
+		set(MARIADB_PLUGIN_SUFFIX .so)
 	endif()
+	
+	if(GENERATOR_IS_MULTI_CONFIG)
+		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/${MARIADB_SHARED_LIBRARY_NAME}")
+	else()
+		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
+	endif()
+
 	set(MARIADB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
 
+	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
+						COMMAND ${CMAKE_COMMAND} -E make_directory
+						${PROJECT_BINARY_DIR}/$<CONFIG>/plugins
+
+						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+						${BINARY_DIR}/RelWithDebInfo/mariadbcpp.dll
+						${PROJECT_BINARY_DIR}/$<CONFIG>
+	
+						COMMAND ${CMAKE_COMMAND} -E copy_if_different
+						${BINARY_DIR}/libmariadb/RelWithDebInfo/caching_sha2_password${MARIADB_PLUGIN_SUFFIX}
+						${BINARY_DIR}/libmariadb/RelWithDebInfo/client_ed25519${MARIADB_PLUGIN_SUFFIX}
+						${BINARY_DIR}/libmariadb/RelWithDebInfo/dialog${MARIADB_PLUGIN_SUFFIX}
+						${BINARY_DIR}/libmariadb/RelWithDebInfo/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
+						${BINARY_DIR}/libmariadb/RelWithDebInfo/sha256_password${MARIADB_PLUGIN_SUFFIX}
+						${PROJECT_BINARY_DIR}/$<CONFIG>/plugins)
 endif()
 
 add_library (mariadbConnCpp SHARED IMPORTED)
 set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_LOCATION ${MARIADB_SHARED_LIBRARY_LOCATION})
-set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_IMPLIB ${MARIADB_IMPLIB_LOCATION})
+if(WIN32)
+	set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_IMPLIB ${MARIADB_IMPLIB_LOCATION})
+endif()
 target_include_directories(mariadbConnCpp INTERFACE ${MARIADB_INCLUDE_DIR})
 add_dependencies(mariadbConnCpp mariadb_connector_cpp)
 
