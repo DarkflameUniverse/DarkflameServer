@@ -498,7 +498,7 @@ Entity* DestroyableComponent::GetKiller() const
 	return EntityManager::Instance()->GetEntity(m_KillerID);
 }
 
-bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignoreFactions) const
+bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignoreFactions, const bool targetEnemy, const bool targetFriend) const
 {
 	auto* entity = EntityManager::Instance()->GetEntity(target);
 
@@ -537,15 +537,19 @@ bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignor
 
 	auto candidateList = destroyable->GetFactionIDs();
 
+
+	bool isEnemy = false;
+
 	for (auto value : candidateList)
 	{
 		if (std::find(enemyList.begin(), enemyList.end(), value) != enemyList.end())
 		{
-			return true;
+			isEnemy = true;
+			break;
 		}
 	}
 
-	return false;
+	return (isEnemy && targetEnemy) || (!isEnemy && targetFriend);
 }
 
 
