@@ -400,16 +400,10 @@ else() # Build from source
 		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0)
 	endif()
 
-	if(GENERATOR_IS_MULTI_CONFIG)
-		set(MARIADB_CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR}/$<CONFIG>)
-	else()
-		set(MARIADB_CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR})
-	endif()
-
 	ExternalProject_Add(mariadb_connector_cpp
 						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
 						CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
-									-DCMAKE_INSTALL_PREFIX=${MARIADB_CMAKE_INSTALL_PREFIX} # Points the connector to the correct plugin directory
+									-DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/mariadbcpp/plugins # Points the connector to the correct plugin directory
 									${MARIADB_EXTRA_CMAKE_ARGS}
 						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
 						BUILD_COMMAND cmake --build . --config RelWithDebInfo
@@ -428,9 +422,11 @@ else() # Build from source
 	
 	if(GENERATOR_IS_MULTI_CONFIG)
 		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/${MARIADB_SHARED_LIBRARY_NAME}")
+		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}/$<CONFIG>")
 		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb/RelWithDebInfo")
 	else()
 		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
+		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}")
 		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb")
 	endif()
 
@@ -438,11 +434,12 @@ else() # Build from source
 
 	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
 						COMMAND ${CMAKE_COMMAND} -E make_directory
-						${PROJECT_BINARY_DIR}/$<CONFIG>/plugins
-
+						${PROJECT_BINARY_DIR}/mariadbcpp/plugins
+						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
+						
 						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
 						${MARIADB_SHARED_LIBRARY_LOCATION}
-						${PROJECT_BINARY_DIR}/$<CONFIG>
+						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
 
 						COMMAND ${CMAKE_COMMAND} -E copy_if_different
 						${MARIADB_PLUGINS_LOCATION}/caching_sha2_password${MARIADB_PLUGIN_SUFFIX}
@@ -450,7 +447,7 @@ else() # Build from source
 						${MARIADB_PLUGINS_LOCATION}/dialog${MARIADB_PLUGIN_SUFFIX}
 						${MARIADB_PLUGINS_LOCATION}/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
 						${MARIADB_PLUGINS_LOCATION}/sha256_password${MARIADB_PLUGIN_SUFFIX}
-						${PROJECT_BINARY_DIR}/$<CONFIG>plugins)
+						${PROJECT_BINARY_DIR}/mariadbcpp/plugins)
 endif()
 
 add_library (mariadbConnCpp SHARED IMPORTED)
