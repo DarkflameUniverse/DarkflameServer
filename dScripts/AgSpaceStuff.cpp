@@ -20,7 +20,7 @@ void AgSpaceStuff::OnStartup(Entity* self) {
 
 	self->SetVar(u"ShakeObject", ref->GetObjectID());
 
-	self->AddTimer("ShipShakeIdle", 1.0f);
+	self->AddTimer("ShipShakeIdle", 2.0f);
 	self->SetVar(u"RandomTime", 10);
 }
 
