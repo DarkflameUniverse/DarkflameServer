@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
 
     runs-on: ubuntu-latest
 
@@ -15,11 +15,17 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: true
-    - name: cmake
+    - name: cmake-configure
       uses: lukka/run-cmake@v10
       with:
         configurePreset: 'default'
+    - name: cmake-build
+      uses: lukka/run-cmake@v10
+      with:
         buildPreset: 'default'
+    - name: cmake-test
+      uses: lukka/run-cmake@v10
+      with:
         testPreset: 'default'
     - name: artifacts
       uses: actions/upload-artifact@v2
