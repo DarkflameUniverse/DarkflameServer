@@ -20,6 +20,7 @@ jobs:
       with:
         configurePreset: 'default'
         buildPreset: 'default'
+        testPreset: 'default'
     - name: artifacts
       uses: actions/upload-artifact@v2
       with:
