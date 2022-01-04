@@ -145,7 +145,7 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	LWOOBJID playerID;
 	inStream.Read(playerID);
 	inStream.Read(playerID);
-	std::string friendName = PacketUtils::ReadString(16, packet, true);
+	std::string friendName = PacketUtils::ReadString(0x14, packet, true);
 
 	//we'll have to query the db here to find the user, since you can delete them while they're offline.
 	//First, we need to find their ID:
@@ -162,24 +162,20 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	delete stmt;
 
 	//Set our bits to convert to the BIG BOY objectID.
-	friendID = GeneralUtils::ClearBit(friendID, OBJECT_BIT_CHARACTER);
-	friendID = GeneralUtils::ClearBit(friendID, OBJECT_BIT_PERSISTENT);
+	friendID = GeneralUtils::SetBit(friendID, OBJECT_BIT_CHARACTER);
+	friendID = GeneralUtils::SetBit(friendID, OBJECT_BIT_PERSISTENT);
 
 	//YEET:
 	auto deletestmt = Database::CreatePreppedStmt("DELETE FROM `friends` WHERE player_id=? AND friend_id=? LIMIT 1");
 	deletestmt->setUInt64(1, playerID);
 	deletestmt->setUInt64(2, friendID);
 	deletestmt->execute();
+	// We do the same query, but backwards because we do not
+	// know who sent the friend request initially.
+	deletestmt->setUInt64(1, friendID);
+	deletestmt->setUInt64(2, playerID);
+	deletestmt->execute();
 	delete deletestmt;
-
-	//because I'm lazy and they can be reversed:
-	{
-		auto deletestmt = Database::CreatePreppedStmt("DELETE FROM `friends` WHERE player_id=? AND friend_id=? LIMIT 1");
-		deletestmt->setUInt64(1, friendID);
-		deletestmt->setUInt64(2, playerID);
-		deletestmt->execute();
-		delete deletestmt;
-	}
 
 	//Now, we need to send an update to notify the sender (and possibly, receiver) that their friendship has been ended:
 	auto goonA = playerContainer.GetPlayerData(playerID);
