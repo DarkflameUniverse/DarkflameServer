@@ -231,6 +231,9 @@ if(WIN32)
 link_directories(${mysql_SOURCE_DIR}/lib64/vs14)
 endif(WIN32)
 
+# Third-Party libraries
+add_subdirectory(thirdparty)
+
 # Source Code
 file(
 GLOB SOURCES
@@ -263,47 +266,6 @@ RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 ${PROJECT_SOURCE_DIR}/dChatServer/*.cpp
 )
 
-# Source Code for raknet
-file(
-GLOB SOURCES_RAKNET
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/thirdparty/raknet/Source/*.cpp
-)
-
-# Source Code for recast
-file(
-GLOB SOURCES_RECAST
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Recast/Source/*.cpp
-)
-
-# Source Code for detour
-file(
-GLOB SOURCES_DETOUR
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Detour/Source/*.cpp
-)
-
-# Source Code for tinyxml2
-file(
-GLOB SOURCES_TINYXML2
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.cpp
-)
-
-# Source Code for libbcrypt
-file(
-GLOB SOURCES_LIBBCRYPT
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/*.c
-${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/src/*.c
-)
-
 # Source Code for dCommon
 file(
 GLOB SOURCES_DCOMMON
@@ -327,8 +289,6 @@ LIST_DIRECTORIES false
 RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 ${PROJECT_SOURCE_DIR}/dDatabase/*.cpp
 ${PROJECT_SOURCE_DIR}/dDatabase/Tables/*.cpp
-${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.cpp
-${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.c
 )
 
 # Source Code for dNet
@@ -371,14 +331,6 @@ RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 ${PROJECT_SOURCE_DIR}/dPhysics/*.cpp
 )
 
-# 3rdparty static libraries:
-#add_library(zlib ${SOURCES_ZLIB})
-add_library(raknet ${SOURCES_RAKNET})
-add_library(tinyxml2 ${SOURCES_TINYXML2})
-add_library(detour ${SOURCES_DETOUR})
-add_library(recast ${SOURCES_RECAST})
-add_library(libbcrypt ${SOURCES_LIBBCRYPT})
-
 # Our static libraries:
 add_library(dCommon ${SOURCES_DCOMMON})
 add_library(dChatFilter ${SOURCES_DCHATFILTER})
@@ -387,6 +339,7 @@ add_library(dNet ${SOURCES_DNET})
 add_library(dGame ${SOURCES_DGAME})
 add_library(dZoneManager ${SOURCES_DZM})
 add_library(dPhysics ${SOURCES_DPHYSICS})
+target_link_libraries(dDatabase sqlite3)
 target_link_libraries(dNet dCommon) #Needed because otherwise linker errors occur.
 target_link_libraries(dCommon ZLIB::ZLIB)
 target_link_libraries(dCommon libbcrypt)
@@ -410,9 +363,6 @@ target_link_libraries(WorldServer recast)
 target_link_libraries(WorldServer raknet)
 target_link_libraries(WorldServer ${MYSQL_LIB})
 if(UNIX)
-target_link_libraries(WorldServer pthread)
-target_link_libraries(WorldServer dl)
-
 if(NOT APPLE AND __include_backtrace__)
 target_link_libraries(WorldServer backtrace)
 target_link_libraries(MasterServer backtrace)
@@ -432,10 +382,6 @@ target_link_libraries(AuthServer dDatabase)
 target_link_libraries(AuthServer dNet)
 target_link_libraries(AuthServer raknet)
 target_link_libraries(AuthServer ${MYSQL_LIB})
-if(UNIX)
-target_link_libraries(AuthServer pthread)
-target_link_libraries(AuthServer dl)
-endif(UNIX)
 if(WIN32)
 target_link_libraries(AuthServer ws2_32)
 endif(WIN32)
@@ -446,10 +392,6 @@ target_link_libraries(MasterServer dDatabase)
 target_link_libraries(MasterServer dNet)
 target_link_libraries(MasterServer raknet)
 target_link_libraries(MasterServer ${MYSQL_LIB})
-if(UNIX)
-target_link_libraries(MasterServer pthread)
-target_link_libraries(MasterServer dl)
-endif(UNIX)
 if(WIN32)
 target_link_libraries(MasterServer ws2_32)
 endif(WIN32)
@@ -461,10 +403,6 @@ target_link_libraries(ChatServer dDatabase)
 target_link_libraries(ChatServer dNet)
 target_link_libraries(ChatServer raknet)
 target_link_libraries(ChatServer ${MYSQL_LIB})
-if(UNIX)
-target_link_libraries(ChatServer pthread)
-target_link_libraries(ChatServer dl)
-endif(UNIX)
 if(WIN32)
 target_link_libraries(ChatServer ws2_32)
 endif(WIN32)
