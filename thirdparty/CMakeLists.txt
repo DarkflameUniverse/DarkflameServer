@@ -61,6 +61,6 @@ target_link_libraries(sqlite3 pthread dl m)
 
 #  -Wno-unused-result -Wno-unknown-pragmas -fpermissive
 target_compile_options(sqlite3 PRIVATE "-Wno-return-local-addr" "-Wno-maybe-uninitialized")
-target_compile_options(raknet PRIVATE "-Wno-write-strings" "-Wformat-overflow=0")
+target_compile_options(raknet PRIVATE "-Wno-write-strings" "-Wformat-overflow=0" "-Wformat=0")
 target_compile_options(libbcrypt PRIVATE "-Wno-implicit-function-declaration" "-Wno-int-conversion")
 endif(UNIX)
