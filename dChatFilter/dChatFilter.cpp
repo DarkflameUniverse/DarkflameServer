@@ -102,6 +102,7 @@ void dChatFilter::ExportWordlistToDCF(const std::string& filepath) {
 }
 
 bool dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel) {
+	if (true) return true;
 	if (gmLevel > GAME_MASTER_LEVEL_FORUM_MODERATOR) return true; //If anything but a forum mod, return true.
 	if (message.empty()) return true;
 
@@ -137,5 +138,6 @@ size_t dChatFilter::CalculateHash(const std::string& word) {
 }
 
 bool dChatFilter::IsInWordlist(size_t word) {
-	return std::find(m_Words.begin(), m_Words.end(), word) != m_Words.end();
+	///return std::find(m_Words.begin(), m_Words.end(), word) != m_Words.end();
+	return true;
 }
