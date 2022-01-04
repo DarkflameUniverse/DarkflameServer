@@ -532,12 +532,12 @@ bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignor
 		return true;
 	}
 
-	// Get if the target entity is an enemy
+	// Get if the target entity is an enemy and friend
 	bool isEnemy = IsEnemy(targetEntity);
+	bool isFriend = IsFriend(targetEntity);
 
 	// Return true if the target type matches what we are targeting
-	// Friends are entities who are not enemies
-	return (isEnemy && targetEnemy) || (!isEnemy && targetFriend);
+	return (isEnemy && targetEnemy) || (isFriend && targetFriend);
 }
 
 
