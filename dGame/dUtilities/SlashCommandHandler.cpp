@@ -611,6 +611,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "runmacro" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		if (args.size() != 1) return;
 
+		// Only process if input does not contain separator charaters
+		if (args[0].find("/") != std::string::npos) return;
+		if (args[0].find("\\") != std::string::npos) return;
+
 		std::ifstream infile("./res/macros/" + args[0] + ".scm");
 
 		if (infile.good()) {
