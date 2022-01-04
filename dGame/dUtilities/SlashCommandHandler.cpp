@@ -810,7 +810,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
         }
     }
 
-	if (chatCommand == "setmailsender" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+	if (chatCommand == "setmailsender" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
 		// Display help for the user
 		if (args.size() == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Sets a custom sender name of the next mail command used, with a maximum of 20 characters");
@@ -832,7 +832,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "setmailsub" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+	else if (chatCommand == "setmailsub" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
 		// Display help for the user
 		if (args.size() == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Sets the subject of the next mail command used");
@@ -849,7 +849,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "setmailbody" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+	else if (chatCommand == "setmailbody" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
 		// Display help for the user
 		if (args.size() == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Sets the body of the next mail command used");
@@ -866,7 +866,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "mailitem" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
+	else if (chatCommand == "mailitem" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
 		// Display help for the user
 		if (args.size() < 2) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Mails an item to a specified character");
@@ -947,7 +947,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "mailitemall" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
+	else if (chatCommand == "mailitemall" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_MODERATOR) {
 		// Display help for the user
 		if (args.size() < 2) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Mails an item to all characters, or all online characters");
@@ -984,7 +984,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		int count = 1;
 
 		if (args.size() == 3) {
-			if (!GeneralUtils::TryParse(args[1], count))
+			if (!GeneralUtils::TryParse(args[2], count))
 			{
 				ChatPackets::SendSystemMessage(sysAddr, u"Invalid item count.");
 				return;
