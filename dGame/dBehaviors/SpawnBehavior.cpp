@@ -7,6 +7,8 @@
 #include "dLogger.h"
 #include "DestroyableComponent.h"
 #include "RebuildComponent.h"
+#include "ScriptComponent.h"
+#include "ScriptedPowerupSpawner.h"
 
 void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
 {
@@ -74,9 +76,25 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 		context->RegisterEndBehavior(this, branch, entity->GetObjectID());
 	}
 
-	entity->AddCallbackTimer(60, [entity] () {
-		entity->Smash();
-	});
+	// Determine if the entity spawns powerups
+	bool isPowerupSpawner = false;
+
+	// Get all attached scripts
+	std::vector<ScriptComponent*> scriptComps = entity->GetScriptComponents();
+	for (ScriptComponent* scriptComp : scriptComps) {
+		// Check if the script can be casted to a Powerup Spawner
+		if (ScriptedPowerupSpawner* script = dynamic_cast<ScriptedPowerupSpawner*>(scriptComp->GetScript())){
+			isPowerupSpawner = true;
+			break;
+		}
+	}
+
+	if (!isPowerupSpawner) {
+		// Entity does not have a scripted Powerup Spawner, so it wont smash itself
+		entity->AddCallbackTimer(60, [entity] () {
+			entity->Smash();
+		});
+	}
 }
 
 void SpawnBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) 

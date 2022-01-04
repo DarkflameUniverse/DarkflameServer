@@ -15,6 +15,10 @@ void ScriptedPowerupSpawner::OnTimerDone(Entity *self, std::string message) {
 
         const auto itemLOT = self->GetVar<LOT>(u"lootLOT");
 
+        // Create the drops manually, since they don't exist in the matrix
+        std::unordered_map<LOT, int32_t> drops;
+        drops.insert({itemLOT, 1});
+
         // Spawn the required number of powerups
         auto* owner = EntityManager::Instance()->GetEntity(self->GetSpawnerID());
         if (owner != nullptr) {
@@ -24,17 +28,17 @@ void ScriptedPowerupSpawner::OnTimerDone(Entity *self, std::string message) {
                     renderComponent->PlayEffect(0, u"cast", "N_cast");
                 }
 
-                LootGenerator::Instance().DropLoot(owner, self, itemLOT, 0, 1);
+                // Drop the given LOTs, avoiding the LootMatrix since there
+                // are no entries for PowerSpawners
+                LootGenerator::Instance().DropLoot(owner, self, drops, 0, 1);
             }
 
             // Increment the current cycle
             if (self->GetVar<uint32_t>(u"currentCycle") < self->GetVar<uint32_t>(u"numCycles")) {
                 self->AddTimer("timeToSpawn", self->GetVar<float_t>(u"secPerCycle"));
                 self->SetVar<uint32_t>(u"currentCycle", self->GetVar<uint32_t>(u"currentCycle") + 1);
-            }
-
-            // Kill if this was the last cycle
-            if (self->GetVar<uint32_t>(u"currentCycle") >= self->GetVar<uint32_t>(u"numCycles")) {
+            } else {
+                // Kill if this was the last cycle
                 self->AddTimer("die", self->GetVar<float_t>(u"deathDelay"));
             }
         }

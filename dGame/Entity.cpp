@@ -1222,7 +1222,9 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 }
 
 void Entity::Update(const float deltaTime) {
-	for (int i = 0; i < m_Timers.size(); i++) {
+	// Loop over timers in reverse order since we may be removing some
+	// Also prevents from updating timers that were added while looping
+	for (int i = m_Timers.size() - 1; i >= 0; i--) {
 		m_Timers[i]->Update(deltaTime);
 		if (m_Timers[i]->GetTime() <= 0) {
 			const auto timerName = m_Timers[i]->GetName();
