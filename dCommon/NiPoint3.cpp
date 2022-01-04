@@ -93,14 +93,9 @@ Vector3 NiPoint3::CrossProduct(const Vector3& vec) const {
 
 //! Unitize the vector
 NiPoint3 NiPoint3::Unitize(void) const {
-    NiPoint3 unitVec;
     float length = this->Length();
-
-    unitVec.x = length != 0 ? this->x / length : 0;
-    unitVec.y = length != 0 ? this->y / length : 0;
-    unitVec.z = length != 0 ? this->z / length : 0;
-
-    return unitVec;
+    
+    return length != 0 ? *this / length : NiPoint3::ZERO;
 }
 
 
