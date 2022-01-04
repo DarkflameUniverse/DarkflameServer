@@ -567,7 +567,7 @@ const NiPoint3& Character::GetRespawnPoint(LWOMAPID map) const
 	return pair->second;
 }
 
-void Character::SetCoins(int64_t newCoins, int32_t lootSource) {
+void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource) {
 	if (newCoins < 0)
 	{
 		newCoins = 0;
