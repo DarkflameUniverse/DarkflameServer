@@ -482,7 +482,7 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_currency > 0) {
-        int32_t lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+        eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
         character->SetCoins(character->GetCoins() + info->reward_currency, lootSource);
     }
 
