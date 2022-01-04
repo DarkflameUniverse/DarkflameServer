@@ -23,6 +23,7 @@ jobs:
         testPreset: 'default'
     - name: artifacts
       uses: actions/upload-artifact@v2
+      if: ${{ github.ref == 'ref/head/main' }}
       with:
         name: linux-build
         path: |
