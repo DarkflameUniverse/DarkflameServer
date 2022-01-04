@@ -451,7 +451,7 @@ void Mission::YieldRewards() {
 
             auto count = pair.second > 0 ? pair.second : 1;
 
-            // Sanitfy check, 6 is the max any mission yields
+            // Sanity check, 6 is the max any mission yields
             if (count > 6) {
                 count = 0;
             }
@@ -460,7 +460,7 @@ void Mission::YieldRewards() {
         }
 
         if (info->reward_currency_repeatable > 0) {
-            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable);
+            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable, LOOT_SOURCE_MISSION);
         }
 
         return;
@@ -480,7 +480,7 @@ void Mission::YieldRewards() {
 
         auto count = pair.second > 0 ? pair.second : 1;
 
-        // Sanitfy check, 6 is the max any mission yields
+        // Sanity check, 6 is the max any mission yields
         if (count > 6) {
             count = 0;
         }
@@ -489,7 +489,8 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_currency > 0) {
-        character->SetCoins(character->GetCoins() + info->reward_currency, info->isMission);
+        eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+        character->SetCoins(character->GetCoins() + info->reward_currency, lootSource);
     }
 
     if (info->reward_maxinventory > 0) {
