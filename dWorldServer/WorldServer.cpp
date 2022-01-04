@@ -73,6 +73,7 @@ namespace Game {
 }
 
 bool chatDisabled = false;
+bool chatConnected = false;
 bool worldShutdownSequenceStarted = false;
 bool worldShutdownSequenceComplete = false;
 void WorldShutdownSequence();
@@ -212,6 +213,7 @@ int main(int argc, char** argv) {
 	Packet* packet = nullptr;
 	int framesSinceLastFlush = 0;
 	int framesSinceMasterDisconnect = 0;
+	int framesSinceChatDisconnect = 0;
 	int framesSinceLastUsersSave = 0;
 	int framesSinceLastSQLPing = 0;
 	int framesSinceLastUser = 0;
@@ -318,6 +320,19 @@ int main(int argc, char** argv) {
 			}
 		}
 		else framesSinceMasterDisconnect = 0;
+
+		// Check if we're still connected to chat:
+		if (!chatConnected) {
+			framesSinceChatDisconnect++;
+
+			// Attempt to reconnect every 30 seconds.
+			if (framesSinceChatDisconnect >= 2000) {
+				framesSinceChatDisconnect = 0;
+
+				Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
+			}
+		}
+		else framesSinceChatDisconnect = 0;
 
 		//In world we'd update our other systems here.
 
@@ -460,7 +475,7 @@ int main(int argc, char** argv) {
 
 			if (framesSinceMasterStatus >= 200)
 			{
-				Game::logger->Log("WorldServer", "Finished loading world, ready up!\n");
+				Game::logger->Log("WorldServer", "Finished loading world with zone (%i), ready up!\n", Game::server->GetZoneID());
 
 				MasterPackets::SendWorldReady(Game::server, Game::server->GetZoneID(), Game::server->GetInstanceID());
 
@@ -531,7 +546,7 @@ int main(int argc, char** argv) {
 	if (Game::physicsWorld) Game::physicsWorld = nullptr;
 	if (Game::zoneManager) delete Game::zoneManager;
 
-	Game::logger->Log("Test", "Quitting\n");
+	Game::logger->Log("WorldServer", "Shutdown complete, zone (%i), instance (%i)\n", Game::server->GetZoneID(), instanceID);
 
 	Metrics::Clear();
 	Database::Destroy();
@@ -558,12 +573,16 @@ dLogger * SetupLogger(int zoneID, int instanceID) {
 
 void HandlePacketChat(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-		Game::logger->Log("WorldServer", "Lost our connection to chat.\n");
+        Game::logger->Log("WorldServer", "Lost our connection to chat, zone(%i), instance(%i)\n", Game::server->GetZoneID(), Game::server->GetInstanceID());
+		
+		chatConnected = false;
 	}
 
 	if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
-		Game::logger->Log("WorldServer", "Established connection to chat\n");
+		Game::logger->Log("WorldServer", "Established connection to chat, zone(%i), instance (%i)\n",Game::server -> GetZoneID(), Game::server -> GetInstanceID());
 		Game::chatSysAddr = packet->systemAddress;
+
+		chatConnected = true;
 	}
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
@@ -844,7 +863,7 @@ void HandlePacket(Packet* packet) {
 
 			case MSG_MASTER_SHUTDOWN: {
 				worldShutdownSequenceStarted = true;
-				Game::logger->Log("WorldServer", "Got shutdown request\n");
+				Game::logger->Log("WorldServer", "Got shutdown request from master, zone (%i), instance (%i)\n", Game::server->GetZoneID(), Game::server->GetInstanceID());
 				break;
 			}
 
@@ -1167,11 +1186,11 @@ void HandlePacket(Packet* packet) {
 					}
                 }
 				else {
-					Game::logger->Log("WorldMain", "Couldn't find character to log in with for user %s (%i)!\n", user->GetUsername().c_str(), user->GetAccountID());
+					Game::logger->Log("WorldServer", "Couldn't find character to log in with for user %s (%i)!\n", user->GetUsername().c_str(), user->GetAccountID());
 					Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_CHARACTER_NOT_FOUND);
 				}
             } else {
-                Game::logger->Log("WorldMain", "Couldn't get user for level load complete!\n");
+                Game::logger->Log("WorldServer", "Couldn't get user for level load complete!\n");
             }
             break;
         }
@@ -1277,7 +1296,7 @@ void WorldShutdownSequence()
 	auto t = std::chrono::high_resolution_clock::now();
 	auto ticks = 0;
 
-	printf("Attempting to shutdown world, max 10 seconds...");;
+	Game::logger->Log("WorldServer", "Attempting to shutdown world, zone (%i), instance (%i), max 10 seconds...\n", Game::server->GetZoneID(), instanceID);
 
 	while (true)
 	{

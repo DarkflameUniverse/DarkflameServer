@@ -1,0 +1,54 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 12,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default Configure Settings",
+      "description": "Sets build and install directories",
+      "binaryDir": "${sourceDir}/build",
+      "generator": "Unix Makefiles"
+    },
+    {
+      "name": "windows-default",
+      "displayName": "Windows only Configure Settings",
+      "description": "Sets build and install directories",
+      "binaryDir": "${sourceDir}/build",
+      "generator": "Ninja",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "displayName": "Default Build",
+      "description": "Default Build",
+      "jobs": 2
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "displayName": "Default Tests",
+      "description": "Runs all tests",
+      "execution": {
+        "jobs": 2
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

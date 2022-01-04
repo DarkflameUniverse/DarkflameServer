@@ -770,25 +770,32 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 			if (team != nullptr && m_Parent->GetComponent<BaseCombatAIComponent>() != nullptr)
 			{
 				LWOOBJID specificOwner = LWOOBJID_EMPTY;
+				auto* scriptedActivityComponent = m_Parent->GetComponent<ScriptedActivityComponent>();
+				uint32_t teamSize = team->members.size();
+				uint32_t lootMatrixId = GetLootMatrixID();
 
-				if (team->lootOption == 0) // Round robin
-				{
-					specificOwner = TeamManager::Instance()->GetNextLootOwner(team);
+				if (scriptedActivityComponent) {
+					lootMatrixId = scriptedActivityComponent->GetLootMatrixForTeamSize(teamSize);
 				}
 
-				for (const auto memberId : team->members)
-				{
-					if (specificOwner != LWOOBJID_EMPTY && memberId != specificOwner) continue;
+				if (team->lootOption == 0) { // Round robin
+					specificOwner = TeamManager::Instance()->GetNextLootOwner(team);
 
-					auto* member = EntityManager::Instance()->GetEntity(memberId);
+					auto* member = EntityManager::Instance()->GetEntity(specificOwner);
 
-					if (member == nullptr) continue;
+                    if (member) LootGenerator::Instance().DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins());
+				} 
+				else {
+					for (const auto memberId : team->members) { // Free for all
+						auto* member = EntityManager::Instance()->GetEntity(memberId);
 
-					LootGenerator::Instance().DropLoot(member, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
+						if (member == nullptr) continue;
+
+						LootGenerator::Instance().DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins()); 
+					}
 				}
 			}
-			else
-			{
+			else { // drop loot for non team user
 				LootGenerator::Instance().DropLoot(owner, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
 			}
 		}
@@ -819,6 +826,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 				coinsTotal -= coinsToLoose;
 
 				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
+				character->SetCoins(coinsTotal, LOOT_SOURCE_PICKUP);
 			}
 		}
 

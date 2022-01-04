@@ -49,6 +49,15 @@ Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on t
 cmake must be version 3.12 or higher!
 
 **Build the repository**
+
+You can either run `build.sh` when in the root folder of the repository:
+
+```bash
+./build.sh
+```
+
+Or manually run the commands used in `build.sh`:
+
 ```bash
 # Create the build directory, preserving it if it already exists
 mkdir -p build
