@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(Darkflame)
+include(CTest)
 
 # Read variables from file
 FILE(READ "${CMAKE_SOURCE_DIR}/CMakeVariables.txt" variables)
@@ -487,3 +488,13 @@ if(UNIX)
     endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
 endif(UNIX)
+
+if(WIN32)
+add_dependencies(MasterServer WorldServer)
+add_dependencies(MasterServer AuthServer)
+add_dependencies(MasterServer ChatServer)
+endif()
+
+# Finally, add the tests
+add_subdirectory(tests)
+
