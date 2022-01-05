@@ -22,7 +22,7 @@ jobs:
       if: ${{ matrix.os == 'windows-2022' }}
       uses: microsoft/setup-msbuild@v1.1
       with:
-        vs-version: '[16,17)'
+        vs-version: '[17,18)'
         msbuild-architecture: x64
     - name: cmake
       uses: lukka/run-cmake@v10
