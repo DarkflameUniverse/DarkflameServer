@@ -432,7 +432,6 @@ void Mission::YieldRewards() {
             characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
             GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info->LegoScore, lootSource);
         }
-        GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), rewardedLegoScore, lootSource);
     }
 
     if (m_Completions > 0) {

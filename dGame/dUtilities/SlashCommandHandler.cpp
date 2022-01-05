@@ -1289,11 +1289,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		CharacterComponent* character = entity->GetComponent<CharacterComponent>();
 		if (character) character->SetUScore(character->GetUScore() + uscore);
-<<<<<<< HEAD
 		// LOOT_SOURCE_MODERATION should work but it doesn't.  Relog to see uscore changes 
-=======
-
->>>>>>> Updated variable types
 		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, LOOT_SOURCE_MODERATION);
 	}
 
