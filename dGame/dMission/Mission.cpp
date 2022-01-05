@@ -47,6 +47,10 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
         m_Tasks.push_back(task);
     }
+
+    auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCapCurrencyConversion FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
+    m_CurrencyConversionRate = tableData.getIntField(0, -1);
+    tableData.finalize();
 }
 
 void Mission::LoadFromXml(tinyxml2::XMLElement* element) {
@@ -423,17 +427,18 @@ void Mission::YieldRewards() {
 
     if (info->LegoScore > 0) {
         eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
-        int rewardedLegoScore = info->LegoScore;
-        // Define 124370 somewhere.
-        if(characterComponent->GetUScore() >= 124370) {
-            // Change rewarded LEGO Score to zero since you are not supposed to get this past level 45.
-            rewardedLegoScore = 0;
-            // The client shows getting 21 coins per 1 LEGO Score when the player is level 45.
-            character->SetCoins(character->GetCoins() + info->LegoScore * 21, lootSource);
+        //int rewardedLegoScore = info->LegoScore;
+        if(characterComponent->GetLevel() >= characterComponent->GetMaxLevel()) {
+            // Change rewarded LEGO Score to zero since you are not supposed to get this past LevelCap specified in WorldConfig.
+            //rewardedLegoScore = 0;
+            character->SetCoins(character->GetCoins() + info->LegoScore * m_CurrencyConversionRate, lootSource);
         } else {
             characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
+            GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info->LegoScore, lootSource);
         }
-        GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), rewardedLegoScore, lootSource);
+        // For achievements, we don't notify the client since it keeps track of that?
+        // Not sure why the SendModifyLEGOScore doesn't use lootSource at all.
+        //GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), rewardedLegoScore, lootSource);
     }
 
     if (m_Completions > 0) {
