@@ -427,18 +427,13 @@ void Mission::YieldRewards() {
 
     if (info->LegoScore > 0) {
         eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
-        //int rewardedLegoScore = info->LegoScore;
         if(characterComponent->GetLevel() >= characterComponent->GetMaxLevel()) {
-            // Change rewarded LEGO Score to zero since you are not supposed to get this past LevelCap specified in WorldConfig.
-            //rewardedLegoScore = 0;
+            // Since the character is at the level cap we reward them with coins instead of UScore.
             character->SetCoins(character->GetCoins() + info->LegoScore * m_CurrencyConversionRate, lootSource);
         } else {
             characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
             GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info->LegoScore, lootSource);
         }
-        // For achievements, we don't notify the client since it keeps track of that?
-        // Not sure why the SendModifyLEGOScore doesn't use lootSource at all.
-        //GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), rewardedLegoScore, lootSource);
     }
 
     if (m_Completions > 0) {
