@@ -25,6 +25,7 @@ COPY migrations/ /build/migrations
 COPY resources/ /build/resources
 COPY thirdparty/ /build/thirdparty
 COPY vanity /build/vanity
+COPY tests/ /build/tests
 COPY .clang-* CMake* LICENSE /build/
 
 ARG BUILD_THREADS=1
