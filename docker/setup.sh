@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# fail on first error
+set -e
+
 function update_ini() {
     FILE="/docker/configs/$1"
     KEY=$2
@@ -65,7 +68,14 @@ fi
 if [[ ! -f "/client/extracted" ]]; then
     echo "Start client resource extraction"
 
-    python3 utils/pkextractor.py /client/ /client/
+    touch globs.txt
+
+    echo "client/res/macros/**" >> globs.txt
+    echo "client/res/BrickModels/**" >> globs.txt
+    echo "client/res/maps/**" >> globs.txt
+    echo "*.fdb" >> globs.txt
+
+    lunpack -g ./globs.txt /client/
 
     touch /client/extracted
 else
