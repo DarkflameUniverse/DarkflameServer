@@ -32,13 +32,13 @@ ARG BUILD_THREADS=1
 ARG BUILD_VERSION=171022
 
 RUN echo "Build server" && \
-    mkdir -p build && \
-    cd build && \
+    mkdir -p cmake_build && \
+    cd cmake_build && \
     sed -i -e "s/171022/${BUILD_VERSION}/g" ../CMakeVariables.txt && \
     cmake .. && \
     make -j $BUILD_THREADS
 
-RUN unzip /build/resources/navmeshes.zip -d /build/build/res/maps
+RUN unzip /build/resources/navmeshes.zip -d /build/cmake_build/res/maps
 
 FROM gcc:11 as runtime
 
@@ -50,9 +50,9 @@ RUN --mount=type=cache,id=runtime-apt-cache,target=/var/cache/apt \
 
 WORKDIR /app
 
-COPY --from=build /build/build /app
+COPY --from=build /build/cmake_build /app
 
-RUN mkdir -p /build/build && ln -s /app/_deps /build/build/_deps
+RUN mkdir -p /build/cmake_build && ln -s /app/_deps /build/cmake_build/_deps
 
 COPY docker/start_server.sh /start_server.sh
 
