@@ -558,13 +558,14 @@ void GameMessages::SendNotifyMissionTask(Entity* entity, const SystemAddress& sy
 	SEND_PACKET
 }
 
-void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, int sourceType) {
+void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType) {
 	CBITSTREAM
 	CMSGHEADER
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write((uint16_t)GAME_MSG_MODIFY_LEGO_SCORE);
 	bitStream.Write(score);
+	bitStream.Write(sourceType);
 
 	//Stuff stolen from the old codebase, no idea why this works. The proper implementation didn't for some reason.
 	bitStream.Write((int32_t)129);
