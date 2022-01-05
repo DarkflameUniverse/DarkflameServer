@@ -20,11 +20,11 @@
       "inherits": "default"
     },
     {
-      "name": "ci-windows-latest",
+      "name": "ci-windows-2022",
       "displayName": "CI configure step for Windows",
       "description": "Set architecture to 64-bit (b/c RakNet)",
       "inherits": "default",
-      "generator": "Visual Studio 16 2019",
+      "generator": "Visual Studio 17 2022",
       "architecture": {
         "value": "x64"
       },
@@ -34,7 +34,7 @@
     },
     {
       "name": "windows-default",
-      "inherits": "ci-windows-latest",
+      "inherits": "ci-windows-2022",
       "displayName": "Windows only Configure Settings",
       "description": "Sets build and install directories",
       "generator": "Ninja",
@@ -53,8 +53,8 @@
       "jobs": 2
     },
     {
-      "name": "ci-windows-latest",
-      "configurePreset": "ci-windows-latest",
+      "name": "ci-windows-2022",
+      "configurePreset": "ci-windows-2022",
       "displayName": "Windows CI Build",
       "description": "This preset is used by the CI build on windows",
       "configuration": "RelWithDebInfo",
@@ -82,8 +82,8 @@
       }
     },
     {
-      "name": "ci-windows-latest",
-      "configurePreset": "ci-windows-latest",
+      "name": "ci-windows-2022",
+      "configurePreset": "ci-windows-2022",
       "displayName": "CI Tests on windows",
       "description": "Runs all tests on a windows configuration",
       "configuration": "RelWithDebInfo",

@@ -12,14 +12,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ windows-latest, ubuntu-latest ]
+        os: [ windows-2022, ubuntu-latest ]
 
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: true
     - name: Add msbuild to PATH (windows only)
-      if: ${{ matrix.os == 'windows-latest' }}
+      if: ${{ matrix.os == 'windows-2022' }}
       uses: microsoft/setup-msbuild@v1.1
       with:
         vs-version: '[16,17)'
