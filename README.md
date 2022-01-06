@@ -48,6 +48,15 @@ Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on t
 cmake must be version 3.13 or higher!
 
 **Build the repository**
+
+You can either run `build.sh` when in the root folder of the repository:
+
+```bash
+./build.sh
+```
+
+Or manually run the commands used in `build.sh`:
+
 ```bash
 # Create the build directory, preserving it if it already exists
 mkdir -p build
@@ -288,10 +297,10 @@ Here is a summary of the commands available in-game. All commands are prefixed b
   </tr>
   <tr>
     <td>
-      instance-info
+      instanceinfo
     </td>
     <td>
-      /instance-info
+      /instanceinfo
     </td>
     <td>
       Displays in the chat the current zone, clone, and instance id. 

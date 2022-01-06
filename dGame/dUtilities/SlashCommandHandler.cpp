@@ -61,6 +61,7 @@
 #include "SkillComponent.h"
 #include "VanityUtilities.h"
 #include "GameConfig.h"
+#include "ScriptedActivityComponent.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
     std::string chatCommand;
@@ -384,6 +385,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		if (chatCommand == "resurrect") {
+			ScriptedActivityComponent* scriptedActivityComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<ScriptedActivityComponent>();
+			
+			if (scriptedActivityComponent) { // check if user is in activity world and if so, they can't resurrect
+				ChatPackets::SendSystemMessage(sysAddr, u"You cannot resurrect in an activity world.");
+				return;
+			}
+			
 			GameMessages::SendResurrect(entity);
 		}
 
@@ -407,7 +415,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
     stmt->execute();
     delete stmt;
 	
-	if (chatCommand == "setMinifig" && args.size() == 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_FORUM_MODERATOR) { // could break characters so only allow if GM > 0
+	if (chatCommand == "setminifig" && args.size() == 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_FORUM_MODERATOR) { // could break characters so only allow if GM > 0
 		int32_t minifigItemId;
 		if (!GeneralUtils::TryParse(args[1], minifigItemId)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig Item Id ID.");
@@ -434,7 +442,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			charComp->m_Character->SetMouth(minifigItemId);
 		} else if (lowerName == "righthand") {
 			charComp->m_Character->SetRightHand(minifigItemId);
-		} else if (lowerName == "shirt") {
+		} else if (lowerName == "shirtcolor") {
 			charComp->m_Character->SetShirtColor(minifigItemId);
 		} else if (lowerName == "hands") {
 			charComp->m_Character->SetLeftHand(minifigItemId);
@@ -1326,7 +1334,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		auto* ch = entity->GetCharacter();
-		ch->SetCoins(ch->GetCoins() + money);
+		ch->SetCoins(ch->GetCoins() + money, LOOT_SOURCE_MODERATION);
 	}
 
 	if ((chatCommand == "setcurrency") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -1339,7 +1347,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		auto* ch = entity->GetCharacter();
-		ch->SetCoins(money);
+		ch->SetCoins(money, LOOT_SOURCE_MODERATION);
 	}
 
 	// Allow for this on even while not a GM, as it sometimes toggles incorrrectly.
@@ -1689,6 +1697,43 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		);
 
 		return;
+	}
+
+	if (chatCommand == "rollloot" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && args.size() >= 3) {
+		uint32_t lootMatrixIndex = 0;
+		uint32_t targetLot = 0;
+		uint32_t loops = 1;
+
+		if (!GeneralUtils::TryParse(args[0], lootMatrixIndex)) return;
+		if (!GeneralUtils::TryParse(args[1], targetLot)) return;
+		if (!GeneralUtils::TryParse(args[2], loops)) return;
+
+		uint64_t totalRuns = 0;
+
+		for (uint32_t i = 0; i < loops; i++) {
+			while (true) {
+				auto lootRoll = LootGenerator::Instance().RollLootMatrix(lootMatrixIndex);
+				totalRuns += 1;
+				bool doBreak = false;
+				for (const auto& kv : lootRoll) {
+					if ((uint32_t)kv.first == targetLot) {
+						doBreak = true;
+					}
+				}
+				if (doBreak) break;
+			}
+		}
+
+		std::u16string message = u"Ran loot drops looking for "
+			+ GeneralUtils::to_u16string(targetLot) 
+			+ u", " 
+			+ GeneralUtils::to_u16string(loops) 
+			+ u" times. It ran " 
+			+ GeneralUtils::to_u16string(totalRuns) 
+			+ u" times. Averaging out at "
+			+ GeneralUtils::to_u16string((float) totalRuns / loops);
+
+		ChatPackets::SendSystemMessage(sysAddr, message);
 	}
 
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1)

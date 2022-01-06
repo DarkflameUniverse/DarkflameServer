@@ -23,7 +23,7 @@ void VerifyBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 
 		if (self == nullptr)
 		{
-			Game::logger->Log("VerifyBehavior", "Invalid self for (%llu)", context->originator);
+			Game::logger->Log("VerifyBehavior", "Invalid self for (%llu)\n", context->originator);
 
 			return;
 		}

@@ -28,7 +28,7 @@ public:
     void SpawnersUp(Entity* self);
     void SpawnersDown(Entity* self);
     void BaseOnTimerDone(Entity* self, const std::string& timerName);
-
+    
     void NotifySpawnerOfDeath(Entity* self, Spawner* spawner);
     void NamedEnemyDeath(Entity* self, Spawner* spawner);
 

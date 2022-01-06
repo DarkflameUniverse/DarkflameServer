@@ -46,7 +46,7 @@ public:
     /*!
       \return The entries
      */
-    std::vector<CDLootTable> GetEntries(void) const;
+    const std::vector<CDLootTable>& GetEntries(void) const;
     
 };
 
