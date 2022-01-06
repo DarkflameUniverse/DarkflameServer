@@ -320,7 +320,7 @@ void LootGenerator::GiveActivityLoot(Entity* player, Entity* source, uint32_t ac
 
     auto* character = player->GetCharacter();
 
-    character->SetCoins(character->GetCoins() + coins);
+    character->SetCoins(character->GetCoins() + coins, LOOT_SOURCE_ACTIVITY);
 }
 
 void LootGenerator::DropLoot(Entity* player, Entity* killedObject, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {
