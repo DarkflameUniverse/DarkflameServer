@@ -70,7 +70,20 @@ make
 ```
 
 ### MacOS builds
-[**Follow the Linux instructions**](#linux-builds)
+Ensure `cmake`, `zlib` and `open ssl` are installed as well as a compiler (e.g `clang` or `gcc`).
+
+In the repository root folder run the following. Ensure -DOPENSSL_ROOT_DIR=/path/to/openssl points to your openssl install location
+```bash
+# Create the build directory, preserving it if it already exists
+mkdir -p build
+cd build
+
+# Run CMake to generate build files
+cmake .. -DOPENSSL_ROOT_DIR=/path/to/openssl
+
+# Get cmake to build the project. If make files are being used then using make and appending `-j` and the amount of cores to utilize may be preferable, for example `make -j8`
+cmake --build . --config Release
+```
 
 ### Windows builds (native)
 Ensure that you have either the [MSVC](https://visualstudio.microsoft.com/vs/) or the [Clang](https://github.com/llvm/llvm-project/releases/) (recommended) compiler installed. You will also need to install [CMake](https://cmake.org/download/). Currently on native Windows the server will only work in Release mode.
@@ -87,8 +100,19 @@ cmake ..
 :: Run CMake with build flag to build
 cmake --build . --config Release
 ```
+**Windows for ARM** has not been tested but should build by doing the following
+```batch
+:: Create the build directory
+mkdir build
+cd build
 
 Once built you must also move all DLLs from `build/_deps/mysql-src/lib64` or else you encounter missing DLL errors
+:: Run CMake to generate make files
+cmake .. -DMARIADB_BUILD_SOURCE=ON
+
+:: Run CMake with build flag to build
+cmake --build . --config Release
+```
 
 ### Windows builds (WSL)
 This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11.
@@ -113,13 +137,12 @@ sudo apt install build-essential
 [**Follow the Linux instructions**](#linux-builds)
 
 ### ARM builds
-AArch64 builds should work on linux as is using the linux build steps.
-MacOS has not been tested for ARM builds.
+AArch64 builds should work on linux and MacOS using their respective build steps. Windows ARM should build but it has not been tested
 
 ### Updating your build
 To update your server to the latest version navigate to your cloned directory
 ```bash
-cd <path-to>/DarkflameUniverse
+cd /path/to/DarkflameServer
 ```
 run the following commands to update to the latest changes
 ```bash
