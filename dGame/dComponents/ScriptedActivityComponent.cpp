@@ -513,7 +513,7 @@ void ActivityInstance::StartZone() {
 			if (player == nullptr)
 				return;
 
-			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", player->GetSystemAddress().ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", player->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			if (player->GetCharacter()) {
 				player->GetCharacter()->SetZoneID(zoneID);
 				player->GetCharacter()->SetZoneInstance(zoneInstance);
