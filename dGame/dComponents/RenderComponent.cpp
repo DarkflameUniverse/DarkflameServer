@@ -198,14 +198,12 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
         return;
     }
 
-    std::stringstream query;
+    const std::string effectType_str = GeneralUtils::UTF16ToWTF8(effectType);
+    auto result = CDClientDatabase::ExecuteQueryWithArgs(
+        "SELECT animation_length FROM Animations WHERE animation_type IN (SELECT animationName FROM BehaviorEffect WHERE effectID = %d AND effectType = %Q);",
+        effectId, effectType_str.c_str());
 
-    query << "SELECT animation_length FROM Animations WHERE animation_type IN (SELECT animationName FROM BehaviorEffect WHERE effectID = " << std::to_string(effectId) << " AND effectType = '" << GeneralUtils::UTF16ToWTF8(effectType) << "');";
-
-    auto result = CDClientDatabase::ExecuteQuery(query.str());
-
-    if (result.eof() || result.fieldIsNull(0))
-    {
+    if (result.eof() || result.fieldIsNull(0)) {
         result.finalize();
 
         m_DurationCache[effectId] = 0;
@@ -214,7 +212,7 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
     	
         return;
     }
-	
+
     effect->time = static_cast<float>(result.getFloatField(0));
     
 	result.finalize();

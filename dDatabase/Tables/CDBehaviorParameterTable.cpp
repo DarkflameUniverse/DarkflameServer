@@ -59,11 +59,9 @@ float CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::s
 	}
 
 #ifndef CDCLIENT_CACHE_ALL
-	std::stringstream query;
-
-	query << "SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = " << std::to_string(behaviorID);
-
-	auto tableData = CDClientDatabase::ExecuteQuery(query.str());
+    auto tableData = CDClientDatabase::ExecuteQueryWithArgs(
+        "SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = %u;",
+        behaviorID);
 
 	m_Entries.insert_or_assign(behaviorID, 0);
 	

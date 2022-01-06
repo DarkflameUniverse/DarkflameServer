@@ -15,11 +15,9 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 
 	this->m_PassiveAbilities = ItemSetPassiveAbility::FindAbilities(id, m_InventoryComponent->GetParent(), this);
 
-	std::stringstream query;
-
-	query << "SELECT skillSetWith2, skillSetWith3, skillSetWith4, skillSetWith5, skillSetWith6, itemIDs FROM ItemSets WHERE setID = " << std::to_string(id);
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT skillSetWith2, skillSetWith3, skillSetWith4, skillSetWith5, skillSetWith6, itemIDs FROM ItemSets WHERE setID = %u;",
+		id);
 
 	if (result.eof())
 	{
@@ -33,11 +31,9 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 			continue;
 		}
 
-		std::stringstream skillQuery;
-
-		skillQuery << "SELECT SkillID FROM ItemSetSkills WHERE SkillSetID = " << std::to_string(result.getIntField(i));
-
-		auto skillResult = CDClientDatabase::ExecuteQuery(skillQuery.str());
+		auto skillResult = CDClientDatabase::ExecuteQueryWithArgs(
+			"SELECT SkillID FROM ItemSetSkills WHERE SkillSetID = %d;",
+			result.getIntField(i));
 
 		if (skillResult.eof())
 		{
