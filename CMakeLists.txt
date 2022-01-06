@@ -435,7 +435,7 @@ else() # Build from source
 
 	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
 						COMMAND ${CMAKE_COMMAND} -E make_directory
-						${PROJECT_BINARY_DIR}/mariadbcpp/plugins
+						${PROJECT_BINARY_DIR}/mariadbcpp/plugin
 						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
 						
 						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
