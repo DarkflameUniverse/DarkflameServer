@@ -89,21 +89,21 @@ Behavior* Behavior::GetBehavior(const uint32_t behaviorId)
 Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 {
 	auto* cached = GetBehavior(behaviorId);
-	
+
 	if (cached != nullptr)
 	{
 		return cached;
 	}
-	
+
 	if (behaviorId == 0)
 	{
 		return new EmptyBehavior(0);
 	}
-	
+
 	const auto templateId = GetBehaviorTemplate(behaviorId);
 
 	Behavior* behavior = nullptr;
-	
+
 	switch (templateId)
 	{
 	case BehaviorTemplates::BEHAVIOR_EMPTY: break;
@@ -266,7 +266,7 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 	if (behavior == nullptr)
 	{
 		//Game::logger->Log("Behavior", "Failed to load unimplemented template id (%i)!\n", templateId);
-		
+
 		behavior = new EmptyBehavior(behaviorId);
 	}
 
@@ -293,7 +293,7 @@ BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId)
 
 		return BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
-	
+
 	const auto id = static_cast<BehaviorTemplates>(result.getIntField(0));
 
 	result.finalize();
@@ -319,7 +319,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 
 		return;
 	}
-	
+
 	auto* renderComponent = targetEntity->GetComponent<RenderComponent>();
 
 	const auto typeString = GeneralUtils::UTF16ToWTF8(type);
@@ -342,28 +342,29 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 			if (renderComponent == nullptr)
 			{
 				GameMessages::SendPlayFXEffect(targetEntity, effectId, type, pair->second, secondary, 1, 1, true);
-				
+
 				return;
 			}
 
 			renderComponent->PlayEffect(effectId, type, pair->second, secondary);
-			
+
 			return;
 		}
 	}
-	
-	std::stringstream query;
-	
+
+	CppSQLite3Query result;
 	if (!type.empty())
 	{
-		query << "SELECT effectName FROM BehaviorEffect WHERE effectType = '" << typeString << "' AND effectID = " << std::to_string(effectId) << ";";
+		result = CDClientDatabase::ExecuteQueryWithArgs(
+			"SELECT effectName FROM BehaviorEffect WHERE effectType = %Q AND effectID = %u;",
+			typeString.c_str(), effectId);
 	}
 	else
 	{
-		query << "SELECT effectName, effectType FROM BehaviorEffect WHERE effectID = " << std::to_string(effectId) << ";";
+		result = CDClientDatabase::ExecuteQueryWithArgs(
+			"SELECT effectName, effectType FROM BehaviorEffect WHERE effectID = %u;",
+			effectId);
 	}
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
 
 	if (result.eof() || result.fieldIsNull(0))
 	{
@@ -375,7 +376,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 	if (type.empty())
 	{
 		const auto typeResult = result.getStringField(1);
-		
+
 		type = GeneralUtils::ASCIIToUTF16(typeResult);
 
 		m_effectType = new std::string(typeResult);
@@ -388,7 +389,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 	if (renderComponent == nullptr)
 	{
 		GameMessages::SendPlayFXEffect(targetEntity, effectId, type, name, secondary, 1, 1, true);
-		
+
 		return;
 	}
 
@@ -431,7 +432,7 @@ Behavior::Behavior(const uint32_t behaviorId)
 	}
 
 	this->m_templateId = static_cast<BehaviorTemplates>(result.getIntField(0));
-	
+
 	this->m_effectId = result.getIntField(1);
 
 	if (!result.fieldIsNull(2))

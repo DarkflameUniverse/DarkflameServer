@@ -40,4 +40,18 @@ namespace CDClientDatabase {
      */
     CppSQLite3Query ExecuteQuery(const std::string& query);
     
+    //! Queries the CDClient and parses arguments
+    /*!
+      \param query The query with formatted arguments
+      \return the results of the query
+    */
+    // Due to the template, implementation must be in the header.
+    template <typename... Args>
+    CppSQLite3Query ExecuteQueryWithArgs(const std::string& query, Args... args) {
+        CppSQLite3Buffer sqlBuf;
+        sqlBuf.format(query.c_str(), args...);
+
+        std::string safe_query = (const char *) sqlBuf;
+        return ExecuteQuery(safe_query);
+    }
 };
