@@ -398,7 +398,7 @@ else() # Build from source
 	ExternalProject_Add(mariadb_connector_cpp
 						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
 						CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
-									-DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/mariadbcpp/plugins # Points the connector to the correct plugin directory
+									-DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/mariadbcpp # Points the connector to the correct plugin directory
 									${MARIADB_EXTRA_CMAKE_ARGS}
 						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
 						BUILD_COMMAND cmake --build . --config RelWithDebInfo
@@ -410,6 +410,11 @@ else() # Build from source
 		set(MARIADB_SHARED_LIBRARY_NAME mariadbcpp.dll)
 		set(MARIADB_PLUGIN_SUFFIX .dll)
 		set(MARIADB_IMPLIB_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
+		
+		# When built from source windows only seems to check same folder as exe instead specified folder, so use
+		# environment variable to force it
+		add_link_options(/DELAYLOAD:mariadbcpp.dll)
+		add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${PROJECT_BINARY_DIR}/mariadbcpp/plugin")
 	else()
 		set(MARIADB_SHARED_LIBRARY_NAME libmariadbcpp${CMAKE_SHARED_LIBRARY_SUFFIX})
 		set(MARIADB_PLUGIN_SUFFIX .so)
@@ -443,7 +448,7 @@ else() # Build from source
 						${MARIADB_PLUGINS_LOCATION}/dialog${MARIADB_PLUGIN_SUFFIX}
 						${MARIADB_PLUGINS_LOCATION}/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
 						${MARIADB_PLUGINS_LOCATION}/sha256_password${MARIADB_PLUGIN_SUFFIX}
-						${PROJECT_BINARY_DIR}/mariadbcpp/plugins)
+						${PROJECT_BINARY_DIR}/mariadbcpp/plugin)
 endif()
 
 add_library (mariadbConnCpp SHARED IMPORTED)
