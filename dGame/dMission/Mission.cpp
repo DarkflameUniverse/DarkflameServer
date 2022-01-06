@@ -14,6 +14,7 @@
 #include "dLocale.h"
 #include "dLogger.h"
 #include "dServer.h"
+#include "dZoneManager.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
     m_MissionComponent = missionComponent;
@@ -47,10 +48,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
         m_Tasks.push_back(task);
     }
-
-    auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCapCurrencyConversion FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
-    m_CurrencyConversionRate = tableData.getIntField(0, -1);
-    tableData.finalize();
+    m_CurrencyConversionRate = dZoneManager::Instance()->GetLevelCapCurrencyConversion();
 }
 
 void Mission::LoadFromXml(tinyxml2::XMLElement* element) {

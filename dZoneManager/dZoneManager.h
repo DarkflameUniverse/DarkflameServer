@@ -33,6 +33,8 @@ public:
 	void NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& objectID); //Notifies the zone of a certain event or command.
 	void AddSpawner(LWOOBJID id, Spawner* spawner);
 	LWOZONEID GetZoneID() const;
+	uint32_t GetMaxLevel();
+	uint32_t GetLevelCapCurrencyConversion();
 	LWOOBJID MakeSpawner(SpawnerInfo info);
 	Spawner* GetSpawner(LWOOBJID id);
 	void RemoveSpawner(LWOOBJID id);
@@ -42,6 +44,8 @@ public:
 	Entity* GetZoneControlObject() { return m_ZoneControlObject; }
 
 private:
+	uint32_t m_MaxLevel = 0;
+	uint32_t m_CurrencyConversionRate = 0;
     static dZoneManager* m_Address; //Singleton
 	Zone* m_pZone;
 	LWOZONEID m_ZoneID;

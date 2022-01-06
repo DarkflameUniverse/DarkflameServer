@@ -42,13 +42,12 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	if (character->GetZoneID() != Game::server->GetZoneID()) {
 		m_IsLanding = true;
 	}
-
+    
 	if (LandingAnimDisabled(character->GetZoneID()) || LandingAnimDisabled(Game::server->GetZoneID()) || m_LastRocketConfig.empty()) {
 		m_IsLanding = false; //Don't make us land on VE/minigames lol
 	}
-    auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCap FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
-    m_MaxLevel = tableData.getIntField(0, -1);
-    tableData.finalize();
+
+    m_MaxLevel = dZoneManager::Instance()->GetMaxLevel();
 }
 
 bool CharacterComponent::LandingAnimDisabled(int zoneID) {
