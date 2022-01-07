@@ -6,6 +6,8 @@
 #include "Game.h"
 #include "dServer.h"
 #include <unordered_map>
+#include "nlohmann/json.hpp"
+#include "Singleton.h"
 
 struct PlayerData {
 	LWOOBJID playerID;
@@ -14,6 +16,21 @@ struct PlayerData {
 	LWOZONEID zoneID;
 	std::vector<FriendData> friends;
 	time_t muteExpire;
+
+	nlohmann::json GetJson() {
+		nlohmann::json j;
+		j["playerID"] = playerID;
+		j["playerName"] = playerName;
+		j["sysAddr"] = sysAddr.ToString(true);
+		j["zoneID"]["mapId"] = zoneID.GetMapID();
+		j["zoneID"]["cloneId"] = zoneID.GetCloneID();
+		j["zoneID"]["instanceId"] = zoneID.GetInstanceID();
+		j["muteExpire"] = muteExpire;
+
+		// friends data isn't really needed tbh
+
+		return j;
+	}
 };
 
 struct TeamData {
@@ -25,7 +42,7 @@ struct TeamData {
 	LWOZONEID zoneId = {};
 };
 
-class PlayerContainer {
+class PlayerContainer : public Singleton<PlayerContainer> {
 public:
 	PlayerContainer();
 	~PlayerContainer();

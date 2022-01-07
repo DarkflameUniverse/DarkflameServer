@@ -9,8 +9,6 @@
 #include "GeneralUtils.h"
 #include "dLogger.h"
 
-extern PlayerContainer playerContainer;
-
 void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	//Get from the packet which player we want to do something with:
 	CINSTREAM;
@@ -18,7 +16,7 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	inStream.Read(playerID);
 	inStream.Read(playerID);
 
-	auto player = playerContainer.GetPlayerData(playerID);
+	auto player = PlayerContainer::Instance().GetPlayerData(playerID);
 	if (!player) return;
 
 	//Get our friends list from the Db:
@@ -52,7 +50,7 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 		}
 
 		//Now check if they're online:
-		auto fr = playerContainer.GetPlayerData(fd.friendID);
+		auto fr = PlayerContainer::Instance().GetPlayerData(fd.friendID);
 		if (fr) {
 			fd.isOnline = true;
 			fd.zoneID = fr->zoneID;
@@ -103,9 +101,9 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	//PacketUtils::SavePacket("FriendRequest.bin", (char*)inStream.GetData(), inStream.GetNumberOfBytesUsed());
 
 	//We need to check to see if the player is actually online or not:
-	auto targetData = playerContainer.GetPlayerData(playerName);
+	auto targetData = PlayerContainer::Instance().GetPlayerData(playerName);
 	if (targetData) {
-		SendFriendRequest(targetData, playerContainer.GetPlayerData(playerID));
+		SendFriendRequest(targetData, PlayerContainer::Instance().GetPlayerData(playerID));
 	}
 }
 
@@ -125,8 +123,8 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 	PacketUtils::SavePacket("HandleFriendResponse.bin", (char*)inStream.GetData(), inStream.GetNumberOfBytesUsed());
 
 	//Now to try and find both of these:
-	auto goonA = playerContainer.GetPlayerData(playerID);
-	auto goonB = playerContainer.GetPlayerData(friendName);
+	auto goonA = PlayerContainer::Instance().GetPlayerData(playerID);
+	auto goonB = PlayerContainer::Instance().GetPlayerData(friendName);
 	if (!goonA || !goonB) return;
 
 	SendFriendResponse(goonB, goonA, responseCode);
@@ -182,14 +180,14 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	}
 
 	//Now, we need to send an update to notify the sender (and possibly, receiver) that their friendship has been ended:
-	auto goonA = playerContainer.GetPlayerData(playerID);
+	auto goonA = PlayerContainer::Instance().GetPlayerData(playerID);
 	if (goonA) {
 		SendRemoveFriend(goonA, friendName, true);
 	}
 	
-	auto goonB = playerContainer.GetPlayerData(friendID);
+	auto goonB = PlayerContainer::Instance().GetPlayerData(friendID);
 	if (!goonB) return;
-	std::string goonAName = GeneralUtils::UTF16ToWTF8(playerContainer.GetName(playerID));
+	std::string goonAName = GeneralUtils::UTF16ToWTF8(PlayerContainer::Instance().GetName(playerID));
 	SendRemoveFriend(goonB, goonAName, true);
 }
 
@@ -200,11 +198,11 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet)
 	inStream.Read(playerID);
 	inStream.Read(playerID);
 
-	auto* sender = playerContainer.GetPlayerData(playerID);
+	auto* sender = PlayerContainer::Instance().GetPlayerData(playerID);
 
 	if (sender == nullptr) return;
 
-	if (playerContainer.GetIsMuted(sender)) return;
+	if (PlayerContainer::Instance().GetIsMuted(sender)) return;
 
 	const auto senderName = std::string(sender->playerName.C_String());
 
@@ -221,13 +219,13 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet)
 
 	if (channel != 8) return;
 
-	auto* team = playerContainer.GetTeam(playerID);
+	auto* team = PlayerContainer::Instance().GetTeam(playerID);
 
 	if (team == nullptr) return;
 
 	for (const auto memberId : team->memberIDs)
 	{
-		auto* otherMember = playerContainer.GetPlayerData(memberId);
+		auto* otherMember = PlayerContainer::Instance().GetPlayerData(memberId);
 
 		if (otherMember == nullptr) return;
 
@@ -261,11 +259,11 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	std::string message = PacketUtils::ReadString(0xAA, packet, true);
 
 	//Get the bois:
-	auto goonA = playerContainer.GetPlayerData(senderID);
-	auto goonB = playerContainer.GetPlayerData(receiverName);
+	auto goonA = PlayerContainer::Instance().GetPlayerData(senderID);
+	auto goonB = PlayerContainer::Instance().GetPlayerData(receiverName);
 	if (!goonA || !goonB) return;
 
-	if (playerContainer.GetIsMuted(goonA)) return;
+	if (PlayerContainer::Instance().GetIsMuted(goonA)) return;
 
 	std::string goonAName = goonA->playerName.C_String();
 	std::string goonBName = goonB->playerName.C_String();
@@ -325,28 +323,28 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet)
 	inStream.Read(playerID);
 	std::string invitedPlayer = PacketUtils::ReadString(0x14, packet, true);
 
-	auto* player = playerContainer.GetPlayerData(playerID);
+	auto* player = PlayerContainer::Instance().GetPlayerData(playerID);
 
 	if (player == nullptr)
 	{
 		return;
 	}
 
-	auto* team = playerContainer.GetTeam(playerID);
+	auto* team = PlayerContainer::Instance().GetTeam(playerID);
 
 	if (team == nullptr)
 	{
-		team = playerContainer.CreateTeam(playerID);
+		team = PlayerContainer::Instance().CreateTeam(playerID);
 	}
 
-	auto* other = playerContainer.GetPlayerData(invitedPlayer);
+	auto* other = PlayerContainer::Instance().GetPlayerData(invitedPlayer);
 
 	if (other == nullptr)
 	{
 		return;
 	}
 
-	if (playerContainer.GetTeam(other->playerID) != nullptr)
+	if (PlayerContainer::Instance().GetTeam(other->playerID) != nullptr)
 	{
 		return;
 	}
@@ -376,13 +374,13 @@ void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet)
 		return;
 	}
 
-	auto* team = playerContainer.GetTeam(leaderID);
+	auto* team = PlayerContainer::Instance().GetTeam(leaderID);
 
 	if (team == nullptr)
 	{
 		Game::logger->Log("ChatPacketHandler", "Failed to find team for leader (%llu)\n", leaderID);
 
-		team = playerContainer.GetTeam(playerID);
+		team = PlayerContainer::Instance().GetTeam(playerID);
 	}
 	
 	if (team == nullptr)
@@ -391,7 +389,7 @@ void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet)
 		return;
 	}
 
-	playerContainer.AddMember(team, playerID);
+	PlayerContainer::Instance().AddMember(team, playerID);
 }
 
 void ChatPacketHandler::HandleTeamLeave(Packet* packet) 
@@ -403,13 +401,13 @@ void ChatPacketHandler::HandleTeamLeave(Packet* packet)
 	uint32_t size = 0;
 	inStream.Read(size);
 
-	auto* team = playerContainer.GetTeam(playerID);
+	auto* team = PlayerContainer::Instance().GetTeam(playerID);
 
 	Game::logger->Log("ChatPacketHandler", "(%llu) leaving team\n", playerID);
 
 	if (team != nullptr)
 	{
-		playerContainer.RemoveMember(team, playerID, false, false, true);
+		PlayerContainer::Instance().RemoveMember(team, playerID, false, false, true);
 	}
 }
 
@@ -424,7 +422,7 @@ void ChatPacketHandler::HandleTeamKick(Packet* packet)
 
 	Game::logger->Log("ChatPacketHandler", "(%llu) kicking (%s) from team\n", playerID, kickedPlayer.c_str());
 
-	auto* kicked = playerContainer.GetPlayerData(kickedPlayer);
+	auto* kicked = PlayerContainer::Instance().GetPlayerData(kickedPlayer);
 
 	LWOOBJID kickedId = LWOOBJID_EMPTY;
 
@@ -434,18 +432,18 @@ void ChatPacketHandler::HandleTeamKick(Packet* packet)
 	}
 	else
 	{
-		kickedId = playerContainer.GetId(GeneralUtils::ASCIIToUTF16(kickedPlayer));
+		kickedId = PlayerContainer::Instance().GetId(GeneralUtils::ASCIIToUTF16(kickedPlayer));
 	}
 
 	if (kickedId == LWOOBJID_EMPTY) return;
 
-	auto* team = playerContainer.GetTeam(playerID);
+	auto* team = PlayerContainer::Instance().GetTeam(playerID);
 
 	if (team != nullptr)
 	{
 		if (team->leaderID != playerID || team->leaderID == kickedId) return;
 
-		playerContainer.RemoveMember(team, kickedId, false, true, false);
+		PlayerContainer::Instance().RemoveMember(team, kickedId, false, true, false);
 	}
 
 	//PacketUtils::SavePacket("kick.bin", reinterpret_cast<char*>(packet->data), packet->length);
@@ -462,17 +460,17 @@ void ChatPacketHandler::HandleTeamPromote(Packet* packet)
 
 	Game::logger->Log("ChatPacketHandler", "(%llu) promoting (%s) to team leader\n", playerID, promotedPlayer.c_str());
 
-	auto* promoted = playerContainer.GetPlayerData(promotedPlayer);
+	auto* promoted = PlayerContainer::Instance().GetPlayerData(promotedPlayer);
 
 	if (promoted == nullptr) return;
 
-	auto* team = playerContainer.GetTeam(playerID);
+	auto* team = PlayerContainer::Instance().GetTeam(playerID);
 
 	if (team != nullptr)
 	{
 		if (team->leaderID != playerID) return;
 
-		playerContainer.PromoteMember(team, promoted->playerID);
+		PlayerContainer::Instance().PromoteMember(team, promoted->playerID);
 	}
 
 	//PacketUtils::SavePacket("promote.bin", reinterpret_cast<char*>(packet->data), packet->length);
@@ -490,7 +488,7 @@ void ChatPacketHandler::HandleTeamLootOption(Packet* packet)
 	char option;
 	inStream.Read(option);
 
-	auto* team = playerContainer.GetTeam(playerID);
+	auto* team = PlayerContainer::Instance().GetTeam(playerID);
 
 	if (team != nullptr)
 	{
@@ -498,9 +496,9 @@ void ChatPacketHandler::HandleTeamLootOption(Packet* packet)
 
 		team->lootFlag = option;
 
-		playerContainer.TeamStatusUpdate(team);
+		PlayerContainer::Instance().TeamStatusUpdate(team);
 	
-		playerContainer.UpdateTeamsOnWorld(team, false);
+		PlayerContainer::Instance().UpdateTeamsOnWorld(team, false);
 	}
 
 	//PacketUtils::SavePacket("option.bin", reinterpret_cast<char*>(packet->data), packet->length);
@@ -513,21 +511,21 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet)
 	inStream.Read(playerID);
 	inStream.Read(playerID);
 
-	auto* team = playerContainer.GetTeam(playerID);
-	auto* data = playerContainer.GetPlayerData(playerID);
+	auto* team = PlayerContainer::Instance().GetTeam(playerID);
+	auto* data = PlayerContainer::Instance().GetPlayerData(playerID);
 
 	if (team != nullptr && data != nullptr)
 	{
 		if (team->local && data->zoneID.GetMapID() != team->zoneId.GetMapID() && data->zoneID.GetCloneID() != team->zoneId.GetCloneID())
 		{
-			playerContainer.RemoveMember(team, playerID, false, false, true, true);
+			PlayerContainer::Instance().RemoveMember(team, playerID, false, false, true, true);
 
 			return;
 		}
 
 		if (team->memberIDs.size() <= 1 && !team->local)
 		{
-			playerContainer.DisbandTeam(team);
+			PlayerContainer::Instance().DisbandTeam(team);
 
 			return;
 		}
@@ -541,17 +539,17 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet)
 			ChatPacketHandler::SendTeamSetLeader(data, LWOOBJID_EMPTY);
 		}
 
-		playerContainer.TeamStatusUpdate(team);
+		PlayerContainer::Instance().TeamStatusUpdate(team);
 
 		const auto leaderName = GeneralUtils::ASCIIToUTF16(std::string(data->playerName.C_String()));
 
 		for (const auto memberId : team->memberIDs)
 		{
-			auto* otherMember = playerContainer.GetPlayerData(memberId);
+			auto* otherMember = PlayerContainer::Instance().GetPlayerData(memberId);
 
 			if (memberId == playerID) continue;
 
-			const auto memberName = playerContainer.GetName(memberId);
+			const auto memberName = PlayerContainer::Instance().GetName(memberId);
 			
 			//ChatPacketHandler::SendTeamAddPlayer(otherMember, false, false, false, data->playerID, leaderName, data->zoneID);
 			if (otherMember != nullptr)
@@ -561,7 +559,7 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet)
 			ChatPacketHandler::SendTeamAddPlayer(data, false, team->local, false, memberId, memberName, otherMember != nullptr ? otherMember->zoneID : LWOZONEID(0, 0, 0));
 		}
 
-		playerContainer.UpdateTeamsOnWorld(team, false);
+		PlayerContainer::Instance().UpdateTeamsOnWorld(team, false);
 	}
 }
 

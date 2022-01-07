@@ -16,12 +16,15 @@
 #include "PlayerContainer.h"
 #include "ChatPacketHandler.h"
 
+#include "ChatServerApi.h"
+
 #include "Game.h"
 namespace Game {
 	dLogger* logger;
 	dServer* server;
 	dConfig* config;
 	dChatFilter* chatFilter;
+	dChatServerApi* chatApi;
 }
 
 //RakNet includes:
@@ -29,8 +32,6 @@ namespace Game {
 
 dLogger* SetupLogger();
 void HandlePacket(Packet* packet);
-
-PlayerContainer playerContainer;
 
 int main(int argc, char** argv) {
 	Diagnostics::SetProcessName("Chat");
@@ -89,6 +90,11 @@ int main(int argc, char** argv) {
 	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat);
 
 	Game::chatFilter = new dChatFilter("./res/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
+
+	dChatServerApi chatServerApi(Game::config, Game::server);
+	Game::chatApi = &chatServerApi;
+
+	Game::chatApi->Listen();
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -181,19 +187,19 @@ void HandlePacket(Packet* packet) {
 	if (packet->data[1] == CHAT_INTERNAL) {
 		switch (packet->data[3]) {
 		case MSG_CHAT_INTERNAL_PLAYER_ADDED_NOTIFICATION:
-			playerContainer.InsertPlayer(packet);
+			PlayerContainer::Instance().InsertPlayer(packet);
 			break;
 
 		case MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION:
-			playerContainer.RemovePlayer(packet);
+			PlayerContainer::Instance().RemovePlayer(packet);
 			break;
 
 		case MSG_CHAT_INTERNAL_MUTE_UPDATE:
-			playerContainer.MuteUpdate(packet);
+			PlayerContainer::Instance().MuteUpdate(packet);
 			break;
 
 		case MSG_CHAT_INTERNAL_CREATE_TEAM:
-			playerContainer.CreateTeamServer(packet);
+			PlayerContainer::Instance().CreateTeamServer(packet);
 			break;
 
 		case MSG_CHAT_INTERNAL_ANNOUNCEMENT: {

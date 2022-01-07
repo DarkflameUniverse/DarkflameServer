@@ -7,11 +7,12 @@ dMasterServerApi::dMasterServerApi(dConfig* config, InstanceManager* instanceMan
 
     m_InstanceManager = instanceManager;
 
-    if (config->HasKey("api_port") && config->HasKey("api_host_address")) {
+    if (config->HasKey("api_port")) {
         m_Port = std::stoi(config->GetValue("api_port"));
         m_Host = "127.0.0.1";
         this->CreateRoutes();
         m_ReadyToListen = true;
+        Game::logger->Log("MasterApi", "API server ready to listen on port %i \n", m_Port);
     }
 }
 
@@ -39,18 +40,6 @@ void dMasterServerApi::CreateRoutes() {
             json["instances"].push_back(item->GetJson());
         }
         
-        res.set_content(json.dump(), "application/json");
-    });
-
-    m_HttpServer->Get("/api/" API_VERSION "/players", [this](const httplib::Request& req, httplib::Response& res) {
-        auto json = nlohmann::json();
-        json["success"] = true;
-        json["players"] = nlohmann::json::array();
-
-        for (auto* item : this->m_Server->GetPlayers()) {
-            json["players"].push_back(item->GetJson());
-        }
-
         res.set_content(json.dump(), "application/json");
     });
 
