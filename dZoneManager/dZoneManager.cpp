@@ -127,7 +127,7 @@ uint32_t dZoneManager::GetMaxLevel() {
 	return m_MaxLevel;
 }
 
-uint32_t dZoneManager::GetLevelCapCurrencyConversion() {
+__int64 dZoneManager::GetLevelCapCurrencyConversion() {
 	if(m_CurrencyConversionRate == 0) {
 		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCapCurrencyConversion FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
     	m_CurrencyConversionRate = tableData.getIntField(0, -1);
