@@ -52,11 +52,7 @@ private:
 	/**
 	 * The ratio of LEGO Score to currency when the character has hit the max level.
 	 */
-<<<<<<< HEAD
 	int32_t m_CurrencyConversionRate = 0;
-=======
-	__int64 m_CurrencyConversionRate = 0;
->>>>>>> Added comments
 	
     static dZoneManager* m_Address; //Singleton
 	Zone* m_pZone;
