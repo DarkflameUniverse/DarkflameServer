@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
 
     runs-on: ubuntu-latest
 
@@ -20,6 +20,7 @@ jobs:
       with:
         configurePreset: 'default'
         buildPreset: 'default'
+        testPreset: 'default'
     - name: artifacts
       uses: actions/upload-artifact@v2
       with:

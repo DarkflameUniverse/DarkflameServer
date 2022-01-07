@@ -71,7 +71,7 @@ void BuffComponent::Update(float deltaTime)
 				buff.second.tickTime = buff.second.tick;
 				buff.second.stacks--;
 
-				SkillComponent::HandleUnmanaged(buff.second.behaviorID, m_Parent->GetObjectID());
+				SkillComponent::HandleUnmanaged(buff.second.behaviorID, m_Parent->GetObjectID(), buff.second.source);
 			}
 		}
 

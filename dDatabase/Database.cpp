@@ -28,7 +28,7 @@ void Database::Connect(const string& host, const string& database, const string&
 
 void Database::Destroy() {
 	if (!con) return;
-	cout << "Destroying MySQL connection!" << endl;
+	Game::logger->Log("Database", "Destroying MySQL connection!\n");
 	con->close();
 	delete con;
 } //Destroy
