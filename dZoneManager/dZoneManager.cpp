@@ -26,8 +26,9 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LOT zoneControlTemplate = 2365;
 
-	std::stringstream query;
-	auto result = CDClientDatabase::ExecuteQuery("SELECT zoneControlTemplate, ghostdistance_min, ghostdistance FROM ZoneTable WHERE zoneID = " + std::to_string(zoneID.GetMapID()));
+	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT zoneControlTemplate, ghostdistance_min, ghostdistance FROM ZoneTable WHERE zoneID = %d;",
+		(int) zoneID.GetMapID());
 
 	if (!result.eof()) {
 		zoneControlTemplate = result.getIntField("zoneControlTemplate", 2365);

@@ -86,14 +86,11 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 
 	const auto sync_entry = this->m_managedProjectiles.at(index);
 
-	std::stringstream query;
+	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = %d);",
+		sync_entry.lot);
 
-	query << "SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = " << std::to_string(sync_entry.lot) << ")";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
-
-	if (result.eof())
-	{
+	if (result.eof()) {
 		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!\n", sync_entry.lot);
 
 		return;
@@ -428,8 +425,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 {
 	auto* other = EntityManager::Instance()->GetEntity(entry.branchContext.target);
 
-	if (other == nullptr)
-	{
+	if (other == nullptr) {
 		if (entry.branchContext.target != LWOOBJID_EMPTY)
 		{
 			Game::logger->Log("SkillComponent", "Invalid projectile target (%llu)!\n", entry.branchContext.target);
@@ -438,14 +434,11 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 		return;
 	}
 
-	std::stringstream query;
+	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+        "SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = %d);",
+        entry.lot);
 
-	query << "SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = " << std::to_string(entry.lot) << ")";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
-
-	if (result.eof())
-	{
+	if (result.eof()) {
 		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!\n", entry.lot);
 
 		return;

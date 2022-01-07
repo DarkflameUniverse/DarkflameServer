@@ -166,13 +166,10 @@ void PetComponent::OnUse(Entity* originator)
 
     std::string buildFile;
 
-    if (cached == buildCache.end())
-    {
-        std::stringstream query;
-
-        query << "SELECT ValidPiecesLXF, PuzzleModelLot, Timelimit, NumValidPieces, imagCostPerBuild FROM TamingBuildPuzzles WHERE NPCLot = " << std::to_string(m_Parent->GetLOT()) << ";";
-
-        auto result = CDClientDatabase::ExecuteQuery(query.str());
+    if (cached == buildCache.end()) {
+        auto result = CDClientDatabase::ExecuteQueryWithArgs(
+            "SELECT ValidPiecesLXF, PuzzleModelLot, Timelimit, NumValidPieces, imagCostPerBuild FROM TamingBuildPuzzles WHERE NPCLot = %d;",
+            m_Parent->GetLOT());
 
         if (result.eof())
         {

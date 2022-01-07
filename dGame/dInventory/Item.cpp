@@ -386,11 +386,9 @@ void Item::DisassembleModel()
 
 	const auto componentId = table->GetByIDAndType(GetLot(), COMPONENT_TYPE_RENDER);
 
-	std::stringstream query;
-
-	query << "SELECT render_asset FROM RenderComponent WHERE id = " << std::to_string(componentId) << ";";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT render_asset FROM RenderComponent WHERE id = %d;",
+		componentId);
 
 	if (result.eof())
 	{

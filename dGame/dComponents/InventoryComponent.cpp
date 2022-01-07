@@ -1136,22 +1136,18 @@ bool InventoryComponent::IsEquipped(const LOT lot) const
 	return false;
 }
 
-void InventoryComponent::CheckItemSet(const LOT lot)
-{
+void InventoryComponent::CheckItemSet(const LOT lot) {
 	// Check if the lot is in the item set cache
-	if (std::find(m_ItemSetsChecked.begin(), m_ItemSetsChecked.end(), lot) != m_ItemSetsChecked.end())
-	{
+	if (std::find(m_ItemSetsChecked.begin(), m_ItemSetsChecked.end(), lot) != m_ItemSetsChecked.end()) {
 		return;
 	}
 
-	std::stringstream query;
+	std::cout << "INVENTORY CHECK" << std::endl;
+	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT setID FROM ItemSets WHERE itemIDs LIKE '%%%d%%';",
+		lot);
 
-	query << "SELECT setID FROM ItemSets WHERE itemIDs LIKE '%" << std::to_string(lot) << "%'";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
-
-	while (!result.eof())
-	{
+	while (!result.eof()) {
 		const auto id = result.getIntField(0);
 
 		bool found = false;

@@ -15,13 +15,10 @@
 
 std::map<uint32_t, Precondition*> Preconditions::cache = {};
 
-Precondition::Precondition(const uint32_t condition)
-{
-	std::stringstream query;
-
-	query << "SELECT type, targetLOT, targetCount FROM Preconditions WHERE id = " << std::to_string(condition) << ";";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+Precondition::Precondition(const uint32_t condition) {
+	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT type, targetLOT, targetCount FROM Preconditions WHERE id = %u;",
+		condition);
 
 	if (result.eof())
 	{

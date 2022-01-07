@@ -35,11 +35,9 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 	m_SoftTimer = 5.0f;
 
 	//Grab the aggro information from BaseCombatAI:
-	std::stringstream componentQuery;
-
-	componentQuery << "SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = " << std::to_string(id);
-
-	auto componentResult = CDClientDatabase::ExecuteQuery(componentQuery.str());
+	auto componentResult = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = %u;",
+		id);
 
 	if (!componentResult.eof())
 	{
@@ -64,12 +62,9 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 	/*
 	 * Find skills
 	 */
-
-	std::stringstream query;
-
-	query << "SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = " << std::to_string(parent->GetLOT()) << " )";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = %d);",
+		parent->GetLOT());
 
 	while (!result.eof()) {
 		const auto skillId = static_cast<uint32_t>(result.getIntField(0));

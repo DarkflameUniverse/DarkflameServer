@@ -275,13 +275,10 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 	return behavior;
 }
 
-BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId)
-{
-	std::stringstream query;
-
-	query << "SELECT templateID FROM BehaviorTemplate WHERE behaviorID = " << std::to_string(behaviorId);
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
+	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT templateID FROM BehaviorTemplate WHERE behaviorID = %u;",
+        behaviorId);
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
 	if (result.eof())
@@ -409,15 +406,9 @@ Behavior::Behavior(const uint32_t behaviorId)
 		this->m_templateId = BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
 
-	/*
-	 * Get standard info
-	 */
-
-	std::stringstream query;
-
-	query << "SELECT templateID, effectID, effectHandle FROM BehaviorTemplate WHERE behaviorID = " << std::to_string(behaviorId);
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT templateID, effectID, effectHandle FROM BehaviorTemplate WHERE behaviorID = %u;",
+		behaviorId);
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
 	if (result.eof())
@@ -490,11 +481,9 @@ std::map<std::string, float> Behavior::GetParameterNames() const
 {
 	std::map<std::string, float> parameters;
 
-	std::stringstream query;
-
-	query << "SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = " << std::to_string(this->m_behaviorId);
-
-	auto tableData = CDClientDatabase::ExecuteQuery(query.str());
+	auto tableData = CDClientDatabase::ExecuteQueryWithArgs(
+		"SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = %u;",
+		this->m_behaviorId);
 
 	while (!tableData.eof())
 	{
