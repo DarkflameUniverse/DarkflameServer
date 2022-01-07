@@ -567,10 +567,6 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	bitStream.Write(score);
 	bitStream.Write(sourceType);
 
-	//Stuff stolen from the old codebase, no idea why this works. The proper implementation didn't for some reason.
-	bitStream.Write((int32_t)129);
-	bitStream.Write((unsigned char)0);
-
 	SEND_PACKET
 }
 
