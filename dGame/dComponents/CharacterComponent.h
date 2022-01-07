@@ -259,8 +259,6 @@ public:
 	 */
 	void UpdatePlayerStatistic(StatisticID updateID, uint64_t updateValue = 1);
 
-    uint32_t GetMaxLevel() { return m_MaxLevel; };
-
     /**
      * Character info regarding this character, including clothing styles, etc.
      */
@@ -287,11 +285,6 @@ private:
      * Level of the entity
      */
 	uint32_t m_Level;
-
-    /**
-     * Maximum level of the entity
-     */
-    uint32_t m_MaxLevel;
 
     /**
      * Universe score of the entity
