@@ -1,4 +1,4 @@
-name: Cmake CI
+name: CI
 
 on:
   push:
@@ -8,27 +8,45 @@ on:
 
 jobs:
   build-and-test:
-
-    runs-on: ubuntu-latest
+    name: Build & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-2022, ubuntu-20.04 ]
 
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: true
+    - name: Add msbuild to PATH (windows only)
+      if: ${{ matrix.os == 'windows-2022' }}
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        vs-version: '[17,18)'
+        msbuild-architecture: x64
     - name: cmake
       uses: lukka/run-cmake@v10
       with:
-        configurePreset: 'default'
-        buildPreset: 'default'
-        testPreset: 'default'
+        configurePreset: "ci-${{matrix.os}}"
+        buildPreset: "ci-${{matrix.os}}"
+        testPreset: "ci-${{matrix.os}}"
     - name: artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: linux-build
+        name: build-${{matrix.os}}
         path: |
           build
+          !build/tests
+          !build/Testing
+          !build/CMakeFiles
+          !build/DartConfiguration.tcl
+          !build/CTestTestfile.cmake
           !build/CMakeCache.txt
           !build/build.ninja
           !build/_deps
           !build/cmake_install.cmake
           !build/*.a
+          !build/*.lib
+          !build/*.dir
+          !build/*.vcxproj
+          !build/*.vcxproj.filters

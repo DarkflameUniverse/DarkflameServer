@@ -371,6 +371,11 @@ RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 ${PROJECT_SOURCE_DIR}/dPhysics/*.cpp
 )
 
+if(MSVC)
+    # Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
+    add_compile_options("/wd4267")
+endif(MSVC)
+
 # 3rdparty static libraries:
 #add_library(zlib ${SOURCES_ZLIB})
 add_library(raknet ${SOURCES_RAKNET})
@@ -390,6 +395,10 @@ add_library(dPhysics ${SOURCES_DPHYSICS})
 target_link_libraries(dNet dCommon) #Needed because otherwise linker errors occur.
 target_link_libraries(dCommon ZLIB::ZLIB)
 target_link_libraries(dCommon libbcrypt)
+
+if(WIN32)
+target_link_libraries(raknet ws2_32)
+endif(WIN32)
 
 # Our executables:
 add_executable(WorldServer ${SOURCES})
@@ -421,9 +430,6 @@ target_link_libraries(ChatServer backtrace)
 endif()
 
 endif(UNIX)
-if(WIN32)
-target_link_libraries(WorldServer ws2_32)
-endif(WIN32)
 target_link_libraries(WorldServer tinyxml2)
 
 # Target libraries for Auth:
@@ -436,9 +442,6 @@ if(UNIX)
 target_link_libraries(AuthServer pthread)
 target_link_libraries(AuthServer dl)
 endif(UNIX)
-if(WIN32)
-target_link_libraries(AuthServer ws2_32)
-endif(WIN32)
 
 # Target libraries for Master:
 target_link_libraries(MasterServer dCommon)
@@ -450,9 +453,6 @@ if(UNIX)
 target_link_libraries(MasterServer pthread)
 target_link_libraries(MasterServer dl)
 endif(UNIX)
-if(WIN32)
-target_link_libraries(MasterServer ws2_32)
-endif(WIN32)
 
 # Target libraries for Chat:
 target_link_libraries(ChatServer dCommon)
@@ -465,9 +465,6 @@ if(UNIX)
 target_link_libraries(ChatServer pthread)
 target_link_libraries(ChatServer dl)
 endif(UNIX)
-if(WIN32)
-target_link_libraries(ChatServer ws2_32)
-endif(WIN32)
 
 # Compiler flags:
 # Disabled deprecated warnings as the MySQL includes have deprecated code in them. 
