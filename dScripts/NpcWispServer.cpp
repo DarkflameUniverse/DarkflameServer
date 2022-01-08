@@ -23,10 +23,8 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	// For the daily we add the maelstrom vacuum if the player doesn't have it yet
 	if (missionID == 1883 && (missionState == MissionState::MISSION_STATE_AVAILABLE || missionState == MissionState::MISSION_STATE_COMPLETE_AVAILABLE) && maelstromVacuum == nullptr) {
 	    inventory->AddItem(maelstromVacuumLot, 1);
-	} else if (missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || missionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE) {
-		if(maelstromVacuum != nullptr) {
-			inventory->RemoveItem(maelstromVacuumLot, 1);
-		}
+	} else if (maelstromVacuum != nullptr && missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || missionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE) {
+	    inventory->RemoveItem(maelstromVacuumLot, 1);
 		inventory->AddItem(maelstromCubeLot, 1);
 	}
 
