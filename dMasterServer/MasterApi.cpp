@@ -72,9 +72,6 @@ void dMasterServerApi::CreateRoutes() {
             if (responseJson["result"].size() == 0) {
                 responseJson["result"] = "No shutdowns requested";
             }
-
-            res.set_content(responseJson.dump(), "application/json");
-            return;
         } else {
             SystemAddress sysAddr;
             sysAddr.SetBinaryAddress(req.get_param_value("instance").c_str());
@@ -102,14 +99,12 @@ void dMasterServerApi::CreateRoutes() {
                     responseJson["error"] = "Server not requested for shutdown";
                     responseJson["success"] = false;
                     responseJson.erase("result");
-                    res.set_content(responseJson.dump(), "application/json");
-                    return;
                 }
             } else {
                 responseJson["result"][possibleSystemAddress.ToString(true)] = "Shutdown complete";
             }
-            res.set_content(responseJson.dump(), "application/json");
         }
+        res.set_content(responseJson.dump(), "application/json");
     });
 
     // POST Endpoints
@@ -150,8 +145,6 @@ void dMasterServerApi::CreateRoutes() {
 
             responseJson["success"] = true;
             responseJson["result"] = "Broadcasted to " + std::to_string(m_InstanceManager->GetInstances().size()) + " instances.";
-            res.set_content(responseJson.dump(), "application/json");
-            return;
         } else {
             SystemAddress sysAddr;
             sysAddr.SetBinaryAddress(req.get_param_value("instance").c_str());
@@ -165,6 +158,7 @@ void dMasterServerApi::CreateRoutes() {
             responseJson["success"] = true;
             responseJson["result"] = std::string("Broadcasted to ") + sysAddr.ToString(true);
         }
+        res.set_content(responseJson.dump(), "application/json");
     });
 
     m_HttpServer->Post("/api/" API_VERSION "/shutdown", [this](const httplib::Request& req, httplib::Response& res) {
@@ -204,7 +198,40 @@ void dMasterServerApi::CreateRoutes() {
 
             responseJson["success"] = true;
             responseJson["result"] = std::string("Sent shutdown request to ") + sysAddr.ToString(true);
+            res.set_content(responseJson.dump(), "application/json");
+            return;
         }
+    });
+
+    m_HttpServer->Post("/api/" API_VERSION "/requestkick", [this](const httplib::Request& req, httplib::Response& res) {
+        auto responseJson = nlohmann::json();
+
+        responseJson["success"] = false;
+
+        if (!req.has_param("charObjId")) {
+            responseJson["error"] = "Missing required fields";
+            res.set_content(responseJson.dump(), "application/json");
+            return;
+        }
+
+        uint64_t objId = std::stoull(req.get_param_value("charObjId"));
+
+        CBITSTREAM;
+
+        PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SAVE_AND_KICK_CHARACTER);
+
+        bitStream.Write<uint64_t>(objId);
+
+        for (const auto* item : m_InstanceManager->GetInstances()) {
+            auto sysAddr = item->GetSysAddr();
+            SEND_PACKET;
+        }
+        Game::logger->Log("MasterServer", "Kicked player with ID %ull \n", objId);
+
+        responseJson["success"] = true;
+        responseJson["result"] = std::string("Sent kick for object ID ") + std::to_string(objId);
+
+        res.set_content(responseJson.dump(), "application/json");
     });
 }
 

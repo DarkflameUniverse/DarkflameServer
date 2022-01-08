@@ -944,6 +944,26 @@ void HandlePacket(Packet* packet) {
 
 				break;
 			}
+
+			case MSG_MASTER_SAVE_AND_KICK_CHARACTER: {
+				RakNet::BitStream inStream(packet->data, packet->length, false);
+				uint64_t header = inStream.Read(header);
+
+				LWOOBJID objId = inStream.Read(objId);
+
+				auto* entity = EntityManager::Instance()->GetEntity(objId);
+
+				if (!entity) break;
+
+				entity->GetCharacter()->SaveXMLToDatabase();
+
+				auto* player = Player::GetPlayer(entity->GetObjectID());
+
+				Game::server->Disconnect(player->GetSystemAddress(), SERVER_DISCON_KICK);
+
+				Game::logger->Log("WorldServer", "Kicked %s following request from master \n", player->GetCharacter()->GetName().c_str());
+				break;
+			}
 		}
 
 		return;
