@@ -116,6 +116,28 @@ void SbLupTeleport::OnStartup(Entity* self)
         choiceOptions->PushBackValue(ntArgs);
     }
 
+    {
+        AMFArrayValue* nsArgs = new AMFArrayValue();
+
+        AMFStringValue* image = new AMFStringValue();
+        image->SetStringValue("textures/ui/zone_thumnails/Deep_Freeze.dds");
+        nsArgs->InsertValue("image", image);
+
+        AMFStringValue* caption = new AMFStringValue();
+        caption->SetStringValue("%[ZoneTable_98_DisplayDescription]");
+        nsArgs->InsertValue("caption", caption);
+
+        AMFStringValue* identifier = new AMFStringValue();
+        identifier->SetStringValue("zoneID_98");
+        nsArgs->InsertValue("identifier", identifier);
+
+        AMFStringValue* tooltipText = new AMFStringValue();
+        tooltipText->SetStringValue("%[ZoneTable_98_summary]");
+        nsArgs->InsertValue("tooltipText", tooltipText);
+
+        choiceOptions->PushBackValue(nsArgs);
+    }
+
     args.InsertValue("options", choiceOptions);
 }
 
