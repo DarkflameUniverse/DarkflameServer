@@ -15,7 +15,7 @@ DROP TABLE IF EXISTS charinfo;
 CREATE TABLE charinfo (
     id BIGINT NOT NULL PRIMARY KEY,
     account_id INT NOT NULL REFERENCES accounts(id),
-    name VARCHAR(35) NOT NULL,
+    name VARCHAR(35) NOT NULL UNIQUE,
     pending_name VARCHAR(35) NOT NULL,
     needs_rename BOOLEAN NOT NULL DEFAULT FALSE,
     prop_clone_id BIGINT UNSIGNED AUTO_INCREMENT UNIQUE,
