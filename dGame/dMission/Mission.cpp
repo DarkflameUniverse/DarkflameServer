@@ -438,7 +438,7 @@ void Mission::YieldRewards() {
         items.emplace_back(info->reward_item4_repeatable, info->reward_item4_repeat_count);
 
         for (const auto& pair : items) {
-            if (pair.second <= 0 || (m_Reward > 0 && pair.first != m_Reward)) {
+            if (pair.second < 0 || (m_Reward > 0 && pair.first != m_Reward)) {
                 continue;
             }
 
