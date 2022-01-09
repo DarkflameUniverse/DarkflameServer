@@ -146,7 +146,7 @@ public:
     void HandleMessageBoxResponse(Entity* player, const std::string& id);
 
     /**
-     * Get the reacing data from a player's LWOOBJID.
+     * Get the racing data from a player's LWOOBJID.
      */
     RacingPlayerInfo* GetPlayerData(LWOOBJID playerID);
 
