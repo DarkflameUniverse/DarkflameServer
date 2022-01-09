@@ -475,6 +475,7 @@ void Mission::YieldRewards() {
         if (pair.second < 0 || (m_Reward > 0 && pair.first != m_Reward)) {
             continue;
         }
+        
         // If a mission rewards zero of an item, make it reward 1.
         auto count = pair.second > 0 ? pair.second : 1;
 
