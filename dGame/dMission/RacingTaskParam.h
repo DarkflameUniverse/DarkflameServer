@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-enum class RacingTaskParam : int64_t {
-    RACING_TASK_PARAM_FINISH_WITH_PLACMENT = 1,             //<! A task param for finishing with a specific placement.
+enum class RacingTaskParam : int32_t {
+    RACING_TASK_PARAM_FINISH_WITH_PLACEMENT = 1,            //<! A task param for finishing with a specific placement.
     RACING_TASK_PARAM_LAP_TIME = 2,                         //<! A task param for finishing with a specific lap time.
     RACING_TASK_PARAM_TOTAL_TRACK_TIME = 3,                 //<! A task param for finishing with a specific track time.
     RACING_TASK_PARAM_COMPLETE_ANY_RACING_TASK = 4,         //<! A task param for completing a racing task.
