@@ -439,7 +439,7 @@ std::vector<Wave> ZoneNsWaves::GetWaves() {
             5.0f,
             (uint32_t) -1,
             true,
-            5,
+            30,
         },
     };
 }
