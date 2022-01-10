@@ -161,10 +161,16 @@ int main(int argc, char** argv) {
 	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");
 	auto* result = masterLookupStatement->executeQuery();
 
+	auto master_server_ip = config.GetValue("master_ip");
+
+	if (master_server_ip == "") {
+		master_server_ip = Game::server->GetIP();
+	}
+
 	//If we found a server, update it's IP and port to the current one.
 	if (result->next()) {
 		auto* updateStatement = Database::CreatePreppedStmt("UPDATE `servers` SET `ip` = ?, `port` = ? WHERE `id` = ?");
-		updateStatement->setString(1, Game::server->GetIP());
+		updateStatement->setString(1, master_server_ip);
 		updateStatement->setInt(2, Game::server->GetPort());
 		updateStatement->setInt(3, result->getInt("id"));
 		updateStatement->execute();
@@ -173,7 +179,7 @@ int main(int argc, char** argv) {
 	else {
 		//If we didn't find a server, create one.
 		auto* insertStatement = Database::CreatePreppedStmt("INSERT INTO `servers` (`name`, `ip`, `port`, `state`, `version`) VALUES ('master', ?, ?, 0, 171023)");
-		insertStatement->setString(1, Game::server->GetIP());
+		insertStatement->setString(1, master_server_ip);
 		insertStatement->setInt(2, Game::server->GetPort());
 		insertStatement->execute();
 		delete insertStatement;
