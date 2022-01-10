@@ -230,7 +230,7 @@ private:
     std::vector<LWOOBJID> m_LobbyPlayers;
 
     /**
-     * The number of players that have fi nished the race
+     * The number of players that have finished the race
      */
     uint32_t m_Finished;
 
