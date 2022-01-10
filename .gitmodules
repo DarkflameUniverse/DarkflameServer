@@ -13,3 +13,12 @@
 [submodule "thirdparty/json"]
 	path = thirdparty/json
 	url = https://github.com/nlohmann/json
+[submodule "thirdparty/docker-utils"]
+	path = thirdparty/docker-utils
+	url = https://github.com/lcdr/utils.git
+[submodule "thirdparty/LUnpack"]
+	path = thirdparty/LUnpack
+	url = https://github.com/Xiphoseer/LUnpack.git
+[submodule "thirdparty/AccountManager"]
+	path = thirdparty/AccountManager
+	url = https://github.com/DarkflameUniverse/AccountManager
