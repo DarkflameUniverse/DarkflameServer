@@ -425,28 +425,27 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	{
 		if (parameters.empty()) break;
 
-		if (!InAllTargets(dZoneManager::Instance()->GetZone()->GetWorldID())) break;
+		if (!InAllTargets(dZoneManager::Instance()->GetZone()->GetWorldID()) && !(parameters[0] == 4 || parameters[0] == 5) && !InAllTargets(value)) break;
 
 		if (parameters[0] != associate) break;
 
-		if (associate == 1 || associate == 15)
+		if (associate == 1 || associate == 15 || associate == 2 || associate == 3)
 		{
 			if (value > info->targetValue) break;
-
-			AddProgress(1);
-		}
-		else if (associate == 2 || associate == 3)
-		{
-			if (info->targetValue < value) break;
 
 			AddProgress(info->targetValue);
 		}
 		else if (associate == 10)
 		{
-			if (info->targetValue > value)
-			{
-				AddProgress(info->targetValue);
-			}
+			// If the player did not crash during the race, progress this task by count.
+			if (value != 0) break;
+			
+			AddProgress(count);
+		}
+		else if (associate == 4 || associate == 5 || associate == 14)
+		{
+			if (!InAllTargets(value)) break;
+			AddProgress(count);
 		}
 		else
 		{
