@@ -949,13 +949,19 @@ void HandlePacket(Packet* packet) {
 				RakNet::BitStream inStream(packet->data, packet->length, false);
 				uint64_t header = inStream.Read(header);
 
-				LWOOBJID objId = inStream.Read(objId);
+				LWOOBJID objId = inStream.Read<int64_t>(objId);
+
+				GeneralUtils::SetBit(objId, OBJECT_BIT_CHARACTER); // just incase we lose a bit or someone is using the DB ID
 
 				auto* entity = EntityManager::Instance()->GetEntity(objId);
+
+				Game::logger->Log("WorldServer", "Got save and kick character request for %llu\n", objId);
 
 				if (!entity) break;
 
 				entity->GetCharacter()->SaveXMLToDatabase();
+
+				Game::logger->Log("WorldServer", "Saved character %llu to database\n", objId);
 
 				auto* player = Player::GetPlayer(entity->GetObjectID());
 

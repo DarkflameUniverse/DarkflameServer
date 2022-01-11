@@ -214,19 +214,16 @@ void dMasterServerApi::CreateRoutes() {
             return;
         }
 
-        uint64_t objId = std::stoull(req.get_param_value("charObjId"));
+        int64_t objId = 4;
 
         CBITSTREAM;
 
         PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SAVE_AND_KICK_CHARACTER);
 
-        bitStream.Write<uint64_t>(objId);
+        bitStream.Write<int64_t>(objId);
 
-        for (const auto* item : m_InstanceManager->GetInstances()) {
-            auto sysAddr = item->GetSysAddr();
-            SEND_PACKET;
-        }
-        Game::logger->Log("MasterServer", "Kicked player with ID %ull \n", objId);
+        SEND_PACKET_BROADCAST;
+        Game::logger->Log("MasterServer", "Kicked player with ID %llu \n", objId);
 
         responseJson["success"] = true;
         responseJson["result"] = std::string("Sent kick for object ID ") + std::to_string(objId);
