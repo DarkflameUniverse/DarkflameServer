@@ -1,0 +1,10 @@
+.git
+Dockerfile
+*.md
+logo.png
+versions.txt
+build.sh
+docker-compose.yml
+.env
+docker/__pycache__
+.env.example
