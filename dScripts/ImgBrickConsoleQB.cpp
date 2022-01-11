@@ -89,7 +89,7 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user)
             // Check if we have mission 1302, "Secret of The Skeletons"
             if (missionComponent->GetMissionState(1302) == MissionState::MISSION_STATE_ACTIVE) {
                 // Since we know we are in this mission we make sure we have the "Nuckal's Maelstrom Bone" item in our inventory before removing 1 and progressing the mission.
-                if(inventoryComponent->FindItemByLot(13074)) {
+                if(inventoryComponent->GetLotCount(13074) > 0) {
                     inventoryComponent->RemoveItem(13074, 1);
                     missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
                 }
@@ -98,7 +98,7 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user)
             // Check if we have mission 1926, "Chaos Cleaner"
             if (missionComponent->GetMissionState(1926) == MissionState::MISSION_STATE_ACTIVE) {
                  // Since we know we are in this mission we make sure we have the "Maelstrom Dagger" in our inventory before removing 1 and progressing the mission.
-                if(inventoryComponent->FindItemByLot(14472)) {
+                if(inventoryComponent->GetLotCount(14472) > 0) {
                     inventoryComponent->RemoveItem(14472, 1);
                     missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
                 }
