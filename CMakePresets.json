@@ -8,23 +8,39 @@
   "configurePresets": [
     {
       "name": "default",
-      "displayName": "Default Configure Settings",
-      "description": "Sets build and install directories",
+      "displayName": "Default configure step",
+      "description": "Use 'build' dir and Unix makefiles",
       "binaryDir": "${sourceDir}/build",
       "generator": "Unix Makefiles"
     },
     {
+      "name": "ci-ubuntu-20.04",
+      "displayName": "CI configure step for Ubuntu",
+      "description": "Same as default, Used in GitHub actions workflow",
+      "inherits": "default"
+    },
+    {
+      "name": "ci-windows-2022",
+      "displayName": "CI configure step for Windows",
+      "description": "Set architecture to 64-bit (b/c RakNet)",
+      "inherits": "default",
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
       "name": "windows-default",
+      "inherits": "ci-windows-2022",
       "displayName": "Windows only Configure Settings",
       "description": "Sets build and install directories",
-      "binaryDir": "${sourceDir}/build",
       "generator": "Ninja",
       "architecture": {
         "value": "x64",
         "strategy": "external"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
     }
   ],
@@ -35,14 +51,42 @@
       "displayName": "Default Build",
       "description": "Default Build",
       "jobs": 2
+    },
+    {
+      "name": "ci-windows-2022",
+      "configurePreset": "ci-windows-2022",
+      "displayName": "Windows CI Build",
+      "description": "This preset is used by the CI build on windows",
+      "configuration": "RelWithDebInfo",
+      "jobs": 2
+    },
+    {
+      "name": "ci-ubuntu-20.04",
+      "configurePreset": "ci-ubuntu-20.04",
+      "displayName": "Linux CI Build",
+      "description": "This preset is used by the CI build on linux",
+      "jobs": 2
     }
   ],
   "testPresets": [
     {
-      "name": "default",
-      "configurePreset": "default",
-      "displayName": "Default Tests",
-      "description": "Runs all tests",
+      "name": "ci-ubuntu-20.04",
+      "configurePreset": "ci-ubuntu-20.04",
+      "displayName": "CI Tests on Linux",
+      "description": "Runs all tests on a linux configuration",
+      "execution": {
+        "jobs": 2
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "ci-windows-2022",
+      "configurePreset": "ci-windows-2022",
+      "displayName": "CI Tests on windows",
+      "description": "Runs all tests on a windows configuration",
+      "configuration": "RelWithDebInfo",
       "execution": {
         "jobs": 2
       },
