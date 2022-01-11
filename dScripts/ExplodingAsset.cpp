@@ -43,26 +43,11 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 		skillComponent->CalculateBehavior(147, 4721, LWOOBJID_EMPTY, true);
 	}
 
-	const auto missionID = self->GetVar<int32_t>(u"missionID");
-	auto achievementIDs = self->GetVar<std::u16string>(u"achieveID");
-
 	// Progress all scripted missions related to this asset
 	auto* missionComponent = attacker->GetComponent<MissionComponent>();
-	if (missionComponent != nullptr) {
-	    if (missionID != 0) {
-	        missionComponent->ForceProgressValue(missionID,
-                                                 static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT),
-                                                 self->GetLOT(), false);
-	    }
+	if (missionComponent == nullptr) return;
 
-	    if (!achievementIDs.empty()) {
-	        for (const auto& achievementID : GeneralUtils::SplitString(achievementIDs, u'_')) {
-	            missionComponent->ForceProgressValue(std::stoi(GeneralUtils::UTF16ToWTF8(achievementID)),
-                                                     static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT),
-                                                     self->GetLOT());
-	        }
-	    }
-	}
+	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
 
 	self->ScheduleKillAfterUpdate();
 }

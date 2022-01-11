@@ -80,13 +80,12 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName)
 
         GameMessages::SendStopFXEffect(player, true, "hook");
 
+        GameMessages::SendTerminateInteraction(playerId, FROM_INTERACTION, self->GetObjectID());
+
         auto* missionComponent = player->GetComponent<MissionComponent>();
 
-        if (missionComponent != nullptr)
-        {
-            missionComponent->ForceProgress(601, 910, 1);
-        }
+        if (missionComponent == nullptr) return;
 
-        GameMessages::SendTerminateInteraction(playerId, FROM_INTERACTION, self->GetObjectID());
+        missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
     }
 }

@@ -281,10 +281,8 @@ void AmSkullkinDrill::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t 
 
         if (missionComponent != nullptr)
         {
-            for (const auto missionID : m_MissionsToUpdate)
-            {
-                missionComponent->ForceProgressValue(missionID, 1, self->GetLOT());
-            }
+            std::cout << self->GetLOT() << std::endl;
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
         }
     }
 

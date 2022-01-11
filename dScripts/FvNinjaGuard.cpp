@@ -14,23 +14,9 @@ void FvNinjaGuard::OnStartup(Entity* self)
 	}
 }
 
-void FvNinjaGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity* target)
-{
-	if (emote != 392)
-	{
-		GameMessages::SendPlayAnimation(self, u"no");
-
-		return;
-	}
-
+void FvNinjaGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity* target) {
+	
 	GameMessages::SendPlayAnimation(self, u"scared");
-
-	auto* missionComponent = target->GetComponent<MissionComponent>();
-
-	if (missionComponent != nullptr && missionComponent->HasMission(737))
-	{
-		missionComponent->ForceProgressTaskType(737, 5, 1, false);
-	}
 
 	if (self->GetLOT() == 7412)
 	{
@@ -50,5 +36,10 @@ void FvNinjaGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity* ta
 			GameMessages::SendPlayAnimation(leftGuard, u"laugh_lt");
 		}
 	}
+	auto* missionComponent = target->GetComponent<MissionComponent>();
+
+	if (missionComponent == nullptr) return;
+
+	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emote, self->GetObjectID());
 }
 

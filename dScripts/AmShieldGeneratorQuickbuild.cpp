@@ -158,8 +158,7 @@ void AmShieldGeneratorQuickbuild::OnRebuildComplete(Entity* self, Entity* target
         {
             return;
         }
-
-        missionComponent->ForceProgressTaskType(987, 1, 1, false);
+        missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
     }
 }
 

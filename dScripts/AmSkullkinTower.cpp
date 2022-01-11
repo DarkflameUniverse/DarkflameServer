@@ -189,17 +189,10 @@ void AmSkullkinTower::OnChildRemoved(Entity* self, Entity* child)
 
             auto* missionComponent = player->GetComponent<MissionComponent>();
 
-            if (missionComponent == nullptr)
-            {
-                continue;
+            if (missionComponent != nullptr) {
+                std::cout << self->GetLOT() << std::endl;
+                missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
             }
-
-            for (const auto missionID : missionIDs)
-            {
-                missionComponent->ForceProgressValue(missionID, 1, self->GetLOT());
-            }
-
-            //missionComponent->ForceProgressValue(1305, 1, self->GetLOT());
         }
     }
 

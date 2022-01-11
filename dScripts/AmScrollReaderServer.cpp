@@ -11,7 +11,6 @@ void AmScrollReaderServer::OnMessageBoxResponse(Entity* self, Entity* sender, in
         {
             return;
         }
-
-        missionComponent->ForceProgressTaskType(969, 1, 1, false);
+        missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
     }
 }

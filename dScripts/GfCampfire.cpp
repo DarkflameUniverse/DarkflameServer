@@ -44,13 +44,11 @@ void GfCampfire::OnProximityUpdate(Entity* self, Entity* entering, std::string n
 					skill->CalculateBehavior(m_skillCastId, 115, entering->GetObjectID());
 					self->AddTimer("TimeBetweenCast", FIRE_COOLDOWN);
 
-					//self->SetVar<LWOOBJID>("target", entering->GetObjectID());
+					auto* missionComponent = entering->GetComponent<MissionComponent>();
 
-					auto* missionComponet = entering->GetComponent<MissionComponent>();
-
-					if (missionComponet != nullptr)
+					if (missionComponent != nullptr)
 					{
-						missionComponet->ForceProgress(440, 658, 1);
+						missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
 					}
 				}
 			}

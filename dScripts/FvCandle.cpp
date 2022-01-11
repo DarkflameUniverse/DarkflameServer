@@ -1,8 +1,6 @@
 #include "FvCandle.h"
 #include "MissionComponent.h"
 
-std::vector<int32_t> FvCandle::m_Missions = {850, 1431, 1529, 1566, 1603};
-
 void FvCandle::OnStartup(Entity* self) {
 	auto* render = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
 	if (render == nullptr)
@@ -27,15 +25,10 @@ void FvCandle::BlowOutCandle(Entity* self, Entity* blower) {
 	
 	auto* missionComponent = blower->GetComponent<MissionComponent>();
 
-	if (missionComponent != nullptr)
-	{
-		for (const auto mission : m_Missions)
-		{
-			missionComponent->ForceProgressTaskType(mission, 1, 1);
-		}
-	}
+	if (missionComponent == nullptr) return;
 
-	//Update mission tasks here
+	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+
 	self->SetBoolean(u"AmHit", true);
 
 	render->StopEffect("candle_light", false);

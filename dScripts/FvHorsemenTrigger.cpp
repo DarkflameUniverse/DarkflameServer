@@ -56,15 +56,9 @@ FvHorsemenTrigger::OnFireEventServerSide(Entity *self, Entity *sender, std::stri
 
             auto* missionComponent = player->GetComponent<MissionComponent>();
 
-            if (missionComponent == nullptr)
-            {
-                continue;
-            }
+            if (missionComponent == nullptr) return;
 
-            for (const auto missionId : m_Missions)
-            {
-                missionComponent->ForceProgressTaskType(missionId, 1, 1);
-            }
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
         }
     }
 }

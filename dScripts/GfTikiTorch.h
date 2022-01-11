@@ -13,5 +13,4 @@ private:
 
 	LOT m_imaginationlot = 935;
 	int32_t m_numspawn = 3;
-	std::vector<int> m_missions = {472, 1429, 1527, 1564, 1601};
 };

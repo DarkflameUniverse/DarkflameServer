@@ -48,7 +48,7 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target)
 
                 if (missionComponent != nullptr)
                 {
-                    missionComponent->ForceProgressTaskType(769, 1, 1, false);
+                    missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, object->GetLOT());
                 }
 
                 GameMessages::SendPlayCinematic(player->GetObjectID(), u"ParadoxPipeFinish", player->GetSystemAddress(), true, true, false, false, 0, false, 2.0f);

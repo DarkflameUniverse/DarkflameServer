@@ -727,7 +727,6 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position)
 
     if (missionComponent != nullptr)
     {
-        //missionComponent->ForceProgress(506, 768, 1, false);
         missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PET_TAMING, m_Parent->GetLOT());
     }
 

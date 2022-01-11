@@ -63,14 +63,13 @@ void GfTikiTorch::OnSkillEventFired(Entity *self, Entity *caster, const std::str
             renderComponent->PlayEffect(611, u"steam", "steam");
         }
 
-        auto* casterMissionComponent = caster->GetComponent<MissionComponent>();
-        if (casterMissionComponent != nullptr) {
-            for (const auto missionID : m_missions) {
-                casterMissionComponent->ForceProgressTaskType(missionID, static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT), 1);
-            }
-        }
-
         self->AddTimer("Relight", 7.0f);
         self->SetBoolean(u"isBurning", false);
+
+		auto* sprayerMissionComponent = caster->GetComponent<MissionComponent>();
+
+        if (sprayerMissionComponent == nullptr) return;
+
+        sprayerMissionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
     }
 }
