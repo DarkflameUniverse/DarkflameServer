@@ -1861,8 +1861,6 @@ bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
 		case 1401:
 		case 1450:
 		case 1451:
-			
-		case 1500:
 
 		case 1600:
 		case 1601:
@@ -1870,6 +1868,7 @@ bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
 		case 1603:
 		case 1604:
 
+		case 1700:
 		case 1800:
 		case 1900:
 		case 2000:
