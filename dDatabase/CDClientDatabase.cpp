@@ -13,3 +13,8 @@ void CDClientDatabase::Connect(const std::string& filename) {
 CppSQLite3Query CDClientDatabase::ExecuteQuery(const std::string& query) {
     return conn->execQuery(query.c_str());
 }
+
+//! Makes prepared statements
+CppSQLite3Statement CDClientDatabase::CreatePreppedStmt(const std::string& query) {
+    return conn->compileStatement(query.c_str());
+}

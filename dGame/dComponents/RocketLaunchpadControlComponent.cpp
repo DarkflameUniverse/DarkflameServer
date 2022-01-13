@@ -18,10 +18,12 @@
 #include "PacketUtils.h"
 
 RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, int rocketId) : Component(parent) {
-	auto result = CDClientDatabase::ExecuteQueryWithArgs(
-		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = %d;",
-		rocketId);
+	auto query = CDClientDatabase::CreatePreppedStmt(
+            "SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = ?;");
+	query.bind(1, rocketId);
 
+	auto result = query.execQuery();
+	
 	if (!result.eof() && !result.fieldIsNull(0))
 	{
 		m_TargetZone = result.getIntField(0);

@@ -386,9 +386,11 @@ void Item::DisassembleModel()
 
 	const auto componentId = table->GetByIDAndType(GetLot(), COMPONENT_TYPE_RENDER);
 
-	auto result = CDClientDatabase::ExecuteQueryWithArgs(
-		"SELECT render_asset FROM RenderComponent WHERE id = %d;",
-		componentId);
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT render_asset FROM RenderComponent WHERE id = ?;");
+	query.bind(1, (int) componentId);
+
+	auto result = query.execQuery();
 
 	if (result.eof())
 	{

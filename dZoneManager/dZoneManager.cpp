@@ -26,9 +26,11 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LOT zoneControlTemplate = 2365;
 
-	auto result = CDClientDatabase::ExecuteQueryWithArgs(
-		"SELECT zoneControlTemplate, ghostdistance_min, ghostdistance FROM ZoneTable WHERE zoneID = %d;",
-		(int) zoneID.GetMapID());
+	auto query = CDClientDatabase::CreatePreppedStmt(
+            "SELECT zoneControlTemplate, ghostdistance_min, ghostdistance FROM ZoneTable WHERE zoneID = ?;");
+	query.bind(1, (int) zoneID.GetMapID());
+
+	auto result = query.execQuery();
 
 	if (!result.eof()) {
 		zoneControlTemplate = result.getIntField("zoneControlTemplate", 2365);

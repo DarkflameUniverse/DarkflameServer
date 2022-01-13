@@ -86,9 +86,11 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 
 	const auto sync_entry = this->m_managedProjectiles.at(index);
 
-	auto result = CDClientDatabase::ExecuteQueryWithArgs(
-		"SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = %d);",
-		sync_entry.lot);
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
+    query.bind(1, (int) sync_entry.lot);
+
+	auto result = query.execQuery();
 
 	if (result.eof()) {
 		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!\n", sync_entry.lot);
@@ -434,9 +436,10 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 		return;
 	}
 
-	auto result = CDClientDatabase::ExecuteQueryWithArgs(
-        "SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = %d);",
-        entry.lot);
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
+    query.bind(1, (int) entry.lot);
+	auto result = query.execQuery();
 
 	if (result.eof()) {
 		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!\n", entry.lot);

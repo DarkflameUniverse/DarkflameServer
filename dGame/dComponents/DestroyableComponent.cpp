@@ -373,8 +373,11 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
     m_FactionIDs.push_back(factionID);
     m_DirtyHealth = true;
 
-	auto result = CDClientDatabase::ExecuteQueryWithArgs(
-		"SELECT enemyList FROM Factions WHERE faction = %d;", factionID);
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT enemyList FROM Factions WHERE faction = ?;");
+    query.bind(1, (int) factionID);
+
+	auto result = query.execQuery();
 
 	if (result.eof()) return;
 

@@ -199,9 +199,13 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
     }
 
     const std::string effectType_str = GeneralUtils::UTF16ToWTF8(effectType);
-    auto result = CDClientDatabase::ExecuteQueryWithArgs(
-        "SELECT animation_length FROM Animations WHERE animation_type IN (SELECT animationName FROM BehaviorEffect WHERE effectID = %d AND effectType = %Q);",
-        effectId, effectType_str.c_str());
+
+    auto query = CDClientDatabase::CreatePreppedStmt(
+        "SELECT animation_length FROM Animations WHERE animation_type IN (SELECT animationName FROM BehaviorEffect WHERE effectID = ? AND effectType = ?);");
+    query.bind(1, effectId);
+    query.bind(2, effectType_str.c_str());
+
+    auto result = query.execQuery();
 
     if (result.eof() || result.fieldIsNull(0)) {
         result.finalize();

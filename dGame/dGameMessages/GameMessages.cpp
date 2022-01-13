@@ -2509,9 +2509,11 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				const auto zoneId = worldId.GetMapID();
 				const auto cloneId = worldId.GetCloneID();
 
-				auto result = CDClientDatabase::ExecuteQueryWithArgs(
-					"SELECT id FROM PropertyTemplate WHERE mapID = %d;",
-					(int) zoneId);
+				auto query = CDClientDatabase::CreatePreppedStmt(
+					"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+				query.bind(1, (int) zoneId);
+
+				auto result = query.execQuery();
 
 				if (result.eof() || result.fieldIsNull(0)) {
 					return;

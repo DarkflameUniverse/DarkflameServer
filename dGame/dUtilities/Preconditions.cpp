@@ -16,9 +16,11 @@
 std::map<uint32_t, Precondition*> Preconditions::cache = {};
 
 Precondition::Precondition(const uint32_t condition) {
-	auto result = CDClientDatabase::ExecuteQueryWithArgs(
-		"SELECT type, targetLOT, targetCount FROM Preconditions WHERE id = %u;",
-		condition);
+    auto query = CDClientDatabase::CreatePreppedStmt(
+        "SELECT type, targetLOT, targetCount FROM Preconditions WHERE id = ?;");
+	query.bind(1, (int) condition);
+
+    auto result = query.execQuery();
 
 	if (result.eof())
 	{

@@ -1243,11 +1243,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
     }
 
     if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 1) {
-        std::string query = "%" + args[0] + "%";
-        const char* query_cstr = query.c_str();
-        auto tables = CDClientDatabase::ExecuteQueryWithArgs(
-            "SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE %Q OR `name` LIKE %Q OR `description` LIKE %Q LIMIT 50",
-            query_cstr, query_cstr, query_cstr);
+		auto query = CDClientDatabase::CreatePreppedStmt(
+            "SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE ?1 OR `name` LIKE ?1 OR `description` LIKE ?1 LIMIT 50");
+
+		const std::string query_text = "%" + args[0] + "%";
+        query.bind(1, query_text.c_str());
+
+		auto tables = query.execQuery();
 
         while (!tables.eof()) {
             std::string message = std::to_string(tables.getIntField(0)) + " - " + tables.getStringField(1);

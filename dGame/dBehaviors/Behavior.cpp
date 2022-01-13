@@ -276,9 +276,11 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 }
 
 BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
-	auto result = CDClientDatabase::ExecuteQueryWithArgs(
-		"SELECT templateID FROM BehaviorTemplate WHERE behaviorID = %u;",
-        behaviorId);
+    auto query = CDClientDatabase::CreatePreppedStmt(
+        "SELECT templateID FROM BehaviorTemplate WHERE behaviorID = ?;");
+    query.bind(1, (int) behaviorId);
+
+    auto result = query.execQuery();
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
 	if (result.eof())
@@ -349,18 +351,24 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 		}
 	}
 
+	// The SQlite result object becomes invalid if the query object leaves scope.
+	// So both queries are defined before the if statement
 	CppSQLite3Query result;
-	if (!type.empty())
-	{
-		result = CDClientDatabase::ExecuteQueryWithArgs(
-			"SELECT effectName FROM BehaviorEffect WHERE effectType = %Q AND effectID = %u;",
-			typeString.c_str(), effectId);
-	}
-	else
-	{
-		result = CDClientDatabase::ExecuteQueryWithArgs(
-			"SELECT effectName, effectType FROM BehaviorEffect WHERE effectID = %u;",
-			effectId);
+	auto typeQuery = CDClientDatabase::CreatePreppedStmt(
+		"SELECT effectName FROM BehaviorEffect WHERE effectType = ? AND effectID = ?;");
+
+	auto idQuery = CDClientDatabase::CreatePreppedStmt(
+		"SELECT effectName, effectType FROM BehaviorEffect WHERE effectID = ?;");
+
+	if (!type.empty()) {
+		typeQuery.bind(1, typeString.c_str());
+		typeQuery.bind(2, (int) effectId);
+
+		result = typeQuery.execQuery();
+	} else {
+		idQuery.bind(1, (int) effectId);
+
+		result = idQuery.execQuery();
 	}
 
 	if (result.eof() || result.fieldIsNull(0))
@@ -406,9 +414,11 @@ Behavior::Behavior(const uint32_t behaviorId)
 		this->m_templateId = BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
 
-	auto result = CDClientDatabase::ExecuteQueryWithArgs(
-		"SELECT templateID, effectID, effectHandle FROM BehaviorTemplate WHERE behaviorID = %u;",
-		behaviorId);
+    auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT templateID, effectID, effectHandle FROM BehaviorTemplate WHERE behaviorID = ?;");
+	query.bind(1, (int) behaviorId);
+
+    auto result = query.execQuery();
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
 	if (result.eof())
@@ -481,9 +491,11 @@ std::map<std::string, float> Behavior::GetParameterNames() const
 {
 	std::map<std::string, float> parameters;
 
-	auto tableData = CDClientDatabase::ExecuteQueryWithArgs(
-		"SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = %u;",
-		this->m_behaviorId);
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = ?;");
+    query.bind(1, (int) this->m_behaviorId);
+
+	auto tableData = query.execQuery();
 
 	while (!tableData.eof())
 	{

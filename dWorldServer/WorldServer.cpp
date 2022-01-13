@@ -1059,9 +1059,11 @@ void HandlePacket(Packet* packet) {
 						const auto zoneId = Game::server->GetZoneID();
 						const auto cloneId = g_CloneID;
 
-						auto result = CDClientDatabase::ExecuteQueryWithArgs(
-							"SELECT id FROM PropertyTemplate WHERE mapID = %u;",
-							zoneId);
+						auto query = CDClientDatabase::CreatePreppedStmt(
+							"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+						query.bind(1, (int) zoneId);
+
+						auto result = query.execQuery();
 
 						if (result.eof() || result.fieldIsNull(0)) {
 							Game::logger->Log("WorldServer", "No property templates found for zone %d, not sending BBB\n", zoneId);

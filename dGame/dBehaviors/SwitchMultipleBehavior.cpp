@@ -40,12 +40,14 @@ void SwitchMultipleBehavior::Calculate(BehaviorContext* context, RakNet::BitStre
 }
 
 void SwitchMultipleBehavior::Load() {
-	auto result = CDClientDatabase::ExecuteQueryWithArgs(
+	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT replace(bP1.parameterID, 'behavior ', '') as key, bP1.value as behavior, "
-		"(select bP2.value FROM BehaviorParameter bP2 WHERE bP2.behaviorID = %u AND bP2.parameterID LIKE 'value %' "
+		"(select bP2.value FROM BehaviorParameter bP2 WHERE bP2.behaviorID = ?1 AND bP2.parameterID LIKE 'value %' "
 		"AND replace(bP1.parameterID, 'behavior ', '') = replace(bP2.parameterID, 'value ', '')) as value "
-		"FROM BehaviorParameter bP1 WHERE bP1.behaviorID = %u AND bP1.parameterID LIKE 'behavior %';",
-		this->m_behaviorId, this->m_behaviorId);
+		"FROM BehaviorParameter bP1 WHERE bP1.behaviorID = ?1 AND bP1.parameterID LIKE 'behavior %';");
+	query.bind(1, (int) this->m_behaviorId);
+
+	auto result = query.execQuery();
 
 	while (!result.eof()) {
 		const auto behavior_id = static_cast<uint32_t>(result.getFloatField(1));
