@@ -8,7 +8,7 @@
  * @param argv Command line arguments
  * @return 0 on success, non-zero on failure
  */
-int TestLDFFormat(int argc, char** argv) {
+int TestLDFFormat(int argc, char* *const argv) {
 	// Create
 	auto* data = LDFBaseData::DataFromString("KEY=0:VALUE");
 	
