@@ -48,7 +48,6 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
         m_Tasks.push_back(task);
     }
-    m_CurrencyConversionRate = dZoneManager::Instance()->GetLevelCapCurrencyConversion();
 }
 
 void Mission::LoadFromXml(tinyxml2::XMLElement* element) {
@@ -423,7 +422,7 @@ void Mission::YieldRewards() {
         }
     }
 
-    __int64 coinsToSend = 0;
+    int32_t coinsToSend = 0;
     if (info->LegoScore > 0) {
         eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
         if(characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {

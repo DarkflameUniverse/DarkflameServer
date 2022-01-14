@@ -119,7 +119,7 @@ LWOZONEID dZoneManager::GetZoneID() const
 }
 
 uint32_t dZoneManager::GetMaxLevel() {
-	if(m_MaxLevel == 0) {
+	if (m_MaxLevel == 0) {
 		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCap FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
     	m_MaxLevel = tableData.getIntField(0, -1);
     	tableData.finalize();
@@ -127,8 +127,8 @@ uint32_t dZoneManager::GetMaxLevel() {
 	return m_MaxLevel;
 }
 
-__int64 dZoneManager::GetLevelCapCurrencyConversion() {
-	if(m_CurrencyConversionRate == 0) {
+int32_t dZoneManager::GetLevelCapCurrencyConversion() {
+	if (m_CurrencyConversionRate == 0) {
 		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCapCurrencyConversion FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
     	m_CurrencyConversionRate = tableData.getIntField(0, -1);
     	tableData.finalize();

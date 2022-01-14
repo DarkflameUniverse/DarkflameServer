@@ -34,7 +34,7 @@ public:
 	void AddSpawner(LWOOBJID id, Spawner* spawner);
 	LWOZONEID GetZoneID() const;
 	uint32_t GetMaxLevel();
-	__int64 GetLevelCapCurrencyConversion();
+	int32_t GetLevelCapCurrencyConversion();
 	LWOOBJID MakeSpawner(SpawnerInfo info);
 	Spawner* GetSpawner(LWOOBJID id);
 	void RemoveSpawner(LWOOBJID id);
@@ -52,7 +52,7 @@ private:
 	/**
 	 * The ratio of LEGO Score to currency when the character has hit the max level.
 	 */
-	__int64 m_CurrencyConversionRate = 0;
+	int32_t m_CurrencyConversionRate = 0;
 	
     static dZoneManager* m_Address; //Singleton
 	Zone* m_pZone;
