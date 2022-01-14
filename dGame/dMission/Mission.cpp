@@ -438,10 +438,13 @@ void Mission::YieldRewards() {
         items.emplace_back(info->reward_item4_repeatable, info->reward_item4_repeat_count);
 
         for (const auto& pair : items) {
-            if (pair.second <= 0 || (m_Reward > 0 && pair.first != m_Reward)) {
+            // Some missions reward zero of an item and so they must be allowed through this clause,
+            // hence pair.second < 0 instead of pair.second <= 0.
+            if (pair.second < 0 || (m_Reward > 0 && pair.first != m_Reward)) {
                 continue;
             }
 
+            // If a mission rewards zero of an item, make it reward 1.
             auto count = pair.second > 0 ? pair.second : 1;
 
             // Sanity check, 6 is the max any mission yields
@@ -467,10 +470,13 @@ void Mission::YieldRewards() {
     items.emplace_back(info->reward_item4, info->reward_item4_count);
 
     for (const auto& pair : items) {
+        // Some missions reward zero of an item and so they must be allowed through this clause,
+        // hence pair.second < 0 instead of pair.second <= 0.
         if (pair.second < 0 || (m_Reward > 0 && pair.first != m_Reward)) {
             continue;
         }
-
+        
+        // If a mission rewards zero of an item, make it reward 1.
         auto count = pair.second > 0 ? pair.second : 1;
 
         // Sanity check, 6 is the max any mission yields
