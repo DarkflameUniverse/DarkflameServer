@@ -565,7 +565,9 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write((uint16_t)GAME_MSG_MODIFY_LEGO_SCORE);
 	bitStream.Write(score);
-	bitStream.Write(sourceType);
+
+	bitStream.Write(sourceType != LOOT_SOURCE_NONE);
+	if (sourceType != LOOT_SOURCE_NONE) bitStream.Write(sourceType);
 
 	bitStream.Write(sourceType != LOOT_SOURCE_NONE);
 	if (sourceType != LOOT_SOURCE_NONE) bitStream.Write(sourceType);

@@ -258,9 +258,4 @@ private:
      * All the tasks that can be progressed for this mission
      */
 	std::vector<MissionTask*> m_Tasks;
-
-    /**
-     * The conversion rate of LEGOScore to currency.
-     */
-    uint32_t m_CurrencyConversionRate;
 };
