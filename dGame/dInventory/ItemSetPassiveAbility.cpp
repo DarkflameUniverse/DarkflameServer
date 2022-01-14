@@ -169,8 +169,7 @@ std::vector<ItemSetPassiveAbility> ItemSetPassiveAbility::FindAbilities(uint32_t
 
         break;
     }
-    // Sentinel and Bat Lord
-    case ItemSetPassiveAbilityID::BatLord:
+    // Sentinel
     case ItemSetPassiveAbilityID::KnightRank1:
     case ItemSetPassiveAbilityID::KnightRank2:
     case ItemSetPassiveAbilityID::KnightRank3:
@@ -186,6 +185,7 @@ std::vector<ItemSetPassiveAbility> ItemSetPassiveAbility::FindAbilities(uint32_t
         break;
     }
     // Paradox
+    case ItemSetPassiveAbilityID::BatLord:
     case ItemSetPassiveAbilityID::SpaceMarauderRank1:
     case ItemSetPassiveAbilityID::SpaceMarauderRank2:
     case ItemSetPassiveAbilityID::SpaceMarauderRank3:
