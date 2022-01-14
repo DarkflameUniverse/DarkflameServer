@@ -460,8 +460,9 @@ void Mission::YieldRewards() {
             inventoryComponent->AddItem(pair.first, count);
         }
 
-        if (info->reward_currency_repeatable > 0) {
-            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable, LOOT_SOURCE_MISSION);
+        if (info->reward_currency_repeatable > 0 || coinsToSend > 0) {
+            eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable + coinsToSend, lootSource);
         }
 
         return;
