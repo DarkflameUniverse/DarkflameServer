@@ -569,9 +569,6 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	bitStream.Write(sourceType != LOOT_SOURCE_NONE);
 	if (sourceType != LOOT_SOURCE_NONE) bitStream.Write(sourceType);
 
-	bitStream.Write(sourceType != LOOT_SOURCE_NONE);
-	if (sourceType != LOOT_SOURCE_NONE) bitStream.Write(sourceType);
-
 	SEND_PACKET
 }
 
