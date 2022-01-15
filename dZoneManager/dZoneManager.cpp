@@ -16,7 +16,7 @@ dZoneManager* dZoneManager::m_Address = nullptr;
 
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i\n", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
-    
+
     int64_t startTime = 0;
     int64_t endTime = 0;
 
@@ -27,7 +27,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	LOT zoneControlTemplate = 2365;
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
-            "SELECT zoneControlTemplate, ghostdistance_min, ghostdistance FROM ZoneTable WHERE zoneID = ?;");
+		"SELECT zoneControlTemplate, ghostdistance_min, ghostdistance FROM ZoneTable WHERE zoneID = ?;");
 	query.bind(1, (int) zoneID.GetMapID());
 
 	auto result = query.execQuery();
@@ -54,7 +54,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	m_pZone->Initalize();
 
     endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-	
+
     Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms\n", (endTime - startTime));
 
 	VanityUtilities::SpawnVanity();
@@ -62,13 +62,13 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 dZoneManager::~dZoneManager() {
 	if (m_pZone) delete m_pZone;
-    
+
     for (std::pair<LWOOBJID, Spawner*> p : m_Spawners) {
         if (p.second) {
             delete p.second;
             p.second = nullptr;
         }
-        
+
         m_Spawners.erase(p.first);
     }
 }
@@ -130,7 +130,7 @@ void dZoneManager::Update(float deltaTime) {
 LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info)
 {
 	auto objectId = info.spawnerID;
-	
+
 	if (objectId == LWOOBJID_EMPTY)
 	{
 		objectId = ObjectIDManager::Instance()->GenerateObjectID();
@@ -139,18 +139,18 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info)
 
 		info.spawnerID = objectId;
 	}
-	
+
 	auto* spawner = new Spawner(info);
 
 	EntityInfo entityInfo{};
 
 	entityInfo.id = objectId;
 	entityInfo.lot = 176;
-	
+
 	auto* entity = EntityManager::Instance()->CreateEntity(entityInfo, nullptr, nullptr, false, objectId);
 
 	EntityManager::Instance()->ConstructEntity(entity);
-	
+
 	AddSpawner(objectId, spawner);
 
 	return objectId;
@@ -203,9 +203,9 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id)
 	spawner->Deactivate();
 
 	Game::logger->Log("dZoneManager", "Destroying spawner (%llu)\n", id);
-	
+
 	m_Spawners.erase(id);
-	
+
 	delete spawner;
 }
 

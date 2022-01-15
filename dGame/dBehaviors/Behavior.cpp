@@ -185,8 +185,8 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 		break;
 	case BehaviorTemplates::BEHAVIOR_JETPACK: break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_EVENT:
-	    behavior = new SkillEventBehavior(behaviorId);
-	    break;
+		behavior = new SkillEventBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_CONSUME_ITEM: break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_CAST_FAILED:
 		behavior = new SkillCastFailedBehavior(behaviorId);
@@ -414,11 +414,11 @@ Behavior::Behavior(const uint32_t behaviorId)
 		this->m_templateId = BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
 
-    auto query = CDClientDatabase::CreatePreppedStmt(
+	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT templateID, effectID, effectHandle FROM BehaviorTemplate WHERE behaviorID = ?;");
 	query.bind(1, (int) behaviorId);
 
-    auto result = query.execQuery();
+	auto result = query.execQuery();
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
 	if (result.eof())
@@ -493,7 +493,7 @@ std::map<std::string, float> Behavior::GetParameterNames() const
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = ?;");
-    query.bind(1, (int) this->m_behaviorId);
+	query.bind(1, (int) this->m_behaviorId);
 
 	auto tableData = query.execQuery();
 

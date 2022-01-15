@@ -1242,12 +1242,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
         EntityManager::Instance()->SerializeEntity(entity);
     }
 
-    if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 1) {
+	if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 1) {
 		auto query = CDClientDatabase::CreatePreppedStmt(
-            "SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE ?1 OR `name` LIKE ?1 OR `description` LIKE ?1 LIMIT 50");
+			"SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE ?1 OR `name` LIKE ?1 OR `description` LIKE ?1 LIMIT 50");
 
 		const std::string query_text = "%" + args[0] + "%";
-        query.bind(1, query_text.c_str());
+		query.bind(1, query_text.c_str());
 
 		auto tables = query.execQuery();
 

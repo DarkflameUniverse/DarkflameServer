@@ -19,11 +19,11 @@
 
 RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, int rocketId) : Component(parent) {
 	auto query = CDClientDatabase::CreatePreppedStmt(
-            "SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = ?;");
+		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = ?;");
 	query.bind(1, rocketId);
 
 	auto result = query.execQuery();
-	
+
 	if (!result.eof() && !result.fieldIsNull(0))
 	{
 		m_TargetZone = result.getIntField(0);
@@ -59,7 +59,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOOBJID option
 	{
 		return;
 	}
-	
+
 	TellMasterToPrepZone(zone);
 
 	// This also gets triggered by a proximity monitor + item equip, I will set that up when havok is ready
@@ -80,7 +80,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOOBJID option
 	{
 		rocket = inventoryComponent->FindItemById(optionalRocketID);
 	}
-	
+
 	if (rocket == nullptr)
 	{
 		rocket = inventoryComponent->FindItemById(characterComponent->GetLastRocketItemID());
@@ -131,7 +131,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOOBJID option
 			}
 		}
 	}
-	
+
 	// Store the last used rocket item's ID
 	characterComponent->SetLastRocketItemID(rocket->GetId());
 
@@ -140,13 +140,13 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOOBJID option
 	character->SaveXMLToDatabase();
 
 	SetSelectedMapId(originator->GetObjectID(), zone);
-	
+
 	GameMessages::SendFireEventClientSide(m_Parent->GetObjectID(), originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
 
 	rocket->Equip(true);
-	
+
 	GameMessages::SendChangeObjectWorldState(rocket->GetId(), WORLDSTATE_ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
-	
+
 	EntityManager::Instance()->SerializeEntity(originator);
 }
 
@@ -167,7 +167,7 @@ void RocketLaunchpadControlComponent::OnProximityUpdate(Entity* entering, std::s
 	// Proximity rockets are handled by item equipment
 }
 
-void RocketLaunchpadControlComponent::SetSelectedMapId(LWOOBJID player, LWOMAPID mapID) 
+void RocketLaunchpadControlComponent::SetSelectedMapId(LWOOBJID player, LWOMAPID mapID)
 {
 	m_SelectedMapIds[player] = mapID;
 }
@@ -181,7 +181,7 @@ LWOMAPID RocketLaunchpadControlComponent::GetSelectedMapId(LWOOBJID player) cons
 	return index->second;
 }
 
-void RocketLaunchpadControlComponent::SetSelectedCloneId(LWOOBJID player, LWOCLONEID cloneId) 
+void RocketLaunchpadControlComponent::SetSelectedCloneId(LWOOBJID player, LWOCLONEID cloneId)
 {
 	m_SelectedCloneIds[player] = cloneId;
 }

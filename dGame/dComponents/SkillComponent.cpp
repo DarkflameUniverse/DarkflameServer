@@ -36,11 +36,11 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
 	const auto branch = BehaviorBranchContext(target, 0);
-	
+
 	behavior->Handle(context, bitStream, branch);
 
 	context->ExecuteUpdates();
-	
+
 	return !context->failed;
 }
 
@@ -76,11 +76,11 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 			break;
 		}
 	}
-	
+
 	if (index == -1)
 	{
 		Game::logger->Log("SkillComponent", "Failed to find projectile id (%llu)!\n", projectileId);
-		
+
 		return;
 	}
 
@@ -88,7 +88,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-    query.bind(1, (int) sync_entry.lot);
+	query.bind(1, (int) sync_entry.lot);
 
 	auto result = query.execQuery();
 
@@ -112,7 +112,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	{
 		branch.target = target;
 	}
-	
+
 	behavior->Handle(sync_entry.context, bitStream, branch);
 
 	this->m_managedProjectiles.erase(this->m_managedProjectiles.begin() + index);
@@ -126,7 +126,7 @@ void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, Behav
 	entry.branchContext = branch;
 	entry.lot = lot;
 	entry.id = projectileId;
-	
+
 	this->m_managedProjectiles.push_back(entry);
 }
 
@@ -138,7 +138,7 @@ void SkillComponent::Update(const float deltaTime)
 	}
 
 	std::map<uint32_t, BehaviorContext*> keep {};
-	
+
 	for (const auto& pair : this->m_managedBehaviors)
 	{
 		auto* context = pair.second;
@@ -147,7 +147,7 @@ void SkillComponent::Update(const float deltaTime)
 		{
 			continue;
 		}
-		
+
 		if (context->clientInitalized)
 		{
 			context->CalculateUpdate(deltaTime);
@@ -161,7 +161,7 @@ void SkillComponent::Update(const float deltaTime)
 		if (context->syncEntries.empty() && context->timerEntries.empty())
 		{
 			auto any = false;
-			
+
 			for (const auto& projectile : this->m_managedProjectiles)
 			{
 				if (projectile.context == context)
@@ -177,13 +177,13 @@ void SkillComponent::Update(const float deltaTime)
 				context->Reset();
 
 				delete context;
-				
+
 				context = nullptr;
 
 				continue;
 			}
 		}
-		
+
 		keep.insert_or_assign(pair.first, context);
 	}
 
@@ -251,9 +251,9 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 	context->caster = m_Parent->GetObjectID();
 
 	context->clientInitalized = clientInitalized;
-	
+
 	context->foundTarget = target != LWOOBJID_EMPTY || ignoreTarget || clientInitalized;
-	
+
 	behavior->Calculate(context, bitStream, { target, 0});
 
 	for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
@@ -275,7 +275,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 	{
 		// Echo start skill
 		GameMessages::EchoStartSkill start;
-		
+
 		start.iCastType = 0;
 		start.skillID = skillId;
 		start.uiSkillHandle = context->skillUId;
@@ -350,7 +350,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime)
 			const auto targetPosition = target->GetPosition();
 
 			const auto closestPoint = Vector3::ClosestPointOnLine(entry.lastPosition, position, targetPosition);
-			
+
 			const auto distance = Vector3::DistanceSquared(targetPosition, closestPoint);
 
 			if (distance > 3 * 3)
@@ -396,12 +396,12 @@ void SkillComponent::CalculateUpdate(const float deltaTime)
 		}
 
 		entry.lastPosition = position;
-		
+
 		managedProjectile = entry;
 	}
-	
+
 	std::vector<ProjectileSyncEntry> valid;
-	
+
 	for (auto& entry : this->m_managedProjectiles)
 	{
 		if (entry.calculation)
@@ -409,7 +409,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime)
 			if (entry.time >= entry.maxTime)
 			{
 				entry.branchContext.target = LWOOBJID_EMPTY;
-				
+
 				SyncProjectileCalculation(entry);
 
 				continue;
@@ -450,13 +450,13 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	const auto behaviorId = static_cast<uint32_t>(result.getIntField(0));
 
 	result.finalize();
-	
+
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
 	auto* bitStream = new RakNet::BitStream();
 
 	behavior->Calculate(entry.context, bitStream, entry.branchContext);
-	
+
 	GameMessages::DoClientProjectileImpact projectileImpact;
 
 	projectileImpact.sBitStream.assign((char*) bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
@@ -492,19 +492,19 @@ void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID t
 
 	delete bitStream;
 
-	delete context;	
+	delete context;
 }
 
 void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID target)
 {
 	auto* context = new BehaviorContext(target);
-	
+
 	context->caster = target;
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
 	behavior->UnCast(context, { target });
-	
+
 	delete context;
 }
 
