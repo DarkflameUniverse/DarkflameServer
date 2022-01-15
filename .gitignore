@@ -1,6 +1,7 @@
 temp/
 cmake-build-debug/
 RelWithDebInfo/
+docker/configs
 
 # Third party libraries
 thirdparty/mysql/
@@ -118,5 +119,7 @@ CMakeFiles/TargetDirectories.txt
 .cache
 thirdparty/zlib-1.2.11/
 
-# Redi ignores.
-res/
+.env
+docker/__pycache__
+
+docker-compose.override.yml
