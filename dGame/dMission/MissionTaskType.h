@@ -5,7 +5,7 @@ enum class MissionTaskType : int {
     MISSION_TASK_TYPE_UNKNOWN = -1,                     //!< The task type is unknown
     MISSION_TASK_TYPE_SMASH = 0,                        //!< A task for smashing something
     MISSION_TASK_TYPE_SCRIPT = 1,                       //!< A task handled by a server LUA script
-    MISSION_TASK_TYPE_ACTIVITY = 2,                   //!< A task for completing a quickbuild
+    MISSION_TASK_TYPE_ACTIVITY = 2,                     //!< A task for completing a quickbuild
     MISSION_TASK_TYPE_ENVIRONMENT = 3,                  //!< A task for something in the environment
     MISSION_TASK_TYPE_MISSION_INTERACTION = 4,          //!< A task for interacting with a mission
     MISSION_TASK_TYPE_EMOTE = 5,                        //!< A task for playing an emote
