@@ -276,11 +276,11 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 }
 
 BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
-    auto query = CDClientDatabase::CreatePreppedStmt(
-        "SELECT templateID FROM BehaviorTemplate WHERE behaviorID = ?;");
-    query.bind(1, (int) behaviorId);
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT templateID FROM BehaviorTemplate WHERE behaviorID = ?;");
+	query.bind(1, (int) behaviorId);
 
-    auto result = query.execQuery();
+	auto result = query.execQuery();
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
 	if (result.eof())
