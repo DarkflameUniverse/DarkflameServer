@@ -424,7 +424,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 				const auto sysAddr = entity->GetSystemAddress();
 
-				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", entity->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 				if (entity->GetCharacter()) {
 					entity->GetCharacter()->SetZoneID(zoneID);
