@@ -14,15 +14,15 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	if (inventory == nullptr)
 	    return;
 
-	LOT maelstromCubeLot = 14592;
-	auto* maelstromCube = inventory->FindItemByLot(maelstromCubeLot);
+	LOT maelstromVacuumLot = 14592;
+	auto* maelstromVacuum = inventory->FindItemByLot(maelstromVacuumLot);
 
-	// For the daily we add the maelstrom cube if the player doesn't have it yet
+	// For the daily we add the maelstrom vacuum if the player doesn't have it yet
 	if (missionID == 1883 && (missionState == MissionState::MISSION_STATE_AVAILABLE || missionState == MissionState::MISSION_STATE_COMPLETE_AVAILABLE)
-	&& maelstromCube == nullptr) {
-	    inventory->AddItem(maelstromCubeLot, 1);
+	&& maelstromVacuum == nullptr) {
+	    inventory->AddItem(maelstromVacuumLot, 1);
 	} else if (missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || missionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE) {
-	    inventory->RemoveItem(maelstromCubeLot, 1);
+	    inventory->RemoveItem(maelstromVacuumLot, 1);
 	}
 
 	// Next up hide or show the samples based on the mission state
