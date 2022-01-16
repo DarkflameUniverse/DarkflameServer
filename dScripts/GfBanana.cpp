@@ -65,12 +65,7 @@ void GfBanana::OnHit(Entity* self, Entity* attacker)
 		return;
 	}
 	
-	// Get the banana cluster position
-	auto entityPosition = bananaEntity->GetPosition();
-	// Lower by 10 units to prevent bananas from spawning on top of the tree
-	entityPosition.SetY(entityPosition.GetY() - 10);
-	// Set the position to the new position.
-	bananaEntity->SetPosition(entityPosition);
+	bananaEntity->SetPosition(bananaEntity->GetPosition() - NiPoint3::UNIT_Y * 8);
 
 	auto* bananaDestroyable = bananaEntity->GetComponent<DestroyableComponent>();
 
