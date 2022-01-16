@@ -186,10 +186,10 @@ void Trade::Complete()
 
     { // Coin XML Builder.
         auto* coinsA = player1->InsertNewChildElement("coins");
-        coinsA->SetAttribute("amount", std::to_string(p2Coins).c_str());
+        coinsA->SetAttribute("amount", std::to_string(p1Coins).c_str());
 
         auto* coinsB = player2->InsertNewChildElement("coins");
-        coinsB->SetAttribute("amount", std::to_string(p1Coins).c_str());
+        coinsB->SetAttribute("amount", std::to_string(p2Coins).c_str());
     }
 
     for (const auto& tradeItem : m_ItemsA)
