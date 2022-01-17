@@ -64,8 +64,8 @@ void GfBanana::OnHit(Entity* self, Entity* attacker)
 
 		return;
 	}
-
-	bananaEntity->SetPosition(bananaEntity->GetPosition() - NiPoint3::UNIT_Y * 5);
+	
+	bananaEntity->SetPosition(bananaEntity->GetPosition() - NiPoint3::UNIT_Y * 8);
 
 	auto* bananaDestroyable = bananaEntity->GetComponent<DestroyableComponent>();
 
