@@ -949,7 +949,9 @@ void HandlePacket(Packet* packet) {
 				RakNet::BitStream inStream(packet->data, packet->length, false);
 				uint64_t header = inStream.Read(header);
 
-				LWOOBJID objId = inStream.Read<int64_t>(objId);
+				LWOOBJID objId = LWOOBJID_EMPTY;
+
+				inStream.Read<LWOOBJID>(objId);
 
 				GeneralUtils::SetBit(objId, OBJECT_BIT_CHARACTER); // just incase we lose a bit or someone is using the DB ID
 
