@@ -5,6 +5,7 @@
 #include <cassert>
 #include <algorithm>
 #include <locale>
+#include <iomanip>
 #include <codecvt>
 
 template <typename T>
@@ -60,7 +61,7 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string& string, size_t size
 }
 
 //! Converts an UCS-2 / UTF-16 to std::string (ASCII)
-std::string GeneralUtils::UTF16ToWTF8(const std::u16string& string, size_t size) {
+std::string GeneralUtils::UTF16ToUTF8(const std::u16string& string, size_t size) {
     std::wstring_convert<std::codecvt<char, char16_t, std::mbstate_t>, char16_t> convert;
     return convert.to_bytes(string.substr(0, size));
 }

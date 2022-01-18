@@ -69,7 +69,7 @@ void NtFactionSpyServer::OnCinematicUpdate(Entity *self, Entity *sender, eCinema
     // Make sure we have a path of type <root>_<index>
     if (pathSplit.size() >= 2) {
         auto pathRoot = pathSplit.at(0);
-        auto pathIndex = std::stoi(GeneralUtils::UTF16ToWTF8(pathSplit.at(1))) - 1;
+        auto pathIndex = std::stoi(GeneralUtils::UTF16ToUTF8(pathSplit.at(1))) - 1;
         const auto& dialogueTable = self->GetVar<std::vector<SpyDialogue>>(m_SpyDialogueTableVariable);
 
         // Make sure we're listening to the root we're interested in

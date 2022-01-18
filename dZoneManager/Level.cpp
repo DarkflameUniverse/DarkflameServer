@@ -193,7 +193,7 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
             ldfString.push_back(data);
         }
         
-        std::string sData = GeneralUtils::UTF16ToWTF8(ldfString);
+        std::string sData = GeneralUtils::UTF16ToUTF8(ldfString);
         std::stringstream ssData(sData);
         std::string token;
         char deliminator = '\n';

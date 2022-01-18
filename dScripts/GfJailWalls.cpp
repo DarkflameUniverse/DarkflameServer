@@ -5,7 +5,7 @@
 
 void GfJailWalls::OnRebuildComplete(Entity* self, Entity* target) 
 {
-    const auto wall = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"Wall"));
+    const auto wall = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"Wall"));
 
     for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName("Jail0" + wall))
     {
@@ -22,7 +22,7 @@ void GfJailWalls::OnRebuildNotifyState(Entity* self, eRebuildState state)
 {
     if (state != eRebuildState::REBUILD_RESETTING) return;
 
-    const auto wall = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"Wall"));
+    const auto wall = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"Wall"));
 
     for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName("Jail0" + wall))
     {

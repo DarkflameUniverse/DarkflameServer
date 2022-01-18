@@ -159,7 +159,7 @@ void AmSkullkinTower::OnChildRemoved(Entity* self, Entity* child)
         {
             // Split the missions string by '_'
             const auto missions = GeneralUtils::SplitString(
-                GeneralUtils::UTF16ToWTF8(missionsString),
+                GeneralUtils::UTF16ToUTF8(missionsString),
                 '_'
             );
 

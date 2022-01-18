@@ -67,7 +67,7 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 
 	if (!user->GetLastChatMessageApproved() && !isMythran) return;
 
-	std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
+	std::string sMessage = GeneralUtils::UTF16ToUTF8(message);
 	Game::logger->Log("Chat", "%s: %s\n", playerName.c_str(), sMessage.c_str());
 	ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
 }

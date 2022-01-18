@@ -59,7 +59,7 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user)
 
             auto onFX = 0;
 
-            const auto location = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"console"));
+            const auto location = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"console"));
 
             if (location == "Left")
             {
@@ -150,7 +150,7 @@ void ImgBrickConsoleQB::OnRebuildComplete(Entity* self, Entity* target)
 {
     auto energyFX = 0;
 
-    const auto location = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"console"));
+    const auto location = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"console"));
 
     if (location == "Left")
     {
@@ -205,7 +205,7 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer)
     {
         auto offFX = 0;
 
-        const auto location = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"console"));
+        const auto location = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"console"));
 
         if (location == "Left")
         {
@@ -227,7 +227,7 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer)
         }
     }
     
-    const auto myGroup = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner_name"));
+    const auto myGroup = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"spawner_name"));
  
     const auto pipeGroup = myGroup.substr(0, 10);
 

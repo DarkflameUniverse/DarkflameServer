@@ -53,7 +53,7 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName)
             GameMessages::SendOrientToAngle(playerId, true, (M_PI / 180) * 100.0f, player->GetSystemAddress());
         }
         
-        const auto cinematic = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"Cinematic"));
+        const auto cinematic = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"Cinematic"));
         const auto leanIn = self->GetVar<float>(u"LeanIn");
 
         if (!cinematic.empty())

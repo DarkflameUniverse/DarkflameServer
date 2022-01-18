@@ -10,7 +10,7 @@ void AmTemplateSkillVolume::OnSkillEventFired(Entity* self, Entity* caster, cons
 
     auto* missionComponent = caster->GetComponent<MissionComponent>();
 
-    const auto missionIDsVariable = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"missions"));
+    const auto missionIDsVariable = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"missions"));
     const auto missionIDs = GeneralUtils::SplitString(missionIDsVariable, '_');
 
     for (const auto& missionIDStr : missionIDs)

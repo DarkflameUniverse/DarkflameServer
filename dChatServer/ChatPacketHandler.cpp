@@ -189,7 +189,7 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	
 	auto goonB = playerContainer.GetPlayerData(friendID);
 	if (!goonB) return;
-	std::string goonAName = GeneralUtils::UTF16ToWTF8(playerContainer.GetName(playerID));
+	std::string goonAName = GeneralUtils::UTF16ToUTF8(playerContainer.GetName(playerID));
 	SendRemoveFriend(goonB, goonAName, true);
 }
 

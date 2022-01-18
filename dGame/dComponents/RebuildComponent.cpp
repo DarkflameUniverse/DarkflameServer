@@ -20,7 +20,7 @@ RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
 
 	if (!checkPreconditions.empty())
 	{
-		m_Precondition = new PreconditionExpression(GeneralUtils::UTF16ToWTF8(checkPreconditions));
+		m_Precondition = new PreconditionExpression(GeneralUtils::UTF16ToUTF8(checkPreconditions));
 	}
 }
 

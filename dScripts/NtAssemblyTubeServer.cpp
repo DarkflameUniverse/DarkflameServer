@@ -82,7 +82,7 @@ void NtAssemblyTubeServer::TeleportPlayer(Entity* self, Entity* player)
 
     if (!destinationGroup.empty())
     {
-        const auto& groupObjs = EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(destinationGroup));
+        const auto& groupObjs = EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToUTF8(destinationGroup));
 
         if (!groupObjs.empty())
         {

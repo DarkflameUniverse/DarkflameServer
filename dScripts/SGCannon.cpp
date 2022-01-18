@@ -72,7 +72,7 @@ void SGCannon::OnFireEventServerSide(Entity *self, Entity *sender, std::string a
 
 void SGCannon::OnActivityStateChangeRequest(Entity *self, LWOOBJID senderID, int32_t value1, int32_t value2,
                                             const std::u16string &stringValue) {
-    Game::logger->Log("SGCannon", "Got activity state change request: %s\n", GeneralUtils::UTF16ToWTF8(stringValue).c_str());
+    Game::logger->Log("SGCannon", "Got activity state change request: %s\n", GeneralUtils::UTF16ToUTF8(stringValue).c_str());
     if (stringValue == u"clientready") {
         auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
         if (player != nullptr) {

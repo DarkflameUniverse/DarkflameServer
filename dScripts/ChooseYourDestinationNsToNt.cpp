@@ -49,7 +49,7 @@ void ChooseYourDestinationNsToNt::BaseChoiceBoxRespond(Entity* self, Entity* sen
 {
     if (button != -1)
     {
-        const auto newMapStr = GeneralUtils::UTF16ToWTF8(buttonIdentifier).substr(7, -1);
+        const auto newMapStr = GeneralUtils::UTF16ToUTF8(buttonIdentifier).substr(7, -1);
 
         int32_t newMap = 0;
         if (!GeneralUtils::TryParse(newMapStr, newMap))

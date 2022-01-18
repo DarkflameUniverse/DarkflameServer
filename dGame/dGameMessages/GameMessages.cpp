@@ -132,7 +132,7 @@ void GameMessages::SendPlayAnimation(Entity* entity, const std::u16string& anima
 	CBITSTREAM;
 	CMSGHEADER;
 	uint16_t gameMsgID = GAME_MSG_PLAY_ANIMATION;
-	std::string sAnimationID = GeneralUtils::UTF16ToWTF8(animationName);
+	std::string sAnimationID = GeneralUtils::UTF16ToUTF8(animationName);
 
 	uint32_t animationIDLength = sAnimationID.size();
 	bool bExpectAnimToExist = true;
@@ -1669,7 +1669,7 @@ void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream *inStream,
 
 	auto* assosiate = EntityManager::Instance()->GetEntity(objectID);
 
-    Game::logger->Log("Activity State Change", "%s [%i, %i] from %i to %i\n", GeneralUtils::UTF16ToWTF8(stringValue).c_str(), value1, value2, entity->GetLOT(), assosiate != nullptr ? assosiate->GetLOT() : 0);
+    Game::logger->Log("Activity State Change", "%s [%i, %i] from %i to %i\n", GeneralUtils::UTF16ToUTF8(stringValue).c_str(), value1, value2, entity->GetLOT(), assosiate != nullptr ? assosiate->GetLOT() : 0);
 
 	std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SHOOTING_GALLERY);
 	for (Entity* scriptEntity : scriptedActs) {
@@ -2190,7 +2190,7 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream* 
 		name.push_back(character);
 	}
 
-	PropertyManagementComponent::Instance()->UpdatePropertyDetails(GeneralUtils::UTF16ToWTF8(name), GeneralUtils::UTF16ToWTF8(description));
+	PropertyManagementComponent::Instance()->UpdatePropertyDetails(GeneralUtils::UTF16ToUTF8(name), GeneralUtils::UTF16ToUTF8(description));
 }
 
 void GameMessages::HandleQueryPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr)
@@ -3791,7 +3791,7 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream* inStream, Entity*
 		userData.push_back(character);
 	}
 	
-	Game::logger->Log("HandleMessageBoxResponse", "Button: " + std::to_string(iButton) + "; LOT: " + std::to_string(entity->GetLOT()) + " identifier: " + GeneralUtils::UTF16ToWTF8(identifier) + "; userData: " + GeneralUtils::UTF16ToWTF8(userData) + "\n");
+	Game::logger->Log("HandleMessageBoxResponse", "Button: " + std::to_string(iButton) + "; LOT: " + std::to_string(entity->GetLOT()) + " identifier: " + GeneralUtils::UTF16ToUTF8(identifier) + "; userData: " + GeneralUtils::UTF16ToUTF8(userData) + "\n");
 
 	auto* user = UserManager::Instance()->GetUser(sysAddr);
 
@@ -3813,14 +3813,14 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream* inStream, Entity*
 
 	if (scriptedActivityComponent != nullptr)
 	{
-		scriptedActivityComponent->HandleMessageBoxResponse(userEntity, GeneralUtils::UTF16ToWTF8(identifier));
+		scriptedActivityComponent->HandleMessageBoxResponse(userEntity, GeneralUtils::UTF16ToUTF8(identifier));
 	}
 
 	auto* racingControlComponent = entity->GetComponent<RacingControlComponent>();
 
 	if (racingControlComponent != nullptr)
 	{
-		racingControlComponent->HandleMessageBoxResponse(userEntity, GeneralUtils::UTF16ToWTF8(identifier));
+		racingControlComponent->HandleMessageBoxResponse(userEntity, GeneralUtils::UTF16ToUTF8(identifier));
 	}
 
 	for (auto* shootingGallery : EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SHOOTING_GALLERY))
@@ -3855,7 +3855,7 @@ void GameMessages::HandleChoiceBoxRespond(RakNet::BitStream* inStream, Entity* e
 		identifier.push_back(character);
 	}
 	
-	Game::logger->Log("HandleChoiceBoxRespond", "Button: " + std::to_string(iButton) + "; LOT: " + std::to_string(entity->GetLOT()) + " buttonIdentifier: " + GeneralUtils::UTF16ToWTF8(buttonIdentifier) + "; userData: " + GeneralUtils::UTF16ToWTF8(identifier) + "\n");
+	Game::logger->Log("HandleChoiceBoxRespond", "Button: " + std::to_string(iButton) + "; LOT: " + std::to_string(entity->GetLOT()) + " buttonIdentifier: " + GeneralUtils::UTF16ToUTF8(buttonIdentifier) + "; userData: " + GeneralUtils::UTF16ToUTF8(identifier) + "\n");
 
 	auto* user = UserManager::Instance()->GetUser(sysAddr);
 
@@ -3973,7 +3973,7 @@ void GameMessages::HandleModuleAssemblyQueryData(RakNet::BitStream* inStream, En
 
 	if (moduleAssemblyComponent != nullptr)
 	{
-		Game::logger->Log("HandleModuleAssemblyQueryData", "Returning assembly %s\n", GeneralUtils::UTF16ToWTF8(moduleAssemblyComponent->GetAssemblyPartsLOTs()).c_str());
+		Game::logger->Log("HandleModuleAssemblyQueryData", "Returning assembly %s\n", GeneralUtils::UTF16ToUTF8(moduleAssemblyComponent->GetAssemblyPartsLOTs()).c_str());
 
 		SendModuleAssemblyDBDataForClient(entity->GetObjectID(), moduleAssemblyComponent->GetSubKey(), moduleAssemblyComponent->GetAssemblyPartsLOTs(), UNASSIGNED_SYSTEM_ADDRESS);	
 	}
@@ -4911,7 +4911,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 		});
 	}
 
-    entity->OnFireEventServerSide(sender, GeneralUtils::UTF16ToWTF8(args), param1, param2, param3);
+    entity->OnFireEventServerSide(sender, GeneralUtils::UTF16ToUTF8(args), param1, param2, param3);
 }
 
 void GameMessages::HandleRequestPlatformResync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5931,7 +5931,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) 
 
 	try {
 		sql::PreparedStatement* insertBug = Database::CreatePreppedStmt("INSERT INTO `bug_reports`(body, client_version, other_player_id, selection) VALUES (?, ?, ?, ?)");
-		insertBug->setString(1, GeneralUtils::UTF16ToWTF8(body));
+		insertBug->setString(1, GeneralUtils::UTF16ToUTF8(body));
 		insertBug->setString(2, clientVersion);
 		insertBug->setString(3, nOtherPlayerID);
 		insertBug->setString(4, selection);

@@ -57,7 +57,7 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 
 	    if (!achievementIDs.empty()) {
 	        for (const auto& achievementID : GeneralUtils::SplitString(achievementIDs, u'_')) {
-	            missionComponent->ForceProgressValue(std::stoi(GeneralUtils::UTF16ToWTF8(achievementID)),
+	            missionComponent->ForceProgressValue(std::stoi(GeneralUtils::UTF16ToUTF8(achievementID)),
                                                      static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT),
                                                      self->GetLOT());
 	        }

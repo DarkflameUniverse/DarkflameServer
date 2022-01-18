@@ -751,7 +751,7 @@ void PetComponent::RequestSetPetName(std::u16string name)
             m_Name = "";
 
             //Save our pet's new name to the db:
-            SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name));
+            SetPetNameForModeration(GeneralUtils::UTF16ToUTF8(name));
 
             GameMessages::SendSetPetName(m_Owner, GeneralUtils::ASCIIToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
             GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
@@ -769,7 +769,7 @@ void PetComponent::RequestSetPetName(std::u16string name)
         return;
     }
 
-    Game::logger->Log("PetComponent", "Got set pet name (%s)\n", GeneralUtils::UTF16ToWTF8(name).c_str());
+    Game::logger->Log("PetComponent", "Got set pet name (%s)\n", GeneralUtils::UTF16ToUTF8(name).c_str());
 
     auto* inventoryComponent = tamer->GetComponent<InventoryComponent>();
 
@@ -782,7 +782,7 @@ void PetComponent::RequestSetPetName(std::u16string name)
     m_Name = "";
 
     //Save our pet's new name to the db:
-    SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name));
+    SetPetNameForModeration(GeneralUtils::UTF16ToUTF8(name));
 
     EntityManager::Instance()->SerializeEntity(m_Parent);
 

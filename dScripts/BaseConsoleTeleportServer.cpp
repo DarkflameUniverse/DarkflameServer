@@ -30,7 +30,7 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 
             const auto& teleportZone = self->GetVar<std::u16string>(u"transferZoneID");
 
-            rocketLaunchComponent->Launch(player, LWOOBJID_EMPTY, std::stoi(GeneralUtils::UTF16ToWTF8(teleportZone)));
+            rocketLaunchComponent->Launch(player, LWOOBJID_EMPTY, std::stoi(GeneralUtils::UTF16ToUTF8(teleportZone)));
 
             return;
         }
@@ -47,7 +47,7 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 
             for (const auto& type : teleportFXs)
             {
-                GameMessages::SendPlayFXEffect(player->GetObjectID(), teleportFXID, type, "FX" + GeneralUtils::UTF16ToWTF8(type));
+                GameMessages::SendPlayFXEffect(player->GetObjectID(), teleportFXID, type, "FX" + GeneralUtils::UTF16ToUTF8(type));
             }
         }
 
@@ -127,7 +127,7 @@ void BaseConsoleTeleportServer::TransferPlayer(Entity* self, Entity* player, int
 
     const auto& teleportZone = self->GetVar<std::u16string>(u"transferZoneID");
 
-    static_cast<Player*>(player)->SendToZone(std::stoi(GeneralUtils::UTF16ToWTF8(teleportZone)));
+    static_cast<Player*>(player)->SendToZone(std::stoi(GeneralUtils::UTF16ToUTF8(teleportZone)));
 
     UpdatePlayerTable(self, player, false);
 }

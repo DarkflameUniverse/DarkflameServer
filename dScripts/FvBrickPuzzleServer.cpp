@@ -6,7 +6,7 @@
 
 void FvBrickPuzzleServer::OnStartup(Entity* self) 
 {
-    const auto myGroup = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner_name"));
+    const auto myGroup = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"spawner_name"));
 
     int32_t pipeNum = 0;
     if (!GeneralUtils::TryParse<int32_t>(myGroup.substr(10, 1), pipeNum))
@@ -22,7 +22,7 @@ void FvBrickPuzzleServer::OnStartup(Entity* self)
 
 void FvBrickPuzzleServer::OnDie(Entity* self, Entity* killer) 
 {
-    const auto myGroup = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner_name"));
+    const auto myGroup = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"spawner_name"));
 
     int32_t pipeNum = 0;
     if (!GeneralUtils::TryParse<int32_t>(myGroup.substr(10, 1), pipeNum))

@@ -1313,7 +1313,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 		
 		if (missionComponent != nullptr)
 		{
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_LOCATION, 0, 0, GeneralUtils::UTF16ToWTF8(poi));
+			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_LOCATION, 0, 0, GeneralUtils::UTF16ToUTF8(poi));
 		}
 	}
 

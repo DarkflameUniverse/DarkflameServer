@@ -35,7 +35,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
         const auto& transferOverride = parent->GetVar<std::u16string>(u"transferZoneID");
         if (!transferOverride.empty()) {
-            m_ActivityInfo.instanceMapID = std::stoi(GeneralUtils::UTF16ToWTF8(transferOverride));
+            m_ActivityInfo.instanceMapID = std::stoi(GeneralUtils::UTF16ToUTF8(transferOverride));
 
 			// TODO: LU devs made me do it (for some reason cannon cove instancer is marked to go to GF survival)
 			// NOTE: 1301 is GF survival

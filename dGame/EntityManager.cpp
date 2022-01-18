@@ -129,7 +129,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 	const auto& spawnName = entity->GetVar<std::u16string>(u"respawnname");
 
 	if (!spawnName.empty()) {
-		m_SpawnPoints.insert_or_assign(GeneralUtils::UTF16ToWTF8(spawnName), entity->GetObjectID());
+		m_SpawnPoints.insert_or_assign(GeneralUtils::UTF16ToUTF8(spawnName), entity->GetObjectID());
 	}
 
     return entity;

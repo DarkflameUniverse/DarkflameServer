@@ -411,7 +411,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	// Log command to database
     auto stmt = Database::CreatePreppedStmt("INSERT INTO command_log (character_id, command) VALUES (?, ?);");
     stmt->setInt(1, entity->GetCharacter()->GetID());
-	stmt->setString(2, GeneralUtils::UTF16ToWTF8(command).c_str());
+	stmt->setString(2, GeneralUtils::UTF16ToUTF8(command).c_str());
     stmt->execute();
     delete stmt;
 	

@@ -6,7 +6,7 @@ void HydrantSmashable::OnDie(Entity* self, Entity* killer)
 {
     const auto hydrantName = self->GetVar<std::u16string>(u"hydrant");
 
-    LDFBaseData* data = new LDFData<std::string>(u"hydrant", GeneralUtils::UTF16ToWTF8(hydrantName));
+    LDFBaseData* data = new LDFData<std::string>(u"hydrant", GeneralUtils::UTF16ToUTF8(hydrantName));
 
     EntityInfo info {};
     info.lot = 7328;

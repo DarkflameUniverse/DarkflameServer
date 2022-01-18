@@ -157,13 +157,13 @@ public:
      */
     std::string GetString(const bool includeKey = true, const bool includeTypeId = true) override {
         if (GetValueType() == -1) {
-            return GeneralUtils::UTF16ToWTF8(this->key) + "=-1:<server variable>";
+            return GeneralUtils::UTF16ToUTF8(this->key) + "=-1:<server variable>";
         }
 
         std::stringstream stream;
 
         if (includeKey) {
-            const std::string& sKey = GeneralUtils::UTF16ToWTF8(this->key, this->key.size());
+            const std::string& sKey = GeneralUtils::UTF16ToUTF8(this->key, this->key.size());
         	
             stream << sKey << "=";
         }
@@ -239,7 +239,7 @@ template<> inline std::string LDFData<std::u16string>::GetValueString(void) {
     //std::string toReturn(this->value.begin(), this->value.end());
     //return toReturn;
 
-	return GeneralUtils::UTF16ToWTF8(this->value, this->value.size());
+	return GeneralUtils::UTF16ToUTF8(this->value, this->value.size());
 }
 
 template<> inline std::string LDFData<int32_t>::GetValueString(void) { return std::to_string(this->value); }

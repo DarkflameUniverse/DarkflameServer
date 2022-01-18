@@ -42,7 +42,7 @@ void NjRailPostServer::OnRebuildNotifyState(Entity *self, eRebuildState state) {
 Entity *NjRailPostServer::GetRelatedRail(Entity* self) {
     const auto& railGroup = self->GetVar<std::u16string>(RailGroupVariable);
     if (!railGroup.empty()) {
-        for (auto* entity : EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(railGroup))) {
+        for (auto* entity : EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToUTF8(railGroup))) {
             return entity;
         }
     }

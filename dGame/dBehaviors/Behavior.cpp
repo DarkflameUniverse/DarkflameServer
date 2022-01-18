@@ -322,7 +322,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 	
 	auto* renderComponent = targetEntity->GetComponent<RenderComponent>();
 
-	const auto typeString = GeneralUtils::UTF16ToWTF8(type);
+	const auto typeString = GeneralUtils::UTF16ToUTF8(type);
 
 	if (m_effectNames == nullptr)
 	{

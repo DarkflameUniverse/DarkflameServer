@@ -402,7 +402,7 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	character->LinkEndChild(zoneStatistics);
 
 	if (!m_LastRocketConfig.empty()) {
-		std::string config = GeneralUtils::UTF16ToWTF8(m_LastRocketConfig);
+		std::string config = GeneralUtils::UTF16ToUTF8(m_LastRocketConfig);
 		character->SetAttribute("lcbp", config.c_str());
 	}
 	else

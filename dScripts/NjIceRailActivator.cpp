@@ -8,7 +8,7 @@ void NjIceRailActivator::OnPlayerRailArrived(Entity *self, Entity *sender, const
     if (breakPoint == waypoint) {
         const auto& blockGroup = self->GetVar<std::u16string>(BlockGroupVariable);
 
-        for (auto* block : EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(blockGroup))) {
+        for (auto* block : EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToUTF8(blockGroup))) {
             GameMessages::SendPlayAnimation(block, u"explode");
 
             const auto blockID = block->GetObjectID();

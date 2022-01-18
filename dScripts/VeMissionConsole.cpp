@@ -13,7 +13,7 @@ void VeMissionConsole::OnUse(Entity *self, Entity *user) {
 
     // The flag to set is 101<number>
     const auto flagNumber = self->GetVar<std::u16string>(m_NumberVariable);
-    const auto flag = std::stoi("101" + GeneralUtils::UTF16ToWTF8(flagNumber));
+    const auto flag = std::stoi("101" + GeneralUtils::UTF16ToUTF8(flagNumber));
 
     auto* character = user->GetCharacter();
     if (character != nullptr) {

@@ -118,7 +118,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity *player,
     // Calculate the vehicle's starting position.
 
     auto *path = dZoneManager::Instance()->GetZone()->GetPath(
-        GeneralUtils::UTF16ToWTF8(m_PathName));
+        GeneralUtils::UTF16ToUTF8(m_PathName));
 
     auto startPosition = path->pathWaypoints[0].position + NiPoint3::UNIT_Y * 3;
 
@@ -737,7 +737,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
     // Race routines
     auto *path = dZoneManager::Instance()->GetZone()->GetPath(
-        GeneralUtils::UTF16ToWTF8(m_PathName));
+        GeneralUtils::UTF16ToUTF8(m_PathName));
 
     for (auto &player : m_RacingPlayers) {
         auto *vehicle = EntityManager::Instance()->GetEntity(player.vehicleID);

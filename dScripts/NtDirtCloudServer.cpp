@@ -27,7 +27,7 @@ void NtDirtCloudServer::OnSkillEventFired(Entity* self, Entity* caster, const st
         return;
     }
 
-    const auto mySpawner = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner_name"));
+    const auto mySpawner = GeneralUtils::UTF16ToUTF8(self->GetVar<std::u16string>(u"spawner_name"));
 
     if (m_Missions.count(mySpawner) == 0)
     {
