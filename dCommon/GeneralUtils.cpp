@@ -57,36 +57,19 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string& string, size_t size
     return ret;
 }
 
-//! Converts a (potentially-ill-formed) UTF-16 string to UTF-8
-//! See: <http://simonsapin.github.io/wtf-8/#decoding-ill-formed-utf-16>
+//! Converts an UCS-2 / UTF-16 to std::string (ASCII)
 std::string GeneralUtils::UTF16ToWTF8(const std::u16string& string, size_t size) {
-    size_t newSize = MinSize(size, string);
-    std::string ret;
-    ret.reserve(newSize);
-
-    for (size_t i = 0; i < newSize; i++) {
-        char16_t u = string[i];
-        if (IsLeadSurrogate(u) && (i + 1) < newSize) {
-            char16_t next = string[i + 1];
-            if (IsTrailSurrogate(next)) {
-                i += 1;
-                char32_t cp = 0x10000
-                    + ((static_cast<char32_t>(u) - 0xD800) << 10)
-                    + (static_cast<char32_t>(next) - 0xDC00);
-                PushUTF8CodePoint(ret, cp);
-            } else {
-                PushUTF8CodePoint(ret, u);
-            }
-        } else {
-            PushUTF8CodePoint(ret, u);
-        }
-    }
-
-    return ret;
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+    return convert.to_bytes(string.substr(0, size));
 }
 
 bool GeneralUtils::CaseInsensitiveStringCompare(const std::string& a, const std::string& b) {
     return std::equal(a.begin(), a.end (), b.begin(), b.end(),[](char a, char b) { return tolower(a) == tolower(b); });
+}
+
+std::u16string GeneralUtils::UTF8ToUTF16(const std::string& string, size_t size) {
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+    return convert.from_bytes(string.substr(0, size));
 }
 
 // MARK: Bits

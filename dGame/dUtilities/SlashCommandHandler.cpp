@@ -1243,7 +1243,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
         auto tables = CDClientDatabase::ExecuteQuery(query.c_str());
         while (!tables.eof()) {
             std::string message = std::to_string(tables.getIntField(0)) + " - " + tables.getStringField(1);
-            ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(message, message.size()));
+            ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(message, message.size()));
             tables.nextRow();
         }
     }

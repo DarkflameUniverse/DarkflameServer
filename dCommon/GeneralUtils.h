@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <stdexcept>
 #include <BitStream.h>
+#include <codecvt>
 
 #include "Game.h"
 
@@ -35,6 +36,8 @@ namespace GeneralUtils {
       \return An UTF-8 representation of the string
      */
     std::string UTF16ToWTF8(const std::u16string& string, size_t size = -1);
+
+    std::u16string UTF8ToUTF16(const std::string& string, size_t size = -1);
 
     /**
      * Compares two basic strings but does so ignoring case sensitivity
