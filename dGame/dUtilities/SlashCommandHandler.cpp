@@ -1928,53 +1928,54 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 }
 
 bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
-    switch (zoneID) {
-	case 98:
-        case 1000:
-        case 1001:
-            
-        case 1100:
-        case 1101:
-	case 1150:
-	case 1151:
-	case 1152:
-            
-        case 1200:
-        case 1201:
+	switch (zoneID) {
+		case 98:
+		case 1000:
+		case 1001:
 
-	case 1250:
-	case 1251:
-	case 1260:
-            
-        case 1300:
-    	case 1350:
-    	case 1351:
-		    
-        case 1400:
-	case 1401:
-	case 1450:
-	case 1451:
-            
-        case 1600:
-        case 1601:
-        case 1602:
-        case 1603:
-        case 1604:
-            
-        case 1800:
-        case 1900:
-        case 2000:
+		case 1100:
+		case 1101:
+		case 1150:
+		case 1151:
+		case 1152:
 
-	case 58004:
-	case 58005:
-	case 58006:
-            return true;
-        
-        default:
-            return false;
-    }
-    
-    return false;
+		case 1200:
+		case 1201:
+
+		case 1250:
+		case 1251:
+		case 1260:
+
+		case 1300:
+		case 1350:
+		case 1351:
+
+		case 1400:
+		case 1401:
+		case 1450:
+		case 1451:
+
+		case 1600:
+		case 1601:
+		case 1602:
+		case 1603:
+		case 1604:
+
+		case 1700:
+		case 1800:
+		case 1900:
+		case 2000:
+
+		case 58004:
+		case 58005:
+		case 58006:
+			return true;
+
+		default:
+			return false;
+	}
+
+	return false;
 }
 
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
