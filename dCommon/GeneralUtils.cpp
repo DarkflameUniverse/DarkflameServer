@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <cassert>
 #include <algorithm>
-#include <locale>
-#include <iomanip>
 #include <codecvt>
 
 template <typename T>
@@ -62,7 +60,7 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string& string, size_t size
 
 //! Converts an UCS-2 / UTF-16 to std::string (ASCII)
 std::string GeneralUtils::UTF16ToUTF8(const std::u16string& string, size_t size) {
-    std::wstring_convert<std::codecvt<char, char16_t, std::mbstate_t>, char16_t> convert;
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
     return convert.to_bytes(string.substr(0, size));
 }
 
@@ -71,7 +69,7 @@ bool GeneralUtils::CaseInsensitiveStringCompare(const std::string& a, const std:
 }
 
 std::u16string GeneralUtils::UTF8ToUTF16(const std::string& string, size_t size) {
-    std::wstring_convert<std::codecvt<char, char16_t, std::mbstate_t>, char16_t> convert;
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
     return convert.from_bytes(string.substr(0, size));
 }
 
