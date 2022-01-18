@@ -358,7 +358,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		return;
 	}
 
-
+	m_Downtime = 0.5f;
 	
 	auto* target = GetTargetEntity();
 
