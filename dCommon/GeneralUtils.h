@@ -10,7 +10,6 @@
 #include <type_traits>
 #include <stdexcept>
 #include <BitStream.h>
-#include <codecvt>
 
 #include "Game.h"
 
