@@ -23,9 +23,6 @@ void AmDarklingDragon::OnDie(Entity* self, Entity* killer) {
     }
 
     self->SetVar<bool>(u"bDied", true);
-
-    auto position = self->GetPosition();
-    auto rotation = self->GetRotation();
     
     auto golemId = self->GetVar<LWOOBJID>(u"Golem");
 
