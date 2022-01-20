@@ -1042,11 +1042,8 @@ void HandlePacket(Packet* packet) {
                     EntityManager::Instance()->ConstructAllEntities(packet->systemAddress);
 
 					player->GetComponent<CharacterComponent>()->SetLastRocketConfig(u"");
-					// Retroactive check for if player has joined a faction to set their 'joined a faction' flag to true.
-					if (c->GetPlayerFlag(ePlayerFlags::VENTURE_FACTION) || c->GetPlayerFlag(ePlayerFlags::ASSEMBLY_FACTION) ||
-						c->GetPlayerFlag(ePlayerFlags::PARADOX_FACTION) || c->GetPlayerFlag(ePlayerFlags::SENTINEL_FACTION)) {
-							c->SetPlayerFlag(ePlayerFlags::JOINED_A_FACTION, true);
-						}
+					
+					c->SetRetroactiveFlags();
 
 					player->GetCharacter()->SetTargetScene("");
 
