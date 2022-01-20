@@ -62,6 +62,7 @@
 #include "VeMech.h"
 #include "VeMissionConsole.h"
 #include "VeEpsilonServer.h"
+#include "AgSurvivalBuffStation.h"
 
 // NS Scripts
 #include "NsModularBuild.h"
@@ -319,6 +320,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new BaseEnemyMech();
 	else if (scriptName == "scripts\\zone\\AG\\L_ZONE_AG_SURVIVAL.lua")
 		script = new ZoneAgSurvival();
+	else if (scriptName == "scripts\\02_server\\Objects\\L_BUFF_STATION_SERVER.lua")
+		script = new AgSurvivalBuffStation();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_BUS_DOOR.lua")
 		script = new AgBusDoor();
 	else if (scriptName == "scripts\\02_server\\Equipment\\L_MAESTROM_EXTRACTICATOR_SERVER.lua")
