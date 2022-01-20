@@ -11,6 +11,7 @@ public:
      * @param target The target of the self that called this script.
      */
     void OnRebuildComplete(Entity* self, Entity* target) override;
+    void OnTimerDone(Entity* self, std::string timerName) override;
 private:
     /**
      * Skill ID for the buff station.
