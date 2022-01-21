@@ -289,7 +289,7 @@ Here is a summary of the commands available in-game. All commands are prefixed b
       /title &#60;title&#62;
     </td>
     <td>
-      Temporarily appends your player's name with ` - &#60;title&#62;`. This resets when you log out.
+      Temporarily appends your player's name with " - &#60;title&#62;". This resets when you log out.
     </td>
     <td>
       8
@@ -324,7 +324,7 @@ Here is a summary of the commands available in-game. All commands are prefixed b
       /announce
     </td>
     <td>
-      Sends a announcement. `/setanntitle` and `/setannmsg` must be called first to configure the announcement.
+      Sends a announcement. /setanntitle and /setannmsg must be called first to configure the announcement.
     </td>
     <td>
       8
@@ -581,7 +581,7 @@ These commands are primarily for development and testing. The usage of many of t
       /addmission &#60;mission id&#62;
     </td>
     <td>
-      Accepts the mission given by `mission id`, adding the mission to your journal.
+      Accepts the mission, adding it to your journal.
     </td>
     <td>
       8
@@ -609,7 +609,7 @@ These commands are primarily for development and testing. The usage of many of t
       /buff &#60;id&#62; &#60;duration&#62;
     </td>
     <td>
-      Applies the buff with the given id for `duration` seconds.
+      Applies the buff with the given id for the given number of seconds.
     </td>
     <td>
       8
@@ -651,7 +651,7 @@ These commands are primarily for development and testing. The usage of many of t
       /clearflag &#60;flag id&#62;
     </td>
     <td>
-      Removes the health or inventory flag given by `flag id` from your player.
+      Removes the given health or inventory flag from your player.
     </td>
     <td>
       8
@@ -665,7 +665,7 @@ These commands are primarily for development and testing. The usage of many of t
       /completemission &#60;mission id&#62;
     </td>
     <td>
-      Completes the mission given by `mission id`, removing the mission from your journal.
+      Completes the mission, removing it from your journal.
     </td>
     <td>
       8
@@ -847,7 +847,7 @@ These commands are primarily for development and testing. The usage of many of t
       /lookup &#60;query&#62;
     </td>
     <td>
-      Searches through the `Objects` table in the client SQLite database for items whose display name, name, or discription contains the query.
+      Searches through the Objects table in the client SQLite database for items whose display name, name, or discription contains the query.
     </td>
     <td>
       8
@@ -945,7 +945,7 @@ These commands are primarily for development and testing. The usage of many of t
       /resetmission &#60;mission id&#62;
     </td>
     <td>
-      Sets the state of the mission given by `mission id` to the state of accepted but not yet started.
+      Sets the state of the mission to accepted but not yet started.
     </td>
     <td>
       8
@@ -987,7 +987,7 @@ These commands are primarily for development and testing. The usage of many of t
       /runmacro &#60;macro&#62;
     </td>
     <td>
-      Runs any macro found in `./res/macros/`
+      Runs any macro found in ./res/macros/
     </td>
     <td>
       8
@@ -1029,7 +1029,7 @@ These commands are primarily for development and testing. The usage of many of t
       /setflag &#60;flag id&#62;
     </td>
     <td>
-      Adds the health or inventory flag given by `flag id` to your character. 
+      Adds the given health or inventory flag to your character.
     </td>
     <td>
       8
@@ -1085,7 +1085,7 @@ These commands are primarily for development and testing. The usage of many of t
       /speedboost &#60;amount&#62;
     </td>
     <td>
-      Sets the speed multiplier to the given amount. `/speedboost 1.5` will set the speed multiplier to 1.5x the normal speed.
+      Sets the speed multiplier to the given amount. "/speedboost 1.5" will set the speed multiplier to 1.5x the normal speed.
     </td>
     <td>
       8
@@ -1113,7 +1113,7 @@ These commands are primarily for development and testing. The usage of many of t
       /stopeffect &#60;effect id&#62;
     </td>
     <td>
-      Stops the effect given by `effect id`.
+      Stops the given effect.
     </td>
     <td>
       8
