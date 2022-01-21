@@ -1042,6 +1042,9 @@ void HandlePacket(Packet* packet) {
                     EntityManager::Instance()->ConstructAllEntities(packet->systemAddress);
 
 					player->GetComponent<CharacterComponent>()->SetLastRocketConfig(u"");
+					
+					c->SetRetroactiveFlags();
+
 					player->GetCharacter()->SetTargetScene("");
 
 					// Fix the destroyable component
