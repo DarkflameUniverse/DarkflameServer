@@ -11,13 +11,6 @@ public:
      * @param target The target of the self that called this script.
      */
     void OnRebuildComplete(Entity* self, Entity* target) override;
-    /**
-     * @brief When 10 seconds have passed, smash self.
-     * 
-     * @param self The Entity whos timer has done.
-     * @param timerName The name of the done timer
-     */
-    void OnTimerDone(Entity* self, std::string timerName) override;
 private:
     /**
      * Skill ID for the buff station.

@@ -8,12 +8,8 @@ void AgSurvivalBuffStation::OnRebuildComplete(Entity* self, Entity* target) {
     if (skillComponent == nullptr) return;
 
     skillComponent->CalculateBehavior(201, 1784, self->GetObjectID());
-    
-    self->AddTimer("DestroyAfter10Seconds", 10.0f);
-}
 
-void AgSurvivalBuffStation::OnTimerDone(Entity* self, std::string timerName) {
-    if (timerName == "DestroyAfter10Seconds") {
+    self->AddCallbackTimer(10.0f, [self]() {
         self->Smash();
-    }
+    });
 }
