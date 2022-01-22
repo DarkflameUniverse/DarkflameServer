@@ -451,6 +451,13 @@ bool Character::GetPlayerFlag(const uint32_t flagId) const {
 	return false; //by def, return false.
 }
 
+void Character::SetRetroactiveFlags() {
+	// Retroactive check for if player has joined a faction to set their 'joined a faction' flag to true.
+	if (GetPlayerFlag(ePlayerFlags::VENTURE_FACTION) || GetPlayerFlag(ePlayerFlags::ASSEMBLY_FACTION) || GetPlayerFlag(ePlayerFlags::PARADOX_FACTION) || GetPlayerFlag(ePlayerFlags::SENTINEL_FACTION)) {
+		SetPlayerFlag(ePlayerFlags::JOINED_A_FACTION, true);
+	}
+}
+
 void Character::SaveXmlRespawnCheckpoints() 
 {
     //Export our respawn points:
