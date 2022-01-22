@@ -302,6 +302,7 @@ void BaseSurvivalServer::StartWaves(Entity *self) {
     self->SetVar<bool>(FirstTimeDoneVariable, true);
     self->SetVar<std::string>(MissionTypeVariable, state.players.size() == 1 ? "survival_time_solo" : "survival_time_team");
 
+    ActivateSpawnerNetwork(spawnerNetworks.rewardNetworks);
     ActivateSpawnerNetwork(spawnerNetworks.smashNetworks);
     self->SetNetworkVar<bool>(WavesStartedVariable, true);
     self->SetNetworkVar<std::string>(StartWaveMessageVariable, "Start!");
