@@ -22,7 +22,11 @@ int TestLDFFormat(int argc, char* *const argv) {
 	ASSERT_EQ(((LDFData<std::u16string>* )data)->GetValue(), u"VALUE");
 
 	// Check that the serialization is correct
-	ASSERT_EQ(data->GetString(), "KEY=0:VALUE");
+	if (data->GetString() != "KEY=0:VALUE"){
+		// Failed
+		printf("%s", data->GetString());
+		return 1;
+	}
 
 	// Cleanup the object
 	delete data;
