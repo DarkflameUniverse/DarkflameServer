@@ -1,0 +1,103 @@
+version: "3"
+
+services:
+  setup:
+    container_name: DarkflameSetup
+    build:
+      context: .
+      dockerfile: ./docker/setup.Dockerfile
+    environment:
+      - DATABASE=${MARIADB_DATABASE:-darkflame}
+      - DATABASE_HOST=database
+      - DATABASE_USER=${MARIADB_USER:-darkflame}
+      - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
+      - EXTERNAL_IP=${EXTERNAL_IP:-darkflame}
+    volumes:
+      - ${CLIENT_PATH:?missing_client_path}:/client
+      - shared_configs:/docker/
+
+  database:
+    container_name: DarkflameDatabase
+    build:
+      context: .
+      dockerfile: ./docker/database.Dockerfile
+    environment:
+      - MARIADB_USER=${MARIADB_USER:-darkflame}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD:-darkflame}
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-darkflame}
+      - MARIADB_DATABASE=${MARIADB_DATABASE:-darkflame}
+    volumes:
+      - database:/var/lib/mysql
+    networks:
+      - darkflame
+    # You can expose these so that DB management tools can connect (WARNING: INSECURE)
+    # ports:
+    #   - 3306:3306
+
+  darkflame:
+    container_name: DarkflameServer
+    networks:
+      - darkflame
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        - BUILD_THREADS=${BUILD_THREADS:-1}
+        - BUILD_VERSION=${BUILD_VERSION:-171022}
+    volumes:
+      - ${CLIENT_PATH:?missing_client_path}:/client
+      - shared_configs:/shared_configs
+    depends_on:
+      - database
+    ports:
+      - "1001:1001/udp"
+      - "2000:2000/udp"
+      - "2005:2005/udp"
+      - "3000-3300:3000-3300/udp"
+
+  brickbuildfix:
+    container_name: DarkflameBrickBuildFix
+    networks:
+      - darkflame
+    build:
+      context: .
+      dockerfile: ./docker/brickfix.Dockerfile
+    ports:
+      - 80:80
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 2m
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+  account-manager:
+    container_name: DarkflameAccountManager
+    networks:
+      - darkflame
+    build:
+      context: .
+      dockerfile: ./docker/AccountManager.Dockerfile
+    environment:
+      - DATABASE=${MARIADB_DATABASE:-darkflame}
+      - DATABASE_HOST=database
+      - DATABASE_USER=${MARIADB_USER:-darkflame}
+      - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
+      - ACCOUNT_SECRET=${ACCOUNT_MANAGER_SECRET:?missing_account_secret}
+    ports:
+      - 5000:5000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 2m
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - database
+
+networks:
+  darkflame:
+
+volumes:
+  database:
+  shared_configs:

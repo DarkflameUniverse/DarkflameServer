@@ -681,7 +681,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_DRAGON.lua")
 		script = new AmNamedDarklingDragon();
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_APE.lua")
-		script = new AmNamedDarklingDragon();
+		script = new BaseEnemyApe();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_BLUE_X.lua")
 	    script = new AmBlueX();
 

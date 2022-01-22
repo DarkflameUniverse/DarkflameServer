@@ -552,7 +552,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 		if (zoneID == LWOZONEID_INVALID) zoneID = 1000; //Send char to VE
         
         ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneID, character->GetZoneClone(), false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-            Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+            Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			if (character) {
 				character->SetZoneID(zoneID);
 				character->SetZoneInstance(zoneInstance);
@@ -566,114 +566,34 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
     }
 }
 
+uint32_t GetShirtColorId(uint32_t color) {
+	
+	// get the index of the color in shirtColorVector
+	auto colorId = std::find(shirtColorVector.begin(), shirtColorVector.end(), color);
+	return color = std::distance(shirtColorVector.begin(), colorId);
+}
+
 uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
-	uint32_t shirtID = 0;
-
-	// s p e c i a l  code follows
-	switch (shirtColor) {
-	case 0: {
-		shirtID = shirtStyle >= 35 ? 5730 : SHIRT_BRIGHT_RED;
-		break;
-	}
-
-	case 1: {
-		shirtID = shirtStyle >= 35 ? 5736 : SHIRT_BRIGHT_BLUE;
-		break;
-	}
-
-	case 3: {
-		shirtID = shirtStyle >= 35 ? 5808 : SHIRT_DARK_GREEN;
-		break;
-	}
-
-	case 5: {
-		shirtID = shirtStyle >= 35 ? 5754 : SHIRT_BRIGHT_ORANGE;
-		break;
-	}
-
-	case 6: {
-		shirtID = shirtStyle >= 35 ? 5760 : SHIRT_BLACK;
-		break;
-	}
-
-	case 7: {
-		shirtID = shirtStyle >= 35 ? 5766 : SHIRT_DARK_STONE_GRAY;
-		break;
-	}
-
-	case 8: {
-		shirtID = shirtStyle >= 35 ? 5772 : SHIRT_MEDIUM_STONE_GRAY;
-		break;
-	}
-
-	case 9: {
-		shirtID = shirtStyle >= 35 ? 5778 : SHIRT_REDDISH_BROWN;
-		break;
-	}
-
-	case 10: {
-		shirtID = shirtStyle >= 35 ? 5784 : SHIRT_WHITE;
-		break;
-	}
-
-	case 11: {
-		shirtID = shirtStyle >= 35 ? 5802 : SHIRT_MEDIUM_BLUE;
-		break;
-	}
-
-	case 13: {
-		shirtID = shirtStyle >= 35 ? 5796 : SHIRT_DARK_RED;
-		break;
-	}
-
-	case 14: {
-		shirtID = shirtStyle >= 35 ? 5802 : SHIRT_EARTH_BLUE;
-		break;
-	}
-
-	case 15: {
-		shirtID = shirtStyle >= 35 ? 5808 : SHIRT_EARTH_GREEN;
-		break;
-	}
-
-	case 16: {
-		shirtID = shirtStyle >= 35 ? 5814 : SHIRT_BRICK_YELLOW;
-		break;
-	}
-
-	case 84: {
-		shirtID = shirtStyle >= 35 ? 5820 : SHIRT_SAND_BLUE;
-		break;
-	}
-
-	case 96: {
-		shirtID = shirtStyle >= 35 ? 5826 : SHIRT_SAND_GREEN;
-		shirtColor = 16;
-		break;
-	}
-	}
-
-	// Initialize another variable for the shirt color
-	uint32_t editedShirtColor = shirtID;
-
-	// This will be the final shirt ID
-	uint32_t shirtIDFinal;
-
-	// For some reason, if the shirt color is 35 - 40,
+	
+	shirtStyle--; // to start at 0 instead of 1
+	uint32_t stylesCount = 34;
+	uint32_t colorId = GetShirtColorId(shirtColor);
+	
+	uint32_t startID = 4049; // item ID of the shirt with color 0 (red) and style 0 (plain)
+	
+    // For some reason, if the shirt style is 34 - 39,
 	// The ID is different than the original... Was this because
 	// these shirts were added later?
-	if (shirtStyle >= 35) {
-		shirtIDFinal = editedShirtColor += (shirtStyle - 35);
+	if (shirtStyle >= 34) {
+		startID = 5730; // item ID of the shirt with color 0 (red) and style 34 (butterflies)
+        shirtStyle -= stylesCount; //change style from range 35-40 to range 0-5
+		stylesCount = 6;
 	}
-	else {
-		// Get the final ID of the shirt by adding the shirt
-		// style to the editedShirtColor
-		shirtIDFinal = editedShirtColor += (shirtStyle - 1);
-	}
+	
+    // Get the final ID of the shirt
+	uint32_t shirtID = startID + (colorId * stylesCount) + shirtStyle;
 
-	//cout << "Shirt ID is: " << shirtIDFinal << endl;
-
-	return shirtIDFinal;
+	return shirtID;
 }
 
 uint32_t FindCharPantsID(uint32_t pantsColor) {
