@@ -399,6 +399,7 @@ else() # Build from source
 						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
 						CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
 									-DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/mariadbcpp # Points the connector to the correct plugin directory
+									-DINSTALL_PLUGINDIR=plugin
 									${MARIADB_EXTRA_CMAKE_ARGS}
 						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
 						BUILD_COMMAND cmake --build . --config RelWithDebInfo
