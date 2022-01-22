@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <fstream>
 
 #ifdef _WIN32
 #include <bcrypt/BCrypt.hpp>
@@ -81,9 +82,18 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
 	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
 
+	//Check CDClient exists
+	const std::string cdclient_path = "./res/CDServer.sqlite";
+	std::ifstream cdclient_fd(cdclient_path);
+	if (!cdclient_fd.good()) {
+		Game::logger->Log("WorldServer", "%s could not be opened\n", cdclient_path.c_str());
+		return -1;
+	}
+	cdclient_fd.close();
+
 	//Connect to CDClient
 	try {
-		CDClientDatabase::Connect("./res/CDServer.sqlite");
+		CDClientDatabase::Connect(cdclient_path);
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database\n");
 		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
@@ -91,7 +101,16 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	CDClientManager::Instance()->Initialize();
+	//Get CDClient initial information
+	try {
+		CDClientManager::Instance()->Initialize();
+	} catch (CppSQLite3Exception& e) {
+		Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database\n");
+		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s\n", cdclient_path.c_str());
+		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
+		Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
+		return -1;
+	}
 
 	//Connect to the MySQL Database
 	std::string mysql_host = config.GetValue("mysql_host");
