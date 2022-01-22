@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <codecvt>
 
+#include <ztd/text.hpp>
+
 template <typename T>
 inline size_t MinSize(size_t size, const std::basic_string<T>& string) {
     if (size == size_t(-1) || size > string.size()) {
@@ -60,8 +62,13 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string& string, size_t size
 
 //! Converts an UCS-2 / UTF-16 to std::string (ASCII)
 std::string GeneralUtils::UTF16ToUTF8(const std::u16string& string, size_t size) {
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-    return convert.to_bytes(string.substr(0, size));
+    std::u16string_view utf16_input(string.substr(0, MinSize(size, string)));
+    std::string utf8_output = ztd::text::transcode(
+        utf16_input,
+        ztd::text::compat_utf8
+    );
+
+    return utf8_output;
 }
 
 bool GeneralUtils::CaseInsensitiveStringCompare(const std::string& a, const std::string& b) {
@@ -69,8 +76,14 @@ bool GeneralUtils::CaseInsensitiveStringCompare(const std::string& a, const std:
 }
 
 std::u16string GeneralUtils::UTF8ToUTF16(const std::string& string, size_t size) {
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-    return convert.from_bytes(string.substr(0, size));
+    std::string_view utf8_input(string.substr(0, MinSize(size, string)));
+	std::u16string utf16_output = ztd::text::transcode(
+		utf8_input,
+        ztd::text::compat_utf8,
+		ztd::text::utf16
+	);
+
+    return utf16_output;
 }
 
 // MARK: Bits

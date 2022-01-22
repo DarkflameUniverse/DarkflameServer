@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.14)
 project(Darkflame)
 include(CTest)
 
+add_subdirectory(thirdparty)
+
 # Read variables from file
 FILE(READ "${CMAKE_SOURCE_DIR}/CMakeVariables.txt" variables)
 
@@ -161,6 +163,7 @@ configure_file("${CMAKE_SOURCE_DIR}/vanity/NPC.xml" "${CMAKE_BINARY_DIR}/vanity/
 
 # 3rdparty includes
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/raknet/Source/)
+include_directories(${PROJECT_SOURCE_DIR}/thirdparty/text/include)
 if(UNIX)
     if(APPLE)
         include_directories(/usr/local/include/)
@@ -418,6 +421,7 @@ target_link_libraries(WorldServer detour)
 target_link_libraries(WorldServer recast)
 target_link_libraries(WorldServer raknet)
 target_link_libraries(WorldServer ${MYSQL_LIB})
+target_link_libraries(WorldServer ztd.text)
 if(UNIX)
 target_link_libraries(WorldServer pthread)
 target_link_libraries(WorldServer dl)
@@ -438,6 +442,7 @@ target_link_libraries(AuthServer dDatabase)
 target_link_libraries(AuthServer dNet)
 target_link_libraries(AuthServer raknet)
 target_link_libraries(AuthServer ${MYSQL_LIB})
+target_link_libraries(AuthServer ztd.text)
 if(UNIX)
 target_link_libraries(AuthServer pthread)
 target_link_libraries(AuthServer dl)
@@ -452,6 +457,7 @@ target_link_libraries(MasterServer ${MYSQL_LIB})
 if(UNIX)
 target_link_libraries(MasterServer pthread)
 target_link_libraries(MasterServer dl)
+target_link_libraries(MasterServer ztd.text)
 endif(UNIX)
 
 # Target libraries for Chat:
@@ -461,6 +467,7 @@ target_link_libraries(ChatServer dDatabase)
 target_link_libraries(ChatServer dNet)
 target_link_libraries(ChatServer raknet)
 target_link_libraries(ChatServer ${MYSQL_LIB})
+target_link_libraries(ChatServer ztd.text)
 if(UNIX)
 target_link_libraries(ChatServer pthread)
 target_link_libraries(ChatServer dl)
@@ -494,4 +501,3 @@ endif()
 
 # Finally, add the tests
 add_subdirectory(tests)
-

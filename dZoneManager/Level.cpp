@@ -200,6 +200,7 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
         
         while (std::getline(ssData, token, deliminator)) {
             LDFBaseData * ldfData = LDFBaseData::DataFromString(token);
+			if (!ldfData) continue;
             obj.settings.push_back(ldfData);
         }
 
