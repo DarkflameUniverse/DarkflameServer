@@ -38,68 +38,64 @@ endforeach()
 
 # On windows it's better to build this from source, as there's no way FindZLIB is gonna find it
 if(NOT WIN32)
-find_package(ZLIB REQUIRED)
+    find_package(ZLIB REQUIRED)
 endif()
 
 # Fetch External (Non-Submodule) Libraries
 if(WIN32)
-include(FetchContent)
+    include(FetchContent)
 
-FetchContent_Declare(
-    mysql
-    URL https://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-8.0.27-winx64.zip
-    URL_HASH MD5=e3c53f6e4d0a72fde2713f7597bf9468
-)
-
-FetchContent_Declare(
-    zlib
-    URL http://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
-    URL_HASH MD5=9d6a627693163bbbf3f26403a3a0b0b1
-)
-
-FetchContent_MakeAvailable(zlib)
-FetchContent_MakeAvailable(mysql)
-
-set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}") # Why?
-add_library(ZLIB::ZLIB ALIAS zlib) # You're welcome
-
-endif(WIN32)
-if(UNIX)
-if(APPLE)
-else()
-include(FetchContent)
-
-FetchContent_Declare(
-    mysql
-    URL https://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-8.0.27-linux-glibc2.12-x86-64bit.tar.gz
-    URL_HASH MD5=12f086b76c11022cc7139b41a36cdf9e
-)
-
-FetchContent_MakeAvailable(mysql)
-
-if (__include_backtrace__ AND __compile_backtrace__)
     FetchContent_Declare(
-        backtrace
-        GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
+        mysql
+        URL https://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-8.0.27-winx64.zip
+        URL_HASH MD5=e3c53f6e4d0a72fde2713f7597bf9468
     )
 
-    FetchContent_MakeAvailable(backtrace)
-
-    if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
-    set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
-
-    execute_process(
-        COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
+    FetchContent_Declare(
+        zlib
+        URL http://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
+        URL_HASH MD5=9d6a627693163bbbf3f26403a3a0b0b1
     )
+
+    FetchContent_MakeAvailable(zlib)
+    FetchContent_MakeAvailable(mysql)
+
+    set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
+    set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}") # Why?
+    add_library(ZLIB::ZLIB ALIAS zlib) # You're welcome
+endif()
+
+if(UNIX AND NOT APPLE)
+    include(FetchContent)
+
+    FetchContent_Declare(
+        mysql
+        URL https://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-8.0.27-linux-glibc2.12-x86-64bit.tar.gz
+        URL_HASH MD5=12f086b76c11022cc7139b41a36cdf9e
+    )
+
+    FetchContent_MakeAvailable(mysql)
+
+    if (__include_backtrace__ AND __compile_backtrace__)
+        FetchContent_Declare(
+            backtrace
+            GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
+        )
+
+        FetchContent_MakeAvailable(backtrace)
+
+        if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
+            set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
+
+            execute_process(
+                COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
+            )
+        endif()
     endif()
 
     link_directories(${backtrace_SOURCE_DIR}/.libs/)
     include_directories(${backtrace_SOURCE_DIR})
-endif(__include_backtrace__ AND __compile_backtrace__)
-
 endif()
-endif(UNIX)
 
 # Set the version
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
@@ -113,18 +109,14 @@ set(CMAKE_CXX_STANDARD 17)
 
 if(WIN32)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-endif(WIN32)
+endif()
 
 # Our output dir
 set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR})
 
-# Create a /res directory
+# Create /res, /locale and /logs directories
 make_directory(${CMAKE_BINARY_DIR}/res)
-
-# Create a /locale directory
 make_directory(${CMAKE_BINARY_DIR}/locale)
-
-# Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
 # Copy ini files on first build
@@ -169,12 +161,13 @@ if(UNIX)
     else()
         include_directories(${mysql_SOURCE_DIR}/include/jdbc/)
         include_directories(${mysql_SOURCE_DIR}/include/jdbc/cppconn/)
-    endif(APPLE)
-endif(UNIX)
+    endif()
+endif()
+
 if(WIN32)
-include_directories(${mysql_SOURCE_DIR}/include/jdbc)
-include_directories(${mysql_SOURCE_DIR}/include/jdbc/cppconn)
-endif(WIN32)
+    include_directories(${mysql_SOURCE_DIR}/include/jdbc)
+    include_directories(${mysql_SOURCE_DIR}/include/jdbc/cppconn)
+endif()
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Recast/Include)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Detour/Include)
@@ -182,11 +175,11 @@ include_directories(${ZLIB_INCLUDE_DIRS})
 
 # Bcrypt
 if (NOT WIN32)
-include_directories(${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt)
-include_directories(${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include/bcrypt)
-else ()
-include_directories(${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include)
-endif ()
+    include_directories(${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt)
+    include_directories(${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include/bcrypt)
+else()
+    include_directories(${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include)
+endif()
 
 # Our includes
 include_directories(${PROJECT_BINARY_DIR})
@@ -212,8 +205,8 @@ include_directories(${PROJECT_SOURCE_DIR}/dScripts/)
 # Default to linking to libmysql
 set(MYSQL_LIB mysql)
 if(WIN32)
-set(MYSQL_LIB mysqlcppconn)
-endif(WIN32)
+    set(MYSQL_LIB mysqlcppconn)
+endif()
 
 # Lib folders:
 link_directories(${PROJECT_BINARY_DIR})
@@ -225,196 +218,46 @@ if(UNIX)
 
         # Link to libmysqlcppconn on Linux
         set(MYSQL_LIB mysqlcppconn)
-    endif(APPLE)
-endif(UNIX)
+    endif()
+endif()
+
 if(WIN32)
-link_directories(${mysql_SOURCE_DIR}/lib64/vs14)
-endif(WIN32)
+    link_directories(${mysql_SOURCE_DIR}/lib64/vs14)
+endif()
 
 # Third-Party libraries
 add_subdirectory(thirdparty)
 
-# Source Code
-file(
-GLOB SOURCES
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dWorldServer/*.cpp
-)
+# add_subdirectory for libraries
+add_subdirectory(dCommon)
+add_subdirectory(dChatFilter)
+add_subdirectory(dDatabase)
+add_subdirectory(dNet)
+add_subdirectory(dGame)
+add_subdirectory(dZoneManager)
+add_subdirectory(dPhysics)
 
-# Source Code for AuthServer
-file(
-GLOB SOURCES_AUTH
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dAuthServer/*.cpp
-)
+# Setup shared libraries between binaries
 
-# Source Code for MasterServer
-file(
-GLOB SOURCES_MASTER
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dMasterServer/*.cpp
-)
+set(SHARED_LIBS dCommon dNet dDatabase raknet ${MYSQL_LIB})
 
-# Source Code for ChatServer
-file(
-GLOB SOURCES_CHAT
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dChatServer/*.cpp
-)
-
-# Source Code for dCommon
-file(
-GLOB SOURCES_DCOMMON
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dCommon/*.cpp
-)
-
-# Source Code for dChatFilter
-file(
-GLOB SOURCES_DCHATFILTER
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dChatFilter/*.cpp
-)
-
-# Source Code for dDatabase
-file(
-GLOB SOURCES_DDATABASE
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dDatabase/*.cpp
-${PROJECT_SOURCE_DIR}/dDatabase/Tables/*.cpp
-)
-
-# Source Code for dNet
-file(
-GLOB SOURCES_DNET
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dNet/*.cpp
-)
-
-# Source Code for dGame
-file(
-GLOB SOURCES_DGAME
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dGame/*.cpp
-${PROJECT_SOURCE_DIR}/dGame/dBehaviors/*.cpp
-${PROJECT_SOURCE_DIR}/dGame/dComponents/*.cpp
-${PROJECT_SOURCE_DIR}/dGame/dGameMessages/*.cpp
-${PROJECT_SOURCE_DIR}/dGame/dInventory/*.cpp
-${PROJECT_SOURCE_DIR}/dGame/dMission/*.cpp
-${PROJECT_SOURCE_DIR}/dGame/dEntity/*.cpp
-${PROJECT_SOURCE_DIR}/dGame/dUtilities/*.cpp
-${PROJECT_SOURCE_DIR}/dScripts/*.cpp
-)
-
-# Source Code for dZoneManager
-file(
-GLOB SOURCES_DZM
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dZoneManager/*.cpp
-)
-
-# Source Code for dPhysics
-file(
-GLOB SOURCES_DPHYSICS
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/dPhysics/*.cpp
-)
-
-if(MSVC)
-    # Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
-    add_compile_options("/wd4267")
-endif(MSVC)
-
-# Our static libraries:
-add_library(dCommon ${SOURCES_DCOMMON})
-add_library(dChatFilter ${SOURCES_DCHATFILTER})
-add_library(dDatabase ${SOURCES_DDATABASE})
-add_library(dNet ${SOURCES_DNET})
-add_library(dGame ${SOURCES_DGAME})
-add_library(dZoneManager ${SOURCES_DZM})
-add_library(dPhysics ${SOURCES_DPHYSICS})
-target_link_libraries(dDatabase sqlite3)
-target_link_libraries(dNet dCommon) #Needed because otherwise linker errors occur.
-target_link_libraries(dCommon ZLIB::ZLIB)
-target_link_libraries(dCommon libbcrypt)
-
-if(WIN32)
-target_link_libraries(raknet ws2_32)
-endif(WIN32)
-
-# Our executables:
-add_executable(WorldServer ${SOURCES})
-add_executable(AuthServer ${SOURCES_AUTH})
-add_executable(MasterServer ${SOURCES_MASTER})
-add_executable(ChatServer ${SOURCES_CHAT})
-
-# Target libraries to link to:
-target_link_libraries(WorldServer dCommon)
-target_link_libraries(WorldServer dChatFilter)
-target_link_libraries(WorldServer dDatabase)
-target_link_libraries(WorldServer dNet)
-target_link_libraries(WorldServer dGame)
-target_link_libraries(WorldServer dZoneManager)
-target_link_libraries(WorldServer dPhysics)
-target_link_libraries(WorldServer detour)
-target_link_libraries(WorldServer recast)
-target_link_libraries(WorldServer raknet)
-target_link_libraries(WorldServer ${MYSQL_LIB})
 if(UNIX)
-if(NOT APPLE AND __include_backtrace__)
-target_link_libraries(WorldServer backtrace)
-target_link_libraries(MasterServer backtrace)
-target_link_libraries(AuthServer backtrace)
-target_link_libraries(ChatServer backtrace)
+    set(SHARED_LIBS ${SHARED_LIBS} pthread dl)
+
+    if(NOT APPLE AND __include_backtrace__)
+        set(SHARED_LIBS ${SHARED_LIBS} backtrace)
+    endif()
 endif()
 
-endif(UNIX)
-target_link_libraries(WorldServer tinyxml2)
+# Our executables:
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Target libraries for Auth:
-target_link_libraries(AuthServer dCommon)
-target_link_libraries(AuthServer dDatabase)
-target_link_libraries(AuthServer dNet)
-target_link_libraries(AuthServer raknet)
-target_link_libraries(AuthServer ${MYSQL_LIB})
-if(UNIX)
-target_link_libraries(AuthServer pthread)
-target_link_libraries(AuthServer dl)
-endif(UNIX)
-
-# Target libraries for Master:
-target_link_libraries(MasterServer dCommon)
-target_link_libraries(MasterServer dDatabase)
-target_link_libraries(MasterServer dNet)
-target_link_libraries(MasterServer raknet)
-target_link_libraries(MasterServer ${MYSQL_LIB})
-if(UNIX)
-target_link_libraries(MasterServer pthread)
-target_link_libraries(MasterServer dl)
-endif(UNIX)
-
-# Target libraries for Chat:
-target_link_libraries(ChatServer dCommon)
-target_link_libraries(ChatServer dChatFilter)
-target_link_libraries(ChatServer dDatabase)
-target_link_libraries(ChatServer dNet)
-target_link_libraries(ChatServer raknet)
-target_link_libraries(ChatServer ${MYSQL_LIB})
-if(UNIX)
-target_link_libraries(ChatServer pthread)
-target_link_libraries(ChatServer dl)
-endif(UNIX)
+add_subdirectory(dAuthServer)
+add_subdirectory(dChatServer)
+add_subdirectory(dWorldServer)
+add_subdirectory(dMasterServer)
 
 # Compiler flags:
 # Disabled deprecated warnings as the MySQL includes have deprecated code in them. 
@@ -433,13 +276,11 @@ if(UNIX)
     if (__ggdb)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
     endif()
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
-endif(UNIX)
 
-if(WIN32)
-add_dependencies(MasterServer WorldServer)
-add_dependencies(MasterServer AuthServer)
-add_dependencies(MasterServer ChatServer)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
+elseif(WIN32)
+    # Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
+    add_compile_options("/wd4267")
 endif()
 
 # Finally, add the tests
