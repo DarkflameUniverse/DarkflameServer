@@ -1,8 +1,0 @@
-file(
-    GLOB SOURCES_DPHYSICS
-    LIST_DIRECTORIES false
-    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-    *.cpp
-)
-
-add_library(dPhysics ${SOURCES_DPHYSICS})

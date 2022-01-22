@@ -1,8 +1,0 @@
-file(
-    GLOB SOURCES_DCHATFILTER
-    LIST_DIRECTORIES false
-    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-    *.cpp
-)
-
-add_library(dChatFilter ${SOURCES_DCHATFILTER})
