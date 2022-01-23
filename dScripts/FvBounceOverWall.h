@@ -1,3 +1,4 @@
+#pragma once
 #include "CppScripts.h"
 
 class FvBounceOverWall : public CppScripts::Script
