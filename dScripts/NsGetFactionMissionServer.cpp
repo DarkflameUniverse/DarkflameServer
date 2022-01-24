@@ -44,6 +44,7 @@ void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, 
 		}
 
 		if (flagID != -1) {
+			player->GetCharacter()->SetPlayerFlag(ePlayerFlags::JOINED_A_FACTION, true);
 			player->GetCharacter()->SetPlayerFlag(flagID, true);
 		}
 

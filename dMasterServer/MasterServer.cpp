@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <fstream>
 
 #ifdef _WIN32
 #include <bcrypt/BCrypt.hpp>
@@ -77,9 +78,18 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
 	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
 
+	//Check CDClient exists
+	const std::string cdclient_path = "./res/CDServer.sqlite";
+	std::ifstream cdclient_fd(cdclient_path);
+	if (!cdclient_fd.good()) {
+		Game::logger->Log("WorldServer", "%s could not be opened\n", cdclient_path.c_str());
+		return -1;
+	}
+	cdclient_fd.close();
+
 	//Connect to CDClient
 	try {
-		CDClientDatabase::Connect("./res/CDServer.sqlite");
+		CDClientDatabase::Connect(cdclient_path);
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database\n");
 		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
@@ -87,7 +97,16 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	CDClientManager::Instance()->Initialize();
+	//Get CDClient initial information
+	try {
+		CDClientManager::Instance()->Initialize();
+	} catch (CppSQLite3Exception& e) {
+		Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database\n");
+		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s\n", cdclient_path.c_str());
+		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
+		Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
+		return -1;
+	}
 
 	//Connect to the MySQL Database
 	std::string mysql_host = config.GetValue("mysql_host");
@@ -161,10 +180,16 @@ int main(int argc, char** argv) {
 	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");
 	auto* result = masterLookupStatement->executeQuery();
 
+	auto master_server_ip = config.GetValue("master_ip");
+
+	if (master_server_ip == "") {
+		master_server_ip = Game::server->GetIP();
+	}
+
 	//If we found a server, update it's IP and port to the current one.
 	if (result->next()) {
 		auto* updateStatement = Database::CreatePreppedStmt("UPDATE `servers` SET `ip` = ?, `port` = ? WHERE `id` = ?");
-		updateStatement->setString(1, Game::server->GetIP());
+		updateStatement->setString(1, master_server_ip);
 		updateStatement->setInt(2, Game::server->GetPort());
 		updateStatement->setInt(3, result->getInt("id"));
 		updateStatement->execute();
@@ -173,7 +198,7 @@ int main(int argc, char** argv) {
 	else {
 		//If we didn't find a server, create one.
 		auto* insertStatement = Database::CreatePreppedStmt("INSERT INTO `servers` (`name`, `ip`, `port`, `state`, `version`) VALUES ('master', ?, ?, 0, 171023)");
-		insertStatement->setString(1, Game::server->GetIP());
+		insertStatement->setString(1, master_server_ip);
 		insertStatement->setInt(2, Game::server->GetPort());
 		insertStatement->execute();
 		delete insertStatement;
@@ -645,7 +670,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MSG_MASTER_SHUTDOWN_UNIVERSE: {
-			Game::logger->Log("MasterServer","Received shutdown universe command, ""shutting down in 10 minutes.\n");
+			Game::logger->Log("MasterServer","Received shutdown universe command, shutting down in 10 minutes.\n");
 			shouldShutdown = true;
 			break;
 		}
@@ -707,7 +732,7 @@ void ShutdownSequence() {
 	auto* objIdManager = ObjectIDManager::TryInstance();
 	if (objIdManager != nullptr) {
 		objIdManager->SaveToDatabase();
-		printf("Saved objidtracker...\n");
+		Game::logger->Log("MasterServer", "Saved ObjectIDTracker to DB\n");
 	}
 
 	auto t = std::chrono::high_resolution_clock::now();
@@ -717,7 +742,8 @@ void ShutdownSequence() {
 		exit(0);
 	}
 
-	printf("Attempting to shutdown instances, max 60 seconds...\n");
+	Game::logger->Log("MasterServer", "Attempting to shutdown instances, max 60 seconds...\n");
+
 	while (true) {
 		auto done = true;
 

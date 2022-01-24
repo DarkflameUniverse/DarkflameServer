@@ -10,3 +10,12 @@
 [submodule "thirdparty/libbcrypt"]
 	path = thirdparty/libbcrypt
 	url = https://github.com/trusch/libbcrypt.git
+[submodule "thirdparty/docker-utils"]
+	path = thirdparty/docker-utils
+	url = https://github.com/lcdr/utils.git
+[submodule "thirdparty/LUnpack"]
+	path = thirdparty/LUnpack
+	url = https://github.com/Xiphoseer/LUnpack.git
+[submodule "thirdparty/AccountManager"]
+	path = thirdparty/AccountManager
+	url = https://github.com/DarkflameUniverse/AccountManager
