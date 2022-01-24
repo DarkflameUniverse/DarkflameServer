@@ -47,9 +47,8 @@ void NjMonastryBossInstance::OnStartup(Entity *self) {
 void NjMonastryBossInstance::OnPlayerLoaded(Entity *self, Entity *player) {
     ActivityTimerStop(self, WaitingForPlayersTimer);
 
-    // Join the player in the activity and charge for joining
+    // Join the player in the activity
     UpdatePlayer(self, player->GetObjectID());
-    TakeActivityCost(self, player->GetObjectID());
 
     // Buff the player
     auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
@@ -59,11 +58,9 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity *self, Entity *player) {
         destroyableComponent->SetImagination((int32_t) destroyableComponent->GetMaxImagination());
     }
 
-    // Track the player ID
+    // Add player ID to instance
     auto totalPlayersLoaded = self->GetVar<std::vector<LWOOBJID>>(TotalPlayersLoadedVariable);
-    if (totalPlayersLoaded.empty() || std::find(totalPlayersLoaded.begin(), totalPlayersLoaded.end(), player->GetObjectID()) != totalPlayersLoaded.end()) {
-        totalPlayersLoaded.push_back(player->GetObjectID());
-    }
+    totalPlayersLoaded.push_back(player->GetObjectID());
 
     // Properly position the player
     self->SetVar<std::vector<LWOOBJID>>(TotalPlayersLoadedVariable, totalPlayersLoaded);
@@ -75,7 +72,7 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity *self, Entity *player) {
 
     // Start the game if all players in the team have loaded
     auto* team = TeamManager::Instance()->GetTeam(player->GetObjectID());
-    if (team == nullptr || totalPlayersLoaded.size() >= team->members.size()) {
+    if (team == nullptr || totalPlayersLoaded.size() == team->members.size()) {
         StartFight(self);
         return;
     }
