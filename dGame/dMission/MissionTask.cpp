@@ -472,7 +472,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
 		break;
 	}
-	case MissionTaskType::MISSION_TASK_TYPE_PICKUP_MODEL:
+	case MissionTaskType::MISSION_TASK_TYPE_PLACE_MODEL:
 	{
 		AddProgress(count);
 		break;

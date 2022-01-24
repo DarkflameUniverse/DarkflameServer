@@ -21,6 +21,6 @@ enum class MissionTaskType : int {
     MISSION_TASK_TYPE_PET_TAMING = 22,                  //!< A task for taming a pet
     MISSION_TASK_TYPE_RACING = 23,                      //!< A task for racing
     MISSION_TASK_TYPE_PLAYER_FLAG = 24,                 //!< A task for setting a player flag
-    MISSION_TASK_TYPE_PICKUP_MODEL = 25,                //!< A task for picking up a model
+    MISSION_TASK_TYPE_PLACE_MODEL = 25,                //!< A task for picking up a model
     MISSION_TASK_TYPE_VISIT_PROPERTY = 30               //!< A task for visiting a property
 };
