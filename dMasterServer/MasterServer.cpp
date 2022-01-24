@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
-	if (!Game::logger) return 0;
+	if (!Game::logger) return -1;
 
 	Game::logger->Log("MasterServer", "Starting Master server...\n");
 	Game::logger->Log("MasterServer", "Version: %i.%i\n", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
 		Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
-		return 0;
+		return -1;
 	}
 
 	//If the first command line argument is -a or --account then make the user
@@ -166,6 +166,10 @@ int main(int argc, char** argv) {
 		delete statement;
 
 		std::cout << "Account created successfully!\n";
+
+		Database::Destroy();
+		delete Game::logger;
+
 		return 0;
 	}
 
@@ -266,7 +270,8 @@ int main(int argc, char** argv) {
 		//10m shutdown for universe kill command
 		if (shouldShutdown) {
 			if (framesSinceKillUniverseCommand >= 40000) {
-				std::exit(0);
+				//Break main loop and exit
+				break;
 			}
 			else
 				framesSinceKillUniverseCommand++;
