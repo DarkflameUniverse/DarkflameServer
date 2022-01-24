@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
-	if (!Game::logger) return -1;
+	if (!Game::logger) return EXIT_FAILURE;
 
 	Game::logger->Log("MasterServer", "Starting Master server...\n");
 	Game::logger->Log("MasterServer", "Version: %i.%i\n", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
 	std::ifstream cdclient_fd(cdclient_path);
 	if (!cdclient_fd.good()) {
 		Game::logger->Log("WorldServer", "%s could not be opened\n", cdclient_path.c_str());
-		return -1;
+		return EXIT_FAILURE;
 	}
 	cdclient_fd.close();
 
@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database\n");
 		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
 		Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	//Get CDClient initial information
@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
 		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s\n", cdclient_path.c_str());
 		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
 		Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	//Connect to the MySQL Database
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
 		Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	//If the first command line argument is -a or --account then make the user
@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
 		Database::Destroy();
 		delete Game::logger;
 
-		return 0;
+		return EXIT_SUCCESS;
 	}
 
 	int maxClients = 999;
@@ -324,7 +324,7 @@ int main(int argc, char** argv) {
 	delete Game::server;
 	delete Game::logger;
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 dLogger* SetupLogger() {
