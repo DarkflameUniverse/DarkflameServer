@@ -270,7 +270,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
         return;
     }
     
-	Game::logger->Log("UserManager", "AccountID: %i is creating a character with name: %s\n", u->GetAccountID(), name.c_str());
+	Game::logger->Log("UserManager", "AccountID: %i is creating a character with name: %s\n", u->GetAccountID(), name != "" ? name.c_str() : predefinedName.c_str());
     
     //Now that the name is ok, we can get an objectID from Master:
     ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t objectID) {
