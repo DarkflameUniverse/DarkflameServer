@@ -505,7 +505,8 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_reputation > 0) {
-        // TODO: In case of reputation, write code
+        // TODO: Track reputation in the character and database.
+        missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
     }
 
     if (info->reward_maxhealth > 0) {

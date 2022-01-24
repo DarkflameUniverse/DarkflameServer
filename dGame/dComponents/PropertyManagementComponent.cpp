@@ -517,6 +517,9 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), item->GetId(), item->GetCount());
 		EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelPickedUp(entity);
 
+		// Progress pickup model missions
+		auto missionComponent = entity->GetComponent<MissionComponent>();
+		if (missionComponent != nullptr) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PICKUP_MODEL, 0);
 		break;
 	}
 	case 1: // Return to inv
