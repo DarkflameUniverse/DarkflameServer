@@ -64,7 +64,8 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity *self, Entity *player) {
 
     // Properly position the player
     self->SetVar<std::vector<LWOOBJID>>(TotalPlayersLoadedVariable, totalPlayersLoaded);
-    TeleportPlayer(player, totalPlayersLoaded.size());
+    // This was always spawning all players at position one before and other values cause players to be invisible.
+    TeleportPlayer(player, 1);
 
     // Large teams face a tougher challenge
     if (totalPlayersLoaded.size() > 2)
