@@ -45,8 +45,8 @@ services:
         - BUILD_THREADS=${BUILD_THREADS:-1}
         - BUILD_VERSION=${BUILD_VERSION:-171022}
     volumes:
-      - ${CLIENT_PATH:?missing_client_path}:/client
-      - shared_configs:/shared_configs
+      - ${CLIENT_PATH:?missing_client_path}:/client:ro
+      - shared_configs:/shared_configs:ro
     depends_on:
       - database
     ports:
