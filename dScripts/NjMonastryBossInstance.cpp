@@ -68,7 +68,7 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity *self, Entity *player) {
     TeleportPlayer(player, 1);
 
     // Large teams face a tougher challenge
-    if (totalPlayersLoaded.size() > 2)
+    if (totalPlayersLoaded.size() >= 3)
         self->SetVar<bool>(LargeTeamVariable, true);
 
     // Start the game if all players in the team have loaded
@@ -91,6 +91,7 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity *self, Entity *player) {
 
 void NjMonastryBossInstance::OnPlayerExit(Entity *self, Entity *player) {
     UpdatePlayer(self, player->GetObjectID(), true);
+    //TODO: Add functionality to dynamically turn off the large team variable when enough players leave.
     GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayerLeft", 0, 0,
                                          player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 }
