@@ -18,6 +18,14 @@ body:
         - label: >
             I have pulled the latest version of the main branch of DarkflameServer and have confirmed that the issue exists there.
           required: true
+  - type: input
+    id: server-version
+    attributes:
+      label: DarkflameServer Version
+      description: >
+        DarkflameServer version or commit SHA
+    validations:
+      required: true
   - type: textarea
     id: problem
     attributes:
@@ -29,7 +37,7 @@ body:
   - type: textarea
     id: reproduction
     attributes:
-      label: Reproduction steps
+      label: Reproduction Steps
       description: >
         Please provide a concise list of steps needed to reproduce this issue.
     validations:
