@@ -257,7 +257,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity *player,
             m_Parent->GetObjectID(), playerID, UNASSIGNED_SYSTEM_ADDRESS);
     });
 
-    GameMessages::SendSetJetpackMode(player, false, false, false);
+    GameMessages::SendSetJetPackMode(player, false);
 
     // Set the vehicle's state.
     GameMessages::SendNotifyVehicleOfRacingObject(carEntity->GetObjectID(),

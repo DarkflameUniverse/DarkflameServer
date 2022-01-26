@@ -413,6 +413,12 @@ public:
 	 */
 	void SendMuteNotice() const;
 
+     /**
+      * Sets any flags that are meant to have been set that may not have been set due to them being
+      * missing in a previous patch.
+      */
+     void SetRetroactiveFlags();
+     
     /**
      * Get the equipped items for this character, only used for character creation
      * @return the equipped items for this character on world load

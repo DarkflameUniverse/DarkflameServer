@@ -105,9 +105,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 				auto items = inv->GetEquippedItems();
 				for (auto pair : items) {
 					const auto item = pair.second;
-					if (item.lot == 1727) GameMessages::SendSetJetpackMode(entity, false, true, false);
-					if (item.lot == 7292) GameMessages::SendSetJetpackMode(entity, true, true, false);
-					if (item.lot == 14442) GameMessages::SendSetJetpackMode(entity, false, true, true);
 
 					inv->AddItemSkills(item.lot);
 				}
