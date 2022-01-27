@@ -2,18 +2,18 @@
 
 function symlink_client_files() {
     echo "Creating symlinks for client files"
-    ln -s /client/client/res/macros/ /app/res/macros
-    ln -s /client/client/res/BrickModels/ /app/res/BrickModels
-    ln -s /client/client/res/chatplus_en_us.txt /app/res/chatplus_en_us.txt
-    ln -s /client/client/res/names/ /app/res/names
-    ln -s /client/client/res/CDServer.sqlite /app/res/CDServer.sqlite
-    ln -s /client/client/locale/locale.xml /app/locale/locale.xml
+    ln -s /client/res/macros/ /app/res/macros
+    ln -s /client/res/BrickModels/ /app/res/BrickModels
+    ln -s /client/res/chatplus_en_us.txt /app/res/chatplus_en_us.txt
+    ln -s /client/res/names/ /app/res/names
+    ln -s /client/res/CDServer.sqlite /app/res/CDServer.sqlite
+    ln -s /client/locale/locale.xml /app/locale/locale.xml
     # need to iterate over entries in maps due to maps already being a directory with navmeshes/ in it
     (
-        cd /client/client/res/maps
+        cd /client/res/maps
         readarray -d '' entries < <(printf '%s\0' * | sort -zV)
         for entry in "${entries[@]}"; do
-            ln -s /client/client/res/maps/$entry /app/res/maps/
+            ln -s /client/res/maps/$entry /app/res/maps/
         done
     )
 }
