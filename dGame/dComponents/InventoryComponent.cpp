@@ -1000,10 +1000,6 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 	{
 		set->OnEquip(lot);
 	}
-	
-	if (lot == 1727) GameMessages::SendSetJetpackMode(m_Parent, false, true, false);
-	if (lot == 7292) GameMessages::SendSetJetpackMode(m_Parent, true, true, false);
-	if (lot == 14442) GameMessages::SendSetJetpackMode(m_Parent, false, true, true);
 
 	if (item->GetInfo().isBOE)
 	{
@@ -1041,10 +1037,6 @@ void InventoryComponent::UnEquipItem(Item* item)
 	{
 		set->OnUnEquip(lot);
 	}
-
-	if (lot == 1727) GameMessages::SendSetJetpackMode(m_Parent, false, false, false);
-	if (lot == 7292) GameMessages::SendSetJetpackMode(m_Parent, true, false, false);
-	if (lot == 14442) GameMessages::SendSetJetpackMode(m_Parent, false, false, true);
 
 	RemoveBuff(item->GetLot());
 	

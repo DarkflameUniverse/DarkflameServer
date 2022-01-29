@@ -872,19 +872,14 @@ void GameMessages::SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID
 	SEND_PACKET
 }
 
-void GameMessages::SendSetJetpackMode(Entity* entity, bool bDoHover, bool bUse, bool bIsJamessterPhysics) {
-	int effectID = 167;
-	int iWarningEffectID = -1;
-	float fAirspeed = 25;
-	float fMaxAirspeed = 25;
-	float fVertVel = 2;
-	bool bBypassChecks = true;
-
+void GameMessages::SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks, bool doHover, int effectID, float airspeed, float maxAirspeed, float verticalVelocity, int warningEffectID) {
+	/* historical jamesster jetpack values
 	if (bIsJamessterPhysics) {
 		fAirspeed = 75;
 		fMaxAirspeed = 75;
 		fVertVel = 15;
 	}
+	*/
 
 	CBITSTREAM
 	CMSGHEADER
@@ -892,24 +887,24 @@ void GameMessages::SendSetJetpackMode(Entity* entity, bool bDoHover, bool bUse, 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(uint16_t(GAME_MSG_SET_JET_PACK_MODE));
 
-	bitStream.Write(bBypassChecks);
-	bitStream.Write(bDoHover);
-	bitStream.Write(bUse);
+	bitStream.Write(bypassChecks);
+	bitStream.Write(doHover);
+	bitStream.Write(use);
 
 	bitStream.Write(effectID != -1);
 	if (effectID != -1) bitStream.Write(effectID);
 
-	bitStream.Write(fAirspeed != 10);
-	if (fAirspeed != 10) bitStream.Write(fAirspeed);
+	bitStream.Write(airspeed != 10);
+	if (airspeed != 10) bitStream.Write(airspeed);
 
-	bitStream.Write(fMaxAirspeed != 15);
-	if (fMaxAirspeed != 15) bitStream.Write(fMaxAirspeed);
+	bitStream.Write(maxAirspeed != 15);
+	if (maxAirspeed != 15) bitStream.Write(maxAirspeed);
 
-	bitStream.Write(fVertVel != 1);
-	if (fVertVel != 1) bitStream.Write(fVertVel);
+	bitStream.Write(verticalVelocity != 1);
+	if (verticalVelocity != 1) bitStream.Write(verticalVelocity);
 
-	bitStream.Write(iWarningEffectID != -1);
-	if (iWarningEffectID != -1) bitStream.Write(iWarningEffectID);
+	bitStream.Write(warningEffectID != -1);
+	if (warningEffectID != -1) bitStream.Write(warningEffectID);
 
 	SEND_PACKET_BROADCAST
 }
