@@ -49,11 +49,11 @@ public:
 	 * Behavior parameters
 	 */
 	
-	float GetFloat(const std::string& name) const;
+	float GetFloat(const std::string& name, const float defaultValue = 0) const;
 
-	bool GetBoolean(const std::string& name) const;
+	bool GetBoolean(const std::string& name, const bool defaultValue = false) const;
 
-	int32_t GetInt(const std::string& name) const;
+	int32_t GetInt(const std::string& name, const int32_t defaultValue = 0) const;
 
 	Behavior* GetAction(const std::string& name) const;
 

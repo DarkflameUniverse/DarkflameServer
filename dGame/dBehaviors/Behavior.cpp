@@ -55,6 +55,7 @@
 #include "SkillEventBehavior.h"
 #include "SpeedBehavior.h"
 #include "DamageReductionBehavior.h"
+#include "JetPackBehavior.h"
 
 //CDClient includes
 #include "CDBehaviorParameterTable.h"
@@ -183,7 +184,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 	case BehaviorTemplates::BEHAVIOR_BUFF:
 		behavior = new BuffBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_JETPACK: break;
+	case BehaviorTemplates::BEHAVIOR_JETPACK:
+		behavior = new JetPackBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_EVENT:
 		behavior = new SkillEventBehavior(behaviorId);
 		break;
@@ -457,21 +460,21 @@ Behavior::Behavior(const uint32_t behaviorId)
 }
 
 
-float Behavior::GetFloat(const std::string& name) const
+float Behavior::GetFloat(const std::string& name, const float defaultValue) const
 {
-	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name);
+	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue);
 }
 
 
-bool Behavior::GetBoolean(const std::string& name) const
+bool Behavior::GetBoolean(const std::string& name, const bool defaultValue) const
 {
-	return GetFloat(name) > 0;
+	return GetFloat(name, defaultValue) > 0;
 }
 
 
-int32_t Behavior::GetInt(const std::string& name) const
+int32_t Behavior::GetInt(const std::string& name, const int defaultValue) const
 {
-	return static_cast<int32_t>(GetFloat(name));
+	return static_cast<int32_t>(GetFloat(name, defaultValue));
 }
 
 

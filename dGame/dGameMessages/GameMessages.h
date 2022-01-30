@@ -91,7 +91,7 @@ namespace GameMessages {
 	void SendSetInventorySize(Entity* entity, int invType, int size);
 	
 	void SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID);
-	void SendSetJetpackMode(Entity* entity, bool bDoHover, bool bUse, bool bIsJamessterPhysics);
+    void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
 	void SendResurrect(Entity* entity);
 	void SendStop2DAmbientSound(Entity* entity, bool force, std::string audioGUID, bool result = false);
 	void SendPlay2DAmbientSound(Entity* entity, std::string audioGUID, bool result = false);

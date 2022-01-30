@@ -498,29 +498,28 @@ Entity* DestroyableComponent::GetKiller() const
 	return EntityManager::Instance()->GetEntity(m_KillerID);
 }
 
-bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignoreFactions) const
+bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignoreFactions, const bool targetEnemy, const bool targetFriend) const
 {
-	auto* entity = EntityManager::Instance()->GetEntity(target);
+	auto* targetEntity = EntityManager::Instance()->GetEntity(target);
 
-	if (entity == nullptr)
+	if (targetEntity == nullptr)
 	{
 		Game::logger->Log("DestroyableComponent", "Invalid entity for checking validity (%llu)!\n", target);
-
 		return false;
 	}
 
-	auto* destroyable = entity->GetComponent<DestroyableComponent>();
+	auto* targetDestroyable = targetEntity->GetComponent<DestroyableComponent>();
 
-	if (destroyable == nullptr)
+	if (targetDestroyable == nullptr)
 	{
 		return false;
 	}
 
-	auto* quickbuild = entity->GetComponent<RebuildComponent>();
+	auto* targetQuickbuild = targetEntity->GetComponent<RebuildComponent>();
 
-	if (quickbuild != nullptr)
+	if (targetQuickbuild != nullptr)
 	{
-		const auto state = quickbuild->GetState();
+		const auto state = targetQuickbuild->GetState();
 
 		if (state != REBUILD_COMPLETED)
 		{
@@ -533,19 +532,12 @@ bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignor
 		return true;
 	}
 
-	auto enemyList = GetEnemyFactionsIDs();
+	// Get if the target entity is an enemy and friend
+	bool isEnemy = IsEnemy(targetEntity);
+	bool isFriend = IsFriend(targetEntity);
 
-	auto candidateList = destroyable->GetFactionIDs();
-
-	for (auto value : candidateList)
-	{
-		if (std::find(enemyList.begin(), enemyList.end(), value) != enemyList.end())
-		{
-			return true;
-		}
-	}
-
-	return false;
+	// Return true if the target type matches what we are targeting
+	return (isEnemy && targetEnemy) || (isFriend && targetFriend);
 }
 
 

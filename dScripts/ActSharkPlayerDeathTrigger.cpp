@@ -14,7 +14,7 @@ void ActSharkPlayerDeathTrigger::OnFireEventServerSide(Entity *self, Entity *sen
 		MissionComponent* mis = static_cast<MissionComponent*>(sender->GetComponent(COMPONENT_TYPE_MISSION));
 		if (!mis) return;
 
-		mis->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, 4734);
+		mis->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, 8419);
 
 		if (sender->GetIsDead() || !sender->GetPlayerReadyForUpdates()) return; //Don't kill already dead players or players not ready
 		
