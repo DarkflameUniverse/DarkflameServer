@@ -245,7 +245,7 @@ The client script for the survival minigame has a bug in it which can cause the 
 * Change `PlayerReady(self)` to `onPlayerReady(self)`
 * Save the file, overriding readonly mode if required
 
-If you still experience the bug, try deleting/renaming `res/pack/scripts.pak`.
+If you still experience the bug, try deleting/renaming `res/pack/scripts.pk`.
 
 ### Brick-By-Brick building
 

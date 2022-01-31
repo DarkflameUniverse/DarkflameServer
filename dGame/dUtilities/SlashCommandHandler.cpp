@@ -671,6 +671,21 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
         entity->GetCharacter()->SetPlayerFlag(flagId, true);
 	}
 
+	if (chatCommand == "setflag" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 2)
+	{
+		uint32_t flagId;
+		std::string onOffFlag = args[0];
+		if (!GeneralUtils::TryParse(args[1], flagId))
+		{
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid flag id.");
+			return;
+		}
+		if (onOffFlag != "off" && onOffFlag != "on") {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid flag type.");
+			return;
+		}
+        entity->GetCharacter()->SetPlayerFlag(flagId, onOffFlag == "on");
+	}
 	if (chatCommand == "clearflag" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 1)
 	{
 		uint32_t flagId;

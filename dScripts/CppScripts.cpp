@@ -146,6 +146,7 @@
 #include "ActParadoxPipeFix.h"
 #include "FvNinjaGuard.h"
 #include "FvPassThroughWall.h"
+#include "FvBounceOverWall.h"
 
 // FB Scripts
 #include "AgJetEffectServer.h"
@@ -559,6 +560,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new FvNinjaGuard();
 	else if (scriptName == "scripts\\ai\\FV\\L_ACT_PASS_THROUGH_WALL.lua")
 		script = new FvPassThroughWall();
+	else if (scriptName == "scripts\\ai\\FV\\L_ACT_BOUNCE_OVER_WALL.lua")
+		script = new FvBounceOverWall();
+
 	//Misc:
 	if (scriptName == "scripts\\02_server\\Map\\General\\L_EXPLODING_ASSET.lua")
 		script = new ExplodingAsset();
