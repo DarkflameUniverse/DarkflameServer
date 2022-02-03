@@ -40,13 +40,13 @@ std::string CDBehaviorParameterTable::GetName(void) const {
     return "BehaviorParameter";
 }
 
-float CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::string& name) 
+float CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::string& name, const float defaultValue) 
 {
 	size_t hash = 0;
 	GeneralUtils::hash_combine(hash, behaviorID);
 	GeneralUtils::hash_combine(hash, name);
 
-	// Search for specific perameter
+	// Search for specific parameter
 	const auto& it = m_Entries.find(hash);
 	if (it != m_Entries.end()) {
 		return it->second;
@@ -55,7 +55,7 @@ float CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::s
 	// Check if this behavior has already been checked
 	const auto& itChecked = m_Entries.find(behaviorID);
 	if (itChecked != m_Entries.end()) {
-		return itChecked->second;
+		return defaultValue;
 	}
 
 #ifndef CDCLIENT_CACHE_ALL
@@ -86,5 +86,5 @@ float CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::s
 	}
 #endif
 
-	return 0;
+	return defaultValue;
 }
