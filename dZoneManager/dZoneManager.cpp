@@ -118,6 +118,24 @@ LWOZONEID dZoneManager::GetZoneID() const
 	return m_ZoneID;
 }
 
+uint32_t dZoneManager::GetMaxLevel() {
+	if (m_MaxLevel == 0) {
+		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCap FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
+    	m_MaxLevel = tableData.getIntField(0, -1);
+    	tableData.finalize();
+	}
+	return m_MaxLevel;
+}
+
+int32_t dZoneManager::GetLevelCapCurrencyConversion() {
+	if (m_CurrencyConversionRate == 0) {
+		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCapCurrencyConversion FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
+    	m_CurrencyConversionRate = tableData.getIntField(0, -1);
+    	tableData.finalize();
+	}
+	return m_CurrencyConversionRate;
+}
+
 void dZoneManager::Update(float deltaTime) {
 	for (auto spawner : m_Spawners) {
 		spawner.second->Update(deltaTime);

@@ -62,6 +62,7 @@
 #include "VeMech.h"
 #include "VeMissionConsole.h"
 #include "VeEpsilonServer.h"
+#include "AgSurvivalBuffStation.h"
 
 // NS Scripts
 #include "NsModularBuild.h"
@@ -144,6 +145,7 @@
 #include "ImgBrickConsoleQB.h"
 #include "ActParadoxPipeFix.h"
 #include "FvNinjaGuard.h"
+#include "FvBounceOverWall.h"
 
 // FB Scripts
 #include "AgJetEffectServer.h"
@@ -261,6 +263,7 @@
 #include "PersonalFortress.h"
 #include "PropertyDevice.h"
 #include "ImaginationBackpackHealServer.h"
+#include "LegoDieRoll.h"
 #include "BuccaneerValiantShip.h"
 
 // Survival scripts
@@ -318,6 +321,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new BaseEnemyMech();
 	else if (scriptName == "scripts\\zone\\AG\\L_ZONE_AG_SURVIVAL.lua")
 		script = new ZoneAgSurvival();
+	else if (scriptName == "scripts\\02_server\\Objects\\L_BUFF_STATION_SERVER.lua")
+		script = new AgSurvivalBuffStation();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_BUS_DOOR.lua")
 		script = new AgBusDoor();
 	else if (scriptName == "scripts\\02_server\\Equipment\\L_MAESTROM_EXTRACTICATOR_SERVER.lua")
@@ -552,6 +557,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new ActParadoxPipeFix();
 	else if (scriptName == "scripts\\ai\\FV\\L_FV_NINJA_GUARDS.lua")
 		script = new FvNinjaGuard();
+	else if (scriptName == "scripts\\ai\\FV\\L_ACT_BOUNCE_OVER_WALL.lua")
+		script = new FvBounceOverWall();
 
 	//Misc:
 	if (scriptName == "scripts\\02_server\\Map\\General\\L_EXPLODING_ASSET.lua")
@@ -680,7 +687,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_DRAGON.lua")
 		script = new AmNamedDarklingDragon();
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_APE.lua")
-		script = new AmNamedDarklingDragon();
+		script = new BaseEnemyApe();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_BLUE_X.lua")
 	    script = new AmBlueX();
 
@@ -775,8 +782,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	    script = new PropertyDevice();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_IMAG_BACKPACK_HEALS_SERVER.lua")
 	    script = new ImaginationBackpackHealServer();
-        else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
-            script = new BuccaneerValiantShip();
+	else if (scriptName == "scripts\\ai\\GENERAL\\L_LEGO_DIE_ROLL.lua")
+		script = new LegoDieRoll();
+  	else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
+    	script = new BuccaneerValiantShip();
 
 	//Ignore these scripts:
 	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")

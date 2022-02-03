@@ -42,7 +42,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	if (character->GetZoneID() != Game::server->GetZoneID()) {
 		m_IsLanding = true;
 	}
-
+    
 	if (LandingAnimDisabled(character->GetZoneID()) || LandingAnimDisabled(Game::server->GetZoneID()) || m_LastRocketConfig.empty()) {
 		m_IsLanding = false; //Don't make us land on VE/minigames lol
 	}

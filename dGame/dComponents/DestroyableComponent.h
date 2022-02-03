@@ -371,7 +371,7 @@ public:
      * @param ignoreFactions whether or not check for the factions, e.g. just return true if the entity cannot be smashed
      * @return if the target ID is a valid enemy
      */
-    bool CheckValidity(LWOOBJID target, bool ignoreFactions = false) const;
+    bool CheckValidity(LWOOBJID target, bool ignoreFactions = false, bool targetEnemy = true, bool targetFriend = false) const;
 
     /**
      * Attempt to damage this entity, handles everything from health and armor to absorption, immunity and callbacks.

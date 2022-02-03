@@ -61,6 +61,7 @@
 #include "SkillComponent.h"
 #include "VanityUtilities.h"
 #include "GameConfig.h"
+#include "ScriptedActivityComponent.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
     std::string chatCommand;
@@ -339,7 +340,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 				const auto sysAddr = entity->GetSystemAddress();
 
-				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", entity->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 				if (entity->GetCharacter()) {
 					entity->GetCharacter()->SetZoneID(zoneID);
@@ -384,6 +385,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		if (chatCommand == "resurrect") {
+			ScriptedActivityComponent* scriptedActivityComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<ScriptedActivityComponent>();
+			
+			if (scriptedActivityComponent) { // check if user is in activity world and if so, they can't resurrect
+				ChatPackets::SendSystemMessage(sysAddr, u"You cannot resurrect in an activity world.");
+				return;
+			}
+			
 			GameMessages::SendResurrect(entity);
 		}
 
@@ -407,7 +415,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
     stmt->execute();
     delete stmt;
 	
-	if (chatCommand == "setMinifig" && args.size() == 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_FORUM_MODERATOR) { // could break characters so only allow if GM > 0
+	if (chatCommand == "setminifig" && args.size() == 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_FORUM_MODERATOR) { // could break characters so only allow if GM > 0
 		int32_t minifigItemId;
 		if (!GeneralUtils::TryParse(args[1], minifigItemId)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig Item Id ID.");
@@ -434,7 +442,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			charComp->m_Character->SetMouth(minifigItemId);
 		} else if (lowerName == "righthand") {
 			charComp->m_Character->SetRightHand(minifigItemId);
-		} else if (lowerName == "shirt") {
+		} else if (lowerName == "shirtcolor") {
 			charComp->m_Character->SetShirtColor(minifigItemId);
 		} else if (lowerName == "hands") {
 			charComp->m_Character->SetLeftHand(minifigItemId);
@@ -663,6 +671,21 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
         entity->GetCharacter()->SetPlayerFlag(flagId, true);
 	}
 
+	if (chatCommand == "setflag" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 2)
+	{
+		uint32_t flagId;
+		std::string onOffFlag = args[0];
+		if (!GeneralUtils::TryParse(args[1], flagId))
+		{
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid flag id.");
+			return;
+		}
+		if (onOffFlag != "off" && onOffFlag != "on") {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid flag type.");
+			return;
+		}
+        entity->GetCharacter()->SetPlayerFlag(flagId, onOffFlag == "on");
+	}
 	if (chatCommand == "clearflag" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 1)
 	{
 		uint32_t flagId;
@@ -1281,8 +1304,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		CharacterComponent* character = entity->GetComponent<CharacterComponent>();
 		if (character) character->SetUScore(character->GetUScore() + uscore);
-
-		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, LOOTTYPE_NONE);
+		// LOOT_SOURCE_MODERATION should work but it doesn't.  Relog to see uscore changes 
+		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, LOOT_SOURCE_MODERATION);
 	}
 
 	if (chatCommand == "pos" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -1326,7 +1349,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		auto* ch = entity->GetCharacter();
-		ch->SetCoins(ch->GetCoins() + money);
+		ch->SetCoins(ch->GetCoins() + money, LOOT_SOURCE_MODERATION);
 	}
 
 	if ((chatCommand == "setcurrency") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -1339,7 +1362,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		auto* ch = entity->GetCharacter();
-		ch->SetCoins(money);
+		ch->SetCoins(money, LOOT_SOURCE_MODERATION);
 	}
 
 	// Allow for this on even while not a GM, as it sometimes toggles incorrrectly.
@@ -1691,6 +1714,43 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
+	if (chatCommand == "rollloot" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && args.size() >= 3) {
+		uint32_t lootMatrixIndex = 0;
+		uint32_t targetLot = 0;
+		uint32_t loops = 1;
+
+		if (!GeneralUtils::TryParse(args[0], lootMatrixIndex)) return;
+		if (!GeneralUtils::TryParse(args[1], targetLot)) return;
+		if (!GeneralUtils::TryParse(args[2], loops)) return;
+
+		uint64_t totalRuns = 0;
+
+		for (uint32_t i = 0; i < loops; i++) {
+			while (true) {
+				auto lootRoll = LootGenerator::Instance().RollLootMatrix(lootMatrixIndex);
+				totalRuns += 1;
+				bool doBreak = false;
+				for (const auto& kv : lootRoll) {
+					if ((uint32_t)kv.first == targetLot) {
+						doBreak = true;
+					}
+				}
+				if (doBreak) break;
+			}
+		}
+
+		std::u16string message = u"Ran loot drops looking for "
+			+ GeneralUtils::to_u16string(targetLot) 
+			+ u", " 
+			+ GeneralUtils::to_u16string(loops) 
+			+ u" times. It ran " 
+			+ GeneralUtils::to_u16string(totalRuns) 
+			+ u" times. Averaging out at "
+			+ GeneralUtils::to_u16string((float) totalRuns / loops);
+
+		ChatPackets::SendSystemMessage(sysAddr, message);
+	}
+
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1)
 	{
 		Entity* closest = nullptr;
@@ -1883,53 +1943,54 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 }
 
 bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
-    switch (zoneID) {
-	case 98:
-        case 1000:
-        case 1001:
-            
-        case 1100:
-        case 1101:
-	case 1150:
-	case 1151:
-	case 1152:
-            
-        case 1200:
-        case 1201:
+	switch (zoneID) {
+		case 98:
+		case 1000:
+		case 1001:
 
-	case 1250:
-	case 1251:
-	case 1260:
-            
-        case 1300:
-    	case 1350:
-    	case 1351:
-		    
-        case 1400:
-	case 1401:
-	case 1450:
-	case 1451:
-            
-        case 1600:
-        case 1601:
-        case 1602:
-        case 1603:
-        case 1604:
-            
-        case 1800:
-        case 1900:
-        case 2000:
+		case 1100:
+		case 1101:
+		case 1150:
+		case 1151:
+		case 1152:
 
-	case 58004:
-	case 58005:
-	case 58006:
-            return true;
-        
-        default:
-            return false;
-    }
-    
-    return false;
+		case 1200:
+		case 1201:
+
+		case 1250:
+		case 1251:
+		case 1260:
+
+		case 1300:
+		case 1350:
+		case 1351:
+
+		case 1400:
+		case 1401:
+		case 1450:
+		case 1451:
+
+		case 1600:
+		case 1601:
+		case 1602:
+		case 1603:
+		case 1604:
+
+		case 1700:
+		case 1800:
+		case 1900:
+		case 2000:
+
+		case 58004:
+		case 58005:
+		case 58006:
+			return true;
+
+		default:
+			return false;
+	}
+
+	return false;
 }
 
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {

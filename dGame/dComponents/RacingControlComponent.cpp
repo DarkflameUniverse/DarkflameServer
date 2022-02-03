@@ -257,7 +257,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity *player,
             m_Parent->GetObjectID(), playerID, UNASSIGNED_SYSTEM_ADDRESS);
     });
 
-    GameMessages::SendSetJetpackMode(player, false, false, false);
+    GameMessages::SendSetJetPackMode(player, false);
 
     // Set the vehicle's state.
     GameMessages::SendNotifyVehicleOfRacingObject(carEntity->GetObjectID(),
@@ -317,7 +317,9 @@ void RacingControlComponent::OnRequestDie(Entity *player) {
             return;
         }
 
-        racingPlayer.smashedTimes++;
+        if (!racingPlayer.noSmashOnReload) {
+            racingPlayer.smashedTimes++;
+        }
 
         // Reset player to last checkpoint
         GameMessages::SendRacingSetPlayerResetInfo(
@@ -390,7 +392,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity *player,
         // Calculate the score, different loot depending on player count
         const auto score = m_LoadedPlayers * 10 + data->finished;
 
-        Loot::GiveActivityLoot(player, m_Parent, m_ActivityID, score);
+        LootGenerator::Instance().GiveActivityLoot(player, m_Parent, m_ActivityID, score);
 
         // Giving rewards
         GameMessages::SendNotifyRacingClient(

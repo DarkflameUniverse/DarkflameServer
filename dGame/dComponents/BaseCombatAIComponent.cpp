@@ -129,6 +129,9 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 BaseCombatAIComponent::~BaseCombatAIComponent() {
 	if (m_dpEntity)
 		dpWorld::Instance().RemoveEntity(m_dpEntity);
+
+	if (m_dpEntityEnemy)
+		dpWorld::Instance().RemoveEntity(m_dpEntityEnemy);
 }
 
 void BaseCombatAIComponent::Update(const float deltaTime) {

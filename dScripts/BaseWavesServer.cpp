@@ -368,16 +368,7 @@ void BaseWavesServer::GameOver(Entity *self, bool won) {
         // Update all mission progression
         auto* missionComponent = player->GetComponent<MissionComponent>();
         if (missionComponent != nullptr) {
-            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, time, self->GetObjectID(),
-                                       self->GetVar<std::string>(MissionTypeVariable));
-
-            auto* mission = missionComponent->GetMission(479);
-            if (mission->GetMissionState() > MissionState::MISSION_STATE_AVAILABLE
-                && mission->GetMissionState() < MissionState::MISSION_STATE_READY_TO_COMPLETE
-                && time >= 60) {
-
-                mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetObjectID());
-            }
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, time, self->GetObjectID(), self->GetVar<std::string>(MissionTypeVariable));
         }
 
         StopActivity(self, playerID, wave, time, score);
@@ -511,21 +502,37 @@ bool BaseWavesServer::UpdateSpawnedEnemies(Entity* self, LWOOBJID enemyID, uint3
                 auto* missionComponent = player->GetComponent<MissionComponent>();
                 if (missionComponent != nullptr) {
                     for (const auto& missionID : waveMission) {
-                        missionComponent->AcceptMission(missionID);
-                        auto* mission = missionComponent->GetMission(missionID);
-
-                        if (mission != nullptr) {
-                            mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
-                        }
-                    }
-
-                    if (state.players.size() == 1) {
-                        for (const auto& missionID : soloWaveMissions) {
+                        // Get the mission state
+                        auto missionState = missionComponent->GetMissionState(missionID);
+                        // For some reason these achievements are not accepted by default, so we accept them here if they arent already.
+                        if (missionState != MissionState::MISSION_STATE_COMPLETE && missionState != MissionState::MISSION_STATE_UNKNOWN) {
                             missionComponent->AcceptMission(missionID);
-                            auto* mission = missionComponent->GetMission(missionID);
+                            missionState = missionComponent->GetMissionState(missionID);
+                        }
 
+                        if (missionState != MissionState::MISSION_STATE_COMPLETE) {
+                            auto mission = missionComponent->GetMission(missionID);
                             if (mission != nullptr) {
                                 mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+                            }
+                        }
+                    }
+                    // Progress solo missions
+                    if (state.players.size() == 1) {
+                            for (const auto& missionID : soloWaveMissions) {
+                            // Get the mission state
+                            auto missionState = missionComponent->GetMissionState(missionID);
+                            // For some reason these achievements are not accepted by default, so we accept them here if they arent already.
+                            if (missionState != MissionState::MISSION_STATE_COMPLETE && missionState != MissionState::MISSION_STATE_UNKNOWN) {
+                                missionComponent->AcceptMission(missionID);
+                                missionState = missionComponent->GetMissionState(missionID);
+                            }
+
+                            if (missionState != MissionState::MISSION_STATE_COMPLETE) {
+                                auto mission = missionComponent->GetMission(missionID);
+                                if (mission != nullptr) {
+                                    mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+                                }
                             }
                         }
                     }
@@ -548,11 +555,19 @@ void BaseWavesServer::UpdateMissionForAllPlayers(Entity* self, uint32_t missionI
         auto* player = EntityManager::Instance()->GetEntity(playerID);
         if (player != nullptr) {
             auto* missionComponent = player->GetComponent<MissionComponent>();
-            missionComponent->AcceptMission(missionID);
-
-            auto* mission = missionComponent->GetMission(missionID);
-            if (mission != nullptr) {
-                mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+            if (missionComponent == nullptr) return;
+            // Get the mission state
+            auto missionState = missionComponent->GetMissionState(missionID);
+            // For some reason these achievements are not accepted by default, so we accept them here if they arent already.
+            if (missionState != MissionState::MISSION_STATE_COMPLETE && missionState != MissionState::MISSION_STATE_UNKNOWN) {
+                missionComponent->AcceptMission(missionID);
+                missionState = missionComponent->GetMissionState(missionID);
+            }
+            if (missionState != MissionState::MISSION_STATE_COMPLETE) {
+                auto mission = missionComponent->GetMission(missionID);
+                if (mission != nullptr) {
+                    mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+                }
             }
         }
     }

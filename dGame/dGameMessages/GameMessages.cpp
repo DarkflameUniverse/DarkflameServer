@@ -558,7 +558,7 @@ void GameMessages::SendNotifyMissionTask(Entity* entity, const SystemAddress& sy
 	SEND_PACKET
 }
 
-void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, int sourceType) {
+void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType) {
 	CBITSTREAM
 	CMSGHEADER
 
@@ -566,9 +566,8 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	bitStream.Write((uint16_t)GAME_MSG_MODIFY_LEGO_SCORE);
 	bitStream.Write(score);
 
-	//Stuff stolen from the old codebase, no idea why this works. The proper implementation didn't for some reason.
-	bitStream.Write((int32_t)129);
-	bitStream.Write((unsigned char)0);
+	bitStream.Write(sourceType != LOOT_SOURCE_NONE);
+	if (sourceType != LOOT_SOURCE_NONE) bitStream.Write(sourceType);
 
 	SEND_PACKET
 }
@@ -706,7 +705,7 @@ void GameMessages::SendBroadcastTextToChatbox(Entity* entity, const SystemAddres
 	SEND_PACKET_BROADCAST
 }
 
-void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent) {
+void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent, eLootSourceType sourceType) {
 	CBITSTREAM
 	CMSGHEADER
 
@@ -729,7 +728,6 @@ void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootTyp
 	bitStream.Write(sourceTradeID != LWOOBJID_EMPTY);
 	if (sourceTradeID != LWOOBJID_EMPTY) bitStream.Write(sourceTradeID);
 
-	int sourceType = 0; //For now.
 	bitStream.Write(sourceType != LOOTTYPE_NONE);
 	if (sourceType != LOOTTYPE_NONE) bitStream.Write(sourceType);
 
@@ -873,19 +871,14 @@ void GameMessages::SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID
 	SEND_PACKET
 }
 
-void GameMessages::SendSetJetpackMode(Entity* entity, bool bDoHover, bool bUse, bool bIsJamessterPhysics) {
-	int effectID = 167;
-	int iWarningEffectID = -1;
-	float fAirspeed = 25;
-	float fMaxAirspeed = 25;
-	float fVertVel = 2;
-	bool bBypassChecks = true;
-
+void GameMessages::SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks, bool doHover, int effectID, float airspeed, float maxAirspeed, float verticalVelocity, int warningEffectID) {
+	/* historical jamesster jetpack values
 	if (bIsJamessterPhysics) {
 		fAirspeed = 75;
 		fMaxAirspeed = 75;
 		fVertVel = 15;
 	}
+	*/
 
 	CBITSTREAM
 	CMSGHEADER
@@ -893,24 +886,24 @@ void GameMessages::SendSetJetpackMode(Entity* entity, bool bDoHover, bool bUse, 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(uint16_t(GAME_MSG_SET_JET_PACK_MODE));
 
-	bitStream.Write(bBypassChecks);
-	bitStream.Write(bDoHover);
-	bitStream.Write(bUse);
+	bitStream.Write(bypassChecks);
+	bitStream.Write(doHover);
+	bitStream.Write(use);
 
 	bitStream.Write(effectID != -1);
 	if (effectID != -1) bitStream.Write(effectID);
 
-	bitStream.Write(fAirspeed != 10);
-	if (fAirspeed != 10) bitStream.Write(fAirspeed);
+	bitStream.Write(airspeed != 10);
+	if (airspeed != 10) bitStream.Write(airspeed);
 
-	bitStream.Write(fMaxAirspeed != 15);
-	if (fMaxAirspeed != 15) bitStream.Write(fMaxAirspeed);
+	bitStream.Write(maxAirspeed != 15);
+	if (maxAirspeed != 15) bitStream.Write(maxAirspeed);
 
-	bitStream.Write(fVertVel != 1);
-	if (fVertVel != 1) bitStream.Write(fVertVel);
+	bitStream.Write(verticalVelocity != 1);
+	if (verticalVelocity != 1) bitStream.Write(verticalVelocity);
 
-	bitStream.Write(iWarningEffectID != -1);
-	if (iWarningEffectID != -1) bitStream.Write(iWarningEffectID);
+	bitStream.Write(warningEffectID != -1);
+	if (warningEffectID != -1) bitStream.Write(warningEffectID);
 
 	SEND_PACKET_BROADCAST
 }
@@ -4685,7 +4678,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 			inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 		}
 
-		character->SetCoins(character->GetCoins() - (coinCost));
+		character->SetCoins(character->GetCoins() - (coinCost), LOOT_SOURCE_VENDOR);
 		inv->AddItem(item, count);
 	}
 
@@ -4734,7 +4727,7 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar)*count)));
+	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar)*count)), LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -4796,7 +4789,7 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, Inventory::FindInventoryTypeForLot(item->GetLot()), count, true, false);
-	character->SetCoins(character->GetCoins() - cost);
+	character->SetCoins(character->GetCoins() - cost, LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -4899,7 +4892,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 		}
 
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, mapId, cloneId, false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			
 			if (character) {
 				character->SetZoneID(zoneID);
@@ -5240,7 +5233,7 @@ void GameMessages::HandlePickupCurrency(RakNet::BitStream* inStream, Entity* ent
 
 	auto* ch = entity->GetCharacter();
 	if (entity->CanPickupCoins(currency)) {
-		ch->SetCoins(ch->GetCoins() + currency);
+		ch->SetCoins(ch->GetCoins() + currency, LOOT_SOURCE_PICKUP);
 	}
 }
 
@@ -5673,7 +5666,7 @@ void GameMessages::HandleDoneArrangingWithItem(RakNet::BitStream* inStream, Enti
 			return;
 		}
 
-		Game::logger->Log("GameMessages", "Build area found: %llu", buildArea->GetObjectID());
+		Game::logger->Log("GameMessages", "Build area found: %llu\n", buildArea->GetObjectID());
 
 		GameMessages::SendStartArrangingWithItem(
 			character,

@@ -309,12 +309,11 @@ public:
 	const int64_t GetCoins() const { return m_Coins; }
 
     /**
-     * Updates the current amount of coins of the character by a specified amount, for achievements this is not sent
-     * as it's tracked by the client
+     * Updates the current amount of coins of the character by a specified amount
      * @param newCoins the amount of coins to update by
-     * @param message whether to notify the client of the change
+     * @param coinSource The source of the loot
      */
-    void SetCoins(int64_t newCoins, bool message = true);
+    void SetCoins(int64_t newCoins, eLootSourceType coinSource);
 
     /**
      * Get the entity this character belongs to
@@ -414,6 +413,12 @@ public:
 	 */
 	void SendMuteNotice() const;
 
+     /**
+      * Sets any flags that are meant to have been set that may not have been set due to them being
+      * missing in a previous patch.
+      */
+     void SetRetroactiveFlags();
+     
     /**
      * Get the equipped items for this character, only used for character creation
      * @return the equipped items for this character on world load
