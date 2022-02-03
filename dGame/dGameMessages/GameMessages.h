@@ -69,7 +69,7 @@ namespace GameMessages {
     void SendNotifyMission(Entity * entity, const SystemAddress& sysAddr, int missionID, int missionState, bool sendingRewards);
     void SendNotifyMissionTask(Entity * entity, const SystemAddress& sysAddr, int missionID, int taskMask, std::vector<float> updates);
 
-	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, int sourceType);
+	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
 	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, NDGFxValue args);
 	void SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args);
 

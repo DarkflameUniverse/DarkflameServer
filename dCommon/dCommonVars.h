@@ -469,6 +469,9 @@ enum eRebuildState : uint32_t {
 	REBUILD_INCOMPLETE
 };
 
+/**
+ * The loot source's type.  
+ */
 enum eLootSourceType : int32_t {
 	LOOT_SOURCE_NONE = 0,
 	LOOT_SOURCE_CHEST,
