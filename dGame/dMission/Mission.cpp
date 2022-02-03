@@ -14,6 +14,7 @@
 #include "dLocale.h"
 #include "dLogger.h"
 #include "dServer.h"
+#include "dZoneManager.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
     m_MissionComponent = missionComponent;
@@ -421,8 +422,10 @@ void Mission::YieldRewards() {
         }
     }
 
+    int32_t coinsToSend = 0;
     if (info->LegoScore > 0) {
         eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+<<<<<<< HEAD
         int rewardedLegoScore = info->LegoScore;
         // Define 124370 somewhere.
         if(characterComponent->GetUScore() >= 124370) {
@@ -432,6 +435,14 @@ void Mission::YieldRewards() {
             character->SetCoins(character->GetCoins() + info->LegoScore * 21, lootSource);
         } else {
             characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
+=======
+        if(characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
+            // Since the character is at the level cap we reward them with coins instead of UScore.
+            coinsToSend += info->LegoScore * dZoneManager::Instance()->GetLevelCapCurrencyConversion();
+        } else {
+            characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
+            GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info->LegoScore, lootSource);
+>>>>>>> Added logic to Convert UScore to Coins for Level 45 Characters (#348)
         }
         GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), rewardedLegoScore, lootSource);
     }
@@ -462,8 +473,9 @@ void Mission::YieldRewards() {
             inventoryComponent->AddItem(pair.first, count);
         }
 
-        if (info->reward_currency_repeatable > 0) {
-            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable, LOOT_SOURCE_MISSION);
+        if (info->reward_currency_repeatable > 0 || coinsToSend > 0) {
+            eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable + coinsToSend, lootSource);
         }
 
         return;
@@ -494,9 +506,9 @@ void Mission::YieldRewards() {
         inventoryComponent->AddItem(pair.first, count);
     }
 
-    if (info->reward_currency > 0) {
+    if (info->reward_currency > 0 || coinsToSend > 0) {
         eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
-        character->SetCoins(character->GetCoins() + info->reward_currency, lootSource);
+        character->SetCoins(character->GetCoins() + info->reward_currency + coinsToSend, lootSource);
     }
 
     if (info->reward_maxinventory > 0) {
