@@ -305,48 +305,15 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		const auto currentZone = dZoneManager::Instance()->GetZone()->GetZoneID().GetMapID();
 
 		auto newZone = 0;
-
-		switch (currentZone)
-		{
-		// Avant Gardens instanced zones
-		case 1001:
-		case 1101:
-			newZone = 1100;
-			break;
-		// Nimbus Station instanced zones
-		case 1203:
-		case 1204:
-			newZone = 1200;
-			break;
-		// Gnarled Forest instanced zones
-		case 1302:
-		case 1303:
-			newZone = 1300;
-			break;
-		// Forbidden Valley instanced zones
-		case 1402:
-		case 1403:
-			newZone = 1400;
-			break;
-		// Starbase 3001 instanced zones
-		case 1601:
-		case 1602:
-		case 1603:
-		case 1604:
-			newZone = 1600;
-			break;
-		case 2001:
-			newZone = 2000;
-			break;
-		}
-		// If not in an instanced zone, then deny leaving this zone.
-		if (newZone == 0)
-		{
+		if (currentZone % 100 == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"You are not in an instanced zone.");
-			
 			return;
+		} else {
+			newZone = (currentZone / 100) * 100;
 		}
-		
+		// If new zone would be inaccessible, then default to Avant Gardens.
+		if (!CheckIfAccessibleZone(newZone)) newZone = 1100;
+
 		ChatPackets::SendSystemMessage(sysAddr, u"Leaving zone...");
 
 		const auto objid = entity->GetObjectID();
