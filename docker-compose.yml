@@ -14,6 +14,7 @@ services:
             - EXTERNAL_IP=${EXTERNAL_IP:-darkflame}
             - CLIENT_TYPE=${CLIENT_TYPE:-auto}
             - CLIENT_ROOT_DIR=${CLIENT_ROOT_DIR}
+            - SCRIPT_DEBUG=${SCRIPT_DEBUG:-false}
         volumes:
             - ${CLIENT_PATH:?missing_client_path}:/client
             - shared_configs:/docker/
@@ -49,6 +50,8 @@ services:
         volumes:
             - ${CLIENT_PATH:?missing_client_path}:/client
             - shared_configs:/shared_configs
+        environment:
+            - SCRIPT_DEBUG=${SCRIPT_DEBUG:-false}
         depends_on:
             - database
             - setup

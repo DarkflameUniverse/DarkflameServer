@@ -1,7 +1,9 @@
 #!/bin/bash
 
-set -x
-# trap read debug
+if [[ $SCRIPT_DEBUG == "1" || ${SCRIPT_DEBUG@L} =~ "true" ]]; then
+    set -x
+    # trap read debug
+fi
 
 if [[ -f /docker/error ]]; then
     echo "Clear /docker/error"

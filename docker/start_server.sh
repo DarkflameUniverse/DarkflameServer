@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ $SCRIPT_DEBUG == "1" || ${SCRIPT_DEBUG@L} =~ "true" ]]; then
+    set -x
+    # trap read debug
+fi
+
 function symlink_client_files() {
     echo "Creating symlinks for client files"
     ln -s $CLIENT_ROOT/res/macros/ /app/res/macros
