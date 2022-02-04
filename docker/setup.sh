@@ -92,7 +92,7 @@ if [[ "${CLIENT_TYPE@L}" == "auto" ]]; then
         # Look for a unpacked file. If it doesn't exist, then we can assume the user provided a packed client
         # with a client structure like a unpacked client. At this point we can't continue the process. 
         # Without the versions directory lunpack can't extract the client files
-        if [[ ! -f "/client/res/maps/nexustower/nd_nexus_tower_7x1_audio.lvl" ]]; then
+        if [[ ! -f "/client/res/CDClient.fdb" ]]; then
             echo "[ERROR] You provided a packed client without the versions directory"
             echo "[ERROR] Without the versions directory you need to unpack the client by yourself"
             echo "[ERROR] The server can't boot without an unpacked client"
@@ -103,7 +103,7 @@ if [[ "${CLIENT_TYPE@L}" == "auto" ]]; then
         touch /docker/extracted
     elif [[ -f "/client/client/legouniverse.exe" ]]; then
         # If this file exist, we can assume the user provided an unpacked client but with a different client root structure
-        if [[ -f "/client/client/res/maps/nexustower/nd_nexus_tower_7x1_audio.lvl" ]]; then
+        if [[ -f "/client/client/res/CDClient.fdb" ]]; then
             CLIENT_TYPE=unpacked
             CLIENT_ROOT_DIR=/client/client
             touch /docker/extracted
