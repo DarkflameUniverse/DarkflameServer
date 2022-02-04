@@ -42,11 +42,14 @@ RUN unzip /build/resources/navmeshes.zip -d /build/cmake_build/res/maps
 
 FROM gcc:11 as runtime
 
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.9.0/wait /wait
+
 RUN --mount=type=cache,id=runtime-apt-cache,target=/var/cache/apt \
     apt update && \
     apt install sudo -yqq --no-install-recommends && \
     apt remove -y libmysqlcppconn7v5 libmysqlcppconn-dev && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    chmod +x /wait
 
 WORKDIR /app
 

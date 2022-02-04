@@ -52,6 +52,7 @@ services:
             - shared_configs:/shared_configs
         environment:
             - SCRIPT_DEBUG=${SCRIPT_DEBUG:-false}
+            - WAIT_HOSTS=database:3306
         depends_on:
             - database
             - setup

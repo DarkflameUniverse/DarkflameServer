@@ -55,6 +55,10 @@ else
     echo "Server already initialized"
 fi
 
+echo "Wait for database to be ready"
+
+/wait
+
 # start the server
 echo "Starting MasterServer"
 ./MasterServer
