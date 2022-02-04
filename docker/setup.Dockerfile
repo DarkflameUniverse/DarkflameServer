@@ -8,7 +8,7 @@ RUN apk add musl-dev --no-cache && cargo build --release
 
 FROM python:3.10-alpine3.14 as prep
 
-RUN apk add sqlite bash --no-cache
+RUN apk add sqlite bash tree --no-cache
 
 WORKDIR /setup
 
