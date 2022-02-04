@@ -20,7 +20,7 @@ public:
 	static Entity* GetClosestTresure(NiPoint3 position);
 
 private:
-    static void ProgressPetDigMissions(const Entity* owner);
+    static void ProgressPetDigMissions(const Entity* owner, const Entity* chest);
     static void SpawnPet(Entity* self, const Entity* owner, DigInfo digInfo);
     static void HandleXBuildDig(const Entity* self, Entity* owner, Entity* pet);
     static void HandleBouncerDig(const Entity* self, const Entity* owner);

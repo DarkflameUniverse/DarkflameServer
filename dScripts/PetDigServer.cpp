@@ -39,7 +39,7 @@ const std::map<LOT, DigInfo> PetDigServer::digInfoMap {
     {12192, DigInfo { 12192, -1, -1, true, false, false, false }},
 };
 
-void PetDigServer::OnStartup(Entity* self) 
+void PetDigServer::OnStartup(Entity* self)
 {
     treasures.push_back(self->GetObjectID());
     const auto digInfoIterator = digInfoMap.find(self->GetLOT());
@@ -64,7 +64,7 @@ void PetDigServer::OnStartup(Entity* self)
     }
 }
 
-void PetDigServer::OnDie(Entity* self, Entity* killer) 
+void PetDigServer::OnDie(Entity* self, Entity* killer)
 {
     const auto iterator = std::find(treasures.begin(), treasures.end(), self->GetObjectID());
     if (iterator != treasures.end())
@@ -91,7 +91,7 @@ void PetDigServer::OnDie(Entity* self, Entity* killer)
         PetDigServer::HandleBouncerDig(self, owner);
     }
 
-    PetDigServer::ProgressPetDigMissions(owner);
+    PetDigServer::ProgressPetDigMissions(owner, self);
 
     self->SetNetworkVar<bool>(u"treasure_dug", true);
     // TODO: Reset other pets
@@ -160,7 +160,7 @@ void PetDigServer::HandleBouncerDig(const Entity *self, const Entity *owner) {
  * Progresses the Can You Dig It mission and the Pet Excavator Achievement if the player has never completed it yet
  * \param owner the owner that just made a pet dig something up
  */
-void PetDigServer::ProgressPetDigMissions(const Entity* owner) {
+void PetDigServer::ProgressPetDigMissions(const Entity* owner, const Entity* chest) {
     auto* missionComponent = owner->GetComponent<MissionComponent>();
 
     if (missionComponent != nullptr)
@@ -176,11 +176,16 @@ void PetDigServer::ProgressPetDigMissions(const Entity* owner) {
         const auto excavatorMissionState = missionComponent->GetMissionState(505);
         if (excavatorMissionState == MissionState::MISSION_STATE_ACTIVE)
         {
-            // Only progress when Player is on Pet Cove
-            if (dZoneManager::Instance()->GetZoneID().GetMapID() == 1201) {
-                missionComponent->ForceProgress(505, 767, 1);
+            if (chest->HasVar(u"PetDig")) {
+                int32_t playerFlag = 1260 + chest->GetVarAs<int32_t>(u"PetDig");
+                Character* player = owner->GetCharacter();
+
+                // check if player flag is set
+                if (!player->GetPlayerFlag(playerFlag)) {
+                    missionComponent->ForceProgress(505, 767, 1);
+                    player->SetPlayerFlag(playerFlag, 1);
+                }
             }
-            
         }
     }
 }
@@ -215,7 +220,7 @@ void PetDigServer::SpawnPet(Entity* self, const Entity* owner, const DigInfo dig
     EntityManager::Instance()->ConstructEntity(spawnedPet);
 }
 
-Entity* PetDigServer::GetClosestTresure(NiPoint3 position) 
+Entity* PetDigServer::GetClosestTresure(NiPoint3 position)
 {
     float closestDistance = 0;
 	Entity* closest = nullptr;
@@ -227,7 +232,7 @@ Entity* PetDigServer::GetClosestTresure(NiPoint3 position)
         if (tresure == nullptr) continue;
 
 		float distance = Vector3::DistanceSquared(tresure->GetPosition(), position);
-		
+
 		if (closest == nullptr || distance < closestDistance)
 		{
 			closestDistance = distance;
