@@ -63,6 +63,7 @@ int main(int argc, char** argv) {
 	//Triggers the shutdown sequence at application exit
 	std::atexit(ShutdownSequence);
 	signal(SIGINT, [](int) { ShutdownSequence(); });
+	signal(SIGTERM, [](int) { ShutdownSequence(); });
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
