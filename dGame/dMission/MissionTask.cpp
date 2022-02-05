@@ -338,9 +338,6 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
     case MissionTaskType::MISSION_TASK_TYPE_MINIGAME:
 	{
-		if (targets != info->targetGroup || info->targetValue > value)
-		    break;
-
 		auto* minigameManager = EntityManager::Instance()->GetEntity(associate);
 		if (minigameManager == nullptr)
 		    break;
@@ -356,10 +353,10 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 			break;
 		}
 
-		Game::logger->Log("Minigame Task", "Progressing minigame with %s %d > %d (%d)\n",
-                    targets.c_str(), value, info->targetValue, gameID);
-		SetProgress(info->target);
-
+		if(info->targetGroup == targets && value >= info->targetValue) {
+			SetProgress(info->target);
+			break;
+		}
 		break;
 	}
 
