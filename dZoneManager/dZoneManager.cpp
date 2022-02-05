@@ -26,18 +26,19 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LOT zoneControlTemplate = 2365;
 
-	std::stringstream query;
-	auto result = CDClientDatabase::ExecuteQuery("SELECT zoneControlTemplate, ghostdistance_min, ghostdistance FROM ZoneTable WHERE zoneID = " + std::to_string(zoneID.GetMapID()));
+	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	if (zoneTable != nullptr){
+		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
 
-	if (!result.eof()) {
-		zoneControlTemplate = result.getIntField("zoneControlTemplate", 2365);
-		const auto min = result.getIntField("ghostdistance_min", 100);
-		const auto max = result.getIntField("ghostdistance", 100);
-		EntityManager::Instance()->SetGhostDistanceMax(max + min);
-		EntityManager::Instance()->SetGhostDistanceMin(max);
+		if (zone != nullptr) {
+			zoneControlTemplate = zone->zoneControlTemplate != -1 ? zone->zoneControlTemplate : 2365;
+			const auto min = zone->ghostdistance_min != -1.0f ? zone->ghostdistance_min : 100;
+			const auto max = zone->ghostdistance != -1.0f ? zone->ghostdistance : 100;
+			EntityManager::Instance()->SetGhostDistanceMax(max + min);
+			EntityManager::Instance()->SetGhostDistanceMin(min);
+			m_PlayerLoseCoinsOnDeath = zone->PlayerLoseCoinsOnDeath;
+        }
 	}
-
-	result.finalize();
 
 	Game::logger->Log("dZoneManager", "Creating zone control object %i\n", zoneControlTemplate);
 
