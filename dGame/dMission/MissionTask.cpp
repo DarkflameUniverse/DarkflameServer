@@ -460,6 +460,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	case MissionTaskType::MISSION_TASK_TYPE_SMASH:
 	case MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION:
 	case MissionTaskType::MISSION_TASK_TYPE_PLAYER_FLAG:
+	case MissionTaskType::MISSION_TASK_TYPE_EARN_REPUTATION:
 	{
 		if (!InAllTargets(value)) break;
 
@@ -467,7 +468,11 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
 		break;
 	}
-		
+	case MissionTaskType::MISSION_TASK_TYPE_PLACE_MODEL:
+	{
+		AddProgress(count);
+		break;
+	}
 	default:
 		Game::logger->Log("MissionTask", "Invalid mission task type (%i)!\n", static_cast<int>(type));
 		return;
