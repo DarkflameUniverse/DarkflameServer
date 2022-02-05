@@ -19,7 +19,7 @@ public:
      * Attempts to progress this task using the provided parameters. Note that the behavior of this method is different
      * for each mission task type.
      * @param value the value to progress by
-     * @param associate optional object ID of an entity that was related to the porgression
+     * @param associate optional object ID of an entity that was related to the progression
      * @param targets optional multiple targets that need to be met to progress
      * @param count a number that indicates the times to progress
      */
