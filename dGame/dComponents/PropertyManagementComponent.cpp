@@ -388,6 +388,9 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 			EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelPlaced(entity);
 		});
+		// Progress place model missions
+		auto missionComponent = entity->GetComponent<MissionComponent>();
+		if (missionComponent != nullptr) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PLACE_MODEL, 0);
 }
 
 void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int deleteReason)

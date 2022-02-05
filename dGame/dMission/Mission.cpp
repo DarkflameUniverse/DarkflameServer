@@ -11,6 +11,7 @@
 #include "GameMessages.h"
 #include "Mail.h"
 #include "MissionComponent.h"
+#include "RacingTaskParam.h"
 #include "dLocale.h"
 #include "dLogger.h"
 #include "dServer.h"
@@ -314,6 +315,10 @@ void Mission::Complete(const bool yieldRewards) {
 
     missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MISSION_COMPLETE, info->id);
 
+    missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, info->id, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COMPLETE_ANY_RACING_TASK);
+
+    missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, info->id, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COMPLETE_TRACK_TASKS);
+
     auto* missionEmailTable = CDClientManager::Instance()->GetTable<CDMissionEmailTable>("MissionEmail");
 
     const auto missionId = GetMissionId();
@@ -511,7 +516,8 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_reputation > 0) {
-        // TODO: In case of reputation, write code
+        // TODO: Track reputation in the character and database.
+        missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
     }
 
     if (info->reward_maxhealth > 0) {

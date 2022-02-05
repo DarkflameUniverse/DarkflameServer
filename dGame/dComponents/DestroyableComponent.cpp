@@ -26,6 +26,7 @@
 
 #include "MissionComponent.h"
 #include "CharacterComponent.h"
+#include "dZoneManager.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
     m_iArmor = 0;
@@ -245,6 +246,9 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 void DestroyableComponent::SetArmor(int32_t value) {
     m_DirtyHealth = true;
 
+	// If Destroyable Component already has zero armor do not trigger the passive ability again.
+	bool hadArmor = m_iArmor > 0;
+	
     auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
     if (characterComponent != nullptr) {
         characterComponent->TrackArmorDelta(value - m_iArmor);
@@ -253,7 +257,7 @@ void DestroyableComponent::SetArmor(int32_t value) {
     m_iArmor = value;
 
 	auto* inventroyComponent = m_Parent->GetComponent<InventoryComponent>();
-	if (m_iArmor == 0 && inventroyComponent != nullptr) {
+	if (m_iArmor == 0 && inventroyComponent != nullptr && hadArmor) {
 		inventroyComponent->TriggerPassiveAbility(PassiveAbilityTrigger::SentinelArmor);
 	}
 }
@@ -793,31 +797,33 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	}
 	else
 	{
-		auto* character = m_Parent->GetCharacter();
-
-		uint64_t coinsTotal = character->GetCoins();
-
-		if (coinsTotal > 0)
+		//Check if this zone allows coin drops
+		if (dZoneManager::Instance()->GetPlayerLoseCoinOnDeath()) 
 		{
-			uint64_t coinsToLoose = 1;
+			auto* character = m_Parent->GetCharacter();
+			uint64_t coinsTotal = character->GetCoins();
 
-			if (coinsTotal >= 200)
+			if (coinsTotal > 0) 
 			{
-				float hundreth = (coinsTotal / 100.0f);
-				coinsToLoose = static_cast<int>(hundreth);
-			}
+				uint64_t coinsToLoose = 1;
 
-			if (coinsToLoose > 10000)
-			{
-				coinsToLoose = 10000;
-			}
+				if (coinsTotal >= 200) 
+				{
+					float hundreth = (coinsTotal / 100.0f);
+					coinsToLoose = static_cast<int>(hundreth);
+				}
 
-			coinsTotal -= coinsToLoose;
-		
-			LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
+				if (coinsToLoose > 10000) 
+				{
+					coinsToLoose = 10000;
+				}
+
+				coinsTotal -= coinsToLoose;
+
+				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
+				character->SetCoins(coinsTotal, LOOT_SOURCE_PICKUP);
+			}
 		}
-
-		character->SetCoins(coinsTotal, LOOT_SOURCE_PICKUP);
 
         Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
         for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {

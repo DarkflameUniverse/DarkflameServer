@@ -15,6 +15,11 @@ void ScriptedPowerupSpawner::OnTimerDone(Entity *self, std::string message) {
 
         const auto itemLOT = self->GetVar<LOT>(u"lootLOT");
 
+        // Build drop table
+        std::unordered_map<LOT, int32_t> drops;
+
+        drops.emplace(itemLOT, 1);
+
         // Spawn the required number of powerups
         auto* owner = EntityManager::Instance()->GetEntity(self->GetSpawnerID());
         if (owner != nullptr) {
@@ -24,7 +29,7 @@ void ScriptedPowerupSpawner::OnTimerDone(Entity *self, std::string message) {
                     renderComponent->PlayEffect(0, u"cast", "N_cast");
                 }
 
-                LootGenerator::Instance().DropLoot(owner, self, itemLOT, 0, 1);
+                LootGenerator::Instance().DropLoot(owner, self, drops, 0, 0);
             }
 
             // Increment the current cycle
