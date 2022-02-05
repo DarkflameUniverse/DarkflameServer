@@ -146,7 +146,7 @@ public:
     void HandleMessageBoxResponse(Entity* player, const std::string& id);
 
     /**
-     * Get the reacing data from a player's LWOOBJID.
+     * Get the racing data from a player's LWOOBJID.
      */
     RacingPlayerInfo* GetPlayerData(LWOOBJID playerID);
 
@@ -230,7 +230,7 @@ private:
     std::vector<LWOOBJID> m_LobbyPlayers;
 
     /**
-     * The number of players that have fi nished the race
+     * The number of players that have finished the race
      */
     uint32_t m_Finished;
 

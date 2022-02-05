@@ -338,9 +338,6 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
     case MissionTaskType::MISSION_TASK_TYPE_MINIGAME:
 	{
-		if (targets != info->targetGroup || info->targetValue > value)
-		    break;
-
 		auto* minigameManager = EntityManager::Instance()->GetEntity(associate);
 		if (minigameManager == nullptr)
 		    break;
@@ -356,10 +353,10 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 			break;
 		}
 
-		Game::logger->Log("Minigame Task", "Progressing minigame with %s %d > %d (%d)\n",
-                    targets.c_str(), value, info->targetValue, gameID);
-		SetProgress(info->target);
-
+		if(info->targetGroup == targets && value >= info->targetValue) {
+			SetProgress(info->target);
+			break;
+		}
 		break;
 	}
 
@@ -425,28 +422,27 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	{
 		if (parameters.empty()) break;
 
-		if (!InAllTargets(dZoneManager::Instance()->GetZone()->GetWorldID())) break;
+		if (!InAllTargets(dZoneManager::Instance()->GetZone()->GetWorldID()) && !(parameters[0] == 4 || parameters[0] == 5) && !InAllTargets(value)) break;
 
 		if (parameters[0] != associate) break;
 
-		if (associate == 1 || associate == 15)
+		if (associate == 1 || associate == 15 || associate == 2 || associate == 3)
 		{
 			if (value > info->targetValue) break;
-
-			AddProgress(1);
-		}
-		else if (associate == 2 || associate == 3)
-		{
-			if (info->targetValue < value) break;
 
 			AddProgress(info->targetValue);
 		}
 		else if (associate == 10)
 		{
-			if (info->targetValue > value)
-			{
-				AddProgress(info->targetValue);
-			}
+			// If the player did not crash during the race, progress this task by count.
+			if (value != 0) break;
+			
+			AddProgress(count);
+		}
+		else if (associate == 4 || associate == 5 || associate == 14)
+		{
+			if (!InAllTargets(value)) break;
+			AddProgress(count);
 		}
 		else
 		{
@@ -464,6 +460,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	case MissionTaskType::MISSION_TASK_TYPE_SMASH:
 	case MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION:
 	case MissionTaskType::MISSION_TASK_TYPE_PLAYER_FLAG:
+	case MissionTaskType::MISSION_TASK_TYPE_EARN_REPUTATION:
 	{
 		if (!InAllTargets(value)) break;
 
@@ -471,7 +468,11 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
 		break;
 	}
-		
+	case MissionTaskType::MISSION_TASK_TYPE_PLACE_MODEL:
+	{
+		AddProgress(count);
+		break;
+	}
 	default:
 		Game::logger->Log("MissionTask", "Invalid mission task type (%i)!\n", static_cast<int>(type));
 		return;

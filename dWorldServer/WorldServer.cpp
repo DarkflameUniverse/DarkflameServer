@@ -100,10 +100,8 @@ int main(int argc, char** argv) {
 	// Triggers the shutdown sequence at application exit
 	std::atexit(WorldShutdownSequence);
 	
-	signal(SIGINT, [](int)
-	{
-		WorldShutdownSequence();
-	});
+	signal(SIGINT, [](int){ WorldShutdownSequence(); });
+	signal(SIGTERM, [](int){ WorldShutdownSequence(); });
 
 	int zoneID = 1000;
 	int cloneID = 0;

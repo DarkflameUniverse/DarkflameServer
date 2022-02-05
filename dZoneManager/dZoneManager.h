@@ -42,6 +42,7 @@ public:
 	std::vector<Spawner*> GetSpawnersInGroup(std::string group);
 	void Update(float deltaTime);
 	Entity* GetZoneControlObject() { return m_ZoneControlObject; }
+	bool GetPlayerLoseCoinOnDeath() { return m_PlayerLoseCoinsOnDeath; }
 
 private:
 	/**
@@ -57,6 +58,7 @@ private:
     static dZoneManager* m_Address; //Singleton
 	Zone* m_pZone;
 	LWOZONEID m_ZoneID;
+    bool m_PlayerLoseCoinsOnDeath; //Do players drop coins in this zone when smashed
     std::map<LWOOBJID, Spawner*> m_Spawners;
 
 	Entity* m_ZoneControlObject;
