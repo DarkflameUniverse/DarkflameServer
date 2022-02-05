@@ -425,26 +425,13 @@ void Mission::YieldRewards() {
     int32_t coinsToSend = 0;
     if (info->LegoScore > 0) {
         eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
-<<<<<<< HEAD
-        int rewardedLegoScore = info->LegoScore;
-        // Define 124370 somewhere.
-        if(characterComponent->GetUScore() >= 124370) {
-            // Change rewarded LEGO Score to zero since you are not supposed to get this past level 45.
-            rewardedLegoScore = 0;
-            // The client shows getting 21 coins per 1 LEGO Score when the player is level 45.
-            character->SetCoins(character->GetCoins() + info->LegoScore * 21, lootSource);
-        } else {
-            characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
-=======
         if(characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
             // Since the character is at the level cap we reward them with coins instead of UScore.
             coinsToSend += info->LegoScore * dZoneManager::Instance()->GetLevelCapCurrencyConversion();
         } else {
             characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
             GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info->LegoScore, lootSource);
->>>>>>> Added logic to Convert UScore to Coins for Level 45 Characters (#348)
         }
-        GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), rewardedLegoScore, lootSource);
     }
 
     if (m_Completions > 0) {
