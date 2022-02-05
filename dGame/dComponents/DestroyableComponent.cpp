@@ -245,6 +245,9 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 void DestroyableComponent::SetArmor(int32_t value) {
     m_DirtyHealth = true;
 
+	// If Destroyable Component already has zero armor do not trigger the passive ability again.
+	bool hadArmor = m_iArmor > 0;
+	
     auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
     if (characterComponent != nullptr) {
         characterComponent->TrackArmorDelta(value - m_iArmor);
@@ -253,7 +256,7 @@ void DestroyableComponent::SetArmor(int32_t value) {
     m_iArmor = value;
 
 	auto* inventroyComponent = m_Parent->GetComponent<InventoryComponent>();
-	if (m_iArmor == 0 && inventroyComponent != nullptr) {
+	if (m_iArmor == 0 && inventroyComponent != nullptr && hadArmor) {
 		inventroyComponent->TriggerPassiveAbility(PassiveAbilityTrigger::SentinelArmor);
 	}
 }
