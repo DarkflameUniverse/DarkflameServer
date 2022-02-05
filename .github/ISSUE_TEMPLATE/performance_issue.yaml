@@ -20,7 +20,7 @@ body:
     attributes:
       label: DarkflameServer Version
       description: >
-        DarkflameServer version or commit SHA
+        DarkflameServer version or commit SHA (can be obtained with `git rev-parse --short HEAD`)
     validations:
       required: true
   - type: textarea
