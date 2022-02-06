@@ -42,7 +42,12 @@ RUN unzip /build/resources/navmeshes.zip -d /build/cmake_build/res/maps
 
 FROM gcc:11 as runtime
 
+# With this utility we can wait for the database to be ready
 ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.9.0/wait /wait
+
+ADD docker/wait.sha512 /wait.sha512
+
+RUN set -e && echo "$(cat /wait.sha512) wait" | sha512sum --check --status
 
 RUN --mount=type=cache,id=runtime-apt-cache,target=/var/cache/apt \
     apt update && \
