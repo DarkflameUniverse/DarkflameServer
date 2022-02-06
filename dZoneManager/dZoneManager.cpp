@@ -35,7 +35,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 			const auto min = zone->ghostdistance_min != -1.0f ? zone->ghostdistance_min : 100;
 			const auto max = zone->ghostdistance != -1.0f ? zone->ghostdistance : 100;
 			EntityManager::Instance()->SetGhostDistanceMax(max + min);
-			EntityManager::Instance()->SetGhostDistanceMin(min);
+			EntityManager::Instance()->SetGhostDistanceMin(max);
 			m_PlayerLoseCoinsOnDeath = zone->PlayerLoseCoinsOnDeath;
         }
 	}
