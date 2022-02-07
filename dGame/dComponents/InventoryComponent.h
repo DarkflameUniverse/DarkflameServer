@@ -399,8 +399,8 @@ private:
 	std::vector<Item*> FindProxies(LWOOBJID parent);
 
     /**
-     * Returns if the provided ID is a valid proxy item (e.g. we have children for it)
-     * @param parent the parent item to check for
+     * Returns true if the provided LWOOBJID is the parent of this Item.
+     * @param parent the parent item to check for proxies
      * @return if the provided ID is a valid proxy item
      */
 	bool IsValidProxy(LWOOBJID parent);
