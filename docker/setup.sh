@@ -52,8 +52,16 @@ function update_ini_values() {
     cp resources/chatconfig.ini /docker/configs/
     cp resources/worldconfig.ini /docker/configs/
 
-    update_ini worldconfig.ini chat_server_port $CHAT_SERVER_PORT
-    update_ini worldconfig.ini max_clients $MAX_CLIENTS
+    if [[ ! -z $CHAT_SERVER_PORT ]]; then
+        update_ini worldconfig.ini chat_server_port $CHAT_SERVER_PORT
+        update_ini chatconfig.ini port $CHAT_SERVER_PORT
+    fi
+
+    if [[ ! -z $MAX_CLIENTS ]]; then
+        update_ini worldconfig.ini max_clients $MAX_CLIENTS
+        update_ini authconfig.ini max_clients $MAX_CLIENTS
+        update_ini chatconfig.ini max_clients $MAX_CLIENTS
+    fi
 
     # always use the internal docker hostname
     update_ini masterconfig.ini master_ip "darkflame"
@@ -138,12 +146,12 @@ if [[ ! -f "/docker/extracted" ]]; then
 
     touch globs.txt
 
-    echo "res/macros/**" >> globs.txt
-    echo "res/BrickModels/**" >> globs.txt
-    echo "res/maps/**" >> globs.txt
+    echo "client/res/macros/**" >> globs.txt
+    echo "client/res/BrickModels/**" >> globs.txt
+    echo "client/res/maps/**" >> globs.txt
     echo "*.fdb" >> globs.txt
 
-    lunpack -g ./globs.txt $CLIENT_ROOT_DIR
+    lunpack -g ./globs.txt $CLIENT_ROOT_DIR/..
 
     touch /docker/extracted
 else
