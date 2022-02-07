@@ -41,6 +41,3 @@ void AgSurvivalBuffStation::OnTimerDone(Entity* self, std::string timerName) {
     }
     if (target != nullptr) GameMessages::SendDropClientLoot(target, self->GetObjectID(), powerupToDrop, 0, self->GetPosition());
 }
-void AgSurvivalBuffStation::OnDie(Entity* self, Entity* killer) {
-    //self->CancelAllTimers();
-}

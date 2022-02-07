@@ -12,7 +12,6 @@ public:
      */
     void OnRebuildComplete(Entity* self, Entity* target) override;
     void OnTimerDone(Entity* self, std::string timerName) override;
-    void OnDie(Entity* self, Entity* killer) override;
 private:
     /**
      * Skill ID for the buff station.
