@@ -1010,7 +1010,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 	
 	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
 
-	ApplyBuff(item->GetLot());
+	if (item->GetParent() == LWOOBJID_EMPTY) ApplyBuff(item->GetLot());
 	
 	AddItemSkills(item->GetLot());
 
@@ -1038,7 +1038,7 @@ void InventoryComponent::UnEquipItem(Item* item)
 		set->OnUnEquip(lot);
 	}
 
-	RemoveBuff(item->GetLot());
+	if (item->GetParent() == LWOOBJID_EMPTY) RemoveBuff(item->GetLot());
 	
 	RemoveItemSkills(item->GetLot());
 
@@ -1498,7 +1498,7 @@ std::vector<Item*> InventoryComponent::GenerateProxies(Item* parent)
 
 		auto* inventory = GetInventory(ITEM_SETS);
 
-		auto* proxy = new Item(lot, inventory, inventory->FindEmptySlot(), 1, {}, parent->GetId(), false);
+		auto* proxy = new Item(lot, inventory, inventory->FindEmptySlot(), 1, {}, parent->GetId(), false, parent->GetId());
 
 		EquipItem(proxy);
 
