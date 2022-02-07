@@ -314,6 +314,7 @@ int main(int argc, char** argv) {
 			framesSinceMasterDisconnect++;
 
 			if (framesSinceMasterDisconnect >= 30) {
+				Game::logger->Log("WorldServer", "Game loop running but no connection to master for 30 frames, shutting down");
 				worldShutdownSequenceStarted = true;
 			}
 		}
