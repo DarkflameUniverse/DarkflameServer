@@ -200,6 +200,7 @@ void BaseSurvivalServer::OnActivityTimerDone(Entity *self, const std::string &na
         ActivityTimerStop(self, SpawnTickTimer);
         ActivityTimerStart(self, CoolDownStopTimer, 1, constants.coolDownTime);
 
+        ActivateSpawnerNetwork(spawnerNetworks.rewardNetworks);
         SpawnerReset(spawnerNetworks.baseNetworks, false);
         SpawnerReset(spawnerNetworks.randomNetworks, false);
     } else if (name == CoolDownStopTimer) {
@@ -302,7 +303,6 @@ void BaseSurvivalServer::StartWaves(Entity *self) {
     self->SetVar<bool>(FirstTimeDoneVariable, true);
     self->SetVar<std::string>(MissionTypeVariable, state.players.size() == 1 ? "survival_time_solo" : "survival_time_team");
 
-    ActivateSpawnerNetwork(spawnerNetworks.rewardNetworks);
     ActivateSpawnerNetwork(spawnerNetworks.smashNetworks);
     self->SetNetworkVar<bool>(WavesStartedVariable, true);
     self->SetNetworkVar<std::string>(StartWaveMessageVariable, "Start!");
