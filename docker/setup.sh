@@ -96,7 +96,7 @@ fi
 
 if [[ "${CLIENT_TYPE@L}" != "packed" && "${CLIENT_TYPE@L}" != "unpacked" && "${CLIENT_TYPE@L}" != "auto" ]]; then
     echo "[ERROR] Unknown CLIENT_TYPE"
-    exit 15
+    exit 16
 fi
 
 # Try to auto detect client type

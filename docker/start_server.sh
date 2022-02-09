@@ -63,4 +63,5 @@ echo "Wait for database to be ready"
 echo "Starting MasterServer"
 ./MasterServer
 echo "MasterServer exited with $?"
+echo "[WARNING] The container stays online. With this you should be able to explorer the server files including log files"
 tail -f /dev/null
