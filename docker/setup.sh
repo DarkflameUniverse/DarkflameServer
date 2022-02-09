@@ -124,10 +124,12 @@ if [[ "${CLIENT_TYPE@L}" == "auto" ]]; then
         fi
     fi
 else
-    if [[ "${CLIENT_TYPE@L}" == "packed" ]]; then
-        CLIENT_ROOT_DIR=/client/client
-    elif [[ "${CLIENT_TYPE@L}" == "unpacked" ]]; then
-        CLIENT_ROOT_DIR=/client
+    if [[ -z $CLIENT_ROOT_DIR ]]; then
+        if [[ "${CLIENT_TYPE@L}" == "packed" ]]; then
+            CLIENT_ROOT_DIR=/client/client
+        elif [[ "${CLIENT_TYPE@L}" == "unpacked" ]]; then
+            CLIENT_ROOT_DIR=/client
+        fi
     fi
 fi
 
