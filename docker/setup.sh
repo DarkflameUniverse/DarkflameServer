@@ -89,9 +89,14 @@ function fdb_to_sqlite() {
 update_ini_values
 
 if [[ ! -d "/client" ]]; then
-    echo "Client not found."
-    echo "Did you forget to mount the client into the \"/client\" directory?"
+    echo "[ERROR] Client not found."
+    echo "[ERROR] Did you forget to mount the client into the \"/client\" directory?"
     exit 12
+fi
+
+if [[ "${CLIENT_TYPE@L}" != "packed" && "${CLIENT_TYPE@L}" != "unpacked" && "${CLIENT_TYPE@L}" != "auto" ]]; then
+    echo "[ERROR] Unknown CLIENT_TYPE"
+    exit 15
 fi
 
 # Try to auto detect client type
@@ -135,6 +140,7 @@ fi
 
 if [[ -z $CLIENT_ROOT_DIR ]]; then
     echo "[ERROR] Client root path wasn't auto detected. You need to provide it by yourself"
+    echo "[ERROR] You can use CLIENT_ROOT_DIR for this"
     exit 15
 fi
 
