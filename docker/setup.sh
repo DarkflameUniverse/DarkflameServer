@@ -107,17 +107,17 @@ if [[ "${CLIENT_TYPE@L}" == "auto" ]]; then
             exit 13
         fi
         CLIENT_TYPE=unpacked
-        CLIENT_ROOT_DIR=/client
+        [[ -z $CLIENT_ROOT_DIR ]] && CLIENT_ROOT_DIR=/client
         touch /docker/extracted
     elif [[ -f "/client/client/legouniverse.exe" ]]; then
         # If this file exist, we can assume the user provided an unpacked client but with a different client root structure
         if [[ -f "/client/client/res/CDClient.fdb" ]]; then
             CLIENT_TYPE=unpacked
-            CLIENT_ROOT_DIR=/client/client
+            [[ -z $CLIENT_ROOT_DIR ]] && CLIENT_ROOT_DIR=/client/client
             touch /docker/extracted
         elif [[ -f "/client/versions/trunk.txt" ]]; then
             CLIENT_TYPE=packed
-            CLIENT_ROOT_DIR=/client/client
+            [[ -z $CLIENT_ROOT_DIR ]] && CLIENT_ROOT_DIR=/client/client
         else
             echo "[ERROR] Can't detect client type. You need to define the client type by yourself"
             exit 14
