@@ -101,6 +101,10 @@ fi
 
 # Try to auto detect client type
 if [[ "${CLIENT_TYPE@L}" == "auto" ]]; then
+    if [[ ! -z $CLIENT_ROOT_DIR ]]; then
+        echo "[WARNING] Your CLIENT_ROOT_DIR variable gets overwritten by auto mode"
+    fi
+
     if [[ -f "/client/legouniverse.exe" ]]; then
         # Look for a unpacked file. If it doesn't exist, then we can assume the user provided a packed client
         # with a client structure like a unpacked client. At this point we can't continue the process. 
@@ -112,17 +116,17 @@ if [[ "${CLIENT_TYPE@L}" == "auto" ]]; then
             exit 13
         fi
         CLIENT_TYPE=unpacked
-        [[ -z $CLIENT_ROOT_DIR ]] && CLIENT_ROOT_DIR=/client
+        CLIENT_ROOT_DIR=/client
         touch /docker/extracted
     elif [[ -f "/client/client/legouniverse.exe" ]]; then
         # If this file exist, we can assume the user provided an unpacked client but with a different client root structure
         if [[ -f "/client/client/res/CDClient.fdb" ]]; then
             CLIENT_TYPE=unpacked
-            [[ -z $CLIENT_ROOT_DIR ]] && CLIENT_ROOT_DIR=/client/client
+            CLIENT_ROOT_DIR=/client/client
             touch /docker/extracted
         elif [[ -f "/client/versions/trunk.txt" ]]; then
             CLIENT_TYPE=packed
-            [[ -z $CLIENT_ROOT_DIR ]] && CLIENT_ROOT_DIR=/client/client
+            CLIENT_ROOT_DIR=/client/client
         else
             echo "[ERROR] Can't detect client type. You need to define the client type by yourself"
             exit 14
