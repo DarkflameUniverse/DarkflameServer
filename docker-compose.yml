@@ -63,7 +63,7 @@ services:
       context: .
       dockerfile: ./docker/brickfix.Dockerfile
     ports:
-      - 80:80
+      - ${BRICKBUILDFIX_PORT:-80}:80
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 2m
