@@ -122,6 +122,12 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
+	//Backwards compatibiliy, add the is_online column to accounts table if it doesnt already exsist
+	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("ALTER TABLE accounts ADD if not exists is_online tinyint(1) NOT NULL DEFAULT 0;");
+
+	stmt->executeUpdate();
+	delete stmt;
+
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
 	if (argc > 1 &&
