@@ -1052,14 +1052,6 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 
 void InventoryComponent::UnEquipItem(Item* item)
 {
-	// if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == true)
-	// {
-	// 	auto *playerInstance = dynamic_cast<Player *>(m_Parent);
-	// 	playerInstance->SendToZone(1200);
-
-	// 	equippedCarEntity->Kill();
-	// 	return;
-	// }
 	if (!item->IsEquipped())
 	{
 		return;
