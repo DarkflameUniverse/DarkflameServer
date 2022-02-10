@@ -109,7 +109,7 @@ void Mission::LoadFromXml(tinyxml2::XMLElement* element) {
         } else {
             const auto value = std::stoul(task->Attribute("v"));
 
-            m_Tasks[index]->SetProgress(value, false);
+            m_Tasks[index]->SetProgress(value, m_Tasks[index]->GetType() == MissionTaskType::MISSION_TASK_TYPE_MINIGAME);
 
             task = task->NextSiblingElement();
         }
@@ -356,7 +356,7 @@ void Mission::CheckCompletion() {
         return;
     }
 
-    SetMissionState(MissionState::MISSION_STATE_READY_TO_COMPLETE);
+    MakeReadyToComplete();
 }
 
 void Mission::Catchup() {
