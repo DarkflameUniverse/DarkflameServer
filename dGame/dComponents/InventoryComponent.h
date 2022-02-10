@@ -390,6 +390,8 @@ private:
      */
     bool hasCarEquipped = false;
     Entity* equippedCarEntity = nullptr;
+    LWOOBJID previousPossessableID = LWOOBJID_EMPTY;
+    LWOOBJID previousPossessorID = LWOOBJID_EMPTY;
     /**
      * Creates all the proxy items (subitems) for a parent item
      * @param parent the parent item to generate all the subitems for

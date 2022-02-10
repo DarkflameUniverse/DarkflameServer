@@ -911,8 +911,8 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 		const auto type = static_cast<eItemType>(item->GetInfo().itemType);
 		
 		if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == false)
-		{
-			auto startPosition = m_Parent->GetPosition() + NiPoint3::UNIT_Y + 10;
+		{	// Spawn above current position so we dont fall through floor?
+			auto startPosition = m_Parent->GetPosition() + NiPoint3::UNIT_Y + 2;
 
 			auto startRotation = NiQuaternion::LookAt(startPosition, startPosition + NiPoint3::UNIT_X);
 			auto angles = startRotation.GetEulerAngles();
@@ -930,19 +930,19 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 			auto* carEntity = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
 			m_Parent->AddChild(carEntity);
 
-			// auto *destroyableComponent = carEntity->GetComponent<DestroyableComponent>();
+			auto *destroyableComponent = carEntity->GetComponent<DestroyableComponent>();
 
-    		// // Setup the vehicle stats.
-    		// if (destroyableComponent != nullptr) {
-        	// 	destroyableComponent->SetMaxImagination(60);
-        	// 	destroyableComponent->SetImagination(0);
-			// 	destroyableComponent->SetIsImmune(true);
-    		// }
-
+    		// Setup the vehicle stats.
+    		if (destroyableComponent != nullptr) {
+				destroyableComponent->SetIsSmashable(false);
+				destroyableComponent->SetIsImmune(true);
+    		}
+			// #108
 			auto* possessableComponent = carEntity->GetComponent<PossessableComponent>();
 
 			if (possessableComponent != nullptr)
 			{
+				previousPossessableID = possessableComponent->GetPossessor();
 				possessableComponent->SetPossessor(m_Parent->GetObjectID());
 			}
 
@@ -961,11 +961,12 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 					}
 				}
 			}
-
+			// #107
 			auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
 
 			if (possessorComponent != nullptr)
 			{
+				previousPossessorID = possessorComponent->GetPossessable();
 				possessorComponent->SetPossessable(carEntity->GetObjectID());
 			}
 
@@ -982,8 +983,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 			GameMessages::SendSetJetPackMode(m_Parent, false);
 
 			GameMessages::SendNotifyVehicleOfRacingObject(carEntity->GetObjectID(), m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendRacingPlayerLoaded(m_Parent->GetObjectID(), m_Parent->GetObjectID(), carEntity->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendRacingPlayerLoaded(m_Parent->GetObjectID(), m_Parent->GetObjectID(), carEntity->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendRacingPlayerLoaded(LWOOBJID_EMPTY, m_Parent->GetObjectID(), carEntity->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 			GameMessages::SendVehicleUnlockInput(carEntity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
 			GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
     		GameMessages::SendTeleport(carEntity->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
@@ -1002,10 +1002,43 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 			return;
 		} else if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == true)
 		{
-			// auto *playerInstance = dynamic_cast<Player *>(m_Parent);
-			// playerInstance->SendToZone(1200);
+			//GameMessages::SendTeleport(m_Parent->GetObjectID(), m_Parent->GetPosition(), m_Parent->GetRotation(), m_Parent->GetSystemAddress(), true, true);
+			// reset character component back to what it was
+			// auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 
-			// equippedCarEntity->Kill();
+			// if (characterComponent != nullptr)
+			// {
+			// 	characterComponent->SetIsRacing(false);
+			// 	characterComponent->SetVehicleObjectID(LWOOBJID_EMPTY);
+			// }
+
+			// auto* possessableComponent = equippedCarEntity->GetComponent<PossessableComponent>();
+
+			// if (possessableComponent != nullptr)
+			// {
+			// 	possessableComponent->SetPossessor(previousPossessableID);
+			// 	previousPossessableID = LWOOBJID_EMPTY;
+			// }
+
+			// // #107
+			// auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
+
+			// if (possessorComponent != nullptr)
+			// {
+			// 	possessorComponent->SetPossessable(previousPossessorID);
+			// 	previousPossessorID = LWOOBJID_EMPTY;
+			// }
+			GameMessages::SendNotifyRacingClient(LWOOBJID_EMPTY, 3, 0, LWOOBJID_EMPTY, u"", m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+			// GameMessages::SendNotifyVehicleOfRacingObject(equippedCarEntity->GetObjectID(), LWOOBJID_EMPTY, UNASSIGNED_SYSTEM_ADDRESS);
+			// GameMessages::SendRacingPlayerLoaded(LWOOBJID_EMPTY, m_Parent->GetObjectID(), LWOOBJID_EMPTY, UNASSIGNED_SYSTEM_ADDRESS);
+			//GameMessages::SendTeleport(m_Parent->GetObjectID(), equippedCarEntity->GetPosition(), equippedCarEntity->GetRotation(), m_Parent->GetSystemAddress(), true, true);
+			// EntityManager::Instance()->SerializeEntity(m_Parent);
+			auto player = dynamic_cast<Player*>(m_Parent);
+			player->SendToZone(player->GetCharacter()->GetZoneID());
+			equippedCarEntity->Kill();
+			hasCarEquipped = false;
+			equippedCarEntity = nullptr;
+			return;
 		}
 
 		if (!building)
