@@ -343,7 +343,14 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		if (info->target != gameID) {
 			break;
 		}
-
+		// Lego Universe is a great game with very easy to understand mission progression.
+		// If we are progressing a mission for shooting gallery we need to set its
+		// completion to 1 and not the targetValue beacuse that makes sense
+		// compared to all other missions and tasks :)
+		if(info->targetGroup == targets && value >= info->targetValue && GetMission()->IsMission() && info->target == 1864 && info->targetGroup == "performact_score") {
+			SetProgress(1);
+			break;
+		}
 		if(info->targetGroup == targets && value >= info->targetValue) {
 			SetProgress(info->targetValue);
 			break;

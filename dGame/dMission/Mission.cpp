@@ -109,7 +109,7 @@ void Mission::LoadFromXml(tinyxml2::XMLElement* element) {
         } else {
             const auto value = std::stoul(task->Attribute("v"));
 
-            m_Tasks[index]->SetProgress(value, m_Tasks[index]->GetType() == MissionTaskType::MISSION_TASK_TYPE_MINIGAME);
+            m_Tasks[index]->SetProgress(value, false);
 
             task = task->NextSiblingElement();
         }
