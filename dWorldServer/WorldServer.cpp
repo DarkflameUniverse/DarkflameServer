@@ -835,6 +835,17 @@ void HandlePacket(Packet* packet) {
 						bitStream.Write((LWOINSTANCEID)instanceID);
 						Game::server->SendToMaster(&bitStream);
 					}
+
+					//Set account in database as online
+					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE accounts SET is_online = '1' WHERE name = ?;");
+					
+					stmt->setString(1, username.c_str());
+
+					stmt->executeUpdate();
+
+					delete stmt;
+
+
 				}
 
 				break;

@@ -139,6 +139,15 @@ void UserManager::DeletePendingRemovals()
 		Game::logger->Log("UserManager", "Deleted user %i\n", user->GetAccountID());
 
 		delete user;
+
+		//Set account in database as offline
+		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE accounts SET is_online = '0' WHERE id = ?;");
+		
+		stmt->setInt(1, user->GetAccountID());
+
+		stmt->executeUpdate();
+
+		delete stmt;
 	}
 
 	m_UsersToDelete.clear();
