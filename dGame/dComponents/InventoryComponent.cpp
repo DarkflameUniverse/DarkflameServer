@@ -911,8 +911,8 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 		const auto type = static_cast<eItemType>(item->GetInfo().itemType);
 		
 		if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == false)
-		{	// Spawn above current position so we dont fall through floor?
-			auto startPosition = m_Parent->GetPosition() + NiPoint3::UNIT_Y + 2;
+		{	
+			auto startPosition = m_Parent->GetPosition();
 
 			auto startRotation = NiQuaternion::LookAt(startPosition, startPosition + NiPoint3::UNIT_X);
 			auto angles = startRotation.GetEulerAngles();
@@ -989,50 +989,12 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
     		GameMessages::SendTeleport(carEntity->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
 			EntityManager::Instance()->SerializeEntity(m_Parent);
 
-			// m_Parent->AddDieCallback([item, this](){
-			// 	this->UnEquipItem(item);
-			// 	this->EquipItem(item);
-			// });
-			// carEntity->AddDieCallback([item, this](){
-			// 	this->UnEquipItem(item);
-			// 	this->EquipItem(item);
-			// });
 			hasCarEquipped = true;
 			equippedCarEntity = carEntity;
 			return;
 		} else if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == true)
 		{
-			//GameMessages::SendTeleport(m_Parent->GetObjectID(), m_Parent->GetPosition(), m_Parent->GetRotation(), m_Parent->GetSystemAddress(), true, true);
-			// reset character component back to what it was
-			// auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
-
-			// if (characterComponent != nullptr)
-			// {
-			// 	characterComponent->SetIsRacing(false);
-			// 	characterComponent->SetVehicleObjectID(LWOOBJID_EMPTY);
-			// }
-
-			// auto* possessableComponent = equippedCarEntity->GetComponent<PossessableComponent>();
-
-			// if (possessableComponent != nullptr)
-			// {
-			// 	possessableComponent->SetPossessor(previousPossessableID);
-			// 	previousPossessableID = LWOOBJID_EMPTY;
-			// }
-
-			// // #107
-			// auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
-
-			// if (possessorComponent != nullptr)
-			// {
-			// 	possessorComponent->SetPossessable(previousPossessorID);
-			// 	previousPossessorID = LWOOBJID_EMPTY;
-			// }
 			GameMessages::SendNotifyRacingClient(LWOOBJID_EMPTY, 3, 0, LWOOBJID_EMPTY, u"", m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-			// GameMessages::SendNotifyVehicleOfRacingObject(equippedCarEntity->GetObjectID(), LWOOBJID_EMPTY, UNASSIGNED_SYSTEM_ADDRESS);
-			// GameMessages::SendRacingPlayerLoaded(LWOOBJID_EMPTY, m_Parent->GetObjectID(), LWOOBJID_EMPTY, UNASSIGNED_SYSTEM_ADDRESS);
-			//GameMessages::SendTeleport(m_Parent->GetObjectID(), equippedCarEntity->GetPosition(), equippedCarEntity->GetRotation(), m_Parent->GetSystemAddress(), true, true);
-			// EntityManager::Instance()->SerializeEntity(m_Parent);
 			auto player = dynamic_cast<Player*>(m_Parent);
 			player->SendToZone(player->GetCharacter()->GetZoneID());
 			equippedCarEntity->Kill();
