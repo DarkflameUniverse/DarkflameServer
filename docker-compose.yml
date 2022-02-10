@@ -13,7 +13,7 @@ services:
             - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
             - EXTERNAL_IP=${EXTERNAL_IP:-darkflame}
             - CLIENT_TYPE=${CLIENT_TYPE:-auto}
-            - CLIENT_ROOT_DIR=${CLIENT_ROOT_DIR}
+            - CLIENT_ROOT_DIR=${CLIENT_ROOT_DIR-}
             - SCRIPT_DEBUG=${SCRIPT_DEBUG:-false}
         volumes:
             - ${CLIENT_PATH:?missing_client_path}:/client
