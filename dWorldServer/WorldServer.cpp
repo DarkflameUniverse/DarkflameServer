@@ -944,34 +944,6 @@ void HandlePacket(Packet* packet) {
 
 				break;
 			}
-
-			case MSG_MASTER_SAVE_AND_KICK_CHARACTER: {
-				RakNet::BitStream inStream(packet->data, packet->length, false);
-				uint64_t header = inStream.Read(header);
-
-				LWOOBJID objId = LWOOBJID_EMPTY;
-
-				inStream.Read<LWOOBJID>(objId);
-
-				GeneralUtils::SetBit(objId, OBJECT_BIT_CHARACTER); // just incase we lose a bit or someone is using the DB ID
-
-				auto* entity = EntityManager::Instance()->GetEntity(objId);
-
-				Game::logger->Log("WorldServer", "Got save and kick character request for %llu\n", objId);
-
-				if (!entity) break;
-
-				entity->GetCharacter()->SaveXMLToDatabase();
-
-				Game::logger->Log("WorldServer", "Saved character %llu to database\n", objId);
-
-				auto* player = Player::GetPlayer(entity->GetObjectID());
-
-				Game::server->Disconnect(player->GetSystemAddress(), SERVER_DISCON_KICK);
-
-				Game::logger->Log("WorldServer", "Kicked %s following request from master \n", player->GetCharacter()->GetName().c_str());
-				break;
-			}
 		}
 
 		return;
