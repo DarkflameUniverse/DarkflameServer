@@ -202,34 +202,6 @@ void dMasterServerApi::CreateRoutes() {
             return;
         }
     });
-
-    m_HttpServer->Post("/api/" API_VERSION "/requestkick", [this](const httplib::Request& req, httplib::Response& res) {
-        auto responseJson = nlohmann::json();
-
-        responseJson["success"] = false;
-
-        if (!req.has_param("charObjId")) {
-            responseJson["error"] = "Missing required fields";
-            res.set_content(responseJson.dump(), "application/json");
-            return;
-        }
-
-        int64_t objId = 4;
-
-        CBITSTREAM;
-
-        PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SAVE_AND_KICK_CHARACTER);
-
-        bitStream.Write<int64_t>(objId);
-
-        SEND_PACKET_BROADCAST;
-        Game::logger->Log("MasterServer", "Kicked player with ID %llu \n", objId);
-
-        responseJson["success"] = true;
-        responseJson["result"] = std::string("Sent kick for object ID ") + std::to_string(objId);
-
-        res.set_content(responseJson.dump(), "application/json");
-    });
 }
 
 bool dMasterServerApi::Listen() {
