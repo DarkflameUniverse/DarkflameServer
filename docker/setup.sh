@@ -168,7 +168,9 @@ if [[ ! -f "/docker/extracted" ]]; then
     touch /docker/extracted
 else
     echo "Client already extracted. Skip this step..."
-    echo "If you want to force a re-extract, just delete the file called \"extracted\" in the client directory"
+    echo "If you want to force a re-extract, run one of the following commands depending on which composer version you are using:"
+    echo "docker compose run setup rm /docker/extracted"
+    echo "docker-compose run setup rm /docker/extracted"
 fi
 
 if [[ ! -f "/docker/migrated" ]]; then
@@ -179,5 +181,7 @@ if [[ ! -f "/docker/migrated" ]]; then
     touch /docker/migrated
 else
     echo "Client db already migrated. Skip this step..."
-    echo "If you want to force a re-migrate, just delete the file called \"migrated\" in the client directory"
+    echo "If you want to force a re-migrate, run one of the following commands depending on which composer version you are using:"
+    echo "docker compose run setup rm /docker/migrated"
+    echo "docker-compose run setup rm /docker/migrated"
 fi
