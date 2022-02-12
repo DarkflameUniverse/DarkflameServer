@@ -42,21 +42,23 @@ RUN unzip /build/resources/navmeshes.zip -d /build/cmake_build/res/maps
 
 FROM gcc:11 as runtime
 
+WORKDIR /app
+
 # With this utility we can wait for the database to be ready
-ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.9.0/wait /wait
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.9.0/wait ./wait-for-db
 
-ADD docker/wait.sha512 /wait.sha512
+ADD docker/wait-for-db.sha512 ./wait-for-db.sha512
 
-RUN set -e && echo "$(cat /wait.sha512) wait" | sha512sum --check --status
+ADD docker/wait-for-setup.sh .
+
+RUN set -e && echo "$(cat ./wait-for-db.sha512) wait-for-db" | sha512sum --check --status
 
 RUN --mount=type=cache,id=runtime-apt-cache,target=/var/cache/apt \
     apt update && \
     apt install sudo -yqq --no-install-recommends && \
     apt remove -y libmysqlcppconn7v5 libmysqlcppconn-dev && \
     rm -rf /var/lib/apt/lists/* && \
-    chmod +x /wait
-
-WORKDIR /app
+    chmod +x ./wait-for-db
 
 COPY --from=build /build/cmake_build /app
 
