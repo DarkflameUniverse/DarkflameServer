@@ -18,14 +18,41 @@ function symlink_client_files() {
     )
 }
 
-function symlink_config_files() {
-    echo "Creating symlinks for config files"
-    rm /app/*.ini
-    ln -s /shared_configs/configs/authconfig.ini /app/authconfig.ini
-    ln -s /shared_configs/configs/chatconfig.ini /app/chatconfig.ini
-    ln -s /shared_configs/configs/masterconfig.ini /app/masterconfig.ini
-    ln -s /shared_configs/configs/worldconfig.ini /app/worldconfig.ini
+function update_ini() {
+    FILE="/app/$1"
+    KEY=$2
+    NEW_VALUE=$3
+    sed -i "/^$KEY=/s/=.*/=$NEW_VALUE/" $FILE
 }
+
+function update_database_ini_values_for() {
+    INI_FILE=$1
+
+    update_ini $INI_FILE mysql_host $DATABASE_HOST
+    update_ini $INI_FILE mysql_database $DATABASE
+    update_ini $INI_FILE mysql_username $DATABASE_USER
+    update_ini $INI_FILE mysql_password $DATABASE_PASSWORD
+    if [[ "$INI_FILE" != "worldconfig.ini" ]]; then
+        update_ini $INI_FILE external_ip $EXTERNAL_IP
+    fi
+}
+
+function update_ini_values() {
+    echo "Updating config files"
+
+    update_ini worldconfig.ini chat_server_port $CHAT_SERVER_PORT
+    update_ini worldconfig.ini max_clients $MAX_CLIENTS
+
+    # always use the internal docker hostname
+    update_ini masterconfig.ini master_ip "darkflame"
+
+    update_database_ini_values_for masterconfig.ini
+    update_database_ini_values_for authconfig.ini
+    update_database_ini_values_for chatconfig.ini
+    update_database_ini_values_for worldconfig.ini
+}
+
+update_ini_values
 
 # check to make sure the setup has completed
 while [ ! -f "/client/extracted" ] || [ ! -f "/client/migrated" ]; do
@@ -36,7 +63,6 @@ done
 if [[ ! -f "/app/initialized" ]]; then
     # setup symlinks for volume files
     symlink_client_files
-    symlink_config_files
     # do not run symlinks more than once
     touch /app/initialized
 else

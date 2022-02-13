@@ -13,7 +13,6 @@ RUN apk add sqlite bash --no-cache
 WORKDIR /setup
 
 # copy needed files from repo
-COPY resources/ resources/
 COPY migrations/cdserver/ migrations/cdserver
 COPY --from=LUnpack /build_LUnpack/target/release/lunpack /usr/local/bin/lunpack
 ADD thirdparty/docker-utils/utils/*.py utils/

@@ -36,6 +36,27 @@ foreach(variable ${variables})
     message(STATUS "Variable: ${variable_name} = ${variable_value}")
 endforeach()
 
+# Obtain Git commit SHA, see https://stackoverflow.com/a/21028226
+find_package(Git)
+if(GIT_FOUND)
+    message(STATUS "Git ${GIT_VERSION_STRING} found: ${GIT_EXECUTABLE}")
+    execute_process(COMMAND
+        "${GIT_EXECUTABLE}" rev-parse --short HEAD
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE GIT_COMMIT_SHA
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE GIT_EXIT_CODE
+    )
+
+    if(GIT_EXIT_CODE)
+        message(WARNING "Failed obtaining Git commit SHA")
+        set(GIT_COMMIT_SHA "???")
+    endif()
+else()
+    message(WARNING "Git not found")
+    set(GIT_COMMIT_SHA "???")
+endif()
+
 # On windows it's better to build this from source, as there's no way FindZLIB is gonna find it
 if(NOT WIN32)
 find_package(ZLIB REQUIRED)
@@ -143,7 +164,7 @@ endif()
 if (NOT EXISTS ${PROJECT_BINARY_DIR}/worldconfig.ini)
     configure_file(
         ${CMAKE_SOURCE_DIR}/resources/worldconfig.ini ${PROJECT_BINARY_DIR}/worldconfig.ini
-        COPYONLY
+        @ONLY
     )
 endif()
 if (NOT EXISTS ${PROJECT_BINARY_DIR}/masterconfig.ini)

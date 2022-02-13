@@ -473,8 +473,9 @@ std::string VanityUtilities::ParseMarkdown(const std::string& file)
 
         // Replace "__TIMESTAMP__" with the __TIMESTAMP__
         GeneralUtils::ReplaceInString(line, "__TIMESTAMP__", __TIMESTAMP__);
-        // Replace "__VERSION__" wit'h the PROJECT_VERSION
-        GeneralUtils::ReplaceInString(line, "__VERSION__", STRINGIFY(PROJECT_VERSION));
+        // Replace "__VERSION__" with the PROJECT_VERSION
+        std::string version = Game::config->GetValue("server_version") + " (" + Game::config->GetValue("git_commit_sha") + ")";
+        GeneralUtils::ReplaceInString(line, "__VERSION__", version);
         // Replace "__SOURCE__" with SOURCE
         GeneralUtils::ReplaceInString(line, "__SOURCE__", Game::config->GetValue("source"));
         // Replace "__LICENSE__" with LICENSE

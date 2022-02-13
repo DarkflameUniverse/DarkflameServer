@@ -3,46 +3,6 @@
 # fail on first error
 set -e
 
-function update_ini() {
-    FILE="/docker/configs/$1"
-    KEY=$2
-    NEW_VALUE=$3
-    sed -i "/^$KEY=/s/=.*/=$NEW_VALUE/" $FILE
-}
-
-function update_database_ini_values_for() {
-    INI_FILE=$1
-
-    update_ini $INI_FILE mysql_host $DATABASE_HOST
-    update_ini $INI_FILE mysql_database $DATABASE
-    update_ini $INI_FILE mysql_username $DATABASE_USER
-    update_ini $INI_FILE mysql_password $DATABASE_PASSWORD
-    if [[ "$INI_FILE" != "worldconfig.ini" ]]; then
-        update_ini $INI_FILE external_ip $EXTERNAL_IP
-    fi
-}
-
-function update_ini_values() {
-    echo "Copying and updating config files"
-
-    mkdir -p /docker/configs
-    cp resources/masterconfig.ini /docker/configs/
-    cp resources/authconfig.ini /docker/configs/
-    cp resources/chatconfig.ini /docker/configs/
-    cp resources/worldconfig.ini /docker/configs/
-
-    update_ini worldconfig.ini chat_server_port $CHAT_SERVER_PORT
-    update_ini worldconfig.ini max_clients $MAX_CLIENTS
-
-    # always use the internal docker hostname
-    update_ini masterconfig.ini master_ip "darkflame"
-
-    update_database_ini_values_for masterconfig.ini
-    update_database_ini_values_for authconfig.ini
-    update_database_ini_values_for chatconfig.ini
-    update_database_ini_values_for worldconfig.ini
-}
-
 function fdb_to_sqlite() {
     echo "Run fdb_to_sqlite"
     python3 utils/fdb_to_sqlite.py /client/client/res/cdclient.fdb --sqlite_path /client/client/res/CDServer.sqlite
@@ -56,8 +16,6 @@ function fdb_to_sqlite() {
         done
     )
 }
-
-update_ini_values
 
 if [[ ! -d "/client" ]]; then
     echo "Client not found."

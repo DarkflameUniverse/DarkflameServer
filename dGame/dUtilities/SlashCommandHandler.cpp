@@ -26,6 +26,7 @@
 #include "UserManager.h"
 #include "BitStream.h"
 #include "dCommonVars.h"
+#include "dConfig.h"
 #include "GeneralUtils.h"
 #include "Entity.h"
 #include "EntityManager.h"
@@ -260,6 +261,15 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		// Fix the destroyable component
 		destroyableComponent->FixStats();
+	}
+
+	if (chatCommand == "server-version")
+	{
+		auto& serverName = Game::config->GetValue("server_name");
+		auto& serverVersion = Game::config->GetValue("server_version");
+		auto& gitCommitSha = Game::config->GetValue("git_commit_sha");
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(serverName) + u" " + GeneralUtils::ASCIIToUTF16(serverVersion) + u" (" + GeneralUtils::ASCIIToUTF16(gitCommitSha) + u")");
+		return;
 	}
 
 	if (chatCommand == "credits" || chatCommand == "info")

@@ -27,6 +27,8 @@ COPY thirdparty/ /build/thirdparty
 COPY vanity /build/vanity
 COPY tests/ /build/tests
 COPY .clang-* CMake* LICENSE /build/
+# Copy Git data to be able to get revision information
+COPY .git /build/.git
 
 ARG BUILD_THREADS=1
 ARG BUILD_VERSION=171022
