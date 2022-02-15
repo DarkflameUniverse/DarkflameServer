@@ -26,7 +26,7 @@ void NpcCowboyServer::OnMissionDialogueOK(Entity* self, Entity* target, int miss
             inventoryComponent->AddItem(14378, 1);
         }
     }
-    else if (missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE)
+    else if (missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || missionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE)
     {
         inventoryComponent->RemoveItem(14378, 1);
     }
