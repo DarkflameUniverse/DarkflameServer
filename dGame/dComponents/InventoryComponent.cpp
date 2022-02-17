@@ -916,7 +916,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 
 			auto startRotation = NiQuaternion::LookAt(startPosition, startPosition + NiPoint3::UNIT_X);
 			auto angles = startRotation.GetEulerAngles();
-			angles.y -= M_PI;
+			angles.y -= PI;
 			startRotation = NiQuaternion::FromEulerAngles(angles);
 
 			GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
