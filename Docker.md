@@ -21,6 +21,14 @@
 
 **NOTE #2**: To stop the server simply run `docker compose down` and to restart it just run `docker compose up -d` again. No need to run all the steps above every time.
 
+**NOTE #3**: Docker buildkit needs to be enabled. https://docs.docker.com/develop/develop-images/build_enhancements/#to-enable-buildkit-builds
+
+**NOTE #4**: Make sure to run the following in the repo root directory after cloning so submodules are also downloaded.
+```
+git submodule init
+git submodule update
+```
+
 ## Disable brickbuildfix
 
 If you don't need the http server running on port 80 do this:
