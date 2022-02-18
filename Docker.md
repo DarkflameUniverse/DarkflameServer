@@ -28,6 +28,7 @@
 git submodule init
 git submodule update
 ```
+**NOTE #5**: If DarkflameSetup fails due to not having cdclient.fdb, rename CDClient.fdb (in the same folder) to cdclient.fdb
 
 ## Disable brickbuildfix
 
