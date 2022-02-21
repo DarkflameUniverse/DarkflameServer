@@ -208,6 +208,8 @@ void CharacterComponent::HandleLevelUp()
 	{
 		return;
 	}
+    // Tell the client we beginning to send level rewards.
+    if(rewardingItem) GameMessages::NotifyLevelRewards(parent->GetObjectID(), parent->GetSystemAddress(), m_Level, rewardingItem);
 
 	for (auto* reward : rewards)
 	{
@@ -232,7 +234,8 @@ void CharacterComponent::HandleLevelUp()
 			break;
 		}
     }
-    GameMessages::NotifyLevelRewards(parent->GetObjectID(), parent->GetSystemAddress(), m_Level, rewardingItem);
+    // Tell the client we have finished sending level rewards.
+    if(rewardingItem) GameMessages::NotifyLevelRewards(parent->GetObjectID(), parent->GetSystemAddress(), m_Level, !rewardingItem);
 }
 
 void CharacterComponent::SetGMLevel(int gmlevel) {
