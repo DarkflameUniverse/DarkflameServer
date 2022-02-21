@@ -1516,12 +1516,12 @@ void GameMessages::SendRequestActivityEnter(LWOOBJID objectId, const SystemAddre
     SEND_PACKET
 }
 
-void GameMessages::NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, uint32_t level, bool sending_rewards) {
+void GameMessages::NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards) {
 	CBITSTREAM
 	CMSGHEADER
 
 	bitStream.Write(objectID);
-	bitStream.Write(GAME_MSG::GAME_MSG_NOTIFY_LEVEL_REWARDS);
+	bitStream.Write((uint16_t)GAME_MSG::GAME_MSG_NOTIFY_LEVEL_REWARDS);
 
 	bitStream.Write(level);
 	bitStream.Write(sending_rewards);
