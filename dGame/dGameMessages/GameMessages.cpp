@@ -1516,6 +1516,18 @@ void GameMessages::SendRequestActivityEnter(LWOOBJID objectId, const SystemAddre
     SEND_PACKET
 }
 
+void GameMessages::NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards) {
+	CBITSTREAM
+	CMSGHEADER
+
+	bitStream.Write(objectID);
+	bitStream.Write((uint16_t)GAME_MSG::GAME_MSG_NOTIFY_LEVEL_REWARDS);
+
+	bitStream.Write(level);
+	bitStream.Write(sending_rewards);
+	
+	SEND_PACKET
+}
 
 void GameMessages::SendSetShootingGalleryParams(LWOOBJID objectId, const SystemAddress& sysAddr,
 		float cameraFOV,
