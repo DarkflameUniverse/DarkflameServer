@@ -78,7 +78,7 @@ void MissionTask::SetProgress(const uint32_t value, const bool echo)
 
 	std::vector<float> updates;
 	updates.push_back(static_cast<float>(progress));
-	GameMessages::SendNotifyMissionTask(entity,	entity->GetSystemAddress(), static_cast<int>(info->id), static_cast<int>(1 << (mask + 1)), updates);
+	GameMessages::SendNotifyMissionTask(entity, entity->GetSystemAddress(), static_cast<int>(info->id), static_cast<int>(1 << (mask + 1)), updates);
 }
 
 
