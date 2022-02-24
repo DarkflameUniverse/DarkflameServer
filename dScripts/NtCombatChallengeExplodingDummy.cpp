@@ -34,5 +34,5 @@ void NtCombatChallengeExplodingDummy::OnHitOrHealResult(Entity* self, Entity* at
     if (skillComponent != nullptr) {
         skillComponent->CalculateBehavior(1338, 30875, attacker->GetObjectID());
     }
-    self->Smash();
+    self->Kill(attacker);
 }
