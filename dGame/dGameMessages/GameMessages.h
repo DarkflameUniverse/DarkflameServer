@@ -68,8 +68,9 @@ namespace GameMessages {
     void SendOfferMission(const LWOOBJID& entity, const SystemAddress& sysAddr, int32_t missionID, const LWOOBJID& offererID);
     void SendNotifyMission(Entity * entity, const SystemAddress& sysAddr, int missionID, int missionState, bool sendingRewards);
     void SendNotifyMissionTask(Entity * entity, const SystemAddress& sysAddr, int missionID, int taskMask, std::vector<float> updates);
+	void NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards);
 
-	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, int sourceType);
+	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
 	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, NDGFxValue args);
 	void SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args);
 

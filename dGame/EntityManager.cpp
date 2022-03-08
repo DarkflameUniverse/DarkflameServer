@@ -45,7 +45,7 @@ std::vector<LOT> EntityManager::m_GhostingExcludedLOTs = {
 	9524,
 	12408,
 
-	// AG - Fotrace
+	// AG - Footrace
 	4967
 };
 

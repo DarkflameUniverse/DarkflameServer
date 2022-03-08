@@ -100,10 +100,8 @@ int main(int argc, char** argv) {
 	// Triggers the shutdown sequence at application exit
 	std::atexit(WorldShutdownSequence);
 	
-	signal(SIGINT, [](int)
-	{
-		WorldShutdownSequence();
-	});
+	signal(SIGINT, [](int){ WorldShutdownSequence(); });
+	signal(SIGTERM, [](int){ WorldShutdownSequence(); });
 
 	int zoneID = 1000;
 	int cloneID = 0;
@@ -225,9 +223,7 @@ int main(int argc, char** argv) {
 	int framesSinceMasterStatus = 0;
 	int framesSinceShutdownSequence = 0;
 	int currentFramerate = highFrameRate;
-	int physicsFramerate = highFrameRate;
-	int physicsStepRate = 0;
-	int physicsStepCount = 0;
+
 	int ghostingStepCount = 0;
 	auto ghostingLastTime = std::chrono::high_resolution_clock::now();
 
@@ -302,9 +298,6 @@ int main(int argc, char** argv) {
 		{
 			currentFramerate = PerformanceManager::GetServerFramerate();
 		}
-		
-		physicsFramerate = PerformanceManager::GetPhysicsFramerate();
-		physicsStepRate = PerformanceManager::GetPhysicsStepRate();
 
 		//Warning if we ran slow
 		if (deltaTime > currentFramerate) {
@@ -315,7 +308,9 @@ int main(int argc, char** argv) {
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
 
-			if (framesSinceMasterDisconnect >= 30) {
+			int framesToWaitForMaster = ready ? 10 : 200;
+			if (framesSinceMasterDisconnect >= framesToWaitForMaster && !worldShutdownSequenceStarted) {
+				Game::logger->Log("WorldServer", "Game loop running but no connection to master for %d frames, shutting down\n", framesToWaitForMaster);
 				worldShutdownSequenceStarted = true;
 			}
 		}
@@ -338,10 +333,7 @@ int main(int argc, char** argv) {
 
 		if (zoneID != 0 && deltaTime > 0.0f) {
 			Metrics::StartMeasurement(MetricVariable::Physics);
-			if (physicsStepCount++ >= physicsStepRate) {
-				dpWorld::Instance().StepWorld(deltaTime);
-				physicsStepCount = 0;
-			}
+			dpWorld::Instance().StepWorld(deltaTime);
 			Metrics::EndMeasurement(MetricVariable::Physics);
 
 			Metrics::StartMeasurement(MetricVariable::UpdateEntities);

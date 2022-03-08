@@ -12,6 +12,7 @@
 #include "EntityManager.h"
 #include "PossessorComponent.h"
 #include "VehiclePhysicsComponent.h"
+#include "GameMessages.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
@@ -42,7 +43,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	if (character->GetZoneID() != Game::server->GetZoneID()) {
 		m_IsLanding = true;
 	}
-
+    
 	if (LandingAnimDisabled(character->GetZoneID()) || LandingAnimDisabled(Game::server->GetZoneID()) || m_LastRocketConfig.empty()) {
 		m_IsLanding = false; //Don't make us land on VE/minigames lol
 	}
@@ -191,6 +192,7 @@ void CharacterComponent::HandleLevelUp()
 	auto* rewardsTable = CDClientManager::Instance()->GetTable<CDRewardsTable>("Rewards");
 
 	const auto& rewards = rewardsTable->GetByLevelID(m_Level);
+    bool rewardingItem = rewards.size() > 0;
 
 	auto* parent = m_Character->GetEntity();
 
@@ -206,6 +208,8 @@ void CharacterComponent::HandleLevelUp()
 	{
 		return;
 	}
+    // Tell the client we beginning to send level rewards.
+    if(rewardingItem) GameMessages::NotifyLevelRewards(parent->GetObjectID(), parent->GetSystemAddress(), m_Level, rewardingItem);
 
 	for (auto* reward : rewards)
 	{
@@ -214,29 +218,24 @@ void CharacterComponent::HandleLevelUp()
 		case 0:
 			inventoryComponent->AddItem(reward->value, reward->count);
 			break;
-
 		case 4:
 			{
 				auto* items = inventoryComponent->GetInventory(ITEMS);
 				items->SetSize(items->GetSize() + reward->value);
 			}
 			break;
-
 		case 9:
 			controllablePhysicsComponent->SetSpeedMultiplier(static_cast<float>(reward->value) / 500.0f);
 			break;
-
 		case 11:
-			break;
-
 		case 12:
 			break;
-		
 		default:
 			break;
 		}
-	}
-	
+    }
+    // Tell the client we have finished sending level rewards.
+    if(rewardingItem) GameMessages::NotifyLevelRewards(parent->GetObjectID(), parent->GetSystemAddress(), m_Level, !rewardingItem);
 }
 
 void CharacterComponent::SetGMLevel(int gmlevel) {
