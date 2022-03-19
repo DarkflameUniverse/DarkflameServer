@@ -162,6 +162,7 @@
 #include "GrowingFlower.h"
 #include "BaseFootRaceManager.h"
 #include "PropertyPlatform.h"
+#include "MailBoxServer.h"
 
 // Racing Scripts
 #include "RaceImagineCrateServer.h"
@@ -580,6 +581,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
         script = new PropertyPlatform();
     else if (scriptName == "scripts\\02_server\\Map\\VE\\L_VE_BRICKSAMPLE_SERVER.lua")
         return new VeBricksampleServer();
+	else if (scriptName == "scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua")
+		script = new MailBoxServer();
 
 	//Racing:
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua")

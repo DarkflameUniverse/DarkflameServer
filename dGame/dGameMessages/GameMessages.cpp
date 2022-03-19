@@ -1516,6 +1516,18 @@ void GameMessages::SendRequestActivityEnter(LWOOBJID objectId, const SystemAddre
     SEND_PACKET
 }
 
+void GameMessages::NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards) {
+	CBITSTREAM
+	CMSGHEADER
+
+	bitStream.Write(objectID);
+	bitStream.Write((uint16_t)GAME_MSG::GAME_MSG_NOTIFY_LEVEL_REWARDS);
+
+	bitStream.Write(level);
+	bitStream.Write(sending_rewards);
+	
+	SEND_PACKET
+}
 
 void GameMessages::SendSetShootingGalleryParams(LWOOBJID objectId, const SystemAddress& sysAddr,
 		float cameraFOV,
@@ -4980,17 +4992,6 @@ void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity,
 
 	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
 	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_NON_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
-
-	//Do mail stuff:
-	if (interactedObject->GetLOT() == 3964) {
-		AMFStringValue* value = new AMFStringValue();
-		value->SetStringValue("Mail");
-
-		AMFArrayValue args;
-		args.InsertValue("state", value);
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", &args);
-		delete value;
-	}
 }
 
 void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) {
