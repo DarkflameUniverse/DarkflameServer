@@ -2,7 +2,6 @@ name: Docker-CI
 
 env:
     REGISTRY: ghcr.io
-    IMAGE_NAME: ${{ github.repository }}
 
 on:
     push:
@@ -43,7 +42,7 @@ jobs:
               id: meta-setup
               uses: docker/metadata-action@v3
               with:
-                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/setup
+                  images: ${{ env.REGISTRY }}/${{ github.repository }}/setup
 
             # Build and push
 
@@ -86,7 +85,7 @@ jobs:
               id: meta-database
               uses: docker/metadata-action@v3
               with:
-                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/database
+                  images: ${{ env.REGISTRY }}/${{ github.repository }}/database
 
             # Build and push
 
@@ -130,7 +129,7 @@ jobs:
               id: meta-darkflame-171023
               uses: docker/metadata-action@v3
               with:
-                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/darkflame-171023
+                  images: ${{ env.REGISTRY }}/${{ github.repository }}/darkflame-171023
 
             # Build and push
 
@@ -177,7 +176,7 @@ jobs:
               id: meta-darkflame-171022
               uses: docker/metadata-action@v3
               with:
-                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/darkflame-171022
+                  images: ${{ env.REGISTRY }}/${{ github.repository }}/darkflame-171022
 
             # Build and push
 
@@ -224,7 +223,7 @@ jobs:
               id: meta-brickfix
               uses: docker/metadata-action@v3
               with:
-                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/brickfix
+                  images: ${{ env.REGISTRY }}/${{ github.repository }}/brickfix
 
             # Build and push
 
@@ -268,7 +267,7 @@ jobs:
               id: meta-account-manager
               uses: docker/metadata-action@v3
               with:
-                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/account-manager
+                  images: ${{ env.REGISTRY }}/${{ github.repository }}/account-manager
 
             # Build and push
 
