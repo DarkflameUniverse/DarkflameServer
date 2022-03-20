@@ -1,0 +1,261 @@
+name: Docker-CI
+
+env:
+    REGISTRY: ghcr.io
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build-setup:
+        name: "Build Docker Image: setup"
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v2
+              with:
+                  submodules: recursive
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v1
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v1
+
+            # Login to registry
+
+            - name: Log in to the Container registry
+              uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            # Metadata and cache
+
+            - name: Extract metadata (tags, labels) for Docker setup
+              id: meta-setup
+              uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+              with:
+                  images: ${{ env.REGISTRY }}/setup
+
+            # Build and push
+
+            - name: Build and push Docker image
+              uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+              with:
+                  context: .
+                  push: true
+                  tags: ${{ steps.meta-setup.outputs.tags }}
+                  labels: ${{ steps.meta-setup.outputs.labels }}
+                  file: ./docker/setup.Dockerfile
+    build-database:
+        name: "Build Docker Image: database"
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v2
+              with:
+                  submodules: recursive
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v1
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v1
+
+            # Login to registry
+
+            - name: Log in to the Container registry
+              uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            # Metadata and cache
+            - name: Extract metadata (tags, labels) for Docker database
+              id: meta-database
+              uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+              with:
+                  images: ${{ env.REGISTRY }}/database
+
+            # Build and push
+
+            - name: Build and push Docker image
+              uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+              with:
+                  context: .
+                  push: true
+                  tags: ${{ steps.meta-database.outputs.tags }}
+                  labels: ${{ steps.meta-database.outputs.labels }}
+                  file: ./docker/database.Dockerfile
+
+    build-darkflame-171023:
+        name: "Build Docker Image: darkflame-171023"
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v2
+              with:
+                  submodules: recursive
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v1
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v1
+
+            # Login to registry
+
+            - name: Log in to the Container registry
+              uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            # Metadata and cache
+            - name: Extract metadata (tags, labels) for Docker darkflame-171023
+              id: meta-darkflame-171023
+              uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+              with:
+                  images: ${{ env.REGISTRY }}/darkflame-171023
+
+            # Build and push
+
+            - name: Build and push Docker image
+              uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+              with:
+                  context: .
+                  push: true
+                  tags: ${{ steps.meta-darkflame-171023.outputs.tags }}
+                  labels: ${{ steps.meta-darkflame-171023.outputs.labels }}
+                  file: ./docker/Dockerfile
+                  build-args: |
+                      BUILD_VERSION=171023
+
+    build-darkflame-171022:
+        name: "Build Docker Image: darkflame-171022"
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v2
+              with:
+                  submodules: recursive
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v1
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v1
+
+            # Login to registry
+
+            - name: Log in to the Container registry
+              uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            # Metadata and cache
+            - name: Extract metadata (tags, labels) for Docker darkflame-171022
+              id: meta-darkflame-171022
+              uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+              with:
+                  images: ${{ env.REGISTRY }}/darkflame-171022
+
+            # Build and push
+
+            - name: Build and push Docker image
+              uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+              with:
+                  context: .
+                  push: true
+                  tags: ${{ steps.meta-darkflame-171022.outputs.tags }}
+                  labels: ${{ steps.meta-darkflame-171022.outputs.labels }}
+                  file: ./docker/Dockerfile
+                  build-args: |
+                      BUILD_VERSION=171022
+
+    build-brickfix:
+        name: "Build Docker Image: brickfix"
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v2
+              with:
+                  submodules: recursive
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v1
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v1
+
+            # Login to registry
+
+            - name: Log in to the Container registry
+              uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            # Metadata and cache
+            - name: Extract metadata (tags, labels) for Docker brickfix
+              id: meta-brickfix
+              uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+              with:
+                  images: ${{ env.REGISTRY }}/brickfix
+
+            # Build and push
+
+            - name: Build and push Docker image
+              uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+              with:
+                  context: .
+                  push: true
+                  tags: ${{ steps.meta-brickfix.outputs.tags }}
+                  labels: ${{ steps.meta-brickfix.outputs.labels }}
+                  file: ./docker/Dockerfile
+
+    build-account-manager:
+        name: "Build Docker Image: account-manager"
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v2
+              with:
+                  submodules: recursive
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v1
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v1
+
+            # Login to registry
+
+            - name: Log in to the Container registry
+              uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            # Metadata and cache
+            - name: Extract metadata (tags, labels) for Docker account-manager
+              id: meta-account-manager
+              uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+              with:
+                  images: ${{ env.REGISTRY }}/account-manager
+
+            # Build and push
+
+            - name: Build and push Docker image
+              uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+              with:
+                  context: .
+                  push: true
+                  tags: ${{ steps.meta-account-manager.outputs.tags }}
+                  labels: ${{ steps.meta-account-manager.outputs.labels }}
+                  file: ./docker/Dockerfile
