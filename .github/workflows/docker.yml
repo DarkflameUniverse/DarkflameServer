@@ -2,6 +2,7 @@ name: Docker-CI
 
 env:
     REGISTRY: ghcr.io
+    IMAGE_NAME: ${{ github.repository }}
 
 on:
     push:
@@ -42,7 +43,7 @@ jobs:
               id: meta-setup
               uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
               with:
-                  images: ${{ env.REGISTRY }}/setup
+                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/setup
 
             # Build and push
 
@@ -85,7 +86,7 @@ jobs:
               id: meta-database
               uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
               with:
-                  images: ${{ env.REGISTRY }}/database
+                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/database
 
             # Build and push
 
@@ -129,7 +130,7 @@ jobs:
               id: meta-darkflame-171023
               uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
               with:
-                  images: ${{ env.REGISTRY }}/darkflame-171023
+                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/darkflame-171023
 
             # Build and push
 
@@ -176,7 +177,7 @@ jobs:
               id: meta-darkflame-171022
               uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
               with:
-                  images: ${{ env.REGISTRY }}/darkflame-171022
+                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/darkflame-171022
 
             # Build and push
 
@@ -223,7 +224,7 @@ jobs:
               id: meta-brickfix
               uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
               with:
-                  images: ${{ env.REGISTRY }}/brickfix
+                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/brickfix
 
             # Build and push
 
@@ -267,7 +268,7 @@ jobs:
               id: meta-account-manager
               uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
               with:
-                  images: ${{ env.REGISTRY }}/account-manager
+                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/account-manager
 
             # Build and push
 
