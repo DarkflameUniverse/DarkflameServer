@@ -66,4 +66,10 @@ RUN mkdir -p /build/cmake_build && ln -s /app/_deps /build/cmake_build/_deps
 
 COPY docker/start_server.sh /start_server.sh
 
+COPY docker/master-server-wrapper.sh /app/MasterServer.wrapper
+
+RUN mv ./MasterServer /app/MasterServer.org && \
+    mv /app/MasterServer.wrapper /app/MasterServer && \
+    chmod +x /app/MasterServer
+
 CMD [ "/start_server.sh" ]

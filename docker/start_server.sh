@@ -48,7 +48,7 @@ fi
 
 # start the server
 echo "Starting MasterServer"
-./MasterServer
+./MasterServer.org
 echo "MasterServer exited with $?"
 echo "[WARNING] The container stays online. With this you should be able to explorer the server files including log files"
 tail -f /dev/null
