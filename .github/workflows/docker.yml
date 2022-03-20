@@ -5,7 +5,7 @@ env:
 
 on:
     push:
-        branches: [main]
+        branches: [main, docker-improvements]
     pull_request:
         branches: [main]
 
