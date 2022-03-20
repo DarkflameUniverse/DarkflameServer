@@ -99,9 +99,12 @@ jobs:
                   labels: ${{ steps.meta-database.outputs.labels }}
                   file: ./docker/database.Dockerfile
 
-    build-darkflame-171023:
-        name: "Build Docker Image: darkflame-171023"
+    build-darkflame:
+        name: "Build Docker Image: darkflame"
         runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                netversion: [171023, 171022]
         permissions:
             contents: read
             packages: write
@@ -126,11 +129,11 @@ jobs:
                   password: ${{ secrets.GITHUB_TOKEN }}
 
             # Metadata and cache
-            - name: Extract metadata (tags, labels) for Docker darkflame-171023
-              id: meta-darkflame-171023
+            - name: Extract metadata (tags, labels) for Docker darkflame
+              id: meta-darkflame
               uses: docker/metadata-action@v3
               with:
-                  images: ${{ env.REGISTRY }}/${{ github.repository }}/darkflame-171023
+                  images: ${{ env.REGISTRY }}/${{ github.repository }}/darkflame-${{ matrix.netversion }}
 
             # Build and push
 
@@ -139,58 +142,11 @@ jobs:
               with:
                   context: .
                   push: true
-                  tags: ${{ steps.meta-darkflame-171023.outputs.tags }}
-                  labels: ${{ steps.meta-darkflame-171023.outputs.labels }}
+                  tags: ${{ steps.meta-darkflame.outputs.tags }}
+                  labels: ${{ steps.meta-darkflame.outputs.labels }}
                   file: ./docker/Dockerfile
                   build-args: |
-                      BUILD_VERSION=171023
-                      BUILD_THREADS=2
-
-    build-darkflame-171022:
-        name: "Build Docker Image: darkflame-171022"
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            packages: write
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v2
-              with:
-                  submodules: recursive
-
-            - name: Set up QEMU
-              uses: docker/setup-qemu-action@v1
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v1
-
-            # Login to registry
-
-            - name: Log in to the Container registry
-              uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-              with:
-                  registry: ${{ env.REGISTRY }}
-                  username: ${{ github.actor }}
-                  password: ${{ secrets.GITHUB_TOKEN }}
-
-            # Metadata and cache
-            - name: Extract metadata (tags, labels) for Docker darkflame-171022
-              id: meta-darkflame-171022
-              uses: docker/metadata-action@v3
-              with:
-                  images: ${{ env.REGISTRY }}/${{ github.repository }}/darkflame-171022
-
-            # Build and push
-
-            - name: Build and push Docker image
-              uses: docker/build-push-action@v2
-              with:
-                  context: .
-                  push: true
-                  tags: ${{ steps.meta-darkflame-171022.outputs.tags }}
-                  labels: ${{ steps.meta-darkflame-171022.outputs.labels }}
-                  file: ./docker/Dockerfile
-                  build-args: |
-                      BUILD_VERSION=171022
+                      BUILD_VERSION=${{ matrix.netversion }}
                       BUILD_THREADS=2
 
     build-brickfix:
