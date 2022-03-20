@@ -143,6 +143,7 @@ jobs:
                   file: ./docker/Dockerfile
                   build-args: |
                       BUILD_VERSION=171023
+                      BUILD_THREADS=2
 
     build-darkflame-171022:
         name: "Build Docker Image: darkflame-171022"
@@ -189,6 +190,7 @@ jobs:
                   file: ./docker/Dockerfile
                   build-args: |
                       BUILD_VERSION=171022
+                      BUILD_THREADS=2
 
     build-brickfix:
         name: "Build Docker Image: brickfix"
