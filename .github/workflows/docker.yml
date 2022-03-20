@@ -13,6 +13,9 @@ jobs:
     build-setup:
         name: "Build Docker Image: setup"
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
         steps:
             - name: Checkout repository
               uses: actions/checkout@v2
@@ -54,6 +57,9 @@ jobs:
     build-database:
         name: "Build Docker Image: database"
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
         steps:
             - name: Checkout repository
               uses: actions/checkout@v2
@@ -95,6 +101,9 @@ jobs:
     build-darkflame-171023:
         name: "Build Docker Image: darkflame-171023"
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
         steps:
             - name: Checkout repository
               uses: actions/checkout@v2
@@ -138,6 +147,9 @@ jobs:
     build-darkflame-171022:
         name: "Build Docker Image: darkflame-171022"
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
         steps:
             - name: Checkout repository
               uses: actions/checkout@v2
@@ -181,6 +193,9 @@ jobs:
     build-brickfix:
         name: "Build Docker Image: brickfix"
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
         steps:
             - name: Checkout repository
               uses: actions/checkout@v2
@@ -222,6 +237,9 @@ jobs:
     build-account-manager:
         name: "Build Docker Image: account-manager"
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
         steps:
             - name: Checkout repository
               uses: actions/checkout@v2
