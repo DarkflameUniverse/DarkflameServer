@@ -54,6 +54,7 @@ jobs:
                   tags: ${{ steps.meta-setup.outputs.tags }}
                   labels: ${{ steps.meta-setup.outputs.labels }}
                   file: ./docker/setup.Dockerfile
+
     build-database:
         name: "Build Docker Image: database"
         runs-on: ubuntu-latest
@@ -234,7 +235,7 @@ jobs:
                   push: true
                   tags: ${{ steps.meta-brickfix.outputs.tags }}
                   labels: ${{ steps.meta-brickfix.outputs.labels }}
-                  file: ./docker/Dockerfile
+                  file: ./docker/brickfix.Dockerfile
 
     build-account-manager:
         name: "Build Docker Image: account-manager"
@@ -278,4 +279,4 @@ jobs:
                   push: true
                   tags: ${{ steps.meta-account-manager.outputs.tags }}
                   labels: ${{ steps.meta-account-manager.outputs.labels }}
-                  file: ./docker/Dockerfile
+                  file: ./docker/AccountManager.Dockerfile
