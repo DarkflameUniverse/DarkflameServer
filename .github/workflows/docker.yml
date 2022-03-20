@@ -47,7 +47,7 @@ jobs:
             # Build and push
 
             - name: Build and push Docker image
-              uses: docker/build-push-action@v1
+              uses: docker/build-push-action@v2
               with:
                   context: .
                   push: true
@@ -90,7 +90,7 @@ jobs:
             # Build and push
 
             - name: Build and push Docker image
-              uses: docker/build-push-action@v1
+              uses: docker/build-push-action@v2
               with:
                   context: .
                   push: true
@@ -134,7 +134,7 @@ jobs:
             # Build and push
 
             - name: Build and push Docker image
-              uses: docker/build-push-action@v1
+              uses: docker/build-push-action@v2
               with:
                   context: .
                   push: true
@@ -181,7 +181,7 @@ jobs:
             # Build and push
 
             - name: Build and push Docker image
-              uses: docker/build-push-action@v1
+              uses: docker/build-push-action@v2
               with:
                   context: .
                   push: true
@@ -228,7 +228,7 @@ jobs:
             # Build and push
 
             - name: Build and push Docker image
-              uses: docker/build-push-action@v1
+              uses: docker/build-push-action@v2
               with:
                   context: .
                   push: true
@@ -272,7 +272,7 @@ jobs:
             # Build and push
 
             - name: Build and push Docker image
-              uses: docker/build-push-action@v1
+              uses: docker/build-push-action@v2
               with:
                   context: .
                   push: true
