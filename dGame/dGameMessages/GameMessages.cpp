@@ -5900,6 +5900,13 @@ void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) 
 		body.push_back(character);
 	}
 
+	auto character = entity->GetCharacter();
+	if (character) {
+		body.append(GeneralUtils::ASCIIToUTF16(" charID: "));
+		body.append(GeneralUtils::ASCIIToUTF16(std::to_string(character->GetID())));
+		body.push_back(' ');
+	}
+
 	uint32_t clientVersionLength;
 	inStream->Read(clientVersionLength);
 	for (unsigned int k = 0; k < clientVersionLength; k++) {
@@ -5915,7 +5922,19 @@ void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) 
 		inStream->Read(character);
 		nOtherPlayerID.push_back(character);
 	}
-
+	// Convert other player id from LWOOBJID to the database id.
+	std::istringstream iss(nOtherPlayerID);
+	LWOOBJID nOtherPlayerLWOOBJID;
+	iss >> nOtherPlayerLWOOBJID;
+	if (nOtherPlayerLWOOBJID != LWOOBJID_EMPTY) {
+		auto otherPlayer = EntityManager::Instance()->GetEntity(nOtherPlayerLWOOBJID);
+		if (otherPlayer) {
+			auto character = otherPlayer->GetCharacter();
+			if (character) {
+				nOtherPlayerID = std::to_string(character->GetID());
+			}
+		}
+	}
 	uint32_t selectionLength;
 	inStream->Read(selectionLength);
 	for (unsigned int k = 0; k < selectionLength; k++) {
