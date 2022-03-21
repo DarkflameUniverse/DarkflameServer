@@ -5890,6 +5890,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) 
 	std::string nOtherPlayerID;
 	std::string selection;
 	uint32_t messageLength;
+	int32_t reporterID;
 
 	//Reading:
 	inStream->Read(messageLength);
@@ -5901,11 +5902,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) 
 	}
 
 	auto character = entity->GetCharacter();
-	if (character) {
-		body.append(GeneralUtils::ASCIIToUTF16(" charID: "));
-		body.append(GeneralUtils::ASCIIToUTF16(std::to_string(character->GetID())));
-		body.push_back(' ');
-	}
+	if (character) reporterID = character->GetID();
 
 	uint32_t clientVersionLength;
 	inStream->Read(clientVersionLength);
@@ -5944,11 +5941,12 @@ void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) 
 	}
 
 	try {
-		sql::PreparedStatement* insertBug = Database::CreatePreppedStmt("INSERT INTO `bug_reports`(body, client_version, other_player_id, selection) VALUES (?, ?, ?, ?)");
+		sql::PreparedStatement* insertBug = Database::CreatePreppedStmt("INSERT INTO `bug_reports`(body, client_version, other_player_id, selection, reporter_id) VALUES (?, ?, ?, ?, ?)");
 		insertBug->setString(1, GeneralUtils::UTF16ToWTF8(body));
 		insertBug->setString(2, clientVersion);
 		insertBug->setString(3, nOtherPlayerID);
 		insertBug->setString(4, selection);
+		insertBug->setInt(5, reporterID);
 		insertBug->execute();
 		delete insertBug;
 	}
