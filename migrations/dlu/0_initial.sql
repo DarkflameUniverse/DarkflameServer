@@ -150,6 +150,7 @@ CREATE TABLE activity_log (
 DROP TABLE IF EXISTS bug_reports;
 CREATE TABLE bug_reports (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    reporter_id INT NOT NULL DEFAULT 0,
     body TEXT NOT NULL,
     client_version TEXT NOT NULL,
     other_player_id TEXT NOT NULL,
