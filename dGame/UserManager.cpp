@@ -69,16 +69,6 @@ void UserManager::Initialize() {
 		StripCR(line);
 		m_PreapprovedNames.push_back(line);
 	}
-	
-	//Load custom ones from MySQL too:
-	/*sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT name FROM approvedNames;");
-	sql::ResultSet* res = stmt->executeQuery();
-	while (res->next()) {
-		m_PreapprovedNames.push_back(res->getString(1));
-	}
-	
-	delete res;
-	delete stmt;*/
 }
 
 UserManager::~UserManager() {
@@ -567,16 +557,6 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
     }
 }
 
-uint32_t GetShirtColorId(uint32_t color) {
-	
-	// get the index of the color in shirtColorVector
-	auto colorId = std::find(shirtColorVector.begin(), shirtColorVector.end(), color);
-	return color = std::distance(shirtColorVector.begin(), colorId);
-}
-// the correct query
-/**
- * select obj.id, obj.name, obj._internalnotes, icc.color1, icc.decal from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == "character create shirt";
- */
 uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 	try {
 		std::string shirtQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"character create shirt\" AND icc.color1 == ";
@@ -596,91 +576,19 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 }
 
 uint32_t FindCharPantsID(uint32_t pantsColor) {
-	uint32_t pantsID = 2508;
-
-	switch (pantsColor) {
-	case 0: {
-		pantsID = PANTS_BRIGHT_RED;
-		break;
+	try {
+		std::string shirtQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"cc pants\" AND icc.color1 == ";
+		shirtQuery += std::to_string(pantsColor);
+		auto tableData = CDClientDatabase::ExecuteQuery(shirtQuery);
+		auto pantsLOT = tableData.getIntField(0, -1);
+		tableData.finalize();
+		return pantsLOT;
 	}
-
-	case 1: {
-		pantsID = PANTS_BRIGHT_BLUE;
-		break;
+	catch (const std::exception&){
+		Game::logger->Log("Character Create", "Failed to use query! Using backup...");
+		// in case of no pants color found in CDServer, return red pants.
+		return 2508;
 	}
-
-	case 3: {
-		pantsID = PANTS_DARK_GREEN;
-		break;
-	}
-
-	case 5: {
-		pantsID = PANTS_BRIGHT_ORANGE;
-		break;
-	}
-
-	case 6: {
-		pantsID = PANTS_BLACK;
-		break;
-	}
-
-	case 7: {
-		pantsID = PANTS_DARK_STONE_GRAY;
-		break;
-	}
-
-	case 8: {
-		pantsID = PANTS_MEDIUM_STONE_GRAY;
-		break;
-	}
-
-	case 9: {
-		pantsID = PANTS_REDDISH_BROWN;
-		break;
-	}
-
-	case 10: {
-		pantsID = PANTS_WHITE;
-		break;
-	}
-
-	case 11: {
-		pantsID = PANTS_MEDIUM_BLUE;
-		break;
-	}
-
-	case 13: {
-		pantsID = PANTS_DARK_RED;
-		break;
-	}
-
-	case 14: {
-		pantsID = PANTS_EARTH_BLUE;
-		break;
-	}
-
-	case 15: {
-		pantsID = PANTS_EARTH_GREEN;
-		break;
-	}
-
-	case 16: {
-		pantsID = PANTS_BRICK_YELLOW;
-		break;
-	}
-
-	case 84: {
-		pantsID = PANTS_SAND_BLUE;
-		break;
-	}
-
-	case 96: {
-		pantsID = PANTS_SAND_GREEN;
-		break;
-	}
-	}
-	
-	return pantsID;
 }
 
 void UserManager::SaveAllActiveCharacters() {
