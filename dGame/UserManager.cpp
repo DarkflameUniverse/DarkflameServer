@@ -569,7 +569,7 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 		return shirtLOT;
 	}
 	catch (const std::exception&){
-		Game::logger->Log("Character Create", "Failed to use query! Using backup...");
+		Game::logger->Log("Character Create", "Failed to execute query! Using backup...");
 		// in case of no shirt found in CDServer, return problematic red vest.
 		return 4069;
 	}
@@ -585,7 +585,7 @@ uint32_t FindCharPantsID(uint32_t pantsColor) {
 		return pantsLOT;
 	}
 	catch (const std::exception&){
-		Game::logger->Log("Character Create", "Failed to use query! Using backup...");
+		Game::logger->Log("Character Create", "Failed to execute query! Using backup...");
 		// in case of no pants color found in CDServer, return red pants.
 		return 2508;
 	}
