@@ -577,9 +577,9 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 
 uint32_t FindCharPantsID(uint32_t pantsColor) {
 	try {
-		std::string shirtQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"cc pants\" AND icc.color1 == ";
-		shirtQuery += std::to_string(pantsColor);
-		auto tableData = CDClientDatabase::ExecuteQuery(shirtQuery);
+		std::string pantsQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"cc pants\" AND icc.color1 == ";
+		pantsQuery += std::to_string(pantsColor);
+		auto tableData = CDClientDatabase::ExecuteQuery(pantsQuery);
 		auto pantsLOT = tableData.getIntField(0, -1);
 		tableData.finalize();
 		return pantsLOT;
