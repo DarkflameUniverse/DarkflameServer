@@ -78,14 +78,7 @@ void MissionTask::SetProgress(const uint32_t value, const bool echo)
 
 	std::vector<float> updates;
 	updates.push_back(static_cast<float>(progress));
-
-	GameMessages::SendNotifyMissionTask(
-		entity,
-		entity->GetSystemAddress(),
-		static_cast<int>(info->id),
-		static_cast<int>(1 << (mask + 1)),
-		updates
-	);
+	GameMessages::SendNotifyMissionTask(entity, entity->GetSystemAddress(), static_cast<int>(info->id), static_cast<int>(1 << (mask + 1)), updates);
 }
 
 
@@ -190,15 +183,13 @@ bool MissionTask::InParameters(const uint32_t value) const
 
 bool MissionTask::IsComplete() const
 {
-    // Minigames are the only ones where the target value is a score they need to get but the actual target is the act ID
-	return GetType() == MissionTaskType::MISSION_TASK_TYPE_MINIGAME ? progress == info->target : progress >= info->targetValue;
+	return progress >= info->targetValue;
 }
 
 
 void MissionTask::Complete()
 {
-    // Minigames are the only ones where the target value is a score they need to get but the actual target is the act ID
-	SetProgress(GetType() == MissionTaskType::MISSION_TASK_TYPE_MINIGAME ? info->target : info->targetValue);
+	SetProgress(info->targetValue);
 }
 
 
@@ -352,9 +343,14 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		if (info->target != gameID) {
 			break;
 		}
-
+		// This special case is for shooting gallery missions that want their
+		// progress value set to 1 instead of being set to the target value.
+		if(info->targetGroup == targets && value >= info->targetValue && GetMission()->IsMission() && info->target == 1864 && info->targetGroup == "performact_score") {
+			SetProgress(1);
+			break;
+		}
 		if(info->targetGroup == targets && value >= info->targetValue) {
-			SetProgress(info->target);
+			SetProgress(info->targetValue);
 			break;
 		}
 		break;
