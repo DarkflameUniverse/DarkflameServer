@@ -240,7 +240,7 @@ public:
 
     /**
      * Finds all the buffs related to a lot
-     * @param lot the lot to get the buffs for
+     * @param item the item to get the buffs for
      * @param castOnEquip if true, the skill missions for these buffs will be progressed
      * @return the buffs related to the specified lot
      */
