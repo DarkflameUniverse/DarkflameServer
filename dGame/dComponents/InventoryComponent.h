@@ -195,13 +195,13 @@ public:
      * Adds a buff related to equipping a lot to the entity
      * @param lot the lot to find buffs for
      */
-	void ApplyBuff(LOT lot) const;
+	void ApplyBuff(Item* item) const;
 
     /**
      * Removes buffs related to equipping a lot from the entity
      * @param lot the lot to find buffs for
      */
-	void RemoveBuff(LOT lot) const;
+	void RemoveBuff(Item* item) const;
 
     /**
      * Saves the equipped items into a temp state
@@ -244,7 +244,7 @@ public:
      * @param castOnEquip if true, the skill missions for these buffs will be progressed
      * @return the buffs related to the specified lot
      */
-	std::vector<uint32_t> FindBuffs(LOT lot, bool castOnEquip) const;
+	std::vector<uint32_t> FindBuffs(Item* item, bool castOnEquip) const;
 
     /**
      * Initializes the equipped items with a list of items
