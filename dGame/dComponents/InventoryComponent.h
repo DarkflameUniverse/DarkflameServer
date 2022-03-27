@@ -193,13 +193,13 @@ public:
 
     /**
      * Adds a buff related to equipping a lot to the entity
-     * @param lot the lot to find buffs for
+     * @param item the item to find buffs for
      */
 	void ApplyBuff(Item* item) const;
 
     /**
      * Removes buffs related to equipping a lot from the entity
-     * @param lot the lot to find buffs for
+     * @param item the item to find buffs for
      */
 	void RemoveBuff(Item* item) const;
 
