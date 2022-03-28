@@ -38,7 +38,7 @@ public:
      * @param playerOwn only query properties owned by the entity
      * @param updateUi unused
      * @param numResults unused
-     * @param reputation unused
+     * @param lReputationTime unused
      * @param sortMethod unused
      * @param startIndex the minimum index to start the query off
      * @param filterText property names to search for
@@ -50,7 +50,7 @@ public:
                                 bool playerOwn,
                                 bool updateUi,
                                 int32_t numResults,
-                                int32_t reputation,
+                                int32_t lReputationTime,
                                 int32_t sortMethod,
                                 int32_t startIndex,
                                 std::string filterText, 
