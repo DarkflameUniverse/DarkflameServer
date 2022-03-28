@@ -7,6 +7,7 @@
 #include "dLogger.h"
 #include "Database.h"
 #include "PropertyManagementComponent.h"
+#include "UserManager.h"
 
 PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent)
 {
@@ -117,42 +118,40 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
 
     sql::ResultSet* propertyEntry;
     sql::PreparedStatement* propertyLookup;
+    std::string orderBy = "";
+    int32_t privacyType = 2;
 
     const auto moderating = entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR;
-	
-    if (!moderating)
-    {
-        propertyLookup = Database::CreatePreppedStmt(
-                "SELECT * FROM properties WHERE (name LIKE ? OR description LIKE ? OR "
-                "((SELECT name FROM charinfo WHERE prop_clone_id = clone_id) LIKE ?)) AND "
-                "(privacy_option = 2 AND mod_approved = true) OR (privacy_option >= 1 "
-                "AND (owner_id IN (SELECT friend_id FROM friends WHERE player_id = ?) OR owner_id IN (SELECT player_id FROM "
-                "friends WHERE friend_id = ?))) AND zone_id = ? LIMIT ? OFFSET ?;"
-                );
-
-        const std::string searchString = "%" + filterText + "%";
-        Game::logger->Log("PropertyEntranceComponent", "%s\n", searchString.c_str());
-        propertyLookup->setString(1, searchString.c_str());
-        propertyLookup->setString(2, searchString.c_str());
-        propertyLookup->setString(3, searchString.c_str());
-        propertyLookup->setInt64(4, entity->GetObjectID());
-        propertyLookup->setInt64(5, entity->GetObjectID());
-        propertyLookup->setUInt(6, launchpadComponent->GetTargetZone());
-        propertyLookup->setInt(7, numResults);
-        propertyLookup->setInt(8, startIndex);
-
-        propertyEntry = propertyLookup->executeQuery();
+    
+    // We change how we sort this query based on what the requested order is.
+	if (sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS) {
+        orderBy = "ci.name";
+        privacyType = 1;
     }
-    else
-    {
-        propertyLookup = Database::CreatePreppedStmt(
-            "SELECT * FROM properties WHERE privacy_option = 2 AND mod_approved = false AND zone_id = ?;"
-        );
-
-        propertyLookup->setUInt(1, launchpadComponent->GetTargetZone());
-
-        propertyEntry = propertyLookup->executeQuery();
+    else if (sortMethod == SORT_TYPE_RECENT) {
+        orderBy = "p.last_updated";
     }
+    else if (sortMethod == SORT_TYPE_REPUTATION) {
+        orderBy = "p.reputation, p.last_updated";
+    }
+    else {
+        orderBy = "p.last_updated";
+    }
+
+    propertyLookup = Database::CreatePreppedStmt("SELECT p.* FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description OR p.name OR ci.name LIKE ?) AND p.mod_approved >= ? AND p.privacy_option = ? ORDER BY ? DESC LIMIT ? OFFSET ?;");
+
+    const std::string searchString = "%" + filterText + "%";
+    Game::logger->Log("PropertyEntranceComponent", "%s\n", searchString.c_str());
+    propertyLookup->setUInt(1, launchpadComponent->GetTargetZone());
+    propertyLookup->setString(2, searchString.c_str());
+    propertyLookup->setInt(3, entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR ? 0 : 1);
+    propertyLookup->setInt(4, privacyType);
+    propertyLookup->setString(5, orderBy);
+    propertyLookup->setInt(6, numResults);
+    propertyLookup->setInt(7, startIndex);
+    Game::logger->Log("PropertyEntranceComponent", "Querying target zone %i with search string %s and ordering by %s starting at index %i. Entity is %s.\n", launchpadComponent->GetTargetZone(), searchString.c_str(), orderBy.c_str(), startIndex, entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR ? "a moderator" : "not a moderator");
+
+    propertyEntry = propertyLookup->executeQuery();
 	
 	while (propertyEntry->next())
 	{
@@ -162,6 +161,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
         const auto name = propertyEntry->getString(5).asStdString();
         const auto description = propertyEntry->getString(6).asStdString();
 		const auto privacyOption = propertyEntry->getInt(9);
+        const auto modApproved = propertyEntry->getBoolean(10);
 		const auto reputation = propertyEntry->getInt(15);
 
         PropertySelectQueryProperty entry {};
@@ -182,11 +182,11 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
         }
         else
         {
-            entry.IsOwner = owner == entity->GetObjectID();
+            entry.IsOwner = owner == entity->GetCharacter()->GetID();
             entry.OwnerName = nameResult->getString(1).asStdString();
         }
 		
-        if (!moderating)
+        if (modApproved)
         {
             entry.Name = name;
             entry.Description = description;
@@ -196,12 +196,32 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
             entry.Name = "[Awaiting approval] " + name;
             entry.Description = "[Awaiting approval] " + description;
         }
-		
-        entry.IsFriend = privacyOption == static_cast<int32_t>(PropertyPrivacyOption::Friends);
+        // Convert owner char id to LWOOBJID
+        LWOOBJID ownerObjId = owner;
+        ownerObjId = GeneralUtils::SetBit(ownerObjId, OBJECT_BIT_CHARACTER);
+        ownerObjId = GeneralUtils::SetBit(ownerObjId, OBJECT_BIT_PERSISTENT);
+
+        auto friendCheck = Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)");
+
+        friendCheck->setInt64(1, entity->GetObjectID());
+        friendCheck->setInt64(2, ownerObjId);
+        friendCheck->setInt64(3, ownerObjId);
+        friendCheck->setInt64(4, entity->GetObjectID());
+
+        auto friendResult = friendCheck->executeQuery();
+        
+        // If we got a result than the two players are friends.
+        if (friendResult->next()) {
+            entry.IsFriend = true;
+        }
+        else {
+            entry.IsFriend = false;
+        }
+
         entry.Reputation = reputation;
         entry.CloneId = cloneId;
-        entry.IsModeratorApproved = true;
-        entry.AccessType = 3;
+        entry.IsModeratorApproved = modApproved == true;
+        entry.AccessType = privacyOption;
 
         entries.push_back(entry);
 

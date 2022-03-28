@@ -84,4 +84,11 @@ private:
      * The base map ID for this property (Avant Grove, etc).
      */
     LWOMAPID m_MapID;
+
+    enum ePropertySortType : int32_t {
+        SORT_TYPE_FRIENDS = 0,
+        SORT_TYPE_REPUTATION = 1,
+        SORT_TYPE_RECENT = 3,
+        SORT_TYPE_FEATURED = 5
+    };
 };
