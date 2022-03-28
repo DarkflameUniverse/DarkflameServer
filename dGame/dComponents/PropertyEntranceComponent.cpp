@@ -76,33 +76,9 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
     launcher->Launch(entity, LWOOBJID_EMPTY, LWOMAPID_INVALID, cloneId);
 }
 
-void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
-                                                       bool includeNullAddress,
-                                                       bool includeNullDescription,
-                                                       bool playerOwn,
-                                                       bool updateUi,
-                                                       int32_t numResults,
-                                                       int32_t lReputationTime,
-                                                       int32_t sortMethod,
-                                                       int32_t startIndex,
-                                                       std::string filterText,
-                                                       const SystemAddress& sysAddr)
-{
-    Game::logger->Log("PropertyEntranceComponent", "On Sync %d %d %d %d %i %i %i %i %s\n",
-        includeNullAddress,
-        includeNullDescription,
-        playerOwn,
-        updateUi,
-        numResults,
-        lReputationTime,
-        sortMethod,
-        startIndex,
-        filterText.c_str()
-    );
-
+void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool includeNullAddress, bool includeNullDescription, bool playerOwn, bool updateUi, int32_t numResults, int32_t lReputationTime, int32_t sortMethod, int32_t startIndex, std::string filterText, const SystemAddress& sysAddr){
     auto* launchpadComponent = m_Parent->GetComponent<RocketLaunchpadControlComponent>();
-    if (launchpadComponent == nullptr)
-        return;
+    if (launchpadComponent == nullptr) return;
 
     std::vector<PropertySelectQueryProperty> entries {};
     PropertySelectQueryProperty playerEntry {};
