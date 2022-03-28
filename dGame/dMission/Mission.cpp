@@ -516,7 +516,7 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_reputation > 0) {
-        // TODO: Track reputation in the character and database.
+        // TODO: Track reputation in the property table and in charxml
         missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
     }
 
