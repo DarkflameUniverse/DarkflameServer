@@ -71,7 +71,7 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 		this->propertyName = propertyEntry->getString(5).c_str();
 		this->propertyDescription = propertyEntry->getString(6).c_str();
 		this->privacyOption = static_cast<PropertyPrivacyOption>(propertyEntry->getUInt(9));
-		this->claimedTime = propertyEntry->getUInt64(13);
+		this->claimedTime = propertyEntry->getUInt64(12);
 
 		Load();
 	}
