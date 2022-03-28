@@ -13,7 +13,7 @@ public:
     std::string OwnerName = "";
     std::string Name = "";
     std::string Description = "";
-    uint32_t Reputation = 10;
+    uint32_t Reputation = 0;
     bool IsBestFriend = false;
     bool IsFriend = false;
     bool IsModeratorApproved = false;
