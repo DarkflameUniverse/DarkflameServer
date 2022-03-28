@@ -18,7 +18,7 @@ public:
     bool IsFriend = false;
     bool IsModeratorApproved = false;
     bool IsAlt = false;
-    bool IsOwner = false;
+    bool IsOwned = false;
     uint32_t AccessType = 0;
     uint32_t DatePublished = 0;
     uint64_t PerformanceCost = 0;

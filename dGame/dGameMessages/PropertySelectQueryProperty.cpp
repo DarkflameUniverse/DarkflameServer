@@ -27,7 +27,7 @@ void PropertySelectQueryProperty::Serialize(RakNet::BitStream& stream) const
     stream.Write(IsFriend);
     stream.Write(IsModeratorApproved);
     stream.Write(IsAlt);
-    stream.Write(IsOwner);
+    stream.Write(IsOwned);
     stream.Write(AccessType);
     stream.Write(DatePublished);
     stream.Write(PerformanceCost);

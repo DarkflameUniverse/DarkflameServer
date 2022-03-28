@@ -1,4 +1,5 @@
 ﻿#include <CDPropertyEntranceComponentTable.h>
+#include <chrono>
 #include "PropertyEntranceComponent.h"
 #include "PropertySelectQueryProperty.h"
 #include "RocketLaunchpadControlComponent.h"
@@ -132,7 +133,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
         orderBy = "p.last_updated";
     }
     else if (sortMethod == SORT_TYPE_REPUTATION) {
-        orderBy = "p.reputation, p.last_updated";
+        orderBy = "p.reputation DESC, p.last_updated";
     }
     else {
         orderBy = "p.last_updated";
@@ -156,13 +157,13 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
 	while (propertyEntry->next())
 	{
 		const auto propertyId = propertyEntry->getUInt64(1);
-		const auto owner = propertyEntry->getUInt64(2);
+		const auto owner = propertyEntry->getInt(2);
         const auto cloneId = propertyEntry->getUInt64(4);
         const auto name = propertyEntry->getString(5).asStdString();
         const auto description = propertyEntry->getString(6).asStdString();
 		const auto privacyOption = propertyEntry->getInt(9);
         const auto modApproved = propertyEntry->getBoolean(10);
-		const auto reputation = propertyEntry->getInt(15);
+		const auto reputation = propertyEntry->getInt(14);
 
         PropertySelectQueryProperty entry {};
         
@@ -182,7 +183,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
         }
         else
         {
-            entry.IsOwner = owner == entity->GetCharacter()->GetID();
+            entry.IsOwned = owner == entity->GetCharacter()->GetID();
             entry.OwnerName = nameResult->getString(1).asStdString();
         }
 		
@@ -191,17 +192,13 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
             entry.Name = name;
             entry.Description = description;
         }
-        else
-        {
-            entry.Name = "[Awaiting approval] " + name;
-            entry.Description = "[Awaiting approval] " + description;
-        }
+
         // Convert owner char id to LWOOBJID
         LWOOBJID ownerObjId = owner;
         ownerObjId = GeneralUtils::SetBit(ownerObjId, OBJECT_BIT_CHARACTER);
         ownerObjId = GeneralUtils::SetBit(ownerObjId, OBJECT_BIT_PERSISTENT);
 
-        auto friendCheck = Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)");
+        auto friendCheck = Database::CreatePreppedStmt("SELECT best_friend FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)");
 
         friendCheck->setInt64(1, entity->GetObjectID());
         friendCheck->setInt64(2, ownerObjId);
@@ -213,10 +210,35 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
         // If we got a result than the two players are friends.
         if (friendResult->next()) {
             entry.IsFriend = true;
+            if (friendResult->getBoolean(1) == true) {
+                entry.IsBestFriend = true;
+            } else {
+                entry.IsBestFriend = false;
+            }
         }
         else {
             entry.IsFriend = false;
+            entry.IsBestFriend = false;
         }
+
+        // Game::logger->Log("FriendsQuery", "Friend OBJID %lu my OBJID %lu\n", ownerObjId, entity->GetObjectID());
+        auto isAltQuery = Database::CreatePreppedStmt("SELECT id FROM charinfo where account_id in (SELECT account_id from charinfo WHERE id = ?) AND id = ?;");
+
+        isAltQuery->setInt(1, character->GetID());
+        isAltQuery->setInt(2, owner);
+
+        Game::logger->Log("PropertyEntranceComponent", "main character is %i with alt query being %i\n", character->GetID(), owner);
+
+        auto isAltQueryResults = isAltQuery->executeQuery();
+
+        if (isAltQueryResults->next()) {
+            entry.IsAlt = true;
+        } else {
+            entry.IsAlt = false;
+        }
+
+        delete isAltQuery;
+        isAltQuery = nullptr;
 
         entry.Reputation = reputation;
         entry.CloneId = cloneId;
@@ -224,24 +246,57 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity,
         entry.AccessType = privacyOption;
 
         entries.push_back(entry);
-
         delete nameLookup;
 	}
 
     delete propertyLookup;
+    Game::logger->Log("HELLO", "WE GOT TO HERE");
+    // auto newpropertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE owner_id = ? AND zone_id = ?");
 
-    /*
-    const auto entriesSize = entries.size();
+    // newpropertyLookup->setInt(1, character->GetID());
+    // newpropertyLookup->setInt(2, launchpadComponent->GetTargetZone());
 
-    if (startIndex != 0 && entriesSize > startIndex)
-    {
-        for (size_t i = 0; i < startIndex; i++)
-        {
-            entries.erase(entries.begin());
-        }
-    }
-    */
+    // auto results = propertyLookup->executeQuery();
 
+    // PropertySelectQueryProperty entry {};
+
+    // entry.CloneId = character->GetPropertyCloneID();
+    // entry.OwnerName = "";
+    // entry.Name = "";
+    // entry.Description = "";
+    // entry.Reputation = 0;
+    // entry.IsBestFriend = true;
+    // entry.IsFriend = true;
+    // entry.IsModeratorApproved = false;
+    // entry.IsAlt = true;
+    // entry.IsOwned = false;
+    // entry.AccessType = 0;
+    // // entry.DatePublished = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    // // entry.DatePublished = 0;
+    // // entry.PerformanceCost = entity->GetObjectID();
+
+    // if (results->next()) {
+    //     const auto propertyId = results->getUInt64(1);
+	// 	const auto owner = results->getUInt64(2);
+    //     const auto cloneId = results->getUInt64(4);
+    //     const auto name = results->getString(5).asStdString();
+    //     const auto description = results->getString(6).asStdString();
+	// 	const auto privacyOption = results->getInt(9);
+    //     const auto modApproved = results->getBoolean(10);
+	// 	const auto reputation = results->getInt(14);
+
+    //     // entry.CloneId = cloneId;
+    //     // entry.OwnerName = character->GetName();
+    //     // entry.Name = name;
+    //     // entry.Description = description;
+    //     // entry.Reputation = reputation;
+    //     // entry.IsBestFriend = true;
+    //     // entry.IsFriend = true;
+    //     entry.IsModeratorApproved = modApproved;
+    //     entry.IsAlt = true;
+    //     entry.IsOwned = true;
+    // }
+    // entries.insert(entries.begin(), entry);
     propertyQueries[entity->GetObjectID()] = entries;
 
     GameMessages::SendPropertySelectQuery(
