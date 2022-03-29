@@ -278,7 +278,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
             ownerName = "[AWAITING APPROVAL]";
             propertyName = "[AWAITING APPROVAL]";
             propertyDescription = "[AWAITING APPROVAL]";
-            entry.IsModeratorApproved = true;
+            isModeratorApproved = true;
         }
 
         bool isAlt = false;
