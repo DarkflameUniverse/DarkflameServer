@@ -119,6 +119,8 @@ std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMe
         // Replace trailing comma with the closing parenthesis.
         if (friendsList.at(friendsList.size() - 1) == ',') friendsList.erase(friendsList.size() - 1, 1);
         friendsList += ") ";
+
+        // If we have no friends then use a -1 for the query.
         if (friendsList.find("()") == std::string::npos) {
             orderBy = friendsList;
         } else {
@@ -128,6 +130,7 @@ std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMe
 
         delete friendsListQueryResult;
         friendsListQueryResult = nullptr;
+
         delete friendsListQuery;
         friendsListQuery = nullptr;
     }
