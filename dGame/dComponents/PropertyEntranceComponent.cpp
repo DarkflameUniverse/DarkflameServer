@@ -267,7 +267,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         // If we got a result than the two players are friends.
         if (friendResult->next()) {
             isFriend = true;
-            if (friendResult->getBoolean(1) == true) {
+            if (friendResult->getInt(1) == 2) {
                 isBestFriend = true;
             }
         }
