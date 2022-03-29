@@ -20,6 +20,6 @@ public:
     bool IsAlt = false;
     bool IsOwned = false;
     uint32_t AccessType = 0;
-    uint32_t DatePublished = 0;
+    uint32_t DateLastPublished = 0;
     uint64_t PerformanceCost = 0;
 };
