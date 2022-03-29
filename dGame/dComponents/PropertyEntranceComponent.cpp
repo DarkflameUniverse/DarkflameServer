@@ -84,6 +84,7 @@ PropertySelectQueryProperty PropertyEntranceComponent::SetPropertyValues(Propert
     property.OwnerName = ownerName;
     property.Name = propertyName;
     property.Description = propertyDescription;
+    // Reputation not updated for client side listing?
     property.Reputation = reputation;
     property.IsBestFriend = isBFF;
     property.IsFriend = isFriend;
@@ -140,8 +141,10 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
     std::vector<PropertySelectQueryProperty> entries {};
     PropertySelectQueryProperty playerEntry {};
-    auto* character = entity->GetCharacter();
+
+    auto character = entity->GetCharacter();
     if (!character) return;
+
     // Player property goes in index 1 of the vector.  This is how the client expects it.
     auto playerPropertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE owner_id = ? AND zone_id = ?");
 
@@ -167,19 +170,17 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
     delete playerPropertyLookupResults;
     playerPropertyLookupResults = nullptr;
+
     delete playerPropertyLookup;
     playerPropertyLookup = nullptr;
 
     entries.push_back(playerEntry);
 
-    sql::ResultSet* propertyEntry;
-    sql::PreparedStatement* propertyLookup;
-
     const auto query = BuildQuery(entity, sortMethod);
 
-    propertyLookup = Database::CreatePreppedStmt(query);
+    auto propertyLookup = Database::CreatePreppedStmt(query);
 
-    const std::string searchString = "%" + filterText + "%";
+    const auto searchString = "%" + filterText + "%";
     propertyLookup->setUInt(1, this->m_MapID);
     propertyLookup->setString(2, searchString.c_str());
     propertyLookup->setString(3, searchString.c_str());
@@ -191,7 +192,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     
     Game::logger->Log("PropertyEntranceComponent", "Property query is \n%s\n.  Entity is %s.\n", query.c_str(), entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR ? "a moderator" : "not a moderator");
 
-    propertyEntry = propertyLookup->executeQuery();
+    auto propertyEntry = propertyLookup->executeQuery();
 	
 	while (propertyEntry->next())
 	{
@@ -202,42 +203,52 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         const auto description = propertyEntry->getString(6).asStdString();
 		const auto privacyOption = propertyEntry->getInt(9);
         const auto modApproved = propertyEntry->getBoolean(10);
-        const auto dateUpdated = propertyEntry->getInt(11);
-		const auto reputation = propertyEntry->getUInt(14);
+        const auto dateLastUpdated = propertyEntry->getInt(11);
+        const auto reputation = propertyEntry->getUInt(14);
 
         PropertySelectQueryProperty entry {};
-        
-	    auto* nameLookup = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE prop_clone_id = ?;");
+
+        std::string ownerName = "";
+        bool isOwned = true;
+        auto nameLookup = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE prop_clone_id = ?;");
 
         nameLookup->setUInt64(1, cloneId);
 
-        auto* nameResult = nameLookup->executeQuery();
+        auto nameResult = nameLookup->executeQuery();
 
-        if (!nameResult->next())
-        {
+        if (!nameResult->next()) {
             delete nameLookup;
+            nameLookup = nullptr;
 
             Game::logger->Log("PropertyEntranceComponent", "Failed to find property owner name for %llu!\n", cloneId);
 
             continue;
         }
-        else
-        {
-            entry.IsOwned = owner == entity->GetCharacter()->GetID();
-            entry.OwnerName = nameResult->getString(1).asStdString();
+        else {
+            isOwned = cloneId == character->GetPropertyCloneID();
+            ownerName = nameResult->getString(1).asStdString();
         }
-		
-        if (modApproved)
-        {
-            entry.Name = name;
-            entry.Description = description;
-        }
+
+        delete nameResult;
+        nameResult = nullptr;
+
+		delete nameLookup;
+        nameLookup = nullptr;
+
+        std::string propertyName = "";
+        std::string propertyDescription = "";
+        propertyName = name;
+        propertyDescription = description;
+
+        bool isBestFriend = false;
+        bool isFriend = false;
 
         // Convert owner char id to LWOOBJID
         LWOOBJID ownerObjId = owner;
         ownerObjId = GeneralUtils::SetBit(ownerObjId, OBJECT_BIT_CHARACTER);
         ownerObjId = GeneralUtils::SetBit(ownerObjId, OBJECT_BIT_PERSISTENT);
 
+        // Query to get friend and best friend fields
         auto friendCheck = Database::CreatePreppedStmt("SELECT best_friend FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)");
 
         friendCheck->setInt64(1, entity->GetObjectID());
@@ -249,18 +260,29 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         
         // If we got a result than the two players are friends.
         if (friendResult->next()) {
-            entry.IsFriend = true;
+            isFriend = true;
             if (friendResult->getBoolean(1) == true) {
-                entry.IsBestFriend = true;
-            } else {
-                entry.IsBestFriend = false;
+                isBestFriend = true;
             }
         }
-        else {
-            entry.IsFriend = false;
-            entry.IsBestFriend = false;
+
+        delete friendCheck;
+        friendCheck = nullptr;
+
+        delete friendResult;
+        friendResult = nullptr;
+
+        bool isModeratorApproved = propertyEntry->getBoolean(10);
+
+        if (!isModeratorApproved && entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR) {
+            ownerName = "[AWAITING APPROVAL]";
+            propertyName = "[AWAITING APPROVAL]";
+            propertyDescription = "[AWAITING APPROVAL]";
+            entry.IsModeratorApproved = true;
         }
 
+        bool isAlt = false;
+        // Query to determine whether this property is an alt of the entity.
         auto isAltQuery = Database::CreatePreppedStmt("SELECT id FROM charinfo where account_id in (SELECT account_id from charinfo WHERE id = ?) AND id = ?;");
 
         isAltQuery->setInt(1, character->GetID());
@@ -269,27 +291,25 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         auto isAltQueryResults = isAltQuery->executeQuery();
 
         if (isAltQueryResults->next()) {
-            entry.IsAlt = true;
-        } else {
-            entry.IsAlt = false;
+            isAlt = true;
         }
+
+        delete isAltQueryResults;
+        isAltQueryResults = nullptr;
 
         delete isAltQuery;
         isAltQuery = nullptr;
-        entry.DateLastPublished = dateUpdated;
-        // Reputation not updated client side for listing?
-        entry.Reputation = reputation;
-        entry.CloneId = cloneId;
-        entry.IsModeratorApproved = modApproved == true;
-        entry.AccessType = privacyOption;
-        // Client still reads performance cost as zero?
-        entry.PerformanceCost = 0;
+
+        entry = SetPropertyValues(entry, cloneId, ownerName, propertyName, propertyDescription, reputation, isBestFriend, isFriend, isModeratorApproved, isAlt, isOwned, privacyOption, dateLastUpdated);
 
         entries.push_back(entry);
-        delete nameLookup;
 	}
 
+    delete propertyEntry;
+    propertyEntry = nullptr;
+
     delete propertyLookup;
+    propertyLookup = nullptr;
 
     propertyQueries[entity->GetObjectID()] = entries;
 
