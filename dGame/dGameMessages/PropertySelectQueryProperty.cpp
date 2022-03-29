@@ -30,7 +30,7 @@ void PropertySelectQueryProperty::Serialize(RakNet::BitStream& stream) const
     stream.Write(IsAlt);
     stream.Write(IsOwned);
     stream.Write(AccessType);
-    stream.Write(DatePublished);
+    stream.Write(DateLastPublished);
     stream.Write(PerformanceCost);
 }
 
