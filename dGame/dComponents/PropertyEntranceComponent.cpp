@@ -117,8 +117,14 @@ std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMe
             friendsList = friendsList + std::to_string(playerIDToConvert) + ",";
         }
         // Replace trailing comma with the closing parenthesis.
-        friendsList.replace(friendsList.size() - 1, 2, ") ");
-        orderBy = friendsList + "ORDER BY ci.name ASC ";
+        if (friendsList.at(friendsList.size() - 1) == ',') friendsList.erase(friendsList.size() - 1, 1);
+        friendsList += ") ";
+        if (friendsList.find("()") == std::string::npos) {
+            orderBy = friendsList;
+        } else {
+            friendsList = " AND p.owner_id IN (-1) ";
+        }
+        orderBy += friendsList + "ORDER BY ci.name ASC ";
 
         delete friendsListQueryResult;
         friendsListQueryResult = nullptr;
