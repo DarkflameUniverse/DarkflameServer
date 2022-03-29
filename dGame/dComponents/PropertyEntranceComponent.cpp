@@ -79,7 +79,7 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
 }
 
 PropertySelectQueryProperty PropertyEntranceComponent::SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId, std::string ownerName, std::string propertyName, std::string propertyDescription, 
-                                                                         uint32_t reputation, bool isBFF, bool isFriend, bool isModeratorApproved, bool isAlt, bool isOwned, uint32_t privacyOption, uint32_t timeLastUpdated, uint64_t performanceCost) {
+                                                                         float reputation, bool isBFF, bool isFriend, bool isModeratorApproved, bool isAlt, bool isOwned, uint32_t privacyOption, uint32_t timeLastUpdated, uint64_t performanceCost) {
     property.CloneId = cloneId;
     property.OwnerName = ownerName;
     property.Name = propertyName;
@@ -170,7 +170,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         const auto privacyOption = playerPropertyLookupResults->getInt(9);
         const auto modApproved = playerPropertyLookupResults->getBoolean(10);
         const auto dateLastUpdated = playerPropertyLookupResults->getInt64(11);
-        const auto reputation = playerPropertyLookupResults->getInt(14);
+        const auto reputation = playerPropertyLookupResults->getUInt(14);
 
         playerEntry = SetPropertyValues(playerEntry, cloneId, character->GetName(), name, description, reputation, true, true, modApproved, true, true, privacyOption, dateLastUpdated);
     } else {
@@ -213,7 +213,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 		const auto privacyOption = propertyEntry->getInt(9);
         const auto modApproved = propertyEntry->getBoolean(10);
         const auto dateLastUpdated = propertyEntry->getInt(11);
-        const auto reputation = propertyEntry->getUInt(14);
+        const float reputation = propertyEntry->getInt(14);
 
         PropertySelectQueryProperty entry {};
 

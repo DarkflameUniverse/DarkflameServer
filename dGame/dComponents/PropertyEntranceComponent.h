@@ -59,7 +59,7 @@ class PropertyEntranceComponent : public Component {
     [[nodiscard]] LWOMAPID GetMapID() const { return m_MapID; };
 
     PropertySelectQueryProperty SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId = LWOCLONEID_INVALID, std::string ownerName = "", std::string propertyName = "", std::string propertyDescription = "",
-                                                  uint32_t reputation = 0, bool isBFF = false, bool isFriend = false, bool isModeratorApproved = false, bool isAlt = false, bool isOwned = false, uint32_t privacyOption = 0, uint32_t timeLastUpdated = 0, uint64_t performanceCost = 0);
+                                                  float reputation = 0, bool isBFF = false, bool isFriend = false, bool isModeratorApproved = false, bool isAlt = false, bool isOwned = false, uint32_t privacyOption = 0, uint32_t timeLastUpdated = 0, uint64_t performanceCost = 0);
 
     std::string BuildQuery(Entity* entity, int32_t sortMethod);
 

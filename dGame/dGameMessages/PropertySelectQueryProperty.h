@@ -13,7 +13,7 @@ public:
     std::string OwnerName = "";                     // The property owners name
     std::string Name = "";                          // The property name
     std::string Description = "";                   // The property description
-    uint32_t Reputation = 0;                        // The reputation of the property
+    float Reputation = 0;                           // The reputation of the property
     bool IsBestFriend = false;                      // Whether or not the property belongs to a best friend
     bool IsFriend = false;                          // Whether or not the property belongs to a friend
     bool IsModeratorApproved = false;               // Whether or not a moderator has approved this property
