@@ -275,7 +275,6 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         bool isModeratorApproved = propertyEntry->getBoolean(10);
 
         if (!isModeratorApproved && entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR) {
-            ownerName = "[AWAITING APPROVAL]";
             propertyName = "[AWAITING APPROVAL]";
             propertyDescription = "[AWAITING APPROVAL]";
             isModeratorApproved = true;
