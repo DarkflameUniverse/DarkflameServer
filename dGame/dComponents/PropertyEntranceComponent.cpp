@@ -321,5 +321,24 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
     propertyQueries[entity->GetObjectID()] = entries;
 
-    GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, entries.size() >= numResults, character->GetPropertyCloneID(), false, true, entries, sysAddr);
+    auto propertiesLeft = Database::CreatePreppedStmt("SELECT COUNT(*) FROM properties WHERE zone_id = ?;");
+
+    propertiesLeft->setInt(1, this->m_MapID);
+
+    auto result = propertiesLeft->executeQuery();
+    result->next();
+    auto numberOfProperties = result->getInt(1);
+
+    delete result;
+    result = nullptr;
+
+    delete propertiesLeft;
+    propertiesLeft = nullptr;
+
+    auto forFriends = query;
+    forFriends.replace(7, 3, "COUNT(*)");
+    // if sort method is friends or featured do above query.
+    // do same maths below with resulting query
+    // else use default count.
+    GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, numberOfProperties - (startIndex + numResults) > 0, character->GetPropertyCloneID(), false, true, entries, sysAddr);
 }
