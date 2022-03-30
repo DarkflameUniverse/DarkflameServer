@@ -223,7 +223,7 @@
 #include "AmSkullkinDrill.h"
 #include "AmSkullkinDrillStand.h"
 #include "AmSkullkinTower.h"
-#include "AmNamedDarklingDragon.h"
+#include "AmDarklingDragon.h"
 #include "AmBlueX.h"
 
 // NJ Scripts
@@ -687,11 +687,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new AmSkullkinDrillStand();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SKULLKIN_TOWER.lua")
 		script = new AmSkullkinTower();
-	// This just makes them immune to stuns. TODO: Make seperate scripts
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_NAMED_DARKLING_DRAGON.lua")
-		script = new AmNamedDarklingDragon();
+		script = new AmDarklingDragon();
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_DRAGON.lua")
-		script = new AmNamedDarklingDragon();
+		script = new AmDarklingDragon();
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_APE.lua")
 		script = new BaseEnemyApe();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_BLUE_X.lua")
