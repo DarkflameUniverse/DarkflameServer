@@ -199,11 +199,15 @@ void PropertyManagementComponent::Claim(const LWOOBJID playerId)
 
 	const auto& worldId = zone->GetZoneID();
 	const auto zoneId = worldId.GetMapID();
-	const auto cloneId = worldId.GetCloneID();
 
 	auto* entity = EntityManager::Instance()->GetEntity(playerId);
 
 	auto* user = entity->GetParentUser();
+
+	auto character = entity->GetCharacter();
+	if (!character) return;
+
+	const auto cloneId = character->GetPropertyCloneID();
 
 	propertyId = ObjectIDManager::GenerateRandomObjectID();
 	
