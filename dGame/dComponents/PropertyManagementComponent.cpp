@@ -68,10 +68,15 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 		this->owner = propertyEntry->getUInt64(2);
 		this->owner = GeneralUtils::SetBit(this->owner, OBJECT_BIT_CHARACTER);
 		this->owner = GeneralUtils::SetBit(this->owner, OBJECT_BIT_PERSISTENT);
+		this->clone_Id = propertyEntry->getInt(2);
 		this->propertyName = propertyEntry->getString(5).c_str();
 		this->propertyDescription = propertyEntry->getString(6).c_str();
 		this->privacyOption = static_cast<PropertyPrivacyOption>(propertyEntry->getUInt(9));
+		this->moderatorRequested = propertyEntry->getInt(10) == 0 && rejectionReason == "" && privacyOption == PropertyPrivacyOption::Public;
+		this->LastUpdatedTime = propertyEntry->getUInt64(11);
 		this->claimedTime = propertyEntry->getUInt64(12);
+		this->rejectionReason = propertyEntry->getString(13);
+		this->reputation = propertyEntry->getUInt(14);
 
 		Load();
 	}
@@ -822,17 +827,21 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 		claimed = claimedTime;
 		privacy = static_cast<char>(this->privacyOption);
 	}
-
+	message.moderatorRequested = moderatorRequested;
+	message.reputation = reputation;
+	message.LastUpdatedTime = LastUpdatedTime;
 	message.OwnerId = ownerId;
 	message.OwnerName = ownerName;
 	message.Name = name;
 	message.Description = description;
 	message.ClaimedTime = claimed;
 	message.PrivacyOption = privacy;
-	
+	message.cloneId = clone_Id;
+	message.rejectionReason = rejectionReason;
 	message.Paths = GetPaths();
 
 	SendDownloadPropertyData(author, message, UNASSIGNED_SYSTEM_ADDRESS);
+	// send rejction here?
 }
 
 void PropertyManagementComponent::OnUse(Entity* originator) 

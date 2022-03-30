@@ -28,8 +28,13 @@ namespace GameMessages
 
 		std::string Name = "";
 		std::string Description = "";
+		std::string rejectionReason = "";
 
+		bool moderatorRequested = 0;
+		LWOCLONEID cloneId = 0;
+		uint32_t reputation = 0;
 		uint64_t ClaimedTime = 0;
+		uint64_t LastUpdatedTime = 0;
 
 		NiPoint3 ZonePosition = { 548.0f, 406.0f, 178.0f };
 		char PrivacyOption = 0;

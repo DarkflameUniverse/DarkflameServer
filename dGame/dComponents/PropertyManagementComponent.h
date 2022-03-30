@@ -195,9 +195,34 @@ private:
 	std::string propertyName = "";
 
     /**
+     * The clone ID of this property
+     */
+	LWOCLONEID clone_Id = 0;
+
+    /**
+     * Whether a moderator was requested
+     */
+    bool moderatorRequested = false;
+
+    /**
+     * The rejection reason for the property
+     */
+	std::string rejectionReason = "";
+
+    /**
      * The description of this property
      */
 	std::string propertyDescription = "";
+
+    /**
+     * The reputation of this property
+     */
+	uint32_t reputation = 0;
+
+    /**
+     * The last time this property was updated
+     */
+    uint32_t LastUpdatedTime = 0;
 
     /**
      * Determines which players may visit this property
