@@ -79,7 +79,7 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 		this->reputation = propertyEntry->getUInt(14);
 
 		Load();
-	}
+	} 
 
 	delete propertyLookup;
 }
@@ -209,8 +209,8 @@ void PropertyManagementComponent::Claim(const LWOOBJID playerId)
 	
 	auto* insertion = Database::CreatePreppedStmt(
 		"INSERT INTO properties"
-		"(id, owner_id, template_id, clone_id, name, description, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, zone_id)"
-		"VALUES (?, ?, ?, ?, ?, '', 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?)"
+		"(id, owner_id, template_id, clone_id, name, description, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, zone_id, performance_cost)"
+		"VALUES (?, ?, ?, ?, ?, '', 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?, 0.0)"
 	);
 	insertion->setUInt64(1, propertyId);
 	insertion->setUInt64(2, (uint32_t) playerId);
