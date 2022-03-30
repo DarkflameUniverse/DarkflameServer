@@ -4137,12 +4137,22 @@ void GameMessages::HandleRacingPlayerInfoResetFinished(RakNet::BitStream* inStre
 	}
 }
 
+void GameMessages::SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_UPDATE_REPUTATION);
+
+	bitStream.Write(reputation);
+
+	SEND_PACKET;
+}
+
 void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	float performanceCost = 0.0f;
 
 	if (inStream->ReadBit()) inStream->Read(performanceCost);
-
-	Game::logger->Log("GameMessages", "new value is %f\n", performanceCost);
 
 	if (performanceCost == 0.0f) return;
 
