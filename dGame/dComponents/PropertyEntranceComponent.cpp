@@ -97,8 +97,13 @@ PropertySelectQueryProperty PropertyEntranceComponent::SetPropertyValues(Propert
     return property;
 }
 
-std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMethod) {
-    auto base = baseQueryForProperties;
+std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMethod, std::string customQuery, bool wantLimits) {
+    std::string base;
+    if (customQuery == "") {
+        base = baseQueryForProperties;
+    } else {
+        base = customQuery;
+    }
     std::string orderBy = "";
     std::string friendsList = " AND p.owner_id IN (";
     if (sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS) {
@@ -120,11 +125,8 @@ std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMe
         friendsList += ") ";
 
         // If we have no friends then use a -1 for the query.
-        if (friendsList.find("()") == std::string::npos) {
-            orderBy = friendsList;
-        } else {
-            friendsList = " AND p.owner_id IN (-1) ";
-        }
+        if (friendsList.find("()") != std::string::npos) friendsList = " AND p.owner_id IN (-1) ";
+
         orderBy += friendsList + "ORDER BY ci.name ASC ";
 
         delete friendsListQueryResult;
@@ -142,7 +144,7 @@ std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMe
     else {
         orderBy = "ORDER BY p.last_updated DESC ";
     }
-    return baseQueryForProperties + orderBy + "LIMIT ? OFFSET ?;";
+    return base + orderBy + (wantLimits ? "LIMIT ? OFFSET ?;" : ";");
 }
 
 void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool includeNullAddress, bool includeNullDescription, bool playerOwn, bool updateUi, int32_t numResults, int32_t lReputationTime, int32_t sortMethod, int32_t startIndex, std::string filterText, const SystemAddress& sysAddr){
@@ -322,49 +324,27 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
     propertyQueries[entity->GetObjectID()] = entries;
 
-    uint32_t numberOfProperties = 0;
-    if (sortMethod != SORT_TYPE_FRIENDS || sortMethod != SORT_TYPE_FEATURED) {
-        auto propertiesLeft = Database::CreatePreppedStmt("SELECT COUNT(*) FROM properties WHERE zone_id = ?;");
+    int32_t numberOfProperties = 0;
 
-        propertiesLeft->setInt(1, this->m_MapID);
+    auto buttonQuery = BuildQuery(entity, sortMethod, "SELECT COUNT(*) FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.mod_approved >= ? AND p.privacy_option >= ? ", false);
+    auto propertiesLeft = Database::CreatePreppedStmt(buttonQuery);
 
-        auto result = propertiesLeft->executeQuery();
-        result->next();
-        numberOfProperties = result->getInt(1);
+    propertiesLeft->setUInt(1, this->m_MapID);
+    propertiesLeft->setString(2, searchString.c_str());
+    propertiesLeft->setString(3, searchString.c_str());
+    propertiesLeft->setString(4, searchString.c_str());
+    propertiesLeft->setInt(5, entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR || sortMethod == SORT_TYPE_FRIENDS ? 0 : 1);
+    propertiesLeft->setInt(6, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? 1 : 2);
 
-        delete result;
-        result = nullptr;
+    auto result = propertiesLeft->executeQuery();
+    result->next();
+    numberOfProperties = result->getInt(1);
 
-        delete propertiesLeft;
-        propertiesLeft = nullptr;
-    } else {
-        auto forFriends = query;
-        forFriends.replace(7, 3, "COUNT(*)");
-
-        auto friendsQuery = Database::CreatePreppedStmt(query);
-
-        propertyLookup->setUInt(1, this->m_MapID);
-        propertyLookup->setString(2, searchString.c_str());
-        propertyLookup->setString(3, searchString.c_str());
-        propertyLookup->setString(4, searchString.c_str());
-        propertyLookup->setInt(5, entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR || sortMethod == SORT_TYPE_FRIENDS ? 0 : 1);
-        propertyLookup->setInt(6, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? 1 : 2);
-        propertyLookup->setInt(7, numResults);
-        propertyLookup->setInt(8, startIndex);
-
-        auto result = friendsQuery->executeQuery();
-        result->next();
-        numberOfProperties = result->getInt(1);
-
-        delete friendsQuery;
-        friendsQuery = nullptr;
-
-        delete result;
-        result = nullptr;
-    }
+    delete result;
+    result = nullptr;
     
-    // if sort method is friends or featured do above query.
-    // do same maths below with resulting query
-    // else use default count.
+    delete propertiesLeft;
+    propertiesLeft = nullptr;
+
     GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, numberOfProperties - (startIndex + numResults) > 0, character->GetPropertyCloneID(), false, true, entries, sysAddr);
 }
