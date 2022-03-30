@@ -32,6 +32,7 @@ void WaveBossApe::OnFireEventServerSide(Entity *self, Entity *sender, std::strin
         auto* combatAIComponent = self->GetComponent<BaseCombatAIComponent>();
         if (combatAIComponent != nullptr) {
             combatAIComponent->SetDisabled(false);
+            combatAIComponent->SetStunImmune(false);
         }
     } else {
         BaseEnemyApe::OnFireEventServerSide(self, sender, args, param1, param2, param3);
