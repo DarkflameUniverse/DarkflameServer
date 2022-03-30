@@ -40,5 +40,11 @@ namespace GameMessages
 		char PrivacyOption = 0;
 		float MaxBuildHeight = 128.0f;
 		std::vector<NiPoint3> Paths = {};
+	private:
+		enum RejectionStatus : uint32_t {
+			REJECTION_STATUS_APPROVED = 0,
+			REJECTION_STATUS_PENDING = 1,
+			REJECTION_STATUS_REJECTED = 2
+		};
 	};
 }

@@ -64,17 +64,18 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 
 	stream.Write<uint64_t>(0);
 
-	if (rejectionReason != "") stream.Write<uint32_t>(2);
-	else if (moderatorRequested == true && rejectionReason == "") stream.Write<uint32_t>(0);
-	else stream.Write<uint32_t>(1);
+	if (rejectionReason != "") stream.Write<uint32_t>(REJECTION_STATUS_REJECTED);
+	else if (moderatorRequested == true && rejectionReason == "") stream.Write<uint32_t>(REJECTION_STATUS_PENDING);
+	else stream.Write<uint32_t>(REJECTION_STATUS_APPROVED);
 
 	// Does this go here???
-	// const auto& rejectionReasonConverted = GeneralUtils::ASCIIToUTF16(rejectionReason);
-	// stream.Write(uint32_t(rejectionReasonConverted.size()));
-	// for (uint32_t i = 0; i < rejectionReasonConverted.size(); ++i) {
-	// 	stream.Write(uint16_t(rejectionReasonConverted[i]));
-	// }
-	stream.Write<uint32_t>(0);
+	const auto& rejectionReasonConverted = GeneralUtils::ASCIIToUTF16(rejectionReason);
+	stream.Write(uint32_t(rejectionReasonConverted.size()));
+	for (uint32_t i = 0; i < rejectionReasonConverted.size(); ++i) {
+		stream.Write(uint16_t(rejectionReasonConverted[i]));
+	}
+
+	// stream.Write<uint32_t>(0);
 
 	stream.Write<uint64_t>(0);
 
