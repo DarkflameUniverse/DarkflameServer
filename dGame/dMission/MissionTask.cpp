@@ -416,6 +416,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		
 	case MissionTaskType::MISSION_TASK_TYPE_RACING:
 	{
+		// The meaning of associate can be found in RacingTaskParam.h
 		if (parameters.empty()) break;
 
 		if (!InAllTargets(dZoneManager::Instance()->GetZone()->GetWorldID()) && !(parameters[0] == 4 || parameters[0] == 5) && !InAllTargets(value)) break;
@@ -436,6 +437,11 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 			AddProgress(count);
 		}
 		else if (associate == 4 || associate == 5 || associate == 14)
+		{
+			if (!InAllTargets(value)) break;
+			AddProgress(count);
+		}
+		else if (associate == 17)
 		{
 			if (!InAllTargets(value)) break;
 			AddProgress(count);
