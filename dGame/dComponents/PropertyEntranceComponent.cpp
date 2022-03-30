@@ -79,12 +79,11 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
 }
 
 PropertySelectQueryProperty PropertyEntranceComponent::SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId, std::string ownerName, std::string propertyName, std::string propertyDescription, 
-                                                                         float reputation, bool isBFF, bool isFriend, bool isModeratorApproved, bool isAlt, bool isOwned, uint32_t privacyOption, uint32_t timeLastUpdated, uint64_t performanceCost) {
+                                                                         float reputation, bool isBFF, bool isFriend, bool isModeratorApproved, bool isAlt, bool isOwned, uint32_t privacyOption, uint32_t timeLastUpdated, float performanceCost) {
     property.CloneId = cloneId;
     property.OwnerName = ownerName;
     property.Name = propertyName;
     property.Description = propertyDescription;
-    // Reputation not updated for client side listing?
     property.Reputation = reputation;
     property.IsBestFriend = isBFF;
     property.IsFriend = isFriend;
@@ -171,8 +170,9 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         const auto modApproved = playerPropertyLookupResults->getBoolean(10);
         const auto dateLastUpdated = playerPropertyLookupResults->getInt64(11);
         const auto reputation = playerPropertyLookupResults->getUInt(14);
+        const auto performanceCost = (float)playerPropertyLookupResults->getDouble(16);
 
-        playerEntry = SetPropertyValues(playerEntry, cloneId, character->GetName(), name, description, reputation, true, true, modApproved, true, true, privacyOption, dateLastUpdated);
+        playerEntry = SetPropertyValues(playerEntry, cloneId, character->GetName(), name, description, reputation, true, true, modApproved, true, true, privacyOption, dateLastUpdated, performanceCost);
     } else {
         playerEntry = SetPropertyValues(playerEntry, character->GetPropertyCloneID(), character->GetName(), "", "", 0, true, true);
     }
@@ -214,6 +214,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         const auto modApproved = propertyEntry->getBoolean(10);
         const auto dateLastUpdated = propertyEntry->getInt(11);
         const float reputation = propertyEntry->getInt(14);
+        const auto performanceCost = (float)propertyEntry->getDouble(16);
 
         PropertySelectQueryProperty entry {};
 
@@ -308,7 +309,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         delete isAltQuery;
         isAltQuery = nullptr;
 
-        entry = SetPropertyValues(entry, cloneId, ownerName, propertyName, propertyDescription, reputation, isBestFriend, isFriend, isModeratorApproved, isAlt, isOwned, privacyOption, dateLastUpdated);
+        entry = SetPropertyValues(entry, cloneId, ownerName, propertyName, propertyDescription, reputation, isBestFriend, isFriend, isModeratorApproved, isAlt, isOwned, privacyOption, dateLastUpdated, performanceCost);
 
         entries.push_back(entry);
 	}
