@@ -181,6 +181,7 @@
 #include "NtVentureCannonServer.h"
 #include "NtCombatChallengeServer.h"
 #include "NtCombatChallengeDummy.h"
+#include "NtCombatChallengeExplodingDummy.h"
 #include "BaseInteractDropLootServer.h"
 #include "NtAssemblyTubeServer.h"
 #include "NtParadoxPanelServer.h"
@@ -615,6 +616,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NtCombatChallengeServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_DUMMY.lua")
 		script = new NtCombatChallengeDummy();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\\\L_NT_COMBAT_EXPLODING_TARGET.lua")
+		script = new NtCombatChallengeExplodingDummy();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_BASE_INTERACT_DROP_LOOT_SERVER.lua")
 		script = new BaseInteractDropLootServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_ASSEMBLYTUBE_SERVER.lua")
