@@ -41,7 +41,7 @@ public:
      * @param sysAddr the address to send game message responses to
      * @param author optional explicit ID for the property, if not set defaults to the originator
      */
-	void OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author = LWOOBJID_EMPTY) const;
+	void OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author = LWOOBJID_EMPTY);
 
     /**
      * Handles an OnUse event, telling the client who owns this property, etc.
