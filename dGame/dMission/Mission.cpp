@@ -16,6 +16,7 @@
 #include "dLogger.h"
 #include "dServer.h"
 #include "dZoneManager.h"
+#include "Database.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
     m_MissionComponent = missionComponent;
@@ -516,8 +517,41 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_reputation > 0) {
-        // TODO: Track reputation in the property table and in charxml
         missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
+        auto character = entity->GetCharacter();
+        if (!character) return;
+
+        auto charId = character->GetID();
+        auto propertyCloneId = character->GetPropertyCloneID();
+
+        auto properties = Database::CreatePreppedStmt("SELECT reputation FROM properties WHERE owner_id = ? AND clone_id = ?");
+
+        properties->setInt(1, charId);
+        properties->setInt64(2, propertyCloneId);
+
+        auto results = properties->executeQuery();
+
+        while (results->next()) {
+            const auto oldReputation = results->getInt(1);
+
+            auto reputationUpdate = Database::CreatePreppedStmt("UPDATE properties SET reputation = ? where owner_id = ? AND clone_id = ?");
+
+            reputationUpdate->setInt64(1, oldReputation + info->reward_reputation);
+            reputationUpdate->setInt(2, charId);
+            reputationUpdate->setInt64(3, propertyCloneId);
+
+            reputationUpdate->execute();
+
+            delete reputationUpdate;
+            reputationUpdate = nullptr;
+        }
+        delete results;
+        results = nullptr;
+
+        delete properties;
+        properties = nullptr;
+
+        GameMessages::SendUpdateReputation(entity->GetObjectID(), info->reward_reputation, entity->GetSystemAddress());
     }
 
     if (info->reward_maxhealth > 0) {
