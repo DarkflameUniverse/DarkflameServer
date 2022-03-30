@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <chrono>
 #include "Entity.h"
 #include "Component.h"
 
@@ -182,7 +183,7 @@ private:
     /**
      * The time since this property was claimed
      */
-	uint64_t claimedTime = 0;
+	uint64_t claimedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     /**
      * The models that are placed on this property
@@ -222,7 +223,7 @@ private:
     /**
      * The last time this property was updated
      */
-    uint32_t LastUpdatedTime = 0;
+    uint32_t LastUpdatedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     /**
      * Determines which players may visit this property
