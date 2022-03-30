@@ -23,15 +23,16 @@ void PropertySelectQueryProperty::Serialize(RakNet::BitStream& stream) const
 		stream.Write(static_cast<uint16_t>(description[i]));
 	}
 
-    stream.Write(Reputation);
-    stream.Write(IsBestFriend);
-    stream.Write(IsFriend);
-    stream.Write(IsModeratorApproved);
-    stream.Write(IsAlt);
-    stream.Write(IsOwned);
-    stream.Write(AccessType);
-    stream.Write(DateLastPublished);
-    stream.Write(PerformanceCost);
+	stream.Write(Reputation);
+	stream.Write(IsBestFriend);
+	stream.Write(IsFriend);
+	stream.Write(IsModeratorApproved);
+	stream.Write(IsAlt);
+	stream.Write(IsOwned);
+	stream.Write(AccessType);
+	stream.Write(DateLastPublished);
+	stream.Write(PerformanceIndex);
+	stream.Write(PerformanceCost);
 }
 
 void PropertySelectQueryProperty::Deserialize(RakNet::BitStream& stream) const

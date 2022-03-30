@@ -21,5 +21,6 @@ public:
     bool IsOwned = false;                           // Whether or not the property is owned
     uint32_t AccessType = 0;                        // The privacy option of the property
     uint32_t DateLastPublished = 0;                 // The last day the property was published
-    uint64_t PerformanceCost = 0;                   // The performance cost of the property
+    float PerformanceCost = 0;                      // The performance cost of the property
+    uint32_t PerformanceIndex = 0;                  // The performance index of the property?  Always 0?
 };
