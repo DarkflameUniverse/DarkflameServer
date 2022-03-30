@@ -4137,6 +4137,31 @@ void GameMessages::HandleRacingPlayerInfoResetFinished(RakNet::BitStream* inStre
 	}
 }
 
+void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	float performanceCost = 0.0f;
+
+	if (inStream->ReadBit()) inStream->Read(performanceCost);
+
+	Game::logger->Log("GameMessages", "new value is %f\n", performanceCost);
+
+	if (performanceCost == 0.0f) return;
+
+	auto zone = dZoneManager::Instance()->GetZone();
+	const auto& worldId = zone->GetZoneID();
+	const auto cloneId = worldId.GetCloneID();
+	const auto zoneId = worldId.GetMapID();
+
+	auto updatePerformanceCostQuery = Database::CreatePreppedStmt("UPDATE properties SET performance_cost = ? WHERE clone_id = ? AND zone_id = ?");
+
+	updatePerformanceCostQuery->setDouble(1, performanceCost);
+	updatePerformanceCostQuery->setInt(2, cloneId);
+	updatePerformanceCostQuery->setInt(3, zoneId);
+
+	updatePerformanceCostQuery->execute();
+
+	delete updatePerformanceCostQuery;
+	updatePerformanceCostQuery = nullptr;
+}
 
 void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) 
 {

@@ -386,6 +386,8 @@ namespace GameMessages {
 		bool bUseLeaderboards
 	);
 
+	void HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
 	void SendNotifyClientShootingGalleryScore(LWOOBJID objectId, const SystemAddress& sysAddr,
 		float addTime,
 		int32_t score,
