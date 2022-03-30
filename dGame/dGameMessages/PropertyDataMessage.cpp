@@ -68,12 +68,13 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	else if (moderatorRequested == true && rejectionReason == "") stream.Write<uint32_t>(0);
 	else stream.Write<uint32_t>(1);
 
-	const auto& rejectionReasonConverted = GeneralUtils::ASCIIToUTF16(rejectionReason);
-	stream.Write(uint32_t(rejectionReasonConverted.size()));
-	for (uint32_t i = 0; i < rejectionReasonConverted.size(); ++i) {
-		stream.Write(uint16_t(rejectionReasonConverted[i]));
-		std::cout << rejectionReason[i] << std::endl;
-	}
+	// Does this go here???
+	// const auto& rejectionReasonConverted = GeneralUtils::ASCIIToUTF16(rejectionReason);
+	// stream.Write(uint32_t(rejectionReasonConverted.size()));
+	// for (uint32_t i = 0; i < rejectionReasonConverted.size(); ++i) {
+	// 	stream.Write(uint16_t(rejectionReasonConverted[i]));
+	// }
+	stream.Write<uint32_t>(0);
 
 	stream.Write<uint64_t>(0);
 
