@@ -195,7 +195,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     propertyLookup->setString(3, searchString.c_str());
     propertyLookup->setString(4, searchString.c_str());
     propertyLookup->setInt(5, entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR || sortMethod == SORT_TYPE_FRIENDS ? 0 : 1);
-    propertyLookup->setInt(6, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? 1 : 2);
+    propertyLookup->setInt(6, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? (uint32_t)PropertyPrivacyOption::Friends : (uint32_t)PropertyPrivacyOption::Public);
     propertyLookup->setInt(7, numResults);
     propertyLookup->setInt(8, startIndex);
     
