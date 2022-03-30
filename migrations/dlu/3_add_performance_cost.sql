@@ -1,0 +1,1 @@
+ALTER TABLE properties ADD COLUMN performance_cost DOUBLE(20, 15);
