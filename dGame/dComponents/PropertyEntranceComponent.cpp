@@ -322,22 +322,47 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
     propertyQueries[entity->GetObjectID()] = entries;
 
-    auto propertiesLeft = Database::CreatePreppedStmt("SELECT COUNT(*) FROM properties WHERE zone_id = ?;");
+    uint32_t numberOfProperties = 0;
+    if (sortMethod != SORT_TYPE_FRIENDS || sortMethod != SORT_TYPE_FEATURED) {
+        auto propertiesLeft = Database::CreatePreppedStmt("SELECT COUNT(*) FROM properties WHERE zone_id = ?;");
 
-    propertiesLeft->setInt(1, this->m_MapID);
+        propertiesLeft->setInt(1, this->m_MapID);
 
-    auto result = propertiesLeft->executeQuery();
-    result->next();
-    auto numberOfProperties = result->getInt(1);
+        auto result = propertiesLeft->executeQuery();
+        result->next();
+        numberOfProperties = result->getInt(1);
 
-    delete result;
-    result = nullptr;
+        delete result;
+        result = nullptr;
 
-    delete propertiesLeft;
-    propertiesLeft = nullptr;
+        delete propertiesLeft;
+        propertiesLeft = nullptr;
+    } else {
+        auto forFriends = query;
+        forFriends.replace(7, 3, "COUNT(*)");
 
-    auto forFriends = query;
-    forFriends.replace(7, 3, "COUNT(*)");
+        auto friendsQuery = Database::CreatePreppedStmt(query);
+
+        propertyLookup->setUInt(1, this->m_MapID);
+        propertyLookup->setString(2, searchString.c_str());
+        propertyLookup->setString(3, searchString.c_str());
+        propertyLookup->setString(4, searchString.c_str());
+        propertyLookup->setInt(5, entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR || sortMethod == SORT_TYPE_FRIENDS ? 0 : 1);
+        propertyLookup->setInt(6, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? 1 : 2);
+        propertyLookup->setInt(7, numResults);
+        propertyLookup->setInt(8, startIndex);
+
+        auto result = friendsQuery->executeQuery();
+        result->next();
+        numberOfProperties = result->getInt(1);
+
+        delete friendsQuery;
+        friendsQuery = nullptr;
+
+        delete result;
+        result = nullptr;
+    }
+    
     // if sort method is friends or featured do above query.
     // do same maths below with resulting query
     // else use default count.
