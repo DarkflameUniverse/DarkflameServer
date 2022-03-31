@@ -26,6 +26,7 @@ public:
 	bool IsSentenceOkay(const std::string& message, int gmLevel);
 
 private:
+	bool m_UseWhitelist;
 	bool m_DontGenerateDCF;
 	std::vector<size_t> m_Words;
 	std::vector<size_t> m_UserUnapprovedWordCache;
