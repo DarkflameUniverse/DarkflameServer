@@ -61,8 +61,6 @@ void SGCannon::OnStartup(Entity *self) {
 void SGCannon::OnPlayerLoaded(Entity *self, Entity *player) {
     Game::logger->Log("SGCannon", "Player loaded\n");
     self->SetVar<LWOOBJID>(PlayerIDVariable, player->GetObjectID());
-    /*GameMessages::SendSetStunned(player->GetObjectID(), PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
-                                 true, true, true, true, true, true, true);*/
 }
 
 void SGCannon::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1, int32_t param2,
@@ -423,7 +421,7 @@ void SGCannon::SpawnNewModel(Entity *self) {
 
             if (lootMatrix != 0) {
                 std::unordered_map<LOT, int32_t> toDrop = {};
-                Loot::CalculateLootMatrix(lootMatrix, player, toDrop);
+                toDrop = LootGenerator::Instance().RollLootMatrix(player, lootMatrix);
 
                 for (auto drop : toDrop) {
                     rewardModel->OnFireEventServerSide(self, ModelToBuildEvent, drop.first);
@@ -561,30 +559,15 @@ void SGCannon::StopGame(Entity *self, bool cancel) {
 
         auto* missionComponent = player->GetComponent<MissionComponent>();
         
-        if (self->GetVar<uint32_t>(TotalScoreVariable) >= 25000)
-        {
-            // For some reason the client thinks this mission is not complete?
-            auto* mission = missionComponent->GetMission(229);
-
-            if (mission != nullptr && !mission->IsComplete())
-            {
-                mission->Complete();
-            }
-        }
-
         if (missionComponent != nullptr) {
-            missionComponent->Progress(
-                MissionTaskType::MISSION_TASK_TYPE_MINIGAME,
-                self->GetVar<uint32_t>(TotalScoreVariable),
-                self->GetObjectID(),
-                "performact_score"
-            );
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, self->GetVar<uint32_t>(TotalScoreVariable), self->GetObjectID(), "performact_score");
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, self->GetVar<uint32_t>(MaxStreakVariable), self->GetObjectID(), "performact_streak");
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_CannonLot, 0, "", self->GetVar<uint32_t>(TotalScoreVariable));
         }
 
-        Loot::GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
+        LootGenerator::Instance().GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
 
-        StopActivity(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable),
-                self->GetVar<uint32_t>(MaxStreakVariable), percentage);
+        StopActivity(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable), self->GetVar<uint32_t>(MaxStreakVariable), percentage);
         self->SetNetworkVar<bool>(AudioFinalWaveDoneVariable, true);
 
         // Give the player the model rewards they earned
@@ -598,7 +581,6 @@ void SGCannon::StopGame(Entity *self, bool cancel) {
         self->SetNetworkVar<std::u16string>(u"UI_Rewards",
             GeneralUtils::to_u16string(self->GetVar<uint32_t>(TotalScoreVariable)) + u"_0_0_0_0_0_0"
         );
-        self->SetVar<uint32_t>(TotalScoreVariable, 0);
 
         GameMessages::SendRequestActivitySummaryLeaderboardData(
             player->GetObjectID(),
@@ -610,9 +592,6 @@ void SGCannon::StopGame(Entity *self, bool cancel) {
             0,
             false
         );
-
-        // The end menu is not in, just send them back to the main world
-        //static_cast<Player*>(player)->SendToZone(1300);
     }
 
     GameMessages::SendActivityStop(self->GetObjectID(), false, cancel, player->GetSystemAddress());
@@ -645,10 +624,6 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 
         if (!self->GetVar<bool>(SuperChargeActiveVariable)) {
             self->SetVar<uint32_t>(u"m_curStreak", self->GetVar<uint32_t>(u"m_curStreak") + 1);
-            
-            if (self->GetVar<uint32_t>(u"m_curStreak") > 12) {
-                self->SetVar<uint32_t>(u"m_curStreak", 12);
-            }
         }
     }
     else {
@@ -693,6 +668,14 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
     self->SetNetworkVar<uint32_t>(u"updateScore", newScore);
 
     self->SetNetworkVar<std::u16string>(u"beatHighScore", GeneralUtils::to_u16string(newScore));
+
+    auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+    if (player == nullptr) return;
+
+    auto missionComponent = player->GetComponent<MissionComponent>();
+    if (missionComponent == nullptr) return;
+
+    missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SMASH, spawnInfo.lot, self->GetObjectID());
 }
 
 void SGCannon::UpdateStreak(Entity* self) 
@@ -722,6 +705,8 @@ void SGCannon::UpdateStreak(Entity* self)
             self->SetNetworkVar<bool>(u"UnMarkAll", true);
         }
     }
+    auto maxStreak = self->GetVar<uint32_t>(MaxStreakVariable);
+    if (maxStreak < curStreak) self->SetVar<uint32_t>(MaxStreakVariable, curStreak);
 }
 
 float_t SGCannon::GetCurrentBonus(Entity* self) 

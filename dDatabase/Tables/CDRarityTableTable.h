@@ -66,7 +66,7 @@ public:
     /*!
       \return The entries
      */
-    std::vector<CDRarityTable> GetEntries(void) const;
+    const std::vector<CDRarityTable>& GetEntries(void) const;
 
 };
 

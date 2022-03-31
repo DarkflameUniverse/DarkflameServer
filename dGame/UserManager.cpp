@@ -6,6 +6,7 @@
 
 #include "Database.h"
 #include "Game.h"
+#include "dLogger.h"
 #include "User.h"
 #include <WorldPackets.h>
 #include "Character.h"
@@ -68,16 +69,6 @@ void UserManager::Initialize() {
 		StripCR(line);
 		m_PreapprovedNames.push_back(line);
 	}
-	
-	//Load custom ones from MySQL too:
-	/*sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT name FROM approvedNames;");
-	sql::ResultSet* res = stmt->executeQuery();
-	while (res->next()) {
-		m_PreapprovedNames.push_back(res->getString(1));
-	}
-	
-	delete res;
-	delete stmt;*/
 }
 
 UserManager::~UserManager() {
@@ -287,11 +278,11 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
     	
         std::stringstream xml;
         xml << "<obj v=\"1\"><mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
-        xml << "\" hdc=\"0\" cd=\"" << shirtStyle << "\" lh=\"" << lh << "\" rh=\"" << rh << "\" es=\"" << eyebrows << "\"";
-        xml << " ess=\"" << eyes << "\" ms=\"" << mouth << "\"/>";
+        xml << "\" hdc=\"0\" cd=\"" << shirtStyle << "\" lh=\"" << lh << "\" rh=\"" << rh << "\" es=\"" << eyebrows << "\" ";
+        xml << "ess=\"" << eyes << "\" ms=\"" << mouth << "\"/>";
         
         xml << "<char acct=\"" << u->GetAccountID() << "\" cc=\"0\" gm=\"0\" ft=\"0\" llog=\"" << time(NULL) << "\" ";
-        xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\"";
+        xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\" ";
         xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\"></char>";
         xml << "<dest hm=\"4\" hc=\"4\" im=\"0\" ic=\"0\" am=\"0\" ac=\"0\" d=\"0\"/>";
         xml << "<inv><bag><b t=\"0\" m=\"20\"/><b t=\"1\" m=\"240\"/><b t=\"2\" m=\"240\"/><b t=\"3\" m=\"240\"/></bag><items><in t=\"0\">";
@@ -552,7 +543,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 		if (zoneID == LWOZONEID_INVALID) zoneID = 1000; //Send char to VE
         
         ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneID, character->GetZoneClone(), false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-            Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+            Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			if (character) {
 				character->SetZoneID(zoneID);
 				character->SetZoneInstance(zoneInstance);
@@ -567,201 +558,37 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 }
 
 uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
-	uint32_t shirtID = 0;
-
-	// s p e c i a l  code follows
-	switch (shirtColor) {
-	case 0: {
-		shirtID = shirtStyle >= 35 ? 5730 : SHIRT_BRIGHT_RED;
-		break;
+	try {
+		std::string shirtQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"character create shirt\" AND icc.color1 == ";
+		shirtQuery += std::to_string(shirtColor);
+		shirtQuery += " AND icc.decal == ";
+		shirtQuery = shirtQuery + std::to_string(shirtStyle);
+		auto tableData = CDClientDatabase::ExecuteQuery(shirtQuery);
+		auto shirtLOT = tableData.getIntField(0, -1);
+		tableData.finalize();
+		return shirtLOT;
 	}
-
-	case 1: {
-		shirtID = shirtStyle >= 35 ? 5736 : SHIRT_BRIGHT_BLUE;
-		break;
+	catch (const std::exception&){
+		Game::logger->Log("Character Create", "Failed to execute query! Using backup...");
+		// in case of no shirt found in CDServer, return problematic red vest.
+		return 4069;
 	}
-
-	case 3: {
-		shirtID = shirtStyle >= 35 ? 5808 : SHIRT_DARK_GREEN;
-		break;
-	}
-
-	case 5: {
-		shirtID = shirtStyle >= 35 ? 5754 : SHIRT_BRIGHT_ORANGE;
-		break;
-	}
-
-	case 6: {
-		shirtID = shirtStyle >= 35 ? 5760 : SHIRT_BLACK;
-		break;
-	}
-
-	case 7: {
-		shirtID = shirtStyle >= 35 ? 5766 : SHIRT_DARK_STONE_GRAY;
-		break;
-	}
-
-	case 8: {
-		shirtID = shirtStyle >= 35 ? 5772 : SHIRT_MEDIUM_STONE_GRAY;
-		break;
-	}
-
-	case 9: {
-		shirtID = shirtStyle >= 35 ? 5778 : SHIRT_REDDISH_BROWN;
-		break;
-	}
-
-	case 10: {
-		shirtID = shirtStyle >= 35 ? 5784 : SHIRT_WHITE;
-		break;
-	}
-
-	case 11: {
-		shirtID = shirtStyle >= 35 ? 5802 : SHIRT_MEDIUM_BLUE;
-		break;
-	}
-
-	case 13: {
-		shirtID = shirtStyle >= 35 ? 5796 : SHIRT_DARK_RED;
-		break;
-	}
-
-	case 14: {
-		shirtID = shirtStyle >= 35 ? 5802 : SHIRT_EARTH_BLUE;
-		break;
-	}
-
-	case 15: {
-		shirtID = shirtStyle >= 35 ? 5808 : SHIRT_EARTH_GREEN;
-		break;
-	}
-
-	case 16: {
-		shirtID = shirtStyle >= 35 ? 5814 : SHIRT_BRICK_YELLOW;
-		break;
-	}
-
-	case 84: {
-		shirtID = shirtStyle >= 35 ? 5820 : SHIRT_SAND_BLUE;
-		break;
-	}
-
-	case 96: {
-		shirtID = shirtStyle >= 35 ? 5826 : SHIRT_SAND_GREEN;
-		shirtColor = 16;
-		break;
-	}
-	}
-
-	// Initialize another variable for the shirt color
-	uint32_t editedShirtColor = shirtID;
-
-	// This will be the final shirt ID
-	uint32_t shirtIDFinal;
-
-	// For some reason, if the shirt color is 35 - 40,
-	// The ID is different than the original... Was this because
-	// these shirts were added later?
-	if (shirtStyle >= 35) {
-		shirtIDFinal = editedShirtColor += (shirtStyle - 35);
-	}
-	else {
-		// Get the final ID of the shirt by adding the shirt
-		// style to the editedShirtColor
-		shirtIDFinal = editedShirtColor += (shirtStyle - 1);
-	}
-
-	//cout << "Shirt ID is: " << shirtIDFinal << endl;
-
-	return shirtIDFinal;
 }
 
 uint32_t FindCharPantsID(uint32_t pantsColor) {
-	uint32_t pantsID = 2508;
-
-	switch (pantsColor) {
-	case 0: {
-		pantsID = PANTS_BRIGHT_RED;
-		break;
+	try {
+		std::string pantsQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"cc pants\" AND icc.color1 == ";
+		pantsQuery += std::to_string(pantsColor);
+		auto tableData = CDClientDatabase::ExecuteQuery(pantsQuery);
+		auto pantsLOT = tableData.getIntField(0, -1);
+		tableData.finalize();
+		return pantsLOT;
 	}
-
-	case 1: {
-		pantsID = PANTS_BRIGHT_BLUE;
-		break;
+	catch (const std::exception&){
+		Game::logger->Log("Character Create", "Failed to execute query! Using backup...");
+		// in case of no pants color found in CDServer, return red pants.
+		return 2508;
 	}
-
-	case 3: {
-		pantsID = PANTS_DARK_GREEN;
-		break;
-	}
-
-	case 5: {
-		pantsID = PANTS_BRIGHT_ORANGE;
-		break;
-	}
-
-	case 6: {
-		pantsID = PANTS_BLACK;
-		break;
-	}
-
-	case 7: {
-		pantsID = PANTS_DARK_STONE_GRAY;
-		break;
-	}
-
-	case 8: {
-		pantsID = PANTS_MEDIUM_STONE_GRAY;
-		break;
-	}
-
-	case 9: {
-		pantsID = PANTS_REDDISH_BROWN;
-		break;
-	}
-
-	case 10: {
-		pantsID = PANTS_WHITE;
-		break;
-	}
-
-	case 11: {
-		pantsID = PANTS_MEDIUM_BLUE;
-		break;
-	}
-
-	case 13: {
-		pantsID = PANTS_DARK_RED;
-		break;
-	}
-
-	case 14: {
-		pantsID = PANTS_EARTH_BLUE;
-		break;
-	}
-
-	case 15: {
-		pantsID = PANTS_EARTH_GREEN;
-		break;
-	}
-
-	case 16: {
-		pantsID = PANTS_BRICK_YELLOW;
-		break;
-	}
-
-	case 84: {
-		pantsID = PANTS_SAND_BLUE;
-		break;
-	}
-
-	case 96: {
-		pantsID = PANTS_SAND_GREEN;
-		break;
-	}
-	}
-	
-	return pantsID;
 }
 
 void UserManager::SaveAllActiveCharacters() {

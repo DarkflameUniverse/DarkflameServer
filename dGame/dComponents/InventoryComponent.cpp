@@ -23,6 +23,7 @@
 #include "CharacterComponent.h"
 #include "dZoneManager.h"
 #include "PropertyManagementComponent.h"
+#include "DestroyableComponent.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent)
 {
@@ -296,7 +297,7 @@ void InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 {
 	if (count == 0)
 	{
-		Game::logger->Log("InventoryComponent", "Attempted to remove 0 of item (%i) to the inventory!\n", lot);
+		Game::logger->Log("InventoryComponent", "Attempted to remove 0 of item (%i) from the inventory!\n", lot);
 
 		return;
 	}
@@ -909,27 +910,45 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 
 		const auto type = static_cast<eItemType>(item->GetInfo().itemType);
 		
-		if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
-		{
+		if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == false)
+		{	
+			auto startPosition = m_Parent->GetPosition();
+
+			auto startRotation = NiQuaternion::LookAt(startPosition, startPosition + NiPoint3::UNIT_X);
+			auto angles = startRotation.GetEulerAngles();
+			angles.y -= PI;
+			startRotation = NiQuaternion::FromEulerAngles(angles);
+
+			GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
+
 			EntityInfo info {};
 			info.lot = 8092;
-			info.pos = m_Parent->GetPosition();
-			info.rot = m_Parent->GetRotation();
+			info.pos = startPosition;
+			info.rot = startRotation;
 			info.spawnerID = m_Parent->GetObjectID();
 
-			auto* carEntity = EntityManager::Instance()->CreateEntity(info, nullptr, dZoneManager::Instance()->GetZoneControlObject());
-			dZoneManager::Instance()->GetZoneControlObject()->AddChild(carEntity);
+			auto* carEntity = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
+			m_Parent->AddChild(carEntity);
 
+			auto *destroyableComponent = carEntity->GetComponent<DestroyableComponent>();
+
+    		// Setup the vehicle stats.
+    		if (destroyableComponent != nullptr) {
+				destroyableComponent->SetIsSmashable(false);
+				destroyableComponent->SetIsImmune(true);
+    		}
+			// #108
 			auto* possessableComponent = carEntity->GetComponent<PossessableComponent>();
 
 			if (possessableComponent != nullptr)
 			{
+				previousPossessableID = possessableComponent->GetPossessor();
 				possessableComponent->SetPossessor(m_Parent->GetObjectID());
 			}
 
 			auto* moduleAssemblyComponent = carEntity->GetComponent<ModuleAssemblyComponent>();
 
-			if (moduleAssemblyComponent)
+			if (moduleAssemblyComponent != nullptr)
 			{
 				moduleAssemblyComponent->SetSubKey(item->GetSubKey());
 				moduleAssemblyComponent->SetUseOptionalParts(false);
@@ -942,11 +961,12 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 					}
 				}
 			}
-
+			// #107
 			auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
 
 			if (possessorComponent != nullptr)
 			{
+				previousPossessorID = possessorComponent->GetPossessable();
 				possessorComponent->SetPossessable(carEntity->GetObjectID());
 			}
 
@@ -960,13 +980,26 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 
 			EntityManager::Instance()->ConstructEntity(carEntity);
 			EntityManager::Instance()->SerializeEntity(m_Parent);
-			//EntityManager::Instance()->SerializeEntity(dZoneManager::Instance()->GetZoneControlObject());
+			GameMessages::SendSetJetPackMode(m_Parent, false);
 
-			GameMessages::SendNotifyVehicleOfRacingObject(carEntity->GetObjectID(), dZoneManager::Instance()->GetZoneControlObject()->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendRacingPlayerLoaded(m_Parent->GetObjectID(), m_Parent->GetObjectID(), carEntity->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendNotifyVehicleOfRacingObject(carEntity->GetObjectID(), m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendRacingPlayerLoaded(LWOOBJID_EMPTY, m_Parent->GetObjectID(), carEntity->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 			GameMessages::SendVehicleUnlockInput(carEntity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
-			//GameMessages::SendVehicleSetWheelLockState(carEntity->GetObjectID(), false, false, UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
+    		GameMessages::SendTeleport(carEntity->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
+			EntityManager::Instance()->SerializeEntity(m_Parent);
 
+			hasCarEquipped = true;
+			equippedCarEntity = carEntity;
+			return;
+		} else if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == true)
+		{
+			GameMessages::SendNotifyRacingClient(LWOOBJID_EMPTY, 3, 0, LWOOBJID_EMPTY, u"", m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+			auto player = dynamic_cast<Player*>(m_Parent);
+			player->SendToZone(player->GetCharacter()->GetZoneID());
+			equippedCarEntity->Kill();
+			hasCarEquipped = false;
+			equippedCarEntity = nullptr;
 			return;
 		}
 
@@ -1000,10 +1033,6 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 	{
 		set->OnEquip(lot);
 	}
-	
-	if (lot == 1727) GameMessages::SendSetJetpackMode(m_Parent, false, true, false);
-	if (lot == 7292) GameMessages::SendSetJetpackMode(m_Parent, true, true, false);
-	if (lot == 14442) GameMessages::SendSetJetpackMode(m_Parent, false, true, true);
 
 	if (item->GetInfo().isBOE)
 	{
@@ -1014,7 +1043,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 	
 	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
 
-	ApplyBuff(item->GetLot());
+	ApplyBuff(item);
 	
 	AddItemSkills(item->GetLot());
 
@@ -1042,11 +1071,7 @@ void InventoryComponent::UnEquipItem(Item* item)
 		set->OnUnEquip(lot);
 	}
 
-	if (lot == 1727) GameMessages::SendSetJetpackMode(m_Parent, false, false, false);
-	if (lot == 7292) GameMessages::SendSetJetpackMode(m_Parent, true, false, false);
-	if (lot == 14442) GameMessages::SendSetJetpackMode(m_Parent, false, false, true);
-
-	RemoveBuff(item->GetLot());
+	RemoveBuff(item);
 	
 	RemoveItemSkills(item->GetLot());
 
@@ -1064,9 +1089,9 @@ void InventoryComponent::UnEquipItem(Item* item)
 	}
 }
 
-void InventoryComponent::ApplyBuff(const LOT lot) const
+void InventoryComponent::ApplyBuff(Item* item) const
 {
-	const auto buffs = FindBuffs(lot, true);
+	const auto buffs = FindBuffs(item, true);
 
 	for (const auto buff : buffs)
 	{	
@@ -1074,9 +1099,9 @@ void InventoryComponent::ApplyBuff(const LOT lot) const
 	}
 }
 
-void InventoryComponent::RemoveBuff(const LOT lot) const
+void InventoryComponent::RemoveBuff(Item* item) const
 {
-	const auto buffs = FindBuffs(lot, false);
+	const auto buffs = FindBuffs(item, false);
 
 	for (const auto buff : buffs)
 	{
@@ -1393,17 +1418,17 @@ uint32_t InventoryComponent::FindSkill(const LOT lot)
 	return 0;
 }
 
-std::vector<uint32_t> InventoryComponent::FindBuffs(const LOT lot, bool castOnEquip) const
+std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip) const
 {
+	std::vector<uint32_t> buffs;
+	if (item == nullptr) return buffs;
 	auto* table = CDClientManager::Instance()->GetTable<CDObjectSkillsTable>("ObjectSkills");
 	auto* behaviors = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
 
 	const auto results = table->Query([=](const CDObjectSkills& entry)
 	{
-		return entry.objectTemplate == static_cast<unsigned int>(lot);
+		return entry.objectTemplate == static_cast<unsigned int>(item->GetLot());
 	});
-
-	std::vector<uint32_t> buffs;
 
 	auto* missions = static_cast<MissionComponent*>(m_Parent->GetComponent(COMPONENT_TYPE_MISSION));
 
@@ -1424,8 +1449,8 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(const LOT lot, bool castOnEq
 			{
 				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, result.skillID);
 			}
-			
-			buffs.push_back(static_cast<uint32_t>(entry.behaviorID));
+			// If item is not a proxy, add its buff to the added buffs.
+			if (item->GetParent() == LWOOBJID_EMPTY) buffs.push_back(static_cast<uint32_t>(entry.behaviorID));
 		}
 	}
 

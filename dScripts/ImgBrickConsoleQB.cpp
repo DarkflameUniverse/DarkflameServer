@@ -96,7 +96,6 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user)
             if (missionComponent->GetMissionState(1926) == MissionState::MISSION_STATE_ACTIVE)
             {
                 inventoryComponent->RemoveItem(14472, 1);
-                inventoryComponent->AddItem(14472, 1);
 
                 missionComponent->ForceProgressTaskType(1926, 1, 1);
             }
@@ -275,7 +274,7 @@ void ImgBrickConsoleQB::OnTimerDone(Entity* self, std::string timerName)
 {
     if (timerName == "reset")
     {
-        Game::logger->Log("ImgBrickConsoleQB", "Reseting...\n");
+        Game::logger->Log("ImgBrickConsoleQB", "Resetting...\n");
 
         auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 

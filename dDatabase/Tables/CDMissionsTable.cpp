@@ -58,7 +58,7 @@ CDMissionsTable::CDMissionsTable(void) {
         entry.reward_item2_repeatable = tableData.getIntField(32, -1);
         entry.reward_item2_repeat_count = tableData.getIntField(33, -1);
         entry.reward_item3_repeatable = tableData.getIntField(34, -1);
-        entry.reward_item3_repeat_count = tableData.getIntField(34, -1);
+        entry.reward_item3_repeat_count = tableData.getIntField(35, -1);
         entry.reward_item4_repeatable = tableData.getIntField(36, -1);
         entry.reward_item4_repeat_count = tableData.getIntField(37, -1);
         entry.time_limit = tableData.getIntField(38, -1);

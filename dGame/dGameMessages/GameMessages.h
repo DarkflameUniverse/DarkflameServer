@@ -68,8 +68,9 @@ namespace GameMessages {
     void SendOfferMission(const LWOOBJID& entity, const SystemAddress& sysAddr, int32_t missionID, const LWOOBJID& offererID);
     void SendNotifyMission(Entity * entity, const SystemAddress& sysAddr, int missionID, int missionState, bool sendingRewards);
     void SendNotifyMissionTask(Entity * entity, const SystemAddress& sysAddr, int missionID, int taskMask, std::vector<float> updates);
+	void NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards);
 
-	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, int sourceType);
+	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
 	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, NDGFxValue args);
 	void SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args);
 
@@ -78,7 +79,7 @@ namespace GameMessages {
 	void SendPlayFXEffect(const LWOOBJID& entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary = LWOOBJID_EMPTY, float priority = 1, float scale = 1, bool serialize = true);
 	void SendStopFXEffect(Entity* entity, bool killImmediate, std::string name);
 	void SendBroadcastTextToChatbox(Entity* entity, const SystemAddress& sysAddr, const std::u16string& attrs, const std::u16string& wsText);
-	void SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent);
+	void SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent, eLootSourceType sourceType);
 
 	void SendRebuildNotifyState(Entity* entity, int prevState, int state, const LWOOBJID& playerID);
 	void SendEnableRebuild(Entity* entity, bool enable, bool fail, bool success, int failReason, float duration, const LWOOBJID& playerID);
@@ -91,7 +92,7 @@ namespace GameMessages {
 	void SendSetInventorySize(Entity* entity, int invType, int size);
 	
 	void SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID);
-	void SendSetJetpackMode(Entity* entity, bool bDoHover, bool bUse, bool bIsJamessterPhysics);
+    void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
 	void SendResurrect(Entity* entity);
 	void SendStop2DAmbientSound(Entity* entity, bool force, std::string audioGUID, bool result = false);
 	void SendPlay2DAmbientSound(Entity* entity, std::string audioGUID, bool result = false);

@@ -129,6 +129,9 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 BaseCombatAIComponent::~BaseCombatAIComponent() {
 	if (m_dpEntity)
 		dpWorld::Instance().RemoveEntity(m_dpEntity);
+
+	if (m_dpEntityEnemy)
+		dpWorld::Instance().RemoveEntity(m_dpEntityEnemy);
 }
 
 void BaseCombatAIComponent::Update(const float deltaTime) {
@@ -189,7 +192,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 		return;
 	}
 
-	if (m_Stunned || m_SkillTime > 0) {
+	if (m_Stunned) {
 		m_MovementAI->Stop();
 
 		return;
@@ -355,7 +358,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		return;
 	}
 
-	m_Downtime = 0.5f; // TODO: find out if this is necessary
+	m_Downtime = 0.5f;
 	
 	auto* target = GetTargetEntity();
 

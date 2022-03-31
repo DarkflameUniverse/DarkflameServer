@@ -351,6 +351,13 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet)
 		return;
 	}
 
+	if (team->memberIDs.size() > 3) {
+		// no more teams greater than 4
+
+		Game::logger->Log("ChatPacketHandler", "Someone tried to invite a 5th player to a team\n");
+		return;
+	}
+
 	SendTeamInvite(other, player);
 
 	Game::logger->Log("ChatPacketHandler", "Got team invite: %llu -> %s\n", playerID, invitedPlayer.c_str());
@@ -460,7 +467,7 @@ void ChatPacketHandler::HandleTeamPromote(Packet* packet)
 	
 	std::string promotedPlayer = PacketUtils::ReadString(0x14, packet, true);
 
-	Game::logger->Log("ChatPacketHandler", "(%llu) promiting (%s) to team leader\n", playerID, promotedPlayer.c_str());
+	Game::logger->Log("ChatPacketHandler", "(%llu) promoting (%s) to team leader\n", playerID, promotedPlayer.c_str());
 
 	auto* promoted = playerContainer.GetPlayerData(promotedPlayer);
 

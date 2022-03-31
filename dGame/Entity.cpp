@@ -346,7 +346,7 @@ void Entity::Initialize()
 	}
 
 	/**
-	 * Multiple components require te destructible component.
+	 * Multiple components require the destructible component.
 	 */
 
 	int buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_BUFF);
@@ -1644,6 +1644,26 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 	droppedLoot.erase(objectID);
 }
 
+bool Entity::CanPickupCoins(uint64_t count) {
+	if (!IsPlayer()) return false;
+	auto* player = static_cast<Player*>(this);
+	auto droppedCoins = player->GetDroppedCoins();
+	if (count > droppedCoins) { 
+		return false;
+	} else {
+		player->SetDroppedCoins(droppedCoins - count);
+		return true;
+	}
+}
+
+void Entity::RegisterCoinDrop(uint64_t count) {
+	if (!IsPlayer()) return;
+	auto* player = static_cast<Player*>(this);
+	auto droppedCoins = player->GetDroppedCoins();
+	droppedCoins += count;
+	player->SetDroppedCoins(droppedCoins);
+}
+
 void Entity::AddChild(Entity* child) {
 	m_ChildEntities.push_back(child);
 }
@@ -1768,6 +1788,7 @@ void Entity::HandleTriggerCommand(std::string id, std::string target, std::strin
 			else if (argArray[0] == "repulse") effectType = 2;
 			else if (argArray[0] == "gravity") effectType = 3;
 			else if (argArray[0] == "friction") effectType = 4;
+
 			phanPhys->SetEffectType(effectType);
 			phanPhys->SetDirectionalMultiplier(std::stof(argArray[1]));
 			if (argArray.size() > 4) {
@@ -1780,6 +1801,10 @@ void Entity::HandleTriggerCommand(std::string id, std::string target, std::strin
 			if (argArray.size() > 5) {
 				phanPhys->SetMin(std::stoi(argArray[6]));
 				phanPhys->SetMax(std::stoi(argArray[7]));
+			}
+
+			if (target == "self") {
+				EntityManager::Instance()->ConstructEntity(this);
 			}
 		}
 		else if (id == "updateMission") {

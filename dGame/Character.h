@@ -74,65 +74,127 @@ public:
      */
 	uint64_t GetLastLogin() const { return m_LastLogin; }
 
-    /**
-     * Gets the default shirt color for this character
-     * @return the default shirt color ID
-     */
-	uint32_t GetShirtColor() const { return m_ShirtColor; }
+     
+     /**
+      * Gets the default shirt color for this character
+      * @return the default shirt color ID
+      */
+     uint32_t GetShirtColor() const { return m_ShirtColor; }
 
-    /**
-     * Gets the default hair style for this character
-     * @return the default hair style ID
-     */
-	uint32_t GetShirtStyle() const { return m_ShirtStyle; }
+     /**
+      * Gets the default hair style for this character
+      * @return the default hair style ID
+      */
+     uint32_t GetShirtStyle() const { return m_ShirtStyle; }
 
-    /**
-     * Gets the default pants color for this character
-     * @return the default pants color ID
-     */
-	uint32_t GetPantsColor() const { return m_PantsColor; }
+     /**
+      * Gets the default pants color for this character
+      * @return the default pants color ID
+      */
+     uint32_t GetPantsColor() const { return m_PantsColor; }
 
-    /**
-     * Gets the default hair color for this character
-     * @return the default hair color ID
-     */
-	uint32_t GetHairColor() const { return m_HairColor; }
+     /**
+      * Gets the default hair color for this character
+      * @return the default hair color ID
+      */
+     uint32_t GetHairColor() const { return m_HairColor; }
 
-    /**
-     * Gets the default hair style of this character
-     * @return the default hair style ID
-     */
-	uint32_t GetHairStyle() const { return m_HairStyle; }
+     /**
+      * Gets the default hair style of this character
+      * @return the default hair style ID
+      */
+     uint32_t GetHairStyle() const { return m_HairStyle; }
 
-    /**
-     * Gets the eyes config for this character
-     * @return the eyes config ID
-     */
-	uint32_t GetEyes() const { return m_Eyes; }
+     /**
+      * Gets the eyes config for this character
+      * @return the eyes config ID
+      */
+     uint32_t GetEyes() const { return m_Eyes; }
 
-    /**
-     * Gets the eyebrows config for this character
-     * @return the eyebrow config ID
-     */
-	uint32_t GetEyebrows() const { return m_Eyebrows; }
+     /**
+      * Gets the eyebrows config for this character
+      * @return the eyebrow config ID
+      */
+     uint32_t GetEyebrows() const { return m_Eyebrows; }
 
-    /**
-     * Get the mouth of this character
-     * @return the mouth ID
-     */
-	uint32_t GetMouth() const { return m_Mouth; }
+     /**
+      * Get the mouth of this character
+      * @return the mouth ID
+      */
+     uint32_t GetMouth() const { return m_Mouth; }
 
-    /**
-     * Gets the left hand color of this character
-     * @return the left hand color ID
-     */
-	uint32_t GetLeftHand() const { return m_LeftHand; }
+     /**
+      * Gets the left hand color of this character
+      * @return the left hand color ID
+      */
+     uint32_t GetLeftHand() const { return m_LeftHand; }
 
-    /**
-     * Gets the right hand color of this character
-     * @return the right hand color ID
-     */
-	uint32_t GetRightHand() const { return m_RightHand; }
+     /**
+      * Gets the right hand color of this character
+      * @return the right hand color ID
+      */
+     uint32_t GetRightHand() const { return m_RightHand; }
+
+     /**
+      * Sets the default shirt color for this character
+      * @param color the shirt color ID to set
+      */
+     void SetShirtColor(uint32_t color) { m_ShirtColor = color; }
+
+     /**
+      * Sets the default shirt style for this character
+      * @param style the shirt style ID to set
+      */
+     void SetShirtStyle(uint32_t style) { m_ShirtStyle = style; }
+
+     /**
+      * Sets the default pants color for this character
+      * @param color the pants color ID to set
+      */
+     void SetPantsColor(uint32_t color) { m_PantsColor = color; }
+
+     /**
+      * Sets the default hair color for this character
+      * @param color the hair color ID to set
+      */
+     void SetHairColor(uint32_t color) { m_HairColor = color; }
+
+     /**
+      * Sets the default hair style for this character
+      * @param style the hair style ID to set
+      */
+     void SetHairStyle(uint32_t style) { m_HairStyle = style; }
+
+     /**
+      * Sets the eyes config for this character
+      * @param eyes the eyes config ID to set
+      */
+     void SetEyes(uint32_t eyes) { m_Eyes = eyes; }
+
+     /**
+      * Sets the eyebrows config for this character
+      * @param eyebrows the eyebrows config ID to set
+      */
+     void SetEyebrows(uint32_t eyebrows) { m_Eyebrows = eyebrows; }
+
+     /**
+      * Sets the mouth config for this character
+      * @param mouth the mouth config ID to set
+      */
+     void SetMouth(uint32_t mouth) { m_Mouth = mouth; }
+
+     /**
+      * Sets the left hand color for this character
+      * @param color the left hand color ID to set
+      */
+     void SetLeftHand(uint32_t leftHand) { m_LeftHand = leftHand; }
+
+     /**
+      * Sets the right hand color for this character
+      * @param color the right hand color ID to set
+      */
+     void SetRightHand(uint32_t rightHand) { m_RightHand = rightHand; }
+
 
     /**
      * Whether this character has visited a certain zone
@@ -247,12 +309,11 @@ public:
 	const int64_t GetCoins() const { return m_Coins; }
 
     /**
-     * Updates the current amount of coins of the character by a specified amount, for achievements this is not sent
-     * as it's tracked by the client
+     * Updates the current amount of coins of the character by a specified amount
      * @param newCoins the amount of coins to update by
-     * @param message whether to notify the client of the change
+     * @param coinSource The source of the loot
      */
-    void SetCoins(int64_t newCoins, bool message = true);
+    void SetCoins(int64_t newCoins, eLootSourceType coinSource);
 
     /**
      * Get the entity this character belongs to
@@ -352,6 +413,12 @@ public:
 	 */
 	void SendMuteNotice() const;
 
+     /**
+      * Sets any flags that are meant to have been set that may not have been set due to them being
+      * missing in a previous patch.
+      */
+     void SetRetroactiveFlags();
+     
     /**
      * Get the equipped items for this character, only used for character creation
      * @return the equipped items for this character on world load

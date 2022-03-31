@@ -104,13 +104,13 @@ Packet* dServer::ReceiveFromMaster() {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
 
 		if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-			mLogger->Log("Server", "Lost our connection to master, shutting DOWN!\n");
+			mLogger->Log("dServer", "Lost our connection to master, shutting DOWN!\n");
 			mMasterConnectionActive = false;
 			//ConnectToMaster(); //We'll just shut down now
 		}
 	
 		if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
-			mLogger->Log("Server", "Established connection to master\n");
+			mLogger->Log("dServer", "Established connection to master, zone (%i), instance (%i)\n",this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
 			MasterPackets::SendServerInfo(this, packet);
@@ -126,28 +126,9 @@ Packet* dServer::ReceiveFromMaster() {
 					}
 
 					//When we handle these packets in World instead dServer, we just return the packet's pointer.
-					case MSG_MASTER_REQUEST_PERSISTENT_ID_RESPONSE: {
-						return packet;
-						break;
-					}
-
-					case MSG_MASTER_SESSION_KEY_RESPONSE: {
-						return packet;
-						break;
-					}
-
-					case MSG_MASTER_SHUTDOWN : {
-						return packet;
-						break;
-					}
-
-					case MSG_MASTER_AFFIRM_TRANSFER_REQUEST: {
-						return packet;
-						break;
-					}
-					
 					default:
-						mLogger->Log("Server", "Unknown packet ID from master: %i\n", packet->data[3]);
+
+						return packet;
 				}
 			}
 		}

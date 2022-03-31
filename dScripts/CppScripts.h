@@ -6,6 +6,7 @@
 #include "MissionState.h"
 #include "Game.h"
 #include "dLogger.h"
+#include "Loot.h"
 
 class User;
 class Entity;

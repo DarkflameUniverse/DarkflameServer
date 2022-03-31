@@ -7,6 +7,8 @@
 #include "NiQuaternion.h"
 #include "tinyxml2.h"
 #include "Component.h"
+#include "dpCollisionChecks.h"
+#include "PhantomPhysicsComponent.h"
 
 class Entity;
 class dpEntity;
@@ -217,6 +219,13 @@ public:
      * @return whether or not this entity is currently static
      */
     bool GetStatic() const { return m_Static; }
+
+    /**
+     * Returns the Physics entity for the component 
+     * @return Physics entity for the component
+     */
+
+    dpEntity* GetdpEntity() const { return m_dpEntity; }
 
 private:
     /**

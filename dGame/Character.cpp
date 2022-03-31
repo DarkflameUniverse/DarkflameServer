@@ -451,6 +451,13 @@ bool Character::GetPlayerFlag(const uint32_t flagId) const {
 	return false; //by def, return false.
 }
 
+void Character::SetRetroactiveFlags() {
+	// Retroactive check for if player has joined a faction to set their 'joined a faction' flag to true.
+	if (GetPlayerFlag(ePlayerFlags::VENTURE_FACTION) || GetPlayerFlag(ePlayerFlags::ASSEMBLY_FACTION) || GetPlayerFlag(ePlayerFlags::PARADOX_FACTION) || GetPlayerFlag(ePlayerFlags::SENTINEL_FACTION)) {
+		SetPlayerFlag(ePlayerFlags::JOINED_A_FACTION, true);
+	}
+}
+
 void Character::SaveXmlRespawnCheckpoints() 
 {
     //Export our respawn points:
@@ -527,7 +534,7 @@ void Character::OnZoneLoad()
 	 */	
 	if (HasPermission(PermissionMap::Old)) {
 		if (GetCoins() > 1000000) {
-			SetCoins(1000000);
+			SetCoins(1000000, LOOT_SOURCE_NONE);
 		}
 	}
 
@@ -567,18 +574,15 @@ const NiPoint3& Character::GetRespawnPoint(LWOMAPID map) const
 	return pair->second;
 }
 
-void Character::SetCoins(int64_t newCoins, const bool message) {
+void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource) {
 	if (newCoins < 0)
 	{
 		newCoins = 0;
 	}
 
 	m_Coins = newCoins;
-	
-	if (message)
-	{
-		GameMessages::SendSetCurrency(EntityManager::Instance()->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true);
-	}
+
+	GameMessages::SendSetCurrency(EntityManager::Instance()->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, lootSource);
 }
 
 bool Character::HasBeenToWorld(LWOMAPID mapID) const

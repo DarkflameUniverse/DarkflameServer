@@ -46,9 +46,18 @@ If you're using a DLU client you'll have to go into the "CMakeVariables.txt" fil
 ### Linux builds
 Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available.
 
-cmake must be version 3.12 or higher!
+CMake must be version 3.14 or higher!
 
 **Build the repository**
+
+You can either run `build.sh` when in the root folder of the repository:
+
+```bash
+./build.sh
+```
+
+Or manually run the commands used in `build.sh`:
+
 ```bash
 # Create the build directory, preserving it if it already exists
 mkdir -p build
@@ -236,6 +245,8 @@ The client script for the survival minigame has a bug in it which can cause the 
 * Change `PlayerReady(self)` to `onPlayerReady(self)`
 * Save the file, overriding readonly mode if required
 
+If you still experience the bug, try deleting/renaming `res/pack/scripts.pk`.
+
 ### Brick-By-Brick building
 
 Brick-By-Brick building requires `PATCHSERVERIP=0:` in the `boot.cfg` to point to a HTTP server which always returns `HTTP 404 - Not Found` for all requests. This can be achieved by pointing it to `localhost` while having `sudo python -m http.server 80` running in the background.
@@ -287,10 +298,10 @@ Here is a summary of the commands available in-game. All commands are prefixed b
   </tr>
   <tr>
     <td>
-      instance-info
+      instanceinfo
     </td>
     <td>
-      /instance-info
+      /instanceinfo
     </td>
     <td>
       Displays in the chat the current zone, clone, and instance id. 
