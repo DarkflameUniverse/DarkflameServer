@@ -9,7 +9,7 @@
 void AgSurvivalBuffStation::OnRebuildComplete(Entity* self, Entity* target) {
     auto destroyableComponent = self->GetComponent<DestroyableComponent>();
     // We set the faction to 6 so that the buff station sees players as friendly targets to buff
-    if (destroyableComponent != nullptr) destroyableComponent->SetFaction(6);
+    if (destroyableComponent != nullptr) destroyableComponent->SetFaction(1);
 
     auto skillComponent = self->GetComponent<SkillComponent>();
 
