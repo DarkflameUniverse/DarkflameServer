@@ -206,8 +206,8 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         const auto propertyId = propertyEntry->getUInt64(1);
         const auto owner = propertyEntry->getInt(2);
         const auto cloneId = propertyEntry->getUInt64(4);
-        const auto name = propertyEntry->getString(5).asStdString();
-        const auto description = propertyEntry->getString(6).asStdString();
+        const auto propertyNameFromDb = propertyEntry->getString(5).asStdString();
+        const auto propertyDescriptionFromDb = propertyEntry->getString(6).asStdString();
         const auto privacyOption = propertyEntry->getInt(9);
         const auto modApproved = propertyEntry->getBoolean(10);
         const auto dateLastUpdated = propertyEntry->getInt(11);
@@ -242,10 +242,8 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         delete nameLookup;
         nameLookup = nullptr;
 
-        std::string propertyName = "";
-        std::string propertyDescription = "";
-        propertyName = name;
-        propertyDescription = description;
+        std::string propertyName = propertyNameFromDb;
+        std::string propertyDescription = propertyDescriptionFromDb;
 
         bool isBestFriend = false;
         bool isFriend = false;
