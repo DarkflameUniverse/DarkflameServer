@@ -65,8 +65,8 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<uint64_t>(0);
 
 	if (rejectionReason != "") stream.Write<uint32_t>(REJECTION_STATUS_REJECTED);
-	else if (moderatorRequested == true && rejectionReason == "") stream.Write<uint32_t>(REJECTION_STATUS_PENDING);
-	else stream.Write<uint32_t>(REJECTION_STATUS_APPROVED);
+	else if (moderatorRequested == true && rejectionReason == "") stream.Write<uint32_t>(REJECTION_STATUS_APPROVED);
+	else stream.Write<uint32_t>(REJECTION_STATUS_PENDING);
 
 	// Does this go here???
 	const auto& rejectionReasonConverted = GeneralUtils::ASCIIToUTF16(rejectionReason);
