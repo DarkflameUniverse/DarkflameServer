@@ -78,8 +78,7 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
     launcher->Launch(entity, LWOOBJID_EMPTY, launcher->GetTargetZone(), cloneId);
 }
 
-PropertySelectQueryProperty PropertyEntranceComponent::SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId, std::string ownerName, std::string propertyName, std::string propertyDescription, 
-                                                                         float reputation, bool isBFF, bool isFriend, bool isModeratorApproved, bool isAlt, bool isOwned, uint32_t privacyOption, uint32_t timeLastUpdated, float performanceCost) {
+PropertySelectQueryProperty PropertyEntranceComponent::SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId, std::string ownerName, std::string propertyName, std::string propertyDescription, float reputation, bool isBFF, bool isFriend, bool isModeratorApproved, bool isAlt, bool isOwned, uint32_t privacyOption, uint32_t timeLastUpdated, float performanceCost) {
     property.CloneId = cloneId;
     property.OwnerName = ownerName;
     property.Name = propertyName;
