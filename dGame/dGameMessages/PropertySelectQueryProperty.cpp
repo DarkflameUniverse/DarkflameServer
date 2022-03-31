@@ -1,5 +1,4 @@
 ﻿#include "PropertySelectQueryProperty.h"
-#include <iostream>
 
 void PropertySelectQueryProperty::Serialize(RakNet::BitStream& stream) const
 {
