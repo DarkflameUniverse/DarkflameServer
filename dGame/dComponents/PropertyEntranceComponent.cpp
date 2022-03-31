@@ -192,16 +192,15 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     const auto query = BuildQuery(entity, sortMethod);
 
     auto propertyLookup = Database::CreatePreppedStmt(query);
-
+    
     const auto searchString = "%" + filterText + "%";
     propertyLookup->setUInt(1, this->m_MapID);
     propertyLookup->setString(2, searchString.c_str());
     propertyLookup->setString(3, searchString.c_str());
     propertyLookup->setString(4, searchString.c_str());
-    propertyLookup->setInt(5, entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR || sortMethod == SORT_TYPE_FRIENDS ? 0 : 1);
-    propertyLookup->setInt(6, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? (uint32_t)PropertyPrivacyOption::Friends : (uint32_t)PropertyPrivacyOption::Public);
-    propertyLookup->setInt(7, numResults);
-    propertyLookup->setInt(8, startIndex);
+    propertyLookup->setInt(5, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? (uint32_t)PropertyPrivacyOption::Friends : (uint32_t)PropertyPrivacyOption::Public);
+    propertyLookup->setInt(6, numResults);
+    propertyLookup->setInt(7, startIndex);
 
     auto propertyEntry = propertyLookup->executeQuery();
 
@@ -291,7 +290,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         }
 
         bool isAlt = false;
-        // Query to determine whether this property is an alt of the entity.
+        // Query to determine whether this property is an alt character of the entity.
         auto isAltQuery = Database::CreatePreppedStmt("SELECT id FROM charinfo where account_id in (SELECT account_id from charinfo WHERE id = ?) AND id = ?;");
 
         isAltQuery->setInt(1, character->GetID());
@@ -321,18 +320,18 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     propertyLookup = nullptr;
 
     propertyQueries[entity->GetObjectID()] = entries;
-
+    
+    // Query here is to figure out whether or not to display the button to go to the next page or not.
     int32_t numberOfProperties = 0;
 
-    auto buttonQuery = BuildQuery(entity, sortMethod, "SELECT COUNT(*) FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.mod_approved >= ? AND p.privacy_option >= ? ", false);
+    auto buttonQuery = BuildQuery(entity, sortMethod, "SELECT COUNT(*) FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ", false);
     auto propertiesLeft = Database::CreatePreppedStmt(buttonQuery);
 
     propertiesLeft->setUInt(1, this->m_MapID);
     propertiesLeft->setString(2, searchString.c_str());
     propertiesLeft->setString(3, searchString.c_str());
     propertiesLeft->setString(4, searchString.c_str());
-    propertiesLeft->setInt(5, entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR || sortMethod == SORT_TYPE_FRIENDS ? 0 : 1);
-    propertiesLeft->setInt(6, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? 1 : 2);
+    propertiesLeft->setInt(5, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? 1 : 2);
 
     auto result = propertiesLeft->executeQuery();
     result->next();

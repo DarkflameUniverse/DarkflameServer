@@ -86,5 +86,5 @@ class PropertyEntranceComponent : public Component {
         SORT_TYPE_FEATURED = 5
     };
 
-    std::string baseQueryForProperties = "SELECT p.* FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.mod_approved >= ? AND p.privacy_option >= ? ";
+    std::string baseQueryForProperties = "SELECT p.* FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ";
 };
