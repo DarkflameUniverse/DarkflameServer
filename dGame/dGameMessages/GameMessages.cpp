@@ -4167,7 +4167,7 @@ void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStre
 	updatePerformanceCostQuery->setInt(2, cloneId);
 	updatePerformanceCostQuery->setInt(3, zoneId);
 
-	updatePerformanceCostQuery->execute();
+	updatePerformanceCostQuery->executeUpdate();
 
 	delete updatePerformanceCostQuery;
 	updatePerformanceCostQuery = nullptr;
