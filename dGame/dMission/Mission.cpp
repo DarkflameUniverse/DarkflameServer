@@ -524,32 +524,16 @@ void Mission::YieldRewards() {
         auto charId = character->GetID();
         auto propertyCloneId = character->GetPropertyCloneID();
 
-        auto properties = Database::CreatePreppedStmt("SELECT reputation FROM properties WHERE owner_id = ? AND clone_id = ?");
+        auto reputationUpdate = Database::CreatePreppedStmt("UPDATE properties SET reputation = reputation + ? where owner_id = ? AND clone_id = ?");
 
-        properties->setInt(1, charId);
-        properties->setInt64(2, propertyCloneId);
+        reputationUpdate->setInt64(1, info->reward_reputation);
+        reputationUpdate->setInt(2, charId);
+        reputationUpdate->setInt64(3, propertyCloneId);
 
-        auto results = properties->executeQuery();
+        reputationUpdate->executeUpdate();
 
-        while (results->next()) {
-            const auto oldReputation = results->getInt(1);
-
-            auto reputationUpdate = Database::CreatePreppedStmt("UPDATE properties SET reputation = ? where owner_id = ? AND clone_id = ?");
-
-            reputationUpdate->setInt64(1, oldReputation + info->reward_reputation);
-            reputationUpdate->setInt(2, charId);
-            reputationUpdate->setInt64(3, propertyCloneId);
-
-            reputationUpdate->execute();
-
-            delete reputationUpdate;
-            reputationUpdate = nullptr;
-        }
-        delete results;
-        results = nullptr;
-
-        delete properties;
-        properties = nullptr;
+        delete reputationUpdate;
+        reputationUpdate = nullptr;
 
         GameMessages::SendUpdateReputation(entity->GetObjectID(), info->reward_reputation, entity->GetSystemAddress());
     }
