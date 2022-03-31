@@ -386,6 +386,8 @@ namespace GameMessages {
 		bool bUseLeaderboards
 	);
 
+	void HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
 	void SendNotifyClientShootingGalleryScore(LWOOBJID objectId, const SystemAddress& sysAddr,
 		float addTime,
 		int32_t score,
@@ -394,6 +396,8 @@ namespace GameMessages {
 	);
 
 	void HandleUpdateShootingGalleryRotation(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
+	void SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr);
 
     // Leaderboards
     void SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard,
