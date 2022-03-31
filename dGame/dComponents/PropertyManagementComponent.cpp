@@ -296,6 +296,8 @@ void PropertyManagementComponent::OnFinishBuilding()
 	SetPrivacyOption(originalPrivacyOption);
 
 	UpdateApprovedStatus(false);
+
+	Save();
 }
 
 void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation)
@@ -706,9 +708,12 @@ void PropertyManagementComponent::Save()
 	auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
 
 	lookup->setUInt64(1, propertyId);
-
-	auto* lookupResult = lookup->executeQuery();
-
+	sql::ResultSet* lookupResult = nullptr;
+	try {
+		lookupResult = lookup->executeQuery();
+	} catch (sql::SQLException& ex) {
+		Game::logger->Log("PropertyManagementComponent", "lookup error %s\n", ex.what());
+	}
 	std::vector<LWOOBJID> present;
 
 	while (lookupResult->next())
@@ -751,8 +756,11 @@ void PropertyManagementComponent::Save()
 			insertion->setDouble(9, rotation.y);
 			insertion->setDouble(10, rotation.z);
 			insertion->setDouble(11, rotation.w);
-
-			insertion->execute();
+			try {
+				insertion->execute();
+			} catch (sql::SQLException& ex) {
+				Game::logger->Log("PropertyManagementComponent", "Error inserting into properties_contents. Error %s\n", ex.what());
+			}
 		}
 		else
 		{
@@ -765,8 +773,11 @@ void PropertyManagementComponent::Save()
 			update->setDouble(7, rotation.w);
 
 			update->setInt64(8, id);
-
-			update->executeUpdate();
+			try {
+				update->executeUpdate();
+			} catch (sql::SQLException& ex) {
+				Game::logger->Log("PropertyManagementComponent", "Error updating properties_contents. Error: %s\n", ex.what());
+			}
 		}
 	}
 
@@ -778,8 +789,11 @@ void PropertyManagementComponent::Save()
 		}
 
 		remove->setInt64(1, id);
-
-		remove->execute();
+		try {
+			remove->execute();
+		} catch (sql::SQLException& ex) {
+			Game::logger->Log("PropertyManagementComponent", "Error removing from properties_contents. Error %s\n", ex.what());
+		}
 	}
 
 	auto* removeUGC = Database::CreatePreppedStmt("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents);");
