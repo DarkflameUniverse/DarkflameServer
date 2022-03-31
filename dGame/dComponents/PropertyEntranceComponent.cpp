@@ -66,8 +66,6 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
         cloneId = query[index].CloneId;
     }
 
-    Game::logger->Log("PropertyEntranceComponent", "index is %i\n", index);
-
     auto* launcher = m_Parent->GetComponent<RocketLaunchpadControlComponent>();
 
     if (launcher == nullptr)
