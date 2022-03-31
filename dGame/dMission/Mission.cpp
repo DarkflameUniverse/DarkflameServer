@@ -356,7 +356,7 @@ void Mission::CheckCompletion() {
         return;
     }
 
-    SetMissionState(MissionState::MISSION_STATE_READY_TO_COMPLETE);
+    MakeReadyToComplete();
 }
 
 void Mission::Catchup() {

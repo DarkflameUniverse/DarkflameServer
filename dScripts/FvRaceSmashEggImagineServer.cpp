@@ -27,7 +27,9 @@ void FvRaceSmashEggImagineServer::OnDie(Entity *self, Entity *killer) {
                     characterComponent->UpdatePlayerStatistic(RacingSmashablesSmashed);
                 }
                 if (missionComponent == nullptr) return;
-                missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, self->GetLOT(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASH_DRAGON_EGGS);
+                // Dragon eggs have their own smash server so we handle mission progression for them here.
+                missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, 0, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASHABLES);
+                missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, self->GetLOT(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASH_SPECIFIC_SMASHABLE);
             }
         }
 

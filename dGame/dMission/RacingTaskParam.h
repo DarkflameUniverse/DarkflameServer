@@ -16,5 +16,5 @@ enum class RacingTaskParam : int32_t {
     RACING_TASK_PARAM_WIN_RACE_IN_WORLD = 14,               //<! A task param for winning a race in a specific world.
     RACING_TASK_PARAM_FIRST_PLACE_MULTIPLE_TRACKS = 15,     //<! A task param for finishing in first place on multiple tracks.
     RACING_TASK_PARAM_LAST_PLACE_FINISH = 16,               //<! A task param for finishing in last place.
-    RACING_TASK_PARAM_SMASH_DRAGON_EGGS = 17                //<! A task param for smashing dragon eggs during a race.
+    RACING_TASK_PARAM_SMASH_SPECIFIC_SMASHABLE = 17         //<! A task param for smashing dragon eggs during a race.
 };
