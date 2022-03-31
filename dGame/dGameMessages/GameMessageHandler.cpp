@@ -595,7 +595,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		case GAME_MSG_VEHICLE_NOTIFY_HIT_IMAGINATION_SERVER:
 			GameMessages::HandleVehicleNotifyHitImaginationServer(inStream, entity, sysAddr);
 			break;
-		
+		case GAME_MSG_UPDATE_PROPERTY_PERFORMANCE_COST:
+			GameMessages::HandleUpdatePropertyPerformanceCost(inStream, entity, sysAddr);
+			break;
 		// SG
 		case GAME_MSG_UPDATE_SHOOTING_GALLERY_ROTATION:
 			GameMessages::HandleUpdateShootingGalleryRotation(inStream, entity, sysAddr);
