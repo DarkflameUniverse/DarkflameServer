@@ -107,7 +107,7 @@ std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMe
     if (sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS) {
         std::string friendsList = " AND p.owner_id IN (";
 
-        auto friendsListQuery = Database::CreatePreppedStmt("SELECT * FROM (SELECT CASE WHEN player_id = ? THEN friend_id WHEN friend_id = ? THEN player_id END AS requested_player FROM dlu.friends ) AS fr WHERE requested_player IS NOT NULL ORDER BY requested_player DESC;");
+        auto friendsListQuery = Database::CreatePreppedStmt("SELECT * FROM (SELECT CASE WHEN player_id = ? THEN friend_id WHEN friend_id = ? THEN player_id END AS requested_player FROM friends ) AS fr WHERE requested_player IS NOT NULL ORDER BY requested_player DESC;");
 
         friendsListQuery->setInt64(1, entity->GetObjectID());
         friendsListQuery->setInt64(2, entity->GetObjectID());
