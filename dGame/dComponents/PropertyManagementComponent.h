@@ -101,8 +101,10 @@ public:
     /**
      * Makes this property owned by the passed player ID, storing it in the database
      * @param playerId the ID of the entity that claimed the property
+     * 
+     * @return If the claim is successful return true.
      */
-	void Claim(LWOOBJID playerId);
+	bool Claim(LWOOBJID playerId);
 
     /**
      * Event triggered when the owner of the property starts building, will kick other entities out

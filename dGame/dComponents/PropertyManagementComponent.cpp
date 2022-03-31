@@ -192,31 +192,35 @@ void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::s
 	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
 }
 
-void PropertyManagementComponent::Claim(const LWOOBJID playerId)
+bool PropertyManagementComponent::Claim(const LWOOBJID playerId)
 {
 	if (owner != LWOOBJID_EMPTY)
 	{
-		return;
+		return false;
 	}
-	
-	SetOwnerId(playerId);
-
-	auto* zone = dZoneManager::Instance()->GetZone();
-
-	const auto& worldId = zone->GetZoneID();
-	const auto zoneId = worldId.GetMapID();
 
 	auto* entity = EntityManager::Instance()->GetEntity(playerId);
 
 	auto* user = entity->GetParentUser();
 
 	auto character = entity->GetCharacter();
-	if (!character) return;
+	if (!character) return false;
 
-	const auto cloneId = character->GetPropertyCloneID();
+	auto* zone = dZoneManager::Instance()->GetZone();
+
+	const auto& worldId = zone->GetZoneID();
+	const auto propertyZoneId = worldId.GetMapID();
+	const auto propertyCloneId = worldId.GetCloneID();
+
+	const auto playerCloneId = character->GetPropertyCloneID();
+
+	// If we are not on our clone do not allow us to claim the property
+	if (propertyCloneId != playerCloneId) return false;
+
+	SetOwnerId(playerId);
 
 	propertyId = ObjectIDManager::GenerateRandomObjectID();
-	
+
 	auto* insertion = Database::CreatePreppedStmt(
 		"INSERT INTO properties"
 		"(id, owner_id, template_id, clone_id, name, description, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, zone_id, performance_cost)"
@@ -225,9 +229,9 @@ void PropertyManagementComponent::Claim(const LWOOBJID playerId)
 	insertion->setUInt64(1, propertyId);
 	insertion->setUInt64(2, (uint32_t) playerId);
 	insertion->setUInt(3, templateId);
-	insertion->setUInt64(4, cloneId);
+	insertion->setUInt64(4, playerCloneId);
 	insertion->setString(5, zone->GetZoneName().c_str());
-	insertion->setInt(6, zoneId);
+	insertion->setInt(6, propertyZoneId);
 
 	// Try and execute the query, print an error if it fails.
 	try
@@ -239,12 +243,14 @@ void PropertyManagementComponent::Claim(const LWOOBJID playerId)
 		Game::logger->Log("PropertyManagementComponent", "Failed to execute query: (%s)!\n", exception.what());
 
 		throw exception;
+		return false;
 	}
 
 	auto* zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
     for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControlObject)) {
         script->OnZonePropertyRented(zoneControlObject, entity);
     }
+	return true;
 }
 
 void PropertyManagementComponent::OnStartBuilding() 
