@@ -104,8 +104,9 @@ std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMe
         base = customQuery;
     }
     std::string orderBy = "";
-    std::string friendsList = " AND p.owner_id IN (";
     if (sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS) {
+        std::string friendsList = " AND p.owner_id IN (";
+
         auto friendsListQuery = Database::CreatePreppedStmt("SELECT * FROM (SELECT CASE WHEN player_id = ? THEN friend_id WHEN friend_id = ? THEN player_id END AS requested_player FROM dlu.friends ) AS fr WHERE requested_player IS NOT NULL ORDER BY requested_player DESC;");
 
         friendsListQuery->setInt64(1, entity->GetObjectID());
@@ -165,15 +166,15 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     // If the player has a property this query will have a single result.
     if (playerPropertyLookupResults->next()) {
         const auto cloneId = playerPropertyLookupResults->getUInt64(4);
-        const auto name = playerPropertyLookupResults->getString(5).asStdString();
-        const auto description = playerPropertyLookupResults->getString(6).asStdString();
+        const auto propertyName = playerPropertyLookupResults->getString(5).asStdString();
+        const auto propertyDescription = playerPropertyLookupResults->getString(6).asStdString();
         const auto privacyOption = playerPropertyLookupResults->getInt(9);
         const auto modApproved = playerPropertyLookupResults->getBoolean(10);
         const auto dateLastUpdated = playerPropertyLookupResults->getInt64(11);
         const auto reputation = playerPropertyLookupResults->getUInt(14);
         const auto performanceCost = (float)playerPropertyLookupResults->getDouble(16);
 
-        playerEntry = SetPropertyValues(playerEntry, cloneId, character->GetName(), name, description, reputation, true, true, modApproved, true, true, privacyOption, dateLastUpdated, performanceCost);
+        playerEntry = SetPropertyValues(playerEntry, cloneId, character->GetName(), propertyName, propertyDescription, reputation, true, true, modApproved, true, true, privacyOption, dateLastUpdated, performanceCost);
     } else {
         playerEntry = SetPropertyValues(playerEntry, character->GetPropertyCloneID(), character->GetName(), "", "", 0, true, true);
     }
