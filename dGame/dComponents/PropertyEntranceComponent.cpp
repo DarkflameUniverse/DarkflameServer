@@ -1,13 +1,15 @@
-﻿#include <CDPropertyEntranceComponentTable.h>
-#include "PropertyEntranceComponent.h"
+﻿#include "PropertyEntranceComponent.h"
+
+#include <CDPropertyEntranceComponentTable.h>
+
+#include "Character.h"
+#include "Database.h"
+#include "GameMessages.h"
+#include "PropertyManagementComponent.h"
 #include "PropertySelectQueryProperty.h"
 #include "RocketLaunchpadControlComponent.h"
-#include "Character.h"
-#include "GameMessages.h"
-#include "dLogger.h"
-#include "Database.h"
-#include "PropertyManagementComponent.h"
 #include "UserManager.h"
+#include "dLogger.h"
 
 PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent)
 {
@@ -200,25 +202,22 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     propertyLookup->setInt(6, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? (uint32_t)PropertyPrivacyOption::Friends : (uint32_t)PropertyPrivacyOption::Public);
     propertyLookup->setInt(7, numResults);
     propertyLookup->setInt(8, startIndex);
-    
-    Game::logger->Log("PropertyEntranceComponent", "Property query is \n%s\n.  Entity is %s.\n", query.c_str(), entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR ? "a moderator" : "not a moderator");
 
     auto propertyEntry = propertyLookup->executeQuery();
-	
-	while (propertyEntry->next())
-	{
-		const auto propertyId = propertyEntry->getUInt64(1);
-		const auto owner = propertyEntry->getInt(2);
+
+    while (propertyEntry->next()) {
+        const auto propertyId = propertyEntry->getUInt64(1);
+        const auto owner = propertyEntry->getInt(2);
         const auto cloneId = propertyEntry->getUInt64(4);
         const auto name = propertyEntry->getString(5).asStdString();
         const auto description = propertyEntry->getString(6).asStdString();
-		const auto privacyOption = propertyEntry->getInt(9);
+        const auto privacyOption = propertyEntry->getInt(9);
         const auto modApproved = propertyEntry->getBoolean(10);
         const auto dateLastUpdated = propertyEntry->getInt(11);
         const float reputation = propertyEntry->getInt(14);
         const auto performanceCost = (float)propertyEntry->getDouble(16);
 
-        PropertySelectQueryProperty entry {};
+        PropertySelectQueryProperty entry{};
 
         std::string ownerName = "";
         bool isOwned = true;
@@ -235,8 +234,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
             Game::logger->Log("PropertyEntranceComponent", "Failed to find property owner name for %llu!\n", cloneId);
 
             continue;
-        }
-        else {
+        } else {
             isOwned = cloneId == character->GetPropertyCloneID();
             ownerName = nameResult->getString(1).asStdString();
         }
@@ -244,7 +242,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         delete nameResult;
         nameResult = nullptr;
 
-		delete nameLookup;
+        delete nameLookup;
         nameLookup = nullptr;
 
         std::string propertyName = "";
@@ -269,7 +267,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         friendCheck->setInt64(4, entity->GetObjectID());
 
         auto friendResult = friendCheck->executeQuery();
-        
+
         // If we got a result than the two players are friends.
         if (friendResult->next()) {
             isFriend = true;
@@ -314,7 +312,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         entry = SetPropertyValues(entry, cloneId, ownerName, propertyName, propertyDescription, reputation, isBestFriend, isFriend, isModeratorApproved, isAlt, isOwned, privacyOption, dateLastUpdated, performanceCost);
 
         entries.push_back(entry);
-	}
+    }
 
     delete propertyEntry;
     propertyEntry = nullptr;
