@@ -75,7 +75,7 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 		this->moderatorRequested = propertyEntry->getInt(10) == 0 && rejectionReason == "" && privacyOption == PropertyPrivacyOption::Public;
 		this->LastUpdatedTime = propertyEntry->getUInt64(11);
 		this->claimedTime = propertyEntry->getUInt64(12);
-		this->rejectionReason = propertyEntry->getString(13);
+		this->rejectionReason = propertyEntry->getString(13).asStdString();
 		this->reputation = propertyEntry->getUInt(14);
 
 		Load();
@@ -157,12 +157,18 @@ void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value)
 		value = PropertyPrivacyOption::Private;
 	}
 
+	if (value == PropertyPrivacyOption::Public && privacyOption != PropertyPrivacyOption::Public) {
+		rejectionReason = "";
+		moderatorRequested = true;
+	}
 	privacyOption = value;
 
-	auto* propertyUpdate = Database::CreatePreppedStmt("UPDATE properties SET privacy_option = ? WHERE id = ?;");
+	auto* propertyUpdate = Database::CreatePreppedStmt("UPDATE properties SET privacy_option = ?, rejection_reason = ?, mod_approved = ? WHERE id = ?;");
 
 	propertyUpdate->setInt(1, static_cast<int32_t>(value));
-	propertyUpdate->setInt64(2, propertyId);
+	propertyUpdate->setString(2, "");
+	propertyUpdate->setInt(3, 0);
+	propertyUpdate->setInt64(4, propertyId);
 
 	propertyUpdate->executeUpdate();
 }
@@ -791,7 +797,7 @@ PropertyManagementComponent* PropertyManagementComponent::Instance()
 	return instance;
 }
 
-void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author) const
+void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author)
 {
 	if (author == LWOOBJID_EMPTY) {
 		author = m_Parent->GetObjectID();
@@ -830,6 +836,28 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 		description = propertyDescription;
 		claimed = claimedTime;
 		privacy = static_cast<char>(this->privacyOption);
+		if (moderatorRequested) {
+			auto checkStatus = Database::CreatePreppedStmt("SELECT rejection_reason, mod_approved FROM properties WHERE id = ?;");
+
+			checkStatus->setInt64(1, propertyId);
+
+			auto result = checkStatus->executeQuery();
+
+			result->next();
+
+			const auto reason = result->getString(1).asStdString();;
+			const auto modApproved = result->getInt(2);
+			if (reason != "") {
+				moderatorRequested = false;
+				rejectionReason = reason;
+			} else if (reason == "" && modApproved == 1) {
+				moderatorRequested = false;
+				rejectionReason = "";
+			} else {
+				moderatorRequested = true;
+				rejectionReason = "";
+			}
+		}
 	}
 	message.moderatorRequested = moderatorRequested;
 	message.reputation = reputation;
@@ -845,7 +873,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 	message.Paths = GetPaths();
 
 	SendDownloadPropertyData(author, message, UNASSIGNED_SYSTEM_ADDRESS);
-	// send rejction here?
+	// send rejection here?
 }
 
 void PropertyManagementComponent::OnUse(Entity* originator) 
