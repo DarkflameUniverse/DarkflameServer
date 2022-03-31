@@ -131,7 +131,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, const LWOOB
     PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CREATE_CHARACTER);
     
     RakNet::BitStream data;
-    data.Write<uint32_t>(6); //LDF key count
+    data.Write<uint32_t>(7); //LDF key count
 
     LDFData<LWOOBJID>* objid = new LDFData<LWOOBJID>(u"objid", objectID);
     LDFData<LOT>* lot = new LDFData<LOT>(u"template", 1);
@@ -139,13 +139,15 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, const LWOOB
     LDFData<std::u16string>* name = new LDFData<std::u16string>(u"name", username);
     LDFData<int32_t>* gmlevel = new LDFData<int32_t>(u"gmlevel", gm);
     LDFData<int32_t>* chatmode = new LDFData<int32_t>(u"chatmode", gm);
-    
+    LDFData<int64_t>* reputation = new LDFData<int64_t>(u"reputation", 400);
+
     objid->WriteToPacket(&data);
     lot->WriteToPacket(&data);
     name->WriteToPacket(&data);
     gmlevel->WriteToPacket(&data);
     chatmode->WriteToPacket(&data);
     xmlConfigData->WriteToPacket(&data);
+    reputation->WriteToPacket(&data);
     
     delete objid;
     delete lot;
@@ -153,7 +155,8 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, const LWOOB
     delete gmlevel;
     delete chatmode;
     delete name;
-    
+    delete reputation;
+
 #ifdef _WIN32
     bitStream.Write<uint32_t>(data.GetNumberOfBytesUsed() + 1);
     bitStream.Write<uint8_t>(0);
