@@ -69,13 +69,13 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	else stream.Write<uint32_t>(REJECTION_STATUS_PENDING);
 
 	// Does this go here???
-	const auto& rejectionReasonConverted = GeneralUtils::ASCIIToUTF16(rejectionReason);
-	stream.Write(uint32_t(rejectionReasonConverted.size()));
-	for (uint32_t i = 0; i < rejectionReasonConverted.size(); ++i) {
-		stream.Write(uint16_t(rejectionReasonConverted[i]));
-	}
+	// const auto& rejectionReasonConverted = GeneralUtils::ASCIIToUTF16(rejectionReason);
+	// stream.Write(uint32_t(rejectionReasonConverted.size()));
+	// for (uint32_t i = 0; i < rejectionReasonConverted.size(); ++i) {
+	// 	stream.Write(uint16_t(rejectionReasonConverted[i]));
+	// }
 
-	// stream.Write<uint32_t>(0);
+	stream.Write<uint32_t>(0);
 
 	stream.Write<uint64_t>(0);
 
