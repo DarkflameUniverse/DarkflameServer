@@ -12,6 +12,7 @@
 #include "LDFFormat.h"
 #include "dServer.h"
 #include "dZoneManager.h"
+#include "CharacterComponent.h"
 #include "ZCompression.h"
 
 void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum) {
@@ -126,20 +127,26 @@ void WorldPackets::SendServerState ( const SystemAddress& sysAddr ) {
 	SEND_PACKET
 }
 
-void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, const LWOOBJID& objectID, const std::string& xmlData, const std::u16string& username, int32_t gm) {
+void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* entity, const std::string& xmlData, const std::u16string& username, int32_t gm) {
     RakNet::BitStream bitStream;
     PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CREATE_CHARACTER);
     
     RakNet::BitStream data;
     data.Write<uint32_t>(7); //LDF key count
 
-    LDFData<LWOOBJID>* objid = new LDFData<LWOOBJID>(u"objid", objectID);
+    auto character = entity->GetComponent<CharacterComponent>();
+    if (!character) {
+        Game::logger->Log("WorldPackets", "Entity is not a character?? what??");
+        return;
+    }
+
+    LDFData<LWOOBJID>* objid = new LDFData<LWOOBJID>(u"objid", entity->GetObjectID());
     LDFData<LOT>* lot = new LDFData<LOT>(u"template", 1);
     LDFData<std::string> * xmlConfigData = new LDFData<std::string>(u"xmlData", xmlData);
     LDFData<std::u16string>* name = new LDFData<std::u16string>(u"name", username);
     LDFData<int32_t>* gmlevel = new LDFData<int32_t>(u"gmlevel", gm);
     LDFData<int32_t>* chatmode = new LDFData<int32_t>(u"chatmode", gm);
-    LDFData<int64_t>* reputation = new LDFData<int64_t>(u"reputation", 400);
+    LDFData<int64_t>* reputation = new LDFData<int64_t>(u"reputation", character->GetReputation());
 
     objid->WriteToPacket(&data);
     lot->WriteToPacket(&data);
@@ -178,7 +185,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, const LWOOB
 
     PacketUtils::SavePacket("chardata.bin", (const char *)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
     SEND_PACKET
-    Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu\n", objectID);
+    Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu\n", entity->GetObjectID());
 }
 
 void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::unordered_map<char, char> unacceptedItems) {
