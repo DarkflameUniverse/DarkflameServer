@@ -3,6 +3,7 @@
 // Custom Classes
 #include "CDTable.h"
 #include <map>
+#include <cstdint>
 
 /*!
  \file CDMissionsTable.hpp
@@ -17,9 +18,9 @@ struct CDMissions {
     int UISortOrder;               //!< The UI Sort Order for the mission
     int offer_objectID;            //!< The LOT of the mission giver
     int target_objectID;           //!< The LOT of the mission's target
-    __int64 reward_currency;           //!< The amount of currency to reward the player
+    int64_t reward_currency;           //!< The amount of currency to reward the player
     int LegoScore;                 //!< The amount of LEGO Score to reward the player
-    __int64 reward_reputation;         //!< The reputation to award the player
+    int64_t reward_reputation;         //!< The reputation to award the player
     bool isChoiceReward;            //!< Whether or not the user has the option to choose their loot
     int reward_item1;              //!< The first rewarded item
     int reward_item1_count;        //!< The count of the first item to be rewarded
@@ -40,7 +41,7 @@ struct CDMissions {
     int reward_maxwidget;          //!< ???
     int reward_maxwallet;          //!< ???
     bool repeatable;                //!< Whether or not this mission can be repeated (for instance, is it a daily mission)
-    __int64 reward_currency_repeatable;   //!< The repeatable reward
+    int64_t reward_currency_repeatable;   //!< The repeatable reward
     int reward_item1_repeatable;      //!< The first rewarded item
     int reward_item1_repeat_count;    //!< The count of the first item to be rewarded
     int reward_item2_repeatable;      //!< The second rewarded item
@@ -55,7 +56,7 @@ struct CDMissions {
     std::string prereqMissionID;       //!< A '|' seperated list of prerequisite missions
     bool localize;                  //!< Whether or not to localize the mission
     bool inMOTD;                    //!< In Match of the Day(?)
-    __int64 cooldownTime;              //!< The mission cooldown time
+    int64_t cooldownTime;              //!< The mission cooldown time
     bool isRandom;                  //!< ???
     std::string randomPool;            //!< ???
     int UIPrereqID;                //!< ???

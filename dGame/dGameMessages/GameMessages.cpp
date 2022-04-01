@@ -4137,6 +4137,41 @@ void GameMessages::HandleRacingPlayerInfoResetFinished(RakNet::BitStream* inStre
 	}
 }
 
+void GameMessages::SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_UPDATE_REPUTATION);
+
+	bitStream.Write(reputation);
+
+	SEND_PACKET;
+}
+
+void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	float performanceCost = 0.0f;
+
+	if (inStream->ReadBit()) inStream->Read(performanceCost);
+
+	if (performanceCost == 0.0f) return;
+
+	auto zone = dZoneManager::Instance()->GetZone();
+	const auto& worldId = zone->GetZoneID();
+	const auto cloneId = worldId.GetCloneID();
+	const auto zoneId = worldId.GetMapID();
+
+	auto updatePerformanceCostQuery = Database::CreatePreppedStmt("UPDATE properties SET performance_cost = ? WHERE clone_id = ? AND zone_id = ?");
+
+	updatePerformanceCostQuery->setDouble(1, performanceCost);
+	updatePerformanceCostQuery->setInt(2, cloneId);
+	updatePerformanceCostQuery->setInt(3, zoneId);
+
+	updatePerformanceCostQuery->executeUpdate();
+
+	delete updatePerformanceCostQuery;
+	updatePerformanceCostQuery = nullptr;
+}
 
 void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) 
 {

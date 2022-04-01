@@ -22,6 +22,8 @@ void RaceSmashServer::OnDie(Entity *self, Entity *killer) {
             // Progress racing smashable missions
             if(missionComponent == nullptr) return;
             missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, 0, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASHABLES);
+            // Progress missions that ask us to smash a specific smashable.
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, self->GetLOT(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASH_SPECIFIC_SMASHABLE);
         }
     }
 }

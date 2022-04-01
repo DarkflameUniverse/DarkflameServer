@@ -6,6 +6,7 @@
 
 #include "Database.h"
 #include "Game.h"
+#include "dLogger.h"
 #include "User.h"
 #include <WorldPackets.h>
 #include "Character.h"
@@ -68,16 +69,6 @@ void UserManager::Initialize() {
 		StripCR(line);
 		m_PreapprovedNames.push_back(line);
 	}
-	
-	//Load custom ones from MySQL too:
-	/*sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT name FROM approvedNames;");
-	sql::ResultSet* res = stmt->executeQuery();
-	while (res->next()) {
-		m_PreapprovedNames.push_back(res->getString(1));
-	}
-	
-	delete res;
-	delete stmt;*/
 }
 
 UserManager::~UserManager() {
@@ -566,122 +557,38 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
     }
 }
 
-uint32_t GetShirtColorId(uint32_t color) {
-	
-	// get the index of the color in shirtColorVector
-	auto colorId = std::find(shirtColorVector.begin(), shirtColorVector.end(), color);
-	return color = std::distance(shirtColorVector.begin(), colorId);
-}
-
 uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
-	
-	shirtStyle--; // to start at 0 instead of 1
-	uint32_t stylesCount = 34;
-	uint32_t colorId = GetShirtColorId(shirtColor);
-	
-	uint32_t startID = 4049; // item ID of the shirt with color 0 (red) and style 0 (plain)
-	
-    // For some reason, if the shirt style is 34 - 39,
-	// The ID is different than the original... Was this because
-	// these shirts were added later?
-	if (shirtStyle >= 34) {
-		startID = 5730; // item ID of the shirt with color 0 (red) and style 34 (butterflies)
-        shirtStyle -= stylesCount; //change style from range 35-40 to range 0-5
-		stylesCount = 6;
+	try {
+		std::string shirtQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"character create shirt\" AND icc.color1 == ";
+		shirtQuery += std::to_string(shirtColor);
+		shirtQuery += " AND icc.decal == ";
+		shirtQuery = shirtQuery + std::to_string(shirtStyle);
+		auto tableData = CDClientDatabase::ExecuteQuery(shirtQuery);
+		auto shirtLOT = tableData.getIntField(0, -1);
+		tableData.finalize();
+		return shirtLOT;
 	}
-	
-    // Get the final ID of the shirt
-	uint32_t shirtID = startID + (colorId * stylesCount) + shirtStyle;
-
-	return shirtID;
+	catch (const std::exception&){
+		Game::logger->Log("Character Create", "Failed to execute query! Using backup...");
+		// in case of no shirt found in CDServer, return problematic red vest.
+		return 4069;
+	}
 }
 
 uint32_t FindCharPantsID(uint32_t pantsColor) {
-	uint32_t pantsID = 2508;
-
-	switch (pantsColor) {
-	case 0: {
-		pantsID = PANTS_BRIGHT_RED;
-		break;
+	try {
+		std::string pantsQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"cc pants\" AND icc.color1 == ";
+		pantsQuery += std::to_string(pantsColor);
+		auto tableData = CDClientDatabase::ExecuteQuery(pantsQuery);
+		auto pantsLOT = tableData.getIntField(0, -1);
+		tableData.finalize();
+		return pantsLOT;
 	}
-
-	case 1: {
-		pantsID = PANTS_BRIGHT_BLUE;
-		break;
+	catch (const std::exception&){
+		Game::logger->Log("Character Create", "Failed to execute query! Using backup...");
+		// in case of no pants color found in CDServer, return red pants.
+		return 2508;
 	}
-
-	case 3: {
-		pantsID = PANTS_DARK_GREEN;
-		break;
-	}
-
-	case 5: {
-		pantsID = PANTS_BRIGHT_ORANGE;
-		break;
-	}
-
-	case 6: {
-		pantsID = PANTS_BLACK;
-		break;
-	}
-
-	case 7: {
-		pantsID = PANTS_DARK_STONE_GRAY;
-		break;
-	}
-
-	case 8: {
-		pantsID = PANTS_MEDIUM_STONE_GRAY;
-		break;
-	}
-
-	case 9: {
-		pantsID = PANTS_REDDISH_BROWN;
-		break;
-	}
-
-	case 10: {
-		pantsID = PANTS_WHITE;
-		break;
-	}
-
-	case 11: {
-		pantsID = PANTS_MEDIUM_BLUE;
-		break;
-	}
-
-	case 13: {
-		pantsID = PANTS_DARK_RED;
-		break;
-	}
-
-	case 14: {
-		pantsID = PANTS_EARTH_BLUE;
-		break;
-	}
-
-	case 15: {
-		pantsID = PANTS_EARTH_GREEN;
-		break;
-	}
-
-	case 16: {
-		pantsID = PANTS_BRICK_YELLOW;
-		break;
-	}
-
-	case 84: {
-		pantsID = PANTS_SAND_BLUE;
-		break;
-	}
-
-	case 96: {
-		pantsID = PANTS_SAND_GREEN;
-		break;
-	}
-	}
-	
-	return pantsID;
 }
 
 void UserManager::SaveAllActiveCharacters() {
