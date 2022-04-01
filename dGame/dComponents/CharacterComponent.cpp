@@ -261,7 +261,6 @@ void CharacterComponent::LoadFromXML() {
         SetReputation(0);
     }
     
-    Game::logger->Log("CharacterComponent", "error is %i", character->QueryAttribute("rpt", &m_Reputation));
 	character->QueryInt64Attribute("ls", &m_Uscore);
 
 	// Load the statistics
