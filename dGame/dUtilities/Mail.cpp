@@ -453,11 +453,29 @@ void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOO
 	bitStream.Write(mailID);
 	Game::server->Send(&bitStream, sysAddr, false);
 
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE mail SET is_deleted = ? WHERE id = ? LIMIT 1;");
-	stmt->setBoolean(1, true);
-	stmt->setUInt64(2, mailID);
-	stmt->execute();
-	delete stmt;
+	auto getSenderId = Database::CreatePreppedStmt("SELECT sender_id FROM mail WHERE id = ?;");
+	getSenderId->setUInt64(1, mailID);
+
+	auto getSenderIdResult = getSenderId->executeQuery();
+
+	getSenderIdResult->next();
+	auto senderId = getSenderIdResult->getInt(1);
+	if (senderId == 0) {
+		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM mail WHERE id = ? LIMIT 1;");
+		stmt->setUInt64(1, mailID);
+		stmt->execute();
+		
+		delete stmt;
+		stmt = nullptr;
+	} else {
+		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE mail SET is_deleted = ? WHERE id = ? LIMIT 1;");
+		stmt->setBoolean(1, true);
+		stmt->setUInt64(2, mailID);
+		stmt->execute();
+
+		delete stmt;
+		stmt = nullptr;
+	}
 }
 
 void Mail::SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
