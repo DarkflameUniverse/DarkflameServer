@@ -162,6 +162,7 @@
 #include "GrowingFlower.h"
 #include "BaseFootRaceManager.h"
 #include "PropertyPlatform.h"
+#include "MailBoxServer.h"
 
 // Racing Scripts
 #include "RaceImagineCrateServer.h"
@@ -180,6 +181,7 @@
 #include "NtVentureCannonServer.h"
 #include "NtCombatChallengeServer.h"
 #include "NtCombatChallengeDummy.h"
+#include "NtCombatChallengeExplodingDummy.h"
 #include "BaseInteractDropLootServer.h"
 #include "NtAssemblyTubeServer.h"
 #include "NtParadoxPanelServer.h"
@@ -222,7 +224,7 @@
 #include "AmSkullkinDrill.h"
 #include "AmSkullkinDrillStand.h"
 #include "AmSkullkinTower.h"
-#include "AmNamedDarklingDragon.h"
+#include "AmDarklingDragon.h"
 #include "AmBlueX.h"
 
 // NJ Scripts
@@ -580,6 +582,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
         script = new PropertyPlatform();
     else if (scriptName == "scripts\\02_server\\Map\\VE\\L_VE_BRICKSAMPLE_SERVER.lua")
         return new VeBricksampleServer();
+	else if (scriptName == "scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua")
+		script = new MailBoxServer();
 
 	//Racing:
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua")
@@ -612,6 +616,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NtCombatChallengeServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_DUMMY.lua")
 		script = new NtCombatChallengeDummy();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\\\L_NT_COMBAT_EXPLODING_TARGET.lua")
+		script = new NtCombatChallengeExplodingDummy();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_BASE_INTERACT_DROP_LOOT_SERVER.lua")
 		script = new BaseInteractDropLootServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_ASSEMBLYTUBE_SERVER.lua")
@@ -684,11 +690,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new AmSkullkinDrillStand();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SKULLKIN_TOWER.lua")
 		script = new AmSkullkinTower();
-	// This just makes them immune to stuns. TODO: Make seperate scripts
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_NAMED_DARKLING_DRAGON.lua")
-		script = new AmNamedDarklingDragon();
+		script = new AmDarklingDragon();
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_DRAGON.lua")
-		script = new AmNamedDarklingDragon();
+		script = new AmDarklingDragon();
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_APE.lua")
 		script = new BaseEnemyApe();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_BLUE_X.lua")

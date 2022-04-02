@@ -16,6 +16,7 @@
 #include "dLogger.h"
 #include "dServer.h"
 #include "dZoneManager.h"
+#include "Database.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
     m_MissionComponent = missionComponent;
@@ -356,7 +357,7 @@ void Mission::CheckCompletion() {
         return;
     }
 
-    SetMissionState(MissionState::MISSION_STATE_READY_TO_COMPLETE);
+    MakeReadyToComplete();
 }
 
 void Mission::Catchup() {
@@ -516,8 +517,12 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_reputation > 0) {
-        // TODO: Track reputation in the character and database.
         missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
+        auto character = entity->GetComponent<CharacterComponent>();
+        if (character) {
+            character->SetReputation(character->GetReputation() + info->reward_reputation);
+            GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());
+        }
     }
 
     if (info->reward_maxhealth > 0) {
