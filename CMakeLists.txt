@@ -160,6 +160,16 @@ configure_file("${CMAKE_SOURCE_DIR}/vanity/TESTAMENT.md" "${CMAKE_BINARY_DIR}/va
 configure_file("${CMAKE_SOURCE_DIR}/vanity/NPC.xml" "${CMAKE_BINARY_DIR}/vanity/NPC.xml" COPYONLY)
 
 # 3rdparty includes
+option(BUILD_CLI "Build the command line interface" ON)
+set(BUILD_CLI OFF)
+add_subdirectory(${PROJECT_SOURCE_DIR}/thirdparty/gravity)
+SET(COMPILER_DIR ${PROJECT_SOURCE_DIR}/thirdparty/gravity/src/compiler/)
+SET(RUNTIME_DIR ${PROJECT_SOURCE_DIR}/thirdparty/gravity/src/runtime/)
+SET(SHARED_DIR ${PROJECT_SOURCE_DIR}/thirdparty/gravity/src/shared/)
+SET(UTILS_DIR ${PROJECT_SOURCE_DIR}/thirdparty/gravity/src/utils/)
+SET(OPT_DIR ${PROJECT_SOURCE_DIR}/thirdparty/gravity/src/optionals/)
+set(GRAVITY_INCLUDE_DIR ${COMPILER_DIR} ${RUNTIME_DIR} ${SHARED_DIR} ${UTILS_DIR} ${OPT_DIR})
+include_directories(${GRAVITY_INCLUDE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/raknet/Source/)
 if(UNIX)
     if(APPLE)
@@ -200,6 +210,7 @@ include_directories(${PROJECT_SOURCE_DIR}/dGame/dInventory)
 include_directories(${PROJECT_SOURCE_DIR}/dGame/dMission)
 include_directories(${PROJECT_SOURCE_DIR}/dGame/dEntity)
 include_directories(${PROJECT_SOURCE_DIR}/dGame/dUtilities)
+include_directories(${PROJECT_SOURCE_DIR}/dGame/dGravityScripting)
 include_directories(${PROJECT_SOURCE_DIR}/dPhysics/)
 include_directories(${PROJECT_SOURCE_DIR}/dZoneManager/)
 include_directories(${PROJECT_SOURCE_DIR}/dDatabase/)
@@ -352,6 +363,7 @@ ${PROJECT_SOURCE_DIR}/dGame/dInventory/*.cpp
 ${PROJECT_SOURCE_DIR}/dGame/dMission/*.cpp
 ${PROJECT_SOURCE_DIR}/dGame/dEntity/*.cpp
 ${PROJECT_SOURCE_DIR}/dGame/dUtilities/*.cpp
+${PROJECT_SOURCE_DIR}/dGame/dGravityScripting/*.cpp
 ${PROJECT_SOURCE_DIR}/dScripts/*.cpp
 )
 
@@ -395,6 +407,7 @@ add_library(dPhysics ${SOURCES_DPHYSICS})
 target_link_libraries(dNet dCommon) #Needed because otherwise linker errors occur.
 target_link_libraries(dCommon ZLIB::ZLIB)
 target_link_libraries(dCommon libbcrypt)
+target_link_libraries(dGame gravityapi_s)
 
 if(WIN32)
 target_link_libraries(raknet ws2_32)
@@ -418,6 +431,8 @@ target_link_libraries(WorldServer detour)
 target_link_libraries(WorldServer recast)
 target_link_libraries(WorldServer raknet)
 target_link_libraries(WorldServer ${MYSQL_LIB})
+target_link_libraries(WorldServer gravityapi_s)
+
 if(UNIX)
 target_link_libraries(WorldServer pthread)
 target_link_libraries(WorldServer dl)
@@ -494,4 +509,3 @@ endif()
 
 # Finally, add the tests
 add_subdirectory(tests)
-

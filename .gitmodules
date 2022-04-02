@@ -19,3 +19,6 @@
 [submodule "thirdparty/AccountManager"]
 	path = thirdparty/AccountManager
 	url = https://github.com/DarkflameUniverse/AccountManager
+[submodule "thirdparty/gravity"]
+	path = thirdparty/gravity
+	url = https://github.com/marcobambini/gravity.git

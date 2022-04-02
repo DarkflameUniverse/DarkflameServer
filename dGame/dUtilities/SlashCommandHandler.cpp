@@ -62,6 +62,8 @@
 #include "VanityUtilities.h"
 #include "GameConfig.h"
 #include "ScriptedActivityComponent.h"
+#include "GravityEngine.h"
+#include "ScriptComponent.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
     std::string chatCommand;
@@ -163,6 +165,37 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	//HANDLE ALL NON GM SLASH COMMANDS RIGHT HERE!
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	if (chatCommand == "load" && args.size() > 0) {
+		std::string filePath = args[0];
+
+		Game::logger->Log("SlashCommandHandler", "User %s (%i) is loading file %s\n", user->GetUsername().c_str(), user->GetAccountID(), filePath.c_str());
+
+		std::ifstream t(filePath);
+		t.seekg(0, std::ios::end);
+		size_t size = t.tellg();
+		std::string buffer(size, ' ');
+		t.seekg(0);
+		#undef read
+		t.read(&buffer[0], size); 
+		#define read _read
+
+		Game::logger->Log("SlashCommandHandler", "User %s (%i) has loaded file %s\n", user->GetUsername().c_str(), user->GetAccountID(), filePath.c_str());
+
+		auto script = GravityEngine::Instance().Compile(buffer);
+		
+		Game::logger->Log("SlashCommandHandler", "User %s (%i) has compiled file %s\n", user->GetUsername().c_str(), user->GetAccountID(), filePath.c_str());
+		
+		ScriptComponent* comp = new ScriptComponent(entity, "", false);
+		entity->AddComponent(COMPONENT_TYPE_SCRIPT, comp);
+		comp->SetScript((CppScripts::Script*)script);
+
+		Game::logger->Log("SlashCommandHandler", "User %s (%i) has added script component to entity %llu\n", user->GetUsername().c_str(), user->GetAccountID(), entity->GetObjectID());
+
+		script->OnCollisionPhantom(entity, entity);
+
+		return;
+	}
 
 	if (chatCommand == "pvp") {
 		auto* character = entity->GetComponent<CharacterComponent>();

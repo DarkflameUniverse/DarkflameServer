@@ -44,6 +44,13 @@ public:
      */
 	void SetScript(const std::string& scriptName);
 
+    /**
+     * Sets the script based upon a script object from Gravity instead of a C++ script
+     * @param script the script to set
+     */
+
+    void SetScript(CppScripts::Script* script);
+
 private:
 
     /**
@@ -52,7 +59,7 @@ private:
 	CppScripts::Script* m_Script;
 
     /**
-     * Whether or not the comp should be serialized, unused
+     * Whether or not the comp should be serialized
      */
 	bool m_Serialized;
 
