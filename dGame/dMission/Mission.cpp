@@ -518,24 +518,11 @@ void Mission::YieldRewards() {
 
     if (info->reward_reputation > 0) {
         missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
-        auto character = entity->GetCharacter();
-        if (!character) return;
-
-        auto charId = character->GetID();
-        auto propertyCloneId = character->GetPropertyCloneID();
-
-        auto reputationUpdate = Database::CreatePreppedStmt("UPDATE properties SET reputation = reputation + ? where owner_id = ? AND clone_id = ?");
-
-        reputationUpdate->setInt64(1, info->reward_reputation);
-        reputationUpdate->setInt(2, charId);
-        reputationUpdate->setInt64(3, propertyCloneId);
-
-        reputationUpdate->executeUpdate();
-
-        delete reputationUpdate;
-        reputationUpdate = nullptr;
-
-        GameMessages::SendUpdateReputation(entity->GetObjectID(), info->reward_reputation, entity->GetSystemAddress());
+        auto character = entity->GetComponent<CharacterComponent>();
+        if (character) {
+            character->SetReputation(character->GetReputation() + info->reward_reputation);
+            GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());
+        }
     }
 
     if (info->reward_maxhealth > 0) {
