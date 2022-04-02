@@ -27,17 +27,18 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 		ReadWordlistPlaintext(filepath + ".txt");
 		ExportWordlistToDCF(filepath + ".dcf");
 	}
-
-	//Read player names that are ok as well:
-	auto stmt = Database::CreatePreppedStmt("select name from charinfo;");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		std::string line = res->getString(1).c_str();
-		std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
-		m_Words.push_back(CalculateHash(line));
+	if (m_UseWhitelist) {
+		//Read player names that are ok as well:
+		auto stmt = Database::CreatePreppedStmt("select name from charinfo;");
+		auto res = stmt->executeQuery();
+		while (res->next()) {
+			std::string line = res->getString(1).c_str();
+			std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
+			m_Words.push_back(CalculateHash(line));
+		}
+		delete res;
+		delete stmt;
 	}
-	delete res;
-	delete stmt;
 }
 
 dChatFilter::~dChatFilter() {
