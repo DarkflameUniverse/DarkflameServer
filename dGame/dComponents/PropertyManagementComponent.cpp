@@ -68,13 +68,18 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 		this->owner = propertyEntry->getUInt64(2);
 		this->owner = GeneralUtils::SetBit(this->owner, OBJECT_BIT_CHARACTER);
 		this->owner = GeneralUtils::SetBit(this->owner, OBJECT_BIT_PERSISTENT);
+		this->clone_Id = propertyEntry->getInt(2);
 		this->propertyName = propertyEntry->getString(5).c_str();
 		this->propertyDescription = propertyEntry->getString(6).c_str();
 		this->privacyOption = static_cast<PropertyPrivacyOption>(propertyEntry->getUInt(9));
-		this->claimedTime = propertyEntry->getUInt64(13);
+		this->moderatorRequested = propertyEntry->getInt(10) == 0 && rejectionReason == "" && privacyOption == PropertyPrivacyOption::Public;
+		this->LastUpdatedTime = propertyEntry->getUInt64(11);
+		this->claimedTime = propertyEntry->getUInt64(12);
+		this->rejectionReason = std::string(propertyEntry->getString(13).c_str());
+		this->reputation = propertyEntry->getUInt(14);
 
 		Load();
-	}
+	} 
 
 	delete propertyLookup;
 }
@@ -152,12 +157,18 @@ void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value)
 		value = PropertyPrivacyOption::Private;
 	}
 
+	if (value == PropertyPrivacyOption::Public && privacyOption != PropertyPrivacyOption::Public) {
+		rejectionReason = "";
+		moderatorRequested = true;
+	}
 	privacyOption = value;
 
-	auto* propertyUpdate = Database::CreatePreppedStmt("UPDATE properties SET privacy_option = ? WHERE id = ?;");
+	auto* propertyUpdate = Database::CreatePreppedStmt("UPDATE properties SET privacy_option = ?, rejection_reason = ?, mod_approved = ? WHERE id = ?;");
 
 	propertyUpdate->setInt(1, static_cast<int32_t>(value));
-	propertyUpdate->setInt64(2, propertyId);
+	propertyUpdate->setString(2, "");
+	propertyUpdate->setInt(3, 0);
+	propertyUpdate->setInt64(4, propertyId);
 
 	propertyUpdate->executeUpdate();
 }
@@ -181,38 +192,46 @@ void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::s
 	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
 }
 
-void PropertyManagementComponent::Claim(const LWOOBJID playerId)
+bool PropertyManagementComponent::Claim(const LWOOBJID playerId)
 {
 	if (owner != LWOOBJID_EMPTY)
 	{
-		return;
+		return false;
 	}
-	
-	SetOwnerId(playerId);
-
-	auto* zone = dZoneManager::Instance()->GetZone();
-
-	const auto& worldId = zone->GetZoneID();
-	const auto zoneId = worldId.GetMapID();
-	const auto cloneId = worldId.GetCloneID();
 
 	auto* entity = EntityManager::Instance()->GetEntity(playerId);
 
 	auto* user = entity->GetParentUser();
 
+	auto character = entity->GetCharacter();
+	if (!character) return false;
+
+	auto* zone = dZoneManager::Instance()->GetZone();
+
+	const auto& worldId = zone->GetZoneID();
+	const auto propertyZoneId = worldId.GetMapID();
+	const auto propertyCloneId = worldId.GetCloneID();
+
+	const auto playerCloneId = character->GetPropertyCloneID();
+
+	// If we are not on our clone do not allow us to claim the property
+	if (propertyCloneId != playerCloneId) return false;
+
+	SetOwnerId(playerId);
+
 	propertyId = ObjectIDManager::GenerateRandomObjectID();
-	
+
 	auto* insertion = Database::CreatePreppedStmt(
 		"INSERT INTO properties"
-		"(id, owner_id, template_id, clone_id, name, description, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, zone_id)"
-		"VALUES (?, ?, ?, ?, ?, '', 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?)"
+		"(id, owner_id, template_id, clone_id, name, description, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, zone_id, performance_cost)"
+		"VALUES (?, ?, ?, ?, ?, '', 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?, 0.0)"
 	);
 	insertion->setUInt64(1, propertyId);
 	insertion->setUInt64(2, (uint32_t) playerId);
 	insertion->setUInt(3, templateId);
-	insertion->setUInt64(4, cloneId);
+	insertion->setUInt64(4, playerCloneId);
 	insertion->setString(5, zone->GetZoneName().c_str());
-	insertion->setInt(6, zoneId);
+	insertion->setInt(6, propertyZoneId);
 
 	// Try and execute the query, print an error if it fails.
 	try
@@ -224,12 +243,14 @@ void PropertyManagementComponent::Claim(const LWOOBJID playerId)
 		Game::logger->Log("PropertyManagementComponent", "Failed to execute query: (%s)!\n", exception.what());
 
 		throw exception;
+		return false;
 	}
 
 	auto* zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
     for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControlObject)) {
         script->OnZonePropertyRented(zoneControlObject, entity);
     }
+	return true;
 }
 
 void PropertyManagementComponent::OnStartBuilding() 
@@ -275,6 +296,8 @@ void PropertyManagementComponent::OnFinishBuilding()
 	SetPrivacyOption(originalPrivacyOption);
 
 	UpdateApprovedStatus(false);
+
+	Save();
 }
 
 void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation)
@@ -388,6 +411,9 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 			EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelPlaced(entity);
 		});
+		// Progress place model missions
+		auto missionComponent = entity->GetComponent<MissionComponent>();
+		if (missionComponent != nullptr) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PLACE_MODEL, 0);
 }
 
 void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int deleteReason)
@@ -682,9 +708,12 @@ void PropertyManagementComponent::Save()
 	auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
 
 	lookup->setUInt64(1, propertyId);
-
-	auto* lookupResult = lookup->executeQuery();
-
+	sql::ResultSet* lookupResult = nullptr;
+	try {
+		lookupResult = lookup->executeQuery();
+	} catch (sql::SQLException& ex) {
+		Game::logger->Log("PropertyManagementComponent", "lookup error %s\n", ex.what());
+	}
 	std::vector<LWOOBJID> present;
 
 	while (lookupResult->next())
@@ -727,8 +756,11 @@ void PropertyManagementComponent::Save()
 			insertion->setDouble(9, rotation.y);
 			insertion->setDouble(10, rotation.z);
 			insertion->setDouble(11, rotation.w);
-
-			insertion->execute();
+			try {
+				insertion->execute();
+			} catch (sql::SQLException& ex) {
+				Game::logger->Log("PropertyManagementComponent", "Error inserting into properties_contents. Error %s\n", ex.what());
+			}
 		}
 		else
 		{
@@ -741,8 +773,11 @@ void PropertyManagementComponent::Save()
 			update->setDouble(7, rotation.w);
 
 			update->setInt64(8, id);
-
-			update->executeUpdate();
+			try {
+				update->executeUpdate();
+			} catch (sql::SQLException& ex) {
+				Game::logger->Log("PropertyManagementComponent", "Error updating properties_contents. Error: %s\n", ex.what());
+			}
 		}
 	}
 
@@ -754,8 +789,11 @@ void PropertyManagementComponent::Save()
 		}
 
 		remove->setInt64(1, id);
-
-		remove->execute();
+		try {
+			remove->execute();
+		} catch (sql::SQLException& ex) {
+			Game::logger->Log("PropertyManagementComponent", "Error removing from properties_contents. Error %s\n", ex.what());
+		}
 	}
 
 	auto* removeUGC = Database::CreatePreppedStmt("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents);");
@@ -779,7 +817,7 @@ PropertyManagementComponent* PropertyManagementComponent::Instance()
 	return instance;
 }
 
-void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author) const
+void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author)
 {
 	if (author == LWOOBJID_EMPTY) {
 		author = m_Parent->GetObjectID();
@@ -818,18 +856,44 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 		description = propertyDescription;
 		claimed = claimedTime;
 		privacy = static_cast<char>(this->privacyOption);
-	}
+		if (moderatorRequested) {
+			auto checkStatus = Database::CreatePreppedStmt("SELECT rejection_reason, mod_approved FROM properties WHERE id = ?;");
 
+			checkStatus->setInt64(1, propertyId);
+
+			auto result = checkStatus->executeQuery();
+
+			result->next();
+
+			const auto reason = std::string(result->getString(1).c_str());;
+			const auto modApproved = result->getInt(2);
+			if (reason != "") {
+				moderatorRequested = false;
+				rejectionReason = reason;
+			} else if (reason == "" && modApproved == 1) {
+				moderatorRequested = false;
+				rejectionReason = "";
+			} else {
+				moderatorRequested = true;
+				rejectionReason = "";
+			}
+		}
+	}
+	message.moderatorRequested = moderatorRequested;
+	message.reputation = reputation;
+	message.LastUpdatedTime = LastUpdatedTime;
 	message.OwnerId = ownerId;
 	message.OwnerName = ownerName;
 	message.Name = name;
 	message.Description = description;
 	message.ClaimedTime = claimed;
 	message.PrivacyOption = privacy;
-	
+	message.cloneId = clone_Id;
+	message.rejectionReason = rejectionReason;
 	message.Paths = GetPaths();
 
 	SendDownloadPropertyData(author, message, UNASSIGNED_SYSTEM_ADDRESS);
+	// send rejection here?
 }
 
 void PropertyManagementComponent::OnUse(Entity* originator) 

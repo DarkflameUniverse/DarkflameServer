@@ -35,5 +35,5 @@ public:
      */
     std::string GetName(void) const override;
     
-	float GetEntry(const uint32_t behaviorID, const std::string& name);
+	float GetEntry(const uint32_t behaviorID, const std::string& name, const float defaultValue = 0);
 };

@@ -4,29 +4,24 @@
 
 #include "dCommonVars.h"
 
-struct PerformanceProfile
-{
-    uint32_t serverFramerate;
-    uint32_t physicsFramerate;
+struct PerformanceProfile {
+	uint32_t serverFramerate;
 };
 
 
-class PerformanceManager
-{
+class PerformanceManager {
 public:
-    ~PerformanceManager();
+	~PerformanceManager();
 
-    static void SelectProfile(LWOMAPID mapID);
+	static void SelectProfile(LWOMAPID mapID);
 
-    static uint32_t GetServerFramerate();
-    static uint32_t GetPhysicsFramerate();
-    static uint32_t GetPhysicsStepRate();
+	static uint32_t GetServerFramerate();
 
 private:
-    PerformanceManager();
-    
-    static PerformanceProfile m_CurrentProfile;
-    static PerformanceProfile m_DefaultProfile;
-    static PerformanceProfile m_InactiveProfile;
-    static std::map<LWOMAPID, PerformanceProfile> m_Profiles;
+	PerformanceManager();
+
+	static PerformanceProfile m_CurrentProfile;
+	static PerformanceProfile m_DefaultProfile;
+	static PerformanceProfile m_InactiveProfile;
+	static std::map<LWOMAPID, PerformanceProfile> m_Profiles;
 };

@@ -346,7 +346,7 @@ void Entity::Initialize()
 	}
 
 	/**
-	 * Multiple components require te destructible component.
+	 * Multiple components require the destructible component.
 	 */
 
 	int buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_BUFF);

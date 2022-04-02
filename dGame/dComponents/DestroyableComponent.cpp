@@ -26,6 +26,7 @@
 
 #include "MissionComponent.h"
 #include "CharacterComponent.h"
+#include "dZoneManager.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
     m_iArmor = 0;
@@ -245,6 +246,9 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 void DestroyableComponent::SetArmor(int32_t value) {
     m_DirtyHealth = true;
 
+	// If Destroyable Component already has zero armor do not trigger the passive ability again.
+	bool hadArmor = m_iArmor > 0;
+	
     auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
     if (characterComponent != nullptr) {
         characterComponent->TrackArmorDelta(value - m_iArmor);
@@ -253,7 +257,7 @@ void DestroyableComponent::SetArmor(int32_t value) {
     m_iArmor = value;
 
 	auto* inventroyComponent = m_Parent->GetComponent<InventoryComponent>();
-	if (m_iArmor == 0 && inventroyComponent != nullptr) {
+	if (m_iArmor == 0 && inventroyComponent != nullptr && hadArmor) {
 		inventroyComponent->TriggerPassiveAbility(PassiveAbilityTrigger::SentinelArmor);
 	}
 }
@@ -498,29 +502,28 @@ Entity* DestroyableComponent::GetKiller() const
 	return EntityManager::Instance()->GetEntity(m_KillerID);
 }
 
-bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignoreFactions) const
+bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignoreFactions, const bool targetEnemy, const bool targetFriend) const
 {
-	auto* entity = EntityManager::Instance()->GetEntity(target);
+	auto* targetEntity = EntityManager::Instance()->GetEntity(target);
 
-	if (entity == nullptr)
+	if (targetEntity == nullptr)
 	{
 		Game::logger->Log("DestroyableComponent", "Invalid entity for checking validity (%llu)!\n", target);
-
 		return false;
 	}
 
-	auto* destroyable = entity->GetComponent<DestroyableComponent>();
+	auto* targetDestroyable = targetEntity->GetComponent<DestroyableComponent>();
 
-	if (destroyable == nullptr)
+	if (targetDestroyable == nullptr)
 	{
 		return false;
 	}
 
-	auto* quickbuild = entity->GetComponent<RebuildComponent>();
+	auto* targetQuickbuild = targetEntity->GetComponent<RebuildComponent>();
 
-	if (quickbuild != nullptr)
+	if (targetQuickbuild != nullptr)
 	{
-		const auto state = quickbuild->GetState();
+		const auto state = targetQuickbuild->GetState();
 			
 		if (state != REBUILD_COMPLETED)
 		{
@@ -533,19 +536,12 @@ bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignor
 		return true;
 	}
 
-	auto enemyList = GetEnemyFactionsIDs();
+	// Get if the target entity is an enemy and friend
+	bool isEnemy = IsEnemy(targetEntity);
+	bool isFriend = IsFriend(targetEntity);
 
-	auto candidateList = destroyable->GetFactionIDs();
-
-	for (auto value : candidateList)
-	{
-		if (std::find(enemyList.begin(), enemyList.end(), value) != enemyList.end())
-		{
-			return true;
-		}
-	}
-
-	return false;
+	// Return true if the target type matches what we are targeting
+	return (isEnemy && targetEnemy) || (isFriend && targetFriend);
 }
 
 
@@ -801,31 +797,33 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	}
 	else
 	{
-		auto* character = m_Parent->GetCharacter();
-
-		uint64_t coinsTotal = character->GetCoins();
-
-		if (coinsTotal > 0)
+		//Check if this zone allows coin drops
+		if (dZoneManager::Instance()->GetPlayerLoseCoinOnDeath()) 
 		{
-			uint64_t coinsToLoose = 1;
+			auto* character = m_Parent->GetCharacter();
+			uint64_t coinsTotal = character->GetCoins();
 
-			if (coinsTotal >= 200)
+			if (coinsTotal > 0) 
 			{
-				float hundreth = (coinsTotal / 100.0f);
-				coinsToLoose = static_cast<int>(hundreth);
-			}
+				uint64_t coinsToLoose = 1;
 
-			if (coinsToLoose > 10000)
-			{
-				coinsToLoose = 10000;
-			}
+				if (coinsTotal >= 200) 
+				{
+					float hundreth = (coinsTotal / 100.0f);
+					coinsToLoose = static_cast<int>(hundreth);
+				}
 
-			coinsTotal -= coinsToLoose;
-		
-			LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
+				if (coinsToLoose > 10000) 
+				{
+					coinsToLoose = 10000;
+				}
+
+				coinsTotal -= coinsToLoose;
+
+				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
+				character->SetCoins(coinsTotal, LOOT_SOURCE_PICKUP);
+			}
 		}
-
-		character->SetCoins(coinsTotal, LOOT_SOURCE_PICKUP);
 
         Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
         for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
