@@ -32,6 +32,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 
 	m_EditorEnabled = false;
 	m_EditorLevel = m_GMLevel;
+    m_Reputation = 0;
 
 	m_CurrentActivity = 0;
 	m_CountryCode = 0;
@@ -256,7 +257,10 @@ void CharacterComponent::LoadFromXML() {
 		Game::logger->Log("CharacterComponent", "Failed to find char tag while loading XML!\n");
 		return;
 	}
-
+    if (character->QueryAttribute("rpt", &m_Reputation) == tinyxml2::XML_NO_ATTRIBUTE) {
+        SetReputation(0);
+    }
+    
 	character->QueryInt64Attribute("ls", &m_Uscore);
 
 	// Load the statistics
@@ -378,6 +382,8 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	}
 
 	character->SetAttribute("ls", m_Uscore);
+    // Custom attribute to keep track of reputation.
+    character->SetAttribute("rpt", GetReputation());
 	character->SetAttribute("stt", StatisticsToString().c_str());
 
 	// Set the zone statistics of the form <zs><s/> ... <s/></zs>

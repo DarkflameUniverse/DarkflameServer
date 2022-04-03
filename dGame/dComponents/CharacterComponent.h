@@ -147,6 +147,18 @@ public:
 	bool GetPvpEnabled() const;
 
     /**
+     * Returns the characters lifetime reputation
+     * @return The lifetime reputation of this character.
+     */
+    int64_t GetReputation() { return m_Reputation; };
+
+    /**
+     * Sets the lifetime reputation of the character to newValue
+     * @param newValue the value to set reputation to
+     */
+    void SetReputation(int64_t newValue) { m_Reputation = newValue; };
+
+    /**
      * Sets the current value of PvP combat being enabled
      * @param value whether to enable PvP combat
      */
@@ -290,6 +302,11 @@ private:
      * Universe score of the entity
      */
 	int64_t m_Uscore;
+
+    /**
+     * The lifetime reputation earned by the entity
+     */
+    int64_t m_Reputation;
 
     /**
      * Whether the character is landing by rocket
