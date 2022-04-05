@@ -23,7 +23,7 @@ public:
     ControllablePhysicsComponent(Entity* entity);
     ~ControllablePhysicsComponent() override;
     
-    void Update(float deltaTime);
+    void Update(float deltaTime) override;
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
     void LoadFromXML(tinyxml2::XMLDocument* doc);
     void ResetFlags();

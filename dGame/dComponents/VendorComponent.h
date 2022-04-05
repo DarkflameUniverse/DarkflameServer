@@ -19,7 +19,7 @@ public:
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	
-	void OnUse(Entity* originator);
+	void OnUse(Entity* originator) override;
 	
 	/**
 	 * Gets the buy scaler
