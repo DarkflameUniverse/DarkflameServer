@@ -102,6 +102,8 @@ void dChatFilter::ExportWordlistToDCF(const std::string& filepath) {
 }
 
 bool dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel) {
+	//Remove is sentence okay implementation to only return true
+	/**
 	if (gmLevel > GAME_MASTER_LEVEL_FORUM_MODERATOR) return true; //If anything but a forum mod, return true.
 	if (message.empty()) return true;
 
@@ -124,7 +126,7 @@ bool dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel) {
 			return false;
 		}
 	}
-
+	**/
 	return true;
 }
 
