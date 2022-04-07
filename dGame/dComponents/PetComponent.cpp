@@ -81,7 +81,7 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 {
     const bool tamed = m_Owner != LWOOBJID_EMPTY;
 
-    outBitStream->Write1(); // Dirty?
+    outBitStream->Write1(); // Always serialize as dirty for now
 
     outBitStream->Write<uint32_t>(static_cast<unsigned int>(m_Status));
     outBitStream->Write<uint32_t>(static_cast<uint32_t>(tamed ? m_Ability : PetAbilityType::Invalid)); // Something with the overhead icon?
