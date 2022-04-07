@@ -244,7 +244,6 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
     uint32_t middleNameIndex = PacketUtils::ReadPacketU32(78, packet);
     uint32_t lastNameIndex = PacketUtils::ReadPacketU32(82, packet);
     std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
-    Game::logger->Log("UserManager", "Got predefined name: %s\n", predefinedName.c_str());
 
     uint32_t shirtColor = PacketUtils::ReadPacketU32(95, packet);
     uint32_t shirtStyle = PacketUtils::ReadPacketU32(99, packet);
@@ -261,16 +260,23 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	LOT pantsLOT = FindCharPantsID(pantsColor);
     
     if (name != "" && !UserManager::IsNameAvailable(name)) {
+        Game::logger->Log("UserManager", "AccountID: %i chose unavailable name: %s\n", u->GetAccountID(), name.c_str());
         WorldPackets::SendCharacterCreationResponse(sysAddr, CREATION_RESPONSE_CUSTOM_NAME_IN_USE);
         return;
     }
     
     if (!IsNameAvailable(predefinedName)) {
+        Game::logger->Log("UserManager", "AccountID: %i chose unavailable predefined name: %s\n", u->GetAccountID(), predefinedName.c_str());
         WorldPackets::SendCharacterCreationResponse(sysAddr, CREATION_RESPONSE_PREDEFINED_NAME_IN_USE);
         return;
     }
     
-	Game::logger->Log("UserManager", "AccountID: %i is creating a character with name: %s\n", u->GetAccountID(), name.c_str());
+    if (name == "") {
+        Game::logger->Log("UserManager", "AccountID: %i is creating a character with predefined name: %s\n", u->GetAccountID(), predefinedName.c_str());
+    }
+    else {
+        Game::logger->Log("UserManager", "AccountID: %i is creating a character with name: %s (temporary: %s)\n", u->GetAccountID(), name.c_str(), predefinedName.c_str());
+    }
     
     //Now that the name is ok, we can get an objectID from Master:
     ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t objectID) {
