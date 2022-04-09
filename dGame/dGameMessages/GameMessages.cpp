@@ -3238,11 +3238,11 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream* inStream, Entity*
 
 void GameMessages::HandleClientTradeCancel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr)
 {
-	Game::logger->Log("GameMessages", "Trade canceled from (%llu)\n", entity->GetObjectID());
-
 	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 	
 	if (trade == nullptr) return;
+
+	Game::logger->Log("GameMessages", "Trade canceled from (%llu)\n", entity->GetObjectID());
 
 	TradingManager::Instance()->CancelTrade(trade->GetTradeId());
 }
