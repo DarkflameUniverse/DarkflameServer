@@ -522,10 +522,6 @@ int main(int argc, char** argv) {
 				CBITSTREAM;
 				PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_RESPONSE);
 				Game::server->SendToMaster(&bitStream);
-			}
-			
-			if (framesSinceShutdownSequence == 300)
-			{
 				break;
 			}
 		}

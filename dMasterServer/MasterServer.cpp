@@ -751,6 +751,14 @@ void ShutdownSequence() {
 	Game::logger->Log("MasterServer", "Attempting to shutdown instances, max 60 seconds...\n");
 
 	while (true) {
+
+		auto packet = Game::server->Receive();
+		if (packet) {
+			HandlePacket(packet);
+			Game::server->DeallocatePacket(packet);
+			packet = nullptr;
+		}
+		
 		auto done = true;
 
 		for (auto* instance : Game::im->GetInstances()) {
@@ -764,6 +772,7 @@ void ShutdownSequence() {
 		}
 
 		if (done) {
+			Game::logger->Log("MasterServer", "Finished shutting down naturally!\n");
 			break;
 		}
 
@@ -773,6 +782,7 @@ void ShutdownSequence() {
 		ticks++;
 
 		if (ticks == 600 * 6) {
+			Game::logger->Log("MasterServer", "Finished shutting down by timeout!\n");
 			break;
 		}
 	}
