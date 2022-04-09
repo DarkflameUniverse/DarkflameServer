@@ -51,7 +51,7 @@ public:
 
     void LoadFromXML(tinyxml2::XMLDocument* doc);
 
-    void UpdateXml(tinyxml2::XMLDocument* doc);
+    void UpdateXml(tinyxml2::XMLDocument* doc) override;
     
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
