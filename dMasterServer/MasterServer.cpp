@@ -768,7 +768,7 @@ void ShutdownSequence() {
 		}
 
 		if (done) {
-			Game::logger->Log("MasterServer", "Finished shutting down naturally!\n");
+			Game::logger->Log("MasterServer", "Finished shutting down MasterServer!\n");
 			break;
 		}
 
