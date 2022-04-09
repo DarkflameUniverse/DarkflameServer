@@ -47,6 +47,7 @@ namespace Game {
 
 bool shutdownSequenceStarted = false;
 void ShutdownSequence();
+int FinalizeShutdown();
 dLogger* SetupLogger();
 void StartAuthServer();
 void StartChatServer();
@@ -168,7 +169,7 @@ int main(int argc, char** argv) {
 
 		std::cout << "Account created successfully!\n";
 
-		Database::Destroy();
+		Database::Destroy("MasterServer");
 		delete Game::logger;
 
 		return EXIT_SUCCESS;
@@ -318,14 +319,8 @@ int main(int argc, char** argv) {
 		t += std::chrono::milliseconds(highFrameRate);
 		std::this_thread::sleep_until(t);
 	}
-
-	//Delete our objects here:
-	Database::Destroy();
-	delete Game::im;
-	delete Game::server;
-	delete Game::logger;
-
-	return EXIT_SUCCESS;
+	FinalizeShutdown();
+	exit(0);
 }
 
 dLogger* SetupLogger() {
@@ -786,6 +781,16 @@ void ShutdownSequence() {
 			break;
 		}
 	}
+
+	FinalizeShutdown();
+}
+
+int FinalizeShutdown() {
+	//Delete our objects here:
+	Database::Destroy("MasterServer");
+	delete Game::im;
+	delete Game::server;
+	delete Game::logger;
 
 	exit(0);
 }
