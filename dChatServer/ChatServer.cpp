@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
 	}
 	catch (sql::SQLException& ex) {
 		Game::logger->Log("ChatServer", "Got an error while connecting to the database: %s\n", ex.what());
-		Database::Destroy();
+		Database::Destroy("ChatServer");
 		delete Game::server;
 		delete Game::logger;
 		return 0;
@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
 	}
 
 	//Delete our objects here:
-	Database::Destroy();
+	Database::Destroy("ChatServer");
 	delete Game::server;
 	delete Game::logger;
 
