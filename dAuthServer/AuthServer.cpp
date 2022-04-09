@@ -147,7 +147,8 @@ int main(int argc, char** argv) {
 	delete Game::server;
 	delete Game::logger;
 
-	return 0;
+	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
 
 dLogger * SetupLogger() {

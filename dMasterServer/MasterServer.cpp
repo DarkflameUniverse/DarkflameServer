@@ -320,7 +320,8 @@ int main(int argc, char** argv) {
 		std::this_thread::sleep_until(t);
 	}
 	FinalizeShutdown();
-	exit(0);
+	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
 
 dLogger* SetupLogger() {
@@ -740,7 +741,7 @@ void ShutdownSequence() {
 	auto ticks = 0;
 
 	if (!Game::im) {
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	Game::logger->Log("MasterServer", "Attempting to shutdown instances, max 60 seconds...\n");
@@ -792,5 +793,6 @@ int FinalizeShutdown() {
 	delete Game::server;
 	delete Game::logger;
 
-	exit(0);
+	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
