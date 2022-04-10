@@ -1241,12 +1241,12 @@ void WorldShutdownProcess(uint32_t zoneId) {
     }
 
     if (PropertyManagementComponent::Instance() != nullptr) {
-        Game::logger->Log("WorldServer", "Saving ALL property data!\n");
+        Game::logger->Log("WorldServer", "Saving ALL property data for zone %i clone %i!\n", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
         PropertyManagementComponent::Instance()->Save();
-        Game::logger->Log("WorldServer", "ALL property data saved!\n");
+        Game::logger->Log("WorldServer", "ALL property data saved for zone %i clone %i!\n", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
     }
 
-    Game::logger->Log("WorldServer", "ALL DATA HAS BEEN SAVED!\n");
+    Game::logger->Log("WorldServer", "ALL DATA HAS BEEN SAVED FOR ZONE %i INSTANCE %i!\n", zoneId, instanceID);
 
     while (Game::server->GetReplicaManager()->GetParticipantCount() > 0) {
         const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
