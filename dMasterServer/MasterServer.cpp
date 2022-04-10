@@ -660,7 +660,7 @@ void HandlePacket(Packet* packet) {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
-			auto* instance =Game::im->GetInstanceBySysAddr(packet->systemAddress);
+			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
 
 			if (instance == nullptr) {
 				return;
