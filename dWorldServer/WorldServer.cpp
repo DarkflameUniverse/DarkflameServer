@@ -1219,7 +1219,6 @@ void HandlePacket(Packet* packet) {
 }
 
 void WorldShutdownProcess(uint32_t zoneId) {
-    ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Server shutting down...", true);
 	Game::logger->Log("WorldServer", "Saving map %i instance %i\n", zoneId, instanceID);
     for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i) {
         const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
@@ -1263,7 +1262,7 @@ void WorldShutdownSequence() {
 
     worldShutdownSequenceStarted = true;
 
-    Game::logger->Log("WorldServer", "Attempting to shutdown world, zone (%i), instance (%i), max 10 seconds...\n", Game::server->GetZoneID(), instanceID);
+    Game::logger->Log("WorldServer", "Zone (%i) instance (%i) shutting down outside of main loop!\n", Game::server->GetZoneID(), instanceID);
     WorldShutdownProcess(Game::server->GetZoneID());
 	FinalizeShutdown();
 }
