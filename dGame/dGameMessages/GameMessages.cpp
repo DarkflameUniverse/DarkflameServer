@@ -3676,7 +3676,7 @@ void GameMessages::HandlePetTamingTryBuild(RakNet::BitStream* inStream, Entity* 
 		return;
 	}
 
-	petComponent->TryBuild(bricks, clientFailed);
+	petComponent->TryBuild(bricks.size(), clientFailed);
 }
 
 void GameMessages::HandleNotifyTamingBuildSuccess(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) 
