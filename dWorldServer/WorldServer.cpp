@@ -77,7 +77,7 @@ bool chatConnected = false;
 bool worldShutdownSequenceStarted = false;
 bool worldShutdownSequenceComplete = false;
 void WorldShutdownSequence();
-void WorldShutdownProcess(uint32_t cloneId);
+void WorldShutdownProcess(uint32_t zoneId);
 void FinalizeShutdown();
 void SendShutdownMessageToMaster();
 
