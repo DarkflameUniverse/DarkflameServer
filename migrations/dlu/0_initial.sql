@@ -1,5 +1,4 @@
-DROP TABLE IF EXISTS accounts;
-CREATE TABLE accounts (
+CREATE TABLE IF NOT EXISTS accounts (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(35) NOT NULL UNIQUE,
     password TEXT NOT NULL,
@@ -11,8 +10,7 @@ CREATE TABLE accounts (
     mute_expire BIGINT UNSIGNED NOT NULL DEFAULT 0
 );
 
-DROP TABLE IF EXISTS charinfo;
-CREATE TABLE charinfo (
+CREATE TABLE IF NOT EXISTS charinfo (
     id BIGINT NOT NULL PRIMARY KEY,
     account_id INT NOT NULL REFERENCES accounts(id),
     name VARCHAR(35) NOT NULL,
@@ -23,21 +21,18 @@ CREATE TABLE charinfo (
     permission_map BIGINT UNSIGNED NOT NULL DEFAULT 0
 );
 
-DROP TABLE IF EXISTS charxml;
-CREATE TABLE charxml (
+CREATE TABLE IF NOT EXISTS charxml (
     id BIGINT NOT NULL PRIMARY KEY REFERENCES charinfo(id),
     xml_data LONGTEXT NOT NULL
 );
 
-DROP TABLE IF EXISTS command_log;
-CREATE TABLE command_log (
+CREATE TABLE IF NOT EXISTS command_log (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     character_id BIGINT NOT NULL REFERENCES charinfo(id),
     command VARCHAR(256) NOT NULL
 );
 
-DROP TABLE IF EXISTS friends;
-CREATE TABLE friends (
+CREATE TABLE IF NOT EXISTS friends (
     player_id BIGINT NOT NULL REFERENCES charinfo(id),
     friend_id BIGINT NOT NULL REFERENCES charinfo(id),
     best_friend BOOLEAN NOT NULL DEFAULT FALSE,
@@ -45,8 +40,7 @@ CREATE TABLE friends (
     PRIMARY KEY (player_id, friend_id)
 );
 
-DROP TABLE IF EXISTS leaderboard;
-CREATE TABLE leaderboard (
+CREATE TABLE IF NOT EXISTS leaderboard (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     game_id INT UNSIGNED NOT NULL DEFAULT 0,
     last_played TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
@@ -55,8 +49,7 @@ CREATE TABLE leaderboard (
     score BIGINT UNSIGNED NOT NULL DEFAULT 0
 );
 
-DROP TABLE IF EXISTS mail;
-CREATE TABLE mail (
+CREATE TABLE IF NOT EXISTS mail (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     sender_id INT NOT NULL DEFAULT 0,
     sender_name VARCHAR(35) NOT NULL DEFAULT '',
@@ -72,20 +65,17 @@ CREATE TABLE mail (
     was_read BOOLEAN NOT NULL DEFAULT FALSE
 );
 
-DROP TABLE IF EXISTS object_id_tracker;
-CREATE TABLE object_id_tracker (
+CREATE TABLE IF NOT EXISTS object_id_tracker (
     last_object_id BIGINT UNSIGNED NOT NULL DEFAULT 0 PRIMARY KEY
 );
 
-DROP TABLE IF EXISTS pet_names;
-CREATE TABLE pet_names (
+CREATE TABLE IF NOT EXISTS pet_names (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     pet_name TEXT NOT NULL,
     approved INT UNSIGNED NOT NULL
 );
 
-DROP TABLE IF EXISTS play_keys;
-CREATE TABLE play_keys (
+CREATE TABLE IF NOT EXISTS play_keys (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     key_string CHAR(19) NOT NULL UNIQUE,
     key_uses INT NOT NULL DEFAULT 1,
@@ -93,8 +83,7 @@ CREATE TABLE play_keys (
     active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-DROP TABLE IF EXISTS properties;
-CREATE TABLE properties (
+CREATE TABLE IF NOT EXISTS properties (
     id BIGINT NOT NULL PRIMARY KEY,
     owner_id BIGINT NOT NULL REFERENCES charinfo(id),
     template_id INT UNSIGNED NOT NULL,
@@ -112,8 +101,7 @@ CREATE TABLE properties (
     zone_id INT NOT NULL
 );
 
-DROP TABLE IF EXISTS ugc;
-CREATE TABLE ugc (
+CREATE TABLE IF NOT EXISTS ugc (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     account_id INT NOT NULL REFERENCES accounts(id),
     character_id BIGINT NOT NULL REFERENCES charinfo(id),
@@ -123,8 +111,7 @@ CREATE TABLE ugc (
     filename TEXT NOT NULL DEFAULT ('')
 );
 
-DROP TABLE IF EXISTS properties_contents;
-CREATE TABLE properties_contents (
+CREATE TABLE IF NOT EXISTS properties_contents (
     id BIGINT NOT NULL PRIMARY KEY,
     property_id BIGINT NOT NULL REFERENCES properties(id),
     ugc_id INT NULL REFERENCES ugc(id),
@@ -138,8 +125,7 @@ CREATE TABLE properties_contents (
     rw FLOAT NOT NULL
 );
 
-DROP TABLE IF EXISTS activity_log;
-CREATE TABLE activity_log (
+CREATE TABLE IF NOT EXISTS activity_log (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     character_id BIGINT NOT NULL REFERENCES charinfo(id),
     activity INT NOT NULL,
@@ -147,8 +133,7 @@ CREATE TABLE activity_log (
     map_id INT NOT NULL
 );
 
-DROP TABLE IF EXISTS bug_reports;
-CREATE TABLE bug_reports (
+CREATE TABLE IF NOT EXISTS bug_reports (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     body TEXT NOT NULL,
     client_version TEXT NOT NULL,
@@ -157,8 +142,7 @@ CREATE TABLE bug_reports (
     submitted TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
 );
 
-DROP TABLE IF EXISTS servers;
-CREATE TABLE servers (
+CREATE TABLE IF NOT EXISTS servers (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name TEXT NOT NULL,
     ip TEXT NOT NULL,

@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
         Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
     } catch (sql::SQLException& ex) {
 		Game::logger->Log("AuthServer", "Got an error while connecting to the database: %s\n", ex.what());
-		Database::Destroy();
+		Database::Destroy("AuthServer");
 		delete Game::server;
 		delete Game::logger;
 		return 0;
@@ -143,11 +143,12 @@ int main(int argc, char** argv) {
 	}
 
 	//Delete our objects here:
-	Database::Destroy();
+	Database::Destroy("AuthServer");
 	delete Game::server;
 	delete Game::logger;
 
-	return 0;
+	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
 
 dLogger * SetupLogger() {

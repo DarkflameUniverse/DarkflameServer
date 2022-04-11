@@ -1229,18 +1229,18 @@ void InventoryComponent::AddItemSkills(const LOT lot)
 	
 	const auto index = m_Skills.find(slot);
 
-	if (index != m_Skills.end())
-	{
-		const auto old = index->second;
-		
-		GameMessages::SendRemoveSkill(m_Parent, old);
-	}
-
 	const auto skill = FindSkill(lot);
 
 	if (skill == 0)
 	{
 		return;
+	}
+
+	if (index != m_Skills.end())
+	{
+		const auto old = index->second;
+		
+		GameMessages::SendRemoveSkill(m_Parent, old);
 	}
 	
 	GameMessages::SendAddSkill(m_Parent, skill, static_cast<int>(slot));
