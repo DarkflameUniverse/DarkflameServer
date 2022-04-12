@@ -1938,7 +1938,7 @@ bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
 		std::string zonePath = "./res/maps/" + zone->zoneName;
 		std::transform(zonePath.begin(), zonePath.end(), zonePath.begin(), ::tolower);
 		std::ifstream f(zonePath.c_str());
-		return f.good()
+		return f.good();
 	} else {
 		return false;
 	}
