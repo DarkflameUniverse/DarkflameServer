@@ -1931,18 +1931,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 }
 
 bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
-		//We're gonna go ahead and presume we've got the db loaded already:
+	//We're gonna go ahead and presume we've got the db loaded already:
 	CDZoneTableTable * zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
 	const CDZoneTable* zone = zoneTable->Query(zoneID);
 	if (zone != nullptr) {
 		std::string zonePath = "./res/maps/" + zone->zoneName;
 		std::transform(zonePath.begin(), zonePath.end(), zonePath.begin(), ::tolower);
 		std::ifstream f(zonePath.c_str());
-		if (f.good()){
-			return true;
-		} else {
-			return false;
-		}
+		return f.good()
 	} else {
 		return false;
 	}
