@@ -20,7 +20,8 @@ class Entity;
 class ScriptComponent : public Component {
 public:
 	static const uint32_t ComponentType = COMPONENT_TYPE_SCRIPT;
-	
+
+	ScriptComponent(Entity* parent, bool serialized, bool client = false);
     ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
     ~ScriptComponent() override;
 
@@ -43,6 +44,12 @@ public:
      * @param scriptName the name of the script to find
      */
 	void SetScript(const std::string& scriptName);
+
+    /**
+     * Sets the script directly
+     * @param script the script to set
+     */
+	void SetScript(CppScripts::Script* script);
 
 private:
 

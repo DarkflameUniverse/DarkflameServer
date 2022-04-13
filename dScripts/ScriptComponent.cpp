@@ -14,11 +14,22 @@ ScriptComponent::ScriptComponent(Entity* parent, std::string scriptName, bool se
 	SetScript(scriptName);
 }
 
+ScriptComponent::ScriptComponent(Entity* parent, bool serialized, bool client) : Component(parent) {
+	m_Serialized = serialized;
+	m_Client = client;
+
+    m_Script = nullptr;
+}
+
 ScriptComponent::~ScriptComponent() {
 
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+    if (!m_Serialized) {
+        return;
+    }
+
     if (bIsInitialUpdate) {
         const auto& networkSettings = m_Parent->GetNetworkSettings();
         auto hasNetworkSettings = !networkSettings.empty();
@@ -54,4 +65,8 @@ void ScriptComponent::SetScript(const std::string& scriptName) {
 	}*/
 
 	m_Script = CppScripts::GetScript(m_Parent, scriptName);
+}
+
+void ScriptComponent::SetScript(CppScripts::Script* script) {
+    m_Script = script;
 }

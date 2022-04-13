@@ -209,6 +209,14 @@ include_directories(${PROJECT_SOURCE_DIR}/thirdparty/cpplinq/)
 include_directories(${PROJECT_SOURCE_DIR}/dNet/)
 include_directories(${PROJECT_SOURCE_DIR}/dScripts/)
 
+# Link dGame to LUA
+if(__include_lua__)
+    find_package(Lua REQUIRED)
+
+    include_directories(/usr/include ${LUA_INCLUDE_DIR})
+    include_directories(${PROJECT_SOURCE_DIR}/dLua/)
+endif(UNIX)
+
 # Default to linking to libmysql
 set(MYSQL_LIB mysql)
 if(WIN32)
@@ -355,6 +363,19 @@ ${PROJECT_SOURCE_DIR}/dGame/dUtilities/*.cpp
 ${PROJECT_SOURCE_DIR}/dScripts/*.cpp
 )
 
+# If we are including LUA, include the dLua files in dGame
+if(__include_lua__)
+    file(
+    GLOB SOURCES_DLUA
+    LIST_DIRECTORIES false
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    ${PROJECT_SOURCE_DIR}/dLua/*.cpp
+    )
+
+    # Append the dLua files to the dGame files
+    set(SOURCES_DGAME ${SOURCES_DGAME} ${SOURCES_DLUA})
+endif(__include_lua__)
+
 # Source Code for dZoneManager
 file(
 GLOB SOURCES_DZM
@@ -464,6 +485,15 @@ target_link_libraries(ChatServer ${MYSQL_LIB})
 if(UNIX)
 target_link_libraries(ChatServer pthread)
 target_link_libraries(ChatServer dl)
+endif(UNIX)
+
+# Link dGame to LUA
+if(__include_lua__)
+    find_package(Lua REQUIRED)
+
+    target_link_libraries(dGame ${LUA_LIBRARIES})
+
+    message(STATUS "Linking dGame to LUA " ${LUA_LIBRARIES})
 endif(UNIX)
 
 # Compiler flags:

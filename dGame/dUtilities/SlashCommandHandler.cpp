@@ -63,6 +63,12 @@
 #include "GameConfig.h"
 #include "ScriptedActivityComponent.h"
 
+#if __include_lua__ == 1
+#include "LuaScript.h"
+#include "ScriptComponent.h"
+#include <filesystem>
+#endif
+
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
     std::string chatCommand;
     std::vector<std::string> args;
@@ -613,6 +619,78 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		
 		return;
 	}
+
+#if __include_lua__ == 1
+	if (chatCommand == "lua" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
+		std::string input = "";
+
+		// If the first argument is "load", load the file
+		bool isFile = false;
+		if (args[0] == "load") {
+			isFile = true;
+		}
+		
+		// Join the args
+		for (size_t i = 0; i < args.size(); i++) {
+			if (i == 0 && isFile) continue;
+			input += args[i] + " ";
+		}
+
+		// If isFile is true, load the file
+		if (isFile) {
+			// Trim last space
+			input.pop_back();
+
+			std::string path = input;
+
+			std::ifstream infile(path);
+
+			std::stringstream buffer;
+
+			if (infile.is_open()) {
+				std::string line;
+				while (std::getline(infile, line)) {
+					buffer << line << "\n";
+				}
+			}
+			else {
+				ChatPackets::SendSystemMessage(sysAddr, u"Could not open file " + GeneralUtils::ASCIIToUTF16(path));
+				return;
+			}
+
+			input = buffer.str();
+
+			infile.close();
+		}
+		
+		LuaScript* lua = new LuaScript(LuaTerminateBehavior::ResetScriptAndDelete);
+
+		ScriptComponent* script = entity->GetComponent<ScriptComponent>();
+
+		if (script == nullptr) {
+			script = new ScriptComponent(entity, false);
+			
+			entity->AddComponent(ScriptComponent::ComponentType, script);
+		}
+
+		script->SetScript(lua);
+
+		lua->SetEntity(entity);
+
+		// Run the code, and print any errors
+		try {
+			lua->Script(input);
+		}
+		// Catch sol::error
+		catch (const sol::error& e) {
+			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(e.what()));
+		}
+		// Catch *any* error
+		catch (...) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Unknown error!");
+		}
+	}
+#endif
 
 	if (chatCommand == "addmission" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		if (args.size() == 0) return;
