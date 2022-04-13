@@ -5441,7 +5441,7 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 			}
 		}
 
-		item->SetCount(item->GetCount() - iStackCount, true);
+		item->SetCount(item->GetCount() - std::min<uint32_t>(item->GetCount(), iStackCount), true);
 		EntityManager::Instance()->SerializeEntity(entity);
 
 		auto* missionComponent = entity->GetComponent<MissionComponent>();
