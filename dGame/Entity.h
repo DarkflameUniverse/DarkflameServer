@@ -220,7 +220,11 @@ public:
 	/*
 	 * Utility
 	 */
-
+	/**
+	 * Retroactively corrects the model vault size due to incorrect initialization in a previous patch.
+	 * 
+	 */
+	void RetroactiveVaultSize();
 	bool GetBoolean(const std::u16string& name) const;
 	int32_t GetI32(const std::u16string& name) const;
 	int64_t GetI64(const std::u16string& name) const;

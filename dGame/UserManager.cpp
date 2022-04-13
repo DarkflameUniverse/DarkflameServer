@@ -291,7 +291,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
         xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\" ";
         xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\"></char>";
         xml << "<dest hm=\"4\" hc=\"4\" im=\"0\" ic=\"0\" am=\"0\" ac=\"0\" d=\"0\"/>";
-        xml << "<inv><bag><b t=\"0\" m=\"20\"/><b t=\"1\" m=\"240\"/><b t=\"2\" m=\"240\"/><b t=\"3\" m=\"240\"/></bag><items><in t=\"0\">";
+        xml << "<inv><bag><b t=\"0\" m=\"20\"/><b t=\"1\" m=\"40\"/><b t=\"2\" m=\"240\"/><b t=\"3\" m=\"240\"/><b t=\"14\" m=\"40\"/></bag><items><in t=\"0\">";
         std::string xmlSave1 = xml.str();
         
         ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t idforshirt) {

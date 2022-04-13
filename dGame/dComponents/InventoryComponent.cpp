@@ -84,6 +84,7 @@ Inventory* InventoryComponent::GetInventory(const eInventoryType type)
 	case eInventoryType::ITEMS:
 		size = 20u;
 		break;
+	case eInventoryType::VAULT_MODELS:
 	case eInventoryType::VAULT_ITEMS:
 		size = 40u;
 		break;
