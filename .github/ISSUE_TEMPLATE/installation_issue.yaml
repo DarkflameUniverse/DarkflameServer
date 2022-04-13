@@ -12,6 +12,14 @@ body:
         - label: >
             I have read the [installation guide](https://github.com/DarkflameUniverse/DarkflameServer/blob/main/README.md).
           required: true
+  - type: input
+    id: server-version
+    attributes:
+      label: DarkflameServer Version
+      description: >
+        DarkflameServer version or commit SHA (can be obtained with `git rev-parse --short HEAD`)
+    validations:
+      required: true
   - type: dropdown
     id: platform
     attributes:

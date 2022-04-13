@@ -77,6 +77,9 @@ bool chatConnected = false;
 bool worldShutdownSequenceStarted = false;
 bool worldShutdownSequenceComplete = false;
 void WorldShutdownSequence();
+void WorldShutdownProcess(uint32_t zoneId);
+void FinalizeShutdown();
+void SendShutdownMessageToMaster();
 
 dLogger* SetupLogger(int zoneID, int instanceID);
 void HandlePacketChat(Packet* packet);
@@ -475,80 +478,16 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		if (worldShutdownSequenceStarted && !worldShutdownSequenceComplete)
-		{
-			if (framesSinceShutdownSequence == 0) {
-
-				ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Server shutting down...", true);
-				
-				for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i)
-				{
-					const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
-
-					auto* entity = Player::GetPlayer(player);
-
-					if (entity != nullptr && entity->GetCharacter() != nullptr)
-					{
-						auto* skillComponent = entity->GetComponent<SkillComponent>();
-
-						if (skillComponent != nullptr)
-						{
-							skillComponent->Reset();
-						}
-
-						entity->GetCharacter()->SaveXMLToDatabase();
-					}
-				}
-
-				if (PropertyManagementComponent::Instance() != nullptr) {
-					ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Property data saved...", true);
-					PropertyManagementComponent::Instance()->Save();
-				}
-				
-				ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Character data saved...", true);
-			}
-
-			framesSinceShutdownSequence++;
-
-			if (framesSinceShutdownSequence == 100)
-			{
-				while (Game::server->GetReplicaManager()->GetParticipantCount() > 0)
-				{
-					const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
-
-					Game::server->Disconnect(player, SERVER_DISCON_KICK);
-				}
-				
-				CBITSTREAM;
-				PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_RESPONSE);
-				Game::server->SendToMaster(&bitStream);
-			}
-			
-			if (framesSinceShutdownSequence == 300)
-			{
-				break;
-			}
+		if (worldShutdownSequenceStarted && !worldShutdownSequenceComplete) {
+			WorldShutdownProcess(zoneID);
+			break;
 		}
 
 		Metrics::AddMeasurement(MetricVariable::CPUTime, (1e6 * (1000.0 * (std::clock() - metricCPUTimeStart))) / CLOCKS_PER_SEC);
 		Metrics::EndMeasurement(MetricVariable::Frame);
 	}
-	
-	//Delete our objects here:
-	if (Game::physicsWorld) Game::physicsWorld = nullptr;
-	if (Game::zoneManager) delete Game::zoneManager;
-
-	Game::logger->Log("WorldServer", "Shutdown complete, zone (%i), instance (%i)\n", Game::server->GetZoneID(), instanceID);
-
-	Metrics::Clear();
-	Database::Destroy();
-	delete Game::chatFilter;
-	delete Game::server;
-	delete Game::logger;
-
-	worldShutdownSequenceComplete = true;
-
-	exit(0);
+	FinalizeShutdown();
+	return EXIT_SUCCESS;
 }
 
 dLogger * SetupLogger(int zoneID, int instanceID) {
@@ -1279,35 +1218,75 @@ void HandlePacket(Packet* packet) {
 	}
 }
 
-void WorldShutdownSequence()
-{
-	if (worldShutdownSequenceStarted || worldShutdownSequenceComplete)
-	{
-		return;
-	}
+void WorldShutdownProcess(uint32_t zoneId) {
+	Game::logger->Log("WorldServer", "Saving map %i instance %i\n", zoneId, instanceID);
+    for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i) {
+        const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
 
-	worldShutdownSequenceStarted = true;
+        auto* entity = Player::GetPlayer(player);
+        Game::logger->Log("WorldServer", "Saving data!\n");
+        if (entity != nullptr && entity->GetCharacter() != nullptr) {
+            auto* skillComponent = entity->GetComponent<SkillComponent>();
 
-	auto t = std::chrono::high_resolution_clock::now();
-	auto ticks = 0;
+            if (skillComponent != nullptr) {
+                skillComponent->Reset();
+            }
+            std::string message = "Saving character " + entity->GetCharacter()->GetName() + "...\n";
+            Game::logger->Log("WorldServer", message);
+            entity->GetCharacter()->SaveXMLToDatabase();
+            message = "Character data for " + entity->GetCharacter()->GetName() + " was saved!\n";
+            Game::logger->Log("WorldServer", message);
+        }
+    }
 
-	Game::logger->Log("WorldServer", "Attempting to shutdown world, zone (%i), instance (%i), max 10 seconds...\n", Game::server->GetZoneID(), instanceID);
+    if (PropertyManagementComponent::Instance() != nullptr) {
+        Game::logger->Log("WorldServer", "Saving ALL property data for zone %i clone %i!\n", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
+        PropertyManagementComponent::Instance()->Save();
+        Game::logger->Log("WorldServer", "ALL property data saved for zone %i clone %i!\n", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
+    }
 
-	while (true)
-	{
-		if (worldShutdownSequenceStarted)
-		{
-			break;
-		}
+    Game::logger->Log("WorldServer", "ALL DATA HAS BEEN SAVED FOR ZONE %i INSTANCE %i!\n", zoneId, instanceID);
 
-		t += std::chrono::milliseconds(highFrameRate);
-		std::this_thread::sleep_until(t);
+    while (Game::server->GetReplicaManager()->GetParticipantCount() > 0) {
+        const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
 
-		ticks++;
+        Game::server->Disconnect(player, SERVER_DISCON_KICK);
+    }
+	SendShutdownMessageToMaster();
+}
 
-		if (ticks == 600)
-		{
-			break;
-		}
-	}
+void WorldShutdownSequence() {
+    if (worldShutdownSequenceStarted || worldShutdownSequenceComplete) {
+        return;
+    }
+
+    worldShutdownSequenceStarted = true;
+
+    Game::logger->Log("WorldServer", "Zone (%i) instance (%i) shutting down outside of main loop!\n", Game::server->GetZoneID(), instanceID);
+    WorldShutdownProcess(Game::server->GetZoneID());
+	FinalizeShutdown();
+}
+
+void FinalizeShutdown() {
+	//Delete our objects here:
+	if (Game::physicsWorld) Game::physicsWorld = nullptr;
+	if (Game::zoneManager) delete Game::zoneManager;
+
+	Game::logger->Log("WorldServer", "Shutdown complete, zone (%i), instance (%i)\n", Game::server->GetZoneID(), instanceID);
+
+	Metrics::Clear();
+	Database::Destroy("WorldServer");
+	delete Game::chatFilter;
+	delete Game::server;
+	delete Game::logger;
+
+	worldShutdownSequenceComplete = true;
+
+	exit(EXIT_SUCCESS);
+}
+
+void SendShutdownMessageToMaster() {
+	CBITSTREAM;
+	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_RESPONSE);
+	Game::server->SendToMaster(&bitStream);
 }

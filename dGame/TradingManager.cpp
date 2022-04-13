@@ -60,7 +60,7 @@ void Trade::SetCoins(LWOOBJID participant, uint64_t coins)
     {
         m_CoinsA = coins;
     }
-    else if (participant = m_ParticipantB)
+    else if (participant == m_ParticipantB)
     {
         m_CoinsB = coins;
     }
@@ -72,7 +72,7 @@ void Trade::SetItems(LWOOBJID participant, std::vector<TradeItem> items)
     {
         m_ItemsA = items;
     }
-    else if (participant = m_ParticipantB)
+    else if (participant == m_ParticipantB)
     {
         m_ItemsB = items;
     }

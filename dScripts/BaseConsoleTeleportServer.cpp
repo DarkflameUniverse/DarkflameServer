@@ -25,7 +25,7 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 
             if (rocketLaunchComponent == nullptr)
             {
-                rocketLaunchComponent;
+                return;
             }
 
             const auto& teleportZone = self->GetVar<std::u16string>(u"transferZoneID");

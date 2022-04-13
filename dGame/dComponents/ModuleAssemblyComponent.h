@@ -17,7 +17,7 @@ public:
 	~ModuleAssemblyComponent() override;
 
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-    void Update(float deltaTime);
+    void Update(float deltaTime) override;
 
     /**
      * Sets the subkey of this entity

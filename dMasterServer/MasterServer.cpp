@@ -47,6 +47,7 @@ namespace Game {
 
 bool shutdownSequenceStarted = false;
 void ShutdownSequence();
+int FinalizeShutdown();
 dLogger* SetupLogger();
 void StartAuthServer();
 void StartChatServer();
@@ -168,7 +169,7 @@ int main(int argc, char** argv) {
 
 		std::cout << "Account created successfully!\n";
 
-		Database::Destroy();
+		Database::Destroy("MasterServer");
 		delete Game::logger;
 
 		return EXIT_SUCCESS;
@@ -318,13 +319,8 @@ int main(int argc, char** argv) {
 		t += std::chrono::milliseconds(highFrameRate);
 		std::this_thread::sleep_until(t);
 	}
-
-	//Delete our objects here:
-	Database::Destroy();
-	delete Game::im;
-	delete Game::server;
-	delete Game::logger;
-
+	FinalizeShutdown();
+	exit(EXIT_SUCCESS);
 	return EXIT_SUCCESS;
 }
 
@@ -664,7 +660,7 @@ void HandlePacket(Packet* packet) {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
-			auto* instance =Game::im->GetInstanceBySysAddr(packet->systemAddress);
+			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
 
 			if (instance == nullptr) {
 				return;
@@ -745,12 +741,20 @@ void ShutdownSequence() {
 	auto ticks = 0;
 
 	if (!Game::im) {
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	Game::logger->Log("MasterServer", "Attempting to shutdown instances, max 60 seconds...\n");
 
 	while (true) {
+
+		auto packet = Game::server->Receive();
+		if (packet) {
+			HandlePacket(packet);
+			Game::server->DeallocatePacket(packet);
+			packet = nullptr;
+		}
+		
 		auto done = true;
 
 		for (auto* instance : Game::im->GetInstances()) {
@@ -764,6 +768,7 @@ void ShutdownSequence() {
 		}
 
 		if (done) {
+			Game::logger->Log("MasterServer", "Finished shutting down MasterServer!\n");
 			break;
 		}
 
@@ -773,9 +778,21 @@ void ShutdownSequence() {
 		ticks++;
 
 		if (ticks == 600 * 6) {
+			Game::logger->Log("MasterServer", "Finished shutting down by timeout!\n");
 			break;
 		}
 	}
 
-	exit(0);
+	FinalizeShutdown();
+}
+
+int FinalizeShutdown() {
+	//Delete our objects here:
+	Database::Destroy("MasterServer");
+	delete Game::im;
+	delete Game::server;
+	delete Game::logger;
+
+	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
