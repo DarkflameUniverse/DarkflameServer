@@ -511,9 +511,11 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_bankinventory > 0) {
-        auto* inventory = inventoryComponent->GetInventory(VAULT_ITEMS);
+        auto* inventory = inventoryComponent->GetInventory(eInventoryType::VAULT_ITEMS);
+        auto modelInventory = inventoryComponent->GetInventory(eInventoryType::VAULT_MODELS);
 
         inventory->SetSize(inventory->GetSize() + info->reward_bankinventory);
+        modelInventory->SetSize(modelInventory->GetSize() + info->reward_bankinventory);
     }
 
     if (info->reward_reputation > 0) {
