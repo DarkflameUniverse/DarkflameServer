@@ -5433,6 +5433,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 		return;
 	}
 	
+	iStackCount = std::min<uint32_t>(item->GetCount(), iStackCount);
+	
 	if (bConfirmed) {
 		for (auto i = 0; i < iStackCount; ++i) {
 			if (eInvType == eInventoryType::MODELS)
@@ -5441,14 +5443,14 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 			}
 		}
 
-		item->SetCount(item->GetCount() - std::min<uint32_t>(item->GetCount(), iStackCount), true);
+		item->SetCount(item->GetCount() - iStackCount, true);
 		EntityManager::Instance()->SerializeEntity(entity);
 
 		auto* missionComponent = entity->GetComponent<MissionComponent>();
 		
 		if (missionComponent != nullptr)
 		{
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, item->GetLot(), LWOOBJID_EMPTY, "", -std::min<uint32_t>(item->GetCount(), iStackCount));
+			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, item->GetLot(), LWOOBJID_EMPTY, "", -iStackCount);
 		}
 	}
 }
