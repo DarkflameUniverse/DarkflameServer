@@ -131,6 +131,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		bool success = user->GetMaxGMLevel() >= level;
 
 		if (success) {
+
 			if (entity->GetGMLevel() > GAME_MASTER_LEVEL_CIVILIAN && level == GAME_MASTER_LEVEL_CIVILIAN)
 			{
 				GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
@@ -163,6 +164,33 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	//HANDLE ALL NON GM SLASH COMMANDS RIGHT HERE!
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	// If the entity that uses this command is at the level cap, they will get rewards
+	// the same way they did before hitting the level cap.  If used below the cap nothing should happen
+	// and if used again this will allow players to get only coins again.
+	if (chatCommand == "togglexp")
+	{
+		auto characterComponent = entity->GetComponent<CharacterComponent>();
+		if (characterComponent != nullptr)
+		{
+			if (characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
+				auto character = entity->GetCharacter();
+				character->SetPlayerFlag(
+					ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL,
+					!character->GetPlayerFlag(ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL)
+				);
+				character->GetPlayerFlag(
+					ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL
+				) == true ? ChatPackets::SendSystemMessage(
+					sysAddr, u"You will now get coins and u-score as rewards."
+				) : ChatPackets::SendSystemMessage(
+					sysAddr, u"You will now get only coins as rewards."
+				);
+				return;
+			}
+			ChatPackets::SendSystemMessage(sysAddr, u"You must be at the max level to use this command.");
+		}
+	}
 
 	if (chatCommand == "pvp") {
 		auto* character = entity->GetComponent<CharacterComponent>();
@@ -1200,7 +1228,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			dest->SetImagination(999);
 			dest->SetMaxImagination(999.0f);
 		}
-
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
 
@@ -1226,7 +1253,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			dest->SetImagination(9);
 			dest->SetMaxImagination(9.0f);
 		}
-
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
 
@@ -1237,7 +1263,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			dest->SetArmor((int)dest->GetMaxArmor());
 			dest->SetImagination((int)dest->GetMaxImagination());
 		}
-
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
 
@@ -1487,7 +1512,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 					WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
 				});
-
 				return;
 			});
 		} else {
