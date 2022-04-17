@@ -1,8 +1,8 @@
-#include "AgFans.h"
+#include "WhFans.h"
 
 #include "RenderComponent.h"
 
-void AgFans::OnStartup(Entity* self) {
+void WhFans::OnStartup(Entity* self) {
 	self->SetVar<bool>(u"alive", true);
 	self->SetVar<bool>(u"on", false);
 
@@ -17,7 +17,7 @@ void AgFans::OnStartup(Entity* self) {
 	renderComponent->PlayEffect(495, u"fanOn", "fanOn");
 }
 
-void AgFans::ToggleFX(Entity* self, bool hit) {
+void WhFans::ToggleFX(Entity* self, bool hit) {
 	std::string fanGroup = self->GetGroups()[0];
 	std::vector<Entity*> fanVolumes = EntityManager::Instance()->GetEntitiesInGroup(fanGroup);
 
@@ -56,7 +56,7 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 	}
 }
 
-void AgFans::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1, int32_t param2,
+void WhFans::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1, int32_t param2,
                                    int32_t param3) {
 	if (args.length() == 0 || !self->GetVar<bool>(u"alive")) return;
 
@@ -64,7 +64,7 @@ void AgFans::OnFireEventServerSide(Entity *self, Entity *sender, std::string arg
 	ToggleFX(self, false);
 }
 
-void AgFans::OnDie(Entity* self, Entity* killer) {
+void WhFans::OnDie(Entity* self, Entity* killer) {
 	if (self->GetVar<bool>(u"on")) {
 		ToggleFX(self, true);
 	}
