@@ -185,6 +185,7 @@ std::vector<ItemSetPassiveAbility> ItemSetPassiveAbility::FindAbilities(uint32_t
         break;
     }
     // Paradox
+    case ItemSetPassiveAbilityID::BatLord:
     case ItemSetPassiveAbilityID::SpaceMarauderRank1:
     case ItemSetPassiveAbilityID::SpaceMarauderRank2:
     case ItemSetPassiveAbilityID::SpaceMarauderRank3:
@@ -223,6 +224,12 @@ void ItemSetPassiveAbility::OnEnemySmshed()
 
     switch (id)
     {
+    // Bat Lord
+    case ItemSetPassiveAbilityID::BatLord: {
+        if(equippedCount < 5) return;
+        destroyableComponent->Heal(3);
+        break;
+    }
     // Sentinel
     case ItemSetPassiveAbilityID::KnightRank1: {
         if (equippedCount < 5) return;

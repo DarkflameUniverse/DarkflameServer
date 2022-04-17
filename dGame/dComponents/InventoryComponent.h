@@ -15,6 +15,7 @@
 #include "Component.h"
 #include "ItemSetPassiveAbility.h"
 #include "ItemSetPassiveAbilityID.h"
+#include "PossessorComponent.h"
 
 class Entity;
 class ItemSet;
@@ -192,15 +193,15 @@ public:
 
     /**
      * Adds a buff related to equipping a lot to the entity
-     * @param lot the lot to find buffs for
+     * @param item the item to find buffs for
      */
-	void ApplyBuff(LOT lot) const;
+	void ApplyBuff(Item* item) const;
 
     /**
      * Removes buffs related to equipping a lot from the entity
-     * @param lot the lot to find buffs for
+     * @param item the item to find buffs for
      */
-	void RemoveBuff(LOT lot) const;
+	void RemoveBuff(Item* item) const;
 
     /**
      * Saves the equipped items into a temp state
@@ -239,11 +240,11 @@ public:
 
     /**
      * Finds all the buffs related to a lot
-     * @param lot the lot to get the buffs for
+     * @param item the item to get the buffs for
      * @param castOnEquip if true, the skill missions for these buffs will be progressed
      * @return the buffs related to the specified lot
      */
-	std::vector<uint32_t> FindBuffs(LOT lot, bool castOnEquip) const;
+	std::vector<uint32_t> FindBuffs(Item* item, bool castOnEquip) const;
 
     /**
      * Initializes the equipped items with a list of items
@@ -385,6 +386,13 @@ private:
 	LOT m_Consumable;
 
     /**
+     * Currently has a car equipped
+     */
+    bool hasCarEquipped = false;
+    Entity* equippedCarEntity = nullptr;
+    LWOOBJID previousPossessableID = LWOOBJID_EMPTY;
+    LWOOBJID previousPossessorID = LWOOBJID_EMPTY;
+    /**
      * Creates all the proxy items (subitems) for a parent item
      * @param parent the parent item to generate all the subitems for
      * @return the proxy items (subitems) for a parent item
@@ -399,8 +407,8 @@ private:
 	std::vector<Item*> FindProxies(LWOOBJID parent);
 
     /**
-     * Returns if the provided ID is a valid proxy item (e.g. we have children for it)
-     * @param parent the parent item to check for
+     * Returns true if the provided LWOOBJID is the parent of this Item.
+     * @param parent the parent item to check for proxies
      * @return if the provided ID is a valid proxy item
      */
 	bool IsValidProxy(LWOOBJID parent);

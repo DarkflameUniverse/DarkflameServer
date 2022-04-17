@@ -13,7 +13,7 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<int32_t>(TemplateID); // - template id
 	stream.Write<uint16_t>(ZoneId); // - map id
 	stream.Write<uint16_t>(VendorMapId); // - vendor map id
-	stream.Write<uint32_t>(1);
+	stream.Write<uint32_t>(cloneId); // clone id
 
 	const auto& name = GeneralUtils::ASCIIToUTF16(Name);
 	stream.Write(uint32_t(name.size()));
@@ -40,11 +40,12 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<uint32_t>(0); // - minimum price
 	stream.Write<uint32_t>(1); // - rent duration
 	
-	stream.Write(ClaimedTime); // - timestamp
+	stream.Write<uint64_t>(LastUpdatedTime); // - timestamp
 	
 	stream.Write<uint32_t>(1);
 
-	stream.Write<uint64_t>(0);
+	stream.Write<uint32_t>(reputation); // Reputation
+	stream.Write<uint32_t>(0);
 
 	const auto& spawn = GeneralUtils::ASCIIToUTF16(SpawnName);
 	stream.Write(uint32_t(spawn.size()));
@@ -63,9 +64,18 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 
 	stream.Write<uint64_t>(0);
 
-	stream.Write<uint32_t>(1);
+	if (rejectionReason != "") stream.Write<uint32_t>(REJECTION_STATUS_REJECTED);
+	else if (moderatorRequested == true && rejectionReason == "") stream.Write<uint32_t>(REJECTION_STATUS_APPROVED);
+	else stream.Write<uint32_t>(REJECTION_STATUS_PENDING);
 
-	stream.Write<uint32_t>(0); // String length
+	// Does this go here???
+	// const auto& rejectionReasonConverted = GeneralUtils::ASCIIToUTF16(rejectionReason);
+	// stream.Write(uint32_t(rejectionReasonConverted.size()));
+	// for (uint32_t i = 0; i < rejectionReasonConverted.size(); ++i) {
+	// 	stream.Write(uint16_t(rejectionReasonConverted[i]));
+	// }
+
+	stream.Write<uint32_t>(0);
 
 	stream.Write<uint64_t>(0);
 

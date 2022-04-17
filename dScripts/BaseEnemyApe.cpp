@@ -8,11 +8,6 @@
 void BaseEnemyApe::OnStartup(Entity *self) {
     self->SetVar<uint32_t>(u"timesStunned", 2);
     self->SetVar<bool>(u"knockedOut", false);
-
-    auto* combatAIComponent = self->GetComponent<BaseCombatAIComponent>();
-    if (combatAIComponent != nullptr) {
-        combatAIComponent->SetStunImmune(true);
-    }
 }
 
 void BaseEnemyApe::OnDie(Entity *self, Entity *killer) {
@@ -23,10 +18,8 @@ void BaseEnemyApe::OnDie(Entity *self, Entity *killer) {
 }
 
 void BaseEnemyApe::OnSkillCast(Entity *self, uint32_t skillID) {
-    const auto groundPoundSkill = self->GetVar<uint32_t>(u"GroundPoundSkill") != 0
-            ? self->GetVar<uint32_t>(u"GroundPoundSkill") : 725;
-    const auto spawnQuickBuildTime = self->GetVar<float_t>(u"spawnQBTime") != 0.0f
-            ? self->GetVar<float_t>(u"spawnQBTime") : 5.0f;
+    const auto groundPoundSkill = self->GetVar<uint32_t>(u"GroundPoundSkill") != 0 ? self->GetVar<uint32_t>(u"GroundPoundSkill") : 725;
+    const auto spawnQuickBuildTime = self->GetVar<float_t>(u"spawnQBTime") != 0.0f ? self->GetVar<float_t>(u"spawnQBTime") : 5.0f;
 
     if (skillID == groundPoundSkill && self->GetVar<LWOOBJID>(u"QB") == LWOOBJID_EMPTY) {
         self->AddTimer("spawnQBTime", spawnQuickBuildTime);
@@ -61,9 +54,7 @@ void BaseEnemyApe::OnTimerDone(Entity *self, std::string timerName) {
         StunApe(self, false);
 
     } else if (timerName == "spawnQBTime" && self->GetVar<LWOOBJID>(u"QB") == LWOOBJID_EMPTY) {
-
-        // Spawns the QB, which can insta kill the ape
-        // Quick mafs to spawn the QB in the correct spot
+        // Spawn QB in front of ape.
         const auto position = self->GetPosition();
         const auto rotation = self->GetRotation();
 
@@ -107,8 +98,6 @@ void BaseEnemyApe::OnTimerDone(Entity *self, std::string timerName) {
 
         auto* skillComponent = self->GetComponent<SkillComponent>();
         if (skillComponent != nullptr) {
-            // We use a different behavior than the script here, the original one contains a TargetCaster behavior
-            // but as of writing we can't pass an optional originated to give the loot to the player
             skillComponent->CalculateBehavior(1273, 29446, self->GetObjectID(), true, false, player->GetObjectID());
         }
 
@@ -120,8 +109,7 @@ void BaseEnemyApe::OnFireEventServerSide(Entity *self, Entity *sender, std::stri
                                          int32_t param3) {
     if (args == "rebuildDone" && sender != nullptr) {
         self->SetVar<LWOOBJID>(u"smasher", sender->GetObjectID());
-        const auto anchorDamageDelayTime = self->GetVar<float_t>(u"AnchorDamageDelayTime") != 0.0f
-            ? self->GetVar<float_t>(u"AnchorDamageDelayTime") : 0.5f;
+        const auto anchorDamageDelayTime = self->GetVar<float_t>(u"AnchorDamageDelayTime") != 0.0f ? self->GetVar<float_t>(u"AnchorDamageDelayTime") : 0.5f;
         self->AddTimer("anchorDamageTimer", anchorDamageDelayTime);
     }
 }

@@ -33,6 +33,8 @@ public:
 	void NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& objectID); //Notifies the zone of a certain event or command.
 	void AddSpawner(LWOOBJID id, Spawner* spawner);
 	LWOZONEID GetZoneID() const;
+	uint32_t GetMaxLevel();
+	int32_t GetLevelCapCurrencyConversion();
 	LWOOBJID MakeSpawner(SpawnerInfo info);
 	Spawner* GetSpawner(LWOOBJID id);
 	void RemoveSpawner(LWOOBJID id);
@@ -40,11 +42,23 @@ public:
 	std::vector<Spawner*> GetSpawnersInGroup(std::string group);
 	void Update(float deltaTime);
 	Entity* GetZoneControlObject() { return m_ZoneControlObject; }
+	bool GetPlayerLoseCoinOnDeath() { return m_PlayerLoseCoinsOnDeath; }
 
 private:
+	/**
+	 * The maximum level of the world.
+	 */
+	uint32_t m_MaxLevel = 0;
+
+	/**
+	 * The ratio of LEGO Score to currency when the character has hit the max level.
+	 */
+	int32_t m_CurrencyConversionRate = 0;
+	
     static dZoneManager* m_Address; //Singleton
 	Zone* m_pZone;
 	LWOZONEID m_ZoneID;
+    bool m_PlayerLoseCoinsOnDeath; //Do players drop coins in this zone when smashed
     std::map<LWOOBJID, Spawner*> m_Spawners;
 
 	Entity* m_ZoneControlObject;

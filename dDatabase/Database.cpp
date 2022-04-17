@@ -26,9 +26,10 @@ void Database::Connect(const string& host, const string& database, const string&
 	con->setClientOption("MYSQL_OPT_RECONNECT", &myTrue);
 } //Connect
 
-void Database::Destroy() {
+void Database::Destroy(std::string source) {
 	if (!con) return;
-	cout << "Destroying MySQL connection!" << endl;
+	if (source != "") Game::logger->Log("Database", "Destroying MySQL connection from %s!\n", source.c_str());
+	else Game::logger->Log("Database", "Destroying MySQL connection!\n");
 	con->close();
 	delete con;
 } //Destroy

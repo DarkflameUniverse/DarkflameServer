@@ -380,7 +380,7 @@ void RebuildComponent::StartRebuild(Entity* user) {
 
 		EntityManager::Instance()->SerializeEntity(user);
 
-		GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::REBUILD_COMPLETED, user->GetObjectID());
+		GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::REBUILD_BUILDING, user->GetObjectID());
 		GameMessages::SendEnableRebuild(m_Parent, true, false, false, eFailReason::REASON_NOT_GIVEN, 0.0f, user->GetObjectID());
 
 		m_State = eRebuildState::REBUILD_BUILDING;
@@ -421,16 +421,16 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	EntityManager::Instance()->SerializeEntity(user);
 
 	GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::REBUILD_COMPLETED, user->GetObjectID());
-	GameMessages::SendEnableRebuild(m_Parent, false, true, false, eFailReason::REASON_NOT_GIVEN, m_ResetTime, user->GetObjectID());
+	GameMessages::SendPlayFXEffect(m_Parent, 507, u"create", "BrickFadeUpVisCompleteEffect", LWOOBJID_EMPTY, 0.4f, 1.0f, true);
+	GameMessages::SendEnableRebuild(m_Parent, false, false, true, eFailReason::REASON_NOT_GIVEN, m_ResetTime, user->GetObjectID());
+	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+	
 
 	m_State = eRebuildState::REBUILD_COMPLETED;
 	m_Timer = 0.0f;
 	m_DrainedImagination = 0;
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
-
-	GameMessages::SendPlayFXEffect(m_Parent, 507, u"create", "BrickFadeUpVisCompleteEffect", LWOOBJID_EMPTY, 0.4f, 1.0f, true);
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 
 	// Removes extra item requirements, isn't live accurate.
 	// In live, all items were removed at the start of the quickbuild, then returned if it was cancelled.
@@ -484,6 +484,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 			character->SetPlayerFlag(flagNumber, true);
 		}
 	}
+	GameMessages::SendPlayAnimation(user, u"rebuild-celebrate", 1.09f);
 }
 
 void RebuildComponent::ResetRebuild(bool failed) {

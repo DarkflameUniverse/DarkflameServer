@@ -61,7 +61,7 @@ public:
 	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
 	~MovementAIComponent() override;
 	
-	void Update(float deltaTime);
+	void Update(float deltaTime) override;
 
     /**
      * Returns the basic settings that this entity uses to move around

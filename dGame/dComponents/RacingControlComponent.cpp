@@ -15,6 +15,7 @@
 #include "Player.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
+#include "RacingTaskParam.h"
 #include "Spawner.h"
 #include "VehiclePhysicsComponent.h"
 #include "dServer.h"
@@ -257,7 +258,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity *player,
             m_Parent->GetObjectID(), playerID, UNASSIGNED_SYSTEM_ADDRESS);
     });
 
-    GameMessages::SendSetJetpackMode(player, false, false, false);
+    GameMessages::SendSetJetPackMode(player, false);
 
     // Set the vehicle's state.
     GameMessages::SendNotifyVehicleOfRacingObject(carEntity->GetObjectID(),
@@ -401,18 +402,18 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity *player,
 
         auto *missionComponent = player->GetComponent<MissionComponent>();
 
-        if (missionComponent != nullptr) {
-            missionComponent->Progress(
-                MissionTaskType::MISSION_TASK_TYPE_RACING, 0, 13); // Enter race
-            missionComponent->Progress(
-                MissionTaskType::MISSION_TASK_TYPE_RACING, data->finished,
-                1); // Finish with rating, one track
-            missionComponent->Progress(
-                MissionTaskType::MISSION_TASK_TYPE_RACING, data->finished,
-                15); // Finish with rating, multiple tracks
-            missionComponent->Progress(
-                MissionTaskType::MISSION_TASK_TYPE_RACING, data->smashedTimes,
-                10); // Safe driver type missions
+        if (missionComponent == nullptr) return;
+
+        missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, 0, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COMPETED_IN_RACE); // Progress task for competing in a race
+        missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, data->smashedTimes, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SAFE_DRIVER); // Finish a race without being smashed.
+
+        // If solo racing is enabled OR if there are 3 players in the race, progress placement tasks.
+        if(m_SoloRacing || m_LoadedPlayers > 2) {
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, data->finished, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_FINISH_WITH_PLACEMENT); // Finish in 1st place on a race
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, data->finished, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_FIRST_PLACE_MULTIPLE_TRACKS); // Finish in 1st place on multiple tracks.
+            if(m_Finished != 1) return;
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_WIN_RACE_IN_WORLD); // Finished first place in specific world.
+            
         }
     } else if (id == "ACT_RACE_EXIT_THE_RACE?" || id == "Exit") {
         auto *vehicle = EntityManager::Instance()->GetEntity(data->vehicleID);
@@ -809,9 +810,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
             // Reached the start point, lapped
             if (respawnIndex == 0) {
-                time_t lapTime =
-                    std::time(nullptr) -
-                    (player.lap == 1 ? m_StartTime : player.lapTime);
+                time_t lapTime = std::time(nullptr) - (player.lap == 1 ? m_StartTime : player.lapTime);
 
                 // Cheating check
                 if (lapTime < 40) {
@@ -833,10 +832,9 @@ void RacingControlComponent::Update(float deltaTime) {
                     playerEntity->GetComponent<MissionComponent>();
 
                 if (missionComponent != nullptr) {
-                    // Lap time
-                    missionComponent->Progress(
-                        MissionTaskType::MISSION_TASK_TYPE_RACING,
-                        (lapTime)*1000, 2);
+
+                    // Progress lap time tasks
+                    missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, (lapTime)*1000, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_LAP_TIME);
 
                     if (player.lap == 3) {
                         m_Finished++;
@@ -852,15 +850,11 @@ void RacingControlComponent::Update(float deltaTime) {
                                           raceTime, raceTime * 1000);
 
                         // Entire race time
-                        missionComponent->Progress(
-                            MissionTaskType::MISSION_TASK_TYPE_RACING,
-                            (raceTime)*1000, 3);
+                        missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, (raceTime)*1000, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_TOTAL_TRACK_TIME);
 
-                        auto *characterComponent =
-                            playerEntity->GetComponent<CharacterComponent>();
+                        auto *characterComponent = playerEntity->GetComponent<CharacterComponent>();
                         if (characterComponent != nullptr) {
-                            characterComponent->TrackRaceCompleted(m_Finished ==
-                                                                   1);
+                            characterComponent->TrackRaceCompleted(m_Finished == 1);
                         }
 
                         // TODO: Figure out how to update the GUI leaderboard.
