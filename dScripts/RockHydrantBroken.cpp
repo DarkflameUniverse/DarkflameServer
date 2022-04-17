@@ -15,7 +15,7 @@ void RockHydrantBroken::OnStartup(Entity* self)
 	for (auto* bouncer : bouncers)
 	{
 		self->SetVar<LWOOBJID>(u"bouncer", bouncer->GetObjectID());
-		Game::logger->Log("RockHydrantBroken", "Activate Bouncer (%s)\n", bouncer.c_str());
+
 
 		GameMessages::SendBouncerActiveStatus(bouncer->GetObjectID(), true, UNASSIGNED_SYSTEM_ADDRESS);
 
