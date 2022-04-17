@@ -802,7 +802,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
 		script = new RockHydrantBroken();
-	else if (scriptName == "L_NS_WH_FANS.lua")
+	else if (scriptName == "scripts\\ai\\NS\\L_NS_WH_FANS.lua")
 		script = new WhFans();
 
 	//Ignore these scripts:
