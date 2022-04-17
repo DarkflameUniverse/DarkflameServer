@@ -1,4 +1,4 @@
-//I can feel my soul being torn apart with every script added to this monstrosity. 
+//I can feel my soul being torn apart with every script added to this monstrosity.
 // skate fast eat trash
 // do you think god stays in heaven because he too lives in fear of what he's created?
 
@@ -800,9 +800,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
     	script = new BuccaneerValiantShip();
 
 	// FB
-	else if (scriptName = "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
+	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
 		script = new RockHydrantBroken();
-	else if (scriptName = "L_NS_WH_FANS.lua")
+	else if (scriptName == "L_NS_WH_FANS.lua")
 		script = new WhFans();
 
 	//Ignore these scripts:
