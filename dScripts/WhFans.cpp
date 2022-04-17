@@ -11,6 +11,8 @@ void WhFans::OnStartup(Entity* self) {
 
 void WhFans::ToggleFX(Entity* self, bool hit) {
 	std::string fanGroup = self->GetGroups()[0];
+
+	Game::logger->Log("WhFans", "Toggling FX for Fan Group(%s)\n", fanGroup.c_str());
 	std::vector<Entity*> fanVolumes = EntityManager::Instance()->GetEntitiesInGroup(fanGroup);
 
 	auto renderComponent = self->GetComponent<RenderComponent>();
