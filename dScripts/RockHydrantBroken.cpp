@@ -42,6 +42,6 @@ void RockHydrantBroken::OnTimerDone(Entity* self, std::string timerName)
 	}
 	else if (timerName == "playEffect")
 	{
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 384, u"water", "water", LWOOBJID_EMPTY, 1, 1, true);
+		GameMessages::SendPlayFXEffect(self->GetObjectID(), 4737, u"water", "water", LWOOBJID_EMPTY, 1, 1, true);
 	}
 }
