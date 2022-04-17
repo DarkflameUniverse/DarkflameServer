@@ -7,22 +7,13 @@ void WhFans::OnStartup(Entity* self) {
 	self->SetVar<bool>(u"on", false);
 
 	ToggleFX(self, false);
-
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
-
-	if (renderComponent == nullptr) {
-		return;
-	}
-
-	renderComponent->PlayEffect(495, u"fanOn", "fanOn");
 }
 
 void WhFans::ToggleFX(Entity* self, bool hit) {
 	std::string fanGroup = self->GetGroups()[0];
 	std::vector<Entity*> fanVolumes = EntityManager::Instance()->GetEntitiesInGroup(fanGroup);
 
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
-
+	auto renderComponent = self->GetComponent<RenderComponent>();
 	if (renderComponent == nullptr) {
 		return;
 	}
@@ -36,7 +27,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 		self->SetVar<bool>(u"on", false);
 
 		for (Entity* volume : fanVolumes) {
-			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(COMPONENT_TYPE_PHANTOM_PHYSICS));
+			auto phantomPhysicsComponent = volume->GetComponent<PhantomPhysicsComponent>();
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(false);
 			EntityManager::Instance()->SerializeEntity(volume);
@@ -48,7 +39,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 		self->SetVar<bool>(u"on", true);
 
 		for (Entity* volume : fanVolumes) {
-			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(COMPONENT_TYPE_PHANTOM_PHYSICS));
+			auto phantomPhysicsComponent = volume->GetComponent<PhantomPhysicsComponent>();
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(true);
 			EntityManager::Instance()->SerializeEntity(volume);
