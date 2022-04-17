@@ -231,7 +231,8 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RACING_STATS, nullptr));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0) {
+	PetComponent* petComponent;
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !TryGetComponent(COMPONENT_TYPE_PET, petComponent)) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ITEM, nullptr));
 	}
 
@@ -2171,4 +2172,16 @@ void Entity::AddToGroup(const std::string& group) {
     if (std::find(m_Groups.begin(), m_Groups.end(), group) == m_Groups.end()) {
         m_Groups.push_back(group);
     }
+}
+
+void Entity::RetroactiveVaultSize() {
+	auto inventoryComponent = GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
+
+	auto itemsVault = inventoryComponent->GetInventory(eInventoryType::VAULT_ITEMS);
+	auto modelVault = inventoryComponent->GetInventory(eInventoryType::VAULT_MODELS);
+
+	if (itemsVault->GetSize() == modelVault->GetSize()) return;
+
+	modelVault->SetSize(itemsVault->GetSize());
 }
