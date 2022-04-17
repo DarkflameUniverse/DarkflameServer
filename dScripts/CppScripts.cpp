@@ -274,6 +274,10 @@
 #include "AgSurvivalMech.h"
 #include "AgSurvivalSpiderling.h"
 
+// Frostburgh Scripts
+#include "RockHydrantBroken.h"
+#include "WhFans.h"
+
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
 std::map<std::string, CppScripts::Script*> m_Scripts;
@@ -794,6 +798,12 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new LegoDieRoll();
   	else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
     	script = new BuccaneerValiantShip();
+
+	// FB
+	else if (scriptName = "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
+		script = new RockHydrantBroken();
+	else if (scriptName = "L_NS_WH_FANS.lua")
+		script = new WhFans();
 
 	//Ignore these scripts:
 	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")
