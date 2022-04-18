@@ -10,16 +10,19 @@ void WhFans::OnStartup(Entity* self) {
 }
 
 void WhFans::ToggleFX(Entity* self, bool hit) {
-	std::string fanGroup = "";
-	try {
-		fanGroup = self->GetGroups()[0];
-	} catch(...) {
+	std::string fanGroup;
+	const auto& groups = self->GetGroups();
+	if (!groups.empty()) {
+		fanGroup = groups[0];
+	} else {
 		fanGroup = "";
 	}
 
 	std::vector<Entity*> fanVolumes = EntityManager::Instance()->GetEntitiesInGroup(fanGroup);
 
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* renderComponent = self->GetComponent<RenderComponent*>();
+
+	if (renderComponent == nullptr) return;
 
 	if (fanVolumes.size() == 0 || !self->GetVar<bool>(u"alive")) return;
 
