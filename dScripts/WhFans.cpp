@@ -10,7 +10,7 @@ void WhFans::OnStartup(Entity* self) {
 }
 
 void WhFans::ToggleFX(Entity* self, bool hit) {
-	std::string fanGroup = ""
+	std::string fanGroup = "";
 	try {
 		fanGroup = self->GetGroups()[0];
 	} catch(...) {
