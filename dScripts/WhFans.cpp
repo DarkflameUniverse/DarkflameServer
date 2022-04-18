@@ -20,7 +20,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 
 	std::vector<Entity*> fanVolumes = EntityManager::Instance()->GetEntitiesInGroup(fanGroup);
 
-	auto* renderComponent = self->GetComponent<RenderComponent*>();
+	auto* renderComponent = self->GetComponent<RenderComponent>();
 
 	if (renderComponent == nullptr) return;
 
