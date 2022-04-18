@@ -10,10 +10,11 @@ void WhFans::OnStartup(Entity* self) {
 }
 
 void WhFans::ToggleFX(Entity* self, bool hit) {
+	std::string fanGroup = ""
 	try {
-		std::string fanGroup = self->GetGroups()[0];
+		fanGroup = self->GetGroups()[0];
 	} catch(...) {
-		std::string fanGroup = "";
+		fanGroup = "";
 	}
 
 	Game::logger->Log("WhFans", "Toggling FX for Fan Group(%s)\n", fanGroup.c_str());
