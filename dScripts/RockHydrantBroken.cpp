@@ -6,7 +6,7 @@ void RockHydrantBroken::OnStartup(Entity* self)
 {
 	self->AddTimer("playEffect", 1);
 
-	const auto hydrant = "hydrant0" + self->GetVar<std::string>(u"hydrant");
+	const auto hydrant = "hydrant" + self->GetVar<std::string>(u"hydrant");
 
 	const auto bouncers = EntityManager::Instance()->GetEntitiesInGroup(hydrant);
 
