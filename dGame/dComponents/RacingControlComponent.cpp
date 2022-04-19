@@ -53,6 +53,11 @@ RacingControlComponent::RacingControlComponent(Entity *parent)
             m_MainWorld = 1200;
             break;
 
+        case 1261:
+            m_ActivityID = 60;
+            m_MainWorld = 1260;
+            break;
+
         case 1303:
             m_ActivityID = 39;
             m_MainWorld = 1300;

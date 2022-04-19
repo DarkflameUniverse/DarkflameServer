@@ -1,24 +1,21 @@
 #include "RockHydrantSmashable.h"
 #include "EntityManager.h"
-#include "SimplePhysicsComponent.h"
-#include "Entity.h"
-#include "GameMessages.h"
-#include "Game.h"
-#include "dLogger.h"
+#include "GeneralUtils.h"
 
-void RockHydrantSmashable::OnDie(Entity* self, Entity* killer) {
-	SimplePhysicsComponent* physics = self->GetComponent<SimplePhysicsComponent>();
-	NiPoint3 pos = physics->GetPosition();
+void RockHydrantSmashable::OnDie(Entity* self, Entity* killer)
+{
+	const auto hydrantName = self->GetVar<std::u16string>(u"hydrant");
 
-	EntityInfo info;
-	info.lot = 12293;
-	info.pos = pos;
-	info.spawner = nullptr;
+	LDFBaseData* data = new LDFData<std::string>(u"hydrant", GeneralUtils::UTF16ToWTF8(hydrantName));
+
+	EntityInfo info {};
+	info.lot = ROCK_HYDRANT_BROKEN;
+	info.pos = self->GetPosition();
+	info.rot = self->GetRotation();
+	info.settings = {data};
 	info.spawnerID = self->GetSpawnerID();
-	info.spawnerNodeID = 0;
 
-	Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);
-	if (newEntity) {
-		EntityManager::Instance()->ConstructEntity(newEntity);
-	}
+	auto* hydrant = EntityManager::Instance()->CreateEntity(info);
+
+	EntityManager::Instance()->ConstructEntity(hydrant);
 }
