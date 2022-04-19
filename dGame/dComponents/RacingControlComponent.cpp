@@ -53,6 +53,11 @@ RacingControlComponent::RacingControlComponent(Entity *parent)
             m_MainWorld = 1200;
             break;
 
+        case 1261:
+            m_ActivityID = 60;
+            m_MainWorld = 1260;
+            break;
+
         case 1303:
             m_ActivityID = 39;
             m_MainWorld = 1300;
@@ -413,7 +418,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity *player,
             missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, data->finished, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_FIRST_PLACE_MULTIPLE_TRACKS); // Finish in 1st place on multiple tracks.
             if(m_Finished != 1) return;
             missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_WIN_RACE_IN_WORLD); // Finished first place in specific world.
-            
+
         }
     } else if (id == "ACT_RACE_EXIT_THE_RACE?" || id == "Exit") {
         auto *vehicle = EntityManager::Instance()->GetEntity(data->vehicleID);
