@@ -5433,6 +5433,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 		return;
 	}
 	
+	iStackCount = std::min<uint32_t>(item->GetCount(), iStackCount);
+	
 	if (bConfirmed) {
 		for (auto i = 0; i < iStackCount; ++i) {
 			if (eInvType == eInventoryType::MODELS)
