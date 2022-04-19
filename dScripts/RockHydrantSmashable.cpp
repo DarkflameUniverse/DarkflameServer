@@ -9,15 +9,13 @@ void RockHydrantSmashable::OnDie(Entity* self, Entity* killer)
 	LDFBaseData* data = new LDFData<std::string>(u"hydrant", GeneralUtils::UTF16ToWTF8(hydrantName));
 
 	EntityInfo info {};
-	info.lot = 12293;
+	info.lot = ROCK_HYDRANT_BROKEN;
 	info.pos = self->GetPosition();
 	info.rot = self->GetRotation();
 	info.settings = {data};
 	info.spawnerID = self->GetSpawnerID();
 
-	Game::logger->Log("RockHydrantBroken", "Rock Hydrant spawned (%s)\n", data->GetString().c_str());
+	auto* hydrant = EntityManager::Instance()->CreateEntity(info);
 
-    auto* hydrant = EntityManager::Instance()->CreateEntity(info);
-
-    EntityManager::Instance()->ConstructEntity(hydrant);
+	EntityManager::Instance()->ConstructEntity(hydrant);
 }

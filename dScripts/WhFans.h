@@ -7,8 +7,8 @@
 class WhFans : public CppScripts::Script
 {
 public:
-	void OnStartup(Entity* self);
-	void OnDie(Entity* self, Entity* killer);
+	void OnStartup(Entity* self) override;
+	void OnDie(Entity* self, Entity* killer) override;
 	void OnFireEventServerSide(
 		Entity *self,
 		Entity *sender,
@@ -16,7 +16,7 @@ public:
 		int32_t param1,
 		int32_t param2,
 		int32_t param3
-	);
+	) override;
 private:
 	void ToggleFX(Entity* self, bool hit);
 };

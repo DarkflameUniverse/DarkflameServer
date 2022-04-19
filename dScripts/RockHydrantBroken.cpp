@@ -10,8 +10,6 @@ void RockHydrantBroken::OnStartup(Entity* self)
 
 	const auto bouncers = EntityManager::Instance()->GetEntitiesInGroup(hydrant);
 
-	Game::logger->Log("RockHydrantBroken", "Broken Rock Hydrant spawned (%s)\n", hydrant.c_str());
-
 	for (auto* bouncer : bouncers)
 	{
 		self->SetVar<LWOOBJID>(u"bouncer", bouncer->GetObjectID());
