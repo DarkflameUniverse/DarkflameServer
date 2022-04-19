@@ -2173,3 +2173,15 @@ void Entity::AddToGroup(const std::string& group) {
         m_Groups.push_back(group);
     }
 }
+
+void Entity::RetroactiveVaultSize() {
+	auto inventoryComponent = GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
+
+	auto itemsVault = inventoryComponent->GetInventory(eInventoryType::VAULT_ITEMS);
+	auto modelVault = inventoryComponent->GetInventory(eInventoryType::VAULT_MODELS);
+
+	if (itemsVault->GetSize() == modelVault->GetSize()) return;
+
+	modelVault->SetSize(itemsVault->GetSize());
+}
