@@ -100,7 +100,8 @@ public:
 		eInventoryType inventorySourceType = INVALID,
 		int32_t sourceType = 0,
 		bool bound = false,
-		int32_t preferredSlot = -1
+		int32_t preferredSlot = -1,
+        eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE
 	);
 
     /**

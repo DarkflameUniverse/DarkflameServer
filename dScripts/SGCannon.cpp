@@ -574,7 +574,7 @@ void SGCannon::StopGame(Entity *self, bool cancel) {
         auto* inventory = player->GetComponent<InventoryComponent>();
         if (inventory != nullptr) {
             for (const auto rewardLot : self->GetVar<std::vector<LOT>>(RewardsVariable)) {
-                inventory->AddItem(rewardLot, 1, eInventoryType::MODELS);
+                inventory->AddItem(rewardLot, 1, eInventoryType::MODELS, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_ACTIVITY);
             }
         }
 

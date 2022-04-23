@@ -61,7 +61,7 @@ namespace GameMessages {
     void SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level);
     void SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level);
     
-	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY);
+	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
     void SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFlagID, bool bFlag, const SystemAddress& sysAddr);
 	void SendChangeObjectWorldState(const LWOOBJID& objectID, int state, const SystemAddress& sysAddr);
 	

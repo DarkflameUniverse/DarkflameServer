@@ -794,7 +794,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			InventoryComponent * inventory = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
 
-			inventory->AddItem(itemLOT, 1);
+			inventory->AddItem(itemLOT, 1, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_MODERATION);
 		} else if(args.size() == 2) {
 			uint32_t itemLOT;
 
@@ -814,7 +814,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
 
-			inventory->AddItem(itemLOT, count);
+			inventory->AddItem(itemLOT, count, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_MODERATION);
 		}
 		else {
 			ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /gmadditem <lot>");
@@ -1626,7 +1626,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		std::vector<LDFBaseData*> data {};
 		data.push_back(new LDFData<int32_t>(u"reforgedLOT", reforgedItem));
 
-		inventoryComponent->AddItem(baseItem, 1, INVALID, data);
+		inventoryComponent->AddItem(baseItem, 1, eInventoryType::INVALID, data, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_MODERATION);
 	}
 
 	if (chatCommand == "crash" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR)

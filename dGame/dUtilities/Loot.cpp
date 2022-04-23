@@ -285,7 +285,7 @@ void LootGenerator::GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& r
         return;
 
     for (const auto& pair : result) {
-        inventoryComponent->AddItem(pair.first, pair.second);
+        inventoryComponent->AddItem(pair.first, pair.second, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_ACTIVITY);
     }
 }
 

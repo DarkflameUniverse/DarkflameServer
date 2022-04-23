@@ -54,6 +54,6 @@ void NjColeNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID,
             return;
         }
 
-        inventoryComponent->AddItem(16644, 1);
+        inventoryComponent->AddItem(16644, 1, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_VENDOR);
     }
 }

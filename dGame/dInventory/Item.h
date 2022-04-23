@@ -36,7 +36,8 @@ public:
 		bool bound,
 		const std::vector<LDFBaseData*>& config,
 		LWOOBJID parent,
-		LWOOBJID subKey
+		LWOOBJID subKey,
+        eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE
 	);
 
     /**
@@ -62,7 +63,8 @@ public:
 		bool showFlyingLoot = true,
 		bool isModMoveAndEquip = false,
 		LWOOBJID subKey = LWOOBJID_EMPTY,
-		bool bound = false
+		bool bound = false,
+        eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE
 	);
 
     ~Item();

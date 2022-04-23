@@ -363,7 +363,7 @@ void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddres
 		auto inv = static_cast<InventoryComponent*>(player->GetComponent(COMPONENT_TYPE_INVENTORY));
 		if (!inv) return;
 
-		inv->AddItem(attachmentLOT, attachmentCount);
+		inv->AddItem(attachmentLOT, attachmentCount, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_MAIL);
 
 		Mail::SendAttachmentRemoveConfirm(sysAddr, mailID);
 

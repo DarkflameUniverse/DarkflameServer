@@ -150,7 +150,8 @@ void InventoryComponent::AddItem(
 	const eInventoryType inventorySourceType,
 	const int32_t sourceType,
 	const bool bound,
-	int32_t preferredSlot)
+	int32_t preferredSlot,
+	eLootSourceType lootSourceType)
 {
 	if (count == 0)
 	{
@@ -188,8 +189,7 @@ void InventoryComponent::AddItem(
 
 			return;
 		}
-		
-		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound);
+		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound, lootSourceType);
 
 		if (missions != nullptr && !IsTransferInventory(inventoryType))
 		{
@@ -255,6 +255,9 @@ void InventoryComponent::AddItem(
 		
 		if (slot == -1)
 		{
+			// if (inventoryType == eInventoryType::VAULT_ITEMS || inventoryType == eInventoryType::VAULT_MODELS) {
+
+			// }
 			auto* player = dynamic_cast<Player*>(GetParent());
 
 			if (player == nullptr)
@@ -284,8 +287,8 @@ void InventoryComponent::AddItem(
 
 			continue;
 		}
-
-		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey);
+		Game::logger->Log("InventoryComponent", "new item with source %i\n", lootSourceType);
+		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey, false, lootSourceType);
 
 		isModMoveAndEquip = false;
 	}
@@ -369,7 +372,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 			left -= delta;
 
-			AddItem(lot, delta, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot);
+			AddItem(lot, delta, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot, eLootSourceType::LOOT_SOURCE_NONE);
 
 			item->SetCount(item->GetCount() - delta, false, false);
 
@@ -387,7 +390,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 		
 		const auto delta = std::min<uint32_t>(item->GetCount(), count);
 
-		AddItem(lot, delta, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, item->GetBound(), preferredSlot);
+		AddItem(lot, delta, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, item->GetBound(), preferredSlot, eLootSourceType::LOOT_SOURCE_NONE);
 
 		item->SetCount(item->GetCount() - delta, false, false);
 	}

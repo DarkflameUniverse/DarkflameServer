@@ -491,7 +491,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		settings.push_back(propertyObjectID);
 		settings.push_back(modelType);
 
-		inventoryComponent->AddItem(6662, 1, HIDDEN, settings, LWOOBJID_EMPTY, false, false, spawnerId, INVALID, 13, false, -1);
+		inventoryComponent->AddItem(6662, 1, HIDDEN, settings, LWOOBJID_EMPTY, false, false, spawnerId, INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_DELETION);
 		auto* item = inventoryComponent->FindItemBySubKey(spawnerId);
 
 		if (item == nullptr) {
@@ -526,7 +526,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 	
-	inventoryComponent->AddItem(model->GetLOT(), 1, INVALID, {}, LWOOBJID_EMPTY, false);
+	inventoryComponent->AddItem(model->GetLOT(), 1, INVALID, {}, LWOOBJID_EMPTY, false, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_DELETION);
 
 	auto* item = inventoryComponent->FindItemByLot(model->GetLOT());
 

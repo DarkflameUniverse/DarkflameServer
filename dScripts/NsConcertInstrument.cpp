@@ -195,7 +195,7 @@ void NsConcertInstrument::EquipInstruments(Entity *self, Entity *player) {
         // Equip the left hand instrument
         const auto leftInstrumentLot = instrumentLotLeft.find(GetInstrumentLot(self))->second;
         if (leftInstrumentLot != LOT_NULL) {
-            inventory->AddItem(leftInstrumentLot, 1, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
+            inventory->AddItem(leftInstrumentLot, 1, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_ACTIVITY);
             auto* leftInstrument = inventory->FindItemByLot(leftInstrumentLot, TEMP_ITEMS);
             leftInstrument->Equip();
         }
@@ -203,7 +203,7 @@ void NsConcertInstrument::EquipInstruments(Entity *self, Entity *player) {
         // Equip the right hand instrument
         const auto rightInstrumentLot = instrumentLotRight.find(GetInstrumentLot(self))->second;
         if (rightInstrumentLot != LOT_NULL) {
-            inventory->AddItem(rightInstrumentLot, 1, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
+            inventory->AddItem(rightInstrumentLot, 1, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_ACTIVITY);
             auto* rightInstrument = inventory->FindItemByLot(rightInstrumentLot, TEMP_ITEMS);
             rightInstrument->Equip();
         }

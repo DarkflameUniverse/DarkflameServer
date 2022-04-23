@@ -423,7 +423,7 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 
 	bitStream.Write(lootSourceType != eLootSourceType::LOOT_SOURCE_NONE); // Loot source
 	if (lootSourceType != eLootSourceType::LOOT_SOURCE_NONE) bitStream.Write(lootSourceType);
-
+	Game::logger->Log("GameMessages", "lootSource %i\n", lootSourceType);
 	LWONameValue extraInfo;
 
 	auto config = item->GetConfig();
@@ -451,8 +451,8 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 	auto* inventory = item->GetInventory();
 	const auto inventoryType = inventory->GetType();
 	
-	bitStream.Write(inventoryType != INVENTORY_DEFAULT);
-	if (inventoryType != INVENTORY_DEFAULT) bitStream.Write(inventoryType);
+	bitStream.Write(inventoryType != eInventoryType::ITEMS);
+	if (inventoryType != eInventoryType::ITEMS) bitStream.Write(inventoryType);
 
 	bitStream.Write(itemCount != 1);
 	if (itemCount != 1) bitStream.Write(itemCount);
@@ -4700,7 +4700,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 		inv->RemoveItem(tokenId, altCurrencyCost);
 
-		inv->AddItem(item, count);
+		inv->AddItem(item, count, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_VENDOR);
 	}
 	else
 	{
@@ -4726,7 +4726,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 		}
 
 		character->SetCoins(character->GetCoins() - (coinCost), LOOT_SOURCE_VENDOR);
-		inv->AddItem(item, count);
+		inv->AddItem(item, count, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_VENDOR);
 	}
 
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
@@ -4769,7 +4769,7 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	if (Inventory::IsValidItem(itemComp.currencyLOT))
 	{
 		const auto altCurrency = (itemComp.altCurrencyCost * sellScalar) * count;
-		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency)); // Return alt currencies like faction tokens.
+		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_VENDOR); // Return alt currencies like faction tokens.
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
@@ -5590,11 +5590,11 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 		if (count == 3)
 		{
-			inv->AddItem(6416, 1, MODELS, config);
+			inv->AddItem(6416, 1, eInventoryType::MODELS, config, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_QUICKBUILD);
 		}
 		else if (count == 7)
 		{
-			inv->AddItem(8092, 1, MODELS, config);
+			inv->AddItem(8092, 1, eInventoryType::MODELS, config, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_QUICKBUILD);
 		}
 
 		auto* missionComponent = character->GetComponent<MissionComponent>();

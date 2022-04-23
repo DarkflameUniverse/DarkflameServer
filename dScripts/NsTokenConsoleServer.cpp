@@ -50,19 +50,19 @@ void NsTokenConsoleServer::OnUse(Entity* self, Entity* user)
 
     if (character->GetPlayerFlag(46))
     {
-        inventoryComponent->AddItem(8321, 5);
+        inventoryComponent->AddItem(8321, 5, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_NONE);
     }
     else if (character->GetPlayerFlag(47))
     {
-        inventoryComponent->AddItem(8318, 5);
+        inventoryComponent->AddItem(8318, 5, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_NONE);
     }
     else if (character->GetPlayerFlag(48))
     {
-        inventoryComponent->AddItem(8320, 5);
+        inventoryComponent->AddItem(8320, 5, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_NONE);
     }
     else if (character->GetPlayerFlag(49))
     {
-        inventoryComponent->AddItem(8319, 5);
+        inventoryComponent->AddItem(8319, 5, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_NONE);
     }
 
     missionComponent->ForceProgressTaskType(863, 1, 1, false);

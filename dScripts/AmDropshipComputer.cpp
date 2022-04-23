@@ -32,7 +32,7 @@ void AmDropshipComputer::OnUse(Entity* self, Entity* user)
         return;
     }
 
-    inventoryComponent->AddItem(12323, 1);
+    inventoryComponent->AddItem(12323, 1, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_ACTIVITY);
 }
 
 void AmDropshipComputer::OnDie(Entity* self, Entity* killer) 

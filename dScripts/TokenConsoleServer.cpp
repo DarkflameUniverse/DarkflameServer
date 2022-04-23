@@ -21,15 +21,17 @@ void TokenConsoleServer::OnUse(Entity* self, Entity* user) {
 		//figure out which faction the player belongs to:
 		auto character = user->GetCharacter();
 		if (!character) return;
-
+		// At this point the player has to be in a faction.  
+		LOT tokenLOT = 0;
 		if (character->GetPlayerFlag(ePlayerFlags::VENTURE_FACTION)) //venture
-			inv->AddItem(8321, tokensToGive);
+			tokenLOT = 8321;
 		else if (character->GetPlayerFlag(ePlayerFlags::ASSEMBLY_FACTION)) //assembly
-			inv->AddItem(8318, tokensToGive);
+			tokenLOT = 8318;
 		else if (character->GetPlayerFlag(ePlayerFlags::PARADOX_FACTION)) //paradox
-			inv->AddItem(8320, tokensToGive);
+			tokenLOT = 8320;
 		else if (character->GetPlayerFlag(ePlayerFlags::SENTINEL_FACTION)) //sentinel
-			inv->AddItem(8319, tokensToGive);
+			tokenLOT = 8319;
+		inv->AddItem(tokenLOT, tokensToGive, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_NONE);
 	}
 
 	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
