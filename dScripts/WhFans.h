@@ -4,7 +4,7 @@
 #include "EntityManager.h"
 #include "PhantomPhysicsComponent.h"
 
-class AgFans : public CppScripts::Script
+class WhFans : public CppScripts::Script
 {
 public:
 	void OnStartup(Entity* self) override;
