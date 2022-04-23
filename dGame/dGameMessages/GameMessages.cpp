@@ -411,7 +411,7 @@ void GameMessages::SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level)
 	SEND_PACKET_BROADCAST
 }
 
-void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey) {
+void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey, eLootSourceType lootSourceType) {
 	CBITSTREAM
 	CMSGHEADER
 
@@ -421,8 +421,8 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 	bitStream.Write(item->GetInfo().isBOE);
 	bitStream.Write(item->GetInfo().isBOP);
 
-	bitStream.Write0(); // Loot source
-	//if (invType != LOOTTYPE_NONE) bitStream.Write(invType);
+	bitStream.Write(lootSourceType != eLootSourceType::LOOT_SOURCE_NONE); // Loot source
+	if (lootSourceType != eLootSourceType::LOOT_SOURCE_NONE) bitStream.Write(lootSourceType);
 
 	LWONameValue extraInfo;
 
