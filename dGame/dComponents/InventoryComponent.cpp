@@ -88,7 +88,9 @@ Inventory* InventoryComponent::GetInventory(const eInventoryType type)
 	case eInventoryType::VAULT_ITEMS:
 		size = 40u;
 		break;
-	
+	case eInventoryType::VENDOR_BUYBACK:
+		size = 27u;
+		break;
 	default:
 		break;
 	}
