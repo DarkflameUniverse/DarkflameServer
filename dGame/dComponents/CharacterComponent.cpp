@@ -221,7 +221,7 @@ void CharacterComponent::HandleLevelUp()
 			break;
 		case 4:
 			{
-				auto* items = inventoryComponent->GetInventory(ITEMS);
+				auto* items = inventoryComponent->GetInventory(eInventoryType::ITEMS);
 				items->SetSize(items->GetSize() + reward->value);
 			}
 			break;

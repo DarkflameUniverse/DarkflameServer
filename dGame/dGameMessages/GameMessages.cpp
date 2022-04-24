@@ -566,8 +566,8 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	bitStream.Write((uint16_t)GAME_MSG_MODIFY_LEGO_SCORE);
 	bitStream.Write(score);
 
-	bitStream.Write(sourceType != LOOT_SOURCE_NONE);
-	if (sourceType != LOOT_SOURCE_NONE) bitStream.Write(sourceType);
+	bitStream.Write(sourceType != eLootSourceType::LOOT_SOURCE_NONE);
+	if (sourceType != eLootSourceType::LOOT_SOURCE_NONE) bitStream.Write(sourceType);
 
 	SEND_PACKET
 }
@@ -4725,8 +4725,8 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 			inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 		}
 
-		character->SetCoins(character->GetCoins() - (coinCost), LOOT_SOURCE_VENDOR);
 		inv->AddItem(item, count, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_VENDOR);
+		character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::LOOT_SOURCE_VENDOR);
 	}
 
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
@@ -4773,8 +4773,8 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
-	inv->MoveItemToInventory(item, VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar)*count)), LOOT_SOURCE_VENDOR);
+	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
+	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar)*count)), eLootSourceType::LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -4836,7 +4836,7 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, Inventory::FindInventoryTypeForLot(item->GetLot()), count, true, false);
-	character->SetCoins(character->GetCoins() - cost, LOOT_SOURCE_VENDOR);
+	character->SetCoins(character->GetCoins() - cost, eLootSourceType::LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -5269,7 +5269,7 @@ void GameMessages::HandlePickupCurrency(RakNet::BitStream* inStream, Entity* ent
 
 	auto* ch = entity->GetCharacter();
 	if (entity->CanPickupCoins(currency)) {
-		ch->SetCoins(ch->GetCoins() + currency, LOOT_SOURCE_PICKUP);
+		ch->SetCoins(ch->GetCoins() + currency, eLootSourceType::LOOT_SOURCE_PICKUP);
 	}
 }
 
@@ -5484,8 +5484,8 @@ void GameMessages::HandleMoveItemInInventory(RakNet::BitStream* inStream, Entity
 }
 
 void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	int inventoryTypeA;
-	int inventoryTypeB;
+	eInventoryType inventoryTypeA;
+	eInventoryType inventoryTypeB;
 	LWOOBJID objectID;
 	bool showFlyingLoot = true;
 	bool stackCountIsDefault = false;
@@ -5502,7 +5502,7 @@ void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStre
 	inStream->Read(templateIDIsDefault);
 	if (templateIDIsDefault) inStream->Read(templateID);
 
-	InventoryComponent* inv = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
+	auto inv = entity->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	auto* item = inv->FindItemById(objectID);
@@ -5523,7 +5523,7 @@ void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStre
 		}
 	}
 
-	inv->MoveItemToInventory(item, static_cast<eInventoryType>(inventoryTypeB), stackCount, showFlyingLoot, false);
+	inv->MoveItemToInventory(item, inventoryTypeB, stackCount, showFlyingLoot);
 	EntityManager::Instance()->SerializeEntity(entity);
 }
 
@@ -5624,7 +5624,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 	for (auto* item : items)
 	{
-		inv->MoveItemToInventory(item, MODELS, item->GetCount(), false);
+		inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false);
 	}
 }
 
@@ -5739,7 +5739,7 @@ void GameMessages::HandleDoneArrangingWithItem(RakNet::BitStream* inStream, Enti
 
 	for (auto* item : items)
 	{
-		inv->MoveItemToInventory(item, MODELS, item->GetCount(), false, false);
+		inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false, false);
 	}
 }
 
@@ -5765,7 +5765,7 @@ void GameMessages::HandleModularBuildMoveAndEquip(RakNet::BitStream* inStream, E
 		return;
 	}
 
-	inv->MoveItemToInventory(item, MODELS, 1, false, true);
+	inv->MoveItemToInventory(item, eInventoryType::MODELS, 1, false, true);
 }
 
 void GameMessages::HandlePickupItem(RakNet::BitStream* inStream, Entity* entity) {

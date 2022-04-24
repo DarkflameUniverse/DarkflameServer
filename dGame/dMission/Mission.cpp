@@ -430,7 +430,7 @@ void Mission::YieldRewards() {
 
     int32_t coinsToSend = 0;
     if (info->LegoScore > 0) {
-        eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+        eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
         if(characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
             // Since the character is at the level cap we reward them with coins instead of UScore.
             coinsToSend += info->LegoScore * dZoneManager::Instance()->GetLevelCapCurrencyConversion();
@@ -467,7 +467,7 @@ void Mission::YieldRewards() {
         }
 
         if (info->reward_currency_repeatable > 0 || coinsToSend > 0) {
-            eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+            eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
             character->SetCoins(character->GetCoins() + info->reward_currency_repeatable + coinsToSend, lootSource);
         }
 
@@ -500,7 +500,7 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_currency > 0 || coinsToSend > 0) {
-        eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+        eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
         character->SetCoins(character->GetCoins() + info->reward_currency + coinsToSend, lootSource);
     }
 
