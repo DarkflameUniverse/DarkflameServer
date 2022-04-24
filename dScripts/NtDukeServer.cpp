@@ -29,7 +29,7 @@ void NtDukeServer::OnMissionDialogueOK(Entity *self, Entity *target, int mission
         auto lotCount = inventoryComponent->GetLotCount(m_SwordLot);
 
         if ((state == MissionState::MISSION_STATE_AVAILABLE || state == MissionState::MISSION_STATE_ACTIVE) && lotCount < 1) {
-            inventoryComponent->AddItem(m_SwordLot, 1, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_ACTIVITY);
+            inventoryComponent->AddItem(m_SwordLot, 1, eLootSourceType::LOOT_SOURCE_ACTIVITY);
         } else if (state == MissionState::MISSION_STATE_READY_TO_COMPLETE) {
             inventoryComponent->RemoveItem(m_SwordLot, lotCount);
         }

@@ -31,7 +31,7 @@ void TokenConsoleServer::OnUse(Entity* self, Entity* user) {
 			tokenLOT = 8320;
 		else if (character->GetPlayerFlag(ePlayerFlags::SENTINEL_FACTION)) //sentinel
 			tokenLOT = 8319;
-		inv->AddItem(tokenLOT, tokensToGive, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_NONE);
+		inv->AddItem(tokenLOT, tokensToGive, eLootSourceType::LOOT_SOURCE_NONE);
 	}
 
 	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());

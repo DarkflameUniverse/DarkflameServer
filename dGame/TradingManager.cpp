@@ -170,12 +170,12 @@ void Trade::Complete()
 
     for (const auto& tradeItem : m_ItemsA)
     {
-        inventoryB->AddItem(tradeItem.itemLot, tradeItem.itemCount, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_TRADE);
+        inventoryB->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::LOOT_SOURCE_TRADE);
     }
 
     for (const auto& tradeItem : m_ItemsB)
     {
-        inventoryA->AddItem(tradeItem.itemLot, tradeItem.itemCount, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_TRADE);
+        inventoryA->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::LOOT_SOURCE_TRADE);
     }
 
     TradingManager::Instance()->CancelTrade(m_TradeId);

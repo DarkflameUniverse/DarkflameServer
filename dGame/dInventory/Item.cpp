@@ -149,7 +149,7 @@ PreconditionExpression* Item::GetPreconditionExpression() const
 	return preconditions;
 }
 
-void Item::SetCount(const uint32_t value, const bool silent, const bool disassemble, const bool showFlyingLoot)
+void Item::SetCount(const uint32_t value, const bool silent, const bool disassemble, const bool showFlyingLoot, eLootSourceType lootSourceType)
 {
 	if (value == count)
 	{
@@ -177,7 +177,7 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 		
 		if (value > count)
 		{
-			GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, delta, 0LL);
+			GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, delta, LWOOBJID_EMPTY, lootSourceType);
 		}
 		else
 		{
@@ -341,7 +341,7 @@ bool Item::UseNonEquip()
 				return false;
 			}
 
-			LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result);
+			LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
 		}
 
 		inventory->GetComponent()->RemoveItem(lot, 1);
@@ -375,7 +375,7 @@ void Item::Disassemble(const eInventoryType inventoryType)
 
 			for (const auto mod : modArray)
 			{
-				inventory->GetComponent()->AddItem(mod, 1, inventoryType, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_DELETION);
+				inventory->GetComponent()->AddItem(mod, 1, eLootSourceType::LOOT_SOURCE_DELETION, inventoryType);
 			}
 		}
 	}
@@ -473,7 +473,7 @@ void Item::DisassembleModel()
 			continue;
 		}
 		
-		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_DELETION);
+		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1, eLootSourceType::LOOT_SOURCE_DELETION);
 	}
 }
 

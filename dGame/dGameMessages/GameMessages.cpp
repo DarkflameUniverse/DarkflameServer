@@ -4700,7 +4700,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 		inv->RemoveItem(tokenId, altCurrencyCost);
 
-		inv->AddItem(item, count, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_VENDOR);
+		inv->AddItem(item, count, eLootSourceType::LOOT_SOURCE_VENDOR);
 	}
 	else
 	{
@@ -4725,8 +4725,8 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 			inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 		}
 
-		inv->AddItem(item, count, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_VENDOR);
 		character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::LOOT_SOURCE_VENDOR);
+		inv->AddItem(item, count, eLootSourceType::LOOT_SOURCE_VENDOR);
 	}
 
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
@@ -4769,7 +4769,7 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	if (Inventory::IsValidItem(itemComp.currencyLOT))
 	{
 		const auto altCurrency = (itemComp.altCurrencyCost * sellScalar) * count;
-		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_VENDOR); // Return alt currencies like faction tokens.
+		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::LOOT_SOURCE_VENDOR); // Return alt currencies like faction tokens.
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
@@ -5103,7 +5103,7 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, E
 
 	item->Disassemble(TEMP_MODELS);
 
-	item->SetCount(item->GetCount() - 1, false, false);
+	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::LOOT_SOURCE_QUICKBUILD);
 }
 
 void GameMessages::HandleSetFlag(RakNet::BitStream* inStream, Entity* entity) {
@@ -5590,11 +5590,11 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 		if (count == 3)
 		{
-			inv->AddItem(6416, 1, eInventoryType::MODELS, config, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_QUICKBUILD);
+			inv->AddItem(6416, 1, eLootSourceType::LOOT_SOURCE_QUICKBUILD, eInventoryType::MODELS, config);
 		}
 		else if (count == 7)
 		{
-			inv->AddItem(8092, 1, eInventoryType::MODELS, config, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_QUICKBUILD);
+			inv->AddItem(8092, 1, eLootSourceType::LOOT_SOURCE_QUICKBUILD, eInventoryType::MODELS, config);
 		}
 
 		auto* missionComponent = character->GetComponent<MissionComponent>();

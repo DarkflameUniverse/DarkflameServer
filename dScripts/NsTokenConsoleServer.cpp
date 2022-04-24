@@ -47,23 +47,28 @@ void NsTokenConsoleServer::OnUse(Entity* self, Entity* user)
     {
         GameMessages::SendPlayNDAudioEmitter(self, UNASSIGNED_SYSTEM_ADDRESS, useSound);
     }
+    
+    // Player must be in faction to interact with this entity.
+    LOT tokenLOT = 0;
 
     if (character->GetPlayerFlag(46))
     {
-        inventoryComponent->AddItem(8321, 5, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_NONE);
+        tokenLOT = 8321;
     }
     else if (character->GetPlayerFlag(47))
     {
-        inventoryComponent->AddItem(8318, 5, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_NONE);
+        tokenLOT = 8318;
     }
     else if (character->GetPlayerFlag(48))
     {
-        inventoryComponent->AddItem(8320, 5, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_NONE);
+        tokenLOT = 8320;
     }
     else if (character->GetPlayerFlag(49))
     {
-        inventoryComponent->AddItem(8319, 5, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, eLootSourceType::LOOT_SOURCE_NONE);
+        tokenLOT = 8319;
     }
+
+    inventoryComponent->AddItem(tokenLOT, 5, eLootSourceType::LOOT_SOURCE_NONE);
 
     missionComponent->ForceProgressTaskType(863, 1, 1, false);
     

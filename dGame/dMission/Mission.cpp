@@ -463,7 +463,7 @@ void Mission::YieldRewards() {
                 count = 0;
             }
 
-            inventoryComponent->AddItem(pair.first, count, eInventoryType::INVALID, {}, 0LL, IsMission(), false, 0LL, eInventoryType::INVALID, 0, false, -1, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
+            inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
         }
 
         if (info->reward_currency_repeatable > 0 || coinsToSend > 0) {
@@ -496,7 +496,7 @@ void Mission::YieldRewards() {
             count = 0;
         }
 
-        inventoryComponent->AddItem(pair.first, count, eInventoryType::INVALID, {}, 0LL, true, false, 0LL, eInventoryType::INVALID, 0, false, -1, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
+        inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
     }
 
     if (info->reward_currency > 0 || coinsToSend > 0) {
