@@ -423,7 +423,6 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 
 	bitStream.Write(lootSourceType != eLootSourceType::LOOT_SOURCE_NONE); // Loot source
 	if (lootSourceType != eLootSourceType::LOOT_SOURCE_NONE) bitStream.Write(lootSourceType);
-	Game::logger->Log("GameMessages", "lootSource %i\n", lootSourceType);
 	LWONameValue extraInfo;
 
 	auto config = item->GetConfig();

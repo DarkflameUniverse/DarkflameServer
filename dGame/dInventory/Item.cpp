@@ -81,7 +81,6 @@ Item::Item(
 	inventory->AddManagedItem(this);
 
 	auto* entity = inventory->GetComponent()->GetParent();
-	Game::logger->Log("test", "source %i\n", lootSourceType);
 	GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, static_cast<int>(this->count), subKey, lootSourceType);
 
 	if (isModMoveAndEquip)

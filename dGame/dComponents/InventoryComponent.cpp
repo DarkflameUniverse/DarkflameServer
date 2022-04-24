@@ -284,7 +284,6 @@ void InventoryComponent::AddItem(
 
 			continue;
 		}
-		Game::logger->Log("InventoryComponent", "new item with source %i\n", lootSourceType);
 		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey, false, lootSourceType);
 
 		isModMoveAndEquip = false;
