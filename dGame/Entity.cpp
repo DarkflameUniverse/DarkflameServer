@@ -1739,7 +1739,7 @@ void Entity::CancelAllTimers() {
 }
 
 bool Entity::IsPlayer() const {
-	return m_TemplateID == 1 && GetCharacter() != nullptr;
+	return m_TemplateID == 1 && GetSystemAddress() != UNASSIGNED_SYSTEM_ADDRESS;
 }
 
 void Entity::TriggerEvent(std::string eventID, Entity* optionalTarget) {
