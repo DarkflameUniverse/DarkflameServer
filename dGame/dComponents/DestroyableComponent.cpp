@@ -234,7 +234,6 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 		AMFArrayValue args;
 		args.InsertValue("amount", amount);
 		args.InsertValue("type", type);
-		Game::logger->Log("DestComp", "Setting max health diff %i\n", difference);
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	
 		delete amount;
@@ -329,7 +328,6 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 		AMFArrayValue args;
 		args.InsertValue("amount", amount);
 		args.InsertValue("type", type);
-		Game::logger->Log("DestComp", "Setting max imagiantion diff %i\n", difference);
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	
 		delete amount;
