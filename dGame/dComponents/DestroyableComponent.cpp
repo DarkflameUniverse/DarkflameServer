@@ -215,6 +215,8 @@ void DestroyableComponent::SetHealth(int32_t value) {
 
 void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 	m_DirtyHealth = true;
+	// Used for playAnim if opted in for.
+	int32_t difference = static_cast<int32_t>(std::abs(m_fMaxHealth - value));
 	m_fMaxHealth = value;
 
 	if (m_iHealth > m_fMaxHealth) {
@@ -225,22 +227,21 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 		// Now update the player bar
 		if (!m_Parent->GetParentUser()) return;
 		AMFStringValue* amount = new AMFStringValue();
-		amount->SetStringValue(std::to_string(value));
+		amount->SetStringValue(std::to_string(difference));
 		AMFStringValue* type = new AMFStringValue();
 		type->SetStringValue("health");
 
 		AMFArrayValue args;
 		args.InsertValue("amount", amount);
 		args.InsertValue("type", type);
-
+		Game::logger->Log("DestComp", "Setting max health diff %i\n", difference);
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	
 		delete amount;
 		delete type;
 	}
-	else {
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-	}
+
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 void DestroyableComponent::SetArmor(int32_t value) {
@@ -287,9 +288,8 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 		delete amount;
 		delete type;
 	}
-	else {
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-	}
+
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 void DestroyableComponent::SetImagination(int32_t value) {
@@ -310,6 +310,8 @@ void DestroyableComponent::SetImagination(int32_t value) {
 
 void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
     m_DirtyHealth = true;
+	// Used for playAnim if opted in for.
+	int32_t difference = static_cast<int32_t>(std::abs(m_fMaxImagination - value));
     m_fMaxImagination = value;
 
 	if (m_iImagination > m_fMaxImagination) {
@@ -320,22 +322,20 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 		// Now update the player bar
 		if (!m_Parent->GetParentUser()) return;
 		AMFStringValue* amount = new AMFStringValue();
-		amount->SetStringValue(std::to_string(value));
+		amount->SetStringValue(std::to_string(difference));
 		AMFStringValue* type = new AMFStringValue();
 		type->SetStringValue("imagination");
 
 		AMFArrayValue args;
 		args.InsertValue("amount", amount);
 		args.InsertValue("type", type);
-
+		Game::logger->Log("DestComp", "Setting max imagiantion diff %i\n", difference);
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	
 		delete amount;
 		delete type;
 	}
-	else {
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-	}
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 void DestroyableComponent::SetDamageToAbsorb(int32_t value)
