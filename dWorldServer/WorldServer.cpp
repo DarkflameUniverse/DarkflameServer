@@ -975,6 +975,8 @@ void HandlePacket(Packet* packet) {
 					player->GetComponent<CharacterComponent>()->SetLastRocketConfig(u"");
 					
 					c->SetRetroactiveFlags();
+					
+					player->RetroactiveVaultSize();
 
 					player->GetCharacter()->SetTargetScene("");
 
