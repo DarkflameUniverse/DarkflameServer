@@ -90,17 +90,17 @@ int32_t Inventory::FindEmptySlot()
 {
 	if (free <= 6) // Up from 1
 	{
-		if (type != ITEMS && type != VAULT_ITEMS)
+		if (type != ITEMS && type != VAULT_ITEMS && type != eInventoryType::VAULT_MODELS)
 		{
 			uint32_t newSize = size;
 
-			if (type == MODELS || type == VAULT_MODELS)
+			if (type == MODELS)
 			{
 				newSize = 240;
 			}
-			else
+			else if (type == eInventoryType::VENDOR_BUYBACK)
 			{
-				newSize += 20;
+				newSize += 9u;
 			}
 			
 			if (newSize > GetSize())

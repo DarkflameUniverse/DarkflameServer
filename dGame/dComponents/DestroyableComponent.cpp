@@ -819,7 +819,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 				coinsTotal -= coinsToLoose;
 
 				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
-				character->SetCoins(coinsTotal, LOOT_SOURCE_PICKUP);
+				character->SetCoins(coinsTotal, eLootSourceType::LOOT_SOURCE_PICKUP);
 			}
 		}
 
