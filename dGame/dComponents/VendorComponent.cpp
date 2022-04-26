@@ -13,11 +13,6 @@ VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
 VendorComponent::~VendorComponent() = default;
 
 void VendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	// Only serialize this entity on construction.
-	// [bool] hasVendorInfo
-	//	[bool] hasStandardItems (always true?)
-	//	[bool] hasMulticostItems (only true for umami with their cooking for now.)
-	if (!bIsInitialUpdate) return;
 	outBitStream->Write1(); 
 	outBitStream->Write1(); 
 	outBitStream->Write(HasCraftingStation()); 
