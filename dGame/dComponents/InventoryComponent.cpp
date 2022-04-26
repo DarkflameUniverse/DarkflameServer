@@ -88,7 +88,9 @@ Inventory* InventoryComponent::GetInventory(const eInventoryType type)
 	case eInventoryType::VAULT_ITEMS:
 		size = 40u;
 		break;
-	
+	case eInventoryType::VENDOR_BUYBACK:
+		size = 27u;
+		break;
 	default:
 		break;
 	}
@@ -139,6 +141,7 @@ const EquipmentMap& InventoryComponent::GetEquippedItems() const
 void InventoryComponent::AddItem(
 	const LOT lot,
 	const uint32_t count,
+	eLootSourceType lootSourceType,
 	eInventoryType inventoryType,
 	const std::vector<LDFBaseData*>& config,
 	const LWOOBJID parent,
@@ -178,7 +181,7 @@ void InventoryComponent::AddItem(
 	
 	if (!config.empty() || bound)
 	{
-		const auto slot = inventory->FindEmptySlot();
+		const auto slot = preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot) ? preferredSlot : inventory->FindEmptySlot();
 
 		if (slot == -1)
 		{
@@ -186,8 +189,7 @@ void InventoryComponent::AddItem(
 
 			return;
 		}
-		
-		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound);
+		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound, lootSourceType);
 
 		if (missions != nullptr && !IsTransferInventory(inventoryType))
 		{
@@ -205,7 +207,7 @@ void InventoryComponent::AddItem(
 
 	auto stack = static_cast<uint32_t>(info.stackSize);
 
-	if (inventoryType == BRICKS)
+	if (inventoryType == eInventoryType::BRICKS)
 	{
 		stack = 999;
 	}
@@ -222,7 +224,7 @@ void InventoryComponent::AddItem(
 
 		left -= delta;
 
-		existing->SetCount(existing->GetCount() + delta, false, true, showFlyingLoot);
+		existing->SetCount(existing->GetCount() + delta, false, true, showFlyingLoot, lootSourceType);
 
 		if (isModMoveAndEquip)
 		{
@@ -282,8 +284,7 @@ void InventoryComponent::AddItem(
 
 			continue;
 		}
-
-		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey);
+		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey, false, lootSourceType);
 
 		isModMoveAndEquip = false;
 	}
@@ -367,7 +368,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 			left -= delta;
 
-			AddItem(lot, delta, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot);
+			AddItem(lot, delta, eLootSourceType::LOOT_SOURCE_NONE, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot);
 
 			item->SetCount(item->GetCount() - delta, false, false);
 
@@ -385,7 +386,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 		
 		const auto delta = std::min<uint32_t>(item->GetCount(), count);
 
-		AddItem(lot, delta, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, item->GetBound(), preferredSlot);
+		AddItem(lot, delta, eLootSourceType::LOOT_SOURCE_NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, item->GetBound(), preferredSlot);
 
 		item->SetCount(item->GetCount() - delta, false, false);
 	}

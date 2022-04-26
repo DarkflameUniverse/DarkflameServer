@@ -377,17 +377,19 @@ public:
      * Attempt to damage this entity, handles everything from health and armor to absorption, immunity and callbacks.
      * @param damage the damage to attempt to apply
      * @param source the attacker that caused this damage
+     * @param skillID the skill that damaged this entity
      * @param echo whether or not to serialize the damage
      */
-	void Damage(uint32_t damage, LWOOBJID source, bool echo = true);
+	void Damage(uint32_t damage, LWOOBJID source, uint32_t skillID = 0, bool echo = true);
 
     /**
      * Smashes this entity, notifying all clients
      * @param source the source that smashed this entity
+     * @param skillID the skill that killed this entity
      * @param killType the way this entity was killed, determines if a client animation is played
      * @param deathType the animation to play when killed
      */
-    void Smash(LWOOBJID source, eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
+    void Smash(LWOOBJID source, eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"", uint32_t skillID = 0);
 
     /**
      * Pushes a layer of immunity to this entity, making it immune for longer

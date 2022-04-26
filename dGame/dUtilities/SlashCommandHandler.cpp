@@ -822,7 +822,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			InventoryComponent * inventory = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
 
-			inventory->AddItem(itemLOT, 1);
+			inventory->AddItem(itemLOT, 1, eLootSourceType::LOOT_SOURCE_MODERATION);
 		} else if(args.size() == 2) {
 			uint32_t itemLOT;
 
@@ -842,7 +842,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
 
-			inventory->AddItem(itemLOT, count);
+			inventory->AddItem(itemLOT, count, eLootSourceType::LOOT_SOURCE_MODERATION);
 		}
 		else {
 			ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /gmadditem <lot>");
@@ -1318,7 +1318,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		CharacterComponent* character = entity->GetComponent<CharacterComponent>();
 		if (character) character->SetUScore(character->GetUScore() + uscore);
 		// LOOT_SOURCE_MODERATION should work but it doesn't.  Relog to see uscore changes
-		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, LOOT_SOURCE_MODERATION);
+		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_MODERATION);
 	}
 
 	if (chatCommand == "pos" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -1362,7 +1362,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		auto* ch = entity->GetCharacter();
-		ch->SetCoins(ch->GetCoins() + money, LOOT_SOURCE_MODERATION);
+		ch->SetCoins(ch->GetCoins() + money, eLootSourceType::LOOT_SOURCE_MODERATION);
 	}
 
 	if ((chatCommand == "setcurrency") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -1375,7 +1375,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		auto* ch = entity->GetCharacter();
-		ch->SetCoins(money, LOOT_SOURCE_MODERATION);
+		ch->SetCoins(money, eLootSourceType::LOOT_SOURCE_MODERATION);
 	}
 
 	// Allow for this on even while not a GM, as it sometimes toggles incorrrectly.
@@ -1650,7 +1650,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		std::vector<LDFBaseData*> data {};
 		data.push_back(new LDFData<int32_t>(u"reforgedLOT", reforgedItem));
 
-		inventoryComponent->AddItem(baseItem, 1, INVALID, data);
+		inventoryComponent->AddItem(baseItem, 1, eLootSourceType::LOOT_SOURCE_MODERATION, eInventoryType::INVALID, data);
 	}
 
 	if (chatCommand == "crash" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR)

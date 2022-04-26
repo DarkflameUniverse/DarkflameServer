@@ -1637,7 +1637,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 				}
 			}
 			else {
-				inv->AddItem(p.second.lot, p.second.count, INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, INVALID, 1);
+				inv->AddItem(p.second.lot, p.second.count, eLootSourceType::LOOT_SOURCE_PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
 			}
 		}
 	}

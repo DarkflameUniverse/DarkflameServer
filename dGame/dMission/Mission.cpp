@@ -430,7 +430,7 @@ void Mission::YieldRewards() {
 
     int32_t coinsToSend = 0;
     if (info->LegoScore > 0) {
-        eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+        eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
         if(characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel() && !entity->GetCharacter()->GetPlayerFlag(ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL)) {
             // If player is at the level cap and doesnt want to keep earning UScore at max level we convert it here.
             coinsToSend += info->LegoScore * dZoneManager::Instance()->GetLevelCapCurrencyConversion();
@@ -463,11 +463,11 @@ void Mission::YieldRewards() {
                 count = 0;
             }
 
-            inventoryComponent->AddItem(pair.first, count);
+            inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
         }
 
         if (info->reward_currency_repeatable > 0 || coinsToSend > 0) {
-            eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+            eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
             character->SetCoins(character->GetCoins() + info->reward_currency_repeatable + coinsToSend, lootSource);
         }
 
@@ -487,7 +487,7 @@ void Mission::YieldRewards() {
         if (pair.second < 0 || (m_Reward > 0 && pair.first != m_Reward)) {
             continue;
         }
-        
+
         // If a mission rewards zero of an item, make it reward 1.
         auto count = pair.second > 0 ? pair.second : 1;
 
@@ -496,11 +496,11 @@ void Mission::YieldRewards() {
             count = 0;
         }
 
-        inventoryComponent->AddItem(pair.first, count);
+        inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
     }
 
     if (info->reward_currency > 0 || coinsToSend > 0) {
-        eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+        eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
         character->SetCoins(character->GetCoins() + info->reward_currency + coinsToSend, lootSource);
     }
 
@@ -528,11 +528,11 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_maxhealth > 0) {
-        destroyableComponent->SetMaxHealth(destroyableComponent->GetMaxHealth() + static_cast<float>(info->reward_maxhealth));
+        destroyableComponent->SetMaxHealth(destroyableComponent->GetMaxHealth() + static_cast<float>(info->reward_maxhealth), true);
     }
 
     if (info->reward_maximagination > 0) {
-        destroyableComponent->SetMaxImagination(destroyableComponent->GetMaxImagination() + static_cast<float>(info->reward_maximagination));
+        destroyableComponent->SetMaxImagination(destroyableComponent->GetMaxImagination() + static_cast<float>(info->reward_maximagination), true);
     }
 
     EntityManager::Instance()->SerializeEntity(entity);
