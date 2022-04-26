@@ -326,10 +326,12 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		
 	case MissionTaskType::MISSION_TASK_TYPE_SKILL:
 	{
-		if (!InParameters(value)) break;
-
-		AddProgress(count);
-		
+		// This is a complicated check because for some missions we need to check for the associate being in the parameters instead of the value being in the parameters.
+		if (associate == LWOOBJID_EMPTY && GetAllTargets().size() == 1 && GetAllTargets()[0] == -1) {
+			if (InParameters(value)) AddProgress(count);
+		} else {
+			if (InParameters(associate) && InAllTargets(value)) AddProgress(count);
+		}	
 		break;
 	}
 

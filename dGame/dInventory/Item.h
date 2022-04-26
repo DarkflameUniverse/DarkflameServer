@@ -36,7 +36,8 @@ public:
 		bool bound,
 		const std::vector<LDFBaseData*>& config,
 		LWOOBJID parent,
-		LWOOBJID subKey
+		LWOOBJID subKey,
+        eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE
 	);
 
     /**
@@ -62,7 +63,8 @@ public:
 		bool showFlyingLoot = true,
 		bool isModMoveAndEquip = false,
 		LWOOBJID subKey = LWOOBJID_EMPTY,
-		bool bound = false
+		bool bound = false,
+        eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE
 	);
 
     ~Item();
@@ -86,7 +88,7 @@ public:
      * @param disassemble if items were removed, this returns all the sub parts of the item individually if it had assembly part lots
      * @param showFlyingLoot shows flying loot to the client, if not silent
      */
-    void SetCount(uint32_t value, bool silent = false, bool disassemble = true, bool showFlyingLoot = true);
+    void SetCount(uint32_t value, bool silent = false, bool disassemble = true, bool showFlyingLoot = true, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
 
     /**
      * Returns the number of items this item represents (e.g. for stacks)

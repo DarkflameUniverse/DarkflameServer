@@ -87,10 +87,12 @@ public:
      * @param sourceType the source of the item, used to determine if the item is dropped or mailed if the inventory is full
      * @param bound whether this item is bound
      * @param preferredSlot the preferred slot to store this item
+     * @param lootSourceType The source of the loot.  Defaults to none.
      */
 	void AddItem(
 		LOT lot,
 		uint32_t count,
+        eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE,
 		eInventoryType inventoryType = INVALID,
 		const std::vector<LDFBaseData*>& config = {},
 		LWOOBJID parent = LWOOBJID_EMPTY,
