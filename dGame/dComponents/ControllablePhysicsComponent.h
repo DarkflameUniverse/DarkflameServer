@@ -227,6 +227,24 @@ public:
 
     dpEntity* GetdpEntity() const { return m_dpEntity; }
 
+    /**
+     * I store this in a vector because if I have 2 separate pickup radii being applied to the player, I dont know which one is correctly active.
+     * This method adds the pickup radius to the vector of active radii and if its larger than the current one, is applied as the new pickup radius.
+     */
+    void AddPickupRadiusScale(float value) ;
+
+    /**
+     * Removes the provided pickup radius scale from our list of buffs
+     * The recalculates what our pickup radius is.
+     */
+    void RemovePickupRadiusScale(float value) ;
+
+    /**
+     * The pickup radii of this component.
+     * @return All active radii scales for this component.
+     */
+    std::vector<float> GetActivePickupRadiusScales() { return m_ActivePickupRadiusScales; };
+
 private:
     /**
      * The entity that owns this component
@@ -322,6 +340,21 @@ private:
      * Whether this entity is static, making it unable to move
      */
     bool m_Static;
+
+    /**
+     * Whether the pickup scale is dirty.
+     */
+    bool m_DirtyPickupRadiusScale;
+
+    /**
+     * The list of pickup radius scales for this entity
+     */
+    std::vector<float> m_ActivePickupRadiusScales;
+
+    /**
+     * The active pickup radius for this entity
+     */
+    float m_PickupRadius;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H
