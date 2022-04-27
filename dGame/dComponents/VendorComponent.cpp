@@ -114,6 +114,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	m_Parent->AddCallbackTimer(m_RefreshTimeSeconds, [this]() {
 		RefreshInventory();
 	});
+	GameMessages::SendVendorStatusUpdate(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void VendorComponent::SetupConstants() {
