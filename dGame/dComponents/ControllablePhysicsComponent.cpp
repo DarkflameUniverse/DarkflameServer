@@ -29,6 +29,8 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_GravityScale = 1;
 	m_DirtyCheats = false;
 	m_IgnoreMultipliers = false;
+	m_PickupRadius = 0.0f;
+	m_DirtyPickupRadiusScale = true;
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
@@ -85,7 +87,13 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		m_DirtyCheats = false;
 	}
 
-	outBitStream->Write0();
+	outBitStream->Write(m_DirtyPickupRadiusScale);
+	if (m_DirtyPickupRadiusScale) {
+		outBitStream->Write(m_PickupRadius);
+		outBitStream->Write0(); //No clue what this is so im leaving it false.
+		m_DirtyPickupRadiusScale = false;
+	}
+
 	outBitStream->Write0();
 
 	outBitStream->Write(m_DirtyPosition || bIsInitialUpdate);
@@ -230,4 +238,32 @@ void ControllablePhysicsComponent::SetDirtyVelocity(bool val) {
 
 void ControllablePhysicsComponent::SetDirtyAngularVelocity(bool val) {
 	m_DirtyAngularVelocity = val;
+}
+
+void ControllablePhysicsComponent::AddPickupRadiusScale(float value) {
+	m_ActivePickupRadiusScales.push_back(value);
+	if (value > m_PickupRadius) {
+		m_PickupRadius = value;
+		m_DirtyPickupRadiusScale = true;
+	}
+}
+
+void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
+	// Attempt to remove pickup radius from active radii
+	const auto pos = std::find(m_ActivePickupRadiusScales.begin(), m_ActivePickupRadiusScales.end(), value);
+	if (pos != m_ActivePickupRadiusScales.end()) {
+		m_ActivePickupRadiusScales.erase(pos);
+	} else {
+		Game::logger->Log("ControllablePhysicsComponent", "Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.\n", value, m_ActivePickupRadiusScales.size());
+		return;
+	}
+
+	// Recalculate pickup radius since we removed one by now
+	m_PickupRadius = 0.0f;
+	m_DirtyPickupRadiusScale = true;
+	for (uint32_t i = 0; i < m_ActivePickupRadiusScales.size(); i++) {
+		auto candidateRadius = m_ActivePickupRadiusScales[i];
+		if (m_PickupRadius < candidateRadius) m_PickupRadius = candidateRadius;
+	}
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
