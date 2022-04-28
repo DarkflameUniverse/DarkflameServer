@@ -102,6 +102,10 @@ int32_t Inventory::FindEmptySlot()
 			{
 				newSize += 9u;
 			}
+			else
+			{
+				newSize += 10u;
+			}
 			
 			if (newSize > GetSize())
 			{
