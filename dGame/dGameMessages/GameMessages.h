@@ -109,7 +109,7 @@ namespace GameMessages {
 	void SendModularBuildEnd(Entity* entity);
 
 	void SendVendorOpenWindow(Entity* entity, const SystemAddress& sysAddr);
-	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr);
+	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr, bool bUpdateOnly = false);
 	void SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr);
 
 	void SendRemoveItemFromInventory(Entity* entity, const SystemAddress& sysAddr, LWOOBJID iObjID, LOT templateID, int inventoryType, uint32_t stackCount, uint32_t stackRemaining);

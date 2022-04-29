@@ -593,7 +593,7 @@ void DestroyableComponent::Repair(const uint32_t armor)
 }
 
 
-void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, bool echo)
+void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32_t skillID, bool echo)
 {
 	if (GetHealth() <= 0)
 	{
@@ -677,11 +677,10 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, bool e
 
 		return;
 	}
-
-	Smash(source);
+	Smash(source, eKillType::VIOLENT, u"", skillID);
 }
 
-void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType)
+void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType, uint32_t skillID)
 {
 	if (m_iHealth > 0)
 	{
@@ -727,31 +726,20 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 					if (memberMissions == nullptr) continue;
 
 					memberMissions->Progress(MissionTaskType::MISSION_TASK_TYPE_SMASH, m_Parent->GetLOT());
+					memberMissions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, m_Parent->GetLOT(), skillID);
 				}
 			}
 			else
 			{
 				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SMASH, m_Parent->GetLOT());
+				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, m_Parent->GetLOT(), skillID);
 			}
 		}
 	}
 	
 	const auto isPlayer = m_Parent->IsPlayer();
 
-	GameMessages::SendDie(
-		m_Parent,
-		source,
-		source,
-		true,
-		killType,
-		deathType,
-		0,
-		0,
-		0,
-		isPlayer,
-		false,
-		1
-	);
+	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, false, 1);
 
 	//NANI?!
 	if (!isPlayer)

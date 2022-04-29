@@ -1252,8 +1252,7 @@ void GameMessages::SendVendorOpenWindow(Entity* entity, const SystemAddress& sys
 	SEND_PACKET
 }
 
-// ah yes, impl code in a send function, beautiful!
-void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr) {
+void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr, bool bUpdateOnly) {
 	CBITSTREAM
 	CMSGHEADER
 
@@ -1265,7 +1264,7 @@ void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& s
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_VENDOR_STATUS_UPDATE);
 
-	bitStream.Write(false);
+	bitStream.Write(bUpdateOnly); 
 	bitStream.Write(static_cast<uint32_t>(vendorItems.size()));
 
 	for (std::pair<LOT, int> item : vendorItems) {
@@ -1273,6 +1272,7 @@ void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& s
 		bitStream.Write(static_cast<int>(item.second));
 	}
 
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
 	SEND_PACKET
 }
 
