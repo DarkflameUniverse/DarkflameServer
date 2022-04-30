@@ -217,11 +217,11 @@ void CharacterComponent::HandleLevelUp()
 		switch (reward->rewardType)
 		{
 		case 0:
-			inventoryComponent->AddItem(reward->value, reward->count);
+			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LOOT_SOURCE_LEVEL_REWARD);
 			break;
 		case 4:
 			{
-				auto* items = inventoryComponent->GetInventory(ITEMS);
+				auto* items = inventoryComponent->GetInventory(eInventoryType::ITEMS);
 				items->SetSize(items->GetSize() + reward->value);
 			}
 			break;

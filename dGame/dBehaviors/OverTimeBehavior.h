@@ -4,7 +4,8 @@
 class OverTimeBehavior final : public Behavior
 {
 public:
-    Behavior* m_Action;
+    uint32_t m_Action;
+	uint32_t m_ActionBehaviorId;
     float m_Delay;
     int32_t m_NumIntervals;
 

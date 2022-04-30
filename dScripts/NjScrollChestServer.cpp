@@ -12,6 +12,6 @@ void NjScrollChestServer::OnUse(Entity *self, Entity *user) {
         playerInventory->RemoveItem(keyLOT, 1);
 
         // Reward the player with the item set
-        playerInventory->AddItem(rewardItemLOT, 1);
+        playerInventory->AddItem(rewardItemLOT, 1, eLootSourceType::LOOT_SOURCE_NONE);
     }
 }
