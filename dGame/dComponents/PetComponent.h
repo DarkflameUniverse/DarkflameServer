@@ -39,7 +39,7 @@ public:
      * @param bricks the bricks to try to complete the minigame with
      * @param clientFailed unused
      */
-    void TryBuild(std::vector<Brick>& bricks, bool clientFailed);
+    void TryBuild(uint32_t numBricks, bool clientFailed);
 
     /**
      * Handles a notification from the client regarding the completion of the pet minigame, adding the pet to their

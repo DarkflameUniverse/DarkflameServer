@@ -534,7 +534,7 @@ void Character::OnZoneLoad()
 	 */	
 	if (HasPermission(PermissionMap::Old)) {
 		if (GetCoins() > 1000000) {
-			SetCoins(1000000, LOOT_SOURCE_NONE);
+			SetCoins(1000000, eLootSourceType::LOOT_SOURCE_NONE);
 		}
 	}
 

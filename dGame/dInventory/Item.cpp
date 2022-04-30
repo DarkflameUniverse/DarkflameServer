@@ -14,7 +14,7 @@
 class Inventory;
 
 
-Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_t slot, const uint32_t count, const bool bound, const std::vector<LDFBaseData*>& config, const LWOOBJID parent, LWOOBJID subKey)
+Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_t slot, const uint32_t count, const bool bound, const std::vector<LDFBaseData*>& config, const LWOOBJID parent, LWOOBJID subKey, eLootSourceType lootSourceType)
 {
 	if (!Inventory::IsValidItem(lot))
 	{
@@ -46,7 +46,8 @@ Item::Item(
 	bool showFlyingLoot,
 	bool isModMoveAndEquip,
 	LWOOBJID subKey,
-	bool bound)
+	bool bound,
+	eLootSourceType lootSourceType)
 {	
 	if (!Inventory::IsValidItem(lot))
 	{
@@ -80,8 +81,7 @@ Item::Item(
 	inventory->AddManagedItem(this);
 
 	auto* entity = inventory->GetComponent()->GetParent();
-
-	GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, static_cast<int>(this->count), subKey);
+	GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, static_cast<int>(this->count), subKey, lootSourceType);
 
 	if (isModMoveAndEquip)
 	{
@@ -148,7 +148,7 @@ PreconditionExpression* Item::GetPreconditionExpression() const
 	return preconditions;
 }
 
-void Item::SetCount(const uint32_t value, const bool silent, const bool disassemble, const bool showFlyingLoot)
+void Item::SetCount(const uint32_t value, const bool silent, const bool disassemble, const bool showFlyingLoot, eLootSourceType lootSourceType)
 {
 	if (value == count)
 	{
@@ -176,7 +176,7 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 		
 		if (value > count)
 		{
-			GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, delta);
+			GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, delta, LWOOBJID_EMPTY, lootSourceType);
 		}
 		else
 		{
@@ -340,7 +340,7 @@ bool Item::UseNonEquip()
 				return false;
 			}
 
-			LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result);
+			LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
 		}
 
 		inventory->GetComponent()->RemoveItem(lot, 1);
@@ -374,7 +374,7 @@ void Item::Disassemble(const eInventoryType inventoryType)
 
 			for (const auto mod : modArray)
 			{
-				inventory->GetComponent()->AddItem(mod, 1, inventoryType);
+				inventory->GetComponent()->AddItem(mod, 1, eLootSourceType::LOOT_SOURCE_DELETION, inventoryType);
 			}
 		}
 	}
@@ -472,7 +472,7 @@ void Item::DisassembleModel()
 			continue;
 		}
 		
-		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1);
+		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1, eLootSourceType::LOOT_SOURCE_DELETION);
 	}
 }
 
