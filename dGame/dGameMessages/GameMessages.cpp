@@ -5,6 +5,7 @@
 #include "BitStream.h"
 #include "Game.h"
 #include "dMessageIdentifiers.h"
+#include "ModelComponent.h"
 #include "SlashCommandHandler.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -5026,6 +5027,64 @@ void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity,
 
 	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
 	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_NON_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
+}
+
+void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	uint8_t AMFType;
+	// check for odd then shift 1 bit and add 1 for amf size
+	uint8_t sizeOfAMF;
+	// Check for odd, if odd shift right 1 bit for size of string  
+	uint8_t sizeOfKey;
+	std::string key;
+	std::string value;
+	AMFArrayValue args;
+	auto copy = inStream;
+	while(copy->GetNumberOfUnreadBits() > 0) {
+		char i;
+		copy->Read(i);
+		std::cout << i << std::endl;
+	}
+	return;
+	inStream->Read(AMFType);
+	inStream->Read(sizeOfAMF);
+	sizeOfAMF = (sizeOfAMF >> 1) + 1;
+	Game::logger->Log("GameMessages", "AMf type %i, size %i\n", AMFType, sizeOfAMF);
+	for (int32_t i = 0; i < sizeOfAMF; i++) {
+		uint8_t sizeOfKey;
+		inStream->Read(sizeOfKey);
+		sizeOfKey = sizeOfKey >> 1;
+		Game::logger->Log("GameMessages", "size key %i\n", sizeOfKey);
+		for (int32_t j = 0; j < sizeOfKey; j++) {
+			uint8_t character;
+			inStream->Read(character);
+			key += character;
+		}
+		Game::logger->Log("GameMessages", "string is %s\n", key.c_str());
+		uint8_t typeOfValue;
+		inStream->Read(typeOfValue);
+		Game::logger->Log("GameMessages", "type of value %i\n", typeOfValue);
+		if (typeOfValue == AMFValueType::AMFFalse) {
+			AMFFalseValue* value = (AMFFalseValue*)false;
+			Game::logger->Log("GameMessages", "key %s value %i\n", key.c_str(), false);
+			args.InsertValue(key, value);
+		} else if (typeOfValue == AMFValueType::AMFString) {
+			uint8_t sizeOfValue;
+			inStream->Read(sizeOfValue);
+			sizeOfValue = sizeOfValue >> 1;
+			Game::logger->Log("GameMessages", "size value %i\n", sizeOfValue);
+			for (int32_t j = 0; j < sizeOfValue; j++) {
+				uint8_t character;
+				inStream->Read(character);
+				value += character;
+			}
+			Game::logger->Log("GameMessages", "key %s value %s\n", key.c_str(), value.c_str());
+			AMFStringValue* valuestr = new AMFStringValue();
+			valuestr->SetStringValue(value);
+			args.InsertValue(key, valuestr);
+		} else {
+			Game::logger->Log("GameMessages", "None Found!\n");
+		}
+	}
 }
 
 void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) {

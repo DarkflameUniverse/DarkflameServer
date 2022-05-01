@@ -468,7 +468,7 @@ namespace GameMessages {
 	void HandleClientItemConsumed(RakNet::BitStream* inStream, Entity* entity);
 	
 	void HandleUseNonEquipmentItem(RakNet::BitStream* inStream, Entity* entity);
-
+	void HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleMatchRequest(RakNet::BitStream* inStream, Entity* entity);
 
 	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);
