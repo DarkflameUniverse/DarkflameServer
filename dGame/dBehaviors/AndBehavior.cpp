@@ -19,6 +19,12 @@ void AndBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStre
 	}
 }
 
+void AndBehavior::UnCast(BehaviorContext* context, const BehaviorBranchContext branch) {
+	for (auto behavior : this->m_behaviors) {
+		behavior->UnCast(context, branch);
+	}
+}
+
 void AndBehavior::Load()
 {
 	const auto parameters = GetParameterNames();

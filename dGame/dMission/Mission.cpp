@@ -528,11 +528,11 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_maxhealth > 0) {
-        destroyableComponent->SetMaxHealth(destroyableComponent->GetMaxHealth() + static_cast<float>(info->reward_maxhealth));
+        destroyableComponent->SetMaxHealth(destroyableComponent->GetMaxHealth() + static_cast<float>(info->reward_maxhealth), true);
     }
 
     if (info->reward_maximagination > 0) {
-        destroyableComponent->SetMaxImagination(destroyableComponent->GetMaxImagination() + static_cast<float>(info->reward_maximagination));
+        destroyableComponent->SetMaxImagination(destroyableComponent->GetMaxImagination() + static_cast<float>(info->reward_maximagination), true);
     }
 
     EntityManager::Instance()->SerializeEntity(entity);

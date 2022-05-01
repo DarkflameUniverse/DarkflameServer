@@ -49,7 +49,7 @@ void BaseEnemyApe::OnTimerDone(Entity *self, std::string timerName) {
         if (destroyableComponent != nullptr) {
             destroyableComponent->SetArmor(destroyableComponent->GetMaxArmor() / timesStunned);
         }
-
+        EntityManager::Instance()->SerializeEntity(self);
         self->SetVar<uint32_t>(u"timesStunned", timesStunned + 1);
         StunApe(self, false);
 
