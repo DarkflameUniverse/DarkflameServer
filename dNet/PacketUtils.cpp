@@ -143,9 +143,9 @@ void PacketUtils::WritePacketWString(const std::string& string, uint32_t maxSize
 //! Saves a packet to the filesystem
 void PacketUtils::SavePacket(const std::string& filename, const char * data, size_t length) {
 	//If we don't log to the console, don't save the bin files either. This takes up a lot of time.
-	if (!Game::logger->GetIsLoggingToConsole()) return;
+	// if (!Game::logger->GetIsLoggingToConsole()) return;
 
-    std::string path = "packets/" + filename;
+    std::string path = "packets2/" + filename;
     
     std::ofstream file(path, std::ios::binary);
     if (!file.is_open()) return;

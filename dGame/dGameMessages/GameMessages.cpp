@@ -588,6 +588,7 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	}
 
 	SEND_PACKET
+	PacketUtils::SavePacket("SendUIMessageServerToSingleClient.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 void GameMessages::SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args) {
@@ -1936,7 +1937,7 @@ void GameMessages::SendBBBSaveResponse(const LWOOBJID& objectId, const LWOOBJID&
 		bitStream.Write(buffer[i]);
 
 	SEND_PACKET;
-	PacketUtils::SavePacket("GAME_MSG_BBB_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+	// PacketUtils::SavePacket("GAME_MSG_BBB_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 // Property
@@ -2620,7 +2621,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 					bitStream.Write(inData[i]);
 
 				SEND_PACKET;
-				PacketUtils::SavePacket("MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+				// PacketUtils::SavePacket("MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 
 				//Now we have to construct this object:
 				/*
@@ -5038,53 +5039,56 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 	std::string key;
 	std::string value;
 	AMFArrayValue args;
-	auto copy = inStream;
-	while(copy->GetNumberOfUnreadBits() > 0) {
-		char i;
-		copy->Read(i);
-		std::cout << i << std::endl;
-	}
-	return;
+
 	inStream->Read(AMFType);
 	inStream->Read(sizeOfAMF);
-	sizeOfAMF = (sizeOfAMF >> 1) + 1;
-	Game::logger->Log("GameMessages", "AMf type %i, size %i\n", AMFType, sizeOfAMF);
-	for (int32_t i = 0; i < sizeOfAMF; i++) {
-		uint8_t sizeOfKey;
-		inStream->Read(sizeOfKey);
-		sizeOfKey = sizeOfKey >> 1;
-		Game::logger->Log("GameMessages", "size key %i\n", sizeOfKey);
-		for (int32_t j = 0; j < sizeOfKey; j++) {
-			uint8_t character;
-			inStream->Read(character);
-			key += character;
-		}
-		Game::logger->Log("GameMessages", "string is %s\n", key.c_str());
-		uint8_t typeOfValue;
-		inStream->Read(typeOfValue);
-		Game::logger->Log("GameMessages", "type of value %i\n", typeOfValue);
-		if (typeOfValue == AMFValueType::AMFFalse) {
-			AMFFalseValue* value = (AMFFalseValue*)false;
-			Game::logger->Log("GameMessages", "key %s value %i\n", key.c_str(), false);
-			args.InsertValue(key, value);
-		} else if (typeOfValue == AMFValueType::AMFString) {
-			uint8_t sizeOfValue;
-			inStream->Read(sizeOfValue);
-			sizeOfValue = sizeOfValue >> 1;
-			Game::logger->Log("GameMessages", "size value %i\n", sizeOfValue);
-			for (int32_t j = 0; j < sizeOfValue; j++) {
-				uint8_t character;
-				inStream->Read(character);
-				value += character;
-			}
-			Game::logger->Log("GameMessages", "key %s value %s\n", key.c_str(), value.c_str());
-			AMFStringValue* valuestr = new AMFStringValue();
-			valuestr->SetStringValue(value);
-			args.InsertValue(key, valuestr);
-		} else {
-			Game::logger->Log("GameMessages", "None Found!\n");
-		}
+
+	uint8_t sizeOfLiteral2;
+	inStream->Read(sizeOfLiteral2);
+	sizeOfLiteral2 = (sizeOfLiteral2 >> 1);
+
+	Game::logger->Log("GameMessages", "Size of literal 2 is %i!\n", sizeOfLiteral2);
+
+	uint32_t commandLength;
+	inStream->Read(commandLength);
+	std::string command;
+
+	while (inStream->GetNumberOfUnreadBits() > 0) {
+		unsigned char character;
+		inStream->Read(character);
+		command.push_back(character);
 	}
+	Game::logger->Log("GameMessages", "Message is %s\n", command.c_str());
+	
+	if (command != "sendBehaviorListToClient") return;
+
+	AMFArrayValue* secondMostArgs = new AMFArrayValue();
+	AMFArrayValue* innerMostArgs = new AMFArrayValue();
+
+	AMFStringValue* amfStringForID = new AMFStringValue();
+	amfStringForID->SetStringValue("10447");
+	innerMostArgs->InsertValue("id", amfStringForID);
+
+	AMFFalseValue* amfFalse = new AMFFalseValue();
+	innerMostArgs->InsertValue("isLocked", amfFalse);
+
+	AMFTrueValue* amfTrue = new AMFTrueValue();
+	innerMostArgs->InsertValue("isLoot", amfTrue);
+
+	AMFStringValue* amfStringForName = new AMFStringValue();
+	amfStringForName->SetStringValue("Basic Platform Behavior");
+	innerMostArgs->InsertValue("name", amfStringForName);
+
+	secondMostArgs->PushBackValue(innerMostArgs);
+	AMFArrayValue outerMostArgs;
+	outerMostArgs.InsertValue("behaviors", secondMostArgs);
+
+	AMFStringValue* amfStringValueForObjectID = new AMFStringValue();
+	amfStringValueForObjectID->SetStringValue(std::to_string(entity->GetObjectID()));
+
+	outerMostArgs.InsertValue("objectID", amfStringValueForObjectID);
+	
+	GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "UpdateBehaviorList", &outerMostArgs);
 }
 
 void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) {

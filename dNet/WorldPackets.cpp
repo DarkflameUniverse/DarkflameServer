@@ -183,7 +183,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
         bitStream.Write(compressedData[i]);
 #endif
 
-    PacketUtils::SavePacket("chardata.bin", (const char *)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
+    // PacketUtils::SavePacket("chardata.bin", (const char *)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
     SEND_PACKET
     Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu\n", entity->GetObjectID());
 }
