@@ -5043,9 +5043,11 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 	inStream->Read(AMFType);
 	inStream->Read(sizeOfAMF);
 
+	Game::logger->Log("GameMessages", "type is %i Size of literal 1 is %i!\n", AMFType, sizeOfAMF);
+
 	uint8_t sizeOfLiteral2;
 	inStream->Read(sizeOfLiteral2);
-	sizeOfLiteral2 = (sizeOfLiteral2 >> 1);
+	if (sizeOfLiteral2 % 2 == 1) sizeOfLiteral2 = sizeOfLiteral2 >> 1;
 
 	Game::logger->Log("GameMessages", "Size of literal 2 is %i!\n", sizeOfLiteral2);
 
@@ -5053,35 +5055,23 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 	inStream->Read(commandLength);
 	std::string command;
 
-	while (inStream->GetNumberOfUnreadBits() > 0) {
-		unsigned char character;
-		inStream->Read(character);
-		command.push_back(character);
+	while (commandLength > 0) {
+		for (uint32_t i = 0; i < commandLength; i++) {
+			unsigned char character;
+			inStream->Read(character);
+			command.push_back(character);
+		}
+		AMFValue* type = new AMFValue(); 
+		// TODO read the type and read this from the bitStream then resize commandLength to read again.  Do this recursively until end of bitStream
 	}
-	Game::logger->Log("GameMessages", "Message is %s\n", command.c_str());
+	Game::logger->Log("GameMessages", "Message is (%s)\n", command.c_str());
 	
 	if (command != "sendBehaviorListToClient") return;
 
 	AMFArrayValue* secondMostArgs = new AMFArrayValue();
 	AMFArrayValue* innerMostArgs = new AMFArrayValue();
 
-	AMFStringValue* amfStringForID = new AMFStringValue();
-	amfStringForID->SetStringValue("10447");
-	innerMostArgs->InsertValue("id", amfStringForID);
-
-	AMFFalseValue* amfFalse = new AMFFalseValue();
-	innerMostArgs->InsertValue("isLocked", amfFalse);
-
-	AMFTrueValue* amfTrue = new AMFTrueValue();
-	innerMostArgs->InsertValue("isLoot", amfTrue);
-
-	AMFStringValue* amfStringForName = new AMFStringValue();
-	amfStringForName->SetStringValue("Basic Platform Behavior");
-	innerMostArgs->InsertValue("name", amfStringForName);
-
-	secondMostArgs->PushBackValue(innerMostArgs);
 	AMFArrayValue outerMostArgs;
-	outerMostArgs.InsertValue("behaviors", secondMostArgs);
 
 	AMFStringValue* amfStringValueForObjectID = new AMFStringValue();
 	amfStringValueForObjectID->SetStringValue(std::to_string(entity->GetObjectID()));
