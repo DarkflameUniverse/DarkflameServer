@@ -4,7 +4,7 @@
 #include "dZoneManager.h"
 #include "EntityManager.h"
 
-bool ChooseYourDestinationNsToNt::CheckChoice(Entity* self, Entity* player) 
+bool ChooseYourDestinationNsToNt::CheckChoice(Entity* self, Entity* player)
 {
     const auto choiceZoneID = self->GetVar<int32_t>(u"choiceZone");
     const auto newZoneID = self->GetVar<int32_t>(u"currentZone");
@@ -32,7 +32,7 @@ bool ChooseYourDestinationNsToNt::CheckChoice(Entity* self, Entity* player)
     return false;
 }
 
-void ChooseYourDestinationNsToNt::SetDestination(Entity* self, Entity* player) 
+void ChooseYourDestinationNsToNt::SetDestination(Entity* self, Entity* player)
 {
     const auto currentMap = self->GetVar<int32_t>(u"currentZone");
     auto newMap = self->GetVar<int32_t>(u"choiceZone");
@@ -45,7 +45,7 @@ void ChooseYourDestinationNsToNt::SetDestination(Entity* self, Entity* player)
     self->SetVar(u"transferZoneID", GeneralUtils::to_u16string(newMap));
 }
 
-void ChooseYourDestinationNsToNt::BaseChoiceBoxRespond(Entity* self, Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier) 
+void ChooseYourDestinationNsToNt::BaseChoiceBoxRespond(Entity* self, Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier)
 {
     if (button != -1)
     {
@@ -59,14 +59,11 @@ void ChooseYourDestinationNsToNt::BaseChoiceBoxRespond(Entity* self, Entity* sen
 
         std::u16string strText = u"";
 
-        if (newMap == 1200)
-        {
+        if (newMap == 1200) {
             strText = u"UI_TRAVEL_TO_NS";
-        }
-        else
-        {
+        } else if (newMap == 1900) {
             strText = u"UI_TRAVEL_TO_NEXUS_TOWER";
-        }
+        } else strText = u"ZoneTable_" + GeneralUtils::ASCIIToUTF16(std::to_string(newMap)) + u"_summary";
 
         self->SetVar(u"teleportString", strText);
         self->SetVar(u"transferZoneID", GeneralUtils::to_u16string(newMap));
