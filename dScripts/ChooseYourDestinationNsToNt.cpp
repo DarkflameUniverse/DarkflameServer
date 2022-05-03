@@ -63,7 +63,7 @@ void ChooseYourDestinationNsToNt::BaseChoiceBoxRespond(Entity* self, Entity* sen
             strText = u"UI_TRAVEL_TO_NS";
         } else if (newMap == 1900) {
             strText = u"UI_TRAVEL_TO_NEXUS_TOWER";
-        } else strText = u"ZoneTable_" + GeneralUtils::ASCIIToUTF16(std::to_string(newMap)) + u"_summary";
+        } else strText = u"ZoneTable_" + GeneralUtils::to_u16string(newMap) + u"_summary";
 
         self->SetVar(u"teleportString", strText);
         self->SetVar(u"transferZoneID", GeneralUtils::to_u16string(newMap));
