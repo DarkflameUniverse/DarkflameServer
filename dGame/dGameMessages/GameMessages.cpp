@@ -5065,23 +5065,7 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 	AMFArrayValue* secondMostArgs = new AMFArrayValue();
 	AMFArrayValue* innerMostArgs = new AMFArrayValue();
 
-	AMFStringValue* amfStringForID = new AMFStringValue();
-	amfStringForID->SetStringValue("10447");
-	innerMostArgs->InsertValue("id", amfStringForID);
-
-	AMFFalseValue* amfFalse = new AMFFalseValue();
-	innerMostArgs->InsertValue("isLocked", amfFalse);
-
-	AMFTrueValue* amfTrue = new AMFTrueValue();
-	innerMostArgs->InsertValue("isLoot", amfTrue);
-
-	AMFStringValue* amfStringForName = new AMFStringValue();
-	amfStringForName->SetStringValue("Basic Platform Behavior");
-	innerMostArgs->InsertValue("name", amfStringForName);
-
-	secondMostArgs->PushBackValue(innerMostArgs);
 	AMFArrayValue outerMostArgs;
-	outerMostArgs.InsertValue("behaviors", secondMostArgs);
 
 	AMFStringValue* amfStringValueForObjectID = new AMFStringValue();
 	amfStringValueForObjectID->SetStringValue(std::to_string(entity->GetObjectID()));
