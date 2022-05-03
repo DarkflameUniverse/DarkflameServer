@@ -216,7 +216,11 @@ public:
      */
 	void CancelRebuild(Entity* builder, eFailReason failReason, bool skipChecks = false);
 private:
-
+    /**
+     * Whether or not the quickbuild state has been changed since we last serialized it.
+     */
+    bool m_StateDirty = true;
+    
     /**
      * The state the rebuild is currently in
      */
@@ -235,7 +239,7 @@ private:
     /**
      * The position that the rebuild activator is spawned at
      */
-	NiPoint3 m_ActivatorPosition {};
+	NiPoint3 m_ActivatorPosition = NiPoint3::ZERO;
 
     /**
      * The entity that represents the rebuild activator
