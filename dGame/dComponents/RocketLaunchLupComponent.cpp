@@ -30,8 +30,8 @@ void RocketLaunchLupComponent::OnUse(Entity* originator) {
 	auto* characterComponent = originator->GetComponent<CharacterComponent>();
 
 	if (!inventoryComponent || !characterComponent) return;
-	Item* rocket = nullptr;
-	rocket = inventoryComponent->FindItemById(characterComponent->GetLastRocketItemID());
+
+	Item* rocket = inventoryComponent->FindItemById(characterComponent->GetLastRocketItemID());
 	if (!rocket) return;
 
 	rocket->Equip(true);

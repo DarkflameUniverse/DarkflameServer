@@ -2733,7 +2733,7 @@ void GameMessages::HandleEnterProperty(RakNet::BitStream* inStream, Entity* enti
 	}
 
 	auto rocketLaunchLupComponent = entity->GetComponent<RocketLaunchLupComponent>();
-	if (rocketLaunchLupComponent) {
+	if (rocketLaunchLupComponent != nullptr) {
 		rocketLaunchLupComponent->OnSelectWorld(player, index, sysAddr);
 	}
 }
