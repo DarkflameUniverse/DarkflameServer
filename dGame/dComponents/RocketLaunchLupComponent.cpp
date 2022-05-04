@@ -18,11 +18,7 @@ RocketLaunchLupComponent::RocketLaunchLupComponent(Entity* parent) : Component(p
 	results.finalize();
 }
 
-RocketLaunchLupComponent::~RocketLaunchLupComponent() {
-	if (!m_rocket) return;
-	// when we exit the ui we need to unequip the rocket
-	m_rocket->UnEquip();
-}
+RocketLaunchLupComponent::~RocketLaunchLupComponent() {}
 
 void RocketLaunchLupComponent::OnUse(Entity* originator) {
 	// the LUP world menu is just the property menu, the client knows how to handle it
@@ -34,16 +30,14 @@ void RocketLaunchLupComponent::OnUse(Entity* originator) {
 	auto* characterComponent = originator->GetComponent<CharacterComponent>();
 
 	if (!inventoryComponent || !characterComponent) return;
+	Item* rocket = nullptr;
+	rocket = inventoryComponent->FindItemById(characterComponent->GetLastRocketItemID());
+	if (!rocket) return;
 
-	m_rocket = inventoryComponent->FindItemById(characterComponent->GetLastRocketItemID());
-	if (!m_rocket) return;
-
-	m_rocket->Equip(true);
+	rocket->Equip(true);
 }
 
 void RocketLaunchLupComponent::OnSelectWorld(Entity* originator, uint32_t index, const SystemAddress& sysAddr) {
-	if (m_rocket) m_rocket->UnEquip();
-
 	// Add one to index because the actual LUP worlds start at index 1.
 	index++;
 
