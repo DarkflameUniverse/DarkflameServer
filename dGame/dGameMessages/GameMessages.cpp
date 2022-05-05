@@ -27,6 +27,7 @@
 #include "TeamManager.h"
 #include "ChatPackets.h"
 #include "GameConfig.h"
+#include "AMFDeserialize.h"
 
 #include <sstream>
 #include <future>
@@ -5031,33 +5032,21 @@ void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity,
 }
 
 void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	uint8_t AMFType;
-	// check for odd then shift 1 bit and add 1 for amf size
-	uint8_t sizeOfAMF;
-	// Check for odd, if odd shift right 1 bit for size of string  
-	uint8_t sizeOfKey;
-	std::string key;
-	std::string value;
-	AMFArrayValue args;
-
-	inStream->Read(AMFType);
-	inStream->Read(sizeOfAMF);
-
-	uint8_t sizeOfLiteral2;
-	inStream->Read(sizeOfLiteral2);
-	sizeOfLiteral2 = (sizeOfLiteral2 >> 1);
-
-	Game::logger->Log("GameMessages", "Size of literal 2 is %i!\n", sizeOfLiteral2);
+	AMFDeserialize reader;
+	auto result = reader.Read(inStream, true);
 
 	uint32_t commandLength;
 	inStream->Read(commandLength);
 	std::string command;
 
-	while (inStream->GetNumberOfUnreadBits() > 0) {
+	Game::logger->Log("GameMessages", "Length is %i\n", commandLength);
+
+	for (uint32_t i = 0; i < commandLength; i++) {
 		unsigned char character;
 		inStream->Read(character);
 		command.push_back(character);
 	}
+
 	Game::logger->Log("GameMessages", "Message is %s\n", command.c_str());
 	
 	if (command != "sendBehaviorListToClient") return;
