@@ -5039,8 +5039,6 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 	inStream->Read(commandLength);
 	std::string command;
 
-	Game::logger->Log("GameMessages", "Length is %i\n", commandLength);
-
 	for (uint32_t i = 0; i < commandLength; i++) {
 		unsigned char character;
 		inStream->Read(character);

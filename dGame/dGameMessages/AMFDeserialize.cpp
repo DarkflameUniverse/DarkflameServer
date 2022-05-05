@@ -4,6 +4,7 @@
 
 AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProcess) {
     AMFArrayValue* values = new AMFArrayValue();
+    // Only do this if doFullProcess is true.
     if (doFullProcess) {
         int8_t start;
         int8_t size;
@@ -17,21 +18,23 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
 
         // Now that we have read the header, start reading the info.
     }
+
     int8_t sizeOfString;
     bool isReference = false;
 
+    // Read identifier.  If odd, this is a literal.  If even, this is a reference to a previously read string.
     inStream->Read(sizeOfString);
     if (sizeOfString % 2 == 1) {
-        Game::logger->Log("AMFDeserialize", "Size of initial is %i\n", sizeOfString);
         sizeOfString = sizeOfString >> 1;
+        Game::logger->Log("AMFDeserialize", "Size of initial is %i\n", sizeOfString);
     }
     else {
         Game::logger->Log("AMFDeserialize", "Size is reference to %i\n", sizeOfString);
         isReference = true;
     }
-    uint32_t typeCounter = 0;
-    
+
     while (sizeOfString > 0) {
+        // Read the key in if this this is not a reference.  Otherwise get its reference.
         std::string key;
         if (!isReference) {
             for (uint32_t i = 0; i < sizeOfString; i++) {
@@ -44,9 +47,11 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
             key = accessedElements[sizeOfString];
             Game::logger->Log("AMFDeserialize", "Key is a reference (%s)!\n", key.c_str());
         }
+        // Read in the value type from the bitStream
         int8_t valueType;
         inStream->Read(valueType);
-        Game::logger->Log("AMFDeserialize", "value is %i!\n", valueType);
+
+        // Based on the typing, read a different value
         switch (valueType) {
             case AMFValueType::AMFUndefined: {
                 AMFUndefinedValue* undefinedValue = new AMFUndefinedValue();
@@ -78,6 +83,7 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
                 accessedElements.push_back("1.0");
                 break;
             }
+            // UNTESTED
             case AMFValueType::AMFInteger: {
                 AMFIntegerValue* integerValue = new AMFIntegerValue();
                 Game::logger->Log("AMFDeserialize", "Hit integerValue!\n", key.c_str());
@@ -184,9 +190,6 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
             isReference = true;
             Game::logger->Log("AMFDeserialize", "Size of next is Reference to (%i)\n", sizeOfString);
         }
-
-        typeCounter++;
-        if (typeCounter >= 15) break;
     }
     return values;
 }
