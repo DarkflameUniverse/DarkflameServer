@@ -37,7 +37,7 @@ void RocketLaunchLupComponent::OnUse(Entity* originator) {
 	rocket->Equip(true);
 }
 
-void RocketLaunchLupComponent::OnSelectWorld(Entity* originator, uint32_t index, const SystemAddress& sysAddr) {
+void RocketLaunchLupComponent::OnSelectWorld(Entity* originator, uint32_t index) {
 	// Add one to index because the actual LUP worlds start at index 1.
 	index++;
 
