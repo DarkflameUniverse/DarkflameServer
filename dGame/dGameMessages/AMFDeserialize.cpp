@@ -13,9 +13,6 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
 
         // Shift size 1 right if odd.  This should always result in a zero.
         if (size % 2 == 1) size = size >> 1;
-        // If size is greater than 1 the next number will be
-        Game::logger->Log("AMFDeserialize", "start %i size %i\n", start, size);
-
         // Now that we have read the header, start reading the info.
     }
 
@@ -26,10 +23,8 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
     inStream->Read(sizeOfString);
     if (sizeOfString % 2 == 1) {
         sizeOfString = sizeOfString >> 1;
-        Game::logger->Log("AMFDeserialize", "Size of initial is %i\n", sizeOfString);
     }
     else {
-        Game::logger->Log("AMFDeserialize", "Size is reference to %i\n", sizeOfString);
         isReference = true;
     }
 
@@ -45,7 +40,6 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
         } else {
             isReference = false;
             key = accessedElements[sizeOfString];
-            Game::logger->Log("AMFDeserialize", "Key is a reference (%s)!\n", key.c_str());
         }
         // Read in the value type from the bitStream
         int8_t valueType;
@@ -139,20 +133,7 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
                 accessedElements.push_back(value);
                 break;
             }
-            case AMFValueType::AMFXMLDoc: {
-                AMFXMLDocValue* xmlDocValue = new AMFXMLDocValue();
-                Game::logger->Log("AMFDeserialize", "Hit xmlDocValue!\n", key.c_str());
-                return values;
-                break;
-            }
-            case AMFValueType::AMFDate: {
-                AMFDateValue* dateValue = new AMFDateValue();
-                Game::logger->Log("AMFDeserialize", "Hit dateValue!\n", key.c_str());
-                return values;
-                break;
-            }
             case AMFValueType::AMFArray: {                
-                Game::logger->Log("AMFDeserialize", "Hit arrayValue!\n", key.c_str());
                 int8_t sizeOfSubArray;
                 int8_t doFullProcess = 0;
                 inStream->Read(sizeOfSubArray);
@@ -166,10 +147,12 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
                 values->InsertValue(key, result);
                 accessedElements.push_back(key);
                 accessedElements.push_back("");
-                Game::logger->Log("AMFDeserialize", "Array is key (%s)\n", key.c_str());
+                Game::logger->Log("AMFDeserialize", "Array has key (%s)\n", key.c_str());
                 break;
             }
             // Don't think I need these for now.  Will log if I need them.
+            case AMFValueType::AMFXMLDoc:
+            case AMFValueType::AMFDate:
             case AMFValueType::AMFObject:
             case AMFValueType::AMFXML:
             case AMFValueType::AMFByteArray:
@@ -184,12 +167,11 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
         inStream->Read(sizeOfString);
         if (sizeOfString % 2 == 1) {
             sizeOfString = sizeOfString >> 1;
-            Game::logger->Log("AMFDeserialize", "Size of next is (%i)\n", sizeOfString);
         }
         else {
             isReference = true;
-            Game::logger->Log("AMFDeserialize", "Size of next is Reference to (%i)\n", sizeOfString);
         }
     }
+
     return values;
 }

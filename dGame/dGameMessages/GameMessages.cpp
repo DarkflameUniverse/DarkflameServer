@@ -28,6 +28,7 @@
 #include "ChatPackets.h"
 #include "GameConfig.h"
 #include "AMFDeserialize.h"
+#include "ControlBehaviors.h"
 
 #include <sstream>
 #include <future>
@@ -5032,9 +5033,11 @@ void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity,
 }
 
 void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	// Parse AMF sent from client
 	AMFDeserialize reader;
 	auto result = reader.Read(inStream, true);
-
+	
+	// Parse command once we finish parsing the AMF.
 	uint32_t commandLength;
 	inStream->Read(commandLength);
 	std::string command;
@@ -5044,22 +5047,9 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 		inStream->Read(character);
 		command.push_back(character);
 	}
-
-	Game::logger->Log("GameMessages", "Message is %s\n", command.c_str());
 	
-	if (command != "sendBehaviorListToClient") return;
-
-	AMFArrayValue* secondMostArgs = new AMFArrayValue();
-	AMFArrayValue* innerMostArgs = new AMFArrayValue();
-
-	AMFArrayValue outerMostArgs;
-
-	AMFStringValue* amfStringValueForObjectID = new AMFStringValue();
-	amfStringValueForObjectID->SetStringValue(std::to_string(entity->GetObjectID()));
-
-	outerMostArgs.InsertValue("objectID", amfStringValueForObjectID);
-	
-	GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "UpdateBehaviorList", &outerMostArgs);
+	ControlBehaviors controlBehaviors;
+	controlBehaviors.DoActions(entity, sysAddr, result, command);
 }
 
 void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) {

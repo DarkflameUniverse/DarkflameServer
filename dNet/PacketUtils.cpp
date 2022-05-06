@@ -145,7 +145,7 @@ void PacketUtils::SavePacket(const std::string& filename, const char * data, siz
 	//If we don't log to the console, don't save the bin files either. This takes up a lot of time.
 	// if (!Game::logger->GetIsLoggingToConsole()) return;
 
-    std::string path = "packets2/" + filename;
+    std::string path = "packets/" + filename;
     
     std::ofstream file(path, std::ios::binary);
     if (!file.is_open()) return;
