@@ -5035,7 +5035,12 @@ void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity,
 void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	// Parse AMF sent from client
 	AMFDeserialize reader;
-	auto result = reader.Read(inStream, true);
+	AMFArrayValue* result = nullptr;
+	try {
+		result = reader.Read(inStream, true);
+	} catch (int8_t unsupportedValueType) {
+		return;
+	}
 	
 	// Parse command once we finish parsing the AMF.
 	uint32_t commandLength;

@@ -141,8 +141,8 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
             case AMFValueType::AMFVectorDouble:
             case AMFValueType::AMFVectorObject:
             case AMFValueType::AMFDictionary:
-                if (!isReference) accessedElements.push_back(key);
-                Game::logger->Log("AMFDeserialize", "Got unusable value %i with key (%s)!\n", valueType, key);
+                Game::logger->Log("AMFDeserialize", "Got unusable value %i with key (%s)!  Returning NULL\n", valueType, key);
+                throw valueType;
                 break;
         }
         isReference = false;
