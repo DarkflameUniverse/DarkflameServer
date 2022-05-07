@@ -220,6 +220,10 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ZONE_CONTROL, nullptr));
 	}
 
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODEL, -1) != -1) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_MODEL, new ModelComponent(0, this)));
+	}
+	
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE) > 0) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this)));
 	}
@@ -1084,7 +1088,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	if (HasComponent(COMPONENT_TYPE_ITEM))
+	if (HasComponent(COMPONENT_TYPE_ITEM) && !HasComponent(COMPONENT_TYPE_MODEL))
 	{
 		outBitStream->Write0();
 	}

@@ -1074,7 +1074,7 @@ void HandlePacket(Packet* packet) {
 
 									SystemAddress sysAddr = packet->systemAddress;
 									SEND_PACKET;
-									PacketUtils::SavePacket("lxfml packet " + std::to_string(res->getUInt(1)) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+									// PacketUtils::SavePacket("lxfml packet " + std::to_string(res->getUInt(1)) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 								}
 							}
 
