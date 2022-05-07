@@ -5052,9 +5052,14 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 		inStream->Read(character);
 		command.push_back(character);
 	}
-	
+	auto owner = PropertyManagementComponent::Instance()->GetOwner();
+    if (!owner) return;
+
+    auto user = owner->GetParentUser();
+    if (!user) return;
+
 	ControlBehaviors controlBehaviors;
-	controlBehaviors.DoActions(entity, sysAddr, result, command);
+	controlBehaviors.DoActions(entity, user->GetSystemAddress(), result, command, owner);
 }
 
 void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) {

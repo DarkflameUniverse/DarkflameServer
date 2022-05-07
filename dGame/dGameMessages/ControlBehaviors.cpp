@@ -1,35 +1,39 @@
 #include "ControlBehaviors.h"
 
-void ControlBehaviors::DoActions(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command) {
+void ControlBehaviors::DoActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
     if (command == "sendBehaviorListToClient")
-        sendBehaviorListToClient(entity, sysAddr, arguments);
+        sendBehaviorListToClient(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "modelTypeChanged")
-        modelTypeChanged(entity, sysAddr, arguments);
+        modelTypeChanged(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "toggleExecutionUpdates")
-        toggleExecutionUpdates(entity, sysAddr, arguments); // UpdateBehaviorBlocks
+        toggleExecutionUpdates(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "addStrip")
-        addStrip(entity, sysAddr, arguments);
+        addStrip(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "removeStrip")
-        removeStrip(entity, sysAddr, arguments);
+        removeStrip(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "mergeStrips")
-        mergeStrips(entity, sysAddr, arguments);
+        mergeStrips(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "splitStrip")
-        splitStrip(entity, sysAddr, arguments);
+        splitStrip(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "updateStripUI")
-        updateStripUI(entity, sysAddr, arguments);
+        updateStripUI(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "addAction")
-        addAction(entity, sysAddr, arguments);
+        addAction(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "migrateActions")
-        migrateActions(entity, sysAddr, arguments);
+        migrateActions(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "rearrangeStrip")
-        rearrangeStrip(entity, sysAddr, arguments);
+        rearrangeStrip(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "add")
-        add(entity, sysAddr, arguments); // UpdateBehaviorBlocks
+        add(modelEntity, sysAddr, arguments, modelOwner);
     else if (command == "removeActions")
-        removeActions(entity, sysAddr, arguments);
+        removeActions(modelEntity, sysAddr, arguments, modelOwner);
+    else if (command == "rename")
+        rename(modelEntity, sysAddr, arguments, modelOwner);
+    else
+        Game::logger->Log("ControlBehaviors", "Unknown Message (%s)\n", command.c_str());
 }
-// partially done
-void ControlBehaviors::sendBehaviorListToClient(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+
+void ControlBehaviors::sendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "sendBehaviorListToClient!\n");
     AMFArrayValue behaviorList;
     // For each behavior, get its info and add it to the list
@@ -37,18 +41,17 @@ void ControlBehaviors::sendBehaviorListToClient(Entity* entity, const SystemAddr
 	AMFArrayValue* behaviorInfo = new AMFArrayValue();
 
 	AMFStringValue* amfStringValueForObjectID = new AMFStringValue();
-	amfStringValueForObjectID->SetStringValue(std::to_string(entity->GetObjectID()));
+	amfStringValueForObjectID->SetStringValue(std::to_string(modelEntity->GetObjectID()));
 
 	behaviorList.InsertValue("objectID", amfStringValueForObjectID);
-	
-	GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "UpdateBehaviorList", &behaviorList);
+	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", &behaviorList);
 }
 
-void ControlBehaviors::modelTypeChanged(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::modelTypeChanged(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "modelTypeChanged!\n");
 }
 
-void ControlBehaviors::toggleExecutionUpdates(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::toggleExecutionUpdates(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "toggleExecutionUpdates!\n");
     double eightTwo = 82.0;
     double oneOThree = 103.0;
@@ -146,47 +149,52 @@ void ControlBehaviors::toggleExecutionUpdates(Entity* entity, const SystemAddres
     behaviorID->SetStringValue("10447");
     behaviorInfo.InsertValue("BehaviorID", behaviorID);
     AMFStringValue* objectID = new AMFStringValue();
-    objectID->SetStringValue(std::to_string(entity->GetObjectID()));
+    objectID->SetStringValue(std::to_string(modelEntity->GetObjectID()));
     behaviorInfo.InsertValue("objectID", objectID);
-    GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "UpdateBehaviorBlocks", &behaviorInfo);
+
+    GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorBlocks", &behaviorInfo);
 }
 
-void ControlBehaviors::addStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::addStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "addStrip!\n");
 }
 
-void ControlBehaviors::removeStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::removeStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "removeStrip!\n");
 }
 
-void ControlBehaviors::mergeStrips(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::mergeStrips(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "mergeStrips!\n");
 }
 
-void ControlBehaviors::splitStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::splitStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "splitStrip!\n");
 }
 
-void ControlBehaviors::updateStripUI(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::updateStripUI(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "updateStripUI!\n");
 }
 
-void ControlBehaviors::addAction(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::addAction(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "addAction!\n");
 }
 
-void ControlBehaviors::migrateActions(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::migrateActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "migrateActions!\n");
 }
 
-void ControlBehaviors::rearrangeStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::rearrangeStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "rearrangeStrip!\n");
 }
 
-void ControlBehaviors::add(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::add(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "add!\n");
 }
 
-void ControlBehaviors::removeActions(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+void ControlBehaviors::removeActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "removeActions!\n");
+}
+
+void ControlBehaviors::rename(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+    Game::logger->Log("ControlBehaviors", "rename!\n");
 }

@@ -6,19 +6,20 @@
 
 class ControlBehaviors {
     public:
-        void DoActions(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command);
+        void DoActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner);
     private:
-        void sendBehaviorListToClient(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void modelTypeChanged(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void toggleExecutionUpdates(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void addStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void removeStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void mergeStrips(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void splitStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void updateStripUI(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void addAction(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void migrateActions(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void rearrangeStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void add(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
-        void removeActions(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments);
+        void sendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void modelTypeChanged(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void toggleExecutionUpdates(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void addStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void removeStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void mergeStrips(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void splitStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void updateStripUI(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void addAction(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void migrateActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void rearrangeStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void add(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void removeActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
+        void rename(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner);
 };
