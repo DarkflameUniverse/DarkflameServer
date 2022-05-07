@@ -1,19 +1,21 @@
 #include "AMFDeserialize.h"
 
 #include "dLogger.h"
-
-AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProcess) {
+/**
+ * AMF3 Reference document https://rtmp.veriskope.com/pdf/amf3-file-format-spec.pdf
+ * I have only written the values that the LEGO Universe client sends to the server.  All others are left out.
+ * AMF3 Deserializer written by EmosewaMC
+ */
+AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool readStartOfArray, std::string parentKey) {
     AMFArrayValue* values = new AMFArrayValue();
-    // Only do this if doFullProcess is true.
-    if (doFullProcess) {
+    if (readStartOfArray) {
         int8_t start;
         int8_t size;
         inStream->Read(start);
         inStream->Read(size);
 
-        // Shift size 1 right if odd.  This should always result in a zero.
-        if (size % 2 == 1) size = size >> 1;
-        // Now that we have read the header, start reading the info.
+        size = size >> 1;
+        assert(size == 0);
     }
 
     int8_t sizeOfString;
@@ -21,14 +23,10 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
 
     // Read identifier.  If odd, this is a literal.  If even, this is a reference to a previously read string.
     inStream->Read(sizeOfString);
-    if (sizeOfString % 2 == 1) {
-        sizeOfString = sizeOfString >> 1;
-    }
-    else {
-        // This WILL be even to begin with and will never result in truncation
-        sizeOfString = sizeOfString / 2;
-        isReference = true;
-    }
+
+    if (sizeOfString % 2 == 0) isReference = true;
+
+    sizeOfString = sizeOfString >> 1;
 
     while (sizeOfString > 0) {
         // Read the key in if this this is not a reference.  Otherwise get its reference.
@@ -39,7 +37,8 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
                 inStream->Read(character);
                 key.push_back(character);
             }
-            accessedElements.push_back(key);
+            // Empty strings are never sent by reference.  This should never be empty here though...
+            if (!key.empty()) accessedElements.push_back(key);
         } else {
             key = accessedElements[sizeOfString];
         }
@@ -78,7 +77,7 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
                 AMFDoubleValue* doubleValue = new AMFDoubleValue();
                 double value;
                 inStream->Read(value);
-                Game::logger->Log("AMFDeserialize", "Key (%s) value (%f)!\n", key.c_str(), value);
+                Game::logger->Log("AMFDeserialize", "Key (%s) value (%lf)!\n", key.c_str(), value);
                 doubleValue->SetDoubleValue(value);
                 values->InsertValue(key, doubleValue);
                 break;
@@ -96,9 +95,10 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
                         inStream->Read(character);
                         value.push_back(character);
                     }
+                    // Empty strings are never sent by reference
                     if (!value.empty()) accessedElements.push_back(value);
                 } else {
-                    // Length is a reference if even!
+                    // Length is a reference!
                     length = length / 2;
                     value = accessedElements[length];
                 }
@@ -110,22 +110,25 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
 
             case AMFValueType::AMFArray: {                
                 int8_t sizeOfSubArray;
-                int8_t doFullProcess = 0;
+                int8_t index = 0;
                 inStream->Read(sizeOfSubArray);
-                if (sizeOfSubArray % 2 == 1) {
-                    sizeOfSubArray = sizeOfSubArray >> 1;
-                }
-                AMFArrayValue* result = nullptr;
+
+                if (sizeOfSubArray % 2 == 1) sizeOfSubArray = sizeOfSubArray >> 1;
+
+                AMFArrayValue* result = new AMFArrayValue();
                 if (sizeOfSubArray >= 1) {
-                    inStream->Read(doFullProcess);
+                    // Need to read this byte!
+                    inStream->Read(index);
+                    Game::logger->Log("AMFDeserialize", "Entering sub array of multiple items with current parent key (%s)\n", key.c_str());
                     for (uint32_t i = 0; i < sizeOfSubArray; i++) {
-                        result = Read(inStream, true);
+                        result->PushBackValue(Read(inStream, true, key));
                     }
                 } else {
-                    result = Read(inStream);
+                    Game::logger->Log("AMFDeserialize", "Entering sub array with current parent key (%s)\n", key.c_str());
+                    result = Read(inStream, false, key);
                 }
                 values->InsertValue(key, result);
-                Game::logger->Log("AMFDeserialize", "Array has key (%s)\n", key.c_str());
+                Game::logger->Log("AMFDeserialize", "End of Array with key (%s)\n", key.c_str());
                 break;
             }
 
@@ -145,18 +148,14 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
                 throw valueType;
                 break;
         }
-        isReference = false;
+        // Read size of next string
         inStream->Read(sizeOfString);
-        if (sizeOfString % 2 == 1) {
-            sizeOfString = sizeOfString >> 1;
-        }
-        else {
-            // This WILL be even to begin with and will never result in truncation
-            sizeOfString = sizeOfString / 2;
-            isReference = true;
-        }
-    }
 
+        if (sizeOfString % 2 == 0) isReference = true;
+        else isReference = false;
+
+        sizeOfString = sizeOfString >> 1;
+    }
     return values;
 }
 
