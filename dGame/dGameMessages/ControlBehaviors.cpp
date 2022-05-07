@@ -30,7 +30,7 @@ void ControlBehaviors::DoActions(Entity* entity, const SystemAddress& sysAddr, A
 }
 // partially done
 void ControlBehaviors::sendBehaviorListToClient(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-    Game::logger->Log("GameMessages", "Updating behavior list!\n");
+    Game::logger->Log("ControlBehaviors", "sendBehaviorListToClient!\n");
     AMFArrayValue behaviorList;
     // For each behavior, get its info and add it to the list
     AMFArrayValue* behaviors = new AMFArrayValue();
@@ -45,10 +45,11 @@ void ControlBehaviors::sendBehaviorListToClient(Entity* entity, const SystemAddr
 }
 
 void ControlBehaviors::modelTypeChanged(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "modelTypeChanged!\n");
 }
 
 void ControlBehaviors::toggleExecutionUpdates(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
+    Game::logger->Log("ControlBehaviors", "toggleExecutionUpdates!\n");
     double eightTwo = 82.0;
     double oneOThree = 103.0;
     double zero = 0.0;
@@ -151,41 +152,41 @@ void ControlBehaviors::toggleExecutionUpdates(Entity* entity, const SystemAddres
 }
 
 void ControlBehaviors::addStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "addStrip!\n");
 }
 
 void ControlBehaviors::removeStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "removeStrip!\n");
 }
 
 void ControlBehaviors::mergeStrips(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "mergeStrips!\n");
 }
 
 void ControlBehaviors::splitStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "splitStrip!\n");
 }
 
 void ControlBehaviors::updateStripUI(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "updateStripUI!\n");
 }
 
 void ControlBehaviors::addAction(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "addAction!\n");
 }
 
 void ControlBehaviors::migrateActions(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "migrateActions!\n");
 }
 
 void ControlBehaviors::rearrangeStrip(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "rearrangeStrip!\n");
 }
 
 void ControlBehaviors::add(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "add!\n");
 }
 
 void ControlBehaviors::removeActions(Entity* entity, const SystemAddress& sysAddr, AMFArrayValue* arguments) {
-
+    Game::logger->Log("ControlBehaviors", "removeActions!\n");
 }
