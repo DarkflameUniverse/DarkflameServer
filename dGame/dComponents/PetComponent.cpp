@@ -75,6 +75,12 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId) : Component(par
     m_MovementAI = nullptr;
     m_TresureTime = 0;
     m_Preconditions = nullptr;
+
+	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parent->GetVar<std::u16string>(u"CheckPrecondition"));
+
+	if (!checkPreconditions.empty()) {
+		SetPreconditions(checkPreconditions);
+	}
 }
 
 void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) 
