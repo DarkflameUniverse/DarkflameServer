@@ -25,6 +25,8 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
         sizeOfString = sizeOfString >> 1;
     }
     else {
+        // This WILL be even to begin with and will never result in truncation
+        sizeOfString = sizeOfString / 2;
         isReference = true;
     }
 
@@ -37,73 +39,41 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
                 inStream->Read(character);
                 key.push_back(character);
             }
+            accessedElements.push_back(key);
         } else {
-            isReference = false;
             key = accessedElements[sizeOfString];
         }
         // Read in the value type from the bitStream
         int8_t valueType;
         inStream->Read(valueType);
-
         // Based on the typing, read a different value
         switch (valueType) {
             case AMFValueType::AMFUndefined: {
                 AMFUndefinedValue* undefinedValue = new AMFUndefinedValue();
                 Game::logger->Log("AMFDeserialize", "Hit undefinedValue (%s)!\n", key.c_str());
-                accessedElements.push_back(key);
-                accessedElements.push_back("");
                 break;
             }
+
             case AMFValueType::AMFNull: {
                 AMFNullValue* nullValue = new AMFNullValue();
                 Game::logger->Log("AMFDeserialize", "Hit nullValue (%s)!\n", key.c_str());
-                accessedElements.push_back(key);
-                accessedElements.push_back("");
                 break;
             }
+
             case AMFValueType::AMFFalse: {
                 AMFFalseValue* falseValue = new AMFFalseValue();
                 values->InsertValue(key, falseValue);
                 Game::logger->Log("AMFDeserialize", "Key (%s) value false!\n", key.c_str());
-                accessedElements.push_back(key);
-                accessedElements.push_back("0.0");
                 break;
             }
+
             case AMFValueType::AMFTrue: {
                 AMFTrueValue* trueValue = new AMFTrueValue();
                 Game::logger->Log("AMFDeserialize", "Key (%s) value true!\n", key.c_str());
                 values->InsertValue(key, trueValue);
-                accessedElements.push_back(key);
-                accessedElements.push_back("1.0");
                 break;
             }
-            // UNTESTED
-            case AMFValueType::AMFInteger: {
-                AMFIntegerValue* integerValue = new AMFIntegerValue();
-                Game::logger->Log("AMFDeserialize", "Hit integerValue!\n", key.c_str());
-                bool posOrNeg = -1;
-                int32_t readValue = 0;
-                bool hasMore = true;
-                if (hasMore) {
-                    inStream->Read(hasMore);
-                    if (posOrNeg == -1) inStream->Read(posOrNeg);
-                    for (uint32_t i = 0; i < 7; i++) {
-                        readValue = readValue << 1;
-                        bool bit = 0;
-                        inStream->Read(bit);
-                        if (bit) readValue |= 1UL << 0;
-                    }
-                }
-                readValue = readValue << 3;
-                integerValue->SetIntegerValue(readValue);
-                Game::logger->Log("AMFDeserialize", "Key (%s) value (%i)!\n", key.c_str(), readValue);
-                if (posOrNeg == 1) readValue = -readValue;
-                Game::logger->Log("AMFDeserialize", "Post conversion Key (%s) value (%i)!\n", key.c_str(), readValue);
-                values->InsertValue(key, integerValue);
-                accessedElements.push_back(key);
-                accessedElements.push_back(std::to_string(readValue));
-                break;
-            }
+
             case AMFValueType::AMFDouble: {
                 AMFDoubleValue* doubleValue = new AMFDoubleValue();
                 double value;
@@ -111,28 +81,33 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
                 Game::logger->Log("AMFDeserialize", "Key (%s) value (%f)!\n", key.c_str(), value);
                 doubleValue->SetDoubleValue(value);
                 values->InsertValue(key, doubleValue);
-                accessedElements.push_back(key);
-                accessedElements.push_back(std::to_string(value));
                 break;
             }
+
             case AMFValueType::AMFString: {
                 AMFStringValue* stringValue = new AMFStringValue();
                 std::string value;
                 int8_t length;
                 inStream->Read(length);
-                if (length % 2 == 1) length = length >> 1;
-                for (uint32_t i = 0; i < length; i++) {
-                    int8_t character;
-                    inStream->Read(character);
-                    value.push_back(character);
+                if (length % 2 == 1)  {
+                    length = length >> 1;
+                    for (uint32_t i = 0; i < length; i++) {
+                        int8_t character;
+                        inStream->Read(character);
+                        value.push_back(character);
+                    }
+                    if (!value.empty()) accessedElements.push_back(value);
+                } else {
+                    // Length is a reference if even!
+                    length = length / 2;
+                    value = accessedElements[length];
                 }
                 stringValue->SetStringValue(value);
                 values->InsertValue(key, stringValue);
                 Game::logger->Log("AMFDeserialize", "Key (%s) value (%s)!\n", key.c_str(), value.c_str());
-                accessedElements.push_back(key);
-                accessedElements.push_back(value);
                 break;
             }
+
             case AMFValueType::AMFArray: {                
                 int8_t sizeOfSubArray;
                 int8_t doFullProcess = 0;
@@ -140,17 +115,22 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
                 if (sizeOfSubArray % 2 == 1) {
                     sizeOfSubArray = sizeOfSubArray >> 1;
                 }
-                if (sizeOfSubArray > 0) {
+                AMFArrayValue* result = nullptr;
+                if (sizeOfSubArray >= 1) {
                     inStream->Read(doFullProcess);
+                    for (uint32_t i = 0; i < sizeOfSubArray; i++) {
+                        result = Read(inStream, true);
+                    }
+                } else {
+                    result = Read(inStream);
                 }
-                auto result = Read(inStream, doFullProcess >= 1);
                 values->InsertValue(key, result);
-                accessedElements.push_back(key);
-                accessedElements.push_back("");
                 Game::logger->Log("AMFDeserialize", "Array has key (%s)\n", key.c_str());
                 break;
             }
+
             // Don't think I need these for now.  Will log if I need them.
+            case AMFValueType::AMFInteger:
             case AMFValueType::AMFXMLDoc:
             case AMFValueType::AMFDate:
             case AMFValueType::AMFObject:
@@ -161,17 +141,47 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool doFullProc
             case AMFValueType::AMFVectorDouble:
             case AMFValueType::AMFVectorObject:
             case AMFValueType::AMFDictionary:
+                if (!isReference) accessedElements.push_back(key);
                 Game::logger->Log("AMFDeserialize", "Got unusable value %i with key (%s)!\n", valueType, key);
                 break;
         }
+        isReference = false;
         inStream->Read(sizeOfString);
         if (sizeOfString % 2 == 1) {
             sizeOfString = sizeOfString >> 1;
         }
         else {
+            // This WILL be even to begin with and will never result in truncation
+            sizeOfString = sizeOfString / 2;
             isReference = true;
         }
     }
 
     return values;
 }
+
+/**
+ * AMFIntegerValue* integerValue = new AMFIntegerValue();
+ *     Game::logger->Log("AMFDeserialize", "Hit integerValue!\n", key.c_str());
+ *     bool posOrNeg = -1;
+ *     int32_t readValue = 0;
+ *     bool hasMore = true;
+ *     if (hasMore) {
+ *         inStream->Read(hasMore);
+ *         if (posOrNeg == -1) inStream->Read(posOrNeg);
+ *         for (uint32_t i = 0; i < 7; i++) {
+ *             readValue = readValue << 1;
+ *             bool bit = 0;
+ *             inStream->Read(bit);
+ *             if (bit) readValue |= 1UL << 0;
+ *         }
+ *     }
+ *     readValue = readValue << 3;
+ *     integerValue->SetIntegerValue(readValue);
+ *     Game::logger->Log("AMFDeserialize", "Key (%s) value (%i)!\n", key.c_str(), readValue);
+ *     if (posOrNeg == 1) readValue = -readValue;
+ *     Game::logger->Log("AMFDeserialize", "Post conversion Key (%s) value (%i)!\n", key.c_str(), readValue);
+ *     values->InsertValue(key, integerValue);
+ * break;
+ * 
+ */
