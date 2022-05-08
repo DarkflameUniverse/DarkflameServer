@@ -64,6 +64,11 @@ void PropertyBehaviors::SerializeStrip(LWOOBJID objectID, const SystemAddress& s
     Game::logger->Log("PropertyBehaviors", "finished initializing action2 block!\n");
     tempState.at(0).push_back(secondAction);
     states[0] = tempState;
+    states[1] = tempState;
+    states[2] = tempState;
+    states[3] = tempState;
+    states[4] = tempState;
+    states[5] = tempState;
     Game::logger->Log("PropertyBehaviors", "Begin serialization!\n");
     // Begin serialization.
 

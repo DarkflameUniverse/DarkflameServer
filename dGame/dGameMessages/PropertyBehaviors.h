@@ -17,14 +17,10 @@ class PropertyBehaviors {
     private:
         std::map<BEHAVIORSTATE, std::map<STRIPID, std::vector<BehaviorAction*>>> states = {
             {eStates::HOME_STATE, {}},
+            {eStates::CIRCLE_STATE, {}},
+            {eStates::SQUARE_STATE, {}},
+            {eStates::DIAMOND_STATE, {}},
+            {eStates::TRIANGLE_STATE, {}},
+            {eStates::STAR_STATE, {}}
         };
 };
-
-/**
-*               {eStates::CIRCLE_STATE, {}},
-*     {eStates::SQUARE_STATE, {}},
-*     {eStates::DIAMOND_STATE, {}},
-*     {eStates::TRIANGLE_STATE, {}},
-*     {eStates::STAR_STATE, {}}
-*    
- */
