@@ -55,6 +55,12 @@ public:
         std::string callbackID = "", double xPosition = 0.0, double yPosition = 0.0, uint32_t behaviorID = 0, std::string behaviorName = "");
 
     /**
+     * Adds an action to an existing strip.
+     */
+    void AddAction(
+        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
+		std::string callbackID, uint32_t actionIndex);
+    /**
      * Returns a map of behaviors this component has.
      * @return map of states of behavior actions
      */

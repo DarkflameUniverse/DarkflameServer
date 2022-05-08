@@ -54,6 +54,9 @@ void ControlBehaviors::modelTypeChanged(Entity* modelEntity, const SystemAddress
 
 void ControlBehaviors::toggleExecutionUpdates(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "toggleExecutionUpdates!\n");
+    AMFValue* enabled = arguments->FindValue("enabled");
+    // If false dont send blocks
+    if (enabled->GetValueType() == AMFValueType::AMFFalse) return;
     auto modelComponent = modelEntity->GetComponent<ModelComponent>();
     if (!modelComponent) return;
 
@@ -211,39 +214,39 @@ void ControlBehaviors::updateStripUI(Entity* modelEntity, const SystemAddress& s
 
 void ControlBehaviors::addAction(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "addAction!\n");
-    // auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    // if (!modelComponent) return;
+    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
+    if (!modelComponent) return;
 
-    // AMFArrayValue* actions = (AMFArrayValue*)strip->FindValue("actions");
+    AMFArrayValue* actions = (AMFArrayValue*)arguments->FindValue("actions");
 
-    // AMFDoubleValue* actionIndexValue = (AMFDoubleValue*)arguments->FindValue("actionIndex");
-    // uint32_t actionIndex = (uint32_t)actionIndexValue->GetDoubleValue();
+    AMFDoubleValue* actionIndexValue = (AMFDoubleValue*)arguments->FindValue("actionIndex");
+    uint32_t actionIndex = (uint32_t)actionIndexValue->GetDoubleValue();
 
-    // AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
-    // STRIPID stripID = (STRIPID)stripIDValue->GetDoubleValue();
+    AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
+    STRIPID stripID = (STRIPID)stripIDValue->GetDoubleValue();
 
-    // AMFDoubleValue* stateIDValue = (AMFDoubleValue*)arguments->FindValue("stateID");
-    // BEHAVIORSTATE stateID = (BEHAVIORSTATE)stateIDValue->GetDoubleValue();
+    AMFDoubleValue* stateIDValue = (AMFDoubleValue*)arguments->FindValue("stateID");
+    BEHAVIORSTATE stateID = (BEHAVIORSTATE)stateIDValue->GetDoubleValue();
 
-    // std::string type = "";
-    // std::string valueParameterName = "";
-    // std::string valueParameterString = "";
-    // double valueParameterDouble = 0.0;
-    // auto actionList = actions->GetDenseArray();
-    // AMFArrayValue* actionAsArray = (AMFArrayValue*)actionList;
-    // for (auto typeValueMap : actionAsArray->GetAssociativeMap()) {
-    //     if (typeValueMap.first == "Type") {
-    //         type = ((AMFStringValue*)typeValueMap.second)->GetStringValue();
-    //     } else {
-    //         valueParameterName = typeValueMap.first;
-    //         // Message is the only known string parameter
-    //         if (valueParameterName == "Message") {
-    //             valueParameterString = ((AMFStringValue*)typeValueMap.second)->GetStringValue();
-    //         } else {
-    //             valueParameterDouble = ((AMFDoubleValue*)typeValueMap.second)->GetDoubleValue();
-    //         }
-    //     }
-    // }
+    std::string type = "";
+    std::string valueParameterName = "";
+    std::string valueParameterString = "";
+    double valueParameterDouble = 0.0;
+    AMFArrayValue* actionAsArray = (AMFArrayValue*)arguments->FindValue("action");
+    for (auto typeValueMap : actionAsArray->GetAssociativeMap()) {
+        if (typeValueMap.first == "Type") {
+            type = ((AMFStringValue*)typeValueMap.second)->GetStringValue();
+        } else {
+            valueParameterName = typeValueMap.first;
+            // Message is the only known string parameter
+            if (valueParameterName == "Message") {
+                valueParameterString = ((AMFStringValue*)typeValueMap.second)->GetStringValue();
+            } else {
+                valueParameterDouble = ((AMFDoubleValue*)typeValueMap.second)->GetDoubleValue();
+            }
+        }
+    }
+    modelComponent->AddAction(stateID, stripID, type, valueParameterName, valueParameterString, valueParameterDouble, "", actionIndex);
 }
 
 void ControlBehaviors::migrateActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {

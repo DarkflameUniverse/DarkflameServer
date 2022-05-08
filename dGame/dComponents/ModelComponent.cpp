@@ -74,8 +74,30 @@ void ModelComponent::AddStrip(
 	Game::logger->Log("ModelComponent", "Added new action to strip %i in state %i!\n", stripID, stateID);
 }
 
-// void ModelComponent::AddAction(
-//         BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
-// 		std::string callbackID, double xPosition, double yPosition, uint32_t behaviorID, std::string behaviorName) {
+void ModelComponent::AddAction(
+        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
+		std::string callbackID, uint32_t actionIndex)
+{
+	Game::logger->Log("ModelComponent", "Adding new action to existing strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
 
-// }
+	auto state = states.find(stateID);
+	auto strip = state->second.find(stripID);
+	auto stripPositionIterator = strip->second.begin() + actionIndex;
+
+	BehaviorAction* newAction = new BehaviorAction();
+	newAction->stateID = stateID;
+	newAction->stripID = stripID;
+	newAction->actionName = actionName;
+	newAction->parameterValue = actionParameter;
+	newAction->parameterValueNumber = actionParameterValue;
+	newAction->callbackID = callbackID;
+	newAction->behaviorID = strip->second[0]->behaviorID;
+	newAction->parameterName = parameterName;
+	newAction->xPosition = strip->second[0]->xPosition;
+	newAction->yPosition = strip->second[0]->yPosition;
+	newAction->behaviorName = strip->second[0]->behaviorName;
+
+	strip->second.insert(stripPositionIterator, newAction);
+
+	Game::logger->Log("ModelComponent", "Added new action to existing strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
+}
