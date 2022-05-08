@@ -63,8 +63,16 @@ void PropertyBehaviors::SerializeStrip(LWOOBJID objectID, const SystemAddress& s
     secondAction->parameterValueNumber = 25.0;
     Game::logger->Log("PropertyBehaviors", "finished initializing action2 block!\n");
     tempState.at(0).push_back(secondAction);
-    states[0] = tempState;
     states[1] = tempState;
+
+    BehaviorAction* thirdAction = new BehaviorAction();
+    thirdAction->callbackID = "";
+    thirdAction->actionName = "ChangeStateCircle";
+    thirdAction->parameterValueNumber = 0.0;
+    thirdAction->parameterValue = "";
+    tempState.at(0).push_back(thirdAction);
+
+    states[0] = tempState;
     states[2] = tempState;
     states[3] = tempState;
     states[4] = tempState;
