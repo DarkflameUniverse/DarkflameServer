@@ -4,6 +4,10 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "Component.h"
+#include "Actions.h"
+
+#include <map>
+#include <vector>
 
 class Entity;
 
@@ -43,6 +47,18 @@ public:
      */
     void SetRotation(const NiQuaternion& rot) { m_Rotation = rot; }
 
+    /**
+     * Adds a strip of action(s) to a state.
+     */
+    void AddStrip(
+        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName = "", std::string actionParameter = "", double actionParameterValue = 0.0,
+        std::string callbackID = "", double xPosition = 0.0, double yPosition = 0.0, uint32_t behaviorID = 0, std::string behaviorName = "");
+
+    /**
+     * Returns a map of behaviors this component has.
+     * @return map of states of behavior actions
+     */
+    std::map<BEHAVIORSTATE, std::map<STRIPID, std::vector<BehaviorAction*>>> GetBehaviorActions() { return states; };
 private:
 
     /**
@@ -59,4 +75,16 @@ private:
      * The ID of the user that made the model
      */
     LWOOBJID m_userModelID;
+
+    /**
+     * A map representing the behaviors this component has.
+     */
+    std::map<BEHAVIORSTATE, std::map<STRIPID, std::vector<BehaviorAction*>>> states = {
+            {eStates::HOME_STATE, {}},
+            {eStates::CIRCLE_STATE, {}},
+            {eStates::SQUARE_STATE, {}},
+            {eStates::DIAMOND_STATE, {}},
+            {eStates::TRIANGLE_STATE, {}},
+            {eStates::STAR_STATE, {}}
+        };
 };

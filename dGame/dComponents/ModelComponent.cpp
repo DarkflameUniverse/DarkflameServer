@@ -1,5 +1,6 @@
 #include "ModelComponent.h"
 #include "Entity.h"
+#include "dLogger.h"
 
 ModelComponent::ModelComponent(uint32_t componentID, Entity* parent) : Component(parent)
 {
@@ -40,3 +41,41 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 	outBitStream->Write1();
 	outBitStream->Write0();
 }
+
+void ModelComponent::AddStrip(
+        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
+		std::string callbackID, double xPosition, double yPosition, uint32_t behaviorID, std::string behaviorName)
+{
+	Game::logger->Log("ModelComponent", "Adding new action to strip %i in state %i!\n", stripID, stateID);
+
+	BehaviorAction* newAction = new BehaviorAction();
+	newAction->stateID = stateID;
+	newAction->stripID = stripID;
+	newAction->actionName = actionName;
+	newAction->parameterValue = actionParameter;
+	newAction->parameterValueNumber = actionParameterValue;
+	newAction->callbackID = callbackID;
+	newAction->xPosition = xPosition;
+	newAction->yPosition = yPosition;
+	newAction->behaviorID = behaviorID;
+	newAction->behaviorName = behaviorName;
+	newAction->parameterName = parameterName;
+
+	auto state = states.find(stateID);
+	auto strip = state->second.find(stripID);
+	if (strip == state->second.end()) {
+		std::vector<BehaviorAction*> ba;
+		ba.push_back(newAction);
+		state->second.insert(std::make_pair(stripID, ba));
+	} else {
+		strip->second.push_back(newAction);
+	}
+
+	Game::logger->Log("ModelComponent", "Added new action to strip %i in state %i!\n", stripID, stateID);
+}
+
+// void ModelComponent::AddAction(
+//         BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
+// 		std::string callbackID, double xPosition, double yPosition, uint32_t behaviorID, std::string behaviorName) {
+
+// }

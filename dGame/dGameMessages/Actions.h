@@ -1,6 +1,5 @@
 #pragma once
 
-#include "PropertyBehaviors.h"
 #include <string>
 
 struct BehaviorAction {
