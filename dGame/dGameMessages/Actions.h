@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "dCommonVars.h"
 
 struct BehaviorAction {
     std::string behaviorName;

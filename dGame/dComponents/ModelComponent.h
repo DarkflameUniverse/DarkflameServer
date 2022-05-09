@@ -5,6 +5,7 @@
 #include "NiQuaternion.h"
 #include "Component.h"
 #include "Actions.h"
+#include "ModelBehavior.h"
 
 #include <map>
 #include <vector>
@@ -59,7 +60,7 @@ public:
      */
     void AddAction(
         BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
-		std::string callbackID, uint32_t actionIndex);
+		std::string callbackID, uint32_t actionIndex, uint32_t behaviorID);
 
     /**
      * Removes all actions after the given index from a behvior
@@ -69,12 +70,28 @@ public:
     /**
      * Removes a strip from a state
      */
-    void RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID);
+    void RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t behaviorID);
+
     /**
-     * Returns a map of behaviors this component has.
-     * @return map of states of behavior actions
+     * Adds a behavior to the vector of behaviors
+     * 
+     * @param behaviorID Behavior ID to add
+     * @param behaviorIndex Index this behavior is located at
      */
-    std::map<BEHAVIORSTATE, std::map<STRIPID, std::vector<BehaviorAction*>>> GetBehaviorActions() { return states; };
+    void AddBehavior(uint32_t behaviorID, uint32_t behaviorIndex);
+    
+    /**
+     * @brief Returns the behaviors this model has
+     * 
+     * @return a vector of behaviors
+     */
+    std::vector<ModelBehavior*> GetBehaviors() { return behaviors; };
+
+    /**
+     * Finds a behavior this model has by ID
+     */
+    ModelBehavior* FindBehavior(uint32_t behaviorID);
+	
 private:
 
     /**
@@ -93,14 +110,7 @@ private:
     LWOOBJID m_userModelID;
 
     /**
-     * A map representing the behaviors this component has.
+     * A vector of behaviors this component has
      */
-    std::map<BEHAVIORSTATE, std::map<STRIPID, std::vector<BehaviorAction*>>> states = {
-            {eStates::HOME_STATE, {}},
-            {eStates::CIRCLE_STATE, {}},
-            {eStates::SQUARE_STATE, {}},
-            {eStates::DIAMOND_STATE, {}},
-            {eStates::TRIANGLE_STATE, {}},
-            {eStates::STAR_STATE, {}}
-        };
+    std::vector<ModelBehavior*> behaviors = {};
 };

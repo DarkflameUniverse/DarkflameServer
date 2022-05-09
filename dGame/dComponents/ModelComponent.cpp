@@ -48,56 +48,22 @@ void ModelComponent::AddStrip(
 {
 	Game::logger->Log("ModelComponent", "Adding new action to strip %i in state %i!\n", stripID, stateID);
 
-	BehaviorAction* newAction = new BehaviorAction();
-	newAction->stateID = stateID;
-	newAction->stripID = stripID;
-	newAction->actionName = actionName;
-	newAction->parameterValue = actionParameter;
-	newAction->parameterValueNumber = actionParameterValue;
-	newAction->callbackID = callbackID;
-	newAction->xPosition = xPosition;
-	newAction->yPosition = yPosition;
-	newAction->behaviorID = behaviorID;
-	newAction->behaviorName = behaviorName;
-	newAction->parameterName = parameterName;
+	auto behavior = FindBehavior(behaviorID);
 
-	auto state = states.find(stateID);
-	auto strip = state->second.find(stripID);
-	if (strip == state->second.end()) {
-		std::vector<BehaviorAction*> ba;
-		ba.push_back(newAction);
-		state->second.insert(std::make_pair(stripID, ba));
-	} else {
-		strip->second.push_back(newAction);
-	}
+	behavior->AddStrip(stateID, stripID, actionName, parameterName, actionParameter, actionParameterValue, callbackID, xPosition, yPosition, behaviorID, behaviorName);
 
 	Game::logger->Log("ModelComponent", "Added new action to strip %i in state %i!\n", stripID, stateID);
 }
 
 void ModelComponent::AddAction(
         BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
-		std::string callbackID, uint32_t actionIndex)
+		std::string callbackID, uint32_t actionIndex, uint32_t behaviorID)
 {
 	Game::logger->Log("ModelComponent", "Adding new action to existing strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
 
-	auto state = states.find(stateID);
-	auto strip = state->second.find(stripID);
-	auto stripPositionIterator = strip->second.begin() + actionIndex;
+	auto behavior = FindBehavior(behaviorID);
 
-	BehaviorAction* newAction = new BehaviorAction();
-	newAction->stateID = stateID;
-	newAction->stripID = stripID;
-	newAction->actionName = actionName;
-	newAction->parameterValue = actionParameter;
-	newAction->parameterValueNumber = actionParameterValue;
-	newAction->callbackID = callbackID;
-	newAction->behaviorID = strip->second[0]->behaviorID;
-	newAction->parameterName = parameterName;
-	newAction->xPosition = strip->second[0]->xPosition;
-	newAction->yPosition = strip->second[0]->yPosition;
-	newAction->behaviorName = strip->second[0]->behaviorName;
-
-	strip->second.insert(stripPositionIterator, newAction);
+	behavior->AddAction(stateID, stripID, actionName, parameterName, actionParameter, actionParameterValue, callbackID, actionIndex, behaviorID);
 
 	Game::logger->Log("ModelComponent", "Added new action to existing strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
 }
@@ -105,35 +71,43 @@ void ModelComponent::AddAction(
 void ModelComponent::RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t actionIndex, uint32_t behaviorID) {
 	Game::logger->Log("ModelComponent", "Removing action(s) from strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
 
-	auto state = states.find(stateID);
-	auto strip = state->second.find(stripID);
-	auto originalPosition = strip->second.begin() + actionIndex;
-	// TODO manage pointer here
-	for (auto positionToErase = originalPosition; positionToErase != strip->second.end(); positionToErase++) {
-		Game::logger->Log("ModelComponent", "Deleting element!\n");
-		delete *positionToErase;
-		*positionToErase = nullptr;
-	}
-	strip->second.erase(originalPosition, strip->second.end());
+	auto behavior = FindBehavior(behaviorID);
+
+	behavior->RemoveAction(stateID, stripID, actionIndex, behaviorID);
 
 	Game::logger->Log("ModelComponent", "Removed action(s) from strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
 }
 
-void ModelComponent::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID) {
+void ModelComponent::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t behaviorID) {
 	Game::logger->Log("ModelComponent", "Removing strip %i in state %i!\n", stripID, stateID);
 
-	auto state = states.find(stateID);
-	auto strip = state->second.find(stripID);
+	auto behavior = FindBehavior(behaviorID);
 
-	for (auto element : strip->second) {
-		Game::logger->Log("ModelComponent", "Deleting element!\n");
-		delete element;
-		element = nullptr;
-	}
-
-	strip->second.clear();
-
-	state->second.erase(stripID);
+	behavior->RemoveStrip(stateID, stripID, behaviorID);
 
 	Game::logger->Log("ModelComponent", "Removed strip %i in state %i!\n", stripID, stateID);
+}
+
+void ModelComponent::AddBehavior(uint32_t behaviorID, uint32_t behaviorIndex) {
+	Game::logger->Log("ModelComponent", "Adding behavior %i in index %i!\n", behaviorID, behaviorIndex);
+	if (behaviors.size() >= 5) return;
+	for (auto behavior : behaviors) {
+		// Don't allow duplicates.  For some reason the client won't render duplicates in the behaviors list.
+		if (behavior->GetBehaviorID() == behaviorID) return;
+	}
+	auto behavior = new ModelBehavior(behaviorID);
+	behaviors.insert(behaviors.begin() + behaviorIndex, behavior);
+	Game::logger->Log("ModelComponent", "Added behavior %i in index %i!\n", behaviorID, behaviorIndex);
+}
+
+ModelBehavior* ModelComponent::FindBehavior(uint32_t behaviorID) {
+	for (auto behavior : behaviors) {
+		if (behavior->GetBehaviorID() == behaviorID) return behavior;
+	}
+	if (behaviors.size() < 5) {
+		auto behavior = new ModelBehavior(behaviorID);
+		behaviors.insert(behaviors.begin(), behavior);
+		return behavior;
+	}
+	return nullptr;
 }

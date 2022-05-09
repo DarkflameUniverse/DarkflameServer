@@ -49,12 +49,14 @@ AMFArrayValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool readStartO
         switch (valueType) {
             case AMFValueType::AMFUndefined: {
                 AMFUndefinedValue* undefinedValue = new AMFUndefinedValue();
+                values->InsertValue(key, undefinedValue);
                 Game::logger->Log("AMFDeserialize", "Hit undefinedValue (%s)!\n", key.c_str());
                 break;
             }
 
             case AMFValueType::AMFNull: {
                 AMFNullValue* nullValue = new AMFNullValue();
+                values->InsertValue(key, nullValue);
                 Game::logger->Log("AMFDeserialize", "Hit nullValue (%s)!\n", key.c_str());
                 break;
             }
