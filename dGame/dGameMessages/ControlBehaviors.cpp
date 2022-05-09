@@ -55,17 +55,9 @@ void ControlBehaviors::modelTypeChanged(Entity* modelEntity, const SystemAddress
 void ControlBehaviors::toggleExecutionUpdates(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "toggleExecutionUpdates!\n");
     AMFValue* enabled = arguments->FindValue("enabled");
-    // If false dont send blocks
-    if (enabled->GetValueType() == AMFValueType::AMFFalse) return;
+    // Every past here is supposed to be sent from the incoming message sendBehaviorBlocksToClient
     auto modelComponent = modelEntity->GetComponent<ModelComponent>();
     if (!modelComponent) return;
-
-    // modelComponent->AddStrip(0, 0, "OnEnterProximity", "Distance", "", 1.0, "", 103.0, 82.0, 10447, "");
-    // modelComponent->AddStrip(1, 0, "SpinNegative", "Degrees", "", 90.0, "", 200.0, 182.0, 10447, "");
-    // modelComponent->AddStrip(2, 0, "FlyUp", "Distance", "", 25.0, "", 25.0, 382.0, 10447, "");
-    // modelComponent->AddStrip(3, 0, "SpawnStromling", "", "", 0.0, "", 103.0, 82.0, 10447, "");
-    // modelComponent->AddStrip(4, 0, "DropArmor", "Amount", "", 5.0, "", 103.0, 82.0, 10447, "");
-    // modelComponent->AddStrip(5, 0, "Wait", "Delay", "", 5.0, "", 103.0, 82.0, 10447, "");
 
     auto states = modelComponent->GetBehaviorActions();
 
