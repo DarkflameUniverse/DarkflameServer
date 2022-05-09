@@ -60,6 +60,16 @@ public:
     void AddAction(
         BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
 		std::string callbackID, uint32_t actionIndex);
+
+    /**
+     * Removes all actions after the given index from a behvior
+     */
+    void RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t actionIndex, uint32_t behaviorID);
+
+    /**
+     * Removes a strip from a state
+     */
+    void RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID);
     /**
      * Returns a map of behaviors this component has.
      * @return map of states of behavior actions

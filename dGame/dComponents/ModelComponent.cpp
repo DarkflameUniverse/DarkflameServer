@@ -101,3 +101,39 @@ void ModelComponent::AddAction(
 
 	Game::logger->Log("ModelComponent", "Added new action to existing strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
 }
+
+void ModelComponent::RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t actionIndex, uint32_t behaviorID) {
+	Game::logger->Log("ModelComponent", "Removing action(s) from strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
+
+	auto state = states.find(stateID);
+	auto strip = state->second.find(stripID);
+	auto originalPosition = strip->second.begin() + actionIndex;
+	// TODO manage pointer here
+	for (auto positionToErase = originalPosition; positionToErase != strip->second.end(); positionToErase++) {
+		Game::logger->Log("ModelComponent", "Deleting element!\n");
+		delete *positionToErase;
+		*positionToErase = nullptr;
+	}
+	strip->second.erase(originalPosition, strip->second.end());
+
+	Game::logger->Log("ModelComponent", "Removed action(s) from strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
+}
+
+void ModelComponent::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID) {
+	Game::logger->Log("ModelComponent", "Removing strip %i in state %i!\n", stripID, stateID);
+
+	auto state = states.find(stateID);
+	auto strip = state->second.find(stripID);
+
+	for (auto element : strip->second) {
+		Game::logger->Log("ModelComponent", "Deleting element!\n");
+		delete element;
+		element = nullptr;
+	}
+
+	strip->second.clear();
+
+	state->second.erase(stripID);
+
+	Game::logger->Log("ModelComponent", "Removed strip %i in state %i!\n", stripID, stateID);
+}

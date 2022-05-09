@@ -198,6 +198,15 @@ void ControlBehaviors::addStrip(Entity* modelEntity, const SystemAddress& sysAdd
 
 void ControlBehaviors::removeStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "removeStrip!\n");
+    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
+    if (!modelComponent) return;
+
+    AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
+    STRIPID stripID = stripIDValue->GetDoubleValue();
+    AMFDoubleValue* stateIDValue = (AMFDoubleValue*)arguments->FindValue("stateID");
+    BEHAVIORSTATE stateID = stateIDValue->GetDoubleValue();
+
+    modelComponent->RemoveStrip(stateID, stripID);
 }
 
 void ControlBehaviors::mergeStrips(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
@@ -263,6 +272,19 @@ void ControlBehaviors::add(Entity* modelEntity, const SystemAddress& sysAddr, AM
 
 void ControlBehaviors::removeActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "removeActions!\n");
+    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
+    if (!modelComponent) return;
+
+    // AMFDoubleValue* behaviorIDValue = (AMFDoubleValue*)arguments->FindValue("BehaviorID");
+    // double behaviorID = behaviorIDValue->GetDoubleValue();
+    AMFDoubleValue* actionIndexValue = (AMFDoubleValue*)arguments->FindValue("actionIndex");
+    uint32_t actionIndex = (uint32_t)actionIndexValue->GetDoubleValue();
+    AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
+    STRIPID stripID = (uint32_t)stripIDValue->GetDoubleValue();
+    AMFDoubleValue* stateIDValue = (AMFDoubleValue*)arguments->FindValue("stateID");
+    BEHAVIORSTATE stateID = (uint32_t)stateIDValue->GetDoubleValue();
+
+    modelComponent->RemoveAction(stateID, stripID, actionIndex, 0);
 }
 
 void ControlBehaviors::rename(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
