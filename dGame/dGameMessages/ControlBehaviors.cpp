@@ -70,7 +70,7 @@ void ControlBehaviors::sendBehaviorListToClient(Entity* modelEntity, const Syste
         } else {
             behaviorInfo->InsertValue("isLoot", isFalse);
         }
-        
+
         AMFStringValue* name = new AMFStringValue();
         name->SetStringValue(behavior->GetName());
         behaviorInfo->InsertValue("name", name);
@@ -248,7 +248,7 @@ void ControlBehaviors::removeActions(Entity* modelEntity, const SystemAddress& s
     if (!modelComponent) return;
 
     AMFValue* behaviorIDValue = arguments->FindValue("BehaviorID");
-    uint32_t behaviorID = 7965;
+    uint32_t behaviorID = 0;
     if (behaviorIDValue->GetValueType() != AMFValueType::AMFUndefined) {
         behaviorID = std::stoi(((AMFStringValue*)behaviorIDValue)->GetStringValue());
     }
