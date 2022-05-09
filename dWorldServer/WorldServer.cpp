@@ -1089,7 +1089,7 @@ void HandlePacket(Packet* packet) {
 					noBBB:
 
 					// Tell the client it's done loading:
-					GameMessages::SendInvalidZoneTransferList(player, packet->systemAddress, u"https://forms.zohopublic.eu/virtualoffice204/form/DLUInGameSurvey/formperma/kpU-IL5v2-Wt41QcB5UFnYjzlLp-j2LEisF8e11PisU", u"", false, false);
+					GameMessages::SendInvalidZoneTransferList(player, packet->systemAddress, u"https://github.com/DarkflameUniverse/DarkflameServer", u"", false, false);
 					GameMessages::SendServerDoneLoadingAllObjects(player, packet->systemAddress);
 
 					//Send the player it's mail count:
