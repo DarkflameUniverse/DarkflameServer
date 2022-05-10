@@ -7,7 +7,7 @@
 
 class ModelBehavior {
     public:
-            ModelBehavior(uint32_t behaviorID = 0);
+            ModelBehavior(uint32_t behaviorID = 0, bool isLoot = true);
             ~ModelBehavior();
         /**
          * Adds a strip of action(s) to a state.
@@ -32,6 +32,11 @@ class ModelBehavior {
          * Removes a strip from a state
          */
         void RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t behaviorID);
+
+        /**
+         * Renames the given behavior
+         */
+        void Rename(uint32_t behaviorID, std::string newName);
 
         /**
          * Returns a map of behaviors this component has.
@@ -66,6 +71,54 @@ class ModelBehavior {
          * @return The name of this behavior
          */
         std::string GetName() { return behaviorName; };
+
+        /**
+         * Clears the behaviors this behavior has
+         */
+        void ClearBehaviors();
+
+        /**
+         * Updates the UI position of a given strip
+         * 
+         * @param stateID 
+         * @param stripID 
+         * @param xPosition 
+         * @param yPosition 
+         * @param behaviorID 
+         */
+        void UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, double xPosition, double yPosition, uint32_t behaviorID);
+
+        /**
+         * Rearranges a strip
+         */
+        void RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t srcActionIndex, uint32_t dstActionIndex, uint32_t behaviorID);
+
+        /**
+         * Migrates actions
+         */
+        void MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, uint32_t dstActionIndex, STRIPID dstStripID, BEHAVIORSTATE dstStateID, uint32_t behaviorID); 
+
+        /**
+         * Splits a strip
+         */
+        void SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, STRIPID dstStripID, BEHAVIORSTATE dstStateID, uint32_t behaviorID, double yPosition, double xPosition);
+
+        /**
+         * Merges strips
+         */
+        void MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIORSTATE srcStateID, BEHAVIORSTATE dstStateID, uint32_t behaviorID, uint32_t dstActionIndex);
+
+        /**
+         * Updates an action
+         */
+        void UpdateAction(
+            BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
+	    	std::string callbackID, uint32_t actionIndex, uint32_t behaviorID);
+            
+        /**
+         * Sets the locked state
+         */
+        void SetLockState(bool value) { this->isLocked = value; };
     private:
         /**
          * The behavior ID of this behavior

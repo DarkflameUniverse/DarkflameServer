@@ -1,16 +1,28 @@
 #include "ModelBehavior.h"
 #include "Game.h"
+#include <algorithm>
 #include "dLogger.h"
 
-ModelBehavior::ModelBehavior(uint32_t behaviorID) {
+ModelBehavior::ModelBehavior(uint32_t behaviorID, bool isLoot) {
     this->behaviorID = behaviorID;
-    this->isLoot = true;
+    this->isLoot = isLoot;
     this->isLocked = false;
     this->behaviorName = "EmosewaMC";
 }
 
 ModelBehavior::~ModelBehavior() {
-    // TODO manage pointers
+
+}
+
+void ModelBehavior::ClearBehaviors() {
+    states = {
+                {eStates::HOME_STATE, {}},
+                {eStates::CIRCLE_STATE, {}},
+                {eStates::SQUARE_STATE, {}},
+                {eStates::DIAMOND_STATE, {}},
+                {eStates::TRIANGLE_STATE, {}},
+                {eStates::STAR_STATE, {}}
+            };
 }
 
 void ModelBehavior::AddStrip(
@@ -106,5 +118,89 @@ void ModelBehavior::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t
 
 	state->second.erase(stripID);
 
+
+
 	Game::logger->Log("ModelBehavior", "Removed strip %i in state %i!\n", stripID, stateID);
+}
+
+void ModelBehavior::Rename(uint32_t behaviorID, std::string newName) {
+	this->behaviorName = newName;
+}
+
+void ModelBehavior::UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, double xPosition, double yPosition, uint32_t behaviorID) {
+	auto state = states.find(stateID);
+	auto strip = state->second.find(stripID);
+	for (auto action : strip->second) {
+		action->xPosition = xPosition;
+		action->yPosition = yPosition;
+	}
+}
+
+void ModelBehavior::RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t srcActionIndex, uint32_t dstActionIndex, uint32_t behaviorID) {
+	auto state = states.find(stateID);
+	auto strip = state->second.find(stripID);
+
+	std::rotate(strip->second.begin() + dstActionIndex, strip->second.begin() + srcActionIndex, strip->second.end());
+}
+
+void ModelBehavior::MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, uint32_t dstActionIndex, STRIPID dstStripID, BEHAVIORSTATE dstStateID, uint32_t behaviorID) {
+	auto srcState = states.find(srcStateID);
+	auto srcStrip = srcState->second.find(srcStripID);
+	auto originalPosition = srcStrip->second.begin() + srcActionIndex;
+
+	auto dstState = states.find(dstStateID);
+	auto dstStrip = dstState->second.find(dstStripID);
+
+	dstStrip->second.insert(dstStrip->second.begin() + dstActionIndex, srcStrip->second.begin() + srcActionIndex, srcStrip->second.end());
+
+	srcStrip->second.erase(originalPosition, srcStrip->second.end());
+
+	for (auto element : dstStrip->second) {
+		element->stateID = dstStateID;
+		element->stripID = dstStripID;
+	}
+}
+
+void ModelBehavior::SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, STRIPID dstStripID, BEHAVIORSTATE dstStateID, uint32_t behaviorID, double yPosition, double xPosition) {
+	auto srcState = states.find(srcStateID);
+	auto srcStrip = srcState->second.find(srcStripID);
+	
+	auto dstState = states.find(dstStateID);
+
+	std::vector<BehaviorAction*> newStrip;
+	for (auto action = srcStrip->second.begin() + srcActionIndex; action != srcStrip->second.end(); action++) {
+		newStrip.push_back(*action);
+		(*action)->yPosition = yPosition;
+		(*action)->xPosition = xPosition;
+		(*action)->stripID = dstStripID;
+		(*action)->stateID = dstStateID;
+	}
+	dstState->second.insert(std::make_pair(dstStripID, newStrip));
+
+	srcStrip->second.erase(srcStrip->second.begin() + srcActionIndex, srcStrip->second.end());
+}
+
+void ModelBehavior::MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIORSTATE srcStateID, BEHAVIORSTATE dstStateID, uint32_t behaviorID, uint32_t dstActionIndex) {
+	auto srcState = states.find(srcStateID);
+	auto srcStrip = srcState->second.find(srcStripID);
+
+	auto dstState = states.find(dstStateID);
+	auto dstStrip = dstState->second.find(dstStripID);
+
+	dstStrip->second.insert(dstStrip->second.begin() + dstActionIndex, srcStrip->second.begin(), srcStrip->second.end());
+
+	srcState->second.erase(srcStripID);
+}
+
+void ModelBehavior::UpdateAction(
+            BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
+	    	std::string callbackID, uint32_t actionIndex, uint32_t behaviorID) 
+{
+	auto state = states.find(stateID);
+	auto strip = state->second.find(stripID);
+	auto action = *(strip->second.begin() + actionIndex);
+
+	action->parameterName = parameterName;
+	action->parameterValue = actionParameter;
+	action->parameterValueNumber = actionParameterValue;
 }
