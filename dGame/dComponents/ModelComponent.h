@@ -91,11 +91,6 @@ public:
      * Finds a behavior this model has by ID
      */
     ModelBehavior* FindBehavior(uint32_t& behaviorID);
-
-    /**
-     * Clears the previous new behavior ID
-     */
-    void ClearPreviousNewBehavior();
 	
     /**
      * Moves a behavior into the players inventory
@@ -165,11 +160,6 @@ private:
      * A vector of behaviors this component has
      */
     std::vector<ModelBehavior*> behaviors = {};
-
-    /**
-     * Previous new behavior
-     */
-    uint32_t prevNewBehaviorID = -1;
 
     /**
      * The models type

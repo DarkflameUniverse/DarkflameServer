@@ -7,22 +7,22 @@ ModelBehavior::ModelBehavior(uint32_t behaviorID, bool isLoot) {
     this->behaviorID = behaviorID;
     this->isLoot = isLoot;
     this->isLocked = false;
-    this->behaviorName = "EmosewaMC";
+    this->behaviorName = "New Behavior";
 }
 
 ModelBehavior::~ModelBehavior() {
-
-}
-
-void ModelBehavior::ClearBehaviors() {
-    states = {
-                {eStates::HOME_STATE, {}},
-                {eStates::CIRCLE_STATE, {}},
-                {eStates::SQUARE_STATE, {}},
-                {eStates::DIAMOND_STATE, {}},
-                {eStates::TRIANGLE_STATE, {}},
-                {eStates::STAR_STATE, {}}
-            };
+	for (auto state : states) {
+		for (auto strip : state.second) {
+			for (auto action : strip.second) {
+				Game::logger->Log("ModelBehavior", "Deleting behavior (%s)\n", action->actionName.c_str());
+				delete action;
+				action = nullptr;
+			}
+			strip.second.clear();
+		}
+		state.second.clear();
+	}
+	states.clear();
 }
 
 void ModelBehavior::AddStrip(
@@ -125,6 +125,7 @@ void ModelBehavior::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t
 
 void ModelBehavior::Rename(uint32_t behaviorID, std::string newName) {
 	this->behaviorName = newName;
+	this->isLoot = false;
 }
 
 void ModelBehavior::UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, double xPosition, double yPosition, uint32_t behaviorID) {

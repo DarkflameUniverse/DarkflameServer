@@ -19,6 +19,10 @@ ModelComponent::ModelComponent(uint32_t componentID, Entity* parent) : Component
 }
 
 ModelComponent::~ModelComponent() {
+	for (auto element : behaviors) {
+		delete element;
+		element = nullptr;
+	}
 }
 
 void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -122,19 +126,11 @@ void ModelComponent::AddBehavior(uint32_t behaviorID, uint32_t behaviorIndex) {
 
 ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
 	// Drop in here if we are creating a new behavior to create a new behavior with a unique ID
-	if (prevNewBehaviorID != -1 && behaviorID == -1) {
-		behaviorID = prevNewBehaviorID;
-		Game::logger->Log("ModelComponent", "1 Finding behavior with id %i\n", prevNewBehaviorID);
-		for (auto behavior : behaviors) {
-			if (behavior->GetBehaviorID() == prevNewBehaviorID) return behavior;
-		}
-	}
 	if (behaviorID == -1) {
 		for (uint32_t i = 0; i < 5; i++) {
 			if (behaviors.size() == 0) {
 				Game::logger->Log("ModelComponent", "Creating first behavior with id %i\n", i);
 				behaviorID = i;
-				prevNewBehaviorID = behaviorID;
 				auto newBehavior = new ModelBehavior(i, false);
 				behaviors.insert(behaviors.begin(), newBehavior);
 				return newBehavior;				
@@ -146,7 +142,6 @@ ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
 			if (isUniqueId) {
 				Game::logger->Log("ModelComponent", "Creating a new behavior with id %i\n", i);
 				behaviorID = i;
-				prevNewBehaviorID = behaviorID;
 				auto newBehavior = new ModelBehavior(i, false);
 				behaviors.insert(behaviors.begin(), newBehavior);
 				return newBehavior;
@@ -154,7 +149,7 @@ ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
 		}
 	}
 	for (auto behavior : behaviors) {
-		Game::logger->Log("ModelComponent", "2 Finding behavior with id %i (compared is %i)\n", behaviorID, behavior->GetBehaviorID());
+		Game::logger->Log("ModelComponent", "Finding behavior with id %i (compared is %i)\n", behaviorID, behavior->GetBehaviorID());
 		if (behavior->GetBehaviorID() == behaviorID) return behavior;
 	}
 	if (behaviors.size() < 5) {
@@ -165,10 +160,6 @@ ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
 	}
 	Game::logger->Log("ModelComponent", "Couldn't find behavior with id %i\n", behaviorID);
 	return nullptr;
-}
-
-void ModelComponent::ClearPreviousNewBehavior() {
-	prevNewBehaviorID = -1;
 }
 
 void ModelComponent::MoveBehaviorToInventory(uint32_t behaviorID, uint32_t behaviorIndex) {

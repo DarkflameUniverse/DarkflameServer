@@ -40,19 +40,20 @@ class ModelBehavior {
 
         /**
          * Returns a map of behaviors this component has.
+         * 
          * @return map of states of behavior actions
          */
         std::map<BEHAVIORSTATE, std::map<STRIPID, std::vector<BehaviorAction*>>> GetBehaviorActions() { return states; };
 
         /**
-         * @brief Return the behavior ID of the object
+         * Return the behavior ID of the object
          * 
          * @return The behaviors ID
          */
         uint32_t GetBehaviorID() { return behaviorID; };
 
         /**
-         * @brief Get if the behavior is lootable or not?
+         * Get if the behavior is lootable or not?
          * 
          * @return If the loot is enabled
          */
@@ -66,16 +67,11 @@ class ModelBehavior {
         bool GetIsLocked() { return isLocked; };
 
         /**
-         * @brief Get the name of this behavior
+         * Get the name of this behavior
          * 
          * @return The name of this behavior
          */
         std::string GetName() { return behaviorName; };
-
-        /**
-         * Clears the behaviors this behavior has
-         */
-        void ClearBehaviors();
 
         /**
          * Updates the UI position of a given strip
@@ -114,7 +110,7 @@ class ModelBehavior {
         void UpdateAction(
             BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
 	    	std::string callbackID, uint32_t actionIndex, uint32_t behaviorID);
-            
+
         /**
          * Sets the locked state
          */

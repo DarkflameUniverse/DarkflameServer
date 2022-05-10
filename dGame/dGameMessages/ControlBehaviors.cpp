@@ -54,7 +54,6 @@ void ControlBehaviors::sendBehaviorListToClient(Entity* modelEntity, const Syste
         AMFArrayValue* behaviorInfo = new AMFArrayValue();
 
         AMFStringValue* id = new AMFStringValue();
-        AMFNullValue* undef = new AMFNullValue();
         id->SetStringValue(std::to_string(behavior->GetBehaviorID()));
 
         behaviorInfo->InsertValue("id", id);
@@ -96,14 +95,12 @@ void ControlBehaviors::modelTypeChanged(Entity* modelEntity, const SystemAddress
     uint32_t modelType = (uint32_t)modelTypeValue->GetDoubleValue();
 
     modelComponent->SetModelType(modelType);
+    delete modelTypeValue;
+    modelTypeValue = nullptr;
 }
 
 void ControlBehaviors::toggleExecutionUpdates(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "toggleExecutionUpdates!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
-
-    modelComponent->ClearPreviousNewBehavior();
 }
 
 void ControlBehaviors::addStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
@@ -155,6 +152,17 @@ void ControlBehaviors::addStrip(Entity* modelEntity, const SystemAddress& sysAdd
         valueParameterDouble = 0.0;
     }
     sendBehaviorListToClient(modelEntity, sysAddr, arguments, modelOwner);
+
+    AMFArrayValue args;
+
+    AMFStringValue* behaviorIDString = new AMFStringValue();
+    behaviorIDString->SetStringValue(std::to_string(behaviorID));
+    args.InsertValue("behaviorID", behaviorIDString);
+    AMFStringValue* objectidasstring = new AMFStringValue();
+    objectidasstring->SetStringValue(std::to_string(modelEntity->GetObjectID()));
+    args.InsertValue("objectID", objectidasstring);
+
+    GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "UpdateBehaviorID", &args);
 }
 
 void ControlBehaviors::removeStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
@@ -376,7 +384,7 @@ void ControlBehaviors::add(Entity* modelEntity, const SystemAddress& sysAddr, AM
     if (!modelComponent) return;
 
     AMFValue* behaviorIDValue = arguments->FindValue("BehaviorID");
-    uint32_t behaviorID = 0;
+    uint32_t behaviorID = -1;
     if (behaviorIDValue->GetValueType() != AMFValueType::AMFUndefined) {
         behaviorID = std::stoi(((AMFStringValue*)behaviorIDValue)->GetStringValue());
     }
@@ -426,6 +434,8 @@ void ControlBehaviors::rename(Entity* modelEntity, const SystemAddress& sysAddr,
     auto name = nameAsValue->GetStringValue();
 
     modelComponent->Rename(behaviorID, name);
+
+    sendBehaviorListToClient(modelEntity, sysAddr, arguments, modelOwner);
 }
 
 void ControlBehaviors::sendBehaviorBlocksToClient(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
@@ -568,7 +578,7 @@ void ControlBehaviors::updateAction(Entity* modelEntity, const SystemAddress& sy
     modelComponent->UpdateAction(stateID, stripID, type, valueParameterName, valueParameterString, valueParameterDouble, "", actionIndex, behaviorID);
 }
 
-// TODO behavior ID stored in item under extra info
+// TODO This doesn't save behaviors to the inventory at the moment, just removes them from the list of behaviors.
 void ControlBehaviors::moveToInventory(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
     Game::logger->Log("ControlBehaviors", "moveToInventory!\n");
     
