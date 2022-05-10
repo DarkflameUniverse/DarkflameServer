@@ -449,7 +449,7 @@ void ControlBehaviors::Rename() {
     if (behaviorIDValue->GetValueType() != AMFValueType::AMFUndefined) {
         behaviorID = std::stoi(((AMFStringValue*)behaviorIDValue)->GetStringValue());
     }
-    
+
     AMFStringValue* nameAsValue = (AMFStringValue*)arguments->FindValue("Name");
     auto name = nameAsValue->GetStringValue();
 
@@ -611,8 +611,9 @@ void ControlBehaviors::UpdateAction() {
 void ControlBehaviors::MoveToInventory() {
     Game::logger->Log("ControlBehaviors", "moveToInventory!\n");
     
+    // This closes the UI menu should it be open while the player is removing behaviors
     AMFArrayValue args;
-
+    
     AMFFalseValue* stateToPop = new AMFFalseValue();
     args.InsertValue("visible", stateToPop);
 
