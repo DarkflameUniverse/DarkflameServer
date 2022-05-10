@@ -27,6 +27,9 @@ class ControlBehaviors {
         void SendBehaviorBlocksToClient();
         void UpdateAction();
         void MoveToInventory();
+        uint32_t GetBehaviorIDFromArgument(std::string key = "BehaviorID");
+        BEHAVIORSTATE GetBehaviorStateFromArgument(std::string key = "stateID");
+        STRIPID GetStripIDFromArgument(std::string key = "stripID");
 
         /**
          * The model component belonging to the behavior we are editing
