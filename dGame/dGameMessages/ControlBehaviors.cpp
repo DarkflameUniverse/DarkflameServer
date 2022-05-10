@@ -1,49 +1,55 @@
 #include "ControlBehaviors.h"
-#include "ModelComponent.h"
 
 void ControlBehaviors::DoActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
+    if (!modelEntity || !modelOwner || !arguments) return;
+    modelComponent = modelEntity->GetComponent<ModelComponent>();
+
+    this->modelOwner = modelOwner;
+
+    this->sysAddr = sysAddr;
+
+    if (!modelComponent || !modelOwner) return;
+
     if (command == "sendBehaviorListToClient")
-        sendBehaviorListToClient(modelEntity, sysAddr, arguments, modelOwner);
+        SendBehaviorListToClient();
     else if (command == "modelTypeChanged")
-        modelTypeChanged(modelEntity, sysAddr, arguments, modelOwner);
+        ModelTypeChanged();
     else if (command == "toggleExecutionUpdates")
-        toggleExecutionUpdates(modelEntity, sysAddr, arguments, modelOwner);
+        ToggleExecutionUpdates();
     else if (command == "addStrip")
-        addStrip(modelEntity, sysAddr, arguments, modelOwner);
+        AddStrip();
     else if (command == "removeStrip")
-        removeStrip(modelEntity, sysAddr, arguments, modelOwner);
+        RemoveStrip();
     else if (command == "mergeStrips")
-        mergeStrips(modelEntity, sysAddr, arguments, modelOwner);
+        MergeStrips();
     else if (command == "splitStrip")
-        splitStrip(modelEntity, sysAddr, arguments, modelOwner);
+        SplitStrip();
     else if (command == "updateStripUI")
-        updateStripUI(modelEntity, sysAddr, arguments, modelOwner);
+        UpdateStripUI();
     else if (command == "addAction")
-        addAction(modelEntity, sysAddr, arguments, modelOwner);
+        AddAction();
     else if (command == "migrateActions")
-        migrateActions(modelEntity, sysAddr, arguments, modelOwner);
+        MigrateActions();
     else if (command == "rearrangeStrip")
-        rearrangeStrip(modelEntity, sysAddr, arguments, modelOwner);
+        RearrangeStrip();
     else if (command == "add")
-        add(modelEntity, sysAddr, arguments, modelOwner);
+        Add();
     else if (command == "removeActions")
-        removeActions(modelEntity, sysAddr, arguments, modelOwner);
+        RemoveActions();
     else if (command == "rename")
-        rename(modelEntity, sysAddr, arguments, modelOwner);
+        Rename();
     else if (command == "sendBehaviorBlocksToClient")
-        sendBehaviorBlocksToClient(modelEntity, sysAddr, arguments, modelOwner);
+        SendBehaviorBlocksToClient();
     else if (command == "moveToInventory")
-        moveToInventory(modelEntity, sysAddr, arguments, modelOwner);
+        MoveToInventory();
     else if (command == "updateAction")
-        updateAction(modelEntity, sysAddr, arguments, modelOwner);
+        UpdateAction();
     else
         Game::logger->Log("ControlBehaviors", "Unknown Message (%s)\n", command.c_str());
 }
 
-void ControlBehaviors::sendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::SendBehaviorListToClient() {
     Game::logger->Log("ControlBehaviors", "sendBehaviorListToClient!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     auto behaviorList = modelComponent->GetBehaviors();
 
@@ -81,16 +87,15 @@ void ControlBehaviors::sendBehaviorListToClient(Entity* modelEntity, const Syste
     behaviorsToSerialize.InsertValue("behaviors", behaviors);
 
 	AMFStringValue* amfStringValueForObjectID = new AMFStringValue();
-	amfStringValueForObjectID->SetStringValue(std::to_string(modelEntity->GetObjectID()));
+	amfStringValueForObjectID->SetStringValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
 
 	behaviorsToSerialize.InsertValue("objectID", amfStringValueForObjectID);
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", &behaviorsToSerialize);
 }
 
-void ControlBehaviors::modelTypeChanged(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::ModelTypeChanged() {
     Game::logger->Log("ControlBehaviors", "modelTypeChanged!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
+
     AMFDoubleValue* modelTypeValue = (AMFDoubleValue*)arguments->FindValue("ModelType");
     uint32_t modelType = (uint32_t)modelTypeValue->GetDoubleValue();
 
@@ -99,25 +104,30 @@ void ControlBehaviors::modelTypeChanged(Entity* modelEntity, const SystemAddress
     modelTypeValue = nullptr;
 }
 
-void ControlBehaviors::toggleExecutionUpdates(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::ToggleExecutionUpdates() {
     Game::logger->Log("ControlBehaviors", "toggleExecutionUpdates!\n");
+    // Doesn't do anything at the moment
 }
 
-void ControlBehaviors::addStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::AddStrip() {
     Game::logger->Log("ControlBehaviors", "addStrip!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFArrayValue* strip = (AMFArrayValue*)arguments->FindValue("strip");
+
     AMFArrayValue* actions = (AMFArrayValue*)strip->FindValue("actions");
+
     AMFArrayValue* uiArray = (AMFArrayValue*)arguments->FindValue("ui");
+
     AMFDoubleValue* xPositionValue = (AMFDoubleValue*)uiArray->FindValue("x");
-    AMFDoubleValue* yPositionValue = (AMFDoubleValue*)uiArray->FindValue("y");
     double xPosition = xPositionValue->GetDoubleValue();
+
+    AMFDoubleValue* yPositionValue = (AMFDoubleValue*)uiArray->FindValue("y");
     double yPosition = yPositionValue->GetDoubleValue();
+    
     AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
-    AMFDoubleValue* stateIDValue = (AMFDoubleValue*)arguments->FindValue("stateID");
     STRIPID stripID = (STRIPID)stripIDValue->GetDoubleValue();
+
+    AMFDoubleValue* stateIDValue = (AMFDoubleValue*)arguments->FindValue("stateID");
     BEHAVIORSTATE stateID = (BEHAVIORSTATE)stateIDValue->GetDoubleValue();
 
     AMFValue* behaviorIDValue = arguments->FindValue("BehaviorID");
@@ -125,6 +135,20 @@ void ControlBehaviors::addStrip(Entity* modelEntity, const SystemAddress& sysAdd
     if (behaviorIDValue->GetValueType() != AMFValueType::AMFUndefined) {
         behaviorID = std::stoi(((AMFStringValue*)behaviorIDValue)->GetStringValue());
     }
+
+    delete uiArray;
+    uiArray = nullptr;
+    delete xPositionValue;
+    xPositionValue = nullptr;
+    delete yPositionValue;
+    yPositionValue = nullptr;
+    delete stripIDValue;
+    stripIDValue = nullptr;
+    delete stateIDValue;
+    stateIDValue = nullptr;
+    delete behaviorIDValue;
+    behaviorIDValue = nullptr;
+
     std::string type = "";
     std::string valueParameterName = "";
     std::string valueParameterString = "";
@@ -151,24 +175,26 @@ void ControlBehaviors::addStrip(Entity* modelEntity, const SystemAddress& sysAdd
         valueParameterString = "";
         valueParameterDouble = 0.0;
     }
-    sendBehaviorListToClient(modelEntity, sysAddr, arguments, modelOwner);
+    SendBehaviorListToClient();
 
     AMFArrayValue args;
 
     AMFStringValue* behaviorIDString = new AMFStringValue();
     behaviorIDString->SetStringValue(std::to_string(behaviorID));
     args.InsertValue("behaviorID", behaviorIDString);
-    AMFStringValue* objectidasstring = new AMFStringValue();
-    objectidasstring->SetStringValue(std::to_string(modelEntity->GetObjectID()));
-    args.InsertValue("objectID", objectidasstring);
+    AMFStringValue* objectIDAsString = new AMFStringValue();
+    objectIDAsString->SetStringValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
+    args.InsertValue("objectID", objectIDAsString);
 
-    GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "UpdateBehaviorID", &args);
+    GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorID", &args);
+    delete behaviorIDString;
+    behaviorIDString = nullptr;
+    delete objectIDAsString;
+    objectIDAsString = nullptr;
 }
 
-void ControlBehaviors::removeStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::RemoveStrip() {
     Game::logger->Log("ControlBehaviors", "removeStrip!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
     STRIPID stripID = stripIDValue->GetDoubleValue();
@@ -184,10 +210,8 @@ void ControlBehaviors::removeStrip(Entity* modelEntity, const SystemAddress& sys
     modelComponent->RemoveStrip(stateID, stripID, behaviorID);
 }
 
-void ControlBehaviors::mergeStrips(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::MergeStrips() {
     Game::logger->Log("ControlBehaviors", "mergeStrips!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFDoubleValue* srcStripIDValue = (AMFDoubleValue*)arguments->FindValue("srcStripID");
     STRIPID srcStripID = (STRIPID)srcStripIDValue->GetDoubleValue();
@@ -213,10 +237,8 @@ void ControlBehaviors::mergeStrips(Entity* modelEntity, const SystemAddress& sys
     modelComponent->MergeStrips(srcStripID, dstStripID, srcStateID, dstStateID, behaviorID, dstActionIndex);
 }
 
-void ControlBehaviors::splitStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::SplitStrip() {
     Game::logger->Log("ControlBehaviors", "splitStrip!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFDoubleValue* srcActionIndexValue = (AMFDoubleValue*)arguments->FindValue("srcActionIndex");
     uint32_t srcActionIndex = (uint32_t)srcActionIndexValue->GetDoubleValue();
@@ -249,10 +271,8 @@ void ControlBehaviors::splitStrip(Entity* modelEntity, const SystemAddress& sysA
     modelComponent->SplitStrip(srcActionIndex, srcStripID, srcStateID, dstStripID, dstStateID, behaviorID, yPosition, xPosition);
 }
 
-void ControlBehaviors::updateStripUI(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::UpdateStripUI() {
     Game::logger->Log("ControlBehaviors", "updateStripUI!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFArrayValue* uiArray = (AMFArrayValue*)arguments->FindValue("ui");
     AMFDoubleValue* xPositionValue = (AMFDoubleValue*)uiArray->FindValue("x");
@@ -274,10 +294,8 @@ void ControlBehaviors::updateStripUI(Entity* modelEntity, const SystemAddress& s
     modelComponent->UpdateUIOfStrip(stateID, stripID, xPosition, yPosition, behaviorID);
 }
 
-void ControlBehaviors::addAction(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::AddAction() {
     Game::logger->Log("ControlBehaviors", "addAction!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFDoubleValue* actionIndexValue = (AMFDoubleValue*)arguments->FindValue("actionIndex");
     uint32_t actionIndex = (uint32_t)actionIndexValue->GetDoubleValue();
@@ -316,10 +334,8 @@ void ControlBehaviors::addAction(Entity* modelEntity, const SystemAddress& sysAd
     modelComponent->AddAction(stateID, stripID, type, valueParameterName, valueParameterString, valueParameterDouble, "", actionIndex, behaviorID);
 }
 
-void ControlBehaviors::migrateActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::MigrateActions() {
     Game::logger->Log("ControlBehaviors", "migrateActions!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
     
     AMFDoubleValue* srcActionIndexValue = (AMFDoubleValue*)arguments->FindValue("srcActionIndex");
     uint32_t srcActionIndex = (uint32_t)srcActionIndexValue->GetDoubleValue();
@@ -348,17 +364,9 @@ void ControlBehaviors::migrateActions(Entity* modelEntity, const SystemAddress& 
     modelComponent->MigrateActions(srcActionIndex, srcStripID, srcStateID, dstActionIndex, dstStripID, dstStateID, behaviorID);
 }
 
-void ControlBehaviors::rearrangeStrip(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::RearrangeStrip() {
     Game::logger->Log("ControlBehaviors", "rearrangeStrip!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
-    /**
-     * key `srcActionIndex`
-     * key `stripID`
-     * key `BehaviorID`
-     * key `dstActionIndex`
-     * key `stateID`
-     */
+
     AMFDoubleValue* srcActionIndexValue = (AMFDoubleValue*)arguments->FindValue("srcActionIndex");
     uint32_t srcActionIndex = (uint32_t)srcActionIndexValue->GetDoubleValue();
     AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
@@ -378,10 +386,8 @@ void ControlBehaviors::rearrangeStrip(Entity* modelEntity, const SystemAddress& 
     modelComponent->RearrangeStrip(stateID, stripID, srcActionIndex, dstActionIndex, behaviorID);
 }
 
-void ControlBehaviors::add(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::Add() {
     Game::logger->Log("ControlBehaviors", "add!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFValue* behaviorIDValue = arguments->FindValue("BehaviorID");
     uint32_t behaviorID = -1;
@@ -397,13 +403,11 @@ void ControlBehaviors::add(Entity* modelEntity, const SystemAddress& sysAddr, AM
     }
 
     modelComponent->AddBehavior(behaviorID, behaviorIndex);
-    sendBehaviorListToClient(modelEntity, sysAddr, arguments, modelOwner);
+    SendBehaviorListToClient();
 }
 
-void ControlBehaviors::removeActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::RemoveActions() {
     Game::logger->Log("ControlBehaviors", "removeActions!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFValue* behaviorIDValue = arguments->FindValue("BehaviorID");
     uint32_t behaviorID = -1;
@@ -420,10 +424,8 @@ void ControlBehaviors::removeActions(Entity* modelEntity, const SystemAddress& s
     modelComponent->RemoveAction(stateID, stripID, actionIndex, behaviorID);
 }
 
-void ControlBehaviors::rename(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::Rename() {
     Game::logger->Log("ControlBehaviors", "rename!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFValue* behaviorIDValue = arguments->FindValue("BehaviorID");
     uint32_t behaviorID = -1;
@@ -435,13 +437,11 @@ void ControlBehaviors::rename(Entity* modelEntity, const SystemAddress& sysAddr,
 
     modelComponent->Rename(behaviorID, name);
 
-    sendBehaviorListToClient(modelEntity, sysAddr, arguments, modelOwner);
+    SendBehaviorListToClient();
 }
 
-void ControlBehaviors::sendBehaviorBlocksToClient(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::SendBehaviorBlocksToClient() {
     Game::logger->Log("ControlBehaviors", "sendBehaviorBlocksToClient!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFValue* behaviorIDValue = arguments->FindValue("BehaviorID");
     uint32_t behaviorID = -1;
@@ -536,10 +536,8 @@ void ControlBehaviors::sendBehaviorBlocksToClient(Entity* modelEntity, const Sys
     GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorBlocks", &behaviorInfo);
 }
 
-void ControlBehaviors::updateAction(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::UpdateAction() {
     Game::logger->Log("ControlBehaviors", "updateAction!\n");
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     std::string type = "";
     std::string valueParameterName = "";
@@ -579,7 +577,7 @@ void ControlBehaviors::updateAction(Entity* modelEntity, const SystemAddress& sy
 }
 
 // TODO This doesn't save behaviors to the inventory at the moment, just removes them from the list of behaviors.
-void ControlBehaviors::moveToInventory(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, Entity* modelOwner) {
+void ControlBehaviors::MoveToInventory() {
     Game::logger->Log("ControlBehaviors", "moveToInventory!\n");
     
     AMFArrayValue args;
@@ -588,9 +586,6 @@ void ControlBehaviors::moveToInventory(Entity* modelEntity, const SystemAddress&
     args.InsertValue("visible", stateToPop);
 
     GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "ToggleBehaviorEditor", &args);
-
-    auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-    if (!modelComponent) return;
 
     AMFValue* behaviorIDValue = arguments->FindValue("BehaviorID");
     uint32_t behaviorID = -1;
@@ -602,5 +597,5 @@ void ControlBehaviors::moveToInventory(Entity* modelEntity, const SystemAddress&
 
     modelComponent->MoveBehaviorToInventory(behaviorID, behaviorIndex);
 
-    sendBehaviorListToClient(modelEntity, sysAddr, arguments, modelOwner);
+    SendBehaviorListToClient();
 }
