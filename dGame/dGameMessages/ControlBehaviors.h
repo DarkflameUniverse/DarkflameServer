@@ -7,6 +7,7 @@
 
 class ControlBehaviors {
     public:
+        ~ControlBehaviors();
         void DoActions(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner);
     private:
         void SendBehaviorListToClient();
