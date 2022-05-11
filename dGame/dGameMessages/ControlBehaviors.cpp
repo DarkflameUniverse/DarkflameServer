@@ -382,6 +382,7 @@ void ControlBehaviors::Rename() {
     SendBehaviorListToClient();
 }
 
+// TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
 void ControlBehaviors::SendBehaviorBlocksToClient() {
     Game::logger->Log("ControlBehaviors", "sendBehaviorBlocksToClient!\n");
 
