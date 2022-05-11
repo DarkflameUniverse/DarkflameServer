@@ -4,22 +4,13 @@
 #include "dCommonVars.h"
 
 struct BehaviorAction {
-    std::string behaviorName;               //!< The name of this behavior
-    std::string actionName;                 //!< The name of this action
+    std::string actionName;                 //!< The name of the action this behavior performs
     std::string parameterName;              //!< The (optional) name of the parameter this action has
-    std::string parameterValue;             //!< The (optional) string value this behavior action has for a value
-    double parameterValueNumber;            //!< The (optional) double value this behavior action has for a value
-    STRIPID stripID;                        //!< The StripID that this action belongs to. (UNUSED i believe)
-    double xPosition;                       //!< The x position that this behavior has on the UI.  This should be moved to the ModelBehavior object instead.
-    double yPosition;                       //!< The y position that this behavior has on the UI.  This should be moved to the ModelBehavior object instead.
-    BEHAVIORSTATE stateID;                  //!< The stateID that this action belongs to. (UNUSED i believe)
-    uint32_t behaviorID;                    //!< The behavior ID this action belongs to. (UNUSED and should be moved to ModelBehavior object)
-    bool enabled;                           //!< ??? (UNUSED)
-    uint32_t uiSortOrder;                   //!< ??? (UNUSED)
-    bool isLoot;                            //!< UNUSED
-    bool isLocked;                          //!< UNUSED
-    LWOOBJID parentModelObjectID;           //!< Should be removed and moved somewhere else.
+    std::string parameterValueString;       //!< The (optional) string value this behavior action has for a value
+    double parameterValueDouble;            //!< The (optional) double value this behavior action has for a value
     std::string callbackID = "";            //!< Unknown what this is used for.  Kept in code as it is in packet captures.
+    double xPosition;                       //!< The x Position of the head of this strip.
+    double yPosition;                       //!< The y Position of the head of this strip.
 };
 
 enum eStates : BEHAVIORSTATE {

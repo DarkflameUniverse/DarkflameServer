@@ -74,16 +74,12 @@ void ControlBehaviors::SendBehaviorListToClient() {
 
         AMFTrueValue* isTrue = new AMFTrueValue();
         AMFFalseValue* isFalse = new AMFFalseValue();
-        if (behavior->GetIsLocked()) {
-            behaviorInfo->InsertValue("isLocked", isTrue);
-        } else {
-            behaviorInfo->InsertValue("isLocked", isFalse);
-        }
-        if (behavior->GetIsLoot()) {
-            behaviorInfo->InsertValue("isLoot", isTrue);
-        } else {
-            behaviorInfo->InsertValue("isLoot", isFalse);
-        }
+
+        if (behavior->GetIsLocked()) behaviorInfo->InsertValue("isLocked", isTrue);
+         else behaviorInfo->InsertValue("isLocked", isFalse);
+
+        if (behavior->GetIsLoot()) behaviorInfo->InsertValue("isLoot", isTrue);
+        else behaviorInfo->InsertValue("isLoot", isFalse);
 
         AMFStringValue* name = new AMFStringValue();
         name->SetStringValue(behavior->GetName());
@@ -131,9 +127,8 @@ void ControlBehaviors::AddStrip() {
 
     AMFDoubleValue* yPositionValue = (AMFDoubleValue*)uiArray->FindValue("y");
     double yPosition = yPositionValue->GetDoubleValue();
-    
-    AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
-    STRIPID stripID = (STRIPID)stripIDValue->GetDoubleValue();
+
+    STRIPID stripID = GetStripIDFromArgument();
 
     BEHAVIORSTATE stateID = GetBehaviorStateFromArgument();
 
@@ -145,8 +140,6 @@ void ControlBehaviors::AddStrip() {
     xPositionValue = nullptr;
     delete yPositionValue;
     yPositionValue = nullptr;
-    delete stripIDValue;
-    stripIDValue = nullptr;
 
     std::string type = "";
     std::string valueParameterName = "";
@@ -168,7 +161,7 @@ void ControlBehaviors::AddStrip() {
                 }
             }
         }
-        modelComponent->AddStrip(stateID, stripID, type, behaviorID, valueParameterName, valueParameterString, valueParameterDouble, "", xPosition, yPosition, "");
+        modelComponent->AddStrip(stateID, stripID, type, behaviorID, valueParameterName, valueParameterString, valueParameterDouble, "", xPosition, yPosition);
         type = "";
         valueParameterName = "";
         valueParameterString = "";
@@ -176,6 +169,7 @@ void ControlBehaviors::AddStrip() {
     }
     SendBehaviorListToClient();
 
+    // This updates the behavior ID of the behavior should this be a new behavior
     AMFArrayValue args;
 
     AMFStringValue* behaviorIDString = new AMFStringValue();
@@ -196,8 +190,7 @@ void ControlBehaviors::AddStrip() {
 void ControlBehaviors::RemoveStrip() {
     Game::logger->Log("ControlBehaviors", "removeStrip!\n");
 
-    AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
-    STRIPID stripID = stripIDValue->GetDoubleValue();
+    STRIPID stripID = GetStripIDFromArgument();
 
     BEHAVIORSTATE stateID = GetBehaviorStateFromArgument();
 
@@ -209,8 +202,7 @@ void ControlBehaviors::RemoveStrip() {
 void ControlBehaviors::MergeStrips() {
     Game::logger->Log("ControlBehaviors", "mergeStrips!\n");
 
-    AMFDoubleValue* srcStripIDValue = (AMFDoubleValue*)arguments->FindValue("srcStripID");
-    STRIPID srcStripID = (STRIPID)srcStripIDValue->GetDoubleValue();
+    STRIPID srcStripID = GetStripIDFromArgument("srcStripID");
 
     BEHAVIORSTATE dstStateID = GetBehaviorStateFromArgument("dstStateID");
 
@@ -219,8 +211,7 @@ void ControlBehaviors::MergeStrips() {
     AMFDoubleValue* dstActionIndexValue = (AMFDoubleValue*)arguments->FindValue("dstActionIndex");
     uint32_t dstActionIndex = (uint32_t)dstActionIndexValue->GetDoubleValue();
 
-    AMFDoubleValue* dstStripIDValue = (AMFDoubleValue*)arguments->FindValue("dstStripID");
-    STRIPID dstStripID = (STRIPID)dstStripIDValue->GetDoubleValue();
+    STRIPID dstStripID = GetStripIDFromArgument("dstStripID");
 
     uint32_t behaviorID = GetBehaviorIDFromArgument();
 
@@ -233,14 +224,11 @@ void ControlBehaviors::SplitStrip() {
     AMFDoubleValue* srcActionIndexValue = (AMFDoubleValue*)arguments->FindValue("srcActionIndex");
     uint32_t srcActionIndex = (uint32_t)srcActionIndexValue->GetDoubleValue();
 
-    AMFDoubleValue* srcStripIDValue = (AMFDoubleValue*)arguments->FindValue("srcStripID");
-    STRIPID srcStripID = (STRIPID)srcStripIDValue->GetDoubleValue();
-
+    STRIPID srcStripID = GetStripIDFromArgument("srcStripID");
 
     BEHAVIORSTATE srcStateID = GetBehaviorStateFromArgument("srcStateID");
 
-    AMFDoubleValue* dstStripIDValue = (AMFDoubleValue*)arguments->FindValue("dstStripID");
-    STRIPID dstStripID = (STRIPID)dstStripIDValue->GetDoubleValue();
+    STRIPID dstStripID = GetStripIDFromArgument("dstStripID");
 
     BEHAVIORSTATE dstStateID = GetBehaviorStateFromArgument("dstStateID");
 
@@ -267,8 +255,7 @@ void ControlBehaviors::UpdateStripUI() {
     double yPosition = yPositionValue->GetDoubleValue();
     double xPosition = xPositionValue->GetDoubleValue();
 
-    AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
-    double stripID = stripIDValue->GetDoubleValue();
+    STRIPID stripID = GetStripIDFromArgument();
 
     BEHAVIORSTATE stateID = GetBehaviorStateFromArgument();
 
@@ -283,8 +270,7 @@ void ControlBehaviors::AddAction() {
     AMFDoubleValue* actionIndexValue = (AMFDoubleValue*)arguments->FindValue("actionIndex");
     uint32_t actionIndex = (uint32_t)actionIndexValue->GetDoubleValue();
 
-    AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
-    STRIPID stripID = (STRIPID)stripIDValue->GetDoubleValue();
+    STRIPID stripID = GetStripIDFromArgument();
 
     BEHAVIORSTATE stateID = GetBehaviorStateFromArgument();
 
@@ -318,16 +304,14 @@ void ControlBehaviors::MigrateActions() {
     AMFDoubleValue* srcActionIndexValue = (AMFDoubleValue*)arguments->FindValue("srcActionIndex");
     uint32_t srcActionIndex = (uint32_t)srcActionIndexValue->GetDoubleValue();
 
-    AMFDoubleValue* srcStripIDValue = (AMFDoubleValue*)arguments->FindValue("srcStripID");
-    STRIPID srcStripID = (STRIPID)srcStripIDValue->GetDoubleValue();
+    STRIPID srcStripID = GetStripIDFromArgument("srcStripID");
 
     BEHAVIORSTATE srcStateID = GetBehaviorStateFromArgument("srcStateID");
 
     AMFDoubleValue* dstActionIndexValue = (AMFDoubleValue*)arguments->FindValue("dstActionIndex");
     uint32_t dstActionIndex = (uint32_t)dstActionIndexValue->GetDoubleValue();
 
-    AMFDoubleValue* dstStripIDValue = (AMFDoubleValue*)arguments->FindValue("dstStripID");
-    STRIPID dstStripID = (STRIPID)dstStripIDValue->GetDoubleValue();
+    STRIPID dstStripID = GetStripIDFromArgument("dstStripID");
 
     BEHAVIORSTATE dstStateID = GetBehaviorStateFromArgument("dstStateID");
 
@@ -342,8 +326,7 @@ void ControlBehaviors::RearrangeStrip() {
     AMFDoubleValue* srcActionIndexValue = (AMFDoubleValue*)arguments->FindValue("srcActionIndex");
     uint32_t srcActionIndex = (uint32_t)srcActionIndexValue->GetDoubleValue();
 
-    AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
-    uint32_t stripID = (uint32_t)stripIDValue->GetDoubleValue();
+    uint32_t stripID = GetStripIDFromArgument();
 
     uint32_t behaviorID = GetBehaviorIDFromArgument();
 
@@ -380,8 +363,7 @@ void ControlBehaviors::RemoveActions() {
     AMFDoubleValue* actionIndexValue = (AMFDoubleValue*)arguments->FindValue("actionIndex");
     uint32_t actionIndex = (uint32_t)actionIndexValue->GetDoubleValue();
 
-    AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
-    STRIPID stripID = (uint32_t)stripIDValue->GetDoubleValue();
+    STRIPID stripID = GetStripIDFromArgument();
 
     BEHAVIORSTATE stateID = GetBehaviorStateFromArgument();
     modelComponent->RemoveAction(stateID, stripID, actionIndex, behaviorID);
@@ -409,9 +391,10 @@ void ControlBehaviors::SendBehaviorBlocksToClient() {
 
     if (!modelBehavior) return;
 
+    modelBehavior->VerifyStates();
+
     auto states = modelBehavior->GetBehaviorActions();
 
-    Game::logger->Log("PropertyBehaviors", "Begin serialization!\n");
     // Begin serialization.
 
     /**
@@ -460,8 +443,8 @@ void ControlBehaviors::SendBehaviorBlocksToClient() {
             uiArray->InsertValue("x", xPosition);
             
             thisStrip->InsertValue("ui", uiArray);
-            targetObjectID = strip->second.at(0)->parentModelObjectID;
-            behaviorID = strip->second.at(0)->behaviorID;
+            targetObjectID = modelComponent->GetParent()->GetObjectID();
+            behaviorID = modelBehavior->GetBehaviorID();
 
             AMFArrayValue* stripSerialize = new AMFArrayValue();
             for (auto behaviorAction : strip->second) {
@@ -472,16 +455,16 @@ void ControlBehaviors::SendBehaviorBlocksToClient() {
                 actionName->SetStringValue(behaviorAction->actionName);
                 thisAction->InsertValue("Type", actionName);
 
-                if (behaviorAction->parameterValue != "")
+                if (behaviorAction->parameterValueString != "")
                 {
                     AMFStringValue* valueAsString = new AMFStringValue();
-                    valueAsString->SetStringValue(behaviorAction->parameterValue);
+                    valueAsString->SetStringValue(behaviorAction->parameterValueString);
                     thisAction->InsertValue(behaviorAction->parameterName, valueAsString);
                 } 
-                else if (behaviorAction->parameterValueNumber != 0.0)
+                else if (behaviorAction->parameterValueDouble != 0.0)
                 {
                     AMFDoubleValue* valueAsDouble = new AMFDoubleValue();
-                    valueAsDouble->SetDoubleValue(behaviorAction->parameterValueNumber);
+                    valueAsDouble->SetDoubleValue(behaviorAction->parameterValueDouble);
                     thisAction->InsertValue(behaviorAction->parameterName, valueAsDouble);
                 }
                 stripSerialize->PushBackValue(thisAction);
@@ -532,8 +515,7 @@ void ControlBehaviors::UpdateAction() {
     AMFDoubleValue* actionIndexValue = (AMFDoubleValue*)arguments->FindValue("actionIndex");
     uint32_t actionIndex = (uint32_t)actionIndexValue->GetDoubleValue();
 
-    AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue("stripID");
-    STRIPID stripID = (STRIPID)stripIDValue->GetDoubleValue();
+    STRIPID stripID = GetStripIDFromArgument();
 
     BEHAVIORSTATE stateID = GetBehaviorStateFromArgument();
 
@@ -581,11 +563,23 @@ uint32_t ControlBehaviors::GetBehaviorIDFromArgument(std::string key) {
 BEHAVIORSTATE ControlBehaviors::GetBehaviorStateFromArgument(std::string key) {
     AMFDoubleValue* stateIDValue = (AMFDoubleValue*)arguments->FindValue(key);
     if (!stateIDValue) throw std::invalid_argument("Unable to find behavior state from argument \"" + key + "\"");
-    return static_cast<BEHAVIORSTATE>(stateIDValue->GetDoubleValue());
+
+    BEHAVIORSTATE stateID = (BEHAVIORSTATE)stateIDValue->GetDoubleValue();
+
+    delete stateIDValue;
+    stateIDValue = nullptr;
+
+    return stateID;
 }
 
 STRIPID ControlBehaviors::GetStripIDFromArgument(std::string key) {
     AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue(key);
     if (!stripIDValue) throw std::invalid_argument("Unable to find strip ID from argument \"" + key + "\"");
-    return static_cast<STRIPID>(stripIDValue->GetDoubleValue());
+
+    STRIPID stripID = (STRIPID)stripIDValue->GetDoubleValue();
+
+    delete stripIDValue;
+    stripIDValue = nullptr;
+
+    return stripID;
 }

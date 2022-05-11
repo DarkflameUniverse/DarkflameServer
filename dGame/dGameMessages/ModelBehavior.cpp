@@ -3,11 +3,11 @@
 #include <algorithm>
 #include "dLogger.h"
 
-ModelBehavior::ModelBehavior(uint32_t behaviorID, bool isLoot) {
+ModelBehavior::ModelBehavior(uint32_t behaviorID, bool isLoot, std::string behaviorName) {
     this->behaviorID = behaviorID;
     this->isLoot = isLoot;
     this->isLocked = false;
-    this->behaviorName = "New Behavior";
+    this->behaviorName = behaviorName;
 }
 
 ModelBehavior::~ModelBehavior() {
@@ -26,22 +26,16 @@ ModelBehavior::~ModelBehavior() {
 }
 
 void ModelBehavior::AddStrip(
-        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue,
-        std::string callbackID, double xPosition, double yPosition, uint32_t behaviorID, std::string behaviorName) 
+        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string parameterValueString, double parameterValueDouble,
+        std::string callbackID, double xPosition, double yPosition) 
 {
-	Game::logger->Log("ModelBehavior", "Adding new action to strip %i in state %i!\n", stripID, stateID);
-
 	BehaviorAction* newAction = new BehaviorAction();
-	newAction->stateID = stateID;
-	newAction->stripID = stripID;
 	newAction->actionName = actionName;
-	newAction->parameterValue = actionParameter;
-	newAction->parameterValueNumber = actionParameterValue;
+	newAction->parameterValueString = parameterValueString;
+	newAction->parameterValueDouble = parameterValueDouble;
 	newAction->callbackID = callbackID;
 	newAction->xPosition = xPosition;
 	newAction->yPosition = yPosition;
-	newAction->behaviorID = behaviorID;
-	newAction->behaviorName = behaviorName;
 	newAction->parameterName = parameterName;
 
 	auto state = states.find(stateID);
@@ -54,41 +48,34 @@ void ModelBehavior::AddStrip(
 		strip->second.push_back(newAction);
 	}
 
-	Game::logger->Log("ModelBehavior", "Added new action to strip %i in state %i!\n", stripID, stateID);
+	this->isLoot = false;
 }
 
 void ModelBehavior::AddAction(
-        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
-		std::string callbackID, uint32_t actionIndex, uint32_t behaviorID)
+        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string parameterValueString, double parameterValueDouble, 
+		std::string callbackID, uint32_t actionIndex)
 {
-	Game::logger->Log("ModelBehavior", "Adding new action to existing strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
-
 	auto state = states.find(stateID);
 	auto strip = state->second.find(stripID);
 	auto stripPositionIterator = strip->second.begin() + actionIndex;
 
 	BehaviorAction* newAction = new BehaviorAction();
-	newAction->stateID = stateID;
-	newAction->stripID = stripID;
 	newAction->actionName = actionName;
-	newAction->parameterValue = actionParameter;
-	newAction->parameterValueNumber = actionParameterValue;
+	newAction->parameterValueString = parameterValueString;
+	newAction->parameterValueDouble = parameterValueDouble;
 	newAction->callbackID = callbackID;
-	newAction->behaviorID = strip->second[0]->behaviorID;
 	newAction->parameterName = parameterName;
+
+	// The x and y position is stored in all nodes.  
 	newAction->xPosition = strip->second[0]->xPosition;
 	newAction->yPosition = strip->second[0]->yPosition;
-	newAction->behaviorName = strip->second[0]->behaviorName;
-    newAction->behaviorID = behaviorID;
 
 	strip->second.insert(stripPositionIterator, newAction);
 
-	Game::logger->Log("ModelBehavior", "Added new action to existing strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
+	this->isLoot = false;
 }
 
-void ModelBehavior::RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t actionIndex, uint32_t behaviorID) {
-	Game::logger->Log("ModelBehavior", "Removing action(s) from strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
-
+void ModelBehavior::RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t actionIndex) {
 	auto state = states.find(stateID);
 	auto strip = state->second.find(stripID);
 	auto originalPosition = strip->second.begin() + actionIndex;
@@ -99,12 +86,10 @@ void ModelBehavior::RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_
 	}
 	strip->second.erase(originalPosition, strip->second.end());
 
-	Game::logger->Log("ModelBehavior", "Removed action(s) from strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
+	this->isLoot = false;
 }
 
-void ModelBehavior::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t behaviorID) {
-	Game::logger->Log("ModelBehavior", "Removing strip %i in state %i!\n", stripID, stateID);
-
+void ModelBehavior::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID) {
 	auto state = states.find(stateID);
 	auto strip = state->second.find(stripID);
 
@@ -118,33 +103,36 @@ void ModelBehavior::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t
 
 	state->second.erase(stripID);
 
-
-
-	Game::logger->Log("ModelBehavior", "Removed strip %i in state %i!\n", stripID, stateID);
-}
-
-void ModelBehavior::Rename(uint32_t behaviorID, std::string newName) {
-	this->behaviorName = newName;
 	this->isLoot = false;
 }
 
-void ModelBehavior::UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, double xPosition, double yPosition, uint32_t behaviorID) {
+void ModelBehavior::Rename(std::string newName) {
+	this->behaviorName = newName;
+
+	this->isLoot = false;
+}
+
+void ModelBehavior::UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, double xPosition, double yPosition) {
 	auto state = states.find(stateID);
 	auto strip = state->second.find(stripID);
 	for (auto action : strip->second) {
 		action->xPosition = xPosition;
 		action->yPosition = yPosition;
 	}
+
+	this->isLoot = false;
 }
 
-void ModelBehavior::RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t srcActionIndex, uint32_t dstActionIndex, uint32_t behaviorID) {
+void ModelBehavior::RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t srcActionIndex, uint32_t dstActionIndex) {
 	auto state = states.find(stateID);
 	auto strip = state->second.find(stripID);
 
 	std::rotate(strip->second.begin() + dstActionIndex, strip->second.begin() + srcActionIndex, strip->second.end());
+
+	this->isLoot = false;
 }
 
-void ModelBehavior::MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, uint32_t dstActionIndex, STRIPID dstStripID, BEHAVIORSTATE dstStateID, uint32_t behaviorID) {
+void ModelBehavior::MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, uint32_t dstActionIndex, STRIPID dstStripID, BEHAVIORSTATE dstStateID) {
 	auto srcState = states.find(srcStateID);
 	auto srcStrip = srcState->second.find(srcStripID);
 	auto originalPosition = srcStrip->second.begin() + srcActionIndex;
@@ -156,13 +144,10 @@ void ModelBehavior::MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, 
 
 	srcStrip->second.erase(originalPosition, srcStrip->second.end());
 
-	for (auto element : dstStrip->second) {
-		element->stateID = dstStateID;
-		element->stripID = dstStripID;
-	}
+	this->isLoot = false;
 }
 
-void ModelBehavior::SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, STRIPID dstStripID, BEHAVIORSTATE dstStateID, uint32_t behaviorID, double yPosition, double xPosition) {
+void ModelBehavior::SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, STRIPID dstStripID, BEHAVIORSTATE dstStateID, double yPosition, double xPosition) {
 	auto srcState = states.find(srcStateID);
 	auto srcStrip = srcState->second.find(srcStripID);
 	
@@ -173,15 +158,15 @@ void ModelBehavior::SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHA
 		newStrip.push_back(*action);
 		(*action)->yPosition = yPosition;
 		(*action)->xPosition = xPosition;
-		(*action)->stripID = dstStripID;
-		(*action)->stateID = dstStateID;
 	}
 	dstState->second.insert(std::make_pair(dstStripID, newStrip));
 
 	srcStrip->second.erase(srcStrip->second.begin() + srcActionIndex, srcStrip->second.end());
+
+	this->isLoot = false;
 }
 
-void ModelBehavior::MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIORSTATE srcStateID, BEHAVIORSTATE dstStateID, uint32_t behaviorID, uint32_t dstActionIndex) {
+void ModelBehavior::MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIORSTATE srcStateID, BEHAVIORSTATE dstStateID, uint32_t dstActionIndex) {
 	auto srcState = states.find(srcStateID);
 	auto srcStrip = srcState->second.find(srcStripID);
 
@@ -191,17 +176,42 @@ void ModelBehavior::MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIOR
 	dstStrip->second.insert(dstStrip->second.begin() + dstActionIndex, srcStrip->second.begin(), srcStrip->second.end());
 
 	srcState->second.erase(srcStripID);
+
+	this->isLoot = false;
 }
 
 void ModelBehavior::UpdateAction(
-            BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string actionParameter, double actionParameterValue, 
-	    	std::string callbackID, uint32_t actionIndex, uint32_t behaviorID) 
+            BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string parameterValueString, double parameterValueDouble, 
+	    	std::string callbackID, uint32_t actionIndex) 
 {
 	auto state = states.find(stateID);
 	auto strip = state->second.find(stripID);
 	auto action = *(strip->second.begin() + actionIndex);
 
 	action->parameterName = parameterName;
-	action->parameterValue = actionParameter;
-	action->parameterValueNumber = actionParameterValue;
+	action->parameterValueString = parameterValueString;
+	action->parameterValueDouble = parameterValueDouble;
+
+	this->isLoot = false;
+}
+
+void ModelBehavior::VerifyStates() {
+	uint32_t countOfStatesWithStrips = 0;
+	BEHAVIORSTATE candidateToSwap = -1;
+	// Check whether or not we only have 1 state with strips
+	for (auto state : states) {
+		if (state.second.size() > 0) {
+			countOfStatesWithStrips++;
+			candidateToSwap = state.first;
+		}
+	}
+	// If exactly 1 state has strips, make it the home state.  
+	if (candidateToSwap != -1 && countOfStatesWithStrips == 1 && candidateToSwap != eStates::HOME_STATE) {
+		auto state = states.find(candidateToSwap);
+		states.find(eStates::HOME_STATE)->second = state->second;
+		for (auto strip : state->second) {
+			strip.second.clear();
+		}
+		state->second.clear();
+	}
 }
