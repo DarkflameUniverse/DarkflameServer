@@ -29,19 +29,19 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 	//item component:
 	outBitStream->Write1();
 	outBitStream->Write<LWOOBJID>(m_userModelID);
-	outBitStream->Write<int>(0);
+	outBitStream->Write<int32_t>(0);
 	outBitStream->Write0();
 	
 	//actual model component:
 	outBitStream->Write1(); //yes we are writing model info
 	outBitStream->Write0(); //??
-	outBitStream->Write<int>(2); //model type, always 2 for BBB
+	outBitStream->Write<int32_t>(2); //model type, always 2 for BBB
 
 	outBitStream->Write(m_Position);
 	outBitStream->Write(m_Rotation);
-
+	if (!bIsInitialUpdate) return;
 	outBitStream->Write1(); //second data flag, all unknown. Maybe skip?
-	outBitStream->Write<int>(0);
+	outBitStream->Write<uint32_t>(behaviors.size());
 	outBitStream->Write1();
 	outBitStream->Write0();
 }
