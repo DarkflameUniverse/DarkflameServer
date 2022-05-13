@@ -5,6 +5,7 @@
 #include "RakNetTypes.h"
 #include "Character.h"
 #include "Component.h"
+#include "Item.h"
 #include <string>
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
@@ -73,6 +74,26 @@ public:
      * @param config the rocket config to use
      */
 	void SetLastRocketConfig(std::u16string config);
+
+	/**
+	 * Find a player's rocket
+	 * @param player the entity that triggered the event
+	 * @return rocket
+	 */
+	Item* GetRocket(Entity* player);
+
+	/**
+	 * Equip a player's rocket
+	 * @param player the entity that triggered the event
+	 * @return rocket
+	 */
+	Item* RocketEquip(Entity* player);
+
+	/**
+	 * Find a player's rocket and unequip it
+	 * @param player the entity that triggered the event
+	 */
+	void RocketUnEquip(Entity* player);
 
     /**
      * Gets the current level of the entity

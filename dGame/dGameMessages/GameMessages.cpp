@@ -5329,21 +5329,11 @@ void GameMessages::HandleEquipItem(RakNet::BitStream* inStream, Entity* entity) 
 
 	Item* item = inv->FindItemById(objectID);
 	if (!item) return;
-	/*if (item->GetLot() == 6416) { // if it's a rocket
-		std::vector<Entity*> rocketPads = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_ROCKET_LAUNCH);
-		for (Entity* rocketPad : rocketPads) {
-			RocketLaunchpadControlComponent* rocketComp = static_cast<RocketLaunchpadControlComponent*>(rocketPad->GetComponent(COMPONENT_TYPE_ROCKET_LAUNCH));
-			if (rocketComp) {
-				rocketComp->RocketEquip(entity, objectID);
-			}
-		}
-	}
-	else*/ {
+
 		item->Equip();
 		
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
-}
 
 void GameMessages::HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity) {
 	bool immediate;

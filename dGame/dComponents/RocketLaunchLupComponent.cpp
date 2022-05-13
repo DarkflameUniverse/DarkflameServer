@@ -1,8 +1,8 @@
 #include "RocketLaunchLupComponent.h"
 #include "CDClientDatabase.h"
 #include "RocketLaunchpadControlComponent.h"
+#include "InventoryComponent.h"
 #include "CharacterComponent.h"
-#include "Item.h"
 
 RocketLaunchLupComponent::RocketLaunchLupComponent(Entity* parent) : Component(parent) {
 	m_Parent = parent;
@@ -21,20 +21,11 @@ RocketLaunchLupComponent::RocketLaunchLupComponent(Entity* parent) : Component(p
 RocketLaunchLupComponent::~RocketLaunchLupComponent() {}
 
 void RocketLaunchLupComponent::OnUse(Entity* originator) {
-	// the LUP world menu is just the property menu, the client knows how to handle it
-	GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), m_Parent->GetSystemAddress());
-
-	// get the rocket to "equip" it so we are holding it
-	// taken from the RocketLaunchControlComponent
-	auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
-	auto* characterComponent = originator->GetComponent<CharacterComponent>();
-
-	if (!inventoryComponent || !characterComponent) return;
-
-	Item* rocket = inventoryComponent->FindItemById(characterComponent->GetLastRocketItemID());
+	auto* rocket = originator->GetComponent<CharacterComponent>()->RocketEquip(originator);
 	if (!rocket) return;
 
-	rocket->Equip(true);
+	// the LUP world menu is just the property menu, the client knows how to handle it
+	GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), m_Parent->GetSystemAddress());
 }
 
 void RocketLaunchLupComponent::OnSelectWorld(Entity* originator, uint32_t index) {
@@ -45,5 +36,5 @@ void RocketLaunchLupComponent::OnSelectWorld(Entity* originator, uint32_t index)
 
 	if (!rocketLaunchpadControlComponent) return;
 
-	rocketLaunchpadControlComponent->Launch(originator, LWOOBJID_EMPTY, m_LUPWorlds[index], 0);
+	rocketLaunchpadControlComponent->Launch(originator, m_LUPWorlds[index], 0);
 }
