@@ -902,7 +902,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		//limiting it to lot 14 right now
-		if (m_Settings.size() > 0 && m_TemplateID == 14) {
+		if (m_Settings.size() > 0 && GetComponent<ModelComponent>()) {
 			outBitStream->Write1(); //ldf data
 			
 			RakNet::BitStream settingStream;

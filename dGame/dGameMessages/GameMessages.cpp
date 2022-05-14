@@ -209,6 +209,36 @@ void GameMessages::SendInvalidZoneTransferList(Entity* entity, const SystemAddre
 	SEND_PACKET
 }
 
+void GameMessages::SendSmash(Entity* entity, float force, float ghostOpacity, LWOOBJID killerID, bool ignoreObjectVisibility) {
+    CBITSTREAM
+    CMSGHEADER
+
+    bitStream.Write(entity->GetObjectID());
+    bitStream.Write(GAME_MSG::GAME_MSG_SMASH);
+
+    bitStream.Write(ignoreObjectVisibility);
+    bitStream.Write(force);
+    bitStream.Write(ghostOpacity);
+    bitStream.Write(killerID);
+
+    SEND_PACKET_BROADCAST
+}
+void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duration) {
+    CBITSTREAM
+    CMSGHEADER
+
+    bitStream.Write(entity->GetObjectID());
+    bitStream.Write(GAME_MSG::GAME_MSG_UNSMASH);
+
+	bitStream.Write(builderID != LWOOBJID_EMPTY);
+    if (builderID != LWOOBJID_EMPTY) bitStream.Write(builderID);
+	
+	bitStream.Write(duration != 3.0f);
+    if (duration != 3.0f) bitStream.Write(duration);
+
+    SEND_PACKET_BROADCAST
+}
+
 void GameMessages::SendKnockback(const LWOOBJID& objectID, const LWOOBJID& caster, const LWOOBJID& originator, int knockBackTimeMS, const NiPoint3& vector)
 {
 	CBITSTREAM

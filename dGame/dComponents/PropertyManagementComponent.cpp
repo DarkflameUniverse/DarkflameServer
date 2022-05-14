@@ -385,11 +385,20 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 			info.activeOnLoad = true;
 			info.amountMaintained = 1;
 			info.respawnTime = 10;
+			LWOOBJID id = static_cast<LWOOBJID>(persistentId) | 1ull << OBJECT_BIT_CLIENT;
+			LDFBaseData* ldfModelBehavior = new LDFData<LWOOBJID>(u"modelBehaviors", 3);
+			LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", id);
+			LDFBaseData* modelType = new LDFData<int>(u"modelType", 2);
+			LDFBaseData* propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
+			LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
+			info.nodes[0]->config.push_back(componentWhitelist);
+			info.nodes[0]->config.push_back(ldfModelBehavior);
+			info.nodes[0]->config.push_back(modelType);
+			info.nodes[0]->config.push_back(propertyObjectID);
+			info.nodes[0]->config.push_back(userModelID);
 
 			info.emulated = true;
 			info.emulator = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
-
-			LWOOBJID id = static_cast<LWOOBJID>(persistentId) | 1ull << OBJECT_BIT_CLIENT;
 
 			info.spawnerID = id;
 			
@@ -661,6 +670,18 @@ void PropertyManagementComponent::Load()
 
 			settings.push_back(ldfBlueprintID);
 			settings.push_back(componentWhitelist);
+			settings.push_back(modelType);
+			settings.push_back(propertyObjectID);
+			settings.push_back(userModelID);
+		} else {
+			LDFBaseData* ldfModelBehavior = new LDFData<LWOOBJID>(u"modelBehaviors", 3);
+			LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", id);
+			LDFBaseData* modelType = new LDFData<int>(u"modelType", 2);
+			LDFBaseData* propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
+			LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
+
+			settings.push_back(componentWhitelist);
+			settings.push_back(ldfModelBehavior);
 			settings.push_back(modelType);
 			settings.push_back(propertyObjectID);
 			settings.push_back(userModelID);
