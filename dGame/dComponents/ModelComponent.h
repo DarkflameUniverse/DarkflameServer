@@ -4,12 +4,13 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "Component.h"
-#include "Actions.h"
+#include "BehaviorAction.h"
 #include "ModelBehavior.h"
 
 #include <map>
 #include <vector>
 
+class ModelBehavior;
 class Entity;
 
 /**
@@ -21,7 +22,8 @@ public:
 
     ModelComponent(uint32_t componentID, Entity* parent);
     ~ModelComponent() override;
-
+    void OnUse(Entity* originator) override;
+    void Update(float deltatime) override;
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
     /**
@@ -213,7 +215,7 @@ public:
      * 
      * @param value 
      */
-    void SetModelType (uint32_t value) { this->modelType = value; };
+    void SetModelType (uint32_t value) { this->m_ModelType = value; };
     
     /**
      * @brief Get the Behaviors object
@@ -229,6 +231,24 @@ public:
      * @return ModelBehavior* 
      */
     ModelBehavior* FindBehavior(uint32_t& behaviorID);
+
+    void SetOnStartup(bool value) { this->onStartup = value; };
+    void SetOnAttack(bool value) { this->onAttack = value; };
+    void SetOnInteract(bool value) { this->onInteract = value; m_IsPickable = value;};
+    void SetOnProximityEnter(bool value) { this->onProximityEnter = value; };
+    void SetOnProximityLeave(bool value) { this-> onProximityLeave = value; };
+    void SetOnImpact(bool value) { this->onImpact = value; };
+    void SetOnChatMessage(bool value) { this->onChatMessage = value; };
+    void SetOnTimer(bool value) { this->onTimer = value; };
+    void Reset() { onStartup = false;
+                    onAttack = false;
+                    onInteract = false;
+                    onProximityEnter = false;
+                    onProximityLeave = false;
+                    onImpact = false;
+                    onChatMessage = false;
+                    onTimer = false; 
+                    m_IsPickable = false;};
 private:
 
     /**
@@ -252,7 +272,27 @@ private:
     std::vector<ModelBehavior*> behaviors = {};
 
     /**
-     * The models type
+     * The models type - leaving this as two for now.
      */
-    uint32_t modelType = 2;
+    uint32_t m_ModelType = 2;
+
+    /**
+     * Whether or not this entity can be interacted with
+     */
+    bool m_IsPickable = false;
+
+    /**
+     * Whether or not this entity is paused
+     */
+    bool m_IsPaused = false;
+
+    bool onStartup = false;
+    bool onAttack = false;
+    bool onInteract = false;
+    bool onProximityEnter = false;
+    bool onProximityLeave = false;
+    bool onImpact = false;
+    bool onChatMessage = false;
+    bool onTimer = false;
+    float totalDelta = 0.0f;
 };

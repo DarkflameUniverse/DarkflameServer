@@ -1,13 +1,11 @@
 #include "ModelBehavior.h"
-#include "Game.h"
-#include <algorithm>
-#include "dLogger.h"
 
-ModelBehavior::ModelBehavior(uint32_t behaviorID, bool isLoot, std::string behaviorName) {
+ModelBehavior::ModelBehavior(uint32_t behaviorID, Entity* model, bool isLoot, std::string behaviorName) {
     this->behaviorID = behaviorID;
     this->isLoot = isLoot;
     this->isLocked = false;
     this->behaviorName = behaviorName;
+	this->m_ModelComponent = model->GetComponent<ModelComponent>();
 }
 
 ModelBehavior::~ModelBehavior() {
@@ -37,9 +35,11 @@ void ModelBehavior::AddStrip(
 	newAction->xPosition = xPosition;
 	newAction->yPosition = yPosition;
 	newAction->parameterName = parameterName;
+	newAction->isActive = false;
 
 	auto state = states.find(stateID);
 	auto strip = state->second.find(stripID);
+	// Check if this is the first action in a strip
 	if (strip == state->second.end()) {
 		std::vector<BehaviorAction*> ba;
 		ba.push_back(newAction);
@@ -65,6 +65,7 @@ void ModelBehavior::AddAction(
 	newAction->parameterValueDouble = parameterValueDouble;
 	newAction->callbackID = callbackID;
 	newAction->parameterName = parameterName;
+	newAction->isActive = false;
 
 	// The x and y position is stored in all nodes.  
 	newAction->xPosition = strip->second[0]->xPosition;

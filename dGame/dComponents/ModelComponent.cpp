@@ -26,24 +26,37 @@ ModelComponent::~ModelComponent() {
 }
 
 void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	//item component:
+	// Item component:
 	outBitStream->Write1();
-	outBitStream->Write<LWOOBJID>(m_userModelID);
+	if (m_Parent->GetLOT() == 14) outBitStream->Write<LWOOBJID>(m_userModelID);
+	else outBitStream->Write<uint64_t>(m_Parent->GetLOT());
 	outBitStream->Write<int32_t>(0);
 	outBitStream->Write0();
 	
-	//actual model component:
-	outBitStream->Write1(); //yes we are writing model info
-	outBitStream->Write0(); //??
-	outBitStream->Write<int32_t>(2); //model type, always 2 for BBB
+	// Actual model component:
+	outBitStream->Write1(); // Yes we are writing model info
+		outBitStream->Write(m_IsPickable); // Is pickable (can this be interacted with)
+		outBitStream->Write<int32_t>(m_ModelType); // Model type - 
 
-	outBitStream->Write(m_Position);
-	outBitStream->Write(m_Rotation);
-	if (!bIsInitialUpdate) return;
-	outBitStream->Write1(); //second data flag, all unknown. Maybe skip?
-	outBitStream->Write<uint32_t>(behaviors.size());
+		outBitStream->Write(m_Position);
+		outBitStream->Write(m_Rotation);
+
 	outBitStream->Write1();
-	outBitStream->Write0();
+		outBitStream->Write<uint32_t>(behaviors.size());
+		outBitStream->Write(m_IsPaused);
+		outBitStream->Write0(); // Doesn't seem to affect anything not having this...
+}
+
+void ModelComponent::Update(float deltaTime) {
+	totalDelta += deltaTime;
+	if (totalDelta >= 2) {
+		totalDelta = 0.0f;
+	}
+}
+
+void ModelComponent::OnUse(Entity* originator) {
+	if (!m_IsPickable) return;
+	m_IsPickable = false;
 }
 
 void ModelComponent::AddStrip(
@@ -153,7 +166,7 @@ void ModelComponent::AddBehavior(uint32_t behaviorID, uint32_t behaviorIndex) {
 		if (behavior->GetBehaviorID() == behaviorID) return;
 	}
 
-	auto behavior = new ModelBehavior(behaviorID);
+	auto behavior = new ModelBehavior(behaviorID, m_Parent);
 	behaviors.insert(behaviors.begin() + behaviorIndex, behavior);
 	Game::logger->Log("ModelComponent", "Added behavior %i in index %i!\n", behaviorID, behaviorIndex);
 }
@@ -169,7 +182,7 @@ ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
 			if (isUniqueId) {
 				Game::logger->Log("ModelComponent", "Creating a new custom behavior with id %i\n", i);
 				behaviorID = i;
-				auto newBehavior = new ModelBehavior(i, false);
+				auto newBehavior = new ModelBehavior(i, m_Parent, false);
 				behaviors.insert(behaviors.begin(), newBehavior);
 				return newBehavior;
 			}
@@ -181,7 +194,7 @@ ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
 	}
 	if (behaviors.size() < 5) {
 		Game::logger->Log("ModelComponent", "Creating a new templated behavior with id %i\n", behaviorID);
-		auto behavior = new ModelBehavior(behaviorID);
+		auto behavior = new ModelBehavior(behaviorID, m_Parent);
 		behaviors.insert(behaviors.begin(), behavior);
 		return behavior;
 	}
@@ -270,7 +283,7 @@ void ModelComponent::UpdateAction(
         BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string parameterValueString, double parameterValueDouble, 
 		std::string callbackID, uint32_t actionIndex, uint32_t behaviorID) 
 {
-	Game::logger->Log("ModelComponent", "Updating action %i with parameters %s %s %lf in state %i strip %i behavior ID %i\n", actionIndex, actionName.c_str(), parameterName.c_str(), parameterValueString.c_str(), parameterValueDouble, stateID, stripID, behaviorID);
+	Game::logger->Log("ModelComponent", "Updating action %i with parameters %s %s %s %lf in state %i strip %i behavior ID %i\n", actionIndex, actionName.c_str(), parameterName.c_str(), parameterValueString.c_str(), parameterValueDouble, stateID, stripID, behaviorID);
 
 	auto behavior = FindBehavior(behaviorID);
 
@@ -281,5 +294,5 @@ void ModelComponent::UpdateAction(
 
 	behavior->UpdateAction(stateID, stripID, actionName, parameterName, parameterValueString, parameterValueDouble, callbackID, actionIndex);
 
-	Game::logger->Log("ModelComponent", "Updated action %i with parameters %s %s %lf in state %i strip %i behavior ID %i\n", actionIndex, actionName.c_str(), parameterName.c_str(), parameterValueString.c_str(), parameterValueDouble, stateID, stripID, behaviorID);
+	Game::logger->Log("ModelComponent", "Updated action %i with parameters %s %s %s %lf in state %i strip %i behavior ID %i\n", actionIndex, actionName.c_str(), parameterName.c_str(), parameterValueString.c_str(), parameterValueDouble, stateID, stripID, behaviorID);
 }
