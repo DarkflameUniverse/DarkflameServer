@@ -219,7 +219,6 @@ int main(int argc, char** argv) {
 		StartChatServer();
 
 		Game::im->GetInstance(0, false, 0)->SetIsReady(true);
-		Game::im->GetInstance(1000, false, 0)->SetIsReady(true);
 		Game::im->GetInstance(1250, false, 28)->SetIsReady(true);
 
 		StartAuthServer();

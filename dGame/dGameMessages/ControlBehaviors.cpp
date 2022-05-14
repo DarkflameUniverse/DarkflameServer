@@ -197,6 +197,22 @@ void ControlBehaviors::RemoveStrip() {
     uint32_t behaviorID = GetBehaviorIDFromArgument();
 
     modelComponent->RemoveStrip(stateID, stripID, behaviorID);
+
+    auto behaviors = modelComponent->GetBehaviors();
+    for (auto behaviorIterator = behaviors.begin(); behaviorIterator != behaviors.end(); behaviorIterator++) {
+        auto behavior = *behaviorIterator;
+        if (behavior->GetBehaviorID() == behaviorID) {
+            behavior->VerifyStates();
+            if (behavior->GetBehaviorStates().size() == 0) {
+                delete behavior;
+                behavior = nullptr;
+                behaviors.erase(behaviorIterator);
+                modelComponent->SetBehaviors(behaviors);
+                SendBehaviorListToClient();
+                return;
+            }
+        }
+    }
 }
 
 void ControlBehaviors::MergeStrips() {
@@ -394,7 +410,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient() {
 
     modelBehavior->VerifyStates();
 
-    auto states = modelBehavior->GetBehaviorActions();
+    auto states = modelBehavior->GetBehaviorStates();
 
     // Begin serialization.
 
@@ -426,7 +442,8 @@ void ControlBehaviors::SendBehaviorBlocksToClient() {
         state->InsertValue("id", stateAsDouble);
 
         AMFArrayValue* strips = new AMFArrayValue();
-        for (auto strip = it->second.begin(); strip != it->second.end(); strip++) {
+        auto stripsInState = it->second->GetStrips();
+        for (auto strip = stripsInState.begin(); strip != stripsInState.end(); strip++) {
             Game::logger->Log("PropertyBehaviors", "Begin serialization of strip %i!\n", strip->first);
             AMFArrayValue* thisStrip = new AMFArrayValue();
 
@@ -436,11 +453,11 @@ void ControlBehaviors::SendBehaviorBlocksToClient() {
 
             AMFArrayValue* uiArray = new AMFArrayValue();
             AMFDoubleValue* yPosition = new AMFDoubleValue();
-            yPosition->SetDoubleValue(strip->second.at(0)->yPosition);
+            yPosition->SetDoubleValue(strip->second->GetYPosition());
             uiArray->InsertValue("y", yPosition);
 
             AMFDoubleValue* xPosition = new AMFDoubleValue();
-            xPosition->SetDoubleValue(strip->second.at(0)->xPosition);
+            xPosition->SetDoubleValue(strip->second->GetXPosition());
             uiArray->InsertValue("x", xPosition);
             
             thisStrip->InsertValue("ui", uiArray);
@@ -448,7 +465,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient() {
             behaviorID = modelBehavior->GetBehaviorID();
 
             AMFArrayValue* stripSerialize = new AMFArrayValue();
-            for (auto behaviorAction : strip->second) {
+            for (auto behaviorAction : strip->second->GetActions()) {
                 Game::logger->Log("PropertyBehaviors", "Begin serialization of action %s!\n", behaviorAction->actionName.c_str());
                 AMFArrayValue* thisAction = new AMFArrayValue();
 

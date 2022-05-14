@@ -224,6 +224,8 @@ public:
      */
     std::vector<ModelBehavior*> GetBehaviors() { return behaviors; };
 
+    void SetBehaviors(std::vector<ModelBehavior*> behaviors) { this->behaviors = behaviors; };
+
     /**
      * @brief 
      * 

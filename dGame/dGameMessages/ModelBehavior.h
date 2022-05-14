@@ -12,6 +12,7 @@
 #include "dCommonVars.h"
 #include "dLogger.h"
 #include "GameMessages.h"
+#include "BehaviorState.h"
 
 class ModelComponent;
 /**
@@ -55,7 +56,7 @@ class ModelBehavior {
      *
      * @return map of states of behavior actions
      */
-    std::map<BEHAVIORSTATE, std::map<STRIPID, std::vector<BehaviorAction*>>> GetBehaviorActions() { return states; };
+    std::map<BEHAVIORSTATE, BehaviorState*> GetBehaviorStates() { return states; };
 
     /**
      * Updates the UI position of a given strip
@@ -138,7 +139,7 @@ class ModelBehavior {
     uint32_t behaviorID;
 
     /**
-     * Whether the model drops loot?
+     * Whether this behavior is an earned behavior
      */
     bool isLoot;
 
@@ -155,13 +156,7 @@ class ModelBehavior {
     /**
      * A map representing the behaviors this model has
      */
-    std::map<BEHAVIORSTATE, std::map<STRIPID, std::vector<BehaviorAction*>>> states = {
-        {eStates::HOME_STATE, {}},
-        {eStates::CIRCLE_STATE, {}},
-        {eStates::SQUARE_STATE, {}},
-        {eStates::DIAMOND_STATE, {}},
-        {eStates::TRIANGLE_STATE, {}},
-        {eStates::STAR_STATE, {}}};
+    std::map<BEHAVIORSTATE, BehaviorState*> states;
 
     /**
      * The model component of the owner
