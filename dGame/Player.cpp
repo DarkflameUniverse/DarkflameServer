@@ -29,9 +29,7 @@ Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Enti
 	m_GhostReferencePoint = NiPoint3::ZERO;
 	m_GhostOverridePoint = NiPoint3::ZERO;
 	m_GhostOverride = false;
-	m_ObservedEntitiesLength = 256;
-	m_ObservedEntitiesUsed = 0;
-	m_ObservedEntities.resize(m_ObservedEntitiesLength);
+	m_ObservedEntities.reserve(256);
 
 	m_Character->SetEntity(this);
 
@@ -122,26 +120,12 @@ void Player::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId)
 
 void Player::AddLimboConstruction(LWOOBJID objectId) 
 {
-	const auto& iter = std::find(m_LimboConstructions.begin(), m_LimboConstructions.end(), objectId);
-
-	if (iter != m_LimboConstructions.end())
-	{
-		return;
-	}
-
-	m_LimboConstructions.push_back(objectId);
+	m_LimboConstructions.insert(objectId);
 }
 
 void Player::RemoveLimboConstruction(LWOOBJID objectId) 
 {
-	const auto& iter = std::find(m_LimboConstructions.begin(), m_LimboConstructions.end(), objectId);
-
-	if (iter == m_LimboConstructions.end())
-	{
-		return;
-	}
-
-	m_LimboConstructions.erase(iter);
+	m_LimboConstructions.erase(objectId);
 }
 
 void Player::ConstructLimboEntities()
@@ -203,50 +187,17 @@ bool Player::GetGhostOverride() const
 
 void Player::ObserveEntity(int32_t id) 
 {
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++)
-	{
-		if (m_ObservedEntities[i] == 0 || m_ObservedEntities[i] == id)
-		{
-			m_ObservedEntities[i] = id;
-
-			return;
-		}
-	}
-
-	const auto index = m_ObservedEntitiesUsed++;
-
-	if (m_ObservedEntitiesUsed > m_ObservedEntitiesLength)
-	{
-		m_ObservedEntities.resize(m_ObservedEntitiesLength + m_ObservedEntitiesLength);
-
-		m_ObservedEntitiesLength = m_ObservedEntitiesLength + m_ObservedEntitiesLength;
-	}
-
-	m_ObservedEntities[index] = id;
+	m_ObservedEntities.insert(id);
 }
 
 bool Player::IsObserved(int32_t id) 
 {
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++)
-	{
-		if (m_ObservedEntities[i] == id)
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return m_ObservedEntities.find(id) != m_ObservedEntities.end();
 }
 
 void Player::GhostEntity(int32_t id) 
 {
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++)
-	{
-		if (m_ObservedEntities[i] == id)
-		{
-			m_ObservedEntities[i] = 0;
-		}
-	}
+	m_ObservedEntities.erase(id);
 }
 
 Player* Player::GetPlayer(const SystemAddress& sysAddr)
@@ -303,15 +254,8 @@ Player::~Player()
 {
 	Game::logger->Log("Player", "Deleted player\n");
 
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++)
+	for (const auto id : m_ObservedEntities)
 	{
-		const auto id = m_ObservedEntities[i];
-
-		if (id == 0)
-		{
-			continue;
-		}
-
 		auto* entity = EntityManager::Instance()->GetGhostCandidate(id);
 
 		if (entity != nullptr)
@@ -319,6 +263,8 @@ Player::~Player()
 			entity->SetObservers(entity->GetObservers() - 1);
 		}
 	}
+	
+	m_ObservedEntities.clear();
 
 	m_LimboConstructions.clear();
 
