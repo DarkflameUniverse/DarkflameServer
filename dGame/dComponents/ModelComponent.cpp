@@ -49,14 +49,24 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 
 void ModelComponent::Update(float deltaTime) {
 	totalDelta += deltaTime;
-	if (totalDelta >= 2) {
+	if (totalDelta >= 10) {
+		this->Reset();
+		for (auto behavior : behaviors) {
+			behavior->FindStarterBlocks();
+		}
+		EntityManager::Instance()->SerializeEntity(m_Parent);
 		totalDelta = 0.0f;
 	}
 }
 
 void ModelComponent::OnUse(Entity* originator) {
 	if (!m_IsPickable) return;
-	m_IsPickable = false;
+	SetOnInteract(false);
+
+	for (auto behavior : behaviors) {
+		behavior->OnInteract(originator);
+	}
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 void ModelComponent::AddStrip(

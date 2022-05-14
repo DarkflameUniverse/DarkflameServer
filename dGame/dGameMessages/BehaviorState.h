@@ -2,7 +2,7 @@
 
 #include "BehaviorStrip.h"
 #include <map>
-
+class ModelComponent;
 class BehaviorState {
     public:
         BehaviorState(BEHAVIORSTATE stateID);
@@ -18,6 +18,8 @@ class BehaviorState {
         void MergeStrips(BehaviorState* srcState, STRIPID srcStripID, STRIPID dstStripID, uint32_t dstActionIndex);
         void UpdateAction(STRIPID stripID, std::string actionName, std::string parameterName, std::string parameterValueString, double parameterValueDouble, std::string callbackID, uint32_t actionIndex);
         BehaviorStrip* GetStripByID(STRIPID stripID);
+        void FindStarterBlocks(ModelComponent* modelComponent);
+        void OnInteract(ModelComponent* modelComponent, Entity* originator);
         uint32_t CountOfStrips() { return strips.size(); };
         void ClearStrips() { strips.clear(); };
         std::map<STRIPID, BehaviorStrip*> GetStrips() { return strips; };

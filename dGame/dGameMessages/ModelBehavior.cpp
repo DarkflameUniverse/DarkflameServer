@@ -162,3 +162,11 @@ void ModelBehavior::VerifyStates() {
 		srcState->second = nullptr;
 	}
 }
+
+void ModelBehavior::FindStarterBlocks() {
+	states.find(m_ActiveState)->second->FindStarterBlocks(m_ModelComponent);
+}
+
+void ModelBehavior::OnInteract(Entity* originator) {
+	states.find(m_ActiveState)->second->OnInteract(m_ModelComponent, originator);
+}

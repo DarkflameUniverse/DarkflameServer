@@ -1,5 +1,6 @@
 #include "BehaviorState.h"
 #include "Game.h"
+#include "ModelComponent.h"
 #include "dLogger.h"
 
 BehaviorState::BehaviorState(BEHAVIORSTATE stateID) {
@@ -118,4 +119,24 @@ void BehaviorState::UpdateAction(STRIPID stripID, std::string actionName, std::s
 
 BehaviorStrip* BehaviorState::GetStripByID(STRIPID stripID) {
     return strips.find(stripID)->second;
+}
+
+void BehaviorState::FindStarterBlocks(ModelComponent* modelComponent) {
+    for (auto strip : strips) {
+        auto starterBlock = strip.second->GetActions().at(0);
+        if (starterBlock->actionName == "OnInteract") modelComponent->SetOnInteract(true);
+        else if (starterBlock->actionName == "OnAttack") modelComponent->SetOnAttack(true);
+        else if (starterBlock->actionName == "OnEnterProximity") modelComponent->SetOnProximityEnter(true);
+        else if (starterBlock->actionName == "OnLeaveProximity") modelComponent->SetOnProximityLeave(true);
+        else if (starterBlock->actionName == "OnImpact") modelComponent->SetOnImpact(true);
+        else if (starterBlock->actionName == "OnChat") modelComponent->SetOnChatMessage(true);
+        else if (starterBlock->actionName == "OnTimer") modelComponent->SetOnTimer(true);
+        else if (starterBlock->actionName == "OnStartup") modelComponent->SetOnStartup(true);
+    }
+}
+
+void BehaviorState::OnInteract(ModelComponent* modelComponent, Entity* originator) {
+    for (auto strip : strips) {
+        if (strip.second->GetActions().at(0)->actionName == "OnInteract") strip.second->ExecuteStrip(modelComponent, originator);
+    }
 }

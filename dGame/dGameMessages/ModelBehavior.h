@@ -132,6 +132,10 @@ class ModelBehavior {
      */
     void VerifyStates();
 
+    void FindStarterBlocks();
+
+    void OnInteract(Entity* originator); 
+
   private:
     /**
      * The behavior ID of this behavior

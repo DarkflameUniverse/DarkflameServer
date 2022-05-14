@@ -45,6 +45,7 @@
 
 //Component includes:
 #include "ControllablePhysicsComponent.h"
+#include "SimplePhysicsComponent.h"
 #include "CharacterComponent.h"
 #include "MissionOfferComponent.h"
 #include "MissionComponent.h"
@@ -2083,6 +2084,13 @@ void GameMessages::SendGetModelsOnProperty(LWOOBJID objectId, std::map<LWOOBJID,
 	{
 		bitStream.Write(pair.first);
 		bitStream.Write(pair.second);
+		auto entity = EntityManager::Instance()->GetEntity(pair.first);
+		if (entity) {
+			auto simplePhysicsComponent = entity->GetComponent<SimplePhysicsComponent>();
+			simplePhysicsComponent->SetPosition(entity->GetDefaultPosition());
+			simplePhysicsComponent->SetRotation(entity->GetDefaultRotation());
+			EntityManager::Instance()->SerializeEntity(entity);
+		}
 	}
 
 	Game::logger->Log("SendGetModelsOnProperty", "Sending property models to (%llu) (%d)\n", objectId, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
