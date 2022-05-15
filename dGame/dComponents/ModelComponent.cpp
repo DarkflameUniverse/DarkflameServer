@@ -68,7 +68,7 @@ void ModelComponent::Update(float deltaTime) {
 
 	totalDelta += deltaTime;
 	// bleh
-	if (totalDelta >= 10.0f && !PropertyManagementComponent::Instance()->GetOwner()->GetCharacter()->GetBuildMode()) {
+	if (totalDelta >= 10.0f && PropertyManagementComponent::Instance()->GetOwner() && !PropertyManagementComponent::Instance()->GetOwner()->GetCharacter()->GetBuildMode()) {
 		for (auto behavior : behaviors) {
 			behavior->FindStarterBlocks();
 		}
