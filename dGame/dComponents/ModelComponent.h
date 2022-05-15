@@ -252,13 +252,27 @@ public:
                     onChatMessage = false;
                     onTimer = false; 
                     m_IsPickable = false;
+                    interactor = nullptr;
                     moveTowardsInteractor = false;
                     EntityManager::Instance()->SerializeEntity(m_Parent); 
-                    m_ResetOnNextUpdate = true;};
+                    m_ResetOnNextUpdate = true;
+                    m_MoveSpeed = 1.0f; 
+                    velocityDirection = NiPoint3::ZERO; 
+                    isMoving = false; 
+                    angularVelocityDirection = NiPoint3::ZERO; };
     void MoveTowardsInteractor(Entity* interactor);
     bool GetIsPaused() { return m_IsPaused; };
-    void PauseModels() { this->m_IsPaused = true; Reset(); Game::logger->Log("ModelComponent", "pausing %i!\n", m_Parent->GetLOT()); };
+    void PauseModels() { this->m_IsPaused = true; Reset(); };
     void StartModel() { this->m_IsPaused = false; totalDelta = 10.0f; };
+    void SetSmashedState(bool value) { this->m_Smashed = value; };
+    void SetSpeed(float value) { this->m_MoveSpeed = value; };
+    float GetSpeed() { return m_MoveSpeed; };
+    NiPoint3 GetVelocity() { return velocityDirection; };
+    void SetVelocity(NiPoint3& value) { this->velocityDirection = value; };
+    void SetIsMoving(bool value) { this->isMoving = value; };
+    bool GetIsMoving() { return this->isMoving; };
+    void SetAngularVelocity(NiPoint3& value) { this->angularVelocityDirection = value; };
+    NiPoint3 GetAngularVelocity() { return this->angularVelocityDirection; };
 private:
 
     /**
@@ -309,4 +323,9 @@ private:
     bool moveTowardsInteractor = false;
     Entity* interactor = nullptr;
     bool m_ResetOnNextUpdate = false;
+    bool m_Smashed = false;
+    float m_MoveSpeed = 1.0f;
+    NiPoint3 velocityDirection = NiPoint3::ZERO;
+    bool isMoving = false;
+    NiPoint3 angularVelocityDirection = NiPoint3::ZERO;
 };

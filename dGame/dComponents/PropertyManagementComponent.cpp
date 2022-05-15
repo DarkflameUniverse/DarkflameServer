@@ -606,26 +606,33 @@ void PropertyManagementComponent::UpdateApprovedStatus(const bool value)
 }
 
 void PropertyManagementComponent::ResumeAllModels() {
-	for (auto entity : EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_MODEL)) {
-		entity->GetComponent<ModelComponent>()->StartModel();
+	for (auto pair : models) {
+		auto entity = EntityManager::Instance()->GetEntity(pair.first);
+		auto modelComponent = entity->GetComponent<ModelComponent>();
+		modelComponent->StartModel();
 	}
 }
 
 void PropertyManagementComponent::StopAllModels() {
-	for (auto entity : EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_MODEL)) {
-		Game::logger->Log("PMC", "stopping model %i\n", entity->GetLOT());
+	for (auto pair : models) {
+		auto entity = EntityManager::Instance()->GetEntity(pair.first);
 		auto simplePhysicsComponent = entity->GetComponent<SimplePhysicsComponent>();
-		if (!simplePhysicsComponent) return;
-		simplePhysicsComponent->SetPosition(entity->GetDefaultPosition());
-		simplePhysicsComponent->SetRotation(entity->GetDefaultRotation());
+		if (simplePhysicsComponent) {
+			simplePhysicsComponent->SetPosition(entity->GetDefaultPosition());
+			simplePhysicsComponent->SetRotation(entity->GetDefaultRotation());
+			simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
+			simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
+		}
 		auto modelComponent = entity->GetComponent<ModelComponent>();
-		if (!modelComponent) return;
+		if (modelComponent) {
+			modelComponent->PauseModels();
+		}
 		auto movementAIComponent = entity->GetComponent<MovementAIComponent>();
-		if (!movementAIComponent) return;
-		movementAIComponent->Stop();
-		modelComponent->PauseModels();
+		if (movementAIComponent) {
+			movementAIComponent->Stop();
+		}
+		entity->CancelCallbackTimers();
 		EntityManager::Instance()->SerializeEntity(entity);
-		entity->GetComponent<ModelComponent>()->PauseModels();
 	}
 }
 

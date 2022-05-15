@@ -3,6 +3,7 @@
 #include "PropertyManagementComponent.h"
 #include "Character.h"
 #include "MovementAIComponent.h"
+#include "SimplePhysicsComponent.h"
 #include "dLogger.h"
 
 ModelComponent::ModelComponent(uint32_t componentID, Entity* parent) : Component(parent)
@@ -55,20 +56,19 @@ void ModelComponent::Update(float deltaTime) {
 		m_ResetOnNextUpdate = false;
 		m_Parent->CancelCallbackTimers();
 		GameMessages::SendUnSmash(m_Parent, m_Parent->GetObjectID(), 0.0f);
+		m_Smashed = false;
 		for (auto behavior : behaviors) {
 			behavior->FindStarterBlocks();
 		}
 		EntityManager::Instance()->SerializeEntity(m_Parent);
 		return;
 	}
-	if (m_IsPaused) {
-		totalDelta = 0.0f;
-		return;
-	}
+	
+	if (m_IsPaused) return;
 
 	totalDelta += deltaTime;
 	// bleh
-	if (totalDelta >= 10.0f && PropertyManagementComponent::Instance()->GetOwner() && !PropertyManagementComponent::Instance()->GetOwner()->GetCharacter()->GetBuildMode()) {
+	if (totalDelta >= 10.0f) {
 		for (auto behavior : behaviors) {
 			behavior->FindStarterBlocks();
 		}
@@ -76,13 +76,35 @@ void ModelComponent::Update(float deltaTime) {
 		totalDelta = 0.0f;
 	}
 
+	auto movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
 	secondDelta += deltaTime;
-	if (moveTowardsInteractor && secondDelta >= 0.5f) {
-		auto movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
+	if (moveTowardsInteractor && secondDelta >= 0.5f && !m_Smashed) {
 		if (!movementAIComponent || !interactor) return;
 		movementAIComponent->SetDestination(interactor->GetPosition());
 		EntityManager::Instance()->SerializeEntity(m_Parent);
 		secondDelta = 0.0f;
+	}
+	
+	if (m_Smashed) {
+		movementAIComponent->Stop();
+	}
+
+	if (velocityDirection != NiPoint3::ZERO || angularVelocityDirection != NiPoint3::ZERO) {
+		auto simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
+
+		if (!simplePhysicsComponent) return;
+
+		simplePhysicsComponent->SetAngularVelocity(GetAngularVelocity() * GetSpeed());
+		simplePhysicsComponent->SetVelocity(GetVelocity() * GetSpeed());
+		EntityManager::Instance()->SerializeEntity(m_Parent);
+	} else {
+		auto simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
+		
+		if (!simplePhysicsComponent) return;
+
+		simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
+		simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
+		EntityManager::Instance()->SerializeEntity(m_Parent);
 	}
 }
 
