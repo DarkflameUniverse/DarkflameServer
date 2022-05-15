@@ -220,7 +220,7 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ZONE_CONTROL, nullptr));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODEL, -1) != -1) {
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_MODEL, new ModelComponent(0, this)));
 	}
 	
@@ -673,7 +673,7 @@ void Entity::Initialize()
 	}
 
 	int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVEMENT_AI);
-	if (movementAIID > 0 || GetComponent<ModelComponent>()) {
+	if (movementAIID > 0 || (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 		CDMovementAIComponentTable* moveAITable = CDClientManager::Instance()->GetTable<CDMovementAIComponentTable>("MovementAIComponent");
 		std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
 
@@ -915,7 +915,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		//limiting it to lot 14 right now
-		if (m_Settings.size() > 0 && GetComponent<ModelComponent>()) {
+		if (m_Settings.size() > 0 && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 			outBitStream->Write1(); //ldf data
 			
 			RakNet::BitStream settingStream;
