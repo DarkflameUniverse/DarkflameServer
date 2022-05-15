@@ -3,6 +3,7 @@
 #include "RakNetTypes.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
+#include "dLogger.h"
 #include "Component.h"
 #include "BehaviorAction.h"
 #include "ModelBehavior.h"
@@ -250,7 +251,14 @@ public:
                     onImpact = false;
                     onChatMessage = false;
                     onTimer = false; 
-                    m_IsPickable = false;};
+                    m_IsPickable = false;
+                    moveTowardsInteractor = false;
+                    EntityManager::Instance()->SerializeEntity(m_Parent); 
+                    m_ResetOnNextUpdate = true;};
+    void MoveTowardsInteractor(Entity* interactor);
+    bool GetIsPaused() { return m_IsPaused; };
+    void PauseModels() { this->m_IsPaused = true; Reset(); Game::logger->Log("ModelComponent", "pausing %i!\n", m_Parent->GetLOT()); };
+    void StartModel() { this->m_IsPaused = false; totalDelta = 10.0f; };
 private:
 
     /**
@@ -297,4 +305,8 @@ private:
     bool onChatMessage = false;
     bool onTimer = false;
     float totalDelta = 0.0f;
+    float secondDelta = 0.0f;
+    bool moveTowardsInteractor = false;
+    Entity* interactor = nullptr;
+    bool m_ResetOnNextUpdate = false;
 };

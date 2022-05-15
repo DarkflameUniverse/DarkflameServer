@@ -163,6 +163,10 @@ public:
 	
     LWOCLONEID GetCloneId() { return clone_Id; };
 
+    void StopAllModels();
+
+    void ResumeAllModels();
+
 private:
     /**
      * This

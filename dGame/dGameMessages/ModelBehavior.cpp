@@ -76,6 +76,7 @@ void ModelBehavior::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID) {
 		delete state->second;
 		state->second = nullptr;
 		states.erase(state->first);
+		Game::logger->Log("ModelBehavior", "Erased state %i stateid is %i\n", state->first, stateID);
 	}
 
 	this->isLoot = false;
@@ -108,7 +109,7 @@ void ModelBehavior::MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, 
 
 	auto dstState = states.find(dstStateID)->second;
 
-	dstState->MigrateActions(srcState, srcActionIndex, dstActionIndex, srcStripID, dstStripID);
+	dstState->MigrateActions(srcState, srcActionIndex, srcStripID, dstActionIndex, dstStripID);
 
 	this->isLoot = false;
 }
@@ -157,9 +158,8 @@ void ModelBehavior::VerifyStates() {
 	// If exactly 1 state has strip(s), make it the home state.  
 	if (candidateToSwap != -1 && countOfStatesWithStrips == 1 && candidateToSwap != eStates::HOME_STATE) {
 		auto srcState = states.find(candidateToSwap);
-		states.find(eStates::HOME_STATE)->second = srcState->second;
-		srcState->second->ClearStrips();
-		srcState->second = nullptr;
+		states.insert(std::make_pair(eStates::HOME_STATE, srcState->second));
+		states.erase(candidateToSwap);
 	}
 }
 

@@ -4,6 +4,7 @@
 #include "User.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "Character.h"
+#include "ModelComponent.h"
 #include "GeneralUtils.h"
 #include "dServer.h"
 #include "Spawner.h"

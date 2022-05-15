@@ -1,5 +1,8 @@
 #include "ModelComponent.h"
 #include "Entity.h"
+#include "PropertyManagementComponent.h"
+#include "Character.h"
+#include "MovementAIComponent.h"
 #include "dLogger.h"
 
 ModelComponent::ModelComponent(uint32_t componentID, Entity* parent) : Component(parent)
@@ -48,14 +51,38 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 }
 
 void ModelComponent::Update(float deltaTime) {
+	if (m_ResetOnNextUpdate) {
+		m_ResetOnNextUpdate = false;
+		m_Parent->CancelCallbackTimers();
+		GameMessages::SendUnSmash(m_Parent, m_Parent->GetObjectID(), 0.0f);
+		for (auto behavior : behaviors) {
+			behavior->FindStarterBlocks();
+		}
+		EntityManager::Instance()->SerializeEntity(m_Parent);
+		return;
+	}
+	if (m_IsPaused) {
+		totalDelta = 0.0f;
+		return;
+	}
+
 	totalDelta += deltaTime;
-	if (totalDelta >= 10) {
-		this->Reset();
+	// bleh
+	if (totalDelta >= 10.0f && !PropertyManagementComponent::Instance()->GetOwner()->GetCharacter()->GetBuildMode()) {
 		for (auto behavior : behaviors) {
 			behavior->FindStarterBlocks();
 		}
 		EntityManager::Instance()->SerializeEntity(m_Parent);
 		totalDelta = 0.0f;
+	}
+
+	secondDelta += deltaTime;
+	if (moveTowardsInteractor && secondDelta >= 0.5f) {
+		auto movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
+		if (!movementAIComponent || !interactor) return;
+		movementAIComponent->SetDestination(interactor->GetPosition());
+		EntityManager::Instance()->SerializeEntity(m_Parent);
+		secondDelta = 0.0f;
 	}
 }
 
@@ -305,4 +332,9 @@ void ModelComponent::UpdateAction(
 	behavior->UpdateAction(stateID, stripID, actionName, parameterName, parameterValueString, parameterValueDouble, callbackID, actionIndex);
 
 	Game::logger->Log("ModelComponent", "Updated action %i with parameters %s %s %s %lf in state %i strip %i behavior ID %i\n", actionIndex, actionName.c_str(), parameterName.c_str(), parameterValueString.c_str(), parameterValueDouble, stateID, stripID, behaviorID);
+}
+
+void ModelComponent::MoveTowardsInteractor(Entity* interactor) {
+	this->interactor = interactor;
+	this->moveTowardsInteractor = true;
 }

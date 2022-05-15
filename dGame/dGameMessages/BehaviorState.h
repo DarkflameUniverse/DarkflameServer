@@ -3,6 +3,7 @@
 #include "BehaviorStrip.h"
 #include <map>
 class ModelComponent;
+class ModelBehavior;
 class BehaviorState {
     public:
         BehaviorState(BEHAVIORSTATE stateID);

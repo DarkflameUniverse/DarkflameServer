@@ -673,7 +673,7 @@ void Entity::Initialize()
 	}
 
 	int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVEMENT_AI);
-	if (movementAIID > 0) {
+	if (movementAIID > 0 || GetComponent<ModelComponent>()) {
 		CDMovementAIComponentTable* moveAITable = CDClientManager::Instance()->GetTable<CDMovementAIComponentTable>("MovementAIComponent");
 		std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
 
@@ -698,6 +698,19 @@ void Entity::Initialize()
 			}
 
 			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
+		} else {
+			MovementAIInfo moveInfo = MovementAIInfo();
+
+			moveInfo.movementType = "Wander";
+			moveInfo.wanderChance = 100.0f;
+			moveInfo.wanderRadius = 15.0f;
+			moveInfo.wanderSpeed = 1.0f;
+			moveInfo.wanderDelayMax = 2.0f;
+			moveInfo.wanderDelayMin = 10.0f;
+
+			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
+			auto movementAIComponent = GetComponent<MovementAIComponent>();
+			movementAIComponent->Stop();
 		}
 	}
 	else if (petComponentId > 0 || combatAiId > 0 && GetComponent<BaseCombatAIComponent>()->GetTetherSpeed() > 0)

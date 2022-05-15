@@ -136,6 +136,8 @@ class ModelBehavior {
 
     void OnInteract(Entity* originator); 
 
+    void SetState(BEHAVIORSTATE stateID) { this->m_ActiveState = stateID; };
+
   private:
     /**
      * The behavior ID of this behavior

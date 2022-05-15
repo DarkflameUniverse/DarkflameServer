@@ -5,7 +5,10 @@
 #include "GameMessages.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
+#include "DestroyableComponent.h"
+#include "MovementAIComponent.h"
 #include "ModelComponent.h"
+#include "ChatPackets.h"
 #include <algorithm>
 
 BehaviorStrip::BehaviorStrip(STRIPID stripID) {
@@ -71,6 +74,7 @@ void BehaviorStrip::ExecuteStrip(ModelComponent* modelComponent, Entity* origina
 
     modelEntity->AddCallbackTimer(0.0f, [modelEntity, originator, this]() {
         auto actionToExecuteIterator = this->actions.begin() + 1; // Start at action after starter block
+        if (actionToExecuteIterator == this->actions.end()) return;
         this->DoAction(actionToExecuteIterator, modelEntity, originator);
     });
 }
@@ -78,7 +82,7 @@ void BehaviorStrip::ExecuteStrip(ModelComponent* modelComponent, Entity* origina
 void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExecuteIterator, Entity* modelEntity, Entity* originator) {
         auto actionToExecute = *actionToExecuteIterator;
         float timerForNextAction = 0.0f;
-
+        NiPoint3 changedVelocity = NiPoint3::ZERO;
         Game::logger->Log("BehaviorStrip", "Executing action (%s)\n", actionToExecute->actionName.c_str());
 
         if (actionToExecute->actionName == "Smash")
@@ -97,37 +101,43 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         else if (actionToExecute->actionName == "FlyUp")
         {
             auto simplePhysicsComponent = modelEntity->GetComponent<SimplePhysicsComponent>();
-            simplePhysicsComponent->SetVelocity(NiPoint3::UNIT_Y);
+            changedVelocity = NiPoint3::UNIT_Y;
+            simplePhysicsComponent->SetVelocity(simplePhysicsComponent->GetVelocity() + changedVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "FlyDown")
         {
             auto simplePhysicsComponent = modelEntity->GetComponent<SimplePhysicsComponent>();
-            simplePhysicsComponent->SetVelocity(NiPoint3::UNIT_Y * - 1);
+            changedVelocity = NiPoint3::UNIT_Y * - 1;
+            simplePhysicsComponent->SetVelocity(simplePhysicsComponent->GetVelocity() + changedVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "MoveRight")
         {
             auto simplePhysicsComponent = modelEntity->GetComponent<SimplePhysicsComponent>();
-            simplePhysicsComponent->SetVelocity(NiPoint3::UNIT_X);
+            changedVelocity = NiPoint3::UNIT_X;
+            simplePhysicsComponent->SetVelocity(simplePhysicsComponent->GetVelocity() + changedVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "MoveLeft")
         {
             auto simplePhysicsComponent = modelEntity->GetComponent<SimplePhysicsComponent>();
-            simplePhysicsComponent->SetVelocity(NiPoint3::UNIT_X * - 1);
+            changedVelocity = NiPoint3::UNIT_X * - 1;
+            simplePhysicsComponent->SetVelocity(simplePhysicsComponent->GetVelocity() + changedVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "MoveForward")
         {
             auto simplePhysicsComponent = modelEntity->GetComponent<SimplePhysicsComponent>();
-            simplePhysicsComponent->SetVelocity(NiPoint3::UNIT_Z);
+            changedVelocity = NiPoint3::UNIT_Z;
+            simplePhysicsComponent->SetVelocity(simplePhysicsComponent->GetVelocity() + changedVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "MoveBackward")
         {
             auto simplePhysicsComponent = modelEntity->GetComponent<SimplePhysicsComponent>();
-            simplePhysicsComponent->SetVelocity(NiPoint3::UNIT_Z * - 1);
+            changedVelocity = NiPoint3::UNIT_Z * - 1;
+            simplePhysicsComponent->SetVelocity(simplePhysicsComponent->GetVelocity() + changedVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "Spin")
@@ -156,15 +166,39 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "SpawnStromling")
         {
+            EntityInfo info;
+            info.lot = 10495;
+            info.pos = modelEntity->GetPosition();
+            info.rot = modelEntity->GetRotation();
+            info.spawnerID = modelEntity->GetObjectID();
 
+            auto enemy = EntityManager::Instance()->CreateEntity(info);
+
+            EntityManager::Instance()->ConstructEntity(enemy);
         }
         else if (actionToExecute->actionName == "SpawnPirate")
         {
+            EntityInfo info;
+            info.lot = 10497;
+            info.pos = modelEntity->GetPosition();
+            info.rot = modelEntity->GetRotation();
+            info.spawnerID = modelEntity->GetObjectID();
 
+            auto enemy = EntityManager::Instance()->CreateEntity(info);
+
+            EntityManager::Instance()->ConstructEntity(enemy);
         }
         else if (actionToExecute->actionName == "SpawnRonin")
         {
+            EntityInfo info;
+            info.lot = 10498;
+            info.pos = modelEntity->GetPosition();
+            info.rot = modelEntity->GetRotation();
+            info.spawnerID = modelEntity->GetObjectID();
 
+            auto enemy = EntityManager::Instance()->CreateEntity(info);
+
+            EntityManager::Instance()->ConstructEntity(enemy);
         }
         else if (actionToExecute->actionName == "DoDamage")
         {
@@ -172,19 +206,39 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "DropArmor")
         {
-
+            auto players = EntityManager::Instance()->GetEntitiesByLOT(1);
+            for (auto player : players) {
+                for (uint32_t powerupsToDrop = 0; powerupsToDrop < (uint32_t)actionToExecute->parameterValueDouble; powerupsToDrop++) {
+                    GameMessages::SendDropClientLoot(player, modelEntity->GetObjectID(), 6431, 0, modelEntity->GetPosition());
+                }
+            }
         }
         else if (actionToExecute->actionName == "DropHealth")
         {
-
+            auto players = EntityManager::Instance()->GetEntitiesByLOT(1);
+            for (auto player : players) {
+                for (uint32_t powerupsToDrop = 0; powerupsToDrop < (uint32_t)actionToExecute->parameterValueDouble; powerupsToDrop++) {
+                    GameMessages::SendDropClientLoot(player, modelEntity->GetObjectID(), 177, 0, modelEntity->GetPosition());
+                }
+            }
         }
         else if (actionToExecute->actionName == "DropImagination")
         {
-
+            auto players = EntityManager::Instance()->GetEntitiesByLOT(1);
+            for (auto player : players) {
+                for (uint32_t powerupsToDrop = 0; powerupsToDrop < (uint32_t)actionToExecute->parameterValueDouble; powerupsToDrop++) {
+                    GameMessages::SendDropClientLoot(player, modelEntity->GetObjectID(), 935, 0, modelEntity->GetPosition());
+                }
+            }
         }
         else if (actionToExecute->actionName == "Restart")
         {
-
+            modelEntity->SetPosition(modelEntity->GetDefaultPosition());
+            modelEntity->SetRotation(modelEntity->GetDefaultRotation());
+            modelEntity->GetComponent<SimplePhysicsComponent>()->SetVelocity(NiPoint3::ZERO);
+            modelEntity->GetComponent<SimplePhysicsComponent>()->SetAngularVelocity(NiPoint3::ZERO);
+            modelEntity->GetComponent<MovementAIComponent>()->Stop();
+            modelEntity->GetComponent<ModelComponent>()->Reset();
         }
         else if (actionToExecute->actionName == "PrivateMessage")
         {
@@ -192,15 +246,18 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "Chat")
         {
-
+            // Rule Board needs to be replaced with the models name!
+            ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, 12, "REMEMBER TO NAME MODELS", modelEntity->GetObjectID(), false, GeneralUtils::ASCIIToUTF16(actionToExecute->parameterValueString));
         }
         else if (actionToExecute->actionName == "PlaySound")
         {
-
+            auto result = CDClientDatabase::ExecuteQuery("SELECT guid FROM UGBehaviorSounds WHERE id = " + std::to_string((uint32_t)actionToExecute->parameterValueDouble) + ";");
+            std::string audioGUID = result.getStringField(0, "");
+            GameMessages::SendPlayNDAudioEmitter(modelEntity, UNASSIGNED_SYSTEM_ADDRESS, audioGUID);
         }
         else if (actionToExecute->actionName == "MoveToInteractor")
         {
-
+            modelEntity->GetComponent<ModelComponent>()->MoveTowardsInteractor(originator);
         }
         else if (actionToExecute->actionName == "MoveAwayFromInteractor")
         {
@@ -241,11 +298,10 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         EntityManager::Instance()->SerializeEntity(modelEntity);
         actionToExecuteIterator++;
 
-        modelEntity->AddCallbackTimer(timerForNextAction, [actionToExecuteIterator, modelEntity, originator, this]() {
+        modelEntity->AddCallbackTimer(timerForNextAction, [changedVelocity, actionToExecuteIterator, modelEntity, originator, this]() {
             auto simplePhysicsComponent = modelEntity->GetComponent<SimplePhysicsComponent>();
-            simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
-            simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
-             EntityManager::Instance()->SerializeEntity(modelEntity);
+            simplePhysicsComponent->SetVelocity(simplePhysicsComponent->GetVelocity() - changedVelocity);
+            EntityManager::Instance()->SerializeEntity(modelEntity);
             if (actionToExecuteIterator == actions.end()) return;
             DoAction(actionToExecuteIterator, modelEntity, originator);
         });

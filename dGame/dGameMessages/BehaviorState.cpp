@@ -69,7 +69,7 @@ void BehaviorState::MigrateActions(BehaviorState* srcState, uint32_t srcActionIn
     // Find the destination strip and its actions
     auto dstStrip = strips.find(dstStripID)->second;
     auto dstStripActions = dstStrip->GetActions();
-
+    Game::logger->Log("BehaviorState", "Size of strips src %i dst %i\n", srcStripActions.size(), dstStripActions.size());
     // Insert the source actions into the destination actions vector and set this to be the new list of actions
     dstStripActions.insert(dstStripActions.begin() + dstActionIndex, srcStripActions.begin() + srcActionIndex, srcStripActions.end());
     dstStrip->SetActions(dstStripActions);

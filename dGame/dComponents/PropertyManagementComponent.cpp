@@ -6,12 +6,15 @@
 #include "PropertyDataMessage.h"
 #include "UserManager.h"
 #include "GameMessages.h"
+#include "ModelComponent.h"
 #include "Character.h"
 #include "CDClientDatabase.h"
 #include "dZoneManager.h"
 #include "Game.h"
 #include "Item.h"
+#include "MovementAIComponent.h"
 #include "Database.h"
+#include "SimplePhysicsComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "Player.h"
 #include "RocketLaunchpadControlComponent.h"
@@ -600,6 +603,30 @@ void PropertyManagementComponent::UpdateApprovedStatus(const bool value)
 	update->executeUpdate();
 
 	delete update;
+}
+
+void PropertyManagementComponent::ResumeAllModels() {
+	for (auto entity : EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_MODEL)) {
+		entity->GetComponent<ModelComponent>()->StartModel();
+	}
+}
+
+void PropertyManagementComponent::StopAllModels() {
+	for (auto entity : EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_MODEL)) {
+		Game::logger->Log("PMC", "stopping model %i\n", entity->GetLOT());
+		auto simplePhysicsComponent = entity->GetComponent<SimplePhysicsComponent>();
+		if (!simplePhysicsComponent) return;
+		simplePhysicsComponent->SetPosition(entity->GetDefaultPosition());
+		simplePhysicsComponent->SetRotation(entity->GetDefaultRotation());
+		auto modelComponent = entity->GetComponent<ModelComponent>();
+		if (!modelComponent) return;
+		auto movementAIComponent = entity->GetComponent<MovementAIComponent>();
+		if (!movementAIComponent) return;
+		movementAIComponent->Stop();
+		modelComponent->PauseModels();
+		EntityManager::Instance()->SerializeEntity(entity);
+		entity->GetComponent<ModelComponent>()->PauseModels();
+	}
 }
 
 void PropertyManagementComponent::Load()

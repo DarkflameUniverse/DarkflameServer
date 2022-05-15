@@ -1,4 +1,7 @@
 #include "ControlBehaviors.h"
+#include "SimplePhysicsComponent.h"
+#include "MovementAIComponent.h"
+#include "PropertyManagementComponent.h"
 
 ControlBehaviors::~ControlBehaviors() {
     delete this->arguments;
@@ -110,7 +113,6 @@ void ControlBehaviors::ModelTypeChanged() {
 
 void ControlBehaviors::ToggleExecutionUpdates() {
     Game::logger->Log("ControlBehaviors", "toggleExecutionUpdates!\n");
-    // Doesn't do anything at the moment
 }
 
 void ControlBehaviors::AddStrip() {
@@ -198,21 +200,21 @@ void ControlBehaviors::RemoveStrip() {
 
     modelComponent->RemoveStrip(stateID, stripID, behaviorID);
 
-    auto behaviors = modelComponent->GetBehaviors();
-    for (auto behaviorIterator = behaviors.begin(); behaviorIterator != behaviors.end(); behaviorIterator++) {
-        auto behavior = *behaviorIterator;
-        if (behavior->GetBehaviorID() == behaviorID) {
-            behavior->VerifyStates();
-            if (behavior->GetBehaviorStates().size() == 0) {
-                delete behavior;
-                behavior = nullptr;
-                behaviors.erase(behaviorIterator);
-                modelComponent->SetBehaviors(behaviors);
-                SendBehaviorListToClient();
-                return;
-            }
-        }
-    }
+    // auto behaviors = modelComponent->GetBehaviors();
+    // for (auto behaviorIterator = behaviors.begin(); behaviorIterator != behaviors.end(); behaviorIterator++) {
+    //     auto behavior = *behaviorIterator;
+    //     if (behavior->GetBehaviorID() == behaviorID) {
+    //         behavior->VerifyStates();
+    //         if (behavior->GetBehaviorStates().size() == 0) {
+    //             delete behavior;
+    //             behavior = nullptr;
+    //             behaviors.erase(behaviorIterator);
+    //             modelComponent->SetBehaviors(behaviors);
+    //             SendBehaviorListToClient();
+    //             return;
+    //         }
+    //     }
+    // }
 }
 
 void ControlBehaviors::MergeStrips() {
