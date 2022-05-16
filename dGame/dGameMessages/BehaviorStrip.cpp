@@ -109,96 +109,96 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         else if (actionToExecute->actionName == "FlyUp")
         {
             auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.y = NiPoint3::UNIT_Y.y;
-            changedVelocity = currentVelocity;
+            currentVelocity.y += NiPoint3::UNIT_Y.y;
+            changedVelocity = NiPoint3::UNIT_Y;
             modelComponent->SetVelocity(currentVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "FlyDown")
         {
             auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.y = NiPoint3::UNIT_Y.y * -1;
-            changedVelocity = currentVelocity;
+            currentVelocity.y += NiPoint3::UNIT_Y.y * -1;
+            changedVelocity = NiPoint3::UNIT_Y * -1;
             modelComponent->SetVelocity(currentVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "MoveRight")
         {
             auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.x = NiPoint3::UNIT_X.x;
-            changedVelocity = currentVelocity;
+            currentVelocity.x += NiPoint3::UNIT_X.x;
+            changedVelocity = NiPoint3::UNIT_X;
             modelComponent->SetVelocity(currentVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "MoveLeft")
         {
             auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.x = NiPoint3::UNIT_X.x * -1;
-            changedVelocity = currentVelocity;
+            currentVelocity.x += NiPoint3::UNIT_X.x * -1;
+            changedVelocity = NiPoint3::UNIT_X * -1;
             modelComponent->SetVelocity(currentVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "MoveForward")
         {
             auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.z = NiPoint3::UNIT_Z.z;
-            changedVelocity = currentVelocity;
+            currentVelocity.z += NiPoint3::UNIT_Z.z;
+            changedVelocity = NiPoint3::UNIT_Z;
             modelComponent->SetVelocity(currentVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "MoveBackward")
         {
             auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.z = NiPoint3::UNIT_Z.z * -1;
-            changedVelocity = currentVelocity;
+            currentVelocity.z += NiPoint3::UNIT_Z.z * -1;
+            changedVelocity = NiPoint3::UNIT_Z * -1;
             modelComponent->SetVelocity(currentVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "Spin")
         {
             auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.y = NiPoint3::UNIT_Y.y;
-            changedAngularVelocity = currentAngularVelocity;
+            currentAngularVelocity.y += NiPoint3::UNIT_Y.y;
+            changedAngularVelocity = NiPoint3::UNIT_Y;
             modelComponent->SetAngularVelocity(currentAngularVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "SpinNegative")
         {
             auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.y = NiPoint3::UNIT_Y.y * -1;
-            changedAngularVelocity = currentAngularVelocity;
+            currentAngularVelocity.y += NiPoint3::UNIT_Y.y * -1;
+            changedAngularVelocity = NiPoint3::UNIT_Y * -1;
             modelComponent->SetAngularVelocity(currentAngularVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "Tilt")
         {
             auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.z = NiPoint3::UNIT_Z.z;
-            changedAngularVelocity = currentAngularVelocity;
+            currentAngularVelocity.z += NiPoint3::UNIT_Z.z;
+            changedAngularVelocity = NiPoint3::UNIT_Z;
             modelComponent->SetAngularVelocity(currentAngularVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "TiltNegative")
         {
             auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.z = NiPoint3::UNIT_Z.z * -1;
-            changedAngularVelocity = currentAngularVelocity;
+            currentAngularVelocity.z += NiPoint3::UNIT_Z.z * -1;
+            changedAngularVelocity = NiPoint3::UNIT_Z * -1;
             modelComponent->SetAngularVelocity(currentAngularVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "Roll")
         {
             auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.x = NiPoint3::UNIT_X.x;
-            changedAngularVelocity = currentAngularVelocity;
+            currentAngularVelocity.x += NiPoint3::UNIT_X.x;
+            changedAngularVelocity = NiPoint3::UNIT_X;
             modelComponent->SetAngularVelocity(currentAngularVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
         else if (actionToExecute->actionName == "RollNegative")
         {
             auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.x = NiPoint3::UNIT_X.x * -1;
-            changedAngularVelocity = currentAngularVelocity;
+            currentAngularVelocity.x += NiPoint3::UNIT_X.x * -1;
+            changedAngularVelocity = NiPoint3::UNIT_X * -1;
             modelComponent->SetAngularVelocity(currentAngularVelocity);
             timerForNextAction = actionToExecute->parameterValueDouble;
         }
