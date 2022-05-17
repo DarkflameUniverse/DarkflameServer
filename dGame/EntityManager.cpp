@@ -24,12 +24,13 @@ EntityManager* EntityManager::m_Address = nullptr;
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
 	// Small zones
 	1000,
-	
+
 	// Racing zones
 	1203,
+	1261,
 	1303,
 	1403,
-	
+
 	// Property zones
 	1150,
 	1151,

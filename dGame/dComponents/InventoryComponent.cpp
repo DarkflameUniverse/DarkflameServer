@@ -1,4 +1,4 @@
-﻿#include "InventoryComponent.h"
+#include "InventoryComponent.h"
 
 #include <sstream>
 
@@ -794,10 +794,29 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
             
             outBitStream->Write(item.slot != 0);
             if (item.slot != 0) outBitStream->Write<uint16_t>(item.slot);
-            
+
             outBitStream->Write0();
-            
-            outBitStream->Write0(); //TODO: This is supposed to be true and write the assemblyPartLOTs when they're present.
+
+			bool flag = !item.config.empty();
+			outBitStream->Write(flag);
+			if (flag) {
+				RakNet::BitStream ldfStream;
+				ldfStream.Write<int32_t>(item.config.size()); // Key count
+				for (LDFBaseData* data : item.config) {
+					if (data->GetKey() == u"assemblyPartLOTs") {
+						std::string newRocketStr = data->GetValueAsString() + ";";
+						GeneralUtils::ReplaceInString(newRocketStr, "+", ";");
+						LDFData<std::u16string>* ldf_data = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(newRocketStr));
+						ldf_data->WriteToPacket(&ldfStream);
+						delete ldf_data;
+					} else {
+						data->WriteToPacket(&ldfStream);
+					}
+				}
+				outBitStream->Write(ldfStream.GetNumberOfBytesUsed() + 1);
+				outBitStream->Write<uint8_t>(0); // Don't compress
+				outBitStream->Write(ldfStream);
+			}
             
             outBitStream->Write1();
 		}
@@ -1043,7 +1062,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 
 	GenerateProxies(item);
 	
-	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
+	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot(), item->GetConfig() });
 
 	ApplyBuff(item);
 	
