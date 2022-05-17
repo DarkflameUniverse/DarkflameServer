@@ -1,5 +1,4 @@
 #include "RocketLaunchLupComponent.h"
-#include "CDClientDatabase.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "InventoryComponent.h"
 #include "CharacterComponent.h"
