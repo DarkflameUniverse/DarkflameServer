@@ -256,10 +256,16 @@ public:
                     moveTowardsInteractor = false;
                     EntityManager::Instance()->SerializeEntity(m_Parent); 
                     m_ResetOnNextUpdate = true;
-                    m_MoveSpeed = 1.0f; 
+                    m_MoveSpeed = 3.0f; 
                     velocityDirection = NiPoint3::ZERO; 
                     isMoving = false; 
-                    angularVelocityDirection = NiPoint3::ZERO; };
+                    angularVelocityDirection = NiPoint3::ZERO; 
+                    float distanceToTravelX = 0.0f;
+                    float distanceToTravelY = 0.0f;
+                    float distanceToTravelZ = 0.0f; 
+                    xPositionCallbacks.clear(); 
+                    yPositionCallbacks.clear(); 
+                    zPositionCallbacks.clear(); };
     void MoveTowardsInteractor(Entity* interactor);
     bool GetIsPaused() { return m_IsPaused; };
     void PauseModels() { this->m_IsPaused = true; Reset(); };
@@ -273,6 +279,12 @@ public:
     bool GetIsMoving() { return this->isMoving; };
     void SetAngularVelocity(NiPoint3& value) { this->angularVelocityDirection = value; };
     NiPoint3 GetAngularVelocity() { return this->angularVelocityDirection; };
+    void AddToXDistance(float distance) { this->distanceToTravelX += distance; }; 
+    void AddToYDistance(float distance) { this->distanceToTravelY += distance; }; 
+    void AddToZDistance(float distance) { this->distanceToTravelZ += distance; }; 
+    void AddXPositionCallback(std::function<void()> callback) { xPositionCallbacks.push_back(callback); };
+    void AddYPositionCallback(std::function<void()> callback) { yPositionCallbacks.push_back(callback); };
+    void AddZPositionCallback(std::function<void()> callback) { zPositionCallbacks.push_back(callback); };
 private:
 
     /**
@@ -324,8 +336,14 @@ private:
     Entity* interactor = nullptr;
     bool m_ResetOnNextUpdate = false;
     bool m_Smashed = false;
-    float m_MoveSpeed = 1.0f;
+    float m_MoveSpeed = 3.0f;
     NiPoint3 velocityDirection = NiPoint3::ZERO;
     bool isMoving = false;
     NiPoint3 angularVelocityDirection = NiPoint3::ZERO;
+    float distanceToTravelX = 0.0f;
+    float distanceToTravelY = 0.0f;
+    float distanceToTravelZ = 0.0f;
+    std::vector<std::function<void()>> xPositionCallbacks;
+    std::vector<std::function<void()>> yPositionCallbacks;
+    std::vector<std::function<void()>> zPositionCallbacks;
 };

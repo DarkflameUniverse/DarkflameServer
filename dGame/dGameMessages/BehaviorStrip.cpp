@@ -108,51 +108,27 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "FlyUp")
         {
-            auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.y += NiPoint3::UNIT_Y.y;
-            changedVelocity = NiPoint3::UNIT_Y;
-            modelComponent->SetVelocity(currentVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToYDistance(actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "FlyDown")
         {
-            auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.y += NiPoint3::UNIT_Y.y * -1;
-            changedVelocity = NiPoint3::UNIT_Y * -1;
-            modelComponent->SetVelocity(currentVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToYDistance(-actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "MoveRight")
         {
-            auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.x += NiPoint3::UNIT_X.x;
-            changedVelocity = NiPoint3::UNIT_X;
-            modelComponent->SetVelocity(currentVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToXDistance(actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "MoveLeft")
         {
-            auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.x += NiPoint3::UNIT_X.x * -1;
-            changedVelocity = NiPoint3::UNIT_X * -1;
-            modelComponent->SetVelocity(currentVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToXDistance(-actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "MoveForward")
         {
-            auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.z += NiPoint3::UNIT_Z.z;
-            changedVelocity = NiPoint3::UNIT_Z;
-            modelComponent->SetVelocity(currentVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToZDistance(actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "MoveBackward")
         {
-            auto currentVelocity = modelComponent->GetVelocity();
-            currentVelocity.z += NiPoint3::UNIT_Z.z * -1;
-            changedVelocity = NiPoint3::UNIT_Z * -1;
-            modelComponent->SetVelocity(currentVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToZDistance(-actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "Spin")
         {
@@ -335,25 +311,50 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         EntityManager::Instance()->SerializeEntity(modelEntity);
         actionToExecuteIterator++;
+        if (actionToExecute->actionName == "FlyUp" || actionToExecute->actionName == "FlyDown") {
+            modelComponent->AddYPositionCallback([changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
+                Game::logger->Log("strip", "Y Ending action (%s)\n", actionToExecute->actionName.c_str());
 
-        modelEntity->AddCallbackTimer(timerForNextAction, [changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
-            Game::logger->Log("strip", "Ending action (%s)\n", actionToExecute->actionName.c_str());
-            auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-            if (modelComponent && changedVelocity != NiPoint3::ZERO) {
-                auto currentVelocity = modelComponent->GetVelocity();
-                currentVelocity = currentVelocity - changedVelocity;
-                modelComponent->SetVelocity(currentVelocity);
-            }
+                EntityManager::Instance()->SerializeEntity(modelEntity);
+                if (actionToExecuteIterator == actions.end()) return;
+                DoAction(actionToExecuteIterator, modelEntity, originator);
+            });
+        } else if (actionToExecute->actionName == "MoveLeft" || actionToExecute->actionName == "MoveRight") {
+            modelComponent->AddXPositionCallback([changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
+                Game::logger->Log("strip", "X Ending action (%s)\n", actionToExecute->actionName.c_str());
 
-            if (modelComponent && changedAngularVelocity != NiPoint3::ZERO) {
-                auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-                currentAngularVelocity = currentAngularVelocity - changedAngularVelocity;
-                modelComponent->SetAngularVelocity(currentAngularVelocity);
-            }
+                EntityManager::Instance()->SerializeEntity(modelEntity);
+                if (actionToExecuteIterator == actions.end()) return;
+                DoAction(actionToExecuteIterator, modelEntity, originator);
+            });
+        } else if (actionToExecute->actionName == "MoveForward" || actionToExecute->actionName == "MoveBackward") {
+            modelComponent->AddZPositionCallback([changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
+                Game::logger->Log("strip", "Z Ending action (%s)\n", actionToExecute->actionName.c_str());
 
-            EntityManager::Instance()->SerializeEntity(modelEntity);
-            if (actionToExecuteIterator == actions.end()) return;
-            if (actionToExecute->actionName == "UnSmash") modelComponent->SetSmashedState(false);
-            DoAction(actionToExecuteIterator, modelEntity, originator);
-        });
+                EntityManager::Instance()->SerializeEntity(modelEntity);
+                if (actionToExecuteIterator == actions.end()) return;
+                DoAction(actionToExecuteIterator, modelEntity, originator);
+            });
+        } else {
+            modelEntity->AddCallbackTimer(timerForNextAction, [changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
+                Game::logger->Log("strip", "Ending action (%s)\n", actionToExecute->actionName.c_str());
+                auto modelComponent = modelEntity->GetComponent<ModelComponent>();
+                if (modelComponent && changedVelocity != NiPoint3::ZERO) {
+                    auto currentVelocity = modelComponent->GetVelocity();
+                    currentVelocity = currentVelocity - changedVelocity;
+                    modelComponent->SetVelocity(currentVelocity);
+                }
+
+                if (modelComponent && changedAngularVelocity != NiPoint3::ZERO) {
+                    auto currentAngularVelocity = modelComponent->GetAngularVelocity();
+                    currentAngularVelocity = currentAngularVelocity - changedAngularVelocity;
+                    modelComponent->SetAngularVelocity(currentAngularVelocity);
+                }
+
+                EntityManager::Instance()->SerializeEntity(modelEntity);
+                if (actionToExecuteIterator == actions.end()) return;
+                if (actionToExecute->actionName == "UnSmash") modelComponent->SetSmashedState(false);
+                DoAction(actionToExecuteIterator, modelEntity, originator);
+            });
+        }
 }

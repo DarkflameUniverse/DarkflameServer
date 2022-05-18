@@ -52,60 +52,94 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 }
 
 void ModelComponent::Update(float deltaTime) {
-	if (m_ResetOnNextUpdate) {
-		m_ResetOnNextUpdate = false;
-		m_Parent->CancelCallbackTimers();
-		GameMessages::SendUnSmash(m_Parent, m_Parent->GetObjectID(), 0.0f);
-		m_Smashed = false;
-		for (auto behavior : behaviors) {
-			behavior->FindStarterBlocks();
-		}
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-		return;
-	}
-	
-	if (m_IsPaused) return;
+    if (m_ResetOnNextUpdate) {
+        m_ResetOnNextUpdate = false;
+        m_Parent->CancelCallbackTimers();
+        GameMessages::SendUnSmash(m_Parent, m_Parent->GetObjectID(), 0.0f);
+        m_Smashed = false;
+        for (auto behavior : behaviors) {
+            behavior->FindStarterBlocks();
+        }
+        EntityManager::Instance()->SerializeEntity(m_Parent);
+        return;
+    }
 
-	totalDelta += deltaTime;
-	// bleh
-	if (totalDelta >= 10.0f) {
-		for (auto behavior : behaviors) {
-			behavior->FindStarterBlocks();
-		}
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-		totalDelta = 0.0f;
-	}
+    if (m_IsPaused)
+        return;
 
-	auto movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
-	secondDelta += deltaTime;
-	if (moveTowardsInteractor && secondDelta >= 0.5f && !m_Smashed) {
-		if (!movementAIComponent || !interactor) return;
-		movementAIComponent->SetDestination(interactor->GetPosition());
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-		secondDelta = 0.0f;
-	}
-	
-	if (m_Smashed) {
-		movementAIComponent->Stop();
-	}
+    totalDelta += deltaTime;
+    // bleh
+    if (totalDelta >= 10.0f) {
+        for (auto behavior : behaviors) {
+            behavior->FindStarterBlocks();
+        }
+        EntityManager::Instance()->SerializeEntity(m_Parent);
+        totalDelta = 0.0f;
+    }
 
-	if (velocityDirection != NiPoint3::ZERO || angularVelocityDirection != NiPoint3::ZERO) {
-		auto simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
+    auto movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
+    secondDelta += deltaTime;
+    if (moveTowardsInteractor && secondDelta >= 0.5f && !m_Smashed) {
+        if (!movementAIComponent || !interactor)
+            return;
+        movementAIComponent->SetDestination(interactor->GetPosition());
+        EntityManager::Instance()->SerializeEntity(m_Parent);
+        secondDelta = 0.0f;
+    }
 
-		if (!simplePhysicsComponent) return;
+    if (m_Smashed) {
+        movementAIComponent->Stop();
+    }
 
-		simplePhysicsComponent->SetAngularVelocity(GetAngularVelocity() * GetSpeed());
-		simplePhysicsComponent->SetVelocity(GetVelocity() * GetSpeed());
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-	} else {
-		auto simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
-		
-		if (!simplePhysicsComponent) return;
+    auto simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
 
-		simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
-		simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-	}
+    if (simplePhysicsComponent && distanceToTravelY != 0.0f || distanceToTravelX != 0.0f || distanceToTravelZ != 0.0f) {
+        NiPoint3 velocityVector = NiPoint3::ZERO;
+
+        // Vector calculations
+        if (distanceToTravelX != 0.0f) velocityVector.x = distanceToTravelX > 0.0f ? 1 : -1;
+        if (distanceToTravelY != 0.0f) velocityVector.y = distanceToTravelY > 0.0f ? 1 : -1;
+        if (distanceToTravelZ != 0.0f) velocityVector.z = distanceToTravelZ > 0.0f ? 1 : -1;
+        // Set the velocity
+        simplePhysicsComponent->SetVelocity(velocityVector * GetSpeed());
+        // Subtract distance from requested travel distance
+        distanceToTravelX -= velocityVector.x * GetSpeed() * deltaTime;
+        distanceToTravelY -= velocityVector.y * GetSpeed() * deltaTime;
+        distanceToTravelZ -= velocityVector.z * GetSpeed() * deltaTime;
+
+		Game::logger->Log("ModelComponent", "distance X is %f and delta is %f\n", distanceToTravelX, velocityVector.x * GetSpeed() * deltaTime);
+        Game::logger->Log("ModelComponent", "distance Y is %f and delta is %f\n", distanceToTravelY, velocityVector.y * GetSpeed() * deltaTime);
+		Game::logger->Log("ModelComponent", "distance Z is %f and delta is %f\n", distanceToTravelZ, velocityVector.z * GetSpeed() * deltaTime);
+
+        EntityManager::Instance()->SerializeEntity(m_Parent);
+        if (((velocityVector.x < 0 && distanceToTravelX > 0.0f) || (velocityVector.x > 0 && distanceToTravelX < 0.0f))) {
+            distanceToTravelX = 0.0f;
+            uint32_t size = xPositionCallbacks.size();
+            for (uint32_t i = 0; i < size; i++) {
+                xPositionCallbacks[i]();
+            }
+			xPositionCallbacks.erase(xPositionCallbacks.begin(), xPositionCallbacks.begin() + size);
+        }
+        if (((velocityVector.y < 0 && distanceToTravelY > 0.0f) || (velocityVector.y > 0 && distanceToTravelY < 0.0f))) {
+            distanceToTravelY = 0.0f;
+            uint32_t size = yPositionCallbacks.size();
+            for (uint32_t i = 0; i < size; i++) {
+                yPositionCallbacks[i]();
+            }
+			yPositionCallbacks.erase(yPositionCallbacks.begin(), yPositionCallbacks.begin() + size);
+        }
+        if (((velocityVector.z < 0 && distanceToTravelZ > 0.0f) || (velocityVector.z > 0 && distanceToTravelZ < 0.0f))) {
+            distanceToTravelZ = 0.0f;
+            uint32_t size = zPositionCallbacks.size();
+            for (uint32_t i = 0; i < size; i++) {
+                zPositionCallbacks[i]();
+            }
+			zPositionCallbacks.erase(zPositionCallbacks.begin(), zPositionCallbacks.begin() + size);
+        }
+    } else if (simplePhysicsComponent) {
+        simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
+        EntityManager::Instance()->SerializeEntity(m_Parent);
+    }
 }
 
 void ModelComponent::OnUse(Entity* originator) {
