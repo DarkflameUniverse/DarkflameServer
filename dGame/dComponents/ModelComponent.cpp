@@ -66,15 +66,14 @@ void ModelComponent::Update(float deltaTime) {
 
     if (m_IsPaused)
         return;
-
-    totalDelta += deltaTime;
+	
     // bleh
-    if (totalDelta >= 10.0f) {
+    if (checkStarterBlocks) {
         for (auto behavior : behaviors) {
             behavior->FindStarterBlocks();
         }
+		checkStarterBlocks = false;
         EntityManager::Instance()->SerializeEntity(m_Parent);
-        totalDelta = 0.0f;
     }
 
     auto movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
@@ -93,7 +92,7 @@ void ModelComponent::Update(float deltaTime) {
 
     auto simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
 
-    if (simplePhysicsComponent && distanceToTravelY != 0.0f || distanceToTravelX != 0.0f || distanceToTravelZ != 0.0f) {
+    if (simplePhysicsComponent && (distanceToTravelY != 0.0f || distanceToTravelX != 0.0f || distanceToTravelZ != 0.0f)) {
         NiPoint3 velocityVector = NiPoint3::ZERO;
 
         // Vector calculations
@@ -107,39 +106,84 @@ void ModelComponent::Update(float deltaTime) {
         distanceToTravelY -= velocityVector.y * GetSpeed() * deltaTime;
         distanceToTravelZ -= velocityVector.z * GetSpeed() * deltaTime;
 
-		Game::logger->Log("ModelComponent", "distance X is %f and delta is %f\n", distanceToTravelX, velocityVector.x * GetSpeed() * deltaTime);
-        Game::logger->Log("ModelComponent", "distance Y is %f and delta is %f\n", distanceToTravelY, velocityVector.y * GetSpeed() * deltaTime);
-		Game::logger->Log("ModelComponent", "distance Z is %f and delta is %f\n", distanceToTravelZ, velocityVector.z * GetSpeed() * deltaTime);
-
         EntityManager::Instance()->SerializeEntity(m_Parent);
+		std::vector<std::function<void()>> finishedActions;
         if (((velocityVector.x < 0 && distanceToTravelX > 0.0f) || (velocityVector.x > 0 && distanceToTravelX < 0.0f))) {
-            distanceToTravelX = 0.0f;
-            uint32_t size = xPositionCallbacks.size();
-            for (uint32_t i = 0; i < size; i++) {
-                xPositionCallbacks[i]();
+            for (auto callback : xPositionCallbacks) {
+                finishedActions.push_back(callback);
             }
-			xPositionCallbacks.erase(xPositionCallbacks.begin(), xPositionCallbacks.begin() + size);
+			xPositionCallbacks.clear();
+			if (xPositionCallbacks.size() == 0) distanceToTravelX = 0.0f;
         }
         if (((velocityVector.y < 0 && distanceToTravelY > 0.0f) || (velocityVector.y > 0 && distanceToTravelY < 0.0f))) {
-            distanceToTravelY = 0.0f;
-            uint32_t size = yPositionCallbacks.size();
-            for (uint32_t i = 0; i < size; i++) {
-                yPositionCallbacks[i]();
+            for (auto callback : yPositionCallbacks) {
+                finishedActions.push_back(callback);
             }
-			yPositionCallbacks.erase(yPositionCallbacks.begin(), yPositionCallbacks.begin() + size);
+			yPositionCallbacks.clear();
+			if (yPositionCallbacks.size() == 0) distanceToTravelY = 0.0f;
         }
         if (((velocityVector.z < 0 && distanceToTravelZ > 0.0f) || (velocityVector.z > 0 && distanceToTravelZ < 0.0f))) {
-            distanceToTravelZ = 0.0f;
-            uint32_t size = zPositionCallbacks.size();
-            for (uint32_t i = 0; i < size; i++) {
-                zPositionCallbacks[i]();
+            for (auto callback : zPositionCallbacks) {
+                finishedActions.push_back(callback);
             }
-			zPositionCallbacks.erase(zPositionCallbacks.begin(), zPositionCallbacks.begin() + size);
+			zPositionCallbacks.clear();
+			if (zPositionCallbacks.size() == 0) distanceToTravelZ = 0.0f;
         }
+		if (finishedActions.size() > 0) {
+			for (auto callback : finishedActions) {
+				callback();
+			}
+		}
     } else if (simplePhysicsComponent) {
         simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
+		simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
         EntityManager::Instance()->SerializeEntity(m_Parent);
     }
+	
+	if (simplePhysicsComponent && (degreesToRotateByX != 0.0f || degreesToRotateByY != 0.0f || degreesToRotateByZ != 0.0f)) {
+
+		NiPoint3 rotationVector = NiPoint3::ZERO;
+
+		if (degreesToRotateByX != 0.0f) rotationVector.x = degreesToRotateByX > 0.0f ? 1 : -1;
+		if (degreesToRotateByY != 0.0f) rotationVector.y = degreesToRotateByY > 0.0f ? 1 : -1;
+		if (degreesToRotateByZ != 0.0f) rotationVector.z = degreesToRotateByZ > 0.0f ? 1 : -1;
+
+		simplePhysicsComponent->SetAngularVelocity(rotationVector * GetSpeed());
+
+		degreesToRotateByX -= rotationVector.x * deltaTime * 180 / 3.14 * GetSpeed();
+		degreesToRotateByY -= rotationVector.y * deltaTime * 180 / 3.14 * GetSpeed();
+		degreesToRotateByZ -= rotationVector.z * deltaTime * 180 / 3.14 * GetSpeed();
+
+		EntityManager::Instance()->SerializeEntity(m_Parent);
+		Game::logger->Log("ModelComponent", "Degrees left Y %f\n", degreesToRotateByY);
+		std::vector<std::function<void()>> finishedActions;
+        if (((rotationVector.x < 0 && degreesToRotateByX > 0.0f) || (rotationVector.x > 0 && degreesToRotateByX < 0.0f))) {
+            for (auto callback : xRotationCallbacks) {
+                finishedActions.push_back(callback);
+            }
+			xRotationCallbacks.clear();
+			if (xRotationCallbacks.size() == 0) degreesToRotateByX = 0.0f;
+        }
+		if (((rotationVector.y < 0 && degreesToRotateByY > 0.0f) || (rotationVector.y > 0 && degreesToRotateByY < 0.0f))) {
+            for (auto callback : yRotationCallbacks) {
+                finishedActions.push_back(callback);
+            }
+			yRotationCallbacks.clear();
+			if (yRotationCallbacks.size() == 0) degreesToRotateByY = 0.0f;
+        }
+		if (((rotationVector.z < 0 && degreesToRotateByZ > 0.0f) || (rotationVector.z > 0 && degreesToRotateByZ < 0.0f))) {
+            for (auto callback : zRotationCallbacks) {
+                finishedActions.push_back(callback);
+            }
+			zRotationCallbacks.clear();
+			if (zRotationCallbacks.size() == 0) degreesToRotateByZ = 0.0f;
+        }
+		if (finishedActions.size() > 0) {
+			for (auto callback : finishedActions) {
+				callback();
+			}
+		}
+	}
 }
 
 void ModelComponent::OnUse(Entity* originator) {
@@ -393,4 +437,58 @@ void ModelComponent::UpdateAction(
 void ModelComponent::MoveTowardsInteractor(Entity* interactor) {
 	this->interactor = interactor;
 	this->moveTowardsInteractor = true;
+}
+
+void ModelComponent::ResetStarterBlocks() {
+    onStartup = false;
+    onAttack = false;
+    onInteract = false;
+    onProximityEnter = false;
+    onProximityLeave = false;
+    onImpact = false;
+    onChatMessage = false;
+    onTimer = false;
+	m_IsPickable = false;
+	EntityManager::Instance()->SerializeEntity(m_Parent);
+	checkStarterBlocks = true;
+}
+
+void ModelComponent::Reset() {
+    onStartup = false;
+    onAttack = false;
+    onInteract = false;
+    onProximityEnter = false;
+    onProximityLeave = false;
+    onImpact = false;
+    onChatMessage = false;
+    onTimer = false;
+    m_IsPickable = false;
+    interactor = nullptr;
+    moveTowardsInteractor = false;
+    EntityManager::Instance()->SerializeEntity(m_Parent);
+    m_ResetOnNextUpdate = true;
+    m_MoveSpeed = 3.0f;
+    velocityDirection = NiPoint3::ZERO;
+    isMoving = false;
+    angularVelocityDirection = NiPoint3::ZERO;
+    float distanceToTravelX = 0.0f;
+    float distanceToTravelY = 0.0f;
+    float distanceToTravelZ = 0.0f;
+    xPositionCallbacks.clear();
+    yPositionCallbacks.clear();
+    zPositionCallbacks.clear();
+    degreesToRotateByX = 0.0f;
+    degreesToRotateByY = 0.0f;
+    degreesToRotateByZ = 0.0f;
+    xRotationCallbacks.clear();
+    yRotationCallbacks.clear();
+    zRotationCallbacks.clear();
+    checkStarterBlocks = true;
+    for (auto behavior : behaviors) {
+        behavior->SetState(eStates::HOME_STATE);
+    }
+}
+
+void ModelComponent::CheckStarterBlocks() {
+	checkStarterBlocks = true;
 }

@@ -243,33 +243,11 @@ public:
     void SetOnImpact(bool value) { this->onImpact = value; };
     void SetOnChatMessage(bool value) { this->onChatMessage = value; };
     void SetOnTimer(bool value) { this->onTimer = value; };
-    void Reset() { onStartup = false;
-                    onAttack = false;
-                    onInteract = false;
-                    onProximityEnter = false;
-                    onProximityLeave = false;
-                    onImpact = false;
-                    onChatMessage = false;
-                    onTimer = false; 
-                    m_IsPickable = false;
-                    interactor = nullptr;
-                    moveTowardsInteractor = false;
-                    EntityManager::Instance()->SerializeEntity(m_Parent); 
-                    m_ResetOnNextUpdate = true;
-                    m_MoveSpeed = 3.0f; 
-                    velocityDirection = NiPoint3::ZERO; 
-                    isMoving = false; 
-                    angularVelocityDirection = NiPoint3::ZERO; 
-                    float distanceToTravelX = 0.0f;
-                    float distanceToTravelY = 0.0f;
-                    float distanceToTravelZ = 0.0f; 
-                    xPositionCallbacks.clear(); 
-                    yPositionCallbacks.clear(); 
-                    zPositionCallbacks.clear(); };
+    void Reset();
     void MoveTowardsInteractor(Entity* interactor);
     bool GetIsPaused() { return m_IsPaused; };
     void PauseModels() { this->m_IsPaused = true; Reset(); };
-    void StartModel() { this->m_IsPaused = false; totalDelta = 10.0f; };
+    void StartModel() { this->m_IsPaused = false; checkStarterBlocks = true; };
     void SetSmashedState(bool value) { this->m_Smashed = value; };
     void SetSpeed(float value) { this->m_MoveSpeed = value; };
     float GetSpeed() { return m_MoveSpeed; };
@@ -285,6 +263,21 @@ public:
     void AddXPositionCallback(std::function<void()> callback) { xPositionCallbacks.push_back(callback); };
     void AddYPositionCallback(std::function<void()> callback) { yPositionCallbacks.push_back(callback); };
     void AddZPositionCallback(std::function<void()> callback) { zPositionCallbacks.push_back(callback); };
+    void AddToXRotation(float degrees) { this->degreesToRotateByX += degrees; }; 
+    void AddToYRotation(float degrees) { this->degreesToRotateByY += degrees; }; 
+    void AddToZRotation(float degrees) { this->degreesToRotateByZ += degrees; }; 
+    void AddXRotationCallback(std::function<void()> callback) { xRotationCallbacks.push_back(callback); };
+    void AddYRotationCallback(std::function<void()> callback) { yRotationCallbacks.push_back(callback); };
+    void AddZRotationCallback(std::function<void()> callback) { zRotationCallbacks.push_back(callback); };
+    void CancelAllActions() { xPositionCallbacks.clear();
+                            yPositionCallbacks.clear();
+                            zPositionCallbacks.clear();
+                            xRotationCallbacks.clear();
+                            yRotationCallbacks.clear();
+                            zRotationCallbacks.clear(); 
+                            m_Parent->CancelCallbackTimers(); };
+    void CheckStarterBlocks();
+    void ResetStarterBlocks();
 private:
 
     /**
@@ -330,7 +323,7 @@ private:
     bool onImpact = false;
     bool onChatMessage = false;
     bool onTimer = false;
-    float totalDelta = 0.0f;
+    bool checkStarterBlocks = true;
     float secondDelta = 0.0f;
     bool moveTowardsInteractor = false;
     Entity* interactor = nullptr;
@@ -346,4 +339,11 @@ private:
     std::vector<std::function<void()>> xPositionCallbacks;
     std::vector<std::function<void()>> yPositionCallbacks;
     std::vector<std::function<void()>> zPositionCallbacks;
+    NiPoint3 testRotation = NiPoint3::ZERO;
+    float degreesToRotateByX = 0.0f;
+    float degreesToRotateByY = 0.0f;
+    float degreesToRotateByZ = 0.0f;
+    std::vector<std::function<void()>> xRotationCallbacks;
+    std::vector<std::function<void()>> yRotationCallbacks;
+    std::vector<std::function<void()>> zRotationCallbacks;
 };

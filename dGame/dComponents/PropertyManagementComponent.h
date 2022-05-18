@@ -146,7 +146,7 @@ public:
     /**
      * Saves all the models from this property to the database
      */
-	void Save();
+	void Save(bool shuttingDownServer = false);
 
     /**
      * Adds a model to the cache of models

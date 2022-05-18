@@ -750,7 +750,7 @@ void PropertyManagementComponent::Load()
 	delete lookup;
 }
 
-void PropertyManagementComponent::Save()
+void PropertyManagementComponent::Save(bool shuttingDownServer)
 {
 	if (propertyId == LWOOBJID_EMPTY)
 	{
@@ -781,7 +781,9 @@ void PropertyManagementComponent::Save()
 	delete lookupResult;
 
 	std::vector<LWOOBJID> modelIds;
-	
+
+	if (shuttingDownServer) StopAllModels();
+
 	for (const auto& pair : models)
 	{
 		const auto id = pair.second;

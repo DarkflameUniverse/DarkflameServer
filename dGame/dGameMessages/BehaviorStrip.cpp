@@ -11,8 +11,9 @@
 #include "ChatPackets.h"
 #include <algorithm>
 
-BehaviorStrip::BehaviorStrip(STRIPID stripID) {
+BehaviorStrip::BehaviorStrip(STRIPID stripID, ModelBehavior* behavior) {
     this->stripID = stripID;
+    this->parentBehavior = behavior;
 }
 
 BehaviorStrip::~BehaviorStrip() {
@@ -83,7 +84,7 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         auto actionToExecute = *actionToExecuteIterator;
         float timerForNextAction = 0.0f;
         NiPoint3 changedVelocity = NiPoint3::ZERO;
-        Game::logger->Log("BehaviorStrip", "Executing action (%s)\n", actionToExecute->actionName.c_str());
+        Game::logger->Log("BehaviorStrip", "Executing action (%s) for behavior %i\n", actionToExecute->actionName.c_str(), parentBehavior->GetBehaviorID());
         auto modelComponent = modelEntity->GetComponent<ModelComponent>();
         auto simplePhysicsComponent = modelEntity->GetComponent<SimplePhysicsComponent>();
         auto movementAIComponent = modelEntity->GetComponent<MovementAIComponent>();
@@ -132,51 +133,27 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "Spin")
         {
-            auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.y += NiPoint3::UNIT_Y.y;
-            changedAngularVelocity = NiPoint3::UNIT_Y;
-            modelComponent->SetAngularVelocity(currentAngularVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToYRotation(actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "SpinNegative")
         {
-            auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.y += NiPoint3::UNIT_Y.y * -1;
-            changedAngularVelocity = NiPoint3::UNIT_Y * -1;
-            modelComponent->SetAngularVelocity(currentAngularVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToYRotation(-actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "Tilt")
         {
-            auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.z += NiPoint3::UNIT_Z.z;
-            changedAngularVelocity = NiPoint3::UNIT_Z;
-            modelComponent->SetAngularVelocity(currentAngularVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToZRotation(actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "TiltNegative")
         {
-            auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.z += NiPoint3::UNIT_Z.z * -1;
-            changedAngularVelocity = NiPoint3::UNIT_Z * -1;
-            modelComponent->SetAngularVelocity(currentAngularVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToZRotation(-actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "Roll")
         {
-            auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.x += NiPoint3::UNIT_X.x;
-            changedAngularVelocity = NiPoint3::UNIT_X;
-            modelComponent->SetAngularVelocity(currentAngularVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToXRotation(actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "RollNegative")
         {
-            auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-            currentAngularVelocity.x += NiPoint3::UNIT_X.x * -1;
-            changedAngularVelocity = NiPoint3::UNIT_X * -1;
-            modelComponent->SetAngularVelocity(currentAngularVelocity);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            modelComponent->AddToXRotation(-actionToExecute->parameterValueDouble);
         }
         else if (actionToExecute->actionName == "SpawnStromling")
         {
@@ -287,27 +264,39 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "ChangeStateHome")
         {
-
+            modelComponent->CancelAllActions();
+            parentBehavior->SetState(eStates::HOME_STATE);
+            return;
         }
         else if (actionToExecute->actionName == "ChangeStateCircle")
         {
-
+            modelComponent->CancelAllActions();
+            parentBehavior->SetState(eStates::CIRCLE_STATE);
+            return;
         }
         else if (actionToExecute->actionName == "ChangeStateSquare")
         {
-
+            modelComponent->CancelAllActions();
+            parentBehavior->SetState(eStates::SQUARE_STATE);
+            return;
         }
         else if (actionToExecute->actionName == "ChangeStateDiamond")
         {
-
+            modelComponent->CancelAllActions();
+            parentBehavior->SetState(eStates::DIAMOND_STATE);
+            return;
         }
         else if (actionToExecute->actionName == "ChangeStateTriangle")
         {
-
+            modelComponent->CancelAllActions();
+            parentBehavior->SetState(eStates::TRIANGLE_STATE);
+            return;
         }
         else if (actionToExecute->actionName == "ChangeStateStar")
         {
-
+            modelComponent->CancelAllActions();
+            parentBehavior->SetState(eStates::STAR_STATE);
+            return;
         }
         EntityManager::Instance()->SerializeEntity(modelEntity);
         actionToExecuteIterator++;
@@ -330,6 +319,30 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         } else if (actionToExecute->actionName == "MoveForward" || actionToExecute->actionName == "MoveBackward") {
             modelComponent->AddZPositionCallback([changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
                 Game::logger->Log("strip", "Z Ending action (%s)\n", actionToExecute->actionName.c_str());
+
+                EntityManager::Instance()->SerializeEntity(modelEntity);
+                if (actionToExecuteIterator == actions.end()) return;
+                DoAction(actionToExecuteIterator, modelEntity, originator);
+            });
+        } else if (actionToExecute->actionName == "Spin" || actionToExecute->actionName == "SpinNegative") {
+            modelComponent->AddYRotationCallback([changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
+                Game::logger->Log("strip", "Y rotation Ending action (%s)\n", actionToExecute->actionName.c_str());
+
+                EntityManager::Instance()->SerializeEntity(modelEntity);
+                if (actionToExecuteIterator == actions.end()) return;
+                DoAction(actionToExecuteIterator, modelEntity, originator);
+            });
+        } else if (actionToExecute->actionName == "Tilt" || actionToExecute->actionName == "TiltNegative") {
+            modelComponent->AddZRotationCallback([changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
+                Game::logger->Log("strip", "Z rotation Ending action (%s)\n", actionToExecute->actionName.c_str());
+
+                EntityManager::Instance()->SerializeEntity(modelEntity);
+                if (actionToExecuteIterator == actions.end()) return;
+                DoAction(actionToExecuteIterator, modelEntity, originator);
+            });
+        } else if (actionToExecute->actionName == "Roll" || actionToExecute->actionName == "RollNegative") {
+            modelComponent->AddXRotationCallback([changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
+                Game::logger->Log("strip", "X rotation Ending action (%s)\n", actionToExecute->actionName.c_str());
 
                 EntityManager::Instance()->SerializeEntity(modelEntity);
                 if (actionToExecuteIterator == actions.end()) return;

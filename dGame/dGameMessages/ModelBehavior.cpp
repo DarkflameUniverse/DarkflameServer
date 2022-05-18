@@ -31,10 +31,10 @@ void ModelBehavior::AddStrip(
 	auto state = states.find(stateID);
 	if (state == states.end()) {
 		auto newState = new BehaviorState(stateID);
-		newState->AddStrip(newAction, stripID, xPosition, yPosition);
+		newState->AddStrip(newAction, stripID, xPosition, yPosition, this);
 		states.insert(std::make_pair(stateID, newState));
 	} else {
-		state->second->AddStrip(newAction, stripID, xPosition, yPosition);
+		state->second->AddStrip(newAction, stripID, xPosition, yPosition, this);
 	}
 
 	this->isLoot = false;
@@ -119,7 +119,7 @@ void ModelBehavior::SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHA
 	
 	auto dstState = states.find(dstStateID)->second;
 
-	dstState->SplitStrip(srcState, srcActionIndex, srcStripID, dstStripID, yPosition, xPosition);
+	dstState->SplitStrip(srcState, srcActionIndex, srcStripID, dstStripID, yPosition, xPosition, this);
 
 	this->isLoot = false;
 }
@@ -169,4 +169,9 @@ void ModelBehavior::FindStarterBlocks() {
 
 void ModelBehavior::OnInteract(Entity* originator) {
 	states.find(m_ActiveState)->second->OnInteract(m_ModelComponent, originator);
+}
+
+void ModelBehavior::SetState(BEHAVIORSTATE stateID) {
+	this->m_ActiveState = stateID;
+	m_ModelComponent->CheckStarterBlocks();
 }

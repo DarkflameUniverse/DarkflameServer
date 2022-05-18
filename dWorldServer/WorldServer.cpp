@@ -1243,7 +1243,7 @@ void WorldShutdownProcess(uint32_t zoneId) {
 
     if (PropertyManagementComponent::Instance() != nullptr) {
         Game::logger->Log("WorldServer", "Saving ALL property data for zone %i clone %i!\n", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
-        PropertyManagementComponent::Instance()->Save();
+        PropertyManagementComponent::Instance()->Save(true);
         Game::logger->Log("WorldServer", "ALL property data saved for zone %i clone %i!\n", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
     }
 

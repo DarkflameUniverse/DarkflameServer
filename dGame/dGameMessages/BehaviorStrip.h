@@ -5,10 +5,11 @@
 #include <string>
 #include <vector>
 class ModelComponent;
+class ModelBehavior;
 class Entity;
 class BehaviorStrip {
     public:
-        BehaviorStrip(STRIPID stripID);
+        BehaviorStrip(STRIPID stripID, ModelBehavior* behavior);
         ~BehaviorStrip();
         void AddStrip(BehaviorAction* action, double xPosition, double yPosition);
         void AddAction(BehaviorAction* action, uint32_t actionIndex);
@@ -23,6 +24,7 @@ class BehaviorStrip {
         double GetXPosition() { return xPosition; };
         double GetYPosition() { return yPosition; };
     private:
+        ModelBehavior* parentBehavior = nullptr;
         std::vector<BehaviorAction*> actions;
         STRIPID stripID;
         double xPosition;

@@ -15,12 +15,12 @@ BehaviorState::~BehaviorState() {
     }
 }
 
-void BehaviorState::AddStrip(BehaviorAction* action, STRIPID stripID, double xPosition, double yPosition) {
+void BehaviorState::AddStrip(BehaviorAction* action, STRIPID stripID, double xPosition, double yPosition, ModelBehavior* behavior) {
     // Find the strip
     auto strip = strips.find(stripID);
     // Should it be a new strip create it and add this element to it
     if (strip == strips.end()) {
-       auto newStrip = new BehaviorStrip(stripID);
+       auto newStrip = new BehaviorStrip(stripID, behavior);
        newStrip->AddStrip(action, xPosition, yPosition);
        strips.insert(std::make_pair(stripID, newStrip));
     } else {
@@ -79,12 +79,12 @@ void BehaviorState::MigrateActions(BehaviorState* srcState, uint32_t srcActionIn
     srcStrip->SetActions(srcStripActions);
 }
 
-void BehaviorState::SplitStrip(BehaviorState* srcState, uint32_t srcActionIndex, STRIPID srcStripID, STRIPID dstStripID, double yPosition, double xPosition) {
+void BehaviorState::SplitStrip(BehaviorState* srcState, uint32_t srcActionIndex, STRIPID srcStripID, STRIPID dstStripID, double yPosition, double xPosition, ModelBehavior* behavior) {
     // Find the source strip and its actions
     auto srcStrip = srcState->GetStripByID(srcStripID);
     auto srcStripActions = srcStrip->GetActions();
 
-    BehaviorStrip* newStrip = new BehaviorStrip(dstStripID);
+    BehaviorStrip* newStrip = new BehaviorStrip(dstStripID, behavior);
     newStrip->UpdateUIOfStrip(xPosition, yPosition);
 
     std::vector<BehaviorAction*> newStripActions;
