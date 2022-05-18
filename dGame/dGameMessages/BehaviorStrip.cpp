@@ -246,7 +246,7 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "MoveToInteractor")
         {
-            // TODO
+            modelComponent->MoveTowardsInteractor(originator);
         }
         else if (actionToExecute->actionName == "MoveAwayFromInteractor")
         {

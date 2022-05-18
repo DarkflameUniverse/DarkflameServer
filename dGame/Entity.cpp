@@ -1199,7 +1199,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	}
 
 	// Write zero for blueprint component?
-	if (HasComponent(COMPONENT_TYPE_MODEL)) {
+	if (HasComponent(COMPONENT_TYPE_MODEL) && !HasComponent(COMPONENT_TYPE_PET)) {
 		outBitStream->Write0();
 	}
 

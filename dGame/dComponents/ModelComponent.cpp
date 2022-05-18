@@ -70,15 +70,11 @@ void ModelComponent::Update(float deltaTime) {
     }
 
     auto movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
-    if (moveTowardsInteractor && !m_Smashed) {
-		// TODO
-    }
+	auto simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
 
     if (m_Smashed) {
         movementAIComponent->Stop();
     }
-
-    auto simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
 
     if (simplePhysicsComponent && (distanceToTravelY != 0.0f || distanceToTravelX != 0.0f || distanceToTravelZ != 0.0f)) {
         NiPoint3 velocityVector = NiPoint3::ZERO;
@@ -124,7 +120,6 @@ void ModelComponent::Update(float deltaTime) {
 		}
     } else if (simplePhysicsComponent) {
         simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
-		simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
         EntityManager::Instance()->SerializeEntity(m_Parent);
     }
 	
@@ -171,7 +166,17 @@ void ModelComponent::Update(float deltaTime) {
 				callback();
 			}
 		}
-	}
+	} else if (simplePhysicsComponent) {
+        simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
+        EntityManager::Instance()->SerializeEntity(m_Parent);
+    }
+	if (moveTowardsInteractor && interactor && !m_Smashed) {
+		auto toRotate = NiQuaternion::LookAt(m_Parent->GetPosition(), interactor->GetPosition());
+		if (simplePhysicsComponent) {
+			Game::logger->Log("ModelComponent", "Current x %f y %f z %f\n", toRotate.GetUpVector().x, toRotate.GetUpVector().y, toRotate.GetUpVector().z);
+			// TODO look at the coordinate we want to look at and turn towards it with the quaternion and caluclate positional difference using delta between two positions and moving towards the players.
+		}
+    }
 }
 
 void ModelComponent::OnUse(Entity* originator) {
