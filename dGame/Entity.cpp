@@ -1198,6 +1198,11 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		renderComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
+	// Write zero for blueprint component?
+	if (HasComponent(COMPONENT_TYPE_MODEL)) {
+		outBitStream->Write0();
+	}
+
 	if (HasComponent(COMPONENT_TYPE_ZONE_CONTROL))
 	{
 		outBitStream->Write<uint32_t>(0x40000000);

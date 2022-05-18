@@ -41,6 +41,7 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 		outBitStream->Write<uint32_t>(behaviors.size());
 		outBitStream->Write(m_IsPaused);
 		outBitStream->Write0(); // Doesn't seem to affect anything not having this...
+		outBitStream->Write<uint32_t>(0);
 }
 
 void ModelComponent::Update(float deltaTime) {
@@ -455,9 +456,9 @@ void ModelComponent::Reset() {
     EntityManager::Instance()->SerializeEntity(m_Parent);
     m_ResetOnNextUpdate = true;
     m_MoveSpeed = 3.0f;
-    float distanceToTravelX = 0.0f;
-    float distanceToTravelY = 0.0f;
-    float distanceToTravelZ = 0.0f;
+    distanceToTravelX = 0.0f;
+    distanceToTravelY = 0.0f;
+    distanceToTravelZ = 0.0f;
     xPositionCallbacks.clear();
     yPositionCallbacks.clear();
     zPositionCallbacks.clear();
