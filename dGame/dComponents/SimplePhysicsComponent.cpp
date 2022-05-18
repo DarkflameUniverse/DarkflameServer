@@ -18,15 +18,15 @@ SimplePhysicsComponent::SimplePhysicsComponent(uint32_t componentID, Entity* par
     m_Rotation = m_Parent->GetDefaultRotation();
     m_IsDirty = true;
 
-    std::u16string climbable_type = m_Parent->GetVar<std::u16string>(u"climbable");
+    const auto& climbable_type = m_Parent->GetVar<std::u16string>(u"climbable");
     if (climbable_type == u"wall") {
-        SetClimbableType(CLIMBABLE_TYPE_WALL);
+        SetClimbableType(eClimbableType::CLIMBABLE_TYPE_WALL);
     } else if (climbable_type == u"ladder") {
-        SetClimbableType(CLIMBABLE_TYPE_LADDER);
+        SetClimbableType(eClimbableType::CLIMBABLE_TYPE_LADDER);
     } else if (climbable_type == u"wallstick") {
-        SetClimbableType(CLIMBABLE_TYPE_WALL_STICK);
+        SetClimbableType(eClimbableType::CLIMBABLE_TYPE_WALL_STICK);
     } else {
-        SetClimbableType(CLIMBABLE_TYPE_NOT);
+        SetClimbableType(eClimbableType::CLIMBABLE_TYPE_NOT);
     }
 }
 

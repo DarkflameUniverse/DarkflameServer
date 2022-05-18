@@ -14,7 +14,7 @@
 
 class Entity;
 
-enum eClimbableType : int32_t {
+enum class eClimbableType : int32_t {
 	CLIMBABLE_TYPE_NOT = 0,
 	CLIMBABLE_TYPE_LADDER,
 	CLIMBABLE_TYPE_WALL,
@@ -146,7 +146,7 @@ private:
     /**
      * Whether or not the entity is climbable
      */
-    eClimbableType m_ClimbableType = CLIMBABLE_TYPE_NOT;
+    eClimbableType m_ClimbableType = eClimbableType::CLIMBABLE_TYPE_NOT;
 };
 
 #endif // SIMPLEPHYSICSCOMPONENT_H
