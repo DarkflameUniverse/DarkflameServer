@@ -93,15 +93,14 @@ void RebuildComponent::Update(float deltaTime) {
 	m_Activator = GetActivator();
 
 	// Serialize the quickbuild every so often, fixes the odd bug where the quickbuild is not buildable
-	// This has pissed me off so much and on top of that every 5 seconds isn't even enough for builds that are in combat...
-	if (m_SoftTimer > 0.0f) {
+	/*if (m_SoftTimer > 0.0f) {
 		m_SoftTimer -= deltaTime;
 	}
 	else {
-		m_SoftTimer = 1.0f;
+		m_SoftTimer = 5.0f;
 
 		EntityManager::Instance()->SerializeEntity(m_Parent);
-	}
+	}*/
 
 	switch (m_State) {
 	case REBUILD_OPEN: {

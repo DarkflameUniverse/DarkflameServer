@@ -334,7 +334,7 @@ private:
     /**
      * Currently unused
      */
-	float m_SoftTimer = 1.0f;
+	float m_SoftTimer = 0;
 
     /**
      * The ID of the entity that's currently building the rebuild
