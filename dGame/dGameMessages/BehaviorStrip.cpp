@@ -193,7 +193,7 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "DoDamage")
         {
-
+            // TODO
         }
         else if (actionToExecute->actionName == "DropArmor")
         {
@@ -226,14 +226,12 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         {
             modelEntity->SetPosition(modelEntity->GetDefaultPosition());
             modelEntity->SetRotation(modelEntity->GetDefaultRotation());
-            simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
-            simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
             movementAIComponent->Stop();
             modelComponent->Reset();
         }
         else if (actionToExecute->actionName == "PrivateMessage")
         {
-
+            // TODO
         }
         else if (actionToExecute->actionName == "Chat")
         {
@@ -248,11 +246,11 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "MoveToInteractor")
         {
-            modelComponent->MoveTowardsInteractor(originator);
+            // TODO
         }
         else if (actionToExecute->actionName == "MoveAwayFromInteractor")
         {
-            // RotateByQuaternion?
+            // TODO
         }
         else if (actionToExecute->actionName == "MoveBackToStart")
         {
@@ -352,17 +350,6 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
             modelEntity->AddCallbackTimer(timerForNextAction, [changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
                 Game::logger->Log("strip", "Ending action (%s)\n", actionToExecute->actionName.c_str());
                 auto modelComponent = modelEntity->GetComponent<ModelComponent>();
-                if (modelComponent && changedVelocity != NiPoint3::ZERO) {
-                    auto currentVelocity = modelComponent->GetVelocity();
-                    currentVelocity = currentVelocity - changedVelocity;
-                    modelComponent->SetVelocity(currentVelocity);
-                }
-
-                if (modelComponent && changedAngularVelocity != NiPoint3::ZERO) {
-                    auto currentAngularVelocity = modelComponent->GetAngularVelocity();
-                    currentAngularVelocity = currentAngularVelocity - changedAngularVelocity;
-                    modelComponent->SetAngularVelocity(currentAngularVelocity);
-                }
 
                 EntityManager::Instance()->SerializeEntity(modelEntity);
                 if (actionToExecuteIterator == actions.end()) return;

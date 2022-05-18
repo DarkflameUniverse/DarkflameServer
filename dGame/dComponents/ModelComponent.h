@@ -251,12 +251,6 @@ public:
     void SetSmashedState(bool value) { this->m_Smashed = value; };
     void SetSpeed(float value) { this->m_MoveSpeed = value; };
     float GetSpeed() { return m_MoveSpeed; };
-    NiPoint3 GetVelocity() { return velocityDirection; };
-    void SetVelocity(NiPoint3& value) { this->velocityDirection = value; };
-    void SetIsMoving(bool value) { this->isMoving = value; };
-    bool GetIsMoving() { return this->isMoving; };
-    void SetAngularVelocity(NiPoint3& value) { this->angularVelocityDirection = value; };
-    NiPoint3 GetAngularVelocity() { return this->angularVelocityDirection; };
     void AddToXDistance(float distance) { this->distanceToTravelX += distance; }; 
     void AddToYDistance(float distance) { this->distanceToTravelY += distance; }; 
     void AddToZDistance(float distance) { this->distanceToTravelZ += distance; }; 
@@ -269,13 +263,17 @@ public:
     void AddXRotationCallback(std::function<void()> callback) { xRotationCallbacks.push_back(callback); };
     void AddYRotationCallback(std::function<void()> callback) { yRotationCallbacks.push_back(callback); };
     void AddZRotationCallback(std::function<void()> callback) { zRotationCallbacks.push_back(callback); };
-    void CancelAllActions() { xPositionCallbacks.clear();
-                            yPositionCallbacks.clear();
-                            zPositionCallbacks.clear();
-                            xRotationCallbacks.clear();
-                            yRotationCallbacks.clear();
-                            zRotationCallbacks.clear(); 
-                            m_Parent->CancelCallbackTimers(); };
+    void CancelAllActions() 
+        { 
+        xPositionCallbacks.clear();
+        yPositionCallbacks.clear();
+        zPositionCallbacks.clear();
+        xRotationCallbacks.clear();
+        yRotationCallbacks.clear();
+        zRotationCallbacks.clear(); 
+        m_Parent->CancelCallbackTimers(); 
+        };
+
     void CheckStarterBlocks();
     void ResetStarterBlocks();
 private:
@@ -324,22 +322,17 @@ private:
     bool onChatMessage = false;
     bool onTimer = false;
     bool checkStarterBlocks = true;
-    float secondDelta = 0.0f;
     bool moveTowardsInteractor = false;
     Entity* interactor = nullptr;
     bool m_ResetOnNextUpdate = false;
     bool m_Smashed = false;
     float m_MoveSpeed = 3.0f;
-    NiPoint3 velocityDirection = NiPoint3::ZERO;
-    bool isMoving = false;
-    NiPoint3 angularVelocityDirection = NiPoint3::ZERO;
     float distanceToTravelX = 0.0f;
     float distanceToTravelY = 0.0f;
     float distanceToTravelZ = 0.0f;
     std::vector<std::function<void()>> xPositionCallbacks;
     std::vector<std::function<void()>> yPositionCallbacks;
     std::vector<std::function<void()>> zPositionCallbacks;
-    NiPoint3 testRotation = NiPoint3::ZERO;
     float degreesToRotateByX = 0.0f;
     float degreesToRotateByY = 0.0f;
     float degreesToRotateByZ = 0.0f;

@@ -12,14 +12,6 @@ ModelComponent::ModelComponent(uint32_t componentID, Entity* parent) : Component
 	m_Rotation = m_Parent->GetDefaultRotation();
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
-
-	/*
-	for (auto set : m_Parent->GetInfo().settings) {
-		if (set && set->GetKey() == u"userModelID") {
-			m_userModelID = std::stoull(set->GetValueAsString());
-		}
-	}
-	*/
 }
 
 ModelComponent::~ModelComponent() {
@@ -77,13 +69,8 @@ void ModelComponent::Update(float deltaTime) {
     }
 
     auto movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
-    secondDelta += deltaTime;
-    if (moveTowardsInteractor && secondDelta >= 0.5f && !m_Smashed) {
-        if (!movementAIComponent || !interactor)
-            return;
-        movementAIComponent->SetDestination(interactor->GetPosition());
-        EntityManager::Instance()->SerializeEntity(m_Parent);
-        secondDelta = 0.0f;
+    if (moveTowardsInteractor && !m_Smashed) {
+		// TODO
     }
 
     if (m_Smashed) {
@@ -468,9 +455,6 @@ void ModelComponent::Reset() {
     EntityManager::Instance()->SerializeEntity(m_Parent);
     m_ResetOnNextUpdate = true;
     m_MoveSpeed = 3.0f;
-    velocityDirection = NiPoint3::ZERO;
-    isMoving = false;
-    angularVelocityDirection = NiPoint3::ZERO;
     float distanceToTravelX = 0.0f;
     float distanceToTravelY = 0.0f;
     float distanceToTravelZ = 0.0f;
