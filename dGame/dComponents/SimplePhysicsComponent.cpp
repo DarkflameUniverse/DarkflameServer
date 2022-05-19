@@ -35,8 +35,8 @@ SimplePhysicsComponent::~SimplePhysicsComponent() {
 
 void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
     if (bIsInitialUpdate) {
-        outBitStream->Write(m_ClimbableType > 0);
-        outBitStream->Write<int32_t>(m_ClimbableType);
+        outBitStream->Write(m_ClimbableType != eClimbableType::CLIMBABLE_TYPE_NOT);
+        outBitStream->Write(m_ClimbableType);
     }
 
     outBitStream->Write(m_DirtyVelocity || bIsInitialUpdate);
