@@ -616,23 +616,25 @@ void PropertyManagementComponent::ResumeAllModels() {
 void PropertyManagementComponent::StopAllModels() {
 	for (auto pair : models) {
 		auto entity = EntityManager::Instance()->GetEntity(pair.first);
-		auto simplePhysicsComponent = entity->GetComponent<SimplePhysicsComponent>();
-		if (simplePhysicsComponent) {
-			simplePhysicsComponent->SetPosition(entity->GetDefaultPosition());
-			simplePhysicsComponent->SetRotation(entity->GetDefaultRotation());
-			simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
-			simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
+		if (entity) {
+			auto simplePhysicsComponent = entity->GetComponent<SimplePhysicsComponent>();
+			if (simplePhysicsComponent) {
+				simplePhysicsComponent->SetPosition(entity->GetDefaultPosition());
+				simplePhysicsComponent->SetRotation(entity->GetDefaultRotation());
+				simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
+				simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
+			}
+			auto modelComponent = entity->GetComponent<ModelComponent>();
+			if (modelComponent) {
+				modelComponent->PauseModels();
+			}
+			auto movementAIComponent = entity->GetComponent<MovementAIComponent>();
+			if (movementAIComponent) {
+				movementAIComponent->Stop();
+			}
+			entity->CancelCallbackTimers();
+			EntityManager::Instance()->SerializeEntity(entity);
 		}
-		auto modelComponent = entity->GetComponent<ModelComponent>();
-		if (modelComponent) {
-			modelComponent->PauseModels();
-		}
-		auto movementAIComponent = entity->GetComponent<MovementAIComponent>();
-		if (movementAIComponent) {
-			movementAIComponent->Stop();
-		}
-		entity->CancelCallbackTimers();
-		EntityManager::Instance()->SerializeEntity(entity);
 	}
 }
 
@@ -757,7 +759,7 @@ void PropertyManagementComponent::Save(bool shuttingDownServer)
 		return;
 	}
 
-	auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+	auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents (id, property_id, ugc_id, lot, x, y, z, rx, ry, rz, rw) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 	auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
 	auto* lookup = Database::CreatePreppedStmt("SELECT id FROM properties_contents WHERE property_id = ?;");
 	auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");

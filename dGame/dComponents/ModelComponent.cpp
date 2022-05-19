@@ -3,6 +3,7 @@
 #include "PropertyManagementComponent.h"
 #include "Character.h"
 #include "MovementAIComponent.h"
+#include "../../dWorldServer/ObjectIDManager.h"
 #include "SimplePhysicsComponent.h"
 #include "dLogger.h"
 
@@ -304,19 +305,13 @@ void ModelComponent::AddBehavior(uint32_t behaviorID, uint32_t behaviorIndex) {
 ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
 	// Drop in here if we are creating a new behavior to create a new behavior with a unique ID
 	if (behaviorID == -1) {
-		for (uint32_t i = 0; i < 5; i++) {
-			bool isUniqueId = true;
-			for (auto behavior : behaviors) {
-				if (behavior->GetBehaviorID() == i) isUniqueId = false;
-			}
-			if (isUniqueId) {
-				Game::logger->Log("ModelComponent", "Creating a new custom behavior with id %i\n", i);
-				behaviorID = i;
-				auto newBehavior = new ModelBehavior(i, m_Parent, false);
-				behaviors.insert(behaviors.begin(), newBehavior);
-				return newBehavior;
-			}
-		}
+		uint32_t newBehaviorID;
+		ObjectIDManager::Instance()->RequestPersistentID([&newBehaviorID](uint32_t generatedID) {
+                  newBehaviorID = generatedID;
+		});
+		behaviorID = (*behaviors.begin())->GetBehaviorID();
+		Game::logger->Log("ModelComponent", "Creating a new custom behavior with id %i\n", behaviorID);
+		return *behaviors.begin();
 	}
 	for (auto behavior : behaviors) {
 		Game::logger->Log("ModelComponent", "Trying to find behavior with id %i.  Candidate is %i\n", behaviorID, behavior->GetBehaviorID());
