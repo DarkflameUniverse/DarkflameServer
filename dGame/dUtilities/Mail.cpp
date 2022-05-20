@@ -262,7 +262,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	}
 
 	Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::Success);
-	entity->GetCharacter()->SetCoins(entity->GetCharacter()->GetCoins() - mailCost, LOOT_SOURCE_MAIL);
+	entity->GetCharacter()->SetCoins(entity->GetCharacter()->GetCoins() - mailCost, eLootSourceType::LOOT_SOURCE_MAIL);
 
 	Game::logger->Log("Mail", "Seeing if we need to remove item with ID/count/LOT: %i %i %i\n", itemID, attachmentCount, itemLOT);
 
@@ -363,7 +363,7 @@ void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddres
 		auto inv = static_cast<InventoryComponent*>(player->GetComponent(COMPONENT_TYPE_INVENTORY));
 		if (!inv) return;
 
-		inv->AddItem(attachmentLOT, attachmentCount);
+		inv->AddItem(attachmentLOT, attachmentCount, eLootSourceType::LOOT_SOURCE_MAIL);
 
 		Mail::SendAttachmentRemoveConfirm(sysAddr, mailID);
 

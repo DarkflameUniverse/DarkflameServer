@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <chrono>
 #include "Entity.h"
 #include "Component.h"
 
@@ -40,7 +41,7 @@ public:
      * @param sysAddr the address to send game message responses to
      * @param author optional explicit ID for the property, if not set defaults to the originator
      */
-	void OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author = LWOOBJID_EMPTY) const;
+	void OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author = LWOOBJID_EMPTY);
 
     /**
      * Handles an OnUse event, telling the client who owns this property, etc.
@@ -100,8 +101,10 @@ public:
     /**
      * Makes this property owned by the passed player ID, storing it in the database
      * @param playerId the ID of the entity that claimed the property
+     * 
+     * @return If the claim is successful return true.
      */
-	void Claim(LWOOBJID playerId);
+	bool Claim(LWOOBJID playerId);
 
     /**
      * Event triggered when the owner of the property starts building, will kick other entities out
@@ -158,6 +161,8 @@ public:
      */
 	const std::map<LWOOBJID, LWOOBJID>& GetModels() const;
 	
+    LWOCLONEID GetCloneId() { return clone_Id; };
+
 private:
     /**
      * This
@@ -182,7 +187,7 @@ private:
     /**
      * The time since this property was claimed
      */
-	uint64_t claimedTime = 0;
+	uint64_t claimedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     /**
      * The models that are placed on this property
@@ -195,9 +200,34 @@ private:
 	std::string propertyName = "";
 
     /**
+     * The clone ID of this property
+     */
+	LWOCLONEID clone_Id = 0;
+
+    /**
+     * Whether a moderator was requested
+     */
+    bool moderatorRequested = false;
+
+    /**
+     * The rejection reason for the property
+     */
+	std::string rejectionReason = "";
+
+    /**
      * The description of this property
      */
 	std::string propertyDescription = "";
+
+    /**
+     * The reputation of this property
+     */
+	uint32_t reputation = 0;
+
+    /**
+     * The last time this property was updated
+     */
+    uint32_t LastUpdatedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     /**
      * Determines which players may visit this property

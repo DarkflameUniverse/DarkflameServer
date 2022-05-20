@@ -5,6 +5,7 @@
 #include "RakNetTypes.h"
 #include "Character.h"
 #include "Component.h"
+#include "Item.h"
 #include <string>
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
@@ -73,6 +74,26 @@ public:
      * @param config the rocket config to use
      */
 	void SetLastRocketConfig(std::u16string config);
+
+	/**
+	 * Find a player's rocket
+	 * @param player the entity that triggered the event
+	 * @return rocket
+	 */
+	Item* GetRocket(Entity* player);
+
+	/**
+	 * Equip a player's rocket
+	 * @param player the entity that triggered the event
+	 * @return rocket
+	 */
+	Item* RocketEquip(Entity* player);
+
+	/**
+	 * Find a player's rocket and unequip it
+	 * @param player the entity that triggered the event
+	 */
+	void RocketUnEquip(Entity* player);
 
     /**
      * Gets the current level of the entity
@@ -145,6 +166,18 @@ public:
      * @return
      */
 	bool GetPvpEnabled() const;
+
+    /**
+     * Returns the characters lifetime reputation
+     * @return The lifetime reputation of this character.
+     */
+    int64_t GetReputation() { return m_Reputation; };
+
+    /**
+     * Sets the lifetime reputation of the character to newValue
+     * @param newValue the value to set reputation to
+     */
+    void SetReputation(int64_t newValue) { m_Reputation = newValue; };
 
     /**
      * Sets the current value of PvP combat being enabled
@@ -290,6 +323,11 @@ private:
      * Universe score of the entity
      */
 	int64_t m_Uscore;
+
+    /**
+     * The lifetime reputation earned by the entity
+     */
+    int64_t m_Reputation;
 
     /**
      * Whether the character is landing by rocket

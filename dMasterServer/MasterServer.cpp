@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <fstream>
 
 #ifdef _WIN32
 #include <bcrypt/BCrypt.hpp>
@@ -46,6 +47,7 @@ namespace Game {
 
 bool shutdownSequenceStarted = false;
 void ShutdownSequence();
+int FinalizeShutdown();
 dLogger* SetupLogger();
 void StartAuthServer();
 void StartChatServer();
@@ -62,10 +64,11 @@ int main(int argc, char** argv) {
 	//Triggers the shutdown sequence at application exit
 	std::atexit(ShutdownSequence);
 	signal(SIGINT, [](int) { ShutdownSequence(); });
+	signal(SIGTERM, [](int) { ShutdownSequence(); });
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
-	if (!Game::logger) return 0;
+	if (!Game::logger) return EXIT_FAILURE;
 
 	Game::logger->Log("MasterServer", "Starting Master server...\n");
 	Game::logger->Log("MasterServer", "Version: %i.%i\n", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
@@ -77,17 +80,35 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
 	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
 
+	//Check CDClient exists
+	const std::string cdclient_path = "./res/CDServer.sqlite";
+	std::ifstream cdclient_fd(cdclient_path);
+	if (!cdclient_fd.good()) {
+		Game::logger->Log("WorldServer", "%s could not be opened\n", cdclient_path.c_str());
+		return EXIT_FAILURE;
+	}
+	cdclient_fd.close();
+
 	//Connect to CDClient
 	try {
-		CDClientDatabase::Connect("./res/CDServer.sqlite");
+		CDClientDatabase::Connect(cdclient_path);
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database\n");
 		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
 		Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
-		return -1;
+		return EXIT_FAILURE;
 	}
 
-	CDClientManager::Instance()->Initialize();
+	//Get CDClient initial information
+	try {
+		CDClientManager::Instance()->Initialize();
+	} catch (CppSQLite3Exception& e) {
+		Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database\n");
+		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s\n", cdclient_path.c_str());
+		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
+		Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
+		return EXIT_FAILURE;
+	}
 
 	//Connect to the MySQL Database
 	std::string mysql_host = config.GetValue("mysql_host");
@@ -99,7 +120,7 @@ int main(int argc, char** argv) {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
 		Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
-		return 0;
+		return EXIT_FAILURE;
 	}
 
 	//If the first command line argument is -a or --account then make the user
@@ -147,7 +168,11 @@ int main(int argc, char** argv) {
 		delete statement;
 
 		std::cout << "Account created successfully!\n";
-		return 0;
+
+		Database::Destroy("MasterServer");
+		delete Game::logger;
+
+		return EXIT_SUCCESS;
 	}
 
 	int maxClients = 999;
@@ -247,7 +272,8 @@ int main(int argc, char** argv) {
 		//10m shutdown for universe kill command
 		if (shouldShutdown) {
 			if (framesSinceKillUniverseCommand >= 40000) {
-				std::exit(0);
+				//Break main loop and exit
+				break;
 			}
 			else
 				framesSinceKillUniverseCommand++;
@@ -293,14 +319,9 @@ int main(int argc, char** argv) {
 		t += std::chrono::milliseconds(highFrameRate);
 		std::this_thread::sleep_until(t);
 	}
-
-	//Delete our objects here:
-	Database::Destroy();
-	delete Game::im;
-	delete Game::server;
-	delete Game::logger;
-
-	return 0;
+	FinalizeShutdown();
+	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
 
 dLogger* SetupLogger() {
@@ -639,7 +660,7 @@ void HandlePacket(Packet* packet) {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
-			auto* instance =Game::im->GetInstanceBySysAddr(packet->systemAddress);
+			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
 
 			if (instance == nullptr) {
 				return;
@@ -720,12 +741,20 @@ void ShutdownSequence() {
 	auto ticks = 0;
 
 	if (!Game::im) {
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	Game::logger->Log("MasterServer", "Attempting to shutdown instances, max 60 seconds...\n");
 
 	while (true) {
+
+		auto packet = Game::server->Receive();
+		if (packet) {
+			HandlePacket(packet);
+			Game::server->DeallocatePacket(packet);
+			packet = nullptr;
+		}
+		
 		auto done = true;
 
 		for (auto* instance : Game::im->GetInstances()) {
@@ -739,6 +768,7 @@ void ShutdownSequence() {
 		}
 
 		if (done) {
+			Game::logger->Log("MasterServer", "Finished shutting down MasterServer!\n");
 			break;
 		}
 
@@ -748,9 +778,21 @@ void ShutdownSequence() {
 		ticks++;
 
 		if (ticks == 600 * 6) {
+			Game::logger->Log("MasterServer", "Finished shutting down by timeout!\n");
 			break;
 		}
 	}
 
-	exit(0);
+	FinalizeShutdown();
+}
+
+int FinalizeShutdown() {
+	//Delete our objects here:
+	Database::Destroy("MasterServer");
+	delete Game::im;
+	delete Game::server;
+	delete Game::logger;
+
+	exit(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

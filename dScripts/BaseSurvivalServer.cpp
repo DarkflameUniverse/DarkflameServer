@@ -200,6 +200,7 @@ void BaseSurvivalServer::OnActivityTimerDone(Entity *self, const std::string &na
         ActivityTimerStop(self, SpawnTickTimer);
         ActivityTimerStart(self, CoolDownStopTimer, 1, constants.coolDownTime);
 
+        ActivateSpawnerNetwork(spawnerNetworks.rewardNetworks);
         SpawnerReset(spawnerNetworks.baseNetworks, false);
         SpawnerReset(spawnerNetworks.randomNetworks, false);
     } else if (name == CoolDownStopTimer) {
