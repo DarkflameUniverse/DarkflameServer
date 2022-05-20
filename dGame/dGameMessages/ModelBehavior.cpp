@@ -171,7 +171,17 @@ void ModelBehavior::OnInteract(Entity* originator) {
 	states.find(m_ActiveState)->second->OnInteract(m_ModelComponent, originator);
 }
 
+void ModelBehavior::OnChatMessage(ModelComponent* modelComponent, Entity* originator, std::string& message) {
+	states.find(m_ActiveState)->second->OnChatMessage(m_ModelComponent, originator, message);
+}
+
 void ModelBehavior::SetState(BEHAVIORSTATE stateID) {
 	this->m_ActiveState = stateID;
 	m_ModelComponent->CheckStarterBlocks();
+}
+
+void ModelBehavior::ResetStrips() {
+	for (auto state : states) {
+		state.second->ResetStrips();
+	}
 }

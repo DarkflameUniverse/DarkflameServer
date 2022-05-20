@@ -23,10 +23,13 @@ class BehaviorStrip {
         std::vector<BehaviorAction*> GetActions() { return actions; };
         double GetXPosition() { return xPosition; };
         double GetYPosition() { return yPosition; };
+        bool IsActive() { return isActive; };
+        void SetIsActive(bool value) { this->isActive = value; };
     private:
         ModelBehavior* parentBehavior = nullptr;
         std::vector<BehaviorAction*> actions;
         STRIPID stripID;
         double xPosition;
         double yPosition;
+        bool isActive = false;
 };

@@ -123,6 +123,7 @@ BehaviorStrip* BehaviorState::GetStripByID(STRIPID stripID) {
 
 void BehaviorState::FindStarterBlocks(ModelComponent* modelComponent) {
     for (auto strip : strips) {
+        if (strip.second->IsActive()) break;
         auto starterBlock = strip.second->GetActions().at(0);
         if (starterBlock->actionName == "OnInteract") modelComponent->SetOnInteract(true);
         else if (starterBlock->actionName == "OnAttack") modelComponent->SetOnAttack(true);
@@ -137,6 +138,30 @@ void BehaviorState::FindStarterBlocks(ModelComponent* modelComponent) {
 
 void BehaviorState::OnInteract(ModelComponent* modelComponent, Entity* originator) {
     for (auto strip : strips) {
-        if (strip.second->GetActions().at(0)->actionName == "OnInteract") strip.second->ExecuteStrip(modelComponent, originator);
+        if (strip.second->GetActions().at(0)->actionName == "OnInteract" && !strip.second->IsActive()) strip.second->ExecuteStrip(modelComponent, originator);
+    }
+}
+
+void BehaviorState::OnChatMessage(ModelComponent* modelComponent, Entity* originator, std::string& message) {
+    bool hasMoreChatTriggers = false;
+    for (auto strip : strips) {
+        auto actions = strip.second->GetActions();
+        if (actions.size() > 0 && actions.at(0)->actionName == "OnChat") {
+            if (actions.at(0)->parameterValueString == message && !strip.second->IsActive()) {
+                Game::logger->Log("BehaviorState", "Executing action %s with value %s\n", actions.at(0)->actionName.c_str(), actions.at(0)->parameterValueString.c_str());
+                strip.second->ExecuteStrip(modelComponent, originator);
+            } else if (!strip.second->IsActive()){
+                hasMoreChatTriggers = true;
+            }
+        }
+    }
+    Game::logger->Log("BehaviorState", "Does model have available triggers? %i\n", hasMoreChatTriggers);
+    modelComponent->SetOnChatMessage(hasMoreChatTriggers);
+}
+
+void BehaviorState::ResetStrips() {
+    for (auto strip : strips) {
+        Game::logger->Log("BehaviorState", "Setting strip %i in state %i to false\n", strip.first, this->stateID);
+        strip.second->SetIsActive(false);
     }
 }

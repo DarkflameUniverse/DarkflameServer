@@ -151,6 +151,18 @@ PropertyPrivacyOption PropertyManagementComponent::GetPrivacyOption() const
 	return privacyOption;
 }
 
+void PropertyManagementComponent::ChatMessageSentByServer(Entity* originator, std::string& message) {
+	for (auto pair : models) {
+		auto model = EntityManager::Instance()->GetEntity(pair.first);
+		if (model) {
+			auto modelComponent = model->GetComponent<ModelComponent>();
+			if (modelComponent) {
+				modelComponent->OnChatMessage(originator, message);
+			}
+		}
+	}
+}
+
 void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value) 
 {
 	if (owner == LWOOBJID_EMPTY) return;

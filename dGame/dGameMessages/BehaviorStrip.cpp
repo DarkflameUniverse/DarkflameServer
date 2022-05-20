@@ -7,6 +7,7 @@
 #include "NiQuaternion.h"
 #include "DestroyableComponent.h"
 #include "MovementAIComponent.h"
+#include "PropertyManagementComponent.h"
 #include "ModelComponent.h"
 #include "ChatPackets.h"
 #include <algorithm>
@@ -73,9 +74,13 @@ void BehaviorStrip::ExecuteStrip(ModelComponent* modelComponent, Entity* origina
     Game::logger->Log("BehaviorStrip", "Executing strip %i!\n", this->stripID);
     auto modelEntity = modelComponent->GetParent();
 
+    isActive = true;
     modelEntity->AddCallbackTimer(0.0f, [modelEntity, originator, this]() {
         auto actionToExecuteIterator = this->actions.begin() + 1; // Start at action after starter block
-        if (actionToExecuteIterator == this->actions.end()) return;
+        if (actionToExecuteIterator == this->actions.end()) {
+            isActive = false;
+            return;
+        }
         this->DoAction(actionToExecuteIterator, modelEntity, originator);
     });
 }
@@ -228,14 +233,15 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
             modelEntity->SetRotation(modelEntity->GetDefaultRotation());
             movementAIComponent->Stop();
             modelComponent->Reset();
+            isActive = false;
+            return;
         }
         else if (actionToExecute->actionName == "PrivateMessage")
         {
-            // TODO
+            PropertyManagementComponent::Instance()->ChatMessageSentByServer(modelEntity, actionToExecute->parameterValueString);
         }
         else if (actionToExecute->actionName == "Chat")
         {
-            // Rule Board needs to be replaced with the models name!
             ChatPackets::SendChatMessage(UNASSIGNED_SYSTEM_ADDRESS, 12, "REMEMBER TO NAME MODELS", modelEntity->GetObjectID(), false, GeneralUtils::ASCIIToUTF16(actionToExecute->parameterValueString));
         }
         else if (actionToExecute->actionName == "PlaySound")

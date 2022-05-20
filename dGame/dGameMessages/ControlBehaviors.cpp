@@ -199,22 +199,6 @@ void ControlBehaviors::RemoveStrip() {
     uint32_t behaviorID = GetBehaviorIDFromArgument();
 
     modelComponent->RemoveStrip(stateID, stripID, behaviorID);
-
-    // auto behaviors = modelComponent->GetBehaviors();
-    // for (auto behaviorIterator = behaviors.begin(); behaviorIterator != behaviors.end(); behaviorIterator++) {
-    //     auto behavior = *behaviorIterator;
-    //     if (behavior->GetBehaviorID() == behaviorID) {
-    //         behavior->VerifyStates();
-    //         if (behavior->GetBehaviorStates().size() == 0) {
-    //             delete behavior;
-    //             behavior = nullptr;
-    //             behaviors.erase(behaviorIterator);
-    //             modelComponent->SetBehaviors(behaviors);
-    //             SendBehaviorListToClient();
-    //             return;
-    //         }
-    //     }
-    // }
 }
 
 void ControlBehaviors::MergeStrips() {

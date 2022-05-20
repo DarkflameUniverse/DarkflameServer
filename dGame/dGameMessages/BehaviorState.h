@@ -22,8 +22,10 @@ class BehaviorState {
         BehaviorStrip* GetStripByID(STRIPID stripID);
         void FindStarterBlocks(ModelComponent* modelComponent);
         void OnInteract(ModelComponent* modelComponent, Entity* originator);
+        void OnChatMessage(ModelComponent* modelComponent, Entity* originator, std::string& message); 
         uint32_t CountOfStrips() { return strips.size(); };
         void ClearStrips() { strips.clear(); };
+        void ResetStrips();
         std::map<STRIPID, BehaviorStrip*> GetStrips() { return strips; };
     private:
         std::map<STRIPID, BehaviorStrip*> strips;

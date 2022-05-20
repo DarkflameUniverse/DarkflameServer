@@ -26,6 +26,8 @@ public:
     
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
+    void Update(float deltaTime) override;
+
     /**
      * Returns the position of this entity
      * @return the position of this entity

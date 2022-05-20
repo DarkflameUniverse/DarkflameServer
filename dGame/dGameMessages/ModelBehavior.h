@@ -136,7 +136,11 @@ class ModelBehavior {
 
     void OnInteract(Entity* originator); 
 
+    void OnChatMessage(ModelComponent* modelComponent, Entity* originator, std::string& message);
+
     void SetState(BEHAVIORSTATE stateID);
+
+    void ResetStrips();
 
   private:
     /**

@@ -167,6 +167,8 @@ public:
 
     void ResumeAllModels();
 
+    void ChatMessageSentByServer(Entity* originator, std::string& message);
+
 private:
     /**
      * This

@@ -61,6 +61,16 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIs
     }
 }
 
+void SimplePhysicsComponent::Update(float deltaTime) {
+    if (GetAngularVelocity() != NiPoint3::ZERO) {
+
+    }
+
+    if (GetVelocity() != NiPoint3::ZERO) {
+
+    }
+}
+
 uint32_t SimplePhysicsComponent::GetPhysicsMotionState() const
 {
     return m_PhysicsMotionState;

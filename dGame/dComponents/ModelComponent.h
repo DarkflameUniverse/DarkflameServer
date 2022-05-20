@@ -27,6 +27,8 @@ public:
     void Update(float deltatime) override;
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
+    void OnChatMessage(Entity* originator, std::string& message);
+
     /**
      * Returns the position of the model
      * @return the position of the model

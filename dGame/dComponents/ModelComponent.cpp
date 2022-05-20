@@ -173,8 +173,8 @@ void ModelComponent::Update(float deltaTime) {
 	if (moveTowardsInteractor && interactor && !m_Smashed) {
 		auto toRotate = NiQuaternion::LookAt(m_Parent->GetPosition(), interactor->GetPosition());
 		if (simplePhysicsComponent) {
-			Game::logger->Log("ModelComponent", "Current x %f y %f z %f\n", toRotate.GetUpVector().x, toRotate.GetUpVector().y, toRotate.GetUpVector().z);
 			// TODO look at the coordinate we want to look at and turn towards it with the quaternion and caluclate positional difference using delta between two positions and moving towards the players.
+			// My brain hurts
 		}
     }
 }
@@ -185,6 +185,17 @@ void ModelComponent::OnUse(Entity* originator) {
 
 	for (auto behavior : behaviors) {
 		behavior->OnInteract(originator);
+	}
+	EntityManager::Instance()->SerializeEntity(m_Parent);
+}
+
+void ModelComponent::OnChatMessage(Entity* originator, std::string& message) {
+	if (!onChatMessage && !m_IsPaused) return;
+
+	SetOnChatMessage(false);
+
+	for (auto behavior : behaviors) {
+		behavior->OnChatMessage(this, originator, message);
 	}
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
@@ -476,6 +487,7 @@ void ModelComponent::Reset() {
     checkStarterBlocks = true;
     for (auto behavior : behaviors) {
         behavior->SetState(eStates::HOME_STATE);
+		behavior->ResetStrips();
     }
 }
 
