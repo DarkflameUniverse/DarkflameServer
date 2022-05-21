@@ -124,6 +124,7 @@ BehaviorStrip* BehaviorState::GetStripByID(STRIPID stripID) {
 void BehaviorState::FindStarterBlocks(ModelComponent* modelComponent) {
     for (auto strip : strips) {
         if (strip.second->IsActive()) break;
+        if (strip.second->GetActions().size() == 0) break;
         auto starterBlock = strip.second->GetActions().at(0);
         if (starterBlock->actionName == "OnInteract") modelComponent->SetOnInteract(true);
         else if (starterBlock->actionName == "OnAttack") modelComponent->SetOnAttack(true);

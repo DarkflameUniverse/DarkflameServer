@@ -279,6 +279,7 @@ public:
 
     void CheckStarterBlocks();
     void ResetStarterBlocks();
+    void LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc);
 private:
 
     /**

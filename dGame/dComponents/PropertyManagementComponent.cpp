@@ -657,7 +657,7 @@ void PropertyManagementComponent::Load()
 	{
 		return;
 	}
-	
+	// We need to query here to get the behaviors so we can load them from the DB.
 	auto* lookup = Database::CreatePreppedStmt("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id FROM properties_contents WHERE property_id = ?;");
 
 	lookup->setUInt64(1, propertyId);
@@ -697,9 +697,6 @@ void PropertyManagementComponent::Load()
 		info.activeOnLoad = true;
 		info.amountMaintained = 1;
 		info.respawnTime = 10;
-
-		//info.emulated = true;
-		//info.emulator = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
 
 		info.spawnerID = id;
 
@@ -745,155 +742,192 @@ void PropertyManagementComponent::Load()
 		auto* model = spawner->Spawn();
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
-
-		/*
-		EntityInfo info;
-		info.lot = lot;
-		info.pos = position;
-		info.rot = rotation;
-		info.settings = settings;
-		info.spawnerID = id;
-
-		auto* model = EntityManager::Instance()->CreateEntity(info);
-
-		EntityManager::Instance()->ConstructEntity(model);
-
-		models.insert_or_assign(model->GetObjectID(), id);
-		*/
 	}
 
 	delete lookup;
 }
 
-void PropertyManagementComponent::Save(bool shuttingDownServer)
-{
-	if (propertyId == LWOOBJID_EMPTY)
-	{
-		return;
-	}
+void PropertyManagementComponent::Save(bool shuttingDownServer) {
+    if (propertyId == LWOOBJID_EMPTY) {
+        return;
+    }
 
-	auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents (id, property_id, ugc_id, lot, x, y, z, rx, ry, rz, rw) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-	auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
-	auto* lookup = Database::CreatePreppedStmt("SELECT id FROM properties_contents WHERE property_id = ?;");
-	auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
+    auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents (id, property_id, ugc_id, lot, x, y, z, rx, ry, rz, rw) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+    auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
+    auto* lookup = Database::CreatePreppedStmt("SELECT id FROM properties_contents WHERE property_id = ?;");
+    auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
 
-	lookup->setUInt64(1, propertyId);
-	sql::ResultSet* lookupResult = nullptr;
-	try {
-		lookupResult = lookup->executeQuery();
-	} catch (sql::SQLException& ex) {
-		Game::logger->Log("PropertyManagementComponent", "lookup error %s\n", ex.what());
-	}
-	std::vector<LWOOBJID> present;
+    lookup->setUInt64(1, propertyId);
+    sql::ResultSet* lookupResult = nullptr;
+    try {
+        lookupResult = lookup->executeQuery();
+    } catch (sql::SQLException& ex) {
+        Game::logger->Log("PropertyManagementComponent", "lookup error %s\n", ex.what());
+    }
+    std::vector<LWOOBJID> present;
 
-	while (lookupResult->next())
-	{
-		const auto dbId = lookupResult->getUInt64(1);
+    while (lookupResult->next()) {
+        const auto dbId = lookupResult->getUInt64(1);
 
-		present.push_back(dbId);
-	}
+        present.push_back(dbId);
+    }
 
-	delete lookupResult;
+    delete lookupResult;
 
-	std::vector<LWOOBJID> modelIds;
+    std::vector<LWOOBJID> modelIds;
 
-	if (shuttingDownServer) StopAllModels();
+    if (shuttingDownServer)
+        StopAllModels();
 
-	for (const auto& pair : models)
-	{
-		const auto id = pair.second;
+    for (const auto& pair : models) {
+        const auto id = pair.second;
 
-		modelIds.push_back(id);
+        modelIds.push_back(id);
 
-		auto* entity = EntityManager::Instance()->GetEntity(pair.first);
+        auto* entity = EntityManager::Instance()->GetEntity(pair.first);
 
-		if (entity == nullptr)
-		{
-			continue;
-		}
+        if (entity == nullptr) {
+            continue;
+        }
 
-		const auto position = entity->GetPosition();
-		const auto rotation = entity->GetRotation();
-		auto modelComponent = entity->GetComponent<ModelComponent>();
+        const auto position = entity->GetPosition();
+        const auto rotation = entity->GetRotation();
 
-		// if (modelComponent) {
-		// 	for (auto behavior : modelComponent->GetBehaviors()) {
-		// 		// Behavior
-		// 		tinyxml2::XMLDocument* m_Doc = new tinyxml2::XMLDocument();
-		// 		tinyxml2::XMLNode* behaviorNode = m_Doc->InsertEndChild(m_Doc->NewElement("Behavior"));
-		// 		behaviorNode->
-		// 		auto behaviors = modelComponent->GetBehaviors();
-		// 		for (auto behavior : behaviors) {
+        if (std::find(present.begin(), present.end(), id) == present.end()) {
+            insertion->setInt64(1, id);
+            insertion->setUInt64(2, propertyId);
+            insertion->setNull(3, 0);
+            insertion->setInt(4, entity->GetLOT());
+            insertion->setDouble(5, position.x);
+            insertion->setDouble(6, position.y);
+            insertion->setDouble(7, position.z);
+            insertion->setDouble(8, rotation.x);
+            insertion->setDouble(9, rotation.y);
+            insertion->setDouble(10, rotation.z);
+            insertion->setDouble(11, rotation.w);
+            try {
+                insertion->execute();
+            } catch (sql::SQLException& ex) {
+                Game::logger->Log("PropertyManagementComponent", "Error inserting into properties_contents. Error %s\n", ex.what());
+            }
+        } else {
+            update->setDouble(1, position.x);
+            update->setDouble(2, position.y);
+            update->setDouble(3, position.z);
+            update->setDouble(4, rotation.x);
+            update->setDouble(5, rotation.y);
+            update->setDouble(6, rotation.z);
+            update->setDouble(7, rotation.w);
 
-		// 		}
-		// 			// states
-		// 				// strips
-		// 					// actions
-		// 						// values for action
-		// 	}
-		// }
-		if (std::find(present.begin(), present.end(), id) == present.end())
-		{
-			insertion->setInt64(1, id);
-			insertion->setUInt64(2, propertyId);
-			insertion->setNull(3, 0);
-			insertion->setInt(4, entity->GetLOT());
-			insertion->setDouble(5, position.x);
-			insertion->setDouble(6, position.y);
-			insertion->setDouble(7, position.z);
-			insertion->setDouble(8, rotation.x);
-			insertion->setDouble(9, rotation.y);
-			insertion->setDouble(10, rotation.z);
-			insertion->setDouble(11, rotation.w);
-			try {
-				insertion->execute();
-			} catch (sql::SQLException& ex) {
-				Game::logger->Log("PropertyManagementComponent", "Error inserting into properties_contents. Error %s\n", ex.what());
+            update->setInt64(8, id);
+            try {
+                update->executeUpdate();
+            } catch (sql::SQLException& ex) {
+                Game::logger->Log("PropertyManagementComponent", "Error updating properties_contents. Error: %s\n", ex.what());
+            }
+        }
+        auto modelComponent = entity->GetComponent<ModelComponent>();
+
+        if (modelComponent) {
+			auto behaviorsUpdate = Database::CreatePreppedStmt("UPDATE properties_contents SET behavior_1 = ?, behavior_2 = ?, behavior_3 = ?, behavior_4 = ?, behavior_5 = ? WHERE id = ?");
+            tinyxml2::XMLDocument* m_Doc = new tinyxml2::XMLDocument();
+            auto behaviors = modelComponent->GetBehaviors();
+			uint32_t i;
+            for (i = 0; i < behaviors.size(); i++) {
+				auto behavior = behaviors.at(i);
+				tinyxml2::XMLElement* behaviorElement = m_Doc->NewElement("Behavior");
+                behaviorElement->SetAttribute("behaviorID", behavior->GetBehaviorID());
+				// Behaviors start at index 12 of the insertion query.
+				behaviorsUpdate->setInt(i + 1, behavior->GetBehaviorID());
+                auto states = behavior->GetBehaviorStates();
+                for (auto state : states) {
+					tinyxml2::XMLElement* stateElement = m_Doc->NewElement("State");
+                    stateElement->SetAttribute("stateID", state.first);
+
+                    auto strips = state.second->GetStrips();
+                    for (auto strip : strips) {
+						tinyxml2::XMLElement* stripElement = m_Doc->NewElement("Strip");
+                        stripElement->SetAttribute("stripID", strip.first);
+
+                        auto actions = strip.second->GetActions();
+                        for (auto action : actions) {
+							tinyxml2::XMLElement* actionElement = m_Doc->NewElement("action");
+
+                            actionElement->SetAttribute("actionName", action->actionName.c_str());
+                            actionElement->SetAttribute("parameterName", action->parameterName.c_str());
+                            actionElement->SetAttribute("parameterValueDouble", action->parameterValueDouble);
+                            actionElement->SetAttribute("parameterValueString", action->parameterValueString.c_str());
+
+							stripElement->LinkEndChild(actionElement);
+                        }
+                        stateElement->LinkEndChild(stripElement);
+                    }
+                    behaviorElement->LinkEndChild(stateElement);
+                }
+				m_Doc->InsertFirstChild(behaviorElement);
+				auto checkIfBehaviorExists = Database::CreatePreppedStmt("SELECT COUNT(*) FROM behaviors WHERE id = ?;");
+				checkIfBehaviorExists->setInt(1, behavior->GetBehaviorID());
+				auto result = checkIfBehaviorExists->executeQuery();
+				result->next();
+				auto* printer = new tinyxml2::XMLPrinter(0, true, 0);
+    			m_Doc->Print(printer);
+
+				if (result->getInt(1) == 0) {
+					auto insertBehaviorXML = Database::CreatePreppedStmt("INSERT INTO behaviors (id, behavior_info) VALUES (?, ?);");
+
+					insertBehaviorXML->setInt(1, behavior->GetBehaviorID());
+    				insertBehaviorXML->setString(2, printer->CStr());
+
+					insertBehaviorXML->execute();
+					delete insertBehaviorXML;
+					insertBehaviorXML = nullptr;
+				} else {
+					auto updateBehaviorXML = Database::CreatePreppedStmt("UPDATE behaviors SET behavior_info = ? WHERE id = ?;");
+
+					updateBehaviorXML->setString(1, printer->CStr());
+					updateBehaviorXML->setInt(2, behavior->GetBehaviorID());
+    				
+					updateBehaviorXML->executeUpdate();
+
+					delete updateBehaviorXML;
+					updateBehaviorXML = nullptr;
+				}
+				delete checkIfBehaviorExists;
+				checkIfBehaviorExists = nullptr;
+            }
+			while (i < 5) {
+				behaviorsUpdate->setInt(i + 1, 0);
+				i++;
 			}
-		}
-		else
-		{
-			update->setDouble(1, position.x);
-			update->setDouble(2, position.y);
-			update->setDouble(3, position.z);
-			update->setDouble(4, rotation.x);
-			update->setDouble(5, rotation.y);
-			update->setDouble(6, rotation.z);
-			update->setDouble(7, rotation.w);
+			behaviorsUpdate->setInt64(6, id);
+			behaviorsUpdate->execute();
+			delete behaviorsUpdate;
+			behaviorsUpdate = nullptr;
+        }
+    }
 
-			update->setInt64(8, id);
-			try {
-				update->executeUpdate();
-			} catch (sql::SQLException& ex) {
-				Game::logger->Log("PropertyManagementComponent", "Error updating properties_contents. Error: %s\n", ex.what());
-			}
-		}
-	}
+    for (auto id : present) {
+        if (std::find(modelIds.begin(), modelIds.end(), id) != modelIds.end()) {
+            continue;
+        }
 
-	for (auto id : present)
-	{
-		if (std::find(modelIds.begin(), modelIds.end(), id) != modelIds.end())
-		{
-			continue;
-		}
+        remove->setInt64(1, id);
+        try {
+            remove->execute();
+        } catch (sql::SQLException& ex) {
+            Game::logger->Log("PropertyManagementComponent", "Error removing from properties_contents. Error %s\n", ex.what());
+        }
+    }
 
-		remove->setInt64(1, id);
-		try {
-			remove->execute();
-		} catch (sql::SQLException& ex) {
-			Game::logger->Log("PropertyManagementComponent", "Error removing from properties_contents. Error %s\n", ex.what());
-		}
-	}
+    auto* removeUGC = Database::CreatePreppedStmt("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents);");
 
-	auto* removeUGC = Database::CreatePreppedStmt("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents);");
+    removeUGC->execute();
 
-	removeUGC->execute();
-
-	delete removeUGC;
-	delete insertion;
-	delete update;
-	delete lookup;
-	delete remove;
+    delete removeUGC;
+    delete insertion;
+    delete update;
+    delete lookup;
+    delete remove;
 }
 
 void PropertyManagementComponent::AddModel(LWOOBJID modelId, LWOOBJID spawnerId) 

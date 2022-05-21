@@ -156,7 +156,7 @@ void ModelComponent::Update(float deltaTime) {
 		degreesToRotateByZ -= rotationVector.z * deltaTime * 180 / 3.14 * GetSpeed();
 
 		EntityManager::Instance()->SerializeEntity(m_Parent);
-		Game::logger->Log("ModelComponent", "Degrees left Y %f\n", degreesToRotateByY);
+
 		std::vector<std::function<void()>> finishedActions;
         if (((rotationVector.x < 0 && degreesToRotateByX > 0.0f) || (rotationVector.x > 0 && degreesToRotateByX < 0.0f))) {
             for (auto callback : xRotationCallbacks) {
@@ -517,4 +517,8 @@ void ModelComponent::Reset() {
 
 void ModelComponent::CheckStarterBlocks() {
 	checkStarterBlocks = true;
+}
+
+void ModelComponent::LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc) {
+	// Load in XML from document
 }

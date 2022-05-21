@@ -164,14 +164,17 @@ void ModelBehavior::VerifyStates() {
 }
 
 void ModelBehavior::FindStarterBlocks() {
+	if (states.find(m_ActiveState) == states.end()) return;
 	states.find(m_ActiveState)->second->FindStarterBlocks(m_ModelComponent);
 }
 
 void ModelBehavior::OnInteract(Entity* originator) {
+	if (states.find(m_ActiveState) == states.end()) return;
 	states.find(m_ActiveState)->second->OnInteract(m_ModelComponent, originator);
 }
 
 void ModelBehavior::OnChatMessage(ModelComponent* modelComponent, Entity* originator, std::string& message) {
+	if (states.find(m_ActiveState) == states.end()) return;
 	states.find(m_ActiveState)->second->OnChatMessage(m_ModelComponent, originator, message);
 }
 
