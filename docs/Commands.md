@@ -10,7 +10,7 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |die|`/die`|Smashes the player.||
 |info|`/info`|Displays server info to the user, including where to find the server's source code.||
 |instanceinfo|`/instanceinfo`|Displays in the chat the current zone, clone, and instance id.||
-|ping|`/ping (-l)`|Displays in chat your average ping. If the -l flag is used, the latest ping is displayed.||
+|ping|`/ping (-l)`|Displays in chat your average ping. If the `-l` flag is used, the latest ping is displayed.||
 |pvp|`/pvp`|Toggle your PVP flag.||
 |resurrect|`/resurrect`|Resurrects the player.||
 |requestmailcount|`/requestmailcount`|Sends notification with number of unread messages in the player's mailbox.||
@@ -35,7 +35,7 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
-|announce|`/announce`|Sends a announcement. /setanntitle and /setannmsg must be called first to configure the announcement.|8|
+|announce|`/announce`|Sends a announcement. `/setanntitle` and `/setannmsg` must be called first to configure the announcement.|8|
 |config-set|`/config-set <key> <value>`|Set configuration item.|8|
 |config-get|`/config-get <key>`|Get current value of a configuration item.|8|
 |kill|`/kill <username>`|Smashes the character whom the given user is playing.|8|
@@ -88,14 +88,14 @@ These commands are primarily for development and testing. The usage of many of t
 |resetmission|`/resetmission <mission id>`|Sets the state of the mission to accepted but not yet started.|8|
 |rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Rolls loot matrix.|9|
 |rot|`/rot`|Displays your current rotation in chat and in the console.|8|
-|runmacro|`/runmacro <macro>`|Runs any macro found in ./res/macros/|8|
+|runmacro|`/runmacro <macro>`|Runs any command macro found in `./res/macros/`|8|
 |setcontrolscheme|`/setcontrolscheme <scheme number>`|Sets the character control scheme to the specified number.|8|
 |setcurrency|`/setcurrency <coins>`|Sets your coins.|8|
 |setflag|`/setflag <flag id>`|Adds the given health or inventory flag to your character.|8|
 |setinventorysize|`/setinventorysize <size>`|Sets your inventory size to the given size.|8|
 |setuistate|`/setuistate <ui state>`|Changes UI state.|8|
 |spawn|`/spawn <id>`|Spawns an object at your location by id.|8|
-|speedboost|`/speedboost <amount>`|Sets the speed multiplier to the given amount. "/speedboost 1.5" will set the speed multiplier to 1.5x the normal speed.|8|
+|speedboost|`/speedboost <amount>`|Sets the speed multiplier to the given amount. `/speedboost 1.5` will set the speed multiplier to 1.5x the normal speed.|8|
 |startcelebration|`/startcelebration <id>`|Starts a celebration effect on your character.|8|
 |stopeffect|`/stopeffect <effect id>`|Stops the given effect.|8|
 |teleport|`/teleport <x> (y) <z>`|Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z)|8|
