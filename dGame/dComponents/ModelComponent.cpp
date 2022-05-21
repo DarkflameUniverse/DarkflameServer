@@ -355,7 +355,7 @@ ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
 	}
 	if (behaviors.size() < 5) {
 		Game::logger->Log("ModelComponent", "Creating a new templated behavior with id %i\n", behaviorID);
-		auto behavior = new ModelBehavior(behaviorID, m_Parent);
+		auto behavior = new ModelBehavior(behaviorID, m_Parent, behaviorID != -1);
 		behaviors.insert(behaviors.begin(), behavior);
 		return behavior;
 	}

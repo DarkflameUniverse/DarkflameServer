@@ -148,7 +148,7 @@ class ModelBehavior {
 
     void OnTimer(ModelComponent* modelComponent);
 
-    void SetBehaviorID(uint32_t value) { this->behaviorID = value; };
+    void SetBehaviorID(uint32_t value) { this->behaviorID = value; this->isLoot = false; };
 
   private:
     /**
