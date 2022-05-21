@@ -71,7 +71,7 @@ public:
      * @param yPosition The y position of this strip on the UI
      */
     void AddStrip(
-        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, uint32_t &behaviorID, std::string parameterName = "", std::string parameterValueString = "",
+        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, int32_t &behaviorID, std::string parameterName = "", std::string parameterValueString = "",
         double parameterValueDouble = 0.0, std::string callbackID = "", double xPosition = 0.0, double yPosition = 0.0);
 
     /**
@@ -91,7 +91,7 @@ public:
      */
     void AddAction(
         BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string parameterValueString,
-        double parameterValueDouble, std::string callbackID, uint32_t actionIndex, uint32_t behaviorID);
+        double parameterValueDouble, std::string callbackID, uint32_t actionIndex, int32_t behaviorID);
 
     /**
      * @brief Removes an action from a strip
@@ -101,7 +101,7 @@ public:
      * @param actionIndex The index to add the action to
      * @param behaviorID The behavior id to add the action to
      */
-    void RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t actionIndex, uint32_t behaviorID);
+    void RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t actionIndex, int32_t behaviorID);
 
     /**
      * @brief Removes a strip from a behavior
@@ -110,7 +110,7 @@ public:
      * @param stripID The strip id we are removing the strip from
      * @param behaviorID The behavior id to add the action to
      */
-    void RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t behaviorID);
+    void RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, int32_t behaviorID);
 
     /**
      * @brief Adds a behavior to a model
@@ -118,7 +118,7 @@ public:
      * @param behaviorID The behavior id to add to the model
      * @param behaviorIndex The (optional) index to add this behavior to
      */
-    void AddBehavior(uint32_t behaviorID, uint32_t behaviorIndex);
+    void AddBehavior(int32_t behaviorID, uint32_t behaviorIndex);
 	
     /**
      * @brief Moves a behavior to the player inventory and removes it from the model 
@@ -126,7 +126,7 @@ public:
      * @param behaviorID The behavior id to remove from the model
      * @param behaviorIndex The (optional) index to remove the behavior from
      */
-    void MoveBehaviorToInventory(uint32_t behaviorID, uint32_t behaviorIndex);
+    void MoveBehaviorToInventory(int32_t behaviorID, uint32_t behaviorIndex);
     
     /**
      * @brief Renames a behavior
@@ -134,7 +134,7 @@ public:
      * @param behaviorID The behavior id to rename
      * @param newName The new name of the behavior
      */
-    void Rename(uint32_t behaviorID, std::string newName);
+    void Rename(int32_t behaviorID, std::string newName);
 
     /**
      * @brief Updates the UI position of a strip
@@ -145,7 +145,7 @@ public:
      * @param yPosition The y position of this strip on the UI
      * @param behaviorID The behavior id to update the UI of
      */
-    void UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, double xPosition, double yPosition, uint32_t behaviorID);
+    void UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, double xPosition, double yPosition, int32_t behaviorID);
 
     /**
      * @brief Rearranges tha actions in a single strip
@@ -156,7 +156,7 @@ public:
      * @param dstActionIndex The destination action index we are moveing the elements to
      * @param behaviorID The behavior id to add the action to
      */
-    void RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t srcActionIndex, uint32_t dstActionIndex, uint32_t behaviorID);
+    void RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t srcActionIndex, uint32_t dstActionIndex, int32_t behaviorID);
 
     /**
      * @brief Migrates actions from one strip to another.
@@ -169,7 +169,7 @@ public:
      * @param dstStateID The destination state id
      * @param behaviorID The behavior id to act on
      */
-    void MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, uint32_t dstActionIndex, STRIPID dstStripID, BEHAVIORSTATE dstStateID, uint32_t behaviorID);
+    void MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, uint32_t dstActionIndex, STRIPID dstStripID, BEHAVIORSTATE dstStateID, int32_t behaviorID);
 
     /**
      * @brief Splits a strip into two strips
@@ -183,7 +183,7 @@ public:
      * @param yPosition The y position of this strip on the UI
      * @param xPosition The x position of this strip on the UI
      */
-    void SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, STRIPID dstStripID, BEHAVIORSTATE dstStateID, uint32_t behaviorID, double yPosition, double xPosition);
+    void SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, STRIPID dstStripID, BEHAVIORSTATE dstStateID, int32_t behaviorID, double yPosition, double xPosition);
 
     /**
      * @brief Merges two strips together.  
@@ -195,7 +195,7 @@ public:
      * @param behaviorID The behavior id 
      * @param dstActionIndex The destination action index
      */
-    void MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIORSTATE srcStateID, BEHAVIORSTATE dstStateID, uint32_t behaviorID, uint32_t dstActionIndex);
+    void MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIORSTATE srcStateID, BEHAVIORSTATE dstStateID, int32_t behaviorID, uint32_t dstActionIndex);
 
     /**
      * @brief Updates an actions' parameters
@@ -212,7 +212,7 @@ public:
      */
     void UpdateAction(
         BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string parameterValueString,
-        double parameterValueDouble, std::string callbackID, uint32_t actionIndex, uint32_t behaviorID);
+        double parameterValueDouble, std::string callbackID, uint32_t actionIndex, int32_t behaviorID);
 
     /**
      * @brief Set the Model Type object
@@ -236,7 +236,7 @@ public:
      * @param behaviorID 
      * @return ModelBehavior* 
      */
-    ModelBehavior* FindBehavior(uint32_t& behaviorID);
+    ModelBehavior* FindBehavior(int32_t& behaviorID);
 
     void SetOnStartup(bool value) { this->onStartup = value; };
     void SetOnAttack(bool value) { this->onAttack = value; };

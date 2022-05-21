@@ -136,7 +136,7 @@ void ControlBehaviors::AddStrip() {
 
     BEHAVIORSTATE stateID = GetBehaviorStateFromArgument();
 
-    uint32_t behaviorID = GetBehaviorIDFromArgument();
+    int32_t behaviorID = GetBehaviorIDFromArgument();
 
     delete uiArray;
     uiArray = nullptr;
@@ -398,7 +398,7 @@ void ControlBehaviors::Rename() {
 void ControlBehaviors::SendBehaviorBlocksToClient() {
     Game::logger->Log("ControlBehaviors", "sendBehaviorBlocksToClient!\n");
 
-    uint32_t behaviorID = GetBehaviorIDFromArgument();
+    int32_t behaviorID = GetBehaviorIDFromArgument();
 
     auto modelBehavior = modelComponent->FindBehavior(behaviorID);
 
@@ -558,9 +558,9 @@ void ControlBehaviors::MoveToInventory() {
     SendBehaviorListToClient();
 }
 
-uint32_t ControlBehaviors::GetBehaviorIDFromArgument(std::string key) {
+int32_t ControlBehaviors::GetBehaviorIDFromArgument(std::string key) {
     AMFValue* behaviorIDValue = arguments->FindValue(key);
-    uint32_t behaviorID = -1;
+    int32_t behaviorID = -1;
 
     if (!behaviorIDValue) throw std::invalid_argument("Unable to find behavior state from argument \"" + key + "\"");
 

@@ -103,7 +103,7 @@ class ModelBehavior {
      *
      * @return The behaviors ID
      */
-    uint32_t GetBehaviorID() { return behaviorID; };
+    int32_t GetBehaviorID() { return behaviorID; };
 
     /**
      * Get if the behavior is lootable or not?

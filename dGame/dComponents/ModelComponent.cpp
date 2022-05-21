@@ -236,7 +236,7 @@ void ModelComponent::OnChatMessage(Entity* originator, std::string& message) {
 }
 
 void ModelComponent::AddStrip(
-        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, uint32_t &behaviorID, std::string parameterName, std::string parameterValueString, double parameterValueDouble, 
+        BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, int32_t &behaviorID, std::string parameterName, std::string parameterValueString, double parameterValueDouble, 
 		std::string callbackID, double xPosition, double yPosition)
 {
 	Game::logger->Log("ModelComponent", "Adding new action to strip %i in state %i!\n", stripID, stateID);
@@ -255,7 +255,7 @@ void ModelComponent::AddStrip(
 
 void ModelComponent::AddAction(
         BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string parameterValueString, double parameterValueDouble, 
-		std::string callbackID, uint32_t actionIndex, uint32_t behaviorID)
+		std::string callbackID, uint32_t actionIndex, int32_t behaviorID)
 {
 	Game::logger->Log("ModelComponent", "Adding new action to existing strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
 
@@ -271,7 +271,7 @@ void ModelComponent::AddAction(
 	Game::logger->Log("ModelComponent", "Added new action to existing strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
 }
 
-void ModelComponent::RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t actionIndex, uint32_t behaviorID) {
+void ModelComponent::RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t actionIndex, int32_t behaviorID) {
 	Game::logger->Log("ModelComponent", "Removing action(s) from strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
 
 	auto behavior = FindBehavior(behaviorID);
@@ -286,7 +286,7 @@ void ModelComponent::RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32
 	Game::logger->Log("ModelComponent", "Removed action(s) from strip %i at position %i in state %i!\n", stripID, actionIndex, stateID);
 }
 
-void ModelComponent::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t behaviorID) {
+void ModelComponent::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, int32_t behaviorID) {
 	Game::logger->Log("ModelComponent", "Removing strip %i in state %i!\n", stripID, stateID);
 
 	auto behavior = FindBehavior(behaviorID);
@@ -301,7 +301,7 @@ void ModelComponent::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_
 	Game::logger->Log("ModelComponent", "Removed strip %i in state %i!\n", stripID, stateID);
 }
 
-void ModelComponent::UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, double xPosition, double yPosition, uint32_t behaviorID) {
+void ModelComponent::UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, double xPosition, double yPosition, int32_t behaviorID) {
 	Game::logger->Log("ModelComponent", "Updating position of strip %i in state %i to position x %lf y %lf!\n", stripID, stateID, xPosition, yPosition);
 
 	auto behavior = FindBehavior(behaviorID);
@@ -316,7 +316,7 @@ void ModelComponent::UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, dou
 	Game::logger->Log("ModelComponent", "Updated position of strip %i in state %i to position x %lf y %lf!\n", stripID, stateID, xPosition, yPosition);
 }
 
-void ModelComponent::Rename(uint32_t behaviorID, std::string newName) {
+void ModelComponent::Rename(int32_t behaviorID, std::string newName) {
 	Game::logger->Log("ModelComponent", "Renaming behavior %i to %s!\n", behaviorID, newName.c_str());
 
 	auto behavior = FindBehavior(behaviorID);
@@ -331,7 +331,7 @@ void ModelComponent::Rename(uint32_t behaviorID, std::string newName) {
 	Game::logger->Log("ModelComponent", "Renamed behavior %i to %s!\n", behaviorID, newName.c_str());
 }
 
-void ModelComponent::AddBehavior(uint32_t behaviorID, uint32_t behaviorIndex) {
+void ModelComponent::AddBehavior(int32_t behaviorID, uint32_t behaviorIndex) {
 	Game::logger->Log("ModelComponent", "Adding behavior %i in index %i!\n", behaviorID, behaviorIndex);
 
 	// There is a client side cap of 5 behaviors
@@ -347,7 +347,7 @@ void ModelComponent::AddBehavior(uint32_t behaviorID, uint32_t behaviorIndex) {
 	Game::logger->Log("ModelComponent", "Added behavior %i in index %i!\n", behaviorID, behaviorIndex);
 }
 
-ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
+ModelBehavior* ModelComponent::FindBehavior(int32_t& behaviorID) {
 	// Drop in here if we are creating a new behavior to create a new behavior with a unique ID
 	for (auto behavior : behaviors) {
 		Game::logger->Log("ModelComponent", "Trying to find behavior with id %i.  Candidate is %i\n", behaviorID, behavior->GetBehaviorID());
@@ -363,7 +363,7 @@ ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
 	return nullptr;
 }
 
-void ModelComponent::MoveBehaviorToInventory(uint32_t behaviorID, uint32_t behaviorIndex) {
+void ModelComponent::MoveBehaviorToInventory(int32_t behaviorID, uint32_t behaviorIndex) {
 	Game::logger->Log("ModelComponent", "Moving behavior %i at index %i to inventory!\n", behaviorID, behaviorIndex);
 
 	auto behavior = FindBehavior(behaviorID);
@@ -380,7 +380,7 @@ void ModelComponent::MoveBehaviorToInventory(uint32_t behaviorID, uint32_t behav
 	Game::logger->Log("ModelComponent", "Moved behavior %i at index %i to inventory!\n", behaviorID, behaviorIndex);
 }
 
-void ModelComponent::RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t srcActionIndex, uint32_t dstActionIndex, uint32_t behaviorID) {
+void ModelComponent::RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t srcActionIndex, uint32_t dstActionIndex, int32_t behaviorID) {
 	Game::logger->Log("ModelComponent", "Rearranging strip in behavior %i at state %i to destination %i!\n", behaviorID, stateID, dstActionIndex);
 
 	auto behavior = FindBehavior(behaviorID);
@@ -395,7 +395,7 @@ void ModelComponent::RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint
 	Game::logger->Log("ModelComponent", "Rearranged strip in behavior %i at state %i to destination %i!\n", behaviorID, stateID, dstActionIndex);
 }
 
-void ModelComponent::MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, uint32_t dstActionIndex, STRIPID dstStripID, BEHAVIORSTATE dstStateID, uint32_t behaviorID) {
+void ModelComponent::MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, uint32_t dstActionIndex, STRIPID dstStripID, BEHAVIORSTATE dstStateID, int32_t behaviorID) {
 	Game::logger->Log("ModelComponent", "Migrating actions from strip %i in behavior %i at index %i to strip %i in behavior %i at index %i!\n", srcStripID, behaviorID, srcActionIndex, dstStripID, behaviorID, dstActionIndex);
 
 	auto behavior = FindBehavior(behaviorID);
@@ -410,7 +410,7 @@ void ModelComponent::MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID,
 	Game::logger->Log("ModelComponent", "Migrated actions from strip %i in behavior %i at index %i to strip %i in behavior %i at index %i!\n", srcStripID, behaviorID, srcActionIndex, dstStripID, behaviorID, dstActionIndex);
 }
 
-void ModelComponent::SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, STRIPID dstStripID, BEHAVIORSTATE dstStateID, uint32_t behaviorID, double yPosition, double xPosition) {
+void ModelComponent::SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, STRIPID dstStripID, BEHAVIORSTATE dstStateID, int32_t behaviorID, double yPosition, double xPosition) {
 	Game::logger->Log("ModelComponent", "Splitting strip %i in behavior %i at index %i to strip %i!\n", srcStripID, behaviorID, srcActionIndex, dstStripID);
 	
 	auto behavior = FindBehavior(behaviorID);
@@ -425,7 +425,7 @@ void ModelComponent::SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEH
 	Game::logger->Log("ModelComponent", "Split strip %i in behavior %i at index %i to strip %i!\n", srcStripID, behaviorID, srcActionIndex, dstStripID);
 }
 
-void ModelComponent::MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIORSTATE srcStateID, BEHAVIORSTATE dstStateID, uint32_t behaviorID, uint32_t dstActionIndex) {
+void ModelComponent::MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIORSTATE srcStateID, BEHAVIORSTATE dstStateID, int32_t behaviorID, uint32_t dstActionIndex) {
 	Game::logger->Log("ModelComponent", "Merging strips in behavior %i (source strip %i source state %i) (destination strip %i destination state %i destination index %i)\n", behaviorID, srcStripID, srcStateID, dstStripID, dstStateID, dstActionIndex);
 
 	auto behavior = FindBehavior(behaviorID);
@@ -442,7 +442,7 @@ void ModelComponent::MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIO
 
 void ModelComponent::UpdateAction(
         BEHAVIORSTATE stateID, STRIPID stripID, std::string actionName, std::string parameterName, std::string parameterValueString, double parameterValueDouble, 
-		std::string callbackID, uint32_t actionIndex, uint32_t behaviorID) 
+		std::string callbackID, uint32_t actionIndex, int32_t behaviorID) 
 {
 	Game::logger->Log("ModelComponent", "Updating action %i with parameters %s %s %s %lf in state %i strip %i behavior ID %i\n", actionIndex, actionName.c_str(), parameterName.c_str(), parameterValueString.c_str(), parameterValueDouble, stateID, stripID, behaviorID);
 

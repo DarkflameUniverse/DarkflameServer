@@ -123,7 +123,7 @@ class ControlBehaviors {
          * @param key a key that references a Behavior id in the arguments
          * @return A Behavior id
          */
-        uint32_t GetBehaviorIDFromArgument(std::string key = "BehaviorID");
+        int32_t GetBehaviorIDFromArgument(std::string key = "BehaviorID");
 
         /**
          * @brief Gets the behavior state from the arguments given the provided key
