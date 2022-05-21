@@ -165,3 +165,26 @@ void BehaviorState::ResetStrips() {
         strip.second->SetIsActive(false);
     }
 }
+
+void BehaviorState::OnAttack(ModelComponent* modelComponent, Entity* originator) {
+    for (auto strip : strips) {
+        if (strip.second->GetActions().at(0)->actionName == "OnAttack" && !strip.second->IsActive()) strip.second->ExecuteStrip(modelComponent, originator);
+    }
+}
+
+void BehaviorState::OnStartup(ModelComponent* modelComponent) {
+    for (auto strip : strips) {
+        if (strip.second->GetActions().at(0)->actionName == "OnStartup" && !strip.second->IsActive()) strip.second->ExecuteStrip(modelComponent, nullptr);
+    }
+}
+
+void BehaviorState::OnTimer(ModelComponent* modelComponent) {
+    for (auto strip : strips) {
+        auto action = strip.second->GetActions().at(0);
+        if (action->actionName == "OnTimer" && !strip.second->IsActive()) {
+            modelComponent->GetParent()->AddCallbackTimer(action->parameterValueDouble, [strip, this, modelComponent](){
+                strip.second->ExecuteStrip(modelComponent, nullptr);
+            });
+        }
+    }
+}

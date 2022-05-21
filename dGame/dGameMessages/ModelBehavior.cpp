@@ -185,3 +185,15 @@ void ModelBehavior::ResetStrips() {
 		state.second->ResetStrips();
 	}
 }
+
+void ModelBehavior::OnAttack(ModelComponent* modelComponent, Entity* originator) {
+	states.find(m_ActiveState)->second->OnAttack(m_ModelComponent, originator);
+}
+
+void ModelBehavior::OnStartup(ModelComponent* modelComponent) {
+	states.find(m_ActiveState)->second->OnStartup(m_ModelComponent);
+}
+
+void ModelBehavior::OnTimer(ModelComponent* modelComponent) {
+	states.find(m_ActiveState)->second->OnTimer(m_ModelComponent);
+}

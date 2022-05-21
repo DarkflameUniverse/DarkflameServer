@@ -2,6 +2,7 @@
 #include "SimplePhysicsComponent.h"
 #include "MovementAIComponent.h"
 #include "PropertyManagementComponent.h"
+#include "../../dWorldServer/ObjectIDManager.h"
 
 ControlBehaviors::~ControlBehaviors() {
     delete this->arguments;
@@ -116,6 +117,7 @@ void ControlBehaviors::ToggleExecutionUpdates() {
 }
 
 void ControlBehaviors::AddStrip() {
+
     Game::logger->Log("ControlBehaviors", "addStrip!\n");
 
     AMFArrayValue* strip = (AMFArrayValue*)arguments->FindValue("strip");
@@ -169,24 +171,32 @@ void ControlBehaviors::AddStrip() {
         valueParameterString = "";
         valueParameterDouble = 0.0;
     }
-    SendBehaviorListToClient();
+    if (behaviorID == -1) {
+        ObjectIDManager::Instance()->RequestPersistentID([this, &behaviorID](uint32_t persistentId) {
+            auto behavior = this->modelComponent->FindBehavior(behaviorID);
+            behaviorID = persistentId;
+            behavior->SetBehaviorID(persistentId);
 
-    // This updates the behavior ID of the behavior should this be a new behavior
-    AMFArrayValue args;
+            // This updates the behavior ID of the behavior should this be a new behavior
+            AMFArrayValue args;
 
-    AMFStringValue* behaviorIDString = new AMFStringValue();
-    behaviorIDString->SetStringValue(std::to_string(behaviorID));
-    args.InsertValue("behaviorID", behaviorIDString);
+            AMFStringValue* behaviorIDString = new AMFStringValue();
+            behaviorIDString->SetStringValue(std::to_string(behaviorID));
+            args.InsertValue("behaviorID", behaviorIDString);
 
-    AMFStringValue* objectIDAsString = new AMFStringValue();
-    objectIDAsString->SetStringValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
-    args.InsertValue("objectID", objectIDAsString);
+            AMFStringValue* objectIDAsString = new AMFStringValue();
+            objectIDAsString->SetStringValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
+            args.InsertValue("objectID", objectIDAsString);
 
-    GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorID", &args);
-    delete behaviorIDString;
-    behaviorIDString = nullptr;
-    delete objectIDAsString;
-    objectIDAsString = nullptr;
+            GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorID", &args);
+            delete behaviorIDString;
+            behaviorIDString = nullptr;
+            delete objectIDAsString;
+            objectIDAsString = nullptr;
+            SendBehaviorListToClient();
+            delete this;
+        });
+    }
 }
 
 void ControlBehaviors::RemoveStrip() {

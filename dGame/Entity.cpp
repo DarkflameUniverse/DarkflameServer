@@ -366,7 +366,7 @@ void Entity::Initialize()
 	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance()->GetTable<CDDestructibleComponentTable>("DestructibleComponent");
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
-	if (buffComponentID > 0 || collectibleComponentID > 0) {
+	if (buffComponentID > 0 || collectibleComponentID > 0 || (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 		DestroyableComponent* comp = new DestroyableComponent(this);
 		if (m_Character) {
 			comp->LoadFromXML(m_Character->GetXMLDoc());
@@ -409,6 +409,12 @@ void Entity::Initialize()
 					// extraInfo overrides
 					comp->SetIsSmashable(GetVarAs<int32_t>(u"is_smashable") != 0);
 				}
+			} else if (GetComponent<ModelComponent>() && !GetComponent<PetComponent>()) {
+				comp->SetMaxHealth(1);
+				comp->SetHealth(1);
+				comp->SetArmor(1);
+				comp->SetIsSmashable(true);
+				comp->AddFaction(-1, true);
 			}
 			else {
 				comp->SetHealth(1);
@@ -1198,9 +1204,12 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		renderComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	// Write zero for blueprint component?
-	if (HasComponent(COMPONENT_TYPE_MODEL) && !HasComponent(COMPONENT_TYPE_PET)) {
-		outBitStream->Write0();
+	// Model Components get the Destroyable component here
+	if (modelComponent && !GetComponent<PetComponent>()) {
+		DestroyableComponent* destroyableComponent;
+		if (TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent)) {
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		}
 	}
 
 	if (HasComponent(COMPONENT_TYPE_ZONE_CONTROL))

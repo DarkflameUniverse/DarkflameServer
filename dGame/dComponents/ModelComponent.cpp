@@ -1,6 +1,7 @@
 #include "ModelComponent.h"
 #include "Entity.h"
 #include "PropertyManagementComponent.h"
+#include "DestroyableComponent.h"
 #include "Character.h"
 #include "MovementAIComponent.h"
 #include "SimplePhysicsComponent.h"
@@ -40,8 +41,7 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 	outBitStream->Write1();
 		outBitStream->Write<uint32_t>(behaviors.size());
 		outBitStream->Write(m_IsPaused);
-		outBitStream->Write0(); // Doesn't seem to affect anything not having this...
-		outBitStream->Write<uint32_t>(0);
+		if (bIsInitialUpdate) outBitStream->Write0(); // Doesn't seem to affect anything not having this...
 }
 
 void ModelComponent::Update(float deltaTime) {
@@ -67,14 +67,32 @@ void ModelComponent::Update(float deltaTime) {
         }
 		checkStarterBlocks = false;
         EntityManager::Instance()->SerializeEntity(m_Parent);
-    }
+		if (onAttack) {
+			auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+			if (destroyableComponent) destroyableComponent->SetFaction(6);
+		}
+		if (onStartup) {
+			for (auto behavior : behaviors) {
+				behavior->OnStartup(this);
+			}
+		}
+		if (onTimer) {
+			for (auto behavior : behaviors) {
+				behavior->OnTimer(this);
+			}
+		}
+	}
 
     auto movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
 	auto simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
 
     if (m_Smashed) {
-        movementAIComponent->Stop();
-    }
+		if (simplePhysicsComponent) {
+			simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
+			simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
+		}
+		return;
+	}
 
     if (simplePhysicsComponent && (distanceToTravelY != 0.0f || distanceToTravelX != 0.0f || distanceToTravelZ != 0.0f)) {
         NiPoint3 velocityVector = NiPoint3::ZERO;
@@ -177,6 +195,23 @@ void ModelComponent::Update(float deltaTime) {
 			// My brain hurts
 		}
     }
+}
+
+void ModelComponent::OnAttack(Entity* attacker) {
+	if (!onAttack) return;
+
+	SetOnAttack(false);
+
+	for (auto behavior : behaviors) {
+		behavior->OnAttack(this, attacker);
+	}
+	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+
+	if (destroyableComponent) {
+		destroyableComponent->SetFaction(-1, true);
+	}
+
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 void ModelComponent::OnUse(Entity* originator) {
@@ -314,21 +349,6 @@ void ModelComponent::AddBehavior(uint32_t behaviorID, uint32_t behaviorIndex) {
 
 ModelBehavior* ModelComponent::FindBehavior(uint32_t& behaviorID) {
 	// Drop in here if we are creating a new behavior to create a new behavior with a unique ID
-	if (behaviorID == -1) {
-		for (uint32_t i = 0; i < 5; i++) {
-			bool isUniqueId = true;
-			for (auto behavior : behaviors) {
-				if (behavior->GetBehaviorID() == i) isUniqueId = false;
-			}
-			if (isUniqueId) {
-				Game::logger->Log("ModelComponent", "Creating a new custom behavior with id %i\n", i);
-				behaviorID = i;
-				auto newBehavior = new ModelBehavior(i, m_Parent, false);
-				behaviors.insert(behaviors.begin(), newBehavior);
-				return newBehavior;
-			}
-		}
-	}
 	for (auto behavior : behaviors) {
 		Game::logger->Log("ModelComponent", "Trying to find behavior with id %i.  Candidate is %i\n", behaviorID, behavior->GetBehaviorID());
 		if (behavior->GetBehaviorID() == behaviorID) return behavior;
@@ -489,6 +509,10 @@ void ModelComponent::Reset() {
         behavior->SetState(eStates::HOME_STATE);
 		behavior->ResetStrips();
     }
+	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+	if (destroyableComponent) {
+		destroyableComponent->SetFaction(-1, true);
+	}
 }
 
 void ModelComponent::CheckStarterBlocks() {

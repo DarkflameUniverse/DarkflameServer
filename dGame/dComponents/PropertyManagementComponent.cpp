@@ -13,6 +13,7 @@
 #include "Game.h"
 #include "Item.h"
 #include "MovementAIComponent.h"
+#include "tinyxml2.h"
 #include "Database.h"
 #include "SimplePhysicsComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
@@ -813,7 +814,24 @@ void PropertyManagementComponent::Save(bool shuttingDownServer)
 
 		const auto position = entity->GetPosition();
 		const auto rotation = entity->GetRotation();
+		auto modelComponent = entity->GetComponent<ModelComponent>();
 
+		// if (modelComponent) {
+		// 	for (auto behavior : modelComponent->GetBehaviors()) {
+		// 		// Behavior
+		// 		tinyxml2::XMLDocument* m_Doc = new tinyxml2::XMLDocument();
+		// 		tinyxml2::XMLNode* behaviorNode = m_Doc->InsertEndChild(m_Doc->NewElement("Behavior"));
+		// 		behaviorNode->
+		// 		auto behaviors = modelComponent->GetBehaviors();
+		// 		for (auto behavior : behaviors) {
+
+		// 		}
+		// 			// states
+		// 				// strips
+		// 					// actions
+		// 						// values for action
+		// 	}
+		// }
 		if (std::find(present.begin(), present.end(), id) == present.end())
 		{
 			insertion->setInt64(1, id);

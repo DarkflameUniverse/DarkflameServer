@@ -23,6 +23,9 @@ class BehaviorState {
         void FindStarterBlocks(ModelComponent* modelComponent);
         void OnInteract(ModelComponent* modelComponent, Entity* originator);
         void OnChatMessage(ModelComponent* modelComponent, Entity* originator, std::string& message); 
+        void OnAttack(ModelComponent* modelComponent, Entity* originator);
+        void OnStartup(ModelComponent* modelComponent);
+        void OnTimer(ModelComponent* modelComponent); 
         uint32_t CountOfStrips() { return strips.size(); };
         void ClearStrips() { strips.clear(); };
         void ResetStrips();

@@ -142,6 +142,14 @@ class ModelBehavior {
 
     void ResetStrips();
 
+    void OnAttack(ModelComponent* modelComponent, Entity* originator);
+
+    void OnStartup(ModelComponent* modelComponent);
+
+    void OnTimer(ModelComponent* modelComponent);
+
+    void SetBehaviorID(uint32_t value) { this->behaviorID = value; };
+
   private:
     /**
      * The behavior ID of this behavior

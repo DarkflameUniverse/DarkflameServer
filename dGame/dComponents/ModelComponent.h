@@ -25,6 +25,7 @@ public:
     ~ModelComponent() override;
     void OnUse(Entity* originator) override;
     void Update(float deltatime) override;
+    void OnAttack(Entity* attacker);
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
     void OnChatMessage(Entity* originator, std::string& message);
