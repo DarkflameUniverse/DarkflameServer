@@ -172,16 +172,15 @@ void ControlBehaviors::AddStrip() {
         valueParameterDouble = 0.0;
     }
     if (behaviorID == -1) {
-        ObjectIDManager::Instance()->RequestPersistentID([this, &behaviorID](uint32_t persistentId) {
+        ObjectIDManager::Instance()->RequestPersistentID([this, behaviorID](uint32_t persistentId) {
             auto behavior = this->modelComponent->FindBehavior(behaviorID);
-            behaviorID = persistentId;
             behavior->SetBehaviorID(persistentId);
 
             // This updates the behavior ID of the behavior should this be a new behavior
             AMFArrayValue args;
 
             AMFStringValue* behaviorIDString = new AMFStringValue();
-            behaviorIDString->SetStringValue(std::to_string(behaviorID));
+            behaviorIDString->SetStringValue(std::to_string(persistentId));
             args.InsertValue("behaviorID", behaviorIDString);
 
             AMFStringValue* objectIDAsString = new AMFStringValue();

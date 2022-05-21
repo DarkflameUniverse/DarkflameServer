@@ -347,7 +347,7 @@ void ModelComponent::AddBehavior(int32_t behaviorID, uint32_t behaviorIndex) {
 	Game::logger->Log("ModelComponent", "Added behavior %i in index %i!\n", behaviorID, behaviorIndex);
 }
 
-ModelBehavior* ModelComponent::FindBehavior(int32_t& behaviorID) {
+ModelBehavior* ModelComponent::FindBehavior(int32_t behaviorID) {
 	// Drop in here if we are creating a new behavior to create a new behavior with a unique ID
 	for (auto behavior : behaviors) {
 		Game::logger->Log("ModelComponent", "Trying to find behavior with id %i.  Candidate is %i\n", behaviorID, behavior->GetBehaviorID());

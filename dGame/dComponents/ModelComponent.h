@@ -236,7 +236,7 @@ public:
      * @param behaviorID 
      * @return ModelBehavior* 
      */
-    ModelBehavior* FindBehavior(int32_t& behaviorID);
+    ModelBehavior* FindBehavior(int32_t behaviorID);
 
     void SetOnStartup(bool value) { this->onStartup = value; };
     void SetOnAttack(bool value) { this->onAttack = value; };
