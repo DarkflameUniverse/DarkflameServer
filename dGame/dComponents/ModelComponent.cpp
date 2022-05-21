@@ -389,7 +389,7 @@ void ModelComponent::RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint
 		Game::logger->Log("ModelComponent", "No behavior with id %i found!\n", behaviorID);
 		return;
 	}
-
+	if (srcActionIndex < dstActionIndex) return;
 	behavior->RearrangeStrip(stateID, stripID, srcActionIndex, dstActionIndex);
 
 	Game::logger->Log("ModelComponent", "Rearranged strip in behavior %i at state %i to destination %i!\n", behaviorID, stateID, dstActionIndex);
