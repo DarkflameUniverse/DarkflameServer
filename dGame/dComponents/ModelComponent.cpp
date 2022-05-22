@@ -5,6 +5,8 @@
 #include "Character.h"
 #include "MovementAIComponent.h"
 #include "Database.h"
+#include "InventoryComponent.h"
+#include "Item.h"
 #include "SimplePhysicsComponent.h"
 #include "dLogger.h"
 
@@ -358,7 +360,7 @@ void ModelComponent::Rename(int32_t behaviorID, std::string newName) {
 	Game::logger->Log("ModelComponent", "Renamed behavior %i to %s!\n", behaviorID, newName.c_str());
 }
 
-void ModelComponent::AddBehavior(int32_t behaviorID, uint32_t behaviorIndex) {
+void ModelComponent::AddBehavior(int32_t behaviorID, uint32_t behaviorIndex, Entity* modelOwner) {
 	Game::logger->Log("ModelComponent", "Adding behavior %i in index %i!\n", behaviorID, behaviorIndex);
 
 	// There is a client side cap of 5 behaviors
@@ -369,8 +371,31 @@ void ModelComponent::AddBehavior(int32_t behaviorID, uint32_t behaviorIndex) {
 		if (behavior->GetBehaviorID() == behaviorID) return;
 	}
 
-	auto behavior = new ModelBehavior(behaviorID, this);
-	behaviors.insert(behaviors.begin() + behaviorIndex, behavior);
+	auto inventoryComponent = modelOwner->GetComponent<InventoryComponent>();
+	bool isLoot = false;
+	if (inventoryComponent) {
+		auto item = inventoryComponent->FindItemByLot(behaviorID, eInventoryType::BEHAVIORS);
+		if (item && item->GetSubKey() == LWOOBJID_EMPTY) {
+			isLoot = true;
+		}
+	}
+	if (!isLoot) {
+		auto behaviorQuery = Database::CreatePreppedStmt("SELECT behavior_info FROM behaviors WHERE id = ?;");
+		
+		behaviorQuery->setInt(1, behaviorID);
+
+		auto result = behaviorQuery->executeQuery();
+
+		if (result->next()) {
+			tinyxml2::XMLDocument* m_Doc =  new tinyxml2::XMLDocument();
+			m_Doc->Parse(result->getString(1).c_str());
+
+			LoadBehaviorsFromXml(m_Doc, behaviorIndex);
+		}
+	} else {
+		auto behavior = new ModelBehavior(behaviorID, this, isLoot);
+		behaviors.insert(behaviors.begin() + behaviorIndex, behavior);
+	}
 	Game::logger->Log("ModelComponent", "Added behavior %i in index %i!\n", behaviorID, behaviorIndex);
 }
 
@@ -390,7 +415,7 @@ ModelBehavior* ModelComponent::FindBehavior(int32_t behaviorID) {
 	return nullptr;
 }
 
-void ModelComponent::MoveBehaviorToInventory(int32_t behaviorID, uint32_t behaviorIndex) {
+void ModelComponent::MoveBehaviorToInventory(int32_t behaviorID, uint32_t behaviorIndex, Entity* modelOwner) {
 	Game::logger->Log("ModelComponent", "Moving behavior %i at index %i to inventory!\n", behaviorID, behaviorIndex);
 
 	auto behavior = FindBehavior(behaviorID);
@@ -399,7 +424,17 @@ void ModelComponent::MoveBehaviorToInventory(int32_t behaviorID, uint32_t behavi
 		Game::logger->Log("ModelComponent", "No behavior with id %i found!\n", behaviorID);
 		return;
 	}
-
+	PropertyManagementComponent::Instance()->Save();
+	if (!behavior->GetIsLoot()) {
+		auto inventoryComponent = modelOwner->GetComponent<InventoryComponent>();
+		if (inventoryComponent) {
+			auto item = inventoryComponent->FindItemBySubKey(behaviorID, eInventoryType::BEHAVIORS);
+			if (!item) {
+				inventoryComponent->AddItem(7965, 1, eLootSourceType::LOOT_SOURCE_PROPERTY, eInventoryType::BEHAVIORS, {}, 0LL, false, false, behaviorID);
+			}
+		}
+	}
+	
 	delete behaviors[behaviorIndex];
 	behaviors[behaviorIndex] = nullptr;
 	behaviors.erase(behaviors.begin() + behaviorIndex);
@@ -546,7 +581,7 @@ void ModelComponent::CheckStarterBlocks() {
 	checkStarterBlocks = true;
 }
 
-void ModelComponent::LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc) {
+void ModelComponent::LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc, uint32_t behaviorIndex) {
 	// This method will setup the modelBehavior and pass along the states, strips and actions to the behavior to handle it.
 	auto behaviorInfo = doc->FirstChildElement("Behavior");
 
@@ -562,7 +597,12 @@ void ModelComponent::LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc) {
 	
 		behavior->LoadStatesFromXml(behaviorInfo);
 
-		behaviors.push_back(behavior);
+		if (behaviorIndex == -1) {
+			behaviors.push_back(behavior);
+		}
+		else {
+			behaviors.insert(behaviors.begin() + behaviorIndex, behavior);
+		}
 		Game::logger->Log("ModelComponent", "Added behavior %i\n", behaviorID);
 	}
 

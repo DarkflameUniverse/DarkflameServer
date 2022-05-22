@@ -362,7 +362,7 @@ void ControlBehaviors::Add() {
         behaviorIndex = (uint32_t)behaviorIndexValueConverted->GetDoubleValue();
     }
 
-    modelComponent->AddBehavior(behaviorID, behaviorIndex);
+    modelComponent->AddBehavior(behaviorID, behaviorIndex, modelOwner);
     SendBehaviorListToClient();
 }
 
@@ -552,7 +552,7 @@ void ControlBehaviors::MoveToInventory() {
     AMFDoubleValue* behaviorIndexValue = (AMFDoubleValue*)arguments->FindValue("BehaviorIndex");
     uint32_t behaviorIndex = (uint32_t)behaviorIndexValue->GetDoubleValue();
 
-    modelComponent->MoveBehaviorToInventory(behaviorID, behaviorIndex);
+    modelComponent->MoveBehaviorToInventory(behaviorID, behaviorIndex, modelOwner);
 
     SendBehaviorListToClient();
 }

@@ -118,7 +118,7 @@ public:
      * @param behaviorID The behavior id to add to the model
      * @param behaviorIndex The (optional) index to add this behavior to
      */
-    void AddBehavior(int32_t behaviorID, uint32_t behaviorIndex);
+    void AddBehavior(int32_t behaviorID, uint32_t behaviorIndex, Entity* modelOwner);
 	
     /**
      * @brief Moves a behavior to the player inventory and removes it from the model 
@@ -126,7 +126,7 @@ public:
      * @param behaviorID The behavior id to remove from the model
      * @param behaviorIndex The (optional) index to remove the behavior from
      */
-    void MoveBehaviorToInventory(int32_t behaviorID, uint32_t behaviorIndex);
+    void MoveBehaviorToInventory(int32_t behaviorID, uint32_t behaviorIndex, Entity* modelOwner);
     
     /**
      * @brief Renames a behavior
@@ -279,7 +279,7 @@ public:
 
     void CheckStarterBlocks();
     void ResetStarterBlocks();
-    void LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc);
+    void LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc, uint32_t behaviorIndex = -1);
 private:
 
     /**
