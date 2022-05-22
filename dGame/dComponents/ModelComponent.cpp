@@ -21,7 +21,7 @@ ModelComponent::ModelComponent(uint32_t componentID, Entity* parent) : Component
 
 	auto result = loadBehaviorsQuery->executeQuery();
 
-	result->next();
+	if (!result->next()) return;
 
 	auto behaviorIDList = GeneralUtils::SplitString(std::string(result->getString(1).c_str()), ',');
 	for (auto behaviorIDAsStr : behaviorIDList) {
