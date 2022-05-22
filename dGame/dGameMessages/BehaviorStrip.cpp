@@ -268,38 +268,38 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "ChangeStateHome")
         {
-            modelComponent->CancelAllActions();
-            parentBehavior->SetState(eStates::HOME_STATE);
+            // modelComponent->CancelAllActions();
+            // parentBehavior->SetState(eStates::HOME_STATE);
             return;
         }
         else if (actionToExecute->actionName == "ChangeStateCircle")
         {
-            modelComponent->CancelAllActions();
-            parentBehavior->SetState(eStates::CIRCLE_STATE);
+            // modelComponent->CancelAllActions();
+            // parentBehavior->SetState(eStates::CIRCLE_STATE);
             return;
         }
         else if (actionToExecute->actionName == "ChangeStateSquare")
         {
-            modelComponent->CancelAllActions();
-            parentBehavior->SetState(eStates::SQUARE_STATE);
+            // modelComponent->CancelAllActions();
+            // parentBehavior->SetState(eStates::SQUARE_STATE);
             return;
         }
         else if (actionToExecute->actionName == "ChangeStateDiamond")
         {
-            modelComponent->CancelAllActions();
-            parentBehavior->SetState(eStates::DIAMOND_STATE);
+            // modelComponent->CancelAllActions();
+            // parentBehavior->SetState(eStates::DIAMOND_STATE);
             return;
         }
         else if (actionToExecute->actionName == "ChangeStateTriangle")
         {
-            modelComponent->CancelAllActions();
-            parentBehavior->SetState(eStates::TRIANGLE_STATE);
+            // modelComponent->CancelAllActions();
+            // parentBehavior->SetState(eStates::TRIANGLE_STATE);
             return;
         }
         else if (actionToExecute->actionName == "ChangeStateStar")
         {
-            modelComponent->CancelAllActions();
-            parentBehavior->SetState(eStates::STAR_STATE);
+            // modelComponent->CancelAllActions();
+            // parentBehavior->SetState(eStates::STAR_STATE);
             return;
         }
         EntityManager::Instance()->SerializeEntity(modelEntity);
