@@ -203,7 +203,7 @@ void BehaviorState::LoadStripsFromXml(tinyxml2::XMLElement* doc, ModelBehavior* 
         stripsInfo->QueryAttribute("yPosition", &yPosition);
 
         auto stripInfo = new BehaviorStrip(stripID, parentBehavior);
-        
+
         stripInfo->UpdateUIOfStrip(xPosition, yPosition);
         stripInfo->LoadActionsFromXml(stripsInfo);
 

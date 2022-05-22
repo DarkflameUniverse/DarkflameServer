@@ -104,11 +104,13 @@ void ModelComponent::Update(float deltaTime) {
 			for (auto behavior : behaviors) {
 				behavior->OnStartup(this);
 			}
+			onStartup = false;
 		}
 		if (onTimer) {
 			for (auto behavior : behaviors) {
 				behavior->OnTimer(this);
 			}
+			onTimer = false;
 		}
 	}
 

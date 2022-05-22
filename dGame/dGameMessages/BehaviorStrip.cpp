@@ -106,7 +106,8 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         else if (actionToExecute->actionName == "UnSmash")
         {
             GameMessages::SendUnSmash(modelEntity, LWOOBJID_EMPTY, actionToExecute->parameterValueDouble);
-            timerForNextAction = actionToExecute->parameterValueDouble;
+            // Add 0.5 so we have a little extra wiggle room 
+            timerForNextAction = actionToExecute->parameterValueDouble + 0.5;
         }
         else if (actionToExecute->actionName == "Wait")
         {
@@ -268,38 +269,32 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         }
         else if (actionToExecute->actionName == "ChangeStateHome")
         {
-            // modelComponent->CancelAllActions();
-            // parentBehavior->SetState(eStates::HOME_STATE);
+            // TODO
             return;
         }
         else if (actionToExecute->actionName == "ChangeStateCircle")
         {
-            // modelComponent->CancelAllActions();
-            // parentBehavior->SetState(eStates::CIRCLE_STATE);
+            // TODO
             return;
         }
         else if (actionToExecute->actionName == "ChangeStateSquare")
         {
-            // modelComponent->CancelAllActions();
-            // parentBehavior->SetState(eStates::SQUARE_STATE);
+           // TODO
             return;
         }
         else if (actionToExecute->actionName == "ChangeStateDiamond")
         {
-            // modelComponent->CancelAllActions();
-            // parentBehavior->SetState(eStates::DIAMOND_STATE);
+            // TODO
             return;
         }
         else if (actionToExecute->actionName == "ChangeStateTriangle")
         {
-            // modelComponent->CancelAllActions();
-            // parentBehavior->SetState(eStates::TRIANGLE_STATE);
+            // TODO
             return;
         }
         else if (actionToExecute->actionName == "ChangeStateStar")
         {
-            // modelComponent->CancelAllActions();
-            // parentBehavior->SetState(eStates::STAR_STATE);
+            // TODO
             return;
         }
         EntityManager::Instance()->SerializeEntity(modelEntity);
