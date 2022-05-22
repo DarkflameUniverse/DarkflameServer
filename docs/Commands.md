@@ -77,7 +77,7 @@ These commands are primarily for development and testing. The usage of many of t
 |getnavmeshheight|`/getnavmeshheight`|Displays the navmesh height at your current position.|8|
 |giveuscore|`/giveuscore <uscore>`|Gives uscore.|8|
 |gmadditem|`/gmadditem <id> (count)`|Adds the given item to your inventory by id.|8|
-|inspect|`/inspect (entity id)`|Inspects closest entity.|8|
+|inspect|`/inspect <component> (-m <waypoint> \| -a <animation> \| -s \| -p \| -f (faction) \| -t)`|Finds the closest entity with the given component or LDF variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See [Detailed `/inspect` Usage](#detailed-inspect-usage) below.|8|
 |list-spawns|`/list-spawns`|Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one.|8|
 |locrow|`/locrow`|Prints the your current position and rotation information to the console.|8|
 |lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.|8|
@@ -106,6 +106,21 @@ These commands are primarily for development and testing. The usage of many of t
 |unlock-emote|`/unlock-emote <emote id>`|Unlocks for your character the emote of the given id.|8|
 |crash|`/crash`|Crashes the server.|9|
 |rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Rolls loot matrix.|9|
+
+## Detailed `/inspect` Usage
+
+`/inspect <component> (-m <waypoint> | -a <animation> | -s | -p | -f (faction) | -t)`
+
+Finds the closest entity with the given component or LDF variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has.
+
+### `/inspect` Options
+
+* `-m`: If the entity has a moving platform component, sends it to the given waypoint, or stops the platform if `waypoint` is `-1`.
+* `-a`: Plays the given animation on the entity.
+* `-s`: Prints the entity's settings and spawner ID.
+* `-p`: Prints the entity's position
+* `-f`: If the entity has a destroyable component, prints whether the entity is smashable and its friendly and enemy faction IDs; if `faction` is specified, adds that faction to the entity.
+* `-t`: If the entity has a phantom physics component, prints the effect type, direction, directional multiplier, and whether the effect is active; in any case, if the entity has a trigger, prints the trigger ID.
 
 ## Game Master Levels
 
