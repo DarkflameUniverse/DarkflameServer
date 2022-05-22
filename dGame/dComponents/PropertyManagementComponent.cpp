@@ -830,14 +830,15 @@ void PropertyManagementComponent::Save(bool shuttingDownServer) {
 
         if (modelComponent) {
 			auto behaviorsUpdate = Database::CreatePreppedStmt("UPDATE properties_contents SET behavior_1 = ?, behavior_2 = ?, behavior_3 = ?, behavior_4 = ?, behavior_5 = ? WHERE id = ?");
-            tinyxml2::XMLDocument* m_Doc = new tinyxml2::XMLDocument();
             auto behaviors = modelComponent->GetBehaviors();
 			uint32_t i;
             for (i = 0; i < behaviors.size(); i++) {
 				auto behavior = behaviors.at(i);
+				tinyxml2::XMLDocument* m_Doc = new tinyxml2::XMLDocument();
 				tinyxml2::XMLElement* behaviorElement = m_Doc->NewElement("Behavior");
                 behaviorElement->SetAttribute("behaviorID", behavior->GetBehaviorID());
-				// Behaviors start at index 12 of the insertion query.
+				behaviorElement->SetAttribute("isLoot", behavior->GetIsLoot());
+				behaviorElement->SetAttribute("behaviorName", behavior->GetName().c_str());
 				behaviorsUpdate->setInt(i + 1, behavior->GetBehaviorID());
                 auto states = behavior->GetBehaviorStates();
                 for (auto state : states) {
@@ -848,7 +849,8 @@ void PropertyManagementComponent::Save(bool shuttingDownServer) {
                     for (auto strip : strips) {
 						tinyxml2::XMLElement* stripElement = m_Doc->NewElement("Strip");
                         stripElement->SetAttribute("stripID", strip.first);
-
+						stripElement->SetAttribute("xPosition", strip.second->GetXPosition());
+						stripElement->SetAttribute("yPosition", strip.second->GetYPosition());
                         auto actions = strip.second->GetActions();
                         for (auto action : actions) {
 							tinyxml2::XMLElement* actionElement = m_Doc->NewElement("action");

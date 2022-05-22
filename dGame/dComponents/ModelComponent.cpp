@@ -4,6 +4,7 @@
 #include "DestroyableComponent.h"
 #include "Character.h"
 #include "MovementAIComponent.h"
+#include "Database.h"
 #include "SimplePhysicsComponent.h"
 #include "dLogger.h"
 
@@ -13,6 +14,32 @@ ModelComponent::ModelComponent(uint32_t componentID, Entity* parent) : Component
 	m_Rotation = m_Parent->GetDefaultRotation();
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
+
+	auto loadBehaviorsQuery = Database::CreatePreppedStmt("SELECT concat(behavior_1, \",\" , behavior_2, \",\" , behavior_3, \",\" , behavior_4, \",\" , behavior_5) FROM properties_contents where id = ?;");
+
+	loadBehaviorsQuery->setInt64(1, m_Parent->GetSpawnerID());
+
+	auto result = loadBehaviorsQuery->executeQuery();
+
+	result->next();
+
+	auto behaviorIDList = GeneralUtils::SplitString(std::string(result->getString(1).c_str()), ',');
+	for (auto behaviorIDAsStr : behaviorIDList) {
+		uint32_t behaviorID = std::stoi(behaviorIDAsStr);
+		if (behaviorID != 0) {
+			auto behaviorQuery = Database::CreatePreppedStmt("SELECT behavior_info FROM behaviors WHERE id = ?;");
+
+			behaviorQuery->setInt(1, behaviorID);
+
+			auto behaviorQueryResult = behaviorQuery->executeQuery();
+
+			behaviorQueryResult->next();
+			tinyxml2::XMLDocument* m_Doc =  new tinyxml2::XMLDocument();
+			m_Doc->Parse(behaviorQueryResult->getString(1).c_str());
+
+			LoadBehaviorsFromXml(m_Doc);
+		}
+	}
 }
 
 ModelComponent::~ModelComponent() {
@@ -342,7 +369,7 @@ void ModelComponent::AddBehavior(int32_t behaviorID, uint32_t behaviorIndex) {
 		if (behavior->GetBehaviorID() == behaviorID) return;
 	}
 
-	auto behavior = new ModelBehavior(behaviorID, m_Parent);
+	auto behavior = new ModelBehavior(behaviorID, this);
 	behaviors.insert(behaviors.begin() + behaviorIndex, behavior);
 	Game::logger->Log("ModelComponent", "Added behavior %i in index %i!\n", behaviorID, behaviorIndex);
 }
@@ -355,7 +382,7 @@ ModelBehavior* ModelComponent::FindBehavior(int32_t behaviorID) {
 	}
 	if (behaviors.size() < 5) {
 		Game::logger->Log("ModelComponent", "Creating a new templated behavior with id %i\n", behaviorID);
-		auto behavior = new ModelBehavior(behaviorID, m_Parent, behaviorID != -1);
+		auto behavior = new ModelBehavior(behaviorID, this, behaviorID != -1);
 		behaviors.insert(behaviors.begin(), behavior);
 		return behavior;
 	}
@@ -520,5 +547,24 @@ void ModelComponent::CheckStarterBlocks() {
 }
 
 void ModelComponent::LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc) {
-	// Load in XML from document
+	// This method will setup the modelBehavior and pass along the states, strips and actions to the behavior to handle it.
+	auto behaviorInfo = doc->FirstChildElement("Behavior");
+
+	if (behaviorInfo != nullptr) {
+		uint32_t behaviorID = 0;
+		bool isLoot = false;
+		const char* behaviorName = "";
+		behaviorInfo->QueryAttribute("behaviorID", &behaviorID);
+		Game::logger->Log("ModelComponent", "Adding behavior %i\n", behaviorID);
+		behaviorInfo->QueryAttribute("isLoot", &isLoot);
+		behaviorInfo->QueryAttribute("behaviorName", &behaviorName);
+		ModelBehavior* behavior = new ModelBehavior(behaviorID, this, isLoot, std::string(behaviorName));
+	
+		behavior->LoadStatesFromXml(behaviorInfo);
+
+		behaviors.push_back(behavior);
+		Game::logger->Log("ModelComponent", "Added behavior %i\n", behaviorID);
+	}
+
+	Game::logger->Log("ModelComponent", "behaviors size %i\n", behaviors.size());
 }

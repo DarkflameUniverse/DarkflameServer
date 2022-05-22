@@ -30,6 +30,7 @@ class BehaviorState {
         void ClearStrips() { strips.clear(); };
         void ResetStrips();
         std::map<STRIPID, BehaviorStrip*> GetStrips() { return strips; };
+        void LoadStripsFromXml(tinyxml2::XMLElement* doc, ModelBehavior* parentBehavior);
     private:
         std::map<STRIPID, BehaviorStrip*> strips;
         BEHAVIORSTATE stateID;

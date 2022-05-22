@@ -25,6 +25,7 @@ class BehaviorStrip {
         double GetYPosition() { return yPosition; };
         bool IsActive() { return isActive; };
         void SetIsActive(bool value) { this->isActive = value; };
+        void LoadActionsFromXml(tinyxml2::XMLElement* doc);
     private:
         ModelBehavior* parentBehavior = nullptr;
         std::vector<BehaviorAction*> actions;

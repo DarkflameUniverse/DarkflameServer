@@ -420,3 +420,27 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
             });
         }
 }
+
+void BehaviorStrip::LoadActionsFromXml(tinyxml2::XMLElement* doc) {
+    auto actionInfo = doc->FirstChildElement("action");
+
+    while (actionInfo != nullptr) {
+        BehaviorAction* action = new BehaviorAction();
+        const char* actionNameAsCStr = "";
+        const char* parameterNameCStr = "";
+        const char* parameterValueStringCStr = "";
+        double parameterValueDouble = 0.0f;
+        actionInfo->QueryAttribute("actionName", &actionNameAsCStr);
+        actionInfo->QueryAttribute("parameterName", &parameterNameCStr);
+        actionInfo->QueryAttribute("parameterValueDouble", &parameterValueDouble);
+        actionInfo->QueryAttribute("parameterValueString", &parameterValueStringCStr);
+        action->actionName = std::string(actionNameAsCStr);
+        action->parameterName = std::string(parameterNameCStr);
+        action->parameterValueString = std::string(parameterValueStringCStr);
+        action->parameterValueDouble = parameterValueDouble;
+
+        actions.push_back(action);
+
+        actionInfo = actionInfo->NextSiblingElement();
+    }
+}

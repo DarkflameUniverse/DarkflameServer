@@ -189,3 +189,26 @@ void BehaviorState::OnTimer(ModelComponent* modelComponent) {
         }
     }
 }
+
+void BehaviorState::LoadStripsFromXml(tinyxml2::XMLElement* doc, ModelBehavior* parentBehavior) {
+    auto stripsInfo = doc->FirstChildElement("Strip");
+
+    while (stripsInfo != nullptr) {
+        STRIPID stripID = 0;
+        double xPosition = 0.0f;
+        double yPosition = 0.0f;
+
+        stripsInfo->QueryAttribute("stripID", &stripID);
+        stripsInfo->QueryAttribute("xPosition", &xPosition);
+        stripsInfo->QueryAttribute("yPosition", &yPosition);
+
+        auto stripInfo = new BehaviorStrip(stripID, parentBehavior);
+        
+        stripInfo->UpdateUIOfStrip(xPosition, yPosition);
+        stripInfo->LoadActionsFromXml(stripsInfo);
+
+        strips.insert(std::make_pair(stripID, stripInfo));
+
+        stripsInfo = stripsInfo->NextSiblingElement();
+    }
+}

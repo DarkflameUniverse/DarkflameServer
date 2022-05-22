@@ -1,11 +1,12 @@
 #include "ModelBehavior.h"
+#include "tinyxml2.h"
 
-ModelBehavior::ModelBehavior(uint32_t behaviorID, Entity* model, bool isLoot, std::string behaviorName) {
+ModelBehavior::ModelBehavior(uint32_t behaviorID, ModelComponent* model, bool isLoot, std::string behaviorName) {
     this->behaviorID = behaviorID;
     this->isLoot = isLoot;
     this->isLocked = false;
     this->behaviorName = behaviorName;
-	this->m_ModelComponent = model->GetComponent<ModelComponent>();
+	this->m_ModelComponent = model;
 }
 
 ModelBehavior::~ModelBehavior() {
@@ -199,4 +200,22 @@ void ModelBehavior::OnStartup(ModelComponent* modelComponent) {
 
 void ModelBehavior::OnTimer(ModelComponent* modelComponent) {
 	states.find(m_ActiveState)->second->OnTimer(m_ModelComponent);
+}
+
+void ModelBehavior::LoadStatesFromXml(tinyxml2::XMLElement* doc) {
+	auto stateInfo = doc->FirstChildElement("State");
+
+	while (stateInfo != nullptr) {
+		BEHAVIORSTATE stateID;
+
+		stateInfo->QueryAttribute("stateID", &stateID);
+
+		auto behaviorState = new BehaviorState(stateID);
+
+		behaviorState->LoadStripsFromXml(stateInfo, this);
+
+		states.insert(std::make_pair(stateID, behaviorState));
+	
+		stateInfo = stateInfo->NextSiblingElement();
+	}
 }

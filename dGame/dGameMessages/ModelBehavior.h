@@ -20,7 +20,7 @@ class ModelComponent;
  */
 class ModelBehavior {
   public:
-    ModelBehavior(uint32_t behaviorID, Entity* model, bool isLoot = true, std::string behaviorName = "New Behavior");
+    ModelBehavior(uint32_t behaviorID, ModelComponent* model, bool isLoot = true, std::string behaviorName = "New Behavior");
     ~ModelBehavior();
     /**
      * Adds a strip of action(s) to a state.
@@ -149,6 +149,8 @@ class ModelBehavior {
     void OnTimer(ModelComponent* modelComponent);
 
     void SetBehaviorID(uint32_t value) { this->behaviorID = value; this->isLoot = false; };
+
+    void LoadStatesFromXml(tinyxml2::XMLElement* doc);
 
   private:
     /**
