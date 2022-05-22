@@ -20,7 +20,7 @@ class ModelComponent;
  */
 class ModelBehavior {
   public:
-    ModelBehavior(uint32_t behaviorID, ModelComponent* model, bool isLoot = true, std::string behaviorName = "New Behavior");
+    ModelBehavior(uint32_t behaviorID, ModelComponent* model, bool isLoot = true, std::string behaviorName = "New Behavior", bool isTemplated = false);
     ~ModelBehavior();
     /**
      * Adds a strip of action(s) to a state.
@@ -152,6 +152,14 @@ class ModelBehavior {
 
     void LoadStatesFromXml(tinyxml2::XMLElement* doc);
 
+    bool GetShouldSetNewID() { return shouldSetNewID; };
+
+    void SetShouldGetNewID(bool value) { shouldSetNewID = value; };
+
+    void SetIsTemplated(bool value) { isTemplated = value; };
+
+    bool GetIsTemplated() { return isTemplated; };
+
   private:
     /**
      * The behavior ID of this behavior
@@ -187,4 +195,7 @@ class ModelBehavior {
      * The current active state of this behavior
      */
     BEHAVIORSTATE m_ActiveState = eStates::HOME_STATE;
+
+    bool shouldSetNewID = false;
+    bool isTemplated = false;
 };

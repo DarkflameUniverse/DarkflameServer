@@ -1,12 +1,13 @@
 #include "ModelBehavior.h"
 #include "tinyxml2.h"
 
-ModelBehavior::ModelBehavior(uint32_t behaviorID, ModelComponent* model, bool isLoot, std::string behaviorName) {
+ModelBehavior::ModelBehavior(uint32_t behaviorID, ModelComponent* model, bool isLoot, std::string behaviorName, bool isTemplated) {
     this->behaviorID = behaviorID;
     this->isLoot = isLoot;
     this->isLocked = false;
     this->behaviorName = behaviorName;
 	this->m_ModelComponent = model;
+	this->isTemplated = isTemplated;
 }
 
 ModelBehavior::~ModelBehavior() {
@@ -38,7 +39,7 @@ void ModelBehavior::AddStrip(
 		state->second->AddStrip(newAction, stripID, xPosition, yPosition, this);
 	}
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::AddAction(
@@ -57,7 +58,7 @@ void ModelBehavior::AddAction(
 
 	state->second->AddAction(newAction, stripID, actionIndex);
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t actionIndex) {
@@ -65,7 +66,7 @@ void ModelBehavior::RemoveAction(BEHAVIORSTATE stateID, STRIPID stripID, uint32_
 
 	state->second->RemoveAction(stripID, actionIndex);
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID) {
@@ -80,13 +81,13 @@ void ModelBehavior::RemoveStrip(BEHAVIORSTATE stateID, STRIPID stripID) {
 		Game::logger->Log("ModelBehavior", "Erased state %i stateid is %i\n", state->first, stateID);
 	}
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::Rename(std::string newName) {
 	this->behaviorName = newName;
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, double xPosition, double yPosition) {
@@ -94,7 +95,7 @@ void ModelBehavior::UpdateUIOfStrip(BEHAVIORSTATE stateID, STRIPID stripID, doub
 
 	state->second->UpdateUIOfStrip(stripID, xPosition, yPosition);
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint32_t srcActionIndex, uint32_t dstActionIndex) {
@@ -102,7 +103,7 @@ void ModelBehavior::RearrangeStrip(BEHAVIORSTATE stateID, STRIPID stripID, uint3
 	
 	state->second->RearrangeStrip(stripID, srcActionIndex, dstActionIndex);
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, uint32_t dstActionIndex, STRIPID dstStripID, BEHAVIORSTATE dstStateID) {
@@ -112,7 +113,7 @@ void ModelBehavior::MigrateActions(uint32_t srcActionIndex, STRIPID srcStripID, 
 
 	dstState->MigrateActions(srcState, srcActionIndex, srcStripID, dstActionIndex, dstStripID);
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHAVIORSTATE srcStateID, STRIPID dstStripID, BEHAVIORSTATE dstStateID, double yPosition, double xPosition) {
@@ -122,7 +123,7 @@ void ModelBehavior::SplitStrip(uint32_t srcActionIndex, STRIPID srcStripID, BEHA
 
 	dstState->SplitStrip(srcState, srcActionIndex, srcStripID, dstStripID, yPosition, xPosition, this);
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIORSTATE srcStateID, BEHAVIORSTATE dstStateID, uint32_t dstActionIndex) {
@@ -132,7 +133,7 @@ void ModelBehavior::MergeStrips(STRIPID srcStripID, STRIPID dstStripID, BEHAVIOR
 
 	dstState->MergeStrips(srcState, srcStripID, dstStripID, dstActionIndex);
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::UpdateAction(
@@ -143,7 +144,7 @@ void ModelBehavior::UpdateAction(
 
 	state->second->UpdateAction(stripID, actionName, parameterName, parameterValueString, parameterValueDouble, callbackID, actionIndex);
 
-	this->isLoot = false;
+	if (this->isTemplated) SetShouldGetNewID(true);
 }
 
 void ModelBehavior::VerifyStates() {

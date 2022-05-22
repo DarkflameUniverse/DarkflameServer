@@ -171,31 +171,7 @@ void ControlBehaviors::AddStrip() {
         valueParameterString = "";
         valueParameterDouble = 0.0;
     }
-    if (behaviorID == -1) {
-        ObjectIDManager::Instance()->RequestPersistentID([this, behaviorID](uint32_t persistentId) {
-            auto behavior = this->modelComponent->FindBehavior(behaviorID);
-            behavior->SetBehaviorID(persistentId);
-
-            // This updates the behavior ID of the behavior should this be a new behavior
-            AMFArrayValue args;
-
-            AMFStringValue* behaviorIDString = new AMFStringValue();
-            behaviorIDString->SetStringValue(std::to_string(persistentId));
-            args.InsertValue("behaviorID", behaviorIDString);
-
-            AMFStringValue* objectIDAsString = new AMFStringValue();
-            objectIDAsString->SetStringValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
-            args.InsertValue("objectID", objectIDAsString);
-
-            GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorID", &args);
-            delete behaviorIDString;
-            behaviorIDString = nullptr;
-            delete objectIDAsString;
-            objectIDAsString = nullptr;
-            SendBehaviorListToClient();
-            delete this;
-        });
-    }
+    RequestUpdatedID(behaviorID);
 }
 
 void ControlBehaviors::RemoveStrip() {
@@ -208,6 +184,8 @@ void ControlBehaviors::RemoveStrip() {
     uint32_t behaviorID = GetBehaviorIDFromArgument();
 
     modelComponent->RemoveStrip(stateID, stripID, behaviorID);
+
+    RequestUpdatedID(behaviorID);
 }
 
 void ControlBehaviors::MergeStrips() {
@@ -227,6 +205,8 @@ void ControlBehaviors::MergeStrips() {
     uint32_t behaviorID = GetBehaviorIDFromArgument();
 
     modelComponent->MergeStrips(srcStripID, dstStripID, srcStateID, dstStateID, behaviorID, dstActionIndex);
+
+    RequestUpdatedID(behaviorID);
 }
 
 void ControlBehaviors::SplitStrip() {
@@ -254,6 +234,8 @@ void ControlBehaviors::SplitStrip() {
     uint32_t behaviorID = GetBehaviorIDFromArgument();
 
     modelComponent->SplitStrip(srcActionIndex, srcStripID, srcStateID, dstStripID, dstStateID, behaviorID, yPosition, xPosition);
+
+    RequestUpdatedID(behaviorID);
 }
 
 void ControlBehaviors::UpdateStripUI() {
@@ -273,6 +255,8 @@ void ControlBehaviors::UpdateStripUI() {
     uint32_t behaviorID = GetBehaviorIDFromArgument();
 
     modelComponent->UpdateUIOfStrip(stateID, stripID, xPosition, yPosition, behaviorID);
+
+    RequestUpdatedID(behaviorID);
 }
 
 void ControlBehaviors::AddAction() {
@@ -307,6 +291,8 @@ void ControlBehaviors::AddAction() {
     uint32_t behaviorID = GetBehaviorIDFromArgument();
 
     modelComponent->AddAction(stateID, stripID, type, valueParameterName, valueParameterString, valueParameterDouble, "", actionIndex, behaviorID);
+
+    RequestUpdatedID(behaviorID);
 }
 
 void ControlBehaviors::MigrateActions() {
@@ -329,6 +315,8 @@ void ControlBehaviors::MigrateActions() {
     uint32_t behaviorID = GetBehaviorIDFromArgument();
 
     modelComponent->MigrateActions(srcActionIndex, srcStripID, srcStateID, dstActionIndex, dstStripID, dstStateID, behaviorID);
+
+    RequestUpdatedID(behaviorID);
 }
 
 void ControlBehaviors::RearrangeStrip() {
@@ -347,6 +335,8 @@ void ControlBehaviors::RearrangeStrip() {
     BEHAVIORSTATE stateID = GetBehaviorStateFromArgument();
 
     modelComponent->RearrangeStrip(stateID, stripID, srcActionIndex, dstActionIndex, behaviorID);
+
+    RequestUpdatedID(behaviorID);
 }
 
 void ControlBehaviors::Add() {
@@ -378,6 +368,8 @@ void ControlBehaviors::RemoveActions() {
 
     BEHAVIORSTATE stateID = GetBehaviorStateFromArgument();
     modelComponent->RemoveAction(stateID, stripID, actionIndex, behaviorID);
+
+    RequestUpdatedID(behaviorID);
 }
 
 void ControlBehaviors::Rename() {
@@ -391,6 +383,8 @@ void ControlBehaviors::Rename() {
     modelComponent->Rename(behaviorID, name);
 
     SendBehaviorListToClient();
+
+    RequestUpdatedID(behaviorID);
 }
 
 // TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
@@ -533,6 +527,8 @@ void ControlBehaviors::UpdateAction() {
     BEHAVIORSTATE stateID = GetBehaviorStateFromArgument();
 
     modelComponent->UpdateAction(stateID, stripID, type, valueParameterName, valueParameterString, valueParameterDouble, "", actionIndex, behaviorID);
+
+    RequestUpdatedID(behaviorID);
 }
 
 // TODO This doesn't save behaviors to the inventory at the moment, just removes them from the list of behaviors.
@@ -595,4 +591,36 @@ STRIPID ControlBehaviors::GetStripIDFromArgument(std::string key) {
     stripIDValue = nullptr;
 
     return stripID;
+}
+
+void ControlBehaviors::RequestUpdatedID(int32_t behaviorID) {
+    auto behavior = this->modelComponent->FindBehavior(behaviorID);
+    if (behavior->GetBehaviorID() == -1 || behavior->GetShouldSetNewID()) {
+        ObjectIDManager::Instance()->RequestPersistentID([this, behaviorID, behavior](uint32_t persistentId) {
+            behavior->SetShouldGetNewID(false);
+            behavior->SetIsTemplated(false);
+            behavior->SetBehaviorID(persistentId);
+
+            // This updates the behavior ID of the behavior should this be a new behavior
+            AMFArrayValue args;
+
+            AMFStringValue* behaviorIDString = new AMFStringValue();
+            behaviorIDString->SetStringValue(std::to_string(persistentId));
+            args.InsertValue("behaviorID", behaviorIDString);
+
+            AMFStringValue* objectIDAsString = new AMFStringValue();
+            objectIDAsString->SetStringValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
+            args.InsertValue("objectID", objectIDAsString);
+
+            GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorID", &args);
+            delete behaviorIDString;
+            behaviorIDString = nullptr;
+            delete objectIDAsString;
+            objectIDAsString = nullptr;
+            SendBehaviorListToClient();
+            delete this;
+        });
+    } else {
+        delete this;
+    }
 }

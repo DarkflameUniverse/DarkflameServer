@@ -279,7 +279,7 @@ public:
 
     void CheckStarterBlocks();
     void ResetStarterBlocks();
-    void LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc, uint32_t behaviorIndex = -1);
+    void LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc, int32_t behaviorIndex = -1);
 private:
 
     /**

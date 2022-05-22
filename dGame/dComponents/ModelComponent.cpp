@@ -391,9 +391,10 @@ void ModelComponent::AddBehavior(int32_t behaviorID, uint32_t behaviorIndex, Ent
 			m_Doc->Parse(result->getString(1).c_str());
 
 			LoadBehaviorsFromXml(m_Doc, behaviorIndex);
+			FindBehavior(behaviorID)->SetIsTemplated(true);
 		}
 	} else {
-		auto behavior = new ModelBehavior(behaviorID, this, isLoot);
+		auto behavior = new ModelBehavior(behaviorID, this, isLoot, "", true);
 		behaviors.insert(behaviors.begin() + behaviorIndex, behavior);
 	}
 	Game::logger->Log("ModelComponent", "Added behavior %i in index %i!\n", behaviorID, behaviorIndex);
@@ -581,7 +582,7 @@ void ModelComponent::CheckStarterBlocks() {
 	checkStarterBlocks = true;
 }
 
-void ModelComponent::LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc, uint32_t behaviorIndex) {
+void ModelComponent::LoadBehaviorsFromXml(tinyxml2::XMLDocument* doc, int32_t behaviorIndex) {
 	// This method will setup the modelBehavior and pass along the states, strips and actions to the behavior to handle it.
 	auto behaviorInfo = doc->FirstChildElement("Behavior");
 

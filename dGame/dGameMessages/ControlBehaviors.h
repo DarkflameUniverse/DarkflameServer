@@ -160,4 +160,6 @@ class ControlBehaviors {
          * The system address of the model owner
          */
         SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+
+        void RequestUpdatedID(int32_t behaviorID);
 };
