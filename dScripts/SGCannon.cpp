@@ -989,8 +989,8 @@ std::vector<std::vector<SGEnemy>> SGCannon::GetWaves() {
             {
                 std::vector<std::string> { "Wave_1_Ness_1", "Wave_1_Ness_2", "Wave_2_Ness_1" },
                 2565, 10.0, 15.0, true, 10.0, 15.0,
-                2.0, 10000, false, 0.0, 1.0,
-                1.0, true, true
+                7.0, 10000, false, 0.0, 7.0,
+                7.0, true, true
             },
 
             // Friendly 1
