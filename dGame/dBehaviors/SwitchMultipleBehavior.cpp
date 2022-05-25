@@ -39,15 +39,15 @@ void SwitchMultipleBehavior::Calculate(BehaviorContext* context, RakNet::BitStre
 	// TODO
 }
 
-void SwitchMultipleBehavior::Load()
-{
-	const auto b = std::to_string(this->m_behaviorId);
-	std::stringstream query;
-	query << "SELECT replace(bP1.parameterID, 'behavior ', '') as key, bP1.value as behavior, "
-		<< "(select bP2.value FROM BehaviorParameter bP2 WHERE bP2.behaviorID = " << b << " AND bP2.parameterID LIKE 'value %' "
-		<< "AND replace(bP1.parameterID, 'behavior ', '') = replace(bP2.parameterID, 'value ', '')) as value "
-		<< "FROM BehaviorParameter bP1 WHERE bP1.behaviorID = " << b << " AND bP1.parameterID LIKE 'behavior %'";
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+void SwitchMultipleBehavior::Load() {
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT replace(bP1.parameterID, 'behavior ', '') as key, bP1.value as behavior, "
+		"(select bP2.value FROM BehaviorParameter bP2 WHERE bP2.behaviorID = ?1 AND bP2.parameterID LIKE 'value %' "
+		"AND replace(bP1.parameterID, 'behavior ', '') = replace(bP2.parameterID, 'value ', '')) as value "
+		"FROM BehaviorParameter bP1 WHERE bP1.behaviorID = ?1 AND bP1.parameterID LIKE 'behavior %';");
+	query.bind(1, (int) this->m_behaviorId);
+
+	auto result = query.execQuery();
 
 	while (!result.eof()) {
 		const auto behavior_id = static_cast<uint32_t>(result.getFloatField(1));
