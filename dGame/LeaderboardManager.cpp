@@ -123,7 +123,7 @@ void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t 
                 }
                 break;
             case SurvivalNS:
-                if (score < storedScore || time >= storedTime)
+                if (!(score > storedScore || (time < storedTime && score >= storedScore)))
                     highscore = false;
                 break;
             default:
