@@ -91,6 +91,7 @@ void ModelComponent::Update(float deltaTime) {
 	
     // bleh
     if (checkStarterBlocks) {
+		Game::logger->Log("ModelComponent", "Default position %f %f %f\n", m_Position.x, m_Position.y, m_Position.z);
         for (auto behavior : behaviors) {
             behavior->FindStarterBlocks();
         }
@@ -146,21 +147,45 @@ void ModelComponent::Update(float deltaTime) {
                 finishedActions.push_back(callback);
             }
 			xPositionCallbacks.clear();
-			if (xPositionCallbacks.size() == 0) distanceToTravelX = 0.0f;
+			if (xPositionCallbacks.size() == 0) {
+				float localDistX = distanceToTravelX;
+				m_Parent->AddCallbackTimer(0.0f, [simplePhysicsComponent, localDistX, this](){
+					Game::logger->Log("ModelComponent", "x Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistX);
+					simplePhysicsComponent->SetPosition(simplePhysicsComponent->GetPosition() + NiPoint3::UNIT_X * localDistX);
+					Game::logger->Log("ModelComponent", "x Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistX);
+				});
+				distanceToTravelX = 0.0f;
+			}
         }
         if (((velocityVector.y < 0 && distanceToTravelY > 0.0f) || (velocityVector.y > 0 && distanceToTravelY < 0.0f))) {
             for (auto callback : yPositionCallbacks) {
                 finishedActions.push_back(callback);
             }
 			yPositionCallbacks.clear();
-			if (yPositionCallbacks.size() == 0) distanceToTravelY = 0.0f;
+			if (yPositionCallbacks.size() == 0) {
+				float localDistY = distanceToTravelY;
+				m_Parent->AddCallbackTimer(0.0f, [simplePhysicsComponent, localDistY, this](){
+					Game::logger->Log("ModelComponent", "y Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistY);
+					simplePhysicsComponent->SetPosition(simplePhysicsComponent->GetPosition() + NiPoint3::UNIT_Y * localDistY);
+					Game::logger->Log("ModelComponent", "y Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistY);
+				});
+				distanceToTravelY = 0.0f;
+			}
         }
         if (((velocityVector.z < 0 && distanceToTravelZ > 0.0f) || (velocityVector.z > 0 && distanceToTravelZ < 0.0f))) {
             for (auto callback : zPositionCallbacks) {
                 finishedActions.push_back(callback);
             }
 			zPositionCallbacks.clear();
-			if (zPositionCallbacks.size() == 0) distanceToTravelZ = 0.0f;
+			if (zPositionCallbacks.size() == 0) {
+				float localDistZ = distanceToTravelZ;
+				m_Parent->AddCallbackTimer(0.0f, [simplePhysicsComponent, localDistZ, this](){
+					Game::logger->Log("ModelComponent", "z Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistZ);
+					simplePhysicsComponent->SetPosition(simplePhysicsComponent->GetPosition() + NiPoint3::UNIT_Z * localDistZ);
+					Game::logger->Log("ModelComponent", "z Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistZ);
+				});
+				distanceToTravelZ = 0.0f;
+			}
         }
 		if (finishedActions.size() > 0) {
 			for (auto callback : finishedActions) {

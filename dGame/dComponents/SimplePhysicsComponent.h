@@ -23,7 +23,7 @@ public:
 	
 	SimplePhysicsComponent(uint32_t componentID, Entity* parent);
     ~SimplePhysicsComponent() override;
-    
+
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
     void Update(float deltaTime) override;

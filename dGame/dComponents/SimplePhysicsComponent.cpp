@@ -63,11 +63,12 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIs
 
 void SimplePhysicsComponent::Update(float deltaTime) {
     if (GetAngularVelocity() != NiPoint3::ZERO) {
-
+        // TODO
     }
 
     if (GetVelocity() != NiPoint3::ZERO) {
-
+        Game::logger->Log("SPC", "Position if x %f y %f z %f\n", m_Position.x, m_Position.y, m_Position.z);
+        m_Position = m_Position + (GetVelocity() * deltaTime);
     }
 }
 

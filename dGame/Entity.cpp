@@ -1287,12 +1287,16 @@ void Entity::Update(const float deltaTime) {
 		script->OnUpdate(this);
 	}
 
+	SimplePhysicsComponent* simplePhysicsComponent = GetComponent<SimplePhysicsComponent>();
+
 	for (const auto& pair : m_Components)
 	{
-		if (pair.second == nullptr) continue;
+		if (pair.second == nullptr || (pair.first == COMPONENT_TYPE_SIMPLE_PHYSICS && simplePhysicsComponent)) continue;
 
 		pair.second->Update(deltaTime);
 	}
+
+	if (simplePhysicsComponent) simplePhysicsComponent->Update(deltaTime);
 
 	if (m_ShouldDestroyAfterUpdate) {
 		EntityManager::Instance()->DestroyEntity(this->GetObjectID());
