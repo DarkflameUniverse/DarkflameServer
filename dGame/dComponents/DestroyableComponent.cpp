@@ -26,6 +26,7 @@
 
 #include "MissionComponent.h"
 #include "CharacterComponent.h"
+#include "dZoneManager.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
     m_iArmor = 0;
@@ -214,6 +215,8 @@ void DestroyableComponent::SetHealth(int32_t value) {
 
 void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 	m_DirtyHealth = true;
+	// Used for playAnim if opted in for.
+	int32_t difference = static_cast<int32_t>(std::abs(m_fMaxHealth - value));
 	m_fMaxHealth = value;
 
 	if (m_iHealth > m_fMaxHealth) {
@@ -224,27 +227,28 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 		// Now update the player bar
 		if (!m_Parent->GetParentUser()) return;
 		AMFStringValue* amount = new AMFStringValue();
-		amount->SetStringValue(std::to_string(value));
+		amount->SetStringValue(std::to_string(difference));
 		AMFStringValue* type = new AMFStringValue();
 		type->SetStringValue("health");
 
 		AMFArrayValue args;
 		args.InsertValue("amount", amount);
 		args.InsertValue("type", type);
-
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 
 		delete amount;
 		delete type;
 	}
-	else {
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-	}
+
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 void DestroyableComponent::SetArmor(int32_t value) {
     m_DirtyHealth = true;
 
+	// If Destroyable Component already has zero armor do not trigger the passive ability again.
+	bool hadArmor = m_iArmor > 0;
+	
     auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
     if (characterComponent != nullptr) {
         characterComponent->TrackArmorDelta(value - m_iArmor);
@@ -253,7 +257,7 @@ void DestroyableComponent::SetArmor(int32_t value) {
     m_iArmor = value;
 
 	auto* inventroyComponent = m_Parent->GetComponent<InventoryComponent>();
-	if (m_iArmor == 0 && inventroyComponent != nullptr) {
+	if (m_iArmor == 0 && inventroyComponent != nullptr && hadArmor) {
 		inventroyComponent->TriggerPassiveAbility(PassiveAbilityTrigger::SentinelArmor);
 	}
 }
@@ -283,9 +287,8 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 		delete amount;
 		delete type;
 	}
-	else {
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-	}
+
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 void DestroyableComponent::SetImagination(int32_t value) {
@@ -306,6 +309,8 @@ void DestroyableComponent::SetImagination(int32_t value) {
 
 void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
     m_DirtyHealth = true;
+	// Used for playAnim if opted in for.
+	int32_t difference = static_cast<int32_t>(std::abs(m_fMaxImagination - value));
     m_fMaxImagination = value;
 
 	if (m_iImagination > m_fMaxImagination) {
@@ -316,22 +321,19 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 		// Now update the player bar
 		if (!m_Parent->GetParentUser()) return;
 		AMFStringValue* amount = new AMFStringValue();
-		amount->SetStringValue(std::to_string(value));
+		amount->SetStringValue(std::to_string(difference));
 		AMFStringValue* type = new AMFStringValue();
 		type->SetStringValue("imagination");
 
 		AMFArrayValue args;
 		args.InsertValue("amount", amount);
 		args.InsertValue("type", type);
-
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 
 		delete amount;
 		delete type;
 	}
-	else {
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-	}
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 void DestroyableComponent::SetDamageToAbsorb(int32_t value)
@@ -591,7 +593,7 @@ void DestroyableComponent::Repair(const uint32_t armor)
 }
 
 
-void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, bool echo)
+void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32_t skillID, bool echo)
 {
 	if (GetHealth() <= 0)
 	{
@@ -675,11 +677,10 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, bool e
 
 		return;
 	}
-
-	Smash(source);
+	Smash(source, eKillType::VIOLENT, u"", skillID);
 }
 
-void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType)
+void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType, uint32_t skillID)
 {
 	if (m_iHealth > 0)
 	{
@@ -725,31 +726,20 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 					if (memberMissions == nullptr) continue;
 
 					memberMissions->Progress(MissionTaskType::MISSION_TASK_TYPE_SMASH, m_Parent->GetLOT());
+					memberMissions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, m_Parent->GetLOT(), skillID);
 				}
 			}
 			else
 			{
 				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SMASH, m_Parent->GetLOT());
+				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, m_Parent->GetLOT(), skillID);
 			}
 		}
 	}
 
 	const auto isPlayer = m_Parent->IsPlayer();
 
-	GameMessages::SendDie(
-		m_Parent,
-		source,
-		source,
-		true,
-		killType,
-		deathType,
-		0,
-		0,
-		0,
-		isPlayer,
-		false,
-		1
-	);
+	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, false, 1);
 
 	//NANI?!
 	if (!isPlayer)
@@ -793,31 +783,33 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	}
 	else
 	{
-		auto* character = m_Parent->GetCharacter();
-
-		uint64_t coinsTotal = character->GetCoins();
-
-		if (coinsTotal > 0)
+		//Check if this zone allows coin drops
+		if (dZoneManager::Instance()->GetPlayerLoseCoinOnDeath()) 
 		{
-			uint64_t coinsToLoose = 1;
+			auto* character = m_Parent->GetCharacter();
+			uint64_t coinsTotal = character->GetCoins();
 
-			if (coinsTotal >= 200)
+			if (coinsTotal > 0) 
 			{
-				float hundreth = (coinsTotal / 100.0f);
-				coinsToLoose = static_cast<int>(hundreth);
+				uint64_t coinsToLoose = 1;
+
+				if (coinsTotal >= 200) 
+				{
+					float hundreth = (coinsTotal / 100.0f);
+					coinsToLoose = static_cast<int>(hundreth);
+				}
+
+				if (coinsToLoose > 10000) 
+				{
+					coinsToLoose = 10000;
+				}
+
+				coinsTotal -= coinsToLoose;
+
+				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
+				character->SetCoins(coinsTotal, eLootSourceType::LOOT_SOURCE_PICKUP);
 			}
-
-			if (coinsToLoose > 10000)
-			{
-				coinsToLoose = 10000;
-			}
-
-			coinsTotal -= coinsToLoose;
-
-			LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
 		}
-
-		character->SetCoins(coinsTotal, LOOT_SOURCE_PICKUP);
 
         Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
         for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {

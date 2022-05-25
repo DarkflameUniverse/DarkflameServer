@@ -41,13 +41,16 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 {
 	if (PropertyManagementComponent::Instance() == nullptr) return;
 
+	if (PropertyManagementComponent::Instance()->Claim(originator->GetObjectID()) == false) {
+		Game::logger->Log("PropertyVendorComponent", "FAILED TO CLAIM PROPERTY.  PLAYER ID IS %llu\n", originator->GetObjectID());
+		return;
+	}
+
 	GameMessages::SendPropertyRentalResponse(m_Parent->GetObjectID(), 0, 0, 0, 0, originator->GetSystemAddress());
 
 	auto* controller = dZoneManager::Instance()->GetZoneControlObject();
 
 	controller->OnFireEventServerSide(m_Parent, "propertyRented");
-
-	PropertyManagementComponent::Instance()->Claim(originator->GetObjectID());
 	
 	PropertyManagementComponent::Instance()->SetOwner(originator);
 	

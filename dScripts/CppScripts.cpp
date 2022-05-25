@@ -1,4 +1,4 @@
-//I can feel my soul being torn apart with every script added to this monstrosity. 
+//I can feel my soul being torn apart with every script added to this monstrosity.
 // skate fast eat trash
 // do you think god stays in heaven because he too lives in fear of what he's created?
 
@@ -145,7 +145,9 @@
 #include "ImgBrickConsoleQB.h"
 #include "ActParadoxPipeFix.h"
 #include "FvNinjaGuard.h"
+#include "FvPassThroughWall.h"
 #include "FvBounceOverWall.h"
+#include "FvFong.h"
 
 // FB Scripts
 #include "AgJetEffectServer.h"
@@ -161,6 +163,8 @@
 #include "GrowingFlower.h"
 #include "BaseFootRaceManager.h"
 #include "PropertyPlatform.h"
+#include "MailBoxServer.h"
+#include "ActMine.h"
 
 // Racing Scripts
 #include "RaceImagineCrateServer.h"
@@ -179,6 +183,7 @@
 #include "NtVentureCannonServer.h"
 #include "NtCombatChallengeServer.h"
 #include "NtCombatChallengeDummy.h"
+#include "NtCombatChallengeExplodingDummy.h"
 #include "BaseInteractDropLootServer.h"
 #include "NtAssemblyTubeServer.h"
 #include "NtParadoxPanelServer.h"
@@ -199,7 +204,6 @@
 #include "NtSleepingGuard.h"
 
 // DLU Scripts
-#include "SbLupTeleport.h"
 #include "DLUVanityNPC.h"
 
 // AM Scripts
@@ -221,8 +225,9 @@
 #include "AmSkullkinDrill.h"
 #include "AmSkullkinDrillStand.h"
 #include "AmSkullkinTower.h"
-#include "AmNamedDarklingDragon.h"
+#include "AmDarklingDragon.h"
 #include "AmBlueX.h"
+#include "AmTeapotServer.h"
 
 // NJ Scripts
 #include "NjGarmadonCelebration.h"
@@ -270,6 +275,10 @@
 #include "AgSurvivalStromling.h"
 #include "AgSurvivalMech.h"
 #include "AgSurvivalSpiderling.h"
+
+// Frostburgh Scripts
+#include "RockHydrantBroken.h"
+#include "WhFans.h"
 
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
@@ -557,8 +566,12 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new ActParadoxPipeFix();
 	else if (scriptName == "scripts\\ai\\FV\\L_FV_NINJA_GUARDS.lua")
 		script = new FvNinjaGuard();
+	else if (scriptName == "scripts\\ai\\FV\\L_ACT_PASS_THROUGH_WALL.lua")
+		script = new FvPassThroughWall();
 	else if (scriptName == "scripts\\ai\\FV\\L_ACT_BOUNCE_OVER_WALL.lua")
 		script = new FvBounceOverWall();
+	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_NPC_FONG.lua")
+		script = new FvFong();
 
 	//Misc:
 	if (scriptName == "scripts\\02_server\\Map\\General\\L_EXPLODING_ASSET.lua")
@@ -577,6 +590,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
         script = new PropertyPlatform();
     else if (scriptName == "scripts\\02_server\\Map\\VE\\L_VE_BRICKSAMPLE_SERVER.lua")
         return new VeBricksampleServer();
+	else if (scriptName == "scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua")
+		script = new MailBoxServer();
+	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
+		script = new ActMine();
 
 	//Racing:
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua")
@@ -609,6 +626,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NtCombatChallengeServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_DUMMY.lua")
 		script = new NtCombatChallengeDummy();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\\\L_NT_COMBAT_EXPLODING_TARGET.lua")
+		script = new NtCombatChallengeExplodingDummy();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_BASE_INTERACT_DROP_LOOT_SERVER.lua")
 		script = new BaseInteractDropLootServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_ASSEMBLYTUBE_SERVER.lua")
@@ -681,15 +700,16 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new AmSkullkinDrillStand();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SKULLKIN_TOWER.lua")
 		script = new AmSkullkinTower();
-	// This just makes them immune to stuns. TODO: Make seperate scripts
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_NAMED_DARKLING_DRAGON.lua")
-		script = new AmNamedDarklingDragon();
+		script = new AmDarklingDragon();
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_DRAGON.lua")
-		script = new AmNamedDarklingDragon();
+		script = new AmDarklingDragon();
 	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_APE.lua")
 		script = new BaseEnemyApe();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_BLUE_X.lua")
 	    script = new AmBlueX();
+	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_TEAPOT_SERVER.lua")
+		script = new AmTeapotServer();
 
 	// Ninjago
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_GARMADON_CELEBRATION_SERVER.lua")
@@ -752,8 +772,6 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	    script = new NjNyaMissionitems();
 
 	//DLU:
-	else if (scriptName == "scripts\\02_server\\DLU\\L_SB_LUP_TELEPORT.lua")
-		script = new SbLupTeleport();
 	else if (scriptName == "scripts\\02_server\\DLU\\DLUVanityNPC.lua")
 		script = new DLUVanityNPC();
 
@@ -786,6 +804,12 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new LegoDieRoll();
   	else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
     	script = new BuccaneerValiantShip();
+
+	// FB
+	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
+		script = new RockHydrantBroken();
+	else if (scriptName == "scripts\\ai\\NS\\L_NS_WH_FANS.lua")
+		script = new WhFans();
 
 	//Ignore these scripts:
 	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")

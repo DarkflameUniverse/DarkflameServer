@@ -1,9 +1,10 @@
-#include "RaceImaginePowerup.h"
-#include "DestroyableComponent.h"
-#include "PossessorComponent.h"
-#include "EntityManager.h"
 #include "CharacterComponent.h"
+#include "DestroyableComponent.h"
+#include "EntityManager.h"
 #include "PossessableComponent.h"
+#include "PossessorComponent.h"
+#include "RaceImaginePowerup.h"
+#include "RacingTaskParam.h"
 
 
 void RaceImaginePowerup::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1,
@@ -36,9 +37,7 @@ void RaceImaginePowerup::OnFireEventServerSide(Entity *self, Entity *sender, std
 
         auto* missionComponent = sender->GetComponent<MissionComponent>();
 
-        if (missionComponent != nullptr)
-        {
-            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, self->GetLOT(), 12);
-        }
+        if (missionComponent == nullptr) return;
+        missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, self->GetLOT(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COLLECT_IMAGINATION);
     }
 }

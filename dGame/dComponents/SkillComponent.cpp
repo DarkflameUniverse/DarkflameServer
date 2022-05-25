@@ -25,11 +25,13 @@ ProjectileSyncEntry::ProjectileSyncEntry()
 {
 }
 
-bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream* bitStream, const LWOOBJID target)
+bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream* bitStream, const LWOOBJID target, uint32_t skillID)
 {
 	auto* context = new BehaviorContext(this->m_Parent->GetObjectID());
 
 	context->caster = m_Parent->GetObjectID();
+
+	context->skillID = skillID;
 
 	this->m_managedBehaviors.insert_or_assign(skillUid, context);
 

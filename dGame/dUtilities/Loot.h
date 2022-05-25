@@ -47,8 +47,8 @@ class LootGenerator : public Singleton<LootGenerator> {
 
     std::unordered_map<LOT, int32_t> RollLootMatrix(Entity* player, uint32_t matrixIndex);
     std::unordered_map<LOT, int32_t> RollLootMatrix(uint32_t matrixIndex);
-    void GiveLoot(Entity* player, uint32_t matrixIndex);
-    void GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& result);
+    void GiveLoot(Entity* player, uint32_t matrixIndex, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
+    void GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& result, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
     void GiveActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating = 0);
     void DropLoot(Entity* player, Entity* killedObject, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins);
     void DropLoot(Entity* player, Entity* killedObject, std::unordered_map<LOT, int32_t>& result, uint32_t minCoins, uint32_t maxCoins);

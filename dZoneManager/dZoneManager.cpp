@@ -26,21 +26,19 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LOT zoneControlTemplate = 2365;
 
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT zoneControlTemplate, ghostdistance_min, ghostdistance FROM ZoneTable WHERE zoneID = ?;");
-	query.bind(1, (int) zoneID.GetMapID());
+	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	if (zoneTable != nullptr){
+		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
 
-	auto result = query.execQuery();
-
-	if (!result.eof()) {
-		zoneControlTemplate = result.getIntField("zoneControlTemplate", 2365);
-		const auto min = result.getIntField("ghostdistance_min", 100);
-		const auto max = result.getIntField("ghostdistance", 100);
-		EntityManager::Instance()->SetGhostDistanceMax(max + min);
-		EntityManager::Instance()->SetGhostDistanceMin(max);
+		if (zone != nullptr) {
+			zoneControlTemplate = zone->zoneControlTemplate != -1 ? zone->zoneControlTemplate : 2365;
+			const auto min = zone->ghostdistance_min != -1.0f ? zone->ghostdistance_min : 100;
+			const auto max = zone->ghostdistance != -1.0f ? zone->ghostdistance : 100;
+			EntityManager::Instance()->SetGhostDistanceMax(max + min);
+			EntityManager::Instance()->SetGhostDistanceMin(max);
+			m_PlayerLoseCoinsOnDeath = zone->PlayerLoseCoinsOnDeath;
+        }
 	}
-
-	result.finalize();
 
 	Game::logger->Log("dZoneManager", "Creating zone control object %i\n", zoneControlTemplate);
 
@@ -119,6 +117,24 @@ void dZoneManager::AddSpawner(LWOOBJID id, Spawner* spawner)
 LWOZONEID dZoneManager::GetZoneID() const
 {
 	return m_ZoneID;
+}
+
+uint32_t dZoneManager::GetMaxLevel() {
+	if (m_MaxLevel == 0) {
+		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCap FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
+    	m_MaxLevel = tableData.getIntField(0, -1);
+    	tableData.finalize();
+	}
+	return m_MaxLevel;
+}
+
+int32_t dZoneManager::GetLevelCapCurrencyConversion() {
+	if (m_CurrencyConversionRate == 0) {
+		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCapCurrencyConversion FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
+    	m_CurrencyConversionRate = tableData.getIntField(0, -1);
+    	tableData.finalize();
+	}
+	return m_CurrencyConversionRate;
 }
 
 void dZoneManager::Update(float deltaTime) {

@@ -18,6 +18,7 @@
 #include "AreaOfEffectBehavior.h"
 #include "DurationBehavior.h"
 #include "TacArcBehavior.h"
+#include "LootBuffBehavior.h"
 #include "AttackDelayBehavior.h"
 #include "BasicAttackBehavior.h"
 #include "ChainBehavior.h"
@@ -172,7 +173,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 		behavior = new SpeedBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: break;
-	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF: break;
+	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF: 
+		behavior = new LootBuffBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_VENTURE_VISION: break;
 	case BehaviorTemplates::BEHAVIOR_SPAWN_OBJECT:
 		behavior = new SpawnBehavior(behaviorId);
