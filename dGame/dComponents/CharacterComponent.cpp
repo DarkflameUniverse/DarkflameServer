@@ -13,6 +13,7 @@
 #include "PossessorComponent.h"
 #include "VehiclePhysicsComponent.h"
 #include "GameMessages.h"
+#include "Item.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
@@ -217,11 +218,11 @@ void CharacterComponent::HandleLevelUp()
 		switch (reward->rewardType)
 		{
 		case 0:
-			inventoryComponent->AddItem(reward->value, reward->count);
+			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LOOT_SOURCE_LEVEL_REWARD);
 			break;
 		case 4:
 			{
-				auto* items = inventoryComponent->GetInventory(ITEMS);
+				auto* items = inventoryComponent->GetInventory(eInventoryType::ITEMS);
 				items->SetSize(items->GetSize() + reward->value);
 			}
 			break;
@@ -446,6 +447,56 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 void CharacterComponent::SetLastRocketConfig(std::u16string config) {
 	m_IsLanding = !config.empty();
 	m_LastRocketConfig = config;
+}
+
+Item* CharacterComponent::GetRocket(Entity* player) {
+	Item* rocket = nullptr;
+
+	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+
+	if (!inventoryComponent) return rocket;
+
+	// Select the rocket
+	if (!rocket){
+		rocket = inventoryComponent->FindItemById(GetLastRocketItemID());
+	}
+
+	if (!rocket) {
+		rocket = inventoryComponent->FindItemByLot(6416);
+	}
+
+	if (!rocket) {
+		Game::logger->Log("CharacterComponent", "Unable to find rocket to equip!\n");
+		return rocket;
+	}
+	return rocket;
+}
+
+Item* CharacterComponent::RocketEquip(Entity* player) {
+	Item* rocket = GetRocket(player);
+	if (!rocket) return rocket;
+
+	// build and define the rocket config
+	for (LDFBaseData* data : rocket->GetConfig()) {
+		if (data->GetKey() == u"assemblyPartLOTs") {
+			std::string newRocketStr = data->GetValueAsString() + ";";
+			GeneralUtils::ReplaceInString(newRocketStr, "+", ";");
+			SetLastRocketConfig(GeneralUtils::ASCIIToUTF16(newRocketStr));
+		}
+	}
+
+	// Store the last used rocket item's ID
+	SetLastRocketItemID(rocket->GetId());
+	// carry the rocket
+	rocket->Equip(true);
+	return rocket;
+}
+
+void CharacterComponent::RocketUnEquip(Entity* player) {
+	Item* rocket = GetRocket(player);
+	if (!rocket) return;
+	// We don't want to carry it anymore
+	rocket->UnEquip();
 }
 
 void CharacterComponent::TrackMissionCompletion(bool isAchievement) {

@@ -15,20 +15,19 @@
 
 std::map<uint32_t, Precondition*> Preconditions::cache = {};
 
-Precondition::Precondition(const uint32_t condition)
-{
-	std::stringstream query;
+Precondition::Precondition(const uint32_t condition) {
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT type, targetLOT, targetCount FROM Preconditions WHERE id = ?;");
+	query.bind(1, (int) condition);
 
-	query << "SELECT type, targetLOT, targetCount FROM Preconditions WHERE id = " << std::to_string(condition) << ";";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = query.execQuery();
 
 	if (result.eof())
 	{
 		this->type = PreconditionType::ItemEquipped;
 		this->count = 1;
 		this->values = { 0 };
-		
+
 		Game::logger->Log("Precondition", "Failed to find precondition of id (%i)!\n", condition);
 
 		return;
@@ -99,11 +98,11 @@ bool Precondition::Check(Entity* player, bool evaluateCosts) const
 	}
 
 	auto passedAny = false;
-	
+
 	for (const auto value : values)
 	{
 		const auto passed = CheckValue(player, value, evaluateCosts);
-		
+
 		if (passed && any)
 		{
 			return true;
@@ -222,7 +221,7 @@ PreconditionExpression::PreconditionExpression(const std::string& conditions)
 
 		return;
 	}
-	
+
 	std::stringstream a;
 	std::stringstream b;
 
@@ -310,16 +309,16 @@ bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const
 	{
 		return true;
 	}
-	
+
 	const auto a = Preconditions::Check(player, condition, evaluateCosts);
 
 	if (!a)
 	{
 		GameMessages::SendNotifyClientFailedPrecondition(player->GetObjectID(), player->GetSystemAddress(), u"", condition);
 	}
-	
+
 	const auto b = next == nullptr ? true : next->Check(player);
-	
+
 	return m_or ? a || b : a && b;
 }
 

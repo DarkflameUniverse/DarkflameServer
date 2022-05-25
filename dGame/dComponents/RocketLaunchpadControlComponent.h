@@ -23,20 +23,12 @@ public:
 	~RocketLaunchpadControlComponent() override;
 
     /**
-     * Launches the passed entity using the passed rocket and saves their data
-     * @param entity the entity to launch
-     * @param rocketID the ID of the rocket to use
-     */
-	void RocketEquip(Entity* entity, LWOOBJID rocketID);
-
-    /**
      * Launches some entity to another world
      * @param originator the entity to launch
-     * @param optionalRocketID the ID of the rocket to launch
      * @param mapId the world to go to
      * @param cloneId the clone ID (for properties)
      */
-	void Launch(Entity* originator, LWOOBJID optionalRocketID = LWOOBJID_EMPTY, LWOMAPID mapId = LWOMAPID_INVALID, LWOCLONEID cloneId = LWOCLONEID_INVALID);
+	void Launch(Entity* originator, LWOMAPID mapId = LWOMAPID_INVALID, LWOCLONEID cloneId = LWOCLONEID_INVALID);
 
     /**
      * Handles an OnUse event from some entity, preparing it for launch to some other world

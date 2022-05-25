@@ -45,7 +45,14 @@ void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitia
 
 		outBitStream->Write(false);
 	}
-
+	// If build state is completed and we've already serialized once in the completed state, 
+	// don't serializing this component anymore as this will cause the build to jump again.
+	// If state changes, serialization will begin again.
+	if (!m_StateDirty && m_State == REBUILD_COMPLETED) {
+		outBitStream->Write0();
+		outBitStream->Write0();
+		return;
+	}
 	// BEGIN Scripted Activity
 	outBitStream->Write1();
 
@@ -79,6 +86,7 @@ void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitia
 		outBitStream->Write(m_ActivatorPosition);
 		outBitStream->Write(m_RepositionPlayer);
 	}
+	m_StateDirty = false;
 }
 
 void RebuildComponent::Update(float deltaTime) {
@@ -139,7 +147,6 @@ void RebuildComponent::Update(float deltaTime) {
             }
 
             if (m_Timer >= m_ResetTime) {
-				m_Builder = LWOOBJID_EMPTY;
 
                 GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
 
@@ -380,11 +387,11 @@ void RebuildComponent::StartRebuild(Entity* user) {
 
 		EntityManager::Instance()->SerializeEntity(user);
 
-		GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::REBUILD_COMPLETED, user->GetObjectID());
+		GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::REBUILD_BUILDING, user->GetObjectID());
 		GameMessages::SendEnableRebuild(m_Parent, true, false, false, eFailReason::REASON_NOT_GIVEN, 0.0f, user->GetObjectID());
 
 		m_State = eRebuildState::REBUILD_BUILDING;
-		
+		m_StateDirty = true;
 		EntityManager::Instance()->SerializeEntity(m_Parent);
 
 		auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
@@ -421,16 +428,17 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	EntityManager::Instance()->SerializeEntity(user);
 
 	GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::REBUILD_COMPLETED, user->GetObjectID());
-	GameMessages::SendEnableRebuild(m_Parent, false, true, false, eFailReason::REASON_NOT_GIVEN, m_ResetTime, user->GetObjectID());
+	GameMessages::SendPlayFXEffect(m_Parent, 507, u"create", "BrickFadeUpVisCompleteEffect", LWOOBJID_EMPTY, 0.4f, 1.0f, true);
+	GameMessages::SendEnableRebuild(m_Parent, false, false, true, eFailReason::REASON_NOT_GIVEN, m_ResetTime, user->GetObjectID());
+	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+	
 
 	m_State = eRebuildState::REBUILD_COMPLETED;
+	m_StateDirty = true;
 	m_Timer = 0.0f;
 	m_DrainedImagination = 0;
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
-
-	GameMessages::SendPlayFXEffect(m_Parent, 507, u"create", "BrickFadeUpVisCompleteEffect", LWOOBJID_EMPTY, 0.4f, 1.0f, true);
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 
 	// Removes extra item requirements, isn't live accurate.
 	// In live, all items were removed at the start of the quickbuild, then returned if it was cancelled.
@@ -454,8 +462,6 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 
 		LootGenerator::Instance().DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
 	}
-
-	m_Builder = LWOOBJID_EMPTY;
 
 	// Notify scripts
 	for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
@@ -484,6 +490,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 			character->SetPlayerFlag(flagNumber, true);
 		}
 	}
+	GameMessages::SendPlayAnimation(user, u"rebuild-celebrate", 1.09f);
 }
 
 void RebuildComponent::ResetRebuild(bool failed) {
@@ -500,12 +507,11 @@ void RebuildComponent::ResetRebuild(bool failed) {
 	GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::REBUILD_RESETTING, LWOOBJID_EMPTY);
 
 	m_State = eRebuildState::REBUILD_RESETTING;
+	m_StateDirty = true;
 	m_Timer = 0.0f;
 	m_TimerIncomplete = 0.0f;
 	m_ShowResetEffect = false;
 	m_DrainedImagination = 0;
-
-	m_Builder = LWOOBJID_EMPTY;
 	
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
@@ -540,6 +546,7 @@ void RebuildComponent::CancelRebuild(Entity* entity, eFailReason failReason, boo
 
 		// Now update the component itself
 		m_State = eRebuildState::REBUILD_INCOMPLETE;
+		m_StateDirty = true;
 
         // Notify scripts and possible subscribers
         for (auto* script : CppScripts::GetEntityScripts(m_Parent))

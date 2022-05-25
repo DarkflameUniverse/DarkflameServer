@@ -16,7 +16,7 @@ private:
 
 public:
 	static void Connect(const std::string& host, const std::string& database, const std::string& username, const std::string& password);
-	static void Destroy();
+	static void Destroy(std::string source="");
 	static sql::Statement* CreateStmt();
 	static sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
 };

@@ -18,6 +18,7 @@
 #include "AreaOfEffectBehavior.h"
 #include "DurationBehavior.h"
 #include "TacArcBehavior.h"
+#include "LootBuffBehavior.h"
 #include "AttackDelayBehavior.h"
 #include "BasicAttackBehavior.h"
 #include "ChainBehavior.h"
@@ -90,21 +91,21 @@ Behavior* Behavior::GetBehavior(const uint32_t behaviorId)
 Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 {
 	auto* cached = GetBehavior(behaviorId);
-	
+
 	if (cached != nullptr)
 	{
 		return cached;
 	}
-	
+
 	if (behaviorId == 0)
 	{
 		return new EmptyBehavior(0);
 	}
-	
+
 	const auto templateId = GetBehaviorTemplate(behaviorId);
 
 	Behavior* behavior = nullptr;
-	
+
 	switch (templateId)
 	{
 	case BehaviorTemplates::BEHAVIOR_EMPTY: break;
@@ -172,7 +173,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 		behavior = new SpeedBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: break;
-	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF: break;
+	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF: 
+		behavior = new LootBuffBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_VENTURE_VISION: break;
 	case BehaviorTemplates::BEHAVIOR_SPAWN_OBJECT:
 		behavior = new SpawnBehavior(behaviorId);
@@ -188,8 +191,8 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 		behavior = new JetPackBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_EVENT:
-	    behavior = new SkillEventBehavior(behaviorId);
-	    break;
+		behavior = new SkillEventBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_CONSUME_ITEM: break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_CAST_FAILED:
 		behavior = new SkillCastFailedBehavior(behaviorId);
@@ -269,7 +272,7 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 	if (behavior == nullptr)
 	{
 		//Game::logger->Log("Behavior", "Failed to load unimplemented template id (%i)!\n", templateId);
-		
+
 		behavior = new EmptyBehavior(behaviorId);
 	}
 
@@ -278,13 +281,12 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 	return behavior;
 }
 
-BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId)
-{
-	std::stringstream query;
+BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT templateID FROM BehaviorTemplate WHERE behaviorID = ?;");
+	query.bind(1, (int) behaviorId);
 
-	query << "SELECT templateID FROM BehaviorTemplate WHERE behaviorID = " << std::to_string(behaviorId);
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = query.execQuery();
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
 	if (result.eof())
@@ -296,7 +298,7 @@ BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId)
 
 		return BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
-	
+
 	const auto id = static_cast<BehaviorTemplates>(result.getIntField(0));
 
 	result.finalize();
@@ -322,7 +324,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 
 		return;
 	}
-	
+
 	auto* renderComponent = targetEntity->GetComponent<RenderComponent>();
 
 	const auto typeString = GeneralUtils::UTF16ToWTF8(type);
@@ -345,28 +347,35 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 			if (renderComponent == nullptr)
 			{
 				GameMessages::SendPlayFXEffect(targetEntity, effectId, type, pair->second, secondary, 1, 1, true);
-				
+
 				return;
 			}
 
 			renderComponent->PlayEffect(effectId, type, pair->second, secondary);
-			
+
 			return;
 		}
 	}
-	
-	std::stringstream query;
-	
-	if (!type.empty())
-	{
-		query << "SELECT effectName FROM BehaviorEffect WHERE effectType = '" << typeString << "' AND effectID = " << std::to_string(effectId) << ";";
-	}
-	else
-	{
-		query << "SELECT effectName, effectType FROM BehaviorEffect WHERE effectID = " << std::to_string(effectId) << ";";
-	}
 
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	// The SQlite result object becomes invalid if the query object leaves scope.
+	// So both queries are defined before the if statement
+	CppSQLite3Query result;
+	auto typeQuery = CDClientDatabase::CreatePreppedStmt(
+		"SELECT effectName FROM BehaviorEffect WHERE effectType = ? AND effectID = ?;");
+
+	auto idQuery = CDClientDatabase::CreatePreppedStmt(
+		"SELECT effectName, effectType FROM BehaviorEffect WHERE effectID = ?;");
+
+	if (!type.empty()) {
+		typeQuery.bind(1, typeString.c_str());
+		typeQuery.bind(2, (int) effectId);
+
+		result = typeQuery.execQuery();
+	} else {
+		idQuery.bind(1, (int) effectId);
+
+		result = idQuery.execQuery();
+	}
 
 	if (result.eof() || result.fieldIsNull(0))
 	{
@@ -378,7 +387,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 	if (type.empty())
 	{
 		const auto typeResult = result.getStringField(1);
-		
+
 		type = GeneralUtils::ASCIIToUTF16(typeResult);
 
 		m_effectType = new std::string(typeResult);
@@ -391,7 +400,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 	if (renderComponent == nullptr)
 	{
 		GameMessages::SendPlayFXEffect(targetEntity, effectId, type, name, secondary, 1, 1, true);
-		
+
 		return;
 	}
 
@@ -411,15 +420,11 @@ Behavior::Behavior(const uint32_t behaviorId)
 		this->m_templateId = BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
 
-	/*
-	 * Get standard info
-	 */
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT templateID, effectID, effectHandle FROM BehaviorTemplate WHERE behaviorID = ?;");
+	query.bind(1, (int) behaviorId);
 
-	std::stringstream query;
-
-	query << "SELECT templateID, effectID, effectHandle FROM BehaviorTemplate WHERE behaviorID = " << std::to_string(behaviorId);
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = query.execQuery();
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
 	if (result.eof())
@@ -434,7 +439,7 @@ Behavior::Behavior(const uint32_t behaviorId)
 	}
 
 	this->m_templateId = static_cast<BehaviorTemplates>(result.getIntField(0));
-	
+
 	this->m_effectId = result.getIntField(1);
 
 	if (!result.fieldIsNull(2))
@@ -492,11 +497,11 @@ std::map<std::string, float> Behavior::GetParameterNames() const
 {
 	std::map<std::string, float> parameters;
 
-	std::stringstream query;
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = ?;");
+	query.bind(1, (int) this->m_behaviorId);
 
-	query << "SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = " << std::to_string(this->m_behaviorId);
-
-	auto tableData = CDClientDatabase::ExecuteQuery(query.str());
+	auto tableData = query.execQuery();
 
 	while (!tableData.eof())
 	{

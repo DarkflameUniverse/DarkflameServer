@@ -75,13 +75,19 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId) : Component(par
     m_MovementAI = nullptr;
     m_TresureTime = 0;
     m_Preconditions = nullptr;
+
+	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parent->GetVar<std::u16string>(u"CheckPrecondition"));
+
+	if (!checkPreconditions.empty()) {
+		SetPreconditions(checkPreconditions);
+	}
 }
 
 void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) 
 {
     const bool tamed = m_Owner != LWOOBJID_EMPTY;
 
-    outBitStream->Write1(); // Dirty?
+    outBitStream->Write1(); // Always serialize as dirty for now
 
     outBitStream->Write<uint32_t>(static_cast<unsigned int>(m_Status));
     outBitStream->Write<uint32_t>(static_cast<uint32_t>(tamed ? m_Ability : PetAbilityType::Invalid)); // Something with the overhead icon?
@@ -166,13 +172,12 @@ void PetComponent::OnUse(Entity* originator)
 
     std::string buildFile;
 
-    if (cached == buildCache.end())
-    {
-        std::stringstream query;
+    if (cached == buildCache.end()) {
+        auto query = CDClientDatabase::CreatePreppedStmt(
+            "SELECT ValidPiecesLXF, PuzzleModelLot, Timelimit, NumValidPieces, imagCostPerBuild FROM TamingBuildPuzzles WHERE NPCLot = ?;");
+        query.bind(1, (int) m_Parent->GetLOT());
 
-        query << "SELECT ValidPiecesLXF, PuzzleModelLot, Timelimit, NumValidPieces, imagCostPerBuild FROM TamingBuildPuzzles WHERE NPCLot = " << std::to_string(m_Parent->GetLOT()) << ";";
-
-        auto result = CDClientDatabase::ExecuteQuery(query.str());
+        auto result = query.execQuery();
 
         if (result.eof())
         {
@@ -263,29 +268,12 @@ void PetComponent::OnUse(Entity* originator)
 
     auto position = originatorPosition;
     
-    NiPoint3 forward = NiQuaternion::LookAt(m_Parent->GetPosition(), originator->GetPosition()).GetForwardVector(); //m_Parent->GetRotation().GetForwardVector();
+    NiPoint3 forward = NiQuaternion::LookAt(m_Parent->GetPosition(), originator->GetPosition()).GetForwardVector();
     forward.y = 0;
 
     if (dpWorld::Instance().IsLoaded())
     {
-        /*
-        if (interactionDistance > 2)
-        {
-            interactionDistance -= 1;
-        }
-        */
-
         NiPoint3 attempt = petPosition + forward * interactionDistance;
-        
-        /*
-        float deg = std::atan2(petPosition.z - originatorPosition.z, petPosition.x - originatorPosition.x); //* 180 / M_PI;
-
-        auto position = NiPoint3(
-            petPosition.x + interactionDistance * std::cos(-deg),
-            petPosition.y,
-            petPosition.z + interactionDistance * std::sin(-deg)
-        );
-        */
 
         float y = dpWorld::Instance().GetHeightAtPoint(attempt);
 
@@ -309,8 +297,6 @@ void PetComponent::OnUse(Entity* originator)
     
 
     auto rotation = NiQuaternion::LookAt(position, petPosition);
-
-    //GameMessages::SendTeleport(originator->GetObjectID(), position, rotation, originator->GetSystemAddress(), true);
     
     GameMessages::SendNotifyPetTamingMinigame(
         originator->GetObjectID(),
@@ -532,14 +518,12 @@ void PetComponent::Update(float deltaTime)
     m_Timer = 1;
 }
 
-void PetComponent::TryBuild(std::vector<Brick>& bricks, bool clientFailed) 
-{
+void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
     if (m_Tamer == LWOOBJID_EMPTY) return;
 
     auto* tamer = EntityManager::Instance()->GetEntity(m_Tamer);
 
-    if (tamer == nullptr)
-    {
+    if (tamer == nullptr) {
         m_Tamer = LWOOBJID_EMPTY;
 
         return;
@@ -547,19 +531,11 @@ void PetComponent::TryBuild(std::vector<Brick>& bricks, bool clientFailed)
 
     const auto& cached = buildCache.find(m_Parent->GetLOT());
 
-    if (cached == buildCache.end())
-    {
-        GameMessages::SendPetTamingTryBuildResult(m_Tamer, false, 0, tamer->GetSystemAddress());
-
-        return;
-    }
+    if (cached == buildCache.end()) return;
 
     auto* destroyableComponent = tamer->GetComponent<DestroyableComponent>();
-    
-    if (destroyableComponent == nullptr)
-    {
-        return;
-    }
+
+    if (destroyableComponent == nullptr) return;
 
     auto imagination = destroyableComponent->GetImagination();
 
@@ -569,59 +545,17 @@ void PetComponent::TryBuild(std::vector<Brick>& bricks, bool clientFailed)
 
     EntityManager::Instance()->SerializeEntity(tamer);
 
-    const auto& trueBricks = BrickDatabase::Instance()->GetBricks(cached->second.buildFile);
-
-    if (trueBricks.empty() || bricks.empty())
-    {
-        GameMessages::SendPetTamingTryBuildResult(m_Tamer, false, 0, tamer->GetSystemAddress());
-
-        return;
-    }
-    
-	auto* brickIDTable = CDClientManager::Instance()->GetTable<CDBrickIDTableTable>("BrickIDTable");
-
-    int32_t correct = 0;
-
-    for (const auto& brick : bricks)
-    {
-        const auto brickEntries = brickIDTable->Query([brick](const CDBrickIDTable& entry)
-        {
-            return entry.NDObjectID == brick.designerID;
-        });
-
-        if (brickEntries.empty())
-        {
-            continue;
-        }
-
-        const auto designerID = brickEntries[0].LEGOBrickID;
-        
-        for (const auto& trueBrick : trueBricks)
-        {
-            if (designerID == trueBrick.designerID && brick.materialID == trueBrick.materialID)
-            {
-                correct++;
-
-                break;
-            }
-        }
-    }
-
-    const auto success = correct >= cached->second.numValidPieces;
-
-    GameMessages::SendPetTamingTryBuildResult(m_Tamer, success, correct, tamer->GetSystemAddress());
-
-    if (!success)
-    {
-        if (imagination < cached->second.imaginationCost)
-        {
+    if (clientFailed) {
+        if (imagination < cached->second.imaginationCost) {
             ClientFailTamingMinigame();
         }
-    }
-    else
-    {
+    } else {
         m_Timer = 0;
     }
+
+    if (numBricks == 0) return;
+
+    GameMessages::SendPetTamingTryBuildResult(m_Tamer, !clientFailed, numBricks, tamer->GetSystemAddress());
 }
 
 void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) 
@@ -686,7 +620,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position)
 
     GameMessages::SendRegisterPetDBID(m_Tamer, petSubKey, tamer->GetSystemAddress());
     
-    inventoryComponent->AddItem(m_Parent->GetLOT(), 1, MODELS, {}, LWOOBJID_EMPTY, true, false, petSubKey);
+    inventoryComponent->AddItem(m_Parent->GetLOT(), 1, eLootSourceType::LOOT_SOURCE_ACTIVITY, eInventoryType::MODELS, {}, LWOOBJID_EMPTY, true, false, petSubKey);
     auto* item = inventoryComponent->FindItemBySubKey(petSubKey, MODELS);
     
     if (item == nullptr)
@@ -727,7 +661,6 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position)
 
     if (missionComponent != nullptr)
     {
-        //missionComponent->ForceProgress(506, 768, 1, false);
         missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PET_TAMING, m_Parent->GetLOT());
     }
 

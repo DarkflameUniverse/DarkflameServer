@@ -64,8 +64,8 @@ void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* beha
 
 void BehaviorContext::RegisterTimerBehavior(Behavior* behavior, const BehaviorBranchContext& branchContext, const LWOOBJID second)
 {
-	BehaviorTimerEntry entry
-;
+	BehaviorTimerEntry entry;
+	
 	entry.time = branchContext.duration;
 	entry.behavior = behavior;
 	entry.branchContext = branchContext;

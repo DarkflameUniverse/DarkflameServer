@@ -58,6 +58,8 @@ struct BehaviorContext
 
 	float skillTime = 0;
 
+	uint32_t skillID = 0;
+
 	uint32_t skillUId = 0;
 
 	bool failed = false;

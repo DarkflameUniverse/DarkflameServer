@@ -26,6 +26,7 @@
 #include "TeamManager.h"
 #include "ChatPackets.h"
 #include "GameConfig.h"
+#include "RocketLaunchLupComponent.h"
 
 #include <sstream>
 #include <future>
@@ -411,7 +412,7 @@ void GameMessages::SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level)
 	SEND_PACKET_BROADCAST
 }
 
-void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey) {
+void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey, eLootSourceType lootSourceType) {
 	CBITSTREAM
 	CMSGHEADER
 
@@ -421,9 +422,8 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 	bitStream.Write(item->GetInfo().isBOE);
 	bitStream.Write(item->GetInfo().isBOP);
 
-	bitStream.Write0(); // Loot source
-	//if (invType != LOOTTYPE_NONE) bitStream.Write(invType);
-
+	bitStream.Write(lootSourceType != eLootSourceType::LOOT_SOURCE_NONE); // Loot source
+	if (lootSourceType != eLootSourceType::LOOT_SOURCE_NONE) bitStream.Write(lootSourceType);
 	LWONameValue extraInfo;
 
 	auto config = item->GetConfig();
@@ -451,8 +451,8 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 	auto* inventory = item->GetInventory();
 	const auto inventoryType = inventory->GetType();
 	
-	bitStream.Write(inventoryType != INVENTORY_DEFAULT);
-	if (inventoryType != INVENTORY_DEFAULT) bitStream.Write(inventoryType);
+	bitStream.Write(inventoryType != eInventoryType::ITEMS);
+	if (inventoryType != eInventoryType::ITEMS) bitStream.Write(inventoryType);
 
 	bitStream.Write(itemCount != 1);
 	if (itemCount != 1) bitStream.Write(itemCount);
@@ -566,8 +566,8 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	bitStream.Write((uint16_t)GAME_MSG_MODIFY_LEGO_SCORE);
 	bitStream.Write(score);
 
-	bitStream.Write(sourceType != LOOT_SOURCE_NONE);
-	if (sourceType != LOOT_SOURCE_NONE) bitStream.Write(sourceType);
+	bitStream.Write(sourceType != eLootSourceType::LOOT_SOURCE_NONE);
+	if (sourceType != eLootSourceType::LOOT_SOURCE_NONE) bitStream.Write(sourceType);
 
 	SEND_PACKET
 }
@@ -1253,8 +1253,7 @@ void GameMessages::SendVendorOpenWindow(Entity* entity, const SystemAddress& sys
 	SEND_PACKET
 }
 
-// ah yes, impl code in a send function, beautiful!
-void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr) {
+void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr, bool bUpdateOnly) {
 	CBITSTREAM
 	CMSGHEADER
 
@@ -1266,7 +1265,7 @@ void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& s
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_VENDOR_STATUS_UPDATE);
 
-	bitStream.Write(false);
+	bitStream.Write(bUpdateOnly); 
 	bitStream.Write(static_cast<uint32_t>(vendorItems.size()));
 
 	for (std::pair<LOT, int> item : vendorItems) {
@@ -1274,6 +1273,7 @@ void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& s
 		bitStream.Write(static_cast<int>(item.second));
 	}
 
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
 	SEND_PACKET
 }
 
@@ -2515,11 +2515,11 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				const auto zoneId = worldId.GetMapID();
 				const auto cloneId = worldId.GetCloneID();
 
-				std::stringstream query;
+				auto query = CDClientDatabase::CreatePreppedStmt(
+					"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+				query.bind(1, (int) zoneId);
 
-				query << "SELECT id FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
-
-				auto result = CDClientDatabase::ExecuteQuery(query.str());
+				auto result = query.execQuery();
 
 				if (result.eof() || result.fieldIsNull(0)) {
 					return;
@@ -2727,10 +2727,15 @@ void GameMessages::HandleEnterProperty(RakNet::BitStream* inStream, Entity* enti
 	auto* player = Player::GetPlayer(sysAddr);
 
 	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
+	if (entranceComponent != nullptr) {
+		entranceComponent->OnEnterProperty(player, index, returnToZone, sysAddr);
+		return;
+	}
 
-	if (entranceComponent == nullptr) return;
-
-	entranceComponent->OnEnterProperty(player, index, returnToZone, sysAddr);
+	auto rocketLaunchLupComponent = entity->GetComponent<RocketLaunchLupComponent>();
+	if (rocketLaunchLupComponent != nullptr) {
+		rocketLaunchLupComponent->OnSelectWorld(player, index);
+	}
 }
 
 void GameMessages::HandleSetConsumableItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) 
@@ -3238,11 +3243,11 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream* inStream, Entity*
 
 void GameMessages::HandleClientTradeCancel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr)
 {
-	Game::logger->Log("GameMessages", "Trade canceled from (%llu)\n", entity->GetObjectID());
-
 	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 	
 	if (trade == nullptr) return;
+
+	Game::logger->Log("GameMessages", "Trade canceled from (%llu)\n", entity->GetObjectID());
 
 	TradingManager::Instance()->CancelTrade(trade->GetTradeId());
 }
@@ -3676,7 +3681,7 @@ void GameMessages::HandlePetTamingTryBuild(RakNet::BitStream* inStream, Entity* 
 		return;
 	}
 
-	petComponent->TryBuild(bricks, clientFailed);
+	petComponent->TryBuild(bricks.size(), clientFailed);
 }
 
 void GameMessages::HandleNotifyTamingBuildSuccess(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) 
@@ -4700,7 +4705,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 		inv->RemoveItem(tokenId, altCurrencyCost);
 
-		inv->AddItem(item, count);
+		inv->AddItem(item, count, eLootSourceType::LOOT_SOURCE_VENDOR);
 	}
 	else
 	{
@@ -4725,8 +4730,8 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 			inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 		}
 
-		character->SetCoins(character->GetCoins() - (coinCost), LOOT_SOURCE_VENDOR);
-		inv->AddItem(item, count);
+		character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::LOOT_SOURCE_VENDOR);
+		inv->AddItem(item, count, eLootSourceType::LOOT_SOURCE_VENDOR);
 	}
 
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
@@ -4769,12 +4774,12 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	if (Inventory::IsValidItem(itemComp.currencyLOT))
 	{
 		const auto altCurrency = (itemComp.altCurrencyCost * sellScalar) * count;
-		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency)); // Return alt currencies like faction tokens.
+		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::LOOT_SOURCE_VENDOR); // Return alt currencies like faction tokens.
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
-	inv->MoveItemToInventory(item, VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar)*count)), LOOT_SOURCE_VENDOR);
+	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
+	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar)*count)), eLootSourceType::LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -4836,7 +4841,7 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, Inventory::FindInventoryTypeForLot(item->GetLot()), count, true, false);
-	character->SetCoins(character->GetCoins() - cost, LOOT_SOURCE_VENDOR);
+	character->SetCoins(character->GetCoins() - cost, eLootSourceType::LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -5103,7 +5108,7 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, E
 
 	item->Disassemble(TEMP_MODELS);
 
-	item->SetCount(item->GetCount() - 1, false, false);
+	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::LOOT_SOURCE_QUICKBUILD);
 }
 
 void GameMessages::HandleSetFlag(RakNet::BitStream* inStream, Entity* entity) {
@@ -5269,7 +5274,7 @@ void GameMessages::HandlePickupCurrency(RakNet::BitStream* inStream, Entity* ent
 
 	auto* ch = entity->GetCharacter();
 	if (entity->CanPickupCoins(currency)) {
-		ch->SetCoins(ch->GetCoins() + currency, LOOT_SOURCE_PICKUP);
+		ch->SetCoins(ch->GetCoins() + currency, eLootSourceType::LOOT_SOURCE_PICKUP);
 	}
 }
 
@@ -5324,21 +5329,11 @@ void GameMessages::HandleEquipItem(RakNet::BitStream* inStream, Entity* entity) 
 
 	Item* item = inv->FindItemById(objectID);
 	if (!item) return;
-	/*if (item->GetLot() == 6416) { // if it's a rocket
-		std::vector<Entity*> rocketPads = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_ROCKET_LAUNCH);
-		for (Entity* rocketPad : rocketPads) {
-			RocketLaunchpadControlComponent* rocketComp = static_cast<RocketLaunchpadControlComponent*>(rocketPad->GetComponent(COMPONENT_TYPE_ROCKET_LAUNCH));
-			if (rocketComp) {
-				rocketComp->RocketEquip(entity, objectID);
-			}
-		}
-	}
-	else*/ {
+
 		item->Equip();
 		
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
-}
 
 void GameMessages::HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity) {
 	bool immediate;
@@ -5433,6 +5428,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 		return;
 	}
 	
+	iStackCount = std::min<uint32_t>(item->GetCount(), iStackCount);
+	
 	if (bConfirmed) {
 		for (auto i = 0; i < iStackCount; ++i) {
 			if (eInvType == eInventoryType::MODELS)
@@ -5482,8 +5479,8 @@ void GameMessages::HandleMoveItemInInventory(RakNet::BitStream* inStream, Entity
 }
 
 void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	int inventoryTypeA;
-	int inventoryTypeB;
+	eInventoryType inventoryTypeA;
+	eInventoryType inventoryTypeB;
 	LWOOBJID objectID;
 	bool showFlyingLoot = true;
 	bool stackCountIsDefault = false;
@@ -5500,7 +5497,7 @@ void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStre
 	inStream->Read(templateIDIsDefault);
 	if (templateIDIsDefault) inStream->Read(templateID);
 
-	InventoryComponent* inv = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
+	auto inv = entity->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	auto* item = inv->FindItemById(objectID);
@@ -5521,7 +5518,7 @@ void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStre
 		}
 	}
 
-	inv->MoveItemToInventory(item, static_cast<eInventoryType>(inventoryTypeB), stackCount, showFlyingLoot, false);
+	inv->MoveItemToInventory(item, inventoryTypeB, stackCount, showFlyingLoot);
 	EntityManager::Instance()->SerializeEntity(entity);
 }
 
@@ -5588,11 +5585,11 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 		if (count == 3)
 		{
-			inv->AddItem(6416, 1, MODELS, config);
+			inv->AddItem(6416, 1, eLootSourceType::LOOT_SOURCE_QUICKBUILD, eInventoryType::MODELS, config);
 		}
 		else if (count == 7)
 		{
-			inv->AddItem(8092, 1, MODELS, config);
+			inv->AddItem(8092, 1, eLootSourceType::LOOT_SOURCE_QUICKBUILD, eInventoryType::MODELS, config);
 		}
 
 		auto* missionComponent = character->GetComponent<MissionComponent>();
@@ -5622,7 +5619,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 	for (auto* item : items)
 	{
-		inv->MoveItemToInventory(item, MODELS, item->GetCount(), false);
+		inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false);
 	}
 }
 
@@ -5737,7 +5734,7 @@ void GameMessages::HandleDoneArrangingWithItem(RakNet::BitStream* inStream, Enti
 
 	for (auto* item : items)
 	{
-		inv->MoveItemToInventory(item, MODELS, item->GetCount(), false, false);
+		inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false, false);
 	}
 }
 
@@ -5763,7 +5760,7 @@ void GameMessages::HandleModularBuildMoveAndEquip(RakNet::BitStream* inStream, E
 		return;
 	}
 
-	inv->MoveItemToInventory(item, MODELS, 1, false, true);
+	inv->MoveItemToInventory(item, eInventoryType::MODELS, 1, false, true);
 }
 
 void GameMessages::HandlePickupItem(RakNet::BitStream* inStream, Entity* entity) {

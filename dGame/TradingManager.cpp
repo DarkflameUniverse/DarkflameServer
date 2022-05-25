@@ -60,7 +60,7 @@ void Trade::SetCoins(LWOOBJID participant, uint64_t coins)
     {
         m_CoinsA = coins;
     }
-    else if (participant = m_ParticipantB)
+    else if (participant == m_ParticipantB)
     {
         m_CoinsB = coins;
     }
@@ -72,7 +72,7 @@ void Trade::SetItems(LWOOBJID participant, std::vector<TradeItem> items)
     {
         m_ItemsA = items;
     }
-    else if (participant = m_ParticipantB)
+    else if (participant == m_ParticipantB)
     {
         m_ItemsB = items;
     }
@@ -151,8 +151,8 @@ void Trade::Complete()
 
     if (inventoryA == nullptr || inventoryB == nullptr || characterA == nullptr || characterB == nullptr || missionsA == nullptr || missionsB == nullptr) return;
 
-    characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, LOOT_SOURCE_TRADE);
-    characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, LOOT_SOURCE_TRADE);
+    characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, eLootSourceType::LOOT_SOURCE_TRADE);
+    characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, eLootSourceType::LOOT_SOURCE_TRADE);
 
     for (const auto& tradeItem : m_ItemsA)
     {
@@ -170,12 +170,12 @@ void Trade::Complete()
 
     for (const auto& tradeItem : m_ItemsA)
     {
-        inventoryB->AddItem(tradeItem.itemLot, tradeItem.itemCount);
+        inventoryB->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::LOOT_SOURCE_TRADE);
     }
 
     for (const auto& tradeItem : m_ItemsB)
     {
-        inventoryA->AddItem(tradeItem.itemLot, tradeItem.itemCount);
+        inventoryA->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::LOOT_SOURCE_TRADE);
     }
 
     TradingManager::Instance()->CancelTrade(m_TradeId);

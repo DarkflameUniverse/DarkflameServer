@@ -40,11 +40,11 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 	const auto zoneId = worldId.GetMapID();
 	const auto cloneId = worldId.GetCloneID();
 
-	std::stringstream query;
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+	query.bind(1, (int) zoneId);
 
-	query << "SELECT id FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = query.execQuery();
 
 	if (result.eof() || result.fieldIsNull(0))
 	{
@@ -102,12 +102,12 @@ void PropertyManagementComponent::SetOwner(Entity* value)
 std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const
 {
 	const auto zoneId = dZoneManager::Instance()->GetZone()->GetWorldID();
-	
-	std::stringstream query {};
 
-	query << "SELECT path FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
-	
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT path FROM PropertyTemplate WHERE mapID = ?;");
+	query.bind(1, (int) zoneId);
+
+	auto result = query.execQuery();
 
 	std::vector<NiPoint3> paths {};
 	
@@ -491,7 +491,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		settings.push_back(propertyObjectID);
 		settings.push_back(modelType);
 
-		inventoryComponent->AddItem(6662, 1, HIDDEN, settings, LWOOBJID_EMPTY, false, false, spawnerId, INVALID, 13, false, -1);
+		inventoryComponent->AddItem(6662, 1, eLootSourceType::LOOT_SOURCE_DELETION, eInventoryType::HIDDEN, settings, LWOOBJID_EMPTY, false, false, spawnerId);
 		auto* item = inventoryComponent->FindItemBySubKey(spawnerId);
 
 		if (item == nullptr) {
@@ -526,7 +526,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 	
-	inventoryComponent->AddItem(model->GetLOT(), 1, INVALID, {}, LWOOBJID_EMPTY, false);
+	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::LOOT_SOURCE_DELETION, INVALID, {}, LWOOBJID_EMPTY, false);
 
 	auto* item = inventoryComponent->FindItemByLot(model->GetLOT());
 

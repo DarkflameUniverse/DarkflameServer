@@ -47,7 +47,7 @@ include(FetchContent)
 
 FetchContent_Declare(
     zlib
-    URL http://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
+    URL https://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
     URL_HASH MD5=9d6a627693163bbbf3f26403a3a0b0b1
 )
 

@@ -22,6 +22,7 @@
 #include "Component.h"
 #include "ControllablePhysicsComponent.h"
 #include "RenderComponent.h"
+#include "RocketLaunchLupComponent.h"
 #include "CharacterComponent.h"
 #include "DestroyableComponent.h"
 #include "BuffComponent.h"
@@ -231,7 +232,8 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RACING_STATS, nullptr));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0) {
+	PetComponent* petComponent;
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !TryGetComponent(COMPONENT_TYPE_PET, petComponent)) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ITEM, nullptr));
 	}
 
@@ -455,9 +457,10 @@ void Entity::Initialize()
 		else comp = new InventoryComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_INVENTORY, comp));
 	}
-
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ROCKET_LAUNCH_LUP) > 0) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_ROCKET_LAUNCH_LUP, nullptr));
+	// if this component exists, then we initialize it. it's value is always 0
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ROCKET_LAUNCH_LUP, -1) != -1) {
+		auto comp = new RocketLaunchLupComponent(this);
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_ROCKET_LAUNCH_LUP, comp));
 	}
 
 	/**
@@ -493,13 +496,6 @@ void Entity::Initialize()
 
 	std::string customScriptServer;
 	bool hasCustomServerScript = false;
-
-	// Custom script for the LUP teleporter
-	if (m_TemplateID == 14333)
-	{
-		hasCustomServerScript = true;
-		customScriptServer = "scripts\\02_server\\DLU\\L_SB_LUP_TELEPORT.lua";
-	}
 
 	const auto customScriptServerName = GetVarAsString(u"custom_script_server");
 	const auto customScriptClientName = GetVarAsString(u"custom_script_client");
@@ -1636,7 +1632,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 				}
 			}
 			else {
-				inv->AddItem(p.second.lot, p.second.count, INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, INVALID, 1);
+				inv->AddItem(p.second.lot, p.second.count, eLootSourceType::LOOT_SOURCE_PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
 			}
 		}
 	}
@@ -2171,4 +2167,16 @@ void Entity::AddToGroup(const std::string& group) {
     if (std::find(m_Groups.begin(), m_Groups.end(), group) == m_Groups.end()) {
         m_Groups.push_back(group);
     }
+}
+
+void Entity::RetroactiveVaultSize() {
+	auto inventoryComponent = GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
+
+	auto itemsVault = inventoryComponent->GetInventory(eInventoryType::VAULT_ITEMS);
+	auto modelVault = inventoryComponent->GetInventory(eInventoryType::VAULT_MODELS);
+
+	if (itemsVault->GetSize() == modelVault->GetSize()) return;
+
+	modelVault->SetSize(itemsVault->GetSize());
 }
