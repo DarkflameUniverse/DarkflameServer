@@ -40,11 +40,11 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 	const auto zoneId = worldId.GetMapID();
 	const auto cloneId = worldId.GetCloneID();
 
-	std::stringstream query;
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+	query.bind(1, (int) zoneId);
 
-	query << "SELECT id FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = query.execQuery();
 
 	if (result.eof() || result.fieldIsNull(0))
 	{
@@ -102,12 +102,12 @@ void PropertyManagementComponent::SetOwner(Entity* value)
 std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const
 {
 	const auto zoneId = dZoneManager::Instance()->GetZone()->GetWorldID();
-	
-	std::stringstream query {};
 
-	query << "SELECT path FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
-	
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT path FROM PropertyTemplate WHERE mapID = ?;");
+	query.bind(1, (int) zoneId);
+
+	auto result = query.execQuery();
 
 	std::vector<NiPoint3> paths {};
 	

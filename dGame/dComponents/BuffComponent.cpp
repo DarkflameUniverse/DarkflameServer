@@ -371,12 +371,12 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 		return pair->second;
 	}
 
-	std::stringstream query;
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT * FROM BuffParameters WHERE BuffID = ?;");
+	query.bind(1, (int) buffId);
 
-	query << "SELECT * FROM BuffParameters WHERE BuffID = " << std::to_string(buffId) << ";";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
-
+	auto result = query.execQuery();
+	
 	std::vector<BuffParameter> parameters {};
 
 	while (!result.eof())

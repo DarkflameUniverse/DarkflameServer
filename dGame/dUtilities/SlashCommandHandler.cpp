@@ -64,48 +64,48 @@
 #include "ScriptedActivityComponent.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
-	std::string chatCommand;
-	std::vector<std::string> args;
+    std::string chatCommand;
+    std::vector<std::string> args;
 
-	uint32_t breakIndex = 0;
-	for (uint32_t i = 1; i < command.size(); ++i) {
-		if (command[i] == L' ') {
-			breakIndex = i;
-			break;
-		}
+    uint32_t breakIndex = 0;
+    for (uint32_t i = 1; i < command.size(); ++i) {
+        if (command[i] == L' ') {
+            breakIndex = i;
+            break;
+        }
 
-		chatCommand.push_back(static_cast<unsigned char>(command[i]));
-		breakIndex++;
-	}
+        chatCommand.push_back(static_cast<unsigned char>(command[i]));
+        breakIndex++;
+    }
 
-	uint32_t index = ++breakIndex;
-	while (true) {
-		std::string arg;
+    uint32_t index = ++breakIndex;
+    while (true) {
+        std::string arg;
 
-		while (index < command.size()) {
-			if (command[index] == L' ') {
-				args.push_back(arg);
-				arg = "";
-				index++;
-				continue;
-			}
+        while (index < command.size()) {
+            if (command[index] == L' ') {
+                args.push_back(arg);
+                arg = "";
+                index++;
+                continue;
+            }
 
-			arg.push_back(static_cast<char>(command[index]));
-			index++;
-		}
+            arg.push_back(static_cast<char>(command[index]));
+            index++;
+        }
 
-		if (arg != "") {
-			args.push_back(arg);
-		}
+        if (arg != "") {
+            args.push_back(arg);
+        }
 
-		break;
-	}
+        break;
+    }
 
-	//Game::logger->Log("SlashCommandHandler", "Received chat command \"%s\"\n", GeneralUtils::UTF16ToWTF8(command).c_str());
+    //Game::logger->Log("SlashCommandHandler", "Received chat command \"%s\"\n", GeneralUtils::UTF16ToWTF8(command).c_str());
 
-	User* user = UserManager::Instance()->GetUser(sysAddr);
-	if ((chatCommand == "setgmlevel" || chatCommand == "makegm" || chatCommand == "gmlevel") && user->GetMaxGMLevel() > GAME_MASTER_LEVEL_CIVILIAN) {
-		if (args.size() != 1) return;
+    User* user = UserManager::Instance()->GetUser(sysAddr);
+    if ((chatCommand == "setgmlevel" || chatCommand == "makegm" || chatCommand == "gmlevel") && user->GetMaxGMLevel() > GAME_MASTER_LEVEL_CIVILIAN) {
+        if (args.size() != 1) return;
 
 		uint32_t level;
 
@@ -127,11 +127,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			level = user->GetMaxGMLevel();
 		}
 
-		if (level == entity->GetGMLevel()) return;
-		bool success = user->GetMaxGMLevel() >= level;
+        if (level == entity->GetGMLevel()) return;
+        bool success = user->GetMaxGMLevel() >= level;
 
-		if (success) {
-
+        if (success) {
 			if (entity->GetGMLevel() > GAME_MASTER_LEVEL_CIVILIAN && level == GAME_MASTER_LEVEL_CIVILIAN)
 			{
 				GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
@@ -329,7 +328,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if ((chatCommand == "leave-zone")) {
+	if (chatCommand == "leave-zone") {
 		const auto currentZone = dZoneManager::Instance()->GetZone()->GetZoneID().GetMapID();
 
 		auto newZone = 0;
@@ -370,7 +369,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			});
 	}
 
-	if ((chatCommand == "join" && !args.empty())) {
+	if (chatCommand == "join" && !args.empty()) {
 		ChatPackets::SendSystemMessage(sysAddr, u"Requesting private map...");
 		const auto& password = args[0];
 
@@ -423,8 +422,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	auto stmt = Database::CreatePreppedStmt("INSERT INTO command_log (character_id, command) VALUES (?, ?);");
 	stmt->setInt(1, entity->GetCharacter()->GetID());
 	stmt->setString(2, GeneralUtils::UTF16ToWTF8(command).c_str());
-	stmt->execute();
-	delete stmt;
+    stmt->execute();
+    delete stmt;
 
 	if (chatCommand == "setminifig" && args.size() == 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_FORUM_MODERATOR) { // could break characters so only allow if GM > 0
 		int32_t minifigItemId;
@@ -626,6 +625,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "runmacro" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		if (args.size() != 1) return;
+
+		// Only process if input does not contain separator charaters
+		if (args[0].find("/") != std::string::npos) return;
+		if (args[0].find("\\") != std::string::npos) return;
 
 		std::ifstream infile("./res/macros/" + args[0] + ".scm");
 
@@ -948,13 +951,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				return;
 			}
 
-			pos.SetX(x);
-			pos.SetY(y);
-			pos.SetZ(z);
+            pos.SetX(x);
+            pos.SetY(y);
+            pos.SetZ(z);
 
-			Game::logger->Log("SlashCommandHandler", "Teleporting objectID: %llu to %f, %f, %f\n", entity->GetObjectID(), pos.x, pos.y, pos.z);
-			GameMessages::SendTeleport(entity->GetObjectID(), pos, NiQuaternion(), sysAddr);
-		} else if (args.size() == 2) {
+            Game::logger->Log("SlashCommandHandler", "Teleporting objectID: %llu to %f, %f, %f\n", entity->GetObjectID(), pos.x, pos.y, pos.z);
+            GameMessages::SendTeleport(entity->GetObjectID(), pos, NiQuaternion(), sysAddr);
+        } else if (args.size() == 2) {
+
 			float x, z;
 
 			if (!GeneralUtils::TryParse(args[0], x))
@@ -973,12 +977,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			pos.SetY(0.0f);
 			pos.SetZ(z);
 
-
-			Game::logger->Log("SlashCommandHandler", "Teleporting objectID: %llu to X: %f, Z: %f\n", entity->GetObjectID(), pos.x, pos.z);
-			GameMessages::SendTeleport(entity->GetObjectID(), pos, NiQuaternion(), sysAddr);
-		} else {
-			ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /teleport <x> (<y>) <z> - if no Y given, will teleport to the height of the terrain (or any physics object).");
-		}
+            Game::logger->Log("SlashCommandHandler", "Teleporting objectID: %llu to X: %f, Z: %f\n", entity->GetObjectID(), pos.x, pos.z);
+            GameMessages::SendTeleport(entity->GetObjectID(), pos, NiQuaternion(), sysAddr);
+        } else {
+            ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /teleport <x> (<y>) <z> - if no Y given, will teleport to the height of the terrain (or any physics object).");
+        }
 
 		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 
@@ -1218,7 +1221,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	//-------------------------------------------------
 
-	if (chatCommand == "buffme" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+    if (chatCommand == "buffme" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
 		if (dest) {
 			dest->SetHealth(999);
@@ -1243,7 +1246,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		GameMessages::SendStartCelebrationEffect(entity, entity->GetSystemAddress(), celebration);
 	}
 
-	if (chatCommand == "buffmed" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+    if (chatCommand == "buffmed" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
 		if (dest) {
 			dest->SetHealth(9);
@@ -1267,18 +1270,24 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 1) {
-		std::string query = "SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE '%" + args[0] + "%' OR `name` LIKE '%" + args[0] + "%' OR `description` LIKE '%" + args[0] + "%'";
-		auto tables = CDClientDatabase::ExecuteQuery(query.c_str());
-		while (!tables.eof()) {
-			std::string message = std::to_string(tables.getIntField(0)) + " - " + tables.getStringField(1);
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(message, message.size()));
-			tables.nextRow();
-		}
-	}
+		auto query = CDClientDatabase::CreatePreppedStmt(
+			"SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE ?1 OR `name` LIKE ?1 OR `description` LIKE ?1 LIMIT 50");
 
-	if (chatCommand == "spawn" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
-		ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
-		if (!comp) return;
+		const std::string query_text = "%" + args[0] + "%";
+		query.bind(1, query_text.c_str());
+
+		auto tables = query.execQuery();
+
+        while (!tables.eof()) {
+            std::string message = std::to_string(tables.getIntField(0)) + " - " + tables.getStringField(1);
+            ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(message, message.size()));
+            tables.nextRow();
+        }
+    }
+
+    if (chatCommand == "spawn" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
+        ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
+        if (!comp) return;
 
 		uint32_t lot;
 
@@ -1465,7 +1474,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		const auto objid = entity->GetObjectID();
 
-		if (force || CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
+        if (force || CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
 			bool darwin = true; //Putting this on true, as I'm sick of having to wait 3-4 seconds on a transfer while trying to quickly moderate properties
 
 			Character* character = entity->GetCharacter();
@@ -1997,4 +2006,3 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 
 	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 }
-
