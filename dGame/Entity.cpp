@@ -1263,12 +1263,15 @@ void Entity::Update(const float deltaTime) {
 		}
 	}
 
-	for (int i = 0; i < m_CallbackTimers.size(); i++) {
+	uint32_t i = 0;
+	while (i < m_CallbackTimers.size()) {
 		m_CallbackTimers[i]->Update(deltaTime);
 		if (m_CallbackTimers[i]->GetTime() <= 0) {
 			m_CallbackTimers[i]->GetCallback()();
 			delete m_CallbackTimers[i];
 			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
+		} else {
+			i++;
 		}
 	}
 

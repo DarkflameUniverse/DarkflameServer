@@ -88,6 +88,10 @@ public:
      */
     void SetPhysicsMotionState(uint32_t value);
 
+    NiPoint3 GetRotationUnbound() { return m_CurrentRotationInRad; };
+
+    void SetRotationUnbound(NiPoint3 value);
+
 private:
 
     /**
@@ -124,6 +128,8 @@ private:
      * The current physics motion state
      */
     uint32_t m_PhysicsMotionState = 0;
+
+    NiPoint3 m_CurrentRotationInRad = NiPoint3::ZERO;
 };
 
 #endif // SIMPLEPHYSICSCOMPONENT_H

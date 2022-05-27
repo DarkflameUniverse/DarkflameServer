@@ -150,9 +150,7 @@ void ModelComponent::Update(float deltaTime) {
 			if (xPositionCallbacks.size() == 0) {
 				float localDistX = distanceToTravelX;
 				m_Parent->AddCallbackTimer(0.0f, [simplePhysicsComponent, localDistX, this](){
-					// Game::logger->Log("ModelComponent", "x Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistX);
 					simplePhysicsComponent->SetPosition(simplePhysicsComponent->GetPosition() + NiPoint3::UNIT_X * localDistX);
-					Game::logger->Log("ModelComponent", "x Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistX);
 				});
 				distanceToTravelX = 0.0f;
 			}
@@ -165,9 +163,7 @@ void ModelComponent::Update(float deltaTime) {
 			if (yPositionCallbacks.size() == 0) {
 				float localDistY = distanceToTravelY;
 				m_Parent->AddCallbackTimer(0.0f, [simplePhysicsComponent, localDistY, this](){
-					// Game::logger->Log("ModelComponent", "y Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistY);
 					simplePhysicsComponent->SetPosition(simplePhysicsComponent->GetPosition() + NiPoint3::UNIT_Y * localDistY);
-					Game::logger->Log("ModelComponent", "y Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistY);
 				});
 				distanceToTravelY = 0.0f;
 			}
@@ -180,9 +176,7 @@ void ModelComponent::Update(float deltaTime) {
 			if (zPositionCallbacks.size() == 0) {
 				float localDistZ = distanceToTravelZ;
 				m_Parent->AddCallbackTimer(0.0f, [simplePhysicsComponent, localDistZ, this](){
-					// Game::logger->Log("ModelComponent", "z Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistZ);
 					simplePhysicsComponent->SetPosition(simplePhysicsComponent->GetPosition() + NiPoint3::UNIT_Z * localDistZ);
-					Game::logger->Log("ModelComponent", "z Position is x %f y %f z %f, dist %f\n", simplePhysicsComponent->GetPosition().x, simplePhysicsComponent->GetPosition().y, simplePhysicsComponent->GetPosition().z, localDistZ);
 				});
 				distanceToTravelZ = 0.0f;
 			}
@@ -207,9 +201,9 @@ void ModelComponent::Update(float deltaTime) {
 
 		simplePhysicsComponent->SetAngularVelocity(rotationVector * GetSpeed());
 
-		degreesToRotateByX -= rotationVector.x * deltaTime * 180 / 3.14 * GetSpeed();
-		degreesToRotateByY -= rotationVector.y * deltaTime * 180 / 3.14 * GetSpeed();
-		degreesToRotateByZ -= rotationVector.z * deltaTime * 180 / 3.14 * GetSpeed();
+		degreesToRotateByX -= rotationVector.x * deltaTime * 180 / PI * GetSpeed();
+		degreesToRotateByY -= rotationVector.y * deltaTime * 180 / PI * GetSpeed();
+		degreesToRotateByZ -= rotationVector.z * deltaTime * 180 / PI * GetSpeed();
 
 		EntityManager::Instance()->SerializeEntity(m_Parent);
 
@@ -219,21 +213,39 @@ void ModelComponent::Update(float deltaTime) {
                 finishedActions.push_back(callback);
             }
 			xRotationCallbacks.clear();
-			if (xRotationCallbacks.size() == 0) degreesToRotateByX = 0.0f;
+			if (xRotationCallbacks.size() == 0) {
+				float localDistX = degreesToRotateByX;
+				m_Parent->AddCallbackTimer(0.0f, [simplePhysicsComponent, localDistX, this](){
+					simplePhysicsComponent->SetRotationUnbound(simplePhysicsComponent->GetRotationUnbound() + (NiPoint3::UNIT_X * localDistX / 180 * PI));
+				});
+				degreesToRotateByX = 0.0f;
+			}
         }
 		if (((rotationVector.y < 0 && degreesToRotateByY > 0.0f) || (rotationVector.y > 0 && degreesToRotateByY < 0.0f))) {
             for (auto callback : yRotationCallbacks) {
                 finishedActions.push_back(callback);
             }
 			yRotationCallbacks.clear();
-			if (yRotationCallbacks.size() == 0) degreesToRotateByY = 0.0f;
+			if (yRotationCallbacks.size() == 0) {
+				float localDistY = degreesToRotateByY;
+				m_Parent->AddCallbackTimer(0.0f, [simplePhysicsComponent, localDistY, this](){
+					simplePhysicsComponent->SetRotationUnbound(simplePhysicsComponent->GetRotationUnbound() + (NiPoint3::UNIT_Y * localDistY / 180 * PI));
+				});
+				degreesToRotateByY = 0.0f;
+			}
         }
 		if (((rotationVector.z < 0 && degreesToRotateByZ > 0.0f) || (rotationVector.z > 0 && degreesToRotateByZ < 0.0f))) {
             for (auto callback : zRotationCallbacks) {
                 finishedActions.push_back(callback);
             }
 			zRotationCallbacks.clear();
-			if (zRotationCallbacks.size() == 0) degreesToRotateByZ = 0.0f;
+			if (zRotationCallbacks.size() == 0) {
+				float localDistZ = degreesToRotateByZ;
+				m_Parent->AddCallbackTimer(0.0f, [simplePhysicsComponent, localDistZ, this](){
+					simplePhysicsComponent->SetRotationUnbound(simplePhysicsComponent->GetRotationUnbound() + (NiPoint3::UNIT_Z * localDistZ / 180 * PI));
+				});
+				degreesToRotateByZ = 0.0f;
+			}
         }
 		if (finishedActions.size() > 0) {
 			for (auto callback : finishedActions) {
@@ -243,13 +255,6 @@ void ModelComponent::Update(float deltaTime) {
 	} else if (simplePhysicsComponent) {
         simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
         EntityManager::Instance()->SerializeEntity(m_Parent);
-    }
-	if (moveTowardsInteractor && interactor && !m_Smashed) {
-		auto toRotate = NiQuaternion::LookAt(m_Parent->GetPosition(), interactor->GetPosition());
-		if (simplePhysicsComponent) {
-			// TODO look at the coordinate we want to look at and turn towards it with the quaternion and caluclate positional difference using delta between two positions and moving towards the players.
-			// My brain hurts
-		}
     }
 }
 

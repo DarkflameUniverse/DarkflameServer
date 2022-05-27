@@ -634,6 +634,7 @@ void PropertyManagementComponent::StopAllModels() {
 			if (simplePhysicsComponent) {
 				simplePhysicsComponent->SetPosition(entity->GetDefaultPosition());
 				simplePhysicsComponent->SetRotation(entity->GetDefaultRotation());
+				simplePhysicsComponent->SetRotationUnbound(entity->GetDefaultRotation().GetEulerAngles());
 				simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
 				simplePhysicsComponent->SetVelocity(NiPoint3::ZERO);
 			}
