@@ -450,11 +450,11 @@ const std::vector<uint32_t>& MissionComponent::QueryAchievements(MissionTaskType
 }
 
 bool MissionComponent::RequiresItem(const LOT lot) {
-    std::stringstream query;
+    auto query = CDClientDatabase::CreatePreppedStmt(
+        "SELECT type FROM Objects WHERE id = ?;");
+    query.bind(1, (int) lot);
 
-    query << "SELECT type FROM Objects WHERE id = " << std::to_string(lot);
-
-    auto result = CDClientDatabase::ExecuteQuery(query.str());
+    auto result = query.execQuery();
 
     if (result.eof()) {
         return false;
