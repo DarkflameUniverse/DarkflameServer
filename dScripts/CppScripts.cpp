@@ -164,6 +164,7 @@
 #include "BaseFootRaceManager.h"
 #include "PropertyPlatform.h"
 #include "MailBoxServer.h"
+#include "ActMine.h"
 
 // Racing Scripts
 #include "RaceImagineCrateServer.h"
@@ -226,6 +227,7 @@
 #include "AmSkullkinTower.h"
 #include "AmDarklingDragon.h"
 #include "AmBlueX.h"
+#include "AmTeapotServer.h"
 
 // NJ Scripts
 #include "NjGarmadonCelebration.h"
@@ -590,6 +592,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
         return new VeBricksampleServer();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua")
 		script = new MailBoxServer();
+	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
+		script = new ActMine();
 
 	//Racing:
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua")
@@ -704,6 +708,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new BaseEnemyApe();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_BLUE_X.lua")
 	    script = new AmBlueX();
+	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_TEAPOT_SERVER.lua")
+		script = new AmTeapotServer();
 
 	// Ninjago
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_GARMADON_CELEBRATION_SERVER.lua")

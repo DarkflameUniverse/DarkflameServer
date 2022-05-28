@@ -2553,11 +2553,11 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				const auto zoneId = worldId.GetMapID();
 				const auto cloneId = worldId.GetCloneID();
 
-				std::stringstream query;
+				auto query = CDClientDatabase::CreatePreppedStmt(
+					"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+				query.bind(1, (int) zoneId);
 
-				query << "SELECT id FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
-
-				auto result = CDClientDatabase::ExecuteQuery(query.str());
+				auto result = query.execQuery();
 
 				if (result.eof() || result.fieldIsNull(0)) {
 					return;
@@ -5397,21 +5397,11 @@ void GameMessages::HandleEquipItem(RakNet::BitStream* inStream, Entity* entity) 
 
 	Item* item = inv->FindItemById(objectID);
 	if (!item) return;
-	/*if (item->GetLot() == 6416) { // if it's a rocket
-		std::vector<Entity*> rocketPads = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_ROCKET_LAUNCH);
-		for (Entity* rocketPad : rocketPads) {
-			RocketLaunchpadControlComponent* rocketComp = static_cast<RocketLaunchpadControlComponent*>(rocketPad->GetComponent(COMPONENT_TYPE_ROCKET_LAUNCH));
-			if (rocketComp) {
-				rocketComp->RocketEquip(entity, objectID);
-			}
-		}
-	}
-	else*/ {
+
 		item->Equip();
 		
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
-}
 
 void GameMessages::HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity) {
 	bool immediate;

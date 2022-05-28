@@ -1,4 +1,4 @@
-﻿#include "InventoryComponent.h"
+#include "InventoryComponent.h"
 
 #include <sstream>
 
@@ -51,18 +51,18 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 	auto items = inventoryComponentTable->Query([=](const CDInventoryComponent entry) { return entry.id == componentId; });
 
 	auto slot = 0u;
-	
+
 	for (const auto& item : items)
 	{
 		if (!item.equip || !Inventory::IsValidItem(item.itemid))
 		{
 			continue;
 		}
-		
+
 		const LWOOBJID id = ObjectIDManager::Instance()->GenerateObjectID();
 
 		const auto& info = Inventory::FindItemComponent(item.itemid);
-		
+
 		UpdateSlot(info.equipLocation, { id, static_cast<LOT>(item.itemid), item.count, slot++ });
 	}
 }
@@ -178,7 +178,7 @@ void InventoryComponent::AddItem(
 	auto* missions = static_cast<MissionComponent*>(this->m_Parent->GetComponent(COMPONENT_TYPE_MISSION));
 
 	auto* inventory = GetInventory(inventoryType);
-	
+
 	if (!config.empty() || bound)
 	{
 		const auto slot = preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot) ? preferredSlot : inventory->FindEmptySlot();
@@ -189,6 +189,7 @@ void InventoryComponent::AddItem(
 
 			return;
 		}
+
 		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound, lootSourceType);
 
 		if (missions != nullptr && !IsTransferInventory(inventoryType))
@@ -200,7 +201,7 @@ void InventoryComponent::AddItem(
 	}
 
 	const auto info = Inventory::FindItemComponent(lot);
-	
+
 	auto left = count;
 
 	int32_t outOfSpace = 0;
@@ -215,7 +216,7 @@ void InventoryComponent::AddItem(
 	{
 		stack = 1;
 	}
-	
+
 	auto* existing = FindItemByLot(lot, inventoryType);
 
 	if (existing != nullptr)
@@ -239,7 +240,7 @@ void InventoryComponent::AddItem(
 		const auto size = std::min(left, stack);
 
 		left -= size;
-		
+
 		int32_t slot;
 
 		if (preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot))
@@ -252,7 +253,7 @@ void InventoryComponent::AddItem(
 		{
 			slot = inventory->FindEmptySlot();
 		}
-		
+
 		if (slot == -1)
 		{
 			auto* player = dynamic_cast<Player*>(GetParent());
@@ -275,9 +276,9 @@ void InventoryComponent::AddItem(
 				{
 					GameMessages::SendDropClientLoot(this->m_Parent, this->m_Parent->GetObjectID(), lot, 0, this->m_Parent->GetPosition(), 1);
 				}
-				
+
 				break;
-			
+
 			default:
 				break;
 			}
@@ -326,7 +327,7 @@ void InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 		{
 			break;
 		}
-		
+
 		const auto delta = std::min<uint32_t>(left, item->GetCount());
 
 		item->SetCount(item->GetCount() - delta);
@@ -341,11 +342,11 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 	{
 		return;
 	}
-	
+
 	auto* origin = item->GetInventory();
-	
+
 	const auto lot = item->GetLot();
-	
+
 	if (item->GetConfig().empty() && !item->GetBound() || (item->GetBound() && item->GetInfo().isBOP))
 	{
 		auto left = std::min<uint32_t>(count, origin->GetLotCount(lot));
@@ -383,7 +384,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 		{
 			config.push_back(data->Copy());
 		}
-		
+
 		const auto delta = std::min<uint32_t>(item->GetCount(), count);
 
 		AddItem(lot, delta, eLootSourceType::LOOT_SOURCE_NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, item->GetBound(), preferredSlot);
@@ -441,7 +442,7 @@ Item* InventoryComponent::FindItemByLot(const LOT lot, eInventoryType inventoryT
 	return inventory->FindItemByLot(lot, ignoreEquipped, ignoreBound);
 }
 
-Item* InventoryComponent::FindItemBySubKey(LWOOBJID id, eInventoryType inventoryType) 
+Item* InventoryComponent::FindItemBySubKey(LWOOBJID id, eInventoryType inventoryType)
 {
 	if (inventoryType == INVALID)
 	{
@@ -600,7 +601,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document)
 			unsigned int count;
 			bool bound;
 			LWOOBJID subKey = LWOOBJID_EMPTY;
-			
+
 			itemElement->QueryAttribute("id", &id);
 			itemElement->QueryAttribute("l", &lot);
 			itemElement->QueryAttribute("eq", &equipped);
@@ -611,23 +612,23 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document)
 
 			// Begin custom xml
 			auto parent = LWOOBJID_EMPTY;
-			
+
 			itemElement->QueryAttribute("parent", &parent);
 			// End custom xml
 
 			std::vector<LDFBaseData*> config;
 
 			auto* extraInfo = itemElement->FirstChildElement("x");
-			
+
 			if (extraInfo)
 			{
 				std::string modInfo = extraInfo->Attribute("ma");
-				
+
 				LDFBaseData* moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(modInfo.substr(2, modInfo.size() - 1)));
-				
+
 				config.push_back(moduleAssembly);
 			}
-			
+
 			const auto* item = new Item(id, lot, inventory, slot, count, bound, config, parent, subKey);
 
 			if (equipped)
@@ -705,7 +706,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document)
 
 		bags->LinkEndChild(bag);
 	}
-	
+
 	auto* items = inventoryElement->FirstChildElement("items");
 
 	if (items == nullptr)
@@ -759,10 +760,10 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document)
 
 				itemElement->LinkEndChild(extraInfo);
 			}
-			
+
 			bagElement->LinkEndChild(itemElement);
 		}
-		
+
 		items->LinkEndChild(bagElement);
 	}
 }
@@ -772,13 +773,13 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 	if (bIsInitialUpdate || m_Dirty)
 	{
 		outBitStream->Write(true);
-		
+
 		outBitStream->Write<uint32_t>(m_Equipped.size());
 
 		for (const auto& pair : m_Equipped)
 		{
 			const auto item = pair.second;
-			
+
 			if (bIsInitialUpdate)
 			{
 				AddItemSkills(item.lot);
@@ -786,20 +787,39 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 
 			outBitStream->Write(item.id);
             outBitStream->Write(item.lot);
-            
+
             outBitStream->Write0();
-            
+
             outBitStream->Write(item.count > 0);
             if (item.count > 0) outBitStream->Write(item.count);
-            
+
             outBitStream->Write(item.slot != 0);
             if (item.slot != 0) outBitStream->Write<uint16_t>(item.slot);
-            
+
             outBitStream->Write0();
+
+			bool flag = !item.config.empty();
+			outBitStream->Write(flag);
+			if (flag) {
+				RakNet::BitStream ldfStream;
+				ldfStream.Write<int32_t>(item.config.size()); // Key count
+				for (LDFBaseData* data : item.config) {
+					if (data->GetKey() == u"assemblyPartLOTs") {
+						std::string newRocketStr = data->GetValueAsString() + ";";
+						GeneralUtils::ReplaceInString(newRocketStr, "+", ";");
+						LDFData<std::u16string>* ldf_data = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(newRocketStr));
+						ldf_data->WriteToPacket(&ldfStream);
+						delete ldf_data;
+					} else {
+						data->WriteToPacket(&ldfStream);
+					}
+				}
+				outBitStream->Write(ldfStream.GetNumberOfBytesUsed() + 1);
+				outBitStream->Write<uint8_t>(0); // Don't compress
+				outBitStream->Write(ldfStream);
+			}
             
-            outBitStream->Write0(); //TODO: This is supposed to be true and write the assemblyPartLOTs when they're present.
-            
-            outBitStream->Write1();
+			outBitStream->Write1();
 		}
 
 		m_Dirty = false;
@@ -808,7 +828,7 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 	{
 		outBitStream->Write(false);
 	}
-	
+
 	outBitStream->Write(false);
 }
 
@@ -817,7 +837,7 @@ void InventoryComponent::ResetFlags()
 	m_Dirty = false;
 }
 
-void InventoryComponent::Update(float deltaTime) 
+void InventoryComponent::Update(float deltaTime)
 {
 	for (auto* set : m_Itemsets)
 	{
@@ -846,7 +866,7 @@ void InventoryComponent::UpdateSlot(const std::string& location, EquippedItem it
 			UnEquipItem(old);
 		}
 	}
-	
+
 	m_Equipped.insert_or_assign(location, item);
 
 	m_Dirty = true;
@@ -858,14 +878,14 @@ void InventoryComponent::RemoveSlot(const std::string& location)
 	{
 		return;
 	}
-	
+
 	m_Equipped.erase(location);
 
 	m_Dirty = true;
 }
 
 void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
-{	
+{
 	if (!Inventory::IsValidItem(item->GetLot()))
 	{
 		return;
@@ -1011,7 +1031,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 			{
 				return;
 			}
-			
+
 			if (type == ITEM_TYPE_LOOT_MODEL || type == ITEM_TYPE_VEHICLE)
 			{
 				return;
@@ -1030,7 +1050,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 	const auto lot = item->GetLot();
 
 	CheckItemSet(lot);
-	
+
 	for (auto* set : m_Itemsets)
 	{
 		set->OnEquip(lot);
@@ -1043,7 +1063,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 
 	GenerateProxies(item);
 	
-	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
+	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot(), item->GetConfig() });
 
 	ApplyBuff(item);
 	
@@ -1060,7 +1080,7 @@ void InventoryComponent::UnEquipItem(Item* item)
 	}
 
 	const auto lot = item->GetLot();
-	
+
 	if (!Inventory::IsValidItem(lot))
 	{
 		return;
@@ -1078,7 +1098,7 @@ void InventoryComponent::UnEquipItem(Item* item)
 	RemoveItemSkills(item->GetLot());
 
 	RemoveSlot(item->GetInfo().equipLocation);
-	
+
 	PurgeProxies(item);
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -1096,7 +1116,7 @@ void InventoryComponent::ApplyBuff(Item* item) const
 	const auto buffs = FindBuffs(item, true);
 
 	for (const auto buff : buffs)
-	{	
+	{
 		SkillComponent::HandleUnmanaged(buff, m_Parent->GetObjectID());
 	}
 }
@@ -1163,22 +1183,21 @@ bool InventoryComponent::IsEquipped(const LOT lot) const
 	return false;
 }
 
-void InventoryComponent::CheckItemSet(const LOT lot)
-{
+void InventoryComponent::CheckItemSet(const LOT lot) {
 	// Check if the lot is in the item set cache
-	if (std::find(m_ItemSetsChecked.begin(), m_ItemSetsChecked.end(), lot) != m_ItemSetsChecked.end())
-	{
+	if (std::find(m_ItemSetsChecked.begin(), m_ItemSetsChecked.end(), lot) != m_ItemSetsChecked.end()) {
 		return;
 	}
 
-	std::stringstream query;
+	const std::string lot_query = "%" + std::to_string(lot) + "%";
 
-	query << "SELECT setID FROM ItemSets WHERE itemIDs LIKE '%" << std::to_string(lot) << "%'";
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT setID FROM ItemSets WHERE itemIDs LIKE ?;");
+	query.bind(1, lot_query.c_str());
 
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = query.execQuery();
 
-	while (!result.eof())
-	{
+	while (!result.eof()) {
 		const auto id = result.getIntField(0);
 
 		bool found = false;
@@ -1204,11 +1223,11 @@ void InventoryComponent::CheckItemSet(const LOT lot)
 	}
 
 	m_ItemSetsChecked.push_back(lot);
-	
+
 	result.finalize();
 }
 
-void InventoryComponent::SetConsumable(LOT lot) 
+void InventoryComponent::SetConsumable(LOT lot)
 {
 	m_Consumable = lot;
 }
@@ -1228,7 +1247,7 @@ void InventoryComponent::AddItemSkills(const LOT lot)
 	{
 		return;
 	}
-	
+
 	const auto index = m_Skills.find(slot);
 
 	const auto skill = FindSkill(lot);
@@ -1253,14 +1272,14 @@ void InventoryComponent::AddItemSkills(const LOT lot)
 void InventoryComponent::RemoveItemSkills(const LOT lot)
 {
 	const auto info = Inventory::FindItemComponent(lot);
-	
+
 	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
-	
+
 	if (slot == BehaviorSlot::Invalid)
 	{
 		return;
 	}
-	
+
 	const auto index = m_Skills.find(slot);
 
 	if (index == m_Skills.end())
@@ -1273,7 +1292,7 @@ void InventoryComponent::RemoveItemSkills(const LOT lot)
 	GameMessages::SendRemoveSkill(m_Parent, old);
 
 	m_Skills.erase(slot);
-	
+
 	if (slot == BehaviorSlot::Primary)
 	{
 		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
@@ -1282,7 +1301,7 @@ void InventoryComponent::RemoveItemSkills(const LOT lot)
 	}
 }
 
-void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger) 
+void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger)
 {
 	for (auto* set : m_Itemsets)
 	{
@@ -1309,7 +1328,7 @@ bool InventoryComponent::HasAnyPassive(const std::vector<ItemSetPassiveAbilityID
 	return false;
 }
 
-void InventoryComponent::DespawnPet() 
+void InventoryComponent::DespawnPet()
 {
 	auto* current = PetComponent::GetActivePet(m_Parent->GetObjectID());
 
@@ -1319,7 +1338,7 @@ void InventoryComponent::DespawnPet()
 	}
 }
 
-void InventoryComponent::SpawnPet(Item* item) 
+void InventoryComponent::SpawnPet(Item* item)
 {
 	auto* current = PetComponent::GetActivePet(m_Parent->GetObjectID());
 
@@ -1338,11 +1357,11 @@ void InventoryComponent::SpawnPet(Item* item)
 	info.pos = m_Parent->GetPosition();
 	info.rot = NiQuaternion::IDENTITY;
 	info.spawnerID = m_Parent->GetObjectID();
-	
+
 	auto* pet = EntityManager::Instance()->CreateEntity(info);
 
 	auto* petComponent = pet->GetComponent<PetComponent>();
-	
+
 	if (petComponent != nullptr)
 	{
 		petComponent->Activate(item);
@@ -1351,7 +1370,7 @@ void InventoryComponent::SpawnPet(Item* item)
 	EntityManager::Instance()->ConstructEntity(pet);
 }
 
-void InventoryComponent::SetDatabasePet(LWOOBJID id, const DatabasePet& data) 
+void InventoryComponent::SetDatabasePet(LWOOBJID id, const DatabasePet& data)
 {
 	m_Pets.insert_or_assign(id, data);
 }
@@ -1372,7 +1391,7 @@ bool InventoryComponent::IsPet(LWOOBJID id) const
 	return pair != m_Pets.end();
 }
 
-void InventoryComponent::RemoveDatabasePet(LWOOBJID id) 
+void InventoryComponent::RemoveDatabasePet(LWOOBJID id)
 {
 	m_Pets.erase(id);
 }
@@ -1395,7 +1414,7 @@ BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type)
 	}
 }
 
-bool InventoryComponent::IsTransferInventory(eInventoryType type) 
+bool InventoryComponent::IsTransferInventory(eInventoryType type)
 {
 	return type == VENDOR_BUYBACK || type == VAULT_ITEMS || type == VAULT_MODELS || type == TEMP_ITEMS || type == TEMP_MODELS;
 }
@@ -1446,11 +1465,12 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 
 				continue;
 			}
-			
+
 			if (missions != nullptr && castOnEquip)
 			{
 				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, result.skillID);
 			}
+			
 			// If item is not a proxy, add its buff to the added buffs.
 			if (item->GetParent() == LWOOBJID_EMPTY) buffs.push_back(static_cast<uint32_t>(entry.behaviorID));
 		}
@@ -1459,18 +1479,18 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 	return buffs;
 }
 
-void InventoryComponent::SetNPCItems(const std::vector<LOT>& items) 
+void InventoryComponent::SetNPCItems(const std::vector<LOT>& items)
 {
 	m_Equipped.clear();
 
 	auto slot = 0u;
-	
+
 	for (const auto& item : items)
 	{
 		const LWOOBJID id = ObjectIDManager::Instance()->GenerateObjectID();
 
 		const auto& info = Inventory::FindItemComponent(item);
-		
+
 		UpdateSlot(info.equipLocation, { id, static_cast<LOT>(item), 1, slot++ }, true);
 	}
 
@@ -1505,9 +1525,9 @@ std::vector<Item*> InventoryComponent::GenerateProxies(Item* parent)
 	{
 		return proxies;
 	}
-	
+
 	subItems.erase(std::remove_if(subItems.begin(), subItems.end(), ::isspace), subItems.end());
-	
+
 	std::stringstream stream(subItems);
 	std::string segment;
 	std::vector<uint32_t> lots;
@@ -1522,7 +1542,7 @@ std::vector<Item*> InventoryComponent::GenerateProxies(Item* parent)
 		{
 			Game::logger->Log("InventoryComponent", "Failed to parse proxy (%s): (%s)!\n", segment.c_str(), exception.what());
 		}
-	} 
+	}
 
 	for (const auto lot : lots)
 	{
@@ -1539,7 +1559,7 @@ std::vector<Item*> InventoryComponent::GenerateProxies(Item* parent)
 
 		proxies.push_back(proxy);
 	}
-	
+
 	return proxies;
 }
 
@@ -1548,7 +1568,7 @@ std::vector<Item*> InventoryComponent::FindProxies(const LWOOBJID parent)
 	auto* inventory = GetInventory(ITEM_SETS);
 
 	std::vector<Item*> proxies;
-	
+
 	for (const auto& pair : inventory->GetItems())
 	{
 		auto* item = pair.second;
@@ -1590,7 +1610,7 @@ bool InventoryComponent::IsParentValid(Item* root)
 	}
 
 	const auto id = root->GetId();
-	
+
 	for (const auto& pair : m_Inventories)
 	{
 		const auto items = pair.second->GetItems();
@@ -1612,7 +1632,7 @@ bool InventoryComponent::IsParentValid(Item* root)
 void InventoryComponent::CheckProxyIntegrity()
 {
 	std::vector<Item*> dead;
-	
+
 	for (const auto& pair : m_Inventories)
 	{
 		const auto& items = pair.second->GetItems();
@@ -1627,7 +1647,7 @@ void InventoryComponent::CheckProxyIntegrity()
 			{
 				continue;
 			}
-			
+
 			if (IsValidProxy(parent))
 			{
 				continue;
@@ -1652,7 +1672,7 @@ void InventoryComponent::CheckProxyIntegrity()
 		for (const auto& candidate : items)
 		{
 			auto* item = candidate.second;
-			
+
 			const auto parent = item->GetParent();
 
 			if (parent != LWOOBJID_EMPTY)
@@ -1684,7 +1704,7 @@ void InventoryComponent::CheckProxyIntegrity()
 void InventoryComponent::PurgeProxies(Item* item)
 {
 	const auto root = item->GetParent();
-	
+
 	if (root != LWOOBJID_EMPTY)
 	{
 		item = FindItemById(root);
@@ -1693,7 +1713,7 @@ void InventoryComponent::PurgeProxies(Item* item)
 		{
 			UnEquipItem(item);
 		}
-		
+
 		return;
 	}
 
@@ -1707,7 +1727,7 @@ void InventoryComponent::PurgeProxies(Item* item)
 	}
 }
 
-void InventoryComponent::LoadPetXml(tinyxml2::XMLDocument* document) 
+void InventoryComponent::LoadPetXml(tinyxml2::XMLDocument* document)
 {
 	auto* petInventoryElement = document->FirstChildElement("obj")->FirstChildElement("pet");
 
@@ -1725,7 +1745,7 @@ void InventoryComponent::LoadPetXml(tinyxml2::XMLDocument* document)
 		LWOOBJID id;
 		LOT lot;
 		int32_t moderationStatus;
-		
+
 		petElement->QueryAttribute("id", &id);
 		petElement->QueryAttribute("l", &lot);
 		petElement->QueryAttribute("m", &moderationStatus);
@@ -1742,7 +1762,7 @@ void InventoryComponent::LoadPetXml(tinyxml2::XMLDocument* document)
 	}
 }
 
-void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument* document) 
+void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument* document)
 {
 	auto* petInventoryElement = document->FirstChildElement("obj")->FirstChildElement("pet");
 
@@ -1764,8 +1784,7 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument* document)
 		petElement->SetAttribute("m", pet.second.moderationState);
 		petElement->SetAttribute("n", pet.second.name.c_str());
 		petElement->SetAttribute("t", 0);
-		
+
 		petInventoryElement->LinkEndChild(petElement);
 	}
 }
-

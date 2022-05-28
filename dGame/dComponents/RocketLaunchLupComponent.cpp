@@ -1,49 +1,32 @@
 #include "RocketLaunchLupComponent.h"
-#include "CDClientDatabase.h"
 #include "RocketLaunchpadControlComponent.h"
+#include "InventoryComponent.h"
 #include "CharacterComponent.h"
-#include "Item.h"
 
 RocketLaunchLupComponent::RocketLaunchLupComponent(Entity* parent) : Component(parent) {
 	m_Parent = parent;
-
-	// get the lup worlds from the cdclient
-	std::string query = "SELECT * FROM LUPZoneIDs;";
-	auto results = CDClientDatabase::ExecuteQuery(query);
-	while (!results.eof()) {
-		// fallback to 1600 incase there is an issue
-		m_LUPWorlds.push_back(results.getIntField(0, 1600));
-		results.nextRow();
+	std::string zoneString = GeneralUtils::UTF16ToWTF8(m_Parent->GetVar<std::u16string>(u"MultiZoneIDs"));
+	std::stringstream ss(zoneString);
+	for (int i; ss >> i;) {
+		m_LUPWorlds.push_back(i);
+		if (ss.peek() == ';')
+			ss.ignore();
 	}
-	results.finalize();
 }
 
 RocketLaunchLupComponent::~RocketLaunchLupComponent() {}
 
 void RocketLaunchLupComponent::OnUse(Entity* originator) {
-	// the LUP world menu is just the property menu, the client knows how to handle it
-	GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), m_Parent->GetSystemAddress());
-
-	// get the rocket to "equip" it so we are holding it
-	// taken from the RocketLaunchControlComponent
-	auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
-	auto* characterComponent = originator->GetComponent<CharacterComponent>();
-
-	if (!inventoryComponent || !characterComponent) return;
-
-	Item* rocket = inventoryComponent->FindItemById(characterComponent->GetLastRocketItemID());
+	auto* rocket = originator->GetComponent<CharacterComponent>()->RocketEquip(originator);
 	if (!rocket) return;
 
-	rocket->Equip(true);
+	// the LUP world menu is just the property menu, the client knows how to handle it
+	GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), m_Parent->GetSystemAddress());
 }
 
 void RocketLaunchLupComponent::OnSelectWorld(Entity* originator, uint32_t index) {
-	// Add one to index because the actual LUP worlds start at index 1.
-	index++;
-
 	auto* rocketLaunchpadControlComponent = m_Parent->GetComponent<RocketLaunchpadControlComponent>();
-
 	if (!rocketLaunchpadControlComponent) return;
 
-	rocketLaunchpadControlComponent->Launch(originator, LWOOBJID_EMPTY, m_LUPWorlds[index], 0);
+	rocketLaunchpadControlComponent->Launch(originator, m_LUPWorlds[index], 0);
 }
