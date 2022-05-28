@@ -34,6 +34,8 @@ public:
 
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
+    void Update(float deltaTime) override;
+
     /**
      * Returns the position of this entity
      * @return the position of this entity
@@ -94,6 +96,7 @@ public:
      */
     void SetPhysicsMotionState(uint32_t value);
 
+
 	/**
 	 * Returns the ClimbableType of this entity
 	 * @return the ClimbableType of this entity
@@ -105,6 +108,11 @@ public:
 	 * @param value the ClimbableType to set
 	 */
 	void SetClimbableType(const eClimbableType& value) { m_ClimbableType = value; }
+
+    NiPoint3 GetRotationUnbound() { return m_CurrentRotationInRad; };
+
+    void SetRotationUnbound(NiPoint3 value);
+
 
 private:
 
@@ -143,10 +151,14 @@ private:
      */
     uint32_t m_PhysicsMotionState = 0;
 
+
     /**
      * Whether or not the entity is climbable
      */
     eClimbableType m_ClimbableType = eClimbableType::CLIMBABLE_TYPE_NOT;
+
+    NiPoint3 m_CurrentRotationInRad = NiPoint3::ZERO;
+
 };
 
 #endif // SIMPLEPHYSICSCOMPONENT_H

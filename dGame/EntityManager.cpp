@@ -4,6 +4,7 @@
 #include "User.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "Character.h"
+#include "ModelComponent.h"
 #include "GeneralUtils.h"
 #include "dServer.h"
 #include "Spawner.h"
@@ -396,7 +397,7 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 		Game::server->Send(&stream, sysAddr, false);
 	}
 
-	PacketUtils::SavePacket("[24]_"+std::to_string(entity->GetObjectID()) + "_" + std::to_string(m_SerializationCounter) + ".bin", (char*)stream.GetData(), stream.GetNumberOfBytesUsed());
+	// PacketUtils::SavePacket("[24]_"+std::to_string(entity->GetObjectID()) + "_" + std::to_string(m_SerializationCounter) + ".bin", (char*)stream.GetData(), stream.GetNumberOfBytesUsed());
 
 	if (entity->IsPlayer())
 	{

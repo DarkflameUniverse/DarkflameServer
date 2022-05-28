@@ -5,6 +5,7 @@
 #include "BitStream.h"
 #include "Game.h"
 #include "dMessageIdentifiers.h"
+#include "ModelComponent.h"
 #include "SlashCommandHandler.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -27,6 +28,9 @@
 #include "ChatPackets.h"
 #include "GameConfig.h"
 #include "RocketLaunchLupComponent.h"
+#include "AMFDeserialize.h"
+#include "ControlBehaviors.h"
+
 
 #include <sstream>
 #include <future>
@@ -41,6 +45,7 @@
 
 //Component includes:
 #include "ControllablePhysicsComponent.h"
+#include "SimplePhysicsComponent.h"
 #include "CharacterComponent.h"
 #include "MissionOfferComponent.h"
 #include "MissionComponent.h"
@@ -203,6 +208,36 @@ void GameMessages::SendInvalidZoneTransferList(Entity* entity, const SystemAddre
 	bitStream.Write(feedbackOnInvalidTransfer);
 
 	SEND_PACKET
+}
+
+void GameMessages::SendSmash(Entity* entity, float force, float ghostOpacity, LWOOBJID killerID, bool ignoreObjectVisibility) {
+    CBITSTREAM
+    CMSGHEADER
+
+    bitStream.Write(entity->GetObjectID());
+    bitStream.Write(GAME_MSG::GAME_MSG_SMASH);
+
+    bitStream.Write(ignoreObjectVisibility);
+    bitStream.Write(force);
+    bitStream.Write(ghostOpacity);
+    bitStream.Write(killerID);
+
+    SEND_PACKET_BROADCAST
+}
+void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duration) {
+    CBITSTREAM
+    CMSGHEADER
+
+    bitStream.Write(entity->GetObjectID());
+    bitStream.Write(GAME_MSG::GAME_MSG_UNSMASH);
+
+	bitStream.Write(builderID != LWOOBJID_EMPTY);
+    if (builderID != LWOOBJID_EMPTY) bitStream.Write(builderID);
+	
+	bitStream.Write(duration != 3.0f);
+    if (duration != 3.0f) bitStream.Write(duration);
+
+    SEND_PACKET_BROADCAST
 }
 
 void GameMessages::SendKnockback(const LWOOBJID& objectID, const LWOOBJID& caster, const LWOOBJID& originator, int knockBackTimeMS, const NiPoint3& vector)
@@ -588,6 +623,7 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	}
 
 	SEND_PACKET
+	PacketUtils::SavePacket("SendUIMessageServerToSingleClient.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 void GameMessages::SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args) {
@@ -1936,7 +1972,7 @@ void GameMessages::SendBBBSaveResponse(const LWOOBJID& objectId, const LWOOBJID&
 		bitStream.Write(buffer[i]);
 
 	SEND_PACKET;
-	PacketUtils::SavePacket("GAME_MSG_BBB_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+	// PacketUtils::SavePacket("GAME_MSG_BBB_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 // Property
@@ -2049,6 +2085,8 @@ void GameMessages::SendGetModelsOnProperty(LWOOBJID objectId, std::map<LWOOBJID,
 		bitStream.Write(pair.first);
 		bitStream.Write(pair.second);
 	}
+
+    PropertyManagementComponent::Instance()->StopAllModels();
 
 	Game::logger->Log("SendGetModelsOnProperty", "Sending property models to (%llu) (%d)\n", objectId, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 
@@ -2620,7 +2658,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 					bitStream.Write(inData[i]);
 
 				SEND_PACKET;
-				PacketUtils::SavePacket("MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+				// PacketUtils::SavePacket("MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 
 				//Now we have to construct this object:
 				/*
@@ -5034,6 +5072,36 @@ void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity,
 	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_NON_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
 }
 
+void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	// Parse AMF sent from client
+	AMFDeserialize reader;
+	AMFArrayValue* result = nullptr;
+	try {
+		result = reader.Read(inStream, true);
+	} catch (int8_t unsupportedValueType) {
+		return;
+	}
+	
+	// Parse command once we finish parsing the AMF.
+	uint32_t commandLength;
+	inStream->Read(commandLength);
+	std::string command;
+
+	for (uint32_t i = 0; i < commandLength; i++) {
+		unsigned char character;
+		inStream->Read(character);
+		command.push_back(character);
+	}
+	auto owner = PropertyManagementComponent::Instance()->GetOwner();
+    if (!owner) return;
+
+    auto user = owner->GetParentUser();
+    if (!user) return;
+
+	ControlBehaviors* controlBehaviors = new ControlBehaviors();
+	controlBehaviors->DoActions(entity, user->GetSystemAddress(), result, command, owner);
+}
+
 void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) {
 	int emoteID;
 	LWOOBJID targetID;
@@ -5736,6 +5804,7 @@ void GameMessages::HandleDoneArrangingWithItem(RakNet::BitStream* inStream, Enti
 	{
 		inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false, false);
 	}
+	PropertyManagementComponent::Instance()->ResumeAllModels();
 }
 
 void GameMessages::HandleModularBuildMoveAndEquip(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {

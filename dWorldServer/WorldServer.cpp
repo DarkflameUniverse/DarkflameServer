@@ -1077,7 +1077,7 @@ void HandlePacket(Packet* packet) {
 
 									SystemAddress sysAddr = packet->systemAddress;
 									SEND_PACKET;
-									PacketUtils::SavePacket("lxfml packet " + std::to_string(res->getUInt(1)) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+									// PacketUtils::SavePacket("lxfml packet " + std::to_string(res->getUInt(1)) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 								}
 							}
 
@@ -1246,7 +1246,7 @@ void WorldShutdownProcess(uint32_t zoneId) {
 
     if (PropertyManagementComponent::Instance() != nullptr) {
         Game::logger->Log("WorldServer", "Saving ALL property data for zone %i clone %i!\n", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
-        PropertyManagementComponent::Instance()->Save();
+        PropertyManagementComponent::Instance()->Save(true);
         Game::logger->Log("WorldServer", "ALL property data saved for zone %i clone %i!\n", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
     }
 

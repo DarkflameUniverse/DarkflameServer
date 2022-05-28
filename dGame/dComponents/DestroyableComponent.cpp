@@ -19,6 +19,7 @@
 #include "TeamManager.h"
 #include "BuffComponent.h"
 #include "SkillComponent.h"
+#include "ModelComponent.h"
 #include "Item.h"
 
 #include <sstream>
@@ -604,7 +605,18 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	{
 		return;
 	}
-
+	// Do not let models actually take damage - they process this differently
+	ModelComponent* modelComponent = m_Parent->GetComponent<ModelComponent>();
+	if (modelComponent) {
+		Entity* originator = EntityManager::Instance()->GetEntity(source);
+		if (!originator) return;
+		if (originator->GetParentEntity() != nullptr) {
+			originator = originator->GetParentEntity();
+		}
+		if (originator->GetLOT() != 1) return;
+		modelComponent->OnAttack(originator);
+		return;
+	}
 	if (m_AttacksToBlock > 0)
 	{
 		m_AttacksToBlock--;
@@ -829,11 +841,11 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	m_Parent->Kill(owner);
 }
 
-void DestroyableComponent::SetFaction(int32_t factionID) {
+void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
 	m_FactionIDs.clear();
 	m_EnemyFactionIDs.clear();
 
-	AddFaction(factionID);
+	AddFaction(factionID, ignoreChecks);
 }
 
 void DestroyableComponent::PushImmunity(int32_t stacks)

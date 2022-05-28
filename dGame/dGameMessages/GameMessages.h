@@ -98,6 +98,8 @@ namespace GameMessages {
 	void SendPlay2DAmbientSound(Entity* entity, std::string audioGUID, bool result = false);
 	void SendSetNetworkScriptVar(Entity* entity, const SystemAddress& sysAddr, std::string data);
 	void SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos = NiPoint3::ZERO, int count = 1);
+	void SendSmash(Entity* entity, float force, float ghostOpacity, LWOOBJID killerID, bool ignoreObjectVisibility = false);
+	void SendUnSmash(Entity* entity, LWOOBJID builderID = LWOOBJID_EMPTY, float duration = 3.0f);
 
 	void SendSetPlayerControlScheme(Entity* entity, eControlSceme controlScheme);
 	void SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPoint3& position, const NiQuaternion& rotation);
@@ -468,7 +470,7 @@ namespace GameMessages {
 	void HandleClientItemConsumed(RakNet::BitStream* inStream, Entity* entity);
 	
 	void HandleUseNonEquipmentItem(RakNet::BitStream* inStream, Entity* entity);
-
+	void HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleMatchRequest(RakNet::BitStream* inStream, Entity* entity);
 
 	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);

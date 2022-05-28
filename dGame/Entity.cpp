@@ -220,6 +220,10 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ZONE_CONTROL, nullptr));
 	}
 
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_MODEL, new ModelComponent(0, this)));
+	}
+	
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE) > 0) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this)));
 	}
@@ -233,7 +237,7 @@ void Entity::Initialize()
 	}
 
 	PetComponent* petComponent;
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !TryGetComponent(COMPONENT_TYPE_PET, petComponent)) {
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !TryGetComponent(COMPONENT_TYPE_PET, petComponent) && !GetComponent<ModelComponent>()) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ITEM, nullptr));
 	}
 
@@ -362,7 +366,7 @@ void Entity::Initialize()
 	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance()->GetTable<CDDestructibleComponentTable>("DestructibleComponent");
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
-	if (buffComponentID > 0 || collectibleComponentID > 0) {
+	if (buffComponentID > 0 || collectibleComponentID > 0 || (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 		DestroyableComponent* comp = new DestroyableComponent(this);
 		if (m_Character) {
 			comp->LoadFromXML(m_Character->GetXMLDoc());
@@ -405,6 +409,12 @@ void Entity::Initialize()
 					// extraInfo overrides
 					comp->SetIsSmashable(GetVarAs<int32_t>(u"is_smashable") != 0);
 				}
+			} else if (GetComponent<ModelComponent>() && !GetComponent<PetComponent>()) {
+				comp->SetMaxHealth(1);
+				comp->SetHealth(1);
+				comp->SetArmor(1);
+				comp->SetIsSmashable(true);
+				comp->AddFaction(-1, true);
 			}
 			else {
 				comp->SetHealth(1);
@@ -669,7 +679,7 @@ void Entity::Initialize()
 	}
 
 	int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVEMENT_AI);
-	if (movementAIID > 0) {
+	if (movementAIID > 0 || (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 		CDMovementAIComponentTable* moveAITable = CDClientManager::Instance()->GetTable<CDMovementAIComponentTable>("MovementAIComponent");
 		std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
 
@@ -694,6 +704,19 @@ void Entity::Initialize()
 			}
 
 			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
+		} else {
+			MovementAIInfo moveInfo = MovementAIInfo();
+
+			moveInfo.movementType = "Wander";
+			moveInfo.wanderChance = 100.0f;
+			moveInfo.wanderRadius = 15.0f;
+			moveInfo.wanderSpeed = 1.0f;
+			moveInfo.wanderDelayMax = 2.0f;
+			moveInfo.wanderDelayMin = 10.0f;
+
+			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
+			auto movementAIComponent = GetComponent<MovementAIComponent>();
+			movementAIComponent->Stop();
 		}
 	}
 	else if (petComponentId > 0 || combatAiId > 0 && GetComponent<BaseCombatAIComponent>()->GetTetherSpeed() > 0)
@@ -898,7 +921,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		//limiting it to lot 14 right now
-		if (m_Settings.size() > 0 && m_TemplateID == 14) {
+		if (m_Settings.size() > 0 && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 			outBitStream->Write1(); //ldf data
 			
 			RakNet::BitStream settingStream;
@@ -1084,7 +1107,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	if (HasComponent(COMPONENT_TYPE_ITEM))
+	if (HasComponent(COMPONENT_TYPE_ITEM) && !HasComponent(COMPONENT_TYPE_MODEL))
 	{
 		outBitStream->Write0();
 	}
@@ -1181,6 +1204,14 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		renderComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
+	// Model Components get the Destroyable component here
+	if (modelComponent && !GetComponent<PetComponent>()) {
+		DestroyableComponent* destroyableComponent;
+		if (TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent)) {
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		}
+	}
+
 	if (HasComponent(COMPONENT_TYPE_ZONE_CONTROL))
 	{
 		outBitStream->Write<uint32_t>(0x40000000);
@@ -1232,12 +1263,15 @@ void Entity::Update(const float deltaTime) {
 		}
 	}
 
-	for (int i = 0; i < m_CallbackTimers.size(); i++) {
+	uint32_t i = 0;
+	while (i < m_CallbackTimers.size()) {
 		m_CallbackTimers[i]->Update(deltaTime);
 		if (m_CallbackTimers[i]->GetTime() <= 0) {
 			m_CallbackTimers[i]->GetCallback()();
 			delete m_CallbackTimers[i];
 			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
+		} else {
+			i++;
 		}
 	}
 
@@ -1256,12 +1290,16 @@ void Entity::Update(const float deltaTime) {
 		script->OnUpdate(this);
 	}
 
+	SimplePhysicsComponent* simplePhysicsComponent = GetComponent<SimplePhysicsComponent>();
+
 	for (const auto& pair : m_Components)
 	{
-		if (pair.second == nullptr) continue;
+		if (pair.second == nullptr || (pair.first == COMPONENT_TYPE_SIMPLE_PHYSICS && simplePhysicsComponent)) continue;
 
 		pair.second->Update(deltaTime);
 	}
+
+	if (simplePhysicsComponent) simplePhysicsComponent->Update(deltaTime);
 
 	if (m_ShouldDestroyAfterUpdate) {
 		EntityManager::Instance()->DestroyEntity(this->GetObjectID());

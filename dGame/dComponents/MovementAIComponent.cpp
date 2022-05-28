@@ -8,6 +8,7 @@
 #include "dpCommon.h"
 #include "dpWorld.h"
 #include "EntityManager.h"
+#include "ModelComponent.h"
 #include "SimplePhysicsComponent.h"
 
 std::map<LOT, float> MovementAIComponent::m_PhysicsSpeedCache = {};
@@ -159,7 +160,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	SetVelocity(velocity);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	if (m_Parent->GetComponent<ModelComponent>() && !m_Parent->GetComponent<ModelComponent>()->GetIsPaused()) EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 const MovementAIInfo& MovementAIComponent::GetInfo() const
@@ -244,7 +245,7 @@ bool MovementAIComponent::Warp(const NiPoint3& point)
 
 	SetPosition(destination);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	if (m_Parent->GetComponent<ModelComponent>() && !m_Parent->GetComponent<ModelComponent>()->GetIsPaused()) EntityManager::Instance()->SerializeEntity(m_Parent);
 
 	return true;
 }
@@ -280,7 +281,7 @@ void MovementAIComponent::Stop()
 
 	m_CurrentSpeed = 0;
 	
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	if (m_Parent->GetComponent<ModelComponent>() && !m_Parent->GetComponent<ModelComponent>()->GetIsPaused()) EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 void MovementAIComponent::PullToPoint(const NiPoint3& point)

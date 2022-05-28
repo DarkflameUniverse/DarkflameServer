@@ -16,6 +16,7 @@
 SimplePhysicsComponent::SimplePhysicsComponent(uint32_t componentID, Entity* parent) : Component(parent) {
     m_Position = m_Parent->GetDefaultPosition();
     m_Rotation = m_Parent->GetDefaultRotation();
+    m_CurrentRotationInRad = m_Rotation.GetEulerAngles();
     m_IsDirty = true;
 
     const auto& climbable_type = m_Parent->GetVar<std::u16string>(u"climbable");
@@ -72,6 +73,17 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIs
     }
 }
 
+void SimplePhysicsComponent::Update(float deltaTime) {
+    if (GetAngularVelocity() != NiPoint3::ZERO) {
+        m_CurrentRotationInRad = m_CurrentRotationInRad + (m_AngularVelocity * deltaTime);
+        m_Rotation = NiQuaternion::FromEulerAngles(m_CurrentRotationInRad);
+    }
+
+    if (GetVelocity() != NiPoint3::ZERO) {
+        m_Position = m_Position + (GetVelocity() * deltaTime);
+    }
+}
+
 uint32_t SimplePhysicsComponent::GetPhysicsMotionState() const
 {
     return m_PhysicsMotionState;
@@ -80,4 +92,9 @@ uint32_t SimplePhysicsComponent::GetPhysicsMotionState() const
 void SimplePhysicsComponent::SetPhysicsMotionState(uint32_t value)
 {
     m_PhysicsMotionState = value;
+}
+
+void SimplePhysicsComponent::SetRotationUnbound(NiPoint3 value) { 
+    m_CurrentRotationInRad = value;
+    SetRotation(NiQuaternion::FromEulerAngles(m_CurrentRotationInRad)); 
 }
