@@ -195,6 +195,14 @@ void Entity::Initialize()
 		RenderComponent* render = new RenderComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RENDER, render));
 
+		DestroyableComponent* destroyableComponent = new DestroyableComponent(this);
+		destroyableComponent->SetMaxHealth(1);
+		destroyableComponent->SetHealth(1);
+		destroyableComponent->SetArmor(1);
+		destroyableComponent->SetIsSmashable(true);
+		destroyableComponent->AddFaction(-1, true);
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_DESTROYABLE, destroyableComponent));
+
 		// We have all our components.
 		return; 
 	}
@@ -1950,8 +1958,6 @@ bool Entity::IsSleeping() const
 
 const NiPoint3& Entity::GetPosition() const
 {
-	if (!this) return NiPoint3::ZERO;
-
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr)
