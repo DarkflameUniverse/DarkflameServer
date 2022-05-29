@@ -306,9 +306,8 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
             modelComponent->AddYPositionCallback([modelComponent, changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
                 Game::logger->Log("strip", "Y Ending action (%s)\n", actionToExecute->actionName.c_str());
                 if (actionToExecuteIterator == actions.end()) {
-                    SetIsActive(false);
-                    modelComponent->CheckStarterBlocks();
                     if (this->actions.at(0)->actionName == "OnTimer") {
+                        SetIsActive(false);
                         EntityManager::Instance()->SerializeEntity(modelEntity);
                         modelComponent->GetParent()->AddCallbackTimer(this->actions.at(0)->parameterValueDouble, [modelComponent, this, originator](){
                             ExecuteStrip(modelComponent, originator);
@@ -322,10 +321,9 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
             modelComponent->AddXPositionCallback([modelComponent, changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
                 Game::logger->Log("strip", "X Ending action (%s)\n", actionToExecute->actionName.c_str());
                 if (actionToExecuteIterator == actions.end()) {
-                    SetIsActive(false);
-                    modelComponent->CheckStarterBlocks();
                     if (this->actions.at(0)->actionName == "OnTimer") {
                         EntityManager::Instance()->SerializeEntity(modelEntity);
+                        SetIsActive(false);
                         modelComponent->GetParent()->AddCallbackTimer(this->actions.at(0)->parameterValueDouble, [modelComponent, this, originator](){
                             ExecuteStrip(modelComponent, originator);
                         });
@@ -338,10 +336,9 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
             modelComponent->AddZPositionCallback([modelComponent, changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
                 Game::logger->Log("strip", "Z Ending action (%s)\n", actionToExecute->actionName.c_str());                
                 if (actionToExecuteIterator == actions.end()) {
-                    SetIsActive(false);
-                    modelComponent->CheckStarterBlocks();
                     if (this->actions.at(0)->actionName == "OnTimer") {
                         EntityManager::Instance()->SerializeEntity(modelEntity);
+                        SetIsActive(false);
                         modelComponent->GetParent()->AddCallbackTimer(this->actions.at(0)->parameterValueDouble, [modelComponent, this, originator](){
                             ExecuteStrip(modelComponent, originator);
                         });
@@ -354,9 +351,8 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
             modelComponent->AddYRotationCallback([modelComponent, changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
                 Game::logger->Log("strip", "Y rotation Ending action (%s)\n", actionToExecute->actionName.c_str());
                 if (actionToExecuteIterator == actions.end()) {
-                    SetIsActive(false);
-                    modelComponent->CheckStarterBlocks();
                     if (this->actions.at(0)->actionName == "OnTimer") {
+                        SetIsActive(false);
                         EntityManager::Instance()->SerializeEntity(modelEntity);
                         modelComponent->GetParent()->AddCallbackTimer(this->actions.at(0)->parameterValueDouble, [modelComponent, this, originator](){
                             ExecuteStrip(modelComponent, originator);
@@ -369,10 +365,11 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
         } else if (actionToExecute->actionName == "Tilt" || actionToExecute->actionName == "TiltNegative") {
             modelComponent->AddZRotationCallback([modelComponent, changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
                 Game::logger->Log("strip", "Z rotation Ending action (%s)\n", actionToExecute->actionName.c_str());
+
+                
                 if (actionToExecuteIterator == actions.end()) {
-                    SetIsActive(false);
-                    modelComponent->CheckStarterBlocks();
                     if (this->actions.at(0)->actionName == "OnTimer") {
+                        SetIsActive(false);
                         EntityManager::Instance()->SerializeEntity(modelEntity);
                         modelComponent->GetParent()->AddCallbackTimer(this->actions.at(0)->parameterValueDouble, [modelComponent, this, originator](){
                             ExecuteStrip(modelComponent, originator);
@@ -386,9 +383,8 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
             modelComponent->AddXRotationCallback([modelComponent, changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
                 Game::logger->Log("strip", "X rotation Ending action (%s)\n", actionToExecute->actionName.c_str());
                 if (actionToExecuteIterator == actions.end()) {
-                    SetIsActive(false);
-                    modelComponent->CheckStarterBlocks();
                     if (this->actions.at(0)->actionName == "OnTimer") {
+                        SetIsActive(false);
                         EntityManager::Instance()->SerializeEntity(modelEntity);
                         modelComponent->GetParent()->AddCallbackTimer(this->actions.at(0)->parameterValueDouble, [modelComponent, this, originator](){
                             ExecuteStrip(modelComponent, originator);
@@ -402,12 +398,12 @@ void BehaviorStrip::DoAction(std::vector<BehaviorAction *>::iterator actionToExe
             modelEntity->AddCallbackTimer(timerForNextAction, [changedVelocity, actionToExecuteIterator, actionToExecute, modelEntity, originator, this, changedAngularVelocity]() {
                 Game::logger->Log("strip", "Ending action (%s)\n", actionToExecute->actionName.c_str());
                 auto modelComponent = modelEntity->GetComponent<ModelComponent>();
+
                 EntityManager::Instance()->SerializeEntity(modelEntity);
                 if (actionToExecute->actionName == "UnSmash") modelComponent->SetSmashedState(false);
                 if (actionToExecuteIterator == actions.end()) {
-                    SetIsActive(false);
-                    modelComponent->CheckStarterBlocks();
                     if (this->actions.at(0)->actionName == "OnTimer") {
+                        SetIsActive(false);
                         modelComponent->GetParent()->AddCallbackTimer(this->actions.at(0)->parameterValueDouble, [modelComponent, this, originator](){
                             ExecuteStrip(modelComponent, originator);
                         });
