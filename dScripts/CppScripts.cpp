@@ -270,6 +270,7 @@
 #include "ImaginationBackpackHealServer.h"
 #include "LegoDieRoll.h"
 #include "BuccaneerValiantShip.h"
+#include "XMarksTheSpotChest.h"
 
 // Survival scripts
 #include "AgSurvivalStromling.h"
@@ -804,6 +805,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new LegoDieRoll();
   	else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
     	script = new BuccaneerValiantShip();
+    else if (scriptName == "scripts\\EquipmentScripts\\XMarksTheSpot1.lua")
+        script = new XMarksTheSpotChest();
 
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
