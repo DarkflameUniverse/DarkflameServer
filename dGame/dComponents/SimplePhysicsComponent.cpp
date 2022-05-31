@@ -8,6 +8,7 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "dpWorld.h"
+#include "ModelComponent.h"
 #include "CDClientManager.h"
 #include "CDPhysicsComponentTable.h"
 
@@ -49,10 +50,10 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIs
     }
 
     // Physics motion state
-    if (m_PhysicsMotionState != 0)
+    if (m_PhysicsMotionState != 0 || m_Parent->GetComponent<ModelComponent>())
     {
         outBitStream->Write1();
-        outBitStream->Write<uint32_t>(m_PhysicsMotionState);
+        outBitStream->Write<uint32_t>(m_Parent->GetComponent<ModelComponent>() ? 1 : m_PhysicsMotionState);
     }
     else
     {
