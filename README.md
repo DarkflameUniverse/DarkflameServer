@@ -105,6 +105,7 @@ cmake ..
 cmake --build .
 ```
 
+Once built you must also move all DLLs from `build/_deps/mysql-src/lib64` or else you encounter missing DLL errors
 
 ### Windows builds (WSL)
 This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11.
