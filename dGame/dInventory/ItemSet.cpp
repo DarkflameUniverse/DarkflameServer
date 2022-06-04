@@ -15,17 +15,17 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 
 	this->m_PassiveAbilities = ItemSetPassiveAbility::FindAbilities(id, m_InventoryComponent->GetParent(), this);
 
-	std::stringstream query;
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT skillSetWith2, skillSetWith3, skillSetWith4, skillSetWith5, skillSetWith6, itemIDs FROM ItemSets WHERE setID = ?;");
+	query.bind(1, (int) id);
 
-	query << "SELECT skillSetWith2, skillSetWith3, skillSetWith4, skillSetWith5, skillSetWith6, itemIDs FROM ItemSets WHERE setID = " << std::to_string(id);
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = query.execQuery();
 
 	if (result.eof())
 	{
 		return;
 	}
-	
+
 	for (auto i = 0; i < 5; ++i)
 	{
 		if (result.fieldIsNull(i))
@@ -33,11 +33,11 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 			continue;
 		}
 
-		std::stringstream skillQuery;
+		auto skillQuery = CDClientDatabase::CreatePreppedStmt(
+			"SELECT SkillID FROM ItemSetSkills WHERE SkillSetID = ?;");
+		skillQuery.bind(1, result.getIntField(i));
 
-		skillQuery << "SELECT SkillID FROM ItemSetSkills WHERE SkillSetID = " << std::to_string(result.getIntField(i));
-
-		auto skillResult = CDClientDatabase::ExecuteQuery(skillQuery.str());
+		auto skillResult = skillQuery.execQuery();
 
 		if (skillResult.eof())
 		{
@@ -49,10 +49,10 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 			if (skillResult.fieldIsNull(0))
 			{
 				skillResult.nextRow();
-				
+
 				continue;
 			}
-			
+
 			const auto skillId = skillResult.getIntField(0);
 
 			switch (i)
@@ -75,7 +75,7 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 			default:
 				break;
 			}
-			
+
 			skillResult.nextRow();
 		}
 	}
@@ -83,7 +83,7 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 	std::string ids = result.getStringField(5);
 
 	ids.erase(std::remove_if(ids.begin(), ids.end(), ::isspace), ids.end());
-	
+
 	std::istringstream stream(ids);
 	std::string token;
 
@@ -99,9 +99,9 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 			m_Items.push_back(value);
 		}
 	}
-	
+
 	m_Equipped = {};
-	
+
 	for (const auto item : m_Items)
 	{
 		if (inventoryComponent->IsEquipped(item))
@@ -141,11 +141,11 @@ void ItemSet::OnEquip(const LOT lot)
 
 	auto* skillComponent = m_InventoryComponent->GetParent()->GetComponent<SkillComponent>();
 	auto* missionComponent = m_InventoryComponent->GetParent()->GetComponent<MissionComponent>();
-	
+
 	for (const auto skill : skillSet)
 	{
 		auto* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
-		
+
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
 
 		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, skill);
@@ -167,11 +167,11 @@ void ItemSet::OnUnEquip(const LOT lot)
 	{
 		return;
 	}
-	
+
 	const auto& skillSet = GetSkillSet(m_Equipped.size());
 
 	m_Equipped.erase(index);
-	
+
 	if (skillSet.empty())
 	{
 		return;
@@ -199,7 +199,7 @@ uint32_t ItemSet::GetID() const
 	return m_ID;
 }
 
-void ItemSet::Update(float deltaTime) 
+void ItemSet::Update(float deltaTime)
 {
 	for (auto& passiveAbility : m_PassiveAbilities)
 	{
@@ -207,7 +207,7 @@ void ItemSet::Update(float deltaTime)
 	}
 }
 
-void ItemSet::TriggerPassiveAbility(PassiveAbilityTrigger trigger) 
+void ItemSet::TriggerPassiveAbility(PassiveAbilityTrigger trigger)
 {
 	for (auto& passiveAbility : m_PassiveAbilities)
 	{
