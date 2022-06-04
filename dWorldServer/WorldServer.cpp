@@ -821,6 +821,34 @@ void HandlePacket(Packet* packet) {
 				break;
 			}
 
+			case MSG_MASTER_RESPOND_ALL_INSTANCES: {
+				RakNet::BitStream inStream(packet->data, packet->length, false);
+				uint64_t header = inStream.Read(header);
+
+				uint64_t objectID;
+				uint32_t numberOfInstances;
+
+				inStream.Read(objectID);
+				inStream.Read(numberOfInstances);
+
+				auto player = EntityManager::Instance()->GetEntity(objectID);
+
+				if (!player) return;
+
+				for (uint32_t i = 0; i < numberOfInstances; i++) {
+					LWOMAPID zoneID;
+					LWOCLONEID cloneID;
+					LWOINSTANCEID instanceID;
+
+					inStream.Read(zoneID);
+					inStream.Read(cloneID);
+					inStream.Read(instanceID);
+					ChatPackets::SendSystemMessage(player->GetSystemAddress(), u"ZoneID: " + (GeneralUtils::to_u16string(zoneID)) + u"\nClone: " + (GeneralUtils::to_u16string(cloneID)) + u"\nInstance: " + (GeneralUtils::to_u16string(instanceID)));
+				}
+				break;
+			}
+
+
 			default:
 				Game::logger->Log("WorldServer", "Unknown packet ID from master %i\n", int(packet->data[3]));
 		}

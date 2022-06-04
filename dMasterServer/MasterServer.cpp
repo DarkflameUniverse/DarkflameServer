@@ -677,6 +677,68 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
+		case MSG_MASTER_SHUTDOWN_INSTANCE: {
+			RakNet::BitStream inStream(packet->data, packet->length, false);
+			uint64_t header = inStream.Read(header);
+
+			uint32_t zoneID;
+			uint16_t instanceID;
+
+			inStream.Read(zoneID);
+			inStream.Read(instanceID);
+
+			Game::logger->Log("MasterServer","Attempting to shutdown an zone %i instance %i via slash command\n", zoneID, instanceID);
+
+			auto* instance = Game::im->FindInstance(zoneID, instanceID);
+
+			if (instance) {
+				Game::logger->Log("MasterServer","Shutting down found instance\n");
+				instance->Shutdown();
+			} else {
+				Game::logger->Log("MasterServer","Failed to find instance!\n");
+			}
+			break;
+		}
+
+		case MSG_MASTER_GET_ALL_INSTANCES: {
+			RakNet::BitStream inStream(packet->data, packet->length, false);
+			uint64_t header = inStream.Read(header);
+
+			uint64_t objectID;
+			uint16_t instanceID;
+
+			inStream.Read(objectID);
+			inStream.Read(instanceID);
+
+			CBITSTREAM
+
+			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_RESPOND_ALL_INSTANCES);
+
+			bitStream.Write(objectID);
+
+			auto respondingSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+
+			auto instances = Game::im->GetInstances();
+
+			uint32_t numberOfInstances = instances.size();
+
+			bitStream.Write(numberOfInstances);
+
+			for (uint32_t i = 0; i < numberOfInstances; i++) {
+				bitStream.Write(instances[i]->GetZoneID().GetMapID());
+				bitStream.Write(instances[i]->GetZoneID().GetCloneID());
+				bitStream.Write(instances[i]->GetZoneID().GetInstanceID());
+				if (instances[i]->GetInstanceID() == instanceID) {
+					respondingSysAddr = instances[i]->GetSysAddr();
+				}
+			}
+
+			Game::server->Send(&bitStream, respondingSysAddr, false);
+
+			break;
+		}
+
+
 		default:
 			Game::logger->Log("MasterServer","Unknown master packet ID from server: %i\n",packet->data[3]);
 		}

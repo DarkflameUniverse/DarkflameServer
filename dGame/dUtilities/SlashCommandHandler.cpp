@@ -1350,6 +1350,51 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		ch->SetCoins(ch->GetCoins() + money, eLootSourceType::LOOT_SOURCE_MODERATION);
 	}
 
+	if (chatCommand == "killinstance" && args.size() >= 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
+	{	
+	uint32_t zoneID;
+	uint32_t instanceID;
+
+	if (!GeneralUtils::TryParse(args[0], zoneID))
+	{
+		ChatPackets::SendSystemMessage(sysAddr, u"Invalid zoneID.");
+		return;
+	}	
+
+	if (!GeneralUtils::TryParse(args[1], instanceID))
+	{
+		ChatPackets::SendSystemMessage(sysAddr, u"Invalid cloneID.");
+		return;
+	}
+
+	CBITSTREAM
+
+	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_INSTANCE);
+
+	bitStream.Write(zoneID);
+	bitStream.Write<uint16_t>(instanceID);
+
+	Game::server->SendToMaster(&bitStream);
+	
+	Game::logger->Log("Instance", "Triggered world shutdown\n");
+	}
+
+	if (chatCommand == "getallinstances" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
+	{
+		CBITSTREAM
+
+		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_GET_ALL_INSTANCES);
+
+		bitStream.Write(entity->GetObjectID());
+
+		const auto zoneId = dZoneManager::Instance()->GetZone()->GetZoneID();
+
+		bitStream.Write(zoneId.GetInstanceID());
+
+		Game::server->SendToMaster(&bitStream);
+	}
+
+
 	if ((chatCommand == "setcurrency") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		int32_t money;
 
