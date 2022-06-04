@@ -1403,21 +1403,36 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	Game::logger->Log("Instance", "Triggered world shutdown\n");
 	}
 
-	if (chatCommand == "getallinstances" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
+	if (chatCommand == "getinstances" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
 	{
 		CBITSTREAM
 
-		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_GET_ALL_INSTANCES);
+		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_GET_INSTANCES);
 
 		bitStream.Write(entity->GetObjectID());
 
+		if (args.size() >= 1) {
+			uint32_t zoneID;
+			if (!GeneralUtils::TryParse(args[0], zoneID))
+			{
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid zoneID");
+				return;
+			}
+			bitStream.Write(zoneID >= 0);
+			if (zoneID >= 0) {
+				bitStream.Write<uint16_t>(zoneID);
+			}
+		} else {
+			bitStream.Write0();
+		}
+
 		const auto zoneId = dZoneManager::Instance()->GetZone()->GetZoneID();
 
+		bitStream.Write(zoneId.GetMapID());
 		bitStream.Write(zoneId.GetInstanceID());
 
 		Game::server->SendToMaster(&bitStream);
 	}
-
 
 	if ((chatCommand == "setcurrency") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		int32_t money;

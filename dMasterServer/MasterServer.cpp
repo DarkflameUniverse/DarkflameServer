@@ -700,37 +700,41 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_GET_ALL_INSTANCES: {
+		case MSG_MASTER_GET_INSTANCES: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
 			uint64_t objectID;
-			uint16_t instanceID;
+			uint16_t zoneID = LWOMAPID_INVALID;
+			uint16_t respondingZoneID;
+			uint16_t respondingInstanceID;
 
 			inStream.Read(objectID);
-			inStream.Read(instanceID);
+			if (inStream.ReadBit()) inStream.Read(zoneID);
+			inStream.Read(respondingZoneID);
+			inStream.Read(respondingInstanceID);
 
 			CBITSTREAM
 
-			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_RESPOND_ALL_INSTANCES);
+			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_RESPOND_INSTANCES);
 
 			bitStream.Write(objectID);
 
-			auto respondingSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+			auto respondingSysAddr = Game::im->FindInstance(respondingZoneID, respondingInstanceID)->GetSysAddr();
 
-			auto instances = Game::im->GetInstances();
+			std::vector<Instance*> instances;
+			if (zoneID == LWOMAPID_INVALID) {
+				instances = Game::im->GetInstances();
+			} else {
+				instances = Game::im->FindInstancesByMapID(zoneID);
+			}
 
-			uint32_t numberOfInstances = instances.size();
+			bitStream.Write<uint32_t>(instances.size());
 
-			bitStream.Write(numberOfInstances);
-
-			for (uint32_t i = 0; i < numberOfInstances; i++) {
+			for (uint32_t i = 0; i < instances.size(); i++) {
 				bitStream.Write(instances[i]->GetZoneID().GetMapID());
 				bitStream.Write(instances[i]->GetZoneID().GetCloneID());
 				bitStream.Write(instances[i]->GetZoneID().GetInstanceID());
-				if (instances[i]->GetInstanceID() == instanceID) {
-					respondingSysAddr = instances[i]->GetSysAddr();
-				}
 			}
 
 			Game::server->Send(&bitStream, respondingSysAddr, false);
