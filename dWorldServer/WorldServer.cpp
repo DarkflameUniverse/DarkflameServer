@@ -821,7 +821,7 @@ void HandlePacket(Packet* packet) {
 				break;
 			}
 
-			case MSG_MASTER_RESPOND_ALL_INSTANCES: {
+			case MSG_MASTER_RESPOND_INSTANCES: {
 				RakNet::BitStream inStream(packet->data, packet->length, false);
 				uint64_t header = inStream.Read(header);
 
@@ -843,7 +843,7 @@ void HandlePacket(Packet* packet) {
 					inStream.Read(zoneID);
 					inStream.Read(cloneID);
 					inStream.Read(instanceID);
-					ChatPackets::SendSystemMessage(player->GetSystemAddress(), u"ZoneID: " + (GeneralUtils::to_u16string(zoneID)) + u"\nClone: " + (GeneralUtils::to_u16string(cloneID)) + u"\nInstance: " + (GeneralUtils::to_u16string(instanceID)));
+					ChatPackets::SendSystemMessage(player->GetSystemAddress(), u"<ZoneID: " + (GeneralUtils::to_u16string(zoneID)) + u" Clone: " + (GeneralUtils::to_u16string(cloneID)) + u" Instance: " + (GeneralUtils::to_u16string(instanceID)) + u">");
 				}
 				break;
 			}

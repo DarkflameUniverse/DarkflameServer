@@ -298,6 +298,17 @@ Instance * InstanceManager::FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceI
 	return nullptr;
 }
 
+std::vector<Instance*> InstanceManager::FindInstancesByMapID(LWOMAPID mapID) {
+	std::vector<Instance*> instances;
+	for (Instance* instance : m_Instances) {
+		if (instance && instance->GetMapID() == mapID) {
+			instances.push_back(instance);
+		}
+	}
+
+	return instances;
+}
+
 Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password)
 {
 	auto* instance = FindPrivateInstance(password);
