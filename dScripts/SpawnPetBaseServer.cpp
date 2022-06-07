@@ -55,7 +55,7 @@ bool SpawnPetBaseServer::CheckNumberOfPets(Entity *self, Entity* user) {
         if (petID.empty())
             continue;
 
-        const auto* spawnedPet = EntityManager::Instance()->GetEntity(std::stol(petID));
+        const auto* spawnedPet = EntityManager::Instance()->GetEntity(std::stoull(petID));
         if (spawnedPet == nullptr)
             continue;
 
