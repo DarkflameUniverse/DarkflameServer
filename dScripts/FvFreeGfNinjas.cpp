@@ -7,10 +7,10 @@ void FvFreeGfNinjas::OnMissionDialogueOK(Entity *self, Entity *target, int missi
         if (missionComponent == nullptr)
             return;
 
-        missionComponent->AcceptMission(701);
-        missionComponent->AcceptMission(702);
-        missionComponent->AcceptMission(703);
-        missionComponent->AcceptMission(704);
+        missionComponent->AcceptMission(701, true);
+        missionComponent->AcceptMission(702, true);
+        missionComponent->AcceptMission(703, true);
+        missionComponent->AcceptMission(704, true);
 
         auto* character = target->GetCharacter();
         if (character != nullptr)
