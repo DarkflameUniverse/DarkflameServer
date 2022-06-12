@@ -208,7 +208,8 @@ void InventoryComponent::AddItem(
 
 	auto stack = static_cast<uint32_t>(info.stackSize);
 
-	if (inventoryType == eInventoryType::BRICKS)
+	// info.itemType of 1 is item type brick
+	if (inventoryType == eInventoryType::BRICKS || (stack == 0 && info.itemType == 1))
 	{
 		stack = 999;
 	}
