@@ -696,9 +696,9 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 	if (owner != nullptr)
 	{
-		auto* team = TeamManager::Instance()->GetTeam(owner->GetObjectID());
-
 		owner = owner->GetOwner(); // If the owner is overwritten, we collect that here
+
+		auto* team = TeamManager::Instance()->GetTeam(owner->GetObjectID());
 
 		const auto isEnemy = m_Parent->GetComponent<BaseCombatAIComponent>() != nullptr;
 
