@@ -354,8 +354,6 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 		while (left > 0)
 		{
-			item = origin->FindItemByLot(lot, ignoreEquipped);
-
 			if (item == nullptr)
 			{
 				item = origin->FindItemByLot(lot, false);
