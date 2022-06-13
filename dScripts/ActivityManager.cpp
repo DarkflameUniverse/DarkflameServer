@@ -48,7 +48,7 @@ float_t ActivityManager::GetActivityValue(Entity *self, const LWOOBJID playerID,
 }
 
 void ActivityManager::StopActivity(Entity *self, const LWOOBJID playerID, const uint32_t score,
-                                   const uint32_t value1, const uint32_t value2, bool quit, bool givingActivityLoot) {
+                                   const uint32_t value1, const uint32_t value2, bool quit) {
     int32_t gameID = 0;
     
     auto* sac = self->GetComponent<ScriptedActivityComponent>();
@@ -70,7 +70,7 @@ void ActivityManager::StopActivity(Entity *self, const LWOOBJID playerID, const 
         SetActivityValue(self, playerID, 1, value1);
         SetActivityValue(self, playerID, 2, value2);
 
-        if (givingActivityLoot) LootGenerator::Instance().GiveActivityLoot(player, self, gameID, CalculateActivityRating(self, playerID));
+        LootGenerator::Instance().GiveActivityLoot(player, self, gameID, CalculateActivityRating(self, playerID));
 
         // Save the new score to the leaderboard and show the leaderboard to the player
         LeaderboardManager::SaveScore(playerID, gameID, score, value1);
