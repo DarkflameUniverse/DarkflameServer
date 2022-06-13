@@ -17,7 +17,7 @@ public:
     static float_t GetActivityValue(Entity *self, LWOOBJID playerID, uint32_t valueIndex) ;
     static bool TakeActivityCost(const Entity* self, LWOOBJID playerID);
     static uint32_t GetActivityID(const Entity* self);
-    void StopActivity(Entity *self, LWOOBJID playerID, uint32_t score, uint32_t value1 = 0, uint32_t value2 = 0, bool quit = false, bool givingActivityLoot = true);
+    void StopActivity(Entity *self, LWOOBJID playerID, uint32_t score, uint32_t value1 = 0, uint32_t value2 = 0, bool quit = false);
     virtual uint32_t CalculateActivityRating(Entity* self, LWOOBJID playerID);
     static void GetLeaderboardData(Entity *self, LWOOBJID playerID, uint32_t activityID, uint32_t numResults = 0);
 //    void FreezePlayer(Entity *self, const LWOOBJID playerID, const bool state) const;
