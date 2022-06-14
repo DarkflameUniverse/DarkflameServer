@@ -17,7 +17,11 @@ using namespace dChatFilterDCF;
 
 dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 	m_DontGenerateDCF = dontGenerateDCF;
-	m_UseWhitelist = bool(std::stoi(Game::config->GetValue("use_chat_words_as_whitelist")));
+    if (Game::config->GetValue("use_chat_words_as_whitelist") == "") {
+        m_UseWhitelist = true;
+	} else {
+        m_UseWhitelist = bool(std::stoi(Game::config->GetValue("use_chat_words_as_whitelist")));
+	}
 
 	if (!BinaryIO::DoesFileExist(filepath + ".dcf") || m_DontGenerateDCF) {
 		ReadWordlistPlaintext(filepath + ".txt");
