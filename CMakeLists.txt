@@ -395,6 +395,7 @@ add_library(dPhysics ${SOURCES_DPHYSICS})
 target_link_libraries(dNet dCommon) #Needed because otherwise linker errors occur.
 target_link_libraries(dCommon ZLIB::ZLIB)
 target_link_libraries(dCommon libbcrypt)
+target_link_libraries(dZoneManager dGame)
 
 if(WIN32)
 target_link_libraries(raknet ws2_32)
