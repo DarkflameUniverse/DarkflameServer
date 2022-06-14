@@ -99,7 +99,7 @@ void NjMonastryBossInstance::OnPlayerExit(Entity *self, Entity *player) {
 void NjMonastryBossInstance::OnActivityTimerDone(Entity *self, const std::string &name) {
     auto split = GeneralUtils::SplitString(name, TimerSplitChar);
     auto timerName = split[0];
-    auto objectID = split.size() > 1 ? (LWOOBJID) std::stol(split[1]) : LWOOBJID_EMPTY;
+    auto objectID = split.size() > 1 ? (LWOOBJID) std::stoull(split[1]) : LWOOBJID_EMPTY;
 
     if (timerName == WaitingForPlayersTimer) {
         StartFight(self);

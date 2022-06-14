@@ -104,6 +104,7 @@ These commands are primarily for development and testing. The usage of many of t
 |tpall|`/tpall`|Teleports all characters to your current position.|8|
 |triggerspawner|`/triggerspawner <spawner name>`|Triggers spawner by name.|8|
 |unlock-emote|`/unlock-emote <emote id>`|Unlocks for your character the emote of the given id.|8|
+|Set Level|`/setlevel <requested_level> (username)`|Sets the using entities level to the requested level.  Takes an optional parameter of an in-game players username to set the level of.|8|
 |crash|`/crash`|Crashes the server.|9|
 |rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Rolls loot matrix.|9|
 
