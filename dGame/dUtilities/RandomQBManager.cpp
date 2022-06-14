@@ -90,6 +90,8 @@ void RandomQBManager::ChanceALocation(uint32_t locId) {
 
 void RandomQBManager::ClearLocation(uint32_t locId) {
     auto* location = this->GetLocById(locId);
+
+    GameMessages::SendDieNoImplCode(EntityManager::Instance()->GetEntity(location->spawnedObject), LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
     
     EntityManager::Instance()->DestroyEntity(location->spawnedObject);
     

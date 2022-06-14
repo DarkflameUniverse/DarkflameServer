@@ -337,6 +337,11 @@ private:
 	float m_SoftTimer = 0;
 
     /**
+     * Whether build should explode
+     */
+    bool m_DoReset = true;
+
+    /**
      * The ID of the entity that's currently building the rebuild
      */
 	LWOOBJID m_Builder = LWOOBJID_EMPTY;

@@ -16,6 +16,7 @@
 #include "EntityCallbackTimer.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
+#include "GameMessages.h"
 
 struct RandomQuickBuild {
     uint32_t id; // Handed out at runtime

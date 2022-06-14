@@ -134,6 +134,8 @@ void RebuildComponent::Update(float deltaTime) {
 		break;
 	}
 	case REBUILD_COMPLETED: {
+       if (!m_DoReset) break;
+
 		m_Timer += deltaTime;
 
 		// For reset times < 0 this has to be handled manually
