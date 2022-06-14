@@ -3,7 +3,8 @@
 #include "Zone.h"
 #include "Spawner.h"
 #include <map>
-#include "RandomQBManager.h"
+
+class RandomQBManager;
 
 class dZoneManager {
 public:

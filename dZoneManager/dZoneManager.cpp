@@ -9,6 +9,7 @@
 #include "GameMessages.h"
 #include "VanityUtilities.h"
 #include <chrono>
+#include "RandomQBManager.h"
 
 #include "../dWorldServer/ObjectIDManager.h"
 
