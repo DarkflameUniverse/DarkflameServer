@@ -39,6 +39,14 @@ void RandomQBManager::ApplyQBToLocation(uint32_t qbId, uint32_t locId) {
     auto* entity = EntityManager::Instance()->CreateEntity(info);
     EntityManager::Instance()->ConstructEntity(entity);
 
+    auto* rebuildComp = entity->GetComponent<RebuildComponent>();
+
+    if (rebuildComp) {
+        if (rebuildComp->GetDoReset()) {
+            rebuildComp->SetDoReset(false);
+        }
+    }
+
     loc->spawnedObject = entity->GetObjectID();
 
     EntityCallbackTimer* timer = new EntityCallbackTimer(loc->length, [this, loc]() {

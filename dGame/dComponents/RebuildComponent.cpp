@@ -577,3 +577,11 @@ void RebuildComponent::AddRebuildCompleteCallback(const std::function<void(Entit
 void RebuildComponent::AddRebuildStateCallback(const std::function<void(eRebuildState state)>& callback) {
     m_RebuildStateCallbacks.push_back(callback);
 }
+
+void RebuildComponent::SetDoReset(bool doReset) {
+	m_DoReset = doReset;
+}
+
+bool RebuildComponent::GetDoReset() {
+    return m_DoReset;
+}
