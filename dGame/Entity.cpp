@@ -975,6 +975,8 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 		}
 		else outBitStream->Write0(); //No GM Level
 	}
+	
+	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
 	outBitStream->Write((m_ParentEntity != nullptr || m_ChildEntities.size() > 0) && (m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION));
 	if ((m_ParentEntity != nullptr || m_ChildEntities.size() > 0) && (m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION)) {
 		m_IsParentChildDirty = false;

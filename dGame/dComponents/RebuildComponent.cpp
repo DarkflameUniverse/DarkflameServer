@@ -23,6 +23,8 @@ RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
 		m_Precondition = new PreconditionExpression(GeneralUtils::UTF16ToWTF8(checkPreconditions));
 	}
 
+	// Should a setting that has the build activator position exist, fetch that setting here and parse it for position.
+	// It is assumed that the user who sets this setting uses the correct character delimiter (character 31)
 	auto positionAsVector = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rebuild_activators"), 31);
 	if (positionAsVector.size() == 3) {
 		m_ActivatorPosition.x = std::stof(positionAsVector[0]);
