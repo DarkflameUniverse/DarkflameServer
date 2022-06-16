@@ -562,19 +562,6 @@ void Entity::Initialize()
 			comp->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
 			comp->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
 
-			const auto rebuildActivatorValue = GetVarAsString(u"rebuild_activators");
-
-			if (!rebuildActivatorValue.empty()) {
-				std::vector<std::string> split = GeneralUtils::SplitString(rebuildActivatorValue, 0x1f);
-				NiPoint3 pos;
-
-				pos.x = std::stof(split[0]);
-				pos.y = std::stof(split[1]);
-				pos.z = std::stof(split[2]);
-
-				comp->SetActivatorPosition(pos);
-			}
-
 			const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
 
 			if (rebuildResetTime != 0.0f) {
@@ -977,8 +964,8 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 	}
 	
 	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
-	outBitStream->Write((m_ParentEntity != nullptr || m_ChildEntities.size() > 0) && (m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION));
-	if ((m_ParentEntity != nullptr || m_ChildEntities.size() > 0) && (m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION)) {
+	outBitStream->Write(m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION);
+	if (m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION) {
 		m_IsParentChildDirty = false;
 		outBitStream->Write(m_ParentEntity != nullptr);
 		if (m_ParentEntity) {

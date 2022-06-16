@@ -24,15 +24,17 @@ RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
 	}
 
 	// Should a setting that has the build activator position exist, fetch that setting here and parse it for position.
-	// It is assumed that the user who sets this setting uses the correct character delimiter (character 31)
-	auto positionAsVector = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rebuild_activators"), 31);
-	if (positionAsVector.size() == 3) {
-		m_ActivatorPosition.x = std::stof(positionAsVector[0]);
-		m_ActivatorPosition.y = std::stof(positionAsVector[1]);
-		m_ActivatorPosition.z = std::stof(positionAsVector[2]);
+	// It is assumed that the user who sets this setting uses the correct character delimiter (character 31 or in hex 0x1F)
+	auto positionAsVector = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rebuild_activators"), 0x1F);
+	if (positionAsVector.size() == 3 && 
+		GeneralUtils::TryParse(positionAsVector[0], m_ActivatorPosition.x) &&
+		GeneralUtils::TryParse(positionAsVector[1], m_ActivatorPosition.y) && 
+		GeneralUtils::TryParse(positionAsVector[2], m_ActivatorPosition.z)) {
 	} else {
+		Game::logger->Log("RebuildComponent", "Failed to find activator position for lot %i.  Defaulting to parents position.\n", m_Parent->GetLOT());
 		m_ActivatorPosition = m_Parent->GetPosition();
 	}
+
 	SpawnActivator();
 }
 
