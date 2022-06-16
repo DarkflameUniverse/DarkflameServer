@@ -22,6 +22,16 @@ RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
 	{
 		m_Precondition = new PreconditionExpression(GeneralUtils::UTF16ToWTF8(checkPreconditions));
 	}
+
+	auto positionAsVector = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rebuild_activators"), 31);
+	if (positionAsVector.size() == 3) {
+		m_ActivatorPosition.x = std::stof(positionAsVector[0]);
+		m_ActivatorPosition.y = std::stof(positionAsVector[1]);
+		m_ActivatorPosition.z = std::stof(positionAsVector[2]);
+	} else {
+		m_ActivatorPosition = m_Parent->GetPosition();
+	}
+	SpawnActivator();
 }
 
 RebuildComponent::~RebuildComponent() {
