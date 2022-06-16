@@ -1,0 +1,11 @@
+<qbs>
+	<qb name="one" lot="35005" size="large"/>
+	<qb name="two" lot="35003" size="large"/>
+	<qb name="three" lot="35004" size="large"/>
+	<qb name="four" lot="35001" size="large"/>
+	<qb name="five" lot="35002" size="large"/>
+</qbs>
+<locs>
+	<loc name="default" size="large" x="-11.567" y="291.837" z="-129.477" rx="0" ry="0" rz="0" rw="0" length="10" wait="10" chance="100"/>
+</locs>
+

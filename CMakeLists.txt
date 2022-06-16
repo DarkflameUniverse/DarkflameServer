@@ -153,6 +153,19 @@ if (NOT EXISTS ${PROJECT_BINARY_DIR}/masterconfig.ini)
     )
 endif()
 
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/qbs/)
+file(GLOB QB_FILES ${CMAKE_SOURCE_DIR}/qbs/*.xml)
+foreach (file ${QB_FILES})
+    get_filename_component(file ${file} NAME)
+    if (NOT EXISTS ${PROJECT_BINARY_DIR}/qbs/${file}) 
+        configure_file(
+            ${CMAKE_SOURCE_DIR}/qbs/${file} ${PROJECT_BINARY_DIR}/qbs/${file}
+            COPYONLY
+        )
+    endif()
+endforeach()
+
+
 # Copy files to output
 configure_file("${CMAKE_SOURCE_DIR}/vanity/CREDITS.md" "${CMAKE_BINARY_DIR}/vanity/CREDITS.md" COPYONLY)
 configure_file("${CMAKE_SOURCE_DIR}/vanity/INFO.md" "${CMAKE_BINARY_DIR}/vanity/INFO.md" COPYONLY)
