@@ -322,6 +322,8 @@ protected:
 
 	int8_t m_Observers = 0;
 
+	bool m_IsParentChildDirty = true;
+
 	/*
 	 * Collision
 	 */
