@@ -1330,6 +1330,74 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_MODERATION);
 	}
 
+	if ((chatCommand == "setlevel") && args.size() >= 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
+	{
+		// We may be trying to set a specific players level to a level.  If so override the entity with the requested players.
+		std::string requestedPlayerToSetLevelOf = "";
+		if (args.size() > 1) {
+			requestedPlayerToSetLevelOf = args[1];
+
+			auto requestedPlayer = Player::GetPlayer(requestedPlayerToSetLevelOf);
+
+			if (!requestedPlayer) {
+				ChatPackets::SendSystemMessage(sysAddr, u"No player found with username: (" + GeneralUtils::ASCIIToUTF16(requestedPlayerToSetLevelOf) + u").");
+				return;
+			}
+
+			if (!requestedPlayer->GetOwner()) {
+				ChatPackets::SendSystemMessage(sysAddr, u"No entity found with username: (" + GeneralUtils::ASCIIToUTF16(requestedPlayerToSetLevelOf) + u").");
+				return;
+			}
+
+			entity = requestedPlayer->GetOwner();
+		}
+		uint32_t requestedLevel;
+		uint32_t oldLevel;
+		// first check the level is valid
+
+		if (!GeneralUtils::TryParse(args[0], requestedLevel))
+		{
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid level.");
+			return;
+		}
+		// query to set our uscore to the correct value for this level
+
+		auto characterComponent = entity->GetComponent<CharacterComponent>();
+		auto query = CDClientDatabase::CreatePreppedStmt("SELECT requiredUScore from LevelProgressionLookup WHERE id = ?;");
+		query.bind(1, (int)requestedLevel);
+		auto result = query.execQuery();
+
+		if (result.eof()) return;
+
+		// Set the UScore first
+		oldLevel = characterComponent->GetLevel();
+		characterComponent->SetUScore(result.getIntField(0, characterComponent->GetUScore()));
+
+		// handle level up for each level we have passed if we set our level to be higher than the current one.
+		if (oldLevel < requestedLevel) {
+			while (oldLevel < requestedLevel) {
+				oldLevel+=1;
+				characterComponent->SetLevel(oldLevel);
+				characterComponent->HandleLevelUp();
+			}
+		} else {
+			characterComponent->SetLevel(requestedLevel);
+		}
+
+		if (requestedPlayerToSetLevelOf != "") {
+		ChatPackets::SendSystemMessage(
+			sysAddr, u"Set " + GeneralUtils::ASCIIToUTF16(requestedPlayerToSetLevelOf) + u"'s level to " + GeneralUtils::to_u16string(requestedLevel) + 
+			u" and UScore to " + GeneralUtils::to_u16string(characterComponent->GetUScore()) + 
+			u". Relog to see changes.");
+		} else {
+		ChatPackets::SendSystemMessage(
+			sysAddr, u"Set your level to " + GeneralUtils::to_u16string(requestedLevel) + 
+			u" and UScore to " + GeneralUtils::to_u16string(characterComponent->GetUScore()) + 
+			u". Relog to see changes.");
+		}
+		return;
+	}
+
 	if (chatCommand == "pos" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		const auto position = entity->GetPosition();
 
