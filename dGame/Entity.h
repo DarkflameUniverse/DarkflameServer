@@ -143,6 +143,7 @@ public:
 	void SetProximityRadius(dpEntity* entity, std::string name);
 
 	void AddChild(Entity* child);
+	void RemoveChild(Entity* child);
 	void AddTimer(std::string name, float time);
 	void AddCallbackTimer(float time, std::function<void()> callback);
 	bool HasTimer(const std::string& name);

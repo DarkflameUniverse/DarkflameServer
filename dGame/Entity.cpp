@@ -125,6 +125,9 @@ Entity::~Entity() {
 
 		m_Components.erase(pair.first);
 	}
+	if (m_ParentEntity) {
+		m_ParentEntity->RemoveChild(this);
+	}
 }
 
 void Entity::Initialize()
@@ -1654,6 +1657,17 @@ void Entity::RegisterCoinDrop(uint64_t count) {
 void Entity::AddChild(Entity* child) {
 	m_IsParentChildDirty = true;
 	m_ChildEntities.push_back(child);
+}
+
+void Entity::RemoveChild(Entity* child) {
+	if (!child) return;
+	for (auto entity = m_ChildEntities.begin(); entity != m_ChildEntities.end(); entity++) {
+		if (*entity && (*entity)->GetObjectID() == child->GetObjectID()) {
+			m_IsParentChildDirty = true;
+			m_ChildEntities.erase(entity);
+			return;
+		}
+	}
 }
 
 void Entity::AddTimer(std::string name, float time) {
