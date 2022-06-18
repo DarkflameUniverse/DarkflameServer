@@ -33,6 +33,10 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 	this->m_Consumable = LOT_NULL;
 	this->m_Pets = {};
 
+	this->RegisterGM(MoveItemInInventory::GetId(), (Handler)&InventoryComponent::HandleMoveItemInInventory);
+	this->RegisterGM(RemoveItemFromInventory::GetId(), (Handler)&InventoryComponent::HandleRemoveItemFromInventory);
+	this->RegisterGM(EquipItem::GetId(), (Handler)&InventoryComponent::HandleEquipItem);
+
 	const auto lot = parent->GetLOT();
 
 	if (lot == 1)
@@ -1786,4 +1790,52 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument* document)
 
 		petInventoryElement->LinkEndChild(petElement);
 	}
+}
+
+void InventoryComponent::HandleMoveItemInInventory(MoveItemInInventory* msg) {
+	auto* item = this->FindItemById(msg->iObjID);
+
+	if (!item) return;
+
+	this->MoveStack(item, static_cast<eInventoryType>(msg->destInvType), msg->slot);
+	EntityManager::Instance()->SerializeEntity(msg->associate);
+}
+
+void InventoryComponent::HandleRemoveItemFromInventory(RemoveItemFromInventory* msg) {
+	auto* item = this->FindItemById(msg->iObjID);
+
+	if (item == nullptr)
+	{
+		return;
+	}
+
+	msg->iStackCount = std::min<uint32_t>(item->GetCount(), msg->iStackCount);
+
+	if (msg->bConfirmed) {
+		for (auto i = 0; i < msg->iStackCount; ++i) {
+			if (msg->eInvType == eInventoryType::MODELS)
+			{
+				item->DisassembleModel();
+			}
+		}
+
+		item->SetCount(item->GetCount() - msg->iStackCount, true);
+		EntityManager::Instance()->SerializeEntity(msg->associate);
+
+		auto* missionComponent = msg->associate->GetComponent<MissionComponent>();
+
+		if (missionComponent != nullptr)
+		{
+			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, item->GetLot(), LWOOBJID_EMPTY, "", -msg->iStackCount);
+		}
+	}
+}
+
+void InventoryComponent::HandleEquipItem(class EquipItem* msg) {
+	Item* item = this->FindItemById(msg->objectID);
+	if (!item) return;
+
+	item->Equip();
+
+	EntityManager::Instance()->SerializeEntity(msg->associate);
 }

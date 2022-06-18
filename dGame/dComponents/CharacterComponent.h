@@ -10,6 +10,8 @@
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
 
+#include "Client/PlayEmote.h"
+
 /**
  * The statistics that can be achieved per zone
  */
@@ -296,6 +298,8 @@ public:
      * Character info regarding this character, including clothing styles, etc.
      */
     Character* m_Character;
+
+    void HandlePlayEmote(PlayEmote* msg);
 private:
     
 

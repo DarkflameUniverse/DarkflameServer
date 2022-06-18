@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../thirdparty/tinyxml2/tinyxml2.h"
+#include "GameMessage.h"
 
 class Entity;
 
@@ -43,10 +44,17 @@ public:
      */
     virtual void LoadFromXml(tinyxml2::XMLDocument* doc);
 
+    using Handler = void(Component::*)(GameMessage*);
+    inline void RegisterGM(uint32_t id, Handler handler) { m_Handlers.insert({ id, handler }); }
+
+    std::unordered_map<uint32_t, Handler> GetHandlers() { return m_Handlers; }
+
 protected:
 
     /**
      * The entity that owns this component
      */
     Entity* m_Parent;
+
+    std::unordered_map<uint32_t, Handler> m_Handlers = std::unordered_map<uint32_t, Handler>();
 };

@@ -16,6 +16,9 @@
 #include "ItemSetPassiveAbility.h"
 #include "ItemSetPassiveAbilityID.h"
 #include "PossessorComponent.h"
+#include "Client/MoveItemInInventory.h"
+#include "Client/RemoveItemFromInventory.h"
+#include "Client/EquipItem.h"
 
 class Entity;
 class ItemSet;
@@ -340,6 +343,10 @@ public:
 	static uint32_t FindSkill(LOT lot);
 	
 	~InventoryComponent() override;
+
+    void HandleMoveItemInInventory(MoveItemInInventory* msg);
+    void HandleRemoveItemFromInventory(RemoveItemFromInventory* msg);
+    void HandleEquipItem(class EquipItem* msg);
 	
 private:
     /**

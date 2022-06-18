@@ -39,6 +39,8 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
 
+	RegisterGM(PlayEmote::GetId(), (Handler)&CharacterComponent::HandlePlayEmote);
+
 	LoadFromXML();
 
 	//Check to see if we're landing:
@@ -792,4 +794,49 @@ ZoneStatistics& CharacterComponent::GetZoneStatisticsForMap(LWOMAPID mapID) {
     if (stats == m_ZoneStatistics.end())
         m_ZoneStatistics.insert({ mapID, {0, 0, 0, 0, 0 } });
     return m_ZoneStatistics.at(mapID);
+}
+
+void CharacterComponent::HandlePlayEmote(PlayEmote* msg) {
+	Game::logger->Log("GameMessages", "Emote (%i) (%llu)\n", msg->emoteID, msg->targetID);
+	
+	if (msg->emoteID == 0) return;
+	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
+
+	MissionComponent* mission = static_cast<MissionComponent*>(msg->associate->GetComponent(COMPONENT_TYPE_MISSION));
+	if (mission) {
+		mission->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, msg->emoteID, msg->targetID);
+	}
+
+	if (msg->targetID != LWOOBJID_EMPTY)
+	{
+		auto* targetEntity = EntityManager::Instance()->GetEntity(msg->targetID);
+
+		Game::logger->Log("GameMessages", "Emote target found (%d)\n", targetEntity != nullptr);
+
+		if (targetEntity != nullptr)
+		{
+			targetEntity->OnEmoteReceived(msg->emoteID, msg->associate);
+		}
+	}
+	else
+	{
+		const auto scriptedEntities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPT);
+
+		const auto& referencePoint = msg->associate->GetPosition();
+
+		for (auto* scripted : scriptedEntities)
+		{
+			if (Vector3::DistanceSquared(scripted->GetPosition(), referencePoint) > 5.0f * 5.0f) continue;
+
+			scripted->OnEmoteReceived(msg->emoteID, msg->associate);
+		}
+	}
+
+	CDEmoteTableTable* emotes = CDClientManager::Instance()->GetTable<CDEmoteTableTable>("EmoteTable");
+	if (emotes) {
+		CDEmoteTable* emote = emotes->GetEmote(msg->emoteID);
+		if (emote) sAnimationName = emote->animationName;
+	}
+
+	GameMessages::SendPlayAnimation(msg->associate, GeneralUtils::ASCIIToUTF16(sAnimationName));
 }

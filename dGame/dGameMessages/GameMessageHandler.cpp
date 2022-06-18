@@ -27,6 +27,11 @@
 #include "SkillComponent.h"
 #include "RacingControlComponent.h"
 
+#include "Client/PlayEmote.h"
+#include "Client/MoveItemInInventory.h"
+#include "Client/RemoveItemFromInventory.h"
+#include "Client/EquipItem.h"
+
 using namespace std;
 
 void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, GAME_MSG messageID) {
@@ -38,6 +43,8 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	User * usr = UserManager::Instance()->GetUser(sysAddr);
 
+	GameMessage* returnMessage = nullptr;
+
     if (!entity)
     {
 		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!\n", objectID, messageID);
@@ -47,24 +54,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
     switch (messageID) {
 
-        case GAME_MSG_PLAY_EMOTE: {
-            GameMessages::HandlePlayEmote(inStream, entity);
-            break;
-        }
+		case GAME_MSG_PLAY_EMOTE: returnMessage = new PlayEmote(); break;
+		case GAME_MSG_MOVE_ITEM_IN_INVENTORY: returnMessage = new MoveItemInInventory(); break;
+		case GAME_MSG_REMOVE_ITEM_FROM_INVENTORY: returnMessage = new RemoveItemFromInventory(); break;
+		case GAME_MSG_EQUIP_ITEM: returnMessage = new EquipItem(); break;
 
-		case GAME_MSG_MOVE_ITEM_IN_INVENTORY: {
-			GameMessages::HandleMoveItemInInventory(inStream, entity);
-			break;
-		}
-
-		case GAME_MSG_REMOVE_ITEM_FROM_INVENTORY: {
-			GameMessages::HandleRemoveItemFromInventory(inStream, entity, sysAddr);
-			break;
-		}
-
-		case GAME_MSG_EQUIP_ITEM:
-			GameMessages::HandleEquipItem(inStream, entity);
-			break;
 
 		case GAME_MSG_UN_EQUIP_ITEM:
 			GameMessages::HandleUnequipItem(inStream, entity);
@@ -234,13 +228,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		case GAME_MSG_REQUEST_RESURRECT: {
 			GameMessages::SendResurrect(entity);
-			/*auto* dest = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
-			if (dest) {
-				dest->SetHealth(4);
-				dest->SetArmor(0);
-				dest->SetImagination(6);
-				EntityManager::Instance()->SerializeEntity(entity);
-			}*/
 			break;
 		}
 
@@ -653,4 +640,21 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
             //Game::logger->Log("GameMessageHandler", "Unknown game message ID: %X\n", messageID);
 			break;
     }
+
+	if (returnMessage) {
+		returnMessage->Deserialize(inStream);
+		returnMessage->associate = entity;
+
+		for (const auto& pair : entity->GetComponents()) {
+			auto* comp = pair.second;
+
+			for (const auto& handlerPair : comp->GetHandlers()) {
+				if (handlerPair.first == messageID) {
+					(comp->*(handlerPair.second))(returnMessage);
+				}
+			}
+		}
+
+		delete returnMessage;
+	}
 }

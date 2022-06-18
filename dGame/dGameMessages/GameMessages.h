@@ -431,13 +431,10 @@ namespace GameMessages {
 	void HandleSellToVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleParseChatMessage(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-    void HandleToggleGhostReffrenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-    void HandleSetGhostReffrenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
     void HandleFireEventServerSide(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
     void HandleRequestPlatformResync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleRebuildCancel(RakNet::BitStream* inStream, Entity* entity);
     void HandleRequestUse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-    void HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity);
 	void HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
     void HandleSetFlag(RakNet::BitStream* inStream, Entity* entity);
     void HandleRespondToMission(RakNet::BitStream* inStream, Entity* entity);
@@ -447,10 +444,7 @@ namespace GameMessages {
 	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream* inStream, Entity* entity);
 	void HandlePickupCurrency(RakNet::BitStream* inStream, Entity* entity);
 	void HandleRequestDie(RakNet::BitStream* inStream, Entity* entity);
-	void HandleEquipItem(RakNet::BitStream* inStream, Entity* entity);
 	void HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity);
-	void HandleRemoveItemFromInventory(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleMoveItemInInventory(RakNet::BitStream* inStream, Entity* entity);
 	void HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleBuildModeSet(RakNet::BitStream* inStream, Entity* entity);
 	void HandleModularBuildFinish(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);

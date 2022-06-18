@@ -267,6 +267,7 @@ enum MASTER {
 
 //! The Game messages
 enum GAME_MSG : unsigned short {
+	GAME_MSG_INVALID = 0,
 	GAME_MSG_TELEPORT = 19,
 	GAME_MSG_SET_PLAYER_CONTROL_SCHEME = 26,
 	GAME_MSG_DROP_CLIENT_LOOT = 30,
