@@ -986,7 +986,7 @@ void PetComponent::Activate(Item* item, bool registerPet)
 }
 
 void PetComponent::AddDrainImaginationTimer(Item* item) {
-    if (Game::config->GetValue("pets_imagination") == "0") return;
+    if (Game::config->GetValue("pets_imagination") != "1") return;
     
     auto playerInventory = item->GetInventory();
     if (!playerInventory) return;
