@@ -651,7 +651,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position)
 
     inventoryComponent->SetDatabasePet(petSubKey, databasePet);
 
-    Activate(item, false);
+    Activate(item, false, true);
 
     m_Timer = 0;
 
@@ -912,9 +912,9 @@ void PetComponent::Wander()
 	m_Timer += (m_MovementAI->GetCurrentPosition().x - destination.x) / info.wanderSpeed;
 }
 
-void PetComponent::Activate(Item* item, bool registerPet) 
+void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) 
 {
-    AddDrainImaginationTimer(item);
+    AddDrainImaginationTimer(item, fromTaming);
 
     m_ItemId = item->GetId();
     m_DatabaseId = item->GetSubKey();
@@ -985,9 +985,9 @@ void PetComponent::Activate(Item* item, bool registerPet)
     GameMessages::SendShowPetActionButton(m_Owner, 3, true, owner->GetSystemAddress());
 }
 
-void PetComponent::AddDrainImaginationTimer(Item* item) {
+void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
     if (Game::config->GetValue("pets_imagination") != "1") return;
-    
+
     auto playerInventory = item->GetInventory();
     if (!playerInventory) return;
 
@@ -1000,8 +1000,8 @@ void PetComponent::AddDrainImaginationTimer(Item* item) {
     auto playerDestroyableComponent = playerEntity->GetComponent<DestroyableComponent>();
     if (!playerDestroyableComponent) return;
 
-    // Drain by 1 when you summon pet or when this method is called
-    playerDestroyableComponent->Imagine(-1);
+    // Drain by 1 when you summon pet or when this method is called, but not when we have just tamed this pet.
+    if (!fromTaming) playerDestroyableComponent->Imagine(-1);
 
     // Set this to a variable so when this is called back from the player the timer doesn't fire off.
     m_Parent->AddCallbackTimer(imaginationDrainRate, [playerDestroyableComponent, this, item](){

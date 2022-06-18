@@ -82,7 +82,7 @@ public:
      * @param item the item to create the pet from
      * @param registerPet notifies the client that the pet was spawned, not necessary if this pet is being tamed
      */
-    void Activate(Item* item, bool registerPet = true);
+    void Activate(Item* item, bool registerPet = true, bool fromTaming = false);
 
     /**
      * Despawns the pet
@@ -209,7 +209,7 @@ public:
      * 
      * @param item The item that represents this pet in the inventory.
      */
-    void AddDrainImaginationTimer(Item* item);
+    void AddDrainImaginationTimer(Item* item, bool fromTaming = false);
 
 private:
 
