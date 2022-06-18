@@ -415,6 +415,12 @@ enum eReplicaComponentType : int32_t {
     COMPONENT_TYPE_MODEL = 5398484 //look man idk
 };
 
+enum class UseItemResponse : uint32_t {
+    NoImaginationForPet = 1,
+    FailedPrecondition,
+    MountsNotAllowed
+};
+
 /**
  * Represents the different types of inventories an entity may have
  */
