@@ -405,6 +405,7 @@ enum eReplicaComponentType : int32_t {
     COMPONENT_TYPE_SOUND_TRIGGER            = 77,           //!< The Sound Trigger Component
 	COMPONENT_TYPE_PROXIMITY_MONITOR        = 78,           //!< The Proximity Monitor Component
     COMPONENT_TYPE_MISSION                  = 84,           //!< The Mission Component
+	COMPONENT_TYPE_SLASH_COMMAND            = 90,
     COMPONENT_TYPE_ROCKET_LAUNCH_LUP        = 97,           //!< The LUP Launchpad Componen
     COMPONENT_TYPE_RAIL_ACTIVATOR           = 104,
     COMPONENT_TYPE_POSSESSOR                = 107,          //!< The Component 107

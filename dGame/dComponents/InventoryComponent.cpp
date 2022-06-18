@@ -24,6 +24,7 @@
 #include "dZoneManager.h"
 #include "PropertyManagementComponent.h"
 #include "DestroyableComponent.h"
+#include "TeamManager.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent)
 {
@@ -36,6 +37,8 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 	this->RegisterGM(MoveItemInInventory::GetId(), (Handler)&InventoryComponent::HandleMoveItemInInventory);
 	this->RegisterGM(RemoveItemFromInventory::GetId(), (Handler)&InventoryComponent::HandleRemoveItemFromInventory);
 	this->RegisterGM(EquipItem::GetId(), (Handler)&InventoryComponent::HandleEquipItem);
+	this->RegisterGM(UnEquipItem::GetId(), (Handler)&InventoryComponent::HandleUnEquipItem);
+	this->RegisterGM(PickupItem::GetId(), (Handler)&InventoryComponent::HandlePickupItem);
 
 	const auto lot = parent->GetLOT();
 
@@ -1838,4 +1841,32 @@ void InventoryComponent::HandleEquipItem(class EquipItem* msg) {
 	item->Equip();
 
 	EntityManager::Instance()->SerializeEntity(msg->associate);
+}
+
+void InventoryComponent::HandleUnEquipItem(class UnEquipItem* msg) {
+	auto* item = this->FindItemById(msg->objectID);
+
+	if (!item) return;
+
+	item->UnEquip();
+
+	EntityManager::Instance()->SerializeEntity(msg->associate);
+}
+
+void InventoryComponent::HandlePickupItem(class PickupItem* msg) {
+	msg->associate->PickupItem(msg->lootObjectID);
+
+	auto* team = TeamManager::Instance()->GetTeam(msg->associate->GetObjectID());
+
+	if (team != nullptr)
+	{
+		for (const auto memberId : team->members)
+		{
+			auto* member = EntityManager::Instance()->GetEntity(memberId);
+
+			if (member == nullptr || memberId == msg->playerID) continue;
+
+			GameMessages::SendTeamPickupItem(msg->lootObjectID, msg->lootObjectID, msg->playerID, member->GetSystemAddress());
+		}
+	}
 }

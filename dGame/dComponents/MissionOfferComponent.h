@@ -11,6 +11,9 @@
 #include <vector>
 #include <stdint.h>
 
+#include "Client/RequestLinkedMission.h"
+#include "Client/MissionDialogOK.h"
+
 class Entity;
 
 /**
@@ -78,6 +81,9 @@ public:
      * @param specifiedMissionId optional mission ID if you wish to offer a specific mission
      */
     void OfferMissions(Entity* entity, uint32_t specifiedMissionId = 0);
+
+    void HandleRequestLinkedMission(RequestLinkedMission* msg);
+    void HandleMissionDialogOK(MissionDialogOK* msg);
 
 private:
 

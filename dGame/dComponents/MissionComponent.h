@@ -16,6 +16,9 @@
 #include "CDClientManager.h"
 #include "CDMissionsTable.h"
 #include "Component.h"
+#include "CppScripts.h"
+
+#include "Client/RespondToMission.h"
 
 /**
  * The mission inventory of an entity. Tracks mission state for each mission that can be accepted and allows for
@@ -166,6 +169,8 @@ public:
      * @return if the entity has a certain mission in its inventory
      */
     bool HasMission(uint32_t missionId);
+
+    void HandleRespondToMission(RespondToMission* msg);
     
 private:
     /**

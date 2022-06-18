@@ -60,6 +60,7 @@
 #include "ShootingGalleryComponent.h"
 #include "RailActivatorComponent.h"
 #include "LUPExhibitComponent.h"
+#include "SlashCommandComponent.h"
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
 	m_ObjectID = objectID;
@@ -453,6 +454,9 @@ void Entity::Initialize()
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
+
+		SlashCommandComponent* slashComp = new SlashCommandComponent(this);
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_SLASH_COMMAND, slashComp));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_INVENTORY) > 0 || m_Character) {

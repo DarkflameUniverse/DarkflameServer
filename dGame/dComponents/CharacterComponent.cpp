@@ -14,6 +14,10 @@
 #include "VehiclePhysicsComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
+#include "DestroyableComponent.h"
+#include "RacingControlComponent.h"
+#include "Player.h"
+#include "dConfig.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
@@ -40,6 +44,14 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_LastUpdateTimestamp = std::time(nullptr);
 
 	RegisterGM(PlayEmote::GetId(), (Handler)&CharacterComponent::HandlePlayEmote);
+	RegisterGM(RequestUse::GetId(), (Handler)&CharacterComponent::HandleRequestUse);
+	RegisterGM(SetFlag::GetId(), (Handler)&CharacterComponent::HandleSetFlag);
+	RegisterGM(PlayerLoaded::GetId(), (Handler)&CharacterComponent::HandlePlayerLoaded);
+	RegisterGM(RequestActivitySummaryLeaderboardData::GetId(), (Handler)&CharacterComponent::HandleRequestActivitySummaryLeaderboardData);
+	RegisterGM(NotifyServerLevelProcessingComplete::GetId(), (Handler)&CharacterComponent::HandleNotifyServerLevelProcessingComplete);
+	RegisterGM(PickupCurrency::GetId(), (Handler)&CharacterComponent::HandlePickupCurrency);
+	RegisterGM(Resurrect::GetId(), (Handler)&CharacterComponent::HandleResurrect);
+	RegisterGM(RequestSmashPlayer::GetId(), (Handler)&CharacterComponent::HandleRequestSmashPlayer);
 
 	LoadFromXML();
 
@@ -839,4 +851,188 @@ void CharacterComponent::HandlePlayEmote(PlayEmote* msg) {
 	}
 
 	GameMessages::SendPlayAnimation(msg->associate, GeneralUtils::ASCIIToUTF16(sAnimationName));
+}
+
+void CharacterComponent::HandleRequestUse(RequestUse* msg) {
+	Entity* interactedObject = EntityManager::Instance()->GetEntity(msg->objectID);
+
+	if (interactedObject == nullptr)
+	{
+		Game::logger->Log("GameMessages", "Object %llu tried to interact, but doesn't exist!\n", msg->objectID);
+
+		return;
+	}
+
+	if (interactedObject->GetLOT() == 9524)
+	{
+		this->m_Parent->GetCharacter()->SetBuildMode(true);
+	}
+
+	if (msg->bIsMultiInteractUse)
+	{
+		if (msg->multiInteractType == 0)
+		{
+			auto* missionOfferComponent = static_cast<MissionOfferComponent*>(interactedObject->GetComponent(COMPONENT_TYPE_MISSION_OFFER));
+
+			if (missionOfferComponent != nullptr)
+			{
+				missionOfferComponent->OfferMissions(this->m_Parent, msg->multiInteractID);
+			}
+		}
+		else {
+			interactedObject->OnUse(this->m_Parent);
+		}
+	}
+	else
+	{
+		interactedObject->OnUse(this->m_Parent);
+	}
+
+	//Perform use task if possible:
+	auto missionComponent = static_cast<MissionComponent*>(this->m_Parent->GetComponent(COMPONENT_TYPE_MISSION));
+
+	if (missionComponent == nullptr) return;
+
+	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
+	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_NON_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
+}
+
+void CharacterComponent::HandleSetFlag(SetFlag* msg) {
+	auto user = this->m_Parent->GetParentUser();
+	if (user) {
+		auto character = user->GetLastUsedChar();
+		if (!character) return;
+
+		character->SetPlayerFlag(msg->iFlagID, msg->bFlag);
+	}
+}
+
+void CharacterComponent::HandlePlayerLoaded(PlayerLoaded* msg) {
+	GameMessages::SendRestoreToPostLoadStats(msg->associate, msg->sysAddr);
+	msg->associate->SetPlayerReadyForUpdates();
+
+	auto* player = dynamic_cast<Player*>(msg->associate);
+	if (player != nullptr)
+	{
+		player->ConstructLimboEntities();
+	}
+
+	InventoryComponent* inv = msg->associate->GetComponent<InventoryComponent>();
+	if (inv) {
+		auto items = inv->GetEquippedItems();
+		for (auto pair : items) {
+			const auto item = pair.second;
+
+			inv->AddItemSkills(item.lot);
+		}
+	}
+
+	auto* destroyable = msg->associate->GetComponent<DestroyableComponent>();
+	destroyable->SetImagination(destroyable->GetImagination());
+	EntityManager::Instance()->SerializeEntity(msg->associate);
+
+	std::vector<Entity*> racingControllers = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_RACING_CONTROL);
+	for (Entity* racingController : racingControllers) {
+		auto* racingComponent = racingController->GetComponent<RacingControlComponent>();
+		if (racingComponent != nullptr)
+		{
+			racingComponent->OnPlayerLoaded(msg->associate);
+		}
+	}
+
+	Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
+		script->OnPlayerLoaded(zoneControl, player);
+	}
+
+	std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPT);
+	for (Entity* scriptEntity : scriptedActs) {
+		if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+			for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
+				script->OnPlayerLoaded(scriptEntity, player);
+			}
+		}
+	}
+
+	//Kill player if health == 0
+	if (msg->associate->GetIsDead()) {
+		msg->associate->Smash(msg->associate->GetObjectID());
+	}
+	/**
+	 * Invoke the OnZoneLoad event on the player character
+	 */
+	auto* character = msg->associate->GetCharacter();
+
+	if (character != nullptr) character->OnZoneLoad();
+
+	Game::logger->Log("GameMessageHandler", "Player %s (%llu) loaded.\n", msg->associate->GetCharacter()->GetName().c_str(), msg->associate->GetObjectID());
+
+	// After we've done our thing, tell the client they're ready
+	GameMessages::SendPlayerReady(dZoneManager::Instance()->GetZoneControlObject(), msg->sysAddr);
+	GameMessages::SendPlayerReady(msg->associate, msg->sysAddr);
+}
+
+void CharacterComponent::HandleRequestActivitySummaryLeaderboardData(RequestActivitySummaryLeaderboardData* msg) {
+	const auto* leaderboard = LeaderboardManager::GetLeaderboard(msg->gameID, (InfoType)msg->queryType, msg->weekly, msg->associate->GetObjectID());
+	GameMessages::SendActivitySummaryLeaderboardData(msg->associate->GetObjectID(), leaderboard, msg->sysAddr);
+	delete leaderboard;
+}
+
+void CharacterComponent::HandleNotifyServerLevelProcessingComplete(NotifyServerLevelProcessingComplete* msg) {
+	this->SetLevel(this->GetLevel() + 1);
+
+	this->HandleLevelUp();
+
+	auto* inventoryComponent = msg->associate->GetComponent<InventoryComponent>();
+
+	if (inventoryComponent != nullptr) {
+		auto* inventory = inventoryComponent->GetInventory(ITEMS);
+
+		if (inventory != nullptr && Game::config->GetValue("disable_extra_backpack") != "1") {
+			inventory->SetSize(inventory->GetSize() + 2);
+		}
+	}
+
+	//Play the level up effect:
+	GameMessages::SendPlayFXEffect(msg->associate, 7074, u"create", "7074", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
+
+	//Send a notification in chat:
+	std::stringstream wss;
+	wss << "level=1:";
+	wss << this->GetLevel();
+	wss << "\n";
+	wss << "name=0:";
+	wss << this->GetName();
+
+	std::u16string attrs = GeneralUtils::ASCIIToUTF16(wss.str());
+	std::u16string wsText = u"UI_LEVEL_PROGRESSION_LEVELUP_MESSAGE";
+
+	GameMessages::SendBroadcastTextToChatbox(msg->associate, UNASSIGNED_SYSTEM_ADDRESS, attrs, wsText);
+}
+
+void CharacterComponent::HandlePickupCurrency(PickupCurrency* msg) {
+	auto* ch = this->m_Parent->GetCharacter();
+	if (this->m_Parent->CanPickupCoins(msg->currency)) {
+		ch->SetCoins(ch->GetCoins() + msg->currency, eLootSourceType::LOOT_SOURCE_PICKUP);
+	}
+}
+
+void CharacterComponent::HandleResurrect(Resurrect* msg) {
+	Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
+		script->OnPlayerResurrected(zoneControl, msg->associate);
+	}
+
+	std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
+	for (Entity* scriptEntity : scriptedActs) {
+		if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+			for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
+				script->OnPlayerResurrected(scriptEntity, msg->associate);
+			}
+		}
+	}
+}
+
+void CharacterComponent::HandleRequestSmashPlayer(RequestSmashPlayer* msg) {
+	msg->associate->Smash(msg->associate->GetObjectID());
 }

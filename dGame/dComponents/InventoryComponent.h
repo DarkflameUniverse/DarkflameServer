@@ -16,9 +16,12 @@
 #include "ItemSetPassiveAbility.h"
 #include "ItemSetPassiveAbilityID.h"
 #include "PossessorComponent.h"
+
 #include "Client/MoveItemInInventory.h"
 #include "Client/RemoveItemFromInventory.h"
 #include "Client/EquipItem.h"
+#include "Client/UnEquipItem.h"
+#include "Client/PickupItem.h"
 
 class Entity;
 class ItemSet;
@@ -347,6 +350,8 @@ public:
     void HandleMoveItemInInventory(MoveItemInInventory* msg);
     void HandleRemoveItemFromInventory(RemoveItemFromInventory* msg);
     void HandleEquipItem(class EquipItem* msg);
+    void HandleUnEquipItem(class UnEquipItem* msg);
+    void HandlePickupItem(class PickupItem* msg);
 	
 private:
     /**

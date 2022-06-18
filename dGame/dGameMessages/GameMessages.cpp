@@ -1601,11 +1601,6 @@ void GameMessages::HandleUpdateShootingGalleryRotation(RakNet::BitStream* inStre
 }
 
 
-void GameMessages::HandleActivitySummaryLeaderboardData(RakNet::BitStream* instream, Entity* entity,
-                                                        const SystemAddress& sysAddr) {
-    Game::logger->Log("AGS", "We got mail!\n");
-}
-
 void GameMessages::SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard, const SystemAddress& sysAddr) {
     CBITSTREAM
     CMSGHEADER
@@ -1628,61 +1623,6 @@ void GameMessages::SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, 
     bitStream.Write0();
 
     SEND_PACKET
-}
-
-void GameMessages::HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-    int32_t gameID = 0;
-    if (inStream->ReadBit()) inStream->Read(gameID);
-
-    int32_t queryType = 1;
-    if (inStream->ReadBit()) inStream->Read(queryType);
-
-    int32_t resultsEnd = 10;
-    if (inStream->ReadBit()) inStream->Read(resultsEnd);
-
-    int32_t resultsStart = 0;
-    if (inStream->ReadBit()) inStream->Read(resultsStart);
-
-    LWOOBJID target {};
-    inStream->Read(target);
-
-    bool weekly = inStream->ReadBit();
-
-    const auto* leaderboard = LeaderboardManager::GetLeaderboard(gameID, (InfoType)queryType, weekly, entity->GetObjectID());
-    SendActivitySummaryLeaderboardData(entity->GetObjectID(), leaderboard, sysAddr);
-    delete leaderboard;
-}
-
-void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream *inStream, Entity *entity) {
-    LWOOBJID objectID;
-    inStream->Read<LWOOBJID>(objectID);
-
-    int32_t value1;
-    inStream->Read<int32_t>(value1);
-
-    int32_t value2;
-    inStream->Read<int32_t>(value2);
-
-    uint32_t stringValueLength;
-    inStream->Read<uint32_t>(stringValueLength);
-
-    std::u16string stringValue;
-    for (uint32_t i = 0; i < stringValueLength; ++i) {
-        uint16_t character;
-        inStream->Read(character);
-        stringValue.push_back(character);
-    }
-
-	auto* assosiate = EntityManager::Instance()->GetEntity(objectID);
-
-    Game::logger->Log("Activity State Change", "%s [%i, %i] from %i to %i\n", GeneralUtils::UTF16ToWTF8(stringValue).c_str(), value1, value2, entity->GetLOT(), assosiate != nullptr ? assosiate->GetLOT() : 0);
-
-	std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SHOOTING_GALLERY);
-	for (Entity* scriptEntity : scriptedActs) {
-		scriptEntity->OnActivityStateChangeRequest(objectID, value1, value2, stringValue);
-	}
-
-    entity->OnActivityStateChangeRequest(objectID, value1, value2, stringValue);
 }
 
 void GameMessages::SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID) {
@@ -4846,125 +4786,6 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
 
-void GameMessages::HandleParseChatMessage(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	std::u16string wsString;
-	int iClientState;
-	inStream->Read(iClientState);
-
-	uint32_t wsStringLength;
-	inStream->Read(wsStringLength);
-	for (uint32_t i = 0; i < wsStringLength; ++i) {
-		uint16_t character;
-		inStream->Read(character);
-		wsString.push_back(character);
-	}
-
-	if (wsString[0] == L'/') {
-		SlashCommandHandler::HandleChatCommand(wsString, entity, sysAddr);
-	}
-}
-
-void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	uint32_t argsLength{};
-	std::u16string args{};
-	bool param1IsDefault{};
-	int param1 = -1;
-	bool param2IsDefault{};
-	int param2 = -1;
-	bool param3IsDefault{};
-	int param3 = -1;
-	LWOOBJID senderID{};
-
-	inStream->Read(argsLength);
-	for (uint32_t i = 0; i < argsLength; ++i) {
-		uint16_t character;
-		inStream->Read(character);
-		args.push_back(character);
-	}
-	inStream->Read(param1IsDefault);
-	if (param1IsDefault) inStream->Read(param1);
-	inStream->Read(param2IsDefault);
-	if (param2IsDefault) inStream->Read(param2);
-	inStream->Read(param3IsDefault);
-	if (param3IsDefault) inStream->Read(param3);
-	inStream->Read(senderID);
-
-	auto* sender = EntityManager::Instance()->GetEntity(senderID);
-	auto* player = Player::GetPlayer(sysAddr);
-
-	if (!player) {
-		return;
-	}
-
-	if (args == u"toggleMail") {
-		AMFFalseValue* value = new AMFFalseValue();
-
-		AMFArrayValue args;
-		args.InsertValue("visible", value);
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleMail", &args);
-		delete value;
-	}
-
-	// This should probably get it's own "ServerEvents" system or something at some point
-	if (args == u"ZonePlayer") {
-		// Should probably check to make sure they're using a launcher at some point before someone makes a hack that lets you testmap
-
-		LWOCLONEID cloneId = 0;
-		LWOMAPID mapId = 0;
-		
-		auto* rocketPad = entity->GetComponent<RocketLaunchpadControlComponent>();
-
-		if (rocketPad == nullptr) return;
-
-		cloneId = rocketPad->GetSelectedCloneId(player->GetObjectID());
-
-		if (param2) {
-			mapId = rocketPad->GetDefaultZone();
-		}
-		else {
-			mapId = param3;
-		}
-
-		if (mapId == 0)
-		{
-			mapId = rocketPad->GetSelectedMapId(player->GetObjectID());
-		}
-
-		if (mapId == 0)
-		{
-			mapId = dZoneManager::Instance()->GetZoneID().GetMapID(); // Fallback to sending the player back to the same zone.
-		}
-
-		Game::logger->Log("FireEventServerSide", "Player %llu has requested zone transfer to (%i, %i).\n", sender->GetObjectID(), (int) mapId, (int) cloneId);
-		
-		auto* character = player->GetCharacter();
-
-		if (mapId <= 0) {
-			return;
-		}
-
-		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, mapId, cloneId, false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
-			
-			if (character) {
-				character->SetZoneID(zoneID);
-				character->SetZoneInstance(zoneInstance);
-				character->SetZoneClone(zoneClone);
-			}
-
-			WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
-			return;
-		});
-	}
-
-    entity->OnFireEventServerSide(sender, GeneralUtils::UTF16ToWTF8(args), param1, param2, param3);
-}
-
-void GameMessages::HandleRequestPlatformResync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	if (entity->GetLOT() == 6267 || entity->GetLOT() == 16141) return;
-	GameMessages::SendPlatformResync(entity, sysAddr);
-}
-
 void GameMessages::HandleRebuildCancel(RakNet::BitStream* inStream, Entity* entity) {
 	bool bEarlyRelease;
 	LWOOBJID userID;
@@ -4976,62 +4797,6 @@ void GameMessages::HandleRebuildCancel(RakNet::BitStream* inStream, Entity* enti
 	if (!rebComp) return;
 
 	rebComp->CancelRebuild(EntityManager::Instance()->GetEntity(userID), eFailReason::REASON_CANCELED_EARLY);
-}
-
-void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool bIsMultiInteractUse = false;
-	unsigned int multiInteractID;
-	int multiInteractType;
-	bool secondary;
-	LWOOBJID objectID;
-
-	inStream->Read(bIsMultiInteractUse);
-	inStream->Read(multiInteractID);
-	inStream->Read(multiInteractType);
-	inStream->Read(objectID);
-	inStream->Read(secondary);
-
-	Entity* interactedObject = EntityManager::Instance()->GetEntity(objectID);
-
-	if (interactedObject == nullptr)
-	{
-		Game::logger->Log("GameMessages", "Object %llu tried to interact, but doesn't exist!\n", objectID);
-
-		return;
-	}
-	
-	if (interactedObject->GetLOT() == 9524)
-	{
-		entity->GetCharacter()->SetBuildMode(true);
-	}
-	
-	if (bIsMultiInteractUse)
-	{
-		if (multiInteractType == 0)
-		{
-			auto* missionOfferComponent = static_cast<MissionOfferComponent*>(interactedObject->GetComponent(COMPONENT_TYPE_MISSION_OFFER));
-
-			if (missionOfferComponent != nullptr)
-			{
-				missionOfferComponent->OfferMissions(entity, multiInteractID);
-			}
-		}
-		else {
-			interactedObject->OnUse(entity);
-		}
-	}
-	else
-	{
-		interactedObject->OnUse(entity);
-	}
-
-	//Perform use task if possible:
-	auto missionComponent = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
-	
-	if (missionComponent == nullptr) return;
-
-	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
-	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_NON_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
 }
 
 void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5058,112 +4823,6 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, E
 	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::LOOT_SOURCE_QUICKBUILD);
 }
 
-void GameMessages::HandleSetFlag(RakNet::BitStream* inStream, Entity* entity) {
-	bool bFlag{};
-	int iFlagID{};
-
-	inStream->Read(bFlag);
-	inStream->Read(iFlagID);
-
-	auto user = entity->GetParentUser();
-	if (user) {
-		auto character = user->GetLastUsedChar();
-		if (!character) return;
-
-		character->SetPlayerFlag(iFlagID, bFlag);
-	}
-}
-
-void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* entity) {
-	int missionID{};
-	LWOOBJID playerID{};
-	LWOOBJID receiverID{};
-	bool isDefaultReward{};
-	LOT reward = LOT_NULL;
-
-	inStream->Read(missionID);
-	inStream->Read(playerID);
-	inStream->Read(receiverID);
-	inStream->Read(isDefaultReward);
-	if (isDefaultReward) inStream->Read(reward);
-
-	MissionComponent* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
-	if (!missionComponent) {
-		Game::logger->Log("GameMessages", "Unable to get mission component for entity %llu to handle RespondToMission\n", playerID);
-		return;
-	}
-
-	Mission* mission = missionComponent->GetMission(missionID);
-	if (mission) {
-		mission->SetReward(reward);
-	}
-	else {
-		Game::logger->Log("GameMessages", "Unable to get mission %i for entity %llu to update reward in RespondToMission\n", missionID, playerID);
-	}
-
-	Entity* offerer = EntityManager::Instance()->GetEntity(receiverID);
-
-	if (offerer == nullptr) {
-		Game::logger->Log("GameMessages", "Unable to get receiver entity %llu for RespondToMission\n", receiverID);
-		return;
-	}
-
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(offerer)) {
-		script->OnRespondToMission(offerer, missionID, EntityManager::Instance()->GetEntity(playerID), reward);
-	}
-}
-
-void GameMessages::HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* entity) {
-	bool bIsComplete{};
-	MissionState iMissionState{};
-	int missionID{};
-	LWOOBJID responder{};
-	Entity* player = nullptr;
-
-	inStream->Read(bIsComplete);
-	inStream->Read(iMissionState);
-	inStream->Read(missionID);
-	inStream->Read(responder);
-	player = EntityManager::Instance()->GetEntity(responder);
-
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
-		script->OnMissionDialogueOK(entity, player, missionID, iMissionState);
-	}
-
-	// Get the player's mission component
-	MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(COMPONENT_TYPE_MISSION));
-	if (!missionComponent) {
-		Game::logger->Log("GameMessages", "Unable to get mission component for entity %llu to handle MissionDialogueOK\n", player->GetObjectID());
-		return;
-	}
-
-	if (iMissionState == MissionState::MISSION_STATE_AVAILABLE || iMissionState == MissionState::MISSION_STATE_COMPLETE_AVAILABLE) {
-		missionComponent->AcceptMission(missionID);
-	}
-	else if (iMissionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || iMissionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE) {
-		missionComponent->CompleteMission(missionID);
-	}
-}
-
-void GameMessages::HandleRequestLinkedMission(RakNet::BitStream* inStream, Entity* entity) {
-	LWOOBJID playerId{};
-	int missionId{};
-	bool bMissionOffered{};
-
-	inStream->Read(playerId);
-	inStream->Read(missionId);
-	inStream->Read(bMissionOffered);
-
-	auto* player = EntityManager::Instance()->GetEntity(playerId);
-
-	auto* missionOfferComponent = static_cast<MissionOfferComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION_OFFER));
-	
-	if (missionOfferComponent != nullptr)
-	{
-		missionOfferComponent->OfferMissions(player, 0);
-	}
-}
-
 void GameMessages::HandleHasBeenCollected(RakNet::BitStream* inStream, Entity* entity) {
 	LWOOBJID playerID;
 	inStream->Read(playerID);
@@ -5174,54 +4833,6 @@ void GameMessages::HandleHasBeenCollected(RakNet::BitStream* inStream, Entity* e
 	MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(COMPONENT_TYPE_MISSION));
 	if (missionComponent) {
 		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ENVIRONMENT, entity->GetLOT(), entity->GetObjectID());
-	}
-}
-
-void GameMessages::HandleNotifyServerLevelProcessingComplete(RakNet::BitStream* inStream, Entity* entity) {
-	auto* character = static_cast<CharacterComponent*>(entity->GetComponent(COMPONENT_TYPE_CHARACTER));
-	if (!character) return;
-	
-	//Update our character's level in memory:
-	character->SetLevel(character->GetLevel() + 1);
-
-	character->HandleLevelUp();
-
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-
-	if (inventoryComponent != nullptr) {
-		auto* inventory = inventoryComponent->GetInventory(ITEMS);
-
-		if (inventory != nullptr && Game::config->GetValue("disable_extra_backpack") != "1") {
-			inventory->SetSize(inventory->GetSize() + 2);
-		}
-	}
-
-	//Play the level up effect:
-	GameMessages::SendPlayFXEffect(entity, 7074, u"create", "7074", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
-
-	//Send a notification in chat:
-	std::stringstream wss;
-	wss << "level=1:";
-	wss << character->GetLevel();
-	wss << "\n";
-	wss << "name=0:";
-	wss << character->GetName();
-
-	std::u16string attrs = GeneralUtils::ASCIIToUTF16(wss.str());
-	std::u16string wsText = u"UI_LEVEL_PROGRESSION_LEVELUP_MESSAGE";
-
-	GameMessages::SendBroadcastTextToChatbox(entity, UNASSIGNED_SYSTEM_ADDRESS, attrs, wsText);
-}
-
-void GameMessages::HandlePickupCurrency(RakNet::BitStream* inStream, Entity* entity) {
-	unsigned int currency;
-	inStream->Read(currency);
-	
-	if (currency == 0) return;
-
-	auto* ch = entity->GetCharacter();
-	if (entity->CanPickupCoins(currency)) {
-		ch->SetCoins(ch->GetCoins() + currency, eLootSourceType::LOOT_SOURCE_PICKUP);
 	}
 }
 
@@ -5262,26 +4873,6 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity)
 
 	inStream->Read(lootOwnerID);
 	inStream->Read(killerID);
-}
-
-void GameMessages::HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity) {
-	bool immediate;
-	LWOOBJID objectID;
-	inStream->Read(immediate);
-	inStream->Read(immediate);
-	inStream->Read(immediate);
-	inStream->Read(objectID);
-
-	InventoryComponent* inv = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
-	if (!inv) return;
-
-	auto* item = inv->FindItemById(objectID);
-
-	if (!item) return;
-	
-	item->UnEquip();
-	
-	EntityManager::Instance()->SerializeEntity(entity);
 }
 
 void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5567,47 +5158,6 @@ void GameMessages::HandleModularBuildMoveAndEquip(RakNet::BitStream* inStream, E
 	}
 
 	inv->MoveItemToInventory(item, eInventoryType::MODELS, 1, false, true);
-}
-
-void GameMessages::HandlePickupItem(RakNet::BitStream* inStream, Entity* entity) {
-	LWOOBJID lootObjectID;
-	LWOOBJID playerID;
-	inStream->Read(lootObjectID);
-	inStream->Read(playerID);
-
-	entity->PickupItem(lootObjectID);
-
-	auto* team = TeamManager::Instance()->GetTeam(entity->GetObjectID());
-
-	if (team != nullptr)
-	{
-		for (const auto memberId : team->members)
-		{
-			auto* member = EntityManager::Instance()->GetEntity(memberId);
-
-			if (member == nullptr || memberId == playerID) continue;
-
-			SendTeamPickupItem(lootObjectID, lootObjectID, playerID, member->GetSystemAddress());
-		}
-	}
-}
-
-void GameMessages::HandleResurrect(RakNet::BitStream* inStream, Entity* entity) {
-    bool immediate = inStream->ReadBit();
-
-    Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
-    for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-        script->OnPlayerResurrected(zoneControl, entity);
-    }
-
-    std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
-    for (Entity* scriptEntity : scriptedActs) {
-        if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-            for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-                script->OnPlayerResurrected(scriptEntity, entity);
-            }
-        }
-    }
 }
 
 void GameMessages::HandlePushEquippedItemsState(RakNet::BitStream* inStream, Entity* entity) {

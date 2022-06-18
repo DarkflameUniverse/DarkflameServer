@@ -9,8 +9,17 @@
 #include <string>
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
+#include "MissionOfferComponent.h"
 
 #include "Client/PlayEmote.h"
+#include "Client/RequestUse.h"
+#include "Client/SetFlag.h"
+#include "Client/PlayerLoaded.h"
+#include "Client/RequestActivitySummaryLeaderboardData.h"
+#include "Client/NotifyServerLevelProcessingComplete.h"
+#include "Client/PickupCurrency.h"
+#include "Client/Resurrect.h"
+#include "Client/RequestSmashPlayer.h"
 
 /**
  * The statistics that can be achieved per zone
@@ -300,6 +309,14 @@ public:
     Character* m_Character;
 
     void HandlePlayEmote(PlayEmote* msg);
+    void HandleRequestUse(RequestUse* msg);
+    void HandleSetFlag(SetFlag* msg);
+    void HandlePlayerLoaded(PlayerLoaded* msg);
+    void HandleRequestActivitySummaryLeaderboardData(RequestActivitySummaryLeaderboardData* msg);
+    void HandleNotifyServerLevelProcessingComplete(NotifyServerLevelProcessingComplete* msg);
+    void HandlePickupCurrency(PickupCurrency* msg);
+    void HandleResurrect(Resurrect* msg);
+    void HandleRequestSmashPlayer(RequestSmashPlayer* msg);
 private:
     
 

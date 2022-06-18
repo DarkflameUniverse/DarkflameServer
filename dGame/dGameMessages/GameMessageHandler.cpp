@@ -31,6 +31,27 @@
 #include "Client/MoveItemInInventory.h"
 #include "Client/RemoveItemFromInventory.h"
 #include "Client/EquipItem.h"
+#include "Client/RespondToMission.h"
+#include "Client/RequestUse.h"
+#include "Client/SetFlag.h"
+#include "Client/HasBeenCollected.h"
+#include "Client/PlayerLoaded.h"
+#include "Client/RequestLinkedMission.h"
+#include "Client/MissionDialogOK.h"
+#include "Client/RequestPlatformResync.h"
+#include "Client/FireEventServerSide.h"
+#include "Client/RequestActivitySummaryLeaderboardData.h"
+#include "Client/ActivityStateChangeRequest.h"
+#include "Client/ParseChatMessage.h"
+#include "Client/NotifyServerLevelProcessingComplete.h"
+#include "Client/PickupCurrency.h"
+#include "Client/Resurrect.h"
+#include "Client/RequestResurrect.h"
+#include "Client/RequestSmashPlayer.h"
+
+#include "Dual/StartSkill.h"
+#include "Dual/RequestServerProjectileImpact.h"
+#include "Dual/SyncSkill.h"
 
 using namespace std;
 
@@ -48,311 +69,36 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
     if (!entity)
     {
 		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!\n", objectID, messageID);
-
     	return;
     }
 
     switch (messageID) {
-
-		case GAME_MSG_PLAY_EMOTE: returnMessage = new PlayEmote(); break;
-		case GAME_MSG_MOVE_ITEM_IN_INVENTORY: returnMessage = new MoveItemInInventory(); break;
-		case GAME_MSG_REMOVE_ITEM_FROM_INVENTORY: returnMessage = new RemoveItemFromInventory(); break;
-		case GAME_MSG_EQUIP_ITEM: returnMessage = new EquipItem(); break;
-
-
-		case GAME_MSG_UN_EQUIP_ITEM:
-			GameMessages::HandleUnequipItem(inStream, entity);
-			break;
-        
-        case GAME_MSG_RESPOND_TO_MISSION: {
-            GameMessages::HandleRespondToMission(inStream, entity);
-            break;
-        }
-        
-        case GAME_MSG_REQUEST_USE: {
-            GameMessages::HandleRequestUse(inStream, entity, sysAddr);
-            break;
-        }
-        
-        case GAME_MSG_SET_FLAG: {
-            GameMessages::HandleSetFlag(inStream, entity);
-            break;
-        }
-        
-        case GAME_MSG_HAS_BEEN_COLLECTED: {
-            GameMessages::HandleHasBeenCollected(inStream, entity);
-            break;
-        }
-        
-		case GAME_MSG_PLAYER_LOADED: {
-			GameMessages::SendRestoreToPostLoadStats(entity, sysAddr);
-			entity->SetPlayerReadyForUpdates();
-			
-			auto* player = dynamic_cast<Player*>(entity);
-			if (player != nullptr)
-			{
-				player->ConstructLimboEntities();
-			}
-
-			InventoryComponent* inv = entity->GetComponent<InventoryComponent>();
-			if (inv) {
-				auto items = inv->GetEquippedItems();
-				for (auto pair : items) {
-					const auto item = pair.second;
-
-					inv->AddItemSkills(item.lot);
-				}
-			}
-
-			auto* destroyable = entity->GetComponent<DestroyableComponent>();
-			destroyable->SetImagination(destroyable->GetImagination());
-			EntityManager::Instance()->SerializeEntity(entity);
-
-			std::vector<Entity*> racingControllers = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_RACING_CONTROL);
-			for (Entity* racingController : racingControllers) {
-				auto* racingComponent = racingController->GetComponent<RacingControlComponent>();
-				if (racingComponent != nullptr)
-				{
-					racingComponent->OnPlayerLoaded(entity);
-				}
-			}
-
-			Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
-			for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-				script->OnPlayerLoaded(zoneControl, player);
-			}
-
-			std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPT);
-			for (Entity* scriptEntity : scriptedActs) {
-				if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-					for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-						script->OnPlayerLoaded(scriptEntity, player);
-					}
-				}
-			}
-
-			//Kill player if health == 0
-			if (entity->GetIsDead()) {
-				entity->Smash(entity->GetObjectID());
-			}
-
-			//if the player has moved significantly, move them back:
-			if ((entity->GetPosition().y - entity->GetCharacter()->GetOriginalPos().y) > 2.0f) {
-				// Disabled until fixed
-				//GameMessages::SendTeleport(entity->GetObjectID(), entity->GetCharacter()->GetOriginalPos(), entity->GetCharacter()->GetOriginalRot(), entity->GetSystemAddress(), true, true);
-			}
-
-			/**
-			 * Invoke the OnZoneLoad event on the player character
-			 */
-			auto* character = entity->GetCharacter();
-
-			if (character != nullptr) {
-				character->OnZoneLoad();
-			}
-
-			Game::logger->Log("GameMessageHandler", "Player %s (%llu) loaded.\n", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
-
-			// After we've done our thing, tell the client they're ready
-            GameMessages::SendPlayerReady(dZoneManager::Instance()->GetZoneControlObject(), sysAddr);
-            GameMessages::SendPlayerReady(entity, sysAddr);
-			
-            break;
-        }
-        
-        case GAME_MSG_REQUEST_LINKED_MISSION: {
-            GameMessages::HandleRequestLinkedMission(inStream, entity);
-            break;
-        }
-        
-        case GAME_MSG_MISSION_DIALOGUE_OK: {
-            GameMessages::HandleMissionDialogOK(inStream, entity);
-            break;
-        }
-
-		case GAME_MSG_MISSION_DIALOGUE_CANCELLED: {
-			//This message is pointless for our implementation, as the client just carries on after
-			//rejecting a mission offer. We dont need to do anything. This is just here to remove a warning in our logs :)
-			break;
-		}
-        
-        case GAME_MSG_REQUEST_PLATFORM_RESYNC: {
-            GameMessages::HandleRequestPlatformResync(inStream, entity, sysAddr);
-            break;
-        }
-        
-        case GAME_MSG_FIRE_EVENT_SERVER_SIDE: {
-			GameMessages::HandleFireEventServerSide(inStream, entity, sysAddr);
-            break;
-        }
-
-        case GAME_MSG_SEND_ACTIVITY_SUMMARY_LEADERBOARD_DATA: {
-            GameMessages::HandleActivitySummaryLeaderboardData(inStream, entity, sysAddr);
-            break;
-        }
-
-        case GAME_MSG_REQUEST_ACTIVITY_SUMMARY_LEADERBOARD_DATA: {
-            GameMessages::HandleRequestActivitySummaryLeaderboardData(inStream, entity, sysAddr);
-            break;
-        }
-
-        case GAME_MSG_ACTIVITY_STATE_CHANGE_REQUEST: {
-            GameMessages::HandleActivityStateChangeRequest(inStream, entity);
-            break;
-        }
-         
-        case GAME_MSG_PARSE_CHAT_MESSAGE: {
-            GameMessages::HandleParseChatMessage(inStream, entity, sysAddr);
-            break;
-        }
-
-		case GAME_MSG_NOTIFY_SERVER_LEVEL_PROCESSING_COMPLETE: {
-			GameMessages::HandleNotifyServerLevelProcessingComplete(inStream, entity);
-			break;
-		}
-
-		case GAME_MSG_PICKUP_CURRENCY: {
-			GameMessages::HandlePickupCurrency(inStream, entity);
-			break;
-		}
-
-		case GAME_MSG_PICKUP_ITEM: {
-			GameMessages::HandlePickupItem(inStream, entity);
-			break;
-		}
-
-		case GAME_MSG_RESURRECT: {
-		    GameMessages::HandleResurrect(inStream, entity);
-		    break;
-		}
-
-		case GAME_MSG_REQUEST_RESURRECT: {
-			GameMessages::SendResurrect(entity);
-			break;
-		}
-
-    	case GAME_MSG_REQUEST_SERVER_PROJECTILE_IMPACT:
-    	{
-	        auto message = GameMessages::RequestServerProjectileImpact();
-
-			message.Deserialize(inStream);
-
-			auto* skill_component = entity->GetComponent<SkillComponent>();
-
-			if (skill_component != nullptr)
-			{
-				auto* bs = new RakNet::BitStream((unsigned char*) message.sBitStream.c_str(), message.sBitStream.size(), false);
-				
-				skill_component->SyncPlayerProjectile(message.i64LocalID, bs, message.i64TargetID);
-
-				delete bs;
-			}
-        	
-        	break;
-    	}
-    	
-		case GAME_MSG_START_SKILL: {
-			GameMessages::StartSkill startSkill = GameMessages::StartSkill();
-			startSkill.Deserialize(inStream); // inStream replaces &bitStream
-			
-			if (startSkill.skillID == 1561 || startSkill.skillID == 1562 || startSkill.skillID == 1541) return;
-
-			MissionComponent* comp = entity->GetComponent<MissionComponent>();
-			if (comp) {
-				comp->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, startSkill.skillID);
-			}
-			
-			CDSkillBehaviorTable* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
-			unsigned int behaviorId = skillTable->GetSkillByID(startSkill.skillID).behaviorID;
-
-			bool success = false;
-        	
-			if (behaviorId > 0) {
-				RakNet::BitStream * bs = new RakNet::BitStream((unsigned char *)startSkill.sBitStream.c_str(), startSkill.sBitStream.size(), false);
-
-				auto* skillComponent = entity->GetComponent<SkillComponent>();
-
-				success = skillComponent->CastPlayerSkill(behaviorId, startSkill.uiSkillHandle, bs, startSkill.optionalTargetID, startSkill.skillID);
-
-				if (success && entity->GetCharacter()) {
-					DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();
-					destComp->SetImagination(destComp->GetImagination() - skillTable->GetSkillByID(startSkill.skillID).imaginationcost);
-				}
-				
-				delete bs;
-			}
-			
-			if (Game::server->GetZoneID() == 1302) {
-				break;
-			}
-
-			if (success) {
-				//Broadcast our startSkill:
-				RakNet::BitStream bitStreamLocal;
-				PacketUtils::WriteHeader(bitStreamLocal, CLIENT, MSG_CLIENT_GAME_MSG);
-				bitStreamLocal.Write(entity->GetObjectID());
-
-				GameMessages::EchoStartSkill echoStartSkill;
-				echoStartSkill.bUsedMouse = startSkill.bUsedMouse;
-				echoStartSkill.fCasterLatency = startSkill.fCasterLatency;
-				echoStartSkill.iCastType = startSkill.iCastType;
-				echoStartSkill.lastClickedPosit = startSkill.lastClickedPosit;
-				echoStartSkill.optionalOriginatorID = startSkill.optionalOriginatorID;
-				echoStartSkill.optionalTargetID = startSkill.optionalTargetID;
-				echoStartSkill.originatorRot = startSkill.originatorRot;
-				echoStartSkill.sBitStream = startSkill.sBitStream;
-				echoStartSkill.skillID = startSkill.skillID;
-				echoStartSkill.uiSkillHandle = startSkill.uiSkillHandle;
-				echoStartSkill.Serialize(&bitStreamLocal);
-
-				Game::server->Send(&bitStreamLocal, entity->GetSystemAddress(), true);
-			}
-		} break;
-
-		case GAME_MSG_SYNC_SKILL: {
-			RakNet::BitStream bitStreamLocal;
-			PacketUtils::WriteHeader(bitStreamLocal, CLIENT, MSG_CLIENT_GAME_MSG);
-			bitStreamLocal.Write(entity->GetObjectID());
-			//bitStreamLocal.Write((unsigned short)GAME_MSG_ECHO_SYNC_SKILL);
-			//bitStreamLocal.Write(inStream);
-
-			GameMessages::SyncSkill sync = GameMessages::SyncSkill(inStream); // inStream replaced &bitStream
-			//sync.Serialize(&bitStreamLocal);
-
-			ostringstream buffer;
-
-			for (unsigned int k = 0; k < sync.sBitStream.size(); k++){
-				char s;
-				s = sync.sBitStream.at(k);
-				buffer << setw(2) << hex << setfill('0') << (int) s << " ";
-			}
-
-			//cout << buffer.str() << endl;
-			
-			if(usr != nullptr) {
-				RakNet::BitStream * bs = new RakNet::BitStream((unsigned char *)sync.sBitStream.c_str(), sync.sBitStream.size(), false);
-
-				auto* skillComponent = entity->GetComponent<SkillComponent>();
-
-				skillComponent->SyncPlayerSkill(sync.uiSkillHandle, sync.uiBehaviorHandle, bs);
-
-				delete bs;
-			}
-
-			GameMessages::EchoSyncSkill echo = GameMessages::EchoSyncSkill();
-			echo.bDone = sync.bDone;
-			echo.sBitStream = sync.sBitStream;
-			echo.uiBehaviorHandle = sync.uiBehaviorHandle;
-			echo.uiSkillHandle = sync.uiSkillHandle;
-
-			echo.Serialize(&bitStreamLocal);
-
-			Game::server->Send(&bitStreamLocal, sysAddr, true);
-		} break;
-
-		case GAME_MSG_REQUEST_SMASH_PLAYER:
-			entity->Smash(entity->GetObjectID());
-			break;
+		case GAME_MSG_PLAY_EMOTE:									returnMessage = new PlayEmote();								break;
+		case GAME_MSG_MOVE_ITEM_IN_INVENTORY:						returnMessage = new MoveItemInInventory();						break;
+		case GAME_MSG_REMOVE_ITEM_FROM_INVENTORY:					returnMessage = new RemoveItemFromInventory();					break;
+		case GAME_MSG_EQUIP_ITEM:									returnMessage = new EquipItem();								break;
+		case GAME_MSG_UN_EQUIP_ITEM:								returnMessage = new UnEquipItem();								break;
+        case GAME_MSG_RESPOND_TO_MISSION:							returnMessage = new RespondToMission();							break;
+        case GAME_MSG_REQUEST_USE:									returnMessage = new RequestUse();								break;
+        case GAME_MSG_SET_FLAG:										returnMessage = new SetFlag();									break; 
+        case GAME_MSG_HAS_BEEN_COLLECTED:							returnMessage = new HasBeenCollected();							break; // contains handler
+		case GAME_MSG_PLAYER_LOADED:								returnMessage = new PlayerLoaded();								break;
+        case GAME_MSG_REQUEST_LINKED_MISSION:						returnMessage = new RequestLinkedMission();						break;
+        case GAME_MSG_MISSION_DIALOGUE_OK:							returnMessage = new MissionDialogOK();							break;
+        case GAME_MSG_REQUEST_PLATFORM_RESYNC:						returnMessage = new RequestPlatformResync();					break; // contains handler
+        case GAME_MSG_FIRE_EVENT_SERVER_SIDE:						returnMessage = new FireEventServerSide();						break; // contains handler
+        case GAME_MSG_REQUEST_ACTIVITY_SUMMARY_LEADERBOARD_DATA:	returnMessage = new RequestActivitySummaryLeaderboardData();	break;
+        case GAME_MSG_ACTIVITY_STATE_CHANGE_REQUEST:				returnMessage = new ActivityStateChangeRequest();				break;
+        case GAME_MSG_PARSE_CHAT_MESSAGE:							returnMessage = new ParseChatMessage();							break;
+		case GAME_MSG_NOTIFY_SERVER_LEVEL_PROCESSING_COMPLETE:		returnMessage = new NotifyServerLevelProcessingComplete();		break;
+		case GAME_MSG_PICKUP_CURRENCY:								returnMessage = new PickupCurrency();							break;
+		case GAME_MSG_PICKUP_ITEM:									returnMessage = new PickupItem();								break;
+		case GAME_MSG_RESURRECT:									returnMessage = new Resurrect();								break;
+		case GAME_MSG_REQUEST_RESURRECT:							returnMessage = new RequestResurrect();							break; // contains handler
+    	case GAME_MSG_REQUEST_SERVER_PROJECTILE_IMPACT:				returnMessage = new RequestServerProjectileImpact();			break;
+		case GAME_MSG_START_SKILL:									returnMessage = new StartSkill();								break; // contains handler
+		case GAME_MSG_SYNC_SKILL:									returnMessage = new SyncSkill();								break;
+		case GAME_MSG_REQUEST_SMASH_PLAYER:							returnMessage = new RequestSmashPlayer();						break;
 
 		case GAME_MSG_MOVE_ITEM_BETWEEN_INVENTORY_TYPES:
 			GameMessages::HandleMoveItemBetweenInventoryTypes(inStream, entity, sysAddr);
@@ -644,6 +390,8 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	if (returnMessage) {
 		returnMessage->Deserialize(inStream);
 		returnMessage->associate = entity;
+		returnMessage->sysAddr = sysAddr;
+		returnMessage->Handle(); // This is for GMs which I am unsure of their target components
 
 		for (const auto& pair : entity->GetComponents()) {
 			auto* comp = pair.second;

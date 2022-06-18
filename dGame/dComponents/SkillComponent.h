@@ -7,12 +7,17 @@
 #define SKILLCOMPONENT_H
 
 #include <map>
+#include <iostream>
+#include <iomanip>
 
 #include "BehaviorContext.h"
 #include "BitStream.h"
 #include "Component.h"
 #include "Entity.h"
 #include "dLogger.h"
+
+#include "Dual/RequestServerProjectileImpact.h"
+#include "Dual/SyncSkill.h"
 
 struct ProjectileSyncEntry {
     LWOOBJID id = LWOOBJID_EMPTY;
@@ -174,6 +179,8 @@ public:
      */
     uint32_t GetUniqueSkillId();
 
+    void HandleRequestServerProjectileImpact(RequestServerProjectileImpact* msg);
+    void HandleSyncSkill(SyncSkill* msg);
 private:
     /**
      * All of the active skills mapped by their unique ID.

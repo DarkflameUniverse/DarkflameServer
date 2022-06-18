@@ -24,6 +24,7 @@ std::unordered_map<size_t, std::vector<uint32_t>> MissionComponent::m_Achievemen
 
 //! Initializer
 MissionComponent::MissionComponent(Entity* parent) : Component(parent) {
+    this->RegisterGM(RespondToMission::GetId(), (Handler)&MissionComponent::HandleRespondToMission);
 }
 
 //! Destructor
@@ -612,4 +613,27 @@ bool MissionComponent::HasCollectible(int32_t collectibleID)
 bool MissionComponent::HasMission(uint32_t missionId) 
 {
     return GetMission(missionId) != nullptr;
+}
+
+void MissionComponent::HandleRespondToMission(RespondToMission* msg) {
+    Mission* mission = this->GetMission(msg->missionID);
+    if (mission) {
+        mission->SetReward(msg->reward);
+    }
+    else {
+        Game::logger->Log("GameMessages", "Unable to get mission %i for entity %llu to update reward in RespondToMission\n", msg->missionID, msg->playerID);
+    }
+
+    Entity* offerer = EntityManager::Instance()->GetEntity(msg->receiverID);
+
+    if (offerer == nullptr) {
+        Game::logger->Log("GameMessages", "Unable to get receiver entity %llu for RespondToMission\n", msg->receiverID);
+        return;
+    }
+
+    auto* player = EntityManager::Instance()->GetEntity(msg->playerID);
+
+    for (CppScripts::Script* script : CppScripts::GetEntityScripts(offerer)) {
+        script->OnRespondToMission(offerer, msg->missionID, player, msg->reward);
+    }
 }

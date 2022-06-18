@@ -513,6 +513,9 @@ void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID targ
 SkillComponent::SkillComponent(Entity* parent) : Component(parent)
 {
 	this->m_skillUid = 0;
+
+	this->RegisterGM(RequestServerProjectileImpact::GetId(), (Handler)&SkillComponent::HandleRequestServerProjectileImpact);
+	this->RegisterGM(SyncSkill::GetId(), (Handler)&SkillComponent::HandleSyncSkill);
 }
 
 SkillComponent::~SkillComponent()
@@ -531,4 +534,41 @@ void SkillComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 uint32_t SkillComponent::GetUniqueSkillId()
 {
 	return ++this->m_skillUid;
+}
+
+void SkillComponent::HandleRequestServerProjectileImpact(RequestServerProjectileImpact* msg) {
+	auto* bs = new RakNet::BitStream((unsigned char*)msg->sBitStream.c_str(), msg->sBitStream.size(), false);
+
+	this->SyncPlayerProjectile(msg->i64LocalID, bs, msg->i64TargetID);
+
+	delete bs;
+}
+
+void SkillComponent::HandleSyncSkill(SyncSkill* msg) {
+	RakNet::BitStream bitStreamLocal;
+	PacketUtils::WriteHeader(bitStreamLocal, CLIENT, MSG_CLIENT_GAME_MSG);
+	bitStreamLocal.Write(msg->associate->GetObjectID());
+
+	std::ostringstream buffer;
+
+	for (unsigned int k = 0; k < msg->sBitStream.size(); k++) {
+		char s;
+		s = msg->sBitStream.at(k);
+		buffer << std::setw(2) << std::hex << std::setfill('0') << (int)s << " ";
+	}
+
+	RakNet::BitStream* bs = new RakNet::BitStream((unsigned char*)msg->sBitStream.c_str(), msg->sBitStream.size(), false);
+	this->SyncPlayerSkill(msg->uiSkillHandle, msg->uiBehaviorHandle, bs);
+
+	delete bs;
+
+	GameMessages::EchoSyncSkill echo = GameMessages::EchoSyncSkill();
+	echo.bDone = msg->bDone;
+	echo.sBitStream = msg->sBitStream;
+	echo.uiBehaviorHandle = msg->uiBehaviorHandle;
+	echo.uiSkillHandle = msg->uiSkillHandle;
+
+	echo.Serialize(&bitStreamLocal);
+
+	Game::server->Send(&bitStreamLocal, msg->sysAddr, true);
 }

@@ -41,6 +41,9 @@ bool OfferedMission::GetAcceptMission() const
 //------------------------ MissionOfferComponent below ------------------------
 
 MissionOfferComponent::MissionOfferComponent(Entity* parent, const LOT parentLot) : Component(parent) {
+    this->RegisterGM(RequestLinkedMission::GetId(), (Handler)&MissionOfferComponent::HandleRequestLinkedMission);
+    this->RegisterGM(MissionDialogOK::GetId(), (Handler)&MissionOfferComponent::HandleMissionDialogOK);
+
     auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 
     auto value = compRegistryTable->GetByIDAndType(parentLot, COMPONENT_TYPE_MISSION_OFFER, -1);
@@ -234,5 +237,32 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
         {
 	        GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), missionId, m_Parent->GetObjectID());
         }
+    }
+}
+
+void MissionOfferComponent::HandleRequestLinkedMission(RequestLinkedMission* msg) {
+    auto* player = EntityManager::Instance()->GetEntity(msg->playerId);
+    this->OfferMissions(player, 0);
+}
+
+void MissionOfferComponent::HandleMissionDialogOK(MissionDialogOK* msg) {
+    auto* player = EntityManager::Instance()->GetEntity(msg->responder);
+
+    for (CppScripts::Script* script : CppScripts::GetEntityScripts(msg->associate)) {
+        script->OnMissionDialogueOK(msg->associate, player, msg->missionID, msg->iMissionState);
+    }
+
+    // Get the player's mission component
+    MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(COMPONENT_TYPE_MISSION));
+    if (!missionComponent) {
+        Game::logger->Log("GameMessages", "Unable to get mission component for entity %llu to handle MissionDialogueOK\n", player->GetObjectID());
+        return;
+    }
+
+    if (msg->iMissionState == MissionState::MISSION_STATE_AVAILABLE || msg->iMissionState == MissionState::MISSION_STATE_COMPLETE_AVAILABLE) {
+        missionComponent->AcceptMission(msg->missionID);
+    }
+    else if (msg->iMissionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || msg->iMissionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE) {
+        missionComponent->CompleteMission(msg->missionID);
     }
 }
