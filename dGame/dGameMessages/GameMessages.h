@@ -122,6 +122,25 @@ namespace GameMessages {
 
 	void SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID);
 
+	// Mounts
+	/**
+	 * @brief Set the Inventory LWOOBJID of the mount
+	 *
+	 * @param entity The entity that is mounting
+	 * @param sysAddr the system address to send game message response to
+	 * @param objectID LWOOBJID of the item in inventory that is being used
+	 */
+	void SendSetMountInventoryID(Entity* entity, const LWOOBJID& objectID, const SystemAddress& sysAddr);
+
+	/**
+	 * @brief Handle client dismounting mount
+	 *
+	 * @param inStream Raknet BitStream of incoming data
+	 * @param entity The Entity that is dismounting
+	 * @param sysAddr the system address to send game message response to
+	 */
+	void HandleDismountComplete(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
 	// Rails stuff
 	void SendSetRailMovement(const LWOOBJID& objectID, bool pathGoForward, std::u16string pathName, uint32_t pathStart,
                              const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <map>
 #include <stack>
@@ -15,7 +15,6 @@
 #include "Component.h"
 #include "ItemSetPassiveAbility.h"
 #include "ItemSetPassiveAbilityID.h"
-#include "PossessorComponent.h"
 
 class Entity;
 class ItemSet;
@@ -387,13 +386,6 @@ private:
      */
 	LOT m_Consumable;
 
-    /**
-     * Currently has a car equipped
-     */
-    bool hasCarEquipped = false;
-    Entity* equippedCarEntity = nullptr;
-    LWOOBJID previousPossessableID = LWOOBJID_EMPTY;
-    LWOOBJID previousPossessorID = LWOOBJID_EMPTY;
     /**
      * Creates all the proxy items (subitems) for a parent item
      * @param parent the parent item to generate all the subitems for

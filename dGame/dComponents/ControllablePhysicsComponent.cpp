@@ -31,6 +31,7 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_IgnoreMultipliers = false;
 	m_PickupRadius = 0.0f;
 	m_DirtyPickupRadiusScale = true;
+	m_DoTeleport = false;
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
@@ -127,7 +128,10 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write0();
 	}
 
-	if (!bIsInitialUpdate) outBitStream->Write0();
+	if (!bIsInitialUpdate) {
+		if (m_DoTeleport) m_DoTeleport = false;
+		outBitStream->Write(m_DoTeleport);
+	}
 }
 
 void ControllablePhysicsComponent::LoadFromXML(tinyxml2::XMLDocument* doc) {

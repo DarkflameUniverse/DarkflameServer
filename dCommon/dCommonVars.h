@@ -407,8 +407,8 @@ enum eReplicaComponentType : int32_t {
     COMPONENT_TYPE_MISSION                  = 84,           //!< The Mission Component
     COMPONENT_TYPE_ROCKET_LAUNCH_LUP        = 97,           //!< The LUP Launchpad Componen
     COMPONENT_TYPE_RAIL_ACTIVATOR           = 104,
-    COMPONENT_TYPE_POSSESSOR                = 107,          //!< The Component 107
-    COMPONENT_TYPE_POSSESSABLE              = 108,          //!< The Component 108
+	COMPONENT_TYPE_POSSESSABLE				= 108,			//!< The Possessable
+	COMPONENT_TYPE_POSSESSOR				= 110,			//!< The Possessor
 	COMPONENT_TYPE_BUILD_BORDER             = 114,          //!< The Build Border Component
     COMPONENT_TYPE_DESTROYABLE              = 1000,         //!< The Destroyable Component
 
@@ -458,7 +458,8 @@ enum eItemType : int32_t {
     ITEM_TYPE_PACKAGE = 20,                 //!< A package
     ITEM_TYPE_LOOT_MODEL = 21,              //!< A loot model
     ITEM_TYPE_VEHICLE = 22,                 //!< A vehicle
-    ITEM_TYPE_CURRENCY = 23                 //!< Currency
+	ITEM_TYPE_CURRENCY = 23,				//!< Currency
+	ITEM_TYPE_MOUNT = 24					//!< A Mount
 };
 
 enum eRebuildState : uint32_t {
@@ -658,6 +659,46 @@ enum ePlayerFlags {
     NJ_WU_SHOW_DAILY_CHEST = 2099
 };
 
+enum eAnimationFlags : uint32_t {
+	IDLE_INVALID = 0, // made up, for internal use!!!
+	IDLE_BASIC = 1,
+	IDLE_SWIM = 2,
+	IDLE_CARRY = 3,
+	IDLE_SWORD = 4,
+	IDLE_HAMMER = 5,
+	IDLE_SPEAR = 6,
+	IDLE_PISTOL = 7,
+	IDLE_BOW = 8,
+	IDLE_COMBAT = 9,
+	IDLE_JETPACK = 10,
+	IDLE_HORSE = 11,
+	IDLE_SG = 12,
+	IDLE_ORGAN = 13,
+	IDLE_SKATEBOARD = 14,
+	IDLE_DAREDEVIL = 15,
+	IDLE_SAMURAI = 16,
+	IDLE_SUMMONER = 17,
+	IDLE_BUCCANEER = 18,
+	IDLE_MISC = 19,
+	IDLE_NINJA = 20,
+	IDLE_MISC1 = 21,
+	IDLE_MISC2 = 22,
+	IDLE_MISC3 = 23,
+	IDLE_MISC4 = 24,
+	IDLE_MISC5 = 25,
+	IDLE_MISC6 = 26,
+	IDLE_MISC7 = 27,
+	IDLE_MISC8 = 28,
+	IDLE_MISC9 = 29,
+	IDLE_MISC10 = 30,
+	IDLE_MISC11 = 31,
+	IDLE_MISC12 = 32
+};
+
+enum eUnequippableActiveType : int32_t {
+	PET = 0,
+	MOUNT = 1
+};
 
 //======== FUNC ===========
 

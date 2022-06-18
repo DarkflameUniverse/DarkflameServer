@@ -1713,6 +1713,50 @@ void GameMessages::SendStartCelebrationEffect(Entity* entity, const SystemAddres
 	//PacketUtils::SavePacket("StartCelebrationEffect.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
+void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objectID, const SystemAddress& sysAddr){
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_MOUNT_INVENTORY_ID);
+	bitStream.Write(objectID);
+
+	SEND_PACKET_BROADCAST;
+	}
+
+
+void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr){
+	LWOOBJID objectId{};
+	inStream->Read(objectId);
+	auto* mount = EntityManager::Instance()->GetEntity(objectId);
+
+	if (objectId != LWOOBJID_EMPTY) {
+		GameMessages::SendSetMountInventoryID(entity, LWOOBJID_EMPTY, entity->GetSystemAddress());
+
+		PossessorComponent* possessor;
+		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
+			if (mount) {
+				possessor->SetIsDismounting(false);
+				possessor->SetPossesableItem(nullptr);
+                possessor->SetPossessable(LWOOBJID_EMPTY);
+                possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
+
+				entity->RemoveChild(mount);
+
+				auto* controllablePhysics = entity->GetComponent<ControllablePhysicsComponent>();
+				controllablePhysics->SetDirtyPosition(true);
+				controllablePhysics->SetDirtyVelocity(true);
+				controllablePhysics->SetDoTeleport(true);
+
+                GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+
+				EntityManager::Instance()->SerializeEntity(entity);
+				EntityManager::Instance()->DestroyEntity(mount);
+			}
+		}
+	}
+}
+
 
 void GameMessages::SendSetRailMovement(const LWOOBJID& objectID, bool pathGoForward, std::u16string pathName,
                                        uint32_t pathStart, const SystemAddress& sysAddr, int32_t railActivatorComponentID,

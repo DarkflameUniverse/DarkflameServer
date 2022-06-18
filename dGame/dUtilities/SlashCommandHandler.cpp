@@ -957,23 +957,28 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
             ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /teleport <x> (<y>) <z> - if no Y given, will teleport to the height of the terrain (or any physics object).");
         }
 
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto* Character = entity->GetComponent<CharacterComponent>();
 
-		if (possessorComponent != nullptr)
-		{
-			auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		if (Character != nullptr){
+			auto* possessor = entity->GetComponent<PossessorComponent>();
+			if (!possessor) return;
 
-			if (possassableEntity != nullptr)
-			{
-				auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
+			auto* possassableEntity = EntityManager::Instance()->GetEntity(possessor->GetPossessable());
+			
+			if (possassableEntity != nullptr){
+				if (Character->GetIsRacing()){
+					auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 
-				if (vehiclePhysicsComponent != nullptr)
-				{
-					vehiclePhysicsComponent->SetPosition(pos);
+					if (vehiclePhysicsComponent != nullptr)
+					{
+						vehiclePhysicsComponent->SetPosition(pos);
 
-					EntityManager::Instance()->SerializeEntity(possassableEntity);
+						EntityManager::Instance()->SerializeEntity(possassableEntity);
 
-					Game::logger->Log("ClientPackets", "Forced updated vehicle position\n");
+						Game::logger->Log("ClientPackets", "Forced updated vehicle position\n");
+					}
+				} else {
+					GameMessages::SendTeleport(possassableEntity->GetObjectID(), pos, NiQuaternion(), sysAddr);
 				}
 			}
 		}
@@ -993,21 +998,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "dismount" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
-	{
-		PossessorComponent* possessorComponent;
-		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent)) {
-			Entity* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
-			if (!vehicle) return;
-
-			PossessableComponent* possessableComponent;
-			if (vehicle->TryGetComponent(COMPONENT_TYPE_POSSESSABLE, possessableComponent)) {
-				possessableComponent->SetPossessor(LWOOBJID_EMPTY);
-				possessorComponent->SetPossessable(LWOOBJID_EMPTY);
-
-				EntityManager::Instance()->SerializeEntity(vehicle);
-				EntityManager::Instance()->SerializeEntity(entity);
-			}
+	if (chatCommand == "dismount" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER){
+		PossessorComponent* possessor;
+		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
+			auto* possessedItem = possessor->GetPossesableItem();
+			if (possessedItem != nullptr) possessor->Dismount(possessor->GetPossesableItem());
 		}
 	}
 

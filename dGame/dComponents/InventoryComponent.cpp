@@ -17,7 +17,6 @@
 #include "Player.h"
 #include "PetComponent.h"
 #include "PossessorComponent.h"
-#include "PossessableComponent.h"
 #include "ModuleAssemblyComponent.h"
 #include "VehiclePhysicsComponent.h"
 #include "CharacterComponent.h"
@@ -931,110 +930,27 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 
 		const auto type = static_cast<eItemType>(item->GetInfo().itemType);
 		
-		if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == false)
-		{	
-			auto startPosition = m_Parent->GetPosition();
+		// Vehicles are equipable items, so handle them here
+		if (type == ITEM_TYPE_VEHICLE && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR) {
 
-			auto startRotation = NiQuaternion::LookAt(startPosition, startPosition + NiPoint3::UNIT_X);
-			auto angles = startRotation.GetEulerAngles();
-			angles.y -= PI;
-			startRotation = NiQuaternion::FromEulerAngles(angles);
+			auto* character = m_Parent->GetComponent<CharacterComponent>();
+			if (!character) return;
 
-			GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
+			auto* possessor = m_Parent->GetComponent<PossessorComponent>();
+			if (!possessor) return;
 
-			EntityInfo info {};
-			info.lot = 8092;
-			info.pos = startPosition;
-			info.rot = startRotation;
-			info.spawnerID = m_Parent->GetObjectID();
-
-			auto* carEntity = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
-			m_Parent->AddChild(carEntity);
-
-			auto *destroyableComponent = carEntity->GetComponent<DestroyableComponent>();
-
-    		// Setup the vehicle stats.
-    		if (destroyableComponent != nullptr) {
-				destroyableComponent->SetIsSmashable(false);
-				destroyableComponent->SetIsImmune(true);
-    		}
-			// #108
-			auto* possessableComponent = carEntity->GetComponent<PossessableComponent>();
-
-			if (possessableComponent != nullptr)
-			{
-				previousPossessableID = possessableComponent->GetPossessor();
-				possessableComponent->SetPossessor(m_Parent->GetObjectID());
+			if (character->GetIsRacing()){
+				possessor->Dismount(item);
+			} else {
+				possessor->Mount(item);
 			}
-
-			auto* moduleAssemblyComponent = carEntity->GetComponent<ModuleAssemblyComponent>();
-
-			if (moduleAssemblyComponent != nullptr)
-			{
-				moduleAssemblyComponent->SetSubKey(item->GetSubKey());
-				moduleAssemblyComponent->SetUseOptionalParts(false);
-
-				for (auto* config : item->GetConfig())
-				{
-					if (config->GetKey() == u"assemblyPartLOTs")
-					{
-						moduleAssemblyComponent->SetAssemblyPartsLOTs(GeneralUtils::ASCIIToUTF16(config->GetValueAsString()));
-					}
-				}
-			}
-			// #107
-			auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
-
-			if (possessorComponent != nullptr)
-			{
-				previousPossessorID = possessorComponent->GetPossessable();
-				possessorComponent->SetPossessable(carEntity->GetObjectID());
-			}
-
-			auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
-
-			if (characterComponent != nullptr)
-			{
-				characterComponent->SetIsRacing(true);
-				characterComponent->SetVehicleObjectID(carEntity->GetObjectID());
-			}
-
-			EntityManager::Instance()->ConstructEntity(carEntity);
-			EntityManager::Instance()->SerializeEntity(m_Parent);
-			GameMessages::SendSetJetPackMode(m_Parent, false);
-
-			GameMessages::SendNotifyVehicleOfRacingObject(carEntity->GetObjectID(), m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendRacingPlayerLoaded(LWOOBJID_EMPTY, m_Parent->GetObjectID(), carEntity->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendVehicleUnlockInput(carEntity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
-    		GameMessages::SendTeleport(carEntity->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
-			EntityManager::Instance()->SerializeEntity(m_Parent);
-
-			hasCarEquipped = true;
-			equippedCarEntity = carEntity;
-			return;
-		} else if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == true)
-		{
-			GameMessages::SendNotifyRacingClient(LWOOBJID_EMPTY, 3, 0, LWOOBJID_EMPTY, u"", m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-			auto player = dynamic_cast<Player*>(m_Parent);
-			player->SendToZone(player->GetCharacter()->GetZoneID());
-			equippedCarEntity->Kill();
-			hasCarEquipped = false;
-			equippedCarEntity = nullptr;
 			return;
 		}
 
 		if (!building)
 		{
-			if (item->GetLot() == 6086)
-			{
-				return;
-			}
-
-			if (type == ITEM_TYPE_LOOT_MODEL || type == ITEM_TYPE_VEHICLE)
-			{
-				return;
-			}
+			if (item->GetLot() == 6086) return;
+			if (type == ITEM_TYPE_LOOT_MODEL) return;
 		}
 
 		if (type != ITEM_TYPE_LOOT_MODEL && type != ITEM_TYPE_MODEL)
