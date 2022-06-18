@@ -24,6 +24,7 @@
 #include "dZoneManager.h"
 #include "PropertyManagementComponent.h"
 #include "DestroyableComponent.h"
+#include "dConfig.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent)
 {
@@ -1354,7 +1355,7 @@ void InventoryComponent::SpawnPet(Item* item)
 	// First check if we can summon the pet.  You need 1 imagination to do so.
 	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
 
-	if (destroyableComponent && destroyableComponent->GetImagination() <= 0) {
+	if (Game::config->GetValue("pets_imagination") == "1" && destroyableComponent && destroyableComponent->GetImagination() <= 0) {
 		GameMessages::SendUseItemRequirementsResponse(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
 		return;
 	}
