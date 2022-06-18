@@ -43,24 +43,30 @@ void PossessorComponent::Mount(Item* item) {
 
 	if (type == ITEM_TYPE_MOUNT){
 		// spawn the mount
-		EntityInfo info{};
+		auto startPosition = m_Parent->GetPosition();
+		auto startRotation = NiQuaternion::LookAt(startPosition, startPosition + NiPoint3::UNIT_X);
 
-		info.lot = item->GetLot();
-		info.spawnerID = 1;
-		info.pos = m_Parent->GetPosition();
-		info.rot = m_Parent->GetRotation();
-
-		auto* mount = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
-		
+		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+		auto vehicle = compRegistryTable->GetByIDAndType(item->GetLot(), COMPONENT_TYPE_VEHICLE_PHYSICS) > 0;
 		// if we have a vehicle physics component, we need to do some extra work
-		if (mount->HasComponent(COMPONENT_TYPE_VEHICLE_PHYSICS)) {
+		if (vehicle) {
 			Game::logger->Log("Possessor", "Mounting a mount that is a vehicle\n");
 			// Get the position and rotation of the player to spawn the vehicle
 			// and then invert it
 			// otherwise, we'll be upside down, thanks
-			// TODO: Make vehicle mounts not be upside down
+			auto angles = startRotation.GetEulerAngles();
+			angles.x -= PI;
+			startRotation = NiQuaternion::FromEulerAngles(angles);
 		}
 
+		EntityInfo info{};
+		info.lot = item->GetLot();
+		info.spawnerID = 1;
+		info.pos = startPosition;
+		info.rot = startRotation;
+
+		auto* mount = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
+		
 		// possess it
 		auto* possessable = mount->GetComponent<PossessableComponent>();
 		if (possessable) {
@@ -70,6 +76,14 @@ void PossessorComponent::Mount(Item* item) {
 		}
 		SetPossessable(mount->GetObjectID());
 		SetPossessableType(mount->GetComponent<PossessableComponent>()->GetPossessionType());
+
+		if (vehicle){
+			GameMessages::SendNotifyVehicleOfRacingObject(mount->GetObjectID(), m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendRacingPlayerLoaded(LWOOBJID_EMPTY, m_Parent->GetObjectID(), mount->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
+			GameMessages::SendTeleport(mount->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
+		}
 
 		// only send this on mounting
 		GameMessages::SendSetMountInventoryID(m_Parent, mount->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);

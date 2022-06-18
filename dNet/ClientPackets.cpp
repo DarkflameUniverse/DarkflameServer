@@ -86,7 +86,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	Entity* entity = EntityManager::Instance()->GetEntity(user->GetLastUsedChar()->GetObjectID());
 	if (!entity) return;
 
-	ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
+	ControllablePhysicsComponent* comp = entity->GetComponent<ControllablePhysicsComponent>();
 	if (!comp) return;
 
 	/*
@@ -101,7 +101,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	}
 	*/
 
-	auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+	
 
 	NiPoint3 position;
 	inStream.Read(position.x);
@@ -139,9 +139,11 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 	bool hasVehicle = false;
 
+	auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+
 	if (possessorComponent != nullptr) {
 		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
-
+		
 		if (possassableEntity != nullptr) {
 			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 
@@ -157,11 +159,12 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
 				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
 				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
-
-				EntityManager::Instance()->SerializeEntity(possassableEntity);
-
 				hasVehicle = true;
+			} else {
+				ControllablePhysicsComponent* comp = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				if (!comp) return;
 			}
+			EntityManager::Instance()->SerializeEntity(possassableEntity);
 		}
 	}
 

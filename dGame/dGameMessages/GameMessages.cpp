@@ -1731,11 +1731,11 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 	auto* mount = EntityManager::Instance()->GetEntity(objectId);
 
 	if (objectId != LWOOBJID_EMPTY) {
-		GameMessages::SendSetMountInventoryID(entity, LWOOBJID_EMPTY, entity->GetSystemAddress());
-
 		PossessorComponent* possessor;
 		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
 			if (mount) {
+				entity->SetPosition(mount->GetPosition());
+				entity->SetRotation(mount->GetRotation());
 				possessor->SetIsDismounting(false);
 				possessor->SetPossesableItem(nullptr);
                 possessor->SetPossessable(LWOOBJID_EMPTY);

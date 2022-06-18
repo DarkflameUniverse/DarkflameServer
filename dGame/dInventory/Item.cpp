@@ -308,7 +308,6 @@ bool Item::Consume()
 
 bool Item::UseNonEquip(){
 	if (info->itemType == ITEM_TYPE_MOUNT) {
-		Game::logger->Log("Item", "Using Mount %i \n", lot);
 		auto* parent = inventory->GetComponent()->GetParent();
 		if (parent){
 			auto* possessor = parent->GetComponent<PossessorComponent>();
