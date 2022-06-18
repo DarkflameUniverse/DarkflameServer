@@ -1351,6 +1351,14 @@ void InventoryComponent::SpawnPet(Item* item)
 		}
 	}
 
+	// First check if we can summon the pet.  You need 1 imagination to do so.
+	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+
+	if (destroyableComponent && destroyableComponent->GetImagination() <= 0) {
+		GameMessages::SendUseItemRequirementsResponse(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
+		return;
+	}
+
 	EntityInfo info {};
 	info.lot = item->GetLot();
 	info.pos = m_Parent->GetPosition();

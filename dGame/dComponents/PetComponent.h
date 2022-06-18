@@ -203,6 +203,14 @@ public:
      */
     static PetComponent* GetActivePet(LWOOBJID owner);
 
+    /**
+     * Adds the timer to the owner of this pet to drain imagination at the rate
+     * specified by the parameter imaginationDrainRate
+     * 
+     * @param item The item that represents this pet in the inventory.
+     */
+    void AddDrainImaginationTimer(Item* item);
+
 private:
 
     /**
@@ -346,4 +354,9 @@ private:
      * Preconditions that need to be met before an entity can tame this pet
      */
     PreconditionExpression* m_Preconditions;
+
+    /**
+     * The rate at which imagination is drained from the user for having the pet out.
+     */
+    float imaginationDrainRate;
 };
