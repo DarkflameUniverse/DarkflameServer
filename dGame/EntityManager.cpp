@@ -226,7 +226,7 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 
 		const auto& ghostingToDelete = std::find(m_EntitiesToGhost.begin(), m_EntitiesToGhost.end(), entityToDelete);
 
-		if (entityToDelete != nullptr)
+		if (entityToDelete)
 		{
 			// If we are a player run through the player destructor.
 			if (entityToDelete->IsPlayer())
