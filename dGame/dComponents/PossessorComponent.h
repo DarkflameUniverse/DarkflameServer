@@ -20,9 +20,10 @@ class PossessorComponent : public Component {
 		static const uint32_t ComponentType = COMPONENT_TYPE_POSSESSOR;
 
 		PossessorComponent(Entity* parent);
+		virtual ~PossessorComponent() override;
 
 		void Mount(Item* item);
-		void Dismount(Item* item);
+		void Dismount(Item* item, bool forceDismount = false);
 
 		/**
 		 * @brief Serialize the Component to be sent

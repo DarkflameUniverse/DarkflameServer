@@ -17,12 +17,12 @@ class PossessableComponent : public Component {
 		PossessableComponent(Entity* parentEntity, uint32_t componentId);
 
 		void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-		void Update(float deltaTime) override;
+
 		/**
 		 * Sets the possessor of this entity
 		 * @param value the ID of the possessor to set
 		 */
-		void SetPossessor(LWOOBJID value) { m_Possessor = value; };
+		void SetPossessor(LWOOBJID value) { m_Possessor = value; m_DirtyPossessable = true;};
 
 		/**
 		 * Returns the possessor of this entity
@@ -34,7 +34,7 @@ class PossessableComponent : public Component {
 		 * Sets the possessor of this entity
 		 * @param value the ID of the possessor to set
 		 */
-		void SetAnimationFlag(eAnimationFlags value) { m_AnimationFlag = value; };
+		void SetAnimationFlag(eAnimationFlags value) { m_AnimationFlag = value; m_DirtyPossessable = true;};
 
 
 		/**
@@ -44,6 +44,12 @@ class PossessableComponent : public Component {
 		ePossessionType GetPossessionType() const { return m_PossessionType; };
 
 		/**
+		 * Sets the possessor of this entity
+		 * @param value the ID of the possessor to set
+		 */
+		void ForceDepossess() { m_ImmediatelyDepossess = true; m_DirtyPossessable = true;};
+
+		/**
 		 * Handles an OnUsed event by some other entity, if said entity has a CharacterComponent it becomes the possessor
 		 * of this entity
 		 * @param originator the entity that caused the event to trigger
@@ -51,6 +57,11 @@ class PossessableComponent : public Component {
 		void OnUse(Entity* originator) override;
 
 	private:
+
+		/**
+		 * Whether the possessor is dirty
+		 */
+		bool m_DirtyPossessable = true;
 
 		/**
 		 * The possessor of this entity, e.g. the entity that controls this entity
@@ -67,5 +78,11 @@ class PossessableComponent : public Component {
 		 * 
 		 */
 		eAnimationFlags m_AnimationFlag = eAnimationFlags::IDLE_INVALID;
+
+		/**
+		 * @brief Should this be immediately depossessed
+		 * 
+		 */
+		bool m_ImmediatelyDepossess = false;
 
 };

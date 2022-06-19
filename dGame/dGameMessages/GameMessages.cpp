@@ -1735,8 +1735,6 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 		PossessorComponent* possessor;
 		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
 			if (mount) {
-				entity->SetPosition(mount->GetPosition());
-				entity->SetRotation(mount->GetRotation());
 				possessor->SetIsDismounting(false);
 				possessor->SetPossesableItem(nullptr);
 				possessor->SetPossessable(LWOOBJID_EMPTY);
@@ -1746,10 +1744,11 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 
 				auto* controllablePhysics = entity->GetComponent<ControllablePhysicsComponent>();
 				controllablePhysics->SetDirtyPosition(true);
-				controllablePhysics->SetDirtyVelocity(true);
+				controllablePhysics->SetIsOnGround(true);
+				controllablePhysics->SetIsOnGround(false);
 				controllablePhysics->SetDoTeleport(true);
 
-                GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+				GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
 				EntityManager::Instance()->SerializeEntity(entity);
 				EntityManager::Instance()->DestroyEntity(mount);
@@ -4078,7 +4077,7 @@ void GameMessages::HandleRacingClientReady(RakNet::BitStream* inStream, Entity* 
 
 void GameMessages::HandleAcknowledgePossession(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) 
 {
-	Game::logger->Log("HandleAcknowledgePossession", "Got AcknowledgePossession from %i\n", entity->GetLOT());
+	Game::logger->Log("HandleAcknowledgePossession", "Got AcknowledgePossession from  LOT: (%i), ObjId: (%i)\n", entity->GetLOT(), entity->GetObjectID());
 
 	EntityManager::Instance()->SerializeEntity(entity);
 }

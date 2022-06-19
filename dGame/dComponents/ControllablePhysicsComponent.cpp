@@ -129,8 +129,8 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 	}
 
 	if (!bIsInitialUpdate) {
-		if (m_DoTeleport) m_DoTeleport = false;
 		outBitStream->Write(m_DoTeleport);
+		m_DoTeleport = false;
 	}
 }
 

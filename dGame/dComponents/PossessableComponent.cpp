@@ -23,40 +23,19 @@ PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId)
 }
 
 void PossessableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	outBitStream->Write1(); // Dirty flag
+	outBitStream->Write(m_DirtyPossessable || bIsInitialUpdate);
+	if (m_DirtyPossessable || bIsInitialUpdate) {
+		m_DirtyPossessable = false;
+		outBitStream->Write(m_Possessor != LWOOBJID_EMPTY);
+		if (m_Possessor != LWOOBJID_EMPTY) outBitStream->Write(m_Possessor);
 
-	outBitStream->Write(m_Possessor != LWOOBJID_EMPTY);
-	if (m_Possessor != LWOOBJID_EMPTY) outBitStream->Write(m_Possessor);
+		outBitStream->Write(m_AnimationFlag != eAnimationFlags::IDLE_INVALID);
+		if(m_AnimationFlag != eAnimationFlags::IDLE_INVALID) outBitStream->Write(m_AnimationFlag);
 
-	outBitStream->Write(m_AnimationFlag != eAnimationFlags::IDLE_INVALID);
-	if(m_AnimationFlag != eAnimationFlags::IDLE_INVALID) outBitStream->Write(m_AnimationFlag);
-
-	outBitStream->Write0(); // immediately depossess
-}
-
-void PossessableComponent::Update(const float deltaTime) {
-	// Game::logger->Log("PossessableComponent", "Updating\n");
-	if (m_Possessor == LWOOBJID_EMPTY){
-		// Game::logger->Log("PossessableComponent", "nothing is possessing us!\n");
-		if (m_Parent){
-			// Game::logger->Log("PossessableComponent", "but we have a parent?\n");
-			auto possessor = m_Parent->GetComponent<PossessorComponent>();
-			if (possessor && !possessor->GetIsDismounting()){
-				// Game::logger->Log("PossessableComponent", "Killing mount parent\n");
-				m_Parent->Kill();
-				// Game::logger->Log("PossessableComponent", "Killing mount parent\n");
-			}
-		}
+		outBitStream->Write(m_ImmediatelyDepossess);
 	}
-	// Game::logger->Log("PossessableComponent", "Finished updating\n");
 }
 
 void PossessableComponent::OnUse(Entity* originator) {
-	PossessorComponent* possessor;
-	if (originator->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
-		SetPossessor(originator->GetObjectID());
-		possessor->SetPossessable(m_Parent->GetObjectID());
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-		EntityManager::Instance()->SerializeEntity(originator);
-	}
+	// TODO: rewrite
 }

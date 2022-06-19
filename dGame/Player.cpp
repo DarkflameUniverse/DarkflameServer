@@ -304,13 +304,6 @@ Player::~Player()
 {
 	Game::logger->Log("Player", "Deleted player\n");
 
-	auto possessor = GetComponent<PossessorComponent>();
-	if (possessor) {
-		if (possessor->GetPossesableItem()){
-			possessor->Dismount(possessor->GetPossesableItem());
-		}
-	}
-
 	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++)
 	{
 		const auto id = m_ObservedEntities[i];

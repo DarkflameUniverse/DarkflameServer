@@ -1002,7 +1002,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		PossessorComponent* possessor;
 		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
 			auto* possessedItem = possessor->GetPossesableItem();
-			if (possessedItem != nullptr) possessor->Dismount(possessor->GetPossesableItem());
+			if (possessedItem != nullptr) possessor->Dismount(possessor->GetPossesableItem(), true);
 		}
 	}
 
