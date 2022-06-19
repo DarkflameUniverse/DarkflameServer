@@ -528,9 +528,6 @@ namespace GameMessages {
 				unsigned int uiSkillHandle{};
 		};
 
-	/*  Message to synchronize a skill cast */
-		
-
 		class DoClientProjectileImpact {
 			static const GAME_MSG MsgID = GAME_MSG_DO_CLIENT_PROJECTILE_IMPACT;
 
@@ -740,8 +737,6 @@ namespace GameMessages {
 			TSkillID skillID;
 			unsigned int uiSkillHandle;
 	};
-
-	/*  Same as sync skill but with different network options. An echo down to other clients that need to play the skill. */
 	
 };
 
