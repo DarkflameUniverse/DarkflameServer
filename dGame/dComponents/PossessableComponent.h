@@ -17,7 +17,7 @@ class PossessableComponent : public Component {
 		PossessableComponent(Entity* parentEntity, uint32_t componentId);
 
 		void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-
+		void Update(float deltaTime) override;
 		/**
 		 * Sets the possessor of this entity
 		 * @param value the ID of the possessor to set

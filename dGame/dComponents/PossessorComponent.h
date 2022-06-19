@@ -22,7 +22,7 @@ class PossessorComponent : public Component {
 		PossessorComponent(Entity* parent);
 
 		void Mount(Item* item);
-		void Dismount(Item* objectID);
+		void Dismount(Item* item);
 
 		/**
 		 * @brief Serialize the Component to be sent

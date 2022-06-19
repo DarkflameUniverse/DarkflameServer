@@ -161,8 +161,17 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 				hasVehicle = true;
 			} else {
-				ControllablePhysicsComponent* comp = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				// Need to get the mount's controllable physics
+				auto* comp = possassableEntity->GetComponent<ControllablePhysicsComponent>();
 				if (!comp) return;
+				comp->SetPosition(position);
+				comp->SetRotation(rotation);
+				comp->SetIsOnGround(onGround);
+				comp->SetIsOnRail(onRail);
+				comp->SetVelocity(velocity);
+				comp->SetDirtyVelocity(velocityFlag);
+				comp->SetAngularVelocity(angVelocity);
+				comp->SetDirtyAngularVelocity(angVelocityFlag);
 			}
 			EntityManager::Instance()->SerializeEntity(possassableEntity);
 		}

@@ -1726,6 +1726,7 @@ void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objec
 
 
 void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr){
+	Game::logger->Log("HandleDismountComplete", "Dismounting\n");
 	LWOOBJID objectId{};
 	inStream->Read(objectId);
 	auto* mount = EntityManager::Instance()->GetEntity(objectId);
@@ -1738,8 +1739,8 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 				entity->SetRotation(mount->GetRotation());
 				possessor->SetIsDismounting(false);
 				possessor->SetPossesableItem(nullptr);
-                possessor->SetPossessable(LWOOBJID_EMPTY);
-                possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
+				possessor->SetPossessable(LWOOBJID_EMPTY);
+				possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
 
 				entity->RemoveChild(mount);
 
@@ -1752,6 +1753,7 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 
 				EntityManager::Instance()->SerializeEntity(entity);
 				EntityManager::Instance()->DestroyEntity(mount);
+				Game::logger->Log("HandleDismountComplete", "Dismounting finished\n");
 			}
 		}
 	}

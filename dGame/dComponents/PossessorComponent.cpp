@@ -91,7 +91,11 @@ void PossessorComponent::Mount(Item* item) {
 		EntityManager::Instance()->ConstructEntity(mount);
 		// stun the player
 		GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
-
+		// Make the item background orange 
+		GameMessages::SendMarkInventoryItemAsActive(m_Parent->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_Parent->GetSystemAddress());
+		
+		EntityManager::Instance()->SerializeEntity(m_Parent);
+		EntityManager::Instance()->SerializeEntity(mount);
 	} else if (type == ITEM_TYPE_VEHICLE && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR){
 		// This is only for GM's only
 
@@ -163,11 +167,13 @@ void PossessorComponent::Mount(Item* item) {
 		GameMessages::SendVehicleUnlockInput(carEntity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
 		GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
 		GameMessages::SendTeleport(carEntity->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
+		// Make the item background orange (or try to)
+		GameMessages::SendMarkInventoryItemAsActive(m_Parent->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_Parent->GetSystemAddress());
+		
+		EntityManager::Instance()->SerializeEntity(m_Parent);
+		EntityManager::Instance()->SerializeEntity(carEntity);
 	}
-	// Make the item background orange 
-	GameMessages::SendMarkInventoryItemAsActive(m_Parent->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_Parent->GetSystemAddress());
-	// make sure we update the parent, they may be concerned
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	
 	return;
 }
 
@@ -185,6 +191,7 @@ void PossessorComponent::Dismount(Item* item) {
 			if (possessableComponent) {
 				possessableComponent->SetPossessor(LWOOBJID_EMPTY);
 			}
+			EntityManager::Instance()->SerializeEntity(m_Parent);
 			EntityManager::Instance()->SerializeEntity(entity);
 		}
 	} else if (type == ITEM_TYPE_VEHICLE && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR) {
@@ -199,11 +206,10 @@ void PossessorComponent::Dismount(Item* item) {
 				if (possessableComponent) {
 					possessableComponent->SetPossessor(LWOOBJID_EMPTY);
 				}
+				EntityManager::Instance()->SerializeEntity(m_Parent);
 				EntityManager::Instance()->SerializeEntity(entity);
 			}
 		}
 	}
-	// make sure we update the parent, they may be concerned
-	EntityManager::Instance()->SerializeEntity(m_Parent);
 	return;
 }

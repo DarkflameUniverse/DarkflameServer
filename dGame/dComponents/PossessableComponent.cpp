@@ -34,6 +34,23 @@ void PossessableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 	outBitStream->Write0(); // immediately depossess
 }
 
+void PossessableComponent::Update(const float deltaTime) {
+	// Game::logger->Log("PossessableComponent", "Updating\n");
+	if (m_Possessor == LWOOBJID_EMPTY){
+		// Game::logger->Log("PossessableComponent", "nothing is possessing us!\n");
+		if (m_Parent){
+			// Game::logger->Log("PossessableComponent", "but we have a parent?\n");
+			auto possessor = m_Parent->GetComponent<PossessorComponent>();
+			if (possessor && !possessor->GetIsDismounting()){
+				// Game::logger->Log("PossessableComponent", "Killing mount parent\n");
+				m_Parent->Kill();
+				// Game::logger->Log("PossessableComponent", "Killing mount parent\n");
+			}
+		}
+	}
+	// Game::logger->Log("PossessableComponent", "Finished updating\n");
+}
+
 void PossessableComponent::OnUse(Entity* originator) {
 	PossessorComponent* possessor;
 	if (originator->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
