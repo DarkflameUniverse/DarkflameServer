@@ -323,24 +323,15 @@ bool Item::UseNonEquip(){
 			return true;
 		}
 	} else if (info->itemType == ITEM_TYPE_PACKAGE) {
-
 		auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-
 		const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_PACKAGE);
-
 		auto* packCompTable = CDClientManager::Instance()->GetTable<CDPackageComponentTable>("PackageComponent");
-
 		auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
 
 		const auto success = !packages.empty();
-
-		if (success)
-		{
-				Game::logger->Log("Item", "Used (%i) with (%d)\n", lot, success);
+		if (success) {
 			auto* entityParent = inventory->GetComponent()->GetParent();
-
-			for (auto& pack : packages)
-			{
+			for (auto& pack : packages) {
 				std::unordered_map<LOT, int32_t> result {};
 				result = LootGenerator::Instance().RollLootMatrix(entityParent, pack.LootMatrixIndex);
 					if (!inventory->GetComponent()->HasSpaceForLoot(result)){
