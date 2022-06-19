@@ -6,18 +6,18 @@
 PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId) : Component(parent){
 	m_Possessor = LWOOBJID_EMPTY;
 
-	// Get the imagination drain rate from the CDClient
+	// Get the possession Type from the CDClient
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT possessionType FROM PossessableComponent WHERE id = ?;");
 
 	query.bind(1, static_cast<int>(componentId));
 
 	auto result = query.execQuery();
 
-	// Should a result not exist for this pet default to 60 seconds.
+	// Should a result not exist for this default to attached visible
 	if (!result.eof() && !result.fieldIsNull(0)) {
 		m_PossessionType = static_cast<ePossessionType>(result.getIntField(0, 0));
 	} else {
-		m_PossessionType = ePossessionType::NO_POSSESSION;
+		m_PossessionType = ePossessionType::ATTACHED_VISIBLE;
 	}
 	result.finalize();
 }
