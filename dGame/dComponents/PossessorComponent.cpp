@@ -58,6 +58,7 @@ void PossessorComponent::Mount(Item* item) {
 	if (GetIsDismounting()) return;
 
 	// bind it if it's BOE
+	// TODO: This doesn't actually update the item BOE status on equip, mounts are weird
 	if (item->GetInfo().isBOE) item->SetBound(true);
 
 	SetPossesableItem(item);
@@ -156,7 +157,9 @@ void PossessorComponent::Mount(Item* item) {
 	}
 	// Make the item background orange 
 	GameMessages::SendMarkInventoryItemAsActive(m_Parent->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_Parent->GetSystemAddress());
-
+	// update slot
+	// TODO: This doesn't actually update the item BOE status on equip, mounts are weird
+	GameMessages::SendAddItemToInventoryClientSync(m_Parent, m_Parent->GetSystemAddress(), item, item->GetId(), false, 0);
 	EntityManager::Instance()->ConstructEntity(mount);
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
