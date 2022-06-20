@@ -100,7 +100,6 @@ void PossessorComponent::Mount(Item* item) {
 	if (character) {
 		character->SetIsRacing(true);
 	}
-	GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
 
 	EntityInfo info{};
 	info.lot = item->GetLot();
@@ -159,8 +158,6 @@ void PossessorComponent::Mount(Entity* possessor, Entity* mount, eAnimationFlags
 	GameMessages::SendSetJetPackMode(m_Parent, false);
 
 
-	GameMessages::SendNotifyVehicleOfRacingObject(mount->GetObjectID(), m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendRacingPlayerLoaded(m_Parent->GetObjectID(), m_Parent->GetObjectID(), mount->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 	GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
 
 	// only send this on mounting
@@ -181,7 +178,6 @@ void PossessorComponent::Dismount(Entity* entity, bool forceDismount) {
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
 
-	GameMessages::SendNotifyRacingClient(LWOOBJID_EMPTY, 3, 0, LWOOBJID_EMPTY, u"", m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 	CharacterComponent* characterComponent;
 	if (m_Parent->TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent)) {
 		characterComponent->SetIsRacing(false);

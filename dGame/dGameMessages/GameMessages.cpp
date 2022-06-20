@@ -1753,12 +1753,6 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 
 				entity->RemoveChild(mount);
 
-				auto* controllablePhysics = entity->GetComponent<ControllablePhysicsComponent>();
-				controllablePhysics->SetDirtyPosition(true);
-				controllablePhysics->SetIsOnGround(true);
-				controllablePhysics->SetIsOnGround(false);
-				controllablePhysics->SetDoTeleport(true);
-
 				GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
 				EntityManager::Instance()->SerializeEntity(entity);
