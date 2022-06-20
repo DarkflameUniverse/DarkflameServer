@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <map>
 #include <stack>
@@ -15,7 +15,6 @@
 #include "Component.h"
 #include "ItemSetPassiveAbility.h"
 #include "ItemSetPassiveAbilityID.h"
-#include "PossessorComponent.h"
 
 class Entity;
 class ItemSet;
@@ -338,6 +337,13 @@ public:
      * @return the skill related to the passed LOT
      */
 	static uint32_t FindSkill(LOT lot);
+
+     /**
+     * Creates all the proxy items (subitems) for a parent item
+     * @param parent the parent item to generate all the subitems for
+     * @return the proxy items (subitems) for a parent item
+     */
+	std::vector<Item*> GenerateProxies(Item* parent);
 	
 	~InventoryComponent() override;
 	
@@ -386,20 +392,6 @@ private:
      * The currently active consumable
      */
 	LOT m_Consumable;
-
-    /**
-     * Currently has a car equipped
-     */
-    bool hasCarEquipped = false;
-    Entity* equippedCarEntity = nullptr;
-    LWOOBJID previousPossessableID = LWOOBJID_EMPTY;
-    LWOOBJID previousPossessorID = LWOOBJID_EMPTY;
-    /**
-     * Creates all the proxy items (subitems) for a parent item
-     * @param parent the parent item to generate all the subitems for
-     * @return the proxy items (subitems) for a parent item
-     */
-	std::vector<Item*> GenerateProxies(Item* parent);
 
     /**
      * Finds all the proxy items in this inventory for a given parent item

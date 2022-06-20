@@ -407,8 +407,8 @@ enum eReplicaComponentType : int32_t {
     COMPONENT_TYPE_MISSION                  = 84,           //!< The Mission Component
     COMPONENT_TYPE_ROCKET_LAUNCH_LUP        = 97,           //!< The LUP Launchpad Componen
     COMPONENT_TYPE_RAIL_ACTIVATOR           = 104,
-    COMPONENT_TYPE_POSSESSOR                = 107,          //!< The Component 107
-    COMPONENT_TYPE_POSSESSABLE              = 108,          //!< The Component 108
+	COMPONENT_TYPE_POSSESSABLE				= 108,			//!< The Possessable
+	COMPONENT_TYPE_POSSESSOR				= 110,			//!< The Possessor
 	COMPONENT_TYPE_BUILD_BORDER             = 114,          //!< The Build Border Component
     COMPONENT_TYPE_DESTROYABLE              = 1000,         //!< The Destroyable Component
 
@@ -464,7 +464,8 @@ enum eItemType : int32_t {
     ITEM_TYPE_PACKAGE = 20,                 //!< A package
     ITEM_TYPE_LOOT_MODEL = 21,              //!< A loot model
     ITEM_TYPE_VEHICLE = 22,                 //!< A vehicle
-    ITEM_TYPE_CURRENCY = 23                 //!< Currency
+	ITEM_TYPE_CURRENCY = 23,				//!< Currency
+	ITEM_TYPE_MOUNT = 24					//!< A Mount
 };
 
 enum eRebuildState : uint32_t {
@@ -664,6 +665,46 @@ enum ePlayerFlags {
     NJ_WU_SHOW_DAILY_CHEST = 2099
 };
 
+enum eAnimationFlags : uint32_t {
+	IDLE_INVALID = 0, // made up, for internal use!!!
+	IDLE_BASIC,
+	IDLE_SWIM,
+	IDLE_CARRY,
+	IDLE_SWORD,
+	IDLE_HAMMER,
+	IDLE_SPEAR,
+	IDLE_PISTOL,
+	IDLE_BOW,
+	IDLE_COMBAT,
+	IDLE_JETPACK,
+	IDLE_HORSE,
+	IDLE_SG,
+	IDLE_ORGAN,
+	IDLE_SKATEBOARD,
+	IDLE_DAREDEVIL,
+	IDLE_SAMURAI,
+	IDLE_SUMMONER,
+	IDLE_BUCCANEER,
+	IDLE_MISC,
+	IDLE_NINJA,
+	IDLE_MISC1,
+	IDLE_MISC2,
+	IDLE_MISC3,
+	IDLE_MISC4,
+	IDLE_MISC5,
+	IDLE_MISC6,
+	IDLE_MISC7,
+	IDLE_MISC8,
+	IDLE_MISC9,
+	IDLE_MISC10,
+	IDLE_MISC11,
+	IDLE_MISC12
+};
+
+enum eUnequippableActiveType : int32_t {
+	PET = 0,
+	MOUNT
+};
 
 //======== FUNC ===========
 

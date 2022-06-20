@@ -207,19 +207,18 @@ void RacingControlComponent::LoadPlayerVehicle(Entity *player,
         }
     }
 
-    // Setup the player as possessing the vehicle.
-    auto *possessorComponent = player->GetComponent<PossessorComponent>();
+    // Keep track of is the player racing
+    auto* character = player->GetComponent<CharacterComponent>();
 
-    if (possessorComponent != nullptr) {
-        possessorComponent->SetPossessable(carEntity->GetObjectID());
+    if (character != nullptr) {
+        character->SetIsRacing(true);
     }
 
-    // Set the player's current activity as racing.
-    auto *characterComponent = player->GetComponent<CharacterComponent>();
+    auto* possessor = player->GetComponent<PossessorComponent>();
 
-    if (characterComponent != nullptr) {
-        characterComponent->SetIsRacing(true);
-        characterComponent->SetVehicleObjectID(carEntity->GetObjectID());
+    if (possessor != nullptr) {
+        possessor->SetPossessable(carEntity->GetObjectID());
+        possessor->SetPossessableType(ePossessionType::ATTACHED_VISIBLE); // for racing it's always Attached_Visible
     }
 
     // Init the player's racing entry.

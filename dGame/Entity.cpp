@@ -207,9 +207,9 @@ void Entity::Initialize()
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ZONE_CONTROL) > 0) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ZONE_CONTROL, nullptr));
 	}
-
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE) > 0) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this)));
+	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE);
+	if (possessableComponentId > 0) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this, possessableComponentId)));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODULE_ASSEMBLY) > 0) {
@@ -435,6 +435,8 @@ void Entity::Initialize()
 	}*/
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
+		// Character Component always has a possessor component
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
 	}
@@ -604,10 +606,6 @@ void Entity::Initialize()
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_RENDER) > 0 && m_TemplateID != 2365) || m_Character) {
 		RenderComponent* render = new RenderComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RENDER, render));
-	}
-
-	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSOR) > 0) || m_Character) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 	}
 
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MISSION_OFFER) > 0) || m_Character) {
@@ -1057,8 +1055,11 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	}
 
 	CharacterComponent* characterComponent;
-	if (TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent)) {
+		PossessorComponent* possessorComponent;
+		if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent)){
+			possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		}
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
@@ -1163,12 +1164,10 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	{
 		outBitStream->Write<uint32_t>(0x40000000);
 	}
-
-	PossessorComponent* possessorComponent;
-	if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent))
-	{
-		possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
+	
+	// BBB Component, unused currently
+	// TODO: Implement this Component
+	outBitStream->Write0();
 
 	/*
 	if (m_Trigger != nullptr)

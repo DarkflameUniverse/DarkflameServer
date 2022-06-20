@@ -12,6 +12,7 @@
 #include "WorldPackets.h"
 #include "dZoneManager.h"
 #include "CharacterComponent.h"
+#include "PossessorComponent.h"
 #include "Mail.h"
 #include "CppScripts.h"
 

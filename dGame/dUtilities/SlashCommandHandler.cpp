@@ -446,6 +446,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if ((chatCommand == "playanimation" || chatCommand == "playanim") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		std::u16string anim = GeneralUtils::ASCIIToUTF16(args[0], args[0].size());
 		GameMessages::SendPlayAnimation(entity, anim);
+		PossessorComponent* possessor;
+		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
+			auto* possessed = EntityManager::Instance()->GetEntity(possessor->GetPossessable());
+			if (possessed != nullptr)
+			GameMessages::SendPlayAnimation(possessed, anim);
+		}
+
 	}
 
 	if (chatCommand == "list-spawns" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -493,20 +500,31 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	{
 		float boost;
 
-		if (!GeneralUtils::TryParse(args[0], boost))
-		{
+		if (!GeneralUtils::TryParse(args[0], boost)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid boost.");
 			return;
 		}
 
+
 		auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
-
-		if (controllablePhysicsComponent == nullptr)
-		{
-			return;
-		}
-
+		if (!controllablePhysicsComponent) return;
 		controllablePhysicsComponent->SetSpeedMultiplier(boost);
+
+		// speedboost possesables
+		auto possessor = entity->GetComponent<PossessorComponent>();
+		if (possessor) {
+			auto possessedID = possessor->GetPossessable();
+			if (possessedID != LWOOBJID_EMPTY) {
+				auto possessable = EntityManager::Instance()->GetEntity(possessedID);
+				if (possessable){
+					auto* possessControllablePhysicsComponent = possessable->GetComponent<ControllablePhysicsComponent>();
+					if (possessControllablePhysicsComponent) {
+						possessControllablePhysicsComponent->SetSpeedMultiplier(boost);
+						Game::logger->Log("SlashCommandHandler", "speed %f\n", possessControllablePhysicsComponent->GetVelocity());
+					}
+				}
+			}
+		}
 
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
@@ -957,23 +975,28 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
             ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /teleport <x> (<y>) <z> - if no Y given, will teleport to the height of the terrain (or any physics object).");
         }
 
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto* Character = entity->GetComponent<CharacterComponent>();
 
-		if (possessorComponent != nullptr)
-		{
-			auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		if (Character != nullptr){
+			auto* possessor = entity->GetComponent<PossessorComponent>();
+			if (!possessor) return;
 
-			if (possassableEntity != nullptr)
-			{
-				auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
+			auto* possassableEntity = EntityManager::Instance()->GetEntity(possessor->GetPossessable());
+			
+			if (possassableEntity != nullptr){
+				if (Character->GetIsRacing()){
+					auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 
-				if (vehiclePhysicsComponent != nullptr)
-				{
-					vehiclePhysicsComponent->SetPosition(pos);
+					if (vehiclePhysicsComponent != nullptr)
+					{
+						vehiclePhysicsComponent->SetPosition(pos);
 
-					EntityManager::Instance()->SerializeEntity(possassableEntity);
+						EntityManager::Instance()->SerializeEntity(possassableEntity);
 
-					Game::logger->Log("ClientPackets", "Forced updated vehicle position\n");
+						Game::logger->Log("ClientPackets", "Forced updated vehicle position\n");
+					}
+				} else {
+					GameMessages::SendTeleport(possassableEntity->GetObjectID(), pos, NiQuaternion(), sysAddr);
 				}
 			}
 		}
@@ -993,21 +1016,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "dismount" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
-	{
-		PossessorComponent* possessorComponent;
-		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent)) {
-			Entity* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
-			if (!vehicle) return;
-
-			PossessableComponent* possessableComponent;
-			if (vehicle->TryGetComponent(COMPONENT_TYPE_POSSESSABLE, possessableComponent)) {
-				possessableComponent->SetPossessor(LWOOBJID_EMPTY);
-				possessorComponent->SetPossessable(LWOOBJID_EMPTY);
-
-				EntityManager::Instance()->SerializeEntity(vehicle);
-				EntityManager::Instance()->SerializeEntity(entity);
-			}
+	if (chatCommand == "dismount" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER){
+		PossessorComponent* possessor;
+		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
+			auto* possessedItem = possessor->GetPossesableItem();
+			if (possessedItem != nullptr) possessor->Dismount(possessor->GetPossesableItem(), true);
 		}
 	}
 
@@ -1286,6 +1299,18 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (newEntity == nullptr) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Failed to spawn entity.");
 			return;
+		}
+		
+		auto vpc = newEntity->GetComponent<VehiclePhysicsComponent>();
+		if (vpc) {
+			auto newRot = newEntity->GetRotation();
+			// Get the position and rotation of the player to spawn the vehicle
+			// and then invert it
+			// otherwise, we'll be upside down, thanks
+			auto angles = newRot.GetEulerAngles();
+			angles.x -= PI;
+			newRot = NiQuaternion::FromEulerAngles(angles);
+			newEntity->SetRotation(newRot);
 		}
 
 		EntityManager::Instance()->ConstructEntity(newEntity);
@@ -1626,6 +1651,24 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+	}
+
+	if ((chatCommand == "unboost") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+
+		if (possessorComponent == nullptr)
+		{
+			return;
+		}
+
+		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+
+		if (vehicle == nullptr)
+		{
+			return;
+		}
+
+		GameMessages::SendVehicleRemovePassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	if (chatCommand == "activatespawner" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1)

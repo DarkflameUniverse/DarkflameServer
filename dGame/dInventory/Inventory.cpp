@@ -1,4 +1,4 @@
-﻿#include "Inventory.h"
+#include "Inventory.h"
 #include "GameMessages.h"
 #include "Game.h"
 #include "Item.h"
@@ -286,6 +286,7 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot)
 	case ITEM_TYPE_MODEL:
 	case ITEM_TYPE_VEHICLE:
 	case ITEM_TYPE_LOOT_MODEL:
+	case ITEM_TYPE_MOUNT:
 		return MODELS;
 		
 	case ITEM_TYPE_HAT:

@@ -245,6 +245,10 @@ public:
      */
     std::vector<float> GetActivePickupRadiusScales() { return m_ActivePickupRadiusScales; };
 
+	bool GetDoTeleport() { return m_DoTeleport; }
+
+	void SetDoTeleport(bool _doTeleport) { m_DoTeleport = _doTeleport; }
+
 private:
     /**
      * The entity that owns this component
@@ -355,6 +359,11 @@ private:
      * The active pickup radius for this entity
      */
     float m_PickupRadius;
+
+	/**
+	* Flag to do teleport with controllable physics
+	*/
+	bool m_DoTeleport;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H
