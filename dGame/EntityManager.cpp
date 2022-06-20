@@ -217,37 +217,42 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 
 	m_EntitiesToKill.clear();
 
-	for (const auto& entry : m_EntitiesToDelete)
+	for (const auto entry : m_EntitiesToDelete)
 	{
-		auto* entity = GetEntity(entry);
+		// Get all this info first before we delete the player.
+		auto entityToDelete = GetEntity(entry);
 
-		m_Entities.erase(entry);
+		auto networkIdToErase = entityToDelete->GetNetworkId();
 
-		const auto& iter = std::find(m_EntitiesToGhost.begin(), m_EntitiesToGhost.end(), entity);
+		const auto& ghostingToDelete = std::find(m_EntitiesToGhost.begin(), m_EntitiesToGhost.end(), entityToDelete);
 
-		if (iter != m_EntitiesToGhost.end())
+		if (entityToDelete)
 		{
-			m_EntitiesToGhost.erase(iter);
-		}
-
-		if (entity != nullptr)
-		{
-			if (entity->GetNetworkId() != 0)
+			// If we are a player run through the player destructor.
+			if (entityToDelete->IsPlayer())
 			{
-				m_LostNetworkIds.push(entity->GetNetworkId());
-			}
-
-			if (entity->IsPlayer())
-			{
-				delete dynamic_cast<Player*>(entity);
+				delete dynamic_cast<Player*>(entityToDelete);
 			}
 			else
 			{
-				delete entity;
+				delete entityToDelete;
 			}
 
-			entity = nullptr;
+			entityToDelete = nullptr;
+
+			if (networkIdToErase != 0)
+			{
+				m_LostNetworkIds.push(networkIdToErase);
+			}
 		}
+
+		if (ghostingToDelete != m_EntitiesToGhost.end())
+		{
+			m_EntitiesToGhost.erase(ghostingToDelete);
+		}
+
+		m_Entities.erase(entry);
+		
 	}
 
 	m_EntitiesToDelete.clear();
