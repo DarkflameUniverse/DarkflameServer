@@ -22,3 +22,4 @@
 [submodule "thirdparty/mariadb-connector-cpp"]
 	path = thirdparty/mariadb-connector-cpp
 	url = https://github.com/mariadb-corporation/mariadb-connector-cpp.git
+	ignore = dirty

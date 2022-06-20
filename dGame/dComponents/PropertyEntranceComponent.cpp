@@ -172,8 +172,8 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     // If the player has a property this query will have a single result.
     if (playerPropertyLookupResults->next()) {
         const auto cloneId = playerPropertyLookupResults->getUInt64(4);
-        const auto propertyName = playerPropertyLookupResults->getString(5).asStdString();
-        const auto propertyDescription = playerPropertyLookupResults->getString(6).asStdString();
+        const auto propertyName = std::string(playerPropertyLookupResults->getString(5).c_str());
+        const auto propertyDescription = std::string(playerPropertyLookupResults->getString(6).c_str());
         const auto privacyOption = playerPropertyLookupResults->getInt(9);
         const auto modApproved = playerPropertyLookupResults->getBoolean(10);
         const auto dateLastUpdated = playerPropertyLookupResults->getInt64(11);

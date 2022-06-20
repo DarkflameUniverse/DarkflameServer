@@ -384,7 +384,7 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	add_link_options(/DELAYLOAD:mariadbcpp.dll)
 	add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADB_CPP_CONNECTOR_DIR}/plugin")
 else() # Build from source
-	if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/")
+	if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test/")
 		# renaming test folder stops it from being built, saves some time when compiling
 		file(RENAME "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/" "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test/")
 	endif()
