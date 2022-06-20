@@ -401,7 +401,7 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 * DarwinAnim8or
 * Wincent01
 * Mick
-* averysumner
+* averysumner (codeshaunted)
 * Jon002
 * Jonny
 * Xiphoseer

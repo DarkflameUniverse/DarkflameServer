@@ -144,8 +144,9 @@ void SGCannon::OnMessageBoxResponse(Entity *self, Entity *sender, int32_t button
     if (player != nullptr) {
         if (button == 1 && identifier == u"Shooting_Gallery_Stop")
         {
-            static_cast<Player*>(player)->SendToZone(1300);
-
+            UpdatePlayer(self, player->GetObjectID(), true);
+            RemovePlayer(player->GetObjectID());
+            StopGame(self, true);
             return;
         }
 
