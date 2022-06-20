@@ -8,6 +8,7 @@ create_test_sourcelist (Tests
 # add the executable
 add_executable (CommonCxxTests ${Tests})
 target_link_libraries(CommonCxxTests dCommon raknet)
+
 if(WIN32)
 	target_link_libraries(CommonCxxTests ws2_32)
 endif(WIN32)
