@@ -1300,6 +1300,18 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			ChatPackets::SendSystemMessage(sysAddr, u"Failed to spawn entity.");
 			return;
 		}
+		
+		auto vpc = newEntity->GetComponent<VehiclePhysicsComponent>();
+		if (vpc) {
+			auto newRot = newEntity->GetRotation();
+			// Get the position and rotation of the player to spawn the vehicle
+			// and then invert it
+			// otherwise, we'll be upside down, thanks
+			auto angles = newRot.GetEulerAngles();
+			angles.x -= PI;
+			newRot = NiQuaternion::FromEulerAngles(angles);
+			newEntity->SetRotation(newRot);
+		}
 
 		EntityManager::Instance()->ConstructEntity(newEntity);
 	}
