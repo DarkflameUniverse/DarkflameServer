@@ -4875,49 +4875,6 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity)
 	inStream->Read(killerID);
 }
 
-void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	eInventoryType inventoryTypeA;
-	eInventoryType inventoryTypeB;
-	LWOOBJID objectID;
-	bool showFlyingLoot = true;
-	bool stackCountIsDefault = false;
-	uint32_t stackCount = 1;
-	bool templateIDIsDefault = false;
-	LOT templateID = LOT_NULL;
-
-	inStream->Read(inventoryTypeA);
-	inStream->Read(inventoryTypeB);
-	inStream->Read(objectID);
-	inStream->Read(showFlyingLoot);
-	inStream->Read(stackCountIsDefault);
-	if (stackCountIsDefault) inStream->Read(stackCount);
-	inStream->Read(templateIDIsDefault);
-	if (templateIDIsDefault) inStream->Read(templateID);
-
-	auto inv = entity->GetComponent<InventoryComponent>();
-	if (!inv) return;
-
-	auto* item = inv->FindItemById(objectID);
-
-	if (item == nullptr)
-	{
-		item = inv->FindItemByLot(templateID);
-
-		if (item == nullptr)
-		{
-			return;
-		}
-	}
-	
-	if (entity->GetCharacter()) {
-		if (entity->GetCharacter()->GetBuildMode()) {
-			showFlyingLoot = false;
-		}
-	}
-
-	inv->MoveItemToInventory(item, inventoryTypeB, stackCount, showFlyingLoot);
-	EntityManager::Instance()->SerializeEntity(entity);
-}
 
 void GameMessages::HandleBuildModeSet(RakNet::BitStream* inStream, Entity* entity) {
 	bool bStart = false;

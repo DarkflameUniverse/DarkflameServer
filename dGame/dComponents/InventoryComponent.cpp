@@ -1870,3 +1870,26 @@ void InventoryComponent::HandlePickupItem(class PickupItem* msg) {
 		}
 	}
 }
+
+void InventoryComponent::HandleMoveItemBetweenInventoryTypes(MoveItemBetweenInventoryTypes* msg) {
+	auto* item = this->FindItemById(msg->objectID);
+
+	if (item == nullptr)
+	{
+		item = this->FindItemByLot(msg->templateID);
+
+		if (item == nullptr)
+		{
+			return;
+		}
+	}
+
+	if (this->m_Parent->GetCharacter()) {
+		if (this->m_Parent->GetCharacter()->GetBuildMode()) {
+			msg->showFlyingLoot = false;
+		}
+	}
+
+	this->MoveItemToInventory(item, msg->inventoryTypeB, msg->stackCount, msg->showFlyingLoot);
+	EntityManager::Instance()->SerializeEntity(this->m_Parent);
+}

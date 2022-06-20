@@ -22,6 +22,7 @@
 #include "Client/EquipItem.h"
 #include "Client/UnEquipItem.h"
 #include "Client/PickupItem.h"
+#include "Client/MoveItemBetweenInventoryTypes.h"
 
 class Entity;
 class ItemSet;
@@ -352,6 +353,7 @@ public:
     void HandleEquipItem(class EquipItem* msg);
     void HandleUnEquipItem(class UnEquipItem* msg);
     void HandlePickupItem(class PickupItem* msg);
+    void HandleMoveItemBetweenInventoryTypes(MoveItemBetweenInventoryTypes* msg);
 	
 private:
     /**

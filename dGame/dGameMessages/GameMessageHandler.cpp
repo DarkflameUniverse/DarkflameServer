@@ -48,6 +48,7 @@
 #include "Client/Resurrect.h"
 #include "Client/RequestResurrect.h"
 #include "Client/RequestSmashPlayer.h"
+#include "Client/MoveItemBetweenInventoryTypes.h"
 
 #include "Dual/StartSkill.h"
 #include "Dual/RequestServerProjectileImpact.h"
@@ -177,7 +178,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		break;
 
 	case GAME_MSG_MOVE_ITEM_BETWEEN_INVENTORY_TYPES:
-		GameMessages::HandleMoveItemBetweenInventoryTypes(inStream, entity, sysAddr);
+		returnMessage = new MoveItemBetweenInventoryTypes();
 		break;
 
 	case GAME_MSG_MODULAR_BUILD_FINISH:
