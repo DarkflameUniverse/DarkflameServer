@@ -446,6 +446,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if ((chatCommand == "playanimation" || chatCommand == "playanim") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		std::u16string anim = GeneralUtils::ASCIIToUTF16(args[0], args[0].size());
 		GameMessages::SendPlayAnimation(entity, anim);
+		PossessorComponent* possessor;
+		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
+			auto* possessed = EntityManager::Instance()->GetEntity(possessor->GetPossessable());
+			if (possessed != nullptr)
+			GameMessages::SendPlayAnimation(possessed, anim);
+		}
+
 	}
 
 	if (chatCommand == "list-spawns" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -1632,6 +1639,24 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+	}
+
+	if ((chatCommand == "unboost") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+
+		if (possessorComponent == nullptr)
+		{
+			return;
+		}
+
+		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+
+		if (vehicle == nullptr)
+		{
+			return;
+		}
+
+		GameMessages::SendVehicleRemovePassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	if (chatCommand == "activatespawner" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1)

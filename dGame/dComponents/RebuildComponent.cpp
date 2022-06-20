@@ -11,6 +11,7 @@
 #include "PacketUtils.h"
 #include "Spawner.h"
 #include "MovingPlatformComponent.h"
+#include "PossessorComponent.h"
 #include "Preconditions.h"
 
 #include "CppScripts.h"
@@ -422,6 +423,14 @@ void RebuildComponent::StartRebuild(Entity* user) {
             script->OnRebuildNotifyState(m_Parent, m_State);
         for (const auto& cb : m_RebuildStateCallbacks)
             cb(m_State);
+
+		PossessorComponent* possessor;
+		if (user->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
+			auto* possessed = EntityManager::Instance()->GetEntity(possessor->GetPossessable());
+			if (possessed != nullptr) {
+				GameMessages::SendPlayAnimation(possessed, GeneralUtils::ASCIIToUTF16("generic-build-horse"));
+			}
+		}
 	}
 }
 
@@ -504,6 +513,14 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 			character->SetPlayerFlag(flagNumber, true);
 		}
 	}
+
+	PossessorComponent* possessor;
+	if (user->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
+		auto* possessed = EntityManager::Instance()->GetEntity(possessor->GetPossessable());
+		if (possessed != nullptr) {
+			GameMessages::SendPlayAnimation(possessed, GeneralUtils::ASCIIToUTF16("jumpflip-horse"), 1.09f);
+		}
+	}
 	GameMessages::SendPlayAnimation(user, u"rebuild-celebrate", 1.09f);
 }
 
@@ -580,6 +597,15 @@ void RebuildComponent::CancelRebuild(Entity* entity, eFailReason failReason, boo
 		characterComponent->SetCurrentActivity(eGameActivities::ACTIVITY_NONE);
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
+
+	PossessorComponent* possessor;
+	if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
+		auto* possessed = EntityManager::Instance()->GetEntity(possessor->GetPossessable());
+		if (possessed != nullptr) {
+			GameMessages::SendPlayAnimation(possessed, GeneralUtils::ASCIIToUTF16("idle"));
+		}
+	}
+
 }
 
 void RebuildComponent::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) {

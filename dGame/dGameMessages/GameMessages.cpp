@@ -5128,6 +5128,12 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	}
 
 	GameMessages::SendPlayAnimation(entity, GeneralUtils::ASCIIToUTF16(sAnimationName));
+	PossessorComponent* possessor;
+	if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
+		auto* possessed = EntityManager::Instance()->GetEntity(possessor->GetPossessable());
+		if (possessed != nullptr)
+		GameMessages::SendPlayAnimation(possessed, GeneralUtils::ASCIIToUTF16(sAnimationName));
+	}
 }
 
 void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {

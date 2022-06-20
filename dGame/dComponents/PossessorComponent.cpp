@@ -66,6 +66,23 @@ void PossessorComponent::Mount(Item* item) {
 
 	// Pure Vehicle types are GM only
 	if (type == ITEM_TYPE_VEHICLE && !(m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR)) return;
+	const auto lot = item->GetLot();
+
+	auto inventory = m_Parent->GetComponent<InventoryComponent>();
+	if (inventory) {
+	inventory->CheckItemSet(lot);
+		// for (auto* set : m_Itemsets)
+		// {
+		// 	set->OnEquip(lot);
+		// }
+
+		inventory->GenerateProxies(item);
+
+		inventory->ApplyBuff(item);
+		
+		inventory->AddItemSkills(item->GetLot());
+
+	}
 
 	// spawn the mount
 	auto startPosition = m_Parent->GetPosition();
@@ -149,7 +166,7 @@ void PossessorComponent::Mount(Entity* possessor, Entity* mount, eAnimationFlags
 	// only send this on mounting
 	GameMessages::SendSetMountInventoryID(m_Parent, mount->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 	// stun the player
-	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true);
 }
 
 void PossessorComponent::Dismount(Entity* entity, bool forceDismount) {

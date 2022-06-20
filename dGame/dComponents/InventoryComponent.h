@@ -337,6 +337,13 @@ public:
      * @return the skill related to the passed LOT
      */
 	static uint32_t FindSkill(LOT lot);
+
+     /**
+     * Creates all the proxy items (subitems) for a parent item
+     * @param parent the parent item to generate all the subitems for
+     * @return the proxy items (subitems) for a parent item
+     */
+	std::vector<Item*> GenerateProxies(Item* parent);
 	
 	~InventoryComponent() override;
 	
@@ -385,13 +392,6 @@ private:
      * The currently active consumable
      */
 	LOT m_Consumable;
-
-    /**
-     * Creates all the proxy items (subitems) for a parent item
-     * @param parent the parent item to generate all the subitems for
-     * @return the proxy items (subitems) for a parent item
-     */
-	std::vector<Item*> GenerateProxies(Item* parent);
 
     /**
      * Finds all the proxy items in this inventory for a given parent item

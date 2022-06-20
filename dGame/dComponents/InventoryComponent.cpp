@@ -1324,6 +1324,8 @@ BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type)
 		return BehaviorSlot::Primary;
 	case ITEM_TYPE_CONSUMABLE:
 		return BehaviorSlot::Consumable;
+	case ITEM_TYPE_MOUNT:
+		return BehaviorSlot::Primary;
 	default:
 		return BehaviorSlot::Invalid;
 	}
