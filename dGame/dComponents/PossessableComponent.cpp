@@ -7,17 +7,19 @@ PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId)
 	m_Possessor = LWOOBJID_EMPTY;
 
 	// Get the possession Type from the CDClient
-	auto query = CDClientDatabase::CreatePreppedStmt("SELECT possessionType FROM PossessableComponent WHERE id = ?;");
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT possessionType, depossessOnHit FROM PossessableComponent WHERE id = ?;");
 
 	query.bind(1, static_cast<int>(componentId));
 
 	auto result = query.execQuery();
 
 	// Should a result not exist for this default to attached visible
-	if (!result.eof() && !result.fieldIsNull(0)) {
+	if (!result.eof() && !result.fieldIsNull(0) && !result.fieldIsNull(1)) {
 		m_PossessionType = static_cast<ePossessionType>(result.getIntField(0, 0));
+		m_DepossessOnHit = static_cast<bool>(result.getIntField(1, 0));
 	} else {
 		m_PossessionType = ePossessionType::ATTACHED_VISIBLE;
+		m_DepossessOnHit = false;
 	}
 	result.finalize();
 }

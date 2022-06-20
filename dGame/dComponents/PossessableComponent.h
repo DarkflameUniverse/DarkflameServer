@@ -36,12 +36,17 @@ class PossessableComponent : public Component {
 		 */
 		void SetAnimationFlag(eAnimationFlags value) { m_AnimationFlag = value; m_DirtyPossessable = true;};
 
-
 		/**
 		 * Returns the possession type of this entity
 		 * @return the possession type of this entity
 		 */
 		ePossessionType GetPossessionType() const { return m_PossessionType; };
+
+		/**
+		 * Returns the possession type of this entity
+		 * @return the possession type of this entity
+		 */
+		bool GetDepossessOnHit() const { return m_DepossessOnHit; };
 
 		/**
 		 * Sets the possessor of this entity
@@ -72,6 +77,11 @@ class PossessableComponent : public Component {
 		 * The type of possesstion to use on this entity
 		 */
 		ePossessionType m_PossessionType = ePossessionType::NO_POSSESSION;
+
+		/**
+		 * Should the possessable be dismount on hit
+		 */
+		bool m_DepossessOnHit = false;
 
 		/**
 		 * @brief What animaiton flag to use

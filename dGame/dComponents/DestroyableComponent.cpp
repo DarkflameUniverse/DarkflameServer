@@ -19,6 +19,8 @@
 #include "TeamManager.h"
 #include "BuffComponent.h"
 #include "SkillComponent.h"
+#include "PossessableComponent.h"
+#include "PossessorComponent.h"
 #include "Item.h"
 
 #include <sstream>
@@ -647,6 +649,47 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	SetArmor(armor);
 	SetHealth(health);
 	SetIsShielded(absorb > 0);
+
+	// Dismount on hit
+	if (damage > 0) {
+
+		// on the possessable hit
+		auto possessable = m_Parent->GetComponent<PossessableComponent>();
+		if (possessable && possessable->GetDepossessOnHit()) {
+			Game::logger->Log("DestroyableComponent", "depossess on hit!\n");
+			auto possessorId = possessable->GetPossessor();
+			if (possessorId) {
+				auto possessor = EntityManager::Instance()->GetEntity(possessorId);
+				if (possessor){
+					auto possessorComp = possessor->GetComponent<PossessorComponent>();
+					if (possessorComp){
+						Game::logger->Log("DestroyableComponent", "dismounting!\n");
+						possessorComp->Dismount(possessorComp->GetPossesableItem());
+					}
+				}
+			}
+		}
+		
+		// on the possessor hit
+		auto possessor = m_Parent->GetComponent<PossessorComponent>();
+		if (possessor) {
+			Game::logger->Log("DestroyableComponent", "depossess on hit!\n");
+			auto possessableId = possessor->GetPossessable();
+			if (possessableId != LWOOBJID_EMPTY) {
+				auto possessable = EntityManager::Instance()->GetEntity(possessableId);
+				if (possessable){
+					auto possessableComp = possessable->GetComponent<PossessableComponent>();
+					if (possessableComp){
+						Game::logger->Log("DestroyableComponent", "dismounting!\n");
+						if (possessableComp->GetDepossessOnHit()){
+							possessor->Dismount(possessor->GetPossesableItem(), true);
+						}
+					}
+				}
+			}
+		}
+
+	}
 
 	if (m_Parent->GetLOT() != 1)
 	{

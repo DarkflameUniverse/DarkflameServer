@@ -493,20 +493,31 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	{
 		float boost;
 
-		if (!GeneralUtils::TryParse(args[0], boost))
-		{
+		if (!GeneralUtils::TryParse(args[0], boost)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid boost.");
 			return;
 		}
 
+
 		auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
-
-		if (controllablePhysicsComponent == nullptr)
-		{
-			return;
-		}
-
+		if (!controllablePhysicsComponent) return;
 		controllablePhysicsComponent->SetSpeedMultiplier(boost);
+
+		// speedboost possesables
+		auto possessor = entity->GetComponent<PossessorComponent>();
+		if (possessor) {
+			auto possessedID = possessor->GetPossessable();
+			if (possessedID != LWOOBJID_EMPTY) {
+				auto possessable = EntityManager::Instance()->GetEntity(possessedID);
+				if (possessable){
+					auto* possessControllablePhysicsComponent = possessable->GetComponent<ControllablePhysicsComponent>();
+					if (possessControllablePhysicsComponent) {
+						possessControllablePhysicsComponent->SetSpeedMultiplier(boost);
+						Game::logger->Log("SlashCommandHandler", "speed %f\n", possessControllablePhysicsComponent->GetVelocity());
+					}
+				}
+			}
+		}
 
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
