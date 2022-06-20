@@ -39,5 +39,7 @@ void PossessableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 }
 
 void PossessableComponent::OnUse(Entity* originator) {
-	// TODO: rewrite
+	auto possessor = originator->GetComponent<PossessorComponent>();
+	if (!possessor) return;
+	possessor->Mount(this->GetParent(), originator, eAnimationFlags::IDLE_INVALID);
 }

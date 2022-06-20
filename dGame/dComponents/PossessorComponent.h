@@ -23,7 +23,10 @@ class PossessorComponent : public Component {
 		virtual ~PossessorComponent() override;
 
 		void Mount(Item* item);
+		void Mount(Entity* possessor, Entity* possessable, eAnimationFlags animationFlag);
+		
 		void Dismount(Item* item, bool forceDismount = false);
+		void Dismount(Entity* possessable, bool forceDismount = false);
 
 		/**
 		 * @brief Serialize the Component to be sent

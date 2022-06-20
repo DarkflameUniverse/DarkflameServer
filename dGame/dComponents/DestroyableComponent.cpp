@@ -678,7 +678,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 					auto possessableComp = possessable->GetComponent<PossessableComponent>();
 					if (possessableComp){
 						if (possessableComp->GetDepossessOnHit()){
-							possessor->Dismount(possessor->GetPossesableItem(), true);
+							possessor->Dismount(possessor->GetPossesableItem());
 						}
 					}
 				}
