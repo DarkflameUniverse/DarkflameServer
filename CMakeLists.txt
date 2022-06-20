@@ -384,9 +384,9 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	add_link_options(/DELAYLOAD:mariadbcpp.dll)
 	add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADB_CPP_CONNECTOR_DIR}/plugin")
 else() # Build from source
-	if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test/")
+	if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
 		# renaming test folder stops it from being built, saves some time when compiling
-		file(RENAME "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/" "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/hide-test/")
+		file(REMOVE "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
 	endif()
 
 	include(ExternalProject)
@@ -408,7 +408,7 @@ else() # Build from source
 									-DINSTALL_PLUGINDIR=plugin
 									${MARIADB_EXTRA_CMAKE_ARGS}
 						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
-						BUILD_COMMAND cmake --build . --config RelWithDebInfo
+						BUILD_COMMAND cmake --build . --config RelWithDebInfo -j${__maria_db_connector_compile_jobs__}
 						INSTALL_COMMAND "")
 
 	ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
