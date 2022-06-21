@@ -404,12 +404,12 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 * averysumner (codeshaunted)
 * Jon002
 * Jonny
-* Xiphoseer
 * EmosewaMC
 * Aronwk
 
 ### Research and tools
 * lcdr
+* Xiphoseer
 
 ### Community management
 * Neal
