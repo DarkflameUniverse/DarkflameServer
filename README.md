@@ -408,8 +408,8 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 * Aronwk
 
 ### Research and tools
-* lcdr
 * Xiphoseer
+* lcdr
 
 ### Community management
 * Neal
