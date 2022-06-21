@@ -396,13 +396,13 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 </tbody>
 </table>
 
-## Current DLU Team
+## Current Maintainers and Developers
 ### Developers
 * [EmosewaMC](https://github.com/EmosewaMC)
 * [Aronwk](https://github.com/aronwk-aaron)
 * [Jettford](https://github.com/Jettford)
 
-## Original DLU Team (Pre-FOSS)
+## Previous Maintainers and Developers (Pre-FOSS)
 ### Developers
 * [DarwinAnim8or](DarwinAnim8or)
 * [Wincent01](https://github.com/Wincent01)
