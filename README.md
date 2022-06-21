@@ -405,6 +405,8 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 * Jon002
 * Jonny
 * Xiphoseer
+* EmosewaMC
+* Aronwk
 
 ### Research and tools
 * lcdr
