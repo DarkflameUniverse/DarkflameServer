@@ -381,13 +381,9 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	# MariaDB uses plugins that the database needs to load, the prebuilt binaries by default will try to find the libraries in system directories,
 	# so set this define and the servers will set the MARIADB_PLUGIN_DIR environment variable to the appropriate directory.
 	# Plugin directory is determined at dll load time (this will happen before main()) so we need to delay the dll load so that we can set the environment variable
-	add_link_options(/DELAYLOAD:mariadbcpp.dll)
+	add_link_options(/DELAYLOAD:${MARIADB_SHARED_LIBRARY_LOCATION})
 	add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADB_CPP_CONNECTOR_DIR}/plugin")
 else() # Build from source
-	if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
-		# renaming test folder stops it from being built, saves some time when compiling
-		file(REMOVE "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
-	endif()
 
 	include(ExternalProject)
 	if(WIN32)
@@ -456,6 +452,11 @@ else() # Build from source
 						${MARIADB_PLUGINS_LOCATION}/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
 						${MARIADB_PLUGINS_LOCATION}/sha256_password${MARIADB_PLUGIN_SUFFIX}
 						${PROJECT_BINARY_DIR}/mariadbcpp/plugin)
+endif()
+
+# Remove the CMakeLists.txt file from the tests folder for the maria-db-connector so we dont compile the tests.
+if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
+	file(REMOVE "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
 endif()
 
 add_library (mariadbConnCpp SHARED IMPORTED)
