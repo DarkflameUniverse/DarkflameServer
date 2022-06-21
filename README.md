@@ -396,14 +396,13 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 </tbody>
 </table>
 
-## Current Maintainers and Developers
-### Developers
+## Credits
+### Contributors to DLU Post Launch
 * [EmosewaMC](https://github.com/EmosewaMC)
 * [Aronwk](https://github.com/aronwk-aaron)
 * [Jettford](https://github.com/Jettford)
 
-## Previous Maintainers and Developers (Pre-FOSS)
-### Developers
+### Contributors to DLU Pre Launch
 * [DarwinAnim8or](https://github.com/DarwinAnim8or)
 * [Wincent01](https://github.com/Wincent01)
 * [Mick](https://github.com/MickVermeulen)
@@ -422,7 +421,13 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 ### Community management
 * [Neal](https://github.com/NealSpellman)
 
-## Special thanks
+### Former contributors
+* TheMachine
+* Matthew
+* Raine
+* Bricknave
+
+### Special thanks
 * humanoid24
 * pwjones1969
 * BlasterBuilder for the logo
