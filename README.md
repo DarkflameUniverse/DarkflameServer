@@ -404,7 +404,7 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 
 ## Previous Maintainers and Developers (Pre-FOSS)
 ### Developers
-* [DarwinAnim8or](DarwinAnim8or)
+* [DarwinAnim8or](https://github.com/DarwinAnim8or)
 * [Wincent01](https://github.com/Wincent01)
 * [Mick](https://github.com/MickVermeulen)
 * [averysumner](https://github.com/codeshaunted)
