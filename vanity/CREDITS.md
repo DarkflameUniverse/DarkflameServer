@@ -7,6 +7,8 @@ Mick
 averysumner
 Jon002
 Jonny
+EmosewaMC
+Aronwk
 
 ## Research & Tooling
 Xiphoseer
