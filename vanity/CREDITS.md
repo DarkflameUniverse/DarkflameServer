@@ -4,11 +4,12 @@
 DarwinAnim8or (Max)
 Wincent01
 Mick
-averysumner
+averysumner (codeshaunted)
 Jon002
 Jonny
 EmosewaMC
 Aronwk
+Jettford
 
 ## Research & Tooling
 Xiphoseer
