@@ -397,11 +397,11 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 </table>
 
 ## Credits
-### Contributors to DLU Post Launch
+## Active Contributors
 * [EmosewaMC](https://github.com/EmosewaMC)
 * [Jettford](https://github.com/Jettford)
 
-### Contributors to DLU Pre Launch
+## DLU Team
 * [DarwinAnim8or](https://github.com/DarwinAnim8or)
 * [Wincent01](https://github.com/Wincent01)
 * [Mick](https://github.com/MickVermeulen)
