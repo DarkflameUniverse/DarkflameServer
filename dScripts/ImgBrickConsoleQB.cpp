@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "dLogger.h"
 #include "InventoryComponent.h"
 
 int32_t ImgBrickConsoleQB::ResetBricks = 30;

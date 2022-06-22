@@ -2,7 +2,7 @@
 #include "GameMessages.h"
 #include "Player.h"
 #include "Character.h"
-#include "Game.h"
+#include "dLogger.h"
 #include "dServer.h"
 
 void InstanceExitTransferPlayerToLastNonInstance::OnUse(Entity* self, Entity* user) 

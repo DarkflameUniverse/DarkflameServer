@@ -7,6 +7,7 @@
 #include "dZoneManager.h"
 #include "LDFFormat.h"
 #include "RenderComponent.h"
+#include "dLogger.h"
 
 void ZoneAgProperty::SetGameVariables(Entity *self) {
     self->SetVar<std::string>(GuardGroup, "Guard");

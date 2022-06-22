@@ -1,6 +1,7 @@
 ﻿#include "TriggerAmbush.h"
 
 #include "dZoneManager.h"
+#include "dLogger.h"
 #include "EntityManager.h"
 
 void TriggerAmbush::OnStartup(Entity* self)

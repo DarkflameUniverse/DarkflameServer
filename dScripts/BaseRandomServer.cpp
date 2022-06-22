@@ -3,6 +3,7 @@
 #include "dZoneManager.h"
 #include "DestroyableComponent.h"
 #include "Spawner.h"
+#include "dLogger.h"
 
 void BaseRandomServer::BaseStartup(Entity* self) 
 {

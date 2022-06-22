@@ -4,7 +4,7 @@
 #include "EntityManager.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
-
+#include "dLogger.h"
 
 void NtCombatChallengeServer::OnUse(Entity* self, Entity* user) 
 {

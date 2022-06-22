@@ -1,4 +1,5 @@
 #include "ZoneAgMedProperty.h"
+#include "dLogger.h"
 
 void ZoneAgMedProperty::SetGameVariables(Entity *self) {
     Game::logger->Log("Properties", "Setting variables in instance\n");

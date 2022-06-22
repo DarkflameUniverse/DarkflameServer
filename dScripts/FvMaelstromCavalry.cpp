@@ -1,5 +1,6 @@
 #include "FvMaelstromCavalry.h"
 #include "EntityManager.h"
+#include "dLogger.h"
 
 void FvMaelstromCavalry::OnStartup(Entity* self) 
 {

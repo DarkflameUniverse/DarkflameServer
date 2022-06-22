@@ -1,6 +1,7 @@
 #include "FvHorsemenTrigger.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
+#include "dLogger.h"
 
 void FvHorsemenTrigger::OnStartup(Entity* self) 
 {

@@ -3,6 +3,7 @@
 #include "MovingPlatformComponent.h"
 #include "DestroyableComponent.h"
 #include "ProximityMonitorComponent.h"
+#include "dLogger.h"
 #include "MissionComponent.h"
 
 void AmSkullkinDrill::OnStartup(Entity* self) 

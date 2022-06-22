@@ -3,6 +3,7 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
+#include "dLogger.h"
 
 
 void FvFacilityBrick::OnStartup(Entity* self) 

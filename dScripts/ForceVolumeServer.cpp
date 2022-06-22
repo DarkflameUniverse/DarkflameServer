@@ -1,6 +1,7 @@
 #include "ForceVolumeServer.h"
 #include "PhantomPhysicsComponent.h"
 #include "EntityManager.h"
+#include "dLogger.h"
 
 
 void ForceVolumeServer::OnStartup(Entity* self) 
