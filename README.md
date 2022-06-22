@@ -397,20 +397,28 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 </table>
 
 ## Credits
-### Contributors to DLUv3
-* DarwinAnim8or
-* Wincent01
-* Mick
-* averysumner (codeshaunted)
-* Jon002
-* Jonny
-* Xiphoseer
+## Active Contributors
+* [EmosewaMC](https://github.com/EmosewaMC)
+* [Jettford](https://github.com/Jettford)
+
+## DLU Team
+* [DarwinAnim8or](https://github.com/DarwinAnim8or)
+* [Wincent01](https://github.com/Wincent01)
+* [Mick](https://github.com/MickVermeulen)
+* [averysumner](https://github.com/codeshaunted)
+* [Jon002](https://github.com/jaller200)
+* [Jonny](https://github.com/cuzitsjonny)
+* TheMachine
+* Matthew
+* [Raine](https://github.com/Rainebannister)
+* Bricknave
 
 ### Research and tools
-* lcdr
+* [lcdr](https://github.com/lcdr)
+* [Xiphoseer](https://github.com/Xiphoseer)
 
 ### Community management
-* Neal
+* [Neal](https://github.com/NealSpellman)
 
 ### Former contributors
 * TheMachine
