@@ -1,9 +1,6 @@
 #include "NtParadoxTeleServer.h"
 #include "GameMessages.h"
-#include "dZoneManager.h"
 #include "EntityManager.h"
-#include "SkillComponent.h"
-#include "DestroyableComponent.h"
 #include "MissionComponent.h"
 
 void NtParadoxTeleServer::OnStartup(Entity* self) 
@@ -18,8 +15,6 @@ void NtParadoxTeleServer::OnPlayerLoaded(Entity* self, Entity* player)
 
 void NtParadoxTeleServer::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status)
 {
-    Game::logger->Log("NtParadoxTeleServer", "Entering\n");
-
     if (status != "ENTER" || !entering->IsPlayer() || name != "teleport") return;
 
     auto* player = entering;

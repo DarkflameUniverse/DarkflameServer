@@ -1,8 +1,6 @@
 ﻿#include "TriggerAmbush.h"
 
 #include "dZoneManager.h"
-#include "dLogger.h"
-#include "EntityManager.h"
 
 void TriggerAmbush::OnStartup(Entity* self)
 {
@@ -12,21 +10,15 @@ void TriggerAmbush::OnStartup(Entity* self)
 void TriggerAmbush::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status)
 {
 	if (name != "ambush" || status != "ENTER" || !entering->IsPlayer()) return;
-	
-	Game::logger->Log("TriggerAmbush", "Got ambush collision!\n");
 
 	if (self->GetVar<bool>(u"triggered")) return;
 
 	self->SetVar(u"triggered", true);
 
-	Game::logger->Log("TriggerAmbush", "Triggering ambush!\n");
-
 	const auto spawners = dZoneManager::Instance()->GetSpawnersByName("Ambush");
 
 	for (auto* spawner : spawners)
 	{
-		Game::logger->Log("TriggerAmbush", "Triggering ambush on spawner!\n");
-
 		spawner->Activate();
 	}
 

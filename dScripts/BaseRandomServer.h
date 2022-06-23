@@ -1,5 +1,8 @@
 #pragma once
 
+#include <map>
+
+class Spawner;
 class BaseRandomServer
 {
 public:

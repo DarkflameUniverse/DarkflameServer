@@ -1,11 +1,8 @@
 #include "NpcAgCourseStarter.h"
 #include "EntityManager.h"
-#include "GeneralUtils.h"
 #include "ScriptedActivityComponent.h"
 #include "GameMessages.h"
 #include "LeaderboardManager.h"
-#include "Game.h"
-#include "dLogger.h"
 #include "MissionComponent.h"
 #include <ctime>
 
@@ -36,8 +33,6 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 	}
 
 	if (identifier == u"player_dialog_cancel_course" && button == 1) {
-		Game::logger->Log("OnMessageBoxResponse", "Removing player %llu\n", sender->GetObjectID());
-
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stop_timer", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"cancel_timer", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
@@ -58,8 +53,6 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 		time_t startTime = std::time(0) + 4; // Offset for starting timer
 
 		data->values[1] = *(float*)&startTime;
-
-		Game::logger->Log("NpcAgCourseStarter", "Start time: %llu / %f\n", startTime, data->values[1]);
 
 		EntityManager::Instance()->SerializeEntity(self);
 	}
@@ -94,9 +87,6 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity *self, Entity *sender, std
 	} else if (args == "course_finish") {
         time_t endTime = std::time(0);
         time_t finish = (endTime - *(time_t *) &data->values[1]);
-
-        Game::logger->Log("NpcAgCourseStarter", "End time: %llu, start time %llu, finish: %llu\n", endTime,
-                          *(time_t *) &data->values[1], finish);
 
         data->values[2] = *(float *) &finish;
 

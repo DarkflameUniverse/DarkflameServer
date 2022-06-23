@@ -1,6 +1,4 @@
 #include "SsModularBuildServer.h"
-#include "EntityManager.h"
-#include "Character.h"
 #include "MissionComponent.h"
 
 void SsModularBuildServer::OnModularBuildExit(Entity* self, Entity* player, bool bCompleted, std::vector<LOT> modules) {

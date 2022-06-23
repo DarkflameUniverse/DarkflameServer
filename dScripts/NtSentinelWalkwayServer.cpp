@@ -1,7 +1,6 @@
 #include "NtSentinelWalkwayServer.h"
 #include "PhantomPhysicsComponent.h"
 #include "EntityManager.h"
-#include "dLogger.h"
 #include "MissionComponent.h"
 
 void NtSentinelWalkwayServer::OnStartup(Entity* self) 
@@ -10,8 +9,6 @@ void NtSentinelWalkwayServer::OnStartup(Entity* self)
     
     if (phantomPhysicsComponent == nullptr)
     {
-        Game::logger->Log("NtSentinelWalkwayServer", "Failed to find PhantomPhysicsComponent\n");
-
         return;
     }
 
@@ -21,8 +18,6 @@ void NtSentinelWalkwayServer::OnStartup(Entity* self)
     {
         force = 115;
     }
-
-    Game::logger->Log("NtSentinelWalkwayServer", "Setting force to %i\n", force);
 
     const auto forward = self->GetRotation().GetRightVector() * -1;
 

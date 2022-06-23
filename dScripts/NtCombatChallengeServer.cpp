@@ -1,27 +1,16 @@
 #include "NtCombatChallengeServer.h"
-#include "Character.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
-#include "dLogger.h"
 
 void NtCombatChallengeServer::OnUse(Entity* self, Entity* user) 
 {
-    auto* character = user->GetCharacter();
-
-    if (character == nullptr)
-    {
-        return;
-    }
-
     GameMessages::SendNotifyClientObject(self->GetObjectID(), u"UI_Open", 0, 0, user->GetObjectID(), "", user->GetSystemAddress());
 }
 
 void NtCombatChallengeServer::OnDie(Entity* self, Entity* killer) 
 {
-    Game::logger->Log("NtCombatChallengeServer", "Smashed\n");
-
     if (killer != self && killer != nullptr)
     {
         SpawnTargetDummy(self);
@@ -46,8 +35,6 @@ void NtCombatChallengeServer::OnHitOrHealResult(Entity* self, Entity* attacker, 
 
     self->SetVar(u"totalDmg", totalDmg);
     self->SetNetworkVar(u"totalDmg", totalDmg);
-
-    Game::logger->Log("NtCombatChallengeServer", "Damage %i -> %i\n", damage, totalDmg);
 
     GameMessages::SendPlayNDAudioEmitter(self, attacker->GetSystemAddress(), scoreSound);
 }
@@ -169,12 +156,8 @@ void NtCombatChallengeServer::ResetGame(Entity* self)
         {
             for (const auto& mission : tMissions)
             {
-                Game::logger->Log("NtCombatChallengeServer", "Mission %i, %i\n", mission.mission, mission.damage);
-
                 if (totalDmg >= mission.damage)
                 {
-                    Game::logger->Log("NtCombatChallengeServer", "Progressing Mission %i, %i\n", mission.mission, mission.damage);
-
                     missionComponent->ForceProgressTaskType(mission.mission, 1, 1);
                 }
             }

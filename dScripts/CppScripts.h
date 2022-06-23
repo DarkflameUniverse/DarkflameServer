@@ -2,6 +2,7 @@
 #include "dCommonVars.h"
 #include "MissionState.h"
 #include <string>
+#include <vector>
 
 class User;
 class Entity;

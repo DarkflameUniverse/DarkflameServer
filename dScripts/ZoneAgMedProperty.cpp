@@ -1,8 +1,7 @@
 #include "ZoneAgMedProperty.h"
-#include "dLogger.h"
+#include "Entity.h"
 
 void ZoneAgMedProperty::SetGameVariables(Entity *self) {
-    Game::logger->Log("Properties", "Setting variables in instance\n");
 
     self->SetVar<std::string>(ClaimMarkerGroup, "ClaimMarker");
     self->SetVar<std::string>(GeneratorGroup, "Generator");

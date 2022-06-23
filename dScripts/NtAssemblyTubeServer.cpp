@@ -1,9 +1,6 @@
 #include "NtAssemblyTubeServer.h"
 #include "GameMessages.h"
-#include "dZoneManager.h"
 #include "EntityManager.h"
-#include "SkillComponent.h"
-#include "DestroyableComponent.h"
 #include "MissionComponent.h"
 
 void NtAssemblyTubeServer::OnStartup(Entity* self) 
@@ -18,8 +15,6 @@ void NtAssemblyTubeServer::OnPlayerLoaded(Entity* self, Entity* player)
 
 void NtAssemblyTubeServer::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status)
 {
-    Game::logger->Log("NtAssemblyTubeServer", "Entering\n");
-
     if (status != "ENTER" || !entering->IsPlayer() || name != "teleport") return;
 
     auto* player = entering;

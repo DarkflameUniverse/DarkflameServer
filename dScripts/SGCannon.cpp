@@ -9,7 +9,6 @@
 #include "CharacterComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "MovementAIComponent.h"
-#include "ControllablePhysicsComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "MissionComponent.h"
 
