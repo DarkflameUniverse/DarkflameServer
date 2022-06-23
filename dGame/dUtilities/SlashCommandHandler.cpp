@@ -1650,7 +1650,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		if (args.size() == 1) {
+		if (args.size() >= 1) {
 			float time;
 
 			if (!GeneralUtils::TryParse(args[0], time)) {

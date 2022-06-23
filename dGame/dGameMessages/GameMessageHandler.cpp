@@ -30,7 +30,6 @@
 using namespace std;
 
 void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, GAME_MSG messageID) {
-    
 	CBITSTREAM
 
 	// Get the entity
@@ -40,8 +39,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
     if (!entity)
     {
-		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!\n", objectID, messageID);
-
+		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%i)!\n", objectID, messageID);		
     	return;
     }
 
@@ -654,7 +652,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			break;
 
         default: 
-            //Game::logger->Log("GameMessageHandler", "Unknown game message ID: %X\n", messageID);
+            Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i\n", messageID);
 			break;
     }
 }
