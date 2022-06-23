@@ -1,6 +1,5 @@
 #include "AgMonumentBirds.h"
 #include "GameMessages.h"
-#include "DestroyableComponent.h"
 
 //--------------------------------------------------------------
 //Makes the ag birds fly away when you get close and smashes them.

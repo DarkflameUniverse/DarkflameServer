@@ -1,7 +1,6 @@
 ﻿#include "AgPropGuard.h"
 #include "Entity.h"
 #include "Character.h"
-#include "GameMessages.h"
 #include "EntityManager.h"
 #include "InventoryComponent.h"
 #include "Item.h"

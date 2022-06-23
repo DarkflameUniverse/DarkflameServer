@@ -1,7 +1,4 @@
 #pragma once
-#include "CppScripts.h"
-#include "Entity.h"
-#include "dCommonVars.h"
 
 class BaseRandomServer
 {
