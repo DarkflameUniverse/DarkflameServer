@@ -2,6 +2,7 @@
 #include "PhantomPhysicsComponent.h"
 #include "EntityManager.h"
 #include "dLogger.h"
+#include "MissionComponent.h"
 
 void NtSentinelWalkwayServer::OnStartup(Entity* self) 
 {

@@ -3,6 +3,7 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "InventoryComponent.h"
+#include "MissionComponent.h"
 #include "Item.h"
 
 void AgPropGuard::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState)

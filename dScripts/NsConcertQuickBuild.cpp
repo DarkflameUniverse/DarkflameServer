@@ -5,6 +5,7 @@
 #include "RenderComponent.h"
 #include "GameMessages.h"
 #include "MovingPlatformComponent.h"
+#include "MissionComponent.h"
 
 const float NsConcertQuickBuild::resetTime = 40.0f;
 const float NsConcertQuickBuild::resetBlinkTime = 6.0f;

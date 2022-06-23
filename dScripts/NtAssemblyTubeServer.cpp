@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
+#include "MissionComponent.h"
 
 void NtAssemblyTubeServer::OnStartup(Entity* self) 
 {

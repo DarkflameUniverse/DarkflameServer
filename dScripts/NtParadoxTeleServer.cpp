@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
+#include "MissionComponent.h"
 
 void NtParadoxTeleServer::OnStartup(Entity* self) 
 {

@@ -11,6 +11,7 @@
 #include "MovementAIComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
+#include "MissionComponent.h"
 
 void SGCannon::OnStartup(Entity *self) {
     Game::logger->Log("SGCannon", "OnStartup\n");

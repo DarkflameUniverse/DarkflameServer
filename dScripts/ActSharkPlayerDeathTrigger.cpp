@@ -1,4 +1,6 @@
 #include "ActSharkPlayerDeathTrigger.h"
+#include "MissionComponent.h"
+#include "MissionTaskType.h"
 #include "Entity.h"
 
 void ActSharkPlayerDeathTrigger::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1,

@@ -6,6 +6,7 @@
 #include "LeaderboardManager.h"
 #include "Game.h"
 #include "dLogger.h"
+#include "MissionComponent.h"
 #include <ctime>
 
 void NpcAgCourseStarter::OnStartup(Entity* self) {

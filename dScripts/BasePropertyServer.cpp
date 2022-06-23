@@ -7,6 +7,7 @@
 #include "Entity.h"
 #include "RenderComponent.h"
 #include "PropertyManagementComponent.h"
+#include "MissionComponent.h"
 
 void BasePropertyServer::SetGameVariables(Entity *self) {
     self->SetVar<std::string>(ClaimMarkerGroup, "");

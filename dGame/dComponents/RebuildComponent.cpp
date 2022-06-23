@@ -6,6 +6,8 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "CharacterComponent.h"
+#include "MissionComponent.h"
+#include "MissionTaskType.h"
 
 #include "dServer.h"
 #include "PacketUtils.h"
