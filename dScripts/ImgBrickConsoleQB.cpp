@@ -4,7 +4,6 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
-#include "dLogger.h"
 #include "InventoryComponent.h"
 
 int32_t ImgBrickConsoleQB::ResetBricks = 30;
@@ -198,8 +197,6 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer)
 
     self->SetVar(u"Died", true);
 
-    Game::logger->Log("ImgBrickConsoleQB", "On Die...\n");
-
     auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
     if (rebuildComponent->GetState() == REBUILD_COMPLETED)
@@ -267,16 +264,12 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer)
     }
 
     self->SetNetworkVar(u"used", false);
-
-    Game::logger->Log("ImgBrickConsoleQB", "Died...\n");
 }
 
 void ImgBrickConsoleQB::OnTimerDone(Entity* self, std::string timerName) 
 {
     if (timerName == "reset")
     {
-        Game::logger->Log("ImgBrickConsoleQB", "Resetting...\n");
-
         auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
         if (rebuildComponent->GetState() == REBUILD_OPEN)
@@ -286,8 +279,6 @@ void ImgBrickConsoleQB::OnTimerDone(Entity* self, std::string timerName)
     }
     else if (timerName == "Die")
     {
-        Game::logger->Log("ImgBrickConsoleQB", "Die...\n");
-
         const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console");
 
         for (auto* console : consoles)
