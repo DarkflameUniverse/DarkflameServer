@@ -1659,6 +1659,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			} else {
 				GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 				entity->AddCallbackTimer(time, [vehicle] () {
+					if (!vehicle) return;
 					GameMessages::SendVehicleRemovePassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 				});
 			}
