@@ -2,7 +2,6 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
-#include "MissionTaskType.h"
 #include "RenderComponent.h"
 
 void GfTikiTorch::OnStartup(Entity* self) {
