@@ -1,7 +1,6 @@
 #include "FvHorsemenTrigger.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
-#include "dLogger.h"
 
 void FvHorsemenTrigger::OnStartup(Entity* self) 
 {
@@ -12,8 +11,6 @@ void FvHorsemenTrigger::OnStartup(Entity* self)
 
 void FvHorsemenTrigger::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) 
 {
-    Game::logger->Log("FvHorsemenTrigger", "Proximity update\n");
-
     if (name != "horsemenTrigger" || !entering->IsPlayer())
     {
         return;
@@ -25,12 +22,10 @@ void FvHorsemenTrigger::OnProximityUpdate(Entity* self, Entity* entering, std::s
 
     if (status == "ENTER" && iter == players.end())
     {
-        Game::logger->Log("FvHorsemenTrigger", "Proximity enter\n");
         players.push_back(entering->GetObjectID());
     }
     else if (status == "LEAVE" && iter != players.end())
     {
-        Game::logger->Log("FvHorsemenTrigger", "Proximity leave\n");
         players.erase(iter);
     }
 
@@ -43,7 +38,6 @@ FvHorsemenTrigger::OnFireEventServerSide(Entity *self, Entity *sender, std::stri
 {
     auto players = self->GetVar<std::vector<LWOOBJID>>(u"players");
 
-    Game::logger->Log("FvHorsemenTrigger", "Got event %s with %i players\n", args.c_str(), players.size());
     if (args == "HorsemenDeath")
     {
         for (const auto& playerId : self->GetVar<std::vector<LWOOBJID>>(u"players"))

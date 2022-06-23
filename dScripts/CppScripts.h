@@ -1,7 +1,7 @@
 #pragma once
 #include "dCommonVars.h"
-#include <string>
 #include "MissionState.h"
+#include <string>
 
 class User;
 class Entity;
