@@ -1650,7 +1650,22 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+		if (args.size() == 1) {
+			float time;
+
+			if (!GeneralUtils::TryParse(args[0], time)) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid boost time.");
+				return;
+			} else {
+				GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+				entity->AddCallbackTimer(time, [vehicle] () {
+					GameMessages::SendVehicleRemovePassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+				});
+			}
+		} else {
+			GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+		}
+		
 	}
 
 	if ((chatCommand == "unboost") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
