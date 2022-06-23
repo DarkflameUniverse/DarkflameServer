@@ -1,9 +1,7 @@
 #include "ExplodingAsset.h"
-
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
-#include "MissionTaskType.h"
 #include "SkillComponent.h"
 
 //TODO: this has to be updated so that you only get killed if you're in a certain radius.
