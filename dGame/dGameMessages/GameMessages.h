@@ -61,15 +61,16 @@ namespace GameMessages {
     void SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level);
     void SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level);
     
-	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY);
+	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
     void SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFlagID, bool bFlag, const SystemAddress& sysAddr);
 	void SendChangeObjectWorldState(const LWOOBJID& objectID, int state, const SystemAddress& sysAddr);
 	
     void SendOfferMission(const LWOOBJID& entity, const SystemAddress& sysAddr, int32_t missionID, const LWOOBJID& offererID);
     void SendNotifyMission(Entity * entity, const SystemAddress& sysAddr, int missionID, int missionState, bool sendingRewards);
     void SendNotifyMissionTask(Entity * entity, const SystemAddress& sysAddr, int missionID, int taskMask, std::vector<float> updates);
+	void NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards);
 
-	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, int sourceType);
+	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
 	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, NDGFxValue args);
 	void SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args);
 
@@ -91,7 +92,7 @@ namespace GameMessages {
 	void SendSetInventorySize(Entity* entity, int invType, int size);
 	
 	void SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID);
-	void SendSetJetpackMode(Entity* entity, bool bDoHover, bool bUse, bool bIsJamessterPhysics);
+    void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
 	void SendResurrect(Entity* entity);
 	void SendStop2DAmbientSound(Entity* entity, bool force, std::string audioGUID, bool result = false);
 	void SendPlay2DAmbientSound(Entity* entity, std::string audioGUID, bool result = false);
@@ -108,7 +109,7 @@ namespace GameMessages {
 	void SendModularBuildEnd(Entity* entity);
 
 	void SendVendorOpenWindow(Entity* entity, const SystemAddress& sysAddr);
-	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr);
+	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr, bool bUpdateOnly = false);
 	void SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr);
 
 	void SendRemoveItemFromInventory(Entity* entity, const SystemAddress& sysAddr, LWOOBJID iObjID, LOT templateID, int inventoryType, uint32_t stackCount, uint32_t stackRemaining);
@@ -371,6 +372,7 @@ namespace GameMessages {
 	void SendActivityPause(LWOOBJID objectId, bool pause = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SendStartActivityTime(LWOOBJID objectId, float_t startTime, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SendRequestActivityEnter(LWOOBJID objectId, const SystemAddress& sysAddr, bool bStart, LWOOBJID userID);
+	void SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, UseItemResponse itemResponse);
 
 	// SG:
 
@@ -385,6 +387,8 @@ namespace GameMessages {
 		bool bUseLeaderboards
 	);
 
+	void HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
 	void SendNotifyClientShootingGalleryScore(LWOOBJID objectId, const SystemAddress& sysAddr,
 		float addTime,
 		int32_t score,
@@ -393,6 +397,8 @@ namespace GameMessages {
 	);
 
 	void HandleUpdateShootingGalleryRotation(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
+	void SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr);
 
     // Leaderboards
     void SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard,

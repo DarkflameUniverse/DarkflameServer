@@ -2,15 +2,13 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 
-void HydrantBroken::OnStartup(Entity* self) 
+void HydrantBroken::OnStartup(Entity* self)
 {
     self->AddTimer("playEffect", 1);
 
     const auto hydrant = "hydrant" + self->GetVar<std::string>(u"hydrant");
 
     const auto bouncers = EntityManager::Instance()->GetEntitiesInGroup(hydrant);
-
-    Game::logger->Log("HydrantBroken", "Broken Hydrant spawned (%s)\n", hydrant.c_str());
 
     for (auto* bouncer : bouncers)
     {
@@ -20,11 +18,11 @@ void HydrantBroken::OnStartup(Entity* self)
 
         GameMessages::SendNotifyObject(bouncer->GetObjectID(), self->GetObjectID(), u"enableCollision", UNASSIGNED_SYSTEM_ADDRESS);
     }
-    
+
     self->AddTimer("KillBroken", 25);
 }
 
-void HydrantBroken::OnTimerDone(Entity* self, std::string timerName) 
+void HydrantBroken::OnTimerDone(Entity* self, std::string timerName)
 {
     if (timerName == "KillBroken")
     {

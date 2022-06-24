@@ -20,5 +20,7 @@ public:
 
 	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 	
+	void UnCast(BehaviorContext* context, BehaviorBranchContext branch) override;
+
 	void Load() override;
 };

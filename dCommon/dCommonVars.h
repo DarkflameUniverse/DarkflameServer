@@ -415,6 +415,12 @@ enum eReplicaComponentType : int32_t {
     COMPONENT_TYPE_MODEL = 5398484 //look man idk
 };
 
+enum class UseItemResponse : uint32_t {
+    NoImaginationForPet = 1,
+    FailedPrecondition,
+    MountsNotAllowed
+};
+
 /**
  * Represents the different types of inventories an entity may have
  */
@@ -469,6 +475,9 @@ enum eRebuildState : uint32_t {
 	REBUILD_INCOMPLETE
 };
 
+/**
+ * The loot source's type.  
+ */
 enum eLootSourceType : int32_t {
 	LOOT_SOURCE_NONE = 0,
 	LOOT_SOURCE_CHEST,
@@ -490,7 +499,7 @@ enum eLootSourceType : int32_t {
 	LOOT_SOURCE_CLAIMCODE,
 	LOOT_SOURCE_CONSUMPTION,
 	LOOT_SOURCE_CRAFTING,
-	LOOT_SOURCE_LEVELREWARD,
+	LOOT_SOURCE_LEVEL_REWARD,
 	LOOT_SOURCE_RELOCATE
 };
 

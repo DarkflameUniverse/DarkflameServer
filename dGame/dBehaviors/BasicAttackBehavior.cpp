@@ -14,7 +14,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
 			PlayFx(u"onhit", entity->GetObjectID());
-			destroyableComponent->Damage(this->m_maxDamage, context->originator);
+			destroyableComponent->Damage(this->m_maxDamage, context->originator, context->skillID);
 		}
 
 		this->m_onSuccess->Handle(context, bitStream, branch);
@@ -56,7 +56,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		    auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 			if (destroyableComponent != nullptr) {
 				PlayFx(u"onhit", entity->GetObjectID());
-				destroyableComponent->Damage(damageDealt, context->originator);
+				destroyableComponent->Damage(damageDealt, context->originator, context->skillID);
 			}
 		}
 	}
@@ -113,7 +113,7 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 			auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 			if (damage != 0 && destroyableComponent != nullptr) {
 				PlayFx(u"onhit", entity->GetObjectID(), 1);
-                destroyableComponent->Damage(damage, context->originator, false);
+                destroyableComponent->Damage(damage, context->originator, context->skillID, false);
 				context->ScheduleUpdate(branch.target);
 			}
 		}

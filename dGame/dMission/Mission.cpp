@@ -11,9 +11,12 @@
 #include "GameMessages.h"
 #include "Mail.h"
 #include "MissionComponent.h"
+#include "RacingTaskParam.h"
 #include "dLocale.h"
 #include "dLogger.h"
 #include "dServer.h"
+#include "dZoneManager.h"
+#include "Database.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
     m_MissionComponent = missionComponent;
@@ -313,6 +316,10 @@ void Mission::Complete(const bool yieldRewards) {
 
     missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MISSION_COMPLETE, info->id);
 
+    missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, info->id, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COMPLETE_ANY_RACING_TASK);
+
+    missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, info->id, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COMPLETE_TRACK_TASKS);
+
     auto* missionEmailTable = CDClientManager::Instance()->GetTable<CDMissionEmailTable>("MissionEmail");
 
     const auto missionId = GetMissionId();
@@ -350,7 +357,7 @@ void Mission::CheckCompletion() {
         return;
     }
 
-    SetMissionState(MissionState::MISSION_STATE_READY_TO_COMPLETE);
+    MakeReadyToComplete();
 }
 
 void Mission::Catchup() {
@@ -421,11 +428,15 @@ void Mission::YieldRewards() {
         }
     }
 
+    int32_t coinsToSend = 0;
     if (info->LegoScore > 0) {
-        characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
-
-        if (info->isMission) {
-            GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info->LegoScore, 2);
+        eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
+        if(characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
+            // Since the character is at the level cap we reward them with coins instead of UScore.
+            coinsToSend += info->LegoScore * dZoneManager::Instance()->GetLevelCapCurrencyConversion();
+        } else {
+            characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
+            GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info->LegoScore, lootSource);
         }
     }
 
@@ -452,11 +463,12 @@ void Mission::YieldRewards() {
                 count = 0;
             }
 
-            inventoryComponent->AddItem(pair.first, count);
+            inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
         }
 
-        if (info->reward_currency_repeatable > 0) {
-            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable, LOOT_SOURCE_MISSION);
+        if (info->reward_currency_repeatable > 0 || coinsToSend > 0) {
+            eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
+            character->SetCoins(character->GetCoins() + info->reward_currency_repeatable + coinsToSend, lootSource);
         }
 
         return;
@@ -484,12 +496,12 @@ void Mission::YieldRewards() {
             count = 0;
         }
 
-        inventoryComponent->AddItem(pair.first, count);
+        inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
     }
 
-    if (info->reward_currency > 0) {
-        eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
-        character->SetCoins(character->GetCoins() + info->reward_currency, lootSource);
+    if (info->reward_currency > 0 || coinsToSend > 0) {
+        eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
+        character->SetCoins(character->GetCoins() + info->reward_currency + coinsToSend, lootSource);
     }
 
     if (info->reward_maxinventory > 0) {
@@ -499,21 +511,28 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_bankinventory > 0) {
-        auto* inventory = inventoryComponent->GetInventory(VAULT_ITEMS);
+        auto* inventory = inventoryComponent->GetInventory(eInventoryType::VAULT_ITEMS);
+        auto modelInventory = inventoryComponent->GetInventory(eInventoryType::VAULT_MODELS);
 
         inventory->SetSize(inventory->GetSize() + info->reward_bankinventory);
+        modelInventory->SetSize(modelInventory->GetSize() + info->reward_bankinventory);
     }
 
     if (info->reward_reputation > 0) {
-        // TODO: In case of reputation, write code
+        missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
+        auto character = entity->GetComponent<CharacterComponent>();
+        if (character) {
+            character->SetReputation(character->GetReputation() + info->reward_reputation);
+            GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());
+        }
     }
 
     if (info->reward_maxhealth > 0) {
-        destroyableComponent->SetMaxHealth(destroyableComponent->GetMaxHealth() + static_cast<float>(info->reward_maxhealth));
+        destroyableComponent->SetMaxHealth(destroyableComponent->GetMaxHealth() + static_cast<float>(info->reward_maxhealth), true);
     }
 
     if (info->reward_maximagination > 0) {
-        destroyableComponent->SetMaxImagination(destroyableComponent->GetMaxImagination() + static_cast<float>(info->reward_maximagination));
+        destroyableComponent->SetMaxImagination(destroyableComponent->GetMaxImagination() + static_cast<float>(info->reward_maximagination), true);
     }
 
     EntityManager::Instance()->SerializeEntity(entity);

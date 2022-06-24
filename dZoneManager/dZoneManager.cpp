@@ -16,7 +16,7 @@ dZoneManager* dZoneManager::m_Address = nullptr;
 
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i\n", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
-    
+
     int64_t startTime = 0;
     int64_t endTime = 0;
 
@@ -26,18 +26,19 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LOT zoneControlTemplate = 2365;
 
-	std::stringstream query;
-	auto result = CDClientDatabase::ExecuteQuery("SELECT zoneControlTemplate, ghostdistance_min, ghostdistance FROM ZoneTable WHERE zoneID = " + std::to_string(zoneID.GetMapID()));
+	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	if (zoneTable != nullptr){
+		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
 
-	if (!result.eof()) {
-		zoneControlTemplate = result.getIntField("zoneControlTemplate", 2365);
-		const auto min = result.getIntField("ghostdistance_min", 100);
-		const auto max = result.getIntField("ghostdistance", 100);
-		EntityManager::Instance()->SetGhostDistanceMax(max + min);
-		EntityManager::Instance()->SetGhostDistanceMin(max);
+		if (zone != nullptr) {
+			zoneControlTemplate = zone->zoneControlTemplate != -1 ? zone->zoneControlTemplate : 2365;
+			const auto min = zone->ghostdistance_min != -1.0f ? zone->ghostdistance_min : 100;
+			const auto max = zone->ghostdistance != -1.0f ? zone->ghostdistance : 100;
+			EntityManager::Instance()->SetGhostDistanceMax(max + min);
+			EntityManager::Instance()->SetGhostDistanceMin(max);
+			m_PlayerLoseCoinsOnDeath = zone->PlayerLoseCoinsOnDeath;
+        }
 	}
-
-	result.finalize();
 
 	Game::logger->Log("dZoneManager", "Creating zone control object %i\n", zoneControlTemplate);
 
@@ -51,7 +52,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	m_pZone->Initalize();
 
     endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-	
+
     Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms\n", (endTime - startTime));
 
 	VanityUtilities::SpawnVanity();
@@ -59,13 +60,13 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 dZoneManager::~dZoneManager() {
 	if (m_pZone) delete m_pZone;
-    
+
     for (std::pair<LWOOBJID, Spawner*> p : m_Spawners) {
         if (p.second) {
             delete p.second;
             p.second = nullptr;
         }
-        
+
         m_Spawners.erase(p.first);
     }
 }
@@ -118,6 +119,24 @@ LWOZONEID dZoneManager::GetZoneID() const
 	return m_ZoneID;
 }
 
+uint32_t dZoneManager::GetMaxLevel() {
+	if (m_MaxLevel == 0) {
+		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCap FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
+    	m_MaxLevel = tableData.getIntField(0, -1);
+    	tableData.finalize();
+	}
+	return m_MaxLevel;
+}
+
+int32_t dZoneManager::GetLevelCapCurrencyConversion() {
+	if (m_CurrencyConversionRate == 0) {
+		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCapCurrencyConversion FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
+    	m_CurrencyConversionRate = tableData.getIntField(0, -1);
+    	tableData.finalize();
+	}
+	return m_CurrencyConversionRate;
+}
+
 void dZoneManager::Update(float deltaTime) {
 	for (auto spawner : m_Spawners) {
 		spawner.second->Update(deltaTime);
@@ -127,7 +146,7 @@ void dZoneManager::Update(float deltaTime) {
 LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info)
 {
 	auto objectId = info.spawnerID;
-	
+
 	if (objectId == LWOOBJID_EMPTY)
 	{
 		objectId = ObjectIDManager::Instance()->GenerateObjectID();
@@ -136,18 +155,18 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info)
 
 		info.spawnerID = objectId;
 	}
-	
+
 	auto* spawner = new Spawner(info);
 
 	EntityInfo entityInfo{};
 
 	entityInfo.id = objectId;
 	entityInfo.lot = 176;
-	
+
 	auto* entity = EntityManager::Instance()->CreateEntity(entityInfo, nullptr, nullptr, false, objectId);
 
 	EntityManager::Instance()->ConstructEntity(entity);
-	
+
 	AddSpawner(objectId, spawner);
 
 	return objectId;
@@ -200,9 +219,9 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id)
 	spawner->Deactivate();
 
 	Game::logger->Log("dZoneManager", "Destroying spawner (%llu)\n", id);
-	
+
 	m_Spawners.erase(id);
-	
+
 	delete spawner;
 }
 

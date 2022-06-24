@@ -47,9 +47,8 @@ void NjMonastryBossInstance::OnStartup(Entity *self) {
 void NjMonastryBossInstance::OnPlayerLoaded(Entity *self, Entity *player) {
     ActivityTimerStop(self, WaitingForPlayersTimer);
 
-    // Join the player in the activity and charge for joining
+    // Join the player in the activity
     UpdatePlayer(self, player->GetObjectID());
-    TakeActivityCost(self, player->GetObjectID());
 
     // Buff the player
     auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
@@ -59,23 +58,22 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity *self, Entity *player) {
         destroyableComponent->SetImagination((int32_t) destroyableComponent->GetMaxImagination());
     }
 
-    // Track the player ID
+    // Add player ID to instance
     auto totalPlayersLoaded = self->GetVar<std::vector<LWOOBJID>>(TotalPlayersLoadedVariable);
-    if (totalPlayersLoaded.empty() || std::find(totalPlayersLoaded.begin(), totalPlayersLoaded.end(), player->GetObjectID()) != totalPlayersLoaded.end()) {
-        totalPlayersLoaded.push_back(player->GetObjectID());
-    }
+    totalPlayersLoaded.push_back(player->GetObjectID());
 
     // Properly position the player
     self->SetVar<std::vector<LWOOBJID>>(TotalPlayersLoadedVariable, totalPlayersLoaded);
-    TeleportPlayer(player, totalPlayersLoaded.size());
+    // This was always spawning all players at position one before and other values cause players to be invisible.
+    TeleportPlayer(player, 1);
 
     // Large teams face a tougher challenge
-    if (totalPlayersLoaded.size() > 2)
+    if (totalPlayersLoaded.size() >= 3)
         self->SetVar<bool>(LargeTeamVariable, true);
 
     // Start the game if all players in the team have loaded
     auto* team = TeamManager::Instance()->GetTeam(player->GetObjectID());
-    if (team == nullptr || totalPlayersLoaded.size() >= team->members.size()) {
+    if (team == nullptr || totalPlayersLoaded.size() == team->members.size()) {
         StartFight(self);
         return;
     }
@@ -93,14 +91,33 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity *self, Entity *player) {
 
 void NjMonastryBossInstance::OnPlayerExit(Entity *self, Entity *player) {
     UpdatePlayer(self, player->GetObjectID(), true);
-    GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayerLeft", 0, 0,
-                                         player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+    // Fetch the total players loaded from the vars
+    auto totalPlayersLoaded = self->GetVar<std::vector<LWOOBJID> >(TotalPlayersLoadedVariable);
+    
+    // Find the player to remove
+    auto playerToRemove = std::find(totalPlayersLoaded.begin(), totalPlayersLoaded.end(), player->GetObjectID());
+
+    // If we found the player remove them from out list of players
+    if (playerToRemove != totalPlayersLoaded.end()) {
+        totalPlayersLoaded.erase(playerToRemove);
+    } else {
+        Game::logger->Log("NjMonastryBossInstance", "Failed to remove player at exit.\n");
+    }
+
+    // Set the players loaded var back
+    self->SetVar<std::vector<LWOOBJID>>(TotalPlayersLoadedVariable, totalPlayersLoaded);
+
+    // Since this is an exit method, check if enough players have left.  If enough have left
+    // resize the instance to account for such.
+    if (totalPlayersLoaded.size() <= 2) self->SetVar<bool>(LargeTeamVariable, false);
+
+    GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayerLeft", 0, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void NjMonastryBossInstance::OnActivityTimerDone(Entity *self, const std::string &name) {
     auto split = GeneralUtils::SplitString(name, TimerSplitChar);
     auto timerName = split[0];
-    auto objectID = split.size() > 1 ? (LWOOBJID) std::stol(split[1]) : LWOOBJID_EMPTY;
+    auto objectID = split.size() > 1 ? (LWOOBJID) std::stoull(split[1]) : LWOOBJID_EMPTY;
 
     if (timerName == WaitingForPlayersTimer) {
         StartFight(self);

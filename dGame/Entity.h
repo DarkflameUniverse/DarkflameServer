@@ -143,6 +143,7 @@ public:
 	void SetProximityRadius(dpEntity* entity, std::string name);
 
 	void AddChild(Entity* child);
+	void RemoveChild(Entity* child);
 	void AddTimer(std::string name, float time);
 	void AddCallbackTimer(float time, std::function<void()> callback);
 	bool HasTimer(const std::string& name);
@@ -220,7 +221,11 @@ public:
 	/*
 	 * Utility
 	 */
-
+	/**
+	 * Retroactively corrects the model vault size due to incorrect initialization in a previous patch.
+	 * 
+	 */
+	void RetroactiveVaultSize();
 	bool GetBoolean(const std::u16string& name) const;
 	int32_t GetI32(const std::u16string& name) const;
 	int64_t GetI64(const std::u16string& name) const;
@@ -317,6 +322,8 @@ protected:
 	bool m_IsGhostingCandidate = false;
 
 	int8_t m_Observers = 0;
+
+	bool m_IsParentChildDirty = true;
 
 	/*
 	 * Collision

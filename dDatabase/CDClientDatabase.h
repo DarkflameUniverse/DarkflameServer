@@ -40,4 +40,10 @@ namespace CDClientDatabase {
      */
     CppSQLite3Query ExecuteQuery(const std::string& query);
     
+    //! Queries the CDClient and parses arguments
+    /*!
+      \param query The query with formatted arguments
+      \return prepared SQLite Statement
+    */
+    CppSQLite3Statement CreatePreppedStmt(const std::string& query);
 };

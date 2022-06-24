@@ -58,6 +58,8 @@ struct BehaviorContext
 
 	float skillTime = 0;
 
+	uint32_t skillID = 0;
+
 	uint32_t skillUId = 0;
 
 	bool failed = false;
@@ -102,7 +104,7 @@ struct BehaviorContext
 
 	void Reset();
 
-	std::vector<LWOOBJID> GetValidTargets(int32_t ignoreFaction = 0, int32_t includeFaction = 0, const bool targetSelf = false) const;
+	std::vector<LWOOBJID> GetValidTargets(int32_t ignoreFaction = 0, int32_t includeFaction = 0, const bool targetSelf = false, const bool targetEnemy = true, const bool targetFriend = false) const;
 	
 	explicit BehaviorContext(LWOOBJID originator, bool calculation = false);
 

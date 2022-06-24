@@ -1,10 +1,11 @@
-#include "RaceImagineCrateServer.h"
-#include "SkillComponent.h"
-#include "GameMessages.h"
-#include "EntityManager.h"
-#include "DestroyableComponent.h"
 #include "CharacterComponent.h"
+#include "DestroyableComponent.h"
+#include "EntityManager.h"
+#include "GameMessages.h"
 #include "PossessableComponent.h"
+#include "RaceImagineCrateServer.h"
+#include "RacingTaskParam.h"
+#include "SkillComponent.h"
 
 void RaceImagineCrateServer::OnDie(Entity* self, Entity* killer)
 {
@@ -12,8 +13,6 @@ void RaceImagineCrateServer::OnDie(Entity* self, Entity* killer)
     {
         return;
     }
-
-    //GameMessages::SendPlayFXEffect(self, -1, u"pickup", "", LWOOBJID_EMPTY, 1, 1, true);
 
     self->SetVar<bool>(u"bIsDead", true);
 
@@ -38,21 +37,24 @@ void RaceImagineCrateServer::OnDie(Entity* self, Entity* killer)
         EntityManager::Instance()->SerializeEntity(killer);
     }
 
-    // Crate is killed by the car
+    // Find possessor of race car to progress missions and update stats.
     auto* possessableComponent = killer->GetComponent<PossessableComponent>();
     if (possessableComponent != nullptr) {
 
         auto* possessor = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
         if (possessor != nullptr) {
 
+            auto* missionComponent = possessor->GetComponent<MissionComponent>();
             auto* characterComponent = possessor->GetComponent<CharacterComponent>();
+
             if (characterComponent != nullptr) {
                 characterComponent->UpdatePlayerStatistic(RacingImaginationCratesSmashed);
                 characterComponent->UpdatePlayerStatistic(RacingSmashablesSmashed);
             }
+
+            // Progress racing smashable missions
+            if(missionComponent == nullptr) return;
+            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, 0, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASHABLES);
         }
     }
-
-
-    //skillComponent->CalculateBehavior(586, 9450, killer->GetObjectID(), true);
 }

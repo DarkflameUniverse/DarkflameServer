@@ -105,6 +105,7 @@ cmake ..
 cmake --build .
 ```
 
+Once built you must also move all DLLs from `build/_deps/mysql-src/lib64` or else you encounter missing DLL errors
 
 ### Windows builds (WSL)
 This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11.
@@ -245,7 +246,7 @@ The client script for the survival minigame has a bug in it which can cause the 
 * Change `PlayerReady(self)` to `onPlayerReady(self)`
 * Save the file, overriding readonly mode if required
 
-If you still experience the bug, try deleting/renaming `res/pack/scripts.pak`.
+If you still experience the bug, try deleting/renaming `res/pack/scripts.pk`.
 
 ### Brick-By-Brick building
 
@@ -396,20 +397,28 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 </table>
 
 ## Credits
-### Contributors to DLUv3
-* DarwinAnim8or
-* Wincent01
-* Mick
-* averysumner
-* Jon002
-* Jonny
-* Xiphoseer
+## Active Contributors
+* [EmosewaMC](https://github.com/EmosewaMC)
+* [Jettford](https://github.com/Jettford)
+
+## DLU Team
+* [DarwinAnim8or](https://github.com/DarwinAnim8or)
+* [Wincent01](https://github.com/Wincent01)
+* [Mick](https://github.com/MickVermeulen)
+* [averysumner](https://github.com/codeshaunted)
+* [Jon002](https://github.com/jaller200)
+* [Jonny](https://github.com/cuzitsjonny)
+* TheMachine
+* Matthew
+* [Raine](https://github.com/Rainebannister)
+* Bricknave
 
 ### Research and tools
-* lcdr
+* [lcdr](https://github.com/lcdr)
+* [Xiphoseer](https://github.com/Xiphoseer)
 
 ### Community management
-* Neal
+* [Neal](https://github.com/NealSpellman)
 
 ### Former contributors
 * TheMachine
