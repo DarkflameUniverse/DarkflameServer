@@ -1,19 +1,24 @@
 #!/bin/bash
 
+if [[ $SCRIPT_DEBUG == "1" || ${SCRIPT_DEBUG@L} =~ "true" ]]; then
+    set -x
+    # trap read debug
+fi
+
 function symlink_client_files() {
     echo "Creating symlinks for client files"
-    ln -s /client/client/res/macros/ /app/res/macros
-    ln -s /client/client/res/BrickModels/ /app/res/BrickModels
-    ln -s /client/client/res/chatplus_en_us.txt /app/res/chatplus_en_us.txt
-    ln -s /client/client/res/names/ /app/res/names
-    ln -s /client/client/res/CDServer.sqlite /app/res/CDServer.sqlite
-    ln -s /client/client/locale/locale.xml /app/locale/locale.xml
+    ln -s $CLIENT_ROOT/res/macros/ /app/res/macros
+    ln -s $CLIENT_ROOT/res/BrickModels/ /app/res/BrickModels
+    ln -s $CLIENT_ROOT/res/chatplus_en_us.txt /app/res/chatplus_en_us.txt
+    ln -s $CLIENT_ROOT/res/names/ /app/res/names
+    ln -s $CLIENT_ROOT/res/CDServer.sqlite /app/res/CDServer.sqlite
+    ln -s $CLIENT_ROOT/locale/locale.xml /app/locale/locale.xml
     # need to iterate over entries in maps due to maps already being a directory with navmeshes/ in it
     (
-        cd /client/client/res/maps
+        cd $CLIENT_ROOT/res/maps
         readarray -d '' entries < <(printf '%s\0' * | sort -zV)
         for entry in "${entries[@]}"; do
-            ln -s /client/client/res/maps/$entry /app/res/maps/
+            ln -s $CLIENT_ROOT/res/maps/$entry /app/res/maps/
         done
     )
 }
@@ -27,11 +32,9 @@ function symlink_config_files() {
     ln -s /shared_configs/configs/worldconfig.ini /app/worldconfig.ini
 }
 
-# check to make sure the setup has completed
-while [ ! -f "/client/extracted" ] || [ ! -f "/client/migrated" ]; do
-    echo "Client setup not finished. Waiting for setup container to complete..."
-    sleep 5
-done
+./wait-for-setup.sh
+
+CLIENT_ROOT=`cat /shared_configs/root_dir`
 
 if [[ ! -f "/app/initialized" ]]; then
     # setup symlinks for volume files
@@ -45,5 +48,7 @@ fi
 
 # start the server
 echo "Starting MasterServer"
-./MasterServer
+./MasterServer.org
+echo "MasterServer exited with $?"
+echo "[WARNING] The container stays online. With this you should be able to explorer the server files including log files"
 tail -f /dev/null
