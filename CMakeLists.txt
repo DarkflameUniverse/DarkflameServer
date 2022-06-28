@@ -96,7 +96,7 @@ if (__include_backtrace__ AND __compile_backtrace__)
 
     link_directories(${backtrace_SOURCE_DIR}/.libs/)
     include_directories(${backtrace_SOURCE_DIR})
-endif()
+endif(__include_backtrace__)
 
 endif()
 endif(UNIX)
@@ -331,35 +331,6 @@ ${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.cpp
 ${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.c
 )
 
-file(
-    GLOB HEADERS_DDATABASE
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dDatabase/*.h
-    ${PROJECT_SOURCE_DIR}/dDatabase/Tables/*.h
-    ${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.h
-)
-
-file(
-    GLOB HEADERS_DZONEMANAGER
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dZoneManager/*.h
-)
-
-file(
-    GLOB HEADERS_DCOMMON
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dCommon/*.h
-)
-
-file(
-    GLOB HEADERS_DGAME
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dGame/Entity.h 
-    ${PROJECT_SOURCE_DIR}/dGame/dGameMessages/GameMessages.h
-    ${PROJECT_SOURCE_DIR}/dGame/EntityManager.h
-    ${PROJECT_SOURCE_DIR}/dScripts/CppScripts.h
-)
-
 # Source Code for dNet
 file(
 GLOB SOURCES_DNET
@@ -434,33 +405,6 @@ add_executable(WorldServer ${SOURCES})
 add_executable(AuthServer ${SOURCES_AUTH})
 add_executable(MasterServer ${SOURCES_MASTER})
 add_executable(ChatServer ${SOURCES_CHAT})
-
-# Add out precompiled headers
-target_precompile_headers(
-    dGame PRIVATE 
-    ${HEADERS_DGAME}
-)
-
-target_precompile_headers(
-    dZoneManager PRIVATE 
-    ${HEADERS_DZONEMANAGER}
-)
-
-# Need to specify to use the CXX compiler language here or else we get errors including <string>.
-target_precompile_headers(
-    dDatabase PRIVATE 
-    "$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
-)
-
-target_precompile_headers(
-    dCommon PRIVATE
-    ${HEADERS_DCOMMON}
-)
-
-target_precompile_headers(
-    tinyxml2 PRIVATE
-    "$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
-)
 
 # Target libraries to link to:
 target_link_libraries(WorldServer dCommon)

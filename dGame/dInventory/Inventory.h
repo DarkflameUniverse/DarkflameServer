@@ -1,8 +1,5 @@
 ﻿#pragma once
 
-#ifndef INVENTORY_H
-#define INVENTORY_H
-
 #include <map>
 #include <vector>
 
@@ -185,5 +182,3 @@ private:
      */
 	static std::vector<LOT> m_GameMasterRestrictedItems;
 };
-
-#endif

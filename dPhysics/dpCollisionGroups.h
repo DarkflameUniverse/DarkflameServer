@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 /*
  * Collision Groups
  */
