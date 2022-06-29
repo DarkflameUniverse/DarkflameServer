@@ -1060,8 +1060,10 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		PossessorComponent* possessorComponent;
 		if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent)) {
 			possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
 		}
-
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 

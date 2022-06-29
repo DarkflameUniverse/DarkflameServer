@@ -407,8 +407,8 @@ enum eReplicaComponentType : int32_t {
     COMPONENT_TYPE_MISSION                  = 84,           //!< The Mission Component
     COMPONENT_TYPE_ROCKET_LAUNCH_LUP        = 97,           //!< The LUP Launchpad Componen
     COMPONENT_TYPE_RAIL_ACTIVATOR           = 104,
-	COMPONENT_TYPE_POSSESSABLE				= 108,			//!< The Possessable
-	COMPONENT_TYPE_POSSESSOR				= 110,			//!< The Possessor
+	COMPONENT_TYPE_POSSESSABLE				= 108,			//!< The Possessable Component
+	COMPONENT_TYPE_POSSESSOR				= 110,			//!< The Possessor Component
 	COMPONENT_TYPE_BUILD_BORDER             = 114,          //!< The Build Border Component
     COMPONENT_TYPE_DESTROYABLE              = 1000,         //!< The Destroyable Component
 
