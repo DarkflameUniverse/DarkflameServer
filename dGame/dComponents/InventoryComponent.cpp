@@ -986,19 +986,11 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 			// #107
 			auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
 
-			if (possessorComponent != nullptr)
-			{
-				previousPossessorID = possessorComponent->GetPossessable();
-				possessorComponent->SetPossessable(carEntity->GetObjectID());
-			}
+			if (possessorComponent) possessorComponent->SetPossessable(carEntity->GetObjectID());
 
 			auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 
-			if (characterComponent != nullptr)
-			{
-				characterComponent->SetIsRacing(true);
-				characterComponent->SetVehicleObjectID(carEntity->GetObjectID());
-			}
+			if (characterComponent) characterComponent->SetIsRacing(true);
 
 			EntityManager::Instance()->ConstructEntity(carEntity);
 			EntityManager::Instance()->SerializeEntity(m_Parent);
