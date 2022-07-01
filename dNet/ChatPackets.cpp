@@ -5,13 +5,17 @@
 
 #include "ChatPackets.h"
 #include "RakNetTypes.h"
+#include "GeneralUtils.h"
 #include "BitStream.h"
 #include "Game.h"
 #include "PacketUtils.h"
 #include "dMessageIdentifiers.h"
+#include "PropertyManagementComponent.h"
 #include "dServer.h"
+#include "dLogger.h"
+#include "EntityManager.h"
 
-void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel, const std::string& senderName, LWOOBJID playerObjectID, bool senderMythran, const std::u16string& message) {
+void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel, const std::string& senderName, LWOOBJID objectID, bool senderMythran, const std::u16string& message) {
     CBITSTREAM
     PacketUtils::WriteHeader(bitStream, CHAT, MSG_CHAT_GENERAL_CHAT_MESSAGE);
     
@@ -21,7 +25,7 @@ void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel
     bitStream.Write(static_cast<uint32_t>(message.size()));
     PacketUtils::WriteWString(bitStream, senderName, 33);
 
-    bitStream.Write(playerObjectID);
+    bitStream.Write(objectID);
     bitStream.Write(static_cast<uint16_t>(0));
     bitStream.Write(static_cast<char>(0));
 
@@ -31,6 +35,13 @@ void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel
     bitStream.Write(static_cast<uint16_t>(0));
     
     SEND_PACKET_BROADCAST
+
+    std::string messageAsStr = GeneralUtils::UTF16ToWTF8(message);
+
+    if (PropertyManagementComponent::Instance()) {
+        auto entity = EntityManager::Instance()->GetEntity(objectID);
+        PropertyManagementComponent::Instance()->ChatMessageSentByServer(entity, messageAsStr);
+    }
 }
 
 void ChatPackets::SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, const bool broadcast) {

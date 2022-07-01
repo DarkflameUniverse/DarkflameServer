@@ -146,7 +146,7 @@ public:
     /**
      * Saves all the models from this property to the database
      */
-	void Save();
+	void Save(bool shuttingDownServer = false);
 
     /**
      * Adds a model to the cache of models
@@ -162,6 +162,12 @@ public:
 	const std::map<LWOOBJID, LWOOBJID>& GetModels() const;
 	
     LWOCLONEID GetCloneId() { return clone_Id; };
+
+    void StopAllModels();
+
+    void ResumeAllModels();
+
+    void ChatMessageSentByServer(Entity* originator, std::string& message);
 
 private:
     /**

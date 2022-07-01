@@ -308,6 +308,10 @@ public:
       \return Where the iterator ends
      */
     _AMFArrayList_::iterator GetDenseIteratorEnd();
+
+    _AMFArrayMap_ GetAssociativeMap() { return this->associative; };
+
+    _AMFArrayList_ GetDenseArray() { return this->dense; };
 };
 
 //! The anonymous object value AMF type

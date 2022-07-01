@@ -122,7 +122,7 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 
 	if (responseCode != 0) return; //If we're not accepting the request, end here, do not insert to friends table.
 
-	PacketUtils::SavePacket("HandleFriendResponse.bin", (char*)inStream.GetData(), inStream.GetNumberOfBytesUsed());
+	// PacketUtils::SavePacket("HandleFriendResponse.bin", (char*)inStream.GetData(), inStream.GetNumberOfBytesUsed());
 
 	//Now to try and find both of these:
 	auto goonA = playerContainer.GetPlayerData(playerID);

@@ -37,7 +37,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	Entity* entity = EntityManager::Instance()->GetEntity(objectID);
 
 	User * usr = UserManager::Instance()->GetUser(sysAddr);
-
+	if (messageID != 888) Game::logger->Log("GameMessageHandler", "message %i\n", messageID);
     if (!entity)
     {
 		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!\n", objectID, messageID);
@@ -487,6 +487,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			break;
 
     	// Property
+
+		case GAME_MSG_CONTROL_BEHAVIOR:
+			GameMessages::HandleControlBehaviors(inStream, entity, sysAddr);
+			break;
+
 		case GAME_MSG_QUERY_PROPERTY_DATA:
 			GameMessages::HandleQueryPropertyData(inStream, entity, sysAddr);
 			break;

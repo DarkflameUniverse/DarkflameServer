@@ -1,4 +1,6 @@
 #include "AMFFormat_BitStream.h"
+#include "Game.h"
+#include "dLogger.h"
 
 // Writes an AMFValue pointer to a RakNet::BitStream
 template<>
@@ -25,6 +27,12 @@ void RakNet::BitStream::Write<AMFValue*>(AMFValue* value) {
                 break;
             }
                 
+            case AMFDouble: {
+                AMFDoubleValue* v = (AMFDoubleValue*)value;
+                this->Write(*v);
+                break;
+            }
+
             case AMFTrue: {
                 AMFTrueValue* v = (AMFTrueValue*)value;
                 this->Write(*v);
@@ -144,37 +152,7 @@ void WriteAMFU32(RakNet::BitStream* bs, uint32_t value) {
 
 // Writes an AMF U64 to RakNet::BitStream
 void WriteAMFU64(RakNet::BitStream* bs, uint64_t value) {
-    unsigned char b2;
-    unsigned char b3;
-    unsigned char b4;
-    unsigned char b5;
-    unsigned char b6;
-    unsigned char b7;
-    unsigned char b8;
-    
-    b8 = (unsigned char)value;
-    value = value >> 8;
-    b7 = (unsigned char)value;
-    value = value >> 8;
-    b6 = (unsigned char)value;
-    value = value >> 8;
-    b5 = (unsigned char)value;
-    value = value >> 8;
-    b4 = (unsigned char)value;
-    value = value >> 8;
-    b3 = (unsigned char)value;
-    value = value >> 8;
-    b2 = (unsigned char)value;
-    value = value >> 8;
-    
-    bs->Write((unsigned char)value);
-    bs->Write(b2);
-    bs->Write(b3);
-    bs->Write(b4);
-    bs->Write(b5);
-    bs->Write(b6);
-    bs->Write(b7);
-    bs->Write(b8);
+    bs->Write(value);
 }
 
 
