@@ -1363,6 +1363,18 @@ void GameMessages::SendUseItemResult(Entity* entity, LOT templateID, bool useIte
 	SEND_PACKET
 }
 
+void GameMessages::SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, UseItemResponse itemResponse) {
+	CBITSTREAM
+	CMSGHEADER
+
+	bitStream.Write(objectID);
+	bitStream.Write(GAME_MSG::GAME_MSG_USE_ITEM_REQUIREMENTS_RESPONSE);
+
+	bitStream.Write(itemResponse);
+
+	SEND_PACKET
+}
+
 void GameMessages::SendMoveInventoryBatch(Entity* entity, uint32_t stackCount, int srcInv, int dstInv, const LWOOBJID& iObjID) {
 	CBITSTREAM
 	CMSGHEADER

@@ -24,6 +24,7 @@
 #include "dZoneManager.h"
 #include "PropertyManagementComponent.h"
 #include "DestroyableComponent.h"
+#include "dConfig.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent)
 {
@@ -985,19 +986,11 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 			// #107
 			auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
 
-			if (possessorComponent != nullptr)
-			{
-				previousPossessorID = possessorComponent->GetPossessable();
-				possessorComponent->SetPossessable(carEntity->GetObjectID());
-			}
+			if (possessorComponent) possessorComponent->SetPossessable(carEntity->GetObjectID());
 
 			auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 
-			if (characterComponent != nullptr)
-			{
-				characterComponent->SetIsRacing(true);
-				characterComponent->SetVehicleObjectID(carEntity->GetObjectID());
-			}
+			if (characterComponent) characterComponent->SetIsRacing(true);
 
 			EntityManager::Instance()->ConstructEntity(carEntity);
 			EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -1349,6 +1342,14 @@ void InventoryComponent::SpawnPet(Item* item)
 		{
 			return;
 		}
+	}
+
+	// First check if we can summon the pet.  You need 1 imagination to do so.
+	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+
+	if (Game::config->GetValue("pets_take_imagination") == "1" && destroyableComponent && destroyableComponent->GetImagination() <= 0) {
+		GameMessages::SendUseItemRequirementsResponse(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
+		return;
 	}
 
 	EntityInfo info {};

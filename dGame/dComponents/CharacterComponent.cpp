@@ -10,7 +10,6 @@
 #include "InventoryComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
-#include "PossessorComponent.h"
 #include "VehiclePhysicsComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
@@ -81,13 +80,6 @@ CharacterComponent::~CharacterComponent() {
 }
 
 void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	outBitStream->Write(m_IsRacing);
-	if (m_IsRacing) {
-		outBitStream->Write1();
-		outBitStream->Write(m_VehicleObjectID);
-		outBitStream->Write<uint8_t>(0);
-	}
-	
 	outBitStream->Write1();
 	outBitStream->Write(m_Level);
 	outBitStream->Write0();

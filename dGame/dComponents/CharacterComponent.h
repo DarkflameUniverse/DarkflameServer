@@ -144,24 +144,6 @@ public:
 	void SetIsRacing(bool isRacing) { m_IsRacing = isRacing; }
 
     /**
-     * Gets the (optional) object ID of the vehicle the character is currently in
-     * @return the object ID of the vehilce the character is in
-     */
-	const LWOOBJID GetVehicleObjectID() const { return m_VehicleObjectID; }
-
-    /**
-     * Sets the (optional) object ID of the vehicle the character is currently in
-     * @param vehicleObjectID the ID of the vehicle the character is in
-     */
-	void SetVehicleObjectID(LWOOBJID vehicleObjectID) { m_VehicleObjectID = vehicleObjectID; }
-
-    /**
-     * Sets the possesible type that's currently used, merely used by the shooting gallery if it's 0
-     * @param value the possesible type to set
-     */
-	void SetPossessableType(uint8_t value) { m_PossessableType = value; }
-
-    /**
      * Gets whether this character has PvP enabled, allowing combat between players
      * @return
      */
@@ -303,11 +285,6 @@ private:
      * Whether this character is racing
      */
 	bool m_IsRacing;
-
-    /**
-     * The object ID of the vehicle the character is currently in
-     */
-	LWOOBJID m_VehicleObjectID;
 
     /**
      * Possessible type, used by the shooting gallery

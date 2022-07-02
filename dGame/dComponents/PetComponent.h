@@ -82,7 +82,7 @@ public:
      * @param item the item to create the pet from
      * @param registerPet notifies the client that the pet was spawned, not necessary if this pet is being tamed
      */
-    void Activate(Item* item, bool registerPet = true);
+    void Activate(Item* item, bool registerPet = true, bool fromTaming = false);
 
     /**
      * Despawns the pet
@@ -202,6 +202,14 @@ public:
      * @return the pet component of the entity that was spawned by the owner
      */
     static PetComponent* GetActivePet(LWOOBJID owner);
+
+    /**
+     * Adds the timer to the owner of this pet to drain imagination at the rate
+     * specified by the parameter imaginationDrainRate
+     * 
+     * @param item The item that represents this pet in the inventory.
+     */
+    void AddDrainImaginationTimer(Item* item, bool fromTaming = false);
 
 private:
 
@@ -346,4 +354,9 @@ private:
      * Preconditions that need to be met before an entity can tame this pet
      */
     PreconditionExpression* m_Preconditions;
+
+    /**
+     * The rate at which imagination is drained from the user for having the pet out.
+     */
+    float imaginationDrainRate;
 };
