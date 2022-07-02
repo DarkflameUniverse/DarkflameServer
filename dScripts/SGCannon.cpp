@@ -107,9 +107,12 @@ void SGCannon::OnActivityStateChangeRequest(Entity *self, LWOOBJID senderID, int
 
             if (characterComponent != nullptr) {
                 characterComponent->SetIsRacing(true);
-                characterComponent->SetVehicleObjectID(self->GetObjectID());
-                characterComponent->SetPossessableType(0);
                 characterComponent->SetCurrentActivity(2);
+                auto possessor = player->GetComponent<PossessorComponent>();
+                if(possessor) {
+                    possessor->SetPossessable(self->GetObjectID());
+                    possessor->SetPossessableType(0);
+                }
 
                 EntityManager::Instance()->SerializeEntity(player);
             }
