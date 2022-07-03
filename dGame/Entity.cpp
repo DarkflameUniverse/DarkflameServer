@@ -99,22 +99,6 @@ Entity::~Entity() {
 		m_Character->SaveXMLToDatabase();
 	}
 
-	if (IsPlayer()) {
-        Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
-        for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-            script->OnPlayerExit(zoneControl, this);
-        }
-
-        std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
-        for (Entity* scriptEntity : scriptedActs) {
-            if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-                for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-                    script->OnPlayerExit(scriptEntity, this);
-                }
-            }
-        }
-	}
-
 	CancelAllTimers();
 	CancelCallbackTimers();
 
@@ -451,6 +435,8 @@ void Entity::Initialize()
 	}*/
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
+		// Character Component always has a possessor component
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
 	}
@@ -620,10 +606,6 @@ void Entity::Initialize()
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_RENDER) > 0 && m_TemplateID != 2365) || m_Character) {
 		RenderComponent* render = new RenderComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RENDER, render));
-	}
-
-	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSOR) > 0) || m_Character) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 	}
 
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MISSION_OFFER) > 0) || m_Character) {
@@ -1073,8 +1055,15 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	}
 
 	CharacterComponent* characterComponent;
-	if (TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent)) {
+
+		PossessorComponent* possessorComponent;
+		if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent)) {
+			possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
+		}
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
@@ -1180,11 +1169,10 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		outBitStream->Write<uint32_t>(0x40000000);
 	}
 
-	PossessorComponent* possessorComponent;
-	if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent))
-	{
-		possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
+	// BBB Component, unused currently
+	// Need to to write0 so that is serlaizese correctly
+	// TODO: Implement BBB Component
+	outBitStream->Write0();
 
 	/*
 	if (m_Trigger != nullptr)

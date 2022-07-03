@@ -219,7 +219,6 @@ void RacingControlComponent::LoadPlayerVehicle(Entity *player,
 
     if (characterComponent != nullptr) {
         characterComponent->SetIsRacing(true);
-        characterComponent->SetVehicleObjectID(carEntity->GetObjectID());
     }
 
     // Init the player's racing entry.
