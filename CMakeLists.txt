@@ -383,6 +383,11 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	# Plugin directory is determined at dll load time (this will happen before main()) so we need to delay the dll load so that we can set the environment variable
 	add_link_options(/DELAYLOAD:${MARIADB_SHARED_LIBRARY_LOCATION})
 	add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADB_CPP_CONNECTOR_DIR}/plugin")
+
+	# Move the mariadbcpp.dll file to the build directory.  This is where windows expects the file to be.
+	if(EXISTS ${MARIADB_SHARED_LIBRARY_LOCATION})
+		file(COPY ${MARIADB_SHARED_LIBRARY_LOCATION} DESTINATION ${PROJECT_BINARY_DIR})
+	endif()
 else() # Build from source
 
 	include(ExternalProject)
