@@ -306,9 +306,9 @@ void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sys
 			WriteToPacket(&bitStream, body, 400);
 			WriteToPacket(&bitStream, sender, 32);*/
 
-			WriteStringAsWString(&bitStream, res->getString(7), 50); //subject
-			WriteStringAsWString(&bitStream, res->getString(8), 400); //body
-			WriteStringAsWString(&bitStream, res->getString(3), 32); //sender
+			WriteStringAsWString(&bitStream, res->getString(7).c_str(), 50); //subject
+			WriteStringAsWString(&bitStream, res->getString(8).c_str(), 400); //body
+			WriteStringAsWString(&bitStream, res->getString(3).c_str(), 32); //sender
 
 			bitStream.Write(uint32_t(0));
 			bitStream.Write(uint64_t(0));
