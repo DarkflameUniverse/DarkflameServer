@@ -172,8 +172,8 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     // If the player has a property this query will have a single result.
     if (playerPropertyLookupResults->next()) {
         const auto cloneId = playerPropertyLookupResults->getUInt64(4);
-        const auto propertyName = playerPropertyLookupResults->getString(5).asStdString();
-        const auto propertyDescription = playerPropertyLookupResults->getString(6).asStdString();
+        const auto propertyName = std::string(playerPropertyLookupResults->getString(5).c_str());
+        const auto propertyDescription = std::string(playerPropertyLookupResults->getString(6).c_str());
         const auto privacyOption = playerPropertyLookupResults->getInt(9);
         const auto modApproved = playerPropertyLookupResults->getBoolean(10);
         const auto dateLastUpdated = playerPropertyLookupResults->getInt64(11);
@@ -212,8 +212,8 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         const auto propertyId = propertyEntry->getUInt64(1);
         const auto owner = propertyEntry->getInt(2);
         const auto cloneId = propertyEntry->getUInt64(4);
-        const auto propertyNameFromDb = propertyEntry->getString(5).asStdString();
-        const auto propertyDescriptionFromDb = propertyEntry->getString(6).asStdString();
+        const auto propertyNameFromDb = std::string(propertyEntry->getString(5).c_str());
+        const auto propertyDescriptionFromDb = std::string(propertyEntry->getString(6).c_str());
         const auto privacyOption = propertyEntry->getInt(9);
         const auto modApproved = propertyEntry->getBoolean(10);
         const auto dateLastUpdated = propertyEntry->getInt(11);
@@ -239,7 +239,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
             continue;
         } else {
             isOwned = cloneId == character->GetPropertyCloneID();
-            ownerName = nameResult->getString(1).asStdString();
+            ownerName = std::string(nameResult->getString(1).c_str());
         }
 
         delete nameResult;
