@@ -106,7 +106,6 @@ cmake --build . --config Release
 mkdir build
 cd build
 
-Once built you must also move all DLLs from `build/_deps/mysql-src/lib64` or else you encounter missing DLL errors
 :: Run CMake to generate make files
 cmake .. -DMARIADB_BUILD_SOURCE=ON
 
