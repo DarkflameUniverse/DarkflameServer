@@ -4,7 +4,7 @@
 #include "Spawner.h"
 #include <map>
 
-class RandomQBManager;
+// class RandomQBManager;
 
 class dZoneManager {
 public:
@@ -64,5 +64,5 @@ private:
     std::map<LWOOBJID, Spawner*> m_Spawners;
 
 	Entity* m_ZoneControlObject;
-	RandomQBManager* m_RandomQBManager;
+	// RandomQBManager* m_RandomQBManager;
 };
