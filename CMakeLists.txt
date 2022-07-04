@@ -426,14 +426,6 @@ endif()
 target_include_directories(mariadbConnCpp INTERFACE ${MARIADB_INCLUDE_DIR})
 add_dependencies(mariadbConnCpp mariadb_connector_cpp)
 
-# 3rdparty static libraries:
-#add_library(zlib ${SOURCES_ZLIB})
-add_library(raknet ${SOURCES_RAKNET})
-add_library(tinyxml2 ${SOURCES_TINYXML2})
-add_library(detour ${SOURCES_DETOUR})
-add_library(recast ${SOURCES_RECAST})
-add_library(libbcrypt ${SOURCES_LIBBCRYPT})
-
 # Our static libraries:
 add_library(dCommon ${SOURCES_DCOMMON})
 add_library(dChatFilter ${SOURCES_DCHATFILTER})
