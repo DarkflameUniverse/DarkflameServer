@@ -16,3 +16,5 @@ NET_VERSION=171022
 # Set __include_backtrace__ to 1 to includes the backtrace library for better crashlogs.
 # __compile_backtrace__=1
 # Set __compile_backtrace__ to 1 to compile the backtrace library instead of using system libraries. 
+__maria_db_connector_compile_jobs__=1
+# Set to the number of jobs (make -j equivalent) to compile the mariadbconn files with.

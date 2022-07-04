@@ -46,60 +46,41 @@ if(WIN32)
 include(FetchContent)
 
 FetchContent_Declare(
-    mysql
-    URL https://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-8.0.27-winx64.zip
-    URL_HASH MD5=e3c53f6e4d0a72fde2713f7597bf9468
-)
-
-FetchContent_Declare(
     zlib
     URL https://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
     URL_HASH MD5=9d6a627693163bbbf3f26403a3a0b0b1
 )
 
 FetchContent_MakeAvailable(zlib)
-FetchContent_MakeAvailable(mysql)
 
 set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
 set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}") # Why?
 add_library(ZLIB::ZLIB ALIAS zlib) # You're welcome
 
 endif(WIN32)
-if(UNIX)
-if(APPLE)
-else()
-include(FetchContent)
 
-FetchContent_Declare(
-    mysql
-    URL https://dev.mysql.com/get/Downloads/Connector-C++/mysql-connector-c++-8.0.27-linux-glibc2.12-x86-64bit.tar.gz
-    URL_HASH MD5=12f086b76c11022cc7139b41a36cdf9e
-)
+if(UNIX AND NOT APPLE)
+    include(FetchContent)
+    if (__include_backtrace__ AND __compile_backtrace__)
+		FetchContent_Declare(
+			backtrace
+			GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
+		)
 
-FetchContent_MakeAvailable(mysql)
+		FetchContent_MakeAvailable(backtrace)
 
-if (__include_backtrace__ AND __compile_backtrace__)
-    FetchContent_Declare(
-        backtrace
-        GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
-    )
+		if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
+		set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
 
-    FetchContent_MakeAvailable(backtrace)
+		execute_process(
+			COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
+		)
+		endif()
 
-    if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
-    set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
-
-    execute_process(
-        COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
-    )
-    endif()
-
-    link_directories(${backtrace_SOURCE_DIR}/.libs/)
-    include_directories(${backtrace_SOURCE_DIR})
-endif(__include_backtrace__ AND __compile_backtrace__)
-
+		link_directories(${backtrace_SOURCE_DIR}/.libs/)
+		include_directories(${backtrace_SOURCE_DIR})
+	endif(__include_backtrace__)
 endif()
-endif(UNIX)
 
 # Set the version
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
@@ -161,20 +142,9 @@ configure_file("${CMAKE_SOURCE_DIR}/vanity/NPC.xml" "${CMAKE_BINARY_DIR}/vanity/
 
 # 3rdparty includes
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/raknet/Source/)
-if(UNIX)
-    if(APPLE)
-        include_directories(/usr/local/include/)
-        include_directories(/usr/local/mysql-connector-c++/include/jdbc/)
-        include_directories(/usr/local/mysql-connector-c++/include/jdbc/cppconn/)
-    else()
-        include_directories(${mysql_SOURCE_DIR}/include/jdbc/)
-        include_directories(${mysql_SOURCE_DIR}/include/jdbc/cppconn/)
-    endif(APPLE)
-endif(UNIX)
-if(WIN32)
-include_directories(${mysql_SOURCE_DIR}/include/jdbc)
-include_directories(${mysql_SOURCE_DIR}/include/jdbc/cppconn)
-endif(WIN32)
+if(APPLE)
+	include_directories(/usr/local/include/)
+endif(APPLE)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Recast/Include)
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Detour/Include)
@@ -209,27 +179,8 @@ include_directories(${PROJECT_SOURCE_DIR}/thirdparty/cpplinq/)
 include_directories(${PROJECT_SOURCE_DIR}/dNet/)
 include_directories(${PROJECT_SOURCE_DIR}/dScripts/)
 
-# Default to linking to libmysql
-set(MYSQL_LIB mysql)
-if(WIN32)
-set(MYSQL_LIB mysqlcppconn)
-endif(WIN32)
-
 # Lib folders:
 link_directories(${PROJECT_BINARY_DIR})
-if(UNIX)
-    if(APPLE)
-        link_directories(/usr/local/mysql-connector-c++/lib64/)
-    else()
-        link_directories(${mysql_SOURCE_DIR}/lib64/)
-
-        # Link to libmysqlcppconn on Linux
-        set(MYSQL_LIB mysqlcppconn)
-    endif(APPLE)
-endif(UNIX)
-if(WIN32)
-link_directories(${mysql_SOURCE_DIR}/lib64/vs14)
-endif(WIN32)
 
 # Third-Party libraries
 add_subdirectory(thirdparty)
@@ -336,6 +287,153 @@ if(MSVC)
     add_compile_options("/wd4267")
 endif(MSVC)
 
+# mariadb connector cpp
+# On Windows ClangCL can't compile the connector from source but can link to an msvc compiled one,
+# so prefer the prebuilt binaries unless MARIADB_BUILD_SOURCE is specified
+if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
+	set(MARIADB_MSI_DIR "${PROJECT_BINARY_DIR}/msi")
+	set(MARIADB_CONNECTOR_DIR "${PROJECT_BINARY_DIR}/mariadbcpp")
+	set(MARIADB_C_CONNECTOR_DIR "${MARIADB_CONNECTOR_DIR}/MariaDB/MariaDB Connector C 64-bit")
+	set(MARIADB_CPP_CONNECTOR_DIR "${MARIADB_CONNECTOR_DIR}/MariaDB/MariaDB C++ Connector 64-bit")
+
+	file(MAKE_DIRECTORY "${MARIADB_MSI_DIR}")
+	file(MAKE_DIRECTORY "${MARIADB_CONNECTOR_DIR}")
+
+	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi" )
+		message("Downloading mariadb connector/c")
+		file(DOWNLOAD https://dlm.mariadb.com/1936366/connectors/c/connector-c-3.2.5/mariadb-connector-c-3.2.5-win64.msi
+			"${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi"
+			EXPECTED_HASH MD5=09d418c290109068a5bea136dafca36b)
+	endif()
+
+	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi" )
+		message("Downloading mariadb connector/c++")
+		file(DOWNLOAD https://dlm.mariadb.com/1683453/connectors/cpp/connector-cpp-1.0.1/mariadb-connector-cpp-1.0.1-win64.msi
+			"${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi"
+			EXPECTED_HASH MD5=548e743fbf067d21d42b81d958bf4ed7)
+	endif()
+
+
+	file(TO_NATIVE_PATH "${MARIADB_CONNECTOR_DIR}" MSIEXEC_TARGETDIR)
+	# extract msi files without installing to users system
+	if(NOT EXISTS "${MARIADB_C_CONNECTOR_DIR}")
+		file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi" MSI_DIR)
+		execute_process(COMMAND msiexec /a ${MSI_DIR} /qn TARGETDIR=${MSIEXEC_TARGETDIR})
+	endif()
+	
+	if(NOT EXISTS "${MARIADB_CPP_CONNECTOR_DIR}")
+	file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi" MSI_DIR)
+		execute_process(COMMAND msiexec /a ${MSI_DIR} /qn TARGETDIR=${MSIEXEC_TARGETDIR})
+	endif()
+	
+	set(MARIADB_SHARED_LIBRARY_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll")
+	set(MARIADB_IMPLIB_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.lib")
+	set(MARIADB_INCLUDE_DIR "${MARIADB_CPP_CONNECTOR_DIR}/include/mariadb")
+
+	add_custom_target(mariadb_connector_cpp)
+	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+					"${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll"
+					"${MARIADB_C_CONNECTOR_DIR}/lib/libmariadb.dll"
+					"${PROJECT_BINARY_DIR}")
+
+	# MariaDB uses plugins that the database needs to load, the prebuilt binaries by default will try to find the libraries in system directories,
+	# so set this define and the servers will set the MARIADB_PLUGIN_DIR environment variable to the appropriate directory.
+	# Plugin directory is determined at dll load time (this will happen before main()) so we need to delay the dll load so that we can set the environment variable
+	add_link_options(/DELAYLOAD:${MARIADB_SHARED_LIBRARY_LOCATION})
+	add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADB_CPP_CONNECTOR_DIR}/plugin")
+else() # Build from source
+
+	include(ExternalProject)
+	if(WIN32)
+		set(MARIADB_EXTRA_COMPILE_FLAGS /EHsc)
+		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_MSI=OFF)
+	elseif(APPLE)
+		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0)
+		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_EXTERNAL_ZLIB=ON -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR})
+	else()
+		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0)
+	endif()
+	
+	ExternalProject_Add(mariadb_connector_cpp
+						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
+						CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
+									-DCMAKE_BUILD_RPATH_USE_ORIGIN=${CMAKE_BUILD_RPATH_USE_ORIGIN}
+									-DCMAKE_INSTALL_PREFIX=./mariadbcpp # Points the connector to the correct plugin directory
+									-DINSTALL_PLUGINDIR=plugin
+									${MARIADB_EXTRA_CMAKE_ARGS}
+						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
+						BUILD_COMMAND cmake --build . --config RelWithDebInfo -j${__maria_db_connector_compile_jobs__}
+						INSTALL_COMMAND "")
+
+	ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
+
+	if(WIN32)
+		set(MARIADB_SHARED_LIBRARY_NAME mariadbcpp.dll)
+		set(MARIADB_PLUGIN_SUFFIX .dll)
+		set(MARIADB_IMPLIB_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
+		
+		# When built from source windows only seems to check same folder as exe instead specified folder, so use
+		# environment variable to force it
+		add_link_options(/DELAYLOAD:mariadbcpp.dll)
+		add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${PROJECT_BINARY_DIR}/mariadbcpp/plugin")
+	else()
+		set(MARIADB_SHARED_LIBRARY_NAME libmariadbcpp${CMAKE_SHARED_LIBRARY_SUFFIX})
+		set(MARIADB_PLUGIN_SUFFIX .so)
+	endif()
+
+	get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+	if(isMultiConfig)
+		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/${MARIADB_SHARED_LIBRARY_NAME}")
+		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}/$<CONFIG>")
+		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb/RelWithDebInfo")
+	else()
+		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
+		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}")
+		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb")
+	endif()
+
+	set(MARIADB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
+
+	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
+						COMMAND ${CMAKE_COMMAND} -E make_directory
+						${BINARY_DIR}/mariadbcpp/plugin
+						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
+						
+						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+						${MARIADB_SHARED_LIBRARY_LOCATION}
+						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
+
+						COMMAND ${CMAKE_COMMAND} -E copy_if_different
+						${MARIADB_PLUGINS_LOCATION}/caching_sha2_password${MARIADB_PLUGIN_SUFFIX}
+						${MARIADB_PLUGINS_LOCATION}/client_ed25519${MARIADB_PLUGIN_SUFFIX}
+						${MARIADB_PLUGINS_LOCATION}/dialog${MARIADB_PLUGIN_SUFFIX}
+						${MARIADB_PLUGINS_LOCATION}/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
+						${MARIADB_PLUGINS_LOCATION}/sha256_password${MARIADB_PLUGIN_SUFFIX}
+						${BINARY_DIR}/mariadbcpp/plugin)
+endif()
+
+# Remove the CMakeLists.txt file from the tests folder for the maria-db-connector so we dont compile the tests.
+if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
+	file(REMOVE "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
+endif()
+
+add_library (mariadbConnCpp SHARED IMPORTED)
+set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_LOCATION ${MARIADB_SHARED_LIBRARY_LOCATION})
+if(WIN32)
+	set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_IMPLIB ${MARIADB_IMPLIB_LOCATION})
+endif()
+target_include_directories(mariadbConnCpp INTERFACE ${MARIADB_INCLUDE_DIR})
+add_dependencies(mariadbConnCpp mariadb_connector_cpp)
+
+# 3rdparty static libraries:
+#add_library(zlib ${SOURCES_ZLIB})
+add_library(raknet ${SOURCES_RAKNET})
+add_library(tinyxml2 ${SOURCES_TINYXML2})
+add_library(detour ${SOURCES_DETOUR})
+add_library(recast ${SOURCES_RECAST})
+add_library(libbcrypt ${SOURCES_LIBBCRYPT})
+
 # Our static libraries:
 add_library(dCommon ${SOURCES_DCOMMON})
 add_library(dChatFilter ${SOURCES_DCHATFILTER})
@@ -348,6 +446,10 @@ target_link_libraries(dDatabase sqlite3)
 target_link_libraries(dNet dCommon) #Needed because otherwise linker errors occur.
 target_link_libraries(dCommon ZLIB::ZLIB)
 target_link_libraries(dCommon libbcrypt)
+target_link_libraries(dDatabase mariadbConnCpp)
+target_link_libraries(dNet dDatabase)
+target_link_libraries(dGame dDatabase)
+target_link_libraries(dChatFilter dDatabase)
 
 if(WIN32)
 target_link_libraries(raknet ws2_32)
@@ -370,7 +472,7 @@ target_link_libraries(WorldServer dPhysics)
 target_link_libraries(WorldServer detour)
 target_link_libraries(WorldServer recast)
 target_link_libraries(WorldServer raknet)
-target_link_libraries(WorldServer ${MYSQL_LIB})
+target_link_libraries(WorldServer mariadbConnCpp)
 if(UNIX)
 if(NOT APPLE AND __include_backtrace__)
 target_link_libraries(WorldServer backtrace)
@@ -387,7 +489,7 @@ target_link_libraries(AuthServer dCommon)
 target_link_libraries(AuthServer dDatabase)
 target_link_libraries(AuthServer dNet)
 target_link_libraries(AuthServer raknet)
-target_link_libraries(AuthServer ${MYSQL_LIB})
+target_link_libraries(AuthServer mariadbConnCpp)
 if(UNIX)
 target_link_libraries(AuthServer pthread)
 target_link_libraries(AuthServer dl)
@@ -398,7 +500,7 @@ target_link_libraries(MasterServer dCommon)
 target_link_libraries(MasterServer dDatabase)
 target_link_libraries(MasterServer dNet)
 target_link_libraries(MasterServer raknet)
-target_link_libraries(MasterServer ${MYSQL_LIB})
+target_link_libraries(MasterServer mariadbConnCpp)
 if(UNIX)
 target_link_libraries(MasterServer pthread)
 target_link_libraries(MasterServer dl)
@@ -410,7 +512,7 @@ target_link_libraries(ChatServer dChatFilter)
 target_link_libraries(ChatServer dDatabase)
 target_link_libraries(ChatServer dNet)
 target_link_libraries(ChatServer raknet)
-target_link_libraries(ChatServer ${MYSQL_LIB})
+target_link_libraries(ChatServer mariadbConnCpp)
 if(UNIX)
 target_link_libraries(ChatServer pthread)
 target_link_libraries(ChatServer dl)
