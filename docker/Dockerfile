@@ -35,7 +35,7 @@ RUN echo "Build server" && \
     mkdir -p cmake_build && \
     cd cmake_build && \
     sed -i -e "s/171022/${BUILD_VERSION}/g" ../CMakeVariables.txt && \
-    cmake .. && \
+    cmake .. -DCMAKE_BUILD_RPATH_USE_ORIGIN=TRUE && \
     make -j $BUILD_THREADS
 
 RUN unzip /build/resources/navmeshes.zip -d /build/cmake_build/res/maps
