@@ -11,29 +11,27 @@ string(REPLACE "\n" ";" variables ${variables})
 # Set the cmake variables, formatted as "VARIABLE #" in variables
 foreach(variable ${variables})
     # If the string contains a #, skip it
-    if("${variable}" MATCHES "#")
-        continue()
-    endif()
-
+    if(NOT "${variable}" MATCHES "#")
+    
     # Split the variable into name and value
-    string(REPLACE "=" ";" variable ${variable})
+    	string(REPLACE "=" ";" variable ${variable})
 
     # Check that the length of the variable is 2 (name and value)
-    list(LENGTH variable length)
-    if(NOT ${length} EQUAL 2)
-        continue()
-    endif()
+    	list(LENGTH variable length)
+    	if(${length} EQUAL 2)
 
-    list(GET variable 0 variable_name)
-    list(GET variable 1 variable_value)
+    		list(GET variable 0 variable_name)
+    		list(GET variable 1 variable_value)
 
-    # Set the variable
-    set(${variable_name} ${variable_value})
+    		# Set the variable
+    		set(${variable_name} ${variable_value})
 
-    # Add compiler definition
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D${variable_name}=${variable_value}")
+    		# Add compiler definition
+    		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D${variable_name}=${variable_value}")
 
-    message(STATUS "Variable: ${variable_name} = ${variable_value}")
+    		message(STATUS "Variable: ${variable_name} = ${variable_value}")
+		endif()
+	endif()
 endforeach()
 
 # On windows it's better to build this from source, as there's no way FindZLIB is gonna find it
