@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#ifndef MISSIONTASK_H
+#define MISSIONTASK_H
+
 #include "CDMissionTasksTable.h"
 #include "MissionTaskType.h"
 #include "dCommonVars.h"
@@ -180,3 +183,5 @@ private:
      */
 	void CheckCompletion() const;
 };
+
+#endif 
