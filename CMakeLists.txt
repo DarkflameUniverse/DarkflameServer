@@ -70,19 +70,10 @@ if(UNIX AND NOT APPLE)
 		if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
 		set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
 
-    FetchContent_MakeAvailable(backtrace)
-
-    if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
-    set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
-
-    execute_process(
-        COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
-    )
-    endif()
-
-    link_directories(${backtrace_SOURCE_DIR}/.libs/)
-    include_directories(${backtrace_SOURCE_DIR})
-endif()
+		execute_process(
+			COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
+		)
+		endif()
 
 		link_directories(${backtrace_SOURCE_DIR}/.libs/)
 		include_directories(${backtrace_SOURCE_DIR})
@@ -247,35 +238,6 @@ LIST_DIRECTORIES false
 RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 ${PROJECT_SOURCE_DIR}/dDatabase/*.cpp
 ${PROJECT_SOURCE_DIR}/dDatabase/Tables/*.cpp
-)
-
-file(
-    GLOB HEADERS_DDATABASE
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dDatabase/*.h
-    ${PROJECT_SOURCE_DIR}/dDatabase/Tables/*.h
-    ${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.h
-)
-
-file(
-    GLOB HEADERS_DZONEMANAGER
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dZoneManager/*.h
-)
-
-file(
-    GLOB HEADERS_DCOMMON
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dCommon/*.h
-)
-
-file(
-    GLOB HEADERS_DGAME
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dGame/Entity.h 
-    ${PROJECT_SOURCE_DIR}/dGame/dGameMessages/GameMessages.h
-    ${PROJECT_SOURCE_DIR}/dGame/EntityManager.h
-    ${PROJECT_SOURCE_DIR}/dScripts/CppScripts.h
 )
 
 file(
