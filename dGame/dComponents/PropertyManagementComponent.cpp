@@ -76,7 +76,7 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 		this->moderatorRequested = propertyEntry->getInt(10) == 0 && rejectionReason == "" && privacyOption == PropertyPrivacyOption::Public;
 		this->LastUpdatedTime = propertyEntry->getUInt64(11);
 		this->claimedTime = propertyEntry->getUInt64(12);
-		this->rejectionReason = propertyEntry->getString(13).asStdString();
+		this->rejectionReason = std::string(propertyEntry->getString(13).c_str());
 		this->reputation = propertyEntry->getUInt(14);
 
 		Load();
@@ -866,7 +866,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 
 			result->next();
 
-			const auto reason = result->getString(1).asStdString();;
+			const auto reason = std::string(result->getString(1).c_str());
 			const auto modApproved = result->getInt(2);
 			if (reason != "") {
 				moderatorRequested = false;

@@ -62,8 +62,11 @@ void BaseWavesServer::BaseStartup(Entity* self) {
 
 // Done
 void BaseWavesServer::BasePlayerExit(Entity* self, Entity* player) {
-    state.waitingPlayers.erase(std::find(state.waitingPlayers.begin(), state.waitingPlayers.end(), player->GetObjectID()));
-    state.players.erase(std::find(state.players.begin(), state.players.end(), player->GetObjectID()));
+    auto waitingPlayerToErase = std::find(state.waitingPlayers.begin(), state.waitingPlayers.end(), player->GetObjectID());
+    if (waitingPlayerToErase != state.waitingPlayers.end()) state.waitingPlayers.erase(waitingPlayerToErase);
+
+    auto playerToErase = std::find(state.players.begin(), state.players.end(), player->GetObjectID());
+    if (playerToErase != state.players.end()) state.players.erase(playerToErase);
 
     if (!self->GetNetworkVar<bool>(WavesStartedVariable)) {
         PlayerConfirmed(self);

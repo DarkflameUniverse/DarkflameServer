@@ -92,8 +92,8 @@
 	defined(__amd64) || defined(__amd64__)	|| \
 	defined(__alpha__) || defined(__alpha) || defined(__ia64) || defined(__ia64__) || \
 	defined(_M_ALPHA) || defined(ns32000) || defined(__ns32000__) || defined(sequent) || \
-	defined(MIPSEL) || defined(_MIPSEL) || defined(sun386) || defined(__sun386__)
-
+	defined(MIPSEL) || defined(_MIPSEL) || defined(sun386) || defined(__sun386__) || \
+	defined(__aarch64__) || defined (_M_ARM64)
 # define HOST_ENDIAN_IS_LITTLE
 
 #else
@@ -128,8 +128,8 @@ namespace cat
 	defined(__amd64) || defined(__amd64__)	|| defined(_M_X64) || \
 	defined(__alpha__) || defined(__alpha) || defined(__ia64) || defined(__ia64__) || \
 	defined(_M_ALPHA) || defined(ns32000) || defined(__ns32000__) || defined(sequent) || \
-	defined(MIPSEL) || defined(_MIPSEL) || defined(sun386) || defined(__sun386__)
-
+	defined(MIPSEL) || defined(_MIPSEL) || defined(sun386) || defined(__sun386__) || \
+	defined(__aarch64__) || defined (_M_ARM64)
 # define LITTLE_ENDIAN
 
 #else

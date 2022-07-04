@@ -10,6 +10,10 @@
 [submodule "thirdparty/libbcrypt"]
 	path = thirdparty/libbcrypt
 	url = https://github.com/trusch/libbcrypt.git
+[submodule "thirdparty/mariadb-connector-cpp"]
+	path = thirdparty/mariadb-connector-cpp
+	url = https://github.com/mariadb-corporation/mariadb-connector-cpp.git
+	ignore = dirty
 [submodule "thirdparty/docker-utils"]
 	path = thirdparty/docker-utils
 	url = https://github.com/lcdr/utils.git

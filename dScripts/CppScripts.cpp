@@ -163,6 +163,7 @@
 #include "PropertyPlatform.h"
 #include "MailBoxServer.h"
 #include "ActMine.h"
+#include "FireFirstSkillonStartup.h"
 
 // Racing Scripts
 #include "RaceImagineCrateServer.h"
@@ -802,7 +803,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new LegoDieRoll();
   	else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
     	script = new BuccaneerValiantShip();
-
+	else if (scriptName == "scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua")
+	    script = new FireFirstSkillonStartup();
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
 		script = new RockHydrantBroken();
