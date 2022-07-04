@@ -11,29 +11,27 @@ string(REPLACE "\n" ";" variables ${variables})
 # Set the cmake variables, formatted as "VARIABLE #" in variables
 foreach(variable ${variables})
     # If the string contains a #, skip it
-    if("${variable}" MATCHES "#")
-        continue()
-    endif()
-
+    if(NOT "${variable}" MATCHES "#")
+    
     # Split the variable into name and value
-    string(REPLACE "=" ";" variable ${variable})
+    	string(REPLACE "=" ";" variable ${variable})
 
     # Check that the length of the variable is 2 (name and value)
-    list(LENGTH variable length)
-    if(NOT ${length} EQUAL 2)
-        continue()
-    endif()
+    	list(LENGTH variable length)
+    	if(${length} EQUAL 2)
 
-    list(GET variable 0 variable_name)
-    list(GET variable 1 variable_value)
+    		list(GET variable 0 variable_name)
+    		list(GET variable 1 variable_value)
 
-    # Set the variable
-    set(${variable_name} ${variable_value})
+    		# Set the variable
+    		set(${variable_name} ${variable_value})
 
-    # Add compiler definition
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D${variable_name}=${variable_value}")
+    		# Add compiler definition
+    		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D${variable_name}=${variable_value}")
 
-    message(STATUS "Variable: ${variable_name} = ${variable_value}")
+    		message(STATUS "Variable: ${variable_name} = ${variable_value}")
+		endif()
+	endif()
 endforeach()
 
 # On windows it's better to build this from source, as there's no way FindZLIB is gonna find it
@@ -79,7 +77,7 @@ if(UNIX AND NOT APPLE)
 
 		link_directories(${backtrace_SOURCE_DIR}/.libs/)
 		include_directories(${backtrace_SOURCE_DIR})
-	endif(__include_backtrace__)
+	endif()
 endif()
 
 # Set the version
@@ -182,6 +180,9 @@ include_directories(${PROJECT_SOURCE_DIR}/dScripts/)
 # Lib folders:
 link_directories(${PROJECT_BINARY_DIR})
 
+# Third-Party libraries
+add_subdirectory(thirdparty)
+
 # Source Code
 file(
 GLOB SOURCES
@@ -214,47 +215,6 @@ RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 ${PROJECT_SOURCE_DIR}/dChatServer/*.cpp
 )
 
-# Source Code for raknet
-file(
-GLOB SOURCES_RAKNET
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/thirdparty/raknet/Source/*.cpp
-)
-
-# Source Code for recast
-file(
-GLOB SOURCES_RECAST
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Recast/Source/*.cpp
-)
-
-# Source Code for detour
-file(
-GLOB SOURCES_DETOUR
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Detour/Source/*.cpp
-)
-
-# Source Code for tinyxml2
-file(
-GLOB SOURCES_TINYXML2
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.cpp
-)
-
-# Source Code for libbcrypt
-file(
-GLOB SOURCES_LIBBCRYPT
-LIST_DIRECTORIES false
-RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/*.c
-${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/src/*.c
-)
-
 # Source Code for dCommon
 file(
 GLOB SOURCES_DCOMMON
@@ -278,8 +238,6 @@ LIST_DIRECTORIES false
 RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 ${PROJECT_SOURCE_DIR}/dDatabase/*.cpp
 ${PROJECT_SOURCE_DIR}/dDatabase/Tables/*.cpp
-${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.cpp
-${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.c
 )
 
 file(
@@ -356,153 +314,6 @@ if(MSVC)
     add_compile_options("/wd4267")
 endif(MSVC)
 
-# mariadb connector cpp
-# On Windows ClangCL can't compile the connector from source but can link to an msvc compiled one,
-# so prefer the prebuilt binaries unless MARIADB_BUILD_SOURCE is specified
-if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
-	set(MARIADB_MSI_DIR "${PROJECT_BINARY_DIR}/msi")
-	set(MARIADB_CONNECTOR_DIR "${PROJECT_BINARY_DIR}/mariadbcpp")
-	set(MARIADB_C_CONNECTOR_DIR "${MARIADB_CONNECTOR_DIR}/MariaDB/MariaDB Connector C 64-bit")
-	set(MARIADB_CPP_CONNECTOR_DIR "${MARIADB_CONNECTOR_DIR}/MariaDB/MariaDB C++ Connector 64-bit")
-
-	file(MAKE_DIRECTORY "${MARIADB_MSI_DIR}")
-	file(MAKE_DIRECTORY "${MARIADB_CONNECTOR_DIR}")
-
-	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi" )
-		message("Downloading mariadb connector/c")
-		file(DOWNLOAD https://dlm.mariadb.com/1936366/connectors/c/connector-c-3.2.5/mariadb-connector-c-3.2.5-win64.msi
-			"${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi"
-			EXPECTED_HASH MD5=09d418c290109068a5bea136dafca36b)
-	endif()
-
-	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi" )
-		message("Downloading mariadb connector/c++")
-		file(DOWNLOAD https://dlm.mariadb.com/1683453/connectors/cpp/connector-cpp-1.0.1/mariadb-connector-cpp-1.0.1-win64.msi
-			"${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi"
-			EXPECTED_HASH MD5=548e743fbf067d21d42b81d958bf4ed7)
-	endif()
-
-
-	file(TO_NATIVE_PATH "${MARIADB_CONNECTOR_DIR}" MSIEXEC_TARGETDIR)
-	# extract msi files without installing to users system
-	if(NOT EXISTS "${MARIADB_C_CONNECTOR_DIR}")
-		file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi" MSI_DIR)
-		execute_process(COMMAND msiexec /a ${MSI_DIR} /qn TARGETDIR=${MSIEXEC_TARGETDIR})
-	endif()
-	
-	if(NOT EXISTS "${MARIADB_CPP_CONNECTOR_DIR}")
-	file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi" MSI_DIR)
-		execute_process(COMMAND msiexec /a ${MSI_DIR} /qn TARGETDIR=${MSIEXEC_TARGETDIR})
-	endif()
-	
-	set(MARIADB_SHARED_LIBRARY_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll")
-	set(MARIADB_IMPLIB_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.lib")
-	set(MARIADB_INCLUDE_DIR "${MARIADB_CPP_CONNECTOR_DIR}/include/mariadb")
-
-	add_custom_target(mariadb_connector_cpp)
-	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
-					COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-					"${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll"
-					"${MARIADB_C_CONNECTOR_DIR}/lib/libmariadb.dll"
-					"${PROJECT_BINARY_DIR}")
-
-	# MariaDB uses plugins that the database needs to load, the prebuilt binaries by default will try to find the libraries in system directories,
-	# so set this define and the servers will set the MARIADB_PLUGIN_DIR environment variable to the appropriate directory.
-	# Plugin directory is determined at dll load time (this will happen before main()) so we need to delay the dll load so that we can set the environment variable
-	add_link_options(/DELAYLOAD:${MARIADB_SHARED_LIBRARY_LOCATION})
-	add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADB_CPP_CONNECTOR_DIR}/plugin")
-else() # Build from source
-
-	include(ExternalProject)
-	if(WIN32)
-		set(MARIADB_EXTRA_COMPILE_FLAGS /EHsc)
-		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_MSI=OFF)
-	elseif(APPLE)
-		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0)
-		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_EXTERNAL_ZLIB=ON -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR})
-	else()
-		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0)
-	endif()
-	
-	ExternalProject_Add(mariadb_connector_cpp
-						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
-						CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
-									-DCMAKE_BUILD_RPATH_USE_ORIGIN=${CMAKE_BUILD_RPATH_USE_ORIGIN}
-									-DCMAKE_INSTALL_PREFIX=./mariadbcpp # Points the connector to the correct plugin directory
-									-DINSTALL_PLUGINDIR=plugin
-									${MARIADB_EXTRA_CMAKE_ARGS}
-						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
-						BUILD_COMMAND cmake --build . --config RelWithDebInfo -j${__maria_db_connector_compile_jobs__}
-						INSTALL_COMMAND "")
-
-	ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
-
-	if(WIN32)
-		set(MARIADB_SHARED_LIBRARY_NAME mariadbcpp.dll)
-		set(MARIADB_PLUGIN_SUFFIX .dll)
-		set(MARIADB_IMPLIB_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
-		
-		# When built from source windows only seems to check same folder as exe instead specified folder, so use
-		# environment variable to force it
-		add_link_options(/DELAYLOAD:mariadbcpp.dll)
-		add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${PROJECT_BINARY_DIR}/mariadbcpp/plugin")
-	else()
-		set(MARIADB_SHARED_LIBRARY_NAME libmariadbcpp${CMAKE_SHARED_LIBRARY_SUFFIX})
-		set(MARIADB_PLUGIN_SUFFIX .so)
-	endif()
-
-	get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-	if(isMultiConfig)
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/${MARIADB_SHARED_LIBRARY_NAME}")
-		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}/$<CONFIG>")
-		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb/RelWithDebInfo")
-	else()
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
-		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}")
-		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb")
-	endif()
-
-	set(MARIADB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
-
-	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
-						COMMAND ${CMAKE_COMMAND} -E make_directory
-						${BINARY_DIR}/mariadbcpp/plugin
-						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
-						
-						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-						${MARIADB_SHARED_LIBRARY_LOCATION}
-						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
-
-						COMMAND ${CMAKE_COMMAND} -E copy_if_different
-						${MARIADB_PLUGINS_LOCATION}/caching_sha2_password${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/client_ed25519${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/dialog${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/sha256_password${MARIADB_PLUGIN_SUFFIX}
-						${BINARY_DIR}/mariadbcpp/plugin)
-endif()
-
-# Remove the CMakeLists.txt file from the tests folder for the maria-db-connector so we dont compile the tests.
-if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
-	file(REMOVE "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
-endif()
-
-add_library (mariadbConnCpp SHARED IMPORTED)
-set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_LOCATION ${MARIADB_SHARED_LIBRARY_LOCATION})
-if(WIN32)
-	set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_IMPLIB ${MARIADB_IMPLIB_LOCATION})
-endif()
-target_include_directories(mariadbConnCpp INTERFACE ${MARIADB_INCLUDE_DIR})
-add_dependencies(mariadbConnCpp mariadb_connector_cpp)
-
-# 3rdparty static libraries:
-#add_library(zlib ${SOURCES_ZLIB})
-add_library(raknet ${SOURCES_RAKNET})
-add_library(tinyxml2 ${SOURCES_TINYXML2})
-add_library(detour ${SOURCES_DETOUR})
-add_library(recast ${SOURCES_RECAST})
-add_library(libbcrypt ${SOURCES_LIBBCRYPT})
-
 # Our static libraries:
 add_library(dCommon ${SOURCES_DCOMMON})
 add_library(dChatFilter ${SOURCES_DCHATFILTER})
@@ -511,6 +322,7 @@ add_library(dNet ${SOURCES_DNET})
 add_library(dGame ${SOURCES_DGAME})
 add_library(dZoneManager ${SOURCES_DZM})
 add_library(dPhysics ${SOURCES_DPHYSICS})
+target_link_libraries(dDatabase sqlite3)
 target_link_libraries(dNet dCommon) #Needed because otherwise linker errors occur.
 target_link_libraries(dCommon ZLIB::ZLIB)
 target_link_libraries(dCommon libbcrypt)
@@ -569,9 +381,6 @@ target_link_libraries(WorldServer recast)
 target_link_libraries(WorldServer raknet)
 target_link_libraries(WorldServer mariadbConnCpp)
 if(UNIX)
-target_link_libraries(WorldServer pthread)
-target_link_libraries(WorldServer dl)
-
 if(NOT APPLE AND __include_backtrace__)
 target_link_libraries(WorldServer backtrace)
 target_link_libraries(MasterServer backtrace)
@@ -623,9 +432,9 @@ endif(UNIX)
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
 if(UNIX)
     if(APPLE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -Wno-unused-result -Wno-unknown-pragmas -fpermissive -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -fPIC")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -fPIC")
     else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -Wno-unused-result -Wno-unknown-pragmas -fpermissive -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC")
     endif()
     if (__dynamic)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
