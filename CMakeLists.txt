@@ -443,7 +443,7 @@ else() # Build from source
 
 	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
 						COMMAND ${CMAKE_COMMAND} -E make_directory
-						${PROJECT_BINARY_DIR}/mariadbcpp/plugin
+						${BINARY_DIR}/mariadbcpp/plugin
 						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
 						
 						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
@@ -456,7 +456,7 @@ else() # Build from source
 						${MARIADB_PLUGINS_LOCATION}/dialog${MARIADB_PLUGIN_SUFFIX}
 						${MARIADB_PLUGINS_LOCATION}/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
 						${MARIADB_PLUGINS_LOCATION}/sha256_password${MARIADB_PLUGIN_SUFFIX}
-						${PROJECT_BINARY_DIR}/mariadbcpp/plugin)
+						${BINARY_DIR}/mariadbcpp/plugin)
 endif()
 
 # Remove the CMakeLists.txt file from the tests folder for the maria-db-connector so we dont compile the tests.
