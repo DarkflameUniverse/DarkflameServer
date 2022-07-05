@@ -45,6 +45,7 @@
 #include "InterruptBehavior.h"
 #include "PlayEffectBehavior.h"
 #include "DamageAbsorptionBehavior.h"
+#include "VentureVisionBehavior.h"
 #include "BlockBehavior.h"
 #include "ClearTargetBehavior.h"
 #include "PullToPointBehavior.h"
@@ -176,7 +177,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF: 
 		behavior = new LootBuffBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_VENTURE_VISION: break;
+	case BehaviorTemplates::BEHAVIOR_VENTURE_VISION:
+		behavior = new VentureVisionBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_SPAWN_OBJECT:
 		behavior = new SpawnBehavior(behaviorId);
 		break;
