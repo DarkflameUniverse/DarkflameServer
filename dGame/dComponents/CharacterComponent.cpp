@@ -785,3 +785,32 @@ ZoneStatistics& CharacterComponent::GetZoneStatisticsForMap(LWOMAPID mapID) {
         m_ZoneStatistics.insert({ mapID, {0, 0, 0, 0, 0 } });
     return m_ZoneStatistics.at(mapID);
 }
+
+void CharacterComponent::AddVentureVisionEffect(std::string ventureVisionType) {
+    const auto ventureVisionTypeIterator = m_ActiveVentureVisionEffects.find(ventureVisionType);
+
+    if (ventureVisionTypeIterator != m_ActiveVentureVisionEffects.end()) {
+        ventureVisionTypeIterator->second = ++ventureVisionTypeIterator->second;
+    } else {
+        // If the effect it not found, insert it into the active effects.
+        m_ActiveVentureVisionEffects.insert(std::make_pair(ventureVisionType, 1U));
+    }
+
+    UpdateClientMinimap(true, ventureVisionType);
+}
+
+void CharacterComponent::RemoveVentureVisionEffect(std::string ventureVisionType) {
+    const auto ventureVisionTypeIterator = m_ActiveVentureVisionEffects.find(ventureVisionType);
+
+    if (ventureVisionTypeIterator != m_ActiveVentureVisionEffects.end()) {
+        ventureVisionTypeIterator->second = --ventureVisionTypeIterator->second;
+        UpdateClientMinimap(ventureVisionTypeIterator->second != 0U, ventureVisionType);
+    }
+}
+
+void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const {
+    if (!m_Parent) return;
+    AMFArrayValue arrayToSend;
+    arrayToSend.InsertValue(ventureVisionType, showFaction ? static_cast<AMFValue*>(new AMFTrueValue()) : static_cast<AMFValue*>(new AMFFalseValue()));
+    GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", &arrayToSend);
+}

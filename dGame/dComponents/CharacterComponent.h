@@ -275,11 +275,31 @@ public:
 	void UpdatePlayerStatistic(StatisticID updateID, uint64_t updateValue = 1);
 
     /**
+     * Add a venture vision effect to the player minimap.
+     */
+    void AddVentureVisionEffect(std::string ventureVisionType);
+
+    /**
+     * Remove a venture vision effect from the player minimap.
+     * When an effect hits 0 active effects, it is deactivated.
+     */
+    void RemoveVentureVisionEffect(std::string ventureVisionType);
+
+    /**
+     * Update the client minimap to reveal the specified factions
+     */
+    void UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const;
+
+    /**
      * Character info regarding this character, including clothing styles, etc.
      */
     Character* m_Character;
 private:
     
+    /** 
+     * The map of active venture vision effects
+     */
+    std::map<std::string, uint32_t> m_ActiveVentureVisionEffects;
 
     /**
      * Whether this character is racing
