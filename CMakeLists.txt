@@ -269,35 +269,6 @@ file(
     ${PROJECT_SOURCE_DIR}/dScripts/CppScripts.h
 )
 
-file(
-    GLOB HEADERS_DDATABASE
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dDatabase/*.h
-    ${PROJECT_SOURCE_DIR}/dDatabase/Tables/*.h
-    ${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.h
-)
-
-file(
-    GLOB HEADERS_DZONEMANAGER
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dZoneManager/*.h
-)
-
-file(
-    GLOB HEADERS_DCOMMON
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dCommon/*.h
-)
-
-file(
-    GLOB HEADERS_DGAME
-    LIST_DIRECTORIES false
-    ${PROJECT_SOURCE_DIR}/dGame/Entity.h 
-    ${PROJECT_SOURCE_DIR}/dGame/dGameMessages/GameMessages.h
-    ${PROJECT_SOURCE_DIR}/dGame/EntityManager.h
-    ${PROJECT_SOURCE_DIR}/dScripts/CppScripts.h
-)
-
 # Source Code for dNet
 file(
 GLOB SOURCES_DNET
