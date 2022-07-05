@@ -3,7 +3,6 @@
 #include "GameMessages.h"
 #include "SimplePhysicsComponent.h"
 
-
 void AmDrawBridge::OnStartup(Entity* self) 
 {
     self->SetNetworkVar(u"InUse", false);

@@ -1,6 +1,6 @@
 #include "FvFong.h"
 #include "Darkitect.h"
-#include "MissionComponent.h"
+#include "MissionState.h"
 
 void FvFong::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState)
 {

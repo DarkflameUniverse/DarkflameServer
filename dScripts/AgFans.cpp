@@ -1,5 +1,8 @@
 #include "AgFans.h"
 
+#include "EntityManager.h"
+#include "GameMessages.h"
+#include "PhantomPhysicsComponent.h"
 #include "RenderComponent.h"
 
 void AgFans::OnStartup(Entity* self) {

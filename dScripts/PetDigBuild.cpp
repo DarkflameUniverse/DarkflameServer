@@ -1,5 +1,6 @@
 #include "PetDigBuild.h"
 #include "EntityManager.h"
+#include "MissionComponent.h"
 
 void PetDigBuild::OnRebuildComplete(Entity* self, Entity* target) {
     auto flagNumber = self->GetVar<std::u16string>(u"flagNum");

@@ -2,13 +2,10 @@
 #include "GameMessages.h"
 #include "Player.h"
 #include "Character.h"
-#include "Game.h"
 #include "dServer.h"
 
 void InstanceExitTransferPlayerToLastNonInstance::OnUse(Entity* self, Entity* user) 
 {
-    Game::logger->Log("Instance", "OnUse\n");
-
     auto transferText = self->GetVar<std::u16string>(u"transferText");
     if (transferText.empty())
         transferText = u"DRAGON_EXIT_QUESTION";

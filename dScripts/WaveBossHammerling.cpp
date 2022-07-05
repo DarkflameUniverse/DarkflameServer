@@ -1,5 +1,6 @@
 #include "WaveBossHammerling.h"
 #include "BaseCombatAIComponent.h"
+#include "Entity.h"
 
 void WaveBossHammerling::OnStartup(Entity *self) {
     BaseWavesGenericEnemy::OnStartup(self);

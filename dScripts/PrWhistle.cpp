@@ -1,6 +1,6 @@
 #include "PrWhistle.h"
 #include "Character.h"
-#include "CharacterComponent.h"
+#include "Entity.h"
 
 void PrWhistle::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1, int32_t param2,
                                       int32_t param3)

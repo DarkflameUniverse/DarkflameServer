@@ -1,9 +1,7 @@
 #pragma once
 #include "CppScripts.h"
-#include "PhantomPhysicsComponent.h"
-#include "SkillComponent.h"
-#include "EntityManager.h"
-#include "AgMonumentLaserServer.h"
+
+class SkillComponent;
 
 class AgLaserSensorServer : public CppScripts::Script {
 public:

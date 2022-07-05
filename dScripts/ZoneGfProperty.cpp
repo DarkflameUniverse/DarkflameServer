@@ -1,4 +1,5 @@
 #include "ZoneGfProperty.h"
+#include "Entity.h"
 
 void ZoneGfProperty::SetGameVariables(Entity *self) {
     self->SetVar<std::string>(ClaimMarkerGroup, "BehavQB");

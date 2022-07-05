@@ -3,6 +3,7 @@
 #include "ProximityMonitorComponent.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
+#include "MissionComponent.h"
 
 void NtFactionSpyServer::OnStartup(Entity *self) {
     SetVariables(self);
