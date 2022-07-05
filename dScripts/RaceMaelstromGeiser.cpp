@@ -1,14 +1,10 @@
 #include "RaceMaelstromGeiser.h"
-#include "DestroyableComponent.h"
 #include "GameMessages.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "EntityManager.h"
 #include "RacingControlComponent.h"
 #include "dZoneManager.h"
-#include "Game.h"
-#include "dLogger.h"
-
 
 void RaceMaelstromGeiser::OnStartup(Entity* self) 
 {
@@ -26,14 +22,10 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
         return;
     }
 
-    Game::logger->Log("RaceMaelstromGeiser", "Entered\n");
-
     if (!self->GetVar<bool>(u"AmFiring"))
     {
         return;
     }
-
-    Game::logger->Log("RaceMaelstromGeiser", "Smashing!\n");
 
     auto* possessableComponent = entering->GetComponent<PossessableComponent>();
 

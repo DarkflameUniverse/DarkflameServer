@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "MissionComponent.h"
 #include "EntityManager.h"
 #include "PropertyDataMessage.h"
 #include "UserManager.h"

@@ -1,10 +1,6 @@
 ﻿#pragma once
 #include "CppScripts.h"
 
-#include "DestroyableComponent.h"
-#include "ControllablePhysicsComponent.h"
-#include "BaseCombatAIComponent.h"
-
 /*
 --------------------------------------------------------------
 
@@ -17,7 +13,9 @@
 
 --------------------------------------------------------------
 */
-
+class DestroyableComponent;
+class ControllablePhysicsComponent;
+class BaseCombatAIComponent;
 class BossSpiderQueenEnemyServer final : public CppScripts::Script {
 public:
 	void OnStartup(Entity* self) override;

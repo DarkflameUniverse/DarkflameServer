@@ -1,6 +1,7 @@
 #include "SpawnGryphonServer.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
+#include "MissionComponent.h"
 
 void SpawnGryphonServer::SetVariables(Entity *self) {
     self->SetVar<LOT>(u"petLOT", 12433);

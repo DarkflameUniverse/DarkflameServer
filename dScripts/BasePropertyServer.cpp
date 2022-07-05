@@ -1,6 +1,4 @@
 #include "BasePropertyServer.h"
-#include <utility>
-#include "dCommonVars.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
@@ -8,7 +6,8 @@
 #include "DestroyableComponent.h"
 #include "Entity.h"
 #include "RenderComponent.h"
-#include "dServer.h"
+#include "PropertyManagementComponent.h"
+#include "MissionComponent.h"
 
 void BasePropertyServer::SetGameVariables(Entity *self) {
     self->SetVar<std::string>(ClaimMarkerGroup, "");
@@ -337,7 +336,7 @@ void BasePropertyServer::BaseTimerDone(Entity* self, const std::string& timerNam
         const auto zoneId = dZoneManager::Instance()->GetZone()->GetWorldID();
 
         // No guard for the spider instance fight
-        if (Game::server->GetZoneID() == 1150)
+        if (dZoneManager::Instance()->GetZoneID().GetMapID() == 1150)
             return;
 
         const auto entities = EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(GuardGroup));

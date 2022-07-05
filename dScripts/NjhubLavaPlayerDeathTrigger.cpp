@@ -1,4 +1,5 @@
 #include "NjhubLavaPlayerDeathTrigger.h"
+#include "Entity.h"
 
 void NjhubLavaPlayerDeathTrigger::OnCollisionPhantom(Entity *self, Entity *target) 
 {

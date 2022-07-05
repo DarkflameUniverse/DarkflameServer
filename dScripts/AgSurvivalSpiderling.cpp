@@ -1,6 +1,5 @@
 #include "AgSurvivalSpiderling.h"
 #include "BaseCombatAIComponent.h"
-#include "GameMessages.h"
 
 void AgSurvivalSpiderling::OnStartup(Entity *self) {
     BaseWavesGenericEnemy::OnStartup(self);

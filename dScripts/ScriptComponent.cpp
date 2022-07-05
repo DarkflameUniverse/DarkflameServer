@@ -5,7 +5,6 @@
 
 #include "Entity.h"
 #include "ScriptComponent.h"
-#include "InvalidScript.h"
 
 ScriptComponent::ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client) : Component(parent) {
 	m_Serialized = serialized;

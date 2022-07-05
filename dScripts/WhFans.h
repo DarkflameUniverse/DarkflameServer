@@ -1,9 +1,5 @@
 #pragma once
 #include "CppScripts.h"
-#include "GameMessages.h"
-#include "EntityManager.h"
-#include "PhantomPhysicsComponent.h"
-
 class WhFans : public CppScripts::Script
 {
 public:

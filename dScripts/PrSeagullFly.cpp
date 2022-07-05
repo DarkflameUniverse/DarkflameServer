@@ -1,4 +1,5 @@
 #include "PrSeagullFly.h"
+#include "Entity.h"
 
 void PrSeagullFly::OnStartup(Entity* self) 
 {
