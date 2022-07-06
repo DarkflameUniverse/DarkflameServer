@@ -1,4 +1,5 @@
 #include "ZoneNsMedProperty.h"
+#include "Entity.h"
 
 void ZoneNsMedProperty::SetGameVariables(Entity *self) {
     self->SetVar<std::string>(ClaimMarkerGroup, "ClaimMarker");

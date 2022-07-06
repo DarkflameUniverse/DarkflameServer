@@ -1,6 +1,9 @@
 #include "WhFans.h"
 
 #include "RenderComponent.h"
+#include "GameMessages.h"
+#include "EntityManager.h"
+#include "PhantomPhysicsComponent.h"
 
 void WhFans::OnStartup(Entity* self) {
 	self->SetVar<bool>(u"alive", true);

@@ -1,8 +1,5 @@
 #pragma once
 #include "CppScripts.h"
-#include "Spawner.h"
-#include "dZoneManager.h"
-#include "dCommonVars.h"
 
 class CatapultBaseServer : public CppScripts::Script {
 public:

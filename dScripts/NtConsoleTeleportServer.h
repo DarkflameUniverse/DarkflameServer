@@ -2,7 +2,6 @@
 #include "CppScripts.h"
 #include "ChooseYourDestinationNsToNt.h"
 #include "BaseConsoleTeleportServer.h"
-#include "AMFFormat.h"
 
 class NtConsoleTeleportServer : public CppScripts::Script, BaseConsoleTeleportServer
 {

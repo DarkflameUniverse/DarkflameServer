@@ -1,4 +1,5 @@
 #include "NtHaelServer.h"
+#include "Entity.h"
 
 void NtHaelServer::SetVariables(Entity *self) {
     self->SetVar<float_t>(m_SpyProximityVariable, 25.0f);

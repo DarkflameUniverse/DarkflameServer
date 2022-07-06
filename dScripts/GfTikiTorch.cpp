@@ -1,7 +1,7 @@
 #include "GfTikiTorch.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
-
+#include "MissionComponent.h"
 #include "RenderComponent.h"
 
 void GfTikiTorch::OnStartup(Entity* self) {
