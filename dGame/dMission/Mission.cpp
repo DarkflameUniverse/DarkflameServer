@@ -421,7 +421,9 @@ void Mission::YieldRewards() {
         if (param.empty() || (param[0] & 1) == 0) // Should items be removed?
         {
             for (const auto target : task->GetAllTargets()) {
-                inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue);
+                // This is how live did it.  ONLY remove item collection items from the items and hidden inventories and none of the others.
+                inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::ITEMS);
+                inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::HIDDEN);
 
                 missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, target, LWOOBJID_EMPTY, "", -task->GetClientInfo().targetValue);
             }
