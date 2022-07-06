@@ -1158,6 +1158,18 @@ void InventoryComponent::PopEquippedItems()
 		item->Equip();
 	}
 
+	m_Pushed.clear();
+
+	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+	
+	// Reset stats to full
+	if (destroyableComponent) {
+		destroyableComponent->SetHealth(static_cast<int32_t>(destroyableComponent->GetMaxHealth()));
+		destroyableComponent->SetArmor(static_cast<int32_t>(destroyableComponent->GetMaxArmor()));
+		destroyableComponent->SetImagination(static_cast<int32_t>(destroyableComponent->GetMaxImagination()));
+		EntityManager::Instance()->SerializeEntity(m_Parent);
+	}
+
 	m_Dirty = true;
 }
 

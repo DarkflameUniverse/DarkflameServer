@@ -285,6 +285,10 @@ void PropertyManagementComponent::OnStartBuilding()
 
 		player->SendToZone(zoneId);
 	}
+	auto inventoryComponent = ownerEntity->GetComponent<InventoryComponent>();
+
+	// Push equipped items
+	if (inventoryComponent) inventoryComponent->PushEquippedItems();
 }
 
 void PropertyManagementComponent::OnFinishBuilding()
