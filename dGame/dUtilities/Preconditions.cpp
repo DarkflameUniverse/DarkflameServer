@@ -317,7 +317,7 @@ bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const
 		GameMessages::SendNotifyClientFailedPrecondition(player->GetObjectID(), player->GetSystemAddress(), u"", condition);
 	}
 
-	const auto b = next == nullptr ? true : next->Check(player);
+	const auto b = next == nullptr ? true : next->Check(player, evaluateCosts);
 
 	return m_or ? a || b : a && b;
 }
