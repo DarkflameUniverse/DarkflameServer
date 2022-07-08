@@ -1,5 +1,6 @@
 #include "NtDukeServer.h"
 #include "InventoryComponent.h"
+#include "MissionComponent.h"
 
 void NtDukeServer::SetVariables(Entity *self) {
     self->SetVar<float_t>(m_SpyProximityVariable, 35.0f);
@@ -29,7 +30,7 @@ void NtDukeServer::OnMissionDialogueOK(Entity *self, Entity *target, int mission
         auto lotCount = inventoryComponent->GetLotCount(m_SwordLot);
 
         if ((state == MissionState::MISSION_STATE_AVAILABLE || state == MissionState::MISSION_STATE_ACTIVE) && lotCount < 1) {
-            inventoryComponent->AddItem(m_SwordLot, 1);
+            inventoryComponent->AddItem(m_SwordLot, 1, eLootSourceType::LOOT_SOURCE_NONE);
         } else if (state == MissionState::MISSION_STATE_READY_TO_COMPLETE) {
             inventoryComponent->RemoveItem(m_SwordLot, lotCount);
         }

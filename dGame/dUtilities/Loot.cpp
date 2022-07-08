@@ -268,15 +268,15 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(uint32_t matrixIn
     return drops;
 }
 
-void LootGenerator::GiveLoot(Entity* player, uint32_t matrixIndex) {
+void LootGenerator::GiveLoot(Entity* player, uint32_t matrixIndex, eLootSourceType lootSourceType) {
     player = player->GetOwner(); // If the owner is overwritten, we collect that here
 
     std::unordered_map<LOT, int32_t> result = RollLootMatrix(player, matrixIndex);
 
-    GiveLoot(player, result);
+    GiveLoot(player, result, lootSourceType);
 }
 
-void LootGenerator::GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& result) {
+void LootGenerator::GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& result, eLootSourceType lootSourceType) {
     player = player->GetOwner(); // if the owner is overwritten, we collect that here
 
     auto* inventoryComponent = player->GetComponent<InventoryComponent>();
@@ -285,7 +285,7 @@ void LootGenerator::GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& r
         return;
 
     for (const auto& pair : result) {
-        inventoryComponent->AddItem(pair.first, pair.second);
+        inventoryComponent->AddItem(pair.first, pair.second, lootSourceType);
     }
 }
 
@@ -314,13 +314,13 @@ void LootGenerator::GiveActivityLoot(Entity* player, Entity* source, uint32_t ac
         maxCoins = currencyTable[0].maxvalue;
     }
 
-    GiveLoot(player, selectedReward->LootMatrixIndex);
+    GiveLoot(player, selectedReward->LootMatrixIndex, eLootSourceType::LOOT_SOURCE_ACTIVITY);
 
     uint32_t coins = (int)(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
 
     auto* character = player->GetCharacter();
 
-    character->SetCoins(character->GetCoins() + coins, LOOT_SOURCE_ACTIVITY);
+    character->SetCoins(character->GetCoins() + coins, eLootSourceType::LOOT_SOURCE_ACTIVITY);
 }
 
 void LootGenerator::DropLoot(Entity* player, Entity* killedObject, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {

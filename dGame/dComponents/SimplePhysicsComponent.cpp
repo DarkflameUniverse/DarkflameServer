@@ -17,6 +17,17 @@ SimplePhysicsComponent::SimplePhysicsComponent(uint32_t componentID, Entity* par
     m_Position = m_Parent->GetDefaultPosition();
     m_Rotation = m_Parent->GetDefaultRotation();
     m_IsDirty = true;
+
+    const auto& climbable_type = m_Parent->GetVar<std::u16string>(u"climbable");
+    if (climbable_type == u"wall") {
+        SetClimbableType(eClimbableType::CLIMBABLE_TYPE_WALL);
+    } else if (climbable_type == u"ladder") {
+        SetClimbableType(eClimbableType::CLIMBABLE_TYPE_LADDER);
+    } else if (climbable_type == u"wallstick") {
+        SetClimbableType(eClimbableType::CLIMBABLE_TYPE_WALL_STICK);
+    } else {
+        SetClimbableType(eClimbableType::CLIMBABLE_TYPE_NOT);
+    }
 }
 
 SimplePhysicsComponent::~SimplePhysicsComponent() {
@@ -24,10 +35,10 @@ SimplePhysicsComponent::~SimplePhysicsComponent() {
 
 void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
     if (bIsInitialUpdate) {
-        outBitStream->Write0(); // climbable
-        outBitStream->Write<int32_t>(0); // climbableType
+        outBitStream->Write(m_ClimbableType != eClimbableType::CLIMBABLE_TYPE_NOT);
+        outBitStream->Write(m_ClimbableType);
     }
-    
+
     outBitStream->Write(m_DirtyVelocity || bIsInitialUpdate);
     if (m_DirtyVelocity || bIsInitialUpdate) {
         outBitStream->Write(m_Velocity);
@@ -46,7 +57,7 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIs
     {
         outBitStream->Write0();
     }
-    
+
     outBitStream->Write(m_IsDirty || bIsInitialUpdate);
     if (m_IsDirty || bIsInitialUpdate) {
         outBitStream->Write(m_Position.x);
@@ -66,7 +77,7 @@ uint32_t SimplePhysicsComponent::GetPhysicsMotionState() const
     return m_PhysicsMotionState;
 }
 
-void SimplePhysicsComponent::SetPhysicsMotionState(uint32_t value) 
+void SimplePhysicsComponent::SetPhysicsMotionState(uint32_t value)
 {
     m_PhysicsMotionState = value;
 }

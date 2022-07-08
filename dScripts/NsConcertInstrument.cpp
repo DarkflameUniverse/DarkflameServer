@@ -5,6 +5,7 @@
 #include "EntityManager.h"
 #include "RebuildComponent.h"
 #include "SoundTriggerComponent.h"
+#include "MissionComponent.h"
 
 // Constants are at the bottom
 
@@ -195,7 +196,7 @@ void NsConcertInstrument::EquipInstruments(Entity *self, Entity *player) {
         // Equip the left hand instrument
         const auto leftInstrumentLot = instrumentLotLeft.find(GetInstrumentLot(self))->second;
         if (leftInstrumentLot != LOT_NULL) {
-            inventory->AddItem(leftInstrumentLot, 1, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
+            inventory->AddItem(leftInstrumentLot, 1, eLootSourceType::LOOT_SOURCE_NONE, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
             auto* leftInstrument = inventory->FindItemByLot(leftInstrumentLot, TEMP_ITEMS);
             leftInstrument->Equip();
         }
@@ -203,7 +204,7 @@ void NsConcertInstrument::EquipInstruments(Entity *self, Entity *player) {
         // Equip the right hand instrument
         const auto rightInstrumentLot = instrumentLotRight.find(GetInstrumentLot(self))->second;
         if (rightInstrumentLot != LOT_NULL) {
-            inventory->AddItem(rightInstrumentLot, 1, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
+            inventory->AddItem(rightInstrumentLot, 1, eLootSourceType::LOOT_SOURCE_NONE, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
             auto* rightInstrument = inventory->FindItemByLot(rightInstrumentLot, TEMP_ITEMS);
             rightInstrument->Equip();
         }

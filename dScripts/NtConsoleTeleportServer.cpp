@@ -1,5 +1,6 @@
 #include "NtConsoleTeleportServer.h"
-
+#include "Entity.h"
+#include "AMFFormat.h"
 
 void NtConsoleTeleportServer::OnStartup(Entity* self) 
 {

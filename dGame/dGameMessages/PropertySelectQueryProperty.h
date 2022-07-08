@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#ifndef PROPERTYSELECTQUERY_H
+#define PROPERTYSELECTQUERY_H
+
 #include "Entity.h"
 
 class PropertySelectQueryProperty final
@@ -24,3 +27,5 @@ public:
     float PerformanceCost = 0;                      // The performance cost of the property
     uint32_t PerformanceIndex = 0;                  // The performance index of the property?  Always 0?
 };
+
+#endif

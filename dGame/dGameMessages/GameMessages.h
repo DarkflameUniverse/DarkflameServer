@@ -61,7 +61,7 @@ namespace GameMessages {
     void SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level);
     void SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level);
     
-	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY);
+	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
     void SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFlagID, bool bFlag, const SystemAddress& sysAddr);
 	void SendChangeObjectWorldState(const LWOOBJID& objectID, int state, const SystemAddress& sysAddr);
 	
@@ -109,7 +109,7 @@ namespace GameMessages {
 	void SendModularBuildEnd(Entity* entity);
 
 	void SendVendorOpenWindow(Entity* entity, const SystemAddress& sysAddr);
-	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr);
+	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr, bool bUpdateOnly = false);
 	void SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr);
 
 	void SendRemoveItemFromInventory(Entity* entity, const SystemAddress& sysAddr, LWOOBJID iObjID, LOT templateID, int inventoryType, uint32_t stackCount, uint32_t stackRemaining);
@@ -372,6 +372,7 @@ namespace GameMessages {
 	void SendActivityPause(LWOOBJID objectId, bool pause = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SendStartActivityTime(LWOOBJID objectId, float_t startTime, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SendRequestActivityEnter(LWOOBJID objectId, const SystemAddress& sysAddr, bool bStart, LWOOBJID userID);
+	void SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, UseItemResponse itemResponse);
 
 	// SG:
 

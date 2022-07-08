@@ -183,7 +183,13 @@ bool MissionTask::InParameters(const uint32_t value) const
 
 bool MissionTask::IsComplete() const
 {
-	return progress >= info->targetValue;
+	// Mission 668 has task uid 984 which is a bit mask.  Its completion value is 3.
+	if (info->uid == 984) {
+		return progress >= 3;
+	}
+	else {
+		return progress >= info->targetValue;
+	}
 }
 
 
@@ -320,10 +326,12 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		
 	case MissionTaskType::MISSION_TASK_TYPE_SKILL:
 	{
-		if (!InParameters(value)) break;
-
-		AddProgress(count);
-		
+		// This is a complicated check because for some missions we need to check for the associate being in the parameters instead of the value being in the parameters.
+		if (associate == LWOOBJID_EMPTY && GetAllTargets().size() == 1 && GetAllTargets()[0] == -1) {
+			if (InParameters(value)) AddProgress(count);
+		} else {
+			if (InParameters(associate) && InAllTargets(value)) AddProgress(count);
+		}	
 		break;
 	}
 
@@ -423,11 +431,22 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
 		if (parameters[0] != associate) break;
 
-		if (associate == 1 || associate == 15 || associate == 2 || associate == 3)
+		if (associate == 1 || associate == 2 || associate == 3)
 		{
 			if (value > info->targetValue) break;
 
 			AddProgress(info->targetValue);
+		}
+		// task 15 is a bit mask!
+		else if (associate == 15) {
+			if (!InAllTargets(value)) break;
+
+			auto tempProgress = GetProgress();
+			// If we won at Nimbus Station, set bit 0
+			if (value == 1203) SetProgress(tempProgress |= 1 << 0);
+			// If we won at Gnarled Forest, set bit 1
+			else if (value == 1303) SetProgress(tempProgress |= 1 << 1);
+			// If both bits are set, then the client sees the mission as complete.
 		}
 		else if (associate == 10)
 		{

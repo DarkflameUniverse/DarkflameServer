@@ -8,7 +8,6 @@
 #include "RebuildComponent.h"
 #include "MissionComponent.h"
 
-
 void AmShieldGeneratorQuickbuild::OnStartup(Entity* self) 
 {
     self->SetProximityRadius(20, "shield");

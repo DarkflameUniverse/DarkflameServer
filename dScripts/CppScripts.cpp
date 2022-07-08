@@ -1,13 +1,11 @@
-//I can feel my soul being torn apart with every script added to this monstrosity. 
+//I can feel my soul being torn apart with every script added to this monstrosity.
 // skate fast eat trash
 // do you think god stays in heaven because he too lives in fear of what he's created?
 
 #include "CppScripts.h"
 #include "GameMessages.h"
-#include "dpWorld.h"
 #include "Entity.h"
 #include "ScriptComponent.h"
-#include "EntityManager.h"
 #include "Game.h"
 #include "dLogger.h"
 #include "InvalidScript.h"
@@ -147,6 +145,7 @@
 #include "FvNinjaGuard.h"
 #include "FvPassThroughWall.h"
 #include "FvBounceOverWall.h"
+#include "FvFong.h"
 
 // FB Scripts
 #include "AgJetEffectServer.h"
@@ -163,6 +162,8 @@
 #include "BaseFootRaceManager.h"
 #include "PropertyPlatform.h"
 #include "MailBoxServer.h"
+#include "ActMine.h"
+#include "FireFirstSkillonStartup.h"
 
 // Racing Scripts
 #include "RaceImagineCrateServer.h"
@@ -202,7 +203,6 @@
 #include "NtSleepingGuard.h"
 
 // DLU Scripts
-#include "SbLupTeleport.h"
 #include "DLUVanityNPC.h"
 
 // AM Scripts
@@ -226,6 +226,7 @@
 #include "AmSkullkinTower.h"
 #include "AmDarklingDragon.h"
 #include "AmBlueX.h"
+#include "AmTeapotServer.h"
 
 // NJ Scripts
 #include "NjGarmadonCelebration.h"
@@ -273,6 +274,10 @@
 #include "AgSurvivalStromling.h"
 #include "AgSurvivalMech.h"
 #include "AgSurvivalSpiderling.h"
+
+// Frostburgh Scripts
+#include "RockHydrantBroken.h"
+#include "WhFans.h"
 
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
@@ -564,6 +569,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new FvPassThroughWall();
 	else if (scriptName == "scripts\\ai\\FV\\L_ACT_BOUNCE_OVER_WALL.lua")
 		script = new FvBounceOverWall();
+	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_NPC_FONG.lua")
+		script = new FvFong();
 
 	//Misc:
 	if (scriptName == "scripts\\02_server\\Map\\General\\L_EXPLODING_ASSET.lua")
@@ -584,6 +591,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
         return new VeBricksampleServer();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua")
 		script = new MailBoxServer();
+	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
+		script = new ActMine();
 
 	//Racing:
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua")
@@ -698,6 +707,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new BaseEnemyApe();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_BLUE_X.lua")
 	    script = new AmBlueX();
+	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_TEAPOT_SERVER.lua")
+		script = new AmTeapotServer();
 
 	// Ninjago
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_GARMADON_CELEBRATION_SERVER.lua")
@@ -760,8 +771,6 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	    script = new NjNyaMissionitems();
 
 	//DLU:
-	else if (scriptName == "scripts\\02_server\\DLU\\L_SB_LUP_TELEPORT.lua")
-		script = new SbLupTeleport();
 	else if (scriptName == "scripts\\02_server\\DLU\\DLUVanityNPC.lua")
 		script = new DLUVanityNPC();
 
@@ -794,6 +803,13 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new LegoDieRoll();
   	else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
     	script = new BuccaneerValiantShip();
+	else if (scriptName == "scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua")
+	    script = new FireFirstSkillonStartup();
+	// FB
+	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
+		script = new RockHydrantBroken();
+	else if (scriptName == "scripts\\ai\\NS\\L_NS_WH_FANS.lua")
+		script = new WhFans();
 
 	//Ignore these scripts:
 	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")

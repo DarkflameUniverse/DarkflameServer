@@ -1,13 +1,7 @@
 #pragma once
 
 #include <string>
-#include <mysql_connection.h>
-#include <cppconn/driver.h>
-#include <cppconn/exception.h>
-#include <cppconn/resultset.h>
-#include <cppconn/statement.h>
-#include <cppconn/prepared_statement.h>
-#include <cppconn/sqlstring.h>
+#include <conncpp.hpp>
 
 class MySqlException : public std::runtime_error {
 public:
@@ -22,7 +16,7 @@ private:
 
 public:
 	static void Connect(const std::string& host, const std::string& database, const std::string& username, const std::string& password);
-	static void Destroy();
+	static void Destroy(std::string source="");
 	static sql::Statement* CreateStmt();
 	static sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
 };

@@ -1,10 +1,8 @@
 #include "ZoneAgSpiderQueen.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
-#include "Character.h"
 #include "ZoneAgProperty.h"
 #include "DestroyableComponent.h"
-#include "dZoneManager.h"
 
 void ZoneAgSpiderQueen::SetGameVariables(Entity *self) {
     ZoneAgProperty::SetGameVariables(self);

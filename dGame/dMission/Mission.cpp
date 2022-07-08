@@ -421,7 +421,9 @@ void Mission::YieldRewards() {
         if (param.empty() || (param[0] & 1) == 0) // Should items be removed?
         {
             for (const auto target : task->GetAllTargets()) {
-                inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue);
+                // This is how live did it.  ONLY remove item collection items from the items and hidden inventories and none of the others.
+                inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::ITEMS);
+                inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::HIDDEN);
 
                 missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, target, LWOOBJID_EMPTY, "", -task->GetClientInfo().targetValue);
             }
@@ -430,7 +432,7 @@ void Mission::YieldRewards() {
 
     int32_t coinsToSend = 0;
     if (info->LegoScore > 0) {
-        eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+        eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
         if(characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
             // Since the character is at the level cap we reward them with coins instead of UScore.
             coinsToSend += info->LegoScore * dZoneManager::Instance()->GetLevelCapCurrencyConversion();
@@ -463,11 +465,11 @@ void Mission::YieldRewards() {
                 count = 0;
             }
 
-            inventoryComponent->AddItem(pair.first, count);
+            inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
         }
 
         if (info->reward_currency_repeatable > 0 || coinsToSend > 0) {
-            eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+            eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
             character->SetCoins(character->GetCoins() + info->reward_currency_repeatable + coinsToSend, lootSource);
         }
 
@@ -496,11 +498,11 @@ void Mission::YieldRewards() {
             count = 0;
         }
 
-        inventoryComponent->AddItem(pair.first, count);
+        inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
     }
 
     if (info->reward_currency > 0 || coinsToSend > 0) {
-        eLootSourceType lootSource = info->isMission ? LOOT_SOURCE_MISSION : LOOT_SOURCE_ACHIEVEMENT;
+        eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
         character->SetCoins(character->GetCoins() + info->reward_currency + coinsToSend, lootSource);
     }
 
@@ -511,9 +513,11 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_bankinventory > 0) {
-        auto* inventory = inventoryComponent->GetInventory(VAULT_ITEMS);
+        auto* inventory = inventoryComponent->GetInventory(eInventoryType::VAULT_ITEMS);
+        auto modelInventory = inventoryComponent->GetInventory(eInventoryType::VAULT_MODELS);
 
         inventory->SetSize(inventory->GetSize() + info->reward_bankinventory);
+        modelInventory->SetSize(modelInventory->GetSize() + info->reward_bankinventory);
     }
 
     if (info->reward_reputation > 0) {
@@ -526,11 +530,11 @@ void Mission::YieldRewards() {
     }
 
     if (info->reward_maxhealth > 0) {
-        destroyableComponent->SetMaxHealth(destroyableComponent->GetMaxHealth() + static_cast<float>(info->reward_maxhealth));
+        destroyableComponent->SetMaxHealth(destroyableComponent->GetMaxHealth() + static_cast<float>(info->reward_maxhealth), true);
     }
 
     if (info->reward_maximagination > 0) {
-        destroyableComponent->SetMaxImagination(destroyableComponent->GetMaxImagination() + static_cast<float>(info->reward_maximagination));
+        destroyableComponent->SetMaxImagination(destroyableComponent->GetMaxImagination() + static_cast<float>(info->reward_maximagination), true);
     }
 
     EntityManager::Instance()->SerializeEntity(entity);

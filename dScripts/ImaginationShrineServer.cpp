@@ -1,7 +1,6 @@
 #include "ImaginationShrineServer.h"
 #include "RebuildComponent.h"
 
-
 void ImaginationShrineServer::OnUse(Entity* self, Entity* user) 
 {
     // If the rebuild component is complete, use the shrine

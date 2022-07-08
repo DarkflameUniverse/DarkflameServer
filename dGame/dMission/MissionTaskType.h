@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#ifndef MISSIONTASKTYPE_H
+#define MISSIONTASKTYPE_H
+
 //! An enum for mission task types
 enum class MissionTaskType : int {
     MISSION_TASK_TYPE_UNKNOWN = -1,                     //!< The task type is unknown
@@ -24,3 +27,5 @@ enum class MissionTaskType : int {
     MISSION_TASK_TYPE_PLACE_MODEL = 25,                //!< A task for picking up a model
     MISSION_TASK_TYPE_VISIT_PROPERTY = 30               //!< A task for visiting a property
 };
+
+#endif

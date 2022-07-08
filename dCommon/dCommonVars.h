@@ -407,12 +407,18 @@ enum eReplicaComponentType : int32_t {
     COMPONENT_TYPE_MISSION                  = 84,           //!< The Mission Component
     COMPONENT_TYPE_ROCKET_LAUNCH_LUP        = 97,           //!< The LUP Launchpad Componen
     COMPONENT_TYPE_RAIL_ACTIVATOR           = 104,
-    COMPONENT_TYPE_POSSESSOR                = 107,          //!< The Component 107
-    COMPONENT_TYPE_POSSESSABLE              = 108,          //!< The Component 108
+	COMPONENT_TYPE_POSSESSABLE				= 108,			//!< The Possessable Component
+	COMPONENT_TYPE_POSSESSOR				= 110,			//!< The Possessor Component
 	COMPONENT_TYPE_BUILD_BORDER             = 114,          //!< The Build Border Component
     COMPONENT_TYPE_DESTROYABLE              = 1000,         //!< The Destroyable Component
 
     COMPONENT_TYPE_MODEL = 5398484 //look man idk
+};
+
+enum class UseItemResponse : uint32_t {
+    NoImaginationForPet = 1,
+    FailedPrecondition,
+    MountsNotAllowed
 };
 
 /**
@@ -493,7 +499,7 @@ enum eLootSourceType : int32_t {
 	LOOT_SOURCE_CLAIMCODE,
 	LOOT_SOURCE_CONSUMPTION,
 	LOOT_SOURCE_CRAFTING,
-	LOOT_SOURCE_LEVELREWARD,
+	LOOT_SOURCE_LEVEL_REWARD,
 	LOOT_SOURCE_RELOCATE
 };
 

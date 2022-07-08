@@ -1,6 +1,5 @@
 #pragma once
 #include "CppScripts.h"
-#include <map>
 
 class ImgBrickConsoleQB : public CppScripts::Script 
 {

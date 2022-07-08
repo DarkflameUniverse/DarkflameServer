@@ -1,7 +1,6 @@
 #include "AgBugsprayer.h"
 #include "SkillComponent.h"
 
-
 void AgBugsprayer::OnRebuildComplete(Entity* self, Entity* target)
 {
     self->AddTimer("castSkill", 1);

@@ -262,7 +262,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	}
 
 	Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::Success);
-	entity->GetCharacter()->SetCoins(entity->GetCharacter()->GetCoins() - mailCost, LOOT_SOURCE_MAIL);
+	entity->GetCharacter()->SetCoins(entity->GetCharacter()->GetCoins() - mailCost, eLootSourceType::LOOT_SOURCE_MAIL);
 
 	Game::logger->Log("Mail", "Seeing if we need to remove item with ID/count/LOT: %i %i %i\n", itemID, attachmentCount, itemLOT);
 
@@ -306,9 +306,9 @@ void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sys
 			WriteToPacket(&bitStream, body, 400);
 			WriteToPacket(&bitStream, sender, 32);*/
 
-			WriteStringAsWString(&bitStream, res->getString(7), 50); //subject
-			WriteStringAsWString(&bitStream, res->getString(8), 400); //body
-			WriteStringAsWString(&bitStream, res->getString(3), 32); //sender
+			WriteStringAsWString(&bitStream, res->getString(7).c_str(), 50); //subject
+			WriteStringAsWString(&bitStream, res->getString(8).c_str(), 400); //body
+			WriteStringAsWString(&bitStream, res->getString(3).c_str(), 32); //sender
 
 			bitStream.Write(uint32_t(0));
 			bitStream.Write(uint64_t(0));
@@ -363,7 +363,7 @@ void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddres
 		auto inv = static_cast<InventoryComponent*>(player->GetComponent(COMPONENT_TYPE_INVENTORY));
 		if (!inv) return;
 
-		inv->AddItem(attachmentLOT, attachmentCount);
+		inv->AddItem(attachmentLOT, attachmentCount, eLootSourceType::LOOT_SOURCE_MAIL);
 
 		Mail::SendAttachmentRemoveConfirm(sysAddr, mailID);
 

@@ -1,4 +1,4 @@
-﻿#include "PropertyEntranceComponent.h"
+#include "PropertyEntranceComponent.h"
 
 #include <CDPropertyEntranceComponentTable.h>
 
@@ -8,6 +8,7 @@
 #include "PropertyManagementComponent.h"
 #include "PropertySelectQueryProperty.h"
 #include "RocketLaunchpadControlComponent.h"
+#include "CharacterComponent.h"
 #include "UserManager.h"
 #include "dLogger.h"
 
@@ -22,20 +23,25 @@ PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entit
     this->m_PropertyName = entry.propertyName;
 }
 
-void PropertyEntranceComponent::OnUse(Entity* entity)
-{
-    GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), entity->GetSystemAddress());
+void PropertyEntranceComponent::OnUse(Entity* entity) {
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
 
-    AMFArrayValue args;
+	auto* rocket = entity->GetComponent<CharacterComponent>()->RocketEquip(entity);
+	if (!rocket) return;
+
+	GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), entity->GetSystemAddress());
+
+	AMFArrayValue args;
 
 	auto* state = new AMFStringValue();
 	state->SetStringValue("property_menu");
 
 	args.InsertValue("state", state);
 
-    GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
+	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
 
-    delete state;
+	delete state;
 }
 
 void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, bool returnToZone, const SystemAddress& sysAddr)
@@ -75,7 +81,7 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
 
     launcher->SetSelectedCloneId(entity->GetObjectID(), cloneId);
 
-    launcher->Launch(entity, LWOOBJID_EMPTY, launcher->GetTargetZone(), cloneId);
+    launcher->Launch(entity, launcher->GetTargetZone(), cloneId);
 }
 
 PropertySelectQueryProperty PropertyEntranceComponent::SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId, std::string ownerName, std::string propertyName, std::string propertyDescription, float reputation, bool isBFF, bool isFriend, bool isModeratorApproved, bool isAlt, bool isOwned, uint32_t privacyOption, uint32_t timeLastUpdated, float performanceCost) {
@@ -166,8 +172,8 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     // If the player has a property this query will have a single result.
     if (playerPropertyLookupResults->next()) {
         const auto cloneId = playerPropertyLookupResults->getUInt64(4);
-        const auto propertyName = playerPropertyLookupResults->getString(5).asStdString();
-        const auto propertyDescription = playerPropertyLookupResults->getString(6).asStdString();
+        const auto propertyName = std::string(playerPropertyLookupResults->getString(5).c_str());
+        const auto propertyDescription = std::string(playerPropertyLookupResults->getString(6).c_str());
         const auto privacyOption = playerPropertyLookupResults->getInt(9);
         const auto modApproved = playerPropertyLookupResults->getBoolean(10);
         const auto dateLastUpdated = playerPropertyLookupResults->getInt64(11);
@@ -206,8 +212,8 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         const auto propertyId = propertyEntry->getUInt64(1);
         const auto owner = propertyEntry->getInt(2);
         const auto cloneId = propertyEntry->getUInt64(4);
-        const auto propertyNameFromDb = propertyEntry->getString(5).asStdString();
-        const auto propertyDescriptionFromDb = propertyEntry->getString(6).asStdString();
+        const auto propertyNameFromDb = std::string(propertyEntry->getString(5).c_str());
+        const auto propertyDescriptionFromDb = std::string(propertyEntry->getString(6).c_str());
         const auto privacyOption = propertyEntry->getInt(9);
         const auto modApproved = propertyEntry->getBoolean(10);
         const auto dateLastUpdated = propertyEntry->getInt(11);
@@ -233,7 +239,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
             continue;
         } else {
             isOwned = cloneId == character->GetPropertyCloneID();
-            ownerName = nameResult->getString(1).asStdString();
+            ownerName = std::string(nameResult->getString(1).c_str());
         }
 
         delete nameResult;

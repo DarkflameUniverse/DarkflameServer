@@ -1,5 +1,4 @@
 #include "NtCombatChallengeExplodingDummy.h"
-#include "NtCombatChallengeDummy.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"
 
