@@ -1,10 +1,8 @@
 #include "NpcWispServer.h"
 #include "InventoryComponent.h"
-
 #include "EntityManager.h"
 #include "Entity.h"
 #include "GameMessages.h"
-#include "Item.h"
 
 void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
 	if (missionID != 1849 && missionID != 1883)
@@ -20,7 +18,7 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	// For the daily we add the maelstrom vacuum if the player doesn't have it yet
 	if (missionID == 1883 && (missionState == MissionState::MISSION_STATE_AVAILABLE || missionState == MissionState::MISSION_STATE_COMPLETE_AVAILABLE)
 	&& maelstromVacuum == nullptr) {
-	    inventory->AddItem(maelstromVacuumLot, 1);
+	    inventory->AddItem(maelstromVacuumLot, 1, eLootSourceType::LOOT_SOURCE_NONE);
 	} else if (missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || missionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE) {
 	    inventory->RemoveItem(maelstromVacuumLot, 1);
 	}

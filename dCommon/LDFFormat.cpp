@@ -54,7 +54,7 @@ LDFBaseData * LDFBaseData::DataFromString(const std::string& format) {
                 }
                     
                 case LDF_TYPE_S32: {
-                    int32_t data = static_cast<int32_t>(stol(dataArray[1]));
+                    int32_t data = static_cast<int32_t>(stoull(dataArray[1]));
                     return new LDFData<int32_t>(key, data);
                 }
                     

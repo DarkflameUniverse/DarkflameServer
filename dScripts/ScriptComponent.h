@@ -6,7 +6,6 @@
 #ifndef SCRIPTCOMPONENT_H
 #define SCRIPTCOMPONENT_H
 
-#include "BitStream.h"
 #include "CppScripts.h"
 #include "Component.h"
 #include <string>

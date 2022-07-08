@@ -1,8 +1,6 @@
 #include "BaseConsoleTeleportServer.h"
 #include "GameMessages.h"
 #include "Player.h"
-#include "RocketLaunchpadControlComponent.h"
-
 
 void BaseConsoleTeleportServer::BaseOnUse(Entity* self, Entity* user) 
 {
@@ -19,21 +17,6 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 
     if (button == 1)
     {
-        if (self->GetLOT() == 14333)
-        {
-            auto* rocketLaunchComponent = self->GetComponent<RocketLaunchpadControlComponent>();
-
-            if (rocketLaunchComponent == nullptr)
-            {
-                rocketLaunchComponent;
-            }
-
-            const auto& teleportZone = self->GetVar<std::u16string>(u"transferZoneID");
-
-            rocketLaunchComponent->Launch(player, LWOOBJID_EMPTY, std::stoi(GeneralUtils::UTF16ToWTF8(teleportZone)));
-
-            return;
-        }
 
         GameMessages::SendSetStunned(player->GetObjectID(), PUSH, player->GetSystemAddress(), player->GetObjectID(), 
             true, true, true, true, true, true, true

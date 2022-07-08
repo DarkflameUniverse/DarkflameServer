@@ -1,5 +1,6 @@
 #include "ImaginationBackpackHealServer.h"
 #include "GameMessages.h"
+#include "MissionComponent.h"
 
 void ImaginationBackpackHealServer::OnSkillEventFired(Entity *self, Entity *caster, const std::string &message) {
     if (message == "CastImaginationBackpack") {

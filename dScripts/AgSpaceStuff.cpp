@@ -1,9 +1,7 @@
 #include "AgSpaceStuff.h"
 #include "GeneralUtils.h"
 #include "GameMessages.h"
-#include "dZoneManager.h"
 #include "EntityManager.h"
-#include "Game.h"
 
 void AgSpaceStuff::OnStartup(Entity* self) {
 	self->AddTimer("FloaterScale", 5.0f);

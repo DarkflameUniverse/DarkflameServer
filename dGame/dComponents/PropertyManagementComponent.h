@@ -161,6 +161,8 @@ public:
      */
 	const std::map<LWOOBJID, LWOOBJID>& GetModels() const;
 	
+    LWOCLONEID GetCloneId() { return clone_Id; };
+
 private:
     /**
      * This

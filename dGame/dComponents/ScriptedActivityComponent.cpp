@@ -28,7 +28,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
         const auto mapID = m_ActivityInfo.instanceMapID;
 
-        if ((mapID == 1203 || mapID == 1303 || mapID == 1403) && Game::config->GetValue("solo_racing") == "1") {
+        if ((mapID == 1203 || mapID == 1261 || mapID == 1303 || mapID == 1403) && Game::config->GetValue("solo_racing") == "1") {
             m_ActivityInfo.minTeamSize = 1;
             m_ActivityInfo.minTeams = 1;
         }
@@ -487,22 +487,24 @@ void ActivityInstance::StartZone() {
 	    return;
 
 	auto* leader = participants[0];
-
-	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_CREATE_TEAM);
-
-	bitStream.Write(leader->GetObjectID());
-	bitStream.Write(m_Participants.size());
-
-	for (const auto& participant : m_Participants) {
-		bitStream.Write(participant);
-	}
-
 	LWOZONEID zoneId = LWOZONEID(m_ActivityInfo.instanceMapID, 0, leader->GetCharacter()->GetPropertyCloneID());
 
-	bitStream.Write(zoneId);
+	// only make a team if we have more than one participant
+	if (participants.size() > 1){
+		CBITSTREAM;
+		PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_CREATE_TEAM);
 
-	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		bitStream.Write(leader->GetObjectID());
+		bitStream.Write(m_Participants.size());
+
+		for (const auto& participant : m_Participants) {
+			bitStream.Write(participant);
+		}
+
+		bitStream.Write(zoneId);
+
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+	}
 
 	const auto cloneId = GeneralUtils::GenerateRandomNumber<uint32_t>(1, UINT32_MAX);
 	for (Entity* player : participants) {

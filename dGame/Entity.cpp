@@ -22,6 +22,7 @@
 #include "Component.h"
 #include "ControllablePhysicsComponent.h"
 #include "RenderComponent.h"
+#include "RocketLaunchLupComponent.h"
 #include "CharacterComponent.h"
 #include "DestroyableComponent.h"
 #include "BuffComponent.h"
@@ -78,6 +79,7 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_Components = {};
 	m_DieCallbacks = {};
 	m_PhantomCollisionCallbacks = {};
+	m_IsParentChildDirty = true;
 
 	m_Settings = info.settings;
 	m_NetworkSettings = info.networkSettings;
@@ -97,22 +99,6 @@ Entity::~Entity() {
 		m_Character->SaveXMLToDatabase();
 	}
 
-	if (IsPlayer()) {
-        Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
-        for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-            script->OnPlayerExit(zoneControl, this);
-        }
-
-        std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
-        for (Entity* scriptEntity : scriptedActs) {
-            if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-                for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-                    script->OnPlayerExit(scriptEntity, this);
-                }
-            }
-        }
-	}
-
 	CancelAllTimers();
 	CancelCallbackTimers();
 
@@ -122,6 +108,9 @@ Entity::~Entity() {
 		delete pair.second;
 
 		m_Components.erase(pair.first);
+	}
+	if (m_ParentEntity) {
+		m_ParentEntity->RemoveChild(this);
 	}
 }
 
@@ -231,7 +220,8 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RACING_STATS, nullptr));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0) {
+	PetComponent* petComponent;
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !TryGetComponent(COMPONENT_TYPE_PET, petComponent)) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ITEM, nullptr));
 	}
 
@@ -445,6 +435,8 @@ void Entity::Initialize()
 	}*/
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
+		// Character Component always has a possessor component
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
 	}
@@ -455,9 +447,10 @@ void Entity::Initialize()
 		else comp = new InventoryComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_INVENTORY, comp));
 	}
-
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ROCKET_LAUNCH_LUP) > 0) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_ROCKET_LAUNCH_LUP, nullptr));
+	// if this component exists, then we initialize it. it's value is always 0
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ROCKET_LAUNCH_LUP, -1) != -1) {
+		auto comp = new RocketLaunchLupComponent(this);
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_ROCKET_LAUNCH_LUP, comp));
 	}
 
 	/**
@@ -493,13 +486,6 @@ void Entity::Initialize()
 
 	std::string customScriptServer;
 	bool hasCustomServerScript = false;
-
-	// Custom script for the LUP teleporter
-	if (m_TemplateID == 14333)
-	{
-		hasCustomServerScript = true;
-		customScriptServer = "scripts\\02_server\\DLU\\L_SB_LUP_TELEPORT.lua";
-	}
 
 	const auto customScriptServerName = GetVarAsString(u"custom_script_server");
 	const auto customScriptClientName = GetVarAsString(u"custom_script_client");
@@ -565,19 +551,6 @@ void Entity::Initialize()
 			comp->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
 			comp->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
 
-			const auto rebuildActivatorValue = GetVarAsString(u"rebuild_activators");
-
-			if (!rebuildActivatorValue.empty()) {
-				std::vector<std::string> split = GeneralUtils::SplitString(rebuildActivatorValue, 0x1f);
-				NiPoint3 pos;
-
-				pos.x = std::stof(split[0]);
-				pos.y = std::stof(split[1]);
-				pos.z = std::stof(split[2]);
-
-				comp->SetActivatorPosition(pos);
-			}
-
 			const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
 
 			if (rebuildResetTime != 0.0f) {
@@ -633,10 +606,6 @@ void Entity::Initialize()
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_RENDER) > 0 && m_TemplateID != 2365) || m_Character) {
 		RenderComponent* render = new RenderComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RENDER, render));
-	}
-
-	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSOR) > 0) || m_Character) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 	}
 
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MISSION_OFFER) > 0) || m_Character) {
@@ -978,8 +947,11 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 		}
 		else outBitStream->Write0(); //No GM Level
 	}
-	outBitStream->Write((m_ParentEntity != nullptr || m_ChildEntities.size() > 0));
-	if (m_ParentEntity || m_ChildEntities.size() > 0) {
+	
+	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
+	outBitStream->Write(m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION);
+	if (m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION) {
+		m_IsParentChildDirty = false;
 		outBitStream->Write(m_ParentEntity != nullptr);
 		if (m_ParentEntity) {
 			outBitStream->Write(m_ParentEntity->GetObjectID());
@@ -1083,8 +1055,15 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	}
 
 	CharacterComponent* characterComponent;
-	if (TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent)) {
+
+		PossessorComponent* possessorComponent;
+		if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent)) {
+			possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
+		}
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
@@ -1190,11 +1169,10 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		outBitStream->Write<uint32_t>(0x40000000);
 	}
 
-	PossessorComponent* possessorComponent;
-	if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent))
-	{
-		possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
+	// BBB Component, unused currently
+	// Need to to write0 so that is serlaizese correctly
+	// TODO: Implement BBB Component
+	outBitStream->Write0();
 
 	/*
 	if (m_Trigger != nullptr)
@@ -1636,7 +1614,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 				}
 			}
 			else {
-				inv->AddItem(p.second.lot, p.second.count, INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, INVALID, 1);
+				inv->AddItem(p.second.lot, p.second.count, eLootSourceType::LOOT_SOURCE_PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
 			}
 		}
 	}
@@ -1665,7 +1643,19 @@ void Entity::RegisterCoinDrop(uint64_t count) {
 }
 
 void Entity::AddChild(Entity* child) {
+	m_IsParentChildDirty = true;
 	m_ChildEntities.push_back(child);
+}
+
+void Entity::RemoveChild(Entity* child) {
+	if (!child) return;
+	for (auto entity = m_ChildEntities.begin(); entity != m_ChildEntities.end(); entity++) {
+		if (*entity && (*entity)->GetObjectID() == child->GetObjectID()) {
+			m_IsParentChildDirty = true;
+			m_ChildEntities.erase(entity);
+			return;
+		}
+	}
 }
 
 void Entity::AddTimer(std::string name, float time) {
@@ -2171,4 +2161,16 @@ void Entity::AddToGroup(const std::string& group) {
     if (std::find(m_Groups.begin(), m_Groups.end(), group) == m_Groups.end()) {
         m_Groups.push_back(group);
     }
+}
+
+void Entity::RetroactiveVaultSize() {
+	auto inventoryComponent = GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
+
+	auto itemsVault = inventoryComponent->GetInventory(eInventoryType::VAULT_ITEMS);
+	auto modelVault = inventoryComponent->GetInventory(eInventoryType::VAULT_MODELS);
+
+	if (itemsVault->GetSize() == modelVault->GetSize()) return;
+
+	modelVault->SetSize(itemsVault->GetSize());
 }

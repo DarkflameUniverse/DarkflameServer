@@ -9,8 +9,8 @@
 #include "CharacterComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "MovementAIComponent.h"
-#include "ControllablePhysicsComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
+#include "MissionComponent.h"
 
 void SGCannon::OnStartup(Entity *self) {
     Game::logger->Log("SGCannon", "OnStartup\n");
@@ -107,9 +107,12 @@ void SGCannon::OnActivityStateChangeRequest(Entity *self, LWOOBJID senderID, int
 
             if (characterComponent != nullptr) {
                 characterComponent->SetIsRacing(true);
-                characterComponent->SetVehicleObjectID(self->GetObjectID());
-                characterComponent->SetPossessableType(0);
                 characterComponent->SetCurrentActivity(2);
+                auto possessor = player->GetComponent<PossessorComponent>();
+                if(possessor) {
+                    possessor->SetPossessable(self->GetObjectID());
+                    possessor->SetPossessableType(0);
+                }
 
                 EntityManager::Instance()->SerializeEntity(player);
             }
@@ -144,8 +147,9 @@ void SGCannon::OnMessageBoxResponse(Entity *self, Entity *sender, int32_t button
     if (player != nullptr) {
         if (button == 1 && identifier == u"Shooting_Gallery_Stop")
         {
-            static_cast<Player*>(player)->SendToZone(1300);
-
+            UpdatePlayer(self, player->GetObjectID(), true);
+            RemovePlayer(player->GetObjectID());
+            StopGame(self, true);
             return;
         }
 
@@ -574,7 +578,7 @@ void SGCannon::StopGame(Entity *self, bool cancel) {
         auto* inventory = player->GetComponent<InventoryComponent>();
         if (inventory != nullptr) {
             for (const auto rewardLot : self->GetVar<std::vector<LOT>>(RewardsVariable)) {
-                inventory->AddItem(rewardLot, 1, eInventoryType::MODELS);
+                inventory->AddItem(rewardLot, 1, eLootSourceType::LOOT_SOURCE_ACTIVITY, eInventoryType::MODELS);
             }
         }
 

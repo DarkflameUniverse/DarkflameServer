@@ -5,6 +5,7 @@
 #include "RakNetTypes.h"
 #include "Character.h"
 #include "Component.h"
+#include "Item.h"
 #include <string>
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
@@ -74,6 +75,26 @@ public:
      */
 	void SetLastRocketConfig(std::u16string config);
 
+	/**
+	 * Find a player's rocket
+	 * @param player the entity that triggered the event
+	 * @return rocket
+	 */
+	Item* GetRocket(Entity* player);
+
+	/**
+	 * Equip a player's rocket
+	 * @param player the entity that triggered the event
+	 * @return rocket
+	 */
+	Item* RocketEquip(Entity* player);
+
+	/**
+	 * Find a player's rocket and unequip it
+	 * @param player the entity that triggered the event
+	 */
+	void RocketUnEquip(Entity* player);
+
     /**
      * Gets the current level of the entity
      * @return the current level of the entity
@@ -121,24 +142,6 @@ public:
      * @param isRacing whether the character is racing
      */
 	void SetIsRacing(bool isRacing) { m_IsRacing = isRacing; }
-
-    /**
-     * Gets the (optional) object ID of the vehicle the character is currently in
-     * @return the object ID of the vehilce the character is in
-     */
-	const LWOOBJID GetVehicleObjectID() const { return m_VehicleObjectID; }
-
-    /**
-     * Sets the (optional) object ID of the vehicle the character is currently in
-     * @param vehicleObjectID the ID of the vehicle the character is in
-     */
-	void SetVehicleObjectID(LWOOBJID vehicleObjectID) { m_VehicleObjectID = vehicleObjectID; }
-
-    /**
-     * Sets the possesible type that's currently used, merely used by the shooting gallery if it's 0
-     * @param value the possesible type to set
-     */
-	void SetPossessableType(uint8_t value) { m_PossessableType = value; }
 
     /**
      * Gets whether this character has PvP enabled, allowing combat between players
@@ -272,21 +275,36 @@ public:
 	void UpdatePlayerStatistic(StatisticID updateID, uint64_t updateValue = 1);
 
     /**
+     * Add a venture vision effect to the player minimap.
+     */
+    void AddVentureVisionEffect(std::string ventureVisionType);
+
+    /**
+     * Remove a venture vision effect from the player minimap.
+     * When an effect hits 0 active effects, it is deactivated.
+     */
+    void RemoveVentureVisionEffect(std::string ventureVisionType);
+
+    /**
+     * Update the client minimap to reveal the specified factions
+     */
+    void UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const;
+
+    /**
      * Character info regarding this character, including clothing styles, etc.
      */
     Character* m_Character;
 private:
     
+    /** 
+     * The map of active venture vision effects
+     */
+    std::map<std::string, uint32_t> m_ActiveVentureVisionEffects;
 
     /**
      * Whether this character is racing
      */
 	bool m_IsRacing;
-
-    /**
-     * The object ID of the vehicle the character is currently in
-     */
-	LWOOBJID m_VehicleObjectID;
 
     /**
      * Possessible type, used by the shooting gallery

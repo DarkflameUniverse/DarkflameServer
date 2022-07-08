@@ -6,7 +6,6 @@
 #include "BaseCombatAIComponent.h"
 #include "SkillComponent.h"
 
-
 void AmShieldGenerator::OnStartup(Entity* self) 
 {
     self->SetProximityRadius(20, "shield");

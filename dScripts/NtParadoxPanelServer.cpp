@@ -38,10 +38,11 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user)
 			GameMessages::SendPlayAnimation(player, u"rebuild-celebrate");
 			
 			GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SparkStop", 0, 0, player->GetObjectID(), "", player->GetSystemAddress());
-
+			GameMessages::SendSetStunned(player->GetObjectID(), eStunState::POP, player->GetSystemAddress(), LWOOBJID_EMPTY, false, false, true, false, true, true, false, false, true);
 			self->SetVar(u"bActive", false);
 		});
-
+		GameMessages::SendPlayAnimation(user, u"nexus-powerpanel", 6.0f);
+		GameMessages::SendSetStunned(user->GetObjectID(), eStunState::PUSH, user->GetSystemAddress(), LWOOBJID_EMPTY, false, false, true, false, true, true, false, false, true);
 		return;
 	}
 
