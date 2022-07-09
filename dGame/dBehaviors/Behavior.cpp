@@ -482,12 +482,10 @@ Behavior* Behavior::GetAction(float value) const
 
 std::map<std::string, float> Behavior::GetParameterNames() const
 {
-	auto behaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
-
 	std::map<std::string, float> templatesInDatabase;
 	// Find behavior template by its behavior id.
-	if (behaviorParameterTable) {
-		templatesInDatabase = behaviorParameterTable->GetParametersByBehaviorID(this->m_behaviorId);
+	if (BehaviorParameterTable) {
+		templatesInDatabase = BehaviorParameterTable->GetParametersByBehaviorID(this->m_behaviorId);
 	}
 
 	return templatesInDatabase;
