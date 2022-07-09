@@ -298,7 +298,7 @@ BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
 	}
 
 	if (templateID == BehaviorTemplates::BEHAVIOR_EMPTY && behaviorId != 0) {
-		Game::logger->Log("Behavior::GetBehaviorTemplate", "Failed to load behavior template with id (%i)!\n", behaviorId);
+		Game::logger->Log("Behavior", "Failed to load behavior template with id (%i)!\n", behaviorId);
 	}
 
 	return templateID;
@@ -451,8 +451,8 @@ Behavior::Behavior(const uint32_t behaviorId)
 
 float Behavior::GetFloat(const std::string& name, const float defaultValue) const
 {
-	auto entry = BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue);
-	return entry.value;
+	// Get the behavior parameter entry and return its value.
+	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue).value;
 }
 
 
