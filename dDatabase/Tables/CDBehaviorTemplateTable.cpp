@@ -16,7 +16,7 @@ CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
     
     // Reserve the size
     this->entries.reserve(size);
-    
+
     // Now get the data
     auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorTemplate");
     while (!tableData.eof()) {
@@ -27,6 +27,7 @@ CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
         entry.effectHandle = tableData.getStringField(3, "");
         
         this->entries.push_back(entry);
+        this->entriesMappedByBehaviorID.insert(std::make_pair(entry.behaviorID, entry));
         tableData.nextRow();
     }
 
@@ -54,4 +55,16 @@ std::vector<CDBehaviorTemplate> CDBehaviorTemplateTable::Query(std::function<boo
 //! Gets all the entries in the table
 std::vector<CDBehaviorTemplate> CDBehaviorTemplateTable::GetEntries(void) const {
     return this->entries;
+}
+
+const CDBehaviorTemplate CDBehaviorTemplateTable::GetByBehaviorID(uint32_t behaviorID) {
+    auto entry = this->entriesMappedByBehaviorID.find(behaviorID);
+    if (entry == this->entriesMappedByBehaviorID.end()) {
+        CDBehaviorTemplate entryToReturn;
+        entryToReturn.behaviorID = 0;
+        entryToReturn.effectHandle = "";
+        return entryToReturn;
+    } else {
+        return entry->second;
+    }
 }

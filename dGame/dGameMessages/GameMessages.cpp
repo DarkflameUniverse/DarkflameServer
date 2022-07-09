@@ -5514,13 +5514,15 @@ void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStre
 
 	auto* item = inv->FindItemById(objectID);
 
-	if (item == nullptr)
-	{
-		item = inv->FindItemByLot(templateID);
-
-		if (item == nullptr)
-		{
-			return;
+	if (!item) {
+		// Attempt to find the item by lot in inventory A since A is the source inventory.
+		item = inv->FindItemByLot(templateID, static_cast<eInventoryType>(inventoryTypeA));
+		if (!item) {
+			// As a final resort, try to find the item in its default inventory based on type.
+			item = inv->FindItemByLot(templateID);
+			if (!item) {
+				return;
+			}
 		}
 	}
 	

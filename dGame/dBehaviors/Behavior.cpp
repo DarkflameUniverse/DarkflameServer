@@ -7,6 +7,7 @@
 #include "dLogger.h"
 #include "BehaviorTemplates.h"
 #include "BehaviorBranchContext.h"
+#include <unordered_map>
 
 /*
  * Behavior includes
@@ -69,7 +70,7 @@
 #include "RenderComponent.h"
 #include "DestroyableComponent.h"
 
-std::map<uint32_t, Behavior*> Behavior::Cache = {};
+std::unordered_map<uint32_t, Behavior*> Behavior::Cache = {};
 CDBehaviorParameterTable* Behavior::BehaviorParameterTable = nullptr;
 
 Behavior* Behavior::GetBehavior(const uint32_t behaviorId)
@@ -285,28 +286,22 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 }
 
 BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT templateID FROM BehaviorTemplate WHERE behaviorID = ?;");
-	query.bind(1, (int) behaviorId);
+	auto behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDBehaviorTemplateTable>("BehaviorTemplate");
 
-	auto result = query.execQuery();
-
-	// Make sure we do not proceed if we are trying to load an invalid behavior
-	if (result.eof())
-	{
-		if (behaviorId != 0)
-		{
-			Game::logger->Log("Behavior::GetBehaviorTemplate", "Failed to load behavior template with id (%i)!\n", behaviorId);
+	BehaviorTemplates templateID = BehaviorTemplates::BEHAVIOR_EMPTY;
+	// Find behavior template by its behavior id.  Default to 0.
+	if (behaviorTemplateTable) {
+		auto templateEntry = behaviorTemplateTable->GetByBehaviorID(behaviorId);
+		if (templateEntry.behaviorID == behaviorId) {
+			templateID = static_cast<BehaviorTemplates>(templateEntry.templateID);
 		}
-
-		return BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
 
-	const auto id = static_cast<BehaviorTemplates>(result.getIntField(0));
+	if (templateID == BehaviorTemplates::BEHAVIOR_EMPTY && behaviorId != 0) {
+		Game::logger->Log("Behavior", "Failed to load behavior template with id (%i)!\n", behaviorId);
+	}
 
-	result.finalize();
-
-	return id;
+	return templateID;
 }
 
 // For use with enemies, to display the correct damage animations on the players
@@ -412,6 +407,17 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 
 Behavior::Behavior(const uint32_t behaviorId)
 {
+	auto behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDBehaviorTemplateTable>("BehaviorTemplate");
+
+	CDBehaviorTemplate templateInDatabase;
+
+	if (behaviorTemplateTable) {
+		auto templateEntry = behaviorTemplateTable->GetByBehaviorID(behaviorId);
+		if (templateEntry.behaviorID == behaviorId) {
+			templateInDatabase = templateEntry;
+		}
+	}
+
 	this->m_behaviorId = behaviorId;
 
 	// Add to cache
@@ -423,14 +429,8 @@ Behavior::Behavior(const uint32_t behaviorId)
 		this->m_templateId = BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
 
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT templateID, effectID, effectHandle FROM BehaviorTemplate WHERE behaviorID = ?;");
-	query.bind(1, (int) behaviorId);
-
-	auto result = query.execQuery();
-
 	// Make sure we do not proceed if we are trying to load an invalid behavior
-	if (result.eof())
+	if (templateInDatabase.behaviorID == 0)
 	{
 		Game::logger->Log("Behavior", "Failed to load behavior with id (%i)!\n", behaviorId);
 
@@ -441,34 +441,19 @@ Behavior::Behavior(const uint32_t behaviorId)
 		return;
 	}
 
-	this->m_templateId = static_cast<BehaviorTemplates>(result.getIntField(0));
+	this->m_templateId = static_cast<BehaviorTemplates>(templateInDatabase.templateID);
 
-	this->m_effectId = result.getIntField(1);
+	this->m_effectId = templateInDatabase.effectID;
 
-	if (!result.fieldIsNull(2))
-	{
-		const std::string effectHandle = result.getStringField(2);
-		if (effectHandle == "")
-		{
-			this->m_effectHandle = nullptr;
-		}
-		else
-		{
-			this->m_effectHandle = new std::string(effectHandle);
-		}
-	}
-	else
-	{
-		this->m_effectHandle = nullptr;
-	}
-
-	result.finalize();
+	this->m_effectHandle = templateInDatabase.effectHandle != "" ? new std::string(templateInDatabase.effectHandle) : nullptr;
 }
 
 
 float Behavior::GetFloat(const std::string& name, const float defaultValue) const
 {
-	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue);
+	// Get the behavior parameter entry and return its value.
+	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
+	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue).value;
 }
 
 
@@ -498,24 +483,14 @@ Behavior* Behavior::GetAction(float value) const
 
 std::map<std::string, float> Behavior::GetParameterNames() const
 {
-	std::map<std::string, float> parameters;
-
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = ?;");
-	query.bind(1, (int) this->m_behaviorId);
-
-	auto tableData = query.execQuery();
-
-	while (!tableData.eof())
-	{
-		parameters.insert_or_assign(tableData.getStringField(0, ""), tableData.getFloatField(1, 0));
-
-		tableData.nextRow();
+	std::map<std::string, float> templatesInDatabase;
+	// Find behavior template by its behavior id.
+	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
+	if (BehaviorParameterTable) {
+		templatesInDatabase = BehaviorParameterTable->GetParametersByBehaviorID(this->m_behaviorId);
 	}
 
-	tableData.finalize();
-
-	return parameters;
+	return templatesInDatabase;
 }
 
 void Behavior::Load()
