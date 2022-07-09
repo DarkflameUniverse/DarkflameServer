@@ -48,6 +48,10 @@ bool VendorComponent::HasCraftingStation() {
 	return m_Parent->GetLOT() == 13800;
 }
 
+bool VendorComponent::IsFaceVendor() {
+    return m_Parent->GetLOT() == 30003;
+}
+
 void VendorComponent::RefreshInventory(bool isCreation) {
 	//Custom code for Max vanity NPC
 	if (m_Parent->GetLOT() == 9749 && Game::server->GetZoneID() == 1201) {

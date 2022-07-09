@@ -50,6 +50,8 @@ public:
 	 * True if the NPC LOT is 13800, the only NPC with a crafting station.
 	 */
 	bool HasCraftingStation();
+
+	bool IsFaceVendor();
 	
 	/**
 	 * Gets the list if items the vendor sells.

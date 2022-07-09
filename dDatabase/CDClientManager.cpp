@@ -43,4 +43,5 @@ void CDClientManager::Initialize(void) {
 	tables.insert(std::make_pair("PropertyTemplate", new CDPropertyTemplateTable()));
 	tables.insert(std::make_pair("FeatureGating", new CDFeatureGatingTable()));
 	tables.insert(std::make_pair("RailActivatorComponent", new CDRailActivatorComponentTable()));
+    tables.insert(std::make_pair("FaceItemComponent", new CDFaceItemComponentTable()));
 }

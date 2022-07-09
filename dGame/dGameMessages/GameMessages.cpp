@@ -4659,9 +4659,41 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+    CDFaceItemComponentTable* faceItemTable = CDClientManager::Instance()->GetTable<CDFaceItemComponentTable>("FaceItemComponent");
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item, COMPONENT_TYPE_ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
+
+	CDFaceItemComponent faceCompId = faceItemTable->GetByLot(item);
+    if (faceCompId.id != 0) {
+        auto character = player->GetCharacter();
+        if (!character) return;
+            
+        if (faceCompId.eyes != 0) {
+			character->SetEyes(faceCompId.eyes);
+			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyes", faceCompId.eyes, 0, LWOOBJID_EMPTY, "", sysAddr);
+            GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedEyes", faceCompId.eyes, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+		}
+        
+		if (faceCompId.mouth != 0) {
+            character->SetMouth(faceCompId.mouth);
+            GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateMouth", faceCompId.mouth, 0, LWOOBJID_EMPTY, "", sysAddr);
+            GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedMouth", faceCompId.mouth, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+		}
+
+
+        if (faceCompId.eyebrows != 0) {
+			character->SetEyebrows(faceCompId.eyebrows);
+            GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyebrows", faceCompId.eyebrows, 0, LWOOBJID_EMPTY, "", sysAddr);
+            GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedEyebrows", faceCompId.eyebrows, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+		}
+
+		GameMessages::SendVendorTransactionResult(entity, sysAddr);
+
+		character->SaveXMLToDatabase();
+
+		return;
+	}
 
 	Character* character = player->GetCharacter();
 	if (!character) return;
