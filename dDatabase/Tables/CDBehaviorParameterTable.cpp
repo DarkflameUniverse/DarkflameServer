@@ -1,6 +1,5 @@
 #include "CDBehaviorParameterTable.h"
 #include "GeneralUtils.h"
-#include <iostream>
 
 //! Constructor
 CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
