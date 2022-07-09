@@ -31,8 +31,8 @@ class PossessableComponent : public Component {
 		LWOOBJID GetPossessor() const { return m_Possessor; };
 
 		/**
-		 * Sets the possessor of this entity
-		 * @param value the ID of the possessor to set
+		 * Sets the animation Flag of the possessable
+		 * @param value the animation flag to set to
 		 */
 		void SetAnimationFlag(eAnimationFlags value) { m_AnimationFlag = value; m_DirtyPossessable = true;};
 
@@ -43,14 +43,13 @@ class PossessableComponent : public Component {
 		ePossessionType GetPossessionType() const { return m_PossessionType; };
 
 		/**
-		 * Returns the possession type of this entity
-		 * @return the possession type of this entity
+		 * Returns if the entity should deposses on hit
+		 * @return if the entity should deposses on hit
 		 */
 		bool GetDepossessOnHit() const { return m_DepossessOnHit; };
 
 		/**
-		 * Sets the possessor of this entity
-		 * @param value the ID of the possessor to set
+		 * Forcibly depossess the entity
 		 */
 		void ForceDepossess() { m_ImmediatelyDepossess = true; m_DirtyPossessable = true;};
 

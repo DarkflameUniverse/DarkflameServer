@@ -38,4 +38,6 @@ void PossessableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 	}
 }
 
-void PossessableComponent::OnUse(Entity* originator) {}
+void PossessableComponent::OnUse(Entity* originator) {
+	// TODO: Implement this
+}
