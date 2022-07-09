@@ -453,7 +453,7 @@ float Behavior::GetFloat(const std::string& name, const float defaultValue) cons
 {
 	// Get the behavior parameter entry and return its value.
 	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
-	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue).value;
+	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue);
 }
 
 
@@ -485,10 +485,10 @@ std::map<std::string, float> Behavior::GetParameterNames() const
 {
 	std::map<std::string, float> templatesInDatabase;
 	// Find behavior template by its behavior id.
-	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
+	/*if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
 	if (BehaviorParameterTable) {
 		templatesInDatabase = BehaviorParameterTable->GetParametersByBehaviorID(this->m_behaviorId);
-	}
+	}*/
 
 	return templatesInDatabase;
 }
