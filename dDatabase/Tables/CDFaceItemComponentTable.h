@@ -21,6 +21,10 @@ class CDFaceItemComponentTable : public CDTable {
 
     CDFaceItemComponent GetByLot(LOT lot);
 
+    CDFaceItemComponent GetByEyes(uint32_t id);
+    CDFaceItemComponent GetByEyebrows(uint32_t id);
+    CDFaceItemComponent GetByMouth(uint32_t id);
+
     std::vector<CDFaceItemComponent> Query(std::function<bool(CDFaceItemComponent)> predicate);
 
     std::vector<CDFaceItemComponent> GetEntries(void) const;

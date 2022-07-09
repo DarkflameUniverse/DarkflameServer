@@ -53,3 +53,33 @@ CDFaceItemComponent CDFaceItemComponentTable::GetByLot(LOT lot) {
 
     return {};
 }
+
+CDFaceItemComponent CDFaceItemComponentTable::GetByEyes(uint32_t id) {
+    for (const auto& item : entries) {
+        if (item.eyes == id) {
+            return item;
+        }
+    }
+
+    return {};
+}
+
+CDFaceItemComponent CDFaceItemComponentTable::GetByEyebrows(uint32_t id) {
+    for (const auto& item : entries) {
+        if (item.eyebrows == id) {
+            return item;
+        }
+    }
+
+    return {};
+}
+
+CDFaceItemComponent CDFaceItemComponentTable::GetByMouth(uint32_t id) {
+    for (const auto& item : entries) {
+        if (item.mouth == id) {
+            return item;
+        }
+    }
+
+    return {};
+}
