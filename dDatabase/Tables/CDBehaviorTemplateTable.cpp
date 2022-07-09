@@ -69,6 +69,7 @@ const CDBehaviorTemplate CDBehaviorTemplateTable::GetByBehaviorID(uint32_t behav
         CDBehaviorTemplate entryToReturn;
         entryToReturn.behaviorID = 0;
         entryToReturn.effectHandle = m_EffectHandles.end();
+        entryToReturn.effectID = 0;
         return entryToReturn;
     } else {
         return entry->second;
