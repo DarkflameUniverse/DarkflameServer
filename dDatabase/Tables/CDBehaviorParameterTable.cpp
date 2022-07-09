@@ -22,14 +22,30 @@ typedef boost::interprocess::map<KeyType, MappedType, std::less<KeyType>, ShmemA
 
 CDBehaviorParameterMap *table = nullptr;
 
-CppSQLite3Statement preparedStatementSingle;
-CppSQLite3Statement preparedStatementMultiple;
-
-//#define CACHE_ALL_BEHAVIORS
+boost::interprocess::managed_shared_memory segment;
+ShmemAllocator* alloc_inst;
+boost::interprocess::offset_ptr<CDBehaviorParameterMap> m;
 
 //! Constructor
 CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
+	try {
+		segment = boost::interprocess::managed_shared_memory(boost::interprocess::open_read_only, "CDBehaviorParameterTable");
 
+		alloc_inst = new ShmemAllocator(segment.get_segment_manager());
+
+		m = segment.find<CDBehaviorParameterMap>("CDBehaviorParameter").first;
+
+		if (m == nullptr) {
+			Game::logger->Log("CDBehaviorParameterTable", "CDBehaviorParameter segment is nullptr!\n");
+		}
+
+		// Load the entire table into m_Entries
+		/*for (auto it = m->begin(); it != m->end(); ++it) {
+			m_Entries.insert(std::make_pair(it->first, it->second));
+		}*/
+	} catch (std::exception &e) {
+		// Not open, we are master
+	}
 }
 
 //! Destructor
@@ -48,7 +64,7 @@ float CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::s
 
 	// Search for specific parameter
 	try {
-		boost::interprocess::managed_shared_memory segment(boost::interprocess::open_only, "CDBehaviorParameterTable");
+		/*boost::interprocess::managed_shared_memory segment(boost::interprocess::open_read_only, "CDBehaviorParameterTable");
 
 		// If the segment manager is not null, then the segment exists
 		// Get the table from the segment
@@ -60,11 +76,37 @@ float CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::s
 			Game::logger->Log("CDBehaviorParameterTable", "CDBehaviorParameter segment is nullptr!\n");
 
 			return defaultValue;
-		}
+		}*/
+
+		// Start a timer
+		auto start = std::chrono::high_resolution_clock::now();
 
 		auto it = m->find(hash);
 
-		if (it != m->end()) {
+		bool found = it != m->end();
+
+		// End the timer
+		auto end = std::chrono::high_resolution_clock::now();
+
+		// Get duraction
+		auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+		
+		// Reset the timer
+		/*start = std::chrono::high_resolution_clock::now();
+
+		auto nativeIt = m_Entries.find(hash);
+
+		bool nativeFound = nativeIt != m_Entries.end();
+
+		// End the timer
+		end = std::chrono::high_resolution_clock::now();
+
+		// Get duraction
+		auto nativeDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);*/
+
+		//Game::logger->Log("CDBehaviorParameterTable", "Duration: (sm) %fms / (m) %fms -> %f\n", duration.count() / 1000000.0f, nativeDuration.count() / 1000000.0f, (double) duration.count() / (double) nativeDuration.count());
+
+		if (found) {
 			return it->second;
 		}
 
@@ -81,17 +123,14 @@ void CDBehaviorParameterTable::CreateSharedMap()
 {
 	boost::interprocess::shared_memory_object::remove("CDBehaviorParameterTable");
 
-	Game::logger->Log("CDBehaviorParameterTable", "Failed to open or create shared memory segment, creating...\n");
+	Game::logger->Log("CDBehaviorParameterTable", "Create shared memory segment.\n");
 
-	// If the segment manager is null, then the segment does not exist
-	// Create the segment
+	// Create the segment, TODO: calculate size
 	boost::interprocess::managed_shared_memory segment(boost::interprocess::create_only, "CDBehaviorParameterTable", 40 * 1000 * 1000);
 
 	ShmemAllocator alloc_inst (segment.get_segment_manager());
 
-	table = segment.construct<CDBehaviorParameterMap>("CDBehaviorParameter")      //object name
-								(std::less<KeyType>() //first  ctor parameter
-								,alloc_inst);     //second ctor parameter
+	table = segment.construct<CDBehaviorParameterMap>("CDBehaviorParameter") (std::less<KeyType>(), alloc_inst);
 
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorParameter");
 

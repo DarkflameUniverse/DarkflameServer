@@ -331,14 +331,6 @@ target_link_libraries(dNet dDatabase)
 target_link_libraries(dGame dDatabase)
 target_link_libraries(dChatFilter dDatabase)
 
-# Include Boost
-find_package(Boost COMPONENTS interprocess)
-
-if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS}) 
-    
-    target_link_libraries(dGame ${Boost_LIBRARIES})
-endif()
 
 if(WIN32)
 target_link_libraries(raknet ws2_32)
