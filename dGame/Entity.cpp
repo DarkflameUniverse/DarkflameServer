@@ -208,8 +208,9 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ZONE_CONTROL, nullptr));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE) > 0) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this)));
+	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE);
+	if (possessableComponentId > 0) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this, possessableComponentId)));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODULE_ASSEMBLY) > 0) {

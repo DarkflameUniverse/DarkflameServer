@@ -665,7 +665,6 @@ enum ePlayerFlags {
     NJ_WU_SHOW_DAILY_CHEST = 2099
 };
 
-
 //======== FUNC ===========
 
 template<typename T>
