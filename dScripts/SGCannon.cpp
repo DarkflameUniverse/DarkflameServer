@@ -95,14 +95,6 @@ void SGCannon::OnActivityStateChangeRequest(Entity *self, LWOOBJID senderID, int
                 Game::logger->Log("SGCannon", "Shooting gallery component is null\n");
             }
             
-            auto* possessorComponent = player->GetComponent<PossessorComponent>();
-
-            /*if (possessorComponent != nullptr) {
-                possessorComponent->SetPossessable(self->GetObjectID());
-
-                EntityManager::Instance()->SerializeEntity(player);
-            }*/
-
             auto* characterComponent = player->GetComponent<CharacterComponent>();
 
             if (characterComponent != nullptr) {
@@ -111,7 +103,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity *self, LWOOBJID senderID, int
                 auto possessor = player->GetComponent<PossessorComponent>();
                 if(possessor) {
                     possessor->SetPossessable(self->GetObjectID());
-                    possessor->SetPossessableType(0);
+                    possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
                 }
 
                 EntityManager::Instance()->SerializeEntity(player);
