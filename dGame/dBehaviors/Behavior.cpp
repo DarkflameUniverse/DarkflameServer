@@ -58,6 +58,7 @@
 #include "SpeedBehavior.h"
 #include "DamageReductionBehavior.h"
 #include "JetPackBehavior.h"
+#include "FallSpeedBehavior.h"
 
 //CDClient includes
 #include "CDBehaviorParameterTable.h"
@@ -165,7 +166,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 	case BehaviorTemplates::BEHAVIOR_CAR_BOOST:
 		behavior = new CarBoostBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_FALL_SPEED: break;
+	case BehaviorTemplates::BEHAVIOR_FALL_SPEED:
+		behavior = new FallSpeedBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_SHIELD: break;
 	case BehaviorTemplates::BEHAVIOR_REPAIR_ARMOR:
 		behavior = new RepairBehavior(behaviorId);
@@ -174,7 +177,7 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 		behavior = new SpeedBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: break;
-	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF: 
+	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF:
 		behavior = new LootBuffBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_VENTURE_VISION:
