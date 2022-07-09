@@ -22,9 +22,9 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	if (!player) return;
 
 	//Get our friends list from the Db:
-	auto stmt = Database::CreatePreppedStmt("SELECT * FROM friends WHERE player_id = ? OR friend_id = ?");
-	stmt->setUInt64(1, playerID);
-	stmt->setUInt64(2, playerID);
+	auto stmt = Database::CreatePreppedStmt("SELECT fr.requested_player, best_friend, ci.name FROM (SELECT CASE WHEN player_id = ? THEN friend_id WHEN friend_id = ? THEN player_id END AS requested_player, best_friend FROM friends) AS fr JOIN charinfo AS ci ON ci.id = fr.requested_player WHERE requested_player IS NOT NULL ORDER BY requested_player DESC;");
+	stmt->setUInt(1, static_cast<uint32_t>(playerID));
+	stmt->setUInt(2, static_cast<uint32_t>(playerID));
 
 	std::vector<FriendData> friends;
 
@@ -32,27 +32,16 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	while (res->next()) {
 		FriendData fd;
 		fd.isFTP = false; // not a thing in DLU
-		fd.friendID = res->getInt64(1);
-		if (fd.friendID == playerID) fd.friendID = res->getUInt64(2);
+		fd.friendID = res->getUInt(1);
+		GeneralUtils::SetBit(fd.friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_PERSISTENT));
+		GeneralUtils::SetBit(fd.friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_CHARACTER));
 
-		fd.isBestFriend = res->getInt(3) == 2; //0 = friends, 1 = requested, 2 = bffs
-
-		//We need to find their name as well:
-		{
-			auto stmt = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE id=? limit 1");
-			stmt->setInt(1, fd.friendID);
-
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				fd.friendName = res->getString(1);
-			}
-
-			delete res;
-			delete stmt;
-		}
+		fd.isBestFriend = res->getInt(2) == 2; //0 = friends, 1 = requested, 2 = bffs
+		fd.friendName = res->getString(3);
 
 		//Now check if they're online:
 		auto fr = playerContainer.GetPlayerData(fd.friendID);
+		Game::logger->Log("ChatPacketHandler", "friend is is  %llu\n", fd.friendID);
 		if (fr) {
 			fd.isOnline = true;
 			fd.zoneID = fr->zoneID;
@@ -69,7 +58,9 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	}
 
 	delete res;
+	res = nullptr;
 	delete stmt;
+	stmt = nullptr;
 
 	//Now, we need to send the friendlist to the server they came from:
 	CBITSTREAM;
@@ -132,9 +123,9 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 	SendFriendResponse(goonB, goonA, responseCode);
 	SendFriendResponse(goonA, goonB, responseCode); //Do we need to send it to both? I think so so both get the updated friendlist but... idk.
 
-	auto stmt = Database::CreatePreppedStmt("INSERT INTO `friends`(`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?)");
-	stmt->setUInt64(1, goonA->playerID);
-	stmt->setUInt64(2, goonB->playerID);
+	auto stmt = Database::CreatePreppedStmt("INSERT INTO `friends` (`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?)");
+	stmt->setUInt(1, static_cast<uint32_t>(goonA->playerID));
+	stmt->setUInt(2, static_cast<uint32_t>(goonB->playerID));
 	stmt->setInt(3, 0);
 	stmt->execute();
 	delete stmt;
