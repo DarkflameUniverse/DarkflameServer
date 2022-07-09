@@ -14,7 +14,7 @@ PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId)
 	auto result = query.execQuery();
 
 	// Should a result not exist for this default to attached visible
-	if (!result.eof() && !result.fieldIsNull(0) && !result.fieldIsNull(1)) {
+	if (!result.eof()) {
 		m_PossessionType = static_cast<ePossessionType>(result.getIntField(0, 0));
 		m_DepossessOnHit = static_cast<bool>(result.getIntField(1, 0));
 	} else {

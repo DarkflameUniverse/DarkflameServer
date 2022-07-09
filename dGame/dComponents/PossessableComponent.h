@@ -5,6 +5,7 @@
 #include "Component.h"
 #include "Item.h"
 #include "PossessorComponent.h"
+#include "eAninmationFlags.h"
 
 /**
  * Represents an entity that can be controlled by some other entity, generally used by cars to indicate that some
