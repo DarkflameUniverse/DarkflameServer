@@ -114,17 +114,44 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 	uint8_t responseCode = packet->data[0x14];
 	std::string friendName = PacketUtils::ReadString(0x15, packet, true);
 
-	if (responseCode != 0) return; //If we're not accepting the request, end here, do not insert to friends table.
-
 	//Now to try and find both of these:
 	auto goonA = playerContainer.GetPlayerData(playerID);
 	auto goonB = playerContainer.GetPlayerData(friendName);
 	if (!goonA || !goonB) return;
 
+	if (responseCode != 0) return; //If we're not accepting the request, end here, do not insert to friends table.
+
+	for (auto friendData : goonA->friends) {
+		if (friendData.friendID == goonB->playerID) return;
+	}
+
+	for (auto friendData : goonB->friends) {
+		if (friendData.friendID == goonA->playerID) return;
+	}
+
+	// Add the goons to their friends list
+	FriendData goonAData;
+	goonAData.zoneID = goonA->zoneID;
+	goonAData.friendID = goonA->playerID;
+	goonAData.friendName = goonA->playerName;
+	goonAData.isBestFriend = false;
+	goonAData.isFTP = false;
+	goonAData.isOnline = true;
+	goonB->friends.push_back(goonAData);
+
+	FriendData goonBData;
+	goonBData.zoneID = goonB->zoneID;
+	goonBData.friendID = goonB->playerID;
+	goonBData.friendName = goonB->playerName;
+	goonBData.isBestFriend = false;
+	goonBData.isFTP = false;
+	goonBData.isOnline = true;
+	goonA->friends.push_back(goonBData);
+
 	SendFriendResponse(goonB, goonA, responseCode);
 	SendFriendResponse(goonA, goonB, responseCode); //Do we need to send it to both? I think so so both get the updated friendlist but... idk.
 
-	auto stmt = Database::CreatePreppedStmt("INSERT INTO `friends` (`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?)");
+	auto stmt = Database::CreatePreppedStmt("INSERT IGNORE INTO `friends` (`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?)");
 	stmt->setUInt(1, static_cast<uint32_t>(goonA->playerID));
 	stmt->setUInt(2, static_cast<uint32_t>(goonB->playerID));
 	stmt->setInt(3, 0);
@@ -172,11 +199,26 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	//Now, we need to send an update to notify the sender (and possibly, receiver) that their friendship has been ended:
 	auto goonA = playerContainer.GetPlayerData(playerID);
 	if (goonA) {
+		// Remove the friend from our list of friends
+		for (auto friendData = goonA->friends.begin(); friendData != goonA->friends.end(); friendData++) {
+			if ((*friendData).friendID == friendID) {
+				goonA->friends.erase(friendData);
+				break;
+			}
+		}
 		SendRemoveFriend(goonA, friendName, true);
 	}
-	
+
 	auto goonB = playerContainer.GetPlayerData(friendID);
 	if (!goonB) return;
+	// Do it again for other person
+	for (auto friendData = goonB->friends.begin(); friendData != goonB->friends.end(); friendData++) {
+		if ((*friendData).friendID == playerID) {
+			goonB->friends.erase(friendData);
+			break;
+		}
+	}
+
 	std::string goonAName = GeneralUtils::UTF16ToWTF8(playerContainer.GetName(playerID));
 	SendRemoveFriend(goonB, goonAName, true);
 }
