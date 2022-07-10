@@ -468,7 +468,7 @@ int main(int argc, char** argv) {
 
 			// Store.
 			while (res->next()) {
-				accIdBanList.insert(std::pair{res->getString(1).c_str(), true});
+				accIdBanList.insert(std::pair<int, bool>(res->GetInt(1), true));
 			}
 
 			// Reset tick counter.
