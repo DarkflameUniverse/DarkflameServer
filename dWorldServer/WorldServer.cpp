@@ -473,7 +473,7 @@ int main(int argc, char** argv) {
         		        skillComponent->Reset();
         		    }
 
-					Game::logger->Log("WorldServer", 'AccID = ' << entity->GetParentUser()->GetAccountID());
+					Game::logger->Log("WorldServer", 'AccID = %d', entity->GetParentUser()->GetAccountID());
         		}
     		}
 
