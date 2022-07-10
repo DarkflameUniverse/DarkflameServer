@@ -3,6 +3,7 @@
 #include <ctime>
 #include <chrono>
 #include <thread>
+#include <vector>
 
 #include "MD5.h"
 
@@ -218,6 +219,8 @@ int main(int argc, char** argv) {
 	int framesSinceLastUsersSave = 0;
 	int framesSinceLastSQLPing = 0;
 	int framesSinceLastUser = 0;
+	int framesSinceLastBanUpdate = 0;
+	vector<int> accIdBanList;
 
 	const float maxPacketProcessingTime = 1.5f; //0.015f;
 	const int maxPacketsToProcess = 1024;
@@ -452,6 +455,32 @@ int main(int argc, char** argv) {
 			framesSinceLastSQLPing = 0;
 		}
 		else framesSinceLastSQLPing++;
+
+		// Custom Luplo - Update Ban List
+		// TODO: Add DB to vector fetch.
+
+		// Custom Luplo - Live Ban Management
+		if (framesSinceLastBanUpdate > 2000) {
+			for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); i++) {
+        		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
+
+        		auto* entity = Player::GetPlayer(player);
+        		Game::logger->Log("WorldServer", "Running debug function per person!\n");
+        		if (entity != nullptr && entity->GetCharacter() != nullptr) {
+        		    auto* skillComponent = entity->GetComponent<SkillComponent>();
+
+        		    if (skillComponent != nullptr) {
+        		        skillComponent->Reset();
+        		    }
+
+					Game::logger->Log("WorldServer", entity->GetParentUser()->GetAccountID());
+        		}
+    		}
+
+			// Reset tick counter.
+			framesSinceLastBanUpdate = 0;
+		}
+		else framesSinceLastBanUpdate++;
 
 		Metrics::EndMeasurement(MetricVariable::GameLoop);
 
