@@ -72,7 +72,7 @@ namespace Game {
 	SystemAddress chatSysAddr;
 }
 
-int[] accIdBanList = [];
+std::map<std::string, boolean> accIdBanList;
 
 bool chatDisabled = false;
 bool chatConnected = false;
@@ -473,7 +473,7 @@ int main(int argc, char** argv) {
         		        skillComponent->Reset();
         		    }
 
-					Game::logger->Log("WorldServer", entity->GetParentUser()->GetAccountID());
+					Game::logger->Log("WorldServer", 'AccID = ' << entity->GetParentUser()->GetAccountID());
         		}
     		}
 
