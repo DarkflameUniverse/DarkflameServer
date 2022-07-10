@@ -220,6 +220,7 @@ int main(int argc, char** argv) {
 	int framesSinceLastUsersSave = 0;
 	int framesSinceLastSQLPing = 0;
 	int framesSinceLastUser = 0;
+	int framesSinceLastBanFetch = 0;
 	int framesSinceLastBanUpdate = 0;
 
 	const float maxPacketProcessingTime = 1.5f; //0.015f;
@@ -457,16 +458,36 @@ int main(int argc, char** argv) {
 		else framesSinceLastSQLPing++;
 
 		// Custom Luplo - Update Ban List
-		// TODO: Add DB to vector fetch.
+		if (framesSinceLastBanFetch > 1000) {
+			// Clear the existing entries.
+			accIdBanList.clear();
+
+			// Query and store.
+			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM accounts WHERE banned = 1;");
+			auto res = stmt->executeQuery();
+
+			// Store.
+			while (res->next()) {
+				accIdBanList.insert(std::pair{res->getString(1).c_str(), true});
+			}
+
+			// Reset tick counter.
+			framesSinceLastBanFetch = 0;
+		}
+		else framesSinceLastBanFetch++;
 
 		// Custom Luplo - Live Ban Management
 		if (framesSinceLastBanUpdate > 500) {
 			for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); i++) {
         		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
-
         		auto* entity = Player::GetPlayer(player);
-        		Game::logger->Log("WorldServer", "Running debug function per person!\n");
-				Game::logger->Log("WorldServer", "AccID = %d", entity->GetParentUser()->GetAccountID());
+        		Game::logger->Log("WorldServer", "Running Player Punkbuster against %d entries!\n", accIdBanList.size());
+				// entity->GetParentUser()->GetAccountID()
+				int accid = accIdBanList.find(entity->GetParentUser()->GetAccountID());
+				if (accid != accIdBanList.end()) {
+					// Match found, to disconnect.
+					Game::server->Disconnect(entity->GetSystemAddress(), SERVER_DISCON_KICK);
+				}
     		}
 
 			// Reset tick counter.
