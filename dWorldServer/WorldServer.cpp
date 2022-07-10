@@ -483,8 +483,8 @@ int main(int argc, char** argv) {
         		auto* entity = Player::GetPlayer(player);
         		Game::logger->Log("WorldServer", "Running Player Punkbuster against %d entries!\n", accIdBanList.size());
 				// entity->GetParentUser()->GetAccountID()
-				int accid = accIdBanList.find(entity->GetParentUser()->GetAccountID());
-				if (accid != accIdBanList.end()) {
+				auto search = accIdBanList.find(entity->GetParentUser()->GetAccountID());
+				if (search != accIdBanList.end()) {
 					// Match found, to disconnect.
 					Game::server->Disconnect(entity->GetSystemAddress(), SERVER_DISCON_KICK);
 				}
