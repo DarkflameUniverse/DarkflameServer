@@ -3,7 +3,6 @@
 #include <ctime>
 #include <chrono>
 #include <thread>
-#include <vector>
 
 #include "MD5.h"
 
@@ -73,7 +72,7 @@ namespace Game {
 	SystemAddress chatSysAddr;
 }
 
-vector<int> accIdBanList;
+int[] accIdBanList = [];
 
 bool chatDisabled = false;
 bool chatConnected = false;
