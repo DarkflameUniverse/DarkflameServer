@@ -486,7 +486,7 @@ int main(int argc, char** argv) {
 				auto search = accIdBanList.find(entity->GetParentUser()->GetAccountID());
 				if (search != accIdBanList.end()) {
 					// Match found, to disconnect.
-					Game::logger->Log("WorldServer-LiveBan", "Account %s (%d) was matched against %d entries!\n", entity->GetParentUser()->GetUsername(), entity->GetParentUser()->GetAccountID(), accIdBanList.size());
+					Game::logger->Log("WorldServer-LiveBan", "Account %s (%d) was matched against %d entries!\n", entity->GetParentUser()->GetUsername().c_str(), entity->GetParentUser()->GetAccountID(), accIdBanList.size());
 					Game::server->Disconnect(entity->GetSystemAddress(), SERVER_DISCON_KICK);
 				}
     		}
