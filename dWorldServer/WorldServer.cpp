@@ -73,6 +73,8 @@ namespace Game {
 	SystemAddress chatSysAddr;
 }
 
+vector<int> accIdBanList;
+
 bool chatDisabled = false;
 bool chatConnected = false;
 bool worldShutdownSequenceStarted = false;
@@ -220,7 +222,6 @@ int main(int argc, char** argv) {
 	int framesSinceLastSQLPing = 0;
 	int framesSinceLastUser = 0;
 	int framesSinceLastBanUpdate = 0;
-	vector<int> accIdBanList;
 
 	const float maxPacketProcessingTime = 1.5f; //0.015f;
 	const int maxPacketsToProcess = 1024;
