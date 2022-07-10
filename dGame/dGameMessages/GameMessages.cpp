@@ -4662,7 +4662,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
-    CDFaceItemComponentTable* faceItemTable = CDClientManager::Instance()->GetTable<CDFaceItemComponentTable>("FaceItemComponent");
+	CDFaceItemComponentTable* faceItemTable = CDClientManager::Instance()->GetTable<CDFaceItemComponentTable>("FaceItemComponent");
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item, COMPONENT_TYPE_ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
