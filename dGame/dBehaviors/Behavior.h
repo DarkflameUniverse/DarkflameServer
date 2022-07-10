@@ -19,7 +19,7 @@ public:
 	/*
 	 * Static
 	 */
-	static std::map<uint32_t, Behavior*> Cache;
+	static std::unordered_map<uint32_t, Behavior*> Cache;
 	static CDBehaviorParameterTable* BehaviorParameterTable;
 
 	static Behavior* GetBehavior(uint32_t behaviorId);

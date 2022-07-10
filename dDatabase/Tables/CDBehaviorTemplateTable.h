@@ -2,6 +2,7 @@
 
 // Custom Classes
 #include "CDTable.h"
+#include <unordered_map>
 
 /*!
  \file CDBehaviorTemplateTable.hpp
@@ -21,7 +22,7 @@ struct CDBehaviorTemplate {
 class CDBehaviorTemplateTable : public CDTable {
 private:
     std::vector<CDBehaviorTemplate> entries;
-    
+    std::unordered_map<uint32_t, CDBehaviorTemplate> entriesMappedByBehaviorID;
 public:
     
     //! Constructor
@@ -47,5 +48,6 @@ public:
        \return The entries
      */
     std::vector<CDBehaviorTemplate> GetEntries(void) const;
-    
+
+    const CDBehaviorTemplate GetByBehaviorID(uint32_t behaviorID);
 };
