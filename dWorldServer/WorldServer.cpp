@@ -466,15 +466,7 @@ int main(int argc, char** argv) {
 
         		auto* entity = Player::GetPlayer(player);
         		Game::logger->Log("WorldServer", "Running debug function per person!\n");
-        		if (entity != nullptr && entity->GetCharacter() != nullptr) {
-        		    auto* skillComponent = entity->GetComponent<SkillComponent>();
-
-        		    if (skillComponent != nullptr) {
-        		        skillComponent->Reset();
-        		    }
-
-					Game::logger->Log("WorldServer", "AccID = %d", entity->GetParentUser()->GetAccountID());
-        		}
+				Game::logger->Log("WorldServer", "AccID = %d", entity->GetParentUser()->GetAccountID());
     		}
 
 			// Reset tick counter.
