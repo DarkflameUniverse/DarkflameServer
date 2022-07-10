@@ -286,18 +286,14 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 }
 
 BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT templateID FROM BehaviorTemplate WHERE behaviorID = ?;");
-	query.bind(1, (int) behaviorId);
+	auto behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDBehaviorTemplateTable>("BehaviorTemplate");
 
-	auto result = query.execQuery();
-
-	// Make sure we do not proceed if we are trying to load an invalid behavior
-	if (result.eof())
-	{
-		if (behaviorId != 0)
-		{
-			Game::logger->Log("Behavior::GetBehaviorTemplate", "Failed to load behavior template with id (%i)!\n", behaviorId);
+	BehaviorTemplates templateID = BehaviorTemplates::BEHAVIOR_EMPTY;
+	// Find behavior template by its behavior id.  Default to 0.
+	if (behaviorTemplateTable) {
+		auto templateEntry = behaviorTemplateTable->GetByBehaviorID(behaviorId);
+		if (templateEntry.behaviorID == behaviorId) {
+			templateID = static_cast<BehaviorTemplates>(templateEntry.templateID);
 		}
 	}
 
