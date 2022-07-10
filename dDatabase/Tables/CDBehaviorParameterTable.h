@@ -2,7 +2,8 @@
 
 // Custom Classes
 #include "CDTable.h"
-#include <map>
+#include <unordered_map>
+#include <unordered_set>
 
 /*!
  \file CDBehaviorParameterTable.hpp
@@ -19,8 +20,8 @@ struct CDBehaviorParameter {
 //! BehaviorParameter table
 class CDBehaviorParameterTable : public CDTable {
 private:
-    std::map<size_t, float> m_Entries;
-    
+	std::unordered_map<size_t, CDBehaviorParameter> m_Entries;
+	std::unordered_set<std::string> m_ParametersList;
 public:
     
     //! Constructor
@@ -35,5 +36,7 @@ public:
      */
     std::string GetName(void) const override;
     
-	float GetEntry(const uint32_t behaviorID, const std::string& name, const float defaultValue = 0);
+	CDBehaviorParameter GetEntry(const uint32_t behaviorID, const std::string& name, const float defaultValue = 0);
+
+	std::map<std::string, float> GetParametersByBehaviorID(uint32_t behaviorID);
 };
