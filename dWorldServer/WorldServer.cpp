@@ -72,7 +72,7 @@ namespace Game {
 	SystemAddress chatSysAddr;
 }
 
-std::map<int, bool> accIdBanList;
+std::unordered_map<int, bool> accIdBanList;
 
 bool chatDisabled = false;
 bool chatConnected = false;
@@ -458,7 +458,7 @@ int main(int argc, char** argv) {
 		else framesSinceLastSQLPing++;
 
 		// Custom Luplo - Update Ban List
-		if (framesSinceLastBanFetch > 1000) {
+		if (framesSinceLastBanFetch > 500) {
 			// Clear the existing entries.
 			accIdBanList.clear();
 
@@ -477,15 +477,16 @@ int main(int argc, char** argv) {
 		else framesSinceLastBanFetch++;
 
 		// Custom Luplo - Live Ban Management
-		if (framesSinceLastBanUpdate > 500) {
+		if (framesSinceLastBanUpdate > 200) {
 			for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); i++) {
         		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
         		auto* entity = Player::GetPlayer(player);
-        		Game::logger->Log("WorldServer", "Running Player Punkbuster against %d entries!\n", accIdBanList.size());
+        		// Game::logger->Log("WorldServer", "Running Player Punkbuster against %d entries!\n", accIdBanList.size());
 				// entity->GetParentUser()->GetAccountID()
 				auto search = accIdBanList.find(entity->GetParentUser()->GetAccountID());
 				if (search != accIdBanList.end()) {
 					// Match found, to disconnect.
+					Game::logger->Log("WorldServer-LiveBan", "Account %s (%d) was matched against %d entries!\n", entity->GetParentUser()->GetUsername(), entity->GetParentUser()->GetAccountID(), accIdBanList.size());
 					Game::server->Disconnect(entity->GetSystemAddress(), SERVER_DISCON_KICK);
 				}
     		}
