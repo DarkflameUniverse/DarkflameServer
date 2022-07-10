@@ -460,7 +460,7 @@ int main(int argc, char** argv) {
 		// TODO: Add DB to vector fetch.
 
 		// Custom Luplo - Live Ban Management
-		if (framesSinceLastBanUpdate > 2000) {
+		if (framesSinceLastBanUpdate > 500) {
 			for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); i++) {
         		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
 
