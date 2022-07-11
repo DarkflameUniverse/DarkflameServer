@@ -4,6 +4,7 @@
 #include "BitStream.h"
 
 struct PlayerData;
+enum class AddFriendResponseType : uint8_t;
 
 namespace ChatPacketHandler {
 	void HandleFriendlistRequest(Packet* packet);
@@ -33,8 +34,8 @@ namespace ChatPacketHandler {
 	//FriendData is the player we're SENDING this stuff to. Player is the friend that changed state.
 	void SendFriendUpdate(PlayerData* friendData, PlayerData* playerData, uint8_t notifyType);
 
-	void SendFriendRequest(PlayerData* receiver, PlayerData* sender, bool isBFFReq = false);
-	void SendFriendResponse(PlayerData* receiver, PlayerData* sender, uint8_t responseCode = 3);
+	void SendFriendRequest(PlayerData* receiver, PlayerData* sender);
+	void SendFriendResponse(PlayerData* receiver, PlayerData* sender, AddFriendResponseType responseCode, uint8_t isBestFriendsAlready = 0U, uint8_t isBestFriendRequest = 0U);
 	void SendRemoveFriend(PlayerData* receiver, std::string& personToRemove, bool isSuccessful);
 };
 
