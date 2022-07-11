@@ -117,10 +117,12 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	auto requestor = playerContainer.GetPlayerData(requestorPlayerID);
 	auto requestee = playerContainer.GetPlayerData(playerName);
 	// Check if player is online first
-
+	bool cleanupRequestee = false;
 	if (isBestFriendRequest && !requestee) {
 		for (auto friendDataCandidate : requestor->friends) {
 			if (friendDataCandidate.friendName == playerName) {
+				requestee = new PlayerData();
+				cleanupRequestee = true;
 				// Setup the needed info since you can add a best friend offline.
 				requestee->playerID = friendDataCandidate.friendID;
 				requestee->playerName = RakNet::RakString(friendDataCandidate.friendName.c_str());
@@ -130,13 +132,31 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				requesteeFriendData.friendID = requestor->playerID;
 				requesteeFriendData.friendName = requestor->playerName;
 				requesteeFriendData.isFTP = false;
-				requesteeFriendData.isOnline = true;
+				requesteeFriendData.isOnline = false;
 				requesteeFriendData.zoneID = requestor->zoneID;
 				requestee->friends.push_back(requesteeFriendData);
 				requestee->sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 				break;
 			}
 		}
+	}
+	Game::logger->Log("ChatPacketHandler", "requestee null %i\n", requestee == nullptr);
+	if (!requestee) {
+		auto nameQuery = Database::CreatePreppedStmt("SELECT name from charinfo where name = ?;");
+		nameQuery->setString(1, playerName);
+		auto result = nameQuery->executeQuery();
+
+		requestee = new PlayerData();
+		requestee->playerName = RakNet::RakString(playerName.c_str());
+
+		SendFriendResponse(requestor, requestee, result->next() ? AddFriendResponseType::NOTONLINE : AddFriendResponseType::INVALIDCHARACTER);
+		delete result;
+		result = nullptr;
+		delete nameQuery;
+		nameQuery = nullptr;
+		delete requestee;
+		requestee = nullptr;
+		return;
 	}
 
 	if (isBestFriendRequest) {
@@ -190,14 +210,18 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 			updateQuery = nullptr;
 			// Sent the best friend update here if the value is 3
 			if (bestFriendStatus == 3U) {
-				SendFriendResponse(requestee, requestor, AddFriendResponseType::ACCEPTED, 0U, 1U);
-				SendFriendResponse(requestor, requestee, AddFriendResponseType::ACCEPTED, 0U, 1U);
+				if (requestee->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestee, requestor, AddFriendResponseType::ACCEPTED, 0U, 1U);
+				if (requestor->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee, AddFriendResponseType::ACCEPTED, 0U, 1U);
 			}
 		}
 	} else {
 		// We need to check to see if the player is actually online or not.
 		// Do not send this if we are requesting to be a best friend.
 		SendFriendRequest(requestee, requestor);
+	}
+	if (cleanupRequestee) {
+		delete requestee;
+		requestee = nullptr;
 	}
 }
 
@@ -940,7 +964,7 @@ void ChatPacketHandler::SendFriendRequest(PlayerData* receiver, PlayerData* send
 	//Make sure people aren't requesting people that they're already friends with:
 	for (auto fr : receiver->friends) {
 		if (fr.friendID == sender->playerID) {
-			SendFriendResponse(receiver, sender, AddFriendResponseType::ALREADYFRIEND, fr.isBestFriend);
+			SendFriendResponse(sender, receiver, AddFriendResponseType::ALREADYFRIEND, fr.isBestFriend);
 			return; //we have this player as a friend, yeet this function so it doesn't send another request.
 		}
 	}
@@ -968,13 +992,13 @@ void ChatPacketHandler::SendFriendResponse(PlayerData* receiver, PlayerData* sen
 	// Portion that will get routed:
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_ADD_FRIEND_RESPONSE);
 	bitStream.Write(responseCode);
-	if (responseCode == AddFriendResponseType::ALREADYFRIEND || responseCode == AddFriendResponseType::GENERALERROR || responseCode == AddFriendResponseType::CANCELLED) {
+	if (responseCode != AddFriendResponseType::ACCEPTED) {
+		Game::logger->Log("ChatPacketHandler", "writing not accepted\n");
 		bitStream.Write(isBestFriendsAlready);
 		PacketUtils::WritePacketWString(sender->playerName.C_String(), 33, &bitStream);
-	}
-
-	if (responseCode == AddFriendResponseType::ACCEPTED) {
-		bitStream.Write<uint8_t>(1); //isOnline
+	} else {
+		Game::logger->Log("ChatPacketHandler", "writing accepted\n");
+		bitStream.Write<uint8_t>(sender->sysAddr != UNASSIGNED_SYSTEM_ADDRESS); //isOnline
 		PacketUtils::WritePacketWString(sender->playerName.C_String(), 33, &bitStream);
 		bitStream.Write(sender->playerID);
 		bitStream.Write(sender->zoneID);
