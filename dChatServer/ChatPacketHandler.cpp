@@ -21,10 +21,17 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	auto player = playerContainer.GetPlayerData(playerID);
 	if (!player) return;
 
-	//Get our friends list from the Db:
-	auto stmt = Database::CreatePreppedStmt("SELECT * FROM friends WHERE player_id = ? OR friend_id = ?");
-	stmt->setUInt64(1, playerID);
-	stmt->setUInt64(2, playerID);
+	//Get our friends list from the Db.  Using a derived table since the friend of a player can be in either column.
+	auto stmt = Database::CreatePreppedStmt(
+		"SELECT fr.requested_player, best_friend, ci.name FROM "
+		"(SELECT CASE "
+			"WHEN player_id = ? THEN friend_id "
+			"WHEN friend_id = ? THEN player_id "
+		"END AS requested_player, best_friend FROM friends) AS fr "
+		"JOIN charinfo AS ci ON ci.id = fr.requested_player "
+		"WHERE fr.requested_player IS NOT NULL;");
+	stmt->setUInt(1, static_cast<uint32_t>(playerID));
+	stmt->setUInt(2, static_cast<uint32_t>(playerID));
 
 	std::vector<FriendData> friends;
 
@@ -32,27 +39,16 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	while (res->next()) {
 		FriendData fd;
 		fd.isFTP = false; // not a thing in DLU
-		fd.friendID = res->getInt64(1);
-		if (fd.friendID == playerID) fd.friendID = res->getUInt64(2);
+		fd.friendID = res->getUInt(1);
+		GeneralUtils::SetBit(fd.friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_PERSISTENT));
+		GeneralUtils::SetBit(fd.friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_CHARACTER));
 
-		fd.isBestFriend = res->getInt(3) == 2; //0 = friends, 1 = requested, 2 = bffs
-
-		//We need to find their name as well:
-		{
-			auto stmt = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE id=? limit 1");
-			stmt->setInt(1, fd.friendID);
-
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				fd.friendName = res->getString(1);
-			}
-
-			delete res;
-			delete stmt;
-		}
+		fd.isBestFriend = res->getInt(2) == 2; //0 = friends, 1 = requested, 2 = bffs
+		fd.friendName = res->getString(3);
 
 		//Now check if they're online:
 		auto fr = playerContainer.GetPlayerData(fd.friendID);
+		Game::logger->Log("ChatPacketHandler", "friend is %llu\n", fd.friendID);
 		if (fr) {
 			fd.isOnline = true;
 			fd.zoneID = fr->zoneID;
@@ -69,7 +65,9 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	}
 
 	delete res;
+	res = nullptr;
 	delete stmt;
+	stmt = nullptr;
 
 	//Now, we need to send the friendlist to the server they came from:
 	CBITSTREAM;
@@ -100,8 +98,6 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	std::string playerName = PacketUtils::ReadString(0x14, packet, true);
 	//There's another bool here to determine if it's a best friend request, but we're not handling it right now.
 
-	//PacketUtils::SavePacket("FriendRequest.bin", (char*)inStream.GetData(), inStream.GetNumberOfBytesUsed());
-
 	//We need to check to see if the player is actually online or not:
 	auto targetData = playerContainer.GetPlayerData(playerName);
 	if (targetData) {
@@ -118,23 +114,46 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 	uint8_t responseCode = packet->data[0x14];
 	std::string friendName = PacketUtils::ReadString(0x15, packet, true);
 
-	Game::logger->Log("ChatPacketHandler", "Friend response code: %i\n", responseCode);
-
-	if (responseCode != 0) return; //If we're not accepting the request, end here, do not insert to friends table.
-
-	PacketUtils::SavePacket("HandleFriendResponse.bin", (char*)inStream.GetData(), inStream.GetNumberOfBytesUsed());
-
 	//Now to try and find both of these:
 	auto goonA = playerContainer.GetPlayerData(playerID);
 	auto goonB = playerContainer.GetPlayerData(friendName);
 	if (!goonA || !goonB) return;
 
+	if (responseCode != 0) return; //If we're not accepting the request, end here, do not insert to friends table.
+
+	for (auto friendData : goonA->friends) {
+		if (friendData.friendID == goonB->playerID) return;
+	}
+
+	for (auto friendData : goonB->friends) {
+		if (friendData.friendID == goonA->playerID) return;
+	}
+
+	// Add the goons to their friends list
+	FriendData goonAData;
+	goonAData.zoneID = goonA->zoneID;
+	goonAData.friendID = goonA->playerID;
+	goonAData.friendName = goonA->playerName;
+	goonAData.isBestFriend = false;
+	goonAData.isFTP = false;
+	goonAData.isOnline = true;
+	goonB->friends.push_back(goonAData);
+
+	FriendData goonBData;
+	goonBData.zoneID = goonB->zoneID;
+	goonBData.friendID = goonB->playerID;
+	goonBData.friendName = goonB->playerName;
+	goonBData.isBestFriend = false;
+	goonBData.isFTP = false;
+	goonBData.isOnline = true;
+	goonA->friends.push_back(goonBData);
+
 	SendFriendResponse(goonB, goonA, responseCode);
 	SendFriendResponse(goonA, goonB, responseCode); //Do we need to send it to both? I think so so both get the updated friendlist but... idk.
 
-	auto stmt = Database::CreatePreppedStmt("INSERT INTO `friends`(`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?)");
-	stmt->setUInt64(1, goonA->playerID);
-	stmt->setUInt64(2, goonB->playerID);
+	auto stmt = Database::CreatePreppedStmt("INSERT IGNORE INTO `friends` (`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?)");
+	stmt->setUInt(1, static_cast<uint32_t>(goonA->playerID));
+	stmt->setUInt(2, static_cast<uint32_t>(goonB->playerID));
 	stmt->setInt(3, 0);
 	stmt->execute();
 	delete stmt;
@@ -145,50 +164,61 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	LWOOBJID playerID;
 	inStream.Read(playerID);
 	inStream.Read(playerID);
-	std::string friendName = PacketUtils::ReadString(16, packet, true);
+	std::string friendName = PacketUtils::ReadString(0x14, packet, true);
 
 	//we'll have to query the db here to find the user, since you can delete them while they're offline.
 	//First, we need to find their ID:
-	auto stmt = Database::CreatePreppedStmt("select id from charinfo where name=? limit 1;");
+	auto stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE name=? LIMIT 1;");
 	stmt->setString(1, friendName.c_str());
 
 	LWOOBJID friendID = 0;
 	auto res = stmt->executeQuery();
 	while (res->next()) {
-		friendID = res->getUInt64(1);
+		friendID = res->getUInt(1);
 	}
+
+	// Convert friendID to LWOOBJID
+	GeneralUtils::SetBit(friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_PERSISTENT));
+	GeneralUtils::SetBit(friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_CHARACTER));
 
 	delete res;
+	res = nullptr;
 	delete stmt;
+	stmt = nullptr;
 
-	//Set our bits to convert to the BIG BOY objectID.
-	friendID = GeneralUtils::ClearBit(friendID, OBJECT_BIT_CHARACTER);
-	friendID = GeneralUtils::ClearBit(friendID, OBJECT_BIT_PERSISTENT);
-
-	//YEET:
-	auto deletestmt = Database::CreatePreppedStmt("DELETE FROM `friends` WHERE player_id=? AND friend_id=? LIMIT 1");
-	deletestmt->setUInt64(1, playerID);
-	deletestmt->setUInt64(2, friendID);
+	auto deletestmt = Database::CreatePreppedStmt("DELETE FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
+	deletestmt->setUInt(1, static_cast<uint32_t>(playerID));
+	deletestmt->setUInt(2, static_cast<uint32_t>(friendID));
+	deletestmt->setUInt(3, static_cast<uint32_t>(friendID));
+	deletestmt->setUInt(4, static_cast<uint32_t>(playerID));
 	deletestmt->execute();
-	delete deletestmt;
 
-	//because I'm lazy and they can be reversed:
-	{
-		auto deletestmt = Database::CreatePreppedStmt("DELETE FROM `friends` WHERE player_id=? AND friend_id=? LIMIT 1");
-		deletestmt->setUInt64(1, friendID);
-		deletestmt->setUInt64(2, playerID);
-		deletestmt->execute();
-		delete deletestmt;
-	}
+	delete deletestmt;
+	deletestmt = nullptr;
 
 	//Now, we need to send an update to notify the sender (and possibly, receiver) that their friendship has been ended:
 	auto goonA = playerContainer.GetPlayerData(playerID);
 	if (goonA) {
+		// Remove the friend from our list of friends
+		for (auto friendData = goonA->friends.begin(); friendData != goonA->friends.end(); friendData++) {
+			if ((*friendData).friendID == friendID) {
+				goonA->friends.erase(friendData);
+				break;
+			}
+		}
 		SendRemoveFriend(goonA, friendName, true);
 	}
-	
+
 	auto goonB = playerContainer.GetPlayerData(friendID);
 	if (!goonB) return;
+	// Do it again for other person
+	for (auto friendData = goonB->friends.begin(); friendData != goonB->friends.end(); friendData++) {
+		if ((*friendData).friendID == playerID) {
+			goonB->friends.erase(friendData);
+			break;
+		}
+	}
+
 	std::string goonAName = GeneralUtils::UTF16ToWTF8(playerContainer.GetName(playerID));
 	SendRemoveFriend(goonB, goonAName, true);
 }
@@ -216,8 +246,6 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet)
 	std::string message = PacketUtils::ReadString(0x66, packet, true);
 
 	Game::logger->Log("ChatPacketHandler", "Got a message from (%s) [%d]: %s\n", senderName.c_str(), channel, message.c_str());
-
-	//PacketUtils::SavePacket("chat.bin", reinterpret_cast<char*>(packet->data), packet->length);
 
 	if (channel != 8) return;
 
@@ -454,8 +482,6 @@ void ChatPacketHandler::HandleTeamKick(Packet* packet)
 
 		playerContainer.RemoveMember(team, kickedId, false, true, false);
 	}
-
-	//PacketUtils::SavePacket("kick.bin", reinterpret_cast<char*>(packet->data), packet->length);
 }
 
 void ChatPacketHandler::HandleTeamPromote(Packet* packet) 
@@ -481,8 +507,6 @@ void ChatPacketHandler::HandleTeamPromote(Packet* packet)
 
 		playerContainer.PromoteMember(team, promoted->playerID);
 	}
-
-	//PacketUtils::SavePacket("promote.bin", reinterpret_cast<char*>(packet->data), packet->length);
 }
 
 void ChatPacketHandler::HandleTeamLootOption(Packet* packet) 
@@ -509,8 +533,6 @@ void ChatPacketHandler::HandleTeamLootOption(Packet* packet)
 	
 		playerContainer.UpdateTeamsOnWorld(team, false);
 	}
-
-	//PacketUtils::SavePacket("option.bin", reinterpret_cast<char*>(packet->data), packet->length);
 }
 
 void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet) 
@@ -560,7 +582,6 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet)
 
 			const auto memberName = playerContainer.GetName(memberId);
 			
-			//ChatPacketHandler::SendTeamAddPlayer(otherMember, false, false, false, data->playerID, leaderName, data->zoneID);
 			if (otherMember != nullptr)
 			{
 				ChatPacketHandler::SendTeamSetOffWorldFlag(otherMember, data->playerID, data->zoneID);
