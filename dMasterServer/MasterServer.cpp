@@ -218,6 +218,8 @@ int main(int argc, char** argv) {
 	ObjectIDManager::Instance()->Initialize(Game::logger);
 	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
 
+	CDBehaviorParameterTable::CreateSharedMap();
+
 	//Depending on the config, start up servers:
 	if (config.GetValue("prestart_servers") != "" && config.GetValue("prestart_servers") == "1") {
 		StartChatServer();
