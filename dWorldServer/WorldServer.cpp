@@ -674,7 +674,7 @@ void HandlePacket(Packet* packet) {
 		{
 			CBITSTREAM;
 			PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
-			bitStream.Write(c->GetObjectID());
+			bitStream.Write(user->GetLoggedInChar());
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
 

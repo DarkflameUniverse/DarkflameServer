@@ -59,7 +59,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 		//if (!fr.isOnline) continue;
 
 		auto fd = this->GetPlayerData(fr.friendID);
-		if (fd) ChatPacketHandler::SendFriendUpdate(fd, player, 0);
+		if (fd) ChatPacketHandler::SendFriendUpdate(fd, player, 0, fr.isBestFriend);
 	}
 
 	auto* team = GetTeam(playerID);

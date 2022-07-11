@@ -6,7 +6,7 @@
 #include <cstdint>
 
 enum class AddFriendResponseType : uint8_t {
-    ACCEPTED = 0,
+	ACCEPTED = 0,
 	ALREADYFRIEND,
 	INVALIDCHARACTER,
 	GENERALERROR,
