@@ -10,6 +10,7 @@
 #include "dLogger.h"
 #include "AddFriendResponseCode.h"
 #include "AddFriendResponseType.h"
+#include "RakString.h"
 
 extern PlayerContainer playerContainer;
 
@@ -94,9 +95,9 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 
 void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	CINSTREAM;
-	LWOOBJID playerID;
-	inStream.Read(playerID);
-	inStream.Read(playerID);
+	LWOOBJID requestorPlayerID;
+	inStream.Read(requestorPlayerID);
+	inStream.Read(requestorPlayerID);
 	uint32_t spacing{};
 	inStream.Read(spacing);
 	std::string playerName = "";
@@ -113,15 +114,37 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	inStream.Read(isBestFriendRequest);
 	Game::logger->Log("ChatPacketHandler", "isbffreq %i\n", isBestFriendRequest);
 
-	auto friendData = playerContainer.GetPlayerData(playerName);
-	if (!friendData) return;
+	auto requestor = playerContainer.GetPlayerData(requestorPlayerID);
+	auto requestee = playerContainer.GetPlayerData(playerName);
+	// Check if player is online first
+
+	if (isBestFriendRequest && !requestee) {
+		for (auto friendDataCandidate : requestor->friends) {
+			if (friendDataCandidate.friendName == playerName) {
+				// Setup the needed info since you can add a best friend offline.
+				requestee->playerID = friendDataCandidate.friendID;
+				requestee->playerName = RakNet::RakString(friendDataCandidate.friendName.c_str());
+				requestee->zoneID = LWOZONEID();
+
+				FriendData requesteeFriendData{};
+				requesteeFriendData.friendID = requestor->playerID;
+				requesteeFriendData.friendName = requestor->playerName;
+				requesteeFriendData.isFTP = false;
+				requesteeFriendData.isOnline = true;
+				requesteeFriendData.zoneID = requestor->zoneID;
+				requestee->friends.push_back(requesteeFriendData);
+				requestee->sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+				break;
+			}
+		}
+	}
 
 	if (isBestFriendRequest) {
 		auto friendUpdate = Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
-		friendUpdate->setUInt(1, static_cast<uint32_t>(playerID));
-		friendUpdate->setUInt(2, static_cast<uint32_t>(friendData->playerID));
-		friendUpdate->setUInt(3, static_cast<uint32_t>(friendData->playerID));
-		friendUpdate->setUInt(4, static_cast<uint32_t>(playerID));
+		friendUpdate->setUInt(1, static_cast<uint32_t>(requestorPlayerID));
+		friendUpdate->setUInt(2, static_cast<uint32_t>(requestee->playerID));
+		friendUpdate->setUInt(3, static_cast<uint32_t>(requestee->playerID));
+		friendUpdate->setUInt(4, static_cast<uint32_t>(requestorPlayerID));
 		auto result = friendUpdate->executeQuery();
 
 		LWOOBJID queryPlayerID = LWOOBJID_EMPTY;
@@ -142,7 +165,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 			GeneralUtils::SetBit(queryFriendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_CHARACTER));
 			GeneralUtils::SetBit(queryFriendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_PERSISTENT));
 
-			if (queryPlayerID == playerID) {
+			if (queryPlayerID == requestorPlayerID) {
 				bestFriendStatus |= 1ULL << 0;
 			} else {
 				bestFriendStatus |= 1ULL << 1;
@@ -158,19 +181,23 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 			// Then update the database with this new info.
 			auto updateQuery = Database::CreatePreppedStmt("UPDATE friends SET best_friend = ? WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
 			updateQuery->setUInt(1, bestFriendStatus);
-			updateQuery->setUInt(2, static_cast<uint32_t>(playerID));
-			updateQuery->setUInt(3, static_cast<uint32_t>(friendData->playerID));
-			updateQuery->setUInt(4, static_cast<uint32_t>(friendData->playerID));
-			updateQuery->setUInt(5, static_cast<uint32_t>(playerID));
+			updateQuery->setUInt(2, static_cast<uint32_t>(requestorPlayerID));
+			updateQuery->setUInt(3, static_cast<uint32_t>(requestee->playerID));
+			updateQuery->setUInt(4, static_cast<uint32_t>(requestee->playerID));
+			updateQuery->setUInt(5, static_cast<uint32_t>(requestorPlayerID));
 			updateQuery->executeUpdate();
 			delete updateQuery;
 			updateQuery = nullptr;
 			// Sent the best friend update here if the value is 3
+			if (bestFriendStatus == 3U) {
+				SendFriendResponse(requestee, requestor, AddFriendResponseType::ACCEPTED, 0U, 1U);
+				SendFriendResponse(requestor, requestee, AddFriendResponseType::ACCEPTED, 0U, 1U);
+			}
 		}
 	} else {
 		// We need to check to see if the player is actually online or not.
 		// Do not send this if we are requesting to be a best friend.
-		SendFriendRequest(friendData, playerContainer.GetPlayerData(playerID));
+		SendFriendRequest(requestee, requestor);
 	}
 }
 
@@ -220,9 +247,12 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 
 	Game::logger->Log("ChatPacketHandler", "response code is %i client is %i is bestfriends %i\n", serverResponseCode, clientResponseCode, isAlreadyBestFriends);
 	SendFriendResponse(requestee, requestor, serverResponseCode, isAlreadyBestFriends);
-	SendFriendResponse(requestor, requestee, serverResponseCode, isAlreadyBestFriends); //Do we need to send it to both? I think so so both get the updated friendlist but... idk.
 	
+	if (serverResponseCode == AddFriendResponseType::DECLINED) SendFriendResponse(requestor, requestee, serverResponseCode, isAlreadyBestFriends);
+
 	if (serverResponseCode == AddFriendResponseType::ACCEPTED) {
+		SendFriendResponse(requestor, requestee, serverResponseCode, isAlreadyBestFriends);
+
 		// Add the goons to their friends list
 		FriendData requestorData;
 		requestorData.zoneID = requestor->zoneID;
@@ -910,6 +940,7 @@ void ChatPacketHandler::SendFriendRequest(PlayerData* receiver, PlayerData* send
 	//Make sure people aren't requesting people that they're already friends with:
 	for (auto fr : receiver->friends) {
 		if (fr.friendID == sender->playerID) {
+			SendFriendResponse(receiver, sender, AddFriendResponseType::ALREADYFRIEND, fr.isBestFriend);
 			return; //we have this player as a friend, yeet this function so it doesn't send another request.
 		}
 	}
@@ -934,10 +965,10 @@ void ChatPacketHandler::SendFriendResponse(PlayerData* receiver, PlayerData* sen
 	PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_ROUTE_TO_PLAYER);
 	bitStream.Write(receiver->playerID);
 
-	//portion that will get routed:
+	// Portion that will get routed:
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_ADD_FRIEND_RESPONSE);
 	bitStream.Write(responseCode);
-	if (responseCode == AddFriendResponseType::ALREADYFRIEND || responseCode == AddFriendResponseType::GENERALERROR) {
+	if (responseCode == AddFriendResponseType::ALREADYFRIEND || responseCode == AddFriendResponseType::GENERALERROR || responseCode == AddFriendResponseType::CANCELLED) {
 		bitStream.Write(isBestFriendsAlready);
 		PacketUtils::WritePacketWString(sender->playerName.C_String(), 33, &bitStream);
 	}
@@ -950,7 +981,7 @@ void ChatPacketHandler::SendFriendResponse(PlayerData* receiver, PlayerData* sen
 		bitStream.Write(isBestFriendRequest); //isBFF
 		bitStream.Write<uint8_t>(0); //isFTP
 	}
-
+	Game::logger->Log("ChatPacketHandler", "sending message name %s code %i bffreq %i already friends %i\n", sender->playerName.C_String(), responseCode, isBestFriendRequest, isBestFriendsAlready);
 	SystemAddress sysAddr = receiver->sysAddr;
 	SEND_PACKET;
 }
