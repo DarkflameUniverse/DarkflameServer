@@ -31,6 +31,7 @@ public:
 		m_PendingAffirmations = {};
 		m_PendingRequests = {};
 		m_Ready = false;
+		m_IsShuttingDown = false;
 	}
 
 	const std::string& GetIP() const { return m_IP; }
@@ -46,6 +47,8 @@ public:
 
 	bool GetIsReady() const { return m_Ready; }
 	void SetIsReady(bool value) { m_Ready = value; }
+	bool GetIsShuttingDown() const { return m_IsShuttingDown; }
+	void SetIsShuttingDown(bool value) { m_IsShuttingDown = value; }
 	std::vector<PendingInstanceRequest>& GetPendingRequests() { return m_PendingRequests; }
 	std::vector<PendingInstanceRequest>& GetPendingAffirmations() { return m_PendingAffirmations; }
 	
@@ -82,6 +85,7 @@ private:
 	std::vector<Player> m_Players;
 	SystemAddress m_SysAddr;
 	bool m_Ready;
+	bool m_IsShuttingDown;
 	std::vector<PendingInstanceRequest> m_PendingRequests;
 	std::vector<PendingInstanceRequest> m_PendingAffirmations;
 

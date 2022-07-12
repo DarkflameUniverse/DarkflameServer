@@ -303,7 +303,7 @@ int main(int argc, char** argv) {
 
 			if (affirmTimeout == 1000) {
 				instance->Shutdown();
-				instance->SetShutdownComplete(true);
+				instance->SetIsShuttingDown(true);
 
 				Game::im->RedirectPendingRequests(instance);
 			}
