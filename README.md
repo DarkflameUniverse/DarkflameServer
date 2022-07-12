@@ -157,7 +157,7 @@ Darkflame Universe utilizes a MySQL/MariaDB database for account and character i
 
 Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
 * Create a database for Darkflame Universe to use
-* Run each SQL file in the order at which they appear [here](migrations/dlu/) on the database
+* Run the migrations by running `./MasterServer -m` to automatically run them
 
 ### Resources
 

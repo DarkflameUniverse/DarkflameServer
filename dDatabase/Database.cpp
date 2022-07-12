@@ -8,6 +8,8 @@ using namespace std;
 
 sql::Driver * Database::driver;
 sql::Connection * Database::con;
+sql::Properties Database::props;
+std::string Database::database;
 
 void Database::Connect(const string& host, const string& database, const string& username, const string& password) {
 
@@ -25,14 +27,26 @@ void Database::Connect(const string& host, const string& database, const string&
 	properties["user"] = szUsername;
 	properties["password"] = szPassword;
 	properties["autoReconnect"] = "true";
-	con = driver->connect(properties);
-	con->setSchema(szDatabase);
-} //Connect
 
-void Database::Destroy(std::string source) {
+	Database::props = properties;
+	Database::database = database;
+
+	Database::Connect();
+}
+
+void Database::Connect() {
+	con = driver->connect(Database::props);
+	con->setSchema(Database::database);
+}
+
+void Database::Destroy(std::string source, bool log) {
 	if (!con) return;
-	if (source != "") Game::logger->Log("Database", "Destroying MySQL connection from %s!\n", source.c_str());
-	else Game::logger->Log("Database", "Destroying MySQL connection!\n");
+	
+	if (log) {
+		if (source != "") Game::logger->Log("Database", "Destroying MySQL connection from %s!\n", source.c_str());
+		else Game::logger->Log("Database", "Destroying MySQL connection!\n");
+	}
+
 	con->close();
 	delete con;
 } //Destroy
@@ -48,13 +62,7 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 	sql::SQLString str(test, size);
 
 	if (!con) {
-		//Connect to the MySQL Database
-		std::string mysql_host = Game::config->GetValue("mysql_host");
-		std::string mysql_database = Game::config->GetValue("mysql_database");
-		std::string mysql_username = Game::config->GetValue("mysql_username");
-		std::string mysql_password = Game::config->GetValue("mysql_password");
-
-		Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		Connect();
 		Game::logger->Log("Database", "Trying to reconnect to MySQL\n");
 	}
 
@@ -64,13 +72,7 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 
 		con = nullptr;
 
-		//Connect to the MySQL Database
-		std::string mysql_host = Game::config->GetValue("mysql_host");
-		std::string mysql_database = Game::config->GetValue("mysql_database");
-		std::string mysql_username = Game::config->GetValue("mysql_username");
-		std::string mysql_password = Game::config->GetValue("mysql_password");
-
-		Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		Connect();
 		Game::logger->Log("Database", "Trying to reconnect to MySQL from invalid or closed connection\n");
 	}
 	
@@ -79,3 +81,6 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 	return stmt;
 } //CreatePreppedStmt
 
+void Database::Commit() {
+	Database::con->commit();
+}
