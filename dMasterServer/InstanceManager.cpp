@@ -290,7 +290,7 @@ Instance * InstanceManager::FindInstance(LWOMAPID mapID, bool isFriendTransfer, 
 
 Instance * InstanceManager::FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID) {
 	for (Instance* i : m_Instances) {
-		if (i && i->GetMapID() == mapID && i->GetInstanceID() == instanceID && !i->GetIsPrivate()) {
+		if (i && i->GetMapID() == mapID && i->GetInstanceID() == instanceID && !i->GetIsPrivate() && !i->GetShutdownComplete()  && !i->GetIsShuttingDown()) {
 			return i;
 		}
 	}
