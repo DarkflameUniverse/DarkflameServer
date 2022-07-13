@@ -445,7 +445,7 @@ Behavior::Behavior(const uint32_t behaviorId)
 
 	this->m_effectId = templateInDatabase.effectID;
 
-	this->m_effectHandle = templateInDatabase.effectHandle != "" ? new std::string(templateInDatabase.effectHandle) : nullptr;
+	this->m_effectHandle = *templateInDatabase.effectHandle != "" ? new std::string(*templateInDatabase.effectHandle) : nullptr;
 }
 
 

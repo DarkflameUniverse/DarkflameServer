@@ -152,13 +152,6 @@ now follow the build section for your system
 
 ## Setting up the environment
 
-### Database
-Darkflame Universe utilizes a MySQL/MariaDB database for account and character information.
-
-Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
-* Create a database for Darkflame Universe to use
-* Run each SQL file in the order at which they appear [here](migrations/dlu/) on the database
-
 ### Resources
 
 **LEGO® Universe 1.10.64**
@@ -201,6 +194,13 @@ certutil -hashfile <file> SHA256
 * Use `fdb_to_sqlite.py` in lcdr's utilities on `res/cdclient.fdb` in the unpacked client to convert the client database to `cdclient.sqlite`
 * Move and rename `cdclient.sqlite` into `build/res/CDServer.sqlite`
 * Run each SQL file in the order at which they appear [here](migrations/cdserver/) on the SQLite database
+
+### Database
+Darkflame Universe utilizes a MySQL/MariaDB database for account and character information.
+
+Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
+* Create a database for Darkflame Universe to use
+* Use the command `./MasterServer -m` to automatically run them.
 
 **Configuration**
 
