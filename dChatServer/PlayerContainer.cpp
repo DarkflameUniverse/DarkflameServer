@@ -14,12 +14,6 @@ PlayerContainer::PlayerContainer() {
 }
 
 PlayerContainer::~PlayerContainer() {
-	for (auto pair : mPlayers) {
-		if (pair.second) {
-			delete pair.second;
-			pair.second = nullptr;
-		}
-	}
 	mPlayers.clear();
 }
 
