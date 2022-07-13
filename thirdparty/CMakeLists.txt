@@ -202,13 +202,8 @@ add_library(sqlite3 ${SOURCES_SQLITE3})
 if(WIN32)
 	# Link Win Sockets 2 to RakNet
 	target_link_libraries(raknet ws2_32)
-else()
-	# Use zlib on all platforms excluding Windows
-	find_package(ZLIB REQUIRED)
-endif()
-
-# Add warning disable flags and link Unix libraries to sqlite3
-if(UNIX)
+elseif(UNIX)
+	# Add warning disable flags and link Unix libraries to sqlite3
 	target_link_libraries(sqlite3 pthread dl m)
 
 	#  -Wno-unused-result -Wno-unknown-pragmas -fpermissive

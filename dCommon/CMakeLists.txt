@@ -21,5 +21,6 @@ add_library(dCommon ${DCOMMON_SOURCES})
 target_link_libraries(dCommon libbcrypt)
 
 if (UNIX)
-    target_link_libraries(dCommon ZLIB)
+    find_package(ZLIB REQUIRED)
+    target_link_libraries(dCommon ZLIB::ZLIB)
 endif()
