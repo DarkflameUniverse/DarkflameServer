@@ -9,14 +9,20 @@ CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 		hash = 0;
 		CDBehaviorParameter entry;
 		entry.behaviorID = tableData.getIntField(0, -1);
-		entry.parameterID = tableData.getStringField(1, "");
+		auto candidateStringToAdd = std::string(tableData.getStringField(1, ""));
+		auto parameter = m_ParametersList.find(candidateStringToAdd);
+		if (parameter != m_ParametersList.end()) {
+			entry.parameterID = parameter;
+		} else {
+			entry.parameterID = m_ParametersList.insert(candidateStringToAdd).first;
+		}
 		entry.value = tableData.getFloatField(2, -1.0f);
 
 		GeneralUtils::hash_combine(hash, entry.behaviorID);
-		GeneralUtils::hash_combine(hash, entry.parameterID);
+		GeneralUtils::hash_combine(hash, *entry.parameterID);
 
 		auto it = m_Entries.find(entry.behaviorID);
-		m_ParametersList.insert(entry.parameterID);
+		m_ParametersList.insert(*entry.parameterID);
 		m_Entries.insert(std::make_pair(hash, entry));
 
 		tableData.nextRow();
@@ -36,7 +42,7 @@ CDBehaviorParameter CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID
 {
 	CDBehaviorParameter returnValue;
 	returnValue.behaviorID = 0;
-	returnValue.parameterID = "";
+	returnValue.parameterID = m_ParametersList.end();
 	returnValue.value = defaultValue;
 
 	size_t hash = 0;
@@ -57,7 +63,7 @@ std::map<std::string, float> CDBehaviorParameterTable::GetParametersByBehaviorID
 		GeneralUtils::hash_combine(hash, parameterCandidate);
 		auto infoCandidate = m_Entries.find(hash);
 		if (infoCandidate != m_Entries.end()) {
-			returnInfo.insert(std::make_pair(infoCandidate->second.parameterID, infoCandidate->second.value));
+			returnInfo.insert(std::make_pair(*(infoCandidate->second.parameterID), infoCandidate->second.value));
 		}
 	}
 	return returnInfo;

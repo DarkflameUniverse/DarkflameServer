@@ -188,3 +188,53 @@ std::u16string GeneralUtils::ReadWString(RakNet::BitStream *inStream) {
 
     return string;
 }
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
+std::vector<std::string> GeneralUtils::GetFileNamesFromFolder(const std::string& folder)
+{
+    std::vector<std::string> names;
+    std::string search_path = folder + "/*.*";
+    WIN32_FIND_DATA fd;
+    HANDLE hFind = ::FindFirstFile(search_path.c_str(), &fd);
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+                names.push_back(fd.cFileName);
+            }
+        } while (::FindNextFile(hFind, &fd));
+        ::FindClose(hFind);
+    }
+    return names;
+}
+#else
+#include <stdio.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <iostream>
+#include <vector>
+#include <cstring>
+
+std::vector<std::string> GeneralUtils::GetFileNamesFromFolder(const std::string& folder) {
+    std::vector<std::string> names;
+    struct dirent* entry;
+    DIR* dir = opendir(folder.c_str());
+    if (dir == NULL) {
+        return names;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        std::string value(entry->d_name, strlen(entry->d_name));
+        if (value == "." || value == "..") {
+            continue;
+        }
+        names.push_back(value);
+    }
+
+    closedir(dir);
+
+    return names;
+}
+#endif

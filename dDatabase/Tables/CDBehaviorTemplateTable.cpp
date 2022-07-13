@@ -24,7 +24,13 @@ CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
         entry.behaviorID = tableData.getIntField(0, -1);
         entry.templateID = tableData.getIntField(1, -1);
         entry.effectID = tableData.getIntField(2, -1);
-        entry.effectHandle = tableData.getStringField(3, "");
+        auto candidateToAdd = tableData.getStringField(3, "");
+        auto parameter = m_EffectHandles.find(candidateToAdd);
+        if (parameter != m_EffectHandles.end()) {
+            entry.effectHandle = parameter;
+        } else {
+            entry.effectHandle = m_EffectHandles.insert(candidateToAdd).first;
+        }
         
         this->entries.push_back(entry);
         this->entriesMappedByBehaviorID.insert(std::make_pair(entry.behaviorID, entry));
@@ -62,7 +68,8 @@ const CDBehaviorTemplate CDBehaviorTemplateTable::GetByBehaviorID(uint32_t behav
     if (entry == this->entriesMappedByBehaviorID.end()) {
         CDBehaviorTemplate entryToReturn;
         entryToReturn.behaviorID = 0;
-        entryToReturn.effectHandle = "";
+        entryToReturn.effectHandle = m_EffectHandles.end();
+        entryToReturn.effectID = 0;
         return entryToReturn;
     } else {
         return entry->second;
