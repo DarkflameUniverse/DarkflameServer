@@ -26,20 +26,20 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	if (!player) return;
 
 	//Get our friends list from the Db.  Using a derived table since the friend of a player can be in either column.
-	auto stmt = Database::CreatePreppedStmt(
+	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt(
 		"SELECT fr.requested_player, best_friend, ci.name FROM "
 		"(SELECT CASE "
 			"WHEN player_id = ? THEN friend_id "
 			"WHEN friend_id = ? THEN player_id "
 		"END AS requested_player, best_friend FROM friends) AS fr "
 		"JOIN charinfo AS ci ON ci.id = fr.requested_player "
-		"WHERE fr.requested_player IS NOT NULL;");
+		"WHERE fr.requested_player IS NOT NULL;"));
 	stmt->setUInt(1, static_cast<uint32_t>(playerID));
 	stmt->setUInt(2, static_cast<uint32_t>(playerID));
 
 	std::vector<FriendData> friends;
 
-	auto res = stmt->executeQuery();
+	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
 	while (res->next()) {
 		FriendData fd;
 		fd.isFTP = false; // not a thing in DLU
@@ -68,11 +68,6 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 
 		friends.push_back(fd);
 	}
-
-	delete res;
-	res = nullptr;
-	delete stmt;
-	stmt = nullptr;
 
 	//Now, we need to send the friendlist to the server they came from:
 	CBITSTREAM;
@@ -119,14 +114,13 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	inStream.Read(isBestFriendRequest);
 
 	auto requestor = playerContainer.GetPlayerData(requestorPlayerID);
-	auto requestee = playerContainer.GetPlayerData(playerName);
+	std::unique_ptr<PlayerData> requestee(playerContainer.GetPlayerData(playerName));
+
 	// Check if player is online first
-	bool cleanupRequestee = false;
 	if (isBestFriendRequest && !requestee) {
 		for (auto friendDataCandidate : requestor->friends) {
 			if (friendDataCandidate.friendName == playerName) {
-				requestee = new PlayerData();
-				cleanupRequestee = true;
+				requestee.reset(new PlayerData());
 				// Setup the needed info since you can add a best friend offline.
 				requestee->playerID = friendDataCandidate.friendID;
 				requestee->playerName = RakNet::RakString(friendDataCandidate.friendName.c_str());
@@ -148,30 +142,24 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	// If at this point we dont have a target, then they arent online and we cant send the request.  
 	// Send the response code that corresponds to what the error is.
 	if (!requestee) {
-		auto nameQuery = Database::CreatePreppedStmt("SELECT name from charinfo where name = ?;");
+		std::unique_ptr<sql::PreparedStatement> nameQuery(Database::CreatePreppedStmt("SELECT name from charinfo where name = ?;"));
 		nameQuery->setString(1, playerName);
-		auto result = nameQuery->executeQuery();
+		std::unique_ptr<sql::ResultSet> result(nameQuery->executeQuery());
 
-		requestee = new PlayerData();
+		requestee.reset(new PlayerData());
 		requestee->playerName = RakNet::RakString(playerName.c_str());
 
-		SendFriendResponse(requestor, requestee, result->next() ? AddFriendResponseType::NOTONLINE : AddFriendResponseType::INVALIDCHARACTER);
-		delete result;
-		result = nullptr;
-		delete nameQuery;
-		nameQuery = nullptr;
-		delete requestee;
-		requestee = nullptr;
+		SendFriendResponse(requestor, requestee.get(), result->next() ? AddFriendResponseType::NOTONLINE : AddFriendResponseType::INVALIDCHARACTER);
 		return;
 	}
 
 	if (isBestFriendRequest) {
-		auto friendUpdate = Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
+		std::unique_ptr<sql::PreparedStatement> friendUpdate(Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
 		friendUpdate->setUInt(1, static_cast<uint32_t>(requestorPlayerID));
 		friendUpdate->setUInt(2, static_cast<uint32_t>(requestee->playerID));
 		friendUpdate->setUInt(3, static_cast<uint32_t>(requestee->playerID));
 		friendUpdate->setUInt(4, static_cast<uint32_t>(requestorPlayerID));
-		auto result = friendUpdate->executeQuery();
+		std::unique_ptr<sql::ResultSet> result(friendUpdate->executeQuery());
 
 		LWOOBJID queryPlayerID = LWOOBJID_EMPTY;
 		LWOOBJID queryFriendID = LWOOBJID_EMPTY;
@@ -200,38 +188,31 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				bestFriendStatus |= 1ULL << 1;
 			}
 		}
-	
-		delete result;
-		result = nullptr;
-		delete friendUpdate;
-		friendUpdate = nullptr;
 
 		// Only do updates if there was a change in the bff status.
 		if (oldBestFriendStatus != bestFriendStatus) {
 			if (requestee->countOfBestFriends >= maxNumberOfBestFriends || requestor->countOfBestFriends >= maxNumberOfBestFriends) {
 				if (requestee->countOfBestFriends >= maxNumberOfBestFriends) {
-					SendFriendResponse(requestor, requestee, AddFriendResponseType::THEIRFRIENDLISTFULL, false);
+					SendFriendResponse(requestor, requestee.get(), AddFriendResponseType::THEIRFRIENDLISTFULL, false);
 				}
 				if (requestor->countOfBestFriends >= maxNumberOfBestFriends) {
-					SendFriendResponse(requestor, requestee, AddFriendResponseType::YOURFRIENDSLISTFULL, false);
+					SendFriendResponse(requestor, requestee.get(), AddFriendResponseType::YOURFRIENDSLISTFULL, false);
 				}
 			} else {
 				// Then update the database with this new info.
-				auto updateQuery = Database::CreatePreppedStmt("UPDATE friends SET best_friend = ? WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
+				std::unique_ptr<sql::PreparedStatement> updateQuery(Database::CreatePreppedStmt("UPDATE friends SET best_friend = ? WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
 				updateQuery->setUInt(1, bestFriendStatus);
 				updateQuery->setUInt(2, static_cast<uint32_t>(requestorPlayerID));
 				updateQuery->setUInt(3, static_cast<uint32_t>(requestee->playerID));
 				updateQuery->setUInt(4, static_cast<uint32_t>(requestee->playerID));
 				updateQuery->setUInt(5, static_cast<uint32_t>(requestorPlayerID));
 				updateQuery->executeUpdate();
-				delete updateQuery;
-				updateQuery = nullptr;
 				// Sent the best friend update here if the value is 3
 				if (bestFriendStatus == 3U) {
 					requestee->countOfBestFriends+=1;
 					requestor->countOfBestFriends+=1;
-					if (requestee->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestee, requestor, AddFriendResponseType::ACCEPTED, false, true);
-					if (requestor->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee, AddFriendResponseType::ACCEPTED, false, true);
+					if (requestee->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestee.get(), requestor, AddFriendResponseType::ACCEPTED, false, true);
+					if (requestor->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee.get(), AddFriendResponseType::ACCEPTED, false, true);
 					for (auto& friendData : requestor->friends) {
 						if (friendData.friendID == requestee->playerID) {
 							friendData.isBestFriend = true;
@@ -245,17 +226,15 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				}
 			}
 		} else {
-			if (requestor->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee, AddFriendResponseType::WAITINGAPPROVAL, true, true);
+			if (requestor->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee.get(), AddFriendResponseType::WAITINGAPPROVAL, true, true);
 		}
 	} else {
 		// Do not send this if we are requesting to be a best friend.
-		SendFriendRequest(requestee, requestor);
+		SendFriendRequest(requestee.get(), requestor);
 	}
-
-	if (cleanupRequestee) {
-		delete requestee;
-		requestee = nullptr;
-	}
+	
+	// If the player is actually a player and not a ghost one defined above, release it from being deleted.
+	if (requestee->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) requestee.release();
 }
 
 void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
@@ -302,13 +281,8 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 		}
 	}
 
-	SendFriendResponse(requestee, requestor, serverResponseCode, isAlreadyBestFriends);
-	
-	if (serverResponseCode == AddFriendResponseType::DECLINED) SendFriendResponse(requestor, requestee, serverResponseCode, isAlreadyBestFriends);
-
+	// This message is NOT sent for best friends and is handled differently for those requests.
 	if (serverResponseCode == AddFriendResponseType::ACCEPTED) {
-		SendFriendResponse(requestor, requestee, serverResponseCode, isAlreadyBestFriends);
-
 		// Add the each player to the others friend list.
 		FriendData requestorData;
 		requestorData.zoneID = requestor->zoneID;
@@ -327,15 +301,16 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 		requesteeData.isFTP = false;
 		requesteeData.isOnline = true;
 		requestor->friends.push_back(requesteeData);
-
-		auto stmt = Database::CreatePreppedStmt("INSERT IGNORE INTO `friends` (`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?)");
-		stmt->setUInt(1, static_cast<uint32_t>(requestor->playerID));
-		stmt->setUInt(2, static_cast<uint32_t>(requestee->playerID));
-		stmt->setInt(3, 0);
-		stmt->execute();
-		delete stmt;
-		stmt = nullptr;
+		
+		std::unique_ptr<sql::PreparedStatement> statement(Database::CreatePreppedStmt("INSERT IGNORE INTO `friends` (`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?);"));
+		statement->setUInt(1, static_cast<uint32_t>(requestor->playerID));
+		statement->setUInt(2, static_cast<uint32_t>(requestee->playerID));
+		statement->setInt(3, 0);
+		statement->execute();
 	}
+
+	if (serverResponseCode != AddFriendResponseType::DECLINED) SendFriendResponse(requestor, requestee, serverResponseCode, isAlreadyBestFriends);
+	if (serverResponseCode != AddFriendResponseType::ALREADYFRIEND) SendFriendResponse(requestee, requestor, serverResponseCode, isAlreadyBestFriends);
 }
 
 void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
@@ -347,11 +322,11 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 
 	//we'll have to query the db here to find the user, since you can delete them while they're offline.
 	//First, we need to find their ID:
-	auto stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE name=? LIMIT 1;");
+	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE name=? LIMIT 1;"));
 	stmt->setString(1, friendName.c_str());
 
 	LWOOBJID friendID = 0;
-	auto res = stmt->executeQuery();
+	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
 	while (res->next()) {
 		friendID = res->getUInt(1);
 	}
@@ -360,20 +335,12 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	GeneralUtils::SetBit(friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_PERSISTENT));
 	GeneralUtils::SetBit(friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_CHARACTER));
 
-	delete res;
-	res = nullptr;
-	delete stmt;
-	stmt = nullptr;
-
-	auto deletestmt = Database::CreatePreppedStmt("DELETE FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
+	std::unique_ptr<sql::PreparedStatement> deletestmt(Database::CreatePreppedStmt("DELETE FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
 	deletestmt->setUInt(1, static_cast<uint32_t>(playerID));
 	deletestmt->setUInt(2, static_cast<uint32_t>(friendID));
 	deletestmt->setUInt(3, static_cast<uint32_t>(friendID));
 	deletestmt->setUInt(4, static_cast<uint32_t>(playerID));
 	deletestmt->execute();
-
-	delete deletestmt;
-	deletestmt = nullptr;
 
 	//Now, we need to send an update to notify the sender (and possibly, receiver) that their friendship has been ended:
 	auto goonA = playerContainer.GetPlayerData(playerID);
