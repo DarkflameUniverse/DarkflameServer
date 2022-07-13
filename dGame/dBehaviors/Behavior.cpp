@@ -409,7 +409,7 @@ Behavior::Behavior(const uint32_t behaviorId)
 {
 	auto behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDBehaviorTemplateTable>("BehaviorTemplate");
 
-	CDBehaviorTemplate templateInDatabase;
+	CDBehaviorTemplate templateInDatabase{};
 
 	if (behaviorTemplateTable) {
 		auto templateEntry = behaviorTemplateTable->GetByBehaviorID(behaviorId);
