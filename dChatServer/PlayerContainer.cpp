@@ -55,7 +55,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	inStream.Read(playerID);
 
 	//Before they get kicked, we need to also send a message to their friends saying that they disconnected.
-	auto player = this->GetPlayerData(playerID);
+	std::unique_ptr<PlayerData> player(this->GetPlayerData(playerID));
 
 	if (player == nullptr) {
 		return;
@@ -63,7 +63,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 
 	for (auto& fr : player->friends) {
 		auto fd = this->GetPlayerData(fr.friendID);
-		if (fd) ChatPacketHandler::SendFriendUpdate(fd, player, 0, fr.isBestFriend);
+		if (fd) ChatPacketHandler::SendFriendUpdate(fd, player.get(), 0, fr.isBestFriend);
 	}
 
 	auto* team = GetTeam(playerID);
@@ -83,10 +83,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	}
 
 	Game::logger->Log("PlayerContainer", "Removed user: %llu\n", playerID);
-	auto playerIterator = mPlayers.find(playerID);
-	delete playerIterator->second;
-	playerIterator->second = nullptr;
-	mPlayers.erase(playerIterator);
+	mPlayers.erase(playerID);
 
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
