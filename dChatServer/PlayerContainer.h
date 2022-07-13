@@ -14,6 +14,7 @@ struct PlayerData {
 	LWOZONEID zoneID;
 	std::vector<FriendData> friends;
 	time_t muteExpire;
+	uint8_t countOfBestFriends = 0;
 };
 
 struct TeamData {

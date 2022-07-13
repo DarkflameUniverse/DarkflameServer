@@ -60,7 +60,7 @@ class PropertyEntranceComponent : public Component {
 
     PropertySelectQueryProperty SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId = LWOCLONEID_INVALID, std::string ownerName = "", std::string propertyName = "", std::string propertyDescription = "", float reputation = 0, bool isBFF = false, bool isFriend = false, bool isModeratorApproved = false, bool isAlt = false, bool isOwned = false, uint32_t privacyOption = 0, uint32_t timeLastUpdated = 0, float performanceCost = 0.0f);
 
-    std::string BuildQuery(Entity* entity, int32_t sortMethod, std::string customQuery = "", bool wantLimits = true);
+    std::string BuildQuery(Entity* entity, int32_t sortMethod, Character* character, std::string customQuery = "", bool wantLimits = true);
 
   private:
     /**

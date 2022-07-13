@@ -102,7 +102,7 @@ PropertySelectQueryProperty PropertyEntranceComponent::SetPropertyValues(Propert
     return property;
 }
 
-std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMethod, std::string customQuery, bool wantLimits) {
+std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMethod, Character* character, std::string customQuery, bool wantLimits) {
     std::string base;
     if (customQuery == "") {
         base = baseQueryForProperties;
@@ -115,15 +115,13 @@ std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMe
 
         auto friendsListQuery = Database::CreatePreppedStmt("SELECT * FROM (SELECT CASE WHEN player_id = ? THEN friend_id WHEN friend_id = ? THEN player_id END AS requested_player FROM friends ) AS fr WHERE requested_player IS NOT NULL ORDER BY requested_player DESC;");
 
-        friendsListQuery->setInt64(1, entity->GetObjectID());
-        friendsListQuery->setInt64(2, entity->GetObjectID());
+        friendsListQuery->setUInt(1, character->GetID());
+        friendsListQuery->setUInt(2, character->GetID());
 
         auto friendsListQueryResult = friendsListQuery->executeQuery();
 
         while (friendsListQueryResult->next()) {
-            auto playerIDToConvert = friendsListQueryResult->getInt64(1);
-            playerIDToConvert = GeneralUtils::ClearBit(playerIDToConvert, OBJECT_BIT_CHARACTER);
-            playerIDToConvert = GeneralUtils::ClearBit(playerIDToConvert, OBJECT_BIT_PERSISTENT);
+            auto playerIDToConvert = friendsListQueryResult->getInt(1);
             friendsList = friendsList + std::to_string(playerIDToConvert) + ",";
         }
         // Replace trailing comma with the closing parenthesis.
@@ -193,7 +191,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
     entries.push_back(playerEntry);
 
-    const auto query = BuildQuery(entity, sortMethod);
+    const auto query = BuildQuery(entity, sortMethod, character);
 
     auto propertyLookup = Database::CreatePreppedStmt(query);
     
@@ -262,17 +260,17 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
         // Query to get friend and best friend fields
         auto friendCheck = Database::CreatePreppedStmt("SELECT best_friend FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)");
 
-        friendCheck->setInt64(1, entity->GetObjectID());
-        friendCheck->setInt64(2, ownerObjId);
-        friendCheck->setInt64(3, ownerObjId);
-        friendCheck->setInt64(4, entity->GetObjectID());
+        friendCheck->setUInt(1, character->GetID());
+        friendCheck->setUInt(2, ownerObjId);
+        friendCheck->setUInt(3, ownerObjId);
+        friendCheck->setUInt(4, character->GetID());
 
         auto friendResult = friendCheck->executeQuery();
 
         // If we got a result than the two players are friends.
         if (friendResult->next()) {
             isFriend = true;
-            if (friendResult->getInt(1) == 2) {
+            if (friendResult->getInt(1) == 3) {
                 isBestFriend = true;
             }
         }
@@ -326,7 +324,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     // Query here is to figure out whether or not to display the button to go to the next page or not.
     int32_t numberOfProperties = 0;
 
-    auto buttonQuery = BuildQuery(entity, sortMethod, "SELECT COUNT(*) FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ", false);
+    auto buttonQuery = BuildQuery(entity, sortMethod, character, "SELECT COUNT(*) FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ", false);
     auto propertiesLeft = Database::CreatePreppedStmt(buttonQuery);
 
     propertiesLeft->setUInt(1, this->m_MapID);
