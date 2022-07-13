@@ -169,11 +169,10 @@ void BasePropertyServer::BaseZonePropertyRented(Entity* self, Entity* player) co
         EntityManager::Instance()->DestructEntity(plaque);
     }
 
-	if (self->GetVar<int32_t>(brickLinkMissionIDFlag) != 0) {
-        auto plaques = EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(PropertyPlaqueGroup));
-        for (auto* plaque : plaques) {
-            EntityManager::Instance()->DestructEntity(plaque);
-        }
+    auto brickLinkMissionID = self->GetVar<uint32_t>(brickLinkMissionIDFlag);
+	if (brickLinkMissionID != 0) {
+        auto missionComponent = player->GetComponent<MissionComponent>();
+        if (missionComponent) missionComponent->CompleteMission(brickLinkMissionID, true);
 	}
 
 	ActivateSpawner(self->GetVar<std::string>(PropObjsSpawner));
