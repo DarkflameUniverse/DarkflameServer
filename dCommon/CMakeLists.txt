@@ -21,5 +21,5 @@ add_library(dCommon ${DCOMMON_SOURCES})
 target_link_libraries(dCommon libbcrypt)
 
 if (UNIX)
-    target_link_libraries(dCommon zlib)
+    target_link_libraries(dCommon ZLIB)
 endif()
