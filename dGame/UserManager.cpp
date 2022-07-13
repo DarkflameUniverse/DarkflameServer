@@ -369,10 +369,8 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
     }
     
     LWOOBJID objectID = PacketUtils::ReadPacketS64(8, packet);
-    objectID = GeneralUtils::ClearBit(objectID, OBJECT_BIT_CHARACTER);
-    objectID = GeneralUtils::ClearBit(objectID, OBJECT_BIT_PERSISTENT);
-    
-    uint32_t charID = static_cast<uint32_t>(objectID);
+	uint32_t charID = static_cast<uint32_t>(objectID);
+
     Game::logger->Log("UserManager", "Received char delete req for ID: %llu (%u)\n", objectID, charID);
     
     //Check if this user has this character:
@@ -402,10 +400,14 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		}
 		{
 			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM friends WHERE player_id=? OR friend_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->setUInt64(2, charID);
+			stmt->setUInt(1, charID);
+			stmt->setUInt(2, charID);
 			stmt->execute();
 			delete stmt;
+			CBITSTREAM;
+			PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
+			bitStream.Write(objectID);
+			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
 		{
 			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM leaderboard WHERE character_id=?;");
