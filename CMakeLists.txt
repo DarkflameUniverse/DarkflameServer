@@ -196,6 +196,8 @@ if (UNIX)
     endif()
 endif()
 
+add_subdirectory(tests)
+
 # Include all of our binary directories
 add_subdirectory(dWorldServer)
 add_subdirectory(dAuthServer)
@@ -251,7 +253,3 @@ elseif(MSVC)
     # Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
     add_compile_options("/wd4267")
 endif()
-
-# Finally, add the tests
-add_subdirectory(tests)
-

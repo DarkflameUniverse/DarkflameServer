@@ -8,7 +8,7 @@ create_test_sourcelist (Tests
 # add the executable
 add_executable (CommonCxxTests ${Tests})
 message("Tests: ${Tests}")
-target_link_libraries(CommonCxxTests "-l${COMMON_LIBRARIES}")
+target_link_libraries(CommonCxxTests ${COMMON_LIBRARIES})
 message("Libraries: ${COMMON_LIBRARIES}")
 
 # remove the test driver source file
