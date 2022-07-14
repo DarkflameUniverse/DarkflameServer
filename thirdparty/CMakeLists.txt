@@ -147,7 +147,6 @@ else() # Build from source
 		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/${MARIADB_SHARED_LIBRARY_NAME}")
 		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}/$<CONFIG>")
 		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb/RelWithDebInfo")
-        message(STATUS "1 ${CMAKE_SOURCE_DIR}")
 	else()
 		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
 		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}")
@@ -214,8 +213,8 @@ endif()
 
 # Download Backtrace if configured
 if(UNIX AND NOT APPLE)
-    include(FetchContent)
-    if (__include_backtrace__ AND __compile_backtrace__)
+	include(FetchContent)
+	if (__include_backtrace__ AND __compile_backtrace__)
 		FetchContent_Declare(
 			backtrace
 			GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
@@ -224,11 +223,11 @@ if(UNIX AND NOT APPLE)
 		FetchContent_MakeAvailable(backtrace)
 
 		if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
-		    set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
+			set(backtrace_make_cmd "${backtrace_SOURCE_DIR}/configure --prefix=\"/usr\" --enable-shared --with-system-libunwind")
 
-		    execute_process(
-			    COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
-		    )
+			execute_process(
+				COMMAND bash -c "cd ${backtrace_SOURCE_DIR} && ${backtrace_make_cmd} && make && cd ${CMAKE_SOURCE_DIR}"
+			)
 		endif()
 
 		link_directories(${backtrace_SOURCE_DIR}/.libs/)
