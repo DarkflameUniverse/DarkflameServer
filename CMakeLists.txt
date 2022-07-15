@@ -131,12 +131,14 @@ set(INCLUDED_DIRECTORIES
 	"dDatabase/Tables"
 	"dNet"
 	"dScripts"
+
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
 	"thirdparty/recastnavigation/Recast/Include"
 	"thirdparty/recastnavigation/Detour/Include"
 	"thirdparty/SQLite"
-	"thirdparty/cpplinq")
+	"thirdparty/cpplinq"
+	)
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
 if (APPLE)
@@ -151,12 +153,8 @@ elseif (UNIX)
 endif()
 
 include_directories(${ZLIB_INCLUDE_DIRS})
-
 # Add binary directory as an include directory
 include_directories(${PROJECT_BINARY_DIR})
-
-# Load all of our third party directories
-add_subdirectory(thirdparty)
 
 # Actually include the directories from our list
 foreach (dir ${INCLUDED_DIRECTORIES})
@@ -165,6 +163,9 @@ endforeach()
 
 # Add linking directories:
 link_directories(${PROJECT_BINARY_DIR})
+
+# Load all of our third party directories
+add_subdirectory(thirdparty)
 
 # Glob together all headers that need to be precompiled
 file(
