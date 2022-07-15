@@ -20,6 +20,12 @@
       "inherits": "default"
     },
     {
+      "name": "ci-macos-11",
+      "displayName": "CI configure step for MacOS",
+      "description": "Same as default, Used in GitHub actions workflow",
+      "inherits": "default"
+    },
+    {
       "name": "ci-windows-2022",
       "displayName": "CI configure step for Windows",
       "description": "Set architecture to 64-bit (b/c RakNet)",
