@@ -3,4 +3,4 @@ set(DZONEMANAGER_SOURCES "dZoneManager.cpp"
 	"Spawner.cpp"
 	"Zone.cpp")
 
-add_library(dZoneManager ${DZONEMANAGER_SOURCES})
+add_library(dZoneManager STATIC ${DZONEMANAGER_SOURCES}) 

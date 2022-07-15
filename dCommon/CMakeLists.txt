@@ -16,7 +16,7 @@ set(DCOMMON_SOURCES "AMFFormat.cpp"
 
 include_directories(${PROJECT_SOURCE_DIR}/dCommon/)
 
-add_library(dCommon ${DCOMMON_SOURCES})
+add_library(dCommon STATIC ${DCOMMON_SOURCES})
 
 target_link_libraries(dCommon libbcrypt)
 

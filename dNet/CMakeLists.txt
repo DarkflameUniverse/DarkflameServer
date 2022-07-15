@@ -7,5 +7,5 @@ set(DNET_SOURCES "AuthPackets.cpp"
 	"WorldPackets.cpp"
 	"ZoneInstanceManager.cpp")
 
-add_library(dNet ${DNET_SOURCES})
+add_library(dNet STATIC ${DNET_SOURCES})
 target_link_libraries(dNet dCommon dDatabase)

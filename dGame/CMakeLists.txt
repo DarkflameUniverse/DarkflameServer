@@ -54,6 +54,6 @@ foreach(file ${DSCRIPT_SOURCES})
 	set(DGAME_SOURCES ${DGAME_SOURCES} "${PROJECT_SOURCE_DIR}/dScripts/${file}")
 endforeach()
 
-add_library(dGame ${DGAME_SOURCES})
+add_library(dGame STATIC ${DGAME_SOURCES})
 
 target_link_libraries(dGame dDatabase)

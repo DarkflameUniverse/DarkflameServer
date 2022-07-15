@@ -39,14 +39,34 @@ endforeach()
 # Set the version
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROJECT_VERSION=${PROJECT_VERSION}")
-
 # Echo the version
 message(STATUS "Version: ${PROJECT_VERSION}")
 
-if(WIN32)
+# Compiler flags:
+# Disabled deprecated warnings as the MySQL includes have deprecated code in them. 
+# Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
+# Disabled no-register
+# Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROJECT_VERSION=${PROJECT_VERSION}")
+if(UNIX)
+	if(APPLE)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -fPIC")
+	else()
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC")
+	endif()
+	if (__dynamic)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
+	endif()
+	if (__ggdb)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
+	endif()
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
+elseif(MSVC)
+	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
+	add_compile_options("/wd4267")
+elseif(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-endif(WIN32)
+endif()
 
 # Our output dir
 set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR})
@@ -111,14 +131,12 @@ set(INCLUDED_DIRECTORIES
 	"dDatabase/Tables"
 	"dNet"
 	"dScripts"
-
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
 	"thirdparty/recastnavigation/Recast/Include"
 	"thirdparty/recastnavigation/Detour/Include"
 	"thirdparty/SQLite"
-	"thirdparty/cpplinq"
-	)
+	"thirdparty/cpplinq")
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
 if (APPLE)
@@ -133,8 +151,12 @@ elseif (UNIX)
 endif()
 
 include_directories(${ZLIB_INCLUDE_DIRS})
+
 # Add binary directory as an include directory
 include_directories(${PROJECT_BINARY_DIR})
+
+# Load all of our third party directories
+add_subdirectory(thirdparty)
 
 # Actually include the directories from our list
 foreach (dir ${INCLUDED_DIRECTORIES})
@@ -143,9 +165,6 @@ endforeach()
 
 # Add linking directories:
 link_directories(${PROJECT_BINARY_DIR})
-
-# Load all of our third party directories
-add_subdirectory(thirdparty)
 
 # Glob together all headers that need to be precompiled
 file(
@@ -177,38 +196,15 @@ file(
 	${PROJECT_SOURCE_DIR}/dScripts/CppScripts.h
 )
 
-# Compiler flags:
-# Disabled deprecated warnings as the MySQL includes have deprecated code in them. 
-# Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
-# Disabled no-register
-# Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
-if(UNIX)
-	if(APPLE)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -fPIC")
-	else()
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC")
-	endif()
-	if (__dynamic)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
-	endif()
-	if (__ggdb)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
-	endif()
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
-elseif(MSVC)
-	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
-	add_compile_options("/wd4267")
-endif()
-
 # Add our library subdirectories for creation of the library object
 add_subdirectory(dCommon)
 add_subdirectory(dDatabase)
 add_subdirectory(dChatFilter)
 add_subdirectory(dNet)
-#add_subdirectory(dScripts) # Add for dGame to use
-#add_subdirectory(dGame)
-#add_subdirectory(dZoneManager)
-#add_subdirectory(dPhysics)
+add_subdirectory(dScripts) # Add for dGame to use
+add_subdirectory(dGame)
+add_subdirectory(dZoneManager)
+add_subdirectory(dPhysics)
 
 # Create a list of common libraries shared between all binaries
 set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp")
@@ -225,34 +221,34 @@ endif()
 add_subdirectory(tests)
 
 # Include all of our binary directories
-#add_subdirectory(dWorldServer)
-#add_subdirectory(dAuthServer)
+add_subdirectory(dWorldServer)
+add_subdirectory(dAuthServer)
 add_subdirectory(dChatServer)
-#add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the other binaries
+add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the other binaries
 
 # Add our precompiled headers
-#target_precompile_headers(
-#	dGame PRIVATE 
-#	${HEADERS_DGAME}
-#)
-#
-#target_precompile_headers(
-#	dZoneManager PRIVATE 
-#	${HEADERS_DZONEMANAGER}
-#)
-#
-## Need to specify to use the CXX compiler language here or else we get errors including <string>.
-#target_precompile_headers(
-#	dDatabase PRIVATE 
-#	"$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
-#)
-#
-#target_precompile_headers(
-#	dCommon PRIVATE
-#	${HEADERS_DCOMMON}
-#)
-#
-#target_precompile_headers(
-#	tinyxml2 PRIVATE
-#	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
-#)
+target_precompile_headers(
+	dGame PRIVATE 
+	${HEADERS_DGAME}
+)
+
+target_precompile_headers(
+	dZoneManager PRIVATE 
+	${HEADERS_DZONEMANAGER}
+)
+
+# Need to specify to use the CXX compiler language here or else we get errors including <string>.
+target_precompile_headers(
+	dDatabase PRIVATE 
+	"$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
+)
+
+target_precompile_headers(
+	dCommon PRIVATE
+	${HEADERS_DCOMMON}
+)
+
+target_precompile_headers(
+	tinyxml2 PRIVATE
+	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
+)

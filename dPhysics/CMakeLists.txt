@@ -6,4 +6,4 @@ set(DPHYSICS_SOURCES "dpCollisionChecks.cpp"
 	"dpShapeSphere.cpp"
 	"dpWorld.cpp")
 
-add_library(dPhysics ${DPHYSICS_SOURCES})
+add_library(dPhysics STATIC ${DPHYSICS_SOURCES})
