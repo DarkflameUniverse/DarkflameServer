@@ -42,7 +42,7 @@
 #include "CDPropertyTemplateTable.h"
 #include "CDFeatureGatingTable.h"
 #include "CDRailActivatorComponent.h"
-
+#include "CDFaceItemComponentTable.h"
 // C++
 #include <type_traits>
 #include <unordered_map>

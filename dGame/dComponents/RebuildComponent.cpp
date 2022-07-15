@@ -150,6 +150,8 @@ void RebuildComponent::Update(float deltaTime) {
 		break;
 	}
 	case REBUILD_COMPLETED: {
+       if (!m_DoReset) break;
+
 		m_Timer += deltaTime;
 
 		// For reset times < 0 this has to be handled manually
@@ -590,4 +592,12 @@ void RebuildComponent::AddRebuildCompleteCallback(const std::function<void(Entit
 
 void RebuildComponent::AddRebuildStateCallback(const std::function<void(eRebuildState state)>& callback) {
     m_RebuildStateCallbacks.push_back(callback);
+}
+
+void RebuildComponent::SetDoReset(bool doReset) {
+	m_DoReset = doReset;
+}
+
+bool RebuildComponent::GetDoReset() {
+    return m_DoReset;
 }

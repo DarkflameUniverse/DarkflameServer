@@ -131,7 +131,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
         bool success = user->GetMaxGMLevel() >= level;
 
         if (success) {
-
 			if (entity->GetGMLevel() > GAME_MASTER_LEVEL_CIVILIAN && level == GAME_MASTER_LEVEL_CIVILIAN)
 			{
 				GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
@@ -164,6 +163,33 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	//HANDLE ALL NON GM SLASH COMMANDS RIGHT HERE!
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	// If the entity that uses this command is at the level cap, they will get rewards
+	// the same way they did before hitting the level cap.  If used below the cap nothing should happen
+	// and if used again this will allow players to get only coins again.
+	if (chatCommand == "togglexp")
+	{
+		auto characterComponent = entity->GetComponent<CharacterComponent>();
+		if (characterComponent != nullptr)
+		{
+			if (characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
+				auto character = entity->GetCharacter();
+				character->SetPlayerFlag(
+					ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL,
+					!character->GetPlayerFlag(ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL)
+				);
+				character->GetPlayerFlag(
+					ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL
+				) == true ? ChatPackets::SendSystemMessage(
+					sysAddr, u"You will now get coins and u-score as rewards."
+				) : ChatPackets::SendSystemMessage(
+					sysAddr, u"You will now get only coins as rewards."
+				);
+				return;
+			}
+			ChatPackets::SendSystemMessage(sysAddr, u"You must be at the max level to use this command.");
+		}
+	}
 
 	if (chatCommand == "pvp") {
 		auto* character = entity->GetComponent<CharacterComponent>();
@@ -1205,8 +1231,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			dest->SetImagination(999);
 			dest->SetMaxImagination(999.0f);
 		}
-        EntityManager::Instance()->SerializeEntity(entity);
-    }
+		EntityManager::Instance()->SerializeEntity(entity);
+	}
 
 	if (chatCommand == "startcelebration" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 1) {
 		int32_t celebration;
@@ -1230,20 +1256,18 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			dest->SetImagination(9);
 			dest->SetMaxImagination(9.0f);
 		}
-        EntityManager::Instance()->SerializeEntity(entity);
-    }
+		EntityManager::Instance()->SerializeEntity(entity);
+	}
 
-    if (chatCommand == "refillstats" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-
+	if (chatCommand == "refillstats" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
 		if (dest) {
 			dest->SetHealth((int)dest->GetMaxHealth());
 			dest->SetArmor((int)dest->GetMaxArmor());
 			dest->SetImagination((int)dest->GetMaxImagination());
 		}
-
-        EntityManager::Instance()->SerializeEntity(entity);
-    }
+		EntityManager::Instance()->SerializeEntity(entity);
+	}
 
 	if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 1) {
 		auto query = CDClientDatabase::CreatePreppedStmt(
@@ -1416,6 +1440,66 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		auto* ch = entity->GetCharacter();
 		ch->SetCoins(ch->GetCoins() + money, eLootSourceType::LOOT_SOURCE_MODERATION);
+	}
+
+	if (chatCommand == "killinstance" && args.size() >= 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
+	{
+	uint32_t zoneID;
+	uint32_t instanceID;
+
+	if (!GeneralUtils::TryParse(args[0], zoneID))
+	{
+		ChatPackets::SendSystemMessage(sysAddr, u"Invalid zoneID.");
+		return;
+	}
+
+	if (!GeneralUtils::TryParse(args[1], instanceID))
+	{
+		ChatPackets::SendSystemMessage(sysAddr, u"Invalid cloneID.");
+		return;
+	}
+
+	CBITSTREAM
+
+	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_INSTANCE);
+
+	bitStream.Write(zoneID);
+	bitStream.Write<uint16_t>(instanceID);
+
+	Game::server->SendToMaster(&bitStream);
+
+	Game::logger->Log("Instance", "Triggered world shutdown\n");
+	}
+
+	if (chatCommand == "getinstances" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
+	{
+		CBITSTREAM
+
+		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_GET_INSTANCES);
+
+		bitStream.Write(entity->GetObjectID());
+
+		if (args.size() >= 1) {
+			uint32_t zoneID;
+			if (!GeneralUtils::TryParse(args[0], zoneID))
+			{
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid zoneID");
+				return;
+			}
+			bitStream.Write(zoneID >= 0);
+			if (zoneID >= 0) {
+				bitStream.Write<uint16_t>(zoneID);
+			}
+		} else {
+			bitStream.Write0();
+		}
+
+		const auto zoneId = dZoneManager::Instance()->GetZone()->GetZoneID();
+
+		bitStream.Write(zoneId.GetMapID());
+		bitStream.Write(zoneId.GetInstanceID());
+
+		Game::server->SendToMaster(&bitStream);
 	}
 
 	if ((chatCommand == "setcurrency") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {

@@ -280,7 +280,7 @@ bool InstanceManager::IsInstanceFull(Instance* instance, bool isFriendTransfer) 
 
 Instance * InstanceManager::FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId) {
 	for (Instance* i : m_Instances) {
-		if (i && i->GetMapID() == mapID && i->GetCloneID() == cloneId && !IsInstanceFull(i, isFriendTransfer) && !i->GetIsPrivate() && !i->GetShutdownComplete()) {
+		if (i && i->GetMapID() == mapID && i->GetCloneID() == cloneId && !IsInstanceFull(i, isFriendTransfer) && !i->GetIsPrivate() && !i->GetShutdownComplete() && !i->GetIsShuttingDown()) {
 			return i;
 		}
 	}
@@ -290,12 +290,23 @@ Instance * InstanceManager::FindInstance(LWOMAPID mapID, bool isFriendTransfer, 
 
 Instance * InstanceManager::FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID) {
 	for (Instance* i : m_Instances) {
-		if (i && i->GetMapID() == mapID && i->GetInstanceID() == instanceID && !i->GetIsPrivate()) {
+		if (i && i->GetMapID() == mapID && i->GetInstanceID() == instanceID && !i->GetIsPrivate() && !i->GetShutdownComplete()  && !i->GetIsShuttingDown()) {
 			return i;
 		}
 	}
 
 	return nullptr;
+}
+
+std::vector<Instance*> InstanceManager::FindInstancesByMapID(LWOMAPID mapID) {
+	std::vector<Instance*> instances;
+	for (Instance* instance : m_Instances) {
+		if (instance && instance->GetMapID() == mapID) {
+			instances.push_back(instance);
+		}
+	}
+
+	return instances;
 }
 
 Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password)

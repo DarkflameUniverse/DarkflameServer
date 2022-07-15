@@ -9,6 +9,7 @@
 #include "GameMessages.h"
 #include "VanityUtilities.h"
 #include <chrono>
+// #include "RandomQBManager.h"
 
 #include "../dWorldServer/ObjectIDManager.h"
 
@@ -56,6 +57,10 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
     Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms\n", (endTime - startTime));
 
 	VanityUtilities::SpawnVanity();
+	// m_RandomQBManager = new RandomQBManager();
+
+	// m_RandomQBManager->Load(0);
+	// m_RandomQBManager->Load(zoneID.GetMapID());
 }
 
 dZoneManager::~dZoneManager() {
@@ -69,6 +74,7 @@ dZoneManager::~dZoneManager() {
 
         m_Spawners.erase(p.first);
     }
+	// delete m_RandomQBManager;
 }
 
 Zone * dZoneManager::GetZone() {
@@ -141,6 +147,8 @@ void dZoneManager::Update(float deltaTime) {
 	for (auto spawner : m_Spawners) {
 		spawner.second->Update(deltaTime);
 	}
+	
+	// m_RandomQBManager->Update(deltaTime);
 }
 
 LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info)

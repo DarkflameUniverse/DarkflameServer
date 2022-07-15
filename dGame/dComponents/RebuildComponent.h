@@ -154,6 +154,18 @@ public:
      */
     void SetPostImaginationCost(int value);
 
+     /**
+     * Gets the m_DoReset flag
+     * @param value the activity ID to set
+     */
+    bool GetDoReset();
+
+    /**
+     * Sets the m_DoReset flag
+     * @param value the reset flag to set
+     */
+    void SetDoReset(bool doReset);
+
     /**
      * Returns the time it takes for an incomplete rebuild to be smashed automatically
      * @return the time it takes for an incomplete rebuild to be smashed automatically
@@ -335,6 +347,11 @@ private:
      * Currently unused
      */
 	float m_SoftTimer = 0;
+
+    /**
+     * Whether build should explode
+     */
+    bool m_DoReset = true;
 
     /**
      * The ID of the entity that's currently building the rebuild

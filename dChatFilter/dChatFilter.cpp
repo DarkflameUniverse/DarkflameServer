@@ -8,14 +8,20 @@
 #include <regex>
 
 #include "dCommonVars.h"
-#include "Database.h"
 #include "dLogger.h"
+#include "dConfig.h"
+#include "Database.h"
 #include "Game.h"
 
 using namespace dChatFilterDCF;
 
 dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 	m_DontGenerateDCF = dontGenerateDCF;
+    if (Game::config->GetValue("use_chat_words_as_whitelist") == "") {
+        m_UseWhitelist = true;
+	} else {
+        m_UseWhitelist = bool(std::stoi(Game::config->GetValue("use_chat_words_as_whitelist")));
+	}
 
 	if (!BinaryIO::DoesFileExist(filepath + ".dcf") || m_DontGenerateDCF) {
 		ReadWordlistPlaintext(filepath + ".txt");
@@ -25,17 +31,18 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 		ReadWordlistPlaintext(filepath + ".txt");
 		ExportWordlistToDCF(filepath + ".dcf");
 	}
-
-	//Read player names that are ok as well:
-	auto stmt = Database::CreatePreppedStmt("select name from charinfo;");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		std::string line = res->getString(1).c_str();
-		std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
-		m_Words.push_back(CalculateHash(line));
+	if (m_UseWhitelist) {
+		//Read player names that are ok as well:
+		auto stmt = Database::CreatePreppedStmt("select name from charinfo;");
+		auto res = stmt->executeQuery();
+		while (res->next()) {
+			std::string line = res->getString(1).c_str();
+			std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
+			m_Words.push_back(CalculateHash(line));
+		}
+		delete res;
+		delete stmt;
 	}
-	delete res;
-	delete stmt;
 }
 
 dChatFilter::~dChatFilter() {
@@ -116,12 +123,19 @@ bool dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel) {
 		size_t hash = CalculateHash(segment);
 
 		if (std::find(m_UserUnapprovedWordCache.begin(), m_UserUnapprovedWordCache.end(), hash) != m_UserUnapprovedWordCache.end()) {
-			return false;
+			return false; // found word that isn't ok, just deny this code works for both white and black list
 		}
 
 		if (!IsInWordlist(hash)) {
-			m_UserUnapprovedWordCache.push_back(hash);
-			return false;
+			if (m_UseWhitelist) {
+				m_UserUnapprovedWordCache.push_back(hash);
+				return false;
+			}
+		} else {
+			if (!m_UseWhitelist) {
+				m_UserUnapprovedWordCache.push_back(hash);
+				return false;
+			}
 		}
 	}
 

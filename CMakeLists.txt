@@ -14,7 +14,7 @@ string(REPLACE "\n" ";" variables ${variables})
 foreach(variable ${variables})
     # If the string contains a #, skip it
     if(NOT "${variable}" MATCHES "#")
-    
+
     # Split the variable into name and value
     	string(REPLACE "=" ";" variable ${variable})
 
@@ -131,6 +131,19 @@ if (NOT EXISTS ${PROJECT_BINARY_DIR}/masterconfig.ini)
         COPYONLY
     )
 endif()
+
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/qbs/)
+file(GLOB QB_FILES ${CMAKE_SOURCE_DIR}/qbs/*.xml)
+foreach (file ${QB_FILES})
+    get_filename_component(file ${file} NAME)
+    if (NOT EXISTS ${PROJECT_BINARY_DIR}/qbs/${file})
+        configure_file(
+            ${CMAKE_SOURCE_DIR}/qbs/${file} ${PROJECT_BINARY_DIR}/qbs/${file}
+            COPYONLY
+        )
+    endif()
+endforeach()
+
 
 # Copy files to output
 configure_file("${CMAKE_SOURCE_DIR}/vanity/CREDITS.md" "${CMAKE_BINARY_DIR}/vanity/CREDITS.md" COPYONLY)
@@ -439,7 +452,7 @@ target_link_libraries(ChatServer dl)
 endif(UNIX)
 
 # Compiler flags:
-# Disabled deprecated warnings as the MySQL includes have deprecated code in them. 
+# Disabled deprecated warnings as the MySQL includes have deprecated code in them.
 # Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
