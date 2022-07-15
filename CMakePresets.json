@@ -72,6 +72,13 @@
       "displayName": "Linux CI Build",
       "description": "This preset is used by the CI build on linux",
       "jobs": 2
+    },
+    {
+      "name": "ci-macos-11",
+      "configurePreset": "ci-macos-11",
+      "displayName": "MacOS CI Build",
+      "description": "This preset is used by the CI build on MacOS",
+      "jobs": 2
     }
   ],
   "testPresets": [
@@ -80,6 +87,18 @@
       "configurePreset": "ci-ubuntu-20.04",
       "displayName": "CI Tests on Linux",
       "description": "Runs all tests on a linux configuration",
+      "execution": {
+        "jobs": 2
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "ci-macos-11",
+      "configurePreset": "ci-macos-11",
+      "displayName": "CI Tests on MacOS",
+      "description": "Runs all tests on a Mac configuration",
       "execution": {
         "jobs": 2
       },
