@@ -177,63 +177,6 @@ file(
 	${PROJECT_SOURCE_DIR}/dScripts/CppScripts.h
 )
 
-# Add our library subdirectories for creation of the library object
-add_subdirectory(dCommon)
-add_subdirectory(dDatabase)
-add_subdirectory(dChatFilter)
-add_subdirectory(dNet)
-add_subdirectory(dScripts) # Add for dGame to use
-add_subdirectory(dGame)
-add_subdirectory(dZoneManager)
-add_subdirectory(dPhysics)
-
-# Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp")
-
-# Add platform specific common libraries
-if (UNIX)
-	set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "dl" "pthread")
-
-	if (NOT APPLE AND __include_backtrace__)
-		set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "backtrace")
-	endif()
-endif()
-
-add_subdirectory(tests)
-
-# Include all of our binary directories
-add_subdirectory(dWorldServer)
-add_subdirectory(dAuthServer)
-add_subdirectory(dChatServer)
-add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the other binaries
-
-# Add our precompiled headers
-target_precompile_headers(
-	dGame PRIVATE 
-	${HEADERS_DGAME}
-)
-
-target_precompile_headers(
-	dZoneManager PRIVATE 
-	${HEADERS_DZONEMANAGER}
-)
-
-# Need to specify to use the CXX compiler language here or else we get errors including <string>.
-target_precompile_headers(
-	dDatabase PRIVATE 
-	"$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
-)
-
-target_precompile_headers(
-	dCommon PRIVATE
-	${HEADERS_DCOMMON}
-)
-
-target_precompile_headers(
-	tinyxml2 PRIVATE
-	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
-)
-
 # Compiler flags:
 # Disabled deprecated warnings as the MySQL includes have deprecated code in them. 
 # Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
@@ -256,3 +199,60 @@ elseif(MSVC)
 	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
 	add_compile_options("/wd4267")
 endif()
+
+# Add our library subdirectories for creation of the library object
+add_subdirectory(dCommon)
+add_subdirectory(dDatabase)
+add_subdirectory(dChatFilter)
+add_subdirectory(dNet)
+#add_subdirectory(dScripts) # Add for dGame to use
+#add_subdirectory(dGame)
+#add_subdirectory(dZoneManager)
+#add_subdirectory(dPhysics)
+
+# Create a list of common libraries shared between all binaries
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp")
+
+# Add platform specific common libraries
+if (UNIX)
+	set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "dl" "pthread")
+
+	if (NOT APPLE AND __include_backtrace__)
+		set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "backtrace")
+	endif()
+endif()
+
+add_subdirectory(tests)
+
+# Include all of our binary directories
+#add_subdirectory(dWorldServer)
+#add_subdirectory(dAuthServer)
+add_subdirectory(dChatServer)
+#add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the other binaries
+
+# Add our precompiled headers
+#target_precompile_headers(
+#	dGame PRIVATE 
+#	${HEADERS_DGAME}
+#)
+#
+#target_precompile_headers(
+#	dZoneManager PRIVATE 
+#	${HEADERS_DZONEMANAGER}
+#)
+#
+## Need to specify to use the CXX compiler language here or else we get errors including <string>.
+#target_precompile_headers(
+#	dDatabase PRIVATE 
+#	"$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
+#)
+#
+#target_precompile_headers(
+#	dCommon PRIVATE
+#	${HEADERS_DCOMMON}
+#)
+#
+#target_precompile_headers(
+#	tinyxml2 PRIVATE
+#	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
+#)
