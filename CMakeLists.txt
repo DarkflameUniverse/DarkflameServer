@@ -123,15 +123,16 @@ set(INCLUDED_DIRECTORIES
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
 if (APPLE)
 	include_directories("/usr/local/include/")
-elseif (WIN32)
+endif()
+
+if (WIN32)
 	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt/include")
 elseif (UNIX)
 	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt")
 	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt/include/bcrypt")
-	
-	include_directories(${ZLIB_INCLUDE_DIRS})
 endif()
 
+include_directories(${ZLIB_INCLUDE_DIRS})
 # Add binary directory as an include directory
 include_directories(${PROJECT_BINARY_DIR})
 
