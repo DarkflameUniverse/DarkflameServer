@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.14)
 project(Darkflame)
 include(CTest)
 
+set (CMAKE_CXX_STANDARD 17)
+
 # Read variables from file
 FILE(READ "${CMAKE_SOURCE_DIR}/CMakeVariables.txt" variables)
 
@@ -88,8 +90,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROJECT_VERSION=${PROJECT_VERSION}")
 # Echo the version
 message(STATUS "Version: ${PROJECT_VERSION}")
 
-set(CMAKE_CXX_STANDARD 17)
-
 if(WIN32)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif(WIN32)
@@ -137,6 +137,19 @@ configure_file("${CMAKE_SOURCE_DIR}/vanity/CREDITS.md" "${CMAKE_BINARY_DIR}/vani
 configure_file("${CMAKE_SOURCE_DIR}/vanity/INFO.md" "${CMAKE_BINARY_DIR}/vanity/INFO.md" COPYONLY)
 configure_file("${CMAKE_SOURCE_DIR}/vanity/TESTAMENT.md" "${CMAKE_BINARY_DIR}/vanity/TESTAMENT.md" COPYONLY)
 configure_file("${CMAKE_SOURCE_DIR}/vanity/NPC.xml" "${CMAKE_BINARY_DIR}/vanity/NPC.xml" COPYONLY)
+
+# Move our migrations for MasterServer to run
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/)
+file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
+foreach (file ${SQL_FILES})
+    get_filename_component(file ${file} NAME)
+    if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/${file})
+        configure_file(
+            ${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/${file}
+            COPYONLY
+        )
+    endif()
+endforeach()
 
 # 3rdparty includes
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/raknet/Source/)

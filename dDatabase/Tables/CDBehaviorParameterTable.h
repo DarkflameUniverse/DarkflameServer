@@ -12,9 +12,9 @@
 
 //! BehaviorParameter Entry Struct
 struct CDBehaviorParameter {
-    unsigned int behaviorID;            //!< The Behavior ID
-    std::string parameterID;       //!< The Parameter ID
-    float value;                 //!< The value of the behavior template
+    unsigned int behaviorID;                                    //!< The Behavior ID
+    std::unordered_set<std::string>::iterator parameterID;      //!< The Parameter ID
+    float value;                                                //!< The value of the behavior template
 };
 
 //! BehaviorParameter table

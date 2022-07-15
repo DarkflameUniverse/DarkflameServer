@@ -19,6 +19,7 @@
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
 #include "Database.h"
+#include "MigrationRunner.h"
 #include "Diagnostics.h"
 #include "dCommonVars.h"
 #include "dConfig.h"
@@ -126,6 +127,13 @@ int main(int argc, char** argv) {
 		Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
 		return EXIT_FAILURE;
 	}
+
+	if (argc > 1 && (strcmp(argv[1], "-m") == 0 || strcmp(argv[1], "--migrations") == 0)) {
+		MigrationRunner::RunMigrations();
+		Game::logger->Log("MigrationRunner", "Finished running migrations\n");
+
+		return EXIT_SUCCESS;
+	}	
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
