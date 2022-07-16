@@ -2,7 +2,9 @@
 
 #include <cstdint>
 
-#ifndef _WIN32
+#include "dPlatforms.h"
+
+#ifndef DARKFLAME_PLATFORM_WIN32
 
 namespace ZCompression
 {
