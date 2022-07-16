@@ -1363,6 +1363,18 @@ void GameMessages::SendUseItemResult(Entity* entity, LOT templateID, bool useIte
 	SEND_PACKET
 }
 
+void GameMessages::SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, UseItemResponse itemResponse) {
+	CBITSTREAM
+	CMSGHEADER
+
+	bitStream.Write(objectID);
+	bitStream.Write(GAME_MSG::GAME_MSG_USE_ITEM_REQUIREMENTS_RESPONSE);
+
+	bitStream.Write(itemResponse);
+
+	SEND_PACKET
+}
+
 void GameMessages::SendMoveInventoryBatch(Entity* entity, uint32_t stackCount, int srcInv, int dstInv, const LWOOBJID& iObjID) {
 	CBITSTREAM
 	CMSGHEADER
@@ -5502,13 +5514,15 @@ void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStre
 
 	auto* item = inv->FindItemById(objectID);
 
-	if (item == nullptr)
-	{
-		item = inv->FindItemByLot(templateID);
-
-		if (item == nullptr)
-		{
-			return;
+	if (!item) {
+		// Attempt to find the item by lot in inventory A since A is the source inventory.
+		item = inv->FindItemByLot(templateID, static_cast<eInventoryType>(inventoryTypeA));
+		if (!item) {
+			// As a final resort, try to find the item in its default inventory based on type.
+			item = inv->FindItemByLot(templateID);
+			if (!item) {
+				return;
+			}
 		}
 	}
 	

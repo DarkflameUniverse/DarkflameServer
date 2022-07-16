@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#ifndef BEHAVIORSLOT_H
+#define BEHAVIORSLOT_H
+
 enum class BehaviorSlot
 {
 	Invalid = -1,
@@ -9,3 +12,5 @@ enum class BehaviorSlot
 	Head,
 	Consumable
 };
+
+#endif

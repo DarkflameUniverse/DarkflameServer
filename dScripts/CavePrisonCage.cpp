@@ -1,9 +1,9 @@
 #include "CavePrisonCage.h"
 #include "EntityManager.h"
 #include "RebuildComponent.h"
-#include "MovingPlatformComponent.h"
 #include "GameMessages.h"
 #include "Character.h"
+#include "dZoneManager.h"
 
 void CavePrisonCage::OnStartup(Entity *self) 
 {

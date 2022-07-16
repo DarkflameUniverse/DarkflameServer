@@ -6,6 +6,8 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "CharacterComponent.h"
+#include "MissionComponent.h"
+#include "MissionTaskType.h"
 
 #include "dServer.h"
 #include "PacketUtils.h"
@@ -22,6 +24,20 @@ RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
 	{
 		m_Precondition = new PreconditionExpression(GeneralUtils::UTF16ToWTF8(checkPreconditions));
 	}
+
+	// Should a setting that has the build activator position exist, fetch that setting here and parse it for position.
+	// It is assumed that the user who sets this setting uses the correct character delimiter (character 31 or in hex 0x1F)
+	auto positionAsVector = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rebuild_activators"), 0x1F);
+	if (positionAsVector.size() == 3 && 
+		GeneralUtils::TryParse(positionAsVector[0], m_ActivatorPosition.x) &&
+		GeneralUtils::TryParse(positionAsVector[1], m_ActivatorPosition.y) && 
+		GeneralUtils::TryParse(positionAsVector[2], m_ActivatorPosition.z)) {
+	} else {
+		Game::logger->Log("RebuildComponent", "Failed to find activator position for lot %i.  Defaulting to parents position.\n", m_Parent->GetLOT());
+		m_ActivatorPosition = m_Parent->GetPosition();
+	}
+
+	SpawnActivator();
 }
 
 RebuildComponent::~RebuildComponent() {

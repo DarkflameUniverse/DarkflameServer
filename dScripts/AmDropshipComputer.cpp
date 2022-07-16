@@ -2,7 +2,6 @@
 #include "MissionComponent.h"
 #include "RebuildComponent.h"
 #include "InventoryComponent.h"
-#include "GameMessages.h"
 #include "dZoneManager.h"
 
 void AmDropshipComputer::OnStartup(Entity* self) 
@@ -27,12 +26,12 @@ void AmDropshipComputer::OnUse(Entity* self, Entity* user)
         return;
     }
 
-    if (inventoryComponent->GetLotCount(12323) != 0)
+    if (inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0 || missionComponent->GetMission(979)->GetMissionState() == MissionState::MISSION_STATE_COMPLETE)
     {
         return;
     }
 
-    inventoryComponent->AddItem(12323, 1, eLootSourceType::LOOT_SOURCE_NONE);
+    inventoryComponent->AddItem(m_NexusTalonDataCard, 1, eLootSourceType::LOOT_SOURCE_NONE);
 }
 
 void AmDropshipComputer::OnDie(Entity* self, Entity* killer) 

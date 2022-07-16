@@ -1,14 +1,7 @@
 ﻿#include "AgJetEffectServer.h"
-
 #include "GameMessages.h"
 #include "EntityManager.h"
-#include "PhantomPhysicsComponent.h"
 #include "SkillComponent.h"
-
-
-void AgJetEffectServer::OnStartup(Entity* self)
-{
-}
 
 void AgJetEffectServer::OnUse(Entity* self, Entity* user)
 {
@@ -41,7 +34,6 @@ void AgJetEffectServer::OnUse(Entity* self, Entity* user)
 	GameMessages::SendPlayFXEffect(effect, 641, u"create", "radarDish", LWOOBJID_EMPTY, 1, 1, true);
 
 	self->AddTimer("radarDish", 2);
-	//self->AddTimer("PlayEffect", 2.5f);
 	self->AddTimer("CineDone", 9);
 }
 

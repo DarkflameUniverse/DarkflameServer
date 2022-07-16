@@ -3,33 +3,31 @@
 
 //! Constructor
 CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
-#ifdef CDCLIENT_CACHE_ALL
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorParameter");
+	size_t hash = 0;
 	while (!tableData.eof()) {
+		hash = 0;
 		CDBehaviorParameter entry;
 		entry.behaviorID = tableData.getIntField(0, -1);
-		entry.parameterID = tableData.getStringField(1, "");
+		auto candidateStringToAdd = std::string(tableData.getStringField(1, ""));
+		auto parameter = m_ParametersList.find(candidateStringToAdd);
+		if (parameter != m_ParametersList.end()) {
+			entry.parameterID = parameter;
+		} else {
+			entry.parameterID = m_ParametersList.insert(candidateStringToAdd).first;
+		}
 		entry.value = tableData.getFloatField(2, -1.0f);
 
-		//Check if we have an entry with this ID:
-		auto it = m_entries.find(entry.behaviorID);
-		if (it != m_entries.end()) {
-			it->second.insert(std::make_pair(entry.parameterID, entry.value));
-		}
-		else {
-			//Otherwise, insert it:
-			m_entries.insert(std::make_pair(entry.behaviorID, std::map<std::string, float>()));
-			auto jit = m_entries.find(entry.behaviorID);
+		GeneralUtils::hash_combine(hash, entry.behaviorID);
+		GeneralUtils::hash_combine(hash, *entry.parameterID);
 
-			//Add our value as well:
-			jit->second.insert(std::make_pair(entry.parameterID, entry.value));
-		}
+		auto it = m_Entries.find(entry.behaviorID);
+		m_ParametersList.insert(*entry.parameterID);
+		m_Entries.insert(std::make_pair(hash, entry));
 
 		tableData.nextRow();
 	}
-
 	tableData.finalize();
-#endif
 }
 
 //! Destructor
@@ -40,51 +38,33 @@ std::string CDBehaviorParameterTable::GetName(void) const {
 	return "BehaviorParameter";
 }
 
-float CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::string& name, const float defaultValue) 
+CDBehaviorParameter CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::string& name, const float defaultValue) 
 {
+	CDBehaviorParameter returnValue;
+	returnValue.behaviorID = 0;
+	returnValue.parameterID = m_ParametersList.end();
+	returnValue.value = defaultValue;
+
 	size_t hash = 0;
 	GeneralUtils::hash_combine(hash, behaviorID);
 	GeneralUtils::hash_combine(hash, name);
 
 	// Search for specific parameter
 	const auto& it = m_Entries.find(hash);
-	if (it != m_Entries.end()) {
-		return it->second;
+	return it != m_Entries.end() ? it->second : returnValue;
+}
+
+std::map<std::string, float> CDBehaviorParameterTable::GetParametersByBehaviorID(uint32_t behaviorID) {
+	size_t hash;
+	std::map<std::string, float> returnInfo;
+	for (auto parameterCandidate : m_ParametersList) {
+		hash = 0;
+		GeneralUtils::hash_combine(hash, behaviorID);
+		GeneralUtils::hash_combine(hash, parameterCandidate);
+		auto infoCandidate = m_Entries.find(hash);
+		if (infoCandidate != m_Entries.end()) {
+			returnInfo.insert(std::make_pair(*(infoCandidate->second.parameterID), infoCandidate->second.value));
+		}
 	}
-
-	// Check if this behavior has already been checked
-	const auto& itChecked = m_Entries.find(behaviorID);
-	if (itChecked != m_Entries.end()) {
-		return defaultValue;
-	}
-
-#ifndef CDCLIENT_CACHE_ALL
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = ?;");
-	query.bind(1, (int) behaviorID);
-
-	auto tableData = query.execQuery();
-
-	m_Entries.insert_or_assign(behaviorID, 0);
-
-	while (!tableData.eof()) {
-		const std::string parameterID = tableData.getStringField(0, "");
-		const float value = tableData.getFloatField(1, 0);
-
-		size_t parameterHash = 0;
-		GeneralUtils::hash_combine(parameterHash, behaviorID);
-		GeneralUtils::hash_combine(parameterHash, parameterID);
-
-		m_Entries.insert_or_assign(parameterHash, value);
-
-		tableData.nextRow();
-	}
-
-	const auto& it2 = m_Entries.find(hash);
-	if (it2 != m_Entries.end()) {
-		return it2->second;
-	}
-#endif
-
-	return defaultValue;
+	return returnInfo;
 }

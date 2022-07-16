@@ -24,6 +24,7 @@
 #include "dZoneManager.h"
 #include "PropertyManagementComponent.h"
 #include "DestroyableComponent.h"
+#include "dConfig.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent)
 {
@@ -208,7 +209,8 @@ void InventoryComponent::AddItem(
 
 	auto stack = static_cast<uint32_t>(info.stackSize);
 
-	if (inventoryType == eInventoryType::BRICKS)
+	// info.itemType of 1 is item type brick
+	if (inventoryType == eInventoryType::BRICKS || (stack == 0 && info.itemType == 1))
 	{
 		stack = 999;
 	}
@@ -353,8 +355,6 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 		while (left > 0)
 		{
-			item = origin->FindItemByLot(lot, ignoreEquipped);
-
 			if (item == nullptr)
 			{
 				item = origin->FindItemByLot(lot, false);
@@ -986,19 +986,11 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 			// #107
 			auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
 
-			if (possessorComponent != nullptr)
-			{
-				previousPossessorID = possessorComponent->GetPossessable();
-				possessorComponent->SetPossessable(carEntity->GetObjectID());
-			}
+			if (possessorComponent) possessorComponent->SetPossessable(carEntity->GetObjectID());
 
 			auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 
-			if (characterComponent != nullptr)
-			{
-				characterComponent->SetIsRacing(true);
-				characterComponent->SetVehicleObjectID(carEntity->GetObjectID());
-			}
+			if (characterComponent) characterComponent->SetIsRacing(true);
 
 			EntityManager::Instance()->ConstructEntity(carEntity);
 			EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -1164,6 +1156,18 @@ void InventoryComponent::PopEquippedItems()
 		}
 
 		item->Equip();
+	}
+
+	m_Pushed.clear();
+
+	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+	
+	// Reset stats to full
+	if (destroyableComponent) {
+		destroyableComponent->SetHealth(static_cast<int32_t>(destroyableComponent->GetMaxHealth()));
+		destroyableComponent->SetArmor(static_cast<int32_t>(destroyableComponent->GetMaxArmor()));
+		destroyableComponent->SetImagination(static_cast<int32_t>(destroyableComponent->GetMaxImagination()));
+		EntityManager::Instance()->SerializeEntity(m_Parent);
 	}
 
 	m_Dirty = true;
@@ -1350,6 +1354,14 @@ void InventoryComponent::SpawnPet(Item* item)
 		{
 			return;
 		}
+	}
+
+	// First check if we can summon the pet.  You need 1 imagination to do so.
+	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+
+	if (Game::config->GetValue("pets_take_imagination") == "1" && destroyableComponent && destroyableComponent->GetImagination() <= 0) {
+		GameMessages::SendUseItemRequirementsResponse(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
+		return;
 	}
 
 	EntityInfo info {};

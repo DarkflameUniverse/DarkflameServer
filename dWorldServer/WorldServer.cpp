@@ -669,10 +669,12 @@ void HandlePacket(Packet* packet) {
 			Game::logger->Log("WorldServer", "Deleting player %llu\n", entity->GetObjectID());
 
 			EntityManager::Instance()->DestroyEntity(entity);
+		}
 
+		{
 			CBITSTREAM;
 			PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
-			bitStream.Write(c->GetObjectID());
+			bitStream.Write(user->GetLoggedInChar());
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
 
@@ -940,6 +942,19 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(playerID);
 			playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_CHARACTER);
 			playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_PERSISTENT);
+
+			auto user = UserManager::Instance()->GetUser(packet->systemAddress);
+			
+			if (user) {
+				auto lastCharacter = user->GetLoggedInChar();
+				// This means we swapped characters and we need to remove the previous player from the container.
+				if (static_cast<uint32_t>(lastCharacter) != playerID) {
+					CBITSTREAM;
+					PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
+					bitStream.Write(lastCharacter);
+					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+				}
+			}
 
 			UserManager::Instance()->LoginCharacter(packet->systemAddress, static_cast<uint32_t>(playerID));
 			break;

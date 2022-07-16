@@ -3,7 +3,6 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "SkillComponent.h"
-#include "dLogger.h"
 #include "TeamManager.h"
 
 void AgSurvivalBuffStation::OnRebuildComplete(Entity* self, Entity* target) {

@@ -1,8 +1,6 @@
 #include "CatapultBaseServer.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
-#include "dZoneManager.h"
-
 
 void CatapultBaseServer::OnNotifyObject(Entity *self, Entity *sender, const std::string& name, int32_t param1, int32_t param2) 
 {

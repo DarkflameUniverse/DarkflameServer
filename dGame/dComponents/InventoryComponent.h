@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#ifndef INVENTORYCOMPONENT_H
+#define INVENTORYCOMPONENT_H
+
 #include <map>
 #include <stack>
 
@@ -445,3 +448,5 @@ private:
      */
 	void UpdatePetXml(tinyxml2::XMLDocument* document);
 };
+
+#endif

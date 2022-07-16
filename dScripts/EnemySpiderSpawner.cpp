@@ -1,9 +1,7 @@
 #include "EnemySpiderSpawner.h"
 #include "GameMessages.h"
-#include "SimplePhysicsComponent.h"
 #include "EntityManager.h"
 #include "DestroyableComponent.h"
-#include "MovementAIComponent.h"
 
 //----------------------------------------------
 //--Initiate egg hatching on call

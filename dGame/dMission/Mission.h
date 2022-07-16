@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#ifndef MISSION_H
+#define MISSION_H
+
 #include <vector>
 #include <string>
 
@@ -259,3 +262,5 @@ private:
      */
 	std::vector<MissionTask*> m_Tasks;
 };
+
+#endif

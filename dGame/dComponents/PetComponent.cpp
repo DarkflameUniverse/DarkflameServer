@@ -16,6 +16,7 @@
 #include "../dWorldServer/ObjectIDManager.h"
 
 #include "Game.h"
+#include "dConfig.h"
 #include "dChatFilter.h"
 #include "Database.h"
 
@@ -81,6 +82,20 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId) : Component(par
 	if (!checkPreconditions.empty()) {
 		SetPreconditions(checkPreconditions);
 	}
+    // Get the imagination drain rate from the CDClient
+    auto query = CDClientDatabase::CreatePreppedStmt("SELECT imaginationDrainRate FROM PetComponent WHERE id = ?;");
+
+    query.bind(1, static_cast<int>(componentId));
+
+    auto result = query.execQuery();
+
+    // Should a result not exist for this pet default to 60 seconds.
+    if (!result.eof() && !result.fieldIsNull(0)) {
+        imaginationDrainRate = result.getFloatField(0, 60.0f);
+    } else {
+        imaginationDrainRate = 60.0f;
+    }
+    result.finalize();
 }
 
 void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) 
@@ -636,7 +651,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position)
 
     inventoryComponent->SetDatabasePet(petSubKey, databasePet);
 
-    Activate(item, false);
+    Activate(item, false, true);
 
     m_Timer = 0;
 
@@ -897,8 +912,10 @@ void PetComponent::Wander()
 	m_Timer += (m_MovementAI->GetCurrentPosition().x - destination.x) / info.wanderSpeed;
 }
 
-void PetComponent::Activate(Item* item, bool registerPet) 
+void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) 
 {
+    AddDrainImaginationTimer(item, fromTaming);
+
     m_ItemId = item->GetId();
     m_DatabaseId = item->GetSubKey();
     
@@ -966,6 +983,44 @@ void PetComponent::Activate(Item* item, bool registerPet)
     }
 
     GameMessages::SendShowPetActionButton(m_Owner, 3, true, owner->GetSystemAddress());
+}
+
+void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
+    if (Game::config->GetValue("pets_take_imagination") != "1") return;
+
+    auto playerInventory = item->GetInventory();
+    if (!playerInventory) return;
+
+    auto playerInventoryComponent = playerInventory->GetComponent();
+    if (!playerInventoryComponent) return;
+
+    auto playerEntity = playerInventoryComponent->GetParent();
+    if (!playerEntity) return;
+
+    auto playerDestroyableComponent = playerEntity->GetComponent<DestroyableComponent>();
+    if (!playerDestroyableComponent) return;
+
+    // Drain by 1 when you summon pet or when this method is called, but not when we have just tamed this pet.
+    if (!fromTaming) playerDestroyableComponent->Imagine(-1);
+
+    // Set this to a variable so when this is called back from the player the timer doesn't fire off.
+    m_Parent->AddCallbackTimer(imaginationDrainRate, [playerDestroyableComponent, this, item](){
+        if (!playerDestroyableComponent) {
+            Game::logger->Log("PetComponent", "No petComponent and/or no playerDestroyableComponent\n");
+            return;
+        }
+        
+        // If we are out of imagination despawn the pet.
+        if (playerDestroyableComponent->GetImagination() == 0) {
+            this->Deactivate();
+            auto playerEntity = playerDestroyableComponent->GetParent();
+            if (!playerEntity) return;
+
+            GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
+        }
+
+        this->AddDrainImaginationTimer(item);
+    });
 }
 
 void PetComponent::Deactivate() 

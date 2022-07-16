@@ -2,6 +2,8 @@
 
 // Custom Classes
 #include "CDTable.h"
+#include <unordered_map>
+#include <unordered_set>
 
 /*!
  \file CDBehaviorTemplateTable.hpp
@@ -10,10 +12,10 @@
 
 //! BehaviorTemplate Entry Struct
 struct CDBehaviorTemplate {
-    unsigned int behaviorID;                //!< The Behavior ID
-    unsigned int templateID;                //!< The Template ID (LOT)
-    unsigned int effectID;                  //!< The Effect ID attached
-    std::string effectHandle;          //!< The effect handle
+    unsigned int behaviorID;                                         //!< The Behavior ID
+    unsigned int templateID;                                         //!< The Template ID (LOT)
+    unsigned int effectID;                                           //!< The Effect ID attached
+    std::unordered_set<std::string>::iterator effectHandle;          //!< The effect handle
 };
 
 
@@ -21,7 +23,8 @@ struct CDBehaviorTemplate {
 class CDBehaviorTemplateTable : public CDTable {
 private:
     std::vector<CDBehaviorTemplate> entries;
-    
+    std::unordered_map<uint32_t, CDBehaviorTemplate> entriesMappedByBehaviorID;
+    std::unordered_set<std::string> m_EffectHandles;
 public:
     
     //! Constructor
@@ -47,5 +50,6 @@ public:
        \return The entries
      */
     std::vector<CDBehaviorTemplate> GetEntries(void) const;
-    
+
+    const CDBehaviorTemplate GetByBehaviorID(uint32_t behaviorID);
 };

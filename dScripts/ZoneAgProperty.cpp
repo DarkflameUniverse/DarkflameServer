@@ -1,12 +1,11 @@
 #include "ZoneAgProperty.h"
 #include "EntityManager.h"
-#include "BasePropertyServer.h"
 #include "Character.h"
 #include "Entity.h"
 #include "GameMessages.h"
 #include "dZoneManager.h"
-#include "LDFFormat.h"
 #include "RenderComponent.h"
+#include "MissionComponent.h"
 
 void ZoneAgProperty::SetGameVariables(Entity *self) {
     self->SetVar<std::string>(GuardGroup, "Guard");
@@ -340,7 +339,6 @@ void ZoneAgProperty::OnZonePropertyModelPickedUp(Entity* self, Entity* player) {
 }
 
 void ZoneAgProperty::OnZonePropertyModelRemoved(Entity* self, Entity* player) {
-    Game::logger->Log("OnZonePropertyModelRemoved", "Removed flag updated!\n");
 	auto* character = player->GetCharacter();
 	character->SetPlayerFlag(111, true);
 }

@@ -19,6 +19,7 @@
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
 #include "Database.h"
+#include "MigrationRunner.h"
 #include "Diagnostics.h"
 #include "dCommonVars.h"
 #include "dConfig.h"
@@ -60,6 +61,10 @@ int main(int argc, char** argv) {
 	Diagnostics::SetProcessName("Master");
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
+
+#if defined(_WIN32) && defined(MARIADB_PLUGIN_DIR_OVERRIDE)
+	_putenv_s("MARIADB_PLUGIN_DIR", MARIADB_PLUGIN_DIR_OVERRIDE);
+#endif
 
 	//Triggers the shutdown sequence at application exit
 	std::atexit(ShutdownSequence);
@@ -122,6 +127,13 @@ int main(int argc, char** argv) {
 		Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
 		return EXIT_FAILURE;
 	}
+
+	if (argc > 1 && (strcmp(argv[1], "-m") == 0 || strcmp(argv[1], "--migrations") == 0)) {
+		MigrationRunner::RunMigrations();
+		Game::logger->Log("MigrationRunner", "Finished running migrations\n");
+
+		return EXIT_SUCCESS;
+	}	
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.

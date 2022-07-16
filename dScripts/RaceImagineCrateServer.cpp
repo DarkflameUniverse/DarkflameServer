@@ -1,10 +1,10 @@
 #include "CharacterComponent.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
-#include "GameMessages.h"
 #include "PossessableComponent.h"
 #include "RaceImagineCrateServer.h"
 #include "RacingTaskParam.h"
+#include "MissionComponent.h"
 #include "SkillComponent.h"
 
 void RaceImagineCrateServer::OnDie(Entity* self, Entity* killer)

@@ -1,7 +1,7 @@
 #pragma once
 #include "CppScripts.h"
-#include "VanityUtilities.h"
 
+class VanityNPC;
 class DLUVanityNPC : public CppScripts::Script
 {
 public:
