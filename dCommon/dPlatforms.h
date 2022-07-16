@@ -3,6 +3,7 @@
 #if defined(_WIN32)
 	#define DARKFLAME_PLATFORM_WIN32
 #elif defined(__APPLE__) && defined(__MACH__)
+	#include <TargetConditionals.h>
 	#if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
 		#define DARKFLAME_PLATFORM_IOS
 	#elif TARGET_OS_MAC
