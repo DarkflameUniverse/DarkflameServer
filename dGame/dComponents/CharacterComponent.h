@@ -179,6 +179,18 @@ public:
      */
 	void SetLastRocketItemID(LWOOBJID lastRocketItemID) { m_LastRocketItemID = lastRocketItemID; }
 
+	/**
+	 * Gets the object ID of the mount item that is being used
+	 * @return the object ID of the mount item that is being used
+	 */
+	LWOOBJID GetMountItemID() const { return m_MountItemID; }
+
+	/**
+	 * Sets the object ID of the mount item that is being used
+	 * @param m_MountItemID the object ID of the mount item that is being used
+	 */
+	void SetMountItemID(LWOOBJID mountItemID) { m_MountItemID = mountItemID; }
+
     /**
      * Gives the player rewards for the last level that they leveled up from
      */
@@ -579,6 +591,11 @@ private:
 	 * ID of the last rocket used
 	 */
 	LWOOBJID m_LastRocketItemID = LWOOBJID_EMPTY;
+
+	/**
+	 * Mount Item ID
+	 */
+	LWOOBJID m_MountItemID = LWOOBJID_EMPTY;
 };
 
 #endif // CHARACTERCOMPONENT_H

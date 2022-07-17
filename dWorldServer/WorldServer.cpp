@@ -546,18 +546,31 @@ void HandlePacketChat(Packet* packet) {
 				LWOOBJID header;
 				inStream.Read(header);
 
-				RakNet::RakString title;
-				RakNet::RakString msg;
+				std::string title;
+				std::string msg;
 
-				inStream.Read(title);
-				inStream.Read(msg);
+				uint32_t len;
+				inStream.Read<uint32_t>(len);
+				for (int i = 0; len > i; i++) {
+					char character;
+					inStream.Read<char>(character);
+					title += character;
+				}
+				
+				len = 0;
+				inStream.Read<uint32_t>(len);
+				for (int i = 0; len > i; i++) {
+					char character;
+					inStream.Read<char>(character);
+					msg += character;
+				}
 
 				//Send to our clients:
 				AMFArrayValue args;
 				auto* titleValue = new AMFStringValue();
-				titleValue->SetStringValue(title.C_String());
+				titleValue->SetStringValue(title.c_str());
 				auto* messageValue = new AMFStringValue();
-				messageValue->SetStringValue(msg.C_String());
+				messageValue->SetStringValue(msg.c_str());
 
 				args.InsertValue("title", titleValue);
 				args.InsertValue("message", messageValue);
@@ -804,19 +817,27 @@ void HandlePacket(Packet* packet) {
 				RakNet::BitStream inStream(packet->data, packet->length, false);
 				uint64_t header = inStream.Read(header);
 				uint32_t sessionKey = inStream.Read(sessionKey);
-				RakNet::RakString username;
-				inStream.Read(username);
+
+				std::string username;
+				
+				uint32_t len;
+				inStream.Read(len);
+				
+				for (int i = 0; i < len; i++) {
+					char character; inStream.Read<char>(character);
+					username += character;
+				}
 
 				//Find them:
-				User* user = UserManager::Instance()->GetUser(username.C_String());
+				User* user = UserManager::Instance()->GetUser(username.c_str());
 				if (!user) {
-					Game::logger->Log("WorldServer", "Got new session alert for user %s, but they're not logged in.\n", username.C_String());
+					Game::logger->Log("WorldServer", "Got new session alert for user %s, but they're not logged in.\n", username.c_str());
 					return;
 				}
 
 				//Check the key:
 				if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
-					Game::logger->Log("WorldServer", "Got new session alert for user %s, but the session key is invalid.\n", username.C_String());
+					Game::logger->Log("WorldServer", "Got new session alert for user %s, but the session key is invalid.\n", username.c_str());
 					Game::server->Disconnect(user->GetSystemAddress(), SERVER_DISCON_INVALID_SESSION_KEY);
 					return;
 				}
@@ -1150,13 +1171,11 @@ void HandlePacket(Packet* packet) {
 						CBITSTREAM;
 						PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_ADDED_NOTIFICATION);
 						bitStream.Write(player->GetObjectID());
-						bitStream.Write<uint16_t>(playerName.size());
+						bitStream.Write<uint32_t>(playerName.size());
 						for (size_t i = 0; i < playerName.size(); i++)
 						{
 							bitStream.Write(playerName[i]);
 						}
-
-						//bitStream.Write(playerName);
 
 						auto zone = dZoneManager::Instance()->GetZone()->GetZoneID();
 						bitStream.Write(zone.GetMapID());

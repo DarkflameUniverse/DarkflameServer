@@ -12,18 +12,21 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ windows-2022, ubuntu-20.04 ]
+        os: [ windows-2022, ubuntu-20.04, macos-11 ]
 
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: true
-    - name: Add msbuild to PATH (windows only)
+    - name: Add msbuild to PATH (Windows only)
       if: ${{ matrix.os == 'windows-2022' }}
       uses: microsoft/setup-msbuild@v1.1
       with:
         vs-version: '[17,18)'
         msbuild-architecture: x64
+    - name: Install libssl (Mac Only)
+      if: ${{ matrix.os == 'macos-11' }}
+      run: brew install openssl@3
     - name: cmake
       uses: lukka/run-cmake@v10
       with:

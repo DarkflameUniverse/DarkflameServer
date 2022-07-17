@@ -1,5 +1,7 @@
 ﻿#include "ZCompression.h"
 
+#ifndef _WIN32 
+
 #include <zlib.h>
 
 namespace ZCompression
@@ -71,3 +73,5 @@ namespace ZCompression
         */
     }
 }
+
+#endif
