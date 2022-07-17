@@ -276,6 +276,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 	std::string message = "";
 
 	stream.Read(chatLevel);
+	printf("%d", chatLevel);
 	stream.Read(requestID);
 
 	for (uint32_t i = 0; i < 42; ++i) {
@@ -292,9 +293,19 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 	}
 
 	std::unordered_map<char, char> unacceptedItems;
-	bool bAllClean = Game::chatFilter->IsSentenceOkay(message, user->GetLastUsedChar()->GetGMLevel());
+	std::vector<std::string> segments = Game::chatFilter->IsSentenceOkay(message, entity->GetGMLevel());
+
+	bool bAllClean = segments.empty();
+
 	if (!bAllClean) {
-		unacceptedItems.insert(std::make_pair((char)0, (char)message.length()));
+		for (const auto& item : segments) {
+			if (item == "") {
+				unacceptedItems.insert({ (char)0, (char)message.length()});
+				break;
+			}
+
+			unacceptedItems.insert({ message.find(item), item.length() });
+		}
 	}
 
 	if (user->GetIsMuted()) {

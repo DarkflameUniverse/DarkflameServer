@@ -8,8 +8,9 @@
 #include <regex>
 
 #include "dCommonVars.h"
-#include "Database.h"
 #include "dLogger.h"
+#include "dConfig.h"
+#include "Database.h"
 #include "Game.h"
 
 using namespace dChatFilterDCF;
@@ -21,9 +22,13 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 		ReadWordlistPlaintext(filepath + ".txt");
 		if (!m_DontGenerateDCF) ExportWordlistToDCF(filepath + ".dcf");
 	}
-	else if (!ReadWordlistDCF(filepath + ".dcf")) {
+	else if (!ReadWordlistDCF(filepath + ".dcf", true)) {
 		ReadWordlistPlaintext(filepath + ".txt");
 		ExportWordlistToDCF(filepath + ".dcf");
+	}
+
+	if (BinaryIO::DoesFileExist("blacklist.dcf")) {
+		ReadWordlistDCF("blacklist.dcf", false);
 	}
 
 	//Read player names that are ok as well:
@@ -32,14 +37,15 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 	while (res->next()) {
 		std::string line = res->getString(1).c_str();
 		std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
-		m_Words.push_back(CalculateHash(line));
+		m_YesYesWords.push_back(CalculateHash(line));
 	}
 	delete res;
 	delete stmt;
 }
 
 dChatFilter::~dChatFilter() {
-	m_Words.clear();
+	m_YesYesWords.clear();
+	m_NoNoWords.clear();
 }
 
 void dChatFilter::ReadWordlistPlaintext(const std::string& filepath) {
@@ -49,12 +55,12 @@ void dChatFilter::ReadWordlistPlaintext(const std::string& filepath) {
 		while (std::getline(file, line)) {
 			line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 			std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
-			m_Words.push_back(CalculateHash(line));
+			m_YesYesWords.push_back(CalculateHash(line));
 		}
 	}
 }
 
-bool dChatFilter::ReadWordlistDCF(const std::string& filepath) {
+bool dChatFilter::ReadWordlistDCF(const std::string& filepath, bool whiteList) {
 	std::ifstream file(filepath, std::ios::binary);
 	if (file) {
 		fileHeader hdr;
@@ -67,12 +73,14 @@ bool dChatFilter::ReadWordlistDCF(const std::string& filepath) {
 		if (hdr.formatVersion == formatVersion) {
 			size_t wordsToRead = 0;
 			BinaryIO::BinaryRead(file, wordsToRead);
-			m_Words.reserve(wordsToRead);
+			if (whiteList) m_YesYesWords.reserve(wordsToRead);
+			else m_NoNoWords.reserve(wordsToRead);
 
 			size_t word = 0;
 			for (size_t i = 0; i < wordsToRead; ++i) {
 				BinaryIO::BinaryRead(file, word);
-				m_Words.push_back(word);
+				if (whiteList) m_YesYesWords.push_back(word);
+				else m_NoNoWords.push_back(word);
 			}
 
 			return true;
@@ -91,9 +99,9 @@ void dChatFilter::ExportWordlistToDCF(const std::string& filepath) {
 	if (file) {
 		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::header));
 		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::formatVersion));
-		BinaryIO::BinaryWrite(file, size_t(m_Words.size()));
+		BinaryIO::BinaryWrite(file, size_t(m_YesYesWords.size()));
 
-		for (size_t word : m_Words) {
+		for (size_t word : m_YesYesWords) {
 			BinaryIO::BinaryWrite(file, word);
 		}
 
@@ -101,31 +109,44 @@ void dChatFilter::ExportWordlistToDCF(const std::string& filepath) {
 	}
 }
 
-bool dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel) {
-	if (gmLevel > GAME_MASTER_LEVEL_FORUM_MODERATOR) return true; //If anything but a forum mod, return true.
-	if (message.empty()) return true;
+std::vector<std::string> dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel, bool whiteList) {
+	if (gmLevel > GAME_MASTER_LEVEL_FORUM_MODERATOR) return { }; //If anything but a forum mod, return true.
+	if (message.empty()) return { };
+	if (!whiteList && m_NoNoWords.empty()) return { "" };
 
 	std::stringstream sMessage(message);
 	std::string segment;
 	std::regex reg("(!*|\\?*|\\;*|\\.*|\\,*)");
 
+	std::vector<std::string> listOfBadSegments = std::vector<std::string>();
+
 	while (std::getline(sMessage, segment, ' ')) {
+		std::string originalSegment = segment;
+
 		std::transform(segment.begin(), segment.end(), segment.begin(), ::tolower); //Transform to lowercase
 		segment = std::regex_replace(segment, reg, "");
 
 		size_t hash = CalculateHash(segment);
 
 		if (std::find(m_UserUnapprovedWordCache.begin(), m_UserUnapprovedWordCache.end(), hash) != m_UserUnapprovedWordCache.end()) {
-			return false;
+			listOfBadSegments.push_back(originalSegment); // found word that isn't ok, just deny this code works for both white and black list
 		}
 
-		if (!IsInWordlist(hash)) {
-			m_UserUnapprovedWordCache.push_back(hash);
-			return false;
+		if (!IsInWordlist(hash, whiteList)) {
+			if (whiteList) {
+				m_UserUnapprovedWordCache.push_back(hash);
+				listOfBadSegments.push_back(originalSegment);
+			}
+		}
+		else {
+			if (!whiteList) {
+				m_UserUnapprovedWordCache.push_back(hash);
+				listOfBadSegments.push_back(originalSegment);
+			}
 		}
 	}
 
-	return true;
+	return listOfBadSegments;
 }
 
 size_t dChatFilter::CalculateHash(const std::string& word) {
@@ -136,6 +157,8 @@ size_t dChatFilter::CalculateHash(const std::string& word) {
 	return value;
 }
 
-bool dChatFilter::IsInWordlist(size_t word) {
-	return std::find(m_Words.begin(), m_Words.end(), word) != m_Words.end();
+bool dChatFilter::IsInWordlist(size_t word, bool whiteList) {
+	auto* list = whiteList ? &m_YesYesWords : &m_NoNoWords;
+
+	return std::find(list->begin(), list->end(), word) != list->end();
 }

@@ -192,19 +192,22 @@ void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool
 	CBITSTREAM
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHAT_MODERATION_STRING);
 
-	bitStream.Write(static_cast<char>(requestAccepted));
-	bitStream.Write(static_cast<uint16_t>(0));
-	bitStream.Write(static_cast<uint8_t>(requestID));
-	bitStream.Write(static_cast<char>(0));
+    bitStream.Write<uint8_t>(unacceptedItems.empty()); // Is sentence ok?
+    bitStream.Write<uint16_t>(0x16); // Source ID, unknown
 
-	for (uint32_t i = 0; i < 33; ++i) {
-		bitStream.Write(static_cast<uint16_t>(receiver[i]));
+    bitStream.Write(static_cast<uint8_t>(requestID)); // request ID
+	bitStream.Write(static_cast<char>(0)); // chat mode
+
+    PacketUtils::WritePacketWString(receiver, 42, &bitStream); // receiver name
+
+	for (auto it : unacceptedItems) {
+		bitStream.Write<uint8_t>(it.first); // start index
+		bitStream.Write<uint8_t>(it.second); // length
 	}
 
-	for (std::unordered_map<char, char>::iterator it = unacceptedItems.begin(); it != unacceptedItems.end(); ++it) {
-		bitStream.Write(it->first);
-		bitStream.Write(it->second);
-	}
+    for (int i = unacceptedItems.size(); 64 > i; i++) {
+        bitStream.Write<uint16_t>(0);
+    }
 
 	SEND_PACKET
 }
