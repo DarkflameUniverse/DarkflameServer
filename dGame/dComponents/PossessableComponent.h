@@ -55,6 +55,18 @@ class PossessableComponent : public Component {
 		void ForceDepossess() { m_ImmediatelyDepossess = true; m_DirtyPossessable = true;};
 
 		/**
+		 * Set if the parent entity was spawned from an item
+		 * @param value if the parent entity was spawned from an item
+		 */
+		void SetItemSpawned(bool value) { m_ItemSpawned = value;};
+
+		/**
+		 * Returns if the parent entity was spawned from an item
+		 * @return if the parent entity was spawned from an item
+		 */
+		LWOOBJID GetItemSpawned() const { return m_ItemSpawned; };
+
+		/**
 		 * Handles an OnUsed event by some other entity, if said entity has a Possessor it becomes the possessor
 		 * of this entity
 		 * @param originator the entity that caused the event to trigger
@@ -95,4 +107,9 @@ class PossessableComponent : public Component {
 		 */
 		bool m_ImmediatelyDepossess = false;
 
+		/**
+		 * @brief Whether the parent entity was spawned from an item
+		 *
+		 */
+		bool m_ItemSpawned = false;
 };

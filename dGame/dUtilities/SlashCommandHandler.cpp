@@ -2101,11 +2101,15 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	CBITSTREAM;
 	PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_ANNOUNCEMENT);
 
-	RakNet::RakString rsTitle(title.c_str());
-	RakNet::RakString rsMsg(message.c_str());
+	bitStream.Write<uint32_t>(title.size());
+	for (auto character : title) {
+		bitStream.Write<char>(character);
+	}
 
-	bitStream.Write(rsTitle);
-	bitStream.Write(rsMsg);
+	bitStream.Write<uint32_t>(message.size());
+	for (auto character : message) {
+		bitStream.Write<char>(character);
+	}
 
 	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 }
