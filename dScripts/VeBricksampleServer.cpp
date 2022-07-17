@@ -1,6 +1,7 @@
 #include "VeBricksampleServer.h"
 #include "InventoryComponent.h"
 #include "EntityManager.h"
+#include "MissionComponent.h"
 #include "GameMessages.h"
 
 void VeBricksampleServer::OnUse(Entity *self, Entity *user) {

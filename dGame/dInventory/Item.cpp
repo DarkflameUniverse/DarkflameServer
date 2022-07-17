@@ -311,7 +311,9 @@ bool Item::UseNonEquip()
 
 	const auto success = !packages.empty();
 
-	Game::logger->Log("Item", "Used (%i) with (%d)\n", lot, success);
+	auto inventoryComponent = inventory->GetComponent();
+
+	auto playerEntity = inventoryComponent->GetParent();
 
 	if (subKey != LWOOBJID_EMPTY)
 	{
@@ -324,8 +326,7 @@ bool Item::UseNonEquip()
 			return true;
 		}
 	}
-
-	if (success)
+	if (success && (playerEntity->GetGMLevel() >= eGameMasterLevel::GAME_MASTER_LEVEL_JUNIOR_DEVELOPER || this->GetPreconditionExpression()->Check(playerEntity)))
 	{
 		auto* entityParent = inventory->GetComponent()->GetParent();
 
@@ -342,7 +343,7 @@ bool Item::UseNonEquip()
 
 			LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
 		}
-
+		Game::logger->Log("Item", "Used (%i)\n", lot);
 		inventory->GetComponent()->RemoveItem(lot, 1);
 	}
 
@@ -386,11 +387,11 @@ void Item::DisassembleModel()
 
 	const auto componentId = table->GetByIDAndType(GetLot(), COMPONENT_TYPE_RENDER);
 
-	std::stringstream query;
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT render_asset FROM RenderComponent WHERE id = ?;");
+	query.bind(1, (int) componentId);
 
-	query << "SELECT render_asset FROM RenderComponent WHERE id = " << std::to_string(componentId) << ";";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = query.execQuery();
 
 	if (result.eof())
 	{

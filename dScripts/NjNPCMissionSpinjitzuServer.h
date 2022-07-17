@@ -1,5 +1,6 @@
 #pragma once
 #include "CppScripts.h"
+#include <map>
 
 static std::map<std::u16string, uint32_t> ElementFlags = {
     {u"earth", ePlayerFlags::NJ_EARTH_SPINJITZU},

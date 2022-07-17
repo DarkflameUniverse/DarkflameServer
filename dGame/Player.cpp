@@ -13,6 +13,7 @@
 #include "dZoneManager.h"
 #include "CharacterComponent.h"
 #include "Mail.h"
+#include "CppScripts.h"
 
 std::vector<Player*> Player::m_Players = {};
 
@@ -273,6 +274,22 @@ Player::~Player()
 	if (iter == m_Players.end())
 	{
 		return;
+	}
+
+	if (IsPlayer()) {
+        Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
+        for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
+            script->OnPlayerExit(zoneControl, this);
+        }
+
+        std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
+        for (Entity* scriptEntity : scriptedActs) {
+            if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+                for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
+                    script->OnPlayerExit(scriptEntity, this);
+                }
+            }
+        }
 	}
 
 	m_Players.erase(iter);

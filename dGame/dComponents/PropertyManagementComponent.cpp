@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "MissionComponent.h"
 #include "EntityManager.h"
 #include "PropertyDataMessage.h"
 #include "UserManager.h"
@@ -40,11 +41,11 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 	const auto zoneId = worldId.GetMapID();
 	const auto cloneId = worldId.GetCloneID();
 
-	std::stringstream query;
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+	query.bind(1, (int) zoneId);
 
-	query << "SELECT id FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto result = query.execQuery();
 
 	if (result.eof() || result.fieldIsNull(0))
 	{
@@ -75,7 +76,7 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 		this->moderatorRequested = propertyEntry->getInt(10) == 0 && rejectionReason == "" && privacyOption == PropertyPrivacyOption::Public;
 		this->LastUpdatedTime = propertyEntry->getUInt64(11);
 		this->claimedTime = propertyEntry->getUInt64(12);
-		this->rejectionReason = propertyEntry->getString(13).asStdString();
+		this->rejectionReason = std::string(propertyEntry->getString(13).c_str());
 		this->reputation = propertyEntry->getUInt(14);
 
 		Load();
@@ -102,12 +103,12 @@ void PropertyManagementComponent::SetOwner(Entity* value)
 std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const
 {
 	const auto zoneId = dZoneManager::Instance()->GetZone()->GetWorldID();
-	
-	std::stringstream query {};
 
-	query << "SELECT path FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
-	
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT path FROM PropertyTemplate WHERE mapID = ?;");
+	query.bind(1, (int) zoneId);
+
+	auto result = query.execQuery();
 
 	std::vector<NiPoint3> paths {};
 	
@@ -285,6 +286,10 @@ void PropertyManagementComponent::OnStartBuilding()
 
 		player->SendToZone(zoneId);
 	}
+	auto inventoryComponent = ownerEntity->GetComponent<InventoryComponent>();
+
+	// Push equipped items
+	if (inventoryComponent) inventoryComponent->PushEquippedItems();
 }
 
 void PropertyManagementComponent::OnFinishBuilding()
@@ -865,7 +870,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 
 			result->next();
 
-			const auto reason = result->getString(1).asStdString();;
+			const auto reason = std::string(result->getString(1).c_str());
 			const auto modApproved = result->getInt(2);
 			if (reason != "") {
 				moderatorRequested = false;

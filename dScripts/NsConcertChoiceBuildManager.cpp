@@ -1,6 +1,5 @@
 #include "NsConcertChoiceBuildManager.h"
 #include "EntityManager.h"
-#include "Player.h"
 
 const std::vector<Crate> NsConcertChoiceBuildManager::crates {
         { "laser", 11203, 5.0, "Concert_Laser_QB_" },

@@ -1,4 +1,7 @@
-﻿#pragma once
+#pragma once
+
+#ifndef INVENTORYCOMPONENT_H
+#define INVENTORYCOMPONENT_H
 
 #include <map>
 #include <stack>
@@ -21,6 +24,8 @@ class Entity;
 class ItemSet;
 
 typedef std::map<std::string, EquippedItem> EquipmentMap;
+
+enum class eItemType : int32_t;
 
 /**
  * Handles the inventory of entity, including the items they possess and have equipped. An entity can have inventories
@@ -445,3 +450,5 @@ private:
      */
 	void UpdatePetXml(tinyxml2::XMLDocument* document);
 };
+
+#endif

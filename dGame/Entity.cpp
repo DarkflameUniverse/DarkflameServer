@@ -79,6 +79,7 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_Components = {};
 	m_DieCallbacks = {};
 	m_PhantomCollisionCallbacks = {};
+	m_IsParentChildDirty = true;
 
 	m_Settings = info.settings;
 	m_NetworkSettings = info.networkSettings;
@@ -98,22 +99,6 @@ Entity::~Entity() {
 		m_Character->SaveXMLToDatabase();
 	}
 
-	if (IsPlayer()) {
-        Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
-        for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-            script->OnPlayerExit(zoneControl, this);
-        }
-
-        std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
-        for (Entity* scriptEntity : scriptedActs) {
-            if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-                for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-                    script->OnPlayerExit(scriptEntity, this);
-                }
-            }
-        }
-	}
-
 	CancelAllTimers();
 	CancelCallbackTimers();
 
@@ -123,6 +108,14 @@ Entity::~Entity() {
 		delete pair.second;
 
 		m_Components.erase(pair.first);
+	}
+
+	for (auto child : m_ChildEntities) {
+		if (child) child->RemoveParent();
+	}
+
+	if (m_ParentEntity) {
+		m_ParentEntity->RemoveChild(this);
 	}
 }
 
@@ -220,8 +213,9 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ZONE_CONTROL, nullptr));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE) > 0) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this)));
+	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE);
+	if (possessableComponentId > 0) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this, possessableComponentId)));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODULE_ASSEMBLY) > 0) {
@@ -447,6 +441,8 @@ void Entity::Initialize()
 	}*/
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
+		// Character Component always has a possessor component
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
 	}
@@ -561,19 +557,6 @@ void Entity::Initialize()
 			comp->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
 			comp->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
 
-			const auto rebuildActivatorValue = GetVarAsString(u"rebuild_activators");
-
-			if (!rebuildActivatorValue.empty()) {
-				std::vector<std::string> split = GeneralUtils::SplitString(rebuildActivatorValue, 0x1f);
-				NiPoint3 pos;
-
-				pos.x = std::stof(split[0]);
-				pos.y = std::stof(split[1]);
-				pos.z = std::stof(split[2]);
-
-				comp->SetActivatorPosition(pos);
-			}
-
 			const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
 
 			if (rebuildResetTime != 0.0f) {
@@ -629,10 +612,6 @@ void Entity::Initialize()
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_RENDER) > 0 && m_TemplateID != 2365) || m_Character) {
 		RenderComponent* render = new RenderComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RENDER, render));
-	}
-
-	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSOR) > 0) || m_Character) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 	}
 
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MISSION_OFFER) > 0) || m_Character) {
@@ -974,8 +953,11 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 		}
 		else outBitStream->Write0(); //No GM Level
 	}
-	outBitStream->Write((m_ParentEntity != nullptr || m_ChildEntities.size() > 0));
-	if (m_ParentEntity || m_ChildEntities.size() > 0) {
+	
+	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
+	outBitStream->Write(m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION);
+	if (m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION) {
+		m_IsParentChildDirty = false;
 		outBitStream->Write(m_ParentEntity != nullptr);
 		if (m_ParentEntity) {
 			outBitStream->Write(m_ParentEntity->GetObjectID());
@@ -1079,8 +1061,15 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	}
 
 	CharacterComponent* characterComponent;
-	if (TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent)) {
+
+		PossessorComponent* possessorComponent;
+		if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent)) {
+			possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
+		}
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
@@ -1186,11 +1175,10 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		outBitStream->Write<uint32_t>(0x40000000);
 	}
 
-	PossessorComponent* possessorComponent;
-	if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent))
-	{
-		possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
+	// BBB Component, unused currently
+	// Need to to write0 so that is serlaizese correctly
+	// TODO: Implement BBB Component
+	outBitStream->Write0();
 
 	/*
 	if (m_Trigger != nullptr)
@@ -1218,17 +1206,21 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 }
 
 void Entity::Update(const float deltaTime) {
-	for (int i = 0; i < m_Timers.size(); i++) {
-		m_Timers[i]->Update(deltaTime);
-		if (m_Timers[i]->GetTime() <= 0) {
-			const auto timerName = m_Timers[i]->GetName();
+	uint32_t timerPosition;
+	timerPosition = 0;
+	while (timerPosition < m_Timers.size()) {
+		m_Timers[timerPosition]->Update(deltaTime);
+		if (m_Timers[timerPosition]->GetTime() <= 0) {
+			const auto timerName = m_Timers[timerPosition]->GetName();
 
-			delete m_Timers[i];
-			m_Timers.erase(m_Timers.begin() + i);
+			delete m_Timers[timerPosition];
+			m_Timers.erase(m_Timers.begin() + timerPosition);
 
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+		} else {
+			timerPosition++;
 		}
 	}
 
@@ -1239,6 +1231,14 @@ void Entity::Update(const float deltaTime) {
 			delete m_CallbackTimers[i];
 			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
 		}
+	}
+	
+	// Add pending timers to the list of timers so they start next tick.
+	if (m_PendingTimers.size() > 0) {
+		for (auto namedTimer : m_PendingTimers) {
+			m_Timers.push_back(namedTimer);
+		}
+		m_PendingTimers.clear();
 	}
 
 	if (IsSleeping())
@@ -1661,12 +1661,30 @@ void Entity::RegisterCoinDrop(uint64_t count) {
 }
 
 void Entity::AddChild(Entity* child) {
+	m_IsParentChildDirty = true;
 	m_ChildEntities.push_back(child);
+}
+
+void Entity::RemoveChild(Entity* child) {
+	if (!child) return;
+	uint32_t entityPosition = 0;
+	while (entityPosition < m_ChildEntities.size()) {
+		if (!m_ChildEntities[entityPosition] || (m_ChildEntities[entityPosition])->GetObjectID() == child->GetObjectID()) {
+			m_IsParentChildDirty = true;
+			m_ChildEntities.erase(m_ChildEntities.begin() + entityPosition);
+		} else {
+			entityPosition++;
+		}
+	}
+}
+
+void Entity::RemoveParent() {
+	this->m_ParentEntity = nullptr;
 }
 
 void Entity::AddTimer(std::string name, float time) {
 	EntityTimer* timer = new EntityTimer(name, time);
-	m_Timers.push_back(timer);
+	m_PendingTimers.push_back(timer);
 }
 
 void Entity::AddCallbackTimer(float time, std::function<void()> callback) {

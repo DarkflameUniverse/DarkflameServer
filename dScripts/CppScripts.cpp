@@ -4,10 +4,8 @@
 
 #include "CppScripts.h"
 #include "GameMessages.h"
-#include "dpWorld.h"
 #include "Entity.h"
 #include "ScriptComponent.h"
-#include "EntityManager.h"
 #include "Game.h"
 #include "dLogger.h"
 #include "InvalidScript.h"
@@ -164,6 +162,8 @@
 #include "BaseFootRaceManager.h"
 #include "PropertyPlatform.h"
 #include "MailBoxServer.h"
+#include "ActMine.h"
+#include "FireFirstSkillonStartup.h"
 
 // Racing Scripts
 #include "RaceImagineCrateServer.h"
@@ -591,6 +591,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
         return new VeBricksampleServer();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua")
 		script = new MailBoxServer();
+	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
+		script = new ActMine();
 
 	//Racing:
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua")
@@ -801,7 +803,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new LegoDieRoll();
   	else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
     	script = new BuccaneerValiantShip();
-
+	else if (scriptName == "scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua")
+	    script = new FireFirstSkillonStartup();
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
 		script = new RockHydrantBroken();

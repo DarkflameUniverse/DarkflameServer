@@ -1,7 +1,5 @@
 #pragma once
 #include "CppScripts.h"
-#include "PropertyManagementComponent.h"
-#include "PropertyVendorComponent.h"
 
 class BasePropertyServer : public CppScripts::Script {
 public:

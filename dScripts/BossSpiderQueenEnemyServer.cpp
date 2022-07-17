@@ -6,7 +6,10 @@
 #include "EntityManager.h"
 #include "Entity.h"
 #include "dZoneManager.h"
-#include "dServer.h"
+
+#include "DestroyableComponent.h"
+#include "ControllablePhysicsComponent.h"
+#include "BaseCombatAIComponent.h"
 
 #include "GameMessages.h"
 #include "SkillComponent.h"
@@ -49,7 +52,7 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 }
 
 void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
-	if (Game::server->GetZoneID() == instanceZoneID) {
+	if (dZoneManager::Instance()->GetZoneID().GetMapID() == instanceZoneID) {
 		auto* missionComponent = killer->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr)
 			return;

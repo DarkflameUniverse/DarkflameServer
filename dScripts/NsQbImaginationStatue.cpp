@@ -1,9 +1,6 @@
 #include "NsQbImaginationStatue.h"
 #include "EntityManager.h"
-#include "Loot.h"
 #include "GameMessages.h"
-#include "ScriptedActivityComponent.h"
-#include "RebuildComponent.h"
 
 void NsQbImaginationStatue::OnStartup(Entity* self) 
 {

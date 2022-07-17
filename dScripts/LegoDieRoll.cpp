@@ -1,7 +1,7 @@
 #include "LegoDieRoll.h"
 #include "Entity.h"
-#include "dLogger.h"
 #include "GameMessages.h"
+#include "MissionComponent.h"
 
 void LegoDieRoll::OnStartup(Entity* self) {
     self->AddTimer("DoneRolling", 10.0f);
@@ -48,7 +48,6 @@ void LegoDieRoll::OnTimerDone(Entity* self, std::string timerName) {
             break;
             }
         default:
-	        Game::logger->LogDebug("LegoDieRoll", "Invalid animation: roll-die-%i\n", dieRoll);
             break;
         }
     }

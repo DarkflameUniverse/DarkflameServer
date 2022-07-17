@@ -6,7 +6,6 @@
 #include "SkillComponent.h"
 #include "BaseCombatAIComponent.h"
 
-
 void AmDarklingDragon::OnStartup(Entity* self) {
     self->SetVar<int32_t>(u"weakspot", 0);
 
@@ -48,15 +47,11 @@ void AmDarklingDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t
     auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
 
     if (destroyableComponent != nullptr) {
-        Game::logger->Log("AmDarklingDragon", "Armor is %i\n", destroyableComponent->GetArmor());
-
         if (destroyableComponent->GetArmor() > 0) return;
 
         auto weakpoint = self->GetVar<int32_t>(u"weakpoint");
 
         if (weakpoint == 0) {
-            Game::logger->Log("AmDarklingDragon", "Activating weakpoint\n");
-
             self->AddTimer("ReviveTimer", 12);
 
             auto* baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();

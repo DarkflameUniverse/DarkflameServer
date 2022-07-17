@@ -14,16 +14,24 @@
 
 class Entity;
 
+enum class eClimbableType : int32_t {
+	CLIMBABLE_TYPE_NOT = 0,
+	CLIMBABLE_TYPE_LADDER,
+	CLIMBABLE_TYPE_WALL,
+	CLIMBABLE_TYPE_WALL_STICK
+};
+
+
 /**
  * Component that serializes locations of entities to the client
  */
 class SimplePhysicsComponent : public Component {
 public:
     static const uint32_t ComponentType = COMPONENT_TYPE_SIMPLE_PHYSICS;
-	
+
 	SimplePhysicsComponent(uint32_t componentID, Entity* parent);
     ~SimplePhysicsComponent() override;
-    
+
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
     /**
@@ -86,6 +94,18 @@ public:
      */
     void SetPhysicsMotionState(uint32_t value);
 
+	/**
+	 * Returns the ClimbableType of this entity
+	 * @return the ClimbableType of this entity
+	 */
+	const eClimbableType& GetClimabbleType() { return m_ClimbableType; }
+
+	/**
+	 * Sets the ClimbableType of this entity
+	 * @param value the ClimbableType to set
+	 */
+	void SetClimbableType(const eClimbableType& value) { m_ClimbableType = value; }
+
 private:
 
     /**
@@ -122,6 +142,11 @@ private:
      * The current physics motion state
      */
     uint32_t m_PhysicsMotionState = 0;
+
+    /**
+     * Whether or not the entity is climbable
+     */
+    eClimbableType m_ClimbableType = eClimbableType::CLIMBABLE_TYPE_NOT;
 };
 
 #endif // SIMPLEPHYSICSCOMPONENT_H

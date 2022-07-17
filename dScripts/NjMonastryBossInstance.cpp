@@ -1,15 +1,14 @@
-#include <algorithm>
-#include "RebuildComponent.h"
 #include "NjMonastryBossInstance.h"
+#include "RebuildComponent.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
-#include "GameMessages.h"
 #include "dZoneManager.h"
 #include "GameMessages.h"
 #include "BaseCombatAIComponent.h"
 #include "BuffComponent.h"
 #include "SkillComponent.h"
 #include "TeamManager.h"
+#include <algorithm>
 
 // // // // // // //
 // Event handling //
@@ -91,15 +90,33 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity *self, Entity *player) {
 
 void NjMonastryBossInstance::OnPlayerExit(Entity *self, Entity *player) {
     UpdatePlayer(self, player->GetObjectID(), true);
-    //TODO: Add functionality to dynamically turn off the large team variable when enough players leave.
-    GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayerLeft", 0, 0,
-                                         player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+    // Fetch the total players loaded from the vars
+    auto totalPlayersLoaded = self->GetVar<std::vector<LWOOBJID> >(TotalPlayersLoadedVariable);
+    
+    // Find the player to remove
+    auto playerToRemove = std::find(totalPlayersLoaded.begin(), totalPlayersLoaded.end(), player->GetObjectID());
+
+    // If we found the player remove them from out list of players
+    if (playerToRemove != totalPlayersLoaded.end()) {
+        totalPlayersLoaded.erase(playerToRemove);
+    } else {
+        Game::logger->Log("NjMonastryBossInstance", "Failed to remove player at exit.\n");
+    }
+
+    // Set the players loaded var back
+    self->SetVar<std::vector<LWOOBJID>>(TotalPlayersLoadedVariable, totalPlayersLoaded);
+
+    // Since this is an exit method, check if enough players have left.  If enough have left
+    // resize the instance to account for such.
+    if (totalPlayersLoaded.size() <= 2) self->SetVar<bool>(LargeTeamVariable, false);
+
+    GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayerLeft", 0, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void NjMonastryBossInstance::OnActivityTimerDone(Entity *self, const std::string &name) {
     auto split = GeneralUtils::SplitString(name, TimerSplitChar);
     auto timerName = split[0];
-    auto objectID = split.size() > 1 ? (LWOOBJID) std::stol(split[1]) : LWOOBJID_EMPTY;
+    auto objectID = split.size() > 1 ? (LWOOBJID) std::stoull(split[1]) : LWOOBJID_EMPTY;
 
     if (timerName == WaitingForPlayersTimer) {
         StartFight(self);

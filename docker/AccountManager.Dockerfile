@@ -8,7 +8,7 @@ COPY ./thirdparty/AccountManager .
 ADD docker/credentials_example.py credentials.py
 ADD docker/resources_example.py resources.py
 
-RUN apk add libffi-dev build-base --no-cache && pip3 install -r requirements.txt
+RUN apk add curl libffi-dev build-base --no-cache && pip3 install -r requirements.txt
 
 EXPOSE 5000
 CMD python3 app.py
