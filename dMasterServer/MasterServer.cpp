@@ -128,6 +128,7 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+
 	if (argc > 1 && (strcmp(argv[1], "-m") == 0 || strcmp(argv[1], "--migrations") == 0)) {
 		MigrationRunner::RunMigrations();
 		Game::logger->Log("MigrationRunner", "Finished running migrations\n");
@@ -186,6 +187,10 @@ int main(int argc, char** argv) {
 
 		return EXIT_SUCCESS;
 	}
+	
+	//Run mysql migrations if there are new ones
+	MigrationRunner::RunMigrations();
+	Game::logger->Log("MigrationRunner", "Finished running migrations\n");
 
 	int maxClients = 999;
 	int ourPort = 1000;
