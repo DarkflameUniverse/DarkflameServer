@@ -1201,17 +1201,21 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 }
 
 void Entity::Update(const float deltaTime) {
-	for (int i = 0; i < m_Timers.size(); i++) {
-		m_Timers[i]->Update(deltaTime);
-		if (m_Timers[i]->GetTime() <= 0) {
-			const auto timerName = m_Timers[i]->GetName();
+	uint32_t timerPosition;
+	timerPosition = 0;
+	while (timerPosition < m_Timers.size()) {
+		m_Timers[timerPosition]->Update(deltaTime);
+		if (m_Timers[timerPosition]->GetTime() <= 0) {
+			const auto timerName = m_Timers[timerPosition]->GetName();
 
-			delete m_Timers[i];
-			m_Timers.erase(m_Timers.begin() + i);
+			delete m_Timers[timerPosition];
+			m_Timers.erase(m_Timers.begin() + timerPosition);
 
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+		} else {
+			timerPosition++;
 		}
 	}
 
@@ -1222,6 +1226,14 @@ void Entity::Update(const float deltaTime) {
 			delete m_CallbackTimers[i];
 			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
 		}
+	}
+	
+	// Add pending timers to the list of timers so they start next tick.
+	if (m_PendingTimers.size() > 0) {
+		for (auto namedTimer : m_PendingTimers) {
+			m_Timers.push_back(namedTimer);
+		}
+		m_PendingTimers.clear();
 	}
 
 	if (IsSleeping())
@@ -1661,7 +1673,7 @@ void Entity::RemoveChild(Entity* child) {
 
 void Entity::AddTimer(std::string name, float time) {
 	EntityTimer* timer = new EntityTimer(name, time);
-	m_Timers.push_back(timer);
+	m_PendingTimers.push_back(timer);
 }
 
 void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
