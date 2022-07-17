@@ -111,7 +111,7 @@ Entity::~Entity() {
 	}
 
 	for (auto child : m_ChildEntities) {
-		child->RemoveParent();
+		if (child) child->RemoveParent();
 	}
 
 	if (m_ParentEntity) {
