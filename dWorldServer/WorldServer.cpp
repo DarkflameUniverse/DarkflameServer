@@ -546,18 +546,31 @@ void HandlePacketChat(Packet* packet) {
 				LWOOBJID header;
 				inStream.Read(header);
 
-				RakNet::RakString title;
-				RakNet::RakString msg;
+				std::string title;
+				std::string msg;
 
-				inStream.Read(title);
-				inStream.Read(msg);
+				uint32_t len;
+				inStream.Read<uint32_t>(len);
+				for (int i = 0; len > i; i++) {
+					char character;
+					inStream.Read<char>(character);
+					title += character;
+				}
+				
+				len = 0;
+				inStream.Read<uint32_t>(len);
+				for (int i = 0; len > i; i++) {
+					char character;
+					inStream.Read<char>(character);
+					msg += character;
+				}
 
 				//Send to our clients:
 				AMFArrayValue args;
 				auto* titleValue = new AMFStringValue();
-				titleValue->SetStringValue(title.C_String());
+				titleValue->SetStringValue(title.c_str());
 				auto* messageValue = new AMFStringValue();
-				messageValue->SetStringValue(msg.C_String());
+				messageValue->SetStringValue(msg.c_str());
 
 				args.InsertValue("title", titleValue);
 				args.InsertValue("message", messageValue);
@@ -1122,13 +1135,11 @@ void HandlePacket(Packet* packet) {
 						CBITSTREAM;
 						PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_ADDED_NOTIFICATION);
 						bitStream.Write(player->GetObjectID());
-						bitStream.Write<uint16_t>(playerName.size());
+						bitStream.Write<uint32_t>(playerName.size());
 						for (size_t i = 0; i < playerName.size(); i++)
 						{
 							bitStream.Write(playerName[i]);
 						}
-
-						//bitStream.Write(playerName);
 
 						auto zone = dZoneManager::Instance()->GetZone()->GetZoneID();
 						bitStream.Write(zone.GetMapID());
