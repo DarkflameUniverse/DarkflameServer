@@ -37,14 +37,14 @@ class PossessorComponent : public Component {
 		LWOOBJID GetPossessable() const { return m_Possessable; }
 
 		/**
-		 * Sets the entity that this entity is possessing
-		 * @param value the ID of the entity this ID should posess
+		 * Sets if we are busy mounting or dismounting
+		 * @param value if we are busy mounting or dismounting
 		 */
-		void SetIsBusy(bool value) { m_IsBusy = value;}
+		void SetIsBusy(bool value) { m_IsBusy = value; }
 
 		/**
-		 * Returns the entity that this entity is currently posessing
-		 * @return the entity that this entity is currently posessing
+		 * Returns if we are busy mounting or dismounting
+		 * @return if we are busy mounting or dismounting
 		 */
 		bool GetIsBusy() const { return m_IsBusy; }
 
