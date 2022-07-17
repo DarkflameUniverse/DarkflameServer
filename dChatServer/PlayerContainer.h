@@ -9,7 +9,7 @@
 
 struct PlayerData {
 	LWOOBJID playerID;
-	RakNet::RakString playerName;
+	std::string playerName;
 	SystemAddress sysAddr;
 	LWOZONEID zoneID;
 	std::vector<FriendData> friends;
@@ -46,7 +46,7 @@ public:
 	PlayerData* GetPlayerData(const std::string& playerName) {
 		for (auto player : mPlayers) {
 			if (player.second) {
-				std::string pn = player.second->playerName.C_String();
+				std::string pn = player.second->playerName.c_str();
 				if (pn == playerName) return player.second;
 			}
 		}

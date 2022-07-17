@@ -123,7 +123,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				requestee.reset(new PlayerData());
 				// Setup the needed info since you can add a best friend offline.
 				requestee->playerID = friendDataCandidate.friendID;
-				requestee->playerName = RakNet::RakString(friendDataCandidate.friendName.c_str());
+				requestee->playerName = friendDataCandidate.friendName;
 				requestee->zoneID = LWOZONEID();
 
 				FriendData requesteeFriendData{};
@@ -147,7 +147,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 		std::unique_ptr<sql::ResultSet> result(nameQuery->executeQuery());
 
 		requestee.reset(new PlayerData());
-		requestee->playerName = RakNet::RakString(playerName.c_str());
+		requestee->playerName = playerName;
 
 		SendFriendResponse(requestor, requestee.get(), result->next() ? AddFriendResponseType::NOTONLINE : AddFriendResponseType::INVALIDCHARACTER);
 		return;
@@ -384,7 +384,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet)
 
 	if (playerContainer.GetIsMuted(sender)) return;
 
-	const auto senderName = std::string(sender->playerName.C_String());
+	const auto senderName = std::string(sender->playerName.c_str());
 
 	inStream.SetReadOffset(0x14 * 8);
 
@@ -407,7 +407,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet)
 
 		if (otherMember == nullptr) return;
 
-		const auto otherName = std::string(otherMember->playerName.C_String());
+		const auto otherName = std::string(otherMember->playerName.c_str());
 
 		CBITSTREAM;
 		PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_ROUTE_TO_PLAYER);
@@ -443,8 +443,8 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 
 	if (playerContainer.GetIsMuted(goonA)) return;
 
-	std::string goonAName = goonA->playerName.C_String();
-	std::string goonBName = goonB->playerName.C_String();
+	std::string goonAName = goonA->playerName.c_str();
+	std::string goonBName = goonB->playerName.c_str();
 
 	//To the sender:
 	{
@@ -720,7 +720,7 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet)
 
 		playerContainer.TeamStatusUpdate(team);
 
-		const auto leaderName = GeneralUtils::ASCIIToUTF16(std::string(data->playerName.C_String()));
+		const auto leaderName = GeneralUtils::ASCIIToUTF16(std::string(data->playerName.c_str()));
 
 		for (const auto memberId : team->memberIDs)
 		{
@@ -750,7 +750,7 @@ void ChatPacketHandler::SendTeamInvite(PlayerData* receiver, PlayerData* sender)
 	//portion that will get routed:
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_TEAM_INVITE);
 
-	PacketUtils::WritePacketWString(sender->playerName.C_String(), 33, &bitStream);
+	PacketUtils::WritePacketWString(sender->playerName.c_str(), 33, &bitStream);
 	bitStream.Write(sender->playerID);
 
 	SystemAddress sysAddr = receiver->sysAddr;
@@ -936,7 +936,7 @@ void ChatPacketHandler::SendFriendUpdate(PlayerData* friendData, PlayerData* pla
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_UPDATE_FRIEND_NOTIFY);
 	bitStream.Write<uint8_t>(notifyType);
 
-	std::string playerName = playerData->playerName.C_String();
+	std::string playerName = playerData->playerName.c_str();
 
 	PacketUtils::WritePacketWString(playerName, 33, &bitStream);
 
@@ -976,7 +976,7 @@ void ChatPacketHandler::SendFriendRequest(PlayerData* receiver, PlayerData* send
 
 	//portion that will get routed:
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_ADD_FRIEND_REQUEST);
-	PacketUtils::WritePacketWString(sender->playerName.C_String(), 33, &bitStream);
+	PacketUtils::WritePacketWString(sender->playerName.c_str(), 33, &bitStream);
 	bitStream.Write<uint8_t>(0); // This is a BFF flag however this is unused in live and does not have an implementation client side.
 
 	SystemAddress sysAddr = receiver->sysAddr;
@@ -996,7 +996,7 @@ void ChatPacketHandler::SendFriendResponse(PlayerData* receiver, PlayerData* sen
 	// For all requests besides accepted, write a flag that says whether or not we are already best friends with the receiver.
 	bitStream.Write<uint8_t>(responseCode != AddFriendResponseType::ACCEPTED ? isBestFriendsAlready : sender->sysAddr != UNASSIGNED_SYSTEM_ADDRESS);
 	// Then write the player name
-	PacketUtils::WritePacketWString(sender->playerName.C_String(), 33, &bitStream);
+	PacketUtils::WritePacketWString(sender->playerName.c_str(), 33, &bitStream);
 	// Then if this is an acceptance code, write the following extra info.
  	if (responseCode == AddFriendResponseType::ACCEPTED) {
 		bitStream.Write(sender->playerID);
