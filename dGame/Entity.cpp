@@ -109,6 +109,11 @@ Entity::~Entity() {
 
 		m_Components.erase(pair.first);
 	}
+
+	for (auto child : m_ChildEntities) {
+		child->RemoveParent();
+	}
+
 	if (m_ParentEntity) {
 		m_ParentEntity->RemoveChild(this);
 	}
@@ -1662,13 +1667,19 @@ void Entity::AddChild(Entity* child) {
 
 void Entity::RemoveChild(Entity* child) {
 	if (!child) return;
-	for (auto entity = m_ChildEntities.begin(); entity != m_ChildEntities.end(); entity++) {
-		if (*entity && (*entity)->GetObjectID() == child->GetObjectID()) {
+	uint32_t entityPosition = 0;
+	while (entityPosition < m_ChildEntities.size()) {
+		if (!m_ChildEntities[entityPosition] || (m_ChildEntities[entityPosition])->GetObjectID() == child->GetObjectID()) {
 			m_IsParentChildDirty = true;
-			m_ChildEntities.erase(entity);
-			return;
+			m_ChildEntities.erase(m_ChildEntities.begin() + entityPosition);
+		} else {
+			entityPosition++;
 		}
 	}
+}
+
+void Entity::RemoveParent() {
+	this->m_ParentEntity = nullptr;
 }
 
 void Entity::AddTimer(std::string name, float time) {
