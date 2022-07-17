@@ -1,7 +1,8 @@
-﻿#include "Inventory.h"
+#include "Inventory.h"
 #include "GameMessages.h"
 #include "Game.h"
 #include "Item.h"
+#include "eItemType.h"
 
 std::vector<LOT> Inventory::m_GameMasterRestrictedItems = {
 		1727, // GM Only - JetPack
@@ -274,40 +275,41 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot)
 	const auto itemType = static_cast<eItemType>(itemComponent.itemType);
 
 	switch (itemType) {
-	case ITEM_TYPE_BRICK:
+	case eItemType::ITEM_TYPE_BRICK:
 		return BRICKS;
 		
-	case ITEM_TYPE_BEHAVIOR:
+	case eItemType::ITEM_TYPE_BEHAVIOR:
 		return BEHAVIORS;
 
-	case ITEM_TYPE_PROPERTY:
+	case eItemType::ITEM_TYPE_PROPERTY:
 		return PROPERTY_DEEDS;
 
-	case ITEM_TYPE_MODEL:
-	case ITEM_TYPE_VEHICLE:
-	case ITEM_TYPE_LOOT_MODEL:
+	case eItemType::ITEM_TYPE_MODEL:
+	case eItemType::ITEM_TYPE_VEHICLE:
+	case eItemType::ITEM_TYPE_LOOT_MODEL:
+	case eItemType::ITEM_TYPE_MOUNT:
 		return MODELS;
 		
-	case ITEM_TYPE_HAT:
-	case ITEM_TYPE_HAIR:
-	case ITEM_TYPE_NECK:
-	case ITEM_TYPE_LEFT_HAND:
-	case ITEM_TYPE_RIGHT_HAND:
-	case ITEM_TYPE_LEGS:
-	case ITEM_TYPE_LEFT_TRINKET:
-	case ITEM_TYPE_RIGHT_TRINKET:
-	case ITEM_TYPE_COLLECTIBLE:
-	case ITEM_TYPE_CONSUMABLE:
-	case ITEM_TYPE_CHEST:
-	case ITEM_TYPE_EGG:
-	case ITEM_TYPE_PET_FOOD:
-	case ITEM_TYPE_PET_INVENTORY_ITEM:
-	case ITEM_TYPE_PACKAGE:
-	case ITEM_TYPE_CURRENCY:
+	case eItemType::ITEM_TYPE_HAT:
+	case eItemType::ITEM_TYPE_HAIR:
+	case eItemType::ITEM_TYPE_NECK:
+	case eItemType::ITEM_TYPE_LEFT_HAND:
+	case eItemType::ITEM_TYPE_RIGHT_HAND:
+	case eItemType::ITEM_TYPE_LEGS:
+	case eItemType::ITEM_TYPE_LEFT_TRINKET:
+	case eItemType::ITEM_TYPE_RIGHT_TRINKET:
+	case eItemType::ITEM_TYPE_COLLECTIBLE:
+	case eItemType::ITEM_TYPE_CONSUMABLE:
+	case eItemType::ITEM_TYPE_CHEST:
+	case eItemType::ITEM_TYPE_EGG:
+	case eItemType::ITEM_TYPE_PET_FOOD:
+	case eItemType::ITEM_TYPE_PET_INVENTORY_ITEM:
+	case eItemType::ITEM_TYPE_PACKAGE:
+	case eItemType::ITEM_TYPE_CURRENCY:
 		return ITEMS;
 	
-	case ITEM_TYPE_QUEST_OBJECT:
-	case ITEM_TYPE_UNKNOWN:
+	case eItemType::ITEM_TYPE_QUEST_OBJECT:
+	case eItemType::ITEM_TYPE_UNKNOWN:
 	default:
 		return HIDDEN;
 	}
