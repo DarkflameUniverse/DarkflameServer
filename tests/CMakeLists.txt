@@ -21,11 +21,6 @@ configure_file(
 )
 
 configure_file(
-   ${CMAKE_SOURCE_DIR}/tests/TestBitStreams/AMFBitStreamLoadTest.bin ${PROJECT_BINARY_DIR}/tests/AMFBitStreamLoadTest.bin
-   COPYONLY
-)
-
-configure_file(
    ${CMAKE_SOURCE_DIR}/tests/TestBitStreams/AMFBitStreamUnimplementedTest.bin ${PROJECT_BINARY_DIR}/tests/AMFBitStreamUnimplementedTest.bin
    COPYONLY
 )

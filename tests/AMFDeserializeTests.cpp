@@ -1,15 +1,112 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 #include "AMFDeserialize.h"
 #include "AMFFormat.h"
 #include "CommonCxxTests.h"
 
-AMFArrayValue* ReadFromBitStream(RakNet::BitStream* bitStream) {
+AMFValue* ReadFromBitStream(RakNet::BitStream* bitStream) {
 	AMFDeserialize reader;
 
-	return reader.Read(bitStream, true);
+	return reader.Read(bitStream);
+}
+
+int ReadAMFUndefinedFromBitStream() {
+	CBITSTREAM
+	bitStream.Write<uint8_t>(0x00);
+	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFUndefined);
+	return 0;
+}
+
+int ReadAMFNullFromBitStream() {
+	CBITSTREAM
+	bitStream.Write<uint8_t>(0x01);
+	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFNull);
+	return 0;
+}
+
+int ReadAMFFalseFromBitStream() {
+	CBITSTREAM
+	bitStream.Write<uint8_t>(0x02);
+	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFFalse);
+	return 0;
+}
+
+int ReadAMFTrueFromBitStream() {
+	CBITSTREAM
+	bitStream.Write<uint8_t>(0x03);
+	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFTrue);
+	return 0;
+}
+
+int ReadAMFIntegerFromBitStream() {
+	CBITSTREAM
+	bitStream.Write<uint8_t>(0x04);
+	bitStream.Write<uint8_t>(127);
+	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
+	ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 127);
+	return 0;
+}
+
+int ReadAMFDoubleFromBitStream() {
+	CBITSTREAM
+	bitStream.Write<uint8_t>(0x05);
+	bitStream.Write<double>(25346.4f);
+	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFDouble);
+	ASSERT_EQ(static_cast<AMFDoubleValue*>(res.get())->GetDoubleValue(), 25346.4f);
+	return 0;
+}
+
+int ReadAMFStringFromBitStream() {
+	CBITSTREAM
+	bitStream.Write<uint8_t>(0x06);
+	bitStream.Write<uint8_t>(0x0F);
+	std::string toWrite = "stateID";
+	for (auto e : toWrite) bitStream.Write<char>(e);
+	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFString);
+	ASSERT_EQ(static_cast<AMFStringValue*>(res.get())->GetStringValue(), "stateID");
+	return 0;
+}
+
+int ReadAMFArrayFromBitStream() {
+	CBITSTREAM
+	// Test empty AMFArray
+	bitStream.Write<uint8_t>(0x09);
+	bitStream.Write<uint8_t>(0x01);
+	bitStream.Write<uint8_t>(0x01);
+	{
+		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFArray);
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociativeMap().size(), 0);
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetDenseArray().size(), 0);
+	}
+	bitStream.Reset();
+	// Test a key'd value
+	bitStream.Write<uint8_t>(0x09);
+	bitStream.Write<uint8_t>(0x01);
+	bitStream.Write<uint8_t>(0x15);
+	for (auto e : "BehaviorID") if (e != '\0') bitStream.Write<char>(e);
+	bitStream.Write<uint8_t>(0x06);
+	bitStream.Write<uint8_t>(0x0B);
+	for (auto e : "10447") if (e != '\0') bitStream.Write<char>(e);
+	bitStream.Write<uint8_t>(0x01);
+	{
+		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFArray);
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociativeMap().size(), 1);
+		ASSERT_EQ(static_cast<AMFStringValue*>(static_cast<AMFArrayValue*>(res.get())->FindValue("BehaviorID"))->GetStringValue(), "10447");
+	}
+	// Test a dense array
+	return 0;
 }
 
 /**
@@ -18,7 +115,6 @@ AMFArrayValue* ReadFromBitStream(RakNet::BitStream* bitStream) {
  */
 void TestUnimplementedAMFValues() {
 	std::vector<AMFValueType> unimplementedValues = {
-		AMFValueType::AMFInteger,
 		AMFValueType::AMFXMLDoc,
 		AMFValueType::AMFDate,
 		AMFValueType::AMFObject,
@@ -61,31 +157,6 @@ void TestUnimplementedAMFValues() {
 	}
 }
 
-void TestLoad() {
-	// Now run a load test.
-	auto startTime = std::chrono::high_resolution_clock::now();
-	std::ifstream fileStream;
-	fileStream.open("AMFBitStreamLoadTest.bin", std::ios::binary);
-
-	// Read a test BitStream from a file
-	RakNet::BitStream bitStream;
-	char byte = 0;
-	while (fileStream.get(byte)) {
-		bitStream.Write<char>(byte);
-	}
-
-	fileStream.close();
-
-	ReadFromBitStream(&bitStream);
-	auto endTime = std::chrono::high_resolution_clock::now();
-
-	float timeSpent = std::chrono::duration_cast<std::chrono::duration<float>>(endTime - startTime).count();
-
-	// 1.5f is the max packet processing time we allow.  Since we may have other packets,
-	// dont allow this packet to use more than the max time.
-	assert(timeSpent < 1.5f);
-}
-
 int TestLiveCapture() {
 	std::ifstream testFileStream;
 	testFileStream.open("AMFBitStreamTest.bin", std::ios::binary);
@@ -99,9 +170,9 @@ int TestLiveCapture() {
 
 	testFileStream.close();
 
-	auto result = ReadFromBitStream(&testBitStream);
+	auto result = static_cast<AMFArrayValue*>(ReadFromBitStream(&testBitStream));
+    // Test the outermost array
 
-	// Test the outermost array
 	ASSERT_EQ(dynamic_cast<AMFStringValue*>(result->FindValue("BehaviorID"))->GetStringValue(), "10447");
 	ASSERT_EQ(dynamic_cast<AMFStringValue*>(result->FindValue("objectID"))->GetStringValue(), "288300744895913279")
 
@@ -214,11 +285,18 @@ void TestNullStream() {
 int AMFDeserializeTests(int argc, char** const argv) {
 	std::cout << "Checking that using a null bitstream doesnt cause exception" << std::endl;
 	TestNullStream();
-	std::cout << "Passed nullptr test, checking live capture" << std::endl;
-	TestLiveCapture();
-	std::cout << "Passed live capture, checking load" << std::endl;
-	TestLoad();
-	std::cout << "Passed load, checking unimplemented amf values" << std::endl;
+	std::cout << "passed nullptr test, checking basic tests" << std::endl;
+	if (ReadAMFUndefinedFromBitStream() != 0) return 1;
+	if (ReadAMFNullFromBitStream() != 0) return 1;
+	if (ReadAMFFalseFromBitStream() != 0) return 1;
+	if (ReadAMFTrueFromBitStream() != 0) return 1;
+	if (ReadAMFIntegerFromBitStream() != 0) return 1;
+	if (ReadAMFDoubleFromBitStream() != 0) return 1;
+	if (ReadAMFStringFromBitStream() != 0) return 1;
+	if (ReadAMFArrayFromBitStream() != 0) return 1;
+	std::cout << "Passed basic test, checking live capture" << std::endl;
+	if (TestLiveCapture() != 0) return 1;
+	std::cout << "Passed live capture, checking unimplemented amf values" << std::endl;
 	TestUnimplementedAMFValues();
 	std::cout << "Passed all tests." << std::endl;
 	return 0;
@@ -227,7 +305,7 @@ int AMFDeserializeTests(int argc, char** const argv) {
 /**
  * Below is the AMF that is in the AMFBitStreamTest.bin file that we are reading in 
  * from a bitstream to test.
- * args: amf3!
+args: amf3!
 {
 	"objectID": "288300744895913279",
 	"BehaviorID": "10447",
@@ -241,7 +319,7 @@ int AMFDeserializeTests(int argc, char** const argv) {
 				"id": 0.0,
 			},
 		],
-	"stateID": 0.0,
+		"stateID": 0.0,
 	},
 	"states": amf3!
 	[
