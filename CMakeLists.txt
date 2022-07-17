@@ -161,14 +161,6 @@ foreach (dir ${INCLUDED_DIRECTORIES})
 	include_directories(${PROJECT_SOURCE_DIR}/${dir})
 endforeach()
 
-# Link dGame to LUA
-if(__include_lua__)
-    find_package(Lua REQUIRED)
-
-    include_directories(/usr/include ${LUA_INCLUDE_DIR})
-    include_directories(${PROJECT_SOURCE_DIR}/dLua/)
-endif(UNIX)
-
 # Add linking directories:
 link_directories(${PROJECT_BINARY_DIR})
 
@@ -211,6 +203,7 @@ add_subdirectory(dDatabase)
 add_subdirectory(dChatFilter)
 add_subdirectory(dNet)
 add_subdirectory(dScripts) # Add for dGame to use
+add_subdirectory(dLua)
 add_subdirectory(dGame)
 add_subdirectory(dZoneManager)
 add_subdirectory(dPhysics)
@@ -246,37 +239,16 @@ target_precompile_headers(
 	${HEADERS_DZONEMANAGER}
 )
 
-# If we are including LUA, include the dLua files in dGame
-#if(__include_lua__)
-#    file(
-#    GLOB SOURCES_DLUA
-#    LIST_DIRECTORIES false
-#    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-#    ${PROJECT_SOURCE_DIR}/dLua/*.cpp
-#    )
-
-# Append the dLua files to the dGame files
-#set(SOURCES_DGAME ${SOURCES_DGAME} ${SOURCES_DLUA})
-#endif(__include_lua__)
-## Need to specify to use the CXX compiler language here or else we get errors including <string>.
-#target_precompile_headers(
-#	dDatabase PRIVATE 
-#	"$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
-#)
+# Need to specify to use the CXX compiler language here or else we get errors including <string>.
+target_precompile_headers(
+	dDatabase PRIVATE 
+	"$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
+)
 
 target_precompile_headers(
 	dCommon PRIVATE
 	${HEADERS_DCOMMON}
 )
-
-# Link dGame to LUA
-#if(__include_lua__)
-#    find_package(Lua REQUIRED)
-
-#    target_link_libraries(dGame ${LUA_LIBRARIES})
-
-#    message(STATUS "Linking dGame to LUA " ${LUA_LIBRARIES})
-#endif(UNIX)
 
 target_precompile_headers(
 	tinyxml2 PRIVATE
