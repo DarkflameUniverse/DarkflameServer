@@ -1362,13 +1362,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		if (requestedPlayerToSetLevelOf != "") {
 		ChatPackets::SendSystemMessage(
-			sysAddr, u"Set " + GeneralUtils::ASCIIToUTF16(requestedPlayerToSetLevelOf) + u"'s level to " + GeneralUtils::to_u16string(requestedLevel) + 
-			u" and UScore to " + GeneralUtils::to_u16string(characterComponent->GetUScore()) + 
+			sysAddr, u"Set " + GeneralUtils::ASCIIToUTF16(requestedPlayerToSetLevelOf) + u"'s level to " + GeneralUtils::to_u16string(requestedLevel) +
+			u" and UScore to " + GeneralUtils::to_u16string(characterComponent->GetUScore()) +
 			u". Relog to see changes.");
 		} else {
 		ChatPackets::SendSystemMessage(
-			sysAddr, u"Set your level to " + GeneralUtils::to_u16string(requestedLevel) + 
-			u" and UScore to " + GeneralUtils::to_u16string(characterComponent->GetUScore()) + 
+			sysAddr, u"Set your level to " + GeneralUtils::to_u16string(requestedLevel) +
+			u" and UScore to " + GeneralUtils::to_u16string(characterComponent->GetUScore()) +
 			u". Relog to see changes.");
 		}
 		return;
@@ -1518,61 +1518,36 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		const auto objid = entity->GetObjectID();
 
-        if (force || CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
-			bool darwin = true; //Putting this on true, as I'm sick of having to wait 3-4 seconds on a transfer while trying to quickly moderate properties
+		if (force || CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
 
-			Character* character = entity->GetCharacter();
-			if (character) {
-				std::string lowerName = character->GetName();
-				std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-				// feel free to add your name to the list
-				if (lowerName.find("max") != std::string::npos || lowerName.find("darwin") != std::string::npos || lowerName.find("gie") != std::string::npos) {
-					darwin = true;
-				}
-			}
+			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 
-			if (!darwin) {
-				GameMessages::SendPlayAnimation(entity, u"lup-teleport");
-				GameMessages::SendSetStunned(objid, PUSH, user->GetSystemAddress(),
-					LWOOBJID_EMPTY, true, true, true, true, true, true, true, true
-				);
-			}
-
-			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid, darwin](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 				auto* entity = EntityManager::Instance()->GetEntity(objid);
+				if (!entity) return;
 
-				if (entity == nullptr) {
-					return;
+				const auto sysAddr = entity->GetSystemAddress();
+
+				ChatPackets::SendSystemMessage(sysAddr, u"Transfering map...");
+
+				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+				if (entity->GetCharacter()) {
+					entity->GetCharacter()->SetZoneID(zoneID);
+					entity->GetCharacter()->SetZoneInstance(zoneInstance);
+					entity->GetCharacter()->SetZoneClone(zoneClone);
+					entity->GetComponent<CharacterComponent>()->SetLastRocketConfig(u"");
 				}
 
-				float transferTime = 3.32999992370605f;
-				if (darwin) transferTime = 0.0f;
+				entity->GetCharacter()->SaveXMLToDatabase();
 
-				entity->AddCallbackTimer(transferTime, [=] {
-					const auto sysAddr = entity->GetSystemAddress();
-
-					ChatPackets::SendSystemMessage(sysAddr, u"Transfering map...");
-
-					Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
-					if (entity->GetCharacter()) {
-						entity->GetCharacter()->SetZoneID(zoneID);
-						entity->GetCharacter()->SetZoneInstance(zoneInstance);
-						entity->GetCharacter()->SetZoneClone(zoneClone);
-						entity->GetComponent<CharacterComponent>()->SetLastRocketConfig(u"");
-					}
-
-					entity->GetCharacter()->SaveXMLToDatabase();
-
-					WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
-				});
-                return;
-            });
-        } else {
-            std::string msg = "ZoneID not found or allowed: ";
-            msg.append(args[0]);
-            ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(msg, msg.size()));
-        }
-    }
+				WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+				return;
+			});
+		} else {
+			std::string msg = "ZoneID not found or allowed: ";
+			msg.append(args[0]);
+			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(msg, msg.size()));
+		}
+	}
 
 	if (chatCommand == "createprivate" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 3)
 	{
@@ -2042,11 +2017,15 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	CBITSTREAM;
 	PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_ANNOUNCEMENT);
 
-	RakNet::RakString rsTitle(title.c_str());
-	RakNet::RakString rsMsg(message.c_str());
+	bitStream.Write<uint32_t>(title.size());
+	for (auto character : title) {
+		bitStream.Write<char>(character);
+	}
 
-	bitStream.Write(rsTitle);
-	bitStream.Write(rsMsg);
+	bitStream.Write<uint32_t>(message.size());
+	for (auto character : message) {
+		bitStream.Write<char>(character);
+	}
 
 	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 }

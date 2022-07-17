@@ -309,6 +309,7 @@ protected:
     
     std::unordered_map<int32_t, Component*> m_Components; //The int is the ID of the component
 	std::vector<EntityTimer*> m_Timers;
+	std::vector<EntityTimer*> m_PendingTimers;
 	std::vector<EntityCallbackTimer*> m_CallbackTimers;
 
 	bool m_ShouldDestroyAfterUpdate = false;

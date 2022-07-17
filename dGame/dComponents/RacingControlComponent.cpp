@@ -212,6 +212,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity *player,
 
     if (possessorComponent != nullptr) {
         possessorComponent->SetPossessable(carEntity->GetObjectID());
+        possessorComponent->SetPossessableType(ePossessionType::ATTACHED_VISIBLE); // for racing it's always Attached_Visible
     }
 
     // Set the player's current activity as racing.
@@ -219,7 +220,6 @@ void RacingControlComponent::LoadPlayerVehicle(Entity *player,
 
     if (characterComponent != nullptr) {
         characterComponent->SetIsRacing(true);
-        characterComponent->SetVehicleObjectID(carEntity->GetObjectID());
     }
 
     // Init the player's racing entry.

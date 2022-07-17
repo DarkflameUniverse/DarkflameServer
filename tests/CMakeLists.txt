@@ -5,11 +5,11 @@ create_test_sourcelist (Tests
    TestLDFFormat.cpp
    AMFDeserializeTests.cpp
 )
- 
+
 # add the executable
 add_executable (CommonCxxTests ${Tests})
-target_link_libraries(CommonCxxTests dCommon raknet)
- 
+target_link_libraries(CommonCxxTests ${COMMON_LIBRARIES})
+
 # remove the test driver source file
 set (TestsToRun ${Tests})
 remove (TestsToRun CommonCxxTests.cpp)
@@ -32,7 +32,7 @@ configure_file(
 
 # Add all the ADD_TEST for each test
 foreach (test ${TestsToRun})
-   get_filename_component (TName ${test} NAME_WE)
-   add_test (NAME ${TName} COMMAND CommonCxxTests ${TName})
-   set_property(TEST ${TName} PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=1)
+	get_filename_component (TName ${test} NAME_WE)
+	add_test (NAME ${TName} COMMAND CommonCxxTests ${TName})
+	set_property(TEST ${TName} PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=1)
 endforeach ()

@@ -25,6 +25,7 @@
 #include "PropertyManagementComponent.h"
 #include "DestroyableComponent.h"
 #include "dConfig.h"
+#include "eItemType.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent)
 {
@@ -986,19 +987,11 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 			// #107
 			auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
 
-			if (possessorComponent != nullptr)
-			{
-				previousPossessorID = possessorComponent->GetPossessable();
-				possessorComponent->SetPossessable(carEntity->GetObjectID());
-			}
+			if (possessorComponent) possessorComponent->SetPossessable(carEntity->GetObjectID());
 
 			auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 
-			if (characterComponent != nullptr)
-			{
-				characterComponent->SetIsRacing(true);
-				characterComponent->SetVehicleObjectID(carEntity->GetObjectID());
-			}
+			if (characterComponent) characterComponent->SetIsRacing(true);
 
 			EntityManager::Instance()->ConstructEntity(carEntity);
 			EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -1032,13 +1025,13 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 				return;
 			}
 
-			if (type == ITEM_TYPE_LOOT_MODEL || type == ITEM_TYPE_VEHICLE)
+			if (type == eItemType::ITEM_TYPE_LOOT_MODEL || type == eItemType::ITEM_TYPE_VEHICLE)
 			{
 				return;
 			}
 		}
 
-		if (type != ITEM_TYPE_LOOT_MODEL && type != ITEM_TYPE_MODEL)
+		if (type != eItemType::ITEM_TYPE_LOOT_MODEL && type != eItemType::ITEM_TYPE_MODEL)
 		{
 			if (!item->GetBound() && !item->GetPreconditionExpression()->Check(m_Parent))
 			{
@@ -1164,6 +1157,18 @@ void InventoryComponent::PopEquippedItems()
 		}
 
 		item->Equip();
+	}
+
+	m_Pushed.clear();
+
+	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+	
+	// Reset stats to full
+	if (destroyableComponent) {
+		destroyableComponent->SetHealth(static_cast<int32_t>(destroyableComponent->GetMaxHealth()));
+		destroyableComponent->SetArmor(static_cast<int32_t>(destroyableComponent->GetMaxArmor()));
+		destroyableComponent->SetImagination(static_cast<int32_t>(destroyableComponent->GetMaxImagination()));
+		EntityManager::Instance()->SerializeEntity(m_Parent);
 	}
 
 	m_Dirty = true;
@@ -1407,15 +1412,15 @@ void InventoryComponent::RemoveDatabasePet(LWOOBJID id)
 BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type)
 {
 	switch (type) {
-	case ITEM_TYPE_HAT:
+	case eItemType::ITEM_TYPE_HAT:
 		return BehaviorSlot::Head;
-	case ITEM_TYPE_NECK:
+	case eItemType::ITEM_TYPE_NECK:
 		return BehaviorSlot::Neck;
-	case ITEM_TYPE_LEFT_HAND:
+	case eItemType::ITEM_TYPE_LEFT_HAND:
 		return BehaviorSlot::Offhand;
-	case ITEM_TYPE_RIGHT_HAND:
+	case eItemType::ITEM_TYPE_RIGHT_HAND:
 		return BehaviorSlot::Primary;
-	case ITEM_TYPE_CONSUMABLE:
+	case eItemType::ITEM_TYPE_CONSUMABLE:
 		return BehaviorSlot::Consumable;
 	default:
 		return BehaviorSlot::Invalid;

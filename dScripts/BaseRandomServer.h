@@ -1,8 +1,8 @@
 #pragma once
-#include "CppScripts.h"
-#include "Entity.h"
-#include "dCommonVars.h"
 
+#include <map>
+
+class Spawner;
 class BaseRandomServer
 {
 public:

@@ -1,0 +1,1 @@
+UPDATE friends SET player_id = player_id % 0x100000000, friend_id = friend_id % 0x100000000;

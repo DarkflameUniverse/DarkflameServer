@@ -546,18 +546,31 @@ void HandlePacketChat(Packet* packet) {
 				LWOOBJID header;
 				inStream.Read(header);
 
-				RakNet::RakString title;
-				RakNet::RakString msg;
+				std::string title;
+				std::string msg;
 
-				inStream.Read(title);
-				inStream.Read(msg);
+				uint32_t len;
+				inStream.Read<uint32_t>(len);
+				for (int i = 0; len > i; i++) {
+					char character;
+					inStream.Read<char>(character);
+					title += character;
+				}
+				
+				len = 0;
+				inStream.Read<uint32_t>(len);
+				for (int i = 0; len > i; i++) {
+					char character;
+					inStream.Read<char>(character);
+					msg += character;
+				}
 
 				//Send to our clients:
 				AMFArrayValue args;
 				auto* titleValue = new AMFStringValue();
-				titleValue->SetStringValue(title.C_String());
+				titleValue->SetStringValue(title.c_str());
 				auto* messageValue = new AMFStringValue();
-				messageValue->SetStringValue(msg.C_String());
+				messageValue->SetStringValue(msg.c_str());
 
 				args.InsertValue("title", titleValue);
 				args.InsertValue("message", messageValue);
@@ -669,10 +682,12 @@ void HandlePacket(Packet* packet) {
 			Game::logger->Log("WorldServer", "Deleting player %llu\n", entity->GetObjectID());
 
 			EntityManager::Instance()->DestroyEntity(entity);
+		}
 
+		{
 			CBITSTREAM;
 			PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
-			bitStream.Write(c->GetObjectID());
+			bitStream.Write(user->GetLoggedInChar());
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
 
@@ -930,6 +945,19 @@ void HandlePacket(Packet* packet) {
 			playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_CHARACTER);
 			playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_PERSISTENT);
 
+			auto user = UserManager::Instance()->GetUser(packet->systemAddress);
+			
+			if (user) {
+				auto lastCharacter = user->GetLoggedInChar();
+				// This means we swapped characters and we need to remove the previous player from the container.
+				if (static_cast<uint32_t>(lastCharacter) != playerID) {
+					CBITSTREAM;
+					PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
+					bitStream.Write(lastCharacter);
+					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+				}
+			}
+
 			UserManager::Instance()->LoginCharacter(packet->systemAddress, static_cast<uint32_t>(playerID));
 			break;
 		}
@@ -1107,13 +1135,11 @@ void HandlePacket(Packet* packet) {
 						CBITSTREAM;
 						PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_ADDED_NOTIFICATION);
 						bitStream.Write(player->GetObjectID());
-						bitStream.Write<uint16_t>(playerName.size());
+						bitStream.Write<uint32_t>(playerName.size());
 						for (size_t i = 0; i < playerName.size(); i++)
 						{
 							bitStream.Write(playerName[i]);
 						}
-
-						//bitStream.Write(playerName);
 
 						auto zone = dZoneManager::Instance()->GetZone()->GetZoneID();
 						bitStream.Write(zone.GetMapID());

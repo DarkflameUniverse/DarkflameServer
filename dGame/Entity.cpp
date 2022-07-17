@@ -208,8 +208,9 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ZONE_CONTROL, nullptr));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE) > 0) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this)));
+	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE);
+	if (possessableComponentId > 0) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this, possessableComponentId)));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODULE_ASSEMBLY) > 0) {
@@ -435,6 +436,8 @@ void Entity::Initialize()
 	}*/
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
+		// Character Component always has a possessor component
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
 	}
@@ -604,10 +607,6 @@ void Entity::Initialize()
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_RENDER) > 0 && m_TemplateID != 2365) || m_Character) {
 		RenderComponent* render = new RenderComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RENDER, render));
-	}
-
-	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSOR) > 0) || m_Character) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 	}
 
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MISSION_OFFER) > 0) || m_Character) {
@@ -1057,8 +1056,15 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	}
 
 	CharacterComponent* characterComponent;
-	if (TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_CHARACTER, characterComponent)) {
+
+		PossessorComponent* possessorComponent;
+		if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent)) {
+			possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
+		}
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
@@ -1164,11 +1170,10 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		outBitStream->Write<uint32_t>(0x40000000);
 	}
 
-	PossessorComponent* possessorComponent;
-	if (TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent))
-	{
-		possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
+	// BBB Component, unused currently
+	// Need to to write0 so that is serlaizese correctly
+	// TODO: Implement BBB Component
+	outBitStream->Write0();
 
 	/*
 	if (m_Trigger != nullptr)
@@ -1196,17 +1201,21 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 }
 
 void Entity::Update(const float deltaTime) {
-	for (int i = 0; i < m_Timers.size(); i++) {
-		m_Timers[i]->Update(deltaTime);
-		if (m_Timers[i]->GetTime() <= 0) {
-			const auto timerName = m_Timers[i]->GetName();
+	uint32_t timerPosition;
+	timerPosition = 0;
+	while (timerPosition < m_Timers.size()) {
+		m_Timers[timerPosition]->Update(deltaTime);
+		if (m_Timers[timerPosition]->GetTime() <= 0) {
+			const auto timerName = m_Timers[timerPosition]->GetName();
 
-			delete m_Timers[i];
-			m_Timers.erase(m_Timers.begin() + i);
+			delete m_Timers[timerPosition];
+			m_Timers.erase(m_Timers.begin() + timerPosition);
 
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+		} else {
+			timerPosition++;
 		}
 	}
 
@@ -1217,6 +1226,14 @@ void Entity::Update(const float deltaTime) {
 			delete m_CallbackTimers[i];
 			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
 		}
+	}
+	
+	// Add pending timers to the list of timers so they start next tick.
+	if (m_PendingTimers.size() > 0) {
+		for (auto namedTimer : m_PendingTimers) {
+			m_Timers.push_back(namedTimer);
+		}
+		m_PendingTimers.clear();
 	}
 
 	if (IsSleeping())
@@ -1656,7 +1673,7 @@ void Entity::RemoveChild(Entity* child) {
 
 void Entity::AddTimer(std::string name, float time) {
 	EntityTimer* timer = new EntityTimer(name, time);
-	m_Timers.push_back(timer);
+	m_PendingTimers.push_back(timer);
 }
 
 void Entity::AddCallbackTimer(float time, std::function<void()> callback) {

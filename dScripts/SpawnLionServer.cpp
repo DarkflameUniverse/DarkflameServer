@@ -1,4 +1,5 @@
 #include "SpawnLionServer.h"
+#include "Entity.h"
 
 void SpawnLionServer::SetVariables(Entity *self) {
     self->SetVar<LOT>(u"petLOT", 3520);

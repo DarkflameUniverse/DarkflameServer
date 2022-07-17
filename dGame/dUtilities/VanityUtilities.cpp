@@ -11,6 +11,8 @@
 #include "dConfig.h"
 #include "dServer.h"
 #include "tinyxml2.h"
+#include "Game.h"
+#include "dLogger.h"
 
 #include <fstream>
 
