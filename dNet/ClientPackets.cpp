@@ -30,6 +30,9 @@
 #include "VehiclePhysicsComponent.h"
 #include "dConfig.h"
 #include "CharacterComponent.h"
+#include "Database.h"
+
+
 
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
@@ -276,13 +279,18 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 	std::string message = "";
 
 	stream.Read(chatLevel);
-	printf("%d", chatLevel);
 	stream.Read(requestID);
 
 	for (uint32_t i = 0; i < 42; ++i) {
 		uint16_t character;
 		stream.Read(character);
 		receiver.push_back(static_cast<uint8_t>(character));
+	}
+
+	if (!receiver.empty()) {
+		if (std::string(receiver.c_str(), 4) == "[GM]") {
+			receiver = std::string(receiver.c_str() + 4, receiver.size() - 4);
+		}
 	}
 
 	stream.Read(messageLength);
@@ -292,8 +300,52 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 		message.push_back(static_cast<uint8_t>(character));
 	}
 
+	bool isBestFriend = false;
+
+	if (chatLevel == 1) {
+		// Private chat
+		LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
+
+		{
+			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE name = ?");
+			stmt->setString(1, receiver);
+
+			sql::ResultSet* res = stmt->executeQuery();
+
+			if (res->next()) {
+				idOfReceiver = res->getInt("id");
+			}
+		}
+
+		if (user->GetIsBestFriendMap().find(receiver) == user->GetIsBestFriendMap().end() && idOfReceiver != LWOOBJID_EMPTY) {
+			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
+			stmt->setInt(1, entity->GetObjectID());
+			stmt->setInt(2, idOfReceiver);
+			stmt->setInt(3, idOfReceiver);
+			stmt->setInt(4, entity->GetObjectID());
+
+			sql::ResultSet* res = stmt->executeQuery();
+
+			if (res->next()) {
+				isBestFriend = res->getInt("best_friend") == 3;
+			}
+
+			if (isBestFriend) {
+				auto tmpBestFriendMap = user->GetIsBestFriendMap();
+				tmpBestFriendMap[receiver] = true;
+				user->SetIsBestFriendMap(tmpBestFriendMap);
+			}
+
+			delete res;
+			delete stmt;
+		}
+		else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
+			isBestFriend = true;
+		}
+	}
+
 	std::unordered_map<char, char> unacceptedItems;
-	std::vector<std::string> segments = Game::chatFilter->IsSentenceOkay(message, entity->GetGMLevel());
+	std::vector<std::string> segments = Game::chatFilter->IsSentenceOkay(message, entity->GetGMLevel(), !(isBestFriend && chatLevel == 1));
 
 	bool bAllClean = segments.empty();
 

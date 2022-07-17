@@ -19,12 +19,12 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 	m_DontGenerateDCF = dontGenerateDCF;
 
 	if (!BinaryIO::DoesFileExist(filepath + ".dcf") || m_DontGenerateDCF) {
-		ReadWordlistPlaintext(filepath + ".txt");
-		if (!m_DontGenerateDCF) ExportWordlistToDCF(filepath + ".dcf");
+		ReadWordlistPlaintext(filepath + ".txt", true);
+		if (!m_DontGenerateDCF) ExportWordlistToDCF(filepath + ".dcf", true);
 	}
 	else if (!ReadWordlistDCF(filepath + ".dcf", true)) {
-		ReadWordlistPlaintext(filepath + ".txt");
-		ExportWordlistToDCF(filepath + ".dcf");
+		ReadWordlistPlaintext(filepath + ".txt", true);
+		ExportWordlistToDCF(filepath + ".dcf", true);
 	}
 
 	if (BinaryIO::DoesFileExist("blacklist.dcf")) {
@@ -48,14 +48,15 @@ dChatFilter::~dChatFilter() {
 	m_NoNoWords.clear();
 }
 
-void dChatFilter::ReadWordlistPlaintext(const std::string& filepath) {
+void dChatFilter::ReadWordlistPlaintext(const std::string& filepath, bool whiteList) {
 	std::ifstream file(filepath);
 	if (file) {
 		std::string line;
 		while (std::getline(file, line)) {
 			line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 			std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
-			m_YesYesWords.push_back(CalculateHash(line));
+			if (whiteList) m_YesYesWords.push_back(CalculateHash(line));
+			else m_NoNoWords.push_back(CalculateHash(line));
 		}
 	}
 }
@@ -94,14 +95,14 @@ bool dChatFilter::ReadWordlistDCF(const std::string& filepath, bool whiteList) {
 	return false;
 }
 
-void dChatFilter::ExportWordlistToDCF(const std::string& filepath) {
+void dChatFilter::ExportWordlistToDCF(const std::string& filepath, bool whiteList) {
 	std::ofstream file(filepath, std::ios::binary | std::ios_base::out);
 	if (file) {
 		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::header));
 		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::formatVersion));
-		BinaryIO::BinaryWrite(file, size_t(m_YesYesWords.size()));
+		BinaryIO::BinaryWrite(file, size_t(whiteList ? m_YesYesWords.size() : m_NoNoWords.size()));
 
-		for (size_t word : m_YesYesWords) {
+		for (size_t word : whiteList ? m_YesYesWords : m_NoNoWords) {
 			BinaryIO::BinaryWrite(file, word);
 		}
 
@@ -128,21 +129,18 @@ std::vector<std::string> dChatFilter::IsSentenceOkay(const std::string& message,
 
 		size_t hash = CalculateHash(segment);
 
-		if (std::find(m_UserUnapprovedWordCache.begin(), m_UserUnapprovedWordCache.end(), hash) != m_UserUnapprovedWordCache.end()) {
-			listOfBadSegments.push_back(originalSegment); // found word that isn't ok, just deny this code works for both white and black list
+		if (std::find(m_UserUnapprovedWordCache.begin(), m_UserUnapprovedWordCache.end(), hash) != m_UserUnapprovedWordCache.end() && whiteList) {
+			listOfBadSegments.push_back(originalSegment);
 		}
 
-		if (!IsInWordlist(hash, whiteList)) {
-			if (whiteList) {
-				m_UserUnapprovedWordCache.push_back(hash);
-				listOfBadSegments.push_back(originalSegment);
-			}
+		if (std::find(m_YesYesWords.begin(), m_YesYesWords.end(), hash) == m_YesYesWords.end() && whiteList) {
+			m_UserUnapprovedWordCache.push_back(hash);
+			listOfBadSegments.push_back(originalSegment);
 		}
-		else {
-			if (!whiteList) {
-				m_UserUnapprovedWordCache.push_back(hash);
-				listOfBadSegments.push_back(originalSegment);
-			}
+		
+		if (std::find(m_NoNoWords.begin(), m_NoNoWords.end(), hash) != m_NoNoWords.end() && !whiteList) {
+			m_UserUnapprovedWordCache.push_back(hash);
+			listOfBadSegments.push_back(originalSegment);
 		}
 	}
 
@@ -155,10 +153,4 @@ size_t dChatFilter::CalculateHash(const std::string& word) {
 	size_t value = hash(word);
 
 	return value;
-}
-
-bool dChatFilter::IsInWordlist(size_t word, bool whiteList) {
-	auto* list = whiteList ? &m_YesYesWords : &m_NoNoWords;
-
-	return std::find(list->begin(), list->end(), word) != list->end();
 }

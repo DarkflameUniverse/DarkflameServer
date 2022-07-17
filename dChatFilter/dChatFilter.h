@@ -20,9 +20,9 @@ public:
 	dChatFilter(const std::string& filepath, bool dontGenerateDCF);
 	~dChatFilter();
 
-	void ReadWordlistPlaintext(const std::string& filepath);
+	void ReadWordlistPlaintext(const std::string& filepath, bool whiteList);
 	bool ReadWordlistDCF(const std::string& filepath, bool whiteList);
-	void ExportWordlistToDCF(const std::string& filepath);
+	void ExportWordlistToDCF(const std::string& filepath, bool whiteList);
 	std::vector<std::string> IsSentenceOkay(const std::string& message, int gmLevel, bool whiteList = true);
 
 private:
@@ -33,5 +33,4 @@ private:
 
 	//Private functions:
 	size_t CalculateHash(const std::string& word);
-	bool IsInWordlist(size_t word, bool whiteList);
 };
