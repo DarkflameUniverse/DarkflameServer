@@ -1227,6 +1227,14 @@ void Entity::Update(const float deltaTime) {
 			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
 		}
 	}
+	
+	// Add pending timers to the list of timers so they start next tick.
+	if (m_PendingTimers.size() > 0) {
+		for (auto namedTimer : m_PendingTimers) {
+			m_Timers.push_back(namedTimer);
+		}
+		m_PendingTimers.clear();
+	}
 
 	if (IsSleeping())
 	{
@@ -1252,14 +1260,6 @@ void Entity::Update(const float deltaTime) {
 
 	if (m_ShouldDestroyAfterUpdate) {
 		EntityManager::Instance()->DestroyEntity(this->GetObjectID());
-	}
-	
-	// Add pending timers to the list of timers so they start next tick.
-	if (m_PendingTimers.size() > 0) {
-		for (auto namedTimer : m_PendingTimers) {
-			m_Timers.push_back(namedTimer);
-		}
-		m_PendingTimers.clear();
 	}
 }
 
