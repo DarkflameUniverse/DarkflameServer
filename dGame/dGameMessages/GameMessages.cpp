@@ -3986,6 +3986,47 @@ void GameMessages::SendDisplayChatBubble(LWOOBJID objectId, const std::u16string
 	SEND_PACKET;
 }
 
+// Mounts
+
+void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objectID, const SystemAddress& sysAddr){
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_MOUNT_INVENTORY_ID);
+	bitStream.Write(objectID);
+
+	SEND_PACKET_BROADCAST;
+}
+
+
+void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr){
+	LWOOBJID objectId{};
+	inStream->Read(objectId);
+	auto* mount = EntityManager::Instance()->GetEntity(objectId);
+
+	if (objectId != LWOOBJID_EMPTY) {
+		PossessorComponent* possessor;
+		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
+			if (mount) {
+				possessor->SetIsBusy(false);
+				possessor->SetPossessable(LWOOBJID_EMPTY);
+				possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
+
+				GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+
+				EntityManager::Instance()->SerializeEntity(entity);
+			}
+		}
+	}
+}
+
+
+void GameMessages::HandleAcknowledgePossession(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	Game::logger->Log("HandleAcknowledgePossession", "Got AcknowledgePossession from %i\n", entity->GetLOT());
+				EntityManager::Instance()->SerializeEntity(entity);
+			}
+
 //Racing
 
 void GameMessages::HandleModuleAssemblyQueryData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr)
@@ -4039,14 +4080,6 @@ void GameMessages::HandleRacingClientReady(RakNet::BitStream* inStream, Entity* 
 	}
 
 	racingControlComponent->OnRacingClientReady(player);
-}
-
-
-void GameMessages::HandleAcknowledgePossession(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) 
-{
-	Game::logger->Log("HandleAcknowledgePossession", "Got AcknowledgePossession from %i\n", entity->GetLOT());
-
-	EntityManager::Instance()->SerializeEntity(entity);
 }
 
 

@@ -37,6 +37,18 @@ class PossessorComponent : public Component {
 		LWOOBJID GetPossessable() const { return m_Possessable; }
 
 		/**
+		 * Sets the entity that this entity is possessing
+		 * @param value the ID of the entity this ID should posess
+		 */
+		void SetIsBusy(bool value) { m_IsBusy = value;}
+
+		/**
+		 * Returns the entity that this entity is currently posessing
+		 * @return the entity that this entity is currently posessing
+		 */
+		bool GetIsBusy() const { return m_IsBusy; }
+
+		/**
 		 * Sets the possesible type that's currently used, merely used by the shooting gallery if it's 0
 		 * @param value the possesible type to set
 		 */
@@ -60,4 +72,10 @@ class PossessorComponent : public Component {
 		 *
 		 */
 		bool m_DirtyPossesor = false;
+
+		/**
+		 * @brief if the possessor is busy mounting or dismounting
+		 *
+		 */
+		bool m_IsBusy = false;
 };

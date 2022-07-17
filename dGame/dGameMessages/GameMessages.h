@@ -328,6 +328,34 @@ namespace GameMessages {
 
 	void SendDisplayChatBubble(LWOOBJID objectId, const std::u16string& text, const SystemAddress& sysAddr);
 
+	// Mounts
+	/**
+	 * @brief Set the Inventory LWOOBJID of the mount
+	 *
+	 * @param entity The entity that is mounting
+	 * @param sysAddr the system address to send game message responses to
+	 * @param objectID LWOOBJID of the item in inventory that is being used
+	 */
+	void SendSetMountInventoryID(Entity* entity, const LWOOBJID& objectID, const SystemAddress& sysAddr);
+
+	/**
+	 * @brief Handle client dismounting mount
+	 *
+	 * @param inStream Raknet BitStream of incoming data
+	 * @param entity The Entity that is dismounting
+	 * @param sysAddr the system address to send game message responses to
+	 */
+	void HandleDismountComplete(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
+	/**
+	 * @brief Handle acknowledging that the client possessed something
+	 *
+	 * @param inStream Raknet BitStream of incoming data
+	 * @param entity The Entity that is possessing
+	 * @param sysAddr the system address to send game message responses to
+	 */
+	void HandleAcknowledgePossession(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
 	//Racing:
 	void HandleModuleAssemblyQueryData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
@@ -336,8 +364,6 @@ namespace GameMessages {
 	void HandleVehicleSetWheelLockState(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void HandleRacingClientReady(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-
-	void HandleAcknowledgePossession(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void HandleRequestDie(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
