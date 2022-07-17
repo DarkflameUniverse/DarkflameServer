@@ -1201,44 +1201,30 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 }
 
 void Entity::Update(const float deltaTime) {
-	// When updating timers, dont increment timerToUpdate if the timer is deleted 
-	// since that would cause you to skip updating the next timer after timerToUpdate this frame.
-	uint32_t timerToUpdate = 0;
-	uint32_t timerListSize = m_Timers.size();
-	while (timerToUpdate < timerListSize) {
-		m_Timers[timerToUpdate]->Update(deltaTime);
-		if (m_Timers[timerToUpdate]->GetTime() <= 0) {
-			const auto timerName = m_Timers[timerToUpdate]->GetName();
+	uint32_t timerPosition;
+	timerPosition = 0;
+	while (timerPosition < m_Timers.size()) {
+		m_Timers[timerPosition]->Update(deltaTime);
+		if (m_Timers[timerPosition]->GetTime() <= 0) {
+			const auto timerName = m_Timers[timerPosition]->GetName();
 
-			delete m_Timers[timerToUpdate];
-			m_Timers.erase(m_Timers.begin() + timerToUpdate);
-			// Subtract 1 from size so we dont try to use timers added this tick
-			timerListSize--;
+			delete m_Timers[timerPosition];
+			m_Timers.erase(m_Timers.begin() + timerPosition);
 
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
-			// Don't increment timerToUpdate - since we removed an element at this position a new timer has taken its place.
 		} else {
-			// Update next timer.
-			timerToUpdate++;
+			timerPosition++;
 		}
 	}
 
-	timerToUpdate = 0;
-	timerListSize = m_CallbackTimers.size();
-	while (timerToUpdate < timerListSize) {
-		m_CallbackTimers[timerToUpdate]->Update(deltaTime);
-		if (m_CallbackTimers[timerToUpdate]->GetTime() <= 0) {
-			m_CallbackTimers[timerToUpdate]->GetCallback()();
-			delete m_CallbackTimers[timerToUpdate];
-			m_CallbackTimers.erase(m_CallbackTimers.begin() + timerToUpdate);
-			// Subtract 1 from size so we dont try to use timers added this tick
-			timerListSize--;
-			// Don't increment timerToUpdate - since we removed an element at this position a new timer has taken its place.
-		} else {
-			// Update next timer.
-			timerToUpdate++;
+	for (int i = 0; i < m_CallbackTimers.size(); i++) {
+		m_CallbackTimers[i]->Update(deltaTime);
+		if (m_CallbackTimers[i]->GetTime() <= 0) {
+			m_CallbackTimers[i]->GetCallback()();
+			delete m_CallbackTimers[i];
+			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
 		}
 	}
 
@@ -1266,6 +1252,14 @@ void Entity::Update(const float deltaTime) {
 
 	if (m_ShouldDestroyAfterUpdate) {
 		EntityManager::Instance()->DestroyEntity(this->GetObjectID());
+	}
+	
+	// Add pending timers to the list of timers so they start next tick.
+	if (m_PendingTimers.size() > 0) {
+		for (auto namedTimer : m_PendingTimers) {
+			m_Timers.push_back(namedTimer);
+		}
+		m_PendingTimers.clear();
 	}
 }
 
@@ -1679,7 +1673,7 @@ void Entity::RemoveChild(Entity* child) {
 
 void Entity::AddTimer(std::string name, float time) {
 	EntityTimer* timer = new EntityTimer(name, time);
-	m_Timers.push_back(timer);
+	m_PendingTimers.push_back(timer);
 }
 
 void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
