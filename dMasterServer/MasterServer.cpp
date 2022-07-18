@@ -311,7 +311,7 @@ int main(int argc, char** argv) {
 
 			if (affirmTimeout == 1000) {
 				instance->Shutdown();
-				instance->SetShutdownComplete(true);
+				instance->SetIsShuttingDown(true);
 
 				Game::im->RedirectPendingRequests(instance);
 			}
@@ -358,6 +358,7 @@ void HandlePacket(Packet* packet) {
 		Instance* instance =
 			Game::im->GetInstanceBySysAddr(packet->systemAddress);
 		if (instance) {
+			Game::logger->Log("MasterServer", "Actually disconnected from zone %i clone %i instance %i port %i\n", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
 			Game::im->RemoveInstance(instance); //Delete the old
 		}
 
@@ -694,8 +695,8 @@ void HandlePacket(Packet* packet) {
 				return;
 			}
 
-			Game::logger->Log("MasterServer", "Got shutdown response\n");
-			instance->SetShutdownComplete(true);
+			Game::logger->Log("MasterServer", "Got shutdown response from zone %i clone %i instance %i port %i\n", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
+			instance->SetIsShuttingDown(true);
 			break;
 		}
 
