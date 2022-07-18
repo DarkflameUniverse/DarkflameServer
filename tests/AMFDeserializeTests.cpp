@@ -7,8 +7,9 @@
 #include "AMFFormat.h"
 #include "CommonCxxTests.h"
 
-AMFValue* ReadFromBitStream(RakNet::BitStream* bitStream) {
-	return AMFDeserialize::Read(bitStream);
+std::unique_ptr<AMFValue> ReadFromBitStream(RakNet::BitStream* bitStream) {
+	std::unique_ptr<AMFValue> returnValue(AMFDeserialize::Read(bitStream));
+	return returnValue;
 }
 
 int ReadAMFUndefinedFromBitStream() {
@@ -208,7 +209,8 @@ int TestLiveCapture() {
 
 	testFileStream.close();
 
-	auto result = static_cast<AMFArrayValue*>(ReadFromBitStream(&testBitStream));
+	auto resultFromFn = ReadFromBitStream(&testBitStream);
+	auto result = static_cast<AMFArrayValue*>(resultFromFn.get());
 	// Test the outermost array
 
 	ASSERT_EQ(dynamic_cast<AMFStringValue*>(result->FindValue("BehaviorID"))->GetStringValue(), "10447");
@@ -315,7 +317,7 @@ int TestLiveCapture() {
 
 int TestNullStream() {
 	auto result = ReadFromBitStream(nullptr);
-	ASSERT_EQ(result, nullptr);
+	ASSERT_EQ(result.get(), nullptr);
 	return 0;
 }
 
