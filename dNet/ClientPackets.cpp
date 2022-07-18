@@ -288,7 +288,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 	}
 
 	if (!receiver.empty()) {
-		if (std::string(receiver.c_str(), 4) == "[GM]") {
+		if (std::string(receiver.c_str(), 4) == "[GM]") { // Shift the string forward if we are speaking to a GM as the client appends "[GM]" if they are
 			receiver = std::string(receiver.c_str() + 4, receiver.size() - 4);
 		}
 	}
@@ -315,6 +315,9 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 			if (res->next()) {
 				idOfReceiver = res->getInt("id");
 			}
+
+			delete stmt;
+			delete res;
 		}
 
 		if (user->GetIsBestFriendMap().find(receiver) == user->GetIsBestFriendMap().end() && idOfReceiver != LWOOBJID_EMPTY) {
@@ -344,26 +347,14 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 		}
 	}
 
-	std::unordered_map<char, char> unacceptedItems;
-	std::vector<std::string> segments = Game::chatFilter->IsSentenceOkay(message, entity->GetGMLevel(), !(isBestFriend && chatLevel == 1));
+	std::vector<std::pair<uint8_t, uint8_t>> segments = Game::chatFilter->IsSentenceOkay(message, entity->GetGMLevel(), !(isBestFriend && chatLevel == 1));
 
 	bool bAllClean = segments.empty();
-
-	if (!bAllClean) {
-		for (const auto& item : segments) {
-			if (item == "") {
-				unacceptedItems.insert({ (char)0, (char)message.length()});
-				break;
-			}
-
-			unacceptedItems.insert({ message.find(item), item.length() });
-		}
-	}
 
 	if (user->GetIsMuted()) {
 		bAllClean = false;
 	}
 
 	user->SetLastChatMessageApproved(bAllClean);
-	WorldPackets::SendChatModerationResponse(sysAddr, bAllClean, requestID, receiver, unacceptedItems);
+	WorldPackets::SendChatModerationResponse(sysAddr, bAllClean, requestID, receiver, segments);
 }

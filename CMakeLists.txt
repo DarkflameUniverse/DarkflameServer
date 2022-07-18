@@ -15,10 +15,10 @@ foreach(variable ${variables})
 	# If the string contains a #, skip it
 	if(NOT "${variable}" MATCHES "#")
 	
-	# Split the variable into name and value
+		# Split the variable into name and value
 		string(REPLACE "=" ";" variable ${variable})
 
-	# Check that the length of the variable is 2 (name and value)
+		# Check that the length of the variable is 2 (name and value)
 		list(LENGTH variable length)
 		if(${length} EQUAL 2)
 
@@ -83,7 +83,7 @@ make_directory(${CMAKE_BINARY_DIR}/locale)
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
-# Copy ini files on first build
+# Copy resource files on first build
 set(RESOURCE_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
 foreach(resource_file ${RESOURCE_FILES})
 	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${resource_file})

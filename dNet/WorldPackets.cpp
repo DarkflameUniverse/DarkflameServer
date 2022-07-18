@@ -188,28 +188,28 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
     Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu\n", entity->GetObjectID());
 }
 
-void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::unordered_map<char, char> unacceptedItems) {
-	CBITSTREAM
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHAT_MODERATION_STRING);
+void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::vector<std::pair<uint8_t, uint8_t>> unacceptedItems) {
+    CBITSTREAM
+    PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHAT_MODERATION_STRING);
 
     bitStream.Write<uint8_t>(unacceptedItems.empty()); // Is sentence ok?
     bitStream.Write<uint16_t>(0x16); // Source ID, unknown
 
     bitStream.Write(static_cast<uint8_t>(requestID)); // request ID
-	bitStream.Write(static_cast<char>(0)); // chat mode
+    bitStream.Write(static_cast<char>(0)); // chat mode
 
     PacketUtils::WritePacketWString(receiver, 42, &bitStream); // receiver name
 
-	for (auto it : unacceptedItems) {
-		bitStream.Write<uint8_t>(it.first); // start index
-		bitStream.Write<uint8_t>(it.second); // length
-	}
+    for (auto it : unacceptedItems) {
+        bitStream.Write<uint8_t>(it.first); // start index
+        bitStream.Write<uint8_t>(it.second); // length
+    }
 
     for (int i = unacceptedItems.size(); 64 > i; i++) {
         bitStream.Write<uint16_t>(0);
     }
 
-	SEND_PACKET
+    SEND_PACKET
 }
 
 void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success, uint8_t highestLevel, uint8_t prevLevel, uint8_t newLevel) {

@@ -23,12 +23,12 @@ public:
 	void ReadWordlistPlaintext(const std::string& filepath, bool whiteList);
 	bool ReadWordlistDCF(const std::string& filepath, bool whiteList);
 	void ExportWordlistToDCF(const std::string& filepath, bool whiteList);
-	std::vector<std::string> IsSentenceOkay(const std::string& message, int gmLevel, bool whiteList = true);
+	std::vector<std::pair<uint8_t, uint8_t>> IsSentenceOkay(const std::string& message, int gmLevel, bool whiteList = true);
 
 private:
 	bool m_DontGenerateDCF;
-	std::vector<size_t> m_NoNoWords;
-	std::vector<size_t> m_YesYesWords;
+	std::vector<size_t> m_DeniedWords;
+	std::vector<size_t> m_ApprovedWords;
 	std::vector<size_t> m_UserUnapprovedWordCache;
 
 	//Private functions:
