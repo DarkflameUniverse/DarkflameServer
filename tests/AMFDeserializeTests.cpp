@@ -321,8 +321,6 @@ int TestNullStream() {
 	return 0;
 }
 
-// Ideally we have a positive test case here and a load test case?
-
 int AMFDeserializeTests(int argc, char** const argv) {
 	std::cout << "Checking that using a null bitstream doesnt cause exception" << std::endl;
 	if (TestNullStream()) return 1;

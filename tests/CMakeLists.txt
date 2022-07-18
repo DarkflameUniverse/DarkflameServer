@@ -1,9 +1,9 @@
 # create the testing file and list of tests
 create_test_sourcelist (Tests
-   CommonCxxTests.cpp
-   TestNiPoint3.cpp
-   TestLDFFormat.cpp
-   AMFDeserializeTests.cpp
+	CommonCxxTests.cpp
+	AMFDeserializeTests.cpp
+	TestNiPoint3.cpp
+	TestLDFFormat.cpp
 )
 
 # add the executable
@@ -16,13 +16,13 @@ remove (TestsToRun CommonCxxTests.cpp)
 
 # Copy test files to testing directory
 configure_file(
-   ${CMAKE_SOURCE_DIR}/tests/TestBitStreams/AMFBitStreamTest.bin ${PROJECT_BINARY_DIR}/tests/AMFBitStreamTest.bin
-   COPYONLY
+	${CMAKE_SOURCE_DIR}/tests/TestBitStreams/AMFBitStreamTest.bin ${PROJECT_BINARY_DIR}/tests/AMFBitStreamTest.bin
+	COPYONLY
 )
 
 configure_file(
-   ${CMAKE_SOURCE_DIR}/tests/TestBitStreams/AMFBitStreamUnimplementedTest.bin ${PROJECT_BINARY_DIR}/tests/AMFBitStreamUnimplementedTest.bin
-   COPYONLY
+	${CMAKE_SOURCE_DIR}/tests/TestBitStreams/AMFBitStreamUnimplementedTest.bin ${PROJECT_BINARY_DIR}/tests/AMFBitStreamUnimplementedTest.bin
+	COPYONLY
 )
 
 # Add all the ADD_TEST for each test

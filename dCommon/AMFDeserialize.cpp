@@ -4,7 +4,6 @@
 
 /**
  * AMF3 Reference document https://rtmp.veriskope.com/pdf/amf3-file-format-spec.pdf
- * I have only written the values that the LEGO Universe client sends to the server.  All others are left out.
  * AMF3 Deserializer written by EmosewaMC
  */
 
