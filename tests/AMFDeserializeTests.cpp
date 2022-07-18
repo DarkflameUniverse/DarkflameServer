@@ -8,9 +8,7 @@
 #include "CommonCxxTests.h"
 
 AMFValue* ReadFromBitStream(RakNet::BitStream* bitStream) {
-	AMFDeserialize reader;
-
-	return reader.Read(bitStream);
+	return AMFDeserialize::Read(bitStream);
 }
 
 int ReadAMFUndefinedFromBitStream() {
@@ -47,11 +45,50 @@ int ReadAMFTrueFromBitStream() {
 
 int ReadAMFIntegerFromBitStream() {
 	CBITSTREAM
-	bitStream.Write<uint8_t>(0x04);
-	bitStream.Write<uint8_t>(127);
-	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
-	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
-	ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 127);
+	{
+		bitStream.Write<uint8_t>(0x04);
+		// 127 == 01111111
+		bitStream.Write<uint8_t>(127);
+		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
+		// Check that the max value of a byte can be read correctly
+		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 127);
+	}
+	bitStream.Reset();
+	{
+		bitStream.Write<uint8_t>(0x04);
+		bitStream.Write<uint32_t>(UINT32_MAX);
+		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
+		// Check that we can read the maximum value correctly
+		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 536870911);
+	}
+	bitStream.Reset();
+	{
+		bitStream.Write<uint8_t>(0x04);
+		// 131 == 10000011
+		bitStream.Write<uint8_t>(131);
+		// 255 == 11111111
+		bitStream.Write<uint8_t>(255);
+		// 127 == 01111111
+		bitStream.Write<uint8_t>(127);
+		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
+		// Check that short max can be read correctly
+		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), UINT16_MAX);
+	}
+	bitStream.Reset();
+	{
+		bitStream.Write<uint8_t>(0x04);
+		// 255 == 11111111
+		bitStream.Write<uint8_t>(255);
+		// 127 == 01111111
+		bitStream.Write<uint8_t>(127);
+		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
+		// Check that 2 byte max can be read correctly
+		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 16383);
+	}
 	return 0;
 }
 
@@ -113,7 +150,7 @@ int ReadAMFArrayFromBitStream() {
  * This test checks that if we recieve an unimplemented AMFValueType 
  * we correctly throw an error and can actch it.
  */
-void TestUnimplementedAMFValues() {
+int TestUnimplementedAMFValues() {
 	std::vector<AMFValueType> unimplementedValues = {
 		AMFValueType::AMFXMLDoc,
 		AMFValueType::AMFDate,
@@ -153,8 +190,9 @@ void TestUnimplementedAMFValues() {
 			caughtException = true;
 		}
 		std::cout << "Testing unimplemented value " << amfValueType << " Did we catch an exception: " << (caughtException ? "YES" : "NO") << std::endl;
-		assert(caughtException);
+		ASSERT_EQ(caughtException, true);
 	}
+	return 0;
 }
 
 int TestLiveCapture() {
@@ -171,7 +209,7 @@ int TestLiveCapture() {
 	testFileStream.close();
 
 	auto result = static_cast<AMFArrayValue*>(ReadFromBitStream(&testBitStream));
-    // Test the outermost array
+	// Test the outermost array
 
 	ASSERT_EQ(dynamic_cast<AMFStringValue*>(result->FindValue("BehaviorID"))->GetStringValue(), "10447");
 	ASSERT_EQ(dynamic_cast<AMFStringValue*>(result->FindValue("objectID"))->GetStringValue(), "288300744895913279")
@@ -275,16 +313,17 @@ int TestLiveCapture() {
 	return 0;
 }
 
-void TestNullStream() {
+int TestNullStream() {
 	auto result = ReadFromBitStream(nullptr);
-	assert(result == nullptr);
+	ASSERT_EQ(result, nullptr);
+	return 0;
 }
 
 // Ideally we have a positive test case here and a load test case?
 
 int AMFDeserializeTests(int argc, char** const argv) {
 	std::cout << "Checking that using a null bitstream doesnt cause exception" << std::endl;
-	TestNullStream();
+	if (TestNullStream()) return 1;
 	std::cout << "passed nullptr test, checking basic tests" << std::endl;
 	if (ReadAMFUndefinedFromBitStream() != 0) return 1;
 	if (ReadAMFNullFromBitStream() != 0) return 1;
@@ -297,7 +336,7 @@ int AMFDeserializeTests(int argc, char** const argv) {
 	std::cout << "Passed basic test, checking live capture" << std::endl;
 	if (TestLiveCapture() != 0) return 1;
 	std::cout << "Passed live capture, checking unimplemented amf values" << std::endl;
-	TestUnimplementedAMFValues();
+	if (TestUnimplementedAMFValues() != 0) return 1;
 	std::cout << "Passed all tests." << std::endl;
 	return 0;
 }
