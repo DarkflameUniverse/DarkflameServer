@@ -84,56 +84,73 @@ int main(int argc, char** argv) {
 	Game::config = &config;
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
 	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
-
-	//Check CDClient exists
-	const std::string cdclient_path = "./res/CDServer.sqlite";
-	std::ifstream cdclient_fd(cdclient_path);
-	if (!cdclient_fd.good()) {
-		Game::logger->Log("WorldServer", "%s could not be opened\n", cdclient_path.c_str());
-		return EXIT_FAILURE;
-	}
-	cdclient_fd.close();
-
-	//Connect to CDClient
-	try {
-		CDClientDatabase::Connect(cdclient_path);
-	} catch (CppSQLite3Exception& e) {
-		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database\n");
-		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
-		Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
-		return EXIT_FAILURE;
-	}
-
-	//Get CDClient initial information
-	try {
-		CDClientManager::Instance()->Initialize();
-	} catch (CppSQLite3Exception& e) {
-		Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database\n");
-		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s\n", cdclient_path.c_str());
-		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
-		Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
-		return EXIT_FAILURE;
-	}
-
-	//Connect to the MySQL Database
-	std::string mysql_host = config.GetValue("mysql_host");
-	std::string mysql_database = config.GetValue("mysql_database");
-	std::string mysql_username = config.GetValue("mysql_username");
-	std::string mysql_password = config.GetValue("mysql_password");
-
-	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-	} catch (sql::SQLException& ex) {
-		Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
-		return EXIT_FAILURE;
-	}
-
+	
 	if (argc > 1 && (strcmp(argv[1], "-m") == 0 || strcmp(argv[1], "--migrations") == 0)) {
+		//Connect to the MySQL Database
+		std::string mysql_host = config.GetValue("mysql_host");
+		std::string mysql_database = config.GetValue("mysql_database");
+		std::string mysql_username = config.GetValue("mysql_username");
+		std::string mysql_password = config.GetValue("mysql_password");
+
+		try {
+			Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		} catch (sql::SQLException& ex) {
+			Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
+			Game::logger->Log("MigrationRunner", "Migrations not run\n");
+			return EXIT_FAILURE;
+		}
+
 		MigrationRunner::RunMigrations();
 		Game::logger->Log("MigrationRunner", "Finished running migrations\n");
 
 		return EXIT_SUCCESS;
 	}	
+	else {
+
+		//Check CDClient exists
+		const std::string cdclient_path = "./res/CDServer.sqlite";
+		std::ifstream cdclient_fd(cdclient_path);
+		if (!cdclient_fd.good()) {
+			Game::logger->Log("WorldServer", "%s could not be opened\n", cdclient_path.c_str());
+			return EXIT_FAILURE;
+		}
+		cdclient_fd.close();
+
+		//Connect to CDClient
+		try {
+			CDClientDatabase::Connect(cdclient_path);
+		} catch (CppSQLite3Exception& e) {
+			Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database\n");
+			Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
+			Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
+			return EXIT_FAILURE;
+		}
+
+		//Get CDClient initial information
+		try {
+			CDClientManager::Instance()->Initialize();
+		} catch (CppSQLite3Exception& e) {
+			Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database\n");
+			Game::logger->Log("WorldServer", "May be caused by corrupted file: %s\n", cdclient_path.c_str());
+			Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
+			Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
+			return EXIT_FAILURE;
+		}
+
+		//Connect to the MySQL Database
+		std::string mysql_host = config.GetValue("mysql_host");
+		std::string mysql_database = config.GetValue("mysql_database");
+		std::string mysql_username = config.GetValue("mysql_username");
+		std::string mysql_password = config.GetValue("mysql_password");
+
+		try {
+			Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		} catch (sql::SQLException& ex) {
+			Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
+			return EXIT_FAILURE;
+		}
+	}
+
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
