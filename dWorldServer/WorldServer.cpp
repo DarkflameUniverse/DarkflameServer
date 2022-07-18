@@ -817,19 +817,27 @@ void HandlePacket(Packet* packet) {
 				RakNet::BitStream inStream(packet->data, packet->length, false);
 				uint64_t header = inStream.Read(header);
 				uint32_t sessionKey = inStream.Read(sessionKey);
-				RakNet::RakString username;
-				inStream.Read(username);
+
+				std::string username;
+				
+				uint32_t len;
+				inStream.Read(len);
+				
+				for (int i = 0; i < len; i++) {
+					char character; inStream.Read<char>(character);
+					username += character;
+				}
 
 				//Find them:
-				User* user = UserManager::Instance()->GetUser(username.C_String());
+				User* user = UserManager::Instance()->GetUser(username.c_str());
 				if (!user) {
-					Game::logger->Log("WorldServer", "Got new session alert for user %s, but they're not logged in.\n", username.C_String());
+					Game::logger->Log("WorldServer", "Got new session alert for user %s, but they're not logged in.\n", username.c_str());
 					return;
 				}
 
 				//Check the key:
 				if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
-					Game::logger->Log("WorldServer", "Got new session alert for user %s, but the session key is invalid.\n", username.C_String());
+					Game::logger->Log("WorldServer", "Got new session alert for user %s, but the session key is invalid.\n", username.c_str());
 					Game::server->Disconnect(user->GetSystemAddress(), SERVER_DISCON_INVALID_SESSION_KEY);
 					return;
 				}

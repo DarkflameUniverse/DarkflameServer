@@ -1,10 +1,13 @@
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "EntityManager.h"
+#include "Inventory.h"
 #include "Item.h"
 
 PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId) : Component(parent){
 	m_Possessor = LWOOBJID_EMPTY;
+	CDItemComponent item = Inventory::FindItemComponent(m_Parent->GetLOT());
+	m_AnimationFlag = static_cast<eAnimationFlags>(item.animationFlag);
 
 	// Get the possession Type from the CDClient
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT possessionType, depossessOnHit FROM PossessableComponent WHERE id = ?;");
