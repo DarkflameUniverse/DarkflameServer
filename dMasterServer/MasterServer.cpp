@@ -19,6 +19,7 @@
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
 #include "Database.h"
+#include "MigrationRunner.h"
 #include "Diagnostics.h"
 #include "dCommonVars.h"
 #include "dConfig.h"
@@ -126,6 +127,13 @@ int main(int argc, char** argv) {
 		Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
 		return EXIT_FAILURE;
 	}
+
+	if (argc > 1 && (strcmp(argv[1], "-m") == 0 || strcmp(argv[1], "--migrations") == 0)) {
+		MigrationRunner::RunMigrations();
+		Game::logger->Log("MigrationRunner", "Finished running migrations\n");
+
+		return EXIT_SUCCESS;
+	}	
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
@@ -491,7 +499,10 @@ void HandlePacket(Packet* packet) {
 					CBITSTREAM;
 					PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
-					bitStream.Write(RakNet::RakString(username.c_str()));
+					bitStream.Write<uint32_t>(username.size());
+					for (auto character : username) {
+						bitStream.Write(character);
+					}
 					SEND_PACKET_BROADCAST;
 
 					break;
@@ -566,14 +577,20 @@ void HandlePacket(Packet* packet) {
 
 			uint32_t mapId;
 			LWOCLONEID cloneId;
-			RakNet::RakString password;
+			std::string password;
 
 			inStream.Read(mapId);
 			inStream.Read(cloneId);
-			inStream.Read(password);
 
-			Game::im->CreatePrivateInstance(mapId, cloneId,
-				password.C_String());
+			uint32_t len;
+			inStream.Read<uint32_t>(len);
+			for (int i = 0; len > i; i++) {
+				char character;
+				inStream.Read<char>(character);
+				password += character;
+			}
+
+			Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
 
 			break;
 		}
@@ -585,15 +602,22 @@ void HandlePacket(Packet* packet) {
 			uint64_t requestID = 0;
 			uint8_t mythranShift = false;
 
-			RakNet::RakString password;
+			std::string password;
 
 			inStream.Read(requestID);
 			inStream.Read(mythranShift);
-			inStream.Read(password);
+			
+			uint32_t len;
+			inStream.Read<uint32_t>(len);
 
-			auto* instance = Game::im->FindPrivateInstance(password.C_String());
+			for (int i = 0; i < len; i++) {
+				char character; inStream.Read<char>(character);
+				password += character;
+			}
 
-			Game::logger->Log( "MasterServer", "Join private zone: %llu %d %s %p\n", requestID, mythranShift, password.C_String(), instance);
+			auto* instance = Game::im->FindPrivateInstance(password.c_str());
+
+			Game::logger->Log( "MasterServer", "Join private zone: %llu %d %s %p\n", requestID, mythranShift, password.c_str(), instance);
 
 			if (instance == nullptr) {
 				return;

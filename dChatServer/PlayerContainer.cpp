@@ -20,17 +20,25 @@ PlayerContainer::~PlayerContainer() {
 void PlayerContainer::InsertPlayer(Packet* packet) {
 	CINSTREAM;
 	PlayerData* data = new PlayerData();
+	inStream.SetReadOffset(inStream.GetReadOffset() + 64);
 	inStream.Read(data->playerID);
-	inStream.Read(data->playerID);
-	inStream.Read(data->playerName);
+
+	uint32_t len;
+	inStream.Read<uint32_t>(len);
+
+	for (int i = 0; i < len; i++) {
+		char character; inStream.Read<char>(character);
+		data->playerName += character; 
+	}
+
 	inStream.Read(data->zoneID);
 	inStream.Read(data->muteExpire);
 	data->sysAddr = packet->systemAddress;
 
-	mNames[data->playerID] = GeneralUtils::ASCIIToUTF16(std::string(data->playerName.C_String()));
+	mNames[data->playerID] = GeneralUtils::ASCIIToUTF16(std::string(data->playerName.c_str()));
 
 	mPlayers.insert(std::make_pair(data->playerID, data));
-	Game::logger->Log("PlayerContainer", "Added user: %s (%llu), zone: %i\n", data->playerName.C_String(), data->playerID, data->zoneID.GetMapID());
+	Game::logger->Log("PlayerContainer", "Added user: %s (%llu), zone: %i\n", data->playerName.c_str(), data->playerID, data->zoneID.GetMapID());
 
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
@@ -49,26 +57,22 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	inStream.Read(playerID);
 
 	//Before they get kicked, we need to also send a message to their friends saying that they disconnected.
-	auto player = this->GetPlayerData(playerID);
+	std::unique_ptr<PlayerData> player(this->GetPlayerData(playerID));
 
 	if (player == nullptr) {
 		return;
 	}
 
 	for (auto& fr : player->friends) {
-		//if (!fr.isOnline) continue;
-
 		auto fd = this->GetPlayerData(fr.friendID);
-		if (fd) ChatPacketHandler::SendFriendUpdate(fd, player, 0);
+		if (fd) ChatPacketHandler::SendFriendUpdate(fd, player.get(), 0, fr.isBestFriend);
 	}
 
 	auto* team = GetTeam(playerID);
 
 	if (team != nullptr)
 	{
-		//TeamStatusUpdate(team);
-
-		const auto memberName = GeneralUtils::ASCIIToUTF16(std::string(player->playerName.C_String()));
+		const auto memberName = GeneralUtils::ASCIIToUTF16(std::string(player->playerName.c_str()));
 		
 		for (const auto memberId : team->memberIDs)
 		{
@@ -77,7 +81,6 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 			if (otherMember == nullptr) continue;
 
 			ChatPacketHandler::SendTeamSetOffWorldFlag(otherMember, playerID, {0, 0, 0});
-			//ChatPacketHandler::SendTeamRemovePlayer(otherMember, false, false, true, false, team->leaderID, player->playerID, memberName);
 		}
 	}
 
@@ -237,16 +240,10 @@ void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID)
 
 	if (leader == nullptr || member == nullptr) return;
 
-	const auto leaderName = GeneralUtils::ASCIIToUTF16(std::string(leader->playerName.C_String()));
-	const auto memberName = GeneralUtils::ASCIIToUTF16(std::string(member->playerName.C_String()));
+	const auto leaderName = GeneralUtils::ASCIIToUTF16(std::string(leader->playerName.c_str()));
+	const auto memberName = GeneralUtils::ASCIIToUTF16(std::string(member->playerName.c_str()));
 
 	ChatPacketHandler::SendTeamInviteConfirm(member, false, leader->playerID, leader->zoneID, team->lootFlag, 0, 0, leaderName);
-	
-	/*
-	ChatPacketHandler::SendTeamAddPlayer(member, false, false, false, leader->playerID, leaderName, leader->zoneID);
-
-	Game::logger->Log("PlayerContainer", "Team invite successfully accepted, leader: %s, member: %s\n", leader->playerName.C_String(), member->playerName.C_String());
-	*/
 
 	if (!team->local)
 	{
@@ -348,7 +345,7 @@ void PlayerContainer::DisbandTeam(TeamData* team)
 
 		if (otherMember == nullptr) continue;
 
-		const auto memberName = GeneralUtils::ASCIIToUTF16(std::string(otherMember->playerName.C_String()));
+		const auto memberName = GeneralUtils::ASCIIToUTF16(std::string(otherMember->playerName.c_str()));
 
 		ChatPacketHandler::SendTeamSetLeader(otherMember, LWOOBJID_EMPTY);
 		ChatPacketHandler::SendTeamRemovePlayer(otherMember, true, false, false, team->local, team->leaderID, otherMember->playerID, memberName);
@@ -371,7 +368,7 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team)
 
 	if (leader == nullptr) return;
 
-	const auto leaderName = GeneralUtils::ASCIIToUTF16(std::string(leader->playerName.C_String()));
+	const auto leaderName = GeneralUtils::ASCIIToUTF16(std::string(leader->playerName.c_str()));
 
 	for (const auto memberId : team->memberIDs)
 	{
@@ -382,10 +379,6 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team)
 		if (!team->local)
 		{
 			ChatPacketHandler::SendTeamStatus(otherMember, team->leaderID, leader->zoneID, team->lootFlag, 0, leaderName);
-		}
-		else
-		{
-			//ChatPacketHandler::SendTeamStatus(otherMember, LWOOBJID_EMPTY, LWOZONEID(0, 0, 0), 1, 0, u"");
 		}
 	}
 
