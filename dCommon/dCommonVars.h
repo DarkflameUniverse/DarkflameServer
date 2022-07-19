@@ -387,6 +387,7 @@ enum eReplicaComponentType : int32_t {
 	COMPONENT_TYPE_PROPERTY                 = 36,           //!< The Property Component
     COMPONENT_TYPE_SCRIPTED_ACTIVITY        = 39,           //!< The ScriptedActivity Component
     COMPONENT_TYPE_PHANTOM_PHYSICS          = 40,           //!< The PhantomPhysics Component
+	COMPONENT_TYPE_MODEL 					= 42,			//!< The Model Component
     COMPONENT_TYPE_PROPERTY_ENTRANCE        = 43,           //!< The PhantomPhysics Component
 	COMPONENT_TYPE_PROPERTY_MANAGEMENT      = 45,           //!< The PropertyManagement Component
     COMPONENT_TYPE_REBUILD                  = 48,           //!< The Rebuild Component
@@ -411,8 +412,6 @@ enum eReplicaComponentType : int32_t {
 	COMPONENT_TYPE_POSSESSOR				= 110,			//!< The Possessor Component
 	COMPONENT_TYPE_BUILD_BORDER             = 114,          //!< The Build Border Component
     COMPONENT_TYPE_DESTROYABLE              = 1000,         //!< The Destroyable Component
-
-    COMPONENT_TYPE_MODEL = 5398484 //look man idk
 };
 
 enum class UseItemResponse : uint32_t {
