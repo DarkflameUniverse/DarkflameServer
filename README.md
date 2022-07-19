@@ -430,10 +430,6 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 * [averysumner](https://github.com/codeshaunted)
 * [Jon002](https://github.com/jaller200)
 * [Jonny](https://github.com/cuzitsjonny)
-* TheMachine
-* Matthew
-* [Raine](https://github.com/Rainebannister)
-* Bricknave
 
 ### Research and tools
 * [lcdr](https://github.com/lcdr)
@@ -445,11 +441,11 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 ### Former contributors
 * TheMachine
 * Matthew
-* Raine
+* [Raine](https://github.com/Rainebannister)
 * Bricknave
 
 ### Logo
-* BlasterBuilder
+* Cole Peterson (BlasterBuilder)
 
 ## Special thanks
 * humanoid24
