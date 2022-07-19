@@ -50,7 +50,7 @@ bool _IsSuffixChar(uint8_t c) {
 
 bool GeneralUtils::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
     size_t rem = slice.length();
-    const uint8_t* bytes = (const uint8_t*) slice.begin();
+    const uint8_t* bytes = (const uint8_t*) &slice.front();
     if (rem > 0) {
         uint8_t first = bytes[0];
         if (first < 0x80) { // 1 byte character
