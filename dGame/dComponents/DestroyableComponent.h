@@ -282,7 +282,7 @@ public:
      * Sets the faction ID of this entity, overriding all previously set entries
      * @param factionID the faction ID to set
      */
-    void SetFaction(int32_t factionID);
+    void SetFaction(int32_t factionID, bool ignoreChecks = false);
 
     /**
      * Returns whether or not the provided entity is an enemy of this entity

@@ -360,20 +360,17 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		if (newEntity != nullptr) {
 			EntityManager::Instance()->ConstructEntity(newEntity);
 
-			//Make sure the propMgmt doesn't delete our model after the server dies
-			//Trying to do this after the entity is constructed. Shouldn't really change anything but
-			//There was an issue with builds not appearing since it was placed above ConstructEntity.
+			// Make sure the propMgmt doesn't delete our model after the server dies
+			// Trying to do this after the entity is constructed. Shouldn't really change anything but
+			// There was an issue with builds not appearing since it was placed above ConstructEntity.
 			PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), spawnerID);
 		}
 
 		item->SetCount(item->GetCount() - 1);
-		//item->UnEquip();
-
 		return;
 	}
 	
 	item->SetCount(item->GetCount() - 1);
-	//item->UnEquip();
 
 	auto* node = new SpawnerNode();
 
@@ -402,6 +399,17 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 			auto* spawner = dZoneManager::Instance()->GetSpawner(spawnerId);
 
+			auto ldfModelBehavior = new LDFData<LWOOBJID>(u"modelBehaviors", 0);
+			auto userModelID = new LDFData<LWOOBJID>(u"userModelID", id);
+			auto modelType = new LDFData<int>(u"modelType", 2);
+			auto propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
+			auto componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
+			info.nodes[0]->config.push_back(componentWhitelist);
+			info.nodes[0]->config.push_back(ldfModelBehavior);
+			info.nodes[0]->config.push_back(modelType);
+			info.nodes[0]->config.push_back(propertyObjectID);
+			info.nodes[0]->config.push_back(userModelID);
+
 			auto* model = spawner->Spawn();
 
 			models.insert_or_assign(model->GetObjectID(), spawnerId);
@@ -411,8 +419,6 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 			GameMessages::SendUGCEquipPreCreateBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), 0, spawnerId);
 
 			GameMessages::SendGetModelsOnProperty(entity->GetObjectID(), GetModels(), UNASSIGNED_SYSTEM_ADDRESS);
-
-			//item->SetCount(item->GetCount() - 1);
 
 			EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelPlaced(entity);
 		});
@@ -669,6 +675,18 @@ void PropertyManagementComponent::Load()
 			settings.push_back(modelType);
 			settings.push_back(propertyObjectID);
 			settings.push_back(userModelID);
+		} else {
+			auto modelType = new LDFData<int>(u"modelType", 2);
+			auto userModelID = new LDFData<LWOOBJID>(u"userModelID", id);
+			auto ldfModelBehavior = new LDFData<LWOOBJID>(u"modelBehaviors", 0);
+			auto propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
+			auto componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
+
+			settings.push_back(componentWhitelist);
+			settings.push_back(ldfModelBehavior);
+			settings.push_back(modelType);
+			settings.push_back(propertyObjectID);
+			settings.push_back(userModelID);
 		}
 
 		node->config = settings;
@@ -680,21 +698,6 @@ void PropertyManagementComponent::Load()
 		auto* model = spawner->Spawn();
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
-
-		/*
-		EntityInfo info;
-		info.lot = lot;
-		info.pos = position;
-		info.rot = rotation;
-		info.settings = settings;
-		info.spawnerID = id;
-
-		auto* model = EntityManager::Instance()->CreateEntity(info);
-
-		EntityManager::Instance()->ConstructEntity(model);
-
-		models.insert_or_assign(model->GetObjectID(), id);
-		*/
 	}
 
 	delete lookup;
