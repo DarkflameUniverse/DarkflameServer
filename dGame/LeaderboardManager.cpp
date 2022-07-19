@@ -45,7 +45,7 @@ std::u16string Leaderboard::ToString() const {
 		index++;
 	}
 
-	return GeneralUtils::ASCIIToUTF16(leaderboard);
+	return GeneralUtils::UTF8ToUTF16(leaderboard);
 }
 
 std::vector<LeaderboardEntry> Leaderboard::GetEntries() {

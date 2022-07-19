@@ -228,7 +228,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	const tinyxml2::XMLAttribute* rocketConfig = character->FindAttribute("lcbp");
 
 	if (rocketConfig) {
-		m_LastRocketConfig = GeneralUtils::ASCIIToUTF16(std::string(rocketConfig->Value()));
+		m_LastRocketConfig = GeneralUtils::ASCIIToUTF16(rocketConfig->Value());
 	} else {
 		m_LastRocketConfig = u"";
 	}
@@ -262,7 +262,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 		character->QueryInt64Attribute("gid", &gid);
 		if (gid != 0) {
 			std::string guildname(gn);
-			m_GuildName = GeneralUtils::ASCIIToUTF16(guildname);
+			m_GuildName = GeneralUtils::UTF8ToUTF16(guildname);
 			m_GuildID = gid;
 			m_DirtySocialInfo = true;
 		}

@@ -35,7 +35,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	inStream.Read(data->muteExpire);
 	data->sysAddr = packet->systemAddress;
 
-	mNames[data->playerID] = GeneralUtils::ASCIIToUTF16(std::string(data->playerName.c_str()));
+	mNames[data->playerID] = GeneralUtils::UTF8ToUTF16(data->playerName);
 
 	mPlayers.insert(std::make_pair(data->playerID, data));
 	Game::logger->Log("PlayerContainer", "Added user: %s (%llu), zone: %i", data->playerName.c_str(), data->playerID, data->zoneID.GetMapID());
@@ -71,7 +71,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	auto* team = GetTeam(playerID);
 
 	if (team != nullptr) {
-		const auto memberName = GeneralUtils::ASCIIToUTF16(std::string(player->playerName.c_str()));
+		const auto memberName = GeneralUtils::UTF8ToUTF16(std::string(player->playerName.c_str()));
 
 		for (const auto memberId : team->memberIDs) {
 			auto* otherMember = GetPlayerData(memberId);
@@ -221,8 +221,8 @@ void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
 
 	if (leader == nullptr || member == nullptr) return;
 
-	const auto leaderName = GeneralUtils::ASCIIToUTF16(std::string(leader->playerName.c_str()));
-	const auto memberName = GeneralUtils::ASCIIToUTF16(std::string(member->playerName.c_str()));
+	const auto leaderName = GeneralUtils::UTF8ToUTF16(leader->playerName);
+	const auto memberName = GeneralUtils::UTF8ToUTF16(member->playerName);
 
 	ChatPacketHandler::SendTeamInviteConfirm(member, false, leader->playerID, leader->zoneID, team->lootFlag, 0, 0, leaderName);
 
@@ -309,7 +309,7 @@ void PlayerContainer::DisbandTeam(TeamData* team) {
 
 		if (otherMember == nullptr) continue;
 
-		const auto memberName = GeneralUtils::ASCIIToUTF16(std::string(otherMember->playerName.c_str()));
+		const auto memberName = GeneralUtils::UTF8ToUTF16(otherMember->playerName);
 
 		ChatPacketHandler::SendTeamSetLeader(otherMember, LWOOBJID_EMPTY);
 		ChatPacketHandler::SendTeamRemovePlayer(otherMember, true, false, false, team->local, team->leaderID, otherMember->playerID, memberName);
@@ -331,7 +331,7 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 
 	if (leader == nullptr) return;
 
-	const auto leaderName = GeneralUtils::ASCIIToUTF16(std::string(leader->playerName.c_str()));
+	const auto leaderName = GeneralUtils::UTF8ToUTF16(leader->playerName);
 
 	for (const auto memberId : team->memberIDs) {
 		auto* otherMember = GetPlayerData(memberId);
