@@ -4,10 +4,6 @@
 #include "GeneralUtils.h"
 #include "CommonCxxTests.h"
 
-void Test(std::string_view& text_under_test, char32_t[] list) {
-
-}
-
 int TestEncoding(int argc, char* *const argv) {
     std::string x = "Hello World!";
     std::string_view v(x);
@@ -46,6 +42,11 @@ int TestEncoding(int argc, char* *const argv) {
     GeneralUtils::_NextUTF8Char(v, out); ASSERT_EQ(out, 0x2696);
     GeneralUtils::_NextUTF8Char(v, out); ASSERT_EQ(out, 0xFE0F);
     ASSERT_EQ(GeneralUtils::_NextUTF8Char(v, out), false);
+
+    ASSERT_EQ(GeneralUtils::UTF8ToUTF16("Hello World!"), u"Hello World!");
+    ASSERT_EQ(GeneralUtils::UTF8ToUTF16("Frühling"), u"Frühling");
+    ASSERT_EQ(GeneralUtils::UTF8ToUTF16("中文字"), u"中文字");
+    ASSERT_EQ(GeneralUtils::UTF8ToUTF16("👨‍⚖️"), u"👨‍⚖️");
 
     return 0;
 }

@@ -34,8 +34,9 @@ namespace GeneralUtils {
       \param size A size to trim the string to. Default is -1 (No trimming)
       \return An UTF-16 representation of the string
      */
-    std::u16string UTF8ToUTF16(const std::string& string, size_t size);
+    std::u16string UTF8ToUTF16(const std::string& string, size_t size = -1);
 
+    //! Internal, do not use
     bool _NextUTF8Char(std::string_view& slice, uint32_t& out);
 
     //! Converts a UTF-16 string to a UTF-8 string

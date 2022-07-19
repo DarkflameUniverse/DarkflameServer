@@ -104,7 +104,24 @@ bool GeneralUtils::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
 }
 
 std::u16string GeneralUtils::UTF8ToUTF16(const std::string& string, size_t size) {
-    return u"";
+    size_t newSize = MinSize(size, string);
+    std::u16string output;
+    output.reserve(newSize);
+    std::string_view iterator = string;
+
+    uint32_t c;
+    while (output.length() < size && _NextUTF8Char(iterator, c)) {
+        if (c < 0x010000) {
+            output.push_back(static_cast<uint16_t>(c));
+        } else if (c > 0x10FFFF) {
+            output.push_back(REPLACEMENT_CHARACTER);
+        } else if (output.length() + 1 < size) {
+            uint32_t cb = c - 0x10000;
+            output.push_back(0xD800 + static_cast<uint16_t>((cb & 0x3FC00) >> 10)); // high surrogate
+            output.push_back(0xDC00 + static_cast<uint16_t>((cb & 0x3FF) >> 0)); // low surrogate
+        } else break;
+    }
+    return output;
 }
 
 //! Converts an std::string (ASCII) to UCS-2 / UTF-16
