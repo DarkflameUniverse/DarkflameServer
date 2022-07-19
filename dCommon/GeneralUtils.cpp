@@ -42,6 +42,8 @@ inline void PushUTF8CodePoint(std::string& ret, char32_t cp) {
     }
 }
 
+constexpr const char16_t REPLACEMENT_CHARACTER = 0xFFFD;
+
 //! Converts an std::string (ASCII) to UCS-2 / UTF-16
 std::u16string GeneralUtils::ASCIIToUTF16(const std::string& string, size_t size) {
     size_t newSize = MinSize(size, string);
@@ -50,8 +52,7 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string& string, size_t size
 
     for (size_t i = 0; i < newSize; i++) {
         char c = string[i];
-        assert(c > 0 && c <= 127);
-        ret.push_back(static_cast<char16_t>(c));
+        ret.push_back((c > 0 && c <= 127) ? static_cast<char16_t>(c) : REPLACEMENT_CHARACTER);
     }
 
     return ret;
