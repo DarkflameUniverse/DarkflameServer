@@ -102,24 +102,20 @@ uint32_t AMFDeserialize::ReadU29(RakNet::BitStream* inStream) {
 }
 
 std::string AMFDeserialize::ReadString(RakNet::BitStream* inStream) {
-	std::string returnString = "";
 	auto length = ReadU29(inStream);
 	// Check if this is a reference
 	bool isReference = length % 2 == 1;
 	length = length >> 1;
 	if (isReference) {
-		for (uint32_t i = 0; i < length; i++) {
-			char character;
-			inStream->Read(character);
-			returnString += character;
-		}
+		std::string value(length, 0);
+		inStream->Read(value.data(), length);
 		// Empty strings are never sent by reference
-		if (!returnString.empty()) accessedElements.push_back(returnString);
+		if (!value.empty()) accessedElements.push_back(value);
+		return value;
 	} else {
 		// Length is a reference to a previous index - use that as the read in value
-		returnString = accessedElements[length];
+		return accessedElements[length];
 	}
-	return returnString;
 }
 
 AMFValue* AMFDeserialize::ReadAmfDouble(RakNet::BitStream* inStream) {
