@@ -6,7 +6,7 @@
 #include <algorithm>
 
 template <typename T>
-inline size_t MinSize(size_t size, const std::basic_string<T>& string) {
+inline size_t MinSize(size_t size, const std::basic_string_view<T>& string) {
     if (size == size_t(-1) || size > string.size()) {
         return string.size();
     } else {
@@ -103,7 +103,7 @@ bool GeneralUtils::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
     return false;
 }
 
-std::u16string GeneralUtils::UTF8ToUTF16(const std::string& string, size_t size) {
+std::u16string GeneralUtils::UTF8ToUTF16(const std::string_view& string, size_t size) {
     size_t newSize = MinSize(size, string);
     std::u16string output;
     output.reserve(newSize);
@@ -125,7 +125,7 @@ std::u16string GeneralUtils::UTF8ToUTF16(const std::string& string, size_t size)
 }
 
 //! Converts an std::string (ASCII) to UCS-2 / UTF-16
-std::u16string GeneralUtils::ASCIIToUTF16(const std::string& string, size_t size) {
+std::u16string GeneralUtils::ASCIIToUTF16(const std::string_view& string, size_t size) {
     size_t newSize = MinSize(size, string);
     std::u16string ret;
     ret.reserve(newSize);
@@ -141,7 +141,7 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string& string, size_t size
 
 //! Converts a (potentially-ill-formed) UTF-16 string to UTF-8
 //! See: <http://simonsapin.github.io/wtf-8/#decoding-ill-formed-utf-16>
-std::string GeneralUtils::UTF16ToWTF8(const std::u16string& string, size_t size) {
+std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view& string, size_t size) {
     size_t newSize = MinSize(size, string);
     std::string ret;
     ret.reserve(newSize);
