@@ -61,6 +61,15 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 
 	componentResult.finalize();
 
+	// Get aggro and tether radius from settings and use this if it is present.  Only overwrite the
+	// radii if it is greater than the one in the database.
+	if (m_Parent) {
+		auto aggroRadius = m_Parent->GetVar<float>(u"aggroRadius");
+		m_AggroRadius = std::max(aggroRadius, m_AggroRadius);
+		auto tetherRadius = m_Parent->GetVar<float>(u"tetherRadius");
+		m_HardTetherRadius = std::max(tetherRadius, m_HardTetherRadius);
+	}
+
 	/*
 	 * Find skills
 	 */
