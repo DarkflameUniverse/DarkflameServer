@@ -8,7 +8,8 @@
 #include "CommonCxxTests.h"
 
 std::unique_ptr<AMFValue> ReadFromBitStream(RakNet::BitStream* bitStream) {
-	std::unique_ptr<AMFValue> returnValue(AMFDeserialize::Read(bitStream));
+	AMFDeserialize deserializer;
+	std::unique_ptr<AMFValue> returnValue(deserializer.Read(bitStream));
 	return returnValue;
 }
 

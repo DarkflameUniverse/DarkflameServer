@@ -7,9 +7,7 @@
  * AMF3 Deserializer written by EmosewaMC
  */
 
-std::vector<std::string> AMFDeserialize::accessedElements{};
-
-AMFValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool clearKeys) {
+AMFValue* AMFDeserialize::Read(RakNet::BitStream* inStream) {
 	if (!inStream) return nullptr;
 	AMFValue* returnValue = nullptr;
 	// Read in the value type from the bitStream
@@ -57,7 +55,8 @@ AMFValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool clearKeys) {
 			break;
 		}
 
-		// Don't think I need these for now.  Will throw if one is encountered since it would break a de-serialization.
+		// TODO We do not need these values, but if someone wants to implement them
+		// then please do so and add the corresponding unit tests.
 		case AMFValueType::AMFXMLDoc:
 		case AMFValueType::AMFDate:
 		case AMFValueType::AMFObject:
@@ -75,7 +74,6 @@ AMFValue* AMFDeserialize::Read(RakNet::BitStream* inStream, bool clearKeys) {
 			throw static_cast<AMFValueType>(marker);
 			break;
 	}
-	if (clearKeys) accessedElements.clear();
 	return returnValue;
 }
 
@@ -105,10 +103,11 @@ std::string AMFDeserialize::ReadString(RakNet::BitStream* inStream) {
 	auto length = ReadU29(inStream);
 	// Check if this is a reference
 	bool isReference = length % 2 == 1;
+	// Right shift by 1 bit to get index if reference or size of next string if value
 	length = length >> 1;
 	if (isReference) {
 		std::string value(length, 0);
-		inStream->Read(value.data(), length);
+		inStream->Read(&value[0], length);
 		// Empty strings are never sent by reference
 		if (!value.empty()) accessedElements.push_back(value);
 		return value;
@@ -133,14 +132,14 @@ AMFValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
 		char valueType;
 		inStream->Read(valueType); // Unused
 		for (uint32_t i = 0; i < sizeOfDenseArray; i++) {
-			arrayValue->PushBackValue(Read(inStream, false));
+			arrayValue->PushBackValue(Read(inStream));
 		}
 	} else {
 		while (true) {
 			auto key = ReadString(inStream);
 			// No more values when we encounter an empty string
 			if (key.size() == 0) break;
-			arrayValue->InsertValue(key, Read(inStream, false));
+			arrayValue->InsertValue(key, Read(inStream));
 		}
 	}
 	return arrayValue;
