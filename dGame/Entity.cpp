@@ -182,12 +182,18 @@ void Entity::Initialize()
 		SimplePhysicsComponent* comp = new SimplePhysicsComponent(simplePhysicsComponentID, this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_SIMPLE_PHYSICS, comp));
 
-		ModelComponent* modelcomp = new ModelComponent(0, this);
+		ModelComponent* modelcomp = new ModelComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_MODEL, modelcomp));
 
 		RenderComponent* render = new RenderComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RENDER, render));
 
+		auto destroyableComponent = new DestroyableComponent(this);
+		destroyableComponent->SetHealth(1);
+		destroyableComponent->SetMaxHealth(1.0f);
+		destroyableComponent->SetFaction(-1, true);
+		destroyableComponent->SetIsSmashable(true);
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_DESTROYABLE, destroyableComponent));
 		// We have all our components.
 		return; 
 	}
@@ -224,11 +230,6 @@ void Entity::Initialize()
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_RACING_STATS) > 0) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RACING_STATS, nullptr));
-	}
-
-	PetComponent* petComponent;
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !TryGetComponent(COMPONENT_TYPE_PET, petComponent)) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_ITEM, nullptr));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_EXHIBIT, -1) >= 0) {
@@ -628,6 +629,23 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_SCRIPTED_ACTIVITY, new ScriptedActivityComponent(this, scriptedActivityID)));
 	}
 
+    if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
+        m_Components.insert(std::make_pair(COMPONENT_TYPE_MODEL, new ModelComponent(this)));
+		if (m_Components.find(COMPONENT_TYPE_DESTROYABLE) == m_Components.end()) {
+			auto destroyableComponent = new DestroyableComponent(this);
+			destroyableComponent->SetHealth(1);
+			destroyableComponent->SetMaxHealth(1.0f);
+			destroyableComponent->SetFaction(-1, true);
+			destroyableComponent->SetIsSmashable(true);
+			m_Components.insert(std::make_pair(COMPONENT_TYPE_DESTROYABLE, destroyableComponent));
+		}
+    }
+
+	PetComponent* petComponent;
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !TryGetComponent(COMPONENT_TYPE_PET, petComponent) && !HasComponent(COMPONENT_TYPE_MODEL)) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_ITEM, nullptr));
+	}
+
 	// Shooting gallery component
     if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_SHOOTING_GALLERY) > 0) {
         m_Components.insert(std::make_pair(COMPONENT_TYPE_SHOOTING_GALLERY, new ShootingGalleryComponent(this)));
@@ -876,8 +894,8 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
-		//limiting it to lot 14 right now
-		if (m_Settings.size() > 0 && m_TemplateID == 14) {
+		// Only sync for models.
+		if (m_Settings.size() > 0 && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 			outBitStream->Write1(); //ldf data
 			
 			RakNet::BitStream settingStream;
@@ -1170,23 +1188,23 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		renderComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
+	if (modelComponent) {
+		DestroyableComponent* destroyableComponent;
+		if (TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			destroyableSerialized = true;
+		}
+	}
+
 	if (HasComponent(COMPONENT_TYPE_ZONE_CONTROL))
 	{
 		outBitStream->Write<uint32_t>(0x40000000);
 	}
 
 	// BBB Component, unused currently
-	// Need to to write0 so that is serlaizese correctly
+	// Need to to write0 so that is serialized correctly
 	// TODO: Implement BBB Component
 	outBitStream->Write0();
-
-	/*
-	if (m_Trigger != nullptr)
-	{
-		outBitStream->Write1();
-		outBitStream->Write(m_Trigger->id);
-	}
-	*/
 }
 
 void Entity::ResetFlags() {

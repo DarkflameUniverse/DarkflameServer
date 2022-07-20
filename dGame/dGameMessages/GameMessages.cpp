@@ -2420,6 +2420,42 @@ void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream* inStream, Entity*
 	SEND_PACKET;
 }
 
+void GameMessages::SendSmash(Entity* entity, float force, float ghostOpacity, LWOOBJID killerID, bool ignoreObjectVisibility) {
+	CBITSTREAM
+	CMSGHEADER
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(GAME_MSG::GAME_MSG_SMASH);
+
+	bitStream.Write(ignoreObjectVisibility);
+	bitStream.Write(force);
+	bitStream.Write(ghostOpacity);
+	bitStream.Write(killerID);
+
+	SEND_PACKET_BROADCAST
+}
+
+void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duration) {
+	CBITSTREAM
+	CMSGHEADER
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(GAME_MSG::GAME_MSG_UNSMASH);
+
+	bitStream.Write(builderID != LWOOBJID_EMPTY);
+	if (builderID != LWOOBJID_EMPTY) bitStream.Write(builderID);
+
+	bitStream.Write(duration != 3.0f);
+	if (duration != 3.0f) bitStream.Write(duration);
+
+	SEND_PACKET_BROADCAST
+}
+
+void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	// TODO
+	Game::logger->Log("GameMessages", "Recieved Control Behavior GameMessage, but property behaviors are unimplemented.\n");
+}
+
 void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	/*
 								  ___            ___

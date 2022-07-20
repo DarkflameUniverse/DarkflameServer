@@ -829,11 +829,11 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	m_Parent->Kill(owner);
 }
 
-void DestroyableComponent::SetFaction(int32_t factionID) {
+void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
 	m_FactionIDs.clear();
 	m_EnemyFactionIDs.clear();
 
-	AddFaction(factionID);
+	AddFaction(factionID, ignoreChecks);
 }
 
 void DestroyableComponent::PushImmunity(int32_t stacks)

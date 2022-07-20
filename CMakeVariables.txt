@@ -8,7 +8,7 @@ LICENSE=AGPL-3.0
 # 171022 - Unmodded client
 NET_VERSION=171024
 # Debugging
-# __dynamic=1
+__dynamic=1
 # Set __dynamic to 1 to enable the -rdynamic flag for the linker, yielding some symbols in crashlogs.
 # __ggdb=1
 # Set __ggdb to 1 to enable the -ggdb flag for the linker, including more debug info.
