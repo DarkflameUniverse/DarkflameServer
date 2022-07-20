@@ -24,7 +24,7 @@ inline bool IsTrailSurrogate(char16_t c) {
 
 inline void PushUTF8CodePoint(std::string& ret, char32_t cp) {
     if (cp <= 0x007F) {
-        ret.push_back(cp);
+        ret.push_back(static_cast<uint8_t>(cp));
     } else if (cp <= 0x07FF) {
         ret.push_back(0xC0 | (cp >> 6));
         ret.push_back(0x80 | (cp & 0x3F));
@@ -103,6 +103,41 @@ bool GeneralUtils::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
     return false;
 }
 
+/// See <https://www.ietf.org/rfc/rfc2781.html#section-2.1>
+bool PushUTF16CodePoint(std::u16string& output, uint32_t U, size_t size) {
+    if (output.length() >= size) return false;
+    if (U < 0x10000) {
+        // If U < 0x10000, encode U as a 16-bit unsigned integer and terminate.
+        output.push_back(static_cast<uint16_t>(U));
+        return true;
+    } else if (U > 0x10FFFF) {
+        output.push_back(REPLACEMENT_CHARACTER);
+        return true;
+    } else if (output.length() + 1 < size) {
+        // Let U' = U - 0x10000. Because U is less than or equal to 0x10FFFF,
+        // U' must be less than or equal to 0xFFFFF. That is, U' can be
+        // represented in 20 bits.
+        uint32_t Ut = U - 0x10000;
+
+        // Initialize two 16-bit unsigned integers, W1 and W2, to 0xD800 and
+        // 0xDC00, respectively. These integers each have 10 bits free to
+        // encode the character value, for a total of 20 bits.
+        uint16_t W1 = 0xD800;
+        uint16_t W2 = 0xDC00;
+
+        // Assign the 10 high-order bits of the 20-bit U' to the 10 low-order
+        // bits of W1 and the 10 low-order bits of U' to the 10 low-order
+        // bits of W2.
+        W1 += static_cast<uint16_t>((Ut & 0x3FC00) >> 10);
+        W2 += static_cast<uint16_t>((Ut & 0x3FF) >> 0);
+
+        // Terminate.
+        output.push_back(W1); // high surrogate
+        output.push_back(W2); // low surrogate
+        return true;
+    } else return false;
+}
+
 std::u16string GeneralUtils::UTF8ToUTF16(const std::string_view& string, size_t size) {
     size_t newSize = MinSize(size, string);
     std::u16string output;
@@ -110,17 +145,7 @@ std::u16string GeneralUtils::UTF8ToUTF16(const std::string_view& string, size_t 
     std::string_view iterator = string;
 
     uint32_t c;
-    while (output.length() < size && _NextUTF8Char(iterator, c)) {
-        if (c < 0x010000) {
-            output.push_back(static_cast<uint16_t>(c));
-        } else if (c > 0x10FFFF) {
-            output.push_back(REPLACEMENT_CHARACTER);
-        } else if (output.length() + 1 < size) {
-            uint32_t cb = c - 0x10000;
-            output.push_back(0xD800 + static_cast<uint16_t>((cb & 0x3FC00) >> 10)); // high surrogate
-            output.push_back(0xDC00 + static_cast<uint16_t>((cb & 0x3FF) >> 0)); // low surrogate
-        } else break;
-    }
+    while (_NextUTF8Char(iterator, c) && PushUTF16CodePoint(output, c, size)) {}
     return output;
 }
 
