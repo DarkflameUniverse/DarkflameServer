@@ -12,13 +12,13 @@ string(REPLACE "\n" ";" variables ${variables})
 
 # Set the cmake variables, formatted as "VARIABLE #" in variables
 foreach(variable ${variables})
-    # If the string contains a #, skip it
-    if(NOT "${variable}" MATCHES "#")
+	# If the string contains a #, skip it
+	if(NOT "${variable}" MATCHES "#")
 
-    # Split the variable into name and value
-    	string(REPLACE "=" ";" variable ${variable})
+		# Split the variable into name and value
+		string(REPLACE "=" ";" variable ${variable})
 
-	# Check that the length of the variable is 2 (name and value)
+		# Check that the length of the variable is 2 (name and value)
 		list(LENGTH variable length)
 		if(${length} EQUAL 2)
 
@@ -63,7 +63,7 @@ if(UNIX)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
 elseif(MSVC)
 	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
-	add_compile_options("/wd4267")
+	add_compile_options("/wd4267" "/utf-8")
 elseif(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
@@ -83,14 +83,15 @@ make_directory(${CMAKE_BINARY_DIR}/locale)
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
-# Copy ini files on first build
-set(INI_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini")
-foreach(ini ${INI_FILES})
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${ini})
+# Copy resource files on first build
+set(RESOURCE_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
+foreach(resource_file ${RESOURCE_FILES})
+	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
 		configure_file(
-			${CMAKE_SOURCE_DIR}/resources/${ini} ${PROJECT_BINARY_DIR}/${ini}
+			${CMAKE_SOURCE_DIR}/resources/${resource_file} ${PROJECT_BINARY_DIR}/${resource_file}
 			COPYONLY
 		)
+		message("Moved ${resource_file} to project binary directory")
 	endif()
 endforeach()
 

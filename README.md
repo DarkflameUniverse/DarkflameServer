@@ -417,10 +417,11 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 </tbody>
 </table>
 
-## Credits
+# Credits
 ## Active Contributors
 * [EmosewaMC](https://github.com/EmosewaMC)
 * [Jettford](https://github.com/Jettford)
+* [Aaron K.](https://github.com/aronwk-aaron)
 
 ## DLU Team
 * [DarwinAnim8or](https://github.com/DarwinAnim8or)
@@ -429,10 +430,6 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 * [averysumner](https://github.com/codeshaunted)
 * [Jon002](https://github.com/jaller200)
 * [Jonny](https://github.com/cuzitsjonny)
-* TheMachine
-* Matthew
-* [Raine](https://github.com/Rainebannister)
-* Bricknave
 
 ### Research and tools
 * [lcdr](https://github.com/lcdr)
@@ -444,11 +441,14 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 ### Former contributors
 * TheMachine
 * Matthew
-* Raine
+* [Raine](https://github.com/Rainebannister)
 * Bricknave
 
-### Special thanks
+### Logo
+* Cole Peterson (BlasterBuilder)
+
+## Special thanks
 * humanoid24
 * pwjones1969
-* BlasterBuilder for the logo
+* [Simon](https://github.com/SimonNitzsche)
 * ALL OF THE NETDEVIL AND LEGO TEAMS!
