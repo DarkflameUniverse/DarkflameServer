@@ -535,6 +535,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			GameMessages::HandleBBBSaveRequest(inStream, entity, sysAddr);
 			break;
 
+		case GAME_MSG_CONTROL_BEHAVIOR:
+			GameMessages::HandleControlBehaviors(inStream, entity, sysAddr);
+			break;
+
 		case GAME_MSG_PROPERTY_ENTRANCE_SYNC:
 			GameMessages::HandlePropertyEntranceSync(inStream, entity, sysAddr);
 			break;
