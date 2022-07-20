@@ -18,6 +18,8 @@ User::User(const SystemAddress& sysAddr, const std::string& username, const std:
 	m_SystemAddress = sysAddr;
 	m_Username = username;
     m_LoggedInCharID = 0;
+
+	m_IsBestFriendMap = std::unordered_map<std::string, bool>();
 	
 	//HACK HACK HACK
 	//This needs to be re-enabled / updated whenever the mute stuff is moved to another table.

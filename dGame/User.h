@@ -42,6 +42,9 @@ public:
 	bool GetLastChatMessageApproved() { return m_LastChatMessageApproved; }
 	void SetLastChatMessageApproved(bool approved) { m_LastChatMessageApproved = approved; }
 
+	std::unordered_map<std::string, bool> GetIsBestFriendMap() { return m_IsBestFriendMap; }
+	void SetIsBestFriendMap(std::unordered_map<std::string, bool> mapToSet) { m_IsBestFriendMap = mapToSet; }
+
 	bool GetIsMuted() const;
 
 	time_t GetMuteExpire() const;
@@ -62,6 +65,8 @@ private:
 	uint32_t m_LastCharID;
 	std::vector<Character*> m_Characters;
     LWOOBJID m_LoggedInCharID;
+
+	std::unordered_map<std::string, bool> m_IsBestFriendMap;
 
 	bool m_LastChatMessageApproved = false;
 	int m_AmountOfTimesOutOfSync = 0;
