@@ -59,6 +59,7 @@ public:
       \return The AMF value type
      */
     virtual AMFValueType GetValueType() = 0;
+    virtual ~AMFValue() {};
 };
 
 //! A typedef for a pointer to an AMF value
@@ -245,6 +246,7 @@ private:
     AMFValueType GetValueType() { return AMFArray; }
     
 public:
+    ~AMFArrayValue() override;
     //! Inserts an item into the array map for a specific key
     /*!
       \param key The key to set
@@ -332,6 +334,7 @@ private:
      \return The AMF value type
      */
     AMFValueType GetValueType() { return AMFObject; }
+    ~AMFObjectValue() override;
     
 public:
     //! Constructor
