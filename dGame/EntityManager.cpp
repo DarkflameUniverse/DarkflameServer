@@ -165,8 +165,7 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 	    e.second->Update(deltaTime);
 	}
 
-	for (const auto entityId : m_EntitiesToSerialize)
-	{
+	for (const auto entityId : m_EntitiesToSerialize) {
 		auto* entity = GetEntity(entityId);
 
 		if (entity == nullptr) continue;
@@ -174,87 +173,62 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 		m_SerializationCounter++;
 
 		RakNet::BitStream stream;
-
 		stream.Write(static_cast<char>(ID_REPLICA_MANAGER_SERIALIZE));
 		stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
 
 		entity->WriteBaseReplicaData(&stream, PACKET_TYPE_SERIALIZATION);
 		entity->WriteComponents(&stream, PACKET_TYPE_SERIALIZATION);
 
-		if (entity->GetIsGhostingCandidate())
-		{
-			for (auto* player : Player::GetAllPlayers())
-			{
-				if (player->IsObserved(entityId))
-				{
+		if (entity->GetIsGhostingCandidate()) {
+			for (auto* player : Player::GetAllPlayers()) {
+				if (player->IsObserved(entityId)) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				}
 			}
-		}
-		else
-		{
+		} else {
 			Game::server->Send(&stream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		}
 	}
-
 	m_EntitiesToSerialize.clear();
 
-	for (const auto& entry : m_EntitiesToKill)
-	{
+	for (const auto& entry : m_EntitiesToKill)	{
 		auto* entity = GetEntity(entry);
 
 		if (!entity) continue;
 
-		if (entity->GetScheduledKiller())
-		{
+		if (entity->GetScheduledKiller()) {
 			entity->Smash(entity->GetScheduledKiller()->GetObjectID(), SILENT);
-		}
-		else
-		{
+		} else {
 			entity->Smash(LWOOBJID_EMPTY, SILENT); 
 		}
 	}
-
 	m_EntitiesToKill.clear();
 
-	for (const auto entry : m_EntitiesToDelete)
-	{
+	uint32_t deletePosition;
+	deletePosition = 0;
+	while (deletePosition < m_EntitiesToDelete.size()) {
+
 		// Get all this info first before we delete the player.
-		auto entityToDelete = GetEntity(entry);
-
+		auto entityToDelete = GetEntity(m_EntitiesToDelete[deletePosition]);
 		auto networkIdToErase = entityToDelete->GetNetworkId();
-
 		const auto& ghostingToDelete = std::find(m_EntitiesToGhost.begin(), m_EntitiesToGhost.end(), entityToDelete);
 
-		if (entityToDelete)
-		{
+		if (entityToDelete) {
 			// If we are a player run through the player destructor.
-			if (entityToDelete->IsPlayer())
-			{
+			if (entityToDelete->IsPlayer()) {
 				delete dynamic_cast<Player*>(entityToDelete);
-			}
-			else
-			{
+			} else {
 				delete entityToDelete;
 			}
-
 			entityToDelete = nullptr;
-
-			if (networkIdToErase != 0)
-			{
-				m_LostNetworkIds.push(networkIdToErase);
-			}
+			if (networkIdToErase != 0) m_LostNetworkIds.push(networkIdToErase);
 		}
 
-		if (ghostingToDelete != m_EntitiesToGhost.end())
-		{
-			m_EntitiesToGhost.erase(ghostingToDelete);
-		}
-
-		m_Entities.erase(entry);
+		if (ghostingToDelete != m_EntitiesToGhost.end()) m_EntitiesToGhost.erase(ghostingToDelete);
 		
+		m_Entities.erase(m_EntitiesToDelete[deletePosition]);
+		deletePosition++;
 	}
-
 	m_EntitiesToDelete.clear();
 }
 
