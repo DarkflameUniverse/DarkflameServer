@@ -74,7 +74,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 
 	// For non player entites, we'll generate a new ID or set the appropiate flags
 	else if (user == nullptr || info.lot != 1) {
-		
+
 		// Entities with no ID already set, often spawned entities, we'll generate a new sequencial ID
         if (info.id == 0) {
 			id = ObjectIDManager::Instance()->GenerateObjectID();
@@ -104,7 +104,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 	}
 
     info.id = id;
-	
+
 	Entity* entity;
 
 	// Check if the entitty if a player, in case use the extended player entity class
@@ -117,7 +117,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 
 	// Initialize the entity
 	entity->Initialize();
-	
+
 	// Add the entity to the entity map
 	m_Entities.insert_or_assign(id, entity);
 
@@ -161,12 +161,12 @@ void EntityManager::DestroyEntity(Entity* entity) {
 }
 
 void EntityManager::UpdateEntities(const float deltaTime) {
-	for (const auto& e : m_Entities) {
-	    e.second->Update(deltaTime);
+	for (auto entry = m_Entities.begin(); entry != m_Entities.end(); entry++) {
+		entry->second->Update(deltaTime);
 	}
 
-	for (const auto entityId : m_EntitiesToSerialize) {
-		auto* entity = GetEntity(entityId);
+	for (auto entry = m_EntitiesToSerialize.begin(); entry != m_EntitiesToSerialize.end(); entry++) {
+		auto* entity = GetEntity(*entry);
 
 		if (entity == nullptr) continue;
 
@@ -181,7 +181,7 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 
 		if (entity->GetIsGhostingCandidate()) {
 			for (auto* player : Player::GetAllPlayers()) {
-				if (player->IsObserved(entityId)) {
+				if (player->IsObserved(*entry)) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				}
 			}
@@ -191,25 +191,23 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 	}
 	m_EntitiesToSerialize.clear();
 
-	for (const auto& entry : m_EntitiesToKill)	{
-		auto* entity = GetEntity(entry);
+	for (auto entry = m_EntitiesToKill.begin(); entry != m_EntitiesToKill.end(); entry++) {
+		auto* entity = GetEntity(*entry);
 
 		if (!entity) continue;
 
 		if (entity->GetScheduledKiller()) {
 			entity->Smash(entity->GetScheduledKiller()->GetObjectID(), SILENT);
 		} else {
-			entity->Smash(LWOOBJID_EMPTY, SILENT); 
+			entity->Smash(LWOOBJID_EMPTY, SILENT);
 		}
 	}
 	m_EntitiesToKill.clear();
 
-	uint32_t deletePosition;
-	deletePosition = 0;
-	while (deletePosition < m_EntitiesToDelete.size()) {
+	for (auto entry = m_EntitiesToDelete.begin(); entry != m_EntitiesToDelete.end(); entry++) {
 
 		// Get all this info first before we delete the player.
-		auto entityToDelete = GetEntity(m_EntitiesToDelete[deletePosition]);
+		auto entityToDelete = GetEntity(*entry);
 		auto networkIdToErase = entityToDelete->GetNetworkId();
 		const auto& ghostingToDelete = std::find(m_EntitiesToGhost.begin(), m_EntitiesToGhost.end(), entityToDelete);
 
@@ -225,21 +223,20 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 		}
 
 		if (ghostingToDelete != m_EntitiesToGhost.end()) m_EntitiesToGhost.erase(ghostingToDelete);
-		
-		m_Entities.erase(m_EntitiesToDelete[deletePosition]);
-		deletePosition++;
+
+		m_Entities.erase(*entry);
 	}
 	m_EntitiesToDelete.clear();
 }
 
 Entity * EntityManager::GetEntity(const LWOOBJID& objectId) const {
 	const auto& index = m_Entities.find(objectId);
-	
+
 	if (index == m_Entities.end())
 	{
 		return nullptr;
 	}
-    
+
 	return index->second;
 }
 
@@ -260,7 +257,7 @@ std::vector<Entity*> EntityManager::GetEntitiesByComponent(const int componentTy
 	std::vector<Entity*> withComp;
 	for (const auto& entity : m_Entities) {
 		if (componentType != -1 && !entity.second->HasComponent(componentType)) continue;
-		
+
 		withComp.push_back(entity.second);
 	}
 	return withComp;
@@ -305,7 +302,7 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	if (entity->GetNetworkId() == 0)
 	{
 		uint16_t networkId;
-		
+
 		if (!m_LostNetworkIds.empty())
 		{
 			networkId = m_LostNetworkIds.top();
@@ -318,7 +315,7 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 
 		entity->SetNetworkId(networkId);
 	}
-	
+
 	const auto checkGhosting = entity->GetIsGhostingCandidate();
 
 	if (checkGhosting)
@@ -339,13 +336,13 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	}
 
 	m_SerializationCounter++;
-	
+
 	RakNet::BitStream stream;
 
 	stream.Write(static_cast<char>(ID_REPLICA_MANAGER_CONSTRUCTION));
 	stream.Write(true);
 	stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
-	
+
 	entity->WriteBaseReplicaData(&stream, PACKET_TYPE_CONSTRUCTION);
 	entity->WriteComponents(&stream, PACKET_TYPE_CONSTRUCTION);
 
@@ -404,7 +401,7 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 	{
 		return;
 	}
-	
+
 	RakNet::BitStream stream;
 
 	stream.Write(static_cast<char>(ID_REPLICA_MANAGER_DESTRUCTION));
@@ -441,7 +438,7 @@ void EntityManager::DestructAllEntities(const SystemAddress& sysAddr) {
     }
 }
 
-void EntityManager::SetGhostDistanceMax(float value) 
+void EntityManager::SetGhostDistanceMax(float value)
 {
 	m_GhostDistanceMaxSquared = value * value;
 }
@@ -451,7 +448,7 @@ float EntityManager::GetGhostDistanceMax() const
 	return std::sqrt(m_GhostDistanceMaxSquared);
 }
 
-void EntityManager::SetGhostDistanceMin(float value) 
+void EntityManager::SetGhostDistanceMin(float value)
 {
 	m_GhostDistanceMinSqaured = value * value;
 }
@@ -461,7 +458,7 @@ float EntityManager::GetGhostDistanceMin() const
 	return std::sqrt(m_GhostDistanceMinSqaured);
 }
 
-void EntityManager::QueueGhostUpdate(LWOOBJID playerID) 
+void EntityManager::QueueGhostUpdate(LWOOBJID playerID)
 {
 	const auto& iter = std::find(m_PlayersToUpdateGhosting.begin(), m_PlayersToUpdateGhosting.end(), playerID);
 
@@ -471,7 +468,7 @@ void EntityManager::QueueGhostUpdate(LWOOBJID playerID)
 	}
 }
 
-void EntityManager::UpdateGhosting() 
+void EntityManager::UpdateGhosting()
 {
 	for (const auto playerID : m_PlayersToUpdateGhosting)
 	{
@@ -488,7 +485,7 @@ void EntityManager::UpdateGhosting()
 	m_PlayersToUpdateGhosting.clear();
 }
 
-void EntityManager::UpdateGhosting(Player* player) 
+void EntityManager::UpdateGhosting(Player* player)
 {
 	if (player == nullptr)
 	{
@@ -549,15 +546,15 @@ void EntityManager::UpdateGhosting(Player* player)
 			}
 
 			player->ObserveEntity(id);
-			
+
 			ConstructEntity(entity, player->GetSystemAddress());
-			
+
 			entity->SetObservers(entity->GetObservers() + 1);
 		}
 	}
 }
 
-void EntityManager::CheckGhosting(Entity* entity) 
+void EntityManager::CheckGhosting(Entity* entity)
 {
 	if (entity == nullptr)
 	{
@@ -565,7 +562,7 @@ void EntityManager::CheckGhosting(Entity* entity)
 	}
 
 	const auto& referencePoint = entity->GetPosition();
-	
+
 	auto ghostingDistanceMax = m_GhostDistanceMaxSquared;
 	auto ghostingDistanceMin = m_GhostDistanceMinSqaured;
 
@@ -592,15 +589,15 @@ void EntityManager::CheckGhosting(Entity* entity)
 		else if (!observed && ghostingDistanceMin > distance)
 		{
 			player->ObserveEntity(id);
-			
+
 			ConstructEntity(entity, player->GetSystemAddress());
-			
+
 			entity->SetObservers(entity->GetObservers() + 1);
 		}
 	}
 }
 
-Entity* EntityManager::GetGhostCandidate(int32_t id) 
+Entity* EntityManager::GetGhostCandidate(int32_t id)
 {
 	for (auto* entity : m_EntitiesToGhost)
 	{
@@ -609,7 +606,7 @@ Entity* EntityManager::GetGhostCandidate(int32_t id)
 			return entity;
 		}
 	}
-	
+
 	return nullptr;
 }
 
@@ -628,7 +625,7 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 	// Deactivate switches if they die
 	if (!entity)
 		return;
-	
+
 	SwitchComponent* switchComp = entity->GetComponent<SwitchComponent>();
 	if (switchComp) {
 		entity->TriggerEvent("OnDectivated");
@@ -644,7 +641,7 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 	m_EntitiesToKill.push_back(objectId);
 }
 
-void EntityManager::ScheduleForDeletion(LWOOBJID entity) 
+void EntityManager::ScheduleForDeletion(LWOOBJID entity)
 {
 	if (std::count(m_EntitiesToDelete.begin(), m_EntitiesToDelete.end(), entity))
 	{
@@ -663,7 +660,7 @@ void EntityManager::FireEventServerSide(Entity* origin, std::string args) {
 	}
 }
 
-bool EntityManager::IsExcludedFromGhosting(LOT lot) 
+bool EntityManager::IsExcludedFromGhosting(LOT lot)
 {
 	return std::find(m_GhostingExcludedLOTs.begin(), m_GhostingExcludedLOTs.end(), lot) != m_GhostingExcludedLOTs.end();
 }
