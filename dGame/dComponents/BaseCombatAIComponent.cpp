@@ -65,9 +65,9 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 	// radii if it is greater than the one in the database.
 	if (m_Parent) {
 		auto aggroRadius = m_Parent->GetVar<float>(u"aggroRadius");
-		m_AggroRadius = std::max(aggroRadius, m_AggroRadius);
+		m_AggroRadius = aggroRadius != 0 ? aggroRadius : m_AggroRadius;
 		auto tetherRadius = m_Parent->GetVar<float>(u"tetherRadius");
-		m_HardTetherRadius = std::max(tetherRadius, m_HardTetherRadius);
+		m_HardTetherRadius = tetherRadius != 0 ? tetherRadius : m_HardTetherRadius;
 	}
 
 	/*
