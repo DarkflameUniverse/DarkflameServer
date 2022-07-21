@@ -8,5 +8,4 @@ void MailBoxServer::OnUse(Entity* self, Entity* user) {
 	AMFArrayValue args;
 	args.InsertValue("state", value);
 	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
-	delete value;
 }

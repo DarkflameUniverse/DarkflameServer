@@ -276,27 +276,21 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			args.InsertValue("state", state);
 
 			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
-
-			delete state;
 		}
 
 		entity->AddCallbackTimer(0.5f, [customText, entity] ()
 		{
 			AMFArrayValue args;
 
-			auto* visiable = new AMFTrueValue();
 			auto* text = new AMFStringValue();
 			text->SetStringValue(customText);
 
-			args.InsertValue("visible", visiable);
+			args.InsertValue("visible", new AMFTrueValue());
 			args.InsertValue("text", text);
 
 			Game::logger->Log("SlashCommandHandler", "Sending \n%s\n", customText.c_str());
 
 			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", &args);
-
-			delete visiable;
-			delete text;
 		});
 
 		return;
@@ -556,8 +550,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Switched UI state.");
 
-		delete value;
-
 		return;
 	}
 
@@ -569,8 +561,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, args[0], &amfArgs);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Toggled UI state.");
-
-		delete value;
 
 		return;
 	}
@@ -1578,11 +1568,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if ((chatCommand == "debugui") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		ChatPackets::SendSystemMessage(sysAddr, u"Opening UIDebugger...");
-		AMFStringValue* value = new AMFStringValue();
-		value->SetStringValue("ToggleUIDebugger;");
 		AMFArrayValue args;
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, value->GetStringValue(), &args);
-		delete value;
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleUIDebugger;", nullptr);
 	}
 
 	if ((chatCommand == "boost") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -2007,11 +1994,6 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	args.InsertValue("message", messageValue);
 
 	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
-
-	delete titleValue;
-	delete messageValue;
-	titleValue = nullptr;
-	messageValue = nullptr;
 
 	//Notify chat about it
 	CBITSTREAM;

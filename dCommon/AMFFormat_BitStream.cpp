@@ -62,15 +62,17 @@ void RakNet::BitStream::Write<AMFValue*>(AMFValue* value) {
 			}
 				
 			case AMFArray: {
-				AMFArrayValue* v = (AMFArrayValue*)value;
-				this->Write(*v);
+				this->Write((AMFArrayValue*)value);
 				break;
 			}
 		}
 	}
 }
 
-// A private function to write an value to a RakNet::BitStream
+/** 
+ * A private function to write an value to a RakNet::BitStream
+ * RakNet writes in the correct byte order - do not reverse this.  
+ */
 void WriteUInt29(RakNet::BitStream* bs, uint32_t v) {
 	unsigned char b4 = (unsigned char)v;
 	if (v < 0x00200000) {
@@ -108,29 +110,48 @@ void WriteUInt29(RakNet::BitStream* bs, uint32_t v) {
 	bs->Write(b4);
 }
 
-// Writes a flag number to a RakNet::BitStream
+/** 
+ * Writes a flag number to a RakNet::BitStream
+ * RakNet writes in the correct byte order - do not reverse this.  
+ */
 void WriteFlagNumber(RakNet::BitStream* bs, uint32_t v) {
 	v = (v << 1) | 0x01;
 	WriteUInt29(bs, v);
 }
 
-// Writes an AMFString to a RakNet::BitStream
+/** 
+ * Writes an AMFString to a RakNet::BitStream
+ * 
+ * RakNet writes in the correct byte order - do not reverse this.  
+ */
 void WriteAMFString(RakNet::BitStream* bs, const std::string& str) {
 	WriteFlagNumber(bs, (uint32_t)str.size());
 	bs->Write(str.c_str(), (uint32_t)str.size());
 }
 
-// Writes an AMF U16 to a RakNet::BitStream
+/** 
+ * Writes an U16 to a bitstream
+ * 
+ * RakNet writes in the correct byte order - do not reverse this.  
+ */
 void WriteAMFU16(RakNet::BitStream* bs, uint16_t value) {
 	bs->Write(value);
 }
 
-// Writes an AMF U32 to RakNet::BitStream
+/** 
+ * Writes an U32 to a bitstream
+ * 
+ * RakNet writes in the correct byte order - do not reverse this.  
+ */
 void WriteAMFU32(RakNet::BitStream* bs, uint32_t value) {
 	bs->Write(value);
 }
 
-// Writes an AMF U64 to RakNet::BitStream
+/** 
+ * Writes an U64 to a bitstream
+ * 
+ * RakNet writes in the correct byte order - do not reverse this.  
+ */
 void WriteAMFU64(RakNet::BitStream* bs, uint64_t value) {
 	bs->Write(value);
 }
@@ -201,13 +222,13 @@ void RakNet::BitStream::Write<AMFDateValue>(AMFDateValue value) {
 
 // Writes an AMFArrayValue to BitStream
 template<>
-void RakNet::BitStream::Write<AMFArrayValue>(AMFArrayValue value) {
+void RakNet::BitStream::Write<AMFArrayValue*>(AMFArrayValue* value) {
 	this->Write(AMFArray);
-	uint32_t denseSize = value.GetDenseValueSize();
+	uint32_t denseSize = value->GetDenseValueSize();
 	WriteFlagNumber(this, denseSize);
 	
-	_AMFArrayMap_::iterator it = value.GetAssociativeIteratorValueBegin();
-	_AMFArrayMap_::iterator end = value.GetAssociativeIteratorValueEnd();
+	_AMFArrayMap_::iterator it = value->GetAssociativeIteratorValueBegin();
+	_AMFArrayMap_::iterator end = value->GetAssociativeIteratorValueEnd();
 	
 	while (it != end) {
 		WriteAMFString(this, it->first);
@@ -218,8 +239,8 @@ void RakNet::BitStream::Write<AMFArrayValue>(AMFArrayValue value) {
 	this->Write(AMFNull);
 	
 	if (denseSize > 0) {
-		_AMFArrayList_::iterator it2 = value.GetDenseIteratorBegin();
-		_AMFArrayList_::iterator end2 = value.GetDenseIteratorEnd();
+		_AMFArrayList_::iterator it2 = value->GetDenseIteratorBegin();
+		_AMFArrayList_::iterator end2 = value->GetDenseIteratorEnd();
 		
 		while (it2 != end2) {
 			this->Write(*it2);

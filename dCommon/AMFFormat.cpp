@@ -110,10 +110,10 @@ _AMFArrayList_::iterator AMFArrayValue::GetDenseIteratorEnd() {
 
 AMFArrayValue::~AMFArrayValue() {
     for (auto valueToDelete : GetDenseArray()) {
-        delete valueToDelete;
+        if (valueToDelete) delete valueToDelete;
     }
     for (auto valueToDelete : GetAssociativeMap()) {
-        delete valueToDelete.second;
+        if (valueToDelete.second) delete valueToDelete.second;
     }
 }
 
