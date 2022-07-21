@@ -122,6 +122,39 @@ namespace GameMessages {
 
 	void SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID);
 
+	/**
+	 * Sends a message to an Entity to smash itself, but not delete or destroy itself from the world
+	 * 
+	 * @param entity The Entity that will smash itself into bricks
+	 * @param force The force the Entity will be smashed with
+	 * @param ghostOpacity The ghosting opacity of the smashed Entity
+	 * @param killerID The Entity that invoked the smash, if none exists, this should be LWOOBJID_EMPTY
+	 * @param ignoreObjectVisibility Whether or not to ignore the objects visibility
+	 */
+	void SendSmash(Entity* entity, float force, float ghostOpacity, LWOOBJID killerID, bool ignoreObjectVisibility = false);
+
+	/**
+	 * Sends a message to an Entity to UnSmash itself (aka rebuild itself over a duration)
+	 * 
+	 * @param entity The Entity that will UnSmash itself
+	 * @param builderID The Entity that invoked the build (LWOOBJID_EMPTY if none exists or invoked the rebuild)
+	 * @param duration The duration for the Entity to rebuild over.  3 seconds by default
+	 */
+	void SendUnSmash(Entity* entity, LWOOBJID builderID = LWOOBJID_EMPTY, float duration = 3.0f);
+
+	/**
+	 * @brief This GameMessage is the one that handles all of the property behavior incoming messages from the client.
+	 * 
+	 * The GameMessage struct can be located here https://lcdruniverse.org/lu_packets/lu_packets/world/gm/server/struct.ControlBehaviors.html
+	 * For information on the AMF3 format can be found here https://rtmp.veriskope.com/pdf/amf3-file-format-spec.pdf
+	 * For any questions regarding AMF3 you can contact EmosewaMC on GitHub
+	 * 
+	 * @param inStream The incoming data sent from the client
+	 * @param entity The Entity that sent the message
+	 * @param sysAddr The SystemAddress that sent the message
+	 */
+	void HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
 	// Rails stuff
 	void SendSetRailMovement(const LWOOBJID& objectID, bool pathGoForward, std::u16string pathName, uint32_t pathStart,
                              const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
