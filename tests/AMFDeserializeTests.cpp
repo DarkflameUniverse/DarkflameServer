@@ -138,16 +138,16 @@ int ReadAMFArrayFromBitStream() {
 	bitStream.Write<uint8_t>(0x0B);
 	for (auto e : "10447") if (e != '\0') bitStream.Write<char>(e);
 	bitStream.Write<uint8_t>(0x01);
-    bitStream.Write<uint8_t>(0x06);
+	bitStream.Write<uint8_t>(0x06);
 	bitStream.Write<uint8_t>(0x0B);
 	for (auto e : "10447") if (e != '\0') bitStream.Write<char>(e);
 	{
 		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFArray);
 		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociativeMap().size(), 1);
-        ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetDenseArray().size(), 1);
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetDenseArray().size(), 1);
 		ASSERT_EQ(static_cast<AMFStringValue*>(static_cast<AMFArrayValue*>(res.get())->FindValue("BehaviorID"))->GetStringValue(), "10447");
-        ASSERT_EQ(static_cast<AMFStringValue*>(static_cast<AMFArrayValue*>(res.get())->GetDenseArray()[0])->GetStringValue(), "10447");
+		ASSERT_EQ(static_cast<AMFStringValue*>(static_cast<AMFArrayValue*>(res.get())->GetDenseArray()[0])->GetStringValue(), "10447");
 	}
 	// Test a dense array
 	return 0;
