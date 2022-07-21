@@ -389,6 +389,15 @@ namespace GameMessages {
 	 */
 	void HandleAcknowledgePossession(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
+    /**
+     * @brief A request from a client to get the hot properties that would appear on the news feed
+     * 
+     * @param inStream packet of data
+     * @param entity The Entity that sent the request
+     * @param sysAddr The SystemAddress of the Entity that sent the request
+     */
+    void HandleGetHotPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
 	//Racing:
 	void HandleModuleAssemblyQueryData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
