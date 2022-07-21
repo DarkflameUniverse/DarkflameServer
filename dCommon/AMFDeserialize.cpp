@@ -127,21 +127,23 @@ AMFValue* AMFDeserialize::ReadAmfDouble(RakNet::BitStream* inStream) {
 
 AMFValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
 	auto arrayValue = new AMFArrayValue();
+
+    // Read size of dense array
 	auto sizeOfDenseArray = (ReadU29(inStream) >> 1);
-	if (sizeOfDenseArray >= 1) {
-		char valueType;
-		inStream->Read(valueType); // Unused
-		for (uint32_t i = 0; i < sizeOfDenseArray; i++) {
-			arrayValue->PushBackValue(Read(inStream));
-		}
-	} else {
-		while (true) {
-			auto key = ReadString(inStream);
-			// No more values when we encounter an empty string
-			if (key.size() == 0) break;
-			arrayValue->InsertValue(key, Read(inStream));
-		}
+
+    // Then read Key'd portion
+	while (true) {
+		auto key = ReadString(inStream);
+		// No more values when we encounter an empty string
+		if (key.size() == 0) break;
+		arrayValue->InsertValue(key, Read(inStream));
 	}
+
+    // Finally read dense portion
+	for (uint32_t i = 0; i < sizeOfDenseArray; i++) {
+		arrayValue->PushBackValue(Read(inStream));
+	}
+
 	return arrayValue;
 }
 
