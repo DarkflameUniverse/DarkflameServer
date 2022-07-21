@@ -161,8 +161,8 @@ void EntityManager::DestroyEntity(Entity* entity) {
 }
 
 void EntityManager::UpdateEntities(const float deltaTime) {
-	for (auto entry = m_Entities.begin(); entry != m_Entities.end(); entry++) {
-		entry->second->Update(deltaTime);
+	for (const auto& e : m_Entities) {
+		e.second->Update(deltaTime);
 	}
 
 	for (auto entry = m_EntitiesToSerialize.begin(); entry != m_EntitiesToSerialize.end(); entry++) {
