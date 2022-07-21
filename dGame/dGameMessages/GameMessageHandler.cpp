@@ -243,6 +243,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			}*/
 			break;
 		}
+        case GAME_MSG_HANDLE_HOT_PROPERTY_DATA: {
+            GameMessages::HandleGetHotPropertyData(inStream, entity, sysAddr);
+            break;
+        }
 
     	case GAME_MSG_REQUEST_SERVER_PROJECTILE_IMPACT:
     	{

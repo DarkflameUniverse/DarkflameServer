@@ -391,12 +391,35 @@ namespace GameMessages {
 
     /**
      * @brief A request from a client to get the hot properties that would appear on the news feed
+     * This incoming message has NO DATA and is simply a request that expects to send a reply to the sender.
      * 
      * @param inStream packet of data
      * @param entity The Entity that sent the request
      * @param sysAddr The SystemAddress of the Entity that sent the request
      */
     void HandleGetHotPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
+    /**
+     * @brief A request from a client to get the hot properties that would appear on the news feed
+     * The struct of data to send is as follows
+     * 
+     * [u32] - Number of properties
+     *     [objid] - property id
+     *     [objid] - property owner id
+     *     [wstring] - property owner name
+     *     [u64] - total reputation
+     *     [i32] - property template id
+     *     [wstring] - property name
+     *     [wstring] - property description
+     *     [float] - performance cost
+     *     [timestamp] - time last published
+     *     [cloneid] - clone id
+     * 
+     * @param inStream packet of data
+     * @param entity The Entity that sent the request
+     * @param sysAddr The SystemAddress of the Entity that sent the request
+     */
+    void SendGetHotPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	//Racing:
 	void HandleModuleAssemblyQueryData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
