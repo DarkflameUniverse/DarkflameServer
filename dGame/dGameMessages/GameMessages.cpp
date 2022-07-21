@@ -4942,12 +4942,9 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 	}
 
 	if (args == u"toggleMail") {
-		AMFFalseValue* value = new AMFFalseValue();
-
 		AMFArrayValue args;
-		args.InsertValue("visible", value);
+		args.InsertValue("visible", new AMFFalseValue());
 		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleMail", &args);
-		delete value;
 	}
 
 	// This should probably get it's own "ServerEvents" system or something at some point

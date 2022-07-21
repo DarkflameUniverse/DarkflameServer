@@ -234,6 +234,7 @@ public:
 };
 
 //! The array value AMF type
+// This object will manage it's own memory map and list.  Do not delete its values.
 class AMFArrayValue : public AMFValue {
 private:
     _AMFArrayMap_ associative;      //!< The array map (associative part)

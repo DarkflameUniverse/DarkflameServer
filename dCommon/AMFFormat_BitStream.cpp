@@ -62,8 +62,7 @@ void RakNet::BitStream::Write<AMFValue*>(AMFValue* value) {
 			}
 				
 			case AMFArray: {
-				AMFArrayValue* v = (AMFArrayValue*)value;
-				this->Write(*v);
+				this->Write((AMFArrayValue*)value);
 				break;
 			}
 		}
@@ -201,13 +200,13 @@ void RakNet::BitStream::Write<AMFDateValue>(AMFDateValue value) {
 
 // Writes an AMFArrayValue to BitStream
 template<>
-void RakNet::BitStream::Write<AMFArrayValue>(AMFArrayValue value) {
+void RakNet::BitStream::Write<AMFArrayValue*>(AMFArrayValue* value) {
 	this->Write(AMFArray);
-	uint32_t denseSize = value.GetDenseValueSize();
+	uint32_t denseSize = value->GetDenseValueSize();
 	WriteFlagNumber(this, denseSize);
 	
-	_AMFArrayMap_::iterator it = value.GetAssociativeIteratorValueBegin();
-	_AMFArrayMap_::iterator end = value.GetAssociativeIteratorValueEnd();
+	_AMFArrayMap_::iterator it = value->GetAssociativeIteratorValueBegin();
+	_AMFArrayMap_::iterator end = value->GetAssociativeIteratorValueEnd();
 	
 	while (it != end) {
 		WriteAMFString(this, it->first);
@@ -218,8 +217,8 @@ void RakNet::BitStream::Write<AMFArrayValue>(AMFArrayValue value) {
 	this->Write(AMFNull);
 	
 	if (denseSize > 0) {
-		_AMFArrayList_::iterator it2 = value.GetDenseIteratorBegin();
-		_AMFArrayList_::iterator end2 = value.GetDenseIteratorEnd();
+		_AMFArrayList_::iterator it2 = value->GetDenseIteratorBegin();
+		_AMFArrayList_::iterator end2 = value->GetDenseIteratorEnd();
 		
 		while (it2 != end2) {
 			this->Write(*it2);

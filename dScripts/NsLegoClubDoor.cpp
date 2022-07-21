@@ -13,21 +13,6 @@ void NsLegoClubDoor::OnStartup(Entity* self)
 
     args = {};
 
-    /**
-    { {0,{
-        {"image", "textures/ui/zone_thumnails/Nimbus_Station.dds"}, 
-        {"caption", "%[UI_CHOICE_NS]"}, -- "%[LOC_STRING]" is the format for sending localization tokens to the choice box
-        {"identifier", "zoneID_1200"}, 
-        {"tooltipText", "%[UI_CHOICE_NS_HOVER]"} 
-    }},
-    {1,{
-        {"image", "textures/ui/zone_thumnails/Nexus_Tower.dds"}, 
-        {"caption", "%[UI_CHOICE_NT]"}, 
-        {"identifier", "zoneID_1900"}, 
-        {"tooltipText", "%[UI_CHOICE_NT_HOVER]"} 
-    } } }
-     */
-
     AMFStringValue* callbackClient = new AMFStringValue();
     callbackClient->SetStringValue(std::to_string(self->GetObjectID()));
     args.InsertValue("callbackClient", callbackClient);
@@ -97,12 +82,6 @@ void NsLegoClubDoor::OnUse(Entity* self, Entity* user)
 
     if (CheckChoice(self, player))
     {
-        /**
-        { {"callbackClient", self}, 
-        {"strIdentifier", "choiceDoor"}, 
-        {"title", "%[UI_CHOICE_DESTINATION]"}, 
-        {"options", choiceOptions} }
-        */
         AMFArrayValue* multiArgs = new AMFArrayValue();
         
         AMFStringValue* callbackClient = new AMFStringValue();
@@ -120,19 +99,9 @@ void NsLegoClubDoor::OnUse(Entity* self, Entity* user)
         multiArgs->InsertValue("options", options);
 
         GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "QueueChoiceBox", multiArgs);
-
-        delete multiArgs;
-        delete callbackClient;
-        delete strIdentifier;
-        delete title;
     }
     else if (self->GetVar<int32_t>(u"currentZone") != m_ChoiceZoneID)
     {
-        /**
-        { {"state", "Lobby"}, 
-        {"context", {{"user", msg.user}, {"callbackObj", self}, 
-        {"HelpVisible", "show" }, {"type", "Lego_Club_Valid"}} }} 
-        */
         AMFArrayValue* multiArgs = new AMFArrayValue();
 
         AMFStringValue* state = new AMFStringValue();
@@ -160,14 +129,6 @@ void NsLegoClubDoor::OnUse(Entity* self, Entity* user)
         multiArgs->InsertValue("context", context);
 
         GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "pushGameState", multiArgs);
-
-        delete multiArgs;
-        delete state;
-        delete context;
-        delete user;
-        delete callbackObj;
-        delete helpVisible;
-        delete type;
     }
     else
     {

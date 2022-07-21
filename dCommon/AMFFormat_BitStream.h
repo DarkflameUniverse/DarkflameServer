@@ -88,5 +88,5 @@ namespace RakNet {
 	 \param value The value to write
 	 */
 	template <>
-	void RakNet::BitStream::Write<AMFArrayValue>(AMFArrayValue value);
+	void RakNet::BitStream::Write<AMFArrayValue*>(AMFArrayValue* value);
 } // namespace RakNet
