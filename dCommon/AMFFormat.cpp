@@ -166,6 +166,6 @@ uint32_t AMFObjectValue::GetTraitArrayCount() {
 
 AMFObjectValue::~AMFObjectValue() {
     for (auto valueToDelete = GetTraitsIteratorBegin(); valueToDelete != GetTraitsIteratorEnd(); valueToDelete++) {
-        delete valueToDelete->second.second;
+        if (valueToDelete->second.second) delete valueToDelete->second.second;
     }
 }
