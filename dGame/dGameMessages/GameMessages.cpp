@@ -6016,6 +6016,8 @@ void GameMessages::SendGetHotPropertyData(RakNet::BitStream* inStream, Entity* e
      *     [cloneid] - clone id
      * 
      */
+    // TODO This needs to be implemented when reputation is implemented for getting hot properties.
+    /**
     bitStream.Write(entity->GetObjectID());
     bitStream.Write(GAME_MSG::GAME_MSG_SEND_HOT_PROPERTY_DATA);
     std::vector<int32_t> t = {25166, 25188, 25191, 25194};
@@ -6035,7 +6037,7 @@ void GameMessages::SendGetHotPropertyData(RakNet::BitStream* inStream, Entity* e
         bitStream.Write<uint64_t>(1658376385);
         bitStream.Write<int32_t>(25166);
     }
-    SEND_PACKET
+    SEND_PACKET*/
 }
 
 void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) {
