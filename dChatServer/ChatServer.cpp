@@ -1,22 +1,24 @@
+#include <chrono>
+#include <csignal>
 #include <iostream>
 #include <string>
-#include <chrono>
 #include <thread>
 
-//DLU Includes:
-#include "dCommonVars.h"
-#include "dServer.h"
-#include "dLogger.h"
-#include "Database.h"
-#include "dConfig.h"
-#include "dMessageIdentifiers.h"
-#include "dChatFilter.h"
-#include "Diagnostics.h"
-
-#include "PlayerContainer.h"
+// DLU Includes:
 #include "ChatPacketHandler.h"
-
+#include "Database.h"
+#include "Diagnostics.h"
 #include "Game.h"
+#include "PlayerContainer.h"
+#include "dChatFilter.h"
+#include "dCommonVars.h"
+#include "dConfig.h"
+#include "dLogger.h"
+#include "dMessageIdentifiers.h"
+#include "dServer.h"
+
+// RakNet includes:
+#include "RakNetDefines.h"
 namespace Game {
 	dLogger* logger;
 	dServer* server;
@@ -24,22 +26,27 @@ namespace Game {
 	dChatFilter* chatFilter;
 }
 
-//RakNet includes:
-#include "RakNetDefines.h"
-
+bool chatShutdownSequenceStarted = false;
+bool chatShutdownSequenceComplete = false;
+void ChatShutdownSequence();
 dLogger* SetupLogger();
 void HandlePacket(Packet* packet);
 
 PlayerContainer playerContainer;
 
 int main(int argc, char** argv) {
+	std::atexit(ChatShutdownSequence);
+
+	signal(SIGINT, [](int){ ChatShutdownSequence(); });
+	signal(SIGTERM, [](int){ ChatShutdownSequence(); });
+
 	Diagnostics::SetProcessName("Chat");
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
-	if (!Game::logger) return 0;
+	if (!Game::logger) return EXIT_FAILURE;
 	Game::logger->Log("ChatServer", "Starting Chat server...\n");
 	Game::logger->Log("ChatServer", "Version: %i.%i\n", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("ChatServer", "Compiled on: %s\n", __TIMESTAMP__);
@@ -64,7 +71,7 @@ int main(int argc, char** argv) {
 		Database::Destroy("ChatServer");
 		delete Game::server;
 		delete Game::logger;
-		return 0;
+		return EXIT_FAILURE;
 	}
 
 	//Find out the master's IP:
@@ -107,8 +114,6 @@ int main(int argc, char** argv) {
 		}
 		else framesSinceMasterDisconnect = 0;
 
-		//In world we'd update our other systems here.
-
 		//Check for packets here:
 		Game::server->ReceiveFromMaster(); //ReceiveFromMaster also handles the master packets if needed.
 		packet = Game::server->Receive();
@@ -148,13 +153,7 @@ int main(int argc, char** argv) {
 		t += std::chrono::milliseconds(mediumFramerate); //Chat can run at a lower "fps"
 		std::this_thread::sleep_until(t);
 	}
-
-	//Delete our objects here:
-	Database::Destroy("ChatServer");
-	delete Game::server;
-	delete Game::logger;
-
-	exit(EXIT_SUCCESS);
+	ChatShutdownSequence();
 	return EXIT_SUCCESS;
 }
 
@@ -289,4 +288,20 @@ void HandlePacket(Packet* packet) {
 			Game::logger->Log("ChatServer", "Unknown World id: %i\n", int(packet->data[3]));
 		}
 	}
+}
+
+void ChatShutdownSequence() {
+	if (chatShutdownSequenceComplete || chatShutdownSequenceStarted) {
+		return;
+	}
+
+	chatShutdownSequenceStarted = true;
+
+	playerContainer.ClearContainer();
+	//Delete our objects here:
+	Database::Destroy("ChatServer");
+	if (Game::server) delete Game::server;
+	if (Game::logger) delete Game::logger;
+	chatShutdownSequenceComplete = true;
+	exit(EXIT_SUCCESS);
 }

@@ -84,3 +84,13 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 void Database::Commit() {
 	Database::con->commit();
 }
+
+bool Database::SetAutoCommit(bool value) {
+	bool prevCommitStatus = false;
+	if (!con) Connect();
+	if (con->isValid() && !con->isClosed()) {
+		prevCommitStatus = con->getAutoCommit();
+		con->setAutoCommit(value);
+	}
+	return prevCommitStatus;
+}

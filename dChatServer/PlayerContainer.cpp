@@ -9,12 +9,43 @@
 #include "dMessageIdentifiers.h"
 #include "PacketUtils.h"
 #include "Database.h"
+#include "ActivityLogDefine.h"
 
-PlayerContainer::PlayerContainer() {
-}
+void PlayerContainer::ClearContainer() {
+	// Create the base statement
+	if (mPlayers.size() > 0) {
+		auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
+		bool prevCommitStatus = Database::SetAutoCommit(false);
+		for (auto player : mPlayers) {
+			if (player.second) {
+				insertLog->setInt(1, player.second->playerID);
+				insertLog->setInt(2, static_cast<uint32_t>(ActivityLogDefine::PLAYER_LEFT_WORLD));
+				insertLog->setUInt64(3, time(nullptr));
+				insertLog->setInt(4, player.second->zoneID.GetMapID());
 
-PlayerContainer::~PlayerContainer() {
-	mPlayers.clear();
+				// This adds the prepared statement to a batch to all be executed in one go rather than 1 at a time.  
+				insertLog->addBatch();
+				delete player.second;
+			}
+		}
+		try {
+			// Actually execute the batch of statements.  If none were created due to container being empty nothing will happen.
+			insertLog->executeBatch();
+		} catch (sql::SQLException& e) {
+			Game::logger->Log("PlayerContainer", "Error inserting into Activity log.  Caught sql exception %s\n", e.what());
+		}
+		// Commit the changes and revert auto commit to what it was.
+		Database::Commit();
+		Database::SetAutoCommit(prevCommitStatus);
+		mPlayers.clear();
+	}
+
+	if (mTeams.size() > 0) {
+		for (auto team : mTeams) {
+			if (team) delete team;
+		}
+		mTeams.clear();
+	}	
 }
 
 void PlayerContainer::InsertPlayer(Packet* packet) {
@@ -43,7 +74,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
 	insertLog->setInt(1, data->playerID);
-	insertLog->setInt(2, 0);
+	insertLog->setInt(2, static_cast<uint32_t>(ActivityLogDefine::PLAYER_ENTERED_WORLD));
 	insertLog->setUInt64(3, time(nullptr));
 	insertLog->setInt(4, data->zoneID.GetMapID());
 
@@ -90,7 +121,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
 	insertLog->setInt(1, playerID);
-	insertLog->setInt(2, 1);
+	insertLog->setInt(2, static_cast<uint32_t>(ActivityLogDefine::PLAYER_LEFT_WORLD));
 	insertLog->setUInt64(3, time(nullptr));
 	insertLog->setInt(4, player->zoneID.GetMapID());
 
