@@ -1110,7 +1110,4 @@ namespace GameMessages {
 	};
 };
 
-
-	
-
 #endif // GAMEMESSAGES_H
