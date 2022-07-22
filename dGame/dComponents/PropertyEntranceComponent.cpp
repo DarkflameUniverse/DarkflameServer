@@ -40,8 +40,6 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 	args.InsertValue("state", state);
 
 	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
-
-	delete state;
 }
 
 void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, bool returnToZone, const SystemAddress& sysAddr)

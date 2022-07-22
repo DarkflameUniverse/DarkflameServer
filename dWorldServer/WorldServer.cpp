@@ -577,11 +577,6 @@ void HandlePacketChat(Packet* packet) {
 
 				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
 
-				delete titleValue;
-				delete messageValue;
-				titleValue = nullptr;
-				messageValue = nullptr;
-
 				break;
 			}
 
