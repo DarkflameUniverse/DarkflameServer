@@ -9,7 +9,7 @@
 #include "dMessageIdentifiers.h"
 #include "PacketUtils.h"
 #include "Database.h"
-#include "ActivityLogDefine.h"
+#include "eActivityLogDefine.h"
 
 void PlayerContainer::ClearContainer() {
 	// Create the base statement
@@ -19,7 +19,7 @@ void PlayerContainer::ClearContainer() {
 		for (auto player : mPlayers) {
 			if (player.second) {
 				insertLog->setInt(1, player.second->playerID);
-				insertLog->setInt(2, static_cast<uint32_t>(ActivityLogDefine::PLAYER_LEFT_WORLD));
+				insertLog->setInt(2, static_cast<uint32_t>(eActivityLogDefine::PLAYER_LEFT_WORLD));
 				insertLog->setUInt64(3, time(nullptr));
 				insertLog->setInt(4, player.second->zoneID.GetMapID());
 
@@ -74,7 +74,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
 	insertLog->setInt(1, data->playerID);
-	insertLog->setInt(2, static_cast<uint32_t>(ActivityLogDefine::PLAYER_ENTERED_WORLD));
+	insertLog->setInt(2, static_cast<uint32_t>(eActivityLogDefine::PLAYER_ENTERED_WORLD));
 	insertLog->setUInt64(3, time(nullptr));
 	insertLog->setInt(4, data->zoneID.GetMapID());
 
@@ -121,7 +121,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
 	insertLog->setInt(1, playerID);
-	insertLog->setInt(2, static_cast<uint32_t>(ActivityLogDefine::PLAYER_LEFT_WORLD));
+	insertLog->setInt(2, static_cast<uint32_t>(eActivityLogDefine::PLAYER_LEFT_WORLD));
 	insertLog->setUInt64(3, time(nullptr));
 	insertLog->setInt(4, player->zoneID.GetMapID());
 
