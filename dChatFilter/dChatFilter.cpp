@@ -32,8 +32,8 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 		ExportWordlistToDCF(filepath + ".dcf", true);
 	}
 
-	if (BinaryIO::DoesFileExist("blacklist.dcf")) {
-		ReadWordlistDCF("blacklist.dcf", false);
+	if (BinaryIO::DoesFileExist("blacklist_en_us.txt")) {
+		ReadWordlistPlaintext("blacklist_en_us.txt", false);
 	}
 
 	//Read player names that are ok as well:
@@ -146,7 +146,6 @@ std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::
 		}
 
 		if (std::find(m_DeniedWords.begin(), m_DeniedWords.end(), hash) != m_DeniedWords.end() && !whiteList) {
-			Game::logger->Log("ChatFilter", "Found blacklisted word\n");
 			m_UserUnapprovedWordCache.push_back(hash);
 			listOfBadSegments.emplace_back(position, originalSegment.length());
 		}
