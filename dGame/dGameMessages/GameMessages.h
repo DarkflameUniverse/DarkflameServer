@@ -24,7 +24,7 @@ namespace GameMessages {
 	class PropertyDataMessage;
 	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
 	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false, bool noGravTeleport = true);
-    void SendPlayAnimation(Entity* entity, const std::u16string& animationName, float fPriority = 0.0f, float fScale = 1.0f);
+	void SendPlayAnimation(Entity* entity, const std::u16string& animationName, float fPriority = 0.0f, float fScale = 1.0f);
 	void SendPlayerReady(Entity * entity, const SystemAddress& sysAddr);
 	void SendPlayerAllowedRespawn(LWOOBJID entityID, bool doNotPromptRespawn, const SystemAddress& systemAddress);
 	void SendInvalidZoneTransferList(Entity * entity, const SystemAddress& sysAddr, const std::u16string& feedbackURL, const std::u16string& invalidMapTransferList, bool feedbackOnExit, bool feedbackOnInvalidTransfer);
@@ -47,27 +47,27 @@ namespace GameMessages {
 	);
 
 	void SendPlayerSetCameraCyclingMode(const LWOOBJID& objectID, const SystemAddress& sysAddr,
-                                     bool bAllowCyclingWhileDeadOnly = true, eCyclingMode cyclingMode = ALLOW_CYCLE_TEAMMATES);
+									 bool bAllowCyclingWhileDeadOnly = true, eCyclingMode cyclingMode = ALLOW_CYCLE_TEAMMATES);
 
 	void SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& sysAddr, std::string audioGUID);
 
 	void SendStartPathing(Entity* entity);
 	void SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint = false,
-                         int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1,
-                         MovementPlatformState movementState = MovementPlatformState::Moving);
-    	
+						 int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1,
+						 MovementPlatformState movementState = MovementPlatformState::Moving);
+		
 	void SendRestoreToPostLoadStats(Entity * entity, const SystemAddress& sysAddr);
 	void SendServerDoneLoadingAllObjects(Entity * entity, const SystemAddress& sysAddr);
-    void SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level);
-    void SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level);
-    
+	void SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level);
+	void SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level);
+	
 	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
-    void SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFlagID, bool bFlag, const SystemAddress& sysAddr);
+	void SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFlagID, bool bFlag, const SystemAddress& sysAddr);
 	void SendChangeObjectWorldState(const LWOOBJID& objectID, int state, const SystemAddress& sysAddr);
 	
-    void SendOfferMission(const LWOOBJID& entity, const SystemAddress& sysAddr, int32_t missionID, const LWOOBJID& offererID);
-    void SendNotifyMission(Entity * entity, const SystemAddress& sysAddr, int missionID, int missionState, bool sendingRewards);
-    void SendNotifyMissionTask(Entity * entity, const SystemAddress& sysAddr, int missionID, int taskMask, std::vector<float> updates);
+	void SendOfferMission(const LWOOBJID& entity, const SystemAddress& sysAddr, int32_t missionID, const LWOOBJID& offererID);
+	void SendNotifyMission(Entity * entity, const SystemAddress& sysAddr, int missionID, int missionState, bool sendingRewards);
+	void SendNotifyMissionTask(Entity * entity, const SystemAddress& sysAddr, int missionID, int taskMask, std::vector<float> updates);
 	void NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards);
 
 	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
@@ -92,7 +92,7 @@ namespace GameMessages {
 	void SendSetInventorySize(Entity* entity, int invType, int size);
 	
 	void SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID);
-    void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
+	void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
 	void SendResurrect(Entity* entity);
 	void SendStop2DAmbientSound(Entity* entity, bool force, std::string audioGUID, bool result = false);
 	void SendPlay2DAmbientSound(Entity* entity, std::string audioGUID, bool result = false);
@@ -157,15 +157,15 @@ namespace GameMessages {
 
 	// Rails stuff
 	void SendSetRailMovement(const LWOOBJID& objectID, bool pathGoForward, std::u16string pathName, uint32_t pathStart,
-                             const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
-                             int32_t railActivatorComponentID = -1, LWOOBJID railActivatorObjectID = LWOOBJID_EMPTY);
+							 const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
+							 int32_t railActivatorComponentID = -1, LWOOBJID railActivatorObjectID = LWOOBJID_EMPTY);
 
 	void SendStartRailMovement(const LWOOBJID& objectID, std::u16string pathName, std::u16string startSound,
-                               std::u16string loopSound, std::u16string stopSound, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
-                               uint32_t pathStart = 0, bool goForward = true, bool damageImmune = true, bool noAggro = true,
-                               bool notifyActor = false, bool showNameBillboard = true, bool cameraLocked = true,
-                               bool collisionEnabled = true, bool useDB = true, int32_t railComponentID = -1,
-                               LWOOBJID railActivatorObjectID = LWOOBJID_EMPTY);
+							   std::u16string loopSound, std::u16string stopSound, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
+							   uint32_t pathStart = 0, bool goForward = true, bool damageImmune = true, bool noAggro = true,
+							   bool notifyActor = false, bool showNameBillboard = true, bool cameraLocked = true,
+							   bool collisionEnabled = true, bool useDB = true, int32_t railComponentID = -1,
+							   LWOOBJID railActivatorObjectID = LWOOBJID_EMPTY);
 
 	void HandleClientRailMovementReady(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleCancelRailMovement(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
@@ -180,9 +180,9 @@ namespace GameMessages {
 	void SendBBBSaveResponse(const LWOOBJID& objectId, const LWOOBJID& localID, unsigned char* buffer, uint32_t bufferSize, const SystemAddress& sysAddr);
 
 	void SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
-                  bool addImmunity = false, bool cancelOnDamaged = false, bool cancelOnDeath = true,
-                  bool cancelOnLogout = false, bool cancelOnRemoveBuff = true, bool cancelOnUi =  false,
-                  bool cancelOnUnequip = false, bool cancelOnZone = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+				  bool addImmunity = false, bool cancelOnDamaged = false, bool cancelOnDeath = true,
+				  bool cancelOnLogout = false, bool cancelOnRemoveBuff = true, bool cancelOnUi =  false,
+				  bool cancelOnUnequip = false, bool cancelOnZone = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 
 	void SendToggleGMInvis(LWOOBJID objectId, bool enabled, const SystemAddress& sysAddr);
 
@@ -252,7 +252,7 @@ namespace GameMessages {
 		bool lockPlayer = true, bool result = false, bool skipIfSamePath = false, float startTimeAdvance = 0);
 
 	void SendEndCinematic(LWOOBJID objectID, std::u16string pathName, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
-                       float leadOut = -1.0f, bool leavePlayerLocked = false);
+					   float leadOut = -1.0f, bool leavePlayerLocked = false);
 	void HandleCinematicUpdate(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendSetStunned(LWOOBJID objectId, eStunState stateChangeType, const SystemAddress& sysAddr,
@@ -389,6 +389,38 @@ namespace GameMessages {
 	 */
 	void HandleAcknowledgePossession(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
+	/**
+	 * @brief A request from a client to get the hot properties that would appear on the news feed
+	 * This incoming message has NO DATA and is simply a request that expects to send a reply to the sender.
+	 * 
+	 * @param inStream packet of data
+	 * @param entity The Entity that sent the request
+	 * @param sysAddr The SystemAddress of the Entity that sent the request
+	 */
+	void HandleGetHotPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
+	/**
+	 * @brief A request from a client to get the hot properties that would appear on the news feed
+	 * The struct of data to send is as follows
+	 * 
+	 * [u32] - Number of properties
+	 *     [objid] - property id
+	 *     [objid] - property owner id
+	 *     [wstring] - property owner name
+	 *     [u64] - total reputation
+	 *     [i32] - property template id
+	 *     [wstring] - property name
+	 *     [wstring] - property description
+	 *     [float] - performance cost
+	 *     [timestamp] - time last published
+	 *     [cloneid] - clone id
+	 * 
+	 * @param inStream packet of data
+	 * @param entity The Entity that sent the request
+	 * @param sysAddr The SystemAddress of the Entity that sent the request
+	 */
+	void SendGetHotPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+
 	//Racing:
 	void HandleModuleAssemblyQueryData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
@@ -459,16 +491,16 @@ namespace GameMessages {
 
 	void SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr);
 
-    // Leaderboards
-    void SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard,
-                                            const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-    void HandleActivitySummaryLeaderboardData(RakNet::BitStream* instream, Entity* entity, const SystemAddress& sysAddr);
-    void SendRequestActivitySummaryLeaderboardData(const LWOOBJID& objectID, const LWOOBJID& targetID,
-                                                   const SystemAddress& sysAddr, const int32_t& gameID = 0,
-                                                   const int32_t& queryType = 1, const int32_t& resultsEnd = 10,
-                                                   const int32_t& resultsStart = 0, bool weekly = false);
-    void HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-    void HandleActivityStateChangeRequest(RakNet::BitStream* inStream, Entity* entity);
+	// Leaderboards
+	void SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard,
+											const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+	void HandleActivitySummaryLeaderboardData(RakNet::BitStream* instream, Entity* entity, const SystemAddress& sysAddr);
+	void SendRequestActivitySummaryLeaderboardData(const LWOOBJID& objectID, const LWOOBJID& targetID,
+												   const SystemAddress& sysAddr, const int32_t& gameID = 0,
+												   const int32_t& queryType = 1, const int32_t& resultsEnd = 10,
+												   const int32_t& resultsStart = 0, bool weekly = false);
+	void HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleActivityStateChangeRequest(RakNet::BitStream* inStream, Entity* entity);
 
 	void SendVehicleAddPassiveBoostAction(LWOOBJID objectId, const SystemAddress& sysAddr);
 
@@ -482,8 +514,8 @@ namespace GameMessages {
 
 	void SendShowActivityCountdown(LWOOBJID objectId, bool bPlayAdditionalSound, bool bPlayCountdownSound, std::u16string sndName, int32_t stateToPlaySoundOn, const SystemAddress& sysAddr);
 
-    //Handlers:
-    
+	//Handlers:
+	
 	void HandleToggleGhostReferenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSetGhostReferencePosition(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
@@ -491,19 +523,19 @@ namespace GameMessages {
 	void HandleSellToVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleParseChatMessage(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-    void HandleToggleGhostReffrenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-    void HandleSetGhostReffrenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-    void HandleFireEventServerSide(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-    void HandleRequestPlatformResync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleToggleGhostReffrenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleSetGhostReffrenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleFireEventServerSide(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRequestPlatformResync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleRebuildCancel(RakNet::BitStream* inStream, Entity* entity);
-    void HandleRequestUse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-    void HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity);
+	void HandleRequestUse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity);
 	void HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-    void HandleSetFlag(RakNet::BitStream* inStream, Entity* entity);
-    void HandleRespondToMission(RakNet::BitStream* inStream, Entity* entity);
-    void HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* entity);
-    void HandleRequestLinkedMission(RakNet::BitStream* inStream, Entity* entity);
-    void HandleHasBeenCollected(RakNet::BitStream* inStream, Entity* entity);
+	void HandleSetFlag(RakNet::BitStream* inStream, Entity* entity);
+	void HandleRespondToMission(RakNet::BitStream* inStream, Entity* entity);
+	void HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* entity);
+	void HandleRequestLinkedMission(RakNet::BitStream* inStream, Entity* entity);
+	void HandleHasBeenCollected(RakNet::BitStream* inStream, Entity* entity);
 	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream* inStream, Entity* entity);
 	void HandlePickupCurrency(RakNet::BitStream* inStream, Entity* entity);
 	void HandleRequestDie(RakNet::BitStream* inStream, Entity* entity);
@@ -537,7 +569,7 @@ namespace GameMessages {
 		class EchoSyncSkill {
 			static const GAME_MSG MsgID = GAME_MSG_ECHO_SYNC_SKILL;
 
-    		public:
+			public:
 				EchoSyncSkill() {
 					bDone = false;
 				}
@@ -598,7 +630,7 @@ namespace GameMessages {
 		class SyncSkill {
 			static const GAME_MSG MsgID = GAME_MSG_SYNC_SKILL;
 
-    		public:
+			public:
 				SyncSkill() {
 					bDone = false;
 				}
@@ -659,7 +691,7 @@ namespace GameMessages {
 		class RequestServerProjectileImpact {
 			static const GAME_MSG MsgID = GAME_MSG_REQUEST_SERVER_PROJECTILE_IMPACT;
 
-    		public:
+			public:
 				RequestServerProjectileImpact() {
 					i64LocalID = LWOOBJID_EMPTY;
 					i64TargetID = LWOOBJID_EMPTY;
@@ -728,7 +760,7 @@ namespace GameMessages {
 		class DoClientProjectileImpact {
 			static const GAME_MSG MsgID = GAME_MSG_DO_CLIENT_PROJECTILE_IMPACT;
 
-    		public:
+			public:
 				DoClientProjectileImpact() {
 					i64OrgID = LWOOBJID_EMPTY;
 					i64OwnerID = LWOOBJID_EMPTY;
@@ -1077,8 +1109,5 @@ namespace GameMessages {
 			unsigned int uiSkillHandle = 0;
 	};
 };
-
-
-	
 
 #endif // GAMEMESSAGES_H
