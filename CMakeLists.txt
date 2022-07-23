@@ -220,8 +220,6 @@ if (UNIX)
 	endif()
 endif()
 
-add_subdirectory(tests)
-
 # Include all of our binary directories
 add_subdirectory(dWorldServer)
 add_subdirectory(dAuthServer)
@@ -254,3 +252,6 @@ target_precompile_headers(
 	tinyxml2 PRIVATE
 	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
 )
+if (${__enable_testing__})
+    add_subdirectory(tests)
+endif()

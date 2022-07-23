@@ -1,14 +1,10 @@
 #include "LDFFormat.h"
-#include "CommonCxxTests.h"
+#include <gtest/gtest.h>
 
 /**
  * @brief Test parsing an LDF value
- * 
- * @param argc Number of command line arguments for this test
- * @param argv Command line arguments
- * @return 0 on success, non-zero on failure
  */
-int TestLDFFormat(int argc, char* *const argv) {
+TEST(CommonCxxTests, LDFTest){
 	// Create
 	auto* data = LDFBaseData::DataFromString("KEY=0:VALUE");
 	
@@ -26,6 +22,4 @@ int TestLDFFormat(int argc, char* *const argv) {
 
 	// Cleanup the object
 	delete data;
-
-	return 0;
 }
