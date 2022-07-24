@@ -92,9 +92,11 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	
     # Make sure to move required DLLs to the actual directory where the binaries will be!
     # For CMAKE_BUILD_TYPES this is not the binary dir.
+
     set(OUTPUT_DIR ${PROJECT_BINARY_DIR})
-	if(EXISTS ${CMAKE_BUILD_TYPE})
-		set(OUTPUT_DIR ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+	if(DEFINED CACHE{CMAKE_BUILD_TYPE})
+		file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
+		set(OUTPUT_DIR ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
 	endif()
 
 	add_custom_target(mariadb_connector_cpp)
