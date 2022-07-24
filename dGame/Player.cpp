@@ -26,7 +26,7 @@ Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Enti
 	m_SystemAddress = m_ParentUser->GetSystemAddress();
 	m_DroppedLoot = {};
 	m_DroppedCoins = 0;
-	
+
 	m_GhostReferencePoint = NiPoint3::ZERO;
 	m_GhostOverridePoint = NiPoint3::ZERO;
 	m_GhostOverride = false;
@@ -121,7 +121,7 @@ void Player::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId)
 	});
 }
 
-void Player::AddLimboConstruction(LWOOBJID objectId) 
+void Player::AddLimboConstruction(LWOOBJID objectId)
 {
 	const auto& iter = std::find(m_LimboConstructions.begin(), m_LimboConstructions.end(), objectId);
 
@@ -133,7 +133,7 @@ void Player::AddLimboConstruction(LWOOBJID objectId)
 	m_LimboConstructions.push_back(objectId);
 }
 
-void Player::RemoveLimboConstruction(LWOOBJID objectId) 
+void Player::RemoveLimboConstruction(LWOOBJID objectId)
 {
 	const auto& iter = std::find(m_LimboConstructions.begin(), m_LimboConstructions.end(), objectId);
 
@@ -158,7 +158,7 @@ void Player::ConstructLimboEntities()
 
 		EntityManager::Instance()->ConstructEntity(entity, m_SystemAddress);
 	}
-	
+
 	m_LimboConstructions.clear();
 }
 
@@ -177,12 +177,12 @@ const NiPoint3& Player::GetOriginGhostReferencePoint() const
 	return m_GhostReferencePoint;
 }
 
-void Player::SetGhostReferencePoint(const NiPoint3& value) 
+void Player::SetGhostReferencePoint(const NiPoint3& value)
 {
 	m_GhostReferencePoint = value;
 }
 
-void Player::SetGhostOverridePoint(const NiPoint3& value) 
+void Player::SetGhostOverridePoint(const NiPoint3& value)
 {
 	m_GhostOverridePoint = value;
 }
@@ -192,7 +192,7 @@ const NiPoint3& Player::GetGhostOverridePoint() const
 	return m_GhostOverridePoint;
 }
 
-void Player::SetGhostOverride(bool value) 
+void Player::SetGhostOverride(bool value)
 {
 	m_GhostOverride = value;
 }
@@ -202,7 +202,7 @@ bool Player::GetGhostOverride() const
 	return m_GhostOverride;
 }
 
-void Player::ObserveEntity(int32_t id) 
+void Player::ObserveEntity(int32_t id)
 {
 	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++)
 	{
@@ -226,7 +226,7 @@ void Player::ObserveEntity(int32_t id)
 	m_ObservedEntities[index] = id;
 }
 
-bool Player::IsObserved(int32_t id) 
+bool Player::IsObserved(int32_t id)
 {
 	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++)
 	{
@@ -239,7 +239,7 @@ bool Player::IsObserved(int32_t id)
 	return false;
 }
 
-void Player::GhostEntity(int32_t id) 
+void Player::GhostEntity(int32_t id)
 {
 	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++)
 	{
@@ -257,7 +257,7 @@ Player* Player::GetPlayer(const SystemAddress& sysAddr)
 	return static_cast<Player*>(entity);
 }
 
-Player* Player::GetPlayer(const std::string& name) 
+Player* Player::GetPlayer(const std::string& name)
 {
 	const auto characters = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CHARACTER);
 
@@ -274,7 +274,7 @@ Player* Player::GetPlayer(const std::string& name)
 	return nullptr;
 }
 
-Player* Player::GetPlayer(LWOOBJID playerID) 
+Player* Player::GetPlayer(LWOOBJID playerID)
 {
 	for (auto* player : m_Players)
 	{
@@ -283,11 +283,11 @@ Player* Player::GetPlayer(LWOOBJID playerID)
 			return player;
 		}
 	}
-	
+
 	return nullptr;
 }
 
-const std::vector<Player*>& Player::GetAllPlayers() 
+const std::vector<Player*>& Player::GetAllPlayers()
 {
 	return m_Players;
 }
@@ -302,7 +302,7 @@ void Player::SetDroppedCoins(uint64_t value) {
 
 Player::~Player()
 {
-	Game::logger->Log("Player", "Deleted player\n");
+	Game::logger->Log("Player", "Deleted player");
 
 	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++)
 	{

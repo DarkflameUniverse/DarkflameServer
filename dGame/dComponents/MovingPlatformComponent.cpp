@@ -20,12 +20,12 @@ MoverSubComponent::MoverSubComponent(const NiPoint3& startPos) {
     mDesiredWaypointIndex = 0; // -1;
     mInReverse = false;
     mShouldStopAtDesiredWaypoint = false;
-    
+
     mPercentBetweenPoints = 0.0f;
-    
+
     mCurrentWaypointIndex = 0;
     mNextWaypointIndex = 0; //mCurrentWaypointIndex + 1;
-    
+
     mIdleTimeElapsed = 0.0f;
 }
 
@@ -38,16 +38,16 @@ void MoverSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIniti
     outBitStream->Write<int32_t>(mDesiredWaypointIndex);
     outBitStream->Write(mShouldStopAtDesiredWaypoint);
     outBitStream->Write(mInReverse);
-    
+
     outBitStream->Write<float_t>(mPercentBetweenPoints);
 
     outBitStream->Write<float_t>(mPosition.x);
     outBitStream->Write<float_t>(mPosition.y);
     outBitStream->Write<float_t>(mPosition.z);
-    
+
     outBitStream->Write<uint32_t>(mCurrentWaypointIndex);
     outBitStream->Write<uint32_t>(mNextWaypointIndex);
-    
+
     outBitStream->Write<float_t>(mIdleTimeElapsed);
     outBitStream->Write<float_t>(0.0f); // Move time elapsed
 }
@@ -62,7 +62,7 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::stri
     m_NoAutoStart = false;
 
     if (m_Path == nullptr) {
-        Game::logger->Log("MovingPlatformComponent", "Path not found: %s\n", pathName.c_str());
+        Game::logger->Log("MovingPlatformComponent", "Path not found: %s", pathName.c_str());
     }
 }
 
@@ -72,7 +72,7 @@ MovingPlatformComponent::~MovingPlatformComponent() {
 
 void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
     // Here we don't serialize the moving platform to let the client simulate the movement
-    
+
     if (!m_Serialize)
     {
         outBitStream->Write<bool>(false);
@@ -89,7 +89,7 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
     if (hasPath) {
         // Is on rail
         outBitStream->Write1();
-    
+
         outBitStream->Write(static_cast<uint16_t>(m_PathName.size()));
         for (const auto& c : m_PathName) {
             outBitStream->Write(static_cast<uint16_t>(c));
@@ -128,7 +128,7 @@ void MovingPlatformComponent::OnCompleteRebuild() {
     StartPathing();
 }
 
-void MovingPlatformComponent::SetMovementState(MovementPlatformState value) 
+void MovingPlatformComponent::SetMovementState(MovementPlatformState value)
 {
     auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
 
@@ -137,10 +137,10 @@ void MovingPlatformComponent::SetMovementState(MovementPlatformState value)
     EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
-void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint) 
+void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint)
 {
     auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-    
+
     subComponent->mDesiredWaypointIndex = index;
     subComponent->mNextWaypointIndex = index;
     subComponent->mShouldStopAtDesiredWaypoint = stopAtWaypoint;
@@ -148,13 +148,13 @@ void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint)
     StartPathing();
 }
 
-void MovingPlatformComponent::StartPathing() 
+void MovingPlatformComponent::StartPathing()
 {
 	//GameMessages::SendStartPathing(m_Parent);
     m_PathingStopped = false;
-    
+
     auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-    
+
     subComponent->mShouldStopAtDesiredWaypoint = true;
     subComponent->mState = MovementPlatformState::Stationary;
 
@@ -206,7 +206,7 @@ void MovingPlatformComponent::StartPathing()
 void MovingPlatformComponent::ContinuePathing()
 {
     auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-    
+
     subComponent->mState = MovementPlatformState::Stationary;
 
     subComponent->mCurrentWaypointIndex = subComponent->mNextWaypointIndex;
@@ -258,7 +258,7 @@ void MovingPlatformComponent::ContinuePathing()
         case PathBehavior::Once:
             EntityManager::Instance()->SerializeEntity(m_Parent);
             return;
-        
+
         case PathBehavior::Bounce:
             subComponent->mInReverse = true;
             break;
@@ -266,7 +266,7 @@ void MovingPlatformComponent::ContinuePathing()
         case PathBehavior::Loop:
             subComponent->mNextWaypointIndex = 0;
             break;
-            
+
         default:
             break;
         }
@@ -347,7 +347,7 @@ void MovingPlatformComponent::StopPathing()
     //GameMessages::SendPlatformResync(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
 }
 
-void MovingPlatformComponent::SetSerialized(bool value) 
+void MovingPlatformComponent::SetSerialized(bool value)
 {
     m_Serialize = value;
 }
@@ -357,7 +357,7 @@ bool MovingPlatformComponent::GetNoAutoStart() const
     return m_NoAutoStart;
 }
 
-void MovingPlatformComponent::SetNoAutoStart(const bool value) 
+void MovingPlatformComponent::SetNoAutoStart(const bool value)
 {
     m_NoAutoStart = value;
 }

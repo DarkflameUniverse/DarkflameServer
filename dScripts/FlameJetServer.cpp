@@ -2,7 +2,7 @@
 #include "SkillComponent.h"
 #include "GameMessages.h"
 
-void FlameJetServer::OnStartup(Entity* self) 
+void FlameJetServer::OnStartup(Entity* self)
 {
     if (self->GetVar<bool>(u"NotActive"))
     {
@@ -12,7 +12,7 @@ void FlameJetServer::OnStartup(Entity* self)
     self->SetNetworkVar<bool>(u"FlameOn", true);
 }
 
-void FlameJetServer::OnCollisionPhantom(Entity* self, Entity* target) 
+void FlameJetServer::OnCollisionPhantom(Entity* self, Entity* target)
 {
     if (!target->IsPlayer())
     {
@@ -42,9 +42,9 @@ void FlameJetServer::OnCollisionPhantom(Entity* self, Entity* target)
     GameMessages::SendKnockback(target->GetObjectID(), self->GetObjectID(), self->GetObjectID(), 1000, dir);
 }
 
-void FlameJetServer::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1, int32_t param2, int32_t param3) 
+void FlameJetServer::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1, int32_t param2, int32_t param3)
 {
-    Game::logger->Log("FlameJetServer::OnFireEventServerSide", "Event: %s\n", args.c_str());
+    Game::logger->Log("FlameJetServer::OnFireEventServerSide", "Event: %s", args.c_str());
 
     if (args == "OnActivated")
     {

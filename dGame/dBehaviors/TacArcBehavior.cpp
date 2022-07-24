@@ -27,7 +27,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 	if (this->m_checkEnv)
 	{
 		bool blocked = false;
-		
+
 		bitStream->Read(blocked);
 
 		if (blocked)
@@ -63,7 +63,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		for (auto target : targets)
 		{
 			branch.target = target;
-			
+
 			this->m_action->Handle(context, bitStream, branch);
 		}
 	}
@@ -77,7 +77,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 {
     auto* self = EntityManager::Instance()->GetEntity(context->originator);
     if (self == nullptr) {
-        Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!\n", context->originator);
+        Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!", context->originator);
         return;
     }
 
@@ -102,7 +102,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
     }
 
 	auto* combatAi = self->GetComponent<BaseCombatAIComponent>();
-	
+
 	const auto casterPosition = self->GetPosition();
 
 	auto reference = self->GetPosition(); //+ m_offset;
@@ -144,7 +144,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 
 		if (entity == nullptr)
 		{
-			Game::logger->Log("TacArcBehavior", "Invalid target (%llu) for (%llu)!\n", validTarget, context->originator);
+			Game::logger->Log("TacArcBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);
 
 			continue;
 		}
@@ -171,7 +171,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		// otherPosition is the position of the target.
 		// reference is the position of the caster.
 		// If we cast a ray forward from the caster, does it come within m_farWidth of the target?
-		
+
 		const auto distance = Vector3::Distance(reference, otherPosition);
 
 		if (m_method == 2)
@@ -185,7 +185,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		}
 
 		auto normalized = (reference - otherPosition) / distance;
-		
+
 		const float degreeAngle = std::abs(Vector3::Angle(forward, normalized) * (180 / 3.14) - 180);
 
 		if (distance >= this->m_minDistance && this->m_maxDistance >= distance && degreeAngle <= 2 * this->m_angle)
@@ -221,7 +221,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		}
 
 		context->foundTarget = true; // We want to continue with this behavior
-		
+
 		const auto count = static_cast<uint32_t>(targets.size());
 
 		bitStream->Write(count);

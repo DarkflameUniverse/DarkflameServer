@@ -4,7 +4,7 @@
 #include "dLogger.h"
 #include "Entity.h"
 
-void BaseRandomServer::BaseStartup(Entity* self) 
+void BaseRandomServer::BaseStartup(Entity* self)
 {
     self->SetVar<std::string>(u"SpawnState", "min");
     self->SetVar<bool>(u"JustChanged", false);
@@ -13,12 +13,12 @@ void BaseRandomServer::BaseStartup(Entity* self)
     SpawnMapZones(self);
 }
 
-void BaseRandomServer::CheckEvents(Entity* self) 
+void BaseRandomServer::CheckEvents(Entity* self)
 {
     // TODO: Add events?
 }
 
-void BaseRandomServer::SpawnMapZones(Entity* self) 
+void BaseRandomServer::SpawnMapZones(Entity* self)
 {
     for (const auto& pair : sectionMultipliers)
     {
@@ -35,13 +35,13 @@ void BaseRandomServer::SpawnMapZones(Entity* self)
     self->SetVar(u"bInit", true);
 }
 
-void BaseRandomServer::SpawnSection(Entity* self, const std::string& sectionName, float iMultiplier) 
+void BaseRandomServer::SpawnSection(Entity* self, const std::string& sectionName, float iMultiplier)
 {
     Zone* spawnLoad = GetRandomLoad(self, sectionName);
 
     if (spawnLoad == nullptr)
     {
-        Game::logger->Log("BaseRandomServer", "Failed to find section: %s\n", sectionName.c_str());
+        Game::logger->Log("BaseRandomServer", "Failed to find section: %s", sectionName.c_str());
 
         return;
     }
@@ -60,7 +60,7 @@ void BaseRandomServer::SpawnSection(Entity* self, const std::string& sectionName
     }
 }
 
-void BaseRandomServer::SetSpawnerNetwork(Entity* self, const std::string& spawnerName, int32_t spawnNum, LOT spawnLOT) 
+void BaseRandomServer::SetSpawnerNetwork(Entity* self, const std::string& spawnerName, int32_t spawnNum, LOT spawnLOT)
 {
     const auto& spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
 
@@ -71,7 +71,7 @@ void BaseRandomServer::SetSpawnerNetwork(Entity* self, const std::string& spawne
 
     if (spawners.empty())
     {
-        Game::logger->Log("BaseRandomServer", "Failed to find spawner: %s\n", spawnerName.c_str());
+        Game::logger->Log("BaseRandomServer", "Failed to find spawner: %s", spawnerName.c_str());
 
         return;
     }
@@ -108,7 +108,7 @@ void BaseRandomServer::SetSpawnerNetwork(Entity* self, const std::string& spawne
     spawnersWatched.push_back(spawner);
 }
 
-BaseRandomServer::Zone* BaseRandomServer::GetRandomLoad(Entity* self, const std::string& sectionName) 
+BaseRandomServer::Zone* BaseRandomServer::GetRandomLoad(Entity* self, const std::string& sectionName)
 {
     const auto zoneInfo = GeneralUtils::SplitString(sectionName, '_');
 
@@ -135,7 +135,7 @@ BaseRandomServer::Zone* BaseRandomServer::GetRandomLoad(Entity* self, const std:
     return nullptr;
 }
 
-void BaseRandomServer::NotifySpawnerOfDeath(Entity* self, Spawner* spawner) 
+void BaseRandomServer::NotifySpawnerOfDeath(Entity* self, Spawner* spawner)
 {
     const auto& spawnerName = spawner->GetName();
 
@@ -164,29 +164,29 @@ void BaseRandomServer::NotifySpawnerOfDeath(Entity* self, Spawner* spawner)
     self->SetVar(variableName, mobDeathCount);
 }
 
-void BaseRandomServer::NamedEnemyDeath(Entity* self, Spawner* spawner) 
+void BaseRandomServer::NamedEnemyDeath(Entity* self, Spawner* spawner)
 {
     const auto spawnDelay = GeneralUtils::GenerateRandomNumber<float>(1, 2) * 450;
 
     self->AddTimer("SpawnNewEnemy", spawnDelay);
 }
 
-void BaseRandomServer::SpawnersUp(Entity* self) 
+void BaseRandomServer::SpawnersUp(Entity* self)
 {
 
 }
 
-void BaseRandomServer::SpawnersDown(Entity* self) 
+void BaseRandomServer::SpawnersDown(Entity* self)
 {
 
 }
 
-void BaseRandomServer::BaseOnTimerDone(Entity* self, const std::string& timerName) 
+void BaseRandomServer::BaseOnTimerDone(Entity* self, const std::string& timerName)
 {
     NamedTimerDone(self, timerName);
 }
 
-void BaseRandomServer::SpawnNamedEnemy(Entity* self) 
+void BaseRandomServer::SpawnNamedEnemy(Entity* self)
 {
     const auto enemy = namedMobs[GeneralUtils::GenerateRandomNumber<int32_t>(0, namedMobs.size() - 1)];
 

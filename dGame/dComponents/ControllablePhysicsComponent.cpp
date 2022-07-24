@@ -36,7 +36,7 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 		return;
 
 	if (entity->GetLOT() == 1) {
-		Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics\n");
+		Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics");
 
 		float radius = 1.5f;
 		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), radius, false);
@@ -133,10 +133,10 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 void ControllablePhysicsComponent::LoadFromXML(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag!\n");
+		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag!");
 		return;
 	}
-	
+
 	m_Parent->GetCharacter()->LoadXmlRespawnCheckpoints();
 
 	character->QueryAttribute("lzx", &m_Position.x);
@@ -159,7 +159,7 @@ void ControllablePhysicsComponent::ResetFlags() {
 void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag while updating XML!\n");
+		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag while updating XML!");
 		return;
 	}
 
@@ -254,7 +254,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 	if (pos != m_ActivePickupRadiusScales.end()) {
 		m_ActivePickupRadiusScales.erase(pos);
 	} else {
-		Game::logger->Log("ControllablePhysicsComponent", "Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.\n", value, m_ActivePickupRadiusScales.size());
+		Game::logger->Log("ControllablePhysicsComponent", "Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.", value, m_ActivePickupRadiusScales.size());
 		return;
 	}
 

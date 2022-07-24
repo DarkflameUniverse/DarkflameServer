@@ -33,7 +33,7 @@ uint32_t BehaviorContext::GetUniqueSkillId() const
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!\n", this->originator);
+		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!", this->originator);
 
 		return 0;
 	}
@@ -42,7 +42,7 @@ uint32_t BehaviorContext::GetUniqueSkillId() const
 
 	if (component == nullptr)
 	{
-		Game::logger->Log("BehaviorContext", "No skill component attached to (%llu)!\n", this->originator);;
+		Game::logger->Log("BehaviorContext", "No skill component attached to (%llu)!", this->originator);;
 
 		return 0;
 	}
@@ -65,7 +65,7 @@ void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* beha
 void BehaviorContext::RegisterTimerBehavior(Behavior* behavior, const BehaviorBranchContext& branchContext, const LWOOBJID second)
 {
 	BehaviorTimerEntry entry;
-	
+
 	entry.time = branchContext.duration;
 	entry.behavior = behavior;
 	entry.branchContext = branchContext;
@@ -103,7 +103,7 @@ void BehaviorContext::ExecuteUpdates()
 		auto* entity = EntityManager::Instance()->GetEntity(id);
 
 		if (entity == nullptr) continue;
-		
+
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
 
@@ -111,7 +111,7 @@ void BehaviorContext::ExecuteUpdates()
 }
 
 void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bitStream)
-{	
+{
 	BehaviorSyncEntry entry;
 	auto found = false;
 
@@ -121,7 +121,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bit
 	for (auto i = 0u; i < this->syncEntries.size(); ++i)
 	{
 		const auto syncEntry = this->syncEntries.at(i);
-		
+
 		if (syncEntry.handle == syncId)
 		{
 			found = true;
@@ -135,7 +135,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bit
 
 	if (!found)
 	{
-		Game::logger->Log("BehaviorContext", "Failed to find behavior sync entry with sync id (%i)!\n", syncId);
+		Game::logger->Log("BehaviorContext", "Failed to find behavior sync entry with sync id (%i)!", syncId);
 
 		return;
 	}
@@ -145,8 +145,8 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bit
 
 	if (behavior == nullptr)
 	{
-		Game::logger->Log("BehaviorContext", "Invalid behavior for sync id (%i)!\n", syncId);
-		
+		Game::logger->Log("BehaviorContext", "Invalid behavior for sync id (%i)!", syncId);
+
 		return;
 	}
 
@@ -166,7 +166,7 @@ void BehaviorContext::Update(const float deltaTime)
 
 			this->timerEntries[i] = entry;
 		}
-		
+
 		if (entry.time > 0)
 		{
 			continue;
@@ -174,7 +174,7 @@ void BehaviorContext::Update(const float deltaTime)
 
 		entry.behavior->Timer(this, entry.branchContext, entry.second);
 	}
-	
+
 	std::vector<BehaviorTimerEntry> valid;
 
 	for (const auto& entry : this->timerEntries)
@@ -226,7 +226,7 @@ void BehaviorContext::InvokeEnd(const uint32_t id)
 bool BehaviorContext::CalculateUpdate(const float deltaTime)
 {
 	auto any = false;
-	
+
 	for (auto i = 0u; i < this->syncEntries.size(); ++i)
 	{
 		auto entry = this->syncEntries.at(i);
@@ -241,7 +241,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime)
 		if (entry.time > 0)
 		{
 			any = true;
-			
+
 			continue;
 		}
 
@@ -267,7 +267,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime)
 			PacketUtils::WriteHeader(message, CLIENT, MSG_CLIENT_GAME_MSG);
 			message.Write(this->originator);
 			echo.Serialize(&message);
-			
+
 			Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
 		}
 
@@ -293,7 +293,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime)
 	return any;
 }
 
-void BehaviorContext::Interrupt() 
+void BehaviorContext::Interrupt()
 {
 	std::vector<BehaviorSyncEntry> keptSync {};
 
@@ -303,7 +303,7 @@ void BehaviorContext::Interrupt()
 
 		keptSync.push_back(entry);
 	}
-	
+
 	this->syncEntries = keptSync;
 }
 
@@ -330,10 +330,10 @@ std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, in
 	auto* entity = EntityManager::Instance()->GetEntity(this->caster);
 
 	std::vector<LWOOBJID> targets;
-	
+
 	if (entity == nullptr)
 	{
-		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!\n", this->originator);
+		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!", this->originator);
 
 		return targets;
 	}
@@ -360,12 +360,12 @@ std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, in
 		{
 			return targets;
 		}
-		
+
 		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS);
 		for (auto* candidate : entities)
 		{
 			const auto id = candidate->GetObjectID();
-			
+
 			if ((id != entity->GetObjectID() || targetSelf) && destroyableComponent->CheckValidity(id, ignoreFaction || includeFaction, targetEnemy, targetFriend))
 			{
 				targets.push_back(id);

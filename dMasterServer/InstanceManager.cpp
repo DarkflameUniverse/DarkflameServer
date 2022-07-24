@@ -26,7 +26,7 @@ InstanceManager::~InstanceManager() {
 }
 
 Instance * InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID) {
-    mLogger->Log("InstanceManager", "Searching for an instance for mapID %i/%i\n", mapID, cloneID);
+    mLogger->Log("InstanceManager", "Searching for an instance for mapID %i/%i", mapID, cloneID);
 	Instance* instance = FindInstance(mapID, isFriendTransfer, cloneID);
 	if (instance) return instance;
 
@@ -78,10 +78,10 @@ Instance * InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, L
     m_Instances.push_back(instance);
 
     if (instance) {
-	    mLogger->Log("InstanceManager", "Created new instance: %i/%i/%i with min/max %i/%i\n", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
+	    mLogger->Log("InstanceManager", "Created new instance: %i/%i/%i with min/max %i/%i", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
 	    return instance;
     }
-    else mLogger->Log("InstanceManager", "Failed to create a new instance!\n");
+    else mLogger->Log("InstanceManager", "Failed to create a new instance!");
 
     return nullptr;
 }
@@ -92,7 +92,7 @@ bool InstanceManager::IsPortInUse(uint32_t port) {
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
@@ -102,7 +102,7 @@ uint32_t InstanceManager::GetFreePort() {
     for (Instance* i : m_Instances) {
         usedPorts.push_back(i->GetPort());
     }
-    
+
     std::sort(usedPorts.begin(), usedPorts.end());
 
     int portIdx = 0;
@@ -142,7 +142,7 @@ std::vector<Instance*> InstanceManager::GetInstances() const
 
 void InstanceManager::AddInstance(Instance* instance) {
 	if (instance == nullptr) return;
-	
+
 	m_Instances.push_back(instance);
 }
 
@@ -152,9 +152,9 @@ void InstanceManager::RemoveInstance(Instance* instance) {
 		if (m_Instances[i] == instance)
 		{
 			instance->SetShutdownComplete(true);
-			
+
 			RedirectPendingRequests(instance);
-			
+
 			delete m_Instances[i];
 
 			m_Instances.erase(m_Instances.begin() + i);
@@ -174,7 +174,7 @@ void InstanceManager::ReadyInstance(Instance* instance)
 	{
 		const auto& zoneId = instance->GetZoneID();
 
-		Game::logger->Log("InstanceManager", "Responding to pending request %llu -> %i (%i)\n", request, zoneId.GetMapID(), zoneId.GetCloneID());
+		Game::logger->Log("InstanceManager", "Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
 
 		MasterPackets::SendZoneTransferResponse(
 			Game::server,
@@ -188,7 +188,7 @@ void InstanceManager::ReadyInstance(Instance* instance)
 			instance->GetPort()
 		);
 	}
-	
+
 	pending.clear();
 }
 
@@ -201,10 +201,10 @@ void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstan
 	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_AFFIRM_TRANSFER_REQUEST);
 
 	bitStream.Write(request.id);
-	
+
 	Game::server->Send(&bitStream, instance->GetSysAddr(), false);
-	
-	Game::logger->Log("MasterServer", "Sent affirmation request %llu to %i/%i\n", request.id,
+
+	Game::logger->Log("MasterServer", "Sent affirmation request %llu to %i/%i", request.id,
 		static_cast<int>(instance->GetZoneID().GetMapID()),
 		static_cast<int>(instance->GetZoneID().GetCloneID())
 	);
@@ -217,7 +217,7 @@ void InstanceManager::AffirmTransfer(Instance* instance, const uint64_t transfer
 	for (auto i = 0u; i < pending.size(); ++i)
 	{
 		const auto& request = pending[i];
-		
+
 		if (request.id != transferID) continue;
 
 		const auto& zoneId = instance->GetZoneID();
@@ -233,7 +233,7 @@ void InstanceManager::AffirmTransfer(Instance* instance, const uint64_t transfer
 			instance->GetIP(),
 			instance->GetPort()
 		);
-		
+
 		pending.erase(pending.begin() + i);
 
 		break;
@@ -243,7 +243,7 @@ void InstanceManager::AffirmTransfer(Instance* instance, const uint64_t transfer
 void InstanceManager::RedirectPendingRequests(Instance* instance)
 {
 	const auto& zoneId = instance->GetZoneID();
-	
+
 	for (const auto& request : instance->GetPendingAffirmations())
 	{
 		auto* in = Game::im->GetInstance(zoneId.GetMapID(), false, zoneId.GetCloneID());
@@ -270,11 +270,11 @@ Instance* InstanceManager::GetInstanceBySysAddr(SystemAddress& sysAddr) {
 }
 
 bool InstanceManager::IsInstanceFull(Instance* instance, bool isFriendTransfer) {
-	if (!isFriendTransfer && instance->GetSoftCap() > instance->GetCurrentClientCount()) 
+	if (!isFriendTransfer && instance->GetSoftCap() > instance->GetCurrentClientCount())
 		return false;
-	else if (isFriendTransfer && instance->GetHardCap() > instance->GetCurrentClientCount()) 
+	else if (isFriendTransfer && instance->GetHardCap() > instance->GetCurrentClientCount())
 		return false;
-	
+
 	return true;
 }
 
@@ -308,7 +308,7 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	}
 
 	int maxPlayers = 999;
-	
+
 	uint32_t port = GetFreePort();
 	instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, maxPlayers, maxPlayers, true, password);
 
@@ -339,7 +339,7 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	m_Instances.push_back(instance);
 
 	if (instance) return instance;
-	else mLogger->Log("InstanceManager", "Failed to create a new instance!\n");
+	else mLogger->Log("InstanceManager", "Failed to create a new instance!");
 
 	return instance;
 }
@@ -355,7 +355,7 @@ Instance* InstanceManager::FindPrivateInstance(const std::string& password)
 			continue;
 		}
 
-		mLogger->Log("InstanceManager", "Password: %s == %s => %d\n", password.c_str(), instance->GetPassword().c_str(), password == instance->GetPassword());
+		mLogger->Log("InstanceManager", "Password: %s == %s => %d", password.c_str(), instance->GetPassword().c_str(), password == instance->GetPassword());
 
 		if (instance->GetPassword() == password)
 		{
@@ -375,7 +375,7 @@ int InstanceManager::GetSoftCap(LWOMAPID mapID) {
 			return zone->population_soft_cap;
 		}
 	}
-	
+
 	return 8;
 }
 
@@ -405,10 +405,10 @@ bool Instance::GetShutdownComplete() const
 void Instance::Shutdown()
 {
 	CBITSTREAM;
-	
+
 	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN);
 
 	Game::server->Send(&bitStream, this->m_SysAddr, false);
-	
-	Game::logger->Log("Instance", "Triggered world shutdown\n");
+
+	Game::logger->Log("Instance", "Triggered world shutdown");
 }

@@ -13,7 +13,7 @@ void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 
 	if (target == nullptr)
 	{
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!\n", branch.target);
+		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -31,11 +31,11 @@ void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 	}
 
 	destroyable->PushImmunity();
-	
+
 	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
 }
 
-void ImmunityBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) 
+void ImmunityBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
 {
 	Handle(context, bitStream, branch);
 }
@@ -46,7 +46,7 @@ void ImmunityBehavior::Timer(BehaviorContext* context, BehaviorBranchContext bra
 
 	if (target == nullptr)
 	{
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!\n", second);
+		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", second);
 
 		return;
 	}
