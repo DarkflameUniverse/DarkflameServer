@@ -1,10 +1,6 @@
 #include "Game.h"
 #include "dZoneManager.h"
 
-/**
- * @brief Defines the namespace Game for all tests.
- * 
- */
 namespace Game {
 	dLogger* logger;
 	dServer* server;
