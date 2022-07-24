@@ -438,7 +438,7 @@ void Entity::Initialize()
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
-		// Character Component always has a possessor and level components
+		// Character Component always has a possessor, level, and forced movement components
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 
 		// load in the xml for the level
@@ -447,6 +447,7 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_LEVEL_PROGRESSION, levelComp));
 
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT, new PlayerForcedMovementComponent(this)));
+
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
 	}
