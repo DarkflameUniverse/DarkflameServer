@@ -19,7 +19,7 @@ void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 
 }
 
-void LevelProgressionComponent::LoadFromXML(tinyxml2::XMLDocument* doc){
+void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc){
 	tinyxml2::XMLElement* level = doc->FirstChildElement("obj")->FirstChildElement("lvl");
 	if (!level) {
 		Game::logger->Log("LevelProgressionComponent", "Failed to find lvl tag while loading XML!\n");

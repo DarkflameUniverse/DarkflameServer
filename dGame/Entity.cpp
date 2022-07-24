@@ -448,7 +448,7 @@ void Entity::Initialize()
 
 		// load in the xml for the level
 		auto* levelComp = new LevelProgressionComponent(this);
-		if (m_Character) levelComp->LoadFromXML(m_Character->GetXMLDoc());
+		levelComp->LoadFromXml(m_Character->GetXMLDoc());
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_LEVEL_PROGRESSION, levelComp));
 
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
@@ -1097,10 +1097,8 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 		LevelProgressionComponent* levelProgressionComponent;
 		if (TryGetComponent(COMPONENT_TYPE_LEVEL_PROGRESSION, levelProgressionComponent)) {
-			Game::logger->Log("Entity", "writing level comp!\n");
 			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 		} else {
-			Game::logger->Log("Entity", "not writing level comp!\n");
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
 		}
