@@ -11,7 +11,6 @@
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
 #include "VehiclePhysicsComponent.h"
-#include "LevelProgressionComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
 
@@ -279,17 +278,6 @@ void CharacterComponent::LoadFromXML() {
 		}
 	}
 
-	tinyxml2::XMLElement* level = doc->FirstChildElement("obj")->FirstChildElement("lvl");
-	if (!level) {
-		Game::logger->Log("CharacterComponent", "Failed to find lvl tag while loading XML!\n");
-		return;
-	}
-	uint32_t char_level;
-	level->QueryAttribute("l", &char_level);
-	auto* levelcomp = m_Parent->GetComponent<LevelProgressionComponent>();
-	if (levelcomp) levelcomp->SetLevel(char_level);
-
-
 	if (character->FindAttribute("time")) {
 	     character->QueryUnsigned64Attribute("time", &m_TotalTimePlayed);
 	} else {
@@ -368,15 +356,6 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
     //
     // End custom attributes
     //
-
-	tinyxml2::XMLElement* level = doc->FirstChildElement("obj")->FirstChildElement("lvl");
-	if (!level) {
-		Game::logger->Log("CharacterComponent", "Failed to find lvl tag while updating XML!\n");
-		return;
-	}
-
-    auto* levelcomp = m_Parent->GetComponent<LevelProgressionComponent>();
-    if (levelcomp) level->SetAttribute("l", levelcomp->GetLevel());
 
 	auto newUpdateTimestamp = std::time(nullptr);
 	Game::logger->Log("TotalTimePlayed", "Time since last save: %d\n", newUpdateTimestamp - m_LastUpdateTimestamp);

@@ -445,7 +445,12 @@ void Entity::Initialize()
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
 		// Character Component always has a possessor and level components
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_LEVEL_PROGRESSION, new LevelProgressionComponent(this)));
+
+		// load in the xml for the level
+		auto* levelComp = new LevelProgressionComponent(this);
+		if (m_Character) levelComp->LoadFromXML(m_Character->GetXMLDoc());
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_LEVEL_PROGRESSION, levelComp));
+
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
 	}
