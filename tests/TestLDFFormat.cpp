@@ -4,7 +4,7 @@
 /**
  * @brief Test parsing an LDF value
  */
-TEST(CommonCxxTests, LDFTest){
+TEST(dCommonTests, LDFTest){
 	// Create
 	auto* data = LDFBaseData::DataFromString("KEY=0:VALUE");
 	

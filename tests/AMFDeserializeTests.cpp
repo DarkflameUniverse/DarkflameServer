@@ -5,13 +5,18 @@
 #include "AMFDeserialize.h"
 #include "AMFFormat.h"
 
-// Helper method that all tests use to get their respective AMF.
+/** 
+ * Helper method that all tests use to get their respective AMF.
+ */
 std::unique_ptr<AMFValue> ReadFromBitStream(RakNet::BitStream* bitStream) {
 	AMFDeserialize deserializer;
 	std::unique_ptr<AMFValue> returnValue(deserializer.Read(bitStream));
 	return returnValue;
 }
 
+/**
+ * @brief Test reading an AMFUndefined value from a BitStream.
+ */
 TEST(dCommonTests, AMFDeserializeAMFUndefinedTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x00);
@@ -19,6 +24,10 @@ TEST(dCommonTests, AMFDeserializeAMFUndefinedTest){
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFUndefined);
 }
 
+/**
+ * @brief Test reading an AMFNull value from a BitStream.
+ * 
+ */
 TEST(dCommonTests, AMFDeserializeAMFNullTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x01);
@@ -26,6 +35,9 @@ TEST(dCommonTests, AMFDeserializeAMFNullTest){
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFNull);
 }
 
+/**
+ * @brief Test reading an AMFFalse value from a BitStream.
+ */
 TEST(dCommonTests, AMFDeserializeAMFFalseTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x02);
@@ -33,6 +45,9 @@ TEST(dCommonTests, AMFDeserializeAMFFalseTest){
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFFalse);
 }
 
+/**
+ * @brief Test reading an AMFTrue value from a BitStream.
+ */
 TEST(dCommonTests, AMFDeserializeAMFTrueTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x03);
@@ -40,6 +55,9 @@ TEST(dCommonTests, AMFDeserializeAMFTrueTest){
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFTrue);
 }
 
+/**
+ * @brief Test reading an AMFInteger value from a BitStream.
+ */
 TEST(dCommonTests, AMFDeserializeAMFIntegerTest){
 	CBITSTREAM
 	{
@@ -88,6 +106,9 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest){
 	}
 }
 
+/**
+ * @brief Test reading an AMFDouble value from a BitStream.
+ */
 TEST(dCommonTests, AMFDeserializeAMFDoubleTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x05);
@@ -97,6 +118,9 @@ TEST(dCommonTests, AMFDeserializeAMFDoubleTest){
 	ASSERT_EQ(static_cast<AMFDoubleValue*>(res.get())->GetDoubleValue(), 25346.4f);
 }
 
+/**
+ * @brief Test reading an AMFString value from a BitStream.
+ */
 TEST(dCommonTests, AMFDeserializeAMFStringTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x06);
@@ -108,6 +132,9 @@ TEST(dCommonTests, AMFDeserializeAMFStringTest){
 	ASSERT_EQ(static_cast<AMFStringValue*>(res.get())->GetStringValue(), "stateID");
 }
 
+/**
+ * @brief Test reading an AMFArray value from a BitStream.
+ */
 TEST(dCommonTests, AMFDeserializeAMFArrayTest){
 	CBITSTREAM
 	// Test empty AMFArray
@@ -144,7 +171,7 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest){
 }
 
 /**
- * This test checks that if we recieve an unimplemented AMFValueType 
+ * @brief This test checks that if we recieve an unimplemented AMFValueType 
  * we correctly throw an error and can actch it.
  */
 TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest){
@@ -191,6 +218,9 @@ TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest){
 	}
 }
 
+/**
+ * @brief Test reading a packet capture from live from a BitStream
+ */
 TEST(dCommonTests, AMFDeserializeLivePacketTest){
 	std::ifstream testFileStream;
 	testFileStream.open("AMFBitStreamTest.bin", std::ios::binary);
@@ -308,6 +338,9 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest){
 	ASSERT_EQ(thirdDistance->GetDoubleValue(), 25.0f);
 }
 
+/**
+ * @brief Tests that having no BitStream returns a nullptr.
+ */
 TEST(dCommonTests, AMFDeserializeNullTest){
 	auto result = ReadFromBitStream(nullptr);
 	ASSERT_EQ(result.get(), nullptr);
