@@ -37,8 +37,6 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
 
-	LoadFromXML();
-
 	//Check to see if we're landing:
 	if (character->GetZoneID() != Game::server->GetZoneID()) {
 		m_IsLanding = true;
@@ -185,12 +183,7 @@ void CharacterComponent::SetGMLevel(int gmlevel) {
 	m_GMLevel = gmlevel;
 }
 
-void CharacterComponent::LoadFromXML() {
-    if (!m_Character) return;
-    
-    tinyxml2::XMLDocument* doc = m_Character->GetXMLDoc();
-    if (!doc) return;
-    
+void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
 		Game::logger->Log("CharacterComponent", "Failed to find char tag while loading XML!\n");

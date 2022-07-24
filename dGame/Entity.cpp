@@ -252,7 +252,7 @@ void Entity::Initialize()
 		ControllablePhysicsComponent* controllablePhysics = new ControllablePhysicsComponent(this);
 
 		if (m_Character) {
-			controllablePhysics->LoadFromXML(m_Character->GetXMLDoc());
+			controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
 
 			const auto mapID = Game::server->GetZoneID();
 
@@ -362,7 +362,7 @@ void Entity::Initialize()
 	if (buffComponentID > 0 || collectibleComponentID > 0) {
 		DestroyableComponent* comp = new DestroyableComponent(this);
 		if (m_Character) {
-			comp->LoadFromXML(m_Character->GetXMLDoc());
+			comp->LoadFromXml(m_Character->GetXMLDoc());
 		}
 		else {
 			if (componentID > 0) {
@@ -448,8 +448,9 @@ void Entity::Initialize()
 
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT, new PlayerForcedMovementComponent(this)));
 
-		CharacterComponent* comp = new CharacterComponent(this, m_Character);
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
+		CharacterComponent* charComp = new CharacterComponent(this, m_Character);
+		charComp->LoadFromXml(m_Character->GetXMLDoc());
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, charComp));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_INVENTORY) > 0 || m_Character) {

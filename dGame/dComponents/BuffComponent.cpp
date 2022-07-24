@@ -289,7 +289,7 @@ Entity* BuffComponent::GetParent() const
 	return m_Parent;
 }
 
-void BuffComponent::LoadFromXML(tinyxml2::XMLDocument* doc) 
+void BuffComponent::LoadFromXml(tinyxml2::XMLDocument* doc)
 {
 	// Load buffs
 	auto* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");

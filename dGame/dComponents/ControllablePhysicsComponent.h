@@ -25,7 +25,7 @@ public:
     
     void Update(float deltaTime) override;
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-    void LoadFromXML(tinyxml2::XMLDocument* doc);
+    void LoadFromXml(tinyxml2::XMLDocument* doc) override;
     void ResetFlags();
     void UpdateXml(tinyxml2::XMLDocument* doc) override;
     
