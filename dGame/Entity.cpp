@@ -29,6 +29,7 @@
 #include "BouncerComponent.h"
 #include "InventoryComponent.h"
 #include "LevelProgressionComponent.h"
+#include "PlayerForcedMovementComponent.h"
 #include "ScriptComponent.h"
 #include "SkillComponent.h"
 #include "SimplePhysicsComponent.h"
@@ -436,20 +437,16 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_DESTROYABLE, comp));
 	}
 
-	/*if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_DESTROYABLE) > 0 || m_Character) {
-		DestroyableComponent* comp = new DestroyableComponent();
-		if (m_Character) comp->LoadFromXML(m_Character->GetXMLDoc());
-		m_Components.push_back(std::make_pair(COMPONENT_TYPE_DESTROYABLE, comp));
-	}*/
-
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
-		// Character Component always has a possessor and level components
+		// Character Component always has a possessor, level, and forced movement components
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
 
 		// load in the xml for the level
 		auto* levelComp = new LevelProgressionComponent(this);
 		levelComp->LoadFromXml(m_Character->GetXMLDoc());
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_LEVEL_PROGRESSION, levelComp));
+
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT, new PlayerForcedMovementComponent(this)));
 
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
@@ -1098,6 +1095,14 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		LevelProgressionComponent* levelProgressionComponent;
 		if (TryGetComponent(COMPONENT_TYPE_LEVEL_PROGRESSION, levelProgressionComponent)) {
 			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
+		}
+
+		PlayerForcedMovementComponent* playerForcedMovementComponent;
+		if (TryGetComponent(COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT, playerForcedMovementComponent)) {
+			playerForcedMovementComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 		} else {
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
