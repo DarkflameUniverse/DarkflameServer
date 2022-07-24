@@ -2,9 +2,9 @@ message (STATUS "Testing is enabled.  Fetching gtest...")
 enable_testing()
 include(FetchContent)
 FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG release-1.12.1
+	googletest
+	GIT_REPOSITORY https://github.com/google/googletest.git
+	GIT_TAG release-1.12.1
 )
 
 # For Windows: Prevent overriding the parent project's compiler/linker settings
@@ -12,11 +12,13 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 message(STATUS "gtest fetched and is now ready.")
 # create the testing file and list of tests
-set(Tests
-	AMFDeserializeTests.cpp
-	TestNiPoint3.cpp
-	TestLDFFormat.cpp
-)
+set(Tests)
+
+add_subdirectory(dCommonTests)
+
+foreach (file ${DCOMMONTEST_SOURCES})
+	set(Tests ${Tests} "dCommonTests/${file}")
+endforeach ()
 
 # add the executable
 add_executable(CommonCxxTests ${Tests})

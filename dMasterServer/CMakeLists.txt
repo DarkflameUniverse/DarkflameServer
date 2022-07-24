@@ -1,6 +1,6 @@
 set(DMASTERSERVER_SOURCES
-    "InstanceManager.cpp"
-    "ObjectIDManager.cpp"
+	"InstanceManager.cpp"
+	"ObjectIDManager.cpp"
 )
 
 add_library(dMasterServer ${DMASTERSERVER_SOURCES})

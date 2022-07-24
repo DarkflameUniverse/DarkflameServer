@@ -253,5 +253,5 @@ target_precompile_headers(
 	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
 )
 if (${__enable_testing__})
-    add_subdirectory(tests)
+	add_subdirectory(tests)
 endif()
