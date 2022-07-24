@@ -79,7 +79,6 @@ CharacterComponent::~CharacterComponent() {
 }
 
 void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	outBitStream->Write0();
 	
 	if (bIsInitialUpdate) {
 		outBitStream->Write0();

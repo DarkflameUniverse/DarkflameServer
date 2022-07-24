@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Entity.h"
-#include "GameMessages.h"
 #include "Component.h"
 
 /**
