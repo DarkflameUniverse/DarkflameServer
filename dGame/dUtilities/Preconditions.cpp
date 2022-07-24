@@ -1,4 +1,4 @@
-﻿#include "Preconditions.h"
+#include "Preconditions.h"
 
 #include "Game.h"
 #include "dLogger.h"
@@ -9,6 +9,7 @@
 #include "MissionComponent.h"
 #include "Character.h"
 #include "CharacterComponent.h"
+#include "LevelProgressionComponent.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
 
@@ -128,7 +129,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 	auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
-	auto* characterComponent = player->GetComponent<CharacterComponent>();
+	auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
 	auto* character = player->GetCharacter();
 
 	Mission* mission;
@@ -207,7 +208,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::NoInteraction:
 		return false; // TODO
 	case PreconditionType::HasLevel:
-		return characterComponent->GetLevel() >= value;
+		return levelComponent->GetLevel() >= value;
 	default:
 		return true; // There are a couple more unknown preconditions. Always return true in this case.
 	}

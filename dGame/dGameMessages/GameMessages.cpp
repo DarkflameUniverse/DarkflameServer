@@ -58,6 +58,7 @@
 #include "PossessorComponent.h"
 #include "RacingControlComponent.h"
 #include "RailActivatorComponent.h"
+#include "LevelProgressionComponent.h"
 
 // Message includes:
 #include "dZoneManager.h"
@@ -912,14 +913,11 @@ void GameMessages::SendResurrect(Entity* entity) {
 	DestroyableComponent* dest = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
 
 	if (dest != nullptr && entity->GetLOT() == 1) {
-		auto* characterComponent = entity->GetComponent<CharacterComponent>();
-
-		if (characterComponent == nullptr) {
-			return;
+		auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
+		if (levelComponent) {
+			dest->SetHealth(levelComponent->GetLevel() >= 45 ? 8 : 4);
+			dest->SetImagination(levelComponent->GetLevel() >= 45 ? 20 : 6);
 		}
-
-		dest->SetHealth(characterComponent->GetLevel() >= 45 ? 8 : 4);
-		dest->SetImagination(characterComponent->GetLevel() >= 45 ? 20 : 6);
 	}
 
 	auto cont = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
@@ -5309,13 +5307,15 @@ void GameMessages::HandleHasBeenCollected(RakNet::BitStream* inStream, Entity* e
 }
 
 void GameMessages::HandleNotifyServerLevelProcessingComplete(RakNet::BitStream* inStream, Entity* entity) {
-	auto* character = static_cast<CharacterComponent*>(entity->GetComponent(COMPONENT_TYPE_CHARACTER));
+	auto* levelComp = entity->GetComponent<LevelProgressionComponent>();
+	if (!levelComp) return;
+	auto* character = entity->GetComponent<CharacterComponent>();
 	if (!character) return;
 
 	//Update our character's level in memory:
-	character->SetLevel(character->GetLevel() + 1);
+	levelComp->SetLevel(levelComp->GetLevel() + 1);
 
-	character->HandleLevelUp();
+	levelComp->HandleLevelUp();
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
@@ -5333,7 +5333,7 @@ void GameMessages::HandleNotifyServerLevelProcessingComplete(RakNet::BitStream* 
 	//Send a notification in chat:
 	std::stringstream wss;
 	wss << "level=1:";
-	wss << character->GetLevel();
+	wss << levelComp->GetLevel();
 	wss << "\n";
 	wss << "name=0:";
 	wss << character->GetName();
