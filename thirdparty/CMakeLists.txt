@@ -89,13 +89,20 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	set(MARIADB_SHARED_LIBRARY_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll")
 	set(MARIADB_IMPLIB_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.lib")
 	set(MARIADB_INCLUDE_DIR "${MARIADB_CPP_CONNECTOR_DIR}/include/mariadb")
+	
+    # Make sure to move required DLLs to the actual directory where the binaries will be!
+    # For CMAKE_BUILD_TYPES this is not the binary dir.
+    set(OUTPUT_DIR ${PROJECT_BINARY_DIR})
+	if(EXISTS ${CMAKE_BUILD_TYPE})
+		set(OUTPUT_DIR ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+	endif()
 
 	add_custom_target(mariadb_connector_cpp)
 	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
 					COMMAND ${CMAKE_COMMAND} -E copy_if_different 
 					"${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll"
 					"${MARIADB_C_CONNECTOR_DIR}/lib/libmariadb.dll"
-					"${PROJECT_BINARY_DIR}")
+					"${OUTPUT_DIR}")
 
 	# MariaDB uses plugins that the database needs to load, the prebuilt binaries by default will try to find the libraries in system directories,
 	# so set this define and the servers will set the MARIADB_PLUGIN_DIR environment variable to the appropriate directory.
