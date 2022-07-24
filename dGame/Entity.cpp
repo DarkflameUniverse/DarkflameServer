@@ -28,6 +28,7 @@
 #include "BuffComponent.h"
 #include "BouncerComponent.h"
 #include "InventoryComponent.h"
+#include "LevelProgressionComponent.h"
 #include "ScriptComponent.h"
 #include "SkillComponent.h"
 #include "SimplePhysicsComponent.h"
@@ -442,8 +443,9 @@ void Entity::Initialize()
 	}*/
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
-		// Character Component always has a possessor component
+		// Character Component always has a possessor and level components
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_LEVEL_PROGRESSION, new LevelProgressionComponent(this)));
 		CharacterComponent* comp = new CharacterComponent(this, m_Character);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
 	}
@@ -770,10 +772,9 @@ void Entity::Initialize()
 
 	if (m_Character) {
 		auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
-		auto* characterComponent = GetComponent<CharacterComponent>();
+		auto* levelComponent = GetComponent<LevelProgressionComponent>();
 
-		if (controllablePhysicsComponent != nullptr && characterComponent->GetLevel() >= 20)
-		{
+		if (controllablePhysicsComponent != nullptr && levelComponent->GetLevel() >= 20) {
 			controllablePhysicsComponent->SetSpeedMultiplier(525.0f / 500.0f);
 		}
 	}
@@ -1088,6 +1089,17 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
 		}
+
+		LevelProgressionComponent* levelProgressionComponent;
+		if (TryGetComponent(COMPONENT_TYPE_LEVEL_PROGRESSION, levelProgressionComponent)) {
+			Game::logger->Log("Entity", "writing level comp!\n");
+			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			Game::logger->Log("Entity", "not writing level comp!\n");
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
+		}
+
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 

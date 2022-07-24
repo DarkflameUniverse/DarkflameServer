@@ -62,6 +62,7 @@
 #include "VanityUtilities.h"
 #include "GameConfig.h"
 #include "ScriptedActivityComponent.h"
+#include "LevelProgressionComponent.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
     std::string chatCommand;
@@ -1329,6 +1330,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		// query to set our uscore to the correct value for this level
 
 		auto characterComponent = entity->GetComponent<CharacterComponent>();
+		if (!characterComponent) return;
+		auto levelComponent = entity->GetComponent<LevelProgressionComponent>();
 		auto query = CDClientDatabase::CreatePreppedStmt("SELECT requiredUScore from LevelProgressionLookup WHERE id = ?;");
 		query.bind(1, (int)requestedLevel);
 		auto result = query.execQuery();
@@ -1336,18 +1339,18 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (result.eof()) return;
 
 		// Set the UScore first
-		oldLevel = characterComponent->GetLevel();
+		oldLevel = levelComponent->GetLevel();
 		characterComponent->SetUScore(result.getIntField(0, characterComponent->GetUScore()));
 
 		// handle level up for each level we have passed if we set our level to be higher than the current one.
 		if (oldLevel < requestedLevel) {
 			while (oldLevel < requestedLevel) {
 				oldLevel+=1;
-				characterComponent->SetLevel(oldLevel);
-				characterComponent->HandleLevelUp();
+				levelComponent->SetLevel(oldLevel);
+				levelComponent->HandleLevelUp();
 			}
 		} else {
-			characterComponent->SetLevel(requestedLevel);
+			levelComponent->SetLevel(requestedLevel);
 		}
 
 		if (requestedPlayerToSetLevelOf != "") {

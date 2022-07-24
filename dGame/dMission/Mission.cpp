@@ -1,10 +1,11 @@
-﻿#include "Mission.h"
+#include "Mission.h"
 
 #include <ctime>
 
 #include "CDClientManager.h"
 #include "Character.h"
 #include "CharacterComponent.h"
+#include "LevelProgressionComponent.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "Game.h"
@@ -406,6 +407,7 @@ void Mission::YieldRewards() {
     auto* character = GetUser()->GetLastUsedChar();
 
     auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+    auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
     auto* characterComponent = entity->GetComponent<CharacterComponent>();
     auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
     auto* missionComponent = entity->GetComponent<MissionComponent>();
@@ -433,7 +435,7 @@ void Mission::YieldRewards() {
     int32_t coinsToSend = 0;
     if (info->LegoScore > 0) {
         eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
-        if(characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
+        if(levelComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
             // Since the character is at the level cap we reward them with coins instead of UScore.
             coinsToSend += info->LegoScore * dZoneManager::Instance()->GetLevelCapCurrencyConversion();
         } else {

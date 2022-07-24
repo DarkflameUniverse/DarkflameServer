@@ -11,6 +11,7 @@
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
 #include "VehiclePhysicsComponent.h"
+#include "LevelProgressionComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
 
@@ -21,7 +22,6 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_IsGM = false;
 	m_IsLanding = false;
 	m_IsLEGOClubMember = true;
-	m_Level = 1;
 
 	m_DirtyCurrentActivity = false;
 	m_DirtyGMInfo = false;
@@ -80,8 +80,6 @@ CharacterComponent::~CharacterComponent() {
 }
 
 void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	outBitStream->Write1();
-	outBitStream->Write(m_Level);
 	outBitStream->Write0();
 	
 	if (bIsInitialUpdate) {
@@ -179,57 +177,6 @@ void CharacterComponent::SetPvpEnabled(const bool value)
 	m_DirtyGMInfo = true;
 	
 	m_PvpEnabled = value;
-}
-
-void CharacterComponent::HandleLevelUp()
-{
-	auto* rewardsTable = CDClientManager::Instance()->GetTable<CDRewardsTable>("Rewards");
-
-	const auto& rewards = rewardsTable->GetByLevelID(m_Level);
-    bool rewardingItem = rewards.size() > 0;
-
-	auto* parent = m_Character->GetEntity();
-
-	if (parent == nullptr)
-	{
-		return;
-	}
-
-	auto* inventoryComponent = parent->GetComponent<InventoryComponent>();
-	auto* controllablePhysicsComponent = parent->GetComponent<ControllablePhysicsComponent>();
-
-	if (inventoryComponent == nullptr || controllablePhysicsComponent == nullptr)
-	{
-		return;
-	}
-    // Tell the client we beginning to send level rewards.
-    if(rewardingItem) GameMessages::NotifyLevelRewards(parent->GetObjectID(), parent->GetSystemAddress(), m_Level, rewardingItem);
-
-	for (auto* reward : rewards)
-	{
-		switch (reward->rewardType)
-		{
-		case 0:
-			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LOOT_SOURCE_LEVEL_REWARD);
-			break;
-		case 4:
-			{
-				auto* items = inventoryComponent->GetInventory(eInventoryType::ITEMS);
-				items->SetSize(items->GetSize() + reward->value);
-			}
-			break;
-		case 9:
-			controllablePhysicsComponent->SetSpeedMultiplier(static_cast<float>(reward->value) / 500.0f);
-			break;
-		case 11:
-		case 12:
-			break;
-		default:
-			break;
-		}
-    }
-    // Tell the client we have finished sending level rewards.
-    if(rewardingItem) GameMessages::NotifyLevelRewards(parent->GetObjectID(), parent->GetSystemAddress(), m_Level, !rewardingItem);
 }
 
 void CharacterComponent::SetGMLevel(int gmlevel) {
@@ -337,8 +284,11 @@ void CharacterComponent::LoadFromXML() {
 		Game::logger->Log("CharacterComponent", "Failed to find lvl tag while loading XML!\n");
 		return;
 	}
+	uint32_t char_level;
+	level->QueryAttribute("l", &char_level);
+	auto* levelcomp = m_Parent->GetComponent<LevelProgressionComponent>();
+	if (levelcomp) levelcomp->SetLevel(char_level);
 
-	level->QueryAttribute("l", &m_Level);
 
 	if (character->FindAttribute("time")) {
 	     character->QueryUnsigned64Attribute("time", &m_TotalTimePlayed);
@@ -425,7 +375,8 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 
-	level->SetAttribute("l", m_Level);
+    auto* levelcomp = m_Parent->GetComponent<LevelProgressionComponent>();
+    if (levelcomp) level->SetAttribute("l", levelcomp->GetLevel());
 
 	auto newUpdateTimestamp = std::time(nullptr);
 	Game::logger->Log("TotalTimePlayed", "Time since last save: %d\n", newUpdateTimestamp - m_LastUpdateTimestamp);
