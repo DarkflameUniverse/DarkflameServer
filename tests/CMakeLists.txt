@@ -15,14 +15,18 @@ message(STATUS "gtest fetched and is now ready.")
 set(Tests)
 
 add_subdirectory(dCommonTests)
-
 foreach (file ${DCOMMONTEST_SOURCES})
 	set(Tests ${Tests} "dCommonTests/${file}")
 endforeach ()
 
+add_subdirectory(dGameTests)
+foreach (file ${DGAMETEST_SOURCES})
+	set(Tests ${Tests} "dGameTests/${file}")
+endforeach ()
+
 # add the executable
 add_executable(CommonCxxTests ${Tests})
-target_link_libraries(CommonCxxTests ${COMMON_LIBRARIES} GTest::gtest_main)
+target_link_libraries(CommonCxxTests ${COMMON_LIBRARIES} GTest::gtest_main dGame dZoneManager dPhysics detour recast tinyxml2 dWorldServer dChatFilter)
 
 # Copy test files to testing directory
 configure_file(
