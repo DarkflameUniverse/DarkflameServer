@@ -1,47 +1,46 @@
-#include <chrono>
 #include <fstream>
-#include <iostream>
 #include <memory>
 #include <gtest/gtest.h>
 
 #include "AMFDeserialize.h"
 #include "AMFFormat.h"
 
+// Helper method that all tests use to get their respective AMF.
 std::unique_ptr<AMFValue> ReadFromBitStream(RakNet::BitStream* bitStream) {
 	AMFDeserialize deserializer;
 	std::unique_ptr<AMFValue> returnValue(deserializer.Read(bitStream));
 	return returnValue;
 }
 
-void ReadAMFUndefinedFromBitStream() {
+TEST(dCommonTests, AMFDeserializeAMFUndefinedTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x00);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFUndefined);
 }
 
-void ReadAMFNullFromBitStream() {
+TEST(dCommonTests, AMFDeserializeAMFNullTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x01);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFNull);
 }
 
-void ReadAMFFalseFromBitStream() {
+TEST(dCommonTests, AMFDeserializeAMFFalseTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x02);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFFalse);
 }
 
-void ReadAMFTrueFromBitStream() {
+TEST(dCommonTests, AMFDeserializeAMFTrueTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x03);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFTrue);
 }
 
-void ReadAMFIntegerFromBitStream() {
+TEST(dCommonTests, AMFDeserializeAMFIntegerTest){
 	CBITSTREAM
 	{
 		bitStream.Write<uint8_t>(0x04);
@@ -89,7 +88,7 @@ void ReadAMFIntegerFromBitStream() {
 	}
 }
 
-void ReadAMFDoubleFromBitStream() {
+TEST(dCommonTests, AMFDeserializeAMFDoubleTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x05);
 	bitStream.Write<double>(25346.4f);
@@ -98,7 +97,7 @@ void ReadAMFDoubleFromBitStream() {
 	ASSERT_EQ(static_cast<AMFDoubleValue*>(res.get())->GetDoubleValue(), 25346.4f);
 }
 
-void ReadAMFStringFromBitStream() {
+TEST(dCommonTests, AMFDeserializeAMFStringTest){
 	CBITSTREAM
 	bitStream.Write<uint8_t>(0x06);
 	bitStream.Write<uint8_t>(0x0F);
@@ -109,7 +108,7 @@ void ReadAMFStringFromBitStream() {
 	ASSERT_EQ(static_cast<AMFStringValue*>(res.get())->GetStringValue(), "stateID");
 }
 
-void ReadAMFArrayFromBitStream() {
+TEST(dCommonTests, AMFDeserializeAMFArrayTest){
 	CBITSTREAM
 	// Test empty AMFArray
 	bitStream.Write<uint8_t>(0x09);
@@ -148,7 +147,7 @@ void ReadAMFArrayFromBitStream() {
  * This test checks that if we recieve an unimplemented AMFValueType 
  * we correctly throw an error and can actch it.
  */
-void TestUnimplementedAMFValues() {
+TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest){
 	std::vector<AMFValueType> unimplementedValues = {
 		AMFValueType::AMFXMLDoc,
 		AMFValueType::AMFDate,
@@ -187,12 +186,12 @@ void TestUnimplementedAMFValues() {
 		} catch (AMFValueType unimplementedValueType) {
 			caughtException = true;
 		}
-		std::cout << "Testing unimplemented value " << amfValueType << " Did we catch an exception: " << (caughtException ? "YES" : "NO") << std::endl;
+
 		ASSERT_EQ(caughtException, true);
 	}
 }
 
-void TestLiveCapture() {
+TEST(dCommonTests, AMFDeserializeLivePacketTest){
 	std::ifstream testFileStream;
 	testFileStream.open("AMFBitStreamTest.bin", std::ios::binary);
 
@@ -309,28 +308,9 @@ void TestLiveCapture() {
 	ASSERT_EQ(thirdDistance->GetDoubleValue(), 25.0f);
 }
 
-void TestNullStream() {
+TEST(dCommonTests, AMFDeserializeNullTest){
 	auto result = ReadFromBitStream(nullptr);
 	ASSERT_EQ(result.get(), nullptr);
-}
-
-TEST(CommonCxxTests, AMFDeserializeTest){
-	std::cout << "Checking that using a null bitstream doesnt cause exception" << std::endl;
-	TestNullStream();
-	std::cout << "passed nullptr test, checking basic tests" << std::endl;
-	ReadAMFUndefinedFromBitStream();
-	ReadAMFNullFromBitStream();
-	ReadAMFFalseFromBitStream();
-	ReadAMFTrueFromBitStream();
-	ReadAMFIntegerFromBitStream();
-	ReadAMFDoubleFromBitStream();
-	ReadAMFStringFromBitStream();
-	ReadAMFArrayFromBitStream();
-	std::cout << "Passed basic test, checking live capture" << std::endl;
-	TestLiveCapture();
-	std::cout << "Passed live capture, checking unimplemented amf values" << std::endl;
-	TestUnimplementedAMFValues();
-	std::cout << "Passed all tests." << std::endl;
 }
 
 /**
