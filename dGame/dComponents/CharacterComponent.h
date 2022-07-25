@@ -64,7 +64,7 @@ public:
     CharacterComponent(Entity* parent, Character* character);
     ~CharacterComponent() override;
 	
-    void LoadFromXML();
+    void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
