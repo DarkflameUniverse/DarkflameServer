@@ -24,6 +24,7 @@ class GameDependenciesTest : public ::testing::Test {
 			info.rot = NiQuaternion::IDENTITY;
 			info.scale = 1.0f;
 			info.spawner = nullptr;
+			info.lot = 999;
 		}
 
 	EntityInfo info;

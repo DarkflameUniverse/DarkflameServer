@@ -434,7 +434,6 @@ void DestroyableComponent::AddEnemyFaction(int32_t factionID)
 void DestroyableComponent::SetIsSmashable(bool value) {
     m_DirtyHealth = true;
     m_IsSmashable = value;
-    //m_HasBricks = value;
 }
 
 void DestroyableComponent::SetAttacksToBlock(const uint32_t value)
