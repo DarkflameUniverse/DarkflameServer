@@ -18,5 +18,5 @@ __dynamic=1
 # Set __compile_backtrace__ to 1 to compile the backtrace library instead of using system libraries. 
 __maria_db_connector_compile_jobs__=1
 # Set to the number of jobs (make -j equivalent) to compile the mariadbconn files with.
-__enable_testing__=1
+# __enable_testing__=1
 # When set to 1 and uncommented, compiling and linking testing folders and libraries will be done.
