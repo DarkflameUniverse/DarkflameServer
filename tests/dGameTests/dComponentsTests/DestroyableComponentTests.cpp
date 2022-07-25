@@ -5,9 +5,6 @@
 #include "DestroyableComponent.h"
 #include "Entity.h"
 
-/**
- * Test Construction of a DestroyableComponent
- */
 class DestroyableTest : public GameDependenciesTest {
 	protected:
 		Entity* baseEntity;
@@ -37,7 +34,7 @@ class DestroyableTest : public GameDependenciesTest {
 };
 
 /**
- * Test serialization of a DestroyableComponent
+ * Test Construction of a DestroyableComponent
  */
 TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 	destroyableComponent->Serialize(&bitStream, true, flags);
@@ -128,6 +125,9 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 	bitStream.Reset();
 }
 
+/**
+ * Test serialization of a DestroyableComponent
+ */
 TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
 	bitStream.Reset();
 	// Initialize some values to be not default so we can test a full serialization
