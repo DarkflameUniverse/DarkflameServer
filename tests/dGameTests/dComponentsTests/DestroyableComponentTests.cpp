@@ -12,6 +12,7 @@ class DestroyableTest : public GameDependenciesTest {
 		CBITSTREAM
 		uint32_t flags = 0;
 		void SetUp() override {
+			SetUpDependencies();
 			baseEntity = new Entity(15, GameDependenciesTest::info);
 			destroyableComponent = new DestroyableComponent(baseEntity);
 			baseEntity->AddComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent);
@@ -27,6 +28,7 @@ class DestroyableTest : public GameDependenciesTest {
 		}
 
 		void TearDown() override {
+			Game::logger->Flush();
 			delete baseEntity;
 		}
 };
@@ -189,5 +191,42 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
 
 TEST_F(DestroyableTest, DestroyableComponentDamageTest) {
 	// Do some actions
-	destroyableComponent->Damage(1, LWOOBJID_EMPTY, 0U, false); 
+	destroyableComponent->SetMaxHealth(100.0f);
+	destroyableComponent->SetHealth(100);
+	destroyableComponent->SetMaxArmor(0.0f);
+	destroyableComponent->Damage(10, LWOOBJID_EMPTY);
+	// Check that we take damage
+	ASSERT_EQ(destroyableComponent->GetHealth(), 90);
+	// Check that if we have armor, we take the correct amount of damage
+	destroyableComponent->SetMaxArmor(10.0f);
+	destroyableComponent->SetArmor(5.0f);
+	destroyableComponent->Damage(10, LWOOBJID_EMPTY);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 85);
+	// Check that if we have damage absorption we take the correct damage
+	destroyableComponent->SetDamageToAbsorb(10);
+	destroyableComponent->Damage(9, LWOOBJID_EMPTY);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 85);
+	destroyableComponent->Damage(6, LWOOBJID_EMPTY);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 80);
+	// Check that we take the correct reduced damage if we take reduced damage
+	destroyableComponent->SetDamageReduction(2);
+	destroyableComponent->Damage(7, LWOOBJID_EMPTY);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 75);
+	destroyableComponent->Damage(2, LWOOBJID_EMPTY);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 74);
+	destroyableComponent->SetDamageReduction(0);
+	// Check that blocking works
+	destroyableComponent->SetAttacksToBlock(1);
+	destroyableComponent->Damage(UINT32_MAX, LWOOBJID_EMPTY);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 74);
+	destroyableComponent->Damage(4, LWOOBJID_EMPTY);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 70);
+	// Check that immunity works
+	destroyableComponent->SetIsImmune(true);
+	destroyableComponent->Damage(UINT32_MAX, LWOOBJID_EMPTY);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 70);
+	destroyableComponent->SetIsImmune(false);
+	// Finally deal enough damage to kill the Entity
+	destroyableComponent->Damage(71, LWOOBJID_EMPTY);
+	EXPECT_EQ(destroyableComponent->GetHealth(), 0);
 }

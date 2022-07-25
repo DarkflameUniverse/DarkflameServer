@@ -1,11 +1,12 @@
 #include "Game.h"
 #include "dLogger.h"
+#include "dServer.h"
 #include "dZoneManager.h"
 #include <gtest/gtest.h>
 
 namespace Game {
 	dLogger* logger = new dLogger("./testing.log", true, true);
-	dServer* server;
+	dServer* server = new dServer("localhost", 3000, 0, 1, false, true, Game::logger, "localhost", 2000, ServerType::World, 1100);
 	dZoneManager* zoneManager;
 	dpWorld* physicsWorld;
 	dChatFilter* chatFilter;
@@ -19,7 +20,7 @@ namespace Game {
 
 class GameDependenciesTest : public ::testing::Test {
 	protected:
-		void SetUp() override {
+		void SetUpDependencies() {
 			info.pos = NiPoint3::ZERO;
 			info.rot = NiQuaternion::IDENTITY;
 			info.scale = 1.0f;
