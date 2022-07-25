@@ -13,9 +13,9 @@ CDSkillBehaviorTable::CDSkillBehaviorTable(void) {
 
         tableSize.nextRow();
     }
-    
+
 	tableSize.finalize();
-    
+
     // Reserve the size
     //this->entries.reserve(size);
 
@@ -68,7 +68,7 @@ std::vector<CDSkillBehavior> CDSkillBehaviorTable::Query(std::function<bool(CDSk
 
     return data;*/
 
-    //Logger::LogDebug("CDSkillBehaviorTable", "The 'Query' function is no longer working! Please use GetSkillByID instead!\n");
+    //Logger::LogDebug("CDSkillBehaviorTable", "The 'Query' function is no longer working! Please use GetSkillByID instead!");
 	std::vector<CDSkillBehavior> data; //So MSVC shuts up
 	return data;
 }

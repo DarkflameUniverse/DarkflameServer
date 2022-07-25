@@ -13,7 +13,7 @@ void DamageReductionBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 
 	if (target == nullptr)
 	{
-		Game::logger->Log("DamageReductionBehavior", "Failed to find target (%llu)!\n", branch.target);
+		Game::logger->Log("DamageReductionBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -26,11 +26,11 @@ void DamageReductionBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 	}
 
 	destroyable->SetDamageReduction(m_ReductionAmount);
-	
+
 	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
 }
 
-void DamageReductionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) 
+void DamageReductionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
 {
 	Handle(context, bitStream, branch);
 }
@@ -41,11 +41,11 @@ void DamageReductionBehavior::Timer(BehaviorContext* context, BehaviorBranchCont
 
 	if (target == nullptr)
 	{
-		Game::logger->Log("DamageReductionBehavior", "Failed to find target (%llu)!\n", second);
+		Game::logger->Log("DamageReductionBehavior", "Failed to find target (%llu)!", second);
 
 		return;
 	}
-	
+
 	auto* destroyable = target->GetComponent<DestroyableComponent>();
 
 	if (destroyable == nullptr)

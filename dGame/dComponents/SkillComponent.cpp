@@ -52,7 +52,7 @@ void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syn
 
 	if (index == this->m_managedBehaviors.end())
 	{
-		Game::logger->Log("SkillComponent", "Failed to find skill with uid (%i)!\n", skillUid, syncId);
+		Game::logger->Log("SkillComponent", "Failed to find skill with uid (%i)!", skillUid, syncId);
 
 		return;
 	}
@@ -81,7 +81,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 
 	if (index == -1)
 	{
-		Game::logger->Log("SkillComponent", "Failed to find projectile id (%llu)!\n", projectileId);
+		Game::logger->Log("SkillComponent", "Failed to find projectile id (%llu)!", projectileId);
 
 		return;
 	}
@@ -95,7 +95,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	auto result = query.execQuery();
 
 	if (result.eof()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!\n", sync_entry.lot);
+		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!", sync_entry.lot);
 
 		return;
 	}
@@ -432,7 +432,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	if (other == nullptr) {
 		if (entry.branchContext.target != LWOOBJID_EMPTY)
 		{
-			Game::logger->Log("SkillComponent", "Invalid projectile target (%llu)!\n", entry.branchContext.target);
+			Game::logger->Log("SkillComponent", "Invalid projectile target (%llu)!", entry.branchContext.target);
 		}
 
 		return;
@@ -444,7 +444,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	auto result = query.execQuery();
 
 	if (result.eof()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!\n", entry.lot);
+		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!", entry.lot);
 
 		return;
 	}

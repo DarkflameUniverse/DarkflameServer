@@ -4,7 +4,7 @@
 #include "BaseCombatAIComponent.h"
 #include "DestroyableComponent.h"
 
-void FvMaelstromDragon::OnStartup(Entity* self) 
+void FvMaelstromDragon::OnStartup(Entity* self)
 {
     self->SetVar<int32_t>(u"weakspot", 0);
 
@@ -16,7 +16,7 @@ void FvMaelstromDragon::OnStartup(Entity* self)
     }
 }
 
-void FvMaelstromDragon::OnDie(Entity* self, Entity* killer) 
+void FvMaelstromDragon::OnDie(Entity* self, Entity* killer)
 {
     if (self->GetVar<bool>(u"bDied"))
     {
@@ -68,7 +68,7 @@ void FvMaelstromDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_
 
     if (destroyableComponent != nullptr)
     {
-        Game::logger->Log("FvMaelstromDragon", "Hit %i\n", destroyableComponent->GetArmor());
+        Game::logger->Log("FvMaelstromDragon", "Hit %i", destroyableComponent->GetArmor());
 
         if (destroyableComponent->GetArmor() > 0) return;
 
@@ -76,7 +76,7 @@ void FvMaelstromDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_
 
         if (weakpoint == 0)
         {
-            Game::logger->Log("FvMaelstromDragon", "Activating weakpoint\n");
+            Game::logger->Log("FvMaelstromDragon", "Activating weakpoint");
 
             self->AddTimer("ReviveTimer", 12);
 
@@ -141,7 +141,7 @@ void FvMaelstromDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_
     }
 }
 
-void FvMaelstromDragon::OnTimerDone(Entity* self, std::string timerName) 
+void FvMaelstromDragon::OnTimerDone(Entity* self, std::string timerName)
 {
     if (timerName == "ReviveHeldTimer")
     {
@@ -187,7 +187,7 @@ FvMaelstromDragon::OnFireEventServerSide(Entity *self, Entity *sender, std::stri
                                          int32_t param3)
 {
     if (args != "rebuildDone") return;
-    
+
     self->AddTimer("ExposeWeakSpotTimer", 3.8f);
 
     self->CancelTimer("ReviveTimer");

@@ -18,11 +18,10 @@ Level::Level(Zone* parentZone, const std::string& filepath) {
     m_ParentZone = parentZone;
 	std::ifstream file(filepath, std::ios_base::in | std::ios_base::binary);
 	if (file) {
-		//printf("Opened %s\n", filepath.c_str());
 		ReadChunks(file);
 	}
 	else {
-		Game::logger->Log("Level", "Failed to load %s\n", filepath.c_str());
+		Game::logger->Log("Level", "Failed to load %s", filepath.c_str());
 	}
 
 	file.close();
@@ -96,7 +95,7 @@ void Level::ReadChunks(std::ifstream & file) {
 							for (uint32_t i = 0; i < s; ++i) {
 								file.ignore(4); //a uint
 								file.ignore(4); //two floats
-								file.ignore(4); 
+								file.ignore(4);
 							}
 						}
 					}
@@ -110,7 +109,7 @@ void Level::ReadChunks(std::ifstream & file) {
 				if (header.chunkVersion >= 36) {
 					file.ignore(3 * 4);
 				}
-				
+
 				if (header.chunkVersion < 42) {
 					file.ignore(3 * 4);
 
@@ -176,7 +175,7 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
 		BinaryIO::BinaryRead(file, obj.rotation);
 		BinaryIO::BinaryRead(file, obj.scale);
 
-		//This is a little bit of a bodge, but because the alpha client (HF) doesn't store the 
+		//This is a little bit of a bodge, but because the alpha client (HF) doesn't store the
 		//spawn position / rotation like the later versions do, we need to check the LOT for the spawn pos & set it.
 		if (obj.lot == LOT_MARKER_PLAYER_START) {
 			dZoneManager::Instance()->GetZone()->SetSpawnPos(obj.position);
@@ -186,18 +185,18 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
         std::u16string ldfString = u"";
         uint32_t length = 0;
         BinaryIO::BinaryRead(file, length);
-        
+
         for (uint32_t i = 0; i < length; ++i) {
             uint16_t data;
             BinaryIO::BinaryRead(file, data);
             ldfString.push_back(data);
         }
-        
+
         std::string sData = GeneralUtils::UTF16ToWTF8(ldfString);
         std::stringstream ssData(sData);
         std::string token;
         char deliminator = '\n';
-        
+
         while (std::getline(ssData, token, deliminator)) {
             LDFBaseData * ldfData = LDFBaseData::DataFromString(token);
             obj.settings.push_back(ldfData);
@@ -260,11 +259,11 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
 					if (data->GetKey() == u"spawner_active_on_load") {
 						spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
 					}
-					
+
 					if (data->GetKey() == u"active_on_load") {
 						spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
 					}
-					
+
 					if (data->GetKey() == u"respawn") {
 						if (data->GetValueType() == eLDFType::LDF_TYPE_FLOAT) // Floats are in seconds
 						{
@@ -350,6 +349,5 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
 		}
 	}
 
-	//printf("Loaded %u objects!\n", objectsCount);
 	header.sceneObjects = chunk;
 }

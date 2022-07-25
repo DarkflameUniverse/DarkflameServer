@@ -30,18 +30,18 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
     m_Rotation = m_Parent->GetDefaultRotation();
 	m_Scale = m_Parent->GetDefaultScale();
 	m_dpEntity = nullptr;
-    
+
     m_EffectInfoDirty = false;
 	m_PositionInfoDirty = false;
-    
+
     m_IsPhysicsEffectActive = false;
     m_EffectType = 0;
     m_DirectionalMultiplier = 0.0f;
-    
+
     m_MinMax = false;
     m_Min = 0;
     m_Max = 1;
-    
+
     m_IsDirectional = false;
     m_Direction = NiPoint3(); // * m_DirectionalMultiplier
 
@@ -82,7 +82,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	}
 
 	// HF - RespawnPoints. Legacy respawn entity.
-	if (m_Parent->GetLOT() == 4945) 
+	if (m_Parent->GetLOT() == 4945)
 	{
 		m_IsRespawnVolume = true;
 		m_RespawnPos = m_Position;
@@ -218,7 +218,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		}
 		else {
-			//Game::logger->Log("PhantomPhysicsComponent", "This one is supposed to have %s\n", info->physicsAsset.c_str());
+			//Game::logger->Log("PhantomPhysicsComponent", "This one is supposed to have %s", info->physicsAsset.c_str());
 
 			//add fallback cube:
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);
@@ -262,7 +262,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 		CDPhysicsComponentTable* physComp = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
 
 		if (physComp == nullptr) return;
-		
+
 		auto info = physComp->GetByID(componentID);
 
 		if (info == nullptr) return;
@@ -315,15 +315,15 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 
 		m_PositionInfoDirty = false;
 	}
-    
+
     outBitStream->Write(m_EffectInfoDirty || bIsInitialUpdate);
     if (m_EffectInfoDirty || bIsInitialUpdate) {
         outBitStream->Write(m_IsPhysicsEffectActive);
-        
+
         if (m_IsPhysicsEffectActive) {
             outBitStream->Write(m_EffectType);
             outBitStream->Write(m_DirectionalMultiplier);
-            
+
 			// forgive me father for i have sinned
 			outBitStream->Write0();
 			//outBitStream->Write(m_MinMax);
@@ -331,7 +331,7 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 				//outBitStream->Write(m_Min);
 				//outBitStream->Write(m_Max);
 			//}
-            
+
             outBitStream->Write(m_IsDirectional);
             if (m_IsDirectional) {
                 outBitStream->Write(m_Direction.x);
@@ -379,7 +379,7 @@ void PhantomPhysicsComponent::SetDirection(const NiPoint3& pos) {
     m_Direction.x *= m_DirectionalMultiplier;
     m_Direction.y *= m_DirectionalMultiplier;
     m_Direction.z *= m_DirectionalMultiplier;
-    
+
     m_EffectInfoDirty = true;
     m_IsDirectional = true;
 }

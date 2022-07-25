@@ -49,11 +49,11 @@ void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUp
 			outBitStream->Write<uint32_t>(0);
 		}
 	}
-	
+
 	outBitStream->Write0();
 }
 
-void BuffComponent::Update(float deltaTime) 
+void BuffComponent::Update(float deltaTime)
 {
 	/**
 	 * Loop through all buffs and apply deltaTime to ther time.
@@ -138,7 +138,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	m_Buffs.emplace(id, buff);
 }
 
-void BuffComponent::RemoveBuff(int32_t id) 
+void BuffComponent::RemoveBuff(int32_t id)
 {
 	const auto& iter = m_Buffs.find(id);
 
@@ -146,18 +146,18 @@ void BuffComponent::RemoveBuff(int32_t id)
 	{
 		return;
 	}
-	
+
 	m_Buffs.erase(iter);
 
 	RemoveBuffEffect(id);
 }
 
-bool BuffComponent::HasBuff(int32_t id) 
+bool BuffComponent::HasBuff(int32_t id)
 {
 	return m_Buffs.find(id) != m_Buffs.end();
 }
 
-void BuffComponent::ApplyBuffEffect(int32_t id) 
+void BuffComponent::ApplyBuffEffect(int32_t id)
 {
 	const auto& parameters = GetBuffParameters(id);
     for (const auto& parameter : parameters)
@@ -209,7 +209,7 @@ void BuffComponent::ApplyBuffEffect(int32_t id)
 	}
 }
 
-void BuffComponent::RemoveBuffEffect(int32_t id) 
+void BuffComponent::RemoveBuffEffect(int32_t id)
 {
 	const auto& parameters = GetBuffParameters(id);
     for (const auto& parameter : parameters)
@@ -261,7 +261,7 @@ void BuffComponent::RemoveBuffEffect(int32_t id)
 	}
 }
 
-void BuffComponent::RemoveAllBuffs() 
+void BuffComponent::RemoveAllBuffs()
 {
 	for (const auto& buff : m_Buffs)
 	{
@@ -271,12 +271,12 @@ void BuffComponent::RemoveAllBuffs()
 	m_Buffs.clear();
 }
 
-void BuffComponent::Reset() 
+void BuffComponent::Reset()
 {
 	RemoveAllBuffs();
 }
 
-void BuffComponent::ReApplyBuffs() 
+void BuffComponent::ReApplyBuffs()
 {
 	for (const auto& buff : m_Buffs)
 	{
@@ -293,10 +293,10 @@ void BuffComponent::LoadFromXml(tinyxml2::XMLDocument* doc)
 {
 	// Load buffs
 	auto* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
-	
+
 	// Make sure we have a clean buff element.
 	auto* buffElement = dest->FirstChildElement("buff");
-	
+
 	// Old character, no buffs to load
 	if (buffElement == nullptr)
 	{
@@ -328,14 +328,14 @@ void BuffComponent::LoadFromXml(tinyxml2::XMLDocument* doc)
 	}
 }
 
-void BuffComponent::UpdateXml(tinyxml2::XMLDocument* doc) 
+void BuffComponent::UpdateXml(tinyxml2::XMLDocument* doc)
 {
 	// Save buffs
 	auto* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
-	
+
 	// Make sure we have a clean buff element.
 	auto* buffElement = dest->FirstChildElement("buff");
-	
+
 	if (buffElement == nullptr)
 	{
 		buffElement = doc->NewElement("buff");
@@ -357,12 +357,12 @@ void BuffComponent::UpdateXml(tinyxml2::XMLDocument* doc)
 		buffEntry->SetAttribute("s", buff.second.stacks);
 		buffEntry->SetAttribute("sr", buff.second.source);
 		buffEntry->SetAttribute("b", buff.second.behaviorID);
-		
+
 		buffElement->LinkEndChild(buffEntry);
 	}
 }
 
-const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffId) 
+const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffId)
 {
 	const auto& pair = m_Cache.find(buffId);
 
@@ -376,7 +376,7 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 	query.bind(1, (int) buffId);
 
 	auto result = query.execQuery();
-	
+
 	std::vector<BuffParameter> parameters {};
 
 	while (!result.eof())
@@ -402,7 +402,7 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 				}
 				catch (std::invalid_argument& exception)
 				{
-					Game::logger->Log("BuffComponent", "Failed to parse value (%s): (%s)!\n", token.c_str(), exception.what());
+					Game::logger->Log("BuffComponent", "Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
 				}
 			}
 		}
@@ -411,7 +411,7 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 
 		result.nextRow();
 	}
-	
+
 	m_Cache.insert_or_assign(buffId, parameters);
 
 	return m_Cache.find(buffId)->second;

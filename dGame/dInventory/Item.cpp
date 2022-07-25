@@ -20,7 +20,7 @@ Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_
 	{
 		return;
 	}
-	
+
 	this->id = id;
 	this->lot = lot;
 	this->inventory = inventory;
@@ -32,7 +32,7 @@ Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_
 	this->info = &Inventory::FindItemComponent(lot);
 	this->preconditions = new PreconditionExpression(this->info->reqPrecondition);
 	this->subKey = subKey;
-	
+
 	inventory->AddManagedItem(this);
 }
 
@@ -48,7 +48,7 @@ Item::Item(
 	LWOOBJID subKey,
 	bool bound,
 	eLootSourceType lootSourceType)
-{	
+{
 	if (!Inventory::IsValidItem(lot))
 	{
 		return;
@@ -87,7 +87,7 @@ Item::Item(
 	{
 		Equip();
 
-		Game::logger->Log("Item", "Move and equipped (%i) from (%i)\n", this->lot, this->inventory->GetType());
+		Game::logger->Log("Item", "Move and equipped (%i) from (%i)", this->lot, this->inventory->GetType());
 
 		EntityManager::Instance()->SerializeEntity(inventory->GetComponent()->GetParent());
 	}
@@ -154,7 +154,7 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 	{
 		return;
 	}
-	
+
 	const auto delta = std::abs(static_cast<int32_t>(value) - static_cast<int32_t>(count));
 
 	const auto type = static_cast<eItemType>(info->itemType);
@@ -169,11 +169,11 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 			}
 		}
 	}
-	
+
 	if (!silent)
 	{
 		auto* entity = inventory->GetComponent()->GetParent();
-		
+
 		if (value > count)
 		{
 			GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, delta, LWOOBJID_EMPTY, lootSourceType);
@@ -217,7 +217,7 @@ void Item::SetBound(const bool value)
 	bound = value;
 }
 
-void Item::SetSubKey(LWOOBJID value) 
+void Item::SetSubKey(LWOOBJID value)
 {
 	subKey = value;
 }
@@ -271,14 +271,14 @@ bool Item::IsEquipped() const
 bool Item::Consume()
 {
 	auto* skillsTable = CDClientManager::Instance()->GetTable<CDObjectSkillsTable>("ObjectSkills");
-	
+
 	auto skills = skillsTable->Query([=](const CDObjectSkills entry)
 	{
 		return entry.objectTemplate == static_cast<uint32_t>(lot);
 	});
 
 	auto success = false;
-	
+
 	for (auto& skill : skills)
 	{
 		if (skill.castOnType == 3) // Consumable type
@@ -287,7 +287,7 @@ bool Item::Consume()
 		}
 	}
 
-	Game::logger->Log("Item", "Consumed (%i) / (%llu) with (%d)\n", lot, id, success);
+	Game::logger->Log("Item", "Consumed (%i) / (%llu) with (%d)", lot, id, success);
 
 	GameMessages::SendUseItemResult(inventory->GetComponent()->GetParent(), lot, success);
 
@@ -343,7 +343,7 @@ bool Item::UseNonEquip()
 
 			LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
 		}
-		Game::logger->Log("Item", "Used (%i)\n", lot);
+		Game::logger->Log("Item", "Used (%i)", lot);
 		inventory->GetComponent()->RemoveItem(lot, 1);
 	}
 
@@ -357,11 +357,11 @@ void Item::Disassemble(const eInventoryType inventoryType)
 		if (data->GetKey() == u"assemblyPartLOTs")
 		{
 			auto modStr = data->GetValueAsString();
-			
+
 			std::vector<LOT> modArray;
 
 			std::stringstream ssData(modStr);
-			
+
 			std::string token;
 
 			const auto deliminator = '+';
@@ -369,7 +369,7 @@ void Item::Disassemble(const eInventoryType inventoryType)
 			while (std::getline(ssData, token, deliminator))
 			{
 				const auto modLot = std::stoi(token.substr(2, token.size() - 1));
-				
+
 				modArray.push_back(modLot);
 			}
 
@@ -397,7 +397,7 @@ void Item::DisassembleModel()
 	{
 		return;
 	}
-	
+
 	std::string renderAsset = result.fieldIsNull(0) ? "" : std::string(result.getStringField(0));
 	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '\\');
 
@@ -410,7 +410,7 @@ void Item::DisassembleModel()
 	{
 		return;
 	}
-	
+
 	std::stringstream data;
 	data << file.rdbuf();
 
@@ -420,7 +420,7 @@ void Item::DisassembleModel()
 	}
 
 	auto* doc = new tinyxml2::XMLDocument();
-	
+
 	if (!doc)
 	{
 		return;
@@ -436,26 +436,26 @@ void Item::DisassembleModel()
 	auto* lxfml = doc->FirstChildElement("LXFML");
 	auto* bricks = lxfml->FirstChildElement("Bricks");
 	std::string searchTerm = "Brick";
-	
+
 	if (!bricks)
 	{
 		searchTerm = "Part";
 		bricks = lxfml->FirstChildElement("Scene")->FirstChildElement("Model")->FirstChildElement("Group");
-		
+
 		if (!bricks)
 		{
 			return;
 		}
 	}
-	
+
 	auto* currentBrick = bricks->FirstChildElement(searchTerm.c_str());
 	while (currentBrick)
 	{
-		if (currentBrick->Attribute("designID") != nullptr) 
+		if (currentBrick->Attribute("designID") != nullptr)
 		{
 			parts.push_back(std::stoi(currentBrick->Attribute("designID")));
 		}
-		
+
 		currentBrick = currentBrick->NextSiblingElement(searchTerm.c_str());
 	}
 
@@ -472,7 +472,7 @@ void Item::DisassembleModel()
 		{
 			continue;
 		}
-		
+
 		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1, eLootSourceType::LOOT_SOURCE_DELETION);
 	}
 }
@@ -480,7 +480,7 @@ void Item::DisassembleModel()
 void Item::RemoveFromInventory()
 {
 	UnEquip();
-	
+
 	count = 0;
 
 	inventory->RemoveManagedItem(this);

@@ -12,7 +12,7 @@ BouncerComponent::BouncerComponent(Entity* parent) : Component(parent) {
 	m_PetEnabled = false;
 	m_PetBouncerEnabled = false;
 	m_PetSwitchLoaded = false;
-	
+
 	if (parent->GetLOT() == 7625)
 	{
 		LookupPetSwitch();
@@ -34,14 +34,14 @@ Entity* BouncerComponent::GetParentEntity() const
 	return m_Parent;
 }
 
-void BouncerComponent::SetPetEnabled(bool value) 
+void BouncerComponent::SetPetEnabled(bool value)
 {
 	m_PetEnabled = value;
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
-void BouncerComponent::SetPetBouncerEnabled(bool value) 
+void BouncerComponent::SetPetBouncerEnabled(bool value)
 {
 	m_PetBouncerEnabled = value;
 
@@ -57,7 +57,7 @@ void BouncerComponent::SetPetBouncerEnabled(bool value)
 	{
 		GameMessages::SendStopFXEffect(m_Parent, true, "PetOnSwitch");
 	}
-	
+
 }
 
 bool BouncerComponent::GetPetEnabled() const
@@ -70,7 +70,7 @@ bool BouncerComponent::GetPetBouncerEnabled() const
 	return m_PetBouncerEnabled;
 }
 
-void BouncerComponent::LookupPetSwitch() 
+void BouncerComponent::LookupPetSwitch()
 {
 	const auto& groups = m_Parent->GetGroups();
 
@@ -85,21 +85,21 @@ void BouncerComponent::LookupPetSwitch()
 			if (switchComponent != nullptr)
 			{
 				switchComponent->SetPetBouncer(this);
-				
+
 				m_PetSwitchLoaded = true;
 				m_PetEnabled = true;
 
 				EntityManager::Instance()->SerializeEntity(m_Parent);
 
-				Game::logger->Log("BouncerComponent", "Loaded pet bouncer\n");
+				Game::logger->Log("BouncerComponent", "Loaded pet bouncer");
 			}
 		}
 	}
 
 	if (!m_PetSwitchLoaded)
 	{
-		Game::logger->Log("BouncerComponent", "Failed to load pet bouncer\n");
-		
+		Game::logger->Log("BouncerComponent", "Failed to load pet bouncer");
+
 		m_Parent->AddCallbackTimer(0.5f, [this]() {
 			LookupPetSwitch();
 		});

@@ -49,20 +49,20 @@ void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target)
 	auto* effect = entities[0];
 
 	auto groups = self->GetGroups();
-	
+
 	if (groups.empty())
 	{
 		return;
 	}
 
 	builder = target->GetObjectID();
-	
+
 	const auto group = groups[0];
 
 	GameMessages::SendPlayAnimation(effect, u"jetFX");
 
 	self->AddTimer("PlayEffect", 2.5f);
-	
+
 	if (group == "Base_Radar")
 	{
 		self->AddTimer("CineDone", 5);
@@ -88,7 +88,7 @@ void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName)
 		}
 
 		const auto size = entities.size();
-		
+
 		if (size == 0)
 		{
 			return;
@@ -98,7 +98,7 @@ void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName)
 
 		auto* mortar = entities[selected];
 
-		Game::logger->Log("AgJetEffectServer", "Mortar (%i) (&d)\n", mortar->GetLOT(), mortar->HasComponent(COMPONENT_TYPE_SKILL));
+		Game::logger->Log("AgJetEffectServer", "Mortar (%i) (&d)", mortar->GetLOT(), mortar->HasComponent(COMPONENT_TYPE_SKILL));
 
 		mortar->SetOwnerOverride(builder);
 

@@ -12,13 +12,13 @@ void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 
 	if (target == nullptr)
 	{
-		Game::logger->Log("TauntBehavior", "Failed to find target (%llu)!\n", branch.target);
+		Game::logger->Log("TauntBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
 
 	auto* combatComponent = target->GetComponent<BaseCombatAIComponent>();
-	
+
 	if (combatComponent != nullptr)
 	{
 		combatComponent->Taunt(context->originator, m_threatToAdd);
@@ -31,13 +31,13 @@ void TauntBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitSt
 
 	if (target == nullptr)
 	{
-		Game::logger->Log("TauntBehavior", "Failed to find target (%llu)!\n", branch.target);
+		Game::logger->Log("TauntBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
 
 	auto* combatComponent = target->GetComponent<BaseCombatAIComponent>();
-	
+
 	if (combatComponent != nullptr)
 	{
 		combatComponent->Taunt(context->originator, m_threatToAdd);

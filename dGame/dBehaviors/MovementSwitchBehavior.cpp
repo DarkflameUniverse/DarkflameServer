@@ -8,13 +8,13 @@ void MovementSwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 	if (this->m_groundAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY &&
 		this->m_jumpAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY &&
 		this->m_fallingAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY &&
-		this->m_doubleJumpAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY && 
+		this->m_doubleJumpAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY &&
 		this->m_airAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY &&
 		this->m_jetpackAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY)
 	{
 		return;
 	}
-	
+
 	uint32_t movementType;
 
 	bitStream->Read(movementType);
@@ -40,13 +40,13 @@ void MovementSwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 		this->m_jetpackAction->Handle(context, bitStream, branch);
 		break;
 	default:
-		Game::logger->Log("MovementSwitchBehavior", "Invalid movement behavior type (%i)!\n", movementType);
+		Game::logger->Log("MovementSwitchBehavior", "Invalid movement behavior type (%i)!", movementType);
 		break;
 	}
 }
 
 void MovementSwitchBehavior::Load()
-{	
+{
 	this->m_airAction = GetAction("air_action");
 
 	this->m_doubleJumpAction = GetAction("double_jump_action");

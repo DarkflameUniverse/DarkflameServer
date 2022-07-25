@@ -28,12 +28,12 @@ RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
 	// Should a setting that has the build activator position exist, fetch that setting here and parse it for position.
 	// It is assumed that the user who sets this setting uses the correct character delimiter (character 31 or in hex 0x1F)
 	auto positionAsVector = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rebuild_activators"), 0x1F);
-	if (positionAsVector.size() == 3 && 
+	if (positionAsVector.size() == 3 &&
 		GeneralUtils::TryParse(positionAsVector[0], m_ActivatorPosition.x) &&
-		GeneralUtils::TryParse(positionAsVector[1], m_ActivatorPosition.y) && 
+		GeneralUtils::TryParse(positionAsVector[1], m_ActivatorPosition.y) &&
 		GeneralUtils::TryParse(positionAsVector[2], m_ActivatorPosition.z)) {
 	} else {
-		Game::logger->Log("RebuildComponent", "Failed to find activator position for lot %i.  Defaulting to parents position.\n", m_Parent->GetLOT());
+		Game::logger->Log("RebuildComponent", "Failed to find activator position for lot %i.  Defaulting to parents position.", m_Parent->GetLOT());
 		m_ActivatorPosition = m_Parent->GetPosition();
 	}
 
@@ -47,7 +47,7 @@ RebuildComponent::~RebuildComponent() {
 	if (builder) {
 		CancelRebuild(builder, eFailReason::REASON_BUILD_ENDED, true);
 	}
-	
+
 	DespawnActivator();
 }
 
@@ -61,7 +61,7 @@ void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitia
 
 		outBitStream->Write(false);
 	}
-	// If build state is completed and we've already serialized once in the completed state, 
+	// If build state is completed and we've already serialized once in the completed state,
 	// don't serializing this component anymore as this will cause the build to jump again.
 	// If state changes, serialization will begin again.
 	if (!m_StateDirty && m_State == REBUILD_COMPLETED) {
@@ -93,7 +93,7 @@ void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitia
 
 	outBitStream->Write(m_ShowResetEffect);
 	outBitStream->Write(m_Activator != nullptr);
-	
+
 	outBitStream->Write(m_Timer);
 	outBitStream->Write(m_TimerIncomplete);
 
@@ -146,7 +146,7 @@ void RebuildComponent::Update(float deltaTime) {
 				}
 			}
 		}
-		
+
 		break;
 	}
 	case REBUILD_COMPLETED: {
@@ -272,7 +272,7 @@ void RebuildComponent::SpawnActivator() {
 void RebuildComponent::DespawnActivator() {
 	if (m_Activator) {
 		EntityManager::Instance()->DestructEntity(m_Activator);
-		
+
 		m_Activator->ScheduleKillAfterUpdate();
 
 		m_Activator = nullptr;
@@ -281,7 +281,7 @@ void RebuildComponent::DespawnActivator() {
 	}
 }
 
-Entity* RebuildComponent::GetActivator() 
+Entity* RebuildComponent::GetActivator()
 {
 	return EntityManager::Instance()->GetEntity(m_ActivatorId);
 }
@@ -431,13 +431,13 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	if (user == nullptr) {
 		return;
 	}
-	
+
 	auto* characterComponent = user->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->SetCurrentActivity(eGameActivities::ACTIVITY_NONE);
         characterComponent->TrackRebuildComplete();
 	} else {
-		Game::logger->Log("RebuildComponent", "Some user tried to finish the rebuild but they didn't have a character somehow.\n");
+		Game::logger->Log("RebuildComponent", "Some user tried to finish the rebuild but they didn't have a character somehow.");
 		return;
 	}
 
@@ -447,7 +447,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	GameMessages::SendPlayFXEffect(m_Parent, 507, u"create", "BrickFadeUpVisCompleteEffect", LWOOBJID_EMPTY, 0.4f, 1.0f, true);
 	GameMessages::SendEnableRebuild(m_Parent, false, false, true, eFailReason::REASON_NOT_GIVEN, m_ResetTime, user->GetObjectID());
 	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
-	
+
 
 	m_State = eRebuildState::REBUILD_COMPLETED;
 	m_StateDirty = true;
@@ -528,7 +528,7 @@ void RebuildComponent::ResetRebuild(bool failed) {
 	m_TimerIncomplete = 0.0f;
 	m_ShowResetEffect = false;
 	m_DrainedImagination = 0;
-	
+
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
 	// Notify scripts and possible subscribers
