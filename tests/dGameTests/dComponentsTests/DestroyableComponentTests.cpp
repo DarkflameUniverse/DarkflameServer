@@ -5,6 +5,9 @@
 #include "DestroyableComponent.h"
 #include "Entity.h"
 
+/**
+ * Test Construction of a DestroyableComponent
+ */
 class DestroyableTest : public GameDependenciesTest {
 	protected:
 		Entity* baseEntity;
@@ -33,6 +36,9 @@ class DestroyableTest : public GameDependenciesTest {
 		}
 };
 
+/**
+ * Test serialization of a DestroyableComponent
+ */
 TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 	destroyableComponent->Serialize(&bitStream, true, flags);
 	// Assert that the full number of bits are present
@@ -189,6 +195,9 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
 	}
 }
 
+/**
+ * Test the Damage method of DestroyableComponent
+ */
 TEST_F(DestroyableTest, DestroyableComponentDamageTest) {
 	// Do some actions
 	destroyableComponent->SetMaxHealth(100.0f);
@@ -199,7 +208,7 @@ TEST_F(DestroyableTest, DestroyableComponentDamageTest) {
 	ASSERT_EQ(destroyableComponent->GetHealth(), 90);
 	// Check that if we have armor, we take the correct amount of damage
 	destroyableComponent->SetMaxArmor(10.0f);
-	destroyableComponent->SetArmor(5.0f);
+	destroyableComponent->SetArmor(5);
 	destroyableComponent->Damage(10, LWOOBJID_EMPTY);
 	ASSERT_EQ(destroyableComponent->GetHealth(), 85);
 	// Check that if we have damage absorption we take the correct damage

@@ -51,10 +51,10 @@ file(
 # On Windows ClangCL can't compile the connector from source but can link to an msvc compiled one,
 # so prefer the prebuilt binaries unless MARIADB_BUILD_SOURCE is specified
 if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
-    # Make sure to move required DLLs to the actual directory where the binaries will be!
-    # For CMAKE_BUILD_TYPES this is not the binary dir.
+	# Make sure to move required DLLs to the actual directory where the binaries will be!
+	# For CMAKE_BUILD_TYPES this is not the binary dir.
 
-    set(OUTPUT_DIR ${PROJECT_BINARY_DIR})
+	set(OUTPUT_DIR ${PROJECT_BINARY_DIR})
 	if(${CMAKE_GENERATOR} MATCHES "Visual Studio 17 2022")
 		file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
 		set(OUTPUT_DIR ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
