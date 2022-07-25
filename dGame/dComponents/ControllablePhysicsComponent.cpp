@@ -130,7 +130,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 	if (!bIsInitialUpdate) outBitStream->Write0();
 }
 
-void ControllablePhysicsComponent::LoadFromXML(tinyxml2::XMLDocument* doc) {
+void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
 		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag!");

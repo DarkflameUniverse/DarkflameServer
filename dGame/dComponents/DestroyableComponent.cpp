@@ -159,7 +159,7 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
     }
 }
 
-void DestroyableComponent::LoadFromXML(tinyxml2::XMLDocument* doc) {
+void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
     tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
 		Game::logger->Log("DestroyableComponent", "Failed to find dest tag!");
@@ -169,7 +169,7 @@ void DestroyableComponent::LoadFromXML(tinyxml2::XMLDocument* doc) {
 	auto* buffComponent = m_Parent->GetComponent<BuffComponent>();
 
 	if (buffComponent != nullptr) {
-		buffComponent->LoadFromXML(doc);
+		buffComponent->LoadFromXml(doc);
 	}
 
 	dest->QueryAttribute("hc", &m_iHealth);
