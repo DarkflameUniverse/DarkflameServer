@@ -51,8 +51,17 @@ file(
 # On Windows ClangCL can't compile the connector from source but can link to an msvc compiled one,
 # so prefer the prebuilt binaries unless MARIADB_BUILD_SOURCE is specified
 if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
-	set(MARIADB_MSI_DIR "${PROJECT_BINARY_DIR}/msi")
-	set(MARIADB_CONNECTOR_DIR "${PROJECT_BINARY_DIR}/mariadbcpp")
+    # Make sure to move required DLLs to the actual directory where the binaries will be!
+    # For CMAKE_BUILD_TYPES this is not the binary dir.
+
+    set(OUTPUT_DIR ${PROJECT_BINARY_DIR})
+	if(${CMAKE_GENERATOR} MATCHES "Visual Studio 17 2022")
+		file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
+		set(OUTPUT_DIR ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
+	endif()
+
+	set(MARIADB_MSI_DIR "${OUTPUT_DIR}/msi")
+	set(MARIADB_CONNECTOR_DIR "${OUTPUT_DIR}/mariadbcpp")
 	set(MARIADB_C_CONNECTOR_DIR "${MARIADB_CONNECTOR_DIR}/MariaDB/MariaDB Connector C 64-bit")
 	set(MARIADB_CPP_CONNECTOR_DIR "${MARIADB_CONNECTOR_DIR}/MariaDB/MariaDB C++ Connector 64-bit")
 
@@ -89,15 +98,6 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	set(MARIADB_SHARED_LIBRARY_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll")
 	set(MARIADB_IMPLIB_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.lib")
 	set(MARIADB_INCLUDE_DIR "${MARIADB_CPP_CONNECTOR_DIR}/include/mariadb")
-	
-    # Make sure to move required DLLs to the actual directory where the binaries will be!
-    # For CMAKE_BUILD_TYPES this is not the binary dir.
-
-    set(OUTPUT_DIR ${PROJECT_BINARY_DIR})
-	if(DEFINED CACHE{CMAKE_BUILD_TYPE})
-		file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
-		set(OUTPUT_DIR ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
-	endif()
 
 	add_custom_target(mariadb_connector_cpp)
 	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD

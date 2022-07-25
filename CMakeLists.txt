@@ -74,21 +74,30 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+# Make sure to move required DLLs to the actual directory where the binaries will be!
+# For CMAKE_BUILD_TYPES this is not the binary dir.
+
+set(OUTPUT_DIR ${PROJECT_BINARY_DIR})
+if(${CMAKE_GENERATOR} MATCHES "Visual Studio 17 2022")
+	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
+	set(OUTPUT_DIR ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
+endif()
+
 # Create a /res directory
-make_directory(${CMAKE_BINARY_DIR}/res)
+make_directory(${OUTPUT_DIR}/res)
 
 # Create a /locale directory
-make_directory(${CMAKE_BINARY_DIR}/locale)
+make_directory(${OUTPUT_DIR}/locale)
 
 # Create a /logs directory
-make_directory(${CMAKE_BINARY_DIR}/logs)
+make_directory(${OUTPUT_DIR}/logs)
 
 # Copy resource files on first build
 set(RESOURCE_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
 foreach(resource_file ${RESOURCE_FILES})
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
+	if (NOT EXISTS ${OUTPUT_DIR}/${resource_file})
 		configure_file(
-			${CMAKE_SOURCE_DIR}/resources/${resource_file} ${PROJECT_BINARY_DIR}/${resource_file}
+			${CMAKE_SOURCE_DIR}/resources/${resource_file} ${OUTPUT_DIR}/${resource_file}
 			COPYONLY
 		)
 		message("Moved ${resource_file} to project binary directory")
@@ -102,13 +111,13 @@ foreach(file ${VANITY_FILES})
 endforeach()
 
 # Move our migrations for MasterServer to run
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/)
+file(MAKE_DIRECTORY ${OUTPUT_DIR}/migrations/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/${file})
+	if (NOT EXISTS ${OUTPUT_DIR}/migrations/${file})
 		configure_file(
-			${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/${file}
+			${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${OUTPUT_DIR}/migrations/${file}
 			COPYONLY
 		)
 	endif()
