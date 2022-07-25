@@ -239,7 +239,7 @@ public:
      * Sets the multiplier for the explosion that's visible when the bricks fly out when this entity is smashed
      * @param value the multiplier for the explosion that's visible when the bricks fly out when this entity is smashed
      */
-    void SetExplodeFactor(float value);
+    void SetExplodeFactor(float value) { m_ExplodeFactor = value; };
 
     /**
      * Returns the current multiplier for explosions

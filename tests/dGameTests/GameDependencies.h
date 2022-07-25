@@ -1,8 +1,10 @@
 #include "Game.h"
+#include "dLogger.h"
 #include "dZoneManager.h"
+#include <gtest/gtest.h>
 
 namespace Game {
-	dLogger* logger;
+	dLogger* logger = new dLogger("./testing.log", true, true);
 	dServer* server;
 	dZoneManager* zoneManager;
 	dpWorld* physicsWorld;

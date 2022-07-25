@@ -137,26 +137,15 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 
             if (m_IsSmashable) {
                 outBitStream->Write(m_HasBricks);
-
-                if (m_ExplodeFactor != 1.0f) {
-                    outBitStream->Write1();
-                    outBitStream->Write(m_ExplodeFactor);
-                } else {
-                    outBitStream->Write0();
-                }
+                outBitStream->Write(m_ExplodeFactor != 1.0f);
+                if (m_ExplodeFactor != 1.0f) outBitStream->Write(m_ExplodeFactor);
             }
         }
-
 		m_DirtyHealth = false;
     }
 
-    if (m_DirtyThreatList || bIsInitialUpdate) {
-        outBitStream->Write1();
-        outBitStream->Write(m_HasThreats);
-		m_DirtyThreatList = false;
-    } else {
-        outBitStream->Write0();
-    }
+    outBitStream->Write(m_DirtyThreatList || bIsInitialUpdate);
+    if (m_DirtyThreatList || bIsInitialUpdate) outBitStream->Write(m_HasThreats);
 }
 
 void DestroyableComponent::LoadFromXML(tinyxml2::XMLDocument* doc) {
