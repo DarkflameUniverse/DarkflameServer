@@ -6,7 +6,7 @@
 #include <algorithm>
 
 template <typename T>
-inline size_t MinSize(size_t size, const std::basic_string<T>& string) {
+inline size_t MinSize(size_t size, const std::basic_string_view<T>& string) {
     if (size == size_t(-1) || size > string.size()) {
         return string.size();
     } else {
@@ -24,7 +24,7 @@ inline bool IsTrailSurrogate(char16_t c) {
 
 inline void PushUTF8CodePoint(std::string& ret, char32_t cp) {
     if (cp <= 0x007F) {
-        ret.push_back(cp);
+        ret.push_back(static_cast<uint8_t>(cp));
     } else if (cp <= 0x07FF) {
         ret.push_back(0xC0 | (cp >> 6));
         ret.push_back(0x80 | (cp & 0x3F));
@@ -42,16 +42,123 @@ inline void PushUTF8CodePoint(std::string& ret, char32_t cp) {
     }
 }
 
+constexpr const char16_t REPLACEMENT_CHARACTER = 0xFFFD;
+
+bool _IsSuffixChar(uint8_t c) {
+    return (c & 0xC0) == 0x80;
+}
+
+bool GeneralUtils::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
+    size_t rem = slice.length();
+    const uint8_t* bytes = (const uint8_t*) &slice.front();
+    if (rem > 0) {
+        uint8_t first = bytes[0];
+        if (first < 0x80) { // 1 byte character
+            out = static_cast<uint32_t>(first & 0x7F);
+            slice.remove_prefix(1);
+            return true;
+        } else if (first < 0xC0) {
+            // middle byte, not valid at start, fall through
+        } else if (first < 0xE0) { // two byte character
+            if (rem > 1) {
+                uint8_t second = bytes[1];
+                if (_IsSuffixChar(second)) {
+                    out = (static_cast<uint32_t>(first & 0x1F) << 6)
+                        + static_cast<uint32_t>(second & 0x3F);
+                    slice.remove_prefix(2);
+                    return true;
+                }
+            }
+        } else if (first < 0xF0) { // three byte character
+            if (rem > 2) {
+                uint8_t second = bytes[1];
+                uint8_t third = bytes[2];
+                if (_IsSuffixChar(second) && _IsSuffixChar(third)) {
+                    out = (static_cast<uint32_t>(first & 0x0F) << 12)
+                        + (static_cast<uint32_t>(second & 0x3F) << 6)
+                        + static_cast<uint32_t>(third & 0x3F);
+                    slice.remove_prefix(3);
+                    return true;
+                }
+            }
+        } else if (first < 0xF8) { // four byte character
+            if (rem > 3) {
+                uint8_t second = bytes[1];
+                uint8_t third = bytes[2];
+                uint8_t fourth = bytes[3];
+                if (_IsSuffixChar(second) && _IsSuffixChar(third) && _IsSuffixChar(fourth)) {
+                    out = (static_cast<uint32_t>(first & 0x07) << 18)
+                        + (static_cast<uint32_t>(second & 0x3F) << 12)
+                        + (static_cast<uint32_t>(third & 0x3F) << 6)
+                        + static_cast<uint32_t>(fourth & 0x3F);
+                    slice.remove_prefix(4);
+                    return true;
+                }
+            }
+        }
+        out = static_cast<uint32_t>(REPLACEMENT_CHARACTER);
+        slice.remove_prefix(1);
+        return true;
+    }
+    return false;
+}
+
+/// See <https://www.ietf.org/rfc/rfc2781.html#section-2.1>
+bool PushUTF16CodePoint(std::u16string& output, uint32_t U, size_t size) {
+    if (output.length() >= size) return false;
+    if (U < 0x10000) {
+        // If U < 0x10000, encode U as a 16-bit unsigned integer and terminate.
+        output.push_back(static_cast<uint16_t>(U));
+        return true;
+    } else if (U > 0x10FFFF) {
+        output.push_back(REPLACEMENT_CHARACTER);
+        return true;
+    } else if (output.length() + 1 < size) {
+        // Let U' = U - 0x10000. Because U is less than or equal to 0x10FFFF,
+        // U' must be less than or equal to 0xFFFFF. That is, U' can be
+        // represented in 20 bits.
+        uint32_t Ut = U - 0x10000;
+
+        // Initialize two 16-bit unsigned integers, W1 and W2, to 0xD800 and
+        // 0xDC00, respectively. These integers each have 10 bits free to
+        // encode the character value, for a total of 20 bits.
+        uint16_t W1 = 0xD800;
+        uint16_t W2 = 0xDC00;
+
+        // Assign the 10 high-order bits of the 20-bit U' to the 10 low-order
+        // bits of W1 and the 10 low-order bits of U' to the 10 low-order
+        // bits of W2.
+        W1 += static_cast<uint16_t>((Ut & 0x3FC00) >> 10);
+        W2 += static_cast<uint16_t>((Ut & 0x3FF) >> 0);
+
+        // Terminate.
+        output.push_back(W1); // high surrogate
+        output.push_back(W2); // low surrogate
+        return true;
+    } else return false;
+}
+
+std::u16string GeneralUtils::UTF8ToUTF16(const std::string_view& string, size_t size) {
+    size_t newSize = MinSize(size, string);
+    std::u16string output;
+    output.reserve(newSize);
+    std::string_view iterator = string;
+
+    uint32_t c;
+    while (_NextUTF8Char(iterator, c) && PushUTF16CodePoint(output, c, size)) {}
+    return output;
+}
+
 //! Converts an std::string (ASCII) to UCS-2 / UTF-16
-std::u16string GeneralUtils::ASCIIToUTF16(const std::string& string, size_t size) {
+std::u16string GeneralUtils::ASCIIToUTF16(const std::string_view& string, size_t size) {
     size_t newSize = MinSize(size, string);
     std::u16string ret;
     ret.reserve(newSize);
 
     for (size_t i = 0; i < newSize; i++) {
         char c = string[i];
-        assert(c > 0 && c <= 127);
-        ret.push_back(static_cast<char16_t>(c));
+        // Note: both 7-bit ascii characters and REPLACEMENT_CHARACTER fit in one char16_t
+        ret.push_back((c > 0 && c <= 127) ? static_cast<char16_t>(c) : REPLACEMENT_CHARACTER);
     }
 
     return ret;
@@ -59,7 +166,7 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string& string, size_t size
 
 //! Converts a (potentially-ill-formed) UTF-16 string to UTF-8
 //! See: <http://simonsapin.github.io/wtf-8/#decoding-ill-formed-utf-16>
-std::string GeneralUtils::UTF16ToWTF8(const std::u16string& string, size_t size) {
+std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view& string, size_t size) {
     size_t newSize = MinSize(size, string);
     std::string ret;
     ret.reserve(newSize);

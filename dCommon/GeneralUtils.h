@@ -26,7 +26,18 @@ namespace GeneralUtils {
       \param size A size to trim the string to. Default is -1 (No trimming)
       \return An UTF-16 representation of the string
      */
-    std::u16string ASCIIToUTF16(const std::string& string, size_t size = -1);
+    std::u16string ASCIIToUTF16(const std::string_view& string, size_t size = -1);
+
+    //! Converts a UTF-8 String to a UTF-16 string
+    /*!
+      \param string The string to convert
+      \param size A size to trim the string to. Default is -1 (No trimming)
+      \return An UTF-16 representation of the string
+     */
+    std::u16string UTF8ToUTF16(const std::string_view& string, size_t size = -1);
+
+    //! Internal, do not use
+    bool _NextUTF8Char(std::string_view& slice, uint32_t& out);
 
     //! Converts a UTF-16 string to a UTF-8 string
     /*!
@@ -34,7 +45,7 @@ namespace GeneralUtils {
       \param size A size to trim the string to. Default is -1 (No trimming)
       \return An UTF-8 representation of the string
      */
-    std::string UTF16ToWTF8(const std::u16string& string, size_t size = -1);
+    std::string UTF16ToWTF8(const std::u16string_view& string, size_t size = -1);
 
     /**
      * Compares two basic strings but does so ignoring case sensitivity

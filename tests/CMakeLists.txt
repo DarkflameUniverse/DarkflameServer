@@ -4,6 +4,7 @@ create_test_sourcelist (Tests
 	AMFDeserializeTests.cpp
 	TestNiPoint3.cpp
 	TestLDFFormat.cpp
+	TestEncoding.cpp
 )
 
 # add the executable
