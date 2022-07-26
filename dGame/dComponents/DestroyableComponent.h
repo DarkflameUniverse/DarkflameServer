@@ -19,7 +19,7 @@ public:
     ~DestroyableComponent() override;
 
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, uint32_t& flags);
-    void LoadFromXML(tinyxml2::XMLDocument* doc);
+    void LoadFromXml(tinyxml2::XMLDocument* doc) override;
     void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
     /**

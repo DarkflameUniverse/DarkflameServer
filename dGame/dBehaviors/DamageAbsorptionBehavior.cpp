@@ -13,7 +13,7 @@ void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 
 	if (target == nullptr)
 	{
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!\n", branch.target);
+		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -32,7 +32,7 @@ void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
 }
 
-void DamageAbsorptionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) 
+void DamageAbsorptionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
 {
 	Handle(context, bitStream, branch);
 }
@@ -43,11 +43,11 @@ void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchCon
 
 	if (target == nullptr)
 	{
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!\n", second);
+		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", second);
 
 		return;
 	}
-	
+
 	auto* destroyable = target->GetComponent<DestroyableComponent>();
 
 	if (destroyable == nullptr)
@@ -56,7 +56,7 @@ void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchCon
 	}
 
 	const auto present = static_cast<uint32_t>(destroyable->GetDamageToAbsorb());
-	
+
 	const auto toRemove = std::min(present, this->m_absorbAmount);
 
 	destroyable->SetDamageToAbsorb(present - toRemove);

@@ -25,9 +25,9 @@ Character::Character(uint32_t id, User* parentUser) {
 	);
 
 	stmt->setInt64(1, id);
-	
+
 	sql::ResultSet* res = stmt->executeQuery();
-	
+
 	while (res->next()) {
 		m_Name = res->getString(1).c_str();
 		m_UnapprovedName = res->getString(2).c_str();
@@ -35,25 +35,25 @@ Character::Character(uint32_t id, User* parentUser) {
 		m_PropertyCloneID = res->getUInt(4);
 		m_PermissionMap = static_cast<PermissionMap>(res->getUInt64(5));
 	}
-	
+
 	delete res;
 	delete stmt;
-	
+
 	//Load the xmlData now:
 	sql::PreparedStatement* xmlStmt = Database::CreatePreppedStmt(
 		"SELECT xml_data FROM charxml WHERE id=? LIMIT 1;"
 	);
 
 	xmlStmt->setInt64(1, id);
-	
+
 	sql::ResultSet* xmlRes = xmlStmt->executeQuery();
 	while (xmlRes->next()) {
 		m_XMLData = xmlRes->getString(1).c_str();
 	}
-	
+
 	delete xmlRes;
 	delete xmlStmt;
-	
+
 	m_ZoneID = 0; //TEMP! Set back to 0 when done. This is so we can see loading screen progress for testing.
 	m_ZoneInstanceID = 0; //These values don't really matter, these are only used on the char select screen and seem unused.
 	m_ZoneCloneID = 0;
@@ -62,12 +62,12 @@ Character::Character(uint32_t id, User* parentUser) {
 
 	//Quickly and dirtly parse the xmlData to get the info we need:
 	DoQuickXMLDataParse();
-	
+
 	//Set our objectID:
 	m_ObjectID = m_ID;
     m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_CHARACTER);
     m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_PERSISTENT);
-    
+
     m_ParentUser = parentUser;
 	m_OurEntity = nullptr;
 	m_BuildMode = false;
@@ -78,16 +78,16 @@ Character::~Character() {
     m_Doc = nullptr;
 }
 
-void Character::UpdateFromDatabase() 
+void Character::UpdateFromDatabase()
 {
 	sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
 		"SELECT name, pending_name, needs_rename, prop_clone_id, permission_map FROM charinfo WHERE id=? LIMIT 1;"
 	);
 
 	stmt->setInt64(1, m_ID);
-	
+
 	sql::ResultSet* res = stmt->executeQuery();
-	
+
 	while (res->next()) {
 		m_Name = res->getString(1).c_str();
 		m_UnapprovedName = res->getString(2).c_str();
@@ -95,24 +95,24 @@ void Character::UpdateFromDatabase()
 		m_PropertyCloneID = res->getUInt(4);
 		m_PermissionMap = static_cast<PermissionMap>(res->getUInt64(5));
 	}
-	
+
 	delete res;
 	delete stmt;
-	
+
 	//Load the xmlData now:
 	sql::PreparedStatement* xmlStmt = Database::CreatePreppedStmt(
 		"SELECT xml_data FROM charxml WHERE id=? LIMIT 1;"
 	);
 	xmlStmt->setInt64(1, m_ID);
-	
+
 	sql::ResultSet* xmlRes = xmlStmt->executeQuery();
 	while (xmlRes->next()) {
 		m_XMLData = xmlRes->getString(1).c_str();
 	}
-	
+
 	delete xmlRes;
 	delete xmlStmt;
-	
+
 	m_ZoneID = 0; //TEMP! Set back to 0 when done. This is so we can see loading screen progress for testing.
 	m_ZoneInstanceID = 0; //These values don't really matter, these are only used on the char select screen and seem unused.
 	m_ZoneCloneID = 0;
@@ -122,67 +122,67 @@ void Character::UpdateFromDatabase()
 
 	//Quickly and dirtly parse the xmlData to get the info we need:
 	DoQuickXMLDataParse();
-	
+
 	//Set our objectID:
 	m_ObjectID = m_ID;
     m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_CHARACTER);
     m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_PERSISTENT);
-    
+
 	m_OurEntity = nullptr;
 	m_BuildMode = false;
 }
 
 void Character::DoQuickXMLDataParse() {
 	if (m_XMLData.size() == 0) return;
-	
+
 	delete m_Doc;
     m_Doc = new tinyxml2::XMLDocument();
     if (!m_Doc) return;
-    
+
 	if (m_Doc->Parse(m_XMLData.c_str(), m_XMLData.size()) == 0) {
-		Game::logger->Log("Character", "Loaded xmlData for character %s (%i)!\n", m_Name.c_str(), m_ID);
+		Game::logger->Log("Character", "Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
 	} else {
-		Game::logger->Log("Character", "Failed to load xmlData!\n");
+		Game::logger->Log("Character", "Failed to load xmlData!");
         //Server::rakServer->CloseConnection(m_ParentUser->GetSystemAddress(), true);
 		return;
 	}
-	
+
 	tinyxml2::XMLElement* mf = m_Doc->FirstChildElement("obj")->FirstChildElement("mf");
 	if (!mf) {
-		Game::logger->Log("Character", "Failed to find mf tag!\n");
+		Game::logger->Log("Character", "Failed to find mf tag!");
 		return;
 	}
-	
+
 	mf->QueryAttribute("hc", &m_HairColor);
 	mf->QueryAttribute("hs", &m_HairStyle);
-	
+
 	mf->QueryAttribute("t", &m_ShirtColor);
 	mf->QueryAttribute("l", &m_PantsColor);
-	
+
 	mf->QueryAttribute("lh", &m_LeftHand);
 	mf->QueryAttribute("rh", &m_RightHand);
-	
+
 	mf->QueryAttribute("es", &m_Eyebrows);
 	mf->QueryAttribute("ess", &m_Eyes);
 	mf->QueryAttribute("ms", &m_Mouth);
-	
+
 	tinyxml2::XMLElement* inv = m_Doc->FirstChildElement("obj")->FirstChildElement("inv");
 	if (!inv) {
-		Game::logger->Log("Character", "Char has no inv!\n");
+		Game::logger->Log("Character", "Char has no inv!");
 		return;
 	}
-	
+
 	tinyxml2::XMLElement* bag = inv->FirstChildElement("items")->FirstChildElement("in");
 
 	if (!bag) {
-		Game::logger->Log("Character", "Couldn't find bag0!\n");
+		Game::logger->Log("Character", "Couldn't find bag0!");
 		return;
 	}
-	
+
 	while (bag != nullptr)
 	{
 		auto* sib = bag->FirstChildElement();
-		
+
 		while (sib != nullptr) {
 			bool eq = false;
 			sib->QueryAttribute("eq", &eq);
@@ -198,8 +198,8 @@ void Character::DoQuickXMLDataParse() {
 
 		bag = bag->NextSiblingElement();
 	}
-	
-	
+
+
 	tinyxml2::XMLElement* character = m_Doc->FirstChildElement("obj")->FirstChildElement("char");
     if (character) {
 		character->QueryAttribute("cc", &m_Coins);
@@ -261,7 +261,7 @@ void Character::DoQuickXMLDataParse() {
 		character->QueryAttribute("lzrz", &m_OriginalRotation.z);
 		character->QueryAttribute("lzrw", &m_OriginalRotation.w);
     }
-    
+
     auto* flags = m_Doc->FirstChildElement("obj")->FirstChildElement("flag");
     if (flags) {
         auto* currentChild = flags->FirstChildElement();
@@ -269,10 +269,10 @@ void Character::DoQuickXMLDataParse() {
             uint32_t index = 0;
             uint64_t value = 0;
             const auto* temp = currentChild->Attribute("v");
-            
+
 			index = std::stoul(currentChild->Attribute("id"));
             value = std::stoull(temp);
-            
+
             m_PlayerFlags.insert(std::make_pair(index, value));
             currentChild = currentChild->NextSiblingElement();
         }
@@ -296,10 +296,10 @@ void Character::SetBuildMode(bool buildMode)
 
 void Character::SaveXMLToDatabase() {
     if (!m_Doc) return;
-    
+
     //For metrics, we'll record the time it took to save:
     auto start = std::chrono::system_clock::now();
-    
+
     tinyxml2::XMLElement* character = m_Doc->FirstChildElement("obj")->FirstChildElement("char");
     if (character) {
         character->SetAttribute("gm", m_GMLevel);
@@ -323,7 +323,7 @@ void Character::SaveXMLToDatabase() {
 
 		auto emotes = character->FirstChildElement("ue");
 		if (!emotes) emotes = m_Doc->NewElement("ue");
-		
+
 		emotes->DeleteChildren();
 		for (int emoteID : m_UnlockedEmotes) {
 			auto emote = m_Doc->NewElement("e");
@@ -334,53 +334,53 @@ void Character::SaveXMLToDatabase() {
 
 		character->LinkEndChild(emotes);
     }
-    
+
     //Export our flags:
     auto* flags = m_Doc->FirstChildElement("obj")->FirstChildElement("flag");
 	if (!flags) {
 		flags = m_Doc->NewElement("flag"); //Create a flags tag if we don't have one
 		m_Doc->FirstChildElement("obj")->LinkEndChild(flags); //Link it to the obj tag so we can find next time
 	}
-    
+
     flags->DeleteChildren(); //Clear it if we have anything, so that we can fill it up again without dupes
     for (std::pair<uint32_t, uint64_t> flag : m_PlayerFlags) {
         auto* f = m_Doc->NewElement("f");
         f->SetAttribute("id", flag.first);
-        
+
         //Because of the joy that is tinyxml2, it doesn't offer a function to set a uint64 as an attribute.
         //Only signed 64-bits ints would work.
         std::string v = std::to_string(flag.second);
         f->SetAttribute("v", v.c_str());
-        
+
 		flags->LinkEndChild(f);
 	}
 
 	SaveXmlRespawnCheckpoints();
 
-    //Call upon the entity to update our xmlDoc: 
+    //Call upon the entity to update our xmlDoc:
 	if (!m_OurEntity) {
-		Game::logger->Log("Character", "We didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!\n");
+		Game::logger->Log("Character", "We didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!");
 		return;
 	}
-  
+
 	m_OurEntity->UpdateXMLDoc(m_Doc);
-    
+
     //Dump our xml into m_XMLData:
     auto* printer = new tinyxml2::XMLPrinter(0, true, 0);
     m_Doc->Print(printer);
     m_XMLData = printer->CStr();
-    
+
     //Finally, save to db:
 	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charxml SET xml_data=? WHERE id=?");
     stmt->setString(1, m_XMLData.c_str());
     stmt->setUInt(2, m_ID);
     stmt->execute();
     delete stmt;
-    
+
     //For metrics, log the time it took to save:
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed = end - start;
-    Game::logger->Log("Character", "Saved character to Database in: %fs\n", elapsed.count());
+    Game::logger->Log("Character", "Saved character to Database in: %fs", elapsed.count());
 
 	delete printer;
 }
@@ -404,7 +404,7 @@ void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
 			}
 		}
 	}
-	
+
     // Calculate the index first
     auto flagIndex = uint32_t(std::floor(flagId / 64));
 
@@ -425,9 +425,9 @@ void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
         if (value) {
             // Otherwise, insert the value
             uint64_t flagValue = 0;
-        	
+
 			flagValue |= shiftedValue;
-        	
+
             m_PlayerFlags.insert(std::make_pair(flagIndex, flagValue));
         }
     }
@@ -458,7 +458,7 @@ void Character::SetRetroactiveFlags() {
 	}
 }
 
-void Character::SaveXmlRespawnCheckpoints() 
+void Character::SaveXmlRespawnCheckpoints()
 {
     //Export our respawn points:
     auto* points = m_Doc->FirstChildElement("obj")->FirstChildElement("res");
@@ -466,21 +466,21 @@ void Character::SaveXmlRespawnCheckpoints()
 		points = m_Doc->NewElement("res");
 		m_Doc->FirstChildElement("obj")->LinkEndChild(points);
 	}
-    
+
     points->DeleteChildren();
     for (const auto& point : m_WorldRespawnCheckpoints) {
         auto* r = m_Doc->NewElement("r");
         r->SetAttribute("w", point.first);
-        
+
         r->SetAttribute("x", point.second.x);
         r->SetAttribute("y", point.second.y);
         r->SetAttribute("z", point.second.z);
-        
+
 		points->LinkEndChild(r);
 	}
 }
 
-void Character::LoadXmlRespawnCheckpoints() 
+void Character::LoadXmlRespawnCheckpoints()
 {
 	m_WorldRespawnCheckpoints.clear();
 
@@ -504,10 +504,10 @@ void Character::LoadXmlRespawnCheckpoints()
 
 		m_WorldRespawnCheckpoints[map] = point;
 	}
-	
+
 }
 
-void Character::OnZoneLoad() 
+void Character::OnZoneLoad()
 {
 	if (m_OurEntity == nullptr) {
 		return;
@@ -530,8 +530,8 @@ void Character::OnZoneLoad()
 	}
 
 	/**
-	 * Restrict old character to 1 million coins 
-	 */	
+	 * Restrict old character to 1 million coins
+	 */
 	if (HasPermission(PermissionMap::Old)) {
 		if (GetCoins() > 1000000) {
 			SetCoins(1000000, eLootSourceType::LOOT_SOURCE_NONE);
@@ -560,7 +560,7 @@ bool Character::HasPermission(PermissionMap permission) const
 	return (static_cast<uint64_t>(m_PermissionMap) & static_cast<uint64_t>(permission)) != 0;
 }
 
-void Character::SetRespawnPoint(LWOMAPID map, const NiPoint3& point) 
+void Character::SetRespawnPoint(LWOMAPID map, const NiPoint3& point)
 {
 	m_WorldRespawnCheckpoints[map] = point;
 }
@@ -604,7 +604,7 @@ void Character::SendMuteNotice() const
 		// Format: Mo, 15.06.2009 20:20:00
 		std::strftime(buffer, 32, "%a, %d.%m.%Y %H:%M:%S", ptm);
 	}
-	
+
 	const auto timeStr = GeneralUtils::ASCIIToUTF16(std::string(buffer));
 
 	ChatPackets::SendSystemMessage(GetEntity()->GetSystemAddress(), u"You are muted until " + timeStr);

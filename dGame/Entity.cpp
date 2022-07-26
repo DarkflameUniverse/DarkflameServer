@@ -28,6 +28,8 @@
 #include "BuffComponent.h"
 #include "BouncerComponent.h"
 #include "InventoryComponent.h"
+#include "LevelProgressionComponent.h"
+#include "PlayerForcedMovementComponent.h"
 #include "ScriptComponent.h"
 #include "SkillComponent.h"
 #include "SimplePhysicsComponent.h"
@@ -250,7 +252,7 @@ void Entity::Initialize()
 		ControllablePhysicsComponent* controllablePhysics = new ControllablePhysicsComponent(this);
 
 		if (m_Character) {
-			controllablePhysics->LoadFromXML(m_Character->GetXMLDoc());
+			controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
 
 			const auto mapID = Game::server->GetZoneID();
 
@@ -360,7 +362,7 @@ void Entity::Initialize()
 	if (buffComponentID > 0 || collectibleComponentID > 0) {
 		DestroyableComponent* comp = new DestroyableComponent(this);
 		if (m_Character) {
-			comp->LoadFromXML(m_Character->GetXMLDoc());
+			comp->LoadFromXml(m_Character->GetXMLDoc());
 		}
 		else {
 			if (componentID > 0) {
@@ -435,17 +437,20 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_DESTROYABLE, comp));
 	}
 
-	/*if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_DESTROYABLE) > 0 || m_Character) {
-		DestroyableComponent* comp = new DestroyableComponent();
-		if (m_Character) comp->LoadFromXML(m_Character->GetXMLDoc());
-		m_Components.push_back(std::make_pair(COMPONENT_TYPE_DESTROYABLE, comp));
-	}*/
-
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
-		// Character Component always has a possessor component
+		// Character Component always has a possessor, level, and forced movement components
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
-		CharacterComponent* comp = new CharacterComponent(this, m_Character);
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
+
+		// load in the xml for the level
+		auto* levelComp = new LevelProgressionComponent(this);
+		levelComp->LoadFromXml(m_Character->GetXMLDoc());
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_LEVEL_PROGRESSION, levelComp));
+
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT, new PlayerForcedMovementComponent(this)));
+
+		CharacterComponent* charComp = new CharacterComponent(this, m_Character);
+		charComp->LoadFromXml(m_Character->GetXMLDoc());
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, charComp));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_INVENTORY) > 0 || m_Character) {
@@ -770,10 +775,9 @@ void Entity::Initialize()
 
 	if (m_Character) {
 		auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
-		auto* characterComponent = GetComponent<CharacterComponent>();
+		auto* levelComponent = GetComponent<LevelProgressionComponent>();
 
-		if (controllablePhysicsComponent != nullptr && characterComponent->GetLevel() >= 20)
-		{
+		if (controllablePhysicsComponent != nullptr && levelComponent->GetLevel() >= 20) {
 			controllablePhysicsComponent->SetSpeedMultiplier(525.0f / 500.0f);
 		}
 	}
@@ -1088,6 +1092,23 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
 		}
+
+		LevelProgressionComponent* levelProgressionComponent;
+		if (TryGetComponent(COMPONENT_TYPE_LEVEL_PROGRESSION, levelProgressionComponent)) {
+			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
+		}
+
+		PlayerForcedMovementComponent* playerForcedMovementComponent;
+		if (TryGetComponent(COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT, playerForcedMovementComponent)) {
+			playerForcedMovementComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
+		}
+
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 

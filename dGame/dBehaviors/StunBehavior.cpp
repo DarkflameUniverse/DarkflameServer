@@ -22,7 +22,7 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 
 	if (target == nullptr)
 	{
-		Game::logger->Log("StunBehavior", "Failed to find target (%llu)!\n", branch.target);
+		Game::logger->Log("StunBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -30,7 +30,7 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 	/*
 	 * If our target is an enemy we can go ahead and stun it.
 	 */
-	
+
 	auto* combatAiComponent = static_cast<BaseCombatAIComponent*>(target->GetComponent(COMPONENT_TYPE_BASE_COMBAT_AI));
 
 	if (combatAiComponent == nullptr)
@@ -49,7 +49,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 
 		if (self == nullptr)
 		{
-			Game::logger->Log("StunBehavior", "Invalid self entity (%llu)!\n", context->originator);
+			Game::logger->Log("StunBehavior", "Invalid self entity (%llu)!", context->originator);
 
 			return;
 		}
@@ -57,7 +57,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 		/*
 		 * See if we can stun ourselves
 		 */
-		
+
 		auto* combatAiComponent = static_cast<BaseCombatAIComponent*>(self->GetComponent(COMPONENT_TYPE_BASE_COMBAT_AI));
 
 		if (combatAiComponent == nullptr)
@@ -66,7 +66,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 		}
 
 		combatAiComponent->Stun(branch.duration);
-		
+
 		return;
 	}
 
@@ -88,7 +88,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 
 	if (target == nullptr)
 	{
-		Game::logger->Log("StunBehavior", "Failed to find target (%llu)!\n", branch.target);
+		Game::logger->Log("StunBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
 	}

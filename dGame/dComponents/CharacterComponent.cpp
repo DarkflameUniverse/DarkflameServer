@@ -21,7 +21,6 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_IsGM = false;
 	m_IsLanding = false;
 	m_IsLEGOClubMember = true;
-	m_Level = 1;
 
 	m_DirtyCurrentActivity = false;
 	m_DirtyGMInfo = false;
@@ -38,13 +37,11 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
 
-	LoadFromXML();
-
 	//Check to see if we're landing:
 	if (character->GetZoneID() != Game::server->GetZoneID()) {
 		m_IsLanding = true;
 	}
-    
+
 	if (LandingAnimDisabled(character->GetZoneID()) || LandingAnimDisabled(Game::server->GetZoneID()) || m_LastRocketConfig.empty()) {
 		m_IsLanding = false; //Don't make us land on VE/minigames lol
 	}
@@ -80,16 +77,13 @@ CharacterComponent::~CharacterComponent() {
 }
 
 void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	outBitStream->Write1();
-	outBitStream->Write(m_Level);
-	outBitStream->Write0();
-	
+
 	if (bIsInitialUpdate) {
 		outBitStream->Write0();
 		outBitStream->Write0();
 		outBitStream->Write0();
 		outBitStream->Write0();
-		
+
 		outBitStream->Write(m_Character->GetHairColor());
 		outBitStream->Write(m_Character->GetHairStyle());
 		outBitStream->Write<uint32_t>(0); //Default "head"
@@ -134,7 +128,7 @@ void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 		outBitStream->Write(m_RacingSmashablesSmashed);
 		outBitStream->Write(m_RacesFinished);
 		outBitStream->Write(m_FirstPlaceRaceFinishes);
-		
+
 		outBitStream->Write0();
 		outBitStream->Write(m_IsLanding);
 		if (m_IsLanding) {
@@ -153,17 +147,17 @@ void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 		outBitStream->Write(m_EditorEnabled);
 		outBitStream->Write(m_EditorLevel);
 	}
-	
+
 	outBitStream->Write(m_DirtyCurrentActivity);
 	if (m_DirtyCurrentActivity) outBitStream->Write(m_CurrentActivity);
-	
+
 	outBitStream->Write(m_DirtySocialInfo);
 	if (m_DirtySocialInfo) {
 		outBitStream->Write(m_GuildID);
 		outBitStream->Write<unsigned char>(static_cast<unsigned char>(m_GuildName.size()));
 		if (!m_GuildName.empty())
 			outBitStream->WriteBits(reinterpret_cast<const unsigned char*>(m_GuildName.c_str()), static_cast<unsigned char>(m_GuildName.size()) * sizeof(wchar_t) * 8);
-		
+
 		outBitStream->Write(m_IsLEGOClubMember);
 		outBitStream->Write(m_CountryCode);
 	}
@@ -177,59 +171,8 @@ bool CharacterComponent::GetPvpEnabled() const
 void CharacterComponent::SetPvpEnabled(const bool value)
 {
 	m_DirtyGMInfo = true;
-	
+
 	m_PvpEnabled = value;
-}
-
-void CharacterComponent::HandleLevelUp()
-{
-	auto* rewardsTable = CDClientManager::Instance()->GetTable<CDRewardsTable>("Rewards");
-
-	const auto& rewards = rewardsTable->GetByLevelID(m_Level);
-    bool rewardingItem = rewards.size() > 0;
-
-	auto* parent = m_Character->GetEntity();
-
-	if (parent == nullptr)
-	{
-		return;
-	}
-
-	auto* inventoryComponent = parent->GetComponent<InventoryComponent>();
-	auto* controllablePhysicsComponent = parent->GetComponent<ControllablePhysicsComponent>();
-
-	if (inventoryComponent == nullptr || controllablePhysicsComponent == nullptr)
-	{
-		return;
-	}
-    // Tell the client we beginning to send level rewards.
-    if(rewardingItem) GameMessages::NotifyLevelRewards(parent->GetObjectID(), parent->GetSystemAddress(), m_Level, rewardingItem);
-
-	for (auto* reward : rewards)
-	{
-		switch (reward->rewardType)
-		{
-		case 0:
-			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LOOT_SOURCE_LEVEL_REWARD);
-			break;
-		case 4:
-			{
-				auto* items = inventoryComponent->GetInventory(eInventoryType::ITEMS);
-				items->SetSize(items->GetSize() + reward->value);
-			}
-			break;
-		case 9:
-			controllablePhysicsComponent->SetSpeedMultiplier(static_cast<float>(reward->value) / 500.0f);
-			break;
-		case 11:
-		case 12:
-			break;
-		default:
-			break;
-		}
-    }
-    // Tell the client we have finished sending level rewards.
-    if(rewardingItem) GameMessages::NotifyLevelRewards(parent->GetObjectID(), parent->GetSystemAddress(), m_Level, !rewardingItem);
 }
 
 void CharacterComponent::SetGMLevel(int gmlevel) {
@@ -239,21 +182,17 @@ void CharacterComponent::SetGMLevel(int gmlevel) {
 	m_GMLevel = gmlevel;
 }
 
-void CharacterComponent::LoadFromXML() {
-    if (!m_Character) return;
-    
-    tinyxml2::XMLDocument* doc = m_Character->GetXMLDoc();
-    if (!doc) return;
-    
+void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
+
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("CharacterComponent", "Failed to find char tag while loading XML!\n");
+		Game::logger->Log("CharacterComponent", "Failed to find char tag while loading XML!");
 		return;
 	}
     if (character->QueryAttribute("rpt", &m_Reputation) == tinyxml2::XML_NO_ATTRIBUTE) {
         SetReputation(0);
     }
-    
+
 	character->QueryInt64Attribute("ls", &m_Uscore);
 
 	// Load the statistics
@@ -332,14 +271,6 @@ void CharacterComponent::LoadFromXML() {
 		}
 	}
 
-	tinyxml2::XMLElement* level = doc->FirstChildElement("obj")->FirstChildElement("lvl");
-	if (!level) {
-		Game::logger->Log("CharacterComponent", "Failed to find lvl tag while loading XML!\n");
-		return;
-	}
-
-	level->QueryAttribute("l", &m_Level);
-
 	if (character->FindAttribute("time")) {
 	     character->QueryUnsigned64Attribute("time", &m_TotalTimePlayed);
 	} else {
@@ -350,11 +281,11 @@ void CharacterComponent::LoadFromXML() {
 void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
     tinyxml2::XMLElement* minifig = doc->FirstChildElement("obj")->FirstChildElement("mf");
 	if (!minifig) {
-		Game::logger->Log("CharacterComponent", "Failed to find mf tag while updating XML!\n");
+		Game::logger->Log("CharacterComponent", "Failed to find mf tag while updating XML!");
 		return;
 	}
 
-    // write minifig information that might have been changed by commands 
+    // write minifig information that might have been changed by commands
 
     minifig->SetAttribute("es", m_Character->GetEyebrows());
     minifig->SetAttribute("ess", m_Character->GetEyes());
@@ -370,7 +301,7 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("CharacterComponent", "Failed to find char tag while updating XML!\n");
+		Game::logger->Log("CharacterComponent", "Failed to find char tag while updating XML!");
 		return;
 	}
 
@@ -419,16 +350,8 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
     // End custom attributes
     //
 
-	tinyxml2::XMLElement* level = doc->FirstChildElement("obj")->FirstChildElement("lvl");
-	if (!level) {
-		Game::logger->Log("CharacterComponent", "Failed to find lvl tag while updating XML!\n");
-		return;
-	}
-
-	level->SetAttribute("l", m_Level);
-
 	auto newUpdateTimestamp = std::time(nullptr);
-	Game::logger->Log("TotalTimePlayed", "Time since last save: %d\n", newUpdateTimestamp - m_LastUpdateTimestamp);
+	Game::logger->Log("TotalTimePlayed", "Time since last save: %d", newUpdateTimestamp - m_LastUpdateTimestamp);
 
 	m_TotalTimePlayed += newUpdateTimestamp - m_LastUpdateTimestamp;
 	character->SetAttribute("time", m_TotalTimePlayed);
@@ -458,7 +381,7 @@ Item* CharacterComponent::GetRocket(Entity* player) {
 	}
 
 	if (!rocket) {
-		Game::logger->Log("CharacterComponent", "Unable to find rocket to equip!\n");
+		Game::logger->Log("CharacterComponent", "Unable to find rocket to equip!");
 		return rocket;
 	}
 	return rocket;

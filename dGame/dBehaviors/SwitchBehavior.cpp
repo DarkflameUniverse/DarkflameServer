@@ -23,13 +23,13 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
     }
 
     auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
-	
+
 	if (destroyableComponent == nullptr)
 	{
 		return;
 	}
 
-    Game::logger->Log("SwitchBehavior", "[%i] State: (%d), imagination: (%i) / (%f)\n", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
+    Game::logger->Log("SwitchBehavior", "[%i] State: (%d), imagination: (%i) / (%f)", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
 
 	if (state || (entity->GetLOT() == 8092 && destroyableComponent->GetImagination() >= m_imagination))
 	{
@@ -44,7 +44,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 void SwitchBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
 {
 	auto state = true;
-	
+
 	if (this->m_imagination > 0 || !this->m_isEnemyFaction)
 	{
 		auto* entity = EntityManager::Instance()->GetEntity(branch.target);
@@ -77,11 +77,11 @@ void SwitchBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 void SwitchBehavior::Load()
 {
 	this->m_actionTrue = GetAction("action_true");
-	
+
 	this->m_actionFalse = GetAction("action_false");
-	
+
 	this->m_imagination = GetInt("imagination");
-	
+
 	this->m_isEnemyFaction = GetBoolean("isEnemyFaction");
 
 	this->m_targetHasBuff = GetInt("target_has_buff");

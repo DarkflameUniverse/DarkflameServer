@@ -57,7 +57,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	auto* rocket = characterComponent->GetRocket(originator);
 	if (!rocket) {
-		Game::logger->Log("RocketLaunchpadControlComponent", "Unable to find rocket!\n");
+		Game::logger->Log("RocketLaunchpadControlComponent", "Unable to find rocket!");
 		return;
 	}
 
@@ -79,7 +79,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 	SetSelectedMapId(originator->GetObjectID(), zone);
 
 	GameMessages::SendFireEventClientSide(m_Parent->GetObjectID(), originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
-	
+
 	GameMessages::SendChangeObjectWorldState(rocket->GetId(), WORLDSTATE_ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
 
 	EntityManager::Instance()->SerializeEntity(originator);

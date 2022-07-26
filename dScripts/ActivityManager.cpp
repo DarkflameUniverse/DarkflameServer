@@ -51,7 +51,7 @@ float_t ActivityManager::GetActivityValue(Entity *self, const LWOOBJID playerID,
 void ActivityManager::StopActivity(Entity *self, const LWOOBJID playerID, const uint32_t score,
                                    const uint32_t value1, const uint32_t value2, bool quit) {
     int32_t gameID = 0;
-    
+
     auto* sac = self->GetComponent<ScriptedActivityComponent>();
     if (sac == nullptr) {
         gameID = self->GetLOT();
@@ -125,7 +125,7 @@ void ActivityManager::ActivityTimerStart(Entity *self, const std::string& timerN
     auto* timer = new ActivityTimer { timerName, updateInterval, stopTime };
     activeTimers.push_back(timer);
 
-    Game::logger->Log("ActivityManager", "Starting timer '%s', %f, %f\n", timerName.c_str(), updateInterval, stopTime);
+    Game::logger->Log("ActivityManager", "Starting timer '%s', %f, %f", timerName.c_str(), updateInterval, stopTime);
 
     self->AddTimer(GetPrefixedName(timer->name), timer->updateInterval);
 }
@@ -147,7 +147,7 @@ float_t ActivityManager::ActivityTimerGetCurrentTime(Entity *self, const std::st
 int32_t ActivityManager::GetGameID(Entity *self) const
 {
     int32_t gameID = 0;
-    
+
     auto* sac = self->GetComponent<ScriptedActivityComponent>();
     if (sac == nullptr) {
         gameID = self->GetLOT();
@@ -208,10 +208,10 @@ void ActivityManager::OnTimerDone(Entity *self, std::string timerName) {
                 activeTimers.erase(std::remove(activeTimers.begin(), activeTimers.end(), timer),
                                                activeTimers.end());
                 delete timer;
-                Game::logger->Log("ActivityManager", "Executing timer '%s'\n", activityTimerName.c_str());
+                Game::logger->Log("ActivityManager", "Executing timer '%s'", activityTimerName.c_str());
                 OnActivityTimerDone(self, activityTimerName);
             } else {
-                Game::logger->Log("ActivityManager", "Updating timer '%s'\n", activityTimerName.c_str());
+                Game::logger->Log("ActivityManager", "Updating timer '%s'", activityTimerName.c_str());
                 OnActivityTimerUpdate(self, timer->name, timer->stopTime - timer->runTime, timer->runTime);
                 self->AddTimer(GetPrefixedName(timer->name), timer->updateInterval);
             }

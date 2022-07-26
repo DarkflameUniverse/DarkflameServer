@@ -10,12 +10,12 @@
 void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
 {
 	const auto target = branch.target != LWOOBJID_EMPTY ? branch.target : context->originator;
-	
+
 	auto* entity = EntityManager::Instance()->GetEntity(target);
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("BuffBehavior", "Invalid target (%llu)!\n", target);
+		Game::logger->Log("BuffBehavior", "Invalid target (%llu)!", target);
 
 		return;
 	}
@@ -24,7 +24,7 @@ void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 
 	if (component == nullptr)
 	{
-		Game::logger->Log("BuffBehavior", "Invalid target, no destroyable component (%llu)!\n", target);
+		Game::logger->Log("BuffBehavior", "Invalid target, no destroyable component (%llu)!", target);
 
 		return;
 	}
@@ -51,12 +51,12 @@ void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 void BuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch)
 {
 	const auto target = branch.target != LWOOBJID_EMPTY ? branch.target : context->originator;
-	
+
 	auto* entity = EntityManager::Instance()->GetEntity(target);
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("BuffBehavior", "Invalid target (%llu)!\n", target);
+		Game::logger->Log("BuffBehavior", "Invalid target (%llu)!", target);
 
 		return;
 	}
@@ -65,7 +65,7 @@ void BuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch
 
 	if (component == nullptr)
 	{
-		Game::logger->Log("BuffBehavior", "Invalid target, no destroyable component (%llu)!\n", target);
+		Game::logger->Log("BuffBehavior", "Invalid target, no destroyable component (%llu)!", target);
 
 		return;
 	}
@@ -73,7 +73,7 @@ void BuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch
 	component->SetMaxHealth(component->GetMaxHealth() - this->m_health);
 	component->SetMaxArmor(component->GetMaxArmor() - this->m_armor);
 	component->SetMaxImagination(component->GetMaxImagination() - this->m_imagination);
-	
+
 	EntityManager::Instance()->SerializeEntity(entity);
 }
 

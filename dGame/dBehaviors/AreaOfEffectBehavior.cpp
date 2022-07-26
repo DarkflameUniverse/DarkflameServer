@@ -37,7 +37,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 	for (auto target : targets)
 	{
 		branch.target = target;
-		
+
 		this->m_action->Handle(context, bitStream, branch);
 	}
 }
@@ -48,7 +48,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 
 	if (self == nullptr)
 	{
-		Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!\n", context->originator);
+		Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!", context->originator);
 
 		return;
 	}
@@ -81,7 +81,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 
 		if (entity == nullptr)
 		{
-			Game::logger->Log("TacArcBehavior", "Invalid target (%llu) for (%llu)!\n", validTarget, context->originator);
+			Game::logger->Log("TacArcBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);
 
 			continue;
 		}
@@ -90,7 +90,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 		{
 			continue;
 		}
-		
+
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent == nullptr)
@@ -120,7 +120,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 	});
 
 	const uint32_t size = targets.size();
-	
+
 	bitStream->Write(size);
 
 	if (size == 0)
@@ -133,10 +133,10 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 	for (auto* target : targets)
 	{
 		bitStream->Write(target->GetObjectID());
-		
+
 		PlayFx(u"cast", context->originator, target->GetObjectID());
 	}
-	
+
 	for (auto* target : targets)
 	{
 		branch.target = target->GetObjectID();

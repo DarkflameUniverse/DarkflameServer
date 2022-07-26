@@ -12,12 +12,12 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	LWOOBJID target;
 
 	bitStream->Read(target);
-	
+
 	auto* entity = EntityManager::Instance()->GetEntity(context->originator);
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("ProjectileAttackBehavior", "Failed to find originator (%llu)!\n", context->originator);
+		Game::logger->Log("ProjectileAttackBehavior", "Failed to find originator (%llu)!", context->originator);
 
 		return;
 	}
@@ -26,7 +26,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 
 	if (skillComponent == nullptr)
 	{
-		Game::logger->Log("ProjectileAttackBehavior", "Failed to find skill component for (%llu)!\n", -context->originator);
+		Game::logger->Log("ProjectileAttackBehavior", "Failed to find skill component for (%llu)!", -context->originator);
 
 		return;
 	}
@@ -44,7 +44,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		LWOOBJID projectileId;
 
 		bitStream->Read(projectileId);
-		
+
 		branch.target = target;
 		branch.isProjectile = true;
 		branch.referencePosition = targetEntity == nullptr ? entity->GetPosition() : targetEntity->GetPosition();
@@ -61,7 +61,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("ProjectileAttackBehavior", "Failed to find originator (%llu)!\n", context->originator);
+		Game::logger->Log("ProjectileAttackBehavior", "Failed to find originator (%llu)!", context->originator);
 
 		return;
 	}
@@ -70,7 +70,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 
 	if (skillComponent == nullptr)
 	{
-		Game::logger->Log("ProjectileAttackBehavior", "Failed to find skill component for (%llu)!\n", context->originator);
+		Game::logger->Log("ProjectileAttackBehavior", "Failed to find skill component for (%llu)!", context->originator);
 
 		return;
 
@@ -80,8 +80,8 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 
 	if (other == nullptr)
 	{
-		Game::logger->Log("ProjectileAttackBehavior", "Invalid projectile target (%llu)!\n", branch.target);
-		
+		Game::logger->Log("ProjectileAttackBehavior", "Invalid projectile target (%llu)!", branch.target);
+
 		return;
 	}
 

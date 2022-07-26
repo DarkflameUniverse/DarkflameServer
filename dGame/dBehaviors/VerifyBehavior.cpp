@@ -23,11 +23,11 @@ void VerifyBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 
 		if (self == nullptr)
 		{
-			Game::logger->Log("VerifyBehavior", "Invalid self for (%llu)\n", context->originator);
+			Game::logger->Log("VerifyBehavior", "Invalid self for (%llu)", context->originator);
 
 			return;
 		}
-		
+
 		const auto distance = Vector3::DistanceSquared(self->GetPosition(), entity->GetPosition());
 
 		if (distance > this->m_range * this->m_range)

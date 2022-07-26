@@ -13,7 +13,7 @@ void dpWorld::Initialize(unsigned int zoneID) {
 	phys_sp_tilecount = std::atoi(Game::config->GetValue("phys_sp_tilecount").c_str());
 	phys_sp_tilesize = std::atoi(Game::config->GetValue("phys_sp_tilesize").c_str());
 
-	//If spatial partitioning is enabled, then we need to create the m_Grid. 
+	//If spatial partitioning is enabled, then we need to create the m_Grid.
 	//if m_Grid exists, then the old method will be used.
 	//SP will NOT be used unless it is added to ShouldUseSP();
 	if (std::atoi(Game::config->GetValue("phys_spatial_partitioning").c_str()) == 1
@@ -21,11 +21,11 @@ void dpWorld::Initialize(unsigned int zoneID) {
 		m_Grid = new dpGrid(phys_sp_tilecount, phys_sp_tilesize);
 	}
 
-	Game::logger->Log("dpWorld", "Physics world initialized!\n");
+	Game::logger->Log("dpWorld", "Physics world initialized!");
 
 	if (ShouldLoadNavmesh(zoneID)) {
-		if (LoadNavmeshByZoneID(zoneID)) Game::logger->Log("dpWorld", "Loaded navmesh!\n");
-		else Game::logger->Log("dpWorld", "Error(s) occurred during navmesh load.\n");
+		if (LoadNavmeshByZoneID(zoneID)) Game::logger->Log("dpWorld", "Loaded navmesh!");
+		else Game::logger->Log("dpWorld", "Error(s) occurred during navmesh load.");
 	}
 }
 
@@ -39,9 +39,9 @@ dpWorld::~dpWorld() {
 }
 
 void dpWorld::StepWorld(float deltaTime) {
-	if (m_Grid) { 
-		m_Grid->Update(deltaTime); 
-		return; 
+	if (m_Grid) {
+		m_Grid->Update(deltaTime);
+		return;
 	}
 
 	//Pre update:
@@ -53,7 +53,7 @@ void dpWorld::StepWorld(float deltaTime) {
 	//Do actual update:
 	for (auto entity : m_DynamicEntites) {
 		if (!entity || entity->GetSleeping()) continue;
-		
+
 		entity->Update(deltaTime);
 
 		for (auto other : m_StaticEntities) {
@@ -135,7 +135,7 @@ bool dpWorld::LoadNavmeshByZoneID(unsigned int zoneID) {
 
 dtNavMesh* dpWorld::LoadNavmesh(const char* path) {
 	FILE* fp;
-	
+
 	#ifdef _WIN32
 		fopen_s(&fp, path, "rb");
     #elif __APPLE__
@@ -144,7 +144,7 @@ dtNavMesh* dpWorld::LoadNavmesh(const char* path) {
 	#else
 		fp = fopen64(path, "rb");
 	#endif
-	
+
 	if (!fp) {
 		return 0;
 	}
@@ -272,7 +272,7 @@ std::vector<NiPoint3> dpWorld::GetPath(const NiPoint3& startPos, const NiPoint3&
 		//how many points to generate between start/end?
 		//note: not actually 100% accurate due to rounding, but worst case it causes them to go a tiny bit faster
 		//than their speed value would normally allow at the end.
-		int numPoints = startPos.Distance(startPos, endPos) / speed; 
+		int numPoints = startPos.Distance(startPos, endPos) / speed;
 
 		path.push_back(startPos); //insert the start pos
 
