@@ -114,7 +114,7 @@ cmake --build . --config Release
 ```
 
 ### Windows builds (WSL)
-This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11.
+This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11 (Build 22000 and higher).
 
 **Open the Command Prompt application with Administrator permissions and run the following:**
 ```bash
