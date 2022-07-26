@@ -1064,7 +1064,7 @@ void HandlePacket(Packet* packet) {
 						stmt->setUInt64(1, propertyId);
 						auto res = stmt->executeQuery();
 						while (res->next()) {
-							Game::logger->Log("UGC", "Getting lxfml ugcID: " + std::to_string(res->getUInt(1)));
+							Game::logger->Log("UGC", "Getting lxfml ugcID: %u", res->getUInt(1));
 
 							//Get lxfml:
 							auto stmtL = Database::CreatePreppedStmt("SELECT lxfml from ugc where id=?");
