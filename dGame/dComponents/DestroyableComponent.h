@@ -414,6 +414,14 @@ public:
      */
 	void AddOnHitCallback(const std::function<void(Entity*)>& callback);
 
+    /**
+     * Pushes a faction back to the list of factions.
+     * @param value Faction to add to list.
+     * 
+     * This method should only be used for testing.  Use AddFaction(int32_t, bool) for adding a faction properly.
+     */
+    void AddFactionNoLookup(int32_t faction) { m_FactionIDs.push_back(faction); };
+
 private:
     /**
      * Whether or not the health should be serialized

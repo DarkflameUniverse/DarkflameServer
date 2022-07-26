@@ -148,6 +148,11 @@ set(INCLUDED_DIRECTORIES
 	"thirdparty/recastnavigation/Detour/Include"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
+
+	"tests"
+	"tests/dCommonTests"
+	"tests/dGameTests"
+	"tests/dGameTests/dComponentsTests"
 	)
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)

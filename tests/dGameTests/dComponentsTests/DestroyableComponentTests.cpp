@@ -1,4 +1,4 @@
-#include "../GameDependencies.h"
+#include "GameDependencies.h"
 #include <gtest/gtest.h>
 
 #include "BitStream.h"
@@ -25,6 +25,8 @@ class DestroyableTest : public GameDependenciesTest {
 			destroyableComponent->SetImagination(6000);
 			destroyableComponent->SetIsSmashable(true);
 			destroyableComponent->SetExplodeFactor(1.1f);
+			destroyableComponent->AddFactionNoLookup(-1);
+			destroyableComponent->AddFactionNoLookup(6);
 		}
 
 		void TearDown() override {
@@ -39,7 +41,7 @@ class DestroyableTest : public GameDependenciesTest {
 TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 	destroyableComponent->Serialize(&bitStream, true, flags);
 	// Assert that the full number of bits are present
-	EXPECT_EQ(bitStream.GetNumberOfUnreadBits(), 396);
+	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 460);
 	{
 		// Now read in the full serialized construction BitStream
 		bool optionStatusImmunityInfo{}; // Values under this option are unused.
@@ -84,6 +86,11 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 			bitStream.Read(actualMaxArmor);
 			bitStream.Read(actualMaxImagination);
 			bitStream.Read(factionsSize);
+			for (uint32_t i = 0; i < factionsSize; i++) {
+				int32_t factionID{};
+				bitStream.Read(factionID);
+				factions.push_back(factionID);
+			}
 			bitStream.Read(isSmashable); // This is an option later and also a flag at this spot
 			bitStream.Read(isDead);
 			bitStream.Read(isSmashed);
@@ -110,7 +117,9 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 			EXPECT_EQ(actualMaxHealth, 12345.0f);
 			EXPECT_EQ(actualMaxArmor, 14.0f);
 			EXPECT_EQ(actualMaxImagination, 14000.0f);
-			EXPECT_EQ(factionsSize, 0);
+			EXPECT_EQ(factionsSize, 2);
+			EXPECT_NE(std::find(factions.begin(), factions.end(), -1), factions.end());
+			EXPECT_NE(std::find(factions.begin(), factions.end(), 6), factions.end());
 			EXPECT_EQ(isSmashable, true);
 			EXPECT_EQ(isDead, false);
 			EXPECT_EQ(isSmashed, false);
@@ -135,6 +144,7 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
 
 	// Now we test a serialization for correctness.
 	destroyableComponent->Serialize(&bitStream, false, flags);
+	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 422);
 	{
 		// Now read in the full serialized BitStream
 		bool optionStatsInfo{};
@@ -170,6 +180,11 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
 			bitStream.Read(actualMaxArmor);
 			bitStream.Read(actualMaxImagination);
 			bitStream.Read(factionsSize);
+			for (uint32_t i = 0; i < factionsSize; i++) {
+				int32_t factionID{};
+				bitStream.Read(factionID);
+				factions.push_back(factionID);
+			}
 			bitStream.Read(isSmashable);
 
 		bitStream.Read(optionIsOnThreatList);
@@ -188,7 +203,9 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
 			EXPECT_EQ(actualMaxHealth, 1233.0f);
 			EXPECT_EQ(actualMaxArmor, 14.0f);
 			EXPECT_EQ(actualMaxImagination, 14000.0f);
-			EXPECT_EQ(factionsSize, 0);
+			EXPECT_EQ(factionsSize, 2);
+			EXPECT_NE(std::find(factions.begin(), factions.end(), -1), factions.end());
+			EXPECT_NE(std::find(factions.begin(), factions.end(), 6), factions.end());
 			EXPECT_EQ(isSmashable, true);
 
 		EXPECT_EQ(optionIsOnThreatList, false); // Always zero for now on serialization
@@ -215,6 +232,7 @@ TEST_F(DestroyableTest, DestroyableComponentDamageTest) {
 	destroyableComponent->SetDamageToAbsorb(10);
 	destroyableComponent->Damage(9, LWOOBJID_EMPTY);
 	ASSERT_EQ(destroyableComponent->GetHealth(), 85);
+	ASSERT_EQ(destroyableComponent->GetDamageToAbsorb(), 1);
 	destroyableComponent->Damage(6, LWOOBJID_EMPTY);
 	ASSERT_EQ(destroyableComponent->GetHealth(), 80);
 	// Check that we take the correct reduced damage if we take reduced damage
@@ -223,6 +241,7 @@ TEST_F(DestroyableTest, DestroyableComponentDamageTest) {
 	ASSERT_EQ(destroyableComponent->GetHealth(), 75);
 	destroyableComponent->Damage(2, LWOOBJID_EMPTY);
 	ASSERT_EQ(destroyableComponent->GetHealth(), 74);
+	ASSERT_EQ(destroyableComponent->GetDamageReduction(), 2);
 	destroyableComponent->SetDamageReduction(0);
 	// Check that blocking works
 	destroyableComponent->SetAttacksToBlock(1);
@@ -234,8 +253,48 @@ TEST_F(DestroyableTest, DestroyableComponentDamageTest) {
 	destroyableComponent->SetIsImmune(true);
 	destroyableComponent->Damage(UINT32_MAX, LWOOBJID_EMPTY);
 	ASSERT_EQ(destroyableComponent->GetHealth(), 70);
+	ASSERT_TRUE(destroyableComponent->IsImmune());
 	destroyableComponent->SetIsImmune(false);
+	destroyableComponent->SetIsGMImmune(true);
+	destroyableComponent->Damage(UINT32_MAX, LWOOBJID_EMPTY);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 70);
+	ASSERT_TRUE(destroyableComponent->IsImmune());
+	destroyableComponent->SetIsGMImmune(false);
+	// Check knockback immunity
+	destroyableComponent->SetIsShielded(true);
+	ASSERT_TRUE(destroyableComponent->IsKnockbackImmune());
 	// Finally deal enough damage to kill the Entity
 	destroyableComponent->Damage(71, LWOOBJID_EMPTY);
-	EXPECT_EQ(destroyableComponent->GetHealth(), 0);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 0);
+	// Now lets heal some stats
+	destroyableComponent->Heal(15);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 15);
+	destroyableComponent->Heal(15000);
+	ASSERT_EQ(destroyableComponent->GetHealth(), 100);
+	destroyableComponent->Repair(10);
+	ASSERT_EQ(destroyableComponent->GetArmor(), 10);
+	destroyableComponent->Repair(15000);
+	ASSERT_EQ(destroyableComponent->GetArmor(), 10);
+	destroyableComponent->SetMaxImagination(100.0f);
+	destroyableComponent->SetImagination(0);
+	destroyableComponent->Imagine(99);
+	ASSERT_EQ(destroyableComponent->GetImagination(), 99);
+	destroyableComponent->Imagine(4);
+	ASSERT_EQ(destroyableComponent->GetImagination(), 100);
+}
+
+TEST_F(DestroyableTest, DestroyableComponentFactionTest) {
+	ASSERT_TRUE(destroyableComponent->HasFaction(-1));
+	ASSERT_TRUE(destroyableComponent->HasFaction(6));
+}
+
+TEST_F(DestroyableTest, DestroyableComponentValiditiyTest) {
+	auto* enemyEntity = new Entity(19, info);
+	auto* enemyDestroyableComponent = new DestroyableComponent(enemyEntity);
+	enemyEntity->AddComponent(COMPONENT_TYPE_DESTROYABLE, enemyDestroyableComponent);
+	enemyDestroyableComponent->AddFactionNoLookup(16);
+	destroyableComponent->AddEnemyFaction(16);
+	EXPECT_TRUE(destroyableComponent->IsEnemy(enemyEntity));
+	EXPECT_FALSE(destroyableComponent->IsFriend(enemyEntity));
+	delete enemyEntity;
 }
