@@ -211,9 +211,9 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
         auto child = zoneStatistics->FirstChildElement();
         while (child) {
             ZoneStatistics statistics = {};
-
+            
             child->QueryUnsigned64Attribute("ac", &statistics.m_AchievementsCollected);
-            child->QueryUnsigned64Attribute("bc", &statistics.m_BricksCollected);
+            child->QueryInt64Attribute("bc", &statistics.m_BricksCollected);
             child->QueryUnsigned64Attribute("cc", &statistics.m_CoinsCollected);
             child->QueryUnsigned64Attribute("es", &statistics.m_EnemiesSmashed);
             child->QueryUnsigned64Attribute("qbc", &statistics.m_QuickBuildsCompleted);

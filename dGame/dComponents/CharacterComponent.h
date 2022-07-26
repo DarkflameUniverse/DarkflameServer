@@ -15,7 +15,7 @@
  */
 struct ZoneStatistics {
     uint64_t m_AchievementsCollected;
-    uint64_t m_BricksCollected;
+    int64_t m_BricksCollected;
     uint64_t m_CoinsCollected;
     uint64_t m_EnemiesSmashed;
     uint64_t m_QuickBuildsCompleted;
@@ -431,7 +431,7 @@ private:
     /**
      * The total amount of bricks collected by this character
      */
-    uint64_t m_BricksCollected;
+    int64_t m_BricksCollected;
 
     /**
      * The total amount of entities smashed by this character
