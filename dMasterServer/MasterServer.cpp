@@ -84,56 +84,73 @@ int main(int argc, char** argv) {
 	Game::config = &config;
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
 	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
-
-	//Check CDClient exists
-	const std::string cdclient_path = "./res/CDServer.sqlite";
-	std::ifstream cdclient_fd(cdclient_path);
-	if (!cdclient_fd.good()) {
-		Game::logger->Log("WorldServer", "%s could not be opened\n", cdclient_path.c_str());
-		return EXIT_FAILURE;
-	}
-	cdclient_fd.close();
-
-	//Connect to CDClient
-	try {
-		CDClientDatabase::Connect(cdclient_path);
-	} catch (CppSQLite3Exception& e) {
-		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database\n");
-		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
-		Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
-		return EXIT_FAILURE;
-	}
-
-	//Get CDClient initial information
-	try {
-		CDClientManager::Instance()->Initialize();
-	} catch (CppSQLite3Exception& e) {
-		Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database\n");
-		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s\n", cdclient_path.c_str());
-		Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
-		Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
-		return EXIT_FAILURE;
-	}
-
-	//Connect to the MySQL Database
-	std::string mysql_host = config.GetValue("mysql_host");
-	std::string mysql_database = config.GetValue("mysql_database");
-	std::string mysql_username = config.GetValue("mysql_username");
-	std::string mysql_password = config.GetValue("mysql_password");
-
-	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-	} catch (sql::SQLException& ex) {
-		Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
-		return EXIT_FAILURE;
-	}
-
+	
 	if (argc > 1 && (strcmp(argv[1], "-m") == 0 || strcmp(argv[1], "--migrations") == 0)) {
+		//Connect to the MySQL Database
+		std::string mysql_host = config.GetValue("mysql_host");
+		std::string mysql_database = config.GetValue("mysql_database");
+		std::string mysql_username = config.GetValue("mysql_username");
+		std::string mysql_password = config.GetValue("mysql_password");
+
+		try {
+			Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		} catch (sql::SQLException& ex) {
+			Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
+			Game::logger->Log("MigrationRunner", "Migrations not run\n");
+			return EXIT_FAILURE;
+		}
+
 		MigrationRunner::RunMigrations();
 		Game::logger->Log("MigrationRunner", "Finished running migrations\n");
 
 		return EXIT_SUCCESS;
 	}	
+	else {
+
+		//Check CDClient exists
+		const std::string cdclient_path = "./res/CDServer.sqlite";
+		std::ifstream cdclient_fd(cdclient_path);
+		if (!cdclient_fd.good()) {
+			Game::logger->Log("WorldServer", "%s could not be opened\n", cdclient_path.c_str());
+			return EXIT_FAILURE;
+		}
+		cdclient_fd.close();
+
+		//Connect to CDClient
+		try {
+			CDClientDatabase::Connect(cdclient_path);
+		} catch (CppSQLite3Exception& e) {
+			Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database\n");
+			Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
+			Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
+			return EXIT_FAILURE;
+		}
+
+		//Get CDClient initial information
+		try {
+			CDClientManager::Instance()->Initialize();
+		} catch (CppSQLite3Exception& e) {
+			Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database\n");
+			Game::logger->Log("WorldServer", "May be caused by corrupted file: %s\n", cdclient_path.c_str());
+			Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
+			Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
+			return EXIT_FAILURE;
+		}
+
+		//Connect to the MySQL Database
+		std::string mysql_host = config.GetValue("mysql_host");
+		std::string mysql_database = config.GetValue("mysql_database");
+		std::string mysql_username = config.GetValue("mysql_username");
+		std::string mysql_password = config.GetValue("mysql_password");
+
+		try {
+			Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		} catch (sql::SQLException& ex) {
+			Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s\n", ex.what());
+			return EXIT_FAILURE;
+		}
+	}
+
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
@@ -311,7 +328,7 @@ int main(int argc, char** argv) {
 
 			if (affirmTimeout == 1000) {
 				instance->Shutdown();
-				instance->SetShutdownComplete(true);
+				instance->SetIsShuttingDown(true);
 
 				Game::im->RedirectPendingRequests(instance);
 			}
@@ -358,6 +375,7 @@ void HandlePacket(Packet* packet) {
 		Instance* instance =
 			Game::im->GetInstanceBySysAddr(packet->systemAddress);
 		if (instance) {
+			Game::logger->Log("MasterServer", "Actually disconnected from zone %i clone %i instance %i port %i\n", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
 			Game::im->RemoveInstance(instance); //Delete the old
 		}
 
@@ -497,7 +515,10 @@ void HandlePacket(Packet* packet) {
 					CBITSTREAM;
 					PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
-					bitStream.Write(RakNet::RakString(username.c_str()));
+					bitStream.Write<uint32_t>(username.size());
+					for (auto character : username) {
+						bitStream.Write(character);
+					}
 					SEND_PACKET_BROADCAST;
 
 					break;
@@ -572,14 +593,20 @@ void HandlePacket(Packet* packet) {
 
 			uint32_t mapId;
 			LWOCLONEID cloneId;
-			RakNet::RakString password;
+			std::string password;
 
 			inStream.Read(mapId);
 			inStream.Read(cloneId);
-			inStream.Read(password);
 
-			Game::im->CreatePrivateInstance(mapId, cloneId,
-				password.C_String());
+			uint32_t len;
+			inStream.Read<uint32_t>(len);
+			for (int i = 0; len > i; i++) {
+				char character;
+				inStream.Read<char>(character);
+				password += character;
+			}
+
+			Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
 
 			break;
 		}
@@ -591,15 +618,22 @@ void HandlePacket(Packet* packet) {
 			uint64_t requestID = 0;
 			uint8_t mythranShift = false;
 
-			RakNet::RakString password;
+			std::string password;
 
 			inStream.Read(requestID);
 			inStream.Read(mythranShift);
-			inStream.Read(password);
+			
+			uint32_t len;
+			inStream.Read<uint32_t>(len);
 
-			auto* instance = Game::im->FindPrivateInstance(password.C_String());
+			for (int i = 0; i < len; i++) {
+				char character; inStream.Read<char>(character);
+				password += character;
+			}
 
-			Game::logger->Log( "MasterServer", "Join private zone: %llu %d %s %p\n", requestID, mythranShift, password.C_String(), instance);
+			auto* instance = Game::im->FindPrivateInstance(password.c_str());
+
+			Game::logger->Log( "MasterServer", "Join private zone: %llu %d %s %p\n", requestID, mythranShift, password.c_str(), instance);
 
 			if (instance == nullptr) {
 				return;
@@ -678,8 +712,8 @@ void HandlePacket(Packet* packet) {
 				return;
 			}
 
-			Game::logger->Log("MasterServer", "Got shutdown response\n");
-			instance->SetShutdownComplete(true);
+			Game::logger->Log("MasterServer", "Got shutdown response from zone %i clone %i instance %i port %i\n", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
+			instance->SetIsShuttingDown(true);
 			break;
 		}
 

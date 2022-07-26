@@ -59,6 +59,7 @@ public:
       \return The AMF value type
      */
     virtual AMFValueType GetValueType() = 0;
+    virtual ~AMFValue() {};
 };
 
 //! A typedef for a pointer to an AMF value
@@ -233,6 +234,7 @@ public:
 };
 
 //! The array value AMF type
+// This object will manage it's own memory map and list.  Do not delete its values.
 class AMFArrayValue : public AMFValue {
 private:
     _AMFArrayMap_ associative;      //!< The array map (associative part)
@@ -245,6 +247,7 @@ private:
     AMFValueType GetValueType() { return AMFArray; }
     
 public:
+    ~AMFArrayValue() override;
     //! Inserts an item into the array map for a specific key
     /*!
       \param key The key to set
@@ -308,6 +311,18 @@ public:
       \return Where the iterator ends
      */
     _AMFArrayList_::iterator GetDenseIteratorEnd();
+
+    //! Returns the associative map
+    /*!
+      \return The associative map
+     */
+    _AMFArrayMap_ GetAssociativeMap() { return this->associative; };
+
+    //! Returns the dense array
+    /*!
+      \return The dense array
+     */
+    _AMFArrayList_ GetDenseArray() { return this->dense; };
 };
 
 //! The anonymous object value AMF type
@@ -320,6 +335,7 @@ private:
      \return The AMF value type
      */
     AMFValueType GetValueType() { return AMFObject; }
+    ~AMFObjectValue() override;
     
 public:
     //! Constructor

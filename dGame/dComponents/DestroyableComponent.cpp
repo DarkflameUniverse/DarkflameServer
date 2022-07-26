@@ -234,10 +234,8 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 		AMFArrayValue args;
 		args.InsertValue("amount", amount);
 		args.InsertValue("type", type);
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 
-		delete amount;
-		delete type;
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	}
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -283,9 +281,6 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 		args.InsertValue("type", type);
 
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
-
-		delete amount;
-		delete type;
 	}
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -328,10 +323,8 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 		AMFArrayValue args;
 		args.InsertValue("amount", amount);
 		args.InsertValue("type", type);
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 
-		delete amount;
-		delete type;
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	}
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
@@ -829,11 +822,11 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	m_Parent->Kill(owner);
 }
 
-void DestroyableComponent::SetFaction(int32_t factionID) {
+void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
 	m_FactionIDs.clear();
 	m_EnemyFactionIDs.clear();
 
-	AddFaction(factionID);
+	AddFaction(factionID, ignoreChecks);
 }
 
 void DestroyableComponent::PushImmunity(int32_t stacks)
