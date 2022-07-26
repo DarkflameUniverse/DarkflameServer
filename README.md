@@ -114,12 +114,20 @@ cmake --build . --config Release
 ```
 
 ### Windows builds (WSL)
-This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11 (Build 22000 and higher).
+This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11 (Build 22000 and higher). 
+
+Please note that Microsoft sometimes ends up breaking WSL (there tends to be network issues when using WSL) and DLU won't be able to fix them so verify that its not WSL that is broken before reporting an issue.
 
 **Open the Command Prompt application with Administrator permissions and run the following:**
 ```bash
 # Installing Windows Subsystem for Linux
 wsl --install
+```
+
+**Change WSL version (OPTIONAL):**
+```bash
+# Changing WSL version for the distro you are using (by default its WSL2)
+wsl --set-version <distro name> <1 or 2>
 ```
 
 **Open the Ubuntu application and run the following:**
