@@ -26,6 +26,7 @@ dLogger::~dLogger() {
 }
 
 void dLogger::vLog(const char* format, va_list args) {
+	if (strnlen_s(format, 2000) > 1000) return;
 #ifdef _WIN32
 	time_t t = time(NULL);
 	struct tm time;
