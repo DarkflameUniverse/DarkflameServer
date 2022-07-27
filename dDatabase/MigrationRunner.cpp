@@ -31,7 +31,7 @@ void MigrationRunner::RunMigrations() {
         delete stmt;
         if (doExit) continue;
 
-        Game::logger->Log("MigrationRunner", "Running migration: " + migration.name + "");
+        Game::logger->Log("MigrationRunner", "Running migration: %s", migration.name.c_str());
 
         finalSQL.append(migration.data);
         finalSQL.append('\n');
@@ -49,7 +49,7 @@ void MigrationRunner::RunMigrations() {
             delete simpleStatement;
         }
         catch (sql::SQLException e) {
-            Game::logger->Log("MigrationRunner", std::string("Encountered error running migration: ") + e.what() + "");
+            Game::logger->Log("MigrationRunner", "Encountered error running migration: %s", e.what());
         }
     }
 }

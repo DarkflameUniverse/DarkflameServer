@@ -818,7 +818,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = invalidToReturn;
 	else if (script == invalidToReturn) {
 		if (scriptName.length() > 0)
-			Game::logger->LogDebug("CppScripts", "Attempted to load CppScript for '" + scriptName + "', but returned InvalidScript.");
+			Game::logger->LogDebug("CppScripts", "Attempted to load CppScript for '%s', but returned InvalidScript.", scriptName.c_str());
 			// information not really needed for sys admins but is for developers
 
 		script = invalidToReturn;
