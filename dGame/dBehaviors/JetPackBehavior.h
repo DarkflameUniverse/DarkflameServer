@@ -1,7 +1,7 @@
 #pragma once
 #include "Behavior.h"
 
-class JetPackBehavior final : public Behavior 
+class JetPackBehavior final : public Behavior
 {
 public:
 	int32_t m_WarningEffectID;

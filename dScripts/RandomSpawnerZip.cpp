@@ -1,9 +1,8 @@
 #include "RandomSpawnerZip.h"
 
-void RandomSpawnerZip::OnStartup(Entity* self) 
-{
-    zones = {
-        { //-- ** Load 1 -------------------------- **
+void RandomSpawnerZip::OnStartup(Entity* self) {
+	zones = {
+		{ //-- ** Load 1 -------------------------- **
 			{{mobs.stromb, 3, "type1",},
 			{mobs.pirate,  2, "type2",},
 			{mobs.admiral, 2, "type3",},
@@ -73,21 +72,20 @@ void RandomSpawnerZip::OnStartup(Entity* self)
 			{mobs.pirate, 0, "type4",}},
 			1
 		},
-    };
+	};
 
-    sectionMultipliers = {
-        {"secA", 1.2f},
-        {"secB", 1.2f},
-    };
+	sectionMultipliers = {
+		{"secA", 1.2f},
+		{"secB", 1.2f},
+	};
 
-    zoneName = "zip";
+	zoneName = "zip";
 	mobDeathResetNumber = 20;
 	changeNum = 9;
 
-    BaseStartup(self);
+	BaseStartup(self);
 }
 
-void RandomSpawnerZip::OnTimerDone(Entity* self, std::string timerName) 
-{
-    BaseOnTimerDone(self, timerName);
+void RandomSpawnerZip::OnTimerDone(Entity* self, std::string timerName) {
+	BaseOnTimerDone(self, timerName);
 }

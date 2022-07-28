@@ -54,7 +54,7 @@ bool dpCollisionChecks::CheckBoxes(dpEntity* a, dpEntity* b) {
 	/*//Check if we're overlapping on X/Z:
 	if ((boxA->GetMaxWidth() >= boxB->GetMinWidth()) && //If our max width is greater than starting X of b
 		(boxA->GetMinWidth() <= boxB->GetMaxWidth()) && //If our start x is less than b's max width
-		(boxA->GetMaxDepth() >= boxB->GetMinDepth()) && 
+		(boxA->GetMaxDepth() >= boxB->GetMinDepth()) &&
 		(boxA->GetMinDepth() <= boxB->GetMaxDepth())) {
 
 		//Check if we're in the right height
@@ -93,8 +93,7 @@ bool dpCollisionChecks::CheckSphereBox(dpEntity* a, dpEntity* b) {
 		sphere = static_cast<dpShapeSphere*>(b->GetShape());
 		boxPos = a->GetPosition();
 		spherePos = b->GetPosition();
-	}
-	else {
+	} else {
 		box = static_cast<dpShapeBox*>(b->GetShape());
 		sphere = static_cast<dpShapeSphere*>(a->GetShape());
 		boxPos = b->GetPosition();
@@ -110,8 +109,8 @@ bool dpCollisionChecks::CheckSphereBox(dpEntity* a, dpEntity* b) {
 	float dX = x - spherePos.x;
 	float dY = y - spherePos.y;
 	float dZ = z - spherePos.z;
-	float distanceSquared = (dX * dX) + (dY * dY) + (dZ * dZ); 
+	float distanceSquared = (dX * dX) + (dY * dY) + (dZ * dZ);
 	const float radius = sphere->GetRadius();
 
-	return distanceSquared < radius * radius;
+	return distanceSquared < radius* radius;
 }

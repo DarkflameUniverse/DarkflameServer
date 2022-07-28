@@ -8,8 +8,7 @@ void ActMine::OnStartup(Entity* self) {
 	self->SetProximityRadius(MINE_RADIUS, "mineRadius");
 }
 
-void ActMine::OnRebuildNotifyState(Entity* self, eRebuildState state)
-{
+void ActMine::OnRebuildNotifyState(Entity* self, eRebuildState state) {
 	if (state == eRebuildState::REBUILD_COMPLETED) {
 		auto* rebuild = self->GetComponent<RebuildComponent>();
 		if (rebuild) {
@@ -35,7 +34,7 @@ void ActMine::OnProximityUpdate(Entity* self, Entity* entering, std::string name
 
 void ActMine::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "Tick") {
-		if (self->GetVar<int>(u"NumWarnings") >= MAX_WARNINGS){
+		if (self->GetVar<int>(u"NumWarnings") >= MAX_WARNINGS) {
 			auto* skill = self->GetComponent<SkillComponent>();
 			if (!skill) return;
 			skill->CalculateBehavior(SKILL_ID, BEHAVIOR_ID, LWOOBJID_EMPTY);

@@ -5,5 +5,5 @@
 class AmDarklingMech : public BaseEnemyMech
 {
 public:
-    void OnStartup(Entity* self) override;
+	void OnStartup(Entity* self) override;
 };

@@ -1,9 +1,8 @@
 #include "RandomSpawnerFin.h"
 
-void RandomSpawnerFin::OnStartup(Entity* self) 
-{
-    zones = {
-        { //-- ** Load 1 -------------------------- **
+void RandomSpawnerFin::OnStartup(Entity* self) {
+	zones = {
+		{ //-- ** Load 1 -------------------------- **
 			{{mobs.pirate, 3, "type1",},
 			{mobs.ronin,  3, "type2",},
 			{mobs.spider, 2, "type3",}},
@@ -63,25 +62,24 @@ void RandomSpawnerFin::OnStartup(Entity* self)
 			{mobs.horse, 1, "type3",}},
 			10
 		},
-    };
-    
-    sectionMultipliers = {
-        {"secA", 1},
-        {"secB", 1},
-        {"secC", 1.2f},
-        {"secD", 1.3f},
-        {"secE", 1.6f},
-        {"secF", 1},
-        {"secG", 1},
-        {"secH", 1.2f},
-    };
+	};
 
-    zoneName = "fin";
+	sectionMultipliers = {
+		{"secA", 1},
+		{"secB", 1},
+		{"secC", 1.2f},
+		{"secD", 1.3f},
+		{"secE", 1.6f},
+		{"secF", 1},
+		{"secG", 1},
+		{"secH", 1.2f},
+	};
 
-    BaseStartup(self);
+	zoneName = "fin";
+
+	BaseStartup(self);
 }
 
-void RandomSpawnerFin::OnTimerDone(Entity* self, std::string timerName) 
-{
-    BaseOnTimerDone(self, timerName);
+void RandomSpawnerFin::OnTimerDone(Entity* self, std::string timerName) {
+	BaseOnTimerDone(self, timerName);
 }

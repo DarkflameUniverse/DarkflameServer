@@ -3,7 +3,7 @@
 
 class VeMissionConsole : public CppScripts::Script {
 public:
-    void OnUse(Entity *self, Entity *user) override;
+	void OnUse(Entity* self, Entity* user) override;
 private:
-    const std::u16string m_NumberVariable = u"num";
+	const std::u16string m_NumberVariable = u"num";
 };

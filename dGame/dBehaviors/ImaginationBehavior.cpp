@@ -6,19 +6,16 @@
 #include "dLogger.h"
 
 
-void ImaginationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch)
-{
+void ImaginationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
 	auto* entity = EntityManager::Instance()->GetEntity(branch.target);
 
-	if (entity == nullptr)
-	{
+	if (entity == nullptr) {
 		return;
 	}
 
 	auto* destroyable = entity->GetComponent<DestroyableComponent>();
 
-	if (destroyable == nullptr)
-	{
+	if (destroyable == nullptr) {
 		return;
 	}
 
@@ -26,12 +23,10 @@ void ImaginationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 
 }
 
-void ImaginationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch)
-{
+void ImaginationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
 	Handle(context, bit_stream, branch);
 }
 
-void ImaginationBehavior::Load()
-{
+void ImaginationBehavior::Load() {
 	this->m_imagination = GetInt("imagination");
 }

@@ -1,8 +1,7 @@
 ﻿#include "PropertySelectQueryProperty.h"
 
-void PropertySelectQueryProperty::Serialize(RakNet::BitStream& stream) const
-{
-    stream.Write(CloneId);
+void PropertySelectQueryProperty::Serialize(RakNet::BitStream& stream) const {
+	stream.Write(CloneId);
 
 	const auto& owner = GeneralUtils::ASCIIToUTF16(OwnerName);
 	stream.Write(uint32_t(owner.size()));
@@ -34,7 +33,6 @@ void PropertySelectQueryProperty::Serialize(RakNet::BitStream& stream) const
 	stream.Write(PerformanceCost);
 }
 
-void PropertySelectQueryProperty::Deserialize(RakNet::BitStream& stream) const
-{
-    // Do we need this?
+void PropertySelectQueryProperty::Deserialize(RakNet::BitStream& stream) const {
+	// Do we need this?
 }

@@ -11,9 +11,9 @@ CDProximityMonitorComponentTable::CDProximityMonitorComponentTable(void) {
 
 		tableSize.nextRow();
 	}
-    
+
 	tableSize.finalize();
-    
+
 	// Reserve the size
 	this->entries.reserve(size);
 
@@ -34,7 +34,7 @@ CDProximityMonitorComponentTable::CDProximityMonitorComponentTable(void) {
 }
 
 //! Destructor
-CDProximityMonitorComponentTable::~CDProximityMonitorComponentTable(void) { }
+CDProximityMonitorComponentTable::~CDProximityMonitorComponentTable(void) {}
 
 //! Returns the table's name
 std::string CDProximityMonitorComponentTable::GetName(void) const {

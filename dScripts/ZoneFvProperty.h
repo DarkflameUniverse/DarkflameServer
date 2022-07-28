@@ -2,5 +2,5 @@
 #include "BasePropertyServer.h"
 
 class ZoneFvProperty : public BasePropertyServer {
-    void SetGameVariables(Entity *self) override;
+	void SetGameVariables(Entity* self) override;
 };

@@ -58,8 +58,7 @@ int main(int argc, char** argv) {
 
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-	}
-	catch (sql::SQLException& ex) {
+	} catch (sql::SQLException& ex) {
 		Game::logger->Log("ChatServer", "Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("ChatServer");
 		delete Game::server;
@@ -104,8 +103,7 @@ int main(int argc, char** argv) {
 
 			if (framesSinceMasterDisconnect >= 30)
 				break; //Exit our loop, shut down.
-		}
-		else framesSinceMasterDisconnect = 0;
+		} else framesSinceMasterDisconnect = 0;
 
 		//In world we'd update our other systems here.
 
@@ -122,8 +120,7 @@ int main(int argc, char** argv) {
 		if (framesSinceLastFlush >= 900) {
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
-		}
-		else framesSinceLastFlush++;
+		} else framesSinceLastFlush++;
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
 		if (framesSinceLastSQLPing >= 40000) {
@@ -141,8 +138,7 @@ int main(int argc, char** argv) {
 			delete stmt;
 
 			framesSinceLastSQLPing = 0;
-		}
-		else framesSinceLastSQLPing++;
+		} else framesSinceLastSQLPing++;
 
 		//Sleep our thread since auth can afford to.
 		t += std::chrono::milliseconds(mediumFramerate); //Chat can run at a lower "fps"
@@ -158,7 +154,7 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-dLogger * SetupLogger() {
+dLogger* SetupLogger() {
 	std::string logPath = "./logs/ChatServer_" + std::to_string(time(nullptr)) + ".log";
 	bool logToConsole = false;
 	bool logDebugStatements = false;

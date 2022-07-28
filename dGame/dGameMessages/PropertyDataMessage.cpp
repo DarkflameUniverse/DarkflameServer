@@ -6,8 +6,7 @@
 #include "dLogger.h"
 #include "CDClientManager.h"
 
-void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) const
-{
+void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) const {
 	stream.Write<int64_t>(0); // - property id
 
 	stream.Write<int32_t>(TemplateID); // - template id
@@ -39,9 +38,9 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<uint32_t>(0); // - zone code
 	stream.Write<uint32_t>(0); // - minimum price
 	stream.Write<uint32_t>(1); // - rent duration
-	
+
 	stream.Write<uint64_t>(LastUpdatedTime); // - timestamp
-	
+
 	stream.Write<uint32_t>(1);
 
 	stream.Write<uint32_t>(reputation); // Reputation
@@ -52,7 +51,7 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	for (uint32_t i = 0; i < spawn.size(); ++i) {
 		stream.Write(uint16_t(spawn[i]));
 	}
-	
+
 	stream.Write<uint32_t>(0); // String length
 	stream.Write<uint32_t>(0); // String length
 
@@ -89,13 +88,12 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<float>(MaxBuildHeight);
 
 	stream.Write(ClaimedTime); // - timestamp
-	
+
 	stream.Write<char>(PrivacyOption);
 
 	stream.Write(uint32_t(Paths.size()));
 
-	for (const auto& path : Paths)
-	{
+	for (const auto& path : Paths) {
 		stream.Write(path.x);
 		stream.Write(path.y);
 		stream.Write(path.z);
@@ -103,11 +101,11 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 }
 
 GameMessages::PropertyDataMessage::PropertyDataMessage(uint32_t mapID) {
-    const auto propertyTemplate = CDClientManager::Instance()->
-            GetTable<CDPropertyTemplateTable>("PropertyTemplate")->GetByMapID(mapID);
+	const auto propertyTemplate = CDClientManager::Instance()->
+		GetTable<CDPropertyTemplateTable>("PropertyTemplate")->GetByMapID(mapID);
 
-    TemplateID = propertyTemplate.id;
-    ZoneId = propertyTemplate.mapID;
-    VendorMapId = propertyTemplate.vendorMapID;
-    SpawnName = propertyTemplate.spawnName;
+	TemplateID = propertyTemplate.id;
+	ZoneId = propertyTemplate.mapID;
+	VendorMapId = propertyTemplate.vendorMapID;
+	SpawnName = propertyTemplate.spawnName;
 }

@@ -2,5 +2,5 @@
 #include "CppScripts.h"
 
 class AgMonumentRaceCancel : public CppScripts::Script {
-    void OnCollisionPhantom(Entity *self, Entity *target) override;
+	void OnCollisionPhantom(Entity* self, Entity* target) override;
 };

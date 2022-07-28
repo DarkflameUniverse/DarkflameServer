@@ -4,8 +4,7 @@
 
 dpShapeSphere::dpShapeSphere(dpEntity* parentEntity, float radius) :
 	dpShapeBase(parentEntity),
-	m_Radius(radius)
-{
+	m_Radius(radius) {
 	m_ShapeType = dpShapeType::Sphere;
 }
 

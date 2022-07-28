@@ -11,9 +11,9 @@ CDPackageComponentTable::CDPackageComponentTable(void) {
 
 		tableSize.nextRow();
 	}
-    
+
 	tableSize.finalize();
-    
+
 	// Reserve the size
 	this->entries.reserve(size);
 
@@ -33,7 +33,7 @@ CDPackageComponentTable::CDPackageComponentTable(void) {
 }
 
 //! Destructor
-CDPackageComponentTable::~CDPackageComponentTable(void) { }
+CDPackageComponentTable::~CDPackageComponentTable(void) {}
 
 //! Returns the table's name
 std::string CDPackageComponentTable::GetName(void) const {
