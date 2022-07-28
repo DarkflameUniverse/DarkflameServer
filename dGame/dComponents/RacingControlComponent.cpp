@@ -818,7 +818,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
             // Reached the start point, lapped
             if (respawnIndex == 0) {
-                time_t lapTime = std::time(nullptr) - (player.lap == 1 ? m_StartTime : player.lapTime);
+                time_t lapTime = std::time(nullptr) - (player.lap == 0 ? m_StartTime : player.lapTime);
 
                 // Cheating check
                 if (lapTime < 40) {
