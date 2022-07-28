@@ -26,6 +26,13 @@ dLogger::~dLogger() {
 }
 
 void dLogger::vLog(const char* format, va_list args) {
+	const char* tempPtr = format; // strlen_s implementation for Linux and Windows
+	for (; *tempPtr != '\0'; ++tempPtr) {
+		size_t size = tempPtr - format;
+		if (size > 600) {
+			return;
+		}
+	}
 #ifdef _WIN32
 	time_t t = time(NULL);
 	struct tm time;
