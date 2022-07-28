@@ -66,6 +66,25 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 		const auto& info = Inventory::FindItemComponent(item.itemid);
 
 		UpdateSlot(info.equipLocation, { id, static_cast<LOT>(item.itemid), item.count, slot++ });
+		
+		// Equip this items proxies.
+		auto subItems = info.subItems;
+		
+		subItems.erase(std::remove_if(subItems.begin(), subItems.end(), ::isspace), subItems.end());
+		
+		if (!subItems.empty()) {
+			const auto subItemsSplit = GeneralUtils::SplitString(subItems, ',');
+			
+			for (auto proxyLotAsString : subItemsSplit) {
+				const auto proxyLOT = static_cast<LOT>(std::stoi(proxyLotAsString));
+				
+				const auto& proxyInfo = Inventory::FindItemComponent(proxyLOT);
+				const LWOOBJID proxyId = ObjectIDManager::Instance()->GenerateObjectID();
+				
+				// Use item.count since we equip item.count number of the item this is a requested proxy of
+				UpdateSlot(proxyInfo.equipLocation, { proxyId, proxyLOT, item.count, slot++ } );
+			}
+		}
 	}
 }
 
