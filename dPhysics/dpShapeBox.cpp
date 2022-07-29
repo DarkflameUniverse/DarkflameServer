@@ -11,11 +11,10 @@
 
 dpShapeBox::dpShapeBox(dpEntity* parentEntity, float width, float height, float depth) :
 	dpShapeBase(parentEntity),
-	m_Width(width/2),
-	m_Height(height/2),
-	m_Depth(depth/2),
-	m_Scale(1.0f)
-{
+	m_Width(width / 2),
+	m_Height(height / 2),
+	m_Depth(depth / 2),
+	m_Scale(1.0f) {
 	m_ShapeType = dpShapeType::Box;
 
 	InitVertices();

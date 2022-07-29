@@ -6,18 +6,18 @@ struct Team
 {
 	LWOOBJID teamID = LWOOBJID_EMPTY;
 	char lootOption = 0;
-	std::vector<LWOOBJID> members {};
+	std::vector<LWOOBJID> members{};
 	char lootRound = 0;
 };
 
 class TeamManager
 {
 public:
-    static TeamManager* Instance() {
+	static TeamManager* Instance() {
 		if (!m_Address) {
 			m_Address = new TeamManager();
 		}
-		
+
 		return m_Address;
 	}
 
@@ -26,11 +26,11 @@ public:
 	void UpdateTeam(LWOOBJID teamId, char lootOption, const std::vector<LWOOBJID>& members);
 	void DeleteTeam(LWOOBJID teamId);
 
-    explicit TeamManager();
-    ~TeamManager();
+	explicit TeamManager();
+	~TeamManager();
 
 private:
-    static TeamManager* m_Address; //For singleton method
-	std::unordered_map<LWOOBJID, Team*> m_Teams {};
+	static TeamManager* m_Address; //For singleton method
+	std::unordered_map<LWOOBJID, Team*> m_Teams{};
 };
 

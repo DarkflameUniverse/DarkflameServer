@@ -7,11 +7,10 @@ public:
 	float m_duration;
 
 	Behavior* m_action;
-	
-	explicit DurationBehavior(const uint32_t behavior_id) : Behavior(behavior_id)
-	{
+
+	explicit DurationBehavior(const uint32_t behavior_id) : Behavior(behavior_id) {
 	}
-	
+
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 
 	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;

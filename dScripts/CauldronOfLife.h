@@ -2,5 +2,5 @@
 #include "ScriptedPowerupSpawner.h"
 
 class CauldronOfLife : public ScriptedPowerupSpawner {
-    void OnStartup(Entity* self) override;
+	void OnStartup(Entity* self) override;
 };

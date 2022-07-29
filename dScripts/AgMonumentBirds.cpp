@@ -28,6 +28,6 @@ void AgMonumentBirds::OnTimerDone(Entity* self, std::string timerName) {
 	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"PlayerID"));
 
 	if (player == nullptr) return;
-	
+
 	self->ScheduleKillAfterUpdate(player);
 }

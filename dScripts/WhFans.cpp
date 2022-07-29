@@ -41,8 +41,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 			volumePhys->SetPhysicsEffectActive(false);
 			EntityManager::Instance()->SerializeEntity(volume);
 		}
-	}
-	else if (!self->GetVar<bool>(u"on") && self->GetVar<bool>(u"alive")) {
+	} else if (!self->GetVar<bool>(u"on") && self->GetVar<bool>(u"alive")) {
 		GameMessages::SendPlayAnimation(self, u"fan-on");
 
 		self->SetVar<bool>(u"on", true);
@@ -56,8 +55,8 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 	}
 }
 
-void WhFans::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1, int32_t param2,
-                                   int32_t param3) {
+void WhFans::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2,
+	int32_t param3) {
 	if (args.length() == 0 || !self->GetVar<bool>(u"alive")) return;
 
 	if ((args == "turnOn" && self->GetVar<bool>(u"on")) || (args == "turnOff" && !self->GetVar<bool>(u"on"))) return;

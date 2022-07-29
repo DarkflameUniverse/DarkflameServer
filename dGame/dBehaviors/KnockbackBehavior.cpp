@@ -7,25 +7,21 @@
 #include "GameMessages.h"
 #include "DestroyableComponent.h"
 
-void KnockbackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void KnockbackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	bool unknown;
 
 	bitStream->Read(unknown);
 }
 
-void KnockbackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void KnockbackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	bool blocked = false;
 
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
-	if (target != nullptr)
-	{
+	if (target != nullptr) {
 		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
 
-		if (destroyableComponent != nullptr)
-		{
+		if (destroyableComponent != nullptr) {
 			blocked = destroyableComponent->IsKnockbackImmune();
 		}
 	}
@@ -33,8 +29,7 @@ void KnockbackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* b
 	bitStream->Write(blocked);
 }
 
-void KnockbackBehavior::Load()
-{
+void KnockbackBehavior::Load() {
 	this->m_strength = GetInt("strength");
 	this->m_angle = GetInt("angle");
 	this->m_relative = GetBoolean("relative");

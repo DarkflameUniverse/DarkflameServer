@@ -23,14 +23,12 @@ void AgBusDoor::OnProximityUpdate(Entity* self, Entity* entering, std::string na
 	m_Counter = 0;
 	m_OuterCounter = 0;
 
-	for (const auto& pair : proximityMonitorComponent->GetProximityObjects("busDoor"))
-	{
+	for (const auto& pair : proximityMonitorComponent->GetProximityObjects("busDoor")) {
 		auto* entity = EntityManager::Instance()->GetEntity(pair.first);
 		if (entity != nullptr && entity->IsPlayer()) m_Counter++;
 	}
 
-	for (const auto& pair : proximityMonitorComponent->GetProximityObjects("busDoorOuter"))
-	{
+	for (const auto& pair : proximityMonitorComponent->GetProximityObjects("busDoorOuter")) {
 		auto* entity = EntityManager::Instance()->GetEntity(pair.first);
 		if (entity != nullptr && entity->IsPlayer()) m_OuterCounter++;
 	}
@@ -40,8 +38,7 @@ void AgBusDoor::OnProximityUpdate(Entity* self, Entity* entering, std::string na
 		if (m_Counter > 0) {
 			MoveDoor(self, true);
 		}
-	}
-	else if (status == "LEAVE") {
+	} else if (status == "LEAVE") {
 		// move down when no players are inside either radii
 		if (m_Counter <= 0) {
 			MoveDoor(self, false);
@@ -52,13 +49,12 @@ void AgBusDoor::OnProximityUpdate(Entity* self, Entity* entering, std::string na
 void AgBusDoor::MoveDoor(Entity* self, bool bOpen) {
 	if (bOpen) {
 		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 1, 0);
-	}
-	else {
+	} else {
 		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 0, 1);
 		self->AddTimer("dustTimer", 2.0f);
 	}
 
-	//This is currently commented out because it might be the reason that people's audio is cutting out. 
+	//This is currently commented out because it might be the reason that people's audio is cutting out.
 	GameMessages::SendPlayNDAudioEmitter(self, UNASSIGNED_SYSTEM_ADDRESS, "{9a24f1fa-3177-4745-a2df-fbd996d6e1e3}");
 }
 

@@ -7,12 +7,10 @@
 #include "dLogger.h"
 #include "DestroyableComponent.h"
 
-void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch)
-{
+void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
-	if (target == nullptr)
-	{
+	if (target == nullptr) {
 		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
@@ -20,8 +18,7 @@ void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 
 	auto* destroyable = target->GetComponent<DestroyableComponent>();
 
-	if (destroyable == nullptr)
-	{
+	if (destroyable == nullptr) {
 		return;
 	}
 
@@ -32,17 +29,14 @@ void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
 }
 
-void DamageAbsorptionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void DamageAbsorptionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 
-void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, const LWOOBJID second)
-{
+void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, const LWOOBJID second) {
 	auto* target = EntityManager::Instance()->GetEntity(second);
 
-	if (target == nullptr)
-	{
+	if (target == nullptr) {
 		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", second);
 
 		return;
@@ -50,8 +44,7 @@ void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchCon
 
 	auto* destroyable = target->GetComponent<DestroyableComponent>();
 
-	if (destroyable == nullptr)
-	{
+	if (destroyable == nullptr) {
 		return;
 	}
 
@@ -62,7 +55,6 @@ void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchCon
 	destroyable->SetDamageToAbsorb(present - toRemove);
 }
 
-void DamageAbsorptionBehavior::Load()
-{
+void DamageAbsorptionBehavior::Load() {
 	this->m_absorbAmount = GetInt("absorb_amount");
 }
