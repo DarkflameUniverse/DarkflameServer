@@ -15,64 +15,64 @@ AMFValue* AMFDeserialize::Read(RakNet::BitStream* inStream) {
 	inStream->Read(marker);
 	// Based on the typing, create the value associated with that and return the base value class
 	switch (marker) {
-		case AMFValueType::AMFUndefined: {
-			returnValue = new AMFUndefinedValue();
-			break;
-		}
+	case AMFValueType::AMFUndefined: {
+		returnValue = new AMFUndefinedValue();
+		break;
+	}
 
-		case AMFValueType::AMFNull: {
-			returnValue = new AMFNullValue();
-			break;
-		}
+	case AMFValueType::AMFNull: {
+		returnValue = new AMFNullValue();
+		break;
+	}
 
-		case AMFValueType::AMFFalse: {
-			returnValue = new AMFFalseValue();
-			break;
-		}
+	case AMFValueType::AMFFalse: {
+		returnValue = new AMFFalseValue();
+		break;
+	}
 
-		case AMFValueType::AMFTrue: {
-			returnValue = new AMFTrueValue();
-			break;
-		}
+	case AMFValueType::AMFTrue: {
+		returnValue = new AMFTrueValue();
+		break;
+	}
 
-		case AMFValueType::AMFInteger: {
-			returnValue = ReadAmfInteger(inStream);
-			break;
-		}
+	case AMFValueType::AMFInteger: {
+		returnValue = ReadAmfInteger(inStream);
+		break;
+	}
 
-		case AMFValueType::AMFDouble: {
-			returnValue = ReadAmfDouble(inStream);
-			break;
-		}
+	case AMFValueType::AMFDouble: {
+		returnValue = ReadAmfDouble(inStream);
+		break;
+	}
 
-		case AMFValueType::AMFString: {
-			returnValue = ReadAmfString(inStream);
-			break;
-		}
+	case AMFValueType::AMFString: {
+		returnValue = ReadAmfString(inStream);
+		break;
+	}
 
-		case AMFValueType::AMFArray: {
-			returnValue = ReadAmfArray(inStream);
-			break;
-		}
+	case AMFValueType::AMFArray: {
+		returnValue = ReadAmfArray(inStream);
+		break;
+	}
 
-		// TODO We do not need these values, but if someone wants to implement them
-		// then please do so and add the corresponding unit tests.
-		case AMFValueType::AMFXMLDoc:
-		case AMFValueType::AMFDate:
-		case AMFValueType::AMFObject:
-		case AMFValueType::AMFXML:
-		case AMFValueType::AMFByteArray:
-		case AMFValueType::AMFVectorInt:
-		case AMFValueType::AMFVectorUInt:
-		case AMFValueType::AMFVectorDouble:
-		case AMFValueType::AMFVectorObject:
-		case AMFValueType::AMFDictionary: {
-			throw static_cast<AMFValueType>(marker);
-			break;
-		}
-		default:
-			throw static_cast<AMFValueType>(marker);
-			break;
+							   // TODO We do not need these values, but if someone wants to implement them
+							   // then please do so and add the corresponding unit tests.
+	case AMFValueType::AMFXMLDoc:
+	case AMFValueType::AMFDate:
+	case AMFValueType::AMFObject:
+	case AMFValueType::AMFXML:
+	case AMFValueType::AMFByteArray:
+	case AMFValueType::AMFVectorInt:
+	case AMFValueType::AMFVectorUInt:
+	case AMFValueType::AMFVectorDouble:
+	case AMFValueType::AMFVectorObject:
+	case AMFValueType::AMFDictionary: {
+		throw static_cast<AMFValueType>(marker);
+		break;
+	}
+	default:
+		throw static_cast<AMFValueType>(marker);
+		break;
 	}
 	return returnValue;
 }
@@ -128,10 +128,10 @@ AMFValue* AMFDeserialize::ReadAmfDouble(RakNet::BitStream* inStream) {
 AMFValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
 	auto arrayValue = new AMFArrayValue();
 
-    // Read size of dense array
+	// Read size of dense array
 	auto sizeOfDenseArray = (ReadU29(inStream) >> 1);
 
-    // Then read Key'd portion
+	// Then read Key'd portion
 	while (true) {
 		auto key = ReadString(inStream);
 		// No more values when we encounter an empty string
@@ -139,7 +139,7 @@ AMFValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
 		arrayValue->InsertValue(key, Read(inStream));
 	}
 
-    // Finally read dense portion
+	// Finally read dense portion
 	for (uint32_t i = 0; i < sizeOfDenseArray; i++) {
 		arrayValue->PushBackValue(Read(inStream));
 	}

@@ -5,8 +5,7 @@
 #include "GameMessages.h"
 #include "Character.h"
 
-void Darkitect::Reveal(Entity* self, Entity* player)
-{
+void Darkitect::Reveal(Entity* self, Entity* player) {
 	const auto playerID = player->GetObjectID();
 
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"reveal", 0, 0, playerID, "", player->GetSystemAddress());
@@ -31,5 +30,5 @@ void Darkitect::Reveal(Entity* self, Entity* player)
 
 			EntityManager::Instance()->SerializeEntity(player);
 		}
-	});
+		});
 }

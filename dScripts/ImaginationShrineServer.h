@@ -5,6 +5,6 @@
 class ImaginationShrineServer : public BaseInteractDropLootServer
 {
 public:
-    void OnUse(Entity* self, Entity* user) override;
+	void OnUse(Entity* self, Entity* user) override;
 };
 

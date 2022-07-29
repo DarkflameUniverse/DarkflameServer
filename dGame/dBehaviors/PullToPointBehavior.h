@@ -9,8 +9,7 @@ public:
 	 * Inherited
 	 */
 
-	explicit PullToPointBehavior(const uint32_t behaviorId) : Behavior(behaviorId)
-	{
+	explicit PullToPointBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {
 	}
 
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;

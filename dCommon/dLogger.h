@@ -31,8 +31,8 @@ private:
 	std::string m_outpath;
 	std::ofstream mFile;
 
-	#ifndef _WIN32
-		//Glorious linux can run with SPEED:
-		FILE* fp = nullptr;
-	#endif
+#ifndef _WIN32
+	//Glorious linux can run with SPEED:
+	FILE* fp = nullptr;
+#endif
 };

@@ -5,13 +5,12 @@ class ImmunityBehavior final : public Behavior
 {
 public:
 	uint32_t m_immuneBasicAttack;
-	
+
 	/*
 	 * Inherited
 	 */
 
-	explicit ImmunityBehavior(const uint32_t behaviorId) : Behavior(behaviorId)
-	{
+	explicit ImmunityBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {
 	}
 
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;

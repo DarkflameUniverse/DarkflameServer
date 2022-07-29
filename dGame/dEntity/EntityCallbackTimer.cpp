@@ -6,7 +6,7 @@ EntityCallbackTimer::EntityCallbackTimer(float time, std::function<void()> callb
 }
 
 EntityCallbackTimer::~EntityCallbackTimer() {
-	
+
 }
 
 std::function<void()> EntityCallbackTimer::GetCallback() {

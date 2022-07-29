@@ -5,13 +5,12 @@ class StartBehavior final : public Behavior
 {
 public:
 	Behavior* m_action;
-	
+
 	/*
 	 * Inherited
 	 */
 
-	explicit StartBehavior(const uint32_t behaviorID) : Behavior(behaviorID)
-	{
+	explicit StartBehavior(const uint32_t behaviorID) : Behavior(behaviorID) {
 	}
 
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;

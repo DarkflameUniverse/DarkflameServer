@@ -77,8 +77,7 @@ void dpWorld::RemoveEntity(dpEntity* entity) {
 
 	if (m_Grid) {
 		m_Grid->Delete(entity);
-	}
-	else {
+	} else {
 		if (entity->GetIsStatic()) {
 			for (size_t i = 0; i < m_StaticEntities.size(); ++i) {
 				if (m_StaticEntities[i] == entity) {
@@ -87,8 +86,7 @@ void dpWorld::RemoveEntity(dpEntity* entity) {
 					break;
 				}
 			}
-		}
-		else {
+		} else {
 			for (size_t i = 0; i < m_DynamicEntites.size(); ++i) {
 				if (m_DynamicEntites[i] == entity) {
 					delete m_DynamicEntites[i];
@@ -127,8 +125,7 @@ bool dpWorld::LoadNavmeshByZoneID(unsigned int zoneID) {
 	std::string path = "./res/maps/navmeshes/" + std::to_string(zoneID) + ".bin";
 	m_navMesh = LoadNavmesh(path.c_str());
 
-	if (m_navMesh) { m_navQuery = dtAllocNavMeshQuery(); m_navQuery->init(m_navMesh, 2048); }
-	else return false;
+	if (m_navMesh) { m_navQuery = dtAllocNavMeshQuery(); m_navQuery->init(m_navMesh, 2048); } else return false;
 
 	return true;
 }
@@ -136,14 +133,14 @@ bool dpWorld::LoadNavmeshByZoneID(unsigned int zoneID) {
 dtNavMesh* dpWorld::LoadNavmesh(const char* path) {
 	FILE* fp;
 
-	#ifdef _WIN32
-		fopen_s(&fp, path, "rb");
-    #elif __APPLE__
-		// macOS has 64bit file IO by default
-		fp = fopen(path, "rb");
-	#else
-		fp = fopen64(path, "rb");
-	#endif
+#ifdef _WIN32
+	fopen_s(&fp, path, "rb");
+#elif __APPLE__
+	// macOS has 64bit file IO by default
+	fp = fopen(path, "rb");
+#else
+	fp = fopen64(path, "rb");
+#endif
 
 	if (!fp) {
 		return 0;
@@ -347,8 +344,7 @@ std::vector<NiPoint3> dpWorld::GetPath(const NiPoint3& startPos, const NiPoint3&
 				path.push_back(newPoint);
 			}
 		}
-	}
-	else {
+	} else {
 		m_npolys = 0;
 		m_nstraightPath = 0;
 	}

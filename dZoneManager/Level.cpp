@@ -15,12 +15,11 @@
 #include "CDClientManager.h"
 
 Level::Level(Zone* parentZone, const std::string& filepath) {
-    m_ParentZone = parentZone;
+	m_ParentZone = parentZone;
 	std::ifstream file(filepath, std::ios_base::in | std::ios_base::binary);
 	if (file) {
 		ReadChunks(file);
-	}
-	else {
+	} else {
 		Game::logger->Log("Level", "Failed to load %s", filepath.c_str());
 	}
 
@@ -42,7 +41,7 @@ const void Level::PrintAllObjects() {
 	}
 }
 
-void Level::ReadChunks(std::ifstream & file) {
+void Level::ReadChunks(std::ifstream& file) {
 	const uint32_t CHNK_HEADER = ('C' + ('H' << 8) + ('N' << 16) + ('K' << 24));
 
 	while (!file.eof()) {
@@ -63,15 +62,13 @@ void Level::ReadChunks(std::ifstream & file) {
 			//We're currently not loading env or particle data
 			if (header.id == ChunkTypeID::FileInfo) {
 				ReadFileInfoChunk(file, header);
-			}
-			else if (header.id == ChunkTypeID::SceneObjectData) {
+			} else if (header.id == ChunkTypeID::SceneObjectData) {
 				ReadSceneObjectDataChunk(file, header);
 			}
 
 			m_ChunkHeaders.insert(std::make_pair(header.id, header));
 			file.seekg(target);
-		}
-		else {
+		} else {
 			if (initPos == std::streamoff(0)) { //Really old chunk version
 				file.seekg(0);
 				Header header;
@@ -98,8 +95,7 @@ void Level::ReadChunks(std::ifstream & file) {
 								file.ignore(4);
 							}
 						}
-					}
-					else {
+					} else {
 						file.ignore(8);
 					}
 
@@ -143,7 +139,7 @@ void Level::ReadChunks(std::ifstream & file) {
 	}
 }
 
-void Level::ReadFileInfoChunk(std::ifstream & file, Header & header) {
+void Level::ReadFileInfoChunk(std::ifstream& file, Header& header) {
 	FileInfoChunk* fi = new FileInfoChunk;
 	BinaryIO::BinaryRead(file, fi->version);
 	BinaryIO::BinaryRead(file, fi->revision);
@@ -156,7 +152,7 @@ void Level::ReadFileInfoChunk(std::ifstream & file, Header & header) {
 	if (header.fileInfo->revision == 3452816845 && m_ParentZone->GetZoneID().GetMapID() == 1100) header.fileInfo->revision = 26;
 }
 
-void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
+void Level::ReadSceneObjectDataChunk(std::ifstream& file, Header& header) {
 	SceneObjectDataChunk* chunk = new SceneObjectDataChunk;
 	uint32_t objectsCount = 0;
 	BinaryIO::BinaryRead(file, objectsCount);
@@ -182,25 +178,25 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
 			dZoneManager::Instance()->GetZone()->SetSpawnRot(obj.rotation);
 		}
 
-        std::u16string ldfString = u"";
-        uint32_t length = 0;
-        BinaryIO::BinaryRead(file, length);
+		std::u16string ldfString = u"";
+		uint32_t length = 0;
+		BinaryIO::BinaryRead(file, length);
 
-        for (uint32_t i = 0; i < length; ++i) {
-            uint16_t data;
-            BinaryIO::BinaryRead(file, data);
-            ldfString.push_back(data);
-        }
+		for (uint32_t i = 0; i < length; ++i) {
+			uint16_t data;
+			BinaryIO::BinaryRead(file, data);
+			ldfString.push_back(data);
+		}
 
-        std::string sData = GeneralUtils::UTF16ToWTF8(ldfString);
-        std::stringstream ssData(sData);
-        std::string token;
-        char deliminator = '\n';
+		std::string sData = GeneralUtils::UTF16ToWTF8(ldfString);
+		std::stringstream ssData(sData);
+		std::string token;
+		char deliminator = '\n';
 
-        while (std::getline(ssData, token, deliminator)) {
-            LDFBaseData * ldfData = LDFBaseData::DataFromString(token);
-            obj.settings.push_back(ldfData);
-        }
+		while (std::getline(ssData, token, deliminator)) {
+			LDFBaseData* ldfData = LDFBaseData::DataFromString(token);
+			obj.settings.push_back(ldfData);
+		}
 
 		BinaryIO::BinaryRead(file, obj.value3);
 
@@ -228,7 +224,7 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
 			continue;
 		}
 
-        if (obj.lot == 176) { //Spawner
+		if (obj.lot == 176) { //Spawner
 			SpawnerInfo spawnInfo = SpawnerInfo();
 			SpawnerNode* node = new SpawnerNode();
 			spawnInfo.templateID = obj.lot;
@@ -268,8 +264,7 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
 						if (data->GetValueType() == eLDFType::LDF_TYPE_FLOAT) // Floats are in seconds
 						{
 							spawnInfo.respawnTime = std::stof(data->GetValueAsString());
-						}
-						else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms?
+						} else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms?
 						{
 							spawnInfo.respawnTime = std::stoi(data->GetValueAsString()) / 1000;
 						}
@@ -296,9 +291,9 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
 					}
 				}
 			}
-            Spawner* spawner = new Spawner(spawnInfo);
-            dZoneManager::Instance()->AddSpawner(obj.id, spawner);
-        } else { //Regular object
+			Spawner* spawner = new Spawner(spawnInfo);
+			dZoneManager::Instance()->AddSpawner(obj.id, spawner);
+		} else { //Regular object
 			EntityInfo info;
 			info.spawnerID = 0;
 			info.id = obj.id;
@@ -327,16 +322,14 @@ void Level::ReadSceneObjectDataChunk(std::ifstream & file, Header & header) {
 
 			if (!clientOnly) {
 
-                // We should never have more than 1 zone control object
-                const auto zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
+				// We should never have more than 1 zone control object
+				const auto zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
 				if (zoneControlObject != nullptr && info.lot == zoneControlObject->GetLOT())
 					goto deleteSettings;
 
-                EntityManager::Instance()->CreateEntity(info, nullptr);
-			}
-			else
-			{
-				deleteSettings:
+				EntityManager::Instance()->CreateEntity(info, nullptr);
+			} else {
+			deleteSettings:
 
 				for (auto* setting : info.settings) {
 					delete setting;

@@ -1,7 +1,7 @@
 #pragma once
 #include "CppScripts.h"
 
-class FvBrickPuzzleServer : public CppScripts::Script 
+class FvBrickPuzzleServer : public CppScripts::Script
 {
 public:
 	void OnStartup(Entity* self) override;

@@ -1,10 +1,10 @@
 #include "CDPhysicsComponentTable.h"
 
 CDPhysicsComponentTable::CDPhysicsComponentTable(void) {
-    auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PhysicsComponent");
-    while (!tableData.eof()) {
+	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PhysicsComponent");
+	while (!tableData.eof()) {
 		CDPhysicsComponent* entry = new CDPhysicsComponent();
-        entry->id = tableData.getIntField(0, -1);
+		entry->id = tableData.getIntField(0, -1);
 		entry->bStatic = tableData.getIntField(1, -1) != 0;
 		entry->physicsAsset = tableData.getStringField(2, "");
 		UNUSED(entry->jump = tableData.getIntField(3, -1) != 0);
@@ -22,28 +22,28 @@ CDPhysicsComponentTable::CDPhysicsComponentTable(void) {
 		UNUSED(entry->gravityVolumeAsset = tableData.getStringField(15));
 
 		m_entries.insert(std::make_pair(entry->id, entry));
-        tableData.nextRow();
-    }
+		tableData.nextRow();
+	}
 
 	tableData.finalize();
 }
 
 CDPhysicsComponentTable::~CDPhysicsComponentTable(void) {
-    for (auto e : m_entries) {
-        if (e.second) delete e.second;
-    }
-    
-    m_entries.clear();
+	for (auto e : m_entries) {
+		if (e.second) delete e.second;
+	}
+
+	m_entries.clear();
 }
 
 std::string CDPhysicsComponentTable::GetName(void) const {
-    return "PhysicsComponent";
+	return "PhysicsComponent";
 }
 
 CDPhysicsComponent* CDPhysicsComponentTable::GetByID(unsigned int componentID) {
-    for (auto e : m_entries) {
+	for (auto e : m_entries) {
 		if (e.first == componentID) return e.second;
-    }
-    
-    return nullptr;
+	}
+
+	return nullptr;
 }

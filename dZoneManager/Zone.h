@@ -9,7 +9,7 @@
 class Level;
 
 class LUTriggers {
-	public:
+public:
 
 	struct Command {
 		std::string id;
@@ -89,7 +89,7 @@ enum class PathBehavior : uint32_t {
 	Once = 2
 };
 
-enum class PropertyRentalTimeUnit : int32_t{
+enum class PropertyRentalTimeUnit : int32_t {
 	Forever = 0,
 	Seconds = 1,
 	Minutes = 2,
