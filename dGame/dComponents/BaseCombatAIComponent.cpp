@@ -38,7 +38,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = ?;");
 	componentQuery.bind(1, (int) id);
-	
+
 	auto componentResult = componentQuery.execQuery();
 
 	if (!componentResult.eof())
@@ -65,9 +65,9 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 	// radii if it is greater than the one in the database.
 	if (m_Parent) {
 		auto aggroRadius = m_Parent->GetVar<float>(u"aggroRadius");
-		m_AggroRadius = std::max(aggroRadius, m_AggroRadius);
+		m_AggroRadius = aggroRadius != 0 ? aggroRadius : m_AggroRadius;
 		auto tetherRadius = m_Parent->GetVar<float>(u"tetherRadius");
-		m_HardTetherRadius = std::max(tetherRadius, m_HardTetherRadius);
+		m_HardTetherRadius = tetherRadius != 0 ? tetherRadius : m_HardTetherRadius;
 	}
 
 	/*
@@ -76,7 +76,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 	auto skillQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
 	skillQuery.bind(1, (int) parent->GetLOT());
-	
+
 	auto result = skillQuery.execQuery();
 
 	while (!result.eof()) {
@@ -254,7 +254,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	}
 
 	skillComponent->CalculateUpdate(deltaTime);
-	
+
 	if (m_Disabled) return;
 
 	if (m_StunTime > 0.0f)
@@ -362,19 +362,19 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	if (m_Target == LWOOBJID_EMPTY)
 	{
 		m_State = AiState::idle;
-		
+
 		return;
 	}
 
 	m_Downtime = 0.5f;
-	
+
 	auto* target = GetTargetEntity();
 
 	if (target != nullptr)
 	{
 		LookAt(target->GetPosition());
 	}
-	
+
 	for (auto i = 0; i < m_SkillEntries.size(); ++i)
 	{
 		auto entry = m_SkillEntries.at(i);
@@ -413,11 +413,11 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	if (m_MovementAI) reference = m_MovementAI->ApproximateLocation();
 
 	auto* target = GetTargetEntity();
-	
+
 	if (target != nullptr && !m_DirtyThreat)
 	{
 		const auto targetPosition = target->GetPosition();
-		
+
 		if (Vector3::DistanceSquared(targetPosition, m_StartPosition) < m_HardTetherRadius * m_HardTetherRadius)
 		{
 			return m_Target;
@@ -492,7 +492,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	}
 
 	std::vector<LWOOBJID> deadThreats {};
-	
+
 	for (const auto& threatTarget : m_ThreatEntries)
 	{
 		auto* entity = EntityManager::Instance()->GetEntity(threatTarget.first);
@@ -526,7 +526,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	}
 
 	m_DirtyThreat = false;
-	
+
 	if (optimalTarget == nullptr)
 	{
 		return LWOOBJID_EMPTY;
@@ -577,7 +577,7 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	auto* entity = EntityManager::Instance()->GetEntity(target);
 
 	if (entity == nullptr) {
-		Game::logger->Log("BaseCombatAIComponent", "Invalid entity for checking validity (%llu)!\n", target);
+		Game::logger->Log("BaseCombatAIComponent", "Invalid entity for checking validity (%llu)!", target);
 
 		return false;
 	}
@@ -591,7 +591,7 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	auto* referenceDestroyable = m_Parent->GetComponent<DestroyableComponent>();
 
 	if (referenceDestroyable == nullptr) {
-		Game::logger->Log("BaseCombatAIComponent", "Invalid reference destroyable component on (%llu)!\n", m_Parent->GetObjectID());
+		Game::logger->Log("BaseCombatAIComponent", "Invalid reference destroyable component on (%llu)!", m_Parent->GetObjectID());
 
 		return false;
 	}
@@ -601,7 +601,7 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	if (quickbuild != nullptr)
 	{
 		const auto state = quickbuild->GetState();
-			
+
 		if (state != REBUILD_COMPLETED)
 		{
 			return false;
@@ -662,7 +662,7 @@ const NiPoint3& BaseCombatAIComponent::GetStartPosition() const
 	return m_StartPosition;
 }
 
-void BaseCombatAIComponent::ClearThreat() 
+void BaseCombatAIComponent::ClearThreat()
 {
 	m_ThreatEntries.clear();
 
@@ -675,12 +675,12 @@ void BaseCombatAIComponent::Wander() {
 	}
 
 	m_MovementAI->SetHaltDistance(0);
-	
+
 	const auto& info = m_MovementAI->GetInfo();
 
 	const auto div = static_cast<int>(info.wanderDelayMax);
 	m_Timer = (div == 0 ? 0 : GeneralUtils::GenerateRandomNumber<int>(0, div)) + info.wanderDelayMin; //set a random timer to stay put.
-	
+
 	const float radius = info.wanderRadius * sqrt(static_cast<double>(GeneralUtils::GenerateRandomNumber<float>(0, 1))); //our wander radius + a bit of random range
 	const float theta = ((static_cast<double>(GeneralUtils::GenerateRandomNumber<float>(0, 1)) * 2 * PI));
 
@@ -720,7 +720,7 @@ void BaseCombatAIComponent::OnAggro() {
 	}
 
 	m_MovementAI->SetHaltDistance(m_AttackRadius);
-	
+
 	NiPoint3 targetPos = target->GetPosition();
 	NiPoint3 currentPos = m_MovementAI->GetCurrentPosition();
 
@@ -731,7 +731,7 @@ void BaseCombatAIComponent::OnAggro() {
 	else if (Vector3::DistanceSquared(m_StartPosition, targetPos) > m_HardTetherRadius * m_HardTetherRadius) //Return to spawn if we're too far
 	{
 		m_MovementAI->SetSpeed(m_PursuitSpeed);
-		
+
 		m_MovementAI->SetDestination(m_StartPosition);
 	}
 	else //Chase the player's new position
@@ -768,7 +768,7 @@ void BaseCombatAIComponent::OnTether() {
 		m_MovementAI->SetSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(m_StartPosition);
-		
+
 		m_State = AiState::aggro;
 	}
 	else {
@@ -795,7 +795,7 @@ bool BaseCombatAIComponent::GetStunImmune() const
 	return m_StunImmune;
 }
 
-void BaseCombatAIComponent::SetStunImmune(bool value) 
+void BaseCombatAIComponent::SetStunImmune(bool value)
 {
 	m_StunImmune = value;
 }
@@ -805,7 +805,7 @@ float BaseCombatAIComponent::GetTetherSpeed() const
 	return m_TetherSpeed;
 }
 
-void BaseCombatAIComponent::SetTetherSpeed(float value) 
+void BaseCombatAIComponent::SetTetherSpeed(float value)
 {
 	m_TetherSpeed = value;
 }
@@ -816,7 +816,7 @@ void BaseCombatAIComponent::Stun(const float time) {
 	}
 
 	m_StunTime = time;
-	
+
 	m_Stunned = true;
 }
 
@@ -848,13 +848,13 @@ bool BaseCombatAIComponent::GetDistabled() const
 	return m_Disabled;
 }
 
-void BaseCombatAIComponent::Sleep() 
+void BaseCombatAIComponent::Sleep()
 {
 	m_dpEntity->SetSleeping(true);
 	m_dpEntityEnemy->SetSleeping(true);
 }
 
-void BaseCombatAIComponent::Wake() 
+void BaseCombatAIComponent::Wake()
 {
 	m_dpEntity->SetSleeping(false);
 	m_dpEntityEnemy->SetSleeping(false);

@@ -41,10 +41,10 @@ void Database::Connect() {
 
 void Database::Destroy(std::string source, bool log) {
 	if (!con) return;
-	
+
 	if (log) {
-		if (source != "") Game::logger->Log("Database", "Destroying MySQL connection from %s!\n", source.c_str());
-		else Game::logger->Log("Database", "Destroying MySQL connection!\n");
+		if (source != "") Game::logger->Log("Database", "Destroying MySQL connection from %s!", source.c_str());
+		else Game::logger->Log("Database", "Destroying MySQL connection!");
 	}
 
 	con->close();
@@ -63,7 +63,7 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 
 	if (!con) {
 		Connect();
-		Game::logger->Log("Database", "Trying to reconnect to MySQL\n");
+		Game::logger->Log("Database", "Trying to reconnect to MySQL");
 	}
 
 	if (!con->isValid() || con->isClosed())
@@ -73,9 +73,9 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 		con = nullptr;
 
 		Connect();
-		Game::logger->Log("Database", "Trying to reconnect to MySQL from invalid or closed connection\n");
+		Game::logger->Log("Database", "Trying to reconnect to MySQL from invalid or closed connection");
 	}
-	
+
 	auto* stmt = con->prepareStatement(str);
 
 	return stmt;

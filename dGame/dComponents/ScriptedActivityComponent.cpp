@@ -185,7 +185,7 @@ void ScriptedActivityComponent::PlayerLeave(LWOOBJID playerID) {
 				delete lobby->players[i];
 				lobby->players[i] = nullptr;
 				lobby->players.erase(lobby->players.begin() + i);
-				
+
 				return;
 			}
 		}
@@ -246,7 +246,7 @@ void ScriptedActivityComponent::Update(float deltaTime) {
 
 		// The timer has elapsed, start the instance
 		if (lobby->timer <= 0.0f) {
-			Game::logger->Log("ScriptedActivityComponent", "Setting up instance.\n");
+			Game::logger->Log("ScriptedActivityComponent", "Setting up instance.");
 
 			ActivityInstance* instance = NewInstance();
 			LoadPlayersIntoInstance(instance, lobby->players);
@@ -397,7 +397,7 @@ void ScriptedActivityComponent::ClearInstances() {
 	m_Instances.clear();
 }
 
-ActivityPlayer* ScriptedActivityComponent::GetActivityPlayerData(LWOOBJID playerID) 
+ActivityPlayer* ScriptedActivityComponent::GetActivityPlayerData(LWOOBJID playerID)
 {
 	for (auto* activityData : m_ActivityPlayers)
 	{
@@ -410,7 +410,7 @@ ActivityPlayer* ScriptedActivityComponent::GetActivityPlayerData(LWOOBJID player
 	return nullptr;
 }
 
-void ScriptedActivityComponent::RemoveActivityPlayerData(LWOOBJID playerID) 
+void ScriptedActivityComponent::RemoveActivityPlayerData(LWOOBJID playerID)
 {
 	for (size_t i = 0; i < m_ActivityPlayers.size(); i++)
 	{
@@ -427,7 +427,7 @@ void ScriptedActivityComponent::RemoveActivityPlayerData(LWOOBJID playerID)
 	}
 }
 
-ActivityPlayer* ScriptedActivityComponent::AddActivityPlayerData(LWOOBJID playerID) 
+ActivityPlayer* ScriptedActivityComponent::AddActivityPlayerData(LWOOBJID playerID)
 {
 	auto* data = GetActivityPlayerData(playerID);
 	if (data != nullptr)
@@ -515,7 +515,7 @@ void ActivityInstance::StartZone() {
 			if (player == nullptr)
 				return;
 
-			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", player->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", player->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			if (player->GetCharacter()) {
 				player->GetCharacter()->SetZoneID(zoneID);
 				player->GetCharacter()->SetZoneInstance(zoneInstance);
@@ -526,7 +526,7 @@ void ActivityInstance::StartZone() {
 			return;
 		});
 	}
-	
+
 	m_NextZoneCloneID++;
 }
 
@@ -565,7 +565,7 @@ std::vector<Entity*> ActivityInstance::GetParticipants() const {
 		if (entity != nullptr)
 			entities.push_back(entity);
 	}
-	
+
 	return entities;
 }
 

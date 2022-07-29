@@ -12,7 +12,7 @@ void RepairBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_str
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("RepairBehavior", "Failed to find entity for (%llu)!\n", branch.target);
+		Game::logger->Log("RepairBehavior", "Failed to find entity for (%llu)!", branch.target);
 
 		return;
 	}
@@ -21,11 +21,11 @@ void RepairBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_str
 
 	if (destroyable == nullptr)
 	{
-		Game::logger->Log("RepairBehavior", "Failed to find destroyable component for %(llu)!\n", branch.target);
+		Game::logger->Log("RepairBehavior", "Failed to find destroyable component for %(llu)!", branch.target);
 
 		return;
 	}
-	
+
 	destroyable->Repair(this->m_armor);
 }
 

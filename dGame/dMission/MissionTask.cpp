@@ -31,7 +31,7 @@ MissionTask::MissionTask(Mission* mission, CDMissionTasks* info, uint32_t mask)
 			parameters.push_back(parameter);
 		}
 	}
-	
+
 	stream = std::istringstream(info->targetGroup);
 
 	while (std::getline(stream, token, ',')) {
@@ -61,14 +61,14 @@ void MissionTask::SetProgress(const uint32_t value, const bool echo)
 	{
 		return;
 	}
-	
+
 	progress = value;
 
 	if (!echo)
 	{
 		return;
 	}
-	
+
 	auto* entity = mission->GetAssociate();
 
 	if (entity == nullptr)
@@ -101,7 +101,7 @@ void MissionTask::AddProgress(int32_t value)
 	{
 		value = 0;
 	}
-	
+
 	SetProgress(value);
 }
 
@@ -211,7 +211,7 @@ void MissionTask::CheckCompletion() const
 void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string& targets, int32_t count)
 {
 	if (IsComplete() && count > 0) return;
-	
+
 	const auto type = GetType();
 
 	if (count < 0)
@@ -250,11 +250,11 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	uint32_t lot;
 	uint32_t collectionId;
 	std::vector<LDFBaseData*> settings;
-	
+
 	switch (type) {
 	case MissionTaskType::MISSION_TASK_TYPE_UNKNOWN:
 		break;
-		
+
 	case MissionTaskType::MISSION_TASK_TYPE_ACTIVITY:
 	{
 		if (InAllTargets(value)) {
@@ -265,7 +265,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		entity = EntityManager::Instance()->GetEntity(associate);
 		if (entity == nullptr) {
 			if (associate != LWOOBJID_EMPTY) {
-				Game::logger->Log("MissionTask", "Failed to find associated entity (%llu)!\n", associate);
+				Game::logger->Log("MissionTask", "Failed to find associated entity (%llu)!", associate);
 			}
 			break;
 		}
@@ -305,12 +305,12 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	case MissionTaskType::MISSION_TASK_TYPE_EMOTE:
 	{
 		if (!InParameters(value)) break;
-		
+
 		entity = EntityManager::Instance()->GetEntity(associate);
 
 		if (entity == nullptr)
 		{
-			Game::logger->Log("MissionTask", "Failed to find associated entity (%llu)!\n", associate);
+			Game::logger->Log("MissionTask", "Failed to find associated entity (%llu)!", associate);
 
 			break;
 		}
@@ -320,10 +320,10 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		if (GetTarget() != lot) break;
 
 		AddProgress(count);
-		
+
 		break;
 	}
-		
+
 	case MissionTaskType::MISSION_TASK_TYPE_SKILL:
 	{
 		// This is a complicated check because for some missions we need to check for the associate being in the parameters instead of the value being in the parameters.
@@ -331,7 +331,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 			if (InParameters(value)) AddProgress(count);
 		} else {
 			if (InParameters(associate) && InAllTargets(value)) AddProgress(count);
-		}	
+		}
 		break;
 	}
 
@@ -373,19 +373,19 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		AddProgress(count);
 
 		unique.push_back(associate);
-		
+
 		break;
 	}
 
 	case MissionTaskType::MISSION_TASK_TYPE_ENVIRONMENT:
 	{
 		if (!InAllTargets(value)) break;
-		
+
 		entity = EntityManager::Instance()->GetEntity(associate);
 
 		if (entity == nullptr)
 		{
-			Game::logger->Log("MissionTask", "Failed to find associated entity (%llu)!\n", associate);
+			Game::logger->Log("MissionTask", "Failed to find associated entity (%llu)!", associate);
 
 			break;
 		}
@@ -397,7 +397,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		if (std::find(unique.begin(), unique.end(), collectionId) != unique.end()) break;
 
 		unique.push_back(collectionId);
-		
+
 		SetProgress(unique.size());
 
 		auto* entity = mission->GetAssociate();
@@ -409,7 +409,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		if (missionComponent == nullptr) break;
 
 		missionComponent->AddCollectible(collectionId);
-		
+
 		break;
 	}
 
@@ -418,10 +418,10 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		if (info->targetGroup != targets) break;
 
 		AddProgress(count);
-		
+
 		break;
 	}
-		
+
 	case MissionTaskType::MISSION_TASK_TYPE_RACING:
 	{
 		// The meaning of associate can be found in RacingTaskParam.h
@@ -452,7 +452,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		{
 			// If the player did not crash during the race, progress this task by count.
 			if (value != 0) break;
-			
+
 			AddProgress(count);
 		}
 		else if (associate == 4 || associate == 5 || associate == 14)
@@ -495,7 +495,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		break;
 	}
 	default:
-		Game::logger->Log("MissionTask", "Invalid mission task type (%i)!\n", static_cast<int>(type));
+		Game::logger->Log("MissionTask", "Invalid mission task type (%i)!", static_cast<int>(type));
 		return;
 	}
 

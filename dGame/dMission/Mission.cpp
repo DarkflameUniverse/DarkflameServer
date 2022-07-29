@@ -1,14 +1,16 @@
-﻿#include "Mission.h"
+#include "Mission.h"
 
 #include <ctime>
 
 #include "CDClientManager.h"
 #include "Character.h"
 #include "CharacterComponent.h"
+#include "Database.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "Game.h"
 #include "GameMessages.h"
+#include "LevelProgressionComponent.h"
 #include "Mail.h"
 #include "MissionComponent.h"
 #include "RacingTaskParam.h"
@@ -16,7 +18,6 @@
 #include "dLogger.h"
 #include "dServer.h"
 #include "dZoneManager.h"
-#include "Database.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
     m_MissionComponent = missionComponent;
@@ -34,7 +35,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
     info = missionsTable->GetPtrByMissionID(missionId);
 
     if (info == &CDMissionsTable::Default) {
-        Game::logger->Log("Missions", "Failed to find mission (%i)!\n", missionId);
+        Game::logger->Log("Missions", "Failed to find mission (%i)!", missionId);
 
         return;
     }
@@ -406,6 +407,7 @@ void Mission::YieldRewards() {
     auto* character = GetUser()->GetLastUsedChar();
 
     auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+    auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
     auto* characterComponent = entity->GetComponent<CharacterComponent>();
     auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
     auto* missionComponent = entity->GetComponent<MissionComponent>();
@@ -433,7 +435,7 @@ void Mission::YieldRewards() {
     int32_t coinsToSend = 0;
     if (info->LegoScore > 0) {
         eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
-        if(characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel() && !entity->GetCharacter()->GetPlayerFlag(ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL)) {
+        if (characterComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel() && !entity->GetCharacter()->GetPlayerFlag(ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL)) {
             // If player is at the level cap and doesnt want to keep earning UScore at max level we convert it here.
             coinsToSend += info->LegoScore * dZoneManager::Instance()->GetLevelCapCurrencyConversion();
         } else {

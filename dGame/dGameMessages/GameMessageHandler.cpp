@@ -30,7 +30,7 @@
 using namespace std;
 
 void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, GAME_MSG messageID) {
-    
+
 	CBITSTREAM
 
 	// Get the entity
@@ -38,19 +38,19 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	User * usr = UserManager::Instance()->GetUser(sysAddr);
 
-    if (!entity)
-    {
-		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!\n", objectID, messageID);
+	if (!entity)
+	{
+		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!", objectID, messageID);
 
-    	return;
-    }
+		return;
+	}
 
-    switch (messageID) {
+	switch (messageID) {
 
-        case GAME_MSG_PLAY_EMOTE: {
-            GameMessages::HandlePlayEmote(inStream, entity);
-            break;
-        }
+		case GAME_MSG_PLAY_EMOTE: {
+			GameMessages::HandlePlayEmote(inStream, entity);
+			break;
+		}
 
 		case GAME_MSG_MOVE_ITEM_IN_INVENTORY: {
 			GameMessages::HandleMoveItemInInventory(inStream, entity);
@@ -69,31 +69,31 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		case GAME_MSG_UN_EQUIP_ITEM:
 			GameMessages::HandleUnequipItem(inStream, entity);
 			break;
-        
-        case GAME_MSG_RESPOND_TO_MISSION: {
-            GameMessages::HandleRespondToMission(inStream, entity);
-            break;
-        }
-        
-        case GAME_MSG_REQUEST_USE: {
-            GameMessages::HandleRequestUse(inStream, entity, sysAddr);
-            break;
-        }
-        
-        case GAME_MSG_SET_FLAG: {
-            GameMessages::HandleSetFlag(inStream, entity);
-            break;
-        }
-        
-        case GAME_MSG_HAS_BEEN_COLLECTED: {
-            GameMessages::HandleHasBeenCollected(inStream, entity);
-            break;
-        }
-        
+
+		case GAME_MSG_RESPOND_TO_MISSION: {
+			GameMessages::HandleRespondToMission(inStream, entity);
+			break;
+		}
+
+		case GAME_MSG_REQUEST_USE: {
+			GameMessages::HandleRequestUse(inStream, entity, sysAddr);
+			break;
+		}
+
+		case GAME_MSG_SET_FLAG: {
+			GameMessages::HandleSetFlag(inStream, entity);
+			break;
+		}
+
+		case GAME_MSG_HAS_BEEN_COLLECTED: {
+			GameMessages::HandleHasBeenCollected(inStream, entity);
+			break;
+		}
+
 		case GAME_MSG_PLAYER_LOADED: {
 			GameMessages::SendRestoreToPostLoadStats(entity, sysAddr);
 			entity->SetPlayerReadyForUpdates();
-			
+
 			auto* player = dynamic_cast<Player*>(entity);
 			if (player != nullptr)
 			{
@@ -157,60 +157,60 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 				character->OnZoneLoad();
 			}
 
-			Game::logger->Log("GameMessageHandler", "Player %s (%llu) loaded.\n", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
+			Game::logger->Log("GameMessageHandler", "Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
 
 			// After we've done our thing, tell the client they're ready
-            GameMessages::SendPlayerReady(dZoneManager::Instance()->GetZoneControlObject(), sysAddr);
-            GameMessages::SendPlayerReady(entity, sysAddr);
-			
-            break;
-        }
-        
-        case GAME_MSG_REQUEST_LINKED_MISSION: {
-            GameMessages::HandleRequestLinkedMission(inStream, entity);
-            break;
-        }
-        
-        case GAME_MSG_MISSION_DIALOGUE_OK: {
-            GameMessages::HandleMissionDialogOK(inStream, entity);
-            break;
-        }
+			GameMessages::SendPlayerReady(dZoneManager::Instance()->GetZoneControlObject(), sysAddr);
+			GameMessages::SendPlayerReady(entity, sysAddr);
+
+			break;
+		}
+
+		case GAME_MSG_REQUEST_LINKED_MISSION: {
+			GameMessages::HandleRequestLinkedMission(inStream, entity);
+			break;
+		}
+
+		case GAME_MSG_MISSION_DIALOGUE_OK: {
+			GameMessages::HandleMissionDialogOK(inStream, entity);
+			break;
+		}
 
 		case GAME_MSG_MISSION_DIALOGUE_CANCELLED: {
 			//This message is pointless for our implementation, as the client just carries on after
 			//rejecting a mission offer. We dont need to do anything. This is just here to remove a warning in our logs :)
 			break;
 		}
-        
-        case GAME_MSG_REQUEST_PLATFORM_RESYNC: {
-            GameMessages::HandleRequestPlatformResync(inStream, entity, sysAddr);
-            break;
-        }
-        
-        case GAME_MSG_FIRE_EVENT_SERVER_SIDE: {
+
+		case GAME_MSG_REQUEST_PLATFORM_RESYNC: {
+			GameMessages::HandleRequestPlatformResync(inStream, entity, sysAddr);
+			break;
+		}
+
+		case GAME_MSG_FIRE_EVENT_SERVER_SIDE: {
 			GameMessages::HandleFireEventServerSide(inStream, entity, sysAddr);
-            break;
-        }
+			break;
+		}
 
-        case GAME_MSG_SEND_ACTIVITY_SUMMARY_LEADERBOARD_DATA: {
-            GameMessages::HandleActivitySummaryLeaderboardData(inStream, entity, sysAddr);
-            break;
-        }
+		case GAME_MSG_SEND_ACTIVITY_SUMMARY_LEADERBOARD_DATA: {
+			GameMessages::HandleActivitySummaryLeaderboardData(inStream, entity, sysAddr);
+			break;
+		}
 
-        case GAME_MSG_REQUEST_ACTIVITY_SUMMARY_LEADERBOARD_DATA: {
-            GameMessages::HandleRequestActivitySummaryLeaderboardData(inStream, entity, sysAddr);
-            break;
-        }
+		case GAME_MSG_REQUEST_ACTIVITY_SUMMARY_LEADERBOARD_DATA: {
+			GameMessages::HandleRequestActivitySummaryLeaderboardData(inStream, entity, sysAddr);
+			break;
+		}
 
-        case GAME_MSG_ACTIVITY_STATE_CHANGE_REQUEST: {
-            GameMessages::HandleActivityStateChangeRequest(inStream, entity);
-            break;
-        }
-         
-        case GAME_MSG_PARSE_CHAT_MESSAGE: {
-            GameMessages::HandleParseChatMessage(inStream, entity, sysAddr);
-            break;
-        }
+		case GAME_MSG_ACTIVITY_STATE_CHANGE_REQUEST: {
+			GameMessages::HandleActivityStateChangeRequest(inStream, entity);
+			break;
+		}
+
+		case GAME_MSG_PARSE_CHAT_MESSAGE: {
+			GameMessages::HandleParseChatMessage(inStream, entity, sysAddr);
+			break;
+		}
 
 		case GAME_MSG_NOTIFY_SERVER_LEVEL_PROCESSING_COMPLETE: {
 			GameMessages::HandleNotifyServerLevelProcessingComplete(inStream, entity);
@@ -228,8 +228,8 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		}
 
 		case GAME_MSG_RESURRECT: {
-		    GameMessages::HandleResurrect(inStream, entity);
-		    break;
+			GameMessages::HandleResurrect(inStream, entity);
+			break;
 		}
 
 		case GAME_MSG_REQUEST_RESURRECT: {
@@ -243,10 +243,14 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			}*/
 			break;
 		}
+		case GAME_MSG_HANDLE_HOT_PROPERTY_DATA: {
+			GameMessages::HandleGetHotPropertyData(inStream, entity, sysAddr);
+			break;
+		}
 
-    	case GAME_MSG_REQUEST_SERVER_PROJECTILE_IMPACT:
-    	{
-	        auto message = GameMessages::RequestServerProjectileImpact();
+		case GAME_MSG_REQUEST_SERVER_PROJECTILE_IMPACT:
+		{
+			auto message = GameMessages::RequestServerProjectileImpact();
 
 			message.Deserialize(inStream);
 
@@ -255,31 +259,31 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			if (skill_component != nullptr)
 			{
 				auto* bs = new RakNet::BitStream((unsigned char*) message.sBitStream.c_str(), message.sBitStream.size(), false);
-				
+
 				skill_component->SyncPlayerProjectile(message.i64LocalID, bs, message.i64TargetID);
 
 				delete bs;
 			}
-        	
-        	break;
-    	}
-    	
+
+			break;
+		}
+
 		case GAME_MSG_START_SKILL: {
 			GameMessages::StartSkill startSkill = GameMessages::StartSkill();
 			startSkill.Deserialize(inStream); // inStream replaces &bitStream
-			
+
 			if (startSkill.skillID == 1561 || startSkill.skillID == 1562 || startSkill.skillID == 1541) return;
 
 			MissionComponent* comp = entity->GetComponent<MissionComponent>();
 			if (comp) {
 				comp->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, startSkill.skillID);
 			}
-			
+
 			CDSkillBehaviorTable* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
 			unsigned int behaviorId = skillTable->GetSkillByID(startSkill.skillID).behaviorID;
 
 			bool success = false;
-        	
+
 			if (behaviorId > 0) {
 				RakNet::BitStream * bs = new RakNet::BitStream((unsigned char *)startSkill.sBitStream.c_str(), startSkill.sBitStream.size(), false);
 
@@ -291,10 +295,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 					DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();
 					destComp->SetImagination(destComp->GetImagination() - skillTable->GetSkillByID(startSkill.skillID).imaginationcost);
 				}
-				
+
 				delete bs;
 			}
-			
+
 			if (Game::server->GetZoneID() == 1302) {
 				break;
 			}
@@ -341,7 +345,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			}
 
 			//cout << buffer.str() << endl;
-			
+
 			if(usr != nullptr) {
 				RakNet::BitStream * bs = new RakNet::BitStream((unsigned char *)sync.sBitStream.c_str(), sync.sBitStream.size(), false);
 
@@ -374,7 +378,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		case GAME_MSG_MODULAR_BUILD_FINISH:
 			GameMessages::HandleModularBuildFinish(inStream, entity, sysAddr);
 			break;
-        
+
 		case GAME_MSG_PUSH_EQUIPPED_ITEMS_STATE:
 			GameMessages::HandlePushEquippedItemsState(inStream, entity);
 			break;
@@ -382,7 +386,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		case GAME_MSG_POP_EQUIPPED_ITEMS_STATE:
 			GameMessages::HandlePopEquippedItemsState(inStream, entity);
 			break;
-		
+
 		case GAME_MSG_BUY_FROM_VENDOR:
 			GameMessages::HandleBuyFromVendor(inStream, entity, sysAddr);
 			break;
@@ -473,7 +477,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		case GAME_MSG_COMMAND_PET:
 			GameMessages::HandleCommandPet(inStream, entity, sysAddr);
 			break;
-		
+
 		case GAME_MSG_DESPAWN_PET:
 			GameMessages::HandleDespawnPet(inStream, entity, sysAddr);
 			break;
@@ -486,7 +490,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			GameMessages::HandleChoiceBoxRespond(inStream, entity, sysAddr);
 			break;
 
-    	// Property
+		// Property
 		case GAME_MSG_QUERY_PROPERTY_DATA:
 			GameMessages::HandleQueryPropertyData(inStream, entity, sysAddr);
 			break;
@@ -531,7 +535,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			GameMessages::HandleBBBLoadItemRequest(inStream, entity, sysAddr);
 			break;
 
-    	case GAME_MSG_BBB_SAVE_REQUEST:
+		case GAME_MSG_BBB_SAVE_REQUEST:
 			GameMessages::HandleBBBSaveRequest(inStream, entity, sysAddr);
 			break;
 
@@ -554,7 +558,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		case GAME_MSG_UPDATE_PROPERTY_OR_MODEL_FOR_FILTER_CHECK:
 			GameMessages::HandleUpdatePropertyOrModelForFilterCheck(inStream, entity, sysAddr);
 			break;
-    	
+
 		case GAME_MSG_SET_PROPERTY_ACCESS:
 			GameMessages::HandleSetPropertyAccess(inStream, entity, sysAddr);
 			break;
@@ -620,41 +624,41 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			GameMessages::HandleSetGhostReferencePosition(inStream, entity, sysAddr);
 			break;
 
-        case GAME_MSG_READY_FOR_UPDATES:
-            //We don't really care about this message, as it's simply here to inform us that the client is done loading an object.
-            //In the event we _do_ send an update to an object that hasn't finished loading, the client will handle it anyway.
-            break;
+		case GAME_MSG_READY_FOR_UPDATES:
+			//We don't really care about this message, as it's simply here to inform us that the client is done loading an object.
+			//In the event we _do_ send an update to an object that hasn't finished loading, the client will handle it anyway.
+			break;
 
 		case GAME_MSG_REPORT_BUG:
 			GameMessages::HandleReportBug(inStream, entity);
 			break;
 
-        case GAME_MSG_CLIENT_RAIL_MOVEMENT_READY:
-            GameMessages::HandleClientRailMovementReady(inStream, entity, sysAddr);
-            break;
-
-        case GAME_MSG_CANCEL_RAIL_MOVEMENT:
-            GameMessages::HandleCancelRailMovement(inStream, entity, sysAddr);
-            break;
-
-        case GAME_MSG_PLAYER_RAIL_ARRIVED_NOTIFICATION:
-            GameMessages::HandlePlayerRailArrivedNotification(inStream, entity, sysAddr);
-            break;
-
-        case GAME_MSG_CINEMATIC_UPDATE:
-            GameMessages::HandleCinematicUpdate(inStream, entity, sysAddr);
-            break;
-
-        case GAME_MSG_MODIFY_PLAYER_ZONE_STATISTIC:
-            GameMessages::HandleModifyPlayerZoneStatistic(inStream, entity);
-            break;
-
-        case GAME_MSG_UPDATE_PLAYER_STATISTIC:
-            GameMessages::HandleUpdatePlayerStatistic(inStream, entity);
-            break;
-
-        default: 
-            //Game::logger->Log("GameMessageHandler", "Unknown game message ID: %X\n", messageID);
+		case GAME_MSG_CLIENT_RAIL_MOVEMENT_READY:
+			GameMessages::HandleClientRailMovementReady(inStream, entity, sysAddr);
 			break;
-    }
+
+		case GAME_MSG_CANCEL_RAIL_MOVEMENT:
+			GameMessages::HandleCancelRailMovement(inStream, entity, sysAddr);
+			break;
+
+		case GAME_MSG_PLAYER_RAIL_ARRIVED_NOTIFICATION:
+			GameMessages::HandlePlayerRailArrivedNotification(inStream, entity, sysAddr);
+			break;
+
+		case GAME_MSG_CINEMATIC_UPDATE:
+			GameMessages::HandleCinematicUpdate(inStream, entity, sysAddr);
+			break;
+
+		case GAME_MSG_MODIFY_PLAYER_ZONE_STATISTIC:
+			GameMessages::HandleModifyPlayerZoneStatistic(inStream, entity);
+			break;
+
+		case GAME_MSG_UPDATE_PLAYER_STATISTIC:
+			GameMessages::HandleUpdatePlayerStatistic(inStream, entity);
+			break;
+
+		default:
+			//Game::logger->Log("GameMessageHandler", "Unknown game message ID: %X", messageID);
+			break;
+	}
 }

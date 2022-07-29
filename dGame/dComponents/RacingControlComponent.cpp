@@ -91,7 +91,7 @@ void RacingControlComponent::OnPlayerLoaded(Entity *player) {
 
     m_LoadedPlayers++;
 
-    Game::logger->Log("RacingControlComponent", "Loading player %i\n",
+    Game::logger->Log("RacingControlComponent", "Loading player %i",
                       m_LoadedPlayers);
 
     m_LobbyPlayers.push_back(objectID);
@@ -116,7 +116,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity *player,
     auto *item = inventoryComponent->FindItemByLot(8092);
 
     if (item == nullptr) {
-        Game::logger->Log("RacingControlComponent", "Failed to find item\n");
+        Game::logger->Log("RacingControlComponent", "Failed to find item");
 
         return;
     }
@@ -149,7 +149,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity *player,
     startRotation = NiQuaternion::FromEulerAngles(angles);
 
     Game::logger->Log("RacingControlComponent",
-                      "Start position <%f, %f, %f>, <%f, %f, %f>\n",
+                      "Start position <%f, %f, %f>, <%f, %f, %f>",
                       startPosition.x, startPosition.y, startPosition.z,
                       angles.x * (180.0f / M_PI), angles.y * (180.0f / M_PI),
                       angles.z * (180.0f / M_PI));
@@ -565,11 +565,11 @@ void RacingControlComponent::Update(float deltaTime) {
         // to load in, can raise this if it's too low
         if (m_LoadTimer >= 15) {
             Game::logger->Log("RacingControlComponent",
-                              "Loading all players...\n");
+                              "Loading all players...");
 
             for (size_t i = 0; i < m_LobbyPlayers.size(); i++) {
                 Game::logger->Log("RacingControlComponent",
-                                  "Loading player now!\n");
+                                  "Loading player now!");
 
                 auto *player =
                     EntityManager::Instance()->GetEntity(m_LobbyPlayers[i]);
@@ -579,7 +579,7 @@ void RacingControlComponent::Update(float deltaTime) {
                 }
 
                 Game::logger->Log("RacingControlComponent",
-                                  "Loading player now NOW!\n");
+                                  "Loading player now NOW!");
 
                 LoadPlayerVehicle(player, true);
 
@@ -729,7 +729,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
                 m_Started = true;
 
-                Game::logger->Log("RacingControlComponent", "Starting race\n");
+                Game::logger->Log("RacingControlComponent", "Starting race");
 
                 EntityManager::Instance()->SerializeEntity(m_Parent);
 
@@ -818,7 +818,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
             // Reached the start point, lapped
             if (respawnIndex == 0) {
-                time_t lapTime = std::time(nullptr) - (player.lap == 1 ? m_StartTime : player.lapTime);
+                time_t lapTime = std::time(nullptr) - (player.lap == 0 ? m_StartTime : player.lapTime);
 
                 // Cheating check
                 if (lapTime < 40) {
@@ -833,7 +833,7 @@ void RacingControlComponent::Update(float deltaTime) {
                     player.bestLapTime = lapTime;
 
                     Game::logger->Log("RacingControlComponent",
-                                      "Best lap time (%llu)\n", lapTime);
+                                      "Best lap time (%llu)", lapTime);
                 }
 
                 auto *missionComponent =
@@ -854,7 +854,7 @@ void RacingControlComponent::Update(float deltaTime) {
                         player.raceTime = raceTime;
 
                         Game::logger->Log("RacingControlComponent",
-                                          "Completed time %llu, %llu\n",
+                                          "Completed time %llu, %llu",
                                           raceTime, raceTime * 1000);
 
                         // Entire race time
@@ -870,12 +870,12 @@ void RacingControlComponent::Update(float deltaTime) {
                 }
 
                 Game::logger->Log("RacingControlComponent",
-                                  "Lapped (%i) in (%llu)\n", player.lap,
+                                  "Lapped (%i) in (%llu)", player.lap,
                                   lapTime);
             }
 
             Game::logger->Log("RacingControlComponent",
-                              "Reached point (%i)/(%i)\n", player.respawnIndex,
+                              "Reached point (%i)/(%i)", player.respawnIndex,
                               path->pathWaypoints.size());
 
             break;

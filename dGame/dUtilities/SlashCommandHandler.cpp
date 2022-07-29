@@ -62,6 +62,7 @@
 #include "VanityUtilities.h"
 #include "GameConfig.h"
 #include "ScriptedActivityComponent.h"
+#include "LevelProgressionComponent.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
     std::string chatCommand;
@@ -101,7 +102,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
         break;
     }
 
-    //Game::logger->Log("SlashCommandHandler", "Received chat command \"%s\"\n", GeneralUtils::UTF16ToWTF8(command).c_str());
+    //Game::logger->Log("SlashCommandHandler", "Received chat command \"%s\"", GeneralUtils::UTF16ToWTF8(command).c_str());
 
     User* user = UserManager::Instance()->GetUser(sysAddr);
     if ((chatCommand == "setgmlevel" || chatCommand == "makegm" || chatCommand == "gmlevel") && user->GetMaxGMLevel() > GAME_MASTER_LEVEL_CIVILIAN) {
@@ -143,7 +144,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			WorldPackets::SendGMLevelChange(sysAddr, success, user->GetMaxGMLevel(), entity->GetGMLevel(), level);
 			GameMessages::SendChatModeUpdate(entity->GetObjectID(), level);
 			entity->SetGMLevel(level);
-			Game::logger->Log("SlashCommandHandler", "User %s (%i) has changed their GM level to %i for charID %llu\n", user->GetUsername().c_str(), user->GetAccountID(), level, entity->GetObjectID());
+			Game::logger->Log("SlashCommandHandler", "User %s (%i) has changed their GM level to %i for charID %llu", user->GetUsername().c_str(), user->GetAccountID(), level, entity->GetObjectID());
 		}
 	}
 
@@ -195,7 +196,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto* character = entity->GetComponent<CharacterComponent>();
 
 		if (character == nullptr) {
-			Game::logger->Log("SlashCommandHandler", "Failed to find character component!\n");
+			Game::logger->Log("SlashCommandHandler", "Failed to find character component!");
 			return;
 		}
 
@@ -302,27 +303,21 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			args.InsertValue("state", state);
 
 			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
-
-			delete state;
 		}
 
 		entity->AddCallbackTimer(0.5f, [customText, entity] ()
 		{
 			AMFArrayValue args;
 
-			auto* visiable = new AMFTrueValue();
 			auto* text = new AMFStringValue();
 			text->SetStringValue(customText);
 
-			args.InsertValue("visible", visiable);
+			args.InsertValue("visible", new AMFTrueValue());
 			args.InsertValue("text", text);
 
-			Game::logger->Log("SlashCommandHandler", "Sending \n%s\n", customText.c_str());
+			Game::logger->Log("SlashCommandHandler", "Sending %s", customText.c_str());
 
 			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", &args);
-
-			delete visiable;
-			delete text;
 		});
 
 		return;
@@ -355,7 +350,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 				const auto sysAddr = entity->GetSystemAddress();
 
-				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", entity->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", entity->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 				if (entity->GetCharacter()) {
 					entity->GetCharacter()->SetZoneID(zoneID);
@@ -375,7 +370,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		ZoneInstanceManager::Instance()->RequestPrivateZone(Game::server, false, password, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort)
 			{
-				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 				if (entity->GetCharacter()) {
 					entity->GetCharacter()->SetZoneID(zoneID);
@@ -582,8 +577,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Switched UI state.");
 
-		delete value;
-
 		return;
 	}
 
@@ -595,8 +588,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, args[0], &amfArgs);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Toggled UI state.");
-
-		delete value;
 
 		return;
 	}
@@ -955,7 +946,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
             pos.SetY(y);
             pos.SetZ(z);
 
-            Game::logger->Log("SlashCommandHandler", "Teleporting objectID: %llu to %f, %f, %f\n", entity->GetObjectID(), pos.x, pos.y, pos.z);
+            Game::logger->Log("SlashCommandHandler", "Teleporting objectID: %llu to %f, %f, %f", entity->GetObjectID(), pos.x, pos.y, pos.z);
             GameMessages::SendTeleport(entity->GetObjectID(), pos, NiQuaternion(), sysAddr);
         } else if (args.size() == 2) {
 
@@ -977,7 +968,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			pos.SetY(0.0f);
 			pos.SetZ(z);
 
-            Game::logger->Log("SlashCommandHandler", "Teleporting objectID: %llu to X: %f, Z: %f\n", entity->GetObjectID(), pos.x, pos.z);
+            Game::logger->Log("SlashCommandHandler", "Teleporting objectID: %llu to X: %f, Z: %f", entity->GetObjectID(), pos.x, pos.z);
             GameMessages::SendTeleport(entity->GetObjectID(), pos, NiQuaternion(), sysAddr);
         } else {
             ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /teleport <x> (<y>) <z> - if no Y given, will teleport to the height of the terrain (or any physics object).");
@@ -999,7 +990,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 					EntityManager::Instance()->SerializeEntity(possassableEntity);
 
-					Game::logger->Log("ClientPackets", "Forced updated vehicle position\n");
+					Game::logger->Log("ClientPackets", "Forced updated vehicle position");
 				}
 			}
 		}
@@ -1363,6 +1354,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		// query to set our uscore to the correct value for this level
 
 		auto characterComponent = entity->GetComponent<CharacterComponent>();
+		if (!characterComponent) return;
+		auto levelComponent = entity->GetComponent<LevelProgressionComponent>();
 		auto query = CDClientDatabase::CreatePreppedStmt("SELECT requiredUScore from LevelProgressionLookup WHERE id = ?;");
 		query.bind(1, (int)requestedLevel);
 		auto result = query.execQuery();
@@ -1370,18 +1363,18 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (result.eof()) return;
 
 		// Set the UScore first
-		oldLevel = characterComponent->GetLevel();
+		oldLevel = levelComponent->GetLevel();
 		characterComponent->SetUScore(result.getIntField(0, characterComponent->GetUScore()));
 
 		// handle level up for each level we have passed if we set our level to be higher than the current one.
 		if (oldLevel < requestedLevel) {
 			while (oldLevel < requestedLevel) {
 				oldLevel+=1;
-				characterComponent->SetLevel(oldLevel);
-				characterComponent->HandleLevelUp();
+				levelComponent->SetLevel(oldLevel);
+				levelComponent->HandleLevelUp();
 			}
 		} else {
-			characterComponent->SetLevel(requestedLevel);
+			levelComponent->SetLevel(requestedLevel);
 		}
 
 		if (requestedPlayerToSetLevelOf != "") {
@@ -1613,7 +1606,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 				ChatPackets::SendSystemMessage(sysAddr, u"Transfering map...");
 
-				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i\n", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 				if (entity->GetCharacter()) {
 					entity->GetCharacter()->SetZoneID(zoneID);
 					entity->GetCharacter()->SetZoneInstance(zoneInstance);
@@ -1662,11 +1655,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if ((chatCommand == "debugui") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		ChatPackets::SendSystemMessage(sysAddr, u"Opening UIDebugger...");
-		AMFStringValue* value = new AMFStringValue();
-		value->SetStringValue("ToggleUIDebugger;");
 		AMFArrayValue args;
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, value->GetStringValue(), &args);
-		delete value;
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleUIDebugger;", nullptr);
 	}
 
 	if ((chatCommand == "boost") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -2091,11 +2081,6 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	args.InsertValue("message", messageValue);
 
 	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
-
-	delete titleValue;
-	delete messageValue;
-	titleValue = nullptr;
-	messageValue = nullptr;
 
 	//Notify chat about it
 	CBITSTREAM;

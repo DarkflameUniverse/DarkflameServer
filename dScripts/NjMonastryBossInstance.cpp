@@ -92,7 +92,7 @@ void NjMonastryBossInstance::OnPlayerExit(Entity *self, Entity *player) {
     UpdatePlayer(self, player->GetObjectID(), true);
     // Fetch the total players loaded from the vars
     auto totalPlayersLoaded = self->GetVar<std::vector<LWOOBJID> >(TotalPlayersLoadedVariable);
-    
+
     // Find the player to remove
     auto playerToRemove = std::find(totalPlayersLoaded.begin(), totalPlayersLoaded.end(), player->GetObjectID());
 
@@ -100,7 +100,7 @@ void NjMonastryBossInstance::OnPlayerExit(Entity *self, Entity *player) {
     if (playerToRemove != totalPlayersLoaded.end()) {
         totalPlayersLoaded.erase(playerToRemove);
     } else {
-        Game::logger->Log("NjMonastryBossInstance", "Failed to remove player at exit.\n");
+        Game::logger->Log("NjMonastryBossInstance", "Failed to remove player at exit.");
     }
 
     // Set the players loaded var back

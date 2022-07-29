@@ -31,7 +31,7 @@ void MigrationRunner::RunMigrations() {
         delete stmt;
         if (doExit) continue;
 
-        Game::logger->Log("MigrationRunner", "Running migration: " + migration.name + "\n");
+        Game::logger->Log("MigrationRunner", "Running migration: %s", migration.name.c_str());
 
         finalSQL.append(migration.data);
         finalSQL.append('\n');
@@ -49,7 +49,7 @@ void MigrationRunner::RunMigrations() {
             delete simpleStatement;
         }
         catch (sql::SQLException e) {
-            Game::logger->Log("MigrationRunner", std::string("Encountered error running migration: ") + e.what() + "\n");
+            Game::logger->Log("MigrationRunner", "Encountered error running migration: %s", e.what());
         }
     }
 }
@@ -60,7 +60,7 @@ Migration MigrationRunner::LoadMigration(std::string path) {
 
     if (file.is_open()) {
         std::hash<std::string> hash;
-        
+
         std::string line;
         std::string total = "";
 
@@ -73,6 +73,6 @@ Migration MigrationRunner::LoadMigration(std::string path) {
         migration.name = path;
         migration.data = total;
     }
-    
+
     return migration;
 }

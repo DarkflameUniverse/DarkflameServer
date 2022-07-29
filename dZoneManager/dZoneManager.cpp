@@ -16,7 +16,7 @@
 dZoneManager* dZoneManager::m_Address = nullptr;
 
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
-	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i\n", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
+	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 
     int64_t startTime = 0;
     int64_t endTime = 0;
@@ -41,7 +41,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
         }
 	}
 
-	Game::logger->Log("dZoneManager", "Creating zone control object %i\n", zoneControlTemplate);
+	Game::logger->Log("dZoneManager", "Creating zone control object %i", zoneControlTemplate);
 
 	// Create ZoneControl object
 	EntityInfo info;
@@ -54,7 +54,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
     endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
-    Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms\n", (endTime - startTime));
+    Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms", (endTime - startTime));
 
 	VanityUtilities::SpawnVanity();
 	// m_RandomQBManager = new RandomQBManager();
@@ -95,7 +95,7 @@ void dZoneManager::NotifyZone(const dZoneNotifier & notifier, const LWOOBJID& ob
 	case dZoneNotifier::SpawnedChildObjectDestroyed:
 		break;
 	case dZoneNotifier::ReloadZone:
-        Game::logger->Log("dZoneManager", "Forcing reload of zone %i\n", m_ZoneID.GetMapID());
+        Game::logger->Log("dZoneManager", "Forcing reload of zone %i", m_ZoneID.GetMapID());
 		LoadZone(m_ZoneID);
 
 		m_pZone->Initalize();
@@ -108,10 +108,10 @@ void dZoneManager::NotifyZone(const dZoneNotifier & notifier, const LWOOBJID& ob
 		m_pZone->PrintAllGameObjects();
 		break;
 	case dZoneNotifier::InvalidNotifier:
-		Game::logger->Log("dZoneManager", "Got an invalid zone notifier.\n");
+		Game::logger->Log("dZoneManager", "Got an invalid zone notifier.");
 		break;
 	default:
-		Game::logger->Log("dZoneManager", "Unknown zone notifier: %i\n", int(notifier));
+		Game::logger->Log("dZoneManager", "Unknown zone notifier: %i", int(notifier));
 	}
 }
 
@@ -196,7 +196,7 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id)
 	auto* spawner = GetSpawner(id);
 
 	if (spawner == nullptr) {
-		Game::logger->Log("dZoneManager", "Failed to find spawner (%llu)\n", id);
+		Game::logger->Log("dZoneManager", "Failed to find spawner (%llu)", id);
 		return;
 	}
 
@@ -207,7 +207,7 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id)
 	}
 	else {
 
-		Game::logger->Log("dZoneManager", "Failed to find spawner entity (%llu)\n", id);
+		Game::logger->Log("dZoneManager", "Failed to find spawner entity (%llu)", id);
 	}
 
 	for (auto* node : spawner->m_Info.nodes)
@@ -226,7 +226,7 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id)
 
 	spawner->Deactivate();
 
-	Game::logger->Log("dZoneManager", "Destroying spawner (%llu)\n", id);
+	Game::logger->Log("dZoneManager", "Destroying spawner (%llu)", id);
 
 	m_Spawners.erase(id);
 

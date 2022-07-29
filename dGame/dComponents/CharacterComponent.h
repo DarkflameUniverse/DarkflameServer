@@ -64,7 +64,7 @@ public:
     CharacterComponent(Entity* parent, Character* character);
     ~CharacterComponent() override;
 	
-    void LoadFromXML();
+    void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
     void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
@@ -94,18 +94,6 @@ public:
 	 * @param player the entity that triggered the event
 	 */
 	void RocketUnEquip(Entity* player);
-
-    /**
-     * Gets the current level of the entity
-     * @return the current level of the entity
-     */
-	const uint32_t GetLevel() const { return m_Level; }
-
-    /**
-     * Sets the level of the entity
-     * @param level the level to set
-     */
-	void SetLevel(uint32_t level) { m_Level = level; }
 
     /**
      * Gets the universe score of the entity
@@ -190,11 +178,6 @@ public:
 	 * @param m_MountItemID the object ID of the mount item that is being used
 	 */
 	void SetMountItemID(LWOOBJID mountItemID) { m_MountItemID = mountItemID; }
-
-    /**
-     * Gives the player rewards for the last level that they leveled up from
-     */
-	void HandleLevelUp();
 
     /**
      * Gets the name of this character
@@ -322,11 +305,6 @@ private:
      * Possessible type, used by the shooting gallery
      */
 	uint8_t m_PossessableType = 1;
-
-    /**
-     * Level of the entity
-     */
-	uint32_t m_Level;
 
     /**
      * Universe score of the entity

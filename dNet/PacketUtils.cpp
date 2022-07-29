@@ -46,22 +46,25 @@ int64_t PacketUtils::ReadPacketS64(uint32_t startLoc, Packet * packet) {
     return *(int64_t*)t.data();
 }
 
-std::string PacketUtils::ReadString(uint32_t startLoc, Packet* packet, bool wide) {
-	std::string readString = "";
-    
+std::string PacketUtils::ReadString(uint32_t startLoc, Packet* packet, bool wide, uint32_t maxLen) {
+    std::string readString = "";
+
+    if (wide) maxLen *= 2;
+
     if (packet->length > startLoc) {
         uint32_t i = 0;
-        while (packet->data[startLoc + i] != '\0' && packet->length > (uint32_t)(startLoc + i)) {
+        while (packet->data[startLoc + i] != '\0' && packet->length > (uint32_t)(startLoc + i) && maxLen > i) {
             readString.push_back(packet->data[startLoc + i]);
-            
+
             if (wide) {
                 i += 2;     // Wide-char string
-            } else {
+            }
+            else {
                 i++;        // Regular string
             }
         }
     }
-    
+
     return readString;
 }
 

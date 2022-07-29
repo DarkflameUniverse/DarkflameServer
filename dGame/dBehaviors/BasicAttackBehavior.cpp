@@ -21,7 +21,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 
 		return;
 	}
-	
+
 	bitStream->AlignReadToByteBoundary();
 
 	uint16_t allocatedBits;
@@ -69,7 +69,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		this->m_onSuccess->Handle(context, bitStream, branch);
 		break;
 	default:
-		Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!\n", successState);
+		Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!", successState);
 		break;
 	}
 
@@ -79,10 +79,10 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* self = EntityManager::Instance()->GetEntity(context->originator);
 	if (self == nullptr) {
-		Game::logger->Log("BasicAttackBehavior", "Invalid self entity (%llu)!\n", context->originator);
+		Game::logger->Log("BasicAttackBehavior", "Invalid self entity (%llu)!", context->originator);
 		return;
 	}
-	
+
 	bitStream->AlignWriteToByteBoundary();
 
 	const auto allocatedAddress = bitStream->GetWriteOffset();
@@ -127,7 +127,7 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 		this->m_onSuccess->Calculate(context, bitStream, branch);
 		break;
 	default:
-		Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!\n", successState);
+		Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!", successState);
 		break;
 	}
 

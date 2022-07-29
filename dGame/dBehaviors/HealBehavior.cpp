@@ -12,7 +12,7 @@ void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_strea
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("HealBehavior", "Failed to find entity for (%llu)!\n", branch.target);
+		Game::logger->Log("HealBehavior", "Failed to find entity for (%llu)!", branch.target);
 
 		return;
 	}
@@ -21,11 +21,11 @@ void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_strea
 
 	if (destroyable == nullptr)
 	{
-		Game::logger->Log("HealBehavior", "Failed to find destroyable component for %(llu)!\n", branch.target);
+		Game::logger->Log("HealBehavior", "Failed to find destroyable component for %(llu)!", branch.target);
 
 		return;
 	}
-	
+
 	destroyable->Heal(this->m_health);
 }
 

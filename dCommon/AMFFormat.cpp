@@ -108,6 +108,14 @@ _AMFArrayList_::iterator AMFArrayValue::GetDenseIteratorEnd() {
     return this->dense.end();
 }
 
+AMFArrayValue::~AMFArrayValue() {
+    for (auto valueToDelete : GetDenseArray()) {
+        if (valueToDelete) delete valueToDelete;
+    }
+    for (auto valueToDelete : GetAssociativeMap()) {
+        if (valueToDelete.second) delete valueToDelete.second;
+    }
+}
 
 // AMFObject Constructor
 AMFObjectValue::AMFObjectValue(std::vector<std::pair<std::string, AMFValueType>> traits) {
@@ -154,4 +162,10 @@ _AMFObjectTraits_::iterator AMFObjectValue::GetTraitsIteratorEnd() {
 // AMFObject Get Trait Size
 uint32_t AMFObjectValue::GetTraitArrayCount() {
     return (uint32_t)this->traits.size();
+}
+
+AMFObjectValue::~AMFObjectValue() {
+    for (auto valueToDelete = GetTraitsIteratorBegin(); valueToDelete != GetTraitsIteratorEnd(); valueToDelete++) {
+        if (valueToDelete->second.second) delete valueToDelete->second.second;
+    }
 }

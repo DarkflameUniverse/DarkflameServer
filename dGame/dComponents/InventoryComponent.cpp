@@ -157,7 +157,7 @@ void InventoryComponent::AddItem(
 {
 	if (count == 0)
 	{
-		Game::logger->Log("InventoryComponent", "Attempted to add 0 of item (%i) to the inventory!\n", lot);
+		Game::logger->Log("InventoryComponent", "Attempted to add 0 of item (%i) to the inventory!", lot);
 
 		return;
 	}
@@ -166,7 +166,7 @@ void InventoryComponent::AddItem(
 	{
 		if (lot > 0)
 		{
-			Game::logger->Log("InventoryComponent", "Attempted to add invalid item (%i) to the inventory!\n", lot);
+			Game::logger->Log("InventoryComponent", "Attempted to add invalid item (%i) to the inventory!", lot);
 		}
 
 		return;
@@ -187,7 +187,7 @@ void InventoryComponent::AddItem(
 
 		if (slot == -1)
 		{
-			Game::logger->Log("InventoryComponent", "Failed to find empty slot for inventory (%i)!\n", inventoryType);
+			Game::logger->Log("InventoryComponent", "Failed to find empty slot for inventory (%i)!", inventoryType);
 
 			return;
 		}
@@ -303,7 +303,7 @@ void InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 {
 	if (count == 0)
 	{
-		Game::logger->Log("InventoryComponent", "Attempted to remove 0 of item (%i) from the inventory!\n", lot);
+		Game::logger->Log("InventoryComponent", "Attempted to remove 0 of item (%i) from the inventory!", lot);
 
 		return;
 	}
@@ -532,7 +532,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document)
 
 	if (inventoryElement == nullptr)
 	{
-		Game::logger->Log("InventoryComponent", "Failed to find 'inv' xml element!\n");
+		Game::logger->Log("InventoryComponent", "Failed to find 'inv' xml element!");
 
 		return;
 	}
@@ -541,7 +541,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document)
 
 	if (bags == nullptr)
 	{
-		Game::logger->Log("InventoryComponent", "Failed to find 'bags' xml element!\n");
+		Game::logger->Log("InventoryComponent", "Failed to find 'bags' xml element!");
 
 		return;
 	}
@@ -569,7 +569,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document)
 
 	if (items == nullptr)
 	{
-		Game::logger->Log("InventoryComponent", "Failed to find 'items' xml element!\n");
+		Game::logger->Log("InventoryComponent", "Failed to find 'items' xml element!");
 
 		return;
 	}
@@ -586,7 +586,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document)
 
 		if (inventory == nullptr)
 		{
-			Game::logger->Log("InventoryComponent", "Failed to find inventory (%i)!\n", type);
+			Game::logger->Log("InventoryComponent", "Failed to find inventory (%i)!", type);
 
 			return;
 		}
@@ -666,7 +666,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document)
 
 	if (inventoryElement == nullptr)
 	{
-		Game::logger->Log("InventoryComponent", "Failed to find 'inv' xml element!\n");
+		Game::logger->Log("InventoryComponent", "Failed to find 'inv' xml element!");
 
 		return;
 	}
@@ -691,7 +691,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document)
 
 	if (bags == nullptr)
 	{
-		Game::logger->Log("InventoryComponent", "Failed to find 'bags' xml element!\n");
+		Game::logger->Log("InventoryComponent", "Failed to find 'bags' xml element!");
 
 		return;
 	}
@@ -712,7 +712,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document)
 
 	if (items == nullptr)
 	{
-		Game::logger->Log("InventoryComponent", "Failed to find 'items' xml element!\n");
+		Game::logger->Log("InventoryComponent", "Failed to find 'items' xml element!");
 
 		return;
 	}
@@ -819,7 +819,7 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 				outBitStream->Write<uint8_t>(0); // Don't compress
 				outBitStream->Write(ldfStream);
 			}
-            
+
 			outBitStream->Write1();
 		}
 
@@ -932,9 +932,9 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 		const auto building = character->GetBuildMode();
 
 		const auto type = static_cast<eItemType>(item->GetInfo().itemType);
-		
+
 		if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == false)
-		{	
+		{
 			auto startPosition = m_Parent->GetPosition();
 
 			auto startRotation = NiQuaternion::LookAt(startPosition, startPosition + NiPoint3::UNIT_X);
@@ -1055,11 +1055,11 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks)
 	}
 
 	GenerateProxies(item);
-	
+
 	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot(), item->GetConfig() });
 
 	ApplyBuff(item);
-	
+
 	AddItemSkills(item->GetLot());
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -1087,7 +1087,7 @@ void InventoryComponent::UnEquipItem(Item* item)
 	}
 
 	RemoveBuff(item);
-	
+
 	RemoveItemSkills(item->GetLot());
 
 	RemoveSlot(item->GetInfo().equipLocation);
@@ -1162,7 +1162,7 @@ void InventoryComponent::PopEquippedItems()
 	m_Pushed.clear();
 
 	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
-	
+
 	// Reset stats to full
 	if (destroyableComponent) {
 		destroyableComponent->SetHealth(static_cast<int32_t>(destroyableComponent->GetMaxHealth()));
@@ -1265,10 +1265,10 @@ void InventoryComponent::AddItemSkills(const LOT lot)
 	if (index != m_Skills.end())
 	{
 		const auto old = index->second;
-		
+
 		GameMessages::SendRemoveSkill(m_Parent, old);
 	}
-	
+
 	GameMessages::SendAddSkill(m_Parent, skill, static_cast<int>(slot));
 
 	m_Skills.insert_or_assign(slot, skill);
@@ -1474,7 +1474,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 
 			if (entry.skillID == 0)
 			{
-				Game::logger->Log("InventoryComponent", "Failed to find buff behavior for skill (%i)!\n", result.skillID);
+				Game::logger->Log("InventoryComponent", "Failed to find buff behavior for skill (%i)!", result.skillID);
 
 				continue;
 			}
@@ -1483,7 +1483,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 			{
 				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, result.skillID);
 			}
-			
+
 			// If item is not a proxy, add its buff to the added buffs.
 			if (item->GetParent() == LWOOBJID_EMPTY) buffs.push_back(static_cast<uint32_t>(entry.behaviorID));
 		}
@@ -1553,7 +1553,7 @@ std::vector<Item*> InventoryComponent::GenerateProxies(Item* parent)
 		}
 		catch (std::invalid_argument& exception)
 		{
-			Game::logger->Log("InventoryComponent", "Failed to parse proxy (%s): (%s)!\n", segment.c_str(), exception.what());
+			Game::logger->Log("InventoryComponent", "Failed to parse proxy (%s): (%s)!", segment.c_str(), exception.what());
 		}
 	}
 
