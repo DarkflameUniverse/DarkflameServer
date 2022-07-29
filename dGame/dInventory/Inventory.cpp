@@ -81,7 +81,7 @@ uint32_t Inventory::GetLotCount(const LOT lot) const
 void Inventory::SetSize(const uint32_t value)
 {
 	free += static_cast<int32_t>(value) - static_cast<int32_t>(size);
-	
+
 	size = value;
 
 	GameMessages::SendSetInventorySize(component->GetParent(), type, static_cast<int>(size));
@@ -107,7 +107,7 @@ int32_t Inventory::FindEmptySlot()
 			{
 				newSize += 10u;
 			}
-			
+
 			if (newSize > GetSize())
 			{
 				SetSize(newSize);
@@ -121,7 +121,7 @@ int32_t Inventory::FindEmptySlot()
 	}
 
 	const auto slots = GetSlots();
-	
+
 	for (auto i = 0u; i < size; ++i)
 	{
 		if (slots.find(i) == slots.end())
@@ -133,15 +133,15 @@ int32_t Inventory::FindEmptySlot()
 	return -1;
 }
 
-int32_t Inventory::GetEmptySlots() 
+int32_t Inventory::GetEmptySlots()
 {
 	return free;
 }
 
-bool Inventory::IsSlotEmpty(int32_t slot) 
+bool Inventory::IsSlotEmpty(int32_t slot)
 {
 	const auto slots = GetSlots();
-	
+
 	const auto& index = slots.find(slot);
 
 	return index == slots.end();
@@ -201,7 +201,7 @@ Item* Inventory::FindItemByLot(const LOT lot, const bool ignoreEquipped, const b
 Item* Inventory::FindItemBySlot(const uint32_t slot) const
 {
 	const auto slots = GetSlots();
-	
+
 	const auto index = slots.find(slot);
 
 	if (index == slots.end())
@@ -228,21 +228,21 @@ Item* Inventory::FindItemBySubKey(LWOOBJID id) const
 void Inventory::AddManagedItem(Item* item)
 {
 	const auto id = item->GetId();
-	
+
 	if (items.find(id) != items.end())
 	{
-		Game::logger->Log("Inventory", "Attempting to add an item with an already present id (%llu)!\n", id);
+		Game::logger->Log("Inventory", "Attempting to add an item with an already present id (%llu)!", id);
 
 		return;
 	}
-	
+
 	const auto slots = GetSlots();
 
 	const auto slot = item->GetSlot();
 
 	if (slots.find(slot) != slots.end())
 	{
-		Game::logger->Log("Inventory", "Attempting to add an item with an already present slot (%i)!\n", slot);
+		Game::logger->Log("Inventory", "Attempting to add an item with an already present slot (%i)!", slot);
 
 		return;
 	}
@@ -258,7 +258,7 @@ void Inventory::RemoveManagedItem(Item* item)
 
 	if (items.find(id) == items.end())
 	{
-		Game::logger->Log("Inventory", "Attempting to remove an item with an invalid id (%llu), lot (%i)!\n", id, item->GetLot());
+		Game::logger->Log("Inventory", "Attempting to remove an item with an invalid id (%llu), lot (%i)!", id, item->GetLot());
 
 		return;
 	}
@@ -277,7 +277,7 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot)
 	switch (itemType) {
 	case eItemType::ITEM_TYPE_BRICK:
 		return BRICKS;
-		
+
 	case eItemType::ITEM_TYPE_BEHAVIOR:
 		return BEHAVIORS;
 
@@ -289,7 +289,7 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot)
 	case eItemType::ITEM_TYPE_LOOT_MODEL:
 	case eItemType::ITEM_TYPE_MOUNT:
 		return MODELS;
-		
+
 	case eItemType::ITEM_TYPE_HAT:
 	case eItemType::ITEM_TYPE_HAIR:
 	case eItemType::ITEM_TYPE_NECK:
@@ -307,7 +307,7 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot)
 	case eItemType::ITEM_TYPE_PACKAGE:
 	case eItemType::ITEM_TYPE_CURRENCY:
 		return ITEMS;
-	
+
 	case eItemType::ITEM_TYPE_QUEST_OBJECT:
 	case eItemType::ITEM_TYPE_UNKNOWN:
 	default:
@@ -325,11 +325,11 @@ const CDItemComponent& Inventory::FindItemComponent(const LOT lot)
 
 	if (componentId == 0)
 	{
-		Game::logger->Log("Inventory", "Failed to find item component for (%i)!\n", lot);
+		Game::logger->Log("Inventory", "Failed to find item component for (%i)!", lot);
 
 		return CDItemComponentTable::Default;
 	}
-	
+
 	const auto& itemComponent = itemComponents->GetItemComponentByID(componentId);
 
 	return itemComponent;
@@ -344,7 +344,7 @@ bool Inventory::IsValidItem(const LOT lot)
 	return componentId != 0;
 }
 
-const std::vector<LOT>& Inventory::GetAllGMItems() 
+const std::vector<LOT>& Inventory::GetAllGMItems()
 {
 	return m_GameMasterRestrictedItems;
 }

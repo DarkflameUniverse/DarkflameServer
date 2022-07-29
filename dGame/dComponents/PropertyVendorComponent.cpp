@@ -22,7 +22,7 @@ void PropertyVendorComponent::OnUse(Entity* originator)
 
 	if (PropertyManagementComponent::Instance()->GetOwnerId() == LWOOBJID_EMPTY)
 	{
-		Game::logger->Log("PropertyVendorComponent", "Property vendor opening!\n");
+		Game::logger->Log("PropertyVendorComponent", "Property vendor opening!");
 
 		GameMessages::SendOpenPropertyVendor(m_Parent->GetObjectID(), originator->GetSystemAddress());
 
@@ -42,7 +42,7 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 	if (PropertyManagementComponent::Instance() == nullptr) return;
 
 	if (PropertyManagementComponent::Instance()->Claim(originator->GetObjectID()) == false) {
-		Game::logger->Log("PropertyVendorComponent", "FAILED TO CLAIM PROPERTY.  PLAYER ID IS %llu\n", originator->GetObjectID());
+		Game::logger->Log("PropertyVendorComponent", "FAILED TO CLAIM PROPERTY.  PLAYER ID IS %llu", originator->GetObjectID());
 		return;
 	}
 
@@ -51,11 +51,11 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 	auto* controller = dZoneManager::Instance()->GetZoneControlObject();
 
 	controller->OnFireEventServerSide(m_Parent, "propertyRented");
-	
+
 	PropertyManagementComponent::Instance()->SetOwner(originator);
-	
+
 	PropertyManagementComponent::Instance()->OnQueryPropertyData(originator, originator->GetSystemAddress());
 
-	Game::logger->Log("PropertyVendorComponent", "Fired event; (%d) (%i) (%i)\n", confirmed, lot, count);
+	Game::logger->Log("PropertyVendorComponent", "Fired event; (%d) (%i) (%i)", confirmed, lot, count);
 }
 

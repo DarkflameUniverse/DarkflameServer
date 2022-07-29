@@ -40,8 +40,6 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 	args.InsertValue("state", state);
 
 	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
-
-	delete state;
 }
 
 void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, bool returnToZone, const SystemAddress& sysAddr)
@@ -194,7 +192,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     const auto query = BuildQuery(entity, sortMethod, character);
 
     auto propertyLookup = Database::CreatePreppedStmt(query);
-    
+
     const auto searchString = "%" + filterText + "%";
     propertyLookup->setUInt(1, this->m_MapID);
     propertyLookup->setString(2, searchString.c_str());
@@ -232,7 +230,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
             delete nameLookup;
             nameLookup = nullptr;
 
-            Game::logger->Log("PropertyEntranceComponent", "Failed to find property owner name for %llu!\n", cloneId);
+            Game::logger->Log("PropertyEntranceComponent", "Failed to find property owner name for %llu!", cloneId);
 
             continue;
         } else {
@@ -320,7 +318,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
     propertyLookup = nullptr;
 
     propertyQueries[entity->GetObjectID()] = entries;
-    
+
     // Query here is to figure out whether or not to display the button to go to the next page or not.
     int32_t numberOfProperties = 0;
 
@@ -339,7 +337,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
     delete result;
     result = nullptr;
-    
+
     delete propertiesLeft;
     propertiesLeft = nullptr;
 

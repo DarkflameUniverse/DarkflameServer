@@ -18,24 +18,18 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 			args.InsertValue("state", state);
 
 			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
-
-			delete state;
 		}
 
 		user->AddCallbackTimer(0.1f, [user, customText] () {
 			AMFArrayValue args;
 
-			auto* visiable = new AMFTrueValue();
 			auto* text = new AMFStringValue();
 			text->SetStringValue(customText);
 
-			args.InsertValue("visible", visiable);
+			args.InsertValue("visible", new AMFTrueValue());
 			args.InsertValue("text", text);
 
 			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "ToggleStoryBox", &args);
-			
-			delete visiable;
-			delete text;
 		});
 
 		return;

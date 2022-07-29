@@ -14,7 +14,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 
 	if (origin == nullptr)
 	{
-		Game::logger->Log("SpawnBehavior", "Failed to find self entity (%llu)!\n", context->originator);
+		Game::logger->Log("SpawnBehavior", "Failed to find self entity (%llu)!", context->originator);
 
 		return;
 	}
@@ -28,7 +28,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 			origin = target;
 		}
 	}
-	
+
 	EntityInfo info;
 	info.lot = this->m_lot;
 	info.pos = origin->GetPosition();
@@ -47,7 +47,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("SpawnBehavior", "Failed to spawn entity (%i)!\n", this->m_lot);
+		Game::logger->Log("SpawnBehavior", "Failed to spawn entity (%i)!", this->m_lot);
 
 		return;
 	}
@@ -61,7 +61,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	{
 		rebuildComponent->SetRepositionPlayer(false);
 	}
-	
+
 	EntityManager::Instance()->ConstructEntity(entity);
 
 	if (branch.duration > 0)
@@ -79,7 +79,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	});
 }
 
-void SpawnBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) 
+void SpawnBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
 {
 	Handle(context, bitStream, branch);
 }
@@ -90,7 +90,7 @@ void SpawnBehavior::Timer(BehaviorContext* context, const BehaviorBranchContext 
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("SpawnBehavior", "Failed to find spawned entity (%llu)!\n", second);
+		Game::logger->Log("SpawnBehavior", "Failed to find spawned entity (%llu)!", second);
 
 		return;
 	}
@@ -100,7 +100,7 @@ void SpawnBehavior::Timer(BehaviorContext* context, const BehaviorBranchContext 
 	if (destroyable == nullptr)
 	{
 		entity->Smash(context->originator);
-		
+
 		return;
 	}
 

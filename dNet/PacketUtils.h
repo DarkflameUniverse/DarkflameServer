@@ -11,7 +11,7 @@ namespace PacketUtils {
 	uint32_t ReadPacketU32(uint32_t startLoc, Packet * packet);
 	uint64_t ReadPacketU64(uint32_t startLoc, Packet * packet);
     int64_t ReadPacketS64(uint32_t startLoc, Packet * packet);
-	std::string ReadString(uint32_t startLoc, Packet * packet, bool wide);
+	std::string ReadString(uint32_t startLoc, Packet * packet, bool wide, uint32_t maxLen = 33);
     
     void WritePacketString(const std::string& string, uint32_t maxSize, RakNet::BitStream * bitStream);
 	void WriteString(RakNet::BitStream& bitStream, const std::string& s, uint32_t maxSize);

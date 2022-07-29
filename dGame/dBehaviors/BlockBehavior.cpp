@@ -15,7 +15,7 @@ void BlockBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!\n", branch.target);
+		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -52,7 +52,7 @@ void BlockBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branc
 
 	if (entity == nullptr)
 	{
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!\n", branch.target);
+		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
 	}

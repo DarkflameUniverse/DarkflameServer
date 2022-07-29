@@ -18,7 +18,7 @@
 void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum) {
     RakNet::BitStream bitStream;
     PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_LOAD_STATIC_ZONE);
-    
+
 	auto zone = dZoneManager::Instance()->GetZone()->GetZoneID();
 	bitStream.Write(static_cast<uint16_t>(zone.GetMapID()));
 	bitStream.Write(static_cast<uint16_t>(zone.GetInstanceID()));
@@ -33,7 +33,7 @@ void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, flo
     bitStream.Write(z);
 
     bitStream.Write(static_cast<uint32_t>(0));     // Change this to eventually use 4 on activity worlds
-    
+
     SEND_PACKET
 }
 
@@ -42,23 +42,23 @@ void WorldPackets::SendCharacterList ( const SystemAddress& sysAddr, User* user 
 
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHARACTER_LIST_RESPONSE);
-	
+
 	std::vector<Character*> characters = user->GetCharacters();
 	bitStream.Write(static_cast<uint8_t>(characters.size()));
     bitStream.Write(static_cast<uint8_t>(0)); //character index in front, just picking 0
-	
+
 	for (uint32_t i = 0; i < characters.size(); ++i) {
 		bitStream.Write(characters[i]->GetObjectID());
         bitStream.Write(static_cast<uint32_t>(0));
-		
+
 		PacketUtils::WriteWString(bitStream, characters[i]->GetName(), 33);
         PacketUtils::WriteWString(bitStream, characters[i]->GetUnapprovedName(), 33);
-		
+
 		bitStream.Write(static_cast<uint8_t>(characters[i]->GetNameRejected()));
         bitStream.Write(static_cast<uint8_t>(false));
-		
+
 		PacketUtils::WriteString(bitStream, "", 10);
-		
+
 		bitStream.Write(characters[i]->GetShirtColor());
         bitStream.Write(characters[i]->GetShirtStyle());
         bitStream.Write(characters[i]->GetPantsColor());
@@ -79,12 +79,12 @@ void WorldPackets::SendCharacterList ( const SystemAddress& sysAddr, User* user 
 
         const auto& equippedItems = characters[i]->GetEquippedItems();
         bitStream.Write(static_cast<uint16_t>(equippedItems.size()));
-        
+
         for (uint32_t j = 0; j < equippedItems.size(); ++j) {
             bitStream.Write(equippedItems[j]);
         }
 	}
-	
+
 	SEND_PACKET
 }
 
@@ -112,11 +112,11 @@ void WorldPackets::SendCharacterDeleteResponse(const SystemAddress& sysAddr, boo
 void WorldPackets::SendTransferToWorld ( const SystemAddress& sysAddr, const std::string& serverIP, uint32_t serverPort, bool mythranShift ) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_TRANSFER_TO_WORLD);
-	
+
 	PacketUtils::WriteString(bitStream, serverIP, 33);
 	bitStream.Write(static_cast<uint16_t>(serverPort));
 	bitStream.Write(static_cast<uint8_t>(mythranShift));
-	
+
 	SEND_PACKET
 }
 
@@ -130,7 +130,7 @@ void WorldPackets::SendServerState ( const SystemAddress& sysAddr ) {
 void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* entity, const std::string& xmlData, const std::u16string& username, int32_t gm) {
     RakNet::BitStream bitStream;
     PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CREATE_CHARACTER);
-    
+
     RakNet::BitStream data;
     data.Write<uint32_t>(7); //LDF key count
 
@@ -155,7 +155,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
     chatmode->WriteToPacket(&data);
     xmlConfigData->WriteToPacket(&data);
     reputation->WriteToPacket(&data);
-    
+
     delete objid;
     delete lot;
     delete xmlConfigData;
@@ -168,7 +168,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
     bitStream.Write<uint32_t>(data.GetNumberOfBytesUsed() + 1);
     bitStream.Write<uint8_t>(0);
     bitStream.Write((char*)data.GetData(), data.GetNumberOfBytesUsed());
-#else 
+#else
     //Compress the data before sending:
     const int reservedSize = 5 * 1024 * 1024;
     uint8_t compressedData[reservedSize];
@@ -185,7 +185,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 
     PacketUtils::SavePacket("chardata.bin", (const char *)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
     SEND_PACKET
-    Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu\n", entity->GetObjectID());
+    Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu", entity->GetObjectID());
 }
 
 void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::vector<std::pair<uint8_t, uint8_t>> unacceptedItems) {
@@ -215,11 +215,11 @@ void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool
 void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success, uint8_t highestLevel, uint8_t prevLevel, uint8_t newLevel) {
     CBITSTREAM
     PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_MAKE_GM_RESPONSE);
-    
+
     bitStream.Write<uint8_t>(success);
     bitStream.Write<uint16_t>(highestLevel);
     bitStream.Write<uint16_t>(prevLevel);
     bitStream.Write<uint16_t>(newLevel);
-    
+
     SEND_PACKET
 }

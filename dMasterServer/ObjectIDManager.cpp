@@ -40,8 +40,8 @@ void ObjectIDManager::Initialize(dLogger *logger) {
         delete stmt;
     } catch (sql::SQLException &e) {
         mLogger->Log("ObjectIDManager", "Unable to fetch max persistent object "
-                                        "ID in use. Defaulting to 1.\n");
-        mLogger->Log("ObjectIDManager", "SQL error: %s\n", e.what());
+                                        "ID in use. Defaulting to 1.");
+        mLogger->Log("ObjectIDManager", "SQL error: %s", e.what());
         this->currentPersistentID = 1;
     }
 }

@@ -26,6 +26,13 @@ dLogger::~dLogger() {
 }
 
 void dLogger::vLog(const char* format, va_list args) {
+	const char* tempPtr = format; // strlen_s implementation for Linux and Windows
+	for (; *tempPtr != '\0'; ++tempPtr) {
+		size_t size = tempPtr - format;
+		if (size > 600) {
+			return;
+		}
+	}
 #ifdef _WIN32
 	time_t t = time(NULL);
 	struct tm time;
@@ -44,14 +51,14 @@ void dLogger::vLog(const char* format, va_list args) {
     strftime(timeStr, sizeof(timeStr), "%d-%m-%y %H:%M:%S", time);
 	char message[2048];
     vsprintf(message, format, args);
-    
+
     if (m_logToConsole) {
 		fputs("[", stdout);
 		fputs(timeStr, stdout);
 		fputs("] ", stdout);
 		fputs(message, stdout);
     }
-    
+
     if (fp != nullptr) {
 		fputs("[", fp);
 		fputs(timeStr, fp);
@@ -76,7 +83,7 @@ void dLogger::LogBasic(const std::string & message) {
 
 void dLogger::Log(const char * className, const char * format, ...) {
 	va_list args;
-	std::string log = "[" + std::string(className) + "] " + std::string(format);
+	std::string log = "[" + std::string(className) + "] " + std::string(format) + "\n";
 	va_start(args, format);
 	vLog(log.c_str(), args);
 	va_end(args);

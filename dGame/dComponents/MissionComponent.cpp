@@ -220,7 +220,7 @@ void MissionComponent::ForceProgressTaskType(const uint32_t missionId, const uin
     }
 }
 
-void MissionComponent::ForceProgressValue(uint32_t missionId, uint32_t taskType, int32_t value, bool acceptMission) 
+void MissionComponent::ForceProgressValue(uint32_t missionId, uint32_t taskType, int32_t value, bool acceptMission)
 {
     auto* mission = GetMission(missionId);
 
@@ -357,7 +357,7 @@ bool MissionComponent::LookForAchievements(MissionTaskType type, int32_t value, 
                     }
                 }
                 catch (std::invalid_argument& exception) {
-                    Game::logger->Log("MissionComponent", "Failed to parse target (%s): (%s)!\n", token.c_str(), exception.what());
+                    Game::logger->Log("MissionComponent", "Failed to parse target (%s): (%s)!", token.c_str(), exception.what());
                 }
             }
 
@@ -383,7 +383,7 @@ bool MissionComponent::LookForAchievements(MissionTaskType type, int32_t value, 
 #endif
 }
 
-const std::vector<uint32_t>& MissionComponent::QueryAchievements(MissionTaskType type, int32_t value, const std::string targets) {   
+const std::vector<uint32_t>& MissionComponent::QueryAchievements(MissionTaskType type, int32_t value, const std::string targets) {
     // Create a hash which represent this query for achievements
     size_t hash = 0;
     GeneralUtils::hash_combine(hash, type);
@@ -471,7 +471,7 @@ bool MissionComponent::RequiresItem(const LOT lot) {
     }
 
     result.finalize();
-    
+
     for (const auto& pair : m_Missions) {
         auto* mission = pair.second;
 
@@ -594,7 +594,7 @@ void MissionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
     }
 }
 
-void MissionComponent::AddCollectible(int32_t collectibleID) 
+void MissionComponent::AddCollectible(int32_t collectibleID)
 {
     // Check if this collectible is already in the list
     if (HasCollectible(collectibleID)) {
@@ -604,12 +604,12 @@ void MissionComponent::AddCollectible(int32_t collectibleID)
     m_Collectibles.push_back(collectibleID);
 }
 
-bool MissionComponent::HasCollectible(int32_t collectibleID) 
+bool MissionComponent::HasCollectible(int32_t collectibleID)
 {
     return std::find(m_Collectibles.begin(), m_Collectibles.end(), collectibleID) != m_Collectibles.end();
 }
 
-bool MissionComponent::HasMission(uint32_t missionId) 
+bool MissionComponent::HasMission(uint32_t missionId)
 {
     return GetMission(missionId) != nullptr;
 }

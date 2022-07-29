@@ -159,17 +159,17 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
     }
 }
 
-void DestroyableComponent::LoadFromXML(tinyxml2::XMLDocument* doc) {
+void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
     tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
-		Game::logger->Log("DestroyableComponent", "Failed to find dest tag!\n");
+		Game::logger->Log("DestroyableComponent", "Failed to find dest tag!");
 		return;
 	}
 
 	auto* buffComponent = m_Parent->GetComponent<BuffComponent>();
 
 	if (buffComponent != nullptr) {
-		buffComponent->LoadFromXML(doc);
+		buffComponent->LoadFromXml(doc);
 	}
 
 	dest->QueryAttribute("hc", &m_iHealth);
@@ -184,7 +184,7 @@ void DestroyableComponent::LoadFromXML(tinyxml2::XMLDocument* doc) {
 void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
     tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
-		Game::logger->Log("DestroyableComponent", "Failed to find dest tag!\n");
+		Game::logger->Log("DestroyableComponent", "Failed to find dest tag!");
 		return;
 	}
 
@@ -234,10 +234,8 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 		AMFArrayValue args;
 		args.InsertValue("amount", amount);
 		args.InsertValue("type", type);
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 
-		delete amount;
-		delete type;
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	}
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -248,7 +246,7 @@ void DestroyableComponent::SetArmor(int32_t value) {
 
 	// If Destroyable Component already has zero armor do not trigger the passive ability again.
 	bool hadArmor = m_iArmor > 0;
-	
+
     auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
     if (characterComponent != nullptr) {
         characterComponent->TrackArmorDelta(value - m_iArmor);
@@ -283,9 +281,6 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 		args.InsertValue("type", type);
 
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
-
-		delete amount;
-		delete type;
 	}
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -328,10 +323,8 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 		AMFArrayValue args;
 		args.InsertValue("amount", amount);
 		args.InsertValue("type", type);
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 
-		delete amount;
-		delete type;
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	}
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
@@ -506,7 +499,7 @@ bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignor
 
 	if (targetEntity == nullptr)
 	{
-		Game::logger->Log("DestroyableComponent", "Invalid entity for checking validity (%llu)!\n", target);
+		Game::logger->Log("DestroyableComponent", "Invalid entity for checking validity (%llu)!", target);
 		return false;
 	}
 
@@ -784,22 +777,22 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	else
 	{
 		//Check if this zone allows coin drops
-		if (dZoneManager::Instance()->GetPlayerLoseCoinOnDeath()) 
+		if (dZoneManager::Instance()->GetPlayerLoseCoinOnDeath())
 		{
 			auto* character = m_Parent->GetCharacter();
 			uint64_t coinsTotal = character->GetCoins();
 
-			if (coinsTotal > 0) 
+			if (coinsTotal > 0)
 			{
 				uint64_t coinsToLoose = 1;
 
-				if (coinsTotal >= 200) 
+				if (coinsTotal >= 200)
 				{
 					float hundreth = (coinsTotal / 100.0f);
 					coinsToLoose = static_cast<int>(hundreth);
 				}
 
-				if (coinsToLoose > 10000) 
+				if (coinsToLoose > 10000)
 				{
 					coinsToLoose = 10000;
 				}

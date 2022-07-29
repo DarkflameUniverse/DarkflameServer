@@ -13,7 +13,7 @@
 
 //! Replica Constructor class
 class ReplicaConstructor : public ReceiveConstructionInterface {
-public: 
+public:
     ReplicaReturnResult ReceiveConstruction(RakNet::BitStream *inBitStream, RakNetTime timestamp, NetworkID networkID, NetworkIDObject *existingObject, SystemAddress senderId, ReplicaManager *caller) {
         return REPLICA_PROCESSING_DONE;
     }
@@ -60,11 +60,11 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 
 	if (mIsOkay) {
 		if (zoneID == 0)
-			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i\n", ip.c_str(), port, int(useEncryption));
+			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i", ip.c_str(), port, int(useEncryption));
 		else
-			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i, running zone %i / %i\n", ip.c_str(), port, int(useEncryption), zoneID, instanceID);
+			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i, running zone %i / %i", ip.c_str(), port, int(useEncryption), zoneID, instanceID);
 	}
-	else { mLogger->Log("dServer", "FAILED TO START SERVER ON IP/PORT: %s:%i\n", ip.c_str(), port); return; }
+	else { mLogger->Log("dServer", "FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
 
 	mLogger->SetLogToConsole(prevLogSetting);
 
@@ -104,13 +104,13 @@ Packet* dServer::ReceiveFromMaster() {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
 
 		if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-			mLogger->Log("dServer", "Lost our connection to master, shutting DOWN!\n");
+			mLogger->Log("dServer", "Lost our connection to master, shutting DOWN!");
 			mMasterConnectionActive = false;
 			//ConnectToMaster(); //We'll just shut down now
 		}
-	
+
 		if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
-			mLogger->Log("dServer", "Established connection to master, zone (%i), instance (%i)\n",this->GetZoneID(), this->GetInstanceID());
+			mLogger->Log("dServer", "Established connection to master, zone (%i), instance (%i)",this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
 			MasterPackets::SendServerInfo(this, packet);
