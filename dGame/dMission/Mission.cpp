@@ -286,6 +286,7 @@ void Mission::Accept() {
 
 void Mission::Complete(const bool yieldRewards) {
     if (m_State != MissionState::MISSION_STATE_ACTIVE && m_State != MissionState::MISSION_STATE_COMPLETE_ACTIVE) {
+        // If we are accepting a mission here there is no point to giving it a unique ID since we just complete it immediately.
         Accept();
     }
 
