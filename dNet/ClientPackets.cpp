@@ -176,7 +176,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	// Handle statistics
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
-	    characterComponent->TrackPositionUpdate(position);
+		characterComponent->TrackPositionUpdate(position);
 	}
 
 	comp->SetPosition(position);
@@ -254,8 +254,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 	// Check if the player has restricted chat access
 	auto* character = entity->GetCharacter();
 
-	if (character->HasPermission(PermissionMap::RestrictedChatAccess))
-	{
+	if (character->HasPermission(PermissionMap::RestrictedChatAccess)) {
 		// Send a message to the player
 		ChatPackets::SendSystemMessage(
 			sysAddr,
@@ -341,8 +340,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 
 			delete res;
 			delete stmt;
-		}
-		else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
+		} else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
 			isBestFriend = true;
 		}
 	}

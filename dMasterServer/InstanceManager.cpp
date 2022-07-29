@@ -25,65 +25,64 @@ InstanceManager::~InstanceManager() {
 	}
 }
 
-Instance * InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID) {
-    mLogger->Log("InstanceManager", "Searching for an instance for mapID %i/%i", mapID, cloneID);
+Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID) {
+	mLogger->Log("InstanceManager", "Searching for an instance for mapID %i/%i", mapID, cloneID);
 	Instance* instance = FindInstance(mapID, isFriendTransfer, cloneID);
 	if (instance) return instance;
 
-    //TODO: Update this so that the IP is read from a configuration file instead
+	//TODO: Update this so that the IP is read from a configuration file instead
 
-    int softCap = 8;
-    int maxPlayers = 12;
+	int softCap = 8;
+	int maxPlayers = 12;
 
-    if (mapID == 0) {
-	    softCap = 999;
-	    maxPlayers = softCap;
-    } else {
+	if (mapID == 0) {
+		softCap = 999;
+		maxPlayers = softCap;
+	} else {
 		softCap = GetSoftCap(mapID);
 		maxPlayers = GetHardCap(mapID);
 	}
 
-    uint32_t port = GetFreePort();
-    instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, softCap, maxPlayers);
+	uint32_t port = GetFreePort();
+	instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, softCap, maxPlayers);
 
-    //Start the actual process:
+	//Start the actual process:
 #ifdef _WIN32
 	std::string cmd = "start ./WorldServer.exe -zone ";
 #else
 	std::string cmd;
-    if (std::atoi(Game::config->GetValue("use_sudo_world").c_str())) {
+	if (std::atoi(Game::config->GetValue("use_sudo_world").c_str())) {
 		cmd = "sudo ./WorldServer -zone ";
 	} else {
 		cmd = "./WorldServer -zone ";
 	}
 #endif
 
-    cmd.append(std::to_string(mapID));
-    cmd.append(" -port ");
-    cmd.append(std::to_string(port));
-    cmd.append(" -instance ");
-    cmd.append(std::to_string(m_LastInstanceID));
-    cmd.append(" -maxclients ");
-    cmd.append(std::to_string(maxPlayers));
+	cmd.append(std::to_string(mapID));
+	cmd.append(" -port ");
+	cmd.append(std::to_string(port));
+	cmd.append(" -instance ");
+	cmd.append(std::to_string(m_LastInstanceID));
+	cmd.append(" -maxclients ");
+	cmd.append(std::to_string(maxPlayers));
 
-    cmd.append(" -clone ");
-    cmd.append(std::to_string(cloneID));
+	cmd.append(" -clone ");
+	cmd.append(std::to_string(cloneID));
 
 #ifndef _WIN32
-    cmd.append("&"); //Sends our next process to the background on Linux
+	cmd.append("&"); //Sends our next process to the background on Linux
 #endif
 
-    system(cmd.c_str());
+	system(cmd.c_str());
 
-    m_Instances.push_back(instance);
+	m_Instances.push_back(instance);
 
-    if (instance) {
-	    mLogger->Log("InstanceManager", "Created new instance: %i/%i/%i with min/max %i/%i", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
-	    return instance;
-    }
-    else mLogger->Log("InstanceManager", "Failed to create a new instance!");
+	if (instance) {
+		mLogger->Log("InstanceManager", "Created new instance: %i/%i/%i with min/max %i/%i", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
+		return instance;
+	} else mLogger->Log("InstanceManager", "Failed to create a new instance!");
 
-    return nullptr;
+	return nullptr;
 }
 
 bool InstanceManager::IsPortInUse(uint32_t port) {
@@ -97,22 +96,22 @@ bool InstanceManager::IsPortInUse(uint32_t port) {
 }
 
 uint32_t InstanceManager::GetFreePort() {
-    uint32_t port = m_LastPort;
-    std::vector<uint32_t> usedPorts;
-    for (Instance* i : m_Instances) {
-        usedPorts.push_back(i->GetPort());
-    }
+	uint32_t port = m_LastPort;
+	std::vector<uint32_t> usedPorts;
+	for (Instance* i : m_Instances) {
+		usedPorts.push_back(i->GetPort());
+	}
 
-    std::sort(usedPorts.begin(), usedPorts.end());
+	std::sort(usedPorts.begin(), usedPorts.end());
 
-    int portIdx = 0;
-    while (portIdx < usedPorts.size() && port == usedPorts[portIdx]) {
-        //increment by 3 since each instance uses 3 ports (instance, world-server, world-chat)
-        port += 3;
-        portIdx++;
-    }
+	int portIdx = 0;
+	while (portIdx < usedPorts.size() && port == usedPorts[portIdx]) {
+		//increment by 3 since each instance uses 3 ports (instance, world-server, world-chat)
+		port += 3;
+		portIdx++;
+	}
 
-    return port;
+	return port;
 }
 
 void InstanceManager::AddPlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID) {
@@ -135,8 +134,7 @@ void InstanceManager::RemovePlayer(SystemAddress systemAddr, LWOMAPID mapID, LWO
 	}
 }
 
-std::vector<Instance*> InstanceManager::GetInstances() const
-{
+std::vector<Instance*> InstanceManager::GetInstances() const {
 	return m_Instances;
 }
 
@@ -147,10 +145,8 @@ void InstanceManager::AddInstance(Instance* instance) {
 }
 
 void InstanceManager::RemoveInstance(Instance* instance) {
-	for (uint32_t i = 0; i < m_Instances.size(); ++i)
-	{
-		if (m_Instances[i] == instance)
-		{
+	for (uint32_t i = 0; i < m_Instances.size(); ++i) {
+		if (m_Instances[i] == instance) {
 			instance->SetShutdownComplete(true);
 
 			RedirectPendingRequests(instance);
@@ -164,14 +160,12 @@ void InstanceManager::RemoveInstance(Instance* instance) {
 	}
 }
 
-void InstanceManager::ReadyInstance(Instance* instance)
-{
+void InstanceManager::ReadyInstance(Instance* instance) {
 	instance->SetIsReady(true);
 
 	auto& pending = instance->GetPendingRequests();
 
-	for (const auto& request : pending)
-	{
+	for (const auto& request : pending) {
 		const auto& zoneId = instance->GetZoneID();
 
 		Game::logger->Log("InstanceManager", "Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
@@ -192,8 +186,7 @@ void InstanceManager::ReadyInstance(Instance* instance)
 	pending.clear();
 }
 
-void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstanceRequest& request)
-{
+void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstanceRequest& request) {
 	instance->GetPendingAffirmations().push_back(request);
 
 	CBITSTREAM;
@@ -210,12 +203,10 @@ void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstan
 	);
 }
 
-void InstanceManager::AffirmTransfer(Instance* instance, const uint64_t transferID)
-{
+void InstanceManager::AffirmTransfer(Instance* instance, const uint64_t transferID) {
 	auto& pending = instance->GetPendingAffirmations();
 
-	for (auto i = 0u; i < pending.size(); ++i)
-	{
+	for (auto i = 0u; i < pending.size(); ++i) {
 		const auto& request = pending[i];
 
 		if (request.id != transferID) continue;
@@ -240,12 +231,10 @@ void InstanceManager::AffirmTransfer(Instance* instance, const uint64_t transfer
 	}
 }
 
-void InstanceManager::RedirectPendingRequests(Instance* instance)
-{
+void InstanceManager::RedirectPendingRequests(Instance* instance) {
 	const auto& zoneId = instance->GetZoneID();
 
-	for (const auto& request : instance->GetPendingAffirmations())
-	{
+	for (const auto& request : instance->GetPendingAffirmations()) {
 		auto* in = Game::im->GetInstance(zoneId.GetMapID(), false, zoneId.GetCloneID());
 
 		if (!in->GetIsReady()) // Instance not ready, make a pending request
@@ -278,7 +267,7 @@ bool InstanceManager::IsInstanceFull(Instance* instance, bool isFriendTransfer) 
 	return true;
 }
 
-Instance * InstanceManager::FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId) {
+Instance* InstanceManager::FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId) {
 	for (Instance* i : m_Instances) {
 		if (i && i->GetMapID() == mapID && i->GetCloneID() == cloneId && !IsInstanceFull(i, isFriendTransfer) && !i->GetIsPrivate() && !i->GetShutdownComplete() && !i->GetIsShuttingDown()) {
 			return i;
@@ -288,9 +277,9 @@ Instance * InstanceManager::FindInstance(LWOMAPID mapID, bool isFriendTransfer, 
 	return nullptr;
 }
 
-Instance * InstanceManager::FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID) {
+Instance* InstanceManager::FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID) {
 	for (Instance* i : m_Instances) {
-		if (i && i->GetMapID() == mapID && i->GetInstanceID() == instanceID && !i->GetIsPrivate() && !i->GetShutdownComplete()  && !i->GetIsShuttingDown()) {
+		if (i && i->GetMapID() == mapID && i->GetInstanceID() == instanceID && !i->GetIsPrivate() && !i->GetShutdownComplete() && !i->GetIsShuttingDown()) {
 			return i;
 		}
 	}
@@ -298,12 +287,10 @@ Instance * InstanceManager::FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceI
 	return nullptr;
 }
 
-Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password)
-{
+Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password) {
 	auto* instance = FindPrivateInstance(password);
 
-	if (instance != nullptr)
-	{
+	if (instance != nullptr) {
 		return instance;
 	}
 
@@ -312,29 +299,29 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	uint32_t port = GetFreePort();
 	instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, maxPlayers, maxPlayers, true, password);
 
-    //Start the actual process:
-    std::string cmd = "start ./WorldServer.exe -zone ";
+	//Start the actual process:
+	std::string cmd = "start ./WorldServer.exe -zone ";
 
 #ifndef _WIN32
 	cmd = "./WorldServer -zone ";
 #endif
 
-    cmd.append(std::to_string(mapID));
-    cmd.append(" -port ");
-    cmd.append(std::to_string(port));
-    cmd.append(" -instance ");
-    cmd.append(std::to_string(m_LastInstanceID));
-    cmd.append(" -maxclients ");
-    cmd.append(std::to_string(maxPlayers));
+	cmd.append(std::to_string(mapID));
+	cmd.append(" -port ");
+	cmd.append(std::to_string(port));
+	cmd.append(" -instance ");
+	cmd.append(std::to_string(m_LastInstanceID));
+	cmd.append(" -maxclients ");
+	cmd.append(std::to_string(maxPlayers));
 
-    cmd.append(" -clone ");
-    cmd.append(std::to_string(cloneID));
+	cmd.append(" -clone ");
+	cmd.append(std::to_string(cloneID));
 
 #ifndef WIN32
-    cmd.append("&"); //Sends our next process to the background on Linux
+	cmd.append("&"); //Sends our next process to the background on Linux
 #endif
 
-    system(cmd.c_str());
+	system(cmd.c_str());
 
 	m_Instances.push_back(instance);
 
@@ -344,21 +331,17 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	return instance;
 }
 
-Instance* InstanceManager::FindPrivateInstance(const std::string& password)
-{
-	for (auto* instance : m_Instances)
-	{
+Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
+	for (auto* instance : m_Instances) {
 		if (!instance) continue;
 
-		if (!instance->GetIsPrivate())
-		{
+		if (!instance->GetIsPrivate()) {
 			continue;
 		}
 
 		mLogger->Log("InstanceManager", "Password: %s == %s => %d", password.c_str(), instance->GetPassword().c_str(), password == instance->GetPassword());
 
-		if (instance->GetPassword() == password)
-		{
+		if (instance->GetPassword() == password) {
 			return instance;
 		}
 	}
@@ -392,18 +375,15 @@ int InstanceManager::GetHardCap(LWOMAPID mapID) {
 	return 12;
 }
 
-void Instance::SetShutdownComplete(const bool value)
-{
+void Instance::SetShutdownComplete(const bool value) {
 	m_Shutdown = value;
 }
 
-bool Instance::GetShutdownComplete() const
-{
+bool Instance::GetShutdownComplete() const {
 	return m_Shutdown;
 }
 
-void Instance::Shutdown()
-{
+void Instance::Shutdown() {
 	CBITSTREAM;
 
 	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN);

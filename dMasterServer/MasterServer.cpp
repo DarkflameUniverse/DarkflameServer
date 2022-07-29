@@ -104,8 +104,7 @@ int main(int argc, char** argv) {
 		Game::logger->Log("MigrationRunner", "Finished running migrations");
 
 		return EXIT_SUCCESS;
-	}
-	else {
+	} else {
 
 		//Check CDClient exists
 		const std::string cdclient_path = "./res/CDServer.sqlite";
@@ -229,8 +228,7 @@ int main(int argc, char** argv) {
 		updateStatement->setInt(3, result->getInt("id"));
 		updateStatement->execute();
 		delete updateStatement;
-	}
-	else {
+	} else {
 		//If we didn't find a server, create one.
 		auto* insertStatement = Database::CreatePreppedStmt("INSERT INTO `servers` (`name`, `ip`, `port`, `state`, `version`) VALUES ('master', ?, ?, 0, 171023)");
 		insertStatement->setString(1, master_server_ip);
@@ -274,8 +272,7 @@ int main(int argc, char** argv) {
 		if (framesSinceLastFlush >= 900) {
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
-		}
-		else
+		} else
 			framesSinceLastFlush++;
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
@@ -294,8 +291,7 @@ int main(int argc, char** argv) {
 			delete stmt;
 
 			framesSinceLastSQLPing = 0;
-		}
-		else
+		} else
 			framesSinceLastSQLPing++;
 
 		//10m shutdown for universe kill command
@@ -303,8 +299,7 @@ int main(int argc, char** argv) {
 			if (framesSinceKillUniverseCommand >= 40000) {
 				//Break main loop and exit
 				break;
-			}
-			else
+			} else
 				framesSinceKillUniverseCommand++;
 		}
 
@@ -319,8 +314,7 @@ int main(int argc, char** argv) {
 
 			if (!instance->GetPendingAffirmations().empty()) {
 				affirmTimeout++;
-			}
-			else {
+			} else {
 				affirmTimeout = 0;
 			}
 
@@ -415,7 +409,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MSG_MASTER_REQUEST_ZONE_TRANSFER: {
-			Game::logger->Log("MasterServer","Received zone transfer req");
+			Game::logger->Log("MasterServer", "Received zone transfer req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 			uint64_t requestID = 0;
@@ -431,7 +425,7 @@ void HandlePacket(Packet* packet) {
 			Instance* in = Game::im->GetInstance(zoneID, false, zoneClone);
 
 			for (auto* instance : Game::im->GetInstances()) {
-				Game::logger->Log("MasterServer", "Instance: %i/%i/%i -> %i",instance->GetMapID(), instance->GetCloneID(),instance->GetInstanceID(), instance == in);
+				Game::logger->Log("MasterServer", "Instance: %i/%i/%i -> %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in);
 			}
 
 			if (!in->GetIsReady()) //Instance not ready, make a pending request
@@ -477,8 +471,7 @@ void HandlePacket(Packet* packet) {
 
 				in->SetSysAddr(copy);
 				Game::im->AddInstance(in);
-			}
-			else {
+			} else {
 				auto instance = Game::im->FindInstance(
 					theirZoneID, static_cast<uint16_t>(theirInstanceID));
 				if (instance) {
@@ -562,8 +555,7 @@ void HandlePacket(Packet* packet) {
 				Game::im->FindInstance(theirZoneID, theirInstanceID);
 			if (instance) {
 				instance->AddPlayer(Player());
-			}
-			else {
+			} else {
 				printf("Instance missing? What?");
 			}
 			break;
@@ -633,7 +625,7 @@ void HandlePacket(Packet* packet) {
 
 			auto* instance = Game::im->FindPrivateInstance(password.c_str());
 
-			Game::logger->Log( "MasterServer", "Join private zone: %llu %d %s %p", requestID, mythranShift, password.c_str(), instance);
+			Game::logger->Log("MasterServer", "Join private zone: %llu %d %s %p", requestID, mythranShift, password.c_str(), instance);
 
 			if (instance == nullptr) {
 				return;
@@ -641,7 +633,7 @@ void HandlePacket(Packet* packet) {
 
 			const auto& zone = instance->GetZoneID();
 
-			MasterPackets::SendZoneTransferResponse(Game::server, packet->systemAddress, requestID,(bool)mythranShift, zone.GetMapID(),instance->GetInstanceID(), zone.GetCloneID(),instance->GetIP(), instance->GetPort());
+			MasterPackets::SendZoneTransferResponse(Game::server, packet->systemAddress, requestID, (bool)mythranShift, zone.GetMapID(), instance->GetInstanceID(), zone.GetCloneID(), instance->GetIP(), instance->GetPort());
 
 			break;
 		}
@@ -656,12 +648,12 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(zoneID);
 			inStream.Read(instanceID);
 
-			Game::logger->Log("MasterServer", "Got world ready %i %i",zoneID, instanceID);
+			Game::logger->Log("MasterServer", "Got world ready %i %i", zoneID, instanceID);
 
 			auto* instance = Game::im->FindInstance(zoneID, instanceID);
 
 			if (instance == nullptr) {
-				Game::logger->Log("MasterServer","Failed to find zone to ready");
+				Game::logger->Log("MasterServer", "Failed to find zone to ready");
 				return;
 			}
 
@@ -690,15 +682,15 @@ void HandlePacket(Packet* packet) {
 
 			inStream.Read(requestID);
 
-			Game::logger->Log("MasterServer","Got affirmation of transfer %llu",requestID);
+			Game::logger->Log("MasterServer", "Got affirmation of transfer %llu", requestID);
 
-			auto* instance =Game::im->GetInstanceBySysAddr(packet->systemAddress);
+			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
 
 			if (instance == nullptr)
 				return;
 
 			Game::im->AffirmTransfer(instance, requestID);
-			Game::logger->Log("MasterServer", "Affirmation complete %llu",requestID);
+			Game::logger->Log("MasterServer", "Affirmation complete %llu", requestID);
 			break;
 		}
 
@@ -718,45 +710,43 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MSG_MASTER_SHUTDOWN_UNIVERSE: {
-			Game::logger->Log("MasterServer","Received shutdown universe command, shutting down in 10 minutes.");
+			Game::logger->Log("MasterServer", "Received shutdown universe command, shutting down in 10 minutes.");
 			shouldShutdown = true;
 			break;
 		}
 
 		default:
-			Game::logger->Log("MasterServer","Unknown master packet ID from server: %i",packet->data[3]);
+			Game::logger->Log("MasterServer", "Unknown master packet ID from server: %i", packet->data[3]);
 		}
 	}
 }
 
 void StartChatServer() {
 #ifdef __APPLE__
-		//macOS doesn't need sudo to run on ports < 1024
-		system("./ChatServer&");
+	//macOS doesn't need sudo to run on ports < 1024
+	system("./ChatServer&");
 #elif _WIN32
-		system("start ./ChatServer.exe");
+	system("start ./ChatServer.exe");
 #else
-		if (std::atoi(Game::config->GetValue("use_sudo_chat").c_str())) {
-			system("sudo ./ChatServer&");
-		}
-		else {
-			system("./ChatServer&");
-		}
+	if (std::atoi(Game::config->GetValue("use_sudo_chat").c_str())) {
+		system("sudo ./ChatServer&");
+	} else {
+		system("./ChatServer&");
+	}
 #endif
 }
 
 void StartAuthServer() {
 #ifdef __APPLE__
-		system("./AuthServer&");
+	system("./AuthServer&");
 #elif _WIN32
-		system("start ./AuthServer.exe");
+	system("start ./AuthServer.exe");
 #else
-		if (std::atoi(Game::config->GetValue("use_sudo_auth").c_str())) {
-			system("sudo ./AuthServer&");
-		}
-		else {
-			system("./AuthServer&");
-		}
+	if (std::atoi(Game::config->GetValue("use_sudo_auth").c_str())) {
+		system("sudo ./AuthServer&");
+	} else {
+		system("./AuthServer&");
+	}
 #endif
 }
 

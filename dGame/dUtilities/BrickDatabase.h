@@ -4,28 +4,26 @@
 class BrickDatabase
 {
 public:
-    static BrickDatabase* Instance()
-    {
-        if (m_Address == nullptr)
-        {
-            m_Address = new BrickDatabase();
-        }
+	static BrickDatabase* Instance() {
+		if (m_Address == nullptr) {
+			m_Address = new BrickDatabase();
+		}
 
-        return m_Address;
-    }
+		return m_Address;
+	}
 
-    std::vector<Brick>& GetBricks(const std::string& lxfmlPath);
+	std::vector<Brick>& GetBricks(const std::string& lxfmlPath);
 
-    explicit BrickDatabase();
+	explicit BrickDatabase();
 
-    ~BrickDatabase();
-    
+	~BrickDatabase();
+
 private:
-    std::unordered_map<std::string, std::vector<Brick>> m_Cache;
+	std::unordered_map<std::string, std::vector<Brick>> m_Cache;
 
-    static std::vector<Brick> emptyCache;
+	static std::vector<Brick> emptyCache;
 
-    static BrickDatabase* m_Address; //For singleton method
+	static BrickDatabase* m_Address; //For singleton method
 
-    /* data */
+	/* data */
 };

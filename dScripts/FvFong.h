@@ -3,6 +3,6 @@
 
 class FvFong : public CppScripts::Script
 {
-	public:
-		void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) override;
+public:
+	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) override;
 };

@@ -2,16 +2,14 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 
-void RockHydrantBroken::OnStartup(Entity* self)
-{
+void RockHydrantBroken::OnStartup(Entity* self) {
 	self->AddTimer("playEffect", 1);
 
 	const auto hydrant = "hydrant" + self->GetVar<std::string>(u"hydrant");
 
 	const auto bouncers = EntityManager::Instance()->GetEntitiesInGroup(hydrant);
 
-	for (auto* bouncer : bouncers)
-	{
+	for (auto* bouncer : bouncers) {
 		self->SetVar<LWOOBJID>(u"bouncer", bouncer->GetObjectID());
 
 
@@ -23,23 +21,18 @@ void RockHydrantBroken::OnStartup(Entity* self)
 	self->AddTimer("KillBroken", 10);
 }
 
-void RockHydrantBroken::OnTimerDone(Entity* self, std::string timerName)
-{
-	if (timerName == "KillBroken")
-	{
+void RockHydrantBroken::OnTimerDone(Entity* self, std::string timerName) {
+	if (timerName == "KillBroken") {
 		auto* bouncer = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"bouncer"));
 
-		if (bouncer != nullptr)
-		{
+		if (bouncer != nullptr) {
 			GameMessages::SendBouncerActiveStatus(bouncer->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
 
 			GameMessages::SendNotifyObject(bouncer->GetObjectID(), self->GetObjectID(), u"disableCollision", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		self->Kill();
-	}
-	else if (timerName == "playEffect")
-	{
+	} else if (timerName == "playEffect") {
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 4737, u"water", "water", LWOOBJID_EMPTY, 1, 1, true);
 	}
 }

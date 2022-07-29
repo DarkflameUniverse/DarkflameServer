@@ -49,7 +49,7 @@ CDActivitiesTable::CDActivitiesTable(void) {
 }
 
 //! Destructor
-CDActivitiesTable::~CDActivitiesTable(void) { }
+CDActivitiesTable::~CDActivitiesTable(void) {}
 
 //! Returns the table's name
 std::string CDActivitiesTable::GetName(void) const {

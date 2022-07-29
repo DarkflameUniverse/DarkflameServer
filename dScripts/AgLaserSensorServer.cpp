@@ -13,7 +13,7 @@ void AgLaserSensorServer::OnStartup(Entity* self) {
 	physComp->SetEffectType(2); // repulse (prolly should make definitions of these are in Entity.cpp)
 	physComp->SetDirectionalMultiplier(static_cast<float>(m_RepelForce));
 	physComp->SetDirection(NiPoint3::UNIT_Y);
-	
+
 	m_Skill = self->GetComponent<SkillComponent>();
 }
 
@@ -36,16 +36,13 @@ void AgLaserSensorServer::OnCollisionPhantom(Entity* self, Entity* target) {
 			if (obj == 76690936093053 && Vector3::DistanceSquared(source, NiPoint3(149.007f, 417.083f, 218.346f)) <= 1.0f) {
 				laser = script;
 				break;
-			}
-			else if (obj == 75866302318824 && Vector3::DistanceSquared(source, NiPoint3(48.6403f, 403.803f, 196.711f)) <= 1.0f) {
+			} else if (obj == 75866302318824 && Vector3::DistanceSquared(source, NiPoint3(48.6403f, 403.803f, 196.711f)) <= 1.0f) {
 				laser = script;
 				break;
-			}
-			else if (obj == 75866302318822 && Vector3::DistanceSquared(source, NiPoint3(19.2155f, 420.083f, 249.226f)) <= 1.0f) {
+			} else if (obj == 75866302318822 && Vector3::DistanceSquared(source, NiPoint3(19.2155f, 420.083f, 249.226f)) <= 1.0f) {
 				laser = script;
 				break;
-			}
-			else if (obj == 75866302318823 && Vector3::DistanceSquared(source, NiPoint3(-6.61596f, 404.633f, 274.323f)) <= 1.0f) {
+			} else if (obj == 75866302318823 && Vector3::DistanceSquared(source, NiPoint3(-6.61596f, 404.633f, 274.323f)) <= 1.0f) {
 				laser = script;
 				break;
 			}

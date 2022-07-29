@@ -33,27 +33,27 @@ class Character;
  */
 class Entity {
 public:
-    explicit Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity = nullptr);
-    virtual ~Entity();
+	explicit Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity = nullptr);
+	virtual ~Entity();
 
 	virtual void Initialize();
-	
-    bool operator==(const Entity& other) const;
-    bool operator!=(const Entity& other) const;
+
+	bool operator==(const Entity& other) const;
+	bool operator!=(const Entity& other) const;
 
 	/**
 	 * Getters
 	 */
-    
-    const LWOOBJID& GetObjectID() const { return m_ObjectID; }
 
-    const LOT GetLOT() const { return m_TemplateID; }
+	const LWOOBJID& GetObjectID() const { return m_ObjectID; }
 
-    Character* GetCharacter() const { return m_Character; }
+	const LOT GetLOT() const { return m_TemplateID; }
 
-    uint8_t GetGMLevel() const { return m_GMLevel; }
+	Character* GetCharacter() const { return m_Character; }
 
-    uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
+	uint8_t GetGMLevel() const { return m_GMLevel; }
+
+	uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
 
 	Entity* GetParentEntity() const { return m_ParentEntity; }
 
@@ -62,7 +62,7 @@ public:
 	std::vector<std::string>& GetGroups() { return m_Groups; };
 
 	Spawner* GetSpawner() const { return m_Spawner; }
-	
+
 	LWOOBJID GetSpawnerID() const { return m_SpawnerID; }
 
 	const std::vector<LDFBaseData*>& GetSettings() const { return m_Settings; }
@@ -71,7 +71,7 @@ public:
 
 	bool GetIsDead() const;
 
-	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates;}
+	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates; }
 
 	bool GetIsGhostingCandidate() const;
 
@@ -86,7 +86,7 @@ public:
 	const NiQuaternion& GetDefaultRotation() const;
 
 	float GetDefaultScale() const;
-	
+
 	const NiPoint3& GetPosition() const;
 
 	const NiQuaternion& GetRotation() const;
@@ -99,9 +99,9 @@ public:
 	 * Setters
 	 */
 
-    void SetCharacter(Character* value) { m_Character = value; }
-	
-    void SetGMLevel(uint8_t value);
+	void SetCharacter(Character* value) { m_Character = value; }
+
+	void SetGMLevel(uint8_t value);
 
 	void SetOwnerOverride(LWOOBJID value);
 
@@ -118,14 +118,14 @@ public:
 	virtual void SetRespawnPos(NiPoint3 position) {}
 
 	virtual void SetRespawnRot(NiQuaternion rotation) {}
-	
+
 	virtual void SetSystemAddress(const SystemAddress& value) {};
 
 	/**
 	 * Component management
 	 */
 
-    Component* GetComponent(int32_t componentID) const;
+	Component* GetComponent(int32_t componentID) const;
 
 	template<typename T>
 	T* GetComponent() const;
@@ -152,32 +152,32 @@ public:
 	void CancelAllTimers();
 	void CancelTimer(const std::string& name);
 
-    void AddToGroup(const std::string& group);
+	void AddToGroup(const std::string& group);
 	bool IsPlayer() const;
 
 	std::unordered_map<int32_t, Component*>& GetComponents() { return m_Components; } // TODO: Remove
-	
+
 	void WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
 	void WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
-    void ResetFlags();
-    void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
+	void ResetFlags();
+	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
 	void Update(float deltaTime);
 
 	// Events
 	void OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxName, const std::string& status);
 	void OnCollisionPhantom(LWOOBJID otherEntity);
-    void OnCollisionLeavePhantom(LWOOBJID otherEntity);
+	void OnCollisionLeavePhantom(LWOOBJID otherEntity);
 
-    void OnFireEventServerSide(Entity* sender, std::string args, int32_t param1 = -1, int32_t param2 = -1, int32_t param3 = -1);
-    void OnActivityStateChangeRequest(const LWOOBJID senderID, const int32_t value1, const int32_t value2,
-                                      const std::u16string& stringValue);
-    void OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent event, const std::u16string& pathName,
-                           float_t pathTime, float_t totalTime, int32_t waypoint);
+	void OnFireEventServerSide(Entity* sender, std::string args, int32_t param1 = -1, int32_t param2 = -1, int32_t param3 = -1);
+	void OnActivityStateChangeRequest(const LWOOBJID senderID, const int32_t value1, const int32_t value2,
+		const std::u16string& stringValue);
+	void OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent event, const std::u16string& pathName,
+		float_t pathTime, float_t totalTime, int32_t waypoint);
 
 	void NotifyObject(Entity* sender, const std::string& name, int32_t param1 = 0, int32_t param2 = 0);
 	void OnEmoteReceived(int32_t emote, Entity* target);
-    
-    void OnUse(Entity* originator);
+
+	void OnUse(Entity* originator);
 
 	void OnHitOrHealResult(Entity* attacker, int32_t damage);
 	void OnHit(Entity* attacker);
@@ -196,7 +196,7 @@ public:
 
 	void Smash(const LWOOBJID source = LWOOBJID_EMPTY, const eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
 	void Kill(Entity* murderer = nullptr);
-    void AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const;
+	void AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const;
 	void AddCollisionPhantomCallback(const std::function<void(Entity* target)>& callback);
 	void AddDieCallback(const std::function<void()>& callback);
 	void Resurrect();
@@ -222,15 +222,15 @@ public:
 	/*
 	 * Utility
 	 */
-	/**
-	 * Retroactively corrects the model vault size due to incorrect initialization in a previous patch.
-	 * 
-	 */
+	 /**
+	  * Retroactively corrects the model vault size due to incorrect initialization in a previous patch.
+	  *
+	  */
 	void RetroactiveVaultSize();
 	bool GetBoolean(const std::u16string& name) const;
 	int32_t GetI32(const std::u16string& name) const;
 	int64_t GetI64(const std::u16string& name) const;
-	
+
 	void SetBoolean(const std::u16string& name, bool value);
 	void SetI32(const std::u16string& name, int32_t value);
 	void SetI64(const std::u16string& name, int64_t value);
@@ -248,11 +248,11 @@ public:
 	template<typename T>
 	void SetNetworkVar(const std::u16string& name, T value, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 
-    template<typename T>
-    void SetNetworkVar(const std::u16string& name, std::vector<T> value, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+	template<typename T>
+	void SetNetworkVar(const std::u16string& name, std::vector<T> value, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 
-    template<typename T>
-    T GetNetworkVar(const std::u16string& name);
+	template<typename T>
+	T GetNetworkVar(const std::u16string& name);
 
 	/**
 	 * Get the LDF value and cast it as T.
@@ -278,37 +278,37 @@ public:
 	Entity* GetScheduledKiller() { return m_ScheduleKiller; }
 
 protected:
-    LWOOBJID m_ObjectID;
-	
-    LOT m_TemplateID;
-	
-    std::vector<LDFBaseData*> m_Settings;
-    std::vector<LDFBaseData*> m_NetworkSettings;
+	LWOOBJID m_ObjectID;
 
-    NiPoint3 m_DefaultPosition;
-    NiQuaternion m_DefaultRotation;
+	LOT m_TemplateID;
+
+	std::vector<LDFBaseData*> m_Settings;
+	std::vector<LDFBaseData*> m_NetworkSettings;
+
+	NiPoint3 m_DefaultPosition;
+	NiQuaternion m_DefaultRotation;
 	float m_Scale;
 
 	Spawner* m_Spawner;
-    LWOOBJID m_SpawnerID;
-    
-    bool m_HasSpawnerNodeID;
-    uint32_t m_SpawnerNodeID;
-    
+	LWOOBJID m_SpawnerID;
+
+	bool m_HasSpawnerNodeID;
+	uint32_t m_SpawnerNodeID;
+
 	LUTriggers::Trigger* m_Trigger;
 
 	Character* m_Character;
-	
-    Entity* m_ParentEntity; //For spawners and the like
+
+	Entity* m_ParentEntity; //For spawners and the like
 	std::vector<Entity*> m_ChildEntities;
-    uint8_t m_GMLevel;
-    uint16_t m_CollectibleID;
+	uint8_t m_GMLevel;
+	uint16_t m_CollectibleID;
 	std::vector<std::string> m_Groups;
 	uint16_t m_NetworkID;
 	std::vector<std::function<void()>> m_DieCallbacks;
-    std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
-    
-    std::unordered_map<int32_t, Component*> m_Components; //The int is the ID of the component
+	std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
+
+	std::unordered_map<int32_t, Component*> m_Components; //The int is the ID of the component
 	std::vector<EntityTimer*> m_Timers;
 	std::vector<EntityTimer*> m_PendingTimers;
 	std::vector<EntityCallbackTimer*> m_CallbackTimers;
@@ -338,12 +338,10 @@ protected:
  */
 
 template<typename T>
-bool Entity::TryGetComponent(const int32_t componentId, T*& component) const
-{
+bool Entity::TryGetComponent(const int32_t componentId, T*& component) const {
 	const auto& index = m_Components.find(componentId);
 
-	if (index == m_Components.end())
-	{
+	if (index == m_Components.end()) {
 		component = nullptr;
 
 		return false;
@@ -355,26 +353,22 @@ bool Entity::TryGetComponent(const int32_t componentId, T*& component) const
 }
 
 template <typename T>
-T* Entity::GetComponent() const
-{
+T* Entity::GetComponent() const {
 	return dynamic_cast<T*>(GetComponent(T::ComponentType));
 }
 
 
 template<typename T>
-const T& Entity::GetVar(const std::u16string& name) const
-{
+const T& Entity::GetVar(const std::u16string& name) const {
 	auto* data = GetVarData(name);
 
-	if (data == nullptr)
-	{
+	if (data == nullptr) {
 		return LDFData<T>::Default;
 	}
 
 	auto* typed = dynamic_cast<LDFData<T>*>(data);
 
-	if (typed == nullptr)
-	{
+	if (typed == nullptr) {
 		return LDFData<T>::Default;
 	}
 
@@ -382,14 +376,12 @@ const T& Entity::GetVar(const std::u16string& name) const
 }
 
 template<typename T>
-T Entity::GetVarAs(const std::u16string& name) const
-{
+T Entity::GetVarAs(const std::u16string& name) const {
 	const auto data = GetVarAsString(name);
 
 	T value;
 
-	if (!GeneralUtils::TryParse(data, value))
-	{
+	if (!GeneralUtils::TryParse(data, value)) {
 		return LDFData<T>::Default;
 	}
 
@@ -397,12 +389,10 @@ T Entity::GetVarAs(const std::u16string& name) const
 }
 
 template<typename T>
-void Entity::SetVar(const std::u16string& name, T value)
-{
+void Entity::SetVar(const std::u16string& name, T value) {
 	auto* data = GetVarData(name);
 
-	if (data == nullptr)
-	{
+	if (data == nullptr) {
 		auto* data = new LDFData<T>(name, value);
 
 		m_Settings.push_back(data);
@@ -412,8 +402,7 @@ void Entity::SetVar(const std::u16string& name, T value)
 
 	auto* typed = dynamic_cast<LDFData<T>*>(data);
 
-	if (typed == nullptr)
-	{
+	if (typed == nullptr) {
 		return;
 	}
 
@@ -422,81 +411,81 @@ void Entity::SetVar(const std::u16string& name, T value)
 
 template<typename T>
 void Entity::SetNetworkVar(const std::u16string& name, T value, const SystemAddress& sysAddr) {
-    LDFData<T>* newData = nullptr;
+	LDFData<T>* newData = nullptr;
 
-    for (auto* data :m_NetworkSettings) {
-        if (data->GetKey() != name)
-            continue;
+	for (auto* data : m_NetworkSettings) {
+		if (data->GetKey() != name)
+			continue;
 
-        newData = dynamic_cast<LDFData<T>*>(data);
-        if (newData != nullptr) {
-            newData->SetValue(value);
-        } else {  // If we're changing types
-            m_NetworkSettings.erase(
+		newData = dynamic_cast<LDFData<T>*>(data);
+		if (newData != nullptr) {
+			newData->SetValue(value);
+		} else {  // If we're changing types
+			m_NetworkSettings.erase(
 				std::remove(m_NetworkSettings.begin(), m_NetworkSettings.end(), data), m_NetworkSettings.end()
 			);
-            delete data;
-        }
+			delete data;
+		}
 
-        break;
-    }
+		break;
+	}
 
-    if (newData == nullptr) {
-        newData = new LDFData<T>(name, value);
-    }
+	if (newData == nullptr) {
+		newData = new LDFData<T>(name, value);
+	}
 
-    m_NetworkSettings.push_back(newData);
-    SendNetworkVar(newData->GetString(true), sysAddr);
+	m_NetworkSettings.push_back(newData);
+	SendNetworkVar(newData->GetString(true), sysAddr);
 }
 
 template<typename T>
 void Entity::SetNetworkVar(const std::u16string& name, std::vector<T> values, const SystemAddress& sysAddr) {
-    std::stringstream updates;
-    auto index = 1;
+	std::stringstream updates;
+	auto index = 1;
 
-    for (const auto& value : values) {
-        LDFData<T>* newData = nullptr;
-        const auto& indexedName = name + u"." + GeneralUtils::to_u16string(index);
+	for (const auto& value : values) {
+		LDFData<T>* newData = nullptr;
+		const auto& indexedName = name + u"." + GeneralUtils::to_u16string(index);
 
-        for (auto* data : m_NetworkSettings) {
-            if (data->GetKey() != indexedName)
-                continue;
+		for (auto* data : m_NetworkSettings) {
+			if (data->GetKey() != indexedName)
+				continue;
 
-            newData = dynamic_cast<LDFData<T>*>(data);
-            newData->SetValue(value);
-            break;
-        }
+			newData = dynamic_cast<LDFData<T>*>(data);
+			newData->SetValue(value);
+			break;
+		}
 
-        if (newData == nullptr) {
-            newData = new LDFData<T>(indexedName, value);
-        }
+		if (newData == nullptr) {
+			newData = new LDFData<T>(indexedName, value);
+		}
 
-        m_NetworkSettings.push_back(newData);
+		m_NetworkSettings.push_back(newData);
 
-        if (index == values.size()) {
-            updates << newData->GetString(true);
-        } else {
-            updates << newData->GetString(true) << "\n";
-        }
+		if (index == values.size()) {
+			updates << newData->GetString(true);
+		} else {
+			updates << newData->GetString(true) << "\n";
+		}
 
-        index++;
-    }
+		index++;
+	}
 
-    SendNetworkVar(updates.str(), sysAddr);
+	SendNetworkVar(updates.str(), sysAddr);
 }
 
 template<typename T>
 T Entity::GetNetworkVar(const std::u16string& name) {
-    for (auto* data : m_NetworkSettings) {
-        if (data == nullptr || data->GetKey() != name)
-            continue;
+	for (auto* data : m_NetworkSettings) {
+		if (data == nullptr || data->GetKey() != name)
+			continue;
 
-        auto* typed = dynamic_cast<LDFData<T>*>(data);
-        if (typed == nullptr)
-            continue;
+		auto* typed = dynamic_cast<LDFData<T>*>(data);
+		if (typed == nullptr)
+			continue;
 
-        return typed->GetValue();
-    }
+		return typed->GetValue();
+	}
 
-    return LDFData<T>::Default;
+	return LDFData<T>::Default;
 }

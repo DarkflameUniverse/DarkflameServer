@@ -14,24 +14,24 @@ class User;
 
 class EntityManager {
 public:
-    static EntityManager* Instance() {
+	static EntityManager* Instance() {
 		if (!m_Address) {
 			m_Address = new EntityManager();
 			m_Address->Initialize();
 		}
-		
+
 		return m_Address;
 	}
-	
-    void Initialize();
 
-    ~EntityManager();
-    
-    void UpdateEntities(float deltaTime);
-    Entity* CreateEntity(EntityInfo info, User* user = nullptr, Entity* parentEntity = nullptr, bool controller = false, LWOOBJID explicitId = LWOOBJID_EMPTY);
-    void DestroyEntity(const LWOOBJID& objectID);
+	void Initialize();
+
+	~EntityManager();
+
+	void UpdateEntities(float deltaTime);
+	Entity* CreateEntity(EntityInfo info, User* user = nullptr, Entity* parentEntity = nullptr, bool controller = false, LWOOBJID explicitId = LWOOBJID_EMPTY);
+	void DestroyEntity(const LWOOBJID& objectID);
 	void DestroyEntity(Entity* entity);
-    Entity* GetEntity(const LWOOBJID& objectId) const;
+	Entity* GetEntity(const LWOOBJID& objectId) const;
 	std::vector<Entity*> GetEntitiesInGroup(const std::string& group);
 	std::vector<Entity*> GetEntitiesByComponent(int componentType) const;
 	std::vector<Entity*> GetEntitiesByLOT(const LOT& lot) const;
@@ -48,12 +48,12 @@ public:
 	const std::unordered_map<LWOOBJID, Entity*> GetAllEntities() const { return m_Entities; }
 #endif
 
-    void ConstructEntity(Entity * entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS, bool skipChecks = false);
-    void DestructEntity(Entity * entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+	void ConstructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS, bool skipChecks = false);
+	void DestructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SerializeEntity(Entity* entity);
-    
-    void ConstructAllEntities(const SystemAddress& sysAddr);
-    void DestructAllEntities(const SystemAddress& sysAddr);
+
+	void ConstructAllEntities(const SystemAddress& sysAddr);
+	void DestructAllEntities(const SystemAddress& sysAddr);
 
 	void SetGhostDistanceMax(float value);
 	float GetGhostDistanceMax() const;
@@ -69,19 +69,19 @@ public:
 	void ResetFlags();
 
 	void ScheduleForKill(Entity* entity);
-	
+
 	void ScheduleForDeletion(LWOOBJID entity);
 
 	void FireEventServerSide(Entity* origin, std::string args);
-    
+
 	static bool IsExcludedFromGhosting(LOT lot);
 
 private:
-    static EntityManager* m_Address; //For singleton method
+	static EntityManager* m_Address; //For singleton method
 	static std::vector<LWOMAPID> m_GhostingExcludedZones;
 	static std::vector<LOT> m_GhostingExcludedLOTs;
 
-    std::unordered_map<LWOOBJID, Entity*> m_Entities;
+	std::unordered_map<LWOOBJID, Entity*> m_Entities;
 	std::vector<LWOOBJID> m_EntitiesToKill;
 	std::vector<LWOOBJID> m_EntitiesToDelete;
 	std::vector<LWOOBJID> m_EntitiesToSerialize;
@@ -95,7 +95,7 @@ private:
 	float m_GhostDistanceMinSqaured = 100 * 100;
 	float m_GhostDistanceMaxSquared = 150 * 150;
 	bool m_GhostingEnabled = true;
-	
+
 	std::stack<uint16_t> m_LostNetworkIds;
 
 	// Map of spawnname to entity object ID

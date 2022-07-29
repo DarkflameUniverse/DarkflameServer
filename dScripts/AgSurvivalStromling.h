@@ -2,5 +2,5 @@
 #include "BaseWavesGenericEnemy.h"
 
 class AgSurvivalStromling : public BaseWavesGenericEnemy {
-    uint32_t GetPoints() override;
+	uint32_t GetPoints() override;
 };

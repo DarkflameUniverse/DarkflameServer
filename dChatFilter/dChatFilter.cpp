@@ -21,8 +21,7 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 	if (!BinaryIO::DoesFileExist(filepath + ".dcf") || m_DontGenerateDCF) {
 		ReadWordlistPlaintext(filepath + ".txt", true);
 		if (!m_DontGenerateDCF) ExportWordlistToDCF(filepath + ".dcf", true);
-	}
-	else if (!ReadWordlistDCF(filepath + ".dcf", true)) {
+	} else if (!ReadWordlistDCF(filepath + ".dcf", true)) {
 		ReadWordlistPlaintext(filepath + ".txt", true);
 		ExportWordlistToDCF(filepath + ".dcf", true);
 	}
@@ -85,8 +84,7 @@ bool dChatFilter::ReadWordlistDCF(const std::string& filepath, bool whiteList) {
 			}
 
 			return true;
-		}
-		else {
+		} else {
 			file.close();
 			return false;
 		}
@@ -139,7 +137,7 @@ std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::
 			m_UserUnapprovedWordCache.push_back(hash);
 			listOfBadSegments.emplace_back(position, originalSegment.length());
 		}
-		
+
 		if (std::find(m_DeniedWords.begin(), m_DeniedWords.end(), hash) != m_DeniedWords.end() && !whiteList) {
 			m_UserUnapprovedWordCache.push_back(hash);
 			listOfBadSegments.emplace_back(position, originalSegment.length());

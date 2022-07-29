@@ -13,10 +13,10 @@ struct CDRewards {
 
 class CDRewardsTable : public CDTable {
 public:
-    CDRewardsTable(void);
-    ~CDRewardsTable(void);
-    
-    std::string GetName(void) const override;
+	CDRewardsTable(void);
+	~CDRewardsTable(void);
+
+	std::string GetName(void) const override;
 	std::vector<CDRewards*> GetByLevelID(uint32_t levelID);
 
 private:

@@ -5,8 +5,7 @@
 #include "AMFFormat.h"
 
 void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
-	if (self->GetVar<bool>(u"hasCustomText"))
-	{
+	if (self->GetVar<bool>(u"hasCustomText")) {
 		const auto& customText = self->GetVar<std::string>(u"customText");
 
 		{
@@ -20,7 +19,7 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
 		}
 
-		user->AddCallbackTimer(0.1f, [user, customText] () {
+		user->AddCallbackTimer(0.1f, [user, customText]() {
 			AMFArrayValue args;
 
 			auto* text = new AMFStringValue();
@@ -30,17 +29,16 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 			args.InsertValue("text", text);
 
 			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "ToggleStoryBox", &args);
-		});
+			});
 
 		return;
 	}
-	
+
 	const auto storyText = self->GetVarAsString(u"storyText");
-	
+
 	int32_t boxFlag = self->GetVar<int32_t>(u"altFlagID");
-	if (boxFlag <= 0)
-	{
-		boxFlag = (10000 + Game::server->GetZoneID() +std::stoi(storyText.substr(storyText.length() - 2)));
+	if (boxFlag <= 0) {
+		boxFlag = (10000 + Game::server->GetZoneID() + std::stoi(storyText.substr(storyText.length() - 2)));
 	}
 
 	if (user->GetCharacter()->GetPlayerFlag(boxFlag) == false) {
