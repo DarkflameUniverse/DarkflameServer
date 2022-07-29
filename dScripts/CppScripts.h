@@ -316,6 +316,7 @@ namespace CppScripts {
                                        float_t pathTime, float_t totalTime, int32_t waypoint) {};
 	};
 
+	Script* GetInvalidScript();
 	Script* GetScript(Entity* parent, const std::string& scriptName);
 	std::vector<Script*> GetEntityScripts(Entity* entity);
 };
