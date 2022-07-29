@@ -83,12 +83,15 @@ void MissionComponent::AcceptMission(const uint32_t missionId, const bool skipCh
     if (mission != nullptr) {
         if (mission->GetClientInfo().repeatable) {
             mission->Accept();
+			if (mission->IsMission()) mission->SetUniqueMissionOrderID(++m_LastUsedMissionOrderUID);
         }
 
         return;
     }
 
     mission = new Mission(this, missionId);
+
+	if (mission->IsMission()) mission->SetUniqueMissionOrderID(++m_LastUsedMissionOrderUID);
 
     mission->Accept();
 
@@ -300,6 +303,8 @@ bool MissionComponent::LookForAchievements(MissionTaskType type, int32_t value, 
 
         m_Missions.insert_or_assign(missionID, instance);
 
+		if (instance->IsMission()) instance->SetUniqueMissionOrderID(++m_LastUsedMissionOrderUID);
+
         instance->Accept();
 
         any = true;
@@ -369,6 +374,8 @@ bool MissionComponent::LookForAchievements(MissionTaskType type, int32_t value, 
         auto* instance = new Mission(this, mission.id);
 
         m_Missions.insert_or_assign(mission.id, instance);
+
+		if (instance->IsMission()) instance->SetUniqueMissionOrderID(++m_LastUsedMissionOrderUID);
 
         instance->Accept();
 
@@ -526,6 +533,7 @@ void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 
     auto* currentM = cur->FirstChildElement();
 
+	uint32_t missionOrder{};
     while (currentM) {
         int missionId;
 
@@ -534,6 +542,11 @@ void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
         auto* mission = new Mission(this, missionId);
 
         mission->LoadFromXml(currentM);
+
+		if (currentM->QueryAttribute("o", &missionOrder) == tinyxml2::XML_SUCCESS && mission->IsMission()) {
+			mission->SetUniqueMissionOrderID(missionOrder);
+			if (missionOrder > m_LastUsedMissionOrderUID) m_LastUsedMissionOrderUID = missionOrder;
+		}
 
         currentM = currentM->NextSiblingElement();
 
@@ -568,17 +581,16 @@ void MissionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
         if (mission) {
             const auto complete = mission->IsComplete();
 
-            if (complete) {
-                auto* m = doc->NewElement("m");
+			auto* m = doc->NewElement("m");
 
+			if (complete) {
                 mission->UpdateXml(m);
 
                 done->LinkEndChild(m);
 
                 continue;
             }
-
-            auto* m = doc->NewElement("m");
+			if (mission->IsMission()) m->SetAttribute("o", mission->GetUniqueMissionOrderID());
 
             mission->UpdateXml(m);
 

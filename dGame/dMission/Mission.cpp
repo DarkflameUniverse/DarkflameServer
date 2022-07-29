@@ -26,6 +26,9 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
     m_Timestamp = 0;
 
+	// The live servers had the unique mission ids start at 746.
+	m_UniqueMissionID = 746U;
+
     m_Reward = 0;
 
     m_State = MissionState::MISSION_STATE_UNKNOWN;
