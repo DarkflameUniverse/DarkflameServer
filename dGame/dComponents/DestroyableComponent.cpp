@@ -144,7 +144,10 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 	}
 
 	outBitStream->Write(m_DirtyThreatList || bIsInitialUpdate);
-	if (m_DirtyThreatList || bIsInitialUpdate) outBitStream->Write(m_HasThreats);
+	if (m_DirtyThreatList || bIsInitialUpdate) {
+		outBitStream->Write(m_HasThreats);
+		m_DirtyThreatList = false;
+	}
 }
 
 void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
