@@ -221,17 +221,17 @@ public:
 	 */
 	static bool IsValidMission(uint32_t missionId, CDMissions& info);
 
-    /**
-     * @brief Returns the unique mission order ID
-     * 
-     * @return The unique order ID
-     */
-    uint32_t GetUniqueMissionOrderID() { return m_UniqueMissionID; };
+	/**
+	 * @brief Returns the unique mission order ID
+	 * 
+	 * @return The unique order ID
+	 */
+	uint32_t GetUniqueMissionOrderID() { return m_UniqueMissionID; };
 
-    /**
-     * Sets the unique mission order ID of this mission
-     */
-    void SetUniqueMissionOrderID(uint32_t value) { m_UniqueMissionID = value; };
+	/**
+	 * Sets the unique mission order ID of this mission
+	 */
+	void SetUniqueMissionOrderID(uint32_t value) { m_UniqueMissionID = value; };
 private:
 	/**
 	 * Progresses all the newly accepted tasks for this mission after it has been accepted to reflect the state of the
