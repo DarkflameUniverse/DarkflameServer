@@ -240,3 +240,12 @@ std::vector<Spawner*> dZoneManager::GetSpawnersInGroup(std::string group) {
 
 	return spawnersInGroup;
 }
+
+uint32_t dZoneManager::GetUniqueMissionIdStartingValue() {
+	if (m_UniqueMissionIdStart == 0) {
+		auto tableData = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Missions WHERE isMission = 0 GROUP BY isMission;");
+		m_UniqueMissionIdStart = tableData.getIntField(0, -1);
+		tableData.finalize();
+	}
+	return m_UniqueMissionIdStart;
+}

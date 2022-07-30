@@ -26,8 +26,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
 	m_Timestamp = 0;
 
-	// The live servers had the unique mission ids start at 746.
-	m_UniqueMissionID = 746U;
+	m_UniqueMissionID = dZoneManager::Instance()->GetUniqueMissionIdStartingValue();
 
 	m_Reward = 0;
 

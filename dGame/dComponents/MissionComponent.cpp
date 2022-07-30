@@ -24,6 +24,7 @@ std::unordered_map<size_t, std::vector<uint32_t>> MissionComponent::m_Achievemen
 
 //! Initializer
 MissionComponent::MissionComponent(Entity* parent) : Component(parent) {
+	m_LastUsedMissionOrderUID = dZoneManager::Instance()->GetUniqueMissionIdStartingValue();
 }
 
 //! Destructor
