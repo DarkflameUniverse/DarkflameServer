@@ -1,8 +1,8 @@
 #include "GameDependencies.h"
 
 namespace Game {
-	dLogger* logger = new dLogger("./testing.log", true, true);
-	dServer* server = new dServer("localhost", 3000, 0, 1, false, true, Game::logger, "localhost", 2000, ServerType::World, 1100);
+	dLogger* logger;
+	dServer* server;
 	dZoneManager* zoneManager;
 	dpWorld* physicsWorld;
 	dChatFilter* chatFilter;

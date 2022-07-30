@@ -19,7 +19,7 @@ std::unique_ptr<AMFValue> ReadFromBitStream(RakNet::BitStream* bitStream) {
  */
 TEST(dCommonTests, AMFDeserializeAMFUndefinedTest) {
 	CBITSTREAM
-		bitStream.Write<uint8_t>(0x00);
+	bitStream.Write<uint8_t>(0x00);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFUndefined);
 }
@@ -30,7 +30,7 @@ TEST(dCommonTests, AMFDeserializeAMFUndefinedTest) {
  */
 TEST(dCommonTests, AMFDeserializeAMFNullTest) {
 	CBITSTREAM
-		bitStream.Write<uint8_t>(0x01);
+	bitStream.Write<uint8_t>(0x01);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFNull);
 }
@@ -40,7 +40,7 @@ TEST(dCommonTests, AMFDeserializeAMFNullTest) {
  */
 TEST(dCommonTests, AMFDeserializeAMFFalseTest) {
 	CBITSTREAM
-		bitStream.Write<uint8_t>(0x02);
+	bitStream.Write<uint8_t>(0x02);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFFalse);
 }
@@ -50,7 +50,7 @@ TEST(dCommonTests, AMFDeserializeAMFFalseTest) {
  */
 TEST(dCommonTests, AMFDeserializeAMFTrueTest) {
 	CBITSTREAM
-		bitStream.Write<uint8_t>(0x03);
+	bitStream.Write<uint8_t>(0x03);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFTrue);
 }
@@ -62,12 +62,12 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
 	CBITSTREAM
 	{
 		bitStream.Write<uint8_t>(0x04);
-	// 127 == 01111111
-	bitStream.Write<uint8_t>(127);
-	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
-	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
-	// Check that the max value of a byte can be read correctly
-	ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 127);
+		// 127 == 01111111
+		bitStream.Write<uint8_t>(127);
+		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
+		// Check that the max value of a byte can be read correctly
+		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 127);
 	}
 	bitStream.Reset();
 	{
@@ -111,7 +111,7 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
  */
 TEST(dCommonTests, AMFDeserializeAMFDoubleTest) {
 	CBITSTREAM
-		bitStream.Write<uint8_t>(0x05);
+	bitStream.Write<uint8_t>(0x05);
 	bitStream.Write<double>(25346.4f);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFDouble);
@@ -123,7 +123,7 @@ TEST(dCommonTests, AMFDeserializeAMFDoubleTest) {
  */
 TEST(dCommonTests, AMFDeserializeAMFStringTest) {
 	CBITSTREAM
-		bitStream.Write<uint8_t>(0x06);
+	bitStream.Write<uint8_t>(0x06);
 	bitStream.Write<uint8_t>(0x0F);
 	std::string toWrite = "stateID";
 	for (auto e : toWrite) bitStream.Write<char>(e);
@@ -137,8 +137,8 @@ TEST(dCommonTests, AMFDeserializeAMFStringTest) {
  */
 TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 	CBITSTREAM
-		// Test empty AMFArray
-		bitStream.Write<uint8_t>(0x09);
+	// Test empty AMFArray
+	bitStream.Write<uint8_t>(0x09);
 	bitStream.Write<uint8_t>(0x01);
 	bitStream.Write<uint8_t>(0x01);
 	{
@@ -173,7 +173,9 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 /**
  * @brief This test checks that if we recieve an unimplemented AMFValueType
  * we correctly throw an error and can actch it.
+ *
  */
+#pragma message("-- The AMFDeserializeUnimplementedValuesTest causes a known memory leak of 880 bytes since it throws errors! --")
 TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest) {
 	std::vector<AMFValueType> unimplementedValues = {
 		AMFValueType::AMFXMLDoc,

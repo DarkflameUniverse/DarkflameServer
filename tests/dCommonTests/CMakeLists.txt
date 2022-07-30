@@ -5,4 +5,3 @@ set(DCOMMONTEST_SOURCES
 	"TestEncoding.cpp"
 	PARENT_SCOPE
 )
-

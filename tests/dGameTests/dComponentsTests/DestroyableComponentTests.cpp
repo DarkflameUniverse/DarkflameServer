@@ -30,7 +30,7 @@ class DestroyableTest : public GameDependenciesTest {
 		}
 
 		void TearDown() override {
-			Game::logger->Flush();
+			TearDownDependencies();
 			delete baseEntity;
 		}
 };
