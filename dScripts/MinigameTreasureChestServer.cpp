@@ -40,17 +40,14 @@ void MinigameTreasureChestServer::OnUse(Entity* self, Entity* user) {
 		LootGenerator::Instance().DropActivityLoot(user, self, sac->GetActivityID(), activityRating);
 	}
 
-	LootGenerator::Instance().DropActivityLoot(user, self, sac->GetActivityID(), activityRating);
-}
+	sac->PlayerRemove(user->GetObjectID());
 
-sac->PlayerRemove(user->GetObjectID());
+	auto* zoneControl = dZoneManager::Instance()->GetZoneControlObject();
+	if (zoneControl != nullptr) {
+		zoneControl->OnFireEventServerSide(self, "Survival_Update", 0);
+	}
 
-auto* zoneControl = dZoneManager::Instance()->GetZoneControlObject();
-if (zoneControl != nullptr) {
-	zoneControl->OnFireEventServerSide(self, "Survival_Update", 0);
-}
-
-self->Smash(self->GetObjectID());
+	self->Smash(self->GetObjectID());
 }
 
 uint32_t MinigameTreasureChestServer::CalculateActivityRating(Entity* self, LWOOBJID playerID) {
