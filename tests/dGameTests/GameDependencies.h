@@ -1,22 +1,11 @@
+#ifndef __GAMEDEPENDENCIES__H__
+#define __GAMEDEPENDENCIES__H__
+
 #include "Game.h"
 #include "dLogger.h"
 #include "dServer.h"
 #include "dZoneManager.h"
 #include <gtest/gtest.h>
-
-namespace Game {
-	dLogger* logger = new dLogger("./testing.log", true, true);
-	dServer* server = new dServer("localhost", 3000, 0, 1, false, true, Game::logger, "localhost", 2000, ServerType::World, 1100);
-	dZoneManager* zoneManager;
-	dpWorld* physicsWorld;
-	dChatFilter* chatFilter;
-	dConfig* config;
-	dLocale* locale;
-	std::mt19937 randomEngine;
-
-	RakPeerInterface* chatServer;
-	SystemAddress chatSysAddr;
-}
 
 class GameDependenciesTest : public ::testing::Test {
 	protected:
@@ -30,3 +19,5 @@ class GameDependenciesTest : public ::testing::Test {
 
 	EntityInfo info;
 };
+
+#endif //!__GAMEDEPENDENCIES__H__
