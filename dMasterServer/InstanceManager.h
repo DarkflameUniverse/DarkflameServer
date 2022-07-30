@@ -51,7 +51,7 @@ public:
 	void SetIsShuttingDown(bool value) { m_IsShuttingDown = value; }
 	std::vector<PendingInstanceRequest>& GetPendingRequests() { return m_PendingRequests; }
 	std::vector<PendingInstanceRequest>& GetPendingAffirmations() { return m_PendingAffirmations; }
-	
+
 	int GetHardCap() const { return m_MaxClientsHardCap; }
 	int GetSoftCap() const { return m_MaxClientsSoftCap; }
 	int GetCurrentClientCount() const { return m_CurrentClientCount; }
@@ -60,10 +60,10 @@ public:
 	uint32_t GetAffirmationTimeout() const { return m_AffirmationTimeout; }
 
 	void AddPlayer(Player player) { /*m_Players.push_back(player);*/ m_CurrentClientCount++; }
-	void RemovePlayer(Player player) { 
+	void RemovePlayer(Player player) {
 		m_CurrentClientCount--;
 		if (m_CurrentClientCount < 0) m_CurrentClientCount = 0;
-		/*for (size_t i = 0; i < m_Players.size(); ++i) 
+		/*for (size_t i = 0; i < m_Players.size(); ++i)
 			if (m_Players[i].addr == player.addr) m_Players.erase(m_Players.begin() + i);*/
 	}
 
@@ -72,7 +72,7 @@ public:
 
 	void SetShutdownComplete(bool value);
 	bool GetShutdownComplete() const;
-	
+
 	void Shutdown();
 
 private:
@@ -90,7 +90,7 @@ private:
 	std::vector<PendingInstanceRequest> m_PendingAffirmations;
 
 	uint32_t m_AffirmationTimeout;
-	
+
 	bool m_IsPrivate;
 	std::string m_Password;
 
@@ -107,7 +107,7 @@ public:
 	Instance* GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID); //Creates an instance if none found
 	bool IsPortInUse(uint32_t port);
 	uint32_t GetFreePort();
-	
+
 	void AddPlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID);
 	void RemovePlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID);
 

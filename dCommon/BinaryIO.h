@@ -9,15 +9,15 @@ namespace BinaryIO {
 	}
 
 	template<typename T>
-	std::istream & BinaryRead(std::istream& stream, T& value) {
-		if (!stream.good()) 
+	std::istream& BinaryRead(std::istream& stream, T& value) {
+		if (!stream.good())
 			printf("bla");
 
 		return stream.read(reinterpret_cast<char*>(&value), sizeof(T));
 	}
 
 	void WriteString(const std::string& stringToWrite, std::ofstream& outstream);
-	std::string ReadString(std::ifstream & instream);
+	std::string ReadString(std::ifstream& instream);
 	std::string ReadString(std::ifstream& instream, size_t size);
 	std::string ReadWString(std::ifstream& instream);
 

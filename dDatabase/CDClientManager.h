@@ -52,45 +52,45 @@
   \brief A manager for the CDClient tables
  */
 
-//! Manages all data from the CDClient
+ //! Manages all data from the CDClient
 class CDClientManager {
 private:
-    static CDClientManager * m_Address;                 //!< The singleton address
-    
-    std::unordered_map<std::string, CDTable*> tables;   //!< The tables
-    
+	static CDClientManager* m_Address;                 //!< The singleton address
+
+	std::unordered_map<std::string, CDTable*> tables;   //!< The tables
+
 public:
-    
-    //! The singleton method
-    static CDClientManager * Instance() {
-        if (m_Address == 0) {
-            m_Address = new CDClientManager;
-        }
-        
-        return m_Address;
-    }
-    
-    //! Initializes the manager
-    void Initialize(void);
-    
-    //! Fetches a CDClient table
-    /*!
-      This function uses typename T which must be a subclass of CDTable.
-      It returns the class that conforms to the class name
-     
-      \param tableName The table name
-      \return The class or nullptr
-     */
-    template<typename T>
-    T * GetTable(const std::string& tableName) {
-        static_assert(std::is_base_of<CDTable, T>::value, "T should inherit from CDTable!");
-        
-        for (auto itr = this->tables.begin(); itr != this->tables.end(); ++itr) {
-            if (itr->first == tableName) {
-                return dynamic_cast<T*>(itr->second);
-            }
-        }
-        
-        return nullptr;
-    }
+
+	//! The singleton method
+	static CDClientManager* Instance() {
+		if (m_Address == 0) {
+			m_Address = new CDClientManager;
+		}
+
+		return m_Address;
+	}
+
+	//! Initializes the manager
+	void Initialize(void);
+
+	//! Fetches a CDClient table
+	/*!
+	  This function uses typename T which must be a subclass of CDTable.
+	  It returns the class that conforms to the class name
+
+	  \param tableName The table name
+	  \return The class or nullptr
+	 */
+	template<typename T>
+	T* GetTable(const std::string& tableName) {
+		static_assert(std::is_base_of<CDTable, T>::value, "T should inherit from CDTable!");
+
+		for (auto itr = this->tables.begin(); itr != this->tables.end(); ++itr) {
+			if (itr->first == tableName) {
+				return dynamic_cast<T*>(itr->second);
+			}
+		}
+
+		return nullptr;
+	}
 };

@@ -4,7 +4,7 @@
 #include "Inventory.h"
 #include "Item.h"
 
-PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId) : Component(parent){
+PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId) : Component(parent) {
 	m_Possessor = LWOOBJID_EMPTY;
 	CDItemComponent item = Inventory::FindItemComponent(m_Parent->GetLOT());
 	m_AnimationFlag = static_cast<eAnimationFlags>(item.animationFlag);
@@ -35,7 +35,7 @@ void PossessableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 		if (m_Possessor != LWOOBJID_EMPTY) outBitStream->Write(m_Possessor);
 
 		outBitStream->Write(m_AnimationFlag != eAnimationFlags::IDLE_INVALID);
-		if(m_AnimationFlag != eAnimationFlags::IDLE_INVALID) outBitStream->Write(m_AnimationFlag);
+		if (m_AnimationFlag != eAnimationFlags::IDLE_INVALID) outBitStream->Write(m_AnimationFlag);
 
 		outBitStream->Write(m_ImmediatelyDepossess);
 	}

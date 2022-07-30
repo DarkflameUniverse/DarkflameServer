@@ -10,7 +10,7 @@ public:
 
 	std::function<void()> GetCallback();
 	float GetTime();
-	
+
 	void Update(float deltaTime);
 
 private:

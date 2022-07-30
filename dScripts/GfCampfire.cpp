@@ -17,10 +17,9 @@ void GfCampfire::OnStartup(Entity* self) {
 	render->PlayEffect(295, u"running", "Burn");
 }
 
-void GfCampfire::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1, int32_t param2,
-                                       int32_t param3) {
-	if (args == "physicsReady")
-	{
+void GfCampfire::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2,
+	int32_t param3) {
+	if (args == "physicsReady") {
 		auto* render = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
 
 		render->PlayEffect(295, u"running", "Burn");
@@ -45,14 +44,12 @@ void GfCampfire::OnProximityUpdate(Entity* self, Entity* entering, std::string n
 
 					auto* missionComponet = entering->GetComponent<MissionComponent>();
 
-					if (missionComponet != nullptr)
-					{
+					if (missionComponet != nullptr) {
 						missionComponet->ForceProgress(440, 658, 1);
 					}
 				}
 			}
-		}
-		else {
+		} else {
 			int32_t counter = self->GetI32(u"counter");
 			if (counter > 0) {
 				counter = counter - 1;
@@ -65,22 +62,21 @@ void GfCampfire::OnProximityUpdate(Entity* self, Entity* entering, std::string n
 	}
 }
 
-void GfCampfire::OnSkillEventFired(Entity *self, Entity *caster, const std::string &message) {
-    if (message == "waterspray" && self->GetVar<bool>(u"isBurning")) {
-        auto* renderComponent = self->GetComponent<RenderComponent>();
-        if (renderComponent != nullptr) {
-            renderComponent->StopEffect("Burn");
-            renderComponent->PlayEffect(295, u"idle", "Off");
+void GfCampfire::OnSkillEventFired(Entity* self, Entity* caster, const std::string& message) {
+	if (message == "waterspray" && self->GetVar<bool>(u"isBurning")) {
+		auto* renderComponent = self->GetComponent<RenderComponent>();
+		if (renderComponent != nullptr) {
+			renderComponent->StopEffect("Burn");
+			renderComponent->PlayEffect(295, u"idle", "Off");
 
-            self->SetVar<bool>(u"isBurning", false);
-            self->AddTimer("FireRestart", 37);
-        }
-    }
+			self->SetVar<bool>(u"isBurning", false);
+			self->AddTimer("FireRestart", 37);
+		}
+	}
 }
 
 void GfCampfire::OnTimerDone(Entity* self, std::string timerName) {
-	if (timerName == "TimeBetweenCast")
-	{
+	if (timerName == "TimeBetweenCast") {
 		/*
 		self->AddTimer("TimeBetweenCast", FIRE_COOLDOWN);
 
@@ -90,15 +86,15 @@ void GfCampfire::OnTimerDone(Entity* self, std::string timerName) {
 
 		if (entering == nullptr)
 		{
-			
+
 		}
 		*/
 	} else if (timerName == "FireRestart" && !self->GetVar<bool>(u"isBurning")) {
-	    auto* renderComponent = self->GetComponent<RenderComponent>();
-	    if (renderComponent != nullptr) {
-	        renderComponent->StopEffect("Off");
-            renderComponent->PlayEffect(295, u"running", "Burn");
-            self->SetVar<bool>(u"isBurning", true);
-	    }
+		auto* renderComponent = self->GetComponent<RenderComponent>();
+		if (renderComponent != nullptr) {
+			renderComponent->StopEffect("Off");
+			renderComponent->PlayEffect(295, u"running", "Burn");
+			self->SetVar<bool>(u"isBurning", true);
+		}
 	}
 }

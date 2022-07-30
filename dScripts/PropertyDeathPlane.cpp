@@ -3,16 +3,14 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 
-void PropertyDeathPlane::OnCollisionPhantom(Entity* self, Entity* target)
-{
-    const auto teleportGroup = EntityManager::Instance()->GetEntitiesInGroup("Teleport");
+void PropertyDeathPlane::OnCollisionPhantom(Entity* self, Entity* target) {
+	const auto teleportGroup = EntityManager::Instance()->GetEntitiesInGroup("Teleport");
 
-    if (teleportGroup.size() == 0)
-    {
-        return;
-    }
+	if (teleportGroup.size() == 0) {
+		return;
+	}
 
-    auto* teleport = teleportGroup[0];
+	auto* teleport = teleportGroup[0];
 
-    GameMessages::SendTeleport(target->GetObjectID(), teleport->GetPosition(), teleport->GetRotation(), target->GetSystemAddress());
+	GameMessages::SendTeleport(target->GetObjectID(), teleport->GetPosition(), teleport->GetRotation(), target->GetSystemAddress());
 }

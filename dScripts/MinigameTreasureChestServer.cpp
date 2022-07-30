@@ -5,63 +5,63 @@
 #include "dZoneManager.h"
 #include "dServer.h"
 
-void MinigameTreasureChestServer::OnUse(Entity *self, Entity *user) {
-    auto* sac = self->GetComponent<ScriptedActivityComponent>();
-    if (sac == nullptr)
-        return;
+void MinigameTreasureChestServer::OnUse(Entity* self, Entity* user) {
+	auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	if (sac == nullptr)
+		return;
 
-    if (self->GetVar<bool>(u"used"))
-        return;
-    self->SetVar<bool>(u"used", true);
+	if (self->GetVar<bool>(u"used"))
+		return;
+	self->SetVar<bool>(u"used", true);
 
-    if (!IsPlayerInActivity(self, user->GetObjectID()))
-        UpdatePlayer(self, user->GetObjectID());
+	if (!IsPlayerInActivity(self, user->GetObjectID()))
+		UpdatePlayer(self, user->GetObjectID());
 
-    auto* team = TeamManager::Instance()->GetTeam(user->GetObjectID());
-    uint32_t activityRating = 0;
-    if (team != nullptr) {
-        for (const auto& teamMemberID : team->members) {
-            auto* teamMember = EntityManager::Instance()->GetEntity(teamMemberID);
-            if (teamMember != nullptr) {
-                activityRating = CalculateActivityRating(self, teamMemberID);
+	auto* team = TeamManager::Instance()->GetTeam(user->GetObjectID());
+	uint32_t activityRating = 0;
+	if (team != nullptr) {
+		for (const auto& teamMemberID : team->members) {
+			auto* teamMember = EntityManager::Instance()->GetEntity(teamMemberID);
+			if (teamMember != nullptr) {
+				activityRating = CalculateActivityRating(self, teamMemberID);
 
-                if (self->GetLOT() == frakjawChestId || Game::server->GetZoneID() == 1204)
-                    activityRating = team->members.size();
+				if (self->GetLOT() == frakjawChestId || Game::server->GetZoneID() == 1204)
+					activityRating = team->members.size();
 
-                LootGenerator::Instance().DropActivityLoot(teamMember, self, sac->GetActivityID(), activityRating);
-            }
-        }
-    } else {
-        activityRating = CalculateActivityRating(self, user->GetObjectID());
+				LootGenerator::Instance().DropActivityLoot(teamMember, self, sac->GetActivityID(), activityRating);
+			}
+		}
+	} else {
+		activityRating = CalculateActivityRating(self, user->GetObjectID());
 
-        if (self->GetLOT() == frakjawChestId || Game::server->GetZoneID() == 1204)
-            activityRating = 1;
+		if (self->GetLOT() == frakjawChestId || Game::server->GetZoneID() == 1204)
+			activityRating = 1;
 
-        LootGenerator::Instance().DropActivityLoot(user, self, sac->GetActivityID(), activityRating);
-    }
+		LootGenerator::Instance().DropActivityLoot(user, self, sac->GetActivityID(), activityRating);
+	}
 
-    sac->PlayerRemove(user->GetObjectID());
+	sac->PlayerRemove(user->GetObjectID());
 
-    auto* zoneControl = dZoneManager::Instance()->GetZoneControlObject();
-    if (zoneControl != nullptr) {
-        zoneControl->OnFireEventServerSide(self, "Survival_Update", 0);
-    }
+	auto* zoneControl = dZoneManager::Instance()->GetZoneControlObject();
+	if (zoneControl != nullptr) {
+		zoneControl->OnFireEventServerSide(self, "Survival_Update", 0);
+	}
 
-    self->Smash(self->GetObjectID());
+	self->Smash(self->GetObjectID());
 }
 
-uint32_t MinigameTreasureChestServer::CalculateActivityRating(Entity *self, LWOOBJID playerID) {
-    auto* team = TeamManager::Instance()->GetTeam(playerID);
-    return team != nullptr ? team->members.size() * 100 : ActivityManager::CalculateActivityRating(self, playerID) * 100;
+uint32_t MinigameTreasureChestServer::CalculateActivityRating(Entity* self, LWOOBJID playerID) {
+	auto* team = TeamManager::Instance()->GetTeam(playerID);
+	return team != nullptr ? team->members.size() * 100 : ActivityManager::CalculateActivityRating(self, playerID) * 100;
 }
 
-void MinigameTreasureChestServer::OnStartup(Entity *self) {
+void MinigameTreasureChestServer::OnStartup(Entity* self) {
 
-    // BONS treasure chest thinks it's on FV, causing it to start a lobby
-    if (dZoneManager::Instance()->GetZoneID().GetMapID() == 1204) {
-        auto* sac = self->GetComponent<ScriptedActivityComponent>();
-        if (sac != nullptr) {
-            sac->SetInstanceMapID(1204);
-        }
-    }
+	// BONS treasure chest thinks it's on FV, causing it to start a lobby
+	if (dZoneManager::Instance()->GetZoneID().GetMapID() == 1204) {
+		auto* sac = self->GetComponent<ScriptedActivityComponent>();
+		if (sac != nullptr) {
+			sac->SetInstanceMapID(1204);
+		}
+	}
 }

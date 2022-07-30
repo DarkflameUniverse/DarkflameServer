@@ -26,7 +26,7 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 				if (destroyable == nullptr) {
 					continue;
 				}
-				
+
 				destroyable->Smash(attacker->GetObjectID());
 			}
 		}
@@ -49,26 +49,25 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 	// Progress all scripted missions related to this asset
 	auto* missionComponent = attacker->GetComponent<MissionComponent>();
 	if (missionComponent != nullptr) {
-	    if (missionID != 0) {
-	        missionComponent->ForceProgressValue(missionID,
-                                                 static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT),
-                                                 self->GetLOT(), false);
-	    }
+		if (missionID != 0) {
+			missionComponent->ForceProgressValue(missionID,
+				static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT),
+				self->GetLOT(), false);
+		}
 
-	    if (!achievementIDs.empty()) {
-	        for (const auto& achievementID : GeneralUtils::SplitString(achievementIDs, u'_')) {
-	            missionComponent->ForceProgressValue(std::stoi(GeneralUtils::UTF16ToWTF8(achievementID)),
-                                                     static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT),
-                                                     self->GetLOT());
-	        }
-	    }
+		if (!achievementIDs.empty()) {
+			for (const auto& achievementID : GeneralUtils::SplitString(achievementIDs, u'_')) {
+				missionComponent->ForceProgressValue(std::stoi(GeneralUtils::UTF16ToWTF8(achievementID)),
+					static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT),
+					self->GetLOT());
+			}
+		}
 	}
 
 	self->ScheduleKillAfterUpdate();
 }
 
-void ExplodingAsset::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status)
-{
+void ExplodingAsset::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
 	/*
 	if msg.objId:BelongsToFaction{factionID = 1}.bIsInFaction then
 		if (msg.status == "ENTER") then
@@ -94,18 +93,14 @@ void ExplodingAsset::OnProximityUpdate(Entity* self, Entity* entering, std::stri
 
 	if (!std::count(factions.begin(), factions.end(), 1)) return;
 
-	if (status == "ENTER")
-	{
+	if (status == "ENTER") {
 		GameMessages::SendPlayAnimation(self, u"bounce");
 		GameMessages::SendPlayFXEffect(self, -1, u"anim", "bouncin", LWOOBJID_EMPTY, 1, 1, true);
 		self->SetVar(u"playersNearChest", self->GetVar<int32_t>(u"playersNearChest") + 1);
-	}
-	else if (status == "LEAVE")
-	{
+	} else if (status == "LEAVE") {
 		self->SetVar(u"playersNearChest", self->GetVar<int32_t>(u"playersNearChest") - 1);
 
-		if (self->GetVar<int32_t>(u"playersNearChest") < 1)
-		{
+		if (self->GetVar<int32_t>(u"playersNearChest") < 1) {
 			GameMessages::SendPlayAnimation(self, u"idle");
 			GameMessages::SendStopFXEffect(self, true, "bouncin");
 			self->SetVar<int32_t>(u"playersNearChest", 0);

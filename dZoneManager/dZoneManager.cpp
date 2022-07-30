@@ -18,17 +18,17 @@ dZoneManager* dZoneManager::m_Address = nullptr;
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 
-    int64_t startTime = 0;
-    int64_t endTime = 0;
+	int64_t startTime = 0;
+	int64_t endTime = 0;
 
-    startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
-    LoadZone(zoneID);
+	LoadZone(zoneID);
 
 	LOT zoneControlTemplate = 2365;
 
 	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
-	if (zoneTable != nullptr){
+	if (zoneTable != nullptr) {
 		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
 
 		if (zone != nullptr) {
@@ -38,7 +38,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 			EntityManager::Instance()->SetGhostDistanceMax(max + min);
 			EntityManager::Instance()->SetGhostDistanceMin(max);
 			m_PlayerLoseCoinsOnDeath = zone->PlayerLoseCoinsOnDeath;
-        }
+		}
 	}
 
 	Game::logger->Log("dZoneManager", "Creating zone control object %i", zoneControlTemplate);
@@ -52,9 +52,9 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	m_pZone->Initalize();
 
-    endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
-    Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms", (endTime - startTime));
+	Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms", (endTime - startTime));
 
 	VanityUtilities::SpawnVanity();
 	// m_RandomQBManager = new RandomQBManager();
@@ -66,18 +66,18 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 dZoneManager::~dZoneManager() {
 	if (m_pZone) delete m_pZone;
 
-    for (std::pair<LWOOBJID, Spawner*> p : m_Spawners) {
-        if (p.second) {
-            delete p.second;
-            p.second = nullptr;
-        }
+	for (std::pair<LWOOBJID, Spawner*> p : m_Spawners) {
+		if (p.second) {
+			delete p.second;
+			p.second = nullptr;
+		}
 
-        m_Spawners.erase(p.first);
-    }
+		m_Spawners.erase(p.first);
+	}
 	// delete m_RandomQBManager;
 }
 
-Zone * dZoneManager::GetZone() {
+Zone* dZoneManager::GetZone() {
 	return m_pZone;
 }
 
@@ -88,14 +88,14 @@ void dZoneManager::LoadZone(const LWOZONEID& zoneID) {
 	m_pZone = new Zone(zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 }
 
-void dZoneManager::NotifyZone(const dZoneNotifier & notifier, const LWOOBJID& objectID) {
+void dZoneManager::NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& objectID) {
 	switch (notifier) {
 	case dZoneNotifier::SpawnedObjectDestroyed:
 		break;
 	case dZoneNotifier::SpawnedChildObjectDestroyed:
 		break;
 	case dZoneNotifier::ReloadZone:
-        Game::logger->Log("dZoneManager", "Forcing reload of zone %i", m_ZoneID.GetMapID());
+		Game::logger->Log("dZoneManager", "Forcing reload of zone %i", m_ZoneID.GetMapID());
 		LoadZone(m_ZoneID);
 
 		m_pZone->Initalize();
@@ -115,21 +115,19 @@ void dZoneManager::NotifyZone(const dZoneNotifier & notifier, const LWOOBJID& ob
 	}
 }
 
-void dZoneManager::AddSpawner(LWOOBJID id, Spawner* spawner)
-{
+void dZoneManager::AddSpawner(LWOOBJID id, Spawner* spawner) {
 	m_Spawners.insert_or_assign(id, spawner);
 }
 
-LWOZONEID dZoneManager::GetZoneID() const
-{
+LWOZONEID dZoneManager::GetZoneID() const {
 	return m_ZoneID;
 }
 
 uint32_t dZoneManager::GetMaxLevel() {
 	if (m_MaxLevel == 0) {
 		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCap FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
-    	m_MaxLevel = tableData.getIntField(0, -1);
-    	tableData.finalize();
+		m_MaxLevel = tableData.getIntField(0, -1);
+		tableData.finalize();
 	}
 	return m_MaxLevel;
 }
@@ -137,8 +135,8 @@ uint32_t dZoneManager::GetMaxLevel() {
 int32_t dZoneManager::GetLevelCapCurrencyConversion() {
 	if (m_CurrencyConversionRate == 0) {
 		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCapCurrencyConversion FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
-    	m_CurrencyConversionRate = tableData.getIntField(0, -1);
-    	tableData.finalize();
+		m_CurrencyConversionRate = tableData.getIntField(0, -1);
+		tableData.finalize();
 	}
 	return m_CurrencyConversionRate;
 }
@@ -147,16 +145,14 @@ void dZoneManager::Update(float deltaTime) {
 	for (auto spawner : m_Spawners) {
 		spawner.second->Update(deltaTime);
 	}
-	
+
 	// m_RandomQBManager->Update(deltaTime);
 }
 
-LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info)
-{
+LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 	auto objectId = info.spawnerID;
 
-	if (objectId == LWOOBJID_EMPTY)
-	{
+	if (objectId == LWOOBJID_EMPTY) {
 		objectId = ObjectIDManager::Instance()->GenerateObjectID();
 
 		objectId = GeneralUtils::SetBit(objectId, OBJECT_BIT_CLIENT);
@@ -180,8 +176,7 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info)
 	return objectId;
 }
 
-Spawner* dZoneManager::GetSpawner(const LWOOBJID id)
-{
+Spawner* dZoneManager::GetSpawner(const LWOOBJID id) {
 	const auto& index = m_Spawners.find(id);
 
 	if (index == m_Spawners.end()) {
@@ -191,8 +186,7 @@ Spawner* dZoneManager::GetSpawner(const LWOOBJID id)
 	return index->second;
 }
 
-void dZoneManager::RemoveSpawner(const LWOOBJID id)
-{
+void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 	auto* spawner = GetSpawner(id);
 
 	if (spawner == nullptr) {
@@ -204,16 +198,13 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id)
 
 	if (entity != nullptr) {
 		entity->Kill();
-	}
-	else {
+	} else {
 
 		Game::logger->Log("dZoneManager", "Failed to find spawner entity (%llu)", id);
 	}
 
-	for (auto* node : spawner->m_Info.nodes)
-	{
-		for (const auto& element : node->entities)
-		{
+	for (auto* node : spawner->m_Info.nodes) {
+		for (const auto& element : node->entities) {
 			auto* nodeEntity = EntityManager::Instance()->GetEntity(element);
 
 			if (nodeEntity == nullptr) continue;

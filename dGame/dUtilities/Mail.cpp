@@ -24,8 +24,7 @@
 #include "Character.h"
 
 void Mail::SendMail(const Entity* recipient, const std::string& subject, const std::string& body, const LOT attachment,
-                    const uint16_t attachmentCount)
-{
+	const uint16_t attachmentCount) {
 	SendMail(
 		LWOOBJID_EMPTY,
 		ServerName,
@@ -40,8 +39,7 @@ void Mail::SendMail(const Entity* recipient, const std::string& subject, const s
 }
 
 void Mail::SendMail(const LWOOBJID recipient, const std::string& recipientName, const std::string& subject,
-                    const std::string& body, const LOT attachment, const uint16_t attachmentCount, const SystemAddress& sysAddr)
-{
+	const std::string& body, const LOT attachment, const uint16_t attachmentCount, const SystemAddress& sysAddr) {
 	SendMail(
 		LWOOBJID_EMPTY,
 		ServerName,
@@ -56,8 +54,7 @@ void Mail::SendMail(const LWOOBJID recipient, const std::string& recipientName, 
 }
 
 void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, const Entity* recipient, const std::string& subject,
-                    const std::string& body, const LOT attachment, const uint16_t attachmentCount)
-{
+	const std::string& body, const LOT attachment, const uint16_t attachmentCount) {
 	SendMail(
 		sender,
 		senderName,
@@ -72,9 +69,8 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, const 
 }
 
 void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJID recipient,
-                    const std::string& recipientName, const std::string& subject, const std::string& body, const LOT attachment,
-                    const uint16_t attachmentCount, const SystemAddress& sysAddr)
-{
+	const std::string& recipientName, const std::string& subject, const std::string& body, const LOT attachment,
+	const uint16_t attachmentCount, const SystemAddress& sysAddr) {
 	auto* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
 
 	ins->setUInt(1, sender);
@@ -154,7 +150,7 @@ void Mail::HandleMailStuff(RakNet::BitStream* packet, const SystemAddress& sysAd
 		default:
 			Game::logger->Log("Mail", "Unhandled and possibly undefined MailStuffID: %i", int(stuffID));
 		}
-	});
+		});
 }
 
 void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* entity) {
@@ -167,8 +163,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 
 	if (!character) return;
 
-	if (character->HasPermission(PermissionMap::RestrictedMailAccess))
-	{
+	if (character->HasPermission(PermissionMap::RestrictedMailAccess)) {
 		// Send a message to the player
 		ChatPackets::SendSystemMessage(
 			sysAddr,
@@ -227,8 +222,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 
 	if (res->rowsCount() > 0) {
 		while (res->next()) receiverID = res->getUInt(1);
-	}
-	else {
+	} else {
 		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::RecipientNotFound);
 		delete stmt;
 		delete res;
@@ -242,8 +236,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	if (GeneralUtils::CaseInsensitiveStringCompare(recipient, character->GetName()) || receiverID == character->GetObjectID()) {
 		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::CannotMailSelf);
 		return;
-	}
-	else {
+	} else {
 		uint64_t currentTime = time(NULL);
 		sql::PreparedStatement* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
 		ins->setUInt(1, character->GetObjectID());
@@ -272,8 +265,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 
 		auto* missionCompoent = entity->GetComponent<MissionComponent>();
 
-		if (missionCompoent != nullptr)
-		{
+		if (missionCompoent != nullptr) {
 			missionCompoent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, itemLOT, LWOOBJID_EMPTY, "", -attachmentCount);
 		}
 	}
@@ -405,7 +397,7 @@ void Mail::HandleNotificationRequest(const SystemAddress& sysAddr, uint32_t obje
 		if (res->rowsCount() > 0) Mail::SendNotification(sysAddr, res->rowsCount());
 		delete res;
 		delete stmt;
-	});
+		});
 }
 
 void Mail::SendSendResponse(const SystemAddress& sysAddr, MailSendResponse response) {

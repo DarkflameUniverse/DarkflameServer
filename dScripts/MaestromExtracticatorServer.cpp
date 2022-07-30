@@ -12,8 +12,8 @@ void MaestromExtracticatorServer::OnStartup(Entity* self) {
 	self->AddTimer("RemoveSample", destroyAfterNoSampleTime);
 }
 
-void MaestromExtracticatorServer::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1,
-                                                        int32_t param2, int32_t param3) {
+void MaestromExtracticatorServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,
+	int32_t param2, int32_t param3) {
 	if (sender == nullptr)
 		return;
 
@@ -25,8 +25,8 @@ void MaestromExtracticatorServer::OnFireEventServerSide(Entity *self, Entity *se
 		if (missionComponent == nullptr) return;
 
 		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SMASH, 14718);
-        CollectSample(self, sender->GetObjectID());
-        sender->ScheduleKillAfterUpdate();
+		CollectSample(self, sender->GetObjectID());
+		sender->ScheduleKillAfterUpdate();
 	}
 }
 

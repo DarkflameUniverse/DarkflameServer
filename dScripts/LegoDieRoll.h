@@ -6,6 +6,6 @@ public:
 	void OnStartup(Entity* self);
 	void OnTimerDone(Entity* self, std::string timerName);
 private:
-    constexpr static const float animTime = 2.0f;
+	constexpr static const float animTime = 2.0f;
 };
 
