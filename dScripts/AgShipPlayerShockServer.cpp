@@ -1,8 +1,7 @@
 #include "AgShipPlayerShockServer.h"
 #include "GameMessages.h"
 
-void AgShipPlayerShockServer::OnUse(Entity* self, Entity* user)
-{
+void AgShipPlayerShockServer::OnUse(Entity* self, Entity* user) {
 	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 	if (active) {
 		return;
@@ -15,8 +14,7 @@ void AgShipPlayerShockServer::OnUse(Entity* self, Entity* user)
 	self->AddTimer("FXTime", fxTime);
 }
 
-void AgShipPlayerShockServer::OnTimerDone(Entity* self, std::string timerName)
-{
+void AgShipPlayerShockServer::OnTimerDone(Entity* self, std::string timerName) {
 	GameMessages::SendStopFXEffect(self, true, "console_sparks");
 	active = false;
 }

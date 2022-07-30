@@ -6,7 +6,7 @@ EntityTimer::EntityTimer(std::string name, float time) {
 }
 
 EntityTimer::~EntityTimer() {
-    
+
 }
 
 std::string EntityTimer::GetName() {

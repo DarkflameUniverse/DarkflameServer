@@ -26,8 +26,7 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 	if (!BinaryIO::DoesFileExist(filepath + ".dcf") || m_DontGenerateDCF) {
 		ReadWordlistPlaintext(filepath + ".txt", true);
 		if (!m_DontGenerateDCF) ExportWordlistToDCF(filepath + ".dcf", true);
-	}
-	else if (!ReadWordlistDCF(filepath + ".dcf", true)) {
+	} else if (!ReadWordlistDCF(filepath + ".dcf", true)) {
 		ReadWordlistPlaintext(filepath + ".txt", true);
 		ExportWordlistToDCF(filepath + ".dcf", true);
 	}
@@ -90,8 +89,7 @@ bool dChatFilter::ReadWordlistDCF(const std::string& filepath, bool whiteList) {
 			}
 
 			return true;
-		}
-		else {
+		} else {
 			file.close();
 			return false;
 		}

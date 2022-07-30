@@ -19,7 +19,7 @@ void TokenConsoleServer::OnUse(Entity* self, Entity* user) {
 		//figure out which faction the player belongs to:
 		auto character = user->GetCharacter();
 		if (!character) return;
-		// At this point the player has to be in a faction.  
+		// At this point the player has to be in a faction.
 		LOT tokenLOT = 0;
 		if (character->GetPlayerFlag(ePlayerFlags::VENTURE_FACTION)) //venture
 			tokenLOT = 8321;

@@ -13,11 +13,11 @@
  */
 class ScriptedPowerupSpawner : public CppScripts::Script {
 public:
-    /**
-     * Called by the child script after on startup
-     * \param self the object this script belongs to
-     */
-    static void OnTemplateStartup(Entity* self);
-    void OnTimerDone(Entity* self, std::string message) override;
+	/**
+	 * Called by the child script after on startup
+	 * \param self the object this script belongs to
+	 */
+	static void OnTemplateStartup(Entity* self);
+	void OnTimerDone(Entity* self, std::string message) override;
 };
 

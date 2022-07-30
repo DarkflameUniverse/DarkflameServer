@@ -14,36 +14,36 @@
 class VendorComponent : public Component {
 public:
 	static const uint32_t ComponentType = COMPONENT_TYPE_VENDOR;
-	
+
 	VendorComponent(Entity* parent);
 	~VendorComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-	
+
 	void OnUse(Entity* originator) override;
-	
+
 	/**
 	 * Gets the buy scaler
 	 * @return the buy scaler
 	 */
 	float GetBuyScalar() const;
 
-    /**
-     * Sets the buy scalar.
-     * @param value the new value.
-     */
+	/**
+	 * Sets the buy scalar.
+	 * @param value the new value.
+	 */
 	void SetBuyScalar(float value);
-	
+
 	/**
 	 * Gets the buy scaler
 	 * @return the buy scaler
 	 */
 	float GetSellScalar() const;
 
-    /**
-     * Sets the sell scalar.
-     * @param value the new value.
-     */
+	/**
+	 * Sets the sell scalar.
+	 * @param value the new value.
+	 */
 	void SetSellScalar(float value);
 
 	/**
@@ -51,8 +51,11 @@ public:
 	 */
 	bool HasCraftingStation();
 
+	/**
+	 * True is the face vendor
+	 */
 	bool IsFaceVendor();
-	
+
 	/**
 	 * Gets the list if items the vendor sells.
 	 * @return the list of items.
@@ -63,7 +66,7 @@ public:
 	 * Refresh the inventory of this vendor.
 	 */
 	void RefreshInventory(bool isCreation = false);
-	
+
 	/**
 	 * Called on startup of vendor to setup the variables for the component.
 	 */

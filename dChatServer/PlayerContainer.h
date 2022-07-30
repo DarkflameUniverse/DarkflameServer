@@ -20,7 +20,7 @@ struct PlayerData {
 struct TeamData {
 	LWOOBJID teamID = LWOOBJID_EMPTY; // Internal use
 	LWOOBJID leaderID = LWOOBJID_EMPTY;
-	std::vector<LWOOBJID> memberIDs {};
+	std::vector<LWOOBJID> memberIDs{};
 	uint8_t lootFlag = 0;
 	bool local = false;
 	LWOZONEID zoneId = {};

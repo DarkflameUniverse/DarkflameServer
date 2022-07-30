@@ -3,10 +3,8 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 
-void AgJetEffectServer::OnUse(Entity* self, Entity* user)
-{
-	if (inUse)
-	{
+void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
+	if (inUse) {
 		return;
 	}
 
@@ -24,8 +22,7 @@ void AgJetEffectServer::OnUse(Entity* self, Entity* user)
 
 	auto entities = EntityManager::Instance()->GetEntitiesInGroup("Jet_FX");
 
-	if (entities.empty())
-	{
+	if (entities.empty()) {
 		return;
 	}
 
@@ -37,12 +34,10 @@ void AgJetEffectServer::OnUse(Entity* self, Entity* user)
 	self->AddTimer("CineDone", 9);
 }
 
-void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target)
-{
+void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target) {
 	auto entities = EntityManager::Instance()->GetEntitiesInGroup("Jet_FX");
 
-	if (entities.empty())
-	{
+	if (entities.empty()) {
 		return;
 	}
 
@@ -50,8 +45,7 @@ void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target)
 
 	auto groups = self->GetGroups();
 
-	if (groups.empty())
-	{
+	if (groups.empty()) {
 		return;
 	}
 
@@ -63,34 +57,28 @@ void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target)
 
 	self->AddTimer("PlayEffect", 2.5f);
 
-	if (group == "Base_Radar")
-	{
+	if (group == "Base_Radar") {
 		self->AddTimer("CineDone", 5);
 	}
 }
 
-void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName)
-{
-	if (timerName == "radarDish")
-	{
+void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName) {
+	if (timerName == "radarDish") {
 		GameMessages::SendStopFXEffect(self, true, "radarDish");
 
 		return;
 	}
 
-	if (timerName == "PlayEffect")
-	{
+	if (timerName == "PlayEffect") {
 		auto entities = EntityManager::Instance()->GetEntitiesInGroup("mortarMain");
 
-		if (entities.empty())
-		{
+		if (entities.empty()) {
 			return;
 		}
 
 		const auto size = entities.size();
 
-		if (size == 0)
-		{
+		if (size == 0) {
 			return;
 		}
 
@@ -103,8 +91,7 @@ void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName)
 		mortar->SetOwnerOverride(builder);
 
 		SkillComponent* skillComponent;
-		if (!mortar->TryGetComponent(COMPONENT_TYPE_SKILL, skillComponent))
-		{
+		if (!mortar->TryGetComponent(COMPONENT_TYPE_SKILL, skillComponent)) {
 			return;
 		}
 
@@ -113,8 +100,7 @@ void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName)
 		return;
 	}
 
-	if (timerName == "CineDone")
-	{
+	if (timerName == "CineDone") {
 		GameMessages::SendNotifyClientObject(
 			self->GetObjectID(),
 			u"toggleInUse",

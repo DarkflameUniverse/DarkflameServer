@@ -56,7 +56,7 @@ namespace Mail {
 		uint16_t attachmentCount,
 		const SystemAddress& sysAddr
 	);
-	
+
 	void SendMail(
 		LWOOBJID sender,
 		const std::string& senderName,

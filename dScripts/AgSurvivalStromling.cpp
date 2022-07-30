@@ -1,5 +1,5 @@
 #include "AgSurvivalStromling.h"
 
 uint32_t AgSurvivalStromling::GetPoints() {
-    return 100;
+	return 100;
 }

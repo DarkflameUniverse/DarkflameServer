@@ -1,7 +1,7 @@
 #pragma once
 #include "CppScripts.h"
 
-class FvConsoleRightQuickbuild : public CppScripts::Script 
+class FvConsoleRightQuickbuild : public CppScripts::Script
 {
 public:
 	void OnStartup(Entity* self) override;
