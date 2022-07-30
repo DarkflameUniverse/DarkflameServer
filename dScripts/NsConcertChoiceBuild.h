@@ -3,5 +3,5 @@
 
 class NsConcertChoiceBuild : public CppScripts::Script {
 public:
-    void OnStartup(Entity* self) override;
+	void OnStartup(Entity* self) override;
 };

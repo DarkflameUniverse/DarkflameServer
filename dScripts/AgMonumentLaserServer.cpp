@@ -3,7 +3,7 @@
 void AgMonumentLaserServer::OnStartup(Entity* self) {
 	/*
 	self->SetProximityRadius(m_Radius, "MonumentLaser");
-	
+
 	std::cout << "Monument Laser " << self->GetObjectID() << " is at " << self->GetPosition().GetX()
 		<< ","<< self->GetPosition().GetY() << "," << self->GetPosition().GetZ() << std::endl;
 	*/

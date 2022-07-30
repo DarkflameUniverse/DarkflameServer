@@ -6,12 +6,10 @@
 #include "DestroyableComponent.h"
 
 
-void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch)
-{
+void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
 	auto* entity = EntityManager::Instance()->GetEntity(branch.target);
 
-	if (entity == nullptr)
-	{
+	if (entity == nullptr) {
 		Game::logger->Log("HealBehavior", "Failed to find entity for (%llu)!", branch.target);
 
 		return;
@@ -19,8 +17,7 @@ void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_strea
 
 	auto* destroyable = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
 
-	if (destroyable == nullptr)
-	{
+	if (destroyable == nullptr) {
 		Game::logger->Log("HealBehavior", "Failed to find destroyable component for %(llu)!", branch.target);
 
 		return;
@@ -30,13 +27,11 @@ void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_strea
 }
 
 
-void HealBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch)
-{
+void HealBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
 	Handle(context, bit_stream, branch);
 }
 
 
-void HealBehavior::Load()
-{
+void HealBehavior::Load() {
 	this->m_health = GetInt("health");
 }

@@ -18,27 +18,27 @@ ScriptComponent::~ScriptComponent() {
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-    if (bIsInitialUpdate) {
-        const auto& networkSettings = m_Parent->GetNetworkSettings();
-        auto hasNetworkSettings = !networkSettings.empty();
-        outBitStream->Write(hasNetworkSettings);
+	if (bIsInitialUpdate) {
+		const auto& networkSettings = m_Parent->GetNetworkSettings();
+		auto hasNetworkSettings = !networkSettings.empty();
+		outBitStream->Write(hasNetworkSettings);
 
-        if (hasNetworkSettings) {
+		if (hasNetworkSettings) {
 
-            // First write the most inner LDF data
-            RakNet::BitStream ldfData;
-            ldfData.Write<uint8_t>(0);
-            ldfData.Write<uint32_t>(networkSettings.size());
+			// First write the most inner LDF data
+			RakNet::BitStream ldfData;
+			ldfData.Write<uint8_t>(0);
+			ldfData.Write<uint32_t>(networkSettings.size());
 
-            for (auto* networkSetting : networkSettings) {
-                networkSetting->WriteToPacket(&ldfData);
-            }
+			for (auto* networkSetting : networkSettings) {
+				networkSetting->WriteToPacket(&ldfData);
+			}
 
-            // Finally write everything to the stream
-            outBitStream->Write<uint32_t>(ldfData.GetNumberOfBytesUsed());
-            outBitStream->Write(ldfData);
-        }
-    }
+			// Finally write everything to the stream
+			outBitStream->Write<uint32_t>(ldfData.GetNumberOfBytesUsed());
+			outBitStream->Write(ldfData);
+		}
+	}
 }
 
 CppScripts::Script* ScriptComponent::GetScript() {
@@ -46,7 +46,7 @@ CppScripts::Script* ScriptComponent::GetScript() {
 }
 
 void ScriptComponent::SetScript(const std::string& scriptName) {
-	//we don't need to delete the script because others may be using it :) 
+	//we don't need to delete the script because others may be using it :)
 	/*if (m_Client) {
 		m_Script = new InvalidScript();
 		return;

@@ -5,5 +5,5 @@
 class AmSkeletonEngineer : public EnemyNjBuff
 {
 public:
-    void OnHit(Entity* self, Entity* attacker) override;
+	void OnHit(Entity* self, Entity* attacker) override;
 };

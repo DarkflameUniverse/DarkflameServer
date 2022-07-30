@@ -119,11 +119,11 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	}
 
 	if (sqlBanned) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_BANNED, "",  "", 2001, username); return;
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_BANNED, "", "", 2001, username); return;
 	}
 
 	if (sqlLocked) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_ACCOUNT_LOCKED, "",  "", 2001, username); return;
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_ACCOUNT_LOCKED, "", "", 2001, username); return;
 	}
 
 	/*
@@ -136,18 +136,14 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 	int32_t bcryptState = ::bcrypt_checkpw(password.c_str(), sqlPass.c_str());
 
-	if (bcryptState != 0)
-	{
+	if (bcryptState != 0) {
 		// Fallback on old method
 
 		std::string oldPassword = sha512(password + username);
 
-		if (sqlPass != oldPassword)
-		{
+		if (sqlPass != oldPassword) {
 			loginSuccess = false;
-		}
-		else
-		{
+		} else {
 			// Generate new hash for bcrypt
 
 			char salt[BCRYPT_HASHSIZE];
@@ -168,17 +164,14 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 			accountUpdate->executeUpdate();
 		}
-	}
-	else
-	{
+	} else {
 		// Login success with bcrypt
 	}
 
 	if (!loginSuccess) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_WRONG_PASS_OR_USER, "",  "", 2001, username);
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_WRONG_PASS_OR_USER, "", "", 2001, username);
 		server->GetLogger()->Log("AuthPackets", "Wrong password used");
-	}
-	else {
+	} else {
 		SystemAddress system = packet->systemAddress; //Copy the sysAddr before the Packet gets destroyed from main
 
 		if (!server->GetIsConnectedToMaster()) {
@@ -188,74 +181,74 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(server, 0, 0, false, [system, server, username](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string zoneIP, uint16_t zonePort) {
 			AuthPackets::SendLoginResponse(server, system, LOGIN_RESPONSE_SUCCESS, "", zoneIP, zonePort, username);
-		});
+			});
 	}
 }
 
 void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username) {
-    RakNet::BitStream packet;
-    PacketUtils::WriteHeader(packet, CLIENT, MSG_CLIENT_LOGIN_RESPONSE);
+	RakNet::BitStream packet;
+	PacketUtils::WriteHeader(packet, CLIENT, MSG_CLIENT_LOGIN_RESPONSE);
 
-    packet.Write(static_cast<uint8_t>(responseCode));
+	packet.Write(static_cast<uint8_t>(responseCode));
 
-    PacketUtils::WritePacketString("Talk_Like_A_Pirate", 33, &packet);
+	PacketUtils::WritePacketString("Talk_Like_A_Pirate", 33, &packet);
 
-    // 7 unknown strings - perhaps other IP addresses?
-    PacketUtils::WritePacketString("", 33, &packet);
-    PacketUtils::WritePacketString("", 33, &packet);
-    PacketUtils::WritePacketString("", 33, &packet);
-    PacketUtils::WritePacketString("", 33, &packet);
-    PacketUtils::WritePacketString("", 33, &packet);
-    PacketUtils::WritePacketString("", 33, &packet);
-    PacketUtils::WritePacketString("", 33, &packet);
+	// 7 unknown strings - perhaps other IP addresses?
+	PacketUtils::WritePacketString("", 33, &packet);
+	PacketUtils::WritePacketString("", 33, &packet);
+	PacketUtils::WritePacketString("", 33, &packet);
+	PacketUtils::WritePacketString("", 33, &packet);
+	PacketUtils::WritePacketString("", 33, &packet);
+	PacketUtils::WritePacketString("", 33, &packet);
+	PacketUtils::WritePacketString("", 33, &packet);
 
-    packet.Write(static_cast<uint16_t>(1));         // Version Major
-    packet.Write(static_cast<uint16_t>(10));        // Version Current
-    packet.Write(static_cast<uint16_t>(64));        // Version Minor
+	packet.Write(static_cast<uint16_t>(1));         // Version Major
+	packet.Write(static_cast<uint16_t>(10));        // Version Current
+	packet.Write(static_cast<uint16_t>(64));        // Version Minor
 
-    // Writes the user key
+	// Writes the user key
 	uint32_t sessionKey = rand(); // not mt but whatever
 	std::string userHash = std::to_string(sessionKey);
-    userHash = md5(userHash);
-    PacketUtils::WritePacketWString(userHash, 33, &packet);
+	userHash = md5(userHash);
+	PacketUtils::WritePacketWString(userHash, 33, &packet);
 
-    // Write the Character and Chat IPs
-    PacketUtils::WritePacketString(wServerIP, 33, &packet);
-    PacketUtils::WritePacketString("", 33, &packet);
+	// Write the Character and Chat IPs
+	PacketUtils::WritePacketString(wServerIP, 33, &packet);
+	PacketUtils::WritePacketString("", 33, &packet);
 
-    // Write the Character and Chat Ports
-    packet.Write(static_cast<uint16_t>(wServerPort));
-    packet.Write(static_cast<uint16_t>(0));
+	// Write the Character and Chat Ports
+	packet.Write(static_cast<uint16_t>(wServerPort));
+	packet.Write(static_cast<uint16_t>(0));
 
-    // Write another IP
-    PacketUtils::WritePacketString("", 33, &packet);
+	// Write another IP
+	PacketUtils::WritePacketString("", 33, &packet);
 
-    // Write a GUID or something...
-    PacketUtils::WritePacketString("00000000-0000-0000-0000-000000000000", 37, &packet);
+	// Write a GUID or something...
+	PacketUtils::WritePacketString("00000000-0000-0000-0000-000000000000", 37, &packet);
 
-    packet.Write(static_cast<uint32_t>(0));         // ???
+	packet.Write(static_cast<uint32_t>(0));         // ???
 
-    // Write the localization
-    PacketUtils::WritePacketString("US", 3, &packet);
+	// Write the localization
+	PacketUtils::WritePacketString("US", 3, &packet);
 
-    packet.Write(static_cast<uint8_t>(false));      // User first logged in?
-    packet.Write(static_cast<uint8_t>(false));      // User is F2P?
-    packet.Write(static_cast<uint64_t>(0));         // ???
+	packet.Write(static_cast<uint8_t>(false));      // User first logged in?
+	packet.Write(static_cast<uint8_t>(false));      // User is F2P?
+	packet.Write(static_cast<uint64_t>(0));         // ???
 
-    // Write custom error message
-    packet.Write(static_cast<uint16_t>(errorMsg.length()));
-    PacketUtils::WritePacketWString(errorMsg, static_cast<uint32_t>(errorMsg.length()), &packet);
+	// Write custom error message
+	packet.Write(static_cast<uint16_t>(errorMsg.length()));
+	PacketUtils::WritePacketWString(errorMsg, static_cast<uint32_t>(errorMsg.length()), &packet);
 
-    // Here write auth logs
-    packet.Write(static_cast<uint32_t>(20));
-    for (uint32_t i = 0; i < 20; ++i) {
-        packet.Write(static_cast<uint32_t>(8));
-        packet.Write(static_cast<uint32_t>(44));
-        packet.Write(static_cast<uint32_t>(14000));
-        packet.Write(static_cast<uint32_t>(0));
-    }
+	// Here write auth logs
+	packet.Write(static_cast<uint32_t>(20));
+	for (uint32_t i = 0; i < 20; ++i) {
+		packet.Write(static_cast<uint32_t>(8));
+		packet.Write(static_cast<uint32_t>(44));
+		packet.Write(static_cast<uint32_t>(14000));
+		packet.Write(static_cast<uint32_t>(0));
+	}
 
-    server->Send(&packet, sysAddr, false);
+	server->Send(&packet, sysAddr, false);
 
 	//Inform the master server that we've created a session for this user:
 	{

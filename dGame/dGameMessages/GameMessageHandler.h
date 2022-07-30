@@ -22,7 +22,7 @@
 #include "../dDatabase/CDClientDatabase.h"
 
 namespace GameMessageHandler {
-    void HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, GAME_MSG messageID);
+	void HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, GAME_MSG messageID);
 };
 
 #endif // GAMEMESSAGEHANDLER_H

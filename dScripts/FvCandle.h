@@ -1,7 +1,7 @@
 #pragma once
 #include "CppScripts.h"
 
-class FvCandle : public CppScripts::Script 
+class FvCandle : public CppScripts::Script
 {
 public:
 	void OnStartup(Entity* self);

@@ -16,12 +16,12 @@
 class SwitchComponent : public Component {
 public:
 	static const uint32_t ComponentType = COMPONENT_TYPE_SWITCH;
-	
+
 	SwitchComponent(Entity* parent);
 	~SwitchComponent() override;
 
 	void Update(float deltaTime) override;
-	
+
 	Entity* GetParentEntity() const;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);

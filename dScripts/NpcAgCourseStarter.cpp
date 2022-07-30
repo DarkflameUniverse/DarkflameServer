@@ -19,8 +19,7 @@ void NpcAgCourseStarter::OnUse(Entity* self, Entity* user) {
 
 	if (scriptedActivityComponent->GetActivityPlayerData(user->GetObjectID()) != nullptr) {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"exit", 0, 0, LWOOBJID_EMPTY, "", user->GetSystemAddress());
-	}
-	else {
+	} else {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"start", 0, 0, LWOOBJID_EMPTY, "", user->GetSystemAddress());
 	}
 }
@@ -40,8 +39,7 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 
 		EntityManager::Instance()->SerializeEntity(self);
-	}
-	else if (identifier == u"player_dialog_start_course" && button == 1) {
+	} else if (identifier == u"player_dialog_start_course" && button == 1) {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"start_timer", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 
 		GameMessages::SendActivityStart(self->GetObjectID(), sender->GetSystemAddress());
@@ -55,14 +53,12 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 		data->values[1] = *(float*)&startTime;
 
 		EntityManager::Instance()->SerializeEntity(self);
-	}
-	else if (identifier == u"FootRaceCancel") {
+	} else if (identifier == u"FootRaceCancel") {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stop_timer", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 
 		if (scriptedActivityComponent->GetActivityPlayerData(sender->GetObjectID()) != nullptr) {
 			GameMessages::SendNotifyClientObject(self->GetObjectID(), u"exit", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
-		}
-		else {
+		} else {
 			GameMessages::SendNotifyClientObject(self->GetObjectID(), u"start", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 		}
 
@@ -70,43 +66,43 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 	}
 }
 
-void NpcAgCourseStarter::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1, int32_t param2,
-                               int32_t param3) {
+void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2,
+	int32_t param3) {
 	auto* scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
 	if (scriptedActivityComponent == nullptr)
 		return;
 
 	auto* data = scriptedActivityComponent->GetActivityPlayerData(sender->GetObjectID());
-    if (data == nullptr)
-        return;
+	if (data == nullptr)
+		return;
 
 	if (args == "course_cancel") {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"cancel_timer", 0, 0,
-                                       LWOOBJID_EMPTY, "", sender->GetSystemAddress());
-        scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
+			LWOOBJID_EMPTY, "", sender->GetSystemAddress());
+		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 	} else if (args == "course_finish") {
-        time_t endTime = std::time(0);
-        time_t finish = (endTime - *(time_t *) &data->values[1]);
+		time_t endTime = std::time(0);
+		time_t finish = (endTime - *(time_t*)&data->values[1]);
 
-        data->values[2] = *(float *) &finish;
+		data->values[2] = *(float*)&finish;
 
-        auto *missionComponent = sender->GetComponent<MissionComponent>();
-        if (missionComponent != nullptr) {
-            missionComponent->ForceProgressTaskType(1884, 1, 1, false);
-            missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, -finish, self->GetObjectID(),
-                                       "performact_time");
-        }
+		auto* missionComponent = sender->GetComponent<MissionComponent>();
+		if (missionComponent != nullptr) {
+			missionComponent->ForceProgressTaskType(1884, 1, 1, false);
+			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, -finish, self->GetObjectID(),
+				"performact_time");
+		}
 
-        EntityManager::Instance()->SerializeEntity(self);
-        LeaderboardManager::SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(),
-                                      0, (uint32_t) finish);
+		EntityManager::Instance()->SerializeEntity(self);
+		LeaderboardManager::SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(),
+			0, (uint32_t)finish);
 
-        GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard",
-                                             scriptedActivityComponent->GetActivityID(), 0, sender->GetObjectID(),
-                                             "", sender->GetSystemAddress());
-        GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stop_timer", 1, finish, LWOOBJID_EMPTY, "",
-                                             sender->GetSystemAddress());
+		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard",
+			scriptedActivityComponent->GetActivityID(), 0, sender->GetObjectID(),
+			"", sender->GetSystemAddress());
+		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stop_timer", 1, finish, LWOOBJID_EMPTY, "",
+			sender->GetSystemAddress());
 
-        scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
+		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 	}
 }

@@ -20,9 +20,8 @@ void AgCagedBricksServer::OnUse(Entity* self, Entity* user) {
 
 	//Remove the maelstrom cube:
 	auto inv = static_cast<InventoryComponent*>(user->GetComponent(COMPONENT_TYPE_INVENTORY));
-	
-	if (inv)
-	{
+
+	if (inv) {
 		inv->RemoveItem(14553, 1);
 	}
 }

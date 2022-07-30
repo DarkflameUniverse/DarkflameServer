@@ -11,9 +11,9 @@
  */
 class SpawnPetBaseServer : public CppScripts::Script {
 public:
-    void OnStartup(Entity *self) override;
-    void OnUse(Entity *self, Entity *user) override;
-    virtual void SetVariables(Entity* self) {};
+	void OnStartup(Entity* self) override;
+	void OnUse(Entity* self, Entity* user) override;
+	virtual void SetVariables(Entity* self) {};
 private:
-    static bool CheckNumberOfPets(Entity* self, Entity* user);
+	static bool CheckNumberOfPets(Entity* self, Entity* user);
 };

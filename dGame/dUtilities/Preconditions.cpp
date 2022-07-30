@@ -19,12 +19,11 @@ std::map<uint32_t, Precondition*> Preconditions::cache = {};
 Precondition::Precondition(const uint32_t condition) {
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT type, targetLOT, targetCount FROM Preconditions WHERE id = ?;");
-	query.bind(1, (int) condition);
+	query.bind(1, (int)condition);
 
 	auto result = query.execQuery();
 
-	if (result.eof())
-	{
+	if (result.eof()) {
 		this->type = PreconditionType::ItemEquipped;
 		this->count = 1;
 		this->values = { 0 };
@@ -36,16 +35,13 @@ Precondition::Precondition(const uint32_t condition) {
 
 	this->type = static_cast<PreconditionType>(result.fieldIsNull(0) ? 0 : result.getIntField(0));
 
-	if (!result.fieldIsNull(1))
-	{
+	if (!result.fieldIsNull(1)) {
 		std::istringstream stream(result.getStringField(1));
 		std::string token;
 
-		while (std::getline(stream, token, ','))
-		{
+		while (std::getline(stream, token, ',')) {
 			uint32_t value;
-			if (GeneralUtils::TryParse(token, value))
-			{
+			if (GeneralUtils::TryParse(token, value)) {
 				this->values.push_back(value);
 			}
 		}
@@ -57,10 +53,8 @@ Precondition::Precondition(const uint32_t condition) {
 }
 
 
-bool Precondition::Check(Entity* player, bool evaluateCosts) const
-{
-	if (values.empty())
-	{
+bool Precondition::Check(Entity* player, bool evaluateCosts) const {
+	if (values.empty()) {
 		return true; // There are very few of these
 	}
 
@@ -100,22 +94,18 @@ bool Precondition::Check(Entity* player, bool evaluateCosts) const
 
 	auto passedAny = false;
 
-	for (const auto value : values)
-	{
+	for (const auto value : values) {
 		const auto passed = CheckValue(player, value, evaluateCosts);
 
-		if (passed && any)
-		{
+		if (passed && any) {
 			return true;
 		}
 
-		if (!passed && !any)
-		{
+		if (!passed && !any) {
 			return false;
 		}
 
-		if (passed)
-		{
+		if (passed) {
 			passedAny = true;
 		}
 	}
@@ -124,8 +114,7 @@ bool Precondition::Check(Entity* player, bool evaluateCosts) const
 }
 
 
-bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluateCosts) const
-{
+bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluateCosts) const {
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 	auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
@@ -134,8 +123,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 
 	Mission* mission;
 
-	switch (type)
-	{
+	switch (type) {
 	case PreconditionType::ItemEquipped:
 		return inventoryComponent->IsEquipped(value);
 	case PreconditionType::ItemNotEquipped:
@@ -180,20 +168,16 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::IsPetTaming:
 		return false; // TODO
 	case PreconditionType::HasFaction:
-		for (const auto faction : destroyableComponent->GetFactionIDs())
-		{
-			if (faction == static_cast<int>(value))
-			{
+		for (const auto faction : destroyableComponent->GetFactionIDs()) {
+			if (faction == static_cast<int>(value)) {
 				return true;
 			}
 		}
 
 		return false;
 	case PreconditionType::DoesNotHaveFaction:
-		for (const auto faction : destroyableComponent->GetFactionIDs())
-		{
-			if (faction == static_cast<int>(value))
-			{
+		for (const auto faction : destroyableComponent->GetFactionIDs()) {
+			if (faction == static_cast<int>(value)) {
 				return false;
 			}
 		}
@@ -214,10 +198,8 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	}
 }
 
-PreconditionExpression::PreconditionExpression(const std::string& conditions)
-{
-	if (conditions.empty())
-	{
+PreconditionExpression::PreconditionExpression(const std::string& conditions) {
+	if (conditions.empty()) {
 		empty = true;
 
 		return;
@@ -230,17 +212,14 @@ PreconditionExpression::PreconditionExpression(const std::string& conditions)
 
 	auto done = false;
 
-	for (auto i = 0u; i < conditions.size(); ++i)
-	{
-		if (done)
-		{
+	for (auto i = 0u; i < conditions.size(); ++i) {
+		if (done) {
 			break;
 		}
 
 		const auto character = conditions[i];
 
-		switch (character)
-		{
+		switch (character) {
 		case '|':
 			bor = true;
 			b << conditions.substr(i + 1);
@@ -277,32 +256,24 @@ PreconditionExpression::PreconditionExpression(const std::string& conditions)
 
 	const auto aString = a.str();
 
-	if (!aString.empty())
-	{
+	if (!aString.empty()) {
 		this->condition = std::stoul(a.str());
-	}
-	else
-	{
+	} else {
 		this->condition = 0;
 	}
 
 	const auto bString = b.str();
 
-	if (!bString.empty())
-	{
+	if (!bString.empty()) {
 		this->next = new PreconditionExpression(bString);
-	}
-	else
-	{
+	} else {
 		this->next = nullptr;
 	}
 }
 
 
-bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const
-{
-	if (empty)
-	{
+bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const {
+	if (empty) {
 		return true;
 	}
 
@@ -313,8 +284,7 @@ bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const
 
 	const auto a = Preconditions::Check(player, condition, evaluateCosts);
 
-	if (!a)
-	{
+	if (!a) {
 		GameMessages::SendNotifyClientFailedPrecondition(player->GetObjectID(), player->GetSystemAddress(), u"", condition);
 	}
 
@@ -323,24 +293,19 @@ bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const
 	return m_or ? a || b : a && b;
 }
 
-PreconditionExpression::~PreconditionExpression()
-{
+PreconditionExpression::~PreconditionExpression() {
 	delete next;
 }
 
 
-bool Preconditions::Check(Entity* player, const uint32_t condition, bool evaluateCosts)
-{
+bool Preconditions::Check(Entity* player, const uint32_t condition, bool evaluateCosts) {
 	Precondition* precondition;
 
 	const auto& index = cache.find(condition);
 
-	if (index != cache.end())
-	{
+	if (index != cache.end()) {
 		precondition = index->second;
-	}
-	else
-	{
+	} else {
 		precondition = new Precondition(condition);
 
 		cache.insert_or_assign(condition, precondition);
@@ -350,16 +315,13 @@ bool Preconditions::Check(Entity* player, const uint32_t condition, bool evaluat
 }
 
 
-PreconditionExpression Preconditions::CreateExpression(const std::string& conditions)
-{
+PreconditionExpression Preconditions::CreateExpression(const std::string& conditions) {
 	return PreconditionExpression(conditions);
 }
 
 
-Preconditions::~Preconditions()
-{
-	for (const auto& condition : cache)
-	{
+Preconditions::~Preconditions() {
+	for (const auto& condition : cache) {
 		delete condition.second;
 	}
 

@@ -89,8 +89,7 @@ void dpEntity::CheckCollision(dpEntity* other) {
 
 		//if (m_CollisionShape->GetShapeType() == dpShapeType::Sphere && other->GetShape()->GetShapeType() == dpShapeType::Sphere)
 			//std::cout << "started sphere col at: " << other->GetPosition().x << ", " << other->GetPosition().y << ", " << other->GetPosition().z << std::endl;
-	}
-	else if (!isColliding && wasFound) {
+	} else if (!isColliding && wasFound) {
 		m_CurrentlyCollidingObjects.erase(other->GetObjectID());
 		m_RemovedObjects.push_back(other);
 
