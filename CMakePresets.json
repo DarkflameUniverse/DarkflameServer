@@ -95,9 +95,6 @@
         "configurePreset": "ci-ubuntu-20.04",
         "displayName": "CI Tests on Linux",
         "description": "Runs all tests on a linux configuration",
-        "execution": {
-          "jobs": 2
-        },
         "output": {
           "outputOnFailure": true
         }
@@ -107,9 +104,6 @@
         "configurePreset": "ci-macos-11",
         "displayName": "CI Tests on MacOS",
         "description": "Runs all tests on a Mac configuration",
-        "execution": {
-          "jobs": 2
-        },
         "output": {
           "outputOnFailure": true
         }
@@ -120,9 +114,6 @@
         "displayName": "CI Tests on windows",
         "description": "Runs all tests on a windows configuration",
         "configuration": "RelWithDebInfo",
-        "execution": {
-          "jobs": 2
-        },
         "output": {
           "outputOnFailure": true
         }
