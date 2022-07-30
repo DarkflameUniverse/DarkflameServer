@@ -1,19 +1,32 @@
-# create the testing file and list of tests
-create_test_sourcelist (Tests
-	CommonCxxTests.cpp
-	AMFDeserializeTests.cpp
-	TestNiPoint3.cpp
-	TestLDFFormat.cpp
-	TestEncoding.cpp
+message (STATUS "Testing is enabled.  Fetching gtest...")
+enable_testing()
+include(FetchContent)
+FetchContent_Declare(
+	googletest
+	GIT_REPOSITORY https://github.com/google/googletest.git
+	GIT_TAG release-1.12.1
 )
 
-# add the executable
-add_executable (CommonCxxTests ${Tests})
-target_link_libraries(CommonCxxTests ${COMMON_LIBRARIES})
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(GoogleTest)
+message(STATUS "gtest fetched and is now ready.")
+# create the testing file and list of tests
+set(Tests)
 
-# remove the test driver source file
-set (TestsToRun ${Tests})
-remove (TestsToRun CommonCxxTests.cpp)
+add_subdirectory(dCommonTests)
+foreach (file ${DCOMMONTEST_SOURCES})
+	set(Tests ${Tests} "dCommonTests/${file}")
+endforeach ()
+
+add_subdirectory(dGameTests)
+foreach (file ${DGAMETEST_SOURCES})
+	set(Tests ${Tests} "dGameTests/${file}")
+endforeach ()
+
+# add the executable
+add_executable(CommonCxxTests ${Tests})
+target_link_libraries(CommonCxxTests ${COMMON_LIBRARIES} GTest::gtest_main dGame dZoneManager dPhysics detour recast tinyxml2 dWorldServer dChatFilter)
 
 # Copy test files to testing directory
 configure_file(
@@ -26,9 +39,5 @@ configure_file(
 	COPYONLY
 )
 
-# Add all the ADD_TEST for each test
-foreach (test ${TestsToRun})
-	get_filename_component (TName ${test} NAME_WE)
-	add_test (NAME ${TName} COMMAND CommonCxxTests ${TName})
-	set_property(TEST ${TName} PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=1)
-endforeach ()
+include(GoogleTest)
+gtest_discover_tests(CommonCxxTests)
