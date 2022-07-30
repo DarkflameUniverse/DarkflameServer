@@ -53,15 +53,15 @@ int main(int argc, char** argv) {
 	std::string mysql_username = config.GetValue("mysql_username");
 	std::string mysql_password = config.GetValue("mysql_password");
 
-    try {
-        Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-    } catch (sql::SQLException& ex) {
+	try {
+		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+	} catch (sql::SQLException& ex) {
 		Game::logger->Log("AuthServer", "Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("AuthServer");
 		delete Game::server;
 		delete Game::logger;
 		return 0;
-    }
+	}
 
 	//Find out the master's IP:
 	std::string masterIP;
@@ -98,8 +98,7 @@ int main(int argc, char** argv) {
 
 			if (framesSinceMasterDisconnect >= 30)
 				break; //Exit our loop, shut down.
-		}
-		else framesSinceMasterDisconnect = 0;
+		} else framesSinceMasterDisconnect = 0;
 
 		//In world we'd update our other systems here.
 
@@ -134,8 +133,7 @@ int main(int argc, char** argv) {
 			delete stmt;
 
 			framesSinceLastSQLPing = 0;
-		}
-		else framesSinceLastSQLPing++;
+		} else framesSinceLastSQLPing++;
 
 		//Sleep our thread since auth can afford to.
 		t += std::chrono::milliseconds(mediumFramerate); //Auth can run at a lower "fps"
@@ -151,7 +149,7 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-dLogger * SetupLogger() {
+dLogger* SetupLogger() {
 	std::string logPath = "./logs/AuthServer_" + std::to_string(time(nullptr)) + ".log";
 	bool logToConsole = false;
 	bool logDebugStatements = false;

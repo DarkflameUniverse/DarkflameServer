@@ -8,12 +8,11 @@
 #include "NiPoint3.h"
 #include "dCommonVars.h"
 
-namespace GameMessages
-{
+namespace GameMessages {
 	class PropertyDataMessage final
 	{
 	public:
-	    explicit PropertyDataMessage(uint32_t mapID);
+		explicit PropertyDataMessage(uint32_t mapID);
 
 		void Serialize(RakNet::BitStream& stream) const;
 

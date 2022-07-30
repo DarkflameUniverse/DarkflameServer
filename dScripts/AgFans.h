@@ -7,8 +7,8 @@ public:
 	void OnStartup(Entity* self) override;
 	void OnDie(Entity* self, Entity* killer) override;
 	void OnFireEventServerSide(
-		Entity *self,
-		Entity *sender,
+		Entity* self,
+		Entity* sender,
 		std::string args,
 		int32_t param1,
 		int32_t param2,

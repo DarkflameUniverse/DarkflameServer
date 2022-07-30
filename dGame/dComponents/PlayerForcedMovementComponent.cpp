@@ -6,7 +6,7 @@ PlayerForcedMovementComponent::PlayerForcedMovementComponent(Entity* parent) : C
 
 PlayerForcedMovementComponent::~PlayerForcedMovementComponent() {}
 
-void PlayerForcedMovementComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags){
+void PlayerForcedMovementComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	outBitStream->Write(m_DirtyInfo);
 	if (m_DirtyInfo) {
 		outBitStream->Write(m_PlayerOnRail);

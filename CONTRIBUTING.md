@@ -123,6 +123,15 @@ added, which produced InvalidScript errors.
 
 Check out a compiled list of development resources and tools [here](https://lu-dev.net/).
 
+
+Please use [.editorconfig](https://editorconfig.org/#pre-installed) with your preferred IDE.
+
+And run:
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+to ignore the gitblame of mass formatting commits
+
 ## Coding Style
 
 This project has gone through multiple iterations of coding style. In the code you'll find a number of different coding styles in use. What follows is the preferred style for this project.
@@ -154,7 +163,7 @@ if (x) {
 }
 ```
 
-Instead of 
+Instead of
 
 ```cpp
 if ( x ) {

@@ -25,14 +25,14 @@ public:
 	 *
 	 * @param value if the player is on a rail
 	 */
-	void SetPlayerOnRail(bool value){ m_PlayerOnRail = value; m_DirtyInfo = true; }
+	void SetPlayerOnRail(bool value) { m_PlayerOnRail = value; m_DirtyInfo = true; }
 
 	/**
 	 * @brief Set the Show Billboard object
 	 *
 	 * @param value if the billboard should be shown
 	 */
-	void SetShowBillboard(bool value){ m_ShowBillboard = value; m_DirtyInfo = true; }
+	void SetShowBillboard(bool value) { m_ShowBillboard = value; m_DirtyInfo = true; }
 
 	/**
 	 * @brief Get the Player On Rail object
@@ -41,14 +41,14 @@ public:
 	 * @return false
 	 */
 
-	/**
-	 * @brief Get the Player On Rail object
-	 *
-	 * @return true
-	 * @return false
-	 */
-	bool GetPlayerOnRail(){ return m_PlayerOnRail; }
-	bool GetShowBillboard(){ return m_ShowBillboard; }
+	 /**
+	  * @brief Get the Player On Rail object
+	  *
+	  * @return true
+	  * @return false
+	  */
+	bool GetPlayerOnRail() { return m_PlayerOnRail; }
+	bool GetShowBillboard() { return m_ShowBillboard; }
 
 private:
 	/**

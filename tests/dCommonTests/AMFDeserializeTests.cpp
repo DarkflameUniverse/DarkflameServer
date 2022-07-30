@@ -5,7 +5,7 @@
 #include "AMFDeserialize.h"
 #include "AMFFormat.h"
 
-/** 
+/**
  * Helper method that all tests use to get their respective AMF.
  */
 std::unique_ptr<AMFValue> ReadFromBitStream(RakNet::BitStream* bitStream) {
@@ -17,20 +17,20 @@ std::unique_ptr<AMFValue> ReadFromBitStream(RakNet::BitStream* bitStream) {
 /**
  * @brief Test reading an AMFUndefined value from a BitStream.
  */
-TEST(dCommonTests, AMFDeserializeAMFUndefinedTest){
+TEST(dCommonTests, AMFDeserializeAMFUndefinedTest) {
 	CBITSTREAM
-	bitStream.Write<uint8_t>(0x00);
+		bitStream.Write<uint8_t>(0x00);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFUndefined);
 }
 
 /**
  * @brief Test reading an AMFNull value from a BitStream.
- * 
+ *
  */
-TEST(dCommonTests, AMFDeserializeAMFNullTest){
+TEST(dCommonTests, AMFDeserializeAMFNullTest) {
 	CBITSTREAM
-	bitStream.Write<uint8_t>(0x01);
+		bitStream.Write<uint8_t>(0x01);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFNull);
 }
@@ -38,9 +38,9 @@ TEST(dCommonTests, AMFDeserializeAMFNullTest){
 /**
  * @brief Test reading an AMFFalse value from a BitStream.
  */
-TEST(dCommonTests, AMFDeserializeAMFFalseTest){
+TEST(dCommonTests, AMFDeserializeAMFFalseTest) {
 	CBITSTREAM
-	bitStream.Write<uint8_t>(0x02);
+		bitStream.Write<uint8_t>(0x02);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFFalse);
 }
@@ -48,9 +48,9 @@ TEST(dCommonTests, AMFDeserializeAMFFalseTest){
 /**
  * @brief Test reading an AMFTrue value from a BitStream.
  */
-TEST(dCommonTests, AMFDeserializeAMFTrueTest){
+TEST(dCommonTests, AMFDeserializeAMFTrueTest) {
 	CBITSTREAM
-	bitStream.Write<uint8_t>(0x03);
+		bitStream.Write<uint8_t>(0x03);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFTrue);
 }
@@ -58,16 +58,16 @@ TEST(dCommonTests, AMFDeserializeAMFTrueTest){
 /**
  * @brief Test reading an AMFInteger value from a BitStream.
  */
-TEST(dCommonTests, AMFDeserializeAMFIntegerTest){
+TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
 	CBITSTREAM
 	{
 		bitStream.Write<uint8_t>(0x04);
-		// 127 == 01111111
-		bitStream.Write<uint8_t>(127);
-		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
-		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
-		// Check that the max value of a byte can be read correctly
-		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 127);
+	// 127 == 01111111
+	bitStream.Write<uint8_t>(127);
+	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
+	// Check that the max value of a byte can be read correctly
+	ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 127);
 	}
 	bitStream.Reset();
 	{
@@ -109,9 +109,9 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest){
 /**
  * @brief Test reading an AMFDouble value from a BitStream.
  */
-TEST(dCommonTests, AMFDeserializeAMFDoubleTest){
+TEST(dCommonTests, AMFDeserializeAMFDoubleTest) {
 	CBITSTREAM
-	bitStream.Write<uint8_t>(0x05);
+		bitStream.Write<uint8_t>(0x05);
 	bitStream.Write<double>(25346.4f);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFDouble);
@@ -121,9 +121,9 @@ TEST(dCommonTests, AMFDeserializeAMFDoubleTest){
 /**
  * @brief Test reading an AMFString value from a BitStream.
  */
-TEST(dCommonTests, AMFDeserializeAMFStringTest){
+TEST(dCommonTests, AMFDeserializeAMFStringTest) {
 	CBITSTREAM
-	bitStream.Write<uint8_t>(0x06);
+		bitStream.Write<uint8_t>(0x06);
 	bitStream.Write<uint8_t>(0x0F);
 	std::string toWrite = "stateID";
 	for (auto e : toWrite) bitStream.Write<char>(e);
@@ -135,10 +135,10 @@ TEST(dCommonTests, AMFDeserializeAMFStringTest){
 /**
  * @brief Test reading an AMFArray value from a BitStream.
  */
-TEST(dCommonTests, AMFDeserializeAMFArrayTest){
+TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 	CBITSTREAM
-	// Test empty AMFArray
-	bitStream.Write<uint8_t>(0x09);
+		// Test empty AMFArray
+		bitStream.Write<uint8_t>(0x09);
 	bitStream.Write<uint8_t>(0x01);
 	bitStream.Write<uint8_t>(0x01);
 	{
@@ -171,10 +171,10 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest){
 }
 
 /**
- * @brief This test checks that if we recieve an unimplemented AMFValueType 
+ * @brief This test checks that if we recieve an unimplemented AMFValueType
  * we correctly throw an error and can actch it.
  */
-TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest){
+TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest) {
 	std::vector<AMFValueType> unimplementedValues = {
 		AMFValueType::AMFXMLDoc,
 		AMFValueType::AMFDate,
@@ -186,7 +186,7 @@ TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest){
 		AMFValueType::AMFVectorDouble,
 		AMFValueType::AMFVectorObject,
 		AMFValueType::AMFDictionary
-		};
+	};
 	// Run unimplemented tests to check that errors are thrown if
 	// unimplemented AMF values are attempted to be parsed.
 	std::ifstream fileStream;
@@ -221,7 +221,7 @@ TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest){
 /**
  * @brief Test reading a packet capture from live from a BitStream
  */
-TEST(dCommonTests, AMFDeserializeLivePacketTest){
+TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 	std::ifstream testFileStream;
 	testFileStream.open("AMFBitStreamTest.bin", std::ios::binary);
 
@@ -341,23 +341,23 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest){
 /**
  * @brief Tests that having no BitStream returns a nullptr.
  */
-TEST(dCommonTests, AMFDeserializeNullTest){
+TEST(dCommonTests, AMFDeserializeNullTest) {
 	auto result = ReadFromBitStream(nullptr);
 	ASSERT_EQ(result.get(), nullptr);
 }
 
 /**
- * Below is the AMF that is in the AMFBitStreamTest.bin file that we are reading in 
+ * Below is the AMF that is in the AMFBitStreamTest.bin file that we are reading in
  * from a bitstream to test.
 args: amf3!
 {
 	"objectID": "288300744895913279",
 	"BehaviorID": "10447",
-	"executionState": amf3! 
+	"executionState": amf3!
 	{
-		"strips": amf3! 
+		"strips": amf3!
 		[
-			amf3! 
+			amf3!
 			{
 				"actionIndex": 0.0,
 				"id": 0.0,

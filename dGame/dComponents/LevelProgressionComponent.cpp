@@ -19,7 +19,7 @@ void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 
 }
 
-void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc){
+void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* level = doc->FirstChildElement("obj")->FirstChildElement("lvl");
 	if (!level) {
 		Game::logger->Log("LevelProgressionComponent", "Failed to find lvl tag while loading XML!");
@@ -29,7 +29,7 @@ void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc){
 
 }
 
-void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags){
+void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	outBitStream->Write(bIsInitialUpdate || m_DirtyLevelInfo);
 	if (bIsInitialUpdate || m_DirtyLevelInfo) outBitStream->Write(m_Level);
 	m_DirtyLevelInfo = false;
@@ -46,7 +46,7 @@ void LevelProgressionComponent::HandleLevelUp() {
 
 	if (!inventoryComponent || !controllablePhysicsComponent) return;
 	// Tell the client we beginning to send level rewards.
-	if(rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, rewardingItem);
+	if (rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, rewardingItem);
 
 	for (auto* reward : rewards) {
 		switch (reward->rewardType) {
@@ -54,11 +54,11 @@ void LevelProgressionComponent::HandleLevelUp() {
 			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LOOT_SOURCE_LEVEL_REWARD);
 			break;
 		case 4:
-			{
-				auto* items = inventoryComponent->GetInventory(eInventoryType::ITEMS);
-				items->SetSize(items->GetSize() + reward->value);
-			}
-			break;
+		{
+			auto* items = inventoryComponent->GetInventory(eInventoryType::ITEMS);
+			items->SetSize(items->GetSize() + reward->value);
+		}
+		break;
 		case 9:
 			controllablePhysicsComponent->SetSpeedMultiplier(static_cast<float>(reward->value) / 500.0f);
 			break;
@@ -70,5 +70,5 @@ void LevelProgressionComponent::HandleLevelUp() {
 		}
 	}
 	// Tell the client we have finished sending level rewards.
-	if(rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, !rewardingItem);
+	if (rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, !rewardingItem);
 }

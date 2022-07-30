@@ -6,12 +6,10 @@
 #include "dLogger.h"
 
 
-void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
-	if (target == nullptr)
-	{
+	if (target == nullptr) {
 		Game::logger->Log("TauntBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
@@ -19,18 +17,15 @@ void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 
 	auto* combatComponent = target->GetComponent<BaseCombatAIComponent>();
 
-	if (combatComponent != nullptr)
-	{
+	if (combatComponent != nullptr) {
 		combatComponent->Taunt(context->originator, m_threatToAdd);
 	}
 }
 
-void TauntBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void TauntBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
-	if (target == nullptr)
-	{
+	if (target == nullptr) {
 		Game::logger->Log("TauntBehavior", "Failed to find target (%llu)!", branch.target);
 
 		return;
@@ -38,14 +33,12 @@ void TauntBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitSt
 
 	auto* combatComponent = target->GetComponent<BaseCombatAIComponent>();
 
-	if (combatComponent != nullptr)
-	{
+	if (combatComponent != nullptr) {
 		combatComponent->Taunt(context->originator, m_threatToAdd);
 	}
 }
 
-void TauntBehavior::Load()
-{
+void TauntBehavior::Load() {
 	this->m_threatToAdd = GetFloat("threat to add");
 }
 

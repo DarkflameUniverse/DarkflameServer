@@ -3,8 +3,7 @@
 #include "MissionComponent.h"
 #include "Character.h"
 
-void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, Entity* player, int reward)
-{
+void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, Entity* player, int reward) {
 	if (missionID != 474) return;
 
 	if (reward != LOT_NULL) {
@@ -17,20 +16,17 @@ void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, 
 			factionMissions = { 555, 556 };
 			celebrationID = 14;
 			flagID = 46;
-		}
-		else if (reward == 6979) {
+		} else if (reward == 6979) {
 			// Assembly
 			factionMissions = { 544, 545 };
 			celebrationID = 15;
 			flagID = 47;
-		}
-		else if (reward == 6981) {
+		} else if (reward == 6981) {
 			// Paradox
 			factionMissions = { 577, 578 };
 			celebrationID = 16;
 			flagID = 48;
-		}
-		else if (reward == 6978) {
+		} else if (reward == 6978) {
 			// Sentinel
 			factionMissions = { 566, 567 };
 			celebrationID = 17;

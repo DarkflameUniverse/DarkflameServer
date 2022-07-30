@@ -4,6 +4,6 @@
 class PetDigBuild : public CppScripts::Script
 {
 public:
-    void OnRebuildComplete(Entity* self, Entity* target);
-    void OnDie(Entity* self, Entity* killer);
+	void OnRebuildComplete(Entity* self, Entity* target);
+	void OnDie(Entity* self, Entity* killer);
 };

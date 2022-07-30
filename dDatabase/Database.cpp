@@ -6,8 +6,8 @@ using namespace std;
 
 #pragma warning (disable:4251) //Disables SQL warnings
 
-sql::Driver * Database::driver;
-sql::Connection * Database::con;
+sql::Driver* Database::driver;
+sql::Connection* Database::con;
 sql::Properties Database::props;
 std::string Database::database;
 
@@ -66,8 +66,7 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 		Game::logger->Log("Database", "Trying to reconnect to MySQL");
 	}
 
-	if (!con->isValid() || con->isClosed())
-	{
+	if (!con->isValid() || con->isClosed()) {
 		delete con;
 
 		con = nullptr;

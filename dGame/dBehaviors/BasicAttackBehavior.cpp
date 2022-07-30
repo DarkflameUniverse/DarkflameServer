@@ -43,7 +43,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		uint32_t damageDealt;
 		bitStream->Read(damageDealt);
 
-        // A value that's too large may be a cheating attempt, so we set it to MIN too
+		// A value that's too large may be a cheating attempt, so we set it to MIN too
 		if (damageDealt > this->m_maxDamage || damageDealt < this->m_minDamage) {
 			damageDealt = this->m_minDamage;
 		}
@@ -53,7 +53,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		bitStream->Read(died);
 
 		if (entity != nullptr) {
-		    auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+			auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 			if (destroyableComponent != nullptr) {
 				PlayFx(u"onhit", entity->GetObjectID());
 				destroyableComponent->Damage(damageDealt, context->originator, context->skillID);
@@ -113,7 +113,7 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 			auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 			if (damage != 0 && destroyableComponent != nullptr) {
 				PlayFx(u"onhit", entity->GetObjectID(), 1);
-                destroyableComponent->Damage(damage, context->originator, context->skillID, false);
+				destroyableComponent->Damage(damage, context->originator, context->skillID, false);
 				context->ScheduleUpdate(branch.target);
 			}
 		}

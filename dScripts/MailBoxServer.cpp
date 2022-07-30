@@ -3,7 +3,7 @@
 #include "GameMessages.h"
 
 void MailBoxServer::OnUse(Entity* self, Entity* user) {
-    AMFStringValue* value = new AMFStringValue();
+	AMFStringValue* value = new AMFStringValue();
 	value->SetStringValue("Mail");
 	AMFArrayValue args;
 	args.InsertValue("state", value);
