@@ -31,15 +31,14 @@ CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 }
 
 //! Destructor
-CDBehaviorParameterTable::~CDBehaviorParameterTable(void) { }
+CDBehaviorParameterTable::~CDBehaviorParameterTable(void) {}
 
 //! Returns the table's name
 std::string CDBehaviorParameterTable::GetName(void) const {
 	return "BehaviorParameter";
 }
 
-CDBehaviorParameter CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::string& name, const float defaultValue) 
-{
+CDBehaviorParameter CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::string& name, const float defaultValue) {
 	CDBehaviorParameter returnValue;
 	returnValue.behaviorID = 0;
 	returnValue.parameterID = m_ParametersList.end();

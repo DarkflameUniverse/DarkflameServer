@@ -3,6 +3,6 @@
 
 class MonCoreSmashableDoors : public CppScripts::Script {
 public:
-    void OnDie(Entity* self, Entity* killer) override;
+	void OnDie(Entity* self, Entity* killer) override;
 };
 

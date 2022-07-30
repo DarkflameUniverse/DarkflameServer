@@ -12,7 +12,7 @@ dConfig::dConfig(const std::string& filepath) {
 			if (line[0] != '#') ProcessLine(line);
 		}
 	}
-} 
+}
 
 dConfig::~dConfig(void) {
 }
@@ -31,14 +31,14 @@ void dConfig::ProcessLine(const std::string& line) {
 	std::vector<std::string> seglist;
 
 	while (std::getline(ss, segment, '=')) {
-	   seglist.push_back(segment);
+		seglist.push_back(segment);
 	}
 
 	if (seglist.size() != 2) return;
 
 	//Make sure that on Linux, we remove special characters:
 	if (!seglist[1].empty() && seglist[1][seglist[1].size() - 1] == '\r')
-    	seglist[1].erase(seglist[1].size() - 1);
+		seglist[1].erase(seglist[1].size() - 1);
 
 	m_Keys.push_back(seglist[0]);
 	m_Values.push_back(seglist[1]);

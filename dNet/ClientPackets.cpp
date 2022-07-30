@@ -37,7 +37,7 @@
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse chat message\n");
+		Game::logger->Log("ClientPackets", "Unable to get user to parse chat message");
 		return;
 	}
 
@@ -71,14 +71,14 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 	if (!user->GetLastChatMessageApproved() && !isMythran) return;
 
 	std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
-	Game::logger->Log("Chat", "%s: %s\n", playerName.c_str(), sMessage.c_str());
+	Game::logger->Log("Chat", "%s: %s", playerName.c_str(), sMessage.c_str());
 	ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
 }
 
 void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse position update\n");
+		Game::logger->Log("ClientPackets", "Unable to get user to parse position update");
 		return;
 	}
 
@@ -176,7 +176,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	// Handle statistics
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
-	    characterComponent->TrackPositionUpdate(position);
+		characterComponent->TrackPositionUpdate(position);
 	}
 
 	comp->SetPosition(position);
@@ -240,22 +240,21 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse chat moderation request\n");
+		Game::logger->Log("ClientPackets", "Unable to get user to parse chat moderation request");
 		return;
 	}
 
 	auto* entity = Player::GetPlayer(sysAddr);
 
 	if (entity == nullptr) {
-		Game::logger->Log("ClientPackets", "Unable to get player to parse chat moderation request\n");
+		Game::logger->Log("ClientPackets", "Unable to get player to parse chat moderation request");
 		return;
 	}
 
 	// Check if the player has restricted chat access
 	auto* character = entity->GetCharacter();
 
-	if (character->HasPermission(PermissionMap::RestrictedChatAccess))
-	{
+	if (character->HasPermission(PermissionMap::RestrictedChatAccess)) {
 		// Send a message to the player
 		ChatPackets::SendSystemMessage(
 			sysAddr,
@@ -341,8 +340,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 
 			delete res;
 			delete stmt;
-		}
-		else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
+		} else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
 			isBestFriend = true;
 		}
 	}

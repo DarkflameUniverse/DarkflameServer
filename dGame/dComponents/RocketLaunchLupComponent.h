@@ -35,5 +35,5 @@ private:
 	/**
 	 * vector of the LUP World Zone IDs, built from CDServer's LUPZoneIDs table
 	 */
-	std::vector<LWOMAPID> m_LUPWorlds {};
+	std::vector<LWOMAPID> m_LUPWorlds{};
 };

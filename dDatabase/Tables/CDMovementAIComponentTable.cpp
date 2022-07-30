@@ -11,9 +11,9 @@ CDMovementAIComponentTable::CDMovementAIComponentTable(void) {
 
 		tableSize.nextRow();
 	}
-    
+
 	tableSize.finalize();
-    
+
 	// Reserve the size
 	this->entries.reserve(size);
 
@@ -38,7 +38,7 @@ CDMovementAIComponentTable::CDMovementAIComponentTable(void) {
 }
 
 //! Destructor
-CDMovementAIComponentTable::~CDMovementAIComponentTable(void) { }
+CDMovementAIComponentTable::~CDMovementAIComponentTable(void) {}
 
 //! Returns the table's name
 std::string CDMovementAIComponentTable::GetName(void) const {

@@ -25,8 +25,7 @@ RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent,
 
 	auto result = query.execQuery();
 
-	if (!result.eof() && !result.fieldIsNull(0))
-	{
+	if (!result.eof() && !result.fieldIsNull(0)) {
 		m_TargetZone = result.getIntField(0);
 		m_DefaultZone = result.getIntField(1);
 		m_TargetScene = result.getStringField(2);
@@ -44,8 +43,7 @@ RocketLaunchpadControlComponent::~RocketLaunchpadControlComponent() {
 void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId, LWOCLONEID cloneId) {
 	auto zone = mapId == LWOMAPID_INVALID ? m_TargetZone : mapId;
 
-	if (zone == 0)
-	{
+	if (zone == 0) {
 		return;
 	}
 
@@ -57,7 +55,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	auto* rocket = characterComponent->GetRocket(originator);
 	if (!rocket) {
-		Game::logger->Log("RocketLaunchpadControlComponent", "Unable to find rocket!\n");
+		Game::logger->Log("RocketLaunchpadControlComponent", "Unable to find rocket!");
 		return;
 	}
 
@@ -67,8 +65,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 	// Achievement unlocked: "All zones unlocked"
 	if (!m_AltLandingScene.empty() && m_AltPrecondition->Check(originator)) {
 		character->SetTargetScene(m_AltLandingScene);
-	}
-	else {
+	} else {
 		character->SetTargetScene(m_TargetScene);
 	}
 
@@ -79,7 +76,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 	SetSelectedMapId(originator->GetObjectID(), zone);
 
 	GameMessages::SendFireEventClientSide(m_Parent->GetObjectID(), originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
-	
+
 	GameMessages::SendChangeObjectWorldState(rocket->GetId(), WORLDSTATE_ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
 
 	EntityManager::Instance()->SerializeEntity(originator);
@@ -112,13 +109,11 @@ void RocketLaunchpadControlComponent::OnProximityUpdate(Entity* entering, std::s
 	// Proximity rockets are handled by item equipment
 }
 
-void RocketLaunchpadControlComponent::SetSelectedMapId(LWOOBJID player, LWOMAPID mapID)
-{
+void RocketLaunchpadControlComponent::SetSelectedMapId(LWOOBJID player, LWOMAPID mapID) {
 	m_SelectedMapIds[player] = mapID;
 }
 
-LWOMAPID RocketLaunchpadControlComponent::GetSelectedMapId(LWOOBJID player) const
-{
+LWOMAPID RocketLaunchpadControlComponent::GetSelectedMapId(LWOOBJID player) const {
 	const auto index = m_SelectedMapIds.find(player);
 
 	if (index == m_SelectedMapIds.end()) return 0;
@@ -126,13 +121,11 @@ LWOMAPID RocketLaunchpadControlComponent::GetSelectedMapId(LWOOBJID player) cons
 	return index->second;
 }
 
-void RocketLaunchpadControlComponent::SetSelectedCloneId(LWOOBJID player, LWOCLONEID cloneId)
-{
+void RocketLaunchpadControlComponent::SetSelectedCloneId(LWOOBJID player, LWOCLONEID cloneId) {
 	m_SelectedCloneIds[player] = cloneId;
 }
 
-LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) const
-{
+LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) const {
 	const auto index = m_SelectedCloneIds.find(player);
 
 	if (index == m_SelectedCloneIds.end()) return 0;
@@ -148,12 +141,10 @@ void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
 }
 
 
-LWOMAPID RocketLaunchpadControlComponent::GetTargetZone() const
-{
+LWOMAPID RocketLaunchpadControlComponent::GetTargetZone() const {
 	return m_TargetZone;
 }
 
-LWOMAPID RocketLaunchpadControlComponent::GetDefaultZone() const
-{
+LWOMAPID RocketLaunchpadControlComponent::GetDefaultZone() const {
 	return m_DefaultZone;
 }

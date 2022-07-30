@@ -37,15 +37,15 @@ struct SpawnerInfo {
 	bool noTimedSpawn = false;
 	std::string grpNameQBShowBricks = "";
 	bool spawnActivator = true;
-	
+
 	bool emulated = false;
 	LWOOBJID emulator = LWOOBJID_EMPTY;
 };
 
 class Spawner {
 public:
-    Spawner(SpawnerInfo info);
-    ~Spawner();
+	Spawner(SpawnerInfo info);
+	~Spawner();
 
 	Entity* Spawn();
 	Entity* Spawn(std::vector<SpawnerNode*> freeNodes, bool force = false);
@@ -69,7 +69,7 @@ public:
 	bool m_Active = true;
 private:
 	std::vector<std::function<void()>> m_SpawnedEntityDieCallbacks = {};
-    std::vector<std::function<void(Entity*)>> m_EntitySpawnedCallbacks = {};
+	std::vector<std::function<void(Entity*)>> m_EntitySpawnedCallbacks = {};
 
 
 	bool m_SpawnSmashFoundGroup = false;

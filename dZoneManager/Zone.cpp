@@ -12,9 +12,8 @@
 #include "Spawner.h"
 #include "dZoneManager.h"
 
-Zone::Zone(const LWOMAPID & mapID, const LWOINSTANCEID & instanceID, const LWOCLONEID & cloneID) :
-	m_ZoneID(mapID, instanceID, cloneID)
-{
+Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) :
+	m_ZoneID(mapID, instanceID, cloneID) {
 	m_NumberOfScenesLoaded = 0;
 	m_NumberOfObjectsLoaded = 0;
 	m_NumberOfSceneTransitionsLoaded = 0;
@@ -24,14 +23,13 @@ Zone::Zone(const LWOMAPID & mapID, const LWOINSTANCEID & instanceID, const LWOCL
 }
 
 Zone::~Zone() {
-	Game::logger->Log("Zone", "Destroying zone %i\n", m_ZoneID.GetMapID());
+	Game::logger->Log("Zone", "Destroying zone %i", m_ZoneID.GetMapID());
 	for (std::map<LWOSCENEID, SceneRef>::iterator it = m_Scenes.begin(); it != m_Scenes.end(); ++it) {
 		if (it->second.level != nullptr) delete it->second.level;
 	}
 }
 
-void Zone::Initalize()
-{
+void Zone::Initalize() {
 	LoadZoneIntoMemory();
 	LoadLevelsIntoMemory();
 	m_CheckSum = CalculateChecksum();
@@ -45,12 +43,12 @@ void Zone::LoadZoneIntoMemory() {
 	std::ifstream file(m_ZoneFilePath, std::ios::binary);
 	if (file) {
 		BinaryIO::BinaryRead(file, m_ZoneFileFormatVersion);
-		
+
 		uint32_t mapRevision = 0;
 		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
-        
+
 		BinaryIO::BinaryRead(file, m_WorldID);
-		if ((uint16_t)m_WorldID != m_ZoneID.GetMapID()) Game::logger->Log("Zone", "WorldID: %i doesn't match MapID %i! Is this intended?\n", m_WorldID, m_ZoneID.GetMapID());
+		if ((uint16_t)m_WorldID != m_ZoneID.GetMapID()) Game::logger->Log("Zone", "WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
 
 		AddRevision(LWOSCENEID_INVALID, mapRevision);
 
@@ -58,13 +56,12 @@ void Zone::LoadZoneIntoMemory() {
 			BinaryIO::BinaryRead(file, m_Spawnpoint);
 			BinaryIO::BinaryRead(file, m_SpawnpointRotation);
 		}
-		
+
 		if (m_ZoneFileFormatVersion <= Zone::ZoneFileFormatVersion::LateAlpha) {
 			uint8_t sceneCount;
 			BinaryIO::BinaryRead(file, sceneCount);
 			m_SceneCount = sceneCount;
-		}
-		else BinaryIO::BinaryRead(file, m_SceneCount);
+		} else BinaryIO::BinaryRead(file, m_SceneCount);
 
 		for (uint32_t i = 0; i < m_SceneCount; ++i) {
 			LoadScene(file);
@@ -102,7 +99,7 @@ void Zone::LoadZoneIntoMemory() {
 			for (uint32_t i = 0; i < pathCount; ++i) {
 				LoadPath(file);
 			}
-			
+
 			for (Path path : m_Paths) {
 				if (path.pathType == PathType::Spawner) {
 					SpawnerInfo info = SpawnerInfo();
@@ -117,23 +114,18 @@ void Zone::LoadZoneIntoMemory() {
 							if (data) {
 								if (data->GetKey() == u"spawner_node_id") {
 									node->nodeID = std::stoi(data->GetValueAsString());
-								}
-								else if (data->GetKey() == u"spawner_max_per_node") {
+								} else if (data->GetKey() == u"spawner_max_per_node") {
 									node->nodeMax = std::stoi(data->GetValueAsString());
-								}
-								else if (data->GetKey() == u"groupID") { // Load object group
+								} else if (data->GetKey() == u"groupID") { // Load object group
 									std::string groupStr = data->GetValueAsString();
 									info.groups = GeneralUtils::SplitString(groupStr, ';');
 									info.groups.erase(info.groups.end() - 1);
-								}
-								else if (data->GetKey() == u"grpNameQBShowBricks") {
+								} else if (data->GetKey() == u"grpNameQBShowBricks") {
 									if (data->GetValueAsString() == "") continue;
 									/*std::string groupStr = data->GetValueAsString();
 									info.groups.push_back(groupStr);*/
 									info.grpNameQBShowBricks = data->GetValueAsString();
-								}
-								else if (data->GetKey() == u"spawner_name")
-								{
+								} else if (data->GetKey() == u"spawner_name") {
 									info.name = data->GetValueAsString();
 								}
 							}
@@ -150,16 +142,15 @@ void Zone::LoadZoneIntoMemory() {
 					Spawner* spawner = new Spawner(info);
 					dZoneManager::Instance()->AddSpawner(info.spawnerID, spawner);
 				}
-				
+
 			}
-			
+
 
 			//m_PathData.resize(m_PathDataLength);
 			//file.read((char*)&m_PathData[0], m_PathDataLength);
 		}
-	}
-	else {
-		Game::logger->Log("Zone", "Failed to open: %s\n", m_ZoneFilePath.c_str());
+	} else {
+		Game::logger->Log("Zone", "Failed to open: %s", m_ZoneFilePath.c_str());
 	}
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 
@@ -168,11 +159,11 @@ void Zone::LoadZoneIntoMemory() {
 
 std::string Zone::GetFilePathForZoneID() {
 	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable * zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
 	const CDZoneTable* zone = zoneTable->Query(this->GetZoneID().GetMapID());
 	if (zone != nullptr) {
-        std::string toReturn = "./res/maps/" + zone->zoneName;
-        std::transform(toReturn.begin(), toReturn.end(), toReturn.begin(), ::tolower);
+		std::string toReturn = "./res/maps/" + zone->zoneName;
+		std::transform(toReturn.begin(), toReturn.end(), toReturn.begin(), ::tolower);
 		return toReturn;
 	}
 
@@ -226,12 +217,12 @@ void Zone::AddRevision(LWOSCENEID sceneID, uint32_t revision) {
 
 const void Zone::PrintAllGameObjects() {
 	for (std::pair<LWOSCENEID, SceneRef> scene : m_Scenes) {
-		Game::logger->Log("Zone", "\nIn sceneID: %i\n\n", scene.first.GetSceneID());
+		Game::logger->Log("Zone", "In sceneID: %i", scene.first.GetSceneID());
 		scene.second.level->PrintAllObjects();
 	}
 }
 
-void Zone::LoadScene(std::ifstream & file) {
+void Zone::LoadScene(std::ifstream& file) {
 	SceneRef scene;
 	scene.level = nullptr;
 	LWOSCENEID lwoSceneID(LWOZONEID_INVALID, 0);
@@ -242,7 +233,7 @@ void Zone::LoadScene(std::ifstream & file) {
 
 	std::string luTriggersPath = scene.filename.substr(0, scene.filename.size() - 4) + ".lutriggers";
 	std::vector<LUTriggers::Trigger*> triggers = LoadLUTriggers(luTriggersPath, scene.id);
-	
+
 	for (LUTriggers::Trigger* trigger : triggers) {
 		scene.triggers.insert({ trigger->id, trigger });
 	}
@@ -283,19 +274,18 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 	if (!doc) return lvlTriggers;
 
 	if (doc->Parse(data.str().c_str(), data.str().size()) == 0) {
-		//Game::logger->Log("Zone", "Loaded LUTriggers from file %s!\n", triggerFile.c_str());
-	}
-	else {
-		Game::logger->Log("Zone", "Failed to load LUTriggers from file %s\n", triggerFile.c_str());
+		//Game::logger->Log("Zone", "Loaded LUTriggers from file %s!", triggerFile.c_str());
+	} else {
+		Game::logger->Log("Zone", "Failed to load LUTriggers from file %s", triggerFile.c_str());
 		return lvlTriggers;
 	}
-	
+
 	tinyxml2::XMLElement* triggers = doc->FirstChildElement("triggers");
 	if (!triggers) return lvlTriggers;
 
 	auto currentTrigger = triggers->FirstChildElement("trigger");
 	while (currentTrigger) {
-		LUTriggers::Trigger *newTrigger = new LUTriggers::Trigger();
+		LUTriggers::Trigger* newTrigger = new LUTriggers::Trigger();
 		currentTrigger->QueryAttribute("enabled", &newTrigger->enabled);
 		currentTrigger->QueryAttribute("id", &newTrigger->id);
 
@@ -323,7 +313,7 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 		currentTrigger = currentTrigger->NextSiblingElement("trigger");
 		lvlTriggers.push_back(newTrigger);
 	}
-	
+
 	delete doc;
 
 	return lvlTriggers;
@@ -336,12 +326,9 @@ LUTriggers::Trigger* Zone::GetTrigger(uint32_t sceneID, uint32_t triggerID) {
 	return m_Scenes[sceneID].triggers[triggerID];
 }
 
-const Path* Zone::GetPath(std::string name) const
-{
-	for (const auto& path : m_Paths)
-	{
-		if (name == path.pathName)
-		{
+const Path* Zone::GetPath(std::string name) const {
+	for (const auto& path : m_Paths) {
+		if (name == path.pathName) {
 			return &path;
 		}
 	}
@@ -349,7 +336,7 @@ const Path* Zone::GetPath(std::string name) const
 	return nullptr;
 }
 
-void Zone::LoadSceneTransition(std::ifstream & file) {
+void Zone::LoadSceneTransition(std::ifstream& file) {
 	SceneTransition sceneTrans;
 	if (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::LateAlpha) {
 		uint8_t length;
@@ -367,14 +354,14 @@ void Zone::LoadSceneTransition(std::ifstream & file) {
 	m_SceneTransitions.push_back(sceneTrans);
 }
 
-SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::ifstream & file) {
+SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::ifstream& file) {
 	SceneTransitionInfo info;
 	BinaryIO::BinaryRead(file, info.sceneID);
 	BinaryIO::BinaryRead(file, info.position);
 	return info;
 }
 
-void Zone::LoadPath(std::ifstream & file) {
+void Zone::LoadPath(std::ifstream& file) {
 	// Currently only spawner (type 4) paths are supported
 	Path path = Path();
 
@@ -400,8 +387,7 @@ void Zone::LoadPath(std::ifstream & file) {
 		if (path.pathVersion >= 18) {
 			uint8_t unknown;
 			BinaryIO::BinaryRead(file, unknown);
-		}
-		else if (path.pathVersion >= 13) {
+		} else if (path.pathVersion >= 13) {
 			uint8_t count;
 			BinaryIO::BinaryRead(file, count);
 			for (uint8_t i = 0; i < count; ++i) {
@@ -410,8 +396,7 @@ void Zone::LoadPath(std::ifstream & file) {
 				path.movingPlatform.platformTravelSound.push_back(character);
 			}
 		}
-	}
-	else if (path.pathType == PathType::Property) {
+	} else if (path.pathType == PathType::Property) {
 		int32_t unknown;
 		BinaryIO::BinaryRead(file, unknown);
 		BinaryIO::BinaryRead(file, path.property.price);
@@ -441,8 +426,7 @@ void Zone::LoadPath(std::ifstream & file) {
 		BinaryIO::BinaryRead(file, path.property.playerZoneCoords.y);
 		BinaryIO::BinaryRead(file, path.property.playerZoneCoords.z);
 		BinaryIO::BinaryRead(file, path.property.maxBuildHeight);
-	}
-	else if (path.pathType == PathType::Camera) {
+	} else if (path.pathType == PathType::Camera) {
 		uint8_t count;
 		BinaryIO::BinaryRead(file, count);
 		for (uint8_t i = 0; i < count; ++i) {
@@ -474,8 +458,8 @@ void Zone::LoadPath(std::ifstream & file) {
 		BinaryIO::BinaryRead(file, waypoint.position.x);
 		BinaryIO::BinaryRead(file, waypoint.position.y);
 		BinaryIO::BinaryRead(file, waypoint.position.z);
-		
-		
+
+
 		if (path.pathType == PathType::Spawner || path.pathType == PathType::MovingPlatform || path.pathType == PathType::Race) {
 			BinaryIO::BinaryRead(file, waypoint.rotation.w);
 			BinaryIO::BinaryRead(file, waypoint.rotation.x);
@@ -503,8 +487,7 @@ void Zone::LoadPath(std::ifstream & file) {
 					waypoint.movingPlatform.arriveSound.push_back(character);
 				}
 			}
-		}
-		else if (path.pathType == PathType::Camera) {
+		} else if (path.pathType == PathType::Camera) {
 			float unknown;
 			BinaryIO::BinaryRead(file, unknown);
 			BinaryIO::BinaryRead(file, unknown);
@@ -515,8 +498,7 @@ void Zone::LoadPath(std::ifstream & file) {
 			BinaryIO::BinaryRead(file, waypoint.camera.tension);
 			BinaryIO::BinaryRead(file, waypoint.camera.continuity);
 			BinaryIO::BinaryRead(file, waypoint.camera.bias);
-		}
-		else if (path.pathType == PathType::Race) {
+		} else if (path.pathType == PathType::Race) {
 			uint8_t unknown;
 			BinaryIO::BinaryRead(file, unknown);
 			BinaryIO::BinaryRead(file, unknown);
@@ -524,8 +506,7 @@ void Zone::LoadPath(std::ifstream & file) {
 			BinaryIO::BinaryRead(file, unknown1);
 			BinaryIO::BinaryRead(file, unknown1);
 			BinaryIO::BinaryRead(file, unknown1);
-		}
-		else if (path.pathType == PathType::Rail) {
+		} else if (path.pathType == PathType::Rail) {
 			float unknown;
 			BinaryIO::BinaryRead(file, unknown);
 			BinaryIO::BinaryRead(file, unknown);
@@ -565,7 +546,7 @@ void Zone::LoadPath(std::ifstream & file) {
 		path.pathWaypoints.push_back(waypoint);
 	}
 
-	
+
 
 	m_Paths.push_back(path);
 }

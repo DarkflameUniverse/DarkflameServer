@@ -11,8 +11,8 @@ public:
 
 class Database {
 private:
-	static sql::Driver *driver;
-	static sql::Connection *con;
+	static sql::Driver* driver;
+	static sql::Connection* con;
 	static sql::Properties props;
 	static std::string database;
 public:
