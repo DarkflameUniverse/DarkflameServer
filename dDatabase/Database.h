@@ -23,6 +23,7 @@ public:
 	static sql::Statement* CreateStmt();
 	static sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
 	static void Commit();
+	static bool SetAutoCommit(bool value);
 
 	static std::string GetDatabase() { return database; }
 	static sql::Properties GetProperties() { return props; }
