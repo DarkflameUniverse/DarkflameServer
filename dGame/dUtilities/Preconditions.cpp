@@ -277,11 +277,6 @@ bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const {
 		return true;
 	}
 
-	if (player->GetGMLevel() >= 9) // Developers can skip this for testing
-	{
-		return true;
-	}
-
 	const auto a = Preconditions::Check(player, condition, evaluateCosts);
 
 	if (!a) {
