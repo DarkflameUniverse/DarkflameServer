@@ -193,6 +193,13 @@ private:
 	 * combination of tasks and values, so that they can be easily re-queried later
 	 */
 	static std::unordered_map<size_t, std::vector<uint32_t>> m_AchievementCache;
+
+	/**
+	 * Order of missions in the UI.  This value is incremented by 1
+	 * for each mission the Entity that owns this component accepts.
+	 * In live this value started at 745.
+	 */
+	uint32_t m_LastUsedMissionOrderUID = 746U;
 };
 
 #endif // MISSIONCOMPONENT_H
