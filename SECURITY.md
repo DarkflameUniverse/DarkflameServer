@@ -48,4 +48,4 @@ if you fail to comply with this embargo, you might be exluded from [receiving se
 Unfortunately we cannot provide bug bounties at this time.
 
 [darkflame-security]: mailto:darkflame-security@googlegroups.com
-[darkflame-security-announce]: mailto:darkflame-security-announce@googlegroups.com
+[darkflame-security-announce]: https://groups.google.com/g/darkflame-security-announce
