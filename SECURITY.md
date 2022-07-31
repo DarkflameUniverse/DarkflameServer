@@ -41,7 +41,7 @@ publicly until either:
 1. 90 days have passed from the time the first related email is sent to `darkflame-security@`
 2. a security advisory related to the vulnerability has been published by the project.
 
-if you fail to comply with this embargo, you might be exluded from [receiving security updates](#receiving-security-updates).
+If you fail to comply with this embargo, you might be exluded from [receiving security updates](#receiving-security-updates).
 
 ## Bug Bounty
 
