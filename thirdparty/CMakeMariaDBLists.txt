@@ -57,18 +57,25 @@ else() # Build from source
 
 	include(ExternalProject)
 	if(WIN32)
-		set(MARIADB_EXTRA_COMPILE_FLAGS /EHsc /w)
-		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_MSI=OFF)
+		set(MARIADB_EXTRA_CMAKE_ARGS
+			-DCMAKE_C_FLAGS=/w # disable zlib warnings
+			-DCMAKE_CXX_FLAGS=/EHsc
+			-DWITH_MSI=OFF)
 	elseif(APPLE)
-		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0 -w)
-		set(MARIADB_EXTRA_CMAKE_ARGS -DWITH_EXTERNAL_ZLIB=ON -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR})
+		set(MARIADB_EXTRA_CMAKE_ARGS
+			-DWITH_EXTERNAL_ZLIB=ON
+			-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}
+			-DCMAKE_C_FLAGS=-w # disable zlib warnings
+			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0)
 	else()
-		set(MARIADB_EXTRA_COMPILE_FLAGS -D_GLIBCXX_USE_CXX11_ABI=0 -w)
+		set(MARIADB_EXTRA_CMAKE_ARGS
+			-DCMAKE_C_FLAGS=-w # disable zlib warnings
+			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0)
 	endif()
 
 	ExternalProject_Add(mariadb_connector_cpp
 						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
-						CMAKE_ARGS "-DCMAKE_CXX_FLAGS:STRING= ${MARIADB_EXTRA_COMPILE_FLAGS}"
+						CMAKE_ARGS  -Wno-dev
 									-DCMAKE_BUILD_RPATH_USE_ORIGIN=${CMAKE_BUILD_RPATH_USE_ORIGIN}
 									-DCMAKE_INSTALL_PREFIX=./mariadbcpp # Points the connector to the correct plugin directory
 									-DINSTALL_PLUGINDIR=plugin
