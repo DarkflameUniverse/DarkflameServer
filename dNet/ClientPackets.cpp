@@ -306,7 +306,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 		LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
 
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE name = ?");
+			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE name = ?");
 			stmt->setString(1, receiver);
 
 			sql::ResultSet* res = stmt->executeQuery();
