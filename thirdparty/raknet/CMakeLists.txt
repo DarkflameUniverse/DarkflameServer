@@ -80,6 +80,11 @@ target_compile_options(raknet PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         /w>)
 
+if(WIN32)
+        # Link Win Sockets 2 to RakNet
+	target_link_libraries(raknet ws2_32)
+endif()
+
 install(TARGETS raknet
         DESTINATION lib)
 
