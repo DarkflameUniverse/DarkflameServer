@@ -1,11 +1,3 @@
-# Source Code for raknet
-file(
-	GLOB SOURCES_RAKNET
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/raknet/Source/*.cpp
-)
-
 # Source Code for recast
 file(
 	GLOB SOURCES_RECAST
@@ -191,7 +183,7 @@ target_include_directories(mariadbConnCpp INTERFACE ${MARIADB_INCLUDE_DIR})
 add_dependencies(mariadbConnCpp mariadb_connector_cpp)
 
 # Create our third party library objects
-add_library(raknet ${SOURCES_RAKNET})
+add_subdirectory(raknet)
 add_library(tinyxml2 ${SOURCES_TINYXML2})
 add_library(detour ${SOURCES_DETOUR})
 add_library(recast ${SOURCES_RECAST})
@@ -207,7 +199,6 @@ elseif(UNIX)
 
 	#  -Wno-unused-result -Wno-unknown-pragmas -fpermissive
 	target_compile_options(sqlite3 PRIVATE "-Wno-return-local-addr" "-Wno-maybe-uninitialized")
-	target_compile_options(raknet PRIVATE "-Wno-write-strings" "-Wformat-overflow=0" "-Wformat=0")
 	target_compile_options(libbcrypt PRIVATE "-Wno-implicit-function-declaration" "-Wno-int-conversion")
 endif()
 
