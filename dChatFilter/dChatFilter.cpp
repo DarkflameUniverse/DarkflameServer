@@ -71,13 +71,13 @@ bool dChatFilter::ReadWordlistDCF(const std::string& filepath, bool whiteList) {
 		}
 
 		if (hdr.formatVersion == formatVersion) {
-			size_t wordsToRead = 0;
+			uint64_t wordsToRead = 0;
 			BinaryIO::BinaryRead(file, wordsToRead);
 			if (whiteList) m_ApprovedWords.reserve(wordsToRead);
 			else m_DeniedWords.reserve(wordsToRead);
 
-			size_t word = 0;
-			for (size_t i = 0; i < wordsToRead; ++i) {
+			uint64_t word = 0;
+			for (uint64_t i = 0; i < wordsToRead; ++i) {
 				BinaryIO::BinaryRead(file, word);
 				if (whiteList) m_ApprovedWords.push_back(word);
 				else m_DeniedWords.push_back(word);
@@ -98,9 +98,9 @@ void dChatFilter::ExportWordlistToDCF(const std::string& filepath, bool whiteLis
 	if (file) {
 		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::header));
 		BinaryIO::BinaryWrite(file, uint32_t(dChatFilterDCF::formatVersion));
-		BinaryIO::BinaryWrite(file, size_t(whiteList ? m_ApprovedWords.size() : m_DeniedWords.size()));
+		BinaryIO::BinaryWrite(file, uint64_t(whiteList ? m_ApprovedWords.size() : m_DeniedWords.size()));
 
-		for (size_t word : whiteList ? m_ApprovedWords : m_DeniedWords) {
+		for (uint64_t word : whiteList ? m_ApprovedWords : m_DeniedWords) {
 			BinaryIO::BinaryWrite(file, word);
 		}
 
@@ -127,7 +127,7 @@ std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::
 		std::transform(segment.begin(), segment.end(), segment.begin(), ::tolower); //Transform to lowercase
 		segment = std::regex_replace(segment, reg, "");
 
-		size_t hash = CalculateHash(segment);
+		uint64_t hash = CalculateHash(segment);
 
 		if (std::find(m_UserUnapprovedWordCache.begin(), m_UserUnapprovedWordCache.end(), hash) != m_UserUnapprovedWordCache.end() && whiteList) {
 			listOfBadSegments.emplace_back(position, originalSegment.length());
@@ -149,10 +149,10 @@ std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::
 	return listOfBadSegments;
 }
 
-size_t dChatFilter::CalculateHash(const std::string& word) {
+uint64_t dChatFilter::CalculateHash(const std::string& word) {
 	std::hash<std::string> hash{};
 
-	size_t value = hash(word);
+	uint64_t value = (uint64_t)hash(word);
 
 	return value;
 }

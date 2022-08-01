@@ -27,10 +27,10 @@ public:
 
 private:
 	bool m_DontGenerateDCF;
-	std::vector<size_t> m_DeniedWords;
-	std::vector<size_t> m_ApprovedWords;
-	std::vector<size_t> m_UserUnapprovedWordCache;
+	std::vector<uint64_t> m_DeniedWords;
+	std::vector<uint64_t> m_ApprovedWords;
+	std::vector<uint64_t> m_UserUnapprovedWordCache;
 
 	//Private functions:
-	size_t CalculateHash(const std::string& word);
+	uint64_t CalculateHash(const std::string& word);
 };
