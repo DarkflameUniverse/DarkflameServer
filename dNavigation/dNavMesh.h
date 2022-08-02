@@ -22,17 +22,17 @@ private:
 
 	uint32_t m_ZoneId;
 
-	uint8_t* m_Triareas;
-	rcHeightfield* m_Solid;
-	rcCompactHeightfield* m_CHF;
-	rcContourSet* m_CSet;
-	rcPolyMesh* m_PMesh;
+	uint8_t* m_Triareas = nullptr;
+	rcHeightfield* m_Solid = nullptr;
+	rcCompactHeightfield* m_CHF = nullptr;
+	rcContourSet* m_CSet = nullptr;
+	rcPolyMesh* m_PMesh = nullptr;
 	rcConfig m_Config;
-	rcPolyMeshDetail* m_PMDMesh;
+	rcPolyMeshDetail* m_PMDMesh = nullptr;
 
-	class InputGeom* m_Geometry;
-	class dtNavMesh* m_NavMesh;
-	class dtNavMeshQuery* m_NavQuery;
+	class InputGeom* m_Geometry = nullptr;
+	class dtNavMesh* m_NavMesh = nullptr;
+	class dtNavMeshQuery* m_NavQuery = nullptr;
 	uint8_t m_NavMeshDrawFlags;
-	rcContext* m_Ctx;
+	rcContext* m_Ctx = nullptr;
 };
