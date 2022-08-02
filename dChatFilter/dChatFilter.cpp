@@ -7,6 +7,8 @@
 #include <sstream>
 #include <regex>
 
+#include "SuperFastHash.h"
+
 #include "dCommonVars.h"
 #include "dLogger.h"
 #include "dConfig.h"
@@ -150,9 +152,7 @@ std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::
 }
 
 uint64_t dChatFilter::CalculateHash(const std::string& word) {
-	std::hash<std::string> hash{};
-
-	uint64_t value = (uint64_t)hash(word);
+	uint64_t value = SuperFastHash(word.c_str(), word.length());
 
 	return value;
 }

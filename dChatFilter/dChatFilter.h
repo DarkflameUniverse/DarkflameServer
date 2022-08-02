@@ -6,7 +6,10 @@
 
 namespace dChatFilterDCF {
 	static const uint32_t header = ('D' + ('C' << 8) + ('F' << 16) + ('B' << 24));
-	static const uint32_t formatVersion = 2;
+	static const uint32_t formatVersion = 3;
+
+	// Version 2: std::hash
+	// Version 3: SuperFastHash
 
 	struct fileHeader {
 		uint32_t header;
