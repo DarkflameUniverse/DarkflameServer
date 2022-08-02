@@ -2,10 +2,9 @@
 
 #include "Game.h"
 #include "dLogger.h"
-
 #include "dPlatforms.h"
-
 #include "NiPoint3.h"
+#include "BinaryIO.h"
 
 dNavMesh::dNavMesh(uint32_t zoneId) {
 	m_ZoneId = zoneId;
@@ -41,6 +40,10 @@ dNavMesh::~dNavMesh() {
 void dNavMesh::LoadNavmesh() {
 
 	std::string path = "./res/maps/navmeshes/" + std::to_string(m_ZoneId) + ".bin";
+
+	if (!BinaryIO::DoesFileExist(path)) {
+		return;
+	}
 
 	FILE* fp;
 
