@@ -14,7 +14,7 @@ string(REPLACE "\n" ";" variables ${variables})
 foreach(variable ${variables})
 	# If the string contains a #, skip it
 	if(NOT "${variable}" MATCHES "#")
-	
+
 		# Split the variable into name and value
 		string(REPLACE "=" ";" variable ${variable})
 
@@ -43,7 +43,7 @@ set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT
 message(STATUS "Version: ${PROJECT_VERSION}")
 
 # Compiler flags:
-# Disabled deprecated warnings as the MySQL includes have deprecated code in them. 
+# Disabled deprecated warnings as the MySQL includes have deprecated code in them.
 # Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
@@ -84,7 +84,7 @@ make_directory(${CMAKE_BINARY_DIR}/locale)
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
 # Copy resource files on first build
-set(RESOURCE_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
+set(RESOURCE_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini")
 foreach(resource_file ${RESOURCE_FILES})
 	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
 		configure_file(
@@ -94,6 +94,9 @@ foreach(resource_file ${RESOURCE_FILES})
 		message("Moved ${resource_file} to project binary directory")
 	endif()
 endforeach()
+
+# Move blacklist incase of version update
+configure_file("${CMAKE_SOURCE_DIR}/resources/blacklist.dcf" "${PROJECT_BINARY_DIR}/blacklist.dcf" COPYONLY)
 
 # Copy vanity files on first build
 set(VANITY_FILES "CREDITS.md" "INFO.md" "TESTAMENT.md" "NPC.xml")
@@ -118,17 +121,17 @@ endforeach()
 set(INCLUDED_DIRECTORIES
 	"dCommon"
 	"dChatFilter"
-	"dGame" 
-	"dGame/dBehaviors" 
-	"dGame/dComponents" 
-	"dGame/dGameMessages" 
-	"dGame/dInventory" 
-	"dGame/dMission" 
-	"dGame/dEntity" 
-	"dGame/dUtilities" 
-	"dPhysics" 
-	"dZoneManager" 
-	"dDatabase" 
+	"dGame"
+	"dGame/dBehaviors"
+	"dGame/dComponents"
+	"dGame/dGameMessages"
+	"dGame/dInventory"
+	"dGame/dMission"
+	"dGame/dEntity"
+	"dGame/dUtilities"
+	"dPhysics"
+	"dZoneManager"
+	"dDatabase"
 	"dDatabase/Tables"
 	"dNet"
 	"dScripts"
@@ -192,7 +195,7 @@ file(
 file(
 	GLOB HEADERS_DGAME
 	LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/dGame/Entity.h 
+	${PROJECT_SOURCE_DIR}/dGame/Entity.h
 	${PROJECT_SOURCE_DIR}/dGame/dGameMessages/GameMessages.h
 	${PROJECT_SOURCE_DIR}/dGame/EntityManager.h
 	${PROJECT_SOURCE_DIR}/dScripts/CppScripts.h
@@ -230,18 +233,18 @@ add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the ot
 
 # Add our precompiled headers
 target_precompile_headers(
-	dGame PRIVATE 
+	dGame PRIVATE
 	${HEADERS_DGAME}
 )
 
 target_precompile_headers(
-	dZoneManager PRIVATE 
+	dZoneManager PRIVATE
 	${HEADERS_DZONEMANAGER}
 )
 
 # Need to specify to use the CXX compiler language here or else we get errors including <string>.
 target_precompile_headers(
-	dDatabase PRIVATE 
+	dDatabase PRIVATE
 	"$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
 )
 
