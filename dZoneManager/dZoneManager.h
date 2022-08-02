@@ -45,6 +45,7 @@ public:
 	void Update(float deltaTime);
 	Entity* GetZoneControlObject() { return m_ZoneControlObject; }
 	bool GetPlayerLoseCoinOnDeath() { return m_PlayerLoseCoinsOnDeath; }
+	uint32_t GetUniqueMissionIdStartingValue();
 
 private:
 	/**
@@ -56,6 +57,11 @@ private:
 	 * The ratio of LEGO Score to currency when the character has hit the max level.
 	 */
 	int32_t m_CurrencyConversionRate = 0;
+
+	/**
+	 * The starting unique mission ID.
+	 */
+	uint32_t m_UniqueMissionIdStart = 0;
 
 	static dZoneManager* m_Address; //Singleton
 	Zone* m_pZone;

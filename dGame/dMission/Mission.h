@@ -220,6 +220,18 @@ public:
 	 * @return true if the mission exists, false otherwise
 	 */
 	static bool IsValidMission(uint32_t missionId, CDMissions& info);
+
+	/**
+	 * @brief Returns the unique mission order ID
+	 * 
+	 * @return The unique order ID
+	 */
+	uint32_t GetUniqueMissionOrderID() { return m_UniqueMissionID; };
+
+	/**
+	 * Sets the unique mission order ID of this mission
+	 */
+	void SetUniqueMissionOrderID(uint32_t value) { m_UniqueMissionID = value; };
 private:
 	/**
 	 * Progresses all the newly accepted tasks for this mission after it has been accepted to reflect the state of the
@@ -261,6 +273,11 @@ private:
 	 * All the tasks that can be progressed for this mission
 	 */
 	std::vector<MissionTask*> m_Tasks;
+
+	/**
+	 * The unique ID what order this mission was accepted in.
+	 */
+	uint32_t m_UniqueMissionID;
 };
 
 #endif
