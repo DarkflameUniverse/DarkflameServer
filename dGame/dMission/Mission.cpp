@@ -26,6 +26,8 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
 	m_Timestamp = 0;
 
+	m_UniqueMissionID = dZoneManager::Instance()->GetUniqueMissionIdStartingValue();
+
 	m_Reward = 0;
 
 	m_State = MissionState::MISSION_STATE_UNKNOWN;
@@ -283,6 +285,7 @@ void Mission::Accept() {
 
 void Mission::Complete(const bool yieldRewards) {
 	if (m_State != MissionState::MISSION_STATE_ACTIVE && m_State != MissionState::MISSION_STATE_COMPLETE_ACTIVE) {
+		// If we are accepting a mission here there is no point to giving it a unique ID since we just complete it immediately.
 		Accept();
 	}
 

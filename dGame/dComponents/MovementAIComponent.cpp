@@ -196,7 +196,7 @@ NiPoint3 MovementAIComponent::ApproximateLocation() const {
 	NiPoint3 approximation = NiPoint3(x, y, z);
 
 	if (dpWorld::Instance().IsLoaded()) {
-		approximation.y = dpWorld::Instance().GetHeightAtPoint(approximation);
+		approximation.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(approximation);
 	}
 
 	return approximation;
@@ -208,7 +208,7 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 	NiPoint3 destination = point;
 
 	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetHeightAtPoint(point);
+		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(point);
 
 		if (std::abs(destination.y - point.y) > 3) {
 			return false;
@@ -387,7 +387,7 @@ void MovementAIComponent::SetDestination(const NiPoint3& value) {
 	std::vector<NiPoint3> computedPath;
 
 	if (dpWorld::Instance().IsLoaded()) {
-		computedPath = dpWorld::Instance().GetPath(GetCurrentPosition(), value, m_Info.wanderSpeed);
+		computedPath = dpWorld::Instance().GetNavMesh()->GetPath(GetCurrentPosition(), value, m_Info.wanderSpeed);
 	} else {
 		// Than take 10 points between the current position and the destination and make that the path
 
@@ -416,7 +416,7 @@ void MovementAIComponent::SetDestination(const NiPoint3& value) {
 	// Simply path
 	for (auto point : computedPath) {
 		if (dpWorld::Instance().IsLoaded()) {
-			point.y = dpWorld::Instance().GetHeightAtPoint(point);
+			point.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(point);
 		}
 
 		m_CurrentPath.push_back(point);

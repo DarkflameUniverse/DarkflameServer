@@ -211,7 +211,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 			ZoneStatistics statistics = {};
 
 			child->QueryUnsigned64Attribute("ac", &statistics.m_AchievementsCollected);
-			child->QueryUnsigned64Attribute("bc", &statistics.m_BricksCollected);
+			child->QueryInt64Attribute("bc", &statistics.m_BricksCollected);
 			child->QueryUnsigned64Attribute("cc", &statistics.m_CoinsCollected);
 			child->QueryUnsigned64Attribute("es", &statistics.m_EnemiesSmashed);
 			child->QueryUnsigned64Attribute("qbc", &statistics.m_QuickBuildsCompleted);
@@ -226,6 +226,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	}
 
 	const tinyxml2::XMLAttribute* rocketConfig = character->FindAttribute("lcbp");
+
 	if (rocketConfig) {
 		m_LastRocketConfig = GeneralUtils::ASCIIToUTF16(std::string(rocketConfig->Value()));
 	} else {
