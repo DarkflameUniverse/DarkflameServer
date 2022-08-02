@@ -18,7 +18,8 @@ class GameDependenciesTest : public ::testing::Test {
 			info.spawner = nullptr;
 			info.lot = 999;
 			Game::logger = new dLogger("./testing.log", true, true);
-			Game::server = new dServer("localhost", 3000, 0, 1, false, true, Game::logger, "localhost", 2000, ServerType::World, 1100);
+			Game::server = new dServer("0.0.0.0", 0, 0, 1, false, true, Game::logger, "0.0.0.0", 0, ServerType::World, 1100);
+			Game::logger->Log("GameDependencies", "port is %i", Game::server->GetPort());
 		}
 
 		void TearDownDependencies() {

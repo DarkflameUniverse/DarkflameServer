@@ -26,7 +26,7 @@ endforeach ()
 
 # add the executable
 add_executable(CommonCxxTests ${Tests})
-target_link_libraries(CommonCxxTests ${COMMON_LIBRARIES} GTest::gtest_main dGame dZoneManager dPhysics detour recast tinyxml2 dWorldServer dChatFilter)
+target_link_libraries(CommonCxxTests ${COMMON_LIBRARIES} GTest::gtest_main dGame dZoneManager dPhysics detour recast tinyxml2 dWorldServer dChatFilter dNavigation)
 
 # Copy test files to testing directory
 configure_file(
