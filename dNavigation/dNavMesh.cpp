@@ -1,10 +1,14 @@
 #include "dNavMesh.h"
 
+#include "dTerrain/RawFile.h"
+
 #include "Game.h"
 #include "dLogger.h"
 #include "dPlatforms.h"
 #include "NiPoint3.h"
 #include "BinaryIO.h"
+
+#include "dZoneManager.h"
 
 dNavMesh::dNavMesh(uint32_t zoneId) {
 	m_ZoneId = zoneId;
