@@ -654,7 +654,7 @@ void BaseCombatAIComponent::Wander() {
 	auto destination = m_StartPosition + delta;
 
 	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetHeightAtPoint(destination);
+		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
 	if (Vector3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {

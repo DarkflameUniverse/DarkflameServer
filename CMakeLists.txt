@@ -139,6 +139,7 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dEntity"
 	"dGame/dUtilities"
 	"dPhysics"
+	"dNavigation"
 	"dZoneManager"
 	"dDatabase"
 	"dDatabase/Tables"
@@ -218,6 +219,7 @@ add_subdirectory(dNet)
 add_subdirectory(dScripts) # Add for dGame to use
 add_subdirectory(dGame)
 add_subdirectory(dZoneManager)
+add_subdirectory(dNavigation)
 add_subdirectory(dPhysics)
 
 # Create a list of common libraries shared between all binaries

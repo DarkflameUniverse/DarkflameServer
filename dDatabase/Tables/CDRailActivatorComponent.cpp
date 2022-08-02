@@ -8,23 +8,12 @@ CDRailActivatorComponentTable::CDRailActivatorComponentTable() {
 
 		entry.id = tableData.getIntField(0);
 
-		std::string startAnimation(tableData.getStringField(1, ""));
-		entry.startAnimation = GeneralUtils::ASCIIToUTF16(startAnimation);
-
-		std::string loopAnimation(tableData.getStringField(2, ""));
-		entry.loopAnimation = GeneralUtils::ASCIIToUTF16(loopAnimation);
-
-		std::string stopAnimation(tableData.getStringField(3, ""));
-		entry.stopAnimation = GeneralUtils::ASCIIToUTF16(stopAnimation);
-
-		std::string startSound(tableData.getStringField(4, ""));
-		entry.startSound = GeneralUtils::ASCIIToUTF16(startSound);
-
-		std::string loopSound(tableData.getStringField(5, ""));
-		entry.loopSound = GeneralUtils::ASCIIToUTF16(loopSound);
-
-		std::string stopSound(tableData.getStringField(6, ""));
-		entry.stopSound = GeneralUtils::ASCIIToUTF16(stopSound);
+		entry.startAnimation = GeneralUtils::ASCIIToUTF16(tableData.getStringField(1, ""));
+		entry.loopAnimation = GeneralUtils::ASCIIToUTF16(tableData.getStringField(2, ""));
+		entry.stopAnimation = GeneralUtils::ASCIIToUTF16(tableData.getStringField(3, ""));
+		entry.startSound = GeneralUtils::ASCIIToUTF16(tableData.getStringField(4, ""));
+		entry.loopSound = GeneralUtils::ASCIIToUTF16(tableData.getStringField(5, ""));
+		entry.stopSound = GeneralUtils::ASCIIToUTF16(tableData.getStringField(6, ""));
 
 		std::string loopEffectString(tableData.getStringField(7, ""));
 		entry.loopEffectID = EffectPairFromString(loopEffectString);

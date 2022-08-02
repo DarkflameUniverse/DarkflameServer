@@ -142,12 +142,12 @@ void CatchUnhandled(int sig) {
 			demangled = demangle(functionName.c_str());
 
 			if (demangled.empty()) {
-				printf("[%02d] %s\n", i, demangled.c_str());
+				printf("[%02zu] %s\n", i, demangled.c_str());
 			} else {
-				printf("[%02d] %s\n", i, functionName.c_str());
+				printf("[%02zu] %s\n", i, functionName.c_str());
 			}
 		} else {
-			printf("[%02d] %s\n", i, functionName.c_str());
+			printf("[%02zu] %s\n", i, functionName.c_str());
 		}
 	}
 #else
