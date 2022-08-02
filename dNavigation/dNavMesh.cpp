@@ -44,9 +44,9 @@ void dNavMesh::LoadNavmesh() {
 
 	FILE* fp;
 
-#ifdef DARKFLAME_PLATFORM_WIN32
+#ifdef _WIN32
 	fopen_s(&fp, path.c_str(), "rb");
-#elif DARKFLAME_PLATFORM_MACOS
+#elif __APPLE__
 	// macOS has 64bit file IO by default
 	fp = fopen(path.c_str(), "rb");
 #else
