@@ -978,6 +978,8 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 		bitStream.Write(entity->GetObjectID());
 	bitStream.Write((uint16_t)GAME_MSG_SET_NETWORK_SCRIPT_VAR);
 
+	// FIXME: this is a bad place to need to do a conversion because we have no clue whether data is utf8 or plain ascii
+	// an this has performance implications
 	const auto u16Data = GeneralUtils::ASCIIToUTF16(data);
 	uint32_t dataSize = static_cast<uint32_t>(u16Data.size());
 
@@ -3188,7 +3190,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream* inStream, Entity*
 			i64Invitee,
 			bNeedInvitePopUp,
 			entity->GetObjectID(),
-			GeneralUtils::ASCIIToUTF16(entity->GetCharacter()->GetName()),
+			GeneralUtils::UTF8ToUTF16(entity->GetCharacter()->GetName()),
 			invitee->GetSystemAddress()
 		);
 	}
@@ -5086,7 +5088,8 @@ void GameMessages::HandleNotifyServerLevelProcessingComplete(RakNet::BitStream* 
 	wss << "name=0:";
 	wss << character->GetName();
 
-	std::u16string attrs = GeneralUtils::ASCIIToUTF16(wss.str());
+	// FIXME: only really need utf8 conversion for the name, so move that up?
+	std::u16string attrs = GeneralUtils::UTF8ToUTF16(wss.str());
 	std::u16string wsText = u"UI_LEVEL_PROGRESSION_LEVELUP_MESSAGE";
 
 	GameMessages::SendBroadcastTextToChatbox(entity, UNASSIGNED_SYSTEM_ADDRESS, attrs, wsText);

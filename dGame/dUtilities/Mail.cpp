@@ -290,9 +290,9 @@ void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sys
 		while (res->next()) {
 			bitStream.Write(res->getUInt64(1)); //MailID
 
-			/*std::u16string subject = GeneralUtils::ASCIIToUTF16(res->getString(7));
-			std::u16string body = GeneralUtils::ASCIIToUTF16(res->getString(8));
-			std::u16string sender = GeneralUtils::ASCIIToUTF16(res->getString(3));
+			/*std::u16string subject = GeneralUtils::UTF8ToUTF16(res->getString(7));
+			std::u16string body = GeneralUtils::UTF8ToUTF16(res->getString(8));
+			std::u16string sender = GeneralUtils::UTF8ToUTF16(res->getString(3));
 
 			WriteToPacket(&bitStream, subject, 50);
 			WriteToPacket(&bitStream, body, 400);

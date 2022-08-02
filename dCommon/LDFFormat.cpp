@@ -49,7 +49,7 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string& format) {
 
 			switch (type) {
 			case LDF_TYPE_UTF_16: {
-				std::u16string data = GeneralUtils::ASCIIToUTF16(dataArray[1]);
+				std::u16string data = GeneralUtils::UTF8ToUTF16(dataArray[1]);
 				return new LDFData<std::u16string>(key, data);
 			}
 
