@@ -267,14 +267,14 @@ void PetComponent::OnUse(Entity* originator) {
 	if (dpWorld::Instance().IsLoaded()) {
 		NiPoint3 attempt = petPosition + forward * interactionDistance;
 
-		float y = dpWorld::Instance().GetHeightAtPoint(attempt);
+		float y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(attempt);
 
 		while (std::abs(y - petPosition.y) > 4 && interactionDistance > 10) {
 			const NiPoint3 forward = m_Parent->GetRotation().GetForwardVector();
 
 			attempt = originatorPosition + forward * interactionDistance;
 
-			y = dpWorld::Instance().GetHeightAtPoint(attempt);
+			y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(attempt);
 
 			interactionDistance -= 0.5f;
 		}
@@ -819,7 +819,7 @@ void PetComponent::Wander() {
 	auto destination = m_StartPosition + delta;
 
 	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetHeightAtPoint(destination);
+		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
 	if (Vector3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {
