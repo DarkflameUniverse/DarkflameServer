@@ -733,7 +733,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto control = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
 		if (!control) return;
 
-		float y = dpWorld::Instance().GetHeightAtPoint(control->GetPosition());
+		float y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(control->GetPosition());
 		std::u16string msg = u"Navmesh height: " + (GeneralUtils::to_u16string(y));
 		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
