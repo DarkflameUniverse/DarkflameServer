@@ -1,5 +1,7 @@
 #include "RawHeightMap.h"
 
+#include "BinaryIO.h"
+
 RawHeightMap::RawHeightMap() {}
 
 RawHeightMap::RawHeightMap(std::ifstream& stream, float height, float width) {

@@ -3,9 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "BinaryIO.h"
-
-#include "RawChunk.h"
+class RawChunk;
+struct RawMesh;
 
 class RawFile {
 public:
@@ -23,6 +22,6 @@ private:
 	uint32_t m_Width;
 	uint32_t m_Height;
 
-	std::vector<RawChunk> m_Chunks;
-	RawMesh m_FinalMesh;
+	std::vector<RawChunk*> m_Chunks;
+	RawMesh* m_FinalMesh;
 };

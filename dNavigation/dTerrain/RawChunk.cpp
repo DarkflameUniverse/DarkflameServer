@@ -1,5 +1,10 @@
 #include "RawChunk.h"
 
+#include "BinaryIO.h"
+
+#include "RawMesh.h"
+#include "RawHeightMap.h"
+
 RawChunk::RawChunk(std::ifstream& stream) {
 	// Read the chunk index and info
 
@@ -9,7 +14,7 @@ RawChunk::RawChunk(std::ifstream& stream) {
 	BinaryIO::BinaryRead(stream, m_X);
 	BinaryIO::BinaryRead(stream, m_Z);
 
-	m_HeightMap = RawHeightMap(stream, m_Height, m_Width);
+	m_HeightMap = new RawHeightMap(stream, m_Height, m_Width);
 
 	// We can just skip the rest of the data so we can read the next chunks, we don't need anymore data
 
@@ -58,27 +63,28 @@ RawChunk::RawChunk(std::ifstream& stream) {
 }
 
 RawChunk::~RawChunk() {
-
+	if (m_Mesh) delete m_Mesh;
+	if (m_HeightMap) delete m_HeightMap;
 }
 
 void RawChunk::GenerateMesh() {
-	RawMesh meshData;
+	RawMesh* meshData = new RawMesh();
 
 	for (int i = 0; i < m_Width; ++i) {
 		for (int j = 0; j < m_Height; ++j) {
-			float y = *std::next(m_HeightMap.m_FloatMap.begin(), m_Width * i + j);
+			float y = *std::next(m_HeightMap->m_FloatMap.begin(), m_Width * i + j);
 
-			meshData.m_Vertices.push_back(NiPoint3(i, y, j));
+			meshData->m_Vertices.push_back(NiPoint3(i, y, j));
 
 			if (i == 0 || j == 0) continue;
 
-			meshData.m_Triangles.push_back(m_Width * i + j);
-			meshData.m_Triangles.push_back(m_Width * i + j - 1);
-			meshData.m_Triangles.push_back(m_Width * (i - 1) + j - 1);
+			meshData->m_Triangles.push_back(m_Width * i + j);
+			meshData->m_Triangles.push_back(m_Width * i + j - 1);
+			meshData->m_Triangles.push_back(m_Width * (i - 1) + j - 1);
 
-			meshData.m_Triangles.push_back(m_Width * (i - 1) + j - 1);
-			meshData.m_Triangles.push_back(m_Width * (i - 1) + j);
-			meshData.m_Triangles.push_back(m_Width * i + j);
+			meshData->m_Triangles.push_back(m_Width * (i - 1) + j - 1);
+			meshData->m_Triangles.push_back(m_Width * (i - 1) + j);
+			meshData->m_Triangles.push_back(m_Width * i + j);
 		}
 	}
 

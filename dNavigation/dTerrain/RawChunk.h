@@ -1,12 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
+#include <fstream>
 
-#include "RawHeightMap.h"
-#include "RawMesh.h"
-
-#include "BinaryIO.h"
+struct RawMesh;
+class RawHeightMap;
 
 class RawChunk {
 public:
@@ -21,6 +19,6 @@ public:
 	float m_X;
 	float m_Z;
 
-	RawHeightMap m_HeightMap;
-	RawMesh m_Mesh;
+	RawHeightMap* m_HeightMap;
+	RawMesh* m_Mesh;
 };

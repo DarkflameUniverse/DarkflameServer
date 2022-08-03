@@ -2,8 +2,7 @@
 
 #include <cstdint>
 #include <vector>
-
-#include "BinaryIO.h"
+#include <fstream>
 
 class RawHeightMap {
 public:

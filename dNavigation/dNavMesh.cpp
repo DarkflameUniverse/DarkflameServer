@@ -1,6 +1,6 @@
 #include "dNavMesh.h"
 
-#include "dTerrain/RawFile.h"
+#include "RawFile.h"
 
 #include "Game.h"
 #include "dLogger.h"

@@ -1,7 +1,9 @@
 #include "RawFile.h"
 
-#include "Game.h"
-#include "dLogger.h"
+#include "BinaryIO.h"
+#include "RawChunk.h"
+#include "RawMesh.h"
+#include "RawHeightMap.h"
 
 RawFile::RawFile(std::string fileName) {
 	if (!BinaryIO::DoesFileExist(fileName)) return;
@@ -26,7 +28,7 @@ RawFile::RawFile(std::string fileName) {
 	m_Chunks = {};
 
 	for (uint32_t i = 0; i < m_ChunkCount; i++) {
-		RawChunk chunk(file);
+		RawChunk* chunk = new RawChunk(file);
 		m_Chunks.push_back(chunk);
 	}
 
@@ -34,29 +36,32 @@ RawFile::RawFile(std::string fileName) {
 }
 
 RawFile::~RawFile() {
-
+	delete m_FinalMesh;
+	for (const auto* item : m_Chunks) {
+		delete item;
+	}
 }
 
 void RawFile::GenerateFinalMeshFromChunks() {
 	uint32_t lenOfLastChunk = 0; // index of last vert set in the last chunk
 
 	for (const auto& chunk : m_Chunks) {
-		for (const auto& vert : chunk.m_Mesh.m_Vertices) {
+		for (const auto& vert : chunk->m_Mesh->m_Vertices) {
 			auto tempVert = vert;
 
-			tempVert.SetX(tempVert.GetX() + (chunk.m_X / 4));
-			tempVert.SetZ(tempVert.GetZ() + (chunk.m_Z / 4));
+			tempVert.SetX(tempVert.GetX() + (chunk->m_X / 4));
+			tempVert.SetZ(tempVert.GetZ() + (chunk->m_Z / 4));
 
-			tempVert* chunk.m_HeightMap.m_ScaleFactor;
+			tempVert* chunk->m_HeightMap->m_ScaleFactor;
 
-			m_FinalMesh.m_Vertices.push_back(tempVert);
+			m_FinalMesh->m_Vertices.push_back(tempVert);
 		}
 
-		for (const auto& tri : chunk.m_Mesh.m_Triangles) {
-			m_FinalMesh.m_Triangles.push_back(tri + lenOfLastChunk);
+		for (const auto& tri : chunk->m_Mesh->m_Triangles) {
+			m_FinalMesh->m_Triangles.push_back(tri + lenOfLastChunk);
 		}
 
-		lenOfLastChunk += chunk.m_Mesh.m_Vertices.size();
+		lenOfLastChunk += chunk->m_Mesh->m_Vertices.size();
 	}
 }
 
@@ -64,12 +69,12 @@ void RawFile::WriteFinalMeshToOBJ(std::string path) {
 	std::ofstream file(path);
 	std::string vertData;
 
-	for (auto v : m_FinalMesh.m_Vertices) {
+	for (const auto& v : m_FinalMesh->m_Vertices) {
 		vertData += "v " + std::to_string(v.x) + " " + std::to_string(v.y) + " " + std::to_string(v.z) + "\n";
 	}
 
-	for (int i = 0; i < m_FinalMesh.m_Triangles.size(); i += 3) {
-		vertData += "f " + std::to_string(*std::next(m_FinalMesh.m_Triangles.begin(), i) + 1) + " " + std::to_string(*std::next(m_FinalMesh.m_Triangles.begin(), i + 1) + 1) + " " + std::to_string(*std::next(m_FinalMesh.m_Triangles.begin(), i + 2) + 1) + "\n";
+	for (int i = 0; i < m_FinalMesh->m_Triangles.size(); i += 3) {
+		vertData += "f " + std::to_string(*std::next(m_FinalMesh->m_Triangles.begin(), i) + 1) + " " + std::to_string(*std::next(m_FinalMesh->m_Triangles.begin(), i + 1) + 1) + " " + std::to_string(*std::next(m_FinalMesh->m_Triangles.begin(), i + 2) + 1) + "\n";
 	}
 
 	file.write(vertData.c_str(), vertData.size());
