@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "NiPoint3.h"
 
 struct RawMesh {
