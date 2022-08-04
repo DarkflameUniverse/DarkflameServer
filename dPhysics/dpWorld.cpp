@@ -32,9 +32,10 @@ dpWorld::~dpWorld() {
 		m_Grid = nullptr;
 	}
 
-	m_NavMesh->~dNavMesh();
-	delete m_NavMesh;
-	m_NavMesh = nullptr;
+	if (m_NavMesh) {
+		delete m_NavMesh;
+		m_NavMesh = nullptr;
+	}
 }
 
 void dpWorld::StepWorld(float deltaTime) {
