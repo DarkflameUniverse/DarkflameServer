@@ -42,5 +42,5 @@ private:
 	std::vector<dpEntity*> m_StaticEntities;
 	std::vector<dpEntity*> m_DynamicEntites;
 
-	dNavMesh* m_NavMesh;
+	dNavMesh* m_NavMesh = nullptr;
 };

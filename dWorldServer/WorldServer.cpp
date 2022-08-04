@@ -233,9 +233,9 @@ int main(int argc, char** argv) {
 
 	//Load our level:
 	if (zoneID != 0) {
+		dZoneManager::Instance()->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		dpWorld::Instance().Initialize(zoneID);
 		Game::physicsWorld = &dpWorld::Instance(); //just in case some old code references it
-		dZoneManager::Instance()->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
 
 		// pre calculate the FDB checksum
