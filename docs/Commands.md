@@ -32,6 +32,7 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |gminvis|`/gminvis`|Toggles invisibility for the character, though it's currently a bit buggy. Requires nonzero GM Level for the character, but the account must have a GM level of 8.|8|
 |setname|`/setname <name>`|Sets a temporary name for your player. The name resets when you log out.|8|
 |title|`/title <title>`|Temporarily appends your player's name with " - &#60;title&#62;". This resets when you log out.|8|
+|fly|`/fly <speed>`|This toggles your flying state with an optional parameter for the speed scale.|4|
 
 ## Server Operation Commands
 

@@ -425,8 +425,17 @@ public:
 	 */
 	const std::vector<LOT>& GetEquippedItems() const { return m_EquippedItems; }
 
+	/**
+	 * @brief Get the flying state
+	 * @return value of the flying state 
+	*/
 	bool GetIsFlying() { return m_IsFlying; }
-    void SetIsFlying(bool isFlying) { m_IsFlying = isFlying; }
+
+	/**
+	 * @brief Set the value of the flying state
+	 * @param isFlying the flying state
+	*/
+	void SetIsFlying(bool isFlying) { m_IsFlying = isFlying; }
 
 private:
 	/**
