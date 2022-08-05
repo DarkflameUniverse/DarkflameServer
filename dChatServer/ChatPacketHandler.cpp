@@ -730,9 +730,9 @@ void ChatPacketHandler::SendTeamInviteConfirm(PlayerData* receiver, bool bLeader
 	bitStream.Write(receiver->playerID);
 
 	//portion that will get routed:
-	CMSGHEADER
+	CMSGHEADER;
 
-		bitStream.Write(receiver->playerID);
+	bitStream.Write(receiver->playerID);
 	bitStream.Write(GAME_MSG::GAME_MSG_TEAM_INVITE_CONFIRM);
 
 	bitStream.Write(bLeaderIsFreeTrial);
@@ -757,9 +757,9 @@ void ChatPacketHandler::SendTeamStatus(PlayerData* receiver, LWOOBJID i64LeaderI
 	bitStream.Write(receiver->playerID);
 
 	//portion that will get routed:
-	CMSGHEADER
+	CMSGHEADER;
 
-		bitStream.Write(receiver->playerID);
+	bitStream.Write(receiver->playerID);
 	bitStream.Write(GAME_MSG::GAME_MSG_TEAM_GET_STATUS_RESPONSE);
 
 	bitStream.Write(i64LeaderID);
@@ -782,9 +782,9 @@ void ChatPacketHandler::SendTeamSetLeader(PlayerData* receiver, LWOOBJID i64Play
 	bitStream.Write(receiver->playerID);
 
 	//portion that will get routed:
-	CMSGHEADER
+	CMSGHEADER;
 
-		bitStream.Write(receiver->playerID);
+	bitStream.Write(receiver->playerID);
 	bitStream.Write(GAME_MSG::GAME_MSG_TEAM_SET_LEADER);
 
 	bitStream.Write(i64PlayerID);
@@ -799,9 +799,9 @@ void ChatPacketHandler::SendTeamAddPlayer(PlayerData* receiver, bool bIsFreeTria
 	bitStream.Write(receiver->playerID);
 
 	//portion that will get routed:
-	CMSGHEADER
+	CMSGHEADER;
 
-		bitStream.Write(receiver->playerID);
+	bitStream.Write(receiver->playerID);
 	bitStream.Write(GAME_MSG::GAME_MSG_TEAM_ADD_PLAYER);
 
 	bitStream.Write(bIsFreeTrial);
@@ -828,9 +828,9 @@ void ChatPacketHandler::SendTeamRemovePlayer(PlayerData* receiver, bool bDisband
 	bitStream.Write(receiver->playerID);
 
 	//portion that will get routed:
-	CMSGHEADER
+	CMSGHEADER;
 
-		bitStream.Write(receiver->playerID);
+	bitStream.Write(receiver->playerID);
 	bitStream.Write(GAME_MSG::GAME_MSG_TEAM_REMOVE_PLAYER);
 
 	bitStream.Write(bDisband);
@@ -854,9 +854,9 @@ void ChatPacketHandler::SendTeamSetOffWorldFlag(PlayerData* receiver, LWOOBJID i
 	bitStream.Write(receiver->playerID);
 
 	//portion that will get routed:
-	CMSGHEADER
+	CMSGHEADER;
 
-		bitStream.Write(receiver->playerID);
+	bitStream.Write(receiver->playerID);
 	bitStream.Write(GAME_MSG::GAME_MSG_TEAM_SET_OFF_WORLD_FLAG);
 
 	bitStream.Write(i64PlayerID);
