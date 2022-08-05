@@ -45,6 +45,8 @@ If you're using a DLU client you'll have to go into the "CMakeVariables.txt" fil
 ### Using Docker
 Refer to [Docker.md](/Docker.md).
 
+For Windows, refer to [Docker_Windows.md](/Docker_Windows.md).
+
 ### Linux builds
 Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available. `libssl-dev` will also be required as well as `openssl`.
 
