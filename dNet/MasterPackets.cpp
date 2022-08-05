@@ -8,8 +8,8 @@
 #include <string>
 
 void MasterPackets::SendPersistentIDRequest(dServer* server, uint64_t requestID) {
-	CBITSTREAM
-		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_REQUEST_PERSISTENT_ID);
+	CBITSTREAM;
+	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_REQUEST_PERSISTENT_ID);
 	bitStream.Write(requestID);
 	server->SendToMaster(&bitStream);
 }

@@ -772,9 +772,9 @@ void HandlePacket(Packet* packet) {
 
 			Game::logger->Log("MasterServer", "Got affirmation request of transfer %llu", requestID);
 
-			CBITSTREAM
+			CBITSTREAM;
 
-				PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_AFFIRM_TRANSFER_RESPONSE);
+			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_AFFIRM_TRANSFER_RESPONSE);
 			bitStream.Write(requestID);
 			Game::server->SendToMaster(&bitStream);
 

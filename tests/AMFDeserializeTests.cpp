@@ -14,47 +14,47 @@ std::unique_ptr<AMFValue> ReadFromBitStream(RakNet::BitStream* bitStream) {
 }
 
 int ReadAMFUndefinedFromBitStream() {
-	CBITSTREAM
-		bitStream.Write<uint8_t>(0x00);
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x00);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFUndefined);
 	return 0;
 }
 
 int ReadAMFNullFromBitStream() {
-	CBITSTREAM
-		bitStream.Write<uint8_t>(0x01);
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x01);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFNull);
 	return 0;
 }
 
 int ReadAMFFalseFromBitStream() {
-	CBITSTREAM
-		bitStream.Write<uint8_t>(0x02);
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x02);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFFalse);
 	return 0;
 }
 
 int ReadAMFTrueFromBitStream() {
-	CBITSTREAM
-		bitStream.Write<uint8_t>(0x03);
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x03);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFTrue);
 	return 0;
 }
 
 int ReadAMFIntegerFromBitStream() {
-	CBITSTREAM
+	CBITSTREAM;
 	{
 		bitStream.Write<uint8_t>(0x04);
-	// 127 == 01111111
-	bitStream.Write<uint8_t>(127);
-	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
-	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
-	// Check that the max value of a byte can be read correctly
-	ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 127);
+		// 127 == 01111111
+		bitStream.Write<uint8_t>(127);
+		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
+		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
+		// Check that the max value of a byte can be read correctly
+		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 127);
 	}
 	bitStream.Reset();
 	{
@@ -95,8 +95,8 @@ int ReadAMFIntegerFromBitStream() {
 }
 
 int ReadAMFDoubleFromBitStream() {
-	CBITSTREAM
-		bitStream.Write<uint8_t>(0x05);
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x05);
 	bitStream.Write<double>(25346.4f);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFDouble);
@@ -105,8 +105,8 @@ int ReadAMFDoubleFromBitStream() {
 }
 
 int ReadAMFStringFromBitStream() {
-	CBITSTREAM
-		bitStream.Write<uint8_t>(0x06);
+	CBITSTREAM;
+	bitStream.Write<uint8_t>(0x06);
 	bitStream.Write<uint8_t>(0x0F);
 	std::string toWrite = "stateID";
 	for (auto e : toWrite) bitStream.Write<char>(e);
@@ -117,9 +117,9 @@ int ReadAMFStringFromBitStream() {
 }
 
 int ReadAMFArrayFromBitStream() {
-	CBITSTREAM
-		// Test empty AMFArray
-		bitStream.Write<uint8_t>(0x09);
+	CBITSTREAM;
+	// Test empty AMFArray
+	bitStream.Write<uint8_t>(0x09);
 	bitStream.Write<uint8_t>(0x01);
 	bitStream.Write<uint8_t>(0x01);
 	{

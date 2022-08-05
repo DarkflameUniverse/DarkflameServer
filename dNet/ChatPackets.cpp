@@ -12,8 +12,8 @@
 #include "dServer.h"
 
 void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel, const std::string& senderName, LWOOBJID playerObjectID, bool senderMythran, const std::u16string& message) {
-	CBITSTREAM
-		PacketUtils::WriteHeader(bitStream, CHAT, MSG_CHAT_GENERAL_CHAT_MESSAGE);
+	CBITSTREAM;
+	PacketUtils::WriteHeader(bitStream, CHAT, MSG_CHAT_GENERAL_CHAT_MESSAGE);
 
 	bitStream.Write(static_cast<uint64_t>(0));
 	bitStream.Write(chatChannel);
@@ -30,12 +30,12 @@ void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel
 	}
 	bitStream.Write(static_cast<uint16_t>(0));
 
-	SEND_PACKET_BROADCAST
+	SEND_PACKET_BROADCAST;
 }
 
 void ChatPackets::SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, const bool broadcast) {
-	CBITSTREAM
-		PacketUtils::WriteHeader(bitStream, CHAT, MSG_CHAT_GENERAL_CHAT_MESSAGE);
+	CBITSTREAM;
+	PacketUtils::WriteHeader(bitStream, CHAT, MSG_CHAT_GENERAL_CHAT_MESSAGE);
 
 	bitStream.Write(static_cast<uint64_t>(0));
 	bitStream.Write(static_cast<char>(4));

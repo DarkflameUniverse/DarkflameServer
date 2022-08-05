@@ -31,10 +31,10 @@ using namespace std;
 
 void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, GAME_MSG messageID) {
 
-	CBITSTREAM
+	CBITSTREAM;
 
-		// Get the entity
-		Entity* entity = EntityManager::Instance()->GetEntity(objectID);
+	// Get the entity
+	Entity* entity = EntityManager::Instance()->GetEntity(objectID);
 
 	User* usr = UserManager::Instance()->GetUser(sysAddr);
 
