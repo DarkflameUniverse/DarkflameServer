@@ -17,6 +17,9 @@ public:
 
 	float GetHeightAtPoint(const NiPoint3& location);
 	std::vector<NiPoint3> GetPath(const NiPoint3& startPos, const NiPoint3& endPos, float speed = 10.0f);
+
+	class dtNavMesh* GetdtNavMesh() { return m_NavMesh; }
+
 private:
 	void LoadNavmesh();
 
