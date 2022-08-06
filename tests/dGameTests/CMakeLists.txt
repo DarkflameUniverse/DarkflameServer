@@ -1,10 +1,14 @@
-add_subdirectory(dComponentsTests)
 set(DGAMETEST_SOURCES
 	"GameDependencies.cpp"
 )
 
-foreach(file ${DCOMPONENTS_TESTS})
-	list(APPEND DGAMETEST_SOURCES "dComponentsTests/${file}")
-endforeach()
+add_subdirectory(dComponentsTests)
+list(APPEND DGAMETEST_SOURCES ${DCOMPONENTS_TESTS})
 
-set(DGAMETEST_SOURCES ${DGAMETEST_SOURCES} PARENT_SCOPE)
+# Add the executable.  Remember to add all tests above this!
+add_executable(dGameTests ${DGAMETEST_SOURCES})
+
+target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main dGame dZoneManager dPhysics detour recast tinyxml2 dWorldServer dChatFilter dNavigation)
+
+# Discover the tests
+gtest_discover_tests(dGameTests)
