@@ -17,10 +17,7 @@
         "name": "ci-ubuntu-20.04",
         "displayName": "CI configure step for Ubuntu",
         "description": "Same as default, Used in GitHub actions workflow",
-        "inherits": "default",
-        "cacheVariables": {
-            "__enable_testing__": "1"
-        }
+        "inherits": "default"
       },
       {
         "name": "ci-macos-11",
@@ -28,8 +25,7 @@
         "description": "Same as default, Used in GitHub actions workflow",
         "inherits": "default",
         "cacheVariables": {
-          "OPENSSL_ROOT_DIR": "/usr/local/Cellar/openssl@3/3.0.5/",
-          "__enable_testing__": "1"
+          "OPENSSL_ROOT_DIR": "/usr/local/Cellar/openssl@3/3.0.5/"
         }
       },
       {
@@ -42,8 +38,7 @@
           "value": "x64"
         },
         "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-          "__enable_testing__": "1"
+          "CMAKE_BUILD_TYPE": "RelWithDebInfo"
         }
       },
       {
@@ -119,7 +114,7 @@
         "configurePreset": "ci-windows-2022",
         "displayName": "CI Tests on windows",
         "description": "Runs all tests on a windows configuration",
-        "configuration": "RelWithDebInfo",
+		"configuration": "RelWithDebInfo",
 		"execution": {
 			"jobs": 2
 		},

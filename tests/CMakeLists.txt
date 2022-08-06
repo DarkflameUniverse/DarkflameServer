@@ -40,4 +40,4 @@ configure_file(
 )
 
 include(GoogleTest)
-gtest_discover_tests(CommonCxxTests)
+gtest_discover_tests(CommonCxxTests DISCOVERY_MODE PRE_TEST)

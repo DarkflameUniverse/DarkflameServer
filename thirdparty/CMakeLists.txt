@@ -54,14 +54,8 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	# Make sure to move required DLLs to the actual directory where the binaries will be!
 	# For CMAKE_BUILD_TYPES this is not the binary dir.
 
-	set(OUTPUT_DIR ${PROJECT_BINARY_DIR})
-	if(${CMAKE_GENERATOR} MATCHES "Visual Studio 17 2022")
-		file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
-		set(OUTPUT_DIR ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/)
-	endif()
-
-	set(MARIADB_MSI_DIR "${OUTPUT_DIR}/msi")
-	set(MARIADB_CONNECTOR_DIR "${OUTPUT_DIR}/mariadbcpp")
+	set(MARIADB_MSI_DIR "${PROJECT_BINARY_DIR}/msi")
+	set(MARIADB_CONNECTOR_DIR "${PROJECT_BINARY_DIR}/mariadbcpp")
 	set(MARIADB_C_CONNECTOR_DIR "${MARIADB_CONNECTOR_DIR}/MariaDB/MariaDB Connector C 64-bit")
 	set(MARIADB_CPP_CONNECTOR_DIR "${MARIADB_CONNECTOR_DIR}/MariaDB/MariaDB C++ Connector 64-bit")
 
@@ -104,7 +98,7 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 					COMMAND ${CMAKE_COMMAND} -E copy_if_different 
 					"${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll"
 					"${MARIADB_C_CONNECTOR_DIR}/lib/libmariadb.dll"
-					"${OUTPUT_DIR}")
+					"${PROJECT_BINARY_DIR}")
 
 	# MariaDB uses plugins that the database needs to load, the prebuilt binaries by default will try to find the libraries in system directories,
 	# so set this define and the servers will set the MARIADB_PLUGIN_DIR environment variable to the appropriate directory.
