@@ -14,19 +14,19 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<uint16_t>(VendorMapId); // - vendor map id
 	stream.Write<uint32_t>(cloneId); // clone id
 
-	const auto& name = GeneralUtils::ASCIIToUTF16(Name);
+	const auto& name = GeneralUtils::UTF8ToUTF16(Name);
 	stream.Write(uint32_t(name.size()));
 	for (uint32_t i = 0; i < name.size(); ++i) {
 		stream.Write(uint16_t(name[i]));
 	}
 
-	const auto& description = GeneralUtils::ASCIIToUTF16(Description);
+	const auto& description = GeneralUtils::UTF8ToUTF16(Description);
 	stream.Write(uint32_t(description.size()));
 	for (uint32_t i = 0; i < description.size(); ++i) {
 		stream.Write(uint16_t(description[i]));
 	}
 
-	const auto& owner = GeneralUtils::ASCIIToUTF16(OwnerName);
+	const auto& owner = GeneralUtils::UTF8ToUTF16(OwnerName);
 	stream.Write(uint32_t(owner.size()));
 	for (uint32_t i = 0; i < owner.size(); ++i) {
 		stream.Write(uint16_t(owner[i]));
@@ -68,7 +68,7 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	else stream.Write<uint32_t>(REJECTION_STATUS_PENDING);
 
 	// Does this go here???
-	// const auto& rejectionReasonConverted = GeneralUtils::ASCIIToUTF16(rejectionReason);
+	// const auto& rejectionReasonConverted = GeneralUtils::UTF8ToUTF16(rejectionReason);
 	// stream.Write(uint32_t(rejectionReasonConverted.size()));
 	// for (uint32_t i = 0; i < rejectionReasonConverted.size(); ++i) {
 	// 	stream.Write(uint16_t(rejectionReasonConverted[i]));

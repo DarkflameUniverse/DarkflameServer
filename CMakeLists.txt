@@ -129,6 +129,7 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dUtilities"
 	"dPhysics"
 	"dNavigation"
+	"dNavigation/dTerrain"
 	"dZoneManager"
 	"dDatabase"
 	"dDatabase/Tables"

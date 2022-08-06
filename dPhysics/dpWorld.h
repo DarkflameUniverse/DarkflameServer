@@ -24,7 +24,7 @@ public:
 	~dpWorld();
 
 	bool ShouldUseSP(unsigned int zoneID);
-	bool IsLoaded() const { return m_NavMesh != nullptr; }
+	bool IsLoaded() const { return m_NavMesh->GetdtNavMesh() != nullptr; }
 
 	void StepWorld(float deltaTime);
 
@@ -42,5 +42,5 @@ private:
 	std::vector<dpEntity*> m_StaticEntities;
 	std::vector<dpEntity*> m_DynamicEntites;
 
-	dNavMesh* m_NavMesh;
+	dNavMesh* m_NavMesh = nullptr;
 };

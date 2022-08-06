@@ -34,7 +34,7 @@ void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, flo
 
 	bitStream.Write(static_cast<uint32_t>(0));     // Change this to eventually use 4 on activity worlds
 
-	SEND_PACKET
+	SEND_PACKET;
 }
 
 void WorldPackets::SendCharacterList(const SystemAddress& sysAddr, User* user) {
@@ -85,28 +85,28 @@ void WorldPackets::SendCharacterList(const SystemAddress& sysAddr, User* user) {
 		}
 	}
 
-	SEND_PACKET
+	SEND_PACKET;
 }
 
 void WorldPackets::SendCharacterCreationResponse(const SystemAddress& sysAddr, eCreationResponse response) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHARACTER_CREATE_RESPONSE);
 	bitStream.Write(response);
-	SEND_PACKET
+	SEND_PACKET;
 }
 
 void WorldPackets::SendCharacterRenameResponse(const SystemAddress& sysAddr, eRenameResponse response) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHARACTER_RENAME_RESPONSE);
 	bitStream.Write(response);
-	SEND_PACKET
+	SEND_PACKET;
 }
 
 void WorldPackets::SendCharacterDeleteResponse(const SystemAddress& sysAddr, bool response) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_DELETE_CHARACTER_RESPONSE);
 	bitStream.Write(static_cast<uint8_t>(response));
-	SEND_PACKET
+	SEND_PACKET;
 }
 
 void WorldPackets::SendTransferToWorld(const SystemAddress& sysAddr, const std::string& serverIP, uint32_t serverPort, bool mythranShift) {
@@ -117,14 +117,14 @@ void WorldPackets::SendTransferToWorld(const SystemAddress& sysAddr, const std::
 	bitStream.Write(static_cast<uint16_t>(serverPort));
 	bitStream.Write(static_cast<uint8_t>(mythranShift));
 
-	SEND_PACKET
+	SEND_PACKET;
 }
 
 void WorldPackets::SendServerState(const SystemAddress& sysAddr) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_SERVER_STATES);
 	bitStream.Write(static_cast<uint8_t>(1)); //If the server is receiving this request, it probably is ready anyway.
-	SEND_PACKET
+	SEND_PACKET;
 }
 
 void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* entity, const std::string& xmlData, const std::u16string& username, int32_t gm) {
@@ -184,13 +184,13 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 #endif
 
 	PacketUtils::SavePacket("chardata.bin", (const char*)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
-	SEND_PACKET
-		Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu", entity->GetObjectID());
+	SEND_PACKET;
+	Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu", entity->GetObjectID());
 }
 
 void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::vector<std::pair<uint8_t, uint8_t>> unacceptedItems) {
-	CBITSTREAM
-		PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHAT_MODERATION_STRING);
+	CBITSTREAM;
+	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHAT_MODERATION_STRING);
 
 	bitStream.Write<uint8_t>(unacceptedItems.empty()); // Is sentence ok?
 	bitStream.Write<uint16_t>(0x16); // Source ID, unknown
@@ -209,17 +209,17 @@ void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool
 		bitStream.Write<uint16_t>(0);
 	}
 
-	SEND_PACKET
+	SEND_PACKET;
 }
 
 void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success, uint8_t highestLevel, uint8_t prevLevel, uint8_t newLevel) {
-	CBITSTREAM
-		PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_MAKE_GM_RESPONSE);
+	CBITSTREAM;
+	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_MAKE_GM_RESPONSE);
 
 	bitStream.Write<uint8_t>(success);
 	bitStream.Write<uint16_t>(highestLevel);
 	bitStream.Write<uint16_t>(prevLevel);
 	bitStream.Write<uint16_t>(newLevel);
 
-	SEND_PACKET
+	SEND_PACKET;
 }
