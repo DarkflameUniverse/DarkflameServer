@@ -1,4 +1,4 @@
-﻿#include "NtSleepingGuard.h"
+#include "NtSleepingGuard.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
 

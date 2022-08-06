@@ -1,4 +1,4 @@
-﻿#include "StunBehavior.h"
+#include "StunBehavior.h"
 
 #include "BaseCombatAIComponent.h"
 #include "BehaviorBranchContext.h"

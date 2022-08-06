@@ -1,4 +1,4 @@
-﻿#include "AgSalutingNpcs.h"
+#include "AgSalutingNpcs.h"
 #include "GameMessages.h"
 
 

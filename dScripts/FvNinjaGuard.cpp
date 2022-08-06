@@ -1,4 +1,4 @@
-﻿#include "FvNinjaGuard.h"
+#include "FvNinjaGuard.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
 

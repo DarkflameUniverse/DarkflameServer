@@ -1,4 +1,4 @@
-﻿#include "GfBanana.h"
+#include "GfBanana.h"
 
 #include "Entity.h"
 #include "DestroyableComponent.h"

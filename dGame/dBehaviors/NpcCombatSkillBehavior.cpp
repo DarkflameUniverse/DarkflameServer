@@ -1,4 +1,4 @@
-﻿#include "NpcCombatSkillBehavior.h"
+#include "NpcCombatSkillBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 

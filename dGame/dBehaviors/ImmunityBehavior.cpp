@@ -1,4 +1,4 @@
-﻿#include "ImmunityBehavior.h"
+#include "ImmunityBehavior.h"
 
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"

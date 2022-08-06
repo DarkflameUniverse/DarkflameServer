@@ -1,4 +1,4 @@
-﻿#include "ChargeUpBehavior.h"
+#include "ChargeUpBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "dLogger.h"

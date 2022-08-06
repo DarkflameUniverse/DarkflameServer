@@ -1,4 +1,4 @@
-﻿#include "AgJetEffectServer.h"
+#include "AgJetEffectServer.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"

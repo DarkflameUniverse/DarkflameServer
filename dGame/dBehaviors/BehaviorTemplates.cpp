@@ -1,1 +1,1 @@
-﻿#include "BehaviorTemplates.h"
+#include "BehaviorTemplates.h"

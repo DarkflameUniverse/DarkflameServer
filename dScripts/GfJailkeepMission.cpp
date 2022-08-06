@@ -1,4 +1,4 @@
-﻿#include "GfJailkeepMission.h"
+#include "GfJailkeepMission.h"
 #include "MissionComponent.h"
 #include "Character.h"
 

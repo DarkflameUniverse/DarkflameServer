@@ -1,4 +1,4 @@
-﻿#include "BehaviorContext.h"
+#include "BehaviorContext.h"
 #include "Behavior.h"
 #include "BehaviorBranchContext.h"
 #include "EntityManager.h"

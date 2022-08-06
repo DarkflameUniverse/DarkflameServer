@@ -1,4 +1,4 @@
-﻿#include "SwitchMultipleBehavior.h"
+#include "SwitchMultipleBehavior.h"
 
 #include <sstream>
 

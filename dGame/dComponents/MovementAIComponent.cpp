@@ -1,4 +1,4 @@
-﻿#include "MovementAIComponent.h"
+#include "MovementAIComponent.h"
 
 #include <utility>
 #include <cmath>

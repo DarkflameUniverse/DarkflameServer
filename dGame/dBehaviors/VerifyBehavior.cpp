@@ -1,4 +1,4 @@
-﻿#include "VerifyBehavior.h"
+#include "VerifyBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "EntityManager.h"
 #include "NiPoint3.h"
