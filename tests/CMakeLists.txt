@@ -16,12 +16,12 @@ set(Tests)
 
 add_subdirectory(dCommonTests)
 foreach (file ${DCOMMONTEST_SOURCES})
-	set(Tests ${Tests} "dCommonTests/${file}")
+	list(APPEND Tests "dCommonTests/${file}")
 endforeach ()
 
 add_subdirectory(dGameTests)
 foreach (file ${DGAMETEST_SOURCES})
-	set(Tests ${Tests} "dGameTests/${file}")
+	list(APPEND Tests "dGameTests/${file}")
 endforeach ()
 
 # add the executable
