@@ -24,7 +24,7 @@ public:
 	~dpWorld();
 
 	bool ShouldUseSP(unsigned int zoneID);
-	bool IsLoaded() const { return m_NavMesh != nullptr; }
+	bool IsLoaded() const { return m_NavMesh->GetdtNavMesh() != nullptr; }
 
 	void StepWorld(float deltaTime);
 
