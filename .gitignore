@@ -121,4 +121,4 @@ docker/__pycache__
 
 docker-compose.override.yml
 
-!/tests/TestBitStreams/*.bin
+!*Test.bin
