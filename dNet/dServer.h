@@ -16,7 +16,7 @@ enum class ServerType : uint32_t {
 class dServer {
 public:
 	// Default constructor should only used for testing!
-    dServer() {};
+	dServer() {};
 	dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, unsigned int zoneID = 0);
 	~dServer();
 
