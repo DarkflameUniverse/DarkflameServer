@@ -273,6 +273,17 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	} else {
 		m_TotalTimePlayed = 0;
 	}
+
+	if (!m_Character) return;
+
+	//Check to see if we're landing:
+	if (m_Character->GetZoneID() != Game::server->GetZoneID()) {
+		m_IsLanding = true;
+	}
+
+	if (LandingAnimDisabled(m_Character->GetZoneID()) || LandingAnimDisabled(Game::server->GetZoneID()) || m_LastRocketConfig.empty()) {
+		m_IsLanding = false; //Don't make us land on VE/minigames lol
+	}
 }
 
 void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
