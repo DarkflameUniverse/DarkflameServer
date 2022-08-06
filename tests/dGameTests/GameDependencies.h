@@ -9,6 +9,13 @@
 #include "dZoneManager.h"
 #include <gtest/gtest.h>
 
+class dServerMock : public dServer {
+  public:
+    dServerMock() {};
+    ~dServerMock() {};
+    void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast) override {};
+};
+
 class GameDependenciesTest : public ::testing::Test {
 	protected:
 		void SetUpDependencies() {
@@ -18,8 +25,7 @@ class GameDependenciesTest : public ::testing::Test {
 			info.spawner = nullptr;
 			info.lot = 999;
 			Game::logger = new dLogger("./testing.log", true, true);
-			Game::server = new dServer("0.0.0.0", 0, 0, 1, false, true, Game::logger, "0.0.0.0", 0, ServerType::World, 1100);
-			Game::logger->Log("GameDependencies", "port is %i", Game::server->GetPort());
+			Game::server = new dServerMock();
 		}
 
 		void TearDownDependencies() {

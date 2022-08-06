@@ -30,8 +30,8 @@ class DestroyableTest : public GameDependenciesTest {
 		}
 
 		void TearDown() override {
+            delete baseEntity;
 			TearDownDependencies();
-			delete baseEntity;
 		}
 };
 
