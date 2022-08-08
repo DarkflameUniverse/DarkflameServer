@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifndef MISSIONLOCKSTATE_H
 #define MISSIONLOCKSTATE_H

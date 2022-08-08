@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Behavior.h"
 
 class ClearTargetBehavior final : public Behavior

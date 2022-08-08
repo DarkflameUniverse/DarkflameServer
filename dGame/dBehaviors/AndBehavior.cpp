@@ -1,4 +1,4 @@
-﻿#include "AndBehavior.h"
+#include "AndBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
 #include "dLogger.h"

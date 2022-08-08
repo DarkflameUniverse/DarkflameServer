@@ -1,4 +1,4 @@
-﻿#include "ChainBehavior.h"
+#include "ChainBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
 #include "dLogger.h"

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifndef PROPERTYSELECTQUERY_H
 #define PROPERTYSELECTQUERY_H

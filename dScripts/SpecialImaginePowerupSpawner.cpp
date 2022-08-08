@@ -1,4 +1,4 @@
-﻿#include "SpecialImaginePowerupSpawner.h"
+#include "SpecialImaginePowerupSpawner.h"
 
 #include "GameMessages.h"
 #include "SkillComponent.h"

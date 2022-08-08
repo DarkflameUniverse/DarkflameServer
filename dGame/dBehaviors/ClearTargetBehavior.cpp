@@ -1,4 +1,4 @@
-﻿#include "ClearTargetBehavior.h"
+#include "ClearTargetBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 

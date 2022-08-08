@@ -1,4 +1,4 @@
-﻿#include "SwitchBehavior.h"
+#include "SwitchBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "EntityManager.h"
 #include "dLogger.h"

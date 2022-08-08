@@ -1,4 +1,4 @@
-﻿#include "BlockBehavior.h"
+#include "BlockBehavior.h"
 
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"

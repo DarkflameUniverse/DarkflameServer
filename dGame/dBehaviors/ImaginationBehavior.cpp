@@ -1,4 +1,4 @@
-﻿#include "ImaginationBehavior.h"
+#include "ImaginationBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "DestroyableComponent.h"
 #include "dpWorld.h"

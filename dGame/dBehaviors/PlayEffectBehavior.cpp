@@ -1,4 +1,4 @@
-﻿#include "PlayEffectBehavior.h"
+#include "PlayEffectBehavior.h"
 
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"

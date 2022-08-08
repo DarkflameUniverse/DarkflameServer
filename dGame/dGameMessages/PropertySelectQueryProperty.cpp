@@ -1,4 +1,4 @@
-﻿#include "PropertySelectQueryProperty.h"
+#include "PropertySelectQueryProperty.h"
 
 void PropertySelectQueryProperty::Serialize(RakNet::BitStream& stream) const {
 	stream.Write(CloneId);

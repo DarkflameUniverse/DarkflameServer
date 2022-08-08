@@ -1,4 +1,4 @@
-﻿#include "PullToPointBehavior.h"
+#include "PullToPointBehavior.h"
 
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"

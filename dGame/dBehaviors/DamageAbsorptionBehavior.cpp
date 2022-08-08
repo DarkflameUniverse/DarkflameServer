@@ -1,4 +1,4 @@
-﻿#include "DamageAbsorptionBehavior.h"
+#include "DamageAbsorptionBehavior.h"
 
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"

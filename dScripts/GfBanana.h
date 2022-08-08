@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "CppScripts.h"
 
 class GfBanana final : public CppScripts::Script

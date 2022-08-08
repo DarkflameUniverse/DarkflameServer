@@ -1,4 +1,4 @@
-﻿#include "EndBehavior.h"
+#include "EndBehavior.h"
 
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"

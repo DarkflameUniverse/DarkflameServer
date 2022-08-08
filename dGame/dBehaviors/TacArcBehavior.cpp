@@ -1,4 +1,4 @@
-﻿#include "TacArcBehavior.h"
+#include "TacArcBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
 #include "dLogger.h"

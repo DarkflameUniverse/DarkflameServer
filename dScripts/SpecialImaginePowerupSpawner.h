@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "CppScripts.h"
 
 class SpecialImaginePowerupSpawner final : public CppScripts::Script

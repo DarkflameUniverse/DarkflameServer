@@ -1,4 +1,4 @@
-﻿#include "AttackDelayBehavior.h"
+#include "AttackDelayBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "Game.h"

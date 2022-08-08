@@ -1,4 +1,4 @@
-﻿#include "ItemSet.h"
+#include "ItemSet.h"
 
 #include "InventoryComponent.h"
 #include "Entity.h"

@@ -1,4 +1,4 @@
-﻿#include "HealBehavior.h"
+#include "HealBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
 #include "dLogger.h"

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifndef __MISSIONSTATE__H__
 #define __MISSIONSTATE__H__
