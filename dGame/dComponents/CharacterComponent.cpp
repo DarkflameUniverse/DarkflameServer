@@ -36,15 +36,6 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_CurrentActivity = 0;
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
-
-	//Check to see if we're landing:
-	if (character->GetZoneID() != Game::server->GetZoneID()) {
-		m_IsLanding = true;
-	}
-
-	if (LandingAnimDisabled(character->GetZoneID()) || LandingAnimDisabled(Game::server->GetZoneID()) || m_LastRocketConfig.empty()) {
-		m_IsLanding = false; //Don't make us land on VE/minigames lol
-	}
 }
 
 bool CharacterComponent::LandingAnimDisabled(int zoneID) {
@@ -272,6 +263,17 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 		character->QueryUnsigned64Attribute("time", &m_TotalTimePlayed);
 	} else {
 		m_TotalTimePlayed = 0;
+	}
+
+	if (!m_Character) return;
+
+	//Check to see if we're landing:
+	if (m_Character->GetZoneID() != Game::server->GetZoneID()) {
+		m_IsLanding = true;
+	}
+
+	if (LandingAnimDisabled(m_Character->GetZoneID()) || LandingAnimDisabled(Game::server->GetZoneID()) || m_LastRocketConfig.empty()) {
+		m_IsLanding = false; //Don't make us land on VE/minigames lol
 	}
 }
 
