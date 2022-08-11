@@ -5,6 +5,8 @@ CDClientManager * CDClientManager::m_Address = nullptr;
 
 //! Initializes the manager
 void CDClientManager::Initialize(void) {
+	CDTable::Initalize();
+	
 	tables.insert(std::make_pair("ActivityRewards", new CDActivityRewardsTable()));
 	UNUSED(tables.insert(std::make_pair("Animations", new CDAnimationsTable())));
 	tables.insert(std::make_pair("BehaviorParameter", new CDBehaviorParameterTable()));
@@ -43,4 +45,12 @@ void CDClientManager::Initialize(void) {
 	tables.insert(std::make_pair("PropertyTemplate", new CDPropertyTemplateTable()));
 	tables.insert(std::make_pair("FeatureGating", new CDFeatureGatingTable()));
 	tables.insert(std::make_pair("RailActivatorComponent", new CDRailActivatorComponentTable()));
+}
+
+void CDClientManager::LoadHost() {
+	for (auto itr = this->tables.begin(); itr != this->tables.end(); ++itr) {
+		itr->second->LoadHost();
+	}
+
+	CDTable::InitalizeHost();
 }

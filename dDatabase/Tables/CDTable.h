@@ -38,4 +38,27 @@ public:
       \return The table name
      */
     virtual std::string GetName() const = 0;
+
+    //! Loads the table into shared memory
+    virtual void LoadHost() {};
+
+    //! Initalizes the table services
+    static void Initalize();
+
+    //! Initalizes the table services as host
+    static void InitalizeHost();
+
+    //! Get a string from a handle
+    /*!
+      \param handle The handle to get the string from
+      \return The string
+     */
+    static std::string GetString(size_t handle);
+
+    //! Set a string
+    /*!
+      \param value The string to set
+      \return The handle to the string
+     */
+    static size_t SetString(std::string value);
 };

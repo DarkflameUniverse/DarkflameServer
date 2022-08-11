@@ -1754,6 +1754,40 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
+#ifdef __linux__
+	if (chatCommand == "statm" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER)
+	{
+		// Print and format the output of /proc/self/statm
+		std::ifstream statm("/proc/self/statm");
+
+		if (!statm.is_open())
+		{
+			ChatPackets::SendSystemMessage(sysAddr, u"Failed to open /proc/self/statm");
+			return;
+		}
+
+		// Scan for the different fields
+		uint64_t size, resident, share, text, lib, data, dirty;
+		statm >> size >> resident >> share >> text >> lib >> data >> dirty;
+
+		// Get the page size
+		size_t pageSize = sysconf(_SC_PAGESIZE);
+
+		// Print the output
+		ChatPackets::SendSystemMessage(
+			sysAddr,
+			u"Size: " + GeneralUtils::to_u16string((float) ((double) size * pageSize / 1.024e6)) +
+			u"MB\nResident: " + GeneralUtils::to_u16string((float) ((double) resident * pageSize / 1.024e6)) +
+			u"MB\nShared: " + GeneralUtils::to_u16string((float) ((double) share * pageSize / 1.024e6)) +
+			u"MB\nText: " + GeneralUtils::to_u16string((float) ((double) text * pageSize / 1.024e6)) +
+			u"MB\nLibrary: " + GeneralUtils::to_u16string((float) ((double) lib * pageSize / 1.024e6)) +
+			u"MB\nData: " + GeneralUtils::to_u16string((float) ((double) data * pageSize / 1.024e6)) +
+			u"MB\nDirty: " + GeneralUtils::to_u16string((float) ((double) dirty * pageSize / 1.024e6)) +
+			u"MB"
+		);
+	}
+#endif
+
 	if (chatCommand == "rollloot" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && args.size() >= 3) {
 		uint32_t lootMatrixIndex = 0;
 		uint32_t targetLot = 0;

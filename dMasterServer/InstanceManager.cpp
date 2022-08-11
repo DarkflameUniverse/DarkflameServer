@@ -48,16 +48,28 @@ Instance * InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, L
 
     //Start the actual process:
 #ifdef _WIN32
-	std::string cmd = "start ./WorldServer.exe -zone ";
+	std::string cmd = "start ./WorldServer.exe";
 #else
 	std::string cmd;
-    if (std::atoi(Game::config->GetValue("use_sudo_world").c_str())) {
-		cmd = "sudo ./WorldServer -zone ";
+
+	Game::logger->Log("InstanceManager", "world_command: %s\n", Game::config->GetValue("world_command").c_str());
+
+	if (!Game::config->GetValue("world_command").empty()) {
+		cmd = Game::config->GetValue("world_command");
+		// Replace %map%_%instance%_%time% with the correct values
+		cmd = cmd.replace(cmd.find("%map%"), 5, std::to_string(mapID));
+		cmd = cmd.replace(cmd.find("%instance%"), 10, std::to_string(instance->GetInstanceID()));
+		cmd = cmd.replace(cmd.find("%time%"), 5, std::to_string(time(nullptr)));
+		// Remove any other %
+		cmd = cmd.replace(cmd.find("%"), 1, "");
+	} else if (std::atoi(Game::config->GetValue("use_sudo_world").c_str())) {
+		cmd = "sudo ./WorldServer";
 	} else {
-		cmd = "./WorldServer -zone ";
+		cmd = "./WorldServer";
 	}
 #endif
 
+    cmd.append(" -zone ");
     cmd.append(std::to_string(mapID));
     cmd.append(" -port ");
     cmd.append(std::to_string(port));
@@ -72,6 +84,8 @@ Instance * InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, L
 #ifndef _WIN32
     cmd.append("&"); //Sends our next process to the background on Linux
 #endif
+
+	Game::logger->Log("InstanceManager", "Starting instance %i with command: %s\n", instance->GetInstanceID(), cmd.c_str());
 
     system(cmd.c_str());
 

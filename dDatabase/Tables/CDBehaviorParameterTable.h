@@ -19,10 +19,8 @@ struct CDBehaviorParameter {
 
 //! BehaviorParameter table
 class CDBehaviorParameterTable : public CDTable {
-private:
-	std::unordered_map<size_t, float> m_Entries;
 public:
-    static void CreateSharedMap();
+    void LoadHost() override;
     
     //! Constructor
     CDBehaviorParameterTable(void);

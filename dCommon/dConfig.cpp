@@ -34,12 +34,19 @@ void dConfig::ProcessLine(const std::string& line) {
 	   seglist.push_back(segment);
 	}
 
-	if (seglist.size() != 2) return;
+	if (seglist.size() < 2) return;
+
+	// Segment #1 is combined with the rest of the line to form the value
+	std::string key = seglist[0];
+	std::string value = seglist[1];
+	for (size_t i = 2; i < seglist.size(); ++i) {
+		value += "=" + seglist[i];
+	}
 
 	//Make sure that on Linux, we remove special characters:
-	if (!seglist[1].empty() && seglist[1][seglist[1].size() - 1] == '\r')
-    	seglist[1].erase(seglist[1].size() - 1);
+	if (!value.empty() && value[value.size() - 1] == '\r')
+    	value.erase(value.size() - 1);
 
-	m_Keys.push_back(seglist[0]);
-	m_Values.push_back(seglist[1]);
+	m_Keys.push_back(key);
+	m_Values.push_back(value);
 }

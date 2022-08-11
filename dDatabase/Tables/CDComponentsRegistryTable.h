@@ -23,6 +23,7 @@ private:
     std::map<uint64_t, uint32_t> mappedEntries; //id, component_type, component_id
     
 public:
+    void LoadHost() override;
     
     //! Constructor
     CDComponentsRegistryTable(void);

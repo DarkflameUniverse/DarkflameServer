@@ -1,4 +1,4 @@
-set(DDATABASE_TABLES_SOURCES "CDActivitiesTable.cpp"
+set(DDATABASE_TABLES_SOURCES "CDTable.cpp" "CDActivitiesTable.cpp"
 	"CDActivityRewardsTable.cpp"
 	"CDAnimationsTable.cpp"
 	"CDBehaviorParameterTable.cpp"

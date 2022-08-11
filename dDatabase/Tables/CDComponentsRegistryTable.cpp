@@ -1,58 +1,30 @@
+
 #include "CDComponentsRegistryTable.h"
 
 #define CDCLIENT_CACHE_ALL
 
+#include "CDProvider.h"
+
+CD_PROVIDER(ComponentsRegistryProvider, size_t, int32_t);
+
 //! Constructor
 CDComponentsRegistryTable::CDComponentsRegistryTable(void) {
-    
-#ifdef CDCLIENT_CACHE_ALL
-    // First, get the size of the table
-    unsigned int size = 0;
-    auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM ComponentsRegistry");
-    while (!tableSize.eof()) {
-        size = tableSize.getIntField(0, 0);
-        
-        tableSize.nextRow();
-    }
-        
-	tableSize.finalize();
-    
-    // Reserve the size
-    //this->entries.reserve(size);
-    
-    // Now get the data
-    auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ComponentsRegistry");
-    while (!tableData.eof()) {
-        CDComponentsRegistry entry;
-        entry.id = tableData.getIntField(0, -1);
-        entry.component_type = tableData.getIntField(1, -1);
-        entry.component_id = tableData.getIntField(2, -1);
-
-		this->mappedEntries.insert_or_assign(((uint64_t) entry.component_type) << 32 | ((uint64_t) entry.id), entry.component_id);
-        
-        //this->entries.push_back(entry);
-
-		/*
-		//Darwin's stuff:
-		const auto& it = this->mappedEntries.find(entry.id);
-		if (it != mappedEntries.end()) {
-			const auto& iter = it->second.find(entry.component_type);
-			if (iter == it->second.end()) {
-				it->second.insert(std::make_pair(entry.component_type, entry.component_id));
-			}
-		}
-		else {
-			std::map<unsigned int, unsigned int> map;
-			map.insert(std::make_pair(entry.component_type, entry.component_id));
-			this->mappedEntries.insert(std::make_pair(entry.id, map));
-		}
-		*/
-
-        tableData.nextRow();
-    }
-
-	tableData.finalize();
-#endif
+	NEW_CD_PROVIDER(ComponentsRegistryProvider, "ComponentsRegistry", [](CppSQLite3Query& query) {
+		size_t hash = 0;
+		
+		int32_t componentID = query.getIntField(0, -1);
+		int32_t componentType = query.getIntField(1, -1);
+		
+		hash = componentID;
+		hash = hash << 32;
+		hash |= componentType;
+		
+		int32_t componentHandle = query.getIntField(2, -1);
+		
+		return std::make_pair(hash, componentHandle);
+	}, [](int32_t size) {
+		return 10 * 1000 * 1000;
+	}, true);
 }
 
 //! Destructor
@@ -63,69 +35,15 @@ std::string CDComponentsRegistryTable::GetName(void) const {
     return "ComponentsRegistry";
 }
 
-int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, uint32_t componentType, int32_t defaultValue) 
-{
-	const auto& iter = this->mappedEntries.find(((uint64_t) componentType) << 32 | ((uint64_t) id));
+int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, uint32_t componentType, int32_t defaultValue) {
+	size_t hash = 0;
+	hash = id;
+	hash = hash << 32;
+	hash |= componentType;
+	
+	return ComponentsRegistryProvider->GetEntry(hash, defaultValue);
+}
 
-	if (iter == this->mappedEntries.end())
-	{
-		return defaultValue;
-	}
-
-	return iter->second;
-
-	/*
-	const auto& it = this->mappedEntries.find(id);
-	if (it != mappedEntries.end()) {
-		const auto& iter = it->second.find(componentType);
-		if (iter != it->second.end()) {
-			return iter->second;
-		}
-	}
-	*/
-
-#ifndef CDCLIENT_CACHE_ALL
-    // Now get the data
-	std::stringstream query;
-
-	query << "SELECT * FROM ComponentsRegistry WHERE id = " << std::to_string(id);
-
-	auto tableData = CDClientDatabase::ExecuteQuery(query.str());
-    while (!tableData.eof()) {
-        CDComponentsRegistry entry;
-        entry.id = tableData.getIntField(0, -1);
-        entry.component_type = tableData.getIntField(1, -1);
-        entry.component_id = tableData.getIntField(2, -1);
-        
-        //this->entries.push_back(entry);
-
-		//Darwin's stuff:
-		const auto& it = this->mappedEntries.find(entry.id);
-		if (it != mappedEntries.end()) {
-			const auto& iter = it->second.find(entry.component_type);
-			if (iter == it->second.end()) {
-				it->second.insert(std::make_pair(entry.component_type, entry.component_id));
-			}
-		}
-		else {
-			std::map<unsigned int, unsigned int> map;
-			map.insert(std::make_pair(entry.component_type, entry.component_id));
-			this->mappedEntries.insert(std::make_pair(entry.id, map));
-		}
-
-        tableData.nextRow();
-    }
-
-	tableData.finalize();
-
-	const auto& it2 = this->mappedEntries.find(id);
-	if (it2 != mappedEntries.end()) {
-		const auto& iter = it2->second.find(componentType);
-		if (iter != it2->second.end()) {
-			return iter->second;
-		}
-	}
-
-	return defaultValue;
-#endif
+void CDComponentsRegistryTable::LoadHost() {
+	ComponentsRegistryProvider->LoadHost();
 }

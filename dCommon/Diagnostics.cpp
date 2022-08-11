@@ -171,6 +171,9 @@ void CatchUnhandled(int sig) {
         ErrorCallback,
         nullptr);
 
+    // Print error code
+    printf("Error code: %d\n", sig);
+
     struct bt_ctx ctx = {state, 0};
     Bt(state);
 
