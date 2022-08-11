@@ -35,7 +35,7 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, SERVER, MSG_SERVER_VERSION_CONFIRM);
-	bitStream.Write<unsigned int>(171023);	
+	bitStream.Write<unsigned int>(NET_VERSION);	
 	bitStream.Write(uint32_t(0x93));
 	
 	if (nextServerPort == 1001) bitStream.Write(uint32_t(1)); //Conn: auth
