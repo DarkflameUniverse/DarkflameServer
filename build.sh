@@ -5,15 +5,8 @@ cd build
 # Run cmake to generate make files
 cmake ..
 
-# Windows build
-if [[ "$OSTYPE" =~ ^msys ]]; then
-
-	cmake --build . --config Release
-else
-
-	# Run make to build the project. To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `make -j8`
-	make
-fi
+# To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `cmake --build . --config Release -j8'
+cmake --build . --config Release
 
 # Run migrations
 ./MasterServer -m
