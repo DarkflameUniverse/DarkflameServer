@@ -303,20 +303,18 @@ void Character::SaveXMLToDatabase() {
 
 		auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
 		// lzid garbage, binary concat of zoneID, zoneInstance and zoneClone
-		if ((zoneInfo.GetMapID() != 0)) {
-			if (zoneInfo.GetCloneID() == 0) {
-				uint64_t lzidConcat = zoneInfo.GetCloneID();
-				lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
-				lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetMapID());
-				character->SetAttribute("lzid", lzidConcat);
-				character->SetAttribute("lnzid", GetLastNonInstanceZoneID());
+		if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
+			uint64_t lzidConcat = zoneInfo.GetCloneID();
+			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
+			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetMapID());
+			character->SetAttribute("lzid", lzidConcat);
+			character->SetAttribute("lnzid", GetLastNonInstanceZoneID());
 
-				//Darwin's backup:
-				character->SetAttribute("lwid", Game::server->GetZoneID());
+			//Darwin's backup:
+			character->SetAttribute("lwid", Game::server->GetZoneID());
 
-				// Set the target scene, custom attribute
-				character->SetAttribute("tscene", m_TargetScene.c_str());
-			}
+			// Set the target scene, custom attribute
+			character->SetAttribute("tscene", m_TargetScene.c_str());
 		}
 
 		auto emotes = character->FirstChildElement("ue");

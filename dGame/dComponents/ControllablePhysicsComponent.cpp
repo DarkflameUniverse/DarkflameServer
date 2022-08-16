@@ -166,16 +166,14 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 
 	auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
 
-	if ((zoneInfo.GetMapID() != 0)) {
-		if (zoneInfo.GetCloneID() == 0) {
-			character->SetAttribute("lzx", m_Position.x);
-			character->SetAttribute("lzy", m_Position.y);
-			character->SetAttribute("lzz", m_Position.z);
-			character->SetAttribute("lzrx", m_Rotation.x);
-			character->SetAttribute("lzry", m_Rotation.y);
-			character->SetAttribute("lzrz", m_Rotation.z);
-			character->SetAttribute("lzrw", m_Rotation.w);
-		}
+	if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
+		character->SetAttribute("lzx", m_Position.x);
+		character->SetAttribute("lzy", m_Position.y);
+		character->SetAttribute("lzz", m_Position.z);
+		character->SetAttribute("lzrx", m_Rotation.x);
+		character->SetAttribute("lzry", m_Rotation.y);
+		character->SetAttribute("lzrz", m_Rotation.z);
+		character->SetAttribute("lzrw", m_Rotation.w);
 	}
 }
 
