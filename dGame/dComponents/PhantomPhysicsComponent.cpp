@@ -162,7 +162,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "miscellaneous\\misc_phys_640x640.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 640.0f, 20.0f, 640.0f);
+			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1638.4f, 13.521004f, 1638.4f);
 
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
