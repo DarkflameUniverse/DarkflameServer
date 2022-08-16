@@ -11,6 +11,7 @@
 #include "CDClientManager.h"
 #include "EntityManager.h"
 #include "Character.h"
+#include "dZoneManager.h"
 
 ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Component(entity) {
 	m_Position = {};
@@ -163,13 +164,19 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 
-	character->SetAttribute("lzx", m_Position.x);
-	character->SetAttribute("lzy", m_Position.y);
-	character->SetAttribute("lzz", m_Position.z);
-	character->SetAttribute("lzrx", m_Rotation.x);
-	character->SetAttribute("lzry", m_Rotation.y);
-	character->SetAttribute("lzrz", m_Rotation.z);
-	character->SetAttribute("lzrw", m_Rotation.w);
+	auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
+
+	if ((zoneInfo.GetMapID() != 0) && !(1700 > zoneInfo.GetMapID() && zoneInfo.GetMapID() > 1600)) {
+		if (zoneInfo.GetCloneID() == 0) {
+			character->SetAttribute("lzx", m_Position.x);
+			character->SetAttribute("lzy", m_Position.y);
+			character->SetAttribute("lzz", m_Position.z);
+			character->SetAttribute("lzrx", m_Rotation.x);
+			character->SetAttribute("lzry", m_Rotation.y);
+			character->SetAttribute("lzrz", m_Rotation.z);
+			character->SetAttribute("lzrw", m_Rotation.w);
+		}
+	}
 }
 
 void ControllablePhysicsComponent::SetPosition(const NiPoint3& pos) {
