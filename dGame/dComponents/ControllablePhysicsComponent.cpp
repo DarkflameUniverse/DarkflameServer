@@ -166,7 +166,7 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 
 	auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
 
-	if ((zoneInfo.GetMapID() != 0) && !(1700 > zoneInfo.GetMapID() && zoneInfo.GetMapID() > 1600)) {
+	if ((zoneInfo.GetMapID() != 0)) {
 		if (zoneInfo.GetCloneID() == 0) {
 			character->SetAttribute("lzx", m_Position.x);
 			character->SetAttribute("lzy", m_Position.y);

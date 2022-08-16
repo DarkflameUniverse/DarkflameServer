@@ -303,7 +303,7 @@ void Character::SaveXMLToDatabase() {
 
 		auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
 		// lzid garbage, binary concat of zoneID, zoneInstance and zoneClone
-		if ((zoneInfo.GetMapID() != 0) && !(1700 > zoneInfo.GetMapID() && zoneInfo.GetMapID() > 1600)) {
+		if ((zoneInfo.GetMapID() != 0)) {
 			if (zoneInfo.GetCloneID() == 0) {
 				uint64_t lzidConcat = zoneInfo.GetCloneID();
 				lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
