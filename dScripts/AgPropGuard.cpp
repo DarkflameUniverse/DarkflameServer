@@ -1,4 +1,4 @@
-﻿#include "AgPropGuard.h"
+#include "AgPropGuard.h"
 #include "Entity.h"
 #include "Character.h"
 #include "EntityManager.h"

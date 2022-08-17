@@ -425,6 +425,18 @@ public:
 	 */
 	const std::vector<LOT>& GetEquippedItems() const { return m_EquippedItems; }
 
+	/**
+	 * @brief Get the flying state
+	 * @return value of the flying state 
+	*/
+	bool GetIsFlying() { return m_IsFlying; }
+
+	/**
+	 * @brief Set the value of the flying state
+	 * @param isFlying the flying state
+	*/
+	void SetIsFlying(bool isFlying) { m_IsFlying = isFlying; }
+
 private:
 	/**
 	 * The ID of this character. First 32 bits of the ObjectID.
@@ -620,6 +632,11 @@ private:
 	 * Set by the launchpad the player used to get to the current world.
 	 */
 	std::string m_TargetScene;
+
+	/**
+	 * Bool that tracks the flying state of the user.
+	*/
+	bool m_IsFlying = false;
 
 	/**
 	 * Queries the character XML and updates all the fields of this object

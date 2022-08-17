@@ -1,4 +1,4 @@
-﻿#include "BossSpiderQueenEnemyServer.h"
+#include "BossSpiderQueenEnemyServer.h"
 
 #include "GeneralUtils.h"
 

@@ -21,6 +21,7 @@ COPY dPhysics/ /build/dPhysics
 COPY dScripts/ /build/dScripts
 COPY dWorldServer/ /build/dWorldServer
 COPY dZoneManager/ /build/dZoneManager
+COPY dNavigation/ /build/dNavigation
 COPY migrations/ /build/migrations
 COPY resources/ /build/resources
 COPY thirdparty/ /build/thirdparty

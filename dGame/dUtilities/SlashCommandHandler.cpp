@@ -982,6 +982,40 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 	}
 
+	if (chatCommand == "fly" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_JUNIOR_DEVELOPER) {
+		auto* character = entity->GetCharacter();
+
+		if (character) {
+			bool isFlying = character->GetIsFlying();
+
+			if (isFlying) {
+				GameMessages::SendSetJetPackMode(entity, false);
+
+				character->SetIsFlying(false);
+			} else {
+				float speedScale = 1.0f;
+
+				if (args.size() >= 1) {
+					float tempScaleStore;
+
+					if (GeneralUtils::TryParse<float>(args[0], tempScaleStore)) {
+						speedScale = tempScaleStore;
+					} else {
+						ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse speed scale argument.");
+					}
+				}
+
+				float airSpeed = 20 * speedScale;
+				float maxAirSpeed = 30 * speedScale;
+				float verticalVelocity = 1.5 * speedScale;
+
+				GameMessages::SendSetJetPackMode(entity, true, true, false, 167, airSpeed, maxAirSpeed, verticalVelocity);
+
+				character->SetIsFlying(true);
+			}
+		}
+	}
+
 	//------- GM COMMANDS TO ACTUALLY MODERATE --------
 
 	if (chatCommand == "mute" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_JUNIOR_DEVELOPER) {

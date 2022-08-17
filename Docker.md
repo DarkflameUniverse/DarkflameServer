@@ -25,8 +25,7 @@
 
 **NOTE #4**: Make sure to run the following in the repo root directory after cloning so submodules are also downloaded.
 ```
-git submodule init
-git submodule update
+git submodule update --init --recursive
 ```
 **NOTE #5**: If DarkflameSetup fails due to not having cdclient.fdb, rename CDClient.fdb (in the same folder) to cdclient.fdb
 

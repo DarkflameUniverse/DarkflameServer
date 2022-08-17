@@ -1,4 +1,4 @@
-﻿#include "AreaOfEffectBehavior.h"
+#include "AreaOfEffectBehavior.h"
 
 #include <vector>
 

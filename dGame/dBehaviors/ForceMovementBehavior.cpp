@@ -1,4 +1,4 @@
-﻿#include "ForceMovementBehavior.h"
+#include "ForceMovementBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "ControllablePhysicsComponent.h"

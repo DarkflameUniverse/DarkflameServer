@@ -1,4 +1,4 @@
-﻿#include "PropertyManagementComponent.h"
+#include "PropertyManagementComponent.h"
 
 #include <sstream>
 

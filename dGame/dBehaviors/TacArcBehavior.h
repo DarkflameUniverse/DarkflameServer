@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Behavior.h"
 #include "dCommonVars.h"
 #include "NiPoint3.h"

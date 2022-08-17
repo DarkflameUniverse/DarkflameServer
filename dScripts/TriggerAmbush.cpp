@@ -1,4 +1,4 @@
-﻿#include "TriggerAmbush.h"
+#include "TriggerAmbush.h"
 
 #include "dZoneManager.h"
 

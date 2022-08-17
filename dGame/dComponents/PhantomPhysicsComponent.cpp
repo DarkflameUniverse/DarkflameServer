@@ -162,7 +162,8 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "miscellaneous\\misc_phys_640x640.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 640.0f, 20.0f, 640.0f);
+			// TODO Fix physics simulation to do simulation at high velocities due to bullet through paper problem...
+			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1638.4f, 13.521004f * 2.0f, 1638.4f);
 
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
@@ -201,6 +202,12 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\Ring_Trigger.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 6.0f, 6.0f, 6.0f);
+			m_dpEntity->SetScale(m_Scale);
+			m_dpEntity->SetRotation(m_Rotation);
+			m_dpEntity->SetPosition(m_Position);
+			dpWorld::Instance().AddEntity(m_dpEntity);
+		} else if (info->physicsAsset == "env\\vfx_propertyImaginationBall.hkx") {
+			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 4.5f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);

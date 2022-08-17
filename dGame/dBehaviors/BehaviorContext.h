@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "RakPeerInterface.h"
 #include "dCommonVars.h"

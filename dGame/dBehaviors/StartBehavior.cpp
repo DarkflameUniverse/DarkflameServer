@@ -1,4 +1,4 @@
-﻿#include "StartBehavior.h"
+#include "StartBehavior.h"
 #include "BehaviorBranchContext.h"
 
 void StartBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, BehaviorBranchContext branch) {

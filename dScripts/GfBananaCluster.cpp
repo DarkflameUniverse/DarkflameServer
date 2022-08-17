@@ -1,4 +1,4 @@
-﻿#include "GfBananaCluster.h"
+#include "GfBananaCluster.h"
 #include "Entity.h"
 
 void GfBananaCluster::OnStartup(Entity* self) {

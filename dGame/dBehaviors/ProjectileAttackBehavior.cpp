@@ -1,4 +1,4 @@
-﻿#include "ProjectileAttackBehavior.h"
+#include "ProjectileAttackBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "EntityManager.h"

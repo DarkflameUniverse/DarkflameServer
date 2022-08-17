@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "CppScripts.h"
 
 class TriggerAmbush : public CppScripts::Script

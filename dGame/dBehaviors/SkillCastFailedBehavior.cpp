@@ -1,4 +1,4 @@
-﻿#include "SkillCastFailedBehavior.h"
+#include "SkillCastFailedBehavior.h"
 
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"

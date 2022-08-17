@@ -1,4 +1,4 @@
-﻿#include "SpawnQuickbuildBehavior.h"
+#include "SpawnQuickbuildBehavior.h"
 
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"

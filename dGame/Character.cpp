@@ -301,9 +301,9 @@ void Character::SaveXMLToDatabase() {
 		character->SetAttribute("gm", m_GMLevel);
 		character->SetAttribute("cc", m_Coins);
 
+		auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
 		// lzid garbage, binary concat of zoneID, zoneInstance and zoneClone
-		if (Game::server->GetZoneID() != 0) {
-			auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
+		if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
 			uint64_t lzidConcat = zoneInfo.GetCloneID();
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetMapID());

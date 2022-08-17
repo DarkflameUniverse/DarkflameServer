@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifndef MISSIONTASKTYPE_H
 #define MISSIONTASKTYPE_H

@@ -1,4 +1,4 @@
-﻿#include "SpawnBehavior.h"
+#include "SpawnBehavior.h"
 
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"

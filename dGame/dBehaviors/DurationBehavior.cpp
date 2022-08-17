@@ -1,4 +1,4 @@
-﻿#include "DurationBehavior.h"
+#include "DurationBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 

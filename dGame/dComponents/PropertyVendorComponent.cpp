@@ -1,4 +1,4 @@
-﻿#include "PropertyVendorComponent.h"
+#include "PropertyVendorComponent.h"
 
 #include "PropertyDataMessage.h"
 #include "GameMessages.h"
