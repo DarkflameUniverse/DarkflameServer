@@ -2,12 +2,7 @@
 add_subdirectory(recastnavigation)
 
 # Source Code for tinyxml2
-file(
-	GLOB SOURCES_TINYXML2
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/tinyxml2/tinyxml2.cpp
-)
+add_subdirectory(tinyxml2)
 
 # Source Code for libbcrypt
 file(
@@ -31,7 +26,6 @@ include(CMakeMariaDBLists.txt)
 
 # Create our third party library objects
 add_subdirectory(raknet)
-add_library(tinyxml2 ${SOURCES_TINYXML2})
 add_library(libbcrypt ${SOURCES_LIBBCRYPT})
 add_library(sqlite3 ${SOURCES_SQLITE3})
 
@@ -41,7 +35,6 @@ if(UNIX)
 
 	#  -Wno-unused-result -Wno-unknown-pragmas -fpermissive
 	target_compile_options(sqlite3 PRIVATE "-Wno-return-local-addr" "-Wno-maybe-uninitialized")
-	target_compile_options(libbcrypt PRIVATE "-Wno-implicit-function-declaration" "-Wno-int-conversion")
 endif()
 
 # Download Backtrace if configured
