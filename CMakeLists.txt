@@ -137,8 +137,7 @@ set(INCLUDED_DIRECTORIES
 
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
-	"thirdparty/recastnavigation/Recast/Include"
-	"thirdparty/recastnavigation/Detour/Include"
+	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
 	)

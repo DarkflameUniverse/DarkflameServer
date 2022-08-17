@@ -18,3 +18,8 @@ __dynamic=1
 # Set __compile_backtrace__ to 1 to compile the backtrace library instead of using system libraries. 
 __maria_db_connector_compile_jobs__=1
 # Set to the number of jobs (make -j equivalent) to compile the mariadbconn files with.
+
+# Turn off RecastNavigation features not needed for the server.  If needed for development, change these to ON
+RECASTNAVIGATION_DEMO=OFF
+RECASTNAVIGATION_TESTS=OFF
+RECASTNAVIGATION_EXAMPLES=OFF

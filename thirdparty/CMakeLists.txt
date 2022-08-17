@@ -1,18 +1,5 @@
 # Source Code for recast
-file(
-	GLOB SOURCES_RECAST
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/recastnavigation/Recast/Source/*.cpp
-)
-
-# Source Code for detour
-file(
-	GLOB SOURCES_DETOUR
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/recastnavigation/Detour/Source/*.cpp
-)
+add_subdirectory(recastnavigation)
 
 # Source Code for tinyxml2
 file(
@@ -45,8 +32,6 @@ include(CMakeMariaDBLists.txt)
 # Create our third party library objects
 add_subdirectory(raknet)
 add_library(tinyxml2 ${SOURCES_TINYXML2})
-add_library(detour ${SOURCES_DETOUR})
-add_library(recast ${SOURCES_RECAST})
 add_library(libbcrypt ${SOURCES_LIBBCRYPT})
 add_library(sqlite3 ${SOURCES_SQLITE3})
 

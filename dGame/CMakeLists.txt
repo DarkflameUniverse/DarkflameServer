@@ -56,4 +56,4 @@ endforeach()
 
 add_library(dGame STATIC ${DGAME_SOURCES})
 
-target_link_libraries(dGame dDatabase)
+target_link_libraries(dGame dDatabase Recast Detour)
