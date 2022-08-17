@@ -5,13 +5,12 @@ add_subdirectory(recastnavigation)
 add_subdirectory(tinyxml2)
 
 # Source Code for libbcrypt
-file(
-	GLOB SOURCES_LIBBCRYPT
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/*.c
-	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/src/*.c
-)
+# Disable warning about no project version.
+set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
+# Disable warning about the minimum version of cmake used for bcrypt being deprecated in the future
+set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(libbcrypt)
 
 file(
 	GLOB SOURCES_SQLITE3
@@ -26,7 +25,6 @@ include(CMakeMariaDBLists.txt)
 
 # Create our third party library objects
 add_subdirectory(raknet)
-add_library(libbcrypt ${SOURCES_LIBBCRYPT})
 add_library(sqlite3 ${SOURCES_SQLITE3})
 
 if(UNIX)
