@@ -201,6 +201,7 @@
 #include "ForceVolumeServer.h"
 #include "NtXRayServer.h"
 #include "NtSleepingGuard.h"
+#include "NtImagimeterVisibility.h"
 
 // DLU Scripts
 #include "DLUVanityNPC.h"
@@ -661,6 +662,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NtXRayServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_SLEEPING_GUARD.lua")
 		script = new NtSleepingGuard();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua") {
+		script = new NTImagimeterVisibility();
+	}
 
 	//AM:
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua")
