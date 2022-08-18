@@ -245,6 +245,17 @@ public:
 	 */
 	std::vector<float> GetActivePickupRadiusScales() { return m_ActivePickupRadiusScales; };
 
+	/**
+	* Sets the value of the bubble state
+	*/
+	void SetHasBubble(bool hasBubble) { m_HasBubble = hasBubble; m_BubbleDirty = true; }
+	
+	/**
+	* Gets the value of the bubble state
+	* @return The value of the bubble state.
+	*/
+	bool GetHasBubble() { return m_HasBubble; }
+
 private:
 	/**
 	 * The entity that owns this component
@@ -344,7 +355,7 @@ private:
 	/**
 	 * Whether the pickup scale is dirty.
 	 */
-	bool m_DirtyPickupRadiusScale;
+	bool m_DirtyEquippedItemInfo;
 
 	/**
 	 * The list of pickup radius scales for this entity
@@ -355,6 +366,16 @@ private:
 	 * The active pickup radius for this entity
 	 */
 	float m_PickupRadius;
+
+	/*
+	* If the user has a bubble
+	*/
+	bool m_HasBubble;
+
+	/*
+	* If Bubble info is dirty
+	*/
+	bool m_BubbleDirty;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H

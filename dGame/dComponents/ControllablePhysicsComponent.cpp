@@ -31,7 +31,9 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_DirtyCheats = false;
 	m_IgnoreMultipliers = false;
 	m_PickupRadius = 0.0f;
-	m_DirtyPickupRadiusScale = true;
+	m_DirtyEquippedItemInfo = true;
+	m_BubbleDirty = false;
+	m_HasBubble = false;
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
@@ -88,14 +90,23 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		m_DirtyCheats = false;
 	}
 
-	outBitStream->Write(m_DirtyPickupRadiusScale);
-	if (m_DirtyPickupRadiusScale) {
+	outBitStream->Write(m_DirtyEquippedItemInfo);
+	if (m_DirtyEquippedItemInfo) {
 		outBitStream->Write(m_PickupRadius);
-		outBitStream->Write0(); //No clue what this is so im leaving it false.
-		m_DirtyPickupRadiusScale = false;
+		outBitStream->Write(m_InJetpackMode);
+		m_DirtyEquippedItemInfo = false;
 	}
 
-	outBitStream->Write0();
+	outBitStream->Write(m_BubbleDirty);
+	if (m_BubbleDirty) {
+		outBitStream->Write1(); // another dirty flag?
+		if (m_BubbleDirty) {
+			outBitStream->Write<uint32_t>(1); // 1 not full bubble, 2 full bubble
+			outBitStream->Write(m_HasBubble);
+
+			m_BubbleDirty = false;
+		}
+	}
 
 	outBitStream->Write(m_DirtyPosition || bIsInitialUpdate);
 	if (m_DirtyPosition || bIsInitialUpdate) {
@@ -249,7 +260,7 @@ void ControllablePhysicsComponent::AddPickupRadiusScale(float value) {
 	m_ActivePickupRadiusScales.push_back(value);
 	if (value > m_PickupRadius) {
 		m_PickupRadius = value;
-		m_DirtyPickupRadiusScale = true;
+		m_DirtyEquippedItemInfo = true;
 	}
 }
 
@@ -265,7 +276,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 
 	// Recalculate pickup radius since we removed one by now
 	m_PickupRadius = 0.0f;
-	m_DirtyPickupRadiusScale = true;
+	m_DirtyEquippedItemInfo = true;
 	for (uint32_t i = 0; i < m_ActivePickupRadiusScales.size(); i++) {
 		auto candidateRadius = m_ActivePickupRadiusScales[i];
 		if (m_PickupRadius < candidateRadius) m_PickupRadius = candidateRadius;
