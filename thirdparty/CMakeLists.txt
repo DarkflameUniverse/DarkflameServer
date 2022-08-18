@@ -2,7 +2,7 @@
 add_subdirectory(recastnavigation)
 
 # Turn off tinyxml2 testing
-# set(tinyxml2_BUILD_TESTING OFF)
+set(tinyxml2_BUILD_TESTING OFF)
 # Source Code for tinyxml2
 add_subdirectory(tinyxml2)
 
