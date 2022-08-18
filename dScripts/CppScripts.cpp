@@ -116,6 +116,7 @@
 #include "BaseEnemyApe.h"
 #include "GfApeSmashingQB.h"
 #include "ZoneGfProperty.h"
+#include "GfArchway.h"
 
 // SG Scripts
 #include "SGCannon.h"
@@ -494,6 +495,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new GfApeSmashingQB();
 	else if (scriptName == "scripts\\zone\\PROPERTY\\GF\\L_ZONE_GF_PROPERTY.lua")
 		script = new ZoneGfProperty();
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_ARCHWAY.lua") {
+		script = new GfArchway();
+	}
 
 	// SG
 	else if (scriptName == "scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON.lua")
