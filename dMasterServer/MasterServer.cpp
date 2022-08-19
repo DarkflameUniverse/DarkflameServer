@@ -20,6 +20,7 @@
 #include "CDClientManager.h"
 #include "Database.h"
 #include "MigrationRunner.h"
+#include "BrickByBrickFix.h"
 #include "Diagnostics.h"
 #include "dCommonVars.h"
 #include "dConfig.h"
@@ -201,6 +202,24 @@ int main(int argc, char** argv) {
 		delete Game::logger;
 
 		return EXIT_SUCCESS;
+	}
+
+	// We were given a brick by brick command
+	if (argc == 3 && strcmp(argv[1], "--brick-by-brick") == 0) {
+		// Truncates invalid model lxfml from the database and
+		// removes their respective models from the database.
+		if (strcmp(argv[2], "TruncateBrokenModels") == 0) {
+			uint32_t numberOfTruncatedModels = BrickByBrickFix::TruncateBrokenBrickByBrickXml();
+			Game::logger->Log("MasterServer", "%i models were truncated from the database.", numberOfTruncatedModels);
+		}
+
+		// Updates old Brick-by-Brick models to use sd0 compression
+		// as opposed to zlib compression
+		if (strcmp(argv[2], "UpdateOldModels") == 0) {
+			uint32_t numberOfUpdatedModels = BrickByBrickFix::UpdateBrickByBrickModelsToSd0();
+			Game::logger->Log("MasterServer", "%i models were updated from zlib to sd0.", numberOfUpdatedModels);
+		}
+		FinalizeShutdown();
 	}
 
 	int maxClients = 999;
@@ -825,9 +844,9 @@ void ShutdownSequence() {
 int FinalizeShutdown() {
 	//Delete our objects here:
 	Database::Destroy("MasterServer");
-	delete Game::im;
-	delete Game::server;
-	delete Game::logger;
+	if (Game::im) delete Game::im;
+	if (Game::server) delete Game::server;
+	if (Game::logger) delete Game::logger;
 
 	exit(EXIT_SUCCESS);
 	return EXIT_SUCCESS;

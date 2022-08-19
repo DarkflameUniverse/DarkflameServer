@@ -13,13 +13,15 @@ set(DCOMMON_SOURCES "AMFFormat.cpp"
 		"NiQuaternion.cpp"
 		"SHA512.cpp"
 		"Type.cpp"
-		"ZCompression.cpp")
+		"ZCompression.cpp"
+		"BrickByBrickFix.cpp"
+)
 
 include_directories(${PROJECT_SOURCE_DIR}/dCommon/)
 
 add_library(dCommon STATIC ${DCOMMON_SOURCES})
 
-target_link_libraries(dCommon bcrypt)
+target_link_libraries(dCommon bcrypt dDatabase)
 
 if (UNIX)
 	find_package(ZLIB REQUIRED)

@@ -83,3 +83,13 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 void Database::Commit() {
 	Database::con->commit();
 }
+
+bool Database::GetAutoCommit() {
+	// TODO This should not just access a pointer.  A future PR should update this
+	// to check for null and throw an error if the connection is not valid.
+	return con->getAutoCommit();
+}
+
+void Database::SetAutoCommit(bool value) {
+	Database::con->setAutoCommit(value);
+}
