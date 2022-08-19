@@ -4745,12 +4745,6 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 		return;
 	}
 
-	if (args == u"toggleMail") {
-		AMFArrayValue args;
-		args.InsertValue("visible", new AMFFalseValue());
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleMail", &args);
-	}
-
 	// This should probably get it's own "ServerEvents" system or something at some point
 	if (args == u"ZonePlayer") {
 		// Should probably check to make sure they're using a launcher at some point before someone makes a hack that lets you testmap
