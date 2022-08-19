@@ -1,63 +1,27 @@
 # Source Code for recast
-file(
-	GLOB SOURCES_RECAST
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/recastnavigation/Recast/Source/*.cpp
-)
+add_subdirectory(recastnavigation)
 
-# Source Code for detour
-file(
-	GLOB SOURCES_DETOUR
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/recastnavigation/Detour/Source/*.cpp
-)
-
+# Turn off tinyxml2 testing
+set(tinyxml2_BUILD_TESTING OFF)
 # Source Code for tinyxml2
-file(
-	GLOB SOURCES_TINYXML2
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/tinyxml2/tinyxml2.cpp
-)
+add_subdirectory(tinyxml2)
 
 # Source Code for libbcrypt
-file(
-	GLOB SOURCES_LIBBCRYPT
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/*.c
-	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/src/*.c
-)
+# Disable warning about no project version.
+set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
+# Disable warning about the minimum version of cmake used for bcrypt being deprecated in the future
+set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 
-file(
-	GLOB SOURCES_SQLITE3
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/SQLite/*.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/SQLite/*.c
-)
+add_subdirectory(libbcrypt)
+
+# Source code for sqlite
+add_subdirectory(SQLite)
 
 # MariaDB C++ Connector
 include(CMakeMariaDBLists.txt)
 
 # Create our third party library objects
 add_subdirectory(raknet)
-add_library(tinyxml2 ${SOURCES_TINYXML2})
-add_library(detour ${SOURCES_DETOUR})
-add_library(recast ${SOURCES_RECAST})
-add_library(libbcrypt ${SOURCES_LIBBCRYPT})
-add_library(sqlite3 ${SOURCES_SQLITE3})
-
-if(UNIX)
-	# Add warning disable flags and link Unix libraries to sqlite3
-	target_link_libraries(sqlite3 pthread dl m)
-
-	#  -Wno-unused-result -Wno-unknown-pragmas -fpermissive
-	target_compile_options(sqlite3 PRIVATE "-Wno-return-local-addr" "-Wno-maybe-uninitialized")
-	target_compile_options(libbcrypt PRIVATE "-Wno-implicit-function-declaration" "-Wno-int-conversion")
-endif()
 
 # Download Backtrace if configured
 if(UNIX AND NOT APPLE)

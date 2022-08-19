@@ -19,7 +19,7 @@ include_directories(${PROJECT_SOURCE_DIR}/dCommon/)
 
 add_library(dCommon STATIC ${DCOMMON_SOURCES})
 
-target_link_libraries(dCommon libbcrypt)
+target_link_libraries(dCommon bcrypt)
 
 if (UNIX)
 	find_package(ZLIB REQUIRED)

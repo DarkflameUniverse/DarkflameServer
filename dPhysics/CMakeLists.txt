@@ -7,3 +7,4 @@ set(DPHYSICS_SOURCES "dpCollisionChecks.cpp"
 	"dpWorld.cpp")
 
 add_library(dPhysics STATIC ${DPHYSICS_SOURCES})
+target_link_libraries(dPhysics Recast Detour)
