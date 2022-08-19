@@ -1,4 +1,4 @@
-﻿#include "BasicAttackBehavior.h"
+#include "BasicAttackBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
 #include "dLogger.h"

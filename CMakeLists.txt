@@ -42,6 +42,12 @@ set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT
 # Echo the version
 message(STATUS "Version: ${PROJECT_VERSION}")
 
+# Disable demo, tests and examples for recastNavigation.  Turn these to ON if you want to use them
+# This has to be done here to prevent a rare build error due to missing dependencies on the initial generations.
+set(RECASTNAVIGATION_DEMO OFF CACHE BOOL "" FORCE)
+set(RECASTNAVIGATION_TESTS OFF CACHE BOOL "" FORCE)
+set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
+
 # Compiler flags:
 # Disabled deprecated warnings as the MySQL includes have deprecated code in them.
 # Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
@@ -54,7 +60,7 @@ if(UNIX)
 	else()
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC")
 	endif()
-	if (__dynamic)
+	if (__dynamic AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
 	endif()
 	if (__ggdb)
@@ -146,8 +152,7 @@ set(INCLUDED_DIRECTORIES
 
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
-	"thirdparty/recastnavigation/Recast/Include"
-	"thirdparty/recastnavigation/Detour/Include"
+	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
 

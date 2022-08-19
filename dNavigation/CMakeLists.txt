@@ -7,4 +7,4 @@ foreach(file ${DNAVIGATIONS_DTERRAIN_SOURCES})
 endforeach()
 
 add_library(dNavigation STATIC ${DNAVIGATION_SOURCES})
-target_link_libraries(dNavigation detour recast)
+target_link_libraries(dNavigation Detour Recast)

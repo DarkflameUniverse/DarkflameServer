@@ -1,4 +1,4 @@
-﻿#include "ZCompression.h"
+#include "ZCompression.h"
 
 #ifndef _WIN32
 

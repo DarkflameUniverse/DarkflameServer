@@ -1,4 +1,4 @@
-﻿#include "InterruptBehavior.h"
+#include "InterruptBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "Game.h"

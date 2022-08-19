@@ -1,4 +1,4 @@
-﻿#include "BehaviorBranchContext.h"
+#include "BehaviorBranchContext.h"
 
 
 BehaviorBranchContext::BehaviorBranchContext() {

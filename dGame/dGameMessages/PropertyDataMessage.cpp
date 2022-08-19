@@ -1,4 +1,4 @@
-﻿#include "PropertyDataMessage.h"
+#include "PropertyDataMessage.h"
 
 #include "GeneralUtils.h"
 

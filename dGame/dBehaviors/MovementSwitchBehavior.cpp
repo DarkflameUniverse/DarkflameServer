@@ -1,4 +1,4 @@
-﻿#include "MovementSwitchBehavior.h"
+#include "MovementSwitchBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
 #include "dLogger.h"

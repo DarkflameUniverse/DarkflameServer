@@ -1,4 +1,4 @@
-﻿#include "BuffBehavior.h"
+#include "BuffBehavior.h"
 
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"

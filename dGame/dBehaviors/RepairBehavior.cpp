@@ -1,4 +1,4 @@
-﻿#include "RepairBehavior.h"
+#include "RepairBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "DestroyableComponent.h"
 #include "dpWorld.h"

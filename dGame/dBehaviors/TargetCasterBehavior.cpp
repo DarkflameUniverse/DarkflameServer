@@ -1,4 +1,4 @@
-﻿#include "TargetCasterBehavior.h"
+#include "TargetCasterBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 

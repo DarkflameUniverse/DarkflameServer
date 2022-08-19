@@ -1,4 +1,4 @@
-﻿#include "MissionPrerequisites.h"
+#include "MissionPrerequisites.h"
 
 #include <sstream>
 #include <ctime>
