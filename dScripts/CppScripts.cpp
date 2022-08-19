@@ -116,6 +116,7 @@
 #include "BaseEnemyApe.h"
 #include "GfApeSmashingQB.h"
 #include "ZoneGfProperty.h"
+#include "GfArchway.h"
 
 // SG Scripts
 #include "SGCannon.h"
@@ -201,6 +202,7 @@
 #include "ForceVolumeServer.h"
 #include "NtXRayServer.h"
 #include "NtSleepingGuard.h"
+#include "NtImagimeterVisibility.h"
 
 // DLU Scripts
 #include "DLUVanityNPC.h"
@@ -493,6 +495,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new GfApeSmashingQB();
 	else if (scriptName == "scripts\\zone\\PROPERTY\\GF\\L_ZONE_GF_PROPERTY.lua")
 		script = new ZoneGfProperty();
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_ARCHWAY.lua") {
+		script = new GfArchway();
+	}
 
 	// SG
 	else if (scriptName == "scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON.lua")
@@ -661,6 +666,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NtXRayServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_SLEEPING_GUARD.lua")
 		script = new NtSleepingGuard();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua") {
+		script = new NTImagimeterVisibility();
+	}
 
 	//AM:
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua")

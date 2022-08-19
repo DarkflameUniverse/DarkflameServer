@@ -162,7 +162,10 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "miscellaneous\\misc_phys_640x640.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 640.0f, 20.0f, 640.0f);
+			// Move this down by 13.521004 units so it is still effectively at the same height as before
+			m_Position = m_Position - NiPoint3::UNIT_Y * 13.521004f;
+			// TODO Fix physics simulation to do simulation at high velocities due to bullet through paper problem...
+			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1638.4f, 13.521004f * 2.0f, 1638.4f);
 
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
