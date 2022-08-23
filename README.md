@@ -205,11 +205,14 @@ Darkflame Universe utilizes a MySQL/MariaDB database for account and character i
 
 Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
 * Create a database for Darkflame Universe to use
-* Use the command `./MasterServer -m` to automatically run them.
 
 **Configuration**
 
 After the server has been built there should be four `ini` files in the build director: `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
+
+**Initialization and Migrations**
+
+Use the command `./MasterServer -m` to automatically initialize the database and run any migrations.
 
 **Verify**
 
