@@ -25,60 +25,60 @@ public:
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
 	/**
-	 * @brief mounts the entity
+	 * @brief Mounts the entity
 	 *
-	 * @param mount entity to be mounted
+	 * @param mount Entity to be mounted
 	 */
 	void Mount(Entity* mount);
 
 	/**
-	 * @brief dismounts the entity
+	 * @brief Dismounts the entity
 	 *
-	 * @param mount entity to be dismounted
+	 * @param mount Entity to be dismounted
 	 * @param forceDismount Should we forcibly dismount the entity
 	 */
 	void Dismount(Entity* mount, bool forceDismount = false);
 
 	/**
-	 * Sets the entity that this entity is possessing
-	 * @param value the ID of the entity this ID should posess
+	 * Sets the ID that this entity is possessing
+	 * @param value The ID that this entity is possessing
 	 */
 	void SetPossessable(LWOOBJID value) { m_Possessable = value; m_DirtyPossesor = true; }
 
 	/**
 	 * Returns the entity that this entity is currently posessing
-	 * @return the entity that this entity is currently posessing
+	 * @return The entity that this entity is currently posessing
 	 */
 	LWOOBJID GetPossessable() const { return m_Possessable; }
 
 	/**
 	 * Sets if we are busy dismounting
-	 * @param value if we are busy dismounting
+	 * @param value If we are busy dismounting
 	 */
 	void SetIsDismounting(bool value) { m_IsDismounting = value; }
 
 	/**
 	 * Returns if we are busy dismounting
-	 * @return if we are busy dismounting
+	 * @return If we are busy dismounting
 	 */
 	bool GetIsDismounting() const { return m_IsDismounting; }
 
 	/**
 	 * Sets the possesible type that's currently used, merely used by the shooting gallery if it's 0
-	 * @param value the possesible type to set
+	 * @param value The possesible type to set
 	 */
 	void SetPossessableType(ePossessionType value) { m_PossessableType = value; m_DirtyPossesor = true; }
 
 
 	/**
 	 * Gets the object ID of the mount item that is being used
-	 * @return the object ID of the mount item that is being used
+	 * @return The object ID of the mount item that is being used
 	 */
 	LWOOBJID GetMountItemID() const { return m_MountItemID; }
 
 	/**
 	 * Sets the object ID of the mount item that is being used
-	 * @param m_MountItemID the object ID of the mount item that is being used
+	 * @param m_MountItemID The object ID of the mount item that is being used
 	 */
 	void SetMountItemID(LWOOBJID mountItemID) { m_MountItemID = mountItemID; }
 
@@ -96,13 +96,13 @@ private:
 	ePossessionType m_PossessableType = ePossessionType::NO_POSSESSION;
 
 	/**
-	 * @brief if the possessor is dirty
+	 * @brief If the possessor is dirty
 	 *
 	 */
 	bool m_DirtyPossesor = false;
 
 	/**
-	 * @brief if the possessor is busy dismounting
+	 * @brief If the possessor is busy dismounting
 	 *
 	 */
 	bool m_IsDismounting = false;

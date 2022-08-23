@@ -610,14 +610,13 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	SetHealth(health);
 	SetIsShielded(absorb > 0);
 
-	// Dismount on hit
-	// on the possessable hit
+	// Dismount on the possessable hit
 	auto possessable = m_Parent->GetComponent<PossessableComponent>();
 	if (possessable && possessable->GetDepossessOnHit()) {
 		possessable->Dismount();
 	}
 
-	// on the possessor hit
+	// Dismount on the possessor hit
 	auto possessor = m_Parent->GetComponent<PossessorComponent>();
 	if (possessor) {
 		auto possessableId = possessor->GetPossessable();

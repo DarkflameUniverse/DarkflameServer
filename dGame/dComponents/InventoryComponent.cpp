@@ -918,7 +918,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 	}
 	// check again cause sometimes we need to
 	if (possessorComponent->GetIsDismounting()) return;
-	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, false, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
 	// set the mount Item ID so that we know what were handling
 	possessorComponent->SetMountItemID(item->GetId());

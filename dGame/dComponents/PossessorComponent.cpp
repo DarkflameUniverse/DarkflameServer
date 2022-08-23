@@ -37,7 +37,7 @@ void PossessorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 }
 
 void PossessorComponent::Mount(Entity* mount) {
-	// don't do anything if we are busy dismounting
+	// Don't do anything if we are busy dismounting
 	if (GetIsDismounting()) return;
 
 	GameMessages::SendSetMountInventoryID(m_Parent, mount->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
@@ -54,13 +54,14 @@ void PossessorComponent::Mount(Entity* mount) {
 	// GM's to send
 	GameMessages::SendSetJetPackMode(m_Parent, false);
 	GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, false, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 	EntityManager::Instance()->SerializeEntity(mount);
 }
 
 void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
+	// Don't do anything if we are busy dismounting
 	if (GetIsDismounting()) return;
 	SetIsDismounting(true);
 
@@ -76,6 +77,6 @@ void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
 		auto characterComponent = m_Parent->GetComponent<CharacterComponent>();
 		if (characterComponent) characterComponent->SetIsRacing(false);
 	}
-	// make sure we don't have wacky controls
+	// Make sure we don't have wacky controls
 	GameMessages::SendSetPlayerControlScheme(m_Parent, eControlSceme::SCHEME_A);
 }
