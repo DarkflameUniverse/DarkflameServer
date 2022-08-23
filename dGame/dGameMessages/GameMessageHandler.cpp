@@ -653,8 +653,12 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleUpdatePlayerStatistic(inStream, entity);
 		break;
 
+	case GAME_MSG_DISMOUNT_COMPLETE:
+		GameMessages::HandleDismountComplete(inStream, entity, sysAddr);
+		break;
+
 	default:
-		//Game::logger->Log("GameMessageHandler", "Unknown game message ID: %X", messageID);
+		//Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i", messageID);
 		break;
 	}
 }

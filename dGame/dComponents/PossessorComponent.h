@@ -25,6 +25,21 @@ public:
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
 	/**
+	 * @brief mounts the entity
+	 *
+	 * @param mount entity to be mounted
+	 */
+	void Mount(Entity* mount);
+
+	/**
+	 * @brief dismounts the entity
+	 *
+	 * @param mount entity to be dismounted
+	 * @param forceDismount Should we forcibly dismount the entity
+	 */
+	void Dismount(Entity* mount, bool forceDismount = false);
+
+	/**
 	 * Sets the entity that this entity is possessing
 	 * @param value the ID of the entity this ID should posess
 	 */
@@ -37,22 +52,35 @@ public:
 	LWOOBJID GetPossessable() const { return m_Possessable; }
 
 	/**
-	 * Sets if we are busy mounting or dismounting
-	 * @param value if we are busy mounting or dismounting
+	 * Sets if we are busy dismounting
+	 * @param value if we are busy dismounting
 	 */
-	void SetIsBusy(bool value) { m_IsBusy = value; }
+	void SetIsDismounting(bool value) { m_IsDismounting = value; }
 
 	/**
-	 * Returns if we are busy mounting or dismounting
-	 * @return if we are busy mounting or dismounting
+	 * Returns if we are busy dismounting
+	 * @return if we are busy dismounting
 	 */
-	bool GetIsBusy() const { return m_IsBusy; }
+	bool GetIsDismounting() const { return m_IsDismounting; }
 
 	/**
 	 * Sets the possesible type that's currently used, merely used by the shooting gallery if it's 0
 	 * @param value the possesible type to set
 	 */
 	void SetPossessableType(ePossessionType value) { m_PossessableType = value; m_DirtyPossesor = true; }
+
+
+	/**
+	 * Gets the object ID of the mount item that is being used
+	 * @return the object ID of the mount item that is being used
+	 */
+	LWOOBJID GetMountItemID() const { return m_MountItemID; }
+
+	/**
+	 * Sets the object ID of the mount item that is being used
+	 * @param m_MountItemID the object ID of the mount item that is being used
+	 */
+	void SetMountItemID(LWOOBJID mountItemID) { m_MountItemID = mountItemID; }
 
 private:
 
@@ -74,8 +102,13 @@ private:
 	bool m_DirtyPossesor = false;
 
 	/**
-	 * @brief if the possessor is busy mounting or dismounting
+	 * @brief if the possessor is busy dismounting
 	 *
 	 */
-	bool m_IsBusy = false;
+	bool m_IsDismounting = false;
+
+	/**
+	 * Mount Item ID
+	 */
+	LWOOBJID m_MountItemID = LWOOBJID_EMPTY;
 };

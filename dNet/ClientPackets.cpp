@@ -140,14 +140,12 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		inStream.Read(angVelocity.z);
 	}
 
-	bool hasVehicle = false;
-
 	if (possessorComponent != nullptr) {
 		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
 
 		if (possassableEntity != nullptr) {
-			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 
+			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 			if (vehiclePhysicsComponent != nullptr) {
 				// This is flipped for whatever reason
 				rotation = NiQuaternion(rotation.z, rotation.y, rotation.x, rotation.w);
@@ -160,17 +158,21 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
 				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
 				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
-
-				EntityManager::Instance()->SerializeEntity(possassableEntity);
-
-				hasVehicle = true;
+			} else {
+				// Need to get the mount's controllable physics
+				auto* pcomp = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				if (!pcomp) return;
+				pcomp->SetPosition(position);
+				pcomp->SetRotation(rotation);
+				pcomp->SetIsOnGround(onGround);
+				pcomp->SetIsOnRail(onRail);
+				pcomp->SetVelocity(velocity);
+				pcomp->SetDirtyVelocity(velocityFlag);
+				pcomp->SetAngularVelocity(angVelocity);
+				pcomp->SetDirtyAngularVelocity(angVelocityFlag);
 			}
+			EntityManager::Instance()->SerializeEntity(possassableEntity);
 		}
-	}
-
-	if (hasVehicle) {
-		velocity = NiPoint3::ZERO;
-		angVelocity = NiPoint3::ZERO;
 	}
 
 	// Handle statistics
@@ -192,9 +194,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	player->SetGhostReferencePoint(position);
 	EntityManager::Instance()->QueueGhostUpdate(player->GetObjectID());
 
-	if (!hasVehicle) {
-		EntityManager::Instance()->SerializeEntity(entity);
-	}
+	EntityManager::Instance()->SerializeEntity(entity);
 
 	//TODO: add moving platform stuffs
 	/*bool movingPlatformFlag;

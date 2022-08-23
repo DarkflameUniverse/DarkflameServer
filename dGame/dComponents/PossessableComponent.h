@@ -20,6 +20,16 @@ public:
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
 	/**
+	 * @brief mounts the entity
+	 */
+	void Mount();
+
+	/**
+	 * @brief dismounts the entity
+	 */
+	void Dismount();
+
+	/**
 	 * Sets the possessor of this entity
 	 * @param value the ID of the possessor to set
 	 */
@@ -58,13 +68,13 @@ public:
 	 * Set if the parent entity was spawned from an item
 	 * @param value if the parent entity was spawned from an item
 	 */
-	void SetItemSpawned(bool value) { m_ItemSpawned = value; };
+	void SetIsItemSpawned(bool value) { m_ItemSpawned = value; };
 
 	/**
 	 * Returns if the parent entity was spawned from an item
 	 * @return if the parent entity was spawned from an item
 	 */
-	LWOOBJID GetItemSpawned() const { return m_ItemSpawned; };
+	LWOOBJID GetIsItemSpawned() const { return m_ItemSpawned; };
 
 	/**
 	 * Handles an OnUsed event by some other entity, if said entity has a Possessor it becomes the possessor

@@ -27,6 +27,7 @@
 #include "ChatPackets.h"
 #include "GameConfig.h"
 #include "RocketLaunchLupComponent.h"
+#include "eUnequippableActiveType.h"
 
 #include <sstream>
 #include <future>
@@ -3414,7 +3415,7 @@ void GameMessages::SendRegisterPetDBID(LWOOBJID objectId, LWOOBJID petDBID, cons
 	SEND_PACKET;
 }
 
-void GameMessages::SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, int32_t iType, LWOOBJID itemID, const SystemAddress& sysAddr) {
+void GameMessages::SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, eUnequippableActiveType iType, LWOOBJID itemID, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -3423,8 +3424,8 @@ void GameMessages::SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive
 
 	bitStream.Write(bActive);
 
-	bitStream.Write(iType != 0);
-	if (iType != 0) bitStream.Write(iType);
+	bitStream.Write(iType != eUnequippableActiveType::INVALID);
+	if (iType != eUnequippableActiveType::INVALID) bitStream.Write(iType);
 
 	bitStream.Write(itemID != LWOOBJID_EMPTY);
 	if (itemID != LWOOBJID_EMPTY) bitStream.Write(itemID);
@@ -3861,7 +3862,6 @@ void GameMessages::SendDisplayChatBubble(LWOOBJID objectId, const std::u16string
 void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objectID, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
-
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_SET_MOUNT_INVENTORY_ID);
 	bitStream.Write(objectID);
@@ -3873,28 +3873,46 @@ void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objec
 void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	LWOOBJID objectId{};
 	inStream->Read(objectId);
-	auto* mount = EntityManager::Instance()->GetEntity(objectId);
 
 	if (objectId != LWOOBJID_EMPTY) {
-		PossessorComponent* possessor;
-		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
-			if (mount) {
-				possessor->SetIsBusy(false);
-				possessor->SetPossessable(LWOOBJID_EMPTY);
-				possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
+		auto* possessor = entity->GetComponent<PossessorComponent>();
+		auto* mount = EntityManager::Instance()->GetEntity(objectId);
+		if (possessor && mount) {
+			if (!possessor->GetIsDismounting()) return;
+			possessor->SetIsDismounting(false);
+			possessor->SetPossessable(LWOOBJID_EMPTY);
+			possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
 
-				GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
-
-				EntityManager::Instance()->SerializeEntity(entity);
+			auto* character = entity->GetComponent<CharacterComponent>();
+			if (character) {
+				// if we had an active item turn it off
+				if (possessor->GetMountItemID() != LWOOBJID_EMPTY) GameMessages::SendMarkInventoryItemAsActive(entity->GetObjectID(), false, eUnequippableActiveType::MOUNT, possessor->GetMountItemID(), entity->GetSystemAddress());
+				possessor->SetMountItemID(LWOOBJID_EMPTY);
 			}
+
+			// cause live sets this
+			auto* controllablePhysics = entity->GetComponent<ControllablePhysicsComponent>();
+			if (controllablePhysics) controllablePhysics->SetIsTeleporting(true);
+
+			// dismount
+			auto* possessable = mount->GetComponent<PossessableComponent>();
+			if (possessable) possessable->Dismount();
+
+			EntityManager::Instance()->SerializeEntity(entity);
+
+			// no more stun
+			GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 		}
 	}
 }
 
 
 void GameMessages::HandleAcknowledgePossession(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	Game::logger->Log("HandleAcknowledgePossession", "Got AcknowledgePossession from %i", entity->GetLOT());
 	EntityManager::Instance()->SerializeEntity(entity);
+	LWOOBJID objectId{};
+	inStream->Read(objectId);
+	auto* mount = EntityManager::Instance()->GetEntity(objectId);
+	if (mount) EntityManager::Instance()->SerializeEntity(mount);
 }
 
 //Racing
