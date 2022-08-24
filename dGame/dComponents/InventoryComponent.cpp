@@ -966,7 +966,6 @@ void InventoryComponent::HandlePossession(Item* item) {
 	GameMessages::SendSetJetPackMode(m_Parent, false);
 
 	EntityManager::Instance()->ConstructEntity(mount);
-	EntityManager::Instance()->SerializeEntity(mount);
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
 	// have to unlock the input so it vehicle can be driven
