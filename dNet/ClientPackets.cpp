@@ -140,10 +140,17 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		inStream.Read(angVelocity.z);
 	}
 
+	bool updateChar = true;
+
 	if (possessorComponent != nullptr) {
 		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
 
 		if (possassableEntity != nullptr) {
+			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
+			if (possessableComponent) {
+				// while possessing something, only update char if we are attached to the thing we are possessing
+				if (possessableComponent->GetPossessionType() != ePossessionType::ATTACHED_VISIBLE) updateChar = false;
+			}
 
 			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 			if (vehiclePhysicsComponent != nullptr) {
@@ -175,6 +182,13 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		}
 	}
 
+	if (!updateChar) {
+		velocity = NiPoint3::ZERO;
+		angVelocity = NiPoint3::ZERO;
+	}
+
+
+
 	// Handle statistics
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
@@ -194,7 +208,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	player->SetGhostReferencePoint(position);
 	EntityManager::Instance()->QueueGhostUpdate(player->GetObjectID());
 
-	EntityManager::Instance()->SerializeEntity(entity);
+	if (updateChar) EntityManager::Instance()->SerializeEntity(entity);
 
 	//TODO: add moving platform stuffs
 	/*bool movingPlatformFlag;
