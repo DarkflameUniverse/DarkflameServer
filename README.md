@@ -210,9 +210,9 @@ Initial setup can vary drastically based on which operating system or distributi
 
 After the server has been built there should be four `ini` files in the build director: `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
 
-#### Initialization and Migrations
+#### Setup and Migrations
 
-Use the command `./MasterServer -m` to automatically initialize the database and run any migrations.
+Use the command `./MasterServer -m` to setup the tables in the database. The first time this command is run on a database, the tables will be up to date with the most recent version. To update your database tables, run this command again. Multiple invocations will not affect any functionality.
 
 #### Verify
 
