@@ -1,5 +1,4 @@
 #include "FvMaelstromGeyser.h"
-#include "GameMessages.h"
 #include "SkillComponent.h"
 
 void FvMaelstromGeyser::OnStartup(Entity* self) {
