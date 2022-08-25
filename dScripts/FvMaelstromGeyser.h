@@ -9,10 +9,10 @@ public:
 
 
 private:
-	std::string m_StartSkillTimerName = "startSkill";
-	float m_StartSkillTimerTime = 2.0;
-	std::string m_KillSelfTimerName = "killSelf";
-	float m_KillSelfTimerTime = 5.5;
-	uint32_t m_SkillID = 831;
-	uint32_t m_BehaviorID = 15500;
+	const std::string m_StartSkillTimerName = "startSkill";
+	const float m_StartSkillTimerTime = 2.0;
+	const std::string m_KillSelfTimerName = "killSelf";
+	const float m_KillSelfTimerTime = 5.5;
+	const uint32_t m_SkillID = 831;
+	const uint32_t m_BehaviorID = 15500;
 };
