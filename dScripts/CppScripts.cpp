@@ -167,6 +167,7 @@
 #include "MailBoxServer.h"
 #include "ActMine.h"
 #include "FireFirstSkillonStartup.h"
+#include "ForceFieldEffect.h"
 
 // Racing Scripts
 #include "RaceImagineCrateServer.h"
@@ -457,6 +458,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new MinigameTreasureChestServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NS\\L_NS_LEGO_CLUB_DOOR.lua")
 		script = new NsLegoClubDoor();
+	else if (scriptName == "scripts\\ai\\LS\\ForceFieldEffect.lua")
+		script = new ForceFieldEffect();
 	else if (scriptName == "scripts/ai/NS/L_CL_RING.lua")
 		script = new ClRing();
 	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_AMBIENTS.lua")
