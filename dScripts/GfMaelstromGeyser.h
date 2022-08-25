@@ -8,10 +8,10 @@ public:
 	void OnTimerDone(Entity* self, std::string timerName) override;
 
 private:
-	std::string m_StartSkillTimerName = "startSkill";
-	float m_StartSkillTimerTime = 2.0;
-	std::string m_KillSelfTimerName = "killSelf";
-	float m_KillSelfTimerTime = 7.5;
-	uint32_t m_SkillID = 607;
-	uint32_t m_BehaviorID = 10500;
+	const std::string m_StartSkillTimerName = "startSkill";
+	const float m_StartSkillTimerTime = 2.0;
+	const std::string m_KillSelfTimerName = "killSelf";
+	const float m_KillSelfTimerTime = 7.5;
+	const uint32_t m_SkillID = 607;
+	const uint32_t m_BehaviorID = 10500;
 };
