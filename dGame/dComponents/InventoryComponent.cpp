@@ -939,7 +939,10 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
 	if (vehicleComponent) {
 		auto angles = startRotation.GetEulerAngles();
+		// make it right side up
 		angles.x -= PI;
+		// make it going in the direction of the player
+		angles.y -= PI;
 		startRotation = NiQuaternion::FromEulerAngles(angles);
 		mount->SetRotation(startRotation);
 		// we're pod racing now
