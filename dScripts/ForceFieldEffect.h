@@ -8,5 +8,5 @@ public:
 private:
 	const std::u16string m_EffectType = u"cast";
 	const LWOOBJID m_EffectID = 3671;
-	const std::string m_EffectName = "objects\\powerfence_bang\\powerfence_bang";
+	const std::string m_EffectName = "powerfence_bang";
 };
