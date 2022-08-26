@@ -118,6 +118,7 @@
 #include "ZoneGfProperty.h"
 #include "GfArchway.h"
 #include "GfMaelstromGeyser.h"
+#include "PirateRep.h"
 
 // SG Scripts
 #include "SGCannon.h"
@@ -501,6 +502,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new GfArchway();
 	else if (scriptName == "scripts\\ai\\GF\\L_GF_MAELSTROM_GEYSER.lua")
 		script = new GfMaelstromGeyser();
+	else if (scriptName == "scripts\\ai\\GF\\L_PIRATE_REP.lua")
+		script = new PirateRep();
 
 	// SG
 	else if (scriptName == "scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON.lua")
