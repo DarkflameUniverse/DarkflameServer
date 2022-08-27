@@ -116,6 +116,10 @@
 #include "BaseEnemyApe.h"
 #include "GfApeSmashingQB.h"
 #include "ZoneGfProperty.h"
+#include "GfArchway.h"
+#include "GfMaelstromGeyser.h"
+#include "PirateRep.h"
+#include "GfParrotCrash.h"
 
 // SG Scripts
 #include "SGCannon.h"
@@ -146,6 +150,7 @@
 #include "FvPassThroughWall.h"
 #include "FvBounceOverWall.h"
 #include "FvFong.h"
+#include "FvMaelstromGeyser.h"
 
 // FB Scripts
 #include "AgJetEffectServer.h"
@@ -201,6 +206,7 @@
 #include "ForceVolumeServer.h"
 #include "NtXRayServer.h"
 #include "NtSleepingGuard.h"
+#include "NtImagimeterVisibility.h"
 
 // DLU Scripts
 #include "DLUVanityNPC.h"
@@ -494,6 +500,14 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new GfApeSmashingQB();
 	else if (scriptName == "scripts\\zone\\PROPERTY\\GF\\L_ZONE_GF_PROPERTY.lua")
 		script = new ZoneGfProperty();
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_ARCHWAY.lua")
+		script = new GfArchway();
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_MAELSTROM_GEYSER.lua")
+		script = new GfMaelstromGeyser();
+	else if (scriptName == "scripts\\ai\\GF\\L_PIRATE_REP.lua")
+		script = new PirateRep();
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_PARROT_CRASH.lua")
+		script = new GfParrotCrash();
 
 	// SG
 	else if (scriptName == "scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON.lua")
@@ -572,6 +586,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new FvBounceOverWall();
 	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_NPC_FONG.lua")
 		script = new FvFong();
+	else if (scriptName == "scripts\\ai\\FV\\L_FV_MAELSTROM_GEYSER.lua") {
+		script = new FvMaelstromGeyser();
+	}
 
 	//Misc:
 	if (scriptName == "scripts\\02_server\\Map\\General\\L_EXPLODING_ASSET.lua")
@@ -662,6 +679,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NtXRayServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_SLEEPING_GUARD.lua")
 		script = new NtSleepingGuard();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua") {
+		script = new NTImagimeterVisibility();
+	}
 
 	//AM:
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua")
