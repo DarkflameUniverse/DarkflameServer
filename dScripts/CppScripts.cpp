@@ -144,6 +144,7 @@
 #include "FvConsoleLeftQuickbuild.h"
 #include "FvConsoleRightQuickbuild.h"
 #include "FvFacilityBrick.h"
+#include "FvFacilityPipes.h"
 #include "ImgBrickConsoleQB.h"
 #include "ActParadoxPipeFix.h"
 #include "FvNinjaGuard.h"
@@ -573,6 +574,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new FvConsoleRightQuickbuild();
 	else if (scriptName == "scripts\\ai\\FV\\L_FV_FACILITY_BRICK.lua")
 		script = new FvFacilityBrick();
+	else if (scriptName == "scripts\\ai\\FV\\L_FV_FACILITY_PIPES.lua")
+		script = new FvFacilityPipes();
 	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_IMG_BRICK_CONSOLE_QB.lua")
 		script = new ImgBrickConsoleQB();
 	else if (scriptName == "scripts\\ai\\FV\\L_ACT_PARADOX_PIPE_FIX.lua")
