@@ -286,6 +286,9 @@
 #include "RockHydrantBroken.h"
 #include "WhFans.h"
 
+// Misc
+#include "MinigameBlueMark.h"
+
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
 std::map<std::string, CppScripts::Script*> m_Scripts;
@@ -681,9 +684,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NtXRayServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_SLEEPING_GUARD.lua")
 		script = new NtSleepingGuard();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua") {
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua")
 		script = new NTImagimeterVisibility();
-	}
+	else if (scriptName == "scripts\\ai\\MINIGAME\\Objects\\MINIGAME_BLUE_MARK.lua")
+		script = new MinigameBlueMark();
 
 	//AM:
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua")
