@@ -170,6 +170,7 @@
 #include "MailBoxServer.h"
 #include "ActMine.h"
 #include "FireFirstSkillonStartup.h"
+#include "FrictionVolume.h"
 
 // Racing Scripts
 #include "RaceImagineCrateServer.h"
@@ -627,6 +628,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new FvRaceSmashEggImagineServer();
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_SMASH_SERVER.lua")
 		script = new RaceSmashServer();
+	else if (scriptName == "scripts\\02_server\\Map\\General\\L_FRICTION_VOLUME_SERVER.lua")
+		script = new FrictionVolume();
 
 	//NT:
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_SENTINELWALKWAY_SERVER.lua")
