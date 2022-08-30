@@ -18,7 +18,7 @@ PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId)
 
 	// Should a result not exist for this default to attached visible
 	if (!result.eof()) {
-		m_PossessionType = static_cast<ePossessionType>(result.getIntField(0, ePossessionType::ATTACHED_VISIBLE));
+		m_PossessionType = static_cast<ePossessionType>(result.getIntField(0, 1)); // Default to Attached Visible
 		m_DepossessOnHit = static_cast<bool>(result.getIntField(1, 0));
 	} else {
 		m_PossessionType = ePossessionType::ATTACHED_VISIBLE;

@@ -3896,11 +3896,11 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 
 			// Set that the controllabel phsyics comp is teleporting
 			auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
-			if (controllablePhysicsComponent) controllablePhysics->SetIsTeleporting(true);
+			if (controllablePhysicsComponent) controllablePhysicsComponent->SetIsTeleporting(true);
 
 			// Call dismoint on the possessable comp to let it handle killing the possessable
 			auto* possessableComponent = mount->GetComponent<PossessableComponent>();
-			if (possessableComponent) possessable->Dismount();
+			if (possessableComponent) possessableComponent->Dismount();
 
 			// Update the entity that was possessing
 			EntityManager::Instance()->SerializeEntity(entity);

@@ -422,7 +422,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 		if (possessorComponent) {
 			auto* possessedComponent = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
-			if (possessedComponent != nullptr) GameMessages::SendPlayAnimation(possessed, anim);
+			if (possessedComponent) GameMessages::SendPlayAnimation(possessedComponent, anim);
 		}
 	}
 
