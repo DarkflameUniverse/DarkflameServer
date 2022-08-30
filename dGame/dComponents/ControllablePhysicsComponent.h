@@ -227,8 +227,8 @@ public:
 	void SetIsTeleporting(const bool value) { m_IsTeleporting = value; }
 
 	/**
-	 * Returns whether or not this entity is currently Is Teleporting
-	 * @return whether or not this entity is currently Is Teleporting
+	 * Returns whether or not this entity is currently is teleporting
+	 * @return whether or not this entity is currently is teleporting
 	 */
 	bool GetIsTeleporting() const { return m_IsTeleporting; }
 

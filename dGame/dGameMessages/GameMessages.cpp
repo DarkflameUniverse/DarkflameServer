@@ -3871,36 +3871,41 @@ void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objec
 
 
 void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	// Get the objectID from the bitstream
 	LWOOBJID objectId{};
 	inStream->Read(objectId);
 
+	// If we aren't possessing somethings, the don't do anything
 	if (objectId != LWOOBJID_EMPTY) {
-		auto* possessor = entity->GetComponent<PossessorComponent>();
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 		auto* mount = EntityManager::Instance()->GetEntity(objectId);
-		if (possessor && mount) {
-			if (!possessor->GetIsDismounting()) return;
-			possessor->SetIsDismounting(false);
-			possessor->SetPossessable(LWOOBJID_EMPTY);
-			possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
+		// make sure we have the things we need and they aren't null
+		if (possessorComponent && mount) {
+			if (!possessorComponent->GetIsDismounting()) return;
+			possessorComponent->SetIsDismounting(false);
+			possessorComponent->SetPossessable(LWOOBJID_EMPTY);
+			possessorComponent->SetPossessableType(ePossessionType::NO_POSSESSION);
 
+			// character related things
 			auto* character = entity->GetComponent<CharacterComponent>();
 			if (character) {
-				// if we had an active item turn it off
-				if (possessor->GetMountItemID() != LWOOBJID_EMPTY) GameMessages::SendMarkInventoryItemAsActive(entity->GetObjectID(), false, eUnequippableActiveType::MOUNT, possessor->GetMountItemID(), entity->GetSystemAddress());
-				possessor->SetMountItemID(LWOOBJID_EMPTY);
+				// If we had an active item turn it off
+				if (possessorComponent->GetMountItemID() != LWOOBJID_EMPTY) GameMessages::SendMarkInventoryItemAsActive(entity->GetObjectID(), false, eUnequippableActiveType::MOUNT, possessorComponent->GetMountItemID(), entity->GetSystemAddress());
+				possessorComponent->SetMountItemID(LWOOBJID_EMPTY);
 			}
 
-			// cause live sets this
-			auto* controllablePhysics = entity->GetComponent<ControllablePhysicsComponent>();
-			if (controllablePhysics) controllablePhysics->SetIsTeleporting(true);
+			// Set that the controllabel phsyics comp is teleporting
+			auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+			if (controllablePhysicsComponent) controllablePhysics->SetIsTeleporting(true);
 
-			// dismount
-			auto* possessable = mount->GetComponent<PossessableComponent>();
-			if (possessable) possessable->Dismount();
+			// Call dismoint on the possessable comp to let it handle killing the possessable
+			auto* possessableComponent = mount->GetComponent<PossessableComponent>();
+			if (possessableComponent) possessable->Dismount();
 
+			// Update the entity that was possessing
 			EntityManager::Instance()->SerializeEntity(entity);
 
-			// no more stun
+			// We aren't mounted so remove the stun
 			GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 		}
 	}

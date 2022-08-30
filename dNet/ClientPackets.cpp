@@ -148,7 +148,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		if (possassableEntity != nullptr) {
 			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
 			if (possessableComponent) {
-				// while possessing something, only update char if we are attached to the thing we are possessing
+				// While possessing something, only update char if we are attached to the thing we are possessing
 				if (possessableComponent->GetPossessionType() != ePossessionType::ATTACHED_VISIBLE) updateChar = false;
 			}
 
@@ -167,16 +167,16 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 			} else {
 				// Need to get the mount's controllable physics
-				auto* pcomp = possassableEntity->GetComponent<ControllablePhysicsComponent>();
-				if (!pcomp) return;
-				pcomp->SetPosition(position);
-				pcomp->SetRotation(rotation);
-				pcomp->SetIsOnGround(onGround);
-				pcomp->SetIsOnRail(onRail);
-				pcomp->SetVelocity(velocity);
-				pcomp->SetDirtyVelocity(velocityFlag);
-				pcomp->SetAngularVelocity(angVelocity);
-				pcomp->SetDirtyAngularVelocity(angVelocityFlag);
+				auto* controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				if (!controllablePhysicsComponent) return;
+				controllablePhysicsComponent->SetPosition(position);
+				controllablePhysicsComponent->SetRotation(rotation);
+				controllablePhysicsComponent->SetIsOnGround(onGround);
+				controllablePhysicsComponent->SetIsOnRail(onRail);
+				controllablePhysicsComponent->SetVelocity(velocity);
+				controllablePhysicsComponent->SetDirtyVelocity(velocityFlag);
+				controllablePhysicsComponent->SetAngularVelocity(angVelocity);
+				controllablePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 			}
 			EntityManager::Instance()->SerializeEntity(possassableEntity);
 		}

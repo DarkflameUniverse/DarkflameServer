@@ -199,8 +199,8 @@ public:
 	void UnEquipItem(Item* item);
 
 	/**
-	 * Unequips an item from the inventory
-	 * @param item the item to unequip
+	 * Unequips an Item from the inventory
+	 * @param item the Item to unequip
 	 * @return if we were successful
 	 */
 	void HandlePossession(Item* item);

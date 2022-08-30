@@ -419,10 +419,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if ((chatCommand == "playanimation" || chatCommand == "playanim") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		std::u16string anim = GeneralUtils::ASCIIToUTF16(args[0], args[0].size());
 		GameMessages::SendPlayAnimation(entity, anim);
-		PossessorComponent* possessor;
-		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
-			auto* possessed = EntityManager::Instance()->GetEntity(possessor->GetPossessable());
-			if (possessed != nullptr) GameMessages::SendPlayAnimation(possessed, anim);
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		if (possessorComponent) {
+			auto* possessedComponent = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+			if (possessedComponent != nullptr) GameMessages::SendPlayAnimation(possessed, anim);
 		}
 	}
 
@@ -939,12 +939,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "dismount" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		PossessorComponent* possessor;
-		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
-			auto possessedID = possessor->GetPossessable();
-			if (possessedID != LWOOBJID_EMPTY) {
-				auto* possessed = EntityManager::Instance()->GetEntity(possessedID);
-				if (possessed != nullptr) possessor->Dismount(possessed, true);
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		if (possessorComponent) {
+			auto possessableId = possessorComponent->GetPossessable();
+			if (possessableId != LWOOBJID_EMPTY) {
+				auto* possessableEntity = EntityManager::Instance()->GetEntity(possessableId);
+				if (possessableEntity) possessorComponent->Dismount(possessableEntity, true);
 			}
 		}
 	}
@@ -1241,11 +1241,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto vehiclePhysicsComponent = newEntity->GetComponent<VehiclePhysicsComponent>();
 		if (vehiclePhysicsComponent) {
 			auto newRot = newEntity->GetRotation();
-			// Get the position and rotation of the player to spawn the vehicle
-			// and then invert it
-			// otherwise, we'll be upside down, thanks
 			auto angles = newRot.GetEulerAngles();
+			// make it right side up
 			angles.x -= PI;
+			// make it going in the direction of the player
+			angles.y -= PI;
 			newRot = NiQuaternion::FromEulerAngles(angles);
 			newEntity->SetRotation(newRot);
 		}

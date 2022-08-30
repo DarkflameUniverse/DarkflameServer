@@ -905,10 +905,10 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
 	if (!possessorComponent) return;
 
-	// don't do anything if we are busy dismounting
+	// Don't do anything if we are busy dismounting
 	if (possessorComponent->GetIsDismounting()) return;
 
-	// check to see if we are already mounting something
+	// Check to see if we are already mounting something
 	auto* currentlyPossessedEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
 	auto currentlyPossessedItem = possessorComponent->GetMountItemID();
 
@@ -916,15 +916,15 @@ void InventoryComponent::HandlePossession(Item* item) {
 		if (currentlyPossessedEntity) possessorComponent->Dismount(currentlyPossessedEntity);
 		return;
 	}
-	// check again cause sometimes we need to
+	// Check again cause sometimes we need to
 	if (possessorComponent->GetIsDismounting()) return;
 	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
-	// set the mount Item ID so that we know what were handling
+	// Set the mount Item ID so that we know what were handling
 	possessorComponent->SetMountItemID(item->GetId());
 	GameMessages::SendSetMountInventoryID(m_Parent, item->GetId(), UNASSIGNED_SYSTEM_ADDRESS);
 
-	// create entity to mount
+	// Create entity to mount
 	auto startRotation = m_Parent->GetRotation();
 
 	EntityInfo info{};
@@ -935,17 +935,17 @@ void InventoryComponent::HandlePossession(Item* item) {
 
 	auto* mount = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
 
-	// check to see if the mount is a vehicle, if so, flip it
+	// Check to see if the mount is a vehicle, if so, flip it
 	auto* vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
 	if (vehicleComponent) {
 		auto angles = startRotation.GetEulerAngles();
-		// make it right side up
+		// Make it right side up
 		angles.x -= PI;
-		// make it going in the direction of the player
+		// Make it going in the direction of the player
 		angles.y -= PI;
 		startRotation = NiQuaternion::FromEulerAngles(angles);
 		mount->SetRotation(startRotation);
-		// we're pod racing now
+		// We're pod racing now
 		characterComponent->SetIsRacing(true);
 	}
 
@@ -956,23 +956,25 @@ void InventoryComponent::HandlePossession(Item* item) {
 		destroyableComponent->SetIsImmune(true);
 	}
 
-	// mount it
+	// Mount it
 	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
 	if (possessableComponent) {
 		possessableComponent->SetIsItemSpawned(true);
 		possessableComponent->SetPossessor(m_Parent->GetObjectID());
-		// possessor stuff
+		// Possess it
 		possessorComponent->SetPossessable(mount->GetObjectID());
 		possessorComponent->SetPossessableType(possessableComponent->GetPossessionType());
 	}
 
 	GameMessages::SendSetJetPackMode(m_Parent, false);
 
+	// Make it go to the client
 	EntityManager::Instance()->ConstructEntity(mount);
+	// Update the possessor
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
 	// have to unlock the input so it vehicle can be driven
-	if (vehicleComponent) GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
+	if (vehicleComponent) GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_Parent->GetSystemAddress());
 	GameMessages::SendMarkInventoryItemAsActive(m_Parent->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_Parent->GetSystemAddress());
 }
 
