@@ -658,7 +658,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		break;
 
 	default:
-		//Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i", messageID);
+		//Game::logger->Log("GameMessageHandler", "Unknown game message ID: %X", messageID);
 		break;
 	}
 }
