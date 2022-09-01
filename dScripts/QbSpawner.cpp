@@ -47,13 +47,12 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 
 		auto oPos = gate->GetPosition();
 		auto oDir = gate->GetRotation().GetForwardVector();
-		auto newPos = NiPoint3::ZERO;
-		newPos.x = oPos.x + (oDir.x * spawnDist);
-		newPos.y = oPos.y;
-		newPos.z = oPos.z + (oDir.z * spawnDist);
-
+		NiPoint3 newPos(
+			oPos.x + (oDir.x * spawnDist),
+			oPos.y,
+			oPos.z + (oDir.z * spawnDist)
+		);
 		auto newRot = NiQuaternion::LookAt(newPos, oPos);
-
 
 		for (int i = 0; i < mobTable.size(); i++) {
 			Game::logger->Log("QbSpawner", "spawn new %i", mobTemplate);
@@ -76,10 +75,10 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 					new LDFData<int>(u"mobTableLoc", i)
 				};
 
-				auto* entity = EntityManager::Instance()->CreateEntity(info, nullptr, self);
-				EntityManager::Instance()->ConstructEntity(entity);
+				auto* child = EntityManager::Instance()->CreateEntity(info, nullptr, self);
+				EntityManager::Instance()->ConstructEntity(child);
 
-				OnChildLoaded(self, entity);
+				OnChildLoaded(self, child);
 			} else {
 				Game::logger->Log("QbSpawner", "aggro existing");
 				auto* mob = EntityManager::Instance()->GetEntity(mobTable[i]);
@@ -127,8 +126,6 @@ void QbSpawner::AggroTargetObject(Entity* self, Entity* enemy) {
 	if (gateObjID) {
 		auto* gate = EntityManager::Instance()->GetEntity(gateObjID);
 		if (gate) {
-			// Not sure if this is the same as, but it should work?
-			// enemy:FollowTarget{targetID = gateObj}
 			auto* movementAIComponent = enemy->GetComponent<MovementAIComponent>();
 			if (movementAIComponent) movementAIComponent->SetDestination(gate->GetPosition());
 			baseCombatAIComponent->Taunt(gateObjID, 1000);
@@ -137,7 +134,7 @@ void QbSpawner::AggroTargetObject(Entity* self, Entity* enemy) {
 
 	auto playerObjID = self->GetVar<LWOOBJID>(u"player");
 	if (playerObjID) {
-		baseCombatAIComponent->Taunt(playerObjID, 1000);
+		baseCombatAIComponent->Taunt(playerObjID, 100);
 	}
 
 }
