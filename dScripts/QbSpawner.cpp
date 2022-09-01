@@ -52,12 +52,8 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		newPos.y = oPos.y;
 		newPos.z = oPos.z + (oDir.z * spawnDist);
 
-		auto oRot = gate->GetRotation();
-		NiQuaternion newRot;
-		newRot.SetW(oRot.GetW());
-		newRot.SetX(-oRot.GetX());
-		newRot.SetY(-oRot.GetY());
-		newRot.SetZ(-oRot.GetZ());
+		auto newRot = NiQuaternion::LookAt(newPos, oPos);
+
 
 		for (int i = 0; i < mobTable.size(); i++) {
 			Game::logger->Log("QbSpawner", "spawn new %i", mobTemplate);
