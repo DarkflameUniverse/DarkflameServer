@@ -221,6 +221,18 @@ public:
 	bool GetStatic() const { return m_Static; }
 
 	/**
+	 * Sets if the entity is Teleporting,
+	 * @param value whether or not the entity is Is Teleporting
+	 */
+	void SetIsTeleporting(const bool value) { m_IsTeleporting = value; }
+
+	/**
+	 * Returns whether or not this entity is currently is teleporting
+	 * @return whether or not this entity is currently is teleporting
+	 */
+	bool GetIsTeleporting() const { return m_IsTeleporting; }
+
+	/**
 	 * Returns the Physics entity for the component
 	 * @return Physics entity for the component
 	 */
@@ -355,6 +367,11 @@ private:
 	 * The active pickup radius for this entity
 	 */
 	float m_PickupRadius;
+
+	/**
+	 * If the entity is teleporting
+	 */
+	bool m_IsTeleporting;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H
