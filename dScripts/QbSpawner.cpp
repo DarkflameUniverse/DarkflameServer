@@ -66,14 +66,9 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 				info.lot = mobTemplate;
 				info.pos = newOffset;
 				info.rot = newRot;
-				info.settings = {
-					new LDFData<bool>(u"no_timed_spawn", true),
-					new LDFData<float>(u"aggroRadius", 70),
-					new LDFData<float>(u"softtetherRadius", 80),
-					new LDFData<float>(u"tetherRadius", 90),
-					new LDFData<float>(u"wanderRadius", 5),
-					new LDFData<int>(u"mobTableLoc", i)
-				};
+				info.spawner = nullptr;
+				info.spawnerID = gate->GetObjectID();
+				info.spawnerNodeID = 0;
 
 				auto* child = EntityManager::Instance()->CreateEntity(info, nullptr, self);
 				EntityManager::Instance()->ConstructEntity(child);
