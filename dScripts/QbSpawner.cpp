@@ -1,7 +1,6 @@
 #include "QbSpawner.h"
 #include "BaseCombatAIComponent.h"
 #include "MovementAIComponent.h"
-#include "dLogger.h"
 
 void QbSpawner::OnStartup(Entity* self) {
 	auto mobNum = self->GetVar<int>(u"mobNum");
@@ -22,7 +21,6 @@ void QbSpawner::OnStartup(Entity* self) {
 }
 
 void QbSpawner::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {
-	Game::logger->Log("QbSpawner", "FireEVernt");
 	auto gateObjID = sender->GetObjectID();
 	if (!gateObjID) return;
 	if (args == "spawnMobs") {
@@ -55,7 +53,6 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		auto newRot = NiQuaternion::LookAt(newPos, oPos);
 
 		for (int i = 0; i < mobTable.size(); i++) {
-			Game::logger->Log("QbSpawner", "spawn new %i", mobTemplate);
 			int posOffset = -10;
 			if (mobTable[i] == LWOOBJID_EMPTY) {
 				posOffset = posOffset + 5 * i;
@@ -66,16 +63,22 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 				info.lot = mobTemplate;
 				info.pos = newOffset;
 				info.rot = newRot;
-				info.spawner = nullptr;
-				info.spawnerID = gate->GetObjectID();
+				info.spawnerID = self->GetObjectID();
 				info.spawnerNodeID = 0;
+				info.settings = {
+					new LDFData<bool>(u"no_timed_spawn", true),
+					new LDFData<float>(u"aggroRadius", 70),
+					new LDFData<float>(u"softtetherRadius", 80),
+					new LDFData<float>(u"tetherRadius", 90),
+					new LDFData<float>(u"wanderRadius", 5),
+					new LDFData<int>(u"mobTableLoc", i)
+				};
 
 				auto* child = EntityManager::Instance()->CreateEntity(info, nullptr, self);
 				EntityManager::Instance()->ConstructEntity(child);
 
 				OnChildLoaded(self, child);
 			} else {
-				Game::logger->Log("QbSpawner", "aggro existing");
 				auto* mob = EntityManager::Instance()->GetEntity(mobTable[i]);
 				AggroTargetObject(self, mob);
 			}
@@ -85,7 +88,6 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 }
 
 void QbSpawner::OnChildLoaded(Entity* self, Entity* child) {
-	Game::logger->Log("QbSpawner", "child loaded");
 	auto mobTable = self->GetVar<std::vector<LWOOBJID>>(u"mobTable");
 	auto tableLoc = child->GetVar<int>(u"mobTableLoc");
 
@@ -104,7 +106,6 @@ void QbSpawner::OnChildLoaded(Entity* self, Entity* child) {
 }
 
 void QbSpawner::OnChildRemoved(Entity* self, Entity* child) {
-	Game::logger->Log("QbSpawner", "child removed");
 	auto mobTable = self->GetVar<std::vector<LWOOBJID>>(u"mobTable");
 	auto tableLoc = child->GetVar<int>(u"mobTableLoc");
 
@@ -113,7 +114,6 @@ void QbSpawner::OnChildRemoved(Entity* self, Entity* child) {
 }
 
 void QbSpawner::AggroTargetObject(Entity* self, Entity* enemy) {
-	Game::logger->Log("QbSpawner", "Aggro");
 	auto* baseCombatAIComponent = enemy->GetComponent<BaseCombatAIComponent>();
 	if (!baseCombatAIComponent) return;
 
