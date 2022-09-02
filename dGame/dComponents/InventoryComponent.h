@@ -199,6 +199,13 @@ public:
 	void UnEquipItem(Item* item);
 
 	/**
+	 * Unequips an Item from the inventory
+	 * @param item the Item to unequip
+	 * @return if we were successful
+	 */
+	void HandlePossession(Item* item);
+
+	/**
 	 * Adds a buff related to equipping a lot to the entity
 	 * @param item the item to find buffs for
 	 */

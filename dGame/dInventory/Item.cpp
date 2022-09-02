@@ -10,6 +10,9 @@
 #include "dLogger.h"
 #include "EntityManager.h"
 #include "RenderComponent.h"
+#include "PossessableComponent.h"
+#include "CharacterComponent.h"
+#include "eItemType.h"
 
 class Inventory;
 
@@ -70,6 +73,12 @@ Item::Item(
 
 	id = GeneralUtils::SetBit(id, OBJECT_BIT_CHARACTER);
 	id = GeneralUtils::SetBit(id, OBJECT_BIT_PERSISTENT);
+
+	const auto type = static_cast<eItemType>(info->itemType);
+
+	if (type == eItemType::ITEM_TYPE_MOUNT) {
+		id = GeneralUtils::SetBit(id, OBJECT_BIT_CLIENT);
+	}
 
 	this->id = id;
 
@@ -254,49 +263,34 @@ bool Item::Consume() {
 	return success;
 }
 
-bool Item::UseNonEquip() {
-	auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-
-	const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_PACKAGE);
-
-	auto* packCompTable = CDClientManager::Instance()->GetTable<CDPackageComponentTable>("PackageComponent");
-
-	auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
-
-	const auto success = !packages.empty();
-
-	auto inventoryComponent = inventory->GetComponent();
-
-	auto playerEntity = inventoryComponent->GetParent();
-
-	if (subKey != LWOOBJID_EMPTY) {
+void Item::UseNonEquip() {
+	const auto type = static_cast<eItemType>(info->itemType);
+	if (type == eItemType::ITEM_TYPE_MOUNT) {
+		GetInventory()->GetComponent()->HandlePossession(this);
+	} else if (type == eItemType::ITEM_TYPE_PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY) {
 		const auto& databasePet = GetInventory()->GetComponent()->GetDatabasePet(subKey);
-
 		if (databasePet.lot != LOT_NULL) {
 			GetInventory()->GetComponent()->SpawnPet(this);
-
-			return true;
 		}
-	}
-	if (success && (playerEntity->GetGMLevel() >= eGameMasterLevel::GAME_MASTER_LEVEL_JUNIOR_DEVELOPER || this->GetPreconditionExpression()->Check(playerEntity))) {
-		auto* entityParent = inventory->GetComponent()->GetParent();
+	} else if (type == eItemType::ITEM_TYPE_PACKAGE) {
+		auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+		const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_PACKAGE);
+		auto* packCompTable = CDClientManager::Instance()->GetTable<CDPackageComponentTable>("PackageComponent");
+		auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
 
-		for (auto& pack : packages) {
-			std::unordered_map<LOT, int32_t> result{};
-
-			result = LootGenerator::Instance().RollLootMatrix(entityParent, pack.LootMatrixIndex);
-
-			if (!inventory->GetComponent()->HasSpaceForLoot(result)) {
-				return false;
+		const auto success = !packages.empty();
+		if (success) {
+			auto* entityParent = inventory->GetComponent()->GetParent();
+			for (auto& pack : packages) {
+				std::unordered_map<LOT, int32_t> result{};
+				result = LootGenerator::Instance().RollLootMatrix(entityParent, pack.LootMatrixIndex);
+				if (!inventory->GetComponent()->HasSpaceForLoot(result)) {
+				}
+				LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
 			}
-
-			LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
+			inventory->GetComponent()->RemoveItem(lot, 1);
 		}
-		Game::logger->Log("Item", "Used (%i)", lot);
-		inventory->GetComponent()->RemoveItem(lot, 1);
 	}
-
-	return success;
 }
 
 void Item::Disassemble(const eInventoryType inventoryType) {

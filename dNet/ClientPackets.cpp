@@ -140,14 +140,19 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		inStream.Read(angVelocity.z);
 	}
 
-	bool hasVehicle = false;
+	bool updateChar = true;
 
 	if (possessorComponent != nullptr) {
 		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
 
 		if (possassableEntity != nullptr) {
-			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
+			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
+			if (possessableComponent) {
+				// While possessing something, only update char if we are attached to the thing we are possessing
+				if (possessableComponent->GetPossessionType() != ePossessionType::ATTACHED_VISIBLE) updateChar = false;
+			}
 
+			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 			if (vehiclePhysicsComponent != nullptr) {
 				// This is flipped for whatever reason
 				rotation = NiQuaternion(rotation.z, rotation.y, rotation.x, rotation.w);
@@ -160,18 +165,29 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
 				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
 				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
-
-				EntityManager::Instance()->SerializeEntity(possassableEntity);
-
-				hasVehicle = true;
+			} else {
+				// Need to get the mount's controllable physics
+				auto* controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				if (!controllablePhysicsComponent) return;
+				controllablePhysicsComponent->SetPosition(position);
+				controllablePhysicsComponent->SetRotation(rotation);
+				controllablePhysicsComponent->SetIsOnGround(onGround);
+				controllablePhysicsComponent->SetIsOnRail(onRail);
+				controllablePhysicsComponent->SetVelocity(velocity);
+				controllablePhysicsComponent->SetDirtyVelocity(velocityFlag);
+				controllablePhysicsComponent->SetAngularVelocity(angVelocity);
+				controllablePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 			}
+			EntityManager::Instance()->SerializeEntity(possassableEntity);
 		}
 	}
 
-	if (hasVehicle) {
+	if (!updateChar) {
 		velocity = NiPoint3::ZERO;
 		angVelocity = NiPoint3::ZERO;
 	}
+
+
 
 	// Handle statistics
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
@@ -192,9 +208,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	player->SetGhostReferencePoint(position);
 	EntityManager::Instance()->QueueGhostUpdate(player->GetObjectID());
 
-	if (!hasVehicle) {
-		EntityManager::Instance()->SerializeEntity(entity);
-	}
+	if (updateChar) EntityManager::Instance()->SerializeEntity(entity);
 
 	//TODO: add moving platform stuffs
 	/*bool movingPlatformFlag;
