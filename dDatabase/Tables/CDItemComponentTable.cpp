@@ -45,7 +45,7 @@ CDItemComponentTable::CDItemComponentTable(void) {
 		entry.offsetGroupID = tableData.getIntField(19, -1);
 		entry.buildTypes = tableData.getIntField(20, -1);
 		entry.reqPrecondition = tableData.getStringField(21, "");
-		entry.animationFlag = tableData.getIntField(22, -1);
+		entry.animationFlag = tableData.getIntField(22, 0);
 		entry.equipEffects = tableData.getIntField(23, -1);
 		entry.readyForQA = tableData.getIntField(24, -1) == 1 ? true : false;
 		entry.itemRating = tableData.getIntField(25, -1);
@@ -123,7 +123,7 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int s
 		entry.offsetGroupID = tableData.getIntField(19, -1);
 		entry.buildTypes = tableData.getIntField(20, -1);
 		entry.reqPrecondition = tableData.getStringField(21, "");
-		entry.animationFlag = tableData.getIntField(22, -1);
+		entry.animationFlag = tableData.getIntField(22, 0);
 		entry.equipEffects = tableData.getIntField(23, -1);
 		entry.readyForQA = tableData.getIntField(24, -1) == 1 ? true : false;
 		entry.itemRating = tableData.getIntField(25, -1);

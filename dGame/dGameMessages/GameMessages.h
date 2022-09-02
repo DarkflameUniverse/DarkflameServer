@@ -19,6 +19,7 @@ class NiQuaternion;
 class User;
 class Entity;
 class NiPoint3;
+enum class eUnequippableActiveType;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -318,7 +319,7 @@ namespace GameMessages {
 
 	void SendRegisterPetDBID(LWOOBJID objectId, LWOOBJID petDBID, const SystemAddress& sysAddr);
 
-	void SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, int32_t iType, LWOOBJID itemID, const SystemAddress& sysAddr);
+	void SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, eUnequippableActiveType iType, LWOOBJID itemID, const SystemAddress& sysAddr);
 
 	void SendClientExitTamingMinigame(LWOOBJID objectId, bool bVoluntaryExit, const SystemAddress& sysAddr);
 

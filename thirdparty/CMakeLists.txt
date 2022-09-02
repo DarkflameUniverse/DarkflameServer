@@ -6,13 +6,15 @@ set(tinyxml2_BUILD_TESTING OFF)
 # Source Code for tinyxml2
 add_subdirectory(tinyxml2)
 
-# Source Code for libbcrypt
-# Disable warning about no project version.
-set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
-# Disable warning about the minimum version of cmake used for bcrypt being deprecated in the future
-set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
-
-add_subdirectory(libbcrypt)
+# Source Code for libbcrypt.  Uses a file glob instead to get around Windows build issues.
+file(
+	GLOB SOURCES_LIBBCRYPT
+	LIST_DIRECTORIES false
+	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/*.c
+	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/src/*.c
+)
+add_library(bcrypt ${SOURCES_LIBBCRYPT})
 
 # Source code for sqlite
 add_subdirectory(SQLite)

@@ -61,6 +61,8 @@
 #include "VeMissionConsole.h"
 #include "VeEpsilonServer.h"
 #include "AgSurvivalBuffStation.h"
+#include "QbSpawner.h"
+#include "AgQbWall.h"
 
 // NS Scripts
 #include "NsModularBuild.h"
@@ -170,6 +172,7 @@
 #include "MailBoxServer.h"
 #include "ActMine.h"
 #include "FireFirstSkillonStartup.h"
+#include "MinigameBlueMark.h"
 
 // Racing Scripts
 #include "RaceImagineCrateServer.h"
@@ -286,8 +289,8 @@
 #include "RockHydrantBroken.h"
 #include "WhFans.h"
 
-// Misc
-#include "MinigameBlueMark.h"
+// WBL scripts
+#include "WblGenericZone.h"
 
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
@@ -469,6 +472,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new WildAmbients();
 	else if (scriptName == "scripts\\ai\\NS\\NS_PP_01\\L_NS_PP_01_TELEPORT.lua")
 		script = new PropertyDeathPlane();
+	else if (scriptName == "scripts\\02_server\\Map\\General\\L_QB_SPAWNER.lua")
+		script = new QbSpawner();
+	else if (scriptName == "scripts\\ai\\AG\\L_AG_QB_Wall.lua")
+		script = new AgQbWall();
 
 	//GF:
 	else if (scriptName == "scripts\\02_server\\Map\\GF\\L_GF_TORCH.lua")
@@ -832,11 +839,16 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new BuccaneerValiantShip();
 	else if (scriptName == "scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua")
 		script = new FireFirstSkillonStartup();
+
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
 		script = new RockHydrantBroken();
 	else if (scriptName == "scripts\\ai\\NS\\L_NS_WH_FANS.lua")
 		script = new WhFans();
+
+	// WBL
+	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
+		script = new WblGenericZone();
 
 	//Ignore these scripts:
 	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")
