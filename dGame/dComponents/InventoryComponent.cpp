@@ -26,6 +26,7 @@
 #include "DestroyableComponent.h"
 #include "dConfig.h"
 #include "eItemType.h"
+#include "eUnequippableActiveType.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent) {
 	this->m_Dirty = true;
@@ -62,23 +63,23 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 		const auto& info = Inventory::FindItemComponent(item.itemid);
 
 		UpdateSlot(info.equipLocation, { id, static_cast<LOT>(item.itemid), item.count, slot++ });
-		
+
 		// Equip this items proxies.
 		auto subItems = info.subItems;
-		
+
 		subItems.erase(std::remove_if(subItems.begin(), subItems.end(), ::isspace), subItems.end());
-		
+
 		if (!subItems.empty()) {
 			const auto subItemsSplit = GeneralUtils::SplitString(subItems, ',');
-			
+
 			for (auto proxyLotAsString : subItemsSplit) {
 				const auto proxyLOT = static_cast<LOT>(std::stoi(proxyLotAsString));
-				
+
 				const auto& proxyInfo = Inventory::FindItemComponent(proxyLOT);
 				const LWOOBJID proxyId = ObjectIDManager::Instance()->GenerateObjectID();
-				
+
 				// Use item.count since we equip item.count number of the item this is a requested proxy of
-				UpdateSlot(proxyInfo.equipLocation, { proxyId, proxyLOT, item.count, slot++ } );
+				UpdateSlot(proxyInfo.equipLocation, { proxyId, proxyLOT, item.count, slot++ });
 			}
 		}
 	}
@@ -795,9 +796,7 @@ void InventoryComponent::RemoveSlot(const std::string& location) {
 }
 
 void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
-	if (!Inventory::IsValidItem(item->GetLot())) {
-		return;
-	}
+	if (!Inventory::IsValidItem(item->GetLot())) return;
 
 	// Temp items should be equippable but other transfer items shouldn't be (for example the instruments in RB)
 	if (item->IsEquipped()
@@ -820,9 +819,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 
 				auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 
-				if (characterComponent != nullptr) {
-					characterComponent->SetLastRocketItemID(item->GetId());
-				}
+				if (characterComponent != nullptr) characterComponent->SetLastRocketItemID(item->GetId());
 
 				lauchPad->OnUse(m_Parent);
 
@@ -836,94 +833,8 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 
 		const auto type = static_cast<eItemType>(item->GetInfo().itemType);
 
-		if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == false) {
-			auto startPosition = m_Parent->GetPosition();
 
-			auto startRotation = NiQuaternion::LookAt(startPosition, startPosition + NiPoint3::UNIT_X);
-			auto angles = startRotation.GetEulerAngles();
-			angles.y -= PI;
-			startRotation = NiQuaternion::FromEulerAngles(angles);
-
-			GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
-
-			EntityInfo info{};
-			info.lot = 8092;
-			info.pos = startPosition;
-			info.rot = startRotation;
-			info.spawnerID = m_Parent->GetObjectID();
-
-			auto* carEntity = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
-			m_Parent->AddChild(carEntity);
-
-			auto* destroyableComponent = carEntity->GetComponent<DestroyableComponent>();
-
-			// Setup the vehicle stats.
-			if (destroyableComponent != nullptr) {
-				destroyableComponent->SetIsSmashable(false);
-				destroyableComponent->SetIsImmune(true);
-			}
-			// #108
-			auto* possessableComponent = carEntity->GetComponent<PossessableComponent>();
-
-			if (possessableComponent != nullptr) {
-				previousPossessableID = possessableComponent->GetPossessor();
-				possessableComponent->SetPossessor(m_Parent->GetObjectID());
-			}
-
-			auto* moduleAssemblyComponent = carEntity->GetComponent<ModuleAssemblyComponent>();
-
-			if (moduleAssemblyComponent != nullptr) {
-				moduleAssemblyComponent->SetSubKey(item->GetSubKey());
-				moduleAssemblyComponent->SetUseOptionalParts(false);
-
-				for (auto* config : item->GetConfig()) {
-					if (config->GetKey() == u"assemblyPartLOTs") {
-						moduleAssemblyComponent->SetAssemblyPartsLOTs(GeneralUtils::ASCIIToUTF16(config->GetValueAsString()));
-					}
-				}
-			}
-			// #107
-			auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
-
-			if (possessorComponent) possessorComponent->SetPossessable(carEntity->GetObjectID());
-
-			auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
-
-			if (characterComponent) characterComponent->SetIsRacing(true);
-
-			EntityManager::Instance()->ConstructEntity(carEntity);
-			EntityManager::Instance()->SerializeEntity(m_Parent);
-			GameMessages::SendSetJetPackMode(m_Parent, false);
-
-			GameMessages::SendNotifyVehicleOfRacingObject(carEntity->GetObjectID(), m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendRacingPlayerLoaded(LWOOBJID_EMPTY, m_Parent->GetObjectID(), carEntity->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendVehicleUnlockInput(carEntity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendTeleport(m_Parent->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
-			GameMessages::SendTeleport(carEntity->GetObjectID(), startPosition, startRotation, m_Parent->GetSystemAddress(), true, true);
-			EntityManager::Instance()->SerializeEntity(m_Parent);
-
-			hasCarEquipped = true;
-			equippedCarEntity = carEntity;
-			return;
-		} else if (item->GetLot() == 8092 && m_Parent->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && hasCarEquipped == true) {
-			GameMessages::SendNotifyRacingClient(LWOOBJID_EMPTY, 3, 0, LWOOBJID_EMPTY, u"", m_Parent->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-			auto player = dynamic_cast<Player*>(m_Parent);
-			player->SendToZone(player->GetCharacter()->GetZoneID());
-			equippedCarEntity->Kill();
-			hasCarEquipped = false;
-			equippedCarEntity = nullptr;
-			return;
-		}
-
-		if (!building) {
-			if (item->GetLot() == 6086) {
-				return;
-			}
-
-			if (type == eItemType::ITEM_TYPE_LOOT_MODEL || type == eItemType::ITEM_TYPE_VEHICLE) {
-				return;
-			}
-		}
+		if (!building && (item->GetLot() == 6086 || type == eItemType::ITEM_TYPE_LOOT_MODEL || type == eItemType::ITEM_TYPE_VEHICLE)) return;
 
 		if (type != eItemType::ITEM_TYPE_LOOT_MODEL && type != eItemType::ITEM_TYPE_MODEL) {
 			if (!item->GetBound() && !item->GetPreconditionExpression()->Check(m_Parent)) {
@@ -940,9 +851,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 		set->OnEquip(lot);
 	}
 
-	if (item->GetInfo().isBOE) {
-		item->SetBound(true);
-	}
+	if (item->GetInfo().isBOE) item->SetBound(true);
 
 	GenerateProxies(item);
 
@@ -987,6 +896,85 @@ void InventoryComponent::UnEquipItem(Item* item) {
 		PropertyManagementComponent::Instance()->GetParent()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 		dZoneManager::Instance()->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 	}
+}
+
+void InventoryComponent::HandlePossession(Item* item) {
+	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+
+	auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
+	if (!possessorComponent) return;
+
+	// Don't do anything if we are busy dismounting
+	if (possessorComponent->GetIsDismounting()) return;
+
+	// Check to see if we are already mounting something
+	auto* currentlyPossessedEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+	auto currentlyPossessedItem = possessorComponent->GetMountItemID();
+
+	if (currentlyPossessedItem) {
+		if (currentlyPossessedEntity) possessorComponent->Dismount(currentlyPossessedEntity);
+		return;
+	}
+
+	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+
+	// Set the mount Item ID so that we know what were handling
+	possessorComponent->SetMountItemID(item->GetId());
+	GameMessages::SendSetMountInventoryID(m_Parent, item->GetId(), UNASSIGNED_SYSTEM_ADDRESS);
+
+	// Create entity to mount
+	auto startRotation = m_Parent->GetRotation();
+
+	EntityInfo info{};
+	info.lot = item->GetLot();
+	info.pos = m_Parent->GetPosition();
+	info.rot = startRotation;
+	info.spawnerID = m_Parent->GetObjectID();
+
+	auto* mount = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
+
+	// Check to see if the mount is a vehicle, if so, flip it
+	auto* vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
+	if (vehicleComponent) {
+		auto angles = startRotation.GetEulerAngles();
+		// Make it right side up
+		angles.x -= PI;
+		// Make it going in the direction of the player
+		angles.y -= PI;
+		startRotation = NiQuaternion::FromEulerAngles(angles);
+		mount->SetRotation(startRotation);
+		// We're pod racing now
+		characterComponent->SetIsRacing(true);
+	}
+
+	// Setup the destroyable stats
+	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
+	if (destroyableComponent) {
+		destroyableComponent->SetIsSmashable(false);
+		destroyableComponent->SetIsImmune(true);
+	}
+
+	// Mount it
+	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
+	if (possessableComponent) {
+		possessableComponent->SetIsItemSpawned(true);
+		possessableComponent->SetPossessor(m_Parent->GetObjectID());
+		// Possess it
+		possessorComponent->SetPossessable(mount->GetObjectID());
+		possessorComponent->SetPossessableType(possessableComponent->GetPossessionType());
+	}
+
+	GameMessages::SendSetJetPackMode(m_Parent, false);
+
+	// Make it go to the client
+	EntityManager::Instance()->ConstructEntity(mount);
+	// Update the possessor
+	EntityManager::Instance()->SerializeEntity(m_Parent);
+
+	// have to unlock the input so it vehicle can be driven
+	if (vehicleComponent) GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_Parent->GetSystemAddress());
+	GameMessages::SendMarkInventoryItemAsActive(m_Parent->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_Parent->GetSystemAddress());
 }
 
 void InventoryComponent::ApplyBuff(Item* item) const {

@@ -1454,6 +1454,13 @@ void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u
 		Kill(EntityManager::Instance()->GetEntity(source));
 		return;
 	}
+	auto* possessorComponent = GetComponent<PossessorComponent>();
+	if (possessorComponent) {
+		if (possessorComponent->GetPossessable() != LWOOBJID_EMPTY) {
+			auto* mount = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+			if (mount) possessorComponent->Dismount(mount, true);
+		}
+	}
 
 	destroyableComponent->Smash(source, killType, deathType);
 }
