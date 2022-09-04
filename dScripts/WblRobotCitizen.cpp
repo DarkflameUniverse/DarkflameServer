@@ -1,12 +1,8 @@
 #include "WblRobotCitizen.h"
 #include "GameMessages.h"
-#include "MovingPlatformComponent.h"
-#include "dLogger.h"
-
 
 void WblRobotCitizen::OnStartup(Entity* self) {
-	auto movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
-	if (movingPlatformComponent) movingPlatformComponent->StartPathing();
+	// TODO: make it move via controllable physics
 }
 
 void WblRobotCitizen::OnUse(Entity* self, Entity* user) {
@@ -19,6 +15,5 @@ void WblRobotCitizen::OnUse(Entity* self, Entity* user) {
 }
 
 void WblRobotCitizen::OnTimerDone(Entity* self, std::string timerName) {
-	auto movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
-	if (movingPlatformComponent) movingPlatformComponent->ContinuePathing();
+	// TODO: make it move via controllable physics
 }
