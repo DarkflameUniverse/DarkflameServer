@@ -120,7 +120,7 @@
 		},
 		"filter": {
 			"exclude": {
-				"name": "\"((example)|(minigzip))+\""
+				"name": "((example)|(minigzip))+"
 			}
 		},
       "output": {
