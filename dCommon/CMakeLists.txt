@@ -41,7 +41,6 @@ elseif (WIN32)
 
 	set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
 	set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}")
-
 	add_library(ZLIB::ZLIB ALIAS zlib)
 endif()
 
