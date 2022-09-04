@@ -294,6 +294,12 @@
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
 std::map<std::string, CppScripts::Script*> m_Scripts;
+const std::vector<std::string> m_IgnoredScripts = {
+	"",
+	"scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua",
+	"scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua",
+	"scripts\\empty.lua"
+};
 
 // yeah sorry darwin ill fix the global later
 
@@ -307,6 +313,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	}
 
 	script = invalidToReturn;
+
+	// check for ignored scripts and return early
+	if (std::find(m_IgnoredScripts.begin(), m_IgnoredScripts.end(), scriptName) != m_IgnoredScripts.end()) return script;
 
 	//VE / AG:
 	if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua")
@@ -848,11 +857,6 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
 		script = new WblGenericZone();
 
-	//Ignore these scripts:
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")
-		script = invalidToReturn;
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua")
-		script = invalidToReturn;
 	else if (script == invalidToReturn) {
 		if (scriptName.length() > 0)
 			Game::logger->LogDebug("CppScripts", "Attempted to load CppScript for '%s', but returned InvalidScript.", scriptName.c_str());
