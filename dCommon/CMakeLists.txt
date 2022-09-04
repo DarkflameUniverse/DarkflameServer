@@ -34,11 +34,14 @@ elseif (WIN32)
 
 	# Disable warning about no project version.
 	set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
+	# Disable warning about the minimum version of cmake used for bcrypt being deprecated in the future
+	set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 
 	FetchContent_MakeAvailable(zlib)
 
 	set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
 	set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}")
+
 	add_library(ZLIB::ZLIB ALIAS zlib)
 endif()
 
