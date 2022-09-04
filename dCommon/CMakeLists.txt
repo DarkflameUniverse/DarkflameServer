@@ -23,11 +23,7 @@ target_link_libraries(dCommon bcrypt)
 
 if (UNIX)
 	find_package(ZLIB REQUIRED)
-	target_link_libraries(dCommon ZLIB::ZLIB)
-endif()
-
-# Fetch External (Non-Submodule) Libraries
-if(WIN32)
+elseif (WIN32)
 	include(FetchContent)
 
 	FetchContent_Declare(
@@ -36,11 +32,14 @@ if(WIN32)
 		URL_HASH MD5=9d6a627693163bbbf3f26403a3a0b0b1
 	)
 
+	# Disable warning about no project version.
+	set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
+
 	FetchContent_MakeAvailable(zlib)
 
 	set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-	set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}") # Why?
-	add_library(ZLIB::ZLIB ALIAS zlib) # You're welcome
-	target_link_libraries(dCommon zlib)
+	set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}")
+	add_library(ZLIB::ZLIB ALIAS zlib)
+endif()
 
-endif(WIN32)
+target_link_libraries(dCommon ZLIB::ZLIB)
