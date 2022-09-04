@@ -164,14 +164,12 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 	delete name;
 	delete reputation;
 
-#ifdef _WIN32
-	bitStream.Write<uint32_t>(data.GetNumberOfBytesUsed() + 1);
-	bitStream.Write<uint8_t>(0);
-	bitStream.Write((char*)data.GetData(), data.GetNumberOfBytesUsed());
-#else
 	//Compress the data before sending:
 	const int reservedSize = 5 * 1024 * 1024;
-	uint8_t compressedData[reservedSize];
+    uint8_t* compressedData = static_cast<uint8_t*>(malloc(reservedSize));
+
+    if (!compressedData) return;
+
 	size_t size = ZCompression::Compress(data.GetData(), data.GetNumberOfBytesUsed(), compressedData, reservedSize);
 
 	bitStream.Write<uint32_t>(size + 9); //size of data + header bytes (8)
@@ -181,10 +179,10 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 
 	for (size_t i = 0; i < size; i++)
 		bitStream.Write(compressedData[i]);
-#endif
 
 	PacketUtils::SavePacket("chardata.bin", (const char*)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
 	SEND_PACKET;
+	free(compressedData);
 	Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu", entity->GetObjectID());
 }
 
