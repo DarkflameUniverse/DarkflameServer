@@ -165,22 +165,32 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 	delete reputation;
 
 	//Compress the data before sending:
-	const int reservedSize = 5 * 1024 * 1024;
+    const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());
     uint8_t* compressedData = static_cast<uint8_t*>(malloc(reservedSize));
 
+	// TODO There should be better handling here for not enough memory...
     if (!compressedData) return;
 
 	size_t size = ZCompression::Compress(data.GetData(), data.GetNumberOfBytesUsed(), compressedData, reservedSize);
+
+	assert(size <= reservedSize);
 
 	bitStream.Write<uint32_t>(size + 9); //size of data + header bytes (8)
 	bitStream.Write<uint8_t>(1);         //compressed boolean, true
 	bitStream.Write<uint32_t>(data.GetNumberOfBytesUsed());
 	bitStream.Write<uint32_t>(size);
 
+	/**
+	 * In practice, this warning serves no purpose for us.  We allocate the max memory needed on the heap
+	 * and then compress the data.  In the off chance that the compression actually increases the size,
+	 * an assertion is done to prevent bad data from being saved or sent.
+	 */
+#pragma warning(disable:6385) // C6385 Reading invalid data from 'compressedData'.
 	for (size_t i = 0; i < size; i++)
 		bitStream.Write(compressedData[i]);
+#pragma warning(default:6385)
 
-	PacketUtils::SavePacket("chardata.bin", (const char*)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
+	// PacketUtils::SavePacket("chardata.bin", (const char*)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
 	SEND_PACKET;
 	free(compressedData);
 	Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu", entity->GetObjectID());
