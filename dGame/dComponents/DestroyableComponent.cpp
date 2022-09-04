@@ -26,6 +26,8 @@
 
 #include "MissionComponent.h"
 #include "CharacterComponent.h"
+#include "PossessableComponent.h"
+#include "PossessorComponent.h"
 #include "dZoneManager.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
@@ -598,6 +600,24 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	SetArmor(armor);
 	SetHealth(health);
 	SetIsShielded(absorb > 0);
+
+	// Dismount on the possessable hit
+	auto possessable = m_Parent->GetComponent<PossessableComponent>();
+	if (possessable && possessable->GetDepossessOnHit()) {
+		possessable->Dismount();
+	}
+
+	// Dismount on the possessor hit
+	auto possessor = m_Parent->GetComponent<PossessorComponent>();
+	if (possessor) {
+		auto possessableId = possessor->GetPossessable();
+		if (possessableId != LWOOBJID_EMPTY) {
+			auto possessable = EntityManager::Instance()->GetEntity(possessableId);
+			if (possessable) {
+				possessor->Dismount(possessable);
+			}
+		}
+	}
 
 	if (m_Parent->GetLOT() != 1) {
 		echo = true;

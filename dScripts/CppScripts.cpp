@@ -61,6 +61,8 @@
 #include "VeMissionConsole.h"
 #include "VeEpsilonServer.h"
 #include "AgSurvivalBuffStation.h"
+#include "QbSpawner.h"
+#include "AgQbWall.h"
 
 // NS Scripts
 #include "NsModularBuild.h"
@@ -117,6 +119,9 @@
 #include "GfApeSmashingQB.h"
 #include "ZoneGfProperty.h"
 #include "GfArchway.h"
+#include "GfMaelstromGeyser.h"
+#include "PirateRep.h"
+#include "GfParrotCrash.h"
 
 // SG Scripts
 #include "SGCannon.h"
@@ -141,12 +146,14 @@
 #include "FvConsoleLeftQuickbuild.h"
 #include "FvConsoleRightQuickbuild.h"
 #include "FvFacilityBrick.h"
+#include "FvFacilityPipes.h"
 #include "ImgBrickConsoleQB.h"
 #include "ActParadoxPipeFix.h"
 #include "FvNinjaGuard.h"
 #include "FvPassThroughWall.h"
 #include "FvBounceOverWall.h"
 #include "FvFong.h"
+#include "FvMaelstromGeyser.h"
 
 // FB Scripts
 #include "AgJetEffectServer.h"
@@ -280,6 +287,9 @@
 // Frostburgh Scripts
 #include "RockHydrantBroken.h"
 #include "WhFans.h"
+
+// WBL scripts
+#include "WblGenericZone.h"
 
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
@@ -461,6 +471,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new WildAmbients();
 	else if (scriptName == "scripts\\ai\\NS\\NS_PP_01\\L_NS_PP_01_TELEPORT.lua")
 		script = new PropertyDeathPlane();
+	else if (scriptName == "scripts\\02_server\\Map\\General\\L_QB_SPAWNER.lua")
+		script = new QbSpawner();
+	else if (scriptName == "scripts\\ai\\AG\\L_AG_QB_Wall.lua")
+		script = new AgQbWall();
 
 	//GF:
 	else if (scriptName == "scripts\\02_server\\Map\\GF\\L_GF_TORCH.lua")
@@ -495,9 +509,14 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new GfApeSmashingQB();
 	else if (scriptName == "scripts\\zone\\PROPERTY\\GF\\L_ZONE_GF_PROPERTY.lua")
 		script = new ZoneGfProperty();
-	else if (scriptName == "scripts\\ai\\GF\\L_GF_ARCHWAY.lua") {
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_ARCHWAY.lua")
 		script = new GfArchway();
-	}
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_MAELSTROM_GEYSER.lua")
+		script = new GfMaelstromGeyser();
+	else if (scriptName == "scripts\\ai\\GF\\L_PIRATE_REP.lua")
+		script = new PirateRep();
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_PARROT_CRASH.lua")
+		script = new GfParrotCrash();
 
 	// SG
 	else if (scriptName == "scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON.lua")
@@ -564,6 +583,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new FvConsoleRightQuickbuild();
 	else if (scriptName == "scripts\\ai\\FV\\L_FV_FACILITY_BRICK.lua")
 		script = new FvFacilityBrick();
+	else if (scriptName == "scripts\\ai\\FV\\L_FV_FACILITY_PIPES.lua")
+		script = new FvFacilityPipes();
 	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_IMG_BRICK_CONSOLE_QB.lua")
 		script = new ImgBrickConsoleQB();
 	else if (scriptName == "scripts\\ai\\FV\\L_ACT_PARADOX_PIPE_FIX.lua")
@@ -576,6 +597,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new FvBounceOverWall();
 	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_NPC_FONG.lua")
 		script = new FvFong();
+	else if (scriptName == "scripts\\ai\\FV\\L_FV_MAELSTROM_GEYSER.lua") {
+		script = new FvMaelstromGeyser();
+	}
 
 	//Misc:
 	if (scriptName == "scripts\\02_server\\Map\\General\\L_EXPLODING_ASSET.lua")
@@ -813,11 +837,16 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new BuccaneerValiantShip();
 	else if (scriptName == "scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua")
 		script = new FireFirstSkillonStartup();
+
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
 		script = new RockHydrantBroken();
 	else if (scriptName == "scripts\\ai\\NS\\L_NS_WH_FANS.lua")
 		script = new WhFans();
+
+	// WBL
+	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
+		script = new WblGenericZone();
 
 	//Ignore these scripts:
 	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")

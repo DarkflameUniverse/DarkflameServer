@@ -14,6 +14,7 @@
 #include "dpWorld.h"
 #include "PetDigServer.h"
 #include "../dWorldServer/ObjectIDManager.h"
+#include "eUnequippableActiveType.h"
 
 #include "Game.h"
 #include "dConfig.h"
@@ -883,7 +884,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 		GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
 	}
 
-	GameMessages::SendMarkInventoryItemAsActive(m_Owner, true, 0, m_ItemId, GetOwner()->GetSystemAddress());
+	GameMessages::SendMarkInventoryItemAsActive(m_Owner, true, eUnequippableActiveType::PET, m_ItemId, GetOwner()->GetSystemAddress());
 
 	activePets[m_Owner] = m_Parent->GetObjectID();
 
@@ -945,7 +946,7 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 void PetComponent::Deactivate() {
 	GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), -1, u"despawn", "", LWOOBJID_EMPTY, 1, 1, true);
 
-	GameMessages::SendMarkInventoryItemAsActive(m_Owner, false, 0, m_ItemId, GetOwner()->GetSystemAddress());
+	GameMessages::SendMarkInventoryItemAsActive(m_Owner, false, eUnequippableActiveType::PET, m_ItemId, GetOwner()->GetSystemAddress());
 
 	activePets.erase(m_Owner);
 
