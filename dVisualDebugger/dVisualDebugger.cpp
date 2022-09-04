@@ -80,7 +80,6 @@ void dVisualDebugger::Step(float delta) {
 	this->AttachToCharacter();
 
 	if (IsKeyDown(KEY_SPACE)) m_BindToGM = !m_BindToGM;
-	delete m_Camera;
 
 	BeginDrawing();
 		ClearBackground(RAYWHITE);
