@@ -314,9 +314,9 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 
 			const auto targetPosition = target->GetPosition();
 
-			const auto closestPoint = Vector3::ClosestPointOnLine(entry.lastPosition, position, targetPosition);
+			const auto closestPoint = NiPoint3::ClosestPointOnLine(entry.lastPosition, position, targetPosition);
 
-			const auto distance = Vector3::DistanceSquared(targetPosition, closestPoint);
+			const auto distance = NiPoint3::DistanceSquared(targetPosition, closestPoint);
 
 			if (distance > 3 * 3) {
 				/*
@@ -328,7 +328,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 
 					const auto homingTarget = rotation.GetForwardVector() * speed;
 
-					Vector3 homing;
+					NiPoint3 homing;
 
 					// Move towards
 

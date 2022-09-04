@@ -7,7 +7,6 @@
 
 class NiPoint3;
 class NiQuaternion;
-typedef NiPoint3 Vector3;       //!< The Vector3 class is technically the NiPoint3 class, but typedef'd for clarity in some cases
 
 //! A custom class the defines a point in space
 class NiPoint3 {
@@ -102,14 +101,14 @@ public:
 	  \param vec The second vector
 	  \return The dot product of the two vectors
 	 */
-	float DotProduct(const Vector3& vec) const;
+	float DotProduct(const NiPoint3& vec) const;
 
 	//! Returns the cross product of the vector crossed with another vector
 	/*!
 	  \param vec The second vector
 	  \return The cross product of the two vectors
 	 */
-	Vector3 CrossProduct(const Vector3& vec) const;
+	NiPoint3 CrossProduct(const NiPoint3& vec) const;
 
 	//! Unitize the vector
 	/*!

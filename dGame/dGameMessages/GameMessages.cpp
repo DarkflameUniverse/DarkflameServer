@@ -4919,7 +4919,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 		const auto& referencePoint = entity->GetPosition();
 
 		for (auto* scripted : scriptedEntities) {
-			if (Vector3::DistanceSquared(scripted->GetPosition(), referencePoint) > 5.0f * 5.0f) continue;
+			if (NiPoint3::DistanceSquared(scripted->GetPosition(), referencePoint) > 5.0f * 5.0f) continue;
 
 			scripted->OnEmoteReceived(emoteID, entity);
 		}

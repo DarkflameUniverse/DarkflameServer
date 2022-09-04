@@ -78,7 +78,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 
 	const auto position = entity->GetPosition() + this->m_offset;
 
-	const auto distance = Vector3::Distance(position, other->GetPosition());
+	const auto distance = NiPoint3::Distance(position, other->GetPosition());
 
 	const auto time = distance / this->m_projectileSpeed;
 

@@ -72,22 +72,22 @@ void NiQuaternion::SetZ(float z) {
 // MARK: Member Functions
 
 //! Returns the forward vector from the quaternion
-Vector3 NiQuaternion::GetForwardVector(void) const {
-	return Vector3(2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y));
+NiPoint3 NiQuaternion::GetForwardVector(void) const {
+	return NiPoint3(2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y));
 }
 
 //! Returns the up vector from the quaternion
-Vector3 NiQuaternion::GetUpVector(void) const {
-	return Vector3(2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x));
+NiPoint3 NiQuaternion::GetUpVector(void) const {
+	return NiPoint3(2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x));
 }
 
 //! Returns the right vector from the quaternion
-Vector3 NiQuaternion::GetRightVector(void) const {
-	return Vector3(1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y));
+NiPoint3 NiQuaternion::GetRightVector(void) const {
+	return NiPoint3(1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y));
 }
 
-Vector3 NiQuaternion::GetEulerAngles() const {
-	Vector3 angles;
+NiPoint3 NiQuaternion::GetEulerAngles() const {
+	NiPoint3 angles;
 
 	// roll (x-axis rotation)
 	const float sinr_cosp = 2 * (w * x + y * z);
@@ -164,7 +164,7 @@ NiQuaternion NiQuaternion::LookAtUnlocked(const NiPoint3& sourcePoint, const NiP
 }
 
 //! Creates a Quaternion from a specific axis and angle relative to that axis
-NiQuaternion NiQuaternion::CreateFromAxisAngle(const Vector3& axis, float angle) {
+NiQuaternion NiQuaternion::CreateFromAxisAngle(const NiPoint3& axis, float angle) {
 	float halfAngle = angle * 0.5f;
 	float s = static_cast<float>(sin(halfAngle));
 

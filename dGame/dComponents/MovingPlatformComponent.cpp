@@ -177,7 +177,7 @@ void MovingPlatformComponent::StartPathing() {
 		SetMovementState(MovementPlatformState::Moving);
 		});
 
-	const auto travelTime = Vector3::Distance(targetPosition, subComponent->mPosition) / subComponent->mSpeed + 1.5f;
+	const auto travelTime = NiPoint3::Distance(targetPosition, subComponent->mPosition) / subComponent->mSpeed + 1.5f;
 
 	const auto travelNext = subComponent->mWaitTime + travelTime;
 
@@ -285,7 +285,7 @@ void MovingPlatformComponent::ContinuePathing() {
 		SetMovementState(MovementPlatformState::Moving);
 		});
 
-	auto travelTime = Vector3::Distance(targetPosition, subComponent->mPosition) / subComponent->mSpeed + 1.5;
+	auto travelTime = NiPoint3::Distance(targetPosition, subComponent->mPosition) / subComponent->mSpeed + 1.5;
 
 	if (m_Parent->GetLOT() == 9483) {
 		travelTime += 20;

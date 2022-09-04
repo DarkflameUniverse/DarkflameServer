@@ -20,7 +20,7 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 	if (!self->GetBoolean(u"bIsHit")) {
 		for (Entity* en : entities) {
 			if (en->GetObjectID() == attacker->GetObjectID()) {
-				if (Vector3::DistanceSquared(en->GetPosition(), self->GetPosition()) > 10 * 10) continue;
+				if (NiPoint3::DistanceSquared(en->GetPosition(), self->GetPosition()) > 10 * 10) continue;
 
 				auto* destroyable = en->GetComponent<DestroyableComponent>();
 				if (destroyable == nullptr) {

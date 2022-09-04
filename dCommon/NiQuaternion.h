@@ -9,7 +9,6 @@
  */
 
 class NiQuaternion;
-typedef NiQuaternion Quaternion;        //!< A typedef for a shorthand version of NiQuaternion
 
 //! A class that defines a rotation in space
 class NiQuaternion {
@@ -95,21 +94,21 @@ public:
 	/*!
 	  \return The forward vector of the quaternion
 	 */
-	Vector3 GetForwardVector(void) const;
+	NiPoint3 GetForwardVector(void) const;
 
 	//! Returns the up vector from the quaternion
 	/*!
 	  \return The up vector fo the quaternion
 	 */
-	Vector3 GetUpVector(void) const;
+	NiPoint3 GetUpVector(void) const;
 
 	//! Returns the right vector from the quaternion
 	/*!
 	  \return The right vector of the quaternion
 	 */
-	Vector3 GetRightVector(void) const;
+	NiPoint3 GetRightVector(void) const;
 
-	Vector3 GetEulerAngles() const;
+	NiPoint3 GetEulerAngles() const;
 
 
 	// MARK: Operators
@@ -145,7 +144,7 @@ public:
 	  \param angle The angle relative to this axis
 	  \return A quaternion created from the axis and angle
 	 */
-	static NiQuaternion CreateFromAxisAngle(const Vector3& axis, float angle);
+	static NiQuaternion CreateFromAxisAngle(const NiPoint3& axis, float angle);
 
 	static NiQuaternion FromEulerAngles(const NiPoint3& eulerAngles);
 };

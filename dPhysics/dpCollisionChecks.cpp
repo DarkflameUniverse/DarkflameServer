@@ -25,7 +25,7 @@ bool dpCollisionChecks::CheckSpheres(dpEntity* a, dpEntity* b) {
 	if (!a || !b) return false;
 
 	auto posA = a->GetPosition();
-	auto distance = Vector3::DistanceSquared(posA, b->GetPosition());
+	auto distance = NiPoint3::DistanceSquared(posA, b->GetPosition());
 
 	auto sphereA = static_cast<dpShapeSphere*>(a->GetShape());
 	auto sphereB = static_cast<dpShapeSphere*>(b->GetShape());

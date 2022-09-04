@@ -1,0 +1,2 @@
+add_library(dVisualDebugger dVisualDebugger.cpp)
+target_link_libraries(dVisualDebugger raylib Recast Detour)

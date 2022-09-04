@@ -32,6 +32,8 @@ public:
 	void RemoveEntity(dpEntity* entity);
 
 	dNavMesh* GetNavMesh() { return m_NavMesh; }
+	std::vector<dpEntity*>* GetStaticEntities() { return &m_StaticEntities; }
+	std::vector<dpEntity*>* GetDynamicEntities() { return &m_DynamicEntites; }
 
 private:
 	dpGrid* m_Grid;

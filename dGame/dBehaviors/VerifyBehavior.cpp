@@ -23,7 +23,7 @@ void VerifyBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			return;
 		}
 
-		const auto distance = Vector3::DistanceSquared(self->GetPosition(), entity->GetPosition());
+		const auto distance = NiPoint3::DistanceSquared(self->GetPosition(), entity->GetPosition());
 
 		if (distance > this->m_range * this->m_range) {
 			success = false;

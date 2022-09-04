@@ -794,7 +794,7 @@ void RacingControlComponent::Update(float deltaTime) {
 				continue;
 			}
 
-			if (Vector3::DistanceSquared(position, vehiclePosition) > 50 * 50) {
+			if (NiPoint3::DistanceSquared(position, vehiclePosition) > 50 * 50) {
 				++respawnIndex;
 
 				continue;

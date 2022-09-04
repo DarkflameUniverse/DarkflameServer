@@ -21,19 +21,19 @@ void SGCannon::OnStartup(Entity* self) {
 	ResetVars(self);
 
 	self->SetVar<bool>(GameStartedVariable, false);
-	self->SetVar<Vector3>(InitialVelocityVariable, {});
+	self->SetVar<NiPoint3>(InitialVelocityVariable, {});
 	self->SetVar<uint32_t>(ImpactSkillVariale, constants.impactSkillID);
 
 	auto* shootingGalleryComponent = self->GetComponent<ShootingGalleryComponent>();
 	if (shootingGalleryComponent != nullptr) {
 		shootingGalleryComponent->SetStaticParams({
-			Vector3 { -327.8609924316406, 256.8999938964844, 1.6482199430465698 },
-			Vector3 { -181.4320068359375, 212.39999389648438, 2.5182199478149414 }
+			NiPoint3 { -327.8609924316406, 256.8999938964844, 1.6482199430465698 },
+			NiPoint3 { -181.4320068359375, 212.39999389648438, 2.5182199478149414 }
 			});
 
 		shootingGalleryComponent->SetDynamicParams({
-			Vector3 { 0.0, 4.3, 9.0 },
-			Vector3 { },
+			NiPoint3 { 0.0, 4.3, 9.0 },
+			NiPoint3 { },
 			129.0,
 			800.0,
 			30.0,
@@ -1030,17 +1030,17 @@ void SGCannon::ResetVars(Entity* self) {
 
 SGConstants SGCannon::GetConstants() {
 	return {
-		Vector3 { -908.542480, 229.773178, -908.542480 },
-		Quaternion { 0.91913521289825, 0, 0.39394217729568, 0 },
+		NiPoint3 { -908.542480, 229.773178, -908.542480 },
+		NiQuaternion { 0.91913521289825, 0, 0.39394217729568, 0 },
 		1864,
 		34,
 		1822,
-		Vector3 { 6.652, -2, 1.5 },
+		NiPoint3 { 6.652, -2, 1.5 },
 		157,
 		129.0,
 		30.0,
 		800.0,
-		Vector3 { 0, 4.3, 9 },
+		NiPoint3 { 0, 4.3, 9 },
 		6297,
 		1822,
 		249,

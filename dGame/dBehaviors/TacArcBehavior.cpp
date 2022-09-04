@@ -154,19 +154,19 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		// reference is the position of the caster.
 		// If we cast a ray forward from the caster, does it come within m_farWidth of the target?
 
-		const auto distance = Vector3::Distance(reference, otherPosition);
+		const auto distance = NiPoint3::Distance(reference, otherPosition);
 
 		if (m_method == 2) {
 			NiPoint3 rayPoint = casterPosition + forward * distance;
 
-			if (m_farWidth > 0 && Vector3::DistanceSquared(rayPoint, otherPosition) > this->m_farWidth * this->m_farWidth) {
+			if (m_farWidth > 0 && NiPoint3::DistanceSquared(rayPoint, otherPosition) > this->m_farWidth * this->m_farWidth) {
 				continue;
 			}
 		}
 
 		auto normalized = (reference - otherPosition) / distance;
 
-		const float degreeAngle = std::abs(Vector3::Angle(forward, normalized) * (180 / 3.14) - 180);
+		const float degreeAngle = std::abs(NiPoint3::Angle(forward, normalized) * (180 / 3.14) - 180);
 
 		if (distance >= this->m_minDistance && this->m_maxDistance >= distance && degreeAngle <= 2 * this->m_angle) {
 			targets.push_back(entity);
@@ -174,8 +174,8 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	}
 
 	std::sort(targets.begin(), targets.end(), [reference](Entity* a, Entity* b) {
-		const auto aDistance = Vector3::DistanceSquared(reference, a->GetPosition());
-		const auto bDistance = Vector3::DistanceSquared(reference, b->GetPosition());
+		const auto aDistance = NiPoint3::DistanceSquared(reference, a->GetPosition());
+		const auto bDistance = NiPoint3::DistanceSquared(reference, b->GetPosition());
 
 		return aDistance > bDistance;
 		});

@@ -55,7 +55,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 		SetPosition(source + velocity);
 
-		if (Vector3::DistanceSquared(GetCurrentPosition(), m_PullPoint) < 2 * 2) {
+		if (NiPoint3::DistanceSquared(GetCurrentPosition(), m_PullPoint) < 2 * 2) {
 			m_Interrupted = false;
 		}
 
@@ -68,7 +68,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 	}
 
 	if (m_HaltDistance > 0) {
-		if (Vector3::DistanceSquared(ApproximateLocation(), GetDestination()) < m_HaltDistance * m_HaltDistance) // Prevent us from hugging the target
+		if (NiPoint3::DistanceSquared(ApproximateLocation(), GetDestination()) < m_HaltDistance * m_HaltDistance) // Prevent us from hugging the target
 		{
 			Stop();
 
@@ -373,7 +373,7 @@ void MovementAIComponent::SetDestination(const NiPoint3& value) {
 		return;
 	}
 
-	/*if (Vector3::DistanceSquared(value, GetDestination()) < 2 * 2)
+	/*if (NiPoint3::DistanceSquared(value, GetDestination()) < 2 * 2)
 	{
 		return;
 	}*/

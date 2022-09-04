@@ -33,16 +33,16 @@ void AgLaserSensorServer::OnCollisionPhantom(Entity* self, Entity* target) {
 			const auto source = script->GetPosition();
 			const auto obj = self->GetObjectID();
 
-			if (obj == 76690936093053 && Vector3::DistanceSquared(source, NiPoint3(149.007f, 417.083f, 218.346f)) <= 1.0f) {
+			if (obj == 76690936093053 && NiPoint3::DistanceSquared(source, NiPoint3(149.007f, 417.083f, 218.346f)) <= 1.0f) {
 				laser = script;
 				break;
-			} else if (obj == 75866302318824 && Vector3::DistanceSquared(source, NiPoint3(48.6403f, 403.803f, 196.711f)) <= 1.0f) {
+			} else if (obj == 75866302318824 && NiPoint3::DistanceSquared(source, NiPoint3(48.6403f, 403.803f, 196.711f)) <= 1.0f) {
 				laser = script;
 				break;
-			} else if (obj == 75866302318822 && Vector3::DistanceSquared(source, NiPoint3(19.2155f, 420.083f, 249.226f)) <= 1.0f) {
+			} else if (obj == 75866302318822 && NiPoint3::DistanceSquared(source, NiPoint3(19.2155f, 420.083f, 249.226f)) <= 1.0f) {
 				laser = script;
 				break;
-			} else if (obj == 75866302318823 && Vector3::DistanceSquared(source, NiPoint3(-6.61596f, 404.633f, 274.323f)) <= 1.0f) {
+			} else if (obj == 75866302318823 && NiPoint3::DistanceSquared(source, NiPoint3(-6.61596f, 404.633f, 274.323f)) <= 1.0f) {
 				laser = script;
 				break;
 			}

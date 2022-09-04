@@ -402,7 +402,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	if (target != nullptr && !m_DirtyThreat) {
 		const auto targetPosition = target->GetPosition();
 
-		if (Vector3::DistanceSquared(targetPosition, m_StartPosition) < m_HardTetherRadius * m_HardTetherRadius) {
+		if (NiPoint3::DistanceSquared(targetPosition, m_StartPosition) < m_HardTetherRadius * m_HardTetherRadius) {
 			return m_Target;
 		}
 
@@ -433,7 +433,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 
 		const auto maxDistanceSquared = m_HardTetherRadius * m_HardTetherRadius;
 
-		if (Vector3::DistanceSquared(targetPosition, m_StartPosition) > maxDistanceSquared) {
+		if (NiPoint3::DistanceSquared(targetPosition, m_StartPosition) > maxDistanceSquared) {
 			if (threat > 0) {
 				SetThreat(entry, 0);
 			}
@@ -448,7 +448,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 			continue;
 		}
 
-		const auto proximityThreat = -(Vector3::DistanceSquared(targetPosition, reference) - maxDistanceSquared) / 100; // Proximity threat takes last priority
+		const auto proximityThreat = -(NiPoint3::DistanceSquared(targetPosition, reference) - maxDistanceSquared) / 100; // Proximity threat takes last priority
 
 		if (proximityThreat > biggestThreat) {
 			biggestThreat = proximityThreat;
@@ -477,7 +477,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 
 		const auto targetPosition = entity->GetPosition();
 
-		if (Vector3::DistanceSquared(targetPosition, m_StartPosition) > m_HardTetherRadius * m_HardTetherRadius) {
+		if (NiPoint3::DistanceSquared(targetPosition, m_StartPosition) > m_HardTetherRadius * m_HardTetherRadius) {
 			deadThreats.push_back(threatTarget.first);
 
 			continue;
@@ -508,7 +508,7 @@ std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 	for (auto id : m_Parent->GetTargetsInPhantom()) {
 		auto* other = EntityManager::Instance()->GetEntity(id);
 
-		const auto distance = Vector3::DistanceSquared(m_Parent->GetPosition(), other->GetPosition());
+		const auto distance = NiPoint3::DistanceSquared(m_Parent->GetPosition(), other->GetPosition());
 
 		if (distance > m_AggroRadius * m_AggroRadius) continue;
 
@@ -657,7 +657,7 @@ void BaseCombatAIComponent::Wander() {
 		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
-	if (Vector3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {
+	if (NiPoint3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {
 		m_MovementAI->Stop();
 
 		return;
@@ -685,16 +685,16 @@ void BaseCombatAIComponent::OnAggro() {
 	NiPoint3 currentPos = m_MovementAI->GetCurrentPosition();
 
 	// If the player's position is within range, attack
-	if (Vector3::DistanceSquared(currentPos, targetPos) <= m_AttackRadius * m_AttackRadius) {
+	if (NiPoint3::DistanceSquared(currentPos, targetPos) <= m_AttackRadius * m_AttackRadius) {
 		m_MovementAI->Stop();
-	} else if (Vector3::DistanceSquared(m_StartPosition, targetPos) > m_HardTetherRadius * m_HardTetherRadius) //Return to spawn if we're too far
+	} else if (NiPoint3::DistanceSquared(m_StartPosition, targetPos) > m_HardTetherRadius * m_HardTetherRadius) //Return to spawn if we're too far
 	{
 		m_MovementAI->SetSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(m_StartPosition);
 	} else //Chase the player's new position
 	{
-		if (IsMech() && Vector3::DistanceSquared(targetPos, currentPos) > m_AttackRadius * m_AttackRadius * 3 * 3) return;
+		if (IsMech() && NiPoint3::DistanceSquared(targetPos, currentPos) > m_AttackRadius * m_AttackRadius * 3 * 3) return;
 
 		m_MovementAI->SetSpeed(m_PursuitSpeed);
 
@@ -718,9 +718,9 @@ void BaseCombatAIComponent::OnTether() {
 	NiPoint3 targetPos = target->GetPosition();
 	NiPoint3 currentPos = m_MovementAI->ApproximateLocation();
 
-	if (Vector3::DistanceSquared(currentPos, targetPos) <= m_AttackRadius * m_AttackRadius) {
+	if (NiPoint3::DistanceSquared(currentPos, targetPos) <= m_AttackRadius * m_AttackRadius) {
 		m_MovementAI->Stop();
-	} else if (Vector3::DistanceSquared(m_StartPosition, targetPos) > m_HardTetherRadius * m_HardTetherRadius) //Return to spawn if we're too far
+	} else if (NiPoint3::DistanceSquared(m_StartPosition, targetPos) > m_HardTetherRadius * m_HardTetherRadius) //Return to spawn if we're too far
 	{
 		m_MovementAI->SetSpeed(m_PursuitSpeed);
 
@@ -728,7 +728,7 @@ void BaseCombatAIComponent::OnTether() {
 
 		m_State = AiState::aggro;
 	} else {
-		if (IsMech() && Vector3::DistanceSquared(targetPos, currentPos) > m_AttackRadius * m_AttackRadius * 3 * 3) return;
+		if (IsMech() && NiPoint3::DistanceSquared(targetPos, currentPos) > m_AttackRadius * m_AttackRadius * 3 * 3) return;
 
 		m_MovementAI->SetSpeed(m_PursuitSpeed);
 

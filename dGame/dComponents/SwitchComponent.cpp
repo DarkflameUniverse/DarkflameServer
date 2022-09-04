@@ -108,7 +108,7 @@ SwitchComponent* SwitchComponent::GetClosestSwitch(NiPoint3 position) {
 	SwitchComponent* closest = nullptr;
 
 	for (SwitchComponent* petSwitch : petSwitches) {
-		float distance = Vector3::DistanceSquared(petSwitch->m_Parent->GetPosition(), position);
+		float distance = NiPoint3::DistanceSquared(petSwitch->m_Parent->GetPosition(), position);
 
 		if (closest == nullptr || distance < closestDistance) {
 			closestDistance = distance;

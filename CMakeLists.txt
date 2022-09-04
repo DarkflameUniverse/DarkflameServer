@@ -39,6 +39,9 @@ endforeach()
 # Set the version
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
+# Set our compile options
+option(BUILD_VISUAL_DEBUGGER "Toggle for building visual debugger (default off)" OFF)
+
 # Echo the version
 message(STATUS "Version: ${PROJECT_VERSION}")
 
@@ -140,6 +143,7 @@ set(INCLUDED_DIRECTORIES
 	"dDatabase/Tables"
 	"dNet"
 	"dScripts"
+	"dWorldServer"
 
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
@@ -215,6 +219,10 @@ add_subdirectory(dGame)
 add_subdirectory(dZoneManager)
 add_subdirectory(dNavigation)
 add_subdirectory(dPhysics)
+
+if (BUILD_VISUAL_DEBUGGER)
+	add_subdirectory(dVisualDebugger)
+endif()
 
 # Create a list of common libraries shared between all binaries
 set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp")

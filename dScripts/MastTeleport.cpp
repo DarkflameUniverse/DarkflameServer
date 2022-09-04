@@ -69,7 +69,7 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		const auto rads = degrees * (static_cast<float>(M_PI) / 180.0f);
 
-		const Vector3 newPlayerRot = { 0, rads, 0 };
+		const NiPoint3 newPlayerRot = { 0, rads, 0 };
 
 		auto position = self->GetPosition();
 

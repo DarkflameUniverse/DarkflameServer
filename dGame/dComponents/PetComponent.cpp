@@ -400,7 +400,7 @@ void PetComponent::Update(float deltaTime) {
 	auto destination = owner->GetPosition();
 	NiPoint3 position = m_MovementAI->GetCurrentPosition();
 
-	float distanceToOwner = Vector3::DistanceSquared(position, destination);
+	float distanceToOwner = NiPoint3::DistanceSquared(position, destination);
 
 	if (distanceToOwner > 50 * 50 || m_TimerAway > 5) {
 		m_MovementAI->Warp(destination);
@@ -430,7 +430,7 @@ void PetComponent::Update(float deltaTime) {
 	if (closestSwitch != nullptr) {
 		if (!closestSwitch->GetActive()) {
 			NiPoint3 switchPosition = closestSwitch->GetParentEntity()->GetPosition();
-			float distance = Vector3::DistanceSquared(position, switchPosition);
+			float distance = NiPoint3::DistanceSquared(position, switchPosition);
 			if (distance < 3 * 3) {
 				m_Interaction = closestSwitch->GetParentEntity()->GetObjectID();
 				closestSwitch->EntityEnter(m_Parent);
@@ -451,7 +451,7 @@ void PetComponent::Update(float deltaTime) {
 		}
 
 		NiPoint3 tresurePosition = closestTresure->GetPosition();
-		float distance = Vector3::DistanceSquared(position, tresurePosition);
+		float distance = NiPoint3::DistanceSquared(position, tresurePosition);
 		if (distance < 3 * 3) {
 			m_Interaction = closestTresure->GetObjectID();
 
@@ -825,7 +825,7 @@ void PetComponent::Wander() {
 		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
-	if (Vector3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {
+	if (NiPoint3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {
 		m_MovementAI->Stop();
 
 		return;

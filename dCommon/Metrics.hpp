@@ -20,6 +20,9 @@ enum class MetricVariable : int32_t
 	CPUTime,
 	Sleep,
 	Frame,
+#ifdef BUILD_VISUAL_DEBUGGER
+	VisualDebugger
+#endif
 };
 
 struct Metric

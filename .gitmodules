@@ -23,3 +23,6 @@
 [submodule "thirdparty/AccountManager"]
 	path = thirdparty/AccountManager
 	url = https://github.com/DarkflameUniverse/AccountManager
+[submodule "thirdparty/raylib"]
+	path = thirdparty/raylib
+	url = https://github.com/raysan5/raylib

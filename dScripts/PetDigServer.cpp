@@ -222,7 +222,7 @@ Entity* PetDigServer::GetClosestTresure(NiPoint3 position) {
 
 		if (tresure == nullptr) continue;
 
-		float distance = Vector3::DistanceSquared(tresure->GetPosition(), position);
+		float distance = NiPoint3::DistanceSquared(tresure->GetPosition(), position);
 
 		if (closest == nullptr || distance < closestDistance) {
 			closestDistance = distance;

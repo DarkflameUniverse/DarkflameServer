@@ -14,6 +14,9 @@ std::vector<MetricVariable> Metrics::m_Variables = {
 	MetricVariable::CPUTime,
 	MetricVariable::Sleep,
 	MetricVariable::Frame,
+#ifdef BUILD_VISUAL_DEBUGGER
+	MetricVariable::VisualDebugger,
+#endif
 };
 
 void Metrics::AddMeasurement(MetricVariable variable, int64_t value) {
@@ -132,7 +135,10 @@ std::string Metrics::MetricVariableToString(MetricVariable variable) {
 		return "Frame";
 	case MetricVariable::Ghosting:
 		return "Ghosting";
-
+#ifdef BUILD_VISUAL_DEBUGGER
+	case MetricVariable::VisualDebugger:
+		return "VisualDebugger";
+#endif
 	default:
 		return "Invalid";
 	}

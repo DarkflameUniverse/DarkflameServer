@@ -54,7 +54,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 	auto* presetTarget = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (presetTarget != nullptr) {
-		if (this->m_radius * this->m_radius >= Vector3::DistanceSquared(reference, presetTarget->GetPosition())) {
+		if (this->m_radius * this->m_radius >= NiPoint3::DistanceSquared(reference, presetTarget->GetPosition())) {
 			targets.push_back(presetTarget);
 		}
 	}
@@ -90,7 +90,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 			continue;
 		}
 
-		const auto distance = Vector3::DistanceSquared(reference, entity->GetPosition());
+		const auto distance = NiPoint3::DistanceSquared(reference, entity->GetPosition());
 
 		if (this->m_radius * this->m_radius >= distance && (this->m_maxTargets == 0 || targets.size() < this->m_maxTargets)) {
 			targets.push_back(entity);
@@ -98,8 +98,8 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 	}
 
 	std::sort(targets.begin(), targets.end(), [reference](Entity* a, Entity* b) {
-		const auto aDistance = Vector3::DistanceSquared(a->GetPosition(), reference);
-		const auto bDistance = Vector3::DistanceSquared(b->GetPosition(), reference);
+		const auto aDistance = NiPoint3::DistanceSquared(a->GetPosition(), reference);
+		const auto bDistance = NiPoint3::DistanceSquared(b->GetPosition(), reference);
 
 		return aDistance > bDistance;
 		});

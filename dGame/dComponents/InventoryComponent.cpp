@@ -815,7 +815,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 			const auto position = m_Parent->GetPosition();
 
 			for (auto* lauchPad : rocketLauchPads) {
-				if (Vector3::DistanceSquared(lauchPad->GetPosition(), position) > 13 * 13) continue;
+				if (NiPoint3::DistanceSquared(lauchPad->GetPosition(), position) > 13 * 13) continue;
 
 				auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 

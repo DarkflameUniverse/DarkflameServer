@@ -21,17 +21,17 @@ struct SGEnemy {
 };
 
 struct SGConstants {
-	Vector3 playerStartPosition;
-	Quaternion playerStartRotation;
+	NiPoint3 playerStartPosition;
+	NiQuaternion playerStartRotation;
 	LOT cannonLot;
 	uint32_t impactSkillID;
 	LOT projectileLot;
-	Vector3 playerOffset;
+	NiPoint3 playerOffset;
 	uint32_t rewardModelMatrix;
 	float_t cannonVelocity;
 	float_t cannonMinDistance;
 	float_t cannonRefireRate;
-	Vector3 cannonBarrelOffset;
+	NiPoint3 cannonBarrelOffset;
 	LOT cannonSuperchargedProjectileLot;
 	LOT cannonProjectileLot;
 	uint32_t cannonSuperChargeSkill;

@@ -48,7 +48,9 @@ const uint64_t LWOZONEID_INVALID = 0;       //!< Invalid LWOZONEID
 
 typedef std::set<LWOOBJID> TSetObjID;
 
-const float PI = 3.14159f;
+#ifndef PI
+#define PI 3.14159265358979323846f
+#endif
 
 #if defined(__unix) || defined(__APPLE__)
 //For Linux:

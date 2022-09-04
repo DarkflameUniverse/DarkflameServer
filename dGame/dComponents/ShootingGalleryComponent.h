@@ -12,12 +12,12 @@ struct DynamicShootingGalleryParams {
 	/**
 	 * The distance from the camera to the barrel
 	 */
-	Vector3 cameraBarrelOffset;
+	NiPoint3 cameraBarrelOffset;
 
 	/**
 	 * The area the barrel is looking at
 	 */
-	Vector3 facing;
+	NiPoint3 facing;
 
 	/**
 	 * The velocity of the cannonballs
@@ -58,12 +58,12 @@ struct StaticShootingGalleryParams {
 	/**
 	 * The position of the camera
 	 */
-	Vector3 cameraPosition;
+	NiPoint3 cameraPosition;
 
 	/**
 	 * The position that the camera is looking at
 	 */
-	Vector3 cameraLookatPosition;
+	NiPoint3 cameraLookatPosition;
 };
 
 /**

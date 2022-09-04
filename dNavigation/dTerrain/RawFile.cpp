@@ -32,6 +32,8 @@ RawFile::RawFile(std::string fileName) {
 		m_Chunks.push_back(chunk);
 	}
 
+	m_FinalMesh = new RawMesh();
+
 	this->GenerateFinalMeshFromChunks();
 }
 

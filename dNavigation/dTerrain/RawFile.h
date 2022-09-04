@@ -11,6 +11,8 @@ public:
 	RawFile(std::string filePath);
 	~RawFile();
 
+	RawMesh* GetMesh() { return m_FinalMesh; }
+
 private:
 
 	void GenerateFinalMeshFromChunks();
@@ -23,5 +25,5 @@ private:
 	uint32_t m_Height;
 
 	std::vector<RawChunk*> m_Chunks;
-	RawMesh* m_FinalMesh;
+	RawMesh* m_FinalMesh = nullptr;
 };

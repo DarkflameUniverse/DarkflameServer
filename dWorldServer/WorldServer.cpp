@@ -56,6 +56,10 @@
 #include "Player.h"
 #include "PropertyManagementComponent.h"
 
+#ifdef BUILD_VISUAL_DEBUGGER
+#include "../dVisualDebugger/dVisualDebugger.h"
+#endif
+
 #include "ZCompression.h"
 
 namespace Game {
@@ -66,6 +70,9 @@ namespace Game {
 	dChatFilter* chatFilter;
 	dConfig* config;
 	dLocale* locale;
+#ifdef BUILD_VISUAL_DEBUGGER
+	dVisualDebugger* visualDebugger;
+#endif
 	std::mt19937 randomEngine;
 
 	RakPeerInterface* chatServer;
@@ -237,7 +244,9 @@ int main(int argc, char** argv) {
 		Game::physicsWorld = &dpWorld::Instance(); //just in case some old code references it
 		dZoneManager::Instance()->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
-
+#ifdef BUILD_VISUAL_DEBUGGER
+		Game::visualDebugger = new dVisualDebugger(dZoneManager::Instance()->GetZone()->GetZoneName());
+#endif
 		// pre calculate the FDB checksum
 		if (Game::config->GetValue("check_fdb") == "1") {
 			std::ifstream fileStream;
@@ -347,6 +356,12 @@ int main(int argc, char** argv) {
 			Metrics::StartMeasurement(MetricVariable::UpdateSpawners);
 			dZoneManager::Instance()->Update(deltaTime);
 			Metrics::EndMeasurement(MetricVariable::UpdateSpawners);
+
+#ifdef BUILD_VISUAL_DEBUGGER
+			Metrics::StartMeasurement(MetricVariable::VisualDebugger);
+			Game::visualDebugger->Step(deltaTime);
+			Metrics::EndMeasurement(MetricVariable::VisualDebugger);
+#endif
 		}
 
 		Metrics::StartMeasurement(MetricVariable::PacketHandling);

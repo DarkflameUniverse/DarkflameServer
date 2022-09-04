@@ -80,13 +80,13 @@ float NiPoint3::SquaredLength(void) const {
 }
 
 //! Returns the dot product of the vector dotted with another vector
-float NiPoint3::DotProduct(const Vector3& vec) const {
+float NiPoint3::DotProduct(const NiPoint3& vec) const {
 	return ((this->x * vec.x) + (this->y * vec.y) + (this->z * vec.z));
 }
 
 //! Returns the cross product of the vector crossed with another vector
-Vector3 NiPoint3::CrossProduct(const Vector3& vec) const {
-	return Vector3(((this->y * vec.z) - (this->z * vec.y)),
+NiPoint3 NiPoint3::CrossProduct(const NiPoint3& vec) const {
+	return NiPoint3(((this->y * vec.z) - (this->z * vec.y)),
 		((this->z * vec.x) - (this->x * vec.z)),
 		((this->x * vec.y) - (this->y * vec.x)));
 }
@@ -171,7 +171,7 @@ bool NiPoint3::IsWithinAxisAlignedBox(const NiPoint3& minPoint, const NiPoint3& 
 
 //! Checks to see if the point (or vector) is within a sphere
 bool NiPoint3::IsWithinSpehere(const NiPoint3& sphereCenter, float radius) {
-	Vector3 diffVec = Vector3(x - sphereCenter.GetX(), y - sphereCenter.GetY(), z - sphereCenter.GetZ());
+	NiPoint3 diffVec = NiPoint3(x - sphereCenter.GetX(), y - sphereCenter.GetY(), z - sphereCenter.GetZ());
 	return (diffVec.SquaredLength() <= (radius * radius));
 }
 
@@ -226,7 +226,7 @@ NiPoint3 NiPoint3::MoveTowards(const NiPoint3& current, const NiPoint3& target, 
 
 //This code is yoinked from the MS XNA code, so it should be right, even if it's horrible.
 NiPoint3 NiPoint3::RotateByQuaternion(const NiQuaternion& rotation) {
-	Vector3 vector;
+	NiPoint3 vector;
 	float num12 = rotation.x + rotation.x;
 	float num2 = rotation.y + rotation.y;
 	float num = rotation.z + rotation.z;

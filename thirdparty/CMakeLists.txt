@@ -25,6 +25,11 @@ include(CMakeMariaDBLists.txt)
 # Create our third party library objects
 add_subdirectory(raknet)
 
+if(BUILD_VISUAL_DEBUGGER)
+	# If we are supposed to build the visual debugger include raylib
+	add_subdirectory(raylib)
+endif()
+
 # Download Backtrace if configured
 if(UNIX AND NOT APPLE)
 	include(FetchContent)
