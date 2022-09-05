@@ -294,12 +294,6 @@
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
 std::map<std::string, CppScripts::Script*> m_Scripts;
-const std::vector<std::string> m_IgnoredScripts = {
-	"",
-	"scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua",
-	"scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua",
-	"scripts\\empty.lua"
-};
 
 // yeah sorry darwin ill fix the global later
 
@@ -313,9 +307,6 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	}
 
 	script = invalidToReturn;
-
-	// check for ignored scripts and return early
-	if (std::find(m_IgnoredScripts.begin(), m_IgnoredScripts.end(), scriptName) != m_IgnoredScripts.end()) return script;
 
 	//VE / AG:
 	if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua")
@@ -857,12 +848,13 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
 		script = new WblGenericZone();
 
+	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
+	// information not really needed for sys admins but is for developers
 	else if (script == invalidToReturn) {
-		if (scriptName.length() > 0)
-			Game::logger->LogDebug("CppScripts", "Attempted to load CppScript for '%s', but returned InvalidScript.", scriptName.c_str());
-		// information not really needed for sys admins but is for developers
-
-		script = invalidToReturn;
+		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
+			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
+			(scriptName == "scripts\\empty.lua")
+			)) Game::logger->LogDebug("CppScripts", "LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
 	m_Scripts[scriptName] = script;
