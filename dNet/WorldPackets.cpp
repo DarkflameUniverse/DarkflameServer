@@ -166,7 +166,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 
 	//Compress the data before sending:
     const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());
-    uint8_t* compressedData = static_cast<uint8_t*>(malloc(reservedSize));
+    uint8_t* compressedData = new uint8_t[reservedSize];
 
 	// TODO There should be better handling here for not enough memory...
     if (!compressedData) return;
@@ -192,7 +192,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 
 	// PacketUtils::SavePacket("chardata.bin", (const char*)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
 	SEND_PACKET;
-	free(compressedData);
+	delete[] compressedData;
 	Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu", entity->GetObjectID());
 }
 
