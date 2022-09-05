@@ -26,6 +26,7 @@ if (UNIX)
 elseif (WIN32)
 	include(FetchContent)
 
+	# TODO Keep an eye on the zlib repository for an update to disable testing.  Don't forget to update CMakePresets
 	FetchContent_Declare(
 		zlib
 		URL https://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
@@ -42,6 +43,11 @@ elseif (WIN32)
 	set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
 	set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}")
 	add_library(ZLIB::ZLIB ALIAS zlib)
-endif()
+else ()
+	message(
+		FATAL_ERROR
+		"This platform does not have a way to use zlib.\nCreate an issue on GitHub with your build system so it can be configured."
+	)
+endif ()
 
 target_link_libraries(dCommon ZLIB::ZLIB)
