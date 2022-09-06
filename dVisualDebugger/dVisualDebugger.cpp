@@ -17,6 +17,10 @@
 #include "dZoneManager.h"
 
 inline Vector3 NiPointToVector3(NiPoint3 pos) { return { pos.x, pos.y, pos.z }; };
+inline NiPoint3 Vector3ToNiPoint(Vector3 pos) { return { pos.x, pos.y, pos.z }; };
+
+inline Quaternion NiQuaternionToQuaternion(NiQuaternion rot) { return { rot.x, rot.y, rot.z, rot.w }; };
+inline NiQuaternion QuaternionToNiQuaternion(Quaternion rot) { return { rot.x, rot.y, rot.z, rot.w }; };
 
 dVisualDebugger::dVisualDebugger(std::string zoneName) {
 	SetTraceLogLevel(LOG_FATAL);
@@ -44,7 +48,7 @@ void dVisualDebugger::CreateInGameCamera() {
 	info.pos = { m_Camera->position.x, m_Camera->position.y, m_Camera->position.z };
 	info.rot = NiQuaternion::LookAt(info.pos, { m_Camera->target.x, m_Camera->target.y, m_Camera->target.z });
 	info.spawner = nullptr;
-	info.spawnerID = 0;
+    info.spawnerID = dZoneManager::Instance()->GetZoneControlObject()->GetObjectID();
 	info.spawnerNodeID = 0;
 
 	Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);
@@ -77,9 +81,11 @@ void dVisualDebugger::Step(float delta) {
 	}
 
 	UpdateCamera(m_Camera);
-	this->AttachToCharacter();
 
-	if (IsKeyDown(KEY_SPACE)) m_BindToGM = !m_BindToGM;
+	this->UpdateCameraPosition();
+	this->UpdateInGameCameraPosition();
+
+	this->HandleInputs();
 
 	BeginDrawing();
 		ClearBackground(RAYWHITE);
@@ -89,27 +95,38 @@ void dVisualDebugger::Step(float delta) {
 			this->RenderTerrainMesh();
 		EndMode3D();
 
-		DrawText((std::to_string(m_Camera->position.x) + " " + std::to_string(m_Camera->position.y) + " " + std::to_string(m_Camera->position.z)).c_str(), 20, 20, 10, BLACK);
+		DrawText((std::to_string(m_Camera->position.x) + " " + std::to_string(m_Camera->position.y) + " " + std::to_string(m_Camera->position.z)).c_str(), 10, 0, 10, BLACK);
 		DrawFPS(10, 10);
 	EndDrawing();
 }
 
-void dVisualDebugger::AttachToCharacter() {
+void dVisualDebugger::HandleInputs() {
+	if (IsKeyDown(KEY_SPACE)) m_BindToGM = !m_BindToGM;
+}
+
+void dVisualDebugger::UpdateCameraPosition() {
 	if (!m_BindToGM) return;
 
 	auto characters = EntityManager::Instance()->GetEntitiesByLOT(1);
 	if (characters.size() != 1) return;
 
 	m_Camera->position = NiPointToVector3(characters[0]->GetPosition());
-	m_Camera->target = NiPointToVector3(characters[0]->GetRotation().GetForwardVector());
+	m_Camera->target = NiPointToVector3();
+}
 
-	// Reposition our camera
-
+void dVisualDebugger::UpdateInGameCameraPosition() {
 	auto* camera = EntityManager::Instance()->GetEntity(m_CameraObjid);
+
 	if (!camera) return;
+
 	auto* physComp = camera->GetComponent<SimplePhysicsComponent>();
-	physComp->SetPosition(characters[0]->GetPosition());
-	physComp->SetRotation(characters[0]->GetRotation());
+
+	auto cameraPos = Vector3ToNiPoint(m_Camera->position);
+
+	cameraPos.SetY(cameraPos.GetY() + 10);
+	physComp->SetPosition(cameraPos);
+	physComp->SetRotation(NiQuaternion::LookAt(Vector3ToNiPoint(m_Camera->position), Vector3ToNiPoint(m_Camera->target)));
+
 	EntityManager::Instance()->SerializeEntity(camera);
 }
 
@@ -120,6 +137,7 @@ void dVisualDebugger::RenderTerrainMesh() {
 		auto v1 =  m_Terrain->GetMesh()->m_Vertices[m_Terrain->GetMesh()->m_Triangles[i]];
 		auto v2 =  m_Terrain->GetMesh()->m_Vertices[m_Terrain->GetMesh()->m_Triangles[i + 1]];
 		auto v3 =  m_Terrain->GetMesh()->m_Vertices[m_Terrain->GetMesh()->m_Triangles[i + 2]];
+
 		DrawTriangle3D(NiPointToVector3(v1), NiPointToVector3(v2), NiPointToVector3(v3), GRAY);
 	}
 }

@@ -14,10 +14,6 @@ public:
 	~dVisualDebugger();
 
 	void Step(float delta);
-
-	void RenderEntities(std::vector<dpEntity*>* entities, bool dynamic);
-	void RenderTerrainMesh();
-	void AttachToCharacter();
 private:
 	Camera3D* m_Camera;
 	RawFile* m_Terrain;
@@ -27,7 +23,15 @@ private:
 	void CreateCamera();
 	void CreateInGameCamera();
 
+	void UpdateCameraPosition();
+	void UpdateInGameCameraPosition();
+
+	void HandleInputs();
+
+	void RenderEntities(std::vector<dpEntity*>* entities, bool dynamic);
+	void RenderTerrainMesh();
+
 	const int32_t m_Width = 800;
 	const int32_t m_Height = 450;
-	const int32_t m_CameraID = 2181;
+	const int32_t m_CameraID = 5204;
 };
