@@ -115,9 +115,14 @@
       "displayName": "CI Tests on windows",
       "description": "Runs all tests on a windows configuration",
       "configuration": "RelWithDebInfo",
-      "execution": {
-        "jobs": 2
-      },
+		"execution": {
+			"jobs": 2
+		},
+		"filter": {
+			"exclude": {
+				"name": "((example)|(minigzip))+"
+			}
+		},
       "output": {
         "outputOnFailure": true
       }
