@@ -2401,7 +2401,6 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 }
 
 void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	//First, we have Wincent's clean methods of reading in the data received from the client.
 	LWOOBJID localId;
 
 	inStream->Read(localId);

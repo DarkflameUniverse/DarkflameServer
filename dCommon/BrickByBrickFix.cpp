@@ -6,15 +6,26 @@
 #include "dLogger.h"
 #include "Game.h"
 
+#include "tinyxml2.h"
+
 //! Forward declarations
 
 std::unique_ptr<sql::ResultSet> GetModelsFromDatabase();
-void WriteSd0Magic(char* input);
+void WriteSd0Magic(char* input, uint32_t chunkSize);
 
 uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 	auto modelsToTruncate = GetModelsFromDatabase();
-	if (modelsToTruncate->next()) {
-		// Decompress with zlib and attempt to convert to xml.  If that fails this model is broken.
+	while (modelsToTruncate->next()) {
+		auto modelAsSd0 = modelsToTruncate->getBlob(2);
+		// Check that header is sd0 by checking for the sd0 magic.
+		if (
+			modelAsSd0->get() == 's' && modelAsSd0->get() == 'd' && modelAsSd0->get() == '0' &&
+			modelAsSd0->get() == 0x01 && modelAsSd0->get() == 0xFF && modelAsSd0->good()) {
+
+		}
+		else {
+			Game::logger->Log("BrickByBrickFix", "Please update models to use sd0 through UpdateOldModels.");
+		}
 	}
 	return 0;
 }
@@ -28,8 +39,9 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 	while (modelsToUpdate->next()) {
 		uint32_t modelId = modelsToUpdate->getInt(1);
 		auto oldLxfml = modelsToUpdate->getBlob(2);
-		// Check if the stored blob starts with zlib magic (0x78).  If it does, convert it to sd0.
-		if (oldLxfml->get() == 0x78) {
+		// Check if the stored blob starts with zlib magic (0x78 0xDA - best compression of zlib)
+		// If it does, convert it to sd0.
+		if (oldLxfml->get() == 0x78 && oldLxfml->get() == 0xDA) {
 			Game::logger->Log("BrickByBrickFix", "Updating model %i", modelId);
 
 			// Get and save size of zlib compressed chunk.
@@ -39,14 +51,9 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 
 			// Allocate 9 extra bytes.  5 for sd0 magic, 4 for the only zlib compressed size.
 			uint32_t oldLxfmlSizeWithHeader = oldLxfmlSize + 9;
-			char* sd0ConvertedModel = static_cast<char*>(std::malloc(oldLxfmlSizeWithHeader));
+			char* sd0ConvertedModel = static_cast<char*>(malloc(oldLxfmlSizeWithHeader));
 
-			WriteSd0Magic(sd0ConvertedModel);
-			// zlib compressed chunk size
-			sd0ConvertedModel[5] = static_cast<uint8_t>(oldLxfmlSize);
-			sd0ConvertedModel[6] = static_cast<uint8_t>(oldLxfmlSize >> 8U);
-			sd0ConvertedModel[7] = static_cast<uint8_t>(oldLxfmlSize >> 16U);
-			sd0ConvertedModel[8] = static_cast<uint8_t>(oldLxfmlSize >> 24U);
+			WriteSd0Magic(sd0ConvertedModel, oldLxfmlSize);
 			for (uint32_t i = 9; i < oldLxfmlSizeWithHeader; i++) {
 				sd0ConvertedModel[i] = oldLxfml->get();
 			}
@@ -79,10 +86,12 @@ std::unique_ptr<sql::ResultSet> GetModelsFromDatabase() {
 	return std::unique_ptr<sql::ResultSet>(modelsRawDataQuery->executeQuery());
 }
 
-void WriteSd0Magic(char* input) {
+void WriteSd0Magic(char* input, uint32_t chunkSize) {
 	input[0] = 's';
 	input[1] = 'd';
 	input[2] = '0';
 	input[3] = 0x01;
 	input[4] = 0xFF;
+	// Write the integer to the character array
+	*reinterpret_cast<uint32_t*>(input + 5) = chunkSize;
 }
