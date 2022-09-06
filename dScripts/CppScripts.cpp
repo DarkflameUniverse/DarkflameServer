@@ -851,17 +851,13 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
 		script = new WblGenericZone();
 
-	//Ignore these scripts:
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")
-		script = invalidToReturn;
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua")
-		script = invalidToReturn;
+	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
+	// information not really needed for sys admins but is for developers
 	else if (script == invalidToReturn) {
-		if (scriptName.length() > 0)
-			Game::logger->LogDebug("CppScripts", "Attempted to load CppScript for '%s', but returned InvalidScript.", scriptName.c_str());
-		// information not really needed for sys admins but is for developers
-
-		script = invalidToReturn;
+		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
+			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
+			(scriptName == "scripts\\empty.lua")
+			)) Game::logger->LogDebug("CppScripts", "LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
 	m_Scripts[scriptName] = script;

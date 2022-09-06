@@ -272,9 +272,12 @@ void Item::UseNonEquip() {
 		if (databasePet.lot != LOT_NULL) {
 			GetInventory()->GetComponent()->SpawnPet(this);
 		}
-	} else if (type == eItemType::ITEM_TYPE_PACKAGE) {
+	} else {
 		auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 		const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_PACKAGE);
+
+		if (packageComponentId == 0) return;
+
 		auto* packCompTable = CDClientManager::Instance()->GetTable<CDPackageComponentTable>("PackageComponent");
 		auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
 
