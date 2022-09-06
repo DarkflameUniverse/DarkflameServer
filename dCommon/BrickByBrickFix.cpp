@@ -5,6 +5,7 @@
 #include "Database.h"
 #include "dLogger.h"
 #include "Game.h"
+#include "ZCompression.h"
 
 #include "tinyxml2.h"
 
@@ -14,20 +15,81 @@ std::unique_ptr<sql::ResultSet> GetModelsFromDatabase();
 void WriteSd0Magic(char* input, uint32_t chunkSize);
 
 uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
+	uint32_t modelsTruncated{};
 	auto modelsToTruncate = GetModelsFromDatabase();
+	bool previousCommitValue = Database::GetAutoCommit();
+	Database::SetAutoCommit(false);
+	std::unique_ptr<sql::PreparedStatement> modelsToDelete(Database::CreatePreppedStmt("DELETE FROM ugc WHERE id = ?;"));
 	while (modelsToTruncate->next()) {
+		std::string completeUncompressedModel;
+		uint32_t chunkCount{};
+		uint64_t modelId = modelsToTruncate->getInt(1);
 		auto modelAsSd0 = modelsToTruncate->getBlob(2);
+		Game::logger->Log("BrickByBrickFix", "Checking brick-by-brick model %llu", modelId);
 		// Check that header is sd0 by checking for the sd0 magic.
 		if (
 			modelAsSd0->get() == 's' && modelAsSd0->get() == 'd' && modelAsSd0->get() == '0' &&
-			modelAsSd0->get() == 0x01 && modelAsSd0->get() == 0xFF && modelAsSd0->good()) {
+			modelAsSd0->get() == 0x01 && modelAsSd0->get() == 0xFF) {
+			while (true) {
+				uint32_t chunkSize{};
+				modelAsSd0->read(reinterpret_cast<char*>(&chunkSize), sizeof(uint32_t)); // Extract chunk size from istream
 
-		}
-		else {
-			Game::logger->Log("BrickByBrickFix", "Please update models to use sd0 through UpdateOldModels.");
+				// Check if good here since if at the end of an sd0 file, this will have eof flagged.
+				if (!modelAsSd0->good()) break;
+
+				Game::logger->Log("BrickByBrickFix", "Inflating chunk %i", chunkCount);
+				std::unique_ptr<uint8_t[]> compressedChunk(new uint8_t[chunkSize]);
+				for (uint32_t i = 0; i < chunkSize; i++) {
+					compressedChunk[i] = modelAsSd0->get();
+				}
+
+				std::unique_ptr<uint8_t[]> uncompressedChunk(new uint8_t[MAX_SD0_CHUNK_SIZE]);
+				int32_t err{};
+				int32_t actualUncompressedSize = ZCompression::Decompress(
+					compressedChunk.get(), chunkSize, uncompressedChunk.get(), MAX_SD0_CHUNK_SIZE, err);
+
+				if (actualUncompressedSize != -1) {
+					Game::logger->Log("BrickByBrickFix", "Chunk %i inflated successfully", chunkCount);
+					completeUncompressedModel.append((char*)uncompressedChunk.get());
+					completeUncompressedModel.shrink_to_fit();
+				} else {
+					Game::logger->Log("BrickByBrickFix", "Failed to inflate chunk %i for model %llu.  Error: %i", chunkCount, modelId, err);
+					break;
+				}
+				chunkCount++;
+			}
+			std::unique_ptr<tinyxml2::XMLDocument> document = std::make_unique<tinyxml2::XMLDocument>();
+			if (!document) {
+				Game::logger->Log("BrickByBrickFix", "Failed to initialize tinyxml document.  Aborting.");
+				return 0;
+			}
+
+			if (document->Parse(completeUncompressedModel.c_str(), completeUncompressedModel.size()) == tinyxml2::XML_SUCCESS) {
+				Game::logger->Log("BrickByBrickFix", "Model %llu is a valid brick-by-brick model!", modelId);
+			} else {
+				Game::logger->Log("BrickByBrickFix",
+					"Model %llu is an invalid brick-by-brick model and will be deleted!", modelId);
+				modelsToDelete->setInt64(1, modelsToTruncate->getInt64(1));
+				modelsToDelete->addBatch();
+				modelsTruncated++;
+			}
+		} else {
+			Game::logger->Log("BrickByBrickFix",
+				"Aborting truncation.  Update models to use sd0 through UpdateOldModels.");
+			return 0;
 		}
 	}
-	return 0;
+	try {
+		modelsToDelete->executeBatch();
+	} catch (sql::SQLException error) {
+		Game::logger->Log("BrickByBrickFix",
+			"encountered error truncating models.  Not truncating models.  Error is: %s", error.what());
+		return 0;
+	}
+	Game::logger->Log("BrickByBrickFix", "Successfully executed batch deletion.  Commiting...");
+	Database::Commit();
+	Database::SetAutoCommit(previousCommitValue);
+	return modelsTruncated;
 }
 
 uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
@@ -51,18 +113,18 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 
 			// Allocate 9 extra bytes.  5 for sd0 magic, 4 for the only zlib compressed size.
 			uint32_t oldLxfmlSizeWithHeader = oldLxfmlSize + 9;
-			char* sd0ConvertedModel = static_cast<char*>(malloc(oldLxfmlSizeWithHeader));
+			std::unique_ptr<char> sd0ConvertedModel(new char[oldLxfmlSizeWithHeader]);
 
-			WriteSd0Magic(sd0ConvertedModel, oldLxfmlSize);
+			WriteSd0Magic(sd0ConvertedModel.get(), oldLxfmlSize);
 			for (uint32_t i = 9; i < oldLxfmlSizeWithHeader; i++) {
-				sd0ConvertedModel[i] = oldLxfml->get();
+				sd0ConvertedModel.get()[i] = oldLxfml->get();
 			}
 
-			std::string outputString(sd0ConvertedModel, oldLxfmlSizeWithHeader);
+			std::string outputString(sd0ConvertedModel.get(), oldLxfmlSizeWithHeader);
 			std::istringstream outputStringStream(outputString);
 
 			insertionStatement->setBlob(1, static_cast<std::istream*>(&outputStringStream));
-			insertionStatement->setInt(2, modelId);
+			insertionStatement->setInt64(2, modelId);
 			try {
 				insertionStatement->executeUpdate();
 				Game::logger->Log("BrickByBrickFix", "Updated model %i", modelId);
@@ -73,7 +135,6 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 					"Failed to update model %i.  This model should be inspected manually to see why."
 					"The database error is %s", modelId, exception.what());
 			}
-			free(sd0ConvertedModel);
 		}
 	}
 	Database::Commit();
@@ -92,6 +153,5 @@ void WriteSd0Magic(char* input, uint32_t chunkSize) {
 	input[2] = '0';
 	input[3] = 0x01;
 	input[4] = 0xFF;
-	// Write the integer to the character array
-	*reinterpret_cast<uint32_t*>(input + 5) = chunkSize;
+	*reinterpret_cast<uint32_t*>(input + 5) = chunkSize; // Write the integer to the character array
 }
