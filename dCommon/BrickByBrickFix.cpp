@@ -1,25 +1,31 @@
-#include <sstream>
-#include <memory>
-
 #include "BrickByBrickFix.h"
-#include "Database.h"
-#include "dLogger.h"
-#include "Game.h"
-#include "ZCompression.h"
+
+#include <memory>
+#include <sstream>
 
 #include "tinyxml2.h"
+
+#include "Database.h"
+#include "Game.h"
+#include "ZCompression.h"
+#include "dLogger.h"
 
 //! Forward declarations
 
 std::unique_ptr<sql::ResultSet> GetModelsFromDatabase();
 void WriteSd0Magic(char* input, uint32_t chunkSize);
 
+/**
+ * @brief Truncates all models with broken data from the database.
+ *
+ * @return The number of models deleted
+ */
 uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 	uint32_t modelsTruncated{};
 	auto modelsToTruncate = GetModelsFromDatabase();
 	bool previousCommitValue = Database::GetAutoCommit();
 	Database::SetAutoCommit(false);
-	std::unique_ptr<sql::PreparedStatement> modelsToDelete(Database::CreatePreppedStmt("DELETE FROM ugc WHERE id = ?;"));
+	std::unique_ptr<sql::PreparedStatement> modelsToDelete(Database::CreatePreppedStmt("DELETE CASCADE FROM properties_contents WHERE ugc_id = ?;"));
 	while (modelsToTruncate->next()) {
 		std::string completeUncompressedModel;
 		uint32_t chunkCount{};
@@ -92,6 +98,12 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 	return modelsTruncated;
 }
 
+/**
+ * @brief Updates all current models in the database to have the Segmented Data 0 (SD0) format.
+ * Any models that do not start with zlib and best compression magic will not be updated.
+ *
+ * @return The number of models updated to SD0
+ */
 uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 	uint32_t updatedModels = 0;
 	auto modelsToUpdate = GetModelsFromDatabase();
@@ -147,6 +159,12 @@ std::unique_ptr<sql::ResultSet> GetModelsFromDatabase() {
 	return std::unique_ptr<sql::ResultSet>(modelsRawDataQuery->executeQuery());
 }
 
+/**
+ * @brief Writes sd0 magic at the front of a char*
+ *
+ * @param input the char* to write at the front of
+ * @param chunkSize The size of the first chunk to write the size of
+ */
 void WriteSd0Magic(char* input, uint32_t chunkSize) {
 	input[0] = 's';
 	input[1] = 'd';
