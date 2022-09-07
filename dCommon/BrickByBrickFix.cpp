@@ -15,6 +15,7 @@
 
 std::unique_ptr<sql::ResultSet> GetModelsFromDatabase();
 void WriteSd0Magic(char* input, uint32_t chunkSize);
+bool CheckSd0Magic(sql::Blob* streamToCheck);
 
 /**
  * @brief Truncates all models with broken data from the database.
@@ -36,9 +37,7 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 		std::unique_ptr<sql::Blob> modelAsSd0(modelsToTruncate->getBlob(2));
 		Game::logger->Log("BrickByBrickFix", "Checking brick-by-brick model %llu", modelId);
 		// Check that header is sd0 by checking for the sd0 magic.
-		if (
-			modelAsSd0->get() == 's' && modelAsSd0->get() == 'd' && modelAsSd0->get() == '0' &&
-			modelAsSd0->get() == 0x01 && modelAsSd0->get() == 0xFF) {
+		if (CheckSd0Magic(modelAsSd0.get())) {
 			while (true) {
 				uint32_t chunkSize{};
 				modelAsSd0->read(reinterpret_cast<char*>(&chunkSize), sizeof(uint32_t)); // Extract chunk size from istream
@@ -78,6 +77,7 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 			if (document->Parse(completeUncompressedModel.c_str(), completeUncompressedModel.size()) == tinyxml2::XML_SUCCESS) {
 				Game::logger->Log("BrickByBrickFix", "Model %llu is a valid brick-by-brick model!", modelId);
 			} else {
+				// Change this to just look for </LXFML> near the end of the function.  Should rely on human interference for this...
 				Game::logger->Log(
 					"BrickByBrickFix", "Potentially invalid lxfml found.  Last 15 characters are ||%s||."
 					"If the string between the bars does not end in </LXFML> then press y and enter.",
@@ -185,4 +185,8 @@ void WriteSd0Magic(char* input, uint32_t chunkSize) {
 	input[3] = 0x01;
 	input[4] = 0xFF;
 	*reinterpret_cast<uint32_t*>(input + 5) = chunkSize; // Write the integer to the character array
+}
+
+bool CheckSd0Magic(sql::Blob* streamToCheck) {
+	return streamToCheck->get() == 's' && streamToCheck->get() == 'd' && streamToCheck->get() == '0' && streamToCheck->get() == 0x01 && streamToCheck->get() == 0xFF;
 }
