@@ -79,9 +79,9 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 				Game::logger->Log("BrickByBrickFix", "Model %llu is a valid brick-by-brick model!", modelId);
 			} else {
 				Game::logger->Log(
-					"BrickByBrickFix", "Potentially invalid lxfml found.  Last 10 characters are ||%s||."
+					"BrickByBrickFix", "Potentially invalid lxfml found.  Last 15 characters are ||%s||."
 					"If the string between the bars does not end in </LXFML> then press y and enter.",
-					completeUncompressedModel.substr(completeUncompressedModel.length() - 15).c_str());
+					completeUncompressedModel.substr(completeUncompressedModel.length() >= 15 ? completeUncompressedModel.length() - 15 : 0).c_str());
 				std::string response;
 				std::cin >> response;
 				if (strcmp(response.c_str(), "y") == 0) {
