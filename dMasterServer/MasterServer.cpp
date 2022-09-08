@@ -211,13 +211,15 @@ int main(int argc, char** argv) {
 		if (strcmp(argv[2], "TruncateBrokenModels") == 0) {
 			uint32_t numberOfTruncatedModels = BrickByBrickFix::TruncateBrokenBrickByBrickXml();
 			Game::logger->Log("MasterServer", "%i models were truncated from the database.", numberOfTruncatedModels);
-		}
-
-		// Updates old Brick-by-Brick models to use sd0 compression
-		// as opposed to zlib compression
-		if (strcmp(argv[2], "UpdateOldModels") == 0) {
+		} else if (strcmp(argv[2], "UpdateOldModels") == 0) {
+			// Updates old Brick-by-Brick models to use sd0 compression
+			// as opposed to zlib compression
 			uint32_t numberOfUpdatedModels = BrickByBrickFix::UpdateBrickByBrickModelsToSd0();
 			Game::logger->Log("MasterServer", "%i models were updated from zlib to sd0.", numberOfUpdatedModels);
+		} else {
+			Game::logger->Log(
+				"MasterServer", "Invalid brick-by-brick command <%s>."
+				"Valid commands are TruncateBrokenModels and UpdateOldModels", argv[2]);
 		}
 		FinalizeShutdown();
 	}
