@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "RakPeerInterface.h"
 #include "dCommonVars.h"
@@ -16,7 +16,7 @@ struct BehaviorSyncEntry
 	float time = 0;
 
 	bool ignoreInterrupts = false;
-	
+
 	Behavior* behavior = nullptr;
 
 	BehaviorBranchContext branchContext;
@@ -46,7 +46,7 @@ struct BehaviorEndEntry
 	BehaviorBranchContext branchContext;
 
 	LWOOBJID second = LWOOBJID_EMPTY;
-	
+
 	BehaviorEndEntry();
 };
 
@@ -65,11 +65,11 @@ struct BehaviorContext
 	bool failed = false;
 
 	bool clientInitalized = false;
-	
+
 	std::vector<BehaviorSyncEntry> syncEntries;
-	
+
 	std::vector<BehaviorTimerEntry> timerEntries;
-	
+
 	std::vector<BehaviorEndEntry> endEntries;
 
 	std::vector<LWOOBJID> scheduledUpdates;
@@ -89,15 +89,15 @@ struct BehaviorContext
 	void ScheduleUpdate(LWOOBJID id);
 
 	void ExecuteUpdates();
-	
+
 	void SyncBehavior(uint32_t syncId, RakNet::BitStream* bitStream);
 
 	void Update(float deltaTime);
-	
+
 	void SyncCalculation(uint32_t syncId, float time, Behavior* behavior, const BehaviorBranchContext& branch, bool ignoreInterrupts = false);
 
 	void InvokeEnd(uint32_t id);
-	
+
 	bool CalculateUpdate(float deltaTime);
 
 	void Interrupt();
@@ -105,7 +105,7 @@ struct BehaviorContext
 	void Reset();
 
 	std::vector<LWOOBJID> GetValidTargets(int32_t ignoreFaction = 0, int32_t includeFaction = 0, const bool targetSelf = false, const bool targetEnemy = true, const bool targetFriend = false) const;
-	
+
 	explicit BehaviorContext(LWOOBJID originator, bool calculation = false);
 
 	~BehaviorContext();

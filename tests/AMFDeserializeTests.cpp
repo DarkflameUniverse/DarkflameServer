@@ -14,7 +14,7 @@ std::unique_ptr<AMFValue> ReadFromBitStream(RakNet::BitStream* bitStream) {
 }
 
 int ReadAMFUndefinedFromBitStream() {
-	CBITSTREAM
+	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x00);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFUndefined);
@@ -22,7 +22,7 @@ int ReadAMFUndefinedFromBitStream() {
 }
 
 int ReadAMFNullFromBitStream() {
-	CBITSTREAM
+	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x01);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFNull);
@@ -30,7 +30,7 @@ int ReadAMFNullFromBitStream() {
 }
 
 int ReadAMFFalseFromBitStream() {
-	CBITSTREAM
+	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x02);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFFalse);
@@ -38,7 +38,7 @@ int ReadAMFFalseFromBitStream() {
 }
 
 int ReadAMFTrueFromBitStream() {
-	CBITSTREAM
+	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x03);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFTrue);
@@ -46,7 +46,7 @@ int ReadAMFTrueFromBitStream() {
 }
 
 int ReadAMFIntegerFromBitStream() {
-	CBITSTREAM
+	CBITSTREAM;
 	{
 		bitStream.Write<uint8_t>(0x04);
 		// 127 == 01111111
@@ -95,7 +95,7 @@ int ReadAMFIntegerFromBitStream() {
 }
 
 int ReadAMFDoubleFromBitStream() {
-	CBITSTREAM
+	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x05);
 	bitStream.Write<double>(25346.4f);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
@@ -105,7 +105,7 @@ int ReadAMFDoubleFromBitStream() {
 }
 
 int ReadAMFStringFromBitStream() {
-	CBITSTREAM
+	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x06);
 	bitStream.Write<uint8_t>(0x0F);
 	std::string toWrite = "stateID";
@@ -117,7 +117,7 @@ int ReadAMFStringFromBitStream() {
 }
 
 int ReadAMFArrayFromBitStream() {
-	CBITSTREAM
+	CBITSTREAM;
 	// Test empty AMFArray
 	bitStream.Write<uint8_t>(0x09);
 	bitStream.Write<uint8_t>(0x01);
@@ -154,7 +154,7 @@ int ReadAMFArrayFromBitStream() {
 }
 
 /**
- * This test checks that if we recieve an unimplemented AMFValueType 
+ * This test checks that if we recieve an unimplemented AMFValueType
  * we correctly throw an error and can actch it.
  */
 int TestUnimplementedAMFValues() {
@@ -169,7 +169,7 @@ int TestUnimplementedAMFValues() {
 		AMFValueType::AMFVectorDouble,
 		AMFValueType::AMFVectorObject,
 		AMFValueType::AMFDictionary
-		};
+	};
 	// Run unimplemented tests to check that errors are thrown if
 	// unimplemented AMF values are attempted to be parsed.
 	std::ifstream fileStream;
@@ -222,8 +222,8 @@ int TestLiveCapture() {
 	ASSERT_EQ(dynamic_cast<AMFStringValue*>(result->FindValue("BehaviorID"))->GetStringValue(), "10447");
 	ASSERT_EQ(dynamic_cast<AMFStringValue*>(result->FindValue("objectID"))->GetStringValue(), "288300744895913279")
 
-	// Test the execution state array
-	auto executionState = dynamic_cast<AMFArrayValue*>(result->FindValue("executionState"));
+		// Test the execution state array
+		auto executionState = dynamic_cast<AMFArrayValue*>(result->FindValue("executionState"));
 	ASSERT_NE(executionState, nullptr);
 
 	auto strips = dynamic_cast<AMFArrayValue*>(executionState->FindValue("strips"))->GetDenseArray();
@@ -268,7 +268,7 @@ int TestLiveCapture() {
 
 	ASSERT_EQ(actionID->GetDoubleValue(), 0.0f)
 
-	auto uiArray = dynamic_cast<AMFArrayValue*>(firstStrip->FindValue("ui"));
+		auto uiArray = dynamic_cast<AMFArrayValue*>(firstStrip->FindValue("ui"));
 
 	auto xPos = dynamic_cast<AMFDoubleValue*>(uiArray->FindValue("x"));
 	auto yPos = dynamic_cast<AMFDoubleValue*>(uiArray->FindValue("y"));
@@ -280,7 +280,7 @@ int TestLiveCapture() {
 
 	ASSERT_EQ(stripID->GetDoubleValue(), 0.0f)
 
-	auto firstAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[0]);
+		auto firstAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[0]);
 
 	auto firstType = dynamic_cast<AMFStringValue*>(firstAction->FindValue("Type"));
 
@@ -348,17 +348,17 @@ int AMFDeserializeTests(int argc, char** const argv) {
 }
 
 /**
- * Below is the AMF that is in the AMFBitStreamTest.bin file that we are reading in 
+ * Below is the AMF that is in the AMFBitStreamTest.bin file that we are reading in
  * from a bitstream to test.
 args: amf3!
 {
 	"objectID": "288300744895913279",
 	"BehaviorID": "10447",
-	"executionState": amf3! 
+	"executionState": amf3!
 	{
-		"strips": amf3! 
+		"strips": amf3!
 		[
-			amf3! 
+			amf3!
 			{
 				"actionIndex": 0.0,
 				"id": 0.0,

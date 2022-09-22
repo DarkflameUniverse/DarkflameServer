@@ -1,7 +1,7 @@
 #include "CDClientManager.h"
 
 // Static Variables
-CDClientManager * CDClientManager::m_Address = nullptr;
+CDClientManager* CDClientManager::m_Address = nullptr;
 
 //! Initializes the manager
 void CDClientManager::Initialize(void) {

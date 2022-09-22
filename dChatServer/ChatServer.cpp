@@ -40,9 +40,9 @@ int main(int argc, char** argv) {
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
 	if (!Game::logger) return 0;
-	Game::logger->Log("ChatServer", "Starting Chat server...\n");
-	Game::logger->Log("ChatServer", "Version: %i.%i\n", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("ChatServer", "Compiled on: %s\n", __TIMESTAMP__);
+	Game::logger->Log("ChatServer", "Starting Chat server...");
+	Game::logger->Log("ChatServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	Game::logger->Log("ChatServer", "Compiled on: %s", __TIMESTAMP__);
 
 	//Read our config:
 	dConfig config("chatconfig.ini");
@@ -58,9 +58,8 @@ int main(int argc, char** argv) {
 
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-	}
-	catch (sql::SQLException& ex) {
-		Game::logger->Log("ChatServer", "Got an error while connecting to the database: %s\n", ex.what());
+	} catch (sql::SQLException& ex) {
+		Game::logger->Log("ChatServer", "Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("ChatServer");
 		delete Game::server;
 		delete Game::logger;
@@ -104,8 +103,7 @@ int main(int argc, char** argv) {
 
 			if (framesSinceMasterDisconnect >= 30)
 				break; //Exit our loop, shut down.
-		}
-		else framesSinceMasterDisconnect = 0;
+		} else framesSinceMasterDisconnect = 0;
 
 		//In world we'd update our other systems here.
 
@@ -122,8 +120,7 @@ int main(int argc, char** argv) {
 		if (framesSinceLastFlush >= 900) {
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
-		}
-		else framesSinceLastFlush++;
+		} else framesSinceLastFlush++;
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
 		if (framesSinceLastSQLPing >= 40000) {
@@ -141,8 +138,7 @@ int main(int argc, char** argv) {
 			delete stmt;
 
 			framesSinceLastSQLPing = 0;
-		}
-		else framesSinceLastSQLPing++;
+		} else framesSinceLastSQLPing++;
 
 		//Sleep our thread since auth can afford to.
 		t += std::chrono::milliseconds(mediumFramerate); //Chat can run at a lower "fps"
@@ -158,7 +154,7 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-dLogger * SetupLogger() {
+dLogger* SetupLogger() {
 	std::string logPath = "./logs/ChatServer_" + std::to_string(time(nullptr)) + ".log";
 	bool logToConsole = false;
 	bool logDebugStatements = false;
@@ -172,11 +168,11 @@ dLogger * SetupLogger() {
 
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-		Game::logger->Log("ChatServer", "A server has disconnected, erasing their connected players from the list.\n");
+		Game::logger->Log("ChatServer", "A server has disconnected, erasing their connected players from the list.");
 	}
 
 	if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {
-		Game::logger->Log("ChatServer", "A server is connecting, awaiting user list.\n");
+		Game::logger->Log("ChatServer", "A server is connecting, awaiting user list.");
 	}
 
 	if (packet->data[1] == CHAT_INTERNAL) {
@@ -205,7 +201,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown CHAT_INTERNAL id: %i\n", int(packet->data[3]));
+			Game::logger->Log("ChatServer", "Unknown CHAT_INTERNAL id: %i", int(packet->data[3]));
 		}
 	}
 
@@ -216,7 +212,7 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		case MSG_CHAT_GET_IGNORE_LIST:
-			Game::logger->Log("ChatServer", "Asked for ignore list, but is unimplemented right now.\n");
+			Game::logger->Log("ChatServer", "Asked for ignore list, but is unimplemented right now.");
 			break;
 
 		case MSG_CHAT_TEAM_GET_STATUS:
@@ -272,21 +268,21 @@ void HandlePacket(Packet* packet) {
 		case MSG_CHAT_TEAM_SET_LOOT:
 			ChatPacketHandler::HandleTeamLootOption(packet);
 			break;
-		
+
 		default:
-			Game::logger->Log("ChatServer", "Unknown CHAT id: %i\n", int(packet->data[3]));
+			Game::logger->Log("ChatServer", "Unknown CHAT id: %i", int(packet->data[3]));
 		}
 	}
 
 	if (packet->data[1] == WORLD) {
 		switch (packet->data[3]) {
 		case MSG_WORLD_CLIENT_ROUTE_PACKET: {
-			printf("routing packet from world\n");
+			Game::logger->Log("ChatServer", "Routing packet from world");
 			break;
 		}
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown World id: %i\n", int(packet->data[3]));
+			Game::logger->Log("ChatServer", "Unknown World id: %i", int(packet->data[3]));
 		}
 	}
 }

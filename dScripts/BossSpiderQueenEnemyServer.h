@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "CppScripts.h"
 
 /*
@@ -19,25 +19,25 @@ class BaseCombatAIComponent;
 class BossSpiderQueenEnemyServer final : public CppScripts::Script {
 public:
 	void OnStartup(Entity* self) override;
-	
+
 	void OnDie(Entity* self, Entity* killer) override;
-	
+
 	void OnHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) override;
-	
+
 	void OnUpdate(Entity* self) override;
 
 	void WithdrawSpider(Entity* self, bool withdraw);
 
 	void SpawnSpiderWave(Entity* self, int spiderCount);
-	
+
 	void SpiderWaveManager(Entity* self);
 
 	void ToggleForSpecial(Entity* self, bool state);
-	
+
 	void RunRainOfFire(Entity* self);
 
 	void RainOfFireManager(Entity* self);
-	
+
 	void RapidFireShooterManager(Entity* self);
 
 	void RunRapidFireShooter(Entity* self);
@@ -53,7 +53,7 @@ private:
 	BaseCombatAIComponent* combat = nullptr;
 
 	NiQuaternion originRotation;
-	
+
 	int m_CurrentBossStage = 0;
 	int m_DeathCounter = 0;
 	std::vector<int> ThresholdTable;

@@ -17,14 +17,14 @@ public:
 	};
 
 public:
-    static dZoneManager* Instance() {
+	static dZoneManager* Instance() {
 		if (!m_Address) {
 			m_Address = new dZoneManager();
 		}
-		
+
 		return m_Address;
 	}
-	
+
 	void Initialize(const LWOZONEID& zoneID);
 	~dZoneManager();
 
@@ -43,6 +43,7 @@ public:
 	void Update(float deltaTime);
 	Entity* GetZoneControlObject() { return m_ZoneControlObject; }
 	bool GetPlayerLoseCoinOnDeath() { return m_PlayerLoseCoinsOnDeath; }
+	uint32_t GetUniqueMissionIdStartingValue();
 
 private:
 	/**
@@ -54,12 +55,17 @@ private:
 	 * The ratio of LEGO Score to currency when the character has hit the max level.
 	 */
 	int32_t m_CurrencyConversionRate = 0;
-	
-    static dZoneManager* m_Address; //Singleton
+
+	/**
+	 * The starting unique mission ID.
+	 */
+	uint32_t m_UniqueMissionIdStart = 0;
+
+	static dZoneManager* m_Address; //Singleton
 	Zone* m_pZone;
 	LWOZONEID m_ZoneID;
-    bool m_PlayerLoseCoinsOnDeath; //Do players drop coins in this zone when smashed
-    std::map<LWOOBJID, Spawner*> m_Spawners;
+	bool m_PlayerLoseCoinsOnDeath; //Do players drop coins in this zone when smashed
+	std::map<LWOOBJID, Spawner*> m_Spawners;
 
 	Entity* m_ZoneControlObject;
 };

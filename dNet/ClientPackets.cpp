@@ -37,7 +37,7 @@
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse chat message\n");
+		Game::logger->Log("ClientPackets", "Unable to get user to parse chat message");
 		return;
 	}
 
@@ -71,14 +71,14 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 	if (!user->GetLastChatMessageApproved() && !isMythran) return;
 
 	std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
-	Game::logger->Log("Chat", "%s: %s\n", playerName.c_str(), sMessage.c_str());
+	Game::logger->Log("Chat", "%s: %s", playerName.c_str(), sMessage.c_str());
 	ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
 }
 
 void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse position update\n");
+		Game::logger->Log("ClientPackets", "Unable to get user to parse position update");
 		return;
 	}
 
@@ -140,14 +140,19 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		inStream.Read(angVelocity.z);
 	}
 
-	bool hasVehicle = false;
+	bool updateChar = true;
 
 	if (possessorComponent != nullptr) {
 		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
 
 		if (possassableEntity != nullptr) {
-			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
+			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
+			if (possessableComponent) {
+				// While possessing something, only update char if we are attached to the thing we are possessing
+				if (possessableComponent->GetPossessionType() != ePossessionType::ATTACHED_VISIBLE) updateChar = false;
+			}
 
+			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 			if (vehiclePhysicsComponent != nullptr) {
 				// This is flipped for whatever reason
 				rotation = NiQuaternion(rotation.z, rotation.y, rotation.x, rotation.w);
@@ -160,23 +165,34 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
 				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
 				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
-
-				EntityManager::Instance()->SerializeEntity(possassableEntity);
-
-				hasVehicle = true;
+			} else {
+				// Need to get the mount's controllable physics
+				auto* controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				if (!controllablePhysicsComponent) return;
+				controllablePhysicsComponent->SetPosition(position);
+				controllablePhysicsComponent->SetRotation(rotation);
+				controllablePhysicsComponent->SetIsOnGround(onGround);
+				controllablePhysicsComponent->SetIsOnRail(onRail);
+				controllablePhysicsComponent->SetVelocity(velocity);
+				controllablePhysicsComponent->SetDirtyVelocity(velocityFlag);
+				controllablePhysicsComponent->SetAngularVelocity(angVelocity);
+				controllablePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 			}
+			EntityManager::Instance()->SerializeEntity(possassableEntity);
 		}
 	}
 
-	if (hasVehicle) {
+	if (!updateChar) {
 		velocity = NiPoint3::ZERO;
 		angVelocity = NiPoint3::ZERO;
 	}
 
+
+
 	// Handle statistics
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
-	    characterComponent->TrackPositionUpdate(position);
+		characterComponent->TrackPositionUpdate(position);
 	}
 
 	comp->SetPosition(position);
@@ -192,9 +208,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	player->SetGhostReferencePoint(position);
 	EntityManager::Instance()->QueueGhostUpdate(player->GetObjectID());
 
-	if (!hasVehicle) {
-		EntityManager::Instance()->SerializeEntity(entity);
-	}
+	if (updateChar) EntityManager::Instance()->SerializeEntity(entity);
 
 	//TODO: add moving platform stuffs
 	/*bool movingPlatformFlag;
@@ -240,22 +254,21 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse chat moderation request\n");
+		Game::logger->Log("ClientPackets", "Unable to get user to parse chat moderation request");
 		return;
 	}
 
 	auto* entity = Player::GetPlayer(sysAddr);
 
 	if (entity == nullptr) {
-		Game::logger->Log("ClientPackets", "Unable to get player to parse chat moderation request\n");
+		Game::logger->Log("ClientPackets", "Unable to get player to parse chat moderation request");
 		return;
 	}
 
 	// Check if the player has restricted chat access
 	auto* character = entity->GetCharacter();
 
-	if (character->HasPermission(PermissionMap::RestrictedChatAccess))
-	{
+	if (character->HasPermission(PermissionMap::RestrictedChatAccess)) {
 		// Send a message to the player
 		ChatPackets::SendSystemMessage(
 			sysAddr,
@@ -341,8 +354,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 
 			delete res;
 			delete stmt;
-		}
-		else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
+		} else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
 			isBestFriend = true;
 		}
 	}

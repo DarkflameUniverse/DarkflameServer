@@ -37,9 +37,9 @@ int main(int argc, char** argv) {
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
 	if (!Game::logger) return 0;
-	Game::logger->Log("AuthServer", "Starting Auth server...\n");
-	Game::logger->Log("AuthServer", "Version: %i.%i\n", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("AuthServer", "Compiled on: %s\n", __TIMESTAMP__);
+	Game::logger->Log("AuthServer", "Starting Auth server...");
+	Game::logger->Log("AuthServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	Game::logger->Log("AuthServer", "Compiled on: %s", __TIMESTAMP__);
 
 	//Read our config:
 	dConfig config("authconfig.ini");
@@ -53,15 +53,15 @@ int main(int argc, char** argv) {
 	std::string mysql_username = config.GetValue("mysql_username");
 	std::string mysql_password = config.GetValue("mysql_password");
 
-    try {
-        Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-    } catch (sql::SQLException& ex) {
-		Game::logger->Log("AuthServer", "Got an error while connecting to the database: %s\n", ex.what());
+	try {
+		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+	} catch (sql::SQLException& ex) {
+		Game::logger->Log("AuthServer", "Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("AuthServer");
 		delete Game::server;
 		delete Game::logger;
 		return 0;
-    }
+	}
 
 	//Find out the master's IP:
 	std::string masterIP;
@@ -78,10 +78,10 @@ int main(int argc, char** argv) {
 
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
 	int maxClients = 50;
-	int ourPort = 1001; //LU client is hardcoded to use this for auth port, so I'm making it the default. 
+	int ourPort = 1001; //LU client is hardcoded to use this for auth port, so I'm making it the default.
 	if (config.GetValue("max_clients") != "") maxClients = std::stoi(config.GetValue("max_clients"));
 	if (config.GetValue("port") != "") ourPort = std::atoi(config.GetValue("port").c_str());
-	
+
 	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth);
 
 	//Run it until server gets a kill message from Master:
@@ -98,8 +98,7 @@ int main(int argc, char** argv) {
 
 			if (framesSinceMasterDisconnect >= 30)
 				break; //Exit our loop, shut down.
-		}
-		else framesSinceMasterDisconnect = 0;
+		} else framesSinceMasterDisconnect = 0;
 
 		//In world we'd update our other systems here.
 
@@ -134,8 +133,7 @@ int main(int argc, char** argv) {
 			delete stmt;
 
 			framesSinceLastSQLPing = 0;
-		}
-		else framesSinceLastSQLPing++;
+		} else framesSinceLastSQLPing++;
 
 		//Sleep our thread since auth can afford to.
 		t += std::chrono::milliseconds(mediumFramerate); //Auth can run at a lower "fps"
@@ -151,7 +149,7 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-dLogger * SetupLogger() {
+dLogger* SetupLogger() {
 	std::string logPath = "./logs/AuthServer_" + std::to_string(time(nullptr)) + ".log";
 	bool logToConsole = false;
 	bool logDebugStatements = false;

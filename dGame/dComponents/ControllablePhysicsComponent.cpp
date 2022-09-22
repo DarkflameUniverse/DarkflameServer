@@ -11,6 +11,7 @@
 #include "CDClientManager.h"
 #include "EntityManager.h"
 #include "Character.h"
+#include "dZoneManager.h"
 
 ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Component(entity) {
 	m_Position = {};
@@ -31,12 +32,13 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_IgnoreMultipliers = false;
 	m_PickupRadius = 0.0f;
 	m_DirtyPickupRadiusScale = true;
+	m_IsTeleporting = false;
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
 
 	if (entity->GetLOT() == 1) {
-		Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics\n");
+		Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics");
 
 		float radius = 1.5f;
 		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), radius, false);
@@ -127,16 +129,19 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write0();
 	}
 
-	if (!bIsInitialUpdate) outBitStream->Write0();
+	if (!bIsInitialUpdate) {
+		outBitStream->Write(m_IsTeleporting);
+		m_IsTeleporting = false;
+	}
 }
 
-void ControllablePhysicsComponent::LoadFromXML(tinyxml2::XMLDocument* doc) {
+void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag!\n");
+		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag!");
 		return;
 	}
-	
+
 	m_Parent->GetCharacter()->LoadXmlRespawnCheckpoints();
 
 	character->QueryAttribute("lzx", &m_Position.x);
@@ -159,17 +164,21 @@ void ControllablePhysicsComponent::ResetFlags() {
 void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag while updating XML!\n");
+		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag while updating XML!");
 		return;
 	}
 
-	character->SetAttribute("lzx", m_Position.x);
-	character->SetAttribute("lzy", m_Position.y);
-	character->SetAttribute("lzz", m_Position.z);
-	character->SetAttribute("lzrx", m_Rotation.x);
-	character->SetAttribute("lzry", m_Rotation.y);
-	character->SetAttribute("lzrz", m_Rotation.z);
-	character->SetAttribute("lzrw", m_Rotation.w);
+	auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
+
+	if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
+		character->SetAttribute("lzx", m_Position.x);
+		character->SetAttribute("lzy", m_Position.y);
+		character->SetAttribute("lzz", m_Position.z);
+		character->SetAttribute("lzrx", m_Rotation.x);
+		character->SetAttribute("lzry", m_Rotation.y);
+		character->SetAttribute("lzrz", m_Rotation.z);
+		character->SetAttribute("lzrw", m_Rotation.w);
+	}
 }
 
 void ControllablePhysicsComponent::SetPosition(const NiPoint3& pos) {
@@ -254,7 +263,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 	if (pos != m_ActivePickupRadiusScales.end()) {
 		m_ActivePickupRadiusScales.erase(pos);
 	} else {
-		Game::logger->Log("ControllablePhysicsComponent", "Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.\n", value, m_ActivePickupRadiusScales.size());
+		Game::logger->Log("ControllablePhysicsComponent", "Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.", value, m_ActivePickupRadiusScales.size());
 		return;
 	}
 

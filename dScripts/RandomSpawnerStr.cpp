@@ -1,9 +1,8 @@
 #include "RandomSpawnerStr.h"
 
-void RandomSpawnerStr::OnStartup(Entity* self) 
-{
-    zones = {
-        { //-- ** Load 1 -------------------------- **
+void RandomSpawnerStr::OnStartup(Entity* self) {
+	zones = {
+		{ //-- ** Load 1 -------------------------- **
 			{{mobs.stromb, 4, "type1",},
 			{mobs.pirate,  3, "type2",},
 			{mobs.ronin, 3, "type3",}},
@@ -63,22 +62,21 @@ void RandomSpawnerStr::OnStartup(Entity* self)
 			{mobs.pirate, 4, "type3",}},
 			1
 		},
-    };
+	};
 
-    sectionMultipliers = {
-        {"secA", 1},
-        {"secB", 1},
-        {"secC", 1.2f},
-    };
+	sectionMultipliers = {
+		{"secA", 1},
+		{"secB", 1},
+		{"secC", 1.2f},
+	};
 
-    zoneName = "str";
+	zoneName = "str";
 	mobDeathResetNumber = 20;
 	changeNum = 15;
 
-    BaseStartup(self);
+	BaseStartup(self);
 }
 
-void RandomSpawnerStr::OnTimerDone(Entity* self, std::string timerName) 
-{
-    BaseOnTimerDone(self, timerName);
+void RandomSpawnerStr::OnTimerDone(Entity* self, std::string timerName) {
+	BaseOnTimerDone(self, timerName);
 }

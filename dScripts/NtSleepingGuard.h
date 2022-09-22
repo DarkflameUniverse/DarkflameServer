@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "CppScripts.h"
 
 class NtSleepingGuard final : public CppScripts::Script

@@ -3,8 +3,7 @@
 #include <iostream>
 
 dpShapeBase::dpShapeBase(dpEntity* parentEntity) :
-	m_ParentEntity(parentEntity)
-{
+	m_ParentEntity(parentEntity) {
 }
 
 dpShapeBase::~dpShapeBase() {

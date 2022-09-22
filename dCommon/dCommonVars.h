@@ -103,61 +103,61 @@ private:
 const LWOSCENEID LWOSCENEID_INVALID = -1;
 
 struct LWONameValue {
-    uint32_t length = 0;        //!< The length of the name
-    std::u16string name;			//!< The name
-    
-    LWONameValue(void) {}
- 
-    LWONameValue(const std::u16string& name) {
-        this->name = name;
-        this->length = static_cast<uint32_t>(name.length());
-    }
-    
-    ~LWONameValue(void) {}
+	uint32_t length = 0;        //!< The length of the name
+	std::u16string name;			//!< The name
+
+	LWONameValue(void) {}
+
+	LWONameValue(const std::u16string& name) {
+		this->name = name;
+		this->length = static_cast<uint32_t>(name.length());
+	}
+
+	~LWONameValue(void) {}
 };
 
 struct FriendData {
 public:
-    bool isOnline = false;
-    bool isBestFriend = false;
-    bool isFTP = false;
-    LWOZONEID zoneID;
-    LWOOBJID friendID;
-    std::string friendName;
+	bool isOnline = false;
+	bool isBestFriend = false;
+	bool isFTP = false;
+	LWOZONEID zoneID;
+	LWOOBJID friendID;
+	std::string friendName;
 
-    void Serialize(RakNet::BitStream& bitStream) {
-        bitStream.Write<uint8_t>(isOnline);
-        bitStream.Write<uint8_t>(isBestFriend);
-        bitStream.Write<uint8_t>(isFTP);
-        bitStream.Write<uint32_t>(0); //???
-        bitStream.Write<uint8_t>(0);  //???
-        bitStream.Write(zoneID.GetMapID());
-        bitStream.Write(zoneID.GetInstanceID());
-        bitStream.Write(zoneID.GetCloneID());
-        bitStream.Write(friendID);
-        
-        uint32_t maxSize = 33;
-        uint32_t size = static_cast<uint32_t>(friendName.length());
-        uint32_t remSize = static_cast<uint32_t>(maxSize - size);
+	void Serialize(RakNet::BitStream& bitStream) {
+		bitStream.Write<uint8_t>(isOnline);
+		bitStream.Write<uint8_t>(isBestFriend);
+		bitStream.Write<uint8_t>(isFTP);
+		bitStream.Write<uint32_t>(0); //???
+		bitStream.Write<uint8_t>(0);  //???
+		bitStream.Write(zoneID.GetMapID());
+		bitStream.Write(zoneID.GetInstanceID());
+		bitStream.Write(zoneID.GetCloneID());
+		bitStream.Write(friendID);
 
-        if (size > maxSize) size = maxSize;
+		uint32_t maxSize = 33;
+		uint32_t size = static_cast<uint32_t>(friendName.length());
+		uint32_t remSize = static_cast<uint32_t>(maxSize - size);
 
-        for (uint32_t i = 0; i < size; ++i) {
-            bitStream.Write(static_cast<uint16_t>(friendName[i]));
-        }
+		if (size > maxSize) size = maxSize;
 
-        for (uint32_t j = 0; j < remSize; ++j) {
-            bitStream.Write(static_cast<uint16_t>(0));
-        }
+		for (uint32_t i = 0; i < size; ++i) {
+			bitStream.Write(static_cast<uint16_t>(friendName[i]));
+		}
 
-        bitStream.Write<uint32_t>(0); //???
-        bitStream.Write<uint16_t>(0); //???
-    }
+		for (uint32_t j = 0; j < remSize; ++j) {
+			bitStream.Write(static_cast<uint16_t>(0));
+		}
+
+		bitStream.Write<uint32_t>(0); //???
+		bitStream.Write<uint16_t>(0); //???
+	}
 };
 
 struct Brick {
-    uint32_t designerID;
-    uint32_t materialID;
+	uint32_t designerID;
+	uint32_t materialID;
 };
 
 //This union is used by the behavior system
@@ -169,26 +169,26 @@ union suchar {
 //=========== DLU ENUMS ============
 
 enum eGameMasterLevel : int32_t {
-    GAME_MASTER_LEVEL_CIVILIAN = 0,             // Normal player.
-    GAME_MASTER_LEVEL_FORUM_MODERATOR = 1,      // No permissions on live servers.
-    GAME_MASTER_LEVEL_JUNIOR_MODERATOR = 2,     // Can kick/mute and pull chat logs.
-    GAME_MASTER_LEVEL_MODERATOR = 3,            // Can return lost items.
-    GAME_MASTER_LEVEL_SENIOR_MODERATOR = 4,     // Can ban.
-    GAME_MASTER_LEVEL_LEAD_MODERATOR = 5,       // Can approve properties.
-    GAME_MASTER_LEVEL_JUNIOR_DEVELOPER = 6,     // Junior developer & future content team. Civilan on live.
-    GAME_MASTER_LEVEL_INACTIVE_DEVELOPER = 7,   // Inactive developer, limited permissions.
-    GAME_MASTER_LEVEL_DEVELOPER = 8,            // Active developer, full permissions on live.
-    GAME_MASTER_LEVEL_OPERATOR = 9              // Can shutdown server for restarts & updates.
+	GAME_MASTER_LEVEL_CIVILIAN = 0,             // Normal player.
+	GAME_MASTER_LEVEL_FORUM_MODERATOR = 1,      // No permissions on live servers.
+	GAME_MASTER_LEVEL_JUNIOR_MODERATOR = 2,     // Can kick/mute and pull chat logs.
+	GAME_MASTER_LEVEL_MODERATOR = 3,            // Can return lost items.
+	GAME_MASTER_LEVEL_SENIOR_MODERATOR = 4,     // Can ban.
+	GAME_MASTER_LEVEL_LEAD_MODERATOR = 5,       // Can approve properties.
+	GAME_MASTER_LEVEL_JUNIOR_DEVELOPER = 6,     // Junior developer & future content team. Civilan on live.
+	GAME_MASTER_LEVEL_INACTIVE_DEVELOPER = 7,   // Inactive developer, limited permissions.
+	GAME_MASTER_LEVEL_DEVELOPER = 8,            // Active developer, full permissions on live.
+	GAME_MASTER_LEVEL_OPERATOR = 9              // Can shutdown server for restarts & updates.
 };
 
 //=========== LU ENUMS ============
 
 //! An enum for object ID bits
 enum eObjectBits : int32_t {
-    OBJECT_BIT_PERSISTENT = 32,     //!< The 32 bit index
-    OBJECT_BIT_CLIENT = 46,         //!< The 46 bit index
-    OBJECT_BIT_SPAWNED = 58,        //!< The 58 bit index
-    OBJECT_BIT_CHARACTER = 60       //!< The 60 bit index
+	OBJECT_BIT_PERSISTENT = 32,     //!< The 32 bit index
+	OBJECT_BIT_CLIENT = 46,         //!< The 46 bit index
+	OBJECT_BIT_SPAWNED = 58,        //!< The 58 bit index
+	OBJECT_BIT_CHARACTER = 60       //!< The 60 bit index
 };
 
 //! An enum for MatchUpdate types
@@ -208,18 +208,18 @@ enum eCyclingMode : uint32_t {
 };
 
 enum eCinematicEvent : uint32_t {
-    STARTED,
-    WAYPOINT,
-    ENDED,
+	STARTED,
+	WAYPOINT,
+	ENDED,
 };
 
 //! An enum for character creation responses
 enum eCreationResponse : uint8_t {
-    CREATION_RESPONSE_SUCCESS = 0,                  //!< The creation was successful
-    CREATION_RESPONSE_OBJECT_ID_UNAVAILABLE,        //!< The Object ID can't be used
-    CREATION_RESPONSE_NAME_NOT_ALLOWED,             //!< The name is not allowed
-    CREATION_RESPONSE_PREDEFINED_NAME_IN_USE,       //!< The predefined name is already in use
-    CREATION_RESPONSE_CUSTOM_NAME_IN_USE            //!< The custom name is already in use
+	CREATION_RESPONSE_SUCCESS = 0,                  //!< The creation was successful
+	CREATION_RESPONSE_OBJECT_ID_UNAVAILABLE,        //!< The Object ID can't be used
+	CREATION_RESPONSE_NAME_NOT_ALLOWED,             //!< The name is not allowed
+	CREATION_RESPONSE_PREDEFINED_NAME_IN_USE,       //!< The predefined name is already in use
+	CREATION_RESPONSE_CUSTOM_NAME_IN_USE            //!< The custom name is already in use
 };
 
 //! An enum for login responses
@@ -234,21 +234,21 @@ enum eLoginResponse : uint8_t {
 
 //! An enum for character rename responses
 enum eRenameResponse : uint8_t {
-    RENAME_RESPONSE_SUCCESS = 0,                    //!< The renaming was successful
-    RENAME_RESPONSE_UNKNOWN_ERROR,                  //!< There was an unknown error
-    RENAME_RESPONSE_NAME_UNAVAILABLE,               //!< The name is unavailable
-    RENAME_RESPONSE_NAME_IN_USE                     //!< The name is already in use
+	RENAME_RESPONSE_SUCCESS = 0,                    //!< The renaming was successful
+	RENAME_RESPONSE_UNKNOWN_ERROR,                  //!< There was an unknown error
+	RENAME_RESPONSE_NAME_UNAVAILABLE,               //!< The name is unavailable
+	RENAME_RESPONSE_NAME_IN_USE                     //!< The name is already in use
 };
 
 //! A replica packet type
 enum eReplicaPacketType {
-    PACKET_TYPE_CONSTRUCTION,                       //!< A construction packet
-    PACKET_TYPE_SERIALIZATION,                      //!< A serialization packet
-    PACKET_TYPE_DESTRUCTION                         //!< A destruction packet
+	PACKET_TYPE_CONSTRUCTION,                       //!< A construction packet
+	PACKET_TYPE_SERIALIZATION,                      //!< A serialization packet
+	PACKET_TYPE_DESTRUCTION                         //!< A destruction packet
 };
 
 enum ServerDisconnectIdentifiers {
-    SERVER_DISCON_UNKNOWN_SERVER_ERROR = 0,               //!< Unknown server error
+	SERVER_DISCON_UNKNOWN_SERVER_ERROR = 0,               //!< Unknown server error
 	SERVER_DISCON_DUPLICATE_LOGIN = 4,                    //!< Used when another user with the same username is logged in (duplicate login)
 	SERVER_DISCON_SERVER_SHUTDOWN = 5,                    //!< Used when the server is shutdown
 	SERVER_DISCON_SERVER_MAP_LOAD_FAILURE = 6,            //!< Used when the server cannot load a map
@@ -263,80 +263,80 @@ enum ServerDisconnectIdentifiers {
 
 //! The Behavior Types for use with the AI system
 enum eCombatBehaviorTypes : uint32_t {
-    PASSIVE = 0,                    //!< The object is passive
-    AGGRESSIVE = 1,                 //!< The object is aggressive
-    PASSIVE_TURRET = 2,             //!< The object is a passive turret
-    AGGRESSIVE_TURRET = 3           //!< The object is an aggressive turret
+	PASSIVE = 0,                    //!< The object is passive
+	AGGRESSIVE = 1,                 //!< The object is aggressive
+	PASSIVE_TURRET = 2,             //!< The object is a passive turret
+	AGGRESSIVE_TURRET = 3           //!< The object is an aggressive turret
 };
 
 //! The Combat Role Type for use with the AI system
 enum eCombatRoleType : uint32_t {
-    MELEE = 0,                      //!< Used for melee attacks
-    RANGED = 1,                     //!< Used for range attacks
-    SUPPORT = 2                     //!< Used for support
+	MELEE = 0,                      //!< Used for melee attacks
+	RANGED = 1,                     //!< Used for range attacks
+	SUPPORT = 2                     //!< Used for support
 };
 
 //! The kill types for the Die packet
 enum eKillType : uint32_t {
-    VIOLENT,
-    SILENT
+	VIOLENT,
+	SILENT
 };
 
 //! The various world states used throughout the server
 enum eObjectWorldState {
-    WORLDSTATE_INWORLD,             //!< Probably used when the object is in the world
-    WORLDSTATE_ATTACHED,            //!< Probably used when the object is attached to another object
-    WORLDSTATE_INVENTORY            //!< Probably used when the object is in an inventory
+	WORLDSTATE_INWORLD,             //!< Probably used when the object is in the world
+	WORLDSTATE_ATTACHED,            //!< Probably used when the object is attached to another object
+	WORLDSTATE_INVENTORY            //!< Probably used when the object is in an inventory
 };
 
 //! The trigger stats (???)
 enum eTriggerStat {
-    INVALID_STAT,                   //!< ???
-    HEALTH,                         //!< Probably used for health
-    ARMOR,                          //!< Probably used for armor
-    IMAGINATION                     //!< Probably used for imagination
+	INVALID_STAT,                   //!< ???
+	HEALTH,                         //!< Probably used for health
+	ARMOR,                          //!< Probably used for armor
+	IMAGINATION                     //!< Probably used for imagination
 };
 
 //! The trigger operations (???)
 enum eTriggerOperator {
-    INVALID_OPER,                   //!< ???
-    EQUAL,                          //!< ???
-    NOT_EQUAL,                      //!< ???
-    GREATER,                        //!< ???
-    GREATER_EQUAL,                  //!< ???
-    LESS,                           //!< ???
-    LESS_EQUAL                      //!< ???
+	INVALID_OPER,                   //!< ???
+	EQUAL,                          //!< ???
+	NOT_EQUAL,                      //!< ???
+	GREATER,                        //!< ???
+	GREATER_EQUAL,                  //!< ???
+	LESS,                           //!< ???
+	LESS_EQUAL                      //!< ???
 };
 
 //! The various build types
 enum eBuildType {
-    BUILD_NOWHERE,                  //!< Used if something can't be built anywhere
-    BUILD_IN_WORLD,                 //!< Used if something can be built in the world
-    BUILD_ON_PROPERTY               //!< Used if something can be build on a property
+	BUILD_NOWHERE,                  //!< Used if something can't be built anywhere
+	BUILD_IN_WORLD,                 //!< Used if something can be built in the world
+	BUILD_ON_PROPERTY               //!< Used if something can be build on a property
 };
 
 //! Quickbuild fail reasons
 enum eFailReason : uint32_t {
-    REASON_NOT_GIVEN,
-    REASON_OUT_OF_IMAGINATION,
-    REASON_CANCELED_EARLY,
-    REASON_BUILD_ENDED
+	REASON_NOT_GIVEN,
+	REASON_OUT_OF_IMAGINATION,
+	REASON_CANCELED_EARLY,
+	REASON_BUILD_ENDED
 };
 
 //! Terminate interaction type
 enum eTerminateType : uint32_t {
-    RANGE,
-    USER,
-    FROM_INTERACTION
+	RANGE,
+	USER,
+	FROM_INTERACTION
 };
 
 //! The combat state
 enum eCombatState {
-    IDLE,                           //!< The AI is in an idle state
-    AGGRO,                          //!< The AI is in an aggressive state
-    TETHER,                         //!< The AI is being redrawn back to tether point
-    SPAWN,                          //!< The AI is spawning
-    DEAD                            //!< The AI is dead
+	IDLE,                           //!< The AI is in an idle state
+	AGGRO,                          //!< The AI is in an aggressive state
+	TETHER,                         //!< The AI is being redrawn back to tether point
+	SPAWN,                          //!< The AI is spawning
+	DEAD                            //!< The AI is dead
 };
 
 enum eControlSceme {
@@ -348,7 +348,7 @@ enum eControlSceme {
 	SCHEME_DRIVING,
 	SCHEME_TAMING,
 	SCHEME_MODULAR_BUILD,
-	SCHEME_WEAR_A_ROBOT //== freecam? 
+	SCHEME_WEAR_A_ROBOT //== freecam?
 };
 
 enum eStunState {
@@ -357,84 +357,86 @@ enum eStunState {
 };
 
 enum eNotifyType {
-    NOTIFY_TYPE_SUCCESS,
-    NOTIFY_TYPE_QUIT,
-    NOTIFY_TYPE_FAILED,
-    NOTIFY_TYPE_BEGIN,
-    NOTIFY_TYPE_READY,
-    NOTIFY_TYPE_NAMINGPET
+	NOTIFY_TYPE_SUCCESS,
+	NOTIFY_TYPE_QUIT,
+	NOTIFY_TYPE_FAILED,
+	NOTIFY_TYPE_BEGIN,
+	NOTIFY_TYPE_READY,
+	NOTIFY_TYPE_NAMINGPET
 };
 
 enum eReplicaComponentType : int32_t {
-    COMPONENT_TYPE_CONTROLLABLE_PHYSICS     = 1,            //!< The ControllablePhysics Component
-    COMPONENT_TYPE_RENDER                   = 2,            //!< The Render Component
-    COMPONENT_TYPE_SIMPLE_PHYSICS           = 3,            //!< The SimplePhysics Component
-    COMPONENT_TYPE_CHARACTER                = 4,            //!< The Character Component
-    COMPONENT_TYPE_SCRIPT                   = 5,            //!< The Script Component
-    COMPONENT_TYPE_BOUNCER                  = 6,            //!< The Bouncer Component
-    COMPONENT_TYPE_BUFF                     = 7,            //!< The Buff Component
-    COMPONENT_TYPE_SKILL                    = 9,            //!< The Skill Component
-	COMPONENT_TYPE_ITEM                     = 11,           //!< The Item Component
-    COMPONENT_TYPE_VENDOR                   = 16,           //!< The Vendor Component
-    COMPONENT_TYPE_INVENTORY                = 17,           //!< The Inventory Component
-    COMPONENT_TYPE_SHOOTING_GALLERY         = 19,           //!< The Shooting Gallery Component
-    COMPONENT_TYPE_RIGID_BODY_PHANTOM_PHYSICS   = 20,       //!< The RigidBodyPhantomPhysics Component
-    COMPONENT_TYPE_COLLECTIBLE              = 23,           //!< The Collectible Component
-    COMPONENT_TYPE_MOVING_PLATFORM          = 25,           //!< The MovingPlatform Component
-    COMPONENT_TYPE_PET                      = 26,           //!< The Pet Component
-    COMPONENT_TYPE_VEHICLE_PHYSICS          = 30,           //!< The VehiclePhysics Component
-	COMPONENT_TYPE_MOVEMENT_AI              = 31,           //!< The MovementAI Component
-	COMPONENT_TYPE_PROPERTY                 = 36,           //!< The Property Component
-    COMPONENT_TYPE_SCRIPTED_ACTIVITY        = 39,           //!< The ScriptedActivity Component
-    COMPONENT_TYPE_PHANTOM_PHYSICS          = 40,           //!< The PhantomPhysics Component
-	COMPONENT_TYPE_MODEL 					= 42,			//!< The Model Component
-    COMPONENT_TYPE_PROPERTY_ENTRANCE        = 43,           //!< The PhantomPhysics Component
-	COMPONENT_TYPE_PROPERTY_MANAGEMENT      = 45,           //!< The PropertyManagement Component
-    COMPONENT_TYPE_REBUILD                  = 48,           //!< The Rebuild Component
-    COMPONENT_TYPE_SWITCH                   = 49,           //!< The Switch Component
-    COMPONENT_TYPE_ZONE_CONTROL             = 50,           //!< The ZoneControl Component
-	COMPONENT_TYPE_PACKAGE                  = 53,           //!< The Package Component
-    COMPONENT_TYPE_PLAYER_FLAG              = 58,           //!< The PlayerFlag Component
-    COMPONENT_TYPE_BASE_COMBAT_AI           = 60,           //!< The BaseCombatAI Component
-    COMPONENT_TYPE_MODULE_ASSEMBLY          = 61,           //!< The ModuleAssembly Component
-	COMPONENT_TYPE_PROPERTY_VENDOR          = 65,           //!< The PropertyVendor Component
-    COMPONENT_TYPE_ROCKET_LAUNCH            = 67,           //!< The RocketLaunch Component
-    COMPONENT_TYPE_RACING_CONTROL           = 71,           //!< The RacingControl Component
-    COMPONENT_TYPE_MISSION_OFFER            = 73,           //!< The MissionOffer Component
-    COMPONENT_TYPE_EXHIBIT                  = 75,           //!< The Exhibit Component
-    COMPONENT_TYPE_RACING_STATS             = 74,           //!< The Exhibit Component
-    COMPONENT_TYPE_SOUND_TRIGGER            = 77,           //!< The Sound Trigger Component
-	COMPONENT_TYPE_PROXIMITY_MONITOR        = 78,           //!< The Proximity Monitor Component
-    COMPONENT_TYPE_MISSION                  = 84,           //!< The Mission Component
-    COMPONENT_TYPE_ROCKET_LAUNCH_LUP        = 97,           //!< The LUP Launchpad Componen
-    COMPONENT_TYPE_RAIL_ACTIVATOR           = 104,
-	COMPONENT_TYPE_POSSESSABLE				= 108,			//!< The Possessable Component
-	COMPONENT_TYPE_POSSESSOR				= 110,			//!< The Possessor Component
-	COMPONENT_TYPE_BUILD_BORDER             = 114,          //!< The Build Border Component
-    COMPONENT_TYPE_DESTROYABLE              = 1000,         //!< The Destroyable Component
+	COMPONENT_TYPE_CONTROLLABLE_PHYSICS = 1,			//!< The ControllablePhysics Component
+	COMPONENT_TYPE_RENDER = 2,			//!< The Render Component
+	COMPONENT_TYPE_SIMPLE_PHYSICS = 3,			//!< The SimplePhysics Component
+	COMPONENT_TYPE_CHARACTER = 4,			//!< The Character Component
+	COMPONENT_TYPE_SCRIPT = 5,			//!< The Script Component
+	COMPONENT_TYPE_BOUNCER = 6,			//!< The Bouncer Component
+	COMPONENT_TYPE_BUFF = 7,			//!< The Buff Component
+	COMPONENT_TYPE_SKILL = 9,			//!< The Skill Component
+	COMPONENT_TYPE_ITEM = 11,			//!< The Item Component
+	COMPONENT_TYPE_VENDOR = 16,			//!< The Vendor Component
+	COMPONENT_TYPE_INVENTORY = 17,			//!< The Inventory Component
+	COMPONENT_TYPE_SHOOTING_GALLERY = 19,			//!< The Shooting Gallery Component
+	COMPONENT_TYPE_RIGID_BODY_PHANTOM_PHYSICS = 20,			//!< The RigidBodyPhantomPhysics Component
+	COMPONENT_TYPE_COLLECTIBLE = 23,			//!< The Collectible Component
+	COMPONENT_TYPE_MOVING_PLATFORM = 25,			//!< The MovingPlatform Component
+	COMPONENT_TYPE_PET = 26,			//!< The Pet Component
+	COMPONENT_TYPE_VEHICLE_PHYSICS = 30,			//!< The VehiclePhysics Component
+	COMPONENT_TYPE_MOVEMENT_AI = 31,			//!< The MovementAI Component
+	COMPONENT_TYPE_PROPERTY = 36,			//!< The Property Component
+	COMPONENT_TYPE_SCRIPTED_ACTIVITY = 39,			//!< The ScriptedActivity Component
+	COMPONENT_TYPE_PHANTOM_PHYSICS = 40,			//!< The PhantomPhysics Component
+	COMPONENT_TYPE_MODEL = 42,			//!< The Model Component
+	COMPONENT_TYPE_PROPERTY_ENTRANCE = 43,			//!< The PhantomPhysics Component
+	COMPONENT_TYPE_PROPERTY_MANAGEMENT = 45,			//!< The PropertyManagement Component
+	COMPONENT_TYPE_REBUILD = 48,			//!< The Rebuild Component
+	COMPONENT_TYPE_SWITCH = 49,			//!< The Switch Component
+	COMPONENT_TYPE_ZONE_CONTROL = 50,			//!< The ZoneControl Component
+	COMPONENT_TYPE_PACKAGE = 53,			//!< The Package Component
+	COMPONENT_TYPE_PLAYER_FLAG = 58,			//!< The PlayerFlag Component
+	COMPONENT_TYPE_BASE_COMBAT_AI = 60,			//!< The BaseCombatAI Component
+	COMPONENT_TYPE_MODULE_ASSEMBLY = 61,			//!< The ModuleAssembly Component
+	COMPONENT_TYPE_PROPERTY_VENDOR = 65,			//!< The PropertyVendor Component
+	COMPONENT_TYPE_ROCKET_LAUNCH = 67,			//!< The RocketLaunch Component
+	COMPONENT_TYPE_RACING_CONTROL = 71,			//!< The RacingControl Component
+	COMPONENT_TYPE_MISSION_OFFER = 73,			//!< The MissionOffer Component
+	COMPONENT_TYPE_EXHIBIT = 75,			//!< The Exhibit Component
+	COMPONENT_TYPE_RACING_STATS = 74,			//!< The Racing Stats Component
+	COMPONENT_TYPE_SOUND_TRIGGER = 77,			//!< The Sound Trigger Component
+	COMPONENT_TYPE_PROXIMITY_MONITOR = 78,			//!< The Proximity Monitor Component
+	COMPONENT_TYPE_MISSION = 84,			//!< The Mission Component
+	COMPONENT_TYPE_ROCKET_LAUNCH_LUP = 97,			//!< The LUP Launchpad Componen
+	COMPONENT_TYPE_RAIL_ACTIVATOR = 104,			//!< The Rail Activator Component
+	COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT = 106,			//!< The Player Forced Movement Component
+	COMPONENT_TYPE_POSSESSABLE = 108,			//!< The Possessable Component
+	COMPONENT_TYPE_LEVEL_PROGRESSION = 109,			//!< The Level Progression Component
+	COMPONENT_TYPE_POSSESSOR = 110,			//!< The Possessor Component
+	COMPONENT_TYPE_BUILD_BORDER = 114,			//!< The Build Border Component
+	COMPONENT_TYPE_DESTROYABLE = 1000,			//!< The Destroyable Component
 };
 
 enum class UseItemResponse : uint32_t {
-    NoImaginationForPet = 1,
-    FailedPrecondition,
-    MountsNotAllowed
+	NoImaginationForPet = 1,
+	FailedPrecondition,
+	MountsNotAllowed
 };
 
 /**
  * Represents the different types of inventories an entity may have
  */
 enum eInventoryType : uint32_t {
-    ITEMS = 0,
-    VAULT_ITEMS,
-    BRICKS,
-    TEMP_ITEMS = 4,
-    MODELS,
-    TEMP_MODELS,
-    BEHAVIORS,
-    PROPERTY_DEEDS,
+	ITEMS = 0,
+	VAULT_ITEMS,
+	BRICKS,
+	TEMP_ITEMS = 4,
+	MODELS,
+	TEMP_MODELS,
+	BEHAVIORS,
+	PROPERTY_DEEDS,
 	VENDOR_BUYBACK = 11,
-    HIDDEN = 12, //Used for missional items
-    VAULT_MODELS = 14,
+	HIDDEN = 12, //Used for missional items
+	VAULT_MODELS = 14,
 	ITEM_SETS, //internal
 	INVALID // made up, for internal use!!!
 };
@@ -448,7 +450,7 @@ enum eRebuildState : uint32_t {
 };
 
 /**
- * The loot source's type.  
+ * The loot source's type.
  */
 enum eLootSourceType : int32_t {
 	LOOT_SOURCE_NONE = 0,
@@ -540,7 +542,7 @@ enum ePlayerFlags {
 	TOOLTIP_TALK_TO_SKYLAND_TO_GET_HAT = 52,
 	MODULAR_BUILD_PLAYER_PLACES_FIRST_MODEL_IN_SCRATCH = 53,
 	MODULAR_BUILD_FIRST_ARROW_DISPLAY_FOR_MODULE = 54,
-	AG_BEACON_QB,_SO_THE_PLAYER_CAN_ALWAYS_BUILD_THEM = 55,
+	AG_BEACON_QB_SO_THE_PLAYER_CAN_ALWAYS_BUILD_THEM = 55,
 	GF_PET_DIG_FLAG_1 = 56,
 	GF_PET_DIG_FLAG_2 = 57,
 	GF_PET_DIG_FLAG_3 = 58,
@@ -552,7 +554,7 @@ enum ePlayerFlags {
 	ENTER_BBB_FROM_PROPERTY_EDIT_CONFIRMATION_DIALOG = 64,
 	AG_FIRST_COMBAT_COMPLETE = 65,
 	AG_COMPLETE_BOB_MISSION = 66,
-    NJ_GARMADON_CINEMATIC_SEEN = 125,
+	NJ_GARMADON_CINEMATIC_SEEN = 125,
 	ELEPHANT_PET_3050 = 801,
 	CAT_PET_3054 = 802,
 	TRICERATOPS_PET_3195 = 803,
@@ -626,22 +628,23 @@ enum ePlayerFlags {
 	GF_BINOC_IN_CROC_AREA = 1308,
 	GF_BINOC_IN_JAIL_AREA = 1309,
 	GF_BINOC_TELESCOPE_NEXT_TO_CAPTAIN_JACK = 1310,
+	NT_PLINTH_REBUILD = 1919,
 	NT_FACTION_SPY_DUKE = 1974,
 	NT_FACTION_SPY_OVERBUILD = 1976,
 	NT_FACTION_SPY_HAEL = 1977,
-    NJ_EARTH_SPINJITZU = 2030,
-    NJ_LIGHTNING_SPINJITZU = 2031,
-    NJ_ICE_SPINJITZU = 2032,
-    NJ_FIRE_SPINJITZU = 2033,
-    NJ_WU_SHOW_DAILY_CHEST = 2099
+	NJ_EARTH_SPINJITZU = 2030,
+	NJ_LIGHTNING_SPINJITZU = 2031,
+	NJ_ICE_SPINJITZU = 2032,
+	NJ_FIRE_SPINJITZU = 2033,
+	NJ_WU_SHOW_DAILY_CHEST = 2099
 };
 
 //======== FUNC ===========
 
 template<typename T>
 inline T const& clamp(const T& val, const T& low, const T& high) {
-    if (val < low) return low;
-    else if (val > high) return high;
-    
-    return val;
+	if (val < low) return low;
+	else if (val > high) return high;
+
+	return val;
 }

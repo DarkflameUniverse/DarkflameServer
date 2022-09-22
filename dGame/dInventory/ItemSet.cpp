@@ -1,4 +1,4 @@
-﻿#include "ItemSet.h"
+#include "ItemSet.h"
 
 #include "InventoryComponent.h"
 #include "Entity.h"
@@ -8,8 +8,7 @@
 #include "MissionComponent.h"
 #include <algorithm>
 
-ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
-{
+ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 	this->m_ID = id;
 	this->m_InventoryComponent = inventoryComponent;
 
@@ -17,19 +16,16 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillSetWith2, skillSetWith3, skillSetWith4, skillSetWith5, skillSetWith6, itemIDs FROM ItemSets WHERE setID = ?;");
-	query.bind(1, (int) id);
+	query.bind(1, (int)id);
 
 	auto result = query.execQuery();
 
-	if (result.eof())
-	{
+	if (result.eof()) {
 		return;
 	}
 
-	for (auto i = 0; i < 5; ++i)
-	{
-		if (result.fieldIsNull(i))
-		{
+	for (auto i = 0; i < 5; ++i) {
+		if (result.fieldIsNull(i)) {
 			continue;
 		}
 
@@ -39,15 +35,12 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 
 		auto skillResult = skillQuery.execQuery();
 
-		if (skillResult.eof())
-		{
+		if (skillResult.eof()) {
 			return;
 		}
 
-		while (!skillResult.eof())
-		{
-			if (skillResult.fieldIsNull(0))
-			{
+		while (!skillResult.eof()) {
+			if (skillResult.fieldIsNull(0)) {
 				skillResult.nextRow();
 
 				continue;
@@ -55,8 +48,7 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 
 			const auto skillId = skillResult.getIntField(0);
 
-			switch (i)
-			{
+			switch (i) {
 			case 0:
 				m_SkillsWith2.push_back(skillId);
 				break;
@@ -91,42 +83,34 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent)
 
 	m_Items = {};
 
-	while (std::getline(stream, token, ','))
-	{
+	while (std::getline(stream, token, ',')) {
 		int32_t value;
-		if (GeneralUtils::TryParse(token, value))
-		{
+		if (GeneralUtils::TryParse(token, value)) {
 			m_Items.push_back(value);
 		}
 	}
 
 	m_Equipped = {};
 
-	for (const auto item : m_Items)
-	{
-		if (inventoryComponent->IsEquipped(item))
-		{
+	for (const auto item : m_Items) {
+		if (inventoryComponent->IsEquipped(item)) {
 			m_Equipped.push_back(item);
 		}
 	}
 }
 
-bool ItemSet::Contains(const LOT lot)
-{
+bool ItemSet::Contains(const LOT lot) {
 	return std::find(m_Items.begin(), m_Items.end(), lot) != m_Items.end();
 }
 
-void ItemSet::OnEquip(const LOT lot)
-{
-	if (!Contains(lot))
-	{
+void ItemSet::OnEquip(const LOT lot) {
+	if (!Contains(lot)) {
 		return;
 	}
 
 	const auto& index = std::find(m_Equipped.begin(), m_Equipped.end(), lot);
 
-	if (index != m_Equipped.end())
-	{
+	if (index != m_Equipped.end()) {
 		return;
 	}
 
@@ -134,16 +118,14 @@ void ItemSet::OnEquip(const LOT lot)
 
 	const auto& skillSet = GetSkillSet(m_Equipped.size());
 
-	if (skillSet.empty())
-	{
+	if (skillSet.empty()) {
 		return;
 	}
 
 	auto* skillComponent = m_InventoryComponent->GetParent()->GetComponent<SkillComponent>();
 	auto* missionComponent = m_InventoryComponent->GetParent()->GetComponent<MissionComponent>();
 
-	for (const auto skill : skillSet)
-	{
+	for (const auto skill : skillSet) {
 		auto* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
 
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
@@ -154,17 +136,14 @@ void ItemSet::OnEquip(const LOT lot)
 	}
 }
 
-void ItemSet::OnUnEquip(const LOT lot)
-{
-	if (!Contains(lot))
-	{
+void ItemSet::OnUnEquip(const LOT lot) {
+	if (!Contains(lot)) {
 		return;
 	}
 
 	const auto& index = std::find(m_Equipped.begin(), m_Equipped.end(), lot);
 
-	if (index == m_Equipped.end())
-	{
+	if (index == m_Equipped.end()) {
 		return;
 	}
 
@@ -172,15 +151,13 @@ void ItemSet::OnUnEquip(const LOT lot)
 
 	m_Equipped.erase(index);
 
-	if (skillSet.empty())
-	{
+	if (skillSet.empty()) {
 		return;
 	}
 
 	const auto& skillComponent = m_InventoryComponent->GetParent()->GetComponent<SkillComponent>();
 
-	for (const auto skill : skillSet)
-	{
+	for (const auto skill : skillSet) {
 		auto* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
 
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
@@ -189,36 +166,28 @@ void ItemSet::OnUnEquip(const LOT lot)
 	}
 }
 
-uint32_t ItemSet::GetEquippedCount() const
-{
+uint32_t ItemSet::GetEquippedCount() const {
 	return m_Equipped.size();
 }
 
-uint32_t ItemSet::GetID() const
-{
+uint32_t ItemSet::GetID() const {
 	return m_ID;
 }
 
-void ItemSet::Update(float deltaTime)
-{
-	for (auto& passiveAbility : m_PassiveAbilities)
-	{
+void ItemSet::Update(float deltaTime) {
+	for (auto& passiveAbility : m_PassiveAbilities) {
 		passiveAbility.Update(deltaTime);
 	}
 }
 
-void ItemSet::TriggerPassiveAbility(PassiveAbilityTrigger trigger)
-{
-	for (auto& passiveAbility : m_PassiveAbilities)
-	{
+void ItemSet::TriggerPassiveAbility(PassiveAbilityTrigger trigger) {
+	for (auto& passiveAbility : m_PassiveAbilities) {
 		passiveAbility.Trigger(trigger);
 	}
 }
 
-std::vector<uint32_t> ItemSet::GetSkillSet(const uint32_t itemCount) const
-{
-	switch (itemCount)
-	{
+std::vector<uint32_t> ItemSet::GetSkillSet(const uint32_t itemCount) const {
+	switch (itemCount) {
 	case 2:
 		return m_SkillsWith2;
 	case 3:

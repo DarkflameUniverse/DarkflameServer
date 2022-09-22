@@ -1,9 +1,8 @@
 #include "RandomSpawnerPit.h"
 
-void RandomSpawnerPit::OnStartup(Entity* self) 
-{
-    zones = {
-        { //-- ** Load 1 -------------------------- **
+void RandomSpawnerPit::OnStartup(Entity* self) {
+	zones = {
+		{ //-- ** Load 1 -------------------------- **
 			{{mobs.admiral, 4, "type1",},
 			{mobs.spider,  3, "type2",}},
 			5
@@ -63,23 +62,22 @@ void RandomSpawnerPit::OnStartup(Entity* self)
 			{mobs.pirate,  5, "type2",}},
 			15
 		},
-    };
+	};
 
-    sectionMultipliers = {
-        {"secA", 1},
-        {"secB", 1.2f},
-        {"secC", 1.2f},
-        {"secD", 1},
-    };
+	sectionMultipliers = {
+		{"secA", 1},
+		{"secB", 1.2f},
+		{"secC", 1.2f},
+		{"secD", 1},
+	};
 
-    zoneName = "pit";
+	zoneName = "pit";
 	mobDeathResetNumber = 20;
 	changeNum = 18;
 
-    BaseStartup(self);
+	BaseStartup(self);
 }
 
-void RandomSpawnerPit::OnTimerDone(Entity* self, std::string timerName) 
-{
-    BaseOnTimerDone(self, timerName);
+void RandomSpawnerPit::OnTimerDone(Entity* self, std::string timerName) {
+	BaseOnTimerDone(self, timerName);
 }

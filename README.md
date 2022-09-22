@@ -27,11 +27,11 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 Development of the latest iteration of Darkflame Universe has been done primarily in a Unix-like environment and is where it has been tested and designed for deployment. It is therefore highly recommended that Darkflame Universe be built and deployed using a Unix-like environment for the most streamlined experience.
 
 ### Prerequisites
-**Clone the repository**
+#### Clone the repository
 ```bash
 git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 ```
-**Python**
+#### Python
 
 Some tools utilized to streamline the setup process require Python 3, make sure you have it installed.
 
@@ -42,12 +42,17 @@ This was done make sure that older and incomplete clients wouldn't produce false
 
 If you're using a DLU client you'll have to go into the "CMakeVariables.txt" file and change the NET_VERSION variable to 171023 to match the modified client's version number.
 
+### Using Docker
+Refer to [Docker.md](/Docker.md).
+
+For Windows, refer to [Docker_Windows.md](/Docker_Windows.md).
+
 ### Linux builds
 Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available. `libssl-dev` will also be required as well as `openssl`.
 
 CMake must be version 3.14 or higher!
 
-**Build the repository**
+#### Build the repository
 
 You can either run `build.sh` when in the root folder of the repository:
 
@@ -65,8 +70,8 @@ cd build
 # Run CMake to generate make files
 cmake ..
 
-# Run make to build the project. To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `make -j8`
-make
+# To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `cmake --build . --config Release -j8'
+cmake --build . --config Release
 ```
 
 ### MacOS builds
@@ -88,7 +93,7 @@ cmake --build . --config Release
 ### Windows builds (native)
 Ensure that you have either the [MSVC](https://visualstudio.microsoft.com/vs/) or the [Clang](https://github.com/llvm/llvm-project/releases/) (recommended) compiler installed. You will also need to install [CMake](https://cmake.org/download/). Currently on native Windows the server will only work in Release mode.
 
-**Build the repository**
+#### Build the repository
 ```batch
 :: Create the build directory
 mkdir build
@@ -100,7 +105,7 @@ cmake ..
 :: Run CMake with build flag to build
 cmake --build . --config Release
 ```
-**Windows for ARM** has not been tested but should build by doing the following
+#### Windows for ARM has not been tested but should build by doing the following
 ```batch
 :: Create the build directory
 mkdir build
@@ -116,13 +121,13 @@ cmake --build . --config Release
 ### Windows builds (WSL)
 This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11.
 
-**Open the Command Prompt application with Administrator permissions and run the following:**
+#### Open the Command Prompt application with Administrator permissions and run the following:
 ```bash
 # Installing Windows Subsystem for Linux
 wsl --install
 ```
 
-**Open the Ubuntu application and run the following:**
+#### Open the Ubuntu application and run the following:
 ```bash
 # Make sure the install is up to date
 apt update && apt upgrade
@@ -154,7 +159,7 @@ now follow the build section for your system
 
 ### Resources
 
-**LEGO® Universe 1.10.64**
+#### LEGO® Universe 1.10.64
 
 This repository does not distribute any LEGO® Universe files. A full install of LEGO® Universe version 1.10.64 (latest) is required to finish setting up Darkflame Universe.
 
@@ -177,20 +182,20 @@ shasum -a 256 <file>
 certutil -hashfile <file> SHA256
 ```
 
-**Unpacking the client**
+#### Unpacking the client
 * Clone lcdr's utilities repository [here](https://github.com/lcdr/utils)
 * Use `pkextractor.pyw` to unpack the client files if they are not already unpacked
 
-**Setup resource directory**
+#### Setup resource directory
 * In the `build` directory create a `res` directory if it does not already exist.
 * Copy over or create symlinks from `macros`, `BrickModels`, `chatplus_en_us.txt`, `names`, and `maps` in your client `res` directory to the server `build/res` directory
 * Unzip the navmeshes [here](./resources/navmeshes.zip) and place them in `build/res/maps/navmeshes`
 
-**Setup locale**
+#### Setup locale
 * In the `build` directory create a `locale` directory if it does not already exist
 * Copy over or create symlinks from `locale.xml` in your client `locale` directory to the `build/locale` directory
 
-**Client database**
+#### Client database
 * Use `fdb_to_sqlite.py` in lcdr's utilities on `res/cdclient.fdb` in the unpacked client to convert the client database to `cdclient.sqlite`
 * Move and rename `cdclient.sqlite` into `build/res/CDServer.sqlite`
 * Run each SQL file in the order at which they appear [here](migrations/cdserver/) on the SQLite database
@@ -200,13 +205,16 @@ Darkflame Universe utilizes a MySQL/MariaDB database for account and character i
 
 Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
 * Create a database for Darkflame Universe to use
-* Use the command `./MasterServer -m` to automatically run them.
 
-**Configuration**
+#### Configuration
 
 After the server has been built there should be four `ini` files in the build director: `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
 
-**Verify**
+#### Setup and Migrations
+
+Use the command `./MasterServer -m` to setup the tables in the database. The first time this command is run on a database, the tables will be up to date with the most recent version. To update your database tables, run this command again. Multiple invocations will not affect any functionality.
+
+#### Verify
 
 Your build directory should now look like this:
 * AuthServer

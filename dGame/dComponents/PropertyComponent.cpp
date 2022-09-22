@@ -3,7 +3,7 @@
 #include "dZoneManager.h"
 
 PropertyComponent::PropertyComponent(Entity* parent) : Component(parent) {
-    m_PropertyName = parent->GetVar<std::string>(u"propertyName");
+	m_PropertyName = parent->GetVar<std::string>(u"propertyName");
 	m_PropertyState = new PropertyState();
 }
 

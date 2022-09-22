@@ -61,7 +61,7 @@ private:
 	NetworkIDManager* mNetIDManager;
 	SocketDescriptor mSocketDescriptor;
 	std::string mIP;
-	int mPort;	
+	int mPort;
 	int mMaxConnections;
 	unsigned int mZoneID;
 	int mInstanceID;
