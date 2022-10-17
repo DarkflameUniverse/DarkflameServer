@@ -91,5 +91,7 @@ bool Database::GetAutoCommit() {
 }
 
 void Database::SetAutoCommit(bool value) {
+	// TODO This should not just access a pointer.  A future PR should update this
+	// to check for null and throw an error if the connection is not valid.
 	Database::con->setAutoCommit(value);
 }

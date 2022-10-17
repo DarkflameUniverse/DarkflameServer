@@ -72,7 +72,6 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 			}
 
 			if (!document->Parse(completeUncompressedModel.c_str(), completeUncompressedModel.size()) == tinyxml2::XML_SUCCESS) {
-				// Change this to just look for </LXFML> near the end of the function.  Should rely on human interference for this...
 				if (completeUncompressedModel.find(
 					"</LXFML>",
 					completeUncompressedModel.length() >= 15 ? completeUncompressedModel.length() - 15 : 0) == std::string::npos
