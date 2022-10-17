@@ -2407,7 +2407,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 	uint32_t sd0Size;
 	inStream->Read(sd0Size);
-	char* sd0Data = static_cast<char*>(std::malloc(sd0Size));
+	std::shared_ptr<char[]> sd0Data(new char[sd0Size]);
 
 	if (sd0Data == nullptr) {
 		return;
@@ -2477,10 +2477,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 				auto result = query.execQuery();
 
-				if (result.eof() || result.fieldIsNull(0)) {
-					free(sd0Data);
-					return;
-				}
+				if (result.eof() || result.fieldIsNull(0)) return;
 
 				int templateId = result.getIntField(0);
 
@@ -2509,7 +2506,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				ugcs->setInt(4, 0);
 
 				//whacky stream biz
-				std::string s(sd0Data, sd0Size);
+				std::string s(sd0Data.get(), sd0Size);
 				std::istringstream iss(s);
 				std::istream& stream = iss;
 
@@ -2604,7 +2601,6 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 					PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), newIDL);
 				}
 
-				free(sd0Data);
 				});
 			});
 		});

@@ -35,7 +35,6 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 		uint32_t chunkCount{};
 		uint64_t modelId = modelsToTruncate->getInt(1);
 		std::unique_ptr<sql::Blob> modelAsSd0(modelsToTruncate->getBlob(2));
-		Game::logger->Log("BrickByBrickFix", "Checking brick-by-brick model %llu", modelId);
 		// Check that header is sd0 by checking for the sd0 magic.
 		if (CheckSd0Magic(modelAsSd0.get())) {
 			while (true) {
@@ -45,7 +44,6 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 				// Check if good here since if at the end of an sd0 file, this will have eof flagged.
 				if (!modelAsSd0->good()) break;
 
-				Game::logger->Log("BrickByBrickFix", "Inflating chunk %i", chunkCount);
 				std::unique_ptr<uint8_t[]> compressedChunk(new uint8_t[chunkSize]);
 				for (uint32_t i = 0; i < chunkSize; i++) {
 					compressedChunk[i] = modelAsSd0->get();
@@ -58,7 +56,6 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 					compressedChunk.get(), chunkSize, uncompressedChunk.get(), MAX_SD0_CHUNK_SIZE, err);
 
 				if (actualUncompressedSize != -1) {
-					Game::logger->Log("BrickByBrickFix", "Chunk %i inflated successfully", chunkCount);
 					uint32_t previousSize = completeUncompressedModel.size();
 					completeUncompressedModel.append((char*)uncompressedChunk.get());
 					completeUncompressedModel.resize(previousSize + actualUncompressedSize);
@@ -74,17 +71,12 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 				return 0;
 			}
 
-			if (document->Parse(completeUncompressedModel.c_str(), completeUncompressedModel.size()) == tinyxml2::XML_SUCCESS) {
-				Game::logger->Log("BrickByBrickFix", "Model %llu is a valid brick-by-brick model!", modelId);
-			} else {
+			if (!document->Parse(completeUncompressedModel.c_str(), completeUncompressedModel.size()) == tinyxml2::XML_SUCCESS) {
 				// Change this to just look for </LXFML> near the end of the function.  Should rely on human interference for this...
-				Game::logger->Log(
-					"BrickByBrickFix", "Potentially invalid lxfml found.  Last 15 characters are ||%s||."
-					"If the string between the bars does not end in </LXFML> then press y and enter.",
-					completeUncompressedModel.substr(completeUncompressedModel.length() >= 15 ? completeUncompressedModel.length() - 15 : 0).c_str());
-				std::string response;
-				std::cin >> response;
-				if (strcmp(response.c_str(), "y") == 0) {
+				if (completeUncompressedModel.find(
+					"</LXFML>",
+					completeUncompressedModel.length() >= 15 ? completeUncompressedModel.length() - 15 : 0) == std::string::npos
+					) {
 					Game::logger->Log("BrickByBrickFix",
 						"Brick-by-brick model %llu will be deleted!", modelId);
 					modelsToDelete->setInt64(1, modelsToTruncate->getInt64(1));
@@ -92,20 +84,18 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 					modelsTruncated++;
 				}
 			}
-		} else {
-			Game::logger->Log("BrickByBrickFix",
-				"Aborting truncation.  Update models to use sd0 through UpdateOldModels.");
-			return 0;
 		}
 	}
-	try {
-		modelsToDelete->executeBatch();
-	} catch (sql::SQLException error) {
-		Game::logger->Log("BrickByBrickFix",
-			"encountered error truncating models.  Not truncating models.  Error is: %s", error.what());
-		return 0;
+	if (modelsTruncated > 0) {
+		try {
+			modelsToDelete->executeBatch();
+		} catch (sql::SQLException error) {
+			Game::logger->Log("BrickByBrickFix",
+				"encountered error truncating models.  Not truncating models.  Error is: %s", error.what());
+			return 0;
+		}
+		Game::logger->Log("BrickByBrickFix", "Successfully executed batch deletion of %i models.  Commiting to database...", modelsTruncated);
 	}
-	Game::logger->Log("BrickByBrickFix", "Successfully executed batch deletion of %i models.  Commiting to database...", modelsTruncated);
 	Database::Commit();
 	Database::SetAutoCommit(previousCommitValue);
 	return modelsTruncated;
@@ -129,7 +119,6 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 		// Check if the stored blob starts with zlib magic (0x78 0xDA - best compression of zlib)
 		// If it does, convert it to sd0.
 		if (oldLxfml->get() == 0x78 && oldLxfml->get() == 0xDA) {
-			Game::logger->Log("BrickByBrickFix", "Updating model %i", modelId);
 
 			// Get and save size of zlib compressed chunk.
 			oldLxfml->seekg(0, std::ios::end);
@@ -152,7 +141,7 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 			insertionStatement->setInt64(2, modelId);
 			try {
 				insertionStatement->executeUpdate();
-				Game::logger->Log("BrickByBrickFix", "Updated model %i", modelId);
+				Game::logger->Log("BrickByBrickFix", "Updated model %i to sd0", modelId);
 				updatedModels++;
 			} catch (sql::SQLException exception) {
 				Game::logger->Log(
