@@ -33,9 +33,10 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 		"WHEN friend_id = ? THEN player_id "
 		"END AS requested_player, best_friend FROM friends) AS fr "
 		"JOIN charinfo AS ci ON ci.id = fr.requested_player "
-		"WHERE fr.requested_player IS NOT NULL;"));
+		"WHERE fr.requested_player IS NOT NULL AND fr.requested_player != ?;"));
 	stmt->setUInt(1, static_cast<uint32_t>(playerID));
 	stmt->setUInt(2, static_cast<uint32_t>(playerID));
+	stmt->setUInt(3, static_cast<uint32_t>(playerID));
 
 	std::vector<FriendData> friends;
 
@@ -113,6 +114,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	inStream.Read(isBestFriendRequest);
 
 	auto requestor = playerContainer.GetPlayerData(requestorPlayerID);
+	if (requestor->playerName == playerName) return;
 	std::unique_ptr<PlayerData> requestee(playerContainer.GetPlayerData(playerName));
 
 	// Check if player is online first
