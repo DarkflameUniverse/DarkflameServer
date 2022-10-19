@@ -17,10 +17,10 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 			EXPECTED_HASH MD5=09d418c290109068a5bea136dafca36b)
 	endif()
 
-	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi" )
+	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.2-win64.msi" )
 		message("Downloading mariadb connector/c++")
-		file(DOWNLOAD https://dlm.mariadb.com/1683453/connectors/cpp/connector-cpp-1.0.1/mariadb-connector-cpp-1.0.1-win64.msi
-			"${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi"
+		file(DOWNLOAD https://dlm.mariadb.com/2531525/Connectors/cpp/connector-cpp-1.0.2/mariadb-connector-cpp-1.0.2-win64.msi
+			"${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.2-win64.msi"
 			EXPECTED_HASH MD5=548e743fbf067d21d42b81d958bf4ed7)
 	endif()
 
