@@ -114,7 +114,10 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	inStream.Read(isBestFriendRequest);
 
 	auto requestor = playerContainer.GetPlayerData(requestorPlayerID);
-	if (requestor->playerName == playerName) return;
+	if (requestor->playerName == playerName) {
+		SendFriendResponse(requestor, requestor, AddFriendResponseType::MYTHRAN);
+		return;
+	};
 	std::unique_ptr<PlayerData> requestee(playerContainer.GetPlayerData(playerName));
 
 	// Check if player is online first
