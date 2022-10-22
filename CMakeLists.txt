@@ -172,7 +172,6 @@ elseif (UNIX)
 	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt/include/bcrypt")
 endif()
 
-include_directories(${ZLIB_INCLUDE_DIRS})
 # Add binary directory as an include directory
 include_directories(${PROJECT_BINARY_DIR})
 

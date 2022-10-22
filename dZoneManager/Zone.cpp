@@ -338,10 +338,11 @@ const Path* Zone::GetPath(std::string name) const {
 
 void Zone::LoadSceneTransition(std::ifstream& file) {
 	SceneTransition sceneTrans;
-	if (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::LateAlpha) {
+	if (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::Auramar) {
 		uint8_t length;
 		BinaryIO::BinaryRead(file, length);
 		sceneTrans.name = BinaryIO::ReadString(file, length);
+		file.ignore(4);
 	}
 
 	//BR�THER MAY I HAVE SOME L��PS?
