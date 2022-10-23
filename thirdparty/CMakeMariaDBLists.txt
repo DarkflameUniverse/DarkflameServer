@@ -12,14 +12,14 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 
 	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi" )
 		message("Downloading mariadb connector/c")
-		file(DOWNLOAD https://dlm.mariadb.com/1936366/connectors/c/connector-c-3.2.5/mariadb-connector-c-3.2.5-win64.msi
+		file(DOWNLOAD https://storage.googleapis.com/downloads-cdn.mariadb.com/c_connector/3.2/3.2.5/connector-c-3.2.5/mariadb-connector-c-3.2.5-win64.msi?GoogleAccessId=downloads-sync%40downloads-234321.iam.gserviceaccount.com&Expires=1666531633&Signature=EbqapdTKHuzdKqugK7sPXc88HJNIw2kGHc30z9EMpWR2Rijk1D4D4RnoI12TtZ7xEqzbgE4P4vE%2BCyNqS5DdCyX1rtxtmhBjhhwLxkINw46ZaMNs3ZGms1Lj5DZmFpJf4TEvwRwmfteFQ81tu3TZFhtE2afPfpvmp4tvzabRSAqVzwXGddTn0xJAZOwEGEl8ut3%2F6Q%2BEfpAggzqAnFy4NateeGiFV57CIaWQipY7uukoxOClBa79%2BYP%2BmVaqlp3ULkH77I27gN%2BBT22zedo3NsnLdRhe1LLquEN88lW0x2kgVQpWFVW64HYCOOEJS3BNFBZ%2F7d0VXsnlx8lirH6W7Q%3D%3D
 			"${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi"
 			EXPECTED_HASH MD5=09d418c290109068a5bea136dafca36b)
 	endif()
 
 	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi" )
 		message("Downloading mariadb connector/c++")
-		file(DOWNLOAD https://dlm.mariadb.com/1683453/connectors/cpp/connector-cpp-1.0.1/mariadb-connector-cpp-1.0.1-win64.msi
+		file(DOWNLOAD https://storage.googleapis.com/downloads-cdn.mariadb.com/cpp_connector/1.0/1.0.1/connector-cpp-1.0.1/mariadb-connector-cpp-1.0.1-win64.msi?GoogleAccessId=downloads-sync%40downloads-234321.iam.gserviceaccount.com&Expires=1666550912&Signature=dixgYNLM33jZxyVjtdBsufsp%2BKaqHRUx2ICRfalEa93SSCrQriWVZkV1l2MylZgu6mKz5iGycaCkaOKbvO55YtGCGpx0L%2BqTiK7D1VOtek0RF%2BnB8V5VbjgsH4r2qCDKxUzeJ0f8rxtgdqvPIateY3KlOTsPCririYkVE4HFwWaezOzKAzWI3eJCQaS62rVk%2FsG2H5p4dGXjvgiMOpNd8J3E8D1HxF4F0TkaFOGqZYl%2B9Vxt8RblJpIQ63O%2BKbJL2rgMs4MVdQUirjmzP%2BBMZ6BV9vkAfqBPLUNTeiz8Egksr0ooME6BP2G5Ze6Sak%2FJmBoZgOQn%2FGt44pEKJ8bxgA%3D%3D
 			"${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi"
 			EXPECTED_HASH MD5=548e743fbf067d21d42b81d958bf4ed7)
 	endif()
@@ -43,7 +43,7 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 
 	add_custom_target(mariadb_connector_cpp)
 	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
-					COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different
 					"${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll"
 					"${MARIADB_C_CONNECTOR_DIR}/lib/libmariadb.dll"
 					"${PROJECT_BINARY_DIR}")
@@ -118,7 +118,7 @@ else() # Build from source
 						${BINARY_DIR}/mariadbcpp/plugin
 						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
 
-						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+						COMMAND ${CMAKE_COMMAND} -E copy_if_different
 						${MARIADB_SHARED_LIBRARY_LOCATION}
 						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
 
