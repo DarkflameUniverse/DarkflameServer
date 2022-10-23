@@ -27,10 +27,9 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 	auto modelsToTruncate = GetModelsFromDatabase();
 	bool previousCommitValue = Database::GetAutoCommit();
 	Database::SetAutoCommit(false);
-	std::unique_ptr<sql::PreparedStatement> modelsToDelete(
-		Database::CreatePreppedStmt(
-			"DELETE ugc, pc FROM ugc join properties_contents AS pc ON ugc.id = pc.ugc_id WHERE ugc.id = ?;"));
 	while (modelsToTruncate->next()) {
+		std::unique_ptr<sql::PreparedStatement> ugcModelToDelete(Database::CreatePreppedStmt("DELETE FROM ugc WHERE ugc.id = ?;"));
+		std::unique_ptr<sql::PreparedStatement> pcModelToDelete(Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE ugc_id = ?;"));
 		std::string completeUncompressedModel{};
 		uint32_t chunkCount{};
 		uint64_t modelId = modelsToTruncate->getInt(1);
@@ -71,30 +70,31 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 				return 0;
 			}
 
-			if (!document->Parse(completeUncompressedModel.c_str(), completeUncompressedModel.size()) == tinyxml2::XML_SUCCESS) {
+			if (!(document->Parse(completeUncompressedModel.c_str(), completeUncompressedModel.size()) == tinyxml2::XML_SUCCESS)) {
 				if (completeUncompressedModel.find(
 					"</LXFML>",
 					completeUncompressedModel.length() >= 15 ? completeUncompressedModel.length() - 15 : 0) == std::string::npos
 					) {
 					Game::logger->Log("BrickByBrickFix",
 						"Brick-by-brick model %llu will be deleted!", modelId);
-					modelsToDelete->setInt64(1, modelsToTruncate->getInt64(1));
-					modelsToDelete->addBatch();
+					ugcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
+					pcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
+					ugcModelToDelete->execute();
+					pcModelToDelete->execute();
 					modelsTruncated++;
 				}
 			}
-		}
-	}
-	if (modelsTruncated > 0) {
-		try {
-			modelsToDelete->executeBatch();
-		} catch (sql::SQLException error) {
+		} else {
 			Game::logger->Log("BrickByBrickFix",
-				"encountered error truncating models.  Not truncating models.  Error is: %s", error.what());
-			return 0;
+				"Brick-by-brick model %llu will be deleted!", modelId);
+			ugcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
+			pcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
+			ugcModelToDelete->execute();
+			pcModelToDelete->execute();
+			modelsTruncated++;
 		}
-		Game::logger->Log("BrickByBrickFix", "Successfully executed batch deletion of %i models.  Commiting to database...", modelsTruncated);
 	}
+
 	Database::Commit();
 	Database::SetAutoCommit(previousCommitValue);
 	return modelsTruncated;
