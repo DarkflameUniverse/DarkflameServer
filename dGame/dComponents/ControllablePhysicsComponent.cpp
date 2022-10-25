@@ -101,41 +101,28 @@ void ControllablePhysicsComponent::Update(float deltaTime) {
 				EntityManager::Instance()->SerializeEntity(m_Parent);
 			} else m_PathWaypoint = 0;
 		} else { // paused, meaing we are at a waypoint, and we want to do something
-			// Game::logger->Log("ControllablePhysicsComponent", "paused");
 			if (m_PausedTime > 0) {
-				Game::logger->Log("ControllablePhysicsComponent", "pause left %f", m_PausedTime);
 				m_PausedTime = m_PausedTime - deltaTime;
 			} else if (m_PausedTime < 0){
-				Game::logger->Log("ControllablePhysicsComponent", "done pausing");
 				m_Paused = false;
 				m_PausedTime = 0;
 			} else if (path->pathWaypoints.size() - 1 > m_PathWaypoint) {
-				Game::logger->Log("ControllablePhysicsComponent", "actiosnsss");
-				Game::logger->Log("ControllablePhysicsComponent", "path %s, waypoint %i", path->pathName.c_str(), m_PathWaypoint);
 				PathWaypoint waypoint = path->pathWaypoints.at(m_PathWaypoint);
-				Game::logger->Log("ControllablePhysicsComponent", "actions %i", waypoint.config.size());
 				if (waypoint.config.size() > 0) {
 					for (LDFBaseData* action : waypoint.config) {
 						if (action) {
-							Game::logger->Log("ControllablePhysicsComponent", "Message type %s", action->GetString().c_str());
 							if (action->GetKey() == u"delay"){
-								Game::logger->Log("ControllablePhysicsComponent", "delay");
 								m_PausedTime = std::stof(action->GetValueAsString());
-								Game::logger->Log("ControllablePhysicsComponent", "delay action %f", m_PausedTime);
+								SetVelocity(NiPoint3::ZERO);
 							} else if (action->GetKey() == u"emote"){
-								Game::logger->Log("ControllablePhysicsComponent", "emote actioN");
 								GameMessages::SendPlayAnimation(m_Parent, GeneralUtils::UTF8ToUTF16(action->GetValueAsString()));
 							} else if (action->GetKey() == u"pathspeed") {
-								Game::logger->Log("ControllablePhysicsComponent", "speedd action");
 								m_PathSpeed = std::stof(action->GetValueAsString());
-								Game::logger->Log("ControllablePhysicsComponent", "speed action %f", m_PathSpeed);
+								if (m_PathSpeed < 2.5f) m_PathSpeed = 2.5f;
 							} else if (action->GetKey() == u"changeWP") {
-								Game::logger->Log("ControllablePhysicsComponent", "changewp action");
 								m_AttachedPath = action->GetValueAsString();
-								Game::logger->Log("ControllablePhysicsComponent", "changewp %s", m_AttachedPath.c_str());
 							} else {
-								Game::logger->Log("ControllablePhysicsComponent", "unknown action");
-								Game::logger->Log("ControllablePhysicsComponent", "Unhandled action %s", action->GetKey().c_str());
+								Game::logger->LogDebug("ControllablePhysicsComponent", "Unhandled action %s", GeneralUtils::UTF16ToWTF8(action->GetKey()).c_str());
 							}
 						}
 					}

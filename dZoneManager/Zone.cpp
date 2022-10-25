@@ -539,8 +539,13 @@ void Zone::LoadPath(std::ifstream& file) {
 					BinaryIO::BinaryRead(file, character);
 					value.push_back(character);
 				}
-				LDFBaseData* ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
-				waypoint.config.push_back(ldfConfig);
+				LDFBaseData* ldfConfig = nullptr;
+				if (path.pathType == PathType::Movement) {
+					ldfConfig = LDFBaseData::DataFromString(parameter + "=0:" + value);
+				} else {
+					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
+				}
+				if (ldfConfig) waypoint.config.push_back(ldfConfig);
 			}
 		}
 
