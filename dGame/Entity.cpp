@@ -321,9 +321,12 @@ void Entity::Initialize() {
 	//Which, for some reason didn't get added to the ComponentsRegistry so we have to check for a path manually here.
 	std::string attachedPath = GetVarAsString(u"attached_path");
 
-	if (!attachedPath.empty() || compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVING_PLATFORM, -1) != -1) {
-		MovingPlatformComponent* plat = new MovingPlatformComponent(this, attachedPath);
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVING_PLATFORM, plat));
+	if ((!attachedPath.empty())){
+		const auto* path = dZoneManager::Instance()->GetZone()->GetPath(attachedPath);
+		if (path->pathType == PathType::MovingPlatform || compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVING_PLATFORM, -1) != -1) {
+			MovingPlatformComponent* plat = new MovingPlatformComponent(this, attachedPath);
+			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVING_PLATFORM, plat));
+		}
 	}
 
 	//Also check for the collectible id:

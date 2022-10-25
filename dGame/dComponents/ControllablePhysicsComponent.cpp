@@ -33,6 +33,10 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_PickupRadius = 0.0f;
 	m_DirtyPickupRadiusScale = true;
 	m_IsTeleporting = false;
+	m_AttachedPath = entity->GetVarAsString(u"attached_path");
+	m_PathWaypoint = entity->GetVarAs<int>(u"attached_path_start");
+	m_PathSpeed = 2.5f;
+
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
@@ -54,7 +58,94 @@ ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 }
 
 void ControllablePhysicsComponent::Update(float deltaTime) {
-
+	if (m_AttachedPath != ""){
+		const auto* path = dZoneManager::Instance()->GetZone()->GetPath(m_AttachedPath);
+		// Game::logger->Log("ControllablePhysicsComponent", "path type %i", path->pathType);
+		if (!m_Paused){
+			if (path->pathWaypoints.size() > m_PathWaypoint) {
+				// TODO: Get proper speed
+				auto speed = deltaTime * m_PathSpeed;
+				auto source = GetPosition();
+				auto dest = path->pathWaypoints.at(m_PathWaypoint).position;
+				dest.y = source.y;
+				if (Vector3::DistanceSquared(source, dest) < 2 * 2) {
+					if (path->pathBehavior == PathBehavior::Loop) {
+						if (path->waypointCount < m_PathWaypoint + 1) {
+							m_PathWaypoint = 0;
+						} else m_PathWaypoint++;
+					} else if (path->pathBehavior == PathBehavior::Once){
+						if (path->waypointCount < m_PathWaypoint + 1) {
+							m_AttachedPath = "";
+						} else m_PathWaypoint++;
+					}
+					m_Paused = true;
+				}
+				const auto delta = dest - source;
+				const auto length = sqrtf(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+				NiPoint3 velocity;
+				NiPoint3 velocity_pos;
+				if (length > 0) {
+					velocity_pos.x = (delta.x / length) * speed;
+					velocity_pos.y = (delta.y / length) * speed;
+					velocity_pos.z = (delta.z / length) * speed;
+				}
+				speed = speed + 2.8f;
+				if (length > 0) {
+					velocity.x = (delta.x / length) * speed;
+					velocity.y = (delta.y / length) * speed;
+					velocity.z = (delta.z / length) * speed;
+				}
+				SetRotation(NiQuaternion::LookAt(source, dest));
+				SetVelocity(velocity);
+				SetPosition(source + velocity_pos);
+				EntityManager::Instance()->SerializeEntity(m_Parent);
+			} else m_PathWaypoint = 0;
+		} else { // paused, meaing we are at a waypoint, and we want to do something
+			// Game::logger->Log("ControllablePhysicsComponent", "paused");
+			if (m_PausedTime > 0) {
+				Game::logger->Log("ControllablePhysicsComponent", "pause left %f", m_PausedTime);
+				m_PausedTime = m_PausedTime - deltaTime;
+			} else if (m_PausedTime < 0){
+				Game::logger->Log("ControllablePhysicsComponent", "done pausing");
+				m_Paused = false;
+				m_PausedTime = 0;
+			} else if (path->pathWaypoints.size() - 1 > m_PathWaypoint) {
+				Game::logger->Log("ControllablePhysicsComponent", "actiosnsss");
+				Game::logger->Log("ControllablePhysicsComponent", "path %s, waypoint %i", path->pathName.c_str(), m_PathWaypoint);
+				PathWaypoint waypoint = path->pathWaypoints.at(m_PathWaypoint);
+				Game::logger->Log("ControllablePhysicsComponent", "actions %i", waypoint.config.size());
+				if (waypoint.config.size() > 0) {
+					for (LDFBaseData* action : waypoint.config) {
+						if (action) {
+							Game::logger->Log("ControllablePhysicsComponent", "Message type %s", action->GetString().c_str());
+							if (action->GetKey() == u"delay"){
+								Game::logger->Log("ControllablePhysicsComponent", "delay");
+								m_PausedTime = std::stof(action->GetValueAsString());
+								Game::logger->Log("ControllablePhysicsComponent", "delay action %f", m_PausedTime);
+							} else if (action->GetKey() == u"emote"){
+								Game::logger->Log("ControllablePhysicsComponent", "emote actioN");
+								GameMessages::SendPlayAnimation(m_Parent, GeneralUtils::UTF8ToUTF16(action->GetValueAsString()));
+							} else if (action->GetKey() == u"pathspeed") {
+								Game::logger->Log("ControllablePhysicsComponent", "speedd action");
+								m_PathSpeed = std::stof(action->GetValueAsString());
+								Game::logger->Log("ControllablePhysicsComponent", "speed action %f", m_PathSpeed);
+							} else if (action->GetKey() == u"changeWP") {
+								Game::logger->Log("ControllablePhysicsComponent", "changewp action");
+								m_AttachedPath = action->GetValueAsString();
+								Game::logger->Log("ControllablePhysicsComponent", "changewp %s", m_AttachedPath.c_str());
+							} else {
+								Game::logger->Log("ControllablePhysicsComponent", "unknown action");
+								Game::logger->Log("ControllablePhysicsComponent", "Unhandled action %s", action->GetKey().c_str());
+							}
+						}
+					}
+				}
+				if (m_PausedTime == 0) {
+					m_Paused = false;
+				}
+			}
+		}
+	}
 }
 
 void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -276,3 +367,16 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 	}
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
+
+// void ControllablePhysicsComponent::FollowWaypoints(bool paused, std::string newPathName, int newPathStart = 0){
+// 	m_Paused = paused;
+// 	m_AttachedPath = newPathName;
+// 	m_PathWaypoint = newPathStart;
+// }
+
+// void ControllablePhysicsComponent::FollowWaypoints(std::string newPathName, int newPathStart = 0){
+// 	m_AttachedPath = newPathName;
+// 	m_PathWaypoint = newPathStart;
+// }
+
+
