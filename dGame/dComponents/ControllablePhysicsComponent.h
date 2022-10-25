@@ -287,6 +287,13 @@ public:
 	 */
 	void FollowWaypoints(){m_Paused = false;};
 
+	/**
+	 * Returns the base speed from the DB for a given LOT
+	 * @param lot the lot to check for
+	 * @return the base speed of the lot
+	 */
+	static float GetBaseSpeed(LOT lot);
+
 private:
 	/**
 	 * The entity that owns this component
@@ -427,6 +434,11 @@ private:
 	 * if we are waiting on a delay
 	 */
 	float m_PausedTime = 0.0;
+
+	/**
+	 * The laden speed of an object
+	 */
+	float m_BaseSpeed;
 
 };
 

@@ -36,6 +36,7 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_AttachedPath = entity->GetVarAsString(u"attached_path");
 	m_PathWaypoint = entity->GetVarAs<int>(u"attached_path_start");
 	m_PathSpeed = 2.5f;
+	m_BaseSpeed = GetBaseSpeed(m_Parent->GetLOT());
 
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
@@ -60,14 +61,22 @@ ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 void ControllablePhysicsComponent::Update(float deltaTime) {
 	if (m_AttachedPath != ""){
 		const auto* path = dZoneManager::Instance()->GetZone()->GetPath(m_AttachedPath);
-		// Game::logger->Log("ControllablePhysicsComponent", "path type %i", path->pathType);
+
 		if (!m_Paused){
 			if (path->pathWaypoints.size() > m_PathWaypoint) {
-				// TODO: Get proper speed
-				auto speed = deltaTime * m_PathSpeed;
+				auto mod_speed = m_BaseSpeed;
+				if (m_PathSpeed < 1.0) {
+					mod_speed = m_BaseSpeed * m_PathSpeed;
+				} else {
+					mod_speed = m_PathSpeed;
+				}
+
+				auto speed = deltaTime * mod_speed;
 				auto source = GetPosition();
 				auto dest = path->pathWaypoints.at(m_PathWaypoint).position;
-				dest.y = source.y;
+				dest.y = source.y; // hacky way to not glitch with weird heights
+
+				// if we are close enough to the destination waypoint
 				if (Vector3::DistanceSquared(source, dest) < 2 * 2) {
 					if (path->pathBehavior == PathBehavior::Loop) {
 						if (path->waypointCount < m_PathWaypoint + 1) {
@@ -79,7 +88,9 @@ void ControllablePhysicsComponent::Update(float deltaTime) {
 						} else m_PathWaypoint++;
 					}
 					m_Paused = true;
+					return;
 				}
+
 				const auto delta = dest - source;
 				const auto length = sqrtf(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
 				NiPoint3 velocity;
@@ -99,14 +110,15 @@ void ControllablePhysicsComponent::Update(float deltaTime) {
 				SetVelocity(velocity);
 				SetPosition(source + velocity_pos);
 				EntityManager::Instance()->SerializeEntity(m_Parent);
-			} else m_PathWaypoint = 0;
+			} else if (path->pathBehavior == PathBehavior::Loop) m_PathWaypoint = 0;
+
 		} else { // paused, meaing we are at a waypoint, and we want to do something
 			if (m_PausedTime > 0) {
 				m_PausedTime = m_PausedTime - deltaTime;
 			} else if (m_PausedTime < 0){
 				m_Paused = false;
 				m_PausedTime = 0;
-			} else if (path->pathWaypoints.size() - 1 > m_PathWaypoint) {
+			} else if (path->pathWaypoints.size() > m_PathWaypoint) {
 				PathWaypoint waypoint = path->pathWaypoints.at(m_PathWaypoint);
 				if (waypoint.config.size() > 0) {
 					for (LDFBaseData* action : waypoint.config) {
@@ -114,8 +126,12 @@ void ControllablePhysicsComponent::Update(float deltaTime) {
 							if (action->GetKey() == u"delay"){
 								m_PausedTime = std::stof(action->GetValueAsString());
 								SetVelocity(NiPoint3::ZERO);
+								EntityManager::Instance()->SerializeEntity(m_Parent);
 							} else if (action->GetKey() == u"emote"){
 								GameMessages::SendPlayAnimation(m_Parent, GeneralUtils::UTF8ToUTF16(action->GetValueAsString()));
+								m_PausedTime += 10;
+								SetVelocity(NiPoint3::ZERO);
+								EntityManager::Instance()->SerializeEntity(m_Parent);
 							} else if (action->GetKey() == u"pathspeed") {
 								m_PathSpeed = std::stof(action->GetValueAsString());
 								if (m_PathSpeed < 2.5f) m_PathSpeed = 2.5f;
@@ -130,7 +146,7 @@ void ControllablePhysicsComponent::Update(float deltaTime) {
 				if (m_PausedTime == 0) {
 					m_Paused = false;
 				}
-			}
+			} else if (path->pathBehavior == PathBehavior::Loop) m_PathWaypoint = 0;
 		}
 	}
 }
@@ -366,4 +382,24 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 // 	m_PathWaypoint = newPathStart;
 // }
 
+float ControllablePhysicsComponent::GetBaseSpeed(LOT lot) {
 
+	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
+
+	int32_t componentID;
+	CDPhysicsComponent* physicsComponent = nullptr;
+
+	componentID = componentRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_CONTROLLABLE_PHYSICS, -1);
+
+	if (componentID != -1) physicsComponent = physicsComponentTable->GetByID(componentID);
+
+	float speed;
+	if (physicsComponent == nullptr) {
+		speed = 8;
+	} else {
+		speed = physicsComponent->speed;
+	}
+
+	return speed;
+}
