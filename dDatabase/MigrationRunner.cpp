@@ -121,9 +121,9 @@ void MigrationRunner::RunSQLiteMigrations() {
 	}
 
 	if (!finalSQL.empty()) {
+		Game::logger->Log("MigrationRunner", "final length %i", finalSQL.length());
 		try {
-			CppSQLite3Statement simpleStatement = CDClientDatabase::CreatePreppedStmt(finalSQL.c_str());
-			simpleStatement.execQuery();
+			CDClientDatabase::ExecuteDML(finalSQL.c_str());
 		} catch (CppSQLite3Exception& e) {
 			Game::logger->Log("MigrationRunner", "Encountered error running migration: (%i) : %s", e.errorCode(), e.errorMessage());
 		}
