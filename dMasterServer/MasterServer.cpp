@@ -105,10 +105,34 @@ int main(int argc, char** argv) {
 	const std::string cdclient_path = "./res/CDServer.sqlite";
 	std::ifstream cdclient_fd(cdclient_path);
 	if (!cdclient_fd.good()) {
-		Game::logger->Log("WorldServer", "%s could not be opened", cdclient_path.c_str());
-		return EXIT_FAILURE;
+		Game::logger->Log("WorldServer", "%s could not be opened.  Looking for cdclient.fdb to convert to sqlite.", cdclient_path.c_str());
+		cdclient_fd.close();
+
+		const std::string cdclientFdbPath = "./res/cdclient.fdb";
+		cdclient_fd.open(cdclientFdbPath);
+		if (!cdclient_fd.good()) {
+			Game::logger->Log(
+				"WorldServer", "%s could not be opened."
+				"Please move a cdclient.fdb or an already converted database to build/res.", cdclientFdbPath.c_str());
+			return EXIT_FAILURE;
+		}
+		Game::logger->Log("WorldServer", "Found %s.  Clearing cdserver migration_history then copying and converting to sqlite.", cdclientFdbPath.c_str());
+		auto stmt = Database::CreatePreppedStmt(R"#(DELETE FROM migration_history WHERE name LIKE "%cdserver%";)#");
+		stmt->executeUpdate();
+		delete stmt;
+		cdclient_fd.close();
+
+		std::string res = "python3 ../thirdparty/docker-utils/utils/fdb_to_sqlite.py " + cdclientFdbPath;
+		int r = system(res.c_str());
+		if (r != 0) {
+			Game::logger->Log("MasterServer", "Failed to convert fdb to sqlite");
+			return EXIT_FAILURE;
+		}
+		if (std::rename("./cdclient.sqlite", "./res/CDServer.sqlite") != 0) {
+			Game::logger->Log("MasterServer", "failed to move cdclient file.");
+			return EXIT_FAILURE;
+		}
 	}
-	cdclient_fd.close();
 
 	//Connect to CDClient
 	try {
@@ -119,6 +143,9 @@ int main(int argc, char** argv) {
 		Game::logger->Log("WorldServer", "Error Code: %i", e.errorCode());
 		return EXIT_FAILURE;
 	}
+
+	// Run migrations should any need to be run.
+	MigrationRunner::RunSQLiteMigrations();
 
 	//Get CDClient initial information
 	try {
