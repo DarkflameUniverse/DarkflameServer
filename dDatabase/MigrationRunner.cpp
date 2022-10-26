@@ -97,7 +97,6 @@ void MigrationRunner::RunSQLiteMigrations() {
 	stmt->execute();
 	delete stmt;
 
-	sql::SQLString finalSQL = "";
 	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder("./migrations/cdserver/")) {
 		auto migration = LoadMigration("cdserver/" + entry);
 
@@ -111,23 +110,21 @@ void MigrationRunner::RunSQLiteMigrations() {
 		delete stmt;
 		if (doExit) continue;
 
-		Game::logger->Log("MigrationRunner", "Running migration: %s", migration.name.c_str());
-		finalSQL.append(migration.data);
-
+		// Doing these 1 migration at a time since one takes a long time and some may think it is crashing.
+		// This will at the least guarentee that the full migration needs to be run in order to be counted as "migrated".
+		Game::logger->Log("MigrationRunner", "Executing migration: %s.  This may take a while.  Do not shut down server.", migration.name.c_str());
+		for (const auto& dml : GeneralUtils::SplitString(migration.data, ';')) {
+			if (dml.empty()) continue;
+			try {
+				CDClientDatabase::ExecuteDML(dml.c_str());
+			} catch (CppSQLite3Exception& e) {
+				Game::logger->Log("MigrationRunner", "Encountered error running DML command: (%i) : %s", e.errorCode(), e.errorMessage());
+			}
+		}
 		stmt = Database::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
 		stmt->setString(1, migration.name);
 		stmt->execute();
 		delete stmt;
-	}
-
-	if (!finalSQL.empty()) {
-		Game::logger->Log("MigrationRunner", "final length %i", finalSQL.length());
-		try {
-			CDClientDatabase::ExecuteDML(finalSQL.c_str());
-		} catch (CppSQLite3Exception& e) {
-			Game::logger->Log("MigrationRunner", "Encountered error running migration: (%i) : %s", e.errorCode(), e.errorMessage());
-		}
-		return;
 	}
 	Game::logger->Log("MigrationRunner", "CDServer database is up to date.");
 }
