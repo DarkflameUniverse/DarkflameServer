@@ -372,7 +372,6 @@ private:
 	 * If the entity is teleporting
 	 */
 	bool m_IsTeleporting;
-
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H

@@ -54,6 +54,7 @@ ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 }
 
 void ControllablePhysicsComponent::Update(float deltaTime) {
+
 }
 
 void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
