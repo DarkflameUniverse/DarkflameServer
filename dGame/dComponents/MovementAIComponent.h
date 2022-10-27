@@ -145,7 +145,11 @@ public:
 	 * Attempts to update the waypoint index, making the entity move to the next waypoint
 	 * @return true if the waypoint could be increased, false if the entity is at the last waypoint already
 	 */
-	bool AdvanceWaypointIndex();
+	bool AdvancePathWaypointIndex();
+
+	bool AdvanceNavWaypointIndex();
+
+	void ArrivedAtPathWaypoint();
 
 	/**
 	 * Returns the waypoint the entity is currently moving towards
@@ -207,7 +211,7 @@ public:
 	 * Sets a path to follow for the AI
 	 * @param path the path to follow
 	 */
-	void SetPath(std::vector<NiPoint3> path);
+	void SetPath(Path* path) {if (path) {m_CurrentPath = path; m_Done = false; m_Timer = 0;};};
 
 	/**
 	 * Returns the base speed from the DB for a given LOT
@@ -215,6 +219,36 @@ public:
 	 * @return the base speed of the lot
 	 */
 	static float GetBaseSpeed(LOT lot);
+
+	// 	/**
+	//  * @brief tell an npc how to use it's given path
+	//  *
+	//  * @param paused if they are not moving
+	//  */
+	// void FollowWaypoints(bool paused) {m_Paused = paused;};
+
+	// /**
+	//  * @brief tell an npc how to use it's given path
+	//  *
+	//  * @param paused if they are not moving
+	//  * @param newPathName the new path to use
+	//  * @param newPathStart the waypoint on the new path to start at
+	//  */
+	// void FollowWaypoints(bool paused, std::string newPathName, int newPathStart = 0);
+
+	// 	/**
+	//  * @brief tell an npc how to use it's given path
+	//  *
+	//  * @param newPathName the new path to use
+	//  * @param newPathStart the waypoint on the new path to start at
+	//  */
+	// void FollowWaypoints(std::string newPathName, int newPathStart = 0);
+
+	// /**
+	//  * @brief starts pathing
+	//  *
+	//  */
+	// void FollowWaypoints(){m_Paused = false;};
 
 private:
 
@@ -314,7 +348,7 @@ private:
 	/**
 	 * The path the entity is currently following
 	 */
-	std::vector<NiPoint3> m_CurrentPath;
+	Path* m_CurrentPath;
 
 	/**
 	 * Queue of positions to traverse
@@ -325,6 +359,32 @@ private:
 	 * Cache of all lots and their respective speeds
 	 */
 	static std::map<LOT, float> m_PhysicsSpeedCache;
+
+	/**
+	 * If we are waiting for some reason
+	 */
+	bool m_Waiting = false;
+
+	/**
+	 * If we are waiting on a delay
+	 */
+	float m_WaitingTime = 0.0;
+
+	/**
+	 * The speed at which they will path
+	 */
+	float m_PathSpeed;
+
+	/**
+	 * If we are traverseing a waypoint path in reverse
+	 */
+	bool m_Reverse = false;
+
+	int m_WaypointPathIndex;
+
+	float m_WaypointPathSpeed;
+	int m_NavPathIndex;
+
 };
 
 #endif // MOVEMENTAICOMPONENT_H

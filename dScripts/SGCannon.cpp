@@ -287,38 +287,27 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			Game::logger->Log("SGCannon", "Spawning enemy %i on path %s", toSpawn.lot, path->pathName.c_str());
 
 			auto* enemy = EntityManager::Instance()->CreateEntity(info, nullptr, self);
-			EntityManager::Instance()->ConstructEntity(enemy);
+			if (enemy) {
+				EntityManager::Instance()->ConstructEntity(enemy);
+				auto* movementAI = enemy->GetComponent<MovementAIComponent>();
 
-			if (true) {
-				auto* movementAI = new MovementAIComponent(enemy, {});
-
-				enemy->AddComponent(COMPONENT_TYPE_MOVEMENT_AI, movementAI);
+				if (!movementAI) return;
 
 				movementAI->SetSpeed(toSpawn.initialSpeed);
 				movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
 				movementAI->SetHaltDistance(0.0f);
 
-				std::vector<NiPoint3> pathWaypoints;
-
-				for (const auto& waypoint : path->pathWaypoints) {
-					pathWaypoints.push_back(waypoint.position);
-				}
-
-				if (GeneralUtils::GenerateRandomNumber<float_t>(0, 1) < 0.5f) {
-					std::reverse(pathWaypoints.begin(), pathWaypoints.end());
-				}
-
-				movementAI->SetPath(pathWaypoints);
-
 				enemy->AddDieCallback([this, self, enemy, name]() {
 					RegisterHit(self, enemy, name);
-					});
-			}
+					}
+				);
 
-			// Save the enemy and tell it to start pathing
-			if (enemy != nullptr) {
+				// Save the enemy
 				const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
-				GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS);
+
+				// if we are a moving platform, tell it to move
+				auto* movingPlatformComponent = enemy->GetComponent<MovingPlatformComponent>();
+				if (movingPlatformComponent) GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS);
 			}
 		}
 	} else if (name == EndGameBufferTimer) {

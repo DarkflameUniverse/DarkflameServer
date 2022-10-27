@@ -33,11 +33,6 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_PickupRadius = 0.0f;
 	m_DirtyPickupRadiusScale = true;
 	m_IsTeleporting = false;
-	m_AttachedPath = entity->GetVarAsString(u"attached_path");
-	m_PathWaypoint = entity->GetVarAs<int>(u"attached_path_start");
-	m_PathSpeed = 2.5f;
-	m_BaseSpeed = GetBaseSpeed(m_Parent->GetLOT());
-
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
@@ -59,96 +54,6 @@ ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 }
 
 void ControllablePhysicsComponent::Update(float deltaTime) {
-	if (m_AttachedPath != ""){
-		const auto* path = dZoneManager::Instance()->GetZone()->GetPath(m_AttachedPath);
-
-		if (!m_Paused){
-			if (path->pathWaypoints.size() > m_PathWaypoint) {
-				auto mod_speed = m_BaseSpeed;
-				if (m_PathSpeed < 1.0) {
-					mod_speed = m_BaseSpeed * m_PathSpeed;
-				} else {
-					mod_speed = m_PathSpeed;
-				}
-
-				auto speed = deltaTime * mod_speed;
-				auto source = GetPosition();
-				auto dest = path->pathWaypoints.at(m_PathWaypoint).position;
-				dest.y = source.y; // hacky way to not glitch with weird heights
-
-				// if we are close enough to the destination waypoint
-				if (Vector3::DistanceSquared(source, dest) < 2 * 2) {
-					if (path->pathBehavior == PathBehavior::Loop) {
-						if (path->waypointCount < m_PathWaypoint + 1) {
-							m_PathWaypoint = 0;
-						} else m_PathWaypoint++;
-					} else if (path->pathBehavior == PathBehavior::Once){
-						if (path->waypointCount < m_PathWaypoint + 1) {
-							m_AttachedPath = "";
-						} else m_PathWaypoint++;
-					}
-					m_Paused = true;
-					return;
-				}
-
-				const auto delta = dest - source;
-				const auto length = sqrtf(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
-				NiPoint3 velocity;
-				NiPoint3 velocity_pos;
-				if (length > 0) {
-					velocity_pos.x = (delta.x / length) * speed;
-					velocity_pos.y = (delta.y / length) * speed;
-					velocity_pos.z = (delta.z / length) * speed;
-				}
-				speed = speed + 2.8f;
-				if (length > 0) {
-					velocity.x = (delta.x / length) * speed;
-					velocity.y = (delta.y / length) * speed;
-					velocity.z = (delta.z / length) * speed;
-				}
-				SetRotation(NiQuaternion::LookAt(source, dest));
-				SetVelocity(velocity);
-				SetPosition(source + velocity_pos);
-				EntityManager::Instance()->SerializeEntity(m_Parent);
-			} else if (path->pathBehavior == PathBehavior::Loop) m_PathWaypoint = 0;
-
-		} else { // paused, meaing we are at a waypoint, and we want to do something
-			if (m_PausedTime > 0) {
-				m_PausedTime = m_PausedTime - deltaTime;
-			} else if (m_PausedTime < 0){
-				m_Paused = false;
-				m_PausedTime = 0;
-			} else if (path->pathWaypoints.size() > m_PathWaypoint) {
-				PathWaypoint waypoint = path->pathWaypoints.at(m_PathWaypoint);
-				if (waypoint.config.size() > 0) {
-					for (LDFBaseData* action : waypoint.config) {
-						if (action) {
-							if (action->GetKey() == u"delay"){
-								m_PausedTime = std::stof(action->GetValueAsString());
-								SetVelocity(NiPoint3::ZERO);
-								EntityManager::Instance()->SerializeEntity(m_Parent);
-							} else if (action->GetKey() == u"emote"){
-								GameMessages::SendPlayAnimation(m_Parent, GeneralUtils::UTF8ToUTF16(action->GetValueAsString()));
-								m_PausedTime += 10;
-								SetVelocity(NiPoint3::ZERO);
-								EntityManager::Instance()->SerializeEntity(m_Parent);
-							} else if (action->GetKey() == u"pathspeed") {
-								m_PathSpeed = std::stof(action->GetValueAsString());
-								if (m_PathSpeed < 2.5f) m_PathSpeed = 2.5f;
-							} else if (action->GetKey() == u"changeWP") {
-								m_AttachedPath = action->GetValueAsString();
-							} else {
-								Game::logger->LogDebug("ControllablePhysicsComponent", "Unhandled action %s", GeneralUtils::UTF16ToWTF8(action->GetKey()).c_str());
-							}
-						}
-					}
-				}
-				if (m_PausedTime == 0) {
-					m_Paused = false;
-				}
-			} else if (path->pathBehavior == PathBehavior::Loop) m_PathWaypoint = 0;
-		}
-	}
 }
 
 void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -369,37 +274,4 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 		if (m_PickupRadius < candidateRadius) m_PickupRadius = candidateRadius;
 	}
 	EntityManager::Instance()->SerializeEntity(m_Parent);
-}
-
-// void ControllablePhysicsComponent::FollowWaypoints(bool paused, std::string newPathName, int newPathStart = 0){
-// 	m_Paused = paused;
-// 	m_AttachedPath = newPathName;
-// 	m_PathWaypoint = newPathStart;
-// }
-
-// void ControllablePhysicsComponent::FollowWaypoints(std::string newPathName, int newPathStart = 0){
-// 	m_AttachedPath = newPathName;
-// 	m_PathWaypoint = newPathStart;
-// }
-
-float ControllablePhysicsComponent::GetBaseSpeed(LOT lot) {
-
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
-
-	int32_t componentID;
-	CDPhysicsComponent* physicsComponent = nullptr;
-
-	componentID = componentRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_CONTROLLABLE_PHYSICS, -1);
-
-	if (componentID != -1) physicsComponent = physicsComponentTable->GetByID(componentID);
-
-	float speed;
-	if (physicsComponent == nullptr) {
-		speed = 8;
-	} else {
-		speed = physicsComponent->speed;
-	}
-
-	return speed;
 }

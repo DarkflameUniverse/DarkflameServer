@@ -257,43 +257,6 @@ public:
 	 */
 	std::vector<float> GetActivePickupRadiusScales() { return m_ActivePickupRadiusScales; };
 
-	/**
-	 * @brief tell an npc how to use it's given path
-	 *
-	 * @param paused if they are not moving
-	 */
-	void FollowWaypoints(bool paused) {m_Paused = paused;};
-
-	/**
-	 * @brief tell an npc how to use it's given path
-	 *
-	 * @param paused if they are not moving
-	 * @param newPathName the new path to use
-	 * @param newPathStart the waypoint on the new path to start at
-	 */
-	void FollowWaypoints(bool paused, std::string newPathName, int newPathStart = 0);
-
-		/**
-	 * @brief tell an npc how to use it's given path
-	 *
-	 * @param newPathName the new path to use
-	 * @param newPathStart the waypoint on the new path to start at
-	 */
-	void FollowWaypoints(std::string newPathName, int newPathStart = 0);
-
-	/**
-	 * @brief starts pathing
-	 *
-	 */
-	void FollowWaypoints(){m_Paused = false;};
-
-	/**
-	 * Returns the base speed from the DB for a given LOT
-	 * @param lot the lot to check for
-	 * @return the base speed of the lot
-	 */
-	static float GetBaseSpeed(LOT lot);
-
 private:
 	/**
 	 * The entity that owns this component
@@ -409,36 +372,6 @@ private:
 	 * If the entity is teleporting
 	 */
 	bool m_IsTeleporting;
-
-	/**
-	 * The walking path the entity has
-	 */
-	std::string m_AttachedPath;
-
-	/**
-	 * The curent pay waypoint
-	 */
-	int m_PathWaypoint;
-
-	/**
-	 * If the path is being followed
-	 */
-	bool m_Paused = false;
-
-	/**
-	 * the speed at which they will path
-	 */
-	float m_PathSpeed;
-
-	/**
-	 * if we are waiting on a delay
-	 */
-	float m_PausedTime = 0.0;
-
-	/**
-	 * The laden speed of an object
-	 */
-	float m_BaseSpeed;
 
 };
 

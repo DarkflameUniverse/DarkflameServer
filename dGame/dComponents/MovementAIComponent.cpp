@@ -9,12 +9,13 @@
 #include "dpWorld.h"
 #include "EntityManager.h"
 #include "SimplePhysicsComponent.h"
+#include "dZoneManager.h"
 
 std::map<LOT, float> MovementAIComponent::m_PhysicsSpeedCache = {};
 
 MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : Component(parent) {
 	m_Info = std::move(info);
-	m_Done = true;
+	m_Done = false;
 
 	m_BaseCombatAI = nullptr;
 
@@ -32,18 +33,30 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_Interrupted = false;
 	m_PullPoint = {};
 	m_HaltDistance = 0;
-	m_Timer = 0;
+
 	m_CurrentSpeed = 0;
 	m_Speed = 0;
+	m_WaypointPathSpeed = 1.0f;
+
+
 	m_TotalTime = 0;
+	m_Timer = 0;
+
 	m_LockRotation = false;
+
+	m_WaypointPathIndex = parent->GetVarAs<int>(u"attached_path_start");
+
+
+	m_NavPathIndex = 0;
 }
 
 MovementAIComponent::~MovementAIComponent() = default;
 
 void MovementAIComponent::Update(const float deltaTime) {
+
+	// pull to point update take priority
 	if (m_Interrupted) {
-		const auto source = GetCurrentWaypoint();
+		const auto source = GetCurrentPosition();
 
 		const auto speed = deltaTime * 2.5f;
 
@@ -62,112 +75,255 @@ void MovementAIComponent::Update(const float deltaTime) {
 		return;
 	}
 
-	if (AtFinalWaypoint()) // Are we done?
-	{
+	// Navmesh pathing logic
+	if (!m_Queue.empty()) {
+		PullToPoint(m_Queue.top());
+
+		m_Queue.pop();
 		return;
 	}
 
-	if (m_HaltDistance > 0) {
-		if (Vector3::DistanceSquared(ApproximateLocation(), GetDestination()) < m_HaltDistance * m_HaltDistance) // Prevent us from hugging the target
-		{
-			Stop();
+	// waypoint pathing logic
+	if (m_CurrentPath){
+		if (!m_Done && !m_Waiting){
+			if (m_CurrentPath->pathWaypoints.size() > m_WaypointPathIndex) {
+				auto speed = m_BaseSpeed * m_PathSpeed;
+				auto source = m_Parent->GetPosition();
+				auto dest = m_CurrentPath->pathWaypoints.at(m_WaypointPathIndex).position;
 
-			return;
+				// TODO: do this better and more sanely
+				auto hasNavMesh = dpWorld::Instance().IsLoaded();
+				if (hasNavMesh) dest.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(dest);
+				if (abs(dest.y - source.y) > 10) dest.y = source.y; // hacky way to not glitch with weird heights without nav meshes
+
+				// if we are close enough to the destination waypoint
+				if (Vector3::DistanceSquared(source, dest) < 2 * 2) {
+					if (!AdvancePathWaypointIndex()) return;
+				}
+
+				const auto delta = dest - source;
+				const auto length = sqrtf(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+				NiPoint3 velocity;
+				if (length > 0) {
+					velocity.x = (delta.x / length) * m_BaseSpeed;
+					velocity.y = (delta.y / length) * m_BaseSpeed;
+					velocity.z = (delta.z / length) * m_BaseSpeed;
+				}
+				NiPoint3 velocity_pos;
+				if (length > 0) {
+					velocity_pos.x = (delta.x / length) * speed * deltaTime;
+					velocity_pos.y = (delta.y / length) * speed * deltaTime;
+					velocity_pos.z = (delta.z / length) * speed * deltaTime;
+				}
+				// Game::logger->Log("ControllablePhysicsComponent", "v.x %f v.y %f v.z %f", velocity.x, velocity.y, velocity.z);
+				SetRotation(NiQuaternion::LookAt(source, dest));
+				SetVelocity(velocity);
+				SetPosition(source + velocity_pos);
+				EntityManager::Instance()->SerializeEntity(m_Parent);
+			}
+		} else if (!m_Done && m_Waiting) { // waiting, meaing we are at a waypoint, and we want to do something
+			// handle waiting
+			if (m_WaitingTime > 0) {
+				m_WaitingTime = m_WaitingTime - deltaTime;
+			} else if (m_WaitingTime < 0){
+				m_Waiting = false;
+				m_WaitingTime = 0;
+			// end handle waiting
+			} else if (m_CurrentPath->pathWaypoints.size() > m_WaypointPathIndex) ArrivedAtPathWaypoint();
 		}
 	}
 
-	if (m_Timer > 0) {
-		m_Timer -= deltaTime;
-
-		if (m_Timer > 0) {
-			return;
-		}
-
-		m_Timer = 0;
-	}
-
-	const auto source = GetCurrentWaypoint();
-
-	SetPosition(source);
-
-	NiPoint3 velocity = NiPoint3::ZERO;
-
-	if (AdvanceWaypointIndex()) // Do we have another waypoint to seek?
-	{
-		m_NextWaypoint = GetCurrentWaypoint();
-
-		if (m_NextWaypoint == source) {
-			m_Timer = 0;
-
-			goto nextAction;
-		}
-
-		if (m_CurrentSpeed < m_Speed) {
-			m_CurrentSpeed += m_Acceleration;
-		}
-
-		if (m_CurrentSpeed > m_Speed) {
-			m_CurrentSpeed = m_Speed;
-		}
-
-		const auto speed = m_CurrentSpeed * m_BaseSpeed;
-
-		const auto delta = m_NextWaypoint - source;
-
-		// Normalize the vector
-		const auto length = sqrtf(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
-
-		if (length > 0) {
-			velocity.x = (delta.x / length) * speed;
-			velocity.y = (delta.y / length) * speed;
-			velocity.z = (delta.z / length) * speed;
-		}
-
-		// Calclute the time it will take to reach the next waypoint with the current speed
-		m_TotalTime = m_Timer = length / speed;
-
-		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
-	} else {
-		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
-		if (!m_Queue.empty()) {
-			SetDestination(m_Queue.top());
-
-			m_Queue.pop();
-		} else {
-			// We have reached our final waypoint
-			Stop();
-
-			return;
-		}
-	}
-
-nextAction:
-
-	SetVelocity(velocity);
-
-	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
+
+// 	if (m_HaltDistance > 0) {
+// 		if (Vector3::DistanceSquared(ApproximateLocation(), GetDestination()) < m_HaltDistance * m_HaltDistance) // Prevent us from hugging the target
+// 		{
+// 			Stop();
+
+// 			return;
+// 		}
+// 	}
+
+// 	if (m_Timer > 0) {
+// 		m_Timer -= deltaTime;
+
+// 		if (m_Timer > 0) {
+// 			return;
+// 		}
+
+// 		m_Timer = 0;
+// 	}
+
+// 	const auto source = GetCurrentWaypoint();
+
+// 	SetPosition(source);
+
+// 	NiPoint3 velocity = NiPoint3::ZERO;
+
+// 	if (AdvanceWaypointIndex()) // Do we have another waypoint to seek?
+// 	{
+// 		m_NextWaypoint = GetCurrentWaypoint();
+
+// 		if (m_NextWaypoint == source) {
+// 			m_Timer = 0;
+
+// 			goto nextAction;
+// 		}
+
+// 		if (m_CurrentSpeed < m_Speed) {
+// 			m_CurrentSpeed += m_Acceleration;
+// 		}
+
+// 		if (m_CurrentSpeed > m_Speed) {
+// 			m_CurrentSpeed = m_Speed;
+// 		}
+
+// 		const auto speed = m_CurrentSpeed * m_BaseSpeed;
+
+// 		const auto delta = m_NextWaypoint - source;
+
+// 		// Normalize the vector
+// 		const auto length = sqrtf(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+
+// 		if (length > 0) {
+// 			velocity.x = (delta.x / length) * speed;
+// 			velocity.y = (delta.y / length) * speed;
+// 			velocity.z = (delta.z / length) * speed;
+// 		}
+
+// 		// Calclute the time it will take to reach the next waypoint with the current speed
+// 		m_TotalTime = m_Timer = length / speed;
+
+// 		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
+// 	} else {
+// 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
+// 		if (!m_Queue.empty()) {
+// 			SetDestination(m_Queue.top());
+
+// 			m_Queue.pop();
+// 		} else {
+// 			// We have reached our final waypoint
+// 			Stop();
+
+// 			return;
+// 		}
+// 	}
+
+// nextAction:
+
+// 	SetVelocity(velocity);
+
+// 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
 const MovementAIInfo& MovementAIComponent::GetInfo() const {
 	return m_Info;
 }
 
-bool MovementAIComponent::AdvanceWaypointIndex() {
-	if (m_PathIndex >= m_CurrentPath.size()) {
-		return false;
+void MovementAIComponent::ArrivedAtPathWaypoint(){
+	//  TODO: Call scripts here
+
+	PathWaypoint waypoint = m_CurrentPath->pathWaypoints.at(m_WaypointPathIndex);
+
+	if (waypoint.config.size() > 0) {
+
+		for (LDFBaseData* action : waypoint.config) {
+			if (action) {
+
+				// delay: has time as float
+				if (action->GetKey() == u"delay"){
+					m_WaitingTime += std::stof(action->GetValueAsString());
+					SetVelocity(NiPoint3::ZERO);
+					EntityManager::Instance()->SerializeEntity(m_Parent);
+
+				// emote: has name of animation to play
+				} else if (action->GetKey() == u"emote"){
+					GameMessages::SendPlayAnimation(m_Parent, GeneralUtils::UTF8ToUTF16(action->GetValueAsString()));
+					// TODO Get proper animation time and add to wait
+					m_WaitingTime += 1;
+					SetVelocity(NiPoint3::ZERO);
+					EntityManager::Instance()->SerializeEntity(m_Parent);
+
+				// pathspeed: has pathing speed as a float
+				} else if (action->GetKey() == u"pathspeed") {
+					m_PathSpeed = std::stof(action->GetValueAsString());
+
+				// changeWP: <path to change to>,<waypoint to use> the command and waypoint are optional
+				} else if (action->GetKey() == u"changeWP") {
+					// use an intermediate value since it can be one or two things
+					auto intermed = action->GetValueAsString();
+					std::string path_string = "";
+
+					// sometimes there's a path and what waypoint to start, which are comma separated
+					if (intermed.find(",") != std::string::npos){
+						auto datas = GeneralUtils::SplitString(intermed, ',');
+						path_string = datas[0];
+						m_WaypointPathIndex = stoi(datas[1]) - 1; // becuase 0 vs 1 indexed
+					} else {
+						path_string = intermed;
+						m_WaypointPathIndex = 0;
+					}
+
+					if (path_string != "") {
+						m_CurrentPath = const_cast<Path*>(dZoneManager::Instance()->GetZone()->GetPath(path_string));
+					} else m_CurrentPath = nullptr;
+
+				} else {
+					// We don't recognize the action, let a dev know
+					Game::logger->LogDebug("ControllablePhysicsComponent", "Unhandled action %s", GeneralUtils::UTF16ToWTF8(action->GetKey()).c_str());
+				}
+			}
+		}
 	}
 
-	m_PathIndex++;
+	if (m_WaitingTime == 0) { // if we don't have any time to wait
+		m_Waiting = false;
+	}
+}
 
+bool MovementAIComponent::AdvancePathWaypointIndex() {
+
+	if (m_CurrentPath->pathBehavior == PathBehavior::Loop) {
+		if (m_CurrentPath->pathWaypoints.size() < m_WaypointPathIndex + 1) {
+			// If we reach the end, go back to the starting index since the path is a loop
+			m_WaypointPathIndex = 0;
+		} else m_WaypointPathIndex++; // Otherwise continue
+
+	} else if (m_CurrentPath->pathBehavior == PathBehavior::Bounce){ // Ping Pong
+		// Are we going in reverse already?
+		if (m_Reverse){ // Then we're subtracting
+			if (m_WaypointPathIndex - 1 < 0){  // Stop reversing if we are at the beginning
+				m_Reverse = false;
+				m_WaypointPathIndex++;
+			} else m_WaypointPathIndex--; // Otherwise continue reverseing
+		} else { // Then we're adding
+			if (m_CurrentPath->pathWaypoints.size() < m_WaypointPathIndex + 1){ // Start reversing if we are at the end
+				m_Reverse = true;
+				m_WaypointPathIndex--;
+			} else m_WaypointPathIndex++; // Otherwise continue going up
+		}
+
+	} else if (m_CurrentPath->pathBehavior == PathBehavior::Once){
+		if (m_CurrentPath->pathWaypoints.size() < m_WaypointPathIndex + 1) {
+			m_CurrentPath = nullptr; // If we reach the end, we don't continue
+			return false;
+		} else m_WaypointPathIndex++; // Otherwise continue
+	}
+
+	m_Waiting = true;
 	return true;
 }
 
+bool MovementAIComponent::AdvanceNavWaypointIndex() {
+
+}
+
+
 NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
-	if (m_PathIndex >= m_CurrentPath.size()) {
+	if (m_PathIndex >= m_CurrentPath->pathWaypoints.size()) {
 		return GetCurrentPosition();
 	}
 
-	return m_CurrentPath[m_PathIndex];
+	return m_CurrentPath->pathWaypoints[m_PathIndex].position;
 }
 
 NiPoint3 MovementAIComponent::GetNextWaypoint() const {
@@ -178,6 +334,7 @@ NiPoint3 MovementAIComponent::GetCurrentPosition() const {
 	return m_Parent->GetPosition();
 }
 
+// get's the approximate location where the entity should be on the path
 NiPoint3 MovementAIComponent::ApproximateLocation() const {
 	auto source = GetCurrentPosition();
 
@@ -235,17 +392,14 @@ void MovementAIComponent::Stop() {
 		return;
 	}
 
-	SetPosition(ApproximateLocation());
+	// SetPosition(ApproximateLocation());
+	SetPosition(GetCurrentPosition());
 
 	SetVelocity(NiPoint3::ZERO);
 
 	m_TotalTime = m_Timer = 0;
 
 	m_Done = true;
-
-	m_CurrentPath = {};
-
-	m_PathIndex = 0;
 
 	m_CurrentSpeed = 0;
 
@@ -257,18 +411,6 @@ void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 
 	m_Interrupted = true;
 	m_PullPoint = point;
-}
-
-void MovementAIComponent::SetPath(std::vector<NiPoint3> path) {
-	std::reverse(path.begin(), path.end());
-
-	for (const auto& point : path) {
-		m_Queue.push(point);
-	}
-
-	SetDestination(m_Queue.top());
-
-	m_Queue.pop();
 }
 
 float MovementAIComponent::GetBaseSpeed(LOT lot) {
@@ -409,9 +551,7 @@ void MovementAIComponent::SetDestination(const NiPoint3& value) {
 		return;
 	}
 
-	m_CurrentPath.clear();
-
-	m_CurrentPath.push_back(location);
+	m_Queue.push(location);
 
 	// Simply path
 	for (auto point : computedPath) {
@@ -419,10 +559,10 @@ void MovementAIComponent::SetDestination(const NiPoint3& value) {
 			point.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(point);
 		}
 
-		m_CurrentPath.push_back(point);
+		m_Queue.push(point);
 	}
 
-	m_CurrentPath.push_back(computedPath[computedPath.size() - 1]);
+	m_Queue.push(computedPath[computedPath.size() - 1]);
 
 	m_PathIndex = 0;
 
@@ -432,11 +572,11 @@ void MovementAIComponent::SetDestination(const NiPoint3& value) {
 }
 
 NiPoint3 MovementAIComponent::GetDestination() const {
-	if (m_CurrentPath.empty()) {
+	if (!m_CurrentPath) {
 		return GetCurrentPosition();
 	}
 
-	return m_CurrentPath[m_CurrentPath.size() - 1];
+	return m_CurrentPath->pathWaypoints[m_CurrentPath->pathWaypoints.size() - 1].position;
 }
 
 void MovementAIComponent::SetSpeed(const float value) {

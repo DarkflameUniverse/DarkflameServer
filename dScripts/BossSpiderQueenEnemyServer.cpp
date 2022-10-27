@@ -60,8 +60,6 @@ void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
 		missionComponent->CompleteMission(instanceMissionID);
 	}
 
-	Game::logger->Log("BossSpiderQueenEnemyServer", "Starting timer...");
-
 	// There is suppose to be a 0.1 second delay here but that may be admitted?
 	auto* controller = EntityManager::Instance()->GetZoneControlEntity();
 

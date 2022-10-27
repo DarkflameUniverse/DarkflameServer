@@ -317,18 +317,6 @@ void Entity::Initialize() {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_SOUND_TRIGGER, comp));
 	}
 
-	//Check to see if we have a moving platform component:
-	//Which, for some reason didn't get added to the ComponentsRegistry so we have to check for a path manually here.
-	std::string attachedPath = GetVarAsString(u"attached_path");
-
-	if ((!attachedPath.empty())){
-		const auto* path = dZoneManager::Instance()->GetZone()->GetPath(attachedPath);
-		if (path->pathType == PathType::MovingPlatform || compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVING_PLATFORM, -1) != -1) {
-			MovingPlatformComponent* plat = new MovingPlatformComponent(this, attachedPath);
-			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVING_PLATFORM, plat));
-		}
-	}
-
 	//Also check for the collectible id:
 	m_CollectibleID = GetVarAs<int32_t>(u"collectible_id");
 
@@ -698,6 +686,38 @@ void Entity::Initialize() {
 
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
 	}
+
+	std::string attachedPath = GetVarAsString(u"attached_path");
+	Path* path = nullptr;
+	if ((!attachedPath.empty())){
+		path = const_cast<Path*>(dZoneManager::Instance()->GetZone()->GetPath(attachedPath));
+	}
+
+	if (path){
+		if (path->pathType == PathType::MovingPlatform || compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVING_PLATFORM, -1) != -1) {
+			MovingPlatformComponent* plat = new MovingPlatformComponent(this, attachedPath);
+			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVING_PLATFORM, plat));
+		} else if (path->pathType == PathType::Movement && !HasComponent(COMPONENT_TYPE_MOVEMENT_AI)){
+			MovementAIInfo moveInfo = MovementAIInfo();
+
+			// no wandering for you
+			moveInfo.movementType = "";
+			moveInfo.wanderChance = 0;
+			moveInfo.wanderRadius = 0;
+			moveInfo.wanderSpeed = 0.0f;
+			moveInfo.wanderDelayMax = 0;
+			moveInfo.wanderDelayMin = 0;
+
+			auto* movementAIcomp = new MovementAIComponent(this, moveInfo);
+			if (movementAIcomp) movementAIcomp->SetPath(path);
+
+			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVEMENT_AI, movementAIcomp));
+		} else if (path->pathType == PathType::Movement && HasComponent(COMPONENT_TYPE_MOVEMENT_AI)){
+			auto* movementAIcomp = this->GetComponent<MovementAIComponent>();
+			if (movementAIcomp) movementAIcomp->SetPath(path);
+		}
+	}
+
 
 	int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_PROXIMITY_MONITOR);
 	if (proximityMonitorID > 0) {
