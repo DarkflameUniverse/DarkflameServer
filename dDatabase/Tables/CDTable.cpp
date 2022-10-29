@@ -23,8 +23,6 @@ std::string CDTable::GetString(size_t handle)
 {
     std::string str = std::string(CDStringMap->GetEntry(handle, "").c_str());
 
-    Game::logger->Log("CDTable", "GetString: %s\n", str.c_str());
-
     return str;
 }
 
