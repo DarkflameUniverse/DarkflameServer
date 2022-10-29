@@ -23,11 +23,11 @@ CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
 }
 
 //! Destructor
-CDBehaviorTemplateTable::~CDBehaviorTemplateTable(void) { }
+CDBehaviorTemplateTable::~CDBehaviorTemplateTable(void) {}
 
 //! Returns the table's name
 std::string CDBehaviorTemplateTable::GetName(void) const {
-    return "BehaviorTemplate";
+	return "BehaviorTemplate";
 }
 
 const CDBehaviorTemplate& CDBehaviorTemplateTable::GetByBehaviorID(uint32_t behaviorID) const {

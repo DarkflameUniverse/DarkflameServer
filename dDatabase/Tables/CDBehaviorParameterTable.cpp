@@ -29,7 +29,7 @@ CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 }
 
 //! Destructor
-CDBehaviorParameterTable::~CDBehaviorParameterTable(void) { }
+CDBehaviorParameterTable::~CDBehaviorParameterTable(void) {}
 
 //! Returns the table's name
 std::string CDBehaviorParameterTable::GetName(void) const {

@@ -2,7 +2,7 @@
 #include "MissionComponent.h"
 #include "RenderComponent.h"
 
-std::vector<int32_t> FvCandle::m_Missions = {850, 1431, 1529, 1566, 1603};
+std::vector<int32_t> FvCandle::m_Missions = { 850, 1431, 1529, 1566, 1603 };
 
 void FvCandle::OnStartup(Entity* self) {
 	auto* render = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
@@ -25,13 +25,11 @@ void FvCandle::BlowOutCandle(Entity* self, Entity* blower) {
 	auto* render = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
 	if (render == nullptr)
 		return;
-	
+
 	auto* missionComponent = blower->GetComponent<MissionComponent>();
 
-	if (missionComponent != nullptr)
-	{
-		for (const auto mission : m_Missions)
-		{
+	if (missionComponent != nullptr) {
+		for (const auto mission : m_Missions) {
 			missionComponent->ForceProgressTaskType(mission, 1, 1);
 		}
 	}

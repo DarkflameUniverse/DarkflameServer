@@ -12,7 +12,7 @@ dConfig::dConfig(const std::string& filepath) {
 			if (line[0] != '#') ProcessLine(line);
 		}
 	}
-} 
+}
 
 dConfig::~dConfig(void) {
 }
@@ -31,7 +31,7 @@ void dConfig::ProcessLine(const std::string& line) {
 	std::vector<std::string> seglist;
 
 	while (std::getline(ss, segment, '=')) {
-	   seglist.push_back(segment);
+		seglist.push_back(segment);
 	}
 
 	if (seglist.size() < 2) return;

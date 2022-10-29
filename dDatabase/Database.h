@@ -11,8 +11,8 @@ public:
 
 class Database {
 private:
-	static sql::Driver *driver;
-	static sql::Connection *con;
+	static sql::Driver* driver;
+	static sql::Connection* con;
 	static sql::Properties props;
 	static std::string database;
 public:
@@ -23,6 +23,8 @@ public:
 	static sql::Statement* CreateStmt();
 	static sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
 	static void Commit();
+	static bool GetAutoCommit();
+	static void SetAutoCommit(bool value);
 
 	static std::string GetDatabase() { return database; }
 	static sql::Properties GetProperties() { return props; }

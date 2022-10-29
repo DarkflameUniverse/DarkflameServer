@@ -1,4 +1,4 @@
 #include "NsConcertChoiceBuild.h"
 
-void NsConcertChoiceBuild::OnStartup(Entity *self) {
+void NsConcertChoiceBuild::OnStartup(Entity* self) {
 }

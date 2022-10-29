@@ -10,7 +10,7 @@
  \brief Contains data for the BehaviorParameter table
  */
 
-//! BehaviorParameter Entry Struct
+ //! BehaviorParameter Entry Struct
 struct CDBehaviorParameter {
     int32_t behaviorID;            //!< The Behavior ID
     int32_t parameterID;       //!< The Parameter ID

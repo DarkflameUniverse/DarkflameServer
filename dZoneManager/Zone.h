@@ -9,7 +9,7 @@
 class Level;
 
 class LUTriggers {
-	public:
+public:
 
 	struct Command {
 		std::string id;
@@ -89,7 +89,7 @@ enum class PathBehavior : uint32_t {
 	Once = 2
 };
 
-enum class PropertyRentalTimeUnit : int32_t{
+enum class PropertyRentalTimeUnit : int32_t {
 	Forever = 0,
 	Seconds = 1,
 	Minutes = 2,
@@ -190,6 +190,8 @@ public:
 
 	uint32_t GetWorldID() const { return m_WorldID; }
 	[[nodiscard]] std::string GetZoneName() const { return m_ZoneName; }
+	std::string GetZoneRawPath() const { return m_ZoneRawPath;}
+	std::string GetZonePath() const { return m_ZonePath; }
 
 	const NiPoint3& GetSpawnPos() const { return m_Spawnpoint; }
 	const NiQuaternion& GetSpawnRot() const { return m_SpawnpointRotation; }

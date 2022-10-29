@@ -10,7 +10,7 @@
  \brief Contains data for the BehaviorTemplate table
  */
 
-//! BehaviorTemplate Entry Struct
+ //! BehaviorTemplate Entry Struct
 struct CDBehaviorTemplate {
     unsigned int behaviorID;                                         //!< The Behavior ID
     unsigned int templateID;                                         //!< The Template ID (LOT)

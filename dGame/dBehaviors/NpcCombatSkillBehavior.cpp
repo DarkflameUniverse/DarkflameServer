@@ -1,20 +1,17 @@
-﻿#include "NpcCombatSkillBehavior.h"
+#include "NpcCombatSkillBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 
 
-void NpcCombatSkillBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, BehaviorBranchContext branch)
-{
+void NpcCombatSkillBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, BehaviorBranchContext branch) {
 	context->skillTime = this->m_npcSkillTime;
-	
-	for (auto* behavior : this->m_behaviors)
-	{
+
+	for (auto* behavior : this->m_behaviors) {
 		behavior->Calculate(context, bit_stream, branch);
 	}
 }
 
-void NpcCombatSkillBehavior::Load()
-{
+void NpcCombatSkillBehavior::Load() {
 	this->m_npcSkillTime = GetFloat("npc skill time");
 	
 	std::string ss = "behavior ";

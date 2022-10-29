@@ -1,8 +1,10 @@
 # create the testing file and list of tests
 create_test_sourcelist (Tests
 	CommonCxxTests.cpp
+	AMFDeserializeTests.cpp
 	TestNiPoint3.cpp
 	TestLDFFormat.cpp
+	TestEncoding.cpp
 )
 
 # add the executable
@@ -12,6 +14,17 @@ target_link_libraries(CommonCxxTests ${COMMON_LIBRARIES})
 # remove the test driver source file
 set (TestsToRun ${Tests})
 remove (TestsToRun CommonCxxTests.cpp)
+
+# Copy test files to testing directory
+configure_file(
+	${CMAKE_SOURCE_DIR}/tests/TestBitStreams/AMFBitStreamTest.bin ${PROJECT_BINARY_DIR}/tests/AMFBitStreamTest.bin
+	COPYONLY
+)
+
+configure_file(
+	${CMAKE_SOURCE_DIR}/tests/TestBitStreams/AMFBitStreamUnimplementedTest.bin ${PROJECT_BINARY_DIR}/tests/AMFBitStreamUnimplementedTest.bin
+	COPYONLY
+)
 
 # Add all the ADD_TEST for each test
 foreach (test ${TestsToRun})

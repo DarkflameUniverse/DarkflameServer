@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Behavior.h"
 #include "NiPoint3.h"
 
@@ -27,8 +27,7 @@ public:
 	 * Inherited
 	 */
 
-	explicit ProjectileAttackBehavior(const uint32_t behavior_id) : Behavior(behavior_id)
-	{
+	explicit ProjectileAttackBehavior(const uint32_t behavior_id) : Behavior(behavior_id) {
 	}
 
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;

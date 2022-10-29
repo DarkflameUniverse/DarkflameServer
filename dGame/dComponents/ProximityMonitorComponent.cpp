@@ -27,7 +27,7 @@ ProximityMonitorComponent::~ProximityMonitorComponent() {
 void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::string& name) {
 	dpEntity* en = new dpEntity(m_Parent->GetObjectID(), proxRadius);
 	en->SetPosition(m_Parent->GetPosition());
-	
+
 	dpWorld::Instance().AddEntity(en);
 	m_ProximitiesData.insert(std::make_pair(name, en));
 }

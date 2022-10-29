@@ -14,11 +14,11 @@ string(REPLACE "\n" ";" variables ${variables})
 foreach(variable ${variables})
 	# If the string contains a #, skip it
 	if(NOT "${variable}" MATCHES "#")
-	
-	# Split the variable into name and value
+
+		# Split the variable into name and value
 		string(REPLACE "=" ";" variable ${variable})
 
-	# Check that the length of the variable is 2 (name and value)
+		# Check that the length of the variable is 2 (name and value)
 		list(LENGTH variable length)
 		if(${length} EQUAL 2)
 
@@ -42,8 +42,14 @@ set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT
 # Echo the version
 message(STATUS "Version: ${PROJECT_VERSION}")
 
+# Disable demo, tests and examples for recastNavigation.  Turn these to ON if you want to use them
+# This has to be done here to prevent a rare build error due to missing dependencies on the initial generations.
+set(RECASTNAVIGATION_DEMO OFF CACHE BOOL "" FORCE)
+set(RECASTNAVIGATION_TESTS OFF CACHE BOOL "" FORCE)
+set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
+
 # Compiler flags:
-# Disabled deprecated warnings as the MySQL includes have deprecated code in them. 
+# Disabled deprecated warnings as the MySQL includes have deprecated code in them.
 # Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
@@ -54,7 +60,7 @@ if(UNIX)
 	else()
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC")
 	endif()
-	if (__dynamic)
+	if (__dynamic AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
 	endif()
 	if (__ggdb)
@@ -63,7 +69,7 @@ if(UNIX)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
 elseif(MSVC)
 	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
-	add_compile_options("/wd4267")
+	add_compile_options("/wd4267" "/utf-8")
 elseif(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
@@ -83,14 +89,15 @@ make_directory(${CMAKE_BINARY_DIR}/locale)
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
-# Copy ini files on first build
-set(INI_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini")
-foreach(ini ${INI_FILES})
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${ini})
+# Copy resource files on first build
+set(RESOURCE_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
+foreach(resource_file ${RESOURCE_FILES})
+	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
 		configure_file(
-			${CMAKE_SOURCE_DIR}/resources/${ini} ${PROJECT_BINARY_DIR}/${ini}
+			${CMAKE_SOURCE_DIR}/resources/${resource_file} ${PROJECT_BINARY_DIR}/${resource_file}
 			COPYONLY
 		)
+		message("Moved ${resource_file} to project binary directory")
 	endif()
 endforeach()
 
@@ -117,25 +124,26 @@ endforeach()
 set(INCLUDED_DIRECTORIES
 	"dCommon"
 	"dChatFilter"
-	"dGame" 
-	"dGame/dBehaviors" 
-	"dGame/dComponents" 
-	"dGame/dGameMessages" 
-	"dGame/dInventory" 
-	"dGame/dMission" 
-	"dGame/dEntity" 
-	"dGame/dUtilities" 
-	"dPhysics" 
-	"dZoneManager" 
-	"dDatabase" 
+	"dGame"
+	"dGame/dBehaviors"
+	"dGame/dComponents"
+	"dGame/dGameMessages"
+	"dGame/dInventory"
+	"dGame/dMission"
+	"dGame/dEntity"
+	"dGame/dUtilities"
+	"dPhysics"
+	"dNavigation"
+	"dNavigation/dTerrain"
+	"dZoneManager"
+	"dDatabase"
 	"dDatabase/Tables"
 	"dNet"
 	"dScripts"
 
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
-	"thirdparty/recastnavigation/Recast/Include"
-	"thirdparty/recastnavigation/Detour/Include"
+	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
 	)
@@ -152,7 +160,6 @@ elseif (UNIX)
 	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt/include/bcrypt")
 endif()
 
-include_directories(${ZLIB_INCLUDE_DIRS})
 # Add binary directory as an include directory
 include_directories(${PROJECT_BINARY_DIR})
 
@@ -191,7 +198,7 @@ file(
 file(
 	GLOB HEADERS_DGAME
 	LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/dGame/Entity.h 
+	${PROJECT_SOURCE_DIR}/dGame/Entity.h
 	${PROJECT_SOURCE_DIR}/dGame/dGameMessages/GameMessages.h
 	${PROJECT_SOURCE_DIR}/dGame/EntityManager.h
 	${PROJECT_SOURCE_DIR}/dScripts/CppScripts.h
@@ -205,6 +212,7 @@ add_subdirectory(dNet)
 add_subdirectory(dScripts) # Add for dGame to use
 add_subdirectory(dGame)
 add_subdirectory(dZoneManager)
+add_subdirectory(dNavigation)
 add_subdirectory(dPhysics)
 
 # Create a list of common libraries shared between all binaries
@@ -229,18 +237,18 @@ add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the ot
 
 # Add our precompiled headers
 target_precompile_headers(
-	dGame PRIVATE 
+	dGame PRIVATE
 	${HEADERS_DGAME}
 )
 
 target_precompile_headers(
-	dZoneManager PRIVATE 
+	dZoneManager PRIVATE
 	${HEADERS_DZONEMANAGER}
 )
 
 # Need to specify to use the CXX compiler language here or else we get errors including <string>.
 target_precompile_headers(
-	dDatabase PRIVATE 
+	dDatabase PRIVATE
 	"$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
 )
 

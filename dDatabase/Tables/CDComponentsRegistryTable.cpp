@@ -28,11 +28,11 @@ CDComponentsRegistryTable::CDComponentsRegistryTable(void) {
 }
 
 //! Destructor
-CDComponentsRegistryTable::~CDComponentsRegistryTable(void) { }
+CDComponentsRegistryTable::~CDComponentsRegistryTable(void) {}
 
 //! Returns the table's name
 std::string CDComponentsRegistryTable::GetName(void) const {
-    return "ComponentsRegistry";
+	return "ComponentsRegistry";
 }
 
 int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, uint32_t componentType, int32_t defaultValue) {

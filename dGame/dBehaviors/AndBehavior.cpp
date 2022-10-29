@@ -1,4 +1,4 @@
-﻿#include "AndBehavior.h"
+#include "AndBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
 #include "dLogger.h"
@@ -13,10 +13,8 @@ void AndBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream,
 	}
 }
 
-void AndBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch)
-{
-	for (auto* behavior : this->m_behaviors)
-	{
+void AndBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+	for (auto* behavior : this->m_behaviors) {
 		behavior->Calculate(context, bitStream, branch);
 	}
 }

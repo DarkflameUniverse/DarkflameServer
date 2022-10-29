@@ -6,22 +6,22 @@
 //----------------------------------------------
 //--Initiate egg hatching on call
 //----------------------------------------------
-void EnemySpiderSpawner::OnFireEventServerSide(Entity *self, Entity *sender, std::string args, int32_t param1,
-                                               int32_t param2, int32_t param3) {
+void EnemySpiderSpawner::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,
+	int32_t param2, int32_t param3) {
 	if (args == "prepEgg") {
 		// Highlight eggs about to hatch with Maelstrom effect
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2856, u"maelstrom", "test", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
-	     
+
 		// Make indestructible
 		auto dest = static_cast<DestroyableComponent*>(self->GetComponent(COMPONENT_TYPE_DESTROYABLE));
 		if (dest) {
 			dest->SetFaction(-1);
 		}
 		EntityManager::Instance()->SerializeEntity(self);
-	     
+
 		// Keep track of who prepped me
 		self->SetI64(u"SpawnOwner", sender->GetObjectID());
-	     
+
 	} else if (args == "hatchEgg") {
 		// Final countdown to pop
 		self->AddTimer("StartSpawnTime", hatchTime);
@@ -36,10 +36,10 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		SpawnSpiderling(self);
 	} else if (timerName == "SpawnSpiderling") {
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 644, u"create", "egg_puff_b", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
-        
+
 		//TODO: set the aggro radius larger
 
-		EntityInfo info {};
+		EntityInfo info{};
 		info.lot = 16197;
 		info.pos = self->GetPosition();
 		info.spawner = nullptr;
@@ -59,7 +59,7 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		}
 
 		self->ScheduleKillAfterUpdate();
-    }
+	}
 }
 
 //--------------------------------------------------------------

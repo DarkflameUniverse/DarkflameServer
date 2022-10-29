@@ -1,14 +1,12 @@
-﻿#include "NtSleepingGuard.h"
+#include "NtSleepingGuard.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
 
-void NtSleepingGuard::OnStartup(Entity* self) 
-{
+void NtSleepingGuard::OnStartup(Entity* self) {
 	self->SetNetworkVar<bool>(u"asleep", true);
 }
 
-void NtSleepingGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity* target)
-{
+void NtSleepingGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity* target) {
 	if (!self->GetNetworkVar<bool>(u"asleep"))
 		return;
 
@@ -23,18 +21,15 @@ void NtSleepingGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity*
 
 	auto* missionComponent = target->GetComponent<MissionComponent>();
 
-	if (missionComponent != nullptr)
-	{
+	if (missionComponent != nullptr) {
 		missionComponent->CompleteMission(1346);
 	}
 
 	self->AddTimer("AsleepAgain", 5.0f);
 }
 
-void NtSleepingGuard::OnTimerDone(Entity* self, std::string timerName) 
-{
-	if (timerName == "AsleepAgain")
-	{
+void NtSleepingGuard::OnTimerDone(Entity* self, std::string timerName) {
+	if (timerName == "AsleepAgain") {
 		self->SetNetworkVar<bool>(u"asleep", true);
 	}
 }

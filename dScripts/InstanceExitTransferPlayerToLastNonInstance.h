@@ -1,7 +1,7 @@
 #pragma once
 #include "CppScripts.h"
 
-class InstanceExitTransferPlayerToLastNonInstance : public CppScripts::Script 
+class InstanceExitTransferPlayerToLastNonInstance : public CppScripts::Script
 {
 public:
 	void OnUse(Entity* self, Entity* user) override;

@@ -1,4 +1,4 @@
-﻿#include "AreaOfEffectBehavior.h"
+#include "AreaOfEffectBehavior.h"
 
 #include <vector>
 
@@ -10,14 +10,12 @@
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
 
-void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	uint32_t targetCount;
 
 	bitStream->Read(targetCount);
 
-	if (targetCount > this->m_maxTargets)
-	{
+	if (targetCount > this->m_maxTargets) {
 		return;
 	}
 
@@ -25,8 +23,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 
 	targets.reserve(targetCount);
 
-	for (auto i = 0u; i < targetCount; ++i)
-	{
+	for (auto i = 0u; i < targetCount; ++i) {
 		LWOOBJID target;
 
 		bitStream->Read(target);
@@ -34,21 +31,18 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 		targets.push_back(target);
 	}
 
-	for (auto target : targets)
-	{
+	for (auto target : targets) {
 		branch.target = target;
-		
+
 		this->m_action->Handle(context, bitStream, branch);
 	}
 }
 
-void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* self = EntityManager::Instance()->GetEntity(context->caster);
 
-	if (self == nullptr)
-	{
-		Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!\n", context->originator);
+	if (self == nullptr) {
+		Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!", context->originator);
 
 		return;
 	}
@@ -59,10 +53,8 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 
 	auto* presetTarget = EntityManager::Instance()->GetEntity(branch.target);
 
-	if (presetTarget != nullptr)
-	{
-		if (this->m_radius * this->m_radius >= Vector3::DistanceSquared(reference, presetTarget->GetPosition()))
-		{
+	if (presetTarget != nullptr) {
+		if (this->m_radius * this->m_radius >= Vector3::DistanceSquared(reference, presetTarget->GetPosition())) {
 			targets.push_back(presetTarget);
 		}
 	}
@@ -75,78 +67,67 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 	}
 
 	// Gets all of the valid targets, passing in if should target enemies and friends
-	for (auto validTarget : context->GetValidTargets(m_ignoreFaction , includeFaction, m_TargetSelf == 1, m_targetEnemy == 1, m_targetFriend == 1))
-	{
+	for (auto validTarget : context->GetValidTargets(m_ignoreFaction, includeFaction, m_TargetSelf == 1, m_targetEnemy == 1, m_targetFriend == 1)) {
 		auto* entity = EntityManager::Instance()->GetEntity(validTarget);
 
-		if (entity == nullptr)
-		{
-			Game::logger->Log("TacArcBehavior", "Invalid target (%llu) for (%llu)!\n", validTarget, context->originator);
+		if (entity == nullptr) {
+			Game::logger->Log("TacArcBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);
 
 			continue;
 		}
 
-		if (std::find(targets.begin(), targets.end(), entity) != targets.end())
-		{
+		if (std::find(targets.begin(), targets.end(), entity) != targets.end()) {
 			continue;
 		}
-		
+
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
-		if (destroyableComponent == nullptr)
-		{
+		if (destroyableComponent == nullptr) {
 			continue;
 		}
 
-		if (destroyableComponent->HasFaction(m_ignoreFaction))
-		{
+		if (destroyableComponent->HasFaction(m_ignoreFaction)) {
 			continue;
 		}
 
 		const auto distance = Vector3::DistanceSquared(reference, entity->GetPosition());
 
-		if (this->m_radius * this->m_radius >= distance && (this->m_maxTargets == 0 || targets.size() < this->m_maxTargets))
-		{
+		if (this->m_radius * this->m_radius >= distance && (this->m_maxTargets == 0 || targets.size() < this->m_maxTargets)) {
 			targets.push_back(entity);
 		}
 	}
 
-	std::sort(targets.begin(), targets.end(), [reference](Entity* a, Entity* b)
-	{
+	std::sort(targets.begin(), targets.end(), [reference](Entity* a, Entity* b) {
 		const auto aDistance = Vector3::DistanceSquared(a->GetPosition(), reference);
 		const auto bDistance = Vector3::DistanceSquared(b->GetPosition(), reference);
 
 		return aDistance > bDistance;
-	});
+		});
 
 	const uint32_t size = targets.size();
-	
+
 	bitStream->Write(size);
 
-	if (size == 0)
-	{
+	if (size == 0) {
 		return;
 	}
 
 	context->foundTarget = true;
 
-	for (auto* target : targets)
-	{
+	for (auto* target : targets) {
 		bitStream->Write(target->GetObjectID());
-		
+
 		PlayFx(u"cast", context->originator, target->GetObjectID());
 	}
-	
-	for (auto* target : targets)
-	{
+
+	for (auto* target : targets) {
 		branch.target = target->GetObjectID();
 
 		this->m_action->Calculate(context, bitStream, branch);
 	}
 }
 
-void AreaOfEffectBehavior::Load()
-{
+void AreaOfEffectBehavior::Load() {
 	this->m_action = GetAction("action");
 
 	this->m_radius = GetFloat("radius");
@@ -157,7 +138,7 @@ void AreaOfEffectBehavior::Load()
 
 	this->m_includeFaction = GetInt("include_faction");
 
-    this->m_TargetSelf = GetInt("target_self");
+	this->m_TargetSelf = GetInt("target_self");
 
 	this->m_targetEnemy = GetInt("target_enemy");
 
