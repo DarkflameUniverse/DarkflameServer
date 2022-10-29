@@ -209,7 +209,7 @@ Initial setup can vary drastically based on which operating system or distributi
 
 #### Configuration
 
-After the server has been built there should be four `ini` files in the build director: `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
+After the server has been built there should be four `ini` files in the build director: `sharedconfig.ini`, `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
 
 #### Migrations
 
