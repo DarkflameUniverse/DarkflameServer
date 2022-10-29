@@ -1069,15 +1069,6 @@ void HandlePacket(Packet* packet) {
 								bitStream.Write<unsigned int>(1);
 								bitStream.Write(blueprintID);
 
-								bitStream.Write<uint32_t>(lxfmlSize + 9);
-
-								//Write a fake sd0 header:
-								bitStream.Write<unsigned char>(0x73); //s
-								bitStream.Write<unsigned char>(0x64); //d
-								bitStream.Write<unsigned char>(0x30); //0
-								bitStream.Write<unsigned char>(0x01); //1
-								bitStream.Write<unsigned char>(0xFF); //end magic
-
 								bitStream.Write<uint32_t>(lxfmlSize);
 
 								for (size_t i = 0; i < lxfmlSize; ++i)

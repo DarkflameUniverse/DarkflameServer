@@ -120,7 +120,12 @@
 		},
         "output": {
           "outputOnFailure": true
-        }
+        },
+		"filter": {
+			"exclude": {
+				"name": "((example)|(minigzip))+"
+			}
+		}
       }
     ]
   }

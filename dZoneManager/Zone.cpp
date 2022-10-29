@@ -338,10 +338,11 @@ const Path* Zone::GetPath(std::string name) const {
 
 void Zone::LoadSceneTransition(std::ifstream& file) {
 	SceneTransition sceneTrans;
-	if (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::LateAlpha) {
+	if (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::Auramar) {
 		uint8_t length;
 		BinaryIO::BinaryRead(file, length);
 		sceneTrans.name = BinaryIO::ReadString(file, length);
+		file.ignore(4);
 	}
 
 	//BR�THER MAY I HAVE SOME L��PS?
@@ -402,30 +403,42 @@ void Zone::LoadPath(std::ifstream& file) {
 		BinaryIO::BinaryRead(file, path.property.price);
 		BinaryIO::BinaryRead(file, path.property.rentalTime);
 		BinaryIO::BinaryRead(file, path.property.associatedZone);
-		uint8_t count1;
-		BinaryIO::BinaryRead(file, count1);
-		for (uint8_t i = 0; i < count1; ++i) {
-			uint16_t character;
-			BinaryIO::BinaryRead(file, character);
-			path.property.displayName.push_back(character);
+
+		if (path.pathVersion >= 5) {
+			uint8_t count1;
+			BinaryIO::BinaryRead(file, count1);
+			for (uint8_t i = 0; i < count1; ++i) {
+				uint16_t character;
+				BinaryIO::BinaryRead(file, character);
+				path.property.displayName.push_back(character);
+			}
+			uint32_t count2;
+			BinaryIO::BinaryRead(file, count2);
+			for (uint8_t i = 0; i < count2; ++i) {
+				uint16_t character;
+				BinaryIO::BinaryRead(file, character);
+				path.property.displayDesc.push_back(character);
+			}
 		}
-		uint32_t count2;
-		BinaryIO::BinaryRead(file, count2);
-		for (uint8_t i = 0; i < count2; ++i) {
-			uint16_t character;
-			BinaryIO::BinaryRead(file, character);
-			path.property.displayDesc.push_back(character);
+
+		if (path.pathVersion >= 6) {
+			int32_t unknown1;
+			BinaryIO::BinaryRead(file, unknown1);
 		}
-		int32_t unknown1;
-		BinaryIO::BinaryRead(file, unknown1);
-		BinaryIO::BinaryRead(file, path.property.cloneLimit);
-		BinaryIO::BinaryRead(file, path.property.repMultiplier);
-		BinaryIO::BinaryRead(file, path.property.rentalTimeUnit);
-		BinaryIO::BinaryRead(file, path.property.achievementRequired);
-		BinaryIO::BinaryRead(file, path.property.playerZoneCoords.x);
-		BinaryIO::BinaryRead(file, path.property.playerZoneCoords.y);
-		BinaryIO::BinaryRead(file, path.property.playerZoneCoords.z);
-		BinaryIO::BinaryRead(file, path.property.maxBuildHeight);
+
+		if (path.pathVersion >= 7) {
+			BinaryIO::BinaryRead(file, path.property.cloneLimit);
+			BinaryIO::BinaryRead(file, path.property.repMultiplier);
+			BinaryIO::BinaryRead(file, path.property.rentalTimeUnit);
+		}
+
+		if (path.pathVersion >= 8) {
+			BinaryIO::BinaryRead(file, path.property.achievementRequired);
+			BinaryIO::BinaryRead(file, path.property.playerZoneCoords.x);
+			BinaryIO::BinaryRead(file, path.property.playerZoneCoords.y);
+			BinaryIO::BinaryRead(file, path.property.playerZoneCoords.z);
+			BinaryIO::BinaryRead(file, path.property.maxBuildHeight);
+		}
 	} else if (path.pathType == PathType::Camera) {
 		uint8_t count;
 		BinaryIO::BinaryRead(file, count);
