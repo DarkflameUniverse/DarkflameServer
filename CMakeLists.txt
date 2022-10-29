@@ -90,7 +90,7 @@ make_directory(${CMAKE_BINARY_DIR}/locale)
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
 # Copy resource files on first build
-set(RESOURCE_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
+set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
 foreach(resource_file ${RESOURCE_FILES})
 	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
 		configure_file(
