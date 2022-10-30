@@ -8,41 +8,33 @@
 #include "../../dWorldServer/ObjectIDManager.h"
 #include "dLogger.h"
 
-//! Private Functions!
-
-uint32_t GetBehaviorIDFromArgument(AMFArrayValue* arguments, const std::string& key = "behaviorID") {
-	AMFValue* behaviorIDValue = arguments->FindValue(key);
+uint32_t GetBehaviorIDFromArgument(AMFArrayValue* arguments, const std::string& key = "BehaviorID") {
+	auto* behaviorIDValue = arguments->FindValue<AMFStringValue>(key);
 	uint32_t behaviorID = -1;
 
-	if (!behaviorIDValue) throw std::invalid_argument("Unable to find behavior state from argument \"" + key + "\"");
-
-	if (behaviorIDValue->GetValueType() == AMFValueType::AMFString) {
-		behaviorID = std::stoul((static_cast<AMFStringValue*>(behaviorIDValue))->GetStringValue());
+	if (behaviorIDValue) {
+		behaviorID = std::stoul(behaviorIDValue->GetStringValue());
+	} else if (arguments->FindValue<AMFUndefinedValue>(key) == nullptr){
+		throw std::invalid_argument("Unable to find behavior ID from argument \"" + key + "\"");
 	}
 
 	return behaviorID;
 }
 
 BEHAVIORSTATE GetBehaviorStateFromArgument(AMFArrayValue* arguments, const std::string& key = "stateID") {
-	AMFDoubleValue* stateIDValue = (AMFDoubleValue*)arguments->FindValue(key);
+	auto* stateIDValue = arguments->FindValue<AMFDoubleValue>(key);
 	if (!stateIDValue) throw std::invalid_argument("Unable to find behavior state from argument \"" + key + "\"");
 
-	BEHAVIORSTATE stateID = (BEHAVIORSTATE)stateIDValue->GetDoubleValue();
-
-	delete stateIDValue;
-	stateIDValue = nullptr;
+	BEHAVIORSTATE stateID = static_cast<BEHAVIORSTATE>(stateIDValue->GetDoubleValue());
 
 	return stateID;
 }
 
 STRIPID GetStripIDFromArgument(AMFArrayValue* arguments, const std::string& key = "stripID") {
-	AMFDoubleValue* stripIDValue = (AMFDoubleValue*)arguments->FindValue(key);
+	auto* stripIDValue = arguments->FindValue<AMFDoubleValue>(key);
 	if (!stripIDValue) throw std::invalid_argument("Unable to find strip ID from argument \"" + key + "\"");
 
-	STRIPID stripID = (STRIPID)stripIDValue->GetDoubleValue();
-
-	delete stripIDValue;
-	stripIDValue = nullptr;
+	STRIPID stripID = static_cast<STRIPID>(stripIDValue->GetDoubleValue());
 
 	return stripID;
 }
@@ -68,59 +60,12 @@ void RequestUpdatedID(int32_t behaviorID, ModelComponent* modelComponent, Entity
 	// 		args.InsertValue("objectID", objectIDAsString);
 
 	// 		GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorID", &args);
-	// 		delete behaviorIDString;
-	// 		behaviorIDString = nullptr;
-	// 		delete objectIDAsString;
-	// 		objectIDAsString = nullptr;
 	// 		ControlBehaviors::SendBehaviorListToClient(modelComponent->GetParent(), sysAddr, modelOwner);
 	// 	});
 	// }
 }
 
-//! End of Private Functions!
-
-void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
-	if (!modelEntity || !modelOwner || !arguments) return;
-
-	if (command == "sendBehaviorListToClient")
-		SendBehaviorListToClient(modelEntity, sysAddr, modelOwner);
-	else if (command == "modelTypeChanged")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "toggleExecutionUpdates")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "addStrip")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "removeStrip")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "mergeStrips")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "splitStrip")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "updateStripUI")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "addAction")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "migrateActions")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "rearrangeStrip")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "add")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "removeActions")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "rename")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "sendBehaviorBlocksToClient")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "moveToInventory")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else if (command == "updateAction")
-		Game::logger->Log("ControlBehaviors", "Got command %s but is not implemented!", command.c_str());
-	else
-		Game::logger->Log("ControlBehaviors", "Unknown behavior command (%s)\n", command.c_str());
-}
-
-void ControlBehaviors::SendBehaviorListToClient(
+void SendBehaviorListToClient(
 	Entity* modelEntity,
 	const SystemAddress& sysAddr,
 	Entity* modelOwner
@@ -152,30 +97,37 @@ void ControlBehaviors::SendBehaviorListToClient(
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", &behaviorsToSerialize);
 }
 
-void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent) {
-	AMFValue* modelTypeValue = arguments->FindValue("ModelType");
-	if (modelTypeValue->GetValueType() != AMFValueType::AMFDouble) return;
-	auto* requestedModelType = static_cast<AMFDoubleValue*>(modelTypeValue);
-	uint32_t modelType = static_cast<uint32_t>(requestedModelType->GetDoubleValue());
+void ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent) {
+	auto* modelTypeAmf = arguments->FindValue<AMFDoubleValue>("ModelType");
+	if (!modelTypeAmf) return;
+
+	uint32_t modelType = static_cast<uint32_t>(modelTypeAmf->GetDoubleValue());
 
 	//TODO Update the model type here
 }
 
-void ControlBehaviors::ToggleExecutionUpdates() {
-
+void ToggleExecutionUpdates() {
+	//TODO do something with this info
 }
 
-void ControlBehaviors::AddStrip(AMFArrayValue* arguments) {
-	AMFArrayValue* strip = (AMFArrayValue*)arguments->FindValue("strip");
+void AddStrip(AMFArrayValue* arguments) {
+	auto* strip = arguments->FindValue<AMFArrayValue>("strip");
+	if (!strip) return;
 
-	AMFArrayValue* actions = (AMFArrayValue*)strip->FindValue("actions");
+	auto* actions = strip->FindValue<AMFArrayValue>("actions");
+	if (!actions) return;
 
-	AMFArrayValue* uiArray = (AMFArrayValue*)arguments->FindValue("ui");
+	auto* uiArray = arguments->FindValue<AMFArrayValue>("ui");
+	if (!uiArray) return;
 
-	AMFDoubleValue* xPositionValue = (AMFDoubleValue*)uiArray->FindValue("x");
+	auto* xPositionValue = uiArray->FindValue<AMFDoubleValue>("x");
+	if (!xPositionValue) return;
+
 	double xPosition = xPositionValue->GetDoubleValue();
 
-	AMFDoubleValue* yPositionValue = (AMFDoubleValue*)uiArray->FindValue("y");
+	auto* yPositionValue = uiArray->FindValue<AMFDoubleValue>("y");
+	if (!yPositionValue) return;
+
 	double yPosition = yPositionValue->GetDoubleValue();
 
 	STRIPID stripID = GetStripIDFromArgument(arguments);
@@ -184,43 +136,41 @@ void ControlBehaviors::AddStrip(AMFArrayValue* arguments) {
 
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
-	delete uiArray;
-	uiArray = nullptr;
-	delete xPositionValue;
-	xPositionValue = nullptr;
-	delete yPositionValue;
-	yPositionValue = nullptr;
-
 	std::string type = "";
 	std::string valueParameterName = "";
 	std::string valueParameterString = "";
 	double valueParameterDouble = 0.0;
-	auto actionList = actions->GetDenseArray();
-	for (AMFValue* action : actionList) {
-		AMFArrayValue* actionAsArray = (AMFArrayValue*)action;
-		for (auto typeValueMap : actionAsArray->GetAssociativeMap()) {
+	for (uint32_t position = 0; position < actions->GetDenseValueSize(); position++) {
+		auto* actionAsArray = actions->GetValueAt<AMFArrayValue>(position);
+		if (!actionAsArray) continue;
+
+		for (auto& typeValueMap : actionAsArray->GetAssociativeMap()) {
 			if (typeValueMap.first == "Type") {
-				type = ((AMFStringValue*)typeValueMap.second)->GetStringValue();
+				if (typeValueMap.second->GetValueType() != AMFValueType::AMFString) continue;
+
+				type = static_cast<AMFStringValue*>(typeValueMap.second)->GetStringValue();
 			} else {
 				valueParameterName = typeValueMap.first;
 				// Message is the only known string parameter
 				if (valueParameterName == "Message") {
-					valueParameterString = ((AMFStringValue*)typeValueMap.second)->GetStringValue();
+					if (typeValueMap.second->GetValueType() != AMFValueType::AMFString) continue;
+					valueParameterString = static_cast<AMFStringValue*>(typeValueMap.second)->GetStringValue();
 				} else {
-					valueParameterDouble = ((AMFDoubleValue*)typeValueMap.second)->GetDoubleValue();
+					if (typeValueMap.second->GetValueType() != AMFValueType::AMFDouble) continue;
+					valueParameterDouble = static_cast<AMFDoubleValue*>(typeValueMap.second)->GetDoubleValue();
 				}
 			}
 		}
 		// modelComponent->AddStrip(stateID, stripID, type, behaviorID, valueParameterName, valueParameterString, valueParameterDouble, "", xPosition, yPosition);
-		type = "";
-		valueParameterName = "";
-		valueParameterString = "";
+		type.clear();
+		valueParameterName.clear();
+		valueParameterString.clear();
 		valueParameterDouble = 0.0;
 	}
 	// RequestUpdatedID(behaviorID);
 }
 
-void ControlBehaviors::RemoveStrip(AMFArrayValue* arguments) {
+void RemoveStrip(AMFArrayValue* arguments) {
 	STRIPID stripID = GetStripIDFromArgument(arguments);
 
 	BEHAVIORSTATE stateID = GetBehaviorStateFromArgument(arguments);
@@ -232,15 +182,17 @@ void ControlBehaviors::RemoveStrip(AMFArrayValue* arguments) {
 	// RequestUpdatedID(behaviorID);
 }
 
-void ControlBehaviors::MergeStrips(AMFArrayValue* arguments) {
+void MergeStrips(AMFArrayValue* arguments) {
 	STRIPID srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
 
 	BEHAVIORSTATE dstStateID = GetBehaviorStateFromArgument(arguments, "dstStateID");
 
 	BEHAVIORSTATE srcStateID = GetBehaviorStateFromArgument(arguments, "srcStateID");
 
-	AMFDoubleValue* dstActionIndexValue = (AMFDoubleValue*)arguments->FindValue("dstActionIndex");
-	uint32_t dstActionIndex = (uint32_t)dstActionIndexValue->GetDoubleValue();
+	auto* dstActionIndexValue = arguments->FindValue<AMFDoubleValue>("dstActionIndex");
+	if (!dstActionIndexValue) return;
+
+	uint32_t dstActionIndex = static_cast<uint32_t>(dstActionIndexValue->GetDoubleValue());
 
 	STRIPID dstStripID = GetStripIDFromArgument(arguments, "dstStripID");
 
@@ -251,9 +203,11 @@ void ControlBehaviors::MergeStrips(AMFArrayValue* arguments) {
 	// RequestUpdatedID(behaviorID);
 }
 
-void ControlBehaviors::SplitStrip(AMFArrayValue* arguments) {
-	AMFDoubleValue* srcActionIndexValue = (AMFDoubleValue*)arguments->FindValue("srcActionIndex");
-	uint32_t srcActionIndex = (uint32_t)srcActionIndexValue->GetDoubleValue();
+void SplitStrip(AMFArrayValue* arguments) {
+	auto* srcActionIndexValue = arguments->FindValue<AMFDoubleValue>("srcActionIndex");
+	if (!srcActionIndexValue) return;
+
+	uint32_t srcActionIndex = static_cast<uint32_t>(srcActionIndexValue->GetDoubleValue());
 
 	STRIPID srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
 
@@ -263,13 +217,16 @@ void ControlBehaviors::SplitStrip(AMFArrayValue* arguments) {
 
 	BEHAVIORSTATE dstStateID = GetBehaviorStateFromArgument(arguments, "dstStateID");
 
-	AMFArrayValue* dstStripUIArray = (AMFArrayValue*)arguments->FindValue("dstStripUI");
+	auto* dstStripUIArray = arguments->FindValue<AMFArrayValue>("dstStripUI");
+	if (!dstStripUIArray) return;
 
-	AMFDoubleValue* xPositionValue = (AMFDoubleValue*)dstStripUIArray->FindValue("x");
-	AMFDoubleValue* yPositionValue = (AMFDoubleValue*)dstStripUIArray->FindValue("y");
+	auto* xPositionValue = dstStripUIArray->FindValue<AMFDoubleValue>("x");
+	auto* yPositionValue = dstStripUIArray->FindValue<AMFDoubleValue>("y");
+	if (!xPositionValue || !yPositionValue) return;
+
 	// x and y position 15 are just where the game puts the strip by default if none is given.
-	double yPosition = yPositionValue != nullptr ? yPositionValue->GetDoubleValue() : 15;
-	double xPosition = xPositionValue != nullptr ? xPositionValue->GetDoubleValue() : 15;
+	double yPosition = yPositionValue->GetDoubleValue();
+	double xPosition = xPositionValue->GetDoubleValue();
 
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
@@ -278,11 +235,14 @@ void ControlBehaviors::SplitStrip(AMFArrayValue* arguments) {
 	// RequestUpdatedID(behaviorID);
 }
 
-void ControlBehaviors::UpdateStripUI(AMFArrayValue* arguments) {
-	AMFArrayValue* uiArray = (AMFArrayValue*)arguments->FindValue("ui");
+void UpdateStripUI(AMFArrayValue* arguments) {
+	auto* uiArray = arguments->FindValue<AMFArrayValue>("ui");
+	if (!uiArray) return;
 
-	AMFDoubleValue* xPositionValue = (AMFDoubleValue*)uiArray->FindValue("x");
-	AMFDoubleValue* yPositionValue = (AMFDoubleValue*)uiArray->FindValue("y");
+	auto* xPositionValue = uiArray->FindValue<AMFDoubleValue>("x");
+	auto* yPositionValue = uiArray->FindValue<AMFDoubleValue>("y");
+	if (!xPositionValue || !yPositionValue) return;
+
 	double yPosition = yPositionValue->GetDoubleValue();
 	double xPosition = xPositionValue->GetDoubleValue();
 
@@ -297,9 +257,11 @@ void ControlBehaviors::UpdateStripUI(AMFArrayValue* arguments) {
 	// RequestUpdatedID(behaviorID);
 }
 
-void ControlBehaviors::AddAction(AMFArrayValue* arguments) {
-	AMFDoubleValue* actionIndexValue = (AMFDoubleValue*)arguments->FindValue("actionIndex");
-	uint32_t actionIndex = (uint32_t)actionIndexValue->GetDoubleValue();
+void AddAction(AMFArrayValue* arguments) {
+	auto* actionIndexAmf = arguments->FindValue<AMFDoubleValue>("actionIndex");
+	if (!actionIndexAmf) return;
+
+	uint32_t actionIndex = static_cast<uint32_t>(actionIndexAmf->GetDoubleValue());
 
 	STRIPID stripID = GetStripIDFromArgument(arguments);
 
@@ -309,17 +271,22 @@ void ControlBehaviors::AddAction(AMFArrayValue* arguments) {
 	std::string valueParameterName = "";
 	std::string valueParameterString = "";
 	double valueParameterDouble = 0.0;
-	AMFArrayValue* actionAsArray = (AMFArrayValue*)arguments->FindValue("action");
-	for (auto typeValueMap : actionAsArray->GetAssociativeMap()) {
+	auto* action = arguments->FindValue<AMFArrayValue>("action");
+	if (!action) return;
+
+	for (auto& typeValueMap : action->GetAssociativeMap()) {
 		if (typeValueMap.first == "Type") {
-			type = ((AMFStringValue*)typeValueMap.second)->GetStringValue();
+			if (typeValueMap.second->GetValueType() != AMFValueType::AMFString) continue;
+			type = static_cast<AMFStringValue*>(typeValueMap.second)->GetStringValue();
 		} else {
 			valueParameterName = typeValueMap.first;
 			// Message is the only known string parameter
 			if (valueParameterName == "Message") {
-				valueParameterString = ((AMFStringValue*)typeValueMap.second)->GetStringValue();
+				if (typeValueMap.second->GetValueType() != AMFValueType::AMFString) continue;
+				valueParameterString = static_cast<AMFStringValue*>(typeValueMap.second)->GetStringValue();
 			} else {
-				valueParameterDouble = ((AMFDoubleValue*)typeValueMap.second)->GetDoubleValue();
+				if (typeValueMap.second->GetValueType() != AMFValueType::AMFDouble) continue;
+				valueParameterDouble = static_cast<AMFDoubleValue*>(typeValueMap.second)->GetDoubleValue();
 			}
 		}
 	}
@@ -331,16 +298,20 @@ void ControlBehaviors::AddAction(AMFArrayValue* arguments) {
 	// RequestUpdatedID(behaviorID);
 }
 
-void ControlBehaviors::MigrateActions(AMFArrayValue* arguments) {
-	AMFDoubleValue* srcActionIndexValue = (AMFDoubleValue*)arguments->FindValue("srcActionIndex");
-	uint32_t srcActionIndex = (uint32_t)srcActionIndexValue->GetDoubleValue();
+void MigrateActions(AMFArrayValue* arguments) {
+	auto* srcActionIndexAmf = arguments->FindValue<AMFDoubleValue>("srcActionIndex");
+	if (!srcActionIndexAmf) return;
+
+	uint32_t srcActionIndex = static_cast<uint32_t>(srcActionIndexAmf->GetDoubleValue());
 
 	STRIPID srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
 
 	BEHAVIORSTATE srcStateID = GetBehaviorStateFromArgument(arguments, "srcStateID");
 
-	AMFDoubleValue* dstActionIndexValue = (AMFDoubleValue*)arguments->FindValue("dstActionIndex");
-	uint32_t dstActionIndex = (uint32_t)dstActionIndexValue->GetDoubleValue();
+	auto* dstActionIndexAmf = arguments->FindValue<AMFDoubleValue>("dstActionIndex");
+	if (!dstActionIndexAmf) return;
+
+	uint32_t dstActionIndex = static_cast<uint32_t>(dstActionIndexAmf->GetDoubleValue());
 
 	STRIPID dstStripID = GetStripIDFromArgument(arguments, "dstStripID");
 
@@ -353,16 +324,16 @@ void ControlBehaviors::MigrateActions(AMFArrayValue* arguments) {
 	// RequestUpdatedID(behaviorID);
 }
 
-void ControlBehaviors::RearrangeStrip(AMFArrayValue* arguments) {
-	AMFDoubleValue* srcActionIndexValue = (AMFDoubleValue*)arguments->FindValue("srcActionIndex");
-	uint32_t srcActionIndex = (uint32_t)srcActionIndexValue->GetDoubleValue();
+void RearrangeStrip(AMFArrayValue* arguments) {
+	auto* srcActionIndexValue = arguments->FindValue<AMFDoubleValue>("srcActionIndex");
+	uint32_t srcActionIndex = static_cast<uint32_t>(srcActionIndexValue->GetDoubleValue());
 
 	uint32_t stripID = GetStripIDFromArgument(arguments);
 
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
-	AMFDoubleValue* dstActionIndexValue = (AMFDoubleValue*)arguments->FindValue("dstActionIndex");
-	uint32_t dstActionIndex = (uint32_t)dstActionIndexValue->GetDoubleValue();
+	auto* dstActionIndexValue = arguments->FindValue<AMFDoubleValue>("dstActionIndex");
+	uint32_t dstActionIndex = static_cast<uint32_t>(dstActionIndexValue->GetDoubleValue());
 
 	BEHAVIORSTATE stateID = GetBehaviorStateFromArgument(arguments);
 
@@ -371,40 +342,45 @@ void ControlBehaviors::RearrangeStrip(AMFArrayValue* arguments) {
 	// RequestUpdatedID(behaviorID);
 }
 
-void ControlBehaviors::Add(AMFArrayValue* arguments) {
+void Add(AMFArrayValue* arguments) {
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
 	uint32_t behaviorIndex = 0;
-	AMFValue* behaviorIndexValue = arguments->FindValue("BehaviorIndex");
+	auto* behaviorIndexAmf = arguments->FindValue<AMFDoubleValue>("BehaviorIndex");
 
-	if (behaviorIndexValue) {
-		AMFDoubleValue* behaviorIndexValueConverted = (AMFDoubleValue*)behaviorIndexValue;
-		behaviorIndex = (uint32_t)behaviorIndexValueConverted->GetDoubleValue();
-	}
+	if (!behaviorIndexAmf) return;
+
+	behaviorIndex = static_cast<uint32_t>(behaviorIndexAmf->GetDoubleValue());
 
 	// modelComponent->AddBehavior(behaviorID, behaviorIndex, modelOwner);
+
 	// SendBehaviorListToClient();
 }
 
-void ControlBehaviors::RemoveActions(AMFArrayValue* arguments) {
+void RemoveActions(AMFArrayValue* arguments) {
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
-	AMFDoubleValue* actionIndexValue = (AMFDoubleValue*)arguments->FindValue("actionIndex");
-	uint32_t actionIndex = (uint32_t)actionIndexValue->GetDoubleValue();
+	auto* actionIndexAmf = arguments->FindValue<AMFDoubleValue>("actionIndex");
+	if (!actionIndexAmf) return;
+
+	uint32_t actionIndex = static_cast<uint32_t>(actionIndexAmf->GetDoubleValue());
 
 	STRIPID stripID = GetStripIDFromArgument(arguments);
 
 	BEHAVIORSTATE stateID = GetBehaviorStateFromArgument(arguments);
+
 	// modelComponent->RemoveAction(stateID, stripID, actionIndex, behaviorID);
 
 	// RequestUpdatedID(behaviorID);
 }
 
-void ControlBehaviors::Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
+void Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
-	AMFStringValue* nameAsValue = (AMFStringValue*)arguments->FindValue("Name");
-	auto name = nameAsValue->GetStringValue();
+	auto* nameAmf = arguments->FindValue<AMFStringValue>("Name");
+	if (!nameAmf) return;
+
+	auto name = nameAmf->GetStringValue();
 
 	// modelComponent->Rename(behaviorID, name);
 
@@ -414,7 +390,7 @@ void ControlBehaviors::Rename(Entity* modelEntity, const SystemAddress& sysAddr,
 }
 
 // TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
-void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
+void SendBehaviorBlocksToClient(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
 	// auto modelBehavior = modelComponent->FindBehavior(behaviorID);
@@ -519,32 +495,36 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 	// GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorBlocks", &behaviorInfo);
 }
 
-void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
-	Game::logger->Log("ControlBehaviors", "updateAction!\n");
-
+void UpdateAction(AMFArrayValue* arguments) {
 	std::string type = "";
 	std::string valueParameterName = "";
 	std::string valueParameterString = "";
 	double valueParameterDouble = 0.0;
-	AMFArrayValue* actionAsArray = (AMFArrayValue*)arguments->FindValue("action");
-	for (auto typeValueMap : actionAsArray->GetAssociativeMap()) {
+	auto* actionAsArray = arguments->FindValue<AMFArrayValue>("action");
+	if (!actionAsArray) return;
+	for (auto& typeValueMap : actionAsArray->GetAssociativeMap()) {
 		if (typeValueMap.first == "Type") {
-			type = ((AMFStringValue*)typeValueMap.second)->GetStringValue();
+			if (typeValueMap.second->GetValueType() != AMFValueType::AMFString) continue;
+			type = static_cast<AMFStringValue*>(typeValueMap.second)->GetStringValue();
 		} else {
 			valueParameterName = typeValueMap.first;
 			// Message is the only known string parameter
 			if (valueParameterName == "Message") {
-				valueParameterString = ((AMFStringValue*)typeValueMap.second)->GetStringValue();
+				if (typeValueMap.second->GetValueType() != AMFValueType::AMFString) continue;
+				valueParameterString = static_cast<AMFStringValue*>(typeValueMap.second)->GetStringValue();
 			} else {
-				valueParameterDouble = ((AMFDoubleValue*)typeValueMap.second)->GetDoubleValue();
+				if (typeValueMap.second->GetValueType() != AMFValueType::AMFDouble) continue;
+				valueParameterDouble = static_cast<AMFDoubleValue*>(typeValueMap.second)->GetDoubleValue();
 			}
 		}
 	}
 
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
-	AMFDoubleValue* actionIndexValue = (AMFDoubleValue*)arguments->FindValue("actionIndex");
-	uint32_t actionIndex = (uint32_t)actionIndexValue->GetDoubleValue();
+	auto* actionIndexValue = arguments->FindValue<AMFDoubleValue>("actionIndex");
+	if (!actionIndexValue) return;
+
+	uint32_t actionIndex = static_cast<uint32_t>(actionIndexValue->GetDoubleValue());
 
 	STRIPID stripID = GetStripIDFromArgument(arguments);
 
@@ -555,7 +535,7 @@ void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
 	// RequestUpdatedID(behaviorID);
 }
 
-void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
+void MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	// This closes the UI menu should it be open while the player is removing behaviors
 	AMFArrayValue args;
 
@@ -566,10 +546,56 @@ void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const Sys
 
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
-	AMFDoubleValue* behaviorIndexValue = (AMFDoubleValue*)arguments->FindValue("BehaviorIndex");
-	uint32_t behaviorIndex = (uint32_t)behaviorIndexValue->GetDoubleValue();
+	auto* behaviorIndexValue = arguments->FindValue<AMFDoubleValue>("BehaviorIndex");
+	if (!behaviorIndexValue) return;
+
+	uint32_t behaviorIndex = static_cast<uint32_t>(behaviorIndexValue->GetDoubleValue());
 
 	// modelComponent->MoveBehaviorToInventory(behaviorID, behaviorIndex, modelOwner);
 
 	SendBehaviorListToClient(modelComponent->GetParent(), sysAddr, modelOwner);
+}
+
+void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
+	if (!modelEntity || !modelOwner || !arguments) return;
+	auto* modelComponent = modelEntity->GetComponent<ModelComponent>();
+
+	if (!modelComponent) return;
+
+	if (command == "sendBehaviorListToClient")
+		SendBehaviorListToClient(modelEntity, sysAddr, modelOwner);
+	else if (command == "modelTypeChanged")
+		ModelTypeChanged(arguments, modelComponent);
+	else if (command == "toggleExecutionUpdates")
+		ToggleExecutionUpdates();
+	else if (command == "addStrip")
+		AddStrip(arguments);
+	else if (command == "removeStrip")
+		RemoveStrip(arguments);
+	else if (command == "mergeStrips")
+		MergeStrips(arguments);
+	else if (command == "splitStrip")
+		SplitStrip(arguments);
+	else if (command == "updateStripUI")
+		UpdateStripUI(arguments);
+	else if (command == "addAction")
+		AddAction(arguments);
+	else if (command == "migrateActions")
+		MigrateActions(arguments);
+	else if (command == "rearrangeStrip")
+		RearrangeStrip(arguments);
+	else if (command == "add")
+		Add(arguments);
+	else if (command == "removeActions")
+		RemoveActions(arguments);
+	else if (command == "rename")
+		Rename(modelEntity, sysAddr, modelOwner, arguments);
+	else if (command == "sendBehaviorBlocksToClient")
+		SendBehaviorBlocksToClient(modelComponent, sysAddr, modelOwner, arguments);
+	else if (command == "moveToInventory")
+		MoveToInventory(modelComponent, sysAddr, modelOwner, arguments);
+	else if (command == "updateAction")
+		UpdateAction(arguments);
+	else
+		Game::logger->Log("ControlBehaviors", "Unknown behavior command (%s)\n", command.c_str());
 }
