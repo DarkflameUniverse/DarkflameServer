@@ -220,10 +220,11 @@ int TestLiveCapture() {
 	// Test the outermost array
 
 	ASSERT_EQ(result->FindValue<AMFStringValue>("BehaviorID")->GetStringValue(), "10447");
-	ASSERT_EQ(result->FindValue<AMFStringValue>("objectID")->GetStringValue(), "288300744895913279")
+	ASSERT_EQ(result->FindValue<AMFStringValue>("objectID")->GetStringValue(), "288300744895913279");
 
-		// Test the execution state array
-		auto executionState = result->FindValue<AMFArrayValue>("executionState");
+	// Test the execution state array
+	auto executionState = result->FindValue<AMFArrayValue>("executionState");
+
 	ASSERT_NE(executionState, nullptr);
 
 	auto strips = executionState->FindValue<AMFArrayValue>("strips")->GetDenseArray();
@@ -268,7 +269,7 @@ int TestLiveCapture() {
 
 	ASSERT_EQ(actionID->GetDoubleValue(), 0.0f)
 
-	auto uiArray = firstStrip->FindValue<AMFArrayValue>("ui");
+		auto uiArray = firstStrip->FindValue<AMFArrayValue>("ui");
 
 	auto xPos = uiArray->FindValue<AMFDoubleValue>("x");
 	auto yPos = uiArray->FindValue<AMFDoubleValue>("y");
@@ -327,6 +328,42 @@ int TestNullStream() {
 	return 0;
 }
 
+int TestBadConversion() {
+	std::ifstream testFileStream;
+	testFileStream.open("AMFBitStreamTest.bin", std::ios::binary);
+
+	// Read a test BitStream from a file
+	RakNet::BitStream testBitStream;
+	char byte = 0;
+	while (testFileStream.get(byte)) {
+		testBitStream.Write<char>(byte);
+	}
+
+	testFileStream.close();
+
+	auto resultFromFn = ReadFromBitStream(&testBitStream);
+	auto result = static_cast<AMFArrayValue*>(resultFromFn.get());
+
+	// Actually a string value.
+	ASSERT_EQ(result->FindValue<AMFDoubleValue>("BehaviorID"), nullptr);
+
+	// Does not exist in the associative portion
+	ASSERT_EQ(result->FindValue<AMFNullValue>("DOES_NOT_EXIST"), nullptr);
+
+	result->PushBackValue(new AMFTrueValue());
+
+	// Exists and is correct type
+	ASSERT_NE(result->GetValueAt<AMFTrueValue>(0), nullptr);
+
+	// Value exists but is wrong typing
+	ASSERT_EQ(result->GetValueAt<AMFFalseValue>(0), nullptr);
+
+	// Value is out of bounds
+	ASSERT_EQ(result->GetValueAt<AMFTrueValue>(1), nullptr);
+
+	return 0;
+}
+
 int AMFDeserializeTests(int argc, char** const argv) {
 	std::cout << "Checking that using a null bitstream doesnt cause exception" << std::endl;
 	if (TestNullStream()) return 1;
@@ -343,6 +380,8 @@ int AMFDeserializeTests(int argc, char** const argv) {
 	if (TestLiveCapture() != 0) return 1;
 	std::cout << "Passed live capture, checking unimplemented amf values" << std::endl;
 	if (TestUnimplementedAMFValues() != 0) return 1;
+	std::cout << "Passed unimplemented values, checking poor casting" << std::endl;
+	if (TestBadConversion() != 0) return 1;
 	std::cout << "Passed all tests." << std::endl;
 	return 0;
 }

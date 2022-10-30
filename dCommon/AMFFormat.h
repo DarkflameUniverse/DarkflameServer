@@ -323,6 +323,7 @@ public:
 	 */
 	template <typename T>
 	T* GetValueAt(uint32_t index) {
+		if (index >= this->dense.size()) return nullptr;
 		AMFValue* foundValue = this->dense.at(index);
 		return T::ValueType == foundValue->GetValueType() ? dynamic_cast<T*>(foundValue) : nullptr;
 	};
