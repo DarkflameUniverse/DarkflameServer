@@ -50,7 +50,6 @@ bool Pack::ReadFileFromPack(uint32_t crc, char** data, uint32_t* len) {
 	PackRecord pkRecord{};
 
 	for (const auto& record : m_Records) {
-		std::cout << record.m_Crc << " | " << crc << std::endl;
 		if (record.m_Crc == crc) {
 			pkRecord = record;
 			break;
@@ -101,6 +100,8 @@ bool Pack::ReadFileFromPack(uint32_t crc, char** data, uint32_t* len) {
 
 		int32_t err;
 		currentReadPos += ZCompression::Decompress((uint8_t*)chunk, size, reinterpret_cast<uint8_t*>(decompressedData + currentReadPos), 1024 * 256, err);
+
+		free(chunk);
 	}
 
 	*data = decompressedData;

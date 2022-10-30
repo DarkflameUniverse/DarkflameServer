@@ -61,6 +61,4 @@ Manifest::Manifest(const std::filesystem::path& path) {
 	}
 
 	Game::logger->Log("Manifest", "Loaded client version %s with %i files", m_Version.m_HumanReadableVersion.c_str(), m_Paths.size());
-	
-	printf("");
 }
