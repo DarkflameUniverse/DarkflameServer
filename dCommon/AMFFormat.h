@@ -75,7 +75,9 @@ private:
 	/*!
 	  \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFUndefined; }
+	AMFValueType GetValueType() { return ValueType; }
+public:
+	static const AMFValueType ValueType = AMFUndefined;
 };
 
 //! The null value AMF type
@@ -85,7 +87,9 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFNull; }
+	AMFValueType GetValueType() { return ValueType; }
+public:
+	static const AMFValueType ValueType = AMFNull;
 };
 
 //! The false value AMF type
@@ -95,7 +99,9 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFFalse; }
+	AMFValueType GetValueType() { return ValueType; }
+public:
+	static const AMFValueType ValueType = AMFFalse;
 };
 
 //! The true value AMF type
@@ -105,7 +111,9 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFTrue; }
+	AMFValueType GetValueType() { return ValueType; }
+public:
+	static const AMFValueType ValueType = AMFTrue;
 };
 
 //! The integer value AMF type
@@ -117,9 +125,10 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFInteger; }
+	AMFValueType GetValueType() { return ValueType; }
 
 public:
+	static const AMFValueType ValueType = AMFInteger;
 	//! Sets the integer value
 	/*!
 	  \param value The value to set
@@ -142,9 +151,10 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFDouble; }
+	AMFValueType GetValueType() { return ValueType; }
 
 public:
+	static const AMFValueType ValueType = AMFDouble;
 	//! Sets the double value
 	/*!
 	  \param value The value to set to
@@ -167,9 +177,10 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFString; }
+	AMFValueType GetValueType() { return ValueType; }
 
 public:
+	static const AMFValueType ValueType = AMFString;
 	//! Sets the string value
 	/*!
 	  \param value The string value to set to
@@ -192,9 +203,10 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFXMLDoc; }
+	AMFValueType GetValueType() { return ValueType; }
 
 public:
+	static const AMFValueType ValueType = AMFXMLDoc;
 	//! Sets the XML Doc value
 	/*!
 	  \param value The value to set to
@@ -217,9 +229,10 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFDate; }
+	AMFValueType GetValueType() { return ValueType; }
 
 public:
+	static const AMFValueType ValueType = AMFDate;
 	//! Sets the date time
 	/*!
 	  \param value The value to set to
@@ -244,9 +257,11 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFArray; }
+	AMFValueType GetValueType() { return ValueType; }
 
 public:
+	static const AMFValueType ValueType = AMFArray;
+
 	~AMFArrayValue() override;
 	//! Inserts an item into the array map for a specific key
 	/*!
@@ -265,7 +280,15 @@ public:
 	/*!
 	  \return The AMF value if found, nullptr otherwise
 	 */
-	AMFValue* FindValue(const std::string& key);
+	template <typename T>
+	T* FindValue(const std::string& key) const {
+		_AMFArrayMap_::const_iterator it = this->associative.find(key);
+		if (it != this->associative.end() && T::ValueType == it->second->GetValueType()) {
+			return dynamic_cast<T*>(it->second);
+		}
+
+		return nullptr;
+	};
 
 	//! Returns where the associative iterator begins
 	/*!
@@ -298,7 +321,11 @@ public:
 	/*!
 	  \param index The index to get
 	 */
-	AMFValue* GetValueAt(uint32_t index);
+	template <typename T>
+	T* GetValueAt(uint32_t index) {
+		AMFValue* foundValue = this->dense.at(index);
+		return T::ValueType == foundValue->GetValueType() ? dynamic_cast<T*>(foundValue) : nullptr;
+	};
 
 	//! Returns where the dense iterator begins
 	/*!
@@ -334,10 +361,11 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return AMFObject; }
+	AMFValueType GetValueType() { return ValueType; }
 	~AMFObjectValue() override;
 
 public:
+	static const AMFValueType ValueType = AMFObject;
 	//! Constructor
 	/*!
 	  \param traits The traits to set

@@ -58,16 +58,6 @@ void AMFArrayValue::RemoveValue(const std::string& key) {
 	}
 }
 
-// AMFArray Find Value
-AMFValue* AMFArrayValue::FindValue(const std::string& key) {
-	_AMFArrayMap_::iterator it = this->associative.find(key);
-	if (it != this->associative.end()) {
-		return it->second;
-	}
-
-	return nullptr;
-}
-
 // AMFArray Get Associative Iterator Begin
 _AMFArrayMap_::iterator AMFArrayValue::GetAssociativeIteratorValueBegin() {
 	return this->associative.begin();
@@ -91,11 +81,6 @@ void AMFArrayValue::PopBackValue() {
 // AMFArray Get Dense List Size
 uint32_t AMFArrayValue::GetDenseValueSize() {
 	return (uint32_t)this->dense.size();
-}
-
-// AMFArray Get value at index in Dense List
-AMFValue* AMFArrayValue::GetValueAt(uint32_t index) {
-	return this->dense.at(index);
 }
 
 // AMFArray Get Dense Iterator Begin
