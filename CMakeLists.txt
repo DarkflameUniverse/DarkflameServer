@@ -144,6 +144,7 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dMission"
 	"dGame/dEntity"
 	"dGame/dUtilities"
+	"dCommon/dClient"
 	"dPhysics"
 	"dNavigation"
 	"dNavigation/dTerrain"

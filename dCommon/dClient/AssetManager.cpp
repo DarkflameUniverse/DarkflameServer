@@ -4,25 +4,38 @@
 
 AssetManager::AssetManager(const std::string& path) {
 	if (!std::filesystem::is_directory(path)) {
-		Game::logger->Log("AssetManager", "Attempted to load asset bundle (%s) however it is not a valid directory. ", path.c_str());
-
-		return;
+		throw std::runtime_error("Attempted to load asset bundle (" + path + ") however it is not a valid directory.");
 	}
 
 	m_Path = std::filesystem::path(path);
 
 	if (std::filesystem::exists(m_Path / "client") && std::filesystem::exists(m_Path / "versions")) {
 		m_AssetBundleType = eAssetBundleType::Packed;
-	}
 
-	if (std::filesystem::exists(m_Path / "client" / "res" / "cdclient.fdb") && !std::filesystem::exists(m_Path / "client" / "res" / "pack")) {
+		m_RootPath = m_Path;
+		m_ResPath = (m_Path / "client" / "res");
+	} else if (std::filesystem::exists(m_Path / ".." / "versions") && std::filesystem::exists(m_Path / "res")) {
+		m_AssetBundleType = eAssetBundleType::Packed;
+
+		m_RootPath = (m_Path / "..");
+		m_ResPath = (m_Path / "res");
+	} else if (std::filesystem::exists(m_Path / "pack") && std::filesystem::exists(m_Path / ".." / ".." / "versions")) {
+		m_AssetBundleType = eAssetBundleType::Packed;
+
+		m_RootPath = (m_Path / ".." / "..");
+		m_ResPath = m_Path;
+	} else if (std::filesystem::exists(m_Path / "res" / "cdclient.fdb") && !std::filesystem::exists(m_Path / "res" / "pack")) {
 		m_AssetBundleType = eAssetBundleType::Unpacked;
+
+		m_ResPath = (m_Path / "res");
+	} else if (std::filesystem::exists(m_Path / "cdclient.fdb") && !std::filesystem::exists(m_Path / "pack")) {
+		m_AssetBundleType = eAssetBundleType::Unpacked;
+
+		m_ResPath = m_Path;
 	}
 
 	if (m_AssetBundleType == eAssetBundleType::None) {
-		Game::logger->Log("AssetManager", "Failed to identify client type, cannot read client data");
-
-		return;
+		throw std::runtime_error("Failed to identify client type, cannot read client data.");
 	}
 
 	switch (m_AssetBundleType) {
@@ -38,23 +51,37 @@ AssetManager::AssetManager(const std::string& path) {
 }
 
 void AssetManager::LoadManifest(const std::string& name) {
-	Manifest* manifest = new Manifest(m_Path / "versions" / name);
+	Manifest* manifest = new Manifest(m_RootPath / "versions" / name);
 
 	m_Manifests.insert({ name, manifest });
 }
 
 void AssetManager::LoadPackIndex() {
-	m_PackIndex = new PackIndex(m_Path);
+	m_PackIndex = new PackIndex(m_RootPath);
 }
 
-void AssetManager::GetFile(char* name, char** data, uint32_t* len) {
-	auto fixedName = std::string(name);
+std::filesystem::path AssetManager::GetResPath() {
+	return m_ResPath;
+}
+
+eAssetBundleType AssetManager::GetAssetBundleType() {
+	return m_AssetBundleType;
+}
+
+bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
+	auto fixedName = std::string(name);	
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
 	std::replace(fixedName.begin(), fixedName.end(), '/', '\\');
 
-	if (std::filesystem::exists(m_Path / fixedName)) {
+	auto realPathName = fixedName;
+
+	if (fixedName.rfind("client\\res\\", 0) != 0) {
+		fixedName = "client\\res\\" + fixedName;
+	}
+
+	if (std::filesystem::exists(m_ResPath / realPathName)) {
 		FILE* file;
-		fopen_s(&file, (m_Path / fixedName).string().c_str(), "rb");
+		fopen_s(&file, (m_ResPath / realPathName).string().c_str(), "rb");
 		fseek(file, 0, SEEK_END);
 		*len = ftell(file);
 		*data = (char*)malloc(*len);
@@ -62,7 +89,7 @@ void AssetManager::GetFile(char* name, char** data, uint32_t* len) {
 		fread(*data, sizeof(uint8_t), *len, file);
 		fclose(file);
 
-		return;
+		return true;
 	}
 
 	int32_t packIndex = -1;
@@ -78,8 +105,7 @@ void AssetManager::GetFile(char* name, char** data, uint32_t* len) {
 	}
 
 	if (packIndex == -1 || !crc) {
-		Game::logger->Log("AssetManager", "Failed to find file %s in packs.", fixedName.c_str());
-		return;
+		return false;
 	}
 
 	auto packs = this->m_PackIndex->GetPacks();
@@ -87,28 +113,35 @@ void AssetManager::GetFile(char* name, char** data, uint32_t* len) {
 
 	bool success = pack->ReadFileFromPack(crc, data, len);
 
-	if (!success) {
-		std::cout << this->m_PackIndex->GetPackPaths().size() << " | " << this->m_PackIndex->GetPacks().size() << std::endl;
-		auto packPath = this->m_PackIndex->GetPackPaths().at(packIndex);
-		Game::logger->Log("AssetManager", "Failed to get %s from pack file %s", fixedName.c_str(), packPath.c_str());
-	}
+	return success;
+}
+
+AssetMemoryBuffer AssetManager::GetFileAsBuffer(const char* name) {
+	char* buf;
+	uint32_t len;
+
+	bool success = this->GetFile(name, &buf, &len);
+
+	return AssetMemoryBuffer(buf, len, success);
 }
 
 void AssetManager::UnpackRequiredAssets() {
-	if (std::filesystem::exists(m_Path / "client" / "res" / "cdclient.fdb")) return;
+	if (std::filesystem::exists(m_ResPath / "cdclient.fdb")) return;
 
 	char* data;
 	uint32_t size;
 
-	this->GetFile("client/res/cdclient.fdb", &data, &size);
+	bool success = this->GetFile("cdclient.fdb", &data, &size);
 
-	if (!data) {
-		return;
+	if (!success) {
+		Game::logger->Log("AssetManager", "Failed to extract required files from the packs.");
 	}
 
-	std::ofstream cdclientOutput(m_Path / "client" / "res" / "cdclient.fdb", std::ios::out | std::ios::binary);
+	std::ofstream cdclientOutput(m_ResPath / "cdclient.fdb", std::ios::out | std::ios::binary);
 	cdclientOutput.write(data, size);
 	cdclientOutput.close();
+
+	delete data;
 
 	return;
 }

@@ -17,12 +17,32 @@ enum class eAssetBundleType {
 	Packed
 };
 
+struct AssetMemoryBuffer : std::streambuf {
+	char* m_Base;
+	bool m_Success;
+
+	AssetMemoryBuffer(char* base, std::ptrdiff_t n, bool success) {
+		m_Base = base;
+		m_Success = success;
+		if (!m_Success) return;
+		this->setg(base, base, base + n);
+	}
+
+	void close() {
+		delete m_Base;
+	}
+};
+
 class AssetManager {
 public:
 	AssetManager(const std::string& path);
 	~AssetManager() = default;
 
-	void GetFile(char* name, char** data, uint32_t* len);
+	std::filesystem::path GetResPath();
+	eAssetBundleType GetAssetBundleType();
+
+	bool GetFile(const char* name, char** data, uint32_t* len);
+	AssetMemoryBuffer GetFileAsBuffer(const char* name);
 
 private:
 	void LoadManifest(const std::string& name);
@@ -51,6 +71,8 @@ private:
 	bool m_SuccessfullyLoaded;
 
 	std::filesystem::path m_Path;
+	std::filesystem::path m_RootPath;
+	std::filesystem::path m_ResPath;
 
 	eAssetBundleType m_AssetBundleType = eAssetBundleType::None;
 

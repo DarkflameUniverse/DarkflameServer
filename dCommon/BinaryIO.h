@@ -17,9 +17,9 @@ namespace BinaryIO {
 	}
 
 	void WriteString(const std::string& stringToWrite, std::ofstream& outstream);
-	std::string ReadString(std::ifstream& instream);
-	std::string ReadString(std::ifstream& instream, size_t size);
-	std::string ReadWString(std::ifstream& instream);
+	std::string ReadString(std::istream& instream);
+	std::string ReadString(std::istream& instream, size_t size);
+	std::string ReadWString(std::istream& instream);
 
 	inline bool DoesFileExist(const std::string& name) {
 		std::ifstream f(name.c_str());
