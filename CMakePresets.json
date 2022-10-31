@@ -33,7 +33,7 @@
       "displayName": "CI configure step for Windows",
       "description": "Set architecture to 64-bit (b/c RakNet)",
       "inherits": "default",
-      "generator": "Visual Studio 17 2022",
+      "generator": "Ninja",
       "architecture": {
         "value": "x64"
       },
