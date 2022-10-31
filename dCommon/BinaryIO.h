@@ -10,8 +10,7 @@ namespace BinaryIO {
 
 	template<typename T>
 	std::istream& BinaryRead(std::istream& stream, T& value) {
-		if (!stream.good())
-			printf("bla");
+		if (!stream.good()) throw std::runtime_error("Failed to read from istream.");
 
 		return stream.read(reinterpret_cast<char*>(&value), sizeof(T));
 	}
