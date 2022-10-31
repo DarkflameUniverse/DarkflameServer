@@ -9,6 +9,7 @@ create_test_sourcelist (Tests
 
 # add the executable
 add_executable (CommonCxxTests ${Tests})
+add_dependencies (CommonCxxTests mariadbConnCpp)
 target_link_libraries(CommonCxxTests ${COMMON_LIBRARIES})
 
 # remove the test driver source file
