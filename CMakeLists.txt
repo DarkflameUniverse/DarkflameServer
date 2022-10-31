@@ -35,8 +35,7 @@ foreach(variable ${variables})
 		endif()
 	endif()
 endforeach()
-option(USE_NGHTTP2 "Disable NGhttp2" OFF)
-message(STATUS "${USE_NGHTTP2}")
+
 # Set the version
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
