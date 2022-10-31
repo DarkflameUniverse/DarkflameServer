@@ -9,7 +9,7 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 
 	file(MAKE_DIRECTORY "${MARIADB_MSI_DIR}")
 	file(MAKE_DIRECTORY "${MARIADB_CONNECTOR_DIR}")
-	option(USE_NGHTTP2 "Disable NGhttp2" OFF)
+	set(USE_NGHTTP2 OFF CACHE BOOL "" FORCE)
 	message(STATUS "${USE_NGHTTP2}")
 	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi" )
 		message("Downloading mariadb connector/c")
