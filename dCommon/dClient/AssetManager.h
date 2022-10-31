@@ -5,9 +5,6 @@
 #include <unordered_map>
 #include <filesystem>
 
-
-#include "Manifest.h"
-
 #include "Pack.h"
 #include "PackIndex.h"
 
@@ -62,7 +59,6 @@ public:
 	AssetMemoryBuffer GetFileAsBuffer(const char* name);
 
 private:
-	void LoadManifest(const std::string& name);
 	void LoadPackIndex();
 	void UnpackRequiredAssets();
 
@@ -94,5 +90,4 @@ private:
 	eAssetBundleType m_AssetBundleType = eAssetBundleType::None;
 
 	PackIndex* m_PackIndex;
-	std::unordered_map<std::string, Manifest*> m_Manifests;
 };

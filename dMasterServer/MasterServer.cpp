@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
 		stmt->executeUpdate();
 		delete stmt;
 
-		std::string res = "python3 ../../../thirdparty/docker-utils/utils/fdb_to_sqlite.py " + (Game::assetManager->GetResPath() / "cdclient.fdb").string();
+		std::string res = "python3 ../thirdparty/docker-utils/utils/fdb_to_sqlite.py " + (Game::assetManager->GetResPath() / "cdclient.fdb").string();
 
 		int result = system(res.c_str());
 		if (result != 0) {

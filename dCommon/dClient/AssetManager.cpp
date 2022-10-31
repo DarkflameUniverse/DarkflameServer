@@ -49,12 +49,6 @@ AssetManager::AssetManager(const std::string& path) {
 	}
 }
 
-void AssetManager::LoadManifest(const std::string& name) {
-	Manifest* manifest = new Manifest(m_RootPath / "versions" / name);
-
-	m_Manifests.insert({ name, manifest });
-}
-
 void AssetManager::LoadPackIndex() {
 	m_PackIndex = new PackIndex(m_RootPath);
 }
