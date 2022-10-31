@@ -95,7 +95,7 @@ bool AssetManager::HasFile(const char* name) {
 }
 
 bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
-	auto fixedName = std::string(name);	
+	auto fixedName = std::string(name);
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
 	std::replace(fixedName.begin(), fixedName.end(), '/', '\\');
 
@@ -107,7 +107,14 @@ bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 
 	if (std::filesystem::exists(m_ResPath / realPathName)) {
 		FILE* file;
+#ifdef _WIN32
 		fopen_s(&file, (m_ResPath / realPathName).string().c_str(), "rb");
+#elif __APPLE__
+		// macOS has 64bit file IO by default
+		file = fopen((m_ResPath / realPathName).string().c_str(), "rb");
+#else
+		file = fopen64((m_ResPath / realPathName).string().c_str(), "rb");
+#endif
 		fseek(file, 0, SEEK_END);
 		*len = ftell(file);
 		*data = (char*)malloc(*len);

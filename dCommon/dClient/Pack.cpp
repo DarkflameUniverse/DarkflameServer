@@ -65,7 +65,14 @@ bool Pack::ReadFileFromPack(uint32_t crc, char** data, uint32_t* len) {
 	auto inPackSize = isCompressed ? pkRecord.m_CompressedSize : pkRecord.m_UncompressedSize;
 
 	FILE* file;
+#ifdef _WIN32
 	fopen_s(&file, m_FilePath.string().c_str(), "rb");
+#elif __APPLE__
+	// macOS has 64bit file IO by default
+	file = fopen(m_FilePath.string().c_str(), "rb");
+#else
+	file = fopen64(m_FilePath.string().c_str(), "rb");
+#endif
 
 	fseek(file, pos, SEEK_SET);
 

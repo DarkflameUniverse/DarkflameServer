@@ -27,8 +27,11 @@ std::vector<Brick>& BrickDatabase::GetBricks(const std::string& lxfmlPath) {
 	std::stringstream data;
 	data << file.rdbuf();
 	if (data.str().empty()) {
+		buffer.close();
 		return emptyCache;
 	}
+
+	buffer.close();
 
 	auto* doc = new tinyxml2::XMLDocument();
 	if (doc->Parse(data.str().c_str(), data.str().size()) != 0) {
