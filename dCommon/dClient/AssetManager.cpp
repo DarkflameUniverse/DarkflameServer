@@ -125,6 +125,8 @@ bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 		return true;
 	}
 
+	if (this->m_AssetBundleType == eAssetBundleType::Unpacked) return false;
+
 	int32_t packIndex = -1;
 	uint32_t crc = crc32b(0xFFFFFFFF, (uint8_t*)fixedName.c_str(), fixedName.size());
 	crc = crc32b(crc, (Bytef*)"\0\0\0\0", 4);
@@ -168,6 +170,10 @@ void AssetManager::UnpackRequiredAssets() {
 
 	if (!success) {
 		Game::logger->Log("AssetManager", "Failed to extract required files from the packs.");
+
+		delete data;
+
+		return;
 	}
 
 	std::ofstream cdclientOutput(m_ResPath / "cdclient.fdb", std::ios::out | std::ios::binary);
