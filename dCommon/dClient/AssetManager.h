@@ -28,6 +28,22 @@ struct AssetMemoryBuffer : std::streambuf {
 		this->setg(base, base, base + n);
 	}
 
+	pos_type seekpos(pos_type sp, std::ios_base::openmode which) override {
+		return seekoff(sp - pos_type(off_type(0)), std::ios_base::beg, which);
+	}
+
+	pos_type seekoff(off_type off,
+		std::ios_base::seekdir dir,
+		std::ios_base::openmode which = std::ios_base::in) override {
+		if (dir == std::ios_base::cur)
+			gbump(off);
+		else if (dir == std::ios_base::end)
+			setg(eback(), egptr() + off, egptr());
+		else if (dir == std::ios_base::beg)
+			setg(eback(), eback() + off, egptr());
+		return gptr() - eback();
+	}
+
 	void close() {
 		delete m_Base;
 	}
@@ -41,6 +57,7 @@ public:
 	std::filesystem::path GetResPath();
 	eAssetBundleType GetAssetBundleType();
 
+	bool HasFile(const char* name);
 	bool GetFile(const char* name, char** data, uint32_t* len);
 	AssetMemoryBuffer GetFileAsBuffer(const char* name);
 

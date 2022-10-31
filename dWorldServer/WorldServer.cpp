@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
 		if (client_path.empty()) client_path = "./res";
 		Game::assetManager = new AssetManager(config.GetValue("client_location"));
 	} catch (std::runtime_error& ex) {
-		Game::logger->Log("MasterServer", "Got an error while setting up assets: %s", ex.what());
+		Game::logger->Log("WorldServer", "Got an error while setting up assets: %s", ex.what());
 
 		return EXIT_FAILURE;
 	}

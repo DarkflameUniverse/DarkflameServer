@@ -160,7 +160,7 @@ std::string Zone::GetFilePathForZoneID() {
 	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
 	const CDZoneTable* zone = zoneTable->Query(this->GetZoneID().GetMapID());
 	if (zone != nullptr) {
-		std::string toReturn = "client/res/maps/" + zone->zoneName;
+		std::string toReturn = "maps/" + zone->zoneName;
 		std::transform(toReturn.begin(), toReturn.end(), toReturn.begin(), ::tolower);
 		return toReturn;
 	}
