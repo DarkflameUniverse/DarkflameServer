@@ -35,7 +35,7 @@ foreach(variable ${variables})
 		endif()
 	endif()
 endforeach()
-
+set(USE_NGHTTP2 OFF CACHE BOOL "Use Nghttp2 library" FORCE)
 # Set the version
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
