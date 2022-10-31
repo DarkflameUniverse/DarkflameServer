@@ -90,7 +90,7 @@ make_directory(${CMAKE_BINARY_DIR}/locale)
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
 # Copy resource files on first build
-set(RESOURCE_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
+set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
 foreach(resource_file ${RESOURCE_FILES})
 	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
 		configure_file(
@@ -108,13 +108,25 @@ foreach(file ${VANITY_FILES})
 endforeach()
 
 # Move our migrations for MasterServer to run
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/)
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/dlu/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/${file})
+	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
 		configure_file(
-			${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/${file}
+			${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file}
+			COPYONLY
+		)
+	endif()
+endforeach()
+
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/cdserver/)
+file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/cdserver/*.sql)
+foreach(file ${SQL_FILES})
+	get_filename_component(file ${file} NAME)
+	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
+		configure_file(
+			${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file}
 			COPYONLY
 		)
 	endif()

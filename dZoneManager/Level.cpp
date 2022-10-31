@@ -266,7 +266,7 @@ void Level::ReadSceneObjectDataChunk(std::ifstream& file, Header& header) {
 							spawnInfo.respawnTime = std::stof(data->GetValueAsString());
 						} else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms?
 						{
-							spawnInfo.respawnTime = std::stoi(data->GetValueAsString()) / 1000;
+							spawnInfo.respawnTime = std::stoul(data->GetValueAsString()) / 1000;
 						}
 					}
 					if (data->GetKey() == u"spawnsGroupOnSmash") {

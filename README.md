@@ -196,23 +196,25 @@ certutil -hashfile <file> SHA256
 * Copy over or create symlinks from `locale.xml` in your client `locale` directory to the `build/locale` directory
 
 #### Client database
-* Use `fdb_to_sqlite.py` in lcdr's utilities on `res/cdclient.fdb` in the unpacked client to convert the client database to `cdclient.sqlite`
-* Move and rename `cdclient.sqlite` into `build/res/CDServer.sqlite`
-* Run each SQL file in the order at which they appear [here](migrations/cdserver/) on the SQLite database
+* Move the file `res/cdclient.fdb` from the unpacked client to the `build/res` folder on the server.
+* The server will automatically copy and convert the file from fdb to sqlite should `CDServer.sqlite` not already exist.
+* You can also convert the database manually using `fdb_to_sqlite.py` using lcdr's utilities.  Just make sure to rename the file to `CDServer.sqlite` instead of `cdclient.sqlite`.
+* Migrations to the database are automatically run on server start.  When migrations are needed to be ran, the server may take a bit longer to start.
 
 ### Database
 Darkflame Universe utilizes a MySQL/MariaDB database for account and character information.
 
 Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
-* Create a database for Darkflame Universe to use
+
+* All that you need to do is create a database to connect to.  As long as the server can connect to the database, the schema will always be kept up to date when you start the server.
 
 #### Configuration
 
-After the server has been built there should be four `ini` files in the build director: `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
+After the server has been built there should be four `ini` files in the build director: `sharedconfig.ini`, `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
 
-#### Setup and Migrations
+#### Migrations
 
-Use the command `./MasterServer -m` to setup the tables in the database. The first time this command is run on a database, the tables will be up to date with the most recent version. To update your database tables, run this command again. Multiple invocations will not affect any functionality.
+The database is automatically setup and migrated to what it should look like for the latest commit whenever you start the server.
 
 #### Verify
 
@@ -228,7 +230,7 @@ Your build directory should now look like this:
 * **locale/**
   * locale.xml
 * **res/**
-  * CDServer.sqlite
+  * cdclient.fdb
   * chatplus_en_us.txt
   * **macros/**
     * ...

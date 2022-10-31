@@ -2413,7 +2413,6 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 		 /__\/// _ \ \ /\ / / _` | '__/ _ \/  /
 		/ \/  \  __/\ V  V / (_| | | |  __/\_/
 		\_____/\___| \_/\_/ \__,_|_|  \___\/
-
 						<>=======()
 							   (/\___   /|\\          ()==========<>_
 									 \_/ | \\        //|\   ______/ \)
@@ -2430,34 +2429,25 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 												______/ /
 												'------'
 	*/
-
-	//First, we have Wincent's clean methods of reading in the data received from the client.
 	LWOOBJID localId;
-	uint32_t timeTaken;
 
 	inStream->Read(localId);
 
-	uint32_t ld0Size;
-	inStream->Read(ld0Size);
-	for (auto i = 0; i < 5; ++i) {
-		uint8_t c;
-		inStream->Read(c);
-	}
+	uint32_t sd0Size;
+	inStream->Read(sd0Size);
+	std::shared_ptr<char[]> sd0Data(new char[sd0Size]);
 
-	uint32_t lxfmlSize;
-	inStream->Read(lxfmlSize);
-	uint8_t* inData = static_cast<uint8_t*>(std::malloc(lxfmlSize));
-
-	if (inData == nullptr) {
+	if (sd0Data == nullptr) {
 		return;
 	}
 
-	for (uint32_t i = 0; i < lxfmlSize; ++i) {
+	for (uint32_t i = 0; i < sd0Size; ++i) {
 		uint8_t c;
 		inStream->Read(c);
-		inData[i] = c;
+		sd0Data[i] = c;
 	}
 
+	uint32_t timeTaken;
 	inStream->Read(timeTaken);
 
 	/*
@@ -2469,6 +2459,8 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 		Note, in the live client it'll still display the bricks going out as they're being used, but on relog/world change,
 		they reappear as we didn't take them.
+
+		TODO Apparently the bricks are supposed to be taken via MoveInventoryBatch?
 	*/
 
 	////Decompress the SD0 from the client so we can process the lxfml properly
@@ -2513,9 +2505,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 				auto result = query.execQuery();
 
-				if (result.eof() || result.fieldIsNull(0)) {
-					return;
-				}
+				if (result.eof() || result.fieldIsNull(0)) return;
 
 				int templateId = result.getIntField(0);
 
@@ -2533,6 +2523,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 					propertyId = propertyEntry->getUInt64(1);
 				}
 
+				delete propertyEntry;
 				delete propertyLookup;
 
 				//Insert into ugc:
@@ -2543,7 +2534,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				ugcs->setInt(4, 0);
 
 				//whacky stream biz
-				std::string s((char*)inData, lxfmlSize);
+				std::string s(sd0Data.get(), sd0Size);
 				std::istringstream iss(s);
 				std::istream& stream = iss;
 
@@ -2558,14 +2549,14 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				stmt->setUInt64(1, newIDL);
 				stmt->setUInt64(2, propertyId);
 				stmt->setUInt(3, blueprintIDSmall);
-				stmt->setUInt(4, 14); //14 is the lot the BBB models use
-				stmt->setDouble(5, 0.0f); //x
-				stmt->setDouble(6, 0.0f); //y
-				stmt->setDouble(7, 0.0f); //z
-				stmt->setDouble(8, 0.0f);
-				stmt->setDouble(9, 0.0f);
-				stmt->setDouble(10, 0.0f);
-				stmt->setDouble(11, 0.0f);
+				stmt->setUInt(4, 14); // 14 is the lot the BBB models use
+				stmt->setDouble(5, 0.0f); // x
+				stmt->setDouble(6, 0.0f); // y
+				stmt->setDouble(7, 0.0f); // z
+				stmt->setDouble(8, 0.0f); // rx
+				stmt->setDouble(9, 0.0f); // ry
+				stmt->setDouble(10, 0.0f); // rz
+				stmt->setDouble(11, 0.0f); // rw
 				stmt->execute();
 				delete stmt;
 
@@ -2591,38 +2582,22 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 				//Tell the client their model is saved: (this causes us to actually pop out of our current state):
 				CBITSTREAM;
-				PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
+				PacketUtils::WriteHeader(bitStream, CLIENT, CLIENT::MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
 				bitStream.Write(localId);
 				bitStream.Write<unsigned int>(0);
 				bitStream.Write<unsigned int>(1);
 				bitStream.Write(blueprintID);
 
-				bitStream.Write(lxfmlSize + 9);
+				bitStream.Write<uint32_t>(sd0Size);
 
-				//Write a fake sd0 header:
-				bitStream.Write<unsigned char>(0x73); //s
-				bitStream.Write<unsigned char>(0x64); //d
-				bitStream.Write<unsigned char>(0x30); //0
-				bitStream.Write<unsigned char>(0x01); //1
-				bitStream.Write<unsigned char>(0xFF); //end magic
-
-				bitStream.Write(lxfmlSize);
-
-				for (size_t i = 0; i < lxfmlSize; ++i)
-					bitStream.Write(inData[i]);
+				for (size_t i = 0; i < sd0Size; ++i) {
+					bitStream.Write(sd0Data[i]);
+				}
 
 				SEND_PACKET;
-				PacketUtils::SavePacket("MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+				// PacketUtils::SavePacket("MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 
 				//Now we have to construct this object:
-				/*
-				* This needs to be sent as config data, but I don't know how to right now.
-					'blueprintid': (9, 1152921508346399522),
-					'componentWhitelist': (1, 1),
-					'modelType': (1, 2),
-					'propertyObjectID': (7, True),
-					'userModelID': (9, 1152921510759098799)
-				*/
 
 				EntityInfo info;
 				info.lot = 14;
@@ -2653,6 +2628,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 					//there was an issue with builds not appearing since it was placed above ConstructEntity.
 					PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), newIDL);
 				}
+
 				});
 			});
 		});

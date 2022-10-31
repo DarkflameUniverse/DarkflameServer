@@ -14,6 +14,11 @@ CppSQLite3Query CDClientDatabase::ExecuteQuery(const std::string& query) {
 	return conn->execQuery(query.c_str());
 }
 
+//! Updates the CDClient file with Data Manipulation Language (DML) commands.
+int CDClientDatabase::ExecuteDML(const std::string& query) {
+	return conn->execDML(query.c_str());
+}
+
 //! Makes prepared statements
 CppSQLite3Statement CDClientDatabase::CreatePreppedStmt(const std::string& query) {
 	return conn->compileStatement(query.c_str());
