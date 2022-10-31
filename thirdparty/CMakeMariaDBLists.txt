@@ -9,7 +9,7 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 
 	file(MAKE_DIRECTORY "${MARIADB_MSI_DIR}")
 	file(MAKE_DIRECTORY "${MARIADB_CONNECTOR_DIR}")
-	# option(USE_NGHTTP2 "Use Nghttp2 library" OFF)
+	set(USE_NGHTTP2 OFF CACHE BOOL "Use Nghttp2 library" FORCE)
 	if(USE_NGHTTP2)
 	message (status "lol")
 	  find_package(NGHTTP2 REQUIRED)
