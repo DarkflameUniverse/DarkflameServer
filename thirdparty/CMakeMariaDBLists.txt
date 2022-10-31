@@ -73,19 +73,6 @@ else() # Build from source
 			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0)
 	endif()
 
-	ExternalProject_Add(mariadb_connector_cpp
-						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
-						CMAKE_ARGS  -Wno-dev
-									-DCMAKE_BUILD_RPATH_USE_ORIGIN=${CMAKE_BUILD_RPATH_USE_ORIGIN}
-									-DCMAKE_INSTALL_PREFIX=./mariadbcpp # Points the connector to the correct plugin directory
-									-DINSTALL_PLUGINDIR=plugin
-									${MARIADB_EXTRA_CMAKE_ARGS}
-						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
-						BUILD_COMMAND cmake --build . --config RelWithDebInfo -j${__maria_db_connector_compile_jobs__}
-						INSTALL_COMMAND "")
-
-	ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
-
 	if(WIN32)
 		set(MARIADB_SHARED_LIBRARY_NAME mariadbcpp.dll)
 		set(MARIADB_PLUGIN_SUFFIX .dll)
@@ -99,6 +86,20 @@ else() # Build from source
 		set(MARIADB_SHARED_LIBRARY_NAME libmariadbcpp${CMAKE_SHARED_LIBRARY_SUFFIX})
 		set(MARIADB_PLUGIN_SUFFIX .so)
 	endif()
+
+	ExternalProject_Add(mariadb_connector_cpp
+						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
+						CMAKE_ARGS  -Wno-dev
+									-DCMAKE_BUILD_RPATH_USE_ORIGIN=${CMAKE_BUILD_RPATH_USE_ORIGIN}
+									-DCMAKE_INSTALL_PREFIX=./mariadbcpp # Points the connector to the correct plugin directory
+									-DINSTALL_PLUGINDIR=plugin
+									${MARIADB_EXTRA_CMAKE_ARGS}
+						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
+						BUILD_BYPRODUCTS ${MARIADB_IMPLIB_LOCATION}
+						BUILD_COMMAND cmake --build . --config RelWithDebInfo -j${__maria_db_connector_compile_jobs__}
+						INSTALL_COMMAND "")
+
+	ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
 
 	get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 	if(isMultiConfig)
