@@ -35,6 +35,7 @@
       "inherits": "default",
       "generator": "Ninja",
       "cacheVariables": {
+		"MARIADB_BUILD_SOURCE": "1",
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
     },
