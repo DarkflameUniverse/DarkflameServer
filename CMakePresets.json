@@ -34,9 +34,6 @@
       "description": "Set architecture to 64-bit (b/c RakNet)",
       "inherits": "default",
       "generator": "Ninja",
-      "architecture": {
-        "value": "x64"
-      },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
