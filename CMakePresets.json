@@ -38,6 +38,7 @@
         "value": "x64"
       },
       "cacheVariables": {
+		"USE_NGHTTP2": "OFF",
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
     },
