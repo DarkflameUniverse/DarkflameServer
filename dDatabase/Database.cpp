@@ -35,8 +35,8 @@ void Database::Connect(const string& host, const string& database, const string&
 }
 
 void Database::Connect() {
-	con = driver->connect(Database::props);
-	con->setSchema(Database::database);
+	con = driver->connect(Database::props["hostName"].c_str(), Database::props["user"].c_str(), Database::props["password"].c_str());
+	con->setSchema(Database::database.c_str());
 }
 
 void Database::Destroy(std::string source, bool log) {
