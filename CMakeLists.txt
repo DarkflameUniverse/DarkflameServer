@@ -101,6 +101,17 @@ foreach(resource_file ${RESOURCE_FILES})
 	endif()
 endforeach()
 
+# Copy navmesh data on first build and extract it
+if (NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes/)
+	configure_file(
+		${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip
+		COPYONLY
+	)
+
+	file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip)
+	file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
+endif()
+
 # Copy vanity files on first build
 set(VANITY_FILES "CREDITS.md" "INFO.md" "TESTAMENT.md" "NPC.xml")
 foreach(file ${VANITY_FILES})
@@ -145,6 +156,7 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dEntity"
 	"dGame/dPropertyBehaviors"
 	"dGame/dUtilities"
+	"dCommon/dClient"
 	"dPhysics"
 	"dNavigation"
 	"dNavigation/dTerrain"

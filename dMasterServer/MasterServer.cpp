@@ -25,6 +25,7 @@
 #include "dConfig.h"
 #include "dLogger.h"
 #include "dServer.h"
+#include "AssetManager.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -44,6 +45,7 @@ namespace Game {
 	dServer* server;
 	InstanceManager* im;
 	dConfig* config;
+	AssetManager* assetManager;
 } //namespace Game
 
 bool shutdownSequenceStarted = false;
@@ -99,44 +101,49 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+	try {
+		std::string client_path = config.GetValue("client_location");
+		if (client_path.empty()) client_path = "./res";
+		Game::assetManager = new AssetManager(config.GetValue("client_location"));
+	} catch (std::runtime_error& ex) {
+		Game::logger->Log("MasterServer", "Got an error while setting up assets: %s", ex.what());
+
+		return EXIT_FAILURE;
+	}
+
 	MigrationRunner::RunMigrations();
 
-	//Check CDClient exists
-	const std::string cdclient_path = "./res/CDServer.sqlite";
-	std::ifstream cdclient_fd(cdclient_path);
-	if (!cdclient_fd.good()) {
-		Game::logger->Log("WorldServer", "%s could not be opened.  Looking for cdclient.fdb to convert to sqlite.", cdclient_path.c_str());
-		cdclient_fd.close();
+	// Check CDClient exists
+	if (!std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite")) {
+		Game::logger->Log("WorldServer", "CDServer.sqlite could not be opened. Looking for cdclient.fdb to convert to sqlite.");
 
-		const std::string cdclientFdbPath = "./res/cdclient.fdb";
-		cdclient_fd.open(cdclientFdbPath);
-		if (!cdclient_fd.good()) {
-			Game::logger->Log(
-				"WorldServer", "%s could not be opened."
-				"Please move a cdclient.fdb or an already converted database to build/res.", cdclientFdbPath.c_str());
+		if (!std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb")) {
+			Game::logger->Log("WorldServer", "cdclient.fdb could not be opened. Please move a cdclient.fdb or an already converted database to build/res.");
 			return EXIT_FAILURE;
 		}
-		Game::logger->Log("WorldServer", "Found %s.  Clearing cdserver migration_history then copying and converting to sqlite.", cdclientFdbPath.c_str());
+
+		Game::logger->Log("WorldServer", "Found cdclient.fdb.  Clearing cdserver migration_history then copying and converting to sqlite.");
 		auto stmt = Database::CreatePreppedStmt(R"#(DELETE FROM migration_history WHERE name LIKE "%cdserver%";)#");
 		stmt->executeUpdate();
 		delete stmt;
-		cdclient_fd.close();
 
-		std::string res = "python3 ../thirdparty/docker-utils/utils/fdb_to_sqlite.py " + cdclientFdbPath;
-		int r = system(res.c_str());
-		if (r != 0) {
+		std::string res = "python3 ../thirdparty/docker-utils/utils/fdb_to_sqlite.py " + (Game::assetManager->GetResPath() / "cdclient.fdb").string();
+
+		int result = system(res.c_str());
+		if (result != 0) {
 			Game::logger->Log("MasterServer", "Failed to convert fdb to sqlite");
 			return EXIT_FAILURE;
 		}
-		if (std::rename("./cdclient.sqlite", "./res/CDServer.sqlite") != 0) {
-			Game::logger->Log("MasterServer", "failed to move cdclient file.");
+
+		if (std::rename("./cdclient.sqlite", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str()) != 0) {
+			Game::logger->Log("MasterServer", "Failed to move cdclient file.");
 			return EXIT_FAILURE;
 		}
 	}
 
 	//Connect to CDClient
 	try {
-		CDClientDatabase::Connect(cdclient_path);
+		CDClientDatabase::Connect((Game::assetManager->GetResPath() / "CDServer.sqlite").string());
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database");
 		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
@@ -152,7 +159,7 @@ int main(int argc, char** argv) {
 		CDClientManager::Instance()->Initialize();
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database");
-		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s", cdclient_path.c_str());
+		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
 		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
 		Game::logger->Log("WorldServer", "Error Code: %i", e.errorCode());
 		return EXIT_FAILURE;
