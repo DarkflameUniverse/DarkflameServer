@@ -341,7 +341,7 @@ void Item::DisassembleModel() {
 	std::string renderAsset = result.fieldIsNull(0) ? "" : std::string(result.getStringField(0));
 	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '\\');
 
-	std::string lxfmlPath = "BrickModels/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.')[0] + ".lxfml";
+	std::string lxfmlPath = "BrickModels/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
 	auto buffer = Game::assetManager->GetFileAsBuffer(lxfmlPath.c_str());
 
 	std::istream file(&buffer);

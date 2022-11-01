@@ -21,7 +21,7 @@ struct PackFileIndex {
 class PackIndex {
 public:
 	PackIndex(const std::filesystem::path& filePath);
-	~PackIndex() = default;
+	~PackIndex();
 
 	const std::vector<std::string>& GetPackPaths() { return m_PackPaths; }
 	const std::vector<PackFileIndex>& GetPackFileIndices() { return m_PackFileIndices; }

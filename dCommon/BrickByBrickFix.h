@@ -17,10 +17,4 @@ namespace BrickByBrickFix {
 	 * @return The number of BrickByBrick models that were updated
 	 */
 	uint32_t UpdateBrickByBrickModelsToSd0();
-
-	/**
-	 * @brief Max size of an inflated sd0 zlib chunk
-	 * 
-	 */
-	constexpr uint32_t MAX_SD0_CHUNK_SIZE = 1024 * 256;
 };

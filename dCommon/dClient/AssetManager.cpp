@@ -178,3 +178,24 @@ void AssetManager::UnpackRequiredAssets() {
 
 	return;
 }
+
+uint32_t AssetManager::crc32b(uint32_t base, uint8_t* message, size_t l) {
+	size_t i, j;
+	uint32_t crc, msb;
+
+	crc = base;
+	for (i = 0; i < l; i++) {
+		// xor next byte to upper bits of crc
+		crc ^= (((unsigned int)message[i]) << 24);
+		for (j = 0; j < 8; j++) { // Do eight times.
+			msb = crc >> 31;
+			crc <<= 1;
+			crc ^= (0 - msb) & 0x04C11DB7;
+		}
+	}
+	return crc; // don't complement crc on output
+}
+
+AssetManager::~AssetManager() {
+	delete m_PackIndex;
+}

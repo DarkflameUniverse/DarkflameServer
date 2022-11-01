@@ -1,7 +1,5 @@
 #include "Pack.h"
 
-#include <zlib.h>
-
 #include "ZCompression.h"
 
 Pack::Pack(const std::filesystem::path& filePath) {
@@ -15,7 +13,7 @@ Pack::Pack(const std::filesystem::path& filePath) {
 
 	m_FileStream.read(m_Version, 7); 
 
-	m_FileStream.seekg(-8, std::ios::end);
+	m_FileStream.seekg(-8, std::ios::end); // move file pointer to 8 bytes before the end (location of the address of the record count)
 
 	uint32_t recordCountPos = 0;
 	BinaryIO::BinaryRead<uint32_t>(m_FileStream, recordCountPos);
@@ -99,14 +97,14 @@ bool Pack::ReadFileFromPack(uint32_t crc, char** data, uint32_t* len) {
 
 		uint32_t size;
 		fread(&size, sizeof(uint32_t), 1, file);
-		pos += 4;
+		pos += 4; // Move pointer position 4 to the right
 
 		char* chunk = (char*)malloc(size);
 		fread(chunk, sizeof(int8_t), size, file);
-		pos += size;
+		pos += size; // Move pointer position the amount of bytes read to the right
 
 		int32_t err;
-		currentReadPos += ZCompression::Decompress((uint8_t*)chunk, size, reinterpret_cast<uint8_t*>(decompressedData + currentReadPos), 1024 * 256, err);
+		currentReadPos += ZCompression::Decompress((uint8_t*)chunk, size, reinterpret_cast<uint8_t*>(decompressedData + currentReadPos), ZCompression::MAX_SD0_CHUNK_SIZE, err);
 
 		free(chunk);
 	}

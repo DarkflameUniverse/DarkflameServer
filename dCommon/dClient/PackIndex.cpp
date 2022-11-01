@@ -39,4 +39,12 @@ PackIndex::PackIndex(const std::filesystem::path& filePath) {
 
 		m_Packs.push_back(pack);
 	}
+
+	m_FileStream.close();
+}
+
+PackIndex::~PackIndex() {
+	for (const auto* item : m_Packs) {
+		delete item;
+	}
 }
