@@ -7,7 +7,6 @@ function symlink_client_files() {
     ln -s /client/client/res/chatplus_en_us.txt /app/res/chatplus_en_us.txt
     ln -s /client/client/res/names/ /app/res/names
     ln -s /client/client/res/CDServer.sqlite /app/res/CDServer.sqlite
-    ln -s /client/client/locale/locale.xml /app/locale/locale.xml
     # need to iterate over entries in maps due to maps already being a directory with navmeshes/ in it
     (
         cd /client/client/res/maps
