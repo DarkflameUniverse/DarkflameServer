@@ -47,7 +47,6 @@
 #include "GameMessageHandler.h"
 #include "GameMessages.h"
 #include "Mail.h"
-#include "dLocale.h"
 #include "TeamManager.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
@@ -66,7 +65,6 @@ namespace Game {
 	dpWorld* physicsWorld;
 	dChatFilter* chatFilter;
 	dConfig* config;
-	dLocale* locale;
 	std::mt19937 randomEngine;
 
 	AssetManager* assetManager;
@@ -217,7 +215,6 @@ int main(int argc, char** argv) {
 
 	//Set up other things:
 	Game::randomEngine = std::mt19937(time(0));
-	Game::locale = new dLocale();
 
 	//Run it until server gets a kill message from Master:
 	auto lastTime = std::chrono::high_resolution_clock::now();
