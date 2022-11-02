@@ -1,6 +1,5 @@
 # In-game commands
-
-Here is a summary of the commands available in-game. All commands are prefixed by `/` and typed in the in-game chat window. Some commands requires admin privileges. Operands within `<>` are required, operands within `()` are not. For the full list of in-game commands, please checkout [the source file](../dGame/dUtilities/SlashCommandHandler.cpp).
+* All commands are prefixed by `/` and typed in the in-game chat window. Some commands require elevated gmlevel privileges. Operands within `<>` are required, operands within `()` are not.
 
 ## General Commands
 

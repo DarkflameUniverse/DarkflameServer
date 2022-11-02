@@ -60,19 +60,7 @@ You can either run `build.sh` when in the root folder of the repository:
 ./build.sh
 ```
 
-Or manually run the commands used in `build.sh`:
-
-```bash
-# Create the build directory, preserving it if it already exists
-mkdir -p build
-cd build
-
-# Run CMake to generate make files
-cmake ..
-
-# To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `cmake --build . --config Release -j8'
-cmake --build . --config Release
-```
+Or manually run the commands used in [build.sh](build.sh):
 
 ### MacOS builds
 Ensure `cmake`, `zlib` and `open ssl` are installed as well as a compiler (e.g `clang` or `gcc`).
@@ -105,6 +93,7 @@ cmake ..
 :: Run CMake with build flag to build
 cmake --build . --config Release
 ```
+
 #### Windows for ARM has not been tested but should build by doing the following
 ```batch
 :: Create the build directory
@@ -130,15 +119,13 @@ wsl --install
 #### Open the Ubuntu application and run the following:
 ```bash
 # Make sure the install is up to date
-apt update && apt upgrade
+sudo apt update && sudo apt upgrade
 
-# Make sure the gcc, cmake, and build-essentials are installed
-sudo apt install gcc
-sudo apt install cmake
-sudo apt install build-essential
+# Make sure the gcc, cmake, build-essentials, zlib1g-dev and libssl-dev packages are installed
+sudo apt install gcc cmake build-essential zlib1g-dev libssl-dev
 ```
 
-[**Follow the Linux instructions**](#linux-builds)
+Then, [**Follow the Linux instructions**](#linux-builds)
 
 ### ARM builds
 AArch64 builds should work on linux and MacOS using their respective build steps. Windows ARM should build but it has not been tested
@@ -181,40 +168,38 @@ shasum -a 256 <file>
 # If on Windows
 certutil -hashfile <file> SHA256
 ```
-
-#### Unpacking the client
-* Clone lcdr's utilities repository [here](https://github.com/lcdr/utils)
-* Use `pkextractor.pyw` to unpack the client files if they are not already unpacked
-
-#### Setup resource directory
-* In the `build` directory create a `res` directory if it does not already exist.
-* Copy over or create symlinks from `macros`, `BrickModels`, `chatplus_en_us.txt`, `names`, and `maps` in your client `res` directory to the server `build/res` directory
-* Unzip the navmeshes [here](./resources/navmeshes.zip) and place them in `build/res/maps/navmeshes`
-
-#### Setup locale
-* In the `build` directory create a `locale` directory if it does not already exist
-* Copy over or create symlinks from `locale.xml` in your client `locale` directory to the `build/locale` directory
+#### Setting up client dependencies
+* Darkflame Universe can run with either a packed or an unpacked client.
+* Navigate to `sharedconfig.ini` and fill in the `client_path` field with the location of your client.
 
 #### Client database
-* Move the file `res/cdclient.fdb` from the unpacked client to the `build/res` folder on the server.
-* The server will automatically copy and convert the file from fdb to sqlite should `CDServer.sqlite` not already exist.
-* You can also convert the database manually using `fdb_to_sqlite.py` using lcdr's utilities.  Just make sure to rename the file to `CDServer.sqlite` instead of `cdclient.sqlite`.
-* Migrations to the database are automatically run on server start.  When migrations are needed to be ran, the server may take a bit longer to start.
+* On the initial sever start, the server will do the following
+
+- Extract the file `cdclient.fdb` from your packed client (if you have an unpacked client this step is skipped.)
+- `cdclient.fdb` will be converted to `CDServer.sqlite`.
+
+* Optionally, you can also convert the database manually using `fdb_to_sqlite.py` using lcdr's utilities.  Just make sure to rename the file to `CDServer.sqlite` instead of `cdclient.sqlite`.  
+* Migrations to the database are automatically run on server start.  Migrations address issues with data in the database that would normally cause bugs.  When migrations are needed to be ran, the server may take a bit longer to start.
 
 ### Database
 Darkflame Universe utilizes a MySQL/MariaDB database for account and character information.
 
 Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
 
-* All that you need to do is create a database to connect to.  As long as the server can connect to the database, the schema will always be kept up to date when you start the server.
+* Note that all that you need to do is create a database to connect to.  As long as the server can connect to the database, the schema will always be kept up to date when you start the server.
 
 #### Configuration
 
-After the server has been built there should be four `ini` files in the build director: `sharedconfig.ini`, `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
+After the server has been built there should be five `ini` files in the build director: `sharedconfig.ini`, `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`.  
+* All options in `shardconfig.ini` should have something filled in.  
+* `worldconfig.ini` contains several options to turn on QOL improvements should you want them.  If you would like the most vanilla experience possible, you will need to turn some of these settings off.
+* `masterconfig.ini` contains options related to permissions you want to run your servers with.
+* `authconfig.ini` contains an option to enable or disable play keys on your server.  Do not change the default port for auth.
+* `chatconfig.ini` contains a port option.
 
 #### Migrations
 
-The database is automatically setup and migrated to what it should look like for the latest commit whenever you start the server.
+* Both databases are automatically setup and migrated to what they should look like for the latest commit whenever you start the server.
 
 #### Verify
 
@@ -226,40 +211,32 @@ Your build directory should now look like this:
 * authconfig.ini
 * chatconfig.ini
 * masterconfig.ini
+* sharedconfig.ini
 * worldconfig.ini
-* **locale/**
-  * locale.xml
-* **res/**
-  * cdclient.fdb
-  * chatplus_en_us.txt
-  * **macros/**
-    * ...
-  * **BrickModels/**
-    * ...
-  * **maps/**
-    * **navmeshes/**
-      * ...
-    * ...
 * ...
 
+Your `sharedconfig.ini` file should have:
+* The `client_path` option filled in with the location of your packed client.
+* A MySQL/MariaDB database is setup with the credentials filled in
+
 ## Running the server
-If everything has been configured correctly you should now be able to run the `MasterServer` binary. Darkflame Universe utilizes port numbers under 1024, so under Linux you either have to give the binary network permissions or run it under sudo.
+* If everything has been configured correctly you should now be able to run the `MasterServer` binary. Darkflame Universe utilizes port numbers under 1024, so under Linux you either have to give the binary network permissions or run it under sudo.
 
 ### First admin user
-Run `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
+* Run `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
 
-### Account Manager
+### Nexus Dashboard
 
-Follow the instructions [here](https://github.com/DarkflameUniverse/AccountManager) to setup the DLU account management Python web application. This is the intended way for users to create accounts.
+* Follow the instructions [here](https://github.com/DarkflameUniverse/NexusDashboard) to setup the DLU Nexus Dashboard web application. This is the intended way for users to create accounts.
 
 ### Admin levels
 
-The admin level, or game master level, is specified in the `accounts.gm_level` column in the MySQL database. Normal players should have this set to `0`, which comes with no special privileges. The system administrator will have this set to `9`, which comes will all privileges. Admin level `8` should be used to give a player a majority of privileges without the safety critical once.
+* The admin level, or Game Master level (hereafter referred to as gmlevel), is specified in the `accounts.gm_level` column in the MySQL database. Normal players should have this set to `0`, which comes with no special privileges. The system administrator will have this set to `9`, which comes will all privileges. gmlevel `8` should be used to give a player a majority of privileges without the safety critical once.
 
-While a character has a gmlevel of anything but 0, some gameplay behavior will change. When testing gameplay, you should always use a character with a gmlevel of 0.
+While a character has a gmlevel of anything but `0`, some gameplay behavior will change. When testing gameplay, you should always use a character with a gmlevel of `0`.
 
 ## User guide
-A few modifications have to be made to the client.
+* A few modifications have to be made to the client.
 
 ### Client configuration
 To connect to a server follow these steps:
@@ -269,163 +246,13 @@ To connect to a server follow these steps:
 * Launch `legouniverse.exe`, through `wine` if on a Unix-like operating system
 * Note that if you are on WSL2, you will need to configure the public IP in the server and client to be the IP of the WSL2 instance and not localhost, which can be found by running `ifconfig` in the terminal. Windows defaults to WSL1, so this will not apply to most users.
 
-### Survival
-
-The client script for the survival minigame has a bug in it which can cause the minigame to not load. To fix this, follow these instructions:
-* Open `res/scripts/ai/minigame/survival/l_zone_survival_client.lua`
-* Navigate to line `617`
-* Change `PlayerReady(self)` to `onPlayerReady(self)`
-* Save the file, overriding readonly mode if required
-
-If you still experience the bug, try deleting/renaming `res/pack/scripts.pk`.
-
 ### Brick-By-Brick building
 
-Brick-By-Brick building requires `PATCHSERVERIP=0:` in the `boot.cfg` to point to a HTTP server which always returns `HTTP 404 - Not Found` for all requests. This can be achieved by pointing it to `localhost` while having `sudo python -m http.server 80` running in the background.
+* Brick-By-Brick building requires `PATCHSERVERIP=0:` in the `boot.cfg` to point to a HTTP server which always returns `HTTP 404 - Not Found` for all requests. This can be most easily achieved by pointing it to `localhost` while having `sudo python -m http.server 80` running in the background.  On Unix based systems, you may need to run `python3` instead of `python`.
+* You may also need to set `UGCSERVERIP=0:` to localhost as well.
 
 ### In-game commands
-Here is a summary of the commands available in-game. All commands are prefixed by `/` and typed in the in-game chat window. Some commands requires admin privileges. Operands within `<>` are required, operands within `()` are not. For the full list of in-game commands, please checkout [the source file](./dGame/dUtilities/SlashCommandHandler.cpp).
-
-<table>
-<thead>
-  <th>
-    Command
-  </th>
-  <th>
-    Usage
-  </th>
-  <th>
-    Description
-  </th>
-  <th>
-    Admin Level Requirement
-  </th>
-</thead>
-<tbody>
-  <tr>
-    <td>
-      info
-    </td>
-    <td>
-      /info
-    </td>
-    <td>
-      Displays server info to the user, including where to find the server's source code.
-    </td>
-    <td>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      credits
-    </td>
-    <td>
-      /credits
-    </td>
-    <td>
-      Displays the names of the people behind Darkflame Universe.
-    </td>
-    <td>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      instanceinfo
-    </td>
-    <td>
-      /instanceinfo
-    </td>
-    <td>
-      Displays in the chat the current zone, clone, and instance id. 
-    </td>
-    <td>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      gmlevel
-    </td>
-    <td>
-      /gmlevel &#60;level&#62;
-    </td>
-    <td>
-      Within the authorized range of levels for the current account, changes the character's game master level to the specified value. This is required to use certain commands.
-    </td>
-    <td>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      testmap
-    </td>
-    <td>
-      /testmap &#60;zone&#62; (clone-id)
-    </td>
-    <td>
-      Transfers you to the given zone by id and clone id.
-    </td>
-    <td>
-      1
-    </td>
-  </tr>
-  <tr>
-    <td>
-      ban
-    </td>
-    <td>
-      /ban &#60;username&#62;
-    </td>
-    <td>
-      Bans a user from the server.
-    </td>
-    <td>
-      4
-    </td>
-  </tr>
-  <tr>
-    <td>
-      gmadditem
-    </td>
-    <td>
-      /gmadditem &#60;id&#62; (count)
-    </td>
-    <td>
-      Adds the given item to your inventory by id.
-    </td>
-    <td>
-      8
-    </td>
-  </tr>
-  <tr>
-    <td>
-      spawn
-    </td>
-    <td>
-      /spawn &#60;id&#62;
-    </td>
-    <td>
-      Spawns an object at your location by id.
-    </td>
-    <td>
-      8
-    </td>
-  </tr>
-  <tr>
-    <td>
-      metrics
-    </td>
-    <td>
-      /metrics
-    </td>
-    <td>
-      Prints some information about the server's performance.
-    </td>
-    <td>
-      8
-    </td>
-  </tr>
-</tbody>
-</table>
+* A list of all in-game commands can be found [here](./docs/Commands.md).
 
 # Credits
 ## Active Contributors
