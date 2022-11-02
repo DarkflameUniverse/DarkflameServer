@@ -68,6 +68,8 @@
 #include "PropertyVendorComponent.h"
 #include "PropertySelectQueryProperty.h"
 #include "TradingManager.h"
+#include "ControlBehaviors.h"
+#include "AMFDeserialize.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -2396,11 +2398,55 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 }
 
 void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	// TODO
-	Game::logger->Log("GameMessages", "Recieved Control Behavior GameMessage, but property behaviors are unimplemented.");
+	AMFDeserialize reader;
+	std::unique_ptr<AMFValue> amfArguments(reader.Read(inStream));
+	if (amfArguments->GetValueType() != AMFValueType::AMFArray) return;
+
+	uint32_t commandLength{};
+	inStream->Read(commandLength);
+
+	std::string command;
+	for (uint32_t i = 0; i < commandLength; i++) {
+		unsigned char character;
+		inStream->Read(character);
+		command.push_back(character);
+	}
+
+	auto owner = PropertyManagementComponent::Instance()->GetOwner();
+    if (!owner) return;
+
+	ControlBehaviors::ProcessCommand(entity, sysAddr, static_cast<AMFArrayValue*>(amfArguments.get()), command, owner);
 }
 
 void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	/*
+								  ___            ___
+		  /\  /\___ _ __ ___     / __\ ___      /   \_ __ __ _  __ _  ___  _ __  ___
+		 / /_/ / _ \ '__/ _ \   /__\/// _ \    / /\ / '__/ _` |/ _` |/ _ \| '_ \/ __|
+		/ __  /  __/ | |  __/  / \/  \  __/   / /_//| | | (_| | (_| | (_) | | | \__ \
+		\/ /_/ \___|_|  \___|  \_____/\___|  /___,' |_|  \__,_|\__, |\___/|_| |_|___/
+															   |___/
+		   ___                               _
+		  / __\ _____      ____ _ _ __ ___  / \
+		 /__\/// _ \ \ /\ / / _` | '__/ _ \/  /
+		/ \/  \  __/\ V  V / (_| | | |  __/\_/
+		\_____/\___| \_/\_/ \__,_|_|  \___\/
+						<>=======()
+							   (/\___   /|\\          ()==========<>_
+									 \_/ | \\        //|\   ______/ \)
+									   \_|  \\      // | \_/
+										 \|\/|\_   //  /\/
+										  (oo)\ \_//  /
+										 //_/\_\/ /  |
+										@@/  |=\  \  |
+											 \_=\_ \ |
+											   \==\ \|\_ snd
+											__(\===\(  )\
+										   (((~) __(_/   |
+												(((~) \  /
+												______/ /
+												'------'
+	*/
 	LWOOBJID localId;
 
 	inStream->Read(localId);
@@ -2517,7 +2563,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				delete ugcs;
 
 				//Insert into the db as a BBB model:
-				auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents`(`id`, `property_id`, `ugc_id`, `lot`, `x`, `y`, `z`, `rx`, `ry`, `rz`, `rw`) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+				auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents` VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 				stmt->setUInt64(1, newIDL);
 				stmt->setUInt64(2, propertyId);
 				stmt->setUInt(3, blueprintIDSmall);
@@ -2529,6 +2575,13 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				stmt->setDouble(9, 0.0f); // ry
 				stmt->setDouble(10, 0.0f); // rz
 				stmt->setDouble(11, 0.0f); // rw
+				stmt->setString(12, "Objects_14_name"); // Model name.  TODO make this customizable
+				stmt->setString(13, ""); // Model description.  TODO implement this.
+				stmt->setDouble(14, 0); // behavior 1.  TODO implement this.
+				stmt->setDouble(15, 0); // behavior 2.  TODO implement this.
+				stmt->setDouble(16, 0); // behavior 3.  TODO implement this.
+				stmt->setDouble(17, 0); // behavior 4.  TODO implement this.
+				stmt->setDouble(18, 0); // behavior 5.  TODO implement this.
 				stmt->execute();
 				delete stmt;
 

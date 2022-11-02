@@ -90,7 +90,7 @@ make_directory(${CMAKE_BINARY_DIR}/locale)
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
 # Copy resource files on first build
-set(RESOURCE_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
+set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
 foreach(resource_file ${RESOURCE_FILES})
 	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
 		configure_file(
@@ -100,6 +100,17 @@ foreach(resource_file ${RESOURCE_FILES})
 		message("Moved ${resource_file} to project binary directory")
 	endif()
 endforeach()
+
+# Copy navmesh data on first build and extract it
+if (NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes/)
+	configure_file(
+		${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip
+		COPYONLY
+	)
+
+	file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip)
+	file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
+endif()
 
 # Copy vanity files on first build
 set(VANITY_FILES "CREDITS.md" "INFO.md" "TESTAMENT.md" "NPC.xml")
@@ -120,13 +131,25 @@ foreach (file ${QB_FILES})
 endforeach()
 
 # Move our migrations for MasterServer to run
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/)
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/dlu/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/${file})
+	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
 		configure_file(
-			${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/${file}
+			${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file}
+			COPYONLY
+		)
+	endif()
+endforeach()
+
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/cdserver/)
+file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/cdserver/*.sql)
+foreach(file ${SQL_FILES})
+	get_filename_component(file ${file} NAME)
+	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
+		configure_file(
+			${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file}
 			COPYONLY
 		)
 	endif()
@@ -143,7 +166,9 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dInventory"
 	"dGame/dMission"
 	"dGame/dEntity"
+	"dGame/dPropertyBehaviors"
 	"dGame/dUtilities"
+	"dCommon/dClient"
 	"dPhysics"
 	"dNavigation"
 	"dNavigation/dTerrain"

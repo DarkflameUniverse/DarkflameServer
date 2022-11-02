@@ -7,6 +7,7 @@
 #include "GeneralUtils.h"
 #include "BinaryIO.h"
 
+#include "AssetManager.h"
 #include "CDClientManager.h"
 #include "CDZoneTableTable.h"
 #include "Spawner.h"
@@ -40,7 +41,8 @@ void Zone::LoadZoneIntoMemory() {
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 	if (m_ZoneFilePath == "ERR") return;
 
-	std::ifstream file(m_ZoneFilePath, std::ios::binary);
+	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer(m_ZoneFilePath.c_str());
+	std::istream file(&buffer);
 	if (file) {
 		BinaryIO::BinaryRead(file, m_ZoneFileFormatVersion);
 
@@ -144,17 +146,13 @@ void Zone::LoadZoneIntoMemory() {
 				}
 
 			}
-
-
-			//m_PathData.resize(m_PathDataLength);
-			//file.read((char*)&m_PathData[0], m_PathDataLength);
 		}
 	} else {
 		Game::logger->Log("Zone", "Failed to open: %s", m_ZoneFilePath.c_str());
 	}
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 
-	file.close();
+	buffer.close();
 }
 
 std::string Zone::GetFilePathForZoneID() {
@@ -162,7 +160,7 @@ std::string Zone::GetFilePathForZoneID() {
 	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
 	const CDZoneTable* zone = zoneTable->Query(this->GetZoneID().GetMapID());
 	if (zone != nullptr) {
-		std::string toReturn = "./res/maps/" + zone->zoneName;
+		std::string toReturn = "maps/" + zone->zoneName;
 		std::transform(toReturn.begin(), toReturn.end(), toReturn.begin(), ::tolower);
 		return toReturn;
 	}
@@ -222,7 +220,7 @@ const void Zone::PrintAllGameObjects() {
 	}
 }
 
-void Zone::LoadScene(std::ifstream& file) {
+void Zone::LoadScene(std::istream& file) {
 	SceneRef scene;
 	scene.level = nullptr;
 	LWOSCENEID lwoSceneID(LWOZONEID_INVALID, 0);
@@ -264,9 +262,16 @@ void Zone::LoadScene(std::ifstream& file) {
 
 std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, LWOSCENEID sceneID) {
 	std::vector<LUTriggers::Trigger*> lvlTriggers;
-	std::ifstream file(m_ZonePath + triggerFile);
+
+	auto buffer = Game::assetManager->GetFileAsBuffer((m_ZonePath + triggerFile).c_str());
+
+	if (!buffer.m_Success) return lvlTriggers;
+
+	std::istream file(&buffer);
 	std::stringstream data;
 	data << file.rdbuf();
+
+	buffer.close();
 
 	if (data.str().size() == 0) return lvlTriggers;
 
@@ -336,7 +341,7 @@ const Path* Zone::GetPath(std::string name) const {
 	return nullptr;
 }
 
-void Zone::LoadSceneTransition(std::ifstream& file) {
+void Zone::LoadSceneTransition(std::istream& file) {
 	SceneTransition sceneTrans;
 	if (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::Auramar) {
 		uint8_t length;
@@ -355,14 +360,14 @@ void Zone::LoadSceneTransition(std::ifstream& file) {
 	m_SceneTransitions.push_back(sceneTrans);
 }
 
-SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::ifstream& file) {
+SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::istream& file) {
 	SceneTransitionInfo info;
 	BinaryIO::BinaryRead(file, info.sceneID);
 	BinaryIO::BinaryRead(file, info.position);
 	return info;
 }
 
-void Zone::LoadPath(std::ifstream& file) {
+void Zone::LoadPath(std::istream& file) {
 	// Currently only spawner (type 4) paths are supported
 	Path path = Path();
 

@@ -12,6 +12,7 @@
 #include "dMessageIdentifiers.h"
 #include "dChatFilter.h"
 #include "Diagnostics.h"
+#include "AssetManager.h"
 
 #include "PlayerContainer.h"
 #include "ChatPacketHandler.h"
@@ -22,6 +23,7 @@ namespace Game {
 	dServer* server;
 	dConfig* config;
 	dChatFilter* chatFilter;
+	AssetManager* assetManager;
 }
 
 //RakNet includes:
@@ -49,6 +51,16 @@ int main(int argc, char** argv) {
 	Game::config = &config;
 	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
 	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
+
+	try {
+		std::string client_path = config.GetValue("client_location");
+		if (client_path.empty()) client_path = "./res";
+		Game::assetManager = new AssetManager(config.GetValue("client_location"));
+	} catch (std::runtime_error& ex) {
+		Game::logger->Log("ChatServer", "Got an error while setting up assets: %s", ex.what());
+
+		return EXIT_FAILURE;
+	}
 
 	//Connect to the MySQL Database
 	std::string mysql_host = config.GetValue("mysql_host");
@@ -87,7 +99,7 @@ int main(int argc, char** argv) {
 
 	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat);
 
-	Game::chatFilter = new dChatFilter("./res/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
+	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();

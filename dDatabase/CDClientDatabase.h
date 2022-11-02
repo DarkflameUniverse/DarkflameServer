@@ -40,6 +40,14 @@ namespace CDClientDatabase {
 	 */
 	CppSQLite3Query ExecuteQuery(const std::string& query);
 
+	//! Updates the CDClient file with Data Manipulation Language (DML) commands.
+	/*!
+	  \param query The DML command to run.  DML command can be multiple queries in one string but only
+		the last one will return its number of updated rows.
+	  \return The number of updated rows.
+	*/
+	int ExecuteDML(const std::string& query);
+
 	//! Queries the CDClient and parses arguments
 	/*!
 	  \param query The query with formatted arguments
