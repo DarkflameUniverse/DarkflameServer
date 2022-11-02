@@ -55,6 +55,7 @@
 #include "MasterPackets.h"
 #include "Player.h"
 #include "PropertyManagementComponent.h"
+#include "AssetManager.h"
 
 #include "ZCompression.h"
 
@@ -67,6 +68,8 @@ namespace Game {
 	dConfig* config;
 	dLocale* locale;
 	std::mt19937 randomEngine;
+
+	AssetManager* assetManager;
 
 	RakPeerInterface* chatServer;
 	SystemAddress chatSysAddr;
@@ -142,9 +145,19 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
 	if (config.GetValue("disable_chat") == "1") chatDisabled = true;
 
+	try {
+		std::string client_path = config.GetValue("client_location");
+		if (client_path.empty()) client_path = "./res";
+		Game::assetManager = new AssetManager(config.GetValue("client_location"));
+	} catch (std::runtime_error& ex) {
+		Game::logger->Log("WorldServer", "Got an error while setting up assets: %s", ex.what());
+
+		return EXIT_FAILURE;
+	}
+
 	// Connect to CDClient
 	try {
-		CDClientDatabase::Connect("./res/CDServer.sqlite");
+		CDClientDatabase::Connect((Game::assetManager->GetResPath() / "CDServer.sqlite").string());
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database");
 		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
@@ -189,7 +202,7 @@ int main(int argc, char** argv) {
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
 	LootGenerator::Instance();
-	Game::chatFilter = new dChatFilter("./res/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
+	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, zoneID);
 
@@ -243,14 +256,14 @@ int main(int argc, char** argv) {
 			std::ifstream fileStream;
 
 			static const std::vector<std::string> aliases = {
-				"res/CDServers.fdb",
-				"res/cdserver.fdb",
-				"res/CDClient.fdb",
-				"res/cdclient.fdb",
+				"CDServers.fdb",
+				"cdserver.fdb",
+				"CDClient.fdb",
+				"cdclient.fdb",
 			};
 
 			for (const auto& file : aliases) {
-				fileStream.open(file, std::ios::binary | std::ios::in);
+				fileStream.open(Game::assetManager->GetResPath() / file, std::ios::binary | std::ios::in);
 				if (fileStream.is_open()) {
 					break;
 				}

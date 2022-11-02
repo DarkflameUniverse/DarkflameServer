@@ -10,6 +10,7 @@ class dChatFilter;
 class dConfig;
 class dLocale;
 class RakPeerInterface;
+class AssetManager;
 struct SystemAddress;
 
 namespace Game {
@@ -22,5 +23,6 @@ namespace Game {
 	extern dLocale* locale;
 	extern std::mt19937 randomEngine;
 	extern RakPeerInterface* chatServer;
+	extern AssetManager* assetManager;
 	extern SystemAddress chatSysAddr;
 }
