@@ -6,33 +6,33 @@
 #include "Entity.h"
 
 class DestroyableTest : public GameDependenciesTest {
-	protected:
-		Entity* baseEntity;
-		DestroyableComponent* destroyableComponent;
-		CBITSTREAM
+protected:
+	Entity* baseEntity;
+	DestroyableComponent* destroyableComponent;
+	CBITSTREAM
 		uint32_t flags = 0;
-		void SetUp() override {
-			SetUpDependencies();
-			baseEntity = new Entity(15, GameDependenciesTest::info);
-			destroyableComponent = new DestroyableComponent(baseEntity);
-			baseEntity->AddComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent);
-			// Initialize some values to be not default
-			destroyableComponent->SetMaxHealth(12345.0f);
-			destroyableComponent->SetHealth(23);
-			destroyableComponent->SetMaxArmor(14.0f);
-			destroyableComponent->SetArmor(7);
-			destroyableComponent->SetMaxImagination(14000.0f);
-			destroyableComponent->SetImagination(6000);
-			destroyableComponent->SetIsSmashable(true);
-			destroyableComponent->SetExplodeFactor(1.1f);
-			destroyableComponent->AddFactionNoLookup(-1);
-			destroyableComponent->AddFactionNoLookup(6);
-		}
+	void SetUp() override {
+		SetUpDependencies();
+		baseEntity = new Entity(15, GameDependenciesTest::info);
+		destroyableComponent = new DestroyableComponent(baseEntity);
+		baseEntity->AddComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent);
+		// Initialize some values to be not default
+		destroyableComponent->SetMaxHealth(12345.0f);
+		destroyableComponent->SetHealth(23);
+		destroyableComponent->SetMaxArmor(14.0f);
+		destroyableComponent->SetArmor(7);
+		destroyableComponent->SetMaxImagination(14000.0f);
+		destroyableComponent->SetImagination(6000);
+		destroyableComponent->SetIsSmashable(true);
+		destroyableComponent->SetExplodeFactor(1.1f);
+		destroyableComponent->AddFactionNoLookup(-1);
+		destroyableComponent->AddFactionNoLookup(6);
+	}
 
-		void TearDown() override {
-            delete baseEntity;
-			TearDownDependencies();
-		}
+	void TearDown() override {
+		delete baseEntity;
+		TearDownDependencies();
+	}
 };
 
 /**
@@ -72,64 +72,64 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 		bitStream.Read(optionStatusImmunityInfo);
 
 		bitStream.Read(optionStatsInfo);
-			bitStream.Read(currentHealth);
-			bitStream.Read(maxHealth);
-			bitStream.Read(currentArmor);
-			bitStream.Read(maxArmor);
-			bitStream.Read(currentImagination);
-			bitStream.Read(maxImagination);
-			bitStream.Read(damageAbsorptionPoints);
-			bitStream.Read(hasImmunity);
-			bitStream.Read(isGmImmune);
-			bitStream.Read(isShielded);
-			bitStream.Read(actualMaxHealth);
-			bitStream.Read(actualMaxArmor);
-			bitStream.Read(actualMaxImagination);
-			bitStream.Read(factionsSize);
-			for (uint32_t i = 0; i < factionsSize; i++) {
-				int32_t factionID{};
-				bitStream.Read(factionID);
-				factions.push_back(factionID);
-			}
-			bitStream.Read(isSmashable); // This is an option later and also a flag at this spot
-			bitStream.Read(isDead);
-			bitStream.Read(isSmashed);
-			// if IsSmashable is true, read the next bits.
-				bitStream.Read(isModuleAssembly);
-				bitStream.Read(optionExplodeFactor);
-					bitStream.Read(explodeFactor);
+		bitStream.Read(currentHealth);
+		bitStream.Read(maxHealth);
+		bitStream.Read(currentArmor);
+		bitStream.Read(maxArmor);
+		bitStream.Read(currentImagination);
+		bitStream.Read(maxImagination);
+		bitStream.Read(damageAbsorptionPoints);
+		bitStream.Read(hasImmunity);
+		bitStream.Read(isGmImmune);
+		bitStream.Read(isShielded);
+		bitStream.Read(actualMaxHealth);
+		bitStream.Read(actualMaxArmor);
+		bitStream.Read(actualMaxImagination);
+		bitStream.Read(factionsSize);
+		for (uint32_t i = 0; i < factionsSize; i++) {
+			int32_t factionID{};
+			bitStream.Read(factionID);
+			factions.push_back(factionID);
+		}
+		bitStream.Read(isSmashable); // This is an option later and also a flag at this spot
+		bitStream.Read(isDead);
+		bitStream.Read(isSmashed);
+		// if IsSmashable is true, read the next bits.
+		bitStream.Read(isModuleAssembly);
+		bitStream.Read(optionExplodeFactor);
+		bitStream.Read(explodeFactor);
 
 		bitStream.Read(optionIsOnThreatList);
-			bitStream.Read(isThreatened);
+		bitStream.Read(isThreatened);
 		EXPECT_EQ(optionStatusImmunityInfo, false);
 
 		EXPECT_EQ(optionStatsInfo, true);
-			EXPECT_EQ(currentHealth, 23);
-			EXPECT_EQ(maxHealth, 12345.0f);
-			EXPECT_EQ(currentArmor, 7);
-			EXPECT_EQ(maxArmor, 14.0f);
-			EXPECT_EQ(currentImagination, 6000);
-			EXPECT_EQ(maxImagination, 14000.0f);
-			EXPECT_EQ(damageAbsorptionPoints, 0.0f);
-			EXPECT_EQ(hasImmunity, false);
-			EXPECT_EQ(isGmImmune, false);
-			EXPECT_EQ(isShielded, false);
-			EXPECT_EQ(actualMaxHealth, 12345.0f);
-			EXPECT_EQ(actualMaxArmor, 14.0f);
-			EXPECT_EQ(actualMaxImagination, 14000.0f);
-			EXPECT_EQ(factionsSize, 2);
-			EXPECT_NE(std::find(factions.begin(), factions.end(), -1), factions.end());
-			EXPECT_NE(std::find(factions.begin(), factions.end(), 6), factions.end());
-			EXPECT_EQ(isSmashable, true);
-			EXPECT_EQ(isDead, false);
-			EXPECT_EQ(isSmashed, false);
-			EXPECT_EQ(isSmashable, true); // For the sake of readability with the struct viewers, we will test this twice since its used as an option here, but as a bool above.
-				EXPECT_EQ(isModuleAssembly, false);
-				EXPECT_EQ(optionExplodeFactor, true);
-					EXPECT_EQ(explodeFactor, 1.1f);
+		EXPECT_EQ(currentHealth, 23);
+		EXPECT_EQ(maxHealth, 12345.0f);
+		EXPECT_EQ(currentArmor, 7);
+		EXPECT_EQ(maxArmor, 14.0f);
+		EXPECT_EQ(currentImagination, 6000);
+		EXPECT_EQ(maxImagination, 14000.0f);
+		EXPECT_EQ(damageAbsorptionPoints, 0.0f);
+		EXPECT_EQ(hasImmunity, false);
+		EXPECT_EQ(isGmImmune, false);
+		EXPECT_EQ(isShielded, false);
+		EXPECT_EQ(actualMaxHealth, 12345.0f);
+		EXPECT_EQ(actualMaxArmor, 14.0f);
+		EXPECT_EQ(actualMaxImagination, 14000.0f);
+		EXPECT_EQ(factionsSize, 2);
+		EXPECT_NE(std::find(factions.begin(), factions.end(), -1), factions.end());
+		EXPECT_NE(std::find(factions.begin(), factions.end(), 6), factions.end());
+		EXPECT_EQ(isSmashable, true);
+		EXPECT_EQ(isDead, false);
+		EXPECT_EQ(isSmashed, false);
+		EXPECT_EQ(isSmashable, true); // For the sake of readability with the struct viewers, we will test this twice since its used as an option here, but as a bool above.
+		EXPECT_EQ(isModuleAssembly, false);
+		EXPECT_EQ(optionExplodeFactor, true);
+		EXPECT_EQ(explodeFactor, 1.1f);
 
 		EXPECT_EQ(optionIsOnThreatList, true);
-			EXPECT_EQ(isThreatened, false);
+		EXPECT_EQ(isThreatened, false);
 	}
 	bitStream.Reset();
 }
@@ -166,47 +166,47 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
 		bool isSmashable{};
 		bool optionIsOnThreatList{};
 		bitStream.Read(optionStatsInfo);
-			bitStream.Read(currentHealth);
-			bitStream.Read(maxHealth);
-			bitStream.Read(currentArmor);
-			bitStream.Read(maxArmor);
-			bitStream.Read(currentImagination);
-			bitStream.Read(maxImagination);
-			bitStream.Read(damageAbsorptionPoints);
-			bitStream.Read(hasImmunity);
-			bitStream.Read(isGmImmune);
-			bitStream.Read(isShielded);
-			bitStream.Read(actualMaxHealth);
-			bitStream.Read(actualMaxArmor);
-			bitStream.Read(actualMaxImagination);
-			bitStream.Read(factionsSize);
-			for (uint32_t i = 0; i < factionsSize; i++) {
-				int32_t factionID{};
-				bitStream.Read(factionID);
-				factions.push_back(factionID);
-			}
-			bitStream.Read(isSmashable);
+		bitStream.Read(currentHealth);
+		bitStream.Read(maxHealth);
+		bitStream.Read(currentArmor);
+		bitStream.Read(maxArmor);
+		bitStream.Read(currentImagination);
+		bitStream.Read(maxImagination);
+		bitStream.Read(damageAbsorptionPoints);
+		bitStream.Read(hasImmunity);
+		bitStream.Read(isGmImmune);
+		bitStream.Read(isShielded);
+		bitStream.Read(actualMaxHealth);
+		bitStream.Read(actualMaxArmor);
+		bitStream.Read(actualMaxImagination);
+		bitStream.Read(factionsSize);
+		for (uint32_t i = 0; i < factionsSize; i++) {
+			int32_t factionID{};
+			bitStream.Read(factionID);
+			factions.push_back(factionID);
+		}
+		bitStream.Read(isSmashable);
 
 		bitStream.Read(optionIsOnThreatList);
 
 		EXPECT_EQ(optionStatsInfo, true);
-			EXPECT_EQ(currentHealth, 23);
-			EXPECT_EQ(maxHealth, 1233.0f);
-			EXPECT_EQ(currentArmor, 7);
-			EXPECT_EQ(maxArmor, 14.0f);
-			EXPECT_EQ(currentImagination, 6000);
-			EXPECT_EQ(maxImagination, 14000.0f);
-			EXPECT_EQ(damageAbsorptionPoints, 0.0f);
-			EXPECT_EQ(hasImmunity, false);
-			EXPECT_EQ(isGmImmune, false);
-			EXPECT_EQ(isShielded, false);
-			EXPECT_EQ(actualMaxHealth, 1233.0f);
-			EXPECT_EQ(actualMaxArmor, 14.0f);
-			EXPECT_EQ(actualMaxImagination, 14000.0f);
-			EXPECT_EQ(factionsSize, 2);
-			EXPECT_NE(std::find(factions.begin(), factions.end(), -1), factions.end());
-			EXPECT_NE(std::find(factions.begin(), factions.end(), 6), factions.end());
-			EXPECT_EQ(isSmashable, true);
+		EXPECT_EQ(currentHealth, 23);
+		EXPECT_EQ(maxHealth, 1233.0f);
+		EXPECT_EQ(currentArmor, 7);
+		EXPECT_EQ(maxArmor, 14.0f);
+		EXPECT_EQ(currentImagination, 6000);
+		EXPECT_EQ(maxImagination, 14000.0f);
+		EXPECT_EQ(damageAbsorptionPoints, 0.0f);
+		EXPECT_EQ(hasImmunity, false);
+		EXPECT_EQ(isGmImmune, false);
+		EXPECT_EQ(isShielded, false);
+		EXPECT_EQ(actualMaxHealth, 1233.0f);
+		EXPECT_EQ(actualMaxArmor, 14.0f);
+		EXPECT_EQ(actualMaxImagination, 14000.0f);
+		EXPECT_EQ(factionsSize, 2);
+		EXPECT_NE(std::find(factions.begin(), factions.end(), -1), factions.end());
+		EXPECT_NE(std::find(factions.begin(), factions.end(), 6), factions.end());
+		EXPECT_EQ(isSmashable, true);
 
 		EXPECT_EQ(optionIsOnThreatList, false); // Always zero for now on serialization
 	}

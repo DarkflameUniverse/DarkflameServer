@@ -5,10 +5,10 @@
 #include "GeneralUtils.h"
 
 class EncodingTest : public ::testing::Test {
-	protected:
-		std::string originalWord;
-		std::string_view originalWordSv;
-		uint32_t out;
+protected:
+	std::string originalWord;
+	std::string_view originalWordSv;
+	uint32_t out;
 };
 
 TEST_F(EncodingTest, TestEncodingHello) {
