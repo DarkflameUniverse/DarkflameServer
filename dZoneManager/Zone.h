@@ -225,9 +225,9 @@ private:
 	std::map<LWOSCENEID, uint32_t, mapCompareLwoSceneIDs> m_MapRevisions; //rhs is the revision!
 
 	//private ("helper") functions:
-	void LoadScene(std::ifstream& file);
+	void LoadScene(std::istream& file);
 	std::vector<LUTriggers::Trigger*> LoadLUTriggers(std::string triggerFile, LWOSCENEID sceneID);
-	void LoadSceneTransition(std::ifstream& file);
-	SceneTransitionInfo LoadSceneTransitionInfo(std::ifstream& file);
-	void LoadPath(std::ifstream& file);
+	void LoadSceneTransition(std::istream& file);
+	SceneTransitionInfo LoadSceneTransitionInfo(std::istream& file);
+	void LoadPath(std::istream& file);
 };

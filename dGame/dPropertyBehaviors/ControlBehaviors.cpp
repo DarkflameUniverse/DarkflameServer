@@ -393,106 +393,106 @@ void Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwne
 void SendBehaviorBlocksToClient(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
-	auto modelBehavior = modelComponent->FindBehavior(behaviorID);
+	// auto modelBehavior = modelComponent->FindBehavior(behaviorID);
 
-	if (!modelBehavior) return;
+	// if (!modelBehavior) return;
 
-	modelBehavior->VerifyStates();
+	// modelBehavior->VerifyStates();
 
-	auto states = modelBehavior->GetBehaviorStates();
+	// auto states = modelBehavior->GetBehaviorStates();
 
-	// Begin serialization.
+	// // Begin serialization.
 
-	/**
-	 * for each state
-	 *	  strip id
-	 *	  ui info
-	 *		  x
-	 *		  y
-	 *	  actions
-	 *		  action1
-	 *		  action2
-	 *		  ...
-	 * behaviorID of strip
-	 * objectID of strip
-	 */
-	LWOOBJID targetObjectID = LWOOBJID_EMPTY;
-	behaviorID = 0;
-	AMFArrayValue behaviorInfo;
+	// /**
+	//  * for each state
+	//  *	  strip id
+	//  *	  ui info
+	//  *		  x
+	//  *		  y
+	//  *	  actions
+	//  *		  action1
+	//  *		  action2
+	//  *		  ...
+	//  * behaviorID of strip
+	//  * objectID of strip
+	//  */
+	// LWOOBJID targetObjectID = LWOOBJID_EMPTY;
+	// behaviorID = 0;
+	// AMFArrayValue behaviorInfo;
 
-	AMFArrayValue* stateSerialize = new AMFArrayValue();
+	// AMFArrayValue* stateSerialize = new AMFArrayValue();
 
-	for (auto it = states.begin(); it != states.end(); it++) {
-		Game::logger->Log("PropertyBehaviors", "Begin serialization of state %i!\n", it->first);
-		AMFArrayValue* state = new AMFArrayValue();
+	// for (auto it = states.begin(); it != states.end(); it++) {
+	// 	Game::logger->Log("PropertyBehaviors", "Begin serialization of state %i!\n", it->first);
+	// 	AMFArrayValue* state = new AMFArrayValue();
 
-		AMFDoubleValue* stateAsDouble = new AMFDoubleValue();
-		stateAsDouble->SetDoubleValue(it->first);
-		state->InsertValue("id", stateAsDouble);
+	// 	AMFDoubleValue* stateAsDouble = new AMFDoubleValue();
+	// 	stateAsDouble->SetDoubleValue(it->first);
+	// 	state->InsertValue("id", stateAsDouble);
 
-		AMFArrayValue* strips = new AMFArrayValue();
-		auto stripsInState = it->second->GetStrips();
-		for (auto strip = stripsInState.begin(); strip != stripsInState.end(); strip++) {
-			Game::logger->Log("PropertyBehaviors", "Begin serialization of strip %i!\n", strip->first);
-			AMFArrayValue* thisStrip = new AMFArrayValue();
+	// 	AMFArrayValue* strips = new AMFArrayValue();
+	// 	auto stripsInState = it->second->GetStrips();
+	// 	for (auto strip = stripsInState.begin(); strip != stripsInState.end(); strip++) {
+	// 		Game::logger->Log("PropertyBehaviors", "Begin serialization of strip %i!\n", strip->first);
+	// 		AMFArrayValue* thisStrip = new AMFArrayValue();
 
-			AMFDoubleValue* stripID = new AMFDoubleValue();
-			stripID->SetDoubleValue(strip->first);
-			thisStrip->InsertValue("id", stripID);
+	// 		AMFDoubleValue* stripID = new AMFDoubleValue();
+	// 		stripID->SetDoubleValue(strip->first);
+	// 		thisStrip->InsertValue("id", stripID);
 
-			AMFArrayValue* uiArray = new AMFArrayValue();
-			AMFDoubleValue* yPosition = new AMFDoubleValue();
-			yPosition->SetDoubleValue(strip->second->GetYPosition());
-			uiArray->InsertValue("y", yPosition);
+	// 		AMFArrayValue* uiArray = new AMFArrayValue();
+	// 		AMFDoubleValue* yPosition = new AMFDoubleValue();
+	// 		yPosition->SetDoubleValue(strip->second->GetYPosition());
+	// 		uiArray->InsertValue("y", yPosition);
 
-			AMFDoubleValue* xPosition = new AMFDoubleValue();
-			xPosition->SetDoubleValue(strip->second->GetXPosition());
-			uiArray->InsertValue("x", xPosition);
+	// 		AMFDoubleValue* xPosition = new AMFDoubleValue();
+	// 		xPosition->SetDoubleValue(strip->second->GetXPosition());
+	// 		uiArray->InsertValue("x", xPosition);
 
-			thisStrip->InsertValue("ui", uiArray);
-			targetObjectID = modelComponent->GetParent()->GetObjectID();
-			behaviorID = modelBehavior->GetBehaviorID();
+	// 		thisStrip->InsertValue("ui", uiArray);
+	// 		targetObjectID = modelComponent->GetParent()->GetObjectID();
+	// 		behaviorID = modelBehavior->GetBehaviorID();
 
-			AMFArrayValue* stripSerialize = new AMFArrayValue();
-			for (auto behaviorAction : strip->second->GetActions()) {
-				Game::logger->Log("PropertyBehaviors", "Begin serialization of action %s!\n", behaviorAction->actionName.c_str());
-				AMFArrayValue* thisAction = new AMFArrayValue();
+	// 		AMFArrayValue* stripSerialize = new AMFArrayValue();
+	// 		for (auto behaviorAction : strip->second->GetActions()) {
+	// 			Game::logger->Log("PropertyBehaviors", "Begin serialization of action %s!\n", behaviorAction->actionName.c_str());
+	// 			AMFArrayValue* thisAction = new AMFArrayValue();
 
-				AMFStringValue* actionName = new AMFStringValue();
-				actionName->SetStringValue(behaviorAction->actionName);
-				thisAction->InsertValue("Type", actionName);
+	// 			AMFStringValue* actionName = new AMFStringValue();
+	// 			actionName->SetStringValue(behaviorAction->actionName);
+	// 			thisAction->InsertValue("Type", actionName);
 
-				if (behaviorAction->parameterValueString != "")
-				{
-					AMFStringValue* valueAsString = new AMFStringValue();
-					valueAsString->SetStringValue(behaviorAction->parameterValueString);
-					thisAction->InsertValue(behaviorAction->parameterName, valueAsString);
-				}
-				else if (behaviorAction->parameterValueDouble != 0.0)
-				{
-					AMFDoubleValue* valueAsDouble = new AMFDoubleValue();
-					valueAsDouble->SetDoubleValue(behaviorAction->parameterValueDouble);
-					thisAction->InsertValue(behaviorAction->parameterName, valueAsDouble);
-				}
-				stripSerialize->PushBackValue(thisAction);
-			}
-			thisStrip->InsertValue("actions", stripSerialize);
-			strips->PushBackValue(thisStrip);
-		}
-		state->InsertValue("strips", strips);
-		stateSerialize->PushBackValue(state);
-	}
-	behaviorInfo.InsertValue("states", stateSerialize);
+	// 			if (behaviorAction->parameterValueString != "")
+	// 			{
+	// 				AMFStringValue* valueAsString = new AMFStringValue();
+	// 				valueAsString->SetStringValue(behaviorAction->parameterValueString);
+	// 				thisAction->InsertValue(behaviorAction->parameterName, valueAsString);
+	// 			}
+	// 			else if (behaviorAction->parameterValueDouble != 0.0)
+	// 			{
+	// 				AMFDoubleValue* valueAsDouble = new AMFDoubleValue();
+	// 				valueAsDouble->SetDoubleValue(behaviorAction->parameterValueDouble);
+	// 				thisAction->InsertValue(behaviorAction->parameterName, valueAsDouble);
+	// 			}
+	// 			stripSerialize->PushBackValue(thisAction);
+	// 		}
+	// 		thisStrip->InsertValue("actions", stripSerialize);
+	// 		strips->PushBackValue(thisStrip);
+	// 	}
+	// 	state->InsertValue("strips", strips);
+	// 	stateSerialize->PushBackValue(state);
+	// }
+	// behaviorInfo.InsertValue("states", stateSerialize);
 
-	AMFStringValue* objectidAsString = new AMFStringValue();
-	objectidAsString->SetStringValue(std::to_string(targetObjectID));
-	behaviorInfo.InsertValue("objectID", objectidAsString);
+	// AMFStringValue* objectidAsString = new AMFStringValue();
+	// objectidAsString->SetStringValue(std::to_string(targetObjectID));
+	// behaviorInfo.InsertValue("objectID", objectidAsString);
 
-	AMFStringValue* behaviorIDAsString = new AMFStringValue();
-	behaviorIDAsString->SetStringValue(std::to_string(behaviorID));
-	behaviorInfo.InsertValue("BehaviorID", behaviorIDAsString);
+	// AMFStringValue* behaviorIDAsString = new AMFStringValue();
+	// behaviorIDAsString->SetStringValue(std::to_string(behaviorID));
+	// behaviorInfo.InsertValue("BehaviorID", behaviorIDAsString);
 
-	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorBlocks", &behaviorInfo);
+	// GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorBlocks", &behaviorInfo);
 }
 
 void UpdateAction(AMFArrayValue* arguments) {

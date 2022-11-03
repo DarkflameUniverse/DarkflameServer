@@ -2563,7 +2563,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				delete ugcs;
 
 				//Insert into the db as a BBB model:
-				auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents`(`id`, `property_id`, `ugc_id`, `lot`, `x`, `y`, `z`, `rx`, `ry`, `rz`, `rw`) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+				auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents` VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 				stmt->setUInt64(1, newIDL);
 				stmt->setUInt64(2, propertyId);
 				stmt->setUInt(3, blueprintIDSmall);
@@ -2575,6 +2575,13 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				stmt->setDouble(9, 0.0f); // ry
 				stmt->setDouble(10, 0.0f); // rz
 				stmt->setDouble(11, 0.0f); // rw
+				stmt->setString(12, "Objects_14_name"); // Model name.  TODO make this customizable
+				stmt->setString(13, ""); // Model description.  TODO implement this.
+				stmt->setDouble(14, 0); // behavior 1.  TODO implement this.
+				stmt->setDouble(15, 0); // behavior 2.  TODO implement this.
+				stmt->setDouble(16, 0); // behavior 3.  TODO implement this.
+				stmt->setDouble(17, 0); // behavior 4.  TODO implement this.
+				stmt->setDouble(18, 0); // behavior 5.  TODO implement this.
 				stmt->execute();
 				delete stmt;
 

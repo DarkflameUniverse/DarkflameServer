@@ -196,9 +196,10 @@ certutil -hashfile <file> SHA256
 * Copy over or create symlinks from `locale.xml` in your client `locale` directory to the `build/locale` directory
 
 #### Client database
-* Use `fdb_to_sqlite.py` in lcdr's utilities on `res/cdclient.fdb` in the unpacked client to convert the client database to `cdclient.sqlite`
-* Move and rename `cdclient.sqlite` into `build/res/CDServer.sqlite`
-* Run each SQL file in the order at which they appear [here](migrations/cdserver/) on the SQLite database
+* Move the file `res/cdclient.fdb` from the unpacked client to the `build/res` folder on the server.
+* The server will automatically copy and convert the file from fdb to sqlite should `CDServer.sqlite` not already exist.
+* You can also convert the database manually using `fdb_to_sqlite.py` using lcdr's utilities.  Just make sure to rename the file to `CDServer.sqlite` instead of `cdclient.sqlite`.
+* Migrations to the database are automatically run on server start.  When migrations are needed to be ran, the server may take a bit longer to start.
 
 ### Database
 Darkflame Universe utilizes a MySQL/MariaDB database for account and character information.
@@ -229,7 +230,7 @@ Your build directory should now look like this:
 * **locale/**
   * locale.xml
 * **res/**
-  * CDServer.sqlite
+  * cdclient.fdb
   * chatplus_en_us.txt
   * **macros/**
     * ...
