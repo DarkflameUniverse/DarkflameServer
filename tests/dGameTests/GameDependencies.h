@@ -4,9 +4,9 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "dServer.h"
-#include "dZoneManager.h"
 #include "EntityManager.h"
-#include "dZoneManager.h"
+class dZoneManager;
+class AssetManager;
 #include <gtest/gtest.h>
 
 class dServerMock : public dServer {
@@ -31,7 +31,6 @@ protected:
 	void TearDownDependencies() {
 		if (Game::server) delete Game::server;
 		delete EntityManager::Instance();
-		delete dZoneManager::Instance();
 		if (Game::logger) {
 			Game::logger->Flush();
 			delete Game::logger;

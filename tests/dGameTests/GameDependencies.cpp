@@ -10,5 +10,6 @@ namespace Game {
 	dLocale* locale;
 	std::mt19937 randomEngine;
 	RakPeerInterface* chatServer;
+	AssetManager* assetManager;
 	SystemAddress chatSysAddr;
 }
