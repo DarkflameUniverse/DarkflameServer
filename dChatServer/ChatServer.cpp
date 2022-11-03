@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
 	try {
 		std::string client_path = config.GetValue("client_location");
 		if (client_path.empty()) client_path = "./res";
-		Game::assetManager = new AssetManager(config.GetValue("client_location"));
+		Game::assetManager = new AssetManager(client_path);
 	} catch (std::runtime_error& ex) {
 		Game::logger->Log("ChatServer", "Got an error while setting up assets: %s", ex.what());
 
