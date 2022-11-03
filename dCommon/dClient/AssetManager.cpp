@@ -1,4 +1,6 @@
 #include "AssetManager.h"
+#include "Game.h"
+#include "dLogger.h"
 
 #include <zlib.h>
 
@@ -91,13 +93,8 @@ bool AssetManager::HasFile(const char* name) {
 bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 	auto fixedName = std::string(name);
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
-	std::replace(fixedName.begin(), fixedName.end(), '/', '\\');
-
+	std::replace(fixedName.begin(), fixedName.end(), '\\', '/'); // On the off chance someone has the wrong slashes, force forward slashes
 	auto realPathName = fixedName;
-
-	if (fixedName.rfind("client\\res\\", 0) != 0) {
-		fixedName = "client\\res\\" + fixedName;
-	}
 
 	if (std::filesystem::exists(m_ResPath / realPathName)) {
 		FILE* file;
@@ -121,6 +118,11 @@ bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 
 	if (this->m_AssetBundleType == eAssetBundleType::Unpacked) return false;
 
+	// The crc in side of the pack always uses backslashes, so we need to convert them again...
+	std::replace(fixedName.begin(), fixedName.end(), '/', '\\');
+	if (fixedName.rfind("client\\res\\", 0) != 0) {
+		fixedName = "client\\res\\" + fixedName;
+	}
 	int32_t packIndex = -1;
 	uint32_t crc = crc32b(0xFFFFFFFF, (uint8_t*)fixedName.c_str(), fixedName.size());
 	crc = crc32b(crc, (Bytef*)"\0\0\0\0", 4);
