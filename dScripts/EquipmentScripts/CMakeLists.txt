@@ -1,4 +1,4 @@
-set(DSCRIPTS_SOURCES_EQUIPMENTSCRIPTS 
+set(DSCRIPTS_SOURCES_EQUIPMENTSCRIPTS
 	"Sunflower.cpp"
 	"AnvilOfArmor.cpp"
 	"FountainOfImagination.cpp"
@@ -6,4 +6,5 @@ set(DSCRIPTS_SOURCES_EQUIPMENTSCRIPTS
 	"PersonalFortress.cpp"
 	"BuccaneerValiantShip.cpp"
 	"FireFirstSkillonStartup.cpp"
+	"XMarksTheSpotChest.cpp"
 	PARENT_SCOPE)
