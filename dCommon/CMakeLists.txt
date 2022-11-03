@@ -23,6 +23,12 @@ foreach(file ${DCOMMON_DCLIENT_SOURCES})
 	set(DCOMMON_SOURCES ${DCOMMON_SOURCES} "dClient/${file}")
 endforeach()
 
+add_subdirectory(dEnums)
+
+foreach(file ${DCOMMON_DENUM_SOURCES})
+	set(DCOMMON_SOURCES ${DCOMMON_SOURCES} "dEnums/${file}")
+endforeach()
+
 include_directories(${PROJECT_SOURCE_DIR}/dCommon/)
 
 add_library(dCommon STATIC ${DCOMMON_SOURCES})

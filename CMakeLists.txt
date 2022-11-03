@@ -146,6 +146,8 @@ endforeach()
 # Create our list of include directories
 set(INCLUDED_DIRECTORIES
 	"dCommon"
+	"dCommon/dClient"
+	"dCommon/dEnums"
 	"dChatFilter"
 	"dGame"
 	"dGame/dBehaviors"
@@ -156,7 +158,6 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dEntity"
 	"dGame/dPropertyBehaviors"
 	"dGame/dUtilities"
-	"dCommon/dClient"
 	"dPhysics"
 	"dNavigation"
 	"dNavigation/dTerrain"
