@@ -165,8 +165,8 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFArray);
 		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociativeMap().size(), 1);
 		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetDenseArray().size(), 1);
-		ASSERT_EQ(static_cast<AMFStringValue*>(static_cast<AMFArrayValue*>(res.get())->FindValue("BehaviorID"))->GetStringValue(), "10447");
-		ASSERT_EQ(static_cast<AMFStringValue*>(static_cast<AMFArrayValue*>(res.get())->GetDenseArray()[0])->GetStringValue(), "10447");
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->FindValue<AMFStringValue>("BehaviorID")->GetStringValue(), "10447");
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetValueAt<AMFStringValue>(0)->GetStringValue(), "10447");
 	}
 }
 
@@ -240,102 +240,103 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 	auto result = static_cast<AMFArrayValue*>(resultFromFn.get());
 	// Test the outermost array
 
-	ASSERT_EQ(dynamic_cast<AMFStringValue*>(result->FindValue("BehaviorID"))->GetStringValue(), "10447");
-	ASSERT_EQ(dynamic_cast<AMFStringValue*>(result->FindValue("objectID"))->GetStringValue(), "288300744895913279");
+	ASSERT_EQ(result->FindValue<AMFStringValue>("BehaviorID")->GetStringValue(), "10447");
+	ASSERT_EQ(result->FindValue<AMFStringValue>("objectID")->GetStringValue(), "288300744895913279");
 
 	// Test the execution state array
-	auto executionState = dynamic_cast<AMFArrayValue*>(result->FindValue("executionState"));
+	auto executionState = result->FindValue<AMFArrayValue>("executionState");
+
 	ASSERT_NE(executionState, nullptr);
 
-	auto strips = dynamic_cast<AMFArrayValue*>(executionState->FindValue("strips"))->GetDenseArray();
+	auto strips = executionState->FindValue<AMFArrayValue>("strips")->GetDenseArray();
 
 	ASSERT_EQ(strips.size(), 1);
 
 	auto stripsPosition0 = dynamic_cast<AMFArrayValue*>(strips[0]);
 
-	auto actionIndex = dynamic_cast<AMFDoubleValue*>(stripsPosition0->FindValue("actionIndex"));
+	auto actionIndex = stripsPosition0->FindValue<AMFDoubleValue>("actionIndex");
 
 	ASSERT_EQ(actionIndex->GetDoubleValue(), 0.0f);
 
-	auto stripIDExecution = dynamic_cast<AMFDoubleValue*>(stripsPosition0->FindValue("id"));
+	auto stripIDExecution = stripsPosition0->FindValue<AMFDoubleValue>("id");
 
 	ASSERT_EQ(stripIDExecution->GetDoubleValue(), 0.0f);
 
-	auto stateIDExecution = dynamic_cast<AMFDoubleValue*>(executionState->FindValue("stateID"));
+	auto stateIDExecution = executionState->FindValue<AMFDoubleValue>("stateID");
 
 	ASSERT_EQ(stateIDExecution->GetDoubleValue(), 0.0f);
 
-	auto states = dynamic_cast<AMFArrayValue*>(result->FindValue("states"))->GetDenseArray();
+	auto states = result->FindValue<AMFArrayValue>("states")->GetDenseArray();
 
 	ASSERT_EQ(states.size(), 1);
 
 	auto firstState = dynamic_cast<AMFArrayValue*>(states[0]);
 
-	auto stateID = dynamic_cast<AMFDoubleValue*>(firstState->FindValue("id"));
+	auto stateID = firstState->FindValue<AMFDoubleValue>("id");
 
 	ASSERT_EQ(stateID->GetDoubleValue(), 0.0f);
 
-	auto stripsInState = dynamic_cast<AMFArrayValue*>(firstState->FindValue("strips"))->GetDenseArray();
+	auto stripsInState = firstState->FindValue<AMFArrayValue>("strips")->GetDenseArray();
 
 	ASSERT_EQ(stripsInState.size(), 1);
 
 	auto firstStrip = dynamic_cast<AMFArrayValue*>(stripsInState[0]);
 
-	auto actionsInFirstStrip = dynamic_cast<AMFArrayValue*>(firstStrip->FindValue("actions"))->GetDenseArray();
+	auto actionsInFirstStrip = firstStrip->FindValue<AMFArrayValue>("actions")->GetDenseArray();
 
 	ASSERT_EQ(actionsInFirstStrip.size(), 3);
 
-	auto actionID = dynamic_cast<AMFDoubleValue*>(firstStrip->FindValue("id"));
+	auto actionID = firstStrip->FindValue<AMFDoubleValue>("id");
 
 	ASSERT_EQ(actionID->GetDoubleValue(), 0.0f);
 
-	auto uiArray = dynamic_cast<AMFArrayValue*>(firstStrip->FindValue("ui"));
+	auto uiArray = firstStrip->FindValue<AMFArrayValue>("ui");
 
-	auto xPos = dynamic_cast<AMFDoubleValue*>(uiArray->FindValue("x"));
-	auto yPos = dynamic_cast<AMFDoubleValue*>(uiArray->FindValue("y"));
+	auto xPos = uiArray->FindValue<AMFDoubleValue>("x");
+	auto yPos = uiArray->FindValue<AMFDoubleValue>("y");
 
 	ASSERT_EQ(xPos->GetDoubleValue(), 103.0f);
 	ASSERT_EQ(yPos->GetDoubleValue(), 82.0f);
 
-	auto stripID = dynamic_cast<AMFDoubleValue*>(firstStrip->FindValue("id"));
+	auto stripID = firstStrip->FindValue<AMFDoubleValue>("id");
 
 	ASSERT_EQ(stripID->GetDoubleValue(), 0.0f);
 
 	auto firstAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[0]);
 
-	auto firstType = dynamic_cast<AMFStringValue*>(firstAction->FindValue("Type"));
+	auto firstType = firstAction->FindValue<AMFStringValue>("Type");
 
 	ASSERT_EQ(firstType->GetStringValue(), "OnInteract");
 
-	auto firstCallback = dynamic_cast<AMFStringValue*>(firstAction->FindValue("__callbackID__"));
+	auto firstCallback = firstAction->FindValue<AMFStringValue>("__callbackID__");
 
 	ASSERT_EQ(firstCallback->GetStringValue(), "");
 
 	auto secondAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[1]);
 
-	auto secondType = dynamic_cast<AMFStringValue*>(secondAction->FindValue("Type"));
+	auto secondType = secondAction->FindValue<AMFStringValue>("Type");
 
 	ASSERT_EQ(secondType->GetStringValue(), "FlyUp");
 
-	auto secondCallback = dynamic_cast<AMFStringValue*>(secondAction->FindValue("__callbackID__"));
+	auto secondCallback = secondAction->FindValue<AMFStringValue>("__callbackID__");
 
 	ASSERT_EQ(secondCallback->GetStringValue(), "");
 
-	auto secondDistance = dynamic_cast<AMFDoubleValue*>(secondAction->FindValue("Distance"));
+	auto secondDistance = secondAction->FindValue<AMFDoubleValue>("Distance");
 
 	ASSERT_EQ(secondDistance->GetDoubleValue(), 25.0f);
 
 	auto thirdAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[2]);
 
-	auto thirdType = dynamic_cast<AMFStringValue*>(thirdAction->FindValue("Type"));
+	auto thirdType = thirdAction->FindValue<AMFStringValue>("Type");
 
 	ASSERT_EQ(thirdType->GetStringValue(), "FlyDown");
 
-	auto thirdCallback = dynamic_cast<AMFStringValue*>(thirdAction->FindValue("__callbackID__"));
+	auto thirdCallback = thirdAction->FindValue<AMFStringValue>("__callbackID__");
 
 	ASSERT_EQ(thirdCallback->GetStringValue(), "");
 
-	auto thirdDistance = dynamic_cast<AMFDoubleValue*>(thirdAction->FindValue("Distance"));
+	auto thirdDistance = thirdAction->FindValue<AMFDoubleValue>("Distance");
 
 	ASSERT_EQ(thirdDistance->GetDoubleValue(), 25.0f);
 }
@@ -346,6 +347,40 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 TEST(dCommonTests, AMFDeserializeNullTest) {
 	auto result = ReadFromBitStream(nullptr);
 	ASSERT_EQ(result.get(), nullptr);
+}
+
+TEST(dCommonTests, AMFBadConversionTest) {
+	std::ifstream testFileStream;
+	testFileStream.open("AMFBitStreamTest.bin", std::ios::binary);
+
+	// Read a test BitStream from a file
+	RakNet::BitStream testBitStream;
+	char byte = 0;
+	while (testFileStream.get(byte)) {
+		testBitStream.Write<char>(byte);
+	}
+
+	testFileStream.close();
+
+	auto resultFromFn = ReadFromBitStream(&testBitStream);
+	auto result = static_cast<AMFArrayValue*>(resultFromFn.get());
+
+	// Actually a string value.
+	ASSERT_EQ(result->FindValue<AMFDoubleValue>("BehaviorID"), nullptr);
+
+	// Does not exist in the associative portion
+	ASSERT_EQ(result->FindValue<AMFNullValue>("DOES_NOT_EXIST"), nullptr);
+
+	result->PushBackValue(new AMFTrueValue());
+
+	// Exists and is correct type
+	ASSERT_NE(result->GetValueAt<AMFTrueValue>(0), nullptr);
+
+	// Value exists but is wrong typing
+	ASSERT_EQ(result->GetValueAt<AMFFalseValue>(0), nullptr);
+
+	// Value is out of bounds
+	ASSERT_EQ(result->GetValueAt<AMFTrueValue>(1), nullptr);
 }
 
 /**
