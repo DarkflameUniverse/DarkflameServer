@@ -45,7 +45,7 @@ void MigrationRunner::RunMigrations() {
 		}
 
 		stmt = Database::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
-		stmt->setString(1, migration.name);
+		stmt->setString(1, migration.name.c_str());
 		auto* res = stmt->executeQuery();
 		bool doExit = res->next();
 		delete res;
@@ -56,11 +56,11 @@ void MigrationRunner::RunMigrations() {
 		if (migration.name == "5_brick_model_sd0.sql") {
 			runSd0Migrations = true;
 		} else {
-			finalSQL.append(migration.data);
+			finalSQL.append(migration.data.c_str());
 		}
 
 		stmt = Database::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
-		stmt->setString(1, migration.name);
+		stmt->setString(1, migration.name.c_str());
 		stmt->execute();
 		delete stmt;
 	}
@@ -76,7 +76,7 @@ void MigrationRunner::RunMigrations() {
 		for (auto& query : migration) {
 			try {
 				if (query.empty()) continue;
-				simpleStatement->execute(query);
+				simpleStatement->execute(query.c_str());
 			} catch (sql::SQLException& e) {
 				Game::logger->Log("MigrationRunner", "Encountered error running migration: %s", e.what());
 			}
@@ -103,7 +103,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 		if (migration.data.empty()) continue;
 
 		stmt = Database::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
-		stmt->setString(1, migration.name);
+		stmt->setString(1, migration.name.c_str());
 		auto* res = stmt->executeQuery();
 		bool doExit = res->next();
 		delete res;
