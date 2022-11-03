@@ -17,7 +17,7 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_NT
 	"NtVandaServer.cpp"
 	"NtXRayServer.cpp"
 	"NtSleepingGuard.cpp"
-	"NTImagimeterVisibility.cpp"
+	"NtImagimeterVisibility.cpp"
 	"NtSentinelWalkwayServer.cpp"
 	"NtDarkitectRevealServer.cpp"
 	"NtParadoxTeleServer.cpp"
