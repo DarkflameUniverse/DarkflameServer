@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef __DCOMMONVARS__H__
+#define __DCOMMONVARS__H__
+
 #include <cstdint>
 #include <string>
 #include <set>
@@ -648,3 +651,5 @@ inline T const& clamp(const T& val, const T& low, const T& high) {
 
 	return val;
 }
+
+#endif  //!__DCOMMONVARS__H__
