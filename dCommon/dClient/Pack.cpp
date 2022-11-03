@@ -1,5 +1,6 @@
 #include "Pack.h"
 
+#include "BinaryIO.h"
 #include "ZCompression.h"
 
 Pack::Pack(const std::filesystem::path& filePath) {
@@ -11,7 +12,7 @@ Pack::Pack(const std::filesystem::path& filePath) {
 
 	m_FileStream = std::ifstream(filePath, std::ios::in | std::ios::binary);
 
-	m_FileStream.read(m_Version, 7); 
+	m_FileStream.read(m_Version, 7);
 
 	m_FileStream.seekg(-8, std::ios::end); // move file pointer to 8 bytes before the end (location of the address of the record count)
 
