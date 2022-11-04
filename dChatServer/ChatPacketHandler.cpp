@@ -394,7 +394,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	uint8_t channel = 0;
 	inStream.Read(channel);
 
-	std::string message = PacketUtils::ReadString(0x66, packet, true);
+	std::string message = PacketUtils::ReadString(0x66, packet, true, 512);
 
 	Game::logger->Log("ChatPacketHandler", "Got a message from (%s) [%d]: %s", senderName.c_str(), channel, message.c_str());
 
