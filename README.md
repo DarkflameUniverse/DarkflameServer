@@ -60,7 +60,7 @@ You can either run `build.sh` when in the root folder of the repository:
 ./build.sh
 ```
 
-Or manually run the commands used in [build.sh](build.sh):
+Or manually run the commands used in [build.sh](build.sh).
 
 ### MacOS builds
 Ensure `cmake`, `zlib` and `open ssl` are installed as well as a compiler (e.g `clang` or `gcc`).
