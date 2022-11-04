@@ -436,7 +436,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	LWOOBJID senderID = PacketUtils::ReadPacketS64(0x08, packet);
 	std::string receiverName = PacketUtils::ReadString(0x66, packet, true);
-	std::string message = PacketUtils::ReadString(0xAA, packet, true);
+	std::string message = PacketUtils::ReadString(0xAA, packet, true, 512);
 
 	//Get the bois:
 	auto goonA = playerContainer.GetPlayerData(senderID);
