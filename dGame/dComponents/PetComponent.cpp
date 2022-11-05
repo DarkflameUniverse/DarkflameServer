@@ -194,10 +194,7 @@ void PetComponent::OnUse(Entity* originator) {
 			return;
 		}
 
-		auto lxfAsset = std::string(result.getStringField(0));
-		
-		// Gets rid of leading res/ path name.
-		if (lxfAsset.find("res\\") != std::string::npos) lxfAsset.erase(lxfAsset.begin(), lxfAsset.begin() + 4);
+		buildFile = std::string(result.getStringField(0));
 
 		PetPuzzleData data;
 		data.buildFile = buildFile;
@@ -227,6 +224,7 @@ void PetComponent::OnUse(Entity* originator) {
 	if (imagination < imaginationCost) {
 		return;
 	}
+	Game::logger->Log("PetComponent", "bf %s", buildFile.c_str());
 
 	auto& bricks = BrickDatabase::Instance()->GetBricks(buildFile);
 
