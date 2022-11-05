@@ -66,17 +66,15 @@ eAssetBundleType AssetManager::GetAssetBundleType() {
 bool AssetManager::HasFile(const char* name) {
 	auto fixedName = std::string(name);
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
+
+
+	std::replace(fixedName.begin(), fixedName.end(), '\\', '/');
+	if (std::filesystem::exists(m_ResPath / fixedName)) return true;
+
+	if (this->m_AssetBundleType == eAssetBundleType::Unpacked) return false;
+
 	std::replace(fixedName.begin(), fixedName.end(), '/', '\\');
-
-	auto realPathName = fixedName;
-
-	if (fixedName.rfind("client\\res\\", 0) != 0) {
-		fixedName = "client\\res\\" + fixedName;
-	}
-
-	if (std::filesystem::exists(m_ResPath / realPathName)) {
-		return true;
-	}
+	if (fixedName.rfind("client\\res\\", 0) != 0) fixedName = "client\\res\\" + fixedName;
 
 	uint32_t crc = crc32b(0xFFFFFFFF, (uint8_t*)fixedName.c_str(), fixedName.size());
 	crc = crc32b(crc, (Bytef*)"\0\0\0\0", 4);
