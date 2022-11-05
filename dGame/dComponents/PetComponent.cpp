@@ -195,20 +195,9 @@ void PetComponent::OnUse(Entity* originator) {
 		}
 
 		auto lxfAsset = std::string(result.getStringField(0));
-
-		std::vector<std::string> lxfAssetSplit = GeneralUtils::SplitString(lxfAsset, '\\');
-
-		lxfAssetSplit.erase(lxfAssetSplit.begin());
-
-		buildFile = "res/BrickModels";
-
-		for (auto part : lxfAssetSplit) {
-			std::transform(part.begin(), part.end(), part.begin(), [](unsigned char c) {
-				return std::tolower(c);
-				});
-
-			buildFile += "/" + part;
-		}
+		
+		// Gets rid of leading res/ path name.
+		if (lxfAsset.find("res\\") != std::string::npos) lxfAsset.erase(lxfAsset.begin(), lxfAsset.begin() + 4);
 
 		PetPuzzleData data;
 		data.buildFile = buildFile;
