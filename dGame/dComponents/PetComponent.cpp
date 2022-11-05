@@ -224,7 +224,6 @@ void PetComponent::OnUse(Entity* originator) {
 	if (imagination < imaginationCost) {
 		return;
 	}
-	Game::logger->Log("PetComponent", "bf %s", buildFile.c_str());
 
 	auto& bricks = BrickDatabase::Instance()->GetBricks(buildFile);
 
