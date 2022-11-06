@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	//Reset player online status in Accounts table
+	//Reset player online status in Accounts table to adjust for any previous server shutdowns
 	auto* statement = Database::CreatePreppedStmt("UPDATE accounts SET is_online = '0';");
 	statement->execute();
 	delete statement;
