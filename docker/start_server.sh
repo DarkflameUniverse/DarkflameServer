@@ -8,6 +8,8 @@ function symlink_client_files() {
     ln -s /client/client/res/names/ /app/res/names
     ln -s /client/client/res/CDServer.sqlite /app/res/CDServer.sqlite
     ln -s /client/client/locale/locale.xml /app/locale/locale.xml
+    # need to create this file so the server knows the client is unpacked (see `dCommon/dClient/AssetManager.cpp`)
+    touch /app/res/cdclient.fdb
     # need to iterate over entries in maps due to maps already being a directory with navmeshes/ in it
     (
         cd /client/client/res/maps
@@ -25,6 +27,7 @@ function symlink_config_files() {
     ln -s /shared_configs/configs/chatconfig.ini /app/chatconfig.ini
     ln -s /shared_configs/configs/masterconfig.ini /app/masterconfig.ini
     ln -s /shared_configs/configs/worldconfig.ini /app/worldconfig.ini
+    ln -s /shared_configs/configs/sharedconfig.ini /app/sharedconfig.ini
 }
 
 # check to make sure the setup has completed
