@@ -8,5 +8,3 @@ cmake ..
 # To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `cmake --build . --config Release -j8'
 cmake --build . --config Release
 
-# Run migrations
-./MasterServer -m
