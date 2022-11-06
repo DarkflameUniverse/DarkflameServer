@@ -165,6 +165,11 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+	//Reset player online status in Accounts table
+	auto* statement = Database::CreatePreppedStmt("UPDATE accounts SET is_online = '0';");
+	statement->execute();
+	delete statement;
+
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
 	if (argc > 1 &&
