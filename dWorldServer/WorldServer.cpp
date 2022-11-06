@@ -55,6 +55,7 @@
 #include "MasterPackets.h"
 #include "Player.h"
 #include "PropertyManagementComponent.h"
+#include "AssetManager.h"
 
 #include "ZCompression.h"
 
@@ -68,6 +69,8 @@ namespace Game {
 	dLocale* locale;
 	std::mt19937 randomEngine;
 
+	AssetManager* assetManager;
+
 	RakPeerInterface* chatServer;
 	SystemAddress chatSysAddr;
 }
@@ -77,6 +80,9 @@ bool chatConnected = false;
 bool worldShutdownSequenceStarted = false;
 bool worldShutdownSequenceComplete = false;
 void WorldShutdownSequence();
+void WorldShutdownProcess(uint32_t zoneId);
+void FinalizeShutdown();
+void SendShutdownMessageToMaster();
 
 dLogger* SetupLogger(int zoneID, int instanceID);
 void HandlePacketChat(Packet* packet);
@@ -99,9 +105,9 @@ int main(int argc, char** argv) {
 
 	// Triggers the shutdown sequence at application exit
 	std::atexit(WorldShutdownSequence);
-	
-	signal(SIGINT, [](int){ WorldShutdownSequence(); });
-	signal(SIGTERM, [](int){ WorldShutdownSequence(); });
+
+	signal(SIGINT, [](int) { WorldShutdownSequence(); });
+	signal(SIGTERM, [](int) { WorldShutdownSequence(); });
 
 	int zoneID = 1000;
 	int cloneID = 0;
@@ -122,11 +128,11 @@ int main(int argc, char** argv) {
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger(zoneID, instanceID);
 	if (!Game::logger) return 0;
-	
+
 	Game::logger->SetLogToConsole(true); //We want this info to always be logged.
-	Game::logger->Log("WorldServer", "Starting World server...\n");
-	Game::logger->Log("WorldServer", "Version: %i.%i\n", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("WorldServer", "Compiled on: %s\n", __TIMESTAMP__);
+	Game::logger->Log("WorldServer", "Starting World server...");
+	Game::logger->Log("WorldServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	Game::logger->Log("WorldServer", "Compiled on: %s", __TIMESTAMP__);
 
 #ifndef _DEBUG
 	Game::logger->SetLogToConsole(false); //By default, turn it back off if not in debug.
@@ -139,16 +145,26 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
 	if (config.GetValue("disable_chat") == "1") chatDisabled = true;
 
+	try {
+		std::string client_path = config.GetValue("client_location");
+		if (client_path.empty()) client_path = "./res";
+		Game::assetManager = new AssetManager(client_path);
+	} catch (std::runtime_error& ex) {
+		Game::logger->Log("WorldServer", "Got an error while setting up assets: %s", ex.what());
+
+		return EXIT_FAILURE;
+	}
+
 	// Connect to CDClient
-    try {
-        CDClientDatabase::Connect("./res/CDServer.sqlite");
-    } catch (CppSQLite3Exception& e) {
-        Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database\n");
-        Game::logger->Log("WorldServer", "Error: %s\n", e.errorMessage());
-        Game::logger->Log("WorldServer", "Error Code: %i\n", e.errorCode());
-        return -1;
-    }
-	
+	try {
+		CDClientDatabase::Connect((Game::assetManager->GetResPath() / "CDServer.sqlite").string());
+	} catch (CppSQLite3Exception& e) {
+		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database");
+		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
+		Game::logger->Log("WorldServer", "Error Code: %i", e.errorCode());
+		return -1;
+	}
+
 	CDClientManager::Instance()->Initialize();
 
 	//Connect to the MySQL Database
@@ -159,17 +175,16 @@ int main(int argc, char** argv) {
 
 	Diagnostics::SetProduceMemoryDump(config.GetValue("generate_dump") == "1");
 
-	if (!config.GetValue("dump_folder").empty())
-	{
+	if (!config.GetValue("dump_folder").empty()) {
 		Diagnostics::SetOutDirectory(config.GetValue("dump_folder"));
 	}
 
 	try {
-        Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-    } catch (sql::SQLException& ex) {
-		Game::logger->Log("WorldServer", "Got an error while connecting to the database: %s\n", ex.what());
+		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+	} catch (sql::SQLException& ex) {
+		Game::logger->Log("WorldServer", "Got an error while connecting to the database: %s", ex.what());
 		return 0;
-    }
+	}
 
 	//Find out the master's IP:
 	std::string masterIP = "localhost";
@@ -187,14 +202,14 @@ int main(int argc, char** argv) {
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
 	LootGenerator::Instance();
-	Game::chatFilter = new dChatFilter("./res/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
+	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, zoneID);
 
 	//Connect to the chat server:
 	int chatPort = 1501;
 	if (config.GetValue("chat_server_port") != "") chatPort = std::atoi(config.GetValue("chat_server_port").c_str());
-	
+
 	auto chatSock = SocketDescriptor(uint16_t(ourPort + 2), 0);
 	Game::chatServer = RakNetworkFactory::GetRakPeerInterface();
 	Game::chatServer->Startup(1, 30, &chatSock, 1);
@@ -215,7 +230,7 @@ int main(int argc, char** argv) {
 	int framesSinceLastUsersSave = 0;
 	int framesSinceLastSQLPing = 0;
 	int framesSinceLastUser = 0;
-	
+
 	const float maxPacketProcessingTime = 1.5f; //0.015f;
 	const int maxPacketsToProcess = 1024;
 
@@ -238,44 +253,44 @@ int main(int argc, char** argv) {
 
 		// pre calculate the FDB checksum
 		if (Game::config->GetValue("check_fdb") == "1") {
-				std::ifstream fileStream;
+			std::ifstream fileStream;
 
-				static const std::vector<std::string> aliases = {
-					"res/CDServers.fdb",
-					"res/cdserver.fdb",
-					"res/CDClient.fdb",
-					"res/cdclient.fdb",
-				};
-				
-				for (const auto& file : aliases) {
-					fileStream.open(file, std::ios::binary | std::ios::in);
-					if (fileStream.is_open()) {
-						break;
-					}
+			static const std::vector<std::string> aliases = {
+				"CDServers.fdb",
+				"cdserver.fdb",
+				"CDClient.fdb",
+				"cdclient.fdb",
+			};
+
+			for (const auto& file : aliases) {
+				fileStream.open(Game::assetManager->GetResPath() / file, std::ios::binary | std::ios::in);
+				if (fileStream.is_open()) {
+					break;
 				}
-
-				const int bufferSize = 1024;
-				MD5* md5 = new MD5();
-				
-				char fileStreamBuffer[1024] = {};
-
-				while (!fileStream.eof()) {
-					memset(fileStreamBuffer, 0, bufferSize);
-					fileStream.read(fileStreamBuffer, bufferSize);
-					md5->update(fileStreamBuffer, fileStream.gcount());
-				}
-
-				fileStream.close();
-
-				const char* nullTerminateBuffer = "\0";
-				md5->update(nullTerminateBuffer, 1); // null terminate the data
-				md5->finalize();
-				databaseChecksum = md5->hexdigest();
-			
-				delete md5;
-
-				Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s\n", databaseChecksum.c_str());
 			}
+
+			const int bufferSize = 1024;
+			MD5* md5 = new MD5();
+
+			char fileStreamBuffer[1024] = {};
+
+			while (!fileStream.eof()) {
+				memset(fileStreamBuffer, 0, bufferSize);
+				fileStream.read(fileStreamBuffer, bufferSize);
+				md5->update(fileStreamBuffer, fileStream.gcount());
+			}
+
+			fileStream.close();
+
+			const char* nullTerminateBuffer = "\0";
+			md5->update(nullTerminateBuffer, 1); // null terminate the data
+			md5->finalize();
+			databaseChecksum = md5->hexdigest();
+
+			delete md5;
+
+			Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s", databaseChecksum.c_str());
+		}
 	}
 
 	while (true) {
@@ -290,18 +305,15 @@ int main(int argc, char** argv) {
 
 		const auto occupied = UserManager::Instance()->GetUserCount() != 0;
 
-		if (!ready)
-		{
+		if (!ready) {
 			currentFramerate = highFrameRate;
-		}
-		else
-		{
+		} else {
 			currentFramerate = PerformanceManager::GetServerFramerate();
 		}
 
 		//Warning if we ran slow
 		if (deltaTime > currentFramerate) {
-			Game::logger->Log("WorldServer", "We're running behind, dT: %f > %f (framerate)\n", deltaTime, currentFramerate);
+			Game::logger->Log("WorldServer", "We're running behind, dT: %f > %f (framerate)", deltaTime, currentFramerate);
 		}
 
 		//Check if we're still connected to master:
@@ -310,11 +322,10 @@ int main(int argc, char** argv) {
 
 			int framesToWaitForMaster = ready ? 10 : 200;
 			if (framesSinceMasterDisconnect >= framesToWaitForMaster && !worldShutdownSequenceStarted) {
-				Game::logger->Log("WorldServer", "Game loop running but no connection to master for %d frames, shutting down\n", framesToWaitForMaster);
+				Game::logger->Log("WorldServer", "Game loop running but no connection to master for %d frames, shutting down", framesToWaitForMaster);
 				worldShutdownSequenceStarted = true;
 			}
-		}
-		else framesSinceMasterDisconnect = 0;
+		} else framesSinceMasterDisconnect = 0;
 
 		// Check if we're still connected to chat:
 		if (!chatConnected) {
@@ -326,8 +337,7 @@ int main(int argc, char** argv) {
 
 				Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
 			}
-		}
-		else framesSinceChatDisconnect = 0;
+		} else framesSinceChatDisconnect = 0;
 
 		//In world we'd update our other systems here.
 
@@ -357,7 +367,7 @@ int main(int argc, char** argv) {
 		//Check for packets here:
 		packet = Game::server->ReceiveFromMaster();
 		if (packet) { //We can get messages not handle-able by the dServer class, so handle them if we returned anything.
-			HandlePacket(packet); 
+			HandlePacket(packet);
 			Game::server->DeallocateMasterPacket(packet);
 		}
 
@@ -384,8 +394,7 @@ int main(int argc, char** argv) {
 				timeSpent += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
 				Game::server->DeallocatePacket(packet);
 				packet = nullptr;
-			}
-			else {
+			} else {
 				break;
 			}
 		}
@@ -405,18 +414,14 @@ int main(int argc, char** argv) {
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
 
-		if (zoneID != 0 && !occupied)
-		{
+		if (zoneID != 0 && !occupied) {
 			framesSinceLastUser++;
 
 			//If we haven't had any players for a while, time out and shut down:
-			if (framesSinceLastUser == (cloneID != 0 ? 4000 : 40000))
-			{
+			if (framesSinceLastUser == (cloneID != 0 ? 4000 : 40000)) {
 				worldShutdownSequenceStarted = true;
 			}
-		}
-		else
-		{
+		} else {
 			framesSinceLastUser = 0;
 		}
 
@@ -428,8 +433,7 @@ int main(int argc, char** argv) {
 			if (PropertyManagementComponent::Instance() != nullptr) {
 				PropertyManagementComponent::Instance()->Save();
 			}
-		}
-		else framesSinceLastUsersSave++;
+		} else framesSinceLastUsersSave++;
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
 		if (framesSinceLastSQLPing >= 40000) {
@@ -447,8 +451,7 @@ int main(int argc, char** argv) {
 			delete stmt;
 
 			framesSinceLastSQLPing = 0;
-		}
-		else framesSinceLastSQLPing++;
+		} else framesSinceLastSQLPing++;
 
 		Metrics::EndMeasurement(MetricVariable::GameLoop);
 
@@ -456,18 +459,16 @@ int main(int argc, char** argv) {
 
 		t += std::chrono::milliseconds(currentFramerate);
 		std::this_thread::sleep_until(t);
-		
+
 		Metrics::EndMeasurement(MetricVariable::Sleep);
 
-		if (!ready && Game::server->GetIsConnectedToMaster())
-		{
+		if (!ready && Game::server->GetIsConnectedToMaster()) {
 			// Some delay is required here or else we crash the client?
-			
+
 			framesSinceMasterStatus++;
 
-			if (framesSinceMasterStatus >= 200)
-			{
-				Game::logger->Log("WorldServer", "Finished loading world with zone (%i), ready up!\n", Game::server->GetZoneID());
+			if (framesSinceMasterStatus >= 200) {
+				Game::logger->Log("WorldServer", "Finished loading world with zone (%i), ready up!", Game::server->GetZoneID());
 
 				MasterPackets::SendWorldReady(Game::server, Game::server->GetZoneID(), Game::server->GetInstanceID());
 
@@ -475,83 +476,19 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		if (worldShutdownSequenceStarted && !worldShutdownSequenceComplete)
-		{
-			if (framesSinceShutdownSequence == 0) {
-
-				ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Server shutting down...", true);
-				
-				for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i)
-				{
-					const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
-
-					auto* entity = Player::GetPlayer(player);
-
-					if (entity != nullptr && entity->GetCharacter() != nullptr)
-					{
-						auto* skillComponent = entity->GetComponent<SkillComponent>();
-
-						if (skillComponent != nullptr)
-						{
-							skillComponent->Reset();
-						}
-
-						entity->GetCharacter()->SaveXMLToDatabase();
-					}
-				}
-
-				if (PropertyManagementComponent::Instance() != nullptr) {
-					ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Property data saved...", true);
-					PropertyManagementComponent::Instance()->Save();
-				}
-				
-				ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, u"Character data saved...", true);
-			}
-
-			framesSinceShutdownSequence++;
-
-			if (framesSinceShutdownSequence == 100)
-			{
-				while (Game::server->GetReplicaManager()->GetParticipantCount() > 0)
-				{
-					const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
-
-					Game::server->Disconnect(player, SERVER_DISCON_KICK);
-				}
-				
-				CBITSTREAM;
-				PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_RESPONSE);
-				Game::server->SendToMaster(&bitStream);
-			}
-			
-			if (framesSinceShutdownSequence == 300)
-			{
-				break;
-			}
+		if (worldShutdownSequenceStarted && !worldShutdownSequenceComplete) {
+			WorldShutdownProcess(zoneID);
+			break;
 		}
 
 		Metrics::AddMeasurement(MetricVariable::CPUTime, (1e6 * (1000.0 * (std::clock() - metricCPUTimeStart))) / CLOCKS_PER_SEC);
 		Metrics::EndMeasurement(MetricVariable::Frame);
 	}
-	
-	//Delete our objects here:
-	if (Game::physicsWorld) Game::physicsWorld = nullptr;
-	if (Game::zoneManager) delete Game::zoneManager;
-
-	Game::logger->Log("WorldServer", "Shutdown complete, zone (%i), instance (%i)\n", Game::server->GetZoneID(), instanceID);
-
-	Metrics::Clear();
-	Database::Destroy();
-	delete Game::chatFilter;
-	delete Game::server;
-	delete Game::logger;
-
-	worldShutdownSequenceComplete = true;
-
-	exit(0);
+	FinalizeShutdown();
+	return EXIT_SUCCESS;
 }
 
-dLogger * SetupLogger(int zoneID, int instanceID) {
+dLogger* SetupLogger(int zoneID, int instanceID) {
 	std::string logPath = "./logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log";
 	bool logToConsole = false;
 	bool logDebugStatements = false;
@@ -565,13 +502,13 @@ dLogger * SetupLogger(int zoneID, int instanceID) {
 
 void HandlePacketChat(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-        Game::logger->Log("WorldServer", "Lost our connection to chat, zone(%i), instance(%i)\n", Game::server->GetZoneID(), Game::server->GetInstanceID());
-		
+		Game::logger->Log("WorldServer", "Lost our connection to chat, zone(%i), instance(%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
+
 		chatConnected = false;
 	}
 
 	if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
-		Game::logger->Log("WorldServer", "Established connection to chat, zone(%i), instance (%i)\n",Game::server -> GetZoneID(), Game::server -> GetInstanceID());
+		Game::logger->Log("WorldServer", "Established connection to chat, zone(%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
 		Game::chatSysAddr = packet->systemAddress;
 
 		chatConnected = true;
@@ -607,28 +544,36 @@ void HandlePacketChat(Packet* packet) {
 				LWOOBJID header;
 				inStream.Read(header);
 
-				RakNet::RakString title;
-				RakNet::RakString msg;
+				std::string title;
+				std::string msg;
 
-				inStream.Read(title);
-				inStream.Read(msg);
+				uint32_t len;
+				inStream.Read<uint32_t>(len);
+				for (int i = 0; len > i; i++) {
+					char character;
+					inStream.Read<char>(character);
+					title += character;
+				}
+
+				len = 0;
+				inStream.Read<uint32_t>(len);
+				for (int i = 0; len > i; i++) {
+					char character;
+					inStream.Read<char>(character);
+					msg += character;
+				}
 
 				//Send to our clients:
 				AMFArrayValue args;
 				auto* titleValue = new AMFStringValue();
-				titleValue->SetStringValue(title.C_String());
+				titleValue->SetStringValue(title.c_str());
 				auto* messageValue = new AMFStringValue();
-				messageValue->SetStringValue(msg.C_String());
+				messageValue->SetStringValue(msg.c_str());
 
 				args.InsertValue("title", titleValue);
 				args.InsertValue("message", messageValue);
 
 				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
-
-				delete titleValue;
-				delete messageValue;
-				titleValue = nullptr;
-				messageValue = nullptr;
 
 				break;
 			}
@@ -640,11 +585,10 @@ void HandlePacketChat(Packet* packet) {
 				inStream.Read(playerId);
 				inStream.Read(playerId);
 				inStream.Read(expire);
-				
+
 				auto* entity = EntityManager::Instance()->GetEntity(playerId);
 
-				if (entity != nullptr)
-				{
+				if (entity != nullptr) {
 					entity->GetParentUser()->SetMuteExpire(expire);
 
 					entity->GetCharacter()->SendMuteNotice();
@@ -666,25 +610,23 @@ void HandlePacketChat(Packet* packet) {
 				inStream.Read(teamID);
 				bool deleteTeam = inStream.ReadBit();
 
-				if (deleteTeam)
-				{
+				if (deleteTeam) {
 					TeamManager::Instance()->DeleteTeam(teamID);
 
-					Game::logger->Log("WorldServer", "Deleting team (%llu)\n", teamID);
+					Game::logger->Log("WorldServer", "Deleting team (%llu)", teamID);
 
 					break;
 				}
 
 				inStream.Read(lootOption);
 				inStream.Read(memberCount);
-				Game::logger->Log("WorldServer", "Updating team (%llu), (%i), (%i)\n", teamID, lootOption, memberCount);
-				for (char i = 0; i < memberCount; i++)
-				{
+				Game::logger->Log("WorldServer", "Updating team (%llu), (%i), (%i)", teamID, lootOption, memberCount);
+				for (char i = 0; i < memberCount; i++) {
 					LWOOBJID member = LWOOBJID_EMPTY;
 					inStream.Read(member);
 					members.push_back(member);
 
-					Game::logger->Log("WorldServer", "Updating team member (%llu)\n", member);
+					Game::logger->Log("WorldServer", "Updating team member (%llu)", member);
 				}
 
 				TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
@@ -693,7 +635,7 @@ void HandlePacketChat(Packet* packet) {
 			}
 
 			default:
-				Game::logger->Log("WorldServer", "Received an unknown chat internal: %i\n", int(packet->data[3]));
+				Game::logger->Log("WorldServer", "Received an unknown chat internal: %i", int(packet->data[3]));
 			}
 		}
 	}
@@ -712,28 +654,28 @@ void HandlePacket(Packet* packet) {
 
 		auto* entity = EntityManager::Instance()->GetEntity(c->GetObjectID());
 
-		if (!entity)
-		{
+		if (!entity) {
 			entity = Player::GetPlayer(packet->systemAddress);
 		}
 
 		if (entity) {
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
-			if (skillComponent != nullptr)
-			{
+			if (skillComponent != nullptr) {
 				skillComponent->Reset();
 			}
 
 			entity->GetCharacter()->SaveXMLToDatabase();
 
-			Game::logger->Log("WorldServer", "Deleting player %llu\n", entity->GetObjectID());
+			Game::logger->Log("WorldServer", "Deleting player %llu", entity->GetObjectID());
 
 			EntityManager::Instance()->DestroyEntity(entity);
+		}
 
+		{
 			CBITSTREAM;
 			PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
-			bitStream.Write(c->GetObjectID());
+			bitStream.Write(user->GetLoggedInChar());
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
 
@@ -759,555 +701,601 @@ void HandlePacket(Packet* packet) {
 
 	if (packet->data[1] == MASTER) {
 		switch (packet->data[3]) {
-			case MSG_MASTER_REQUEST_PERSISTENT_ID_RESPONSE: {
-				uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
-				uint32_t objectID = PacketUtils::ReadPacketU32(16, packet);
-				ObjectIDManager::Instance()->HandleRequestPersistentIDResponse(requestID, objectID);
-				break;
-			}
+		case MSG_MASTER_REQUEST_PERSISTENT_ID_RESPONSE: {
+			uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
+			uint32_t objectID = PacketUtils::ReadPacketU32(16, packet);
+			ObjectIDManager::Instance()->HandleRequestPersistentIDResponse(requestID, objectID);
+			break;
+		}
 
-			case MSG_MASTER_REQUEST_ZONE_TRANSFER_RESPONSE: {
-				uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
-				ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
-				break;
-			}
+		case MSG_MASTER_REQUEST_ZONE_TRANSFER_RESPONSE: {
+			uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
+			ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
+			break;
+		}
 
-			case MSG_MASTER_SESSION_KEY_RESPONSE: {
-				//Read our session key and to which user it belongs:
-				RakNet::BitStream inStream(packet->data, packet->length, false);
-				uint64_t header = inStream.Read(header);
-				uint32_t sessionKey = 0;
-				std::string username;
+		case MSG_MASTER_SESSION_KEY_RESPONSE: {
+			//Read our session key and to which user it belongs:
+			RakNet::BitStream inStream(packet->data, packet->length, false);
+			uint64_t header = inStream.Read(header);
+			uint32_t sessionKey = 0;
+			std::string username;
 
-				inStream.Read(sessionKey);
-				username = PacketUtils::ReadString(12, packet, false);
+			inStream.Read(sessionKey);
+			username = PacketUtils::ReadString(12, packet, false);
 
-				//Find them:
-				auto it = m_PendingUsers.find(username);
-				if (it == m_PendingUsers.end()) return;
+			//Find them:
+			auto it = m_PendingUsers.find(username);
+			if (it == m_PendingUsers.end()) return;
 
-				//Convert our key:
-				std::string userHash = std::to_string(sessionKey);
-				userHash = md5(userHash);
+			//Convert our key:
+			std::string userHash = std::to_string(sessionKey);
+			userHash = md5(userHash);
 
-				//Verify it:
-				if (userHash != it->second.hash) {
-					Game::logger->Log("WorldServer", "SOMEONE IS TRYING TO HACK? SESSION KEY MISMATCH: ours: %s != master: %s\n", userHash.c_str(), it->second.hash.c_str());
-					Game::server->Disconnect(it->second.sysAddr, SERVER_DISCON_INVALID_SESSION_KEY);
-					return;
-				}
-				else {
-					Game::logger->Log("WorldServer", "User %s authenticated with correct key.\n", username.c_str());
+			//Verify it:
+			if (userHash != it->second.hash) {
+				Game::logger->Log("WorldServer", "SOMEONE IS TRYING TO HACK? SESSION KEY MISMATCH: ours: %s != master: %s", userHash.c_str(), it->second.hash.c_str());
+				Game::server->Disconnect(it->second.sysAddr, SERVER_DISCON_INVALID_SESSION_KEY);
+				return;
+			} else {
+				Game::logger->Log("WorldServer", "User %s authenticated with correct key.", username.c_str());
 
-					UserManager::Instance()->DeleteUser(packet->systemAddress);
+				UserManager::Instance()->DeleteUser(packet->systemAddress);
 
-					//Create our user and send them in:
-					UserManager::Instance()->CreateUser(it->second.sysAddr, username, userHash);
+				//Create our user and send them in:
+				UserManager::Instance()->CreateUser(it->second.sysAddr, username, userHash);
 
-					auto zone = dZoneManager::Instance()->GetZone();
-					if (zone) {
-						float x = 0.0f;
-						float y = 0.0f;
-						float z = 0.0f;
+				auto zone = dZoneManager::Instance()->GetZone();
+				if (zone) {
+					float x = 0.0f;
+					float y = 0.0f;
+					float z = 0.0f;
 
-						if (zone->GetZoneID().GetMapID() == 1100) {
-							auto pos = zone->GetSpawnPos();
-							x = pos.x;
-							y = pos.y;
-							z = pos.z;
-						}
-
-						WorldPackets::SendLoadStaticZone(it->second.sysAddr, x, y, z, zone->GetChecksum());
+					if (zone->GetZoneID().GetMapID() == 1100) {
+						auto pos = zone->GetSpawnPos();
+						x = pos.x;
+						y = pos.y;
+						z = pos.z;
 					}
 
-					if (Game::server->GetZoneID() == 0) {
-						//Since doing this reroute breaks the client's request, we have to call this manually.
-						UserManager::Instance()->RequestCharacterList(it->second.sysAddr);
-					}
-
-					m_PendingUsers.erase(username);
-
-					//Notify master:
-					{
-						CBITSTREAM;
-						PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_PLAYER_ADDED);
-						bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-						bitStream.Write((LWOINSTANCEID)instanceID);
-						Game::server->SendToMaster(&bitStream);
-					}
+					WorldPackets::SendLoadStaticZone(it->second.sysAddr, x, y, z, zone->GetChecksum());
 				}
 
-				break;
-			}
-			case MSG_MASTER_AFFIRM_TRANSFER_REQUEST: {
-				const uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
-
-				Game::logger->Log("MasterServer", "Got affirmation request of transfer %llu\n", requestID);
-
-				CBITSTREAM
-
-				PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_AFFIRM_TRANSFER_RESPONSE);
-				bitStream.Write(requestID);
-				Game::server->SendToMaster(&bitStream);
-
-				break;
-			}
-
-			case MSG_MASTER_SHUTDOWN: {
-				worldShutdownSequenceStarted = true;
-				Game::logger->Log("WorldServer", "Got shutdown request from master, zone (%i), instance (%i)\n", Game::server->GetZoneID(), Game::server->GetInstanceID());
-				break;
-			}
-
-			case MSG_MASTER_NEW_SESSION_ALERT: {
-				RakNet::BitStream inStream(packet->data, packet->length, false);
-				uint64_t header = inStream.Read(header);
-				uint32_t sessionKey = inStream.Read(sessionKey);
-				RakNet::RakString username;
-				inStream.Read(username);
-
-				//Find them:
-				User* user = UserManager::Instance()->GetUser(username.C_String());
-				if (!user) {
-					Game::logger->Log("WorldServer", "Got new session alert for user %s, but they're not logged in.\n", username.C_String());
-					return;
+				if (Game::server->GetZoneID() == 0) {
+					//Since doing this reroute breaks the client's request, we have to call this manually.
+					UserManager::Instance()->RequestCharacterList(it->second.sysAddr);
 				}
 
-				//Check the key:
-				if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
-					Game::logger->Log("WorldServer", "Got new session alert for user %s, but the session key is invalid.\n", username.C_String());
-					Game::server->Disconnect(user->GetSystemAddress(), SERVER_DISCON_INVALID_SESSION_KEY);
-					return;
+				m_PendingUsers.erase(username);
+
+				//Notify master:
+				{
+					CBITSTREAM;
+					PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_PLAYER_ADDED);
+					bitStream.Write((LWOMAPID)Game::server->GetZoneID());
+					bitStream.Write((LWOINSTANCEID)instanceID);
+					Game::server->SendToMaster(&bitStream);
 				}
-				break;
 			}
 
-			default:
-				Game::logger->Log("WorldServer", "Unknown packet ID from master %i\n", int(packet->data[3]));
+			break;
+		}
+		case MSG_MASTER_AFFIRM_TRANSFER_REQUEST: {
+			const uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
+
+			Game::logger->Log("MasterServer", "Got affirmation request of transfer %llu", requestID);
+
+			CBITSTREAM;
+
+			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_AFFIRM_TRANSFER_RESPONSE);
+			bitStream.Write(requestID);
+			Game::server->SendToMaster(&bitStream);
+
+			break;
+		}
+
+		case MSG_MASTER_SHUTDOWN: {
+			worldShutdownSequenceStarted = true;
+			Game::logger->Log("WorldServer", "Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
+			break;
+		}
+
+		case MSG_MASTER_NEW_SESSION_ALERT: {
+			RakNet::BitStream inStream(packet->data, packet->length, false);
+			uint64_t header = inStream.Read(header);
+			uint32_t sessionKey = inStream.Read(sessionKey);
+
+			std::string username;
+
+			uint32_t len;
+			inStream.Read(len);
+
+			for (int i = 0; i < len; i++) {
+				char character; inStream.Read<char>(character);
+				username += character;
+			}
+
+			//Find them:
+			User* user = UserManager::Instance()->GetUser(username.c_str());
+			if (!user) {
+				Game::logger->Log("WorldServer", "Got new session alert for user %s, but they're not logged in.", username.c_str());
+				return;
+			}
+
+			//Check the key:
+			if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
+				Game::logger->Log("WorldServer", "Got new session alert for user %s, but the session key is invalid.", username.c_str());
+				Game::server->Disconnect(user->GetSystemAddress(), SERVER_DISCON_INVALID_SESSION_KEY);
+				return;
+			}
+			break;
+		}
+
+		default:
+			Game::logger->Log("WorldServer", "Unknown packet ID from master %i", int(packet->data[3]));
 		}
 
 		return;
 	}
 
 	if (packet->data[1] != WORLD) return;
-	
+
 	switch (packet->data[3]) {
-		case MSG_WORLD_CLIENT_VALIDATION: {
-			std::string username = PacketUtils::ReadString(0x08, packet, true);
-			std::string sessionKey = PacketUtils::ReadString(74, packet, true);
-			std::string clientDatabaseChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
+	case MSG_WORLD_CLIENT_VALIDATION: {
+		std::string username = PacketUtils::ReadString(0x08, packet, true);
+		std::string sessionKey = PacketUtils::ReadString(74, packet, true);
+		std::string clientDatabaseChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
 
-			// sometimes client puts a null terminator at the end of the checksum and sometimes doesn't, weird
-			clientDatabaseChecksum = clientDatabaseChecksum.substr(0, 32);
+		// sometimes client puts a null terminator at the end of the checksum and sometimes doesn't, weird
+		clientDatabaseChecksum = clientDatabaseChecksum.substr(0, 32);
 
-			// If the check is turned on, validate the client's database checksum.
-			if (Game::config->GetValue("check_fdb") == "1" && !databaseChecksum.empty()) {
-				uint32_t gmLevel = 0;
-				auto* stmt = Database::CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
-				stmt->setString(1, username.c_str());
-				
-				auto* res = stmt->executeQuery();
-				while (res->next()) {
-					gmLevel = res->getInt(1);
-				}
+		// If the check is turned on, validate the client's database checksum.
+		if (Game::config->GetValue("check_fdb") == "1" && !databaseChecksum.empty()) {
+			uint32_t gmLevel = 0;
+			auto* stmt = Database::CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
+			stmt->setString(1, username.c_str());
 
-				delete stmt;
-				delete res;
+			auto* res = stmt->executeQuery();
+			while (res->next()) {
+				gmLevel = res->getInt(1);
+			}
 
-				// Developers may skip this check
-				if (gmLevel < 8 && clientDatabaseChecksum != databaseChecksum) {
-					Game::logger->Log("WorldServer", "Client's database checksum does not match the server's, aborting connection.\n");
-					Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
+			delete stmt;
+			delete res;
+
+			// Developers may skip this check
+			if (gmLevel < 8 && clientDatabaseChecksum != databaseChecksum) {
+				Game::logger->Log("WorldServer", "Client's database checksum does not match the server's, aborting connection.");
+				Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
+				return;
+			}
+		}
+
+		//Request the session info from Master:
+		CBITSTREAM;
+		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_REQUEST_SESSION_KEY);
+		PacketUtils::WriteString(bitStream, username, 64);
+		Game::server->SendToMaster(&bitStream);
+
+		//Insert info into our pending list
+		tempSessionInfo info;
+		info.sysAddr = SystemAddress(packet->systemAddress);
+		info.hash = sessionKey;
+		m_PendingUsers.insert(std::make_pair(username, info));
+
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_CHARACTER_LIST_REQUEST: {
+		//We need to delete the entity first, otherwise the char list could delete it while it exists in the world!
+		if (Game::server->GetZoneID() != 0) {
+			auto user = UserManager::Instance()->GetUser(packet->systemAddress);
+			if (!user) return;
+			EntityManager::Instance()->DestroyEntity(user->GetLastUsedChar()->GetEntity());
+		}
+
+		//This loops prevents users who aren't authenticated to double-request the char list, which
+		//would make the login screen freeze sometimes.
+		if (m_PendingUsers.size() > 0) {
+			for (auto it : m_PendingUsers) {
+				if (it.second.sysAddr == packet->systemAddress) {
 					return;
 				}
 			}
-			
-			//Request the session info from Master:
-			CBITSTREAM;
-			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_REQUEST_SESSION_KEY);
-			PacketUtils::WriteString(bitStream, username, 64);
-			Game::server->SendToMaster(&bitStream);
-
-			//Insert info into our pending list
-			tempSessionInfo info;
-			info.sysAddr = SystemAddress(packet->systemAddress);
-			info.hash = sessionKey;
-			m_PendingUsers.insert(std::make_pair(username, info));
-                            
-			break;
 		}
 
-		case MSG_WORLD_CLIENT_CHARACTER_LIST_REQUEST: {
-			//We need to delete the entity first, otherwise the char list could delete it while it exists in the world!
-			if (Game::server->GetZoneID() != 0) {
-				auto user = UserManager::Instance()->GetUser(packet->systemAddress);
-				if (!user) return;
-				EntityManager::Instance()->DestroyEntity(user->GetLastUsedChar()->GetEntity());
-			}
+		UserManager::Instance()->RequestCharacterList(packet->systemAddress);
+		break;
+	}
 
-			//This loops prevents users who aren't authenticated to double-request the char list, which
-			//would make the login screen freeze sometimes. 
-			if (m_PendingUsers.size() > 0) {
-				for (auto it : m_PendingUsers) {
-					if (it.second.sysAddr == packet->systemAddress) {
-						return;
-					}
+	case MSG_WORLD_CLIENT_GAME_MSG: {
+		RakNet::BitStream bitStream(packet->data, packet->length, false);
+
+		uint64_t header;
+		LWOOBJID objectID;
+		uint16_t messageID;
+
+		bitStream.Read(header);
+		bitStream.Read(objectID);
+		bitStream.Read(messageID);
+
+		RakNet::BitStream dataStream;
+		bitStream.Read(dataStream, bitStream.GetNumberOfUnreadBits());
+
+		GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, GAME_MSG(messageID));
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_CHARACTER_CREATE_REQUEST: {
+		UserManager::Instance()->CreateCharacter(packet->systemAddress, packet);
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_LOGIN_REQUEST: {
+		RakNet::BitStream inStream(packet->data, packet->length, false);
+		uint64_t header = inStream.Read(header);
+
+		LWOOBJID playerID = 0;
+		inStream.Read(playerID);
+		playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_CHARACTER);
+		playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_PERSISTENT);
+
+		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
+
+		if (user) {
+			auto lastCharacter = user->GetLoggedInChar();
+			// This means we swapped characters and we need to remove the previous player from the container.
+			if (static_cast<uint32_t>(lastCharacter) != playerID) {
+				CBITSTREAM;
+				PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
+				bitStream.Write(lastCharacter);
+				Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+			}
+		}
+
+		UserManager::Instance()->LoginCharacter(packet->systemAddress, static_cast<uint32_t>(playerID));
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_CHARACTER_DELETE_REQUEST: {
+		UserManager::Instance()->DeleteCharacter(packet->systemAddress, packet);
+		UserManager::Instance()->RequestCharacterList(packet->systemAddress);
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_CHARACTER_RENAME_REQUEST: {
+		UserManager::Instance()->RenameCharacter(packet->systemAddress, packet);
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_LEVEL_LOAD_COMPLETE: {
+		Game::logger->Log("WorldServer", "Received level load complete from user.");
+		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
+		if (user) {
+			Character* c = user->GetLastUsedChar();
+			if (c != nullptr) {
+				std::u16string username = GeneralUtils::ASCIIToUTF16(c->GetName());
+				Game::server->GetReplicaManager()->AddParticipant(packet->systemAddress);
+
+				EntityInfo info{};
+				info.lot = 1;
+				Entity* player = EntityManager::Instance()->CreateEntity(info, UserManager::Instance()->GetUser(packet->systemAddress));
+
+				WorldPackets::SendCreateCharacter(packet->systemAddress, player, c->GetXMLData(), username, c->GetGMLevel());
+				WorldPackets::SendServerState(packet->systemAddress);
+
+				const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(dZoneManager::Instance()->GetZone()->GetWorldID());
+
+				EntityManager::Instance()->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS, true);
+
+				if (respawnPoint != NiPoint3::ZERO) {
+					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, NiQuaternion::IDENTITY);
 				}
-			}
 
-			UserManager::Instance()->RequestCharacterList(packet->systemAddress);
-			break;
-		}
+				EntityManager::Instance()->ConstructAllEntities(packet->systemAddress);
 
-		case MSG_WORLD_CLIENT_GAME_MSG: {
-            RakNet::BitStream bitStream(packet->data, packet->length, false);
-                            
-            uint64_t header;
-            LWOOBJID objectID;
-            uint16_t messageID;
-                            
-            bitStream.Read(header);
-            bitStream.Read(objectID);
-            bitStream.Read(messageID);
-                            
-            RakNet::BitStream dataStream;
-            bitStream.Read(dataStream, bitStream.GetNumberOfUnreadBits());
-                                    
-            GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, GAME_MSG(messageID));
-            break;
-        }
+				auto* characterComponent = player->GetComponent<CharacterComponent>();
+				if (characterComponent) {
+					player->GetComponent<CharacterComponent>()->RocketUnEquip(player);
+				}
 
-		case MSG_WORLD_CLIENT_CHARACTER_CREATE_REQUEST: {
-			UserManager::Instance()->CreateCharacter(packet->systemAddress, packet);
-			break;
-		}
+				c->SetRetroactiveFlags();
 
-		case MSG_WORLD_CLIENT_LOGIN_REQUEST: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
-							
-			LWOOBJID playerID = 0;
-			inStream.Read(playerID);
-			playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_CHARACTER);
-			playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_PERSISTENT);
+				player->RetroactiveVaultSize();
 
-			UserManager::Instance()->LoginCharacter(packet->systemAddress, static_cast<uint32_t>(playerID));
-			break;
-		}
+				player->GetCharacter()->SetTargetScene("");
 
-		case MSG_WORLD_CLIENT_CHARACTER_DELETE_REQUEST: {
-			UserManager::Instance()->DeleteCharacter(packet->systemAddress, packet);
-			UserManager::Instance()->RequestCharacterList(packet->systemAddress);
-			break;
-		}
-                        
-		case MSG_WORLD_CLIENT_CHARACTER_RENAME_REQUEST: {
-			UserManager::Instance()->RenameCharacter(packet->systemAddress, packet);
-			break;
-		}
+				// Fix the destroyable component
+				auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
 
-		case MSG_WORLD_CLIENT_LEVEL_LOAD_COMPLETE: {
-            Game::logger->Log("WorldServer", "Received level load complete from user.\n");
-            User* user = UserManager::Instance()->GetUser(packet->systemAddress);
-            if (user) {
-                Character* c = user->GetLastUsedChar();
-                if (c != nullptr) { 
-                    std::u16string username = GeneralUtils::ASCIIToUTF16(c->GetName());
-                    WorldPackets::SendCreateCharacter(packet->systemAddress, c->GetObjectID(), c->GetXMLData(), username, c->GetGMLevel());
-                    WorldPackets::SendServerState(packet->systemAddress);
+				if (destroyableComponent != nullptr) {
+					destroyableComponent->FixStats();
+				}
 
-					Game::server->GetReplicaManager()->AddParticipant(packet->systemAddress);
-                    
-                    EntityInfo info {};
-                    info.lot = 1;
-					Entity* player = EntityManager::Instance()->CreateEntity(info, UserManager::Instance()->GetUser(packet->systemAddress));
+				//Tell the player to generate BBB models, if any:
+				if (g_CloneID != 0) {
+					const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
 
-					const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(dZoneManager::Instance()->GetZone()->GetWorldID());
-					
-					EntityManager::Instance()->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS, true);
-					
-					if (respawnPoint != NiPoint3::ZERO)
-					{
-						GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, NiQuaternion::IDENTITY);
-					}
-					
-                    EntityManager::Instance()->ConstructAllEntities(packet->systemAddress);
+					const auto zoneId = Game::server->GetZoneID();
+					const auto cloneId = g_CloneID;
 
-					player->GetComponent<CharacterComponent>()->SetLastRocketConfig(u"");
-					
-					c->SetRetroactiveFlags();
+					auto query = CDClientDatabase::CreatePreppedStmt(
+						"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+					query.bind(1, (int)zoneId);
 
-					player->GetCharacter()->SetTargetScene("");
+					auto result = query.execQuery();
 
-					// Fix the destroyable component
-					auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
-
-					if (destroyableComponent != nullptr)
-					{
-						destroyableComponent->FixStats();
+					if (result.eof() || result.fieldIsNull(0)) {
+						Game::logger->Log("WorldServer", "No property templates found for zone %d, not sending BBB", zoneId);
+						goto noBBB;
 					}
 
-					//Tell the player to generate BBB models, if any:
-					if (g_CloneID != 0) {
-						const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
+					//Check for BBB models:
+					auto stmt = Database::CreatePreppedStmt("SELECT ugc_id FROM properties_contents WHERE lot=14 AND property_id=?");
 
-						const auto zoneId = Game::server->GetZoneID();
-						const auto cloneId = g_CloneID;
+					int templateId = result.getIntField(0);
 
-						std::stringstream query;
+					result.finalize();
 
-						query << "SELECT id FROM PropertyTemplate WHERE mapID = " << std::to_string(zoneId) << ";";
+					auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
 
-						auto result = CDClientDatabase::ExecuteQuery(query.str());
+					propertyLookup->setInt(1, templateId);
+					propertyLookup->setInt64(2, g_CloneID);
 
-						if (result.eof() || result.fieldIsNull(0)) {
-							Game::logger->Log("WorldServer", "No property templates found for zone %d, not sending BBB\n", zoneId);
-							goto noBBB;
-						}
+					auto* propertyEntry = propertyLookup->executeQuery();
+					uint64_t propertyId = 0;
 
-						//Check for BBB models:
-						auto stmt = Database::CreatePreppedStmt("SELECT ugc_id FROM properties_contents WHERE lot=14 AND property_id=?");
+					if (propertyEntry->next()) {
+						propertyId = propertyEntry->getUInt64(1);
+					}
 
-						int templateId = result.getIntField(0);
+					delete propertyLookup;
 
-						result.finalize();
-						
-						auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
+					stmt->setUInt64(1, propertyId);
+					auto res = stmt->executeQuery();
+					while (res->next()) {
+						Game::logger->Log("UGC", "Getting lxfml ugcID: %u", res->getUInt(1));
 
-						propertyLookup->setInt(1, templateId);
-						propertyLookup->setInt64(2, g_CloneID);
+						//Get lxfml:
+						auto stmtL = Database::CreatePreppedStmt("SELECT lxfml from ugc where id=?");
+						stmtL->setUInt(1, res->getUInt(1));
 
-						auto* propertyEntry = propertyLookup->executeQuery();
-						uint64_t propertyId = 0;
+						auto lxres = stmtL->executeQuery();
 
-						if (propertyEntry->next()) {
-							propertyId = propertyEntry->getUInt64(1);
-						}
+						while (lxres->next()) {
+							auto lxfml = lxres->getBlob(1);
 
-						delete propertyLookup;
+							lxfml->seekg(0, std::ios::end);
+							size_t lxfmlSize = lxfml->tellg();
+							lxfml->seekg(0);
 
-						stmt->setUInt64(1, propertyId);
-						auto res = stmt->executeQuery();
-						while (res->next()) {
-							Game::logger->Log("UGC", "Getting lxfml ugcID: " + std::to_string(res->getUInt(1)) + "\n");
+							//Send message:
+							{
+								LWOOBJID blueprintID = res->getUInt(1);
+								blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_CHARACTER);
+								blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_PERSISTENT);
 
-							//Get lxfml:
-							auto stmtL = Database::CreatePreppedStmt("SELECT lxfml from ugc where id=?");
-							stmtL->setUInt(1, res->getUInt(1));
+								CBITSTREAM;
+								PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
+								bitStream.Write<LWOOBJID>(0); //always zero so that a check on the client passes
+								bitStream.Write<unsigned int>(0);
+								bitStream.Write<unsigned int>(1);
+								bitStream.Write(blueprintID);
 
-							auto lxres = stmtL->executeQuery();
-							
-							while (lxres->next()) {
-								auto lxfml = lxres->getBlob(1);
+								bitStream.Write<uint32_t>(lxfmlSize);
 
-								lxfml->seekg(0, std::ios::end);
-								size_t lxfmlSize = lxfml->tellg();
-								lxfml->seekg(0);
+								for (size_t i = 0; i < lxfmlSize; ++i)
+									bitStream.Write<uint8_t>(lxfml->get());
 
-								//Send message:
-								{
-									LWOOBJID blueprintID = res->getUInt(1);
-									blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_CHARACTER);
-									blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_PERSISTENT);
-
-									CBITSTREAM;
-									PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
-									bitStream.Write<LWOOBJID>(0); //always zero so that a check on the client passes
-									bitStream.Write<unsigned int>(0);
-									bitStream.Write<unsigned int>(1);
-									bitStream.Write(blueprintID);
-
-									bitStream.Write<uint32_t>(lxfmlSize + 9);
-
-									//Write a fake sd0 header:
-									bitStream.Write<unsigned char>(0x73); //s
-									bitStream.Write<unsigned char>(0x64); //d
-									bitStream.Write<unsigned char>(0x30); //0
-									bitStream.Write<unsigned char>(0x01); //1
-									bitStream.Write<unsigned char>(0xFF); //end magic
-
-									bitStream.Write<uint32_t>(lxfmlSize);
-
-									for (size_t i = 0; i < lxfmlSize; ++i)
-										bitStream.Write<uint8_t>(lxfml->get());
-
-									SystemAddress sysAddr = packet->systemAddress;
-									SEND_PACKET;
-									PacketUtils::SavePacket("lxfml packet " + std::to_string(res->getUInt(1)) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
-								}
+								SystemAddress sysAddr = packet->systemAddress;
+								SEND_PACKET;
+								PacketUtils::SavePacket("lxfml packet " + std::to_string(res->getUInt(1)) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 							}
-
-							delete stmtL;
-							delete lxres;
 						}
 
-						delete stmt;
-						delete res;
+						delete stmtL;
+						delete lxres;
 					}
 
-					noBBB:
-
-					// Tell the client it's done loading:
-					GameMessages::SendInvalidZoneTransferList(player, packet->systemAddress, u"https://forms.zohopublic.eu/virtualoffice204/form/DLUInGameSurvey/formperma/kpU-IL5v2-Wt41QcB5UFnYjzlLp-j2LEisF8e11PisU", u"", false, false);
-					GameMessages::SendServerDoneLoadingAllObjects(player, packet->systemAddress);
-
-					//Send the player it's mail count:
-					//update: this might not be needed so im going to try disabling this here.
-					//Mail::HandleNotificationRequest(packet->systemAddress, player->GetObjectID());
-
-					//Notify chat that a player has loaded:
-					{
-						const auto& playerName = player->GetCharacter()->GetName();
-						//RakNet::RakString playerName(player->GetCharacter()->GetName().c_str());
-
-						CBITSTREAM;
-						PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_ADDED_NOTIFICATION);
-						bitStream.Write(player->GetObjectID());
-						bitStream.Write<uint16_t>(playerName.size());
-						for (size_t i = 0; i < playerName.size(); i++)
-						{
-							bitStream.Write(playerName[i]);
-						}
-						
-						//bitStream.Write(playerName);
-						
-						auto zone = dZoneManager::Instance()->GetZone()->GetZoneID();
-						bitStream.Write(zone.GetMapID());
-						bitStream.Write(zone.GetInstanceID());
-						bitStream.Write(zone.GetCloneID());
-						bitStream.Write(player->GetParentUser()->GetMuteExpire());
-
-						Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
-					}
-                }
-				else {
-					Game::logger->Log("WorldServer", "Couldn't find character to log in with for user %s (%i)!\n", user->GetUsername().c_str(), user->GetAccountID());
-					Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_CHARACTER_NOT_FOUND);
+					delete stmt;
+					delete res;
 				}
-            } else {
-                Game::logger->Log("WorldServer", "Couldn't get user for level load complete!\n");
-            }
-            break;
-        }
 
-		case MSG_WORLD_CLIENT_POSITION_UPDATE: {
-			ClientPackets::HandleClientPositionUpdate(packet->systemAddress, packet);
-			break;
+			noBBB:
+
+				// Tell the client it's done loading:
+				GameMessages::SendInvalidZoneTransferList(player, packet->systemAddress, GeneralUtils::ASCIIToUTF16(Game::config->GetValue("source")), u"", false, false);
+				GameMessages::SendServerDoneLoadingAllObjects(player, packet->systemAddress);
+
+				//Send the player it's mail count:
+				//update: this might not be needed so im going to try disabling this here.
+				//Mail::HandleNotificationRequest(packet->systemAddress, player->GetObjectID());
+
+				//Notify chat that a player has loaded:
+				{
+					const auto& playerName = player->GetCharacter()->GetName();
+					//RakNet::RakString playerName(player->GetCharacter()->GetName().c_str());
+
+					CBITSTREAM;
+					PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_ADDED_NOTIFICATION);
+					bitStream.Write(player->GetObjectID());
+					bitStream.Write<uint32_t>(playerName.size());
+					for (size_t i = 0; i < playerName.size(); i++) {
+						bitStream.Write(playerName[i]);
+					}
+
+					auto zone = dZoneManager::Instance()->GetZone()->GetZoneID();
+					bitStream.Write(zone.GetMapID());
+					bitStream.Write(zone.GetInstanceID());
+					bitStream.Write(zone.GetCloneID());
+					bitStream.Write(player->GetParentUser()->GetMuteExpire());
+
+					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+				}
+			} else {
+				Game::logger->Log("WorldServer", "Couldn't find character to log in with for user %s (%i)!", user->GetUsername().c_str(), user->GetAccountID());
+				Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_CHARACTER_NOT_FOUND);
+			}
+		} else {
+			Game::logger->Log("WorldServer", "Couldn't get user for level load complete!");
+		}
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_POSITION_UPDATE: {
+		ClientPackets::HandleClientPositionUpdate(packet->systemAddress, packet);
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_MAIL: {
+		RakNet::BitStream bitStream(packet->data, packet->length, false);
+		LWOOBJID space;
+		bitStream.Read(space);
+		Mail::HandleMailStuff(&bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_ROUTE_PACKET: {
+		//Yeet to chat
+		CINSTREAM;
+		uint64_t header = 0;
+		uint32_t size = 0;
+		inStream.Read(header);
+		inStream.Read(size);
+
+		if (size > 20000) {
+			Game::logger->Log("WorldServer", "Tried to route a packet with a read size > 20000, so likely a false packet.");
+			return;
 		}
 
-		case MSG_WORLD_CLIENT_MAIL: {
-			RakNet::BitStream bitStream(packet->data, packet->length, false);
-			LWOOBJID space;
-			bitStream.Read(space);
-			Mail::HandleMailStuff(&bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
-			break;
+		CBITSTREAM;
+
+		PacketUtils::WriteHeader(bitStream, CHAT, packet->data[14]);
+
+		//We need to insert the player's objectID so the chat server can find who originated this request:
+		LWOOBJID objectID = 0;
+		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
+		if (user) {
+			objectID = user->GetLastUsedChar()->GetObjectID();
 		}
 
-		case MSG_WORLD_CLIENT_ROUTE_PACKET: {
-			//Yeet to chat
-			CINSTREAM;
-			uint64_t header = 0;
-			uint32_t size = 0;
-			inStream.Read(header);
-			inStream.Read(size);
+		bitStream.Write(objectID);
 
-			if (size > 20000) {
-				Game::logger->Log("WorldServer", "Tried to route a packet with a read size > 20000, so likely a false packet.\n");
-				return;
-			}
-
-			CBITSTREAM;
-
-			PacketUtils::WriteHeader(bitStream, CHAT, packet->data[14]);
-
-			//We need to insert the player's objectID so the chat server can find who originated this request:
-			LWOOBJID objectID = 0;
-			auto user = UserManager::Instance()->GetUser(packet->systemAddress);
-			if (user) {
-				objectID = user->GetLastUsedChar()->GetObjectID();
-			}
-
-			bitStream.Write(objectID);
-
-			//Now write the rest of the data:
-			auto data = inStream.GetData();
-			for (uint32_t i = 0; i < size; ++i) {
-				bitStream.Write(data[i+23]);
-			}
-
-			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, Game::chatSysAddr, false);
-			break;
+		//Now write the rest of the data:
+		auto data = inStream.GetData();
+		for (uint32_t i = 0; i < size; ++i) {
+			bitStream.Write(data[i + 23]);
 		}
 
-		case MSG_WORLD_CLIENT_STRING_CHECK: {
-			ClientPackets::HandleChatModerationRequest(packet->systemAddress, packet);
-			break;
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, Game::chatSysAddr, false);
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_STRING_CHECK: {
+		ClientPackets::HandleChatModerationRequest(packet->systemAddress, packet);
+		break;
+	}
+
+	case MSG_WORLD_CLIENT_GENERAL_CHAT_MESSAGE: {
+		if (chatDisabled) {
+			ChatPackets::SendMessageFail(packet->systemAddress);
+		} else {
+			ClientPackets::HandleChatMessage(packet->systemAddress, packet);
 		}
 
-		case MSG_WORLD_CLIENT_GENERAL_CHAT_MESSAGE: {
-			if (chatDisabled) {
-				ChatPackets::SendMessageFail(packet->systemAddress);
-			}
-			else {
-				ClientPackets::HandleChatMessage(packet->systemAddress, packet);
-			}
+		break;
+	}
 
-			break;
+	case MSG_WORLD_CLIENT_HANDLE_FUNNESS: {
+		//This means the client is running slower or faster than it should.
+		//Could be insane lag, but I'mma just YEET them as it's usually speedhacking.
+		//This is updated to now count the amount of times we've been caught "speedhacking" to kick with a delay
+		//This is hopefully going to fix the random disconnects people face sometimes.
+		if (Game::config->GetValue("disable_anti_speedhack") == "1") {
+			return;
 		}
 
-		case MSG_WORLD_CLIENT_HANDLE_FUNNESS: {
-			//This means the client is running slower or faster than it should.
-			//Could be insane lag, but I'mma just YEET them as it's usually speedhacking.
-			//This is updated to now count the amount of times we've been caught "speedhacking" to kick with a delay
-			//This is hopefully going to fix the random disconnects people face sometimes.
-			if (Game::config->GetValue("disable_anti_speedhack") == "1") {
-				return;
-			}
-
-			User* user = UserManager::Instance()->GetUser(packet->systemAddress);
-			if (user) {
-				user->UserOutOfSync();
-			}
-			else {
-				Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
-			}
-			break;
+		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
+		if (user) {
+			user->UserOutOfSync();
+		} else {
+			Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
 		}
+		break;
+	}
 
 	default:
-		Game::server->GetLogger()->Log("HandlePacket", "Unknown world packet received: %i\n", int(packet->data[3]));
+		Game::server->GetLogger()->Log("HandlePacket", "Unknown world packet received: %i", int(packet->data[3]));
 	}
 }
 
-void WorldShutdownSequence()
-{
-	if (worldShutdownSequenceStarted || worldShutdownSequenceComplete)
-	{
+void WorldShutdownProcess(uint32_t zoneId) {
+	Game::logger->Log("WorldServer", "Saving map %i instance %i", zoneId, instanceID);
+	for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i) {
+		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
+
+		auto* entity = Player::GetPlayer(player);
+		Game::logger->Log("WorldServer", "Saving data!");
+		if (entity != nullptr && entity->GetCharacter() != nullptr) {
+			auto* skillComponent = entity->GetComponent<SkillComponent>();
+
+			if (skillComponent != nullptr) {
+				skillComponent->Reset();
+			}
+			Game::logger->Log("WorldServer", "Saving character %s...", entity->GetCharacter()->GetName().c_str());
+			entity->GetCharacter()->SaveXMLToDatabase();
+			Game::logger->Log("WorldServer", "Character data for %s was saved!", entity->GetCharacter()->GetName().c_str());
+		}
+	}
+
+	if (PropertyManagementComponent::Instance() != nullptr) {
+		Game::logger->Log("WorldServer", "Saving ALL property data for zone %i clone %i!", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
+		PropertyManagementComponent::Instance()->Save();
+		Game::logger->Log("WorldServer", "ALL property data saved for zone %i clone %i!", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
+	}
+
+	Game::logger->Log("WorldServer", "ALL DATA HAS BEEN SAVED FOR ZONE %i INSTANCE %i!", zoneId, instanceID);
+
+	while (Game::server->GetReplicaManager()->GetParticipantCount() > 0) {
+		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
+
+		Game::server->Disconnect(player, SERVER_DISCON_KICK);
+	}
+	SendShutdownMessageToMaster();
+}
+
+void WorldShutdownSequence() {
+	if (worldShutdownSequenceStarted || worldShutdownSequenceComplete) {
 		return;
 	}
 
 	worldShutdownSequenceStarted = true;
 
-	auto t = std::chrono::high_resolution_clock::now();
-	auto ticks = 0;
+	Game::logger->Log("WorldServer", "Zone (%i) instance (%i) shutting down outside of main loop!", Game::server->GetZoneID(), instanceID);
+	WorldShutdownProcess(Game::server->GetZoneID());
+	FinalizeShutdown();
+}
 
-	Game::logger->Log("WorldServer", "Attempting to shutdown world, zone (%i), instance (%i), max 10 seconds...\n", Game::server->GetZoneID(), instanceID);
+void FinalizeShutdown() {
+	//Delete our objects here:
+	if (Game::physicsWorld) Game::physicsWorld = nullptr;
+	if (Game::zoneManager) delete Game::zoneManager;
 
-	while (true)
-	{
-		if (worldShutdownSequenceStarted)
-		{
-			break;
-		}
+	Game::logger->Log("WorldServer", "Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), instanceID);
 
-		t += std::chrono::milliseconds(highFrameRate);
-		std::this_thread::sleep_until(t);
+	Metrics::Clear();
+	Database::Destroy("WorldServer");
+	delete Game::chatFilter;
+	delete Game::server;
+	delete Game::logger;
 
-		ticks++;
+	worldShutdownSequenceComplete = true;
 
-		if (ticks == 600)
-		{
-			break;
-		}
-	}
+	exit(EXIT_SUCCESS);
+}
+
+void SendShutdownMessageToMaster() {
+	CBITSTREAM;
+	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_RESPONSE);
+	Game::server->SendToMaster(&bitStream);
 }

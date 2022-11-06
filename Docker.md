@@ -4,7 +4,7 @@
 
 - [Docker](https://docs.docker.com/get-docker/) (Docker Desktop or on Linux normal Docker)
 - [Docker Compose](https://docs.docker.com/compose/install/) (Included in Docker Desktop)
-- LEGO® Universe Client (packed or unpacked). Check the main [README](./README.md) for details on this.
+- LEGO® Universe packed Client. Check the main [README](./README.md) for details on this.
 
 ## Run server inside Docker
 
@@ -20,6 +20,14 @@
 **NOTE #1**: If you're running an older version of Docker, you may need to use the command `docker-compose` instead of `docker compose`.
 
 **NOTE #2**: To stop the server simply run `docker compose down` and to restart it just run `docker compose up -d` again. No need to run all the steps above every time.
+
+**NOTE #3**: Docker buildkit needs to be enabled. https://docs.docker.com/develop/develop-images/build_enhancements/#to-enable-buildkit-builds
+
+**NOTE #4**: Make sure to run the following in the repo root directory after cloning so submodules are also downloaded.
+```
+git submodule update --init --recursive
+```
+**NOTE #5**: If DarkflameSetup fails due to not having cdclient.fdb, rename CDClient.fdb (in the same folder) to cdclient.fdb
 
 ## Disable brickbuildfix
 

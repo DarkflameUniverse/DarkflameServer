@@ -11,6 +11,7 @@
 #include "CDClientManager.h"
 #include "EntityManager.h"
 #include "Character.h"
+#include "dZoneManager.h"
 
 ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Component(entity) {
 	m_Position = {};
@@ -29,12 +30,15 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_GravityScale = 1;
 	m_DirtyCheats = false;
 	m_IgnoreMultipliers = false;
+	m_PickupRadius = 0.0f;
+	m_DirtyPickupRadiusScale = true;
+	m_IsTeleporting = false;
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
 
 	if (entity->GetLOT() == 1) {
-		Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics\n");
+		Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics");
 
 		float radius = 1.5f;
 		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), radius, false);
@@ -85,7 +89,13 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		m_DirtyCheats = false;
 	}
 
-	outBitStream->Write0();
+	outBitStream->Write(m_DirtyPickupRadiusScale);
+	if (m_DirtyPickupRadiusScale) {
+		outBitStream->Write(m_PickupRadius);
+		outBitStream->Write0(); //No clue what this is so im leaving it false.
+		m_DirtyPickupRadiusScale = false;
+	}
+
 	outBitStream->Write0();
 
 	outBitStream->Write(m_DirtyPosition || bIsInitialUpdate);
@@ -119,16 +129,19 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write0();
 	}
 
-	if (!bIsInitialUpdate) outBitStream->Write0();
+	if (!bIsInitialUpdate) {
+		outBitStream->Write(m_IsTeleporting);
+		m_IsTeleporting = false;
+	}
 }
 
-void ControllablePhysicsComponent::LoadFromXML(tinyxml2::XMLDocument* doc) {
+void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag!\n");
+		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag!");
 		return;
 	}
-	
+
 	m_Parent->GetCharacter()->LoadXmlRespawnCheckpoints();
 
 	character->QueryAttribute("lzx", &m_Position.x);
@@ -151,17 +164,21 @@ void ControllablePhysicsComponent::ResetFlags() {
 void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag while updating XML!\n");
+		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag while updating XML!");
 		return;
 	}
 
-	character->SetAttribute("lzx", m_Position.x);
-	character->SetAttribute("lzy", m_Position.y);
-	character->SetAttribute("lzz", m_Position.z);
-	character->SetAttribute("lzrx", m_Rotation.x);
-	character->SetAttribute("lzry", m_Rotation.y);
-	character->SetAttribute("lzrz", m_Rotation.z);
-	character->SetAttribute("lzrw", m_Rotation.w);
+	auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
+
+	if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
+		character->SetAttribute("lzx", m_Position.x);
+		character->SetAttribute("lzy", m_Position.y);
+		character->SetAttribute("lzz", m_Position.z);
+		character->SetAttribute("lzrx", m_Rotation.x);
+		character->SetAttribute("lzry", m_Rotation.y);
+		character->SetAttribute("lzrz", m_Rotation.z);
+		character->SetAttribute("lzrw", m_Rotation.w);
+	}
 }
 
 void ControllablePhysicsComponent::SetPosition(const NiPoint3& pos) {
@@ -230,4 +247,32 @@ void ControllablePhysicsComponent::SetDirtyVelocity(bool val) {
 
 void ControllablePhysicsComponent::SetDirtyAngularVelocity(bool val) {
 	m_DirtyAngularVelocity = val;
+}
+
+void ControllablePhysicsComponent::AddPickupRadiusScale(float value) {
+	m_ActivePickupRadiusScales.push_back(value);
+	if (value > m_PickupRadius) {
+		m_PickupRadius = value;
+		m_DirtyPickupRadiusScale = true;
+	}
+}
+
+void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
+	// Attempt to remove pickup radius from active radii
+	const auto pos = std::find(m_ActivePickupRadiusScales.begin(), m_ActivePickupRadiusScales.end(), value);
+	if (pos != m_ActivePickupRadiusScales.end()) {
+		m_ActivePickupRadiusScales.erase(pos);
+	} else {
+		Game::logger->Log("ControllablePhysicsComponent", "Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.", value, m_ActivePickupRadiusScales.size());
+		return;
+	}
+
+	// Recalculate pickup radius since we removed one by now
+	m_PickupRadius = 0.0f;
+	m_DirtyPickupRadiusScale = true;
+	for (uint32_t i = 0; i < m_ActivePickupRadiusScales.size(); i++) {
+		auto candidateRadius = m_ActivePickupRadiusScales[i];
+		if (m_PickupRadius < candidateRadius) m_PickupRadius = candidateRadius;
+	}
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }

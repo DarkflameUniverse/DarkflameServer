@@ -13,19 +13,19 @@
 #include "ChatPackets.h"
 #include "MissionComponent.h"
 #include "PropertyEntranceComponent.h"
+#include "RocketLaunchLupComponent.h"
 #include "dServer.h"
 #include "dMessageIdentifiers.h"
 #include "PacketUtils.h"
 
 RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, int rocketId) : Component(parent) {
-	std::stringstream query;
+	auto query = CDClientDatabase::CreatePreppedStmt(
+		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = ?;");
+	query.bind(1, rocketId);
 
-	query << "SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = " << std::to_string(rocketId);
+	auto result = query.execQuery();
 
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
-
-	if (!result.eof() && !result.fieldIsNull(0))
-	{
+	if (!result.eof() && !result.fieldIsNull(0)) {
 		m_TargetZone = result.getIntField(0);
 		m_DefaultZone = result.getIntField(1);
 		m_TargetScene = result.getStringField(2);
@@ -40,126 +40,68 @@ RocketLaunchpadControlComponent::~RocketLaunchpadControlComponent() {
 	delete m_AltPrecondition;
 }
 
-void RocketLaunchpadControlComponent::RocketEquip(Entity* entity, LWOOBJID rocketID) {
-	if (m_PlayersInRadius.find(entity->GetObjectID()) != m_PlayersInRadius.end()) {
-		Launch(entity, rocketID);
-
-		//Go ahead and save the player
-		//This causes a double-save, but it should prevent players from not being saved
-		//before the next world server starts loading their data.
-		if (entity->GetCharacter())
-			entity->GetCharacter()->SaveXMLToDatabase();
-	}
-}
-
-void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOOBJID optionalRocketID, LWOMAPID mapId, LWOCLONEID cloneId) {
+void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId, LWOCLONEID cloneId) {
 	auto zone = mapId == LWOMAPID_INVALID ? m_TargetZone : mapId;
 
-	if (zone == 0)
-	{
+	if (zone == 0) {
 		return;
 	}
-	
-	TellMasterToPrepZone(zone);
 
 	// This also gets triggered by a proximity monitor + item equip, I will set that up when havok is ready
-	auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
 	auto* characterComponent = originator->GetComponent<CharacterComponent>();
-
 	auto* character = originator->GetCharacter();
 
-	if (inventoryComponent == nullptr || characterComponent == nullptr || character == nullptr) {
+	if (!characterComponent || !character) return;
+
+	auto* rocket = characterComponent->GetRocket(originator);
+	if (!rocket) {
+		Game::logger->Log("RocketLaunchpadControlComponent", "Unable to find rocket!");
 		return;
 	}
 
-	// Select the rocket
-
-	Item* rocket = nullptr;
-
-	if (optionalRocketID != LWOOBJID_EMPTY)
-	{
-		rocket = inventoryComponent->FindItemById(optionalRocketID);
-	}
-	
-	if (rocket == nullptr)
-	{
-		rocket = inventoryComponent->FindItemById(characterComponent->GetLastRocketItemID());
-	}
-
-	if (rocket == nullptr)
-	{
-		rocket = inventoryComponent->FindItemByLot(6416);
-	}
-
-	if (rocket == nullptr)
-	{
-		Game::logger->Log("RocketLaunchpadControlComponent", "Unable to find rocket (%llu)!\n", optionalRocketID);
-
-		return;
-	}
-
-	if (rocket->GetConfig().empty()) // Sanity check
-	{
-		rocket->SetCount(0, false, false);
-
-		return;
-	}
+	// we have the ability to launch, so now we prep the zone
+	TellMasterToPrepZone(zone);
 
 	// Achievement unlocked: "All zones unlocked"
-
 	if (!m_AltLandingScene.empty() && m_AltPrecondition->Check(originator)) {
 		character->SetTargetScene(m_AltLandingScene);
-	}
-	else {
+	} else {
 		character->SetTargetScene(m_TargetScene);
 	}
-
-	if (characterComponent) {
-		for (LDFBaseData* data : rocket->GetConfig()) {
-			if (data->GetKey() == u"assemblyPartLOTs") {
-				std::string newRocketStr;
-				for (char character : data->GetValueAsString()) {
-					if (character == '+') {
-						newRocketStr.push_back(';');
-					}
-					else {
-						newRocketStr.push_back(character);
-					}
-				}
-				newRocketStr.push_back(';');
-				characterComponent->SetLastRocketConfig(GeneralUtils::ASCIIToUTF16(newRocketStr));
-			}
-		}
-	}
-	
-	// Store the last used rocket item's ID
-	characterComponent->SetLastRocketItemID(rocket->GetId());
 
 	characterComponent->UpdatePlayerStatistic(RocketsUsed);
 
 	character->SaveXMLToDatabase();
 
 	SetSelectedMapId(originator->GetObjectID(), zone);
-	
+
 	GameMessages::SendFireEventClientSide(m_Parent->GetObjectID(), originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
 
-	rocket->Equip(true);
-	
 	GameMessages::SendChangeObjectWorldState(rocket->GetId(), WORLDSTATE_ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
-	
+
 	EntityManager::Instance()->SerializeEntity(originator);
 }
 
 void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
+	// If we are have the property or the LUP component, we don't want to immediately launch
+	// instead we let their OnUse handlers do their things
+	// which components of an Object have their OnUse called when using them
+	// so we don't need to call it here
 	auto* propertyEntrance = m_Parent->GetComponent<PropertyEntranceComponent>();
-
-	if (propertyEntrance != nullptr)
-	{
-		propertyEntrance->OnUse(originator);
-
+	if (propertyEntrance) {
 		return;
 	}
 
+	auto* rocketLaunchLUP = m_Parent->GetComponent<RocketLaunchLupComponent>();
+	if (rocketLaunchLUP) {
+		return;
+	}
+
+	// No rocket no launch
+	auto* rocket = originator->GetComponent<CharacterComponent>()->RocketEquip(originator);
+	if (!rocket) {
+		return;
+	}
 	Launch(originator);
 }
 
@@ -167,13 +109,11 @@ void RocketLaunchpadControlComponent::OnProximityUpdate(Entity* entering, std::s
 	// Proximity rockets are handled by item equipment
 }
 
-void RocketLaunchpadControlComponent::SetSelectedMapId(LWOOBJID player, LWOMAPID mapID) 
-{
+void RocketLaunchpadControlComponent::SetSelectedMapId(LWOOBJID player, LWOMAPID mapID) {
 	m_SelectedMapIds[player] = mapID;
 }
 
-LWOMAPID RocketLaunchpadControlComponent::GetSelectedMapId(LWOOBJID player) const
-{
+LWOMAPID RocketLaunchpadControlComponent::GetSelectedMapId(LWOOBJID player) const {
 	const auto index = m_SelectedMapIds.find(player);
 
 	if (index == m_SelectedMapIds.end()) return 0;
@@ -181,13 +121,11 @@ LWOMAPID RocketLaunchpadControlComponent::GetSelectedMapId(LWOOBJID player) cons
 	return index->second;
 }
 
-void RocketLaunchpadControlComponent::SetSelectedCloneId(LWOOBJID player, LWOCLONEID cloneId) 
-{
+void RocketLaunchpadControlComponent::SetSelectedCloneId(LWOOBJID player, LWOCLONEID cloneId) {
 	m_SelectedCloneIds[player] = cloneId;
 }
 
-LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) const
-{
+LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) const {
 	const auto index = m_SelectedCloneIds.find(player);
 
 	if (index == m_SelectedCloneIds.end()) return 0;
@@ -203,12 +141,10 @@ void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
 }
 
 
-LWOMAPID RocketLaunchpadControlComponent::GetTargetZone() const
-{
+LWOMAPID RocketLaunchpadControlComponent::GetTargetZone() const {
 	return m_TargetZone;
 }
 
-LWOMAPID RocketLaunchpadControlComponent::GetDefaultZone() const
-{
+LWOMAPID RocketLaunchpadControlComponent::GetDefaultZone() const {
 	return m_DefaultZone;
 }

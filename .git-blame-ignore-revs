@@ -1,0 +1,8 @@
+# format codebase
+19e77a38d837ce781ba0ca6ea8e78b67a6e3b5a5
+
+# add semi-colons to macros consistently
+9e4ce24fd2851e65df776dd9c57bcb0d45f4453a
+
+# convert to unix line endings
+72477e01e2711e0f61cdb192ee266e5e21b8846f

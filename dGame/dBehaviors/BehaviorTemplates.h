@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 enum class BehaviorTemplates : unsigned int {
 	BEHAVIOR_EMPTY, // Not a real behavior, indicates invalid behaviors

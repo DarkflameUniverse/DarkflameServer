@@ -27,12 +27,11 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 Development of the latest iteration of Darkflame Universe has been done primarily in a Unix-like environment and is where it has been tested and designed for deployment. It is therefore highly recommended that Darkflame Universe be built and deployed using a Unix-like environment for the most streamlined experience.
 
 ### Prerequisites
-**Clone the repository**
+#### Clone the repository
 ```bash
 git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 ```
-
-**Python**
+#### Python
 
 Some tools utilized to streamline the setup process require Python 3, make sure you have it installed.
 
@@ -43,12 +42,17 @@ This was done make sure that older and incomplete clients wouldn't produce false
 
 If you're using a DLU client you'll have to go into the "CMakeVariables.txt" file and change the NET_VERSION variable to 171023 to match the modified client's version number.
 
+### Using Docker
+Refer to [Docker.md](/Docker.md).
+
+For Windows, refer to [Docker_Windows.md](/Docker_Windows.md).
+
 ### Linux builds
-Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available.
+Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available. `libssl-dev` will also be required as well as `openssl`.
 
 CMake must be version 3.14 or higher!
 
-**Build the repository**
+#### Build the repository
 
 You can either run `build.sh` when in the root folder of the repository:
 
@@ -66,33 +70,30 @@ cd build
 # Run CMake to generate make files
 cmake ..
 
-# Run make to build the project. To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `make -j8`
-make
+# To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `cmake --build . --config Release -j8'
+cmake --build . --config Release
 ```
 
 ### MacOS builds
+Ensure `cmake`, `zlib` and `open ssl` are installed as well as a compiler (e.g `clang` or `gcc`).
 
-**Download precompiled MySQL connector**
+In the repository root folder run the following. Ensure -DOPENSSL_ROOT_DIR=/path/to/openssl points to your openssl install location
 ```bash
-# Install required tools
-brew install boost mysql-connector-c++
+# Create the build directory, preserving it if it already exists
+mkdir -p build
+cd build
 
-# Symlinks for finding the required modules
-sudo ln -s /usr/local/mysql-connector-c++/lib64/libmysqlcppconn.dylib /usr/local/mysql-connector-c++/lib64/libmysql.dylib 
-sudo ln -s /usr/local/mysql-connector-c++/lib64/libcrypto.1.1.dylib /usr/local/mysql/lib/libcrypto.1.1.dylib
-```
+# Run CMake to generate build files
+cmake .. -DOPENSSL_ROOT_DIR=/path/to/openssl
 
-Then follow the Linux build steps (gcc is not required), but before running `make`, run the following to make sure all the libs are available in the build folder:
-
-```bash
-sudo ln -s /usr/local/mysql-connector-c++/lib64/libssl.1.1.dylib /path/to/build/folder/libssl.1.1.dylib
-sudo ln -s /usr/local/mysql-connector-c++/lib64/libcrypto.1.1.dylib /path/to/build/folder/libcrypto.1.1.dylib
+# Get cmake to build the project. If make files are being used then using make and appending `-j` and the amount of cores to utilize may be preferable, for example `make -j8`
+cmake --build . --config Release
 ```
 
 ### Windows builds (native)
 Ensure that you have either the [MSVC](https://visualstudio.microsoft.com/vs/) or the [Clang](https://github.com/llvm/llvm-project/releases/) (recommended) compiler installed. You will also need to install [CMake](https://cmake.org/download/). Currently on native Windows the server will only work in Release mode.
 
-**Build the repository**
+#### Build the repository
 ```batch
 :: Create the build directory
 mkdir build
@@ -102,20 +103,31 @@ cd build
 cmake ..
 
 :: Run CMake with build flag to build
-cmake --build .
+cmake --build . --config Release
 ```
+#### Windows for ARM has not been tested but should build by doing the following
+```batch
+:: Create the build directory
+mkdir build
+cd build
 
+:: Run CMake to generate make files
+cmake .. -DMARIADB_BUILD_SOURCE=ON
+
+:: Run CMake with build flag to build
+cmake --build . --config Release
+```
 
 ### Windows builds (WSL)
 This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11.
 
-**Open the Command Prompt application with Administrator permissions and run the following:**
+#### Open the Command Prompt application with Administrator permissions and run the following:
 ```bash
 # Installing Windows Subsystem for Linux
 wsl --install
 ```
 
-**Open the Ubuntu application and run the following:**
+#### Open the Ubuntu application and run the following:
 ```bash
 # Make sure the install is up to date
 apt update && apt upgrade
@@ -128,18 +140,26 @@ sudo apt install build-essential
 
 [**Follow the Linux instructions**](#linux-builds)
 
+### ARM builds
+AArch64 builds should work on linux and MacOS using their respective build steps. Windows ARM should build but it has not been tested
+
+### Updating your build
+To update your server to the latest version navigate to your cloned directory
+```bash
+cd /path/to/DarkflameServer
+```
+run the following commands to update to the latest changes
+```bash
+git pull
+git submodule update --init --recursive
+```
+now follow the build section for your system
+
 ## Setting up the environment
-
-### Database
-Darkflame Universe utilizes a MySQL/MariaDB database for account and character information.
-
-Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
-* Create a database for Darkflame Universe to use
-* Run each SQL file in the order at which they appear [here](migrations/dlu/) on the database
 
 ### Resources
 
-**LEGO® Universe 1.10.64**
+#### LEGO® Universe 1.10.64
 
 This repository does not distribute any LEGO® Universe files. A full install of LEGO® Universe version 1.10.64 (latest) is required to finish setting up Darkflame Universe.
 
@@ -162,29 +182,41 @@ shasum -a 256 <file>
 certutil -hashfile <file> SHA256
 ```
 
-**Unpacking the client**
+#### Unpacking the client
 * Clone lcdr's utilities repository [here](https://github.com/lcdr/utils)
 * Use `pkextractor.pyw` to unpack the client files if they are not already unpacked
 
-**Setup resource directory**
+#### Setup resource directory
 * In the `build` directory create a `res` directory if it does not already exist.
 * Copy over or create symlinks from `macros`, `BrickModels`, `chatplus_en_us.txt`, `names`, and `maps` in your client `res` directory to the server `build/res` directory
 * Unzip the navmeshes [here](./resources/navmeshes.zip) and place them in `build/res/maps/navmeshes`
 
-**Setup locale**
+#### Setup locale
 * In the `build` directory create a `locale` directory if it does not already exist
 * Copy over or create symlinks from `locale.xml` in your client `locale` directory to the `build/locale` directory
 
-**Client database**
-* Use `fdb_to_sqlite.py` in lcdr's utilities on `res/cdclient.fdb` in the unpacked client to convert the client database to `cdclient.sqlite`
-* Move and rename `cdclient.sqlite` into `build/res/CDServer.sqlite`
-* Run each SQL file in the order at which they appear [here](migrations/cdserver/) on the SQLite database
+#### Client database
+* Move the file `res/cdclient.fdb` from the unpacked client to the `build/res` folder on the server.
+* The server will automatically copy and convert the file from fdb to sqlite should `CDServer.sqlite` not already exist.
+* You can also convert the database manually using `fdb_to_sqlite.py` using lcdr's utilities.  Just make sure to rename the file to `CDServer.sqlite` instead of `cdclient.sqlite`.
+* Migrations to the database are automatically run on server start.  When migrations are needed to be ran, the server may take a bit longer to start.
 
-**Configuration**
+### Database
+Darkflame Universe utilizes a MySQL/MariaDB database for account and character information.
 
-After the server has been built there should be four `ini` files in the build director: `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
+Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
 
-**Verify**
+* All that you need to do is create a database to connect to.  As long as the server can connect to the database, the schema will always be kept up to date when you start the server.
+
+#### Configuration
+
+After the server has been built there should be four `ini` files in the build director: `sharedconfig.ini`, `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
+
+#### Migrations
+
+The database is automatically setup and migrated to what it should look like for the latest commit whenever you start the server.
+
+#### Verify
 
 Your build directory should now look like this:
 * AuthServer
@@ -198,7 +230,7 @@ Your build directory should now look like this:
 * **locale/**
   * locale.xml
 * **res/**
-  * CDServer.sqlite
+  * cdclient.fdb
   * chatplus_en_us.txt
   * **macros/**
     * ...
@@ -395,30 +427,38 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 </tbody>
 </table>
 
-## Credits
-### Contributors to DLUv3
-* DarwinAnim8or
-* Wincent01
-* Mick
-* averysumner
-* Jon002
-* Jonny
-* Xiphoseer
+# Credits
+## Active Contributors
+* [EmosewaMC](https://github.com/EmosewaMC)
+* [Jettford](https://github.com/Jettford)
+* [Aaron K.](https://github.com/aronwk-aaron)
+
+## DLU Team
+* [DarwinAnim8or](https://github.com/DarwinAnim8or)
+* [Wincent01](https://github.com/Wincent01)
+* [Mick](https://github.com/MickVermeulen)
+* [averysumner](https://github.com/codeshaunted)
+* [Jon002](https://github.com/jaller200)
+* [Jonny](https://github.com/cuzitsjonny)
 
 ### Research and tools
-* lcdr
+* [lcdr](https://github.com/lcdr)
+* [Xiphoseer](https://github.com/Xiphoseer)
 
 ### Community management
-* Neal
+* [Neal](https://github.com/NealSpellman)
 
 ### Former contributors
 * TheMachine
 * Matthew
-* Raine
+* [Raine](https://github.com/Rainebannister)
 * Bricknave
 
-### Special thanks
+### Logo
+* Cole Peterson (BlasterBuilder)
+
+## Special thanks
 * humanoid24
 * pwjones1969
-* BlasterBuilder for the logo
+* [Simon](https://github.com/SimonNitzsche)
 * ALL OF THE NETDEVIL AND LEGO TEAMS!

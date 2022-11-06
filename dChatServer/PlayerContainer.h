@@ -9,17 +9,18 @@
 
 struct PlayerData {
 	LWOOBJID playerID;
-	RakNet::RakString playerName;
+	std::string playerName;
 	SystemAddress sysAddr;
 	LWOZONEID zoneID;
 	std::vector<FriendData> friends;
 	time_t muteExpire;
+	uint8_t countOfBestFriends = 0;
 };
 
 struct TeamData {
 	LWOOBJID teamID = LWOOBJID_EMPTY; // Internal use
 	LWOOBJID leaderID = LWOOBJID_EMPTY;
-	std::vector<LWOOBJID> memberIDs {};
+	std::vector<LWOOBJID> memberIDs{};
 	uint8_t lootFlag = 0;
 	bool local = false;
 	LWOZONEID zoneId = {};
@@ -45,7 +46,7 @@ public:
 	PlayerData* GetPlayerData(const std::string& playerName) {
 		for (auto player : mPlayers) {
 			if (player.second) {
-				std::string pn = player.second->playerName.C_String();
+				std::string pn = player.second->playerName.c_str();
 				if (pn == playerName) return player.second;
 			}
 		}

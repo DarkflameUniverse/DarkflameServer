@@ -13,26 +13,26 @@
 
 //! Replica Constructor class
 class ReplicaConstructor : public ReceiveConstructionInterface {
-public: 
-    ReplicaReturnResult ReceiveConstruction(RakNet::BitStream *inBitStream, RakNetTime timestamp, NetworkID networkID, NetworkIDObject *existingObject, SystemAddress senderId, ReplicaManager *caller) {
-        return REPLICA_PROCESSING_DONE;
-    }
+public:
+	ReplicaReturnResult ReceiveConstruction(RakNet::BitStream* inBitStream, RakNetTime timestamp, NetworkID networkID, NetworkIDObject* existingObject, SystemAddress senderId, ReplicaManager* caller) {
+		return REPLICA_PROCESSING_DONE;
+	}
 } ConstructionCB;
 
 //! Replica Download Sender class
 class ReplicaSender : public SendDownloadCompleteInterface {
 public:
-    ReplicaReturnResult SendDownloadComplete(RakNet::BitStream *outBitStream, RakNetTime currentTime, SystemAddress senderId, ReplicaManager *caller) {
-        return REPLICA_PROCESSING_DONE;
-    }
+	ReplicaReturnResult SendDownloadComplete(RakNet::BitStream* outBitStream, RakNetTime currentTime, SystemAddress senderId, ReplicaManager* caller) {
+		return REPLICA_PROCESSING_DONE;
+	}
 } SendDownloadCompleteCB;
 
 //! Replica Download Receiver class
 class ReplicaReceiever : public ReceiveDownloadCompleteInterface {
 public:
-    ReplicaReturnResult ReceiveDownloadComplete(RakNet::BitStream *inBitStream, SystemAddress senderId, ReplicaManager *caller) {
-        return REPLICA_PROCESSING_DONE;
-    }
+	ReplicaReturnResult ReceiveDownloadComplete(RakNet::BitStream* inBitStream, SystemAddress senderId, ReplicaManager* caller) {
+		return REPLICA_PROCESSING_DONE;
+	}
 } ReceiveDownloadCompleteCB;
 
 dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, unsigned int zoneID) {
@@ -60,11 +60,10 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 
 	if (mIsOkay) {
 		if (zoneID == 0)
-			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i\n", ip.c_str(), port, int(useEncryption));
+			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i", ip.c_str(), port, int(useEncryption));
 		else
-			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i, running zone %i / %i\n", ip.c_str(), port, int(useEncryption), zoneID, instanceID);
-	}
-	else { mLogger->Log("dServer", "FAILED TO START SERVER ON IP/PORT: %s:%i\n", ip.c_str(), port); return; }
+			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i, running zone %i / %i", ip.c_str(), port, int(useEncryption), zoneID, instanceID);
+	} else { mLogger->Log("dServer", "FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
 
 	mLogger->SetLogToConsole(prevLogSetting);
 
@@ -104,13 +103,13 @@ Packet* dServer::ReceiveFromMaster() {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
 
 		if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-			mLogger->Log("dServer", "Lost our connection to master, shutting DOWN!\n");
+			mLogger->Log("dServer", "Lost our connection to master, shutting DOWN!");
 			mMasterConnectionActive = false;
 			//ConnectToMaster(); //We'll just shut down now
 		}
-	
+
 		if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
-			mLogger->Log("dServer", "Established connection to master, zone (%i), instance (%i)\n",this->GetZoneID(), this->GetInstanceID());
+			mLogger->Log("dServer", "Established connection to master, zone (%i), instance (%i)", this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
 			MasterPackets::SendServerInfo(this, packet);
@@ -119,16 +118,16 @@ Packet* dServer::ReceiveFromMaster() {
 		if (packet->data[0] == ID_USER_PACKET_ENUM) {
 			if (packet->data[1] == MASTER) {
 				switch (packet->data[3]) {
-					case MSG_MASTER_REQUEST_ZONE_TRANSFER_RESPONSE: {
-						uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
-						ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
-						break;
-					}
+				case MSG_MASTER_REQUEST_ZONE_TRANSFER_RESPONSE: {
+					uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
+					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
+					break;
+				}
 
-					//When we handle these packets in World instead dServer, we just return the packet's pointer.
-					default:
+															  //When we handle these packets in World instead dServer, we just return the packet's pointer.
+				default:
 
-						return packet;
+					return packet;
 				}
 			}
 		}
@@ -143,15 +142,15 @@ Packet* dServer::Receive() {
 	return mPeer->Receive();
 }
 
-void dServer::DeallocatePacket(Packet * packet) {
+void dServer::DeallocatePacket(Packet* packet) {
 	mPeer->DeallocatePacket(packet);
 }
 
-void dServer::DeallocateMasterPacket(Packet * packet) {
+void dServer::DeallocateMasterPacket(Packet* packet) {
 	mMasterPeer->DeallocatePacket(packet);
 }
 
-void dServer::Send(RakNet::BitStream * bitStream, const SystemAddress & sysAddr, bool broadcast) {
+void dServer::Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast) {
 	mPeer->Send(bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, broadcast);
 }
 
@@ -182,8 +181,7 @@ bool dServer::Startup() {
 
 	if (mIsInternal) {
 		mPeer->SetIncomingPassword("3.25 DARKFLAME1", 15);
-	}
-	else {
+	} else {
 		//mPeer->SetPerConnectionOutgoingBandwidthLimit(800000); //100Kb/s
 		mPeer->SetIncomingPassword("3.25 ND1", 8);
 	}
@@ -228,12 +226,10 @@ void dServer::UpdateReplica() {
 	mReplicaManager->Update(mPeer);
 }
 
-int dServer::GetPing(const SystemAddress& sysAddr) const
-{
+int dServer::GetPing(const SystemAddress& sysAddr) const {
 	return mPeer->GetAveragePing(sysAddr);
 }
 
-int dServer::GetLatestPing(const SystemAddress& sysAddr) const
-{
+int dServer::GetLatestPing(const SystemAddress& sysAddr) const {
 	return mPeer->GetLastPing(sysAddr);
 }

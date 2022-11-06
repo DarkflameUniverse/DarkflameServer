@@ -11,9 +11,9 @@ CDBrickIDTableTable::CDBrickIDTableTable(void) {
 
 		tableSize.nextRow();
 	}
-    
+
 	tableSize.finalize();
-    
+
 	// Reserve the size
 	this->entries.reserve(size);
 
@@ -32,7 +32,7 @@ CDBrickIDTableTable::CDBrickIDTableTable(void) {
 }
 
 //! Destructor
-CDBrickIDTableTable::~CDBrickIDTableTable(void) { }
+CDBrickIDTableTable::~CDBrickIDTableTable(void) {}
 
 //! Returns the table's name
 std::string CDBrickIDTableTable::GetName(void) const {

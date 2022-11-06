@@ -10,7 +10,7 @@ void BinaryIO::WriteString(const std::string& stringToWrite, std::ofstream& outs
 }
 
 //For reading null-terminated strings
-std::string BinaryIO::ReadString(std::ifstream & instream) {
+std::string BinaryIO::ReadString(std::istream& instream) {
 	std::string toReturn;
 	char buffer;
 
@@ -25,7 +25,7 @@ std::string BinaryIO::ReadString(std::ifstream & instream) {
 }
 
 //For reading strings of a specific size
-std::string BinaryIO::ReadString(std::ifstream& instream, size_t size) {
+std::string BinaryIO::ReadString(std::istream& instream, size_t size) {
 	std::string toReturn;
 	char buffer;
 
@@ -37,7 +37,7 @@ std::string BinaryIO::ReadString(std::ifstream& instream, size_t size) {
 	return toReturn;
 }
 
-std::string BinaryIO::ReadWString(std::ifstream & instream) {
+std::string BinaryIO::ReadWString(std::istream& instream) {
 	size_t size;
 	BinaryRead(instream, size);
 	//toReturn.resize(size);

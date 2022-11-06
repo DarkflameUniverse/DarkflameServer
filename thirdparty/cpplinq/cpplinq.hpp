@@ -14,6 +14,8 @@
 #ifndef CPPLINQ__HEADER_GUARD
 #   define CPPLINQ__HEADER_GUARD
 
+#undef min
+#undef max
 #define NOMINMAX
 
 // ----------------------------------------------------------------------------

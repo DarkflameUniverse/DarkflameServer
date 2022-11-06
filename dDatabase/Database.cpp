@@ -6,11 +6,12 @@ using namespace std;
 
 #pragma warning (disable:4251) //Disables SQL warnings
 
-sql::Driver * Database::driver;
-sql::Connection * Database::con;
+sql::Driver* Database::driver;
+sql::Connection* Database::con;
+sql::Properties Database::props;
+std::string Database::database;
 
 void Database::Connect(const string& host, const string& database, const string& username, const string& password) {
-	driver = get_driver_instance();
 
 	//To bypass debug issues:
 	std::string newHost = "tcp://" + host;
@@ -19,16 +20,33 @@ void Database::Connect(const string& host, const string& database, const string&
 	const char* szUsername = username.c_str();
 	const char* szPassword = password.c_str();
 
-	con = driver->connect(szHost, szUsername, szPassword);
-	con->setSchema(szDatabase);
+	driver = sql::mariadb::get_driver_instance();
 
-	bool myTrue = true;
-	con->setClientOption("MYSQL_OPT_RECONNECT", &myTrue);
-} //Connect
+	sql::Properties properties;
+	properties["hostName"] = szHost;
+	properties["user"] = szUsername;
+	properties["password"] = szPassword;
+	properties["autoReconnect"] = "true";
 
-void Database::Destroy() {
+	Database::props = properties;
+	Database::database = database;
+
+	Database::Connect();
+}
+
+void Database::Connect() {
+	con = driver->connect(Database::props["hostName"].c_str(), Database::props["user"].c_str(), Database::props["password"].c_str());
+	con->setSchema(Database::database.c_str());
+}
+
+void Database::Destroy(std::string source, bool log) {
 	if (!con) return;
-	Game::logger->Log("Database", "Destroying MySQL connection!\n");
+
+	if (log) {
+		if (source != "") Game::logger->Log("Database", "Destroying MySQL connection from %s!", source.c_str());
+		else Game::logger->Log("Database", "Destroying MySQL connection!");
+	}
+
 	con->close();
 	delete con;
 } //Destroy
@@ -44,33 +62,36 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 	sql::SQLString str(test, size);
 
 	if (!con) {
-		//Connect to the MySQL Database
-		std::string mysql_host = Game::config->GetValue("mysql_host");
-		std::string mysql_database = Game::config->GetValue("mysql_database");
-		std::string mysql_username = Game::config->GetValue("mysql_username");
-		std::string mysql_password = Game::config->GetValue("mysql_password");
-
-		Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-		Game::logger->Log("Database", "Trying to reconnect to MySQL\n");
+		Connect();
+		Game::logger->Log("Database", "Trying to reconnect to MySQL");
 	}
 
-	if (!con->isValid() || con->isClosed())
-	{
+	if (!con->isValid() || con->isClosed()) {
 		delete con;
 
 		con = nullptr;
 
-		//Connect to the MySQL Database
-		std::string mysql_host = Game::config->GetValue("mysql_host");
-		std::string mysql_database = Game::config->GetValue("mysql_database");
-		std::string mysql_username = Game::config->GetValue("mysql_username");
-		std::string mysql_password = Game::config->GetValue("mysql_password");
-
-		Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-		Game::logger->Log("Database", "Trying to reconnect to MySQL from invalid or closed connection\n");
+		Connect();
+		Game::logger->Log("Database", "Trying to reconnect to MySQL from invalid or closed connection");
 	}
-	
+
 	auto* stmt = con->prepareStatement(str);
 
 	return stmt;
 } //CreatePreppedStmt
+
+void Database::Commit() {
+	Database::con->commit();
+}
+
+bool Database::GetAutoCommit() {
+	// TODO This should not just access a pointer.  A future PR should update this
+	// to check for null and throw an error if the connection is not valid.
+	return con->getAutoCommit();
+}
+
+void Database::SetAutoCommit(bool value) {
+	// TODO This should not just access a pointer.  A future PR should update this
+	// to check for null and throw an error if the connection is not valid.
+	Database::con->setAutoCommit(value);
+}

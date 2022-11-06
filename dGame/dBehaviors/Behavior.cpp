@@ -1,4 +1,4 @@
-﻿#include <sstream>
+#include <sstream>
 #include <algorithm>
 
 #include "Behavior.h"
@@ -7,6 +7,7 @@
 #include "dLogger.h"
 #include "BehaviorTemplates.h"
 #include "BehaviorBranchContext.h"
+#include <unordered_map>
 
 /*
  * Behavior includes
@@ -18,6 +19,7 @@
 #include "AreaOfEffectBehavior.h"
 #include "DurationBehavior.h"
 #include "TacArcBehavior.h"
+#include "LootBuffBehavior.h"
 #include "AttackDelayBehavior.h"
 #include "BasicAttackBehavior.h"
 #include "ChainBehavior.h"
@@ -44,6 +46,7 @@
 #include "InterruptBehavior.h"
 #include "PlayEffectBehavior.h"
 #include "DamageAbsorptionBehavior.h"
+#include "VentureVisionBehavior.h"
 #include "BlockBehavior.h"
 #include "ClearTargetBehavior.h"
 #include "PullToPointBehavior.h"
@@ -57,7 +60,7 @@
 #include "DamageReductionBehavior.h"
 #include "JetPackBehavior.h"
 
-//CDClient includes
+ //CDClient includes
 #include "CDBehaviorParameterTable.h"
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
@@ -67,46 +70,39 @@
 #include "RenderComponent.h"
 #include "DestroyableComponent.h"
 
-std::map<uint32_t, Behavior*> Behavior::Cache = {};
+std::unordered_map<uint32_t, Behavior*> Behavior::Cache = {};
 CDBehaviorParameterTable* Behavior::BehaviorParameterTable = nullptr;
 
-Behavior* Behavior::GetBehavior(const uint32_t behaviorId)
-{
-	if (BehaviorParameterTable == nullptr)
-	{
+Behavior* Behavior::GetBehavior(const uint32_t behaviorId) {
+	if (BehaviorParameterTable == nullptr) {
 		BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
 	}
 
 	const auto pair = Cache.find(behaviorId);
 
-	if (pair == Cache.end())
-	{
+	if (pair == Cache.end()) {
 		return nullptr;
 	}
 
 	return static_cast<Behavior*>(pair->second);
 }
 
-Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
-{
+Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	auto* cached = GetBehavior(behaviorId);
-	
-	if (cached != nullptr)
-	{
+
+	if (cached != nullptr) {
 		return cached;
 	}
-	
-	if (behaviorId == 0)
-	{
+
+	if (behaviorId == 0) {
 		return new EmptyBehavior(0);
 	}
-	
+
 	const auto templateId = GetBehaviorTemplate(behaviorId);
 
 	Behavior* behavior = nullptr;
-	
-	switch (templateId)
-	{
+
+	switch (templateId) {
 	case BehaviorTemplates::BEHAVIOR_EMPTY: break;
 	case BehaviorTemplates::BEHAVIOR_BASIC_ATTACK:
 		behavior = new BasicAttackBehavior(behaviorId);
@@ -172,8 +168,12 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 		behavior = new SpeedBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: break;
-	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF: break;
-	case BehaviorTemplates::BEHAVIOR_VENTURE_VISION: break;
+	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF:
+		behavior = new LootBuffBehavior(behaviorId);
+		break;
+	case BehaviorTemplates::BEHAVIOR_VENTURE_VISION:
+		behavior = new VentureVisionBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_SPAWN_OBJECT:
 		behavior = new SpawnBehavior(behaviorId);
 		break;
@@ -188,8 +188,8 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 		behavior = new JetPackBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_EVENT:
-	    behavior = new SkillEventBehavior(behaviorId);
-	    break;
+		behavior = new SkillEventBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_CONSUME_ITEM: break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_CAST_FAILED:
 		behavior = new SkillCastFailedBehavior(behaviorId);
@@ -262,14 +262,13 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 	case BehaviorTemplates::BEHAVIOR_MOUNT: break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_SET: break;
 	default:
-		//Game::logger->Log("Behavior", "Failed to load behavior with invalid template id (%i)!\n", templateId);
+		//Game::logger->Log("Behavior", "Failed to load behavior with invalid template id (%i)!", templateId);
 		break;
 	}
 
-	if (behavior == nullptr)
-	{
-		//Game::logger->Log("Behavior", "Failed to load unimplemented template id (%i)!\n", templateId);
-		
+	if (behavior == nullptr) {
+		//Game::logger->Log("Behavior", "Failed to load unimplemented template id (%i)!", templateId);
+
 		behavior = new EmptyBehavior(behaviorId);
 	}
 
@@ -278,107 +277,96 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId)
 	return behavior;
 }
 
-BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId)
-{
-	std::stringstream query;
+BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
+	auto behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDBehaviorTemplateTable>("BehaviorTemplate");
 
-	query << "SELECT templateID FROM BehaviorTemplate WHERE behaviorID = " << std::to_string(behaviorId);
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
-
-	// Make sure we do not proceed if we are trying to load an invalid behavior
-	if (result.eof())
-	{
-		if (behaviorId != 0)
-		{
-			Game::logger->Log("Behavior::GetBehaviorTemplate", "Failed to load behavior template with id (%i)!\n", behaviorId);
+	BehaviorTemplates templateID = BehaviorTemplates::BEHAVIOR_EMPTY;
+	// Find behavior template by its behavior id.  Default to 0.
+	if (behaviorTemplateTable) {
+		auto templateEntry = behaviorTemplateTable->GetByBehaviorID(behaviorId);
+		if (templateEntry.behaviorID == behaviorId) {
+			templateID = static_cast<BehaviorTemplates>(templateEntry.templateID);
 		}
-
-		return BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
-	
-	const auto id = static_cast<BehaviorTemplates>(result.getIntField(0));
 
-	result.finalize();
+	if (templateID == BehaviorTemplates::BEHAVIOR_EMPTY && behaviorId != 0) {
+		Game::logger->Log("Behavior", "Failed to load behavior template with id (%i)!", behaviorId);
+	}
 
-	return id;
+	return templateID;
 }
 
 // For use with enemies, to display the correct damage animations on the players
-void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID secondary)
-{
+void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID secondary) {
 	auto* targetEntity = EntityManager::Instance()->GetEntity(target);
 
-	if (targetEntity == nullptr)
-	{
+	if (targetEntity == nullptr) {
 		return;
 	}
 
 	const auto effectId = this->m_effectId;
 
-	if (effectId == 0)
-	{
+	if (effectId == 0) {
 		GameMessages::SendPlayFXEffect(targetEntity, -1, type, "", secondary, 1, 1, true);
 
 		return;
 	}
-	
+
 	auto* renderComponent = targetEntity->GetComponent<RenderComponent>();
 
 	const auto typeString = GeneralUtils::UTF16ToWTF8(type);
 
-	if (m_effectNames == nullptr)
-	{
+	if (m_effectNames == nullptr) {
 		m_effectNames = new std::unordered_map<std::string, std::string>();
-	}
-	else
-	{
+	} else {
 		const auto pair = m_effectNames->find(typeString);
 
-		if (type.empty())
-		{
+		if (type.empty()) {
 			type = GeneralUtils::ASCIIToUTF16(*m_effectType);
 		}
 
-		if (pair != m_effectNames->end())
-		{
-			if (renderComponent == nullptr)
-			{
+		if (pair != m_effectNames->end()) {
+			if (renderComponent == nullptr) {
 				GameMessages::SendPlayFXEffect(targetEntity, effectId, type, pair->second, secondary, 1, 1, true);
-				
+
 				return;
 			}
 
 			renderComponent->PlayEffect(effectId, type, pair->second, secondary);
-			
+
 			return;
 		}
 	}
-	
-	std::stringstream query;
-	
-	if (!type.empty())
-	{
-		query << "SELECT effectName FROM BehaviorEffect WHERE effectType = '" << typeString << "' AND effectID = " << std::to_string(effectId) << ";";
-	}
-	else
-	{
-		query << "SELECT effectName, effectType FROM BehaviorEffect WHERE effectID = " << std::to_string(effectId) << ";";
+
+	// The SQlite result object becomes invalid if the query object leaves scope.
+	// So both queries are defined before the if statement
+	CppSQLite3Query result;
+	auto typeQuery = CDClientDatabase::CreatePreppedStmt(
+		"SELECT effectName FROM BehaviorEffect WHERE effectType = ? AND effectID = ?;");
+
+	auto idQuery = CDClientDatabase::CreatePreppedStmt(
+		"SELECT effectName, effectType FROM BehaviorEffect WHERE effectID = ?;");
+
+	if (!type.empty()) {
+		typeQuery.bind(1, typeString.c_str());
+		typeQuery.bind(2, (int)effectId);
+
+		result = typeQuery.execQuery();
+	} else {
+		idQuery.bind(1, (int)effectId);
+
+		result = idQuery.execQuery();
 	}
 
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
-
-	if (result.eof() || result.fieldIsNull(0))
-	{
+	if (result.eof() || result.fieldIsNull(0)) {
 		return;
 	}
 
 	const auto name = std::string(result.getStringField(0));
 
-	if (type.empty())
-	{
+	if (type.empty()) {
 		const auto typeResult = result.getStringField(1);
-		
+
 		type = GeneralUtils::ASCIIToUTF16(typeResult);
 
 		m_effectType = new std::string(typeResult);
@@ -388,18 +376,27 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 
 	m_effectNames->insert_or_assign(typeString, name);
 
-	if (renderComponent == nullptr)
-	{
+	if (renderComponent == nullptr) {
 		GameMessages::SendPlayFXEffect(targetEntity, effectId, type, name, secondary, 1, 1, true);
-		
+
 		return;
 	}
 
 	renderComponent->PlayEffect(effectId, type, name, secondary);
 }
 
-Behavior::Behavior(const uint32_t behaviorId)
-{
+Behavior::Behavior(const uint32_t behaviorId) {
+	auto behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDBehaviorTemplateTable>("BehaviorTemplate");
+
+	CDBehaviorTemplate templateInDatabase{};
+
+	if (behaviorTemplateTable) {
+		auto templateEntry = behaviorTemplateTable->GetByBehaviorID(behaviorId);
+		if (templateEntry.behaviorID == behaviorId) {
+			templateInDatabase = templateEntry;
+		}
+	}
+
 	this->m_behaviorId = behaviorId;
 
 	// Add to cache
@@ -411,20 +408,9 @@ Behavior::Behavior(const uint32_t behaviorId)
 		this->m_templateId = BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
 
-	/*
-	 * Get standard info
-	 */
-
-	std::stringstream query;
-
-	query << "SELECT templateID, effectID, effectHandle FROM BehaviorTemplate WHERE behaviorID = " << std::to_string(behaviorId);
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
-
 	// Make sure we do not proceed if we are trying to load an invalid behavior
-	if (result.eof())
-	{
-		Game::logger->Log("Behavior", "Failed to load behavior with id (%i)!\n", behaviorId);
+	if (templateInDatabase.behaviorID == 0) {
+		Game::logger->Log("Behavior", "Failed to load behavior with id (%i)!", behaviorId);
 
 		this->m_effectId = 0;
 		this->m_effectHandle = nullptr;
@@ -433,117 +419,77 @@ Behavior::Behavior(const uint32_t behaviorId)
 		return;
 	}
 
-	this->m_templateId = static_cast<BehaviorTemplates>(result.getIntField(0));
-	
-	this->m_effectId = result.getIntField(1);
+	this->m_templateId = static_cast<BehaviorTemplates>(templateInDatabase.templateID);
 
-	if (!result.fieldIsNull(2))
-	{
-		const std::string effectHandle = result.getStringField(2);
-		if (effectHandle == "")
-		{
-			this->m_effectHandle = nullptr;
-		}
-		else
-		{
-			this->m_effectHandle = new std::string(effectHandle);
-		}
-	}
-	else
-	{
-		this->m_effectHandle = nullptr;
-	}
+	this->m_effectId = templateInDatabase.effectID;
 
-	result.finalize();
+	this->m_effectHandle = *templateInDatabase.effectHandle != "" ? new std::string(*templateInDatabase.effectHandle) : nullptr;
 }
 
 
-float Behavior::GetFloat(const std::string& name, const float defaultValue) const
-{
-	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue);
+float Behavior::GetFloat(const std::string& name, const float defaultValue) const {
+	// Get the behavior parameter entry and return its value.
+	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
+	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue).value;
 }
 
 
-bool Behavior::GetBoolean(const std::string& name, const bool defaultValue) const
-{
+bool Behavior::GetBoolean(const std::string& name, const bool defaultValue) const {
 	return GetFloat(name, defaultValue) > 0;
 }
 
 
-int32_t Behavior::GetInt(const std::string& name, const int defaultValue) const
-{
+int32_t Behavior::GetInt(const std::string& name, const int defaultValue) const {
 	return static_cast<int32_t>(GetFloat(name, defaultValue));
 }
 
 
-Behavior* Behavior::GetAction(const std::string& name) const
-{
+Behavior* Behavior::GetAction(const std::string& name) const {
 	const auto id = GetInt(name);
 
 	return CreateBehavior(id);
 }
 
-Behavior* Behavior::GetAction(float value) const
-{
+Behavior* Behavior::GetAction(float value) const {
 	return CreateBehavior(static_cast<int32_t>(value));
 }
 
-std::map<std::string, float> Behavior::GetParameterNames() const
-{
-	std::map<std::string, float> parameters;
-
-	std::stringstream query;
-
-	query << "SELECT parameterID, value FROM BehaviorParameter WHERE behaviorID = " << std::to_string(this->m_behaviorId);
-
-	auto tableData = CDClientDatabase::ExecuteQuery(query.str());
-
-	while (!tableData.eof())
-	{
-		parameters.insert_or_assign(tableData.getStringField(0, ""), tableData.getFloatField(1, 0));
-
-		tableData.nextRow();
+std::map<std::string, float> Behavior::GetParameterNames() const {
+	std::map<std::string, float> templatesInDatabase;
+	// Find behavior template by its behavior id.
+	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
+	if (BehaviorParameterTable) {
+		templatesInDatabase = BehaviorParameterTable->GetParametersByBehaviorID(this->m_behaviorId);
 	}
 
-	tableData.finalize();
-
-	return parameters;
+	return templatesInDatabase;
 }
 
-void Behavior::Load()
-{
+void Behavior::Load() {
 }
 
-void Behavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void Behavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 }
 
-void Behavior::Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void Behavior::Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 }
 
-void Behavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch)
-{
+void Behavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
 }
 
-void Behavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second)
-{
+void Behavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {
 }
 
-void Behavior::End(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second)
-{
+void Behavior::End(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {
 }
 
-void Behavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void Behavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 }
 
-void Behavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
+void Behavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 }
 
-Behavior::~Behavior()
-{
+Behavior::~Behavior() {
 	delete m_effectNames;
 	delete m_effectType;
 	delete m_effectHandle;
