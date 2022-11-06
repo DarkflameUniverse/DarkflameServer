@@ -47,6 +47,7 @@ bool CharacterComponent::LandingAnimDisabled(int zoneID) {
 	case 1202:
 	case 1203:
 	case 1204:
+	case 1261:
 	case 1301:
 	case 1302:
 	case 1303:
