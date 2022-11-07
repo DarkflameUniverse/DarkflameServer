@@ -345,7 +345,7 @@ void Item::DisassembleModel() {
 	auto buffer = Game::assetManager->GetFileAsBuffer(lxfmlPath.c_str());
 
 	if (!buffer.m_Success) {
-		Game::logger->Log("Item", "Failed to load %s", lxfmlPath.c_str());
+		Game::logger->Log("Item", "Failed to load %s to disassemble model into bricks, check that this file exists", lxfmlPath.c_str());
 		return;
 	}
 
