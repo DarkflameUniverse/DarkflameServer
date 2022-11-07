@@ -4,8 +4,8 @@
 #define _VARIADIC_MAX 10
 #include "dCommonVars.h"
 #include "dNetCommon.h"
-#include "dServer.h"
 
+enum class ServerType : uint32_t;
 class dServer;
 
 namespace AuthPackets {
