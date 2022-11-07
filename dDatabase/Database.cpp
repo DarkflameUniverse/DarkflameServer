@@ -11,9 +11,6 @@ sql::Connection* Database::con;
 sql::Properties Database::props;
 std::string Database::database;
 
-const std::string UNIX_PROTO = "unix://";
-const std::string PIPE_PROTO = "pipe://";
-
 void Database::Connect(const string& host, const string& database, const string& username, const string& password) {
 
 	//To bypass debug issues:
@@ -24,7 +21,6 @@ void Database::Connect(const string& host, const string& database, const string&
 	driver = sql::mariadb::get_driver_instance();
 
 	sql::Properties properties;
-	properties["user"] = szUsername;
 	// The mariadb connector is *supposed* to handle unix:// and pipe:// prefixes to hostName, but there are bugs where
 	// 1) it tries to parse a database from the connection string (like in tcp://localhost:3001/darkflame) based on the
 	//    presence of a /
@@ -32,6 +28,8 @@ void Database::Connect(const string& host, const string& database, const string&
 	// So, what we do in the presence of a unix socket or pipe is to set the hostname to the protocol and localhost,
 	// which avoids parsing errors while still ensuring the correct connection type is used, and then setting the appropriate
 	// property manually (which the URL parsing fails to do)
+	const std::string UNIX_PROTO = "unix://";
+	const std::string PIPE_PROTO = "pipe://";
     if (host.find(UNIX_PROTO) == 0) {
 		properties["hostName"] = "unix://localhost";
 		properties["localSocket"] = host.substr(UNIX_PROTO.length()).c_str();
