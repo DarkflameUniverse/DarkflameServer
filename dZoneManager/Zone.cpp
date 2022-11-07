@@ -358,11 +358,8 @@ SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::istream& file) {
 void Zone::LoadPath(std::istream& file) {
 	Path path = Path();
 
-	uint32_t flags;
-	uint32_t pathType;
-	uint32_t pathBehavior;
-
 	BinaryIO::BinaryRead(file, path.pathVersion);
+
 	uint8_t stringLength;
 	BinaryIO::BinaryRead(file, stringLength);
 	for (uint8_t i = 0; i < stringLength; ++i) {
@@ -370,11 +367,10 @@ void Zone::LoadPath(std::istream& file) {
 		BinaryIO::BinaryRead(file, character);
 		path.pathName.push_back(character);
 	}
-	BinaryIO::BinaryRead(file, pathType);
-	path.pathType = PathType(pathType);
-	BinaryIO::BinaryRead(file, flags);
-	BinaryIO::BinaryRead(file, pathBehavior);
-	path.pathBehavior = PathBehavior(pathBehavior);
+
+	BinaryIO::BinaryRead(file, path.pathType);
+	BinaryIO::BinaryRead(file, path.flags);
+	BinaryIO::BinaryRead(file, path.pathBehavior);
 
 	if (path.pathType == PathType::MovingPlatform) {
 		if (path.pathVersion >= 18) {
@@ -389,17 +385,9 @@ void Zone::LoadPath(std::istream& file) {
 			}
 		}
 	} else if (path.pathType == PathType::Property) {
-
-		int32_t propertyPathType;
-		BinaryIO::BinaryRead(file, propertyPathType);
-		path.property.pathType = PropertyPathType(propertyPathType);
-
+		BinaryIO::BinaryRead(file, path.property.pathType);
 		BinaryIO::BinaryRead(file, path.property.price);
-
-		int32_t rentalTime;
-		BinaryIO::BinaryRead(file, rentalTime);
-		path.property.rentalTime = PropertyRentalTimeUnit(rentalTime);
-
+		BinaryIO::BinaryRead(file, path.property.rentalTime);
 		BinaryIO::BinaryRead(file, path.property.associatedZone);
 
 		if (path.pathVersion >= 5) {
@@ -419,12 +407,7 @@ void Zone::LoadPath(std::istream& file) {
 			}
 		}
 
-		if (path.pathVersion >= 6) {
-			int32_t propertyType;
-			BinaryIO::BinaryRead(file, propertyType);
-			path.property.type = PropertyType(propertyType);
-
-		}
+		if (path.pathVersion >= 6) BinaryIO::BinaryRead(file, path.property.type);
 
 		if (path.pathVersion >= 7) {
 			BinaryIO::BinaryRead(file, path.property.cloneLimit);
@@ -452,7 +435,6 @@ void Zone::LoadPath(std::istream& file) {
 
 		}
 	} else if (path.pathType == PathType::Spawner) {
-		//SpawnerPath* path = static_cast<SpawnerPath*>(path); // Convert to a spawner path
 		BinaryIO::BinaryRead(file, path.spawner.spawnedLOT);
 		BinaryIO::BinaryRead(file, path.spawner.respawnTime);
 		BinaryIO::BinaryRead(file, path.spawner.maxToSpawn);
