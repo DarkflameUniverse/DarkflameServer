@@ -59,9 +59,23 @@ struct MovingPlatformPathWaypoint {
 
 struct CameraPathWaypoint {
 	float time;
+	float fov;
 	float tension;
 	float continuity;
 	float bias;
+};
+
+struct RacingPathWaypoint {
+	uint8_t isResetNode;
+	uint8_t isNonHorizontalCamera;
+	float planeWidth;
+	float planeHeight;
+	float shortestDistanceToEnd;
+};
+
+struct RailPathWaypoint {
+	float speed;
+	std::vector<LDFBaseData*> config;
 };
 
 struct PathWaypoint {
@@ -69,6 +83,8 @@ struct PathWaypoint {
 	NiQuaternion rotation; // not included in all, but it's more convenient here
 	MovingPlatformPathWaypoint movingPlatform;
 	CameraPathWaypoint camera;
+	RacingPathWaypoint raceing;
+	RailPathWaypoint rail;
 	std::vector<LDFBaseData*> config;
 };
 
@@ -87,6 +103,19 @@ enum class PathBehavior : uint32_t {
 	Loop = 0,
 	Bounce = 1,
 	Once = 2
+};
+
+enum class PropertyPathType : int32_t {
+	Path = 0,
+	EntireZone = 1,
+	GenetatedRectangle = 2
+};
+
+enum class PropertyType : int32_t{
+	Premiere = 0,
+    Prize = 1,
+    LUP = 2,
+    Headspace = 3
 };
 
 enum class PropertyRentalTimeUnit : int32_t {
@@ -116,14 +145,17 @@ enum class PropertyAchievmentRequired : int32_t {
 
 struct MovingPlatformPath {
 	std::string platformTravelSound;
+	uint8_t timeBasedMovement;
 };
 
 struct PropertyPath {
+	PropertyPathType pathType;
 	int32_t price;
-	int32_t rentalTime;
+	PropertyRentalTimeUnit rentalTime;
 	uint64_t associatedZone;
 	std::string displayName;
 	std::string displayDesc;
+	PropertyType type;
 	int32_t cloneLimit;
 	float repMultiplier;
 	PropertyRentalTimeUnit rentalTimeUnit;
@@ -134,6 +166,7 @@ struct PropertyPath {
 
 struct CameraPath {
 	std::string nextPath;
+	uint8_t rotatePlayer;
 };
 
 struct SpawnerPath {
@@ -150,6 +183,7 @@ struct Path {
 	uint32_t pathVersion;
 	PathType pathType;
 	std::string pathName;
+	uint32_t flags;
 	PathBehavior pathBehavior;
 	uint32_t waypointCount;
 	std::vector<PathWaypoint> pathWaypoints;
@@ -219,9 +253,11 @@ private:
 
 	std::map<LWOSCENEID, SceneRef, mapCompareLwoSceneIDs> m_Scenes;
 	std::vector<SceneTransition> m_SceneTransitions;
+
 	uint32_t m_PathDataLength;
-	//std::vector<char> m_PathData; //Binary path data
-	std::vector<Path> m_Paths;
+	uint32_t m_PathChunkVersion;
+ 	std::vector<Path> m_Paths;
+
 	std::map<LWOSCENEID, uint32_t, mapCompareLwoSceneIDs> m_MapRevisions; //rhs is the revision!
 
 	//private ("helper") functions:
