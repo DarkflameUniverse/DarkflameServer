@@ -200,6 +200,16 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	// If we are not on our clone do not allow us to claim the property
 	if (propertyCloneId != playerCloneId) return false;
 
+	std::string name = zone->GetZoneName();
+	std::string description = "";
+
+	auto prop_path = zone->GetPath(m_Parent->GetVarAsString(u"propertyName"));
+
+	if (prop_path){
+		if (!prop_path->property.displayName.empty()) name = prop_path->property.displayName;
+		description = prop_path->property.displayDesc;
+	}
+
 	SetOwnerId(playerId);
 
 	propertyId = ObjectIDManager::GenerateRandomObjectID();
@@ -207,14 +217,15 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	auto* insertion = Database::CreatePreppedStmt(
 		"INSERT INTO properties"
 		"(id, owner_id, template_id, clone_id, name, description, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, zone_id, performance_cost)"
-		"VALUES (?, ?, ?, ?, ?, '', 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?, 0.0)"
+		"VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?, 0.0)"
 	);
 	insertion->setUInt64(1, propertyId);
 	insertion->setUInt64(2, (uint32_t)playerId);
 	insertion->setUInt(3, templateId);
 	insertion->setUInt64(4, playerCloneId);
-	insertion->setString(5, zone->GetZoneName().c_str());
-	insertion->setInt(6, propertyZoneId);
+	insertion->setString(5, name.c_str());
+	insertion->setString(6, description.c_str());
+	insertion->setInt(7, propertyZoneId);
 
 	// Try and execute the query, print an error if it fails.
 	try {
