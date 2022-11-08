@@ -83,7 +83,7 @@ struct PathWaypoint {
 	NiQuaternion rotation; // not included in all, but it's more convenient here
 	MovingPlatformPathWaypoint movingPlatform;
 	CameraPathWaypoint camera;
-	RacingPathWaypoint raceing;
+	RacingPathWaypoint racing;
 	RailPathWaypoint rail;
 	std::vector<LDFBaseData*> config;
 };

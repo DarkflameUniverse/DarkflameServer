@@ -489,11 +489,11 @@ void Zone::LoadPath(std::istream& file) {
 			BinaryIO::BinaryRead(file, waypoint.camera.continuity);
 			BinaryIO::BinaryRead(file, waypoint.camera.bias);
 		} else if (path.pathType == PathType::Race) {
-			BinaryIO::BinaryRead(file, waypoint.raceing.isResetNode);
-			BinaryIO::BinaryRead(file, waypoint.raceing.isNonHorizontalCamera);
-			BinaryIO::BinaryRead(file, waypoint.raceing.planeWidth);
-			BinaryIO::BinaryRead(file, waypoint.raceing.planeHeight);
-			BinaryIO::BinaryRead(file, waypoint.raceing.shortestDistanceToEnd);
+			BinaryIO::BinaryRead(file, waypoint.racing.isResetNode);
+			BinaryIO::BinaryRead(file, waypoint.racing.isNonHorizontalCamera);
+			BinaryIO::BinaryRead(file, waypoint.racing.planeWidth);
+			BinaryIO::BinaryRead(file, waypoint.racing.planeHeight);
+			BinaryIO::BinaryRead(file, waypoint.racing.shortestDistanceToEnd);
 		}
 
 		// object LDF configs
