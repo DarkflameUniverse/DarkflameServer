@@ -95,37 +95,14 @@ void PropertyManagementComponent::SetOwner(Entity* value) {
 }
 
 std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const {
-	const auto zoneId = dZoneManager::Instance()->GetZone()->GetWorldID();
-
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT path FROM PropertyTemplate WHERE mapID = ?;");
-	query.bind(1, (int)zoneId);
-
-	auto result = query.execQuery();
-
 	std::vector<NiPoint3> paths{};
 
-	if (result.eof()) {
-		return paths;
-	}
+	auto prop_path = dZoneManager::Instance()->GetZone()->GetPath(m_Parent->GetVarAsString(u"propertyName"));
 
-	std::vector<float> points;
-
-	std::istringstream stream(result.getStringField(0));
-	std::string token;
-
-	while (std::getline(stream, token, ' ')) {
-		try {
-			auto value = std::stof(token);
-
-			points.push_back(value);
-		} catch (std::invalid_argument& exception) {
-			Game::logger->Log("PropertyManagementComponent", "Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
+	if (prop_path){
+		for (auto i = 0u; i < prop_path->pathWaypoints.size(); i++) {
+			paths.emplace_back(prop_path->pathWaypoints.at(i).position);
 		}
-	}
-
-	for (auto i = 0u; i < points.size(); i += 3) {
-		paths.emplace_back(points[i], points[i + 1], points[i + 2]);
 	}
 
 	return paths;
