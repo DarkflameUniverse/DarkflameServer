@@ -648,11 +648,6 @@ void Entity::Initialize() {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RAIL_ACTIVATOR, new RailActivatorComponent(this, railComponentID)));
 	}
 
-	// need this up here to include in other movement AI setup
-	std::string pathName = GetVarAsString(u"attached_path");
-
-	const Path* path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
-
 	int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVEMENT_AI);
 	if (movementAIID > 0) {
 		CDMovementAIComponentTable* moveAITable = CDClientManager::Instance()->GetTable<CDMovementAIComponentTable>("MovementAIComponent");
@@ -691,6 +686,9 @@ void Entity::Initialize() {
 
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
 	}
+
+	std::string pathName = GetVarAsString(u"attached_path");
+	const Path* path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
 
 	//Check to see if we have an attached path and assing the appropiate component to handle it:
 	if (path){
