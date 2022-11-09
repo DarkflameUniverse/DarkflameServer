@@ -699,10 +699,10 @@ void Entity::Initialize() {
 		// else if we are a movement path
 		} else if (path->pathType == PathType::Movement) {
 			auto movementAIcomp = GetComponent<MovementAIComponent>();
-			if (!movementAIcomp){
-				// TODO: create movementAIcomp and set path
-			} else {
+			if (movementAIcomp){
 				// TODO: set path in existing movementAIComp
+			} else {
+				// TODO: create movementAIcomp and set path
 			}
 		}
 	}
