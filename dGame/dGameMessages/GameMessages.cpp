@@ -70,6 +70,7 @@
 #include "TradingManager.h"
 #include "ControlBehaviors.h"
 #include "AMFDeserialize.h"
+#include "eBlueprintSaveResponseType.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -2139,6 +2140,32 @@ void GameMessages::HandleSetPropertyAccess(RakNet::BitStream* inStream, Entity* 
 	PropertyManagementComponent::Instance()->SetPrivacyOption(static_cast<PropertyPrivacyOption>(accessType));
 }
 
+void GameMessages::HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	bool unknown{};
+	LWOOBJID objIdToAddToInventory{};
+	inStream->Read(unknown);
+	inStream->Read(objIdToAddToInventory);
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (inventoryComponent) {
+		auto* inventory = inventoryComponent->GetInventory(eInventoryType::MODELS_IN_BBB);
+		auto* item = inventory->FindItemById(objIdToAddToInventory);
+		if (item) {
+			inventoryComponent->MoveItemToInventory(item, eInventoryType::MODELS, 1);
+		} else {
+			Game::logger->Log("GameMessages", "item id %llu not found in MODELS_IN_BBB inventory, likely because it does not exist", objIdToAddToInventory);
+		}
+	}
+
+	if (unknown) {
+		CBITSTREAM;
+		PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
+		bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
+		bitStream.Write(eBlueprintSaveResponseType::PlacementFailed); // Sending a non-zero error code here prevents the client from deleting its in progress build for some reason?
+		bitStream.Write<uint32_t>(0);
+		SEND_PACKET;
+	}
+}
+
 void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	bool isProperty{};
 	LWOOBJID objectId{};
@@ -2353,16 +2380,40 @@ void GameMessages::HandleDeletePropertyModel(RakNet::BitStream* inStream, Entity
 }
 
 void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LWOOBJID itemID = LWOOBJID_EMPTY;
-	inStream->Read(itemID);
+	LWOOBJID previousItemID = LWOOBJID_EMPTY;
+	inStream->Read(previousItemID);
 
-	Game::logger->Log("BBB", "Load item request for: %lld", itemID);
+	Game::logger->Log("BBB", "Load item request for: %lld", previousItemID);
+	LWOOBJID newId = previousItemID;
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (inventoryComponent) {
+		auto* inventory = inventoryComponent->GetInventory(eInventoryType::MODELS);
+		auto* itemToMove = inventory->FindItemById(previousItemID);
 
+		if (itemToMove) {
+			LOT previousLot = itemToMove->GetLot();
+			inventoryComponent->MoveItemToInventory(itemToMove, eInventoryType::MODELS_IN_BBB, 1, false);
+
+			auto* destinationInventory = inventoryComponent->GetInventory(eInventoryType::MODELS_IN_BBB);
+			if (destinationInventory) {
+				auto* movedItem = destinationInventory->FindItemByLot(previousLot);
+				if (movedItem) newId = movedItem->GetId();
+			}
+		} else {
+			Game::logger->Log("GameMessages", "item id %llu not found in MODELS inventory, likely because it does not exist", previousItemID);
+		}
+	}
+
+	// Second argument always true (successful) for now
+	SendBlueprintLoadItemResponse(sysAddr, true, previousItemID, newId);
+}
+
+void GameMessages::SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId) {
 	CBITSTREAM;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_LOAD_RESPONSE_ITEMID);
-	bitStream.Write(static_cast<uint8_t>(1));
-	bitStream.Write<LWOOBJID>(itemID);
-	bitStream.Write<LWOOBJID>(itemID);
+	bitStream.Write(static_cast<uint8_t>(success));
+	bitStream.Write<LWOOBJID>(oldItemId);
+	bitStream.Write<LWOOBJID>(newItemId);
 	SEND_PACKET;
 }
 
@@ -2413,7 +2464,7 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 	}
 
 	auto owner = PropertyManagementComponent::Instance()->GetOwner();
-    if (!owner) return;
+	if (!owner) return;
 
 	ControlBehaviors::ProcessCommand(entity, sysAddr, static_cast<AMFArrayValue*>(amfArguments.get()), command, owner);
 }
@@ -2609,8 +2660,8 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				CBITSTREAM;
 				PacketUtils::WriteHeader(bitStream, CLIENT, CLIENT::MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
 				bitStream.Write(localId);
-				bitStream.Write<unsigned int>(0);
-				bitStream.Write<unsigned int>(1);
+				bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
+				bitStream.Write<uint32_t>(1);
 				bitStream.Write(blueprintID);
 
 				bitStream.Write<uint32_t>(sd0Size);
@@ -2620,7 +2671,6 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				}
 
 				SEND_PACKET;
-				// PacketUtils::SavePacket("MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 
 				//Now we have to construct this object:
 

@@ -46,6 +46,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	switch (messageID) {
 
+	case GAME_MSG_UN_USE_BBB_MODEL: {
+		GameMessages::HandleUnUseModel(inStream, entity, sysAddr);
+		break;
+	}
 	case GAME_MSG_PLAY_EMOTE: {
 		GameMessages::HandlePlayEmote(inStream, entity);
 		break;

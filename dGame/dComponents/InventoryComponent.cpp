@@ -605,16 +605,17 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 		return;
 	}
 
-	std::vector<Inventory*> inventories;
+	std::vector<Inventory*> inventoriesToSave;
 
+	// Need to prevent some transfer inventories from being saved
 	for (const auto& pair : this->m_Inventories) {
 		auto* inventory = pair.second;
 
-		if (inventory->GetType() == VENDOR_BUYBACK) {
+		if (inventory->GetType() == VENDOR_BUYBACK || inventory->GetType() == eInventoryType::MODELS_IN_BBB) {
 			continue;
 		}
 
-		inventories.push_back(inventory);
+		inventoriesToSave.push_back(inventory);
 	}
 
 	inventoryElement->SetAttribute("csl", m_Consumable);
@@ -629,7 +630,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 
 	bags->DeleteChildren();
 
-	for (const auto* inventory : inventories) {
+	for (const auto* inventory : inventoriesToSave) {
 		auto* bag = document->NewElement("b");
 
 		bag->SetAttribute("t", inventory->GetType());
@@ -648,7 +649,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 
 	items->DeleteChildren();
 
-	for (auto* inventory : inventories) {
+	for (auto* inventory : inventoriesToSave) {
 		if (inventory->GetSize() == 0) {
 			continue;
 		}
@@ -1258,7 +1259,7 @@ BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
 }
 
 bool InventoryComponent::IsTransferInventory(eInventoryType type) {
-	return type == VENDOR_BUYBACK || type == VAULT_ITEMS || type == VAULT_MODELS || type == TEMP_ITEMS || type == TEMP_MODELS;
+	return type == VENDOR_BUYBACK || type == VAULT_ITEMS || type == VAULT_MODELS || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB;
 }
 
 uint32_t InventoryComponent::FindSkill(const LOT lot) {
