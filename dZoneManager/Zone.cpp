@@ -387,7 +387,7 @@ void Zone::LoadPath(std::istream& file) {
 	} else if (path.pathType == PathType::Property) {
 		BinaryIO::BinaryRead(file, path.property.pathType);
 		BinaryIO::BinaryRead(file, path.property.price);
-		BinaryIO::BinaryRead(file, path.property.rentalTime);
+		BinaryIO::BinaryRead(file, path.property.rentalTimeUnit);
 		BinaryIO::BinaryRead(file, path.property.associatedZone);
 
 		if (path.pathVersion >= 5) {

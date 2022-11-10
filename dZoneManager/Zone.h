@@ -151,14 +151,13 @@ struct MovingPlatformPath {
 struct PropertyPath {
 	PropertyPathType pathType;
 	int32_t price;
-	PropertyRentalTimeUnit rentalTime;
+	PropertyRentalTimeUnit rentalTimeUnit;
 	uint64_t associatedZone;
 	std::string displayName;
 	std::string displayDesc;
 	PropertyType type;
 	int32_t cloneLimit;
 	float repMultiplier;
-	PropertyRentalTimeUnit rentalTimeUnit;
 	PropertyAchievmentRequired achievementRequired;
 	NiPoint3 playerZoneCoords;
 	float maxBuildHeight;
