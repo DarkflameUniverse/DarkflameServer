@@ -42,6 +42,12 @@ void Zone::LoadZoneIntoMemory() {
 	if (m_ZoneFilePath == "ERR") return;
 
 	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer(m_ZoneFilePath.c_str());
+
+	if (!buffer.m_Success) {
+		Game::logger->Log("Zone", "Failed to load %s", m_ZoneFilePath.c_str());
+		throw std::runtime_error("Aborting Zone loading due to no Zone File.");
+	}
+
 	std::istream file(&buffer);
 	if (file) {
 		BinaryIO::BinaryRead(file, m_ZoneFileFormatVersion);
@@ -265,7 +271,10 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 
 	auto buffer = Game::assetManager->GetFileAsBuffer((m_ZonePath + triggerFile).c_str());
 
-	if (!buffer.m_Success) return lvlTriggers;
+	if (!buffer.m_Success) {
+		Game::logger->Log("Zone", "Failed to load %s from disk. Skipping loading triggers", (m_ZonePath + triggerFile).c_str());
+		return lvlTriggers;
+	}
 
 	std::istream file(&buffer);
 	std::stringstream data;

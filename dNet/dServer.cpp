@@ -50,7 +50,6 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mNetIDManager = nullptr;
 	mReplicaManager = nullptr;
 	mServerType = serverType;
-
 	//Attempt to start our server here:
 	mIsOkay = Startup();
 
@@ -193,7 +192,10 @@ bool dServer::Startup() {
 }
 
 void dServer::Shutdown() {
-	mPeer->Shutdown(1000);
+	if (mPeer) {
+		mPeer->Shutdown(1000);
+		RakNetworkFactory::DestroyRakPeerInterface(mPeer);
+	}
 
 	if (mNetIDManager) {
 		delete mNetIDManager;
@@ -205,10 +207,9 @@ void dServer::Shutdown() {
 		mReplicaManager = nullptr;
 	}
 
-	//RakNetworkFactory::DestroyRakPeerInterface(mPeer); //Not needed, we already called Shutdown ourselves.
-	if (mServerType != ServerType::Master) {
+	if (mServerType != ServerType::Master && mMasterPeer) {
 		mMasterPeer->Shutdown(1000);
-		//RakNetworkFactory::DestroyRakPeerInterface(mMasterPeer);
+		RakNetworkFactory::DestroyRakPeerInterface(mMasterPeer);
 	}
 }
 

@@ -1,0 +1,3 @@
+set(DSCRIPTS_SOURCES_AI_PROPERTY_AG 
+	"AgPropGuard.cpp"
+	PARENT_SCOPE)

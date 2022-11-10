@@ -66,17 +66,17 @@ eAssetBundleType AssetManager::GetAssetBundleType() {
 bool AssetManager::HasFile(const char* name) {
 	auto fixedName = std::string(name);
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
+
+	// Special case for unpacked client have BrickModels in upper case
+	if (this->m_AssetBundleType == eAssetBundleType::Unpacked) GeneralUtils::ReplaceInString(fixedName, "brickmodels", "BrickModels");
+
+	std::replace(fixedName.begin(), fixedName.end(), '\\', '/');
+	if (std::filesystem::exists(m_ResPath / fixedName)) return true;
+
+	if (this->m_AssetBundleType == eAssetBundleType::Unpacked) return false;
+
 	std::replace(fixedName.begin(), fixedName.end(), '/', '\\');
-
-	auto realPathName = fixedName;
-
-	if (fixedName.rfind("client\\res\\", 0) != 0) {
-		fixedName = "client\\res\\" + fixedName;
-	}
-
-	if (std::filesystem::exists(m_ResPath / realPathName)) {
-		return true;
-	}
+	if (fixedName.rfind("client\\res\\", 0) != 0) fixedName = "client\\res\\" + fixedName;
 
 	uint32_t crc = crc32b(0xFFFFFFFF, (uint8_t*)fixedName.c_str(), fixedName.size());
 	crc = crc32b(crc, (Bytef*)"\0\0\0\0", 4);
@@ -94,17 +94,19 @@ bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 	auto fixedName = std::string(name);
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
 	std::replace(fixedName.begin(), fixedName.end(), '\\', '/'); // On the off chance someone has the wrong slashes, force forward slashes
-	auto realPathName = fixedName;
 
-	if (std::filesystem::exists(m_ResPath / realPathName)) {
+	// Special case for unpacked client have BrickModels in upper case
+	if (this->m_AssetBundleType == eAssetBundleType::Unpacked) GeneralUtils::ReplaceInString(fixedName, "brickmodels", "BrickModels");
+
+	if (std::filesystem::exists(m_ResPath / fixedName)) {
 		FILE* file;
 #ifdef _WIN32
-		fopen_s(&file, (m_ResPath / realPathName).string().c_str(), "rb");
+		fopen_s(&file, (m_ResPath / fixedName).string().c_str(), "rb");
 #elif __APPLE__
 		// macOS has 64bit file IO by default
-		file = fopen((m_ResPath / realPathName).string().c_str(), "rb");
+		file = fopen((m_ResPath / fixedName).string().c_str(), "rb");
 #else
-		file = fopen64((m_ResPath / realPathName).string().c_str(), "rb");
+		file = fopen64((m_ResPath / fixedName).string().c_str(), "rb");
 #endif
 		fseek(file, 0, SEEK_END);
 		*len = ftell(file);
