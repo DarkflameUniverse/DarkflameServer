@@ -75,7 +75,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 			return;
 		}
 	}
-	Game::logger->Log("MovementAIComponent", "timer %f", m_Timer);
+	// Game::logger->Log("MovementAIComponent", "timer %f", m_Timer);
 	if (m_Timer > 0) {
 		m_Timer -= deltaTime;
 
@@ -194,6 +194,8 @@ NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
 }
 
 void MovementAIComponent::ArrivedAtPathWaypoint(){
+	if(!m_MovementPath) return;
+	if (m_PathIndex >= m_CurrentPath.size()) return;
 	//  TODO: Call scripts here
 
 	PathWaypoint waypoint = m_MovementPath->pathWaypoints.at(m_PathIndex);
@@ -362,7 +364,7 @@ void MovementAIComponent::SetMovementPath(Path* movementPath){
 	std::vector<NiPoint3> pathWaypoints;
 	for (const auto& waypoint : movementPath->pathWaypoints) m_CurrentPath.push_back(waypoint.position);
 	SetSpeed(m_BaseSpeed);
-	m_PathIndex = 0;
+	m_PathIndex = m_Parent->GetVarAs<int>(u"attached_path_start");
 
 	m_TotalTime = m_Timer = 0;
 
