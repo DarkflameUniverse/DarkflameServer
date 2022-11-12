@@ -222,6 +222,8 @@ public:
 	 */
 	static float GetBaseSpeed(LOT lot);
 
+	void ArrivedAtPathWaypoint();
+
 private:
 
 	/**

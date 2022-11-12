@@ -9,6 +9,7 @@
 #include "dpWorld.h"
 #include "EntityManager.h"
 #include "SimplePhysicsComponent.h"
+#include "dZoneManager.h"
 
 std::map<LOT, float> MovementAIComponent::m_PhysicsSpeedCache = {};
 
@@ -183,7 +184,7 @@ NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
 	}
 
 	auto source = GetCurrentPosition();
-	auto destination = m_CurrentPa.at(m_PathIndex);
+	auto destination = m_CurrentPath.at(m_PathIndex);
 	if (dpWorld::Instance().IsLoaded()) {
 		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
 	}
@@ -195,7 +196,7 @@ NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
 void MovementAIComponent::ArrivedAtPathWaypoint(){
 	//  TODO: Call scripts here
 
-	PathWaypoint waypoint = m_CurrentPath->pathWaypoints.at(m_WaypointPathIndex);
+	PathWaypoint waypoint = m_MovementPath->pathWaypoints.at(m_PathIndex);
 
 	if (waypoint.config.size() > 0) {
 
@@ -204,7 +205,7 @@ void MovementAIComponent::ArrivedAtPathWaypoint(){
 
 				// delay: has time as float
 				if (action->GetKey() == u"delay"){
-					m_WaitingTime += std::stof(action->GetValueAsString());
+					m_Timer += std::stof(action->GetValueAsString());
 					SetVelocity(NiPoint3::ZERO);
 					EntityManager::Instance()->SerializeEntity(m_Parent);
 
@@ -212,13 +213,13 @@ void MovementAIComponent::ArrivedAtPathWaypoint(){
 				} else if (action->GetKey() == u"emote"){
 					GameMessages::SendPlayAnimation(m_Parent, GeneralUtils::UTF8ToUTF16(action->GetValueAsString()));
 					// TODO Get proper animation time and add to wait
-					m_WaitingTime += 1;
+					m_Timer += 1;
 					SetVelocity(NiPoint3::ZERO);
 					EntityManager::Instance()->SerializeEntity(m_Parent);
 
 				// pathspeed: has pathing speed as a float
 				} else if (action->GetKey() == u"pathspeed") {
-					m_PathSpeed = std::stof(action->GetValueAsString());
+					m_BaseSpeed = std::stof(action->GetValueAsString());
 
 				// changeWP: <path to change to>,<waypoint to use> the command and waypoint are optional
 				} else if (action->GetKey() == u"changeWP") {
@@ -230,15 +231,15 @@ void MovementAIComponent::ArrivedAtPathWaypoint(){
 					if (intermed.find(",") != std::string::npos){
 						auto datas = GeneralUtils::SplitString(intermed, ',');
 						path_string = datas[0];
-						m_WaypointPathIndex = stoi(datas[1]) - 1; // becuase 0 vs 1 indexed
+						m_PathIndex = stoi(datas[1]) - 1;
 					} else {
 						path_string = intermed;
-						m_WaypointPathIndex = 0;
+						m_PathIndex = 0;
 					}
 
 					if (path_string != "") {
-						m_CurrentPath = const_cast<Path*>(dZoneManager::Instance()->GetZone()->GetPath(path_string));
-					} else m_CurrentPath = nullptr;
+						SetMovementPath(const_cast<Path*>(dZoneManager::Instance()->GetZone()->GetPath(path_string)));
+					} else m_MovementPath = nullptr;
 
 				} else {
 					// We don't recognize the action, let a dev know
@@ -246,10 +247,6 @@ void MovementAIComponent::ArrivedAtPathWaypoint(){
 				}
 			}
 		}
-	}
-
-	if (m_WaitingTime == 0) { // if we don't have any time to wait
-		m_Waiting = false;
 	}
 }
 
@@ -528,7 +525,7 @@ void MovementAIComponent::SetDestination(const NiPoint3& value) {
 		m_CurrentPath.push_back(point);
 	}
 
-	m_CurrentPath.push_back(computedPath.at(computedPath.size() - 1]));
+	m_CurrentPath.push_back(computedPath.at(computedPath.size() - 1));
 
 	m_PathIndex = 0;
 
