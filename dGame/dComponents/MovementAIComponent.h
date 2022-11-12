@@ -210,6 +210,12 @@ public:
 	void SetPath(std::vector<NiPoint3> path);
 
 	/**
+	 * Set the path from a movement path for the AI to follow
+	 * @param movementPath the Path to follow
+	 */
+	void SetMovementPath(Path* movementPath);
+
+	/**
 	 * Returns the base speed from the DB for a given LOT
 	 * @param lot the lot to check for
 	 * @return the base speed of the lot
@@ -325,6 +331,16 @@ private:
 	 * Cache of all lots and their respective speeds
 	 */
 	static std::map<LOT, float> m_PhysicsSpeedCache;
+
+	/**
+	 * Path from luz that we the entity is following
+	 */
+	Path* m_MovementPath;
+
+	/**
+	 * If we are reversing on a path
+	 */
+	bool m_isReverse;
 };
 
 #endif // MOVEMENTAICOMPONENT_H
