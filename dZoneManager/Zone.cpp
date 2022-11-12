@@ -98,15 +98,12 @@ void Zone::LoadZoneIntoMemory() {
 
 		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::EarlyAlpha) {
 			BinaryIO::BinaryRead(file, m_PathDataLength);
-			uint32_t unknown;
-			uint32_t pathCount;
+			BinaryIO::BinaryRead(file, m_PathChunkVersion); // always should be 1
 
-			BinaryIO::BinaryRead(file, unknown);
+			uint32_t pathCount;
 			BinaryIO::BinaryRead(file, pathCount);
 
-			for (uint32_t i = 0; i < pathCount; ++i) {
-				LoadPath(file);
-			}
+			for (uint32_t i = 0; i < pathCount; ++i) LoadPath(file);
 
 			for (Path path : m_Paths) {
 				if (path.pathType == PathType::Spawner) {
@@ -251,15 +248,6 @@ void Zone::LoadScene(std::istream& file) {
 	scene.name = BinaryIO::ReadString(file, sceneNameLength);
 	file.ignore(3);
 
-	/*
-	if (m_Scenes.find(scene.id) != m_Scenes.end()) {
-		//Extract the layer id from the filename (bad I know, but it's reliable at least):
-		std::string layer = scene.filename.substr(scene.filename.rfind('x') + 1);
-		layer = layer.substr(0, layer.find('_'));
-		lwoSceneID.SetLayerID(std::atoi(layer.c_str()));
-	}
-	*/
-
 	lwoSceneID.SetLayerID(scene.sceneType);
 
 	m_Scenes.insert(std::make_pair(lwoSceneID, scene));
@@ -377,14 +365,10 @@ SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::istream& file) {
 }
 
 void Zone::LoadPath(std::istream& file) {
-	// Currently only spawner (type 4) paths are supported
 	Path path = Path();
 
-	uint32_t unknown1;
-	uint32_t pathType;
-	uint32_t pathBehavior;
-
 	BinaryIO::BinaryRead(file, path.pathVersion);
+
 	uint8_t stringLength;
 	BinaryIO::BinaryRead(file, stringLength);
 	for (uint8_t i = 0; i < stringLength; ++i) {
@@ -392,16 +376,14 @@ void Zone::LoadPath(std::istream& file) {
 		BinaryIO::BinaryRead(file, character);
 		path.pathName.push_back(character);
 	}
-	BinaryIO::BinaryRead(file, pathType);
-	path.pathType = PathType(pathType);
-	BinaryIO::BinaryRead(file, unknown1);
-	BinaryIO::BinaryRead(file, pathBehavior);
-	path.pathType = PathType(pathType);
+
+	BinaryIO::BinaryRead(file, path.pathType);
+	BinaryIO::BinaryRead(file, path.flags);
+	BinaryIO::BinaryRead(file, path.pathBehavior);
 
 	if (path.pathType == PathType::MovingPlatform) {
 		if (path.pathVersion >= 18) {
-			uint8_t unknown;
-			BinaryIO::BinaryRead(file, unknown);
+			BinaryIO::BinaryRead(file, path.movingPlatform.timeBasedMovement);
 		} else if (path.pathVersion >= 13) {
 			uint8_t count;
 			BinaryIO::BinaryRead(file, count);
@@ -412,10 +394,9 @@ void Zone::LoadPath(std::istream& file) {
 			}
 		}
 	} else if (path.pathType == PathType::Property) {
-		int32_t unknown;
-		BinaryIO::BinaryRead(file, unknown);
+		BinaryIO::BinaryRead(file, path.property.pathType);
 		BinaryIO::BinaryRead(file, path.property.price);
-		BinaryIO::BinaryRead(file, path.property.rentalTime);
+		BinaryIO::BinaryRead(file, path.property.rentalTimeUnit);
 		BinaryIO::BinaryRead(file, path.property.associatedZone);
 
 		if (path.pathVersion >= 5) {
@@ -435,10 +416,7 @@ void Zone::LoadPath(std::istream& file) {
 			}
 		}
 
-		if (path.pathVersion >= 6) {
-			int32_t unknown1;
-			BinaryIO::BinaryRead(file, unknown1);
-		}
+		if (path.pathVersion >= 6) BinaryIO::BinaryRead(file, path.property.type);
 
 		if (path.pathVersion >= 7) {
 			BinaryIO::BinaryRead(file, path.property.cloneLimit);
@@ -462,11 +440,10 @@ void Zone::LoadPath(std::istream& file) {
 			path.camera.nextPath.push_back(character);
 		}
 		if (path.pathVersion >= 14) {
-			uint8_t unknown;
-			BinaryIO::BinaryRead(file, unknown);
+			BinaryIO::BinaryRead(file, path.camera.rotatePlayer);
+
 		}
 	} else if (path.pathType == PathType::Spawner) {
-		//SpawnerPath* path = static_cast<SpawnerPath*>(path); // Convert to a spawner path
 		BinaryIO::BinaryRead(file, path.spawner.spawnedLOT);
 		BinaryIO::BinaryRead(file, path.spawner.respawnTime);
 		BinaryIO::BinaryRead(file, path.spawner.maxToSpawn);
@@ -487,7 +464,7 @@ void Zone::LoadPath(std::istream& file) {
 		BinaryIO::BinaryRead(file, waypoint.position.z);
 
 
-		if (path.pathType == PathType::Spawner || path.pathType == PathType::MovingPlatform || path.pathType == PathType::Race) {
+		if (path.pathType == PathType::Spawner || path.pathType == PathType::MovingPlatform || path.pathType == PathType::Race || path.pathType == PathType::Camera || path.pathType == PathType::Rail) {
 			BinaryIO::BinaryRead(file, waypoint.rotation.w);
 			BinaryIO::BinaryRead(file, waypoint.rotation.x);
 			BinaryIO::BinaryRead(file, waypoint.rotation.y);
@@ -515,33 +492,17 @@ void Zone::LoadPath(std::istream& file) {
 				}
 			}
 		} else if (path.pathType == PathType::Camera) {
-			float unknown;
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
 			BinaryIO::BinaryRead(file, waypoint.camera.time);
-			BinaryIO::BinaryRead(file, unknown);
+			BinaryIO::BinaryRead(file, waypoint.camera.fov);
 			BinaryIO::BinaryRead(file, waypoint.camera.tension);
 			BinaryIO::BinaryRead(file, waypoint.camera.continuity);
 			BinaryIO::BinaryRead(file, waypoint.camera.bias);
 		} else if (path.pathType == PathType::Race) {
-			uint8_t unknown;
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			float unknown1;
-			BinaryIO::BinaryRead(file, unknown1);
-			BinaryIO::BinaryRead(file, unknown1);
-			BinaryIO::BinaryRead(file, unknown1);
-		} else if (path.pathType == PathType::Rail) {
-			float unknown;
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			if (path.pathVersion >= 17) {
-				BinaryIO::BinaryRead(file, unknown);
-			}
+			BinaryIO::BinaryRead(file, waypoint.racing.isResetNode);
+			BinaryIO::BinaryRead(file, waypoint.racing.isNonHorizontalCamera);
+			BinaryIO::BinaryRead(file, waypoint.racing.planeWidth);
+			BinaryIO::BinaryRead(file, waypoint.racing.planeHeight);
+			BinaryIO::BinaryRead(file, waypoint.racing.shortestDistanceToEnd);
 		}
 
 		// object LDF configs
@@ -565,8 +526,14 @@ void Zone::LoadPath(std::istream& file) {
 					BinaryIO::BinaryRead(file, character);
 					value.push_back(character);
 				}
-				LDFBaseData* ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
-				waypoint.config.push_back(ldfConfig);
+
+				LDFBaseData* ldfConfig = nullptr;
+				if (path.pathType == PathType::Movement) {
+					ldfConfig = LDFBaseData::DataFromString(parameter + "=0:" + value);
+				} else {
+					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
+				}
+				if (ldfConfig) waypoint.config.push_back(ldfConfig);
 			}
 		}
 
