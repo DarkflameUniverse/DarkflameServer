@@ -233,7 +233,8 @@ void Zone::LoadScene(std::istream& file) {
 	scene.filename = BinaryIO::ReadString(file, sceneFilenameLength);
 
 	std::string luTriggersPath = scene.filename.substr(0, scene.filename.size() - 4) + ".lutriggers";
-	std::vector<LUTriggers::Trigger*> triggers = LoadLUTriggers(luTriggersPath, scene.id);
+	std::vector<LUTriggers::Trigger*> triggers;
+	if(Game::assetManager->HasFile(luTriggersPath.c_str())) triggers = LoadLUTriggers(luTriggersPath, scene.id);
 
 	for (LUTriggers::Trigger* trigger : triggers) {
 		scene.triggers.insert({ trigger->id, trigger });
