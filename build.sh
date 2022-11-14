@@ -1,3 +1,6 @@
+# Error if any command fails
+set -e
+
 # Create the build directory, preserving it if it already exists
 mkdir -p build
 cd build
