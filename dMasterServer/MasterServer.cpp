@@ -26,6 +26,7 @@
 #include "dLogger.h"
 #include "dServer.h"
 #include "AssetManager.h"
+#include "BinaryPathFinder.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -102,9 +103,14 @@ int main(int argc, char** argv) {
 	}
 
 	try {
-		std::string client_path = config.GetValue("client_location");
-		if (client_path.empty()) client_path = "./res";
-		Game::assetManager = new AssetManager(client_path);
+		std::string clientPathStr = config.GetValue("client_location");
+		if (clientPathStr.empty()) clientPathStr = "./res";
+		std::filesystem::path clientPath = std::filesystem::path(clientPathStr);
+		if (clientPath.is_relative()) {
+			clientPath = BinaryPathFinder::GetBinaryDir() / clientPath;
+		}
+
+		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		Game::logger->Log("MasterServer", "Got an error while setting up assets: %s", ex.what());
 
@@ -127,16 +133,14 @@ int main(int argc, char** argv) {
 		stmt->executeUpdate();
 		delete stmt;
 
-		std::string res = "python3 ../thirdparty/docker-utils/utils/fdb_to_sqlite.py " + (Game::assetManager->GetResPath() / "cdclient.fdb").string();
+		std::string res = "python3 "
+			+ (BinaryPathFinder::GetBinaryDir() / "../thirdparty/docker-utils/utils/fdb_to_sqlite.py").string()
+			+ " --sqlite_path " + (Game::assetManager->GetResPath() / "CDServer.sqlite").string()
+			+ " " + (Game::assetManager->GetResPath() / "cdclient.fdb").string();
 
 		int result = system(res.c_str());
 		if (result != 0) {
 			Game::logger->Log("MasterServer", "Failed to convert fdb to sqlite");
-			return EXIT_FAILURE;
-		}
-
-		if (std::rename("./cdclient.sqlite", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str()) != 0) {
-			Game::logger->Log("MasterServer", "Failed to move cdclient file.");
 			return EXIT_FAILURE;
 		}
 	}
@@ -362,8 +366,8 @@ int main(int argc, char** argv) {
 }
 
 dLogger* SetupLogger() {
-	std::string logPath =
-		"./logs/MasterServer_" + std::to_string(time(nullptr)) + ".log";
+	std::filesystem::path logPath =
+		BinaryPathFinder::GetBinaryDir() / ("logs/MasterServer_" + std::to_string(time(nullptr)) + ".log");
 	bool logToConsole = false;
 	bool logDebugStatements = false;
 #ifdef _DEBUG
@@ -738,28 +742,28 @@ void HandlePacket(Packet* packet) {
 void StartChatServer() {
 #ifdef __APPLE__
 	//macOS doesn't need sudo to run on ports < 1024
-	system("./ChatServer&");
+	system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 #elif _WIN32
-	system("start ./ChatServer.exe");
+	system(("start " + (BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string()).c_str());
 #else
 	if (std::atoi(Game::config->GetValue("use_sudo_chat").c_str())) {
-		system("sudo ./ChatServer&");
+		system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 	} else {
-		system("./ChatServer&");
+		system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 	}
 #endif
 }
 
 void StartAuthServer() {
 #ifdef __APPLE__
-	system("./AuthServer&");
+	system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 #elif _WIN32
-	system("start ./AuthServer.exe");
+	system(("start " + (BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string()).c_str());
 #else
 	if (std::atoi(Game::config->GetValue("use_sudo_auth").c_str())) {
-		system("sudo ./AuthServer&");
+		system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 	} else {
-		system("./AuthServer&");
+		system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 	}
 #endif
 }

@@ -64,6 +64,7 @@
 #include "ScriptedActivityComponent.h"
 #include "LevelProgressionComponent.h"
 #include "AssetManager.h"
+#include "BinaryPathFinder.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -248,7 +249,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "credits" || chatCommand == "info") {
-		const auto& customText = chatCommand == "credits" ? VanityUtilities::ParseMarkdown("./vanity/CREDITS.md") : VanityUtilities::ParseMarkdown("./vanity/INFO.md");
+		const auto& customText = chatCommand == "credits" ? VanityUtilities::ParseMarkdown(BinaryPathFinder::GetBinaryDir() / "vanity/CREDITS.md") : VanityUtilities::ParseMarkdown(BinaryPathFinder::GetBinaryDir() /  "vanity/INFO.md");
 
 		{
 			AMFArrayValue args;

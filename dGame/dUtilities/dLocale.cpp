@@ -9,13 +9,14 @@
 #include "tinyxml2.h"
 #include "Game.h"
 #include "dConfig.h"
+#include "BinaryPathFinder.h"
 
 dLocale::dLocale() {
 	if (Game::config->GetValue("locale_enabled") != "1") {
 		return;
 	}
 
-	std::ifstream file(m_LocalePath);
+	std::ifstream file(BinaryPathFinder::GetBinaryDir() / m_LocalePath);
 
 	if (!file.good()) {
 		return;

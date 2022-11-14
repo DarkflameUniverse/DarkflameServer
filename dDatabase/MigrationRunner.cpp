@@ -6,12 +6,13 @@
 #include "Game.h"
 #include "GeneralUtils.h"
 #include "dLogger.h"
+#include "BinaryPathFinder.h"
 
 #include <istream>
 
 Migration LoadMigration(std::string path) {
 	Migration migration{};
-	std::ifstream file("./migrations/" + path);
+	std::ifstream file(BinaryPathFinder::GetBinaryDir() / "migrations/" / path);
 
 	if (file.is_open()) {
 		std::string line;
@@ -37,7 +38,7 @@ void MigrationRunner::RunMigrations() {
 
 	sql::SQLString finalSQL = "";
 	bool runSd0Migrations = false;
-	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder("./migrations/dlu/")) {
+	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder(BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/")) {
 		auto migration = LoadMigration("dlu/" + entry);
 
 		if (migration.data.empty()) {
@@ -97,7 +98,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 	stmt->execute();
 	delete stmt;
 
-	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder("./migrations/cdserver/")) {
+	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder(BinaryPathFinder::GetBinaryDir() / "migrations/cdserver/")) {
 		auto migration = LoadMigration("cdserver/" + entry);
 
 		if (migration.data.empty()) continue;
