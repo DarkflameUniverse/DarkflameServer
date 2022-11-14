@@ -504,6 +504,8 @@ void Zone::LoadPath(std::istream& file) {
 			BinaryIO::BinaryRead(file, waypoint.racing.planeWidth);
 			BinaryIO::BinaryRead(file, waypoint.racing.planeHeight);
 			BinaryIO::BinaryRead(file, waypoint.racing.shortestDistanceToEnd);
+		} else if (path.pathType == PathType::Rail) {
+			if (path.pathVersion > 16) BinaryIO::BinaryRead(file, waypoint.rail.speed);
 		}
 
 		// object LDF configs
@@ -529,7 +531,7 @@ void Zone::LoadPath(std::istream& file) {
 				}
 
 				LDFBaseData* ldfConfig = nullptr;
-				if (path.pathType == PathType::Movement) {
+				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
 					ldfConfig = LDFBaseData::DataFromString(parameter + "=0:" + value);
 				} else {
 					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
