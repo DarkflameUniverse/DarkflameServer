@@ -16,9 +16,9 @@ std::map<LOT, float> MovementAIComponent::m_PhysicsSpeedCache = {};
 MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : Component(parent) {
 	m_Info = std::move(info);
 	m_Done = true;
+	m_IsPaused = false;
 
 	m_BaseCombatAI = nullptr;
-
 	m_BaseCombatAI = reinterpret_cast<BaseCombatAIComponent*>(m_Parent->GetComponent(COMPONENT_TYPE_BASE_COMBAT_AI));
 
 	//Try and fix the insane values:
@@ -36,16 +36,21 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_Timer = 0;
 	m_CurrentSpeed = 0;
 	m_Speed = 0;
+
 	m_TotalTime = 0;
 	m_LockRotation = false;
 
+
 	m_MovementPath = nullptr;
 	m_isReverse = false;
+
+
 }
 
 MovementAIComponent::~MovementAIComponent() = default;
 
 void MovementAIComponent::Update(const float deltaTime) {
+	if (m_IsPaused) return;
 	if (m_Interrupted) {
 		const auto source = GetCurrentWaypoint();
 
@@ -66,7 +71,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		return;
 	}
 
-	if (AtFinalWaypoint()) return; // Are we donw?
+	if (AtFinalWaypoint()) return; // Are we done?
 
 	if (m_HaltDistance > 0) {
 		if (Vector3::DistanceSquared(ApproximateLocation(), GetDestination()) < m_HaltDistance * m_HaltDistance) { // Prevent us from hugging the target
@@ -78,15 +83,13 @@ void MovementAIComponent::Update(const float deltaTime) {
 	// Game::logger->Log("MovementAIComponent", "timer %f", m_Timer);
 	if (m_Timer > 0) {
 		m_Timer -= deltaTime;
-
-		if (m_Timer > 0) {
-			return;
-		}
-
+		if (m_Timer > 0) return;
 		m_Timer = 0;
 	}
 
+
 	const auto source = GetCurrentWaypoint();
+	// We've arrived at a waypoint, do the things if we need to
 
 	SetPosition(source);
 
@@ -107,7 +110,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 				m_CurrentSpeed = m_Speed;
 			}
 
-			const auto speed = m_CurrentSpeed * m_BaseSpeed;
+			const auto speed = m_BaseSpeed;
 
 			const auto delta = m_NextWaypoint - source;
 

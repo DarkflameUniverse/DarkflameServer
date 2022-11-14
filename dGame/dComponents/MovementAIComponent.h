@@ -343,6 +343,17 @@ private:
 	 * If we are reversing on a path
 	 */
 	bool m_isReverse;
+
+	/**
+	 * If we are waiting on a delay before moving
+	 */
+	bool m_IsWaiting;
+
+	/**
+	 * If we are paused for some reason
+	 */
+	bool m_IsPaused;
+
 };
 
 #endif // MOVEMENTAICOMPONENT_H
