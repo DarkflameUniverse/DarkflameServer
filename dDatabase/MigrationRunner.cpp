@@ -38,7 +38,7 @@ void MigrationRunner::RunMigrations() {
 
 	sql::SQLString finalSQL = "";
 	bool runSd0Migrations = false;
-	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder(BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/")) {
+	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/").string())) {
 		auto migration = LoadMigration("dlu/" + entry);
 
 		if (migration.data.empty()) {
@@ -98,7 +98,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 	stmt->execute();
 	delete stmt;
 
-	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder(BinaryPathFinder::GetBinaryDir() / "migrations/cdserver/")) {
+	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "migrations/cdserver/").string())) {
 		auto migration = LoadMigration("cdserver/" + entry);
 
 		if (migration.data.empty()) continue;

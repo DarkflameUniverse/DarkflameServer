@@ -2,11 +2,11 @@
 #include "BinaryPathFinder.h"
 #include "dPlatforms.h"
 
-#if DARKFLAME_PLATFORM_WIN32
+#if defined(DARKFLAME_PLATFORM_WIN32)
 #include <Windows.h>
-#elif DARKFLAME_PLATFORM_MACOS || DARKFLAME_PLATFORM_IOS
+#elif defined(DARKFLAME_PLATFORM_MACOS) || defined(DARKFLAME_PLATFORM_IOS)
 #include <mach-o/dyld.h>
-#elif DARKFLAME_PLATFORM_FREEBSD
+#elif defined(DARKFLAME_PLATFORM_FREEBSD)
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <stdlib.h>
@@ -22,11 +22,11 @@ std::filesystem::path BinaryPathFinder::GetBinaryDir() {
 	std::string pathStr;
 
 	// Derived from boost::dll::program_location, licensed under the Boost Software License: http://www.boost.org/LICENSE_1_0.txt
-#if DARKFLAME_PLATFORM_WIN32
+#if defined(DARKFLAME_PLATFORM_WIN32)
 	char path[MAX_PATH];
 	GetModuleFileName(NULL, path, MAX_PATH);
 	pathStr = std::string(path);
-#elif DARKFLAME_PLATFORM_MACOS || DARKFLAME_PLATFORM_IOS
+#elif defined(DARKFLAME_PLATFORM_MACOS) || defined(DARKFLAME_PLATFORM_IOS)
 	char path[1024];
 	uint32_t size = sizeof(path);
 	if (_NSGetExecutablePath(path, &size) == 0) {
@@ -42,7 +42,7 @@ std::filesystem::path BinaryPathFinder::GetBinaryDir() {
 		pathStr = std::string(p);
 		delete[] p;
 	}
-#elif DARKFLAME_PLATFORM_FREEBSD
+#elif defined(DARKFLAME_PLATFORM_FREEBSD)
 	int mib[4];
 	mib[0] = CTL_KERN;
 	mib[1] = KERN_PROC;

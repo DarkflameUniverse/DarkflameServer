@@ -44,7 +44,7 @@ dNavMesh::~dNavMesh() {
 
 void dNavMesh::LoadNavmesh() {
 
-	std::string path = BinaryPathFinder::GetBinaryDir() / "navmeshes/" / (std::to_string(m_ZoneId) + ".bin");
+	std::string path = (BinaryPathFinder::GetBinaryDir() / "navmeshes/" / (std::to_string(m_ZoneId) + ".bin")).string();
 
 	if (!BinaryIO::DoesFileExist(path)) {
 		return;
