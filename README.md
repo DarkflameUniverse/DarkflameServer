@@ -21,20 +21,57 @@ Throughout the entire build and setup process a level of familiarity with the co
 We do not recommend hosting public servers. DLU is intended for small scale deployment, for example within a group of friends. It has not been tested for large scale deployment which comes with additional security risks.
 
 ### Supply of resource files
-Darkflame Universe is a server emulator and does not distribute any LEGO® Universe files. A separate game client is required to setup this server emulator and play the game, which we cannot supply. Users are strongly suggested to refer to the safe checksums listed in the resources tab below when checking if a client will work.
+Darkflame Universe is a server emulator and does not distribute any LEGO® Universe files. A separate game client is required to setup this server emulator and play the game, which we cannot supply. Users are strongly suggested to refer to the safe checksums listed [here](#lego®-universe-11064) to see if a client will work.
+
+### Steps to setup server
+* [Clone this repository](#clone-the-repository)
+* Install dependencies
+    * [Python](#python)
+    * [cmake](#cmake)
 
 ## Build
 Development of the latest iteration of Darkflame Universe has been done primarily in a Unix-like environment and is where it has been tested and designed for deployment. It is therefore highly recommended that Darkflame Universe be built and deployed using a Unix-like environment for the most streamlined experience.
 
-### Prerequisites
 #### Clone the repository
 ```bash
 git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 ```
-#### Python
+### Python
+Some tools utilized to streamline the setup process require [Python 3](https://www.python.org/downloads/), make sure you have it installed.  
 
-Some tools utilized to streamline the setup process require Python 3, make sure you have it installed.
+### CMake
+This project uses CMake version 3.18 or higher and as such you will need to ensure you have this version installed.
+You can check your CMake version by using the following command in a terminal.
+```bash
+cmake --version
+```
 
+If the above command returns an error or is below the supported version of CMake, download and install the latest version from [here](https://cmake.org/download/)
+
+### Installing CMake on Ubuntu
+If you are going to be using an ubuntu environment to run the server, you may need to get a more recent version of `cmake` than the packages available may provide.
+
+The general approach to do so would be to obtain a copy of the signing key and then add the CMake repository to your apt
+You can do so with the following commands
+```bash
+# Remove the old version of CMake
+sudo apt purge --auto-remove cmake
+
+# Obtain a copy of the signing key
+wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+
+# Install the apt-add-repository package
+sudo apt install software-properties-common
+
+# Add the repository to your sources list.
+# Depending on your Ubuntu install, the command may differ.
+# For ubuntu 20.04, the command is the following
+sudo apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main'
+
+# Finally update and install
+sudo apt update
+sudo apt install cmake
+```
 
 ### Choosing the right version for your client
 DLU clients identify themselves using a higher version number than the regular live clients out there.
@@ -52,9 +89,9 @@ Refer to [Docker.md](/Docker.md).
 For Windows, refer to [Docker_Windows.md](/Docker_Windows.md).
 
 ### Linux builds
-Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available. `libssl-dev` will also be required as well as `openssl`.
+Make sure packages like `gcc`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available. `libssl-dev` will also be required as well as `openssl`.
 
-CMake must be version 3.14 or higher!
+CMake must be version 3.18 or higher!
 
 #### Build the repository
 
@@ -164,12 +201,12 @@ Known good *SHA1* checksum of the DLU client:
 
 How to generate a SHA256 checksum:
 ```bash
-# Replace <file> with the file path to the client
+# Replace <file> with the file path to the zipped client
 
 # If on Linux or MacOS
 shasum -a 256 <file>
 
-# If on Windows
+# If on Windows using the Command Prompt
 certutil -hashfile <file> SHA256
 ```
 #### Setting up client dependencies
