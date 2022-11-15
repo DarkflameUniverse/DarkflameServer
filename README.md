@@ -42,6 +42,10 @@ This was done make sure that older and incomplete clients wouldn't produce false
 
 If you're using a DLU client you'll have to go into the "CMakeVariables.txt" file and change the NET_VERSION variable to 171023 to match the modified client's version number.
 
+### Enabling testing
+While it is highly recommended to enable testing, if you would like to save compilation time, you'll want to comment out the enable_testing variable in CMakeVariables.txt.
+It is recommended that after building and if testing is enabled, to run `ctest` and make sure all the tests pass.
+
 ### Using Docker
 Refer to [Docker.md](/Docker.md).
 

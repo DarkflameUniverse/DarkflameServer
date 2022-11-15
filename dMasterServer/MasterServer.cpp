@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
 	try {
 		std::string client_path = config.GetValue("client_location");
 		if (client_path.empty()) client_path = "./res";
-		Game::assetManager = new AssetManager(config.GetValue("client_location"));
+		Game::assetManager = new AssetManager(client_path);
 	} catch (std::runtime_error& ex) {
 		Game::logger->Log("MasterServer", "Got an error while setting up assets: %s", ex.what());
 
@@ -237,7 +237,7 @@ int main(int argc, char** argv) {
 	//If we found a server, update it's IP and port to the current one.
 	if (result->next()) {
 		auto* updateStatement = Database::CreatePreppedStmt("UPDATE `servers` SET `ip` = ?, `port` = ? WHERE `id` = ?");
-		updateStatement->setString(1, master_server_ip);
+		updateStatement->setString(1, master_server_ip.c_str());
 		updateStatement->setInt(2, Game::server->GetPort());
 		updateStatement->setInt(3, result->getInt("id"));
 		updateStatement->execute();
@@ -245,7 +245,7 @@ int main(int argc, char** argv) {
 	} else {
 		//If we didn't find a server, create one.
 		auto* insertStatement = Database::CreatePreppedStmt("INSERT INTO `servers` (`name`, `ip`, `port`, `state`, `version`) VALUES ('master', ?, ?, 0, 171023)");
-		insertStatement->setString(1, master_server_ip);
+		insertStatement->setString(1, master_server_ip.c_str());
 		insertStatement->setInt(2, Game::server->GetPort());
 		insertStatement->execute();
 		delete insertStatement;
