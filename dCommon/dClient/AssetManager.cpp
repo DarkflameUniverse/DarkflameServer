@@ -34,6 +34,10 @@ AssetManager::AssetManager(const std::string& path) {
 		m_AssetBundleType = eAssetBundleType::Unpacked;
 
 		m_ResPath = m_Path;
+	} else if (std::filesystem::exists(m_Path / "CDServer.sqlite")) {
+		m_AssetBundleType = eAssetBundleType::Unpacked;
+
+		m_ResPath = m_Path;
 	}
 
 	if (m_AssetBundleType == eAssetBundleType::None) {
