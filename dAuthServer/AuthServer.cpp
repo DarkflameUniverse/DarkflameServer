@@ -90,9 +90,8 @@ int main(int argc, char** argv) {
 	int framesSinceLastFlush = 0;
 	int framesSinceMasterDisconnect = 0;
 	int framesSinceLastSQLPing = 0;
-	while (true) {
-		Game::logger->Log("1", "");
 
+	while (true) {
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
@@ -102,7 +101,6 @@ int main(int argc, char** argv) {
 		} else framesSinceMasterDisconnect = 0;
 
 		//In world we'd update our other systems here.
-		Game::logger->Log("2", "");
 
 		//Check for packets here:
 		Game::server->ReceiveFromMaster(); //ReceiveFromMaster also handles the master packets if needed.
@@ -112,14 +110,12 @@ int main(int argc, char** argv) {
 			Game::server->DeallocatePacket(packet);
 			packet = nullptr;
 		}
-		Game::logger->Log("3", "");
 
 		//Push our log every 30s:
 		if (framesSinceLastFlush >= 900) {
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
-		Game::logger->Log("4", "");
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
 		if (framesSinceLastSQLPing >= 40000) {
@@ -138,12 +134,12 @@ int main(int argc, char** argv) {
 
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
-		Game::logger->Log("5", "");
+
 		//Sleep our thread since auth can afford to.
 		t += std::chrono::milliseconds(mediumFramerate); //Auth can run at a lower "fps"
 		std::this_thread::sleep_until(t);
 	}
-	Game::logger->Log("AuthServer", "Shutting down");
+
 	//Delete our objects here:
 	Database::Destroy("AuthServer");
 	delete Game::server;
@@ -166,7 +162,6 @@ dLogger* SetupLogger() {
 }
 
 void HandlePacket(Packet* packet) {
-	Game::logger->Log("AuthServerDebug", "Handling a packet");
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
 		if (packet->data[1] == SERVER) {
 			if (packet->data[3] == MSG_SERVER_VERSION_CONFIRM) {
