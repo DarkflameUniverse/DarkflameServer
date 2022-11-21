@@ -28,6 +28,7 @@
 #include "GameConfig.h"
 #include "RocketLaunchLupComponent.h"
 #include "eUnequippableActiveType.h"
+#include "eModerationStatus.h"
 
 #include <sstream>
 #include <future>
@@ -60,6 +61,7 @@
 #include "RacingControlComponent.h"
 #include "RailActivatorComponent.h"
 #include "LevelProgressionComponent.h"
+#include "ModelComponent.h"
 
 // Message includes:
 #include "dZoneManager.h"
@@ -70,6 +72,7 @@
 #include "TradingManager.h"
 #include "ControlBehaviors.h"
 #include "AMFDeserialize.h"
+#include "dChatFilter.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -2140,8 +2143,8 @@ void GameMessages::HandleSetPropertyAccess(RakNet::BitStream* inStream, Entity* 
 }
 
 void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool isProperty{};
-	LWOOBJID objectId{};
+	bool updatingPropertyInfo{};
+	LWOOBJID ugcId{};
 	LWOOBJID playerId{};
 	LWOOBJID worldId{};
 	uint32_t nameLength{};
@@ -2149,8 +2152,8 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream* 
 	uint32_t descriptionLength{};
 	std::u16string description{};
 
-	inStream->Read(isProperty);
-	inStream->Read(objectId);
+	inStream->Read(updatingPropertyInfo);
+	inStream->Read(ugcId);
 	inStream->Read(playerId);
 	inStream->Read(worldId);
 
@@ -2167,30 +2170,40 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream* 
 		inStream->Read(character);
 		name.push_back(character);
 	}
+	const std::string descriptionAsString = GeneralUtils::UTF16ToWTF8(description);
+	const std::string nameAsString = GeneralUtils::UTF16ToWTF8(name);
+	Game::logger->Log("GameMessages", "%llu %llu ", worldId, ugcId);
+	if (updatingPropertyInfo) {
+		PropertyManagementComponent::Instance()->UpdatePropertyDetails(nameAsString, descriptionAsString);
+	} else {
+		auto* model = EntityManager::Instance()->GetEntity(worldId);
+		if (model) {
+			auto* modelComponent = model->GetComponent<ModelComponent>();
+			if (modelComponent) {
+				bool isDescriptionOk = Game::chatFilter->IsSentenceOkay(descriptionAsString, entity->GetGMLevel()).empty();
+				bool isNameOk = Game::chatFilter->IsSentenceOkay(nameAsString, entity->GetGMLevel()).empty();
 
-	PropertyManagementComponent::Instance()->UpdatePropertyDetails(GeneralUtils::UTF16ToWTF8(name), GeneralUtils::UTF16ToWTF8(description));
+				modelComponent->SetDescription(description);
+				modelComponent->SetDescriptionModerationStatus(isDescriptionOk ? ModerationStatus::Approved : ModerationStatus::Rejected);
+
+				if (isNameOk) modelComponent->SetName(name);
+				modelComponent->SetNameModerationStatus(isNameOk ? ModerationStatus::Approved : ModerationStatus::Rejected);
+
+				SendSetName(worldId, modelComponent->GetName(), sysAddr);
+				EntityManager::Instance()->SerializeEntity(model);
+			}
+		}
+	}
 }
 
 void GameMessages::HandleQueryPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	Game::logger->Log("HandleQueryPropertyData", "Entity (%i) requesting data", entity->GetLOT());
-
-	/*
-	auto entites = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_PROPERTY_VENDOR);
-
-	entity = entites[0];
-	*/
 
 	auto* propertyVendorComponent = static_cast<PropertyVendorComponent*>(entity->GetComponent(COMPONENT_TYPE_PROPERTY_VENDOR));
 
 	if (propertyVendorComponent != nullptr) {
 		propertyVendorComponent->OnQueryPropertyData(entity, sysAddr);
 	}
-
-	/*
-	entites = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_PROPERTY_MANAGEMENT);
-
-	entity = entites[0];
-	*/
 
 	auto* propertyManagerComponent = static_cast<PropertyManagementComponent*>(entity->GetComponent(COMPONENT_TYPE_PROPERTY_MANAGEMENT));
 

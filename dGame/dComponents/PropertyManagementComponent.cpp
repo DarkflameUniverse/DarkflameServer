@@ -17,6 +17,8 @@
 #include "Player.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
+#include "ModelComponent.h"
+#include "eModerationStatus.h"
 
 #include <vector>
 #include "CppScripts.h"
@@ -571,7 +573,7 @@ void PropertyManagementComponent::Load() {
 		return;
 	}
 
-	auto* lookup = Database::CreatePreppedStmt("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id FROM properties_contents WHERE property_id = ?;");
+	auto* lookup = Database::CreatePreppedStmt("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id, model_name, model_description FROM properties_contents WHERE property_id = ?;");
 
 	lookup->setUInt64(1, propertyId);
 
@@ -647,7 +649,7 @@ void PropertyManagementComponent::Load() {
 			settings.push_back(propertyObjectID);
 			settings.push_back(userModelID);
 		}
-
+		info.name = lookupResult->getString(11).c_str();
 		node->config = settings;
 
 		const auto spawnerId = dZoneManager::Instance()->MakeSpawner(info);
@@ -656,6 +658,15 @@ void PropertyManagementComponent::Load() {
 
 		auto* model = spawner->Spawn();
 
+		auto* modelComponent = model->GetComponent<ModelComponent>();
+
+		if (modelComponent) {
+			// We can safely mark these as approved here since they will only ever get applied to the model if they are approved.
+			modelComponent->SetName(GeneralUtils::UTF8ToUTF16(lookupResult->getString(11).c_str()));
+			modelComponent->SetNameModerationStatus(ModerationStatus::Approved);
+			modelComponent->SetDescription(GeneralUtils::UTF8ToUTF16(lookupResult->getString(12).c_str()));
+			modelComponent->SetDescriptionModerationStatus(ModerationStatus::Approved);
+		}
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
 	}
 
@@ -668,7 +679,7 @@ void PropertyManagementComponent::Save() {
 	}
 
 	auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-	auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
+	auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ?, model_name = ?, model_description = ? WHERE id = ?;");
 	auto* lookup = Database::CreatePreppedStmt("SELECT id FROM properties_contents WHERE property_id = ?;");
 	auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
 
@@ -698,7 +709,9 @@ void PropertyManagementComponent::Save() {
 
 		auto* entity = EntityManager::Instance()->GetEntity(pair.first);
 
-		if (entity == nullptr) {
+		auto* modelComponent = entity->GetComponent<ModelComponent>();
+
+		if (!entity || !modelComponent) {
 			continue;
 		}
 
@@ -717,8 +730,8 @@ void PropertyManagementComponent::Save() {
 			insertion->setDouble(9, rotation.y);
 			insertion->setDouble(10, rotation.z);
 			insertion->setDouble(11, rotation.w);
-			insertion->setString(12, "Objects_" + std::to_string(entity->GetLOT()) + "_name"); // Model name.  TODO make this customizable
-			insertion->setString(13, ""); // Model description.  TODO implement this.
+			insertion->setString(12, GeneralUtils::UTF16ToWTF8(modelComponent->GetName())); // Model name.
+			insertion->setString(13, GeneralUtils::UTF16ToWTF8(modelComponent->GetDescription())); // Model description.
 			insertion->setDouble(14, 0); // behavior 1.  TODO implement this.
 			insertion->setDouble(15, 0); // behavior 2.  TODO implement this.
 			insertion->setDouble(16, 0); // behavior 3.  TODO implement this.
@@ -737,8 +750,10 @@ void PropertyManagementComponent::Save() {
 			update->setDouble(5, rotation.y);
 			update->setDouble(6, rotation.z);
 			update->setDouble(7, rotation.w);
+			update->setString(8, GeneralUtils::UTF16ToWTF8(modelComponent->GetName()));
+			update->setString(9, GeneralUtils::UTF16ToWTF8(modelComponent->GetDescription()));
+			update->setInt64(10, id);
 
-			update->setInt64(8, id);
 			try {
 				update->executeUpdate();
 			} catch (sql::SQLException& ex) {

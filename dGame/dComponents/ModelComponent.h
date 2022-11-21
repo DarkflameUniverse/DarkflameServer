@@ -4,6 +4,7 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "Component.h"
+#include "eModerationStatus.h"
 
 class Entity;
 
@@ -42,6 +43,36 @@ public:
 	 */
 	void SetRotation(const NiQuaternion& rot) { m_OriginalRotation = rot; }
 
+	/**
+	 * Set the moderation status of the description of this model
+	 */
+	void SetDescriptionModerationStatus(ModerationStatus status) { this->m_DescriptionStatus = status; };
+
+	/**
+	 * Sets the description of the model
+	 */
+	void SetDescription(const std::u16string& description) { this->m_Description = description; m_DescriptionStatus = ModerationStatus::NoStatus; };
+
+	/**
+	 * @return The models current description
+	 */
+	std::u16string GetDescription() { return this->m_Description; };
+
+	/**
+	 * Set the moderation status of the name of this model
+	 */
+	void SetNameModerationStatus(ModerationStatus status) { this->m_NameStatus = status; };
+
+	/**
+	 * Sets the Name of the model
+	 */
+	void SetName(const std::u16string& name) { this->m_Name = name; m_NameStatus = ModerationStatus::NoStatus; };
+
+	/**
+	 * @return The models current Name
+	 */
+	std::u16string GetName() { return this->m_Name; };
+
 private:
 
 	/**
@@ -58,4 +89,24 @@ private:
 	 * The ID of the user that made the model
 	 */
 	LWOOBJID m_userModelID;
+
+	/**
+	 * Whether or not the description of this model is approved.
+	 */
+	ModerationStatus m_DescriptionStatus;
+
+	/**
+	 * The description of this model
+	 */
+	std::u16string m_Description;
+
+	/**
+	 * Whether or not the name of this model is approved.
+	 */
+	ModerationStatus m_NameStatus;
+
+	/**
+	 * The name of this model
+	 */
+	std::u16string m_Name;
 };

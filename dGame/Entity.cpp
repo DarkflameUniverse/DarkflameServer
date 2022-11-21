@@ -870,6 +870,14 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			for (size_t i = 0; i < name.size(); ++i) {
 				outBitStream->Write<uint16_t>(name[i]);
 			}
+		} else if (GetComponent<ModelComponent>()){
+			auto* spawner = m_Spawner;
+			if (m_Spawner) {
+				const auto& name = spawner->m_Info.name;
+
+				outBitStream->Write<uint8_t>(uint8_t(name.size()));
+				for (auto character : name) outBitStream->Write<uint16_t>(character);
+			}
 		} else {
 			const auto& name = GetVar<std::string>(u"npcName");
 			outBitStream->Write<uint8_t>(uint8_t(name.size()));

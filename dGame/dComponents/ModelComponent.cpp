@@ -4,6 +4,10 @@
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
+	m_Description = u"";
+	m_Name = u"";
+	m_DescriptionStatus = ModerationStatus::NoStatus;
+	m_NameStatus = ModerationStatus::NoStatus;
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
 }
@@ -13,8 +17,12 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 	if (!m_Parent->HasComponent(COMPONENT_TYPE_PET)) {
 		outBitStream->Write1();
 		outBitStream->Write<LWOOBJID>(m_userModelID != LWOOBJID_EMPTY ? m_userModelID : m_Parent->GetObjectID());
-		outBitStream->Write<int>(0);
-		outBitStream->Write0();
+		outBitStream->Write<ModerationStatus>(m_DescriptionStatus);
+		outBitStream->Write(m_Description.size() > 0);
+		if (m_Description.size() > 0) {
+			outBitStream->Write(static_cast<uint32_t>(m_Description.size()));
+			for (auto character : m_Description) outBitStream->Write(character);
+		}
 	}
 
 	//actual model component:
