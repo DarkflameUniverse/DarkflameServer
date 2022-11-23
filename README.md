@@ -75,7 +75,7 @@ sudo apt install cmake
 
 ### Choosing the right version for your client
 DLU clients identify themselves using a higher version number than the regular live clients out there.
-This was done make sure that older and incomplete clients wouldn't produce false positive bug reports for us, and because we made bug fixes and new content for the client. 
+This was done make sure that older and incomplete clients wouldn't produce false positive bug reports for us, and because we made bug fixes and new content for the client.
 
 If you're using a DLU client you'll have to go into the "CMakeVariables.txt" file and change the NET_VERSION variable to 171023 to match the modified client's version number.
 
@@ -197,7 +197,7 @@ Known good SHA256 checksums of the client:
 - `0d862f71eedcadc4494c4358261669721b40b2131101cbd6ef476c5a6ec6775b` (unpacked client, includes extra locales, rar compressed)
 
 Known good *SHA1* checksum of the DLU client:
-- `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed) 
+- `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed)
 
 How to generate a SHA256 checksum:
 ```bash
