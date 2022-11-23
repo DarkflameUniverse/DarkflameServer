@@ -211,7 +211,7 @@ void InventoryComponent::AddItem(
 
 	// info.itemType of 1 is item type brick
 	if (inventoryType == eInventoryType::BRICKS || (stack == 0 && info.itemType == 1)) {
-		stack = 999;
+		stack = UINT32_MAX;
 	} else if (stack == 0) {
 		stack = 1;
 	}
@@ -232,7 +232,8 @@ void InventoryComponent::AddItem(
 		}
 	}
 
-	while (left > 0) {
+	// If we have some leftover and we aren't bricks, make a new stack
+	while (left > 0 && !(inventoryType == eInventoryType::BRICKS || (stack == 0 && info.itemType == 1))) {
 		const auto size = std::min(left, stack);
 
 		left -= size;
