@@ -51,7 +51,7 @@ public:
 	/**
 	 * Sets the description of the model
 	 */
-	void SetDescription(const std::u16string& description) { this->m_Description = description; m_DescriptionStatus = ModerationStatus::NoStatus; };
+	void SetDescription(const std::u16string& description);
 
 	/**
 	 * @return The models current description
@@ -66,7 +66,7 @@ public:
 	/**
 	 * Sets the Name of the model
 	 */
-	void SetName(const std::u16string& name) { this->m_Name = name; m_NameStatus = ModerationStatus::NoStatus; };
+	void SetName(const std::u16string& name);
 
 	/**
 	 * @return The models current Name

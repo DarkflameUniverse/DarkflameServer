@@ -37,3 +37,14 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 	outBitStream->Write1(); // Is this model paused
 	if (bIsInitialUpdate) outBitStream->Write0(); // We are not writing model editing info
 }
+void ModelComponent::SetDescription(const std::u16string& description) {
+	this->m_Description = description;
+	m_DescriptionStatus = ModerationStatus::NoStatus;
+	m_Parent->SetVar<std::u16string>(u"userModelDesc", description);
+}
+
+void ModelComponent::SetName(const std::u16string& name) {
+	this->m_Name = name;
+	m_NameStatus = ModerationStatus::NoStatus;
+	m_Parent->SetVar<std::u16string>(u"userModelName", name);
+}

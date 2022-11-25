@@ -352,6 +352,20 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		return;
 	}
 
+	std::u16string modelName{};
+	std::u16string modelDescription{};
+	for (auto* setting : item->GetConfig()) {
+		if (setting->GetKey() == u"userModelName") {
+			modelName = GeneralUtils::UTF8ToUTF16(setting->GetValueAsString());
+		} else if (setting->GetKey() == u"userModelDesc") {
+			modelDescription = GeneralUtils::UTF8ToUTF16(setting->GetValueAsString());
+			break;
+		}
+	}
+
+	// This is the default name as in live
+	if (modelName.empty()) modelName = u"Objects_" + GeneralUtils::to_u16string(item->GetLot()) + u"_name";
+	if (modelDescription.empty()) modelDescription = u"A model for your property!";
 	item->SetCount(item->GetCount() - 1);
 
 	auto* node = new SpawnerNode();
@@ -359,7 +373,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 	node->position = position;
 	node->rotation = rotation;
 
-	ObjectIDManager::Instance()->RequestPersistentID([this, node, modelLOT, entity, position, rotation, originalRotation](uint32_t persistentId) {
+	ObjectIDManager::Instance()->RequestPersistentID([this, node, modelLOT, entity, position, rotation, originalRotation, modelName, modelDescription](uint32_t persistentId) {
 		SpawnerInfo info{};
 
 		info.templateID = modelLOT;
@@ -368,6 +382,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		info.activeOnLoad = true;
 		info.amountMaintained = 1;
 		info.respawnTime = 10;
+		info.name = GeneralUtils::UTF16ToWTF8(modelName);
 
 		info.emulated = true;
 		info.emulator = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
@@ -385,13 +400,28 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		auto modelType = new LDFData<int>(u"modelType", 2);
 		auto propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
 		auto componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
+		auto* userModelName = new LDFData<std::u16string>(u"userModelName", modelName);
+		auto* userModelDesc = new LDFData<std::u16string>(u"userModelDesc", modelDescription);
+
 		info.nodes[0]->config.push_back(componentWhitelist);
 		info.nodes[0]->config.push_back(ldfModelBehavior);
 		info.nodes[0]->config.push_back(modelType);
 		info.nodes[0]->config.push_back(propertyObjectID);
 		info.nodes[0]->config.push_back(userModelID);
+		info.nodes[0]->config.push_back(userModelName);
+		info.nodes[0]->config.push_back(userModelDesc);
 
 		auto* model = spawner->Spawn();
+		auto* modelComponent = model->GetComponent<ModelComponent>();
+		if (modelComponent) {
+			modelComponent->SetNameModerationStatus(ModerationStatus::Approved);
+			modelComponent->SetName(modelName);
+			modelComponent->SetDescriptionModerationStatus(ModerationStatus::Approved);
+			modelComponent->SetDescription(modelDescription);
+		}
+
+		// To update the description of the model, we serialize again.
+		EntityManager::Instance()->SerializeEntity(model);
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
 
@@ -506,7 +536,24 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
-	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::LOOT_SOURCE_DELETION, INVALID, {}, LWOOBJID_EMPTY, false);
+	auto* modelComponent = model->GetComponent<ModelComponent>();
+	if (!modelComponent) {
+		Game::logger->Log("PropertyManagementComponent", "A model doesn't have a model component...");
+		return;
+	}
+
+	std::vector<LDFBaseData*> settings{};
+
+	// Dont save a separate model if the default name or description is present
+	Game::logger->Log("PropertyManagementComponent", "name is %s desc is %s", GeneralUtils::UTF16ToWTF8(modelComponent->GetName()).c_str(), GeneralUtils::UTF16ToWTF8(modelComponent->GetDescription()).c_str());
+	if (modelComponent->GetName().size() > 0 && modelComponent->GetName() != u"Objects_" + GeneralUtils::to_u16string(model->GetLOT()) + u"_name") {
+		settings.push_back(new LDFData<std::u16string>(u"userModelName", modelComponent->GetName()));
+	}
+	if (modelComponent->GetDescription().size() > 0 && modelComponent->GetDescription() != u"A model for your property!") {
+		settings.push_back(new LDFData<std::u16string>(u"userModelDesc", modelComponent->GetDescription()));
+	}
+
+	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::LOOT_SOURCE_DELETION, INVALID, settings, LWOOBJID_EMPTY, false);
 
 	auto* item = inventoryComponent->FindItemByLot(model->GetLOT());
 

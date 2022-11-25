@@ -218,7 +218,8 @@ void InventoryComponent::AddItem(
 
 	auto* existing = FindItemByLot(lot, inventoryType);
 
-	if (existing != nullptr) {
+	// If the found item has a config, we dont want to give the added item those configs as well.
+	if (existing != nullptr && existing->GetConfig().empty()) {
 		const auto delta = std::min<uint32_t>(left, stack - existing->GetCount());
 
 		left -= delta;
@@ -327,7 +328,9 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 	const auto lot = item->GetLot();
 
-	if (item->GetConfig().empty() && !item->GetBound() || (item->GetBound() && item->GetInfo().isBOP)) {
+	const auto subKey = item->GetSubKey();
+
+	if (subKey == LWOOBJID_EMPTY && (item->GetConfig().empty() && !item->GetBound() || (item->GetBound() && item->GetInfo().isBOP))) {
 		auto left = std::min<uint32_t>(count, origin->GetLotCount(lot));
 
 		while (left > 0) {
@@ -358,7 +361,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 		const auto delta = std::min<uint32_t>(item->GetCount(), count);
 
-		AddItem(lot, delta, eLootSourceType::LOOT_SOURCE_NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, item->GetBound(), preferredSlot);
+		AddItem(lot, delta, eLootSourceType::LOOT_SOURCE_NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, subKey, origin->GetType(), 0, item->GetBound(), preferredSlot);
 
 		item->SetCount(item->GetCount() - delta, false, false);
 	}
@@ -562,11 +565,31 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 			auto* extraInfo = itemElement->FirstChildElement("x");
 
 			if (extraInfo) {
-				std::string modInfo = extraInfo->Attribute("ma");
+				auto* modAttribute = extraInfo->FindAttribute("ma");
+				if (modAttribute) {
+					std::string modInfo = modAttribute->Value();
+					LDFBaseData* moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(modInfo.substr(2, modInfo.size() - 1)));
+					config.push_back(moduleAssembly);
+				}
 
-				LDFBaseData* moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(modInfo.substr(2, modInfo.size() - 1)));
+				// Name or description can be empty.  Make sure there are enough characters to split the string on.
+				auto* nameAttribute = extraInfo->FindAttribute("un");
+				if (nameAttribute) {
+					std::string name = nameAttribute->Value();
+					auto modelNameString =  name.size() >= 3 ? GeneralUtils::ASCIIToUTF16(name.substr(2, name.size() - 1)) : u"";
+					LDFBaseData* modelName = new LDFData<std::u16string>(u"userModelName", modelNameString);
 
-				config.push_back(moduleAssembly);
+					config.push_back(modelName);
+				}
+
+				auto* descriptionAttribute = extraInfo->FindAttribute("ud");
+				if (descriptionAttribute) {
+					std::string description = descriptionAttribute->Value();
+					auto modelDescriptionString = description.size() >= 3 ? GeneralUtils::ASCIIToUTF16(description.substr(2, description.size() - 1)) : u"";
+					LDFBaseData* modelDescription = new LDFData<std::u16string>(u"userModelDesc", modelDescriptionString);
+
+					config.push_back(modelDescription);
+				}
 			}
 
 			const auto* item = new Item(id, lot, inventory, slot, count, bound, config, parent, subKey);
@@ -674,18 +697,24 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 			itemElement->SetAttribute("parent", item->GetParent());
 			// End custom xml
 
+			// We only want to save specific LDF data to the xml.
+			tinyxml2::XMLElement* extraInfo = nullptr;
 			for (auto* data : item->GetConfig()) {
-				if (data->GetKey() != u"assemblyPartLOTs") {
-					continue;
+				if (data->GetKey() == u"assemblyPartLOTs") {
+					if (!extraInfo) extraInfo = document->NewElement("x");
+
+					extraInfo->SetAttribute("ma", data->GetString(false).c_str());
+				} else if (data->GetKey() == u"userModelName") {
+					if (!extraInfo) extraInfo = document->NewElement("x");
+
+					extraInfo->SetAttribute("un", data->GetString(false).c_str());
+				} else if (data->GetKey() == u"userModelDesc") {
+					if (!extraInfo) extraInfo = document->NewElement("x");
+
+					extraInfo->SetAttribute("ud", data->GetString(false).c_str());
 				}
-
-				auto* extraInfo = document->NewElement("x");
-
-				extraInfo->SetAttribute("ma", data->GetString(false).c_str());
-
-				itemElement->LinkEndChild(extraInfo);
 			}
-
+			if (extraInfo) itemElement->LinkEndChild(extraInfo);
 			bagElement->LinkEndChild(itemElement);
 		}
 

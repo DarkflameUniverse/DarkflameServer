@@ -4411,13 +4411,13 @@ void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uin
 // NT
 
 void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool bAllowPartial;
+	bool bAllowPartial{};
 	int32_t destSlot = -1;
 	int32_t iStackCount = 1;
 	eInventoryType invTypeDst = ITEMS;
 	eInventoryType invTypeSrc = ITEMS;
 	LWOOBJID itemID = LWOOBJID_EMPTY;
-	bool showFlyingLoot;
+	bool showFlyingLoot{};
 	LWOOBJID subkey = LWOOBJID_EMPTY;
 	LOT itemLOT = 0;
 
@@ -4440,13 +4440,12 @@ void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream*
 	if (inventoryComponent != nullptr) {
 		if (itemID != LWOOBJID_EMPTY) {
 			auto* item = inventoryComponent->FindItemById(itemID);
+			if (!item) return;
 
-			if (item == nullptr) {
-				return;
-			}
-
-			if (inventoryComponent->IsPet(item->GetSubKey()) || !item->GetConfig().empty()) {
-				return;
+			// Despawn the pet if we are moving that pet to the vault.
+			auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+			if (petComponent && petComponent->GetDatabaseId() == item->GetSubKey()) {
+				inventoryComponent->DespawnPet();
 			}
 
 			inventoryComponent->MoveItemToInventory(item, invTypeDst, iStackCount, showFlyingLoot, false, false, destSlot);
