@@ -330,7 +330,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 	const auto subKey = item->GetSubKey();
 
-	if (subKey == LWOOBJID_EMPTY && (item->GetConfig().empty() && !item->GetBound() || (item->GetBound() && item->GetInfo().isBOP))) {
+	if (subKey == LWOOBJID_EMPTY && item->GetConfig().empty() && (!item->GetBound() || (item->GetBound() && item->GetInfo().isBOP))) {
 		auto left = std::min<uint32_t>(count, origin->GetLotCount(lot));
 
 		while (left > 0) {
