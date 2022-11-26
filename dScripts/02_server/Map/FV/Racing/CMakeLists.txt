@@ -1,0 +1,3 @@
+set(DSCRIPTS_SOURCES_02_SERVER_MAP_FV_RACING 
+	"RaceMaelstromGeiser.cpp"
+	PARENT_SCOPE)

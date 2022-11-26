@@ -239,7 +239,7 @@ public:
 	 * Sets the multiplier for the explosion that's visible when the bricks fly out when this entity is smashed
 	 * @param value the multiplier for the explosion that's visible when the bricks fly out when this entity is smashed
 	 */
-	void SetExplodeFactor(float value);
+	void SetExplodeFactor(float value) { m_ExplodeFactor = value; };
 
 	/**
 	 * Returns the current multiplier for explosions
@@ -413,6 +413,14 @@ public:
 	 * @param callback the callback to add
 	 */
 	void AddOnHitCallback(const std::function<void(Entity*)>& callback);
+
+	/**
+	 * Pushes a faction back to the list of factions.
+	 * @param value Faction to add to list.
+	 *
+	 * This method should only be used for testing.  Use AddFaction(int32_t, bool) for adding a faction properly.
+	 */
+	void AddFactionNoLookup(int32_t faction) { m_FactionIDs.push_back(faction); };
 
 private:
 	/**

@@ -1,0 +1,14 @@
+set(DSCRIPTS_SOURCES_AI_GF 
+	"GfCampfire.cpp"
+	"GfOrgan.cpp"
+	"GfBanana.cpp"
+	"GfBananaCluster.cpp"
+	"GfJailkeepMission.cpp"
+	"TriggerAmbush.cpp"
+	"GfJailWalls.cpp"
+	"PetDigBuild.cpp"
+	"GfArchway.cpp"
+	"GfMaelstromGeyser.cpp"
+	"PirateRep.cpp"
+	"GfParrotCrash.cpp"
+	PARENT_SCOPE)

@@ -76,6 +76,15 @@ endif()
 
 # Our output dir
 set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR})
+
+# TODO make this not have to override the build type directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -166,12 +175,85 @@ set(INCLUDED_DIRECTORIES
 	"dDatabase/Tables"
 	"dNet"
 	"dScripts"
+	"dScripts/02_server"
+	"dScripts/ai"
+	"dScripts/client"
+	"dScripts/EquipmentScripts"
+	"dScripts/zone"
+	"dScripts/02_server/DLU"
+	"dScripts/02_server/Enemy"
+	"dScripts/02_server/Equipment"
+	"dScripts/02_server/Map"
+	"dScripts/02_server/Minigame"
+	"dScripts/02_server/Objects"
+	"dScripts/02_server/Pets"
+	"dScripts/02_server/Enemy/AG"
+	"dScripts/02_server/Enemy/AM"
+	"dScripts/02_server/Enemy/FV"
+	"dScripts/02_server/Enemy/General"
+	"dScripts/02_server/Enemy/Survival"
+	"dScripts/02_server/Enemy/VE"
+	"dScripts/02_server/Enemy/Waves"
+	"dScripts/02_server/Map/AG"
+	"dScripts/02_server/Map/AG_Spider_Queen"
+	"dScripts/02_server/Map/AM"
+	"dScripts/02_server/Map/FV"
+	"dScripts/02_server/Map/General"
+	"dScripts/02_server/Map/GF"
+	"dScripts/02_server/Map/njhub"
+	"dScripts/02_server/Map/NS"
+	"dScripts/02_server/Map/NT"
+	"dScripts/02_server/Map/PR"
+	"dScripts/02_server/Map/Property"
+	"dScripts/02_server/Map/SS"
+	"dScripts/02_server/Map/VE"
+	"dScripts/02_server/Map/FV/Racing"
+	"dScripts/02_server/Map/General/Ninjago"
+	"dScripts/02_server/Map/njhub/boss_instance"
+	"dScripts/02_server/Map/NS/Waves"
+	"dScripts/02_server/Map/Property/AG_Med"
+	"dScripts/02_server/Map/Property/AG_Small"
+	"dScripts/02_server/Map/Property/NS_Med"
+	"dScripts/02_server/Minigame/General"
+	"dScripts/ai/ACT"
+	"dScripts/ai/AG"
+	"dScripts/ai/FV"
+	"dScripts/ai/GENERAL"
+	"dScripts/ai/GF"
+	"dScripts/ai/MINIGAME"
+	"dScripts/ai/NP"
+	"dScripts/ai/NS"
+	"dScripts/ai/PETS"
+	"dScripts/ai/PROPERTY"
+	"dScripts/ai/RACING"
+	"dScripts/ai/SPEC"
+	"dScripts/ai/WILD"
+	"dScripts/ai/ACT/FootRace"
+	"dScripts/ai/MINIGAME/SG_GF"
+	"dScripts/ai/MINIGAME/SG_GF/SERVER"
+	"dScripts/ai/NS/NS_PP_01"
+	"dScripts/ai/NS/WH"
+	"dScripts/ai/PROPERTY/AG"
+	"dScripts/ai/RACING/OBJECTS"
+	"dScripts/client/ai"
+	"dScripts/client/ai/PR"
+	"dScripts/zone/AG"
+	"dScripts/zone/LUPs"
+	"dScripts/zone/PROPERTY"
+	"dScripts/zone/PROPERTY/FV"
+	"dScripts/zone/PROPERTY/GF"
+	"dScripts/zone/PROPERTY/NS"
 
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
 	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
+
+	"tests"
+	"tests/dCommonTests"
+	"tests/dGameTests"
+	"tests/dGameTests/dComponentsTests"
 	)
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
@@ -253,8 +335,6 @@ if (UNIX)
 	endif()
 endif()
 
-add_subdirectory(tests)
-
 # Include all of our binary directories
 add_subdirectory(dWorldServer)
 add_subdirectory(dAuthServer)
@@ -287,3 +367,7 @@ target_precompile_headers(
 	tinyxml2 PRIVATE
 	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
 )
+
+if (${__enable_testing__} MATCHES "1")
+	add_subdirectory(tests)
+endif()

@@ -1,0 +1,3 @@
+set(DSCRIPTS_SOURCES_ZONE_PROPERTY_NS 
+	"ZoneNsProperty.cpp"
+	PARENT_SCOPE)

@@ -18,7 +18,12 @@ std::vector<Brick>& BrickDatabase::GetBricks(const std::string& lxfmlPath) {
 		return cached->second;
 	}
 
-	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer(("client/" + lxfmlPath).c_str());
+	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer((lxfmlPath).c_str());
+
+	if (!buffer.m_Success) {
+		return emptyCache;
+	}
+
 	std::istream file(&buffer);
 	if (!file.good()) {
 		return emptyCache;
