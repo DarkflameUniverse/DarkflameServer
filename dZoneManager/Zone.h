@@ -75,7 +75,6 @@ struct RacingPathWaypoint {
 
 struct RailPathWaypoint {
 	float speed;
-	std::vector<LDFBaseData*> config;
 };
 
 struct PathWaypoint {

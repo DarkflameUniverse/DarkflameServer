@@ -234,7 +234,7 @@ void Zone::LoadScene(std::istream& file) {
 
 	std::string luTriggersPath = scene.filename.substr(0, scene.filename.size() - 4) + ".lutriggers";
 	std::vector<LUTriggers::Trigger*> triggers;
-	if(Game::assetManager->HasFile(luTriggersPath.c_str())) triggers = LoadLUTriggers(luTriggersPath, scene.id);
+	if(Game::assetManager->HasFile((m_ZonePath + luTriggersPath).c_str())) triggers = LoadLUTriggers(luTriggersPath, scene.id);
 
 	for (LUTriggers::Trigger* trigger : triggers) {
 		scene.triggers.insert({ trigger->id, trigger });
@@ -504,6 +504,8 @@ void Zone::LoadPath(std::istream& file) {
 			BinaryIO::BinaryRead(file, waypoint.racing.planeWidth);
 			BinaryIO::BinaryRead(file, waypoint.racing.planeHeight);
 			BinaryIO::BinaryRead(file, waypoint.racing.shortestDistanceToEnd);
+		} else if (path.pathType == PathType::Rail) {
+			if (path.pathVersion > 16) BinaryIO::BinaryRead(file, waypoint.rail.speed);
 		}
 
 		// object LDF configs
@@ -529,7 +531,7 @@ void Zone::LoadPath(std::istream& file) {
 				}
 
 				LDFBaseData* ldfConfig = nullptr;
-				if (path.pathType == PathType::Movement) {
+				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
 					ldfConfig = LDFBaseData::DataFromString(parameter + "=0:" + value);
 				} else {
 					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
