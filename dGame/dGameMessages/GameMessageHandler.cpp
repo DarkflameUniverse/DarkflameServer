@@ -157,8 +157,8 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		Game::logger->Log("GameMessageHandler", "Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
 
 		// After we've done our thing, tell the client they're ready
-		GameMessages::SendPlayerReady(dZoneManager::Instance()->GetZoneControlObject(), sysAddr);
 		GameMessages::SendPlayerReady(entity, sysAddr);
+		GameMessages::SendPlayerReady(dZoneManager::Instance()->GetZoneControlObject(), sysAddr);
 
 		break;
 	}
