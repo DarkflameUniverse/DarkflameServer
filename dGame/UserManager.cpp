@@ -36,6 +36,10 @@ void UserManager::Initialize() {
 	std::string line;
 
 	AssetMemoryBuffer fnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_first.txt");
+	if (!fnBuff.m_Success) {
+		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_first.txt").string().c_str());
+		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
+	}
 	std::istream fnStream = std::istream(&fnBuff);
 	while (std::getline(fnStream, line, '\n')) {
 		std::string name = line;
@@ -45,6 +49,10 @@ void UserManager::Initialize() {
 	fnBuff.close();
 
 	AssetMemoryBuffer mnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_middle.txt");
+	if (!mnBuff.m_Success) {
+		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_middle.txt").string().c_str());
+		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
+	}
 	std::istream mnStream = std::istream(&mnBuff);
 	while (std::getline(mnStream, line, '\n')) {
 		std::string name = line;
@@ -54,6 +62,10 @@ void UserManager::Initialize() {
 	mnBuff.close();
 
 	AssetMemoryBuffer lnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_last.txt");
+	if (!lnBuff.m_Success) {
+		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_last.txt").string().c_str());
+		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
+	}
 	std::istream lnStream = std::istream(&lnBuff);
 	while (std::getline(lnStream, line, '\n')) {
 		std::string name = line;
@@ -64,6 +76,10 @@ void UserManager::Initialize() {
 
 	//Load our pre-approved names:
 	AssetMemoryBuffer chatListBuff = Game::assetManager->GetFileAsBuffer("chatplus_en_us.txt");
+	if (!chatListBuff.m_Success) {
+		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/chatplus_en_us.txt").string().c_str());
+		throw std::runtime_error("Aborting initialization due to missing chat whitelist file.");
+	}
 	std::istream chatListStream = std::istream(&chatListBuff);
 	while (std::getline(chatListStream, line, '\n')) {
 		StripCR(line);
