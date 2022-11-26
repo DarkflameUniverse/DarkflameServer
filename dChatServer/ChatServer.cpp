@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
 }
 
 dLogger* SetupLogger() {
-	std::filesystem::path logPath = BinaryPathFinder::GetBinaryDir() / ("logs/ChatServer_" + std::to_string(time(nullptr)) + ".log");
+	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/ChatServer_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
 #ifdef _DEBUG

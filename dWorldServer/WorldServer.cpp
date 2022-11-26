@@ -494,7 +494,7 @@ int main(int argc, char** argv) {
 }
 
 dLogger* SetupLogger(int zoneID, int instanceID) {
-	std::string logPath = BinaryPathFinder::GetBinaryDir() / ("logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log");
+	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
 #ifdef _DEBUG
