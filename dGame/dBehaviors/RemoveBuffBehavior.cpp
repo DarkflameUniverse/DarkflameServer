@@ -12,7 +12,7 @@ void RemoveBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit
 	auto* buffComponent = entity->GetComponent<BuffComponent>();
 	if (!buffComponent) return;
 
-	buffComponent->RemoveBuff(m_BuffId);
+	buffComponent->RemoveBuff(m_BuffId, false, m_RemoveImmunity);
 }
 
 void RemoveBuffBehavior::Load() {
