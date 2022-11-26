@@ -584,6 +584,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (args[0].find("\\") != std::string::npos) return;
 
 		auto buf = Game::assetManager->GetFileAsBuffer(("macros/" + args[0] + ".scm").c_str());
+
+		 if (!buf.m_Success){
+			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
+			return;
+		 }
+
 		std::istream infile(&buf);
 
 		if (infile.good()) {

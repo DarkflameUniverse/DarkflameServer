@@ -1,0 +1,3 @@
+set(DSCRIPTS_SOURCES_02_SERVER_MINIGAME_GENERAL 
+	"MinigameTreasureChestServer.cpp"
+	PARENT_SCOPE)

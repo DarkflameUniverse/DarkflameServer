@@ -38,9 +38,13 @@ Some tools utilized to streamline the setup process require Python 3, make sure 
 
 ### Choosing the right version for your client
 DLU clients identify themselves using a higher version number than the regular live clients out there.
-This was done make sure that older and incomplete clients wouldn't produce false positive bug reports for us, and because we made bug fixes and new content for the client. 
+This was done make sure that older and incomplete clients wouldn't produce false positive bug reports for us, and because we made bug fixes and new content for the client.
 
 If you're using a DLU client you'll have to go into the "CMakeVariables.txt" file and change the NET_VERSION variable to 171023 to match the modified client's version number.
+
+### Enabling testing
+While it is highly recommended to enable testing, if you would like to save compilation time, you'll want to comment out the enable_testing variable in CMakeVariables.txt.
+It is recommended that after building and if testing is enabled, to run `ctest` and make sure all the tests pass.
 
 ### Using Docker
 Refer to [Docker.md](/Docker.md).
@@ -169,7 +173,7 @@ Known good SHA256 checksums of the client:
 - `0d862f71eedcadc4494c4358261669721b40b2131101cbd6ef476c5a6ec6775b` (unpacked client, includes extra locales, rar compressed)
 
 Known good *SHA1* checksum of the DLU client:
-- `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed) 
+- `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed)
 
 How to generate a SHA256 checksum:
 ```bash
@@ -269,16 +273,6 @@ To connect to a server follow these steps:
 * Launch `legouniverse.exe`, through `wine` if on a Unix-like operating system
 * Note that if you are on WSL2, you will need to configure the public IP in the server and client to be the IP of the WSL2 instance and not localhost, which can be found by running `ifconfig` in the terminal. Windows defaults to WSL1, so this will not apply to most users.
 
-### Survival
-
-The client script for the survival minigame has a bug in it which can cause the minigame to not load. To fix this, follow these instructions:
-* Open `res/scripts/ai/minigame/survival/l_zone_survival_client.lua`
-* Navigate to line `617`
-* Change `PlayerReady(self)` to `onPlayerReady(self)`
-* Save the file, overriding readonly mode if required
-
-If you still experience the bug, try deleting/renaming `res/pack/scripts.pk`.
-
 ### Brick-By-Brick building
 
 Brick-By-Brick building requires `PATCHSERVERIP=0:` in the `boot.cfg` to point to a HTTP server which always returns `HTTP 404 - Not Found` for all requests. This can be achieved by pointing it to `localhost` while having `sudo python -m http.server 80` running in the background.
@@ -336,7 +330,7 @@ Here is a summary of the commands available in-game. All commands are prefixed b
       /instanceinfo
     </td>
     <td>
-      Displays in the chat the current zone, clone, and instance id. 
+      Displays in the chat the current zone, clone, and instance id.
     </td>
     <td>
     </td>
