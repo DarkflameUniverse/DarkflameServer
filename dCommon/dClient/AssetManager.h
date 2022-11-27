@@ -48,7 +48,7 @@ struct AssetMemoryBuffer : std::streambuf {
 
 class AssetManager {
 public:
-	AssetManager(const std::string& path);
+	AssetManager(const std::filesystem::path& path);
 	~AssetManager();
 
 	std::filesystem::path GetResPath();

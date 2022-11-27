@@ -10,6 +10,7 @@
 #include "dMessageIdentifiers.h"
 #include "MasterPackets.h"
 #include "PacketUtils.h"
+#include "BinaryPathFinder.h"
 
 InstanceManager::InstanceManager(dLogger* logger, const std::string& externalIP) {
 	mLogger = logger;
@@ -48,13 +49,13 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 
 	//Start the actual process:
 #ifdef _WIN32
-	std::string cmd = "start ./WorldServer.exe -zone ";
+	std::string cmd = "start " + (BinaryPathFinder::GetBinaryDir() / "WorldServer.exe").string() + " -zone ";
 #else
 	std::string cmd;
 	if (std::atoi(Game::config->GetValue("use_sudo_world").c_str())) {
-		cmd = "sudo ./WorldServer -zone ";
+		cmd = "sudo " + (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
 	} else {
-		cmd = "./WorldServer -zone ";
+		cmd = (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
 	}
 #endif
 
@@ -300,10 +301,10 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, maxPlayers, maxPlayers, true, password);
 
 	//Start the actual process:
-	std::string cmd = "start ./WorldServer.exe -zone ";
+	std::string cmd = "start " + (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
 
 #ifndef _WIN32
-	cmd = "./WorldServer -zone ";
+	cmd = (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
 #endif
 
 	cmd.append(std::to_string(mapID));
