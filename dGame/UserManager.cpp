@@ -77,7 +77,7 @@ void UserManager::Initialize() {
 	//Load our pre-approved names:
 	AssetMemoryBuffer chatListBuff = Game::assetManager->GetFileAsBuffer("chatplus_en_us.txt");
 	if (!chatListBuff.m_Success) {
-		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/chatplus_en_us.txt").string().c_str());
+		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing chat whitelist file.");
 	}
 	std::istream chatListStream = std::istream(&chatListBuff);
