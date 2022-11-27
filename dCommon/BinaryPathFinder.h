@@ -3,7 +3,6 @@
 #ifndef __BINARYPATHFINDER__H__
 #define __BINARYPATHFINDER__H__
 
-#include <string>
 #include <filesystem>
 
 class BinaryPathFinder {

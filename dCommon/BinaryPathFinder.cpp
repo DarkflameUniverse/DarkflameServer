@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <string>
 #include "BinaryPathFinder.h"
 #include "dPlatforms.h"
 
