@@ -20,6 +20,7 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"
+#include "AssetManager.h"
 
 UserManager* UserManager::m_Address = nullptr;
 
@@ -32,43 +33,59 @@ inline void StripCR(std::string& str) {
 }
 
 void UserManager::Initialize() {
-	std::string firstNamePath = "./res/names/minifigname_first.txt";
-	std::string middleNamePath = "./res/names/minifigname_middle.txt";
-	std::string lastNamePath = "./res/names/minifigname_last.txt";
 	std::string line;
 
-	std::fstream fnFile(firstNamePath, std::ios::in);
-	std::fstream mnFile(middleNamePath, std::ios::in);
-	std::fstream lnFile(lastNamePath, std::ios::in);
-
-	while (std::getline(fnFile, line, '\n')) {
+	AssetMemoryBuffer fnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_first.txt");
+	if (!fnBuff.m_Success) {
+		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_first.txt").string().c_str());
+		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
+	}
+	std::istream fnStream = std::istream(&fnBuff);
+	while (std::getline(fnStream, line, '\n')) {
 		std::string name = line;
 		StripCR(name);
 		m_FirstNames.push_back(name);
 	}
+	fnBuff.close();
 
-	while (std::getline(mnFile, line, '\n')) {
+	AssetMemoryBuffer mnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_middle.txt");
+	if (!mnBuff.m_Success) {
+		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_middle.txt").string().c_str());
+		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
+	}
+	std::istream mnStream = std::istream(&mnBuff);
+	while (std::getline(mnStream, line, '\n')) {
 		std::string name = line;
 		StripCR(name);
 		m_MiddleNames.push_back(name);
 	}
+	mnBuff.close();
 
-	while (std::getline(lnFile, line, '\n')) {
+	AssetMemoryBuffer lnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_last.txt");
+	if (!lnBuff.m_Success) {
+		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_last.txt").string().c_str());
+		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
+	}
+	std::istream lnStream = std::istream(&lnBuff);
+	while (std::getline(lnStream, line, '\n')) {
 		std::string name = line;
 		StripCR(name);
 		m_LastNames.push_back(name);
 	}
-
-	fnFile.close();
-	mnFile.close();
-	lnFile.close();
+	lnBuff.close();
 
 	//Load our pre-approved names:
-	std::fstream chatList("./res/chatplus_en_us.txt", std::ios::in);
-	while (std::getline(chatList, line, '\n')) {
+	AssetMemoryBuffer chatListBuff = Game::assetManager->GetFileAsBuffer("chatplus_en_us.txt");
+	if (!chatListBuff.m_Success) {
+		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/chatplus_en_us.txt").string().c_str());
+		throw std::runtime_error("Aborting initialization due to missing chat whitelist file.");
+	}
+	std::istream chatListStream = std::istream(&chatListBuff);
+	while (std::getline(chatListStream, line, '\n')) {
 		StripCR(line);
 		m_PreapprovedNames.push_back(line);
 	}
+	chatListBuff.close();
 }
 
 UserManager::~UserManager() {
