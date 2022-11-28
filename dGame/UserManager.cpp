@@ -227,6 +227,7 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 		while (res->next()) {
 			LWOOBJID objID = res->getUInt64(1);
 			Character* character = new Character(uint32_t(objID), u);
+			character->SetIsNewLogin();
 			chars.push_back(character);
 		}
 	}
