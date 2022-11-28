@@ -5,6 +5,9 @@ set(DGAMETEST_SOURCES
 add_subdirectory(dComponentsTests)
 list(APPEND DGAMETEST_SOURCES ${DCOMPONENTS_TESTS})
 
+add_subdirectory(dGameMessagesTests)
+list(APPEND DGAMETEST_SOURCES ${DGAMEMESSAGES_TESTS})
+
 # Add the executable.  Remember to add all tests above this!
 add_executable(dGameTests ${DGAMETEST_SOURCES})
 

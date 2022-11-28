@@ -434,6 +434,7 @@ enum eInventoryType : uint32_t {
 	ITEMS = 0,
 	VAULT_ITEMS,
 	BRICKS,
+	MODELS_IN_BBB,
 	TEMP_ITEMS = 4,
 	MODELS,
 	TEMP_MODELS,

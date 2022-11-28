@@ -57,6 +57,7 @@
 #include "Player.h"
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
+#include "eBlueprintSaveResponseType.h"
 
 #include "ZCompression.h"
 
@@ -1082,9 +1083,9 @@ void HandlePacket(Packet* packet) {
 
 								CBITSTREAM;
 								PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
-								bitStream.Write<LWOOBJID>(0); //always zero so that a check on the client passes
-								bitStream.Write<unsigned int>(0);
-								bitStream.Write<unsigned int>(1);
+								bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
+								bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
+								bitStream.Write<uint32_t>(1);
 								bitStream.Write(blueprintID);
 
 								bitStream.Write<uint32_t>(lxfmlSize);

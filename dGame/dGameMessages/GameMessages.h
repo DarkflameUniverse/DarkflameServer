@@ -121,6 +121,7 @@ namespace GameMessages {
 	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
 	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, int type);
 
+	void HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID);
 
 	/**
@@ -196,6 +197,16 @@ namespace GameMessages {
 	void SendOpenPropertyManagment(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	void SendDownloadPropertyData(LWOOBJID objectId, const PropertyDataMessage& data, const SystemAddress& sysAddr);
+
+	/**
+	 * @brief Send an updated item id to the client when they load a blueprint in brick build mode
+	 *
+	 * @param sysAddr SystemAddress to respond to
+	 * @param oldItemId The item ID that was requested to be loaded
+	 * @param newItemId The new item ID of the loaded item
+	 *
+	 */
+	void SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId);
 
 	void SendPropertyRentalResponse(LWOOBJID objectId, LWOCLONEID cloneId, uint32_t code, LWOOBJID propertyId, int64_t rentDue, const SystemAddress& sysAddr);
 
