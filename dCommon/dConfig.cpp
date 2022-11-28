@@ -1,9 +1,10 @@
 #include "dConfig.h"
 #include <sstream>
+#include "BinaryPathFinder.h"
 
 dConfig::dConfig(const std::string& filepath) {
 	m_EmptyString = "";
-	std::ifstream in(filepath);
+	std::ifstream in(BinaryPathFinder::GetBinaryDir() / filepath);
 	if (!in.good()) return;
 
 	std::string line;
@@ -13,7 +14,7 @@ dConfig::dConfig(const std::string& filepath) {
 		}
 	}
 
-	std::ifstream sharedConfig("sharedconfig.ini", std::ios::in);
+	std::ifstream sharedConfig(BinaryPathFinder::GetBinaryDir() / "sharedconfig.ini", std::ios::in);
 	if (!sharedConfig.good()) return;
 
 	while (std::getline(sharedConfig, line)) {

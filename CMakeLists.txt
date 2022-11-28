@@ -92,9 +92,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # Create a /res directory
 make_directory(${CMAKE_BINARY_DIR}/res)
 
-# Create a /locale directory
-make_directory(${CMAKE_BINARY_DIR}/locale)
-
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
@@ -167,6 +164,8 @@ endforeach()
 # Create our list of include directories
 set(INCLUDED_DIRECTORIES
 	"dCommon"
+	"dCommon/dClient"
+	"dCommon/dEnums"
 	"dChatFilter"
 	"dGame"
 	"dGame/dBehaviors"
@@ -177,7 +176,6 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dEntity"
 	"dGame/dPropertyBehaviors"
 	"dGame/dUtilities"
-	"dCommon/dClient"
 	"dPhysics"
 	"dNavigation"
 	"dNavigation/dTerrain"
