@@ -56,6 +56,7 @@
 #include "Player.h"
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
+#include "LevelProgressionComponent.h"
 
 #include "ZCompression.h"
 
@@ -1004,6 +1005,9 @@ void HandlePacket(Packet* packet) {
 				player->RetroactiveVaultSize();
 
 				player->GetCharacter()->SetTargetScene("");
+
+				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
+				if (levelComponent) levelComponent->SetRetroactiveBaseSpeed();
 
 				// Fix the destroyable component
 				auto* destroyableComponent = player->GetComponent<DestroyableComponent>();

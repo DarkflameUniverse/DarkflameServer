@@ -1,27 +1,22 @@
 #include "SpeedBehavior.h"
 
 #include "ControllablePhysicsComponent.h"
+#include "LevelProgressionComponent.h"
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"
 #include "dLogger.h"
 
 
 void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	if (m_AffectsCaster) {
-		branch.target = context->caster;
-	}
+	if (m_AffectsCaster) branch.target = context->caster;
 
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
-	if (target == nullptr) {
-		return;
-	}
+	if (target == nullptr) return;
 
 	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 
-	if (controllablePhysicsComponent == nullptr) {
-		return;
-	}
+	if (controllablePhysicsComponent == nullptr) return;
 
 	const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
 
@@ -82,10 +77,5 @@ void SpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext branch, 
 
 void SpeedBehavior::Load() {
 	m_RunSpeed = GetFloat("run_speed");
-
-	if (m_RunSpeed < 500.0f) {
-		m_RunSpeed = 500.0f;
-	}
-
 	m_AffectsCaster = GetBoolean("affects_caster");
 }

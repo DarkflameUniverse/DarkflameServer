@@ -7,6 +7,7 @@
 LevelProgressionComponent::LevelProgressionComponent(Entity* parent) : Component(parent) {
 	m_Parent = parent;
 	m_Level = 1;
+	m_SpeedBase = 500.0f;
 }
 
 void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
@@ -16,7 +17,7 @@ void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 	level->SetAttribute("l", m_Level);
-
+	level->SetAttribute("sb", m_SpeedBase);
 }
 
 void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
@@ -26,7 +27,7 @@ void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 	level->QueryAttribute("l", &m_Level);
-
+	level->QueryAttribute("sb", &m_SpeedBase);
 }
 
 void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -71,4 +72,10 @@ void LevelProgressionComponent::HandleLevelUp() {
 	}
 	// Tell the client we have finished sending level rewards.
 	if (rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, !rewardingItem);
+}
+
+void LevelProgressionComponent::SetRetroactiveBaseSpeed(){
+	if (m_Level >= 20) m_SpeedBase = 525.0f;
+	auto* controllablePhysicsComponent = m_Parent->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->SetSpeedMultiplier(m_SpeedBase / 500.0f);
 }
