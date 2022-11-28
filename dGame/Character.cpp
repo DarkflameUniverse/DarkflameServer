@@ -264,14 +264,17 @@ void Character::DoQuickXMLDataParse() {
 	if (flags) {
 		auto* currentChild = flags->FirstChildElement();
 		while (currentChild) {
-			uint32_t index = 0;
-			uint64_t value = 0;
 			const auto* temp = currentChild->Attribute("v");
+			const auto* id = currentChild->Attribute("id");
+			if (temp && id) {
+				uint32_t index = 0;
+				uint64_t value = 0;
 
-			index = std::stoul(currentChild->Attribute("id"));
-			value = std::stoull(temp);
+				index = std::stoul(id);
+				value = std::stoull(temp);
 
-			m_PlayerFlags.insert(std::make_pair(index, value));
+				m_PlayerFlags.insert(std::make_pair(index, value));
+			}
 			currentChild = currentChild->NextSiblingElement();
 		}
 	}
@@ -351,6 +354,13 @@ void Character::SaveXMLToDatabase() {
 		flags->LinkEndChild(f);
 	}
 
+	// Prevents the news feed from showing up on world transfers
+	if (GetPlayerFlag(ePlayerFlags::IS_NEWS_SCREEN_VISIBLE)) {
+		auto* s = m_Doc->NewElement("s");
+		s->SetAttribute("si", ePlayerFlags::IS_NEWS_SCREEN_VISIBLE);
+		flags->LinkEndChild(s);
+	}
+
 	SaveXmlRespawnCheckpoints();
 
 	//Call upon the entity to update our xmlDoc:
@@ -361,6 +371,31 @@ void Character::SaveXMLToDatabase() {
 
 	m_OurEntity->UpdateXMLDoc(m_Doc);
 
+	WriteToDatabase();
+
+	//For metrics, log the time it took to save:
+	auto end = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed = end - start;
+	Game::logger->Log("Character", "Saved character to Database in: %fs", elapsed.count());
+}
+
+void Character::SetIsNewLogin() {
+	// If we dont have a flag element, then we cannot have a s element as a child of flag.
+	auto* flags = m_Doc->FirstChildElement("obj")->FirstChildElement("flag");
+	if (!flags) return;
+
+	auto* currentChild = flags->FirstChildElement();
+	while (currentChild) {
+		if (currentChild->Attribute("si")) {
+			flags->DeleteChild(currentChild);
+			Game::logger->Log("Character", "Removed isLoggedIn flag from character %i, saving character to database", GetID());
+			WriteToDatabase();
+		}
+		currentChild = currentChild->NextSiblingElement();
+	}
+}
+
+void Character::WriteToDatabase() {
 	//Dump our xml into m_XMLData:
 	auto* printer = new tinyxml2::XMLPrinter(0, true, 0);
 	m_Doc->Print(printer);
@@ -372,12 +407,6 @@ void Character::SaveXMLToDatabase() {
 	stmt->setUInt(2, m_ID);
 	stmt->execute();
 	delete stmt;
-
-	//For metrics, log the time it took to save:
-	auto end = std::chrono::system_clock::now();
-	std::chrono::duration<double> elapsed = end - start;
-	Game::logger->Log("Character", "Saved character to Database in: %fs", elapsed.count());
-
 	delete printer;
 }
 

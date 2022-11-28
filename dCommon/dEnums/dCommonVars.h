@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef __DCOMMONVARS__H__
+#define __DCOMMONVARS__H__
+
 #include <cstdint>
 #include <string>
 #include <set>
@@ -30,6 +33,8 @@ typedef uint32_t LWOCLONEID;                 //!< Used for Clone IDs
 typedef uint16_t LWOMAPID;                   //!< Used for Map IDs
 typedef uint16_t LWOINSTANCEID;              //!< Used for Instance IDs
 typedef uint32_t PROPERTYCLONELIST;          //!< Used for Property Clone IDs
+typedef uint32_t STRIPID;
+typedef uint32_t BEHAVIORSTATE;
 
 typedef int32_t PetTamingPiece;             //!< Pet Taming Pieces
 
@@ -429,6 +434,7 @@ enum eInventoryType : uint32_t {
 	ITEMS = 0,
 	VAULT_ITEMS,
 	BRICKS,
+	MODELS_IN_BBB,
 	TEMP_ITEMS = 4,
 	MODELS,
 	TEMP_MODELS,
@@ -554,6 +560,7 @@ enum ePlayerFlags {
 	ENTER_BBB_FROM_PROPERTY_EDIT_CONFIRMATION_DIALOG = 64,
 	AG_FIRST_COMBAT_COMPLETE = 65,
 	AG_COMPLETE_BOB_MISSION = 66,
+	IS_NEWS_SCREEN_VISIBLE = 114,
 	NJ_GARMADON_CINEMATIC_SEEN = 125,
 	ELEPHANT_PET_3050 = 801,
 	CAT_PET_3054 = 802,
@@ -648,3 +655,5 @@ inline T const& clamp(const T& val, const T& low, const T& high) {
 
 	return val;
 }
+
+#endif  //!__DCOMMONVARS__H__

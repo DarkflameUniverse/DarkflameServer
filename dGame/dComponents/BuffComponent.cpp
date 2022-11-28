@@ -123,12 +123,14 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	m_Buffs.emplace(id, buff);
 }
 
-void BuffComponent::RemoveBuff(int32_t id) {
+void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity) {
 	const auto& iter = m_Buffs.find(id);
 
 	if (iter == m_Buffs.end()) {
 		return;
 	}
+
+	GameMessages::SendRemoveBuff(m_Parent, fromUnEquip, removeImmunity, id);
 
 	m_Buffs.erase(iter);
 
