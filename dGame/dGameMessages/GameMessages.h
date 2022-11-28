@@ -566,6 +566,8 @@ namespace GameMessages {
 
 	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);
 
+	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
+
 	/*  Message to synchronize a skill cast */
 	class EchoSyncSkill {
 		static const GAME_MSG MsgID = GAME_MSG_ECHO_SYNC_SKILL;

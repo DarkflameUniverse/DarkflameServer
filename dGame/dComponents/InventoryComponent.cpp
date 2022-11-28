@@ -986,6 +986,7 @@ void InventoryComponent::ApplyBuff(Item* item) const {
 	}
 }
 
+// TODO Something needs to send the remove buff GameMessage as well when it is unequipping items that would remove buffs.
 void InventoryComponent::RemoveBuff(Item* item) const {
 	const auto buffs = FindBuffs(item, false);
 

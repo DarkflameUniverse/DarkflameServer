@@ -3476,6 +3476,20 @@ void GameMessages::SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID ta
 	SEND_PACKET;
 }
 
+void GameMessages::SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(GAME_MSG::GAME_MSG_REMOVE_BUFF);
+
+	bitStream.Write(false); // bFromRemoveBehavior but setting this to true makes the GM not do anything on the client?
+	bitStream.Write(fromUnEquip);
+	bitStream.Write(removeImmunity);
+	bitStream.Write(buffId);
+
+	SEND_PACKET_BROADCAST;
+}
 
 void GameMessages::SendBouncerActiveStatus(LWOOBJID objectId, bool bActive, const SystemAddress& sysAddr) {
 	CBITSTREAM;
