@@ -19,12 +19,6 @@ void FvNinjaGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity* ta
 
 	GameMessages::SendPlayAnimation(self, u"scared");
 
-	auto* missionComponent = target->GetComponent<MissionComponent>();
-
-	if (missionComponent != nullptr && missionComponent->HasMission(737)) {
-		missionComponent->ForceProgressTaskType(737, 5, 1, false);
-	}
-
 	if (self->GetLOT() == 7412) {
 		auto* rightGuard = EntityManager::Instance()->GetEntity(m_RightGuard);
 
@@ -39,4 +33,3 @@ void FvNinjaGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity* ta
 		}
 	}
 }
-

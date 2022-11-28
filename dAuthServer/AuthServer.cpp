@@ -11,6 +11,7 @@
 #include "Database.h"
 #include "dConfig.h"
 #include "Diagnostics.h"
+#include "BinaryPathFinder.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -150,7 +151,7 @@ int main(int argc, char** argv) {
 }
 
 dLogger* SetupLogger() {
-	std::string logPath = "./logs/AuthServer_" + std::to_string(time(nullptr)) + ".log";
+	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/AuthServer_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
 #ifdef _DEBUG
