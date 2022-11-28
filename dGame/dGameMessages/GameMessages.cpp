@@ -4944,27 +4944,27 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	inStream->Read(emoteID);
 	inStream->Read(targetID);
 
-	Game::logger->Log("GameMessages", "Emote (%i) (%llu)", emoteID, targetID);
+	Game::logger->LogDebug("GameMessages", "Emote (%i) (%llu)", emoteID, targetID);
 
 	//TODO: If targetID != 0, and we have one of the "perform emote" missions, complete them.
 
 	if (emoteID == 0) return;
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
-	MissionComponent* mission = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
-	if (mission) {
-		mission->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, targetID);
-	}
+	MissionComponent* missionComponent = entity->GetComponent<MissionComponent>();
+	if (!missionComponent) return;
 
 	if (targetID != LWOOBJID_EMPTY) {
 		auto* targetEntity = EntityManager::Instance()->GetEntity(targetID);
 
-		Game::logger->Log("GameMessages", "Emote target found (%d)", targetEntity != nullptr);
+		Game::logger->LogDebug("GameMessages", "Emote target found (%d)", targetEntity != nullptr);
 
 		if (targetEntity != nullptr) {
 			targetEntity->OnEmoteReceived(emoteID, entity);
+			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, targetID);
 		}
 	} else {
+		Game::logger->LogDebug("GameMessages", "Target ID is empty, using backup");
 		const auto scriptedEntities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPT);
 
 		const auto& referencePoint = entity->GetPosition();
@@ -4973,6 +4973,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 			if (Vector3::DistanceSquared(scripted->GetPosition(), referencePoint) > 5.0f * 5.0f) continue;
 
 			scripted->OnEmoteReceived(emoteID, entity);
+			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, scripted->GetObjectID());
 		}
 	}
 
