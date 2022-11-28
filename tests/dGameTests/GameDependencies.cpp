@@ -7,7 +7,6 @@ namespace Game {
 	dpWorld* physicsWorld;
 	dChatFilter* chatFilter;
 	dConfig* config;
-	dLocale* locale;
 	std::mt19937 randomEngine;
 	RakPeerInterface* chatServer;
 	AssetManager* assetManager;

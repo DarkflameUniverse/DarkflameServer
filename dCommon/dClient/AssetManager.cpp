@@ -1,15 +1,17 @@
+#include <filesystem>
+
 #include "AssetManager.h"
 #include "Game.h"
 #include "dLogger.h"
 
 #include <zlib.h>
 
-AssetManager::AssetManager(const std::string& path) {
+AssetManager::AssetManager(const std::filesystem::path& path) {
 	if (!std::filesystem::is_directory(path)) {
-		throw std::runtime_error("Attempted to load asset bundle (" + path + ") however it is not a valid directory.");
+		throw std::runtime_error("Attempted to load asset bundle (" + path.string() + ") however it is not a valid directory.");
 	}
 
-	m_Path = std::filesystem::path(path);
+	m_Path = path;
 
 	if (std::filesystem::exists(m_Path / "client") && std::filesystem::exists(m_Path / "versions")) {
 		m_AssetBundleType = eAssetBundleType::Packed;
@@ -26,11 +28,11 @@ AssetManager::AssetManager(const std::string& path) {
 
 		m_RootPath = (m_Path / ".." / "..");
 		m_ResPath = m_Path;
-	} else if (std::filesystem::exists(m_Path / "res" / "cdclient.fdb") && !std::filesystem::exists(m_Path / "res" / "pack")) {
+	} else if ((std::filesystem::exists(m_Path / "res" / "cdclient.fdb") || std::filesystem::exists(m_Path / "res" / "CDServer.sqlite")) && !std::filesystem::exists(m_Path / "res" / "pack")) {
 		m_AssetBundleType = eAssetBundleType::Unpacked;
 
 		m_ResPath = (m_Path / "res");
-	} else if (std::filesystem::exists(m_Path / "cdclient.fdb") && !std::filesystem::exists(m_Path / "pack")) {
+	} else if ((std::filesystem::exists(m_Path / "cdclient.fdb") || std::filesystem::exists(m_Path / "CDServer.sqlite")) && !std::filesystem::exists(m_Path / "pack")) {
 		m_AssetBundleType = eAssetBundleType::Unpacked;
 
 		m_ResPath = m_Path;
