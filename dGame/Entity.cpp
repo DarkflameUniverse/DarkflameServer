@@ -454,7 +454,7 @@ void Entity::Initialize() {
 	 */
 
 	CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
-	int scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_SCRIPT);
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_SCRIPT, -1);
 
 	std::string scriptName = "";
 	bool client = false;
@@ -496,7 +496,7 @@ void Entity::Initialize() {
 		scriptName = customScriptServer;
 	}
 
-	if (!scriptName.empty() || client || m_Character) {
+	if (!scriptName.empty() || client || m_Character || scriptComponentID >= 0) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_SCRIPT, new ScriptComponent(this, scriptName, true, client && scriptName.empty())));
 	}
 
