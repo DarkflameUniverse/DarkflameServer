@@ -276,6 +276,7 @@ int main(int argc, char** argv) {
 	int framesSinceKillUniverseCommand = 0;
 
 	while (true) {
+		Game::logger->Log("1", "");
 		//In world we'd update our other systems here.
 
 		//Check for packets here:
@@ -285,7 +286,7 @@ int main(int argc, char** argv) {
 			Game::server->DeallocatePacket(packet);
 			packet = nullptr;
 		}
-
+		Game::logger->Log("2", "");
 		//Push our log every 15s:
 		if (framesSinceLastFlush >= 900) {
 			Game::logger->Flush();
@@ -311,7 +312,7 @@ int main(int argc, char** argv) {
 			framesSinceLastSQLPing = 0;
 		} else
 			framesSinceLastSQLPing++;
-
+		Game::logger->Log("3", "");
 		//10m shutdown for universe kill command
 		if (shouldShutdown) {
 			if (framesSinceKillUniverseCommand >= 40000) {
@@ -345,7 +346,7 @@ int main(int argc, char** argv) {
 				Game::im->RedirectPendingRequests(instance);
 			}
 		}
-
+		Game::logger->Log("4", "");
 		//Remove dead instances
 		for (auto* instance : instances) {
 			if (instance == nullptr) {
@@ -356,7 +357,7 @@ int main(int argc, char** argv) {
 				Game::im->RemoveInstance(instance);
 			}
 		}
-
+		Game::logger->Log("5", "");
 		t += std::chrono::milliseconds(highFrameRate);
 		std::this_thread::sleep_until(t);
 	}
