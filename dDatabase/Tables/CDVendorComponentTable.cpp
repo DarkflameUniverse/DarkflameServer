@@ -11,9 +11,9 @@ CDVendorComponentTable::CDVendorComponentTable(void) {
 
 		tableSize.nextRow();
 	}
-    
+
 	tableSize.finalize();
-    
+
 	// Reserve the size
 	this->entries.reserve(size);
 
@@ -35,7 +35,7 @@ CDVendorComponentTable::CDVendorComponentTable(void) {
 }
 
 //! Destructor
-CDVendorComponentTable::~CDVendorComponentTable(void) { }
+CDVendorComponentTable::~CDVendorComponentTable(void) {}
 
 //! Returns the table's name
 std::string CDVendorComponentTable::GetName(void) const {

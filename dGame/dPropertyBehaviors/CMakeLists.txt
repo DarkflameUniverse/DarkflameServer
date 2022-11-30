@@ -1,0 +1,4 @@
+set(DGAME_DPROPERTYBEHAVIORS_SOURCES
+	"ControlBehaviors.cpp"
+	PARENT_SCOPE
+)

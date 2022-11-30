@@ -30,6 +30,7 @@ function update_ini_values() {
     cp resources/authconfig.ini /docker/configs/
     cp resources/chatconfig.ini /docker/configs/
     cp resources/worldconfig.ini /docker/configs/
+    cp resources/sharedconfig.ini /docker/configs/
 
     update_ini worldconfig.ini chat_server_port $CHAT_SERVER_PORT
     update_ini worldconfig.ini max_clients $MAX_CLIENTS
@@ -37,10 +38,7 @@ function update_ini_values() {
     # always use the internal docker hostname
     update_ini masterconfig.ini master_ip "darkflame"
 
-    update_database_ini_values_for masterconfig.ini
-    update_database_ini_values_for authconfig.ini
-    update_database_ini_values_for chatconfig.ini
-    update_database_ini_values_for worldconfig.ini
+    update_database_ini_values_for sharedconfig.ini
 }
 
 function fdb_to_sqlite() {

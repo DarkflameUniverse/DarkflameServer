@@ -1,4 +1,4 @@
-﻿#include "InterruptBehavior.h"
+#include "InterruptBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "Game.h"
@@ -7,10 +7,8 @@
 #include "SkillComponent.h"
 
 
-void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
-	if (branch.target != context->originator)
-	{
+void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+	if (branch.target != context->originator) {
 		bool unknown = false;
 
 		bitStream->Read(unknown);
@@ -18,8 +16,7 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 		if (unknown) return;
 	}
 
-	if (!this->m_interruptBlock)
-	{
+	if (!this->m_interruptBlock) {
 		bool unknown = false;
 
 		bitStream->Read(unknown);
@@ -48,15 +45,12 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 }
 
 
-void InterruptBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch)
-{
-	if (branch.target != context->originator)
-	{
+void InterruptBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+	if (branch.target != context->originator) {
 		bitStream->Write(false);
 	}
 
-	if (!this->m_interruptBlock)
-	{
+	if (!this->m_interruptBlock) {
 		bitStream->Write(false);
 	}
 
@@ -71,14 +65,13 @@ void InterruptBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* b
 	auto* skillComponent = target->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) return;
-	
+
 	skillComponent->Interrupt();
 }
 
 
-void InterruptBehavior::Load()
-{
+void InterruptBehavior::Load() {
 	this->m_target = GetBoolean("target");
-	
+
 	this->m_interruptBlock = GetBoolean("interrupt_block");
 }

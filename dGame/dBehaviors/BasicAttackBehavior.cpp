@@ -1,4 +1,4 @@
-﻿#include "BasicAttackBehavior.h"
+#include "BasicAttackBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
 #include "dLogger.h"
@@ -21,7 +21,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 
 		return;
 	}
-	
+
 	bitStream->AlignReadToByteBoundary();
 
 	uint16_t allocatedBits;
@@ -43,7 +43,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		uint32_t damageDealt;
 		bitStream->Read(damageDealt);
 
-        // A value that's too large may be a cheating attempt, so we set it to MIN too
+		// A value that's too large may be a cheating attempt, so we set it to MIN too
 		if (damageDealt > this->m_maxDamage || damageDealt < this->m_minDamage) {
 			damageDealt = this->m_minDamage;
 		}
@@ -53,7 +53,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		bitStream->Read(died);
 
 		if (entity != nullptr) {
-		    auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+			auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 			if (destroyableComponent != nullptr) {
 				PlayFx(u"onhit", entity->GetObjectID());
 				destroyableComponent->Damage(damageDealt, context->originator, context->skillID);
@@ -69,7 +69,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		this->m_onSuccess->Handle(context, bitStream, branch);
 		break;
 	default:
-		Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!\n", successState);
+		Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!", successState);
 		break;
 	}
 
@@ -79,10 +79,10 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* self = EntityManager::Instance()->GetEntity(context->originator);
 	if (self == nullptr) {
-		Game::logger->Log("BasicAttackBehavior", "Invalid self entity (%llu)!\n", context->originator);
+		Game::logger->Log("BasicAttackBehavior", "Invalid self entity (%llu)!", context->originator);
 		return;
 	}
-	
+
 	bitStream->AlignWriteToByteBoundary();
 
 	const auto allocatedAddress = bitStream->GetWriteOffset();
@@ -113,7 +113,7 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 			auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 			if (damage != 0 && destroyableComponent != nullptr) {
 				PlayFx(u"onhit", entity->GetObjectID(), 1);
-                destroyableComponent->Damage(damage, context->originator, context->skillID, false);
+				destroyableComponent->Damage(damage, context->originator, context->skillID, false);
 				context->ScheduleUpdate(branch.target);
 			}
 		}
@@ -127,7 +127,7 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 		this->m_onSuccess->Calculate(context, bitStream, branch);
 		break;
 	default:
-		Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!\n", successState);
+		Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!", successState);
 		break;
 	}
 

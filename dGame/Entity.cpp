@@ -28,6 +28,8 @@
 #include "BuffComponent.h"
 #include "BouncerComponent.h"
 #include "InventoryComponent.h"
+#include "LevelProgressionComponent.h"
+#include "PlayerForcedMovementComponent.h"
 #include "ScriptComponent.h"
 #include "SkillComponent.h"
 #include "SimplePhysicsComponent.h"
@@ -88,8 +90,8 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_Scale = info.scale;
 	m_Spawner = info.spawner;
 	m_SpawnerID = info.spawnerID;
-    m_HasSpawnerNodeID = info.hasSpawnerNodeID;
-    m_SpawnerNodeID = info.spawnerNodeID;
+	m_HasSpawnerNodeID = info.hasSpawnerNodeID;
+	m_SpawnerNodeID = info.spawnerNodeID;
 
 	if (info.lot != 1) m_PlayerIsReadyForUpdates = true;
 }
@@ -103,19 +105,23 @@ Entity::~Entity() {
 	CancelCallbackTimers();
 
 	const auto components = m_Components;
-	
+
 	for (const auto& pair : components) {
 		delete pair.second;
 
 		m_Components.erase(pair.first);
 	}
+
+	for (auto child : m_ChildEntities) {
+		if (child) child->RemoveParent();
+	}
+
 	if (m_ParentEntity) {
 		m_ParentEntity->RemoveChild(this);
 	}
 }
 
-void Entity::Initialize()
-{
+void Entity::Initialize() {
 	/**
 	 * Setup trigger
 	 */
@@ -177,19 +183,25 @@ void Entity::Initialize()
 		SimplePhysicsComponent* comp = new SimplePhysicsComponent(simplePhysicsComponentID, this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_SIMPLE_PHYSICS, comp));
 
-		ModelComponent* modelcomp = new ModelComponent(0, this);
+		ModelComponent* modelcomp = new ModelComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_MODEL, modelcomp));
 
 		RenderComponent* render = new RenderComponent(this);
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RENDER, render));
 
+		auto destroyableComponent = new DestroyableComponent(this);
+		destroyableComponent->SetHealth(1);
+		destroyableComponent->SetMaxHealth(1.0f);
+		destroyableComponent->SetFaction(-1, true);
+		destroyableComponent->SetIsSmashable(true);
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_DESTROYABLE, destroyableComponent));
 		// We have all our components.
-		return; 
+		return;
 	}
 
 	/**
 	 * Go through all the components and check if this entity has them.
-	 * 
+	 *
 	 * Not all components are implemented. Some are represented by a nullptr, as they hold no data.
 	 */
 
@@ -208,8 +220,9 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_ZONE_CONTROL, nullptr));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE) > 0) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this)));
+	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_POSSESSABLE);
+	if (possessableComponentId > 0) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSABLE, new PossessableComponent(this, possessableComponentId)));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODULE_ASSEMBLY) > 0) {
@@ -218,11 +231,6 @@ void Entity::Initialize()
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_RACING_STATS) > 0) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_RACING_STATS, nullptr));
-	}
-
-	PetComponent* petComponent;
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !TryGetComponent(COMPONENT_TYPE_PET, petComponent)) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_ITEM, nullptr));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_EXHIBIT, -1) >= 0) {
@@ -236,14 +244,14 @@ void Entity::Initialize()
 	const auto propertyEntranceComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_PROPERTY_ENTRANCE);
 	if (propertyEntranceComponentID > 0) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_PROPERTY_ENTRANCE,
-									 new PropertyEntranceComponent(propertyEntranceComponentID, this)));
+			new PropertyEntranceComponent(propertyEntranceComponentID, this)));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CONTROLLABLE_PHYSICS) > 0) {
 		ControllablePhysicsComponent* controllablePhysics = new ControllablePhysicsComponent(this);
 
 		if (m_Character) {
-			controllablePhysics->LoadFromXML(m_Character->GetXMLDoc());
+			controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
 
 			const auto mapID = Game::server->GetZoneID();
 
@@ -258,21 +266,18 @@ void Entity::Initialize()
 				if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
 					pos = m_Character->GetRespawnPoint(mapID);
 					rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
-				}
-				else if (targetScene != nullptr) {
+				} else if (targetScene != nullptr) {
 					pos = targetScene->GetPosition();
 					rot = targetScene->GetRotation();
-				}
-				else {
-				 	pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
-				 	rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+				} else {
+					pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
+					rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
 				}
 
 				controllablePhysics->SetPosition(pos);
 				controllablePhysics->SetRotation(rot);
 			}
-		}
-		else {
+		} else {
 			controllablePhysics->SetPosition(m_DefaultPosition);
 			controllablePhysics->SetRotation(m_DefaultRotation);
 		}
@@ -306,19 +311,10 @@ void Entity::Initialize()
 		vehiclePhysicsComponent->SetPosition(m_DefaultPosition);
 		vehiclePhysicsComponent->SetRotation(m_DefaultRotation);
 	}
-	
+
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_SOUND_TRIGGER, -1) != -1) {
-	    auto* comp = new SoundTriggerComponent(this);
-	    m_Components.insert(std::make_pair(COMPONENT_TYPE_SOUND_TRIGGER, comp));
-	}
-
-	//Check to see if we have a moving platform component:
-	//Which, for some reason didn't get added to the ComponentsRegistry so we have to check for a path manually here.
-	std::string attachedPath = GetVarAsString(u"attached_path");
-
-	if (!attachedPath.empty() || compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVING_PLATFORM, -1) != -1) {
-		MovingPlatformComponent* plat = new MovingPlatformComponent(this, attachedPath);
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVING_PLATFORM, plat));
+		auto* comp = new SoundTriggerComponent(this);
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_SOUND_TRIGGER, comp));
 	}
 
 	//Also check for the collectible id:
@@ -331,7 +327,7 @@ void Entity::Initialize()
 
 	int collectibleComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_COLLECTIBLE);
 
-	if (collectibleComponentID > 0){
+	if (collectibleComponentID > 0) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_COLLECTIBLE, nullptr));
 	}
 
@@ -353,15 +349,13 @@ void Entity::Initialize()
 	if (buffComponentID > 0 || collectibleComponentID > 0) {
 		DestroyableComponent* comp = new DestroyableComponent(this);
 		if (m_Character) {
-			comp->LoadFromXML(m_Character->GetXMLDoc());
-		}
-		else {
+			comp->LoadFromXml(m_Character->GetXMLDoc());
+		} else {
 			if (componentID > 0) {
 				std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
 				if (destCompData.size() > 0) {
-					if (HasComponent(COMPONENT_TYPE_RACING_STATS))
-					{
+					if (HasComponent(COMPONENT_TYPE_RACING_STATS)) {
 						destCompData[0].imagination = 60;
 					}
 
@@ -393,8 +387,7 @@ void Entity::Initialize()
 					// extraInfo overrides
 					comp->SetIsSmashable(GetVarAs<int32_t>(u"is_smashable") != 0);
 				}
-			}
-			else {
+			} else {
 				comp->SetHealth(1);
 				comp->SetArmor(0);
 
@@ -428,17 +421,20 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_DESTROYABLE, comp));
 	}
 
-	/*if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_DESTROYABLE) > 0 || m_Character) {
-		DestroyableComponent* comp = new DestroyableComponent();
-		if (m_Character) comp->LoadFromXML(m_Character->GetXMLDoc());
-		m_Components.push_back(std::make_pair(COMPONENT_TYPE_DESTROYABLE, comp));
-	}*/
-
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_CHARACTER) > 0 || m_Character) {
-		// Character Component always has a possessor component
+		// Character Component always has a possessor, level, and forced movement components
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_POSSESSOR, new PossessorComponent(this)));
-		CharacterComponent* comp = new CharacterComponent(this, m_Character);
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, comp));
+
+		// load in the xml for the level
+		auto* levelComp = new LevelProgressionComponent(this);
+		levelComp->LoadFromXml(m_Character->GetXMLDoc());
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_LEVEL_PROGRESSION, levelComp));
+
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT, new PlayerForcedMovementComponent(this)));
+
+		CharacterComponent* charComp = new CharacterComponent(this, m_Character);
+		charComp->LoadFromXml(m_Character->GetXMLDoc());
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_CHARACTER, charComp));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_INVENTORY) > 0 || m_Character) {
@@ -458,7 +454,7 @@ void Entity::Initialize()
 	 */
 
 	CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
-	int scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_SCRIPT);
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_SCRIPT, -1);
 
 	std::string scriptName = "";
 	bool client = false;
@@ -468,18 +464,15 @@ void Entity::Initialize()
 			CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
 			scriptName = scriptCompData.script_name;
 			clientScriptName = scriptCompData.client_script_name;
-		}
-		else {
+		} else {
 			scriptName = "";
 		}
 
 		if (scriptName != "" || (scriptName == "" && m_Character)) {
-			
-		}
-		else if (clientScriptName != "") {
+
+		} else if (clientScriptName != "") {
 			client = true;
-		}
-		else if (!m_Character) {
+		} else if (!m_Character) {
 			client = true;
 		}
 	}
@@ -503,7 +496,7 @@ void Entity::Initialize()
 		scriptName = customScriptServer;
 	}
 
-	if (!scriptName.empty() || client || m_Character) {
+	if (!scriptName.empty() || client || m_Character || scriptComponentID >= 0) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_SCRIPT, new ScriptComponent(this, scriptName, true, client && scriptName.empty())));
 	}
 
@@ -513,8 +506,7 @@ void Entity::Initialize()
 		const auto zoneID = dZoneManager::Instance()->GetZoneID();
 		const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
 
-		if (zoneData != nullptr)
-		{
+		if (zoneData != nullptr) {
 			int zoneScriptID = zoneData->scriptID;
 			CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
 
@@ -586,14 +578,12 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_VENDOR, comp));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_PROPERTY_VENDOR, -1) != -1)
-	{
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_PROPERTY_VENDOR, -1) != -1) {
 		auto* component = new PropertyVendorComponent(this);
 		m_Components.insert_or_assign(COMPONENT_TYPE_PROPERTY_VENDOR, component);
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_PROPERTY_MANAGEMENT, -1) != -1)
-	{
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_PROPERTY_MANAGEMENT, -1) != -1) {
 		auto* component = new PropertyManagementComponent(this);
 		m_Components.insert_or_assign(COMPONENT_TYPE_PROPERTY_MANAGEMENT, component);
 	}
@@ -622,10 +612,27 @@ void Entity::Initialize()
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_SCRIPTED_ACTIVITY, new ScriptedActivityComponent(this, scriptedActivityID)));
 	}
 
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_MODEL, new ModelComponent(this)));
+		if (m_Components.find(COMPONENT_TYPE_DESTROYABLE) == m_Components.end()) {
+			auto destroyableComponent = new DestroyableComponent(this);
+			destroyableComponent->SetHealth(1);
+			destroyableComponent->SetMaxHealth(1.0f);
+			destroyableComponent->SetFaction(-1, true);
+			destroyableComponent->SetIsSmashable(true);
+			m_Components.insert(std::make_pair(COMPONENT_TYPE_DESTROYABLE, destroyableComponent));
+		}
+	}
+
+	PetComponent* petComponent;
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !TryGetComponent(COMPONENT_TYPE_PET, petComponent) && !HasComponent(COMPONENT_TYPE_MODEL)) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_ITEM, nullptr));
+	}
+
 	// Shooting gallery component
-    if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_SHOOTING_GALLERY) > 0) {
-        m_Components.insert(std::make_pair(COMPONENT_TYPE_SHOOTING_GALLERY, new ShootingGalleryComponent(this)));
-    }
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_SHOOTING_GALLERY) > 0) {
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_SHOOTING_GALLERY, new ShootingGalleryComponent(this)));
+	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_PROPERTY, -1) != -1) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_PROPERTY, new PropertyComponent(this)));
@@ -638,7 +645,7 @@ void Entity::Initialize()
 
 	const int32_t railComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_RAIL_ACTIVATOR);
 	if (railComponentID > 0) {
-	    m_Components.insert(std::make_pair(COMPONENT_TYPE_RAIL_ACTIVATOR, new RailActivatorComponent(this, railComponentID)));
+		m_Components.insert(std::make_pair(COMPONENT_TYPE_RAIL_ACTIVATOR, new RailActivatorComponent(this, railComponentID)));
 	}
 
 	int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVEMENT_AI);
@@ -668,9 +675,7 @@ void Entity::Initialize()
 
 			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
 		}
-	}
-	else if (petComponentId > 0 || combatAiId > 0 && GetComponent<BaseCombatAIComponent>()->GetTetherSpeed() > 0)
-	{
+	} else if (petComponentId > 0 || combatAiId > 0 && GetComponent<BaseCombatAIComponent>()->GetTetherSpeed() > 0) {
 		MovementAIInfo moveInfo = MovementAIInfo();
 		moveInfo.movementType = "";
 		moveInfo.wanderChance = 0;
@@ -680,6 +685,26 @@ void Entity::Initialize()
 		moveInfo.wanderDelayMin = 2;
 
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
+	}
+
+	std::string pathName = GetVarAsString(u"attached_path");
+	const Path* path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
+
+	//Check to see if we have an attached path and add the appropiate component to handle it:
+	if (path){
+		// if we have a moving platform path, then we need a moving platform component
+		if (path->pathType == PathType::MovingPlatform) {
+			MovingPlatformComponent* plat = new MovingPlatformComponent(this, pathName);
+			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVING_PLATFORM, plat));
+		// else if we are a movement path
+		} /*else if (path->pathType == PathType::Movement) {
+			auto movementAIcomp = GetComponent<MovementAIComponent>();
+			if (movementAIcomp){
+				// TODO: set path in existing movementAIComp
+			} else {
+				// TODO: create movementAIcomp and set path
+			}
+		}*/
 	}
 
 	int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_PROXIMITY_MONITOR);
@@ -698,58 +723,53 @@ void Entity::Initialize()
 		for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 			script->OnStartup(this);
 		}
-	});
+		});
 
-	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled())
-	{
+	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
 		// Don't ghost what is likely large scene elements
-		if (m_Components.size() == 2 && HasComponent(COMPONENT_TYPE_SIMPLE_PHYSICS) && HasComponent(COMPONENT_TYPE_RENDER))
-		{
+		if (m_Components.size() == 2 && HasComponent(COMPONENT_TYPE_SIMPLE_PHYSICS) && HasComponent(COMPONENT_TYPE_RENDER)) {
 			goto no_ghosting;
 		}
 
 		/* Filter for ghosting candidates.
-		 * 
+		 *
 		 * Don't ghost moving platforms, until we've got proper syncing for those.
 		 * Don't ghost big phantom physics triggers, as putting those to sleep might prevent interactions.
 		 * Don't ghost property related objects, as the client expects those to always be loaded.
 		 */
 		if (
 			!EntityManager::IsExcludedFromGhosting(GetLOT()) &&
-			!HasComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY) && 
-			!HasComponent(COMPONENT_TYPE_MOVING_PLATFORM) && 
-			!HasComponent(COMPONENT_TYPE_PHANTOM_PHYSICS) && 
-			!HasComponent(COMPONENT_TYPE_PROPERTY) && 
-			!HasComponent(COMPONENT_TYPE_RACING_CONTROL) && 
+			!HasComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY) &&
+			!HasComponent(COMPONENT_TYPE_MOVING_PLATFORM) &&
+			!HasComponent(COMPONENT_TYPE_PHANTOM_PHYSICS) &&
+			!HasComponent(COMPONENT_TYPE_PROPERTY) &&
+			!HasComponent(COMPONENT_TYPE_RACING_CONTROL) &&
 			!HasComponent(COMPONENT_TYPE_VEHICLE_PHYSICS)
-		)
-		//if (HasComponent(COMPONENT_TYPE_BASE_COMBAT_AI))
+			)
+			//if (HasComponent(COMPONENT_TYPE_BASE_COMBAT_AI))
 		{
 			m_IsGhostingCandidate = true;
 		}
 
-		if (GetLOT() == 6368)
-		{
+		if (GetLOT() == 6368) {
 			m_IsGhostingCandidate = true;
 		}
 
 		// Special case for collectibles in Ninjago
-		if (HasComponent(COMPONENT_TYPE_COLLECTIBLE) && Game::server->GetZoneID() == 2000)
-		{
+		if (HasComponent(COMPONENT_TYPE_COLLECTIBLE) && Game::server->GetZoneID() == 2000) {
 			m_IsGhostingCandidate = true;
 		}
 	}
 
-	no_ghosting:
+no_ghosting:
 
 	TriggerEvent("OnCreate");
 
 	if (m_Character) {
 		auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
-		auto* characterComponent = GetComponent<CharacterComponent>();
+		auto* levelComponent = GetComponent<LevelProgressionComponent>();
 
-		if (controllablePhysicsComponent != nullptr && characterComponent->GetLevel() >= 20)
-		{
+		if (controllablePhysicsComponent != nullptr && levelComponent->GetLevel() >= 20) {
 			controllablePhysicsComponent->SetSpeedMultiplier(525.0f / 500.0f);
 		}
 	}
@@ -763,10 +783,8 @@ bool Entity::operator!=(const Entity& other) const {
 	return other.m_ObjectID != m_ObjectID;
 }
 
-User* Entity::GetParentUser() const
-{
-	if (!IsPlayer())
-	{
+User* Entity::GetParentUser() const {
+	if (!IsPlayer()) {
 		return nullptr;
 	}
 
@@ -776,23 +794,19 @@ User* Entity::GetParentUser() const
 Component* Entity::GetComponent(int32_t componentID) const {
 	const auto& index = m_Components.find(componentID);
 
-	if (index == m_Components.end())
-	{
+	if (index == m_Components.end()) {
 		return nullptr;
 	}
-	
+
 	return index->second;
 }
 
-bool Entity::HasComponent(const int32_t componentId) const
-{
+bool Entity::HasComponent(const int32_t componentId) const {
 	return m_Components.find(componentId) != m_Components.end();
 }
 
-void Entity::AddComponent(const int32_t componentId, Component* component)
-{
-	if (HasComponent(componentId))
-	{
+void Entity::AddComponent(const int32_t componentId, Component* component) {
+	if (HasComponent(componentId)) {
 		return;
 	}
 
@@ -806,7 +820,7 @@ std::vector<ScriptComponent*> Entity::GetScriptComponents() {
 			comps.push_back(static_cast<ScriptComponent*>(p.second));
 		}
 	}
-	
+
 	return comps;
 }
 
@@ -856,8 +870,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			for (size_t i = 0; i < name.size(); ++i) {
 				outBitStream->Write<uint16_t>(name[i]);
 			}
-		}
-		else {
+		} else {
 			const auto& name = GetVar<std::string>(u"npcName");
 			outBitStream->Write<uint8_t>(uint8_t(name.size()));
 
@@ -870,10 +883,10 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
-		//limiting it to lot 14 right now
-		if (m_Settings.size() > 0 && m_TemplateID == 14) {
+		// Only sync for models.
+		if (m_Settings.size() > 0 && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 			outBitStream->Write1(); //ldf data
-			
+
 			RakNet::BitStream settingStream;
 			settingStream.Write<uint32_t>(m_Settings.size());
 
@@ -886,8 +899,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			outBitStream->Write(settingStream.GetNumberOfBytesUsed() + 1);
 			outBitStream->Write<uint8_t>(0); //no compression used
 			outBitStream->Write(settingStream);
-		}
-		else if (!syncLDF.empty()) {
+		} else if (!syncLDF.empty()) {
 			std::vector<LDFBaseData*> ldfData;
 
 			for (const auto& data : syncLDF) {
@@ -908,15 +920,13 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			outBitStream->Write(settingStream.GetNumberOfBytesUsed() + 1);
 			outBitStream->Write<uint8_t>(0); //no compression used
 			outBitStream->Write(settingStream);
-		}
-		else {
-			outBitStream->Write0(); //No ldf data 
+		} else {
+			outBitStream->Write0(); //No ldf data
 		}
 
 		if (m_Trigger != nullptr && m_Trigger->events.size() > 0) {
 			outBitStream->Write1();
-		}
-		else {
+		} else {
 			outBitStream->Write0();
 		}
 
@@ -925,8 +935,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			if (m_ParentEntity != nullptr) outBitStream->Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), OBJECT_BIT_CLIENT));
 			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream->Write(m_SpawnerID);
 			else outBitStream->Write(GeneralUtils::SetBit(m_SpawnerID, OBJECT_BIT_CLIENT));
-		}
-		else outBitStream->Write0();
+		} else outBitStream->Write0();
 
 		outBitStream->Write(m_HasSpawnerNodeID);
 		if (m_HasSpawnerNodeID) outBitStream->Write(m_SpawnerNodeID);
@@ -944,10 +953,9 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 		if (m_GMLevel != 0) {
 			outBitStream->Write1();
 			outBitStream->Write(m_GMLevel);
-		}
-		else outBitStream->Write0(); //No GM Level
+		} else outBitStream->Write0(); //No GM Level
 	}
-	
+
 	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
 	outBitStream->Write(m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION);
 	if (m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION) {
@@ -979,60 +987,51 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	unsigned int flags = 0;
 
 	PossessableComponent* possessableComponent;
-	if (TryGetComponent(COMPONENT_TYPE_POSSESSABLE, possessableComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_POSSESSABLE, possessableComponent)) {
 		possessableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	ModuleAssemblyComponent* moduleAssemblyComponent;
-	if (TryGetComponent(COMPONENT_TYPE_MODULE_ASSEMBLY, moduleAssemblyComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_MODULE_ASSEMBLY, moduleAssemblyComponent)) {
 		moduleAssemblyComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
-	
+
 	ControllablePhysicsComponent* controllablePhysicsComponent;
-	if (TryGetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS, controllablePhysicsComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS, controllablePhysicsComponent)) {
 		controllablePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	SimplePhysicsComponent* simplePhysicsComponent;
-	if (TryGetComponent(COMPONENT_TYPE_SIMPLE_PHYSICS, simplePhysicsComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_SIMPLE_PHYSICS, simplePhysicsComponent)) {
 		simplePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	RigidbodyPhantomPhysicsComponent* rigidbodyPhantomPhysics;
-	if (TryGetComponent(COMPONENT_TYPE_RIGID_BODY_PHANTOM_PHYSICS, rigidbodyPhantomPhysics))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_RIGID_BODY_PHANTOM_PHYSICS, rigidbodyPhantomPhysics)) {
 		rigidbodyPhantomPhysics->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	VehiclePhysicsComponent* vehiclePhysicsComponent;
-	if (TryGetComponent(COMPONENT_TYPE_VEHICLE_PHYSICS, vehiclePhysicsComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_VEHICLE_PHYSICS, vehiclePhysicsComponent)) {
 		vehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	PhantomPhysicsComponent* phantomPhysicsComponent;
-	if (TryGetComponent(COMPONENT_TYPE_PHANTOM_PHYSICS, phantomPhysicsComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_PHANTOM_PHYSICS, phantomPhysicsComponent)) {
 		phantomPhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	SoundTriggerComponent* soundTriggerComponent;
 	if (TryGetComponent(COMPONENT_TYPE_SOUND_TRIGGER, soundTriggerComponent)) {
-	    soundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		soundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	BuffComponent* buffComponent;
-	if (TryGetComponent(COMPONENT_TYPE_BUFF, buffComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_BUFF, buffComponent)) {
 		buffComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 
 		DestroyableComponent* destroyableComponent;
-		if (TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent))
-		{
+		if (TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent)) {
 			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 		}
 		destroyableSerialized = true;
@@ -1040,8 +1039,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 	if (HasComponent(COMPONENT_TYPE_COLLECTIBLE)) {
 		DestroyableComponent* destroyableComponent;
-		if (TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent) && !destroyableSerialized)
-		{
+		if (TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
 			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 		}
 		destroyableSerialized = true;
@@ -1049,8 +1047,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	}
 
 	PetComponent* petComponent;
-	if (TryGetComponent(COMPONENT_TYPE_PET, petComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_PET, petComponent)) {
 		petComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
@@ -1064,44 +1061,54 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
 		}
+
+		LevelProgressionComponent* levelProgressionComponent;
+		if (TryGetComponent(COMPONENT_TYPE_LEVEL_PROGRESSION, levelProgressionComponent)) {
+			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
+		}
+
+		PlayerForcedMovementComponent* playerForcedMovementComponent;
+		if (TryGetComponent(COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT, playerForcedMovementComponent)) {
+			playerForcedMovementComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		} else {
+			// Should never happen, but just to be safe
+			outBitStream->Write0();
+		}
+
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	if (HasComponent(COMPONENT_TYPE_ITEM))
-	{
+	if (HasComponent(COMPONENT_TYPE_ITEM)) {
 		outBitStream->Write0();
 	}
 
 	InventoryComponent* inventoryComponent;
-	if (TryGetComponent(COMPONENT_TYPE_INVENTORY, inventoryComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_INVENTORY, inventoryComponent)) {
 		inventoryComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	ScriptComponent* scriptComponent;
-	if (TryGetComponent(COMPONENT_TYPE_SCRIPT, scriptComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_SCRIPT, scriptComponent)) {
 		scriptComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	SkillComponent* skillComponent;
-	if (TryGetComponent(COMPONENT_TYPE_SKILL, skillComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_SKILL, skillComponent)) {
 		skillComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	BaseCombatAIComponent* baseCombatAiComponent;
-	if (TryGetComponent(COMPONENT_TYPE_BASE_COMBAT_AI, baseCombatAiComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_BASE_COMBAT_AI, baseCombatAiComponent)) {
 		baseCombatAiComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	RebuildComponent* rebuildComponent;
-	if (TryGetComponent(COMPONENT_TYPE_REBUILD, rebuildComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_REBUILD, rebuildComponent)) {
 		DestroyableComponent* destroyableComponent;
-		if (TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent) && !destroyableSerialized)
-		{
+		if (TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
 			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 		}
 		destroyableSerialized = true;
@@ -1109,8 +1116,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	}
 
 	MovingPlatformComponent* movingPlatformComponent;
-	if (TryGetComponent(COMPONENT_TYPE_MOVING_PLATFORM, movingPlatformComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_MOVING_PLATFORM, movingPlatformComponent)) {
 		movingPlatformComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
@@ -1120,14 +1126,12 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	}
 
 	VendorComponent* vendorComponent;
-	if (TryGetComponent(COMPONENT_TYPE_VENDOR, vendorComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_VENDOR, vendorComponent)) {
 		vendorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	BouncerComponent* bouncerComponent;
-	if (TryGetComponent(COMPONENT_TYPE_BOUNCER, bouncerComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_BOUNCER, bouncerComponent)) {
 		bouncerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
@@ -1136,20 +1140,18 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		scriptedActivityComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-    ShootingGalleryComponent* shootingGalleryComponent;
-    if (TryGetComponent(COMPONENT_TYPE_SHOOTING_GALLERY, shootingGalleryComponent)) {
-        shootingGalleryComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-    }
+	ShootingGalleryComponent* shootingGalleryComponent;
+	if (TryGetComponent(COMPONENT_TYPE_SHOOTING_GALLERY, shootingGalleryComponent)) {
+		shootingGalleryComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	}
 
 	RacingControlComponent* racingControlComponent;
-	if (TryGetComponent(COMPONENT_TYPE_RACING_CONTROL, racingControlComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_RACING_CONTROL, racingControlComponent)) {
 		racingControlComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	LUPExhibitComponent* lupExhibitComponent;
-	if (TryGetComponent(COMPONENT_TYPE_EXHIBIT, lupExhibitComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_EXHIBIT, lupExhibitComponent)) {
 		lupExhibitComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
@@ -1159,28 +1161,26 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	}
 
 	RenderComponent* renderComponent;
-	if (TryGetComponent(COMPONENT_TYPE_RENDER, renderComponent))
-	{
+	if (TryGetComponent(COMPONENT_TYPE_RENDER, renderComponent)) {
 		renderComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	if (HasComponent(COMPONENT_TYPE_ZONE_CONTROL))
-	{
+	if (modelComponent) {
+		DestroyableComponent* destroyableComponent;
+		if (TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			destroyableSerialized = true;
+		}
+	}
+
+	if (HasComponent(COMPONENT_TYPE_ZONE_CONTROL)) {
 		outBitStream->Write<uint32_t>(0x40000000);
 	}
 
 	// BBB Component, unused currently
-	// Need to to write0 so that is serlaizese correctly
+	// Need to to write0 so that is serialized correctly
 	// TODO: Implement BBB Component
 	outBitStream->Write0();
-
-	/*
-	if (m_Trigger != nullptr)
-	{
-		outBitStream->Write1();
-		outBitStream->Write(m_Trigger->id);
-	}
-	*/
 }
 
 void Entity::ResetFlags() {
@@ -1191,8 +1191,7 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 	//This function should only ever be called from within Character, meaning doc should always exist when this is called.
 	//Naturally, we don't include any non-player components in this update function.
 
-	for (const auto& pair : m_Components)
-	{
+	for (const auto& pair : m_Components) {
 		if (pair.second == nullptr) continue;
 
 		pair.second->UpdateXml(doc);
@@ -1200,17 +1199,21 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 }
 
 void Entity::Update(const float deltaTime) {
-	for (int i = 0; i < m_Timers.size(); i++) {
-		m_Timers[i]->Update(deltaTime);
-		if (m_Timers[i]->GetTime() <= 0) {
-			const auto timerName = m_Timers[i]->GetName();
+	uint32_t timerPosition;
+	timerPosition = 0;
+	while (timerPosition < m_Timers.size()) {
+		m_Timers[timerPosition]->Update(deltaTime);
+		if (m_Timers[timerPosition]->GetTime() <= 0) {
+			const auto timerName = m_Timers[timerPosition]->GetName();
 
-			delete m_Timers[i];
-			m_Timers.erase(m_Timers.begin() + i);
+			delete m_Timers[timerPosition];
+			m_Timers.erase(m_Timers.begin() + timerPosition);
 
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+		} else {
+			timerPosition++;
 		}
 	}
 
@@ -1223,14 +1226,19 @@ void Entity::Update(const float deltaTime) {
 		}
 	}
 
-	if (IsSleeping())
-	{
+	// Add pending timers to the list of timers so they start next tick.
+	if (m_PendingTimers.size() > 0) {
+		for (auto namedTimer : m_PendingTimers) {
+			m_Timers.push_back(namedTimer);
+		}
+		m_PendingTimers.clear();
+	}
+
+	if (IsSleeping()) {
 		Sleep();
 
 		return;
-	}
-	else
-	{
+	} else {
 		Wake();
 	}
 
@@ -1238,8 +1246,7 @@ void Entity::Update(const float deltaTime) {
 		script->OnUpdate(this);
 	}
 
-	for (const auto& pair : m_Components)
-	{
+	for (const auto& pair : m_Components) {
 		if (pair.second == nullptr) continue;
 
 		pair.second->Update(deltaTime);
@@ -1272,8 +1279,8 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 		script->OnCollisionPhantom(this, other);
 	}
 
-	for (const auto& callback: m_PhantomCollisionCallbacks) {
-	    callback(other);
+	for (const auto& callback : m_PhantomCollisionCallbacks) {
+		callback(other);
 	}
 
 	SwitchComponent* switchComp = GetComponent<SwitchComponent>();
@@ -1288,19 +1295,16 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 
 	if (!poi.empty()) {
 		auto* missionComponent = other->GetComponent<MissionComponent>();
-		
-		if (missionComponent != nullptr)
-		{
+
+		if (missionComponent != nullptr) {
 			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_LOCATION, 0, 0, GeneralUtils::UTF16ToWTF8(poi));
 		}
 	}
 
-	if (!other->GetIsDead())
-	{
+	if (!other->GetIsDead()) {
 		auto* combat = GetComponent<BaseCombatAIComponent>();
-		
-		if (combat != nullptr)
-		{
+
+		if (combat != nullptr) {
 			const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
 
 			if (index != m_TargetsInPhantom.end()) return;
@@ -1314,8 +1318,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 	}
 }
 
-void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity)
-{
+void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
 
@@ -1327,44 +1330,41 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity)
 	}
 
 	const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
-	
+
 	if (index == m_TargetsInPhantom.end()) return;
 
 	m_TargetsInPhantom.erase(index);
 }
 
 void Entity::OnFireEventServerSide(Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {
-    for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-        script->OnFireEventServerSide(this, sender, args, param1, param2, param3);
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnFireEventServerSide(this, sender, args, param1, param2, param3);
 	}
 }
 
 void Entity::OnActivityStateChangeRequest(LWOOBJID senderID, int32_t value1, int32_t value2, const std::u16string& stringValue) {
-    for (CppScripts::Script *script : CppScripts::GetEntityScripts(this)) {
-        script->OnActivityStateChangeRequest(this, senderID, value1, value2, stringValue);
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnActivityStateChangeRequest(this, senderID, value1, value2, stringValue);
 	}
 }
 
-void Entity::OnCinematicUpdate(Entity *self, Entity *sender, eCinematicEvent event, const std::u16string &pathName,
-                               float_t pathTime, float_t totalTime, int32_t waypoint) {
-    for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-        script->OnCinematicUpdate(self, sender, event, pathName, pathTime, totalTime, waypoint);
-    }
+void Entity::OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent event, const std::u16string& pathName,
+	float_t pathTime, float_t totalTime, int32_t waypoint) {
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnCinematicUpdate(self, sender, event, pathName, pathTime, totalTime, waypoint);
+	}
 }
 
-void Entity::NotifyObject(Entity* sender, const std::string& name, int32_t param1, int32_t param2) 
-{
+void Entity::NotifyObject(Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
 	GameMessages::SendNotifyObject(GetObjectID(), sender->GetObjectID(), GeneralUtils::ASCIIToUTF16(name), UNASSIGNED_SYSTEM_ADDRESS);
 
-    for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-        script->OnNotifyObject(this, sender, name, param1, param2);
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnNotifyObject(this, sender, name, param1, param2);
 	}
 }
 
-void Entity::OnEmoteReceived(const int32_t emote, Entity* target)
-{
-	for (auto* script : CppScripts::GetEntityScripts(this))
-	{
+void Entity::OnEmoteReceived(const int32_t emote, Entity* target) {
+	for (auto* script : CppScripts::GetEntityScripts(this)) {
 		script->OnEmoteReceived(this, emote, target);
 	}
 }
@@ -1377,9 +1377,8 @@ void Entity::OnUse(Entity* originator) {
 	}
 
 	// component base class when
-	
-	for (const auto& pair : m_Components)
-	{
+
+	for (const auto& pair : m_Components) {
 		if (pair.second == nullptr) continue;
 
 		pair.second->OnUse(originator);
@@ -1398,85 +1397,80 @@ void Entity::OnHit(Entity* attacker) {
 	}
 }
 
-void Entity::OnZonePropertyEditBegin()
-{
+void Entity::OnZonePropertyEditBegin() {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnZonePropertyEditBegin(this);
 	}
 }
 
-void Entity::OnZonePropertyEditEnd()
-{
+void Entity::OnZonePropertyEditEnd() {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnZonePropertyEditEnd(this);
 	}
 }
 
-void Entity::OnZonePropertyModelEquipped()
-{
+void Entity::OnZonePropertyModelEquipped() {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnZonePropertyModelEquipped(this);
 	}
 }
 
-void Entity::OnZonePropertyModelPlaced(Entity* player)
-{
+void Entity::OnZonePropertyModelPlaced(Entity* player) {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnZonePropertyModelPlaced(this, player);
 	}
 }
 
-void Entity::OnZonePropertyModelPickedUp(Entity* player)
-{
+void Entity::OnZonePropertyModelPickedUp(Entity* player) {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnZonePropertyModelPickedUp(this, player);
 	}
 }
 
-void Entity::OnZonePropertyModelRemoved(Entity* player)
-{
+void Entity::OnZonePropertyModelRemoved(Entity* player) {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnZonePropertyModelRemoved(this, player);
 	}
 }
 
-void Entity::OnZonePropertyModelRemovedWhileEquipped(Entity* player)
-{
+void Entity::OnZonePropertyModelRemovedWhileEquipped(Entity* player) {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnZonePropertyModelRemovedWhileEquipped(this, player);
 	}
 }
 
-void Entity::OnZonePropertyModelRotated(Entity* player)
-{
+void Entity::OnZonePropertyModelRotated(Entity* player) {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnZonePropertyModelRotated(this, player);
 	}
 }
 
-void Entity::OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier,  const std::u16string& userData) 
-{
+void Entity::OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnMessageBoxResponse(this, sender, button, identifier, userData);
 	}
 }
 
-void Entity::OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier) 
-{
+void Entity::OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier) {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnChoiceBoxResponse(this, sender, button, buttonIdentifier, identifier);
 	}
 }
 
-void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType) 
-{
+void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType) {
 	if (!m_PlayerIsReadyForUpdates) return;
 
 	auto* destroyableComponent = GetComponent<DestroyableComponent>();
-	if (destroyableComponent == nullptr)
-	{
+	if (destroyableComponent == nullptr) {
 		Kill(EntityManager::Instance()->GetEntity(source));
 		return;
+	}
+	auto* possessorComponent = GetComponent<PossessorComponent>();
+	if (possessorComponent) {
+		if (possessorComponent->GetPossessable() != LWOOBJID_EMPTY) {
+			auto* mount = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+			if (mount) possessorComponent->Dismount(mount, true);
+		}
 	}
 
 	destroyableComponent->Smash(source, killType, deathType);
@@ -1493,62 +1487,53 @@ void Entity::Kill(Entity* murderer) {
 
 	//OMAI WA MOU, SHINDERIU
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this))
-	{
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnDie(this, murderer);
 	}
 
-	if (m_Spawner != nullptr) 
-	{
+	if (m_Spawner != nullptr) {
 		m_Spawner->NotifyOfEntityDeath(m_ObjectID);
 	}
 
-	if (!IsPlayer())
-	{
+	if (!IsPlayer()) {
 		EntityManager::Instance()->DestroyEntity(this);
 	}
-	
+
 	const auto& grpNameQBShowBricks = GetVar<std::string>(u"grpNameQBShowBricks");
 
-	if (!grpNameQBShowBricks.empty())
-	{
+	if (!grpNameQBShowBricks.empty()) {
 		auto spawners = dZoneManager::Instance()->GetSpawnersByName(grpNameQBShowBricks);
 
 		Spawner* spawner = nullptr;
 
-		if (!spawners.empty())
-		{
+		if (!spawners.empty()) {
 			spawner = spawners[0];
-		}
-		else
-		{
+		} else {
 			spawners = dZoneManager::Instance()->GetSpawnersInGroup(grpNameQBShowBricks);
 
-			if (!spawners.empty())
-			{
+			if (!spawners.empty()) {
 				spawner = spawners[0];
 			}
 		}
 
-		if (spawner != nullptr)
-		{
+		if (spawner != nullptr) {
 			spawner->Spawn();
 		}
 	}
 
-    // Track a player being smashed
-    auto* characterComponent = GetComponent<CharacterComponent>();
-    if (characterComponent != nullptr) {
-        characterComponent->UpdatePlayerStatistic(TimesSmashed);
-    }
+	// Track a player being smashed
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent != nullptr) {
+		characterComponent->UpdatePlayerStatistic(TimesSmashed);
+	}
 
-    // Track a player smashing something else
-    if (murderer != nullptr) {
-        auto* murdererCharacterComponent = murderer->GetComponent<CharacterComponent>();
-        if (murdererCharacterComponent != nullptr) {
-            murdererCharacterComponent->UpdatePlayerStatistic(SmashablesSmashed);
-        }
-    }
+	// Track a player smashing something else
+	if (murderer != nullptr) {
+		auto* murdererCharacterComponent = murderer->GetComponent<CharacterComponent>();
+		if (murdererCharacterComponent != nullptr) {
+			murdererCharacterComponent->UpdatePlayerStatistic(SmashablesSmashed);
+		}
+	}
 }
 
 void Entity::AddDieCallback(const std::function<void()>& callback) {
@@ -1556,14 +1541,14 @@ void Entity::AddDieCallback(const std::function<void()>& callback) {
 }
 
 void Entity::AddCollisionPhantomCallback(const std::function<void(Entity* target)>& callback) {
-    m_PhantomCollisionCallbacks.push_back(callback);
+	m_PhantomCollisionCallbacks.push_back(callback);
 }
 
-void Entity::AddRebuildCompleteCallback(const std::function<void(Entity* user)> &callback) const {
-    auto* rebuildComponent = GetComponent<RebuildComponent>();
-    if (rebuildComponent != nullptr) {
-        rebuildComponent->AddRebuildCompleteCallback(callback);
-    }
+void Entity::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const {
+	auto* rebuildComponent = GetComponent<RebuildComponent>();
+	if (rebuildComponent != nullptr) {
+		rebuildComponent->AddRebuildCompleteCallback(callback);
+	}
 }
 
 bool Entity::GetIsDead() const {
@@ -1585,15 +1570,15 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 	if (!inv) return;
 
 	CDObjectsTable* objectsTable = CDClientManager::Instance()->GetTable<CDObjectsTable>("Objects");
-	
+
 	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
 
 	for (const auto& p : droppedLoot) {
 		if (p.first == objectID) {
-		    auto* characterComponent = GetComponent<CharacterComponent>();
-		    if (characterComponent != nullptr) {
-                characterComponent->TrackLOTCollection(p.second.lot);
-		    }
+			auto* characterComponent = GetComponent<CharacterComponent>();
+			if (characterComponent != nullptr) {
+				characterComponent->TrackLOTCollection(p.second.lot);
+			}
 
 			const CDObjects& object = objectsTable->GetByID(p.second.lot);
 			if (object.id != 0 && object.type == "Powerup") {
@@ -1607,13 +1592,11 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 					auto* missionComponent = GetComponent<MissionComponent>();
 
-					if (missionComponent != nullptr)
-					{
+					if (missionComponent != nullptr) {
 						missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_POWERUP, skill.skillID);
 					}
 				}
-			}
-			else {
+			} else {
 				inv->AddItem(p.second.lot, p.second.count, eLootSourceType::LOOT_SOURCE_PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
 			}
 		}
@@ -1626,7 +1609,7 @@ bool Entity::CanPickupCoins(uint64_t count) {
 	if (!IsPlayer()) return false;
 	auto* player = static_cast<Player*>(this);
 	auto droppedCoins = player->GetDroppedCoins();
-	if (count > droppedCoins) { 
+	if (count > droppedCoins) {
 		return false;
 	} else {
 		player->SetDroppedCoins(droppedCoins - count);
@@ -1649,18 +1632,24 @@ void Entity::AddChild(Entity* child) {
 
 void Entity::RemoveChild(Entity* child) {
 	if (!child) return;
-	for (auto entity = m_ChildEntities.begin(); entity != m_ChildEntities.end(); entity++) {
-		if (*entity && (*entity)->GetObjectID() == child->GetObjectID()) {
+	uint32_t entityPosition = 0;
+	while (entityPosition < m_ChildEntities.size()) {
+		if (!m_ChildEntities[entityPosition] || (m_ChildEntities[entityPosition])->GetObjectID() == child->GetObjectID()) {
 			m_IsParentChildDirty = true;
-			m_ChildEntities.erase(entity);
-			return;
+			m_ChildEntities.erase(m_ChildEntities.begin() + entityPosition);
+		} else {
+			entityPosition++;
 		}
 	}
 }
 
+void Entity::RemoveParent() {
+	this->m_ParentEntity = nullptr;
+}
+
 void Entity::AddTimer(std::string name, float time) {
 	EntityTimer* timer = new EntityTimer(name, time);
-	m_Timers.push_back(timer);
+	m_PendingTimers.push_back(timer);
 }
 
 void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
@@ -1668,12 +1657,9 @@ void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
 	m_CallbackTimers.push_back(timer);
 }
 
-bool Entity::HasTimer(const std::string& name) 
-{
-	for (auto* timer : m_Timers)
-	{
-		if (timer->GetName() == name)
-		{
+bool Entity::HasTimer(const std::string& name) {
+	for (auto* timer : m_Timers) {
+		if (timer->GetName() == name) {
 			return true;
 		}
 	}
@@ -1681,13 +1667,11 @@ bool Entity::HasTimer(const std::string& name)
 	return false;
 }
 
-void Entity::CancelCallbackTimers() 
-{
-	for (auto* callback : m_CallbackTimers)
-	{
+void Entity::CancelCallbackTimers() {
+	for (auto* callback : m_CallbackTimers) {
 		delete callback;
 	}
-	
+
 	m_CallbackTimers.clear();
 }
 
@@ -1699,13 +1683,13 @@ void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
 }
 
 void Entity::CancelTimer(const std::string& name) {
-    for (int i = 0; i < m_Timers.size(); i++) {
-        if (m_Timers[i]->GetName() == name) {
-            delete m_Timers[i];
-            m_Timers.erase(m_Timers.begin() + i);
-            return;
-        }
-    }
+	for (int i = 0; i < m_Timers.size(); i++) {
+		if (m_Timers[i]->GetName() == name) {
+			delete m_Timers[i];
+			m_Timers.erase(m_Timers.begin() + i);
+			return;
+		}
+	}
 }
 
 void Entity::CancelAllTimers() {
@@ -1713,8 +1697,7 @@ void Entity::CancelAllTimers() {
 		if (timer) delete timer;
 	}*/
 
-	for (auto* timer : m_Timers)
-	{
+	for (auto* timer : m_Timers) {
 		delete timer;
 	}
 
@@ -1796,17 +1779,16 @@ void Entity::HandleTriggerCommand(std::string id, std::string target, std::strin
 			if (target == "self") {
 				EntityManager::Instance()->ConstructEntity(this);
 			}
-		}
-		else if (id == "updateMission") {
+		} else if (id == "updateMission") {
 			CDMissionTasksTable* missionTasksTable = CDClientManager::Instance()->GetTable<CDMissionTasksTable>("MissionTasks");
 			std::vector<CDMissionTasks> missionTasks = missionTasksTable->Query([=](CDMissionTasks entry) {
 				std::string lowerTargetGroup;
 				for (char character : entry.targetGroup) {
 					lowerTargetGroup.push_back(std::tolower(character)); // make lowercase to ensure it works
 				}
-				
+
 				return (lowerTargetGroup == argArray[4]);
-			});
+				});
 
 			for (const CDMissionTasks& task : missionTasks) {
 				MissionComponent* missionComponent = targetEntity->GetComponent<MissionComponent>();
@@ -1814,23 +1796,19 @@ void Entity::HandleTriggerCommand(std::string id, std::string target, std::strin
 
 				missionComponent->ForceProgress(task.id, task.uid, std::stoi(argArray[2]));
 			}
-		}
-		else if (id == "fireEvent") {
+		} else if (id == "fireEvent") {
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(targetEntity)) {
-                script->OnFireEventServerSide(targetEntity, this, args, 0, 0, 0);
+				script->OnFireEventServerSide(targetEntity, this, args, 0, 0, 0);
 			}
 		}
 	}
 }
 
-Entity* Entity::GetOwner() const
-{
-	if (m_OwnerOverride != LWOOBJID_EMPTY)
-	{
+Entity* Entity::GetOwner() const {
+	if (m_OwnerOverride != LWOOBJID_EMPTY) {
 		auto* other = EntityManager::Instance()->GetEntity(m_OwnerOverride);
 
-		if (other != nullptr)
-		{
+		if (other != nullptr) {
 			return other->GetOwner();
 		}
 	}
@@ -1838,272 +1816,225 @@ Entity* Entity::GetOwner() const
 	return const_cast<Entity*>(this);
 }
 
-const NiPoint3& Entity::GetDefaultPosition() const
-{
+const NiPoint3& Entity::GetDefaultPosition() const {
 	return m_DefaultPosition;
 }
 
-const NiQuaternion& Entity::GetDefaultRotation() const
-{
+const NiQuaternion& Entity::GetDefaultRotation() const {
 	return m_DefaultRotation;
 }
 
-float Entity::GetDefaultScale() const
-{
+float Entity::GetDefaultScale() const {
 	return m_Scale;
 }
 
-void Entity::SetOwnerOverride(const LWOOBJID value)
-{
+void Entity::SetOwnerOverride(const LWOOBJID value) {
 	m_OwnerOverride = value;
 }
 
-bool Entity::GetIsGhostingCandidate() const
-{
+bool Entity::GetIsGhostingCandidate() const {
 	return m_IsGhostingCandidate;
 }
 
-int8_t Entity::GetObservers() const
-{
+int8_t Entity::GetObservers() const {
 	return m_Observers;
 }
 
-void Entity::SetObservers(int8_t value) 
-{
-	if (value < 0)
-	{
+void Entity::SetObservers(int8_t value) {
+	if (value < 0) {
 		value = 0;
 	}
 
 	m_Observers = value;
 }
 
-void Entity::Sleep() 
-{
+void Entity::Sleep() {
 	auto* baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
-	
-	if (baseCombatAIComponent != nullptr)
-	{
+
+	if (baseCombatAIComponent != nullptr) {
 		baseCombatAIComponent->Sleep();
-	}	
+	}
 }
 
-void Entity::Wake() 
-{
+void Entity::Wake() {
 	auto* baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
-	
-	if (baseCombatAIComponent != nullptr)
-	{
+
+	if (baseCombatAIComponent != nullptr) {
 		baseCombatAIComponent->Wake();
 	}
 }
 
-bool Entity::IsSleeping() const
-{
+bool Entity::IsSleeping() const {
 	return m_IsGhostingCandidate && m_Observers == 0;
 }
 
 
-const NiPoint3& Entity::GetPosition() const
-{
+const NiPoint3& Entity::GetPosition() const {
 	if (!this) return NiPoint3::ZERO;
 
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr)
-	{
+	if (controllable != nullptr) {
 		return controllable->GetPosition();
 	}
 
 	auto* phantom = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr)
-	{
+	if (phantom != nullptr) {
 		return phantom->GetPosition();
 	}
 
 	auto* simple = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr)
-	{
+	if (simple != nullptr) {
 		return simple->GetPosition();
 	}
 
 	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
 
-	if (vehicel != nullptr)
-	{
+	if (vehicel != nullptr) {
 		return vehicel->GetPosition();
 	}
 
 	return NiPoint3::ZERO;
 }
 
-const NiQuaternion& Entity::GetRotation() const
-{
+const NiQuaternion& Entity::GetRotation() const {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr)
-	{
+	if (controllable != nullptr) {
 		return controllable->GetRotation();
 	}
 
 	auto* phantom = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr)
-	{
+	if (phantom != nullptr) {
 		return phantom->GetRotation();
 	}
 
 	auto* simple = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr)
-	{
+	if (simple != nullptr) {
 		return simple->GetRotation();
 	}
-	
+
 	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
 
-	if (vehicel != nullptr)
-	{
+	if (vehicel != nullptr) {
 		return vehicel->GetRotation();
 	}
 
 	return NiQuaternion::IDENTITY;
 }
 
-void Entity::SetPosition(NiPoint3 position)
-{
+void Entity::SetPosition(NiPoint3 position) {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr)
-	{
+	if (controllable != nullptr) {
 		controllable->SetPosition(position);
 	}
 
 	auto* phantom = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr)
-	{
+	if (phantom != nullptr) {
 		phantom->SetPosition(position);
 	}
 
 	auto* simple = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr)
-	{
+	if (simple != nullptr) {
 		simple->SetPosition(position);
 	}
 
 	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
 
-	if (vehicel != nullptr)
-	{
+	if (vehicel != nullptr) {
 		vehicel->SetPosition(position);
 	}
 
 	EntityManager::Instance()->SerializeEntity(this);
 }
 
-void Entity::SetRotation(NiQuaternion rotation)
-{
+void Entity::SetRotation(NiQuaternion rotation) {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr)
-	{
+	if (controllable != nullptr) {
 		controllable->SetRotation(rotation);
 	}
 
 	auto* phantom = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr)
-	{
+	if (phantom != nullptr) {
 		phantom->SetRotation(rotation);
 	}
 
 	auto* simple = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr)
-	{
+	if (simple != nullptr) {
 		simple->SetRotation(rotation);
 	}
 
 	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
 
-	if (vehicel != nullptr)
-	{
+	if (vehicel != nullptr) {
 		vehicel->SetRotation(rotation);
 	}
 
 	EntityManager::Instance()->SerializeEntity(this);
 }
 
-bool Entity::GetBoolean(const std::u16string& name) const
-{
+bool Entity::GetBoolean(const std::u16string& name) const {
 	return GetVar<bool>(name);
 }
 
-int32_t Entity::GetI32(const std::u16string& name) const
-{
+int32_t Entity::GetI32(const std::u16string& name) const {
 	return GetVar<int32_t>(name);
 }
 
-int64_t Entity::GetI64(const std::u16string& name) const
-{
+int64_t Entity::GetI64(const std::u16string& name) const {
 	return GetVar<int64_t>(name);
 }
 
-void Entity::SetBoolean(const std::u16string& name, const bool value)
-{
+void Entity::SetBoolean(const std::u16string& name, const bool value) {
 	SetVar(name, value);
 }
 
-void Entity::SetI32(const std::u16string& name, const int32_t value)
-{
+void Entity::SetI32(const std::u16string& name, const int32_t value) {
 	SetVar(name, value);
 }
 
-void Entity::SetI64(const std::u16string& name, const int64_t value)
-{
+void Entity::SetI64(const std::u16string& name, const int64_t value) {
 	SetVar(name, value);
 }
 
-bool Entity::HasVar(const std::u16string& name) const
-{
-	for (auto* data : m_Settings)
-	{
-		if (data->GetKey() == name)
-		{
+bool Entity::HasVar(const std::u16string& name) const {
+	for (auto* data : m_Settings) {
+		if (data->GetKey() == name) {
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
-uint16_t Entity::GetNetworkId() const
-{
+uint16_t Entity::GetNetworkId() const {
 	return m_NetworkID;
 }
 
-void Entity::SetNetworkId(const uint16_t id)
-{
+void Entity::SetNetworkId(const uint16_t id) {
 	m_NetworkID = id;
 }
 
-std::vector<LWOOBJID>& Entity::GetTargetsInPhantom()
-{
+std::vector<LWOOBJID>& Entity::GetTargetsInPhantom() {
 	std::vector<LWOOBJID> valid;
 
 	// Clean up invalid targets, like disconnected players
-	for (auto i = 0u; i < m_TargetsInPhantom.size(); ++i)
-	{
+	for (auto i = 0u; i < m_TargetsInPhantom.size(); ++i) {
 		const auto id = m_TargetsInPhantom.at(i);
 
 		auto* entity = EntityManager::Instance()->GetEntity(id);
 
-		if (entity == nullptr)
-		{
+		if (entity == nullptr) {
 			continue;
 		}
 
@@ -2116,20 +2047,16 @@ std::vector<LWOOBJID>& Entity::GetTargetsInPhantom()
 }
 
 void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAddr) {
-    GameMessages::SendSetNetworkScriptVar(this, sysAddr, data);
+	GameMessages::SendSetNetworkScriptVar(this, sysAddr, data);
 }
 
-LDFBaseData* Entity::GetVarData(const std::u16string& name) const
-{
-	for (auto* data : m_Settings)
-	{
-		if (data == nullptr)
-		{
+LDFBaseData* Entity::GetVarData(const std::u16string& name) const {
+	for (auto* data : m_Settings) {
+		if (data == nullptr) {
 			continue;
 		}
 
-		if (data->GetKey() != name)
-		{
+		if (data->GetKey() != name) {
 			continue;
 		}
 
@@ -2139,12 +2066,10 @@ LDFBaseData* Entity::GetVarData(const std::u16string& name) const
 	return nullptr;
 }
 
-std::string Entity::GetVarAsString(const std::u16string& name) const
-{
+std::string Entity::GetVarAsString(const std::u16string& name) const {
 	auto* data = GetVarData(name);
 
-	if (data == nullptr)
-	{
+	if (data == nullptr) {
 		return "";
 	}
 
@@ -2152,15 +2077,15 @@ std::string Entity::GetVarAsString(const std::u16string& name) const
 }
 
 void Entity::Resurrect() {
-    if (IsPlayer()) {
-        GameMessages::SendResurrect(this);
-    }
+	if (IsPlayer()) {
+		GameMessages::SendResurrect(this);
+	}
 }
 
 void Entity::AddToGroup(const std::string& group) {
-    if (std::find(m_Groups.begin(), m_Groups.end(), group) == m_Groups.end()) {
-        m_Groups.push_back(group);
-    }
+	if (std::find(m_Groups.begin(), m_Groups.end(), group) == m_Groups.end()) {
+		m_Groups.push_back(group);
+	}
 }
 
 void Entity::RetroactiveVaultSize() {

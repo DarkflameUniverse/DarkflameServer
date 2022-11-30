@@ -1,4 +1,4 @@
-﻿#include "MissionPrerequisites.h"
+#include "MissionPrerequisites.h"
 
 #include <sstream>
 #include <ctime>
@@ -52,8 +52,7 @@ PrerequisiteExpression::PrerequisiteExpression(const std::string& str) {
 		case '9':
 			if (sub) {
 				s << character;
-			}
-			else {
+			} else {
 				a << character;
 			}
 			break;
@@ -71,8 +70,7 @@ PrerequisiteExpression::PrerequisiteExpression(const std::string& str) {
 
 	if (!aString.empty()) {
 		this->a = std::stoul(a.str());
-	}
-	else {
+	} else {
 		this->a = 0;
 	}
 
@@ -80,8 +78,7 @@ PrerequisiteExpression::PrerequisiteExpression(const std::string& str) {
 
 	if (!subString.empty()) {
 		this->sub = std::stoul(s.str());
-	}
-	else {
+	} else {
 		this->sub = 0;
 	}
 
@@ -89,8 +86,7 @@ PrerequisiteExpression::PrerequisiteExpression(const std::string& str) {
 
 	if (!bString.empty()) {
 		this->b = new PrerequisiteExpression(bString);
-	}
-	else {
+	} else {
 		this->b = nullptr;
 	}
 }
@@ -109,11 +105,10 @@ bool PrerequisiteExpression::Execute(const std::unordered_map<uint32_t, Mission*
 
 			if (this->sub != 0) {
 				// Special case for one Wisp Lee repeatable mission.
-				a = mission->GetClientInfo().id == 1883 ? 
-					mission->GetMissionState() == static_cast<MissionState>(this->sub) : 
+				a = mission->GetClientInfo().id == 1883 ?
+					mission->GetMissionState() == static_cast<MissionState>(this->sub) :
 					mission->GetMissionState() >= static_cast<MissionState>(this->sub);
-			}
-			else if (mission->IsComplete()) {
+			} else if (mission->IsComplete()) {
 				a = true;
 			}
 		}
@@ -144,42 +139,42 @@ bool MissionPrerequisites::CanAccept(const uint32_t missionId, const std::unorde
 		const auto& info = mission->GetClientInfo();
 
 		if (info.repeatable) {
-            const auto prerequisitesMet = CheckPrerequisites(missionId, missions);
+			const auto prerequisitesMet = CheckPrerequisites(missionId, missions);
 
-            // Checked by client
+			// Checked by client
 			const time_t time = std::time(nullptr);
 			const time_t lock = mission->GetTimestamp() + info.cooldownTime * 60;
 
-            // If there's no time limit, just check the prerequisites, otherwise make sure both conditions are met
+			// If there's no time limit, just check the prerequisites, otherwise make sure both conditions are met
 			return (info.cooldownTime == -1 ? prerequisitesMet : (lock - time < 0)) && prerequisitesMet;
 		}
 
-        // Mission is already accepted and cannot be repeatedly accepted
+		// Mission is already accepted and cannot be repeatedly accepted
 		return false;
 	}
 
-    // Mission is not yet accepted, check the prerequisites
+	// Mission is not yet accepted, check the prerequisites
 	return CheckPrerequisites(missionId, missions);
 }
 
 bool MissionPrerequisites::CheckPrerequisites(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions) {
-    const auto& index = expressions.find(missionId);
-    if (index != expressions.end()) {
-        return index->second->Execute(missions);
-    }
+	const auto& index = expressions.find(missionId);
+	if (index != expressions.end()) {
+		return index->second->Execute(missions);
+	}
 
-    auto* missionsTable = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
-    const auto missionEntries = missionsTable->Query([=](const CDMissions& entry) {
-        return entry.id == static_cast<int>(missionId);
-    });
+	auto* missionsTable = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
+	const auto missionEntries = missionsTable->Query([=](const CDMissions& entry) {
+		return entry.id == static_cast<int>(missionId);
+		});
 
-    if (missionEntries.empty())
-        return false;
+	if (missionEntries.empty())
+		return false;
 
-    auto* expression = new PrerequisiteExpression(missionEntries[0].prereqMissionID);
-    expressions.insert_or_assign(missionId, expression);
+	auto* expression = new PrerequisiteExpression(missionEntries[0].prereqMissionID);
+	expressions.insert_or_assign(missionId, expression);
 
-    return expression->Execute(missions);
+	return expression->Execute(missions);
 }
 
 std::unordered_map<uint32_t, PrerequisiteExpression*> MissionPrerequisites::expressions = {};

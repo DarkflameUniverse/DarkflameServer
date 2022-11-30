@@ -27,23 +27,23 @@
 
 PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(parent) {
 	m_Position = m_Parent->GetDefaultPosition();
-    m_Rotation = m_Parent->GetDefaultRotation();
+	m_Rotation = m_Parent->GetDefaultRotation();
 	m_Scale = m_Parent->GetDefaultScale();
 	m_dpEntity = nullptr;
-    
-    m_EffectInfoDirty = false;
+
+	m_EffectInfoDirty = false;
 	m_PositionInfoDirty = false;
-    
-    m_IsPhysicsEffectActive = false;
-    m_EffectType = 0;
-    m_DirectionalMultiplier = 0.0f;
-    
-    m_MinMax = false;
-    m_Min = 0;
-    m_Max = 1;
-    
-    m_IsDirectional = false;
-    m_Direction = NiPoint3(); // * m_DirectionalMultiplier
+
+	m_IsPhysicsEffectActive = false;
+	m_EffectType = 0;
+	m_DirectionalMultiplier = 0.0f;
+
+	m_MinMax = false;
+	m_Min = 0;
+	m_Max = 1;
+
+	m_IsDirectional = false;
+	m_Direction = NiPoint3(); // * m_DirectionalMultiplier
 
 	if (m_Parent->GetVar<bool>(u"create_physics")) {
 		CreatePhysics();
@@ -82,8 +82,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	}
 
 	// HF - RespawnPoints. Legacy respawn entity.
-	if (m_Parent->GetLOT() == 4945) 
-	{
+	if (m_Parent->GetLOT() == 4945) {
 		m_IsRespawnVolume = true;
 		m_RespawnPos = m_Position;
 		m_RespawnRot = m_Rotation;
@@ -162,63 +161,61 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 			m_dpEntity->SetPosition(m_Position);
 
 			dpWorld::Instance().AddEntity(m_dpEntity);
-		}
-		else if (info->physicsAsset == "miscellaneous\\misc_phys_640x640.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 640.0f, 20.0f, 640.0f);
+		} else if (info->physicsAsset == "miscellaneous\\misc_phys_640x640.hkx") {
+			// Move this down by 13.521004 units so it is still effectively at the same height as before
+			m_Position = m_Position - NiPoint3::UNIT_Y * 13.521004f;
+			// TODO Fix physics simulation to do simulation at high velocities due to bullet through paper problem...
+			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1638.4f, 13.521004f * 2.0f, 1638.4f);
 
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 
 			dpWorld::Instance().AddEntity(m_dpEntity);
-		}
-		else if (info->physicsAsset == "env\\trigger_wall_tall.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 10.0f,  25.0f, 1.0f);
+		} else if (info->physicsAsset == "env\\trigger_wall_tall.hkx") {
+			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 10.0f, 25.0f, 1.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
-		}
-		else if (info->physicsAsset == "env\\env_gen_placeholderphysics.hkx") {
+		} else if (info->physicsAsset == "env\\env_gen_placeholderphysics.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 20.0f, 20.0f, 20.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
-		}
-		else if (info->physicsAsset == "env\\POI_trigger_wall.hkx") {
+		} else if (info->physicsAsset == "env\\POI_trigger_wall.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1.0f, 12.5f, 20.0f); // Not sure what the real size is
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
-		}
-		else if (info->physicsAsset == "env\\NG_NinjaGo\\env_ng_gen_gate_chamber_puzzle_ceiling_tile_falling_phantom.hkx")
-		{
+		} else if (info->physicsAsset == "env\\NG_NinjaGo\\env_ng_gen_gate_chamber_puzzle_ceiling_tile_falling_phantom.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 18.0f, 5.0f, 15.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position + m_Rotation.GetForwardVector() * 7.5f);
 			dpWorld::Instance().AddEntity(m_dpEntity);
-		}
-		else if (info->physicsAsset == "env\\NG_NinjaGo\\ng_flamejet_brick_phantom.HKX")
-		{
+		} else if (info->physicsAsset == "env\\NG_NinjaGo\\ng_flamejet_brick_phantom.HKX") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1.0f, 1.0f, 12.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position + m_Rotation.GetForwardVector() * 6.0f);
 			dpWorld::Instance().AddEntity(m_dpEntity);
-		}
-		else if (info->physicsAsset == "env\\Ring_Trigger.hkx")
-		{
+		} else if (info->physicsAsset == "env\\Ring_Trigger.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 6.0f, 6.0f, 6.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
-		}
-		else {
-			//Game::logger->Log("PhantomPhysicsComponent", "This one is supposed to have %s\n", info->physicsAsset.c_str());
+		} else if (info->physicsAsset == "env\\vfx_propertyImaginationBall.hkx") {
+			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 4.5f);
+			m_dpEntity->SetScale(m_Scale);
+			m_dpEntity->SetRotation(m_Rotation);
+			m_dpEntity->SetPosition(m_Position);
+			dpWorld::Instance().AddEntity(m_dpEntity);
+		} else {
+			//Game::logger->Log("PhantomPhysicsComponent", "This one is supposed to have %s", info->physicsAsset.c_str());
 
 			//add fallback cube:
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);
@@ -254,15 +251,14 @@ void PhantomPhysicsComponent::CreatePhysics() {
 		x = m_Parent->GetVar<float>(u"primitiveModelValueX");
 		y = m_Parent->GetVar<float>(u"primitiveModelValueY");
 		z = m_Parent->GetVar<float>(u"primitiveModelValueZ");
-	}
-	else {
+	} else {
 		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), COMPONENT_TYPE_PHANTOM_PHYSICS);
 
 		CDPhysicsComponentTable* physComp = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
 
 		if (physComp == nullptr) return;
-		
+
 		auto info = physComp->GetByID(componentID);
 
 		if (info == nullptr) return;
@@ -294,7 +290,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 
 	if (!m_dpEntity) return;
 
-	m_dpEntity->SetPosition({m_Position.x, m_Position.y - (height / 2), m_Position.z});
+	m_dpEntity->SetPosition({ m_Position.x, m_Position.y - (height / 2), m_Position.z });
 
 	dpWorld::Instance().AddEntity(m_dpEntity);
 
@@ -302,9 +298,8 @@ void PhantomPhysicsComponent::CreatePhysics() {
 }
 
 void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-    outBitStream->Write(m_PositionInfoDirty || bIsInitialUpdate);
-	if (m_PositionInfoDirty || bIsInitialUpdate)
-	{
+	outBitStream->Write(m_PositionInfoDirty || bIsInitialUpdate);
+	if (m_PositionInfoDirty || bIsInitialUpdate) {
 		outBitStream->Write(m_Position.x);
 		outBitStream->Write(m_Position.y);
 		outBitStream->Write(m_Position.z);
@@ -315,15 +310,15 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 
 		m_PositionInfoDirty = false;
 	}
-    
-    outBitStream->Write(m_EffectInfoDirty || bIsInitialUpdate);
-    if (m_EffectInfoDirty || bIsInitialUpdate) {
-        outBitStream->Write(m_IsPhysicsEffectActive);
-        
-        if (m_IsPhysicsEffectActive) {
-            outBitStream->Write(m_EffectType);
-            outBitStream->Write(m_DirectionalMultiplier);
-            
+
+	outBitStream->Write(m_EffectInfoDirty || bIsInitialUpdate);
+	if (m_EffectInfoDirty || bIsInitialUpdate) {
+		outBitStream->Write(m_IsPhysicsEffectActive);
+
+		if (m_IsPhysicsEffectActive) {
+			outBitStream->Write(m_EffectType);
+			outBitStream->Write(m_DirectionalMultiplier);
+
 			// forgive me father for i have sinned
 			outBitStream->Write0();
 			//outBitStream->Write(m_MinMax);
@@ -331,21 +326,21 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 				//outBitStream->Write(m_Min);
 				//outBitStream->Write(m_Max);
 			//}
-            
-            outBitStream->Write(m_IsDirectional);
-            if (m_IsDirectional) {
-                outBitStream->Write(m_Direction.x);
-                outBitStream->Write(m_Direction.y);
-                outBitStream->Write(m_Direction.z);
-            }
-        }
+
+			outBitStream->Write(m_IsDirectional);
+			if (m_IsDirectional) {
+				outBitStream->Write(m_Direction.x);
+				outBitStream->Write(m_Direction.y);
+				outBitStream->Write(m_Direction.z);
+			}
+		}
 
 		m_EffectInfoDirty = false;
-    }
+	}
 }
 
 void PhantomPhysicsComponent::ResetFlags() {
-    m_EffectInfoDirty = false;
+	m_EffectInfoDirty = false;
 	m_PositionInfoDirty = false;
 }
 
@@ -375,13 +370,13 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 }
 
 void PhantomPhysicsComponent::SetDirection(const NiPoint3& pos) {
-    m_Direction = pos;
-    m_Direction.x *= m_DirectionalMultiplier;
-    m_Direction.y *= m_DirectionalMultiplier;
-    m_Direction.z *= m_DirectionalMultiplier;
-    
-    m_EffectInfoDirty = true;
-    m_IsDirectional = true;
+	m_Direction = pos;
+	m_Direction.x *= m_DirectionalMultiplier;
+	m_Direction.y *= m_DirectionalMultiplier;
+	m_Direction.z *= m_DirectionalMultiplier;
+
+	m_EffectInfoDirty = true;
+	m_IsDirectional = true;
 }
 
 void PhantomPhysicsComponent::SpawnVertices() {
@@ -405,35 +400,35 @@ void PhantomPhysicsComponent::SpawnVertices() {
 }
 
 void PhantomPhysicsComponent::SetDirectionalMultiplier(float mul) {
-    m_DirectionalMultiplier = mul;
-    m_EffectInfoDirty = true;
+	m_DirectionalMultiplier = mul;
+	m_EffectInfoDirty = true;
 }
 
 void PhantomPhysicsComponent::SetEffectType(uint32_t type) {
-    m_EffectType = type;
-    m_EffectInfoDirty = true;
+	m_EffectType = type;
+	m_EffectInfoDirty = true;
 }
 
 void PhantomPhysicsComponent::SetMin(uint32_t min) {
-    m_Min = min;
-    m_MinMax = true;
-    m_EffectInfoDirty = true;
+	m_Min = min;
+	m_MinMax = true;
+	m_EffectInfoDirty = true;
 }
 
 void PhantomPhysicsComponent::SetMax(uint32_t max) {
-    m_Max = max;
-    m_MinMax = true;
-    m_EffectInfoDirty = true;
+	m_Max = max;
+	m_MinMax = true;
+	m_EffectInfoDirty = true;
 }
 
 void PhantomPhysicsComponent::SetPosition(const NiPoint3& pos) {
-    m_Position = pos;
+	m_Position = pos;
 
 	if (m_dpEntity) m_dpEntity->SetPosition(pos);
 }
 
 void PhantomPhysicsComponent::SetRotation(const NiQuaternion& rot) {
-    m_Rotation = rot;
+	m_Rotation = rot;
 
 	if (m_dpEntity) m_dpEntity->SetRotation(rot);
 }

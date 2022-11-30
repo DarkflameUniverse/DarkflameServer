@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Behavior.h"
 
 class SwitchBehavior final : public Behavior
@@ -13,13 +13,12 @@ public:
 	bool m_isEnemyFaction;
 
 	int32_t m_targetHasBuff;
-	
+
 	/*
 	 * Inherited
 	 */
 
-	explicit SwitchBehavior(const uint32_t behaviorId) : Behavior(behaviorId)
-	{
+	explicit SwitchBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {
 	}
 
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;

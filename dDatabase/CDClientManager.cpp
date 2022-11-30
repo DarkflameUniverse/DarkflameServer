@@ -1,14 +1,14 @@
 #include "CDClientManager.h"
 
 // Static Variables
-CDClientManager * CDClientManager::m_Address = nullptr;
+CDClientManager* CDClientManager::m_Address = nullptr;
 
 //! Initializes the manager
 void CDClientManager::Initialize(void) {
 	tables.insert(std::make_pair("ActivityRewards", new CDActivityRewardsTable()));
 	UNUSED(tables.insert(std::make_pair("Animations", new CDAnimationsTable())));
 	tables.insert(std::make_pair("BehaviorParameter", new CDBehaviorParameterTable()));
-	UNUSED(tables.insert(std::make_pair("BehaviorTemplate", new CDBehaviorTemplateTable())));
+	tables.insert(std::make_pair("BehaviorTemplate", new CDBehaviorTemplateTable()));
 	tables.insert(std::make_pair("ComponentsRegistry", new CDComponentsRegistryTable()));
 	tables.insert(std::make_pair("CurrencyTable", new CDCurrencyTableTable()));
 	tables.insert(std::make_pair("DestructibleComponent", new CDDestructibleComponentTable()));

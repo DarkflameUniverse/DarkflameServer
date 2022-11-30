@@ -15,6 +15,8 @@ enum class ServerType : uint32_t {
 
 class dServer {
 public:
+	// Default constructor should only used for testing!
+	dServer() {};
 	dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, unsigned int zoneID = 0);
 	~dServer();
 
@@ -22,7 +24,7 @@ public:
 	Packet* Receive();
 	void DeallocatePacket(Packet* packet);
 	void DeallocateMasterPacket(Packet* packet);
-	void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast);
+	virtual void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast);
 	void SendToMaster(RakNet::BitStream* bitStream);
 
 	void Disconnect(const SystemAddress& sysAddr, uint32_t disconNotifyID);
@@ -55,13 +57,13 @@ private:
 	bool ConnectToMaster();
 
 private:
-	dLogger* mLogger;
-	RakPeerInterface* mPeer;
-	ReplicaManager* mReplicaManager;
-	NetworkIDManager* mNetIDManager;
+	dLogger* mLogger = nullptr;
+	RakPeerInterface* mPeer = nullptr;
+	ReplicaManager* mReplicaManager = nullptr;
+	NetworkIDManager* mNetIDManager = nullptr;
 	SocketDescriptor mSocketDescriptor;
 	std::string mIP;
-	int mPort;	
+	int mPort;
 	int mMaxConnections;
 	unsigned int mZoneID;
 	int mInstanceID;
@@ -71,7 +73,7 @@ private:
 	bool mMasterConnectionActive;
 	ServerType mServerType;
 
-	RakPeerInterface* mMasterPeer;
+	RakPeerInterface* mMasterPeer = nullptr;
 	SocketDescriptor mMasterSocketDescriptor;
 	SystemAddress mMasterSystemAddress;
 	std::string mMasterIP;

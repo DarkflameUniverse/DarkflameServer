@@ -1,4 +1,7 @@
-﻿#pragma once
+#pragma once
+
+#ifndef BEHAVIORSLOT_H
+#define BEHAVIORSLOT_H
 
 enum class BehaviorSlot
 {
@@ -9,3 +12,5 @@ enum class BehaviorSlot
 	Head,
 	Consumable
 };
+
+#endif

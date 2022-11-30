@@ -1,4 +1,4 @@
-﻿#include "PropertyDataMessage.h"
+#include "PropertyDataMessage.h"
 
 #include "GeneralUtils.h"
 
@@ -6,8 +6,7 @@
 #include "dLogger.h"
 #include "CDClientManager.h"
 
-void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) const
-{
+void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) const {
 	stream.Write<int64_t>(0); // - property id
 
 	stream.Write<int32_t>(TemplateID); // - template id
@@ -15,19 +14,19 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<uint16_t>(VendorMapId); // - vendor map id
 	stream.Write<uint32_t>(cloneId); // clone id
 
-	const auto& name = GeneralUtils::ASCIIToUTF16(Name);
+	const auto& name = GeneralUtils::UTF8ToUTF16(Name);
 	stream.Write(uint32_t(name.size()));
 	for (uint32_t i = 0; i < name.size(); ++i) {
 		stream.Write(uint16_t(name[i]));
 	}
 
-	const auto& description = GeneralUtils::ASCIIToUTF16(Description);
+	const auto& description = GeneralUtils::UTF8ToUTF16(Description);
 	stream.Write(uint32_t(description.size()));
 	for (uint32_t i = 0; i < description.size(); ++i) {
 		stream.Write(uint16_t(description[i]));
 	}
 
-	const auto& owner = GeneralUtils::ASCIIToUTF16(OwnerName);
+	const auto& owner = GeneralUtils::UTF8ToUTF16(OwnerName);
 	stream.Write(uint32_t(owner.size()));
 	for (uint32_t i = 0; i < owner.size(); ++i) {
 		stream.Write(uint16_t(owner[i]));
@@ -39,9 +38,9 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<uint32_t>(0); // - zone code
 	stream.Write<uint32_t>(0); // - minimum price
 	stream.Write<uint32_t>(1); // - rent duration
-	
+
 	stream.Write<uint64_t>(LastUpdatedTime); // - timestamp
-	
+
 	stream.Write<uint32_t>(1);
 
 	stream.Write<uint32_t>(reputation); // Reputation
@@ -52,7 +51,7 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	for (uint32_t i = 0; i < spawn.size(); ++i) {
 		stream.Write(uint16_t(spawn[i]));
 	}
-	
+
 	stream.Write<uint32_t>(0); // String length
 	stream.Write<uint32_t>(0); // String length
 
@@ -69,7 +68,7 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	else stream.Write<uint32_t>(REJECTION_STATUS_PENDING);
 
 	// Does this go here???
-	// const auto& rejectionReasonConverted = GeneralUtils::ASCIIToUTF16(rejectionReason);
+	// const auto& rejectionReasonConverted = GeneralUtils::UTF8ToUTF16(rejectionReason);
 	// stream.Write(uint32_t(rejectionReasonConverted.size()));
 	// for (uint32_t i = 0; i < rejectionReasonConverted.size(); ++i) {
 	// 	stream.Write(uint16_t(rejectionReasonConverted[i]));
@@ -89,13 +88,12 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<float>(MaxBuildHeight);
 
 	stream.Write(ClaimedTime); // - timestamp
-	
+
 	stream.Write<char>(PrivacyOption);
 
 	stream.Write(uint32_t(Paths.size()));
 
-	for (const auto& path : Paths)
-	{
+	for (const auto& path : Paths) {
 		stream.Write(path.x);
 		stream.Write(path.y);
 		stream.Write(path.z);
@@ -103,11 +101,11 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 }
 
 GameMessages::PropertyDataMessage::PropertyDataMessage(uint32_t mapID) {
-    const auto propertyTemplate = CDClientManager::Instance()->
-            GetTable<CDPropertyTemplateTable>("PropertyTemplate")->GetByMapID(mapID);
+	const auto propertyTemplate = CDClientManager::Instance()->
+		GetTable<CDPropertyTemplateTable>("PropertyTemplate")->GetByMapID(mapID);
 
-    TemplateID = propertyTemplate.id;
-    ZoneId = propertyTemplate.mapID;
-    VendorMapId = propertyTemplate.vendorMapID;
-    SpawnName = propertyTemplate.spawnName;
+	TemplateID = propertyTemplate.id;
+	ZoneId = propertyTemplate.mapID;
+	VendorMapId = propertyTemplate.vendorMapID;
+	SpawnName = propertyTemplate.spawnName;
 }

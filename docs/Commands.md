@@ -32,6 +32,7 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |gminvis|`/gminvis`|Toggles invisibility for the character, though it's currently a bit buggy. Requires nonzero GM Level for the character, but the account must have a GM level of 8.|8|
 |setname|`/setname <name>`|Sets a temporary name for your player. The name resets when you log out.|8|
 |title|`/title <title>`|Temporarily appends your player's name with " - &#60;title&#62;". This resets when you log out.|8|
+|fly|`/fly <speed>`|This toggles your flying state with an optional parameter for the speed scale.|4|
 
 ## Server Operation Commands
 
@@ -62,7 +63,8 @@ These commands are primarily for development and testing. The usage of many of t
 |teleport|`/teleport <x> (y) <z>`|Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z). Alias: `/tele`.|6|
 |activatespawner|`/activatespawner <spawner name>`|Activates spawner by name.|8|
 |addmission|`/addmission <mission id>`|Accepts the mission, adding it to your journal.|8|
-|boost|`/boost`|Adds a passive boost action if you are in a vehicle.|8|
+|boost|`/boost (time)`|Adds a passive boost action if you are in a vehicle. If time is given it will end after that amount of time|8|
+|unboost|`/unboost`|Removes a passive vehicle boost|8|
 |buff|`/buff <id> <duration>`|Applies the buff with the given id for the given number of seconds.|8|
 |buffme|`/buffme`|Sets health, armor, and imagination to 999.|8|
 |buffmed|`/buffmed`|Sets health, armor, and imagination to 9.|8|
@@ -70,7 +72,7 @@ These commands are primarily for development and testing. The usage of many of t
 |completemission|`/completemission <mission id>`|Completes the mission, removing it from your journal.|8|
 |createprivate|`/createprivate <zone id> <clone id> <password>`|Creates a private zone with password.|8|
 |debugui|`/debugui`|Toggle Debug UI.|8|
-|dismount|`/dismount`|Dismounts you from the vehicle.|8|
+|dismount|`/dismount`|Dismounts you from the vehicle or mount.|8|
 |force-save|`/force-save`|While saving to database usually happens on regular intervals and when you disconnect from the server, this command saves your player's data to the database.|8|
 |freecam|`/freecam`|Toggles freecam mode.|8|
 |freemoney|`/freemoney <coins>`|Gives coins.|8|
