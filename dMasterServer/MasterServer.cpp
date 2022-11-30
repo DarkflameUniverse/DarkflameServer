@@ -358,7 +358,7 @@ int main(int argc, char** argv) {
 			}
 		}
 		Game::logger->Log("5", "");
-		t += std::chrono::milliseconds(highFrameRate);
+		t += std::chrono::milliseconds(lowFramerate);
 		std::this_thread::sleep_until(t);
 	}
 	FinalizeShutdown();
