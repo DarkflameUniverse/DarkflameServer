@@ -1268,9 +1268,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
 		if (!controllablePhysicsComponent) return;
 
-		LOT lot;
-		uint32_t numberToSpawn;
-		float radiusToSpawnWithin;
+		LOT lot{};
+		uint32_t numberToSpawn{};
+		float radiusToSpawnWithin{};
 
 		if (!GeneralUtils::TryParse(args[0], lot)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid lot.");
@@ -1296,10 +1296,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		auto playerPosition = controllablePhysicsComponent->GetPosition();
 		while (numberToSpawn > 0) {
-			// get a random angle and radius.  Since RandomNumber takes a size_t we need to make the
-			// decimal quite large so that the angle and radius that is chosen is equally random.
-			auto randomAngle = GeneralUtils::GenerateRandomNumber<float>(0.0f, 2 * PI * 100000);
-			auto randomRadius = GeneralUtils::GenerateRandomNumber<float>(0.0f, radiusToSpawnWithin * 100000);
+			auto randomAngle = GeneralUtils::GenerateRandomNumber<float>(0.0f, 2 * PI);
+			auto randomRadius = GeneralUtils::GenerateRandomNumber<float>(0.0f, radiusToSpawnWithin);
 
 			// Set the position to the generated random position plus the player position.  This will
 			// spawn the entity in a circle around the player.  As you get further from the player, the angle chosen will get less accurate.
