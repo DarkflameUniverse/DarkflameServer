@@ -8,6 +8,7 @@ LevelProgressionComponent::LevelProgressionComponent(Entity* parent) : Component
 	m_Parent = parent;
 	m_Level = 1;
 	m_SpeedBase = 500.0f;
+	m_CharacterVersion = 1;
 }
 
 void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
@@ -18,6 +19,7 @@ void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	}
 	level->SetAttribute("l", m_Level);
 	level->SetAttribute("sb", m_SpeedBase);
+	level->SetAttribute("cv", m_CharacterVersion);
 }
 
 void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
@@ -28,6 +30,7 @@ void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	}
 	level->QueryAttribute("l", &m_Level);
 	level->QueryAttribute("sb", &m_SpeedBase);
+	level->QueryAttribute("cv", &m_CharacterVersion);
 }
 
 void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {

@@ -1003,14 +1003,20 @@ void HandlePacket(Packet* packet) {
 					player->GetComponent<CharacterComponent>()->RocketUnEquip(player);
 				}
 
-				c->SetRetroactiveFlags();
+				// Do charxml fixes here
+				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
+				if (!levelComponent) return;
 
-				player->RetroactiveVaultSize();
+				if (levelComponent->GetCharacterVersion() == 1) {
+					Game::logger->Log("WorldServer", "Upgrading Character version to 2");
+					c->SetRetroactiveFlags();
+					player->RetroactiveVaultSize();
+					levelComponent->SetRetroactiveBaseSpeed();
+					// Now upgrade the charxml version so tht we know we have done these fixes
+					levelComponent->SetCharacterVersion(2);
+				}
 
 				player->GetCharacter()->SetTargetScene("");
-
-				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
-				if (levelComponent) levelComponent->SetRetroactiveBaseSpeed();
 
 				// Fix the destroyable component
 				auto* destroyableComponent = player->GetComponent<DestroyableComponent>();

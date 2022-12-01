@@ -62,6 +62,18 @@ public:
 	void HandleLevelUp();
 
 	/**
+	 * Gets the current Character Version of the entity
+	 * @return the current Character Version of the entity
+	 */
+	const uint32_t GetCharacterVersion() const { return m_CharacterVersion; }
+
+	/**
+	 * Sets the Character Version of the entity
+	 * @param CharacterVersion the Character Version to set
+	 */
+	void SetCharacterVersion(uint32_t CharacterVersion) { m_CharacterVersion = CharacterVersion; }
+
+	/**
 	 * Set the Base Speed retroactively of the entity
 	 */
 	void SetRetroactiveBaseSpeed();
@@ -81,4 +93,10 @@ private:
 	 * The base speed of the entity
 	 */
 	float m_SpeedBase;
+
+	/**
+	 * The Character format version
+	 */
+	uint32_t m_CharacterVersion;
+
 };
