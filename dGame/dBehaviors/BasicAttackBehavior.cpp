@@ -14,43 +14,65 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
 			PlayFx(u"onhit", entity->GetObjectID());
-			destroyableComponent->Damage(this->m_maxDamage, context->originator, context->skillID);
+			destroyableComponent->Damage(this->m_MaxDamage, context->originator, context->skillID);
 		}
 
-		this->m_onSuccess->Handle(context, bitStream, branch);
+		this->m_OnSuccess->Handle(context, bitStream, branch);
 
 		return;
 	}
 
 	bitStream->AlignReadToByteBoundary();
 
-	uint16_t allocatedBits;
-	bitStream->Read(allocatedBits);
-
+	uint16_t allocatedBits{};
+	if (!bitStream->Read(allocatedBits) || allocatedBits == 0) {
+		Game::logger->LogDebug("BasicAttackBehavior", "No allocated bits");
+		return;
+	}
+	Game::logger->LogDebug("BasicAttackBehavior", "Number of allocated bits %i", allocatedBits);
 	const auto baseAddress = bitStream->GetReadOffset();
-	if (bitStream->ReadBit()) { // Blocked
+	bool isBlocked{};
+	bool isImmune{};
+	bool isSuccess{};
+
+	if (!bitStream->Read(isBlocked)) {
+		Game::logger->LogDebug("BasicAttackBehavior", "Unable to read isBlocked");
 		return;
 	}
 
-	if (bitStream->ReadBit()) { // Immune
+	if (isBlocked) return;
+
+	if (!bitStream->Read(isImmune)) {
+		Game::logger->LogDebug("BasicAttackBehavior", "Unable to read isImmune");
 		return;
 	}
 
-	if (bitStream->ReadBit()) { // Success
-		uint32_t unknown;
-		bitStream->Read(unknown);
+	if (isImmune) return;
 
-		uint32_t damageDealt;
-		bitStream->Read(damageDealt);
+	if (bitStream->Read(isSuccess) && isSuccess) { // Success
+		uint32_t unknown{};
+		if (!bitStream->Read(unknown)) {
+			Game::logger->LogDebug("BasicAttackBehavior", "Unable to read unknown");
+			return;
+		}
+
+		uint32_t damageDealt{};
+		if (!bitStream->Read(damageDealt)) {
+			Game::logger->LogDebug("BasicAttackBehavior", "Unable to read damageDealt");
+			return;
+		}
 
 		// A value that's too large may be a cheating attempt, so we set it to MIN too
-		if (damageDealt > this->m_maxDamage || damageDealt < this->m_minDamage) {
-			damageDealt = this->m_minDamage;
+		if (damageDealt > this->m_MaxDamage || damageDealt < this->m_MinDamage) {
+			damageDealt = this->m_MinDamage;
 		}
 
 		auto* entity = EntityManager::Instance()->GetEntity(branch.target);
-		bool died;
-		bitStream->Read(died);
+		bool died{};
+		if (!bitStream->Read(died)) {
+			Game::logger->LogDebug("BasicAttackBehavior", "Unable to read died");
+			return;
+		}
 
 		if (entity != nullptr) {
 			auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
@@ -61,15 +83,21 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		}
 	}
 
-	uint8_t successState;
-	bitStream->Read(successState);
+	uint8_t successState{};
+	if (!bitStream->Read(successState)) {
+		Game::logger->LogDebug("BasicAttackBehavior", "Unable to read success state");
+		return;
+	}
 
 	switch (successState) {
 	case 1:
-		this->m_onSuccess->Handle(context, bitStream, branch);
+		this->m_OnSuccess->Handle(context, bitStream, branch);
+		break;
+	case 2:
+		this->m_OnFailArmor->Handle(context, bitStream, branch);
 		break;
 	default:
-		Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!", successState);
+		Game::logger->LogDebug("BasicAttackBehavior", "Unknown success state (%i)!", successState);
 		break;
 	}
 
@@ -79,7 +107,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* self = EntityManager::Instance()->GetEntity(context->originator);
 	if (self == nullptr) {
-		Game::logger->Log("BasicAttackBehavior", "Invalid self entity (%llu)!", context->originator);
+		Game::logger->LogDebug("BasicAttackBehavior", "Invalid self entity (%llu)!", context->originator);
 		return;
 	}
 
@@ -99,7 +127,7 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 		uint32_t unknown3 = 0;
 		bitStream->Write(unknown3);
 
-		auto damage = this->m_minDamage;
+		auto damage = this->m_MinDamage;
 		auto* entity = EntityManager::Instance()->GetEntity(branch.target);
 
 		if (entity == nullptr) {
@@ -124,10 +152,10 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 
 	switch (successState) {
 	case 1:
-		this->m_onSuccess->Calculate(context, bitStream, branch);
+		this->m_OnSuccess->Calculate(context, bitStream, branch);
 		break;
 	default:
-		Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!", successState);
+		Game::logger->LogDebug("BasicAttackBehavior", "Unknown success state (%i)!", successState);
 		break;
 	}
 
@@ -140,11 +168,13 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 }
 
 void BasicAttackBehavior::Load() {
-	this->m_minDamage = GetInt("min damage");
-	if (this->m_minDamage == 0) this->m_minDamage = 1;
+	this->m_MinDamage = GetInt("min damage");
+	if (this->m_MinDamage == 0) this->m_MinDamage = 1;
 
-	this->m_maxDamage = GetInt("max damage");
-	if (this->m_maxDamage == 0) this->m_maxDamage = 1;
+	this->m_MaxDamage = GetInt("max damage");
+	if (this->m_MaxDamage == 0) this->m_MaxDamage = 1;
 
-	this->m_onSuccess = GetAction("on_success");
+	this->m_OnSuccess = GetAction("on_success");
+
+	this->m_OnFailArmor = GetAction("on_fail_armor");
 }

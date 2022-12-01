@@ -319,34 +319,6 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 			const auto distance = Vector3::DistanceSquared(targetPosition, closestPoint);
 
 			if (distance > 3 * 3) {
-				/*
-				if (entry.TrackTarget && distance <= entry.TrackRadius)
-				{
-					const auto rotation = NiQuaternion::LookAtUnlocked(position, targetPosition);
-
-					const auto speed = entry.Velocity.Length();
-
-					const auto homingTarget = rotation.GetForwardVector() * speed;
-
-					Vector3 homing;
-
-					// Move towards
-
-					const auto difference = homingTarget - entry.Velocity;
-					const auto mag = difference.Length();
-					if (mag <= speed || mag == 0)
-					{
-						homing = homingTarget;
-					}
-					else
-					{
-						entry.Velocity + homingTarget / mag * speed;
-					}
-
-					entry.Velocity = homing;
-				}
-				*/
-
 				continue;
 			}
 
