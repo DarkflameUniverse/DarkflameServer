@@ -73,9 +73,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write0(); //This contains info about immunities, but for now I'm leaving it out.
 	}
 
-	if (m_IgnoreMultipliers) {
-		m_DirtyCheats = false;
-	}
+	if ( m_IgnoreMultipliers || m_SpeedMultiplier < 1.0f) m_DirtyCheats = false;
 
 	outBitStream->Write(m_DirtyCheats);
 	if (m_DirtyCheats) {
