@@ -181,7 +181,7 @@ bool dServer::Startup() {
 	if (mIsInternal) {
 		mPeer->SetIncomingPassword("3.25 DARKFLAME1", 15);
 	} else {
-		//mPeer->SetPerConnectionOutgoingBandwidthLimit(800000); //100Kb/s
+		mPeer->SetPerConnectionOutgoingBandwidthLimit(800000); //100Kb/s
 		mPeer->SetIncomingPassword("3.25 ND1", 8);
 	}
 
