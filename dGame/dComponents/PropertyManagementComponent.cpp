@@ -17,6 +17,7 @@
 #include "Player.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
+#include "InventoryComponent.h"
 
 #include <vector>
 #include "CppScripts.h"

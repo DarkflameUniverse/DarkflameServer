@@ -5,7 +5,6 @@
 #include "dCommonVars.h"
 #include "RakNetTypes.h"
 #include <string>
-#include "InventoryComponent.h"
 #include "dMessageIdentifiers.h"
 #include "AMFFormat.h"
 #include "AMFFormat_BitStream.h"
@@ -20,6 +19,8 @@ class User;
 class Entity;
 class NiPoint3;
 enum class eUnequippableActiveType;
+enum eInventoryType : uint32_t;
+class Item;
 
 namespace GameMessages {
 	class PropertyDataMessage;

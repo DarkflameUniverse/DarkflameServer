@@ -16,6 +16,7 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 #include "dConfig.h"
+#include "InventoryComponent.h"
 #include "DestroyableComponent.h"
 
 ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent) {

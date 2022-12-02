@@ -1752,6 +1752,32 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		ChatPackets::SendSystemMessage(sysAddr, message);
 	}
 
+	if (chatCommand == "deleteinven" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
+		eInventoryType inventoryType = eInventoryType::INVALID;
+		if (!GeneralUtils::TryParse(args[0], inventoryType)) {
+			// In this case, we treat the input as a string and try to find it in the reflection list
+			std::transform(args[0].begin(), args[0].end(),args[0].begin(), ::toupper);
+			Game::logger->Log("SlashCommandHandler", "looking for inventory %s", args[0].c_str());
+			for (uint32_t index = 0; index < NUMBER_OF_INVENTORIES; index++) {
+				if (strcmp(args[0].c_str(), InventoryType::InventoryTypeToString(static_cast<eInventoryType>(index))) == 0) inventoryType = static_cast<eInventoryType>(index);
+			}
+		}
+
+		if (inventoryType == eInventoryType::INVALID || inventoryType >= NUMBER_OF_INVENTORIES) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid inventory provided.");
+			return;
+		}
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+		if (!inventoryComponent) return;
+
+		auto* inventoryToDelete = inventoryComponent->GetInventory(inventoryType);
+		if (!inventoryToDelete) return;
+
+		inventoryToDelete->DeleteAllItems();
+		ChatPackets::SendSystemMessage(sysAddr, u"Deleted inventory " + GeneralUtils::UTF8ToUTF16(args[0]));
+	}
+
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
 		Entity* closest = nullptr;
 

@@ -1,5 +1,6 @@
 #include "QbEnemyStunner.h"
 #include "SkillComponent.h"
+#include "CDClientManager.h"
 #include "DestroyableComponent.h"
 
 void QbEnemyStunner::OnRebuildComplete(Entity* self, Entity* target) {
