@@ -154,7 +154,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::MissionComplete:
 		mission = missionComponent->GetMission(value);
 
-		return mission == nullptr || mission->GetMissionState() >= MissionState::MISSION_STATE_COMPLETE;
+		return mission == nullptr ? false : mission->GetMissionState() >= MissionState::MISSION_STATE_COMPLETE;
 	case PreconditionType::PetDeployed:
 		return false; // TODO
 	case PreconditionType::HasFlag:
@@ -274,11 +274,6 @@ PreconditionExpression::PreconditionExpression(const std::string& conditions) {
 
 bool PreconditionExpression::Check(Entity* player, bool evaluateCosts) const {
 	if (empty) {
-		return true;
-	}
-
-	if (player->GetGMLevel() >= 9) // Developers can skip this for testing
-	{
 		return true;
 	}
 
