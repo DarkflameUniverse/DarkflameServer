@@ -18,7 +18,7 @@ enum eInventoryType : uint32_t {
 	TEMP_MODELS,
 	BEHAVIORS,
 	PROPERTY_DEEDS,
-	BRICKINBBB,
+	BRICKS_IN_BBB,
 	VENDOR,
 	VENDOR_BUYBACK,
 	QUEST, //Used for mission items
@@ -41,7 +41,7 @@ public:
 				"TEMP_MODELS",
 				"BEHAVIORS",
 				"PROPERTY_DEEDS",
-				"BRICKINBBB",
+				"BRICKS_IN_BBB",
 				"VENDOR",
 				"VENDOR_BUYBACK",
 				"QUEST", //Used for mission items
