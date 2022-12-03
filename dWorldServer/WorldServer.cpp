@@ -1007,13 +1007,24 @@ void HandlePacket(Packet* packet) {
 				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
 				if (!levelComponent) return;
 
-				if (levelComponent->GetCharacterVersion() == 1) {
-					Game::logger->Log("WorldServer", "Upgrading Character version to 2");
-					c->SetRetroactiveFlags();
-					player->RetroactiveVaultSize();
-					levelComponent->SetRetroactiveBaseSpeed();
-					// Now upgrade the charxml version so tht we know we have done these fixes
-					levelComponent->SetCharacterVersion(2);
+				auto version = levelComponent->GetCharacterVersion();
+				switch(version) {
+					case eCharacterVersion::RELEASE:
+						// TODO: Implement, super low priority
+					case eCharacterVersion::LIVE:
+						Game::logger->Log("WorldServer", "Updating Character Flags");
+						c->SetRetroactiveFlags();
+						levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
+					case eCharacterVersion::PLAYER_FACTION_FLAGS:
+						Game::logger->Log("WorldServer", "Updating Vault Size");
+						player->RetroactiveVaultSize();
+						levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
+					case eCharacterVersion::VAULT_SIZE:
+						Game::logger->Log("WorldServer", "Updaing Speedbase");
+						levelComponent->SetRetroactiveBaseSpeed();
+						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+					case eCharacterVersion::UP_TO_DATE:
+						break;
 				}
 
 				player->GetCharacter()->SetTargetScene("");

@@ -16,6 +16,7 @@ void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	if (!controllablePhysicsComponent) return;
 
 	const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
+	controllablePhysicsComponent->SetIgnoreMultipliers(false);
 	controllablePhysicsComponent->SetSpeedMultiplier(current + ((m_RunSpeed - 500.0f) / 500.0f));
 	EntityManager::Instance()->SerializeEntity(target);
 
