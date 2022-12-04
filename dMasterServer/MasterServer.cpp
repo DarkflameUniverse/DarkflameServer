@@ -82,17 +82,15 @@ int main(int argc, char** argv) {
 	Game::logger->Log("MasterServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("MasterServer", "Compiled on: %s", __TIMESTAMP__);
 
-	//Read our config:
-	dConfig config("masterconfig.ini");
-	Game::config = &config;
-	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
-	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
+	Game::config = new dConfig("masterconfig.ini");
+	Game::logger->SetLogToConsole(bool(std::stoi(Game::config->GetValue("log_to_console"))));
+	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
 	//Connect to the MySQL Database
-	std::string mysql_host = config.GetValue("mysql_host");
-	std::string mysql_database = config.GetValue("mysql_database");
-	std::string mysql_username = config.GetValue("mysql_username");
-	std::string mysql_password = config.GetValue("mysql_password");
+	std::string mysql_host = Game::config->GetValue("mysql_host");
+	std::string mysql_database = Game::config->GetValue("mysql_database");
+	std::string mysql_username = Game::config->GetValue("mysql_username");
+	std::string mysql_password = Game::config->GetValue("mysql_password");
 
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
@@ -103,7 +101,7 @@ int main(int argc, char** argv) {
 	}
 
 	try {
-		std::string clientPathStr = config.GetValue("client_location");
+		std::string clientPathStr = Game::config->GetValue("client_location");
 		if (clientPathStr.empty()) clientPathStr = "./res";
 		std::filesystem::path clientPath = std::filesystem::path(clientPathStr);
 		if (clientPath.is_relative()) {
@@ -223,16 +221,16 @@ int main(int argc, char** argv) {
 
 	int maxClients = 999;
 	int ourPort = 1000;
-	if (config.GetValue("max_clients") != "") maxClients = std::stoi(config.GetValue("max_clients"));
-	if (config.GetValue("port") != "") ourPort = std::stoi(config.GetValue("port"));
+	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
+	if (Game::config->GetValue("port") != "") ourPort = std::stoi(Game::config->GetValue("port"));
 
-	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master);
 
 	//Query for the database for a server labeled "master"
 	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");
 	auto* result = masterLookupStatement->executeQuery();
 
-	auto master_server_ip = config.GetValue("master_ip");
+	auto master_server_ip = Game::config->GetValue("master_ip");
 
 	if (master_server_ip == "") {
 		master_server_ip = Game::server->GetIP();
@@ -260,7 +258,7 @@ int main(int argc, char** argv) {
 	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
 
 	//Depending on the config, start up servers:
-	if (config.GetValue("prestart_servers") != "" && config.GetValue("prestart_servers") == "1") {
+	if (Game::config->GetValue("prestart_servers") != "" && Game::config->GetValue("prestart_servers") == "1") {
 		StartChatServer();
 
 		Game::im->GetInstance(0, false, 0)->SetIsReady(true);
@@ -910,6 +908,7 @@ void ShutdownSequence() {
 int FinalizeShutdown() {
 	//Delete our objects here:
 	Database::Destroy("MasterServer");
+	if (Game::config) delete Game::config;
 	if (Game::im) delete Game::im;
 	if (Game::server) delete Game::server;
 	if (Game::logger) delete Game::logger;

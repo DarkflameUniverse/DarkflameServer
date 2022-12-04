@@ -66,6 +66,7 @@
 #include "LevelProgressionComponent.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
+#include "dConfig.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -1304,6 +1305,57 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		EntityManager::Instance()->ConstructEntity(newEntity);
 	}
 
+	if (chatCommand == "spawngroup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 3) {
+		auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+		if (!controllablePhysicsComponent) return;
+
+		LOT lot{};
+		uint32_t numberToSpawn{};
+		float radiusToSpawnWithin{};
+
+		if (!GeneralUtils::TryParse(args[0], lot)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid lot.");
+			return;
+		}
+
+		if (!GeneralUtils::TryParse(args[1], numberToSpawn) && numberToSpawn > 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid number of enemies to spawn.");
+			return;
+		}
+
+		// Must spawn within a radius of at least 0.0f
+		if (!GeneralUtils::TryParse(args[2], radiusToSpawnWithin) && radiusToSpawnWithin < 0.0f) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid radius to spawn within.");
+			return;
+		}
+
+		EntityInfo info;
+		info.lot = lot;
+		info.spawner = nullptr;
+		info.spawnerID = entity->GetObjectID();
+		info.spawnerNodeID = 0;
+
+		auto playerPosition = controllablePhysicsComponent->GetPosition();
+		while (numberToSpawn > 0) {
+			auto randomAngle = GeneralUtils::GenerateRandomNumber<float>(0.0f, 2 * PI);
+			auto randomRadius = GeneralUtils::GenerateRandomNumber<float>(0.0f, radiusToSpawnWithin);
+
+			// Set the position to the generated random position plus the player position.  This will
+			// spawn the entity in a circle around the player.  As you get further from the player, the angle chosen will get less accurate.
+			info.pos = playerPosition + NiPoint3(cos(randomAngle) * randomRadius, 0.0f, sin(randomAngle) * randomRadius);
+			info.rot = NiQuaternion();
+
+			auto newEntity = EntityManager::Instance()->CreateEntity(info);
+			if (newEntity == nullptr) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Failed to spawn entity.");
+				return;
+			}
+
+			EntityManager::Instance()->ConstructEntity(newEntity);
+			numberToSpawn--;
+		}
+	}
+
 	if ((chatCommand == "giveuscore") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		int32_t uscore;
 
@@ -1811,6 +1863,20 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			u"Process ID: " + GeneralUtils::to_u16string(Metrics::GetProcessID()));
 
 		return;
+	}
+
+	if (chatCommand == "reloadconfig" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		Game::config->ReloadConfig();
+		VanityUtilities::SpawnVanity();
+		dpWorld::Instance().Reload();
+		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
+		for (auto entity : entities) {
+			auto* scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
+			if (!scriptedActivityComponent) continue;
+
+			scriptedActivityComponent->ReloadConfig();
+		}
+		ChatPackets::SendSystemMessage(sysAddr, u"Successfully reloaded config for world!");
 	}
 
 	if (chatCommand == "rollloot" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && args.size() >= 3) {
