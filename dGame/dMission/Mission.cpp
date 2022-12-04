@@ -337,7 +337,7 @@ void Mission::Complete(const bool yieldRewards) {
 		if (email.messageType == 1) {
 			const auto subject = "%[" + missionEmailBase + "subjectText]";
 			const auto body = "%[" + missionEmailBase + "bodyText]";
-			const auto sender = "%[" + missionEmailBase + "senderName" + "]";
+			const auto sender = "%[" + missionEmailBase + "senderName]";
 
 			Mail::SendMail(LWOOBJID_EMPTY, sender, GetAssociate(), subject, body, email.attachmentLOT, 1);
 		}
