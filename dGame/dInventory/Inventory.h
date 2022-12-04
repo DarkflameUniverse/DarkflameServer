@@ -95,7 +95,7 @@ public:
 	 * @param lot the lot to find items for
 	 * @param ignoreEquipped ignores equipped items
 	 * @param ignoreBound ignores bound items
-	 * @return item in the inventory for the provided LOT
+	 * @return item with the lowest stack count in the inventory for the provided LOT
 	 */
 	Item* FindItemByLot(LOT lot, bool ignoreEquipped = false, bool ignoreBound = false) const;
 

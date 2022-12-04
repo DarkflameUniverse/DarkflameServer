@@ -42,6 +42,7 @@
 #include "SkillCastFailedBehavior.h"
 #include "SpawnBehavior.h"
 #include "ForceMovementBehavior.h"
+#include "RemoveBuffBehavior.h"
 #include "ImmunityBehavior.h"
 #include "InterruptBehavior.h"
 #include "PlayEffectBehavior.h"
@@ -227,7 +228,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 		break;
 	case BehaviorTemplates::BEHAVIOR_ALTER_CHAIN_DELAY: break;
 	case BehaviorTemplates::BEHAVIOR_CAMERA: break;
-	case BehaviorTemplates::BEHAVIOR_REMOVE_BUFF: break;
+	case BehaviorTemplates::BEHAVIOR_REMOVE_BUFF:
+		behavior = new RemoveBuffBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_GRAB: break;
 	case BehaviorTemplates::BEHAVIOR_MODULAR_BUILD: break;
 	case BehaviorTemplates::BEHAVIOR_NPC_COMBAT_SKILL:
