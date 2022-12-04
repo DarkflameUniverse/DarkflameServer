@@ -17,6 +17,8 @@
 #include "Player.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
+#include "ModelComponent.h"
+#include "eModerationStatus.h"
 
 #include <vector>
 #include "CppScripts.h"
@@ -350,6 +352,20 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		return;
 	}
 
+	std::u16string modelName{};
+	std::u16string modelDescription{};
+	for (auto* setting : item->GetConfig()) {
+		if (setting->GetKey() == u"userModelName") {
+			modelName = GeneralUtils::UTF8ToUTF16(setting->GetValueAsString());
+		} else if (setting->GetKey() == u"userModelDesc") {
+			modelDescription = GeneralUtils::UTF8ToUTF16(setting->GetValueAsString());
+			break;
+		}
+	}
+
+	// This is the default name as in live
+	if (modelName.empty()) modelName = u"Objects_" + GeneralUtils::to_u16string(item->GetLot()) + u"_name";
+	if (modelDescription.empty()) modelDescription = u"A model for your property!";
 	item->SetCount(item->GetCount() - 1);
 
 	auto* node = new SpawnerNode();
@@ -357,7 +373,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 	node->position = position;
 	node->rotation = rotation;
 
-	ObjectIDManager::Instance()->RequestPersistentID([this, node, modelLOT, entity, position, rotation, originalRotation](uint32_t persistentId) {
+	ObjectIDManager::Instance()->RequestPersistentID([this, node, modelLOT, entity, position, rotation, originalRotation, modelName, modelDescription](uint32_t persistentId) {
 		SpawnerInfo info{};
 
 		info.templateID = modelLOT;
@@ -366,6 +382,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		info.activeOnLoad = true;
 		info.amountMaintained = 1;
 		info.respawnTime = 10;
+		info.name = GeneralUtils::UTF16ToWTF8(modelName);
 
 		info.emulated = true;
 		info.emulator = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
@@ -383,13 +400,28 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		auto modelType = new LDFData<int>(u"modelType", 2);
 		auto propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
 		auto componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
+		auto* userModelName = new LDFData<std::u16string>(u"userModelName", modelName);
+		auto* userModelDesc = new LDFData<std::u16string>(u"userModelDesc", modelDescription);
+
 		info.nodes[0]->config.push_back(componentWhitelist);
 		info.nodes[0]->config.push_back(ldfModelBehavior);
 		info.nodes[0]->config.push_back(modelType);
 		info.nodes[0]->config.push_back(propertyObjectID);
 		info.nodes[0]->config.push_back(userModelID);
+		info.nodes[0]->config.push_back(userModelName);
+		info.nodes[0]->config.push_back(userModelDesc);
 
 		auto* model = spawner->Spawn();
+		auto* modelComponent = model->GetComponent<ModelComponent>();
+		if (modelComponent) {
+			modelComponent->SetNameModerationStatus(ModerationStatus::Approved);
+			modelComponent->SetName(modelName);
+			modelComponent->SetDescriptionModerationStatus(ModerationStatus::Approved);
+			modelComponent->SetDescription(modelDescription);
+		}
+
+		// To update the description of the model, we serialize again.
+		EntityManager::Instance()->SerializeEntity(model);
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
 
@@ -504,7 +536,24 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
-	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::LOOT_SOURCE_DELETION, INVALID, {}, LWOOBJID_EMPTY, false);
+	auto* modelComponent = model->GetComponent<ModelComponent>();
+	if (!modelComponent) {
+		Game::logger->Log("PropertyManagementComponent", "A model doesn't have a model component...");
+		return;
+	}
+
+	std::vector<LDFBaseData*> settings{};
+
+	// Dont save a separate model if the default name or description is present
+	Game::logger->Log("PropertyManagementComponent", "name is %s desc is %s", GeneralUtils::UTF16ToWTF8(modelComponent->GetName()).c_str(), GeneralUtils::UTF16ToWTF8(modelComponent->GetDescription()).c_str());
+	if (modelComponent->GetName().size() > 0 && modelComponent->GetName() != u"Objects_" + GeneralUtils::to_u16string(model->GetLOT()) + u"_name") {
+		settings.push_back(new LDFData<std::u16string>(u"userModelName", modelComponent->GetName()));
+	}
+	if (modelComponent->GetDescription().size() > 0 && modelComponent->GetDescription() != u"A model for your property!") {
+		settings.push_back(new LDFData<std::u16string>(u"userModelDesc", modelComponent->GetDescription()));
+	}
+
+	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::LOOT_SOURCE_DELETION, INVALID, settings, LWOOBJID_EMPTY, false);
 
 	auto* item = inventoryComponent->FindItemByLot(model->GetLOT());
 
@@ -571,7 +620,7 @@ void PropertyManagementComponent::Load() {
 		return;
 	}
 
-	auto* lookup = Database::CreatePreppedStmt("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id FROM properties_contents WHERE property_id = ?;");
+	auto* lookup = Database::CreatePreppedStmt("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id, model_name, model_description FROM properties_contents WHERE property_id = ?;");
 
 	lookup->setUInt64(1, propertyId);
 
@@ -647,7 +696,7 @@ void PropertyManagementComponent::Load() {
 			settings.push_back(propertyObjectID);
 			settings.push_back(userModelID);
 		}
-
+		info.name = lookupResult->getString(11).c_str();
 		node->config = settings;
 
 		const auto spawnerId = dZoneManager::Instance()->MakeSpawner(info);
@@ -656,6 +705,15 @@ void PropertyManagementComponent::Load() {
 
 		auto* model = spawner->Spawn();
 
+		auto* modelComponent = model->GetComponent<ModelComponent>();
+
+		if (modelComponent) {
+			// We can safely mark these as approved here since they will only ever get applied to the model if they are approved.
+			modelComponent->SetName(GeneralUtils::UTF8ToUTF16(lookupResult->getString(11).c_str()));
+			modelComponent->SetNameModerationStatus(ModerationStatus::Approved);
+			modelComponent->SetDescription(GeneralUtils::UTF8ToUTF16(lookupResult->getString(12).c_str()));
+			modelComponent->SetDescriptionModerationStatus(ModerationStatus::Approved);
+		}
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
 	}
 
@@ -668,7 +726,7 @@ void PropertyManagementComponent::Save() {
 	}
 
 	auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-	auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
+	auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ?, model_name = ?, model_description = ? WHERE id = ?;");
 	auto* lookup = Database::CreatePreppedStmt("SELECT id FROM properties_contents WHERE property_id = ?;");
 	auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
 
@@ -698,7 +756,9 @@ void PropertyManagementComponent::Save() {
 
 		auto* entity = EntityManager::Instance()->GetEntity(pair.first);
 
-		if (entity == nullptr) {
+		auto* modelComponent = entity->GetComponent<ModelComponent>();
+
+		if (!entity || !modelComponent) {
 			continue;
 		}
 
@@ -717,8 +777,8 @@ void PropertyManagementComponent::Save() {
 			insertion->setDouble(9, rotation.y);
 			insertion->setDouble(10, rotation.z);
 			insertion->setDouble(11, rotation.w);
-			insertion->setString(12, "Objects_" + std::to_string(entity->GetLOT()) + "_name"); // Model name.  TODO make this customizable
-			insertion->setString(13, ""); // Model description.  TODO implement this.
+			insertion->setString(12, GeneralUtils::UTF16ToWTF8(modelComponent->GetName())); // Model name.
+			insertion->setString(13, GeneralUtils::UTF16ToWTF8(modelComponent->GetDescription())); // Model description.
 			insertion->setDouble(14, 0); // behavior 1.  TODO implement this.
 			insertion->setDouble(15, 0); // behavior 2.  TODO implement this.
 			insertion->setDouble(16, 0); // behavior 3.  TODO implement this.
@@ -737,8 +797,10 @@ void PropertyManagementComponent::Save() {
 			update->setDouble(5, rotation.y);
 			update->setDouble(6, rotation.z);
 			update->setDouble(7, rotation.w);
+			update->setString(8, GeneralUtils::UTF16ToWTF8(modelComponent->GetName()));
+			update->setString(9, GeneralUtils::UTF16ToWTF8(modelComponent->GetDescription()));
+			update->setInt64(10, id);
 
-			update->setInt64(8, id);
 			try {
 				update->executeUpdate();
 			} catch (sql::SQLException& ex) {
