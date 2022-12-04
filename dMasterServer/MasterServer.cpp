@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
 	if (config.GetValue("max_clients") != "") maxClients = std::stoi(config.GetValue("max_clients"));
 	if (config.GetValue("port") != "") ourPort = std::stoi(config.GetValue("port"));
 
-	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master);
+	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config);
 
 	//Query for the database for a server labeled "master"
 	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");
