@@ -23,6 +23,10 @@ public:
 	Character(uint32_t id, User* parentUser);
 	~Character();
 
+	/**
+	 * Write the current m_Doc to the database for saving.
+	 */
+	void WriteToDatabase();
 	void SaveXMLToDatabase();
 	void UpdateFromDatabase();
 
@@ -31,6 +35,15 @@ public:
 
 	const std::string& GetXMLData() const { return m_XMLData; }
 	tinyxml2::XMLDocument* GetXMLDoc() const { return m_Doc; }
+
+	/**
+	 * Out of abundance of safety and clarity of what this saves, this is its own function.
+	 *
+	 * Clears the s element from the flag element and saves the xml to the database.  Used to prevent the news
+	 * feed from showing up on world transfers.
+	 *
+	 */
+	void SetIsNewLogin();
 
 	/**
 	 * Gets the database ID of the character
@@ -427,7 +440,7 @@ public:
 
 	/**
 	 * @brief Get the flying state
-	 * @return value of the flying state 
+	 * @return value of the flying state
 	*/
 	bool GetIsFlying() { return m_IsFlying; }
 
