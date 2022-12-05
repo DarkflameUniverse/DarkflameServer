@@ -136,6 +136,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 		// Doing these 1 migration at a time since one takes a long time and some may think it is crashing.
 		// This will at the least guarentee that the full migration needs to be run in order to be counted as "migrated".
 		Game::logger->Log("MigrationRunner", "Executing migration: %s.  This may take a while.  Do not shut down server.", migration.name.c_str());
+		CDClientDatabase::ExecuteQuery("BEGIN TRANSACTION;");
 		for (const auto& dml : GeneralUtils::SplitString(migration.data, ';')) {
 			if (dml.empty()) continue;
 			try {
@@ -150,6 +151,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 		cdstmt.bind((int32_t) 1, migration.name.c_str());
 		cdstmt.execQuery().finalize();
 		cdstmt.finalize();
+		CDClientDatabase::ExecuteQuery("COMMIT;");
 	}
 
 	Game::logger->Log("MigrationRunner", "CDServer database is up to date.");
