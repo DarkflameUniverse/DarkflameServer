@@ -65,6 +65,7 @@
 #include "LevelProgressionComponent.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
+#include "dConfig.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -1764,6 +1765,20 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		);
 
 		return;
+	}
+
+	if (chatCommand == "reloadconfig" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		Game::config->ReloadConfig();
+		VanityUtilities::SpawnVanity();
+		dpWorld::Instance().Reload();
+		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
+		for (auto entity : entities) {
+			auto* scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
+			if (!scriptedActivityComponent) continue;
+
+			scriptedActivityComponent->ReloadConfig();
+		}
+		ChatPackets::SendSystemMessage(sysAddr, u"Successfully reloaded config for world!");
 	}
 
 	if (chatCommand == "rollloot" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && args.size() >= 3) {
