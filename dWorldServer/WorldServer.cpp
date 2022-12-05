@@ -250,7 +250,6 @@ int main(int argc, char** argv) {
 	//Load our level:
 	if (zoneID != 0) {
 		dpWorld::Instance().Initialize(zoneID);
-		Game::physicsWorld = &dpWorld::Instance(); //just in case some old code references it
 		dZoneManager::Instance()->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
 
@@ -1281,7 +1280,6 @@ void WorldShutdownSequence() {
 
 void FinalizeShutdown() {
 	//Delete our objects here:
-	if (Game::physicsWorld) Game::physicsWorld = nullptr;
 	if (Game::zoneManager) delete Game::zoneManager;
 
 	Game::logger->Log("WorldServer", "Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), instanceID);
