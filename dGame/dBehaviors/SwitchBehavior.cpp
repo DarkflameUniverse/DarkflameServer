@@ -25,7 +25,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		return;
 	}
 
-	Game::logger->Log("SwitchBehavior", "[%i] State: (%d), imagination: (%i) / (%f)", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
+	Game::logger->LogDebug("SwitchBehavior", "[%i] State: (%d), imagination: (%i) / (%f)", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
 
 	if (state || (entity->GetLOT() == 8092 && destroyableComponent->GetImagination() >= m_imagination)) {
 		this->m_actionTrue->Handle(context, bitStream, branch);
