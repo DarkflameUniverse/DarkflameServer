@@ -32,6 +32,6 @@ void ChangeIdleFlagsBehavior::Timer(BehaviorContext* context, BehaviorBranchCont
 }
 
 void ChangeIdleFlagsBehavior::Load() {
-	m_FlagsOff = static_cast<eAnimationFlags>(GetInt("flags_off"));
-	m_FlagsOn = static_cast<eAnimationFlags>(GetInt("flags_on"));
+	m_FlagsOff = static_cast<eAnimationFlags>(GetInt("flags_off", 0));
+	m_FlagsOn = static_cast<eAnimationFlags>(GetInt("flags_on", 0));
 }
