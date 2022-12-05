@@ -4,13 +4,13 @@
 #include <cstdint>
 
 enum class eSqliteDataType : int32_t {
-	none = 0,
-	int32,
-	real = 3,
-	text_4,
-	int_bool,
-	int64,
-	text_8 = 8
+	NONE = 0,
+	INT32,
+	REAL = 3,
+	TEXT_4,
+	INT_BOOL,
+	INT64,
+	TEXT_8 = 8
 };
 
 #endif  //!__ESQLITEDATATYPE__H__

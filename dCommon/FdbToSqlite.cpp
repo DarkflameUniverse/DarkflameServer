@@ -14,13 +14,13 @@
 #include "eSqliteDataType.h"
 
 std::map<eSqliteDataType, std::string> FdbToSqlite::Convert::sqliteType = {
-			{ eSqliteDataType::none, "none"},
-			{ eSqliteDataType::int32, "int32"},
-			{ eSqliteDataType::real, "real"},
-			{ eSqliteDataType::text_4, "text_4"},
-			{ eSqliteDataType::int_bool, "int_bool"},
-			{ eSqliteDataType::int64, "int64"},
-			{ eSqliteDataType::text_8, "text_8"}
+			{ eSqliteDataType::NONE, "none"},
+			{ eSqliteDataType::INT32, "int32"},
+			{ eSqliteDataType::REAL, "real"},
+			{ eSqliteDataType::TEXT_4, "text_4"},
+			{ eSqliteDataType::INT_BOOL, "int_bool"},
+			{ eSqliteDataType::INT64, "int64"},
+			{ eSqliteDataType::TEXT_8, "text_8"}
 };
 
 FdbToSqlite::Convert::Convert(std::string basePath) {
@@ -190,24 +190,24 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 	for (int32_t i = 0; i < numberOfColumns; i++) {
 		if (i != 0) insertedRow << ", "; // Only append comma and space after first entry in row.
 		switch (static_cast<eSqliteDataType>(ReadInt32())) {
-		case eSqliteDataType::none:
+		case eSqliteDataType::NONE:
 			BinaryIO::BinaryRead(fdb, emptyValue);
 			assert(emptyValue == 0);
 			insertedRow << "\"\"";
 			break;
 
-		case eSqliteDataType::int32:
+		case eSqliteDataType::INT32:
 			intValue = ReadInt32();
 			insertedRow << intValue;
 			break;
 
-		case eSqliteDataType::real:
+		case eSqliteDataType::REAL:
 			BinaryIO::BinaryRead(fdb, floatValue);
 			insertedRow << std::fixed << std::setprecision(34) << floatValue; // maximum precision of floating point number
 			break;
 
-		case eSqliteDataType::text_4:
-		case eSqliteDataType::text_8: {
+		case eSqliteDataType::TEXT_4:
+		case eSqliteDataType::TEXT_8: {
 			stringValue = ReadString();
 			size_t position = 0;
 
@@ -223,12 +223,12 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 			break;
 		}
 
-		case eSqliteDataType::int_bool:
+		case eSqliteDataType::INT_BOOL:
 			BinaryIO::BinaryRead(fdb, boolValue);
 			insertedRow << static_cast<bool>(boolValue);
 			break;
 
-		case eSqliteDataType::int64:
+		case eSqliteDataType::INT64:
 			int64Value = ReadInt64();
 			insertedRow << std::to_string(int64Value);
 			break;
