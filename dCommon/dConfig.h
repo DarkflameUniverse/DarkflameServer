@@ -25,6 +25,11 @@ public:
 	 */
 	void ReloadConfig();
 
+	/**
+	 * Adds to or replaces a config in the config values.
+	 */
+	void AddToConfig(std::string& key, std::string& value);
+
 private:
 	void ProcessLine(const std::string& line);
 
