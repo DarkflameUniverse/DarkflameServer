@@ -5,6 +5,7 @@
 #include <map>
 #include <stack>
 #include <vector>
+#include <unordered_map>
 
 class Entity;
 class EntityInfo;
