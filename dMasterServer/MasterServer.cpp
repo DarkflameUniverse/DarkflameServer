@@ -40,6 +40,7 @@
 #include "ObjectIDManager.h"
 #include "PacketUtils.h"
 #include "dMessageIdentifiers.h"
+#include "FdbToSqlite.h"
 
 namespace Game {
 	dLogger* logger;
@@ -126,18 +127,9 @@ int main(int argc, char** argv) {
 			return EXIT_FAILURE;
 		}
 
-		Game::logger->Log("WorldServer", "Found cdclient.fdb.  Clearing cdserver migration_history then copying and converting to sqlite.");
-		auto stmt = Database::CreatePreppedStmt(R"#(DELETE FROM migration_history WHERE name LIKE "%cdserver%";)#");
-		stmt->executeUpdate();
-		delete stmt;
+		Game::logger->Log("WorldServer", "Found cdclient.fdb.  Converting to SQLite");
 
-		std::string res = "python3 "
-			+ (BinaryPathFinder::GetBinaryDir() / "../thirdparty/docker-utils/utils/fdb_to_sqlite.py").string()
-			+ " --sqlite_path " + (Game::assetManager->GetResPath() / "CDServer.sqlite").string()
-			+ " " + (Game::assetManager->GetResPath() / "cdclient.fdb").string();
-
-		int result = system(res.c_str());
-		if (result != 0) {
+		if (FdbToSqlite::Convert(Game::assetManager->GetResPath().string()).ConvertDatabase() == false) {
 			Game::logger->Log("MasterServer", "Failed to convert fdb to sqlite");
 			return EXIT_FAILURE;
 		}
@@ -224,7 +216,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::stoi(Game::config->GetValue("port"));
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config);
 
 	//Query for the database for a server labeled "master"
 	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");

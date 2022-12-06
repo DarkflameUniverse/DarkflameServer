@@ -12,6 +12,7 @@
 #include <BitStream.h>
 
 #include "Game.h"
+#include "dLogger.h"
 
 enum eInventoryType : uint32_t;
 
@@ -140,7 +141,7 @@ namespace GeneralUtils {
 
 	std::vector<std::string> SplitString(const std::string& str, char delimiter);
 
-	std::vector<std::string> GetFileNamesFromFolder(const std::string& folder);
+	std::vector<std::string> GetSqlFileNamesFromFolder(const std::string& folder);
 
 	template <typename T>
 	T Parse(const char* value);
