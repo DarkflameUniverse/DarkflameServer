@@ -4,6 +4,7 @@
 #include <functional>
 #include <typeinfo>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 #include "NiPoint3.h"
