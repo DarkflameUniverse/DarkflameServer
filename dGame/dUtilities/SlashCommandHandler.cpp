@@ -60,7 +60,6 @@
 #include "BuffComponent.h"
 #include "SkillComponent.h"
 #include "VanityUtilities.h"
-#include "GameConfig.h"
 #include "ScriptedActivityComponent.h"
 #include "LevelProgressionComponent.h"
 #include "AssetManager.h"
@@ -1712,7 +1711,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "config-set" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 2) {
-		GameConfig::SetValue(args[0], args[1]);
+		Game::config->AddToConfig(args[0], args[1]);
 
 		ChatPackets::SendSystemMessage(
 			sysAddr, u"Set config value: " + GeneralUtils::UTF8ToUTF16(args[0]) + u" to " + GeneralUtils::UTF8ToUTF16(args[1])
@@ -1720,7 +1719,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "config-get" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
-		const auto& value = GameConfig::GetValue(args[0]);
+		const auto& value = Game::config->GetValue(args[0]);
 
 		std::u16string u16key = GeneralUtils::UTF8ToUTF16(args[0]);
 		if (value.empty()) {
