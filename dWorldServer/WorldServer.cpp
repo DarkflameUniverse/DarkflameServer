@@ -42,6 +42,9 @@
 #include "CharacterComponent.h"
 
 #include "EntityManager.h"
+#include "EntityInfo.h"
+#include "User.h"
+#include "Loot.h"
 #include "Entity.h"
 #include "Character.h"
 #include "ChatPackets.h"

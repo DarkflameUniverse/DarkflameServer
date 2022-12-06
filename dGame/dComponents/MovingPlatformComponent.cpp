@@ -12,6 +12,7 @@
 #include "GameMessages.h"
 #include "CppScripts.h"
 #include "SimplePhysicsComponent.h"
+#include "Zone.h"
 
 MoverSubComponent::MoverSubComponent(const NiPoint3& startPos) {
 	mPosition = {};

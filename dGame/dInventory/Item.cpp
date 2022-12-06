@@ -15,6 +15,7 @@
 #include "eItemType.h"
 #include "AssetManager.h"
 #include "InventoryComponent.h"
+#include "Loot.h"
 
 Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_t slot, const uint32_t count, const bool bound, const std::vector<LDFBaseData*>& config, const LWOOBJID parent, LWOOBJID subKey, eLootSourceType lootSourceType) {
 	if (!Inventory::IsValidItem(lot)) {

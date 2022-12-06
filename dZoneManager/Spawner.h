@@ -9,6 +9,7 @@
 #include <string>
 #include <functional>
 #include "LDFFormat.h"
+#include "EntityInfo.h"
 
 struct SpawnerNode {
 	NiPoint3 position = NiPoint3::ZERO;

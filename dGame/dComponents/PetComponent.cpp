@@ -20,6 +20,7 @@
 #include "dConfig.h"
 #include "dChatFilter.h"
 #include "Database.h"
+#include "EntityInfo.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};

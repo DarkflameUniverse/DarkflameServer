@@ -31,6 +31,7 @@
 #include "eMovementPlatformState.h"
 #include "LeaderboardManager.h"
 #include "AMFFormat.h"
+#include "Loot.h"
 
 #include <sstream>
 #include <future>

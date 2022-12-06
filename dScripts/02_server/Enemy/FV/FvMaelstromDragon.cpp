@@ -3,6 +3,7 @@
 #include "SkillComponent.h"
 #include "BaseCombatAIComponent.h"
 #include "DestroyableComponent.h"
+#include "EntityInfo.h"
 
 void FvMaelstromDragon::OnStartup(Entity* self) {
 	self->SetVar<int32_t>(u"weakspot", 0);

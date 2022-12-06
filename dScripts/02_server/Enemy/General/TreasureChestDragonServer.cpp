@@ -2,6 +2,7 @@
 #include "ScriptedActivityComponent.h"
 #include "TeamManager.h"
 #include "EntityManager.h"
+#include "Loot.h"
 
 void TreasureChestDragonServer::OnStartup(Entity* self) {
 

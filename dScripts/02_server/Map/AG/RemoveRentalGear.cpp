@@ -1,6 +1,7 @@
 #include "RemoveRentalGear.h"
 #include "InventoryComponent.h"
 #include "Item.h"
+#include "MissionState.h"
 #include "Character.h"
 
 /*

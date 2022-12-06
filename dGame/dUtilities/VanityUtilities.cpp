@@ -14,6 +14,7 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "BinaryPathFinder.h"
+#include "EntityInfo.h"
 
 #include <fstream>
 

@@ -1,5 +1,6 @@
 #include "GrowingFlower.h"
 #include "MissionComponent.h"
+#include "Loot.h"
 
 void GrowingFlower::OnSkillEventFired(Entity* self, Entity* target, const std::string& message) {
 	if (!self->GetVar<bool>(u"blooming") && (message == "waterspray" || message == "shovelgrow")) {

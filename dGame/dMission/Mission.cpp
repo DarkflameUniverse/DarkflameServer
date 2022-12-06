@@ -17,6 +17,7 @@
 #include "dServer.h"
 #include "dZoneManager.h"
 #include "InventoryComponent.h"
+#include "User.h"
 #include "Database.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {

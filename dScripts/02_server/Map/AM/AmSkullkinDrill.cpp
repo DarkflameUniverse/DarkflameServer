@@ -4,6 +4,7 @@
 #include "DestroyableComponent.h"
 #include "ProximityMonitorComponent.h"
 #include "MissionComponent.h"
+#include "EntityInfo.h"
 
 void AmSkullkinDrill::OnStartup(Entity* self) {
 	self->SetNetworkVar(u"bIsInUse", false);

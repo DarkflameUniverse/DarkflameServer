@@ -15,6 +15,8 @@
 #include "Component.h"
 #include "eMovementPlatformState.h"
 
+class Path;
+
  /**
   * Different types of available platforms
   */

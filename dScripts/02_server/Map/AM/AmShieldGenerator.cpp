@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
+#include "EntityInfo.h"
 #include "MovementAIComponent.h"
 #include "BaseCombatAIComponent.h"
 #include "SkillComponent.h"

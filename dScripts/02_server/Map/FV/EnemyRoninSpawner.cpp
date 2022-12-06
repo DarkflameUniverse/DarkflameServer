@@ -1,6 +1,7 @@
 #include "EnemyRoninSpawner.h"
 #include "SkillComponent.h"
 #include "RenderComponent.h"
+#include "EntityInfo.h"
 #include "EntityManager.h"
 
 void EnemyRoninSpawner::OnStartup(Entity* self) {

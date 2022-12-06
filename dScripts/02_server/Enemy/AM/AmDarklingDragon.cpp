@@ -5,6 +5,7 @@
 #include "GameMessages.h"
 #include "SkillComponent.h"
 #include "BaseCombatAIComponent.h"
+#include "EntityInfo.h"
 
 void AmDarklingDragon::OnStartup(Entity* self) {
 	self->SetVar<int32_t>(u"weakspot", 0);

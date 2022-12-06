@@ -1,6 +1,7 @@
 #include "EnemySpiderSpawner.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 #include "DestroyableComponent.h"
 
 //----------------------------------------------

@@ -14,6 +14,7 @@
 #include "Spawner.h"
 #include "MovingPlatformComponent.h"
 #include "Preconditions.h"
+#include "Loot.h"
 
 #include "CppScripts.h"
 

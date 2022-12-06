@@ -1,5 +1,6 @@
 #include "HydrantSmashable.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 #include "GeneralUtils.h"
 
 void HydrantSmashable::OnDie(Entity* self, Entity* killer) {

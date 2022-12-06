@@ -3,6 +3,7 @@
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 #include "SkillComponent.h"
 
 void BaseEnemyApe::OnStartup(Entity* self) {
