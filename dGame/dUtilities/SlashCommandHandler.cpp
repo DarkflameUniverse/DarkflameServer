@@ -1826,7 +1826,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			std::transform(args[0].begin(), args[0].end(),args[0].begin(), ::toupper);
 			Game::logger->Log("SlashCommandHandler", "looking for inventory %s", args[0].c_str());
 			for (uint32_t index = 0; index < NUMBER_OF_INVENTORIES; index++) {
-				if (strcmp(args[0].c_str(), InventoryType::InventoryTypeToString(static_cast<eInventoryType>(index))) == 0) inventoryType = static_cast<eInventoryType>(index);
+				if (std::string_view(args[0]) == std::string_view(InventoryType::InventoryTypeToString(static_cast<eInventoryType>(index)))) inventoryType = static_cast<eInventoryType>(index);
 			}
 		}
 
@@ -1842,6 +1842,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (!inventoryToDelete) return;
 
 		inventoryToDelete->DeleteAllItems();
+		Game::logger->Log("SlashCommandHandler", "Deleted inventory %s for user %llu", args[0].c_str(), entity->GetObjectID());
 		ChatPackets::SendSystemMessage(sysAddr, u"Deleted inventory " + GeneralUtils::UTF8ToUTF16(args[0]));
 	}
 
