@@ -28,6 +28,9 @@
 #include "GameConfig.h"
 #include "RocketLaunchLupComponent.h"
 #include "eUnequippableActiveType.h"
+#include "eMovementPlatformState.h"
+#include "LeaderboardManager.h"
+#include "AMFFormat.h"
 
 #include <sstream>
 #include <future>
@@ -329,7 +332,7 @@ void GameMessages::SendStartPathing(Entity* entity) {
 
 void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
 	int iIndex, int iDesiredWaypointIndex, int nextIndex,
-	MovementPlatformState movementState) {
+	eMovementPlatformState movementState) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -340,7 +343,7 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 		iIndex = 0;
 		nextIndex = 0;
 		bStopAtDesiredWaypoint = true;
-		movementState = MovementPlatformState::Stationary;
+		movementState = eMovementPlatformState::Stationary;
 	}
 
 	bitStream.Write(entity->GetObjectID());
@@ -574,7 +577,7 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, NDGFxValue args) {
+void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFValue* args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -592,7 +595,7 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args) {
+void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFValue* args) {
 	CBITSTREAM;
 	CMSGHEADER;
 

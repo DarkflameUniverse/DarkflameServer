@@ -13,6 +13,7 @@
 #include "dCommonVars.h"
 #include "EntityManager.h"
 #include "Component.h"
+#include "eMovementPlatformState.h"
 
  /**
   * Different types of available platforms
@@ -24,16 +25,6 @@ enum class eMoverSubComponentType : uint32_t {
 	 * Used in NJ
 	 */
 	 simpleMover = 5,
-};
-
-/**
- * The different types of platform movement state, supposedly a bitmap
- */
-enum class MovementPlatformState : uint32_t
-{
-	Moving = 0b00010,
-	Stationary = 0b11001,
-	Stopped = 0b01100
 };
 
 /**
@@ -49,7 +40,7 @@ public:
 	/**
 	 * The state the platform is currently in
 	 */
-	MovementPlatformState mState = MovementPlatformState::Stationary;
+	eMovementPlatformState mState = eMovementPlatformState::Stationary;
 
 	/**
 	 * The waypoint this platform currently wants to traverse to
@@ -133,7 +124,7 @@ public:
 	 * Updates the movement state for the moving platform
 	 * @param value the movement state to set
 	 */
-	void SetMovementState(MovementPlatformState value);
+	void SetMovementState(eMovementPlatformState value);
 
 	/**
 	 * Instructs the moving platform to go to some waypoint

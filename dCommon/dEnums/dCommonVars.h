@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 #include <set>
-#include "../thirdparty/raknet/Source/BitStream.h"
+#include "BitStream.h"
 
 #pragma warning (disable:4251) //Disables SQL warnings
 

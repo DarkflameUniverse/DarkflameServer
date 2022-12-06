@@ -57,6 +57,8 @@
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
 #include "eBlueprintSaveResponseType.h"
+#include "AMFFormat.h"
+#include "NiPoint3.h"
 
 #include "ZCompression.h"
 

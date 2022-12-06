@@ -66,6 +66,9 @@
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "dConfig.h"
+#include "AMFFormat.h"
+#include "MovingPlatformComponent.h"
+#include "dMessageIdentifiers.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;

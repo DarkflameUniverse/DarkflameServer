@@ -16,7 +16,7 @@
 MoverSubComponent::MoverSubComponent(const NiPoint3& startPos) {
 	mPosition = {};
 
-	mState = MovementPlatformState::Stopped;
+	mState = eMovementPlatformState::Stopped;
 	mDesiredWaypointIndex = 0; // -1;
 	mInReverse = false;
 	mShouldStopAtDesiredWaypoint = false;
@@ -127,7 +127,7 @@ void MovingPlatformComponent::OnCompleteRebuild() {
 	StartPathing();
 }
 
-void MovingPlatformComponent::SetMovementState(MovementPlatformState value) {
+void MovingPlatformComponent::SetMovementState(eMovementPlatformState value) {
 	auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
 
 	subComponent->mState = value;
@@ -152,7 +152,7 @@ void MovingPlatformComponent::StartPathing() {
 	auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
 
 	subComponent->mShouldStopAtDesiredWaypoint = true;
-	subComponent->mState = MovementPlatformState::Stationary;
+	subComponent->mState = eMovementPlatformState::Stationary;
 
 	NiPoint3 targetPosition;
 
@@ -174,7 +174,7 @@ void MovingPlatformComponent::StartPathing() {
 	}
 
 	m_Parent->AddCallbackTimer(subComponent->mWaitTime, [this] {
-		SetMovementState(MovementPlatformState::Moving);
+		SetMovementState(eMovementPlatformState::Moving);
 		});
 
 	const auto travelTime = Vector3::Distance(targetPosition, subComponent->mPosition) / subComponent->mSpeed + 1.5f;
@@ -199,7 +199,7 @@ void MovingPlatformComponent::StartPathing() {
 void MovingPlatformComponent::ContinuePathing() {
 	auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
 
-	subComponent->mState = MovementPlatformState::Stationary;
+	subComponent->mState = eMovementPlatformState::Stationary;
 
 	subComponent->mCurrentWaypointIndex = subComponent->mNextWaypointIndex;
 
@@ -282,7 +282,7 @@ void MovingPlatformComponent::ContinuePathing() {
 	m_Parent->CancelCallbackTimers();
 
 	m_Parent->AddCallbackTimer(subComponent->mWaitTime, [this] {
-		SetMovementState(MovementPlatformState::Moving);
+		SetMovementState(eMovementPlatformState::Moving);
 		});
 
 	auto travelTime = Vector3::Distance(targetPosition, subComponent->mPosition) / subComponent->mSpeed + 1.5;
@@ -313,7 +313,7 @@ void MovingPlatformComponent::StopPathing() {
 
 	m_PathingStopped = true;
 
-	subComponent->mState = MovementPlatformState::Stopped;
+	subComponent->mState = eMovementPlatformState::Stopped;
 	subComponent->mDesiredWaypointIndex = -1;
 	subComponent->mShouldStopAtDesiredWaypoint = false;
 
