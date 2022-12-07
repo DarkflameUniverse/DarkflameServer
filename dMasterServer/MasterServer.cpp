@@ -79,8 +79,33 @@ int main(int argc, char** argv) {
 	Game::logger = SetupLogger();
 	if (!Game::logger) return EXIT_FAILURE;
 
-	Game::config = new dConfig("masterconfig.ini");
-	Game::logger->SetLogToConsole(bool(std::stoi(Game::config->GetValue("log_to_console"))));
+	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "authconfig.ini")) {
+		Game::logger->Log("MasterServer", "Couldnt find authconfig.ini");
+		return EXIT_FAILURE;
+	}
+
+	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "chatconfig.ini")) {
+		Game::logger->Log("MasterServer", "Couldnt find chatconfig.ini");
+		return EXIT_FAILURE;
+	}
+
+	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "masterconfig.ini")) {
+		Game::logger->Log("MasterServer", "Couldnt find masterconfig.ini");
+		return EXIT_FAILURE;
+	}
+
+	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "sharedconfig.ini")) {
+		Game::logger->Log("MasterServer", "Couldnt find sharedconfig.ini");
+		return EXIT_FAILURE;
+	}
+
+	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "worldconfig.ini")) {
+		Game::logger->Log("MasterServer", "Couldnt find worldconfig.ini");
+		return EXIT_FAILURE;
+	}
+
+	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "masterconfig.ini").string());
+	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
 	Game::logger->Log("MasterServer", "Starting Master server...");
