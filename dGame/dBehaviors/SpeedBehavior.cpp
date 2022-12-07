@@ -15,9 +15,7 @@ void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 
-	const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-	controllablePhysicsComponent->SetIgnoreMultipliers(false);
-	controllablePhysicsComponent->SetSpeedMultiplier(current + ((m_RunSpeed - 500.0f) / 500.0f));
+	controllablePhysicsComponent->AddSpeedboost(m_RunSpeed);
 	EntityManager::Instance()->SerializeEntity(target);
 
 	if (branch.duration > 0.0f) {
@@ -38,9 +36,7 @@ void SpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext branch, 
 	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 
-	const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-	controllablePhysicsComponent->SetIgnoreMultipliers(false);
-	controllablePhysicsComponent->SetSpeedMultiplier(current - ((m_RunSpeed - 500.0f) / 500.0f));
+	controllablePhysicsComponent->RemoveSpeedboost(m_RunSpeed);
 	EntityManager::Instance()->SerializeEntity(target);
 }
 
