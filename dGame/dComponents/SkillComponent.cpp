@@ -181,17 +181,11 @@ void SkillComponent::Reset() {
 }
 
 void SkillComponent::Interrupt() {
-	if (m_Parent->IsPlayer()) return;
-
+	// TODO: need to check immunities on the destroyable component, but they aren't implemented
 	auto* combat = m_Parent->GetComponent<BaseCombatAIComponent>();
+	if (combat != nullptr && combat->GetStunImmune()) return;
 
-	if (combat != nullptr && combat->GetStunImmune()) {
-		return;
-	}
-
-	for (const auto& behavior : this->m_managedBehaviors) {
-		behavior.second->Interrupt();
-	}
+	for (const auto& behavior : this->m_managedBehaviors) behavior.second->Interrupt();
 }
 
 void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, BehaviorContext* context, const BehaviorBranchContext& branch, const LOT lot, const float maxTime,
