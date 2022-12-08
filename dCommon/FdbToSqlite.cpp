@@ -49,9 +49,9 @@ bool FdbToSqlite::Convert::ConvertDatabase() {
 }
 
 int32_t FdbToSqlite::Convert::ReadInt32() {
-	uint32_t numberOfTables{};
-	BinaryIO::BinaryRead(fdb, numberOfTables);
-	return numberOfTables;
+	int32_t nextInt{};
+	BinaryIO::BinaryRead(fdb, nextInt);
+	return nextInt;
 }
 
 int64_t FdbToSqlite::Convert::ReadInt64() {
@@ -193,7 +193,7 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 		case eSqliteDataType::NONE:
 			BinaryIO::BinaryRead(fdb, emptyValue);
 			assert(emptyValue == 0);
-			insertedRow << "\"\"";
+			insertedRow << "NULL";
 			break;
 
 		case eSqliteDataType::INT32:

@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
 	if (config.GetValue("max_clients") != "") maxClients = std::stoi(config.GetValue("max_clients"));
 	if (config.GetValue("port") != "") ourPort = std::atoi(config.GetValue("port").c_str());
 
-	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth);
+	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config);
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
