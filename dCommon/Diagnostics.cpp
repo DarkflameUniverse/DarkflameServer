@@ -1,4 +1,6 @@
 #include "Diagnostics.h"
+#include "Game.h"
+#include "dLogger.h"
 
 // If we're on Win32, we'll include our minidump writer
 #ifdef _WIN32
@@ -26,7 +28,7 @@ void make_minidump(EXCEPTION_POINTERS* e) {
 			"_%4d%02d%02d_%02d%02d%02d.dmp",
 			t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
 	}
-
+	Game::logger->Log("Diagnostics", "Creating crash dump %s", name);
 	auto hFile = CreateFileA(name, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return;
@@ -81,6 +83,7 @@ struct bt_ctx {
 
 static inline void Bt(struct backtrace_state* state) {
 	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
+	Game::logger->Log("Diagnostics", "backtrace is enabled, crash dump located at %s", fileName.c_str());
 	FILE* file = fopen(fileName.c_str(), "w+");
 	if (file != nullptr) {
 		backtrace_print(state, 2, file);
@@ -114,6 +117,8 @@ void GenerateDump() {
 void CatchUnhandled(int sig) {
 #ifndef __include_backtrace__
 
+	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
+	Game::logger->Log("Diagnostics", "Encountered signal %i, creating crash dump %s", sig, fileName.c_str());
 	if (Diagnostics::GetProduceMemoryDump()) {
 		GenerateDump();
 	}
@@ -124,7 +129,6 @@ void CatchUnhandled(int sig) {
 	// get void*'s for all entries on the stack
 	size = backtrace(array, 10);
 
-	printf("Fatal error %i\nStacktrace:\n", sig);
 #if defined(__GNUG__) and defined(__dynamic)
 
 	// Loop through the returned addresses, and get the symbols to be demangled
@@ -142,19 +146,18 @@ void CatchUnhandled(int sig) {
 			demangled = demangle(functionName.c_str());
 
 			if (demangled.empty()) {
-				printf("[%02zu] %s\n", i, demangled.c_str());
+				Game::logger->Log("Diagnostics", "[%02zu] %s", i, demangled.c_str());
 			} else {
-				printf("[%02zu] %s\n", i, functionName.c_str());
+				Game::logger->Log("Diagnostics", "[%02zu] %s", i, functionName.c_str());
 			}
 		} else {
-			printf("[%02zu] %s\n", i, functionName.c_str());
+			Game::logger->Log("Diagnostics", "[%02zu] %s", i, functionName.c_str());
 		}
 	}
 #else
 	backtrace_symbols_fd(array, size, STDOUT_FILENO);
 #endif
 
-	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
 	FILE* file = fopen(fileName.c_str(), "w+");
 	if (file != NULL) {
 		// print out all the frames to stderr

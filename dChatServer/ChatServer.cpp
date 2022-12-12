@@ -13,6 +13,7 @@
 #include "dChatFilter.h"
 #include "Diagnostics.h"
 #include "AssetManager.h"
+#include "BinaryPathFinder.h"
 
 #include "PlayerContainer.h"
 #include "ChatPacketHandler.h"
@@ -53,9 +54,14 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
 
 	try {
-		std::string client_path = config.GetValue("client_location");
-		if (client_path.empty()) client_path = "./res";
-		Game::assetManager = new AssetManager(client_path);
+		std::string clientPathStr = config.GetValue("client_location");
+		if (clientPathStr.empty()) clientPathStr = "./res";
+		std::filesystem::path clientPath = std::filesystem::path(clientPathStr);
+		if (clientPath.is_relative()) {
+			clientPath = BinaryPathFinder::GetBinaryDir() / clientPath;
+		}
+
+		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		Game::logger->Log("ChatServer", "Got an error while setting up assets: %s", ex.what());
 
@@ -97,7 +103,7 @@ int main(int argc, char** argv) {
 	if (config.GetValue("max_clients") != "") maxClients = std::stoi(config.GetValue("max_clients"));
 	if (config.GetValue("port") != "") ourPort = std::atoi(config.GetValue("port").c_str());
 
-	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat);
+	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config);
 
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
 
@@ -167,7 +173,7 @@ int main(int argc, char** argv) {
 }
 
 dLogger* SetupLogger() {
-	std::string logPath = "./logs/ChatServer_" + std::to_string(time(nullptr)) + ".log";
+	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/ChatServer_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
 #ifdef _DEBUG

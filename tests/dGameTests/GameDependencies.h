@@ -5,15 +5,18 @@
 #include "dLogger.h"
 #include "dServer.h"
 #include "EntityManager.h"
-class dZoneManager;
-class AssetManager;
 #include <gtest/gtest.h>
 
+class dZoneManager;
+class AssetManager;
+
 class dServerMock : public dServer {
+	RakNet::BitStream* sentBitStream = nullptr;
 public:
 	dServerMock() {};
 	~dServerMock() {};
-	void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast) override {};
+	RakNet::BitStream* GetMostRecentBitStream() { return sentBitStream; };
+	void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast) override { sentBitStream = bitStream; };
 };
 
 class GameDependenciesTest : public ::testing::Test {

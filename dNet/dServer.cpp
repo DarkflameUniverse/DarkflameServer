@@ -2,6 +2,7 @@
 #include "dServer.h"
 #include "dNetCommon.h"
 #include "dLogger.h"
+#include "dConfig.h"
 
 #include "RakNetworkFactory.h"
 #include "MessageIdentifiers.h"
@@ -35,7 +36,7 @@ public:
 	}
 } ReceiveDownloadCompleteCB;
 
-dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, unsigned int zoneID) {
+dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, unsigned int zoneID) {
 	mIP = ip;
 	mPort = port;
 	mZoneID = zoneID;
@@ -50,6 +51,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mNetIDManager = nullptr;
 	mReplicaManager = nullptr;
 	mServerType = serverType;
+	mConfig = config;
 	//Attempt to start our server here:
 	mIsOkay = Startup();
 
@@ -181,7 +183,7 @@ bool dServer::Startup() {
 	if (mIsInternal) {
 		mPeer->SetIncomingPassword("3.25 DARKFLAME1", 15);
 	} else {
-		//mPeer->SetPerConnectionOutgoingBandwidthLimit(800000); //100Kb/s
+		UpdateBandwidthLimit();
 		mPeer->SetIncomingPassword("3.25 ND1", 8);
 	}
 
@@ -189,6 +191,11 @@ bool dServer::Startup() {
 	if (mUseEncryption) mPeer->InitializeSecurity(NULL, NULL, NULL, NULL);
 
 	return true;
+}
+
+void dServer::UpdateBandwidthLimit() {
+	auto newBandwidth = mConfig->GetValue("maximum_outgoing_bandwidth");
+	mPeer->SetPerConnectionOutgoingBandwidthLimit(!newBandwidth.empty() ? std::stoi(newBandwidth) : 0);
 }
 
 void dServer::Shutdown() {

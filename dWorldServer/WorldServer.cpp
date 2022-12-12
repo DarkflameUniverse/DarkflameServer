@@ -17,6 +17,7 @@
 #include "Metrics.hpp"
 #include "PerformanceManager.h"
 #include "Diagnostics.h"
+#include "BinaryPathFinder.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -47,7 +48,6 @@
 #include "GameMessageHandler.h"
 #include "GameMessages.h"
 #include "Mail.h"
-#include "dLocale.h"
 #include "TeamManager.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
@@ -56,6 +56,7 @@
 #include "Player.h"
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
+#include "eBlueprintSaveResponseType.h"
 
 #include "ZCompression.h"
 
@@ -66,7 +67,6 @@ namespace Game {
 	dpWorld* physicsWorld;
 	dChatFilter* chatFilter;
 	dConfig* config;
-	dLocale* locale;
 	std::mt19937 randomEngine;
 
 	AssetManager* assetManager;
@@ -146,9 +146,13 @@ int main(int argc, char** argv) {
 	if (config.GetValue("disable_chat") == "1") chatDisabled = true;
 
 	try {
-		std::string client_path = config.GetValue("client_location");
-		if (client_path.empty()) client_path = "./res";
-		Game::assetManager = new AssetManager(client_path);
+		std::string clientPathStr = config.GetValue("client_location");
+		if (clientPathStr.empty()) clientPathStr = "./res";
+		std::filesystem::path clientPath = std::filesystem::path(clientPathStr);
+		if (clientPath.is_relative()) {
+			clientPath = BinaryPathFinder::GetBinaryDir() / clientPath;
+		}
+		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		Game::logger->Log("WorldServer", "Got an error while setting up assets: %s", ex.what());
 
@@ -204,7 +208,7 @@ int main(int argc, char** argv) {
 	LootGenerator::Instance();
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
 
-	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, zoneID);
+	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, zoneID);
 
 	//Connect to the chat server:
 	int chatPort = 1501;
@@ -217,7 +221,6 @@ int main(int argc, char** argv) {
 
 	//Set up other things:
 	Game::randomEngine = std::mt19937(time(0));
-	Game::locale = new dLocale();
 
 	//Run it until server gets a kill message from Master:
 	auto lastTime = std::chrono::high_resolution_clock::now();
@@ -247,7 +250,6 @@ int main(int argc, char** argv) {
 	//Load our level:
 	if (zoneID != 0) {
 		dpWorld::Instance().Initialize(zoneID);
-		Game::physicsWorld = &dpWorld::Instance(); //just in case some old code references it
 		dZoneManager::Instance()->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
 
@@ -489,7 +491,7 @@ int main(int argc, char** argv) {
 }
 
 dLogger* SetupLogger(int zoneID, int instanceID) {
-	std::string logPath = "./logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log";
+	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
 #ifdef _DEBUG
@@ -1077,9 +1079,9 @@ void HandlePacket(Packet* packet) {
 
 								CBITSTREAM;
 								PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
-								bitStream.Write<LWOOBJID>(0); //always zero so that a check on the client passes
-								bitStream.Write<unsigned int>(0);
-								bitStream.Write<unsigned int>(1);
+								bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
+								bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
+								bitStream.Write<uint32_t>(1);
 								bitStream.Write(blueprintID);
 
 								bitStream.Write<uint32_t>(lxfmlSize);
@@ -1278,7 +1280,6 @@ void WorldShutdownSequence() {
 
 void FinalizeShutdown() {
 	//Delete our objects here:
-	if (Game::physicsWorld) Game::physicsWorld = nullptr;
 	if (Game::zoneManager) delete Game::zoneManager;
 
 	Game::logger->Log("WorldServer", "Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), instanceID);
