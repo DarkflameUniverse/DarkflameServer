@@ -761,7 +761,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 				}
 			}
 		}
-
+		cooldown = 800;
 		self->SetVar<uint32_t>(NumberOfChargesVariable, 0);
 	}
 
@@ -777,7 +777,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 	properties.cannonFOV = 58.6f;
 	properties.cannonVelocity = 129.0;
-	properties.cannonRefireRate = 800;
+	properties.cannonRefireRate = coolDown;
 	properties.cannonMinDistance = 30;
 	properties.cannonTimeout = -1;
 
