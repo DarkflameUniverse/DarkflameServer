@@ -722,7 +722,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 	Game::logger->Log("SGCannon", "Player has %d equipped items", equippedItems.size());
 
 	auto skillID = constants.cannonSkill;
-	auto coolDown = constants.cannonRefireRate;
+	auto cooldown = constants.cannonRefireRate;
 
 	auto* selfInventoryComponent = self->GetComponent<InventoryComponent>();
 
@@ -738,7 +738,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 		// TODO: Equip items
 		skillID = constants.cannonSuperChargeSkill;
-		coolDown = 400;
+		cooldown = 400;
 	} else {
 		selfInventoryComponent->UpdateSlot("greeble_r", { ObjectIDManager::GenerateRandomObjectID(), 0, 0, 0 });
 		selfInventoryComponent->UpdateSlot("greeble_l", { ObjectIDManager::GenerateRandomObjectID(), 0, 0, 0 });
@@ -777,7 +777,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 	properties.cannonFOV = 58.6f;
 	properties.cannonVelocity = 129.0;
-	properties.cannonRefireRate = coolDown;
+	properties.cannonRefireRate = cooldown;
 	properties.cannonMinDistance = 30;
 	properties.cannonTimeout = -1;
 
