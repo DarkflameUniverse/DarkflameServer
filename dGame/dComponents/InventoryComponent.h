@@ -351,6 +351,20 @@ public:
 	 */
 	static uint32_t FindSkill(LOT lot);
 
+	/**
+	 * Call this when you equip an item.  This calls OnFactionTriggerItemEquipped for any scripts found on the items.
+	 * 
+	 * @param equippedItem The item script to lookup and call equip on
+	 */
+	void EquipScripts(Item* equippedItem);
+	
+	/**
+	 * Call this when you unequip an item.  This calls OnFactionTriggerItemUnequipped for any scripts found on the items.
+	 * 
+	 * @param unequippedItem The item script to lookup and call unequip on
+	 */
+	void UnequipScripts(Item* unequippedItem);
+
 	~InventoryComponent() override;
 
 private:

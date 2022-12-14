@@ -27,8 +27,9 @@
 #include "dConfig.h"
 #include "eItemType.h"
 #include "eUnequippableActiveType.h"
+#include "CppScripts.h"
 
-InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent) {
+InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document): Component(parent) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
 	this->m_Pushed = {};
@@ -867,7 +868,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 
 	AddItemSkills(item->GetLot());
 
-	m_Parent->EquippedItem(item);
+	EquipScripts(item);
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
@@ -897,7 +898,7 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 	PurgeProxies(item);
 
-	m_Parent->UnequippedItem(item);
+	UnequipScripts(item);
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
@@ -905,6 +906,37 @@ void InventoryComponent::UnEquipItem(Item* item) {
 	if (PropertyManagementComponent::Instance() != nullptr && item->GetCount() > 0 && Inventory::FindInventoryTypeForLot(item->GetLot()) == MODELS) {
 		PropertyManagementComponent::Instance()->GetParent()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 		dZoneManager::Instance()->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
+	}
+}
+
+
+void InventoryComponent::EquipScripts(Item* equippedItem) {
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	if (!compRegistryTable) return;
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(equippedItem->GetLot(), COMPONENT_TYPE_SCRIPT, -1);
+	if (scriptComponentID > -1) {
+		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
+		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
+		if (!itemScript) {
+			Game::logger->Log("InventoryComponent", "null script?");
+		}
+		itemScript->OnFactionTriggerItemEquipped(m_Parent, equippedItem->GetId());
+	}
+}
+
+void InventoryComponent::UnequipScripts(Item* unequippedItem) {
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	if (!compRegistryTable) return;
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(unequippedItem->GetLot(), COMPONENT_TYPE_SCRIPT, -1);
+	if (scriptComponentID > -1) {
+		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
+		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
+		if (!itemScript) {
+			Game::logger->Log("InventoryComponent", "null script?");
+		}
+		itemScript->OnFactionTriggerItemUnequipped(m_Parent, unequippedItem->GetId());
 	}
 }
 

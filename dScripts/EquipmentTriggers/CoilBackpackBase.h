@@ -11,7 +11,7 @@ public:
 	};
 
 	void OnFactionTriggerItemEquipped(Entity* itemOwner, LWOOBJID itemObjId) override;
-	void OnHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) override;
+	void NotifyHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) override;
 	void OnFactionTriggerItemUnequipped(Entity* itemOwner, LWOOBJID itemObjId) override;
 private:
 	uint32_t m_SkillId = 0;

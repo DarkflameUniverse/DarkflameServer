@@ -173,6 +173,13 @@ namespace CppScripts {
 		virtual void OnHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {};
 
 		/**
+		 * Invoked when self has received either a hit or heal.  Only used for scripts subscribed to an entity.
+		 *
+		 * Equivalent to 'function notifyHitOrHealResult(self, msg)'
+		 */
+		virtual void NotifyHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {};
+
+		/**
 		 * Invoked when a player has responsed to a mission.
 		 *
 		 * Equivalent to 'function onRespondToMission(self, msg)'
