@@ -27,7 +27,6 @@
 #include "dConfig.h"
 #include "eItemType.h"
 #include "eUnequippableActiveType.h"
-#include "CppScripts.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent) {
 	this->m_Dirty = true;

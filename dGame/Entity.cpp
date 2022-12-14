@@ -828,18 +828,18 @@ std::vector<ScriptComponent*> Entity::GetScriptComponents() {
 void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd) {
 	m_SubscribedScripts.insert(std::make_pair(scriptObjId, scriptToAdd));
 	Game::logger->LogDebug("Entity", "Added script %llu to entity %llu", scriptObjId, GetObjectID());
-	Game::logger->LogDebug("Entity", "number of subscribed scripts %i", m_SubscribedScripts.size());
+	Game::logger->LogDebug("Entity", "Number of subscribed scripts %i", m_SubscribedScripts.size());
 }
 
 void Entity::Unsubscribe(LWOOBJID scriptObjId) {
 	auto foundScript = m_SubscribedScripts.find(scriptObjId);
 	if (foundScript != m_SubscribedScripts.end()) {
 		m_SubscribedScripts.erase(foundScript);
-		Game::logger->LogDebug("Entity", "removed script %llu from entity %llu", scriptObjId, GetObjectID());
+		Game::logger->LogDebug("Entity", "Removed script %llu from entity %llu", scriptObjId, GetObjectID());
 	} else {
 		Game::logger->LogDebug("Entity", "Tried to remove a script for Entity %llu but script %llu didnt exist", GetObjectID(), scriptObjId);
 	}
-	Game::logger->LogDebug("Entity", "number of subscribed scripts %i", m_SubscribedScripts.size());
+	Game::logger->LogDebug("Entity", "Number of subscribed scripts %i", m_SubscribedScripts.size());
 }
 
 void Entity::SetProximityRadius(float proxRadius, std::string name) {
