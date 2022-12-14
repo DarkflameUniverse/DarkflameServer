@@ -316,6 +316,22 @@ namespace CppScripts {
 		virtual void OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent event, const std::u16string& pathName,
 			float_t pathTime, float_t totalTime, int32_t waypoint) {
 		};
+
+		/**
+		 * Used by items to tell their owner that they were equipped.
+		 * 
+		 * @param itemOwner The owner of the item
+		 * @param itemObjId The items Object ID
+		 */
+		virtual void OnFactionTriggerItemEquipped(Entity* itemOwner, LWOOBJID itemObjId) {};
+
+		/**
+		 * Used by items to tell their owner that they were unequipped.
+		 * 
+		 * @param itemOwner The owner of the item
+		 * @param itemObjId The items Object ID
+		 */
+		virtual void OnFactionTriggerItemUnequipped(Entity* itemOwner, LWOOBJID itemObjId) {};
 	};
 
 	Script* GetScript(Entity* parent, const std::string& scriptName);

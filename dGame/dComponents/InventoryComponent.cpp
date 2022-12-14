@@ -27,6 +27,7 @@
 #include "dConfig.h"
 #include "eItemType.h"
 #include "eUnequippableActiveType.h"
+#include "CppScripts.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent) {
 	this->m_Dirty = true;
@@ -867,6 +868,8 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 
 	AddItemSkills(item->GetLot());
 
+	m_Parent->EquippedItem(item);
+
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
@@ -894,6 +897,8 @@ void InventoryComponent::UnEquipItem(Item* item) {
 	RemoveSlot(item->GetInfo().equipLocation);
 
 	PurgeProxies(item);
+
+	m_Parent->UnequippedItem(item);
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 

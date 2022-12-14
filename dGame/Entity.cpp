@@ -81,6 +81,7 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_Components = {};
 	m_DieCallbacks = {};
 	m_PhantomCollisionCallbacks = {};
+	m_SubscribedScripts = {};
 	m_IsParentChildDirty = true;
 
 	m_Settings = info.settings;
@@ -824,6 +825,23 @@ std::vector<ScriptComponent*> Entity::GetScriptComponents() {
 	return comps;
 }
 
+void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd) {
+	m_SubscribedScripts.insert(std::make_pair(scriptObjId, scriptToAdd));
+	Game::logger->LogDebug("Entity", "Added script %llu to entity %llu", scriptObjId, GetObjectID());
+	Game::logger->LogDebug("Entity", "number of subscribed scripts %i", m_SubscribedScripts.size());
+}
+
+void Entity::Unsubscribe(LWOOBJID scriptObjId) {
+	auto foundScript = m_SubscribedScripts.find(scriptObjId);
+	if (foundScript != m_SubscribedScripts.end()) {
+		m_SubscribedScripts.erase(foundScript);
+		Game::logger->LogDebug("Entity", "removed script %llu from entity %llu", scriptObjId, GetObjectID());
+	} else {
+		Game::logger->LogDebug("Entity", "Tried to remove a script for Entity %llu but script %llu didnt exist", GetObjectID(), scriptObjId);
+	}
+	Game::logger->LogDebug("Entity", "number of subscribed scripts %i", m_SubscribedScripts.size());
+}
+
 void Entity::SetProximityRadius(float proxRadius, std::string name) {
 	ProximityMonitorComponent* proxMon = GetComponent<ProximityMonitorComponent>();
 	if (!proxMon) {
@@ -1385,9 +1403,35 @@ void Entity::OnUse(Entity* originator) {
 	}
 }
 
+void Entity::EquippedItem(Item* itemEquipped) {
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(itemEquipped->GetLot(), COMPONENT_TYPE_SCRIPT, -1);
+	if (scriptComponentID > -1) {
+		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
+		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+		auto* itemScript = CppScripts::GetScript(this, scriptCompData.script_name);
+		itemScript->OnFactionTriggerItemEquipped(this, itemEquipped->GetId());
+	}
+}
+
+void Entity::UnequippedItem(Item* itemUnequipped) {
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(itemUnequipped->GetLot(), COMPONENT_TYPE_SCRIPT, -1);
+	if (scriptComponentID > -1) {
+		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
+		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+		auto* itemScript = CppScripts::GetScript(this, scriptCompData.script_name);
+		itemScript->OnFactionTriggerItemUnequipped(this, itemUnequipped->GetId());
+	}
+}
+
 void Entity::OnHitOrHealResult(Entity* attacker, int32_t damage) {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnHitOrHealResult(this, attacker, damage);
+	}
+
+	for (auto script : m_SubscribedScripts) {
+		script.second->OnHitOrHealResult(this, attacker, damage);
 	}
 }
 

@@ -26,7 +26,12 @@ class Spawner;
 class ScriptComponent;
 class dpEntity;
 class Component;
+class Item;
 class Character;
+
+namespace CppScripts {
+	class Script;
+};
 
 /**
  * An entity in the world. Has multiple components.
@@ -138,6 +143,19 @@ public:
 	void AddComponent(int32_t componentId, Component* component);
 
 	std::vector<ScriptComponent*> GetScriptComponents();
+
+
+	/**
+	 * Call this when you equip an item.  This calls OnFactionTriggerItemEquipped for any scripts found on the items.
+	 */
+	void EquippedItem(Item* itemEquipped);
+
+	/**
+	 * Call this when you unequip an item.  This calls OnFactionTriggerItemUnequipped for any scripts found on the items.
+	 */
+	void UnequippedItem(Item* itemUnequipped);
+	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd);
+	void Unsubscribe(LWOOBJID scriptObjId);
 
 	void SetProximityRadius(float proxRadius, std::string name);
 	void SetProximityRadius(dpEntity* entity, std::string name);
@@ -307,6 +325,7 @@ protected:
 	uint16_t m_NetworkID;
 	std::vector<std::function<void()>> m_DieCallbacks;
 	std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
+	std::map<LWOOBJID, CppScripts::Script*> m_SubscribedScripts;
 
 	std::unordered_map<int32_t, Component*> m_Components; //The int is the ID of the component
 	std::vector<EntityTimer*> m_Timers;
