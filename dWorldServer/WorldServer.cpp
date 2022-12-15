@@ -61,20 +61,23 @@
 #include "ZCompression.h"
 
 namespace Game {
-	dLogger* logger = nullptr;
-	dServer* server = nullptr;
-	dpWorld* physicsWorld = nullptr;
-	dChatFilter* chatFilter = nullptr;
-	dConfig* config = nullptr;
-	AssetManager* assetManager = nullptr;
-	RakPeerInterface* chatServer = nullptr;
+	dLogger* logger;
+	dServer* server;
+	dZoneManager* zoneManager;
+	dpWorld* physicsWorld;
+	dChatFilter* chatFilter;
+	dConfig* config;
 	std::mt19937 randomEngine;
+
+	AssetManager* assetManager;
+
+	RakPeerInterface* chatServer;
 	SystemAddress chatSysAddr;
-}
+	bool shouldShutdown = false;
+} // namespace Game
 
 bool chatDisabled = false;
 bool chatConnected = false;
-bool worldShutdownSequenceStarted = false;
 bool worldShutdownSequenceComplete = false;
 void WorldShutdownSequence();
 void WorldShutdownProcess(uint32_t zoneId);
@@ -124,21 +127,26 @@ int main(int argc, char** argv) {
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger(zoneID, instanceID);
-	if (!Game::logger) return EXIT_FAILURE;
+	if (!Game::logger) return 0;
 
-	//Read our config:
-	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "worldconfig.ini").string());
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
-
+	Game::logger->SetLogToConsole(true); //We want this info to always be logged.
 	Game::logger->Log("WorldServer", "Starting World server...");
 	Game::logger->Log("WorldServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("WorldServer", "Compiled on: %s", __TIMESTAMP__);
 
-	if (Game::config->GetValue("disable_chat") == "1") chatDisabled = true;
+#ifndef _DEBUG
+	Game::logger->SetLogToConsole(false); //By default, turn it back off if not in debug.
+#endif
+
+	//Read our config:
+	dConfig config("worldconfig.ini");
+	Game::config = &config;
+	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
+	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
+	if (config.GetValue("disable_chat") == "1") chatDisabled = true;
 
 	try {
-		std::string clientPathStr = Game::config->GetValue("client_location");
+		std::string clientPathStr = config.GetValue("client_location");
 		if (clientPathStr.empty()) clientPathStr = "./res";
 		std::filesystem::path clientPath = std::filesystem::path(clientPathStr);
 		if (clientPath.is_relative()) {
@@ -158,28 +166,28 @@ int main(int argc, char** argv) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database");
 		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
 		Game::logger->Log("WorldServer", "Error Code: %i", e.errorCode());
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	CDClientManager::Instance()->Initialize();
 
 	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
+	std::string mysql_host = config.GetValue("mysql_host");
+	std::string mysql_database = config.GetValue("mysql_database");
+	std::string mysql_username = config.GetValue("mysql_username");
+	std::string mysql_password = config.GetValue("mysql_password");
 
-	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
+	Diagnostics::SetProduceMemoryDump(config.GetValue("generate_dump") == "1");
 
-	if (!Game::config->GetValue("dump_folder").empty()) {
-		Diagnostics::SetOutDirectory(Game::config->GetValue("dump_folder"));
+	if (!config.GetValue("dump_folder").empty()) {
+		Diagnostics::SetOutDirectory(config.GetValue("dump_folder"));
 	}
 
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
 		Game::logger->Log("WorldServer", "Got an error while connecting to the database: %s", ex.what());
-		return EXIT_FAILURE;
+		return 0;
 	}
 
 	//Find out the master's IP:
@@ -198,13 +206,13 @@ int main(int argc, char** argv) {
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
 	LootGenerator::Instance();
-	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
+	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
 
-	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, zoneID);
+	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, Game::shouldShutdown, zoneID);
 
 	//Connect to the chat server:
 	int chatPort = 1501;
-	if (Game::config->GetValue("chat_server_port") != "") chatPort = std::atoi(Game::config->GetValue("chat_server_port").c_str());
+	if (config.GetValue("chat_server_port") != "") chatPort = std::atoi(config.GetValue("chat_server_port").c_str());
 
 	auto chatSock = SocketDescriptor(uint16_t(ourPort + 2), 0);
 	Game::chatServer = RakNetworkFactory::GetRakPeerInterface();
@@ -315,9 +323,9 @@ int main(int argc, char** argv) {
 			framesSinceMasterDisconnect++;
 
 			int framesToWaitForMaster = ready ? 10 : 200;
-			if (framesSinceMasterDisconnect >= framesToWaitForMaster && !worldShutdownSequenceStarted) {
+			if (framesSinceMasterDisconnect >= framesToWaitForMaster && !Game::shouldShutdown) {
 				Game::logger->Log("WorldServer", "Game loop running but no connection to master for %d frames, shutting down", framesToWaitForMaster);
-				worldShutdownSequenceStarted = true;
+				Game::shouldShutdown = true;
 			}
 		} else framesSinceMasterDisconnect = 0;
 
@@ -413,7 +421,7 @@ int main(int argc, char** argv) {
 
 			//If we haven't had any players for a while, time out and shut down:
 			if (framesSinceLastUser == (cloneID != 0 ? 4000 : 40000)) {
-				worldShutdownSequenceStarted = true;
+				Game::shouldShutdown = true;
 			}
 		} else {
 			framesSinceLastUser = 0;
@@ -470,7 +478,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		if (worldShutdownSequenceStarted && !worldShutdownSequenceComplete) {
+		if (Game::shouldShutdown && !worldShutdownSequenceComplete) {
 			WorldShutdownProcess(zoneID);
 			break;
 		}
@@ -789,7 +797,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MSG_MASTER_SHUTDOWN: {
-			worldShutdownSequenceStarted = true;
+			Game::shouldShutdown = true;
 			Game::logger->Log("WorldServer", "Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
 			break;
 		}
@@ -1259,11 +1267,11 @@ void WorldShutdownProcess(uint32_t zoneId) {
 }
 
 void WorldShutdownSequence() {
-	if (worldShutdownSequenceStarted || worldShutdownSequenceComplete) {
+	if (Game::shouldShutdown || worldShutdownSequenceComplete) {
 		return;
 	}
 
-	worldShutdownSequenceStarted = true;
+	Game::shouldShutdown = true;
 
 	Game::logger->Log("WorldServer", "Zone (%i) instance (%i) shutting down outside of main loop!", Game::server->GetZoneID(), instanceID);
 	WorldShutdownProcess(Game::server->GetZoneID());
@@ -1271,15 +1279,16 @@ void WorldShutdownSequence() {
 }
 
 void FinalizeShutdown() {
+	//Delete our objects here:
+	if (Game::zoneManager) delete Game::zoneManager;
+
 	Game::logger->Log("WorldServer", "Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), instanceID);
 
-	//Delete our objects here:
 	Metrics::Clear();
 	Database::Destroy("WorldServer");
-	if (Game::chatFilter) delete Game::chatFilter;
-	if (Game::server) delete Game::server;
-	if (Game::logger) delete Game::logger;
-	if (Game::config) delete Game::config;
+	delete Game::chatFilter;
+	delete Game::server;
+	delete Game::logger;
 
 	worldShutdownSequenceComplete = true;
 

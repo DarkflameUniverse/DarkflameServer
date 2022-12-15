@@ -43,11 +43,12 @@
 #include "FdbToSqlite.h"
 
 namespace Game {
-	dLogger* logger = nullptr;
-	dServer* server = nullptr;
-	InstanceManager* im = nullptr;
-	dConfig* config = nullptr;
-	AssetManager* assetManager = nullptr;
+	dLogger* logger;
+	dServer* server;
+	InstanceManager* im;
+	dConfig* config;
+	AssetManager* assetManager;
+	bool shouldShutdown = false;
 } //namespace Game
 
 bool shutdownSequenceStarted = false;
@@ -58,7 +59,6 @@ void StartAuthServer();
 void StartChatServer();
 void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
-bool shouldShutdown = false;
 SystemAddress chatServerMasterPeerSysAddr;
 
 int main(int argc, char** argv) {
@@ -79,38 +79,13 @@ int main(int argc, char** argv) {
 	Game::logger = SetupLogger();
 	if (!Game::logger) return EXIT_FAILURE;
 
-	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "authconfig.ini")) {
-		Game::logger->Log("MasterServer", "Couldnt find authconfig.ini");
-		return EXIT_FAILURE;
-	}
-
-	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "chatconfig.ini")) {
-		Game::logger->Log("MasterServer", "Couldnt find chatconfig.ini");
-		return EXIT_FAILURE;
-	}
-
-	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "masterconfig.ini")) {
-		Game::logger->Log("MasterServer", "Couldnt find masterconfig.ini");
-		return EXIT_FAILURE;
-	}
-
-	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "sharedconfig.ini")) {
-		Game::logger->Log("MasterServer", "Couldnt find sharedconfig.ini");
-		return EXIT_FAILURE;
-	}
-
-	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "worldconfig.ini")) {
-		Game::logger->Log("MasterServer", "Couldnt find worldconfig.ini");
-		return EXIT_FAILURE;
-	}
-
-	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "masterconfig.ini").string());
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
-
 	Game::logger->Log("MasterServer", "Starting Master server...");
 	Game::logger->Log("MasterServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("MasterServer", "Compiled on: %s", __TIMESTAMP__);
+
+	Game::config = new dConfig("masterconfig.ini");
+	Game::logger->SetLogToConsole(bool(std::stoi(Game::config->GetValue("log_to_console"))));
+	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
 	//Connect to the MySQL Database
 	std::string mysql_host = Game::config->GetValue("mysql_host");
@@ -241,7 +216,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::stoi(Game::config->GetValue("port"));
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config);
+	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, Game::shouldShutdown);
 
 	//Query for the database for a server labeled "master"
 	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");
@@ -328,7 +303,7 @@ int main(int argc, char** argv) {
 			framesSinceLastSQLPing++;
 
 		//10m shutdown for universe kill command
-		if (shouldShutdown) {
+		if (Game::shouldShutdown) {
 			if (framesSinceKillUniverseCommand >= 40000) {
 				//Break main loop and exit
 				break;
@@ -406,7 +381,7 @@ void HandlePacket(Packet* packet) {
 			Game::im->RemoveInstance(instance); //Delete the old
 		}
 
-		if (packet->systemAddress == chatServerMasterPeerSysAddr && !shouldShutdown) {
+		if (packet->systemAddress == chatServerMasterPeerSysAddr && !Game::shouldShutdown) {
 			StartChatServer();
 		}
 	}
@@ -422,7 +397,7 @@ void HandlePacket(Packet* packet) {
 			//Game::im->GetInstance(zoneID.GetMapID(), false, 0); //Create the new
 		}
 
-		if (packet->systemAddress == chatServerMasterPeerSysAddr && !shouldShutdown) {
+		if (packet->systemAddress == chatServerMasterPeerSysAddr && !Game::shouldShutdown) {
 			StartChatServer();
 		}
 	}
@@ -744,7 +719,7 @@ void HandlePacket(Packet* packet) {
 
 		case MSG_MASTER_SHUTDOWN_UNIVERSE: {
 			Game::logger->Log("MasterServer", "Received shutdown universe command, shutting down in 10 minutes.");
-			shouldShutdown = true;
+			Game::shouldShutdown = true;
 			break;
 		}
 
@@ -757,28 +732,28 @@ void HandlePacket(Packet* packet) {
 void StartChatServer() {
 #ifdef __APPLE__
 	//macOS doesn't need sudo to run on ports < 1024
-	auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
+	system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 #elif _WIN32
-	auto result = system(("start " + (BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string()).c_str());
+	system(("start " + (BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string()).c_str());
 #else
 	if (std::atoi(Game::config->GetValue("use_sudo_chat").c_str())) {
-		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
+		system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 	} else {
-		auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
+		system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 	}
 #endif
 }
 
 void StartAuthServer() {
 #ifdef __APPLE__
-	auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
+	system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 #elif _WIN32
-	auto result = system(("start " + (BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string()).c_str());
+	system(("start " + (BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string()).c_str());
 #else
 	if (std::atoi(Game::config->GetValue("use_sudo_auth").c_str())) {
-		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
+		system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 	} else {
-		auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
+		system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 	}
 #endif
 }
@@ -790,14 +765,11 @@ void ShutdownSequence() {
 
 	shutdownSequenceStarted = true;
 
-	if (Game::im) {
-		for (auto* instance : Game::im->GetInstances()) {
-			if (instance == nullptr) {
-				continue;
-			}
-
-			instance->Shutdown();
-		}
+	{
+		CBITSTREAM;
+		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN);
+		Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+		Game::logger->Log("MasterServer", "Triggered master shutdown");
 	}
 
 	auto* objIdManager = ObjectIDManager::TryInstance();
@@ -811,6 +783,10 @@ void ShutdownSequence() {
 
 	if (!Game::im) {
 		exit(EXIT_SUCCESS);
+	}
+
+	for (auto instance : Game::im->GetInstances()) {
+		instance->SetIsShuttingDown(true);
 	}
 
 	Game::logger->Log("MasterServer", "Attempting to shutdown instances, max 60 seconds...");
