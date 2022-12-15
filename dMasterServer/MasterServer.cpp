@@ -52,13 +52,14 @@ namespace Game {
 } //namespace Game
 
 bool shutdownSequenceStarted = false;
-void ShutdownSequence();
-int FinalizeShutdown();
+void ShutdownSequence(int signal = -1);
+int FinalizeShutdown(int signal = -1);
 dLogger* SetupLogger();
 void StartAuthServer();
 void StartChatServer();
 void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
+SystemAddress authServerMasterPeerSysAddr;
 SystemAddress chatServerMasterPeerSysAddr;
 
 int main(int argc, char** argv) {
@@ -71,9 +72,9 @@ int main(int argc, char** argv) {
 #endif
 
 	//Triggers the shutdown sequence at application exit
-	std::atexit(ShutdownSequence);
-	signal(SIGINT, [](int) { ShutdownSequence(); });
-	signal(SIGTERM, [](int) { ShutdownSequence(); });
+	std::atexit([]() { ShutdownSequence(); });
+	signal(SIGINT, [](int signal) { ShutdownSequence(EXIT_FAILURE); });
+	signal(SIGTERM, [](int signal) { ShutdownSequence(EXIT_FAILURE); });
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
@@ -216,7 +217,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::stoi(Game::config->GetValue("port"));
 
-	Game::server = new dServer(config.GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, Game::shouldShutdown);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::shouldShutdown);
 
 	//Query for the database for a server labeled "master"
 	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");
@@ -253,8 +254,8 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("prestart_servers") != "" && Game::config->GetValue("prestart_servers") == "1") {
 		StartChatServer();
 
-		Game::im->GetInstance(0, false, 0)->SetIsReady(true);
-		Game::im->GetInstance(1000, false, 0)->SetIsReady(true);
+		Game::im->GetInstance(0, false, 0);
+		Game::im->GetInstance(1000, false, 0);
 
 		StartAuthServer();
 	}
@@ -350,9 +351,7 @@ int main(int argc, char** argv) {
 		t += std::chrono::milliseconds(highFrameRate);
 		std::this_thread::sleep_until(t);
 	}
-	FinalizeShutdown();
-	exit(EXIT_SUCCESS);
-	return EXIT_SUCCESS;
+	return FinalizeShutdown(EXIT_SUCCESS);
 }
 
 dLogger* SetupLogger() {
@@ -381,8 +380,14 @@ void HandlePacket(Packet* packet) {
 			Game::im->RemoveInstance(instance); //Delete the old
 		}
 
-		if (packet->systemAddress == chatServerMasterPeerSysAddr && !Game::shouldShutdown) {
+		if (packet->systemAddress == chatServerMasterPeerSysAddr) {
+			chatServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 			StartChatServer();
+		}
+
+		if (packet->systemAddress == authServerMasterPeerSysAddr) {
+			authServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+			StartAuthServer();
 		}
 	}
 
@@ -397,8 +402,14 @@ void HandlePacket(Packet* packet) {
 			//Game::im->GetInstance(zoneID.GetMapID(), false, 0); //Create the new
 		}
 
-		if (packet->systemAddress == chatServerMasterPeerSysAddr && !Game::shouldShutdown) {
+		if (packet->systemAddress == chatServerMasterPeerSysAddr) {
+			chatServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 			StartChatServer();
+		}
+
+		if (packet->systemAddress == authServerMasterPeerSysAddr) {
+			authServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+			StartAuthServer();
 		}
 	}
 
@@ -493,6 +504,14 @@ void HandlePacket(Packet* packet) {
 				copy.port = packet->systemAddress.port;
 
 				chatServerMasterPeerSysAddr = copy;
+			}
+
+			if (theirServerType == ServerType::Auth) {
+				SystemAddress copy;
+				copy.binaryAddress = packet->systemAddress.binaryAddress;
+				copy.port = packet->systemAddress.port;
+
+				authServerMasterPeerSysAddr = copy;
 			}
 
 			Game::logger->Log("MasterServer", "Received server info, instance: %i port: %i", theirInstanceID, theirPort);
@@ -726,10 +745,14 @@ void HandlePacket(Packet* packet) {
 		default:
 			Game::logger->Log("MasterServer", "Unknown master packet ID from server: %i", packet->data[3]);
 		}
+		}
 	}
-}
 
 void StartChatServer() {
+	if (Game::shouldShutdown) {
+		Game::logger->Log("MasterServer", "Currently shutting down.  Chat will not be restarted.");
+		return;
+	}
 #ifdef __APPLE__
 	//macOS doesn't need sudo to run on ports < 1024
 	system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
@@ -742,9 +765,13 @@ void StartChatServer() {
 		system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 	}
 #endif
-}
+	}
 
 void StartAuthServer() {
+	if (Game::shouldShutdown) {
+		Game::logger->Log("MasterServer", "Currently shutting down.  Auth will not be restarted.");
+		return;
+	}
 #ifdef __APPLE__
 	system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 #elif _WIN32
@@ -758,12 +785,13 @@ void StartAuthServer() {
 #endif
 }
 
-void ShutdownSequence() {
+void ShutdownSequence(int signal) {
 	if (shutdownSequenceStarted) {
 		return;
 	}
 
 	shutdownSequenceStarted = true;
+	Game::shouldShutdown = true;
 
 	{
 		CBITSTREAM;
@@ -782,7 +810,14 @@ void ShutdownSequence() {
 	auto ticks = 0;
 
 	if (!Game::im) {
-		exit(EXIT_SUCCESS);
+		FinalizeShutdown(EXIT_FAILURE);
+	}
+
+	// A server might not be finished spinning up yet, remove all of those here.
+	for (auto instance : Game::im->GetInstances()) {
+		if (!instance->GetIsReady()) {
+			Game::im->RemoveInstance(instance);
+		}
 	}
 
 	for (auto instance : Game::im->GetInstances()) {
@@ -792,7 +827,6 @@ void ShutdownSequence() {
 	Game::logger->Log("MasterServer", "Attempting to shutdown instances, max 60 seconds...");
 
 	while (true) {
-
 		auto packet = Game::server->Receive();
 		if (packet) {
 			HandlePacket(packet);
@@ -811,8 +845,8 @@ void ShutdownSequence() {
 				done = false;
 			}
 		}
-
-		if (done) {
+ 
+		if (done && authServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS && chatServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 			Game::logger->Log("MasterServer", "Finished shutting down MasterServer!");
 			break;
 		}
@@ -828,10 +862,10 @@ void ShutdownSequence() {
 		}
 	}
 
-	FinalizeShutdown();
+	FinalizeShutdown(signal);
 }
 
-int FinalizeShutdown() {
+int FinalizeShutdown(int signal) {
 	//Delete our objects here:
 	Database::Destroy("MasterServer");
 	if (Game::config) delete Game::config;
@@ -839,6 +873,6 @@ int FinalizeShutdown() {
 	if (Game::server) delete Game::server;
 	if (Game::logger) delete Game::logger;
 
-	exit(EXIT_SUCCESS);
-	return EXIT_SUCCESS;
+	if (signal != EXIT_SUCCESS) exit(signal);
+	return signal;
 }

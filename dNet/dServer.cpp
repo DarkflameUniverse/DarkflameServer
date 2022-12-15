@@ -36,7 +36,7 @@ public:
 	}
 } ReceiveDownloadCompleteCB;
 
-dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool& shouldShutdown, unsigned int zoneID) {
+dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
 	mIP = ip;
 	mPort = port;
 	mZoneID = zoneID;
@@ -52,7 +52,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mReplicaManager = nullptr;
 	mServerType = serverType;
 	mConfig = config;
-	mShouldShutdown = &shouldShutdown;
+	mShouldShutdown = shouldShutdown;
 	//Attempt to start our server here:
 	mIsOkay = Startup();
 

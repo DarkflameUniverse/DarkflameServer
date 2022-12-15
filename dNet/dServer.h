@@ -30,7 +30,7 @@ public:
 		int masterPort,
 		ServerType serverType,
 		dConfig* config,
-		bool& shouldShutdown,
+		bool* shouldShutdown,
 		unsigned int zoneID = 0);
 	~dServer();
 
