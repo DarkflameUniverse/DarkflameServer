@@ -43,11 +43,11 @@
 #include "FdbToSqlite.h"
 
 namespace Game {
-	dLogger* logger;
-	dServer* server;
-	InstanceManager* im;
-	dConfig* config;
-	AssetManager* assetManager;
+	dLogger* logger = nullptr;
+	dServer* server = nullptr;
+	InstanceManager* im = nullptr;
+	dConfig* config = nullptr;
+	AssetManager* assetManager = nullptr;
 } //namespace Game
 
 bool shutdownSequenceStarted = false;
@@ -79,13 +79,38 @@ int main(int argc, char** argv) {
 	Game::logger = SetupLogger();
 	if (!Game::logger) return EXIT_FAILURE;
 
+	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "authconfig.ini")) {
+		Game::logger->Log("MasterServer", "Couldnt find authconfig.ini");
+		return EXIT_FAILURE;
+	}
+
+	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "chatconfig.ini")) {
+		Game::logger->Log("MasterServer", "Couldnt find chatconfig.ini");
+		return EXIT_FAILURE;
+	}
+
+	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "masterconfig.ini")) {
+		Game::logger->Log("MasterServer", "Couldnt find masterconfig.ini");
+		return EXIT_FAILURE;
+	}
+
+	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "sharedconfig.ini")) {
+		Game::logger->Log("MasterServer", "Couldnt find sharedconfig.ini");
+		return EXIT_FAILURE;
+	}
+
+	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "worldconfig.ini")) {
+		Game::logger->Log("MasterServer", "Couldnt find worldconfig.ini");
+		return EXIT_FAILURE;
+	}
+
+	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "masterconfig.ini").string());
+	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
+	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
+
 	Game::logger->Log("MasterServer", "Starting Master server...");
 	Game::logger->Log("MasterServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("MasterServer", "Compiled on: %s", __TIMESTAMP__);
-
-	Game::config = new dConfig("masterconfig.ini");
-	Game::logger->SetLogToConsole(bool(std::stoi(Game::config->GetValue("log_to_console"))));
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
 	//Connect to the MySQL Database
 	std::string mysql_host = Game::config->GetValue("mysql_host");
@@ -798,28 +823,28 @@ void HandlePacket(Packet* packet) {
 void StartChatServer() {
 #ifdef __APPLE__
 	//macOS doesn't need sudo to run on ports < 1024
-	system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
+	auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 #elif _WIN32
-	system(("start " + (BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string()).c_str());
+	auto result = system(("start " + (BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string()).c_str());
 #else
 	if (std::atoi(Game::config->GetValue("use_sudo_chat").c_str())) {
-		system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
+		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 	} else {
-		system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
+		auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 	}
 #endif
 }
 
 void StartAuthServer() {
 #ifdef __APPLE__
-	system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
+	auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 #elif _WIN32
-	system(("start " + (BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string()).c_str());
+	auto result = system(("start " + (BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string()).c_str());
 #else
 	if (std::atoi(Game::config->GetValue("use_sudo_auth").c_str())) {
-		system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
+		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 	} else {
-		system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
+		auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 	}
 #endif
 }

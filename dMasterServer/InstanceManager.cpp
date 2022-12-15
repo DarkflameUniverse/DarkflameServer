@@ -74,7 +74,7 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	cmd.append("&"); //Sends our next process to the background on Linux
 #endif
 
-	system(cmd.c_str());
+	auto ret = system(cmd.c_str());
 
 	m_Instances.push_back(instance);
 
@@ -333,7 +333,7 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	cmd.append("&"); //Sends our next process to the background on Linux
 #endif
 
-	system(cmd.c_str());
+	auto ret = system(cmd.c_str());
 
 	m_Instances.push_back(instance);
 
