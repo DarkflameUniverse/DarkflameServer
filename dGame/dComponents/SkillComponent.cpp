@@ -319,6 +319,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 			const auto distance = Vector3::DistanceSquared(targetPosition, closestPoint);
 
 			if (distance > 3 * 3) {
+				// TODO There is supposed to be an implementation for homing projectiles here
 				continue;
 			}
 

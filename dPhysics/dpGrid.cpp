@@ -6,6 +6,7 @@
 dpGrid::dpGrid(int numCells, int cellSize) {
 	NUM_CELLS = numCells;
 	CELL_SIZE = cellSize;
+	m_DeleteGrid = true;
 
 	//dumb method but i can't be bothered
 
@@ -23,6 +24,7 @@ dpGrid::dpGrid(int numCells, int cellSize) {
 }
 
 dpGrid::~dpGrid() {
+	if (!this->m_DeleteGrid) return;
 	for (auto& x : m_Cells) { //x
 		for (auto& y : x) { //y
 			for (auto en : y) {

@@ -86,5 +86,5 @@ void ForceMovementBehavior::SyncCalculation(BehaviorContext* context, RakNet::Bi
 
 	this->m_hitAction->Calculate(context, bitStream, branch);
 	this->m_hitEnemyAction->Calculate(context, bitStream, branch);
-	this->m_hitEnemyAction->Calculate(context, bitStream, branch);
+	this->m_hitFactionAction->Calculate(context, bitStream, branch);
 }

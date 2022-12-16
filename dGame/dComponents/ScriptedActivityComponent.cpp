@@ -19,8 +19,9 @@
 #include "DestroyableComponent.h"
 
 ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent) {
+	m_ActivityID = activityID;
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance()->GetTable<CDActivitiesTable>("Activities");
-	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == activityID); });
+	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 
 	for (CDActivities activity : activities) {
 		m_ActivityInfo = activity;
@@ -84,6 +85,21 @@ void ScriptedActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool 
 			for (const auto& activityValue : activityPlayer->values) {
 				outBitStream->Write<float_t>(activityValue);
 			}
+		}
+	}
+}
+
+void ScriptedActivityComponent::ReloadConfig() {
+	CDActivitiesTable* activitiesTable = CDClientManager::Instance()->GetTable<CDActivitiesTable>("Activities");
+	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
+	for (auto activity : activities) {
+		auto mapID = m_ActivityInfo.instanceMapID;
+		if ((mapID == 1203 || mapID == 1261 || mapID == 1303 || mapID == 1403) && Game::config->GetValue("solo_racing") == "1") {
+			m_ActivityInfo.minTeamSize = 1;
+			m_ActivityInfo.minTeams = 1;
+		} else {
+			m_ActivityInfo.minTeamSize = activity.minTeamSize;
+			m_ActivityInfo.minTeams = activity.minTeams;
 		}
 	}
 }

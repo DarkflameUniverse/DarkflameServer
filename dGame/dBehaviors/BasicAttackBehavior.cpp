@@ -93,9 +93,6 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 	case 1:
 		this->m_OnSuccess->Handle(context, bitStream, branch);
 		break;
-	case 2:
-		this->m_OnFailArmor->Handle(context, bitStream, branch);
-		break;
 	default:
 		Game::logger->LogDebug("BasicAttackBehavior", "Unknown success state (%i)!", successState);
 		break;

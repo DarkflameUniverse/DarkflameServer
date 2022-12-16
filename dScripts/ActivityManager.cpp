@@ -124,7 +124,7 @@ void ActivityManager::ActivityTimerStart(Entity* self, const std::string& timerN
 	auto* timer = new ActivityTimer{ timerName, updateInterval, stopTime };
 	activeTimers.push_back(timer);
 
-	Game::logger->Log("ActivityManager", "Starting timer '%s', %f, %f", timerName.c_str(), updateInterval, stopTime);
+	Game::logger->LogDebug("ActivityManager", "Starting timer '%s', %f, %f", timerName.c_str(), updateInterval, stopTime);
 
 	self->AddTimer(GetPrefixedName(timer->name), timer->updateInterval);
 }
@@ -205,10 +205,10 @@ void ActivityManager::OnTimerDone(Entity* self, std::string timerName) {
 				activeTimers.erase(std::remove(activeTimers.begin(), activeTimers.end(), timer),
 					activeTimers.end());
 				delete timer;
-				Game::logger->Log("ActivityManager", "Executing timer '%s'", activityTimerName.c_str());
+				Game::logger->LogDebug("ActivityManager", "Executing timer '%s'", activityTimerName.c_str());
 				OnActivityTimerDone(self, activityTimerName);
 			} else {
-				Game::logger->Log("ActivityManager", "Updating timer '%s'", activityTimerName.c_str());
+				Game::logger->LogDebug("ActivityManager", "Updating timer '%s'", activityTimerName.c_str());
 				OnActivityTimerUpdate(self, timer->name, timer->stopTime - timer->runTime, timer->runTime);
 				self->AddTimer(GetPrefixedName(timer->name), timer->updateInterval);
 			}
