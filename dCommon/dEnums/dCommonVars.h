@@ -6,15 +6,22 @@
 #include <cstdint>
 #include <string>
 #include <set>
-#include "../thirdparty/raknet/Source/BitStream.h"
+#include "BitStream.h"
 
 #pragma warning (disable:4251) //Disables SQL warnings
 
 typedef int RESTICKET;
 
-const int highFrameRate = 16;	//60fps
-const int mediumFramerate = 33;	//30fps
-const int lowFramerate = 66;	//15fps
+#define FRAMES_TO_MS(x) 1000 / x
+
+//=========== FRAME TIMINGS ===========
+constexpr uint32_t highFramerate = 60;
+constexpr uint32_t mediumFramerate = 30;
+constexpr uint32_t lowFramerate = 15;
+
+constexpr uint32_t highFrameDelta = FRAMES_TO_MS(highFramerate);
+constexpr uint32_t mediumFrameDelta = FRAMES_TO_MS(mediumFramerate);
+constexpr uint32_t lowFrameDelta = FRAMES_TO_MS(lowFramerate);
 
 //========== MACROS ===========
 

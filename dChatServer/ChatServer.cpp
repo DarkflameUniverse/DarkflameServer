@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
 		} else framesSinceLastSQLPing++;
 
 		//Sleep our thread since auth can afford to.
-		t += std::chrono::milliseconds(mediumFramerate); //Chat can run at a lower "fps"
+		t += std::chrono::milliseconds(mediumFrameDelta); //Chat can run at a lower "fps"
 		std::this_thread::sleep_until(t);
 	}
 
