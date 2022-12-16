@@ -79,10 +79,10 @@ void PerformanceManager::SelectProfile(LWOMAPID mapID) {
 	m_CurrentProfile = pair->second;
 }
 
-uint32_t PerformanceManager::GetServerFramerate() {
+uint32_t PerformanceManager::GetServerFrameDelta() {
 	if (UserManager::Instance()->GetUserCount() == 0) {
-		return m_InactiveProfile.serverFramerate;
+		return m_InactiveProfile.serverFrameDelta;
 	}
 
-	return m_CurrentProfile.serverFramerate;
+	return m_CurrentProfile.serverFrameDelta;
 }

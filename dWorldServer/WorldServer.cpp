@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
 	bool ready = false;
 	uint32_t framesSinceMasterStatus = 0;
 	uint32_t framesSinceShutdownSequence = 0;
-	uint32_t currentFramerate = highFrameDelta;
+	uint32_t currentFramerate = highFramerate;
 
 	uint32_t ghostingStepCount = 0;
 	auto ghostingLastTime = std::chrono::high_resolution_clock::now();
@@ -287,6 +287,14 @@ int main(int argc, char** argv) {
 		}
 	}
 
+	uint32_t currentFrameDelta = highFrameDelta;	
+	// These values are adjust them selves to the current framerate should it update.
+	uint32_t logFlushTime = 15 * currentFramerate; // 15 seconds in frames
+	uint32_t shutdownTimeout = 10 * 60 * currentFramerate; // 10 minutes in frames
+	uint32_t noMasterConnectionTimeout = 5 * currentFramerate; // 5 seconds in frames
+	uint32_t chatReconnectionTime = 30 * currentFramerate; // 30 seconds in frames
+	uint32_t saveTime = 10 * 60 * currentFramerate; // 10 minutes in frames
+	uint32_t sqlPingTime = 10 * 60 * currentFramerate; // 10 minutes in frames
 	while (true) {
 		Metrics::StartMeasurement(MetricVariable::Frame);
 		Metrics::StartMeasurement(MetricVariable::GameLoop);
@@ -299,24 +307,37 @@ int main(int argc, char** argv) {
 
 		const auto occupied = UserManager::Instance()->GetUserCount() != 0;
 
+		uint32_t newFrameDelta = currentFrameDelta;
 		if (!ready) {
-			currentFramerate = highFrameDelta;
+			newFrameDelta = highFrameDelta;
 		} else {
-			currentFramerate = PerformanceManager::GetServerFramerate();
+			newFrameDelta = PerformanceManager::GetServerFrameDelta();
+		}
+
+		// Update to the new framerate
+		if (newFrameDelta != currentFrameDelta) {
+			currentFrameDelta = newFrameDelta;
+			currentFramerate = MS_TO_FRAMES(newFrameDelta);
+			Game::logger->LogDebug("WorldServer", "Framerate for zone/instance/clone %i/%i/%i is now %i", zoneID, instanceID, cloneID, currentFramerate);
+			logFlushTime = 15 * currentFramerate; // 15 seconds in frames
+			shutdownTimeout = 10 * 60 * currentFramerate; // 10 minutes in frames
+			noMasterConnectionTimeout = 5 * currentFramerate; // 5 seconds in frames
+			chatReconnectionTime = 30 * currentFramerate; // 30 seconds in frames
+			saveTime = 10 * 60 * currentFramerate; // 10 minutes in frames
+			sqlPingTime = 10 * 60 * currentFramerate; // 10 minutes in frames
 		}
 
 		//Warning if we ran slow
-		if (deltaTime > currentFramerate) {
-			Game::logger->Log("WorldServer", "We're running behind, dT: %f > %f (framerate)", deltaTime, currentFramerate);
+		if (deltaTime > currentFrameDelta) {
+			Game::logger->Log("WorldServer", "We're running behind, dT: %f > %f (framerate %i)", deltaTime, currentFrameDelta, currentFramerate);
 		}
 
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
 
-			uint32_t framesToWaitForMaster = ready ? 10 : 200;
-			if (framesSinceMasterDisconnect >= framesToWaitForMaster && !Game::shouldShutdown) {
-				Game::logger->Log("WorldServer", "Game loop running but no connection to master for %d frames, shutting down", framesToWaitForMaster);
+			if (framesSinceMasterDisconnect >= noMasterConnectionTimeout && !Game::shouldShutdown) {
+				Game::logger->Log("WorldServer", "Game loop running but no connection to master for %d frames, shutting down", noMasterConnectionTimeout);
 				Game::shouldShutdown = true;
 			}
 		} else framesSinceMasterDisconnect = 0;
@@ -325,8 +346,7 @@ int main(int argc, char** argv) {
 		if (!chatConnected) {
 			framesSinceChatDisconnect++;
 
-			// Attempt to reconnect every 30 seconds.
-			if (framesSinceChatDisconnect >= 2000) {
+			if (framesSinceChatDisconnect >= chatReconnectionTime) {
 				framesSinceChatDisconnect = 0;
 
 				Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
@@ -403,7 +423,7 @@ int main(int argc, char** argv) {
 		Metrics::EndMeasurement(MetricVariable::UpdateReplica);
 
 		//Push our log every 15s:
-		if (framesSinceLastFlush >= 1000) {
+		if (framesSinceLastFlush >= logFlushTime) {
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
@@ -420,7 +440,7 @@ int main(int argc, char** argv) {
 		}
 
 		//Save all connected users every 10 minutes:
-		if (framesSinceLastUsersSave >= 40000 && zoneID != 0) {
+		if (framesSinceLastUsersSave >= saveTime && zoneID != 0) {
 			UserManager::Instance()->SaveAllActiveCharacters();
 			framesSinceLastUsersSave = 0;
 
@@ -430,7 +450,7 @@ int main(int argc, char** argv) {
 		} else framesSinceLastUsersSave++;
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
-		if (framesSinceLastSQLPing >= 40000) {
+		if (framesSinceLastSQLPing >= sqlPingTime) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
 			uint32_t masterPort;
@@ -451,7 +471,7 @@ int main(int argc, char** argv) {
 
 		Metrics::StartMeasurement(MetricVariable::Sleep);
 
-		t += std::chrono::milliseconds(currentFramerate);
+		t += std::chrono::milliseconds(currentFrameDelta);
 		std::this_thread::sleep_until(t);
 
 		Metrics::EndMeasurement(MetricVariable::Sleep);

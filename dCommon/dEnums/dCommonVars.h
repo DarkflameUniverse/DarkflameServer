@@ -12,7 +12,10 @@
 
 typedef int RESTICKET;
 
+// These are the same define, but they mean two different things in different contexts
+// so a different define to distinguish what calculation is happening will help clarity.
 #define FRAMES_TO_MS(x) 1000 / x
+#define MS_TO_FRAMES(x) 1000 / x
 
 //=========== FRAME TIMINGS ===========
 constexpr uint32_t highFramerate = 60;

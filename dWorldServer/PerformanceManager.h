@@ -5,14 +5,14 @@
 #include "dCommonVars.h"
 
 struct PerformanceProfile {
-	uint32_t serverFramerate;
+	uint32_t serverFrameDelta;
 };
 
 class PerformanceManager {
 public:
 	static void SelectProfile(LWOMAPID mapID);
 
-	static uint32_t GetServerFramerate();
+	static uint32_t GetServerFrameDelta();
 
 private:
 	static PerformanceProfile m_CurrentProfile;
