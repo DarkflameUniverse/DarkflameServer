@@ -66,7 +66,8 @@ void LevelProgressionComponent::HandleLevelUp() {
 		}
 		break;
 		case 9:
-			controllablePhysicsComponent->SetSpeedMultiplier(static_cast<float>(reward->value) / 500.0f);
+			SetSpeedBase(static_cast<float>(reward->value) );
+			controllablePhysicsComponent->SetSpeedMultiplier(GetSpeedBase() / 500.0f);
 			break;
 		case 11:
 		case 12:
