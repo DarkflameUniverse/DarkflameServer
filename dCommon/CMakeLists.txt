@@ -16,6 +16,7 @@ set(DCOMMON_SOURCES "AMFFormat.cpp"
 		"ZCompression.cpp"
 		"BrickByBrickFix.cpp"
 		"BinaryPathFinder.cpp"
+		"FdbToSqlite.cpp"
 )
 
 add_subdirectory(dClient)
