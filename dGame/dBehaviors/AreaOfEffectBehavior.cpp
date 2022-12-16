@@ -9,11 +9,16 @@
 #include "BehaviorContext.h"
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
+#include "Game.h"
+#include "dLogger.h"
 
 void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	uint32_t targetCount;
+	uint32_t targetCount{};
 
-	bitStream->Read(targetCount);
+	if (!bitStream->Read(targetCount)) {
+		Game::logger->Log("AreaOfEffectBehavior", "Unable to read targetCount from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		return;
+	}
 
 	if (targetCount > this->m_maxTargets) {
 		return;
@@ -24,9 +29,12 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 	targets.reserve(targetCount);
 
 	for (auto i = 0u; i < targetCount; ++i) {
-		LWOOBJID target;
+		LWOOBJID target{};
 
-		bitStream->Read(target);
+		if (!bitStream->Read(target)) {
+			Game::logger->Log("AreaOfEffectBehavior", "failed to read in target %i from bitStream, aborting target Handle!", i);
+			return;
+		};
 
 		targets.push_back(target);
 	}
