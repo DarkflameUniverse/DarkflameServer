@@ -16,7 +16,7 @@ public:
 
 	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 
-	void Sync(BehaviorContext* context, RakNet::BitStream* bit_stream, BehaviorBranchContext branch) override;
+	void Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 
 	void Load() override;
 };

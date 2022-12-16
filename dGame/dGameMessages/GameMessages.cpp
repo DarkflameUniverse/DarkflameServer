@@ -3922,6 +3922,18 @@ void GameMessages::SendDisplayChatBubble(LWOOBJID objectId, const std::u16string
 	SEND_PACKET;
 }
 
+
+void GameMessages::SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags FlagsOn, eAnimationFlags FlagsOff, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_CHANGE_IDLE_FLAGS);
+	bitStream.Write(FlagsOff);
+	bitStream.Write(FlagsOn);
+
+	SEND_PACKET_BROADCAST;
+}
 // Mounts
 
 void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objectID, const SystemAddress& sysAddr) {

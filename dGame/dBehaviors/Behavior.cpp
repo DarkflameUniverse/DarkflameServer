@@ -60,6 +60,7 @@
 #include "SpeedBehavior.h"
 #include "DamageReductionBehavior.h"
 #include "JetPackBehavior.h"
+#include "ChangeIdleFlagsBehavior.h"
 
  //CDClient includes
 #include "CDBehaviorParameterTable.h"
@@ -196,7 +197,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 		behavior = new SkillCastFailedBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_IMITATION_SKUNK_STINK: break;
-	case BehaviorTemplates::BEHAVIOR_CHANGE_IDLE_FLAGS: break;
+	case BehaviorTemplates::BEHAVIOR_CHANGE_IDLE_FLAGS:
+		behavior = new ChangeIdleFlagsBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_APPLY_BUFF:
 		behavior = new ApplyBuffBehavior(behaviorId);
 		break;

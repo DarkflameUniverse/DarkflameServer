@@ -1,12 +1,16 @@
 #include "ChargeUpBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
+#include "Game.h"
 #include "dLogger.h"
 
 void ChargeUpBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
-	uint32_t handle;
+	uint32_t handle{};
 
-	bitStream->Read(handle);
+	if (!bitStream->Read(handle)) {
+		Game::logger->Log("ChargeUpBehavior", "Unable to read handle from bitStream, aborting Handle! variable_type");
+		return;
+	};
 
 	context->RegisterSyncBehavior(handle, this, branch);
 }

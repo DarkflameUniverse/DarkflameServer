@@ -13,9 +13,11 @@ void MovementSwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 		return;
 	}
 
-	uint32_t movementType;
-
-	bitStream->Read(movementType);
+	uint32_t movementType{};
+	if (!bitStream->Read(movementType)) {
+		Game::logger->Log("MovementSwitchBehavior", "Unable to read movementType from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		return;
+	};
 
 	switch (movementType) {
 	case 1:
@@ -55,4 +57,3 @@ void MovementSwitchBehavior::Load() {
 
 	this->m_jumpAction = GetAction("jump_action");
 }
-
