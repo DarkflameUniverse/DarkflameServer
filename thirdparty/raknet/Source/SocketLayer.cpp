@@ -417,8 +417,14 @@ int SocketLayer::RecvFrom( const SOCKET s, RakPeer *rakPeer, int *errorCode, uns
 		assert( 0 );
 #endif
 
-		*errorCode = -1;
-		return -1;
+		//*errorCode = -1;
+#ifdef __linux__
+		char str[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(sa.sin_addr), str, INET_ADDRSTRLEN);
+		printf("[RakNet] SocketLayer::RecvFrom: empty datagram from %s", str);
+#endif
+		//return -1;
+		return 0;
 	}
 
 	if ( len > 0 )
@@ -479,6 +485,47 @@ int SocketLayer::RecvFrom( const SOCKET s, RakPeer *rakPeer, int *errorCode, uns
 			}
 #endif
 		}
+#elif defined(__linux__)
+		if (len < -1)
+		{
+			printf("[RakNet] SocketLayer::RecvFrom: Unexpected return value.");
+			return -1;
+		}
+
+		int local_errno = errno;
+		if (local_errno == EAGAIN || local_errno == EWOULDBLOCK)
+		{
+			return 0; // no data
+		}
+
+		if (local_errno == EINTR)
+		{
+			printf("[RakNet] SocketLayer::RecvFrom: The receive was interrupted by delivery of a signal before any data were available.");
+			return 0; // log, but ignore
+		}
+
+		char str[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(sa.sin_addr), str, INET_ADDRSTRLEN);
+		printf("[RakNet] SocketLayer::RecvFrom: Error receiving data from %s", str);
+
+		switch (local_errno) {
+			case EINVAL:
+				printf("[RakNet] SocketLayer::RecvFrom: Invalid argument passed."); break;
+			case ENOMEM:
+			case ENOBUFS:
+				printf("[RakNet] SocketLayer::RecvFrom: Could not allocate memory for recvmsg()."); break;
+			case EFAULT:
+				printf("[RakNet] SocketLayer::RecvFrom: The receive buffer pointer(s) point outside the process's address space."); break;
+			case EBADF:
+				printf("[RakNet] SocketLayer::RecvFrom: The argument sockfd is an invalid descriptor."); break;
+			case ENOTSOCK:
+				printf("[RakNet] SocketLayer::RecvFrom: The argument sockfd does not refer to a socket."); break;
+			case EPIPE:
+				printf("[RakNet] SocketLayer::RecvFrom: The connection was unexpectedly closed or shut down by the other end. "); break;
+			default:
+				printf("[RakNet] SocketLayer::RecvFrom: Unknown Error %d", local_errno); break;
+		}
+		return -1;
 #endif
 	}
 
