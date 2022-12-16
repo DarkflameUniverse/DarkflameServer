@@ -61,17 +61,14 @@
 #include "ZCompression.h"
 
 namespace Game {
-	dLogger* logger;
-	dServer* server;
-	dZoneManager* zoneManager;
-	dpWorld* physicsWorld;
-	dChatFilter* chatFilter;
-	dConfig* config;
+	dLogger* logger = nullptr;
+	dServer* server = nullptr;
+	dpWorld* physicsWorld = nullptr;
+	dChatFilter* chatFilter = nullptr;
+	dConfig* config = nullptr;
+	AssetManager* assetManager = nullptr;
+	RakPeerInterface* chatServer = nullptr;
 	std::mt19937 randomEngine;
-
-	AssetManager* assetManager;
-
-	RakPeerInterface* chatServer;
 	SystemAddress chatSysAddr;
 	bool shouldShutdown = false;
 } // namespace Game
@@ -127,26 +124,21 @@ int main(int argc, char** argv) {
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger(zoneID, instanceID);
-	if (!Game::logger) return 0;
+	if (!Game::logger) return EXIT_FAILURE;
 
-	Game::logger->SetLogToConsole(true); //We want this info to always be logged.
+	//Read our config:
+	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "worldconfig.ini").string());
+	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
+	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
+
 	Game::logger->Log("WorldServer", "Starting World server...");
 	Game::logger->Log("WorldServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("WorldServer", "Compiled on: %s", __TIMESTAMP__);
 
-#ifndef _DEBUG
-	Game::logger->SetLogToConsole(false); //By default, turn it back off if not in debug.
-#endif
-
-	//Read our config:
-	dConfig config("worldconfig.ini");
-	Game::config = &config;
-	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
-	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
-	if (config.GetValue("disable_chat") == "1") chatDisabled = true;
+	if (Game::config->GetValue("disable_chat") == "1") chatDisabled = true;
 
 	try {
-		std::string clientPathStr = config.GetValue("client_location");
+		std::string clientPathStr = Game::config->GetValue("client_location");
 		if (clientPathStr.empty()) clientPathStr = "./res";
 		std::filesystem::path clientPath = std::filesystem::path(clientPathStr);
 		if (clientPath.is_relative()) {
@@ -166,28 +158,28 @@ int main(int argc, char** argv) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database");
 		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
 		Game::logger->Log("WorldServer", "Error Code: %i", e.errorCode());
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	CDClientManager::Instance()->Initialize();
 
 	//Connect to the MySQL Database
-	std::string mysql_host = config.GetValue("mysql_host");
-	std::string mysql_database = config.GetValue("mysql_database");
-	std::string mysql_username = config.GetValue("mysql_username");
-	std::string mysql_password = config.GetValue("mysql_password");
+	std::string mysql_host = Game::config->GetValue("mysql_host");
+	std::string mysql_database = Game::config->GetValue("mysql_database");
+	std::string mysql_username = Game::config->GetValue("mysql_username");
+	std::string mysql_password = Game::config->GetValue("mysql_password");
 
-	Diagnostics::SetProduceMemoryDump(config.GetValue("generate_dump") == "1");
+	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
 
-	if (!config.GetValue("dump_folder").empty()) {
-		Diagnostics::SetOutDirectory(config.GetValue("dump_folder"));
+	if (!Game::config->GetValue("dump_folder").empty()) {
+		Diagnostics::SetOutDirectory(Game::config->GetValue("dump_folder"));
 	}
 
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
 		Game::logger->Log("WorldServer", "Got an error while connecting to the database: %s", ex.what());
-		return 0;
+		return EXIT_FAILURE;
 	}
 
 	//Find out the master's IP:
@@ -206,13 +198,13 @@ int main(int argc, char** argv) {
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
 	LootGenerator::Instance();
-	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
+	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::shouldShutdown, zoneID);
 
 	//Connect to the chat server:
 	int chatPort = 1501;
-	if (config.GetValue("chat_server_port") != "") chatPort = std::atoi(config.GetValue("chat_server_port").c_str());
+	if (Game::config->GetValue("chat_server_port") != "") chatPort = std::atoi(Game::config->GetValue("chat_server_port").c_str());
 
 	auto chatSock = SocketDescriptor(uint16_t(ourPort + 2), 0);
 	Game::chatServer = RakNetworkFactory::GetRakPeerInterface();
@@ -1279,16 +1271,15 @@ void WorldShutdownSequence() {
 }
 
 void FinalizeShutdown() {
-	//Delete our objects here:
-	if (Game::zoneManager) delete Game::zoneManager;
-
 	Game::logger->Log("WorldServer", "Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), instanceID);
 
+	//Delete our objects here:
 	Metrics::Clear();
 	Database::Destroy("WorldServer");
-	delete Game::chatFilter;
-	delete Game::server;
-	delete Game::logger;
+	if (Game::chatFilter) delete Game::chatFilter;
+	if (Game::server) delete Game::server;
+	if (Game::logger) delete Game::logger;
+	if (Game::config) delete Game::config;
 
 	worldShutdownSequenceComplete = true;
 
