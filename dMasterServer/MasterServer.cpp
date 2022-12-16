@@ -373,7 +373,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		t += std::chrono::milliseconds(highFrameRate);
+		t += std::chrono::milliseconds(highFrameDelta);
 		std::this_thread::sleep_until(t);
 	}
 	return FinalizeShutdown(EXIT_SUCCESS);
@@ -876,7 +876,7 @@ void ShutdownSequence(int signal) {
 			break;
 		}
 
-		t += std::chrono::milliseconds(highFrameRate);
+		t += std::chrono::milliseconds(highFrameDelta);
 		std::this_thread::sleep_until(t);
 
 		ticks++;

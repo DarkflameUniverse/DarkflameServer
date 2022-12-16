@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
 	bool ready = false;
 	int framesSinceMasterStatus = 0;
 	int framesSinceShutdownSequence = 0;
-	int currentFramerate = highFrameRate;
+	int currentFramerate = highFrameDelta;
 
 	int ghostingStepCount = 0;
 	auto ghostingLastTime = std::chrono::high_resolution_clock::now();
@@ -300,7 +300,7 @@ int main(int argc, char** argv) {
 		const auto occupied = UserManager::Instance()->GetUserCount() != 0;
 
 		if (!ready) {
-			currentFramerate = highFrameRate;
+			currentFramerate = highFrameDelta;
 		} else {
 			currentFramerate = PerformanceManager::GetServerFramerate();
 		}
