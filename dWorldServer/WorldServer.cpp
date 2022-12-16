@@ -287,7 +287,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	uint32_t currentFrameDelta = highFrameDelta;	
+	uint32_t currentFrameDelta = highFrameDelta;
 	// These values are adjust them selves to the current framerate should it update.
 	uint32_t logFlushTime = 15 * currentFramerate; // 15 seconds in frames
 	uint32_t shutdownTimeout = 10 * 60 * currentFramerate; // 10 minutes in frames
@@ -314,17 +314,24 @@ int main(int argc, char** argv) {
 			newFrameDelta = PerformanceManager::GetServerFrameDelta();
 		}
 
-		// Update to the new framerate
+		// Update to the new framerate and scale all timings to said new framerate
 		if (newFrameDelta != currentFrameDelta) {
+			float_t ratioBeforeToAfter = (float)currentFrameDelta / (float)newFrameDelta;
 			currentFrameDelta = newFrameDelta;
 			currentFramerate = MS_TO_FRAMES(newFrameDelta);
 			Game::logger->LogDebug("WorldServer", "Framerate for zone/instance/clone %i/%i/%i is now %i", zoneID, instanceID, cloneID, currentFramerate);
 			logFlushTime = 15 * currentFramerate; // 15 seconds in frames
+			framesSinceLastFlush *= ratioBeforeToAfter;
 			shutdownTimeout = 10 * 60 * currentFramerate; // 10 minutes in frames
+			framesSinceLastUser *= ratioBeforeToAfter;
 			noMasterConnectionTimeout = 5 * currentFramerate; // 5 seconds in frames
+			framesSinceMasterDisconnect *= ratioBeforeToAfter;
 			chatReconnectionTime = 30 * currentFramerate; // 30 seconds in frames
+			framesSinceChatDisconnect *= ratioBeforeToAfter;
 			saveTime = 10 * 60 * currentFramerate; // 10 minutes in frames
+			framesSinceLastUsersSave *= ratioBeforeToAfter;
 			sqlPingTime = 10 * 60 * currentFramerate; // 10 minutes in frames
+			framesSinceLastSQLPing *= ratioBeforeToAfter;
 		}
 
 		//Warning if we ran slow
