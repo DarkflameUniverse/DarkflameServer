@@ -81,7 +81,7 @@ void WorldShutdownProcess(uint32_t zoneId);
 void FinalizeShutdown();
 void SendShutdownMessageToMaster();
 
-dLogger* SetupLogger(int zoneID, int instanceID);
+dLogger* SetupLogger(uint32_t zoneID, uint32_t instanceID);
 void HandlePacketChat(Packet* packet);
 void HandlePacket(Packet* packet);
 
@@ -91,8 +91,8 @@ struct tempSessionInfo {
 };
 
 std::map<std::string, tempSessionInfo> m_PendingUsers;
-int instanceID = 0;
-int g_CloneID = 0;
+uint32_t instanceID = 0;
+uint32_t g_CloneID = 0;
 std::string databaseChecksum = "";
 
 int main(int argc, char** argv) {
@@ -106,13 +106,13 @@ int main(int argc, char** argv) {
 	signal(SIGINT, [](int) { WorldShutdownSequence(); });
 	signal(SIGTERM, [](int) { WorldShutdownSequence(); });
 
-	int zoneID = 1000;
-	int cloneID = 0;
-	int maxClients = 8;
-	int ourPort = 2007;
+	uint32_t zoneID = 1000;
+	uint32_t cloneID = 0;
+	uint32_t maxClients = 8;
+	uint32_t ourPort = 2007;
 
 	//Check our arguments:
-	for (int i = 0; i < argc; ++i) {
+	for (int32_t i = 0; i < argc; ++i) {
 		std::string argument(argv[i]);
 
 		if (argument == "-zone") zoneID = atoi(argv[i + 1]);
@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
 
 	//Find out the master's IP:
 	std::string masterIP = "localhost";
-	int masterPort = 1000;
+	uint32_t masterPort = 1000;
 	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
 	auto res = stmt->executeQuery();
 	while (res->next()) {
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::shouldShutdown, zoneID);
 
 	//Connect to the chat server:
-	int chatPort = 1501;
+	uint32_t chatPort = 1501;
 	if (Game::config->GetValue("chat_server_port") != "") chatPort = std::atoi(Game::config->GetValue("chat_server_port").c_str());
 
 	auto chatSock = SocketDescriptor(uint16_t(ourPort + 2), 0);
@@ -219,22 +219,22 @@ int main(int argc, char** argv) {
 	auto t = std::chrono::high_resolution_clock::now();
 
 	Packet* packet = nullptr;
-	int framesSinceLastFlush = 0;
-	int framesSinceMasterDisconnect = 0;
-	int framesSinceChatDisconnect = 0;
-	int framesSinceLastUsersSave = 0;
-	int framesSinceLastSQLPing = 0;
-	int framesSinceLastUser = 0;
+	uint32_t framesSinceLastFlush = 0;
+	uint32_t framesSinceMasterDisconnect = 0;
+	uint32_t framesSinceChatDisconnect = 0;
+	uint32_t framesSinceLastUsersSave = 0;
+	uint32_t framesSinceLastSQLPing = 0;
+	uint32_t framesSinceLastUser = 0;
 
 	const float maxPacketProcessingTime = 1.5f; //0.015f;
-	const int maxPacketsToProcess = 1024;
+	const uint32_t maxPacketsToProcess = 1024;
 
 	bool ready = false;
-	int framesSinceMasterStatus = 0;
-	int framesSinceShutdownSequence = 0;
-	int currentFramerate = highFrameDelta;
+	uint32_t framesSinceMasterStatus = 0;
+	uint32_t framesSinceShutdownSequence = 0;
+	uint32_t currentFramerate = highFrameDelta;
 
-	int ghostingStepCount = 0;
+	uint32_t ghostingStepCount = 0;
 	auto ghostingLastTime = std::chrono::high_resolution_clock::now();
 
 	PerformanceManager::SelectProfile(zoneID);
@@ -263,7 +263,7 @@ int main(int argc, char** argv) {
 				}
 			}
 
-			const int bufferSize = 1024;
+			const int32_t bufferSize = 1024;
 			MD5* md5 = new MD5();
 
 			char fileStreamBuffer[1024] = {};
@@ -314,7 +314,7 @@ int main(int argc, char** argv) {
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
 
-			int framesToWaitForMaster = ready ? 10 : 200;
+			uint32_t framesToWaitForMaster = ready ? 10 : 200;
 			if (framesSinceMasterDisconnect >= framesToWaitForMaster && !Game::shouldShutdown) {
 				Game::logger->Log("WorldServer", "Game loop running but no connection to master for %d frames, shutting down", framesToWaitForMaster);
 				Game::shouldShutdown = true;
@@ -378,7 +378,7 @@ int main(int argc, char** argv) {
 		UserManager::Instance()->DeletePendingRemovals();
 
 		auto t1 = std::chrono::high_resolution_clock::now();
-		for (int curPacket = 0; curPacket < maxPacketsToProcess && timeSpent < maxPacketProcessingTime; curPacket++) {
+		for (uint32_t curPacket = 0; curPacket < maxPacketsToProcess && timeSpent < maxPacketProcessingTime; curPacket++) {
 			packet = Game::server->Receive();
 			if (packet) {
 				auto t1 = std::chrono::high_resolution_clock::now();
@@ -433,7 +433,7 @@ int main(int argc, char** argv) {
 		if (framesSinceLastSQLPing >= 40000) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
-			int masterPort;
+			uint32_t masterPort;
 			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
 			auto res = stmt->executeQuery();
 			while (res->next()) {
@@ -482,7 +482,7 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-dLogger* SetupLogger(int zoneID, int instanceID) {
+dLogger* SetupLogger(uint32_t zoneID, uint32_t instanceID) {
 	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
@@ -524,7 +524,7 @@ void HandlePacketChat(Packet* packet) {
 
 				//Write our stream outwards:
 				CBITSTREAM;
-				for (int i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
+				for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
 					bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
 				}
 
@@ -543,7 +543,7 @@ void HandlePacketChat(Packet* packet) {
 
 				uint32_t len;
 				inStream.Read<uint32_t>(len);
-				for (int i = 0; len > i; i++) {
+				for (uint32_t i = 0; len > i; i++) {
 					char character;
 					inStream.Read<char>(character);
 					title += character;
@@ -551,7 +551,7 @@ void HandlePacketChat(Packet* packet) {
 
 				len = 0;
 				inStream.Read<uint32_t>(len);
-				for (int i = 0; len > i; i++) {
+				for (uint32_t i = 0; len > i; i++) {
 					char character;
 					inStream.Read<char>(character);
 					msg += character;
@@ -804,7 +804,7 @@ void HandlePacket(Packet* packet) {
 			uint32_t len;
 			inStream.Read(len);
 
-			for (int i = 0; i < len; i++) {
+			for (uint32_t i = 0; i < len; i++) {
 				char character; inStream.Read<char>(character);
 				username += character;
 			}
@@ -1027,7 +1027,7 @@ void HandlePacket(Packet* packet) {
 					//Check for BBB models:
 					auto stmt = Database::CreatePreppedStmt("SELECT ugc_id FROM properties_contents WHERE lot=14 AND property_id=?");
 
-					int templateId = result.getIntField(0);
+					int32_t templateId = result.getIntField(0);
 
 					result.finalize();
 

@@ -52,8 +52,8 @@ namespace Game {
 } //namespace Game
 
 bool shutdownSequenceStarted = false;
-void ShutdownSequence(int signal = -1);
-int FinalizeShutdown(int signal = -1);
+void ShutdownSequence(int32_t signal = -1);
+int32_t FinalizeShutdown(int32_t signal = -1);
 dLogger* SetupLogger();
 void StartAuthServer();
 void StartChatServer();
@@ -75,8 +75,8 @@ int main(int argc, char** argv) {
 
 	//Triggers the shutdown sequence at application exit
 	std::atexit([]() { ShutdownSequence(); });
-	signal(SIGINT, [](int signal) { ShutdownSequence(EXIT_FAILURE); });
-	signal(SIGTERM, [](int signal) { ShutdownSequence(EXIT_FAILURE); });
+	signal(SIGINT, [](int32_t signal) { ShutdownSequence(EXIT_FAILURE); });
+	signal(SIGTERM, [](int32_t signal) { ShutdownSequence(EXIT_FAILURE); });
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
@@ -239,8 +239,8 @@ int main(int argc, char** argv) {
 		return EXIT_SUCCESS;
 	}
 
-	int maxClients = 999;
-	int ourPort = 1000;
+	uint32_t maxClients = 999;
+	uint32_t ourPort = 1000;
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::stoi(Game::config->GetValue("port"));
 
@@ -293,9 +293,9 @@ int main(int argc, char** argv) {
 	constexpr uint32_t sqlPingTime = 10 * 60 * masterFramerate;
 	constexpr uint32_t shutdownUniverseTime = 10 * 60 * masterFramerate;
 	constexpr uint32_t instanceReadyTimeout = 30 * masterFramerate;
-	int framesSinceLastFlush = 0;
-	int framesSinceLastSQLPing = 0;
-	int framesSinceKillUniverseCommand = 0;
+	uint32_t framesSinceLastFlush = 0;
+	uint32_t framesSinceLastSQLPing = 0;
+	uint32_t framesSinceKillUniverseCommand = 0;
 
 	while (true) {
 		//In world we'd update our other systems here.
@@ -319,7 +319,7 @@ int main(int argc, char** argv) {
 		if (framesSinceLastSQLPing >= sqlPingTime) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
-			int masterPort;
+			uint32_t masterPort;
 			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
 			auto res = stmt->executeQuery();
 			while (res->next()) {
@@ -652,7 +652,7 @@ void HandlePacket(Packet* packet) {
 
 			uint32_t len;
 			inStream.Read<uint32_t>(len);
-			for (int i = 0; len > i; i++) {
+			for (uint32_t i = 0; len > i; i++) {
 				char character;
 				inStream.Read<char>(character);
 				password += character;
@@ -678,7 +678,7 @@ void HandlePacket(Packet* packet) {
 			uint32_t len;
 			inStream.Read<uint32_t>(len);
 
-			for (int i = 0; i < len; i++) {
+			for (uint32_t i = 0; i < len; i++) {
 				char character; inStream.Read<char>(character);
 				password += character;
 			}
@@ -726,7 +726,7 @@ void HandlePacket(Packet* packet) {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
-			int zoneID;
+			int32_t zoneID;
 			inStream.Read(zoneID);
 			if (shutdownSequenceStarted) {
 				Game::logger->Log("MasterServer", "Shutdown sequence has been started.  Not prepping a new zone.");
@@ -822,7 +822,7 @@ void StartAuthServer() {
 #endif
 }
 
-void ShutdownSequence(int signal) {
+void ShutdownSequence(int32_t signal) {
 	if (shutdownSequenceStarted) {
 		return;
 	}
@@ -905,7 +905,7 @@ void ShutdownSequence(int signal) {
 	FinalizeShutdown(signal);
 }
 
-int FinalizeShutdown(int signal) {
+int32_t FinalizeShutdown(int32_t signal) {
 	//Delete our objects here:
 	Database::Destroy("MasterServer");
 	if (Game::config) delete Game::config;
