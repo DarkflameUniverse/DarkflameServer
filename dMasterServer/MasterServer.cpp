@@ -144,7 +144,8 @@ int main(int argc, char** argv) {
 	MigrationRunner::RunMigrations();
 
 	// Check CDClient exists
-	if (!std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite")) {
+	if (!std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite") && 
+		!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite")) {
 		Game::logger->Log("WorldServer", "CDServer.sqlite could not be opened. Looking for cdclient.fdb to convert to sqlite.");
 
 		if (!std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb")) {
