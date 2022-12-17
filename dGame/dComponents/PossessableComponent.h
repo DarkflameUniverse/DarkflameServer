@@ -109,7 +109,7 @@ private:
 	 * @brief What animaiton flag to use
 	 *
 	 */
-	eAnimationFlags m_AnimationFlag = eAnimationFlags::IDLE_INVALID;
+	eAnimationFlags m_AnimationFlag = eAnimationFlags::IDLE_NONE;
 
 	/**
 	 * @brief Should this be immediately depossessed

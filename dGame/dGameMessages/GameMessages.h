@@ -14,6 +14,7 @@
 #include "TradingManager.h"
 #include "LeaderboardManager.h"
 #include "MovingPlatformComponent.h"
+#include "eAninmationFlags.h"
 
 class NiQuaternion;
 class User;
@@ -372,6 +373,15 @@ namespace GameMessages {
 	void SendDisplayMessageBox(LWOOBJID objectId, bool bShow, LWOOBJID callbackClient, const std::u16string& identifier, int32_t imageID, const std::u16string& text, const std::u16string& userData, const SystemAddress& sysAddr);
 
 	void SendDisplayChatBubble(LWOOBJID objectId, const std::u16string& text, const SystemAddress& sysAddr);
+
+	/**
+	 * @brief
+	 *
+	 * @param objectId ID of the entity to set idle flags
+	 * @param FlagsOn Flag to turn on
+	 * @param FlagsOff Flag to turn off
+	 */
+	void SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags FlagsOn, eAnimationFlags FlagsOff, const SystemAddress& sysAddr);
 
 	// Mounts
 	/**
