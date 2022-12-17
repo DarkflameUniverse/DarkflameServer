@@ -384,14 +384,12 @@ void Character::SetIsNewLogin() {
 	auto* flags = m_Doc->FirstChildElement("obj")->FirstChildElement("flag");
 	if (!flags) return;
 
-	auto* currentChild = flags->FirstChildElement();
-	while (currentChild) {
-		if (currentChild->Attribute("si")) {
-			flags->DeleteChild(currentChild);
-			Game::logger->Log("Character", "Removed isLoggedIn flag from character %i, saving character to database", GetID());
-			WriteToDatabase();
-		}
-		currentChild = currentChild->NextSiblingElement();
+	for (auto* currentChild = flags->FirstChildElement(); currentChild; currentChild = currentChild->NextSiblingElement()) {
+		if (!currentChild->Attribute("si")) continue;
+
+		flags->DeleteChild(currentChild);
+		Game::logger->Log("Character", "Removed isLoggedIn flag from character %i, saving character to database", GetID());
+		WriteToDatabase();
 	}
 }
 
