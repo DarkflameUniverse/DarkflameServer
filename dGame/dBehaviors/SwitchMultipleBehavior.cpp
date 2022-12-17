@@ -9,10 +9,12 @@
 #include "EntityManager.h"
 
 
-void SwitchMultipleBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, BehaviorBranchContext branch) {
-	float value;
+void SwitchMultipleBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+	float value{};
 
-	bit_stream->Read(value);
+	if (!bitStream->Read(value)) {
+		Game::logger->Log("SwitchMultipleBehavior", "Unable to read value from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+	};
 
 	uint32_t trigger = 0;
 
@@ -30,10 +32,10 @@ void SwitchMultipleBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 
 	auto* behavior = this->m_behaviors.at(trigger).second;
 
-	behavior->Handle(context, bit_stream, branch);
+	behavior->Handle(context, bitStream, branch);
 }
 
-void SwitchMultipleBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, BehaviorBranchContext branch) {
+void SwitchMultipleBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	// TODO
 }
 

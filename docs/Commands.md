@@ -14,8 +14,6 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |pvp|`/pvp`|Toggle your PVP flag.||
 |resurrect|`/resurrect`|Resurrects the player.||
 |requestmailcount|`/requestmailcount`|Sends notification with number of unread messages in the player's mailbox.||
-|skip-ags|`/skip-ags`|Skips the Avant Gardens Survival minigame mission, "Impress the Sentinel Faction".||
-|skip-sg|`/skip-sg`|Skips the Shooting Gallery minigame mission, "Monarch of the Sea".||
 |who|`/who`|Displays in chat all players on the instance.||
 
 ## Moderation Commands

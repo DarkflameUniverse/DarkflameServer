@@ -4,12 +4,6 @@
 class BasicAttackBehavior final : public Behavior
 {
 public:
-	uint32_t m_minDamage;
-
-	uint32_t m_maxDamage;
-
-	Behavior* m_onSuccess;
-
 	explicit BasicAttackBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {
 	}
 
@@ -18,4 +12,12 @@ public:
 	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 
 	void Load() override;
+private:
+	uint32_t m_MinDamage;
+
+	uint32_t m_MaxDamage;
+
+	Behavior* m_OnSuccess;
+
+	Behavior* m_OnFailArmor;
 };
