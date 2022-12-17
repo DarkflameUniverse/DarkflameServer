@@ -25,6 +25,7 @@
 #include "dConfig.h"
 #include "TeamManager.h"
 #include "ChatPackets.h"
+#include "GameConfig.h"
 #include "RocketLaunchLupComponent.h"
 #include "eUnequippableActiveType.h"
 
@@ -998,7 +999,7 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 }
 
 void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos, int count) {
-	if (Game::config->GetValue("no_drops") == "1") {
+	if (GameConfig::GetValue<int32_t>("no_drops") == 1) {
 		return;
 	}
 
