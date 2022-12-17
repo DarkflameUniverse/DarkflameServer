@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
 
 	// Connect to CDClient
 	try {
-		CDClientDatabase::Connect((Game::assetManager->GetResPath() / "CDServer.sqlite").string());
+		CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").string());
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database");
 		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
