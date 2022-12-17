@@ -251,7 +251,7 @@ bool Item::Consume() {
 		}
 	}
 
-	Game::logger->Log("Item", "Consumed (%i) / (%llu) with (%d)", lot, id, success);
+	Game::logger->LogDebug("Item", "Consumed LOT (%i) itemID (%llu).  Success=(%d)", lot, id, success);
 
 	GameMessages::SendUseItemResult(inventory->GetComponent()->GetParent(), lot, success);
 
@@ -263,14 +263,34 @@ bool Item::Consume() {
 }
 
 void Item::UseNonEquip() {
+	LOT thisLot = this->GetLot();
+	if (!GetInventory()) {
+		Game::logger->LogDebug("Item", "item %i has no inventory??", this->GetLot());
+		return;
+	}
+
+	auto* playerInventoryComponent = GetInventory()->GetComponent();
+	if (!playerInventoryComponent) {
+		Game::logger->LogDebug("Item", "no inventory component attached to item id %llu lot %i", this->GetId(), this->GetLot());
+		return;
+	}
+
+	auto* playerEntity = playerInventoryComponent->GetParent();
+	if (!playerEntity) {
+		Game::logger->LogDebug("Item", "no player entity attached to inventory? item id is %llu", this->GetId());
+		return;
+	}
+
 	const auto type = static_cast<eItemType>(info->itemType);
 	if (type == eItemType::ITEM_TYPE_MOUNT) {
-		GetInventory()->GetComponent()->HandlePossession(this);
+		playerInventoryComponent->HandlePossession(this);
+		// TODO Check if mounts are allowed to be spawned
 	} else if (type == eItemType::ITEM_TYPE_PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY) {
-		const auto& databasePet = GetInventory()->GetComponent()->GetDatabasePet(subKey);
+		const auto& databasePet = playerInventoryComponent->GetDatabasePet(subKey);
 		if (databasePet.lot != LOT_NULL) {
-			GetInventory()->GetComponent()->SpawnPet(this);
+			playerInventoryComponent->SpawnPet(this);
 		}
+		// This precondition response is taken care of in SpawnPet().
 	} else {
 		auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 		const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_PACKAGE);
@@ -280,18 +300,41 @@ void Item::UseNonEquip() {
 		auto* packCompTable = CDClientManager::Instance()->GetTable<CDPackageComponentTable>("PackageComponent");
 		auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
 
-		const auto success = !packages.empty();
+		auto success = !packages.empty();
 		if (success) {
-			auto* entityParent = inventory->GetComponent()->GetParent();
-			for (auto& pack : packages) {
-				std::unordered_map<LOT, int32_t> result{};
-				result = LootGenerator::Instance().RollLootMatrix(entityParent, pack.LootMatrixIndex);
-				if (!inventory->GetComponent()->HasSpaceForLoot(result)) {
+			if (this->GetPreconditionExpression()->Check(playerInventoryComponent->GetParent())) {
+				auto* entityParent = playerInventoryComponent->GetParent();
+				// Roll the loot for all the packages then see if it all fits.  If it fits, give it to the player, otherwise don't.
+				std::unordered_map<LOT, int32_t> rolledLoot{};
+				for (auto& pack : packages) {
+					auto thisPackage = LootGenerator::Instance().RollLootMatrix(entityParent, pack.LootMatrixIndex);
+					for (auto& loot : thisPackage) {
+						// If we already rolled this lot, add it to the existing one, otherwise create a new entry.
+						auto existingLoot = rolledLoot.find(loot.first);
+						if (existingLoot == rolledLoot.end()) {
+							rolledLoot.insert(loot);
+						} else {
+							existingLoot->second += loot.second;
+						}
+					}
 				}
-				LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
+				if (playerInventoryComponent->HasSpaceForLoot(rolledLoot)) {
+					LootGenerator::Instance().GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
+					playerInventoryComponent->RemoveItem(lot, 1);
+				} else {
+					success = false;
+				}
+			} else {
+				GameMessages::SendUseItemRequirementsResponse(
+					playerInventoryComponent->GetParent()->GetObjectID(),
+					playerInventoryComponent->GetParent()->GetSystemAddress(),
+					UseItemResponse::FailedPrecondition
+				);
+				success = false;
 			}
-			inventory->GetComponent()->RemoveItem(lot, 1);
 		}
+		Game::logger->LogDebug("Item", "Player %llu %s used item %i", playerEntity->GetObjectID(), success ? "successfully" : "unsuccessfully", thisLot);
+		GameMessages::SendUseItemResult(playerInventoryComponent->GetParent(), thisLot, success);
 	}
 }
 

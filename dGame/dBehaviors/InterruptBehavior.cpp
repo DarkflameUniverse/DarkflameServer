@@ -11,7 +11,10 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 	if (branch.target != context->originator) {
 		bool unknown = false;
 
-		bitStream->Read(unknown);
+		if (!bitStream->Read(unknown)) {
+			Game::logger->Log("InterruptBehavior", "Unable to read unknown1 from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			return;
+		};
 
 		if (unknown) return;
 	}
@@ -19,7 +22,10 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 	if (!this->m_interruptBlock) {
 		bool unknown = false;
 
-		bitStream->Read(unknown);
+		if (!bitStream->Read(unknown)) {
+			Game::logger->Log("InterruptBehavior", "Unable to read unknown2 from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			return;
+		};
 
 		if (unknown) return;
 	}
@@ -28,7 +34,10 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 	{
 		bool unknown = false;
 
-		bitStream->Read(unknown);
+		if (!bitStream->Read(unknown)) {
+			Game::logger->Log("InterruptBehavior", "Unable to read unknown3 from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			return;
+		};
 	}
 
 	if (branch.target == context->originator) return;
