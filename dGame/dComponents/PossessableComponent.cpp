@@ -34,8 +34,8 @@ void PossessableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 		outBitStream->Write(m_Possessor != LWOOBJID_EMPTY);
 		if (m_Possessor != LWOOBJID_EMPTY) outBitStream->Write(m_Possessor);
 
-		outBitStream->Write(m_AnimationFlag != eAnimationFlags::IDLE_INVALID);
-		if (m_AnimationFlag != eAnimationFlags::IDLE_INVALID) outBitStream->Write(m_AnimationFlag);
+		outBitStream->Write(m_AnimationFlag != eAnimationFlags::IDLE_NONE);
+		if (m_AnimationFlag != eAnimationFlags::IDLE_NONE) outBitStream->Write(m_AnimationFlag);
 
 		outBitStream->Write(m_ImmediatelyDepossess);
 		m_ImmediatelyDepossess = false; // reset flag
