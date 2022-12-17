@@ -6,7 +6,7 @@ RUN --mount=type=cache,id=build-apt-cache,target=/var/cache/apt \
     echo "Install build dependencies" && \
     apt update && \
     apt remove -y libmysqlcppconn7v5 libmysqlcppconn-dev && \
-    apt install cmake zlib1g zlib1g-dev unzip -yqq --no-install-recommends && \
+    apt install cmake zlib1g zlib1g-dev -yqq --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
 COPY dAuthServer/ /build/dAuthServer
@@ -35,11 +35,9 @@ ARG BUILD_VERSION=171022
 RUN echo "Build server" && \
     mkdir -p cmake_build && \
     cd cmake_build && \
-    sed -i -e "s/171022/${BUILD_VERSION}/g" ../CMakeVariables.txt && \
+    sed -i -e "s/NET_VERSION=.*/NET_VERSION=171022/g" ../CMakeVariables.txt && \
     cmake .. -DCMAKE_BUILD_RPATH_USE_ORIGIN=TRUE && \
     make -j $BUILD_THREADS
-
-RUN unzip /build/resources/navmeshes.zip -d /build/cmake_build/res/maps
 
 FROM gcc:11 as runtime
 
