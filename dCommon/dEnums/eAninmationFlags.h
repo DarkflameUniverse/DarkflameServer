@@ -6,7 +6,7 @@
 #include <cstdint>
 
 enum class eAnimationFlags : uint32_t {
-	IDLE_INVALID = 0, // made up, for internal use!!!
+	IDLE_NONE = 0,
 	IDLE_BASIC,
 	IDLE_SWIM,
 	IDLE_CARRY,

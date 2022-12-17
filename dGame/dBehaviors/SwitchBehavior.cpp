@@ -10,7 +10,10 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 	auto state = true;
 
 	if (this->m_imagination > 0 || !this->m_isEnemyFaction) {
-		bitStream->Read(state);
+		if (!bitStream->Read(state)) {
+			Game::logger->Log("SwitchBehavior", "Unable to read state from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			return;
+		};
 	}
 
 	auto* entity = EntityManager::Instance()->GetEntity(context->originator);
@@ -25,7 +28,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		return;
 	}
 
-	Game::logger->Log("SwitchBehavior", "[%i] State: (%d), imagination: (%i) / (%f)", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
+	Game::logger->LogDebug("SwitchBehavior", "[%i] State: (%d), imagination: (%i) / (%f)", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
 
 	if (state || (entity->GetLOT() == 8092 && destroyableComponent->GetImagination() >= m_imagination)) {
 		this->m_actionTrue->Handle(context, bitStream, branch);
