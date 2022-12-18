@@ -129,6 +129,11 @@ sudo service mysql start
 
 <font size="4">**You will need to run this command every time you restart your environment**</font>
 
+If you are using Linux and `systemctl` and want the MariaDB instance to start on startup, run the following command
+```bash
+sudo systemctl enable --now mysql
+```
+
 Once MariaDB is started, you'll need to create a user and an empty database for Darkflame Universe to use.
 
 First, login to the MariaDB instance.
