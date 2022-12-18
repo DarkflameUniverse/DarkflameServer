@@ -220,7 +220,7 @@ int main(int argc, char** argv) {
 		//Create account
 
 		auto* statement = Database::CreatePreppedStmt("INSERT INTO accounts (name, password, ""gm_level) VALUES (?, ?, ?);");
-		statement->setString(1, username);
+		statement->setString(1, username.c_str());
 		statement->setString(2, std::string(hash, BCRYPT_HASHSIZE).c_str());
 		statement->setInt(3, 9);
 
