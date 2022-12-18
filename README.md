@@ -321,6 +321,10 @@ certutil -hashfile <file> SHA1
 Known good *SHA1* checksum of the Darkflame Universe client:
 - `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed)
 
+# Development Documentation
+This is a Work in Progress, but below are some quick links to documentaion for systems and structs in the server
+[Networked message structs](https://lcdruniverse.org/lu_packets/lu_packets/index.html)
+[General system documentation](https://docs.lu-dev.net/en/latest/index.html)
 
 # Credits
 ## Active Contributors
