@@ -61,6 +61,7 @@
 #include "DamageReductionBehavior.h"
 #include "JetPackBehavior.h"
 #include "ChangeIdleFlagsBehavior.h"
+#include "DarkInspirationBehavior.h"
 
  //CDClient includes
 #include "CDBehaviorParameterTable.h"
@@ -169,7 +170,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_SPEED:
 		behavior = new SpeedBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: break;
+	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: 
+		behavior = new DarkInspirationBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF:
 		behavior = new LootBuffBehavior(behaviorId);
 		break;

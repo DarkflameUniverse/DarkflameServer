@@ -283,7 +283,7 @@ public:
 	 * Triggers one of the passive abilities from the equipped item set
 	 * @param trigger the trigger to fire
 	 */
-	void TriggerPassiveAbility(PassiveAbilityTrigger trigger);
+	void TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target = nullptr);
 
 	/**
 	 * Returns if the entity has any of the passed passive abilities equipped

@@ -52,7 +52,7 @@ public:
 	 * Triggers all the passive abilities in this item set that match this trigger
 	 * @param trigger the trigger to use to trigger passive abilities
 	 */
-	void TriggerPassiveAbility(PassiveAbilityTrigger trigger);
+	void TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target = nullptr);
 
 	/**
 	 * Returns the skills that can be equipped for a specified amount of equipped items

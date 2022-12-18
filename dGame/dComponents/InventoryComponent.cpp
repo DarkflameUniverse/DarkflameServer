@@ -1160,9 +1160,9 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	}
 }
 
-void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger) {
+void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target) {
 	for (auto* set : m_Itemsets) {
-		set->TriggerPassiveAbility(trigger);
+		set->TriggerPassiveAbility(trigger, target);
 	}
 }
 
