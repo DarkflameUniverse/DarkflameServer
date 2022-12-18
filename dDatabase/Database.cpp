@@ -32,10 +32,10 @@ void Database::Connect(const string& host, const string& database, const string&
 	const std::string PIPE_PROTO = "pipe://";
 	const std::string TCP_PROTO = "tcp://";
     if (host.find(UNIX_PROTO) == 0) {
-		properties["hostName"] = "unix://localhost"; // TODO this needs to be changed to actually use the provided socket.
+		properties["hostName"] = "unix://localhost";
 		properties["localSocket"] = host.substr(UNIX_PROTO.length()).c_str();
     } else if (host.find(PIPE_PROTO) == 0) {
-		properties["hostName"] = "pipe://localhost"; // TODO this needs to be changed to actually use the provided socket.
+		properties["hostName"] = "pipe://localhost";
 		properties["pipe"] = host.substr(PIPE_PROTO.length()).c_str();
     } else {
 		properties["hostName"] = (TCP_PROTO + host).c_str();
