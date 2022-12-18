@@ -75,7 +75,7 @@ You can check your CMake version by using the following command in a terminal.
 cmake --version
 ```
 
-If you are going to be using an ubuntu environment to run the server, you may need to get a more recent version of `cmake` than the packages available may provide.
+If you are going to be using an Ubuntu environment to run the server, you may need to get a more recent version of `cmake` than the packages available may provide.
 
 The general approach to do so would be to obtain a copy of the signing key and then add the CMake repository to your apt.
 You can do so with the following commands.
