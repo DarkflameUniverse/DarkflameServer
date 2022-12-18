@@ -212,22 +212,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "skip-ags") {
-		auto* missionComponent = entity->GetComponent<MissionComponent>();
-
-		if (missionComponent != nullptr && missionComponent->HasMission(479)) {
-			missionComponent->CompleteMission(479);
-		}
-	}
-
-	if (chatCommand == "skip-sg") {
-		auto* missionComponent = entity->GetComponent<MissionComponent>();
-
-		if (missionComponent != nullptr && missionComponent->HasMission(229)) {
-			missionComponent->CompleteMission(229);
-		}
-	}
-
 	if (chatCommand == "fix-stats") {
 		// Reset skill component and buff component
 		auto* skillComponent = entity->GetComponent<SkillComponent>();
@@ -1778,6 +1762,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			scriptedActivityComponent->ReloadConfig();
 		}
+		Game::server->UpdateBandwidthLimit();
 		ChatPackets::SendSystemMessage(sysAddr, u"Successfully reloaded config for world!");
 	}
 

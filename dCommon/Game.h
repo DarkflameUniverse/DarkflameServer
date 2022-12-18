@@ -5,7 +5,6 @@
 class dServer;
 class dLogger;
 class InstanceManager;
-class dpWorld;
 class dChatFilter;
 class dConfig;
 class RakPeerInterface;
@@ -16,7 +15,6 @@ namespace Game {
 	extern dLogger* logger;
 	extern dServer* server;
 	extern InstanceManager* im;
-	extern dpWorld* physicsWorld;
 	extern dChatFilter* chatFilter;
 	extern dConfig* config;
 	extern std::mt19937 randomEngine;
