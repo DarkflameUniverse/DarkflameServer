@@ -143,26 +143,33 @@ int main(int argc, char** argv) {
 
 	MigrationRunner::RunMigrations();
 
-	// Check CDClient exists
-	if (!std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite") && 
-		!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite")) {
-		Game::logger->Log("WorldServer", "CDServer.sqlite could not be opened. Looking for cdclient.fdb to convert to sqlite.");
+	const bool cdServerExists = std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite");
+	const bool oldCDServerExists = std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite");
+	const bool fdbExists = std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb");
 
-		if (!std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb")) {
-			Game::logger->Log("WorldServer", "cdclient.fdb could not be opened. Please move a cdclient.fdb or an already converted database to build/res.");
-			return EXIT_FAILURE;
+	if (!cdServerExists) {
+		if (!oldCDServerExists) {
+			Game::logger->Log("WorldServer",
+				"%s could not be found in resServer or res. Looking for %s to convert to sqlite.",
+				(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").c_str(),
+				(Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
+			if (!fdbExists) {
+				Game::logger->Log("WorldServer",
+					"%s could not be opened. Please move cdclient.fdb to %s",
+					(Game::assetManager->GetResPath() / "cdclient.fdb").c_str(),
+					(Game::assetManager->GetResPath().c_str()));
+				FinalizeShutdown();
+			}
+			Game::logger->Log("WorldServer", "Found cdclient.fdb.  Converting to SQLite");
+			if (FdbToSqlite::Convert(Game::assetManager->GetResPath().string(), (BinaryPathFinder::GetBinaryDir() / "resServer").string()).ConvertDatabase() == false) {
+				Game::logger->Log("MasterServer", "Failed to convert fdb to sqlite.");
+				return EXIT_FAILURE;
+			}
+		} else {
+			// If the file doesn't exist in the new CDServer location, copy it there.  We copy because we may not have write permissions from the previous directory.
+			Game::logger->Log("MasterServer", "CDServer.sqlite is not located at resServer, but is located at res path.  Copying file...");
+			std::filesystem::copy_file(Game::assetManager->GetResPath() / "CDServer.sqlite", BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite");
 		}
-
-		Game::logger->Log("WorldServer", "Found cdclient.fdb.  Converting to SQLite");
-
-		if (FdbToSqlite::Convert(Game::assetManager->GetResPath().string(), (BinaryPathFinder::GetBinaryDir() / "resServer").string()).ConvertDatabase() == false) {
-			Game::logger->Log("MasterServer", "Failed to convert fdb to sqlite");
-			return EXIT_FAILURE;
-		}
-	} else if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite")) {
-		// If the file doesn't exist in the new CDServer location, move it there
-		Game::logger->Log("MasterServer", "CDServer.sqlite is not located at resServer, but is located at res path.  Moving file...");
-		std::filesystem::copy_file(Game::assetManager->GetResPath() / "CDServer.sqlite", BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite");
 	}
 
 	//Connect to CDClient
@@ -770,9 +777,9 @@ void StartChatServer() {
 		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 	} else {
 		auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
-	}
-#endif
 }
+#endif
+	}
 
 void StartAuthServer() {
 #ifdef __APPLE__
@@ -784,9 +791,9 @@ void StartAuthServer() {
 		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 	} else {
 		auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
-	}
-#endif
 }
+#endif
+	}
 
 void ShutdownSequence() {
 	if (shutdownSequenceStarted) {
