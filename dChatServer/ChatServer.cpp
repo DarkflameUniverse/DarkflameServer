@@ -25,6 +25,7 @@ namespace Game {
 	dConfig* config = nullptr;
 	dChatFilter* chatFilter = nullptr;
 	AssetManager* assetManager = nullptr;
+	bool shouldShutdown = false;
 }
 
 //RakNet includes:
@@ -103,7 +104,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::shouldShutdown);
 
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 
@@ -114,7 +115,7 @@ int main(int argc, char** argv) {
 	int framesSinceMasterDisconnect = 0;
 	int framesSinceLastSQLPing = 0;
 
-	while (true) {
+	while (!Game::shouldShutdown) {
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
