@@ -31,14 +31,6 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		return;
 	}
 
-	if (m_useMouseposit) {
-		NiPoint3 targetPosition = NiPoint3::ZERO;
-		if (!bitStream->Read(targetPosition)) {
-			Game::logger->Log("ProjectileAttackBehavior", "Unable to read targetPosition from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
-			return;
-		};
-	}
-
 	auto* targetEntity = EntityManager::Instance()->GetEntity(target);
 
 	for (auto i = 0u; i < this->m_projectileCount; ++i) {
