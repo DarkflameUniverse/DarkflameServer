@@ -46,7 +46,7 @@ git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 ## Install dependencies
 
 ### Windows packages
-Ensure that you have either the [MSVC](https://visualstudio.microsoft.com/vs/) (recommended) or the [Clang](https://github.com/llvm/llvm-project/releases/) compiler installed.
+Ensure that you have either the [MSVC C++ compiler](https://visualstudio.microsoft.com/vs/features/cplusplus/) (recommended) or the [Clang compiler](https://github.com/llvm/llvm-project/releases/) installed.
 You'll also need to download and install [CMake](https://cmake.org/download/) (version <font size="4">**CMake version 3.18**</font> or later!).
 
 ### MacOS packages
@@ -178,11 +178,14 @@ This server has a few steps that need to be taken to configure the server for yo
 ### Required Configuration
 Darkflame Universe can run with either a packed or an unpacked client.
 Navigate to `build/sharedconfig.ini` and fill in the following fields:
-* `mysql_host` (This is the IP address or hostname of your MariaDB server.  This is highly likely `localhost`)
+* `mysql_host` (This is the IP address or hostname of your MariaDB server)
+	* This is highly likely `localhost:3306`.
+	* If you changed the default port that you run MariaDB on, as you can do with a windows install, you will need to change 3306 to be the port number you chose to run MariaDB on.
 * `mysql_database` (This is the database you created for the server)
 * `mysql_username` (This is the user you created for the server)
 * `mysql_password` (This is the password for the user you created for the server)
 * `client_location` (This is the location of the client files.  This should be the folder path of a packed or unpacked client)
+	* Ideally the path to the client should not contain any spaces.
 
 ### Optional Configuration
 * After the server has been built there should be five `ini` files in the build directory: `sharedconfig.ini`, `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`.
@@ -219,7 +222,7 @@ Run `MasterServer -a` to get prompted to create an admin account. This method is
 ### Account management tool (Nexus Dashboard)
 **If you are just using this server for yourself, you can skip setting up Nexus Dashboard**
 
-Follow the instructions [here](https://github.com/DarkflameUniverse/NexusDashboard) to setup the DLU Nexus Dashboard web application. This is the intended way for users to create accounts.
+Follow the instructions [here](https://github.com/DarkflameUniverse/NexusDashboard) to setup the DLU Nexus Dashboard web application. This is the intended way for users to create accounts and the intended way for moderators to approve names/pets/properties and do other moderation actions.
 
 ### Admin levels
 The admin level, or Game Master level (hereafter referred to as gmlevel), is specified in the `accounts.gm_level` column in the MySQL database. Normal players should have this set to `0`, which comes with no special privileges. The system administrator will have this set to `9`, which comes will all privileges. gmlevel `8` should be used to give a player a majority of privileges without the safety critical once.
@@ -228,18 +231,6 @@ While a character has a gmlevel of anything but `0`, some gameplay behavior will
 
 # User guide
 Some changes to the client `boot.cfg` file are needed to play on your server.
-
-## Updating your server
-To update your server to the latest version navigate to your cloned directory
-```bash
-cd /path/to/DarkflameServer
-```
-Run the following commands to update to the latest changes
-```bash
-git pull
-git submodule update --init --recursive
-```
-Now follow the [build](#build-the-server) section for your system and your server is up to date.
 
 ## Allowing a user to connect to your server
 To connect to a server follow these steps:
@@ -269,6 +260,18 @@ python3 -m http.server 80
 python http.server 80
 py -m http.server 80
 ```
+
+## Updating your server
+To update your server to the latest version navigate to your cloned directory
+```bash
+cd path/to/DarkflameServer
+```
+Run the following commands to update to the latest changes
+```bash
+git pull
+git submodule update --init --recursive
+```
+Now follow the [build](#build-the-server) section for your system and your server is up to date.
 
 ## In-game commands
 * A list of all in-game commands can be found [here](./docs/Commands.md).
