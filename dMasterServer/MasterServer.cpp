@@ -158,18 +158,21 @@ int main(int argc, char** argv) {
 				"%s could not be found in resServer or res. Looking for %s to convert to sqlite.",
 				(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").c_str(),
 				(Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
-			if (!fdbExists) {
-				Game::logger->Log("WorldServer",
-					"%s could not be opened. Please move cdclient.fdb to %s",
-					(Game::assetManager->GetResPath() / "cdclient.fdb").c_str(),
-					(Game::assetManager->GetResPath().c_str()));
-				FinalizeShutdown();
+
+			AssetMemoryBuffer cdClientBuffer = Game::assetManager->GetFileAsBuffer("cdclient.fdb");
+			if (!cdClientBuffer.m_Success) {
+				Game::logger->Log("WorldServer", "Failed to load %s", (Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
+				throw std::runtime_error("Aborting initialization due to missing cdclient.fdb.");
 			}
-			Game::logger->Log("WorldServer", "Found cdclient.fdb.  Converting to SQLite");
-			if (FdbToSqlite::Convert(Game::assetManager->GetResPath().string(), (BinaryPathFinder::GetBinaryDir() / "resServer").string()).ConvertDatabase() == false) {
+
+			Game::logger->Log("WorldServer", "Found %s.  Converting to SQLite", (Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
+			Game::logger->Flush();
+
+			if (FdbToSqlite::Convert((BinaryPathFinder::GetBinaryDir() / "resServer").string()).ConvertDatabase(cdClientBuffer) == false) {
 				Game::logger->Log("MasterServer", "Failed to convert fdb to sqlite.");
 				return EXIT_FAILURE;
 			}
+			cdClientBuffer.close();
 		}
 	}
 

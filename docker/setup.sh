@@ -40,9 +40,3 @@ function update_ini_values() {
 }
 
 update_ini_values
-
-if [[ ! -d "/client" ]]; then
-    echo "Client not found."
-    echo "Did you forget to mount the client into the \"/client\" directory?"
-    exit 1
-fi
