@@ -121,20 +121,34 @@ void Trade::Complete() {
 
 	if (inventoryA == nullptr || inventoryB == nullptr || characterA == nullptr || characterB == nullptr || missionsA == nullptr || missionsB == nullptr) return;
 
-	characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, eLootSourceType::LOOT_SOURCE_TRADE);
-	characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, eLootSourceType::LOOT_SOURCE_TRADE);
-
 	for (const auto& tradeItem : m_ItemsA) {
-		inventoryA->RemoveItem(tradeItem.itemLot, tradeItem.itemCount, INVALID, true);
-
+		auto* itemToRemove = inventoryA->FindItemById(tradeItem.itemId);
+		if (itemToRemove) {
+			if (itemToRemove->GetCount() < tradeItem.itemCount) {
+				Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading!!! Aborting trade", characterA->GetName().c_str());
+			}
+			itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
+		} else {
+			Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading due to item not being available!!!", characterA->GetName().c_str());
+		}
 		missionsA->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
 	}
 
 	for (const auto& tradeItem : m_ItemsB) {
-		inventoryB->RemoveItem(tradeItem.itemLot, tradeItem.itemCount, INVALID, true);
-
+		auto* itemToRemove = inventoryB->FindItemById(tradeItem.itemId);
+		if (itemToRemove) {
+			if (itemToRemove->GetCount() < tradeItem.itemCount) {
+				Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading!!! Aborting trade", characterB->GetName().c_str());
+			}
+			itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
+		} else {
+			Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading due to item not being available!!!  Aborting trade", characterB->GetName().c_str());
+		}
 		missionsB->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
 	}
+
+	characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, eLootSourceType::LOOT_SOURCE_TRADE);
+	characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, eLootSourceType::LOOT_SOURCE_TRADE);
 
 	for (const auto& tradeItem : m_ItemsA) {
 		inventoryB->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::LOOT_SOURCE_TRADE);
