@@ -11,6 +11,7 @@
 #include "MovementAIComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "MissionComponent.h"
+#include "InventoryComponent.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	Game::logger->Log("SGCannon", "OnStartup");

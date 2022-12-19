@@ -14,6 +14,8 @@
 #include "Game.h"
 #include "dLogger.h"
 
+enum eInventoryType : uint32_t;
+
 /*!
   \file GeneralUtils.hpp
   \brief A namespace containing general utility functions
@@ -172,6 +174,11 @@ namespace GeneralUtils {
 	template <>
 	inline uint64_t Parse(const char* value) {
 		return std::stoull(value);
+	}
+
+	template <>
+	inline eInventoryType Parse(const char* value) {
+		return static_cast<eInventoryType>(std::stoul(value));
 	}
 
 	template <typename T>

@@ -36,7 +36,7 @@ public:
 	}
 } ReceiveDownloadCompleteCB;
 
-dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, unsigned int zoneID) {
+dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
 	mIP = ip;
 	mPort = port;
 	mZoneID = zoneID;
@@ -52,6 +52,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mReplicaManager = nullptr;
 	mServerType = serverType;
 	mConfig = config;
+	mShouldShutdown = shouldShutdown;
 	//Attempt to start our server here:
 	mIsOkay = Startup();
 
@@ -67,7 +68,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	} else { mLogger->Log("dServer", "FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
 
 	mLogger->SetLogToConsole(prevLogSetting);
-
+	mPeer->SetMTUSize(1228); // This is hard coded by lu for some reason.
 	//Connect to master if we are not master:
 	if (serverType != ServerType::Master) {
 		SetupForMasterConnection();
@@ -124,8 +125,11 @@ Packet* dServer::ReceiveFromMaster() {
 					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
 					break;
 				}
+				case MSG_MASTER_SHUTDOWN:
+					*mShouldShutdown = true;
+					break;
 
-															  //When we handle these packets in World instead dServer, we just return the packet's pointer.
+				//When we handle these packets in World instead dServer, we just return the packet's pointer.
 				default:
 
 					return packet;

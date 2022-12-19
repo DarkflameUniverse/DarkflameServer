@@ -6,6 +6,7 @@
 #include "CDClientManager.h"
 #include "dLogger.h"
 #include "Preconditions.h"
+#include "eInventoryType.h"
 
 /**
  * An item that can be stored in an inventory and optionally consumed or equipped

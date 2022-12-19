@@ -74,12 +74,12 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 	auto* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
 
 	ins->setUInt(1, sender);
-	ins->setString(2, senderName);
+	ins->setString(2, senderName.c_str());
 	ins->setUInt(3, recipient);
 	ins->setString(4, recipientName.c_str());
 	ins->setUInt64(5, time(nullptr));
-	ins->setString(6, subject);
-	ins->setString(7, body);
+	ins->setString(6, subject.c_str());
+	ins->setString(7, body.c_str());
 	ins->setUInt(8, 0);
 	ins->setInt(9, attachment);
 	ins->setInt(10, 0);
