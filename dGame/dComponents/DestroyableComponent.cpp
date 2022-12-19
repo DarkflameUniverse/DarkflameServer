@@ -28,6 +28,7 @@
 #include "CharacterComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
+#include "InventoryComponent.h"
 #include "dZoneManager.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
