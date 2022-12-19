@@ -11,8 +11,8 @@
 #include "ScriptedActivityComponent.h"
 #include "GameMessages.h"
 #include "dZoneManager.h"
+#include "InventoryComponent.h"
 #include "MissionComponent.h"
-
 
 MissionTask::MissionTask(Mission* mission, CDMissionTasks* info, uint32_t mask) {
 	this->info = info;
