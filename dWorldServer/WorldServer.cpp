@@ -56,6 +56,7 @@
 #include "Player.h"
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
+#include "LevelProgressionComponent.h"
 #include "eBlueprintSaveResponseType.h"
 
 #include "ZCompression.h"
@@ -993,9 +994,29 @@ void HandlePacket(Packet* packet) {
 					player->GetComponent<CharacterComponent>()->RocketUnEquip(player);
 				}
 
-				c->SetRetroactiveFlags();
+				// Do charxml fixes here
+				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
+				if (!levelComponent) return;
 
-				player->RetroactiveVaultSize();
+				auto version = levelComponent->GetCharacterVersion();
+				switch(version) {
+					case eCharacterVersion::RELEASE:
+						// TODO: Implement, super low priority
+					case eCharacterVersion::LIVE:
+						Game::logger->Log("WorldServer", "Updating Character Flags");
+						c->SetRetroactiveFlags();
+						levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
+					case eCharacterVersion::PLAYER_FACTION_FLAGS:
+						Game::logger->Log("WorldServer", "Updating Vault Size");
+						player->RetroactiveVaultSize();
+						levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
+					case eCharacterVersion::VAULT_SIZE:
+						Game::logger->Log("WorldServer", "Updaing Speedbase");
+						levelComponent->SetRetroactiveBaseSpeed();
+						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+					case eCharacterVersion::UP_TO_DATE:
+						break;
+				}
 
 				player->GetCharacter()->SetTargetScene("");
 
