@@ -163,12 +163,12 @@ int main(int argc, char** argv) {
 					"%s could not be opened. Please move cdclient.fdb to %s",
 					(Game::assetManager->GetResPath() / "cdclient.fdb").c_str(),
 					(Game::assetManager->GetResPath().c_str()));
-				FinalizeShutdown();
+				return FinalizeShutdown();
 			}
 			Game::logger->Log("WorldServer", "Found cdclient.fdb.  Converting to SQLite");
 			if (FdbToSqlite::Convert(Game::assetManager->GetResPath().string(), (BinaryPathFinder::GetBinaryDir() / "resServer").string()).ConvertDatabase() == false) {
 				Game::logger->Log("MasterServer", "Failed to convert fdb to sqlite.");
-				return EXIT_FAILURE;
+				return FinalizeShutdown();
 			}
 		}
 	}
