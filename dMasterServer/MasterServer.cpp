@@ -148,7 +148,11 @@ int main(int argc, char** argv) {
 	const bool fdbExists = std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb");
 
 	if (!cdServerExists) {
-		if (!oldCDServerExists) {
+		if (oldCDServerExists) {
+			// If the file doesn't exist in the new CDServer location, copy it there.  We copy because we may not have write permissions from the previous directory.
+			Game::logger->Log("MasterServer", "CDServer.sqlite is not located at resServer, but is located at res path.  Copying file...");
+			std::filesystem::copy_file(Game::assetManager->GetResPath() / "CDServer.sqlite", BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite");
+		} else {
 			Game::logger->Log("WorldServer",
 				"%s could not be found in resServer or res. Looking for %s to convert to sqlite.",
 				(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").c_str(),
@@ -165,10 +169,6 @@ int main(int argc, char** argv) {
 				Game::logger->Log("MasterServer", "Failed to convert fdb to sqlite.");
 				return EXIT_FAILURE;
 			}
-		} else {
-			// If the file doesn't exist in the new CDServer location, copy it there.  We copy because we may not have write permissions from the previous directory.
-			Game::logger->Log("MasterServer", "CDServer.sqlite is not located at resServer, but is located at res path.  Copying file...");
-			std::filesystem::copy_file(Game::assetManager->GetResPath() / "CDServer.sqlite", BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite");
 		}
 	}
 
