@@ -19,6 +19,7 @@
 #include "ItemSetPassiveAbility.h"
 #include "ItemSetPassiveAbilityID.h"
 #include "PossessorComponent.h"
+#include "eInventoryType.h"
 
 class Entity;
 class ItemSet;

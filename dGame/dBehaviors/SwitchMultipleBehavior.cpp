@@ -14,6 +14,7 @@ void SwitchMultipleBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 
 	if (!bitStream->Read(value)) {
 		Game::logger->Log("SwitchMultipleBehavior", "Unable to read value from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		return;
 	};
 
 	uint32_t trigger = 0;

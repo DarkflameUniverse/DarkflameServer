@@ -22,6 +22,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 
 	if (!bitStream->Read(hit)) {
 		Game::logger->Log("TacArcBehavior", "Unable to read hit from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		return;
 	};
 
 	if (this->m_checkEnv) {
@@ -29,6 +30,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 
 		if (!bitStream->Read(blocked)) {
 			Game::logger->Log("TacArcBehavior", "Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			return;
 		};
 
 		if (blocked) {
@@ -43,6 +45,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 
 		if (!bitStream->Read(count)) {
 			Game::logger->Log("TacArcBehavior", "Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			return;
 		};
 
 		if (count > m_maxTargets && m_maxTargets > 0) {
@@ -56,6 +59,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 
 			if (!bitStream->Read(id)) {
 				Game::logger->Log("TacArcBehavior", "Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+				return;
 			};
 
 			targets.push_back(id);

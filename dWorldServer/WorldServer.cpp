@@ -70,11 +70,11 @@ namespace Game {
 	RakPeerInterface* chatServer = nullptr;
 	std::mt19937 randomEngine;
 	SystemAddress chatSysAddr;
-}
+	bool shouldShutdown = false;
+} // namespace Game
 
 bool chatDisabled = false;
 bool chatConnected = false;
-bool worldShutdownSequenceStarted = false;
 bool worldShutdownSequenceComplete = false;
 void WorldShutdownSequence();
 void WorldShutdownProcess(uint32_t zoneId);
@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
 	LootGenerator::Instance();
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 
-	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, zoneID);
+	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::shouldShutdown, zoneID);
 
 	//Connect to the chat server:
 	int chatPort = 1501;
@@ -315,9 +315,9 @@ int main(int argc, char** argv) {
 			framesSinceMasterDisconnect++;
 
 			int framesToWaitForMaster = ready ? 10 : 200;
-			if (framesSinceMasterDisconnect >= framesToWaitForMaster && !worldShutdownSequenceStarted) {
+			if (framesSinceMasterDisconnect >= framesToWaitForMaster && !Game::shouldShutdown) {
 				Game::logger->Log("WorldServer", "Game loop running but no connection to master for %d frames, shutting down", framesToWaitForMaster);
-				worldShutdownSequenceStarted = true;
+				Game::shouldShutdown = true;
 			}
 		} else framesSinceMasterDisconnect = 0;
 
@@ -413,7 +413,7 @@ int main(int argc, char** argv) {
 
 			//If we haven't had any players for a while, time out and shut down:
 			if (framesSinceLastUser == (cloneID != 0 ? 4000 : 40000)) {
-				worldShutdownSequenceStarted = true;
+				Game::shouldShutdown = true;
 			}
 		} else {
 			framesSinceLastUser = 0;
@@ -470,7 +470,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		if (worldShutdownSequenceStarted && !worldShutdownSequenceComplete) {
+		if (Game::shouldShutdown && !worldShutdownSequenceComplete) {
 			WorldShutdownProcess(zoneID);
 			break;
 		}
@@ -789,7 +789,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MSG_MASTER_SHUTDOWN: {
-			worldShutdownSequenceStarted = true;
+			Game::shouldShutdown = true;
 			Game::logger->Log("WorldServer", "Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
 			break;
 		}
@@ -1287,11 +1287,11 @@ void WorldShutdownProcess(uint32_t zoneId) {
 }
 
 void WorldShutdownSequence() {
-	if (worldShutdownSequenceStarted || worldShutdownSequenceComplete) {
+	if (Game::shouldShutdown || worldShutdownSequenceComplete) {
 		return;
 	}
 
-	worldShutdownSequenceStarted = true;
+	Game::shouldShutdown = true;
 
 	Game::logger->Log("WorldServer", "Zone (%i) instance (%i) shutting down outside of main loop!", Game::server->GetZoneID(), instanceID);
 	WorldShutdownProcess(Game::server->GetZoneID());

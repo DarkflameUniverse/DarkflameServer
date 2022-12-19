@@ -25,6 +25,7 @@ namespace Game {
 	dLogger* logger = nullptr;
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
+	bool shouldShutdown = false;
 }
 
 dLogger* SetupLogger();
@@ -83,7 +84,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::shouldShutdown);
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -92,7 +93,7 @@ int main(int argc, char** argv) {
 	int framesSinceMasterDisconnect = 0;
 	int framesSinceLastSQLPing = 0;
 
-	while (true) {
+	while (!Game::shouldShutdown) {
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;

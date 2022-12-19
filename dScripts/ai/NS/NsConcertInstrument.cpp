@@ -5,6 +5,7 @@
 #include "EntityManager.h"
 #include "RebuildComponent.h"
 #include "SoundTriggerComponent.h"
+#include "InventoryComponent.h"
 #include "MissionComponent.h"
 
 // Constants are at the bottom

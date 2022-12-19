@@ -150,7 +150,7 @@ void InstanceManager::RemoveInstance(Instance* instance) {
 		if (m_Instances[i] == instance) {
 			instance->SetShutdownComplete(true);
 
-			RedirectPendingRequests(instance);
+			if (!Game::shouldShutdown) RedirectPendingRequests(instance);
 
 			delete m_Instances[i];
 
@@ -402,5 +402,5 @@ void Instance::Shutdown() {
 
 	Game::server->Send(&bitStream, this->m_SysAddr, false);
 
-	Game::logger->Log("Instance", "Triggered world shutdown");
+	Game::logger->Log("Instance", "Triggered world shutdown for zone/clone/instance %i/%i/%i", GetMapID(), GetCloneID(), GetInstanceID());
 }
