@@ -103,6 +103,7 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 		}
 
 		Complete();
+		TradingManager::Instance()->CancelTrade(m_TradeId);
 	}
 }
 
@@ -121,6 +122,12 @@ void Trade::Complete() {
 
 	if (inventoryA == nullptr || inventoryB == nullptr || characterA == nullptr || characterB == nullptr || missionsA == nullptr || missionsB == nullptr) return;
 
+	// First verify both players have the coins and items requested for the trade.
+	if (characterA->GetCoins() < m_CoinsA || characterB->GetCoins() < m_CoinsB) {
+		Game::logger->Log("TradingManager", "Possible coin trade cheating attempt! Aborting trade.");
+		return;
+	}
+
 	for (const auto& tradeItem : m_ItemsA) {
 		auto* itemToRemove = inventoryA->FindItemById(tradeItem.itemId);
 		if (itemToRemove) {
@@ -128,12 +135,10 @@ void Trade::Complete() {
 				Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading!!! Aborting trade", characterA->GetName().c_str());
 				return;
 			}
-			itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
 		} else {
 			Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading due to item not being available!!!", characterA->GetName().c_str());
 			return;
 		}
-		missionsA->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
 	}
 
 	for (const auto& tradeItem : m_ItemsB) {
@@ -143,29 +148,33 @@ void Trade::Complete() {
 				Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading!!! Aborting trade", characterB->GetName().c_str());
 				return;
 			}
-			itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
 		} else {
 			Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading due to item not being available!!!  Aborting trade", characterB->GetName().c_str());
 			return;
 		}
-		missionsB->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
 	}
 
+	// Now actually do the trade.
 	characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, eLootSourceType::LOOT_SOURCE_TRADE);
 	characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, eLootSourceType::LOOT_SOURCE_TRADE);
 
 	for (const auto& tradeItem : m_ItemsA) {
+		auto* itemToRemove = inventoryA->FindItemById(tradeItem.itemId);
+		if (itemToRemove) itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
+		missionsA->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
 		inventoryB->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::LOOT_SOURCE_TRADE);
 	}
 
 	for (const auto& tradeItem : m_ItemsB) {
+		auto* itemToRemove = inventoryB->FindItemById(tradeItem.itemId);
+		if (itemToRemove) itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
+		missionsB->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
 		inventoryA->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::LOOT_SOURCE_TRADE);
 	}
 
-	TradingManager::Instance()->CancelTrade(m_TradeId);
-
 	characterA->SaveXMLToDatabase();
 	characterB->SaveXMLToDatabase();
+	return;
 }
 
 void Trade::Cancel() {
