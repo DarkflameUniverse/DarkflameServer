@@ -7,6 +7,7 @@
 #include "GameMessages.h"
 #include "dLogger.h"
 #include "dConfig.h"
+#include "CDClientManager.h"
 
 Leaderboard::Leaderboard(uint32_t gameID, uint32_t infoType, bool weekly, std::vector<LeaderboardEntry> entries,
 	LWOOBJID relatedPlayer, LeaderboardType leaderboardType) {

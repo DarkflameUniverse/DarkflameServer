@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "Game.h"
 #include "Item.h"
+#include "InventoryComponent.h"
 #include "eItemType.h"
 
 std::vector<LOT> Inventory::m_GameMasterRestrictedItems = {
@@ -266,7 +267,7 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 	case eItemType::ITEM_TYPE_QUEST_OBJECT:
 	case eItemType::ITEM_TYPE_UNKNOWN:
 	default:
-		return HIDDEN;
+		return QUEST;
 	}
 }
 
@@ -298,6 +299,12 @@ bool Inventory::IsValidItem(const LOT lot) {
 
 const std::vector<LOT>& Inventory::GetAllGMItems() {
 	return m_GameMasterRestrictedItems;
+}
+
+void Inventory::DeleteAllItems() {
+	while (!this->items.empty()) {
+		if (items.begin()->second) items.begin()->second->SetCount(0);
+	}
 }
 
 Inventory::~Inventory() {
