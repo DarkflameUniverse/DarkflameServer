@@ -15,6 +15,7 @@
 #include "Zone.h"
 #include "ChatPackets.h"
 #include "Inventory.h"
+#include "InventoryComponent.h"
 
 Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:

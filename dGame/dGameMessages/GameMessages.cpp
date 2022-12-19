@@ -49,6 +49,7 @@
 #include "ScriptComponent.h"
 #include "RebuildComponent.h"
 #include "VendorComponent.h"
+#include "InventoryComponent.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
 #include "MovingPlatformComponent.h"
