@@ -23,6 +23,8 @@ public:
 
 	bool m_useMouseposit;
 
+	int32_t m_ProjectileType;
+
 	/*
 	 * Inherited
 	 */
