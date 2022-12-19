@@ -139,6 +139,7 @@
 #include "TreasureChestDragonServer.h"
 #include "InstanceExitTransferPlayerToLastNonInstance.h"
 #include "FvFreeGfNinjas.h"
+#include "FvGuildCreate.h"
 #include "FvPandaServer.h"
 #include "FvPandaSpawnerServer.h"
 #include "ZoneFvProperty.h"
@@ -569,6 +570,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new InstanceExitTransferPlayerToLastNonInstance();
 	else if (scriptName == "scripts\\ai\\FV\\L_NPC_FREE_GF_NINJAS.lua")
 		script = new FvFreeGfNinjas();
+    else if (scriptName == "scripts\\ai\\FV\\L_GUILD_CREATE.lua")
+        script = new FvGuildCreate();
 	else if (scriptName == "scripts\\ai\\FV\\L_FV_PANDA_SPAWNER_SERVER.lua")
 		script = new FvPandaSpawnerServer();
 	else if (scriptName == "scripts\\ai\\FV\\L_FV_PANDA_SERVER.lua")

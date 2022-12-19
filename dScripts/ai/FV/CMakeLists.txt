@@ -3,6 +3,7 @@ set(DSCRIPTS_SOURCES_AI_FV
 	"FvFlyingCreviceDragon.cpp"
 	"FvDragonSmashingGolemQb.cpp"
 	"FvFreeGfNinjas.cpp"
+	"FvGuildCreate.cpp"
 	"FvPandaSpawnerServer.cpp"
 	"FvPandaServer.cpp"
 	"FvBrickPuzzleServer.cpp"
