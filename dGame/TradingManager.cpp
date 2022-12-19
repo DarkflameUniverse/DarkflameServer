@@ -126,10 +126,12 @@ void Trade::Complete() {
 		if (itemToRemove) {
 			if (itemToRemove->GetCount() < tradeItem.itemCount) {
 				Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading!!! Aborting trade", characterA->GetName().c_str());
+				return;
 			}
 			itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
 		} else {
 			Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading due to item not being available!!!", characterA->GetName().c_str());
+			return;
 		}
 		missionsA->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
 	}
@@ -139,10 +141,12 @@ void Trade::Complete() {
 		if (itemToRemove) {
 			if (itemToRemove->GetCount() < tradeItem.itemCount) {
 				Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading!!! Aborting trade", characterB->GetName().c_str());
+				return;
 			}
 			itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
 		} else {
 			Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading due to item not being available!!!  Aborting trade", characterB->GetName().c_str());
+			return;
 		}
 		missionsB->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
 	}
