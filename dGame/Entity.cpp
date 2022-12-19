@@ -769,8 +769,8 @@ no_ghosting:
 		auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 		auto* levelComponent = GetComponent<LevelProgressionComponent>();
 
-		if (controllablePhysicsComponent != nullptr && levelComponent->GetLevel() >= 20) {
-			controllablePhysicsComponent->SetSpeedMultiplier(525.0f / 500.0f);
+		if (controllablePhysicsComponent && levelComponent) {
+			controllablePhysicsComponent->SetSpeedMultiplier(levelComponent->GetSpeedBase() / 500.0f);
 		}
 	}
 }

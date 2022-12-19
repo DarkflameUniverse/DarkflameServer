@@ -5808,16 +5808,16 @@ void GameMessages::HandleClientItemConsumed(RakNet::BitStream* inStream, Entity*
 	}
 
 	auto* item = inventory->FindItemById(itemConsumed);
-
 	if (item == nullptr) {
 		return;
 	}
+	LOT itemLot = item->GetLot();
 
 	item->Consume();
 
 	auto* missions = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
 	if (missions != nullptr) {
-		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_FOOD, item->GetLot());
+		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_FOOD, itemLot);
 	}
 }
 
