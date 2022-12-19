@@ -21,4 +21,5 @@ namespace Game {
 	extern RakPeerInterface* chatServer;
 	extern AssetManager* assetManager;
 	extern SystemAddress chatSysAddr;
+	extern bool shouldShutdown;
 }

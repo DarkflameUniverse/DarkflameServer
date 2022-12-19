@@ -1,4 +1,3 @@
-
 #ifndef GAMEMESSAGES_H
 #define GAMEMESSAGES_H
 
@@ -18,8 +17,9 @@ class Leaderboard;
 class PropertySelectQueryProperty;
 class TradeItem;
 
-enum class eUnequippableActiveType;
 enum class eAnimationFlags : uint32_t;
+
+enum class eUnequippableActiveType;
 enum eInventoryType : uint32_t;
 
 namespace GameMessages {

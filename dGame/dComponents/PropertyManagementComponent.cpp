@@ -718,7 +718,7 @@ void PropertyManagementComponent::Save() {
 			insertion->setDouble(9, rotation.y);
 			insertion->setDouble(10, rotation.z);
 			insertion->setDouble(11, rotation.w);
-			insertion->setString(12, "Objects_" + std::to_string(entity->GetLOT()) + "_name"); // Model name.  TODO make this customizable
+			insertion->setString(12, ("Objects_" + std::to_string(entity->GetLOT()) + "_name").c_str()); // Model name.  TODO make this customizable
 			insertion->setString(13, ""); // Model description.  TODO implement this.
 			insertion->setDouble(14, 0); // behavior 1.  TODO implement this.
 			insertion->setDouble(15, 0); // behavior 2.  TODO implement this.
