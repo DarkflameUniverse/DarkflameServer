@@ -336,6 +336,7 @@ endif()
 add_subdirectory(dWorldServer)
 add_subdirectory(dAuthServer)
 add_subdirectory(dChatServer)
+add_subdirectory(dUgcServer)
 add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the other binaries
 
 # Add our precompiled headers

@@ -25,6 +25,8 @@ include(CMakeMariaDBLists.txt)
 # Create our third party library objects
 add_subdirectory(raknet)
 
+add_subdirectory(cpp-httplib)
+
 # Download Backtrace if configured
 if(UNIX AND NOT APPLE)
 	include(FetchContent)
