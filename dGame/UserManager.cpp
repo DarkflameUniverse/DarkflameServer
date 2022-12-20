@@ -460,6 +460,20 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			delete stmt;
 		}
 		{
+			sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
+				"DELETE FROM guild_members WHERE property_id IN (SELECT owner FROM guilds WHERE owner_id=?);"
+			);
+			stmt->setUInt64(1, charID);
+			stmt->execute();
+			delete stmt;
+		}
+		{
+			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM guilds WHERE owner_id=?;");
+			stmt->setUInt64(1, charID);
+			stmt->execute();
+			delete stmt;
+		}
+		{
 			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM charinfo WHERE id=? LIMIT 1;");
 			stmt->setUInt64(1, charID);
 			stmt->execute();

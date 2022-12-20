@@ -420,7 +420,7 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 	auto creation = (uint32_t)time(nullptr);
 
 	// If not, insert our newly created guild:
-	auto insertGuild = Database::CreatePreppedStmt("INSERT INTO `guilds`(`name`, `owner`, `uscore`, `created`) VALUES (?,?,?,?)");
+	auto insertGuild = Database::CreatePreppedStmt("INSERT INTO `guilds`(`name`, `owner_id`, `uscore`, `created`) VALUES (?,?,?,?)");
 	insertGuild->setString(1, guildName.c_str());
 	insertGuild->setUInt(2, character->GetID());
 	insertGuild->setUInt(3, characterComp->GetUScore());
@@ -429,7 +429,7 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 	delete insertGuild;
 
 	// Enable the guild on their character component:
-	auto get = Database::CreatePreppedStmt("SELECT id, name FROM guilds WHERE owner=?");
+	auto get = Database::CreatePreppedStmt("SELECT id, name FROM guilds WHERE owner_id=?");
 	get->setInt(1, character->GetID());
 
 	auto* results = get->executeQuery();
@@ -448,7 +448,7 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 		return;
 	}
 
-	auto insertOwner = Database::CreatePreppedStmt("INSERT INTO `guild_members`(`guild_id`, `character_id`, `rank`, `joined`) VALUES (?,?,?)");
+	auto insertOwner = Database::CreatePreppedStmt("INSERT INTO `guild_members`(`guild_id`, `character_id`, `rank`, `joined`) VALUES (?,?,?,?)");
 	insertOwner->setUInt(1, guildId);
 	insertOwner->setUInt(2, character->GetID());
 	insertOwner->setUInt(3, eGuildRank::FOUNDER);
