@@ -1710,25 +1710,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "config-set" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 2) {
-		Game::config->AddToConfig(args[0], args[1]);
-
-		ChatPackets::SendSystemMessage(
-			sysAddr, u"Set config value: " + GeneralUtils::UTF8ToUTF16(args[0]) + u" to " + GeneralUtils::UTF8ToUTF16(args[1])
-		);
-	}
-
-	if (chatCommand == "config-get" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
-		const auto& value = Game::config->GetValue(args[0]);
-
-		std::u16string u16key = GeneralUtils::UTF8ToUTF16(args[0]);
-		if (value.empty()) {
-			ChatPackets::SendSystemMessage(sysAddr, u"No value found for " + u16key);
-		} else {
-			ChatPackets::SendSystemMessage(sysAddr, u"Value for " + u16key + u": " + GeneralUtils::UTF8ToUTF16(value));
-		}
-	}
-
 	if (chatCommand == "metrics" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		for (const auto variable : Metrics::GetAllMetrics()) {
 			auto* metric = Metrics::GetMetric(variable);

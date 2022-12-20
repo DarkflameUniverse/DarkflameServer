@@ -51,7 +51,3 @@ void dConfig::ProcessLine(const std::string& line) {
 
 	this->m_ConfigValues.insert(std::make_pair(key, value));
 }
-
-void dConfig::AddToConfig(std::string& key, std::string& value) {
-	this->m_ConfigValues.insert_or_assign(key, value);
-}

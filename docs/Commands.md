@@ -39,8 +39,6 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
 |announce|`/announce`|Sends a announcement. `/setanntitle` and `/setannmsg` must be called first to configure the announcement.|8|
-|config-set|`/config-set <key> <value>`|Set configuration item.|8|
-|config-get|`/config-get <key>`|Get current value of a configuration item.|8|
 |kill|`/kill <username>`|Smashes the character whom the given user is playing.|8|
 |metrics|`/metrics`|Prints some information about the server's performance.|8|
 |setannmsg|`/setannmsg <title>`|Sets the message of an announcement.|8|
