@@ -36,6 +36,9 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_CurrentActivity = 0;
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
+
+	m_GuildID = 0;
+	m_GuildName = u"";
 }
 
 bool CharacterComponent::LandingAnimDisabled(int zoneID) {
@@ -143,6 +146,7 @@ void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 	outBitStream->Write(m_DirtyCurrentActivity);
 	if (m_DirtyCurrentActivity) outBitStream->Write(m_CurrentActivity);
 
+
 	outBitStream->Write(m_DirtySocialInfo);
 	if (m_DirtySocialInfo) {
 		outBitStream->Write(m_GuildID);
@@ -152,6 +156,7 @@ void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 
 		outBitStream->Write(m_IsLEGOClubMember);
 		outBitStream->Write(m_CountryCode);
+		m_DirtySocialInfo = false;
 	}
 }
 
@@ -161,7 +166,6 @@ bool CharacterComponent::GetPvpEnabled() const {
 
 void CharacterComponent::SetPvpEnabled(const bool value) {
 	m_DirtyGMInfo = true;
-
 	m_PvpEnabled = value;
 }
 
@@ -170,6 +174,12 @@ void CharacterComponent::SetGMLevel(int gmlevel) {
 	if (gmlevel > 0) m_IsGM = true;
 	else m_IsGM = false;
 	m_GMLevel = gmlevel;
+}
+
+void CharacterComponent::SetGuild(LWOOBJID& guildID, std::u16string guildName) {
+	m_GuildID = guildID;
+	m_GuildName = guildName;
+	m_DirtySocialInfo = true;
 }
 
 void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
@@ -246,7 +256,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 		m_EditorEnabled = false; //We're not currently in HF if we're loading in
 	}
 
-	//Annoying guild bs:
+	// Guild Stuff:
 	const tinyxml2::XMLAttribute* guildName = character->FindAttribute("gn");
 	if (guildName) {
 		const char* gn = guildName->Value();
@@ -347,6 +357,11 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	//
 	// End custom attributes
 	//
+
+	if (m_GuildID != 0 || m_GuildName != u"") {
+		character->SetAttribute("gn", GeneralUtils::UTF16ToWTF8(m_GuildName).c_str());
+		character->SetAttribute("gid", m_GuildID);
+	}
 
 	auto newUpdateTimestamp = std::time(nullptr);
 	Game::logger->Log("TotalTimePlayed", "Time since last save: %d", newUpdateTimestamp - m_LastUpdateTimestamp);

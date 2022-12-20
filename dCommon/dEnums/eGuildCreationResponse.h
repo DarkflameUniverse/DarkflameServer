@@ -1,0 +1,13 @@
+#pragma once
+
+#ifndef __EGUILDCREATIONRESPONSE__H__
+#define __EGUILDCREATIONRESPONSE__H__
+
+enum eGuildCreationResponse {
+	CREATED = 0,
+	REJECTED_BAD_NAME,
+	REJECTED_EXISTS,
+	UNKNOWN_ERROR
+};
+
+#endif  //!__EGUILDCREATIONRESPONSE__H__

@@ -288,6 +288,19 @@ void HandlePacket(Packet* packet) {
 			ChatPacketHandler::HandleTeamLootOption(packet);
 			break;
 
+		// Guild messages
+		case MSG_CHAT_GUILD_CREATE:
+			Game::logger->Log("ChatPackets", "GuildCreate");
+			break;
+
+		case MSG_CHAT_GUILD_GET_ALL:
+			Game::logger->Log("ChatPackets", "GuildGetAll");
+			break;
+
+		case MSG_CHAT_GUILD_GET_STATUS:
+			Game::logger->Log("ChatPackets", "GuildGetStatus");
+			break;
+
 		default:
 			Game::logger->Log("ChatServer", "Unknown CHAT id: %i", int(packet->data[3]));
 		}

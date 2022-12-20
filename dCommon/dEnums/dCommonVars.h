@@ -472,13 +472,6 @@ enum eGameActivities : uint32_t {
 	ACTIVITY_PET_TAMING
 };
 
-enum eGuildCreationResponses {
-	CREATED = 0,
-	REJECTED_BAD_NAME,
-	REJECTED_EXISTS,
-	UNKNOWN_ERROR
-};
-
 enum ePlayerFlags {
 	BTARR_TESTING = 0,
 	PLAYER_HAS_ENTERED_PET_RANCH = 1,

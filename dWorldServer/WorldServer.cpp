@@ -1239,6 +1239,11 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
+	case MSG_WORLD_CLIENT_TMP_GUILD_CREATE: {
+		Game::logger->Log("WorldServer", "create a guild");
+		ClientPackets::HandleGuildCreation(packet->systemAddress, packet);
+	}
+
 	default:
 		Game::server->GetLogger()->Log("HandlePacket", "Unknown world packet received: %i", int(packet->data[3]));
 	}

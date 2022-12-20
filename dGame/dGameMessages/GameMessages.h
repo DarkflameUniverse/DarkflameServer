@@ -14,6 +14,7 @@
 #include "LeaderboardManager.h"
 #include "MovingPlatformComponent.h"
 #include "eAninmationFlags.h"
+#include "eGuildCreationResponse.h"
 
 class NiQuaternion;
 class User;
@@ -536,6 +537,10 @@ namespace GameMessages {
 	void HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendShowActivityCountdown(LWOOBJID objectId, bool bPlayAdditionalSound, bool bPlayCountdownSound, std::u16string sndName, int32_t stateToPlaySoundOn, const SystemAddress& sysAddr);
+
+	//Guild messages:
+	void SendDisplayGuildCreateBox(const LWOOBJID& objectID, bool bShow, const SystemAddress& sysAddr);
+	void SendGuildCreateResponse(const SystemAddress& sysAddr, eGuildCreationResponse guildResponse, LWOOBJID guildID, std::u16string& guildName);
 
 	//Handlers:
 

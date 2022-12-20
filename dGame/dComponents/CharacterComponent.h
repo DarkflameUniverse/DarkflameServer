@@ -180,6 +180,26 @@ public:
 	void SetGMLevel(int gmlevel);
 
 	/**
+	 * @brief Get the Guild ID that the character is in
+	 * @return const LWOOBJID& The guild
+	 */
+	const LWOOBJID& GetGuildID() const { return m_GuildID; }
+
+	/**
+	 * @brief Get the character's Guild's Name
+	 * @return const std::u16string& the guild name
+	 */
+	const std::u16string& GetGuildName() const { return m_GuildName; }
+
+	/**
+	 * @brief Set the character's Guild
+	 *
+	 * @param guildID
+	 * @param guildName
+	 */
+	void SetGuild(LWOOBJID& guildID, std::u16string guildName);
+
+	/**
 	 * Initializes the player statistics from the string stored in the XML
 	 * @param statisticsString the string to parse
 	 */

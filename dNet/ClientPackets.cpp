@@ -31,7 +31,8 @@
 #include "dConfig.h"
 #include "CharacterComponent.h"
 #include "Database.h"
-
+#include "PacketUtils.h"
+#include "eGuildRank.h"
 
 
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
@@ -370,3 +371,93 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 	user->SetLastChatMessageApproved(bAllClean);
 	WorldPackets::SendChatModerationResponse(sysAddr, bAllClean, requestID, receiver, segments);
 }
+
+void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* packet) {
+	std::string guildName = PacketUtils::ReadString(8, packet, true);
+
+	auto user = UserManager::Instance()->GetUser(sysAddr);
+	if (!user) return;
+
+	auto character = user->GetLastUsedChar();
+	if (!character) return;
+
+	Game::logger->Log("ClientPackets", "User %s wants to create a guild with name: %s", character->GetName().c_str(), guildName.c_str());
+
+	// First, check to see if there is a guild with that name or not:
+	auto stmt = Database::CreatePreppedStmt("SELECT * FROM guilds WHERE name=?");
+	stmt->setString(1, guildName.c_str());
+
+	auto res = stmt->executeQuery();
+	if (res->rowsCount() > 0) {
+		Game::logger->Log("ClientPackets", "But a guild already exists with that name!");
+		auto usedName = GeneralUtils::UTF8ToUTF16(guildName);
+		GameMessages::SendGuildCreateResponse(sysAddr, eGuildCreationResponse::REJECTED_EXISTS, LWOOBJID_EMPTY, usedName);
+		return;
+	}
+
+	delete res;
+	delete stmt;
+
+	// if (!Game::chatFilter->IsSentenceOkay(guildName, 1).empty()) {
+	// 	Game::logger->Log("ClientPackets", "But they used bad words!");
+	// 	auto usedName = GeneralUtils::UTF8ToUTF16(guildName);
+	// 	GameMessages::SendGuildCreateResponse(sysAddr, eGuildCreationResponse::REJECTED_BAD_NAME, LWOOBJID_EMPTY, usedName);
+	// 	return;
+	// }
+
+	auto entity = character->GetEntity();
+	if (!entity) return;
+
+	// Check to see if the character is already in a guild or not:
+	auto* characterComp = entity->GetComponent<CharacterComponent>();
+	if (!characterComp) return;
+
+	if (characterComp->GetGuildID() != 0) {
+		ChatPackets::SendSystemMessage(sysAddr, u"You are already in a guild! Leave your current guild first.");
+		return;
+	}
+
+	auto creation = (uint32_t)time(nullptr);
+
+	// If not, insert our newly created guild:
+	auto insertGuild = Database::CreatePreppedStmt("INSERT INTO `guilds`(`name`, `owner`, `uscore`, `created`) VALUES (?,?,?,?)");
+	insertGuild->setString(1, guildName.c_str());
+	insertGuild->setUInt(2, character->GetID());
+	insertGuild->setUInt(3, characterComp->GetUScore());
+	insertGuild->setUInt(4, creation);
+	insertGuild->execute();
+	delete insertGuild;
+
+	// Enable the guild on their character component:
+	auto get = Database::CreatePreppedStmt("SELECT id, name FROM guilds WHERE owner=?");
+	get->setInt(1, character->GetID());
+
+	auto* results = get->executeQuery();
+	LWOOBJID guildId = LWOOBJID_EMPTY;
+	std::u16string name;
+	while (results->next()) {
+		guildId = results->getInt(1);
+		name = GeneralUtils::UTF8ToUTF16(results->getString(2).c_str());
+		characterComp->SetGuild(guildId, name);
+	}
+
+	if (guildId == LWOOBJID_EMPTY){
+		Game::logger->Log("ClientPackets", "Unknown error ocurred while creating a guild!");
+		auto usedName = GeneralUtils::UTF8ToUTF16(guildName);
+		GameMessages::SendGuildCreateResponse(sysAddr, eGuildCreationResponse::UNKNOWN_ERROR, LWOOBJID_EMPTY, usedName);
+		return;
+	}
+
+	auto insertOwner = Database::CreatePreppedStmt("INSERT INTO `guild_members`(`guild_id`, `character_id`, `rank`, `joined`) VALUES (?,?,?)");
+	insertOwner->setUInt(1, guildId);
+	insertOwner->setUInt(2, character->GetID());
+	insertOwner->setUInt(3, eGuildRank::FOUNDER);
+	insertOwner->setUInt(4, creation);
+	insertOwner->execute();
+	delete insertOwner;
+
+	//Send the guild create response:
+	GameMessages::SendGuildCreateResponse(sysAddr, eGuildCreationResponse::CREATED, guildId, name);
+}
+
+
