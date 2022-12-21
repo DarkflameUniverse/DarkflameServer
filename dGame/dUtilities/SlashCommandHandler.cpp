@@ -1860,6 +1860,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			scriptedActivityComponent->ReloadConfig();
 		}
+		Game::server->UpdateMaximumMtuSize();
 		Game::server->UpdateBandwidthLimit();
 		ChatPackets::SendSystemMessage(sysAddr, u"Successfully reloaded config for world!");
 	}
