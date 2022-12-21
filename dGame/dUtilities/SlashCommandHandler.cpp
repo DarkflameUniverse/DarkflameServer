@@ -1196,6 +1196,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto query = CDClientDatabase::CreatePreppedStmt(
 			"SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE ?1 OR `name` LIKE ?1 OR `description` LIKE ?1 LIMIT 50");
 
+		// Concatenate all of the arguments into a single query so a multi word query can be used properly.
+		std::string conditional = args[0];
+		args.erase(args.begin());
+		for (auto& argument : args) {
+			conditional += ' ' + argument;
+		}
+
 		const std::string query_text = "%" + args[0] + "%";
 		query.bind(1, query_text.c_str());
 
