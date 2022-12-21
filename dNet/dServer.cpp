@@ -68,8 +68,6 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	} else { mLogger->Log("dServer", "FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
 
 	mLogger->SetLogToConsole(prevLogSetting);
-	auto maxMtuSize = mConfig->GetValue("maximum_mtu_size");
-	mPeer->SetMTUSize(maxMtuSize.empty() ? 1228 : std::stoi(maxMtuSize));
 
 	//Connect to master if we are not master:
 	if (serverType != ServerType::Master) {
@@ -190,6 +188,7 @@ bool dServer::Startup() {
 		mPeer->SetIncomingPassword("3.25 DARKFLAME1", 15);
 	} else {
 		UpdateBandwidthLimit();
+		UpdateMaximumMtuSize();
 		mPeer->SetIncomingPassword("3.25 ND1", 8);
 	}
 
@@ -197,6 +196,11 @@ bool dServer::Startup() {
 	if (mUseEncryption) mPeer->InitializeSecurity(NULL, NULL, NULL, NULL);
 
 	return true;
+}
+
+void dServer::UpdateMaximumMtuSize() {
+	auto maxMtuSize = mConfig->GetValue("maximum_mtu_size");
+	mPeer->SetMTUSize(maxMtuSize.empty() ? 1228 : std::stoi(maxMtuSize));
 }
 
 void dServer::UpdateBandwidthLimit() {
