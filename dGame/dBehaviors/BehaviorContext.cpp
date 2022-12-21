@@ -45,12 +45,13 @@ uint32_t BehaviorContext::GetUniqueSkillId() const {
 }
 
 
-void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext) {
+void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext, bool ignoreInterrupts) {
 	auto entry = BehaviorSyncEntry();
 
 	entry.handle = syncId;
 	entry.behavior = behavior;
 	entry.branchContext = branchContext;
+	entry.ignoreInterrupts = ignoreInterrupts;
 
 	this->syncEntries.push_back(entry);
 }

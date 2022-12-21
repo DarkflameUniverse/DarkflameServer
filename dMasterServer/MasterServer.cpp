@@ -48,20 +48,23 @@ namespace Game {
 	InstanceManager* im = nullptr;
 	dConfig* config = nullptr;
 	AssetManager* assetManager = nullptr;
+	bool shouldShutdown = false;
 } //namespace Game
 
 bool shutdownSequenceStarted = false;
-void ShutdownSequence();
-int FinalizeShutdown();
+void ShutdownSequence(int32_t signal = -1);
+int32_t FinalizeShutdown(int32_t signal = -1);
 dLogger* SetupLogger();
 void StartAuthServer();
 void StartChatServer();
 void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
-bool shouldShutdown = false;
+SystemAddress authServerMasterPeerSysAddr;
 SystemAddress chatServerMasterPeerSysAddr;
 
 int main(int argc, char** argv) {
+	constexpr uint32_t masterFramerate = mediumFramerate;
+	constexpr uint32_t masterFrameDelta = mediumFrameDelta;
 	Diagnostics::SetProcessName("Master");
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
@@ -71,9 +74,9 @@ int main(int argc, char** argv) {
 #endif
 
 	//Triggers the shutdown sequence at application exit
-	std::atexit(ShutdownSequence);
-	signal(SIGINT, [](int) { ShutdownSequence(); });
-	signal(SIGTERM, [](int) { ShutdownSequence(); });
+	std::atexit([]() { ShutdownSequence(); });
+	signal(SIGINT, [](int32_t signal) { ShutdownSequence(EXIT_FAILURE); });
+	signal(SIGTERM, [](int32_t signal) { ShutdownSequence(EXIT_FAILURE); });
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
@@ -220,7 +223,7 @@ int main(int argc, char** argv) {
 		//Create account
 
 		auto* statement = Database::CreatePreppedStmt("INSERT INTO accounts (name, password, ""gm_level) VALUES (?, ?, ?);");
-		statement->setString(1, username);
+		statement->setString(1, username.c_str());
 		statement->setString(2, std::string(hash, BCRYPT_HASHSIZE).c_str());
 		statement->setInt(3, 9);
 
@@ -236,12 +239,12 @@ int main(int argc, char** argv) {
 		return EXIT_SUCCESS;
 	}
 
-	int maxClients = 999;
-	int ourPort = 1000;
+	uint32_t maxClients = 999;
+	uint32_t ourPort = 1000;
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::stoi(Game::config->GetValue("port"));
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::shouldShutdown);
 
 	//Query for the database for a server labeled "master"
 	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");
@@ -278,17 +281,21 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("prestart_servers") != "" && Game::config->GetValue("prestart_servers") == "1") {
 		StartChatServer();
 
-		Game::im->GetInstance(0, false, 0)->SetIsReady(true);
-		Game::im->GetInstance(1000, false, 0)->SetIsReady(true);
+		Game::im->GetInstance(0, false, 0);
+		Game::im->GetInstance(1000, false, 0);
 
 		StartAuthServer();
 	}
 
 	auto t = std::chrono::high_resolution_clock::now();
 	Packet* packet = nullptr;
-	int framesSinceLastFlush = 0;
-	int framesSinceLastSQLPing = 0;
-	int framesSinceKillUniverseCommand = 0;
+	constexpr uint32_t logFlushTime = 15 * masterFramerate;
+	constexpr uint32_t sqlPingTime = 10 * 60 * masterFramerate;
+	constexpr uint32_t shutdownUniverseTime = 10 * 60 * masterFramerate;
+	constexpr uint32_t instanceReadyTimeout = 30 * masterFramerate;
+	uint32_t framesSinceLastFlush = 0;
+	uint32_t framesSinceLastSQLPing = 0;
+	uint32_t framesSinceKillUniverseCommand = 0;
 
 	while (true) {
 		//In world we'd update our other systems here.
@@ -302,17 +309,17 @@ int main(int argc, char** argv) {
 		}
 
 		//Push our log every 15s:
-		if (framesSinceLastFlush >= 900) {
+		if (framesSinceLastFlush >= logFlushTime) {
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
 		} else
 			framesSinceLastFlush++;
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
-		if (framesSinceLastSQLPing >= 40000) {
+		if (framesSinceLastSQLPing >= sqlPingTime) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
-			int masterPort;
+			uint32_t masterPort;
 			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
 			auto res = stmt->executeQuery();
 			while (res->next()) {
@@ -328,8 +335,8 @@ int main(int argc, char** argv) {
 			framesSinceLastSQLPing++;
 
 		//10m shutdown for universe kill command
-		if (shouldShutdown) {
-			if (framesSinceKillUniverseCommand >= 40000) {
+		if (Game::shouldShutdown) {
+			if (framesSinceKillUniverseCommand >= shutdownUniverseTime) {
 				//Break main loop and exit
 				break;
 			} else
@@ -353,7 +360,7 @@ int main(int argc, char** argv) {
 
 			instance->SetAffirmationTimeout(affirmTimeout);
 
-			if (affirmTimeout == 1000) {
+			if (affirmTimeout == instanceReadyTimeout) {
 				instance->Shutdown();
 				instance->SetIsShuttingDown(true);
 
@@ -372,12 +379,10 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		t += std::chrono::milliseconds(highFrameRate);
+		t += std::chrono::milliseconds(masterFrameDelta);
 		std::this_thread::sleep_until(t);
 	}
-	FinalizeShutdown();
-	exit(EXIT_SUCCESS);
-	return EXIT_SUCCESS;
+	return FinalizeShutdown(EXIT_SUCCESS);
 }
 
 dLogger* SetupLogger() {
@@ -406,8 +411,14 @@ void HandlePacket(Packet* packet) {
 			Game::im->RemoveInstance(instance); //Delete the old
 		}
 
-		if (packet->systemAddress == chatServerMasterPeerSysAddr && !shouldShutdown) {
+		if (packet->systemAddress == chatServerMasterPeerSysAddr) {
+			chatServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 			StartChatServer();
+		}
+
+		if (packet->systemAddress == authServerMasterPeerSysAddr) {
+			authServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+			StartAuthServer();
 		}
 	}
 
@@ -419,11 +430,16 @@ void HandlePacket(Packet* packet) {
 		if (instance) {
 			LWOZONEID zoneID = instance->GetZoneID(); //Get the zoneID so we can recreate a server
 			Game::im->RemoveInstance(instance); //Delete the old
-			//Game::im->GetInstance(zoneID.GetMapID(), false, 0); //Create the new
 		}
 
-		if (packet->systemAddress == chatServerMasterPeerSysAddr && !shouldShutdown) {
+		if (packet->systemAddress == chatServerMasterPeerSysAddr) {
+			chatServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 			StartChatServer();
+		}
+
+		if (packet->systemAddress == authServerMasterPeerSysAddr) {
+			authServerMasterPeerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+			StartAuthServer();
 		}
 	}
 
@@ -454,14 +470,17 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(mythranShift);
 			inStream.Read(zoneID);
 			inStream.Read(zoneClone);
-
+			if (shutdownSequenceStarted) {
+				Game::logger->Log("MasterServer", "Shutdown sequence has been started.  Not creating a new zone.");
+				break;
+			}
 			Instance* in = Game::im->GetInstance(zoneID, false, zoneClone);
 
 			for (auto* instance : Game::im->GetInstances()) {
 				Game::logger->Log("MasterServer", "Instance: %i/%i/%i -> %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in);
 			}
 
-			if (!in->GetIsReady()) //Instance not ready, make a pending request
+			if (in && !in->GetIsReady()) //Instance not ready, make a pending request
 			{
 				in->GetPendingRequests().push_back({ requestID, static_cast<bool>(mythranShift), packet->systemAddress });
 				Game::logger->Log("MasterServer", "Server not ready, adding pending request %llu %i %i", requestID, zoneID, zoneClone);
@@ -518,6 +537,14 @@ void HandlePacket(Packet* packet) {
 				copy.port = packet->systemAddress.port;
 
 				chatServerMasterPeerSysAddr = copy;
+			}
+
+			if (theirServerType == ServerType::Auth) {
+				SystemAddress copy;
+				copy.binaryAddress = packet->systemAddress.binaryAddress;
+				copy.port = packet->systemAddress.port;
+
+				authServerMasterPeerSysAddr = copy;
 			}
 
 			Game::logger->Log("MasterServer", "Received server info, instance: %i port: %i", theirInstanceID, theirPort);
@@ -625,7 +652,7 @@ void HandlePacket(Packet* packet) {
 
 			uint32_t len;
 			inStream.Read<uint32_t>(len);
-			for (int i = 0; len > i; i++) {
+			for (uint32_t i = 0; len > i; i++) {
 				char character;
 				inStream.Read<char>(character);
 				password += character;
@@ -651,7 +678,7 @@ void HandlePacket(Packet* packet) {
 			uint32_t len;
 			inStream.Read<uint32_t>(len);
 
-			for (int i = 0; i < len; i++) {
+			for (uint32_t i = 0; i < len; i++) {
 				char character; inStream.Read<char>(character);
 				password += character;
 			}
@@ -699,11 +726,15 @@ void HandlePacket(Packet* packet) {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
-			int zoneID;
+			int32_t zoneID;
 			inStream.Read(zoneID);
-
-			Game::logger->Log("MasterServer", "Prepping zone %i", zoneID);
-			Game::im->GetInstance(zoneID, false, 0);
+			if (shutdownSequenceStarted) {
+				Game::logger->Log("MasterServer", "Shutdown sequence has been started.  Not prepping a new zone.");
+				break;
+			} else {
+				Game::logger->Log("MasterServer", "Prepping zone %i", zoneID);
+				Game::im->GetInstance(zoneID, false, 0);
+			}
 			break;
 		}
 
@@ -744,7 +775,7 @@ void HandlePacket(Packet* packet) {
 
 		case MSG_MASTER_SHUTDOWN_UNIVERSE: {
 			Game::logger->Log("MasterServer", "Received shutdown universe command, shutting down in 10 minutes.");
-			shouldShutdown = true;
+			Game::shouldShutdown = true;
 			break;
 		}
 
@@ -755,6 +786,10 @@ void HandlePacket(Packet* packet) {
 }
 
 void StartChatServer() {
+	if (Game::shouldShutdown) {
+		Game::logger->Log("MasterServer", "Currently shutting down.  Chat will not be restarted.");
+		return;
+	}
 #ifdef __APPLE__
 	//macOS doesn't need sudo to run on ports < 1024
 	auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
@@ -765,11 +800,15 @@ void StartChatServer() {
 		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 	} else {
 		auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
-	}
+}
 #endif
 }
 
 void StartAuthServer() {
+	if (Game::shouldShutdown) {
+		Game::logger->Log("MasterServer", "Currently shutting down.  Auth will not be restarted.");
+		return;
+	}
 #ifdef __APPLE__
 	auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 #elif _WIN32
@@ -779,52 +818,63 @@ void StartAuthServer() {
 		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 	} else {
 		auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
-	}
+}
 #endif
 }
 
-void ShutdownSequence() {
+void ShutdownSequence(int32_t signal) {
 	if (shutdownSequenceStarted) {
 		return;
 	}
 
+	if (!Game::im) {
+		FinalizeShutdown(EXIT_FAILURE);
+	}
+
+	Game::im->SetIsShuttingDown(true);
 	shutdownSequenceStarted = true;
+	Game::shouldShutdown = true;
 
-	if (Game::im) {
-		for (auto* instance : Game::im->GetInstances()) {
-			if (instance == nullptr) {
-				continue;
-			}
-
-			instance->Shutdown();
-		}
+	{
+		CBITSTREAM;
+		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN);
+		Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+		Game::logger->Log("MasterServer", "Triggered master shutdown");
 	}
 
 	auto* objIdManager = ObjectIDManager::TryInstance();
-	if (objIdManager != nullptr) {
+	if (objIdManager) {
 		objIdManager->SaveToDatabase();
 		Game::logger->Log("MasterServer", "Saved ObjectIDTracker to DB");
 	}
 
-	auto t = std::chrono::high_resolution_clock::now();
-	auto ticks = 0;
+	// A server might not be finished spinning up yet, remove all of those here.
+	for (auto* instance : Game::im->GetInstances()) {
+		if (!instance->GetIsReady()) {
+			Game::im->RemoveInstance(instance);
+		}
+	}
 
-	if (!Game::im) {
-		exit(EXIT_SUCCESS);
+	for (auto* instance : Game::im->GetInstances()) {
+		instance->SetIsShuttingDown(true);
 	}
 
 	Game::logger->Log("MasterServer", "Attempting to shutdown instances, max 60 seconds...");
 
+	auto t = std::chrono::high_resolution_clock::now();
+	uint32_t framesSinceShutdownStart = 0;
+	constexpr uint32_t maxShutdownTime = 60 * mediumFramerate;
+	bool allInstancesShutdown = false;
+	Packet* packet = nullptr;
 	while (true) {
-
-		auto packet = Game::server->Receive();
+		packet = Game::server->Receive();
 		if (packet) {
 			HandlePacket(packet);
 			Game::server->DeallocatePacket(packet);
 			packet = nullptr;
 		}
 
-		auto done = true;
+		allInstancesShutdown = true;
 
 		for (auto* instance : Game::im->GetInstances()) {
 			if (instance == nullptr) {
@@ -832,30 +882,30 @@ void ShutdownSequence() {
 			}
 
 			if (!instance->GetShutdownComplete()) {
-				done = false;
+				allInstancesShutdown = false;
 			}
 		}
 
-		if (done) {
+		if (allInstancesShutdown && authServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS && chatServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 			Game::logger->Log("MasterServer", "Finished shutting down MasterServer!");
 			break;
 		}
 
-		t += std::chrono::milliseconds(highFrameRate);
+		t += std::chrono::milliseconds(mediumFrameDelta);
 		std::this_thread::sleep_until(t);
 
-		ticks++;
+		framesSinceShutdownStart++;
 
-		if (ticks == 600 * 6) {
+		if (framesSinceShutdownStart == maxShutdownTime) {
 			Game::logger->Log("MasterServer", "Finished shutting down by timeout!");
 			break;
 		}
 	}
 
-	FinalizeShutdown();
+	FinalizeShutdown(signal);
 }
 
-int FinalizeShutdown() {
+int32_t FinalizeShutdown(int32_t signal) {
 	//Delete our objects here:
 	Database::Destroy("MasterServer");
 	if (Game::config) delete Game::config;
@@ -863,6 +913,6 @@ int FinalizeShutdown() {
 	if (Game::server) delete Game::server;
 	if (Game::logger) delete Game::logger;
 
-	exit(EXIT_SUCCESS);
-	return EXIT_SUCCESS;
+	if (signal != EXIT_SUCCESS) exit(signal);
+	return signal;
 }

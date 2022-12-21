@@ -3,6 +3,7 @@
 #include "SkillComponent.h"
 #include "CDClientDatabase.h"
 #include "CDObjectSkillsTable.h"
+#include "CDClientManager.h"
 
 void FireFirstSkillonStartup::OnStartup(Entity* self) {
 	auto skillComponent = self->GetComponent<SkillComponent>();

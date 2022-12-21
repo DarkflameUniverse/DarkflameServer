@@ -19,16 +19,18 @@
 #include "ChatPacketHandler.h"
 
 #include "Game.h"
+
+//RakNet includes:
+#include "RakNetDefines.h"
 namespace Game {
 	dLogger* logger = nullptr;
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
 	dChatFilter* chatFilter = nullptr;
 	AssetManager* assetManager = nullptr;
+	bool shouldShutdown = false;
 }
 
-//RakNet includes:
-#include "RakNetDefines.h"
 
 dLogger* SetupLogger();
 void HandlePacket(Packet* packet);
@@ -36,6 +38,8 @@ void HandlePacket(Packet* packet);
 PlayerContainer playerContainer;
 
 int main(int argc, char** argv) {
+	constexpr uint32_t chatFramerate = mediumFramerate;
+	constexpr uint32_t chatFrameDelta = mediumFrameDelta;
 	Diagnostics::SetProcessName("Chat");
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
@@ -64,7 +68,7 @@ int main(int argc, char** argv) {
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		Game::logger->Log("ChatServer", "Got an error while setting up assets: %s", ex.what());
-
+		
 		return EXIT_FAILURE;
 	}
 
@@ -86,7 +90,7 @@ int main(int argc, char** argv) {
 
 	//Find out the master's IP:
 	std::string masterIP;
-	int masterPort = 1000;
+	uint32_t masterPort = 1000;
 	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
 	auto res = stmt->executeQuery();
 	while (res->next()) {
@@ -98,28 +102,30 @@ int main(int argc, char** argv) {
 	delete stmt;
 
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
-	int maxClients = 50;
-	int ourPort = 1501;
+	uint32_t maxClients = 50;
+	uint32_t ourPort = 1501;
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::shouldShutdown);
 
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
 	Packet* packet = nullptr;
-	int framesSinceLastFlush = 0;
-	int framesSinceMasterDisconnect = 0;
-	int framesSinceLastSQLPing = 0;
+	constexpr uint32_t logFlushTime = 30 * chatFramerate; // 30 seconds in frames
+	constexpr uint32_t sqlPingTime = 10 * 60 * chatFramerate; // 10 minutes in frames
+	uint32_t framesSinceLastFlush = 0;
+	uint32_t framesSinceMasterDisconnect = 0;
+	uint32_t framesSinceLastSQLPing = 0;
 
-	while (true) {
+	while (!Game::shouldShutdown) {
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
 
-			if (framesSinceMasterDisconnect >= 30)
+			if (framesSinceMasterDisconnect >= chatFramerate)
 				break; //Exit our loop, shut down.
 		} else framesSinceMasterDisconnect = 0;
 
@@ -135,16 +141,16 @@ int main(int argc, char** argv) {
 		}
 
 		//Push our log every 30s:
-		if (framesSinceLastFlush >= 900) {
+		if (framesSinceLastFlush >= logFlushTime) {
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
-		if (framesSinceLastSQLPing >= 40000) {
+		if (framesSinceLastSQLPing >= sqlPingTime) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
-			int masterPort;
+			uint32_t masterPort;
 			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
 			auto res = stmt->executeQuery();
 			while (res->next()) {
@@ -159,7 +165,7 @@ int main(int argc, char** argv) {
 		} else framesSinceLastSQLPing++;
 
 		//Sleep our thread since auth can afford to.
-		t += std::chrono::milliseconds(mediumFramerate); //Chat can run at a lower "fps"
+		t += std::chrono::milliseconds(chatFrameDelta); //Chat can run at a lower "fps"
 		std::this_thread::sleep_until(t);
 	}
 
