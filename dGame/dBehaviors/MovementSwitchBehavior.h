@@ -19,8 +19,6 @@ public:
 
 	Behavior* m_jumpAction;
 
-	Behavior* m_movingAction;
-
 	/*
 	 * Inherited
 	 */
