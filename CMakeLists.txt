@@ -188,6 +188,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/ai"
 	"dScripts/client"
 	"dScripts/EquipmentScripts"
+	"dScripts/EquipmentTriggers"
 	"dScripts/zone"
 	"dScripts/02_server/DLU"
 	"dScripts/02_server/Enemy"
