@@ -279,6 +279,9 @@
 #include "LegoDieRoll.h"
 #include "BuccaneerValiantShip.h"
 #include "XMarksTheSpotChest.h"
+#include "GemPack.h"
+#include "ShardArmor.h"
+#include "TeslaPack.h"
 
 // Survival scripts
 #include "AgSurvivalStromling.h"
@@ -840,6 +843,12 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new XMarksTheSpotChest();
 	else if (scriptName == "scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua")
 		script = new FireFirstSkillonStartup();
+	else if (scriptName == "scripts\\equipmenttriggers\\gempack.lua")
+		script = new GemPack();
+	else if (scriptName == "scripts\\equipmenttriggers\\shardarmor.lua")
+		script = new ShardArmor();
+	else if (scriptName == "scripts\\equipmenttriggers\\coilbackpack.lua")
+		script = new TeslaPack();
 
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
