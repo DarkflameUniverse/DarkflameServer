@@ -824,6 +824,22 @@ std::vector<ScriptComponent*> Entity::GetScriptComponents() {
 	return comps;
 }
 
+void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName) {
+	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
+		auto* destroyableComponent = GetComponent<DestroyableComponent>();
+		if (!destroyableComponent) return;
+		destroyableComponent->Subscribe(scriptObjId, scriptToAdd);
+	}
+}
+
+void Entity::Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName) {
+	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
+		auto* destroyableComponent = GetComponent<DestroyableComponent>();
+		if (!destroyableComponent) return;
+		destroyableComponent->Unsubscribe(scriptObjId);
+	}
+}
+
 void Entity::SetProximityRadius(float proxRadius, std::string name) {
 	ProximityMonitorComponent* proxMon = GetComponent<ProximityMonitorComponent>();
 	if (!proxMon) {
