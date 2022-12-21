@@ -391,7 +391,7 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 	if (res->rowsCount() > 0) {
 		Game::logger->Log("ClientPackets", "But a guild already exists with that name!");
 		auto usedName = GeneralUtils::UTF8ToUTF16(guildName);
-		GameMessages::SendGuildCreateResponse(sysAddr, eGuildCreationResponse::REJECTED_EXISTS, LWOOBJID_EMPTY, usedName);
+		SendGuildCreateResponse(sysAddr, eGuildCreationResponse::REJECTED_EXISTS, LWOOBJID_EMPTY, usedName);
 		return;
 	}
 
@@ -401,7 +401,7 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 	// if (!Game::chatFilter->IsSentenceOkay(guildName, 1).empty()) {
 	// 	Game::logger->Log("ClientPackets", "But they used bad words!");
 	// 	auto usedName = GeneralUtils::UTF8ToUTF16(guildName);
-	// 	GameMessages::SendGuildCreateResponse(sysAddr, eGuildCreationResponse::REJECTED_BAD_NAME, LWOOBJID_EMPTY, usedName);
+	// 	SendGuildCreateResponse(sysAddr, eGuildCreationResponse::REJECTED_BAD_NAME, LWOOBJID_EMPTY, usedName);
 	// 	return;
 	// }
 
@@ -444,7 +444,7 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 	if (guildId == LWOOBJID_EMPTY){
 		Game::logger->Log("ClientPackets", "Unknown error ocurred while creating a guild!");
 		auto usedName = GeneralUtils::UTF8ToUTF16(guildName);
-		GameMessages::SendGuildCreateResponse(sysAddr, eGuildCreationResponse::UNKNOWN_ERROR, LWOOBJID_EMPTY, usedName);
+		SendGuildCreateResponse(sysAddr, eGuildCreationResponse::UNKNOWN_ERROR, LWOOBJID_EMPTY, usedName);
 		return;
 	}
 
@@ -457,7 +457,17 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 	delete insertOwner;
 
 	//Send the guild create response:
-	GameMessages::SendGuildCreateResponse(sysAddr, eGuildCreationResponse::CREATED, guildId, name);
+	SendGuildCreateResponse(sysAddr, eGuildCreationResponse::CREATED, guildId, name);
+	// GameMessages::SendDisplayGuildCreateBox(, true, sysAddr)
 }
 
 
+void ClientPackets::SendGuildCreateResponse(const SystemAddress& sysAddr, eGuildCreationResponse guildResponse, LWOOBJID guildID, std::u16string& guildName) {
+	CBITSTREAM;
+	CMSGHEADER;
+	bitStream.Write(MSG_CLIENT_GUILD_CREATE_RESPONSE);
+	bitStream.Write(guildResponse);
+	bitStream.Write(guildID);
+	PacketUtils::WriteWString(bitStream, guildName, 33);
+	SEND_PACKET;
+}

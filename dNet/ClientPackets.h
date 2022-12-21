@@ -8,6 +8,7 @@
 
 #include "RakNetTypes.h"
 #include "eGuildCreationResponse.h"
+#include "dCommonVars.h"
 
 namespace ClientPackets {
 	void HandleChatMessage(const SystemAddress& sysAddr, Packet* packet);
@@ -16,6 +17,7 @@ namespace ClientPackets {
 
 	// Guild stuff
 	void HandleGuildCreation(const SystemAddress& sysAddr, Packet* packet);
+	void SendGuildCreateResponse(const SystemAddress& sysAddr, eGuildCreationResponse guildResponse, LWOOBJID guildID, std::u16string& guildName);
 };
 
 #endif // CLIENTPACKETS_H

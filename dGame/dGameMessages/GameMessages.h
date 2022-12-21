@@ -540,7 +540,6 @@ namespace GameMessages {
 
 	//Guild messages:
 	void SendDisplayGuildCreateBox(const LWOOBJID& objectID, bool bShow, const SystemAddress& sysAddr);
-	void SendGuildCreateResponse(const SystemAddress& sysAddr, eGuildCreationResponse guildResponse, LWOOBJID guildID, std::u16string& guildName);
 
 	//Handlers:
 

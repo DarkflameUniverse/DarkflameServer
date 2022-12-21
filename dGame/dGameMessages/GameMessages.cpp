@@ -4545,22 +4545,13 @@ void GameMessages::SendDisplayGuildCreateBox(const LWOOBJID& objectID, bool bSho
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write((unsigned short)GAME_MSG_DISPLAY_GUILD_CREATE_BOX);
+	bitStream.Write(GAME_MSG_DISPLAY_GUILD_CREATE_BOX);
 	bitStream.Write(objectID);
 	bitStream.Write((unsigned char)bShow);
 
 	SEND_PACKET;
 }
 
-void GameMessages::SendGuildCreateResponse(const SystemAddress& sysAddr, eGuildCreationResponse guildResponse, LWOOBJID guildID, std::u16string& guildName) {
-	CBITSTREAM;
-	CMSGHEADER;
-	bitStream.Write(MSG_CLIENT_GUILD_CREATE_RESPONSE);
-	bitStream.Write(guildResponse);
-	bitStream.Write(guildID);
-	PacketUtils::WriteWString(bitStream, guildName, 33);
-	SEND_PACKET;
-}
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------- Handlers ------------------------------------------------------------------

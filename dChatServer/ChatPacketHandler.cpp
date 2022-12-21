@@ -714,6 +714,14 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet) {
 	}
 }
 
+void ChatPacketHandler::HandleGuildLeave(Packet* packet){
+	CINSTREAM;
+	LWOOBJID playerID = LWOOBJID_EMPTY;
+	inStream.Read(playerID);
+	inStream.Read(playerID);
+	Game::logger->Log("ChatPacketHandler", "HandleGuildLeave %llu", playerID);
+}
+
 void ChatPacketHandler::SendTeamInvite(PlayerData* receiver, PlayerData* sender) {
 	CBITSTREAM;
 	PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_ROUTE_TO_PLAYER);

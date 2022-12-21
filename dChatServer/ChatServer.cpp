@@ -289,20 +289,33 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		// Guild messages
+
 		case MSG_CHAT_GUILD_CREATE:
-			Game::logger->Log("ChatPackets", "GuildCreate");
+			Game::logger->Log("ChatServer", "GUILD_CREATE");
 			break;
 
-		case MSG_CHAT_GUILD_GET_ALL:
-			Game::logger->Log("ChatPackets", "GuildGetAll");
+		case MSG_CHAT_GUILD_INVITE_RESPONSE:
+			Game::logger->Log("ChatServer", "GUILD_INVITE_RESPONSE");
+			break;
+
+		case MSG_CHAT_GUILD_LEAVE:
+			ChatPacketHandler::HandleGuildLeave(packet);
+			break;
+
+		case MSG_CHAT_GUILD_KICK:
+			Game::logger->Log("ChatServer", "GUILD_KICK");
 			break;
 
 		case MSG_CHAT_GUILD_GET_STATUS:
-			Game::logger->Log("ChatPackets", "GuildGetStatus");
+			Game::logger->Log("ChatServer", "GUILD_GET_STATUS");
+			break;
+
+		case MSG_CHAT_GUILD_GET_ALL:
+			Game::logger->Log("ChatServer", "GUILD_GET_ALL");
 			break;
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown CHAT id: %i", int(packet->data[3]));
+			Game::logger->Log("ChatServer", "Unknown MSG_CHAT id: %i", int(packet->data[3]));
 		}
 	}
 
