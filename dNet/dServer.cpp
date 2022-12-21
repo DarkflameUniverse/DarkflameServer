@@ -68,7 +68,9 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	} else { mLogger->Log("dServer", "FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
 
 	mLogger->SetLogToConsole(prevLogSetting);
-	mPeer->SetMTUSize(1228); // This is hard coded by lu for some reason.
+	auto maxMtuSize = mConfig->GetValue("maximum_mtu_size");
+	mPeer->SetMTUSize(maxMtuSize.empty() ? 1228 : std::stoi(maxMtuSize));
+
 	//Connect to master if we are not master:
 	if (serverType != ServerType::Master) {
 		SetupForMasterConnection();
