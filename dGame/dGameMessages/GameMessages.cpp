@@ -3930,7 +3930,9 @@ void GameMessages::SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags flagsO
 
 	bitStream.Write(objectId);
 	bitStream.Write(GAME_MSG::GAME_MSG_CHANGE_IDLE_FLAGS);
+	bitStream.Write<bool>(flagsOff != eAnimationFlags::IDLE_NONE);
 	if (flagsOff != eAnimationFlags::IDLE_NONE) bitStream.Write(flagsOff);
+	bitStream.Write<bool>(flagsOn != eAnimationFlags::IDLE_NONE);
 	if (flagsOn != eAnimationFlags::IDLE_NONE) bitStream.Write(flagsOn);
 
 	SEND_PACKET_BROADCAST;
