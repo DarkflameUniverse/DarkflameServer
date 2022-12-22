@@ -31,6 +31,15 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	Instance* instance = FindInstance(mapID, isFriendTransfer, cloneID);
 	if (instance) return instance;
 
+	// If we are shutting down, return a nullptr so a new instance is not created.
+	if (m_IsShuttingDown) {
+		Game::logger->Log("InstanceManager",
+		"Tried to create a new instance map/instance/clone %i/%i/%i, but Master is shutting down.",
+		mapID,
+		m_LastInstanceID + 1,
+		cloneID);
+		return nullptr;
+	}
 	//TODO: Update this so that the IP is read from a configuration file instead
 
 	int softCap = 8;
@@ -238,7 +247,7 @@ void InstanceManager::RedirectPendingRequests(Instance* instance) {
 	for (const auto& request : instance->GetPendingAffirmations()) {
 		auto* in = Game::im->GetInstance(zoneId.GetMapID(), false, zoneId.GetCloneID());
 
-		if (!in->GetIsReady()) // Instance not ready, make a pending request
+		if (in && !in->GetIsReady()) // Instance not ready, make a pending request
 		{
 			in->GetPendingRequests().push_back(request);
 
@@ -293,6 +302,15 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 
 	if (instance != nullptr) {
 		return instance;
+	}
+
+	if (m_IsShuttingDown) {
+		Game::logger->Log("InstanceManager",
+		"Tried to create a new private instance map/instance/clone %i/%i/%i, but Master is shutting down.",
+		mapID,
+		m_LastInstanceID + 1,
+		cloneID);
+		return nullptr;
 	}
 
 	int maxPlayers = 999;

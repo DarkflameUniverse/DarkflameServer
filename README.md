@@ -422,11 +422,6 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 </table>
 
 # Credits
-## Active Contributors
-* [EmosewaMC](https://github.com/EmosewaMC)
-* [Jettford](https://github.com/Jettford)
-* [Aaron K.](https://github.com/aronwk-aaron)
-
 ## DLU Team
 * [DarwinAnim8or](https://github.com/DarwinAnim8or)
 * [Wincent01](https://github.com/Wincent01)
@@ -434,25 +429,30 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 * [averysumner](https://github.com/codeshaunted)
 * [Jon002](https://github.com/jaller200)
 * [Jonny](https://github.com/cuzitsjonny)
+* [Aaron K.](https://github.com/aronwk-aaron)
 
-### Research and tools
+### Research and Tools
 * [lcdr](https://github.com/lcdr)
 * [Xiphoseer](https://github.com/Xiphoseer)
 
-### Community management
+### Community Management
 * [Neal](https://github.com/NealSpellman)
 
-### Former contributors
+### Logo
+* Cole Peterson (BlasterBuilder)
+
+## Active Contributors
+* [EmosewaMC](https://github.com/EmosewaMC)
+* [Jettford](https://github.com/Jettford)
+
+## Former Contributors
 * TheMachine
 * Matthew
 * [Raine](https://github.com/Rainebannister)
 * Bricknave
 
-### Logo
-* Cole Peterson (BlasterBuilder)
-
-## Special thanks
+## Special Thanks
 * humanoid24
 * pwjones1969
 * [Simon](https://github.com/SimonNitzsche)
-* ALL OF THE NETDEVIL AND LEGO TEAMS!
+* [ALL OF THE NETDEVIL AND LEGO TEAMS!](https://www.mobygames.com/game/macintosh/lego-universe/credits)
