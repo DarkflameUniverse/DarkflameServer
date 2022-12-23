@@ -3924,14 +3924,16 @@ void GameMessages::SendDisplayChatBubble(LWOOBJID objectId, const std::u16string
 }
 
 
-void GameMessages::SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags FlagsOn, eAnimationFlags FlagsOff, const SystemAddress& sysAddr) {
+void GameMessages::SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags flagsOn, eAnimationFlags flagsOff, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
 	bitStream.Write(objectId);
 	bitStream.Write(GAME_MSG::GAME_MSG_CHANGE_IDLE_FLAGS);
-	bitStream.Write(FlagsOff);
-	bitStream.Write(FlagsOn);
+	bitStream.Write<bool>(flagsOff != eAnimationFlags::IDLE_NONE);
+	if (flagsOff != eAnimationFlags::IDLE_NONE) bitStream.Write(flagsOff);
+	bitStream.Write<bool>(flagsOn != eAnimationFlags::IDLE_NONE);
+	if (flagsOn != eAnimationFlags::IDLE_NONE) bitStream.Write(flagsOn);
 
 	SEND_PACKET_BROADCAST;
 }
