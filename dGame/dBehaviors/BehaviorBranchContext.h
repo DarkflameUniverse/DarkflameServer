@@ -15,6 +15,8 @@ struct BehaviorBranchContext
 
 	uint32_t start = 0;
 
+	bool isSync = false;
+
 	BehaviorBranchContext();
 
 	BehaviorBranchContext(LWOOBJID target, float duration = 0, const NiPoint3& referencePosition = NiPoint3(0, 0, 0));

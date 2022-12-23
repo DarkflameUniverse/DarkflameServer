@@ -13,7 +13,7 @@
 
 #include "eSqliteDataType.h"
 
-std::map<eSqliteDataType, std::string> FdbToSqlite::Convert::sqliteType = {
+std::map<eSqliteDataType, std::string> FdbToSqlite::Convert::m_SqliteType = {
 			{ eSqliteDataType::NONE, "none"},
 			{ eSqliteDataType::INT32, "int32"},
 			{ eSqliteDataType::REAL, "real"},
@@ -23,15 +23,21 @@ std::map<eSqliteDataType, std::string> FdbToSqlite::Convert::sqliteType = {
 			{ eSqliteDataType::TEXT_8, "text_8"}
 };
 
-FdbToSqlite::Convert::Convert(std::string basePath) {
-	this->basePath = basePath;
+FdbToSqlite::Convert::Convert(std::string basePath, std::string binaryOutPath) {
+	this->m_BasePath = basePath;
+	this->m_BinaryOutPath = binaryOutPath;
+	m_Fdb.open(m_BasePath + "/cdclient.fdb", std::ios::binary);
+}
+
+FdbToSqlite::Convert::~Convert() {
+	this->m_Fdb.close();
 }
 
 bool FdbToSqlite::Convert::ConvertDatabase() {
-	fdb.open(basePath + "/cdclient.fdb", std::ios::binary);
-
+	if (m_ConversionStarted) return false;
+	this->m_ConversionStarted = true;
 	try {
-		CDClientDatabase::Connect(basePath + "/CDServer.sqlite");
+		CDClientDatabase::Connect(m_BinaryOutPath + "/CDServer.sqlite");
 
 		CDClientDatabase::ExecuteQuery("BEGIN TRANSACTION;");
 
@@ -44,13 +50,12 @@ bool FdbToSqlite::Convert::ConvertDatabase() {
 		return false;
 	}
 
-	fdb.close();
 	return true;
 }
 
 int32_t FdbToSqlite::Convert::ReadInt32() {
 	int32_t nextInt{};
-	BinaryIO::BinaryRead(fdb, nextInt);
+	BinaryIO::BinaryRead(m_Fdb, nextInt);
 	return nextInt;
 }
 
@@ -58,26 +63,26 @@ int64_t FdbToSqlite::Convert::ReadInt64() {
 	int32_t prevPosition = SeekPointer();
 
 	int64_t value{};
-	BinaryIO::BinaryRead(fdb, value);
+	BinaryIO::BinaryRead(m_Fdb, value);
 
-	fdb.seekg(prevPosition);
+	m_Fdb.seekg(prevPosition);
 	return value;
 }
 
 std::string FdbToSqlite::Convert::ReadString() {
 	int32_t prevPosition = SeekPointer();
 
-	auto readString = BinaryIO::ReadString(fdb);
+	auto readString = BinaryIO::ReadString(m_Fdb);
 
-	fdb.seekg(prevPosition);
+	m_Fdb.seekg(prevPosition);
 	return readString;
 }
 
 int32_t FdbToSqlite::Convert::SeekPointer() {
 	int32_t position{};
-	BinaryIO::BinaryRead(fdb, position);
-	int32_t prevPosition = fdb.tellg();
-	fdb.seekg(position);
+	BinaryIO::BinaryRead(m_Fdb, position);
+	int32_t prevPosition = m_Fdb.tellg();
+	m_Fdb.seekg(position);
 	return prevPosition;
 }
 
@@ -91,7 +96,7 @@ std::string FdbToSqlite::Convert::ReadColumnHeader() {
 	std::string newTable = "CREATE TABLE IF NOT EXISTS '" + tableName + "' (" + columns + ");";
 	CDClientDatabase::ExecuteDML(newTable);
 
-	fdb.seekg(prevPosition);
+	m_Fdb.seekg(prevPosition);
 
 	return tableName;
 }
@@ -104,7 +109,7 @@ void FdbToSqlite::Convert::ReadTables(int32_t& numberOfTables) {
 		ReadRowHeader(columnHeader);
 	}
 
-	fdb.seekg(prevPosition);
+	m_Fdb.seekg(prevPosition);
 }
 
 std::string FdbToSqlite::Convert::ReadColumns(int32_t& numberOfColumns) {
@@ -117,10 +122,10 @@ std::string FdbToSqlite::Convert::ReadColumns(int32_t& numberOfColumns) {
 		if (i != 0) columnsToCreate << ", ";
 		dataType = static_cast<eSqliteDataType>(ReadInt32());
 		name = ReadString();
-		columnsToCreate << "'" << name << "' " << FdbToSqlite::Convert::sqliteType[dataType];
+		columnsToCreate << "'" << name << "' " << FdbToSqlite::Convert::m_SqliteType[dataType];
 	}
 
-	fdb.seekg(prevPosition);
+	m_Fdb.seekg(prevPosition);
 	return columnsToCreate.str();
 }
 
@@ -131,7 +136,7 @@ void FdbToSqlite::Convert::ReadRowHeader(std::string& tableName) {
 	if (numberOfAllocatedRows != 0) assert((numberOfAllocatedRows & (numberOfAllocatedRows - 1)) == 0);  // assert power of 2 allocation size
 	ReadRows(numberOfAllocatedRows, tableName);
 
-	fdb.seekg(prevPosition);
+	m_Fdb.seekg(prevPosition);
 }
 
 void FdbToSqlite::Convert::ReadRows(int32_t& numberOfAllocatedRows, std::string& tableName) {
@@ -141,28 +146,24 @@ void FdbToSqlite::Convert::ReadRows(int32_t& numberOfAllocatedRows, std::string&
 	for (int32_t row = 0; row < numberOfAllocatedRows; row++) {
 		int32_t rowPointer = ReadInt32();
 		if (rowPointer == -1) rowid++;
-		else ReadRow(rowid, rowPointer, tableName);
+		else ReadRow(rowPointer, tableName);
 	}
 
-	fdb.seekg(prevPosition);
+	m_Fdb.seekg(prevPosition);
 }
 
-void FdbToSqlite::Convert::ReadRow(int32_t& rowid, int32_t& position, std::string& tableName) {
-	int32_t prevPosition = fdb.tellg();
-	fdb.seekg(position);
+void FdbToSqlite::Convert::ReadRow(int32_t& position, std::string& tableName) {
+	int32_t prevPosition = m_Fdb.tellg();
+	m_Fdb.seekg(position);
 
 	while (true) {
 		ReadRowInfo(tableName);
 		int32_t linked = ReadInt32();
-
-		rowid += 1;
-
 		if (linked == -1) break;
-
-		fdb.seekg(linked);
+		m_Fdb.seekg(linked);
 	}
 
-	fdb.seekg(prevPosition);
+	m_Fdb.seekg(prevPosition);
 }
 
 void FdbToSqlite::Convert::ReadRowInfo(std::string& tableName) {
@@ -171,7 +172,7 @@ void FdbToSqlite::Convert::ReadRowInfo(std::string& tableName) {
 	int32_t numberOfColumns = ReadInt32();
 	ReadRowValues(numberOfColumns, tableName);
 
-	fdb.seekg(prevPosition);
+	m_Fdb.seekg(prevPosition);
 }
 
 void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& tableName) {
@@ -191,7 +192,7 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 		if (i != 0) insertedRow << ", "; // Only append comma and space after first entry in row.
 		switch (static_cast<eSqliteDataType>(ReadInt32())) {
 		case eSqliteDataType::NONE:
-			BinaryIO::BinaryRead(fdb, emptyValue);
+			BinaryIO::BinaryRead(m_Fdb, emptyValue);
 			assert(emptyValue == 0);
 			insertedRow << "NULL";
 			break;
@@ -202,7 +203,7 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 			break;
 
 		case eSqliteDataType::REAL:
-			BinaryIO::BinaryRead(fdb, floatValue);
+			BinaryIO::BinaryRead(m_Fdb, floatValue);
 			insertedRow << std::fixed << std::setprecision(34) << floatValue; // maximum precision of floating point number
 			break;
 
@@ -224,7 +225,7 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 		}
 
 		case eSqliteDataType::INT_BOOL:
-			BinaryIO::BinaryRead(fdb, boolValue);
+			BinaryIO::BinaryRead(m_Fdb, boolValue);
 			insertedRow << static_cast<bool>(boolValue);
 			break;
 
@@ -244,5 +245,5 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 
 	auto copiedString = insertedRow.str();
 	CDClientDatabase::ExecuteDML(copiedString);
-	fdb.seekg(prevPosition);
+	m_Fdb.seekg(prevPosition);
 }

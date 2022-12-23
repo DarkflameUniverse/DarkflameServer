@@ -12,9 +12,19 @@
 
 typedef int RESTICKET;
 
-const int highFrameRate = 16;	//60fps
-const int mediumFramerate = 33;	//30fps
-const int lowFramerate = 66;	//15fps
+// These are the same define, but they mean two different things in different contexts
+// so a different define to distinguish what calculation is happening will help clarity.
+#define FRAMES_TO_MS(x) 1000 / x
+#define MS_TO_FRAMES(x) 1000 / x
+
+//=========== FRAME TIMINGS ===========
+constexpr uint32_t highFramerate = 60;
+constexpr uint32_t mediumFramerate = 30;
+constexpr uint32_t lowFramerate = 15;
+
+constexpr uint32_t highFrameDelta = FRAMES_TO_MS(highFramerate);
+constexpr uint32_t mediumFrameDelta = FRAMES_TO_MS(mediumFramerate);
+constexpr uint32_t lowFrameDelta = FRAMES_TO_MS(lowFramerate);
 
 //========== MACROS ===========
 

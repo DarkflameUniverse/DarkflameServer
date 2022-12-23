@@ -30,8 +30,13 @@ class ScriptComponent;
 class dpEntity;
 class EntityTimer;
 class Component;
+class Item;
 class Character;
 class EntityCallbackTimer;
+
+namespace CppScripts {
+	class Script;
+};
 
 /**
  * An entity in the world. Has multiple components.
@@ -143,6 +148,9 @@ public:
 	void AddComponent(int32_t componentId, Component* component);
 
 	std::vector<ScriptComponent*> GetScriptComponents();
+
+	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
+	void Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName);
 
 	void SetProximityRadius(float proxRadius, std::string name);
 	void SetProximityRadius(dpEntity* entity, std::string name);
