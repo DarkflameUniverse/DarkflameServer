@@ -54,7 +54,7 @@ void MigrationRunner::RunMigrations() {
 		if (doExit) continue;
 
 		Game::logger->Log("MigrationRunner", "Running migration: %s", migration.name.c_str());
-		if (migration.name == "5_brick_model_sd0.sql") {
+		if (migration.name == "dlu/5_brick_model_sd0.sql") {
 			runSd0Migrations = true;
 		} else {
 			finalSQL.append(migration.data.c_str());
