@@ -98,7 +98,7 @@ void RacingControlComponent::OnPlayerLoaded(Entity* player) {
 }
 
 void RacingControlComponent::LoadPlayerVehicle(Entity* player,
-	bool initialLoad) {
+	uint32_t positionNumber, bool initialLoad) {
 	// Load the player's vehicle.
 
 	if (player == nullptr) {
@@ -126,33 +126,18 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	auto* path = dZoneManager::Instance()->GetZone()->GetPath(
 		GeneralUtils::UTF16ToWTF8(m_PathName));
 
-	auto startPosition = path->pathWaypoints[0].position + NiPoint3::UNIT_Y * 3;
-
-	const auto spacing = 15;
-
-	// This sometimes spawns the vehicle out of the map if there are lots of
-	// players loaded.
-
-	const auto range = m_LoadedPlayers * spacing;
-
-	startPosition =
-		startPosition + NiPoint3::UNIT_Z * ((m_LeadingPlayer / 2) +
-			m_RacingPlayers.size() * spacing);
-
-	auto startRotation =
-		NiQuaternion::LookAt(startPosition, startPosition + NiPoint3::UNIT_X);
-
-	auto angles = startRotation.GetEulerAngles();
-
-	angles.y -= M_PI;
-
-	startRotation = NiQuaternion::FromEulerAngles(angles);
-
-	Game::logger->Log("RacingControlComponent",
-		"Start position <%f, %f, %f>, <%f, %f, %f>",
-		startPosition.x, startPosition.y, startPosition.z,
-		angles.x * (180.0f / M_PI), angles.y * (180.0f / M_PI),
-		angles.z * (180.0f / M_PI));
+	auto spawnPointEntities = EntityManager::Instance()->GetEntitiesByLOT(4843);
+	auto startPosition = NiPoint3::ZERO;
+	auto startRotation = NiQuaternion::IDENTITY;
+	const std::string placementAsString = std::to_string(positionNumber);
+	for (auto entity : spawnPointEntities) {
+		if (!entity) continue;
+		if (entity->GetVarAsString(u"placement") == placementAsString) {
+			startPosition = entity->GetPosition();
+			startRotation = entity->GetRotation();
+			break;
+		}
+	}
 
 	// Make sure the player is at the correct position.
 
@@ -567,12 +552,12 @@ void RacingControlComponent::Update(float deltaTime) {
 			Game::logger->Log("RacingControlComponent",
 				"Loading all players...");
 
-			for (size_t i = 0; i < m_LobbyPlayers.size(); i++) {
+			for (size_t positionNumber = 0; positionNumber < m_LobbyPlayers.size(); positionNumber++) {
 				Game::logger->Log("RacingControlComponent",
 					"Loading player now!");
 
 				auto* player =
-					EntityManager::Instance()->GetEntity(m_LobbyPlayers[i]);
+					EntityManager::Instance()->GetEntity(m_LobbyPlayers[positionNumber]);
 
 				if (player == nullptr) {
 					return;
@@ -581,7 +566,7 @@ void RacingControlComponent::Update(float deltaTime) {
 				Game::logger->Log("RacingControlComponent",
 					"Loading player now NOW!");
 
-				LoadPlayerVehicle(player, true);
+				LoadPlayerVehicle(player, positionNumber + 1, true);
 
 				m_Loaded = true;
 			}
