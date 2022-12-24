@@ -115,7 +115,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 			behaviorID = behaviorTemplateTable->GetSkillByID(parameter.values[0]).behaviorID;
 			stacks = static_cast<int32_t>(parameter.values[1]);
 			tick = parameter.values[2];
-			const auto unknown2 = parameter.values[3]; // Always 0
+			const auto unknown2 = parameter.values[3]; // TODO: figure this out it changed to all 1 in FT
 		}
 	}
 
