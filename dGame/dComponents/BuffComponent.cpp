@@ -90,13 +90,6 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	bool cancelOnDamaged, bool cancelOnDeath, bool cancelOnLogout, bool cancelOnRemoveBuff,
 	bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone, bool cancelOnDamageAbsDone,
 	bool useRefCount) {
-	// Prevent buffs from stacking.
-
-	if (HasBuff(id)) {
-		if (useRefCount){
-			auto buff = m_Buffs.find(id);
-		} else return;
-	}
 
 	GameMessages::SendAddBuff(const_cast<LWOOBJID&>(m_Parent->GetObjectID()), source, (uint32_t)id,
 		(uint32_t)duration * 1000, addImmunity, applyOnTeammates, cancelOnDamaged, cancelOnDeath,
@@ -139,6 +132,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	buff.cancelOnZone = cancelOnZone;
 	buff.useRefCount = useRefCount;
 	buff.refcount = 1;
+
 	m_Buffs.emplace(id, buff);
 }
 

@@ -45,7 +45,7 @@ struct Buff
 	bool cancelOnZone = false;
 	bool useRefCount = false;
 
-	uint32_t refcount = 1
+	uint32_t refcount = 1;
 
 };
 

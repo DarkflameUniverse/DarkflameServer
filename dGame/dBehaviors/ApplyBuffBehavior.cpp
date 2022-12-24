@@ -16,8 +16,11 @@ void ApplyBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 
 	if (buffComponent == nullptr) return;
 
-	buffComponent->ApplyBuff(m_BuffId, m_Duration, context->originator, m_AddImmunity, m_ApplyOnTeammates m_CancelOnDamaged, m_CancelOnDeath,
-		m_CancelOnLogout, m_CancelOnRemoveBuff, m_CancelOnUi, m_CancelOnUnequip, m_CancelOnZone, m_CancelOnDamageAbsDone, m_UseRefCount);
+	buffComponent->ApplyBuff(m_BuffId, m_Duration, context->originator,
+		m_AddImmunity, m_ApplyOnTeammates,
+		m_CancelOnDamaged, m_CancelOnDeath,	m_CancelOnLogout, m_CancelOnRemoveBuff,
+		m_CancelOnUi, m_CancelOnUnequip, m_CancelOnZone, m_CancelOnDamageAbsDone,
+		m_UseRefCount);
 }
 
 void ApplyBuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
