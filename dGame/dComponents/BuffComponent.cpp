@@ -45,8 +45,30 @@ void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUp
 			}
 		}
 
-		outBitStream->Write0(); // buff immunities
-	}
+		if (m_BuffImmunities.empty()) {
+			outBitStream->Write0();
+		} else {
+			outBitStream->Write1();
+			outBitStream->Write<uint32_t>(m_BuffImmunities.size());
+
+			for (const auto& buffImmunity : m_BuffImmunities) {
+				outBitStream->Write<uint32_t>(buffImmunity.first);
+				outBitStream->Write(buffImmunity.second.time);
+				outBitStream->Write(buffImmunity.second.cancelOnDeath);
+				outBitStream->Write(buffImmunity.second.cancelOnZone);
+				outBitStream->Write(buffImmunity.second.cancelOnDamaged);
+				outBitStream->Write(buffImmunity.second.cancelOnRemoveBuff);
+				outBitStream->Write(buffImmunity.second.cancelOnUi);
+				outBitStream->Write(buffImmunity.second.cancelOnLogout);
+				outBitStream->Write(buffImmunity.second.cancelOnUnequip);
+				outBitStream->Write(buffImmunity.second.cancelOnDamageAbsDone);
+				outBitStream->Write0(); // outBitStream->Write(addedByTeammate)
+				outBitStream->Write(buffImmunity.second.applyOnTeammates);
+				// if (addedByTeammate) outBitStream->Write(team mate lwoobjid);
+				outBitStream->Write(buffImmunity.second.refcount);
+			}
+		}
+	} // there is no update serilization, only on initialization
 }
 
 void BuffComponent::Update(float deltaTime) {
@@ -300,6 +322,7 @@ void BuffComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	}
 
 	for (const auto& buff : m_Buffs) {
+		if (buff.second.cancelOnLogout || buff.second.cancelOnZone) continue;
 		auto* buffEntry = doc->NewElement("b");
 
 		buffEntry->SetAttribute("id", buff.first);

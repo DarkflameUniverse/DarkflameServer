@@ -148,6 +148,11 @@ private:
 	std::map<int32_t, Buff> m_Buffs;
 
 	/**
+	 * The currently active buff immunities
+	 */
+	std::map<int32_t, Buff> m_BuffImmunities;
+
+	/**
 	 * Parameters (=effects) for each buff
 	 */
 	static std::unordered_map<int32_t, std::vector<BuffParameter>> m_Cache;
