@@ -180,9 +180,9 @@ void ItemSet::Update(float deltaTime) {
 	}
 }
 
-void ItemSet::TriggerPassiveAbility(PassiveAbilityTrigger trigger) {
+void ItemSet::TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target) {
 	for (auto& passiveAbility : m_PassiveAbilities) {
-		passiveAbility.Trigger(trigger);
+		passiveAbility.Trigger(trigger, target);
 	}
 }
 
