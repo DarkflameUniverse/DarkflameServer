@@ -195,7 +195,7 @@ public:
 	/**
 	 * Uses this item if its non equip, essentially an interface for the linked GM
 	 */
-	void UseNonEquip();
+	void UseNonEquip(Item* item);
 
 	/**
 	 * Disassembles the part LOTs of this item back into the inventory, if it has any
