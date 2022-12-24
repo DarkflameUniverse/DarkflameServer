@@ -260,16 +260,32 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 	return any;
 }
 
-void BehaviorContext::Interrupt() {
+void BehaviorContext::Interrupt(bool interruptAttack, bool interruptBlock, bool interruptCharge) {
 	std::vector<BehaviorSyncEntry> keptSync{};
-
 	for (const auto& entry : this->syncEntries) {
-		if (!entry.ignoreInterrupts) continue;
+		if (!entry.ignoreInterrupts) {
+			if (interruptAttack && entry.behavior->m_templateId == BehaviorTemplates::BEHAVIOR_ATTACK_DELAY) {
+				continue;
+			}
 
+			if (interruptCharge && entry.behavior->m_templateId == BehaviorTemplates::BEHAVIOR_CHARGE_UP ||
+				interruptAttack && entry.behavior->m_templateId == BehaviorTemplates::BEHAVIOR_AIR_MOVEMENT) {
+				continue;
+			}
+		}
 		keptSync.push_back(entry);
 	}
-
 	this->syncEntries = keptSync;
+
+	std::vector<BehaviorEndEntry> toKeep{};
+	for (const auto& entry : this->endEntries) {
+		if ((interruptCharge || interruptAttack) && entry.behavior->m_templateId == BehaviorTemplates::BEHAVIOR_START) {
+			entry.behavior->End(this, entry.branchContext, entry.second);
+			continue;
+		}
+		toKeep.push_back(entry);
+	}
+	this->endEntries = toKeep;
 }
 
 void BehaviorContext::Reset() {

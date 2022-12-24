@@ -83,7 +83,7 @@ public:
 	/**
 	 * Interrupts active skills.
 	 */
-	void Interrupt();
+	void Interrupt(bool interruptAttack, bool interruptBlock, bool interruptCharge);
 
 	/**
 	 * Starts a player skill. Should only be called when the server receives a start skill message from the client.

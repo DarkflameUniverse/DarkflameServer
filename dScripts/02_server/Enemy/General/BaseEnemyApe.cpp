@@ -126,7 +126,7 @@ void BaseEnemyApe::StunApe(Entity* self, bool stunState) {
 
 		auto* skillComponent = self->GetComponent<SkillComponent>();
 		if (skillComponent != nullptr) {
-			skillComponent->Interrupt();
+			skillComponent->Reset();
 		}
 
 		GameMessages::SendSetStunned(self->GetObjectID(), stunState ? PUSH : POP, UNASSIGNED_SYSTEM_ADDRESS, self->GetObjectID(),

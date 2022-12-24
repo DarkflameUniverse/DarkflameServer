@@ -100,7 +100,7 @@ struct BehaviorContext
 
 	bool CalculateUpdate(float deltaTime);
 
-	void Interrupt();
+	void Interrupt(bool interruptAttack, bool interruptBlock, bool interruptCharge);
 
 	void Reset();
 

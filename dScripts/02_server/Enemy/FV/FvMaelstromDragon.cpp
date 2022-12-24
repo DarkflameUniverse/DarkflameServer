@@ -77,7 +77,6 @@ void FvMaelstromDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_
 			}
 
 			if (skillComponent != nullptr) {
-				skillComponent->Interrupt();
 				skillComponent->Reset();
 			}
 
@@ -149,7 +148,6 @@ void FvMaelstromDragon::OnTimerDone(Entity* self, std::string timerName) {
 		}
 
 		if (skillComponent != nullptr) {
-			skillComponent->Interrupt();
 			skillComponent->Reset();
 		}
 		GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_COMBAT, eAnimationFlags::IDLE_NONE, UNASSIGNED_SYSTEM_ADDRESS);

@@ -62,7 +62,6 @@ void AmDarklingDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t
 			}
 
 			if (skillComponent != nullptr) {
-				skillComponent->Interrupt();
 				skillComponent->Reset();
 			}
 
@@ -131,7 +130,6 @@ void AmDarklingDragon::OnTimerDone(Entity* self, std::string timerName) {
 			baseCombatAIComponent->SetStunned(false);
 		}
 		if (skillComponent != nullptr) {
-			skillComponent->Interrupt();
 			skillComponent->Reset();
 		}
 		GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_COMBAT, eAnimationFlags::IDLE_NONE, UNASSIGNED_SYSTEM_ADDRESS);

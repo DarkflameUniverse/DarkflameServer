@@ -30,7 +30,7 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 	context->caster = m_Parent->GetObjectID();
 
 	context->skillID = skillID;
-
+	context->skillUId = skillUid;
 	this->m_managedBehaviors.insert_or_assign(skillUid, context);
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
@@ -180,12 +180,12 @@ void SkillComponent::Reset() {
 	this->m_managedBehaviors.clear();
 }
 
-void SkillComponent::Interrupt() {
+void SkillComponent::Interrupt(bool interruptAttack, bool interruptBlock, bool interruptCharge) {
 	// TODO: need to check immunities on the destroyable component, but they aren't implemented
 	auto* combat = m_Parent->GetComponent<BaseCombatAIComponent>();
 	if (combat != nullptr && combat->GetStunImmune()) return;
 
-	for (const auto& behavior : this->m_managedBehaviors) behavior.second->Interrupt();
+	for (const auto& behavior : this->m_managedBehaviors) behavior.second->Interrupt(interruptAttack, interruptBlock, interruptCharge);
 }
 
 void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, BehaviorContext* context, const BehaviorBranchContext& branch, const LOT lot, const float maxTime,
