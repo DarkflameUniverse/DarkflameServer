@@ -21,6 +21,8 @@ BuffComponent::~BuffComponent() {
 
 void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	if (!bIsInitialUpdate) return;
+
+	// if we have buffs
 	if (m_Buffs.empty()) {
 		outBitStream->Write0();
 	} else {
@@ -29,24 +31,25 @@ void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUp
 
 		for (const auto& buff : m_Buffs) {
 			outBitStream->Write<uint32_t>(buff.first);
-			outBitStream->Write0();
-			outBitStream->Write0();
-			outBitStream->Write0();
-			outBitStream->Write0();
-			outBitStream->Write0();
-			outBitStream->Write0();
-			outBitStream->Write0();
-			outBitStream->Write0();
-			outBitStream->Write0();
+			outBitStream->Write(buff.second.time); // time left
+			outBitStream->Write(buff.second.cancelOnDeath); // cancel on death
+			outBitStream->Write(buff.second.cancelOnZone); // cancel on zone
+			outBitStream->Write(buff.second.cancelOnDamaged); // cancel on damage
+			outBitStream->Write(buff.second.cancelOnRemoveBuff); // cancel on remove buff
+			outBitStream->Write(buff.second.cancelOnUi); // cancel on UI
+			outBitStream->Write(buff.second.cancelOnLogout); // cancel on logout
+			outBitStream->Write(buff.second.cancelOnUnequip); // cancel on unequip
+			outBitStream->Write0(); // cancel on damage asorb ran out
 
-			outBitStream->Write0();
-			outBitStream->Write0();
+			outBitStream->Write0(); // if added by team mate
+									// teammate lwoobjid
+			outBitStream->Write0(); //apply on team mate
 
-			outBitStream->Write<uint32_t>(0);
+			outBitStream->Write(buff.second.refcount); // ref_count
 		}
 	}
 
-	outBitStream->Write0();
+	outBitStream->Write0(); // buff immunities
 }
 
 void BuffComponent::Update(float deltaTime) {
@@ -82,17 +85,23 @@ void BuffComponent::Update(float deltaTime) {
 	}
 }
 
-void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOOBJID source, bool addImmunity,
+void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOOBJID source,
+	bool addImmunity, bool applyOnTeammates,
 	bool cancelOnDamaged, bool cancelOnDeath, bool cancelOnLogout, bool cancelOnRemoveBuff,
-	bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone) {
+	bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone, bool cancelOnDamageAbsDone,
+	bool useRefCount) {
 	// Prevent buffs from stacking.
+
 	if (HasBuff(id)) {
-		return;
+		if (useRefCount){
+			auto buff = m_Buffs.find(id);
+		} else return;
 	}
 
 	GameMessages::SendAddBuff(const_cast<LWOOBJID&>(m_Parent->GetObjectID()), source, (uint32_t)id,
-		(uint32_t)duration * 1000, addImmunity, cancelOnDamaged, cancelOnDeath,
-		cancelOnLogout, cancelOnRemoveBuff, cancelOnUi, cancelOnUnequip, cancelOnZone);
+		(uint32_t)duration * 1000, addImmunity, applyOnTeammates, cancelOnDamaged, cancelOnDeath,
+		cancelOnLogout, cancelOnRemoveBuff, cancelOnUi, cancelOnUnequip, cancelOnZone, cancelOnDamageAbsDone,
+		useRefCount);
 
 	float tick = 0;
 	float stacks = 0;
@@ -120,7 +129,16 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	buff.stacks = stacks;
 	buff.source = source;
 	buff.behaviorID = behaviorID;
-
+	buff.addImmunity = addImmunity;
+	buff.cancelOnDamaged = cancelOnDamaged;
+	buff.cancelOnDeath = cancelOnDeath;
+	buff.cancelOnLogout = cancelOnLogout;
+	buff.cancelOnRemoveBuff = cancelOnRemoveBuff;
+	buff.cancelOnUi = cancelOnUi;
+	buff.cancelOnUnequip = cancelOnUnequip;
+	buff.cancelOnZone = cancelOnZone;
+	buff.useRefCount = useRefCount;
+	buff.refcount = 1;
 	m_Buffs.emplace(id, buff);
 }
 

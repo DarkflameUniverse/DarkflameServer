@@ -34,6 +34,19 @@ struct Buff
 	int32_t stacks = 0;
 	LWOOBJID source = 0;
 	int32_t behaviorID = 0;
+	bool addImmunity = false;
+	bool cancelOnDamaged = false;
+	bool cancelOnDeath = false;
+	bool cancelOnLogout = false;
+	bool cancelOnRemoveBuff = false;
+	bool cancelOnDamageAbsDone = false;
+	bool cancelOnUi = false;
+	bool cancelOnUnequip = false;
+	bool cancelOnZone = false;
+	bool useRefCount = false;
+
+	uint32_t refcount = 1
+
 };
 
 /**
@@ -63,6 +76,7 @@ public:
 	 * @param duration the duration of the buff in seconds
 	 * @param source an optional source entity that cast the buff
 	 * @param addImmunity client flag
+	 * @param applyOnTeammates should the buff apply on teammates
 	 * @param cancelOnDamaged client flag to indicate that the buff should disappear when damaged
 	 * @param cancelOnDeath client flag to indicate that the buff should disappear when dying
 	 * @param cancelOnLogout client flag to indicate that the buff should disappear when logging out
@@ -70,10 +84,13 @@ public:
 	 * @param cancelOnUi client flag to indicate that the buff should disappear when interacting with UI
 	 * @param cancelOnUnequip client flag to indicate that the buff should disappear when the triggering item is unequipped
 	 * @param cancelOnZone client flag to indicate that the buff should disappear when changing zones
+	 * @param cancelOnDamageAbsDone cancel if we have done damage absorbtion
+	 * @param useRefCount client flag to indicate that the stacks
 	 */
-	void ApplyBuff(int32_t id, float duration, LWOOBJID source, bool addImmunity = false, bool cancelOnDamaged = false,
-		bool cancelOnDeath = true, bool cancelOnLogout = false, bool cancelOnRemoveBuff = true,
-		bool cancelOnUi = false, bool cancelOnUnequip = false, bool cancelOnZone = false);
+	void ApplyBuff(int32_t id, float duration, LWOOBJID source, bool addImmunity = false, bool applyOnTeammates = false,
+		bool cancelOnDamaged = false, bool cancelOnDeath = true, bool cancelOnLogout = false, bool cancelOnRemoveBuff = true,
+		bool cancelOnUi = false, bool cancelOnUnequip = false, bool cancelOnZone = false, bool cancelOnDamageAbsDone = false,
+		bool useRefCount = false);
 
 	/**
 	 * Removes a buff from the parent entity, reversing its effects

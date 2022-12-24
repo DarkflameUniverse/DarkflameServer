@@ -7,18 +7,7 @@
 class ApplyBuffBehavior final : public Behavior
 {
 public:
-	int32_t m_BuffId;
-	float m_Duration;
-	bool addImmunity;
-	bool cancelOnDamaged;
-	bool cancelOnDeath;
-	bool cancelOnLogout;
-	bool cancelonRemoveBuff;
-	bool cancelOnUi;
-	bool cancelOnUnequip;
-	bool cancelOnZone;
-
-	/*
+		/*
 	 * Inherited
 	 */
 	explicit ApplyBuffBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {
@@ -31,4 +20,21 @@ public:
 	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 
 	void Load() override;
+
+private:
+	int32_t m_BuffId;
+	float m_Duration;
+	bool m_IgnoreUncast;
+	bool m_TargetCaster;
+	bool m_AddImmunity;
+	bool m_ApplyOnTeammates;
+	bool m_CancelOnDamaged;
+	bool m_CancelOnDeath;
+	bool m_CancelOnLogout;
+	bool m_CancelOnRemoveBuff;
+	bool m_CancelOnUi;
+	bool m_CancelOnUnequip;
+	bool m_CancelOnZone;
+	bool m_CancelOnDamageAbsDone;
+	bool m_UseRefCount;
 };

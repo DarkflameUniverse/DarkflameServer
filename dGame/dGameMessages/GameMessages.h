@@ -184,9 +184,11 @@ namespace GameMessages {
 	void SendBBBSaveResponse(const LWOOBJID& objectId, const LWOOBJID& localID, unsigned char* buffer, uint32_t bufferSize, const SystemAddress& sysAddr);
 
 	void SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
-		bool addImmunity = false, bool cancelOnDamaged = false, bool cancelOnDeath = true,
-		bool cancelOnLogout = false, bool cancelOnRemoveBuff = true, bool cancelOnUi = false,
-		bool cancelOnUnequip = false, bool cancelOnZone = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+		bool addImmunity = false, bool applyOnTeammates = false,
+		bool cancelOnDamaged = false, bool cancelOnDeath = true,bool cancelOnLogout = false, bool cancelOnRemoveBuff = true,
+		bool cancelOnUi = false, bool cancelOnUnequip = false, bool cancelOnZone = false, bool cancelOnDamageAbsDone = false,
+		bool useRefCount = false,
+		const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 
 	void SendToggleGMInvis(LWOOBJID objectId, bool enabled, const SystemAddress& sysAddr);
 
