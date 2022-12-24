@@ -17,4 +17,5 @@ void HydrantSmashable::OnDie(Entity* self, Entity* killer) {
 	auto* hydrant = EntityManager::Instance()->CreateEntity(info);
 
 	EntityManager::Instance()->ConstructEntity(hydrant);
+	delete data;
 }
