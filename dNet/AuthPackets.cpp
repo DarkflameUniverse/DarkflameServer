@@ -193,7 +193,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 
 	PacketUtils::WritePacketString("Talk_Like_A_Pirate", 33, &packet);
 
-	// 7 unknown strings - perhaps other IP addresses?
+	// gating strings
 	PacketUtils::WritePacketString("ninjago2", 33, &packet);
 	PacketUtils::WritePacketString("", 33, &packet);
 	PacketUtils::WritePacketString("", 33, &packet);

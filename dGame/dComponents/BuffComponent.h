@@ -35,6 +35,7 @@ struct Buff
 	LWOOBJID source = 0;
 	int32_t behaviorID = 0;
 	bool addImmunity = false;
+	bool applyOnTeammates = false;
 	bool cancelOnDamaged = false;
 	bool cancelOnDeath = false;
 	bool cancelOnLogout = false;

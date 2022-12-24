@@ -20,36 +20,33 @@ BuffComponent::~BuffComponent() {
 }
 
 void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	if (!bIsInitialUpdate) return;
+	if (bIsInitialUpdate) {
+		if (m_Buffs.empty()) {
+			outBitStream->Write0();
+		} else {
+			outBitStream->Write1();
+			outBitStream->Write<uint32_t>(m_Buffs.size());
 
-	// if we have buffs
-	if (m_Buffs.empty()) {
-		outBitStream->Write0();
-	} else {
-		outBitStream->Write1();
-		outBitStream->Write<uint32_t>(m_Buffs.size());
-
-		for (const auto& buff : m_Buffs) {
-			outBitStream->Write<uint32_t>(buff.first);
-			outBitStream->Write(buff.second.time); // time left
-			outBitStream->Write(buff.second.cancelOnDeath); // cancel on death
-			outBitStream->Write(buff.second.cancelOnZone); // cancel on zone
-			outBitStream->Write(buff.second.cancelOnDamaged); // cancel on damage
-			outBitStream->Write(buff.second.cancelOnRemoveBuff); // cancel on remove buff
-			outBitStream->Write(buff.second.cancelOnUi); // cancel on UI
-			outBitStream->Write(buff.second.cancelOnLogout); // cancel on logout
-			outBitStream->Write(buff.second.cancelOnUnequip); // cancel on unequip
-			outBitStream->Write0(); // cancel on damage asorb ran out
-
-			outBitStream->Write0(); // if added by team mate
-									// teammate lwoobjid
-			outBitStream->Write0(); //apply on team mate
-
-			outBitStream->Write(buff.second.refcount); // ref_count
+			for (const auto& buff : m_Buffs) {
+				outBitStream->Write<uint32_t>(buff.first);
+				outBitStream->Write(buff.second.time);
+				outBitStream->Write(buff.second.cancelOnDeath);
+				outBitStream->Write(buff.second.cancelOnZone);
+				outBitStream->Write(buff.second.cancelOnDamaged);
+				outBitStream->Write(buff.second.cancelOnRemoveBuff);
+				outBitStream->Write(buff.second.cancelOnUi);
+				outBitStream->Write(buff.second.cancelOnLogout);
+				outBitStream->Write(buff.second.cancelOnUnequip);
+				outBitStream->Write(buff.second.cancelOnDamageAbsDone);
+				outBitStream->Write0(); // outBitStream->Write(addedByTeammate)
+				outBitStream->Write(buff.second.applyOnTeammates);
+				// if (addedByTeammate) outBitStream->Write(team mate lwoobjid);
+				outBitStream->Write(buff.second.refcount);
+			}
 		}
-	}
 
-	outBitStream->Write0(); // buff immunities
+		outBitStream->Write0(); // buff immunities
+	}
 }
 
 void BuffComponent::Update(float deltaTime) {
@@ -123,6 +120,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	buff.source = source;
 	buff.behaviorID = behaviorID;
 	buff.addImmunity = addImmunity;
+	buff.applyOnTeammates = applyOnTeammates;
 	buff.cancelOnDamaged = cancelOnDamaged;
 	buff.cancelOnDeath = cancelOnDeath;
 	buff.cancelOnLogout = cancelOnLogout;
@@ -131,7 +129,9 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	buff.cancelOnUnequip = cancelOnUnequip;
 	buff.cancelOnZone = cancelOnZone;
 	buff.useRefCount = useRefCount;
-	buff.refcount = 1;
+	buff.cancelOnDamageAbsDone = cancelOnDamageAbsDone;
+
+	buff.refcount = 0;
 
 	m_Buffs.emplace(id, buff);
 }
