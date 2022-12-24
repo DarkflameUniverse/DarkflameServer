@@ -16,12 +16,12 @@ ItemSetPassiveAbility::ItemSetPassiveAbility(PassiveAbilityTrigger trigger, Enti
 ItemSetPassiveAbility::~ItemSetPassiveAbility() {
 }
 
-void ItemSetPassiveAbility::Trigger(PassiveAbilityTrigger trigger) {
+void ItemSetPassiveAbility::Trigger(PassiveAbilityTrigger trigger, Entity* target) {
 	if (m_Trigger != trigger || m_Cooldown > 0.0f) {
 		return;
 	}
 
-	Activate();
+	Activate(target);
 }
 
 void ItemSetPassiveAbility::Update(float deltaTime) {
@@ -30,9 +30,9 @@ void ItemSetPassiveAbility::Update(float deltaTime) {
 	}
 }
 
-void ItemSetPassiveAbility::Activate() {
+void ItemSetPassiveAbility::Activate(Entity* target) {
 	if (m_Trigger == PassiveAbilityTrigger::EnemySmashed) {
-		OnEnemySmshed();
+		OnEnemySmshed(target);
 
 		return;
 	}
@@ -195,7 +195,7 @@ std::vector<ItemSetPassiveAbility> ItemSetPassiveAbility::FindAbilities(uint32_t
 	return abilities;
 }
 
-void ItemSetPassiveAbility::OnEnemySmshed() {
+void ItemSetPassiveAbility::OnEnemySmshed(Entity* target) {
 	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
 	auto* skillComponent = m_Parent->GetComponent<SkillComponent>();
 
@@ -293,8 +293,8 @@ void ItemSetPassiveAbility::OnEnemySmshed() {
 		break;
 	}
 	case ItemSetPassiveAbilityID::ShinobiRank3: {
-		if (equippedCount < 4) return;
-		destroyableComponent->Imagine(3);
+		if (equippedCount < 4 || !target) return;
+		skillComponent->CalculateBehavior(695, 11399, target->GetObjectID());
 		break;
 	}
 
