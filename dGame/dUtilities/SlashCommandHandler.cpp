@@ -1463,6 +1463,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "buff" && args.size() >= 2 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		auto* buffComponent = entity->GetComponent<BuffComponent>();
+		if (!buffComponent) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Error, no buff component.");
+			return;
+		}
 
 		int32_t id = 0;
 		int32_t duration = 0;
@@ -1477,9 +1481,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		if (buffComponent != nullptr) {
-			buffComponent->ApplyBuff(id, duration, entity->GetObjectID());
-		}
+		Buff buff;
+		buff.id = id;
+		buff.duration = duration;
+		buffComponent->ApplyBuff(buff);
 
 		return;
 	}

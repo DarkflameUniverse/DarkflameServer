@@ -61,6 +61,7 @@
 #include "RacingControlComponent.h"
 #include "RailActivatorComponent.h"
 #include "LevelProgressionComponent.h"
+#include "BuffComponent.h"
 
 // Message includes:
 #include "dZoneManager.h"
@@ -4437,39 +4438,34 @@ void GameMessages::SendVehicleNotifyFinishedRace(LWOOBJID objectId, const System
 	SEND_PACKET;
 }
 
-void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
-	bool addImmunity, bool applyOnTeammates,
-	bool cancelOnDamaged, bool cancelOnDeath, bool cancelOnLogout, bool cancelOnRemoveBuff,
-	bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone, bool cancelOnDamageAbsDone,
-	bool useRefCount,
-	const SystemAddress& sysAddr) {
+void GameMessages::SendAddBuff(LWOOBJID& target, Buff buff, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(objectID);
+	bitStream.Write(target);
 	bitStream.Write(GAME_MSG::GAME_MSG_ADD_BUFF);
 
-	bitStream.Write(false); // Added by teammate
-	bitStream.Write(applyOnTeammates);
-	bitStream.Write(cancelOnDamageAbsDone);
-	bitStream.Write(cancelOnDamaged);
-	bitStream.Write(cancelOnDeath);
-	bitStream.Write(cancelOnLogout);
+	bitStream.Write(buff.source != target); // If we were added by a teammate/someone else
+	bitStream.Write(buff.applyOnTeammates);
+	bitStream.Write(buff.cancelOnDamageAbsDone);
+	bitStream.Write(buff.cancelOnDamaged);
+	bitStream.Write(buff.cancelOnDeath);
+	bitStream.Write(buff.cancelOnLogout);
 	bitStream.Write(false); // Cancel on move
-	bitStream.Write(cancelOnRemoveBuff);
+	bitStream.Write(buff.cancelOnRemoveBuff);
 
-	bitStream.Write(cancelOnUi);
-	bitStream.Write(cancelOnUnequip);
-	bitStream.Write(cancelOnZone);
+	bitStream.Write(buff.cancelOnUi);
+	bitStream.Write(buff.cancelOnUnequip);
+	bitStream.Write(buff.cancelOnZone);
 	bitStream.Write(false); // Ignore immunities
-	bitStream.Write(addImmunity);
-	bitStream.Write(useRefCount);
+	bitStream.Write(buff.addImmunity);
+	bitStream.Write(buff.useRefCount);
 
-	bitStream.Write(buffID);
-	bitStream.Write(msDuration);
+	bitStream.Write(buff.id);
+	bitStream.Write(buff.duration * 1000); // needs to be in MS
 
-	bitStream.Write(casterID);
-	bitStream.Write(casterID);
+	bitStream.Write(buff.source);
+	bitStream.Write(buff.source);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;

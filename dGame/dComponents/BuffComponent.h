@@ -28,6 +28,7 @@ struct BuffParameter
 struct Buff
 {
 	int32_t id = 0;
+	float duration = 0;
 	float time = 0;
 	float tick = 0;
 	float tickTime = 0;
@@ -73,25 +74,9 @@ public:
 
 	/**
 	 * Applies a buff to the parent entity
-	 * @param id the id of the buff to apply
-	 * @param duration the duration of the buff in seconds
-	 * @param source an optional source entity that cast the buff
-	 * @param addImmunity client flag
-	 * @param applyOnTeammates should the buff apply on teammates
-	 * @param cancelOnDamaged client flag to indicate that the buff should disappear when damaged
-	 * @param cancelOnDeath client flag to indicate that the buff should disappear when dying
-	 * @param cancelOnLogout client flag to indicate that the buff should disappear when logging out
-	 * @param cancelOnRemoveBuff client flag to indicate that the buff should disappear when a concrete GM to do so comes around
-	 * @param cancelOnUi client flag to indicate that the buff should disappear when interacting with UI
-	 * @param cancelOnUnequip client flag to indicate that the buff should disappear when the triggering item is unequipped
-	 * @param cancelOnZone client flag to indicate that the buff should disappear when changing zones
-	 * @param cancelOnDamageAbsDone cancel if we have done damage absorbtion
-	 * @param useRefCount client flag to indicate that the stacks
+	 * @param buff the Buff to apply
 	 */
-	void ApplyBuff(int32_t id, float duration, LWOOBJID source, bool addImmunity = false, bool applyOnTeammates = false,
-		bool cancelOnDamaged = false, bool cancelOnDeath = true, bool cancelOnLogout = false, bool cancelOnRemoveBuff = true,
-		bool cancelOnUi = false, bool cancelOnUnequip = false, bool cancelOnZone = false, bool cancelOnDamageAbsDone = false,
-		bool useRefCount = false);
+	void ApplyBuff(Buff buff);
 
 	/**
 	 * Removes a buff from the parent entity, reversing its effects
@@ -106,6 +91,14 @@ public:
 	 * @return whether or not the entity has a buff with the specified id active
 	 */
 	bool HasBuff(int32_t id);
+
+	/**
+	 * Returns whether or not the entity has a buff immunity identified by `id`
+	 * @param id the id of the buff immunity to find
+	 * @return whether or not the entity has a buff with the specified id active
+	 */
+	bool HasBuffImmunity(int32_t id);
+
 
 	/**
 	 * Applies the effects of the buffs on the entity, e.g.: changing armor, health, imag, etc.

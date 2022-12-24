@@ -20,11 +20,13 @@ BuffComponent::~BuffComponent() {
 }
 
 void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+	// apply buffs from previous sessions that are stored in the charxml
 	if (bIsInitialUpdate) {
+		// buffs
 		if (m_Buffs.empty()) {
-			outBitStream->Write0();
+			outBitStream->Write0(); // no buffs
 		} else {
-			outBitStream->Write1();
+			outBitStream->Write1(); // we have some
 			outBitStream->Write<uint32_t>(m_Buffs.size());
 
 			for (const auto& buff : m_Buffs) {
@@ -38,17 +40,18 @@ void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUp
 				outBitStream->Write(buff.second.cancelOnLogout);
 				outBitStream->Write(buff.second.cancelOnUnequip);
 				outBitStream->Write(buff.second.cancelOnDamageAbsDone);
-				outBitStream->Write0(); // outBitStream->Write(addedByTeammate)
+				outBitStream->Write(buff.second.source != m_Parent->GetObjectID());
 				outBitStream->Write(buff.second.applyOnTeammates);
-				// if (addedByTeammate) outBitStream->Write(team mate lwoobjid);
+				if (buff.second.source != m_Parent->GetObjectID()) outBitStream->Write(buff.second.source);
 				outBitStream->Write(buff.second.refcount);
 			}
 		}
 
+		// buff imunities
 		if (m_BuffImmunities.empty()) {
-			outBitStream->Write0();
+			outBitStream->Write0(); // no buff immunities
 		} else {
-			outBitStream->Write1();
+			outBitStream->Write1(); // we have some
 			outBitStream->Write<uint32_t>(m_BuffImmunities.size());
 
 			for (const auto& buffImmunity : m_BuffImmunities) {
@@ -62,9 +65,9 @@ void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUp
 				outBitStream->Write(buffImmunity.second.cancelOnLogout);
 				outBitStream->Write(buffImmunity.second.cancelOnUnequip);
 				outBitStream->Write(buffImmunity.second.cancelOnDamageAbsDone);
-				outBitStream->Write0(); // outBitStream->Write(addedByTeammate)
+				outBitStream->Write(buffImmunity.second.source != m_Parent->GetObjectID());
 				outBitStream->Write(buffImmunity.second.applyOnTeammates);
-				// if (addedByTeammate) outBitStream->Write(team mate lwoobjid);
+				if (buffImmunity.second.source != m_Parent->GetObjectID()) outBitStream->Write(buffImmunity.second.source);
 				outBitStream->Write(buffImmunity.second.refcount);
 			}
 		}
@@ -104,22 +107,17 @@ void BuffComponent::Update(float deltaTime) {
 	}
 }
 
-void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOOBJID source,
-	bool addImmunity, bool applyOnTeammates,
-	bool cancelOnDamaged, bool cancelOnDeath, bool cancelOnLogout, bool cancelOnRemoveBuff,
-	bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone, bool cancelOnDamageAbsDone,
-	bool useRefCount) {
+void BuffComponent::ApplyBuff(Buff buff) {
 
-	GameMessages::SendAddBuff(const_cast<LWOOBJID&>(m_Parent->GetObjectID()), source, (uint32_t)id,
-		(uint32_t)duration * 1000, addImmunity, applyOnTeammates, cancelOnDamaged, cancelOnDeath,
-		cancelOnLogout, cancelOnRemoveBuff, cancelOnUi, cancelOnUnequip, cancelOnZone, cancelOnDamageAbsDone,
-		useRefCount);
+	if (HasBuff(buff.id) && HasBuffImmunity(buff.id)) return;
+
+	GameMessages::SendAddBuff(const_cast<LWOOBJID&>(m_Parent->GetObjectID()), buff);
 
 	float tick = 0;
 	float stacks = 0;
 	int32_t behaviorID = 0;
 
-	const auto& parameters = GetBuffParameters(id);
+	const auto& parameters = GetBuffParameters(buff.id);
 	for (const auto& parameter : parameters) {
 		if (parameter.name == "overtime") {
 			auto* behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
@@ -131,31 +129,16 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 		}
 	}
 
-	ApplyBuffEffect(id);
-
-	Buff buff;
-	buff.id = id;
-	buff.time = duration;
+	ApplyBuffEffect(buff.id);
 	buff.tick = tick;
 	buff.tickTime = tick;
 	buff.stacks = stacks;
-	buff.source = source;
 	buff.behaviorID = behaviorID;
-	buff.addImmunity = addImmunity;
-	buff.applyOnTeammates = applyOnTeammates;
-	buff.cancelOnDamaged = cancelOnDamaged;
-	buff.cancelOnDeath = cancelOnDeath;
-	buff.cancelOnLogout = cancelOnLogout;
-	buff.cancelOnRemoveBuff = cancelOnRemoveBuff;
-	buff.cancelOnUi = cancelOnUi;
-	buff.cancelOnUnequip = cancelOnUnequip;
-	buff.cancelOnZone = cancelOnZone;
-	buff.useRefCount = useRefCount;
-	buff.cancelOnDamageAbsDone = cancelOnDamageAbsDone;
 
 	buff.refcount = 0;
-
-	m_Buffs.emplace(id, buff);
+	if (buff.addImmunity) {
+		m_BuffImmunities.emplace(buff.id, buff);
+	} else m_Buffs.emplace(buff.id, buff);
 }
 
 void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity) {
@@ -174,6 +157,10 @@ void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity
 
 bool BuffComponent::HasBuff(int32_t id) {
 	return m_Buffs.find(id) != m_Buffs.end();
+}
+
+bool BuffComponent::HasBuffImmunity(int32_t id) {
+	return m_BuffImmunities.find(id) != m_BuffImmunities.end();
 }
 
 void BuffComponent::ApplyBuffEffect(int32_t id) {
