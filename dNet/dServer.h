@@ -57,6 +57,7 @@ public:
 	ReplicaManager* GetReplicaManager() { return mReplicaManager; }
 	void UpdateReplica();
 	void UpdateBandwidthLimit();
+	void UpdateMaximumMtuSize();
 
 	int GetPing(const SystemAddress& sysAddr) const;
 	int GetLatestPing(const SystemAddress& sysAddr) const;

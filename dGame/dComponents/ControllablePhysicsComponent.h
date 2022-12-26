@@ -257,6 +257,13 @@ public:
 	 */
 	std::vector<float> GetActivePickupRadiusScales() { return m_ActivePickupRadiusScales; };
 
+
+	void AddSpeedboost(float value);
+
+	void RemoveSpeedboost(float value);
+
+	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
+
 private:
 	/**
 	 * The entity that owns this component
@@ -372,6 +379,16 @@ private:
 	 * If the entity is teleporting
 	 */
 	bool m_IsTeleporting;
+
+	/**
+	 * The list of speed boosts for this entity
+	 */
+	std::vector<float> m_ActiveSpeedBoosts;
+
+	/**
+	 * The active speed boost for this entity
+	 */
+	float m_SpeedBoost;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H

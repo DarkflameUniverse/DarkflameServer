@@ -31,7 +31,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		return;
 	}
 
-	if (m_useMouseposit) {
+	if (m_useMouseposit && !branch.isSync) {
 		NiPoint3 targetPosition = NiPoint3::ZERO;
 		if (!bitStream->Read(targetPosition)) {
 			Game::logger->Log("ProjectileAttackBehavior", "Unable to read targetPosition from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
@@ -157,4 +157,6 @@ void ProjectileAttackBehavior::Load() {
 	this->m_trackRadius = GetFloat("track_radius");
 
 	this->m_useMouseposit = GetBoolean("use_mouseposit");
+
+	this->m_ProjectileType = GetInt("projectile_type");
 }
