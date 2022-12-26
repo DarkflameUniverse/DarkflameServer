@@ -9,14 +9,14 @@ void PersonalFortress::OnStartup(Entity* self) {
 	auto* owner = self->GetOwner();
 	self->AddTimer("FireSkill", 1.5);
 
-	auto* destroyableComp = owner->GetComponent<DestroyableComponent>();
-	if (destroyableComp) destroyableComp->SetStatusImmunity(
+	auto* destroyableComponent = owner->GetComponent<DestroyableComponent>();
+	if (destroyableComponent) destroyableComponent->SetStatusImmunity(
 			eStateChangeType::PUSH,
 			true, true, true, true, true, false, true, false, false
 		);
 
-	auto* controllablePhysicsComp = owner->GetComponent<ControllablePhysicsComponent>();
-	if (controllablePhysicsComp) controllablePhysicsComp->SetStunImmunity(
+	auto* controllablePhysicsComponent = owner->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->SetStunImmunity(
 			eStateChangeType::PUSH, LWOOBJID_EMPTY,
 			true, true, true, true, true, true
 		);
@@ -30,14 +30,14 @@ void PersonalFortress::OnStartup(Entity* self) {
 
 void PersonalFortress::OnDie(Entity* self, Entity* killer) {
 	auto* owner = self->GetOwner();
-	auto* destroyableComp = owner->GetComponent<DestroyableComponent>();
-	if (destroyableComp) destroyableComp->SetStatusImmunity(
+	auto* destroyableComponent = owner->GetComponent<DestroyableComponent>();
+	if (destroyableComponent) destroyableComponent->SetStatusImmunity(
 			eStateChangeType::POP,
 			true, true, true, true, true, false, true, false, false
 		);
 
-	auto* controllablePhysicsComp = owner->GetComponent<ControllablePhysicsComponent>();
-	if (controllablePhysicsComp) controllablePhysicsComp->SetStunImmunity(
+	auto* controllablePhysicsComponent = owner->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->SetStunImmunity(
 			eStateChangeType::POP, LWOOBJID_EMPTY,
 			true, true, true, true, true, true
 		);

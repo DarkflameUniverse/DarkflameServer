@@ -80,13 +80,13 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		}
 
 		outBitStream->Write1(); // always write these on construction
+		outBitStream->Write(m_ImmuneToStunMoveCount);
+		outBitStream->Write(m_ImmuneToStunJumpCount);
+		outBitStream->Write(m_ImmuneToStunTurnCount);
 		outBitStream->Write(m_ImmuneToStunAttackCount);
+		outBitStream->Write(m_ImmuneToStunUseItemCount);
 		outBitStream->Write(m_ImmuneToStunEquipCount);
 		outBitStream->Write(m_ImmuneToStunInteractCount);
-		outBitStream->Write(m_ImmuneToStunJumpCount);
-		outBitStream->Write(m_ImmuneToStunMoveCount);
-		outBitStream->Write(m_ImmuneToStunTurnCount);
-		outBitStream->Write(m_ImmuneToStunUseItemCount);
 	}
 
 	if (m_IgnoreMultipliers) m_DirtyCheats = false;
@@ -315,15 +315,15 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 }
 
 void ControllablePhysicsComponent::SetStunImmunity(
-	eStateChangeType state,
-	LWOOBJID originator,
-	bool bImmuneToStunAttack,
-	bool bImmuneToStunEquip,
-	bool bImmuneToStunInteract,
-	bool bImmuneToStunJump,
-	bool bImmuneToStunMove,
-	bool bImmuneToStunTurn,
-	bool bImmuneToStunUseItem){
+	const eStateChangeType state,
+	const LWOOBJID originator,
+	const bool bImmuneToStunAttack,
+	const bool bImmuneToStunEquip,
+	const bool bImmuneToStunInteract,
+	const bool bImmuneToStunJump,
+	const bool bImmuneToStunMove,
+	const bool bImmuneToStunTurn,
+	const bool bImmuneToStunUseItem){
 
 	if (state == eStateChangeType::POP){
 		if (bImmuneToStunAttack && m_ImmuneToStunAttackCount > 0) 		m_ImmuneToStunAttackCount -= 1;

@@ -268,25 +268,25 @@ public:
 	 * Push or Pop a layer of stun immunity to this entity
 	 */
 	void SetStunImmunity(
-		eStateChangeType state,
-		LWOOBJID originator = LWOOBJID_EMPTY,
-		bool bImmuneToStunAttack = false,
-		bool bImmuneToStunEquip = false,
-		bool bImmuneToStunInteract = false,
-		bool bImmuneToStunJump = false,
-		bool bImmuneToStunMove = false,
-		bool bImmuneToStunTurn = false,
-		bool bImmuneToStunUseItem = false
+		const eStateChangeType state,
+		const LWOOBJID originator = LWOOBJID_EMPTY,
+		const bool bImmuneToStunAttack = false,
+		const bool bImmuneToStunEquip = false,
+		const bool bImmuneToStunInteract = false,
+		const bool bImmuneToStunJump = false,
+		const bool bImmuneToStunMove = false,
+		const bool bImmuneToStunTurn = false,
+		const bool bImmuneToStunUseItem = false
 	);
 
 	// getters for stun immunities
-	bool GetImmuneToStunAttack() { return m_ImmuneToStunAttackCount > 0;};
-	bool GetImmuneToStunEquip() { return m_ImmuneToStunEquipCount > 0;};
-	bool GetImmuneToStunInteract() { return m_ImmuneToStunInteractCount > 0;};
-	bool GetImmuneToStunJump() { return m_ImmuneToStunJumpCount > 0;};
-	bool GetImmuneToStunMove() { return m_ImmuneToStunMoveCount > 0;};
-	bool GetImmuneToStunTurn() { return m_ImmuneToStunTurnCount > 0;};
-	bool GetImmuneToStunUseItem() { return m_ImmuneToStunUseItemCount > 0;};
+	const bool GetImmuneToStunAttack() { return m_ImmuneToStunAttackCount > 0;};
+	const bool GetImmuneToStunEquip() { return m_ImmuneToStunEquipCount > 0;};
+	const bool GetImmuneToStunInteract() { return m_ImmuneToStunInteractCount > 0;};
+	const bool GetImmuneToStunJump() { return m_ImmuneToStunJumpCount > 0;};
+	const bool GetImmuneToStunMove() { return m_ImmuneToStunMoveCount > 0;};
+	const bool GetImmuneToStunTurn() { return m_ImmuneToStunTurnCount > 0;};
+	const bool GetImmuneToStunUseItem() { return m_ImmuneToStunUseItemCount > 0;};
 
 private:
 	/**

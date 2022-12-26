@@ -399,28 +399,28 @@ public:
 	 * Push or Pop a layer of status immunity to this entity
 	 */
 	void SetStatusImmunity(
-		eStateChangeType state,
-		bool bImmuneToBasicAttack = false,
-		bool bImmuneToDamageOverTime = false,
-		bool bImmuneToKnockback = false,
-		bool bImmuneToInterrupt = false,
-		bool bImmuneToSpeed = false,
-		bool bImmuneToImaginationGain = false,
-		bool bImmuneToImaginationLoss = false,
-		bool bImmuneToQuickbuildInterrupt = false,
-		bool bImmuneToPullToPoint = false
+		const eStateChangeType state,
+		const bool bImmuneToBasicAttack = false,
+		const bool bImmuneToDamageOverTime = false,
+		const bool bImmuneToKnockback = false,
+		const bool bImmuneToInterrupt = false,
+		const bool bImmuneToSpeed = false,
+		const bool bImmuneToImaginationGain = false,
+		const bool bImmuneToImaginationLoss = false,
+		const bool bImmuneToQuickbuildInterrupt = false,
+		const bool bImmuneToPullToPoint = false
 	);
 
 	// Getters for status immunities
-	bool GetImmuneToBasicAttack() {return m_ImmuneToBasicAttackCount > 0;};
-	bool GetImmuneToDamageOverTime() {return m_ImmuneToDamageOverTimeCount > 0;};
-	bool GetImmuneToKnockback() {return m_ImmuneToKnockbackCount > 0;};
-	bool GetImmuneToInterrupt() {return m_ImmuneToInterruptCount > 0;};
-	bool GetImmuneToSpeed() {return m_ImmuneToSpeedCount > 0;};
-	bool GetImmuneToImaginationGain() {return m_ImmuneToImaginationGainCount > 0;};
-	bool GetImmuneToImaginationLoss() {return m_ImmuneToImaginationLossCount > 0;};
-	bool GetImmuneToQuickbuildInterrupt() {return m_ImmuneToQuickbuildInterruptCount > 0;};
-	bool GetImmuneToPullToPoint() {return m_ImmuneToPullToPointCount > 0;};
+	const bool GetImmuneToBasicAttack() {return m_ImmuneToBasicAttackCount > 0;};
+	const bool GetImmuneToDamageOverTime() {return m_ImmuneToDamageOverTimeCount > 0;};
+	const bool GetImmuneToKnockback() {return m_ImmuneToKnockbackCount > 0;};
+	const bool GetImmuneToInterrupt() {return m_ImmuneToInterruptCount > 0;};
+	const bool GetImmuneToSpeed() {return m_ImmuneToSpeedCount > 0;};
+	const bool GetImmuneToImaginationGain() {return m_ImmuneToImaginationGainCount > 0;};
+	const bool GetImmuneToImaginationLoss() {return m_ImmuneToImaginationLossCount > 0;};
+	const bool GetImmuneToQuickbuildInterrupt() {return m_ImmuneToQuickbuildInterruptCount > 0;};
+	const bool GetImmuneToPullToPoint() {return m_ImmuneToPullToPointCount > 0;};
 
 	/**
 	 * Utility to reset all stats to the default stats based on items and completed missions

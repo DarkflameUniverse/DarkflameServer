@@ -827,16 +827,16 @@ void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
 }
 
 void DestroyableComponent::SetStatusImmunity(
-		eStateChangeType state,
-		bool bImmuneToBasicAttack,
-		bool bImmuneToDamageOverTime,
-		bool bImmuneToKnockback,
-		bool bImmuneToInterrupt,
-		bool bImmuneToSpeed,
-		bool bImmuneToImaginationGain,
-		bool bImmuneToImaginationLoss,
-		bool bImmuneToQuickbuildInterrupt,
-		bool bImmuneToPullToPoint) {
+		const eStateChangeType state,
+		const bool bImmuneToBasicAttack,
+		const bool bImmuneToDamageOverTime,
+		const bool bImmuneToKnockback,
+		const bool bImmuneToInterrupt,
+		const bool bImmuneToSpeed,
+		const bool bImmuneToImaginationGain,
+		const bool bImmuneToImaginationLoss,
+		const bool bImmuneToQuickbuildInterrupt,
+		const bool bImmuneToPullToPoint) {
 
 	if (state == eStateChangeType::POP) {
 		if (bImmuneToBasicAttack && m_ImmuneToBasicAttackCount > 0) 				m_ImmuneToBasicAttackCount -= 1;

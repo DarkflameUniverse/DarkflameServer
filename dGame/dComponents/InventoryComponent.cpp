@@ -994,7 +994,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
 	if (destroyableComponent) {
 		destroyableComponent->SetIsSmashable(false);
-		// TODO: Get proper immunities
+		destroyableComponent->SetIsImmune(true);
 	}
 
 	// Mount it
