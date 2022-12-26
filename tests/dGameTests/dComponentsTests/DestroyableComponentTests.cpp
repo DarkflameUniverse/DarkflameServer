@@ -41,10 +41,19 @@ protected:
 TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 	destroyableComponent->Serialize(&bitStream, true, flags);
 	// Assert that the full number of bits are present
-	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 460);
+	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 748);
 	{
 		// Now read in the full serialized construction BitStream
-		bool optionStatusImmunityInfo{}; // Values under this option are unused.
+		bool optionStatusImmunityInfo{};
+		uint32_t ImmuneToBasicAttackCount{};
+		uint32_t ImmuneToDamageOverTimeCount{};
+		uint32_t ImmuneToKnockbackCount{};
+		uint32_t ImmuneToInterruptCount{};
+		uint32_t ImmuneToSpeedCount{};
+		uint32_t ImmuneToImaginationGainCount{};
+		uint32_t ImmuneToImaginationLossCount{};
+		uint32_t ImmuneToQuickbuildInterruptCount{};
+		uint32_t ImmuneToPullToPointCount{};
 		bool optionStatsInfo{};
 		uint32_t currentHealth{};
 		float maxHealth{};
@@ -70,7 +79,15 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 		bool optionIsOnThreatList{};
 		bool isThreatened{};
 		bitStream.Read(optionStatusImmunityInfo);
-
+		bitStream.Read(ImmuneToBasicAttackCount);
+		bitStream.Read(ImmuneToDamageOverTimeCount);
+		bitStream.Read(ImmuneToKnockbackCount);
+		bitStream.Read(ImmuneToInterruptCount);
+		bitStream.Read(ImmuneToSpeedCount);
+		bitStream.Read(ImmuneToImaginationGainCount);
+		bitStream.Read(ImmuneToImaginationLossCount);
+		bitStream.Read(ImmuneToQuickbuildInterruptCount);
+		bitStream.Read(ImmuneToPullToPointCount);
 		bitStream.Read(optionStatsInfo);
 		bitStream.Read(currentHealth);
 		bitStream.Read(maxHealth);
@@ -101,7 +118,16 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 
 		bitStream.Read(optionIsOnThreatList);
 		bitStream.Read(isThreatened);
-		EXPECT_EQ(optionStatusImmunityInfo, false);
+		EXPECT_EQ(optionStatusImmunityInfo, true);
+		EXPECT_EQ(ImmuneToBasicAttackCount, 0);
+		EXPECT_EQ(ImmuneToDamageOverTimeCount, 0);
+		EXPECT_EQ(ImmuneToKnockbackCount, 0);
+		EXPECT_EQ(ImmuneToInterruptCount, 0);
+		EXPECT_EQ(ImmuneToSpeedCount, 0);
+		EXPECT_EQ(ImmuneToImaginationGainCount, 0);
+		EXPECT_EQ(ImmuneToImaginationLossCount, 0);
+		EXPECT_EQ(ImmuneToQuickbuildInterruptCount, 0);
+		EXPECT_EQ(ImmuneToPullToPointCount, 0);
 
 		EXPECT_EQ(optionStatsInfo, true);
 		EXPECT_EQ(currentHealth, 23);
