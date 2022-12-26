@@ -63,6 +63,7 @@ int64_t FdbToSqlite::Convert::ReadInt64(std::istream& cdClientBuffer) {
 	int64_t value{};
 	BinaryIO::BinaryRead(cdClientBuffer, value);
 
+	cdClientBuffer.seekg(prevPosition);
 	return value;
 }
 
