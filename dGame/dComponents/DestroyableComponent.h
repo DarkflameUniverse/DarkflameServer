@@ -411,6 +411,17 @@ public:
 		bool bImmuneToPullToPoint = false
 	);
 
+	// Getters for status immunities
+	bool GetImmuneToBasicAttack() {return m_ImmuneToBasicAttackCount > 0;};
+	bool GetImmuneToDamageOverTime() {return m_ImmuneToDamageOverTimeCount > 0;};
+	bool GetImmuneToKnockback() {return m_ImmuneToKnockbackCount > 0;};
+	bool GetImmuneToInterrupt() {return m_ImmuneToInterruptCount > 0;};
+	bool GetImmuneToSpeed() {return m_ImmuneToSpeedCount > 0;};
+	bool GetImmuneToImaginationGain() {return m_ImmuneToImaginationGainCount > 0;};
+	bool GetImmuneToImaginationLoss() {return m_ImmuneToImaginationLossCount > 0;};
+	bool GetImmuneToQuickbuildInterrupt() {return m_ImmuneToQuickbuildInterruptCount > 0;};
+	bool GetImmuneToPullToPoint() {return m_ImmuneToPullToPointCount > 0;};
+
 	/**
 	 * Utility to reset all stats to the default stats based on items and completed missions
 	 */

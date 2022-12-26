@@ -279,6 +279,15 @@ public:
 		bool bImmuneToStunUseItem = false
 	);
 
+	// getters for stun immunities
+	bool GetImmuneToStunAttack() { return m_ImmuneToStunAttackCount > 0;};
+	bool GetImmuneToStunEquip() { return m_ImmuneToStunEquipCount > 0;};
+	bool GetImmuneToStunInteract() { return m_ImmuneToStunInteractCount > 0;};
+	bool GetImmuneToStunJump() { return m_ImmuneToStunJumpCount > 0;};
+	bool GetImmuneToStunMove() { return m_ImmuneToStunMoveCount > 0;};
+	bool GetImmuneToStunTurn() { return m_ImmuneToStunTurnCount > 0;};
+	bool GetImmuneToStunUseItem() { return m_ImmuneToStunUseItemCount > 0;};
+
 private:
 	/**
 	 * The entity that owns this component
