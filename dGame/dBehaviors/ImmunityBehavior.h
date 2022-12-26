@@ -24,10 +24,10 @@ private:
 	bool m_ImmuneToStunAttack = false;
 	bool m_ImmuneToStunEquip = false;
 	bool m_ImmuneToStunInteract = false;
-	bool m_ImmuneToStunJump = false;
+	bool m_ImmuneToStunJump = false; // Unused
 	bool m_ImmuneToStunMove = false;
 	bool m_ImmuneToStunTurn = false;
-	bool m_ImmuneToStunUseItem = false;
+	bool m_ImmuneToStunUseItem = false; // Unused
 
 	//status
 	bool m_ImmuneToBasicAttack = false;
@@ -38,5 +38,5 @@ private:
 	bool m_ImmuneToImaginationGain = false;
 	bool m_ImmuneToImaginationLoss = false;
 	bool m_ImmuneToQuickbuildInterrupt = false;
-	bool m_ImmuneToPullToPoint = false;
+	bool m_ImmuneToPullToPoint = false; // Unused in cdclient, but used in client
 };

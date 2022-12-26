@@ -100,10 +100,8 @@ void ImmunityBehavior::Load() {
 	this->m_ImmuneToStunAttack = GetBoolean("immune_stun_attack", false);
 	this->m_ImmuneToStunEquip = GetBoolean("immune_stun_equip", false);
 	this->m_ImmuneToStunInteract = GetBoolean("immune_stun_interact", false);
-	this->m_ImmuneToStunJump = GetBoolean("immune_stun_jump", false); // Unused?
 	this->m_ImmuneToStunMove = GetBoolean("immune_stun_move", false);
 	this->m_ImmuneToStunTurn = GetBoolean("immune_stun_rotate", false);
-	this->m_ImmuneToStunUseItem = GetBoolean("immune_stun_use_item", false); // Unused?
 
 	// Status
 	this->m_ImmuneToBasicAttack = GetBoolean("immune_basic_attack", false);
@@ -113,6 +111,6 @@ void ImmunityBehavior::Load() {
 	this->m_ImmuneToSpeed = GetBoolean("immune_speed", false);
 	this->m_ImmuneToImaginationGain = GetBoolean("immune_imagination_gain", false);
 	this->m_ImmuneToImaginationLoss = GetBoolean("immune_imagination_loss", false);
-	this->m_ImmuneToQuickbuildInterrupt = GetBoolean("immune_quickbuild_interrupt", false);
-	this->m_ImmuneToPullToPoint = GetBoolean("immune_pull_point", false); // Ununsed?
+	this->m_ImmuneToQuickbuildInterrupt = GetBoolean("immune_quickbuild_interrupts", false);
+	this->m_ImmuneToPullToPoint = GetBoolean("immune_pulltopoint", false);
 }
