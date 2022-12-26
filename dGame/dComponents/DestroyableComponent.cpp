@@ -54,7 +54,6 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_LootMatrixID = 0;
 	m_MinCoins = 0;
 	m_MaxCoins = 0;
-	m_ImmuneStacks = 0;
 	m_DamageReduction = 0;
 
 	m_ImmuneToBasicAttackCount = 0;
@@ -354,7 +353,7 @@ void DestroyableComponent::SetDamageReduction(int32_t value) {
 
 void DestroyableComponent::SetIsImmune(bool value) {
 	m_DirtyHealth = true;
-	m_ImmuneStacks = value ? 1 : 0;
+	m_ImmuneToBasicAttackCount = value ? 1 : 0;
 }
 
 void DestroyableComponent::SetIsGMImmune(bool value) {
@@ -457,7 +456,7 @@ void DestroyableComponent::SetAttacksToBlock(const uint32_t value) {
 }
 
 bool DestroyableComponent::IsImmune() const {
-	return m_ImmuneStacks > 0 || m_IsGMImmune;
+	return m_IsGMImmune || m_ImmuneToBasicAttackCount > 0;
 }
 
 bool DestroyableComponent::IsKnockbackImmune() const {

@@ -509,11 +509,6 @@ private:
 	uint32_t m_AttacksToBlock;
 
 	/**
-	 * The layers of immunity this entity has left
-	 */
-	int32_t m_ImmuneStacks;
-
-	/**
 	 * The amount of damage that should be reduced from every attack
 	 */
 	int32_t m_DamageReduction;
