@@ -76,6 +76,7 @@
 #include "ControlBehaviors.h"
 #include "AMFDeserialize.h"
 #include "eBlueprintSaveResponseType.h"
+#include "eAninmationFlags.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
