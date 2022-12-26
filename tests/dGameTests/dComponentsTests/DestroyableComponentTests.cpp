@@ -326,6 +326,7 @@ TEST_F(DestroyableTest, DestroyableComponentValiditiyTest) {
 }
 
 TEST_F(DestroyableTest, DestroyableComponentImmunityTest) {
+	// assert to show that they are empty
 	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
 	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
 	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
@@ -335,6 +336,7 @@ TEST_F(DestroyableTest, DestroyableComponentImmunityTest) {
 	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
 	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
 	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	// set them all to true (count 1) and check
 	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, true, true, true, true, true, true, true, true, true);
 	ASSERT_TRUE(destroyableComponent->GetImmuneToBasicAttack());
 	ASSERT_TRUE(destroyableComponent->GetImmuneToDamageOverTime());
@@ -345,6 +347,8 @@ TEST_F(DestroyableTest, DestroyableComponentImmunityTest) {
 	ASSERT_TRUE(destroyableComponent->GetImmuneToImaginationLoss());
 	ASSERT_TRUE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
 	ASSERT_TRUE(destroyableComponent->GetImmuneToPullToPoint());
+
+	// remove them to check that they get removed properly
 	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true, true, true, true, true, true, true, true, true);
 	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
 	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
@@ -355,5 +359,173 @@ TEST_F(DestroyableTest, DestroyableComponentImmunityTest) {
 	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
 	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
 	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+
+	// should not crash to remove them again
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true, true, true, true, true, true, true, true, true);
+	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+
+	// just do one
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, true);
+	ASSERT_TRUE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	// now stack it to 2 on basic attack
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, true);
+	ASSERT_TRUE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	// remove one and still shoudl be true
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true);
+	ASSERT_TRUE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	// go back to 0
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true);
+	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	// check individual ones now
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, true, false, false, false, false, false, false, false, false);
+	ASSERT_TRUE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true, false, false, false, false, false, false, false, false);
+
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, false, true, false, false, false, false, false, false, false);
+	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_TRUE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, false, true, false, false, false, false, false, false, false);
+
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, false, false, true, false, false, false, false, false, false);
+	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_TRUE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, false, false, true, false, false, false, false, false, false);
+
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, false, false, false, true, false, false, false, false, false);
+	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_TRUE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, false, false, false, true, false, false, false, false, false);
+
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, false, false, false, false, true, false, false, false, false);
+	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_TRUE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, false, false, false, false, true, false, false, false, false);
+
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, false, false, false, false, false, true, false, false, false);
+	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_TRUE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, false, false, false, false, false, true, false, false, false);
+
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, false, false, false, false, false, false, true, false, false);
+	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_TRUE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, false, false, false, false, false, false, true, false, false);
+
+
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, false, false, false, false, false, false, false, true, false);
+	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_TRUE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToPullToPoint());
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, false, false, false, false, false, false, false, true, false);
+
+
+	destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, false, false, false, false, false, false, false, false, true);
+	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToKnockback());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToInterrupt());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToSpeed());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationGain());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToImaginationLoss());
+	ASSERT_FALSE(destroyableComponent->GetImmuneToQuickbuildInterrupt());
+	ASSERT_TRUE(destroyableComponent->GetImmuneToPullToPoint());
+	destroyableComponent->SetStatusImmunity(eStateChangeType::POP, false, false, false, false, false, false, false, false, true);
+
 }
 
