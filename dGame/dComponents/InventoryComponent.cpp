@@ -959,7 +959,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 		return;
 	}
 
-	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStateChangeType::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
 	// Set the mount Item ID so that we know what were handling
 	possessorComponent->SetMountItemID(item->GetId());
@@ -994,7 +994,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
 	if (destroyableComponent) {
 		destroyableComponent->SetIsSmashable(false);
-		destroyableComponent->SetIsImmune(true);
+		// TODO: Get proper immunities
 	}
 
 	// Mount it

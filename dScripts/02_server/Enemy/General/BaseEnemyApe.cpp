@@ -129,7 +129,7 @@ void BaseEnemyApe::StunApe(Entity* self, bool stunState) {
 			skillComponent->Interrupt();
 		}
 
-		GameMessages::SendSetStunned(self->GetObjectID(), stunState ? PUSH : POP, UNASSIGNED_SYSTEM_ADDRESS, self->GetObjectID(),
+		GameMessages::SendSetStunned(self->GetObjectID(), stunState ? eStateChangeType::PUSH : eStateChangeType::POP, UNASSIGNED_SYSTEM_ADDRESS, self->GetObjectID(),
 			true, true, true, true, true,
 			true, true, true, true);
 

@@ -77,28 +77,20 @@ void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
 void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdraw) {
 	const auto withdrawn = self->GetBoolean(u"isWithdrawn");
 
-	if (withdrawn == withdraw) {
-		return;
-	}
+	if (withdrawn == withdraw) return;
 
 	if (withdraw) {
-		//Move spider away from battle zone
-		// Disabled because we cant option the reset collition group right now
+		GameMessages::SendSetStunned(
+			self->GetObjectID(), eStateChangeType::PUSH, self->GetSystemAddress(), LWOOBJID_EMPTY,
+			true, true, true, true, true, true, true, false, true
+		);
+
+		// Move spider away from battle zone
+		// Disabled because we cant option the reset collision group right now
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SetColGroup", 10, 0, 0, "", UNASSIGNED_SYSTEM_ADDRESS);
 
-		//First rotate for anim
-		NiQuaternion rot = NiQuaternion::IDENTITY;
-
-		controllable->SetStatic(false);
-
-		controllable->SetRotation(rot);
-
-		controllable->SetStatic(true);
-
-		controllable->SetDirtyPosition(true);
-
-		rot = controllable->GetRotation();
-
+		controllable->SetRotation({0, -0.005077, 0, 0.999});
+		controllable->SetIsTeleporting(true);
 		EntityManager::Instance()->SerializeEntity(self);
 
 		auto* baseCombatAi = self->GetComponent<BaseCombatAIComponent>();
@@ -114,7 +106,10 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 
 		//TODO: Set faction to -1 and set immunity
 		destroyable->SetFaction(-1);
-		destroyable->SetIsImmune(true);
+		GameMessages::SendSetStatusImmunity(
+			self->GetObjectID(), eStateChangeType::PUSH, self->GetSystemAddress(),
+			true, true, false, false, true
+		);
 		EntityManager::Instance()->SerializeEntity(self);
 
 		self->AddTimer("WithdrawComplete", withdrawTime + 1.0f);
@@ -140,7 +135,6 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 		float attackPause = animTime - 0.4f;
 
 		destroyable->SetFaction(4);
-		destroyable->SetIsImmune(false);
 
 		//Advance stage
 		m_CurrentBossStage++;
@@ -597,19 +591,12 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		self->AddTimer("PollSpiderSkillManager", spiderCooldownDelay);
 
 		//Remove current status immunity
-		/*self:SetStatusImmunity{ StateChangeType = "POP", bImmuneToSpeed = true, bImmuneToBasicAttack = true, bImmuneToDOT = true}
+		/*self:SetStatusImmunity{ StateChangeType = "POP", bImmuneToSpeed = true, bImmuneToBasicAttack = true, bImmuneToDOT = true}*/
+		GameMessages::SendSetStunned(
+			self->GetObjectID(), eStateChangeType::POP, self->GetSystemAddress(), LWOOBJID_EMPTY,
+			true, true, true, true, true, true, true, false, true
+		);
 
-		self:SetStunned{StateChangeType = "POP",
-					bCantMove = true,
-					bCantJump = true,
-					bCantTurn = true,
-					bCantAttack = true,
-					bCantUseItem = true,
-					bCantEquip = true,
-					bCantInteract = true,
-					bIgnoreImmunity = true}*/
-
-		destroyable->SetIsImmune(false);
 		destroyable->SetFaction(4);
 
 		EntityManager::Instance()->SerializeEntity(self);

@@ -264,6 +264,21 @@ public:
 
 	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
 
+	/**
+	 * Push or Pop a layer of stun immunity to this entity
+	 */
+	void SetStunImmunity(
+		eStateChangeType state,
+		LWOOBJID originator = LWOOBJID_EMPTY,
+		bool bImmuneToStunAttack = false,
+		bool bImmuneToStunEquip = false,
+		bool bImmuneToStunInteract = false,
+		bool bImmuneToStunJump = false,
+		bool bImmuneToStunMove = false,
+		bool bImmuneToStunTurn = false,
+		bool bImmuneToStunUseItem = false
+	);
+
 private:
 	/**
 	 * The entity that owns this component
@@ -389,6 +404,17 @@ private:
 	 * The active speed boost for this entity
 	 */
 	float m_SpeedBoost;
+
+	/**
+	 * stun immunity counters
+	 */
+	int32_t m_ImmuneToStunAttackCount;
+	int32_t m_ImmuneToStunEquipCount;
+	int32_t m_ImmuneToStunInteractCount;
+	int32_t m_ImmuneToStunJumpCount;
+	int32_t m_ImmuneToStunMoveCount;
+	int32_t m_ImmuneToStunTurnCount;
+	int32_t m_ImmuneToStunUseItemCount;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H

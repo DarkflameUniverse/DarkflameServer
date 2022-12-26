@@ -6,27 +6,46 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "DestroyableComponent.h"
+#include "ControllablePhysicsComponent.h"
 
 void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
-	if (target == nullptr) {
+	if (!target) {
 		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
-
 		return;
 	}
 
-	auto* destroyable = static_cast<DestroyableComponent*>(target->GetComponent(COMPONENT_TYPE_DESTROYABLE));
-
-	if (destroyable == nullptr) {
-		return;
+	auto* destroyableComp = target->GetComponent<DestroyableComponent>();
+	if (destroyableComp) {
+		destroyableComp->SetStatusImmunity(
+			eStateChangeType::PUSH,
+			m_ImmuneToBasicAttack,
+			m_ImmuneToDamageOverTime,
+			m_ImmuneToKnockback,
+			m_ImmuneToInterrupt,
+			m_ImmuneToSpeed,
+			m_ImmuneToImaginationGain,
+			m_ImmuneToImaginationLoss,
+			m_ImmuneToQuickbuildInterrupt,
+			m_ImmuneToPullToPoint
+		);
 	}
 
-	if (!this->m_immuneBasicAttack) {
-		return;
+	auto* controllablePhysicsComp = target->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComp) {
+		controllablePhysicsComp->SetStunImmunity(
+			eStateChangeType::PUSH,
+			context->caster,
+			m_ImmuneToStunAttack,
+			m_ImmuneToStunEquip,
+			m_ImmuneToStunInteract,
+			m_ImmuneToStunJump,
+			m_ImmuneToStunMove,
+			m_ImmuneToStunTurn,
+			m_ImmuneToStunUseItem
+		);
 	}
-
-	destroyable->PushImmunity();
 
 	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
 }
@@ -38,21 +57,62 @@ void ImmunityBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bi
 void ImmunityBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, const LWOOBJID second) {
 	auto* target = EntityManager::Instance()->GetEntity(second);
 
-	if (target == nullptr) {
+	if (!target) {
 		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", second);
-
 		return;
 	}
 
-	auto* destroyable = static_cast<DestroyableComponent*>(target->GetComponent(COMPONENT_TYPE_DESTROYABLE));
-
-	if (destroyable == nullptr) {
-		return;
+	auto* destroyableComp = target->GetComponent<DestroyableComponent>();
+	if (destroyableComp) {
+		destroyableComp->SetStatusImmunity(
+			eStateChangeType::POP,
+			m_ImmuneToBasicAttack,
+			m_ImmuneToDamageOverTime,
+			m_ImmuneToKnockback,
+			m_ImmuneToInterrupt,
+			m_ImmuneToSpeed,
+			m_ImmuneToImaginationGain,
+			m_ImmuneToImaginationLoss,
+			m_ImmuneToQuickbuildInterrupt,
+			m_ImmuneToPullToPoint
+		);
 	}
 
-	destroyable->PopImmunity();
+	auto* controllablePhysicsComp = target->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComp) {
+		controllablePhysicsComp->SetStunImmunity(
+			eStateChangeType::POP,
+			context->caster,
+			m_ImmuneToStunAttack,
+			m_ImmuneToStunEquip,
+			m_ImmuneToStunInteract,
+			m_ImmuneToStunJump,
+			m_ImmuneToStunMove,
+			m_ImmuneToStunTurn,
+			m_ImmuneToStunUseItem
+		);
+	}
+
 }
 
 void ImmunityBehavior::Load() {
-	this->m_immuneBasicAttack = GetBoolean("immune_basic_attack");
+	//Stun
+	this->m_ImmuneToStunAttack = GetBoolean("immune_stun_attack", false);
+	this->m_ImmuneToStunEquip = GetBoolean("immune_stun_equip", false);
+	this->m_ImmuneToStunInteract = GetBoolean("immune_stun_interact", false);
+	this->m_ImmuneToStunJump = GetBoolean("immune_stun_jump", false); // Unused?
+	this->m_ImmuneToStunMove = GetBoolean("immune_stun_move", false);
+	this->m_ImmuneToStunTurn = GetBoolean("immune_stun_rotate", false);
+	this->m_ImmuneToStunUseItem = GetBoolean("immune_stun_use_item", false); // Unused?
+
+	// Status
+	this->m_ImmuneToBasicAttack = GetBoolean("immune_basic_attack", false);
+	this->m_ImmuneToDamageOverTime = GetBoolean("immune_damage_over_time", false);
+	this->m_ImmuneToKnockback = GetBoolean("immune_knockback", false);
+	this->m_ImmuneToInterrupt = GetBoolean("immune_interrupt", false);
+	this->m_ImmuneToSpeed = GetBoolean("immune_speed", false);
+	this->m_ImmuneToImaginationGain = GetBoolean("immune_imagination_gain", false);
+	this->m_ImmuneToImaginationLoss = GetBoolean("immune_imagination_loss", false);
+	this->m_ImmuneToQuickbuildInterrupt = GetBoolean("immune_quickbuild_interrupt", false);
+	this->m_ImmuneToPullToPoint = GetBoolean("immune_pull_point", false); // Ununsed?
 }

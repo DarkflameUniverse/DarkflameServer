@@ -396,16 +396,20 @@ public:
 	void Smash(LWOOBJID source, eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"", uint32_t skillID = 0);
 
 	/**
-	 * Pushes a layer of immunity to this entity, making it immune for longer
-	 * @param stacks the amount of immunity to add
+	 * Push or Pop a layer of status immunity to this entity
 	 */
-	void PushImmunity(int32_t stacks = 1);
-
-	/**
-	 * Pops layers of immunity, making it immune for less longer
-	 * @param stacks the number of layers of immunity to remove
-	 */
-	void PopImmunity(int32_t stacks = 1);
+	void SetStatusImmunity(
+		eStateChangeType state,
+		bool bImmuneToBasicAttack = false,
+		bool bImmuneToDamageOverTime = false,
+		bool bImmuneToKnockback = false,
+		bool bImmuneToInterrupt = false,
+		bool bImmuneToSpeed = false,
+		bool bImmuneToImaginationGain = false,
+		bool bImmuneToImaginationLoss = false,
+		bool bImmuneToQuickbuildInterrupt = false,
+		bool bImmuneToPullToPoint = false
+	);
 
 	/**
 	 * Utility to reset all stats to the default stats based on items and completed missions
@@ -428,7 +432,7 @@ public:
 
 	/**
 	 * Notify subscribed scripts of Damage actions.
-	 * 
+	 *
 	 * @param attacker The attacking Entity
 	 * @param damage The amount of damage that was done
 	 */
@@ -577,6 +581,19 @@ private:
 	 * The list of scripts subscribed to this components actions
 	 */
 	std::map<LWOOBJID, CppScripts::Script*> m_SubscribedScripts;
+
+	/**
+	 * status immunity counters
+	 */
+	uint32_t m_ImmuneToBasicAttackCount;
+	uint32_t m_ImmuneToDamageOverTimeCount;
+	uint32_t m_ImmuneToKnockbackCount;
+	uint32_t m_ImmuneToInterruptCount;
+	uint32_t m_ImmuneToSpeedCount;
+	uint32_t m_ImmuneToImaginationGainCount;
+	uint32_t m_ImmuneToImaginationLossCount;
+	uint32_t m_ImmuneToQuickbuildInterruptCount;
+	uint32_t m_ImmuneToPullToPointCount;
 };
 
 #endif // DESTROYABLECOMPONENT_H

@@ -56,6 +56,16 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_MaxCoins = 0;
 	m_ImmuneStacks = 0;
 	m_DamageReduction = 0;
+
+	m_ImmuneToBasicAttackCount = 0;
+	m_ImmuneToDamageOverTimeCount = 0;
+	m_ImmuneToKnockbackCount = 0;
+	m_ImmuneToInterruptCount = 0;
+	m_ImmuneToSpeedCount = 0;
+	m_ImmuneToImaginationGainCount = 0;
+	m_ImmuneToImaginationLossCount = 0;
+	m_ImmuneToQuickbuildInterruptCount = 0;
+	m_ImmuneToPullToPointCount = 0;
 }
 
 DestroyableComponent::~DestroyableComponent() {
@@ -105,7 +115,16 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 
 void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, uint32_t& flags) {
 	if (bIsInitialUpdate) {
-		outBitStream->Write0(); //Contains info about immunities this object has, but it's left out for now.
+		outBitStream->Write1(); // always write these on construction
+		outBitStream->Write(m_ImmuneToBasicAttackCount);
+		outBitStream->Write(m_ImmuneToDamageOverTimeCount);
+		outBitStream->Write(m_ImmuneToKnockbackCount);
+		outBitStream->Write(m_ImmuneToInterruptCount);
+		outBitStream->Write(m_ImmuneToSpeedCount);
+		outBitStream->Write(m_ImmuneToImaginationGainCount);
+		outBitStream->Write(m_ImmuneToImaginationLossCount);
+		outBitStream->Write(m_ImmuneToQuickbuildInterruptCount);
+		outBitStream->Write(m_ImmuneToPullToPointCount);
 	}
 
 	outBitStream->Write(m_DirtyHealth || bIsInitialUpdate);
@@ -808,12 +827,53 @@ void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
 	AddFaction(factionID, ignoreChecks);
 }
 
-void DestroyableComponent::PushImmunity(int32_t stacks) {
-	m_ImmuneStacks += stacks;
-}
+void DestroyableComponent::SetStatusImmunity(
+		eStateChangeType state,
+		bool bImmuneToBasicAttack,
+		bool bImmuneToDamageOverTime,
+		bool bImmuneToKnockback,
+		bool bImmuneToInterrupt,
+		bool bImmuneToSpeed,
+		bool bImmuneToImaginationGain,
+		bool bImmuneToImaginationLoss,
+		bool bImmuneToQuickbuildInterrupt,
+		bool bImmuneToPullToPoint) {
 
-void DestroyableComponent::PopImmunity(int32_t stacks) {
-	m_ImmuneStacks -= stacks;
+	if (state == eStateChangeType::POP) {
+		if (bImmuneToBasicAttack && m_ImmuneToBasicAttackCount > 0) 				m_ImmuneToBasicAttackCount -= 1;
+		if (bImmuneToDamageOverTime && m_ImmuneToDamageOverTimeCount > 0) 			m_ImmuneToDamageOverTimeCount -= 1;
+		if (bImmuneToKnockback && m_ImmuneToKnockbackCount > 0) 					m_ImmuneToKnockbackCount -= 1;
+		if (bImmuneToInterrupt && m_ImmuneToInterruptCount > 0) 					m_ImmuneToInterruptCount -= 1;
+		if (bImmuneToSpeed && m_ImmuneToSpeedCount > 0) 							m_ImmuneToSpeedCount -= 1;
+		if (bImmuneToImaginationGain && m_ImmuneToImaginationGainCount > 0) 		m_ImmuneToImaginationGainCount -= 1;
+		if (bImmuneToImaginationLoss && m_ImmuneToImaginationLossCount > 0) 		m_ImmuneToImaginationLossCount -= 1;
+		if (bImmuneToQuickbuildInterrupt && m_ImmuneToQuickbuildInterruptCount > 0) m_ImmuneToQuickbuildInterruptCount -= 1;
+		if (bImmuneToPullToPoint && m_ImmuneToPullToPointCount > 0) 				m_ImmuneToPullToPointCount -= 1;
+
+	} else if (state == eStateChangeType::PUSH){
+		if (bImmuneToBasicAttack) 			m_ImmuneToBasicAttackCount += 1;
+		if (bImmuneToDamageOverTime) 		m_ImmuneToDamageOverTimeCount += 1;
+		if (bImmuneToKnockback) 			m_ImmuneToKnockbackCount += 1;
+		if (bImmuneToInterrupt) 			m_ImmuneToInterruptCount += 1;
+		if (bImmuneToSpeed) 				m_ImmuneToSpeedCount += 1;
+		if (bImmuneToImaginationGain) 		m_ImmuneToImaginationGainCount += 1;
+		if (bImmuneToImaginationLoss) 		m_ImmuneToImaginationLossCount += 1;
+		if (bImmuneToQuickbuildInterrupt) 	m_ImmuneToQuickbuildInterruptCount += 1;
+		if (bImmuneToPullToPoint) 			m_ImmuneToPullToPointCount += 1;
+	}
+
+	GameMessages::SendSetStatusImmunity(
+		m_Parent->GetObjectID(), state, m_Parent->GetSystemAddress(),
+		bImmuneToBasicAttack,
+		bImmuneToDamageOverTime,
+		bImmuneToKnockback,
+		bImmuneToInterrupt,
+		bImmuneToSpeed,
+		bImmuneToImaginationGain,
+		bImmuneToImaginationLoss,
+		bImmuneToQuickbuildInterrupt,
+		bImmuneToPullToPoint
+	);
 }
 
 void DestroyableComponent::FixStats() {
