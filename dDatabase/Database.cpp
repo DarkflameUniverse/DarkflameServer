@@ -30,7 +30,6 @@ void Database::Connect(const string& host, const string& database, const string&
 	// property manually (which the URL parsing fails to do)
 	const std::string UNIX_PROTO = "unix://";
 	const std::string PIPE_PROTO = "pipe://";
-	const std::string TCP_PROTO = "tcp://";
     if (host.find(UNIX_PROTO) == 0) {
 		properties["hostName"] = "unix://localhost";
 		properties["localSocket"] = host.substr(UNIX_PROTO.length()).c_str();
@@ -38,9 +37,8 @@ void Database::Connect(const string& host, const string& database, const string&
 		properties["hostName"] = "pipe://localhost";
 		properties["pipe"] = host.substr(PIPE_PROTO.length()).c_str();
     } else {
-		properties["hostName"] = (TCP_PROTO + host).c_str();
+		properties["hostName"] = host.c_str();
     }
-
 	properties["user"] = szUsername;
 	properties["password"] = szPassword;
 	properties["autoReconnect"] = "true";

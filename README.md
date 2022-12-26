@@ -183,9 +183,8 @@ This server has a few steps that need to be taken to configure the server for yo
 ### Required Configuration
 Darkflame Universe can run with either a packed or an unpacked client.
 Navigate to `build/sharedconfig.ini` and fill in the following fields:
-* `mysql_host` (This is the IP address or hostname of your MariaDB server)
-	* This is highly likely `localhost:3306`.
-	* If you changed the default port that you run MariaDB on, as you can do with a windows install, you will need to change 3306 to be the port number you chose to run MariaDB on.
+* `mysql_host` (This is the IP address or hostname of your MariaDB server.  This is highly likely `localhost`)
+  * If you setup your MariaDB instance on a port other than 3306, which can be done on a Windows install, you will need to make this value `tcp://localhost:portNum` where portNum is replaced with the port you chose to run MariaDB on.
 * `mysql_database` (This is the database you created for the server)
 * `mysql_username` (This is the user you created for the server)
 * `mysql_password` (This is the password for the user you created for the server)
