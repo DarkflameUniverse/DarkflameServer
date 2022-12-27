@@ -5,6 +5,7 @@
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "SkillComponent.h"
+#include "eAninmationFlags.h"
 
 void BaseEnemyApe::OnStartup(Entity* self) {
 	self->SetVar<uint32_t>(u"timesStunned", 2);
