@@ -3,7 +3,7 @@
 
 class MovementSwitchBehavior final : public Behavior
 {
-public:
+private:
 	/*
 	 * Members
 	 */
@@ -19,6 +19,17 @@ public:
 
 	Behavior* m_jumpAction;
 
+	Behavior* m_movingAction;
+
+	/**
+	 * @brief Loads a movement type from the database into a behavior
+	 * 
+	 * @param movementType The movement type to lookup in the database
+	 * @param behaviorToLoad The Behavior where the result will be stored
+	 */
+	Behavior* LoadMovementType(std::string movementType);
+
+public:
 	/*
 	 * Inherited
 	 */
