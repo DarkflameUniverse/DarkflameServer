@@ -60,7 +60,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	}
 
 	if (isBlocked) {
-		destroyableComponent->SetAttacksToBlock(std::min(destroyableComponent->GetAttacksToBlock() - 1, static_cast<uint32_t>(0)));
+		destroyableComponent->SetAttacksToBlock(std::min(destroyableComponent->GetAttacksToBlock() - 1, 0U));
 		EntityManager::Instance()->SerializeEntity(targetEntity);
 		this->m_OnFailBlocked->Handle(context, bitStream, branch);
 		return;
