@@ -33,11 +33,23 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 	const auto baseAddress = bitStream->GetReadOffset();
 
 	DoHandleBehavior(context, bitStream, branch);
-	
+
 	bitStream->SetReadOffset(baseAddress + allocatedBits);
 }
 
 void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+	auto* targetEntity = EntityManager::Instance()->GetEntity(branch.target);
+	if (!targetEntity) {
+		Game::logger->Log("BasicAttackBehavior", "Target targetEntity %i not found.", branch.target);
+		return;
+	}
+
+	auto* destroyableComponent = targetEntity->GetComponent<DestroyableComponent>();
+	if (!destroyableComponent) {
+		Game::logger->Log("BasicAttackBehavior", "No destroyable found on the obj/lot %llu/%i", branch.target, targetEntity->GetLOT());
+		return;
+	}
+
 	bool isBlocked{};
 	bool isImmune{};
 	bool isSuccess{};
@@ -48,6 +60,9 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	}
 
 	if (isBlocked) {
+		destroyableComponent->SetAttacksToBlock(std::min(destroyableComponent->GetAttacksToBlock() - 1, static_cast<uint32_t>(0)));
+		Game::logger->Log("BasicAttackBehavior", "Number of attacks that can be blocked is now %i", destroyableComponent->GetAttacksToBlock());
+		EntityManager::Instance()->SerializeEntity(targetEntity);
 		this->m_OnFailBlocked->Handle(context, bitStream, branch);
 		return;
 	}
@@ -92,18 +107,10 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 			Game::logger->LogDebug("BasicAttackBehavior", "Unable to read died");
 			return;
 		}
-
-		auto* entity = EntityManager::Instance()->GetEntity(branch.target);
-		if (entity != nullptr) {
-			auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
-			if (destroyableComponent != nullptr) {
-				auto previousArmor = destroyableComponent->GetArmor();
-				auto previousHealth = destroyableComponent->GetHealth();
-				PlayFx(u"onhit", entity->GetObjectID());
-				destroyableComponent->Damage(totalDamageDealt, context->originator, context->skillID);
-			}
-		}
-
+		auto previousArmor = destroyableComponent->GetArmor();
+		auto previousHealth = destroyableComponent->GetHealth();
+		PlayFx(u"onhit", targetEntity->GetObjectID());
+		destroyableComponent->Damage(totalDamageDealt, context->originator, context->skillID);
 	}
 
 	uint8_t successState{};
@@ -166,6 +173,9 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 	bitStream->Write(isBlocking);
 
 	if (isBlocking) {
+		destroyableComponent->SetAttacksToBlock(destroyableComponent->GetAttacksToBlock() - 1);
+		Game::logger->Log("BasicAttackBehavior", "Number of attacks that can be blocked is now %i", destroyableComponent->GetAttacksToBlock());
+		EntityManager::Instance()->SerializeEntity(targetEntity);
 		this->m_OnFailBlocked->Calculate(context, bitStream, branch);
 		return;
 	}
