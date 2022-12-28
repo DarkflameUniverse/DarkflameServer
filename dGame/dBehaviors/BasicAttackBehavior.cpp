@@ -55,20 +55,19 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	bool isSuccess{};
 
 	if (!bitStream->Read(isBlocked)) {
-		Game::logger->LogDebug("BasicAttackBehavior", "Unable to read isBlocked");
+		Game::logger->Log("BasicAttackBehavior", "Unable to read isBlocked");
 		return;
 	}
 
 	if (isBlocked) {
 		destroyableComponent->SetAttacksToBlock(std::min(destroyableComponent->GetAttacksToBlock() - 1, static_cast<uint32_t>(0)));
-		Game::logger->Log("BasicAttackBehavior", "Number of attacks that can be blocked is now %i", destroyableComponent->GetAttacksToBlock());
 		EntityManager::Instance()->SerializeEntity(targetEntity);
 		this->m_OnFailBlocked->Handle(context, bitStream, branch);
 		return;
 	}
 
 	if (!bitStream->Read(isImmune)) {
-		Game::logger->LogDebug("BasicAttackBehavior", "Unable to read isImmune");
+		Game::logger->Log("BasicAttackBehavior", "Unable to read isImmune");
 		return;
 	}
 
@@ -85,13 +84,13 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	if (isSuccess) {
 		uint32_t armorDamageDealt{};
 		if (!bitStream->Read(armorDamageDealt)) {
-			Game::logger->LogDebug("BasicAttackBehavior", "Unable to read armorDamageDealt");
+			Game::logger->Log("BasicAttackBehavior", "Unable to read armorDamageDealt");
 			return;
 		}
 
 		uint32_t healthDamageDealt{};
 		if (!bitStream->Read(healthDamageDealt)) {
-			Game::logger->LogDebug("BasicAttackBehavior", "Unable to read healthDamageDealt");
+			Game::logger->Log("BasicAttackBehavior", "Unable to read healthDamageDealt");
 			return;
 		}
 
@@ -104,7 +103,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 
 		bool died{};
 		if (!bitStream->Read(died)) {
-			Game::logger->LogDebug("BasicAttackBehavior", "Unable to read died");
+			Game::logger->Log("BasicAttackBehavior", "Unable to read died");
 			return;
 		}
 		auto previousArmor = destroyableComponent->GetArmor();
@@ -115,7 +114,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 
 	uint8_t successState{};
 	if (!bitStream->Read(successState)) {
-		Game::logger->LogDebug("BasicAttackBehavior", "Unable to read success state");
+		Game::logger->Log("BasicAttackBehavior", "Unable to read success state");
 		return;
 	}
 
@@ -128,7 +127,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 		break;
 	default:
 		if (static_cast<eBasicAttackSuccessTypes>(successState) != eBasicAttackSuccessTypes::FAILIMMUNE) {
-			Game::logger->LogDebug("BasicAttackBehavior", "Unknown success state (%i)!", successState);
+			Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!", successState);
 			return;
 		}
 		this->m_OnFailImmune->Handle(context, bitStream, branch);
@@ -174,7 +173,6 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 
 	if (isBlocking) {
 		destroyableComponent->SetAttacksToBlock(destroyableComponent->GetAttacksToBlock() - 1);
-		Game::logger->Log("BasicAttackBehavior", "Number of attacks that can be blocked is now %i", destroyableComponent->GetAttacksToBlock());
 		EntityManager::Instance()->SerializeEntity(targetEntity);
 		this->m_OnFailBlocked->Calculate(context, bitStream, branch);
 		return;
