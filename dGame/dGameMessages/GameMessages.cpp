@@ -4728,13 +4728,13 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 
 	float sellScalar = vend->GetSellScalar();
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
-		const auto altCurrency = (itemComp.altCurrencyCost * sellScalar) * count;
+		const auto altCurrency = static_cast<uint32_t>(itemComp.altCurrencyCost * sellScalar) * count;
 		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::LOOT_SOURCE_VENDOR); // Return alt currencies like faction tokens.
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar) * count)), eLootSourceType::LOOT_SOURCE_VENDOR);
+	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -5763,11 +5763,7 @@ void GameMessages::HandleUseNonEquipmentItem(RakNet::BitStream* inStream, Entity
 
 	auto* item = inv->FindItemById(itemConsumed);
 
-	if (item == nullptr) {
-		return;
-	}
-
-	item->UseNonEquip();
+	if (item) item->UseNonEquip(item);
 }
 
 void GameMessages::HandleMatchRequest(RakNet::BitStream* inStream, Entity* entity) {

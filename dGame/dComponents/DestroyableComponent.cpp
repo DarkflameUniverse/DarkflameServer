@@ -694,7 +694,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		auto* inventoryComponent = owner->GetComponent<InventoryComponent>();
 
 		if (inventoryComponent != nullptr && isEnemy) {
-			inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::EnemySmashed);
+			inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::EnemySmashed, m_Parent);
 		}
 
 		auto* missions = owner->GetComponent<MissionComponent>();
