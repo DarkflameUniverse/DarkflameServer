@@ -20,15 +20,15 @@ void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 	if (destroyableComponent) {
 		destroyableComponent->SetStatusImmunity(
 			eStateChangeType::PUSH,
-			m_ImmuneToBasicAttack,
-			m_ImmuneToDamageOverTime,
-			m_ImmuneToKnockback,
-			m_ImmuneToInterrupt,
-			m_ImmuneToSpeed,
-			m_ImmuneToImaginationGain,
-			m_ImmuneToImaginationLoss,
-			m_ImmuneToQuickbuildInterrupt,
-			m_ImmuneToPullToPoint
+			this->m_ImmuneToBasicAttack,
+			this->m_ImmuneToDamageOverTime,
+			this->m_ImmuneToKnockback,
+			this->m_ImmuneToInterrupt,
+			this->m_ImmuneToSpeed,
+			this->m_ImmuneToImaginationGain,
+			this->m_ImmuneToImaginationLoss,
+			this->m_ImmuneToQuickbuildInterrupt,
+			this->m_ImmuneToPullToPoint
 		);
 	}
 
@@ -37,13 +37,13 @@ void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 		controllablePhysicsComponent->SetStunImmunity(
 			eStateChangeType::PUSH,
 			context->caster,
-			m_ImmuneToStunAttack,
-			m_ImmuneToStunEquip,
-			m_ImmuneToStunInteract,
-			m_ImmuneToStunJump,
-			m_ImmuneToStunMove,
-			m_ImmuneToStunTurn,
-			m_ImmuneToStunUseItem
+			this->m_ImmuneToStunAttack,
+			this->m_ImmuneToStunEquip,
+			this->m_ImmuneToStunInteract,
+			this->m_ImmuneToStunJump,
+			this->m_ImmuneToStunMove,
+			this->m_ImmuneToStunTurn,
+			this->m_ImmuneToStunUseItem
 		);
 	}
 
@@ -66,15 +66,15 @@ void ImmunityBehavior::Timer(BehaviorContext* context, BehaviorBranchContext bra
 	if (destroyableComponent) {
 		destroyableComponent->SetStatusImmunity(
 			eStateChangeType::POP,
-			m_ImmuneToBasicAttack,
-			m_ImmuneToDamageOverTime,
-			m_ImmuneToKnockback,
-			m_ImmuneToInterrupt,
-			m_ImmuneToSpeed,
-			m_ImmuneToImaginationGain,
-			m_ImmuneToImaginationLoss,
-			m_ImmuneToQuickbuildInterrupt,
-			m_ImmuneToPullToPoint
+			this->m_ImmuneToBasicAttack,
+			this->m_ImmuneToDamageOverTime,
+			this->m_ImmuneToKnockback,
+			this->m_ImmuneToInterrupt,
+			this->m_ImmuneToSpeed,
+			this->m_ImmuneToImaginationGain,
+			this->m_ImmuneToImaginationLoss,
+			this->m_ImmuneToQuickbuildInterrupt,
+			this->m_ImmuneToPullToPoint
 		);
 	}
 
@@ -83,13 +83,13 @@ void ImmunityBehavior::Timer(BehaviorContext* context, BehaviorBranchContext bra
 		controllablePhysicsComponent->SetStunImmunity(
 			eStateChangeType::POP,
 			context->caster,
-			m_ImmuneToStunAttack,
-			m_ImmuneToStunEquip,
-			m_ImmuneToStunInteract,
-			m_ImmuneToStunJump,
-			m_ImmuneToStunMove,
-			m_ImmuneToStunTurn,
-			m_ImmuneToStunUseItem
+			this->m_ImmuneToStunAttack,
+			this->m_ImmuneToStunEquip,
+			this->m_ImmuneToStunInteract,
+			this->m_ImmuneToStunJump,
+			this->m_ImmuneToStunMove,
+			this->m_ImmuneToStunTurn,
+			this->m_ImmuneToStunUseItem
 		);
 	}
 
