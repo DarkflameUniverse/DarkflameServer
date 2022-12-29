@@ -40,7 +40,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* targetEntity = EntityManager::Instance()->GetEntity(branch.target);
 	if (!targetEntity) {
-		Game::logger->Log("BasicAttackBehavior", "Target targetEntity %i not found.", branch.target);
+		Game::logger->Log("BasicAttackBehavior", "Target targetEntity %llu not found.", branch.target);
 		return;
 	}
 
