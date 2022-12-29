@@ -26,7 +26,6 @@ CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 		tableData.nextRow();
 	}
 	tableData.finalize();
-	Game::logger->Log("CDBehaviorParameterTable", "tables size %i %i", m_Entries.size(), m_ParametersList.size());
 }
 
 //! Destructor
