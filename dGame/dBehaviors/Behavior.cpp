@@ -439,7 +439,7 @@ Behavior::Behavior(const uint32_t behaviorId) {
 float Behavior::GetFloat(const std::string& name, const float defaultValue) const {
 	// Get the behavior parameter entry and return its value.
 	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
-	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue).value;
+	return BehaviorParameterTable->GetValue(this->m_behaviorId, name, defaultValue);
 }
 
 
