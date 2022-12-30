@@ -5763,11 +5763,7 @@ void GameMessages::HandleUseNonEquipmentItem(RakNet::BitStream* inStream, Entity
 
 	auto* item = inv->FindItemById(itemConsumed);
 
-	if (item == nullptr) {
-		return;
-	}
-
-	item->UseNonEquip();
+	if (item) item->UseNonEquip(item);
 }
 
 void GameMessages::HandleMatchRequest(RakNet::BitStream* inStream, Entity* entity) {
