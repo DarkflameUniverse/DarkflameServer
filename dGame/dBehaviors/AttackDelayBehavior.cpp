@@ -11,7 +11,13 @@ void AttackDelayBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		Game::logger->Log("AttackDelayBehavior", "Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
-
+	auto readPos = bitStream->GetReadOffset();
+	std::string restOfBitStream = "";
+	while (bitStream->GetNumberOfUnreadBits() > 0) {
+		restOfBitStream.push_back(bitStream->ReadBit() + 48);
+	}
+	Game::logger->Log("AttackDelayBehavior", "rest of stream is %s", restOfBitStream.c_str());
+	bitStream->SetReadOffset(readPos);
 	for (auto i = 0u; i < this->m_numIntervals; ++i) {
 		context->RegisterSyncBehavior(handle, this, branch, m_ignoreInterrupts);
 	}

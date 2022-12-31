@@ -53,7 +53,7 @@ void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* beha
 	entry.branchContext = branchContext;
 	entry.branchContext.isSync = true;
 	entry.ignoreInterrupts = ignoreInterrupts;
-
+	Game::logger->Log("BehaviorContext", "registered sync behavior with uid/syncid %i/%i and behavior id %i", this->skillUId, syncId, behavior->m_behaviorId);
 	this->syncEntries.push_back(entry);
 }
 
@@ -265,11 +265,13 @@ void BehaviorContext::Interrupt(bool interruptAttack, bool interruptBlock, bool 
 	for (const auto& entry : this->syncEntries) {
 		if (!entry.ignoreInterrupts) {
 			if (interruptAttack && entry.behavior->m_templateId == BehaviorTemplates::BEHAVIOR_ATTACK_DELAY) {
+				Game::logger->Log("BehaviorContext", "attack interrupting %i %i", skillUId, entry.handle);
 				continue;
 			}
 
 			if (interruptCharge && entry.behavior->m_templateId == BehaviorTemplates::BEHAVIOR_CHARGE_UP ||
 				interruptAttack && entry.behavior->m_templateId == BehaviorTemplates::BEHAVIOR_AIR_MOVEMENT) {
+				Game::logger->Log("BehaviorContext", "charge interrupting %i %i", skillUId, entry.handle);
 				continue;
 			}
 		}
@@ -280,6 +282,7 @@ void BehaviorContext::Interrupt(bool interruptAttack, bool interruptBlock, bool 
 	std::vector<BehaviorEndEntry> toKeep{};
 	for (const auto& entry : this->endEntries) {
 		if ((interruptCharge || interruptAttack) && entry.behavior->m_templateId == BehaviorTemplates::BEHAVIOR_START) {
+			Game::logger->Log("BehaviorContext", "start interrupting %i %i", skillUId, entry.start);
 			entry.behavior->End(this, entry.branchContext, entry.second);
 			continue;
 		}

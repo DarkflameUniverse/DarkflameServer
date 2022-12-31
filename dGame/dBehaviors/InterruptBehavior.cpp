@@ -8,6 +8,7 @@
 #include "DestroyableComponent.h"
 
 void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+	Game::logger->Log("InterruptBehavior", "doing behavior %i", m_behaviorId);
 	LWOOBJID usedTarget = m_target ? branch.target : context->caster;
 	if (usedTarget == LWOOBJID_EMPTY) {
 		return;
@@ -34,23 +35,26 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 		if (isBlocking) return;
 	}
 
-	bool unknown = false;
+	bool cancelledBehaviorIds = false;
 
-	if (!bitStream->Read(unknown)) {
+	if (!bitStream->Read(cancelledBehaviorIds)) {
 		Game::logger->Log("InterruptBehavior", "Unable to read unknown3 from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 
-	Game::logger->Log("InterruptBehavior", "unknown %i", unknown);
-
-	while (unknown) {
-		uint32_t test;
-		if (!bitStream->Read(test)) {
-			Game::logger->Log("InterruptBehavior", "out of bits");
+	// This always seems to be false, but just incase it is true
+	// it reads in an int followed by another bit until the read bit is false
+	// The client does nothing with this information so we will ignore it here.
+	Game::logger->Log("InterruptBehavior", "unknown %i", cancelledBehaviorIds);
+	if (cancelledBehaviorIds) {
+		while (bitStream->Read(cancelledBehaviorIds) && cancelledBehaviorIds) {
+			uint32_t test{};
+			if (!bitStream->Read(test)) {
+				Game::logger->Log("InterruptBehavior", "out of bits");
+			}
+			Game::logger->Log("InterruptBehavior", "possible read?	%i", test);
 		}
-		Game::logger->Log("InterruptBehavior", "possible read?	%i", test);
 	}
-
 	if (branch.target == context->originator) return;
 
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
@@ -59,8 +63,11 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 
 	auto* skillComponent = target->GetComponent<SkillComponent>();
 
+	auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
+	if (destroyableComponent) destroyableComponent->SetAttacksToBlock(0);
 	if (skillComponent == nullptr) return;
 	skillComponent->Interrupt(m_InterruptAttack, m_InterruptBlock, m_interruptCharge);
+	EntityManager::Instance()->SerializeEntity(target);
 }
 
 

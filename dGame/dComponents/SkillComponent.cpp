@@ -48,7 +48,7 @@ void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syn
 	const auto index = this->m_managedBehaviors.find(skillUid);
 
 	if (index == this->m_managedBehaviors.end()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill with uid (%i)!", skillUid, syncId);
+		Game::logger->Log("SkillComponent", "Failed to find skill with uid/syncid (%i/%i)!", skillUid, syncId);
 
 		return;
 	}
@@ -246,6 +246,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		start.skillID = skillId;
 		start.uiSkillHandle = context->skillUId;
 		start.optionalOriginatorID = context->originator;
+		start.optionalTargetID = target;
 
 		auto* originator = EntityManager::Instance()->GetEntity(context->originator);
 
