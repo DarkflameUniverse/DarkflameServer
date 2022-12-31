@@ -246,6 +246,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		start.skillID = skillId;
 		start.uiSkillHandle = context->skillUId;
 		start.optionalOriginatorID = context->originator;
+		start.optionalTargetID = target;
 
 		auto* originator = EntityManager::Instance()->GetEntity(context->originator);
 
