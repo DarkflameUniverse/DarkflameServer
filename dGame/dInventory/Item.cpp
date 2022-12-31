@@ -347,6 +347,15 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 		if (data->GetKey() == u"assemblyPartLOTs") {
 			auto modStr = data->GetValueAsString();
 
+			// This shouldn't be null but always check your pointers.
+			if (GetInventory()) {
+				auto inventoryComponent = GetInventory()->GetComponent();
+				if (inventoryComponent) {
+					auto entity = inventoryComponent->GetParent();
+					if (entity) entity->SetVar<std::string>(u"currentModifiedBuild", modStr);
+				}
+			}
+
 			std::vector<LOT> modArray;
 
 			std::stringstream ssData(modStr);
