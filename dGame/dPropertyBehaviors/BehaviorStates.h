@@ -3,9 +3,6 @@
 #ifndef __BEHAVIORSTATES__H__
 #define __BEHAVIORSTATES__H__
 
-#include <string>
-#include <cstdint>
-
 #include "dCommonVars.h"
 
 enum States : BehaviorState {
