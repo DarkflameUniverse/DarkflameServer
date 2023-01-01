@@ -8,7 +8,7 @@
 
 #include "dCommonVars.h"
 
-enum States : BEHAVIORSTATE {
+enum States : BehaviorState {
     HOME_STATE = 0,                         //!< The HOME behavior state
     CIRCLE_STATE,                           //!< The CIRCLE behavior state
     SQUARE_STATE,                           //!< The SQUARE behavior state

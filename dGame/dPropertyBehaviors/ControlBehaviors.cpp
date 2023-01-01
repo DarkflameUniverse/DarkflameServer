@@ -21,20 +21,20 @@ uint32_t GetBehaviorIDFromArgument(AMFArrayValue* arguments, const std::string& 
 	return behaviorID;
 }
 
-BEHAVIORSTATE GetBehaviorStateFromArgument(AMFArrayValue* arguments, const std::string& key = "stateID") {
+BehaviorState GetBehaviorStateFromArgument(AMFArrayValue* arguments, const std::string& key = "stateID") {
 	auto* stateIDValue = arguments->FindValue<AMFDoubleValue>(key);
 	if (!stateIDValue) throw std::invalid_argument("Unable to find behavior state from argument \"" + key + "\"");
 
-	BEHAVIORSTATE stateID = static_cast<BEHAVIORSTATE>(stateIDValue->GetDoubleValue());
+	BehaviorState stateID = static_cast<BehaviorState>(stateIDValue->GetDoubleValue());
 
 	return stateID;
 }
 
-STRIPID GetStripIDFromArgument(AMFArrayValue* arguments, const std::string& key = "stripID") {
+StripId GetStripIDFromArgument(AMFArrayValue* arguments, const std::string& key = "stripID") {
 	auto* stripIDValue = arguments->FindValue<AMFDoubleValue>(key);
 	if (!stripIDValue) throw std::invalid_argument("Unable to find strip ID from argument \"" + key + "\"");
 
-	STRIPID stripID = static_cast<STRIPID>(stripIDValue->GetDoubleValue());
+	StripId stripID = static_cast<StripId>(stripIDValue->GetDoubleValue());
 
 	return stripID;
 }
@@ -130,9 +130,9 @@ void AddStrip(AMFArrayValue* arguments) {
 
 	double yPosition = yPositionValue->GetDoubleValue();
 
-	STRIPID stripID = GetStripIDFromArgument(arguments);
+	StripId stripID = GetStripIDFromArgument(arguments);
 
-	BEHAVIORSTATE stateID = GetBehaviorStateFromArgument(arguments);
+	BehaviorState stateID = GetBehaviorStateFromArgument(arguments);
 
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
@@ -171,9 +171,9 @@ void AddStrip(AMFArrayValue* arguments) {
 }
 
 void RemoveStrip(AMFArrayValue* arguments) {
-	STRIPID stripID = GetStripIDFromArgument(arguments);
+	StripId stripID = GetStripIDFromArgument(arguments);
 
-	BEHAVIORSTATE stateID = GetBehaviorStateFromArgument(arguments);
+	BehaviorState stateID = GetBehaviorStateFromArgument(arguments);
 
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
@@ -183,18 +183,18 @@ void RemoveStrip(AMFArrayValue* arguments) {
 }
 
 void MergeStrips(AMFArrayValue* arguments) {
-	STRIPID srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
+	StripId srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
 
-	BEHAVIORSTATE dstStateID = GetBehaviorStateFromArgument(arguments, "dstStateID");
+	BehaviorState dstStateID = GetBehaviorStateFromArgument(arguments, "dstStateID");
 
-	BEHAVIORSTATE srcStateID = GetBehaviorStateFromArgument(arguments, "srcStateID");
+	BehaviorState srcStateID = GetBehaviorStateFromArgument(arguments, "srcStateID");
 
 	auto* dstActionIndexValue = arguments->FindValue<AMFDoubleValue>("dstActionIndex");
 	if (!dstActionIndexValue) return;
 
 	uint32_t dstActionIndex = static_cast<uint32_t>(dstActionIndexValue->GetDoubleValue());
 
-	STRIPID dstStripID = GetStripIDFromArgument(arguments, "dstStripID");
+	StripId dstStripID = GetStripIDFromArgument(arguments, "dstStripID");
 
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
@@ -209,13 +209,13 @@ void SplitStrip(AMFArrayValue* arguments) {
 
 	uint32_t srcActionIndex = static_cast<uint32_t>(srcActionIndexValue->GetDoubleValue());
 
-	STRIPID srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
+	StripId srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
 
-	BEHAVIORSTATE srcStateID = GetBehaviorStateFromArgument(arguments, "srcStateID");
+	BehaviorState srcStateID = GetBehaviorStateFromArgument(arguments, "srcStateID");
 
-	STRIPID dstStripID = GetStripIDFromArgument(arguments, "dstStripID");
+	StripId dstStripID = GetStripIDFromArgument(arguments, "dstStripID");
 
-	BEHAVIORSTATE dstStateID = GetBehaviorStateFromArgument(arguments, "dstStateID");
+	BehaviorState dstStateID = GetBehaviorStateFromArgument(arguments, "dstStateID");
 
 	auto* dstStripUIArray = arguments->FindValue<AMFArrayValue>("dstStripUI");
 	if (!dstStripUIArray) return;
@@ -246,9 +246,9 @@ void UpdateStripUI(AMFArrayValue* arguments) {
 	double yPosition = yPositionValue->GetDoubleValue();
 	double xPosition = xPositionValue->GetDoubleValue();
 
-	STRIPID stripID = GetStripIDFromArgument(arguments);
+	StripId stripID = GetStripIDFromArgument(arguments);
 
-	BEHAVIORSTATE stateID = GetBehaviorStateFromArgument(arguments);
+	BehaviorState stateID = GetBehaviorStateFromArgument(arguments);
 
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
@@ -263,9 +263,9 @@ void AddAction(AMFArrayValue* arguments) {
 
 	uint32_t actionIndex = static_cast<uint32_t>(actionIndexAmf->GetDoubleValue());
 
-	STRIPID stripID = GetStripIDFromArgument(arguments);
+	StripId stripID = GetStripIDFromArgument(arguments);
 
-	BEHAVIORSTATE stateID = GetBehaviorStateFromArgument(arguments);
+	BehaviorState stateID = GetBehaviorStateFromArgument(arguments);
 
 	std::string type = "";
 	std::string valueParameterName = "";
@@ -304,18 +304,18 @@ void MigrateActions(AMFArrayValue* arguments) {
 
 	uint32_t srcActionIndex = static_cast<uint32_t>(srcActionIndexAmf->GetDoubleValue());
 
-	STRIPID srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
+	StripId srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
 
-	BEHAVIORSTATE srcStateID = GetBehaviorStateFromArgument(arguments, "srcStateID");
+	BehaviorState srcStateID = GetBehaviorStateFromArgument(arguments, "srcStateID");
 
 	auto* dstActionIndexAmf = arguments->FindValue<AMFDoubleValue>("dstActionIndex");
 	if (!dstActionIndexAmf) return;
 
 	uint32_t dstActionIndex = static_cast<uint32_t>(dstActionIndexAmf->GetDoubleValue());
 
-	STRIPID dstStripID = GetStripIDFromArgument(arguments, "dstStripID");
+	StripId dstStripID = GetStripIDFromArgument(arguments, "dstStripID");
 
-	BEHAVIORSTATE dstStateID = GetBehaviorStateFromArgument(arguments, "dstStateID");
+	BehaviorState dstStateID = GetBehaviorStateFromArgument(arguments, "dstStateID");
 
 	uint32_t behaviorID = GetBehaviorIDFromArgument(arguments);
 
@@ -335,7 +335,7 @@ void RearrangeStrip(AMFArrayValue* arguments) {
 	auto* dstActionIndexValue = arguments->FindValue<AMFDoubleValue>("dstActionIndex");
 	uint32_t dstActionIndex = static_cast<uint32_t>(dstActionIndexValue->GetDoubleValue());
 
-	BEHAVIORSTATE stateID = GetBehaviorStateFromArgument(arguments);
+	BehaviorState stateID = GetBehaviorStateFromArgument(arguments);
 
 	// modelComponent->RearrangeStrip(stateID, stripID, srcActionIndex, dstActionIndex, behaviorID);
 
@@ -365,9 +365,9 @@ void RemoveActions(AMFArrayValue* arguments) {
 
 	uint32_t actionIndex = static_cast<uint32_t>(actionIndexAmf->GetDoubleValue());
 
-	STRIPID stripID = GetStripIDFromArgument(arguments);
+	StripId stripID = GetStripIDFromArgument(arguments);
 
-	BEHAVIORSTATE stateID = GetBehaviorStateFromArgument(arguments);
+	BehaviorState stateID = GetBehaviorStateFromArgument(arguments);
 
 	// modelComponent->RemoveAction(stateID, stripID, actionIndex, behaviorID);
 
@@ -526,9 +526,9 @@ void UpdateAction(AMFArrayValue* arguments) {
 
 	uint32_t actionIndex = static_cast<uint32_t>(actionIndexValue->GetDoubleValue());
 
-	STRIPID stripID = GetStripIDFromArgument(arguments);
+	StripId stripID = GetStripIDFromArgument(arguments);
 
-	BEHAVIORSTATE stateID = GetBehaviorStateFromArgument(arguments);
+	BehaviorState stateID = GetBehaviorStateFromArgument(arguments);
 
 	// modelComponent->UpdateAction(stateID, stripID, type, valueParameterName, valueParameterString, valueParameterDouble, "", actionIndex, behaviorID);
 
