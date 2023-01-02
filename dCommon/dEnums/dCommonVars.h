@@ -44,7 +44,6 @@ typedef uint16_t LWOMAPID;                   //!< Used for Map IDs
 typedef uint16_t LWOINSTANCEID;              //!< Used for Instance IDs
 typedef uint32_t PROPERTYCLONELIST;          //!< Used for Property Clone IDs
 typedef uint32_t StripId;
-typedef uint32_t BehaviorState;
 
 typedef int32_t PetTamingPiece;             //!< Pet Taming Pieces
 
