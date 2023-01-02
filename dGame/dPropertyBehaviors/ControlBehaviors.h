@@ -3,15 +3,17 @@
 #ifndef __CONTROLBEHAVIORS__H__
 #define __CONTROLBEHAVIORS__H__
 
+#include <map>
 #include <string>
 
-#include "RakNetTypes.h"
+#include "Singleton.h"
 
 class Entity;
 class AMFArrayValue;
 class ModelComponent;
 
-namespace ControlBehaviors {
+class ControlBehaviors: public Singleton<ControlBehaviors> {
+public:
 	/**
 	 * @brief Main driver for processing Property Behavior commands
 	 *
@@ -22,6 +24,10 @@ namespace ControlBehaviors {
 	 * @param modelOwner The owner of the model which sent this command
 	 */
 	void ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner);
+	ControlBehaviors();
+
+private:
+	std::map<std::string, std::string> blockTypes{};
 };
 
 #endif  //!__CONTROLBEHAVIORS__H__

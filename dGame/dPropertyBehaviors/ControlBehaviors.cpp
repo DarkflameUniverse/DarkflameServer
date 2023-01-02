@@ -8,6 +8,9 @@
 #include "../../dWorldServer/ObjectIDManager.h"
 #include "dLogger.h"
 #include "BehaviorStates.h"
+#include "BehaviorAction.h"
+#include "AssetManager.h"
+#include "tinyxml2.h"
 
 uint32_t GetBehaviorIDFromArgument(AMFArrayValue* arguments, const std::string& key = "BehaviorID") {
 	auto* behaviorIDValue = arguments->FindValue<AMFStringValue>(key);
@@ -15,7 +18,7 @@ uint32_t GetBehaviorIDFromArgument(AMFArrayValue* arguments, const std::string& 
 
 	if (behaviorIDValue) {
 		behaviorID = std::stoul(behaviorIDValue->GetStringValue());
-	} else if (arguments->FindValue<AMFUndefinedValue>(key) == nullptr){
+	} else if (arguments->FindValue<AMFUndefinedValue>(key) == nullptr) {
 		throw std::invalid_argument("Unable to find behavior ID from argument \"" + key + "\"");
 	}
 
@@ -66,11 +69,7 @@ void RequestUpdatedID(int32_t behaviorID, ModelComponent* modelComponent, Entity
 	// }
 }
 
-void SendBehaviorListToClient(
-	Entity* modelEntity,
-	const SystemAddress& sysAddr,
-	Entity* modelOwner
-	) {
+void SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner) {
 	auto* modelComponent = modelEntity->GetComponent<ModelComponent>();
 
 	if (!modelComponent) return;
@@ -599,4 +598,36 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 		UpdateAction(arguments);
 	else
 		Game::logger->Log("ControlBehaviors", "Unknown behavior command (%s)\n", command.c_str());
+}
+
+ControlBehaviors::ControlBehaviors() {
+	auto blocksDefStreamBuffer = Game::assetManager->GetFileAsBuffer("ui\\ingame\\blocksdef.xml");
+	if (!blocksDefStreamBuffer.m_Success) {
+		Game::logger->Log("ControlBehaviors", "failed to open blocksdef");
+		return;
+	}
+	std::istream blocksBuffer(&blocksDefStreamBuffer);
+	if (!blocksBuffer.good()) {
+		Game::logger->Log("ControlBehaviors", "file is not good");
+		return;
+	}
+	Game::logger->Log("ControlBehaviors", "found file!");
+
+	tinyxml2::XMLDocument m_Doc;
+
+	blocksBuffer.seekg(0, blocksBuffer.end);
+	uint64_t length = blocksBuffer.tellg();
+	blocksBuffer.seekg(0, blocksBuffer.beg);
+	char* readBuffer = new char [length];
+
+	blocksBuffer.read(readBuffer, length);
+	
+	auto ret = m_Doc.Parse(readBuffer);
+	if (ret == tinyxml2::XML_SUCCESS) {
+		Game::logger->Log("ControlBehaviors", "Successfully parsed the blocksdef file!");
+	} else {
+		Game::logger->Log("Character", "Failed to load xmlData due to error %i!", ret);
+		return;
+	}
+	delete readBuffer;
 }
