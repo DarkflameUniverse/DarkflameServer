@@ -29,6 +29,14 @@ void SpeedBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitSt
 	Handle(context, bitStream, branch);
 }
 
+void SpeedBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
+	End(context, branch, LWOOBJID_EMPTY);
+}
+
+void SpeedBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {
+	End(context, branch, second);
+}
+
 void SpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 	if (!target) return;
@@ -38,10 +46,6 @@ void SpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext branch, 
 
 	controllablePhysicsComponent->RemoveSpeedboost(m_RunSpeed);
 	EntityManager::Instance()->SerializeEntity(target);
-}
-
-void SpeedBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {
-	End(context, branch, second);
 }
 
 void SpeedBehavior::Load() {

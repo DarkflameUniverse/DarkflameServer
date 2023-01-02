@@ -416,7 +416,7 @@ int main(int argc, char** argv) {
 				HandlePacket(packet);
 				auto t2 = std::chrono::high_resolution_clock::now();
 
-				timeSpent += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+				timeSpent += std::chrono::duration_cast<std::chrono::duration<float>>(t2 - t1).count();
 				Game::server->DeallocatePacket(packet);
 				packet = nullptr;
 			} else {
