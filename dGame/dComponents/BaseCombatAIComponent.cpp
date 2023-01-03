@@ -179,7 +179,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 
 	if (m_Disabled || m_Parent->GetIsDead())
 		return;
-
+	bool stunnedThisFrame = m_Stunned;
 	CalculateCombat(deltaTime); // Putting this here for now
 
 	if (m_StartPosition == NiPoint3::ZERO) {
@@ -192,7 +192,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 		return;
 	}
 
-	if (m_Stunned) {
+	if (stunnedThisFrame) {
 		m_MovementAI->Stop();
 
 		return;
@@ -248,13 +248,13 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 
 	if (m_Disabled) return;
 
-	if (m_StunTime > 0.0f) {
+	if (m_Stunned) {
 		m_StunTime -= deltaTime;
 
 		if (m_StunTime > 0.0f) {
 			return;
 		}
-
+		m_StunTime = 0.0f;
 		m_Stunned = false;
 	}
 
