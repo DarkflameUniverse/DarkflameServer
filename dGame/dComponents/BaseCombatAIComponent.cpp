@@ -23,9 +23,9 @@
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
 
-BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) : Component(parent) {
+BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id): Component(parent) {
 	m_Target = LWOOBJID_EMPTY;
-	m_State = AiState::spawn;
+	SetAiState(AiState::spawn);
 	m_Timer = 1.0f;
 	m_StartPosition = parent->GetPosition();
 	m_MovementAI = nullptr;
@@ -206,7 +206,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	switch (m_State) {
 	case AiState::spawn:
 		Stun(2.0f);
-		m_State = AiState::idle;
+		SetAiState(AiState::idle);
 		break;
 
 	case AiState::idle:
@@ -320,9 +320,9 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 			m_Timer = 0;
 		}
 
-		m_State = AiState::aggro;
+		SetAiState(AiState::aggro);
 	} else {
-		m_State = AiState::idle;
+		SetAiState(AiState::idle);
 	}
 
 	for (auto i = 0; i < m_SkillEntries.size(); ++i) {
@@ -348,7 +348,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	}
 
 	if (m_Target == LWOOBJID_EMPTY) {
-		m_State = AiState::idle;
+		SetAiState(AiState::idle);
 
 		return;
 	}
@@ -375,7 +375,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 				m_MovementAI->Stop();
 			}
 
-			m_State = AiState::aggro;
+			SetAiState(AiState::aggro);
 
 			m_Timer = 0;
 
@@ -532,11 +532,20 @@ bool BaseCombatAIComponent::IsMech() {
 
 
 void BaseCombatAIComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	outBitStream->Write1();
-	outBitStream->Write(uint32_t(m_State));
-	outBitStream->Write(m_Target);
+	outBitStream->Write(m_DirtyStateOrTarget || bIsInitialUpdate);
+	if (m_DirtyStateOrTarget || bIsInitialUpdate) {
+		outBitStream->Write(uint32_t(m_State));
+		outBitStream->Write(m_Target);
+		m_DirtyStateOrTarget = false;
+	}
 }
 
+void BaseCombatAIComponent::SetAiState(AiState newState) {
+	if (newState == this->m_State) return;
+	this->m_State = newState;
+	m_DirtyStateOrTarget = true;
+	EntityManager::Instance()->SerializeEntity(m_Parent);
+}
 
 bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	auto* entity = EntityManager::Instance()->GetEntity(target);
@@ -585,7 +594,10 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 }
 
 void BaseCombatAIComponent::SetTarget(const LWOOBJID target) {
+	if (this->m_Target == target) return;
 	m_Target = target;
+	m_DirtyStateOrTarget = true;
+	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
 Entity* BaseCombatAIComponent::GetTargetEntity() const {
@@ -700,7 +712,7 @@ void BaseCombatAIComponent::OnAggro() {
 
 		m_MovementAI->SetDestination(targetPos);
 
-		m_State = AiState::tether;
+		SetAiState(AiState::tether);
 	}
 
 	m_Timer += 0.5f;
@@ -726,7 +738,7 @@ void BaseCombatAIComponent::OnTether() {
 
 		m_MovementAI->SetDestination(m_StartPosition);
 
-		m_State = AiState::aggro;
+		SetAiState(AiState::aggro);
 	} else {
 		if (IsMech() && Vector3::DistanceSquared(targetPos, currentPos) > m_AttackRadius * m_AttackRadius * 3 * 3) return;
 
