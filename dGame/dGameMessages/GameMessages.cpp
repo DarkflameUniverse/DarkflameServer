@@ -6012,7 +6012,7 @@ void GameMessages::SendActivateBubbleBuffFromServer(LWOOBJID objectId, bool spec
 	CMSGHEADER;
 
 	bitStream.Write(objectId);
-	bitStream.Write<uint16_t>(734);
+	bitStream.Write<uint16_t>(GAME_MSG_ACTIVATE_BUBBLE_BUFF_FROM_SERVER);
 
 	bitStream.Write(specialAnims);
 
