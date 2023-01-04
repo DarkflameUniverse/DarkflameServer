@@ -78,8 +78,9 @@ public:
 	/**
 	 * Removes a buff from the parent entity, reversing its effects
 	 * @param id the id of the buff to remove
+	 * @param removeImmunity whether or not to remove immunity on removing the buff
 	 */
-	void RemoveBuff(int32_t id);
+	void RemoveBuff(int32_t id, bool fromUnEquip = false, bool removeImmunity = false);
 
 	/**
 	 * Returns whether or not the entity has a buff identified by `id`

@@ -42,6 +42,7 @@
 #include "SkillCastFailedBehavior.h"
 #include "SpawnBehavior.h"
 #include "ForceMovementBehavior.h"
+#include "RemoveBuffBehavior.h"
 #include "ImmunityBehavior.h"
 #include "InterruptBehavior.h"
 #include "PlayEffectBehavior.h"
@@ -59,6 +60,8 @@
 #include "SpeedBehavior.h"
 #include "DamageReductionBehavior.h"
 #include "JetPackBehavior.h"
+#include "ChangeIdleFlagsBehavior.h"
+#include "DarkInspirationBehavior.h"
 
  //CDClient includes
 #include "CDBehaviorParameterTable.h"
@@ -167,7 +170,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_SPEED:
 		behavior = new SpeedBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: break;
+	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: 
+		behavior = new DarkInspirationBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF:
 		behavior = new LootBuffBehavior(behaviorId);
 		break;
@@ -195,7 +200,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 		behavior = new SkillCastFailedBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_IMITATION_SKUNK_STINK: break;
-	case BehaviorTemplates::BEHAVIOR_CHANGE_IDLE_FLAGS: break;
+	case BehaviorTemplates::BEHAVIOR_CHANGE_IDLE_FLAGS:
+		behavior = new ChangeIdleFlagsBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_APPLY_BUFF:
 		behavior = new ApplyBuffBehavior(behaviorId);
 		break;
@@ -226,7 +233,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 		break;
 	case BehaviorTemplates::BEHAVIOR_ALTER_CHAIN_DELAY: break;
 	case BehaviorTemplates::BEHAVIOR_CAMERA: break;
-	case BehaviorTemplates::BEHAVIOR_REMOVE_BUFF: break;
+	case BehaviorTemplates::BEHAVIOR_REMOVE_BUFF:
+		behavior = new RemoveBuffBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_GRAB: break;
 	case BehaviorTemplates::BEHAVIOR_MODULAR_BUILD: break;
 	case BehaviorTemplates::BEHAVIOR_NPC_COMBAT_SKILL:
@@ -430,7 +439,7 @@ Behavior::Behavior(const uint32_t behaviorId) {
 float Behavior::GetFloat(const std::string& name, const float defaultValue) const {
 	// Get the behavior parameter entry and return its value.
 	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
-	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue).value;
+	return BehaviorParameterTable->GetValue(this->m_behaviorId, name, defaultValue);
 }
 
 

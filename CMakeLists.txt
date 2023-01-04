@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.18)
 project(Darkflame)
 include(CTest)
 
@@ -42,6 +42,12 @@ set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT
 # Echo the version
 message(STATUS "Version: ${PROJECT_VERSION}")
 
+# Disable demo, tests and examples for recastNavigation.  Turn these to ON if you want to use them
+# This has to be done here to prevent a rare build error due to missing dependencies on the initial generations.
+set(RECASTNAVIGATION_DEMO OFF CACHE BOOL "" FORCE)
+set(RECASTNAVIGATION_TESTS OFF CACHE BOOL "" FORCE)
+set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
+
 # Compiler flags:
 # Disabled deprecated warnings as the MySQL includes have deprecated code in them.
 # Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
@@ -52,9 +58,9 @@ if(UNIX)
 	if(APPLE)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -fPIC")
 	else()
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC -lstdc++fs")
 	endif()
-	if (__dynamic)
+	if (__dynamic AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
 	endif()
 	if (__ggdb)
@@ -70,21 +76,27 @@ endif()
 
 # Our output dir
 set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR})
+
+# TODO make this not have to override the build type directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Create a /res directory
-make_directory(${CMAKE_BINARY_DIR}/res)
-
-# Create a /locale directory
-make_directory(${CMAKE_BINARY_DIR}/locale)
+# Create a /resServer directory
+make_directory(${CMAKE_BINARY_DIR}/resServer)
 
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
 # Copy resource files on first build
-set(RESOURCE_FILES "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
+set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
 foreach(resource_file ${RESOURCE_FILES})
 	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
 		configure_file(
@@ -95,6 +107,17 @@ foreach(resource_file ${RESOURCE_FILES})
 	endif()
 endforeach()
 
+# Copy navmesh data on first build and extract it
+if (NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes/)
+	configure_file(
+		${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip
+		COPYONLY
+	)
+
+	file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip)
+	file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
+endif()
+
 # Copy vanity files on first build
 set(VANITY_FILES "CREDITS.md" "INFO.md" "TESTAMENT.md" "NPC.xml")
 foreach(file ${VANITY_FILES})
@@ -102,13 +125,25 @@ foreach(file ${VANITY_FILES})
 endforeach()
 
 # Move our migrations for MasterServer to run
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/)
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/dlu/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/${file})
+	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
 		configure_file(
-			${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/${file}
+			${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file}
+			COPYONLY
+		)
+	endif()
+endforeach()
+
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/cdserver/)
+file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/cdserver/*.sql)
+foreach(file ${SQL_FILES})
+	get_filename_component(file ${file} NAME)
+	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
+		configure_file(
+			${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file}
 			COPYONLY
 		)
 	endif()
@@ -117,6 +152,8 @@ endforeach()
 # Create our list of include directories
 set(INCLUDED_DIRECTORIES
 	"dCommon"
+	"dCommon/dClient"
+	"dCommon/dEnums"
 	"dChatFilter"
 	"dGame"
 	"dGame/dBehaviors"
@@ -125,6 +162,7 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dInventory"
 	"dGame/dMission"
 	"dGame/dEntity"
+	"dGame/dPropertyBehaviors"
 	"dGame/dUtilities"
 	"dPhysics"
 	"dNavigation"
@@ -134,13 +172,86 @@ set(INCLUDED_DIRECTORIES
 	"dDatabase/Tables"
 	"dNet"
 	"dScripts"
+	"dScripts/02_server"
+	"dScripts/ai"
+	"dScripts/client"
+	"dScripts/EquipmentScripts"
+	"dScripts/EquipmentTriggers"
+	"dScripts/zone"
+	"dScripts/02_server/DLU"
+	"dScripts/02_server/Enemy"
+	"dScripts/02_server/Equipment"
+	"dScripts/02_server/Map"
+	"dScripts/02_server/Minigame"
+	"dScripts/02_server/Objects"
+	"dScripts/02_server/Pets"
+	"dScripts/02_server/Enemy/AG"
+	"dScripts/02_server/Enemy/AM"
+	"dScripts/02_server/Enemy/FV"
+	"dScripts/02_server/Enemy/General"
+	"dScripts/02_server/Enemy/Survival"
+	"dScripts/02_server/Enemy/VE"
+	"dScripts/02_server/Enemy/Waves"
+	"dScripts/02_server/Map/AG"
+	"dScripts/02_server/Map/AG_Spider_Queen"
+	"dScripts/02_server/Map/AM"
+	"dScripts/02_server/Map/FV"
+	"dScripts/02_server/Map/General"
+	"dScripts/02_server/Map/GF"
+	"dScripts/02_server/Map/njhub"
+	"dScripts/02_server/Map/NS"
+	"dScripts/02_server/Map/NT"
+	"dScripts/02_server/Map/PR"
+	"dScripts/02_server/Map/Property"
+	"dScripts/02_server/Map/SS"
+	"dScripts/02_server/Map/VE"
+	"dScripts/02_server/Map/FV/Racing"
+	"dScripts/02_server/Map/General/Ninjago"
+	"dScripts/02_server/Map/njhub/boss_instance"
+	"dScripts/02_server/Map/NS/Waves"
+	"dScripts/02_server/Map/Property/AG_Med"
+	"dScripts/02_server/Map/Property/AG_Small"
+	"dScripts/02_server/Map/Property/NS_Med"
+	"dScripts/02_server/Minigame/General"
+	"dScripts/ai/ACT"
+	"dScripts/ai/AG"
+	"dScripts/ai/FV"
+	"dScripts/ai/GENERAL"
+	"dScripts/ai/GF"
+	"dScripts/ai/MINIGAME"
+	"dScripts/ai/NP"
+	"dScripts/ai/NS"
+	"dScripts/ai/PETS"
+	"dScripts/ai/PROPERTY"
+	"dScripts/ai/RACING"
+	"dScripts/ai/SPEC"
+	"dScripts/ai/WILD"
+	"dScripts/ai/ACT/FootRace"
+	"dScripts/ai/MINIGAME/SG_GF"
+	"dScripts/ai/MINIGAME/SG_GF/SERVER"
+	"dScripts/ai/NS/NS_PP_01"
+	"dScripts/ai/NS/WH"
+	"dScripts/ai/PROPERTY/AG"
+	"dScripts/ai/RACING/OBJECTS"
+	"dScripts/client/ai"
+	"dScripts/client/ai/PR"
+	"dScripts/zone/AG"
+	"dScripts/zone/LUPs"
+	"dScripts/zone/PROPERTY"
+	"dScripts/zone/PROPERTY/FV"
+	"dScripts/zone/PROPERTY/GF"
+	"dScripts/zone/PROPERTY/NS"
 
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
-	"thirdparty/recastnavigation/Recast/Include"
-	"thirdparty/recastnavigation/Detour/Include"
+	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
+
+	"tests"
+	"tests/dCommonTests"
+	"tests/dGameTests"
+	"tests/dGameTests/dComponentsTests"
 	)
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
@@ -155,7 +266,6 @@ elseif (UNIX)
 	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt/include/bcrypt")
 endif()
 
-include_directories(${ZLIB_INCLUDE_DIRS})
 # Add binary directory as an include directory
 include_directories(${PROJECT_BINARY_DIR})
 
@@ -223,8 +333,6 @@ if (UNIX)
 	endif()
 endif()
 
-add_subdirectory(tests)
-
 # Include all of our binary directories
 add_subdirectory(dWorldServer)
 add_subdirectory(dAuthServer)
@@ -257,3 +365,7 @@ target_precompile_headers(
 	tinyxml2 PRIVATE
 	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
 )
+
+if (${__enable_testing__} MATCHES "1")
+	add_subdirectory(tests)
+endif()

@@ -27,6 +27,7 @@
 #include "ChatPackets.h"
 #include "GameConfig.h"
 #include "RocketLaunchLupComponent.h"
+#include "eUnequippableActiveType.h"
 
 #include <sstream>
 #include <future>
@@ -48,6 +49,7 @@
 #include "ScriptComponent.h"
 #include "RebuildComponent.h"
 #include "VendorComponent.h"
+#include "InventoryComponent.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
 #include "MovingPlatformComponent.h"
@@ -67,6 +69,9 @@
 #include "PropertyVendorComponent.h"
 #include "PropertySelectQueryProperty.h"
 #include "TradingManager.h"
+#include "ControlBehaviors.h"
+#include "AMFDeserialize.h"
+#include "eBlueprintSaveResponseType.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -2136,6 +2141,32 @@ void GameMessages::HandleSetPropertyAccess(RakNet::BitStream* inStream, Entity* 
 	PropertyManagementComponent::Instance()->SetPrivacyOption(static_cast<PropertyPrivacyOption>(accessType));
 }
 
+void GameMessages::HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	bool unknown{};
+	LWOOBJID objIdToAddToInventory{};
+	inStream->Read(unknown);
+	inStream->Read(objIdToAddToInventory);
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (inventoryComponent) {
+		auto* inventory = inventoryComponent->GetInventory(eInventoryType::MODELS_IN_BBB);
+		auto* item = inventory->FindItemById(objIdToAddToInventory);
+		if (item) {
+			inventoryComponent->MoveItemToInventory(item, eInventoryType::MODELS, 1);
+		} else {
+			Game::logger->Log("GameMessages", "item id %llu not found in MODELS_IN_BBB inventory, likely because it does not exist", objIdToAddToInventory);
+		}
+	}
+
+	if (unknown) {
+		CBITSTREAM;
+		PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
+		bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
+		bitStream.Write(eBlueprintSaveResponseType::PlacementFailed); // Sending a non-zero error code here prevents the client from deleting its in progress build for some reason?
+		bitStream.Write<uint32_t>(0);
+		SEND_PACKET;
+	}
+}
+
 void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	bool isProperty{};
 	LWOOBJID objectId{};
@@ -2350,16 +2381,40 @@ void GameMessages::HandleDeletePropertyModel(RakNet::BitStream* inStream, Entity
 }
 
 void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	LWOOBJID itemID = LWOOBJID_EMPTY;
-	inStream->Read(itemID);
+	LWOOBJID previousItemID = LWOOBJID_EMPTY;
+	inStream->Read(previousItemID);
 
-	Game::logger->Log("BBB", "Load item request for: %lld", itemID);
+	Game::logger->Log("BBB", "Load item request for: %lld", previousItemID);
+	LWOOBJID newId = previousItemID;
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (inventoryComponent) {
+		auto* inventory = inventoryComponent->GetInventory(eInventoryType::MODELS);
+		auto* itemToMove = inventory->FindItemById(previousItemID);
 
+		if (itemToMove) {
+			LOT previousLot = itemToMove->GetLot();
+			inventoryComponent->MoveItemToInventory(itemToMove, eInventoryType::MODELS_IN_BBB, 1, false);
+
+			auto* destinationInventory = inventoryComponent->GetInventory(eInventoryType::MODELS_IN_BBB);
+			if (destinationInventory) {
+				auto* movedItem = destinationInventory->FindItemByLot(previousLot);
+				if (movedItem) newId = movedItem->GetId();
+			}
+		} else {
+			Game::logger->Log("GameMessages", "item id %llu not found in MODELS inventory, likely because it does not exist", previousItemID);
+		}
+	}
+
+	// Second argument always true (successful) for now
+	SendBlueprintLoadItemResponse(sysAddr, true, previousItemID, newId);
+}
+
+void GameMessages::SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId) {
 	CBITSTREAM;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_LOAD_RESPONSE_ITEMID);
-	bitStream.Write(static_cast<uint8_t>(1));
-	bitStream.Write<LWOOBJID>(itemID);
-	bitStream.Write<LWOOBJID>(itemID);
+	bitStream.Write(static_cast<uint8_t>(success));
+	bitStream.Write<LWOOBJID>(oldItemId);
+	bitStream.Write<LWOOBJID>(newItemId);
 	SEND_PACKET;
 }
 
@@ -2395,8 +2450,24 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 }
 
 void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	// TODO
-	Game::logger->Log("GameMessages", "Recieved Control Behavior GameMessage, but property behaviors are unimplemented.");
+	AMFDeserialize reader;
+	std::unique_ptr<AMFValue> amfArguments(reader.Read(inStream));
+	if (amfArguments->GetValueType() != AMFValueType::AMFArray) return;
+
+	uint32_t commandLength{};
+	inStream->Read(commandLength);
+
+	std::string command;
+	for (uint32_t i = 0; i < commandLength; i++) {
+		unsigned char character;
+		inStream->Read(character);
+		command.push_back(character);
+	}
+
+	auto owner = PropertyManagementComponent::Instance()->GetOwner();
+	if (!owner) return;
+
+	ControlBehaviors::ProcessCommand(entity, sysAddr, static_cast<AMFArrayValue*>(amfArguments.get()), command, owner);
 }
 
 void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -2412,7 +2483,6 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 		 /__\/// _ \ \ /\ / / _` | '__/ _ \/  /
 		/ \/  \  __/\ V  V / (_| | | |  __/\_/
 		\_____/\___| \_/\_/ \__,_|_|  \___\/
-
 						<>=======()
 							   (/\___   /|\\          ()==========<>_
 									 \_/ | \\        //|\   ______/ \)
@@ -2429,34 +2499,25 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 												______/ /
 												'------'
 	*/
-
-	//First, we have Wincent's clean methods of reading in the data received from the client.
 	LWOOBJID localId;
-	uint32_t timeTaken;
 
 	inStream->Read(localId);
 
-	uint32_t ld0Size;
-	inStream->Read(ld0Size);
-	for (auto i = 0; i < 5; ++i) {
-		uint8_t c;
-		inStream->Read(c);
-	}
+	uint32_t sd0Size;
+	inStream->Read(sd0Size);
+	std::shared_ptr<char[]> sd0Data(new char[sd0Size]);
 
-	uint32_t lxfmlSize;
-	inStream->Read(lxfmlSize);
-	uint8_t* inData = static_cast<uint8_t*>(std::malloc(lxfmlSize));
-
-	if (inData == nullptr) {
+	if (sd0Data == nullptr) {
 		return;
 	}
 
-	for (uint32_t i = 0; i < lxfmlSize; ++i) {
+	for (uint32_t i = 0; i < sd0Size; ++i) {
 		uint8_t c;
 		inStream->Read(c);
-		inData[i] = c;
+		sd0Data[i] = c;
 	}
 
+	uint32_t timeTaken;
 	inStream->Read(timeTaken);
 
 	/*
@@ -2468,6 +2529,8 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 		Note, in the live client it'll still display the bricks going out as they're being used, but on relog/world change,
 		they reappear as we didn't take them.
+
+		TODO Apparently the bricks are supposed to be taken via MoveInventoryBatch?
 	*/
 
 	////Decompress the SD0 from the client so we can process the lxfml properly
@@ -2512,9 +2575,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 				auto result = query.execQuery();
 
-				if (result.eof() || result.fieldIsNull(0)) {
-					return;
-				}
+				if (result.eof() || result.fieldIsNull(0)) return;
 
 				int templateId = result.getIntField(0);
 
@@ -2532,6 +2593,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 					propertyId = propertyEntry->getUInt64(1);
 				}
 
+				delete propertyEntry;
 				delete propertyLookup;
 
 				//Insert into ugc:
@@ -2542,7 +2604,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				ugcs->setInt(4, 0);
 
 				//whacky stream biz
-				std::string s((char*)inData, lxfmlSize);
+				std::string s(sd0Data.get(), sd0Size);
 				std::istringstream iss(s);
 				std::istream& stream = iss;
 
@@ -2553,18 +2615,25 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				delete ugcs;
 
 				//Insert into the db as a BBB model:
-				auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents`(`id`, `property_id`, `ugc_id`, `lot`, `x`, `y`, `z`, `rx`, `ry`, `rz`, `rw`) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+				auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents` VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 				stmt->setUInt64(1, newIDL);
 				stmt->setUInt64(2, propertyId);
 				stmt->setUInt(3, blueprintIDSmall);
-				stmt->setUInt(4, 14); //14 is the lot the BBB models use
-				stmt->setDouble(5, 0.0f); //x
-				stmt->setDouble(6, 0.0f); //y
-				stmt->setDouble(7, 0.0f); //z
-				stmt->setDouble(8, 0.0f);
-				stmt->setDouble(9, 0.0f);
-				stmt->setDouble(10, 0.0f);
-				stmt->setDouble(11, 0.0f);
+				stmt->setUInt(4, 14); // 14 is the lot the BBB models use
+				stmt->setDouble(5, 0.0f); // x
+				stmt->setDouble(6, 0.0f); // y
+				stmt->setDouble(7, 0.0f); // z
+				stmt->setDouble(8, 0.0f); // rx
+				stmt->setDouble(9, 0.0f); // ry
+				stmt->setDouble(10, 0.0f); // rz
+				stmt->setDouble(11, 0.0f); // rw
+				stmt->setString(12, "Objects_14_name"); // Model name.  TODO make this customizable
+				stmt->setString(13, ""); // Model description.  TODO implement this.
+				stmt->setDouble(14, 0); // behavior 1.  TODO implement this.
+				stmt->setDouble(15, 0); // behavior 2.  TODO implement this.
+				stmt->setDouble(16, 0); // behavior 3.  TODO implement this.
+				stmt->setDouble(17, 0); // behavior 4.  TODO implement this.
+				stmt->setDouble(18, 0); // behavior 5.  TODO implement this.
 				stmt->execute();
 				delete stmt;
 
@@ -2590,38 +2659,21 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 				//Tell the client their model is saved: (this causes us to actually pop out of our current state):
 				CBITSTREAM;
-				PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
+				PacketUtils::WriteHeader(bitStream, CLIENT, CLIENT::MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
 				bitStream.Write(localId);
-				bitStream.Write<unsigned int>(0);
-				bitStream.Write<unsigned int>(1);
+				bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
+				bitStream.Write<uint32_t>(1);
 				bitStream.Write(blueprintID);
 
-				bitStream.Write(lxfmlSize + 9);
+				bitStream.Write<uint32_t>(sd0Size);
 
-				//Write a fake sd0 header:
-				bitStream.Write<unsigned char>(0x73); //s
-				bitStream.Write<unsigned char>(0x64); //d
-				bitStream.Write<unsigned char>(0x30); //0
-				bitStream.Write<unsigned char>(0x01); //1
-				bitStream.Write<unsigned char>(0xFF); //end magic
-
-				bitStream.Write(lxfmlSize);
-
-				for (size_t i = 0; i < lxfmlSize; ++i)
-					bitStream.Write(inData[i]);
+				for (size_t i = 0; i < sd0Size; ++i) {
+					bitStream.Write(sd0Data[i]);
+				}
 
 				SEND_PACKET;
-				PacketUtils::SavePacket("MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 
 				//Now we have to construct this object:
-				/*
-				* This needs to be sent as config data, but I don't know how to right now.
-					'blueprintid': (9, 1152921508346399522),
-					'componentWhitelist': (1, 1),
-					'modelType': (1, 2),
-					'propertyObjectID': (7, True),
-					'userModelID': (9, 1152921510759098799)
-				*/
 
 				EntityInfo info;
 				info.lot = 14;
@@ -2652,6 +2704,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 					//there was an issue with builds not appearing since it was placed above ConstructEntity.
 					PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), newIDL);
 				}
+
 				});
 			});
 		});
@@ -3414,7 +3467,7 @@ void GameMessages::SendRegisterPetDBID(LWOOBJID objectId, LWOOBJID petDBID, cons
 	SEND_PACKET;
 }
 
-void GameMessages::SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, int32_t iType, LWOOBJID itemID, const SystemAddress& sysAddr) {
+void GameMessages::SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, eUnequippableActiveType iType, LWOOBJID itemID, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -3423,8 +3476,8 @@ void GameMessages::SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive
 
 	bitStream.Write(bActive);
 
-	bitStream.Write(iType != 0);
-	if (iType != 0) bitStream.Write(iType);
+	bitStream.Write(iType != eUnequippableActiveType::INVALID);
+	if (iType != eUnequippableActiveType::INVALID) bitStream.Write(iType);
 
 	bitStream.Write(itemID != LWOOBJID_EMPTY);
 	if (itemID != LWOOBJID_EMPTY) bitStream.Write(itemID);
@@ -3474,6 +3527,20 @@ void GameMessages::SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID ta
 	SEND_PACKET;
 }
 
+void GameMessages::SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(GAME_MSG::GAME_MSG_REMOVE_BUFF);
+
+	bitStream.Write(false); // bFromRemoveBehavior but setting this to true makes the GM not do anything on the client?
+	bitStream.Write(fromUnEquip);
+	bitStream.Write(removeImmunity);
+	bitStream.Write(buffId);
+
+	SEND_PACKET_BROADCAST;
+}
 
 void GameMessages::SendBouncerActiveStatus(LWOOBJID objectId, bool bActive, const SystemAddress& sysAddr) {
 	CBITSTREAM;
@@ -3856,12 +3923,25 @@ void GameMessages::SendDisplayChatBubble(LWOOBJID objectId, const std::u16string
 	SEND_PACKET;
 }
 
+
+void GameMessages::SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags flagsOn, eAnimationFlags flagsOff, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_CHANGE_IDLE_FLAGS);
+	bitStream.Write<bool>(flagsOff != eAnimationFlags::IDLE_NONE);
+	if (flagsOff != eAnimationFlags::IDLE_NONE) bitStream.Write(flagsOff);
+	bitStream.Write<bool>(flagsOn != eAnimationFlags::IDLE_NONE);
+	if (flagsOn != eAnimationFlags::IDLE_NONE) bitStream.Write(flagsOn);
+
+	SEND_PACKET_BROADCAST;
+}
 // Mounts
 
 void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objectID, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
-
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_SET_MOUNT_INVENTORY_ID);
 	bitStream.Write(objectID);
@@ -3871,30 +3951,53 @@ void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objec
 
 
 void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	// Get the objectID from the bitstream
 	LWOOBJID objectId{};
 	inStream->Read(objectId);
-	auto* mount = EntityManager::Instance()->GetEntity(objectId);
 
+	// If we aren't possessing somethings, the don't do anything
 	if (objectId != LWOOBJID_EMPTY) {
-		PossessorComponent* possessor;
-		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessor)) {
-			if (mount) {
-				possessor->SetIsBusy(false);
-				possessor->SetPossessable(LWOOBJID_EMPTY);
-				possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto* mount = EntityManager::Instance()->GetEntity(objectId);
+		// make sure we have the things we need and they aren't null
+		if (possessorComponent && mount) {
+			if (!possessorComponent->GetIsDismounting()) return;
+			possessorComponent->SetIsDismounting(false);
+			possessorComponent->SetPossessable(LWOOBJID_EMPTY);
+			possessorComponent->SetPossessableType(ePossessionType::NO_POSSESSION);
 
-				GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
-
-				EntityManager::Instance()->SerializeEntity(entity);
+			// character related things
+			auto* character = entity->GetComponent<CharacterComponent>();
+			if (character) {
+				// If we had an active item turn it off
+				if (possessorComponent->GetMountItemID() != LWOOBJID_EMPTY) GameMessages::SendMarkInventoryItemAsActive(entity->GetObjectID(), false, eUnequippableActiveType::MOUNT, possessorComponent->GetMountItemID(), entity->GetSystemAddress());
+				possessorComponent->SetMountItemID(LWOOBJID_EMPTY);
 			}
+
+			// Set that the controllabel phsyics comp is teleporting
+			auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+			if (controllablePhysicsComponent) controllablePhysicsComponent->SetIsTeleporting(true);
+
+			// Call dismoint on the possessable comp to let it handle killing the possessable
+			auto* possessableComponent = mount->GetComponent<PossessableComponent>();
+			if (possessableComponent) possessableComponent->Dismount();
+
+			// Update the entity that was possessing
+			EntityManager::Instance()->SerializeEntity(entity);
+
+			// We aren't mounted so remove the stun
+			GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 		}
 	}
 }
 
 
 void GameMessages::HandleAcknowledgePossession(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	Game::logger->Log("HandleAcknowledgePossession", "Got AcknowledgePossession from %i", entity->GetLOT());
 	EntityManager::Instance()->SerializeEntity(entity);
+	LWOOBJID objectId{};
+	inStream->Read(objectId);
+	auto* mount = EntityManager::Instance()->GetEntity(objectId);
+	if (mount) EntityManager::Instance()->SerializeEntity(mount);
 }
 
 //Racing
@@ -4374,13 +4477,13 @@ void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uin
 // NT
 
 void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool bAllowPartial;
+	bool bAllowPartial{};
 	int32_t destSlot = -1;
 	int32_t iStackCount = 1;
 	eInventoryType invTypeDst = ITEMS;
 	eInventoryType invTypeSrc = ITEMS;
 	LWOOBJID itemID = LWOOBJID_EMPTY;
-	bool showFlyingLoot;
+	bool showFlyingLoot{};
 	LWOOBJID subkey = LWOOBJID_EMPTY;
 	LOT itemLOT = 0;
 
@@ -4404,12 +4507,12 @@ void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream*
 		if (itemID != LWOOBJID_EMPTY) {
 			auto* item = inventoryComponent->FindItemById(itemID);
 
-			if (item == nullptr) {
-				return;
-			}
+			if (!item) return;
 
-			if (inventoryComponent->IsPet(item->GetSubKey()) || !item->GetConfig().empty()) {
-				return;
+			// Despawn the pet if we are moving that pet to the vault.
+			auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+			if (petComponent && petComponent->GetDatabaseId() == item->GetSubKey()) {
+				inventoryComponent->DespawnPet();
 			}
 
 			inventoryComponent->MoveItemToInventory(item, invTypeDst, iStackCount, showFlyingLoot, false, false, destSlot);
@@ -4625,13 +4728,13 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 
 	float sellScalar = vend->GetSellScalar();
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
-		const auto altCurrency = (itemComp.altCurrencyCost * sellScalar) * count;
+		const auto altCurrency = static_cast<uint32_t>(itemComp.altCurrencyCost * sellScalar) * count;
 		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::LOOT_SOURCE_VENDOR); // Return alt currencies like faction tokens.
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar) * count)), eLootSourceType::LOOT_SOURCE_VENDOR);
+	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -4743,12 +4846,6 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 
 	if (!player) {
 		return;
-	}
-
-	if (args == u"toggleMail") {
-		AMFArrayValue args;
-		args.InsertValue("visible", new AMFFalseValue());
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleMail", &args);
 	}
 
 	// This should probably get it's own "ServerEvents" system or something at some point
@@ -4876,27 +4973,27 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	inStream->Read(emoteID);
 	inStream->Read(targetID);
 
-	Game::logger->Log("GameMessages", "Emote (%i) (%llu)", emoteID, targetID);
+	Game::logger->LogDebug("GameMessages", "Emote (%i) (%llu)", emoteID, targetID);
 
 	//TODO: If targetID != 0, and we have one of the "perform emote" missions, complete them.
 
 	if (emoteID == 0) return;
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
-	MissionComponent* mission = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
-	if (mission) {
-		mission->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, targetID);
-	}
+	MissionComponent* missionComponent = entity->GetComponent<MissionComponent>();
+	if (!missionComponent) return;
 
 	if (targetID != LWOOBJID_EMPTY) {
 		auto* targetEntity = EntityManager::Instance()->GetEntity(targetID);
 
-		Game::logger->Log("GameMessages", "Emote target found (%d)", targetEntity != nullptr);
+		Game::logger->LogDebug("GameMessages", "Emote target found (%d)", targetEntity != nullptr);
 
 		if (targetEntity != nullptr) {
 			targetEntity->OnEmoteReceived(emoteID, entity);
+			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, targetID);
 		}
 	} else {
+		Game::logger->LogDebug("GameMessages", "Target ID is empty, using backup");
 		const auto scriptedEntities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPT);
 
 		const auto& referencePoint = entity->GetPosition();
@@ -4905,6 +5002,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 			if (Vector3::DistanceSquared(scripted->GetPosition(), referencePoint) > 5.0f * 5.0f) continue;
 
 			scripted->OnEmoteReceived(emoteID, entity);
+			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, scripted->GetObjectID());
 		}
 	}
 
@@ -5640,16 +5738,16 @@ void GameMessages::HandleClientItemConsumed(RakNet::BitStream* inStream, Entity*
 	}
 
 	auto* item = inventory->FindItemById(itemConsumed);
-
 	if (item == nullptr) {
 		return;
 	}
+	LOT itemLot = item->GetLot();
 
 	item->Consume();
 
 	auto* missions = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
 	if (missions != nullptr) {
-		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_FOOD, item->GetLot());
+		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_FOOD, itemLot);
 	}
 }
 
@@ -5665,11 +5763,7 @@ void GameMessages::HandleUseNonEquipmentItem(RakNet::BitStream* inStream, Entity
 
 	auto* item = inv->FindItemById(itemConsumed);
 
-	if (item == nullptr) {
-		return;
-	}
-
-	item->UseNonEquip();
+	if (item) item->UseNonEquip(item);
 }
 
 void GameMessages::HandleMatchRequest(RakNet::BitStream* inStream, Entity* entity) {

@@ -5,7 +5,6 @@
 #include "dCommonVars.h"
 #include "RakNetTypes.h"
 #include <string>
-#include "InventoryComponent.h"
 #include "dMessageIdentifiers.h"
 #include "AMFFormat.h"
 #include "AMFFormat_BitStream.h"
@@ -14,11 +13,15 @@
 #include "TradingManager.h"
 #include "LeaderboardManager.h"
 #include "MovingPlatformComponent.h"
+#include "eAninmationFlags.h"
 
 class NiQuaternion;
 class User;
 class Entity;
 class NiPoint3;
+enum class eUnequippableActiveType;
+enum eInventoryType : uint32_t;
+class Item;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -120,6 +123,7 @@ namespace GameMessages {
 	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
 	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, int type);
 
+	void HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID);
 
 	/**
@@ -195,6 +199,16 @@ namespace GameMessages {
 	void SendOpenPropertyManagment(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	void SendDownloadPropertyData(LWOOBJID objectId, const PropertyDataMessage& data, const SystemAddress& sysAddr);
+
+	/**
+	 * @brief Send an updated item id to the client when they load a blueprint in brick build mode
+	 *
+	 * @param sysAddr SystemAddress to respond to
+	 * @param oldItemId The item ID that was requested to be loaded
+	 * @param newItemId The new item ID of the loaded item
+	 *
+	 */
+	void SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId);
 
 	void SendPropertyRentalResponse(LWOOBJID objectId, LWOCLONEID cloneId, uint32_t code, LWOOBJID propertyId, int64_t rentDue, const SystemAddress& sysAddr);
 
@@ -318,7 +332,7 @@ namespace GameMessages {
 
 	void SendRegisterPetDBID(LWOOBJID objectId, LWOOBJID petDBID, const SystemAddress& sysAddr);
 
-	void SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, int32_t iType, LWOOBJID itemID, const SystemAddress& sysAddr);
+	void SendMarkInventoryItemAsActive(LWOOBJID objectId, bool bActive, eUnequippableActiveType iType, LWOOBJID itemID, const SystemAddress& sysAddr);
 
 	void SendClientExitTamingMinigame(LWOOBJID objectId, bool bVoluntaryExit, const SystemAddress& sysAddr);
 
@@ -360,6 +374,15 @@ namespace GameMessages {
 	void SendDisplayMessageBox(LWOOBJID objectId, bool bShow, LWOOBJID callbackClient, const std::u16string& identifier, int32_t imageID, const std::u16string& text, const std::u16string& userData, const SystemAddress& sysAddr);
 
 	void SendDisplayChatBubble(LWOOBJID objectId, const std::u16string& text, const SystemAddress& sysAddr);
+
+	/**
+	 * @brief
+	 *
+	 * @param objectId ID of the entity to set idle flags
+	 * @param FlagsOn Flag to turn on
+	 * @param FlagsOff Flag to turn off
+	 */
+	void SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags FlagsOn, eAnimationFlags FlagsOff, const SystemAddress& sysAddr);
 
 	// Mounts
 	/**
@@ -564,6 +587,8 @@ namespace GameMessages {
 	void HandleMatchRequest(RakNet::BitStream* inStream, Entity* entity);
 
 	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);
+
+	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
 
 	/*  Message to synchronize a skill cast */
 	class EchoSyncSkill {

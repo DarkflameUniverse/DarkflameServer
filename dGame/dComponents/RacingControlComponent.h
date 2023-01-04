@@ -123,7 +123,7 @@ public:
 	 * @param player The player who's vehicle to initialize.
 	 * @param initialLoad Is this the first time the player is loading in this race?
 	 */
-	void LoadPlayerVehicle(Entity* player, bool initialLoad = false);
+	void LoadPlayerVehicle(Entity* player, uint32_t positionNumber, bool initialLoad = false);
 
 	/**
 	 * Invoked when the client says it has loaded in.

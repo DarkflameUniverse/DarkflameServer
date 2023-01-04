@@ -13,6 +13,7 @@
 #include "tinyxml2.h"
 #include "Game.h"
 #include "dLogger.h"
+#include "BinaryPathFinder.h"
 
 #include <fstream>
 
@@ -27,7 +28,7 @@ void VanityUtilities::SpawnVanity() {
 
 	const uint32_t zoneID = Game::server->GetZoneID();
 
-	ParseXML("./vanity/NPC.xml");
+	ParseXML((BinaryPathFinder::GetBinaryDir() / "vanity/NPC.xml").string());
 
 	// Loop through all parties
 	for (const auto& party : m_Parties) {
@@ -131,7 +132,7 @@ void VanityUtilities::SpawnVanity() {
 			info.spawnerID = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
 
 			info.settings = { new LDFData<bool>(u"hasCustomText", true),
-				new LDFData<std::string>(u"customText", ParseMarkdown("./vanity/TESTAMENT.md")) };
+				new LDFData<std::string>(u"customText", ParseMarkdown((BinaryPathFinder::GetBinaryDir() / "vanity/TESTAMENT.md").string())) };
 
 			auto* entity = EntityManager::Instance()->CreateEntity(info);
 

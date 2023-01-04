@@ -13,10 +13,10 @@
 #include "Mail.h"
 #include "MissionComponent.h"
 #include "RacingTaskParam.h"
-#include "dLocale.h"
 #include "dLogger.h"
 #include "dServer.h"
 #include "dZoneManager.h"
+#include "InventoryComponent.h"
 #include "Database.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
@@ -335,13 +335,10 @@ void Mission::Complete(const bool yieldRewards) {
 	for (const auto& email : missionEmails) {
 		const auto missionEmailBase = "MissionEmail_" + std::to_string(email.ID) + "_";
 
-		const auto senderLocale = missionEmailBase + "senderName";
-		const auto announceLocale = missionEmailBase + "announceText";
-
-		if (email.messageType == 1 && Game::locale->HasPhrase(senderLocale)) {
-			const auto subject = dLocale::GetTemplate(missionEmailBase + "subjectText");
-			const auto body = dLocale::GetTemplate(missionEmailBase + "bodyText");
-			const auto sender = dLocale::GetTemplate(senderLocale);
+		if (email.messageType == 1) {
+			const auto subject = "%[" + missionEmailBase + "subjectText]";
+			const auto body = "%[" + missionEmailBase + "bodyText]";
+			const auto sender = "%[" + missionEmailBase + "senderName]";
 
 			Mail::SendMail(LWOOBJID_EMPTY, sender, GetAssociate(), subject, body, email.attachmentLOT, 1);
 		}
@@ -428,7 +425,7 @@ void Mission::YieldRewards() {
 			for (const auto target : task->GetAllTargets()) {
 				// This is how live did it.  ONLY remove item collection items from the items and hidden inventories and none of the others.
 				inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::ITEMS);
-				inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::HIDDEN);
+				inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::QUEST);
 
 				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, target, LWOOBJID_EMPTY, "", -task->GetClientInfo().targetValue);
 			}

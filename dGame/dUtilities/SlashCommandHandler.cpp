@@ -63,6 +63,9 @@
 #include "GameConfig.h"
 #include "ScriptedActivityComponent.h"
 #include "LevelProgressionComponent.h"
+#include "AssetManager.h"
+#include "BinaryPathFinder.h"
+#include "dConfig.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -209,22 +212,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "skip-ags") {
-		auto* missionComponent = entity->GetComponent<MissionComponent>();
-
-		if (missionComponent != nullptr && missionComponent->HasMission(479)) {
-			missionComponent->CompleteMission(479);
-		}
-	}
-
-	if (chatCommand == "skip-sg") {
-		auto* missionComponent = entity->GetComponent<MissionComponent>();
-
-		if (missionComponent != nullptr && missionComponent->HasMission(229)) {
-			missionComponent->CompleteMission(229);
-		}
-	}
-
 	if (chatCommand == "fix-stats") {
 		// Reset skill component and buff component
 		auto* skillComponent = entity->GetComponent<SkillComponent>();
@@ -247,7 +234,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "credits" || chatCommand == "info") {
-		const auto& customText = chatCommand == "credits" ? VanityUtilities::ParseMarkdown("./vanity/CREDITS.md") : VanityUtilities::ParseMarkdown("./vanity/INFO.md");
+		const auto& customText = chatCommand == "credits" ? VanityUtilities::ParseMarkdown((BinaryPathFinder::GetBinaryDir() / "vanity/CREDITS.md").string()) : VanityUtilities::ParseMarkdown((BinaryPathFinder::GetBinaryDir() /  "vanity/INFO.md").string());
 
 		{
 			AMFArrayValue args;
@@ -419,6 +406,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if ((chatCommand == "playanimation" || chatCommand == "playanim") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		std::u16string anim = GeneralUtils::ASCIIToUTF16(args[0], args[0].size());
 		GameMessages::SendPlayAnimation(entity, anim);
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		if (possessorComponent) {
+			auto* possessedComponent = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+			if (possessedComponent) GameMessages::SendPlayAnimation(possessedComponent, anim);
+		}
 	}
 
 	if (chatCommand == "list-spawns" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -471,11 +463,23 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
 
-		if (controllablePhysicsComponent == nullptr) {
-			return;
-		}
-
+		if (!controllablePhysicsComponent) return;
 		controllablePhysicsComponent->SetSpeedMultiplier(boost);
+
+		// speedboost possesables
+		auto possessor = entity->GetComponent<PossessorComponent>();
+		if (possessor) {
+			auto possessedID = possessor->GetPossessable();
+			if (possessedID != LWOOBJID_EMPTY) {
+				auto possessable = EntityManager::Instance()->GetEntity(possessedID);
+				if (possessable) {
+					auto* possessControllablePhysicsComponent = possessable->GetComponent<ControllablePhysicsComponent>();
+					if (possessControllablePhysicsComponent) {
+						possessControllablePhysicsComponent->SetSpeedMultiplier(boost);
+					}
+				}
+			}
+		}
 
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
@@ -565,7 +569,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (args[0].find("/") != std::string::npos) return;
 		if (args[0].find("\\") != std::string::npos) return;
 
-		std::ifstream infile("./res/macros/" + args[0] + ".scm");
+		auto buf = Game::assetManager->GetFileAsBuffer(("macros/" + args[0] + ".scm").c_str());
+
+		 if (!buf.m_Success){
+			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
+			return;
+		 }
+
+		std::istream infile(&buf);
 
 		if (infile.good()) {
 			std::string line;
@@ -575,6 +586,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		} else {
 			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
 		}
+
+		buf.close();
 
 		return;
 	}
@@ -894,21 +907,17 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /teleport <x> (<y>) <z> - if no Y given, will teleport to the height of the terrain (or any physics object).");
 		}
 
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 
-		if (possessorComponent != nullptr) {
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		if (possessorComponent) {
 			auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
 
 			if (possassableEntity != nullptr) {
 				auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
-
-				if (vehiclePhysicsComponent != nullptr) {
+				if (vehiclePhysicsComponent) {
 					vehiclePhysicsComponent->SetPosition(pos);
-
 					EntityManager::Instance()->SerializeEntity(possassableEntity);
-
-					Game::logger->Log("ClientPackets", "Forced updated vehicle position");
-				}
+				} else GameMessages::SendTeleport(possassableEntity->GetObjectID(), pos, NiQuaternion(), sysAddr);
 			}
 		}
 	}
@@ -926,18 +935,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "dismount" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		PossessorComponent* possessorComponent;
-		if (entity->TryGetComponent(COMPONENT_TYPE_POSSESSOR, possessorComponent)) {
-			Entity* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
-			if (!vehicle) return;
-
-			PossessableComponent* possessableComponent;
-			if (vehicle->TryGetComponent(COMPONENT_TYPE_POSSESSABLE, possessableComponent)) {
-				possessableComponent->SetPossessor(LWOOBJID_EMPTY);
-				possessorComponent->SetPossessable(LWOOBJID_EMPTY);
-
-				EntityManager::Instance()->SerializeEntity(vehicle);
-				EntityManager::Instance()->SerializeEntity(entity);
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		if (possessorComponent) {
+			auto possessableId = possessorComponent->GetPossessable();
+			if (possessableId != LWOOBJID_EMPTY) {
+				auto* possessableEntity = EntityManager::Instance()->GetEntity(possessableId);
+				if (possessableEntity) possessorComponent->Dismount(possessableEntity, true);
 			}
 		}
 	}
@@ -1231,7 +1234,70 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
+		auto vehiclePhysicsComponent = newEntity->GetComponent<VehiclePhysicsComponent>();
+		if (vehiclePhysicsComponent) {
+			auto newRot = newEntity->GetRotation();
+			auto angles = newRot.GetEulerAngles();
+			// make it right side up
+			angles.x -= PI;
+			// make it going in the direction of the player
+			angles.y -= PI;
+			newRot = NiQuaternion::FromEulerAngles(angles);
+			newEntity->SetRotation(newRot);
+		}
+
 		EntityManager::Instance()->ConstructEntity(newEntity);
+	}
+
+	if (chatCommand == "spawngroup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 3) {
+		auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+		if (!controllablePhysicsComponent) return;
+
+		LOT lot{};
+		uint32_t numberToSpawn{};
+		float radiusToSpawnWithin{};
+
+		if (!GeneralUtils::TryParse(args[0], lot)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid lot.");
+			return;
+		}
+
+		if (!GeneralUtils::TryParse(args[1], numberToSpawn) && numberToSpawn > 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid number of enemies to spawn.");
+			return;
+		}
+
+		// Must spawn within a radius of at least 0.0f
+		if (!GeneralUtils::TryParse(args[2], radiusToSpawnWithin) && radiusToSpawnWithin < 0.0f) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid radius to spawn within.");
+			return;
+		}
+
+		EntityInfo info;
+		info.lot = lot;
+		info.spawner = nullptr;
+		info.spawnerID = entity->GetObjectID();
+		info.spawnerNodeID = 0;
+
+		auto playerPosition = controllablePhysicsComponent->GetPosition();
+		while (numberToSpawn > 0) {
+			auto randomAngle = GeneralUtils::GenerateRandomNumber<float>(0.0f, 2 * PI);
+			auto randomRadius = GeneralUtils::GenerateRandomNumber<float>(0.0f, radiusToSpawnWithin);
+
+			// Set the position to the generated random position plus the player position.  This will
+			// spawn the entity in a circle around the player.  As you get further from the player, the angle chosen will get less accurate.
+			info.pos = playerPosition + NiPoint3(cos(randomAngle) * randomRadius, 0.0f, sin(randomAngle) * randomRadius);
+			info.rot = NiQuaternion();
+
+			auto newEntity = EntityManager::Instance()->CreateEntity(info);
+			if (newEntity == nullptr) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Failed to spawn entity.");
+				return;
+			}
+
+			EntityManager::Instance()->ConstructEntity(newEntity);
+			numberToSpawn--;
+		}
 	}
 
 	if ((chatCommand == "giveuscore") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
@@ -1520,7 +1586,33 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+		if (args.size() >= 1) {
+			float time;
+
+			if (!GeneralUtils::TryParse(args[0], time)) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid boost time.");
+				return;
+			} else {
+				GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+				entity->AddCallbackTimer(time, [vehicle]() {
+					if (!vehicle) return;
+					GameMessages::SendVehicleRemovePassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+					});
+			}
+		} else {
+			GameMessages::SendVehicleAddPassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+		}
+
+	}
+
+	if ((chatCommand == "unboost") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+
+		if (possessorComponent == nullptr) return;
+		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+
+		if (vehicle == nullptr) return;
+		GameMessages::SendVehicleRemovePassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	if (chatCommand == "activatespawner" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
@@ -1659,6 +1751,22 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
+	if (chatCommand == "reloadconfig" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+		Game::config->ReloadConfig();
+		VanityUtilities::SpawnVanity();
+		dpWorld::Instance().Reload();
+		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
+		for (auto entity : entities) {
+			auto* scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
+			if (!scriptedActivityComponent) continue;
+
+			scriptedActivityComponent->ReloadConfig();
+		}
+		Game::server->UpdateMaximumMtuSize();
+		Game::server->UpdateBandwidthLimit();
+		ChatPackets::SendSystemMessage(sysAddr, u"Successfully reloaded config for world!");
+	}
+
 	if (chatCommand == "rollloot" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_OPERATOR && args.size() >= 3) {
 		uint32_t lootMatrixIndex = 0;
 		uint32_t targetLot = 0;
@@ -1694,6 +1802,33 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			+ GeneralUtils::to_u16string((float)totalRuns / loops);
 
 		ChatPackets::SendSystemMessage(sysAddr, message);
+	}
+
+	if (chatCommand == "deleteinven" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
+		eInventoryType inventoryType = eInventoryType::INVALID;
+		if (!GeneralUtils::TryParse(args[0], inventoryType)) {
+			// In this case, we treat the input as a string and try to find it in the reflection list
+			std::transform(args[0].begin(), args[0].end(),args[0].begin(), ::toupper);
+			Game::logger->Log("SlashCommandHandler", "looking for inventory %s", args[0].c_str());
+			for (uint32_t index = 0; index < NUMBER_OF_INVENTORIES; index++) {
+				if (std::string_view(args[0]) == std::string_view(InventoryType::InventoryTypeToString(static_cast<eInventoryType>(index)))) inventoryType = static_cast<eInventoryType>(index);
+			}
+		}
+
+		if (inventoryType == eInventoryType::INVALID || inventoryType >= NUMBER_OF_INVENTORIES) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid inventory provided.");
+			return;
+		}
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+		if (!inventoryComponent) return;
+
+		auto* inventoryToDelete = inventoryComponent->GetInventory(inventoryType);
+		if (!inventoryToDelete) return;
+
+		inventoryToDelete->DeleteAllItems();
+		Game::logger->Log("SlashCommandHandler", "Deleted inventory %s for user %llu", args[0].c_str(), entity->GetObjectID());
+		ChatPackets::SendSystemMessage(sysAddr, u"Deleted inventory " + GeneralUtils::UTF8ToUTF16(args[0]));
 	}
 
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
@@ -1859,10 +1994,7 @@ bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
 	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
 	const CDZoneTable* zone = zoneTable->Query(zoneID);
 	if (zone != nullptr) {
-		std::string zonePath = "./res/maps/" + zone->zoneName;
-		std::transform(zonePath.begin(), zonePath.end(), zonePath.begin(), ::tolower);
-		std::ifstream f(zonePath.c_str());
-		return f.good();
+		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());
 	} else {
 		return false;
 	}

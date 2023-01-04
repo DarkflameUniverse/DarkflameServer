@@ -19,6 +19,7 @@
 #include "ItemSetPassiveAbility.h"
 #include "ItemSetPassiveAbilityID.h"
 #include "PossessorComponent.h"
+#include "eInventoryType.h"
 
 class Entity;
 class ItemSet;
@@ -199,6 +200,13 @@ public:
 	void UnEquipItem(Item* item);
 
 	/**
+	 * Unequips an Item from the inventory
+	 * @param item the Item to unequip
+	 * @return if we were successful
+	 */
+	void HandlePossession(Item* item);
+
+	/**
 	 * Adds a buff related to equipping a lot to the entity
 	 * @param item the item to find buffs for
 	 */
@@ -275,7 +283,7 @@ public:
 	 * Triggers one of the passive abilities from the equipped item set
 	 * @param trigger the trigger to fire
 	 */
-	void TriggerPassiveAbility(PassiveAbilityTrigger trigger);
+	void TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target = nullptr);
 
 	/**
 	 * Returns if the entity has any of the passed passive abilities equipped
@@ -343,6 +351,20 @@ public:
 	 * @return the skill related to the passed LOT
 	 */
 	static uint32_t FindSkill(LOT lot);
+
+	/**
+	 * Call this when you equip an item.  This calls OnFactionTriggerItemEquipped for any scripts found on the items.
+	 * 
+	 * @param equippedItem The item script to lookup and call equip on
+	 */
+	void EquipScripts(Item* equippedItem);
+	
+	/**
+	 * Call this when you unequip an item.  This calls OnFactionTriggerItemUnequipped for any scripts found on the items.
+	 * 
+	 * @param unequippedItem The item script to lookup and call unequip on
+	 */
+	void UnequipScripts(Item* unequippedItem);
 
 	~InventoryComponent() override;
 

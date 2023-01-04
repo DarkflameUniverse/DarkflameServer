@@ -20,14 +20,24 @@ public:
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
 	/**
-	 * Sets the possessor of this entity
+	 * @brief mounts the Entity
+	 */
+	void Mount();
+
+	/**
+	 * @brief dismounts the Entity
+	 */
+	void Dismount();
+
+	/**
+	 * Sets the possessor of this Entity
 	 * @param value the ID of the possessor to set
 	 */
 	void SetPossessor(LWOOBJID value) { m_Possessor = value; m_DirtyPossessable = true; };
 
 	/**
-	 * Returns the possessor of this entity
-	 * @return the possessor of this entity
+	 * Returns the possessor of this Entity
+	 * @return the possessor of this Entity
 	 */
 	LWOOBJID GetPossessor() const { return m_Possessor; };
 
@@ -38,19 +48,19 @@ public:
 	void SetAnimationFlag(eAnimationFlags value) { m_AnimationFlag = value; m_DirtyPossessable = true; };
 
 	/**
-	 * Returns the possession type of this entity
-	 * @return the possession type of this entity
+	 * Returns the possession type of this Entity
+	 * @return the possession type of this Entity
 	 */
 	ePossessionType GetPossessionType() const { return m_PossessionType; };
 
 	/**
-	 * Returns if the entity should deposses on hit
-	 * @return if the entity should deposses on hit
+	 * Returns if the Entity should deposses on hit
+	 * @return if the Entity should deposses on hit
 	 */
 	bool GetDepossessOnHit() const { return m_DepossessOnHit; };
 
 	/**
-	 * Forcibly depossess the entity
+	 * Forcibly depossess the Entity
 	 */
 	void ForceDepossess() { m_ImmediatelyDepossess = true; m_DirtyPossessable = true; };
 
@@ -58,13 +68,13 @@ public:
 	 * Set if the parent entity was spawned from an item
 	 * @param value if the parent entity was spawned from an item
 	 */
-	void SetItemSpawned(bool value) { m_ItemSpawned = value; };
+	void SetIsItemSpawned(bool value) { m_ItemSpawned = value; };
 
 	/**
 	 * Returns if the parent entity was spawned from an item
 	 * @return if the parent entity was spawned from an item
 	 */
-	LWOOBJID GetItemSpawned() const { return m_ItemSpawned; };
+	LWOOBJID GetIsItemSpawned() const { return m_ItemSpawned; };
 
 	/**
 	 * Handles an OnUsed event by some other entity, if said entity has a Possessor it becomes the possessor
@@ -99,7 +109,7 @@ private:
 	 * @brief What animaiton flag to use
 	 *
 	 */
-	eAnimationFlags m_AnimationFlag = eAnimationFlags::IDLE_INVALID;
+	eAnimationFlags m_AnimationFlag = eAnimationFlags::IDLE_NONE;
 
 	/**
 	 * @brief Should this be immediately depossessed

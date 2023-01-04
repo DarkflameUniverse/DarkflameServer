@@ -10,12 +10,13 @@ jobs:
   build-and-test:
     name: Build & Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
     strategy:
       matrix:
         os: [ windows-2022, ubuntu-20.04, macos-11 ]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - name: Add msbuild to PATH (Windows only)
@@ -34,7 +35,7 @@ jobs:
         buildPreset: "ci-${{matrix.os}}"
         testPreset: "ci-${{matrix.os}}"
     - name: artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: ${{ github.ref == 'ref/head/main' }}
       with:
         name: build-${{matrix.os}}

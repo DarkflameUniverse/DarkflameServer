@@ -277,6 +277,12 @@ public:
 	ActivityInstance* GetInstance(const LWOOBJID playerID);
 
 	/**
+	 * @brief Reloads the config settings for this component
+	 *
+	 */
+	void ReloadConfig();
+
+	/**
 	 * Removes all the instances
 	 */
 	void ClearInstances();
@@ -361,6 +367,12 @@ private:
 	 * LMIs for team sizes
 	 */
 	std::unordered_map<uint32_t, uint32_t> m_ActivityLootMatrices;
+
+	/**
+	 * The activity id
+	 *
+	 */
+	int32_t m_ActivityID;
 };
 
 #endif // SCRIPTEDACTIVITYCOMPONENT_H

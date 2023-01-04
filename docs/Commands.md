@@ -1,6 +1,5 @@
 # In-game commands
-
-Here is a summary of the commands available in-game. All commands are prefixed by `/` and typed in the in-game chat window. Some commands requires admin privileges. Operands within `<>` are required, operands within `()` are not. For the full list of in-game commands, please checkout [the source file](../dGame/dUtilities/SlashCommandHandler.cpp).
+* All commands are prefixed by `/` and typed in the in-game chat window. Some commands require elevated gmlevel privileges. Operands within `<>` are required, operands within `()` are not.
 
 ## General Commands
 
@@ -14,8 +13,6 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |pvp|`/pvp`|Toggle your PVP flag.||
 |resurrect|`/resurrect`|Resurrects the player.||
 |requestmailcount|`/requestmailcount`|Sends notification with number of unread messages in the player's mailbox.||
-|skip-ags|`/skip-ags`|Skips the Avant Gardens Survival minigame mission, "Impress the Sentinel Faction".||
-|skip-sg|`/skip-sg`|Skips the Shooting Gallery minigame mission, "Monarch of the Sea".||
 |who|`/who`|Displays in chat all players on the instance.||
 
 ## Moderation Commands
@@ -63,7 +60,8 @@ These commands are primarily for development and testing. The usage of many of t
 |teleport|`/teleport <x> (y) <z>`|Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z). Alias: `/tele`.|6|
 |activatespawner|`/activatespawner <spawner name>`|Activates spawner by name.|8|
 |addmission|`/addmission <mission id>`|Accepts the mission, adding it to your journal.|8|
-|boost|`/boost`|Adds a passive boost action if you are in a vehicle.|8|
+|boost|`/boost (time)`|Adds a passive boost action if you are in a vehicle. If time is given it will end after that amount of time|8|
+|unboost|`/unboost`|Removes a passive vehicle boost|8|
 |buff|`/buff <id> <duration>`|Applies the buff with the given id for the given number of seconds.|8|
 |buffme|`/buffme`|Sets health, armor, and imagination to 999.|8|
 |buffmed|`/buffmed`|Sets health, armor, and imagination to 9.|8|
@@ -71,7 +69,8 @@ These commands are primarily for development and testing. The usage of many of t
 |completemission|`/completemission <mission id>`|Completes the mission, removing it from your journal.|8|
 |createprivate|`/createprivate <zone id> <clone id> <password>`|Creates a private zone with password.|8|
 |debugui|`/debugui`|Toggle Debug UI.|8|
-|dismount|`/dismount`|Dismounts you from the vehicle.|8|
+|dismount|`/dismount`|Dismounts you from the vehicle or mount.|8|
+|reloadconfig|`/reloadconfig`|Reloads the server with the new config values.|8|
 |force-save|`/force-save`|While saving to database usually happens on regular intervals and when you disconnect from the server, this command saves your player's data to the database.|8|
 |freecam|`/freecam`|Toggles freecam mode.|8|
 |freemoney|`/freemoney <coins>`|Gives coins.|8|

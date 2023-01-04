@@ -7,6 +7,10 @@
 #include "Entity.h"
 #include "Component.h"
 
+namespace CppScripts {
+	class Script;
+}; //! namespace CppScripts
+
 /**
  * Represents the stats of an entity, for example its health, imagination and armor. Also handles factions, which
  * indicate which enemies this entity has.
@@ -239,7 +243,7 @@ public:
 	 * Sets the multiplier for the explosion that's visible when the bricks fly out when this entity is smashed
 	 * @param value the multiplier for the explosion that's visible when the bricks fly out when this entity is smashed
 	 */
-	void SetExplodeFactor(float value);
+	void SetExplodeFactor(float value) { m_ExplodeFactor = value; };
 
 	/**
 	 * Returns the current multiplier for explosions
@@ -414,6 +418,25 @@ public:
 	 */
 	void AddOnHitCallback(const std::function<void(Entity*)>& callback);
 
+	/**
+	 * Pushes a faction back to the list of factions.
+	 * @param value Faction to add to list.
+	 *
+	 * This method should only be used for testing.  Use AddFaction(int32_t, bool) for adding a faction properly.
+	 */
+	void AddFactionNoLookup(int32_t faction) { m_FactionIDs.push_back(faction); };
+
+	/**
+	 * Notify subscribed scripts of Damage actions.
+	 * 
+	 * @param attacker The attacking Entity
+	 * @param damage The amount of damage that was done
+	 */
+	void NotifySubscribers(Entity* attacker, uint32_t damage);
+
+	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd);
+	void Unsubscribe(LWOOBJID scriptObjId);
+
 private:
 	/**
 	 * Whether or not the health should be serialized
@@ -549,6 +572,11 @@ private:
 	 * The list of callbacks that will be called when this entity gets hit
 	 */
 	std::vector<std::function<void(Entity*)>> m_OnHitCallbacks;
+
+	/**
+	 * The list of scripts subscribed to this components actions
+	 */
+	std::map<LWOOBJID, CppScripts::Script*> m_SubscribedScripts;
 };
 
 #endif // DESTROYABLECOMPONENT_H

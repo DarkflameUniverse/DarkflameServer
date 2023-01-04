@@ -46,6 +46,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	switch (messageID) {
 
+	case GAME_MSG_UN_USE_BBB_MODEL: {
+		GameMessages::HandleUnUseModel(inStream, entity, sysAddr);
+		break;
+	}
 	case GAME_MSG_PLAY_EMOTE: {
 		GameMessages::HandlePlayEmote(inStream, entity);
 		break;
@@ -157,8 +161,8 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		Game::logger->Log("GameMessageHandler", "Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
 
 		// After we've done our thing, tell the client they're ready
-		GameMessages::SendPlayerReady(dZoneManager::Instance()->GetZoneControlObject(), sysAddr);
 		GameMessages::SendPlayerReady(entity, sysAddr);
+		GameMessages::SendPlayerReady(dZoneManager::Instance()->GetZoneControlObject(), sysAddr);
 
 		break;
 	}
@@ -651,6 +655,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	case GAME_MSG_UPDATE_PLAYER_STATISTIC:
 		GameMessages::HandleUpdatePlayerStatistic(inStream, entity);
+		break;
+
+	case GAME_MSG_DISMOUNT_COMPLETE:
+		GameMessages::HandleDismountComplete(inStream, entity, sysAddr);
 		break;
 
 	default:

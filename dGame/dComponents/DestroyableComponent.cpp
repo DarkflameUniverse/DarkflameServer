@@ -26,6 +26,9 @@
 
 #include "MissionComponent.h"
 #include "CharacterComponent.h"
+#include "PossessableComponent.h"
+#include "PossessorComponent.h"
+#include "InventoryComponent.h"
 #include "dZoneManager.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
@@ -136,25 +139,17 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 
 			if (m_IsSmashable) {
 				outBitStream->Write(m_HasBricks);
-
-				if (m_ExplodeFactor != 1.0f) {
-					outBitStream->Write1();
-					outBitStream->Write(m_ExplodeFactor);
-				} else {
-					outBitStream->Write0();
-				}
+				outBitStream->Write(m_ExplodeFactor != 1.0f);
+				if (m_ExplodeFactor != 1.0f) outBitStream->Write(m_ExplodeFactor);
 			}
 		}
-
 		m_DirtyHealth = false;
 	}
 
+	outBitStream->Write(m_DirtyThreatList || bIsInitialUpdate);
 	if (m_DirtyThreatList || bIsInitialUpdate) {
-		outBitStream->Write1();
 		outBitStream->Write(m_HasThreats);
 		m_DirtyThreatList = false;
-	} else {
-		outBitStream->Write0();
 	}
 }
 
@@ -436,7 +431,6 @@ void DestroyableComponent::AddEnemyFaction(int32_t factionID) {
 void DestroyableComponent::SetIsSmashable(bool value) {
 	m_DirtyHealth = true;
 	m_IsSmashable = value;
-	//m_HasBricks = value;
 }
 
 void DestroyableComponent::SetAttacksToBlock(const uint32_t value) {
@@ -608,6 +602,24 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	SetHealth(health);
 	SetIsShielded(absorb > 0);
 
+	// Dismount on the possessable hit
+	auto possessable = m_Parent->GetComponent<PossessableComponent>();
+	if (possessable && possessable->GetDepossessOnHit()) {
+		possessable->Dismount();
+	}
+
+	// Dismount on the possessor hit
+	auto possessor = m_Parent->GetComponent<PossessorComponent>();
+	if (possessor) {
+		auto possessableId = possessor->GetPossessable();
+		if (possessableId != LWOOBJID_EMPTY) {
+			auto possessable = EntityManager::Instance()->GetEntity(possessableId);
+			if (possessable) {
+				possessor->Dismount(possessable);
+			}
+		}
+	}
+
 	if (m_Parent->GetLOT() != 1) {
 		echo = true;
 	}
@@ -619,6 +631,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	auto* attacker = EntityManager::Instance()->GetEntity(source);
 	m_Parent->OnHit(attacker);
 	m_Parent->OnHitOrHealResult(attacker, sourceDamage);
+	NotifySubscribers(attacker, sourceDamage);
 
 	for (const auto& cb : m_OnHitCallbacks) {
 		cb(attacker);
@@ -634,6 +647,29 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 		return;
 	}
 	Smash(source, eKillType::VIOLENT, u"", skillID);
+}
+
+void DestroyableComponent::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd) {
+	m_SubscribedScripts.insert(std::make_pair(scriptObjId, scriptToAdd));
+	Game::logger->LogDebug("DestroyableComponent", "Added script %llu to entity %llu", scriptObjId, m_Parent->GetObjectID());
+	Game::logger->LogDebug("DestroyableComponent", "Number of subscribed scripts %i", m_SubscribedScripts.size());
+}
+
+void DestroyableComponent::Unsubscribe(LWOOBJID scriptObjId) {
+	auto foundScript = m_SubscribedScripts.find(scriptObjId);
+	if (foundScript != m_SubscribedScripts.end()) {
+		m_SubscribedScripts.erase(foundScript);
+		Game::logger->LogDebug("DestroyableComponent", "Removed script %llu from entity %llu", scriptObjId, m_Parent->GetObjectID());
+	} else {
+		Game::logger->LogDebug("DestroyableComponent", "Tried to remove a script for Entity %llu but script %llu didnt exist", m_Parent->GetObjectID(), scriptObjId);
+	}
+	Game::logger->LogDebug("DestroyableComponent", "Number of subscribed scripts %i", m_SubscribedScripts.size());
+}
+
+void DestroyableComponent::NotifySubscribers(Entity* attacker, uint32_t damage) {
+	for (auto script : m_SubscribedScripts) {
+		script.second->NotifyHitOrHealResult(m_Parent, attacker, damage);
+	}
 }
 
 void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType, uint32_t skillID) {
@@ -658,7 +694,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		auto* inventoryComponent = owner->GetComponent<InventoryComponent>();
 
 		if (inventoryComponent != nullptr && isEnemy) {
-			inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::EnemySmashed);
+			inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::EnemySmashed, m_Parent);
 		}
 
 		auto* missions = owner->GetComponent<MissionComponent>();

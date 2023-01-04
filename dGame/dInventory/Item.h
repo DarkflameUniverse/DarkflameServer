@@ -6,6 +6,7 @@
 #include "CDClientManager.h"
 #include "dLogger.h"
 #include "Preconditions.h"
+#include "eInventoryType.h"
 
 /**
  * An item that can be stored in an inventory and optionally consumed or equipped
@@ -193,9 +194,8 @@ public:
 
 	/**
 	 * Uses this item if its non equip, essentially an interface for the linked GM
-	 * @return whether the use was successful, e.g. the skill was cast
 	 */
-	bool UseNonEquip();
+	void UseNonEquip(Item* item);
 
 	/**
 	 * Disassembles the part LOTs of this item back into the inventory, if it has any

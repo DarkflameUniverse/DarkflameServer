@@ -221,6 +221,18 @@ public:
 	bool GetStatic() const { return m_Static; }
 
 	/**
+	 * Sets if the entity is Teleporting,
+	 * @param value whether or not the entity is Is Teleporting
+	 */
+	void SetIsTeleporting(const bool value) { m_IsTeleporting = value; }
+
+	/**
+	 * Returns whether or not this entity is currently is teleporting
+	 * @return whether or not this entity is currently is teleporting
+	 */
+	bool GetIsTeleporting() const { return m_IsTeleporting; }
+
+	/**
 	 * Returns the Physics entity for the component
 	 * @return Physics entity for the component
 	 */
@@ -249,12 +261,18 @@ public:
 	* Sets the value of the bubble state
 	*/
 	void SetHasBubble(bool hasBubble) { m_HasBubble = hasBubble; m_BubbleDirty = true; }
-	
+
 	/**
 	* Gets the value of the bubble state
 	* @return The value of the bubble state.
 	*/
 	bool GetHasBubble() { return m_HasBubble; }
+
+	void AddSpeedboost(float value);
+
+	void RemoveSpeedboost(float value);
+
+	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
 
 private:
 	/**
@@ -376,6 +394,21 @@ private:
 	* If Bubble info is dirty
 	*/
 	bool m_BubbleDirty;
+
+	/**
+	 * If the entity is teleporting
+	 */
+	bool m_IsTeleporting;
+
+	/**
+	 * The list of speed boosts for this entity
+	 */
+	std::vector<float> m_ActiveSpeedBoosts;
+
+	/**
+	 * The active speed boost for this entity
+	 */
+	float m_SpeedBoost;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H

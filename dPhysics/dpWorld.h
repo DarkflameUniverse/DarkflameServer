@@ -19,7 +19,8 @@ class dpGrid;
 
 class dpWorld : public Singleton<dpWorld> {
 public:
-	void Initialize(unsigned int zoneID);
+	void Initialize(unsigned int zoneID, bool generateNewNavMesh = true);
+	void Reload();
 
 	~dpWorld();
 
@@ -43,4 +44,5 @@ private:
 	std::vector<dpEntity*> m_DynamicEntites;
 
 	dNavMesh* m_NavMesh = nullptr;
+	uint32_t m_ZoneID = 0;
 };

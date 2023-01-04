@@ -14,8 +14,11 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 		return;
 	}
 
-	bool blocked;
-	bitStream->Read(blocked);
+	bool blocked{};
+	if (!bitStream->Read(blocked)) {
+		Game::logger->Log("StunBehavior", "Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		return;
+	};
 
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 

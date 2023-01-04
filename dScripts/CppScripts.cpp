@@ -61,6 +61,8 @@
 #include "VeMissionConsole.h"
 #include "VeEpsilonServer.h"
 #include "AgSurvivalBuffStation.h"
+#include "QbSpawner.h"
+#include "AgQbWall.h"
 
 // NS Scripts
 #include "NsModularBuild.h"
@@ -116,6 +118,10 @@
 #include "BaseEnemyApe.h"
 #include "GfApeSmashingQB.h"
 #include "ZoneGfProperty.h"
+#include "GfArchway.h"
+#include "GfMaelstromGeyser.h"
+#include "PirateRep.h"
+#include "GfParrotCrash.h"
 
 // SG Scripts
 #include "SGCannon.h"
@@ -140,12 +146,14 @@
 #include "FvConsoleLeftQuickbuild.h"
 #include "FvConsoleRightQuickbuild.h"
 #include "FvFacilityBrick.h"
+#include "FvFacilityPipes.h"
 #include "ImgBrickConsoleQB.h"
 #include "ActParadoxPipeFix.h"
 #include "FvNinjaGuard.h"
 #include "FvPassThroughWall.h"
 #include "FvBounceOverWall.h"
 #include "FvFong.h"
+#include "FvMaelstromGeyser.h"
 
 // FB Scripts
 #include "AgJetEffectServer.h"
@@ -201,6 +209,7 @@
 #include "ForceVolumeServer.h"
 #include "NtXRayServer.h"
 #include "NtSleepingGuard.h"
+#include "NtImagimeterVisibility.h"
 
 // DLU Scripts
 #include "DLUVanityNPC.h"
@@ -269,6 +278,9 @@
 #include "ImaginationBackpackHealServer.h"
 #include "LegoDieRoll.h"
 #include "BuccaneerValiantShip.h"
+#include "GemPack.h"
+#include "ShardArmor.h"
+#include "TeslaPack.h"
 
 // Survival scripts
 #include "AgSurvivalStromling.h"
@@ -278,6 +290,9 @@
 // Frostburgh Scripts
 #include "RockHydrantBroken.h"
 #include "WhFans.h"
+
+// WBL scripts
+#include "WblGenericZone.h"
 
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
@@ -459,6 +474,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new WildAmbients();
 	else if (scriptName == "scripts\\ai\\NS\\NS_PP_01\\L_NS_PP_01_TELEPORT.lua")
 		script = new PropertyDeathPlane();
+	else if (scriptName == "scripts\\02_server\\Map\\General\\L_QB_SPAWNER.lua")
+		script = new QbSpawner();
+	else if (scriptName == "scripts\\ai\\AG\\L_AG_QB_Wall.lua")
+		script = new AgQbWall();
 
 	//GF:
 	else if (scriptName == "scripts\\02_server\\Map\\GF\\L_GF_TORCH.lua")
@@ -493,6 +512,14 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new GfApeSmashingQB();
 	else if (scriptName == "scripts\\zone\\PROPERTY\\GF\\L_ZONE_GF_PROPERTY.lua")
 		script = new ZoneGfProperty();
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_ARCHWAY.lua")
+		script = new GfArchway();
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_MAELSTROM_GEYSER.lua")
+		script = new GfMaelstromGeyser();
+	else if (scriptName == "scripts\\ai\\GF\\L_PIRATE_REP.lua")
+		script = new PirateRep();
+	else if (scriptName == "scripts\\ai\\GF\\L_GF_PARROT_CRASH.lua")
+		script = new GfParrotCrash();
 
 	// SG
 	else if (scriptName == "scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON.lua")
@@ -559,6 +586,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new FvConsoleRightQuickbuild();
 	else if (scriptName == "scripts\\ai\\FV\\L_FV_FACILITY_BRICK.lua")
 		script = new FvFacilityBrick();
+	else if (scriptName == "scripts\\ai\\FV\\L_FV_FACILITY_PIPES.lua")
+		script = new FvFacilityPipes();
 	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_IMG_BRICK_CONSOLE_QB.lua")
 		script = new ImgBrickConsoleQB();
 	else if (scriptName == "scripts\\ai\\FV\\L_ACT_PARADOX_PIPE_FIX.lua")
@@ -571,6 +600,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new FvBounceOverWall();
 	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_NPC_FONG.lua")
 		script = new FvFong();
+	else if (scriptName == "scripts\\ai\\FV\\L_FV_MAELSTROM_GEYSER.lua") {
+		script = new FvMaelstromGeyser();
+	}
 
 	//Misc:
 	if (scriptName == "scripts\\02_server\\Map\\General\\L_EXPLODING_ASSET.lua")
@@ -661,6 +693,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NtXRayServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_SLEEPING_GUARD.lua")
 		script = new NtSleepingGuard();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua") {
+		script = new NTImagimeterVisibility();
+	}
 
 	//AM:
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua")
@@ -805,23 +840,30 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new BuccaneerValiantShip();
 	else if (scriptName == "scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua")
 		script = new FireFirstSkillonStartup();
+	else if (scriptName == "scripts\\equipmenttriggers\\gempack.lua")
+		script = new GemPack();
+	else if (scriptName == "scripts\\equipmenttriggers\\shardarmor.lua")
+		script = new ShardArmor();
+	else if (scriptName == "scripts\\equipmenttriggers\\coilbackpack.lua")
+		script = new TeslaPack();
+
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
 		script = new RockHydrantBroken();
 	else if (scriptName == "scripts\\ai\\NS\\L_NS_WH_FANS.lua")
 		script = new WhFans();
 
-	//Ignore these scripts:
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua")
-		script = invalidToReturn;
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua")
-		script = invalidToReturn;
-	else if (script == invalidToReturn) {
-		if (scriptName.length() > 0)
-			Game::logger->LogDebug("CppScripts", "Attempted to load CppScript for '%s', but returned InvalidScript.", scriptName.c_str());
-		// information not really needed for sys admins but is for developers
+	// WBL
+	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
+		script = new WblGenericZone();
 
-		script = invalidToReturn;
+	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
+	// information not really needed for sys admins but is for developers
+	else if (script == invalidToReturn) {
+		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
+			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
+			(scriptName == "scripts\\empty.lua")
+			)) Game::logger->LogDebug("CppScripts", "LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
 	m_Scripts[scriptName] = script;

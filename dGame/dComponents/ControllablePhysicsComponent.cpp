@@ -12,6 +12,7 @@
 #include "EntityManager.h"
 #include "Character.h"
 #include "dZoneManager.h"
+#include "LevelProgressionComponent.h"
 
 ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Component(entity) {
 	m_Position = {};
@@ -34,6 +35,7 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_DirtyEquippedItemInfo = true;
 	m_BubbleDirty = false;
 	m_HasBubble = false;
+	m_IsTeleporting = false;
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
@@ -74,13 +76,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write0(); //This contains info about immunities, but for now I'm leaving it out.
 	}
 
-	if (m_SpeedMultiplier < 1.0f) {
-		m_DirtyCheats = false;
-	}
-
-	if (m_IgnoreMultipliers) {
-		m_DirtyCheats = false;
-	}
+	if (m_IgnoreMultipliers) m_DirtyCheats = false;
 
 	outBitStream->Write(m_DirtyCheats);
 	if (m_DirtyCheats) {
@@ -139,7 +135,10 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write0();
 	}
 
-	if (!bIsInitialUpdate) outBitStream->Write0();
+	if (!bIsInitialUpdate) {
+		outBitStream->Write(m_IsTeleporting);
+		m_IsTeleporting = false;
+	}
 }
 
 void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
@@ -270,7 +269,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 	if (pos != m_ActivePickupRadiusScales.end()) {
 		m_ActivePickupRadiusScales.erase(pos);
 	} else {
-		Game::logger->Log("ControllablePhysicsComponent", "Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.", value, m_ActivePickupRadiusScales.size());
+		Game::logger->LogDebug("ControllablePhysicsComponent", "Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.", value, m_ActivePickupRadiusScales.size());
 		return;
 	}
 
@@ -281,5 +280,32 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 		auto candidateRadius = m_ActivePickupRadiusScales[i];
 		if (m_PickupRadius < candidateRadius) m_PickupRadius = candidateRadius;
 	}
+	EntityManager::Instance()->SerializeEntity(m_Parent);
+}
+
+void ControllablePhysicsComponent::AddSpeedboost(float value) {
+	m_ActiveSpeedBoosts.push_back(value);
+	m_SpeedBoost = value;
+	SetSpeedMultiplier(value / 500.0f); // 500 being the base speed
+}
+
+void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
+	const auto pos = std::find(m_ActiveSpeedBoosts.begin(), m_ActiveSpeedBoosts.end(), value);
+	if (pos != m_ActiveSpeedBoosts.end()) {
+		m_ActiveSpeedBoosts.erase(pos);
+	} else {
+		Game::logger->LogDebug("ControllablePhysicsComponent", "Warning: Could not find speedboost %f in list of active speedboosts.  List has %i active speedboosts.", value, m_ActiveSpeedBoosts.size());
+		return;
+	}
+
+	// Recalculate speedboost since we removed one
+	m_SpeedBoost = 0.0f;
+	if (m_ActiveSpeedBoosts.size() == 0) { // no active speed boosts left, so return to base speed
+		auto* levelProgressionComponent = m_Parent->GetComponent<LevelProgressionComponent>();
+		if (levelProgressionComponent) m_SpeedBoost = levelProgressionComponent->GetSpeedBase();
+	} else { // Used the last applied speedboost
+		m_SpeedBoost = m_ActiveSpeedBoosts.back();
+	}
+	SetSpeedMultiplier(m_SpeedBoost / 500.0f); // 500 being the base speed
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
