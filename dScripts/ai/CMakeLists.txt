@@ -78,4 +78,10 @@ foreach(file ${DSCRIPTS_SOURCES_AI_WILD})
 	set(DSCRIPTS_SOURCES_AI ${DSCRIPTS_SOURCES_AI} "WILD/${file}")
 endforeach()
 
+add_subdirectory(YRK)
+
+foreach(file ${DSCRIPTS_SOURCES_AI_YRK})
+	set(DSCRIPTS_SOURCES_AI ${DSCRIPTS_SOURCES_AI} "YRK/${file}")
+endforeach()
+
 set(DSCRIPTS_SOURCES_AI ${DSCRIPTS_SOURCES_AI} PARENT_SCOPE)

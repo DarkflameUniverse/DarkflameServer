@@ -226,6 +226,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/ai/RACING"
 	"dScripts/ai/SPEC"
 	"dScripts/ai/WILD"
+	"dScripts/ai/YRK"
 	"dScripts/ai/ACT/FootRace"
 	"dScripts/ai/MINIGAME/SG_GF"
 	"dScripts/ai/MINIGAME/SG_GF/SERVER"

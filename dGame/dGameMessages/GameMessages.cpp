@@ -6006,3 +6006,19 @@ void GameMessages::HandleUpdatePlayerStatistic(RakNet::BitStream* inStream, Enti
 		characterComponent->UpdatePlayerStatistic((StatisticID)updateID, (uint64_t)std::max(updateValue, int64_t(0)));
 	}
 }
+
+void GameMessages::SendActivateBubbleBuffFromServer(LWOOBJID objectId, bool specialAnims, std::u16string wszType, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write<uint16_t>(734);
+
+	bitStream.Write(specialAnims);
+
+	bitStream.Write<uint32_t>(wszType.size());
+
+	for (auto& c : wszType) bitStream.Write<uint16_t>(c);
+
+	SEND_PACKET;
+}

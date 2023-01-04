@@ -286,6 +286,7 @@
 #include "AgSurvivalStromling.h"
 #include "AgSurvivalMech.h"
 #include "AgSurvivalSpiderling.h"
+#include "BubbleStatue.h"
 
 // Frostburgh Scripts
 #include "RockHydrantBroken.h"
@@ -846,6 +847,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new ShardArmor();
 	else if (scriptName == "scripts\\equipmenttriggers\\coilbackpack.lua")
 		script = new TeslaPack();
+	
+	// YRK
+	else if (scriptName == "scripts\\ai\\YRK\\L_BUBBLE_STATUE.lua") 
+		script = new BubbleStatue();
 
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
