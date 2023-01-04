@@ -1,11 +1,11 @@
 <qbs>
-	<qb name="one" lot="35005" size="large"/>
-	<qb name="two" lot="35003" size="large"/>
-	<qb name="three" lot="35004" size="large"/>
-	<qb name="four" lot="35001" size="large"/>
-	<qb name="five" lot="35002" size="large"/>
+	<qb name="bigfriendlydragon" lot="35005" size="large"/>
 </qbs>
 <locs>
-	<loc name="default" size="large" x="-11.567" y="291.837" z="-129.477" rx="0" ry="0" rz="0" rw="0" length="10" wait="10" chance="100"/>
+	<loc name="brickannex01" size="medium" x="-386.724" y="288.363" z="18.645" rx="1.0" ry="0" rz="0" rw="0" length="60" wait="10" chance="100"/>
+	<loc name="brickannex02" size="small" x="-248.194" y="288.414" z="81.285" rx="-0.276" ry="0" rz="0.96" rw="0" length="15" wait="8" chance="75"/>
+	<loc name="plaza01" size="small" x="-78.138" y="291.657" z="-137.850" rx="0.75" ry="0" rz="0.657" rw="0" length="25" wait="10" chance="75"/>
+	<loc name="redblocks01" size="large" x="292.883" y="259.293" z="-466.064" rx="0.065" ry="0" rz="0.997" rw="0" length="240" wait="120" chance="40"/>
+	<loc name="redblocks02" size="medium" x="218.971" y="259.137" z="-537.458" rx="0.437" ry="0" rz="0.899" rw="0" length="120" wait="45" chance="80"/>
+	<loc name="plaza01" size="large" x="-12.511" y="291.864" z="-125.884" rx="0.992" ry="0" rz="-0.124" rw="0" length="90" wait="240" chance="30"/>
 </locs>
-
