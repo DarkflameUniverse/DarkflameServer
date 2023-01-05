@@ -290,6 +290,10 @@ public:
 	 */
 	const eBubbleType GetBubbleType(){ return m_BubbleType;};
 
+	void RemoveBubble(){
+		m_IsInBubble = false;
+	}
+
 private:
 	/**
 	 * The entity that owns this component

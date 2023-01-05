@@ -38,7 +38,6 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_DirtyBubble = false;
 	m_HasBubble = false;
 	m_IsInBubble = false;
-	m_BubbleType = eBubbleType::NONE;
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
@@ -101,10 +100,10 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write(m_DirtyBubble);
 		if (m_DirtyBubble) {
 			outBitStream->Write(m_BubbleType);
-			outBitStream->Write(m_IsInBubble);
+			outBitStream->Write(m_IsInBubble); // Do Bubble Anim?
 
-			if (!m_IsInBubble) m_HasBubble;
-			m_DirtyBubble = false;
+			if (!m_IsInBubble) m_HasBubble = false;
+			// m_DirtyBubble = false;
 		}
 	}
 
@@ -318,6 +317,6 @@ void ControllablePhysicsComponent::SetBubbleType(eBubbleType bubbleType){
 	m_BubbleType = bubbleType;
 	m_HasBubble = true;
 	m_DirtyBubble = true;
-	if (bubbleType != eBubbleType::NONE) m_IsInBubble = true;
+	m_IsInBubble = true;
 }
 

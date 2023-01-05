@@ -6,10 +6,10 @@
 #include <cstdint>
 
 enum class eBubbleType : uint32_t {
-	NONE = 0, // ??
-	HALF = 1,
-	FULL = 2,
-	PINBALL = 3 // ??
+	SOAP = 0,
+	ENERGY = 1, // lol idk
+	JUMP = 2,
+	FULL = 3
 };
 
 #endif  //!__EBUBBLETYPE__H__
