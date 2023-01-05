@@ -13,6 +13,7 @@
 #include "Character.h"
 #include "dZoneManager.h"
 #include "LevelProgressionComponent.h"
+#include "eBubbleType.h"
 
 ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Component(entity) {
 	m_Position = {};
@@ -33,9 +34,11 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_IgnoreMultipliers = false;
 	m_PickupRadius = 0.0f;
 	m_DirtyEquippedItemInfo = true;
-	m_BubbleDirty = false;
-	m_HasBubble = false;
 	m_IsTeleporting = false;
+	m_DirtyBubble = false;
+	m_HasBubble = false;
+	m_IsInBubble = false;
+	m_BubbleType = eBubbleType::NONE;
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
@@ -93,14 +96,15 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		m_DirtyEquippedItemInfo = false;
 	}
 
-	outBitStream->Write(m_BubbleDirty);
-	if (m_BubbleDirty) {
-		outBitStream->Write1(); // another dirty flag?
-		if (m_BubbleDirty) {
-			outBitStream->Write<uint32_t>(1); // 1 not full bubble, 2 full bubble
-			outBitStream->Write(m_HasBubble);
+	outBitStream->Write(m_HasBubble);
+	if (m_HasBubble) {
+		outBitStream->Write(m_DirtyBubble);
+		if (m_DirtyBubble) {
+			outBitStream->Write(m_BubbleType);
+			outBitStream->Write(m_IsInBubble);
 
-			m_BubbleDirty = false;
+			if (!m_IsInBubble) m_HasBubble;
+			m_DirtyBubble = false;
 		}
 	}
 
@@ -309,3 +313,11 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	SetSpeedMultiplier(m_SpeedBoost / 500.0f); // 500 being the base speed
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
+
+void ControllablePhysicsComponent::SetBubbleType(eBubbleType bubbleType){
+	m_BubbleType = bubbleType;
+	m_HasBubble = true;
+	m_DirtyBubble = true;
+	if (bubbleType != eBubbleType::NONE) m_IsInBubble = true;
+}
+

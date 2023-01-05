@@ -12,6 +12,7 @@
 
 class Entity;
 class dpEntity;
+enum class eBubbleType : uint32_t;
 
 /**
  * Handles the movement of controllable Entities, e.g. enemies and players
@@ -258,21 +259,36 @@ public:
 	std::vector<float> GetActivePickupRadiusScales() { return m_ActivePickupRadiusScales; };
 
 	/**
-	* Sets the value of the bubble state
-	*/
-	void SetHasBubble(bool hasBubble) { m_HasBubble = hasBubble; m_BubbleDirty = true; }
-
-	/**
-	* Gets the value of the bubble state
-	* @return The value of the bubble state.
-	*/
-	bool GetHasBubble() { return m_HasBubble; }
-
+	 * Add a Speed boost to the entity
+	 */
 	void AddSpeedboost(float value);
 
+	/**
+	 *
+	 */
 	void RemoveSpeedboost(float value);
 
 	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
+
+	/**
+	* Sets the value of the bubble state
+	*/
+	void SetBubbleType(eBubbleType bubbleType);
+
+	/**
+	 * Get if the entity is in a bubble
+	 */
+	const bool GetIsInBubble(){ return m_IsInBubble;};
+
+	/**
+	 * Get if the entity has a bubble
+	 */
+	const bool GetHasBubble(){ return m_HasBubble;};
+
+	/**
+	 * Get the Bubble Type
+	 */
+	const eBubbleType GetBubbleType(){ return m_BubbleType;};
 
 private:
 	/**
@@ -385,16 +401,6 @@ private:
 	 */
 	float m_PickupRadius;
 
-	/*
-	* If the user has a bubble
-	*/
-	bool m_HasBubble;
-
-	/*
-	* If Bubble info is dirty
-	*/
-	bool m_BubbleDirty;
-
 	/**
 	 * If the entity is teleporting
 	 */
@@ -409,6 +415,26 @@ private:
 	 * The active speed boost for this entity
 	 */
 	float m_SpeedBoost;
+
+	/*
+	* If the user has a bubble
+	*/
+	bool m_HasBubble;
+
+	/*
+	* If Bubble info is dirty
+	*/
+	bool m_DirtyBubble;
+
+	/*
+	* If the entity is in a bubble
+	*/
+	bool m_IsInBubble;
+
+	/*
+	* The type of bubble the entity has
+	*/
+	eBubbleType m_BubbleType;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H
