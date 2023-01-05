@@ -32,12 +32,16 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_GravityScale = 1;
 	m_DirtyCheats = false;
 	m_IgnoreMultipliers = false;
-	m_PickupRadius = 0.0f;
+
 	m_DirtyEquippedItemInfo = true;
-	m_IsTeleporting = false;
+	m_PickupRadius = 0.0f;
+
 	m_DirtyBubble = false;
-	m_HasBubble = false;
 	m_IsInBubble = false;
+	m_IsFloating = false;
+	m_BubbleType = eBubbleType::FULL;
+
+	m_IsTeleporting = false;
 
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
@@ -95,16 +99,15 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		m_DirtyEquippedItemInfo = false;
 	}
 
-	outBitStream->Write(m_HasBubble);
-	if (m_HasBubble) {
-		outBitStream->Write(m_DirtyBubble);
-		if (m_DirtyBubble) {
+	outBitStream->Write(m_DirtyBubble);
+	if (m_DirtyBubble) {
+		outBitStream->Write(m_IsInBubble);
+		if (m_IsInBubble) {
+			// cannot update type without disabling bubble first
 			outBitStream->Write(m_BubbleType);
-			outBitStream->Write(m_IsInBubble); // Do Bubble Anim?
-
-			if (!m_IsInBubble) m_HasBubble = false;
-			// m_DirtyBubble = false;
+			outBitStream->Write(m_IsFloating);
 		}
+		m_DirtyBubble = false;
 	}
 
 	outBitStream->Write(m_DirtyPosition || bIsInitialUpdate);
@@ -315,8 +318,8 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 
 void ControllablePhysicsComponent::SetBubbleType(eBubbleType bubbleType){
 	m_BubbleType = bubbleType;
-	m_HasBubble = true;
-	m_DirtyBubble = true;
 	m_IsInBubble = true;
+	m_DirtyBubble = true;
+	m_IsFloating = true;
 }
 

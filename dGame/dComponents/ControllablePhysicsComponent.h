@@ -283,7 +283,7 @@ public:
 	/**
 	 * Get if the entity has a bubble
 	 */
-	const bool GetHasBubble(){ return m_HasBubble;};
+	const bool GetHasBubble(){ return m_IsInBubble;};
 
 	/**
 	 * Get the Bubble Type
@@ -291,6 +291,7 @@ public:
 	const eBubbleType GetBubbleType(){ return m_BubbleType;};
 
 	void RemoveBubble(){
+		m_DirtyBubble = true;
 		m_IsInBubble = false;
 	}
 
@@ -421,11 +422,6 @@ private:
 	float m_SpeedBoost;
 
 	/*
-	* If the user has a bubble
-	*/
-	bool m_HasBubble;
-
-	/*
 	* If Bubble info is dirty
 	*/
 	bool m_DirtyBubble;
@@ -439,6 +435,11 @@ private:
 	* The type of bubble the entity has
 	*/
 	eBubbleType m_BubbleType;
+
+	/*
+	* If the entity should be using the floating animation
+	*/
+	bool m_IsFloating;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H
