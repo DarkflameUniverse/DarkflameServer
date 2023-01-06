@@ -10,6 +10,7 @@
 #include "BehaviorStates.h"
 #include "BehaviorAction.h"
 #include "AssetManager.h"
+#include "BlockDefinition.h"
 #include "tinyxml2.h"
 
 uint32_t GetBehaviorIDFromArgument(AMFArrayValue* arguments, const std::string& key = "BehaviorID") {
@@ -615,19 +616,94 @@ ControlBehaviors::ControlBehaviors() {
 
 	tinyxml2::XMLDocument m_Doc;
 
-	blocksBuffer.seekg(0, blocksBuffer.end);
-	uint64_t length = blocksBuffer.tellg();
-	blocksBuffer.seekg(0, blocksBuffer.beg);
-	char* readBuffer = new char [length];
+	std::string read{};
 
-	blocksBuffer.read(readBuffer, length);
-	
-	auto ret = m_Doc.Parse(readBuffer);
+	std::string buffer{};
+	bool commentBlockStart = false;
+	while (std::getline(blocksBuffer, read)) {
+		// tinyxml2 should handle comment blocks but the client has one that fails the processing.  
+		// This preprocessing just removes all comments from the read file out of an abundance of caution.
+		if (read.find("<!--") != std::string::npos) {
+			commentBlockStart = true;
+		}
+		if (read.find("-->") != std::string::npos) {
+			commentBlockStart = false;
+			continue;
+		}
+		if (!commentBlockStart) buffer += read;
+	}
+
+	auto ret = m_Doc.Parse(buffer.c_str());
 	if (ret == tinyxml2::XML_SUCCESS) {
 		Game::logger->Log("ControlBehaviors", "Successfully parsed the blocksdef file!");
 	} else {
 		Game::logger->Log("Character", "Failed to load xmlData due to error %i!", ret);
 		return;
 	}
-	delete readBuffer;
+	auto* blockLibrary = m_Doc.FirstChildElement();
+	if (!blockLibrary) {
+		Game::logger->Log("ControlBehaviors", "Failed to parse block library");
+		return;
+	}
+
+	// Now parse the blocksdef for the necessary information server side.
+	auto* blockSections = blockLibrary->FirstChildElement();
+	while (blockSections) {
+		auto* block = blockSections->FirstChildElement();
+		std::string blockName{};
+		while (block) {
+			blockName = block->Name();
+			auto* argument = block->FirstChildElement("Argument");
+
+			std::string name{};
+			std::string typeName{};
+			BlockBase* newBlock = nullptr;
+			if (argument) {
+				auto* nameDefinition = argument->FirstChildElement("Name");
+				if (nameDefinition) name = nameDefinition->GetText();
+
+				auto* typeDefinition = argument->FirstChildElement("Type");
+				if (typeDefinition) typeName = typeDefinition->GetText();
+			}
+			newBlock = CreateBlock(name, typeName);
+			blockTypes.insert(std::make_pair(blockName, newBlock));
+			block = block->NextSiblingElement();
+		}
+		blockSections = blockSections->NextSiblingElement();
+	}
+	Game::logger->Log("ControlBehaviors", "created all base block classes");
+	for (auto pair : blockTypes) {
+		Game::logger->Log("ControlBehaviors", "Block name is %s with parameter name being %s and type being %s", pair.first.c_str(), pair.second->name.c_str(), pair.second->typeName.c_str());
+		pair.second->Serialize();
+	}
+}
+
+BlockBase* ControlBehaviors::GetBlockInfo(BlockName& blockName) {
+	return blockTypes[blockName];
+}
+
+BlockBase* ControlBehaviors::CreateBlock(std::string& name, std::string& typeName) {
+	BlockBase* newBlock = nullptr;
+	if (typeName == "Enumeration") {
+		newBlock = new BlockDefinition<int32_t>(name, typeName);
+	} else if (typeName == "String") {
+		newBlock = new BlockDefinition<std::string>(name, typeName);
+	} else if (typeName == "Boolean") {
+		newBlock = new BlockDefinition<bool>(name, typeName);
+	} else if (typeName == "Float") {
+		newBlock = new BlockDefinition<float>(name, typeName);
+	} else if (typeName == "Integer") {
+		newBlock = new BlockDefinition<int32_t>(name, typeName);
+	} else if (typeName == "Long Long") {
+		newBlock = new BlockDefinition<int64_t>(name, typeName);
+	} else if (typeName == "Unsigned Integer") {
+		newBlock = new BlockDefinition<uint32_t>(name, typeName);
+	} else if (typeName == "Unsigned Long Long") {
+		newBlock = new BlockDefinition<uint64_t>(name, typeName);
+	} else if (typeName == "") {
+		newBlock = new BlockBase(name, typeName);
+	} else {
+		Game::logger->Log("ControlBehaviors", "Unsupported block type (%s)!", typeName.c_str());
+	}
+	return newBlock;
 }
