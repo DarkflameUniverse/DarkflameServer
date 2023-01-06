@@ -66,6 +66,7 @@
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "dConfig.h"
+#include "eBubbleType.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -1300,6 +1301,35 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 	}
 
+	if ((chatCommand == "bubble") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+
+		auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+		if (!controllablePhysicsComponent) return;
+
+
+		if (args.size() == 0) {
+			controllablePhysicsComponent->DeactivateBubbleBuff();
+		} else{
+			uint32_t type_intermed;
+			if (!GeneralUtils::TryParse(args[0], type_intermed)) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid bubbleType.");
+				return;
+			}
+			bool floating = true;
+			if (args.size() == 2) {
+				uint32_t type_intermed2;
+				if (!GeneralUtils::TryParse(args[1], type_intermed2)) {
+					ChatPackets::SendSystemMessage(sysAddr, u"default floating true.");
+				}
+				if (type_intermed2 > 0) floating = true;
+				else floating = false;
+			}
+
+			auto bubbleType = static_cast<eBubbleType>(type_intermed);
+
+			controllablePhysicsComponent->ActivateBubbleBuff(bubbleType, floating);
+		}
+	}
 	if ((chatCommand == "giveuscore") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		int32_t uscore;
 

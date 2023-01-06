@@ -260,14 +260,20 @@ public:
 
 	/**
 	 * Add a Speed boost to the entity
+	 * This will recalculate the speed boost based on what is being added
 	 */
 	void AddSpeedboost(float value);
 
 	/**
-	 *
+	 * Remove speed boost from entity
+	 * This will recalculate the speed boost based on what is the last one in te vector
 	 */
 	void RemoveSpeedboost(float value);
 
+	/**
+	 * The speed boosts of this component.
+	 * @return All active Speed boosts for this component.
+	 */
 	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
 
 	/**
@@ -279,6 +285,11 @@ public:
 	* Deactivates the Bubble Buff
 	*/
 	void DeactivateBubbleBuff();
+
+	/**
+	 * Gets if the Entity is in a bubble
+	 */
+	bool GetIsInBubble(){ return m_IsInBubble; };
 
 private:
 	/**

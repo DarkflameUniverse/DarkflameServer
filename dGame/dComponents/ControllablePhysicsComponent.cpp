@@ -102,7 +102,6 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 	if (m_DirtyBubble) {
 		outBitStream->Write(m_IsInBubble);
 		if (m_IsInBubble) {
-			// cannot update type without disabling bubble first
 			outBitStream->Write(m_BubbleType);
 			outBitStream->Write(m_SpecialAnims);
 		}
@@ -328,7 +327,7 @@ void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bo
 
 	// each animation lasts ~10 seconds, so return the player to normal then
 	m_Parent->AddCallbackTimer(10.0f, [this]() {
-		this->DeactivateBubbleBuff();
+		if (this) this->DeactivateBubbleBuff();
 	});
 }
 
