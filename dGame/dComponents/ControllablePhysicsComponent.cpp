@@ -38,7 +38,7 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_DirtyBubble = false;
 	m_IsInBubble = false;
 	m_SpecialAnims = false;
-	m_BubbleType = eBubbleType::FULL;
+	m_BubbleType = eBubbleType::DEFAULT;
 
 	m_IsTeleporting = false;
 
