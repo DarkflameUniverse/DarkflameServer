@@ -9,10 +9,10 @@
 #include "Component.h"
 #include "dpCollisionChecks.h"
 #include "PhantomPhysicsComponent.h"
+#include "eBubbleType.h"
 
 class Entity;
 class dpEntity;
-enum class eBubbleType : uint32_t;
 
 /**
  * Handles the movement of controllable Entities, e.g. enemies and players
@@ -271,29 +271,14 @@ public:
 	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
 
 	/**
-	* Sets the value of the bubble state
+	* Activates the Bubble Buff
 	*/
-	void SetBubbleType(eBubbleType bubbleType);
+	void ActivateBubbleBuff(eBubbleType bubbleType = eBubbleType::DEFAULT, bool specialAnims = true);
 
 	/**
-	 * Get if the entity is in a bubble
-	 */
-	const bool GetIsInBubble(){ return m_IsInBubble;};
-
-	/**
-	 * Get if the entity has a bubble
-	 */
-	const bool GetHasBubble(){ return m_IsInBubble;};
-
-	/**
-	 * Get the Bubble Type
-	 */
-	const eBubbleType GetBubbleType(){ return m_BubbleType;};
-
-	void RemoveBubble(){
-		m_DirtyBubble = true;
-		m_IsInBubble = false;
-	}
+	* Deactivates the Bubble Buff
+	*/
+	void DeactivateBubbleBuff();
 
 private:
 	/**
@@ -437,9 +422,9 @@ private:
 	eBubbleType m_BubbleType;
 
 	/*
-	* If the entity should be using the floating animation
+	* If the entity should be using the special animations
 	*/
-	bool m_IsFloating;
+	bool m_SpecialAnims;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H

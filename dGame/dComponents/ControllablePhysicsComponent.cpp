@@ -13,7 +13,6 @@
 #include "Character.h"
 #include "dZoneManager.h"
 #include "LevelProgressionComponent.h"
-#include "eBubbleType.h"
 
 ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Component(entity) {
 	m_Position = {};
@@ -38,7 +37,7 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 
 	m_DirtyBubble = false;
 	m_IsInBubble = false;
-	m_IsFloating = false;
+	m_SpecialAnims = false;
 	m_BubbleType = eBubbleType::FULL;
 
 	m_IsTeleporting = false;
@@ -105,7 +104,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		if (m_IsInBubble) {
 			// cannot update type without disabling bubble first
 			outBitStream->Write(m_BubbleType);
-			outBitStream->Write(m_IsFloating);
+			outBitStream->Write(m_SpecialAnims);
 		}
 		m_DirtyBubble = false;
 	}
@@ -316,10 +315,25 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
 
-void ControllablePhysicsComponent::SetBubbleType(eBubbleType bubbleType){
+void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims){
+	if (m_IsInBubble) {
+		Game::logger->Log("ControllablePhysicsComponent", "Already in bubble");
+		return;
+	}
 	m_BubbleType = bubbleType;
 	m_IsInBubble = true;
 	m_DirtyBubble = true;
-	m_IsFloating = true;
+	m_SpecialAnims = specialAnims;
+	EntityManager::Instance()->SerializeEntity(m_Parent);
+
+	// each animation lasts ~10 seconds, so return the player to normal then
+	m_Parent->AddCallbackTimer(10.0f, [this]() {
+		this->DeactivateBubbleBuff();
+	});
 }
 
+void ControllablePhysicsComponent::DeactivateBubbleBuff(){
+	m_DirtyBubble = true;
+	m_IsInBubble = false;
+	EntityManager::Instance()->SerializeEntity(m_Parent);
+};

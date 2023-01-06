@@ -6,10 +6,9 @@
 #include <cstdint>
 
 enum class eBubbleType : uint32_t {
-	SOAP = 0,
-	ENERGY = 1, // lol idk
-	JUMP = 2,
-	FULL = 3
+	DEFAULT = 0,
+	ENERGY = 1,
+	SKUNK = 2,
 };
 
 #endif  //!__EBUBBLETYPE__H__
