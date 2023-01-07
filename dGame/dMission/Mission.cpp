@@ -16,7 +16,9 @@
 #include "dLogger.h"
 #include "dServer.h"
 #include "dZoneManager.h"
+#include "InventoryComponent.h"
 #include "Database.h"
+#include "WorldConfig.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	m_MissionComponent = missionComponent;
@@ -424,7 +426,7 @@ void Mission::YieldRewards() {
 			for (const auto target : task->GetAllTargets()) {
 				// This is how live did it.  ONLY remove item collection items from the items and hidden inventories and none of the others.
 				inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::ITEMS);
-				inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::HIDDEN);
+				inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::QUEST);
 
 				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, target, LWOOBJID_EMPTY, "", -task->GetClientInfo().targetValue);
 			}
@@ -434,9 +436,9 @@ void Mission::YieldRewards() {
 	int32_t coinsToSend = 0;
 	if (info->LegoScore > 0) {
 		eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
-		if (levelComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
+		if (levelComponent->GetLevel() >= dZoneManager::Instance()->GetWorldConfig()->levelCap) {
 			// Since the character is at the level cap we reward them with coins instead of UScore.
-			coinsToSend += info->LegoScore * dZoneManager::Instance()->GetLevelCapCurrencyConversion();
+			coinsToSend += info->LegoScore * dZoneManager::Instance()->GetWorldConfig()->levelCapCurrencyConversion;
 		} else {
 			characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
 			GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info->LegoScore, lootSource);

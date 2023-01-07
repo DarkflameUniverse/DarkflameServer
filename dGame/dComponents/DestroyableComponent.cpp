@@ -28,7 +28,9 @@
 #include "CharacterComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
+#include "InventoryComponent.h"
 #include "dZoneManager.h"
+#include "WorldConfig.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_iArmor = 0;
@@ -630,6 +632,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	auto* attacker = EntityManager::Instance()->GetEntity(source);
 	m_Parent->OnHit(attacker);
 	m_Parent->OnHitOrHealResult(attacker, sourceDamage);
+	NotifySubscribers(attacker, sourceDamage);
 
 	for (const auto& cb : m_OnHitCallbacks) {
 		cb(attacker);
@@ -645,6 +648,29 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 		return;
 	}
 	Smash(source, eKillType::VIOLENT, u"", skillID);
+}
+
+void DestroyableComponent::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd) {
+	m_SubscribedScripts.insert(std::make_pair(scriptObjId, scriptToAdd));
+	Game::logger->LogDebug("DestroyableComponent", "Added script %llu to entity %llu", scriptObjId, m_Parent->GetObjectID());
+	Game::logger->LogDebug("DestroyableComponent", "Number of subscribed scripts %i", m_SubscribedScripts.size());
+}
+
+void DestroyableComponent::Unsubscribe(LWOOBJID scriptObjId) {
+	auto foundScript = m_SubscribedScripts.find(scriptObjId);
+	if (foundScript != m_SubscribedScripts.end()) {
+		m_SubscribedScripts.erase(foundScript);
+		Game::logger->LogDebug("DestroyableComponent", "Removed script %llu from entity %llu", scriptObjId, m_Parent->GetObjectID());
+	} else {
+		Game::logger->LogDebug("DestroyableComponent", "Tried to remove a script for Entity %llu but script %llu didnt exist", m_Parent->GetObjectID(), scriptObjId);
+	}
+	Game::logger->LogDebug("DestroyableComponent", "Number of subscribed scripts %i", m_SubscribedScripts.size());
+}
+
+void DestroyableComponent::NotifySubscribers(Entity* attacker, uint32_t damage) {
+	for (auto script : m_SubscribedScripts) {
+		script.second->NotifyHitOrHealResult(m_Parent, attacker, damage);
+	}
 }
 
 void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType, uint32_t skillID) {
@@ -669,13 +695,13 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		auto* inventoryComponent = owner->GetComponent<InventoryComponent>();
 
 		if (inventoryComponent != nullptr && isEnemy) {
-			inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::EnemySmashed);
+			inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::EnemySmashed, m_Parent);
 		}
 
 		auto* missions = owner->GetComponent<MissionComponent>();
 
 		if (missions != nullptr) {
-			if (team != nullptr && isEnemy) {
+			if (team != nullptr) {
 				for (const auto memberId : team->members) {
 					auto* member = EntityManager::Instance()->GetEntity(memberId);
 
@@ -738,22 +764,17 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		if (dZoneManager::Instance()->GetPlayerLoseCoinOnDeath()) {
 			auto* character = m_Parent->GetCharacter();
 			uint64_t coinsTotal = character->GetCoins();
+			const uint64_t minCoinsToLose = dZoneManager::Instance()->GetWorldConfig()->coinsLostOnDeathMin;
+			if (coinsTotal >= minCoinsToLose) {
+				const uint64_t maxCoinsToLose = dZoneManager::Instance()->GetWorldConfig()->coinsLostOnDeathMax;
+				const float coinPercentageToLose = dZoneManager::Instance()->GetWorldConfig()->coinsLostOnDeathPercent;
 
-			if (coinsTotal > 0) {
-				uint64_t coinsToLoose = 1;
+				uint64_t coinsToLose = std::max(static_cast<uint64_t>(coinsTotal * coinPercentageToLose), minCoinsToLose);
+				coinsToLose = std::min(maxCoinsToLose, coinsToLose);
 
-				if (coinsTotal >= 200) {
-					float hundreth = (coinsTotal / 100.0f);
-					coinsToLoose = static_cast<int>(hundreth);
-				}
+				coinsTotal -= coinsToLose;
 
-				if (coinsToLoose > 10000) {
-					coinsToLoose = 10000;
-				}
-
-				coinsTotal -= coinsToLoose;
-
-				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
+				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLose, coinsToLose);
 				character->SetCoins(coinsTotal, eLootSourceType::LOOT_SOURCE_PICKUP);
 			}
 		}

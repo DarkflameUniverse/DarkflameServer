@@ -89,8 +89,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Create a /res directory
-make_directory(${CMAKE_BINARY_DIR}/res)
+# Create a /resServer directory
+make_directory(${CMAKE_BINARY_DIR}/resServer)
 
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
@@ -176,6 +176,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/ai"
 	"dScripts/client"
 	"dScripts/EquipmentScripts"
+	"dScripts/EquipmentTriggers"
 	"dScripts/zone"
 	"dScripts/02_server/DLU"
 	"dScripts/02_server/Enemy"

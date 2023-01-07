@@ -38,7 +38,7 @@ void MigrationRunner::RunMigrations() {
 
 	sql::SQLString finalSQL = "";
 	bool runSd0Migrations = false;
-	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/").string())) {
+	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/").string())) {
 		auto migration = LoadMigration("dlu/" + entry);
 
 		if (migration.data.empty()) {
@@ -54,7 +54,7 @@ void MigrationRunner::RunMigrations() {
 		if (doExit) continue;
 
 		Game::logger->Log("MigrationRunner", "Running migration: %s", migration.name.c_str());
-		if (migration.name == "5_brick_model_sd0.sql") {
+		if (migration.name == "dlu/5_brick_model_sd0.sql") {
 			runSd0Migrations = true;
 		} else {
 			finalSQL.append(migration.data.c_str());
@@ -102,7 +102,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 	stmt->execute();
 	delete stmt;
 
-	for (const auto& entry : GeneralUtils::GetFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "migrations/cdserver/").string())) {
+	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "migrations/cdserver/").string())) {
 		auto migration = LoadMigration("cdserver/" + entry);
 
 		if (migration.data.empty()) continue;
@@ -136,6 +136,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 		// Doing these 1 migration at a time since one takes a long time and some may think it is crashing.
 		// This will at the least guarentee that the full migration needs to be run in order to be counted as "migrated".
 		Game::logger->Log("MigrationRunner", "Executing migration: %s.  This may take a while.  Do not shut down server.", migration.name.c_str());
+		CDClientDatabase::ExecuteQuery("BEGIN TRANSACTION;");
 		for (const auto& dml : GeneralUtils::SplitString(migration.data, ';')) {
 			if (dml.empty()) continue;
 			try {
@@ -150,6 +151,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 		cdstmt.bind((int32_t) 1, migration.name.c_str());
 		cdstmt.execQuery().finalize();
 		cdstmt.finalize();
+		CDClientDatabase::ExecuteQuery("COMMIT;");
 	}
 
 	Game::logger->Log("MigrationRunner", "CDServer database is up to date.");

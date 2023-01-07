@@ -28,6 +28,7 @@
 #include "GameConfig.h"
 #include "RocketLaunchLupComponent.h"
 #include "eUnequippableActiveType.h"
+#include "RacingTaskParam.h"
 
 #include <sstream>
 #include <future>
@@ -49,6 +50,7 @@
 #include "ScriptComponent.h"
 #include "RebuildComponent.h"
 #include "VendorComponent.h"
+#include "InventoryComponent.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
 #include "MovingPlatformComponent.h"
@@ -3922,6 +3924,20 @@ void GameMessages::SendDisplayChatBubble(LWOOBJID objectId, const std::u16string
 	SEND_PACKET;
 }
 
+
+void GameMessages::SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags flagsOn, eAnimationFlags flagsOff, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_CHANGE_IDLE_FLAGS);
+	bitStream.Write<bool>(flagsOff != eAnimationFlags::IDLE_NONE);
+	if (flagsOff != eAnimationFlags::IDLE_NONE) bitStream.Write(flagsOff);
+	bitStream.Write<bool>(flagsOn != eAnimationFlags::IDLE_NONE);
+	if (flagsOn != eAnimationFlags::IDLE_NONE) bitStream.Write(flagsOn);
+
+	SEND_PACKET_BROADCAST;
+}
 // Mounts
 
 void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objectID, const SystemAddress& sysAddr) {
@@ -4462,13 +4478,13 @@ void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uin
 // NT
 
 void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool bAllowPartial;
+	bool bAllowPartial{};
 	int32_t destSlot = -1;
 	int32_t iStackCount = 1;
 	eInventoryType invTypeDst = ITEMS;
 	eInventoryType invTypeSrc = ITEMS;
 	LWOOBJID itemID = LWOOBJID_EMPTY;
-	bool showFlyingLoot;
+	bool showFlyingLoot{};
 	LWOOBJID subkey = LWOOBJID_EMPTY;
 	LOT itemLOT = 0;
 
@@ -4492,12 +4508,12 @@ void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream*
 		if (itemID != LWOOBJID_EMPTY) {
 			auto* item = inventoryComponent->FindItemById(itemID);
 
-			if (item == nullptr) {
-				return;
-			}
+			if (!item) return;
 
-			if (inventoryComponent->IsPet(item->GetSubKey()) || !item->GetConfig().empty()) {
-				return;
+			// Despawn the pet if we are moving that pet to the vault.
+			auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+			if (petComponent && petComponent->GetDatabaseId() == item->GetSubKey()) {
+				inventoryComponent->DespawnPet();
 			}
 
 			inventoryComponent->MoveItemToInventory(item, invTypeDst, iStackCount, showFlyingLoot, false, false, destSlot);
@@ -4713,13 +4729,13 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 
 	float sellScalar = vend->GetSellScalar();
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
-		const auto altCurrency = (itemComp.altCurrencyCost * sellScalar) * count;
+		const auto altCurrency = static_cast<uint32_t>(itemComp.altCurrencyCost * sellScalar) * count;
 		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::LOOT_SOURCE_VENDOR); // Return alt currencies like faction tokens.
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar) * count)), eLootSourceType::LOOT_SOURCE_VENDOR);
+	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -5467,7 +5483,8 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 	auto* temp = inv->GetInventory(TEMP_MODELS);
 	std::vector<LOT> modList;
-
+	auto& oldPartList = character->GetVar<std::string>(u"currentModifiedBuild");
+	bool everyPieceSwapped = !oldPartList.empty(); // If the player didn't put a build in initially, then they should not get this achievement.
 	if (count >= 3) {
 		std::u16string modules;
 
@@ -5475,13 +5492,21 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 			uint32_t mod;
 			inStream->Read(mod);
 			modList.push_back(mod);
-			modules += u"1:" + (GeneralUtils::to_u16string(mod));
+			auto modToStr = GeneralUtils::to_u16string(mod);
+			modules += u"1:" + (modToStr);
 			if (k + 1 != count) modules += u"+";
 
 			if (temp->GetLotCount(mod) > 0) {
 				inv->RemoveItem(mod, 1, TEMP_MODELS);
 			} else {
 				inv->RemoveItem(mod, 1);
+			}
+
+			// Doing this check for 1 singular mission that needs to know when you've swapped every part out during a car modular build.
+			// since all 8129's are the same, skip checking that
+			if (mod != 8129) {
+				if (oldPartList.find(GeneralUtils::UTF16ToWTF8(modToStr)) != std::string::npos) everyPieceSwapped = false;
+
 			}
 		}
 
@@ -5501,6 +5526,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 		if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
 			if (missionComponent != nullptr) {
 				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, entity->GetLOT(), entity->GetObjectID());
+				if (count >= 7 && everyPieceSwapped) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, LWOOBJID_EMPTY, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_MODULAR_BUILDING);
 			}
 		}
 	}
@@ -5723,16 +5749,16 @@ void GameMessages::HandleClientItemConsumed(RakNet::BitStream* inStream, Entity*
 	}
 
 	auto* item = inventory->FindItemById(itemConsumed);
-
 	if (item == nullptr) {
 		return;
 	}
+	LOT itemLot = item->GetLot();
 
 	item->Consume();
 
 	auto* missions = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
 	if (missions != nullptr) {
-		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_FOOD, item->GetLot());
+		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_FOOD, itemLot);
 	}
 }
 
@@ -5748,11 +5774,7 @@ void GameMessages::HandleUseNonEquipmentItem(RakNet::BitStream* inStream, Entity
 
 	auto* item = inv->FindItemById(itemConsumed);
 
-	if (item == nullptr) {
-		return;
-	}
-
-	item->UseNonEquip();
+	if (item) item->UseNonEquip(item);
 }
 
 void GameMessages::HandleMatchRequest(RakNet::BitStream* inStream, Entity* entity) {

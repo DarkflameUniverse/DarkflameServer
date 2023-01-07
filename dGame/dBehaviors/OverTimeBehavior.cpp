@@ -6,6 +6,8 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
+#include "CDClientDatabase.h"
+#include "CDClientManager.h"
 
 void OverTimeBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	const auto originator = context->originator;

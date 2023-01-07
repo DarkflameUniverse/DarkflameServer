@@ -6,15 +6,25 @@
 #include <cstdint>
 #include <string>
 #include <set>
-#include "../thirdparty/raknet/Source/BitStream.h"
+#include "BitStream.h"
 
 #pragma warning (disable:4251) //Disables SQL warnings
 
 typedef int RESTICKET;
 
-const int highFrameRate = 16;	//60fps
-const int mediumFramerate = 33;	//30fps
-const int lowFramerate = 66;	//15fps
+// These are the same define, but they mean two different things in different contexts
+// so a different define to distinguish what calculation is happening will help clarity.
+#define FRAMES_TO_MS(x) 1000 / x
+#define MS_TO_FRAMES(x) 1000 / x
+
+//=========== FRAME TIMINGS ===========
+constexpr uint32_t highFramerate = 60;
+constexpr uint32_t mediumFramerate = 30;
+constexpr uint32_t lowFramerate = 15;
+
+constexpr uint32_t highFrameDelta = FRAMES_TO_MS(highFramerate);
+constexpr uint32_t mediumFrameDelta = FRAMES_TO_MS(mediumFramerate);
+constexpr uint32_t lowFrameDelta = FRAMES_TO_MS(lowFramerate);
 
 //========== MACROS ===========
 
@@ -425,26 +435,6 @@ enum class UseItemResponse : uint32_t {
 	NoImaginationForPet = 1,
 	FailedPrecondition,
 	MountsNotAllowed
-};
-
-/**
- * Represents the different types of inventories an entity may have
- */
-enum eInventoryType : uint32_t {
-	ITEMS = 0,
-	VAULT_ITEMS,
-	BRICKS,
-	MODELS_IN_BBB,
-	TEMP_ITEMS = 4,
-	MODELS,
-	TEMP_MODELS,
-	BEHAVIORS,
-	PROPERTY_DEEDS,
-	VENDOR_BUYBACK = 11,
-	HIDDEN = 12, //Used for missional items
-	VAULT_MODELS = 14,
-	ITEM_SETS, //internal
-	INVALID // made up, for internal use!!!
 };
 
 enum eRebuildState : uint32_t {
