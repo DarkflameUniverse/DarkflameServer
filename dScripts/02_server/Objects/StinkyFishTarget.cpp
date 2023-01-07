@@ -1,5 +1,6 @@
 #include "StinkyFishTarget.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 
 void StinkyFishTarget::OnStartup(Entity* self) {
 	auto position = self->GetPosition();

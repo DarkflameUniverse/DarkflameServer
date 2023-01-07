@@ -18,6 +18,8 @@
 #include "dConfig.h"
 #include "InventoryComponent.h"
 #include "DestroyableComponent.h"
+#include "dMessageIdentifiers.h"
+#include "Loot.h"
 
 ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent) {
 	m_ActivityID = activityID;

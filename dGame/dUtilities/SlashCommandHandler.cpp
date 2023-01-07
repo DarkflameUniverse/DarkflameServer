@@ -50,6 +50,9 @@
 #include "Item.h"
 #include "PropertyManagementComponent.h"
 #include "PacketUtils.h"
+#include "Loot.h"
+#include "EntityInfo.h"
+#include "LUTriggers.h"
 #include "Player.h"
 #include "PhantomPhysicsComponent.h"
 #include "ProximityMonitorComponent.h"
@@ -66,6 +69,9 @@
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "dConfig.h"
+#include "AMFFormat.h"
+#include "MovingPlatformComponent.h"
+#include "dMessageIdentifiers.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;

@@ -1,5 +1,6 @@
 #include "NPCAddRemoveItem.h"
 #include "InventoryComponent.h"
+#include "MissionState.h"
 
 void NPCAddRemoveItem::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
 	auto* inventory = target->GetComponent<InventoryComponent>();

@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "GeneralUtils.h"
 #include "GameMessages.h"
+#include "EntityInfo.h"
 #include "DestroyableComponent.h"
 
 void AgImagSmashable::OnDie(Entity* self, Entity* killer) {

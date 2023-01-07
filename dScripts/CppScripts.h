@@ -1,12 +1,13 @@
 #pragma once
-#include "dCommonVars.h"
-#include "MissionState.h"
+
+#include <cstdint>
 #include <string>
 #include <vector>
 
 class User;
 class Entity;
 class NiPoint3;
+enum class MissionState : int32_t;
 
 namespace CppScripts {
 	/**

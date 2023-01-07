@@ -4,6 +4,7 @@
 #include "BrickDatabase.h"
 #include "Game.h"
 #include "AssetManager.h"
+#include "tinyxml2.h"
 
 std::vector<Brick> BrickDatabase::emptyCache{};
 BrickDatabase* BrickDatabase::m_Address = nullptr;
