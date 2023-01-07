@@ -42,6 +42,14 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 
 	m_IsTeleporting = false;
 
+	m_ImmuneToStunAttackCount = 0;
+	m_ImmuneToStunEquipCount = 0;
+	m_ImmuneToStunInteractCount = 0;
+	m_ImmuneToStunJumpCount = 0;
+	m_ImmuneToStunMoveCount = 0;
+	m_ImmuneToStunTurnCount = 0;
+	m_ImmuneToStunUseItemCount = 0;
+
 	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
 		return;
 
@@ -78,7 +86,14 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 			outBitStream->Write(m_JetpackBypassChecks);
 		}
 
-		outBitStream->Write0(); //This contains info about immunities, but for now I'm leaving it out.
+		outBitStream->Write1(); // always write these on construction
+		outBitStream->Write(m_ImmuneToStunMoveCount);
+		outBitStream->Write(m_ImmuneToStunJumpCount);
+		outBitStream->Write(m_ImmuneToStunTurnCount);
+		outBitStream->Write(m_ImmuneToStunAttackCount);
+		outBitStream->Write(m_ImmuneToStunUseItemCount);
+		outBitStream->Write(m_ImmuneToStunEquipCount);
+		outBitStream->Write(m_ImmuneToStunInteractCount);
 	}
 
 	if (m_IgnoreMultipliers) m_DirtyCheats = false;
@@ -331,3 +346,44 @@ void ControllablePhysicsComponent::DeactivateBubbleBuff(){
 	m_IsInBubble = false;
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 };
+
+void ControllablePhysicsComponent::SetStunImmunity(
+	const eStateChangeType state,
+	const LWOOBJID originator,
+	const bool bImmuneToStunAttack,
+	const bool bImmuneToStunEquip,
+	const bool bImmuneToStunInteract,
+	const bool bImmuneToStunJump,
+	const bool bImmuneToStunMove,
+	const bool bImmuneToStunTurn,
+	const bool bImmuneToStunUseItem){
+
+	if (state == eStateChangeType::POP){
+		if (bImmuneToStunAttack && m_ImmuneToStunAttackCount > 0) 		m_ImmuneToStunAttackCount -= 1;
+		if (bImmuneToStunEquip && m_ImmuneToStunEquipCount > 0) 		m_ImmuneToStunEquipCount -= 1;
+		if (bImmuneToStunInteract && m_ImmuneToStunInteractCount > 0) 	m_ImmuneToStunInteractCount -= 1;
+		if (bImmuneToStunJump && m_ImmuneToStunJumpCount > 0) 			m_ImmuneToStunJumpCount -= 1;
+		if (bImmuneToStunMove && m_ImmuneToStunMoveCount > 0) 			m_ImmuneToStunMoveCount -= 1;
+		if (bImmuneToStunTurn && m_ImmuneToStunTurnCount > 0) 			m_ImmuneToStunTurnCount -= 1;
+		if (bImmuneToStunUseItem && m_ImmuneToStunUseItemCount > 0) 	m_ImmuneToStunUseItemCount -= 1;
+	} else if (state == eStateChangeType::PUSH) {
+		if (bImmuneToStunAttack) 	m_ImmuneToStunAttackCount += 1;
+		if (bImmuneToStunEquip) 	m_ImmuneToStunEquipCount += 1;
+		if (bImmuneToStunInteract) 	m_ImmuneToStunInteractCount += 1;
+		if (bImmuneToStunJump) 		m_ImmuneToStunJumpCount += 1;
+		if (bImmuneToStunMove) 		m_ImmuneToStunMoveCount += 1;
+		if (bImmuneToStunTurn) 		m_ImmuneToStunTurnCount += 1;
+		if (bImmuneToStunUseItem)	m_ImmuneToStunUseItemCount += 1;
+	}
+
+	GameMessages::SendSetStunImmunity(
+		m_Parent->GetObjectID(), state, m_Parent->GetSystemAddress(), originator,
+		bImmuneToStunAttack,
+		bImmuneToStunEquip,
+		bImmuneToStunInteract,
+		bImmuneToStunJump,
+		bImmuneToStunMove,
+		bImmuneToStunTurn,
+		bImmuneToStunUseItem
+	);
+}

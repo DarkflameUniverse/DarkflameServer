@@ -2904,7 +2904,7 @@ void GameMessages::HandleCinematicUpdate(RakNet::BitStream* inStream, Entity* en
 	}
 }
 
-void GameMessages::SendSetStunned(LWOOBJID objectId, eStunState stateChangeType, const SystemAddress& sysAddr,
+void GameMessages::SendSetStunned(LWOOBJID objectId, eStateChangeType stateChangeType, const SystemAddress& sysAddr,
 	LWOOBJID originator, bool bCantAttack, bool bCantEquip,
 	bool bCantInteract, bool bCantJump, bool bCantMove, bool bCantTurn,
 	bool bCantUseItem, bool bDontTerminateInteract, bool bIgnoreImmunity,
@@ -2952,6 +2952,69 @@ void GameMessages::SendSetStunned(LWOOBJID objectId, eStunState stateChangeType,
 	SEND_PACKET;
 }
 
+void GameMessages::SendSetStunImmunity(LWOOBJID target, eStateChangeType state, const SystemAddress& sysAddr,
+		LWOOBJID originator,
+		bool bImmuneToStunAttack,
+		bool bImmuneToStunEquip,
+		bool bImmuneToStunInteract,
+		bool bImmuneToStunJump,
+		bool bImmuneToStunMove,
+		bool bImmuneToStunTurn,
+		bool bImmuneToStunUseItem) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(target);
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_STUN_IMMUNITY);
+
+	bitStream.Write(originator != LWOOBJID_EMPTY);
+	if (originator != LWOOBJID_EMPTY) bitStream.Write(originator);
+
+	bitStream.Write(state);
+
+	bitStream.Write(bImmuneToStunAttack);
+	bitStream.Write(bImmuneToStunEquip);
+	bitStream.Write(bImmuneToStunInteract);
+	bitStream.Write(bImmuneToStunJump);
+	bitStream.Write(bImmuneToStunMove);
+	bitStream.Write(bImmuneToStunTurn);
+	bitStream.Write(bImmuneToStunUseItem);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}
+
+void GameMessages::SendSetStatusImmunity(LWOOBJID objectId, eStateChangeType state, const SystemAddress& sysAddr,
+		bool bImmuneToBasicAttack,
+		bool bImmuneToDamageOverTime,
+		bool bImmuneToKnockback,
+		bool bImmuneToInterrupt,
+		bool bImmuneToSpeed,
+		bool bImmuneToImaginationGain,
+		bool bImmuneToImaginationLoss,
+		bool bImmuneToQuickbuildInterrupt,
+		bool bImmuneToPullToPoint) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_STATUS_IMMUNITY);
+
+	bitStream.Write(state);
+
+	bitStream.Write(bImmuneToBasicAttack);
+	bitStream.Write(bImmuneToDamageOverTime);
+	bitStream.Write(bImmuneToKnockback);
+	bitStream.Write(bImmuneToInterrupt);
+	bitStream.Write(bImmuneToSpeed);
+	bitStream.Write(bImmuneToImaginationGain);
+	bitStream.Write(bImmuneToImaginationLoss);
+	bitStream.Write(bImmuneToQuickbuildInterrupt);
+	bitStream.Write(bImmuneToPullToPoint);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}
 
 void GameMessages::SendOrientToAngle(LWOOBJID objectId, bool bRelativeToCurrent, float fAngle, const SystemAddress& sysAddr) {
 	CBITSTREAM;
@@ -3991,7 +4054,7 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 			EntityManager::Instance()->SerializeEntity(entity);
 
 			// We aren't mounted so remove the stun
-			GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+			GameMessages::SendSetStunned(entity->GetObjectID(), eStateChangeType::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 		}
 	}
 }

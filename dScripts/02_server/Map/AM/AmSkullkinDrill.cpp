@@ -147,21 +147,21 @@ void AmSkullkinDrill::OnUse(Entity* self, Entity* user) {
 }
 
 void AmSkullkinDrill::FreezePlayer(Entity* self, Entity* player, bool bFreeze) {
-	eStunState eChangeType = POP;
+	auto StateChangeType = eStateChangeType::POP;
 
 	if (bFreeze) {
 		if (player->GetIsDead()) {
 			return;
 		}
 
-		eChangeType = PUSH;
+		StateChangeType = eStateChangeType::PUSH;
 	} else {
 		if (player->GetIsDead()) {
 			//
 		}
 	}
 
-	GameMessages::SendSetStunned(player->GetObjectID(), eChangeType, player->GetSystemAddress(), self->GetObjectID(),
+	GameMessages::SendSetStunned(player->GetObjectID(), StateChangeType, player->GetSystemAddress(), self->GetObjectID(),
 		true, false, true, false, true, false, true
 	);
 }
