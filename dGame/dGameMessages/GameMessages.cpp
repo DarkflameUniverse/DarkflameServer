@@ -25,9 +25,12 @@
 #include "dConfig.h"
 #include "TeamManager.h"
 #include "ChatPackets.h"
-#include "GameConfig.h"
 #include "RocketLaunchLupComponent.h"
 #include "eUnequippableActiveType.h"
+#include "eMovementPlatformState.h"
+#include "LeaderboardManager.h"
+#include "AMFFormat.h"
+#include "Loot.h"
 #include "RacingTaskParam.h"
 
 #include <sstream>
@@ -73,6 +76,7 @@
 #include "ControlBehaviors.h"
 #include "AMFDeserialize.h"
 #include "eBlueprintSaveResponseType.h"
+#include "eAninmationFlags.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -330,7 +334,7 @@ void GameMessages::SendStartPathing(Entity* entity) {
 
 void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
 	int iIndex, int iDesiredWaypointIndex, int nextIndex,
-	MovementPlatformState movementState) {
+	eMovementPlatformState movementState) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -341,7 +345,7 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 		iIndex = 0;
 		nextIndex = 0;
 		bStopAtDesiredWaypoint = true;
-		movementState = MovementPlatformState::Stationary;
+		movementState = eMovementPlatformState::Stationary;
 	}
 
 	bitStream.Write(entity->GetObjectID());
@@ -575,7 +579,7 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, NDGFxValue args) {
+void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFValue* args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -593,7 +597,7 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args) {
+void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFValue* args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -1000,7 +1004,7 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 }
 
 void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos, int count) {
-	if (GameConfig::GetValue<int32_t>("no_drops") == 1) {
+	if (Game::config->GetValue("disable_drops") == "1") {
 		return;
 	}
 
@@ -2900,7 +2904,7 @@ void GameMessages::HandleCinematicUpdate(RakNet::BitStream* inStream, Entity* en
 	}
 }
 
-void GameMessages::SendSetStunned(LWOOBJID objectId, eStunState stateChangeType, const SystemAddress& sysAddr,
+void GameMessages::SendSetStunned(LWOOBJID objectId, eStateChangeType stateChangeType, const SystemAddress& sysAddr,
 	LWOOBJID originator, bool bCantAttack, bool bCantEquip,
 	bool bCantInteract, bool bCantJump, bool bCantMove, bool bCantTurn,
 	bool bCantUseItem, bool bDontTerminateInteract, bool bIgnoreImmunity,
@@ -2948,6 +2952,69 @@ void GameMessages::SendSetStunned(LWOOBJID objectId, eStunState stateChangeType,
 	SEND_PACKET;
 }
 
+void GameMessages::SendSetStunImmunity(LWOOBJID target, eStateChangeType state, const SystemAddress& sysAddr,
+		LWOOBJID originator,
+		bool bImmuneToStunAttack,
+		bool bImmuneToStunEquip,
+		bool bImmuneToStunInteract,
+		bool bImmuneToStunJump,
+		bool bImmuneToStunMove,
+		bool bImmuneToStunTurn,
+		bool bImmuneToStunUseItem) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(target);
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_STUN_IMMUNITY);
+
+	bitStream.Write(originator != LWOOBJID_EMPTY);
+	if (originator != LWOOBJID_EMPTY) bitStream.Write(originator);
+
+	bitStream.Write(state);
+
+	bitStream.Write(bImmuneToStunAttack);
+	bitStream.Write(bImmuneToStunEquip);
+	bitStream.Write(bImmuneToStunInteract);
+	bitStream.Write(bImmuneToStunJump);
+	bitStream.Write(bImmuneToStunMove);
+	bitStream.Write(bImmuneToStunTurn);
+	bitStream.Write(bImmuneToStunUseItem);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}
+
+void GameMessages::SendSetStatusImmunity(LWOOBJID objectId, eStateChangeType state, const SystemAddress& sysAddr,
+		bool bImmuneToBasicAttack,
+		bool bImmuneToDamageOverTime,
+		bool bImmuneToKnockback,
+		bool bImmuneToInterrupt,
+		bool bImmuneToSpeed,
+		bool bImmuneToImaginationGain,
+		bool bImmuneToImaginationLoss,
+		bool bImmuneToQuickbuildInterrupt,
+		bool bImmuneToPullToPoint) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_STATUS_IMMUNITY);
+
+	bitStream.Write(state);
+
+	bitStream.Write(bImmuneToBasicAttack);
+	bitStream.Write(bImmuneToDamageOverTime);
+	bitStream.Write(bImmuneToKnockback);
+	bitStream.Write(bImmuneToInterrupt);
+	bitStream.Write(bImmuneToSpeed);
+	bitStream.Write(bImmuneToImaginationGain);
+	bitStream.Write(bImmuneToImaginationLoss);
+	bitStream.Write(bImmuneToQuickbuildInterrupt);
+	bitStream.Write(bImmuneToPullToPoint);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}
 
 void GameMessages::SendOrientToAngle(LWOOBJID objectId, bool bRelativeToCurrent, float fAngle, const SystemAddress& sysAddr) {
 	CBITSTREAM;
@@ -3987,7 +4054,7 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 			EntityManager::Instance()->SerializeEntity(entity);
 
 			// We aren't mounted so remove the stun
-			GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+			GameMessages::SendSetStunned(entity->GetObjectID(), eStateChangeType::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 		}
 	}
 }
@@ -6088,4 +6155,44 @@ void GameMessages::HandleUpdatePlayerStatistic(RakNet::BitStream* inStream, Enti
 	if (characterComponent != nullptr) {
 		characterComponent->UpdatePlayerStatistic((StatisticID)updateID, (uint64_t)std::max(updateValue, int64_t(0)));
 	}
+}
+
+void GameMessages::HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity) {
+	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->DeactivateBubbleBuff();
+}
+
+void GameMessages::HandleActivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity) {
+	bool specialAnimations;
+	if (!inStream->Read(specialAnimations)) return;
+
+	std::u16string type = GeneralUtils::ReadWString(inStream);
+	auto bubbleType = eBubbleType::DEFAULT;
+	if (type == u"skunk") bubbleType = eBubbleType::SKUNK;
+	else if (type == u"energy") bubbleType = eBubbleType::ENERGY;
+
+	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->ActivateBubbleBuff(bubbleType, specialAnimations);
+}
+
+void GameMessages::SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_ACTIVATE_BUBBLE_BUFF_FROM_SERVER);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}
+
+void GameMessages::SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_DEACTIVATE_BUBBLE_BUFF_FROM_SERVER);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
 }

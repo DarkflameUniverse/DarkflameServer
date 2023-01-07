@@ -3,6 +3,7 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
+#include "MissionState.h"
 
 void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
 	auto* character = target->GetCharacter();

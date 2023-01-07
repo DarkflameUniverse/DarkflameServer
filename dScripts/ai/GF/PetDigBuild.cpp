@@ -1,5 +1,6 @@
 #include "PetDigBuild.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 #include "MissionComponent.h"
 
 void PetDigBuild::OnRebuildComplete(Entity* self, Entity* target) {

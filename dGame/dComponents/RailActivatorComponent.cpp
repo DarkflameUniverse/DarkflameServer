@@ -95,7 +95,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 
 void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 	// Stun the originator
-	GameMessages::SendSetStunned(originator->GetObjectID(), PUSH, originator->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(originator->GetObjectID(), eStateChangeType::PUSH, originator->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 
@@ -123,7 +123,7 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 
 void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 	// Remove the stun from the originator
-	GameMessages::SendSetStunned(originator->GetObjectID(), POP, originator->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(originator->GetObjectID(), eStateChangeType::POP, originator->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 

@@ -17,6 +17,11 @@
 #include "UserManager.h"
 #include "dpWorld.h"
 #include "Player.h"
+#include "LUTriggers.h"
+#include "User.h"
+#include "EntityTimer.h"
+#include "EntityCallbackTimer.h"
+#include "Loot.h"
 
 //Component includes:
 #include "Component.h"

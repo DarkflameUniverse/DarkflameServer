@@ -5,6 +5,7 @@
 #include "MovementAIComponent.h"
 #include "BaseCombatAIComponent.h"
 #include "SkillComponent.h"
+#include "EntityInfo.h"
 #include "RebuildComponent.h"
 #include "MissionComponent.h"
 

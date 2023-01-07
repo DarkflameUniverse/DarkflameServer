@@ -1,5 +1,7 @@
 #include "AgPicnicBlanket.h"
+#include "Loot.h"
 #include "GameMessages.h"
+#include "Entity.h"
 
 void AgPicnicBlanket::OnUse(Entity* self, Entity* user) {
 	GameMessages::SendTerminateInteraction(user->GetObjectID(), FROM_INTERACTION, self->GetObjectID());

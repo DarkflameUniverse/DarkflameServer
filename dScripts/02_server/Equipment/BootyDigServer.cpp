@@ -3,6 +3,7 @@
 #include "RenderComponent.h"
 #include "MissionComponent.h"
 #include "MissionTaskType.h"
+#include "Loot.h"
 
 void BootyDigServer::OnStartup(Entity* self) {
 	auto* zoneControlObject = EntityManager::Instance()->GetZoneControlEntity();

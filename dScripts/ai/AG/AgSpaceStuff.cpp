@@ -1,4 +1,5 @@
 #include "AgSpaceStuff.h"
+#include "EntityInfo.h"
 #include "GeneralUtils.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
