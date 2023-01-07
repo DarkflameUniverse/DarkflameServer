@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
 
 	// Connect to CDClient
 	try {
-		CDClientDatabase::Connect((Game::assetManager->GetResPath() / "CDServer.sqlite").string());
+		CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").string());
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database");
 		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
@@ -296,6 +296,7 @@ int main(int argc, char** argv) {
 	uint32_t chatReconnectionTime = 30 * currentFramerate; // 30 seconds in frames
 	uint32_t saveTime = 10 * 60 * currentFramerate; // 10 minutes in frames
 	uint32_t sqlPingTime = 10 * 60 * currentFramerate; // 10 minutes in frames
+	uint32_t emptyShutdownTime = (cloneID == 0 ? 30 : 5) * 60 * currentFramerate; // 30 minutes for main worlds, 5 for all others.
 	while (true) {
 		Metrics::StartMeasurement(MetricVariable::Frame);
 		Metrics::StartMeasurement(MetricVariable::GameLoop);
@@ -333,6 +334,8 @@ int main(int argc, char** argv) {
 			framesSinceLastUsersSave *= ratioBeforeToAfter;
 			sqlPingTime = 10 * 60 * currentFramerate; // 10 minutes in frames
 			framesSinceLastSQLPing *= ratioBeforeToAfter;
+			emptyShutdownTime = (cloneID == 0 ? 30 : 5) * 60 * currentFramerate; // 30 minutes for main worlds, 5 for all others.
+			framesSinceLastUser *= ratioBeforeToAfter;
 		}
 
 		//Warning if we ran slow
@@ -413,7 +416,7 @@ int main(int argc, char** argv) {
 				HandlePacket(packet);
 				auto t2 = std::chrono::high_resolution_clock::now();
 
-				timeSpent += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+				timeSpent += std::chrono::duration_cast<std::chrono::duration<float>>(t2 - t1).count();
 				Game::server->DeallocatePacket(packet);
 				packet = nullptr;
 			} else {
@@ -440,7 +443,7 @@ int main(int argc, char** argv) {
 			framesSinceLastUser++;
 
 			//If we haven't had any players for a while, time out and shut down:
-			if (framesSinceLastUser == (cloneID != 0 ? 4000 : 40000)) {
+			if (framesSinceLastUser >= emptyShutdownTime) {
 				Game::shouldShutdown = true;
 			}
 		} else {

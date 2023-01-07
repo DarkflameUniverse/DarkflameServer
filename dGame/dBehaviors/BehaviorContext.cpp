@@ -51,6 +51,7 @@ void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* beha
 	entry.handle = syncId;
 	entry.behavior = behavior;
 	entry.branchContext = branchContext;
+	entry.branchContext.isSync = true;
 	entry.ignoreInterrupts = ignoreInterrupts;
 
 	this->syncEntries.push_back(entry);
