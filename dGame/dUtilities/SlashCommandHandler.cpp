@@ -11,7 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-
+#include "WorldConfig.h"
 #include "dZoneManager.h"
 #ifdef _WIN32
 #include <direct.h>
