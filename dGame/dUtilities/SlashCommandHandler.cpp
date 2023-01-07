@@ -181,7 +181,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "togglexp") {
 		auto levelComponent = entity->GetComponent<LevelProgressionComponent>();
 		if (levelComponent != nullptr) {
-			if (levelComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel()) {
+			if (levelComponent->GetLevel() >= dZoneManager::Instance()->GetWorldConfig()->levelCap) {
 				auto character = entity->GetCharacter();
 				character->SetPlayerFlag(
 					ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL,
