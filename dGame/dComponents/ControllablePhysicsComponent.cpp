@@ -31,8 +31,15 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_GravityScale = 1;
 	m_DirtyCheats = false;
 	m_IgnoreMultipliers = false;
+
+	m_DirtyEquippedItemInfo = true;
 	m_PickupRadius = 0.0f;
-	m_DirtyPickupRadiusScale = true;
+
+	m_DirtyBubble = false;
+	m_IsInBubble = false;
+	m_SpecialAnims = false;
+	m_BubbleType = eBubbleType::DEFAULT;
+
 	m_IsTeleporting = false;
 
 	m_ImmuneToStunAttackCount = 0;
@@ -99,14 +106,22 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		m_DirtyCheats = false;
 	}
 
-	outBitStream->Write(m_DirtyPickupRadiusScale);
-	if (m_DirtyPickupRadiusScale) {
+	outBitStream->Write(m_DirtyEquippedItemInfo);
+	if (m_DirtyEquippedItemInfo) {
 		outBitStream->Write(m_PickupRadius);
-		outBitStream->Write0(); //No clue what this is so im leaving it false.
-		m_DirtyPickupRadiusScale = false;
+		outBitStream->Write(m_InJetpackMode);
+		m_DirtyEquippedItemInfo = false;
 	}
 
-	outBitStream->Write0();
+	outBitStream->Write(m_DirtyBubble);
+	if (m_DirtyBubble) {
+		outBitStream->Write(m_IsInBubble);
+		if (m_IsInBubble) {
+			outBitStream->Write(m_BubbleType);
+			outBitStream->Write(m_SpecialAnims);
+		}
+		m_DirtyBubble = false;
+	}
 
 	outBitStream->Write(m_DirtyPosition || bIsInitialUpdate);
 	if (m_DirtyPosition || bIsInitialUpdate) {
@@ -263,7 +278,7 @@ void ControllablePhysicsComponent::AddPickupRadiusScale(float value) {
 	m_ActivePickupRadiusScales.push_back(value);
 	if (value > m_PickupRadius) {
 		m_PickupRadius = value;
-		m_DirtyPickupRadiusScale = true;
+		m_DirtyEquippedItemInfo = true;
 	}
 }
 
@@ -279,7 +294,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 
 	// Recalculate pickup radius since we removed one by now
 	m_PickupRadius = 0.0f;
-	m_DirtyPickupRadiusScale = true;
+	m_DirtyEquippedItemInfo = true;
 	for (uint32_t i = 0; i < m_ActivePickupRadiusScales.size(); i++) {
 		auto candidateRadius = m_ActivePickupRadiusScales[i];
 		if (m_PickupRadius < candidateRadius) m_PickupRadius = candidateRadius;
@@ -313,6 +328,24 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	SetSpeedMultiplier(m_SpeedBoost / 500.0f); // 500 being the base speed
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }
+
+void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims){
+	if (m_IsInBubble) {
+		Game::logger->Log("ControllablePhysicsComponent", "Already in bubble");
+		return;
+	}
+	m_BubbleType = bubbleType;
+	m_IsInBubble = true;
+	m_DirtyBubble = true;
+	m_SpecialAnims = specialAnims;
+	EntityManager::Instance()->SerializeEntity(m_Parent);
+}
+
+void ControllablePhysicsComponent::DeactivateBubbleBuff(){
+	m_DirtyBubble = true;
+	m_IsInBubble = false;
+	EntityManager::Instance()->SerializeEntity(m_Parent);
+};
 
 void ControllablePhysicsComponent::SetStunImmunity(
 	const eStateChangeType state,

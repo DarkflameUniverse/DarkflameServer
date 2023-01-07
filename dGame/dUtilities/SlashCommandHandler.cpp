@@ -68,6 +68,7 @@
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "dConfig.h"
+#include "eBubbleType.h"
 #include "AMFFormat.h"
 #include "MovingPlatformComponent.h"
 #include "dMessageIdentifiers.h"

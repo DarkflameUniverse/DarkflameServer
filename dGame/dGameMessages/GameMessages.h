@@ -617,6 +617,15 @@ namespace GameMessages {
 	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);
 
 	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
+  
+	// bubble
+	void HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
+
+	void HandleActivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
+
+	void SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
+
+	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 };
 
 #endif // GAMEMESSAGES_H
