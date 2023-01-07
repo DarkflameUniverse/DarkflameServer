@@ -7,6 +7,8 @@
 #include <iosfwd>
 #include <map>
 
+class AssetMemoryBuffer;
+
 enum class eSqliteDataType : int32_t;
 
 namespace FdbToSqlite {
@@ -18,33 +20,28 @@ namespace FdbToSqlite {
 		 * @param inputFile The file which ends in .fdb to be converted
 		 * @param binaryPath The base path where the file will be saved
 		 */
-		Convert(std::string inputFile, std::string binaryOutPath);
-
-		/**
-		 * Destroy the convert object and close the fdb file.
-		 */
-		~Convert();
+		Convert(std::string binaryOutPath);
 
 		/**
 		 * Converts the input file to sqlite.  Calling multiple times is safe.
 		 * 
 		 * @return true if the database was converted properly, false otherwise. 
 		 */
-		bool ConvertDatabase();
+		bool ConvertDatabase(AssetMemoryBuffer& buffer);
 
 		/**
 		 * @brief Reads a 32 bit int from the fdb file.
 		 * 
 		 * @return The read value
 		 */
-		int32_t ReadInt32();
+		int32_t ReadInt32(std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Reads a 64 bit integer from the fdb file.
 		 * 
 		 * @return The read value
 		 */
-		int64_t ReadInt64();
+		int64_t ReadInt64(std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Reads a string from the fdb file.
@@ -53,28 +50,28 @@ namespace FdbToSqlite {
 		 * 
 		 * TODO This needs to be translated to latin-1!
 		 */
-		std::string ReadString();
+		std::string ReadString(std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Seeks to a pointer position.
 		 * 
 		 * @return The previous position before the seek
 		 */
-		int32_t SeekPointer();
+		int32_t SeekPointer(std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Reads a column header from the fdb file and creates the table in the database
 		 * 
 		 * @return The table name
 		 */
-		std::string ReadColumnHeader();
+		std::string ReadColumnHeader(std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Read the tables from the fdb file.
 		 * 
 		 * @param numberOfTables The number of tables to read
 		 */
-		void ReadTables(int32_t& numberOfTables);
+		void ReadTables(int32_t& numberOfTables, std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Reads the columns from the fdb file.
@@ -82,14 +79,14 @@ namespace FdbToSqlite {
 		 * @param numberOfColumns The number of columns to read
 		 * @return All columns of the table formatted for a sql query
 		 */
-		std::string ReadColumns(int32_t& numberOfColumns);
+		std::string ReadColumns(int32_t& numberOfColumns, std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Reads the row header from the fdb file.
 		 * 
 		 * @param tableName The tables name
 		 */
-		void ReadRowHeader(std::string& tableName);
+		void ReadRowHeader(std::string& tableName, std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Read the rows from the fdb file.,
@@ -97,7 +94,7 @@ namespace FdbToSqlite {
 		 * @param numberOfAllocatedRows The number of rows that were allocated.  Always a power of 2! 
 		 * @param tableName The tables name.
 		 */
-		void ReadRows(int32_t& numberOfAllocatedRows, std::string& tableName);
+		void ReadRows(int32_t& numberOfAllocatedRows, std::string& tableName, std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Reads a row from the fdb file.
@@ -105,14 +102,14 @@ namespace FdbToSqlite {
 		 * @param position The position to seek in the fdb to
 		 * @param tableName The tables name
 		 */
-		void ReadRow(int32_t& position, std::string& tableName);
+		void ReadRow(int32_t& position, std::string& tableName, std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Reads the row info from the fdb file.
 		 * 
 		 * @param tableName The tables name
 		 */
-		void ReadRowInfo(std::string& tableName);
+		void ReadRowInfo(std::string& tableName, std::istream& cdClientBuffer);
 
 		/**
 		 * @brief Reads each row and its values from the fdb file and inserts them into the database
@@ -120,7 +117,7 @@ namespace FdbToSqlite {
 		 * @param numberOfColumns The number of columns to read in
 		 * @param tableName The tables name
 		 */
-		void ReadRowValues(int32_t& numberOfColumns, std::string& tableName);
+		void ReadRowValues(int32_t& numberOfColumns, std::string& tableName, std::istream& cdClientBuffer);
 	private:
 
 		/**
@@ -132,11 +129,6 @@ namespace FdbToSqlite {
 		 * Base path of the folder containing the fdb file
 		 */
 		std::string m_BasePath{};
-
-		/**
-		 * ifstream containing the fdb file
-		 */
-		std::ifstream m_Fdb{};
 		
 		/**
 		 * Whether or not a conversion was started.  If one was started, do not attempt to convert the file again.
