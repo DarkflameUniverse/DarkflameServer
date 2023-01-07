@@ -30,6 +30,7 @@
 #include "PossessorComponent.h"
 #include "InventoryComponent.h"
 #include "dZoneManager.h"
+#include "WorldConfig.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_iArmor = 0;
@@ -763,22 +764,17 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		if (dZoneManager::Instance()->GetPlayerLoseCoinOnDeath()) {
 			auto* character = m_Parent->GetCharacter();
 			uint64_t coinsTotal = character->GetCoins();
+			const uint64_t minCoinsToLose = dZoneManager::Instance()->GetWorldConfig()->coinsLostOnDeathMin;
+			if (coinsTotal >= minCoinsToLose) {
+				const uint64_t maxCoinsToLose = dZoneManager::Instance()->GetWorldConfig()->coinsLostOnDeathMax;
+				const float coinPercentageToLose = dZoneManager::Instance()->GetWorldConfig()->coinsLostOnDeathPercent;
 
-			if (coinsTotal > 0) {
-				uint64_t coinsToLoose = 1;
+				uint64_t coinsToLose = std::max(static_cast<uint64_t>(coinsTotal * coinPercentageToLose), minCoinsToLose);
+				coinsToLose = std::min(maxCoinsToLose, coinsToLose);
 
-				if (coinsTotal >= 200) {
-					float hundreth = (coinsTotal / 100.0f);
-					coinsToLoose = static_cast<int>(hundreth);
-				}
+				coinsTotal -= coinsToLose;
 
-				if (coinsToLoose > 10000) {
-					coinsToLoose = 10000;
-				}
-
-				coinsTotal -= coinsToLoose;
-
-				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLoose, coinsToLoose);
+				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLose, coinsToLose);
 				character->SetCoins(coinsTotal, eLootSourceType::LOOT_SOURCE_PICKUP);
 			}
 		}
