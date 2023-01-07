@@ -1,6 +1,7 @@
 #include "JetPackBehavior.h"
 
 #include "BehaviorBranchContext.h"
+#include "ControllablePhysicsComponent.h"
 #include "GameMessages.h"
 
 #include "Character.h"
@@ -12,11 +13,11 @@ void JetPackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_st
 
 	if (entity->IsPlayer()) {
 		auto* character = entity->GetCharacter();
-
-		if (character) {
-			character->SetIsFlying(true);
-		}
+		if (character) character->SetIsFlying(true);
 	}
+
+	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->Ser
 }
 
 void JetPackBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
@@ -26,10 +27,7 @@ void JetPackBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext bra
 
 	if (entity->IsPlayer()) {
         auto* character = entity->GetCharacter();
-
-        if (character) {
-            character->SetIsFlying(false);
-        }
+        if (character) character->SetIsFlying(false);
     }
 }
 
