@@ -17,7 +17,7 @@ void JetPackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_st
 	}
 
 	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
-	if (controllablePhysicsComponent) controllablePhysicsComponent->Ser
+	if (controllablePhysicsComponent) controllablePhysicsComponent->SetJetpackFlying(true);
 }
 
 void JetPackBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
@@ -29,6 +29,9 @@ void JetPackBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext bra
         auto* character = entity->GetCharacter();
         if (character) character->SetIsFlying(false);
     }
+
+	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->SetJetpackFlying(false);
 }
 
 void JetPackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {

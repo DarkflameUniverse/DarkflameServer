@@ -128,12 +128,6 @@ public:
 	void SetDirtyAngularVelocity(bool val);
 
 	/**
-	 * Sets whether or not the entity is currently wearing a jetpack
-	 * @param val whether or not the entity is currently wearing a jetpack
-	 */
-	void SetInJetpackMode(bool val) { m_InJetpackMode = val; }
-
-	/**
 	 * Returns whether or not the entity is currently wearing a jetpack
 	 * @return whether or not the entity is currently wearing a jetpack
 	 */
@@ -143,7 +137,7 @@ public:
 	 * Sets whether or not the entity is currently flying a jetpack
 	 * @param val whether or not the entity is currently flying a jetpack
 	 */
-	void SetJetpackFlying(bool val) { m_JetpackFlying = val; }
+	void SetJetpackFlying(bool val) { m_JetpackFlying = val; m_DirtyEquippedItemInfo = true;}
 
 	/**
 	 * Returns whether or not an entity is currently flying a jetpack
