@@ -22,6 +22,7 @@
 #include "SkillComponent.h"
 #include "AssetManager.h"
 #include "CDClientDatabase.h"
+#include "dMessageIdentifiers.h"
 
 UserManager* UserManager::m_Address = nullptr;
 

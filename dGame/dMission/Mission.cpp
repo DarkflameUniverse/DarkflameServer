@@ -18,7 +18,9 @@
 #include "dServer.h"
 #include "dZoneManager.h"
 #include "InventoryComponent.h"
+#include "User.h"
 #include "Database.h"
+#include "WorldConfig.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	m_MissionComponent = missionComponent;
@@ -436,9 +438,9 @@ void Mission::YieldRewards() {
 	int32_t coinsToSend = 0;
 	if (info->LegoScore > 0) {
 		eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
-		if (levelComponent->GetLevel() >= dZoneManager::Instance()->GetMaxLevel() && !entity->GetCharacter()->GetPlayerFlag(ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL)) {
+		if (levelComponent->GetLevel() >= dZoneManager::Instance()->GetWorldConfig()->levelCap && !entity->GetCharacter()->GetPlayerFlag(ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL)) {
 			// If player is at the level cap and doesnt want to keep earning UScore at max level we convert it here.
-			coinsToSend += info->LegoScore * dZoneManager::Instance()->GetLevelCapCurrencyConversion();
+			coinsToSend += info->LegoScore * dZoneManager::Instance()->GetWorldConfig()->levelCapCurrencyConversion;
 		} else {
 			characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
 			GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info->LegoScore, lootSource);

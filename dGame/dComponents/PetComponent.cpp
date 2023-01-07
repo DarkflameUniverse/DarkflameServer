@@ -20,6 +20,7 @@
 #include "dConfig.h"
 #include "dChatFilter.h"
 #include "Database.h"
+#include "EntityInfo.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -59,7 +60,7 @@ std::map<LOT, uint32_t> PetComponent::petFlags = {
 		{ 13067, 838 }, // Skeleton dragon
 };
 
-PetComponent::PetComponent(Entity* parent, uint32_t componentId) : Component(parent) {
+PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(parent) {
 	m_ComponentId = componentId;
 
 	m_Interaction = LWOOBJID_EMPTY;
@@ -118,21 +119,23 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 		outBitStream->Write(m_Owner);
 	}
 
-	outBitStream->Write(tamed);
-	if (tamed) {
-		outBitStream->Write(m_ModerationStatus);
+	if (bIsInitialUpdate) {
+		outBitStream->Write(tamed);
+		if (tamed) {
+			outBitStream->Write(m_ModerationStatus);
 
-		const auto nameData = GeneralUtils::UTF8ToUTF16(m_Name);
-		const auto ownerNameData = GeneralUtils::UTF8ToUTF16(m_OwnerName);
+			const auto nameData = GeneralUtils::UTF8ToUTF16(m_Name);
+			const auto ownerNameData = GeneralUtils::UTF8ToUTF16(m_OwnerName);
 
-		outBitStream->Write(static_cast<uint8_t>(nameData.size()));
-		for (const auto c : nameData) {
-			outBitStream->Write(c);
-		}
+			outBitStream->Write(static_cast<uint8_t>(nameData.size()));
+			for (const auto c : nameData) {
+				outBitStream->Write(c);
+			}
 
-		outBitStream->Write(static_cast<uint8_t>(ownerNameData.size()));
-		for (const auto c : ownerNameData) {
-			outBitStream->Write(c);
+			outBitStream->Write(static_cast<uint8_t>(ownerNameData.size()));
+			for (const auto c : ownerNameData) {
+				outBitStream->Write(c);
+			}
 		}
 	}
 }
@@ -916,16 +919,16 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 			return;
 		}
 
-		// If we are out of imagination despawn the pet.
-		if (playerDestroyableComponent->GetImagination() == 0) {
-			this->Deactivate();
-			auto playerEntity = playerDestroyableComponent->GetParent();
-			if (!playerEntity) return;
+	// If we are out of imagination despawn the pet.
+	if (playerDestroyableComponent->GetImagination() == 0) {
+		this->Deactivate();
+		auto playerEntity = playerDestroyableComponent->GetParent();
+		if (!playerEntity) return;
 
-			GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
-		}
+		GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
+	}
 
-		this->AddDrainImaginationTimer(item);
+	this->AddDrainImaginationTimer(item);
 		});
 }
 

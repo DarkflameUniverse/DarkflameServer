@@ -16,7 +16,7 @@ void MastTeleport::OnRebuildComplete(Entity* self, Entity* target) {
 	if (Preconditions::Check(target, 154) && Preconditions::Check(target, 44)) {
 		self->SetVar<LWOOBJID>(u"userID", target->GetObjectID());
 
-		GameMessages::SendSetStunned(target->GetObjectID(), PUSH, target->GetSystemAddress(),
+		GameMessages::SendSetStunned(target->GetObjectID(), eStateChangeType::PUSH, target->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true
 		);
 
@@ -81,7 +81,7 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendTeleport(playerId, position, NiQuaternion::IDENTITY, player->GetSystemAddress());
 
-		GameMessages::SendSetStunned(playerId, POP, player->GetSystemAddress(),
+		GameMessages::SendSetStunned(playerId, eStateChangeType::POP, player->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true
 		);
 	}

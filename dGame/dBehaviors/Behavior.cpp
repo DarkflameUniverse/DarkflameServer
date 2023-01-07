@@ -48,6 +48,7 @@
 #include "PlayEffectBehavior.h"
 #include "DamageAbsorptionBehavior.h"
 #include "VentureVisionBehavior.h"
+#include "PropertyTeleportBehavior.h"
 #include "BlockBehavior.h"
 #include "ClearTargetBehavior.h"
 #include "PullToPointBehavior.h"
@@ -263,7 +264,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_DAMAGE_REDUCTION:
 		behavior = new DamageReductionBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_PROPERTY_TELEPORT: break;
+	case BehaviorTemplates::BEHAVIOR_PROPERTY_TELEPORT:
+		behavior = new PropertyTeleportBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_PROPERTY_CLEAR_TARGET:
 		behavior = new ClearTargetBehavior(behaviorId);
 		break;

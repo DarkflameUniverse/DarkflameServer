@@ -5,6 +5,7 @@
 #include "GameMessages.h"
 #include <algorithm>
 #include "dLogger.h"
+#include "Loot.h"
 
 bool ActivityManager::IsPlayerInActivity(Entity* self, LWOOBJID playerID) {
 	const auto* sac = self->GetComponent<ScriptedActivityComponent>();

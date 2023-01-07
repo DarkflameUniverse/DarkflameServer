@@ -2,6 +2,7 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "EntityInfo.h"
 #include "ScriptedActivityComponent.h"
 
 void FvPandaSpawnerServer::OnCollisionPhantom(Entity* self, Entity* target) {

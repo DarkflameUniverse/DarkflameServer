@@ -7,6 +7,7 @@
 #include "ModelComponent.h"
 #include "../../dWorldServer/ObjectIDManager.h"
 #include "dLogger.h"
+#include "User.h"
 
 uint32_t GetBehaviorIDFromArgument(AMFArrayValue* arguments, const std::string& key = "BehaviorID") {
 	auto* behaviorIDValue = arguments->FindValue<AMFStringValue>(key);

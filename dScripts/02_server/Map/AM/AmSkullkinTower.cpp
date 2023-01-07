@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "DestroyableComponent.h"
 #include "MovingPlatformComponent.h"
+#include "EntityInfo.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
 

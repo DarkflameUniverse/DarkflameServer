@@ -89,7 +89,7 @@ void dLogger::Log(const std::string& className, const std::string& message) {
 void dLogger::LogDebug(const char* className, const char* format, ...) {
 	if (!m_logDebugStatements) return;
 	va_list args;
-	std::string log = "[" + std::string(className) + "] " + std::string(format);
+	std::string log = "[" + std::string(className) + "] " + std::string(format) + "\n";
 	va_start(args, format);
 	vLog(log.c_str(), args);
 	va_end(args);

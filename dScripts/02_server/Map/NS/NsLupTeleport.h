@@ -2,6 +2,7 @@
 #include "CppScripts.h"
 #include "ChooseYourDestinationNsToNt.h"
 #include "BaseConsoleTeleportServer.h"
+#include "AMFFormat.h"
 
 class NsLupTeleport : public CppScripts::Script, ChooseYourDestinationNsToNt, BaseConsoleTeleportServer
 {
