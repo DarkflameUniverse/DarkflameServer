@@ -61,6 +61,7 @@
 #include "DamageReductionBehavior.h"
 #include "JetPackBehavior.h"
 #include "ChangeIdleFlagsBehavior.h"
+#include "DarkInspirationBehavior.h"
 
  //CDClient includes
 #include "CDBehaviorParameterTable.h"
@@ -169,7 +170,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_SPEED:
 		behavior = new SpeedBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: break;
+	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: 
+		behavior = new DarkInspirationBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF:
 		behavior = new LootBuffBehavior(behaviorId);
 		break;
@@ -436,7 +439,7 @@ Behavior::Behavior(const uint32_t behaviorId) {
 float Behavior::GetFloat(const std::string& name, const float defaultValue) const {
 	// Get the behavior parameter entry and return its value.
 	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
-	return BehaviorParameterTable->GetEntry(this->m_behaviorId, name, defaultValue).value;
+	return BehaviorParameterTable->GetValue(this->m_behaviorId, name, defaultValue);
 }
 
 

@@ -48,9 +48,8 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 
 void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* self = EntityManager::Instance()->GetEntity(context->caster);
-
 	if (self == nullptr) {
-		Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!", context->originator);
+		Game::logger->Log("AreaOfEffectBehavior", "Invalid self for (%llu)!", context->originator);
 
 		return;
 	}
@@ -79,7 +78,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 		auto* entity = EntityManager::Instance()->GetEntity(validTarget);
 
 		if (entity == nullptr) {
-			Game::logger->Log("TacArcBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);
+			Game::logger->Log("AreaOfEffectBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);
 
 			continue;
 		}
