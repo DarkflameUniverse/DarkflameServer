@@ -413,21 +413,27 @@ int main(int argc, char** argv) {
 
 		UserManager::Instance()->DeletePendingRemovals();
 
-		auto t1 = std::chrono::high_resolution_clock::now();
-		for (uint32_t curPacket = 0; curPacket < maxPacketsToProcess && timeSpent < maxPacketProcessingTime; curPacket++) {
-			packet = Game::server->Receive();
-			if (packet) {
-				auto t1 = std::chrono::high_resolution_clock::now();
-				HandlePacket(packet);
-				auto t2 = std::chrono::high_resolution_clock::now();
+		try {
+			auto t1 = std::chrono::high_resolution_clock::now();
+			for (uint32_t curPacket = 0; curPacket < maxPacketsToProcess && timeSpent < maxPacketProcessingTime; curPacket++) {
+				packet = Game::server->Receive();
+				if (packet) {
+					auto t1 = std::chrono::high_resolution_clock::now();
+					HandlePacket(packet);
+					auto t2 = std::chrono::high_resolution_clock::now();
 
-				timeSpent += std::chrono::duration_cast<std::chrono::duration<float>>(t2 - t1).count();
-				Game::server->DeallocatePacket(packet);
-				packet = nullptr;
-			} else {
-				break;
+					timeSpent += std::chrono::duration_cast<std::chrono::duration<float>>(t2 - t1).count();
+					Game::server->DeallocatePacket(packet);
+					packet = nullptr;
+				} else {
+					break;
+				}
 			}
+		} catch (sql::SQLException& e) {
+			Game::logger->Log("WorldServer", "Caught an error (%s)", e.what());
+			std::raise(SIGTERM);
 		}
+	
 
 		Metrics::EndMeasurement(MetricVariable::PacketHandling);
 
