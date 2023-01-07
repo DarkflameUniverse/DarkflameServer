@@ -268,7 +268,7 @@ namespace GameMessages {
 		float leadOut = -1.0f, bool leavePlayerLocked = false);
 	void HandleCinematicUpdate(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void SendSetStunned(LWOOBJID objectId, eStunState stateChangeType, const SystemAddress& sysAddr,
+	void SendSetStunned(LWOOBJID objectId, eStateChangeType stateChangeType, const SystemAddress& sysAddr,
 		LWOOBJID originator = LWOOBJID_EMPTY, bool bCantAttack = false, bool bCantEquip = false,
 		bool bCantInteract = false, bool bCantJump = false, bool bCantMove = false, bool bCantTurn = false,
 		bool bCantUseItem = false, bool bDontTerminateInteract = false, bool bIgnoreImmunity = true,
@@ -276,6 +276,35 @@ namespace GameMessages {
 		bool bCantInteractOutChangeWasApplied = false, bool bCantJumpOutChangeWasApplied = false,
 		bool bCantMoveOutChangeWasApplied = false, bool bCantTurnOutChangeWasApplied = false,
 		bool bCantUseItemOutChangeWasApplied = false);
+
+	void SendSetStunImmunity(
+		LWOOBJID target,
+		eStateChangeType state,
+		const SystemAddress& sysAddr,
+		LWOOBJID originator = LWOOBJID_EMPTY,
+		bool bImmuneToStunAttack = false,
+		bool bImmuneToStunEquip = false,
+		bool bImmuneToStunInteract = false,
+		bool bImmuneToStunJump = false,
+		bool bImmuneToStunMove = false,
+		bool bImmuneToStunTurn = false,
+		bool bImmuneToStunUseItem = false
+	);
+
+	void SendSetStatusImmunity(
+		LWOOBJID objectId,
+		eStateChangeType state,
+		const SystemAddress& sysAddr,
+		bool bImmuneToBasicAttack = false,
+		bool bImmuneToDamageOverTime = false,
+		bool bImmuneToKnockback = false,
+		bool bImmuneToInterrupt = false,
+		bool bImmuneToSpeed = false,
+		bool bImmuneToImaginationGain = false,
+		bool bImmuneToImaginationLoss = false,
+		bool bImmuneToQuickbuildInterrupt = false,
+		bool bImmuneToPullToPoint = false
+	);
 
 	void SendOrientToAngle(LWOOBJID objectId, bool bRelativeToCurrent, float fAngle, const SystemAddress& sysAddr);
 

@@ -264,6 +264,30 @@ public:
 
 	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
 
+	/**
+	 * Push or Pop a layer of stun immunity to this entity
+	 */
+	void SetStunImmunity(
+		const eStateChangeType state,
+		const LWOOBJID originator = LWOOBJID_EMPTY,
+		const bool bImmuneToStunAttack = false,
+		const bool bImmuneToStunEquip = false,
+		const bool bImmuneToStunInteract = false,
+		const bool bImmuneToStunJump = false,
+		const bool bImmuneToStunMove = false,
+		const bool bImmuneToStunTurn = false,
+		const bool bImmuneToStunUseItem = false
+	);
+
+	// getters for stun immunities
+	const bool GetImmuneToStunAttack() { return m_ImmuneToStunAttackCount > 0;};
+	const bool GetImmuneToStunEquip() { return m_ImmuneToStunEquipCount > 0;};
+	const bool GetImmuneToStunInteract() { return m_ImmuneToStunInteractCount > 0;};
+	const bool GetImmuneToStunJump() { return m_ImmuneToStunJumpCount > 0;};
+	const bool GetImmuneToStunMove() { return m_ImmuneToStunMoveCount > 0;};
+	const bool GetImmuneToStunTurn() { return m_ImmuneToStunTurnCount > 0;};
+	const bool GetImmuneToStunUseItem() { return m_ImmuneToStunUseItemCount > 0;};
+
 private:
 	/**
 	 * The entity that owns this component
@@ -389,6 +413,17 @@ private:
 	 * The active speed boost for this entity
 	 */
 	float m_SpeedBoost;
+
+	/**
+	 * stun immunity counters
+	 */
+	int32_t m_ImmuneToStunAttackCount;
+	int32_t m_ImmuneToStunEquipCount;
+	int32_t m_ImmuneToStunInteractCount;
+	int32_t m_ImmuneToStunJumpCount;
+	int32_t m_ImmuneToStunMoveCount;
+	int32_t m_ImmuneToStunTurnCount;
+	int32_t m_ImmuneToStunUseItemCount;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H
