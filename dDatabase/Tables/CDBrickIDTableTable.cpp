@@ -21,8 +21,8 @@ CDBrickIDTableTable::CDBrickIDTableTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BrickIDTable");
 	while (!tableData.eof()) {
 		CDBrickIDTable entry;
-		entry.NDObjectID = tableData.getIntField(0, -1);
-		entry.LEGOBrickID = tableData.getIntField(1, -1);
+		entry.NDObjectID = tableData.getIntField("NDObjectID", -1);
+		entry.LEGOBrickID = tableData.getIntField("LEGOBrickID", -1);
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -53,3 +53,4 @@ std::vector<CDBrickIDTable> CDBrickIDTableTable::Query(std::function<bool(CDBric
 std::vector<CDBrickIDTable> CDBrickIDTableTable::GetEntries(void) const {
 	return this->entries;
 }
+

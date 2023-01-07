@@ -21,10 +21,10 @@ CDObjectSkillsTable::CDObjectSkillsTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ObjectSkills");
 	while (!tableData.eof()) {
 		CDObjectSkills entry;
-		entry.objectTemplate = tableData.getIntField(0, -1);
-		entry.skillID = tableData.getIntField(1, -1);
-		entry.castOnType = tableData.getIntField(2, -1);
-		entry.AICombatWeight = tableData.getIntField(3, -1);
+		entry.objectTemplate = tableData.getIntField("objectTemplate", -1);
+		entry.skillID = tableData.getIntField("skillID", -1);
+		entry.castOnType = tableData.getIntField("castOnType", -1);
+		entry.AICombatWeight = tableData.getIntField("AICombatWeight", -1);
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -55,3 +55,4 @@ std::vector<CDObjectSkills> CDObjectSkillsTable::Query(std::function<bool(CDObje
 std::vector<CDObjectSkills> CDObjectSkillsTable::GetEntries(void) const {
 	return this->entries;
 }
+
