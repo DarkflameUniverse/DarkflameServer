@@ -11,6 +11,8 @@
 #include "MovementAIComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "MissionComponent.h"
+#include "Loot.h"
+#include "InventoryComponent.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	Game::logger->Log("SGCannon", "OnStartup");
@@ -75,7 +77,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 		auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 		if (player != nullptr) {
 			Game::logger->Log("SGCannon", "Player is ready");
-			/*GameMessages::SendSetStunned(player->GetObjectID(), PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
+			/*GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
 										 true, true, true, true, true, true, true);*/
 
 			Game::logger->Log("SGCannon", "Sending ActivityEnter");
@@ -722,7 +724,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 	Game::logger->Log("SGCannon", "Player has %d equipped items", equippedItems.size());
 
 	auto skillID = constants.cannonSkill;
-	auto coolDown = constants.cannonRefireRate;
+	auto cooldown = constants.cannonRefireRate;
 
 	auto* selfInventoryComponent = self->GetComponent<InventoryComponent>();
 
@@ -738,7 +740,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 		// TODO: Equip items
 		skillID = constants.cannonSuperChargeSkill;
-		coolDown = 400;
+		cooldown = 400;
 	} else {
 		selfInventoryComponent->UpdateSlot("greeble_r", { ObjectIDManager::GenerateRandomObjectID(), 0, 0, 0 });
 		selfInventoryComponent->UpdateSlot("greeble_l", { ObjectIDManager::GenerateRandomObjectID(), 0, 0, 0 });
@@ -761,7 +763,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 				}
 			}
 		}
-
+		cooldown = 800;
 		self->SetVar<uint32_t>(NumberOfChargesVariable, 0);
 	}
 
@@ -777,7 +779,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 	properties.cannonFOV = 58.6f;
 	properties.cannonVelocity = 129.0;
-	properties.cannonRefireRate = 800;
+	properties.cannonRefireRate = cooldown;
 	properties.cannonMinDistance = 30;
 	properties.cannonTimeout = -1;
 

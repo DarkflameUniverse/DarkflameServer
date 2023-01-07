@@ -9,6 +9,7 @@
 #include "SkillComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
+#include "CDClientManager.h"
 
 std::unordered_map<int32_t, std::vector<BuffParameter>> BuffComponent::m_Cache{};
 
@@ -169,17 +170,10 @@ void BuffComponent::ApplyBuffEffect(int32_t id) {
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() + maxImagination);
 		} else if (parameter.name == "speed") {
-			const auto speed = parameter.value;
-
 			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
-
-			if (controllablePhysicsComponent == nullptr) return;
-
-			const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-
-			controllablePhysicsComponent->SetSpeedMultiplier(current + ((speed - 500.0f) / 500.0f));
-
-			EntityManager::Instance()->SerializeEntity(this->GetParent());
+			if (!controllablePhysicsComponent) return;
+			const auto speed = parameter.value;
+			controllablePhysicsComponent->AddSpeedboost(speed);
 		}
 	}
 }
@@ -212,17 +206,10 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() - maxImagination);
 		} else if (parameter.name == "speed") {
-			const auto speed = parameter.value;
-
 			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
-
-			if (controllablePhysicsComponent == nullptr) return;
-
-			const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-
-			controllablePhysicsComponent->SetSpeedMultiplier(current - ((speed - 500.0f) / 500.0f));
-
-			EntityManager::Instance()->SerializeEntity(this->GetParent());
+			if (!controllablePhysicsComponent) return;
+			const auto speed = parameter.value;
+			controllablePhysicsComponent->RemoveSpeedboost(speed);
 		}
 	}
 }

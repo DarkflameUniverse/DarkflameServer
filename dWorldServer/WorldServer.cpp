@@ -42,6 +42,9 @@
 #include "CharacterComponent.h"
 
 #include "EntityManager.h"
+#include "EntityInfo.h"
+#include "User.h"
+#include "Loot.h"
 #include "Entity.h"
 #include "Character.h"
 #include "ChatPackets.h"
@@ -56,35 +59,35 @@
 #include "Player.h"
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
+#include "LevelProgressionComponent.h"
 #include "eBlueprintSaveResponseType.h"
+#include "AMFFormat.h"
+#include "NiPoint3.h"
 
 #include "ZCompression.h"
 
 namespace Game {
-	dLogger* logger;
-	dServer* server;
-	dZoneManager* zoneManager;
-	dpWorld* physicsWorld;
-	dChatFilter* chatFilter;
-	dConfig* config;
+	dLogger* logger = nullptr;
+	dServer* server = nullptr;
+	dpWorld* physicsWorld = nullptr;
+	dChatFilter* chatFilter = nullptr;
+	dConfig* config = nullptr;
+	AssetManager* assetManager = nullptr;
+	RakPeerInterface* chatServer = nullptr;
 	std::mt19937 randomEngine;
-
-	AssetManager* assetManager;
-
-	RakPeerInterface* chatServer;
 	SystemAddress chatSysAddr;
-}
+	bool shouldShutdown = false;
+} // namespace Game
 
 bool chatDisabled = false;
 bool chatConnected = false;
-bool worldShutdownSequenceStarted = false;
 bool worldShutdownSequenceComplete = false;
 void WorldShutdownSequence();
 void WorldShutdownProcess(uint32_t zoneId);
 void FinalizeShutdown();
 void SendShutdownMessageToMaster();
 
-dLogger* SetupLogger(int zoneID, int instanceID);
+dLogger* SetupLogger(uint32_t zoneID, uint32_t instanceID);
 void HandlePacketChat(Packet* packet);
 void HandlePacket(Packet* packet);
 
@@ -94,8 +97,8 @@ struct tempSessionInfo {
 };
 
 std::map<std::string, tempSessionInfo> m_PendingUsers;
-int instanceID = 0;
-int g_CloneID = 0;
+uint32_t instanceID = 0;
+uint32_t g_CloneID = 0;
 std::string databaseChecksum = "";
 
 int main(int argc, char** argv) {
@@ -109,13 +112,13 @@ int main(int argc, char** argv) {
 	signal(SIGINT, [](int) { WorldShutdownSequence(); });
 	signal(SIGTERM, [](int) { WorldShutdownSequence(); });
 
-	int zoneID = 1000;
-	int cloneID = 0;
-	int maxClients = 8;
-	int ourPort = 2007;
+	uint32_t zoneID = 1000;
+	uint32_t cloneID = 0;
+	uint32_t maxClients = 8;
+	uint32_t ourPort = 2007;
 
 	//Check our arguments:
-	for (int i = 0; i < argc; ++i) {
+	for (int32_t i = 0; i < argc; ++i) {
 		std::string argument(argv[i]);
 
 		if (argument == "-zone") zoneID = atoi(argv[i + 1]);
@@ -127,26 +130,21 @@ int main(int argc, char** argv) {
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger(zoneID, instanceID);
-	if (!Game::logger) return 0;
+	if (!Game::logger) return EXIT_FAILURE;
 
-	Game::logger->SetLogToConsole(true); //We want this info to always be logged.
+	//Read our config:
+	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "worldconfig.ini").string());
+	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
+	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
+
 	Game::logger->Log("WorldServer", "Starting World server...");
 	Game::logger->Log("WorldServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("WorldServer", "Compiled on: %s", __TIMESTAMP__);
 
-#ifndef _DEBUG
-	Game::logger->SetLogToConsole(false); //By default, turn it back off if not in debug.
-#endif
-
-	//Read our config:
-	dConfig config("worldconfig.ini");
-	Game::config = &config;
-	Game::logger->SetLogToConsole(bool(std::stoi(config.GetValue("log_to_console"))));
-	Game::logger->SetLogDebugStatements(config.GetValue("log_debug_statements") == "1");
-	if (config.GetValue("disable_chat") == "1") chatDisabled = true;
+	if (Game::config->GetValue("disable_chat") == "1") chatDisabled = true;
 
 	try {
-		std::string clientPathStr = config.GetValue("client_location");
+		std::string clientPathStr = Game::config->GetValue("client_location");
 		if (clientPathStr.empty()) clientPathStr = "./res";
 		std::filesystem::path clientPath = std::filesystem::path(clientPathStr);
 		if (clientPath.is_relative()) {
@@ -161,38 +159,38 @@ int main(int argc, char** argv) {
 
 	// Connect to CDClient
 	try {
-		CDClientDatabase::Connect((Game::assetManager->GetResPath() / "CDServer.sqlite").string());
+		CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").string());
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database");
 		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
 		Game::logger->Log("WorldServer", "Error Code: %i", e.errorCode());
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	CDClientManager::Instance()->Initialize();
 
 	//Connect to the MySQL Database
-	std::string mysql_host = config.GetValue("mysql_host");
-	std::string mysql_database = config.GetValue("mysql_database");
-	std::string mysql_username = config.GetValue("mysql_username");
-	std::string mysql_password = config.GetValue("mysql_password");
+	std::string mysql_host = Game::config->GetValue("mysql_host");
+	std::string mysql_database = Game::config->GetValue("mysql_database");
+	std::string mysql_username = Game::config->GetValue("mysql_username");
+	std::string mysql_password = Game::config->GetValue("mysql_password");
 
-	Diagnostics::SetProduceMemoryDump(config.GetValue("generate_dump") == "1");
+	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
 
-	if (!config.GetValue("dump_folder").empty()) {
-		Diagnostics::SetOutDirectory(config.GetValue("dump_folder"));
+	if (!Game::config->GetValue("dump_folder").empty()) {
+		Diagnostics::SetOutDirectory(Game::config->GetValue("dump_folder"));
 	}
 
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
 		Game::logger->Log("WorldServer", "Got an error while connecting to the database: %s", ex.what());
-		return 0;
+		return EXIT_FAILURE;
 	}
 
 	//Find out the master's IP:
 	std::string masterIP = "localhost";
-	int masterPort = 1000;
+	uint32_t masterPort = 1000;
 	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
 	auto res = stmt->executeQuery();
 	while (res->next()) {
@@ -206,13 +204,13 @@ int main(int argc, char** argv) {
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
 	LootGenerator::Instance();
-	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(config.GetValue("dont_generate_dcf"))));
+	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 
-	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, zoneID);
+	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::shouldShutdown, zoneID);
 
 	//Connect to the chat server:
-	int chatPort = 1501;
-	if (config.GetValue("chat_server_port") != "") chatPort = std::atoi(config.GetValue("chat_server_port").c_str());
+	uint32_t chatPort = 1501;
+	if (Game::config->GetValue("chat_server_port") != "") chatPort = std::atoi(Game::config->GetValue("chat_server_port").c_str());
 
 	auto chatSock = SocketDescriptor(uint16_t(ourPort + 2), 0);
 	Game::chatServer = RakNetworkFactory::GetRakPeerInterface();
@@ -227,22 +225,22 @@ int main(int argc, char** argv) {
 	auto t = std::chrono::high_resolution_clock::now();
 
 	Packet* packet = nullptr;
-	int framesSinceLastFlush = 0;
-	int framesSinceMasterDisconnect = 0;
-	int framesSinceChatDisconnect = 0;
-	int framesSinceLastUsersSave = 0;
-	int framesSinceLastSQLPing = 0;
-	int framesSinceLastUser = 0;
+	uint32_t framesSinceLastFlush = 0;
+	uint32_t framesSinceMasterDisconnect = 0;
+	uint32_t framesSinceChatDisconnect = 0;
+	uint32_t framesSinceLastUsersSave = 0;
+	uint32_t framesSinceLastSQLPing = 0;
+	uint32_t framesSinceLastUser = 0;
 
 	const float maxPacketProcessingTime = 1.5f; //0.015f;
-	const int maxPacketsToProcess = 1024;
+	const uint32_t maxPacketsToProcess = 1024;
 
 	bool ready = false;
-	int framesSinceMasterStatus = 0;
-	int framesSinceShutdownSequence = 0;
-	int currentFramerate = highFrameRate;
+	uint32_t framesSinceMasterStatus = 0;
+	uint32_t framesSinceShutdownSequence = 0;
+	uint32_t currentFramerate = highFramerate;
 
-	int ghostingStepCount = 0;
+	uint32_t ghostingStepCount = 0;
 	auto ghostingLastTime = std::chrono::high_resolution_clock::now();
 
 	PerformanceManager::SelectProfile(zoneID);
@@ -271,7 +269,7 @@ int main(int argc, char** argv) {
 				}
 			}
 
-			const int bufferSize = 1024;
+			const int32_t bufferSize = 1024;
 			MD5* md5 = new MD5();
 
 			char fileStreamBuffer[1024] = {};
@@ -295,6 +293,15 @@ int main(int argc, char** argv) {
 		}
 	}
 
+	uint32_t currentFrameDelta = highFrameDelta;
+	// These values are adjust them selves to the current framerate should it update.
+	uint32_t logFlushTime = 15 * currentFramerate; // 15 seconds in frames
+	uint32_t shutdownTimeout = 10 * 60 * currentFramerate; // 10 minutes in frames
+	uint32_t noMasterConnectionTimeout = 5 * currentFramerate; // 5 seconds in frames
+	uint32_t chatReconnectionTime = 30 * currentFramerate; // 30 seconds in frames
+	uint32_t saveTime = 10 * 60 * currentFramerate; // 10 minutes in frames
+	uint32_t sqlPingTime = 10 * 60 * currentFramerate; // 10 minutes in frames
+	uint32_t emptyShutdownTime = (cloneID == 0 ? 30 : 5) * 60 * currentFramerate; // 30 minutes for main worlds, 5 for all others.
 	while (true) {
 		Metrics::StartMeasurement(MetricVariable::Frame);
 		Metrics::StartMeasurement(MetricVariable::GameLoop);
@@ -307,25 +314,47 @@ int main(int argc, char** argv) {
 
 		const auto occupied = UserManager::Instance()->GetUserCount() != 0;
 
+		uint32_t newFrameDelta = currentFrameDelta;
 		if (!ready) {
-			currentFramerate = highFrameRate;
+			newFrameDelta = highFrameDelta;
 		} else {
-			currentFramerate = PerformanceManager::GetServerFramerate();
+			newFrameDelta = PerformanceManager::GetServerFrameDelta();
+		}
+
+		// Update to the new framerate and scale all timings to said new framerate
+		if (newFrameDelta != currentFrameDelta) {
+			float_t ratioBeforeToAfter = (float)currentFrameDelta / (float)newFrameDelta;
+			currentFrameDelta = newFrameDelta;
+			currentFramerate = MS_TO_FRAMES(newFrameDelta);
+			Game::logger->LogDebug("WorldServer", "Framerate for zone/instance/clone %i/%i/%i is now %i", zoneID, instanceID, cloneID, currentFramerate);
+			logFlushTime = 15 * currentFramerate; // 15 seconds in frames
+			framesSinceLastFlush *= ratioBeforeToAfter;
+			shutdownTimeout = 10 * 60 * currentFramerate; // 10 minutes in frames
+			framesSinceLastUser *= ratioBeforeToAfter;
+			noMasterConnectionTimeout = 5 * currentFramerate; // 5 seconds in frames
+			framesSinceMasterDisconnect *= ratioBeforeToAfter;
+			chatReconnectionTime = 30 * currentFramerate; // 30 seconds in frames
+			framesSinceChatDisconnect *= ratioBeforeToAfter;
+			saveTime = 10 * 60 * currentFramerate; // 10 minutes in frames
+			framesSinceLastUsersSave *= ratioBeforeToAfter;
+			sqlPingTime = 10 * 60 * currentFramerate; // 10 minutes in frames
+			framesSinceLastSQLPing *= ratioBeforeToAfter;
+			emptyShutdownTime = (cloneID == 0 ? 30 : 5) * 60 * currentFramerate; // 30 minutes for main worlds, 5 for all others.
+			framesSinceLastUser *= ratioBeforeToAfter;
 		}
 
 		//Warning if we ran slow
-		if (deltaTime > currentFramerate) {
-			Game::logger->Log("WorldServer", "We're running behind, dT: %f > %f (framerate)", deltaTime, currentFramerate);
+		if (deltaTime > currentFrameDelta) {
+			Game::logger->Log("WorldServer", "We're running behind, dT: %f > %f (framerate %i)", deltaTime, currentFrameDelta, currentFramerate);
 		}
 
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
 
-			int framesToWaitForMaster = ready ? 10 : 200;
-			if (framesSinceMasterDisconnect >= framesToWaitForMaster && !worldShutdownSequenceStarted) {
-				Game::logger->Log("WorldServer", "Game loop running but no connection to master for %d frames, shutting down", framesToWaitForMaster);
-				worldShutdownSequenceStarted = true;
+			if (framesSinceMasterDisconnect >= noMasterConnectionTimeout && !Game::shouldShutdown) {
+				Game::logger->Log("WorldServer", "Game loop running but no connection to master for %d frames, shutting down", noMasterConnectionTimeout);
+				Game::shouldShutdown = true;
 			}
 		} else framesSinceMasterDisconnect = 0;
 
@@ -333,8 +362,7 @@ int main(int argc, char** argv) {
 		if (!chatConnected) {
 			framesSinceChatDisconnect++;
 
-			// Attempt to reconnect every 30 seconds.
-			if (framesSinceChatDisconnect >= 2000) {
+			if (framesSinceChatDisconnect >= chatReconnectionTime) {
 				framesSinceChatDisconnect = 0;
 
 				Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
@@ -386,14 +414,14 @@ int main(int argc, char** argv) {
 		UserManager::Instance()->DeletePendingRemovals();
 
 		auto t1 = std::chrono::high_resolution_clock::now();
-		for (int curPacket = 0; curPacket < maxPacketsToProcess && timeSpent < maxPacketProcessingTime; curPacket++) {
+		for (uint32_t curPacket = 0; curPacket < maxPacketsToProcess && timeSpent < maxPacketProcessingTime; curPacket++) {
 			packet = Game::server->Receive();
 			if (packet) {
 				auto t1 = std::chrono::high_resolution_clock::now();
 				HandlePacket(packet);
 				auto t2 = std::chrono::high_resolution_clock::now();
 
-				timeSpent += std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+				timeSpent += std::chrono::duration_cast<std::chrono::duration<float>>(t2 - t1).count();
 				Game::server->DeallocatePacket(packet);
 				packet = nullptr;
 			} else {
@@ -411,7 +439,7 @@ int main(int argc, char** argv) {
 		Metrics::EndMeasurement(MetricVariable::UpdateReplica);
 
 		//Push our log every 15s:
-		if (framesSinceLastFlush >= 1000) {
+		if (framesSinceLastFlush >= logFlushTime) {
 			Game::logger->Flush();
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
@@ -420,15 +448,15 @@ int main(int argc, char** argv) {
 			framesSinceLastUser++;
 
 			//If we haven't had any players for a while, time out and shut down:
-			if (framesSinceLastUser == (cloneID != 0 ? 4000 : 40000)) {
-				worldShutdownSequenceStarted = true;
+			if (framesSinceLastUser >= emptyShutdownTime) {
+				Game::shouldShutdown = true;
 			}
 		} else {
 			framesSinceLastUser = 0;
 		}
 
 		//Save all connected users every 10 minutes:
-		if (framesSinceLastUsersSave >= 40000 && zoneID != 0) {
+		if (framesSinceLastUsersSave >= saveTime && zoneID != 0) {
 			UserManager::Instance()->SaveAllActiveCharacters();
 			framesSinceLastUsersSave = 0;
 
@@ -438,10 +466,10 @@ int main(int argc, char** argv) {
 		} else framesSinceLastUsersSave++;
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
-		if (framesSinceLastSQLPing >= 40000) {
+		if (framesSinceLastSQLPing >= sqlPingTime) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
-			int masterPort;
+			uint32_t masterPort;
 			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
 			auto res = stmt->executeQuery();
 			while (res->next()) {
@@ -459,7 +487,7 @@ int main(int argc, char** argv) {
 
 		Metrics::StartMeasurement(MetricVariable::Sleep);
 
-		t += std::chrono::milliseconds(currentFramerate);
+		t += std::chrono::milliseconds(currentFrameDelta);
 		std::this_thread::sleep_until(t);
 
 		Metrics::EndMeasurement(MetricVariable::Sleep);
@@ -478,7 +506,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		if (worldShutdownSequenceStarted && !worldShutdownSequenceComplete) {
+		if (Game::shouldShutdown && !worldShutdownSequenceComplete) {
 			WorldShutdownProcess(zoneID);
 			break;
 		}
@@ -490,7 +518,7 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-dLogger* SetupLogger(int zoneID, int instanceID) {
+dLogger* SetupLogger(uint32_t zoneID, uint32_t instanceID) {
 	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
@@ -532,7 +560,7 @@ void HandlePacketChat(Packet* packet) {
 
 				//Write our stream outwards:
 				CBITSTREAM;
-				for (int i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
+				for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
 					bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
 				}
 
@@ -551,7 +579,7 @@ void HandlePacketChat(Packet* packet) {
 
 				uint32_t len;
 				inStream.Read<uint32_t>(len);
-				for (int i = 0; len > i; i++) {
+				for (uint32_t i = 0; len > i; i++) {
 					char character;
 					inStream.Read<char>(character);
 					title += character;
@@ -559,7 +587,7 @@ void HandlePacketChat(Packet* packet) {
 
 				len = 0;
 				inStream.Read<uint32_t>(len);
-				for (int i = 0; len > i; i++) {
+				for (uint32_t i = 0; len > i; i++) {
 					char character;
 					inStream.Read<char>(character);
 					msg += character;
@@ -797,7 +825,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MSG_MASTER_SHUTDOWN: {
-			worldShutdownSequenceStarted = true;
+			Game::shouldShutdown = true;
 			Game::logger->Log("WorldServer", "Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
 			break;
 		}
@@ -812,7 +840,7 @@ void HandlePacket(Packet* packet) {
 			uint32_t len;
 			inStream.Read(len);
 
-			for (int i = 0; i < len; i++) {
+			for (uint32_t i = 0; i < len; i++) {
 				char character; inStream.Read<char>(character);
 				username += character;
 			}
@@ -1001,9 +1029,29 @@ void HandlePacket(Packet* packet) {
 					player->GetComponent<CharacterComponent>()->RocketUnEquip(player);
 				}
 
-				c->SetRetroactiveFlags();
+				// Do charxml fixes here
+				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
+				if (!levelComponent) return;
 
-				player->RetroactiveVaultSize();
+				auto version = levelComponent->GetCharacterVersion();
+				switch(version) {
+					case eCharacterVersion::RELEASE:
+						// TODO: Implement, super low priority
+					case eCharacterVersion::LIVE:
+						Game::logger->Log("WorldServer", "Updating Character Flags");
+						c->SetRetroactiveFlags();
+						levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
+					case eCharacterVersion::PLAYER_FACTION_FLAGS:
+						Game::logger->Log("WorldServer", "Updating Vault Size");
+						player->RetroactiveVaultSize();
+						levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
+					case eCharacterVersion::VAULT_SIZE:
+						Game::logger->Log("WorldServer", "Updaing Speedbase");
+						levelComponent->SetRetroactiveBaseSpeed();
+						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+					case eCharacterVersion::UP_TO_DATE:
+						break;
+				}
 
 				player->GetCharacter()->SetTargetScene("");
 
@@ -1035,7 +1083,7 @@ void HandlePacket(Packet* packet) {
 					//Check for BBB models:
 					auto stmt = Database::CreatePreppedStmt("SELECT ugc_id FROM properties_contents WHERE lot=14 AND property_id=?");
 
-					int templateId = result.getIntField(0);
+					int32_t templateId = result.getIntField(0);
 
 					result.finalize();
 
@@ -1267,11 +1315,11 @@ void WorldShutdownProcess(uint32_t zoneId) {
 }
 
 void WorldShutdownSequence() {
-	if (worldShutdownSequenceStarted || worldShutdownSequenceComplete) {
+	if (Game::shouldShutdown || worldShutdownSequenceComplete) {
 		return;
 	}
 
-	worldShutdownSequenceStarted = true;
+	Game::shouldShutdown = true;
 
 	Game::logger->Log("WorldServer", "Zone (%i) instance (%i) shutting down outside of main loop!", Game::server->GetZoneID(), instanceID);
 	WorldShutdownProcess(Game::server->GetZoneID());
@@ -1279,16 +1327,15 @@ void WorldShutdownSequence() {
 }
 
 void FinalizeShutdown() {
-	//Delete our objects here:
-	if (Game::zoneManager) delete Game::zoneManager;
-
 	Game::logger->Log("WorldServer", "Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), instanceID);
 
+	//Delete our objects here:
 	Metrics::Clear();
 	Database::Destroy("WorldServer");
-	delete Game::chatFilter;
-	delete Game::server;
-	delete Game::logger;
+	if (Game::chatFilter) delete Game::chatFilter;
+	if (Game::server) delete Game::server;
+	if (Game::logger) delete Game::logger;
+	if (Game::config) delete Game::config;
 
 	worldShutdownSequenceComplete = true;
 

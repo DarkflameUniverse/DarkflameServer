@@ -25,9 +25,13 @@
 #include "dConfig.h"
 #include "TeamManager.h"
 #include "ChatPackets.h"
-#include "GameConfig.h"
 #include "RocketLaunchLupComponent.h"
 #include "eUnequippableActiveType.h"
+#include "eMovementPlatformState.h"
+#include "LeaderboardManager.h"
+#include "AMFFormat.h"
+#include "Loot.h"
+#include "RacingTaskParam.h"
 
 #include <sstream>
 #include <future>
@@ -49,6 +53,7 @@
 #include "ScriptComponent.h"
 #include "RebuildComponent.h"
 #include "VendorComponent.h"
+#include "InventoryComponent.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
 #include "MovingPlatformComponent.h"
@@ -71,6 +76,7 @@
 #include "ControlBehaviors.h"
 #include "AMFDeserialize.h"
 #include "eBlueprintSaveResponseType.h"
+#include "eAninmationFlags.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -328,7 +334,7 @@ void GameMessages::SendStartPathing(Entity* entity) {
 
 void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
 	int iIndex, int iDesiredWaypointIndex, int nextIndex,
-	MovementPlatformState movementState) {
+	eMovementPlatformState movementState) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -339,7 +345,7 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 		iIndex = 0;
 		nextIndex = 0;
 		bStopAtDesiredWaypoint = true;
-		movementState = MovementPlatformState::Stationary;
+		movementState = eMovementPlatformState::Stationary;
 	}
 
 	bitStream.Write(entity->GetObjectID());
@@ -573,7 +579,7 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, NDGFxValue args) {
+void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFValue* args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -591,7 +597,7 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args) {
+void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFValue* args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -998,7 +1004,7 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 }
 
 void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos, int count) {
-	if (GameConfig::GetValue<int32_t>("no_drops") == 1) {
+	if (Game::config->GetValue("disable_drops") == "1") {
 		return;
 	}
 
@@ -2898,7 +2904,7 @@ void GameMessages::HandleCinematicUpdate(RakNet::BitStream* inStream, Entity* en
 	}
 }
 
-void GameMessages::SendSetStunned(LWOOBJID objectId, eStunState stateChangeType, const SystemAddress& sysAddr,
+void GameMessages::SendSetStunned(LWOOBJID objectId, eStateChangeType stateChangeType, const SystemAddress& sysAddr,
 	LWOOBJID originator, bool bCantAttack, bool bCantEquip,
 	bool bCantInteract, bool bCantJump, bool bCantMove, bool bCantTurn,
 	bool bCantUseItem, bool bDontTerminateInteract, bool bIgnoreImmunity,
@@ -2946,6 +2952,69 @@ void GameMessages::SendSetStunned(LWOOBJID objectId, eStunState stateChangeType,
 	SEND_PACKET;
 }
 
+void GameMessages::SendSetStunImmunity(LWOOBJID target, eStateChangeType state, const SystemAddress& sysAddr,
+		LWOOBJID originator,
+		bool bImmuneToStunAttack,
+		bool bImmuneToStunEquip,
+		bool bImmuneToStunInteract,
+		bool bImmuneToStunJump,
+		bool bImmuneToStunMove,
+		bool bImmuneToStunTurn,
+		bool bImmuneToStunUseItem) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(target);
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_STUN_IMMUNITY);
+
+	bitStream.Write(originator != LWOOBJID_EMPTY);
+	if (originator != LWOOBJID_EMPTY) bitStream.Write(originator);
+
+	bitStream.Write(state);
+
+	bitStream.Write(bImmuneToStunAttack);
+	bitStream.Write(bImmuneToStunEquip);
+	bitStream.Write(bImmuneToStunInteract);
+	bitStream.Write(bImmuneToStunJump);
+	bitStream.Write(bImmuneToStunMove);
+	bitStream.Write(bImmuneToStunTurn);
+	bitStream.Write(bImmuneToStunUseItem);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}
+
+void GameMessages::SendSetStatusImmunity(LWOOBJID objectId, eStateChangeType state, const SystemAddress& sysAddr,
+		bool bImmuneToBasicAttack,
+		bool bImmuneToDamageOverTime,
+		bool bImmuneToKnockback,
+		bool bImmuneToInterrupt,
+		bool bImmuneToSpeed,
+		bool bImmuneToImaginationGain,
+		bool bImmuneToImaginationLoss,
+		bool bImmuneToQuickbuildInterrupt,
+		bool bImmuneToPullToPoint) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_STATUS_IMMUNITY);
+
+	bitStream.Write(state);
+
+	bitStream.Write(bImmuneToBasicAttack);
+	bitStream.Write(bImmuneToDamageOverTime);
+	bitStream.Write(bImmuneToKnockback);
+	bitStream.Write(bImmuneToInterrupt);
+	bitStream.Write(bImmuneToSpeed);
+	bitStream.Write(bImmuneToImaginationGain);
+	bitStream.Write(bImmuneToImaginationLoss);
+	bitStream.Write(bImmuneToQuickbuildInterrupt);
+	bitStream.Write(bImmuneToPullToPoint);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}
 
 void GameMessages::SendOrientToAngle(LWOOBJID objectId, bool bRelativeToCurrent, float fAngle, const SystemAddress& sysAddr) {
 	CBITSTREAM;
@@ -3922,6 +3991,20 @@ void GameMessages::SendDisplayChatBubble(LWOOBJID objectId, const std::u16string
 	SEND_PACKET;
 }
 
+
+void GameMessages::SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags flagsOn, eAnimationFlags flagsOff, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_CHANGE_IDLE_FLAGS);
+	bitStream.Write<bool>(flagsOff != eAnimationFlags::IDLE_NONE);
+	if (flagsOff != eAnimationFlags::IDLE_NONE) bitStream.Write(flagsOff);
+	bitStream.Write<bool>(flagsOn != eAnimationFlags::IDLE_NONE);
+	if (flagsOn != eAnimationFlags::IDLE_NONE) bitStream.Write(flagsOn);
+
+	SEND_PACKET_BROADCAST;
+}
 // Mounts
 
 void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objectID, const SystemAddress& sysAddr) {
@@ -3971,7 +4054,7 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 			EntityManager::Instance()->SerializeEntity(entity);
 
 			// We aren't mounted so remove the stun
-			GameMessages::SendSetStunned(entity->GetObjectID(), eStunState::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+			GameMessages::SendSetStunned(entity->GetObjectID(), eStateChangeType::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 		}
 	}
 }
@@ -4713,13 +4796,13 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 
 	float sellScalar = vend->GetSellScalar();
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
-		const auto altCurrency = (itemComp.altCurrencyCost * sellScalar) * count;
+		const auto altCurrency = static_cast<uint32_t>(itemComp.altCurrencyCost * sellScalar) * count;
 		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::LOOT_SOURCE_VENDOR); // Return alt currencies like faction tokens.
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + ((itemComp.baseValue * sellScalar) * count)), eLootSourceType::LOOT_SOURCE_VENDOR);
+	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::LOOT_SOURCE_VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -5467,7 +5550,8 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 	auto* temp = inv->GetInventory(TEMP_MODELS);
 	std::vector<LOT> modList;
-
+	auto& oldPartList = character->GetVar<std::string>(u"currentModifiedBuild");
+	bool everyPieceSwapped = !oldPartList.empty(); // If the player didn't put a build in initially, then they should not get this achievement.
 	if (count >= 3) {
 		std::u16string modules;
 
@@ -5475,13 +5559,21 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 			uint32_t mod;
 			inStream->Read(mod);
 			modList.push_back(mod);
-			modules += u"1:" + (GeneralUtils::to_u16string(mod));
+			auto modToStr = GeneralUtils::to_u16string(mod);
+			modules += u"1:" + (modToStr);
 			if (k + 1 != count) modules += u"+";
 
 			if (temp->GetLotCount(mod) > 0) {
 				inv->RemoveItem(mod, 1, TEMP_MODELS);
 			} else {
 				inv->RemoveItem(mod, 1);
+			}
+
+			// Doing this check for 1 singular mission that needs to know when you've swapped every part out during a car modular build.
+			// since all 8129's are the same, skip checking that
+			if (mod != 8129) {
+				if (oldPartList.find(GeneralUtils::UTF16ToWTF8(modToStr)) != std::string::npos) everyPieceSwapped = false;
+
 			}
 		}
 
@@ -5501,6 +5593,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 		if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
 			if (missionComponent != nullptr) {
 				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, entity->GetLOT(), entity->GetObjectID());
+				if (count >= 7 && everyPieceSwapped) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, LWOOBJID_EMPTY, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_MODULAR_BUILDING);
 			}
 		}
 	}
@@ -5723,16 +5816,16 @@ void GameMessages::HandleClientItemConsumed(RakNet::BitStream* inStream, Entity*
 	}
 
 	auto* item = inventory->FindItemById(itemConsumed);
-
 	if (item == nullptr) {
 		return;
 	}
+	LOT itemLot = item->GetLot();
 
 	item->Consume();
 
 	auto* missions = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
 	if (missions != nullptr) {
-		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_FOOD, item->GetLot());
+		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_FOOD, itemLot);
 	}
 }
 
@@ -5748,11 +5841,7 @@ void GameMessages::HandleUseNonEquipmentItem(RakNet::BitStream* inStream, Entity
 
 	auto* item = inv->FindItemById(itemConsumed);
 
-	if (item == nullptr) {
-		return;
-	}
-
-	item->UseNonEquip();
+	if (item) item->UseNonEquip(item);
 }
 
 void GameMessages::HandleMatchRequest(RakNet::BitStream* inStream, Entity* entity) {
@@ -5994,4 +6083,44 @@ void GameMessages::HandleUpdatePlayerStatistic(RakNet::BitStream* inStream, Enti
 	if (characterComponent != nullptr) {
 		characterComponent->UpdatePlayerStatistic((StatisticID)updateID, (uint64_t)std::max(updateValue, int64_t(0)));
 	}
+}
+
+void GameMessages::HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity) {
+	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->DeactivateBubbleBuff();
+}
+
+void GameMessages::HandleActivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity) {
+	bool specialAnimations;
+	if (!inStream->Read(specialAnimations)) return;
+
+	std::u16string type = GeneralUtils::ReadWString(inStream);
+	auto bubbleType = eBubbleType::DEFAULT;
+	if (type == u"skunk") bubbleType = eBubbleType::SKUNK;
+	else if (type == u"energy") bubbleType = eBubbleType::ENERGY;
+
+	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->ActivateBubbleBuff(bubbleType, specialAnimations);
+}
+
+void GameMessages::SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_ACTIVATE_BUBBLE_BUFF_FROM_SERVER);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}
+
+void GameMessages::SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_DEACTIVATE_BUBBLE_BUFF_FROM_SERVER);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
 }

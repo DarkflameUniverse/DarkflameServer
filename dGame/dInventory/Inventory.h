@@ -10,6 +10,7 @@
 #include "CDClientManager.h"
 #include "dCommonVars.h"
 
+enum eInventoryType : uint32_t;
 class Item;
 class InventoryComponent;
 
@@ -151,6 +152,11 @@ public:
 	 * @return all the items that are restricted to GMs
 	 */
 	static const std::vector<LOT>& GetAllGMItems();
+
+	/**
+	 * Remove ALL Items from this inventory.
+	 */
+	void DeleteAllItems();
 
 	~Inventory();
 

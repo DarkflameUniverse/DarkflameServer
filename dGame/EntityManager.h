@@ -2,15 +2,17 @@
 #define ENTITYMANAGER_H
 
 #include "dCommonVars.h"
-#include "../thirdparty/raknet/Source/Replica.h"
 #include <map>
 #include <stack>
-
-#include "Entity.h"
 #include <vector>
+#include <unordered_map>
+
+class Entity;
+class EntityInfo;
+class Player;
+class User;
 
 struct SystemAddress;
-class User;
 
 class EntityManager {
 public:

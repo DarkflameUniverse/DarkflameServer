@@ -31,7 +31,7 @@
 #include "dConfig.h"
 #include "CharacterComponent.h"
 #include "Database.h"
-
+#include "dMessageIdentifiers.h"
 
 
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {

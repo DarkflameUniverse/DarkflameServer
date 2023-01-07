@@ -18,7 +18,20 @@ class dServer {
 public:
 	// Default constructor should only used for testing!
 	dServer() {};
-	dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, unsigned int zoneID = 0);
+	dServer(
+		const std::string& ip,
+		int port,
+		int instanceID,
+		int maxConnections,
+		bool isInternal,
+		bool useEncryption,
+		dLogger* logger,
+		const std::string masterIP,
+		int masterPort,
+		ServerType serverType,
+		dConfig* config,
+		bool* shouldShutdown,
+		unsigned int zoneID = 0);
 	~dServer();
 
 	Packet* ReceiveFromMaster();
@@ -44,6 +57,7 @@ public:
 	ReplicaManager* GetReplicaManager() { return mReplicaManager; }
 	void UpdateReplica();
 	void UpdateBandwidthLimit();
+	void UpdateMaximumMtuSize();
 
 	int GetPing(const SystemAddress& sysAddr) const;
 	int GetLatestPing(const SystemAddress& sysAddr) const;
@@ -64,6 +78,11 @@ private:
 	RakPeerInterface* mPeer = nullptr;
 	ReplicaManager* mReplicaManager = nullptr;
 	NetworkIDManager* mNetIDManager = nullptr;
+
+	/**
+	 * Whether or not to shut down the server.  Pointer to Game::shouldShutdown.
+	 */
+	bool* mShouldShutdown = nullptr;
 	SocketDescriptor mSocketDescriptor;
 	std::string mIP;
 	int mPort;

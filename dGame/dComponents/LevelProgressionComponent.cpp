@@ -7,6 +7,8 @@
 LevelProgressionComponent::LevelProgressionComponent(Entity* parent) : Component(parent) {
 	m_Parent = parent;
 	m_Level = 1;
+	m_SpeedBase = 500.0f;
+	m_CharacterVersion = eCharacterVersion::LIVE;
 }
 
 void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
@@ -16,7 +18,8 @@ void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 	level->SetAttribute("l", m_Level);
-
+	level->SetAttribute("sb", m_SpeedBase);
+	level->SetAttribute("cv", static_cast<uint32_t>(m_CharacterVersion));
 }
 
 void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
@@ -26,7 +29,10 @@ void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 	level->QueryAttribute("l", &m_Level);
-
+	level->QueryAttribute("sb", &m_SpeedBase);
+	uint32_t characterVersion;
+	level->QueryAttribute("cv", &characterVersion);
+	m_CharacterVersion = static_cast<eCharacterVersion>(characterVersion);
 }
 
 void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -60,7 +66,8 @@ void LevelProgressionComponent::HandleLevelUp() {
 		}
 		break;
 		case 9:
-			controllablePhysicsComponent->SetSpeedMultiplier(static_cast<float>(reward->value) / 500.0f);
+			SetSpeedBase(static_cast<float>(reward->value) );
+			controllablePhysicsComponent->SetSpeedMultiplier(GetSpeedBase() / 500.0f);
 			break;
 		case 11:
 		case 12:
@@ -71,4 +78,10 @@ void LevelProgressionComponent::HandleLevelUp() {
 	}
 	// Tell the client we have finished sending level rewards.
 	if (rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, !rewardingItem);
+}
+
+void LevelProgressionComponent::SetRetroactiveBaseSpeed(){
+	if (m_Level >= 20) m_SpeedBase = 525.0f;
+	auto* controllablePhysicsComponent = m_Parent->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->SetSpeedMultiplier(m_SpeedBase / 500.0f);
 }

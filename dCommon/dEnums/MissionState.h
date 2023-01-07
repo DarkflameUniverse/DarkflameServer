@@ -6,7 +6,7 @@
 /**
  * Represents the possible states a mission can be in
  */
-enum class MissionState : int {
+enum class MissionState : int32_t {
 	/**
 	 * The mission state is unknown
 	 */

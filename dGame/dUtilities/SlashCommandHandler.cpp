@@ -50,6 +50,9 @@
 #include "Item.h"
 #include "PropertyManagementComponent.h"
 #include "PacketUtils.h"
+#include "Loot.h"
+#include "EntityInfo.h"
+#include "LUTriggers.h"
 #include "Player.h"
 #include "PhantomPhysicsComponent.h"
 #include "ProximityMonitorComponent.h"
@@ -60,12 +63,15 @@
 #include "BuffComponent.h"
 #include "SkillComponent.h"
 #include "VanityUtilities.h"
-#include "GameConfig.h"
 #include "ScriptedActivityComponent.h"
 #include "LevelProgressionComponent.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "dConfig.h"
+#include "eBubbleType.h"
+#include "AMFFormat.h"
+#include "MovingPlatformComponent.h"
+#include "dMessageIdentifiers.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -1192,11 +1198,17 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
 
-	if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 1) {
+	if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		auto query = CDClientDatabase::CreatePreppedStmt(
 			"SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE ?1 OR `name` LIKE ?1 OR `description` LIKE ?1 LIMIT 50");
+		// Concatenate all of the arguments into a single query so a multi word query can be used properly.
+		std::string conditional = args[0];
+		args.erase(args.begin());
+		for (auto& argument : args) {
+			conditional += ' ' + argument;
+		}
 
-		const std::string query_text = "%" + args[0] + "%";
+		const std::string query_text = "%" + conditional + "%";
 		query.bind(1, query_text.c_str());
 
 		auto tables = query.execQuery();
@@ -1695,25 +1707,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "config-set" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 2) {
-		GameConfig::SetValue(args[0], args[1]);
-
-		ChatPackets::SendSystemMessage(
-			sysAddr, u"Set config value: " + GeneralUtils::UTF8ToUTF16(args[0]) + u" to " + GeneralUtils::UTF8ToUTF16(args[1])
-		);
-	}
-
-	if (chatCommand == "config-get" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
-		const auto& value = GameConfig::GetValue(args[0]);
-
-		std::u16string u16key = GeneralUtils::UTF8ToUTF16(args[0]);
-		if (value.empty()) {
-			ChatPackets::SendSystemMessage(sysAddr, u"No value found for " + u16key);
-		} else {
-			ChatPackets::SendSystemMessage(sysAddr, u"Value for " + u16key + u": " + GeneralUtils::UTF8ToUTF16(value));
-		}
-	}
-
 	if (chatCommand == "metrics" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		for (const auto variable : Metrics::GetAllMetrics()) {
 			auto* metric = Metrics::GetMetric(variable);
@@ -1762,6 +1755,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			scriptedActivityComponent->ReloadConfig();
 		}
+		Game::server->UpdateMaximumMtuSize();
 		Game::server->UpdateBandwidthLimit();
 		ChatPackets::SendSystemMessage(sysAddr, u"Successfully reloaded config for world!");
 	}
@@ -1801,6 +1795,33 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			+ GeneralUtils::to_u16string((float)totalRuns / loops);
 
 		ChatPackets::SendSystemMessage(sysAddr, message);
+	}
+
+	if (chatCommand == "deleteinven" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
+		eInventoryType inventoryType = eInventoryType::INVALID;
+		if (!GeneralUtils::TryParse(args[0], inventoryType)) {
+			// In this case, we treat the input as a string and try to find it in the reflection list
+			std::transform(args[0].begin(), args[0].end(),args[0].begin(), ::toupper);
+			Game::logger->Log("SlashCommandHandler", "looking for inventory %s", args[0].c_str());
+			for (uint32_t index = 0; index < NUMBER_OF_INVENTORIES; index++) {
+				if (std::string_view(args[0]) == std::string_view(InventoryType::InventoryTypeToString(static_cast<eInventoryType>(index)))) inventoryType = static_cast<eInventoryType>(index);
+			}
+		}
+
+		if (inventoryType == eInventoryType::INVALID || inventoryType >= NUMBER_OF_INVENTORIES) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid inventory provided.");
+			return;
+		}
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+		if (!inventoryComponent) return;
+
+		auto* inventoryToDelete = inventoryComponent->GetInventory(inventoryType);
+		if (!inventoryToDelete) return;
+
+		inventoryToDelete->DeleteAllItems();
+		Game::logger->Log("SlashCommandHandler", "Deleted inventory %s for user %llu", args[0].c_str(), entity->GetObjectID());
+		ChatPackets::SendSystemMessage(sysAddr, u"Deleted inventory " + GeneralUtils::UTF8ToUTF16(args[0]));
 	}
 
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {

@@ -36,7 +36,7 @@ void NtAssemblyTubeServer::RunAssemblyTube(Entity* self, Entity* player) {
 	if (player->IsPlayer() && !bPlayerBeingTeleported) {
 		auto teleCinematic = self->GetVar<std::u16string>(u"Cinematic");
 
-		GameMessages::SendSetStunned(playerID, PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
+		GameMessages::SendSetStunned(playerID, eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
 			true, true, true, true, true, true, true
 		);
 
@@ -108,7 +108,7 @@ void NtAssemblyTubeServer::UnlockPlayer(Entity* self, Entity* player) {
 
 	m_TeleportingPlayerTable[playerID] = false;
 
-	GameMessages::SendSetStunned(playerID, POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(playerID, eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 }

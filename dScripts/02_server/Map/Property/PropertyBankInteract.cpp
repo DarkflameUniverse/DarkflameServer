@@ -1,6 +1,7 @@
 #include "PropertyBankInteract.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "AMFFormat.h"
 
 void PropertyBankInteract::OnStartup(Entity* self) {
 	auto* zoneControl = EntityManager::Instance()->GetZoneControlEntity();

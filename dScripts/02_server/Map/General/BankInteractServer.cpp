@@ -1,5 +1,7 @@
 #include "BankInteractServer.h"
 #include "GameMessages.h"
+#include "Entity.h"
+#include "AMFFormat.h"
 
 void BankInteractServer::OnUse(Entity* self, Entity* user) {
 	AMFArrayValue args;

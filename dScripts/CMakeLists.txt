@@ -39,6 +39,12 @@ foreach(file ${DSCRIPTS_SOURCES_EQUIPMENTSCRIPTS})
 	set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} "EquipmentScripts/${file}")
 endforeach()
 
+add_subdirectory(EquipmentTriggers)
+
+foreach(file ${DSCRIPTS_SOURCES_EQUIPMENTTRIGGERSSCRIPTS})
+	set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} "EquipmentTriggers/${file}")
+endforeach()
+
 add_subdirectory(zone)
 
 foreach(file ${DSCRIPTS_SOURCES_ZONE})

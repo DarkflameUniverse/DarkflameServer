@@ -1,4 +1,5 @@
 #include "NpcPirateServer.h"
+#include "MissionState.h"
 #include "InventoryComponent.h"
 
 void NpcPirateServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {

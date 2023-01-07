@@ -36,7 +36,7 @@ public:
 	}
 } ReceiveDownloadCompleteCB;
 
-dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, unsigned int zoneID) {
+dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
 	mIP = ip;
 	mPort = port;
 	mZoneID = zoneID;
@@ -52,6 +52,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mReplicaManager = nullptr;
 	mServerType = serverType;
 	mConfig = config;
+	mShouldShutdown = shouldShutdown;
 	//Attempt to start our server here:
 	mIsOkay = Startup();
 
@@ -124,8 +125,11 @@ Packet* dServer::ReceiveFromMaster() {
 					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
 					break;
 				}
+				case MSG_MASTER_SHUTDOWN:
+					*mShouldShutdown = true;
+					break;
 
-															  //When we handle these packets in World instead dServer, we just return the packet's pointer.
+				//When we handle these packets in World instead dServer, we just return the packet's pointer.
 				default:
 
 					return packet;
@@ -184,6 +188,7 @@ bool dServer::Startup() {
 		mPeer->SetIncomingPassword("3.25 DARKFLAME1", 15);
 	} else {
 		UpdateBandwidthLimit();
+		UpdateMaximumMtuSize();
 		mPeer->SetIncomingPassword("3.25 ND1", 8);
 	}
 
@@ -191,6 +196,11 @@ bool dServer::Startup() {
 	if (mUseEncryption) mPeer->InitializeSecurity(NULL, NULL, NULL, NULL);
 
 	return true;
+}
+
+void dServer::UpdateMaximumMtuSize() {
+	auto maxMtuSize = mConfig->GetValue("maximum_mtu_size");
+	mPeer->SetMTUSize(maxMtuSize.empty() ? 1228 : std::stoi(maxMtuSize));
 }
 
 void dServer::UpdateBandwidthLimit() {

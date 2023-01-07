@@ -10,6 +10,7 @@
 #include "EntityManager.h"
 #include "SimplePhysicsComponent.h"
 #include "dZoneManager.h"
+#include "CDClientManager.h"
 
 std::map<LOT, float> MovementAIComponent::m_PhysicsSpeedCache = {};
 

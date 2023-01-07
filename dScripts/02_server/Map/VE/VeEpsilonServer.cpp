@@ -2,6 +2,8 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "MissionState.h"
+#include "Entity.h"
 
 void VeEpsilonServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
 	auto* character = target->GetCharacter();

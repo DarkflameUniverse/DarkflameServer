@@ -1,5 +1,6 @@
 #include "NtVandaServer.h"
 #include "InventoryComponent.h"
+#include "MissionState.h"
 
 void NtVandaServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
 

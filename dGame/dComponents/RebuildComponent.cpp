@@ -14,6 +14,8 @@
 #include "Spawner.h"
 #include "MovingPlatformComponent.h"
 #include "Preconditions.h"
+#include "Loot.h"
+#include "TeamManager.h"
 
 #include "CppScripts.h"
 
@@ -464,12 +466,20 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 
 	auto* builder = GetBuilder();
 
-	if (builder != nullptr) {
-		auto* missionComponent = builder->GetComponent<MissionComponent>();
-		if (missionComponent != nullptr) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityId);
+	if (builder) {
+		auto* team = TeamManager::Instance()->GetTeam(builder->GetObjectID());
+		if (team) {
+			for (const auto memberId : team->members) { // progress missions for all team members
+				auto* member = EntityManager::Instance()->GetEntity(memberId);
+				if (member) {
+					auto* missionComponent = member->GetComponent<MissionComponent>();
+					if (missionComponent) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityId);
+				}
+			}
+		} else{
+			auto* missionComponent = builder->GetComponent<MissionComponent>();
+			if (missionComponent) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityId);
 		}
-
 		LootGenerator::Instance().DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
 	}
 

@@ -19,7 +19,9 @@
 #include "BaseCombatAIComponent.h"
 #include "ScriptComponent.h"
 #include "BuffComponent.h"
-
+#include "EchoStartSkill.h"
+#include "dMessageIdentifiers.h"
+#include "DoClientProjectileImpact.h"
 
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
@@ -181,17 +183,11 @@ void SkillComponent::Reset() {
 }
 
 void SkillComponent::Interrupt() {
-	if (m_Parent->IsPlayer()) return;
-
+	// TODO: need to check immunities on the destroyable component, but they aren't implemented
 	auto* combat = m_Parent->GetComponent<BaseCombatAIComponent>();
+	if (combat != nullptr && combat->GetStunImmune()) return;
 
-	if (combat != nullptr && combat->GetStunImmune()) {
-		return;
-	}
-
-	for (const auto& behavior : this->m_managedBehaviors) {
-		behavior.second->Interrupt();
-	}
+	for (const auto& behavior : this->m_managedBehaviors) behavior.second->Interrupt();
 }
 
 void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, BehaviorContext* context, const BehaviorBranchContext& branch, const LOT lot, const float maxTime,
@@ -246,12 +242,13 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	if (!clientInitalized) {
 		// Echo start skill
-		GameMessages::EchoStartSkill start;
+		EchoStartSkill start;
 
 		start.iCastType = 0;
 		start.skillID = skillId;
 		start.uiSkillHandle = context->skillUId;
 		start.optionalOriginatorID = context->originator;
+		start.optionalTargetID = target;
 
 		auto* originator = EntityManager::Instance()->GetEntity(context->originator);
 
@@ -319,34 +316,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 			const auto distance = Vector3::DistanceSquared(targetPosition, closestPoint);
 
 			if (distance > 3 * 3) {
-				/*
-				if (entry.TrackTarget && distance <= entry.TrackRadius)
-				{
-					const auto rotation = NiQuaternion::LookAtUnlocked(position, targetPosition);
-
-					const auto speed = entry.Velocity.Length();
-
-					const auto homingTarget = rotation.GetForwardVector() * speed;
-
-					Vector3 homing;
-
-					// Move towards
-
-					const auto difference = homingTarget - entry.Velocity;
-					const auto mag = difference.Length();
-					if (mag <= speed || mag == 0)
-					{
-						homing = homingTarget;
-					}
-					else
-					{
-						entry.Velocity + homingTarget / mag * speed;
-					}
-
-					entry.Velocity = homing;
-				}
-				*/
-
+				// TODO There is supposed to be an implementation for homing projectiles here
 				continue;
 			}
 
@@ -416,7 +386,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	behavior->Calculate(entry.context, bitStream, entry.branchContext);
 
-	GameMessages::DoClientProjectileImpact projectileImpact;
+	DoClientProjectileImpact projectileImpact;
 
 	projectileImpact.sBitStream.assign((char*)bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
 	projectileImpact.i64OwnerID = this->m_Parent->GetObjectID();

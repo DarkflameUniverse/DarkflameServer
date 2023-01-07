@@ -15,7 +15,8 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 
 	if (button == 1) {
 
-		GameMessages::SendSetStunned(player->GetObjectID(), PUSH, player->GetSystemAddress(), player->GetObjectID(),
+		GameMessages::SendSetStunned(
+			player->GetObjectID(), eStateChangeType::PUSH, player->GetSystemAddress(), player->GetObjectID(),
 			true, true, true, true, true, true, true
 		);
 
@@ -82,11 +83,10 @@ void BaseConsoleTeleportServer::TransferPlayer(Entity* self, Entity* player, int
 		return;
 	}
 
-	// Ignoring extra effects for now
-
-	/*GameMessages::SendSetStunned(player->GetObjectID(), POP, player->GetSystemAddress(), player->GetObjectID(),
+	GameMessages::SendSetStunned(
+		player->GetObjectID(), eStateChangeType::POP, player->GetSystemAddress(), player->GetObjectID(),
 		true, true, true, true, true, true, true
-	);*/
+	);
 
 	GameMessages::SendTerminateInteraction(player->GetObjectID(), FROM_INTERACTION, player->GetObjectID());
 

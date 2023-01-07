@@ -22,7 +22,7 @@ void NtParadoxTeleServer::OnProximityUpdate(Entity* self, Entity* entering, std:
 	const auto bPlayerBeingTeleported = m_TeleportingPlayerTable[playerID];
 
 	if (player->IsPlayer() && !bPlayerBeingTeleported) {
-		GameMessages::SendSetStunned(playerID, PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
+		GameMessages::SendSetStunned(playerID, eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
 			true, true, true, true, true, true, true
 		);
 
@@ -100,7 +100,7 @@ void NtParadoxTeleServer::UnlockPlayer(Entity* self, Entity* player) {
 
 	m_TeleportingPlayerTable[playerID] = false;
 
-	GameMessages::SendSetStunned(playerID, POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(playerID, eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 

@@ -1,6 +1,5 @@
 # In-game commands
-
-Here is a summary of the commands available in-game. All commands are prefixed by `/` and typed in the in-game chat window. Some commands requires admin privileges. Operands within `<>` are required, operands within `()` are not. For the full list of in-game commands, please checkout [the source file](../dGame/dUtilities/SlashCommandHandler.cpp).
+* All commands are prefixed by `/` and typed in the in-game chat window. Some commands require elevated gmlevel privileges. Operands within `<>` are required, operands within `()` are not.
 
 ## General Commands
 
@@ -37,8 +36,6 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
 |announce|`/announce`|Sends a announcement. `/setanntitle` and `/setannmsg` must be called first to configure the announcement.|8|
-|config-set|`/config-set <key> <value>`|Set configuration item.|8|
-|config-get|`/config-get <key>`|Get current value of a configuration item.|8|
 |kill|`/kill <username>`|Smashes the character whom the given user is playing.|8|
 |metrics|`/metrics`|Prints some information about the server's performance.|8|
 |setannmsg|`/setannmsg <title>`|Sets the message of an announcement.|8|
@@ -71,6 +68,7 @@ These commands are primarily for development and testing. The usage of many of t
 |createprivate|`/createprivate <zone id> <clone id> <password>`|Creates a private zone with password.|8|
 |debugui|`/debugui`|Toggle Debug UI.|8|
 |dismount|`/dismount`|Dismounts you from the vehicle or mount.|8|
+|reloadconfig|`/reloadconfig`|Reloads the server with the new config values.|8|
 |force-save|`/force-save`|While saving to database usually happens on regular intervals and when you disconnect from the server, this command saves your player's data to the database.|8|
 |freecam|`/freecam`|Toggles freecam mode.|8|
 |freemoney|`/freemoney <coins>`|Gives coins.|8|
@@ -80,7 +78,7 @@ These commands are primarily for development and testing. The usage of many of t
 |inspect|`/inspect <component> (-m <waypoint> \| -a <animation> \| -s \| -p \| -f (faction) \| -t)`|Finds the closest entity with the given component or LDF variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See [Detailed `/inspect` Usage](#detailed-inspect-usage) below.|8|
 |list-spawns|`/list-spawns`|Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one.|8|
 |locrow|`/locrow`|Prints the your current position and rotation information to the console.|8|
-|lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.|8|
+|lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.  Query can be multiple words delimited by spaces.|8|
 |playanimation|`/playanimation <id>`|Plays animation with given ID. Alias: `/playanim`.|8|
 |playeffect|`/playeffect <effect id> <effect type> <effect name>`|Plays an effect.|8|
 |playlvlfx|`/playlvlfx`|Plays the level up animation on your character.|8|

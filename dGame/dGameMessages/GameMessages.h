@@ -1,25 +1,26 @@
-
 #ifndef GAMEMESSAGES_H
 #define GAMEMESSAGES_H
 
 #include "dCommonVars.h"
-#include "RakNetTypes.h"
+#include <map>
 #include <string>
-#include "InventoryComponent.h"
-#include "dMessageIdentifiers.h"
-#include "AMFFormat.h"
-#include "AMFFormat_BitStream.h"
-#include "NiQuaternion.h"
-#include "PropertySelectQueryProperty.h"
-#include "TradingManager.h"
-#include "LeaderboardManager.h"
-#include "MovingPlatformComponent.h"
+#include <vector>
+#include "eMovementPlatformState.h"
+#include "NiPoint3.h"
 
+class AMFValue;
+class Entity;
+class Item;
 class NiQuaternion;
 class User;
-class Entity;
-class NiPoint3;
+class Leaderboard;
+class PropertySelectQueryProperty;
+class TradeItem;
+
+enum class eAnimationFlags : uint32_t;
+
 enum class eUnequippableActiveType;
+enum eInventoryType : uint32_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -55,7 +56,7 @@ namespace GameMessages {
 	void SendStartPathing(Entity* entity);
 	void SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint = false,
 		int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1,
-		MovementPlatformState movementState = MovementPlatformState::Moving);
+		eMovementPlatformState movementState = eMovementPlatformState::Moving);
 
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);
 	void SendServerDoneLoadingAllObjects(Entity* entity, const SystemAddress& sysAddr);
@@ -72,8 +73,8 @@ namespace GameMessages {
 	void NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards);
 
 	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
-	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, NDGFxValue args);
-	void SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args);
+	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFValue* args);
+	void SendUIMessageServerToAllClients(const std::string& message, AMFValue* args);
 
 	void SendPlayEmbeddedEffectOnAllClientsNearObject(Entity* entity, std::u16string effectName, const LWOOBJID& fromObjectID, float radius);
 	void SendPlayFXEffect(Entity* entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary, float priority = 1, float scale = 1, bool serialize = true);
@@ -267,7 +268,7 @@ namespace GameMessages {
 		float leadOut = -1.0f, bool leavePlayerLocked = false);
 	void HandleCinematicUpdate(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void SendSetStunned(LWOOBJID objectId, eStunState stateChangeType, const SystemAddress& sysAddr,
+	void SendSetStunned(LWOOBJID objectId, eStateChangeType stateChangeType, const SystemAddress& sysAddr,
 		LWOOBJID originator = LWOOBJID_EMPTY, bool bCantAttack = false, bool bCantEquip = false,
 		bool bCantInteract = false, bool bCantJump = false, bool bCantMove = false, bool bCantTurn = false,
 		bool bCantUseItem = false, bool bDontTerminateInteract = false, bool bIgnoreImmunity = true,
@@ -275,6 +276,35 @@ namespace GameMessages {
 		bool bCantInteractOutChangeWasApplied = false, bool bCantJumpOutChangeWasApplied = false,
 		bool bCantMoveOutChangeWasApplied = false, bool bCantTurnOutChangeWasApplied = false,
 		bool bCantUseItemOutChangeWasApplied = false);
+
+	void SendSetStunImmunity(
+		LWOOBJID target,
+		eStateChangeType state,
+		const SystemAddress& sysAddr,
+		LWOOBJID originator = LWOOBJID_EMPTY,
+		bool bImmuneToStunAttack = false,
+		bool bImmuneToStunEquip = false,
+		bool bImmuneToStunInteract = false,
+		bool bImmuneToStunJump = false,
+		bool bImmuneToStunMove = false,
+		bool bImmuneToStunTurn = false,
+		bool bImmuneToStunUseItem = false
+	);
+
+	void SendSetStatusImmunity(
+		LWOOBJID objectId,
+		eStateChangeType state,
+		const SystemAddress& sysAddr,
+		bool bImmuneToBasicAttack = false,
+		bool bImmuneToDamageOverTime = false,
+		bool bImmuneToKnockback = false,
+		bool bImmuneToInterrupt = false,
+		bool bImmuneToSpeed = false,
+		bool bImmuneToImaginationGain = false,
+		bool bImmuneToImaginationLoss = false,
+		bool bImmuneToQuickbuildInterrupt = false,
+		bool bImmuneToPullToPoint = false
+	);
 
 	void SendOrientToAngle(LWOOBJID objectId, bool bRelativeToCurrent, float fAngle, const SystemAddress& sysAddr);
 
@@ -372,6 +402,15 @@ namespace GameMessages {
 	void SendDisplayMessageBox(LWOOBJID objectId, bool bShow, LWOOBJID callbackClient, const std::u16string& identifier, int32_t imageID, const std::u16string& text, const std::u16string& userData, const SystemAddress& sysAddr);
 
 	void SendDisplayChatBubble(LWOOBJID objectId, const std::u16string& text, const SystemAddress& sysAddr);
+
+	/**
+	 * @brief
+	 *
+	 * @param objectId ID of the entity to set idle flags
+	 * @param FlagsOn Flag to turn on
+	 * @param FlagsOff Flag to turn off
+	 */
+	void SendChangeIdleFlags(LWOOBJID objectId, eAnimationFlags FlagsOn, eAnimationFlags FlagsOff, const SystemAddress& sysAddr);
 
 	// Mounts
 	/**
@@ -578,550 +617,15 @@ namespace GameMessages {
 	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);
 
 	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
+  
+	// bubble
+	void HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
 
-	/*  Message to synchronize a skill cast */
-	class EchoSyncSkill {
-		static const GAME_MSG MsgID = GAME_MSG_ECHO_SYNC_SKILL;
+	void HandleActivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
 
-	public:
-		EchoSyncSkill() {
-			bDone = false;
-		}
+	void SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
-		EchoSyncSkill(std::string _sBitStream, unsigned int _uiBehaviorHandle, unsigned int _uiSkillHandle, bool _bDone = false) {
-			bDone = _bDone;
-			sBitStream = _sBitStream;
-			uiBehaviorHandle = _uiBehaviorHandle;
-			uiSkillHandle = _uiSkillHandle;
-		}
-
-		EchoSyncSkill(RakNet::BitStream* stream) {
-			bDone = false;
-
-			Deserialize(stream);
-		}
-
-		~EchoSyncSkill() {
-		}
-
-		void Serialize(RakNet::BitStream* stream) {
-			stream->Write((unsigned short)MsgID);
-
-			stream->Write(bDone);
-			uint32_t sBitStreamLength = sBitStream.length();
-			stream->Write(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				stream->Write(sBitStream[k]);
-			}
-
-			stream->Write(uiBehaviorHandle);
-			stream->Write(uiSkillHandle);
-		}
-
-		bool Deserialize(RakNet::BitStream* stream) {
-			stream->Read(bDone);
-			uint32_t sBitStreamLength{};
-			stream->Read(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				unsigned char character;
-				stream->Read(character);
-				sBitStream.push_back(character);
-			}
-
-			stream->Read(uiBehaviorHandle);
-			stream->Read(uiSkillHandle);
-
-			return true;
-		}
-
-		bool bDone{};
-		std::string sBitStream{};
-		unsigned int uiBehaviorHandle{};
-		unsigned int uiSkillHandle{};
-	};
-
-	/*  Message to synchronize a skill cast */
-	class SyncSkill {
-		static const GAME_MSG MsgID = GAME_MSG_SYNC_SKILL;
-
-	public:
-		SyncSkill() {
-			bDone = false;
-		}
-
-		SyncSkill(std::string _sBitStream, unsigned int _uiBehaviorHandle, unsigned int _uiSkillHandle, bool _bDone = false) {
-			bDone = _bDone;
-			sBitStream = _sBitStream;
-			uiBehaviorHandle = _uiBehaviorHandle;
-			uiSkillHandle = _uiSkillHandle;
-		}
-
-		SyncSkill(RakNet::BitStream* stream) {
-			bDone = false;
-			Deserialize(stream);
-		}
-
-		~SyncSkill() {
-		}
-
-		void Serialize(RakNet::BitStream* stream) {
-			stream->Write((unsigned short)MsgID);
-
-			stream->Write(bDone);
-			uint32_t sBitStreamLength = sBitStream.length();
-			stream->Write(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				stream->Write(sBitStream[k]);
-			}
-
-			stream->Write(uiBehaviorHandle);
-			stream->Write(uiSkillHandle);
-		}
-
-		bool Deserialize(RakNet::BitStream* stream) {
-			stream->Read(bDone);
-			uint32_t sBitStreamLength{};
-			stream->Read(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				unsigned char character;
-				stream->Read(character);
-				sBitStream.push_back(character);
-			}
-
-			stream->Read(uiBehaviorHandle);
-			stream->Read(uiSkillHandle);
-
-			return true;
-		}
-
-		bool bDone{};
-		std::string sBitStream{};
-		unsigned int uiBehaviorHandle{};
-		unsigned int uiSkillHandle{};
-	};
-
-	/*  Notifying the server that a locally owned projectil impacted. Sent to the caster of the projectile
-		should always be the local char. */
-	class RequestServerProjectileImpact {
-		static const GAME_MSG MsgID = GAME_MSG_REQUEST_SERVER_PROJECTILE_IMPACT;
-
-	public:
-		RequestServerProjectileImpact() {
-			i64LocalID = LWOOBJID_EMPTY;
-			i64TargetID = LWOOBJID_EMPTY;
-		}
-
-		RequestServerProjectileImpact(std::string _sBitStream, LWOOBJID _i64LocalID = LWOOBJID_EMPTY, LWOOBJID _i64TargetID = LWOOBJID_EMPTY) {
-			i64LocalID = _i64LocalID;
-			i64TargetID = _i64TargetID;
-			sBitStream = _sBitStream;
-		}
-
-		RequestServerProjectileImpact(RakNet::BitStream* stream) {
-			i64LocalID = LWOOBJID_EMPTY;
-			i64TargetID = LWOOBJID_EMPTY;
-
-			Deserialize(stream);
-		}
-
-		~RequestServerProjectileImpact() {
-		}
-
-		void Serialize(RakNet::BitStream* stream) {
-			stream->Write((unsigned short)MsgID);
-
-			stream->Write(i64LocalID != LWOOBJID_EMPTY);
-			if (i64LocalID != LWOOBJID_EMPTY) stream->Write(i64LocalID);
-
-			stream->Write(i64TargetID != LWOOBJID_EMPTY);
-			if (i64TargetID != LWOOBJID_EMPTY) stream->Write(i64TargetID);
-
-			uint32_t sBitStreamLength = sBitStream.length();
-			stream->Write(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				stream->Write(sBitStream[k]);
-			}
-
-		}
-
-		bool Deserialize(RakNet::BitStream* stream) {
-			bool i64LocalIDIsDefault{};
-			stream->Read(i64LocalIDIsDefault);
-			if (i64LocalIDIsDefault != 0) stream->Read(i64LocalID);
-
-			bool i64TargetIDIsDefault{};
-			stream->Read(i64TargetIDIsDefault);
-			if (i64TargetIDIsDefault != 0) stream->Read(i64TargetID);
-
-			uint32_t sBitStreamLength{};
-			stream->Read(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				unsigned char character;
-				stream->Read(character);
-				sBitStream.push_back(character);
-			}
-
-
-			return true;
-		}
-
-		LWOOBJID i64LocalID;
-		LWOOBJID i64TargetID;
-		std::string sBitStream;
-	};
-
-	/*  Tell a client local projectile to impact */
-	class DoClientProjectileImpact {
-		static const GAME_MSG MsgID = GAME_MSG_DO_CLIENT_PROJECTILE_IMPACT;
-
-	public:
-		DoClientProjectileImpact() {
-			i64OrgID = LWOOBJID_EMPTY;
-			i64OwnerID = LWOOBJID_EMPTY;
-			i64TargetID = LWOOBJID_EMPTY;
-		}
-
-		DoClientProjectileImpact(std::string _sBitStream, LWOOBJID _i64OrgID = LWOOBJID_EMPTY, LWOOBJID _i64OwnerID = LWOOBJID_EMPTY, LWOOBJID _i64TargetID = LWOOBJID_EMPTY) {
-			i64OrgID = _i64OrgID;
-			i64OwnerID = _i64OwnerID;
-			i64TargetID = _i64TargetID;
-			sBitStream = _sBitStream;
-		}
-
-		DoClientProjectileImpact(RakNet::BitStream* stream) {
-			i64OrgID = LWOOBJID_EMPTY;
-			i64OwnerID = LWOOBJID_EMPTY;
-			i64TargetID = LWOOBJID_EMPTY;
-
-			Deserialize(stream);
-		}
-
-		~DoClientProjectileImpact() {
-		}
-
-		void Serialize(RakNet::BitStream* stream) {
-			stream->Write((unsigned short)MsgID);
-
-			stream->Write(i64OrgID != LWOOBJID_EMPTY);
-			if (i64OrgID != LWOOBJID_EMPTY) stream->Write(i64OrgID);
-
-			stream->Write(i64OwnerID != LWOOBJID_EMPTY);
-			if (i64OwnerID != LWOOBJID_EMPTY) stream->Write(i64OwnerID);
-
-			stream->Write(i64TargetID != LWOOBJID_EMPTY);
-			if (i64TargetID != LWOOBJID_EMPTY) stream->Write(i64TargetID);
-
-			uint32_t sBitStreamLength = sBitStream.length();
-			stream->Write(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				stream->Write(sBitStream[k]);
-			}
-
-		}
-
-		bool Deserialize(RakNet::BitStream* stream) {
-			bool i64OrgIDIsDefault{};
-			stream->Read(i64OrgIDIsDefault);
-			if (i64OrgIDIsDefault != 0) stream->Read(i64OrgID);
-
-			bool i64OwnerIDIsDefault{};
-			stream->Read(i64OwnerIDIsDefault);
-			if (i64OwnerIDIsDefault != 0) stream->Read(i64OwnerID);
-
-			bool i64TargetIDIsDefault{};
-			stream->Read(i64TargetIDIsDefault);
-			if (i64TargetIDIsDefault != 0) stream->Read(i64TargetID);
-
-			uint32_t sBitStreamLength{};
-			stream->Read(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				unsigned char character;
-				stream->Read(character);
-				sBitStream.push_back(character);
-			}
-
-
-			return true;
-		}
-
-		LWOOBJID i64OrgID;
-		LWOOBJID i64OwnerID;
-		LWOOBJID i64TargetID;
-		std::string sBitStream;
-	};
-
-	/*  Same as start skill but with different network options. An echo down to other clients that need to play the skill. */
-	class EchoStartSkill {
-		static const GAME_MSG MsgID = GAME_MSG_ECHO_START_SKILL;
-
-	public:
-		EchoStartSkill() {
-			bUsedMouse = false;
-			fCasterLatency = 0.0f;
-			iCastType = 0;
-			lastClickedPosit = NiPoint3::ZERO;
-			optionalTargetID = LWOOBJID_EMPTY;
-			originatorRot = NiQuaternion::IDENTITY;
-			uiSkillHandle = 0;
-		}
-
-		EchoStartSkill(LWOOBJID _optionalOriginatorID, std::string _sBitStream, TSkillID _skillID, bool _bUsedMouse = false, float _fCasterLatency = 0.0f, int _iCastType = 0, NiPoint3 _lastClickedPosit = NiPoint3::ZERO, LWOOBJID _optionalTargetID = LWOOBJID_EMPTY, NiQuaternion _originatorRot = NiQuaternion::IDENTITY, unsigned int _uiSkillHandle = 0) {
-			bUsedMouse = _bUsedMouse;
-			fCasterLatency = _fCasterLatency;
-			iCastType = _iCastType;
-			lastClickedPosit = _lastClickedPosit;
-			optionalOriginatorID = _optionalOriginatorID;
-			optionalTargetID = _optionalTargetID;
-			originatorRot = _originatorRot;
-			sBitStream = _sBitStream;
-			skillID = _skillID;
-			uiSkillHandle = _uiSkillHandle;
-		}
-
-		EchoStartSkill(RakNet::BitStream* stream) {
-			bUsedMouse = false;
-			fCasterLatency = 0.0f;
-			iCastType = 0;
-			lastClickedPosit = NiPoint3::ZERO;
-			optionalTargetID = LWOOBJID_EMPTY;
-			originatorRot = NiQuaternion::IDENTITY;
-			uiSkillHandle = 0;
-
-			Deserialize(stream);
-		}
-
-		~EchoStartSkill() {
-		}
-
-		void Serialize(RakNet::BitStream* stream) {
-			stream->Write((unsigned short)MsgID);
-
-			stream->Write(bUsedMouse);
-
-			stream->Write(fCasterLatency != 0.0f);
-			if (fCasterLatency != 0.0f) stream->Write(fCasterLatency);
-
-			stream->Write(iCastType != 0);
-			if (iCastType != 0) stream->Write(iCastType);
-
-			stream->Write(lastClickedPosit != NiPoint3::ZERO);
-			if (lastClickedPosit != NiPoint3::ZERO) stream->Write(lastClickedPosit);
-
-			stream->Write(optionalOriginatorID);
-
-			stream->Write(optionalTargetID != LWOOBJID_EMPTY);
-			if (optionalTargetID != LWOOBJID_EMPTY) stream->Write(optionalTargetID);
-
-			stream->Write(originatorRot != NiQuaternion::IDENTITY);
-			if (originatorRot != NiQuaternion::IDENTITY) stream->Write(originatorRot);
-
-			uint32_t sBitStreamLength = sBitStream.length();
-			stream->Write(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				stream->Write(sBitStream[k]);
-			}
-
-			stream->Write(skillID);
-
-			stream->Write(uiSkillHandle != 0);
-			if (uiSkillHandle != 0) stream->Write(uiSkillHandle);
-		}
-
-		bool Deserialize(RakNet::BitStream* stream) {
-			stream->Read(bUsedMouse);
-
-			bool fCasterLatencyIsDefault{};
-			stream->Read(fCasterLatencyIsDefault);
-			if (fCasterLatencyIsDefault != 0) stream->Read(fCasterLatency);
-
-			bool iCastTypeIsDefault{};
-			stream->Read(iCastTypeIsDefault);
-			if (iCastTypeIsDefault != 0) stream->Read(iCastType);
-
-			bool lastClickedPositIsDefault{};
-			stream->Read(lastClickedPositIsDefault);
-			if (lastClickedPositIsDefault != 0) stream->Read(lastClickedPosit);
-
-			stream->Read(optionalOriginatorID);
-
-			bool optionalTargetIDIsDefault{};
-			stream->Read(optionalTargetIDIsDefault);
-			if (optionalTargetIDIsDefault != 0) stream->Read(optionalTargetID);
-
-			bool originatorRotIsDefault{};
-			stream->Read(originatorRotIsDefault);
-			if (originatorRotIsDefault != 0) stream->Read(originatorRot);
-
-			uint32_t sBitStreamLength{};
-			stream->Read(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				unsigned char character;
-				stream->Read(character);
-				sBitStream.push_back(character);
-			}
-
-			stream->Read(skillID);
-
-			bool uiSkillHandleIsDefault{};
-			stream->Read(uiSkillHandleIsDefault);
-			if (uiSkillHandleIsDefault != 0) stream->Read(uiSkillHandle);
-
-			return true;
-		}
-
-		bool bUsedMouse;
-		float fCasterLatency;
-		int iCastType;
-		NiPoint3 lastClickedPosit;
-		LWOOBJID optionalOriginatorID;
-		LWOOBJID optionalTargetID;
-		NiQuaternion originatorRot;
-		std::string sBitStream;
-		TSkillID skillID;
-		unsigned int uiSkillHandle;
-	};
-
-	/*  Same as sync skill but with different network options. An echo down to other clients that need to play the skill. */
-	class StartSkill {
-		static const GAME_MSG MsgID = GAME_MSG_START_SKILL;
-
-	public:
-		StartSkill() {
-			bUsedMouse = false;
-			consumableItemID = LWOOBJID_EMPTY;
-			fCasterLatency = 0.0f;
-			iCastType = 0;
-			lastClickedPosit = NiPoint3::ZERO;
-			optionalTargetID = LWOOBJID_EMPTY;
-			originatorRot = NiQuaternion::IDENTITY;
-			uiSkillHandle = 0;
-		}
-
-		StartSkill(LWOOBJID _optionalOriginatorID, std::string _sBitStream, TSkillID _skillID, bool _bUsedMouse = false, LWOOBJID _consumableItemID = LWOOBJID_EMPTY, float _fCasterLatency = 0.0f, int _iCastType = 0, NiPoint3 _lastClickedPosit = NiPoint3::ZERO, LWOOBJID _optionalTargetID = LWOOBJID_EMPTY, NiQuaternion _originatorRot = NiQuaternion::IDENTITY, unsigned int _uiSkillHandle = 0) {
-			bUsedMouse = _bUsedMouse;
-			consumableItemID = _consumableItemID;
-			fCasterLatency = _fCasterLatency;
-			iCastType = _iCastType;
-			lastClickedPosit = _lastClickedPosit;
-			optionalOriginatorID = _optionalOriginatorID;
-			optionalTargetID = _optionalTargetID;
-			originatorRot = _originatorRot;
-			sBitStream = _sBitStream;
-			skillID = _skillID;
-			uiSkillHandle = _uiSkillHandle;
-		}
-
-		StartSkill(RakNet::BitStream* stream) {
-			bUsedMouse = false;
-			consumableItemID = LWOOBJID_EMPTY;
-			fCasterLatency = 0.0f;
-			iCastType = 0;
-			lastClickedPosit = NiPoint3::ZERO;
-			optionalTargetID = LWOOBJID_EMPTY;
-			originatorRot = NiQuaternion::IDENTITY;
-			uiSkillHandle = 0;
-
-			Deserialize(stream);
-		}
-
-		~StartSkill() {
-		}
-
-		void Serialize(RakNet::BitStream* stream) {
-			stream->Write((unsigned short)MsgID);
-
-			stream->Write(bUsedMouse);
-
-			stream->Write(consumableItemID != LWOOBJID_EMPTY);
-			if (consumableItemID != LWOOBJID_EMPTY) stream->Write(consumableItemID);
-
-			stream->Write(fCasterLatency != 0.0f);
-			if (fCasterLatency != 0.0f) stream->Write(fCasterLatency);
-
-			stream->Write(iCastType != 0);
-			if (iCastType != 0) stream->Write(iCastType);
-
-			stream->Write(lastClickedPosit != NiPoint3::ZERO);
-			if (lastClickedPosit != NiPoint3::ZERO) stream->Write(lastClickedPosit);
-
-			stream->Write(optionalOriginatorID);
-
-			stream->Write(optionalTargetID != LWOOBJID_EMPTY);
-			if (optionalTargetID != LWOOBJID_EMPTY) stream->Write(optionalTargetID);
-
-			stream->Write(originatorRot != NiQuaternion::IDENTITY);
-			if (originatorRot != NiQuaternion::IDENTITY) stream->Write(originatorRot);
-
-			uint32_t sBitStreamLength = sBitStream.length();
-			stream->Write(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				stream->Write(sBitStream[k]);
-			}
-
-			stream->Write(skillID);
-
-			stream->Write(uiSkillHandle != 0);
-			if (uiSkillHandle != 0) stream->Write(uiSkillHandle);
-		}
-
-		bool Deserialize(RakNet::BitStream* stream) {
-			stream->Read(bUsedMouse);
-
-			bool consumableItemIDIsDefault{};
-			stream->Read(consumableItemIDIsDefault);
-			if (consumableItemIDIsDefault != 0) stream->Read(consumableItemID);
-
-			bool fCasterLatencyIsDefault{};
-			stream->Read(fCasterLatencyIsDefault);
-			if (fCasterLatencyIsDefault != 0) stream->Read(fCasterLatency);
-
-			bool iCastTypeIsDefault{};
-			stream->Read(iCastTypeIsDefault);
-			if (iCastTypeIsDefault != 0) stream->Read(iCastType);
-
-			bool lastClickedPositIsDefault{};
-			stream->Read(lastClickedPositIsDefault);
-			if (lastClickedPositIsDefault != 0) stream->Read(lastClickedPosit);
-
-			stream->Read(optionalOriginatorID);
-
-			bool optionalTargetIDIsDefault{};
-			stream->Read(optionalTargetIDIsDefault);
-			if (optionalTargetIDIsDefault != 0) stream->Read(optionalTargetID);
-
-			bool originatorRotIsDefault{};
-			stream->Read(originatorRotIsDefault);
-			if (originatorRotIsDefault != 0) stream->Read(originatorRot);
-
-			uint32_t sBitStreamLength{};
-			stream->Read(sBitStreamLength);
-			for (unsigned int k = 0; k < sBitStreamLength; k++) {
-				unsigned char character;
-				stream->Read(character);
-				sBitStream.push_back(character);
-			}
-
-			stream->Read(skillID);
-
-			bool uiSkillHandleIsDefault{};
-			stream->Read(uiSkillHandleIsDefault);
-			if (uiSkillHandleIsDefault != 0) stream->Read(uiSkillHandle);
-
-			return true;
-		}
-
-		bool bUsedMouse = false;
-		LWOOBJID consumableItemID{};
-		float fCasterLatency{};
-		int iCastType{};
-		NiPoint3 lastClickedPosit{};
-		LWOOBJID optionalOriginatorID{};
-		LWOOBJID optionalTargetID{};
-		NiQuaternion originatorRot{};
-		std::string sBitStream = "";
-		TSkillID skillID = 0;
-		unsigned int uiSkillHandle = 0;
-	};
+	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 };
 
 #endif // GAMEMESSAGES_H
