@@ -1192,10 +1192,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
 
-	if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() == 1) {
+	if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		auto query = CDClientDatabase::CreatePreppedStmt(
 			"SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE ?1 OR `name` LIKE ?1 OR `description` LIKE ?1 LIMIT 50");
-
 		// Concatenate all of the arguments into a single query so a multi word query can be used properly.
 		std::string conditional = args[0];
 		args.erase(args.begin());
@@ -1203,7 +1202,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			conditional += ' ' + argument;
 		}
 
-		const std::string query_text = "%" + args[0] + "%";
+		const std::string query_text = "%" + conditional + "%";
 		query.bind(1, query_text.c_str());
 
 		auto tables = query.execQuery();
