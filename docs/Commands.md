@@ -78,7 +78,7 @@ These commands are primarily for development and testing. The usage of many of t
 |inspect|`/inspect <component> (-m <waypoint> \| -a <animation> \| -s \| -p \| -f (faction) \| -t)`|Finds the closest entity with the given component or LDF variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See [Detailed `/inspect` Usage](#detailed-inspect-usage) below.|8|
 |list-spawns|`/list-spawns`|Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one.|8|
 |locrow|`/locrow`|Prints the your current position and rotation information to the console.|8|
-|lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.|8|
+|lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.  Query can be multiple words delimited by spaces.|8|
 |playanimation|`/playanimation <id>`|Plays animation with given ID. Alias: `/playanim`.|8|
 |playeffect|`/playeffect <effect id> <effect type> <effect name>`|Plays an effect.|8|
 |playlvlfx|`/playlvlfx`|Plays the level up animation on your character.|8|
