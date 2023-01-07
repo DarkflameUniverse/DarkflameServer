@@ -43,6 +43,9 @@
 #include "CharacterComponent.h"
 
 #include "EntityManager.h"
+#include "EntityInfo.h"
+#include "User.h"
+#include "Loot.h"
 #include "Entity.h"
 #include "Character.h"
 #include "ChatPackets.h"
@@ -59,6 +62,8 @@
 #include "AssetManager.h"
 #include "LevelProgressionComponent.h"
 #include "eBlueprintSaveResponseType.h"
+#include "AMFFormat.h"
+#include "NiPoint3.h"
 
 #include "ZCompression.h"
 

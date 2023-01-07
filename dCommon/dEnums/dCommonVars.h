@@ -365,7 +365,7 @@ enum eControlSceme {
 	SCHEME_WEAR_A_ROBOT //== freecam?
 };
 
-enum eStunState {
+enum class eStateChangeType : uint32_t {
 	PUSH,
 	POP
 };

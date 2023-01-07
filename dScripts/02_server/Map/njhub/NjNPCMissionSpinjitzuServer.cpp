@@ -1,6 +1,7 @@
 #include "NjNPCMissionSpinjitzuServer.h"
 #include "Character.h"
 #include "EntityManager.h"
+#include "MissionState.h"
 
 void NjNPCMissionSpinjitzuServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID,
 	MissionState missionState) {

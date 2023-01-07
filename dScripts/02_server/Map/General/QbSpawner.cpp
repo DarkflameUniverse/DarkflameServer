@@ -1,5 +1,6 @@
 #include "QbSpawner.h"
 #include "BaseCombatAIComponent.h"
+#include "EntityInfo.h"
 #include "MovementAIComponent.h"
 
 void QbSpawner::OnStartup(Entity* self) {
@@ -133,4 +134,3 @@ void QbSpawner::AggroTargetObject(Entity* self, Entity* enemy) {
 	}
 
 }
-

@@ -17,6 +17,7 @@
 #include "dServer.h"
 #include "dZoneManager.h"
 #include "InventoryComponent.h"
+#include "User.h"
 #include "Database.h"
 #include "WorldConfig.h"
 

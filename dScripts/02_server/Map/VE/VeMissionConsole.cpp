@@ -2,6 +2,7 @@
 #include "InventoryComponent.h"
 #include "Character.h"
 #include "GameMessages.h"
+#include "Loot.h"
 
 void VeMissionConsole::OnUse(Entity* self, Entity* user) {
 	LootGenerator::Instance().DropActivityLoot(user, self, 12551);

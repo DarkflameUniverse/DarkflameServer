@@ -13,7 +13,9 @@
 #include "dZoneManager.h"
 #include "CharacterComponent.h"
 #include "Mail.h"
+#include "User.h"
 #include "CppScripts.h"
+#include "Loot.h"
 
 std::vector<Player*> Player::m_Players = {};
 

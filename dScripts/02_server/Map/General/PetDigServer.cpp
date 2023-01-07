@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include "Character.h"
 #include "PetComponent.h"
+#include "User.h"
 
 std::vector<LWOOBJID> PetDigServer::treasures{};
 

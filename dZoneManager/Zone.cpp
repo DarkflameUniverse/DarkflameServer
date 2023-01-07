@@ -6,6 +6,7 @@
 #include "dLogger.h"
 #include "GeneralUtils.h"
 #include "BinaryIO.h"
+#include "LUTriggers.h"
 
 #include "AssetManager.h"
 #include "CDClientManager.h"

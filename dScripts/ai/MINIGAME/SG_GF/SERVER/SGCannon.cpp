@@ -11,6 +11,7 @@
 #include "MovementAIComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "MissionComponent.h"
+#include "Loot.h"
 #include "InventoryComponent.h"
 
 void SGCannon::OnStartup(Entity* self) {
@@ -76,7 +77,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 		auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 		if (player != nullptr) {
 			Game::logger->Log("SGCannon", "Player is ready");
-			/*GameMessages::SendSetStunned(player->GetObjectID(), PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
+			/*GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
 										 true, true, true, true, true, true, true);*/
 
 			Game::logger->Log("SGCannon", "Sending ActivityEnter");

@@ -4,30 +4,35 @@
 #include <functional>
 #include <typeinfo>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
-#include "../thirdparty/raknet/Source/Replica.h"
-#include "../thirdparty/raknet/Source/ReplicaManager.h"
-
-#include "dCommonVars.h"
-#include "User.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "LDFFormat.h"
-#include "Loot.h"
-#include "Zone.h"
 
-#include "EntityTimer.h"
-#include "EntityCallbackTimer.h"
-#include "EntityInfo.h"
+namespace Loot {
+	class Info;
+};
+
+namespace tinyxml2 {
+	class XMLDocument;
+};
+namespace LUTriggers {
+	struct Trigger;
+};
 
 class Player;
+class EntityInfo;
+class User;
 class Spawner;
 class ScriptComponent;
 class dpEntity;
+class EntityTimer;
 class Component;
 class Item;
 class Character;
+class EntityCallbackTimer;
 
 namespace CppScripts {
 	class Script;

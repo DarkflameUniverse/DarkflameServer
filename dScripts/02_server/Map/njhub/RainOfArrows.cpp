@@ -1,6 +1,7 @@
 #include "RainOfArrows.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"
+#include "EntityInfo.h"
 #include "GameMessages.h"
 
 void RainOfArrows::OnStartup(Entity* self) {
