@@ -3,8 +3,13 @@
 
 #include <string>
 
-#include "Game.h"
-#include "dLogger.h"
+class AMFArrayValue;
+
+class BlockDefinition {
+	std::string defaultValue;
+	std::string minimumValue;
+	std::string maximumValue;
+};
 
 /**
  * @brief Base class for all behavior block definitions.  Contains the block name and typeName.
@@ -13,40 +18,50 @@
  */
 class BlockBase {
 public:
-	BlockBase(std::string& name, std::string& typeName) {
-		this->name = name;
-		this->typeName = typeName;
-	};
+	BlockBase(std::string& name, std::string& typeName);
+
+	/**
+	 * @brief Serializes the Behavior to an AMFArrayValue
+	 * 
+	 * @param bitStream The AMFArrayValue to write this behavior to.
+	 */
+	virtual void SerializeToAmf(AMFArrayValue* bitStream);
+
+	/**
+	 * @brief Returns the name of this behavior block
+	 */
+	std::string& GetName() { return name; };
+
+	/**
+	 * @brief Returns the name of the type of this behavior block as a string
+	 */
+	std::string& GetTypeName() { return typeName; };
+protected:
 	std::string name;
 	std::string typeName;
-	virtual void Serialize() { Game::logger->Log("BlockDefinition", "not overloaded serialize"); };
 };
 
 /**
  * @brief Class for storing behavior block definitions in memory. 
  * 
- * @tparam Primitive type to base the block off of
+ * @tparam Type Type to base the block off of
  */
 template<typename Type>
-class BlockDefinition : public BlockBase {
+class BehaviorBlock : public BlockBase {
 public:
-	BlockDefinition(std::string& name, std::string& typeName, Type defaultValue = Type(), Type minimumValue = Type(), Type maximumValue = Type()) : BlockBase(name, typeName) {
-		this->defaultValue = defaultValue;
-		this->minimumValue = minimumValue;
-		this->maximumValue = maximumValue;
-	}
-
-	void Serialize() override {
-		Game::logger->Log("BlockDefinition", "Overloaded serialize!");
+	BehaviorBlock(std::string& name, std::string& typeName, BlockDefinition* baseDefinition) : BlockBase(name, typeName) {
+		this->baseDefinition = baseDefinition;
 	};
 
-	Type GetDefaultValue() { return defaultValue; };
-	Type GetMinimumValue() { return minimumValue; };
-	Type GetMaximumValue() { return maximumValue; };
-// private:
-	Type defaultValue;
-	Type minimumValue;
-	Type maximumValue;
+	void SerializeToAmf(AMFArrayValue* bitStream) override;
+
+	Type GetCurrentValue() { return currentValue; };
+private:
+	Type currentValue;
+	BlockDefinition* baseDefinition;
 };
+
+// Template includes
+#include "BlockDefinition.tcc"
 
 #endif  //!__BLOCKDEFINITION__H__

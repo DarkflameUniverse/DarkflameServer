@@ -48,7 +48,7 @@ private:
 	 * @return A pointer to a new block definition or a nullptr if the typing specified
 	 * was not a valid typing for a block.
 	 */
-	BlockBase* CreateBlock(std::string& name, std::string& typeName);
+	BlockBase* CreateBehaviorBlock(std::string& name, std::string& typeName);
 	std::map<BlockName, BlockBase*> blockTypes{};
 };
 

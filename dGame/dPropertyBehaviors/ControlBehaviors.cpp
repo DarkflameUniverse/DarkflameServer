@@ -11,6 +11,7 @@
 #include "BehaviorAction.h"
 #include "AssetManager.h"
 #include "BlockDefinition.h"
+#include "User.h"
 #include "tinyxml2.h"
 
 uint32_t GetBehaviorIDFromArgument(AMFArrayValue* arguments, const std::string& key = "BehaviorID") {
@@ -665,16 +666,17 @@ ControlBehaviors::ControlBehaviors() {
 				auto* typeDefinition = argument->FirstChildElement("Type");
 				if (typeDefinition) typeName = typeDefinition->GetText();
 			}
-			newBlock = CreateBlock(name, typeName);
+			
 			blockTypes.insert(std::make_pair(blockName, newBlock));
 			block = block->NextSiblingElement();
 		}
 		blockSections = blockSections->NextSiblingElement();
 	}
-	Game::logger->Log("ControlBehaviors", "created all base block classes");
+	Game::logger->Log("ControlBehaviors", "Created all base block classes");
 	for (auto pair : blockTypes) {
-		Game::logger->Log("ControlBehaviors", "Block name is %s with parameter name being %s and type being %s", pair.first.c_str(), pair.second->name.c_str(), pair.second->typeName.c_str());
-		pair.second->Serialize();
+		Game::logger->Log("ControlBehaviors", "Block name is %s with parameter name being %s and type being %s", pair.first.c_str(), pair.second->GetName().c_str(), pair.second->GetTypeName().c_str());
+		AMFArrayValue serializedActions;
+		pair.second->SerializeToAmf(&serializedActions);
 	}
 }
 
@@ -682,28 +684,20 @@ BlockBase* ControlBehaviors::GetBlockInfo(BlockName& blockName) {
 	return blockTypes[blockName];
 }
 
-BlockBase* ControlBehaviors::CreateBlock(std::string& name, std::string& typeName) {
+BlockBase* ControlBehaviors::CreateBehaviorBlock(std::string& name, std::string& typeName) {
 	BlockBase* newBlock = nullptr;
-	if (typeName == "Enumeration") {
-		newBlock = new BlockDefinition<int32_t>(name, typeName);
-	} else if (typeName == "String") {
-		newBlock = new BlockDefinition<std::string>(name, typeName);
-	} else if (typeName == "Boolean") {
-		newBlock = new BlockDefinition<bool>(name, typeName);
-	} else if (typeName == "Float") {
-		newBlock = new BlockDefinition<float>(name, typeName);
-	} else if (typeName == "Integer") {
-		newBlock = new BlockDefinition<int32_t>(name, typeName);
-	} else if (typeName == "Long Long") {
-		newBlock = new BlockDefinition<int64_t>(name, typeName);
-	} else if (typeName == "Unsigned Integer") {
-		newBlock = new BlockDefinition<uint32_t>(name, typeName);
-	} else if (typeName == "Unsigned Long Long") {
-		newBlock = new BlockDefinition<uint64_t>(name, typeName);
+	if (typeName == "String") {
+		newBlock = new BehaviorBlock<std::string>(name, typeName, nullptr);
+	} else if (typeName == "Integer" || typeName == "Float" || typeName == "Enumeration") {
+		// Yes, all of these are doubles under the hood
+		newBlock = new BehaviorBlock<double>(name, typeName, nullptr);
 	} else if (typeName == "") {
 		newBlock = new BlockBase(name, typeName);
 	} else {
-		Game::logger->Log("ControlBehaviors", "Unsupported block type (%s)!", typeName.c_str());
+		Game::logger->Log(
+			"ControlBehaviors",
+			"Unsupported block type (%s)! Your block type must be one of the following [Enumeration, String, Float, Integer].",
+			typeName.c_str());
 	}
 	return newBlock;
 }
