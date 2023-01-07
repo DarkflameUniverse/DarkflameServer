@@ -1,6 +1,7 @@
 #include "ScriptedPowerupSpawner.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
+#include "Loot.h"
 
 void ScriptedPowerupSpawner::OnTemplateStartup(Entity* self) {
 	self->SetVar<uint32_t>(u"currentCycle", 1);

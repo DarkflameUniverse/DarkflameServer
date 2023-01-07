@@ -15,6 +15,7 @@
 #include "eItemType.h"
 #include "AssetManager.h"
 #include "InventoryComponent.h"
+#include "Loot.h"
 
 Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_t slot, const uint32_t count, const bool bound, const std::vector<LDFBaseData*>& config, const LWOOBJID parent, LWOOBJID subKey, eLootSourceType lootSourceType) {
 	if (!Inventory::IsValidItem(lot)) {
@@ -346,6 +347,15 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 	for (auto* data : config) {
 		if (data->GetKey() == u"assemblyPartLOTs") {
 			auto modStr = data->GetValueAsString();
+
+			// This shouldn't be null but always check your pointers.
+			if (GetInventory()) {
+				auto inventoryComponent = GetInventory()->GetComponent();
+				if (inventoryComponent) {
+					auto entity = inventoryComponent->GetParent();
+					if (entity) entity->SetVar<std::string>(u"currentModifiedBuild", modStr);
+				}
+			}
 
 			std::vector<LOT> modArray;
 

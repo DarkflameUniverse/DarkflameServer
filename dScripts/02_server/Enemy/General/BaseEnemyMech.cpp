@@ -3,6 +3,7 @@
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
 #include "dpWorld.h"
+#include "EntityInfo.h"
 #include "GeneralUtils.h"
 #include "DestroyableComponent.h"
 

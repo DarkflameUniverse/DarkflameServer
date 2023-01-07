@@ -10,8 +10,9 @@
 
 #include <sstream>
 
-
+#include "dMessageIdentifiers.h"
 #include "DestroyableComponent.h"
+#include "EchoSyncSkill.h"
 #include "PhantomPhysicsComponent.h"
 #include "RebuildComponent.h"
 
@@ -216,7 +217,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 		}
 
 		// Echo sync
-		GameMessages::EchoSyncSkill echo;
+		EchoSyncSkill echo;
 
 		echo.bDone = true;
 		echo.uiBehaviorHandle = entry.handle;

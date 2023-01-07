@@ -1,34 +1,17 @@
 #pragma once
+
 #include "dZMCommon.h"
 #include "LDFFormat.h"
-#include "../thirdparty/tinyxml2/tinyxml2.h"
+#include "tinyxml2.h"
 #include <string>
 #include <vector>
 #include <map>
 
-class Level;
-
-class LUTriggers {
-public:
-
-	struct Command {
-		std::string id;
-		std::string target;
-		std::string targetName;
-		std::string args;
-	};
-
-	struct Event {
-		std::string eventID;
-		std::vector<Command*> commands;
-	};
-
-	struct Trigger {
-		uint32_t id;
-		bool enabled;
-		std::vector<Event*> events;
-	};
+namespace LUTriggers {
+	struct Trigger;
 };
+
+class Level;
 
 struct SceneRef {
 	std::string filename;
@@ -110,11 +93,11 @@ enum class PropertyPathType : int32_t {
 	GenetatedRectangle = 2
 };
 
-enum class PropertyType : int32_t{
+enum class PropertyType : int32_t {
 	Premiere = 0,
-    Prize = 1,
-    LUP = 2,
-    Headspace = 3
+	Prize = 1,
+	LUP = 2,
+	Headspace = 3
 };
 
 enum class PropertyRentalTimeUnit : int32_t {
@@ -222,7 +205,7 @@ public:
 
 	uint32_t GetWorldID() const { return m_WorldID; }
 	[[nodiscard]] std::string GetZoneName() const { return m_ZoneName; }
-	std::string GetZoneRawPath() const { return m_ZoneRawPath;}
+	std::string GetZoneRawPath() const { return m_ZoneRawPath; }
 	std::string GetZonePath() const { return m_ZonePath; }
 
 	const NiPoint3& GetSpawnPos() const { return m_Spawnpoint; }
@@ -254,7 +237,7 @@ private:
 
 	uint32_t m_PathDataLength;
 	uint32_t m_PathChunkVersion;
- 	std::vector<Path> m_Paths;
+	std::vector<Path> m_Paths;
 
 	std::map<LWOSCENEID, uint32_t, mapCompareLwoSceneIDs> m_MapRevisions; //rhs is the revision!
 

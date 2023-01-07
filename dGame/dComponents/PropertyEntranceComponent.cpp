@@ -11,6 +11,7 @@
 #include "CharacterComponent.h"
 #include "UserManager.h"
 #include "dLogger.h"
+#include "AMFFormat.h"
 
 PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent) {
 	this->propertyQueries = {};

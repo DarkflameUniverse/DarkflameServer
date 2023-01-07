@@ -1,5 +1,8 @@
 #include "NjDragonEmblemChestServer.h"
 #include "Character.h"
+#include "EntityInfo.h"
+#include "Loot.h"
+#include "Entity.h"
 #include "DestroyableComponent.h"
 
 void NjDragonEmblemChestServer::OnUse(Entity* self, Entity* user) {

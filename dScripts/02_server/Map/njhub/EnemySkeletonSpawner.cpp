@@ -2,6 +2,7 @@
 #include "SkillComponent.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 
 void EnemySkeletonSpawner::OnStartup(Entity* self) {
 	self->SetProximityRadius(15, "ronin");

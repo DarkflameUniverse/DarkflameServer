@@ -17,6 +17,7 @@
 #include "MissionComponent.h"
 #include "Game.h"
 #include "dLogger.h"
+#include "MessageIdentifiers.h"
 
 EntityManager* EntityManager::m_Address = nullptr;
 

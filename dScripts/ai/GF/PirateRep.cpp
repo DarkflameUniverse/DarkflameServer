@@ -1,5 +1,7 @@
 #include "PirateRep.h"
 #include "Character.h"
+#include "MissionState.h"
+#include "Entity.h"
 
 void PirateRep::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
 	if (missionID == m_PirateRepMissionID && missionState >= MissionState::MISSION_STATE_READY_TO_COMPLETE) {

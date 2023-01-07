@@ -19,7 +19,9 @@
 #include "BaseCombatAIComponent.h"
 #include "ScriptComponent.h"
 #include "BuffComponent.h"
-
+#include "EchoStartSkill.h"
+#include "dMessageIdentifiers.h"
+#include "DoClientProjectileImpact.h"
 
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
@@ -240,12 +242,13 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	if (!clientInitalized) {
 		// Echo start skill
-		GameMessages::EchoStartSkill start;
+		EchoStartSkill start;
 
 		start.iCastType = 0;
 		start.skillID = skillId;
 		start.uiSkillHandle = context->skillUId;
 		start.optionalOriginatorID = context->originator;
+		start.optionalTargetID = target;
 
 		auto* originator = EntityManager::Instance()->GetEntity(context->originator);
 
@@ -383,7 +386,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	behavior->Calculate(entry.context, bitStream, entry.branchContext);
 
-	GameMessages::DoClientProjectileImpact projectileImpact;
+	DoClientProjectileImpact projectileImpact;
 
 	projectileImpact.sBitStream.assign((char*)bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
 	projectileImpact.i64OwnerID = this->m_Parent->GetObjectID();

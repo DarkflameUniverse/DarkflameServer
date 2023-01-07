@@ -19,6 +19,7 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
 #include "dServer.h"
+#include "EntityInfo.h"
 
 #include "dpWorld.h"
 #include "dpEntity.h"

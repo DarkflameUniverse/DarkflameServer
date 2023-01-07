@@ -25,9 +25,13 @@
 #include "dConfig.h"
 #include "TeamManager.h"
 #include "ChatPackets.h"
-#include "GameConfig.h"
 #include "RocketLaunchLupComponent.h"
 #include "eUnequippableActiveType.h"
+#include "eMovementPlatformState.h"
+#include "LeaderboardManager.h"
+#include "AMFFormat.h"
+#include "Loot.h"
+#include "RacingTaskParam.h"
 
 #include <sstream>
 #include <future>
@@ -72,6 +76,7 @@
 #include "ControlBehaviors.h"
 #include "AMFDeserialize.h"
 #include "eBlueprintSaveResponseType.h"
+#include "eAninmationFlags.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -329,7 +334,7 @@ void GameMessages::SendStartPathing(Entity* entity) {
 
 void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
 	int iIndex, int iDesiredWaypointIndex, int nextIndex,
-	MovementPlatformState movementState) {
+	eMovementPlatformState movementState) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -340,7 +345,7 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 		iIndex = 0;
 		nextIndex = 0;
 		bStopAtDesiredWaypoint = true;
-		movementState = MovementPlatformState::Stationary;
+		movementState = eMovementPlatformState::Stationary;
 	}
 
 	bitStream.Write(entity->GetObjectID());
@@ -574,7 +579,7 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, NDGFxValue args) {
+void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFValue* args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -592,7 +597,7 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToAllClients(const std::string& message, NDGFxValue args) {
+void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFValue* args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -999,7 +1004,7 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 }
 
 void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos, int count) {
-	if (GameConfig::GetValue<int32_t>("no_drops") == 1) {
+	if (Game::config->GetValue("disable_drops") == "1") {
 		return;
 	}
 
@@ -5482,7 +5487,8 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 	auto* temp = inv->GetInventory(TEMP_MODELS);
 	std::vector<LOT> modList;
-
+	auto& oldPartList = character->GetVar<std::string>(u"currentModifiedBuild");
+	bool everyPieceSwapped = !oldPartList.empty(); // If the player didn't put a build in initially, then they should not get this achievement.
 	if (count >= 3) {
 		std::u16string modules;
 
@@ -5490,13 +5496,21 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 			uint32_t mod;
 			inStream->Read(mod);
 			modList.push_back(mod);
-			modules += u"1:" + (GeneralUtils::to_u16string(mod));
+			auto modToStr = GeneralUtils::to_u16string(mod);
+			modules += u"1:" + (modToStr);
 			if (k + 1 != count) modules += u"+";
 
 			if (temp->GetLotCount(mod) > 0) {
 				inv->RemoveItem(mod, 1, TEMP_MODELS);
 			} else {
 				inv->RemoveItem(mod, 1);
+			}
+
+			// Doing this check for 1 singular mission that needs to know when you've swapped every part out during a car modular build.
+			// since all 8129's are the same, skip checking that
+			if (mod != 8129) {
+				if (oldPartList.find(GeneralUtils::UTF16ToWTF8(modToStr)) != std::string::npos) everyPieceSwapped = false;
+
 			}
 		}
 
@@ -5516,6 +5530,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 		if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
 			if (missionComponent != nullptr) {
 				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, entity->GetLOT(), entity->GetObjectID());
+				if (count >= 7 && everyPieceSwapped) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, LWOOBJID_EMPTY, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_MODULAR_BUILDING);
 			}
 		}
 	}

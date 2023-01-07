@@ -50,6 +50,9 @@
 #include "Item.h"
 #include "PropertyManagementComponent.h"
 #include "PacketUtils.h"
+#include "Loot.h"
+#include "EntityInfo.h"
+#include "LUTriggers.h"
 #include "Player.h"
 #include "PhantomPhysicsComponent.h"
 #include "ProximityMonitorComponent.h"
@@ -60,13 +63,15 @@
 #include "BuffComponent.h"
 #include "SkillComponent.h"
 #include "VanityUtilities.h"
-#include "GameConfig.h"
 #include "ScriptedActivityComponent.h"
 #include "LevelProgressionComponent.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "dConfig.h"
 #include "eBubbleType.h"
+#include "AMFFormat.h"
+#include "MovingPlatformComponent.h"
+#include "dMessageIdentifiers.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -1694,25 +1699,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		*badPtr = 0;
 
 		return;
-	}
-
-	if (chatCommand == "config-set" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 2) {
-		GameConfig::SetValue(args[0], args[1]);
-
-		ChatPackets::SendSystemMessage(
-			sysAddr, u"Set config value: " + GeneralUtils::UTF8ToUTF16(args[0]) + u" to " + GeneralUtils::UTF8ToUTF16(args[1])
-		);
-	}
-
-	if (chatCommand == "config-get" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
-		const auto& value = GameConfig::GetValue(args[0]);
-
-		std::u16string u16key = GeneralUtils::UTF8ToUTF16(args[0]);
-		if (value.empty()) {
-			ChatPackets::SendSystemMessage(sysAddr, u"No value found for " + u16key);
-		} else {
-			ChatPackets::SendSystemMessage(sysAddr, u"Value for " + u16key + u": " + GeneralUtils::UTF8ToUTF16(value));
-		}
 	}
 
 	if (chatCommand == "metrics" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {

@@ -1,4 +1,5 @@
 #include "NsConcertChoiceBuildManager.h"
+#include "EntityInfo.h"
 #include "EntityManager.h"
 
 const std::vector<Crate> NsConcertChoiceBuildManager::crates{
