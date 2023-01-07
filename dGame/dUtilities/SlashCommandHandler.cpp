@@ -32,7 +32,6 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "GameConfig.h"
 #include "GameMessages.h"
 #include "GeneralUtils.h"
 #include "InventoryComponent.h"
