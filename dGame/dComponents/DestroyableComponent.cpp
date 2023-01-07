@@ -701,7 +701,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		auto* missions = owner->GetComponent<MissionComponent>();
 
 		if (missions != nullptr) {
-			if (team != nullptr && isEnemy) {
+			if (team != nullptr) {
 				for (const auto memberId : team->members) {
 					auto* member = EntityManager::Instance()->GetEntity(memberId);
 
