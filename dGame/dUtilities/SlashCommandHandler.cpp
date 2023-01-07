@@ -1301,35 +1301,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 	}
 
-	if ((chatCommand == "bubble") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-
-		auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
-		if (!controllablePhysicsComponent) return;
-
-
-		if (args.size() == 0) {
-			controllablePhysicsComponent->DeactivateBubbleBuff();
-		} else{
-			uint32_t typeIntermed;
-			if (!GeneralUtils::TryParse(args[0], typeIntermed)) {
-				ChatPackets::SendSystemMessage(sysAddr, u"Invalid bubbleType.");
-				return;
-			}
-			bool floating = true;
-			if (args.size() == 2) {
-				uint32_t floatingIntermed;
-				if (!GeneralUtils::TryParse(args[1], floatingIntermed)) {
-					ChatPackets::SendSystemMessage(sysAddr, u"default floating true.");
-				}
-				if (floatingIntermed == 0) floating = true;
-				else floating = false;
-			}
-
-			auto bubbleType = static_cast<eBubbleType>(typeIntermed);
-
-			controllablePhysicsComponent->ActivateBubbleBuff(bubbleType, floating);
-		}
-	}
 	if ((chatCommand == "giveuscore") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		int32_t uscore;
 

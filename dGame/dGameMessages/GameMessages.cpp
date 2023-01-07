@@ -6006,3 +6006,43 @@ void GameMessages::HandleUpdatePlayerStatistic(RakNet::BitStream* inStream, Enti
 		characterComponent->UpdatePlayerStatistic((StatisticID)updateID, (uint64_t)std::max(updateValue, int64_t(0)));
 	}
 }
+
+void GameMessages::HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity) {
+	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->DeactivateBubbleBuff();
+}
+
+void GameMessages::HandleActivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity) {
+	bool specialAnimations;
+	if (!inStream->Read(specialAnimations)) return;
+
+	std::u16string type = GeneralUtils::ReadWString(inStream);
+	auto bubbleType = eBubbleType::DEFAULT;
+	if (type == u"skunk") bubbleType = eBubbleType::SKUNK;
+	else if (type == u"energy") bubbleType = eBubbleType::ENERGY;
+
+	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+	if (controllablePhysicsComponent) controllablePhysicsComponent->ActivateBubbleBuff(bubbleType, specialAnimations);
+}
+
+void GameMessages::SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_ACTIVATE_BUBBLE_BUFF_FROM_SERVER);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}
+
+void GameMessages::SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_DEACTIVATE_BUBBLE_BUFF_FROM_SERVER);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}

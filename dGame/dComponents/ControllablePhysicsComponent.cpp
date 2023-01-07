@@ -324,11 +324,6 @@ void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bo
 	m_DirtyBubble = true;
 	m_SpecialAnims = specialAnims;
 	EntityManager::Instance()->SerializeEntity(m_Parent);
-
-	// each animation lasts ~10 seconds, so return the player to normal then
-	m_Parent->AddCallbackTimer(10.0f, [this]() {
-		if (this) this->DeactivateBubbleBuff();
-	});
 }
 
 void ControllablePhysicsComponent::DeactivateBubbleBuff(){

@@ -590,6 +590,15 @@ namespace GameMessages {
 
 	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
 
+	// bubble
+	void HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
+
+	void HandleActivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
+
+	void SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
+
+	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
+
 	/*  Message to synchronize a skill cast */
 	class EchoSyncSkill {
 		static const GAME_MSG MsgID = GAME_MSG_ECHO_SYNC_SKILL;
