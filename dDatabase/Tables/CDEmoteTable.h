@@ -19,7 +19,7 @@ struct CDEmoteTable {
 		channel = -1;
 		locked = false;
 		localize = false;
-		gateVersion = -1;
+		gateVersion = "";
 	}
 
 	int ID;
@@ -29,7 +29,7 @@ struct CDEmoteTable {
 	int channel;
 	bool locked;
 	bool localize;
-	int gateVersion;
+	std::string gateVersion;
 };
 
 //! CDEmoteTable table

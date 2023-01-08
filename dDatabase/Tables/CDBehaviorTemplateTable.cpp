@@ -21,9 +21,9 @@ CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorTemplate");
 	while (!tableData.eof()) {
 		CDBehaviorTemplate entry;
-		entry.behaviorID = tableData.getIntField(0, -1);
-		entry.templateID = tableData.getIntField(1, -1);
-		entry.effectID = tableData.getIntField(2, -1);
+		entry.behaviorID = tableData.getIntField("behaviorID", -1);
+		entry.templateID = tableData.getIntField("templateID", -1);
+		entry.effectID = tableData.getIntField("effectID", -1);
 		auto candidateToAdd = tableData.getStringField(3, "");
 		auto parameter = m_EffectHandles.find(candidateToAdd);
 		if (parameter != m_EffectHandles.end()) {
@@ -75,3 +75,4 @@ const CDBehaviorTemplate CDBehaviorTemplateTable::GetByBehaviorID(uint32_t behav
 		return entry->second;
 	}
 }
+

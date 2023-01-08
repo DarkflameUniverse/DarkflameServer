@@ -8,8 +8,8 @@ CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 	uint64_t hash = 0;
 	while (!tableData.eof()) {
 		CDBehaviorParameter entry;
-		entry.behaviorID = tableData.getIntField(0, -1);
-		auto candidateStringToAdd = std::string(tableData.getStringField(1, ""));
+		entry.behaviorID = tableData.getIntField("behaviorID", -1);
+		auto candidateStringToAdd = std::string(tableData.getStringField("parameterID", ""));
 		auto parameter = m_ParametersList.find(candidateStringToAdd);
 		if (parameter != m_ParametersList.end()) {
 			entry.parameterID = parameter;
@@ -19,7 +19,7 @@ CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 		}
 		hash = entry.behaviorID;
 		hash = (hash << 31U) | entry.parameterID->second;
-		entry.value = tableData.getFloatField(2, -1.0f);
+		entry.value = tableData.getFloatField("value", -1.0f);
 
 		m_Entries.insert(std::make_pair(hash, entry));
 
@@ -62,3 +62,4 @@ std::map<std::string, float> CDBehaviorParameterTable::GetParametersByBehaviorID
 	}
 	return returnInfo;
 }
+

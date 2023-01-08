@@ -21,15 +21,15 @@ CDLootMatrixTable::CDLootMatrixTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM LootMatrix");
 	while (!tableData.eof()) {
 		CDLootMatrix entry;
-		entry.LootMatrixIndex = tableData.getIntField(0, -1);
-		entry.LootTableIndex = tableData.getIntField(1, -1);
-		entry.RarityTableIndex = tableData.getIntField(2, -1);
-		entry.percent = tableData.getFloatField(3, -1.0f);
-		entry.minToDrop = tableData.getIntField(4, -1);
-		entry.maxToDrop = tableData.getIntField(5, -1);
-		entry.id = tableData.getIntField(6, -1);
-		entry.flagID = tableData.getIntField(7, -1);
-		UNUSED(entry.gate_version = tableData.getStringField(8, ""));
+		entry.LootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
+		entry.LootTableIndex = tableData.getIntField("LootTableIndex", -1);
+		entry.RarityTableIndex = tableData.getIntField("RarityTableIndex", -1);
+		entry.percent = tableData.getFloatField("percent", -1.0f);
+		entry.minToDrop = tableData.getIntField("minToDrop", -1);
+		entry.maxToDrop = tableData.getIntField("maxToDrop", -1);
+		entry.id = tableData.getIntField("id", -1);
+		entry.flagID = tableData.getIntField("flagID", -1);
+		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -60,3 +60,4 @@ std::vector<CDLootMatrix> CDLootMatrixTable::Query(std::function<bool(CDLootMatr
 const std::vector<CDLootMatrix>& CDLootMatrixTable::GetEntries(void) const {
 	return this->entries;
 }
+
