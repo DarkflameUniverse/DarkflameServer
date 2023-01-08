@@ -21,9 +21,9 @@ CDLevelProgressionLookupTable::CDLevelProgressionLookupTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM LevelProgressionLookup");
 	while (!tableData.eof()) {
 		CDLevelProgressionLookup entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.requiredUScore = tableData.getIntField(1, -1);
-		entry.BehaviorEffect = tableData.getStringField(2, "");
+		entry.id = tableData.getIntField("id", -1);
+		entry.requiredUScore = tableData.getIntField("requiredUScore", -1);
+		entry.BehaviorEffect = tableData.getStringField("BehaviorEffect", "");
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -54,3 +54,4 @@ std::vector<CDLevelProgressionLookup> CDLevelProgressionLookupTable::Query(std::
 std::vector<CDLevelProgressionLookup> CDLevelProgressionLookupTable::GetEntries(void) const {
 	return this->entries;
 }
+

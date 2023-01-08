@@ -21,19 +21,19 @@ CDAnimationsTable::CDAnimationsTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Animations");
 	while (!tableData.eof()) {
 		CDAnimations entry;
-		entry.animationGroupID = tableData.getIntField(0, -1);
-		entry.animation_type = tableData.getStringField(1, "");
-		entry.animation_name = tableData.getStringField(2, "");
-		entry.chance_to_play = tableData.getFloatField(3, -1.0f);
-		entry.min_loops = tableData.getIntField(4, -1);
-		entry.max_loops = tableData.getIntField(5, -1);
-		entry.animation_length = tableData.getFloatField(6, -1.0f);
-		entry.hideEquip = tableData.getIntField(7, -1) == 1 ? true : false;
-		entry.ignoreUpperBody = tableData.getIntField(8, -1) == 1 ? true : false;
-		entry.restartable = tableData.getIntField(9, -1) == 1 ? true : false;
-		entry.face_animation_name = tableData.getStringField(10, "");
-		entry.priority = tableData.getFloatField(11, -1.0f);
-		entry.blendTime = tableData.getFloatField(12, -1.0f);
+		entry.animationGroupID = tableData.getIntField("animationGroupID", -1);
+		entry.animation_type = tableData.getStringField("animation_type", "");
+		entry.animation_name = tableData.getStringField("animation_name", "");
+		entry.chance_to_play = tableData.getFloatField("chance_to_play", -1.0f);
+		entry.min_loops = tableData.getIntField("min_loops", -1);
+		entry.max_loops = tableData.getIntField("max_loops", -1);
+		entry.animation_length = tableData.getFloatField("animation_length", -1.0f);
+		entry.hideEquip = tableData.getIntField("hideEquip", -1) == 1 ? true : false;
+		entry.ignoreUpperBody = tableData.getIntField("ignoreUpperBody", -1) == 1 ? true : false;
+		entry.restartable = tableData.getIntField("restartable", -1) == 1 ? true : false;
+		entry.face_animation_name = tableData.getStringField("face_animation_name", "");
+		entry.priority = tableData.getFloatField("priority", -1.0f);
+		entry.blendTime = tableData.getFloatField("blendTime", -1.0f);
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -64,3 +64,4 @@ std::vector<CDAnimations> CDAnimationsTable::Query(std::function<bool(CDAnimatio
 std::vector<CDAnimations> CDAnimationsTable::GetEntries(void) const {
 	return this->entries;
 }
+

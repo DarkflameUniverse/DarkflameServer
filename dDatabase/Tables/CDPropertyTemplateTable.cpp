@@ -17,10 +17,10 @@ CDPropertyTemplateTable::CDPropertyTemplateTable() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PropertyTemplate;");
 	while (!tableData.eof()) {
 		auto entry = CDPropertyTemplate{
-				static_cast<uint32_t>(tableData.getIntField(0, -1)),
-				static_cast<uint32_t>(tableData.getIntField(1, -1)),
-				static_cast<uint32_t>(tableData.getIntField(2, -1)),
-				tableData.getStringField(3, "")
+				static_cast<uint32_t>(tableData.getIntField("id", -1)),
+				static_cast<uint32_t>(tableData.getIntField("mapID", -1)),
+				static_cast<uint32_t>(tableData.getIntField("vendorMapID", -1)),
+				tableData.getStringField("spawnName", "")
 		};
 
 		this->entries.push_back(entry);
@@ -44,3 +44,4 @@ CDPropertyTemplate CDPropertyTemplateTable::GetByMapID(uint32_t mapID) {
 
 	return defaultEntry;
 }
+
