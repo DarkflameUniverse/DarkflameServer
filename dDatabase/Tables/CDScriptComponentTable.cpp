@@ -18,9 +18,9 @@ CDScriptComponentTable::CDScriptComponentTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ScriptComponent");
 	while (!tableData.eof()) {
 		CDScriptComponent entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.script_name = tableData.getStringField(1, "");
-		entry.client_script_name = tableData.getStringField(2, "");
+		entry.id = tableData.getIntField("id", -1);
+		entry.script_name = tableData.getStringField("script_name", "");
+		entry.client_script_name = tableData.getStringField("client_script_name", "");
 
 		this->entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
@@ -45,3 +45,4 @@ const CDScriptComponent& CDScriptComponentTable::GetByID(unsigned int id) {
 
 	return m_ToReturnWhenNoneFound;
 }
+

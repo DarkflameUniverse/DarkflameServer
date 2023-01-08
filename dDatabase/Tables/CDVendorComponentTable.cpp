@@ -21,11 +21,11 @@ CDVendorComponentTable::CDVendorComponentTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM VendorComponent");
 	while (!tableData.eof()) {
 		CDVendorComponent entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.buyScalar = tableData.getFloatField(1, -1.0f);
-		entry.sellScalar = tableData.getFloatField(2, -1.0f);
-		entry.refreshTimeSeconds = tableData.getFloatField(3, -1.0f);
-		entry.LootMatrixIndex = tableData.getIntField(4, -1);
+		entry.id = tableData.getIntField("id", -1);
+		entry.buyScalar = tableData.getFloatField("buyScalar", -1.0f);
+		entry.sellScalar = tableData.getFloatField("sellScalar", -1.0f);
+		entry.refreshTimeSeconds = tableData.getFloatField("refreshTimeSeconds", -1.0f);
+		entry.LootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -56,3 +56,4 @@ std::vector<CDVendorComponent> CDVendorComponentTable::Query(std::function<bool(
 std::vector<CDVendorComponent> CDVendorComponentTable::GetEntries(void) const {
 	return this->entries;
 }
+

@@ -6,35 +6,35 @@ CDRailActivatorComponentTable::CDRailActivatorComponentTable() {
 	while (!tableData.eof()) {
 		CDRailActivatorComponent entry;
 
-		entry.id = tableData.getIntField(0);
+		entry.id = tableData.getIntField("id", 0);
 
-		entry.startAnimation = GeneralUtils::ASCIIToUTF16(tableData.getStringField(1, ""));
-		entry.loopAnimation = GeneralUtils::ASCIIToUTF16(tableData.getStringField(2, ""));
-		entry.stopAnimation = GeneralUtils::ASCIIToUTF16(tableData.getStringField(3, ""));
-		entry.startSound = GeneralUtils::ASCIIToUTF16(tableData.getStringField(4, ""));
-		entry.loopSound = GeneralUtils::ASCIIToUTF16(tableData.getStringField(5, ""));
-		entry.stopSound = GeneralUtils::ASCIIToUTF16(tableData.getStringField(6, ""));
+		entry.startAnimation = GeneralUtils::ASCIIToUTF16(tableData.getStringField("startAnim", ""));
+		entry.loopAnimation = GeneralUtils::ASCIIToUTF16(tableData.getStringField("loopAnim", ""));
+		entry.stopAnimation = GeneralUtils::ASCIIToUTF16(tableData.getStringField("stopAnim", ""));
+		entry.startSound = GeneralUtils::ASCIIToUTF16(tableData.getStringField("startSound", ""));
+		entry.loopSound = GeneralUtils::ASCIIToUTF16(tableData.getStringField("loopSound", ""));
+		entry.stopSound = GeneralUtils::ASCIIToUTF16(tableData.getStringField("stopSound", ""));
 
-		std::string loopEffectString(tableData.getStringField(7, ""));
+		std::string loopEffectString(tableData.getStringField("effectIDs", ""));
 		entry.loopEffectID = EffectPairFromString(loopEffectString);
 
-		entry.preconditions = tableData.getStringField(8, "-1");
+		entry.preconditions = tableData.getStringField("preconditions", "-1");
 
-		entry.playerCollision = tableData.getIntField(9, 0);
+		entry.playerCollision = tableData.getIntField("playerCollision", 0);
 
-		entry.cameraLocked = tableData.getIntField(10, 0);
+		entry.cameraLocked = tableData.getIntField("cameraLocked", 0);
 
-		std::string startEffectString(tableData.getStringField(11, ""));
+		std::string startEffectString(tableData.getStringField("StartEffectID", ""));
 		entry.startEffectID = EffectPairFromString(startEffectString);
 
-		std::string stopEffectString(tableData.getStringField(12, ""));
+		std::string stopEffectString(tableData.getStringField("StopEffectID", ""));
 		entry.stopEffectID = EffectPairFromString(stopEffectString);
 
-		entry.damageImmune = tableData.getIntField(13, 0);
+		entry.damageImmune = tableData.getIntField("DamageImmune", 0);
 
-		entry.noAggro = tableData.getIntField(14, 0);
+		entry.noAggro = tableData.getIntField("NoAggro", 0);
 
-		entry.showNameBillboard = tableData.getIntField(15, 0);
+		entry.showNameBillboard = tableData.getIntField("ShowNameBillboard", 0);
 
 		m_Entries.push_back(entry);
 		tableData.nextRow();
@@ -70,3 +70,4 @@ std::pair<uint32_t, std::u16string> CDRailActivatorComponentTable::EffectPairFro
 
 	return {};
 }
+

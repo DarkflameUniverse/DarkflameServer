@@ -24,9 +24,9 @@ CDComponentsRegistryTable::CDComponentsRegistryTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ComponentsRegistry");
 	while (!tableData.eof()) {
 		CDComponentsRegistry entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.component_type = tableData.getIntField(1, -1);
-		entry.component_id = tableData.getIntField(2, -1);
+		entry.id = tableData.getIntField("id", -1);
+		entry.component_type = tableData.getIntField("component_type", -1);
+		entry.component_id = tableData.getIntField("component_id", -1);
 
 		this->mappedEntries.insert_or_assign(((uint64_t)entry.component_type) << 32 | ((uint64_t)entry.id), entry.component_id);
 
@@ -91,9 +91,9 @@ int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, uint32_t componen
 	auto tableData = CDClientDatabase::ExecuteQuery(query.str());
 	while (!tableData.eof()) {
 		CDComponentsRegistry entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.component_type = tableData.getIntField(1, -1);
-		entry.component_id = tableData.getIntField(2, -1);
+		entry.id = tableData.getIntField("id", -1);
+		entry.component_type = tableData.getIntField("component_type", -1);
+		entry.component_id = tableData.getIntField("component_id", -1);
 
 		//this->entries.push_back(entry);
 
@@ -126,3 +126,4 @@ int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, uint32_t componen
 	return defaultValue;
 #endif
 }
+
