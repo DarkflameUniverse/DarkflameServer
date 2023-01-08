@@ -14,7 +14,7 @@ void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 
 	self->SetNetworkVar(u"bIsInUse", true);
 
-	GameMessages::SendSetStunned(playerID, PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(playerID, eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 
@@ -92,7 +92,7 @@ void NtVentureCannonServer::ExitCannonEnded(Entity* self, Entity* player) {
 }
 
 void NtVentureCannonServer::UnlockCannonPlayer(Entity* self, Entity* player) {
-	GameMessages::SendSetStunned(player->GetObjectID(), POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 

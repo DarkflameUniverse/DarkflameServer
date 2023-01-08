@@ -21,9 +21,9 @@ CDPackageComponentTable::CDPackageComponentTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PackageComponent");
 	while (!tableData.eof()) {
 		CDPackageComponent entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.LootMatrixIndex = tableData.getIntField(1, -1);
-		entry.packageType = tableData.getIntField(2, -1);
+		entry.id = tableData.getIntField("id", -1);
+		entry.LootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
+		entry.packageType = tableData.getIntField("packageType", -1);
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -54,3 +54,4 @@ std::vector<CDPackageComponent> CDPackageComponentTable::Query(std::function<boo
 std::vector<CDPackageComponent> CDPackageComponentTable::GetEntries(void) const {
 	return this->entries;
 }
+

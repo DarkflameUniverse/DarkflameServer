@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "Entity.h"
 #include "GameMessages.h"
+#include "MissionState.h"
 
 void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
 	if (missionID != 1849 && missionID != 1883)

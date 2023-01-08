@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "PetComponent.h"
+#include "EntityInfo.h"
 
 void SpawnPetBaseServer::OnStartup(Entity* self) {
 	SetVariables(self);

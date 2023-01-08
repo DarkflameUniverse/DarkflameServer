@@ -26,6 +26,11 @@
 #include "CDSkillBehaviorTable.h"
 #include "SkillComponent.h"
 #include "RacingControlComponent.h"
+#include "RequestServerProjectileImpact.h"
+#include "SyncSkill.h"
+#include "StartSkill.h"
+#include "EchoStartSkill.h"
+#include "EchoSyncSkill.h"
 
 using namespace std;
 
@@ -251,7 +256,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	case GAME_MSG_REQUEST_SERVER_PROJECTILE_IMPACT:
 	{
-		auto message = GameMessages::RequestServerProjectileImpact();
+		auto message = RequestServerProjectileImpact();
 
 		message.Deserialize(inStream);
 
@@ -269,7 +274,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	}
 
 	case GAME_MSG_START_SKILL: {
-		GameMessages::StartSkill startSkill = GameMessages::StartSkill();
+		StartSkill startSkill = StartSkill();
 		startSkill.Deserialize(inStream); // inStream replaces &bitStream
 
 		if (startSkill.skillID == 1561 || startSkill.skillID == 1562 || startSkill.skillID == 1541) return;
@@ -309,7 +314,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			PacketUtils::WriteHeader(bitStreamLocal, CLIENT, MSG_CLIENT_GAME_MSG);
 			bitStreamLocal.Write(entity->GetObjectID());
 
-			GameMessages::EchoStartSkill echoStartSkill;
+			EchoStartSkill echoStartSkill;
 			echoStartSkill.bUsedMouse = startSkill.bUsedMouse;
 			echoStartSkill.fCasterLatency = startSkill.fCasterLatency;
 			echoStartSkill.iCastType = startSkill.iCastType;
@@ -333,7 +338,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		//bitStreamLocal.Write((unsigned short)GAME_MSG_ECHO_SYNC_SKILL);
 		//bitStreamLocal.Write(inStream);
 
-		GameMessages::SyncSkill sync = GameMessages::SyncSkill(inStream); // inStream replaced &bitStream
+		SyncSkill sync = SyncSkill(inStream); // inStream replaced &bitStream
 		//sync.Serialize(&bitStreamLocal);
 
 		ostringstream buffer;
@@ -356,7 +361,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			delete bs;
 		}
 
-		GameMessages::EchoSyncSkill echo = GameMessages::EchoSyncSkill();
+		EchoSyncSkill echo = EchoSyncSkill();
 		echo.bDone = sync.bDone;
 		echo.sBitStream = sync.sBitStream;
 		echo.uiBehaviorHandle = sync.uiBehaviorHandle;
@@ -660,9 +665,14 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	case GAME_MSG_DISMOUNT_COMPLETE:
 		GameMessages::HandleDismountComplete(inStream, entity, sysAddr);
 		break;
-
+	case GAME_MSG_DEACTIVATE_BUBBLE_BUFF:
+		GameMessages::HandleDeactivateBubbleBuff(inStream, entity);
+		break;
+	case GAME_MSG_ACTIVATE_BUBBLE_BUFF:
+		GameMessages::HandleActivateBubbleBuff(inStream, entity);
+		break;
 	default:
-		//Game::logger->Log("GameMessageHandler", "Unknown game message ID: %X", messageID);
+		// Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i", messageID);
 		break;
 	}
 }

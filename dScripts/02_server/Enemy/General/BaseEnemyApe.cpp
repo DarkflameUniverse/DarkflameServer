@@ -3,7 +3,9 @@
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 #include "SkillComponent.h"
+#include "eAninmationFlags.h"
 
 void BaseEnemyApe::OnStartup(Entity* self) {
 	self->SetVar<uint32_t>(u"timesStunned", 2);
@@ -129,7 +131,7 @@ void BaseEnemyApe::StunApe(Entity* self, bool stunState) {
 			skillComponent->Interrupt();
 		}
 
-		GameMessages::SendSetStunned(self->GetObjectID(), stunState ? PUSH : POP, UNASSIGNED_SYSTEM_ADDRESS, self->GetObjectID(),
+		GameMessages::SendSetStunned(self->GetObjectID(), stunState ? eStateChangeType::PUSH : eStateChangeType::POP, UNASSIGNED_SYSTEM_ADDRESS, self->GetObjectID(),
 			true, true, true, true, true,
 			true, true, true, true);
 

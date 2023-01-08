@@ -13,6 +13,10 @@
 #include "MissionState.h"
 #include "MissionLockState.h"
 
+namespace tinyxml2 {
+	class XMLElement;
+};
+
 class MissionComponent;
 
 /**
@@ -223,7 +227,7 @@ public:
 
 	/**
 	 * @brief Returns the unique mission order ID
-	 * 
+	 *
 	 * @return The unique order ID
 	 */
 	uint32_t GetUniqueMissionOrderID() { return m_UniqueMissionID; };

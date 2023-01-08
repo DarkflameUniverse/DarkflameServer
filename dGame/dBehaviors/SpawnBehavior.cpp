@@ -7,6 +7,8 @@
 #include "dLogger.h"
 #include "DestroyableComponent.h"
 #include "RebuildComponent.h"
+#include "Entity.h"
+#include "EntityInfo.h"
 
 void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* origin = EntityManager::Instance()->GetEntity(context->originator);

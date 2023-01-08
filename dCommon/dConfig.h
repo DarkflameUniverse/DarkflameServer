@@ -24,7 +24,6 @@ public:
 	 * Reloads the config file to reset values
 	 */
 	void ReloadConfig();
-
 private:
 	void ProcessLine(const std::string& line);
 

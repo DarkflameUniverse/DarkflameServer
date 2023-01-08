@@ -9,6 +9,7 @@
 #include "Component.h"
 #include "dpCollisionChecks.h"
 #include "PhantomPhysicsComponent.h"
+#include "eBubbleType.h"
 
 class Entity;
 class dpEntity;
@@ -257,12 +258,62 @@ public:
 	 */
 	std::vector<float> GetActivePickupRadiusScales() { return m_ActivePickupRadiusScales; };
 
-
+	/**
+	 * Add a Speed boost to the entity
+	 * This will recalculate the speed boost based on what is being added
+	 */
 	void AddSpeedboost(float value);
 
+	/**
+	 * Remove speed boost from entity
+	 * This will recalculate the speed boost based on what is the last one in te vector
+	 */
 	void RemoveSpeedboost(float value);
 
+	/**
+	 * The speed boosts of this component.
+	 * @return All active Speed boosts for this component.
+	 */
 	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
+
+	/**
+	* Activates the Bubble Buff
+	*/
+	void ActivateBubbleBuff(eBubbleType bubbleType = eBubbleType::DEFAULT, bool specialAnims = true);
+
+	/**
+	* Deactivates the Bubble Buff
+	*/
+	void DeactivateBubbleBuff();
+
+	/**
+	 * Gets if the Entity is in a bubble
+	 */
+	bool GetIsInBubble(){ return m_IsInBubble; };
+
+  /**
+	 * Push or Pop a layer of stun immunity to this entity
+	 */
+	void SetStunImmunity(
+		const eStateChangeType state,
+		const LWOOBJID originator = LWOOBJID_EMPTY,
+		const bool bImmuneToStunAttack = false,
+		const bool bImmuneToStunEquip = false,
+		const bool bImmuneToStunInteract = false,
+		const bool bImmuneToStunJump = false,
+		const bool bImmuneToStunMove = false,
+		const bool bImmuneToStunTurn = false,
+		const bool bImmuneToStunUseItem = false
+	);
+
+	// getters for stun immunities
+	const bool GetImmuneToStunAttack() { return m_ImmuneToStunAttackCount > 0;};
+	const bool GetImmuneToStunEquip() { return m_ImmuneToStunEquipCount > 0;};
+	const bool GetImmuneToStunInteract() { return m_ImmuneToStunInteractCount > 0;};
+	const bool GetImmuneToStunJump() { return m_ImmuneToStunJumpCount > 0;};
+	const bool GetImmuneToStunMove() { return m_ImmuneToStunMoveCount > 0;};
+	const bool GetImmuneToStunTurn() { return m_ImmuneToStunTurnCount > 0;};
+	const bool GetImmuneToStunUseItem() { return m_ImmuneToStunUseItemCount > 0;};
 
 private:
 	/**
@@ -363,7 +414,7 @@ private:
 	/**
 	 * Whether the pickup scale is dirty.
 	 */
-	bool m_DirtyPickupRadiusScale;
+	bool m_DirtyEquippedItemInfo;
 
 	/**
 	 * The list of pickup radius scales for this entity
@@ -389,6 +440,37 @@ private:
 	 * The active speed boost for this entity
 	 */
 	float m_SpeedBoost;
+
+	/*
+	* If Bubble info is dirty
+	*/
+	bool m_DirtyBubble;
+
+	/*
+	* If the entity is in a bubble
+	*/
+	bool m_IsInBubble;
+
+	/*
+	* The type of bubble the entity has
+	*/
+	eBubbleType m_BubbleType;
+
+	/*
+	* If the entity should be using the special animations
+	*/
+	bool m_SpecialAnims;
+
+  /**
+	 * stun immunity counters
+	 */
+	int32_t m_ImmuneToStunAttackCount;
+	int32_t m_ImmuneToStunEquipCount;
+	int32_t m_ImmuneToStunInteractCount;
+	int32_t m_ImmuneToStunJumpCount;
+	int32_t m_ImmuneToStunMoveCount;
+	int32_t m_ImmuneToStunTurnCount;
+	int32_t m_ImmuneToStunUseItemCount;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H

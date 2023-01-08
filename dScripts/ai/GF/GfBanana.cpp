@@ -2,6 +2,7 @@
 
 #include "Entity.h"
 #include "DestroyableComponent.h"
+#include "EntityInfo.h"
 #include "EntityManager.h"
 
 void GfBanana::SpawnBanana(Entity* self) {

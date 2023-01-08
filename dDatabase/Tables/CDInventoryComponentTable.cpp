@@ -21,10 +21,10 @@ CDInventoryComponentTable::CDInventoryComponentTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM InventoryComponent");
 	while (!tableData.eof()) {
 		CDInventoryComponent entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.itemid = tableData.getIntField(1, -1);
-		entry.count = tableData.getIntField(2, -1);
-		entry.equip = tableData.getIntField(3, -1) == 1 ? true : false;
+		entry.id = tableData.getIntField("id", -1);
+		entry.itemid = tableData.getIntField("itemid", -1);
+		entry.count = tableData.getIntField("count", -1);
+		entry.equip = tableData.getIntField("equip", -1) == 1 ? true : false;
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -55,3 +55,4 @@ std::vector<CDInventoryComponent> CDInventoryComponentTable::Query(std::function
 std::vector<CDInventoryComponent> CDInventoryComponentTable::GetEntries(void) const {
 	return this->entries;
 }
+
