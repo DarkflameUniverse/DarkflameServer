@@ -9,6 +9,7 @@
 #include "Singleton.h"
 
 class BlockBase;
+class BlockDefinition;
 class Entity;
 class AMFArrayValue;
 class ModelComponent;
@@ -38,7 +39,7 @@ public:
 	 * 
 	 * @return A pair of the block parameter name to its typing
 	 */
-	BlockBase* GetBlockInfo(BlockName& blockName);
+	BlockDefinition* GetBlockInfo(BlockName& blockName);
 private:
 
 	/**
@@ -49,7 +50,7 @@ private:
 	 * was not a valid typing for a block.
 	 */
 	BlockBase* CreateBehaviorBlock(std::string& name, std::string& typeName);
-	std::map<BlockName, BlockBase*> blockTypes{};
+	std::map<BlockName, BlockDefinition*> blockTypes{};
 };
 
 #endif  //!__CONTROLBEHAVIORS__H__

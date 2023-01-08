@@ -205,7 +205,6 @@ int main(int argc, char** argv) {
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
 	LootGenerator::Instance();
-	volatile auto& test = ControlBehaviors::Instance();
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::shouldShutdown, zoneID);
@@ -305,6 +304,7 @@ int main(int argc, char** argv) {
 	uint32_t sqlPingTime = 10 * 60 * currentFramerate; // 10 minutes in frames
 	uint32_t emptyShutdownTime = (cloneID == 0 ? 30 : 5) * 60 * currentFramerate; // 30 minutes for main worlds, 5 for all others.
 	while (true) {
+		volatile auto& test = ControlBehaviors::Instance();
 		Metrics::StartMeasurement(MetricVariable::Frame);
 		Metrics::StartMeasurement(MetricVariable::GameLoop);
 

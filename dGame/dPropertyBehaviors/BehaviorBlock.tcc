@@ -1,13 +1,14 @@
-#ifndef __BLOCKDEFINITION__H__
+#ifndef __BEHAVIORBLOCK__H__
 
-#error Do not include this file directly.  Include BlockDefinition.h instead.
+#error Do not include this file directly.  Include BehaviorBlock.h instead.
 
-#endif //! __BLOCKDEFINITION__H__
+#endif //! __BEHAVIORBLOCK__H__
 
 #include <string>
 
 #include "AMFFormat.h"
 #include "BitStream.h"
+#include "BehaviorBlock.h"
 #include "BlockDefinition.h"
 #include "Game.h"
 #include "dLogger.h"
@@ -17,6 +18,7 @@ class BehaviorBlock<std::string> : public BlockBase {
 public:
 	BehaviorBlock(std::string& name, std::string& typeName, BlockDefinition* baseDefinition) : BlockBase(name, typeName) {
 		this->baseDefinition = baseDefinition;
+		if (baseDefinition) this->defaultValue = baseDefinition->defaultValue;
 	};
 
 	void SerializeToAmf(AMFArrayValue* bitStream) override {
@@ -30,6 +32,7 @@ public:
 	std::string GetCurrentValue() { return currentValue; };
 private:
 	std::string currentValue;
+	std::string defaultValue;
 	BlockDefinition* baseDefinition = nullptr;
 };
 
@@ -38,6 +41,7 @@ class BehaviorBlock<double> : public BlockBase {
 public:
 	BehaviorBlock(std::string& name, std::string& typeName, BlockDefinition* baseDefinition) : BlockBase(name, typeName) {
 		this->baseDefinition = baseDefinition;
+		if (baseDefinition) this->defaultValue = std::stod(baseDefinition->defaultValue);
 	};
 
 	void SerializeToAmf(AMFArrayValue* bitStream) override {
@@ -51,5 +55,6 @@ public:
 	double GetCurrentValue() { return currentValue; };
 private:
 	double currentValue;
+	double defaultValue;
 	BlockDefinition* baseDefinition = nullptr;
 };

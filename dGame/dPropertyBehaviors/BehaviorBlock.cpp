@@ -1,4 +1,4 @@
-#include "BlockDefinition.h"
+#include "BehaviorBlock.h"
 
 #include "AMFFormat.h"
 

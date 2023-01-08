@@ -1,6 +1,6 @@
 set(DGAME_DPROPERTYBEHAVIORS_SOURCES
 	"BehaviorAction.cpp"
-	"BlockDefinition.cpp"
+	"BehaviorBlock.cpp"
 	"ControlBehaviors.cpp"
 	PARENT_SCOPE
 )

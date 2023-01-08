@@ -10,9 +10,11 @@
 #include "BehaviorStates.h"
 #include "BehaviorAction.h"
 #include "AssetManager.h"
+#include "BehaviorBlock.h"
 #include "BlockDefinition.h"
 #include "User.h"
 #include "tinyxml2.h"
+#include "CDClientDatabase.h"
 
 uint32_t GetBehaviorIDFromArgument(AMFArrayValue* arguments, const std::string& key = "BehaviorID") {
 	auto* behaviorIDValue = arguments->FindValue<AMFStringValue>(key);
@@ -647,40 +649,90 @@ ControlBehaviors::ControlBehaviors() {
 		return;
 	}
 
-	// Now parse the blocksdef for the necessary information server side.
+	// Now parse the blocksdef for the cheat detection server side.
+	// The client does these checks, but a bad actor can bypass the client checks
 	auto* blockSections = blockLibrary->FirstChildElement();
 	while (blockSections) {
 		auto* block = blockSections->FirstChildElement();
 		std::string blockName{};
 		while (block) {
 			blockName = block->Name();
-			auto* argument = block->FirstChildElement("Argument");
 
+			BlockDefinition* blockDefinition = new BlockDefinition();
 			std::string name{};
 			std::string typeName{};
-			BlockBase* newBlock = nullptr;
+
+			auto* argument = block->FirstChildElement("Argument");
 			if (argument) {
-				auto* nameDefinition = argument->FirstChildElement("Name");
-				if (nameDefinition) name = nameDefinition->GetText();
+				auto* defaultDefinition = argument->FirstChildElement("DefaultValue");
+				if (defaultDefinition) blockDefinition->defaultValue = defaultDefinition->GetText();
 
 				auto* typeDefinition = argument->FirstChildElement("Type");
 				if (typeDefinition) typeName = typeDefinition->GetText();
+
+				auto* nameDefinition = argument->FirstChildElement("Name");
+				if (nameDefinition) name = nameDefinition->GetText();
+
+				// Now we parse the blocksdef file for the relevant information
+				if (typeName == "String") {
+					blockDefinition->maximumValue = 50; // The client has a hardcoded limit of 50 characters in a string field
+				} else if (typeName == "Float" || typeName == "Integer") {
+					auto* maximumDefinition = argument->FirstChildElement("Maximum");
+					if (maximumDefinition) blockDefinition->maximumValue = std::stof(maximumDefinition->GetText());
+
+					auto* minimumDefinition = argument->FirstChildElement("Minimum");
+					if (minimumDefinition) blockDefinition->minimumValue = std::stof(minimumDefinition->GetText());
+				} else if (typeName == "Enumeration") {
+					auto* values = argument->FirstChildElement("Values");
+					if (values) {
+						auto* value = values->FirstChildElement("Value");
+						while (value) {
+							if (value->GetText() == blockDefinition->defaultValue) blockDefinition->defaultValue = std::to_string(blockDefinition->maximumValue);
+							blockDefinition->maximumValue++;
+							value = value->NextSiblingElement("Value");
+						}
+						blockDefinition->maximumValue--; // Maximum value is 0 indexed
+					} else {
+						values = argument->FirstChildElement("EnumerationSource");
+						if (!values) {
+							Game::logger->Log("ControlBehaviors", "Failed to parse EnumerationSource from block (%s)", blockName.c_str());
+							continue;
+						}
+
+						auto* serviceNameNode = values->FirstChildElement("ServiceName");
+						if (!serviceNameNode) {
+							Game::logger->Log("ControlBehaviors", "Failed to parse ServiceName from block (%s)", blockName.c_str());
+							continue;
+						}
+
+						std::string serviceName = serviceNameNode->GetText();
+						if (serviceName == "GetBehaviorSoundList") {
+							auto res = CDClientDatabase::ExecuteQuery("SELECT MAX(id) as countSounds FROM UGBehaviorSounds;");
+							blockDefinition->maximumValue = res.getIntField("countSounds");
+							blockDefinition->defaultValue = "0";
+						} else {
+							Game::logger->Log("ControlBehaviors", "Unsupported Enumeration ServiceType (%s)", serviceName.c_str());
+							continue;
+						}
+					}
+				} else {
+					Game::logger->Log("ControlBehaviors", "Unsupported type!");
+					continue;
+				}
 			}
-			
-			blockTypes.insert(std::make_pair(blockName, newBlock));
+			Game::logger->Log("ControlBehaviors", "block name is %s parameter name is %s typeName is %s default %s maximum %f minimum %f", blockName.c_str(), name.c_str(), typeName.c_str(), blockDefinition->defaultValue.c_str(), blockDefinition->maximumValue, blockDefinition->minimumValue);
+			blockTypes.insert(std::make_pair(blockName, blockDefinition));
 			block = block->NextSiblingElement();
 		}
 		blockSections = blockSections->NextSiblingElement();
 	}
 	Game::logger->Log("ControlBehaviors", "Created all base block classes");
-	for (auto pair : blockTypes) {
-		Game::logger->Log("ControlBehaviors", "Block name is %s with parameter name being %s and type being %s", pair.first.c_str(), pair.second->GetName().c_str(), pair.second->GetTypeName().c_str());
-		AMFArrayValue serializedActions;
-		pair.second->SerializeToAmf(&serializedActions);
+	for (auto b : blockTypes) {
+		Game::logger->Log("ControlBehaviors", "block name is %s default %s min %f max %f", b.first.c_str(), b.second->defaultValue.c_str(), b.second->minimumValue, b.second->maximumValue);
 	}
 }
 
-BlockBase* ControlBehaviors::GetBlockInfo(BlockName& blockName) {
+BlockDefinition* ControlBehaviors::GetBlockInfo(BlockName& blockName) {
 	return blockTypes[blockName];
 }
 
