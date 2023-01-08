@@ -2555,6 +2555,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 	//We runs this in async because the http library here is blocking, meaning it'll halt the thread.
 	//But we don't want the server to go unresponsive, because then the client would disconnect.
+	Game::logger->Log("GameMessages", "launching async");
 	std::async(std::launch::async, [&]() {
 
 		//We need to get a new ID for our model first:
@@ -2574,7 +2575,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 				const auto zoneId = worldId.GetMapID();
 				const auto cloneId = worldId.GetCloneID();
-
+				Game::logger->Log("GameMessages", "doing cdc lookup");
 				auto query = CDClientDatabase::CreatePreppedStmt(
 					"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
 				query.bind(1, (int)zoneId);
@@ -2586,7 +2587,8 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				int templateId = result.getIntField(0);
 
 				result.finalize();
-
+				try {
+					Game::logger->Log("GameMessages", "preparing stmt for properties");
 				auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
 
 				propertyLookup->setInt(1, templateId);
@@ -2601,7 +2603,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 				delete propertyEntry;
 				delete propertyLookup;
-
+				Game::logger->Log("GameMessages", "preparing ugc lookup");
 				//Insert into ugc:
 				auto ugcs = Database::CreatePreppedStmt("INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)");
 				ugcs->setUInt(1, blueprintIDSmall);
@@ -2617,7 +2619,9 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				ugcs->setBlob(5, &iss);
 				ugcs->setBoolean(6, false);
 				ugcs->setString(7, "weedeater.lxfml");
+				Game::logger->Log("GameMessages", "prepared ugc lookup");
 				ugcs->execute();
+				Game::logger->Log("GameMessages", "preparing properties_contents lookup");
 				delete ugcs;
 
 				//Insert into the db as a BBB model:
@@ -2640,9 +2644,14 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				stmt->setDouble(16, 0); // behavior 3.  TODO implement this.
 				stmt->setDouble(17, 0); // behavior 4.  TODO implement this.
 				stmt->setDouble(18, 0); // behavior 5.  TODO implement this.
+				Game::logger->Log("GameMessages", "Executing insertion");
 				stmt->execute();
 				delete stmt;
-
+				} catch (sql::SQLException& e) {
+					Game::logger->Log("GameMessages", "error is %s", e.what());
+				} catch (std::exception& e) {
+					Game::logger->Log("GameMessages", "caught error %s", e.what());
+				}
 				/*
 					Commented out until UGC server would be updated to use a sd0 file instead of lxfml stream.
 					(or you uncomment the lxfml decomp stuff above)
