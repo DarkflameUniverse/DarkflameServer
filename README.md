@@ -172,6 +172,10 @@ You can either run `build.sh` when in the root folder of the repository:
 
 Or manually run the commands used in [build.sh](build.sh).
 
+If you would like to build the server faster, append `-j<number>` where number is the number of simultaneous compile jobs to run at once.  It is recommended that you have this number always be 1 less than your core count to prevent slowdowns.  The command would look like this if you would build with 4 jobs at once:
+```bash
+./build.sh -j4
+```
 ### Notes
 Depending on your operating system, you may need to adjust some pre-processor defines in [CMakeVariables.txt](./CMakeVariables.txt) before building:
 * If you are on MacOS, ensure OPENSSL_ROOT_DIR is pointing to the openssl root directory.
