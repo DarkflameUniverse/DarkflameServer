@@ -414,9 +414,18 @@
             </locations>
         </zone>
     </npc>
-	<npc name="" lot="12442">
-		<equipment></equipment>
-		<phrases></phrases>
+		<npc lot="12442">
+		<zone id="1200">
+			<locations>
+				<location x="245.60" y="290.00" z="249.60" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
+			</locations>
+		</zone>
+	</npc>
+	<npc lot="6368">
+		<ldf>
+			<entry data="NDAEG=13:"/>
+			<entry data="NDAudioEventGUID=13:{3d37c6fb-0ac6-4a86-92f2-970347a0759d}"/>
+		</ldf>
 		<zone id="1200">
 			<locations>
 				<location x="245.60" y="290.00" z="249.60" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
