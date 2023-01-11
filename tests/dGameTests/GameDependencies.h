@@ -6,6 +6,7 @@
 #include "dServer.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
+#include "dConfig.h"
 #include <gtest/gtest.h>
 
 class dZoneManager;
@@ -30,6 +31,7 @@ protected:
 		info.lot = 999;
 		Game::logger = new dLogger("./testing.log", true, true);
 		Game::server = new dServerMock();
+		Game::config = new dConfig("worldconfig.ini");
 	}
 
 	void TearDownDependencies() {
@@ -39,6 +41,7 @@ protected:
 			Game::logger->Flush();
 			delete Game::logger;
 		}
+		if (Game::config) delete Game::config;
 	}
 
 	EntityInfo info;
