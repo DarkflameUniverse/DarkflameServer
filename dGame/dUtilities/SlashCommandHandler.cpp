@@ -1312,7 +1312,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 	}
 
-	if ((chatCommand == "giveuscore") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+	if ((chatCommand == "giveuscore") && args.size() >= 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		int32_t uscore;
 
 		if (!GeneralUtils::TryParse(args[0], uscore)) {
@@ -1323,7 +1323,16 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		CharacterComponent* character = entity->GetComponent<CharacterComponent>();
 		if (character) character->SetUScore(character->GetUScore() + uscore);
 		// LOOT_SOURCE_MODERATION should work but it doesn't.  Relog to see uscore changes
-		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_MODERATION);
+
+		eLootSourceType lootType = eLootSourceType::LOOT_SOURCE_MODERATION;
+
+		int32_t type;
+		if (args.size() >= 2 && GeneralUtils::TryParse(args[1], type))
+		{
+			lootType = (eLootSourceType) type;
+		}
+
+		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, lootType);
 	}
 
 	if ((chatCommand == "setlevel") && args.size() >= 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
