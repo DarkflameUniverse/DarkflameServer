@@ -4703,40 +4703,40 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
     if (faceCompId.id != 0) {
 		if (faceCompId.eyebrows != 0) { // we have new eyebrows
 			eyebrowsToSet = faceCompId.eyebrows;
-			Game::logger->Log("GameMessages", "changed eyebrows to %i (real %i) from %i via eyebrows", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
+			Game::logger->Log("GameMessages", "changed eyebrows from %i (real %i) to %i via eyebrows", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
 			if (oldEyes.eyebrows != 0) {
 				eyesToSet = bobEyes;
-				Game::logger->Log("GameMessages", "changed eyes to %i (real %i) from %i via eyebrows", oldEyes.eyes, character->GetEyes(), eyesToSet);
+				Game::logger->Log("GameMessages", "changed eyes from %i (real %i) to %i via eyebrows", oldEyes.eyes, character->GetEyes(), eyesToSet);
 				if (oldEyes.mouth != 0) {
 					mouthToSet = bobMouth;
-					Game::logger->Log("GameMessages", "changed mouth to %i (real %i) from %i via eyebrows", oldEyes.mouth, character->GetMouth(), mouthToSet);
+					Game::logger->Log("GameMessages", "changed mouth from %i (real %i) to %i via eyebrows", oldEyes.mouth, character->GetMouth(), mouthToSet);
 				}
 			}
 		}
 
 		if (faceCompId.eyes != 0) { // we have new eyes
 			eyesToSet = faceCompId.eyes;
-			Game::logger->Log("GameMessages", "changed eyes to %i (real %i) from %i via eyes", oldEyes.eyes, character->GetEyes(), eyesToSet);
+			Game::logger->Log("GameMessages", "changed eyes from %i (real %i) to %i via eyes", oldEyes.eyes, character->GetEyes(), eyesToSet);
 			if (oldEyes.eyebrows != 0) {
 				eyebrowsToSet = bobEyebrows;
-				Game::logger->Log("GameMessages", "changed eyebrows to %i (real %i) from %i via eyes", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
+				Game::logger->Log("GameMessages", "changed eyebrows from %i (real %i) to %i via eyes", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
 			}
 			if (oldEyes.mouth != 0) {
 				mouthToSet = bobMouth;
-				Game::logger->Log("GameMessages", "changed mmouth to %i (real %i) from %i via eyes", oldEyes.mouth, character->GetMouth(), mouthToSet);
+				Game::logger->Log("GameMessages", "changed mmouth from %i (real %i) to %i via eyes", oldEyes.mouth, character->GetMouth(), mouthToSet);
 			}
 		}
 
 		if (faceCompId.mouth != 0) { // we have a new mouth
 			mouthToSet = faceCompId.mouth;
-			Game::logger->Log("GameMessages", "changed mouth to %i (real %i) from %i via mouth", oldEyes.mouth, character->GetMouth(), mouthToSet);
+			Game::logger->Log("GameMessages", "changed mouth from %i (real %i) to %i via mouth", oldEyes.mouth, character->GetMouth(), mouthToSet);
 
 			if (oldEyes.mouth != 0) {
 				eyesToSet = bobEyes;
-				Game::logger->Log("GameMessages", "changed eyes to %i (real %i) from %i via mouth", oldEyes.eyes, character->GetEyes(), eyesToSet);
+				Game::logger->Log("GameMessages", "changed eyes from %i (real %i) to %i via mouth", oldEyes.eyes, character->GetEyes(), eyesToSet);
 				if (oldEyes.eyebrows != 0) {
 					eyebrowsToSet = bobEyebrows;
-					Game::logger->Log("GameMessages", "changed eyebrows to %i (real %i) from %i via mouth", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
+					Game::logger->Log("GameMessages", "changed eyebrows from %i (real %i) to %i via mouth", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
 				}
 			}
 	}
