@@ -4697,7 +4697,9 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	uint32_t bobMouth = 8;
 	uint32_t bobEyebrows = 33;
 
-	uint32_t eyesToSet, mouthToSet, eyebrowsToSet = 0;
+	uint32_t eyesToSet = 0
+	uint32_t mouthToSet = 0
+	uint32_t eyebrowsToSet = 0;
 
 	// if we are buying a face vendor item
     if (faceCompId.id != 0) {
@@ -4742,18 +4744,21 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	}
 
 		if (eyebrowsToSet != 0) {
+			Game::logger->Log("GameMessages", "save eyebrows");
 			character->SetEyebrows(eyebrowsToSet);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyebrows", eyebrowsToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedEyebrows", eyebrowsToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		if (eyesToSet != 0) {
+			Game::logger->Log("GameMessages", "save eyes");
 			character->SetEyes(eyesToSet);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyes", eyesToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedEyes", eyesToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		if (mouthToSet != 0) {
+			Game::logger->Log("GameMessages", "save mouth");
 			character->SetMouth(mouthToSet);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateMouth", mouthToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedMouth", mouthToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
