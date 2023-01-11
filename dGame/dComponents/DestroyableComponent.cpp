@@ -2,6 +2,7 @@
 #include <BitStream.h>
 #include "dLogger.h"
 #include "Game.h"
+#include "dConfig.h"
 
 #include "AMFFormat.h"
 #include "AMFFormat_BitStream.h"
@@ -666,6 +667,75 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 		return;
 	}
 	Smash(source, eKillType::VIOLENT, u"", skillID);
+
+	//check if hardcore mode is enabled
+    if (Game::config->GetValue("hardcore_mode") == "1") {
+        //check if this is a player:
+		if (m_Parent->GetLOT() == 1) {
+			//get hardcore_lose_uscore_on_death_percent from dconfig:
+			auto hardcore_lose_uscore_on_death_percent = std::stoi(Game::config->GetValue("hardcore_lose_uscore_on_death_percent"));
+
+			//remove hardcore_lose_uscore_on_death_percent from the player's uscore:
+			auto* character = m_Parent->GetComponent<CharacterComponent>();
+			auto uscore = character->GetUScore();
+
+			auto uscore_to_lose = uscore * hardcore_lose_uscore_on_death_percent / 100;
+			character->SetUScore(uscore - uscore_to_lose);
+
+			//get hardcore_dropinventory on death from dconfig:
+			auto hardcore_dropinventory_on_death = (bool)std::stoi(Game::config->GetValue("hardcore_dropinventory_on_death"));
+
+			if (hardcore_dropinventory_on_death == false) return;
+
+			//drop all items from inventory:
+			auto* inventory = m_Parent->GetComponent<InventoryComponent>();
+
+			//get the items inventory:
+			auto items = inventory->GetInventory(eInventoryType::ITEMS);
+			for (auto item : items->GetItems()) {
+				//check if this is an equipped item:
+				if (item.second->IsEquipped()) {
+					//unequip the item:
+					inventory->UnEquipItem(item.second);
+				}
+
+				//drop the item:
+				GameMessages::SendDropClientLoot(m_Parent, source, item.second->GetLot(), 0, m_Parent->GetPosition(), item.second->GetCount());
+
+				//remove from inventory:
+				inventory->RemoveItem(item.second->GetLot(), item.second->GetCount());
+			}
+
+			//get character:
+			auto* chars = m_Parent->GetCharacter();
+			if (chars) {
+				auto coins = chars->GetCoins();
+
+				//lose all coins:
+				chars->SetCoins(0, eLootSourceType::LOOT_SOURCE_NONE);
+
+				//drop all coins:
+				GameMessages::SendDropClientLoot(m_Parent, source, 0, coins, m_Parent->GetPosition(), 0);
+			}
+		} else {
+			//award the player some u-score:
+			auto* player = EntityManager::Instance()->GetEntity(source);
+			if (player && player->GetLOT() == 1) {
+				auto* playerStats = player->GetComponent<CharacterComponent>();
+				if (playerStats) {
+					//get the maximum health from this enemy:
+					auto maxHealth = GetMaxHealth();
+
+					//get the u-score to award from dconfig:
+					auto hardcore_uscore_enemies_multiplier = std::stoi(Game::config->GetValue("hardcore_uscore_enemies_multiplier"));
+					int uscore = maxHealth * hardcore_uscore_enemies_multiplier;
+					
+					playerStats->SetUScore(playerStats->GetUScore() + uscore);
+					GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_NONE);
+				}
+			}
+		}
+    }
 }
 
 void DestroyableComponent::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd) {
