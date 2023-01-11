@@ -4704,7 +4704,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 		if (faceCompId.eyebrows != 0) { // we have new eyebrows
 			eyebrowsToSet = faceCompId.eyebrows;
 			Game::logger->Log("GameMessages", "changed eyebrows to %i (real %i) from %i via eyebrows", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
-			if (oldEyes.eyebrows != 0 &&) {
+			if (oldEyes.eyebrows != 0) {
 				eyesToSet = bobEyes;
 				Game::logger->Log("GameMessages", "changed eyes to %i (real %i) from %i via eyebrows", oldEyes.eyes, character->GetEyes(), eyesToSet);
 				if (oldEyes.mouth != 0) {
