@@ -4695,43 +4695,33 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	uint32_t bobEyes = 9;
 	uint32_t bobMouth = 8;
 	uint32_t bobEyebrows = 33;
-	
-	uint32_t eyesToSet, mouthToSet, eyebrowsToSet = 0;
 
+	uint32_t eyesToSet = 0;
+	uint32_t mouthToSet = 0;
+	uint32_t eyebrowsToSet = 0;
+
+	// if we are buying a face vendor item
     if (faceCompId.id != 0) {
-		if (faceCompId.eyebrows != 0) {
-			eyebrowsToSet = faceCompId.eyebrows;
-
-			if (oldEyes.id != 0) {
-				if (oldEyes.eyebrows != 0) {
-					eyesToSet = bobEyes;
-					
-					if (oldEyes.mouth != 0) mouthToSet = bobMouth;
-				}
-			}
-		}
-
-		if (faceCompId.eyes != 0) {
+		if (faceCompId.eyes != 0) { // we have new eyes
 			eyesToSet = faceCompId.eyes;
+			if (oldEyes.eyebrows != 0) eyebrowsToSet = bobEyebrows;
+			if (oldEyes.mouth != 0)	mouthToSet = bobMouth;
+		}
 
-			if (oldEyes.id != 0) {
-				if (oldEyes.eyebrows != 0) eyebrowsToSet = bobEyebrows;
-				if (oldEyes.mouth != 0)  mouthToSet = bobMouth;
+		if (faceCompId.eyebrows != 0) { // we have new eyebrows
+			eyebrowsToSet = faceCompId.eyebrows;
+			if (oldEyes.eyebrows != 0 && eyesToSet == 0) {
+				eyesToSet = bobEyes;
+				if (oldEyes.mouth != 0)	mouthToSet = bobMouth;
 			}
 		}
-        
-		if (faceCompId.mouth != 0) {
+
+		if (faceCompId.mouth != 0) { // we have a new mouth
 			mouthToSet = faceCompId.mouth;
 
-			if (oldEyes.id != 0) {
-				if (oldEyes.mouth != 0) {
-					eyesToSet = bobEyes;
-
-					if (oldEyes.eyebrows != 0) {
-						eyebrowsToSet = bobEyebrows;
-					}
-				}
-				
+			if (oldEyes.mouth != 0 && eyesToSet == 0) {
+				eyesToSet = bobEyes;
+				if (oldEyes.eyebrows != 0) eyebrowsToSet = bobEyebrows;
 			}
 		}
 
@@ -4740,13 +4730,13 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyebrows", eyebrowsToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedEyebrows", eyebrowsToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
-		
+
 		if (eyesToSet != 0) {
 			character->SetEyes(eyesToSet);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyes", eyesToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedEyes", eyesToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
-		
+
 		if (mouthToSet != 0) {
 			character->SetMouth(mouthToSet);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateMouth", mouthToSet, 0, LWOOBJID_EMPTY, "", sysAddr);

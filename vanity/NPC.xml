@@ -414,15 +414,15 @@
             </locations>
         </zone>
     </npc>
-	    <npc name="" lot="12442">
-        <equipment></equipment>
-        <phrases></phrases>
-        <zone id="1200">
-            <locations>
-                <location x="245.60" y="290.00" z="249.60" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
-            </locations>
-        </zone>
-    </npc>
+	<npc name="" lot="12442">
+		<equipment></equipment>
+		<phrases></phrases>
+		<zone id="1200">
+			<locations>
+				<location x="245.60" y="290.00" z="249.60" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
+			</locations>
+		</zone>
+	</npc>
     <party zone="1200" chance="0.0">
         <locations>
             <location x="-24.3963" y="291.542" z="-117.871" rw="0.480946" rx="0" ry="0.87675" rz="0" />

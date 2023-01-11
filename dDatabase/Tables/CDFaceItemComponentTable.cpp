@@ -18,7 +18,7 @@ CDFaceItemComponentTable::CDFaceItemComponentTable() {
         entry.id = tableData.getIntField("id", 0);
         entry.eyes = tableData.getIntField("eyes", 0);
         entry.eyebrows = tableData.getIntField("eyebrows", 0);
-        entry.mouth = tableData.getIntField("mouth", 0);
+        entry.mouth = tableData.getIntField("mouths", 0);
 
         this->entries.push_back(entry);
         tableData.nextRow();
