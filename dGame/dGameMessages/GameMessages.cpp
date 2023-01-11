@@ -4697,8 +4697,8 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	uint32_t bobMouth = 8;
 	uint32_t bobEyebrows = 33;
 
-	uint32_t eyesToSet = 0
-	uint32_t mouthToSet = 0
+	uint32_t eyesToSet = 0;
+	uint32_t mouthToSet = 0;
 	uint32_t eyebrowsToSet = 0;
 
 	// if we are buying a face vendor item
