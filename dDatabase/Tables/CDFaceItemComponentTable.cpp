@@ -15,10 +15,10 @@ CDFaceItemComponentTable::CDFaceItemComponentTable() {
     auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM FaceItemComponent");
     while (!tableData.eof()) {
         CDFaceItemComponent entry;
-        entry.id = tableData.getIntField(0, 0);
-        entry.eyes = tableData.getIntField(1, 0);
-        entry.eyebrows = tableData.getIntField(2, 0);
-        entry.mouth = tableData.getIntField(3, 0);
+        entry.id = tableData.getIntField("id", 0);
+        entry.eyes = tableData.getIntField("eyes", 0);
+        entry.eyebrows = tableData.getIntField("eyebrows", 0);
+        entry.mouth = tableData.getIntField("mouth", 0);
 
         this->entries.push_back(entry);
         tableData.nextRow();
