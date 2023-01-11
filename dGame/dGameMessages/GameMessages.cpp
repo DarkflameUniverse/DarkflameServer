@@ -4691,7 +4691,6 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 	CDFaceItemComponent faceCompId = faceItemTable->GetByLot(item);
 	CDFaceItemComponent oldEyes = faceItemTable->GetByEyes(character->GetEyes());
-	Game::logger->Log("GameMessages", "current by eyes id: %i eb: %i e: %i m: %i", oldEyes.id, oldEyes.eyebrows, oldEyes.eyes, oldEyes.mouth);
 
 	uint32_t bobEyes = 9;
 	uint32_t bobMouth = 8;
@@ -4705,60 +4704,40 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
     if (faceCompId.id != 0) {
 		if (faceCompId.eyes != 0) { // we have new eyes
 			eyesToSet = faceCompId.eyes;
-			Game::logger->Log("GameMessages", "changed eyes from %i (real %i) to %i via eyes", oldEyes.eyes, character->GetEyes(), eyesToSet);
-			if (oldEyes.eyebrows != 0) {
-				eyebrowsToSet = bobEyebrows;
-				Game::logger->Log("GameMessages", "changed eyebrows from %i (real %i) to %i via eyes", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
-			}
-			if (oldEyes.mouth != 0) {
-				mouthToSet = bobMouth;
-				Game::logger->Log("GameMessages", "changed mmouth from %i (real %i) to %i via eyes", oldEyes.mouth, character->GetMouth(), mouthToSet);
-			}
+			if (oldEyes.eyebrows != 0) eyebrowsToSet = bobEyebrows;
+			if (oldEyes.mouth != 0)	mouthToSet = bobMouth;
 		}
 
 		if (faceCompId.eyebrows != 0) { // we have new eyebrows
 			eyebrowsToSet = faceCompId.eyebrows;
-			Game::logger->Log("GameMessages", "changed eyebrows from %i (real %i) to %i via eyebrows", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
 			if (oldEyes.eyebrows != 0 && eyesToSet == 0) {
 				eyesToSet = bobEyes;
-				Game::logger->Log("GameMessages", "changed eyes from %i (real %i) to %i via eyebrows", oldEyes.eyes, character->GetEyes(), eyesToSet);
-				if (oldEyes.mouth != 0) {
-					mouthToSet = bobMouth;
-					Game::logger->Log("GameMessages", "changed mouth from %i (real %i) to %i via eyebrows", oldEyes.mouth, character->GetMouth(), mouthToSet);
-				}
+				if (oldEyes.mouth != 0)	mouthToSet = bobMouth;
 			}
 		}
 
 		if (faceCompId.mouth != 0) { // we have a new mouth
 			mouthToSet = faceCompId.mouth;
-			Game::logger->Log("GameMessages", "changed mouth from %i (real %i) to %i via mouth", oldEyes.mouth, character->GetMouth(), mouthToSet);
 
 			if (oldEyes.mouth != 0 && eyesToSet == 0) {
 				eyesToSet = bobEyes;
-				Game::logger->Log("GameMessages", "changed eyes from %i (real %i) to %i via mouth", oldEyes.eyes, character->GetEyes(), eyesToSet);
-				if (oldEyes.eyebrows != 0) {
-					eyebrowsToSet = bobEyebrows;
-					Game::logger->Log("GameMessages", "changed eyebrows from %i (real %i) to %i via mouth", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
-				}
+				if (oldEyes.eyebrows != 0) eyebrowsToSet = bobEyebrows;
 			}
 		}
 
 		if (eyebrowsToSet != 0) {
-			Game::logger->Log("GameMessages", "save eyebrows");
 			character->SetEyebrows(eyebrowsToSet);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyebrows", eyebrowsToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedEyebrows", eyebrowsToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		if (eyesToSet != 0) {
-			Game::logger->Log("GameMessages", "save eyes");
 			character->SetEyes(eyesToSet);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyes", eyesToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedEyes", eyesToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		if (mouthToSet != 0) {
-			Game::logger->Log("GameMessages", "save mouth");
 			character->SetMouth(mouthToSet);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateMouth", mouthToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedMouth", mouthToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);

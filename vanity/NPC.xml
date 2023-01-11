@@ -416,9 +416,6 @@
     </npc>
 	<npc name="" lot="12442">
 		<equipment></equipment>
-		<ldf>
-			<entry name="" type="" value=""/>
-		</ldf>
 		<phrases></phrases>
 		<zone id="1200">
 			<locations>
