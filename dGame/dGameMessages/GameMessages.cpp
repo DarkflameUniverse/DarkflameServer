@@ -4691,7 +4691,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 	CDFaceItemComponent faceCompId = faceItemTable->GetByLot(item);
 	CDFaceItemComponent oldEyes = faceItemTable->GetByEyes(character->GetEyes());
-	Game::logger->Log("GameMessages", "got eyes of id %i and eyes %i", oldEyes.id, oldEyes.eyes);
+	Game::logger->Log("GameMessages", "current by eyes id: %i eb: %i e: %i m: %i", oldEyes.id, oldEyes.eyebrows, oldEyes.eyes, oldEyes.mouth);
 
 	uint32_t bobEyes = 9;
 	uint32_t bobMouth = 8;
@@ -4701,54 +4701,45 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 	// if we are buying a face vendor item
     if (faceCompId.id != 0) {
-		if (faceCompId.eyes) { // we have new eyes
-			eyesToSet = faceCompId.eyes;
-			Game::logger->Log("GameMessages", "we set eyes to %i", faceCompId.eyes);
-
-			if (oldEyes.id) {
-				if (oldEyes.eyebrows) {
-					eyebrowsToSet = bobEyebrows;
-					Game::logger->Log("GameMessages", "set eyebrows via eyes to bob's");
-				}
-				if (oldEyes.mouth) {
-					mouthToSet = bobMouth;
-					Game::logger->Log("GameMessages", "set mouth via eyes to bob's");
-				}
-			}
-		}
-
-		if (faceCompId.eyebrows) { // we have new eyebrows
+		if (faceCompId.eyebrows != 0) { // we have new eyebrows
 			eyebrowsToSet = faceCompId.eyebrows;
-			Game::logger->Log("GameMessages", "we set eyebrows to %i", faceCompId.eyebrows);
-
-			if (oldEyes.id) {
-				if (oldEyes.eyes && faceCompId.eyes == 0) {
-					eyesToSet = bobEyes;
-					Game::logger->Log("GameMessages", "set eye via eyebrows to bob's");
-					if (oldEyes.mouth) {
-						mouthToSet = bobMouth;
-						Game::logger->Log("GameMessages", "set mouth via eyebrows to bob's");
-					}
+			Game::logger->Log("GameMessages", "changed eyebrows to %i (real %i) from %i via eyebrows", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
+			if (oldEyes.eyebrows != 0 &&) {
+				eyesToSet = bobEyes;
+				Game::logger->Log("GameMessages", "changed eyes to %i (real %i) from %i via eyebrows", oldEyes.eyes, character->GetEyes(), eyesToSet);
+				if (oldEyes.mouth != 0) {
+					mouthToSet = bobMouth;
+					Game::logger->Log("GameMessages", "changed mouth to %i (real %i) from %i via eyebrows", oldEyes.mouth, character->GetMouth(), mouthToSet);
 				}
 			}
 		}
 
-		if (faceCompId.mouth) { // we have a new mouth
+		if (faceCompId.eyes != 0) { // we have new eyes
+			eyesToSet = faceCompId.eyes;
+			Game::logger->Log("GameMessages", "changed eyes to %i (real %i) from %i via eyes", oldEyes.eyes, character->GetEyes(), eyesToSet);
+			if (oldEyes.eyebrows != 0) {
+				eyebrowsToSet = bobEyebrows;
+				Game::logger->Log("GameMessages", "changed eyebrows to %i (real %i) from %i via eyes", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
+			}
+			if (oldEyes.mouth != 0) {
+				mouthToSet = bobMouth;
+				Game::logger->Log("GameMessages", "changed mmouth to %i (real %i) from %i via eyes", oldEyes.mouth, character->GetMouth(), mouthToSet);
+			}
+		}
+
+		if (faceCompId.mouth != 0) { // we have a new mouth
 			mouthToSet = faceCompId.mouth;
-			Game::logger->Log("GameMessages", "we set mouth to %i", faceCompId.mouth);
+			Game::logger->Log("GameMessages", "changed mouth to %i (real %i) from %i via mouth", oldEyes.mouth, character->GetMouth(), mouthToSet);
 
-			if (oldEyes.id) {
-				if (oldEyes.eyes && faceCompId.eyes == 0) {
-					eyesToSet = bobEyes;
-					Game::logger->Log("GameMessages", "set eyes via mouth to bob's");
-					if (oldEyes.eyebrows && faceCompId.eyebrows == 0) {
-						eyebrowsToSet = bobEyebrows;
-						Game::logger->Log("GameMessages", "set eyebrows via mouth to bob's");
-					}
+			if (oldEyes.mouth != 0) {
+				eyesToSet = bobEyes;
+				Game::logger->Log("GameMessages", "changed eyes to %i (real %i) from %i via mouth", oldEyes.eyes, character->GetEyes(), eyesToSet);
+				if (oldEyes.eyebrows != 0) {
+					eyebrowsToSet = bobEyebrows;
+					Game::logger->Log("GameMessages", "changed eyebrows to %i (real %i) from %i via mouth", oldEyes.eyebrows, character->GetEyebrows(), eyebrowsToSet);
 				}
-
 			}
-		}
+	}
 
 		if (eyebrowsToSet != 0) {
 			character->SetEyebrows(eyebrowsToSet);
