@@ -415,6 +415,11 @@
         </zone>
     </npc>
 		<npc lot="12442">
+		<ldf>
+			<entry data="CheckPrecondition=0:47"/>
+			<entry data="rocketLaunchPreCondition=0:47"/>
+			<entry data="rocketUseLaunchPrecondition=7:0"/>
+		</ldf>
 		<zone id="1200">
 			<locations>
 				<location x="245.60" y="290.00" z="249.60" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
