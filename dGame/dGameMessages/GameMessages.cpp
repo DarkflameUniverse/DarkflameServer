@@ -4727,19 +4727,19 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 		if (eyebrowsToSet != 0) {
 			character->SetEyebrows(eyebrowsToSet);
-			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyebrows", eyebrowsToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
+			GameMessages::SendNotifyClientObject(LWOOBJID_EMPTY, u"UpdateEyebrows", eyebrowsToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedEyebrows", eyebrowsToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		if (eyesToSet != 0) {
 			character->SetEyes(eyesToSet);
-			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyes", eyesToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
+			GameMessages::SendNotifyClientObject(LWOOBJID_EMPTY, u"UpdateEyes", eyesToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedEyes", eyesToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
 		if (mouthToSet != 0) {
 			character->SetMouth(mouthToSet);
-			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateMouth", mouthToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
+			GameMessages::SendNotifyClientObject(LWOOBJID_EMPTY, u"UpdateMouth", mouthToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedMouth", mouthToSet, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
