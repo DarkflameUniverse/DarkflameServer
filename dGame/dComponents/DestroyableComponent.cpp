@@ -1013,6 +1013,8 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 						for (const auto& item : itemMap) {
 							//drop the item:
 							if (item.second) {
+								// don't drop the thinkng cap
+								if (item.second->GetLot() == 6086) continue;
 								GameMessages::SendDropClientLoot(m_Parent, source, item.second->GetLot(), 0, m_Parent->GetPosition(), item.second->GetCount());
 								item.second->SetCount(0, false, false);
 							}
