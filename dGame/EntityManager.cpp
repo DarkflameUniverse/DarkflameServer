@@ -60,7 +60,7 @@ void EntityManager::Initialize() {
 		dZoneManager::Instance()->GetZoneID().GetMapID()
 	) == m_GhostingExcludedZones.end();
 
-	// grab hardcore mode settings and lost the
+	// grab hardcore mode settings and load them with sane defaults
 	auto hcmode = Game::config->GetValue("hardcore_mode");
 	m_HardcoreMode = hcmode.empty() ? false : (hcmode == "1");
 	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
