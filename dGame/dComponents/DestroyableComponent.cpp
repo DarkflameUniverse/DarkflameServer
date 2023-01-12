@@ -67,6 +67,16 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_ImmuneToImaginationLossCount = 0;
 	m_ImmuneToQuickbuildInterruptCount = 0;
 	m_ImmuneToPullToPointCount = 0;
+
+	auto hcmode = Game::config->GetValue("hardcore_mode");
+	m_HardcoreMode = hcmode.empty() ? false : (bool)std::stoi(hcmode);
+	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
+	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : std::stoi(hcUscorePercent);
+	auto hcUscoreMult = Game::config->GetValue("hardcore_uscore_enemies_multiplier");
+	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : std::stoi(hcUscoreMult);
+	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
+	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (bool)std::stoi(hcDropInv);
+
 }
 
 DestroyableComponent::~DestroyableComponent() {
@@ -668,43 +678,34 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	//check if hardcore mode is enabled
-    if (Game::config->GetValue("hardcore_mode") == "1") {
+    if (m_HardcoreMode) {
         //check if this is a player:
 		if (m_Parent->GetLOT() == 1) {
-			//get hardcore_lose_uscore_on_death_percent from dconfig:
-			auto hardcoreLoseUscoreOnDeathPercent = std::stoi(Game::config->GetValue("hardcore_lose_uscore_on_death_percent"));
-
 			//remove hardcore_lose_uscore_on_death_percent from the player's uscore:
 			auto* character = m_Parent->GetComponent<CharacterComponent>();
 			auto uscore = character->GetUScore();
 
-			auto uscoreToLose = uscore * hardcoreLoseUscoreOnDeathPercent / 100;
+			auto uscoreToLose = uscore * (m_HardcoreLoseUscoreOnDeathPercent / 100);
 			character->SetUScore(uscore - uscoreToLose);
 
 			GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::LOOT_SOURCE_MISSION);
 
-			// Reload the player
-			EntityManager::Instance()->DestructEntity(m_Parent);
-			EntityManager::Instance()->ConstructEntity(m_Parent);
+			if (m_HardcoreDropinventoryOnDeath) {
+				//drop all items from inventory:
+				auto* inventory = m_Parent->GetComponent<InventoryComponent>();
 
-			auto hardcoreDropinventoryOnDeath = (bool)std::stoi(Game::config->GetValue("hardcore_dropinventory_on_death"));
+				//get the items inventory:
+				auto items = inventory->GetInventory(eInventoryType::ITEMS);
+				auto itemMap = items->GetItems();
+				for (const auto& item : itemMap) {
+					//drop the item:
+					GameMessages::SendDropClientLoot(m_Parent, source, item.second->GetLot(), 0, m_Parent->GetPosition(), item.second->GetCount());
 
-			if (hardcoreDropinventoryOnDeath == false) return;
+					item.second->SetCount(0, false, false);
+				}
 
-			//drop all items from inventory:
-			auto* inventory = m_Parent->GetComponent<InventoryComponent>();
-
-			//get the items inventory:
-			auto items = inventory->GetInventory(eInventoryType::ITEMS);
-			auto itemMap = items->GetItems();
-			for (const auto& item : itemMap) {
-				//drop the item:
-				GameMessages::SendDropClientLoot(m_Parent, source, item.second->GetLot(), 0, m_Parent->GetPosition(), item.second->GetCount());
-
-				item.second->SetCount(0, false, false);
+				EntityManager::Instance()->SerializeEntity(m_Parent);
 			}
-
-			EntityManager::Instance()->SerializeEntity(m_Parent);
 
 			//get character:
 			auto* chars = m_Parent->GetCharacter();
@@ -726,19 +727,17 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 					//get the maximum health from this enemy:
 					auto maxHealth = GetMaxHealth();
 
-					//get the u-score to award from dconfig:
-					auto hardcoreUscoreEnemiesMultiplier = std::stoi(Game::config->GetValue("hardcore_uscore_enemies_multiplier"));
-					int uscore = maxHealth * hardcoreUscoreEnemiesMultiplier;
-					
+					int uscore = maxHealth * m_HardcoreUscoreEnemiesMultiplier;
+
 					playerStats->SetUScore(playerStats->GetUScore() + uscore);
 					GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_MISSION);
-					
+
 					EntityManager::Instance()->SerializeEntity(m_Parent);
 				}
 			}
 		}
     }
-	
+
 	Smash(source, eKillType::VIOLENT, u"", skillID);
 }
 
