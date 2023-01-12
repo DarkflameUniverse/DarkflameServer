@@ -69,13 +69,13 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_ImmuneToPullToPointCount = 0;
 
 	auto hcmode = Game::config->GetValue("hardcore_mode");
-	m_HardcoreMode = hcmode.empty() ? false : (bool)std::stoi(hcmode);
+	m_HardcoreMode = hcmode.empty() ? false : (hcmode == "1");
 	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
 	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : std::stoi(hcUscorePercent);
 	auto hcUscoreMult = Game::config->GetValue("hardcore_uscore_enemies_multiplier");
 	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : std::stoi(hcUscoreMult);
 	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
-	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (bool)std::stoi(hcDropInv);
+	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (hcDropInv == "1");
 
 }
 
@@ -679,63 +679,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 
 	//check if hardcore mode is enabled
     if (m_HardcoreMode) {
-        //check if this is a player:
-		if (m_Parent->GetLOT() == 1) {
-			//remove hardcore_lose_uscore_on_death_percent from the player's uscore:
-			auto* character = m_Parent->GetComponent<CharacterComponent>();
-			auto uscore = character->GetUScore();
-
-			auto uscoreToLose = uscore * (m_HardcoreLoseUscoreOnDeathPercent / 100);
-			character->SetUScore(uscore - uscoreToLose);
-
-			GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::LOOT_SOURCE_MISSION);
-
-			if (m_HardcoreDropinventoryOnDeath) {
-				//drop all items from inventory:
-				auto* inventory = m_Parent->GetComponent<InventoryComponent>();
-
-				//get the items inventory:
-				auto items = inventory->GetInventory(eInventoryType::ITEMS);
-				auto itemMap = items->GetItems();
-				for (const auto& item : itemMap) {
-					//drop the item:
-					GameMessages::SendDropClientLoot(m_Parent, source, item.second->GetLot(), 0, m_Parent->GetPosition(), item.second->GetCount());
-
-					item.second->SetCount(0, false, false);
-				}
-
-				EntityManager::Instance()->SerializeEntity(m_Parent);
-			}
-
-			//get character:
-			auto* chars = m_Parent->GetCharacter();
-			if (chars) {
-				auto coins = chars->GetCoins();
-
-				//lose all coins:
-				chars->SetCoins(0, eLootSourceType::LOOT_SOURCE_NONE);
-
-				//drop all coins:
-				GameMessages::SendDropClientLoot(m_Parent, source, 0, coins, m_Parent->GetPosition(), 0);
-			}
-		} else {
-			//award the player some u-score:
-			auto* player = EntityManager::Instance()->GetEntity(source);
-			if (player && player->GetLOT() == 1) {
-				auto* playerStats = player->GetComponent<CharacterComponent>();
-				if (playerStats) {
-					//get the maximum health from this enemy:
-					auto maxHealth = GetMaxHealth();
-
-					int uscore = maxHealth * m_HardcoreUscoreEnemiesMultiplier;
-
-					playerStats->SetUScore(playerStats->GetUScore() + uscore);
-					GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_MISSION);
-
-					EntityManager::Instance()->SerializeEntity(m_Parent);
-				}
-			}
-		}
+		DoHardcoreModeDrops(source);
     }
 
 	Smash(source, eKillType::VIOLENT, u"", skillID);
@@ -1043,4 +987,74 @@ void DestroyableComponent::FixStats() {
 
 void DestroyableComponent::AddOnHitCallback(const std::function<void(Entity*)>& callback) {
 	m_OnHitCallbacks.push_back(callback);
+}
+
+void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
+	//check if this is a player:
+	if (m_Parent->GetLOT() == 1) {
+		//remove hardcore_lose_uscore_on_death_percent from the player's uscore:
+		auto* character = m_Parent->GetComponent<CharacterComponent>();
+		auto uscore = character->GetUScore();
+
+		auto uscoreToLose = uscore * (m_HardcoreLoseUscoreOnDeathPercent / 100);
+		character->SetUScore(uscore - uscoreToLose);
+
+		GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::LOOT_SOURCE_MISSION);
+
+		if (m_HardcoreDropinventoryOnDeath) {
+			//drop all items from inventory:
+			auto* inventory = m_Parent->GetComponent<InventoryComponent>();
+			if (inventory) {
+				//get the items inventory:
+				auto items = inventory->GetInventory(eInventoryType::ITEMS);
+				if (items){
+					auto itemMap = items->GetItems();
+					if (!itemMap.empty()){
+						for (const auto& item : itemMap) {
+							//drop the item:
+							if (item.second) {
+								GameMessages::SendDropClientLoot(m_Parent, source, item.second->GetLot(), 0, m_Parent->GetPosition(), item.second->GetCount());
+								item.second->SetCount(0, false, false);
+							}
+						}
+						EntityManager::Instance()->SerializeEntity(m_Parent);
+					}
+				}
+			}
+		}
+
+		//get character:
+		auto* chars = m_Parent->GetCharacter();
+		if (chars) {
+			auto coins = chars->GetCoins();
+
+			//lose all coins:
+			chars->SetCoins(0, eLootSourceType::LOOT_SOURCE_NONE);
+
+			//drop all coins:
+			GameMessages::SendDropClientLoot(m_Parent, source, -1, coins, m_Parent->GetPosition());
+		}
+
+		// Reload the player since we can't normally reduce uscore from the server and we want the UI to update
+		// do this last so we don't get killed.... again
+		EntityManager::Instance()->DestructEntity(m_Parent);
+		EntityManager::Instance()->ConstructEntity(m_Parent);
+	} else {
+		//award the player some u-score:
+		auto* player = EntityManager::Instance()->GetEntity(source);
+		if (player && player->GetLOT() == 1) {
+			auto* playerStats = player->GetComponent<CharacterComponent>();
+			if (playerStats) {
+				//get the maximum health from this enemy:
+				auto maxHealth = GetMaxHealth();
+
+				int uscore = maxHealth * m_HardcoreUscoreEnemiesMultiplier;
+
+				playerStats->SetUScore(playerStats->GetUScore() + uscore);
+				GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_MISSION);
+
+				EntityManager::Instance()->SerializeEntity(m_Parent);
+			}
+		}
+	}
 }

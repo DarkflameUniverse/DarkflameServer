@@ -452,6 +452,9 @@ public:
 	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd);
 	void Unsubscribe(LWOOBJID scriptObjId);
 
+	// handle hardcode mode drops
+	void DoHardcoreModeDrops(const LWOOBJID source);
+
 private:
 	/**
 	 * Whether or not the health should be serialized
