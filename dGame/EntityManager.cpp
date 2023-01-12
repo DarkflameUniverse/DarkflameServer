@@ -18,6 +18,7 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "MessageIdentifiers.h"
+#include "dConfig.h"
 
 EntityManager* EntityManager::m_Address = nullptr;
 
@@ -58,6 +59,16 @@ void EntityManager::Initialize() {
 		m_GhostingExcludedZones.end(),
 		dZoneManager::Instance()->GetZoneID().GetMapID()
 	) == m_GhostingExcludedZones.end();
+
+	// grab hardcore mode settings and lost the
+	auto hcmode = Game::config->GetValue("hardcore_mode");
+	m_HardcoreMode = hcmode.empty() ? false : (hcmode == "1");
+	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
+	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : std::stoi(hcUscorePercent);
+	auto hcUscoreMult = Game::config->GetValue("hardcore_uscore_enemies_multiplier");
+	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : std::stoi(hcUscoreMult);
+	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
+	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (hcDropInv == "1");
 }
 
 EntityManager::~EntityManager() {

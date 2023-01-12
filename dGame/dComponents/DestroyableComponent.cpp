@@ -68,15 +68,6 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_ImmuneToQuickbuildInterruptCount = 0;
 	m_ImmuneToPullToPointCount = 0;
 
-	auto hcmode = Game::config->GetValue("hardcore_mode");
-	m_HardcoreMode = hcmode.empty() ? false : (hcmode == "1");
-	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
-	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : std::stoi(hcUscorePercent);
-	auto hcUscoreMult = Game::config->GetValue("hardcore_uscore_enemies_multiplier");
-	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : std::stoi(hcUscoreMult);
-	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
-	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (hcDropInv == "1");
-
 }
 
 DestroyableComponent::~DestroyableComponent() {
@@ -678,7 +669,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	//check if hardcore mode is enabled
-    if (m_HardcoreMode) {
+    if (EntityManager::Instance()->GetHardcoreMode()) {
 		DoHardcoreModeDrops(source);
     }
 
@@ -996,12 +987,12 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 		auto* character = m_Parent->GetComponent<CharacterComponent>();
 		auto uscore = character->GetUScore();
 
-		auto uscoreToLose = uscore * (m_HardcoreLoseUscoreOnDeathPercent / 100);
+		auto uscoreToLose = uscore * (EntityManager::Instance()->GetHardcoreLoseUscoreOnDeathPercent() / 100);
 		character->SetUScore(uscore - uscoreToLose);
 
 		GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::LOOT_SOURCE_MISSION);
 
-		if (m_HardcoreDropinventoryOnDeath) {
+		if (EntityManager::Instance()->GetHardcoreDropinventoryOnDeath()) {
 			//drop all items from inventory:
 			auto* inventory = m_Parent->GetComponent<InventoryComponent>();
 			if (inventory) {
@@ -1051,7 +1042,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 			//get the maximum health from this enemy:
 			auto maxHealth = GetMaxHealth();
 
-			int uscore = maxHealth * m_HardcoreUscoreEnemiesMultiplier;
+			int uscore = maxHealth * EntityManager::Instance()->GetHardcoreUscoreEnemiesMultiplier();
 
 			playerStats->SetUScore(playerStats->GetUScore() + uscore);
 			GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_MISSION);

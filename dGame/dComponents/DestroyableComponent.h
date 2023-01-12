@@ -604,11 +604,6 @@ private:
 	uint32_t m_ImmuneToQuickbuildInterruptCount;
 	uint32_t m_ImmuneToPullToPointCount;
 
-	// hardcore mode values
-	bool m_HardcoreMode;
-	uint32_t m_HardcoreLoseUscoreOnDeathPercent;
-	bool m_HardcoreDropinventoryOnDeath;
-	uint32_t m_HardcoreUscoreEnemiesMultiplier;
 };
 
 #endif // DESTROYABLECOMPONENT_H
