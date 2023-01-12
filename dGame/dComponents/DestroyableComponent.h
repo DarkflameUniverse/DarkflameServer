@@ -603,7 +603,6 @@ private:
 	uint32_t m_ImmuneToImaginationLossCount;
 	uint32_t m_ImmuneToQuickbuildInterruptCount;
 	uint32_t m_ImmuneToPullToPointCount;
-
 };
 
 #endif // DESTROYABLECOMPONENT_H
