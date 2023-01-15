@@ -375,7 +375,7 @@ void Entity::Initialize() {
 					comp->SetIsSmashable(destCompData[0].isSmashable);
 
 					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
-
+					Game::logger->Log("Entity", "%i %i %f", destCompData[0].life, destCompData[0].imagination, destCompData[0].armor);
 					// Now get currency information
 					uint32_t npcMinLevel = destCompData[0].level;
 					uint32_t currencyIndex = destCompData[0].CurrencyIndex;
