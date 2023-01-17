@@ -9,5 +9,5 @@ cd build
 cmake ..
 
 # To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `cmake --build . --config Release -j8'
-cmake --build . --config Release
+cmake --build . --config Release $1
 
