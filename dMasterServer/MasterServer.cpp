@@ -248,8 +248,6 @@ int main(int argc, char** argv) {
 
 		std::cout << "Account created successfully!\n";
 
-		Database::Destroy("MasterServer");
-		delete Game::logger;
 
 		return EXIT_SUCCESS;
 	}
