@@ -70,9 +70,9 @@ void EntityManager::Initialize() {
 	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
 	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (hcDropInv == "1");
 
-	// If zoneID mod 10 is not zero, then hardcore mode is disabled
-	// This is because minigames shouldn't make you lose all your items where you can't get them back
-    if (dZoneManager::Instance()->GetZoneID().GetMapID() % 10 != 0) m_HardcoreMode = false;
+	// If instance is not zero, then hardcore mode is disabled
+	// aka minigames and props
+    if (dZoneManager::Instance()->GetZoneID().GetInstanceID() != 0) m_HardcoreMode = false;
 }
 
 EntityManager::~EntityManager() {
