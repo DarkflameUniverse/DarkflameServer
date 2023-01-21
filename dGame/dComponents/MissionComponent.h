@@ -17,11 +17,13 @@
 #include "CDMissionsTable.h"
 #include "Component.h"
 
- /**
-  * The mission inventory of an entity. Tracks mission state for each mission that can be accepted and allows for
-  * progression of each of the mission task types (see MissionTaskType).
-  */
-class MissionComponent : public Component
+class AchievementCacheKey;
+
+/**
+ * The mission inventory of an entity. Tracks mission state for each mission that can be accepted and allows for
+ * progression of each of the mission task types (see MissionTaskType).
+ */
+class MissionComponent: public Component
 {
 public:
 	static const uint32_t ComponentType = COMPONENT_TYPE_MISSION;
@@ -192,7 +194,7 @@ private:
 	 * As achievements can be hard to query, we here store a list of all the mission IDs that can be unlocked for a
 	 * combination of tasks and values, so that they can be easily re-queried later
 	 */
-	static std::unordered_map<size_t, std::vector<uint32_t>> m_AchievementCache;
+	static std::unordered_map<AchievementCacheKey, std::vector<uint32_t>> m_AchievementCache;
 
 	/**
 	 * Order of missions in the UI.  This value is incremented by 1

@@ -17,10 +17,11 @@
 #include "dZoneManager.h"
 #include "Mail.h"
 #include "MissionPrerequisites.h"
+#include "AchievementCacheKey.h"
 
  // MARK: Mission Component
 
-std::unordered_map<size_t, std::vector<uint32_t>> MissionComponent::m_AchievementCache = {};
+std::unordered_map<AchievementCacheKey, std::vector<uint32_t>> MissionComponent::m_AchievementCache = {};
 
 //! Initializer
 MissionComponent::MissionComponent(Entity* parent) : Component(parent) {
@@ -391,12 +392,12 @@ bool MissionComponent::LookForAchievements(MissionTaskType type, int32_t value, 
 
 const std::vector<uint32_t>& MissionComponent::QueryAchievements(MissionTaskType type, int32_t value, const std::string targets) {
 	// Create a hash which represent this query for achievements
-	size_t hash = 0;
-	GeneralUtils::hash_combine(hash, type);
-	GeneralUtils::hash_combine(hash, value);
-	GeneralUtils::hash_combine(hash, targets);
+	AchievementCacheKey toFind;
+	toFind.SetType(type);
+	toFind.SetValue(value);
+	toFind.SetTargets(targets);
 
-	const std::unordered_map<size_t, std::vector<uint32_t>>::iterator& iter = m_AchievementCache.find(hash);
+	const auto& iter = m_AchievementCache.find(toFind);
 
 	// Check if this query is cached
 	if (iter != m_AchievementCache.end()) {
@@ -447,11 +448,9 @@ const std::vector<uint32_t>& MissionComponent::QueryAchievements(MissionTaskType
 			}
 		}
 	}
-
 	// Insert into cache
-	m_AchievementCache.insert_or_assign(hash, result);
-
-	return m_AchievementCache.find(hash)->second;
+	m_AchievementCache.insert_or_assign(toFind, result);
+	return m_AchievementCache.find(toFind)->second;
 }
 
 bool MissionComponent::RequiresItem(const LOT lot) {
