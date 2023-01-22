@@ -13,6 +13,8 @@
 #include "GeneralUtils.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
+
 
 LootGenerator::LootGenerator() {
 	CDLootTableTable* lootTableTable = CDClientManager::Instance()->GetTable<CDLootTableTable>("LootTable");
@@ -186,13 +188,13 @@ std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, u
 
 					// convert faction token proxy
 					if (drop.itemID == 13763) {
-						if (missionComponent->GetMissionState(545) == MissionState::MISSION_STATE_COMPLETE)
+						if (missionComponent->GetMissionState(545) == eMissionState::COMPLETE)
 							drop.itemID = 8318; // "Assembly Token"
-						else if (missionComponent->GetMissionState(556) == MissionState::MISSION_STATE_COMPLETE)
+						else if (missionComponent->GetMissionState(556) == eMissionState::COMPLETE)
 							drop.itemID = 8321; // "Venture League Token"
-						else if (missionComponent->GetMissionState(567) == MissionState::MISSION_STATE_COMPLETE)
+						else if (missionComponent->GetMissionState(567) == eMissionState::COMPLETE)
 							drop.itemID = 8319; // "Sentinels Token"
-						else if (missionComponent->GetMissionState(578) == MissionState::MISSION_STATE_COMPLETE)
+						else if (missionComponent->GetMissionState(578) == eMissionState::COMPLETE)
 							drop.itemID = 8320; // "Paradox Token"
 					}
 

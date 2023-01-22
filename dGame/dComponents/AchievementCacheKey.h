@@ -1,3 +1,5 @@
+#include "eMissionTaskType.h"
+
 #ifndef __ACHIEVEMENTCACHEKEY__H__
 #define __ACHIEVEMENTCACHEKEY__H__
 
@@ -6,7 +8,7 @@ public:
 	AchievementCacheKey() {
 		targets = "";
 		value = 0;
-		type = MissionTaskType::MISSION_TASK_TYPE_UNKNOWN;
+		type = eMissionTaskType::UNKNOWN;
 	};
 
 	bool operator==(const AchievementCacheKey& point) const {
@@ -14,15 +16,15 @@ public:
 	};
 	void SetTargets(const std::string value) { this->targets = value; };
 	void SetValue(uint32_t value) { this->value = value; };
-	void SetType(MissionTaskType value) { this->type = value; };
+	void SetType(eMissionTaskType value) { this->type = value; };
 
 	std::string GetTargets() const { return this->targets; };
 	uint32_t GetValue() const { return this->value; };
-	MissionTaskType GetType() const { return this->type; };
+	eMissionTaskType GetType() const { return this->type; };
 private:
 	std::string targets;
 	uint32_t value;
-	MissionTaskType type;
+	eMissionTaskType type;
 
 };
 

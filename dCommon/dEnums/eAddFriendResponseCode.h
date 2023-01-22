@@ -1,11 +1,11 @@
 #pragma once
 
-#ifndef __ADDFRIENDRESPONSECODE__H__
-#define __ADDFRIENDRESPONSECODE__H__
+#ifndef __EADDFRIENDRESPONSECODE__H__
+#define __EADDFRIENDRESPONSECODE__H__
 
 #include <cstdint>
 
-enum class AddFriendResponseCode : uint8_t {
+enum class eAddFriendResponseCode : uint8_t {
 	ACCEPTED = 0,
 	REJECTED,
 	BUSY,

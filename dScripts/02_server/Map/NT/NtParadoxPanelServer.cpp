@@ -3,6 +3,7 @@
 #include "MissionComponent.h"
 #include "EntityManager.h"
 #include "Character.h"
+#include "eMissionState.h"
 
 void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"bActive", 1, 0, user->GetObjectID(), "", user->GetSystemAddress());
@@ -16,7 +17,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 	const auto playerID = user->GetObjectID();
 
 	for (const auto mission : tPlayerOnMissions) {
-		if (missionComponent->GetMissionState(mission) != MissionState::MISSION_STATE_ACTIVE) {
+		if (missionComponent->GetMissionState(mission) != eMissionState::ACTIVE) {
 			continue;
 		}
 

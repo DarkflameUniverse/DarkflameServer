@@ -3,6 +3,7 @@
 #include "GameMessages.h"
 #include "MissionComponent.h"
 #include "SkillComponent.h"
+#include "eMissionTaskType.h"
 
 //TODO: this has to be updated so that you only get killed if you're in a certain radius.
 //And so that all entities in a certain radius are killed, not just the attacker.
@@ -51,14 +52,14 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 	if (missionComponent != nullptr) {
 		if (missionID != 0) {
 			missionComponent->ForceProgressValue(missionID,
-				static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT),
+				static_cast<uint32_t>(eMissionTaskType::SCRIPT),
 				self->GetLOT(), false);
 		}
 
 		if (!achievementIDs.empty()) {
 			for (const auto& achievementID : GeneralUtils::SplitString(achievementIDs, u'_')) {
 				missionComponent->ForceProgressValue(std::stoi(GeneralUtils::UTF16ToWTF8(achievementID)),
-					static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT),
+					static_cast<uint32_t>(eMissionTaskType::SCRIPT),
 					self->GetLOT());
 			}
 		}

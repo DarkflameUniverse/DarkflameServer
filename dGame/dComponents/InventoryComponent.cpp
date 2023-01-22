@@ -28,6 +28,7 @@
 #include "eItemType.h"
 #include "eUnequippableActiveType.h"
 #include "CppScripts.h"
+#include "eMissionTaskType.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document): Component(parent) {
 	this->m_Dirty = true;
@@ -196,7 +197,7 @@ void InventoryComponent::AddItem(
 		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound, lootSourceType);
 
 		if (missions != nullptr && !IsTransferInventory(inventoryType)) {
-			missions->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, lot, LWOOBJID_EMPTY, "", count, IsTransferInventory(inventorySourceType));
+			missions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", count, IsTransferInventory(inventorySourceType));
 		}
 
 		return;
@@ -284,7 +285,7 @@ void InventoryComponent::AddItem(
 	}
 
 	if (missions != nullptr && !IsTransferInventory(inventoryType)) {
-		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, lot, LWOOBJID_EMPTY, "", count - outOfSpace, IsTransferInventory(inventorySourceType));
+		missions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", count - outOfSpace, IsTransferInventory(inventorySourceType));
 	}
 }
 
@@ -373,7 +374,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 	if (missionComponent != nullptr) {
 		if (IsTransferInventory(inventory)) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, lot, LWOOBJID_EMPTY, "", -static_cast<int32_t>(count));
+			missionComponent->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", -static_cast<int32_t>(count));
 		}
 	}
 }
@@ -841,9 +842,9 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 		const auto type = static_cast<eItemType>(item->GetInfo().itemType);
 
 
-		if (!building && (item->GetLot() == 6086 || type == eItemType::ITEM_TYPE_LOOT_MODEL || type == eItemType::ITEM_TYPE_VEHICLE)) return;
+		if (!building && (item->GetLot() == 6086 || type == eItemType::LOOT_MODEL || type == eItemType::VEHICLE)) return;
 
-		if (type != eItemType::ITEM_TYPE_LOOT_MODEL && type != eItemType::ITEM_TYPE_MODEL) {
+		if (type != eItemType::LOOT_MODEL && type != eItemType::MODEL) {
 			if (!item->GetBound() && !item->GetPreconditionExpression()->Check(m_Parent)) {
 				return;
 			}
@@ -1202,14 +1203,14 @@ void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger, En
 	}
 }
 
-bool InventoryComponent::HasAnyPassive(const std::vector<ItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const {
+bool InventoryComponent::HasAnyPassive(const std::vector<eItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const {
 	for (auto* set : m_Itemsets) {
 		if (set->GetEquippedCount() < equipmentRequirement) {
 			continue;
 		}
 
 		// Check if the set has any of the passive abilities
-		if (std::find(passiveIDs.begin(), passiveIDs.end(), static_cast<ItemSetPassiveAbilityID>(set->GetID())) != passiveIDs.end()) {
+		if (std::find(passiveIDs.begin(), passiveIDs.end(), static_cast<eItemSetPassiveAbilityID>(set->GetID())) != passiveIDs.end()) {
 			return true;
 		}
 	}
@@ -1285,15 +1286,15 @@ void InventoryComponent::RemoveDatabasePet(LWOOBJID id) {
 
 BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
 	switch (type) {
-	case eItemType::ITEM_TYPE_HAT:
+	case eItemType::HAT:
 		return BehaviorSlot::Head;
-	case eItemType::ITEM_TYPE_NECK:
+	case eItemType::NECK:
 		return BehaviorSlot::Neck;
-	case eItemType::ITEM_TYPE_LEFT_HAND:
+	case eItemType::LEFT_HAND:
 		return BehaviorSlot::Offhand;
-	case eItemType::ITEM_TYPE_RIGHT_HAND:
+	case eItemType::RIGHT_HAND:
 		return BehaviorSlot::Primary;
-	case eItemType::ITEM_TYPE_CONSUMABLE:
+	case eItemType::CONSUMABLE:
 		return BehaviorSlot::Consumable;
 	default:
 		return BehaviorSlot::Invalid;
@@ -1343,7 +1344,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 			}
 
 			if (missions != nullptr && castOnEquip) {
-				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, result.skillID);
+				missions->Progress(eMissionTaskType::USE_SKILL, result.skillID);
 			}
 
 			// If item is not a proxy, add its buff to the added buffs.

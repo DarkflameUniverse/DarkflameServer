@@ -16,6 +16,8 @@
 #include "ChatPackets.h"
 #include "Inventory.h"
 #include "InventoryComponent.h"
+#include "eMissionTaskType.h"
+#include "eMissionState.h"
 
 Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
@@ -34,7 +36,7 @@ Character::Character(uint32_t id, User* parentUser) {
 		m_UnapprovedName = res->getString(2).c_str();
 		m_NameRejected = res->getBoolean(3);
 		m_PropertyCloneID = res->getUInt(4);
-		m_PermissionMap = static_cast<PermissionMap>(res->getUInt64(5));
+		m_PermissionMap = static_cast<ePermissionMap>(res->getUInt64(5));
 	}
 
 	delete res;
@@ -93,7 +95,7 @@ void Character::UpdateFromDatabase() {
 		m_UnapprovedName = res->getString(2).c_str();
 		m_NameRejected = res->getBoolean(3);
 		m_PropertyCloneID = res->getUInt(4);
-		m_PermissionMap = static_cast<PermissionMap>(res->getUInt64(5));
+		m_PermissionMap = static_cast<ePermissionMap>(res->getUInt64(5));
 	}
 
 	delete res;
@@ -423,7 +425,7 @@ void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
 			auto* missionComponent = player->GetComponent<MissionComponent>();
 
 			if (missionComponent != nullptr) {
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PLAYER_FLAG, flagId);
+				missionComponent->Progress(eMissionTaskType::PLAYER_FLAG, flagId);
 			}
 		}
 	}
@@ -535,7 +537,7 @@ void Character::OnZoneLoad() {
 
 	if (missionComponent != nullptr) {
 		// Fix the monument race flag
-		if (missionComponent->GetMissionState(319) >= MissionState::MISSION_STATE_READY_TO_COMPLETE) {
+		if (missionComponent->GetMissionState(319) >= eMissionState::READY_TO_COMPLETE) {
 			SetPlayerFlag(33, true);
 		}
 	}
@@ -550,7 +552,7 @@ void Character::OnZoneLoad() {
 	/**
 	 * Restrict old character to 1 million coins
 	 */
-	if (HasPermission(PermissionMap::Old)) {
+	if (HasPermission(ePermissionMap::Old)) {
 		if (GetCoins() > 1000000) {
 			SetCoins(1000000, eLootSourceType::LOOT_SOURCE_NONE);
 		}
@@ -568,11 +570,11 @@ void Character::OnZoneLoad() {
 	}
 }
 
-PermissionMap Character::GetPermissionMap() const {
+ePermissionMap Character::GetPermissionMap() const {
 	return m_PermissionMap;
 }
 
-bool Character::HasPermission(PermissionMap permission) const {
+bool Character::HasPermission(ePermissionMap permission) const {
 	return (static_cast<uint64_t>(m_PermissionMap) & static_cast<uint64_t>(permission)) != 0;
 }
 

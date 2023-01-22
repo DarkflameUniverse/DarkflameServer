@@ -1,11 +1,11 @@
 #pragma once
 
-#ifndef __ADDFRIENDRESPONSETYPE__H__
-#define __ADDFRIENDRESPONSETYPE__H__
+#ifndef __EADDFRIENDRESPONSETYPE__H__
+#define __EADDFRIENDRESPONSETYPE__H__
 
 #include <cstdint>
 
-enum class AddFriendResponseType : uint8_t {
+enum class eAddFriendResponseType : uint8_t {
 	ACCEPTED = 0,
 	ALREADYFRIEND,
 	INVALIDCHARACTER,
@@ -21,4 +21,4 @@ enum class AddFriendResponseType : uint8_t {
 	FRIENDISFREETRIAL
 };
 
-#endif  //!__ADDFRIENDRESPONSETYPE__H__
+#endif  //!__EADDFRIENDRESPONSETYPE__H__

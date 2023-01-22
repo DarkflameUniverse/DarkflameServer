@@ -31,6 +31,7 @@
 #include "StartSkill.h"
 #include "EchoStartSkill.h"
 #include "EchoSyncSkill.h"
+#include "eMissionTaskType.h"
 
 using namespace std;
 
@@ -281,7 +282,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		MissionComponent* comp = entity->GetComponent<MissionComponent>();
 		if (comp) {
-			comp->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, startSkill.skillID);
+			comp->Progress(eMissionTaskType::USE_SKILL, startSkill.skillID);
 		}
 
 		CDSkillBehaviorTable* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");

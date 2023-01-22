@@ -2,7 +2,7 @@
 #include "CppScripts.h"
 
 class RemoveRentalGear : public CppScripts::Script {
-	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState);
+	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState);
 
 private:
 	int defaultMission = 768;	                            //mission to remove gearSets on completion

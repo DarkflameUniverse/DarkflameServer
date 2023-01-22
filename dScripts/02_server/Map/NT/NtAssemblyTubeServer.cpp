@@ -2,6 +2,8 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
+#include "eMissionState.h"
 
 void NtAssemblyTubeServer::OnStartup(Entity* self) {
 	self->SetProximityRadius(5, "teleport");
@@ -22,7 +24,7 @@ void NtAssemblyTubeServer::OnProximityUpdate(Entity* self, Entity* entering, std
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+		missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 	}
 }
 
