@@ -13,6 +13,7 @@
 #include "MissionComponent.h"
 #include "Loot.h"
 #include "InventoryComponent.h"
+#include "eMissionTaskType.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	Game::logger->Log("SGCannon", "OnStartup");
@@ -554,9 +555,9 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		auto* missionComponent = player->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, self->GetVar<uint32_t>(TotalScoreVariable), self->GetObjectID(), "performact_score");
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, self->GetVar<uint32_t>(MaxStreakVariable), self->GetObjectID(), "performact_streak");
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_CannonLot, 0, "", self->GetVar<uint32_t>(TotalScoreVariable));
+			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, self->GetVar<uint32_t>(TotalScoreVariable), self->GetObjectID(), "performact_score");
+			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, self->GetVar<uint32_t>(MaxStreakVariable), self->GetObjectID(), "performact_streak");
+			missionComponent->Progress(eMissionTaskType::ACTIVITY, m_CannonLot, 0, "", self->GetVar<uint32_t>(TotalScoreVariable));
 		}
 
 		LootGenerator::Instance().GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
@@ -666,7 +667,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 	auto missionComponent = player->GetComponent<MissionComponent>();
 	if (missionComponent == nullptr) return;
 
-	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SMASH, spawnInfo.lot, self->GetObjectID());
+	missionComponent->Progress(eMissionTaskType::SMASH, spawnInfo.lot, self->GetObjectID());
 }
 
 void SGCannon::UpdateStreak(Entity* self) {

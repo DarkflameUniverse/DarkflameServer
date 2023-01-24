@@ -3,8 +3,9 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "eMissionState.h"
 
-void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 
 	// The Dragon statue daily mission
 	if (missionID == m_MainDragonMissionID) {
@@ -14,8 +15,8 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, M
 			return;
 
 		switch (missionState) {
-		case MissionState::MISSION_STATE_AVAILABLE:
-		case MissionState::MISSION_STATE_COMPLETE_AVAILABLE:
+		case eMissionState::AVAILABLE:
+		case eMissionState::COMPLETE_AVAILABLE:
 		{
 			// Reset the sub missions
 			for (const auto& subMissionID : m_SubDragonMissionIDs) {
@@ -33,8 +34,8 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, M
 
 			return;
 		}
-		case MissionState::MISSION_STATE_READY_TO_COMPLETE:
-		case MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE:
+		case eMissionState::READY_TO_COMPLETE:
+		case eMissionState::COMPLETE_READY_TO_COMPLETE:
 		{
 			character->SetPlayerFlag(NJ_WU_SHOW_DAILY_CHEST, true);
 

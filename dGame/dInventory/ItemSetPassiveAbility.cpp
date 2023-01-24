@@ -3,7 +3,7 @@
 #include "DestroyableComponent.h"
 #include "SkillComponent.h"
 #include "ItemSet.h"
-#include "ItemSetPassiveAbilityID.h"
+#include "eItemSetPassiveAbilityID.h"
 
 ItemSetPassiveAbility::ItemSetPassiveAbility(PassiveAbilityTrigger trigger, Entity* parent, ItemSet* itemSet) {
 	m_Trigger = trigger;
@@ -46,31 +46,31 @@ void ItemSetPassiveAbility::Activate(Entity* target) {
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
-	const auto id = static_cast<ItemSetPassiveAbilityID>(m_ItemSet->GetID());
+	const auto id = static_cast<eItemSetPassiveAbilityID>(m_ItemSet->GetID());
 	const auto parentID = m_Parent->GetObjectID();
 	const auto equippedCount = m_ItemSet->GetEquippedCount();
 
 	switch (id) {
 		// Assembly
-	case ItemSetPassiveAbilityID::InventorRank1:
-	case ItemSetPassiveAbilityID::SummonerRank1:
-	case ItemSetPassiveAbilityID::EngineerRank1: {
+	case eItemSetPassiveAbilityID::InventorRank1:
+	case eItemSetPassiveAbilityID::SummonerRank1:
+	case eItemSetPassiveAbilityID::EngineerRank1: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(394, 4401, parentID);
 		break;
 	}
-	case ItemSetPassiveAbilityID::InventorRank2:
-	case ItemSetPassiveAbilityID::SummonerRank2:
-	case ItemSetPassiveAbilityID::EngineerRank2: {
+	case eItemSetPassiveAbilityID::InventorRank2:
+	case eItemSetPassiveAbilityID::SummonerRank2:
+	case eItemSetPassiveAbilityID::EngineerRank2: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(581, 9433, parentID);
 		break;
 	}
-	case ItemSetPassiveAbilityID::InventorRank3:
-	case ItemSetPassiveAbilityID::SummonerRank3:
-	case ItemSetPassiveAbilityID::EngineerRank3: {
+	case eItemSetPassiveAbilityID::InventorRank3:
+	case eItemSetPassiveAbilityID::SummonerRank3:
+	case eItemSetPassiveAbilityID::EngineerRank3: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(582, 9435, parentID);
@@ -78,57 +78,57 @@ void ItemSetPassiveAbility::Activate(Entity* target) {
 	}
 
 											   // Sentinel
-	case ItemSetPassiveAbilityID::KnightRank1: {
+	case eItemSetPassiveAbilityID::KnightRank1: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(559, 8884, parentID);
 		break;
 	}
-	case ItemSetPassiveAbilityID::KnightRank2: {
+	case eItemSetPassiveAbilityID::KnightRank2: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(560, 8885, parentID);
 		break;
 	}
-	case ItemSetPassiveAbilityID::KnightRank3: {
+	case eItemSetPassiveAbilityID::KnightRank3: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(561, 8890, parentID);
 		break;
 	}
 
-	case ItemSetPassiveAbilityID::SpaceRangerRank1: {
+	case eItemSetPassiveAbilityID::SpaceRangerRank1: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(1101, 24612, parentID);
 		break;
 	}
-	case ItemSetPassiveAbilityID::SpaceRangerRank2: {
+	case eItemSetPassiveAbilityID::SpaceRangerRank2: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(1102, 24617, parentID);
 		break;
 	}
-	case ItemSetPassiveAbilityID::SpaceRangerRank3: {
+	case eItemSetPassiveAbilityID::SpaceRangerRank3: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(1103, 24622, parentID);
 		break;
 	}
 
-	case ItemSetPassiveAbilityID::SamuraiRank1: {
+	case eItemSetPassiveAbilityID::SamuraiRank1: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(562, 8899, parentID);
 		break;
 	}
-	case ItemSetPassiveAbilityID::SamuraiRank2: {
+	case eItemSetPassiveAbilityID::SamuraiRank2: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(563, 8904, parentID);
 		break;
 	}
-	case ItemSetPassiveAbilityID::SamuraiRank3: {
+	case eItemSetPassiveAbilityID::SamuraiRank3: {
 		if (equippedCount < 4) return;
 		m_Cooldown = 11.0f;
 		skillComponent->CalculateBehavior(564, 8909, parentID);
@@ -143,47 +143,47 @@ void ItemSetPassiveAbility::Activate(Entity* target) {
 std::vector<ItemSetPassiveAbility> ItemSetPassiveAbility::FindAbilities(uint32_t itemSetID, Entity* parent, ItemSet* itemSet) {
 	std::vector<ItemSetPassiveAbility> abilities;
 
-	switch (static_cast<ItemSetPassiveAbilityID>(itemSetID)) {
+	switch (static_cast<eItemSetPassiveAbilityID>(itemSetID)) {
 		// Assembly
-	case ItemSetPassiveAbilityID::SummonerRank1:
-	case ItemSetPassiveAbilityID::SummonerRank2:
-	case ItemSetPassiveAbilityID::SummonerRank3:
-	case ItemSetPassiveAbilityID::InventorRank1:
-	case ItemSetPassiveAbilityID::InventorRank2:
-	case ItemSetPassiveAbilityID::InventorRank3:
-	case ItemSetPassiveAbilityID::EngineerRank1:
-	case ItemSetPassiveAbilityID::EngineerRank2:
-	case ItemSetPassiveAbilityID::EngineerRank3: {
+	case eItemSetPassiveAbilityID::SummonerRank1:
+	case eItemSetPassiveAbilityID::SummonerRank2:
+	case eItemSetPassiveAbilityID::SummonerRank3:
+	case eItemSetPassiveAbilityID::InventorRank1:
+	case eItemSetPassiveAbilityID::InventorRank2:
+	case eItemSetPassiveAbilityID::InventorRank3:
+	case eItemSetPassiveAbilityID::EngineerRank1:
+	case eItemSetPassiveAbilityID::EngineerRank2:
+	case eItemSetPassiveAbilityID::EngineerRank3: {
 		abilities.emplace_back(PassiveAbilityTrigger::AssemblyImagination, parent, itemSet);
 
 		break;
 	}
 											   // Sentinel
-	case ItemSetPassiveAbilityID::KnightRank1:
-	case ItemSetPassiveAbilityID::KnightRank2:
-	case ItemSetPassiveAbilityID::KnightRank3:
-	case ItemSetPassiveAbilityID::SpaceRangerRank1:
-	case ItemSetPassiveAbilityID::SpaceRangerRank2:
-	case ItemSetPassiveAbilityID::SpaceRangerRank3:
-	case ItemSetPassiveAbilityID::SamuraiRank1:
-	case ItemSetPassiveAbilityID::SamuraiRank2:
-	case ItemSetPassiveAbilityID::SamuraiRank3: {
+	case eItemSetPassiveAbilityID::KnightRank1:
+	case eItemSetPassiveAbilityID::KnightRank2:
+	case eItemSetPassiveAbilityID::KnightRank3:
+	case eItemSetPassiveAbilityID::SpaceRangerRank1:
+	case eItemSetPassiveAbilityID::SpaceRangerRank2:
+	case eItemSetPassiveAbilityID::SpaceRangerRank3:
+	case eItemSetPassiveAbilityID::SamuraiRank1:
+	case eItemSetPassiveAbilityID::SamuraiRank2:
+	case eItemSetPassiveAbilityID::SamuraiRank3: {
 		abilities.emplace_back(PassiveAbilityTrigger::SentinelArmor, parent, itemSet);
 		abilities.emplace_back(PassiveAbilityTrigger::EnemySmashed, parent, itemSet);
 
 		break;
 	}
 											  // Paradox
-	case ItemSetPassiveAbilityID::BatLord:
-	case ItemSetPassiveAbilityID::SpaceMarauderRank1:
-	case ItemSetPassiveAbilityID::SpaceMarauderRank2:
-	case ItemSetPassiveAbilityID::SpaceMarauderRank3:
-	case ItemSetPassiveAbilityID::SorcererRank1:
-	case ItemSetPassiveAbilityID::SorcererRank2:
-	case ItemSetPassiveAbilityID::SorcererRank3:
-	case ItemSetPassiveAbilityID::ShinobiRank1:
-	case ItemSetPassiveAbilityID::ShinobiRank2:
-	case ItemSetPassiveAbilityID::ShinobiRank3: {
+	case eItemSetPassiveAbilityID::BatLord:
+	case eItemSetPassiveAbilityID::SpaceMarauderRank1:
+	case eItemSetPassiveAbilityID::SpaceMarauderRank2:
+	case eItemSetPassiveAbilityID::SpaceMarauderRank3:
+	case eItemSetPassiveAbilityID::SorcererRank1:
+	case eItemSetPassiveAbilityID::SorcererRank2:
+	case eItemSetPassiveAbilityID::SorcererRank3:
+	case eItemSetPassiveAbilityID::ShinobiRank1:
+	case eItemSetPassiveAbilityID::ShinobiRank2:
+	case eItemSetPassiveAbilityID::ShinobiRank3: {
 		abilities.emplace_back(PassiveAbilityTrigger::EnemySmashed, parent, itemSet);
 
 		break;
@@ -205,110 +205,110 @@ void ItemSetPassiveAbility::OnEnemySmshed(Entity* target) {
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
-	const auto id = static_cast<ItemSetPassiveAbilityID>(m_ItemSet->GetID());
+	const auto id = static_cast<eItemSetPassiveAbilityID>(m_ItemSet->GetID());
 	const auto parentID = m_Parent->GetObjectID();
 	const auto equippedCount = m_ItemSet->GetEquippedCount();
 
 	switch (id) {
 		// Bat Lord
-	case ItemSetPassiveAbilityID::BatLord: {
+	case eItemSetPassiveAbilityID::BatLord: {
 		if (equippedCount < 5) return;
 		destroyableComponent->Heal(3);
 		break;
 	}
 										 // Sentinel
-	case ItemSetPassiveAbilityID::KnightRank1: {
+	case eItemSetPassiveAbilityID::KnightRank1: {
 		if (equippedCount < 5) return;
 		destroyableComponent->Repair(1);
 		break;
 	}
-	case ItemSetPassiveAbilityID::KnightRank2: {
+	case eItemSetPassiveAbilityID::KnightRank2: {
 		if (equippedCount < 5) return;
 		destroyableComponent->Repair(1);
 		break;
 	}
-	case ItemSetPassiveAbilityID::KnightRank3: {
-		if (equippedCount < 5) return;
-		destroyableComponent->Repair(1);
-		break;
-	}
-
-	case ItemSetPassiveAbilityID::SpaceRangerRank1: {
-		if (equippedCount < 5) return;
-		destroyableComponent->Repair(1);
-		break;
-	}
-	case ItemSetPassiveAbilityID::SpaceRangerRank2: {
-		if (equippedCount < 5) return;
-		destroyableComponent->Repair(1);
-		break;
-	}
-	case ItemSetPassiveAbilityID::SpaceRangerRank3: {
+	case eItemSetPassiveAbilityID::KnightRank3: {
 		if (equippedCount < 5) return;
 		destroyableComponent->Repair(1);
 		break;
 	}
 
-	case ItemSetPassiveAbilityID::SamuraiRank1: {
+	case eItemSetPassiveAbilityID::SpaceRangerRank1: {
 		if (equippedCount < 5) return;
 		destroyableComponent->Repair(1);
 		break;
 	}
-	case ItemSetPassiveAbilityID::SamuraiRank2: {
+	case eItemSetPassiveAbilityID::SpaceRangerRank2: {
 		if (equippedCount < 5) return;
 		destroyableComponent->Repair(1);
 		break;
 	}
-	case ItemSetPassiveAbilityID::SamuraiRank3: {
+	case eItemSetPassiveAbilityID::SpaceRangerRank3: {
+		if (equippedCount < 5) return;
+		destroyableComponent->Repair(1);
+		break;
+	}
+
+	case eItemSetPassiveAbilityID::SamuraiRank1: {
+		if (equippedCount < 5) return;
+		destroyableComponent->Repair(1);
+		break;
+	}
+	case eItemSetPassiveAbilityID::SamuraiRank2: {
+		if (equippedCount < 5) return;
+		destroyableComponent->Repair(1);
+		break;
+	}
+	case eItemSetPassiveAbilityID::SamuraiRank3: {
 		if (equippedCount < 5) return;
 		destroyableComponent->Repair(1);
 		break;
 	}
 
 											  // Paradox
-	case ItemSetPassiveAbilityID::SpaceMarauderRank1: {
+	case eItemSetPassiveAbilityID::SpaceMarauderRank1: {
 		if (equippedCount < 4) return;
 		destroyableComponent->Imagine(1);
 		break;
 	}
-	case ItemSetPassiveAbilityID::SpaceMarauderRank2: {
+	case eItemSetPassiveAbilityID::SpaceMarauderRank2: {
 		if (equippedCount < 4) return;
 		destroyableComponent->Imagine(2);
 		break;
 	}
-	case ItemSetPassiveAbilityID::SpaceMarauderRank3: {
+	case eItemSetPassiveAbilityID::SpaceMarauderRank3: {
 		if (equippedCount < 4) return;
 		destroyableComponent->Imagine(3);
 		break;
 	}
 
-	case ItemSetPassiveAbilityID::ShinobiRank1: {
+	case eItemSetPassiveAbilityID::ShinobiRank1: {
 		if (equippedCount < 4) return;
 		destroyableComponent->Imagine(1);
 		break;
 	}
-	case ItemSetPassiveAbilityID::ShinobiRank2: {
+	case eItemSetPassiveAbilityID::ShinobiRank2: {
 		if (equippedCount < 4) return;
 		destroyableComponent->Imagine(2);
 		break;
 	}
-	case ItemSetPassiveAbilityID::ShinobiRank3: {
-		if (equippedCount < 4 || !target) return;
-		skillComponent->CalculateBehavior(695, 11399, target->GetObjectID());
+	case eItemSetPassiveAbilityID::ShinobiRank3: {
+		if (equippedCount < 4) return;
+		destroyableComponent->Imagine(3);
 		break;
 	}
 
-	case ItemSetPassiveAbilityID::SorcererRank1: {
+	case eItemSetPassiveAbilityID::SorcererRank1: {
 		if (equippedCount < 4) return;
 		destroyableComponent->Imagine(1);
 		break;
 	}
-	case ItemSetPassiveAbilityID::SorcererRank2: {
+	case eItemSetPassiveAbilityID::SorcererRank2: {
 		if (equippedCount < 4) return;
 		destroyableComponent->Imagine(2);
 		break;
 	}
-	case ItemSetPassiveAbilityID::SorcererRank3: {
+	case eItemSetPassiveAbilityID::SorcererRank3: {
 		if (equippedCount < 4) return;
 		destroyableComponent->Imagine(3);
 		break;

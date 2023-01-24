@@ -1,9 +1,10 @@
 #include "FvFreeGfNinjas.h"
 #include "Character.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
 
-void FvFreeGfNinjas::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
-	if (missionID == 705 && missionState == MissionState::MISSION_STATE_AVAILABLE) {
+void FvFreeGfNinjas::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
+	if (missionID == 705 && missionState == eMissionState::AVAILABLE) {
 		auto* missionComponent = target->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr)
 			return;
@@ -29,7 +30,7 @@ void FvFreeGfNinjas::OnUse(Entity* self, Entity* user) {
 	if (missionComponent == nullptr)
 		return;
 
-	if (missionComponent->GetMissionState(705) == MissionState::MISSION_STATE_ACTIVE) {
+	if (missionComponent->GetMissionState(705) == eMissionState::ACTIVE) {
 		auto* character = user->GetCharacter();
 		if (character != nullptr)
 			character->SetPlayerFlag(68, true);

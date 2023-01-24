@@ -3,6 +3,8 @@
 #include "ScriptedActivityComponent.h"
 #include "GameMessages.h"
 #include "LeaderboardManager.h"
+#include "eMissionTaskType.h"
+#include "eMissionState.h"
 #include "MissionComponent.h"
 #include <ctime>
 
@@ -89,7 +91,7 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 		auto* missionComponent = sender->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			missionComponent->ForceProgressTaskType(1884, 1, 1, false);
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, -finish, self->GetObjectID(),
+			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, -finish, self->GetObjectID(),
 				"performact_time");
 		}
 

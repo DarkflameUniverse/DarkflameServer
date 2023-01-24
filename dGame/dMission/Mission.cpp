@@ -12,7 +12,7 @@
 #include "GameMessages.h"
 #include "Mail.h"
 #include "MissionComponent.h"
-#include "RacingTaskParam.h"
+#include "eRacingTaskParam.h"
 #include "dLogger.h"
 #include "dServer.h"
 #include "dZoneManager.h"
@@ -20,6 +20,10 @@
 #include "User.h"
 #include "Database.h"
 #include "WorldConfig.h"
+#include "eMissionState.h"
+#include "eMissionTaskType.h"
+#include "eMissionLockState.h"
+
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	m_MissionComponent = missionComponent;
@@ -32,7 +36,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
 	m_Reward = 0;
 
-	m_State = MissionState::MISSION_STATE_UNKNOWN;
+	m_State = eMissionState::UNKNOWN;
 
 	auto* missionsTable = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
 
@@ -60,7 +64,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 void Mission::LoadFromXml(tinyxml2::XMLElement* element) {
 	// Start custom XML
 	if (element->Attribute("state") != nullptr) {
-		m_State = static_cast<MissionState>(std::stoul(element->Attribute("state")));
+		m_State = static_cast<eMissionState>(std::stoul(element->Attribute("state")));
 	}
 	// End custom XML
 
@@ -85,8 +89,8 @@ void Mission::LoadFromXml(tinyxml2::XMLElement* element) {
 
 		const auto type = m_Tasks[index]->GetType();
 
-		if (type == MissionTaskType::MISSION_TASK_TYPE_ENVIRONMENT ||
-			type == MissionTaskType::MISSION_TASK_TYPE_VISIT_PROPERTY) {
+		if (type == eMissionTaskType::COLLECTION ||
+			type == eMissionTaskType::VISIT_PROPERTY) {
 			std::vector<uint32_t> uniques;
 
 			const auto value = std::stoul(task->Attribute("v"));
@@ -100,7 +104,7 @@ void Mission::LoadFromXml(tinyxml2::XMLElement* element) {
 
 				uniques.push_back(unique);
 
-				if (m_MissionComponent != nullptr && type == MissionTaskType::MISSION_TASK_TYPE_ENVIRONMENT) {
+				if (m_MissionComponent != nullptr && type == eMissionTaskType::COLLECTION) {
 					m_MissionComponent->AddCollectible(unique);
 				}
 
@@ -144,8 +148,8 @@ void Mission::UpdateXml(tinyxml2::XMLElement* element) {
 	}
 
 	for (auto* task : m_Tasks) {
-		if (task->GetType() == MissionTaskType::MISSION_TASK_TYPE_ENVIRONMENT ||
-			task->GetType() == MissionTaskType::MISSION_TASK_TYPE_VISIT_PROPERTY) {
+		if (task->GetType() == eMissionTaskType::COLLECTION ||
+			task->GetType() == eMissionTaskType::VISIT_PROPERTY) {
 
 			auto* child = element->GetDocument()->NewElement("sv");
 
@@ -229,7 +233,7 @@ std::vector<MissionTask*> Mission::GetTasks() const {
 	return m_Tasks;
 }
 
-MissionState Mission::GetMissionState() const {
+eMissionState Mission::GetMissionState() const {
 	return m_State;
 }
 
@@ -246,47 +250,47 @@ bool Mission::IsRepeatable() const {
 }
 
 bool Mission::IsComplete() const {
-	return m_State == MissionState::MISSION_STATE_COMPLETE;
+	return m_State == eMissionState::COMPLETE;
 }
 
 bool Mission::IsActive() const {
-	return m_State == MissionState::MISSION_STATE_ACTIVE || m_State == MissionState::MISSION_STATE_COMPLETE_AVAILABLE;
+	return m_State == eMissionState::ACTIVE || m_State == eMissionState::COMPLETE_AVAILABLE;
 }
 
 void Mission::MakeActive() {
-	SetMissionState(m_Completions == 0 ? MissionState::MISSION_STATE_ACTIVE : MissionState::MISSION_STATE_COMPLETE_ACTIVE);
+	SetMissionState(m_Completions == 0 ? eMissionState::ACTIVE : eMissionState::COMPLETE_ACTIVE);
 }
 
 bool Mission::IsReadyToComplete() const {
-	return m_State == MissionState::MISSION_STATE_READY_TO_COMPLETE || m_State == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE;
+	return m_State == eMissionState::READY_TO_COMPLETE || m_State == eMissionState::COMPLETE_READY_TO_COMPLETE;
 }
 
 void Mission::MakeReadyToComplete() {
-	SetMissionState(m_Completions == 0 ? MissionState::MISSION_STATE_READY_TO_COMPLETE : MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE);
+	SetMissionState(m_Completions == 0 ? eMissionState::READY_TO_COMPLETE : eMissionState::COMPLETE_READY_TO_COMPLETE);
 }
 
 bool Mission::IsAvalible() const {
-	return m_State == MissionState::MISSION_STATE_AVAILABLE || m_State == MissionState::MISSION_STATE_COMPLETE_AVAILABLE;
+	return m_State == eMissionState::AVAILABLE || m_State == eMissionState::COMPLETE_AVAILABLE;
 }
 
 bool Mission::IsFetchMission() const {
-	return m_Tasks.size() == 1 && m_Tasks[0]->GetType() == MissionTaskType::MISSION_TASK_TYPE_MISSION_INTERACTION;
+	return m_Tasks.size() == 1 && m_Tasks[0]->GetType() == eMissionTaskType::TALK_TO_NPC;
 }
 
 void Mission::MakeAvalible() {
-	SetMissionState(m_Completions == 0 ? MissionState::MISSION_STATE_AVAILABLE : MissionState::MISSION_STATE_COMPLETE_AVAILABLE);
+	SetMissionState(m_Completions == 0 ? eMissionState::AVAILABLE : eMissionState::COMPLETE_AVAILABLE);
 }
 
 void Mission::Accept() {
-	SetMissionTypeState(MissionLockState::MISSION_LOCK_NEW, info->defined_type, info->defined_subtype);
+	SetMissionTypeState(eMissionLockState::NEW, info->defined_type, info->defined_subtype);
 
-	SetMissionState(m_Completions > 0 ? MissionState::MISSION_STATE_COMPLETE_ACTIVE : MissionState::MISSION_STATE_ACTIVE);
+	SetMissionState(m_Completions > 0 ? eMissionState::COMPLETE_ACTIVE : eMissionState::ACTIVE);
 
 	Catchup();
 }
 
 void Mission::Complete(const bool yieldRewards) {
-	if (m_State != MissionState::MISSION_STATE_ACTIVE && m_State != MissionState::MISSION_STATE_COMPLETE_ACTIVE) {
+	if (m_State != eMissionState::ACTIVE && m_State != eMissionState::COMPLETE_ACTIVE) {
 		// If we are accepting a mission here there is no point to giving it a unique ID since we just complete it immediately.
 		Accept();
 	}
@@ -295,13 +299,13 @@ void Mission::Complete(const bool yieldRewards) {
 		task->Complete();
 	}
 
-	SetMissionState(MissionState::MISSION_STATE_REWARDING, true);
+	SetMissionState(eMissionState::REWARDING, true);
 
 	if (yieldRewards) {
 		YieldRewards();
 	}
 
-	SetMissionState(MissionState::MISSION_STATE_COMPLETE);
+	SetMissionState(eMissionState::COMPLETE);
 
 	m_Completions++;
 
@@ -320,11 +324,11 @@ void Mission::Complete(const bool yieldRewards) {
 
 	auto* missionComponent = entity->GetComponent<MissionComponent>();
 
-	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MISSION_COMPLETE, info->id);
+	missionComponent->Progress(eMissionTaskType::META, info->id);
 
-	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, info->id, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COMPLETE_ANY_RACING_TASK);
+	missionComponent->Progress(eMissionTaskType::RACING, info->id, (LWOOBJID)eRacingTaskParam::COMPLETE_ANY_RACING_TASK);
 
-	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, info->id, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COMPLETE_TRACK_TASKS);
+	missionComponent->Progress(eMissionTaskType::RACING, info->id, (LWOOBJID)eRacingTaskParam::COMPLETE_TRACK_TASKS);
 
 	auto* missionEmailTable = CDClientManager::Instance()->GetTable<CDMissionEmailTable>("MissionEmail");
 
@@ -371,7 +375,7 @@ void Mission::Catchup() {
 	for (auto* task : m_Tasks) {
 		const auto type = task->GetType();
 
-		if (type == MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION) {
+		if (type == eMissionTaskType::GATHER) {
 			for (auto target : task->GetAllTargets()) {
 				const auto count = inventory->GetLotCountNonTransfer(target);
 
@@ -381,7 +385,7 @@ void Mission::Catchup() {
 			}
 		}
 
-		if (type == MissionTaskType::MISSION_TASK_TYPE_PLAYER_FLAG) {
+		if (type == eMissionTaskType::PLAYER_FLAG) {
 			for (auto target : task->GetAllTargets()) {
 				const auto flag = GetUser()->GetLastUsedChar()->GetPlayerFlag(target);
 
@@ -416,7 +420,7 @@ void Mission::YieldRewards() {
 
 	// Remove mission items
 	for (auto* task : m_Tasks) {
-		if (task->GetType() != MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION) {
+		if (task->GetType() != eMissionTaskType::GATHER) {
 			continue;
 		}
 
@@ -429,7 +433,7 @@ void Mission::YieldRewards() {
 				inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::ITEMS);
 				inventoryComponent->RemoveItem(target, task->GetClientInfo().targetValue, eInventoryType::QUEST);
 
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, target, LWOOBJID_EMPTY, "", -task->GetClientInfo().targetValue);
+				missionComponent->Progress(eMissionTaskType::GATHER, target, LWOOBJID_EMPTY, "", -task->GetClientInfo().targetValue);
 			}
 		}
 	}
@@ -525,7 +529,7 @@ void Mission::YieldRewards() {
 	}
 
 	if (info->reward_reputation > 0) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
+		missionComponent->Progress(eMissionTaskType::EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
 		auto character = entity->GetComponent<CharacterComponent>();
 		if (character) {
 			character->SetReputation(character->GetReputation() + info->reward_reputation);
@@ -560,7 +564,7 @@ void Mission::YieldRewards() {
 	}
 }
 
-void Mission::Progress(MissionTaskType type, int32_t value, LWOOBJID associate, const std::string& targets, int32_t count) {
+void Mission::Progress(eMissionTaskType type, int32_t value, LWOOBJID associate, const std::string& targets, int32_t count) {
 	const auto isRemoval = count < 0;
 
 	if (isRemoval && (IsComplete() || IsAchievement())) {
@@ -584,7 +588,7 @@ void Mission::Progress(MissionTaskType type, int32_t value, LWOOBJID associate, 
 	}
 }
 
-void Mission::SetMissionState(const MissionState state, const bool sendingRewards) {
+void Mission::SetMissionState(const eMissionState state, const bool sendingRewards) {
 	this->m_State = state;
 
 	auto* entity = GetAssociate();
@@ -596,7 +600,7 @@ void Mission::SetMissionState(const MissionState state, const bool sendingReward
 	GameMessages::SendNotifyMission(entity, entity->GetParentUser()->GetSystemAddress(), info->id, static_cast<int>(state), sendingRewards);
 }
 
-void Mission::SetMissionTypeState(MissionLockState state, const std::string& type, const std::string& subType) {
+void Mission::SetMissionTypeState(eMissionLockState state, const std::string& type, const std::string& subType) {
 	// TODO
 }
 

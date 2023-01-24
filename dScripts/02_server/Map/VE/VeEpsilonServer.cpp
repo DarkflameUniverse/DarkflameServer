@@ -2,17 +2,17 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
-#include "MissionState.h"
+#include "eMissionState.h"
 #include "Entity.h"
 
-void VeEpsilonServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void VeEpsilonServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	auto* character = target->GetCharacter();
 	if (character == nullptr)
 		return;
 
 	// Resets the player flags that track which consoles they've used
 	if ((missionID == m_ConsoleMissionID || missionID == m_ConsoleRepeatMissionID)
-		&& (missionState == MissionState::MISSION_STATE_AVAILABLE || missionState == MissionState::MISSION_STATE_COMPLETE_AVAILABLE)) {
+		&& (missionState == eMissionState::AVAILABLE || missionState == eMissionState::COMPLETE_AVAILABLE)) {
 
 		for (auto i = 0; i < 10; i++) {
 			character->SetPlayerFlag(m_ConsoleBaseFlag + i, false);

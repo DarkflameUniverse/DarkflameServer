@@ -72,6 +72,7 @@
 #include "AMFFormat.h"
 #include "MovingPlatformComponent.h"
 #include "dMessageIdentifiers.h"
+#include "eMissionState.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -685,7 +686,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		mission->SetMissionState(MissionState::MISSION_STATE_ACTIVE);
+		mission->SetMissionState(eMissionState::ACTIVE);
 
 		return;
 	}
