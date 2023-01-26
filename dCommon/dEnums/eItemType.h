@@ -7,7 +7,7 @@
 
 enum class eItemType : int32_t {
 	UNKNOWN = -1,
-	BRICK,
+	BRICK = 1,
 	HAT,
 	HAIR,
 	NECK,
