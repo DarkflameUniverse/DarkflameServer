@@ -193,7 +193,7 @@ bool UserManager::IsNamePreapproved(const std::string& requestedName) {
 void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
-
+	u->SetHasChosenCharacter(false);
 	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE account_id=? ORDER BY last_login DESC LIMIT 4;");
 	stmt->setUInt(1, u->GetAccountID());
 

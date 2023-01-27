@@ -50,6 +50,9 @@ public:
 	time_t GetMuteExpire() const;
 	void SetMuteExpire(time_t value);
 
+	bool GetHasChosenCharacter() { return m_HasChosenCharacter; };
+	void SetHasChosenCharacter(bool value) { m_HasChosenCharacter = value; };
+
 	// Added for GameMessageHandler
 	std::unordered_map<uint32_t, BehaviorParams> uiBehaviorHandles;
 
@@ -69,6 +72,13 @@ private:
 	std::unordered_map<std::string, bool> m_IsBestFriendMap;
 
 	bool m_LastChatMessageApproved = false;
+
+	/**
+	 * Used to determine if a player has chosen a character or not.
+	 * Prevents players from selecting a second character twice during character select
+	 * which would send them to the wrong world.
+	 */
+	bool m_HasChosenCharacter = false;
 	int m_AmountOfTimesOutOfSync = 0;
 	const int m_MaxDesyncAllowed = 12;
 	time_t m_MuteExpire;

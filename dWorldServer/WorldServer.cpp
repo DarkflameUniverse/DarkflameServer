@@ -973,6 +973,10 @@ void HandlePacket(Packet* packet) {
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
 
 		if (user) {
+			if (user->GetHasChosenCharacter()) {
+				Game::logger->Log("WorldServer", "User %s has already chosen a character, ignoring request.", user->GetUsername().c_str());
+				return;
+			}
 			auto lastCharacter = user->GetLoggedInChar();
 			// This means we swapped characters and we need to remove the previous player from the container.
 			if (static_cast<uint32_t>(lastCharacter) != playerID) {
@@ -981,9 +985,9 @@ void HandlePacket(Packet* packet) {
 				bitStream.Write(lastCharacter);
 				Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 			}
+			user->SetHasChosenCharacter(true);
+			UserManager::Instance()->LoginCharacter(packet->systemAddress, static_cast<uint32_t>(playerID));
 		}
-
-		UserManager::Instance()->LoginCharacter(packet->systemAddress, static_cast<uint32_t>(playerID));
 		break;
 	}
 
