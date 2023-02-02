@@ -24,6 +24,7 @@
 #include "Character.h"
 #include "dZoneManager.h"
 #include "WorldConfig.h"
+#include "eMissionTaskType.h"
 
 void Mail::SendMail(const Entity* recipient, const std::string& subject, const std::string& body, const LOT attachment,
 	const uint16_t attachmentCount) {
@@ -165,7 +166,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 
 	if (!character) return;
 
-	if (character->HasPermission(PermissionMap::RestrictedMailAccess)) {
+	if (character->HasPermission(ePermissionMap::RestrictedMailAccess)) {
 		// Send a message to the player
 		ChatPackets::SendSystemMessage(
 			sysAddr,
@@ -268,7 +269,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 		auto* missionCompoent = entity->GetComponent<MissionComponent>();
 
 		if (missionCompoent != nullptr) {
-			missionCompoent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, itemLOT, LWOOBJID_EMPTY, "", -attachmentCount);
+			missionCompoent->Progress(eMissionTaskType::GATHER, itemLOT, LWOOBJID_EMPTY, "", -attachmentCount);
 		}
 	}
 

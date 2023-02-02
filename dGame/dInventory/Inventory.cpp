@@ -231,41 +231,42 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 	const auto itemType = static_cast<eItemType>(itemComponent.itemType);
 
 	switch (itemType) {
-	case eItemType::ITEM_TYPE_BRICK:
+	case eItemType::BRICK:
 		return BRICKS;
 
-	case eItemType::ITEM_TYPE_BEHAVIOR:
+	case eItemType::BEHAVIOR:
 		return BEHAVIORS;
 
-	case eItemType::ITEM_TYPE_PROPERTY:
+	case eItemType::PROPERTY:
 		return PROPERTY_DEEDS;
 
-	case eItemType::ITEM_TYPE_MODEL:
-	case eItemType::ITEM_TYPE_VEHICLE:
-	case eItemType::ITEM_TYPE_LOOT_MODEL:
-	case eItemType::ITEM_TYPE_MOUNT:
+	case eItemType::MODEL:
+	case eItemType::VEHICLE:
+	case eItemType::LOOT_MODEL:
+	case eItemType::LUP_MODEL:
+	case eItemType::MOUNT:
 		return MODELS;
 
-	case eItemType::ITEM_TYPE_HAT:
-	case eItemType::ITEM_TYPE_HAIR:
-	case eItemType::ITEM_TYPE_NECK:
-	case eItemType::ITEM_TYPE_LEFT_HAND:
-	case eItemType::ITEM_TYPE_RIGHT_HAND:
-	case eItemType::ITEM_TYPE_LEGS:
-	case eItemType::ITEM_TYPE_LEFT_TRINKET:
-	case eItemType::ITEM_TYPE_RIGHT_TRINKET:
-	case eItemType::ITEM_TYPE_COLLECTIBLE:
-	case eItemType::ITEM_TYPE_CONSUMABLE:
-	case eItemType::ITEM_TYPE_CHEST:
-	case eItemType::ITEM_TYPE_EGG:
-	case eItemType::ITEM_TYPE_PET_FOOD:
-	case eItemType::ITEM_TYPE_PET_INVENTORY_ITEM:
-	case eItemType::ITEM_TYPE_PACKAGE:
-	case eItemType::ITEM_TYPE_CURRENCY:
+	case eItemType::HAT:
+	case eItemType::HAIR:
+	case eItemType::NECK:
+	case eItemType::LEFT_HAND:
+	case eItemType::RIGHT_HAND:
+	case eItemType::LEGS:
+	case eItemType::LEFT_TRINKET:
+	case eItemType::RIGHT_TRINKET:
+	case eItemType::COLLECTIBLE:
+	case eItemType::CONSUMABLE:
+	case eItemType::CHEST:
+	case eItemType::EGG:
+	case eItemType::PET_FOOD:
+	case eItemType::PET_INVENTORY_ITEM:
+	case eItemType::PACKAGE:
+
 		return ITEMS;
 
-	case eItemType::ITEM_TYPE_QUEST_OBJECT:
-	case eItemType::ITEM_TYPE_UNKNOWN:
+	case eItemType::QUEST_OBJECT:
+	case eItemType::UNKNOWN:
 	default:
 		return QUEST;
 	}

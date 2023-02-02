@@ -257,7 +257,7 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return ValueType; }
+	AMFValueType GetValueType() override { return ValueType; }
 
 public:
 	static const AMFValueType ValueType = AMFArray;
@@ -362,7 +362,7 @@ private:
 	/*!
 	 \return The AMF value type
 	 */
-	AMFValueType GetValueType() { return ValueType; }
+	AMFValueType GetValueType() override { return ValueType; }
 	~AMFObjectValue() override;
 
 public:

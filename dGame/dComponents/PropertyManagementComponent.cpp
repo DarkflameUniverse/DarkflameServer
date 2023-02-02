@@ -18,6 +18,7 @@
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
 #include "InventoryComponent.h"
+#include "eMissionTaskType.h"
 
 #include <vector>
 #include "CppScripts.h"
@@ -404,7 +405,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		});
 	// Progress place model missions
 	auto missionComponent = entity->GetComponent<MissionComponent>();
-	if (missionComponent != nullptr) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PLACE_MODEL, 0);
+	if (missionComponent != nullptr) missionComponent->Progress(eMissionTaskType::PLACE_MODEL, 0);
 }
 
 void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int deleteReason) {

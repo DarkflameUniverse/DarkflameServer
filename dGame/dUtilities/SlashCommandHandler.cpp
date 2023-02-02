@@ -72,6 +72,7 @@
 #include "AMFFormat.h"
 #include "MovingPlatformComponent.h"
 #include "dMessageIdentifiers.h"
+#include "eMissionState.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -685,7 +686,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		mission->SetMissionState(MissionState::MISSION_STATE_ACTIVE);
+		mission->SetMissionState(eMissionState::ACTIVE);
 
 		return;
 	}
@@ -1198,7 +1199,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
 
-	if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+	if (chatCommand == "lookup" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
 		auto query = CDClientDatabase::CreatePreppedStmt(
 			"SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE ?1 OR `name` LIKE ?1 OR `description` LIKE ?1 LIMIT 50");
 		// Concatenate all of the arguments into a single query so a multi word query can be used properly.
@@ -1312,7 +1313,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 	}
 
-	if ((chatCommand == "giveuscore") && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+	if ((chatCommand == "giveuscore") && args.size() >= 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		int32_t uscore;
 
 		if (!GeneralUtils::TryParse(args[0], uscore)) {
@@ -1323,7 +1324,16 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		CharacterComponent* character = entity->GetComponent<CharacterComponent>();
 		if (character) character->SetUScore(character->GetUScore() + uscore);
 		// LOOT_SOURCE_MODERATION should work but it doesn't.  Relog to see uscore changes
-		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_MODERATION);
+
+		eLootSourceType lootType = eLootSourceType::LOOT_SOURCE_MODERATION;
+
+		int32_t type;
+		if (args.size() >= 2 && GeneralUtils::TryParse(args[1], type))
+		{
+			lootType = (eLootSourceType) type;
+		}
+
+		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, lootType);
 	}
 
 	if ((chatCommand == "setlevel") && args.size() >= 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {

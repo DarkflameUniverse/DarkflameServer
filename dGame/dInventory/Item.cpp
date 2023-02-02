@@ -76,7 +76,7 @@ Item::Item(
 
 	const auto type = static_cast<eItemType>(info->itemType);
 
-	if (type == eItemType::ITEM_TYPE_MOUNT) {
+	if (type == eItemType::MOUNT) {
 		id = GeneralUtils::SetBit(id, OBJECT_BIT_CLIENT);
 	}
 
@@ -283,10 +283,10 @@ void Item::UseNonEquip(Item* item) {
 	}
 
 	const auto type = static_cast<eItemType>(info->itemType);
-	if (type == eItemType::ITEM_TYPE_MOUNT) {
+	if (type == eItemType::MOUNT) {
 		playerInventoryComponent->HandlePossession(this);
 		// TODO Check if mounts are allowed to be spawned
-	} else if (type == eItemType::ITEM_TYPE_PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY) {
+	} else if (type == eItemType::PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY) {
 		const auto& databasePet = playerInventoryComponent->GetDatabasePet(subKey);
 		if (databasePet.lot != LOT_NULL) {
 			playerInventoryComponent->SpawnPet(this);

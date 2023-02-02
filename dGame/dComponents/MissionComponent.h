@@ -17,9 +17,11 @@
 #include "CDMissionsTable.h"
 #include "Component.h"
 
+class AchievementCacheKey;
+
  /**
   * The mission inventory of an entity. Tracks mission state for each mission that can be accepted and allows for
-  * progression of each of the mission task types (see MissionTaskType).
+  * progression of each of the mission task types (see eMissionTaskType).
   */
 class MissionComponent : public Component
 {
@@ -50,7 +52,7 @@ public:
 	 * @param missionId the ID of the mission to get the mission state for
 	 * @return the mission state of the mission specified by the ID
 	 */
-	MissionState GetMissionState(uint32_t missionId) const;
+	eMissionState GetMissionState(uint32_t missionId) const;
 
 	/**
 	 * Checks if the entity has all the requirements for accepting the mission specified by the ID.
@@ -91,7 +93,7 @@ public:
 	 * @param count the number to progress by, for example the number of items
 	 * @param ignoreAchievements do not progress achievements
 	 */
-	void Progress(MissionTaskType type, int32_t value, LWOOBJID associate = 0, const std::string& targets = "", int32_t count = 1, bool ignoreAchievements = false);
+	void Progress(eMissionTaskType type, int32_t value, LWOOBJID associate = 0, const std::string& targets = "", int32_t count = 1, bool ignoreAchievements = false);
 
 	/**
 	 * Forces progression for a mission and task, ignoring checks
@@ -138,7 +140,7 @@ public:
 	 * @param count the number of values to progress by (differs by task type)
 	 * @return true if a achievement was accepted, false otherwise
 	 */
-	bool LookForAchievements(MissionTaskType type, int32_t value, bool progress = true, LWOOBJID associate = LWOOBJID_EMPTY, const std::string& targets = "", int32_t count = 1);
+	bool LookForAchievements(eMissionTaskType type, int32_t value, bool progress = true, LWOOBJID associate = LWOOBJID_EMPTY, const std::string& targets = "", int32_t count = 1);
 
 	/**
 	 * Checks if there's a mission active that requires the collection of the specified LOT
@@ -186,13 +188,13 @@ private:
 	 * @param targets optional targets to progress with
 	 * @return list of mission IDs (achievements) that can be progressed for the given parameters
 	 */
-	static const std::vector<uint32_t>& QueryAchievements(MissionTaskType type, int32_t value, const std::string targets);
+	static const std::vector<uint32_t>& QueryAchievements(eMissionTaskType type, int32_t value, const std::string targets);
 
 	/**
 	 * As achievements can be hard to query, we here store a list of all the mission IDs that can be unlocked for a
 	 * combination of tasks and values, so that they can be easily re-queried later
 	 */
-	static std::unordered_map<size_t, std::vector<uint32_t>> m_AchievementCache;
+	static std::unordered_map<AchievementCacheKey, std::vector<uint32_t>> m_AchievementCache;
 
 	/**
 	 * Order of missions in the UI.  This value is incremented by 1

@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
 #include "InventoryComponent.h"
 
 int32_t ImgBrickConsoleQB::ResetBricks = 30;
@@ -71,13 +72,13 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 		auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 
 		if (missionComponent != nullptr && inventoryComponent != nullptr) {
-			if (missionComponent->GetMissionState(1302) == MissionState::MISSION_STATE_ACTIVE) {
+			if (missionComponent->GetMissionState(1302) == eMissionState::ACTIVE) {
 				inventoryComponent->RemoveItem(13074, 1);
 
 				missionComponent->ForceProgressTaskType(1302, 1, 1);
 			}
 
-			if (missionComponent->GetMissionState(1926) == MissionState::MISSION_STATE_ACTIVE) {
+			if (missionComponent->GetMissionState(1926) == eMissionState::ACTIVE) {
 				inventoryComponent->RemoveItem(14472, 1);
 
 				missionComponent->ForceProgressTaskType(1926, 1, 1);

@@ -3,6 +3,7 @@
 #include "GeneralUtils.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
 
 void MaestromExtracticatorServer::OnStartup(Entity* self) {
 	//self:SetNetworkVar("current_anim", failAnim)
@@ -24,7 +25,7 @@ void MaestromExtracticatorServer::OnFireEventServerSide(Entity* self, Entity* se
 		auto missionComponent = player->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr) return;
 
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SMASH, 14718);
+		missionComponent->Progress(eMissionTaskType::SMASH, 14718);
 		CollectSample(self, sender->GetObjectID());
 		sender->ScheduleKillAfterUpdate();
 	}

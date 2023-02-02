@@ -14,6 +14,7 @@
 #include "dLogger.h"
 #include "Game.h"
 #include "MissionPrerequisites.h"
+#include "eMissionState.h"
 
 OfferedMission::OfferedMission(const uint32_t missionId, const bool offersMission, const bool acceptsMission) {
 	this->missionId = missionId;
@@ -170,10 +171,10 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 			for (const auto sample : randomMissionPool) {
 				const auto state = missionComponent->GetMissionState(sample);
 
-				if (state == MissionState::MISSION_STATE_ACTIVE ||
-					state == MissionState::MISSION_STATE_COMPLETE_ACTIVE ||
-					state == MissionState::MISSION_STATE_READY_TO_COMPLETE ||
-					state == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE ||
+				if (state == eMissionState::ACTIVE ||
+					state == eMissionState::COMPLETE_ACTIVE ||
+					state == eMissionState::READY_TO_COMPLETE ||
+					state == eMissionState::COMPLETE_READY_TO_COMPLETE ||
 					sample == specifiedMissionId) {
 					mission = missionComponent->GetMission(sample);
 

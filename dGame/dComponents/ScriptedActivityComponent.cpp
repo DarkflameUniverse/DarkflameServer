@@ -20,6 +20,7 @@
 #include "DestroyableComponent.h"
 #include "dMessageIdentifiers.h"
 #include "Loot.h"
+#include "eMissionTaskType.h"
 
 ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent) {
 	m_ActivityID = activityID;
@@ -552,7 +553,7 @@ void ActivityInstance::StartZone() {
 void ActivityInstance::RewardParticipant(Entity* participant) {
 	auto* missionComponent = participant->GetComponent<MissionComponent>();
 	if (missionComponent) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityInfo.ActivityID);
+		missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityInfo.ActivityID);
 	}
 
 	// First, get the activity data
