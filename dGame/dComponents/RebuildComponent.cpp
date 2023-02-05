@@ -7,7 +7,7 @@
 #include "dLogger.h"
 #include "CharacterComponent.h"
 #include "MissionComponent.h"
-#include "MissionTaskType.h"
+#include "eMissionTaskType.h"
 
 #include "dServer.h"
 #include "PacketUtils.h"
@@ -475,12 +475,12 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 				auto* member = EntityManager::Instance()->GetEntity(memberId);
 				if (member) {
 					auto* missionComponent = member->GetComponent<MissionComponent>();
-					if (missionComponent) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityId);
+					if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 				}
 			}
 		} else{
 			auto* missionComponent = builder->GetComponent<MissionComponent>();
-			if (missionComponent) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityId);
+			if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 		}
 		LootGenerator::Instance().DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
 	}

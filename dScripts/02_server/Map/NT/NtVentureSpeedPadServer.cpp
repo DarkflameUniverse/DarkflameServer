@@ -1,6 +1,7 @@
 #include "NtVentureSpeedPadServer.h"
 #include "SkillComponent.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
 
 void NtVentureSpeedPadServer::OnStartup(Entity* self) {
 	self->SetProximityRadius(3, "speedboost");
@@ -17,7 +18,7 @@ void NtVentureSpeedPadServer::OnProximityUpdate(Entity* self, Entity* entering, 
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+		missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 	}
 
 	auto* skillComponent = player->GetComponent<SkillComponent>();

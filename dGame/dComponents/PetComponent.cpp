@@ -21,6 +21,8 @@
 #include "dChatFilter.h"
 #include "Database.h"
 #include "EntityInfo.h"
+#include "eMissionTaskType.h"
+
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -602,7 +604,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	auto* missionComponent = tamer->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PET_TAMING, m_Parent->GetLOT());
+		missionComponent->Progress(eMissionTaskType::PET_TAMING, m_Parent->GetLOT());
 	}
 
 	SetStatus(1);

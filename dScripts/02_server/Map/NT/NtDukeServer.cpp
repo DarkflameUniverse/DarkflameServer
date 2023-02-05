@@ -1,6 +1,7 @@
 #include "NtDukeServer.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
 
 void NtDukeServer::SetVariables(Entity* self) {
 	self->SetVar<float_t>(m_SpyProximityVariable, 35.0f);
@@ -19,7 +20,7 @@ void NtDukeServer::SetVariables(Entity* self) {
 	self->SetVar<std::vector<LWOOBJID>>(m_SpyCinematicObjectsVariable, { self->GetObjectID() });
 }
 
-void NtDukeServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void NtDukeServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 
 	// Handles adding and removing the sword for the Crux Prime Sword mission
 	auto* missionComponent = target->GetComponent<MissionComponent>();
@@ -29,9 +30,9 @@ void NtDukeServer::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 		auto state = missionComponent->GetMissionState(m_SwordMissionID);
 		auto lotCount = inventoryComponent->GetLotCount(m_SwordLot);
 
-		if ((state == MissionState::MISSION_STATE_AVAILABLE || state == MissionState::MISSION_STATE_ACTIVE) && lotCount < 1) {
+		if ((state == eMissionState::AVAILABLE || state == eMissionState::ACTIVE) && lotCount < 1) {
 			inventoryComponent->AddItem(m_SwordLot, 1, eLootSourceType::LOOT_SOURCE_NONE);
-		} else if (state == MissionState::MISSION_STATE_READY_TO_COMPLETE) {
+		} else if (state == eMissionState::READY_TO_COMPLETE) {
 			inventoryComponent->RemoveItem(m_SwordLot, lotCount);
 		}
 	}

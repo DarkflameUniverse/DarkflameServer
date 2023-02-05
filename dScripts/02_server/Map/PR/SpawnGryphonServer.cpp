@@ -2,6 +2,7 @@
 #include "InventoryComponent.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
 
 void SpawnGryphonServer::SetVariables(Entity* self) {
 	self->SetVar<LOT>(u"petLOT", 12433);
@@ -17,7 +18,7 @@ void SpawnGryphonServer::OnUse(Entity* self, Entity* user) {
 
 	// Little extra for handling the case of the egg being placed the first time
 	if (missionComponent != nullptr && inventoryComponent != nullptr
-		&& missionComponent->GetMissionState(1391) == MissionState::MISSION_STATE_ACTIVE) {
+		&& missionComponent->GetMissionState(1391) == eMissionState::ACTIVE) {
 		inventoryComponent->RemoveItem(12483, inventoryComponent->GetLotCount(12483));
 		GameMessages::SendTerminateInteraction(user->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
 		return;

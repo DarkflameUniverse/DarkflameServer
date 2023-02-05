@@ -1,8 +1,8 @@
 #include "NPCAddRemoveItem.h"
 #include "InventoryComponent.h"
-#include "MissionState.h"
+#include "eMissionState.h"
 
-void NPCAddRemoveItem::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void NPCAddRemoveItem::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	auto* inventory = target->GetComponent<InventoryComponent>();
 	if (inventory == nullptr)
 		return;
@@ -11,9 +11,9 @@ void NPCAddRemoveItem::OnMissionDialogueOK(Entity* self, Entity* target, int mis
 		if (missionSetting.first == missionID) {
 			for (const auto& itemSetting : missionSetting.second) {
 				for (const auto& lot : itemSetting.items) {
-					if (itemSetting.add && (missionState == MissionState::MISSION_STATE_AVAILABLE || missionState == MissionState::MISSION_STATE_COMPLETE_AVAILABLE)) {
+					if (itemSetting.add && (missionState == eMissionState::AVAILABLE || missionState == eMissionState::COMPLETE_AVAILABLE)) {
 						inventory->AddItem(lot, 1, eLootSourceType::LOOT_SOURCE_NONE);
-					} else if (itemSetting.remove && (missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || missionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE)) {
+					} else if (itemSetting.remove && (missionState == eMissionState::READY_TO_COMPLETE || missionState == eMissionState::COMPLETE_READY_TO_COMPLETE)) {
 						inventory->RemoveItem(lot, 1);
 					}
 				}

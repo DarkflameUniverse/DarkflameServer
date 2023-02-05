@@ -1,8 +1,9 @@
 #include "NsJohnnyMissionServer.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
 
-void NsJohnnyMissionServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
-	if (missionID == 773 && missionState <= MissionState::MISSION_STATE_ACTIVE) {
+void NsJohnnyMissionServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
+	if (missionID == 773 && missionState <= eMissionState::ACTIVE) {
 		auto* missionComponent = target->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			missionComponent->AcceptMission(774);

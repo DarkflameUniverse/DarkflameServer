@@ -4,6 +4,7 @@
 #include "InventoryComponent.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
 
 void NtFactionSpyServer::OnStartup(Entity* self) {
 	SetVariables(self);
@@ -54,7 +55,7 @@ bool NtFactionSpyServer::IsSpy(Entity* self, Entity* possibleSpy) {
 	auto* character = possibleSpy->GetCharacter();
 
 	// A player is a spy if they have the spy mission, have the spy equipment equipped and don't have the spy flag set yet
-	return missionComponent != nullptr && missionComponent->GetMissionState(spyData.missionID) == MissionState::MISSION_STATE_ACTIVE
+	return missionComponent != nullptr && missionComponent->GetMissionState(spyData.missionID) == eMissionState::ACTIVE
 		&& inventoryComponent != nullptr && inventoryComponent->IsEquipped(spyData.itemID)
 		&& character != nullptr && !character->GetPlayerFlag(spyData.flagID);
 }

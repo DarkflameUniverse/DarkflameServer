@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
 
 void LegoDieRoll::OnStartup(Entity* self) {
 	self->AddTimer("DoneRolling", 10.0f);
@@ -39,7 +40,7 @@ void LegoDieRoll::OnTimerDone(Entity* self, std::string timerName) {
 
 			if (missionComponent != nullptr) {
 				const auto rollMissionState = missionComponent->GetMissionState(756);
-				if (rollMissionState == MissionState::MISSION_STATE_ACTIVE) {
+				if (rollMissionState == eMissionState::ACTIVE) {
 					missionComponent->ForceProgress(756, 1103, 1);
 				}
 			}
