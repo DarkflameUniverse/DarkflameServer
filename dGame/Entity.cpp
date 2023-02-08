@@ -68,6 +68,7 @@
 #include "ShootingGalleryComponent.h"
 #include "RailActivatorComponent.h"
 #include "LUPExhibitComponent.h"
+#include "TriggerComponent.h"
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
 	m_ObjectID = objectID;
@@ -76,7 +77,6 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_Character = nullptr;
 	m_GMLevel = 0;
 	m_CollectibleID = 0;
-	m_Trigger = nullptr; //new LUTriggers::Trigger();
 	m_NetworkID = 0;
 	m_Groups = {};
 	m_OwnerOverride = LWOOBJID_EMPTY;
@@ -132,30 +132,9 @@ void Entity::Initialize() {
 	 * Setup trigger
 	 */
 
-	const auto triggerName = GetVarAsString(u"trigger_id");
+	const auto triggerInfo = GetVarAsString(u"trigger_id");
 
-	if (!triggerName.empty()) {
-		std::stringstream ss(triggerName);
-		std::vector<std::string> tokens;
-		std::string token;
-		while (std::getline(ss, token, ':')) {
-			tokens.push_back(token);
-		}
-
-		uint32_t sceneID = std::stoi(tokens[0]);
-		uint32_t triggerID = std::stoi(tokens[1]);
-
-		if (m_Trigger != nullptr) {
-			delete m_Trigger;
-			m_Trigger = nullptr;
-		}
-
-		m_Trigger = dZoneManager::Instance()->GetZone()->GetTrigger(sceneID, triggerID);
-
-		if (m_Trigger == nullptr) {
-			m_Trigger = new LUTriggers::Trigger();
-		}
-	}
+	if (!triggerInfo.empty()) m_Components.insert(std::make_pair(COMPONENT_TYPE_TRIGGER, new TriggerComponent(this, triggerInfo)));
 
 	/**
 	 * Setup groups
@@ -946,11 +925,16 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			outBitStream->Write0(); //No ldf data
 		}
 
-		if (m_Trigger != nullptr && m_Trigger->events.size() > 0) {
-			outBitStream->Write1();
-		} else {
+		TriggerComponent* triggerComponent;
+		if (TryGetComponent(COMPONENT_TYPE_TRIGGER, triggerComponent)) {
+			// has trigger component, check to see if we have events to handle
+			auto* trigger = triggerComponent->GetTrigger();
+			if (trigger && trigger->events.size() > 0) outBitStream->Write1();
+			else outBitStream->Write0();
+		} else { // no trigger componenet, so definately no triggers
 			outBitStream->Write0();
 		}
+
 
 		if (m_ParentEntity != nullptr || m_SpawnerID != 0) {
 			outBitStream->Write1();
@@ -1737,93 +1721,8 @@ bool Entity::IsPlayer() const {
 }
 
 void Entity::TriggerEvent(std::string eventID, Entity* optionalTarget) {
-	if (m_Trigger != nullptr && m_Trigger->enabled) {
-		for (LUTriggers::Event* triggerEvent : m_Trigger->events) {
-			if (triggerEvent->eventID == eventID) {
-				for (LUTriggers::Command* cmd : triggerEvent->commands) {
-					HandleTriggerCommand(cmd->id, cmd->target, cmd->targetName, cmd->args, optionalTarget);
-				}
-			}
-		}
-	}
-}
-
-// This should probably get it's own triggers class at some point...
-void Entity::HandleTriggerCommand(std::string id, std::string target, std::string targetName, std::string args, Entity* optionalTarget) {
-	std::vector<std::string> argArray;
-	// Parse args
-	std::stringstream ssData(args);
-	std::string token;
-	char deliminator = ',';
-
-	while (std::getline(ssData, token, deliminator)) {
-		std::string lowerToken;
-		for (char character : token) {
-			lowerToken.push_back(std::tolower(character)); // make lowercase to ensure it works
-		}
-		argArray.push_back(lowerToken);
-	}
-
-	std::vector<Entity*> targetEntities;
-	if (target == "self") targetEntities.push_back(this);
-	if (target == "objGroup") targetEntities = EntityManager::Instance()->GetEntitiesInGroup(targetName);
-	if (optionalTarget) targetEntities.push_back(optionalTarget);
-	if (targetEntities.size() == 0) return;
-	for (Entity* targetEntity : targetEntities) {
-		if (!targetEntity) continue;
-
-		if (id == "SetPhysicsVolumeEffect") {
-			PhantomPhysicsComponent* phanPhys = GetComponent<PhantomPhysicsComponent>();
-			if (!phanPhys) return;
-
-			phanPhys->SetPhysicsEffectActive(true);
-			uint32_t effectType = 0;
-			if (argArray[0] == "push") effectType = 0;
-			else if (argArray[0] == "attract") effectType = 1;
-			else if (argArray[0] == "repulse") effectType = 2;
-			else if (argArray[0] == "gravity") effectType = 3;
-			else if (argArray[0] == "friction") effectType = 4;
-
-			phanPhys->SetEffectType(effectType);
-			phanPhys->SetDirectionalMultiplier(std::stof(argArray[1]));
-			if (argArray.size() > 4) {
-				NiPoint3 direction = NiPoint3::ZERO;
-				GeneralUtils::TryParse<float>(argArray[2], direction.x);
-				GeneralUtils::TryParse<float>(argArray[3], direction.y);
-				GeneralUtils::TryParse<float>(argArray[4], direction.z);
-				phanPhys->SetDirection(direction);
-			}
-			if (argArray.size() > 5) {
-				phanPhys->SetMin(std::stoi(argArray[6]));
-				phanPhys->SetMax(std::stoi(argArray[7]));
-			}
-
-			if (target == "self") {
-				EntityManager::Instance()->ConstructEntity(this);
-			}
-		} else if (id == "updateMission") {
-			CDMissionTasksTable* missionTasksTable = CDClientManager::Instance()->GetTable<CDMissionTasksTable>("MissionTasks");
-			std::vector<CDMissionTasks> missionTasks = missionTasksTable->Query([=](CDMissionTasks entry) {
-				std::string lowerTargetGroup;
-				for (char character : entry.targetGroup) {
-					lowerTargetGroup.push_back(std::tolower(character)); // make lowercase to ensure it works
-				}
-
-				return (lowerTargetGroup == argArray[4]);
-				});
-
-			for (const CDMissionTasks& task : missionTasks) {
-				MissionComponent* missionComponent = targetEntity->GetComponent<MissionComponent>();
-				if (!missionComponent) continue;
-
-				missionComponent->ForceProgress(task.id, task.uid, std::stoi(argArray[2]));
-			}
-		} else if (id == "fireEvent") {
-			for (CppScripts::Script* script : CppScripts::GetEntityScripts(targetEntity)) {
-				script->OnFireEventServerSide(targetEntity, this, args, 0, 0, 0);
-			}
-		}
-	}
+	auto triggerComponent = GetComponent<TriggerComponent>();
+	if (triggerComponent) triggerComponent->TriggerEvent(eventID, optionalTarget);
 }
 
 Entity* Entity::GetOwner() const {
