@@ -134,7 +134,7 @@ void Entity::Initialize() {
 
 	const auto triggerInfo = GetVarAsString(u"trigger_id");
 
-	if (!triggerInfo.empty()) m_Components.insert(std::make_pair(COMPONENT_TYPE_TRIGGER, new TriggerComponent(this, triggerInfo)));
+	if (!triggerInfo.empty()) m_Components.emplace(COMPONENT_TYPE_TRIGGER, new TriggerComponent(this, triggerInfo));
 
 	/**
 	 * Setup groups

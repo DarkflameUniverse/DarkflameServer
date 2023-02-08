@@ -20,8 +20,10 @@ TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo
 		tokens.push_back(token);
 	}
 
-	uint32_t sceneID = std::stoi(tokens[0]);
-	uint32_t triggerID = std::stoi(tokens[1]);
+	uint32_t sceneID;
+	GeneralUtils::TryParse<uint32_t>(tokens[0], sceneID);
+	uint32_t triggerID;
+	GeneralUtils::TryParse<uint32_t>(tokens[1], triggerID);
 
 	if (m_Trigger) {
 		delete m_Trigger;
@@ -215,8 +217,13 @@ void TriggerComponent::HandleSetPhysicsVolume(Entity* targetEntity, std::vector<
 		phanPhys->SetDirection(direction);
 	}
 	if (argArray.size() > 5) {
-		phanPhys->SetMin(std::stoi(argArray[6]));
-		phanPhys->SetMax(std::stoi(argArray[7]));
+		uint32_t min;
+		GeneralUtils::TryParse<uint32_t>(argArray[6], min);
+		phanPhys->SetMin(min);
+
+		uint32_t max;
+		GeneralUtils::TryParse<uint32_t>(argArray[7], max);
+		phanPhys->SetMax(max);
 	}
 
 	if (target == "self") EntityManager::Instance()->ConstructEntity(m_Parent);
