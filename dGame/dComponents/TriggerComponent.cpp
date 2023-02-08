@@ -104,7 +104,7 @@ void TriggerComponent::HandleTriggerCommand(std::string id, std::string target, 
 			// cancelTimer 	[timer name]
 		} else if (id == "playCinematic") {
 			// TODO:
-			// playCinematic 	[cinematic name],(lead-in in seconds),(“wait” to wait at end),(“unlock” to NOT lock the player controls),(“leavelocked” to leave player locked after cinematic finishes),(“hideplayer” to make player invisible during cinematic
+			// playCinematic 	[cinematic name],(lead-in in seconds),(“wait” to wait at end),(“unlock” to NOT lock the player controls),(“leavelocked” to leave player locked after cinematic finishes),(“hideplayer” to make player invisible during cinematic)
 		} else if (id == "toggleBBB") {
 			// TODO:
 			// toggleBBB 	(“enter” or “exit” to force direction)
@@ -171,6 +171,8 @@ void TriggerComponent::HandleTriggerCommand(std::string id, std::string target, 
 		} else if (id == "ActivatePhysics") {
 			// TODO:
 			// ActivatePhysics 	“true” to activate and add to world, “false” to deactivate and remove from the world
+		} else {
+			Game::logger->DebugLog("TriggerComponent", "Trigger Event %s does not exist!", id.c_str());
 		}
 	}
 }

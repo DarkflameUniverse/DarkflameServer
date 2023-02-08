@@ -13,10 +13,10 @@ public:
 
 	explicit TriggerComponent(Entity* parent, const std::string triggerInfo);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-
 	void TriggerEvent(std::string eveneventtID, Entity* optionalTarget = nullptr);
 	LUTriggers::Trigger* GetTrigger() const { return m_Trigger; }
+
+private:
 
 	void HandleTriggerCommand(std::string id, std::string target, std::string targetName, std::string args, Entity* optionalTarget);
 	std::vector<std::string> ParseArgs(std::string args);
@@ -26,10 +26,6 @@ public:
 	void HandleUpdateMission(Entity* targetEntity, std::vector<std::string> argArray);
 	void HandleFireEvent(Entity* targetEntity, std::string args);
 	void HandleCastSkill(Entity* targetEntity, uint32_t skillID);
-
-
-
-private:
 
 	LUTriggers::Trigger* m_Trigger;
 };
