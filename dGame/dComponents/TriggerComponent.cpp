@@ -172,7 +172,7 @@ void TriggerComponent::HandleTriggerCommand(std::string id, std::string target, 
 			// TODO:
 			// ActivatePhysics 	“true” to activate and add to world, “false” to deactivate and remove from the world
 		} else {
-			Game::logger->DebugLog("TriggerComponent", "Trigger Event %s does not exist!", id.c_str());
+			Game::logger->LogDebug("TriggerComponent", "Trigger Event %s does not exist!", id.c_str());
 		}
 	}
 }
