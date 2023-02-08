@@ -5,10 +5,9 @@
 
 class GemPack : public CoilBackpackBase {
 public:
-	GemPack() : CoilBackpackBase(skillId, behaviorId) {};
+	GemPack() : CoilBackpackBase(skillId) {};
 private:
 	static const uint32_t skillId = 1488;
-	static const uint32_t behaviorId = 36779;
 };
 
 #endif  //!__GEMPACK__H__

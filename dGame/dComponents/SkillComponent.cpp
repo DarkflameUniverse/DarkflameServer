@@ -22,6 +22,7 @@
 #include "EchoStartSkill.h"
 #include "dMessageIdentifiers.h"
 #include "DoClientProjectileImpact.h"
+#include "CDClientManager.h"
 
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
@@ -208,6 +209,20 @@ void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, B
 	entry.trackRadius = trackRadius;
 
 	this->m_managedProjectiles.push_back(entry);
+}
+
+bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID){
+	auto skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+	auto behaviorId = skillTable->GetSkillByID(skillId).behaviorID;
+
+	// check to see if we got back a valid behavior
+	if (behaviorId == -1) {
+		Game::logger->LogDebug("SkillComponent", "Tried to cast skill %i but found no behavior", skillId);
+		return false;
+	}
+
+	auto behavior = CalculateBehavior(skillId, behaviorId, target, false, false, optionalOriginatorID);
+	return behavior.success;
 }
 
 
