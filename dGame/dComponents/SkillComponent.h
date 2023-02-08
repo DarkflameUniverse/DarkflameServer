@@ -200,6 +200,11 @@ private:
 	uint32_t m_skillUid;
 
 	/**
+	 * Cache for looking up a behavior id via a skill ID
+	 */
+	static std::unordered_map<uint32_t, uint32_t> SkillBehaviorCache;
+
+	/**
 	 * Sync a server-side projectile calculation.
 	 * @param entry the projectile information
 	 */
