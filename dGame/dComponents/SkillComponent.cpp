@@ -27,7 +27,7 @@
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
 
-std::unordered_map<uint32_t, uint32_t> SkillComponent::SkillBehaviorCache = {};
+std::unordered_map<uint32_t, uint32_t> SkillComponent::m_skillBehaviorCache = {};
 
 bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream* bitStream, const LWOOBJID target, uint32_t skillID) {
 	auto* context = new BehaviorContext(this->m_Parent->GetObjectID());
@@ -216,13 +216,13 @@ void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, B
 bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID){
 	uint32_t behaviorId = -1;
 	// try to find it via the cache
-	const auto& pair = SkillBehaviorCache.find(skillId);
+	const auto& pair = m_skillBehaviorCache.find(skillId);
 
 	// if it's not in the cache look it up and cache it
-	if (pair == SkillBehaviorCache.end()) {
+	if (pair == m_skillBehaviorCache.end()) {
 		auto skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
 		behaviorId = skillTable->GetSkillByID(skillId).behaviorID;
-		SkillBehaviorCache.insert_or_assign(skillId, behaviorId);
+		m_skillBehaviorCache.insert_or_assign(skillId, behaviorId);
 	} else {
 		behaviorId = pair->second;
 	}
@@ -233,8 +233,7 @@ bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LW
 		return false;
 	}
 
-	auto behavior = CalculateBehavior(skillId, behaviorId, target, false, false, optionalOriginatorID);
-	return behavior.success;
+	return CalculateBehavior(skillId, behaviorId, target, false, false, optionalOriginatorID).success;
 }
 
 
