@@ -216,7 +216,7 @@ void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, B
 bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID){
 	uint32_t behaviorId = -1;
 	// try to find it via the cache
-	const auto pair = SkillBehaviorCache.find(skillId);
+	const auto& pair = SkillBehaviorCache.find(skillId);
 
 	// if it's not in the cache look it up and cache it
 	if (pair == SkillBehaviorCache.end()) {
