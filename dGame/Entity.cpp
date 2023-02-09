@@ -930,9 +930,8 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 		if (TryGetComponent(COMPONENT_TYPE_TRIGGER, triggerComponent)) {
 			// has trigger component, check to see if we have events to handle
 			auto* trigger = triggerComponent->GetTrigger();
-			if (trigger && trigger->events.size() > 0) outBitStream->Write1();
-			else outBitStream->Write0();
-		} else { // no trigger componenet, so definately no triggers
+			outBitStream->Write<bool>(trigger && trigger->events.size() > 0);
+		} else { // no trigger componenet, so definitely no triggers
 			outBitStream->Write0();
 		}
 
@@ -1722,7 +1721,7 @@ bool Entity::IsPlayer() const {
 }
 
 void Entity::TriggerEvent(eTriggerEventType event, Entity* optionalTarget) {
-	auto triggerComponent = GetComponent<TriggerComponent>();
+	auto* triggerComponent = GetComponent<TriggerComponent>();
 	if (triggerComponent) triggerComponent->TriggerEvent(event, optionalTarget);
 }
 
