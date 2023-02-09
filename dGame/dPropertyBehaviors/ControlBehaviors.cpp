@@ -263,14 +263,14 @@ void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
 	auto* blockDefinition = GetBlockInfo(updateActionMessage.type);
 
 	if (updateActionMessage.valueParameterString.size() > 0) {
-		if (updateActionMessage.valueParameterString.size() < blockDefinition->minimumValue ||
-			updateActionMessage.valueParameterString.size() > blockDefinition->maximumValue) {
+		if (updateActionMessage.valueParameterString.size() < blockDefinition->GetMinimumValue() ||
+			updateActionMessage.valueParameterString.size() > blockDefinition->GetMaximumValue()) {
 			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.type.c_str());
 			return;
 		}
 	} else {
-		if (updateActionMessage.valueParameterDouble < blockDefinition->minimumValue ||
-			updateActionMessage.valueParameterDouble > blockDefinition->maximumValue) {
+		if (updateActionMessage.valueParameterDouble < blockDefinition->GetMinimumValue() ||
+			updateActionMessage.valueParameterDouble > blockDefinition->GetMaximumValue()) {
 			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.type.c_str());
 			return;
 		}
@@ -396,7 +396,7 @@ ControlBehaviors::ControlBehaviors() {
 			auto* argument = block->FirstChildElement("Argument");
 			if (argument) {
 				auto* defaultDefinition = argument->FirstChildElement("DefaultValue");
-				if (defaultDefinition) blockDefinition->defaultValue = defaultDefinition->GetText();
+				if (defaultDefinition) blockDefinition->SetDefaultValue(defaultDefinition->GetText());
 
 				auto* typeDefinition = argument->FirstChildElement("Type");
 				if (typeDefinition) typeName = typeDefinition->GetText();
@@ -406,23 +406,23 @@ ControlBehaviors::ControlBehaviors() {
 
 				// Now we parse the blocksdef file for the relevant information
 				if (typeName == "String") {
-					blockDefinition->maximumValue = 50; // The client has a hardcoded limit of 50 characters in a string field
+					blockDefinition->SetMaximumValue(50); // The client has a hardcoded limit of 50 characters in a string field
 				} else if (typeName == "Float" || typeName == "Integer") {
 					auto* maximumDefinition = argument->FirstChildElement("Maximum");
-					if (maximumDefinition) blockDefinition->maximumValue = std::stof(maximumDefinition->GetText());
+					if (maximumDefinition) blockDefinition->SetMaximumValue(std::stof(maximumDefinition->GetText()));
 
 					auto* minimumDefinition = argument->FirstChildElement("Minimum");
-					if (minimumDefinition) blockDefinition->minimumValue = std::stof(minimumDefinition->GetText());
+					if (minimumDefinition) blockDefinition->SetMinimumValue(std::stof(minimumDefinition->GetText()));
 				} else if (typeName == "Enumeration") {
 					auto* values = argument->FirstChildElement("Values");
 					if (values) {
 						auto* value = values->FirstChildElement("Value");
 						while (value) {
-							if (value->GetText() == blockDefinition->defaultValue) blockDefinition->defaultValue = std::to_string(blockDefinition->maximumValue);
-							blockDefinition->maximumValue++;
+							if (value->GetText() == blockDefinition->GetDefaultValue()) blockDefinition->GetDefaultValue() = std::to_string(blockDefinition->GetMaximumValue());
+							blockDefinition->SetMaximumValue(blockDefinition->GetMaximumValue() + 1);
 							value = value->NextSiblingElement("Value");
 						}
-						blockDefinition->maximumValue--; // Maximum value is 0 indexed
+						blockDefinition->SetMaximumValue(blockDefinition->GetMaximumValue() - 1); // Maximum value is 0 indexed
 					} else {
 						values = argument->FirstChildElement("EnumerationSource");
 						if (!values) {
@@ -439,8 +439,8 @@ ControlBehaviors::ControlBehaviors() {
 						std::string serviceName = serviceNameNode->GetText();
 						if (serviceName == "GetBehaviorSoundList") {
 							auto res = CDClientDatabase::ExecuteQuery("SELECT MAX(id) as countSounds FROM UGBehaviorSounds;");
-							blockDefinition->maximumValue = res.getIntField("countSounds");
-							blockDefinition->defaultValue = "0";
+							blockDefinition->SetMaximumValue(res.getIntField("countSounds"));
+							blockDefinition->SetDefaultValue("0");
 						} else {
 							Game::logger->Log("ControlBehaviors", "Unsupported Enumeration ServiceType (%s)", serviceName.c_str());
 							continue;
@@ -459,7 +459,7 @@ ControlBehaviors::ControlBehaviors() {
 	isInitialized = true;
 	Game::logger->LogDebug("ControlBehaviors", "Created all base block classes");
 	for (auto b : blockTypes) {
-		Game::logger->LogDebug("ControlBehaviors", "block name is %s default %s min %f max %f", b.first.c_str(), b.second->defaultValue.c_str(), b.second->minimumValue, b.second->maximumValue);
+		Game::logger->LogDebug("ControlBehaviors", "block name is %s default %s min %f max %f", b.first.c_str(), b.second->GetDefaultValue().c_str(), b.second->GetMinimumValue(), b.second->GetMaximumValue());
 	}
 }
 

@@ -142,7 +142,7 @@ TEST_F(GameMessageTests, ControlBehaviorSplitStrip) {
 }
 
 TEST_F(GameMessageTests, ControlBehaviorUpdateStripUI) {
-	auto data = ReadFromFile("updateStripUi");
+	auto data = ReadFromFile("updateStripUI");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
 	UpdateStripUiMessage updateStripUi;
 	updateStripUi.Parse(ReadArrayFromBitStream(&inStream));
