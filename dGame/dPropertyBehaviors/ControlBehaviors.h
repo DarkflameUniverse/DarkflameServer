@@ -8,11 +8,11 @@
 
 #include "Singleton.h"
 
-class BlockBase;
+class AMFArrayValue;
 class BlockDefinition;
 class Entity;
-class AMFArrayValue;
 class ModelComponent;
+class SystemAddress;
 
 // Type definition to clarify what is used where
 typedef std::string BlockName;					//! A block name
@@ -41,16 +41,28 @@ public:
 	 */
 	BlockDefinition* GetBlockInfo(BlockName& blockName);
 private:
-
-	/**
-	 * @brief Creates a block based on the given primitive type in typeName
-	 * 
-	 * @param typeName The primitive type to create the block based on.
-	 * @return A pointer to a new block definition or a nullptr if the typing specified
-	 * was not a valid typing for a block.
-	 */
-	BlockBase* CreateBehaviorBlock(std::string& name, std::string& typeName);
+	void RequestUpdatedID(int32_t behaviorID, ModelComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr);
+	void SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner);
+	void ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent);
+	void ToggleExecutionUpdates();
+	void AddStrip(AMFArrayValue* arguments);
+	void RemoveStrip(AMFArrayValue* arguments);
+	void MergeStrips(AMFArrayValue* arguments);
+	void SplitStrip(AMFArrayValue* arguments);
+	void UpdateStripUI(AMFArrayValue* arguments);
+	void AddAction(AMFArrayValue* arguments);
+	void MigrateActions(AMFArrayValue* arguments);
+	void RearrangeStrip(AMFArrayValue* arguments);
+	void Add(AMFArrayValue* arguments);
+	void RemoveActions(AMFArrayValue* arguments);
+	void Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
+	void SendBehaviorBlocksToClient(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
+	void UpdateAction(AMFArrayValue* arguments);
+	void MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
 	std::map<BlockName, BlockDefinition*> blockTypes{};
+
+	// If false, property behaviors will not be able to be edited.
+	bool isInitialized = false;
 };
 
 #endif  //!__CONTROLBEHAVIORS__H__

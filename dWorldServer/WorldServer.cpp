@@ -304,7 +304,6 @@ int main(int argc, char** argv) {
 	uint32_t sqlPingTime = 10 * 60 * currentFramerate; // 10 minutes in frames
 	uint32_t emptyShutdownTime = (cloneID == 0 ? 30 : 5) * 60 * currentFramerate; // 30 minutes for main worlds, 5 for all others.
 	while (true) {
-		volatile auto& test = ControlBehaviors::Instance();
 		Metrics::StartMeasurement(MetricVariable::Frame);
 		Metrics::StartMeasurement(MetricVariable::GameLoop);
 

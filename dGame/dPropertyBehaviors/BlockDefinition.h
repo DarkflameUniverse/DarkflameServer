@@ -6,10 +6,13 @@
 class AMFArrayValue;
 
 // Minimum and maximum values are always ints, but used for different things in different contexts
-struct BlockDefinition {
-	std::string defaultValue = "";
-	float minimumValue = 0;		// Always zero!
-	float maximumValue = 0;
+class BlockDefinition {
+public:
+	BlockDefinition(std::string defaultValue = "", float minimumValue = 0.0f, float maximumValue = 0.0f);
+	std::string defaultValue;
+	float minimumValue;		// Always zero!
+	float maximumValue;
+	static BlockDefinition blockDefinitionInvalid;
 };
 
 #endif  //!__BLOCKDEFINITION__H__
