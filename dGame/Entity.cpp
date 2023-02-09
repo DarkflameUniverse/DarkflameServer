@@ -23,6 +23,7 @@
 #include "EntityCallbackTimer.h"
 #include "Loot.h"
 #include "eMissionTaskType.h"
+#include "eTriggerEventType.h"
 
 //Component includes:
 #include "Component.h"
@@ -748,7 +749,7 @@ void Entity::Initialize() {
 
 no_ghosting:
 
-	TriggerEvent("OnCreate");
+	TriggerEvent(eTriggerEventType::CREATE);
 
 	if (m_Character) {
 		auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
@@ -1294,7 +1295,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 		switchComp->EntityEnter(other);
 	}
 
-	TriggerEvent("OnEnter", other);
+	TriggerEvent(eTriggerEventType::ENTER, other);
 
 	// POI system
 	const auto& poi = GetVar<std::u16string>(u"POI");
@@ -1328,7 +1329,7 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
 
-	TriggerEvent("OnLeave", other);
+	TriggerEvent(eTriggerEventType::EXIT, other);
 
 	SwitchComponent* switchComp = GetComponent<SwitchComponent>();
 	if (switchComp) {
@@ -1376,7 +1377,7 @@ void Entity::OnEmoteReceived(const int32_t emote, Entity* target) {
 }
 
 void Entity::OnUse(Entity* originator) {
-	TriggerEvent("OnInteract");
+	TriggerEvent(eTriggerEventType::INTERACT);
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnUse(this, originator);
@@ -1720,9 +1721,9 @@ bool Entity::IsPlayer() const {
 	return m_TemplateID == 1 && GetSystemAddress() != UNASSIGNED_SYSTEM_ADDRESS;
 }
 
-void Entity::TriggerEvent(std::string eventID, Entity* optionalTarget) {
+void Entity::TriggerEvent(eTriggerEventType event, Entity* optionalTarget) {
 	auto triggerComponent = GetComponent<TriggerComponent>();
-	if (triggerComponent) triggerComponent->TriggerEvent(eventID, optionalTarget);
+	if (triggerComponent) triggerComponent->TriggerEvent(event, optionalTarget);
 }
 
 Entity* Entity::GetOwner() const {

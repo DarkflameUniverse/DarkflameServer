@@ -30,6 +30,7 @@ class Component;
 class Item;
 class Character;
 class EntityCallbackTimer;
+enum class eTriggerEventType;
 
 namespace CppScripts {
 	class Script;
@@ -216,7 +217,7 @@ public:
 	void RegisterCoinDrop(uint64_t count);
 
 	void ScheduleKillAfterUpdate(Entity* murderer = nullptr);
-	void TriggerEvent(std::string eveneventtID, Entity* optionalTarget = nullptr);
+	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
 
 	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }

@@ -5,6 +5,7 @@
 
 namespace LUTriggers {
 	struct Trigger;
+	struct Command;
 };
 
 class TriggerComponent : public Component {
@@ -13,13 +14,14 @@ public:
 
 	explicit TriggerComponent(Entity* parent, const std::string triggerInfo);
 
-	void TriggerEvent(std::string eveneventtID, Entity* optionalTarget = nullptr);
+	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	LUTriggers::Trigger* GetTrigger() const { return m_Trigger; }
 
 private:
 
-	void HandleTriggerCommand(std::string id, std::string target, std::string targetName, std::string args, Entity* optionalTarget);
+	void HandleTriggerCommand(LUTriggers::Command* command, Entity* optionalTarget);
 	std::vector<std::string> ParseArgs(std::string args);
+	std::vector<Entity*> GatherTargets(LUTriggers::Command* command, Entity* optionalTarget);
 
 	// Trigger Event Handlers
 	void HandleSetPhysicsVolume(Entity* targetEntity, std::vector<std::string> argArray, std::string target);

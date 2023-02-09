@@ -2,6 +2,7 @@
 
 #include "dZoneManager.h"
 #include "LUTriggers.h"
+#include "eTriggerCommandType.h"
 
 #include "MissionComponent.h"
 #include "PhantomPhysicsComponent.h"
@@ -35,26 +36,23 @@ TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo
 	if (!m_Trigger) m_Trigger = new LUTriggers::Trigger();
 }
 
-void TriggerComponent::TriggerEvent(std::string eventID, Entity* optionalTarget) {
-	if (m_Trigger != nullptr && m_Trigger->enabled) {
+void TriggerComponent::TriggerEvent(eTriggerEventType event, Entity* optionalTarget) {
+	if (m_Trigger && m_Trigger->enabled) {
 		for (LUTriggers::Event* triggerEvent : m_Trigger->events) {
-			if (triggerEvent->eventID == eventID) {
-				for (LUTriggers::Command* cmd : triggerEvent->commands) {
-					HandleTriggerCommand(cmd->id, cmd->target, cmd->targetName, cmd->args, optionalTarget);
+			if (triggerEvent->id == event) {
+				for (LUTriggers::Command* command : triggerEvent->commands) {
+					HandleTriggerCommand(command, optionalTarget);
 				}
 			}
 		}
 	}
 }
 
-void TriggerComponent::HandleTriggerCommand(std::string id, std::string target, std::string targetName, std::string args, Entity* optionalTarget) {
-	auto argArray = ParseArgs(args);
+void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity* optionalTarget) {
+	auto argArray = ParseArgs(command->args);
 
 	// determine targets
-	std::vector<Entity*> targetEntities;
-	if (target == "objGroup") targetEntities = EntityManager::Instance()->GetEntitiesInGroup(targetName);
-	if (target == "self") targetEntities.push_back(m_Parent);
-	if (optionalTarget) targetEntities.push_back(optionalTarget);
+	std::vector<Entity*> targetEntities = GatherTargets(command, optionalTarget);
 
 	// if we have no targets, then we are done
 	if (targetEntities.empty()) return;
@@ -62,121 +60,79 @@ void TriggerComponent::HandleTriggerCommand(std::string id, std::string target, 
 	for (Entity* targetEntity : targetEntities) {
 		if (!targetEntity) continue;
 
-		if (id == "SetPhysicsVolumeEffect") {
-			HandleSetPhysicsVolume(targetEntity, argArray, target);
-		} else if (id == "updateMission") {
+		switch (command->id) {
+		case eTriggerCommandType::ZONE_PLAYER: break;
+		case eTriggerCommandType::FIRE_EVENT:
+			HandleFireEvent(targetEntity, command->args);
+			break;
+		case eTriggerCommandType::DESTROY_OBJ: break;
+		case eTriggerCommandType::TOGGLE_TRIGGER: break;
+		case eTriggerCommandType::RESET_REBUILD: break;
+		case eTriggerCommandType::SET_PATH: break;
+		case eTriggerCommandType::SET_PICK_TYPE: break;
+		case eTriggerCommandType::MOVE_OBJECT: break;
+		case eTriggerCommandType::ROTATE_OBJECT: break;
+		case eTriggerCommandType::PUSH_OBJECT: break;
+		case eTriggerCommandType::REPEL_OBJECT: break;
+		case eTriggerCommandType::SET_TIMER: break;
+		case eTriggerCommandType::CANCEL_TIMER: break;
+		case eTriggerCommandType::PLAY_CINEMATIC: break;
+		case eTriggerCommandType::TOGGLE_BBB: break;
+		case eTriggerCommandType::UPDATE_MISSION:
 			HandleUpdateMission(targetEntity, argArray);
-		} else if (id == "fireEvent") {
-			HandleFireEvent(targetEntity, args);
-		} else if (id == "zonePlayer") {
-			// TODO:
-			// zonePlayer 	[zone ID],(0 for non-instanced, 1 for instanced), (x, y, z position), (y rotation), (spawn point name)
-		} else if (id == "destroyObj") {
-			// TODO:
-			// destroyObj 	(0 for violent, 1 for silent)
-		} else if (id == "toggleTrigger") {
-			// TODO:
-			// toggleTrigger 	[0 to disable, 1 to enable]
-		} else if (id == "resetRebuild") {
-			// TODO:
-			// resetRebuild 	(0 for normal reset, 1 for “failure” reset)
-		} else if (id == "setPath") {
-			// TODO:
-			// setPath 	[new path name],(starting point index),(0 for forward, 1 for reverse)
-		} else if (id == "setPickType") {
-			// TODO:
-			// setPickType 	[new pick type, or -1 to disable picking]
-		} else if (id == "moveObject") {
-			// TODO:
-			// moveObject 	[x offset],[y offset],[z offset]
-		} else if (id == "rotateObject") {
-			// TODO:
-			// rotateObject 	[x rotation],[y rotation],[z rotation]
-		} else if (id == "pushObject") {
-			// TODO:
-			// pushObject 	[x direction],[y direction],[z direction]
-		} else if (id == "repelObject") {
-			// TODO:
-			// repelObject 	(force multiplier)
-		} else if (id == "setTimer") {
-			// TODO:
-			// setTimer 	[timer name],[duration in seconds]
-		} else if (id == "cancelTimer") {
-			// TODO:
-			// cancelTimer 	[timer name]
-		} else if (id == "playCinematic") {
-			// TODO:
-			// playCinematic 	[cinematic name],(lead-in in seconds),(“wait” to wait at end),(“unlock” to NOT lock the player controls),(“leavelocked” to leave player locked after cinematic finishes),(“hideplayer” to make player invisible during cinematic)
-		} else if (id == "toggleBBB") {
-			// TODO:
-			// toggleBBB 	(“enter” or “exit” to force direction)
-		} else if (id == "setBouncerState") {
-			// TODO:
-			// setBouncerState 	[“on” to activate bouncer or “off” to deactivate bouncer]
-		} else if (id == "bounceAllOnBouncer") {
-			// TODO:
-			// bounceAllOnBouncer 	No Parameters Required
-		} else if (id == "turnAroundOnPath") {
-			// TODO:
-			// turnAroundOnPath 	No Parameters Required
-		} else if (id == "goForwardOnPath") {
-			// TODO:
-			// goForwardOnPath 	No Parameters Required
-		} else if (id == "goBackwardOnPath") {
-			// TODO:
-			// goBackwardOnPath 	No Parameters Required
-		} else if (id == "stopPathing") {
-			// TODO:
-			// stopPathing 	No Parameters Required
-		} else if (id == "startPathing") {
-			// TODO:
-			// startPathing 	No Parameters Required
-		} else if (id == "LockOrUnlockControls") {
-			// TODO:
-			// LockOrUnlockControls 	[“lock” to lock controls or “unlock” to unlock controls]
-		} else if (id == "PlayEffect") {
-			// TODO:
-			// PlayEffect 	[nameID],[effectID],[effectType],[priority(optional)]
-		} else if (id == "StopEffect") {
-			// TODO:
-			// StopEffect 	[nameID]
-		} else if (id == "CastSkill") {
-			// TODO:
-			// CastSkill 	[skillID]
-		} else if (id == "displayZoneSummary") {
-			// TODO:
-			// displayZoneSummary 	[1 for zone start, 0 for zone end]
-		} else if (id == "SetPhysicsVolumeStatus") {
-			// TODO:
-			// SetPhysicsVolumeStatus 	[“On”, “Off”]
-		} else if (id == "setModelToBuild") {
-			// TODO:
-			// setModelToBuild 	[template ID]
-		} else if (id == "spawnModelBricks") {
-			// TODO:
-			// spawnModelBricks 	[amount, from 0 to 1],[x],[y],[z]
-		} else if (id == "ActivateSpawnerNetwork") {
-			// TODO:
-			// ActivateSpawnerNetwork 	[Spawner Network Name]
-		} else if (id == "DeactivateSpawnerNetwork") {
-			// TODO:
-			// DeactivateSpawnerNetwork 	[Spawner Network Name]
-		} else if (id == "ResetSpawnerNetwork") {
-			// TODO:
-			// ResetSpawnerNetwork 	[Spawner Network Name]
-		} else if (id == "DestroySpawnerNetworkObjects") {
-			// TODO:
-			// DestroySpawnerNetworkObjects 	[Spawner Network Name]
-		} else if (id == "Go_To_Waypoint") {
-			// TODO:
-			// Go_To_Waypoint 	[Waypoint index],(“true” to allow direction change, otherwise “false”),(“true” to stop at waypoint, otherwise “false”)
-		} else if (id == "ActivatePhysics") {
-			// TODO:
-			// ActivatePhysics 	“true” to activate and add to world, “false” to deactivate and remove from the world
-		} else {
-			Game::logger->LogDebug("TriggerComponent", "Trigger Event %s does not exist!", id.c_str());
+			break;
+		case eTriggerCommandType::SET_BOUNCER_STATE: break;
+		case eTriggerCommandType::BOUNCE_ALL_ON_BOUNCER: break;
+		case eTriggerCommandType::TURN_AROUND_ON_PATH: break;
+		case eTriggerCommandType::GO_FORWARD_ON_PATH: break;
+		case eTriggerCommandType::GO_BACKWARD_ON_PATH: break;
+		case eTriggerCommandType::STOP_PATHING: break;
+		case eTriggerCommandType::START_PATHING: break;
+		case eTriggerCommandType::LOCK_OR_UNLOCK_CONTROLS: break;
+		case eTriggerCommandType::PLAY_EFFECT: break;
+		case eTriggerCommandType::STOP_EFFECT: break;
+		case eTriggerCommandType::ACTIVATE_MUSIC_CUE: break;
+		case eTriggerCommandType::DEACTIVATE_MUSIC_CUE: break;
+		case eTriggerCommandType::FLASH_MUSIC_CUE: break;
+		case eTriggerCommandType::SET_MUSIC_PARAMETER: break;
+		case eTriggerCommandType::PLAY_2D_AMBIENT_SOUND: break;
+		case eTriggerCommandType::STOP_2D_AMBIENT_SOUND: break;
+		case eTriggerCommandType::PLAY_3D_AMBIENT_SOUND: break;
+		case eTriggerCommandType::STOP_3D_AMBIENT_SOUND: break;
+		case eTriggerCommandType::ACTIVATE_MIXER_PROGRAM: break;
+		case eTriggerCommandType::DEACTIVATE_MIXER_PROGRAM: break;
+		case eTriggerCommandType::CAST_SKILL: break;
+		case eTriggerCommandType::DISPLAY_ZONE_SUMMARY: break;
+		case eTriggerCommandType::SET_PHYSICS_VOLUME_EFFECT:
+			HandleSetPhysicsVolume(targetEntity, argArray, command->target);
+			break;
+		case eTriggerCommandType::SET_PHYSICS_VOLUME_STATUS: break;
+		case eTriggerCommandType::SET_MODEL_TO_BUILD: break;
+		case eTriggerCommandType::SPAWN_MODEL_BRICKS: break;
+		case eTriggerCommandType::ACTIVATE_SPAWNER_NETWORK: break;
+		case eTriggerCommandType::DEACTIVATE_SPAWNER_NETWORK: break;
+		case eTriggerCommandType::RESET_SPAWNER_NETWORK: break;
+		case eTriggerCommandType::DESTROY_SPAWNER_NETWORK_OBJECTS: break;
+		case eTriggerCommandType::GO_TO_WAYPOINT: break;
+		case eTriggerCommandType::ACTIVATE_PHYSICS: break;
 		}
 	}
+}
+
+std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* command, Entity* optionalTarget) {
+	std::vector<Entity*> entities = {};
+
+	if (command->target == "self") entities.push_back(m_Parent);
+	else if (command->target == "zone") { /*TODO*/ }
+	else if (command->target == "target") { /*TODO*/ }
+	else if (command->target == "targetTeam") { /*TODO*/ }
+	else if (command->target == "objGroup") entities = EntityManager::Instance()->GetEntitiesInGroup(command->targetName);
+	else if (command->target == "allPlayers") { /*TODO*/ }
+	else if (command->target == "allNPCs") { /*TODO*/ }
+
+	if (optionalTarget) entities.push_back(optionalTarget);
+
+	return entities;
 }
 
 std::vector<std::string> TriggerComponent::ParseArgs(std::string args){
@@ -194,6 +150,8 @@ std::vector<std::string> TriggerComponent::ParseArgs(std::string args){
 	}
 	return argArray;
 }
+
+
 
 void TriggerComponent::HandleSetPhysicsVolume(Entity* targetEntity, std::vector<std::string> argArray, std::string target) {
 	PhantomPhysicsComponent* phanPhys = m_Parent->GetComponent<PhantomPhysicsComponent>();
