@@ -18,7 +18,6 @@
 #include "PerformanceManager.h"
 #include "Diagnostics.h"
 #include "BinaryPathFinder.h"
-#include "ControlBehaviors.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
