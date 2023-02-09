@@ -12,7 +12,7 @@ public:
 	std::string defaultValue;
 	float minimumValue;		// Always zero!
 	float maximumValue;
-	static BlockDefinition blockDefinitionInvalid;
+	static BlockDefinition blockDefinitionDefault;
 };
 
 #endif  //!__BLOCKDEFINITION__H__

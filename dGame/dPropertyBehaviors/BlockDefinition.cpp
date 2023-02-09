@@ -1,6 +1,6 @@
 #include "BlockDefinition.h"
 
-BlockDefinition BlockDefinition::blockDefinitionInvalid{};
+BlockDefinition BlockDefinition::blockDefinitionDefault{};
 
 BlockDefinition::BlockDefinition(std::string defaultValue, float minimumValue, float maximumValue) {
 	this->defaultValue = defaultValue;

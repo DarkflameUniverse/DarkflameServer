@@ -465,5 +465,5 @@ ControlBehaviors::ControlBehaviors() {
 
 BlockDefinition* ControlBehaviors::GetBlockInfo(BlockName& blockName) {
 	auto blockDefinition = blockTypes.find(blockName);
-	return blockDefinition != blockTypes.end() ? blockDefinition->second : &BlockDefinition::blockDefinitionInvalid;
+	return blockDefinition != blockTypes.end() ? blockDefinition->second : &BlockDefinition::blockDefinitionDefault;
 }
