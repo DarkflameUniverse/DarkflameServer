@@ -1,5 +1,6 @@
 #include "SwitchComponent.h"
 #include "EntityManager.h"
+#include "eTriggerEventType.h"
 
 std::vector<SwitchComponent*> SwitchComponent::petSwitches;
 
@@ -42,7 +43,7 @@ void SwitchComponent::EntityEnter(Entity* entity) {
 		}
 		m_Active = true;
 		if (!m_Parent) return;
-		m_Parent->TriggerEvent("OnActivated");
+		m_Parent->TriggerEvent(eTriggerEventType::ACTIVATED);
 
 		const auto grpName = m_Parent->GetVarAsString(u"grp_name");
 
@@ -78,7 +79,7 @@ void SwitchComponent::Update(float deltaTime) {
 		if (m_Timer <= 0.0f) {
 			m_Active = false;
 			if (!m_Parent) return;
-			m_Parent->TriggerEvent("OnDectivated");
+			m_Parent->TriggerEvent(eTriggerEventType::DEACTIVATED);
 
 			const auto grpName = m_Parent->GetVarAsString(u"grp_name");
 

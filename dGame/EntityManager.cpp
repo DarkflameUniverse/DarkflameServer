@@ -19,6 +19,7 @@
 #include "dLogger.h"
 #include "MessageIdentifiers.h"
 #include "dConfig.h"
+#include "eTriggerEventType.h"
 
 EntityManager* EntityManager::m_Address = nullptr;
 
@@ -585,7 +586,7 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 
 	SwitchComponent* switchComp = entity->GetComponent<SwitchComponent>();
 	if (switchComp) {
-		entity->TriggerEvent("OnDectivated");
+		entity->TriggerEvent(eTriggerEventType::DEACTIVATED);
 	}
 
 	const auto objectId = entity->GetObjectID();

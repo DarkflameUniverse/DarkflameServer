@@ -6,17 +6,20 @@
 
 class Command;
 class Event;
+enum class eTriggerCommandType;
+enum class eTriggerEventType;
+
 
 namespace LUTriggers {
 	struct Command {
-		std::string id;
+		eTriggerCommandType id;
 		std::string target;
 		std::string targetName;
 		std::string args;
 	};
 
 	struct Event {
-		std::string eventID;
+		eTriggerEventType id;
 		std::vector<Command*> commands;
 	};
 

@@ -73,6 +73,7 @@
 #include "MovingPlatformComponent.h"
 #include "dMessageIdentifiers.h"
 #include "eMissionState.h"
+#include "TriggerComponent.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -1984,8 +1985,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					ChatPackets::SendSystemMessage(sysAddr, u"Active: " + (GeneralUtils::to_u16string(phantomPhysicsComponent->GetPhysicsEffectActive())));
 				}
 
-				if (closest->GetTrigger() != nullptr) {
-					ChatPackets::SendSystemMessage(sysAddr, u"Trigger: " + (GeneralUtils::to_u16string(closest->GetTrigger()->id)));
+				auto* triggerComponent = closest->GetComponent<TriggerComponent>();
+				if (triggerComponent){
+					auto trigger = triggerComponent->GetTrigger();
+					if (trigger) {
+						ChatPackets::SendSystemMessage(sysAddr, u"Trigger: " + (GeneralUtils::to_u16string(trigger->id)));
+					}
 				}
 			}
 		}
