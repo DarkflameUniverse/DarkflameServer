@@ -161,6 +161,8 @@ void EntityManager::DestroyEntity(Entity* entity) {
 		return;
 	}
 
+	entity->TriggerEvent(eTriggerEventType::DESTROY, entity);
+
 	const auto id = entity->GetObjectID();
 
 	if (std::count(m_EntitiesToDelete.begin(), m_EntitiesToDelete.end(), id)) {
@@ -586,7 +588,7 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 
 	SwitchComponent* switchComp = entity->GetComponent<SwitchComponent>();
 	if (switchComp) {
-		entity->TriggerEvent(eTriggerEventType::DEACTIVATED);
+		entity->TriggerEvent(eTriggerEventType::DEACTIVATED, entity);
 	}
 
 	const auto objectId = entity->GetObjectID();
