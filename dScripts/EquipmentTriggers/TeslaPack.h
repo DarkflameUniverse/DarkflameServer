@@ -5,10 +5,9 @@
 
 class TeslaPack : public CoilBackpackBase {
 public:
-	TeslaPack() : CoilBackpackBase(skillId, behaviorId) {};
+	TeslaPack() : CoilBackpackBase(skillId) {};
 private:
 	static const uint32_t skillId = 1001;
-	static const uint32_t behaviorId = 20917;
 };
 
 #endif  //!__TESLAPACK__H__

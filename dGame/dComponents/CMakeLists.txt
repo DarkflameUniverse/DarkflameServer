@@ -40,5 +40,6 @@ set(DGAME_DCOMPONENTS_SOURCES "BaseCombatAIComponent.cpp"
 	"SkillComponent.cpp"
 	"SoundTriggerComponent.cpp"
 	"SwitchComponent.cpp"
+	"TriggerComponent.cpp"
 	"VehiclePhysicsComponent.cpp"
 	"VendorComponent.cpp" PARENT_SCOPE)
