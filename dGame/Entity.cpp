@@ -68,6 +68,7 @@
 #include "ShootingGalleryComponent.h"
 #include "RailActivatorComponent.h"
 #include "LUPExhibitComponent.h"
+#include "ItemComponent.h"
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
 	m_ObjectID = objectID;
@@ -618,7 +619,7 @@ void Entity::Initialize() {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_SCRIPTED_ACTIVITY, new ScriptedActivityComponent(this, scriptedActivityID)));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MODEL, -1) != -1 && !(petComponentId > 0)) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_MODEL, new ModelComponent(this)));
 		if (m_Components.find(COMPONENT_TYPE_DESTROYABLE) == m_Components.end()) {
 			auto destroyableComponent = new DestroyableComponent(this);
@@ -630,9 +631,9 @@ void Entity::Initialize() {
 		}
 	}
 
-	PetComponent* petComponent;
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !TryGetComponent(COMPONENT_TYPE_PET, petComponent) && !HasComponent(COMPONENT_TYPE_MODEL)) {
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_ITEM, nullptr));
+
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_ITEM) > 0 && !(petComponentId > 0)) {
+		m_Components.emplace(COMPONENT_TYPE_ITEM, new ItemComponent(this));
 	}
 
 	// Shooting gallery component
@@ -1103,8 +1104,9 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	if (HasComponent(COMPONENT_TYPE_ITEM)) {
-		outBitStream->Write0();
+	ItemComponent* itemComponent;
+	if (TryGetComponent(COMPONENT_TYPE_ITEM, itemComponent)) {
+		itemComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	InventoryComponent* inventoryComponent;
