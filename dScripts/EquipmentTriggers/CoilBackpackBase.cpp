@@ -14,10 +14,10 @@ void CoilBackpackBase::NotifyHitOrHealResult(Entity* self, Entity* attacker, int
 		if (self->GetVar<uint8_t>(u"coilCount") > 4) {
 			auto* skillComponent = self->GetComponent<SkillComponent>();
 			if (!skillComponent) return;
-			skillComponent->CalculateBehavior(m_SkillId, m_BehaviorId, self->GetObjectID());
+			skillComponent->CastSkill(m_SkillId);
 			self->SetVar<uint8_t>(u"coilCount", 0);
 		}
-	}	
+	}
 }
 
 void CoilBackpackBase::OnFactionTriggerItemUnequipped(Entity* itemOwner, LWOOBJID itemObjId) {

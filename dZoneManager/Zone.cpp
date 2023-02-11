@@ -14,6 +14,9 @@
 #include "Spawner.h"
 #include "dZoneManager.h"
 
+#include "eTriggerCommandType.h"
+#include "eTriggerEventType.h"
+
 Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) :
 	m_ZoneID(mapID, instanceID, cloneID) {
 	m_NumberOfScenesLoaded = 0;
@@ -296,11 +299,11 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 		auto currentEvent = currentTrigger->FirstChildElement("event");
 		while (currentEvent) {
 			LUTriggers::Event* newEvent = new LUTriggers::Event();
-			newEvent->eventID = currentEvent->Attribute("id");
+			newEvent->id = TriggerEventType::StringToTriggerEventType(currentEvent->Attribute("id"));
 			auto currentCommand = currentEvent->FirstChildElement("command");
 			while (currentCommand) {
 				LUTriggers::Command* newCommand = new LUTriggers::Command();
-				newCommand->id = currentCommand->Attribute("id");
+				newCommand->id = TriggerCommandType::StringToTriggerCommandType(currentCommand->Attribute("id"));
 				newCommand->target = currentCommand->Attribute("target");
 				if (currentCommand->Attribute("targetName") != NULL) {
 					newCommand->targetName = currentCommand->Attribute("targetName");

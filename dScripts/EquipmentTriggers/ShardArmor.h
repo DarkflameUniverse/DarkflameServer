@@ -5,10 +5,9 @@
 
 class ShardArmor : public CoilBackpackBase {
 public:
-	ShardArmor() : CoilBackpackBase(skillId, behaviorId) {};
+	ShardArmor() : CoilBackpackBase(skillId) {};
 private:
 	static const uint32_t skillId = 1249;
-	static const uint32_t behaviorId = 29086;
 };
 
 #endif  //!__SHARDARMOR__H__
