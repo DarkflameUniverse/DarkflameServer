@@ -34,6 +34,7 @@
 #include "eRacingTaskParam.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "eTriggerEventType.h"
 
 #include <sstream>
 #include <future>
@@ -6112,3 +6113,10 @@ void GameMessages::SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const S
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
 }
+
+void GameMessages::HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity) {
+	LWOOBJID player_id;
+	inStream->Read<LWOOBJID>(player_id);
+	auto target = EntityManager::Instance()->GetEntity(player_id);
+	entity->TriggerEvent(eTriggerEventType::ZONE_SUMMARY_DISMISSED, target);
+};
