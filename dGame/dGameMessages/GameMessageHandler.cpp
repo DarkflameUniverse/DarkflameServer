@@ -674,6 +674,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		break;
 	case GAME_MSG_ZONE_SUMMARY_DISMISSED:
 		GameMessages::HandleZoneSummaryDismissed(inStream, entity);
+		break;
 	default:
 		// Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i", messageID);
 		break;

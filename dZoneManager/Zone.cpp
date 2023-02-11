@@ -312,7 +312,6 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 					newCommand->args = currentCommand->Attribute("args");
 				}
 				newEvent->commands.push_back(newCommand);
-				Game::logger->Log("Zone", "Trigger: command %s, event %s, id %i", currentEvent->Attribute("id"), currentCommand->Attribute("id"), newTrigger->id);
 				currentCommand = currentCommand->NextSiblingElement("command");
 			}
 			newTrigger->events.push_back(newEvent);
