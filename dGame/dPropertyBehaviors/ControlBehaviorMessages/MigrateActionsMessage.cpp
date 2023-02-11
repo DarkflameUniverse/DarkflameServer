@@ -1,6 +1,6 @@
 #include "MigrateActionsMessage.h"
 
-void MigrateActionsMessage::Parse(AMFArrayValue* arguments) {
+MigrateActionsMessage::MigrateActionsMessage(AMFArrayValue* arguments) {
 	auto* srcActionIndexAmf = arguments->FindValue<AMFDoubleValue>("srcActionIndex");
 	if (!srcActionIndexAmf) return;
 

@@ -7,7 +7,15 @@ class AMFArrayValue;
 
 class MigrateActionsMessage : public BehaviorMessageBase {
 public:
-	void Parse(AMFArrayValue* arguments);
+	MigrateActionsMessage(AMFArrayValue* arguments);
+	uint32_t GetSrcActionIndex() { return srcActionIndex; };
+	StripId GetSrcStripID() { return srcStripID; };
+	BehaviorState GetSrcStateID() { return srcStateID; };
+	uint32_t GetDstActionIndex() { return dstActionIndex; };
+	StripId GetDstStripID() { return dstStripID; };
+	BehaviorState GetDstStateID() { return dstStateID; };
+	uint32_t GetBehaviorID() { return behaviorID; };
+private:
 	uint32_t srcActionIndex;
 	StripId srcStripID;
 	BehaviorState srcStateID;

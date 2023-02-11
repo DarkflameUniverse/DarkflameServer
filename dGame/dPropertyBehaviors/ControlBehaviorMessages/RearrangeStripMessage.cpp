@@ -1,6 +1,6 @@
 #include "RearrangeStripMessage.h"
 
-void RearrangeStripMessage::Parse(AMFArrayValue* arguments) {
+RearrangeStripMessage::RearrangeStripMessage(AMFArrayValue* arguments) {
 	auto* srcActionIndexValue = arguments->FindValue<AMFDoubleValue>("srcActionIndex");
 	srcActionIndex = static_cast<uint32_t>(srcActionIndexValue->GetDoubleValue());
 

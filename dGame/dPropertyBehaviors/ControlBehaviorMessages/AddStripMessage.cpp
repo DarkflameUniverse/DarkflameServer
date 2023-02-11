@@ -1,6 +1,6 @@
 #include "AddStripMessage.h"
 
-void AddStripMessage::Parse(AMFArrayValue* arguments) {
+AddStripMessage::AddStripMessage(AMFArrayValue* arguments) {
 	auto* strip = arguments->FindValue<AMFArrayValue>("strip");
 	if (!strip) return;
 

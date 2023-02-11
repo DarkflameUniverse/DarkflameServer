@@ -1,6 +1,6 @@
 #include "UpdateStripUiMessage.h"
 
-void UpdateStripUiMessage::Parse(AMFArrayValue* arguments) {
+UpdateStripUiMessage::UpdateStripUiMessage(AMFArrayValue* arguments) {
 	auto* uiArray = arguments->FindValue<AMFArrayValue>("ui");
 	if (!uiArray) return;
 

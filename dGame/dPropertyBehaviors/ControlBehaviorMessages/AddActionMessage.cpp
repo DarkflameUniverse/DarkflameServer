@@ -1,6 +1,6 @@
 #include "AddActionMessage.h"
 
-void AddActionMessage::Parse(AMFArrayValue* arguments) {
+AddActionMessage::AddActionMessage(AMFArrayValue* arguments) {
 	auto* actionIndexAmf = arguments->FindValue<AMFDoubleValue>("actionIndex");
 	if (!actionIndexAmf) return;
 

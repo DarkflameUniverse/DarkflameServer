@@ -97,58 +97,47 @@ void ControlBehaviors::ToggleExecutionUpdates() {
 }
 
 void ControlBehaviors::AddStrip(AMFArrayValue* arguments) {
-	AddStripMessage addStripMessage;
-	addStripMessage.Parse(arguments);
+	AddStripMessage addStripMessage(arguments);
 }
 
 void ControlBehaviors::RemoveStrip(AMFArrayValue* arguments) {
-	RemoveStripMessage removeStrip;
-	removeStrip.Parse(arguments);
+	RemoveStripMessage removeStrip(arguments);
 }
 
 void ControlBehaviors::MergeStrips(AMFArrayValue* arguments) {
-	MergeStripsMessage mergeStripsMessage;
-	mergeStripsMessage.Parse(arguments);
+	MergeStripsMessage mergeStripsMessage(arguments);
 }
 
 void ControlBehaviors::SplitStrip(AMFArrayValue* arguments) {
-	SplitStripMessage splitStripMessage;
-	splitStripMessage.Parse(arguments);
+	SplitStripMessage splitStripMessage(arguments);
 }
 
 void ControlBehaviors::UpdateStripUI(AMFArrayValue* arguments) {
-	UpdateStripUiMessage updateStripUiMessage;
-	updateStripUiMessage.Parse(arguments);
+	UpdateStripUiMessage updateStripUiMessage(arguments);
 }
 
 void ControlBehaviors::AddAction(AMFArrayValue* arguments) {
-	AddActionMessage addActionMessage;
-	addActionMessage.Parse(arguments);
+	AddActionMessage addActionMessage(arguments);
 }
 
 void ControlBehaviors::MigrateActions(AMFArrayValue* arguments) {
-	MigrateActionsMessage migrateActionsMessage;
-	migrateActionsMessage.Parse(arguments);
+	MigrateActionsMessage migrateActionsMessage(arguments);
 }
 
 void ControlBehaviors::RearrangeStrip(AMFArrayValue* arguments) {
-	RearrangeStripMessage rearrangeStripMessage;
-	rearrangeStripMessage.Parse(arguments);
+	RearrangeStripMessage rearrangeStripMessage(arguments);
 }
 
 void ControlBehaviors::Add(AMFArrayValue* arguments) {
-	AddMessage addMessage;
-	addMessage.Parse(arguments);
+	AddMessage addMessage(arguments);
 }
 
 void ControlBehaviors::RemoveActions(AMFArrayValue* arguments) {
-	RemoveActionsMessage removeActionsMessage;
-	removeActionsMessage.Parse(arguments);
+	RemoveActionsMessage removeActionsMessage(arguments);
 }
 
 void ControlBehaviors::Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
-	RenameMessage renameMessage;
-	renameMessage.Parse(arguments);
+	RenameMessage renameMessage(arguments);
 }
 
 // TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
@@ -258,20 +247,19 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 }
 
 void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
-	UpdateActionMessage updateActionMessage;
-	updateActionMessage.Parse(arguments);
-	auto* blockDefinition = GetBlockInfo(updateActionMessage.type);
+	UpdateActionMessage updateActionMessage(arguments);
+	auto* blockDefinition = GetBlockInfo(updateActionMessage.GetType());
 
-	if (updateActionMessage.valueParameterString.size() > 0) {
-		if (updateActionMessage.valueParameterString.size() < blockDefinition->GetMinimumValue() ||
-			updateActionMessage.valueParameterString.size() > blockDefinition->GetMaximumValue()) {
-			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.type.c_str());
+	if (updateActionMessage.GetValueParameterString().size() > 0) {
+		if (updateActionMessage.GetValueParameterString().size() < blockDefinition->GetMinimumValue() ||
+			updateActionMessage.GetValueParameterString().size() > blockDefinition->GetMaximumValue()) {
+			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.GetType().c_str());
 			return;
 		}
 	} else {
-		if (updateActionMessage.valueParameterDouble < blockDefinition->GetMinimumValue() ||
-			updateActionMessage.valueParameterDouble > blockDefinition->GetMaximumValue()) {
-			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.type.c_str());
+		if (updateActionMessage.GetValueParameterDouble() < blockDefinition->GetMinimumValue() ||
+			updateActionMessage.GetValueParameterDouble() > blockDefinition->GetMaximumValue()) {
+			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.GetType().c_str());
 			return;
 		}
 	}
@@ -286,8 +274,7 @@ void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const Sys
 
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "ToggleBehaviorEditor", &args);
 
-	MoveToInventoryMessage moveToInventoryMessage;
-	moveToInventoryMessage.Parse(arguments);
+	MoveToInventoryMessage moveToInventoryMessage(arguments);
 
 	SendBehaviorListToClient(modelComponent->GetParent(), sysAddr, modelOwner);
 }

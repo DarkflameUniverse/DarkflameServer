@@ -5,7 +5,10 @@
 
 class AddMessage : public BehaviorMessageBase {
 public:
-	void Parse(AMFArrayValue* arguments);
+	AddMessage(AMFArrayValue* arguments);
+	uint32_t GetBehaviorIndex() { return behaviorIndex; };
+	uint32_t GetBehaviorId() { return behaviorId; };
+private:
 	uint32_t behaviorId;
 	uint32_t behaviorIndex;
 };

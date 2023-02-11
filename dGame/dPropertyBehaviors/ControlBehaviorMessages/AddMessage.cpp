@@ -1,6 +1,6 @@
 #include "AddMessage.h"
 
-void AddMessage::Parse(AMFArrayValue* arguments) {
+AddMessage::AddMessage(AMFArrayValue* arguments) {
 	behaviorId = GetBehaviorIDFromArgument(arguments);
 
 	behaviorIndex = 0;

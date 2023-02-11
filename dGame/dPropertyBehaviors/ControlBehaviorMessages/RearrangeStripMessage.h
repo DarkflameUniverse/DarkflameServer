@@ -5,7 +5,13 @@
 
 class RearrangeStripMessage : public BehaviorMessageBase {
 public:
-	void Parse(AMFArrayValue* arguments);
+	RearrangeStripMessage(AMFArrayValue* arguments);
+	uint32_t GetSrcActionIndex() { return srcActionIndex; };
+	uint32_t GetStripID() { return stripID; };
+	uint32_t GetBehaviorID() { return behaviorID; };
+	uint32_t GetDstActionIndex() { return dstActionIndex; };
+	BehaviorState GetStateID() { return stateID; };
+private:
 	uint32_t srcActionIndex;
 	uint32_t stripID;
 	uint32_t behaviorID;

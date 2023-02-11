@@ -1,6 +1,6 @@
 #include "MergeStripsMessage.h"
 
-void MergeStripsMessage::Parse(AMFArrayValue* arguments) {
+MergeStripsMessage::MergeStripsMessage(AMFArrayValue* arguments) {
 	srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
 
 	dstStateID = GetBehaviorStateFromArgument(arguments, "dstStateID");

@@ -1,6 +1,6 @@
 #include "RenameMessage.h"
 
-void RenameMessage::Parse(AMFArrayValue* arguments) {
+RenameMessage::RenameMessage(AMFArrayValue* arguments) {
 	behaviorID = GetBehaviorIDFromArgument(arguments);
 
 	auto* nameAmf = arguments->FindValue<AMFStringValue>("Name");

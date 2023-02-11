@@ -7,7 +7,16 @@ class AMFArrayValue;
 
 class SplitStripMessage : public BehaviorMessageBase {
 public:
-	void Parse(AMFArrayValue* arguments);
+	SplitStripMessage(AMFArrayValue* arguments);
+	uint32_t GetSrcActionIndex() { return srcActionIndex; };
+	StripId GetSrcStripId() { return srcStripId; };
+	BehaviorState GetSrcStateId() { return srcStateId; };
+	StripId GetDstStripId() { return dstStripId; };
+	BehaviorState GetDstStateId() { return dstStateId; };
+	double GetYPosition() { return yPosition; };
+	double GetXPosition() { return xPosition; };
+	uint32_t GetBehaviorId() { return behaviorId; };
+private:
 	uint32_t srcActionIndex;
 	StripId srcStripId;
 	BehaviorState srcStateId;

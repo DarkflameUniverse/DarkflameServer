@@ -8,7 +8,10 @@ class AMFArrayValue;
 #pragma warning("This Control Behavior Message does not have a test yet. Non-developers can ignore this warning.")
 class MoveToInventoryMessage: public BehaviorMessageBase {
 public:
-	void Parse(AMFArrayValue* arguments);
+	MoveToInventoryMessage(AMFArrayValue* arguments);
+	uint32_t GetBehaviorID() { return behaviorID; };
+	uint32_t GetBehaviorIndex() { return behaviorIndex; };
+private:
 	uint32_t behaviorID;
 	uint32_t behaviorIndex;
 };

@@ -1,6 +1,6 @@
 #include "RemoveStripMessage.h"
 
-void RemoveStripMessage::Parse(AMFArrayValue* arguments) {
+RemoveStripMessage::RemoveStripMessage(AMFArrayValue* arguments) {
 	stripId = GetStripIDFromArgument(arguments);
 	behaviorState = GetBehaviorStateFromArgument(arguments);
 	behaviorId = GetBehaviorIDFromArgument(arguments);

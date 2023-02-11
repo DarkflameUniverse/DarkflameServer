@@ -1,6 +1,6 @@
 #include "UpdateActionMessage.h"
 
-void UpdateActionMessage::Parse(AMFArrayValue* arguments) {
+UpdateActionMessage::UpdateActionMessage(AMFArrayValue* arguments) {
 	type = "";
 	valueParameterName = "";
 	valueParameterString = "";

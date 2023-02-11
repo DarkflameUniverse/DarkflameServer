@@ -1,6 +1,6 @@
 #include "RemoveActionsMessage.h"
 
-void RemoveActionsMessage::Parse(AMFArrayValue* arguments) {
+RemoveActionsMessage::RemoveActionsMessage(AMFArrayValue* arguments) {
 	behaviorID = GetBehaviorIDFromArgument(arguments);
 
 	auto* actionIndexAmf = arguments->FindValue<AMFDoubleValue>("actionIndex");

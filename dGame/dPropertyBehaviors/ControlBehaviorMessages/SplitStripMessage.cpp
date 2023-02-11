@@ -1,6 +1,6 @@
 #include "SplitStripMessage.h"
 
-void SplitStripMessage::Parse(AMFArrayValue* arguments) {
+SplitStripMessage::SplitStripMessage(AMFArrayValue* arguments) {
 	auto* srcActionIndexValue = arguments->FindValue<AMFDoubleValue>("srcActionIndex");
 	if (!srcActionIndexValue) return;
 

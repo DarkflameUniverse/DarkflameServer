@@ -5,7 +5,11 @@
 
 class RemoveStripMessage : public BehaviorMessageBase {
 public:
-	void Parse(AMFArrayValue* arguments);
+	RemoveStripMessage(AMFArrayValue* arguments);
+	StripId GetStripId() { return stripId; };
+	BehaviorState GetBehaviorState() { return behaviorState; };
+	uint32_t GetBehaviorId() { return behaviorId; };
+private:
 	StripId stripId;
 	BehaviorState behaviorState;
 	uint32_t behaviorId;

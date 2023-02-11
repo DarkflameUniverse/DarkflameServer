@@ -7,7 +7,13 @@ class AMFArrayValue;
 
 class UpdateStripUiMessage : public BehaviorMessageBase {
 public:
-	void Parse(AMFArrayValue* arguments);
+	UpdateStripUiMessage(AMFArrayValue* arguments);
+	double GetYPosition() { return yPosition; };
+	double GetXPosition() { return xPosition; };
+	StripId GetStripID() { return stripID; };
+	BehaviorState GetStateID() { return stateID; };
+	uint32_t GetBehaviorID() { return behaviorID; };
+private:
 	double yPosition;
 	double xPosition;
 	StripId stripID;
