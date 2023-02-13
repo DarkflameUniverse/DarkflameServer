@@ -8,11 +8,11 @@ class AMFArrayValue;
 class UpdateStripUiMessage : public BehaviorMessageBase {
 public:
 	UpdateStripUiMessage(AMFArrayValue* arguments);
-	double GetYPosition() { return yPosition; };
-	double GetXPosition() { return xPosition; };
-	StripId GetStripID() { return stripID; };
-	BehaviorState GetStateID() { return stateID; };
-	uint32_t GetBehaviorID() { return behaviorID; };
+	const double GetYPosition() { return yPosition; };
+	const double GetXPosition() { return xPosition; };
+	const StripId GetStripID() { return stripID; };
+	const BehaviorState GetStateID() { return stateID; };
+	const uint32_t GetBehaviorID() { return behaviorID; };
 private:
 	double yPosition;
 	double xPosition;

@@ -9,8 +9,8 @@ class AMFArrayValue;
 class MoveToInventoryMessage: public BehaviorMessageBase {
 public:
 	MoveToInventoryMessage(AMFArrayValue* arguments);
-	uint32_t GetBehaviorID() { return behaviorID; };
-	uint32_t GetBehaviorIndex() { return behaviorIndex; };
+	const uint32_t GetBehaviorID() { return behaviorID; };
+	const uint32_t GetBehaviorIndex() { return behaviorIndex; };
 private:
 	uint32_t behaviorID;
 	uint32_t behaviorIndex;

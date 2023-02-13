@@ -8,14 +8,14 @@ class AMFArrayValue;
 class AddActionMessage : public BehaviorMessageBase {
 public:
 	AddActionMessage(AMFArrayValue* arguments);
-	uint32_t GetActionIndex() { return actionIndex; };
-	StripId GetStripId() { return stripId; };
-	BehaviorState GetStateId() { return stateId; };
-	std::string& GetType() { return type; };
-	std::string& GetValueParameterName() { return valueParameterName; };
-	std::string& GetValueParameterString() { return valueParameterString; };
-	double GetValueParameterDouble() { return valueParameterDouble; };
-	uint32_t GetBehaviorId() { return behaviorId; };
+	const uint32_t GetActionIndex() { return actionIndex; };
+	const StripId GetStripId() { return stripId; };
+	const BehaviorState GetStateId() { return stateId; };
+	const std::string& GetType() { return type; };
+	const std::string& GetValueParameterName() { return valueParameterName; };
+	const std::string& GetValueParameterString() { return valueParameterString; };
+	const double GetValueParameterDouble() { return valueParameterDouble; };
+	const uint32_t GetBehaviorId() { return behaviorId; };
 private:
 	uint32_t actionIndex;
 	StripId stripId;

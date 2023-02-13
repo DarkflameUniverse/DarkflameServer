@@ -8,12 +8,12 @@ class AMFArrayValue;
 class MergeStripsMessage : public BehaviorMessageBase {
 public:
 	MergeStripsMessage(AMFArrayValue* arguments);
-	StripId GetSrcStripID() { return srcStripID; };
-	BehaviorState GetDstStateID() { return dstStateID; };
-	BehaviorState GetSrcStateID() { return srcStateID; };
-	uint32_t GetDstActionIndex() { return dstActionIndex; };
-	StripId GetDstStripID() { return dstStripID; };
-	uint32_t GetBehaviorID() { return behaviorID; };
+	const StripId GetSrcStripID() { return srcStripID; };
+	const BehaviorState GetDstStateID() { return dstStateID; };
+	const BehaviorState GetSrcStateID() { return srcStateID; };
+	const uint32_t GetDstActionIndex() { return dstActionIndex; };
+	const StripId GetDstStripID() { return dstStripID; };
+	const uint32_t GetBehaviorID() { return behaviorID; };
 private:
 	StripId srcStripID;
 	BehaviorState dstStateID;

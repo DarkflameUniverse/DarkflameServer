@@ -450,7 +450,7 @@ ControlBehaviors::ControlBehaviors() {
 	}
 }
 
-BlockDefinition* ControlBehaviors::GetBlockInfo(BlockName& blockName) {
+BlockDefinition* ControlBehaviors::GetBlockInfo(const BlockName& blockName) {
 	auto blockDefinition = blockTypes.find(blockName);
 	return blockDefinition != blockTypes.end() ? blockDefinition->second : &BlockDefinition::blockDefinitionDefault;
 }

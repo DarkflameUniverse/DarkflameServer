@@ -8,8 +8,8 @@ class AMFArrayValue;
 class RenameMessage : public BehaviorMessageBase {
 public:
 	RenameMessage(AMFArrayValue* arguments);
-	uint32_t GetBehaviorID() { return behaviorID; };
-	std::string& GetName() { return name; };
+	const uint32_t GetBehaviorID() { return behaviorID; };
+	const std::string& GetName() { return name; };
 private:
 	uint32_t behaviorID;
 	std::string name;

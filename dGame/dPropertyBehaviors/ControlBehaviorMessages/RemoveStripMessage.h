@@ -6,9 +6,9 @@
 class RemoveStripMessage : public BehaviorMessageBase {
 public:
 	RemoveStripMessage(AMFArrayValue* arguments);
-	StripId GetStripId() { return stripId; };
-	BehaviorState GetBehaviorState() { return behaviorState; };
-	uint32_t GetBehaviorId() { return behaviorId; };
+	const StripId GetStripId() { return stripId; };
+	const BehaviorState GetBehaviorState() { return behaviorState; };
+	const uint32_t GetBehaviorId() { return behaviorId; };
 private:
 	StripId stripId;
 	BehaviorState behaviorState;

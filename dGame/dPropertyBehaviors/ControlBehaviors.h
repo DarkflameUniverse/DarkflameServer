@@ -39,7 +39,7 @@ public:
 	 * 
 	 * @return A pair of the block parameter name to its typing
 	 */
-	BlockDefinition* GetBlockInfo(BlockName& blockName);
+	BlockDefinition* GetBlockInfo(const BlockName& blockName);
 private:
 	void RequestUpdatedID(int32_t behaviorID, ModelComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr);
 	void SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner);
