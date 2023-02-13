@@ -45,7 +45,7 @@ std::map<LOT, int>& VendorComponent::GetInventory() {
 
 bool VendorComponent::HasCraftingStation() {
 	// As far as we know, only Umami has a crafting station
-	return m_Parent->GetLOT() == 13800;
+	return m_Parent->GetLOT() == 13800 || m_Parent->GetLOT() == 38071;
 }
 
 bool VendorComponent::IsFaceVendor() {
