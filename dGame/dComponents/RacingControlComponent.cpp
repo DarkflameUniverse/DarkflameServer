@@ -15,12 +15,14 @@
 #include "Player.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
-#include "RacingTaskParam.h"
+#include "eRacingTaskParam.h"
 #include "Spawner.h"
 #include "VehiclePhysicsComponent.h"
 #include "dServer.h"
 #include "dZoneManager.h"
 #include "dConfig.h"
+#include "Loot.h"
+#include "eMissionTaskType.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327950288
@@ -98,7 +100,7 @@ void RacingControlComponent::OnPlayerLoaded(Entity* player) {
 }
 
 void RacingControlComponent::LoadPlayerVehicle(Entity* player,
-	bool initialLoad) {
+	uint32_t positionNumber, bool initialLoad) {
 	// Load the player's vehicle.
 
 	if (player == nullptr) {
@@ -126,33 +128,18 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	auto* path = dZoneManager::Instance()->GetZone()->GetPath(
 		GeneralUtils::UTF16ToWTF8(m_PathName));
 
-	auto startPosition = path->pathWaypoints[0].position + NiPoint3::UNIT_Y * 3;
-
-	const auto spacing = 15;
-
-	// This sometimes spawns the vehicle out of the map if there are lots of
-	// players loaded.
-
-	const auto range = m_LoadedPlayers * spacing;
-
-	startPosition =
-		startPosition + NiPoint3::UNIT_Z * ((m_LeadingPlayer / 2) +
-			m_RacingPlayers.size() * spacing);
-
-	auto startRotation =
-		NiQuaternion::LookAt(startPosition, startPosition + NiPoint3::UNIT_X);
-
-	auto angles = startRotation.GetEulerAngles();
-
-	angles.y -= M_PI;
-
-	startRotation = NiQuaternion::FromEulerAngles(angles);
-
-	Game::logger->Log("RacingControlComponent",
-		"Start position <%f, %f, %f>, <%f, %f, %f>",
-		startPosition.x, startPosition.y, startPosition.z,
-		angles.x * (180.0f / M_PI), angles.y * (180.0f / M_PI),
-		angles.z * (180.0f / M_PI));
+	auto spawnPointEntities = EntityManager::Instance()->GetEntitiesByLOT(4843);
+	auto startPosition = NiPoint3::ZERO;
+	auto startRotation = NiQuaternion::IDENTITY;
+	const std::string placementAsString = std::to_string(positionNumber);
+	for (auto entity : spawnPointEntities) {
+		if (!entity) continue;
+		if (entity->GetVarAsString(u"placement") == placementAsString) {
+			startPosition = entity->GetPosition();
+			startRotation = entity->GetRotation();
+			break;
+		}
+	}
 
 	// Make sure the player is at the correct position.
 
@@ -409,18 +396,18 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player,
 
 		if (missionComponent == nullptr) return;
 
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, 0, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COMPETED_IN_RACE); // Progress task for competing in a race
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, data->smashedTimes, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SAFE_DRIVER); // Finish a race without being smashed.
+		missionComponent->Progress(eMissionTaskType::RACING, 0, (LWOOBJID)eRacingTaskParam::COMPETED_IN_RACE); // Progress task for competing in a race
+		missionComponent->Progress(eMissionTaskType::RACING, data->smashedTimes, (LWOOBJID)eRacingTaskParam::SAFE_DRIVER); // Finish a race without being smashed.
 
 		// If solo racing is enabled OR if there are 3 players in the race, progress placement tasks.
 		if (m_SoloRacing || m_LoadedPlayers > 2) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, data->finished, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_FINISH_WITH_PLACEMENT); // Finish in 1st place on a race
+			missionComponent->Progress(eMissionTaskType::RACING, data->finished, (LWOOBJID)eRacingTaskParam::FINISH_WITH_PLACEMENT); // Finish in 1st place on a race
 			if (data->finished == 1) {
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_FIRST_PLACE_MULTIPLE_TRACKS); // Finish in 1st place on multiple tracks.
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_WIN_RACE_IN_WORLD); // Finished first place in specific world.
+				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::FIRST_PLACE_MULTIPLE_TRACKS); // Finish in 1st place on multiple tracks.
+				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::WIN_RACE_IN_WORLD); // Finished first place in specific world.
 			}
 			if (data->finished == m_LoadedPlayers) {
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_LAST_PLACE_FINISH); // Finished first place in specific world.
+				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::LAST_PLACE_FINISH); // Finished first place in specific world.
 			}
 		}
 	} else if (id == "ACT_RACE_EXIT_THE_RACE?" || id == "Exit") {
@@ -567,12 +554,12 @@ void RacingControlComponent::Update(float deltaTime) {
 			Game::logger->Log("RacingControlComponent",
 				"Loading all players...");
 
-			for (size_t i = 0; i < m_LobbyPlayers.size(); i++) {
+			for (size_t positionNumber = 0; positionNumber < m_LobbyPlayers.size(); positionNumber++) {
 				Game::logger->Log("RacingControlComponent",
 					"Loading player now!");
 
 				auto* player =
-					EntityManager::Instance()->GetEntity(m_LobbyPlayers[i]);
+					EntityManager::Instance()->GetEntity(m_LobbyPlayers[positionNumber]);
 
 				if (player == nullptr) {
 					return;
@@ -581,7 +568,7 @@ void RacingControlComponent::Update(float deltaTime) {
 				Game::logger->Log("RacingControlComponent",
 					"Loading player now NOW!");
 
-				LoadPlayerVehicle(player, true);
+				LoadPlayerVehicle(player, positionNumber + 1, true);
 
 				m_Loaded = true;
 			}
@@ -842,7 +829,7 @@ void RacingControlComponent::Update(float deltaTime) {
 				if (missionComponent != nullptr) {
 
 					// Progress lap time tasks
-					missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, (lapTime) * 1000, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_LAP_TIME);
+					missionComponent->Progress(eMissionTaskType::RACING, (lapTime) * 1000, (LWOOBJID)eRacingTaskParam::LAP_TIME);
 
 					if (player.lap == 3) {
 						m_Finished++;
@@ -858,7 +845,7 @@ void RacingControlComponent::Update(float deltaTime) {
 							raceTime, raceTime * 1000);
 
 						// Entire race time
-						missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, (raceTime) * 1000, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_TOTAL_TRACK_TIME);
+						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, (LWOOBJID)eRacingTaskParam::TOTAL_TRACK_TIME);
 
 						auto* characterComponent = playerEntity->GetComponent<CharacterComponent>();
 						if (characterComponent != nullptr) {

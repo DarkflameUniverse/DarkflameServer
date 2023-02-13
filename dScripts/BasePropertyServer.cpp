@@ -8,6 +8,8 @@
 #include "RenderComponent.h"
 #include "PropertyManagementComponent.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
+#include "eMissionState.h"
 
 void BasePropertyServer::SetGameVariables(Entity* self) {
 	self->SetVar<std::string>(ClaimMarkerGroup, "");
@@ -97,7 +99,7 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 
 			if (missionComponent != nullptr) {
 				missionComponent->Progress(
-					MissionTaskType::MISSION_TASK_TYPE_VISIT_PROPERTY,
+					eMissionTaskType::VISIT_PROPERTY,
 					mapID.GetMapID(),
 					mapID.GetCloneID()
 				);
@@ -150,7 +152,7 @@ void BasePropertyServer::PropGuardCheck(Entity* self, Entity* player) {
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr
-		&& missionComponent->GetMissionState(self->GetVar<uint32_t>(guardMissionFlag)) != MissionState::MISSION_STATE_COMPLETE) {
+		&& missionComponent->GetMissionState(self->GetVar<uint32_t>(guardMissionFlag)) != eMissionState::COMPLETE) {
 		ActivateSpawner(self->GetVar<std::string>(PropertyMGSpawner));
 	}
 }

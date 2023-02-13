@@ -9,11 +9,12 @@
 
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
-#include "PermissionMap.h"
+#include "ePermissionMap.h"
 
 class User;
 struct Packet;
 class Entity;
+enum class ePermissionMap : uint64_t;
 
 /**
  * Meta information about a character, like their name and style
@@ -23,6 +24,10 @@ public:
 	Character(uint32_t id, User* parentUser);
 	~Character();
 
+	/**
+	 * Write the current m_Doc to the database for saving.
+	 */
+	void WriteToDatabase();
 	void SaveXMLToDatabase();
 	void UpdateFromDatabase();
 
@@ -31,6 +36,15 @@ public:
 
 	const std::string& GetXMLData() const { return m_XMLData; }
 	tinyxml2::XMLDocument* GetXMLDoc() const { return m_Doc; }
+
+	/**
+	 * Out of abundance of safety and clarity of what this saves, this is its own function.
+	 *
+	 * Clears the s element from the flag element and saves the xml to the database.  Used to prevent the news
+	 * feed from showing up on world transfers.
+	 *
+	 */
+	void SetIsNewLogin();
 
 	/**
 	 * Gets the database ID of the character
@@ -372,14 +386,14 @@ public:
 	 * Gets the permissions of the character, determining what actions a character may do
 	 * @return the permissions for this character
 	 */
-	PermissionMap GetPermissionMap() const;
+	ePermissionMap GetPermissionMap() const;
 
 	/**
 	 * Check if this character has a certain permission
 	 * @param permission the ID of the permission to check for
 	 * @return whether the character has the specified permission
 	 */
-	bool HasPermission(PermissionMap permission) const;
+	bool HasPermission(ePermissionMap permission) const;
 
 	/**
 	 * Gets all the emotes this character has unlocked so far
@@ -427,7 +441,7 @@ public:
 
 	/**
 	 * @brief Get the flying state
-	 * @return value of the flying state 
+	 * @return value of the flying state
 	*/
 	bool GetIsFlying() { return m_IsFlying; }
 
@@ -468,7 +482,7 @@ private:
 	/**
 	 * Bitmap of permission attributes this character has.
 	 */
-	PermissionMap m_PermissionMap;
+	ePermissionMap m_PermissionMap;
 
 	/**
 	 * The default name of this character

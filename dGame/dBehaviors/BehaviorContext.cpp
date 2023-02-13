@@ -10,8 +10,9 @@
 
 #include <sstream>
 
-
+#include "dMessageIdentifiers.h"
 #include "DestroyableComponent.h"
+#include "EchoSyncSkill.h"
 #include "PhantomPhysicsComponent.h"
 #include "RebuildComponent.h"
 
@@ -45,12 +46,14 @@ uint32_t BehaviorContext::GetUniqueSkillId() const {
 }
 
 
-void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext) {
+void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext, bool ignoreInterrupts) {
 	auto entry = BehaviorSyncEntry();
 
 	entry.handle = syncId;
 	entry.behavior = behavior;
 	entry.branchContext = branchContext;
+	entry.branchContext.isSync = true;
+	entry.ignoreInterrupts = ignoreInterrupts;
 
 	this->syncEntries.push_back(entry);
 }
@@ -214,7 +217,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 		}
 
 		// Echo sync
-		GameMessages::EchoSyncSkill echo;
+		EchoSyncSkill echo;
 
 		echo.bDone = true;
 		echo.uiBehaviorHandle = entry.handle;

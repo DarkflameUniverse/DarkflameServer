@@ -6,11 +6,16 @@
 #include "dLogger.h"
 #include "GeneralUtils.h"
 #include "BinaryIO.h"
+#include "LUTriggers.h"
 
+#include "AssetManager.h"
 #include "CDClientManager.h"
 #include "CDZoneTableTable.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
+
+#include "eTriggerCommandType.h"
+#include "eTriggerEventType.h"
 
 Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) :
 	m_ZoneID(mapID, instanceID, cloneID) {
@@ -40,7 +45,14 @@ void Zone::LoadZoneIntoMemory() {
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 	if (m_ZoneFilePath == "ERR") return;
 
-	std::ifstream file(m_ZoneFilePath, std::ios::binary);
+	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer(m_ZoneFilePath.c_str());
+
+	if (!buffer.m_Success) {
+		Game::logger->Log("Zone", "Failed to load %s", m_ZoneFilePath.c_str());
+		throw std::runtime_error("Aborting Zone loading due to no Zone File.");
+	}
+
+	std::istream file(&buffer);
 	if (file) {
 		BinaryIO::BinaryRead(file, m_ZoneFileFormatVersion);
 
@@ -90,15 +102,12 @@ void Zone::LoadZoneIntoMemory() {
 
 		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::EarlyAlpha) {
 			BinaryIO::BinaryRead(file, m_PathDataLength);
-			uint32_t unknown;
-			uint32_t pathCount;
+			BinaryIO::BinaryRead(file, m_PathChunkVersion); // always should be 1
 
-			BinaryIO::BinaryRead(file, unknown);
+			uint32_t pathCount;
 			BinaryIO::BinaryRead(file, pathCount);
 
-			for (uint32_t i = 0; i < pathCount; ++i) {
-				LoadPath(file);
-			}
+			for (uint32_t i = 0; i < pathCount; ++i) LoadPath(file);
 
 			for (Path path : m_Paths) {
 				if (path.pathType == PathType::Spawner) {
@@ -144,17 +153,13 @@ void Zone::LoadZoneIntoMemory() {
 				}
 
 			}
-
-
-			//m_PathData.resize(m_PathDataLength);
-			//file.read((char*)&m_PathData[0], m_PathDataLength);
 		}
 	} else {
 		Game::logger->Log("Zone", "Failed to open: %s", m_ZoneFilePath.c_str());
 	}
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 
-	file.close();
+	buffer.close();
 }
 
 std::string Zone::GetFilePathForZoneID() {
@@ -162,7 +167,7 @@ std::string Zone::GetFilePathForZoneID() {
 	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
 	const CDZoneTable* zone = zoneTable->Query(this->GetZoneID().GetMapID());
 	if (zone != nullptr) {
-		std::string toReturn = "./res/maps/" + zone->zoneName;
+		std::string toReturn = "maps/" + zone->zoneName;
 		std::transform(toReturn.begin(), toReturn.end(), toReturn.begin(), ::tolower);
 		return toReturn;
 	}
@@ -222,7 +227,7 @@ const void Zone::PrintAllGameObjects() {
 	}
 }
 
-void Zone::LoadScene(std::ifstream& file) {
+void Zone::LoadScene(std::istream& file) {
 	SceneRef scene;
 	scene.level = nullptr;
 	LWOSCENEID lwoSceneID(LWOZONEID_INVALID, 0);
@@ -232,7 +237,8 @@ void Zone::LoadScene(std::ifstream& file) {
 	scene.filename = BinaryIO::ReadString(file, sceneFilenameLength);
 
 	std::string luTriggersPath = scene.filename.substr(0, scene.filename.size() - 4) + ".lutriggers";
-	std::vector<LUTriggers::Trigger*> triggers = LoadLUTriggers(luTriggersPath, scene.id);
+	std::vector<LUTriggers::Trigger*> triggers;
+	if(Game::assetManager->HasFile((m_ZonePath + luTriggersPath).c_str())) triggers = LoadLUTriggers(luTriggersPath, scene.id);
 
 	for (LUTriggers::Trigger* trigger : triggers) {
 		scene.triggers.insert({ trigger->id, trigger });
@@ -247,15 +253,6 @@ void Zone::LoadScene(std::ifstream& file) {
 	scene.name = BinaryIO::ReadString(file, sceneNameLength);
 	file.ignore(3);
 
-	/*
-	if (m_Scenes.find(scene.id) != m_Scenes.end()) {
-		//Extract the layer id from the filename (bad I know, but it's reliable at least):
-		std::string layer = scene.filename.substr(scene.filename.rfind('x') + 1);
-		layer = layer.substr(0, layer.find('_'));
-		lwoSceneID.SetLayerID(std::atoi(layer.c_str()));
-	}
-	*/
-
 	lwoSceneID.SetLayerID(scene.sceneType);
 
 	m_Scenes.insert(std::make_pair(lwoSceneID, scene));
@@ -264,9 +261,19 @@ void Zone::LoadScene(std::ifstream& file) {
 
 std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, LWOSCENEID sceneID) {
 	std::vector<LUTriggers::Trigger*> lvlTriggers;
-	std::ifstream file(m_ZonePath + triggerFile);
+
+	auto buffer = Game::assetManager->GetFileAsBuffer((m_ZonePath + triggerFile).c_str());
+
+	if (!buffer.m_Success) {
+		Game::logger->Log("Zone", "Failed to load %s from disk. Skipping loading triggers", (m_ZonePath + triggerFile).c_str());
+		return lvlTriggers;
+	}
+
+	std::istream file(&buffer);
 	std::stringstream data;
 	data << file.rdbuf();
+
+	buffer.close();
 
 	if (data.str().size() == 0) return lvlTriggers;
 
@@ -292,11 +299,11 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 		auto currentEvent = currentTrigger->FirstChildElement("event");
 		while (currentEvent) {
 			LUTriggers::Event* newEvent = new LUTriggers::Event();
-			newEvent->eventID = currentEvent->Attribute("id");
+			newEvent->id = TriggerEventType::StringToTriggerEventType(currentEvent->Attribute("id"));
 			auto currentCommand = currentEvent->FirstChildElement("command");
 			while (currentCommand) {
 				LUTriggers::Command* newCommand = new LUTriggers::Command();
-				newCommand->id = currentCommand->Attribute("id");
+				newCommand->id = TriggerCommandType::StringToTriggerCommandType(currentCommand->Attribute("id"));
 				newCommand->target = currentCommand->Attribute("target");
 				if (currentCommand->Attribute("targetName") != NULL) {
 					newCommand->targetName = currentCommand->Attribute("targetName");
@@ -336,7 +343,7 @@ const Path* Zone::GetPath(std::string name) const {
 	return nullptr;
 }
 
-void Zone::LoadSceneTransition(std::ifstream& file) {
+void Zone::LoadSceneTransition(std::istream& file) {
 	SceneTransition sceneTrans;
 	if (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::Auramar) {
 		uint8_t length;
@@ -355,22 +362,18 @@ void Zone::LoadSceneTransition(std::ifstream& file) {
 	m_SceneTransitions.push_back(sceneTrans);
 }
 
-SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::ifstream& file) {
+SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::istream& file) {
 	SceneTransitionInfo info;
 	BinaryIO::BinaryRead(file, info.sceneID);
 	BinaryIO::BinaryRead(file, info.position);
 	return info;
 }
 
-void Zone::LoadPath(std::ifstream& file) {
-	// Currently only spawner (type 4) paths are supported
+void Zone::LoadPath(std::istream& file) {
 	Path path = Path();
 
-	uint32_t unknown1;
-	uint32_t pathType;
-	uint32_t pathBehavior;
-
 	BinaryIO::BinaryRead(file, path.pathVersion);
+
 	uint8_t stringLength;
 	BinaryIO::BinaryRead(file, stringLength);
 	for (uint8_t i = 0; i < stringLength; ++i) {
@@ -378,16 +381,14 @@ void Zone::LoadPath(std::ifstream& file) {
 		BinaryIO::BinaryRead(file, character);
 		path.pathName.push_back(character);
 	}
-	BinaryIO::BinaryRead(file, pathType);
-	path.pathType = PathType(pathType);
-	BinaryIO::BinaryRead(file, unknown1);
-	BinaryIO::BinaryRead(file, pathBehavior);
-	path.pathType = PathType(pathType);
+
+	BinaryIO::BinaryRead(file, path.pathType);
+	BinaryIO::BinaryRead(file, path.flags);
+	BinaryIO::BinaryRead(file, path.pathBehavior);
 
 	if (path.pathType == PathType::MovingPlatform) {
 		if (path.pathVersion >= 18) {
-			uint8_t unknown;
-			BinaryIO::BinaryRead(file, unknown);
+			BinaryIO::BinaryRead(file, path.movingPlatform.timeBasedMovement);
 		} else if (path.pathVersion >= 13) {
 			uint8_t count;
 			BinaryIO::BinaryRead(file, count);
@@ -398,10 +399,9 @@ void Zone::LoadPath(std::ifstream& file) {
 			}
 		}
 	} else if (path.pathType == PathType::Property) {
-		int32_t unknown;
-		BinaryIO::BinaryRead(file, unknown);
+		BinaryIO::BinaryRead(file, path.property.pathType);
 		BinaryIO::BinaryRead(file, path.property.price);
-		BinaryIO::BinaryRead(file, path.property.rentalTime);
+		BinaryIO::BinaryRead(file, path.property.rentalTimeUnit);
 		BinaryIO::BinaryRead(file, path.property.associatedZone);
 
 		if (path.pathVersion >= 5) {
@@ -421,10 +421,7 @@ void Zone::LoadPath(std::ifstream& file) {
 			}
 		}
 
-		if (path.pathVersion >= 6) {
-			int32_t unknown1;
-			BinaryIO::BinaryRead(file, unknown1);
-		}
+		if (path.pathVersion >= 6) BinaryIO::BinaryRead(file, path.property.type);
 
 		if (path.pathVersion >= 7) {
 			BinaryIO::BinaryRead(file, path.property.cloneLimit);
@@ -448,11 +445,10 @@ void Zone::LoadPath(std::ifstream& file) {
 			path.camera.nextPath.push_back(character);
 		}
 		if (path.pathVersion >= 14) {
-			uint8_t unknown;
-			BinaryIO::BinaryRead(file, unknown);
+			BinaryIO::BinaryRead(file, path.camera.rotatePlayer);
+
 		}
 	} else if (path.pathType == PathType::Spawner) {
-		//SpawnerPath* path = static_cast<SpawnerPath*>(path); // Convert to a spawner path
 		BinaryIO::BinaryRead(file, path.spawner.spawnedLOT);
 		BinaryIO::BinaryRead(file, path.spawner.respawnTime);
 		BinaryIO::BinaryRead(file, path.spawner.maxToSpawn);
@@ -473,7 +469,7 @@ void Zone::LoadPath(std::ifstream& file) {
 		BinaryIO::BinaryRead(file, waypoint.position.z);
 
 
-		if (path.pathType == PathType::Spawner || path.pathType == PathType::MovingPlatform || path.pathType == PathType::Race) {
+		if (path.pathType == PathType::Spawner || path.pathType == PathType::MovingPlatform || path.pathType == PathType::Race || path.pathType == PathType::Camera || path.pathType == PathType::Rail) {
 			BinaryIO::BinaryRead(file, waypoint.rotation.w);
 			BinaryIO::BinaryRead(file, waypoint.rotation.x);
 			BinaryIO::BinaryRead(file, waypoint.rotation.y);
@@ -501,33 +497,19 @@ void Zone::LoadPath(std::ifstream& file) {
 				}
 			}
 		} else if (path.pathType == PathType::Camera) {
-			float unknown;
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
 			BinaryIO::BinaryRead(file, waypoint.camera.time);
-			BinaryIO::BinaryRead(file, unknown);
+			BinaryIO::BinaryRead(file, waypoint.camera.fov);
 			BinaryIO::BinaryRead(file, waypoint.camera.tension);
 			BinaryIO::BinaryRead(file, waypoint.camera.continuity);
 			BinaryIO::BinaryRead(file, waypoint.camera.bias);
 		} else if (path.pathType == PathType::Race) {
-			uint8_t unknown;
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			float unknown1;
-			BinaryIO::BinaryRead(file, unknown1);
-			BinaryIO::BinaryRead(file, unknown1);
-			BinaryIO::BinaryRead(file, unknown1);
+			BinaryIO::BinaryRead(file, waypoint.racing.isResetNode);
+			BinaryIO::BinaryRead(file, waypoint.racing.isNonHorizontalCamera);
+			BinaryIO::BinaryRead(file, waypoint.racing.planeWidth);
+			BinaryIO::BinaryRead(file, waypoint.racing.planeHeight);
+			BinaryIO::BinaryRead(file, waypoint.racing.shortestDistanceToEnd);
 		} else if (path.pathType == PathType::Rail) {
-			float unknown;
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			BinaryIO::BinaryRead(file, unknown);
-			if (path.pathVersion >= 17) {
-				BinaryIO::BinaryRead(file, unknown);
-			}
+			if (path.pathVersion > 16) BinaryIO::BinaryRead(file, waypoint.rail.speed);
 		}
 
 		// object LDF configs
@@ -551,8 +533,14 @@ void Zone::LoadPath(std::ifstream& file) {
 					BinaryIO::BinaryRead(file, character);
 					value.push_back(character);
 				}
-				LDFBaseData* ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
-				waypoint.config.push_back(ldfConfig);
+
+				LDFBaseData* ldfConfig = nullptr;
+				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
+					ldfConfig = LDFBaseData::DataFromString(parameter + "=0:" + value);
+				} else {
+					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
+				}
+				if (ldfConfig) waypoint.config.push_back(ldfConfig);
 			}
 		}
 

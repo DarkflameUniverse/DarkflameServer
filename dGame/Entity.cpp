@@ -17,6 +17,13 @@
 #include "UserManager.h"
 #include "dpWorld.h"
 #include "Player.h"
+#include "LUTriggers.h"
+#include "User.h"
+#include "EntityTimer.h"
+#include "EntityCallbackTimer.h"
+#include "Loot.h"
+#include "eMissionTaskType.h"
+#include "eTriggerEventType.h"
 
 //Component includes:
 #include "Component.h"
@@ -62,6 +69,7 @@
 #include "ShootingGalleryComponent.h"
 #include "RailActivatorComponent.h"
 #include "LUPExhibitComponent.h"
+#include "TriggerComponent.h"
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
 	m_ObjectID = objectID;
@@ -70,7 +78,6 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_Character = nullptr;
 	m_GMLevel = 0;
 	m_CollectibleID = 0;
-	m_Trigger = nullptr; //new LUTriggers::Trigger();
 	m_NetworkID = 0;
 	m_Groups = {};
 	m_OwnerOverride = LWOOBJID_EMPTY;
@@ -126,30 +133,9 @@ void Entity::Initialize() {
 	 * Setup trigger
 	 */
 
-	const auto triggerName = GetVarAsString(u"trigger_id");
+	const auto triggerInfo = GetVarAsString(u"trigger_id");
 
-	if (!triggerName.empty()) {
-		std::stringstream ss(triggerName);
-		std::vector<std::string> tokens;
-		std::string token;
-		while (std::getline(ss, token, ':')) {
-			tokens.push_back(token);
-		}
-
-		uint32_t sceneID = std::stoi(tokens[0]);
-		uint32_t triggerID = std::stoi(tokens[1]);
-
-		if (m_Trigger != nullptr) {
-			delete m_Trigger;
-			m_Trigger = nullptr;
-		}
-
-		m_Trigger = dZoneManager::Instance()->GetZone()->GetTrigger(sceneID, triggerID);
-
-		if (m_Trigger == nullptr) {
-			m_Trigger = new LUTriggers::Trigger();
-		}
-	}
+	if (!triggerInfo.empty()) m_Components.emplace(COMPONENT_TYPE_TRIGGER, new TriggerComponent(this, triggerInfo));
 
 	/**
 	 * Setup groups
@@ -317,15 +303,6 @@ void Entity::Initialize() {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_SOUND_TRIGGER, comp));
 	}
 
-	//Check to see if we have a moving platform component:
-	//Which, for some reason didn't get added to the ComponentsRegistry so we have to check for a path manually here.
-	std::string attachedPath = GetVarAsString(u"attached_path");
-
-	if (!attachedPath.empty() || compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_MOVING_PLATFORM, -1) != -1) {
-		MovingPlatformComponent* plat = new MovingPlatformComponent(this, attachedPath);
-		m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVING_PLATFORM, plat));
-	}
-
 	//Also check for the collectible id:
 	m_CollectibleID = GetVarAs<int32_t>(u"collectible_id");
 
@@ -463,7 +440,7 @@ void Entity::Initialize() {
 	 */
 
 	CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
-	int scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_SCRIPT);
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_SCRIPT, -1);
 
 	std::string scriptName = "";
 	bool client = false;
@@ -505,7 +482,7 @@ void Entity::Initialize() {
 		scriptName = customScriptServer;
 	}
 
-	if (!scriptName.empty() || client || m_Character) {
+	if (!scriptName.empty() || client || m_Character || scriptComponentID >= 0) {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_SCRIPT, new ScriptComponent(this, scriptName, true, client && scriptName.empty())));
 	}
 
@@ -696,6 +673,26 @@ void Entity::Initialize() {
 		m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
 	}
 
+	std::string pathName = GetVarAsString(u"attached_path");
+	const Path* path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
+
+	//Check to see if we have an attached path and add the appropiate component to handle it:
+	if (path){
+		// if we have a moving platform path, then we need a moving platform component
+		if (path->pathType == PathType::MovingPlatform) {
+			MovingPlatformComponent* plat = new MovingPlatformComponent(this, pathName);
+			m_Components.insert(std::make_pair(COMPONENT_TYPE_MOVING_PLATFORM, plat));
+		// else if we are a movement path
+		} /*else if (path->pathType == PathType::Movement) {
+			auto movementAIcomp = GetComponent<MovementAIComponent>();
+			if (movementAIcomp){
+				// TODO: set path in existing movementAIComp
+			} else {
+				// TODO: create movementAIcomp and set path
+			}
+		}*/
+	}
+
 	int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, COMPONENT_TYPE_PROXIMITY_MONITOR);
 	if (proximityMonitorID > 0) {
 		CDProximityMonitorComponentTable* proxCompTable = CDClientManager::Instance()->GetTable<CDProximityMonitorComponentTable>("ProximityMonitorComponent");
@@ -752,14 +749,14 @@ void Entity::Initialize() {
 
 no_ghosting:
 
-	TriggerEvent("OnCreate");
+	TriggerEvent(eTriggerEventType::CREATE);
 
 	if (m_Character) {
 		auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 		auto* levelComponent = GetComponent<LevelProgressionComponent>();
 
-		if (controllablePhysicsComponent != nullptr && levelComponent->GetLevel() >= 20) {
-			controllablePhysicsComponent->SetSpeedMultiplier(525.0f / 500.0f);
+		if (controllablePhysicsComponent && levelComponent) {
+			controllablePhysicsComponent->SetSpeedMultiplier(levelComponent->GetSpeedBase() / 500.0f);
 		}
 	}
 }
@@ -811,6 +808,22 @@ std::vector<ScriptComponent*> Entity::GetScriptComponents() {
 	}
 
 	return comps;
+}
+
+void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName) {
+	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
+		auto* destroyableComponent = GetComponent<DestroyableComponent>();
+		if (!destroyableComponent) return;
+		destroyableComponent->Subscribe(scriptObjId, scriptToAdd);
+	}
+}
+
+void Entity::Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName) {
+	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
+		auto* destroyableComponent = GetComponent<DestroyableComponent>();
+		if (!destroyableComponent) return;
+		destroyableComponent->Unsubscribe(scriptObjId);
+	}
 }
 
 void Entity::SetProximityRadius(float proxRadius, std::string name) {
@@ -913,11 +926,15 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			outBitStream->Write0(); //No ldf data
 		}
 
-		if (m_Trigger != nullptr && m_Trigger->events.size() > 0) {
-			outBitStream->Write1();
-		} else {
+		TriggerComponent* triggerComponent;
+		if (TryGetComponent(COMPONENT_TYPE_TRIGGER, triggerComponent)) {
+			// has trigger component, check to see if we have events to handle
+			auto* trigger = triggerComponent->GetTrigger();
+			outBitStream->Write<bool>(trigger && trigger->events.size() > 0);
+		} else { // no trigger componenet, so definitely no triggers
 			outBitStream->Write0();
 		}
+
 
 		if (m_ParentEntity != nullptr || m_SpawnerID != 0) {
 			outBitStream->Write1();
@@ -1277,7 +1294,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 		switchComp->EntityEnter(other);
 	}
 
-	TriggerEvent("OnEnter", other);
+	TriggerEvent(eTriggerEventType::ENTER, other);
 
 	// POI system
 	const auto& poi = GetVar<std::u16string>(u"POI");
@@ -1286,7 +1303,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 		auto* missionComponent = other->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_LOCATION, 0, 0, GeneralUtils::UTF16ToWTF8(poi));
+			missionComponent->Progress(eMissionTaskType::EXPLORE, 0, 0, GeneralUtils::UTF16ToWTF8(poi));
 		}
 	}
 
@@ -1311,7 +1328,7 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
 
-	TriggerEvent("OnLeave", other);
+	TriggerEvent(eTriggerEventType::EXIT, other);
 
 	SwitchComponent* switchComp = GetComponent<SwitchComponent>();
 	if (switchComp) {
@@ -1359,7 +1376,7 @@ void Entity::OnEmoteReceived(const int32_t emote, Entity* target) {
 }
 
 void Entity::OnUse(Entity* originator) {
-	TriggerEvent("OnInteract");
+	TriggerEvent(eTriggerEventType::INTERACT);
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnUse(this, originator);
@@ -1582,7 +1599,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 					auto* missionComponent = GetComponent<MissionComponent>();
 
 					if (missionComponent != nullptr) {
-						missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_POWERUP, skill.skillID);
+						missionComponent->Progress(eMissionTaskType::POWERUP, skill.skillID);
 					}
 				}
 			} else {
@@ -1703,94 +1720,9 @@ bool Entity::IsPlayer() const {
 	return m_TemplateID == 1 && GetSystemAddress() != UNASSIGNED_SYSTEM_ADDRESS;
 }
 
-void Entity::TriggerEvent(std::string eventID, Entity* optionalTarget) {
-	if (m_Trigger != nullptr && m_Trigger->enabled) {
-		for (LUTriggers::Event* triggerEvent : m_Trigger->events) {
-			if (triggerEvent->eventID == eventID) {
-				for (LUTriggers::Command* cmd : triggerEvent->commands) {
-					HandleTriggerCommand(cmd->id, cmd->target, cmd->targetName, cmd->args, optionalTarget);
-				}
-			}
-		}
-	}
-}
-
-// This should probably get it's own triggers class at some point...
-void Entity::HandleTriggerCommand(std::string id, std::string target, std::string targetName, std::string args, Entity* optionalTarget) {
-	std::vector<std::string> argArray;
-	// Parse args
-	std::stringstream ssData(args);
-	std::string token;
-	char deliminator = ',';
-
-	while (std::getline(ssData, token, deliminator)) {
-		std::string lowerToken;
-		for (char character : token) {
-			lowerToken.push_back(std::tolower(character)); // make lowercase to ensure it works
-		}
-		argArray.push_back(lowerToken);
-	}
-
-	std::vector<Entity*> targetEntities;
-	if (target == "self") targetEntities.push_back(this);
-	if (target == "objGroup") targetEntities = EntityManager::Instance()->GetEntitiesInGroup(targetName);
-	if (optionalTarget) targetEntities.push_back(optionalTarget);
-	if (targetEntities.size() == 0) return;
-	for (Entity* targetEntity : targetEntities) {
-		if (!targetEntity) continue;
-
-		if (id == "SetPhysicsVolumeEffect") {
-			PhantomPhysicsComponent* phanPhys = GetComponent<PhantomPhysicsComponent>();
-			if (!phanPhys) return;
-
-			phanPhys->SetPhysicsEffectActive(true);
-			uint32_t effectType = 0;
-			if (argArray[0] == "push") effectType = 0;
-			else if (argArray[0] == "attract") effectType = 1;
-			else if (argArray[0] == "repulse") effectType = 2;
-			else if (argArray[0] == "gravity") effectType = 3;
-			else if (argArray[0] == "friction") effectType = 4;
-
-			phanPhys->SetEffectType(effectType);
-			phanPhys->SetDirectionalMultiplier(std::stof(argArray[1]));
-			if (argArray.size() > 4) {
-				NiPoint3 direction = NiPoint3::ZERO;
-				GeneralUtils::TryParse<float>(argArray[2], direction.x);
-				GeneralUtils::TryParse<float>(argArray[3], direction.y);
-				GeneralUtils::TryParse<float>(argArray[4], direction.z);
-				phanPhys->SetDirection(direction);
-			}
-			if (argArray.size() > 5) {
-				phanPhys->SetMin(std::stoi(argArray[6]));
-				phanPhys->SetMax(std::stoi(argArray[7]));
-			}
-
-			if (target == "self") {
-				EntityManager::Instance()->ConstructEntity(this);
-			}
-		} else if (id == "updateMission") {
-			CDMissionTasksTable* missionTasksTable = CDClientManager::Instance()->GetTable<CDMissionTasksTable>("MissionTasks");
-			std::vector<CDMissionTasks> missionTasks = missionTasksTable->Query([=](CDMissionTasks entry) {
-				std::string lowerTargetGroup;
-				for (char character : entry.targetGroup) {
-					lowerTargetGroup.push_back(std::tolower(character)); // make lowercase to ensure it works
-				}
-
-				return (lowerTargetGroup == argArray[4]);
-				});
-
-			for (const CDMissionTasks& task : missionTasks) {
-				MissionComponent* missionComponent = targetEntity->GetComponent<MissionComponent>();
-				if (!missionComponent) continue;
-
-				missionComponent->ForceProgress(task.id, task.uid, std::stoi(argArray[2]));
-			}
-		} else if (id == "fireEvent") {
-			for (CppScripts::Script* script : CppScripts::GetEntityScripts(targetEntity)) {
-				script->OnFireEventServerSide(targetEntity, this, args, 0, 0, 0);
-			}
-		}
-	}
+void Entity::TriggerEvent(eTriggerEventType event, Entity* optionalTarget) {
+	auto* triggerComponent = GetComponent<TriggerComponent>();
+	if (triggerComponent) triggerComponent->TriggerEvent(event, optionalTarget);
 }
 
 Entity* Entity::GetOwner() const {

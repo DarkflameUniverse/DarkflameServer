@@ -20,6 +20,9 @@
 #include "dConfig.h"
 #include "dChatFilter.h"
 #include "Database.h"
+#include "EntityInfo.h"
+#include "eMissionTaskType.h"
+
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -59,7 +62,7 @@ std::map<LOT, uint32_t> PetComponent::petFlags = {
 		{ 13067, 838 }, // Skeleton dragon
 };
 
-PetComponent::PetComponent(Entity* parent, uint32_t componentId) : Component(parent) {
+PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(parent) {
 	m_ComponentId = componentId;
 
 	m_Interaction = LWOOBJID_EMPTY;
@@ -118,21 +121,23 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 		outBitStream->Write(m_Owner);
 	}
 
-	outBitStream->Write(tamed);
-	if (tamed) {
-		outBitStream->Write(m_ModerationStatus);
+	if (bIsInitialUpdate) {
+		outBitStream->Write(tamed);
+		if (tamed) {
+			outBitStream->Write(m_ModerationStatus);
 
-		const auto nameData = GeneralUtils::UTF8ToUTF16(m_Name);
-		const auto ownerNameData = GeneralUtils::UTF8ToUTF16(m_OwnerName);
+			const auto nameData = GeneralUtils::UTF8ToUTF16(m_Name);
+			const auto ownerNameData = GeneralUtils::UTF8ToUTF16(m_OwnerName);
 
-		outBitStream->Write(static_cast<uint8_t>(nameData.size()));
-		for (const auto c : nameData) {
-			outBitStream->Write(c);
-		}
+			outBitStream->Write(static_cast<uint8_t>(nameData.size()));
+			for (const auto c : nameData) {
+				outBitStream->Write(c);
+			}
 
-		outBitStream->Write(static_cast<uint8_t>(ownerNameData.size()));
-		for (const auto c : ownerNameData) {
-			outBitStream->Write(c);
+			outBitStream->Write(static_cast<uint8_t>(ownerNameData.size()));
+			for (const auto c : ownerNameData) {
+				outBitStream->Write(c);
+			}
 		}
 	}
 }
@@ -194,21 +199,7 @@ void PetComponent::OnUse(Entity* originator) {
 			return;
 		}
 
-		auto lxfAsset = std::string(result.getStringField(0));
-
-		std::vector<std::string> lxfAssetSplit = GeneralUtils::SplitString(lxfAsset, '\\');
-
-		lxfAssetSplit.erase(lxfAssetSplit.begin());
-
-		buildFile = "res/BrickModels";
-
-		for (auto part : lxfAssetSplit) {
-			std::transform(part.begin(), part.end(), part.begin(), [](unsigned char c) {
-				return std::tolower(c);
-				});
-
-			buildFile += "/" + part;
-		}
+		buildFile = std::string(result.getStringField(0));
 
 		PetPuzzleData data;
 		data.buildFile = buildFile;
@@ -613,7 +604,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	auto* missionComponent = tamer->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PET_TAMING, m_Parent->GetLOT());
+		missionComponent->Progress(eMissionTaskType::PET_TAMING, m_Parent->GetLOT());
 	}
 
 	SetStatus(1);
@@ -930,16 +921,16 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 			return;
 		}
 
-		// If we are out of imagination despawn the pet.
-		if (playerDestroyableComponent->GetImagination() == 0) {
-			this->Deactivate();
-			auto playerEntity = playerDestroyableComponent->GetParent();
-			if (!playerEntity) return;
+	// If we are out of imagination despawn the pet.
+	if (playerDestroyableComponent->GetImagination() == 0) {
+		this->Deactivate();
+		auto playerEntity = playerDestroyableComponent->GetParent();
+		if (!playerEntity) return;
 
-			GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
-		}
+		GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
+	}
 
-		this->AddDrainImaginationTimer(item);
+	this->AddDrainImaginationTimer(item);
 		});
 }
 

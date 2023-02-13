@@ -15,7 +15,15 @@ set(DCOMMON_SOURCES "AMFFormat.cpp"
 		"Type.cpp"
 		"ZCompression.cpp"
 		"BrickByBrickFix.cpp"
+		"BinaryPathFinder.cpp"
+		"FdbToSqlite.cpp"
 )
+
+add_subdirectory(dClient)
+
+foreach(file ${DCOMMON_DCLIENT_SOURCES})
+	set(DCOMMON_SOURCES ${DCOMMON_SOURCES} "dClient/${file}")
+endforeach()
 
 include_directories(${PROJECT_SOURCE_DIR}/dCommon/)
 

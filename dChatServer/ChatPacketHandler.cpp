@@ -8,8 +8,8 @@
 #include "dServer.h"
 #include "GeneralUtils.h"
 #include "dLogger.h"
-#include "AddFriendResponseCode.h"
-#include "AddFriendResponseType.h"
+#include "eAddFriendResponseCode.h"
+#include "eAddFriendResponseType.h"
 #include "RakString.h"
 #include "dConfig.h"
 
@@ -115,7 +115,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 
 	auto requestor = playerContainer.GetPlayerData(requestorPlayerID);
 	if (requestor->playerName == playerName) {
-		SendFriendResponse(requestor, requestor, AddFriendResponseType::MYTHRAN);
+		SendFriendResponse(requestor, requestor, eAddFriendResponseType::MYTHRAN);
 		return;
 	};
 	std::unique_ptr<PlayerData> requestee(playerContainer.GetPlayerData(playerName));
@@ -153,7 +153,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 		requestee.reset(new PlayerData());
 		requestee->playerName = playerName;
 
-		SendFriendResponse(requestor, requestee.get(), result->next() ? AddFriendResponseType::NOTONLINE : AddFriendResponseType::INVALIDCHARACTER);
+		SendFriendResponse(requestor, requestee.get(), result->next() ? eAddFriendResponseType::NOTONLINE : eAddFriendResponseType::INVALIDCHARACTER);
 		return;
 	}
 
@@ -197,10 +197,10 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 		if (oldBestFriendStatus != bestFriendStatus) {
 			if (requestee->countOfBestFriends >= maxNumberOfBestFriends || requestor->countOfBestFriends >= maxNumberOfBestFriends) {
 				if (requestee->countOfBestFriends >= maxNumberOfBestFriends) {
-					SendFriendResponse(requestor, requestee.get(), AddFriendResponseType::THEIRFRIENDLISTFULL, false);
+					SendFriendResponse(requestor, requestee.get(), eAddFriendResponseType::THEIRFRIENDLISTFULL, false);
 				}
 				if (requestor->countOfBestFriends >= maxNumberOfBestFriends) {
-					SendFriendResponse(requestor, requestee.get(), AddFriendResponseType::YOURFRIENDSLISTFULL, false);
+					SendFriendResponse(requestor, requestee.get(), eAddFriendResponseType::YOURFRIENDSLISTFULL, false);
 				}
 			} else {
 				// Then update the database with this new info.
@@ -215,8 +215,8 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				if (bestFriendStatus == 3U) {
 					requestee->countOfBestFriends += 1;
 					requestor->countOfBestFriends += 1;
-					if (requestee->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestee.get(), requestor, AddFriendResponseType::ACCEPTED, false, true);
-					if (requestor->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee.get(), AddFriendResponseType::ACCEPTED, false, true);
+					if (requestee->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestee.get(), requestor, eAddFriendResponseType::ACCEPTED, false, true);
+					if (requestor->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee.get(), eAddFriendResponseType::ACCEPTED, false, true);
 					for (auto& friendData : requestor->friends) {
 						if (friendData.friendID == requestee->playerID) {
 							friendData.isBestFriend = true;
@@ -230,7 +230,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				}
 			}
 		} else {
-			if (requestor->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee.get(), AddFriendResponseType::WAITINGAPPROVAL, true, true);
+			if (requestor->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee.get(), eAddFriendResponseType::WAITINGAPPROVAL, true, true);
 		}
 	} else {
 		// Do not send this if we are requesting to be a best friend.
@@ -247,7 +247,7 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 	inStream.Read(playerID);
 	inStream.Read(playerID);
 
-	AddFriendResponseCode clientResponseCode = static_cast<AddFriendResponseCode>(packet->data[0x14]);
+	eAddFriendResponseCode clientResponseCode = static_cast<eAddFriendResponseCode>(packet->data[0x14]);
 	std::string friendName = PacketUtils::ReadString(0x15, packet, true);
 
 	//Now to try and find both of these:
@@ -255,29 +255,29 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 	auto requestee = playerContainer.GetPlayerData(friendName);
 	if (!requestor || !requestee) return;
 
-	AddFriendResponseType serverResponseCode{};
+	eAddFriendResponseType serverResponseCode{};
 	uint8_t isAlreadyBestFriends = 0U;
 	// We need to convert this response code to one we can actually send back to the client.
 	switch (clientResponseCode) {
-	case AddFriendResponseCode::ACCEPTED:
-		serverResponseCode = AddFriendResponseType::ACCEPTED;
+	case eAddFriendResponseCode::ACCEPTED:
+		serverResponseCode = eAddFriendResponseType::ACCEPTED;
 		break;
-	case AddFriendResponseCode::BUSY:
-		serverResponseCode = AddFriendResponseType::BUSY;
+	case eAddFriendResponseCode::BUSY:
+		serverResponseCode = eAddFriendResponseType::BUSY;
 		break;
-	case AddFriendResponseCode::CANCELLED:
-		serverResponseCode = AddFriendResponseType::CANCELLED;
+	case eAddFriendResponseCode::CANCELLED:
+		serverResponseCode = eAddFriendResponseType::CANCELLED;
 		break;
-	case AddFriendResponseCode::REJECTED:
-		serverResponseCode = AddFriendResponseType::DECLINED;
+	case eAddFriendResponseCode::REJECTED:
+		serverResponseCode = eAddFriendResponseType::DECLINED;
 		break;
 	}
 
 	// Now that we have handled the base cases, we need to check the other cases.
-	if (serverResponseCode == AddFriendResponseType::ACCEPTED) {
+	if (serverResponseCode == eAddFriendResponseType::ACCEPTED) {
 		for (auto friendData : requestor->friends) {
 			if (friendData.friendID == requestee->playerID) {
-				serverResponseCode = AddFriendResponseType::ALREADYFRIEND;
+				serverResponseCode = eAddFriendResponseType::ALREADYFRIEND;
 				if (friendData.isBestFriend) {
 					isAlreadyBestFriends = 1U;
 				}
@@ -286,7 +286,7 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 	}
 
 	// This message is NOT sent for best friends and is handled differently for those requests.
-	if (serverResponseCode == AddFriendResponseType::ACCEPTED) {
+	if (serverResponseCode == eAddFriendResponseType::ACCEPTED) {
 		// Add the each player to the others friend list.
 		FriendData requestorData;
 		requestorData.zoneID = requestor->zoneID;
@@ -313,8 +313,8 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 		statement->execute();
 	}
 
-	if (serverResponseCode != AddFriendResponseType::DECLINED) SendFriendResponse(requestor, requestee, serverResponseCode, isAlreadyBestFriends);
-	if (serverResponseCode != AddFriendResponseType::ALREADYFRIEND) SendFriendResponse(requestee, requestor, serverResponseCode, isAlreadyBestFriends);
+	if (serverResponseCode != eAddFriendResponseType::DECLINED) SendFriendResponse(requestor, requestee, serverResponseCode, isAlreadyBestFriends);
+	if (serverResponseCode != eAddFriendResponseType::ALREADYFRIEND) SendFriendResponse(requestee, requestor, serverResponseCode, isAlreadyBestFriends);
 }
 
 void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
@@ -394,7 +394,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	uint8_t channel = 0;
 	inStream.Read(channel);
 
-	std::string message = PacketUtils::ReadString(0x66, packet, true);
+	std::string message = PacketUtils::ReadString(0x66, packet, true, 512);
 
 	Game::logger->Log("ChatPacketHandler", "Got a message from (%s) [%d]: %s", senderName.c_str(), channel, message.c_str());
 
@@ -436,7 +436,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	LWOOBJID senderID = PacketUtils::ReadPacketS64(0x08, packet);
 	std::string receiverName = PacketUtils::ReadString(0x66, packet, true);
-	std::string message = PacketUtils::ReadString(0xAA, packet, true);
+	std::string message = PacketUtils::ReadString(0xAA, packet, true, 512);
 
 	//Get the bois:
 	auto goonA = playerContainer.GetPlayerData(senderID);
@@ -922,7 +922,7 @@ void ChatPacketHandler::SendFriendRequest(PlayerData* receiver, PlayerData* send
 	//Make sure people aren't requesting people that they're already friends with:
 	for (auto fr : receiver->friends) {
 		if (fr.friendID == sender->playerID) {
-			SendFriendResponse(sender, receiver, AddFriendResponseType::ALREADYFRIEND, fr.isBestFriend);
+			SendFriendResponse(sender, receiver, eAddFriendResponseType::ALREADYFRIEND, fr.isBestFriend);
 			return; //we have this player as a friend, yeet this function so it doesn't send another request.
 		}
 	}
@@ -940,7 +940,7 @@ void ChatPacketHandler::SendFriendRequest(PlayerData* receiver, PlayerData* send
 	SEND_PACKET;
 }
 
-void ChatPacketHandler::SendFriendResponse(PlayerData* receiver, PlayerData* sender, AddFriendResponseType responseCode, uint8_t isBestFriendsAlready, uint8_t isBestFriendRequest) {
+void ChatPacketHandler::SendFriendResponse(PlayerData* receiver, PlayerData* sender, eAddFriendResponseType responseCode, uint8_t isBestFriendsAlready, uint8_t isBestFriendRequest) {
 	if (!receiver || !sender) return;
 
 	CBITSTREAM;
@@ -951,11 +951,11 @@ void ChatPacketHandler::SendFriendResponse(PlayerData* receiver, PlayerData* sen
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_ADD_FRIEND_RESPONSE);
 	bitStream.Write(responseCode);
 	// For all requests besides accepted, write a flag that says whether or not we are already best friends with the receiver.
-	bitStream.Write<uint8_t>(responseCode != AddFriendResponseType::ACCEPTED ? isBestFriendsAlready : sender->sysAddr != UNASSIGNED_SYSTEM_ADDRESS);
+	bitStream.Write<uint8_t>(responseCode != eAddFriendResponseType::ACCEPTED ? isBestFriendsAlready : sender->sysAddr != UNASSIGNED_SYSTEM_ADDRESS);
 	// Then write the player name
 	PacketUtils::WritePacketWString(sender->playerName.c_str(), 33, &bitStream);
 	// Then if this is an acceptance code, write the following extra info.
-	if (responseCode == AddFriendResponseType::ACCEPTED) {
+	if (responseCode == eAddFriendResponseType::ACCEPTED) {
 		bitStream.Write(sender->playerID);
 		bitStream.Write(sender->zoneID);
 		bitStream.Write(isBestFriendRequest); //isBFF

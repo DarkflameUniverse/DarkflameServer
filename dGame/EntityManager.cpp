@@ -17,6 +17,9 @@
 #include "MissionComponent.h"
 #include "Game.h"
 #include "dLogger.h"
+#include "MessageIdentifiers.h"
+#include "dConfig.h"
+#include "eTriggerEventType.h"
 
 EntityManager* EntityManager::m_Address = nullptr;
 
@@ -57,6 +60,20 @@ void EntityManager::Initialize() {
 		m_GhostingExcludedZones.end(),
 		dZoneManager::Instance()->GetZoneID().GetMapID()
 	) == m_GhostingExcludedZones.end();
+
+	// grab hardcore mode settings and load them with sane defaults
+	auto hcmode = Game::config->GetValue("hardcore_mode");
+	m_HardcoreMode = hcmode.empty() ? false : (hcmode == "1");
+	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
+	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : std::stoi(hcUscorePercent);
+	auto hcUscoreMult = Game::config->GetValue("hardcore_uscore_enemies_multiplier");
+	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : std::stoi(hcUscoreMult);
+	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
+	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (hcDropInv == "1");
+
+	// If cloneID is not zero, then hardcore mode is disabled
+	// aka minigames and props
+	if (dZoneManager::Instance()->GetZoneID().GetCloneID() != 0) m_HardcoreMode = false;
 }
 
 EntityManager::~EntityManager() {
@@ -569,7 +586,7 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 
 	SwitchComponent* switchComp = entity->GetComponent<SwitchComponent>();
 	if (switchComp) {
-		entity->TriggerEvent("OnDectivated");
+		entity->TriggerEvent(eTriggerEventType::DEACTIVATED);
 	}
 
 	const auto objectId = entity->GetObjectID();

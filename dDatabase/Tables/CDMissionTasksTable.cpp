@@ -21,19 +21,19 @@ CDMissionTasksTable::CDMissionTasksTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MissionTasks");
 	while (!tableData.eof()) {
 		CDMissionTasks entry;
-		entry.id = tableData.getIntField(0, -1);
-		UNUSED(entry.locStatus = tableData.getIntField(1, -1));
-		entry.taskType = tableData.getIntField(2, -1);
-		entry.target = tableData.getIntField(3, -1);
-		entry.targetGroup = tableData.getStringField(4, "");
-		entry.targetValue = tableData.getIntField(5, -1);
-		entry.taskParam1 = tableData.getStringField(6, "");
-		UNUSED(entry.largeTaskIcon = tableData.getStringField(7, ""));
-		UNUSED(entry.IconID = tableData.getIntField(8, -1));
-		entry.uid = tableData.getIntField(9, -1);
-		UNUSED(entry.largeTaskIconID = tableData.getIntField(10, -1));
-		UNUSED(entry.localize = tableData.getIntField(11, -1) == 1 ? true : false);
-		UNUSED(entry.gate_version = tableData.getStringField(12, ""));
+		entry.id = tableData.getIntField("id", -1);
+		UNUSED(entry.locStatus = tableData.getIntField("locStatus", -1));
+		entry.taskType = tableData.getIntField("taskType", -1);
+		entry.target = tableData.getIntField("target", -1);
+		entry.targetGroup = tableData.getStringField("targetGroup", "");
+		entry.targetValue = tableData.getIntField("targetValue", -1);
+		entry.taskParam1 = tableData.getStringField("taskParam1", "");
+		UNUSED(entry.largeTaskIcon = tableData.getStringField("largeTaskIcon", ""));
+		UNUSED(entry.IconID = tableData.getIntField("IconID", -1));
+		entry.uid = tableData.getIntField("uid", -1);
+		UNUSED(entry.largeTaskIconID = tableData.getIntField("largeTaskIconID", -1));
+		UNUSED(entry.localize = tableData.getIntField("localize", -1) == 1 ? true : false);
+		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -78,3 +78,4 @@ std::vector<CDMissionTasks*> CDMissionTasksTable::GetByMissionID(uint32_t missio
 const std::vector<CDMissionTasks>& CDMissionTasksTable::GetEntries(void) const {
 	return this->entries;
 }
+

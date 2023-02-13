@@ -10,6 +10,7 @@
 #include "dMessageIdentifiers.h"
 #include "MasterPackets.h"
 #include "PacketUtils.h"
+#include "BinaryPathFinder.h"
 
 InstanceManager::InstanceManager(dLogger* logger, const std::string& externalIP) {
 	mLogger = logger;
@@ -30,6 +31,15 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	Instance* instance = FindInstance(mapID, isFriendTransfer, cloneID);
 	if (instance) return instance;
 
+	// If we are shutting down, return a nullptr so a new instance is not created.
+	if (m_IsShuttingDown) {
+		Game::logger->Log("InstanceManager",
+		"Tried to create a new instance map/instance/clone %i/%i/%i, but Master is shutting down.",
+		mapID,
+		m_LastInstanceID + 1,
+		cloneID);
+		return nullptr;
+	}
 	//TODO: Update this so that the IP is read from a configuration file instead
 
 	int softCap = 8;
@@ -48,13 +58,13 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 
 	//Start the actual process:
 #ifdef _WIN32
-	std::string cmd = "start ./WorldServer.exe -zone ";
+	std::string cmd = "start " + (BinaryPathFinder::GetBinaryDir() / "WorldServer.exe").string() + " -zone ";
 #else
 	std::string cmd;
 	if (std::atoi(Game::config->GetValue("use_sudo_world").c_str())) {
-		cmd = "sudo ./WorldServer -zone ";
+		cmd = "sudo " + (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
 	} else {
-		cmd = "./WorldServer -zone ";
+		cmd = (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
 	}
 #endif
 
@@ -73,7 +83,7 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	cmd.append("&"); //Sends our next process to the background on Linux
 #endif
 
-	system(cmd.c_str());
+	auto ret = system(cmd.c_str());
 
 	m_Instances.push_back(instance);
 
@@ -149,7 +159,7 @@ void InstanceManager::RemoveInstance(Instance* instance) {
 		if (m_Instances[i] == instance) {
 			instance->SetShutdownComplete(true);
 
-			RedirectPendingRequests(instance);
+			if (!Game::shouldShutdown) RedirectPendingRequests(instance);
 
 			delete m_Instances[i];
 
@@ -237,7 +247,7 @@ void InstanceManager::RedirectPendingRequests(Instance* instance) {
 	for (const auto& request : instance->GetPendingAffirmations()) {
 		auto* in = Game::im->GetInstance(zoneId.GetMapID(), false, zoneId.GetCloneID());
 
-		if (!in->GetIsReady()) // Instance not ready, make a pending request
+		if (in && !in->GetIsReady()) // Instance not ready, make a pending request
 		{
 			in->GetPendingRequests().push_back(request);
 
@@ -294,16 +304,25 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 		return instance;
 	}
 
+	if (m_IsShuttingDown) {
+		Game::logger->Log("InstanceManager",
+		"Tried to create a new private instance map/instance/clone %i/%i/%i, but Master is shutting down.",
+		mapID,
+		m_LastInstanceID + 1,
+		cloneID);
+		return nullptr;
+	}
+
 	int maxPlayers = 999;
 
 	uint32_t port = GetFreePort();
 	instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, maxPlayers, maxPlayers, true, password);
 
 	//Start the actual process:
-	std::string cmd = "start ./WorldServer.exe -zone ";
+	std::string cmd = "start " + (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
 
 #ifndef _WIN32
-	cmd = "./WorldServer -zone ";
+	cmd = (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
 #endif
 
 	cmd.append(std::to_string(mapID));
@@ -321,7 +340,7 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	cmd.append("&"); //Sends our next process to the background on Linux
 #endif
 
-	system(cmd.c_str());
+	auto ret = system(cmd.c_str());
 
 	m_Instances.push_back(instance);
 
@@ -390,5 +409,5 @@ void Instance::Shutdown() {
 
 	Game::server->Send(&bitStream, this->m_SysAddr, false);
 
-	Game::logger->Log("Instance", "Triggered world shutdown");
+	Game::logger->Log("Instance", "Triggered world shutdown for zone/clone/instance %i/%i/%i", GetMapID(), GetCloneID(), GetInstanceID());
 }

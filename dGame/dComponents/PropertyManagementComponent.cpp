@@ -17,6 +17,8 @@
 #include "Player.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
+#include "InventoryComponent.h"
+#include "eMissionTaskType.h"
 
 #include <vector>
 #include "CppScripts.h"
@@ -200,6 +202,16 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	// If we are not on our clone do not allow us to claim the property
 	if (propertyCloneId != playerCloneId) return false;
 
+	std::string name = zone->GetZoneName();
+	std::string description = "";
+
+	auto prop_path = zone->GetPath(m_Parent->GetVarAsString(u"propertyName"));
+
+	if (prop_path){
+		if (!prop_path->property.displayName.empty()) name = prop_path->property.displayName;
+		description = prop_path->property.displayDesc;
+	}
+
 	SetOwnerId(playerId);
 
 	propertyId = ObjectIDManager::GenerateRandomObjectID();
@@ -207,14 +219,15 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	auto* insertion = Database::CreatePreppedStmt(
 		"INSERT INTO properties"
 		"(id, owner_id, template_id, clone_id, name, description, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, zone_id, performance_cost)"
-		"VALUES (?, ?, ?, ?, ?, '', 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?, 0.0)"
+		"VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?, 0.0)"
 	);
 	insertion->setUInt64(1, propertyId);
 	insertion->setUInt64(2, (uint32_t)playerId);
 	insertion->setUInt(3, templateId);
 	insertion->setUInt64(4, playerCloneId);
-	insertion->setString(5, zone->GetZoneName().c_str());
-	insertion->setInt(6, propertyZoneId);
+	insertion->setString(5, name.c_str());
+	insertion->setString(6, description.c_str());
+	insertion->setInt(7, propertyZoneId);
 
 	// Try and execute the query, print an error if it fails.
 	try {
@@ -392,7 +405,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		});
 	// Progress place model missions
 	auto missionComponent = entity->GetComponent<MissionComponent>();
-	if (missionComponent != nullptr) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PLACE_MODEL, 0);
+	if (missionComponent != nullptr) missionComponent->Progress(eMissionTaskType::PLACE_MODEL, 0);
 }
 
 void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int deleteReason) {
@@ -463,7 +476,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		settings.push_back(propertyObjectID);
 		settings.push_back(modelType);
 
-		inventoryComponent->AddItem(6662, 1, eLootSourceType::LOOT_SOURCE_DELETION, eInventoryType::HIDDEN, settings, LWOOBJID_EMPTY, false, false, spawnerId);
+		inventoryComponent->AddItem(6662, 1, eLootSourceType::LOOT_SOURCE_DELETION, eInventoryType::MODELS_IN_BBB, settings, LWOOBJID_EMPTY, false, false, spawnerId);
 		auto* item = inventoryComponent->FindItemBySubKey(spawnerId);
 
 		if (item == nullptr) {
@@ -656,7 +669,7 @@ void PropertyManagementComponent::Save() {
 		return;
 	}
 
-	auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+	auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 	auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
 	auto* lookup = Database::CreatePreppedStmt("SELECT id FROM properties_contents WHERE property_id = ?;");
 	auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
@@ -706,6 +719,13 @@ void PropertyManagementComponent::Save() {
 			insertion->setDouble(9, rotation.y);
 			insertion->setDouble(10, rotation.z);
 			insertion->setDouble(11, rotation.w);
+			insertion->setString(12, ("Objects_" + std::to_string(entity->GetLOT()) + "_name").c_str()); // Model name.  TODO make this customizable
+			insertion->setString(13, ""); // Model description.  TODO implement this.
+			insertion->setDouble(14, 0); // behavior 1.  TODO implement this.
+			insertion->setDouble(15, 0); // behavior 2.  TODO implement this.
+			insertion->setDouble(16, 0); // behavior 3.  TODO implement this.
+			insertion->setDouble(17, 0); // behavior 4.  TODO implement this.
+			insertion->setDouble(18, 0); // behavior 5.  TODO implement this.
 			try {
 				insertion->execute();
 			} catch (sql::SQLException& ex) {

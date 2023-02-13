@@ -2,15 +2,17 @@
 #define ENTITYMANAGER_H
 
 #include "dCommonVars.h"
-#include "../thirdparty/raknet/Source/Replica.h"
 #include <map>
 #include <stack>
-
-#include "Entity.h"
 #include <vector>
+#include <unordered_map>
+
+class Entity;
+class EntityInfo;
+class Player;
+class User;
 
 struct SystemAddress;
-class User;
 
 class EntityManager {
 public:
@@ -76,6 +78,11 @@ public:
 
 	static bool IsExcludedFromGhosting(LOT lot);
 
+	const bool GetHardcoreMode() { return m_HardcoreMode; };
+	const uint32_t GetHardcoreLoseUscoreOnDeathPercent() { return m_HardcoreLoseUscoreOnDeathPercent; };
+	const bool GetHardcoreDropinventoryOnDeath() { return m_HardcoreDropinventoryOnDeath; };
+	const uint32_t GetHardcoreUscoreEnemiesMultiplier() { return m_HardcoreUscoreEnemiesMultiplier; };
+
 private:
 	static EntityManager* m_Address; //For singleton method
 	static std::vector<LWOMAPID> m_GhostingExcludedZones;
@@ -100,6 +107,12 @@ private:
 
 	// Map of spawnname to entity object ID
 	std::unordered_map<std::string, LWOOBJID> m_SpawnPoints;
+
+	// hardcore mode vars
+	bool m_HardcoreMode;
+	uint32_t m_HardcoreLoseUscoreOnDeathPercent;
+	bool m_HardcoreDropinventoryOnDeath;
+	uint32_t m_HardcoreUscoreEnemiesMultiplier;
 };
 
 #endif // ENTITYMANAGER_H

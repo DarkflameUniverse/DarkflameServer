@@ -4,29 +4,37 @@
 #include <functional>
 #include <typeinfo>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
-#include "../thirdparty/raknet/Source/Replica.h"
-#include "../thirdparty/raknet/Source/ReplicaManager.h"
-
-#include "dCommonVars.h"
-#include "User.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "LDFFormat.h"
-#include "Loot.h"
-#include "Zone.h"
 
-#include "EntityTimer.h"
-#include "EntityCallbackTimer.h"
-#include "EntityInfo.h"
+namespace Loot {
+	class Info;
+};
+
+namespace tinyxml2 {
+	class XMLDocument;
+};
 
 class Player;
+class EntityInfo;
+class User;
 class Spawner;
 class ScriptComponent;
 class dpEntity;
+class EntityTimer;
 class Component;
+class Item;
 class Character;
+class EntityCallbackTimer;
+enum class eTriggerEventType;
+
+namespace CppScripts {
+	class Script;
+};
 
 /**
  * An entity in the world. Has multiple components.
@@ -56,8 +64,6 @@ public:
 	uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
 
 	Entity* GetParentEntity() const { return m_ParentEntity; }
-
-	LUTriggers::Trigger* GetTrigger() const { return m_Trigger; }
 
 	std::vector<std::string>& GetGroups() { return m_Groups; };
 
@@ -139,6 +145,9 @@ public:
 
 	std::vector<ScriptComponent*> GetScriptComponents();
 
+	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
+	void Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName);
+
 	void SetProximityRadius(float proxRadius, std::string name);
 	void SetProximityRadius(dpEntity* entity, std::string name);
 
@@ -208,9 +217,8 @@ public:
 	void RegisterCoinDrop(uint64_t count);
 
 	void ScheduleKillAfterUpdate(Entity* murderer = nullptr);
-	void TriggerEvent(std::string eveneventtID, Entity* optionalTarget = nullptr);
+	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
-	void HandleTriggerCommand(std::string id, std::string target, std::string targetName, std::string args, Entity* optionalTarget);
 
 	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }
 	virtual NiQuaternion GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
@@ -294,8 +302,6 @@ protected:
 
 	bool m_HasSpawnerNodeID;
 	uint32_t m_SpawnerNodeID;
-
-	LUTriggers::Trigger* m_Trigger;
 
 	Character* m_Character;
 

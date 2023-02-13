@@ -3,6 +3,8 @@
 
 #include "BrickDatabase.h"
 #include "Game.h"
+#include "AssetManager.h"
+#include "tinyxml2.h"
 
 std::vector<Brick> BrickDatabase::emptyCache{};
 BrickDatabase* BrickDatabase::m_Address = nullptr;
@@ -17,7 +19,13 @@ std::vector<Brick>& BrickDatabase::GetBricks(const std::string& lxfmlPath) {
 		return cached->second;
 	}
 
-	std::ifstream file(lxfmlPath);
+	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer((lxfmlPath).c_str());
+
+	if (!buffer.m_Success) {
+		return emptyCache;
+	}
+
+	std::istream file(&buffer);
 	if (!file.good()) {
 		return emptyCache;
 	}
@@ -25,8 +33,11 @@ std::vector<Brick>& BrickDatabase::GetBricks(const std::string& lxfmlPath) {
 	std::stringstream data;
 	data << file.rdbuf();
 	if (data.str().empty()) {
+		buffer.close();
 		return emptyCache;
 	}
+
+	buffer.close();
 
 	auto* doc = new tinyxml2::XMLDocument();
 	if (doc->Parse(data.str().c_str(), data.str().size()) != 0) {

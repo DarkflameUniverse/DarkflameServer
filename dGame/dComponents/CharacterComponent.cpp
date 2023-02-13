@@ -13,6 +13,7 @@
 #include "VehiclePhysicsComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
+#include "AMFFormat.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
@@ -42,11 +43,11 @@ bool CharacterComponent::LandingAnimDisabled(int zoneID) {
 	switch (zoneID) {
 	case 0:
 	case 556:
-	case 1001:
 	case 1101:
 	case 1202:
 	case 1203:
 	case 1204:
+	case 1261:
 	case 1301:
 	case 1302:
 	case 1303:

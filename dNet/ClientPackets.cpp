@@ -31,7 +31,7 @@
 #include "dConfig.h"
 #include "CharacterComponent.h"
 #include "Database.h"
-
+#include "dMessageIdentifiers.h"
 
 
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
@@ -268,7 +268,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 	// Check if the player has restricted chat access
 	auto* character = entity->GetCharacter();
 
-	if (character->HasPermission(PermissionMap::RestrictedChatAccess)) {
+	if (character->HasPermission(ePermissionMap::RestrictedChatAccess)) {
 		// Send a message to the player
 		ChatPackets::SendSystemMessage(
 			sysAddr,

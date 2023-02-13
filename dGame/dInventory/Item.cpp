@@ -13,9 +13,9 @@
 #include "PossessableComponent.h"
 #include "CharacterComponent.h"
 #include "eItemType.h"
-
-class Inventory;
-
+#include "AssetManager.h"
+#include "InventoryComponent.h"
+#include "Loot.h"
 
 Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_t slot, const uint32_t count, const bool bound, const std::vector<LDFBaseData*>& config, const LWOOBJID parent, LWOOBJID subKey, eLootSourceType lootSourceType) {
 	if (!Inventory::IsValidItem(lot)) {
@@ -76,7 +76,7 @@ Item::Item(
 
 	const auto type = static_cast<eItemType>(info->itemType);
 
-	if (type == eItemType::ITEM_TYPE_MOUNT) {
+	if (type == eItemType::MOUNT) {
 		id = GeneralUtils::SetBit(id, OBJECT_BIT_CLIENT);
 	}
 
@@ -252,7 +252,7 @@ bool Item::Consume() {
 		}
 	}
 
-	Game::logger->Log("Item", "Consumed (%i) / (%llu) with (%d)", lot, id, success);
+	Game::logger->LogDebug("Item", "Consumed LOT (%i) itemID (%llu).  Success=(%d)", lot, id, success);
 
 	GameMessages::SendUseItemResult(inventory->GetComponent()->GetParent(), lot, success);
 
@@ -263,36 +263,83 @@ bool Item::Consume() {
 	return success;
 }
 
-void Item::UseNonEquip() {
+void Item::UseNonEquip(Item* item) {
+	LOT thisLot = this->GetLot();
+	if (!GetInventory()) {
+		Game::logger->LogDebug("Item", "item %i has no inventory??", this->GetLot());
+		return;
+	}
+
+	auto* playerInventoryComponent = GetInventory()->GetComponent();
+	if (!playerInventoryComponent) {
+		Game::logger->LogDebug("Item", "no inventory component attached to item id %llu lot %i", this->GetId(), this->GetLot());
+		return;
+	}
+
+	auto* playerEntity = playerInventoryComponent->GetParent();
+	if (!playerEntity) {
+		Game::logger->LogDebug("Item", "no player entity attached to inventory? item id is %llu", this->GetId());
+		return;
+	}
+
 	const auto type = static_cast<eItemType>(info->itemType);
-	if (type == eItemType::ITEM_TYPE_MOUNT) {
-		GetInventory()->GetComponent()->HandlePossession(this);
-	} else if (type == eItemType::ITEM_TYPE_PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY) {
-		const auto& databasePet = GetInventory()->GetComponent()->GetDatabasePet(subKey);
+	if (type == eItemType::MOUNT) {
+		playerInventoryComponent->HandlePossession(this);
+		// TODO Check if mounts are allowed to be spawned
+	} else if (type == eItemType::PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY) {
+		const auto& databasePet = playerInventoryComponent->GetDatabasePet(subKey);
 		if (databasePet.lot != LOT_NULL) {
-			GetInventory()->GetComponent()->SpawnPet(this);
+			playerInventoryComponent->SpawnPet(this);
 		}
+		// This precondition response is taken care of in SpawnPet().
 	} else {
-		auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-		const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_PACKAGE);
+		bool success = false;
+		auto inventory = item->GetInventory();
+		if (inventory && inventory->GetType() == eInventoryType::ITEMS) {
+			auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+			const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_PACKAGE);
 
-		if (packageComponentId == 0) return;
+			if (packageComponentId == 0) return;
 
-		auto* packCompTable = CDClientManager::Instance()->GetTable<CDPackageComponentTable>("PackageComponent");
-		auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
+			auto* packCompTable = CDClientManager::Instance()->GetTable<CDPackageComponentTable>("PackageComponent");
+			auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
 
-		const auto success = !packages.empty();
-		if (success) {
-			auto* entityParent = inventory->GetComponent()->GetParent();
-			for (auto& pack : packages) {
-				std::unordered_map<LOT, int32_t> result{};
-				result = LootGenerator::Instance().RollLootMatrix(entityParent, pack.LootMatrixIndex);
-				if (!inventory->GetComponent()->HasSpaceForLoot(result)) {
+			auto success = !packages.empty();
+			if (success) {
+				if (this->GetPreconditionExpression()->Check(playerInventoryComponent->GetParent())) {
+					auto* entityParent = playerInventoryComponent->GetParent();
+					// Roll the loot for all the packages then see if it all fits.  If it fits, give it to the player, otherwise don't.
+					std::unordered_map<LOT, int32_t> rolledLoot{};
+					for (auto& pack : packages) {
+						auto thisPackage = LootGenerator::Instance().RollLootMatrix(entityParent, pack.LootMatrixIndex);
+						for (auto& loot : thisPackage) {
+							// If we already rolled this lot, add it to the existing one, otherwise create a new entry.
+							auto existingLoot = rolledLoot.find(loot.first);
+							if (existingLoot == rolledLoot.end()) {
+								rolledLoot.insert(loot);
+							} else {
+								existingLoot->second += loot.second;
+							}
+						}
+					}
+					if (playerInventoryComponent->HasSpaceForLoot(rolledLoot)) {
+						LootGenerator::Instance().GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
+						item->SetCount(item->GetCount() - 1);
+					} else {
+						success = false;
+					}
+				} else {
+					GameMessages::SendUseItemRequirementsResponse(
+						playerInventoryComponent->GetParent()->GetObjectID(),
+						playerInventoryComponent->GetParent()->GetSystemAddress(),
+						UseItemResponse::FailedPrecondition
+					);
+					success = false;
 				}
-				LootGenerator::Instance().GiveLoot(inventory->GetComponent()->GetParent(), result, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
 			}
-			inventory->GetComponent()->RemoveItem(lot, 1);
 		}
+		Game::logger->LogDebug("Item", "Player %llu %s used item %i", playerEntity->GetObjectID(), success ? "successfully" : "unsuccessfully", thisLot);
+		GameMessages::SendUseItemResult(playerInventoryComponent->GetParent(), thisLot, success);
 	}
 }
 
@@ -300,6 +347,15 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 	for (auto* data : config) {
 		if (data->GetKey() == u"assemblyPartLOTs") {
 			auto modStr = data->GetValueAsString();
+
+			// This shouldn't be null but always check your pointers.
+			if (GetInventory()) {
+				auto inventoryComponent = GetInventory()->GetComponent();
+				if (inventoryComponent) {
+					auto entity = inventoryComponent->GetParent();
+					if (entity) entity->SetVar<std::string>(u"currentModifiedBuild", modStr);
+				}
+			}
 
 			std::vector<LOT> modArray;
 
@@ -340,17 +396,27 @@ void Item::DisassembleModel() {
 	std::string renderAsset = result.fieldIsNull(0) ? "" : std::string(result.getStringField(0));
 	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '\\');
 
-	std::string lxfmlPath = "res/BrickModels/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.')[0] + ".lxfml";
-	std::ifstream file(lxfmlPath);
+	std::string lxfmlPath = "BrickModels/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
+	auto buffer = Game::assetManager->GetFileAsBuffer(lxfmlPath.c_str());
+
+	if (!buffer.m_Success) {
+		Game::logger->Log("Item", "Failed to load %s to disassemble model into bricks, check that this file exists", lxfmlPath.c_str());
+		return;
+	}
+
+	std::istream file(&buffer);
 
 	result.finalize();
 
 	if (!file.good()) {
+		buffer.close();
 		return;
 	}
 
 	std::stringstream data;
 	data << file.rdbuf();
+
+	buffer.close();
 
 	if (data.str().empty()) {
 		return;

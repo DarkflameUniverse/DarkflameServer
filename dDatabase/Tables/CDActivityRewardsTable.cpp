@@ -21,13 +21,13 @@ CDActivityRewardsTable::CDActivityRewardsTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ActivityRewards");
 	while (!tableData.eof()) {
 		CDActivityRewards entry;
-		entry.objectTemplate = tableData.getIntField(0, -1);
-		entry.ActivityRewardIndex = tableData.getIntField(1, -1);
-		entry.activityRating = tableData.getIntField(2, -1);
-		entry.LootMatrixIndex = tableData.getIntField(3, -1);
-		entry.CurrencyIndex = tableData.getIntField(4, -1);
-		entry.ChallengeRating = tableData.getIntField(5, -1);
-		entry.description = tableData.getStringField(6, "");
+		entry.objectTemplate = tableData.getIntField("objectTemplate", -1);
+		entry.ActivityRewardIndex = tableData.getIntField("ActivityRewardIndex", -1);
+		entry.activityRating = tableData.getIntField("activityRating", -1);
+		entry.LootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
+		entry.CurrencyIndex = tableData.getIntField("CurrencyIndex", -1);
+		entry.ChallengeRating = tableData.getIntField("ChallengeRating", -1);
+		entry.description = tableData.getStringField("description", "");
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -58,3 +58,4 @@ std::vector<CDActivityRewards> CDActivityRewardsTable::Query(std::function<bool(
 std::vector<CDActivityRewards> CDActivityRewardsTable::GetEntries(void) const {
 	return this->entries;
 }
+

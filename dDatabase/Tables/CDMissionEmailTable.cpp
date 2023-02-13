@@ -21,14 +21,14 @@ CDMissionEmailTable::CDMissionEmailTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MissionEmail");
 	while (!tableData.eof()) {
 		CDMissionEmail entry;
-		entry.ID = tableData.getIntField(0, -1);
-		entry.messageType = tableData.getIntField(1, -1);
-		entry.notificationGroup = tableData.getIntField(2, -1);
-		entry.missionID = tableData.getIntField(3, -1);
-		entry.attachmentLOT = tableData.getIntField(4, 0);
-		entry.localize = (bool)tableData.getIntField(5, -1);
-		entry.locStatus = tableData.getIntField(6, -1);
-		entry.gate_version = tableData.getStringField(7, "");
+		entry.ID = tableData.getIntField("ID", -1);
+		entry.messageType = tableData.getIntField("messageType", -1);
+		entry.notificationGroup = tableData.getIntField("notificationGroup", -1);
+		entry.missionID = tableData.getIntField("missionID", -1);
+		entry.attachmentLOT = tableData.getIntField("attachmentLOT", 0);
+		entry.localize = (bool)tableData.getIntField("localize", -1);
+		entry.locStatus = tableData.getIntField("locStatus", -1);
+		entry.gate_version = tableData.getStringField("gate_version", "");
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -59,3 +59,4 @@ std::vector<CDMissionEmail> CDMissionEmailTable::Query(std::function<bool(CDMiss
 std::vector<CDMissionEmail> CDMissionEmailTable::GetEntries(void) const {
 	return this->entries;
 }
+
