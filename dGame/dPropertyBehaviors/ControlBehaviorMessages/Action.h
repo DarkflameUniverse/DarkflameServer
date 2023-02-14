@@ -3,6 +3,10 @@
 
 #include "BehaviorMessageBase.h"
 
+/**
+ * @brief Sent if a ControlBehavior message has an Action associated with it
+ * 
+ */
 class Action {
 public:
 	Action();

@@ -6,6 +6,10 @@
 
 class AMFArrayValue;
 
+/**
+ * @brief Sent when a player removes any Action after the first one from a Strip
+ * 
+ */
 class RemoveActionsMessage : public BehaviorMessageBase {
 public:
 	RemoveActionsMessage(AMFArrayValue* arguments);

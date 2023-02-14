@@ -6,6 +6,10 @@
 
 class AMFArrayValue;
 
+/**
+ * @brief Sent if contextual State and Strip informationis needed for a ControlBehaviors message
+ * 
+ */
 class ActionContext {
 public:
 	ActionContext();

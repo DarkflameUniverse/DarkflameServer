@@ -12,6 +12,10 @@
 
 enum class BehaviorState : uint32_t;
 
+/**
+ * @brief The behaviorID target of this ControlBehaviors message
+ * 
+ */
 class BehaviorMessageBase {
 public:
 	const uint32_t GetBehaviorId() { return behaviorId; };

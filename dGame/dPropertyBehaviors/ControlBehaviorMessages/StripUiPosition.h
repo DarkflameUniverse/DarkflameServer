@@ -3,6 +3,10 @@
 
 class AMFArrayValue;
 
+/**
+ * @brief The position of the first Action in a Strip
+ * 
+ */
 class StripUiPosition {
 public:
 	StripUiPosition();

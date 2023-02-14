@@ -10,6 +10,12 @@
 class Action;
 class AMFArrayValue;
 
+/**
+ * @brief Sent in 2 contexts:
+ * A player adds an Action A from their toolbox without attaching it to an existing Strip.  In this case, only 1 action is sent.
+ * A player moves a Strip from BehaviorState A directly to BehaviorState B.  In this case, a list of actions are sent. 
+ * 
+ */
 class AddStripMessage : public BehaviorMessageBase {
 public:
 	AddStripMessage(AMFArrayValue* arguments);

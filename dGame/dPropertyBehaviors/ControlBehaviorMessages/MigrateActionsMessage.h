@@ -6,6 +6,10 @@
 
 class AMFArrayValue;
 
+/**
+ * @brief Sent when a player moves an Action after the first Action to a different Strip
+ * 
+ */
 class MigrateActionsMessage : public BehaviorMessageBase {
 public:
 	MigrateActionsMessage(AMFArrayValue* arguments);

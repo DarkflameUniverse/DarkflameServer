@@ -6,6 +6,10 @@
 
 class AMFArrayValue;
 
+/**
+ * @brief Sent when a player adds the first Action of Strip A to a Strip B
+ * 
+ */
 class MergeStripsMessage : public BehaviorMessageBase {
 public:
 	MergeStripsMessage(AMFArrayValue* arguments);

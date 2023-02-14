@@ -7,6 +7,10 @@
 
 class AMFArrayValue;
 
+/**
+ * @brief Sent when a player takes an Action from Strip A and does not add it to an existing strip
+ * 
+ */
 class SplitStripMessage : public BehaviorMessageBase {
 public:
 	SplitStripMessage(AMFArrayValue* arguments);

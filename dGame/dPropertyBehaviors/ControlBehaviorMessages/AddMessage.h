@@ -3,6 +3,10 @@
 
 #include "BehaviorMessageBase.h"
 
+/**
+ * @brief Sent when a player adds a Behavior A from their inventory to a model.
+ * 
+ */
 class AddMessage : public BehaviorMessageBase {
 public:
 	AddMessage(AMFArrayValue* arguments);

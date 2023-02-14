@@ -7,6 +7,10 @@
 
 class AMFArrayValue;
 
+/**
+ * @brief Sent when a player updates the value in an Action
+ * 
+ */
 class UpdateActionMessage : public BehaviorMessageBase {
 public:
 	UpdateActionMessage(AMFArrayValue* arguments);

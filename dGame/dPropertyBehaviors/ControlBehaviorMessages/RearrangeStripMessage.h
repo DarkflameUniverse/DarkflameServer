@@ -4,6 +4,10 @@
 #include "ActionContext.h"
 #include "BehaviorMessageBase.h"
 
+/**
+ * @brief Sent when a player moves an Action around in the same strip
+ * 
+ */
 class RearrangeStripMessage : public BehaviorMessageBase {
 public:
 	RearrangeStripMessage(AMFArrayValue* arguments);

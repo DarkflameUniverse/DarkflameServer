@@ -7,6 +7,10 @@
 
 class AMFArrayValue;
 
+/**
+ * @brief Sent when a player moves the first Action in a Strip
+ * 
+ */
 class UpdateStripUiMessage : public BehaviorMessageBase {
 public:
 	UpdateStripUiMessage(AMFArrayValue* arguments);
