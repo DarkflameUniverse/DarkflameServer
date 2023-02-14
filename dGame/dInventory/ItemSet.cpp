@@ -6,6 +6,7 @@
 #include "CDClientDatabase.h"
 #include "Game.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
 #include <algorithm>
 
 ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
@@ -130,7 +131,7 @@ void ItemSet::OnEquip(const LOT lot) {
 
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
 
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, skill);
+		missionComponent->Progress(eMissionTaskType::USE_SKILL, skill);
 
 		skillComponent->HandleUnmanaged(behaviorId, m_InventoryComponent->GetParent()->GetObjectID());
 	}

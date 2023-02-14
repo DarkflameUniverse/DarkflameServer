@@ -15,13 +15,14 @@
 #include "Player.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
-#include "RacingTaskParam.h"
+#include "eRacingTaskParam.h"
 #include "Spawner.h"
 #include "VehiclePhysicsComponent.h"
 #include "dServer.h"
 #include "dZoneManager.h"
 #include "dConfig.h"
 #include "Loot.h"
+#include "eMissionTaskType.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327950288
@@ -395,18 +396,18 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player,
 
 		if (missionComponent == nullptr) return;
 
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, 0, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COMPETED_IN_RACE); // Progress task for competing in a race
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, data->smashedTimes, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SAFE_DRIVER); // Finish a race without being smashed.
+		missionComponent->Progress(eMissionTaskType::RACING, 0, (LWOOBJID)eRacingTaskParam::COMPETED_IN_RACE); // Progress task for competing in a race
+		missionComponent->Progress(eMissionTaskType::RACING, data->smashedTimes, (LWOOBJID)eRacingTaskParam::SAFE_DRIVER); // Finish a race without being smashed.
 
 		// If solo racing is enabled OR if there are 3 players in the race, progress placement tasks.
 		if (m_SoloRacing || m_LoadedPlayers > 2) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, data->finished, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_FINISH_WITH_PLACEMENT); // Finish in 1st place on a race
+			missionComponent->Progress(eMissionTaskType::RACING, data->finished, (LWOOBJID)eRacingTaskParam::FINISH_WITH_PLACEMENT); // Finish in 1st place on a race
 			if (data->finished == 1) {
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_FIRST_PLACE_MULTIPLE_TRACKS); // Finish in 1st place on multiple tracks.
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_WIN_RACE_IN_WORLD); // Finished first place in specific world.
+				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::FIRST_PLACE_MULTIPLE_TRACKS); // Finish in 1st place on multiple tracks.
+				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::WIN_RACE_IN_WORLD); // Finished first place in specific world.
 			}
 			if (data->finished == m_LoadedPlayers) {
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_LAST_PLACE_FINISH); // Finished first place in specific world.
+				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::LAST_PLACE_FINISH); // Finished first place in specific world.
 			}
 		}
 	} else if (id == "ACT_RACE_EXIT_THE_RACE?" || id == "Exit") {
@@ -828,7 +829,7 @@ void RacingControlComponent::Update(float deltaTime) {
 				if (missionComponent != nullptr) {
 
 					// Progress lap time tasks
-					missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, (lapTime) * 1000, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_LAP_TIME);
+					missionComponent->Progress(eMissionTaskType::RACING, (lapTime) * 1000, (LWOOBJID)eRacingTaskParam::LAP_TIME);
 
 					if (player.lap == 3) {
 						m_Finished++;
@@ -844,7 +845,7 @@ void RacingControlComponent::Update(float deltaTime) {
 							raceTime, raceTime * 1000);
 
 						// Entire race time
-						missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, (raceTime) * 1000, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_TOTAL_TRACK_TIME);
+						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, (LWOOBJID)eRacingTaskParam::TOTAL_TRACK_TIME);
 
 						auto* characterComponent = playerEntity->GetComponent<CharacterComponent>();
 						if (characterComponent != nullptr) {

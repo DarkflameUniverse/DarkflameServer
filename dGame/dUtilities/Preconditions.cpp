@@ -12,7 +12,7 @@
 #include "LevelProgressionComponent.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
-
+#include "eMissionState.h"
 
 std::map<uint32_t, Precondition*> Preconditions::cache = {};
 
@@ -142,19 +142,19 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::HasAchievement:
 		mission = missionComponent->GetMission(value);
 
-		return mission == nullptr || mission->GetMissionState() >= MissionState::MISSION_STATE_COMPLETE;
+		return mission == nullptr || mission->GetMissionState() >= eMissionState::COMPLETE;
 	case PreconditionType::MissionAvailable:
 		mission = missionComponent->GetMission(value);
 
-		return mission == nullptr || mission->GetMissionState() >= MissionState::MISSION_STATE_AVAILABLE;
+		return mission == nullptr || mission->GetMissionState() >= eMissionState::AVAILABLE;
 	case PreconditionType::OnMission:
 		mission = missionComponent->GetMission(value);
 
-		return mission == nullptr || mission->GetMissionState() >= MissionState::MISSION_STATE_ACTIVE;
+		return mission == nullptr || mission->GetMissionState() >= eMissionState::ACTIVE;
 	case PreconditionType::MissionComplete:
 		mission = missionComponent->GetMission(value);
 
-		return mission == nullptr ? false : mission->GetMissionState() >= MissionState::MISSION_STATE_COMPLETE;
+		return mission == nullptr ? false : mission->GetMissionState() >= eMissionState::COMPLETE;
 	case PreconditionType::PetDeployed:
 		return false; // TODO
 	case PreconditionType::HasFlag:

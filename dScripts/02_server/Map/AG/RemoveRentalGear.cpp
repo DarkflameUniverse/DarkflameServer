@@ -1,7 +1,7 @@
 #include "RemoveRentalGear.h"
 #include "InventoryComponent.h"
 #include "Item.h"
-#include "MissionState.h"
+#include "eMissionState.h"
 #include "Character.h"
 
 /*
@@ -17,10 +17,10 @@
 --------------------------------------------------------------
 */
 
-void RemoveRentalGear::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void RemoveRentalGear::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	if (missionID != defaultMission && missionID != 313) return;
 
-	if (missionState == MissionState::MISSION_STATE_COMPLETE || missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE) {
+	if (missionState == eMissionState::COMPLETE || missionState == eMissionState::READY_TO_COMPLETE) {
 		auto inv = static_cast<InventoryComponent*>(target->GetComponent(COMPONENT_TYPE_INVENTORY));
 		if (!inv) return;
 

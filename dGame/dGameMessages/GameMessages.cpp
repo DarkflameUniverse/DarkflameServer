@@ -31,7 +31,9 @@
 #include "LeaderboardManager.h"
 #include "AMFFormat.h"
 #include "Loot.h"
-#include "RacingTaskParam.h"
+#include "eRacingTaskParam.h"
+#include "eMissionTaskType.h"
+#include "eMissionState.h"
 
 #include <sstream>
 #include <future>
@@ -3264,7 +3266,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream* inStream, Entity*
 	// Check if the player has restricted trade access
 	auto* character = entity->GetCharacter();
 
-	if (character->HasPermission(PermissionMap::RestrictedTradeAccess)) {
+	if (character->HasPermission(ePermissionMap::RestrictedTradeAccess)) {
 		// Send a message to the player
 		ChatPackets::SendSystemMessage(
 			sysAddr,
@@ -3284,7 +3286,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream* inStream, Entity*
 	if (invitee != nullptr && invitee->IsPlayer()) {
 		character = invitee->GetCharacter();
 
-		if (character->HasPermission(PermissionMap::RestrictedTradeAccess)) {
+		if (character->HasPermission(ePermissionMap::RestrictedTradeAccess)) {
 			// Send a message to the player
 			ChatPackets::SendSystemMessage(
 				sysAddr,
@@ -4707,25 +4709,10 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 		LOT tokenId = -1;
 
-		if (missionComponent->GetMissionState(545) == MissionState::MISSION_STATE_COMPLETE) // "Join Assembly!"
-		{
-			tokenId = 8318; // "Assembly Token"
-		}
-
-		if (missionComponent->GetMissionState(556) == MissionState::MISSION_STATE_COMPLETE) // "Join Venture League!"
-		{
-			tokenId = 8321; // "Venture League Token"
-		}
-
-		if (missionComponent->GetMissionState(567) == MissionState::MISSION_STATE_COMPLETE) // "Join The Sentinels!"
-		{
-			tokenId = 8319; // "Sentinels Token"
-		}
-
-		if (missionComponent->GetMissionState(578) == MissionState::MISSION_STATE_COMPLETE) // "Join Paradox!"
-		{
-			tokenId = 8320; // "Paradox Token"
-		}
+		if (missionComponent->GetMissionState(545) == eMissionState::COMPLETE) tokenId = 8318; // "Assembly Token"
+		if (missionComponent->GetMissionState(556) == eMissionState::COMPLETE) tokenId = 8321; // "Venture League Token"
+		if (missionComponent->GetMissionState(567) == eMissionState::COMPLETE) tokenId = 8319; // "Sentinels Token"
+		if (missionComponent->GetMissionState(578) == eMissionState::COMPLETE) tokenId = 8320; // "Paradox Token"
 
 		const uint32_t altCurrencyCost = itemComp.commendationCost * count;
 
@@ -5031,8 +5018,8 @@ void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity,
 
 	if (missionComponent == nullptr) return;
 
-	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
-	missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_NON_MISSION_INTERACTION, interactedObject->GetLOT(), interactedObject->GetObjectID());
+	missionComponent->Progress(eMissionTaskType::TALK_TO_NPC, interactedObject->GetLOT(), interactedObject->GetObjectID());
+	missionComponent->Progress(eMissionTaskType::INTERACT, interactedObject->GetLOT(), interactedObject->GetObjectID());
 }
 
 void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) {
@@ -5059,7 +5046,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 
 		if (targetEntity != nullptr) {
 			targetEntity->OnEmoteReceived(emoteID, entity);
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, targetID);
+			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, targetID);
 		}
 	} else {
 		Game::logger->LogDebug("GameMessages", "Target ID is empty, using backup");
@@ -5071,7 +5058,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 			if (Vector3::DistanceSquared(scripted->GetPosition(), referencePoint) > 5.0f * 5.0f) continue;
 
 			scripted->OnEmoteReceived(emoteID, entity);
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_EMOTE, emoteID, scripted->GetObjectID());
+			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, scripted->GetObjectID());
 		}
 	}
 
@@ -5163,7 +5150,7 @@ void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* e
 
 void GameMessages::HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* entity) {
 	bool bIsComplete{};
-	MissionState iMissionState{};
+	eMissionState iMissionState{};
 	int missionID{};
 	LWOOBJID responder{};
 	Entity* player = nullptr;
@@ -5185,9 +5172,9 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* en
 		return;
 	}
 
-	if (iMissionState == MissionState::MISSION_STATE_AVAILABLE || iMissionState == MissionState::MISSION_STATE_COMPLETE_AVAILABLE) {
+	if (iMissionState == eMissionState::AVAILABLE || iMissionState == eMissionState::COMPLETE_AVAILABLE) {
 		missionComponent->AcceptMission(missionID);
-	} else if (iMissionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || iMissionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE) {
+	} else if (iMissionState == eMissionState::READY_TO_COMPLETE || iMissionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
 		missionComponent->CompleteMission(missionID);
 	}
 }
@@ -5219,7 +5206,7 @@ void GameMessages::HandleHasBeenCollected(RakNet::BitStream* inStream, Entity* e
 
 	MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(COMPONENT_TYPE_MISSION));
 	if (missionComponent) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ENVIRONMENT, entity->GetLOT(), entity->GetObjectID());
+		missionComponent->Progress(eMissionTaskType::COLLECTION, entity->GetLOT(), entity->GetObjectID());
 	}
 }
 
@@ -5438,7 +5425,7 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 		auto* missionComponent = entity->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, item->GetLot(), LWOOBJID_EMPTY, "", -iStackCount);
+			missionComponent->Progress(eMissionTaskType::GATHER, item->GetLot(), LWOOBJID_EMPTY, "", -iStackCount);
 		}
 	}
 }
@@ -5593,8 +5580,8 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 		if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
 			if (missionComponent != nullptr) {
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, entity->GetLOT(), entity->GetObjectID());
-				if (count >= 7 && everyPieceSwapped) missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, LWOOBJID_EMPTY, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_MODULAR_BUILDING);
+				missionComponent->Progress(eMissionTaskType::SCRIPT, entity->GetLOT(), entity->GetObjectID());
+				if (count >= 7 && everyPieceSwapped) missionComponent->Progress(eMissionTaskType::RACING, LWOOBJID_EMPTY, (LWOOBJID)eRacingTaskParam::MODULAR_BUILDING);
 			}
 		}
 	}
@@ -5826,7 +5813,7 @@ void GameMessages::HandleClientItemConsumed(RakNet::BitStream* inStream, Entity*
 
 	auto* missions = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
 	if (missions != nullptr) {
-		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_FOOD, itemLot);
+		missions->Progress(eMissionTaskType::USE_ITEM, itemLot);
 	}
 }
 

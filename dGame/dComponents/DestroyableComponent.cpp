@@ -32,6 +32,7 @@
 #include "InventoryComponent.h"
 #include "dZoneManager.h"
 #include "WorldConfig.h"
+#include "eMissionTaskType.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_iArmor = 0;
@@ -467,9 +468,9 @@ bool DestroyableComponent::IsKnockbackImmune() const {
 
 	if (characterComponent != nullptr && inventoryComponent != nullptr && characterComponent->GetCurrentActivity() == eGameActivities::ACTIVITY_QUICKBUILDING) {
 		const auto hasPassive = inventoryComponent->HasAnyPassive({
-			ItemSetPassiveAbilityID::EngineerRank2, ItemSetPassiveAbilityID::EngineerRank3,
-			ItemSetPassiveAbilityID::SummonerRank2, ItemSetPassiveAbilityID::SummonerRank3,
-			ItemSetPassiveAbilityID::InventorRank2, ItemSetPassiveAbilityID::InventorRank3,
+			eItemSetPassiveAbilityID::EngineerRank2, eItemSetPassiveAbilityID::EngineerRank3,
+			eItemSetPassiveAbilityID::SummonerRank2, eItemSetPassiveAbilityID::SummonerRank3,
+			eItemSetPassiveAbilityID::InventorRank2, eItemSetPassiveAbilityID::InventorRank3,
 			}, 5);
 
 		if (hasPassive) {
@@ -736,12 +737,12 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 					if (memberMissions == nullptr) continue;
 
-					memberMissions->Progress(MissionTaskType::MISSION_TASK_TYPE_SMASH, m_Parent->GetLOT());
-					memberMissions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, m_Parent->GetLOT(), skillID);
+					memberMissions->Progress(eMissionTaskType::SMASH, m_Parent->GetLOT());
+					memberMissions->Progress(eMissionTaskType::USE_SKILL, m_Parent->GetLOT(), skillID);
 				}
 			} else {
-				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SMASH, m_Parent->GetLOT());
-				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, m_Parent->GetLOT(), skillID);
+				missions->Progress(eMissionTaskType::SMASH, m_Parent->GetLOT());
+				missions->Progress(eMissionTaskType::USE_SKILL, m_Parent->GetLOT(), skillID);
 			}
 		}
 	}

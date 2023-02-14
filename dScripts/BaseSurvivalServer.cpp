@@ -4,7 +4,8 @@
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Player.h"
-#include "MissionTaskType.h"
+#include "eMissionTaskType.h"
+#include "eMissionState.h"
 #include "MissionComponent.h"
 #include "Character.h"
 
@@ -361,16 +362,16 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 		// Update all mission progression
 		auto* missionComponent = player->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, time, self->GetObjectID(),
+			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, time, self->GetObjectID(),
 				self->GetVar<std::string>(MissionTypeVariable));
 
 			for (const auto& survivalMission : missionsToUpdate) {
 				auto* mission = missionComponent->GetMission(survivalMission.first);
 				if (mission != nullptr && (uint32_t)time >= survivalMission.second
-					&& (mission->GetMissionState() == MissionState::MISSION_STATE_ACTIVE
-						|| mission->GetMissionState() == MissionState::MISSION_STATE_COMPLETE_ACTIVE)) {
+					&& (mission->GetMissionState() == eMissionState::ACTIVE
+						|| mission->GetMissionState() == eMissionState::COMPLETE_ACTIVE)) {
 
-					mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+					mission->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 				}
 			}
 		}

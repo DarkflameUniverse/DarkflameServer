@@ -18,9 +18,6 @@ namespace Loot {
 namespace tinyxml2 {
 	class XMLDocument;
 };
-namespace LUTriggers {
-	struct Trigger;
-};
 
 class Player;
 class EntityInfo;
@@ -33,6 +30,7 @@ class Component;
 class Item;
 class Character;
 class EntityCallbackTimer;
+enum class eTriggerEventType;
 
 namespace CppScripts {
 	class Script;
@@ -66,8 +64,6 @@ public:
 	uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
 
 	Entity* GetParentEntity() const { return m_ParentEntity; }
-
-	LUTriggers::Trigger* GetTrigger() const { return m_Trigger; }
 
 	std::vector<std::string>& GetGroups() { return m_Groups; };
 
@@ -221,9 +217,8 @@ public:
 	void RegisterCoinDrop(uint64_t count);
 
 	void ScheduleKillAfterUpdate(Entity* murderer = nullptr);
-	void TriggerEvent(std::string eveneventtID, Entity* optionalTarget = nullptr);
+	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
-	void HandleTriggerCommand(std::string id, std::string target, std::string targetName, std::string args, Entity* optionalTarget);
 
 	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }
 	virtual NiQuaternion GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
@@ -307,8 +302,6 @@ protected:
 
 	bool m_HasSpawnerNodeID;
 	uint32_t m_SpawnerNodeID;
-
-	LUTriggers::Trigger* m_Trigger;
 
 	Character* m_Character;
 

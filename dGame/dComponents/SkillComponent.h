@@ -120,6 +120,15 @@ public:
 	void RegisterPlayerProjectile(LWOOBJID projectileId, BehaviorContext* context, const BehaviorBranchContext& branch, LOT lot);
 
 	/**
+	 * Wrapper for CalculateBehavior that mimics the call structure in scripts and helps reduce magic numbers
+	 * @param skillId the skill to cast
+	 * @param target the target of the skill
+	 * @param optionalOriginatorID change the originator of the skill
+	 * @return if the case succeeded
+	 */
+	bool CastSkill(const uint32_t skillId, LWOOBJID target = LWOOBJID_EMPTY, const LWOOBJID optionalOriginatorID = LWOOBJID_EMPTY);
+
+	/**
 	 * Initializes a server-side skill calculation.
 	 * @param skillId the skill ID
 	 * @param behaviorId the root behavior ID of the skill
@@ -189,6 +198,11 @@ private:
 	 * Unique ID counter.
 	 */
 	uint32_t m_skillUid;
+
+	/**
+	 * Cache for looking up a behavior id via a skill ID
+	 */
+	static std::unordered_map<uint32_t, uint32_t> m_skillBehaviorCache;
 
 	/**
 	 * Sync a server-side projectile calculation.
