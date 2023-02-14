@@ -8,6 +8,10 @@ Action::Action() {
 }
 
 Action::Action(AMFArrayValue* arguments) {
+	type = "";
+	valueParameterName = "";
+	valueParameterString = "";
+	valueParameterDouble = 0.0;
 	for (auto& typeValueMap : arguments->GetAssociativeMap()) {
 		if (typeValueMap.first == "Type") {
 			if (typeValueMap.second->GetValueType() != AMFValueType::AMFString) continue;

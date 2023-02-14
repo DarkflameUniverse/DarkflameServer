@@ -21,7 +21,7 @@ public:
 	const uint32_t GetBehaviorId() { return behaviorId; };
 protected:
 	BehaviorMessageBase(AMFArrayValue* arguments);
-	uint32_t GetBehaviorIdFromArgument(AMFArrayValue* arguments);
+	int32_t GetBehaviorIdFromArgument(AMFArrayValue* arguments);
 	uint32_t GetActionIndexFromArgument(AMFArrayValue* arguments, const std::string& keyName = "actionIndex");
 	int32_t behaviorId = -1; 
 };

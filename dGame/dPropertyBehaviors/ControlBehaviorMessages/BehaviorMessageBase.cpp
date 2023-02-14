@@ -5,13 +5,14 @@
 #include "dCommonVars.h"
 
 BehaviorMessageBase::BehaviorMessageBase(AMFArrayValue* arguments) {
+	behaviorId = 0;
 	behaviorId = GetBehaviorIdFromArgument(arguments);
 }
 
-uint32_t BehaviorMessageBase::GetBehaviorIdFromArgument(AMFArrayValue* arguments) {
+int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(AMFArrayValue* arguments) {
 	const auto* key = "BehaviorID";
 	auto* behaviorIDValue = arguments->FindValue<AMFStringValue>(key);
-	uint32_t behaviorID = -1;
+	int32_t behaviorID = -1;
 
 	if (behaviorIDValue) {
 		behaviorID = std::stoul(behaviorIDValue->GetStringValue());

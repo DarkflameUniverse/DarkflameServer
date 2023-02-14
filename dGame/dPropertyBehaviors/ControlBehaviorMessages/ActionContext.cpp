@@ -10,6 +10,8 @@ ActionContext::ActionContext() {
 }
 
 ActionContext::ActionContext(AMFArrayValue* arguments, std::string customStateKey, std::string customStripKey) {
+	stripId = 0;
+	stateId = BehaviorState::HOME_STATE;
 	stripId = GetStripIdFromArgument(arguments, customStripKey);
 	stateId = GetBehaviorStateFromArgument(arguments, customStateKey);
 }
