@@ -1,8 +1,6 @@
 #include "MoveToInventoryMessage.h"
 
-MoveToInventoryMessage::MoveToInventoryMessage(AMFArrayValue* arguments) {
-	behaviorId = GetBehaviorIDFromArgument(arguments);
-
+MoveToInventoryMessage::MoveToInventoryMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
 	auto* behaviorIndexValue = arguments->FindValue<AMFDoubleValue>("BehaviorIndex");
 	if (!behaviorIndexValue) return;
 

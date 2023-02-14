@@ -1,8 +1,6 @@
 #include "AddMessage.h"
 
-AddMessage::AddMessage(AMFArrayValue* arguments) {
-	behaviorId = GetBehaviorIDFromArgument(arguments);
-
+AddMessage::AddMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
 	behaviorIndex = 0;
 	auto* behaviorIndexValue = arguments->FindValue<AMFDoubleValue>("BehaviorIndex");
 

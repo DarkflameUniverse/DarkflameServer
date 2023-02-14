@@ -1,22 +1,20 @@
 #ifndef __UPDATESTRIPUIMESSAGE__H__
 #define __UPDATESTRIPUIMESSAGE__H__
 
+#include "ActionContext.h"
 #include "BehaviorMessageBase.h"
+#include "StripUiPosition.h"
 
 class AMFArrayValue;
 
 class UpdateStripUiMessage : public BehaviorMessageBase {
 public:
 	UpdateStripUiMessage(AMFArrayValue* arguments);
-	const double GetYPosition() { return yPosition; };
-	const double GetXPosition() { return xPosition; };
-	const StripId GetStripId() { return stripId; };
-	const BehaviorState GetStateID() { return stateID; };
+	StripUiPosition GetPosition() { return position; };
+	ActionContext GetActionContext() { return actionContext; };
 private:
-	double yPosition;
-	double xPosition;
-	StripId stripId;
-	BehaviorState stateID;
+	StripUiPosition position;
+	ActionContext actionContext;
 };
 
 #endif  //!__UPDATESTRIPUIMESSAGE__H__

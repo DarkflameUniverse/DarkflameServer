@@ -1,16 +1,15 @@
 #ifndef __REMOVESTRIPMESSAGE__H__
 #define __REMOVESTRIPMESSAGE__H__
 
+#include "ActionContext.h"
 #include "BehaviorMessageBase.h"
 
 class RemoveStripMessage : public BehaviorMessageBase {
 public:
 	RemoveStripMessage(AMFArrayValue* arguments);
-	const StripId GetStripId() { return stripId; };
-	const BehaviorState GetBehaviorState() { return behaviorState; };
+	ActionContext GetActionContext() { return actionContext; };
 private:
-	StripId stripId;
-	BehaviorState behaviorState;
+	ActionContext actionContext;
 };
 
 #endif  //!__REMOVESTRIPMESSAGE__H__

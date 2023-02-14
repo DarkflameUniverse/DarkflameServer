@@ -15,6 +15,7 @@
 #include "CDClientDatabase.h"
 
 // Message includes
+#include "Action.h"
 #include "AddActionMessage.h"
 #include "AddStripMessage.h"
 #include "AddMessage.h"
@@ -248,18 +249,23 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 
 void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
 	UpdateActionMessage updateActionMessage(arguments);
-	auto* blockDefinition = GetBlockInfo(updateActionMessage.GetType());
+	auto* blockDefinition = GetBlockInfo(updateActionMessage.GetAction().GetType());
 
-	if (updateActionMessage.GetValueParameterString().size() > 0) {
-		if (updateActionMessage.GetValueParameterString().size() < blockDefinition->GetMinimumValue() ||
-			updateActionMessage.GetValueParameterString().size() > blockDefinition->GetMaximumValue()) {
-			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.GetType().c_str());
+	if (!blockDefinition) {
+		Game::logger->Log("ControlBehaviors", "Received undefined block type %s. Ignoring.", updateActionMessage.GetAction().GetType().c_str());
+		return;
+	}
+
+	if (updateActionMessage.GetAction().GetValueParameterString().size() > 0) {
+		if (updateActionMessage.GetAction().GetValueParameterString().size() < blockDefinition->GetMinimumValue() ||
+			updateActionMessage.GetAction().GetValueParameterString().size() > blockDefinition->GetMaximumValue()) {
+			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().c_str());
 			return;
 		}
 	} else {
-		if (updateActionMessage.GetValueParameterDouble() < blockDefinition->GetMinimumValue() ||
-			updateActionMessage.GetValueParameterDouble() > blockDefinition->GetMaximumValue()) {
-			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.GetType().c_str());
+		if (updateActionMessage.GetAction().GetValueParameterDouble() < blockDefinition->GetMinimumValue() ||
+			updateActionMessage.GetAction().GetValueParameterDouble() > blockDefinition->GetMaximumValue()) {
+			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().c_str());
 			return;
 		}
 	}
@@ -452,5 +458,5 @@ ControlBehaviors::ControlBehaviors() {
 
 BlockDefinition* ControlBehaviors::GetBlockInfo(const BlockName& blockName) {
 	auto blockDefinition = blockTypes.find(blockName);
-	return blockDefinition != blockTypes.end() ? blockDefinition->second : &BlockDefinition::blockDefinitionDefault;
+	return blockDefinition != blockTypes.end() ? blockDefinition->second : nullptr;
 }

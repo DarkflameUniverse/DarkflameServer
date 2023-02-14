@@ -1,28 +1,24 @@
 #ifndef __SPLITSTRIPMESSAGE__H__
 #define __SPLITSTRIPMESSAGE__H__
 
+#include "ActionContext.h"
 #include "BehaviorMessageBase.h"
+#include "StripUiPosition.h"
 
 class AMFArrayValue;
 
 class SplitStripMessage : public BehaviorMessageBase {
 public:
 	SplitStripMessage(AMFArrayValue* arguments);
+	ActionContext GetSourceActionContext() { return sourceActionContext; };
+	ActionContext GetDestinationActionContext() { return destinationActionContext; };
 	const uint32_t GetSrcActionIndex() { return srcActionIndex; };
-	const StripId GetSrcStripId() { return srcStripId; };
-	const BehaviorState GetSrcStateId() { return srcStateId; };
-	const StripId GetDstStripId() { return dstStripId; };
-	const BehaviorState GetDstStateId() { return dstStateId; };
-	const double GetYPosition() { return yPosition; };
-	const double GetXPosition() { return xPosition; };
+	StripUiPosition GetPosition() { return destinationPosition; };
 private:
+	ActionContext sourceActionContext;
+	ActionContext destinationActionContext;
 	uint32_t srcActionIndex;
-	StripId srcStripId;
-	BehaviorState srcStateId;
-	StripId dstStripId;
-	BehaviorState dstStateId;
-	double yPosition;
-	double xPosition;
+	StripUiPosition destinationPosition;
 };
 
 #endif  //!__SPLITSTRIPMESSAGE__H__
