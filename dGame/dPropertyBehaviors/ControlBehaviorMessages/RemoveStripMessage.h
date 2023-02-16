@@ -1,18 +1,19 @@
 #ifndef __REMOVESTRIPMESSAGE__H__
 #define __REMOVESTRIPMESSAGE__H__
 
+#include "ActionContext.h"
 #include "BehaviorMessageBase.h"
 
+/**
+ * @brief Sent when a player removes the first Action from a strip.
+ * 
+ */
 class RemoveStripMessage : public BehaviorMessageBase {
 public:
 	RemoveStripMessage(AMFArrayValue* arguments);
-	const StripId GetStripId() { return stripId; };
-	const BehaviorState GetBehaviorState() { return behaviorState; };
-	const uint32_t GetBehaviorId() { return behaviorId; };
+	ActionContext GetActionContext() { return actionContext; };
 private:
-	StripId stripId;
-	BehaviorState behaviorState;
-	uint32_t behaviorId;
+	ActionContext actionContext;
 };
 
 #endif  //!__REMOVESTRIPMESSAGE__H__
