@@ -43,8 +43,7 @@ typedef uint32_t LWOCLONEID;                 //!< Used for Clone IDs
 typedef uint16_t LWOMAPID;                   //!< Used for Map IDs
 typedef uint16_t LWOINSTANCEID;              //!< Used for Instance IDs
 typedef uint32_t PROPERTYCLONELIST;          //!< Used for Property Clone IDs
-typedef uint32_t STRIPID;
-typedef uint32_t BEHAVIORSTATE;
+typedef uint32_t StripId;
 
 typedef int32_t PetTamingPiece;             //!< Pet Taming Pieces
 
@@ -414,6 +413,7 @@ enum eReplicaComponentType : int32_t {
 	COMPONENT_TYPE_MODULE_ASSEMBLY = 61,			//!< The ModuleAssembly Component
 	COMPONENT_TYPE_PROPERTY_VENDOR = 65,			//!< The PropertyVendor Component
 	COMPONENT_TYPE_ROCKET_LAUNCH = 67,			//!< The RocketLaunch Component
+	COMPONENT_TYPE_TRIGGER = 69,
 	COMPONENT_TYPE_RACING_CONTROL = 71,			//!< The RacingControl Component
 	COMPONENT_TYPE_MISSION_OFFER = 73,			//!< The MissionOffer Component
 	COMPONENT_TYPE_EXHIBIT = 75,			//!< The Exhibit Component

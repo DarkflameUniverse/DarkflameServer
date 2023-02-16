@@ -22,9 +22,12 @@
 #include "EchoStartSkill.h"
 #include "dMessageIdentifiers.h"
 #include "DoClientProjectileImpact.h"
+#include "CDClientManager.h"
 
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
+
+std::unordered_map<uint32_t, uint32_t> SkillComponent::m_skillBehaviorCache = {};
 
 bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream* bitStream, const LWOOBJID target, uint32_t skillID) {
 	auto* context = new BehaviorContext(this->m_Parent->GetObjectID());
@@ -208,6 +211,29 @@ void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, B
 	entry.trackRadius = trackRadius;
 
 	this->m_managedProjectiles.push_back(entry);
+}
+
+bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID){
+	uint32_t behaviorId = -1;
+	// try to find it via the cache
+	const auto& pair = m_skillBehaviorCache.find(skillId);
+
+	// if it's not in the cache look it up and cache it
+	if (pair == m_skillBehaviorCache.end()) {
+		auto skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+		behaviorId = skillTable->GetSkillByID(skillId).behaviorID;
+		m_skillBehaviorCache.insert_or_assign(skillId, behaviorId);
+	} else {
+		behaviorId = pair->second;
+	}
+
+	// check to see if we got back a valid behavior
+	if (behaviorId == -1) {
+		Game::logger->LogDebug("SkillComponent", "Tried to cast skill %i but found no behavior", skillId);
+		return false;
+	}
+
+	return CalculateBehavior(skillId, behaviorId, target, false, false, optionalOriginatorID).success;
 }
 
 

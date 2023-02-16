@@ -175,6 +175,7 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dMission"
 	"dGame/dEntity"
 	"dGame/dPropertyBehaviors"
+	"dGame/dPropertyBehaviors/ControlBehaviorMessages"
 	"dGame/dUtilities"
 	"dPhysics"
 	"dNavigation"
