@@ -145,7 +145,9 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 				HandleDestroySpawnerNetworkObjects(command->args);
 				break;
 			case eTriggerCommandType::GO_TO_WAYPOINT: break;
-			case eTriggerCommandType::ACTIVATE_PHYSICS: break;
+			case eTriggerCommandType::ACTIVATE_PHYSICS:
+				HandleActivatePhysics(targetEntity, command->args);
+				break;
 			default:
 				Game::logger->LogDebug("TriggerComponent", "Event %i was not handled!", command->id);
 				break;
@@ -158,8 +160,8 @@ std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* comman
 
 	if (command->target == "self") entities.push_back(m_Parent);
 	else if (command->target == "zone") { /*TODO*/ }
-	else if (command->target == "target") if (optionalTarget) entities.push_back(optionalTarget);
-	else if (command->target == "targetTeam") {
+	else if (command->target == "target" && optionalTarget) entities.push_back(optionalTarget);
+	else if (command->target == "targetTeam" && optionalTarget) {
 		auto* team = TeamManager::Instance()->GetTeam(optionalTarget->GetObjectID());
 		for (const auto memberId : team->members) {
 			auto* member = EntityManager::Instance()->GetEntity(memberId);
@@ -386,5 +388,15 @@ void TriggerComponent::HandleDestroySpawnerNetworkObjects(std::string args){
 			}
 			node->entities.clear();
 		}
+	}
+}
+
+void TriggerComponent::HandleActivatePhysics(Entity* targetEntity, std::string args) {
+	if (args == "true") {
+		// TODO add physics entity if there isn't one
+	} else if (args == "false"){
+		// TODO remove Phsyics entity if there is one
+	} else {
+		Game::logger->LogDebug("TriggerComponent", "Invalid argument for ActivatePhysics Trigger: %s", args.c_str());
 	}
 }

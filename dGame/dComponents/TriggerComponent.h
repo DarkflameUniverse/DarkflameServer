@@ -40,8 +40,7 @@ private:
 	void HandleDeactivateSpawnerNetwork(std::string args);
 	void HandleResetSpawnerNetwork(std::string args);
 	void HandleDestroySpawnerNetworkObjects(std::string args);
-
-
+	void HandleActivatePhysics(Entity* targetEntity, std::string args);
 
 	LUTriggers::Trigger* m_Trigger;
 };
