@@ -1,15 +1,8 @@
 #include "RemoveActionsMessage.h"
 
-RemoveActionsMessage::RemoveActionsMessage(AMFArrayValue* arguments) {
-	behaviorID = GetBehaviorIDFromArgument(arguments);
+RemoveActionsMessage::RemoveActionsMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
+	actionContext = ActionContext(arguments);
+	actionIndex = GetActionIndexFromArgument(arguments);
 
-	auto* actionIndexAmf = arguments->FindValue<AMFDoubleValue>("actionIndex");
-	if (!actionIndexAmf) return;
-
-	actionIndex = static_cast<uint32_t>(actionIndexAmf->GetDoubleValue());
-
-	stripID = GetStripIDFromArgument(arguments);
-
-	stateID = GetBehaviorStateFromArgument(arguments);
-	Game::logger->LogDebug("RemoveActionsMessage", "bhId %i acnNdx %i stpId %i sttId %i", behaviorID, actionIndex, stripID, stateID);
+	Game::logger->LogDebug("RemoveActionsMessage", "behaviorId %i actionIndex %i stripId %i stateId %i", behaviorId, actionIndex, actionContext.GetStripId(), actionContext.GetStateId());
 }

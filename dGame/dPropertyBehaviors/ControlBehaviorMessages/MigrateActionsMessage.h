@@ -1,28 +1,27 @@
 #ifndef __MIGRATEACTIONSMESSAGE__H__
 #define __MIGRATEACTIONSMESSAGE__H__
 
+#include "ActionContext.h"
 #include "BehaviorMessageBase.h"
 
 class AMFArrayValue;
 
+/**
+ * @brief Sent when a player moves an Action after the first Action to a different Strip
+ * 
+ */
 class MigrateActionsMessage : public BehaviorMessageBase {
 public:
 	MigrateActionsMessage(AMFArrayValue* arguments);
 	const uint32_t GetSrcActionIndex() { return srcActionIndex; };
-	const StripId GetSrcStripID() { return srcStripID; };
-	const BehaviorState GetSrcStateID() { return srcStateID; };
 	const uint32_t GetDstActionIndex() { return dstActionIndex; };
-	const StripId GetDstStripID() { return dstStripID; };
-	const BehaviorState GetDstStateID() { return dstStateID; };
-	const uint32_t GetBehaviorID() { return behaviorID; };
+	ActionContext GetSourceActionContext() { return sourceActionContext; };
+	ActionContext GetDestinationActionContext() { return destinationActionContext; };
 private:
+	ActionContext sourceActionContext;
+	ActionContext destinationActionContext;
 	uint32_t srcActionIndex;
-	StripId srcStripID;
-	BehaviorState srcStateID;
 	uint32_t dstActionIndex;
-	StripId dstStripID;
-	BehaviorState dstStateID;
-	uint32_t behaviorID;
 };
 
 #endif  //!__MIGRATEACTIONSMESSAGE__H__

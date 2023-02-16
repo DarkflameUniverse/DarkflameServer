@@ -1,20 +1,11 @@
 #include "MergeStripsMessage.h"
 
-MergeStripsMessage::MergeStripsMessage(AMFArrayValue* arguments) {
-	srcStripID = GetStripIDFromArgument(arguments, "srcStripID");
+MergeStripsMessage::MergeStripsMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
+	sourceActionContext = ActionContext(arguments, "srcStateID", "srcStripID");
 
-	dstStateID = GetBehaviorStateFromArgument(arguments, "dstStateID");
+	destinationActionContext = ActionContext(arguments, "dstStateID", "dstStripID");
+	dstActionIndex = GetActionIndexFromArgument(arguments, "dstActionIndex");
 
-	srcStateID = GetBehaviorStateFromArgument(arguments, "srcStateID");
-
-	auto* dstActionIndexValue = arguments->FindValue<AMFDoubleValue>("dstActionIndex");
-	if (!dstActionIndexValue) return;
-
-	dstActionIndex = static_cast<uint32_t>(dstActionIndexValue->GetDoubleValue());
-
-	dstStripID = GetStripIDFromArgument(arguments, "dstStripID");
-
-	behaviorID = GetBehaviorIDFromArgument(arguments);
-	Game::logger->LogDebug("MergeStripsMessage", "srcStpId %i dstStpId %i srcSttId %i dstSttId %i dstAcnNdx %i bhId %i", srcStripID, dstStripID, srcStateID, dstStateID, dstActionIndex, behaviorID);
+	Game::logger->LogDebug("MergeStripsMessage", "srcstripId %i dststripId %i srcstateId %i dststateId %i dstactionIndex %i behaviorId %i", sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), dstActionIndex, behaviorId);
 }
 
