@@ -271,7 +271,7 @@ void TriggerComponent::HandlePlayCinematic(Entity* targetEntity, std::vector<std
 	if (argArray.size() >= 2) GeneralUtils::TryParse<float>(argArray.at(1), leadIn);
 	int wait = 0;
 	if (argArray.size() >= 3 && argArray.at(2) == "wait") wait = 1;
-	bool unlock;
+	bool unlock = true;
 	if (argArray.size() >= 4 && argArray.at(3) == "unlock") unlock = false;
 	bool leaveLocked = false;
 	if (argArray.size() >= 5 && argArray.at(4) == "leavelocked") leaveLocked = true;
