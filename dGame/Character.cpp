@@ -18,6 +18,7 @@
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "eObjectBits.h"
 
 Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
@@ -68,8 +69,8 @@ Character::Character(uint32_t id, User* parentUser) {
 
 	//Set our objectID:
 	m_ObjectID = m_ID;
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_CHARACTER);
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_PERSISTENT);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::CHARACTER);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::PERSISTENT);
 
 	m_ParentUser = parentUser;
 	m_OurEntity = nullptr;
@@ -127,8 +128,8 @@ void Character::UpdateFromDatabase() {
 
 	//Set our objectID:
 	m_ObjectID = m_ID;
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_CHARACTER);
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_PERSISTENT);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::CHARACTER);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::PERSISTENT);
 
 	m_OurEntity = nullptr;
 	m_BuildMode = false;

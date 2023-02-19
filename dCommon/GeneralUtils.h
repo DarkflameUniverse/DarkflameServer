@@ -15,6 +15,7 @@
 #include "dLogger.h"
 
 enum eInventoryType : uint32_t;
+enum class eObjectBits : size_t;
 
 /*!
   \file GeneralUtils.hpp
@@ -64,9 +65,9 @@ namespace GeneralUtils {
 
 	//! Sets a bit on a numerical value
 	template <typename T>
-	void SetBit(T& value, size_t index) {
+	void SetBit(T& value, eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-
+		auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8) - 1) {
 			return;
 		}
@@ -76,9 +77,9 @@ namespace GeneralUtils {
 
 	//! Clears a bit on a numerical value
 	template <typename T>
-	void ClearBit(T& value, size_t index) {
+	void ClearBit(T& value, eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-
+		auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8 - 1)) {
 			return;
 		}

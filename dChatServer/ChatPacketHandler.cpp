@@ -12,6 +12,7 @@
 #include "eAddFriendResponseType.h"
 #include "RakString.h"
 #include "dConfig.h"
+#include "eObjectBits.h"
 
 extern PlayerContainer playerContainer;
 
@@ -45,8 +46,8 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 		FriendData fd;
 		fd.isFTP = false; // not a thing in DLU
 		fd.friendID = res->getUInt(1);
-		GeneralUtils::SetBit(fd.friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_PERSISTENT));
-		GeneralUtils::SetBit(fd.friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_CHARACTER));
+		GeneralUtils::SetBit(fd.friendID, eObjectBits::PERSISTENT);
+		GeneralUtils::SetBit(fd.friendID, eObjectBits::CHARACTER);
 
 		fd.isBestFriend = res->getInt(2) == 3; //0 = friends, 1 = left_requested, 2 = right_requested, 3 = both_accepted - are now bffs
 		if (fd.isBestFriend) player->countOfBestFriends += 1;
@@ -178,10 +179,10 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 			bestFriendStatus = oldBestFriendStatus;
 
 			// Set the bits
-			GeneralUtils::SetBit(queryPlayerID, static_cast<size_t>(eObjectBits::OBJECT_BIT_CHARACTER));
-			GeneralUtils::SetBit(queryPlayerID, static_cast<size_t>(eObjectBits::OBJECT_BIT_PERSISTENT));
-			GeneralUtils::SetBit(queryFriendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_CHARACTER));
-			GeneralUtils::SetBit(queryFriendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_PERSISTENT));
+			GeneralUtils::SetBit(queryPlayerID, eObjectBits::CHARACTER);
+			GeneralUtils::SetBit(queryPlayerID, eObjectBits::PERSISTENT);
+			GeneralUtils::SetBit(queryFriendID, eObjectBits::CHARACTER);
+			GeneralUtils::SetBit(queryFriendID, eObjectBits::PERSISTENT);
 
 			// Since this player can either be the friend of someone else or be friends with someone else
 			// their column in the database determines what bit gets set.  When the value hits 3, they
@@ -336,8 +337,8 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	}
 
 	// Convert friendID to LWOOBJID
-	GeneralUtils::SetBit(friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_PERSISTENT));
-	GeneralUtils::SetBit(friendID, static_cast<size_t>(eObjectBits::OBJECT_BIT_CHARACTER));
+	GeneralUtils::SetBit(friendID, eObjectBits::PERSISTENT);
+	GeneralUtils::SetBit(friendID, eObjectBits::CHARACTER);
 
 	std::unique_ptr<sql::PreparedStatement> deletestmt(Database::CreatePreppedStmt("DELETE FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
 	deletestmt->setUInt(1, static_cast<uint32_t>(playerID));
