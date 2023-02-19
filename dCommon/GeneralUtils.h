@@ -202,6 +202,12 @@ namespace GeneralUtils {
 		return TryParse<T>(value.c_str(), dst);
 	}
 
+	bool TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst) {
+		return TryParse<float>(x.c_str(), dst.x) &&
+				TryParse<float>(y.c_str(), dst.y) &&
+				TryParse<float>(z.c_str(), dst.z);
+	}
+
 	template<typename T>
 	std::u16string to_u16string(T value) {
 		return GeneralUtils::ASCIIToUTF16(std::to_string(value));
