@@ -21,6 +21,7 @@
 
 #include "Game.h"
 #include "dConfig.h"
+#include "eServerDisconnectIdentifiers.h"
 
 void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	RakNet::BitStream inStream(packet->data, packet->length, false);
