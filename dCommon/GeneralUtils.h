@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <stdexcept>
 #include <BitStream.h>
+#include "NiPoint3.h"
 
 #include "Game.h"
 #include "dLogger.h"
