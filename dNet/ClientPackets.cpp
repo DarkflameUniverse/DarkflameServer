@@ -32,6 +32,7 @@
 #include "CharacterComponent.h"
 #include "Database.h"
 #include "dMessageIdentifiers.h"
+#include "eGameMasterLevel.h"
 
 
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
@@ -66,7 +67,7 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 	}
 
 	std::string playerName = user->GetLastUsedChar()->GetName();
-	bool isMythran = user->GetLastUsedChar()->GetGMLevel() > 0;
+	bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
 
 	if (!user->GetLastChatMessageApproved() && !isMythran) return;
 

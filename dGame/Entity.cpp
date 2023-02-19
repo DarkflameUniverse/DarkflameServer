@@ -70,13 +70,14 @@
 #include "RailActivatorComponent.h"
 #include "LUPExhibitComponent.h"
 #include "TriggerComponent.h"
+#include "eGameMasterLevel.h"
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;
 	m_ParentEntity = parentEntity;
 	m_Character = nullptr;
-	m_GMLevel = 0;
+	m_GMLevel = eGameMasterLevel::CIVILIAN;
 	m_CollectibleID = 0;
 	m_NetworkID = 0;
 	m_Groups = {};
@@ -844,7 +845,7 @@ void Entity::SetProximityRadius(dpEntity* entity, std::string name) {
 	proxMon->SetProximityRadius(entity, name);
 }
 
-void Entity::SetGMLevel(uint8_t value) {
+void Entity::SetGMLevel(eGameMasterLevel value) {
 	m_GMLevel = value;
 	if (GetParentUser()) {
 		Character* character = GetParentUser()->GetLastUsedChar();
@@ -956,7 +957,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 		outBitStream->Write0(); //ObjectWorldState
 
-		if (m_GMLevel != 0) {
+		if (m_GMLevel != eGameMasterLevel::CIVILIAN) {
 			outBitStream->Write1();
 			outBitStream->Write(m_GMLevel);
 		} else outBitStream->Write0(); //No GM Level

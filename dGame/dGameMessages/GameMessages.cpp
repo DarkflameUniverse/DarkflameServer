@@ -405,7 +405,7 @@ void GameMessages::SendServerDoneLoadingAllObjects(Entity* entity, const SystemA
 	SEND_PACKET;
 }
 
-void GameMessages::SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level) {
+void GameMessages::SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel level) {
 	CBITSTREAM;
 	CMSGHEADER;
 	bitStream.Write(objectID);
@@ -414,7 +414,7 @@ void GameMessages::SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level) {
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level) {
+void GameMessages::SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level) {
 	CBITSTREAM;
 	CMSGHEADER;
 	bitStream.Write(objectID);

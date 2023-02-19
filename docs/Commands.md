@@ -127,13 +127,13 @@ There are 9 Game master levels
 
 |Level|Variable Name|Description|
 |--- |--- |--- |
-|0|GAME_MASTER_LEVEL_CIVILIAN|Normal player|
-|1|GAME_MASTER_LEVEL_FORUM_MODERATOR|Forum moderator. No permissions on live servers.|
-|2|GAME_MASTER_LEVEL_JUNIOR_MODERATOR|Can kick/mute and pull chat logs|
-|3|GAME_MASTER_LEVEL_MODERATOR|Can return lost items|
-|4|GAME_MASTER_LEVEL_SENIOR_MODERATOR|Can ban|
-|5|GAME_MASTER_LEVEL_LEAD_MODERATOR|Can approve properties|
-|6|GAME_MASTER_LEVEL_JUNIOR_DEVELOPER|Junior developer & future content team. Civilan on live.|
-|7|GAME_MASTER_LEVEL_INACTIVE_DEVELOPER|Inactive developer, limited permissions.|
-|8|GAME_MASTER_LEVEL_DEVELOPER|Active developer, full permissions on live.|
-|9|GAME_MASTER_LEVEL_OPERATOR|Can shutdown server for restarts & updates.|
+|0|CIVILIAN|Normal player|
+|1|FORUM_MODERATOR|Forum moderator. No permissions on live servers.|
+|2|JUNIOR_MODERATOR|Can kick/mute and pull chat logs|
+|3|MODERATOR|Can return lost items|
+|4|SENIOR_MODERATOR|Can ban|
+|5|LEAD_MODERATOR|Can approve properties|
+|6|JUNIOR_DEVELOPER|Junior developer & future content team. Civilan on live.|
+|7|INACTIVE_DEVELOPER|Inactive developer, limited permissions.|
+|8|DEVELOPER|Active developer, full permissions on live.|
+|9|OPERATOR|Can shutdown server for restarts & updates.|

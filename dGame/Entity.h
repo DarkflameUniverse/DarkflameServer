@@ -31,6 +31,7 @@ class Item;
 class Character;
 class EntityCallbackTimer;
 enum class eTriggerEventType;
+enum class eGameMasterLevel : uint8_t;
 
 namespace CppScripts {
 	class Script;
@@ -59,7 +60,7 @@ public:
 
 	Character* GetCharacter() const { return m_Character; }
 
-	uint8_t GetGMLevel() const { return m_GMLevel; }
+	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
 
 	uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
 
@@ -107,7 +108,7 @@ public:
 
 	void SetCharacter(Character* value) { m_Character = value; }
 
-	void SetGMLevel(uint8_t value);
+	void SetGMLevel(eGameMasterLevel value);
 
 	void SetOwnerOverride(LWOOBJID value);
 
@@ -307,7 +308,7 @@ protected:
 
 	Entity* m_ParentEntity; //For spawners and the like
 	std::vector<Entity*> m_ChildEntities;
-	uint8_t m_GMLevel;
+	eGameMasterLevel m_GMLevel;
 	uint16_t m_CollectibleID;
 	std::vector<std::string> m_Groups;
 	uint16_t m_NetworkID;

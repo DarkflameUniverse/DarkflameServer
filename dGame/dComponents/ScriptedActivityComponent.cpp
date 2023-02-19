@@ -299,7 +299,7 @@ bool ScriptedActivityComponent::HasLobby() const {
 
 bool ScriptedActivityComponent::IsValidActivity(Entity* player) {
 	// Makes it so that scripted activities with an unimplemented map cannot be joined
-	/*if (player->GetGMLevel() < GAME_MASTER_LEVEL_DEVELOPER && (m_ActivityInfo.instanceMapID == 1302 || m_ActivityInfo.instanceMapID == 1301)) {
+	/*if (player->GetGMLevel() < eGameMasterLevel::DEVELOPER && (m_ActivityInfo.instanceMapID == 1302 || m_ActivityInfo.instanceMapID == 1301)) {
 		if (m_Parent->GetLOT() == 4860) {
 			auto* missionComponent = player->GetComponent<MissionComponent>();
 			missionComponent->CompleteMission(229);
