@@ -14,6 +14,7 @@
 #include "EntityManager.h"
 #include "ControllablePhysicsComponent.h"
 #include "GameMessages.h"
+#include "ePhysicsEffectType.h"
 
 #include "CDClientManager.h"
 #include "CDComponentsRegistryTable.h"
@@ -36,7 +37,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	m_PositionInfoDirty = false;
 
 	m_IsPhysicsEffectActive = false;
-	m_EffectType = 0;
+	m_EffectType = ePhysicsEffectType::PUSH;
 	m_DirectionalMultiplier = 0.0f;
 
 	m_MinMax = false;
@@ -405,7 +406,7 @@ void PhantomPhysicsComponent::SetDirectionalMultiplier(float mul) {
 	m_EffectInfoDirty = true;
 }
 
-void PhantomPhysicsComponent::SetEffectType(uint32_t type) {
+void PhantomPhysicsComponent::SetEffectType(ePhysicsEffectType type) {
 	m_EffectType = type;
 	m_EffectInfoDirty = true;
 }

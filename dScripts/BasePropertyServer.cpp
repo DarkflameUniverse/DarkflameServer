@@ -303,18 +303,8 @@ void BasePropertyServer::ResetSpawner(const std::string& spawnerName) {
 
 void BasePropertyServer::DestroySpawner(const std::string& spawnerName) {
 	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(spawnerName)) {
-		for (auto* node : spawner->m_Info.nodes) {
-			for (const auto& element : node->entities) {
-				auto* entity = EntityManager::Instance()->GetEntity(element);
-				if (entity == nullptr)
-					continue;
-
-				entity->Kill();
-			}
-
-			node->entities.clear();
-		}
-
+		if (!spawner) return;
+		spawner->DestroyAllEntities();
 		spawner->Deactivate();
 	}
 }

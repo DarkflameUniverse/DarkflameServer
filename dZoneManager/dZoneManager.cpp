@@ -181,17 +181,7 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 		Game::logger->Log("dZoneManager", "Failed to find spawner entity (%llu)", id);
 	}
 
-	for (auto* node : spawner->m_Info.nodes) {
-		for (const auto& element : node->entities) {
-			auto* nodeEntity = EntityManager::Instance()->GetEntity(element);
-
-			if (nodeEntity == nullptr) continue;
-
-			nodeEntity->Kill();
-		}
-
-		node->entities.clear();
-	}
+	spawner->DestroyAllEntities();
 
 	spawner->Deactivate();
 

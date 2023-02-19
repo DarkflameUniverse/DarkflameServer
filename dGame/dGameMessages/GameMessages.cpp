@@ -2802,7 +2802,7 @@ void GameMessages::HandleSetConsumableItem(RakNet::BitStream* inStream, Entity* 
 
 void GameMessages::SendPlayCinematic(LWOOBJID objectId, std::u16string pathName, const SystemAddress& sysAddr,
 	bool allowGhostUpdates, bool bCloseMultiInteract, bool bSendServerNotify, bool bUseControlledObjectForAudioListener,
-	int endBehavior, bool hidePlayerDuringCine, float leadIn, bool leavePlayerLockedWhenFinished,
+	eEndBehavior endBehavior, bool hidePlayerDuringCine, float leadIn, bool leavePlayerLockedWhenFinished,
 	bool lockPlayer, bool result, bool skipIfSamePath, float startTimeAdvance) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -2815,8 +2815,8 @@ void GameMessages::SendPlayCinematic(LWOOBJID objectId, std::u16string pathName,
 	bitStream.Write(bSendServerNotify);
 	bitStream.Write(bUseControlledObjectForAudioListener);
 
-	bitStream.Write(endBehavior != 0);
-	if (endBehavior != 0) bitStream.Write(endBehavior);
+	bitStream.Write(endBehavior != eEndBehavior::RETURN);
+	if (endBehavior != eEndBehavior::RETURN) bitStream.Write(endBehavior);
 
 	bitStream.Write(hidePlayerDuringCine);
 

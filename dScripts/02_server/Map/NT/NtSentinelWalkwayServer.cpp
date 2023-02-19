@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
+#include "ePhysicsEffectType.h"
 
 void NtSentinelWalkwayServer::OnStartup(Entity* self) {
 	auto* phantomPhysicsComponent = self->GetComponent<PhantomPhysicsComponent>();
@@ -19,7 +20,7 @@ void NtSentinelWalkwayServer::OnStartup(Entity* self) {
 
 	const auto forward = self->GetRotation().GetRightVector() * -1;
 
-	phantomPhysicsComponent->SetEffectType(0); // PUSH
+	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::PUSH);
 	phantomPhysicsComponent->SetDirectionalMultiplier(force);
 	phantomPhysicsComponent->SetDirection(forward);
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);

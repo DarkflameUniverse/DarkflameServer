@@ -1978,7 +1978,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				auto* phantomPhysicsComponent = closest->GetComponent<PhantomPhysicsComponent>();
 
 				if (phantomPhysicsComponent != nullptr) {
-					ChatPackets::SendSystemMessage(sysAddr, u"Type: " + (GeneralUtils::to_u16string(phantomPhysicsComponent->GetEffectType())));
+					ChatPackets::SendSystemMessage(sysAddr, u"Type: " + (GeneralUtils::to_u16string(static_cast<uint32_t>(phantomPhysicsComponent->GetEffectType()))));
 					const auto dir = phantomPhysicsComponent->GetDirection();
 					ChatPackets::SendSystemMessage(sysAddr, u"Direction: <" + (GeneralUtils::to_u16string(dir.x)) + u", " + (GeneralUtils::to_u16string(dir.y)) + u", " + (GeneralUtils::to_u16string(dir.z)) + u">");
 					ChatPackets::SendSystemMessage(sysAddr, u"Multiplier: " + (GeneralUtils::to_u16string(phantomPhysicsComponent->GetDirectionalMultiplier())));
