@@ -13,7 +13,7 @@ AddStripMessage::AddStripMessage(AMFArrayValue* arguments) : BehaviorMessageBase
 	auto* actions = strip->FindValue<AMFArrayValue>("actions");
 	if (!actions) return;
 
-	for (uint32_t actionNumber = 0; actionNumber < actions->GetDenseValueSize(); actionNumber++) {
+	for (uint32_t actionNumber = 0; actionNumber < actions->GetDense().size(); actionNumber++) {
 		auto* actionValue = actions->GetValueAt<AMFArrayValue>(actionNumber);
 		if (!actionValue) continue;
 

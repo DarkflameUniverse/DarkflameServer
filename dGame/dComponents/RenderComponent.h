@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "Component.h"
 
 class Entity;

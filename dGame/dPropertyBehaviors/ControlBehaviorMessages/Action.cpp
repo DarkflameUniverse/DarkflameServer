@@ -12,19 +12,19 @@ Action::Action(AMFArrayValue* arguments) {
 	valueParameterName = "";
 	valueParameterString = "";
 	valueParameterDouble = 0.0;
-	for (auto& typeValueMap : arguments->GetAssociativeMap()) {
+	for (auto& typeValueMap : arguments->GetAssociative()) {
 		if (typeValueMap.first == "Type") {
 			if (typeValueMap.second->GetValueType() != AMFValueType::AMFString) continue;
-			type = static_cast<AMFStringValue*>(typeValueMap.second)->GetStringValue();
+			type = static_cast<AMFStringValue*>(typeValueMap.second)->GetValue();
 		} else {
 			valueParameterName = typeValueMap.first;
 			// Message is the only known string parameter
 			if (valueParameterName == "Message") {
 				if (typeValueMap.second->GetValueType() != AMFValueType::AMFString) continue;
-				valueParameterString = static_cast<AMFStringValue*>(typeValueMap.second)->GetStringValue();
+				valueParameterString = static_cast<AMFStringValue*>(typeValueMap.second)->GetValue();
 			} else {
 				if (typeValueMap.second->GetValueType() != AMFValueType::AMFDouble) continue;
-				valueParameterDouble = static_cast<AMFDoubleValue*>(typeValueMap.second)->GetDoubleValue();
+				valueParameterDouble = static_cast<AMFDoubleValue*>(typeValueMap.second)->GetValue();
 			}
 		}
 	}

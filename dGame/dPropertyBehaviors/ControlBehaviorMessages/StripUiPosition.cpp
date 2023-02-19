@@ -1,6 +1,6 @@
 #include "StripUiPosition.h"
 
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 StripUiPosition::StripUiPosition() {
 	xPosition = 0.0;
@@ -17,6 +17,6 @@ StripUiPosition::StripUiPosition(AMFArrayValue* arguments, std::string uiKeyName
 	auto* yPositionValue = uiArray->FindValue<AMFDoubleValue>("y");
 	if (!xPositionValue || !yPositionValue) return;
 
-	yPosition = yPositionValue->GetDoubleValue();
-	xPosition = xPositionValue->GetDoubleValue();
+	yPosition = yPositionValue->GetValue();
+	xPosition = xPositionValue->GetValue();
 }

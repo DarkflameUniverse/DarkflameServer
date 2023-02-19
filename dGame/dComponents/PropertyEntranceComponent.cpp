@@ -11,7 +11,7 @@
 #include "CharacterComponent.h"
 #include "UserManager.h"
 #include "dLogger.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent) {
 	this->propertyQueries = {};
@@ -34,10 +34,7 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 
 	AMFArrayValue args;
 
-	auto* state = new AMFStringValue();
-	state->SetStringValue("property_menu");
-
-	args.InsertValue("state", state);
+	args.InsertAssociative("state", "property_menu");
 
 	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
 }

@@ -13,7 +13,7 @@
 #include "VehiclePhysicsComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
@@ -732,6 +732,6 @@ void CharacterComponent::RemoveVentureVisionEffect(std::string ventureVisionType
 void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const {
 	if (!m_Parent) return;
 	AMFArrayValue arrayToSend;
-	arrayToSend.InsertValue(ventureVisionType, showFaction ? static_cast<AMFValue*>(new AMFTrueValue()) : static_cast<AMFValue*>(new AMFFalseValue()));
+	arrayToSend.InsertAssociative(ventureVisionType, showFaction);
 	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", &arrayToSend);
 }

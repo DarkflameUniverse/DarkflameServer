@@ -1,19 +1,20 @@
 #include "MailBoxServer.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "GameMessages.h"
+#include "Entity.h"
 
 void MailBoxServer::OnUse(Entity* self, Entity* user) {
-	AMFStringValue* value = new AMFStringValue();
-	value->SetStringValue("Mail");
 	AMFArrayValue args;
-	args.InsertValue("state", value);
+
+	args.InsertAssociative("state", "Mail");
+
 	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
 }
 
 void MailBoxServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {
 	if (args == "toggleMail") {
 		AMFArrayValue args;
-		args.InsertValue("visible", new AMFFalseValue());
+		args.InsertAssociative("visible", false);
 		GameMessages::SendUIMessageServerToSingleClient(sender, sender->GetSystemAddress(), "ToggleMail", &args);
 	}
 }

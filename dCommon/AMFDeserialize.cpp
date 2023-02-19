@@ -1,6 +1,6 @@
 #include "AMFDeserialize.h"
 
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 /**
  * AMF3 Reference document https://rtmp.veriskope.com/pdf/amf3-file-format-spec.pdf
@@ -55,8 +55,8 @@ AMFValue* AMFDeserialize::Read(RakNet::BitStream* inStream) {
 		break;
 	}
 
-							   // TODO We do not need these values, but if someone wants to implement them
-							   // then please do so and add the corresponding unit tests.
+	// These values are unimplemented in the live client and will remain unimplemented
+	// unless someone modifies the client to allow serializing of these values.
 	case AMFValueType::AMFXMLDoc:
 	case AMFValueType::AMFDate:
 	case AMFValueType::AMFObject:
@@ -121,7 +121,7 @@ AMFValue* AMFDeserialize::ReadAmfDouble(RakNet::BitStream* inStream) {
 	auto doubleValue = new AMFDoubleValue();
 	double value;
 	inStream->Read<double>(value);
-	doubleValue->SetDoubleValue(value);
+	doubleValue->SetValue(value);
 	return doubleValue;
 }
 
@@ -131,17 +131,17 @@ AMFValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
 	// Read size of dense array
 	auto sizeOfDenseArray = (ReadU29(inStream) >> 1);
 
-	// Then read Key'd portion
+	// Then read associative portion
 	while (true) {
 		auto key = ReadString(inStream);
-		// No more values when we encounter an empty string
+		// No more associative values when we encounter an empty string key
 		if (key.size() == 0) break;
-		arrayValue->InsertValue(key, Read(inStream));
+		arrayValue->RegisterAssociative(key, Read(inStream));
 	}
 
 	// Finally read dense portion
 	for (uint32_t i = 0; i < sizeOfDenseArray; i++) {
-		arrayValue->PushBackValue(Read(inStream));
+		arrayValue->RegisterDense(Read(inStream));
 	}
 
 	return arrayValue;
@@ -149,12 +149,12 @@ AMFValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
 
 AMFValue* AMFDeserialize::ReadAmfString(RakNet::BitStream* inStream) {
 	auto stringValue = new AMFStringValue();
-	stringValue->SetStringValue(ReadString(inStream));
+	stringValue->SetValue(ReadString(inStream));
 	return stringValue;
 }
 
 AMFValue* AMFDeserialize::ReadAmfInteger(RakNet::BitStream* inStream) {
 	auto integerValue = new AMFIntegerValue();
-	integerValue->SetIntegerValue(ReadU29(inStream));
+	integerValue->SetValue(ReadU29(inStream));
 	return integerValue;
 }

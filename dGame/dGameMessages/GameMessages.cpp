@@ -29,7 +29,7 @@
 #include "eUnequippableActiveType.h"
 #include "eMovementPlatformState.h"
 #include "LeaderboardManager.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "Loot.h"
 #include "eRacingTaskParam.h"
 #include "eMissionTaskType.h"

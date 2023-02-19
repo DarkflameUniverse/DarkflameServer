@@ -69,7 +69,7 @@
 #include "BinaryPathFinder.h"
 #include "dConfig.h"
 #include "eBubbleType.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "MovingPlatformComponent.h"
 #include "dMessageIdentifiers.h"
 #include "eMissionState.h"
@@ -247,10 +247,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		{
 			AMFArrayValue args;
 
-			auto* state = new AMFStringValue();
-			state->SetStringValue("Story");
-
-			args.InsertValue("state", state);
+			args.InsertAssociative("state", "Story");
 
 			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
 		}
@@ -258,11 +255,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		entity->AddCallbackTimer(0.5f, [customText, entity]() {
 			AMFArrayValue args;
 
-			auto* text = new AMFStringValue();
-			text->SetStringValue(customText);
-
-			args.InsertValue("visible", new AMFTrueValue());
-			args.InsertValue("text", text);
+			args.InsertAssociative("visible", true);
+			args.InsertAssociative("text", customText);
 
 			Game::logger->Log("SlashCommandHandler", "Sending %s", customText.c_str());
 
@@ -526,12 +520,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "setuistate" && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		AMFStringValue* value = new AMFStringValue();
-		value->SetStringValue(args[0]);
+		AMFArrayValue uiState;
 
-		AMFArrayValue args;
-		args.InsertValue("state", value);
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", &args);
+		uiState.InsertAssociative("state", args.at(0));
+
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", &uiState);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Switched UI state.");
 
@@ -539,10 +532,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "toggle" && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		AMFTrueValue* value = new AMFTrueValue();
-
 		AMFArrayValue amfArgs;
-		amfArgs.InsertValue("visible", value);
+
+		amfArgs.InsertAssociative("visible", true);
+
 		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, args[0], &amfArgs);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Toggled UI state.");
@@ -2010,13 +2003,9 @@ bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
 
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
 	AMFArrayValue args;
-	auto* titleValue = new AMFStringValue();
-	titleValue->SetStringValue(title);
-	auto* messageValue = new AMFStringValue();
-	messageValue->SetStringValue(message);
 
-	args.InsertValue("title", titleValue);
-	args.InsertValue("message", messageValue);
+	args.InsertAssociative("title", title);
+	args.InsertAssociative("message", message);
 
 	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
 

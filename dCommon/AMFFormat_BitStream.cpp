@@ -1,5 +1,8 @@
 #include "AMFFormat_BitStream.h"
 
+#include "Game.h"
+#include "dLogger.h"
+
 // Writes an AMFValue pointer to a RakNet::BitStream
 template<>
 void RakNet::BitStream::Write<AMFValue*>(AMFValue* value) {
@@ -49,21 +52,12 @@ void RakNet::BitStream::Write<AMFValue*>(AMFValue* value) {
 			break;
 		}
 
-		case AMFXMLDoc: {
-			AMFXMLDocValue* v = (AMFXMLDocValue*)value;
-			this->Write(*v);
-			break;
-		}
-
-		case AMFDate: {
-			AMFDateValue* v = (AMFDateValue*)value;
-			this->Write(*v);
-			break;
-		}
-
 		case AMFArray: {
 			this->Write((AMFArrayValue*)value);
 			break;
+		}
+		default: {
+			Game::logger->Log("AMFFormat_BitStream", "Encountered unwritable AMFType %i!", type);
 		}
 		}
 	}
@@ -185,14 +179,14 @@ void RakNet::BitStream::Write<AMFTrueValue>(AMFTrueValue value) {
 template<>
 void RakNet::BitStream::Write<AMFIntegerValue>(AMFIntegerValue value) {
 	this->Write(AMFInteger);
-	WriteUInt29(this, value.GetIntegerValue());
+	WriteUInt29(this, value.GetValue());
 }
 
 // Writes an AMFDoubleValue to BitStream
 template<>
 void RakNet::BitStream::Write<AMFDoubleValue>(AMFDoubleValue value) {
 	this->Write(AMFDouble);
-	double d = value.GetDoubleValue();
+	double d = value.GetValue();
 	WriteAMFU64(this, *((unsigned long long*) & d));
 }
 
@@ -200,35 +194,19 @@ void RakNet::BitStream::Write<AMFDoubleValue>(AMFDoubleValue value) {
 template<>
 void RakNet::BitStream::Write<AMFStringValue>(AMFStringValue value) {
 	this->Write(AMFString);
-	std::string v = value.GetStringValue();
+	std::string v = value.GetValue();
 	WriteAMFString(this, v);
-}
-
-// Writes an AMFXMLDocValue to BitStream
-template<>
-void RakNet::BitStream::Write<AMFXMLDocValue>(AMFXMLDocValue value) {
-	this->Write(AMFXMLDoc);
-	std::string v = value.GetXMLDocValue();
-	WriteAMFString(this, v);
-}
-
-// Writes an AMFDateValue to BitStream
-template<>
-void RakNet::BitStream::Write<AMFDateValue>(AMFDateValue value) {
-	this->Write(AMFDate);
-	uint64_t date = value.GetDateValue();
-	WriteAMFU64(this, date);
 }
 
 // Writes an AMFArrayValue to BitStream
 template<>
 void RakNet::BitStream::Write<AMFArrayValue*>(AMFArrayValue* value) {
 	this->Write(AMFArray);
-	uint32_t denseSize = value->GetDenseValueSize();
+	uint32_t denseSize = value->GetDense().size();
 	WriteFlagNumber(this, denseSize);
 
-	_AMFArrayMap_::iterator it = value->GetAssociativeIteratorValueBegin();
-	_AMFArrayMap_::iterator end = value->GetAssociativeIteratorValueEnd();
+	auto it = value->GetAssociative().begin();
+	auto end = value->GetAssociative().end();
 
 	while (it != end) {
 		WriteAMFString(this, it->first);
@@ -239,8 +217,8 @@ void RakNet::BitStream::Write<AMFArrayValue*>(AMFArrayValue* value) {
 	this->Write(AMFNull);
 
 	if (denseSize > 0) {
-		_AMFArrayList_::iterator it2 = value->GetDenseIteratorBegin();
-		_AMFArrayList_::iterator end2 = value->GetDenseIteratorEnd();
+		auto it2 = value->GetDense().begin();
+		auto end2 = value->GetDense().end();
 
 		while (it2 != end2) {
 			this->Write(*it2);

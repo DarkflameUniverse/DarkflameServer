@@ -1,13 +1,12 @@
 #include "BankInteractServer.h"
 #include "GameMessages.h"
 #include "Entity.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 void BankInteractServer::OnUse(Entity* self, Entity* user) {
 	AMFArrayValue args;
-	AMFStringValue* bank = new AMFStringValue();
-	bank->SetStringValue("bank");
-	args.InsertValue("state", bank);
+
+	args.InsertAssociative("state", "bank");
 
 	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
 }
@@ -16,7 +15,8 @@ void BankInteractServer::OnFireEventServerSide(Entity* self, Entity* sender, std
 	int32_t param2, int32_t param3) {
 	if (args == "ToggleBank") {
 		AMFArrayValue args;
-		args.InsertValue("visible", new AMFFalseValue());
+
+		args.InsertAssociative("visible", false);
 
 		GameMessages::SendUIMessageServerToSingleClient(sender, sender->GetSystemAddress(), "ToggleBank", &args);
 

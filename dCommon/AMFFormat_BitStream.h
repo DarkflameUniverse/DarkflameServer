@@ -1,7 +1,7 @@
 #pragma once
 
 // Custom Classes
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 // RakNet
 #include <BitStream.h>
@@ -68,20 +68,6 @@ namespace RakNet {
 	 */
 	template <>
 	void RakNet::BitStream::Write<AMFStringValue>(AMFStringValue value);
-
-	//! Writes an AMFXMLDocValue to a RakNet::BitStream
-	/*!
-	 \param value The value to write
-	 */
-	template <>
-	void RakNet::BitStream::Write<AMFXMLDocValue>(AMFXMLDocValue value);
-
-	//! Writes an AMFDateValue to a RakNet::BitStream
-	/*!
-	 \param value The value to write
-	 */
-	template <>
-	void RakNet::BitStream::Write<AMFDateValue>(AMFDateValue value);
 
 	//! Writes an AMFArrayValue to a RakNet::BitStream
 	/*!

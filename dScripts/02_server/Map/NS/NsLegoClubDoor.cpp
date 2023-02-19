@@ -1,7 +1,7 @@
 #include "NsLegoClubDoor.h"
 #include "dZoneManager.h"
 #include "GameMessages.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 void NsLegoClubDoor::OnStartup(Entity* self) {
 	self->SetVar(u"currentZone", (int32_t)dZoneManager::Instance()->GetZoneID().GetMapID());
@@ -12,118 +12,58 @@ void NsLegoClubDoor::OnStartup(Entity* self) {
 
 	args = {};
 
-	AMFStringValue* callbackClient = new AMFStringValue();
-	callbackClient->SetStringValue(std::to_string(self->GetObjectID()));
-	args.InsertValue("callbackClient", callbackClient);
+	args.InsertAssociative("callbackClient", std::to_string(self->GetObjectID()));
+	args.InsertAssociative("strIdentifier", "choiceDoor");
+	args.InsertAssociative("title", "%[UI_CHOICE_DESTINATION]");
 
-	AMFStringValue* strIdentifier = new AMFStringValue();
-	strIdentifier->SetStringValue("choiceDoor");
-	args.InsertValue("strIdentifier", strIdentifier);
-
-	AMFStringValue* title = new AMFStringValue();
-	title->SetStringValue("%[UI_CHOICE_DESTINATION]");
-	args.InsertValue("title", title);
-
-	AMFArrayValue* choiceOptions = new AMFArrayValue();
+	AMFArrayValue* choiceOptions = args.InsertAssociativeArray("options");
 
 	{
-		AMFArrayValue* nsArgs = new AMFArrayValue();
+		AMFArrayValue* nsArgs = choiceOptions->PushDenseArray();
 
-		AMFStringValue* image = new AMFStringValue();
-		image->SetStringValue("textures/ui/zone_thumnails/Nimbus_Station.dds");
-		nsArgs->InsertValue("image", image);
-
-		AMFStringValue* caption = new AMFStringValue();
-		caption->SetStringValue("%[UI_CHOICE_NS]");
-		nsArgs->InsertValue("caption", caption);
-
-		AMFStringValue* identifier = new AMFStringValue();
-		identifier->SetStringValue("zoneID_1200");
-		nsArgs->InsertValue("identifier", identifier);
-
-		AMFStringValue* tooltipText = new AMFStringValue();
-		tooltipText->SetStringValue("%[UI_CHOICE_NS_HOVER]");
-		nsArgs->InsertValue("tooltipText", tooltipText);
-
-		choiceOptions->PushBackValue(nsArgs);
+		nsArgs->InsertAssociative("image", "textures/ui/zone_thumnails/Nimbus_Station.dds");
+		nsArgs->InsertAssociative("caption", "%[UI_CHOICE_NS]");
+		nsArgs->InsertAssociative("identifier", "zoneID_1200");
+		nsArgs->InsertAssociative("tooltipText", "%[UI_CHOICE_NS_HOVER]");
 	}
 
 	{
-		AMFArrayValue* ntArgs = new AMFArrayValue();
+		AMFArrayValue* ntArgs = choiceOptions->PushDenseArray();
 
-		AMFStringValue* image = new AMFStringValue();
-		image->SetStringValue("textures/ui/zone_thumnails/Nexus_Tower.dds");
-		ntArgs->InsertValue("image", image);
-
-		AMFStringValue* caption = new AMFStringValue();
-		caption->SetStringValue("%[UI_CHOICE_NT]");
-		ntArgs->InsertValue("caption", caption);
-
-		AMFStringValue* identifier = new AMFStringValue();
-		identifier->SetStringValue("zoneID_1900");
-		ntArgs->InsertValue("identifier", identifier);
-
-		AMFStringValue* tooltipText = new AMFStringValue();
-		tooltipText->SetStringValue("%[UI_CHOICE_NT_HOVER]");
-		ntArgs->InsertValue("tooltipText", tooltipText);
-
-		choiceOptions->PushBackValue(ntArgs);
+		ntArgs->InsertAssociative("image", "textures/ui/zone_thumnails/Nexus_Tower.dds");
+		ntArgs->InsertAssociative("caption", "%[UI_CHOICE_NT]");
+		ntArgs->InsertAssociative("identifier", "zoneID_1900");
+		ntArgs->InsertAssociative("tooltipText", "%[UI_CHOICE_NT_HOVER]");
 	}
 
 	options = choiceOptions;
-
-	args.InsertValue("options", choiceOptions);
 }
 
 void NsLegoClubDoor::OnUse(Entity* self, Entity* user) {
 	auto* player = user;
 
 	if (CheckChoice(self, player)) {
-		AMFArrayValue* multiArgs = new AMFArrayValue();
+		AMFArrayValue multiArgs;
 
-		AMFStringValue* callbackClient = new AMFStringValue();
-		callbackClient->SetStringValue(std::to_string(self->GetObjectID()));
-		multiArgs->InsertValue("callbackClient", callbackClient);
+		multiArgs.InsertAssociative("callbackClient", std::to_string(self->GetObjectID()));
+		multiArgs.InsertAssociative("strIdentifier", "choiceDoor");
+		multiArgs.InsertAssociative("title", "%[UI_CHOICE_DESTINATION]");
+		multiArgs.RegisterAssociative("options", options);
 
-		AMFStringValue* strIdentifier = new AMFStringValue();
-		strIdentifier->SetStringValue("choiceDoor");
-		multiArgs->InsertValue("strIdentifier", strIdentifier);
+		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "QueueChoiceBox", &multiArgs);
 
-		AMFStringValue* title = new AMFStringValue();
-		title->SetStringValue("%[UI_CHOICE_DESTINATION]");
-		multiArgs->InsertValue("title", title);
-
-		multiArgs->InsertValue("options", options);
-
-		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "QueueChoiceBox", multiArgs);
+		multiArgs.RemoveAssociative("options", false); // We do not want the local amf to delete the options!
 	} else if (self->GetVar<int32_t>(u"currentZone") != m_ChoiceZoneID) {
-		AMFArrayValue* multiArgs = new AMFArrayValue();
+		AMFArrayValue multiArgs;
+		multiArgs.InsertAssociative("state", "Lobby");
 
-		AMFStringValue* state = new AMFStringValue();
-		state->SetStringValue("Lobby");
-		multiArgs->InsertValue("state", state);
+		AMFArrayValue* context = multiArgs.InsertAssociativeArray("context");
+		context->InsertAssociative("user", std::to_string(player->GetObjectID()));
+		context->InsertAssociative("callbackObj", std::to_string(self->GetObjectID()));
+		context->InsertAssociative("HelpVisible", "show");
+		context->InsertAssociative("type", "Lego_Club_Valid");
 
-		AMFArrayValue* context = new AMFArrayValue();
-
-		AMFStringValue* user = new AMFStringValue();
-		user->SetStringValue(std::to_string(player->GetObjectID()));
-		context->InsertValue("user", user);
-
-		AMFStringValue* callbackObj = new AMFStringValue();
-		callbackObj->SetStringValue(std::to_string(self->GetObjectID()));
-		context->InsertValue("callbackObj", callbackObj);
-
-		AMFStringValue* helpVisible = new AMFStringValue();
-		helpVisible->SetStringValue("show");
-		context->InsertValue("HelpVisible", helpVisible);
-
-		AMFStringValue* type = new AMFStringValue();
-		type->SetStringValue("Lego_Club_Valid");
-		context->InsertValue("type", type);
-
-		multiArgs->InsertValue("context", context);
-
-		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "pushGameState", multiArgs);
+		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "pushGameState", &multiArgs);
 	} else {
 		BaseOnUse(self, player);
 	}

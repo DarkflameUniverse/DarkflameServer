@@ -1,6 +1,6 @@
 #include "BehaviorMessageBase.h"
 
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "BehaviorStates.h"
 #include "dCommonVars.h"
 
@@ -15,7 +15,7 @@ int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(AMFArrayValue* arguments)
 	int32_t behaviorID = -1;
 
 	if (behaviorIDValue) {
-		behaviorID = std::stoul(behaviorIDValue->GetStringValue());
+		behaviorID = std::stoul(behaviorIDValue->GetValue());
 	} else if (!arguments->FindValue<AMFUndefinedValue>(key)) {
 		throw std::invalid_argument("Unable to find behavior ID");
 	}
@@ -29,5 +29,5 @@ uint32_t BehaviorMessageBase::GetActionIndexFromArgument(AMFArrayValue* argument
 		throw std::invalid_argument("Unable to find actionIndex");
 	}
 
-	return static_cast<uint32_t>(actionIndexAmf->GetDoubleValue());
+	return static_cast<uint32_t>(actionIndexAmf->GetValue());
 }

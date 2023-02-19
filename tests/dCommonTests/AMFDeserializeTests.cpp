@@ -3,7 +3,17 @@
 #include <gtest/gtest.h>
 
 #include "AMFDeserialize.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
+
+#include "Game.h"
+#include "dLogger.h"
+
+// This is needed to prevent linker errors with the external dLogger class in Game.h.
+// I need to put the full namespace definition in a separate cpp file with a header and a Test_F for all
+// tests so they properly delete this memory.  So yes, right now this leaks memory.
+namespace Game {
+	dLogger* logger = new dLogger("testing.log", true, true);
+}
 
 /**
  * Helper method that all tests use to get their respective AMF.
@@ -67,7 +77,7 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
 		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
 		// Check that the max value of a byte can be read correctly
-		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 127);
+		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetValue(), 127);
 	}
 	bitStream.Reset();
 	{
@@ -76,7 +86,7 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
 		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
 		// Check that we can read the maximum value correctly
-		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 536870911);
+		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetValue(), 536870911);
 	}
 	bitStream.Reset();
 	{
@@ -90,7 +100,7 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
 		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
 		// Check that short max can be read correctly
-		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), UINT16_MAX);
+		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetValue(), UINT16_MAX);
 	}
 	bitStream.Reset();
 	{
@@ -102,7 +112,7 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
 		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFInteger);
 		// Check that 2 byte max can be read correctly
-		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetIntegerValue(), 16383);
+		ASSERT_EQ(static_cast<AMFIntegerValue*>(res.get())->GetValue(), 16383);
 	}
 }
 
@@ -115,7 +125,7 @@ TEST(dCommonTests, AMFDeserializeAMFDoubleTest) {
 	bitStream.Write<double>(25346.4f);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFDouble);
-	ASSERT_EQ(static_cast<AMFDoubleValue*>(res.get())->GetDoubleValue(), 25346.4f);
+	ASSERT_EQ(static_cast<AMFDoubleValue*>(res.get())->GetValue(), 25346.4f);
 }
 
 /**
@@ -129,7 +139,7 @@ TEST(dCommonTests, AMFDeserializeAMFStringTest) {
 	for (auto e : toWrite) bitStream.Write<char>(e);
 	std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 	ASSERT_EQ(res->GetValueType(), AMFValueType::AMFString);
-	ASSERT_EQ(static_cast<AMFStringValue*>(res.get())->GetStringValue(), "stateID");
+	ASSERT_EQ(static_cast<AMFStringValue*>(res.get())->GetValue(), "stateID");
 }
 
 /**
@@ -144,8 +154,8 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 	{
 		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFArray);
-		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociativeMap().size(), 0);
-		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetDenseArray().size(), 0);
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociative().size(), 0);
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetDense().size(), 0);
 	}
 	bitStream.Reset();
 	// Test a key'd value and dense value
@@ -163,10 +173,10 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 	{
 		std::unique_ptr<AMFValue> res(ReadFromBitStream(&bitStream));
 		ASSERT_EQ(res->GetValueType(), AMFValueType::AMFArray);
-		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociativeMap().size(), 1);
-		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetDenseArray().size(), 1);
-		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->FindValue<AMFStringValue>("BehaviorID")->GetStringValue(), "10447");
-		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetValueAt<AMFStringValue>(0)->GetStringValue(), "10447");
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociative().size(), 1);
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetDense().size(), 1);
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->FindValue<AMFStringValue>("BehaviorID")->GetValue(), "10447");
+		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetValueAt<AMFStringValue>(0)->GetValue(), "10447");
 	}
 }
 
@@ -240,15 +250,15 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 	auto result = static_cast<AMFArrayValue*>(resultFromFn.get());
 	// Test the outermost array
 
-	ASSERT_EQ(result->FindValue<AMFStringValue>("BehaviorID")->GetStringValue(), "10447");
-	ASSERT_EQ(result->FindValue<AMFStringValue>("objectID")->GetStringValue(), "288300744895913279");
+	ASSERT_EQ(result->FindValue<AMFStringValue>("BehaviorID")->GetValue(), "10447");
+	ASSERT_EQ(result->FindValue<AMFStringValue>("objectID")->GetValue(), "288300744895913279");
 
 	// Test the execution state array
 	auto executionState = result->FindValue<AMFArrayValue>("executionState");
 
 	ASSERT_NE(executionState, nullptr);
 
-	auto strips = executionState->FindValue<AMFArrayValue>("strips")->GetDenseArray();
+	auto strips = executionState->FindValue<AMFArrayValue>("strips")->GetDense();
 
 	ASSERT_EQ(strips.size(), 1);
 
@@ -256,17 +266,17 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 
 	auto actionIndex = stripsPosition0->FindValue<AMFDoubleValue>("actionIndex");
 
-	ASSERT_EQ(actionIndex->GetDoubleValue(), 0.0f);
+	ASSERT_EQ(actionIndex->GetValue(), 0.0f);
 
 	auto stripIdExecution = stripsPosition0->FindValue<AMFDoubleValue>("id");
 
-	ASSERT_EQ(stripIdExecution->GetDoubleValue(), 0.0f);
+	ASSERT_EQ(stripIdExecution->GetValue(), 0.0f);
 
-	auto stateIDExecution = executionState->FindValue<AMFDoubleValue>("stateID");
+	auto stateIdExecution = executionState->FindValue<AMFDoubleValue>("stateID");
 
-	ASSERT_EQ(stateIDExecution->GetDoubleValue(), 0.0f);
+	ASSERT_EQ(stateIdExecution->GetValue(), 0.0f);
 
-	auto states = result->FindValue<AMFArrayValue>("states")->GetDenseArray();
+	auto states = result->FindValue<AMFArrayValue>("states")->GetDense();
 
 	ASSERT_EQ(states.size(), 1);
 
@@ -274,71 +284,71 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 
 	auto stateID = firstState->FindValue<AMFDoubleValue>("id");
 
-	ASSERT_EQ(stateID->GetDoubleValue(), 0.0f);
+	ASSERT_EQ(stateID->GetValue(), 0.0f);
 
-	auto stripsInState = firstState->FindValue<AMFArrayValue>("strips")->GetDenseArray();
+	auto stripsInState = firstState->FindValue<AMFArrayValue>("strips")->GetDense();
 
 	ASSERT_EQ(stripsInState.size(), 1);
 
 	auto firstStrip = dynamic_cast<AMFArrayValue*>(stripsInState[0]);
 
-	auto actionsInFirstStrip = firstStrip->FindValue<AMFArrayValue>("actions")->GetDenseArray();
+	auto actionsInFirstStrip = firstStrip->FindValue<AMFArrayValue>("actions")->GetDense();
 
 	ASSERT_EQ(actionsInFirstStrip.size(), 3);
 
 	auto actionID = firstStrip->FindValue<AMFDoubleValue>("id");
 
-	ASSERT_EQ(actionID->GetDoubleValue(), 0.0f);
+	ASSERT_EQ(actionID->GetValue(), 0.0f);
 
 	auto uiArray = firstStrip->FindValue<AMFArrayValue>("ui");
 
 	auto xPos = uiArray->FindValue<AMFDoubleValue>("x");
 	auto yPos = uiArray->FindValue<AMFDoubleValue>("y");
 
-	ASSERT_EQ(xPos->GetDoubleValue(), 103.0f);
-	ASSERT_EQ(yPos->GetDoubleValue(), 82.0f);
+	ASSERT_EQ(xPos->GetValue(), 103.0f);
+	ASSERT_EQ(yPos->GetValue(), 82.0f);
 
 	auto stripId = firstStrip->FindValue<AMFDoubleValue>("id");
 
-	ASSERT_EQ(stripId->GetDoubleValue(), 0.0f);
+	ASSERT_EQ(stripId->GetValue(), 0.0f);
 
 	auto firstAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[0]);
 
 	auto firstType = firstAction->FindValue<AMFStringValue>("Type");
 
-	ASSERT_EQ(firstType->GetStringValue(), "OnInteract");
+	ASSERT_EQ(firstType->GetValue(), "OnInteract");
 
 	auto firstCallback = firstAction->FindValue<AMFStringValue>("__callbackID__");
 
-	ASSERT_EQ(firstCallback->GetStringValue(), "");
+	ASSERT_EQ(firstCallback->GetValue(), "");
 
 	auto secondAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[1]);
 
 	auto secondType = secondAction->FindValue<AMFStringValue>("Type");
 
-	ASSERT_EQ(secondType->GetStringValue(), "FlyUp");
+	ASSERT_EQ(secondType->GetValue(), "FlyUp");
 
 	auto secondCallback = secondAction->FindValue<AMFStringValue>("__callbackID__");
 
-	ASSERT_EQ(secondCallback->GetStringValue(), "");
+	ASSERT_EQ(secondCallback->GetValue(), "");
 
 	auto secondDistance = secondAction->FindValue<AMFDoubleValue>("Distance");
 
-	ASSERT_EQ(secondDistance->GetDoubleValue(), 25.0f);
+	ASSERT_EQ(secondDistance->GetValue(), 25.0f);
 
 	auto thirdAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[2]);
 
 	auto thirdType = thirdAction->FindValue<AMFStringValue>("Type");
 
-	ASSERT_EQ(thirdType->GetStringValue(), "FlyDown");
+	ASSERT_EQ(thirdType->GetValue(), "FlyDown");
 
 	auto thirdCallback = thirdAction->FindValue<AMFStringValue>("__callbackID__");
 
-	ASSERT_EQ(thirdCallback->GetStringValue(), "");
+	ASSERT_EQ(thirdCallback->GetValue(), "");
 
 	auto thirdDistance = thirdAction->FindValue<AMFDoubleValue>("Distance");
 
-	ASSERT_EQ(thirdDistance->GetDoubleValue(), 25.0f);
+	ASSERT_EQ(thirdDistance->GetValue(), 25.0f);
 }
 
 /**
@@ -371,7 +381,7 @@ TEST(dCommonTests, AMFBadConversionTest) {
 	// Does not exist in the associative portion
 	ASSERT_EQ(result->FindValue<AMFNullValue>("DOES_NOT_EXIST"), nullptr);
 
-	result->PushBackValue(new AMFTrueValue());
+	result->PushDense(true);
 
 	// Exists and is correct type
 	ASSERT_NE(result->GetValueAt<AMFTrueValue>(0), nullptr);

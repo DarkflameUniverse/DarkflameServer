@@ -4,7 +4,7 @@
 #include "Game.h"
 #include "dConfig.h"
 
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "AMFFormat_BitStream.h"
 #include "GameMessages.h"
 #include "User.h"
@@ -241,14 +241,10 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 	if (playAnim) {
 		// Now update the player bar
 		if (!m_Parent->GetParentUser()) return;
-		AMFStringValue* amount = new AMFStringValue();
-		amount->SetStringValue(std::to_string(difference));
-		AMFStringValue* type = new AMFStringValue();
-		type->SetStringValue("health");
 
 		AMFArrayValue args;
-		args.InsertValue("amount", amount);
-		args.InsertValue("type", type);
+		args.InsertAssociative("amount", std::to_string(difference));
+		args.InsertAssociative("type", "health");
 
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	}
@@ -286,14 +282,10 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 	if (playAnim) {
 		// Now update the player bar
 		if (!m_Parent->GetParentUser()) return;
-		AMFStringValue* amount = new AMFStringValue();
-		amount->SetStringValue(std::to_string(value));
-		AMFStringValue* type = new AMFStringValue();
-		type->SetStringValue("armor");
 
 		AMFArrayValue args;
-		args.InsertValue("amount", amount);
-		args.InsertValue("type", type);
+		args.InsertAssociative("amount", std::to_string(value));
+		args.InsertAssociative("type", "armor");
 
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	}
@@ -330,14 +322,10 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 	if (playAnim) {
 		// Now update the player bar
 		if (!m_Parent->GetParentUser()) return;
-		AMFStringValue* amount = new AMFStringValue();
-		amount->SetStringValue(std::to_string(difference));
-		AMFStringValue* type = new AMFStringValue();
-		type->SetStringValue("imagination");
 
 		AMFArrayValue args;
-		args.InsertValue("amount", amount);
-		args.InsertValue("type", type);
+		args.InsertAssociative("amount", std::to_string(difference));
+		args.InsertAssociative("type", "imagination");
 
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
 	}

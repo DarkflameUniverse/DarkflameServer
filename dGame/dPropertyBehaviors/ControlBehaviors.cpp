@@ -1,6 +1,6 @@
 #include "ControlBehaviors.h"
 
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "Entity.h"
 #include "Game.h"
 #include "GameMessages.h"
@@ -43,11 +43,11 @@ void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, ModelComponent* mode
 	// 		AMFArrayValue args;
 
 	// 		AMFStringValue* behaviorIDString = new AMFStringValue();
-	// 		behaviorIDString->SetStringValue(std::to_string(persistentId));
+	// 		behaviorIDString->SetValue(std::to_string(persistentId));
 	// 		args.InsertValue("behaviorID", behaviorIDString);
 
 	// 		AMFStringValue* objectIDAsString = new AMFStringValue();
-	// 		objectIDAsString->SetStringValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
+	// 		objectIDAsString->SetValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
 	// 		args.InsertValue("objectID", objectIDAsString);
 
 	// 		GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorID", &args);
@@ -63,8 +63,6 @@ void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const Syste
 
 	AMFArrayValue behaviorsToSerialize;
 
-	AMFArrayValue* behaviors = new AMFArrayValue(); // Empty for now
-
 	/**
 	 * The behaviors AMFArray will have up to 5 elements in the dense portion.
 	 * Each element in the dense portion will be made up of another AMFArray
@@ -75,12 +73,9 @@ void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const Syste
 	 * "name": The name of the behavior formatted as an AMFString
 	 */
 
-	behaviorsToSerialize.InsertValue("behaviors", behaviors);
+	behaviorsToSerialize.InsertAssociativeArray("behaviors");
+	behaviorsToSerialize.InsertAssociative("objectID", std::to_string(modelComponent->GetParent()->GetObjectID()));
 
-	AMFStringValue* amfStringValueForObjectID = new AMFStringValue();
-	amfStringValueForObjectID->SetStringValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
-
-	behaviorsToSerialize.InsertValue("objectID", amfStringValueForObjectID);
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", &behaviorsToSerialize);
 }
 
@@ -88,7 +83,7 @@ void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, ModelComponent
 	auto* modelTypeAmf = arguments->FindValue<AMFDoubleValue>("ModelType");
 	if (!modelTypeAmf) return;
 
-	uint32_t modelType = static_cast<uint32_t>(modelTypeAmf->GetDoubleValue());
+	uint32_t modelType = static_cast<uint32_t>(modelTypeAmf->GetValue());
 
 	//TODO Update the model type here
 }
@@ -179,7 +174,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 	// 	AMFArrayValue* state = new AMFArrayValue();
 
 	// 	AMFDoubleValue* stateAsDouble = new AMFDoubleValue();
-	// 	stateAsDouble->SetDoubleValue(it->first);
+	// 	stateAsDouble->SetValue(it->first);
 	// 	state->InsertValue("id", stateAsDouble);
 
 	// 	AMFArrayValue* strips = new AMFArrayValue();
@@ -189,16 +184,16 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 	// 		AMFArrayValue* thisStrip = new AMFArrayValue();
 
 	// 		AMFDoubleValue* stripID = new AMFDoubleValue();
-	// 		stripID->SetDoubleValue(strip->first);
+	// 		stripID->SetValue(strip->first);
 	// 		thisStrip->InsertValue("id", stripID);
 
 	// 		AMFArrayValue* uiArray = new AMFArrayValue();
 	// 		AMFDoubleValue* yPosition = new AMFDoubleValue();
-	// 		yPosition->SetDoubleValue(strip->second->GetYPosition());
+	// 		yPosition->SetValue(strip->second->GetYPosition());
 	// 		uiArray->InsertValue("y", yPosition);
 
 	// 		AMFDoubleValue* xPosition = new AMFDoubleValue();
-	// 		xPosition->SetDoubleValue(strip->second->GetXPosition());
+	// 		xPosition->SetValue(strip->second->GetXPosition());
 	// 		uiArray->InsertValue("x", xPosition);
 
 	// 		thisStrip->InsertValue("ui", uiArray);
@@ -211,19 +206,19 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 	// 			AMFArrayValue* thisAction = new AMFArrayValue();
 
 	// 			AMFStringValue* actionName = new AMFStringValue();
-	// 			actionName->SetStringValue(behaviorAction->actionName);
+	// 			actionName->SetValue(behaviorAction->actionName);
 	// 			thisAction->InsertValue("Type", actionName);
 
 	// 			if (behaviorAction->parameterValueString != "")
 	// 			{
 	// 				AMFStringValue* valueAsString = new AMFStringValue();
-	// 				valueAsString->SetStringValue(behaviorAction->parameterValueString);
+	// 				valueAsString->SetValue(behaviorAction->parameterValueString);
 	// 				thisAction->InsertValue(behaviorAction->parameterName, valueAsString);
 	// 			}
 	// 			else if (behaviorAction->parameterValueDouble != 0.0)
 	// 			{
 	// 				AMFDoubleValue* valueAsDouble = new AMFDoubleValue();
-	// 				valueAsDouble->SetDoubleValue(behaviorAction->parameterValueDouble);
+	// 				valueAsDouble->SetValue(behaviorAction->parameterValueDouble);
 	// 				thisAction->InsertValue(behaviorAction->parameterName, valueAsDouble);
 	// 			}
 	// 			stripSerialize->PushBackValue(thisAction);
@@ -237,11 +232,11 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 	// behaviorInfo.InsertValue("states", stateSerialize);
 
 	// AMFStringValue* objectidAsString = new AMFStringValue();
-	// objectidAsString->SetStringValue(std::to_string(targetObjectID));
+	// objectidAsString->SetValue(std::to_string(targetObjectID));
 	// behaviorInfo.InsertValue("objectID", objectidAsString);
 
 	// AMFStringValue* behaviorIDAsString = new AMFStringValue();
-	// behaviorIDAsString->SetStringValue(std::to_string(behaviorID));
+	// behaviorIDAsString->SetValue(std::to_string(behaviorID));
 	// behaviorInfo.InsertValue("BehaviorID", behaviorIDAsString);
 
 	// GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorBlocks", &behaviorInfo);
@@ -275,8 +270,7 @@ void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const Sys
 	// This closes the UI menu should it be open while the player is removing behaviors
 	AMFArrayValue args;
 
-	AMFFalseValue* stateToPop = new AMFFalseValue();
-	args.InsertValue("visible", stateToPop);
+	args.InsertAssociative("visible", false);
 
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "ToggleBehaviorEditor", &args);
 

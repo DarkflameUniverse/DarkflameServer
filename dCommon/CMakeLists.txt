@@ -1,4 +1,4 @@
-set(DCOMMON_SOURCES "AMFFormat.cpp"
+set(DCOMMON_SOURCES "Amf3.cpp"
 		"AMFDeserialize.cpp"
 		"AMFFormat_BitStream.cpp"
 		"BinaryIO.cpp"

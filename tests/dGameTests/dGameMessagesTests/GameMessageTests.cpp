@@ -1,5 +1,5 @@
 #include "Action.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "AMFDeserialize.h"
 #include "GameMessages.h"
 #include "GameDependencies.h"

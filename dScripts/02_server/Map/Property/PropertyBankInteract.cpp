@@ -1,7 +1,8 @@
 #include "PropertyBankInteract.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
+#include "Entity.h"
 
 void PropertyBankInteract::OnStartup(Entity* self) {
 	auto* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
@@ -20,9 +21,8 @@ void PropertyBankInteract::OnPlayerLoaded(Entity* self, Entity* player) {
 void PropertyBankInteract::OnUse(Entity* self, Entity* user) {
 
 	AMFArrayValue args;
-	auto* value = new AMFStringValue();
-	value->SetStringValue("bank");
-	args.InsertValue("state", value);
+
+	args.InsertAssociative("state", "bank");
 
 	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
 
@@ -34,7 +34,8 @@ void PropertyBankInteract::OnFireEventServerSide(Entity* self, Entity* sender, s
 	int32_t param2, int32_t param3) {
 	if (args == "ToggleBank") {
 		AMFArrayValue amfArgs;
-		amfArgs.InsertValue("visible", new AMFFalseValue());
+
+		amfArgs.InsertAssociative("visible", false);
 
 		GameMessages::SendUIMessageServerToSingleClient(sender, sender->GetSystemAddress(), "ToggleBank", &amfArgs);
 

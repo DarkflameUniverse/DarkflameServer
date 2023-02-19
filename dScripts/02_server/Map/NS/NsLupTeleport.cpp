@@ -1,7 +1,7 @@
 #include "NsLupTeleport.h"
 #include "dZoneManager.h"
 #include "GameMessages.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 void NsLupTeleport::OnStartup(Entity* self) {
 	self->SetVar(u"currentZone", (int32_t)dZoneManager::Instance()->GetZoneID().GetMapID());
@@ -12,65 +12,29 @@ void NsLupTeleport::OnStartup(Entity* self) {
 
 	args = {};
 
-	AMFStringValue* callbackClient = new AMFStringValue();
-	callbackClient->SetStringValue(std::to_string(self->GetObjectID()));
-	args.InsertValue("callbackClient", callbackClient);
+	args.InsertAssociative("callbackClient", std::to_string(self->GetObjectID()));
+	args.InsertAssociative("strIdentifier", "choiceDoor");
+	args.InsertAssociative("title", "%[UI_CHOICE_DESTINATION]");
 
-	AMFStringValue* strIdentifier = new AMFStringValue();
-	strIdentifier->SetStringValue("choiceDoor");
-	args.InsertValue("strIdentifier", strIdentifier);
-
-	AMFStringValue* title = new AMFStringValue();
-	title->SetStringValue("%[UI_CHOICE_DESTINATION]");
-	args.InsertValue("title", title);
-
-	AMFArrayValue* choiceOptions = new AMFArrayValue();
+	AMFArrayValue* choiceOptions = args.InsertAssociativeArray("options");
 
 	{
-		AMFArrayValue* nsArgs = new AMFArrayValue();
+		AMFArrayValue* nsArgs = choiceOptions->PushDenseArray();
 
-		AMFStringValue* image = new AMFStringValue();
-		image->SetStringValue("textures/ui/zone_thumnails/Nimbus_Station.dds");
-		nsArgs->InsertValue("image", image);
-
-		AMFStringValue* caption = new AMFStringValue();
-		caption->SetStringValue("%[UI_CHOICE_NS]");
-		nsArgs->InsertValue("caption", caption);
-
-		AMFStringValue* identifier = new AMFStringValue();
-		identifier->SetStringValue("zoneID_1200");
-		nsArgs->InsertValue("identifier", identifier);
-
-		AMFStringValue* tooltipText = new AMFStringValue();
-		tooltipText->SetStringValue("%[UI_CHOICE_NS_HOVER]");
-		nsArgs->InsertValue("tooltipText", tooltipText);
-
-		choiceOptions->PushBackValue(nsArgs);
+		nsArgs->InsertAssociative("image", "textures/ui/zone_thumnails/Nimbus_Station.dds");
+		nsArgs->InsertAssociative("caption", "%[UI_CHOICE_NS]");
+		nsArgs->InsertAssociative("identifier", "zoneID_1200");
+		nsArgs->InsertAssociative("tooltipText", "%[UI_CHOICE_NS_HOVER]");
 	}
 
 	{
-		AMFArrayValue* ntArgs = new AMFArrayValue();
+		AMFArrayValue* ntArgs = choiceOptions->PushDenseArray();
 
-		AMFStringValue* image = new AMFStringValue();
-		image->SetStringValue("textures/ui/zone_thumnails/Nexus_Tower.dds");
-		ntArgs->InsertValue("image", image);
-
-		AMFStringValue* caption = new AMFStringValue();
-		caption->SetStringValue("%[UI_CHOICE_NT]");
-		ntArgs->InsertValue("caption", caption);
-
-		AMFStringValue* identifier = new AMFStringValue();
-		identifier->SetStringValue("zoneID_1900");
-		ntArgs->InsertValue("identifier", identifier);
-
-		AMFStringValue* tooltipText = new AMFStringValue();
-		tooltipText->SetStringValue("%[UI_CHOICE_NT_HOVER]");
-		ntArgs->InsertValue("tooltipText", tooltipText);
-
-		choiceOptions->PushBackValue(ntArgs);
+		ntArgs->InsertAssociative("image", "textures/ui/zone_thumnails/Nexus_Tower.dds");
+		ntArgs->InsertAssociative("caption", "%[UI_CHOICE_NT]");
+		ntArgs->InsertAssociative("identifier", "zoneID_1900");
+		ntArgs->InsertAssociative("tooltipText", "%[UI_CHOICE_NT_HOVER]");
 	}
-
-	args.InsertValue("options", choiceOptions);
 }
 
 void NsLupTeleport::OnUse(Entity* self, Entity* user) {
