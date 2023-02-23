@@ -50,7 +50,7 @@ enum class eReplicaComponentType : uint32_t {
 	PROPERTY_ENTRANCE,
 	FX,
 	PROPERTY_MANAGEMENT,
-	VEHICLE_PHYSICS_NEW, // internal physics based off of havok
+	VEHICLE_PHYSICS_NEW, // internal physics based on havok
 	PHYSICS_SYSTEM,
 	QUICK_BUILD,
 	SWITCH,

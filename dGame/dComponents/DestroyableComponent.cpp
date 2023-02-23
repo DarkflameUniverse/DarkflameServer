@@ -78,7 +78,7 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 
 	int32_t buffComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::BUFF);
 	int32_t collectibleComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::COLLECTIBLE);
-	int32_t rebuildComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::REBUILD);
+	int32_t rebuildComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::QUICK_BUILD);
 
 	int32_t componentID = 0;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;

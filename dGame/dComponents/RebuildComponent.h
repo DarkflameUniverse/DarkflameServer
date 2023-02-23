@@ -20,7 +20,7 @@ class Entity;
  */
 class RebuildComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::REBUILD;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
 	RebuildComponent(Entity* entity);
 	~RebuildComponent() override;
