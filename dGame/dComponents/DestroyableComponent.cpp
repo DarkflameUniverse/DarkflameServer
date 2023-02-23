@@ -76,9 +76,9 @@ DestroyableComponent::~DestroyableComponent() {
 void DestroyableComponent::Reinitialize(LOT templateID) {
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 
-	int32_t buffComponentID = compRegistryTable->GetByIDAndType(templateID, COMPONENT_TYPE_BUFF);
-	int32_t collectibleComponentID = compRegistryTable->GetByIDAndType(templateID, COMPONENT_TYPE_COLLECTIBLE);
-	int32_t rebuildComponentID = compRegistryTable->GetByIDAndType(templateID, COMPONENT_TYPE_REBUILD);
+	int32_t buffComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::BUFF);
+	int32_t collectibleComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::COLLECTIBLE);
+	int32_t rebuildComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::REBUILD);
 
 	int32_t componentID = 0;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;
@@ -810,7 +810,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 			script->OnPlayerDied(zoneControl, m_Parent);
 		}
 
-		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
+		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {

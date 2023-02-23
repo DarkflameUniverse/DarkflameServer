@@ -9,6 +9,7 @@
 #include "RebuildComponent.h"
 #include "Entity.h"
 #include "EntityInfo.h"
+#include "eReplicaComponentType.h"
 
 void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* origin = EntityManager::Instance()->GetEntity(context->originator);
@@ -86,7 +87,7 @@ void SpawnBehavior::Timer(BehaviorContext* context, const BehaviorBranchContext 
 		return;
 	}
 
-	auto* destroyable = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
+	auto* destroyable = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
 
 	if (destroyable == nullptr) {
 		entity->Smash(context->originator);

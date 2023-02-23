@@ -5,6 +5,7 @@
 #include "GameMessages.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
+#include "eReplicaComponentType.h"
 
 void NtFactionSpyServer::OnStartup(Entity* self) {
 	SetVariables(self);
@@ -13,7 +14,7 @@ void NtFactionSpyServer::OnStartup(Entity* self) {
 	auto* proximityMonitor = self->GetComponent<ProximityMonitorComponent>();
 	if (proximityMonitor == nullptr) {
 		proximityMonitor = new ProximityMonitorComponent(self, -1, -1);
-		self->AddComponent(COMPONENT_TYPE_PROXIMITY_MONITOR, proximityMonitor);
+		self->AddComponent(eReplicaComponentType::PROXIMITY_MONITOR, proximityMonitor);
 	}
 
 	proximityMonitor->SetProximityRadius(self->GetVar<float_t>(m_SpyProximityVariable), m_ProximityName);

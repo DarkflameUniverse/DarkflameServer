@@ -137,7 +137,7 @@ void ScriptedActivityComponent::PlayerJoin(Entity* player) {
 }
 
 void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
-	if (!m_Parent->HasComponent(COMPONENT_TYPE_REBUILD))
+	if (!m_Parent->HasComponent(eReplicaComponentType::REBUILD))
 		GameMessages::SendMatchResponse(player, player->GetSystemAddress(), 0); // tell the client they joined a lobby
 	LobbyPlayer* newLobbyPlayer = new LobbyPlayer();
 	newLobbyPlayer->entityID = player->GetObjectID();

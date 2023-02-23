@@ -4,6 +4,7 @@
 #include "MissionComponent.h"
 #include "RenderComponent.h"
 #include "eMissionTaskType.h"
+#include "eReplicaComponentType.h"
 
 void GfTikiTorch::OnStartup(Entity* self) {
 	LightTorch(self);
@@ -42,7 +43,7 @@ void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
 }
 
 void GfTikiTorch::LightTorch(Entity* self) {
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 	if (renderComponent == nullptr)
 		return;
 

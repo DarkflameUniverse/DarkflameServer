@@ -9,6 +9,7 @@
 #include "ScriptedActivityComponent.h"
 #include "Preconditions.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 
@@ -19,7 +20,7 @@ class Entity;
  */
 class RebuildComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_REBUILD;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::REBUILD;
 
 	RebuildComponent(Entity* entity);
 	~RebuildComponent() override;
