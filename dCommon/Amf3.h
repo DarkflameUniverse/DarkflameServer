@@ -6,71 +6,64 @@
 #include <unordered_map>
 #include <vector>
 
-class AMFValue;
-
-// Definitions
-#define _AMFAssociativePortion_		std::unordered_map<std::string, AMFValue*>
-#define _AMFDensePortion_			std::vector<AMFValue*>
-
-enum AMFValueType : unsigned char {
-	AMFUndefined = 0x00,            // An undefined AMF Value
-	AMFNull = 0x01,                 // A null AMF value
-	AMFFalse = 0x02,                // A false AMF value
-	AMFTrue = 0x03,                 // A true AMF value
-	AMFInteger = 0x04,              // An integer AMF value
-	AMFDouble = 0x05,               // A double AMF value
-	AMFString = 0x06,               // A string AMF value
-	AMFXMLDoc = 0x07,               // Unused in the live client and cannot be serialized without modification.  An XML Doc AMF value
-	AMFDate = 0x08,                 // Unused in the live client and cannot be serialized without modification.  A date AMF value
-	AMFArray = 0x09,                // An array AMF value
-	AMFObject = 0x0A,               // Unused in the live client and cannot be serialized without modification.  An object AMF value
-	AMFXML = 0x0B,                  // Unused in the live client and cannot be serialized without modification.  An XML AMF value
-	AMFByteArray = 0x0C,            // Unused in the live client and cannot be serialized without modification.  A byte array AMF value
-	AMFVectorInt = 0x0D,            // Unused in the live client and cannot be serialized without modification.  An integer vector AMF value
-	AMFVectorUInt = 0x0E,           // Unused in the live client and cannot be serialized without modification.  An unsigned integer AMF value
-	AMFVectorDouble = 0x0F,         // Unused in the live client and cannot be serialized without modification.  A double vector AMF value
-	AMFVectorObject = 0x10,         // Unused in the live client and cannot be serialized without modification.  An object vector AMF value
-	AMFDictionary = 0x11            // Unused in the live client and cannot be serialized without modification.  A dictionary AMF value
+enum class eAmf : unsigned char {
+	Undefined = 0x00,            // An undefined AMF Value
+	Null = 0x01,                 // A null AMF value
+	False = 0x02,                // A false AMF value
+	True = 0x03,                 // A true AMF value
+	Integer = 0x04,              // An integer AMF value
+	Double = 0x05,               // A double AMF value
+	String = 0x06,               // A string AMF value
+	XMLDoc = 0x07,               // Unused in the live client and cannot be serialized without modification.  An XML Doc AMF value
+	Date = 0x08,                 // Unused in the live client and cannot be serialized without modification.  A date AMF value
+	Array = 0x09,                // An array AMF value
+	Object = 0x0A,               // Unused in the live client and cannot be serialized without modification.  An object AMF value
+	XML = 0x0B,                  // Unused in the live client and cannot be serialized without modification.  An XML AMF value
+	ByteArray = 0x0C,            // Unused in the live client and cannot be serialized without modification.  A byte array AMF value
+	VectorInt = 0x0D,            // Unused in the live client and cannot be serialized without modification.  An integer vector AMF value
+	VectorUInt = 0x0E,           // Unused in the live client and cannot be serialized without modification.  An unsigned integer AMF value
+	VectorDouble = 0x0F,         // Unused in the live client and cannot be serialized without modification.  A double vector AMF value
+	VectorObject = 0x10,         // Unused in the live client and cannot be serialized without modification.  An object vector AMF value
+	Dictionary = 0x11            // Unused in the live client and cannot be serialized without modification.  A dictionary AMF value
 };
 
-//! The base AMF value class
 class AMFValue {
 public:
-	virtual AMFValueType GetValueType() = 0;
+	virtual eAmf GetValueType() { return static_cast<eAmf>(-1); };
 	virtual ~AMFValue() {};
 };
 
 class AMFUndefinedValue : public AMFValue {
 public:
-	static const AMFValueType ValueType = AMFUndefined;
-	AMFValueType GetValueType() override { return ValueType; };
+	static const eAmf ValueType = eAmf::Undefined;
+	eAmf GetValueType() override { return ValueType; };
 };
 
 class AMFNullValue : public AMFValue {
 public:
-	static const AMFValueType ValueType = AMFNull;
-	AMFValueType GetValueType() override { return ValueType; };
+	static const eAmf ValueType = eAmf::Null;
+	eAmf GetValueType() override { return ValueType; };
 };
 
 class AMFFalseValue : public AMFValue {
 public:
-	static const AMFValueType ValueType = AMFFalse;
-	AMFValueType GetValueType() override { return ValueType; };
+	static const eAmf ValueType = eAmf::False;
+	eAmf GetValueType() override { return ValueType; };
 };
 
 class AMFTrueValue : public AMFValue {
 public:
-	static const AMFValueType ValueType = AMFTrue;
-	AMFValueType GetValueType() override { return ValueType; };
+	static const eAmf ValueType = eAmf::True;
+	eAmf GetValueType() override { return ValueType; };
 
 };
 
 class AMFIntegerValue : public AMFValue {
 public:
-	static const AMFValueType ValueType = AMFInteger;
-	AMFValueType GetValueType() override { return ValueType; };
+	static const eAmf ValueType = eAmf::Integer;
+	eAmf GetValueType() override { return ValueType; };
 
-	AMFIntegerValue() = default;
+	AMFIntegerValue() { this->data = 0; };
 	AMFIntegerValue(uint32_t value) { this->data = value; };
 	/**
 	 * Sets the value of this AMFInteger object.
@@ -92,10 +85,10 @@ private:
 //! The double value AMF type
 class AMFDoubleValue : public AMFValue {
 public:
-	static const AMFValueType ValueType = AMFDouble;
-	AMFValueType GetValueType() override { return ValueType; };
+	static const eAmf ValueType = eAmf::Double;
+	eAmf GetValueType() override { return ValueType; };
 
-	AMFDoubleValue() = default;
+	AMFDoubleValue() { this->data = 0.0; };
 	AMFDoubleValue(double value) { this->data = value; };
 
 	inline void SetValue(double value) { this->data = value; };
@@ -108,10 +101,10 @@ private:
 
 class AMFStringValue : public AMFValue {
 public:
-	static const AMFValueType ValueType = AMFString;
-	AMFValueType GetValueType() override { return ValueType; };
+	static const eAmf ValueType = eAmf::String;
+	eAmf GetValueType() override { return ValueType; };
 
-	AMFStringValue() = default;
+	AMFStringValue() { this->data = ""; };
 	AMFStringValue(const std::string& value) { this->data = value; };
 
 	inline void SetValue(const std::string& value) { this->data = value; };
@@ -123,6 +116,9 @@ private:
 	std::string data;
 };
 
+typedef std::unordered_map<std::string, AMFValue*> _AMFAssociativePortion_;
+typedef std::vector<AMFValue*> _AMFDensePortion_;
+
 /**
  * The AMFArrayValue object holds 2 types of lists:
  * An associative list where a key maps to a value
@@ -133,8 +129,8 @@ private:
  */
 class AMFArrayValue : public AMFValue {
 public:
-	static const AMFValueType ValueType = AMFArray;
-	AMFValueType GetValueType() override { return ValueType; }
+	static const eAmf ValueType = eAmf::Array;
+	eAmf GetValueType() override { return ValueType; }
 
 	~AMFArrayValue() override;
 

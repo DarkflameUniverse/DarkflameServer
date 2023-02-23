@@ -11,67 +11,67 @@ AMFValue* AMFDeserialize::Read(RakNet::BitStream* inStream) {
 	if (!inStream) return nullptr;
 	AMFValue* returnValue = nullptr;
 	// Read in the value type from the bitStream
-	int8_t marker;
+	eAmf marker;
 	inStream->Read(marker);
 	// Based on the typing, create the value associated with that and return the base value class
 	switch (marker) {
-	case AMFValueType::AMFUndefined: {
+	case eAmf::Undefined: {
 		returnValue = new AMFUndefinedValue();
 		break;
 	}
 
-	case AMFValueType::AMFNull: {
+	case eAmf::Null: {
 		returnValue = new AMFNullValue();
 		break;
 	}
 
-	case AMFValueType::AMFFalse: {
+	case eAmf::False: {
 		returnValue = new AMFFalseValue();
 		break;
 	}
 
-	case AMFValueType::AMFTrue: {
+	case eAmf::True: {
 		returnValue = new AMFTrueValue();
 		break;
 	}
 
-	case AMFValueType::AMFInteger: {
+	case eAmf::Integer: {
 		returnValue = ReadAmfInteger(inStream);
 		break;
 	}
 
-	case AMFValueType::AMFDouble: {
+	case eAmf::Double: {
 		returnValue = ReadAmfDouble(inStream);
 		break;
 	}
 
-	case AMFValueType::AMFString: {
+	case eAmf::String: {
 		returnValue = ReadAmfString(inStream);
 		break;
 	}
 
-	case AMFValueType::AMFArray: {
+	case eAmf::Array: {
 		returnValue = ReadAmfArray(inStream);
 		break;
 	}
 
 	// These values are unimplemented in the live client and will remain unimplemented
 	// unless someone modifies the client to allow serializing of these values.
-	case AMFValueType::AMFXMLDoc:
-	case AMFValueType::AMFDate:
-	case AMFValueType::AMFObject:
-	case AMFValueType::AMFXML:
-	case AMFValueType::AMFByteArray:
-	case AMFValueType::AMFVectorInt:
-	case AMFValueType::AMFVectorUInt:
-	case AMFValueType::AMFVectorDouble:
-	case AMFValueType::AMFVectorObject:
-	case AMFValueType::AMFDictionary: {
-		throw static_cast<AMFValueType>(marker);
+	case eAmf::XMLDoc:
+	case eAmf::Date:
+	case eAmf::Object:
+	case eAmf::XML:
+	case eAmf::ByteArray:
+	case eAmf::VectorInt:
+	case eAmf::VectorUInt:
+	case eAmf::VectorDouble:
+	case eAmf::VectorObject:
+	case eAmf::Dictionary: {
+		throw static_cast<eAmf>(marker);
 		break;
 	}
 	default:
-		throw static_cast<AMFValueType>(marker);
+		throw static_cast<eAmf>(marker);
 		break;
 	}
 	return returnValue;

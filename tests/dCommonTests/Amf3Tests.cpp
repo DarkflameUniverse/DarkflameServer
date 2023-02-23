@@ -10,14 +10,14 @@ TEST(dCommonTests, Amf3AssociativeArrayTest) {
 
 	// test associative can insert values
 	ASSERT_EQ(array.GetAssociative().size(), 2);
-	ASSERT_EQ(array.FindValue<AMFTrueValue>("true")->GetValueType(), AMFValueType::AMFTrue);
-	ASSERT_EQ(array.FindValue<AMFFalseValue>("false")->GetValueType(), AMFValueType::AMFFalse);
+	ASSERT_EQ(array.FindValue<AMFTrueValue>("true")->GetValueType(), eAmf::True);
+	ASSERT_EQ(array.FindValue<AMFFalseValue>("false")->GetValueType(), eAmf::False);
 
 	// Test associative can remove values
 	array.RemoveAssociative("true");
 	ASSERT_EQ(array.GetAssociative().size(), 1);
 	ASSERT_EQ(array.FindValue<AMFTrueValue>("true"), nullptr);
-	ASSERT_EQ(array.FindValue<AMFFalseValue>("false")->GetValueType(), AMFValueType::AMFFalse);
+	ASSERT_EQ(array.FindValue<AMFFalseValue>("false")->GetValueType(), eAmf::False);
 
 	array.RemoveAssociative("false");
 	ASSERT_EQ(array.GetAssociative().size(), 0);
@@ -28,7 +28,7 @@ TEST(dCommonTests, Amf3AssociativeArrayTest) {
 	array.InsertAssociative("true", true);
 	array.InsertAssociative("true", false);
 	ASSERT_EQ(array.GetAssociative().size(), 1);
-	ASSERT_EQ(array.FindValue<AMFTrueValue>("true")->GetValueType(), AMFValueType::AMFTrue);
+	ASSERT_EQ(array.FindValue<AMFTrueValue>("true")->GetValueType(), eAmf::True);
 	array.RemoveAssociative("true");
 
 	// Now test the dense portion
@@ -37,15 +37,15 @@ TEST(dCommonTests, Amf3AssociativeArrayTest) {
 	array.PushDense(false);
 
 	ASSERT_EQ(array.GetDense().size(), 2);
-	ASSERT_EQ(array.GetValueAt<AMFTrueValue>(0)->GetValueType(), AMFValueType::AMFTrue);
+	ASSERT_EQ(array.GetValueAt<AMFTrueValue>(0)->GetValueType(), eAmf::True);
 	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(0), nullptr);
-	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(1)->GetValueType(), AMFValueType::AMFFalse);
+	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(1)->GetValueType(), eAmf::False);
 	ASSERT_EQ(array.GetValueAt<AMFTrueValue>(155), nullptr);
 
 	array.PopDense();
 
 	ASSERT_EQ(array.GetDense().size(), 1);
-	ASSERT_EQ(array.GetValueAt<AMFTrueValue>(0)->GetValueType(), AMFValueType::AMFTrue);
+	ASSERT_EQ(array.GetValueAt<AMFTrueValue>(0)->GetValueType(), eAmf::True);
 	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(0), nullptr);
 	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(1), nullptr);
 
