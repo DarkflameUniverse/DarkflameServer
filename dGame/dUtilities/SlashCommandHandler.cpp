@@ -1655,7 +1655,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 	}
 
-	if (chatCommand == "spawnphysicsverts" && entity->GetGMLevel() >= eGameMasterLevel::LEAD_MODERATOR) {
+	if (chatCommand == "spawnphysicsverts" && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_DEVELOPER) {
 		//Go tell physics to spawn all the vertices:
 		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_PHANTOM_PHYSICS);
 		for (auto en : entities) {
@@ -1665,7 +1665,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 	}
 
-	if (chatCommand == "reportproxphys" && entity->GetGMLevel() >= eGameMasterLevel::LEAD_MODERATOR) {
+	if (chatCommand == "reportproxphys" && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_DEVELOPER) {
 		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_PROXIMITY_MONITOR);
 		for (auto en : entities) {
 			auto phys = static_cast<ProximityMonitorComponent*>(en->GetComponent(COMPONENT_TYPE_PROXIMITY_MONITOR));
