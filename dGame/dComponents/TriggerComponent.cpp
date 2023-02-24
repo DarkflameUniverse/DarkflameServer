@@ -264,8 +264,8 @@ void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args)
 
 	// normalize the vectors to get the direction
 	auto delta = targetPos - triggerPos;
-	auto abs = delta.Length();
-	NiPoint3 direction = delta / abs;
+	auto length = delta.Length();
+	NiPoint3 direction = delta / length;
 	phantomPhysicsComponent->SetDirection(direction);
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -278,11 +278,21 @@ void TriggerComponent::HandlePlayCinematic(Entity* targetEntity, std::vector<std
 	bool leaveLocked = false;
 	bool hidePlayer = false;
 
-	if (argArray.size() >= 2) GeneralUtils::TryParse<float>(argArray.at(1), leadIn);
-	else if (argArray.size() >= 3 && argArray.at(2) == "wait") wait = eEndBehavior::WAIT;
-	else if (argArray.size() >= 4 && argArray.at(3) == "unlock") unlock = false;
-	else if (argArray.size() >= 5 && argArray.at(4) == "leavelocked") leaveLocked = true;
-	else if (argArray.size() >= 6 && argArray.at(5) == "hideplayer") hidePlayer = true;
+	if (argArray.size() >= 2) {
+		GeneralUtils::TryParse<float>(argArray.at(1), leadIn);
+		if (argArray.size() >= 3 && argArray.at(2) == "wait") {
+			wait = eEndBehavior::WAIT;
+			if (argArray.size() >= 4 && argArray.at(3) == "unlock") {
+				unlock = false;
+				if (argArray.size() >= 5 && argArray.at(4) == "leavelocked") {
+					leaveLocked = true;
+					if (argArray.size() >= 6 && argArray.at(5) == "hideplayer") {
+						hidePlayer = true;
+					}
+				}
+			}
+		}
+	}
 
 	GameMessages::SendPlayCinematic(targetEntity->GetObjectID(), GeneralUtils::UTF8ToUTF16(argArray.at(0)), targetEntity->GetSystemAddress(), true, true, false, false, wait, hidePlayer, leadIn, leaveLocked, unlock);
 }
@@ -313,13 +323,13 @@ void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std
 }
 
 void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::string> argArray) {
-	if (argArray.size() <= 2) return;
+	if (argArray.size() < 3) return;
 	int32_t effectID = 0;
 	if (!GeneralUtils::TryParse<int32_t>(argArray.at(1), effectID)) return;
 	std::u16string effectType = GeneralUtils::UTF8ToUTF16(argArray.at(2));
 	float priority = 1;
 	if (argArray.size() == 4) GeneralUtils::TryParse<float>(argArray.at(3), priority);
-	GameMessages::SendPlayFXEffect(targetEntity, effectID, effectType, argArray.at(0), LWOOBJID_EMPTY, priority, 1, true);
+	GameMessages::SendPlayFXEffect(targetEntity, effectID, effectType, argArray.at(0), LWOOBJID_EMPTY, priority);
 }
 
 void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
