@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "Preconditions.h"
+#include "DestroyableComponent.h"
 
 #ifdef _WIN32
 #define _USE_MATH_DEFINES
@@ -19,6 +20,8 @@ void MastTeleport::OnRebuildComplete(Entity* self, Entity* target) {
 		GameMessages::SendSetStunned(target->GetObjectID(), eStateChangeType::PUSH, target->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true
 		);
+		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
+		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, true, true, true, true, true, false, false, true, true);
 
 		self->AddTimer("Start", 3);
 	}
@@ -55,7 +58,7 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendPlayFXEffect(playerId, 6039, u"hook", "hook", LWOOBJID_EMPTY, 1, 1, true);
 
-		GameMessages::SendPlayAnimation(player, u"crow-swing-no-equip");
+		GameMessages::SendPlayAnimation(player, u"crow-swing-no-equip", 4.0f);
 
 		GameMessages::SendPlayAnimation(self, u"swing");
 
@@ -84,5 +87,8 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 		GameMessages::SendSetStunned(playerId, eStateChangeType::POP, player->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true
 		);
+		auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
+		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true, true, true, true, true, false, false, true, true);
+		EntityManager::Instance()->SerializeEntity(player);
 	}
 }
