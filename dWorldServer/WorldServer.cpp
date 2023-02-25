@@ -63,6 +63,7 @@
 #include "eBlueprintSaveResponseType.h"
 #include "Amf3.h"
 #include "NiPoint3.h"
+#include "eServerDisconnectIdentifiers.h"
 
 #include "ZCompression.h"
 
@@ -761,7 +762,7 @@ void HandlePacket(Packet* packet) {
 			//Verify it:
 			if (userHash != it->second.hash) {
 				Game::logger->Log("WorldServer", "SOMEONE IS TRYING TO HACK? SESSION KEY MISMATCH: ours: %s != master: %s", userHash.c_str(), it->second.hash.c_str());
-				Game::server->Disconnect(it->second.sysAddr, SERVER_DISCON_INVALID_SESSION_KEY);
+				Game::server->Disconnect(it->second.sysAddr, eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
 				return;
 			} else {
 				Game::logger->Log("WorldServer", "User %s authenticated with correct key.", username.c_str());
@@ -851,7 +852,7 @@ void HandlePacket(Packet* packet) {
 			//Check the key:
 			if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
 				Game::logger->Log("WorldServer", "Got new session alert for user %s, but the session key is invalid.", username.c_str());
-				Game::server->Disconnect(user->GetSystemAddress(), SERVER_DISCON_INVALID_SESSION_KEY);
+				Game::server->Disconnect(user->GetSystemAddress(), eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
 				return;
 			}
 			break;
@@ -892,7 +893,7 @@ void HandlePacket(Packet* packet) {
 			// Developers may skip this check
 			if (gmLevel < 8 && clientDatabaseChecksum != databaseChecksum) {
 				Game::logger->Log("WorldServer", "Client's database checksum does not match the server's, aborting connection.");
-				Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
+				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::WRONG_GAME_VERSION);
 				return;
 			}
 		}
@@ -1180,7 +1181,7 @@ void HandlePacket(Packet* packet) {
 				}
 			} else {
 				Game::logger->Log("WorldServer", "Couldn't find character to log in with for user %s (%i)!", user->GetUsername().c_str(), user->GetAccountID());
-				Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_CHARACTER_NOT_FOUND);
+				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND);
 			}
 		} else {
 			Game::logger->Log("WorldServer", "Couldn't get user for level load complete!");
@@ -1265,7 +1266,7 @@ void HandlePacket(Packet* packet) {
 		if (user) {
 			user->UserOutOfSync();
 		} else {
-			Game::server->Disconnect(packet->systemAddress, SERVER_DISCON_KICK);
+			Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::KICK);
 		}
 		break;
 	}
@@ -1305,7 +1306,7 @@ void WorldShutdownProcess(uint32_t zoneId) {
 	while (Game::server->GetReplicaManager()->GetParticipantCount() > 0) {
 		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
 
-		Game::server->Disconnect(player, SERVER_DISCON_KICK);
+		Game::server->Disconnect(player, eServerDisconnectIdentifiers::SERVER_SHUTDOWN);
 	}
 	SendShutdownMessageToMaster();
 }

@@ -5,6 +5,7 @@
 #include "dLogger.h"
 #include "Game.h"
 #include "dZoneManager.h"
+#include "eServerDisconnectIdentifiers.h"
 
 User::User(const SystemAddress& sysAddr, const std::string& username, const std::string& sessionKey) {
 	m_AccountID = 0;
@@ -126,6 +127,6 @@ void User::UserOutOfSync() {
 	if (m_AmountOfTimesOutOfSync > m_MaxDesyncAllowed) {
 		//YEET
 		Game::logger->Log("User", "User %s was out of sync %i times out of %i, disconnecting for suspected speedhacking.", m_Username.c_str(), m_AmountOfTimesOutOfSync, m_MaxDesyncAllowed);
-		Game::server->Disconnect(this->m_SystemAddress, SERVER_DISCON_KICK);
+		Game::server->Disconnect(this->m_SystemAddress, eServerDisconnectIdentifiers::PLAY_SCHEDULE_TIME_DONE);
 	}
 }
