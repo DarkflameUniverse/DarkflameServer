@@ -158,10 +158,11 @@ public:
 	AMFNullValue* InsertAssociativeNull(const std::string& key);
 
 	AMFArrayValue* InsertAssociativeArray(const std::string& key);
-	AMFStringValue* InsertAssociative(const std::string& key, const std::string& value = "");
-	AMFValue* InsertAssociative(const std::string& key, const bool& value);
-	AMFIntegerValue* InsertAssociative(const std::string& key, const uint32_t& value = 0);
-	AMFDoubleValue* InsertAssociative(const std::string& key, const double& value = 0.0);
+	AMFStringValue* InsertAssociative(const std::string& key, const char* value = "");
+	inline AMFStringValue* InsertAssociative(const std::string& key, const std::string& value = "") { return InsertAssociative(key, value.c_str()); };
+	AMFValue* InsertAssociative(const std::string& key, const bool value);
+	AMFIntegerValue* InsertAssociative(const std::string& key, const uint32_t value = 0);
+	AMFDoubleValue* InsertAssociative(const std::string& key, const double value = 0.0);
 
 	/**
 	 * Register an AMFValue* to this Object.
@@ -223,10 +224,11 @@ public:
 	AMFNullValue* PushDenseNull();
 
 	AMFArrayValue* PushDenseArray();
-	AMFStringValue* PushDense(const std::string& value = "");
-	AMFValue* PushDense(const bool& value);
-	AMFIntegerValue* PushDense(const uint32_t& value = 0);
-	AMFDoubleValue* PushDense(const double& value = 0.0);
+	AMFStringValue* PushDense(const char* value = "");
+	inline AMFStringValue* PushDense(const std::string& value = "") { return PushDense(value.c_str()); };
+	AMFValue* PushDense(const bool value);
+	AMFIntegerValue* PushDense(const uint32_t value = 0);
+	AMFDoubleValue* PushDense(const double value = 0.0);
 
 	/**
 	 * Pops the last element in the dense portion, deleting it in the process.

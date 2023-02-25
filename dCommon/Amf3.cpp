@@ -57,7 +57,7 @@ AMFArrayValue* AMFArrayValue::InsertAssociativeArray(const std::string& key) {
 	return toInsert;
 }
 
-AMFValue* AMFArrayValue::InsertAssociative(const std::string& key, const bool& value) {
+AMFValue* AMFArrayValue::InsertAssociative(const std::string& key, const bool value) {
 	AMFValue* toInsert = value ? static_cast<AMFValue*>(new AMFTrueValue()) : static_cast<AMFValue*>(new AMFFalseValue());
 	if (!InsertAssociative(key, toInsert)) {
 		delete toInsert;
@@ -66,7 +66,7 @@ AMFValue* AMFArrayValue::InsertAssociative(const std::string& key, const bool& v
 	return toInsert;
 }
 
-AMFStringValue* AMFArrayValue::InsertAssociative(const std::string& key, const std::string& value) {
+AMFStringValue* AMFArrayValue::InsertAssociative(const std::string& key, const char* value) {
 	AMFStringValue* toInsert = new AMFStringValue(value);
 	if (!InsertAssociative(key, toInsert)) {
 		delete toInsert;
@@ -75,7 +75,7 @@ AMFStringValue* AMFArrayValue::InsertAssociative(const std::string& key, const s
 	return toInsert;
 }
 
-AMFIntegerValue* AMFArrayValue::InsertAssociative(const std::string& key, const uint32_t& value) {
+AMFIntegerValue* AMFArrayValue::InsertAssociative(const std::string& key, const uint32_t value) {
 	AMFIntegerValue* toInsert = new AMFIntegerValue(value);
 	if (!InsertAssociative(key, toInsert)) {
 		delete toInsert;
@@ -84,7 +84,7 @@ AMFIntegerValue* AMFArrayValue::InsertAssociative(const std::string& key, const 
 	return toInsert;
 }
 
-AMFDoubleValue* AMFArrayValue::InsertAssociative(const std::string& key, const double& value) {
+AMFDoubleValue* AMFArrayValue::InsertAssociative(const std::string& key, const double value) {
 	AMFDoubleValue* toInsert = new AMFDoubleValue(value);
 	if (!InsertAssociative(key, toInsert)) {
 		delete toInsert;
@@ -115,25 +115,25 @@ AMFArrayValue* AMFArrayValue::PushDenseArray() {
 	return toPush;
 }
 
-AMFStringValue* AMFArrayValue::PushDense(const std::string& value) {
+AMFStringValue* AMFArrayValue::PushDense(const char* value) {
 	AMFStringValue* toPush = new AMFStringValue(value);
 	PushBackDense(toPush);
 	return toPush;
 }
 
-AMFValue* AMFArrayValue::PushDense(const bool& value) {
+AMFValue* AMFArrayValue::PushDense(const bool value) {
 	AMFValue* toPush = value ? static_cast<AMFValue*>(new AMFTrueValue()) : static_cast<AMFValue*>(new AMFFalseValue());
 	PushBackDense(toPush);
 	return toPush;
 }
 
-AMFIntegerValue* AMFArrayValue::PushDense(const uint32_t& value) {
+AMFIntegerValue* AMFArrayValue::PushDense(const uint32_t value) {
 	AMFIntegerValue* toPush = new AMFIntegerValue(value);
 	PushBackDense(toPush);
 	return toPush;
 }
 
-AMFDoubleValue* AMFArrayValue::PushDense(const double& value) {
+AMFDoubleValue* AMFArrayValue::PushDense(const double value) {
 	AMFDoubleValue* toPush = new AMFDoubleValue(value);
 	PushBackDense(toPush);
 	return toPush;
