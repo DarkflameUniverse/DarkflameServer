@@ -1,29 +1,11 @@
 #include "SplitStripMessage.h"
 
-SplitStripMessage::SplitStripMessage(AMFArrayValue* arguments) {
-	auto* srcActionIndexValue = arguments->FindValue<AMFDoubleValue>("srcActionIndex");
-	if (!srcActionIndexValue) return;
+SplitStripMessage::SplitStripMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
+	sourceActionContext = ActionContext(arguments, "srcStateID", "srcStripID");
+	srcActionIndex = GetActionIndexFromArgument(arguments, "srcActionIndex");
 
-	srcActionIndex = static_cast<uint32_t>(srcActionIndexValue->GetDoubleValue());
+	destinationActionContext = ActionContext(arguments, "dstStateID", "dstStripID");
+	destinationPosition = StripUiPosition(arguments, "dstStripUI");
 
-	srcStripId = GetStripIDFromArgument(arguments, "srcStripID");
-
-	srcStateId = GetBehaviorStateFromArgument(arguments, "srcStateID");
-
-	dstStripId = GetStripIDFromArgument(arguments, "dstStripID");
-
-	dstStateId = GetBehaviorStateFromArgument(arguments, "dstStateID");
-
-	auto* dstStripUiArray = arguments->FindValue<AMFArrayValue>("dstStripUI");
-	if (!dstStripUiArray) return;
-
-	auto* xPositionValue = dstStripUiArray->FindValue<AMFDoubleValue>("x");
-	auto* yPositionValue = dstStripUiArray->FindValue<AMFDoubleValue>("y");
-	if (!xPositionValue || !yPositionValue) return;
-
-	yPosition = yPositionValue->GetDoubleValue();
-	xPosition = xPositionValue->GetDoubleValue();
-
-	behaviorId = GetBehaviorIDFromArgument(arguments);
-	Game::logger->LogDebug("SplitStripMessage", "bhid %i x %f y %f srcStp %i dstStp %i srcStt %i dstStt %i srcActNdx %i", behaviorId, xPosition, yPosition, srcStripId, dstStripId, srcStateId, dstStateId, srcActionIndex);
+	Game::logger->LogDebug("SplitStripMessage", "behaviorId %i xPosition %f yPosition %f sourceStrip %i destinationStrip %i sourceState %i destinationState %i srcActindex %i", behaviorId, destinationPosition.GetX(), destinationPosition.GetY(), sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), srcActionIndex);
 }

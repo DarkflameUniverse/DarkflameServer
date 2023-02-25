@@ -1,22 +1,23 @@
 #ifndef __REARRANGESTRIPMESSAGE__H__
 #define __REARRANGESTRIPMESSAGE__H__
 
+#include "ActionContext.h"
 #include "BehaviorMessageBase.h"
 
+/**
+ * @brief Sent when a player moves an Action around in the same strip
+ * 
+ */
 class RearrangeStripMessage : public BehaviorMessageBase {
 public:
 	RearrangeStripMessage(AMFArrayValue* arguments);
 	const uint32_t GetSrcActionIndex() { return srcActionIndex; };
-	const uint32_t GetStripID() { return stripID; };
-	const uint32_t GetBehaviorID() { return behaviorID; };
 	const uint32_t GetDstActionIndex() { return dstActionIndex; };
-	const BehaviorState GetStateID() { return stateID; };
+	ActionContext GetActionContext() { return actionContext; };
 private:
+	ActionContext actionContext;
 	uint32_t srcActionIndex;
-	uint32_t stripID;
-	uint32_t behaviorID;
 	uint32_t dstActionIndex;
-	BehaviorState stateID;
 };
 
 #endif  //!__REARRANGESTRIPMESSAGE__H__

@@ -5,13 +5,15 @@
 
 class AMFArrayValue;
 
+/**
+ * @brief Sent when a player renames this behavior
+ * 
+ */
 class RenameMessage : public BehaviorMessageBase {
 public:
 	RenameMessage(AMFArrayValue* arguments);
-	const uint32_t GetBehaviorID() { return behaviorID; };
 	const std::string& GetName() { return name; };
 private:
-	uint32_t behaviorID;
 	std::string name;
 };
 
