@@ -125,6 +125,9 @@ namespace GameMessages {
 	void HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID);
 
+	// https://lcdruniverse.org/lu_packets/lu_packets/world/gm/client/struct.SetResurrectRestoreValues.html
+	void SendSetResurrectRestoreValues(Entity* targetEntity, const SystemAddress& playerSysAddr, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore);
+
 	/**
 	 * Sends a message to an Entity to smash itself, but not delete or destroy itself from the world
 	 *

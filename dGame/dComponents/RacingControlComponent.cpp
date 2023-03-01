@@ -306,13 +306,9 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 		auto* vehicle =
 			EntityManager::Instance()->GetEntity(racingPlayer.vehicleID);
 
-		if (vehicle == nullptr) {
-			return;
-		}
+		if (!vehicle) return;
 
-		if (!racingPlayer.noSmashOnReload) {
-			racingPlayer.smashedTimes++;
-		}
+		if (!racingPlayer.noSmashOnReload) racingPlayer.smashedTimes++;
 
 		// Reset player to last checkpoint
 		GameMessages::SendRacingSetPlayerResetInfo(
@@ -329,7 +325,14 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 			characterComponent->UpdatePlayerStatistic(RacingTimesWrecked);
 		}
 
-		return;
+		auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
+		// Reset imagination to half its current value, rounded up to the nearest value divisible by 10, as it was done in live.
+		if (destroyableComponent) {
+			destroyableComponent->SetImagination(static_cast<int32_t>(ceil(destroyableComponent->GetImagination() / 2 / 10) * 10));
+			// TODO This does not update the visuals client side sometimes.  Not sure why.
+			GameMessages::SendSetResurrectRestoreValues(vehicle, player->GetSystemAddress(), -1, -1, destroyableComponent->GetImagination());
+		}
+		EntityManager::Instance()->SerializeEntity(vehicle);
 	}
 }
 

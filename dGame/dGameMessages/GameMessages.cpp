@@ -4395,6 +4395,24 @@ void GameMessages::SendRacingResetPlayerToLastReset(LWOOBJID objectId, LWOOBJID 
 	SEND_PACKET;
 }
 
+void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, const SystemAddress& playerSysAddr, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(targetEntity->GetObjectID());
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_RESURRECT_RESTORE_VALUES);
+	
+	bitStream.Write(armorRestore != 1);
+	if (armorRestore != 1) bitStream.Write(armorRestore);
+
+	bitStream.Write(healthRestore != 1);
+	if (healthRestore != 1) bitStream.Write(healthRestore);
+
+	bitStream.Write(imaginationRestore != -1);
+	if (imaginationRestore != 1) bitStream.Write(imaginationRestore);
+
+	Game::server->Send(&bitStream, playerSysAddr, false);
+}
 
 void GameMessages::SendNotifyRacingClient(LWOOBJID objectId, int32_t eventType, int32_t param1, LWOOBJID paramObj, std::u16string paramStr, LWOOBJID singleClient, const SystemAddress& sysAddr) {
 	CBITSTREAM;
