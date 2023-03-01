@@ -4402,14 +4402,14 @@ void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, const Sys
 	bitStream.Write(targetEntity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_SET_RESURRECT_RESTORE_VALUES);
 	
-	bitStream.Write(armorRestore != 1);
-	if (armorRestore != 1) bitStream.Write(armorRestore);
+	bitStream.Write(armorRestore != -1);
+	if (armorRestore != -1) bitStream.Write(armorRestore);
 
-	bitStream.Write(healthRestore != 1);
-	if (healthRestore != 1) bitStream.Write(healthRestore);
+	bitStream.Write(healthRestore != -1);
+	if (healthRestore != -1) bitStream.Write(healthRestore);
 
 	bitStream.Write(imaginationRestore != -1);
-	if (imaginationRestore != 1) bitStream.Write(imaginationRestore);
+	if (imaginationRestore != -1) bitStream.Write(imaginationRestore);
 
 	Game::server->Send(&bitStream, playerSysAddr, false);
 }
