@@ -52,6 +52,7 @@ public:
 	~BaseCombatAIComponent() override;
 
 	void Update(float deltaTime) override;
+	inline void DoUpdate(const float deltaTime);
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
 	/**
@@ -339,11 +340,6 @@ private:
 	 * If this entity is immune to stunds
 	 */
 	bool m_StunImmune = false;
-
-	/**
-	 * Time taken between actions
-	 */
-	float m_Downtime = 0;
 
 	/**
 	 * How long this entity needs to execute its skill

@@ -22,6 +22,7 @@
 #include "SkillComponent.h"
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
+#include "Metrics.hpp"
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id): Component(parent) {
 	m_Target = LWOOBJID_EMPTY;
@@ -228,6 +229,15 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 
 
 void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
+	for (auto& entry : m_SkillEntries) {
+		if (entry.cooldown > 0.0f) {
+			entry.cooldown -= deltaTime;
+		}
+	}
+
+	bool hadRemainingDowntime = m_SkillTime > 0.0f;
+	if (m_SkillTime > 0.0f) m_SkillTime -= deltaTime;
+
 	auto* rebuild = m_Parent->GetComponent<RebuildComponent>();
 
 	if (rebuild != nullptr) {
@@ -258,9 +268,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		m_Stunned = false;
 	}
 
-	if (m_Stunned) {
-		return;
-	}
+	if (m_Stunned || hadRemainingDowntime) return;
 
 	auto newTarget = FindTarget();
 
@@ -325,35 +333,11 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		SetAiState(AiState::idle);
 	}
 
-	for (auto i = 0; i < m_SkillEntries.size(); ++i) {
-		auto entry = m_SkillEntries.at(i);
-
-		if (entry.cooldown > 0) {
-			entry.cooldown -= deltaTime;
-
-			m_SkillEntries[i] = entry;
-		}
-	}
-
-	if (m_SkillTime > 0) {
-		m_SkillTime -= deltaTime;
-
-		return;
-	}
-
-	if (m_Downtime > 0) {
-		m_Downtime -= deltaTime;
-
-		return;
-	}
-
 	if (m_Target == LWOOBJID_EMPTY) {
 		SetAiState(AiState::idle);
 
 		return;
 	}
-
-	m_Downtime = 0.5f;
 
 	auto* target = GetTargetEntity();
 
