@@ -141,13 +141,6 @@ BaseCombatAIComponent::~BaseCombatAIComponent() {
 }
 
 void BaseCombatAIComponent::Update(const float deltaTime) {
-	Metrics::StartMeasurement(MetricVariable::CombatAiComponentUpdateLoop);
-	DoUpdate(deltaTime);
-	Metrics::EndMeasurement(MetricVariable::CombatAiComponentUpdateLoop);
-	Game::logger->Log("BaseCombatAIComponent", "nanoseconds this loop for %i are %llu", m_Parent->GetLOT(), Metrics::GetMetric(MetricVariable::CombatAiComponentUpdateLoop)->average);
-}
-
-void BaseCombatAIComponent::DoUpdate(const float deltaTime) {
 	//First, we need to process physics:
 	if (!m_dpEntity) return;
 
@@ -236,9 +229,12 @@ void BaseCombatAIComponent::DoUpdate(const float deltaTime) {
 
 
 void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
+	bool hasSkillToCast = false;
 	for (auto& entry : m_SkillEntries) {
 		if (entry.cooldown > 0.0f) {
 			entry.cooldown -= deltaTime;
+		} else {
+			hasSkillToCast = true;
 		}
 	}
 
@@ -339,6 +335,8 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	} else {
 		SetAiState(AiState::idle);
 	}
+
+	if (!hasSkillToCast) return;
 
 	if (m_Target == LWOOBJID_EMPTY) {
 		SetAiState(AiState::idle);

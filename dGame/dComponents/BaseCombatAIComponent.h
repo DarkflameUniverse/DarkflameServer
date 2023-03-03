@@ -52,7 +52,6 @@ public:
 	~BaseCombatAIComponent() override;
 
 	void Update(float deltaTime) override;
-	inline void DoUpdate(const float deltaTime);
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
 	/**
