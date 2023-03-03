@@ -20,6 +20,7 @@ enum class MetricVariable : int32_t
 	CPUTime,
 	Sleep,
 	Frame,
+	CombatAiComponentUpdateLoop
 };
 
 struct Metric

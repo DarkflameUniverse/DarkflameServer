@@ -141,6 +141,13 @@ BaseCombatAIComponent::~BaseCombatAIComponent() {
 }
 
 void BaseCombatAIComponent::Update(const float deltaTime) {
+	Metrics::StartMeasurement(MetricVariable::CombatAiComponentUpdateLoop);
+	DoUpdate(deltaTime);
+	Metrics::EndMeasurement(MetricVariable::CombatAiComponentUpdateLoop);
+	Game::logger->Log("BaseCombatAIComponent", "nanoseconds this loop for %i are %llu", m_Parent->GetLOT(), Metrics::GetMetric(MetricVariable::CombatAiComponentUpdateLoop)->average);
+}
+
+void BaseCombatAIComponent::DoUpdate(const float deltaTime) {
 	//First, we need to process physics:
 	if (!m_dpEntity) return;
 
