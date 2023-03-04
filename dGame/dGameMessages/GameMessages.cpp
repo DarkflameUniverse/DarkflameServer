@@ -4395,7 +4395,19 @@ void GameMessages::SendRacingResetPlayerToLastReset(LWOOBJID objectId, LWOOBJID 
 	SEND_PACKET;
 }
 
-void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, const SystemAddress& playerSysAddr, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore) {
+void GameMessages::SendVehicleStopBoost(Entity* targetEntity, const SystemAddress& playerSysAddr, bool affectPassive) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(targetEntity->GetObjectID());
+	bitStream.Write(GAME_MSG::GAME_MSG_VEHICLE_STOP_BOOST);
+	
+	bitStream.Write(affectPassive);
+
+	SEND_PACKET_BROADCAST;
+}
+
+void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -4411,7 +4423,7 @@ void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, const Sys
 	bitStream.Write(imaginationRestore != -1);
 	if (imaginationRestore != -1) bitStream.Write(imaginationRestore);
 
-	Game::server->Send(&bitStream, playerSysAddr, false);
+	SEND_PACKET_BROADCAST;
 }
 
 void GameMessages::SendNotifyRacingClient(LWOOBJID objectId, int32_t eventType, int32_t param1, LWOOBJID paramObj, std::u16string paramStr, LWOOBJID singleClient, const SystemAddress& sysAddr) {
