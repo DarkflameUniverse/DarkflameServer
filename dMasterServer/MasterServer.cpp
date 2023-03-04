@@ -283,6 +283,7 @@ int main(int argc, char** argv) {
 			statement->execute();
 		} catch(sql::SQLException& e) {
 			Game::logger->Log("MasterServer", "A SQL error occurred!:\n %s",  e.what());
+			return EXIT_FAILURE;
 		}
 
 		Game::logger->Log("MasterServer", "Account created successfully!");
