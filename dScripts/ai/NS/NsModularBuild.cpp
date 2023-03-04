@@ -1,10 +1,11 @@
 #include "NsModularBuild.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
+#include "eReplicaComponentType.h"
 
 void NsModularBuild::OnModularBuildExit(Entity* self, Entity* player, bool bCompleted, std::vector<LOT> modules) {
 	if (bCompleted) {
-		MissionComponent* mission = static_cast<MissionComponent*>(player->GetComponent(COMPONENT_TYPE_MISSION));
+		MissionComponent* mission = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
 
 		if (mission->GetMissionState(m_MissionNum) == eMissionState::ACTIVE) {
 			for (LOT mod : modules) {

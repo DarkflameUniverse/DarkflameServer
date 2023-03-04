@@ -9,6 +9,7 @@
 #include <string>
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
+#include "eReplicaComponentType.h"
 
 /**
  * The statistics that can be achieved per zone
@@ -59,7 +60,7 @@ enum StatisticID {
  */
 class CharacterComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_CHARACTER;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
 
 	CharacterComponent(Entity* parent, Character* character);
 	~CharacterComponent() override;

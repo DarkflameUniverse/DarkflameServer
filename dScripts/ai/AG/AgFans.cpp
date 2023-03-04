@@ -4,6 +4,7 @@
 #include "GameMessages.h"
 #include "PhantomPhysicsComponent.h"
 #include "RenderComponent.h"
+#include "eReplicaComponentType.h"
 
 void AgFans::OnStartup(Entity* self) {
 	self->SetVar<bool>(u"alive", true);
@@ -11,7 +12,7 @@ void AgFans::OnStartup(Entity* self) {
 
 	ToggleFX(self, false);
 
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 
 	if (renderComponent == nullptr) {
 		return;
@@ -24,7 +25,7 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 	std::string fanGroup = self->GetGroups()[0];
 	std::vector<Entity*> fanVolumes = EntityManager::Instance()->GetEntitiesInGroup(fanGroup);
 
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 
 	if (renderComponent == nullptr) {
 		return;
@@ -39,7 +40,7 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 		self->SetVar<bool>(u"on", false);
 
 		for (Entity* volume : fanVolumes) {
-			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(COMPONENT_TYPE_PHANTOM_PHYSICS));
+			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(false);
 			EntityManager::Instance()->SerializeEntity(volume);
@@ -55,7 +56,7 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 		self->SetVar<bool>(u"on", true);
 
 		for (Entity* volume : fanVolumes) {
-			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(COMPONENT_TYPE_PHANTOM_PHYSICS));
+			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(true);
 			EntityManager::Instance()->SerializeEntity(volume);

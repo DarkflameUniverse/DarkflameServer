@@ -14,7 +14,7 @@
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
-
+#include "eReplicaComponentType.h"
 
 LootGenerator::LootGenerator() {
 	CDLootTableTable* lootTableTable = CDClientManager::Instance()->GetTable<CDLootTableTable>("LootTable");
@@ -38,7 +38,7 @@ LootGenerator::LootGenerator() {
 	uniqueItems.erase(std::unique(uniqueItems.begin(), uniqueItems.end()), uniqueItems.end());
 
 	for (const uint32_t itemID : uniqueItems) {
-		uint32_t itemComponentID = componentsRegistryTable->GetByIDAndType(itemID, COMPONENT_TYPE_ITEM);
+		uint32_t itemComponentID = componentsRegistryTable->GetByIDAndType(itemID, eReplicaComponentType::ITEM);
 		const CDItemComponent& item = itemComponentTable->GetItemComponentByID(itemComponentID);
 
 		m_ItemRarities.insert({ itemID, item.rarity });

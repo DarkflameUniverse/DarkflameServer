@@ -21,6 +21,7 @@
 #include "dConfig.h"
 #include "eTriggerEventType.h"
 #include "eGameMasterLevel.h"
+#include "eReplicaComponentType.h"
 
 EntityManager* EntityManager::m_Address = nullptr;
 
@@ -269,10 +270,10 @@ std::vector<Entity*> EntityManager::GetEntitiesInGroup(const std::string& group)
 	return entitiesInGroup;
 }
 
-std::vector<Entity*> EntityManager::GetEntitiesByComponent(const int componentType) const {
+std::vector<Entity*> EntityManager::GetEntitiesByComponent(const eReplicaComponentType componentType) const {
 	std::vector<Entity*> withComp;
 	for (const auto& entity : m_Entities) {
-		if (componentType != -1 && !entity.second->HasComponent(componentType)) continue;
+		if (componentType != eReplicaComponentType::INVALID && !entity.second->HasComponent(componentType)) continue;
 
 		withComp.push_back(entity.second);
 	}

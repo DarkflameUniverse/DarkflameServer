@@ -11,6 +11,7 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 
@@ -27,7 +28,7 @@ enum class eClimbableType : int32_t {
  */
 class SimplePhysicsComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_SIMPLE_PHYSICS;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::SIMPLE_PHYSICS;
 
 	SimplePhysicsComponent(uint32_t componentID, Entity* parent);
 	~SimplePhysicsComponent() override;

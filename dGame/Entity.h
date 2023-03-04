@@ -32,6 +32,7 @@ class Character;
 class EntityCallbackTimer;
 enum class eTriggerEventType;
 enum class eGameMasterLevel : uint8_t;
+enum class eReplicaComponentType : uint32_t;
 
 namespace CppScripts {
 	class Script;
@@ -132,17 +133,17 @@ public:
 	 * Component management
 	 */
 
-	Component* GetComponent(int32_t componentID) const;
+	Component* GetComponent(eReplicaComponentType componentID) const;
 
 	template<typename T>
 	T* GetComponent() const;
 
 	template<typename T>
-	bool TryGetComponent(int32_t componentId, T*& component) const;
+	bool TryGetComponent(eReplicaComponentType componentId, T*& component) const;
 
-	bool HasComponent(int32_t componentId) const;
+	bool HasComponent(eReplicaComponentType componentId) const;
 
-	void AddComponent(int32_t componentId, Component* component);
+	void AddComponent(eReplicaComponentType componentId, Component* component);
 
 	std::vector<ScriptComponent*> GetScriptComponents();
 
@@ -165,7 +166,7 @@ public:
 	void AddToGroup(const std::string& group);
 	bool IsPlayer() const;
 
-	std::unordered_map<int32_t, Component*>& GetComponents() { return m_Components; } // TODO: Remove
+	std::unordered_map<eReplicaComponentType, Component*>& GetComponents() { return m_Components; } // TODO: Remove
 
 	void WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
 	void WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
@@ -315,7 +316,7 @@ protected:
 	std::vector<std::function<void()>> m_DieCallbacks;
 	std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
 
-	std::unordered_map<int32_t, Component*> m_Components; //The int is the ID of the component
+	std::unordered_map<eReplicaComponentType, Component*> m_Components;
 	std::vector<EntityTimer*> m_Timers;
 	std::vector<EntityTimer*> m_PendingTimers;
 	std::vector<EntityCallbackTimer*> m_CallbackTimers;
@@ -345,7 +346,7 @@ protected:
  */
 
 template<typename T>
-bool Entity::TryGetComponent(const int32_t componentId, T*& component) const {
+bool Entity::TryGetComponent(const eReplicaComponentType componentId, T*& component) const {
 	const auto& index = m_Components.find(componentId);
 
 	if (index == m_Components.end()) {
