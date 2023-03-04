@@ -341,11 +341,6 @@ private:
 	bool m_StunImmune = false;
 
 	/**
-	 * Time taken between actions
-	 */
-	float m_Downtime = 0;
-
-	/**
 	 * How long this entity needs to execute its skill
 	 */
 	float m_SkillTime = 0;
