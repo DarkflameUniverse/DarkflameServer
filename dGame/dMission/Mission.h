@@ -24,6 +24,7 @@ class MissionComponent;
 class Mission final
 {
 public:
+	Mission();
 	Mission(MissionComponent* missionComponent, uint32_t missionId);
 	~Mission();
 

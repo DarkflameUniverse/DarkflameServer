@@ -10,6 +10,7 @@
  */
 class PrerequisiteExpression final
 {
+public:
 	bool m_or;
 	uint32_t a;
 	uint32_t sub;
