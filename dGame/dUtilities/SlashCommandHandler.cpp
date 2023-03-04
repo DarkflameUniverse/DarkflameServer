@@ -74,6 +74,7 @@
 #include "dMessageIdentifiers.h"
 #include "eMissionState.h"
 #include "TriggerComponent.h"
+#include "eServerDisconnectIdentifiers.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -1094,7 +1095,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				return;
 			}
 
-			Game::server->Disconnect(player->GetSystemAddress(), SERVER_DISCON_KICK);
+			Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::KICK);
 
 			ChatPackets::SendSystemMessage(sysAddr, u"Kicked: " + username);
 		} else {
@@ -1140,7 +1141,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			delete userUpdate;
 
 			if (player != nullptr) {
-				Game::server->Disconnect(player->GetSystemAddress(), SERVER_DISCON_KICK);
+				Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::FREE_TRIAL_EXPIRED);
 			}
 
 			ChatPackets::SendSystemMessage(sysAddr, u"Banned: " + GeneralUtils::ASCIIToUTF16(args[0]));

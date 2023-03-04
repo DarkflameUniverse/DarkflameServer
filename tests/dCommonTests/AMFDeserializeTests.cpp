@@ -258,9 +258,9 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 
 	ASSERT_EQ(actionIndex->GetDoubleValue(), 0.0f);
 
-	auto stripIDExecution = stripsPosition0->FindValue<AMFDoubleValue>("id");
+	auto stripIdExecution = stripsPosition0->FindValue<AMFDoubleValue>("id");
 
-	ASSERT_EQ(stripIDExecution->GetDoubleValue(), 0.0f);
+	ASSERT_EQ(stripIdExecution->GetDoubleValue(), 0.0f);
 
 	auto stateIDExecution = executionState->FindValue<AMFDoubleValue>("stateID");
 
@@ -298,9 +298,9 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 	ASSERT_EQ(xPos->GetDoubleValue(), 103.0f);
 	ASSERT_EQ(yPos->GetDoubleValue(), 82.0f);
 
-	auto stripID = firstStrip->FindValue<AMFDoubleValue>("id");
+	auto stripId = firstStrip->FindValue<AMFDoubleValue>("id");
 
-	ASSERT_EQ(stripID->GetDoubleValue(), 0.0f);
+	ASSERT_EQ(stripId->GetDoubleValue(), 0.0f);
 
 	auto firstAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[0]);
 

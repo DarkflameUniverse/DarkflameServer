@@ -43,8 +43,7 @@ typedef uint32_t LWOCLONEID;                 //!< Used for Clone IDs
 typedef uint16_t LWOMAPID;                   //!< Used for Map IDs
 typedef uint16_t LWOINSTANCEID;              //!< Used for Instance IDs
 typedef uint32_t PROPERTYCLONELIST;          //!< Used for Property Clone IDs
-typedef uint32_t STRIPID;
-typedef uint32_t BEHAVIORSTATE;
+typedef uint32_t StripId;
 
 typedef int32_t PetTamingPiece;             //!< Pet Taming Pieces
 
@@ -260,20 +259,6 @@ enum eReplicaPacketType {
 	PACKET_TYPE_CONSTRUCTION,                       //!< A construction packet
 	PACKET_TYPE_SERIALIZATION,                      //!< A serialization packet
 	PACKET_TYPE_DESTRUCTION                         //!< A destruction packet
-};
-
-enum ServerDisconnectIdentifiers {
-	SERVER_DISCON_UNKNOWN_SERVER_ERROR = 0,               //!< Unknown server error
-	SERVER_DISCON_DUPLICATE_LOGIN = 4,                    //!< Used when another user with the same username is logged in (duplicate login)
-	SERVER_DISCON_SERVER_SHUTDOWN = 5,                    //!< Used when the server is shutdown
-	SERVER_DISCON_SERVER_MAP_LOAD_FAILURE = 6,            //!< Used when the server cannot load a map
-	SERVER_DISCON_INVALID_SESSION_KEY = 7,                //!< Used if the session is invalid
-	SERVER_DISCON_ACCOUNT_NOT_IN_PENDING_LIST = 8,        //!< ???
-	SERVER_DISCON_CHARACTER_NOT_FOUND = 9,                //!< Used if a character that the server has is not found (i.e, corruption with user-player data)
-	SERVER_DISCON_CHARACTER_CORRUPTED = 10,               //!< Similar to abovce
-	SERVER_DISCON_KICK = 11,                              //!< Used if the user is kicked from the server
-	SERVER_DISCON_FREE_TRIAL_EXPIRED = 12,                //!< Used if the user's free trial expired
-	SERVER_DISCON_PLAY_SCHEDULE_TIME_DONE = 13            //!< Used if the user's play time is used up
 };
 
 //! The Behavior Types for use with the AI system
