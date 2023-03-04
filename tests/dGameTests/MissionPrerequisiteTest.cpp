@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include "MissionPrerequisites.h"
+#include "eMissionState.h"
 
 class MissionPrerequisiteTest : public GameDependenciesTest {
 protected:
@@ -19,7 +20,7 @@ protected:
  */
 TEST_F(MissionPrerequisiteTest, OneMissionPrerequisiteInitializeTest) {
 	auto* preReq = new PrerequisiteExpression("1964");
-	ASSERT_EQ(preReq->Geta(), 1964);
+	ASSERT_EQ(preReq->mission, 1964);
 	delete preReq;
 };
 
@@ -28,8 +29,8 @@ TEST_F(MissionPrerequisiteTest, OneMissionPrerequisiteInitializeTest) {
  */
 TEST_F(MissionPrerequisiteTest, MultiMissionPrerequisiteInitializeTest) {
 	auto* preReq = new PrerequisiteExpression("1806,1868");
-	ASSERT_EQ(preReq->Geta(), 1806);
-	ASSERT_EQ(preReq->Getb()->Geta(), 1868);
+	ASSERT_EQ(preReq->mission, 1806);
+	ASSERT_EQ(preReq->nextMission->mission, 1868);
 	delete preReq;
 };
 
@@ -38,9 +39,9 @@ TEST_F(MissionPrerequisiteTest, MultiMissionPrerequisiteInitializeTest) {
  */
 TEST_F(MissionPrerequisiteTest, OrMissionPrerequisiteInitializeTest) {
 	auto* preReq = new PrerequisiteExpression("2061|891");
-	ASSERT_TRUE(preReq->Getm_or());
-	ASSERT_EQ(preReq->Geta(), 2061);
-	ASSERT_EQ(preReq->Getb()->Geta(), 891);
+	ASSERT_TRUE(preReq->m_Or);
+	ASSERT_EQ(preReq->mission, 2061);
+	ASSERT_EQ(preReq->nextMission->mission, 891);
 	delete preReq;
 };
 
@@ -49,18 +50,15 @@ TEST_F(MissionPrerequisiteTest, OrMissionPrerequisiteInitializeTest) {
  */
 TEST_F(MissionPrerequisiteTest, MultiOrMissionPrerequisiteInitializeTest) {
 	auto* preReq = new PrerequisiteExpression("815|812|813|814");
-	ASSERT_TRUE(preReq->Getm_or());
-	ASSERT_EQ(preReq->Geta(), 815);
-	ASSERT_EQ(preReq->Getb()->Geta(), 812);
-	ASSERT_TRUE(preReq->Getb()->Getm_or());
-	ASSERT_EQ(preReq->Getb()->Geta(), 812);
-	ASSERT_EQ(preReq->Getb()->Getb()->Geta(), 813);
-	ASSERT_TRUE(preReq->Getb()->Getb()->Getm_or());
-	ASSERT_EQ(preReq->Getb()->Getb()->Geta(), 813);
-	ASSERT_EQ(preReq->Getb()->Getb()->Getb()->Geta(), 814);
-	ASSERT_FALSE(preReq->Getb()->Getb()->Getb()->Getm_or());
-	ASSERT_EQ(preReq->Getb()->Getb()->Getb()->Geta(), 814);
-	ASSERT_EQ(preReq->Getb()->Getb()->Getb()->Getb(), nullptr);
+	ASSERT_TRUE(preReq->m_Or);
+	ASSERT_EQ(preReq->mission, 815);
+	ASSERT_EQ(preReq->nextMission->mission, 812);
+	ASSERT_TRUE(preReq->nextMission->m_Or);
+	ASSERT_EQ(preReq->nextMission->nextMission->mission, 813);
+	ASSERT_TRUE(preReq->nextMission->nextMission->m_Or);
+	ASSERT_EQ(preReq->nextMission->nextMission->nextMission->mission, 814);
+	ASSERT_FALSE(preReq->nextMission->nextMission->nextMission->m_Or);
+	ASSERT_EQ(preReq->nextMission->nextMission->nextMission->nextMission, nullptr);
 	delete preReq;
 };
 
@@ -69,7 +67,34 @@ TEST_F(MissionPrerequisiteTest, MultiOrMissionPrerequisiteInitializeTest) {
  */
 TEST_F(MissionPrerequisiteTest, MissionStatePrerequisiteInitializeTest) {
 	auto* preReq = new PrerequisiteExpression("236:2");
-	ASSERT_EQ(preReq->Geta(), 236);
-	ASSERT_EQ(preReq->Getsub(), 2);
+	ASSERT_EQ(preReq->mission, 236);
+	ASSERT_EQ(preReq->missionState, eMissionState::ACTIVE);
+	delete preReq;
+};
+
+/**
+ * Test that the structure of an or prerequisite for missions is created properly
+ */
+TEST_F(MissionPrerequisiteTest, AndMissionPrerequisiteInitializeTest) {
+	auto* preReq = new PrerequisiteExpression("(2061|100)&(891|1500)");
+	ASSERT_EQ(preReq->mission, 0);
+	ASSERT_FALSE(preReq->m_Or);
+
+	ASSERT_EQ(preReq->nextMission->mission, 2061);
+	ASSERT_TRUE(preReq->nextMission->m_Or);
+
+	ASSERT_EQ(preReq->nextMission->nextMission->mission, 100);
+	ASSERT_FALSE(preReq->nextMission->nextMission->m_Or);
+
+	ASSERT_EQ(preReq->nextMission->nextMission->nextMission->mission, 0);
+	ASSERT_FALSE(preReq->nextMission->nextMission->nextMission->m_Or);
+
+	ASSERT_EQ(preReq->nextMission->nextMission->nextMission->nextMission->mission, 891);
+	ASSERT_TRUE(preReq->nextMission->nextMission->nextMission->nextMission->m_Or);
+
+	ASSERT_EQ(preReq->nextMission->nextMission->nextMission->nextMission->nextMission->mission, 1500);
+	ASSERT_FALSE(preReq->nextMission->nextMission->nextMission->nextMission->nextMission->m_Or);
+
+	ASSERT_EQ(preReq->nextMission->nextMission->nextMission->nextMission->nextMission->nextMission, nullptr);
 	delete preReq;
 };
