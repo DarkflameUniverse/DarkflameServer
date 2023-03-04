@@ -3,6 +3,7 @@
 #include <chrono>
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Information regarding which players may visit this property
@@ -31,7 +32,7 @@ enum class PropertyPrivacyOption
 class PropertyManagementComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_PROPERTY_MANAGEMENT;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_MANAGEMENT;
 	PropertyManagementComponent(Entity* parent);
 	static PropertyManagementComponent* Instance();
 

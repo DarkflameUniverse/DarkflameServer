@@ -32,6 +32,7 @@
 #include "EchoStartSkill.h"
 #include "EchoSyncSkill.h"
 #include "eMissionTaskType.h"
+#include "eReplicaComponentType.h"
 
 using namespace std;
 
@@ -122,7 +123,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		destroyable->SetImagination(destroyable->GetImagination());
 		EntityManager::Instance()->SerializeEntity(entity);
 
-		std::vector<Entity*> racingControllers = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_RACING_CONTROL);
+		std::vector<Entity*> racingControllers = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
 		for (Entity* racingController : racingControllers) {
 			auto* racingComponent = racingController->GetComponent<RacingControlComponent>();
 			if (racingComponent != nullptr) {
@@ -135,7 +136,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			script->OnPlayerLoaded(zoneControl, player);
 		}
 
-		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPT);
+		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
@@ -241,7 +242,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	case GAME_MSG_REQUEST_RESURRECT: {
 		GameMessages::SendResurrect(entity);
-		/*auto* dest = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
+		/*auto* dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
 		if (dest) {
 			dest->SetHealth(4);
 			dest->SetArmor(0);

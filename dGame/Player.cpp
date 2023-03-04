@@ -16,6 +16,7 @@
 #include "User.h"
 #include "CppScripts.h"
 #include "Loot.h"
+#include "eReplicaComponentType.h"
 
 std::vector<Player*> Player::m_Players = {};
 
@@ -223,7 +224,7 @@ Player* Player::GetPlayer(const SystemAddress& sysAddr) {
 }
 
 Player* Player::GetPlayer(const std::string& name) {
-	const auto characters = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CHARACTER);
+	const auto characters = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
 
 	for (auto* character : characters) {
 		if (!character->IsPlayer()) continue;
@@ -289,7 +290,7 @@ Player::~Player() {
 			script->OnPlayerExit(zoneControl, this);
 		}
 
-		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
+		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {

@@ -13,6 +13,7 @@
 
 #include "GameMessages.h"
 #include "SkillComponent.h"
+#include "eReplicaComponentType.h"
 
 #include <vector>
 
@@ -27,9 +28,9 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 	//self:SetStatusImmunity{ StateChangeType = "PUSH", bImmuneToPullToPoint = true, bImmuneToKnockback = true, bImmuneToInterrupt = true }
 
 	//Get our components:
-	destroyable = static_cast<DestroyableComponent*>(self->GetComponent(COMPONENT_TYPE_DESTROYABLE));
-	controllable = static_cast<ControllablePhysicsComponent*>(self->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
-	combat = static_cast<BaseCombatAIComponent*>(self->GetComponent(COMPONENT_TYPE_BASE_COMBAT_AI));
+	destroyable = static_cast<DestroyableComponent*>(self->GetComponent(eReplicaComponentType::DESTROYABLE));
+	controllable = static_cast<ControllablePhysicsComponent*>(self->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
+	combat = static_cast<BaseCombatAIComponent*>(self->GetComponent(eReplicaComponentType::BASE_COMBAT_AI));
 
 	if (!destroyable || !controllable) return;
 
@@ -397,7 +398,7 @@ void BossSpiderQueenEnemyServer::RapidFireShooterManager(Entity* self) {
 
 void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
 	/*
-	const auto targets = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CHARACTER);
+	const auto targets = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
 	*/
 
 	const auto targets = self->GetTargetsInPhantom();

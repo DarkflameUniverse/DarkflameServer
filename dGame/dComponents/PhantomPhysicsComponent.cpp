@@ -145,7 +145,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 
 	if (!m_HasCreatedPhysics) {
 		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), COMPONENT_TYPE_PHANTOM_PHYSICS);
+		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
 		CDPhysicsComponentTable* physComp = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
 
@@ -255,7 +255,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 		z = m_Parent->GetVar<float>(u"primitiveModelValueZ");
 	} else {
 		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), COMPONENT_TYPE_PHANTOM_PHYSICS);
+		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
 		CDPhysicsComponentTable* physComp = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
 

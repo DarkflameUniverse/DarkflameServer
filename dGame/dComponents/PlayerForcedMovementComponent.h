@@ -2,6 +2,7 @@
 
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Component that handles player forced movement
@@ -9,7 +10,7 @@
  */
 class PlayerForcedMovementComponent : public Component {
 public:
-	static const uint32_t ComponentType = eReplicaComponentType::COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::PLAYER_FORCED_MOVEMENT;
 
 	/**
 	 * Constructor for this component

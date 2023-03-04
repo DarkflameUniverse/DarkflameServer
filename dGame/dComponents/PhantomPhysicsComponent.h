@@ -12,6 +12,7 @@
 #include "CppScripts.h"
 #include "InvalidScript.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 class LDFBaseData;
 class Entity;
@@ -26,7 +27,7 @@ enum class ePhysicsEffectType : uint32_t ;
  */
 class PhantomPhysicsComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_PHANTOM_PHYSICS;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
 
 	PhantomPhysicsComponent(Entity* parent);
 	~PhantomPhysicsComponent() override;

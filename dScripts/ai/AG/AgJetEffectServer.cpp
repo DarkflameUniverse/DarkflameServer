@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"
+#include "eReplicaComponentType.h"
 
 void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 	if (inUse) {
@@ -86,12 +87,12 @@ void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName) {
 
 		auto* mortar = entities[selected];
 
-		Game::logger->Log("AgJetEffectServer", "Mortar (%i) (&d)", mortar->GetLOT(), mortar->HasComponent(COMPONENT_TYPE_SKILL));
+		Game::logger->Log("AgJetEffectServer", "Mortar (%i) (&d)", mortar->GetLOT(), mortar->HasComponent(eReplicaComponentType::SKILL));
 
 		mortar->SetOwnerOverride(builder);
 
 		SkillComponent* skillComponent;
-		if (!mortar->TryGetComponent(COMPONENT_TYPE_SKILL, skillComponent)) {
+		if (!mortar->TryGetComponent(eReplicaComponentType::SKILL, skillComponent)) {
 			return;
 		}
 

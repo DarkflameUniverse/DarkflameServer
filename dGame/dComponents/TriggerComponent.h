@@ -3,10 +3,11 @@
 
 #include "Component.h"
 #include "LUTriggers.h"
+#include "eReplicaComponentType.h"
 
 class TriggerComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_TRIGGER;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::TRIGGER;
 
 	explicit TriggerComponent(Entity* parent, const std::string triggerInfo);
 

@@ -9,6 +9,7 @@
 #include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 struct PropertyState {
 	LWOOBJID ownerID;
@@ -21,7 +22,7 @@ struct PropertyState {
  */
 class PropertyComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_PROPERTY;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
 	explicit PropertyComponent(Entity* parentEntity);
 	~PropertyComponent() override;
 	[[nodiscard]] PropertyState* GetPropertyState() const { return m_PropertyState; };
