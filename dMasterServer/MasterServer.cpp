@@ -217,7 +217,7 @@ int main(int argc, char** argv) {
 		std::unique_ptr<sql::ResultSet> res(userLookupStatement->executeQuery());
 		if (res->rowsCount() > 0) {
 			Game::logger->Log("MasterServer", "Account with name \"%s\" already exists", username.c_str());
-			std::cout << "Do you want to change the password to the one that you input? [y/n]?";
+			std::cout << "Do you want to change the password of that account? [y/n]?";
 			std::string prompt = "";
 			std::cin >> prompt;
 			if (prompt == "y" || prompt == "yes"){
