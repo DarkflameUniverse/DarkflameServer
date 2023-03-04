@@ -221,34 +221,56 @@ int main(int argc, char** argv) {
 		std::cout << "Enter a password: ";
 		std::cin >> password;
 #endif
+		sql::PreparedStatement* userLookupStatement = Database::CreatePreppedStmt("SELECT id FROM accounts WHERE name=? LIMIT 1;");
+		userLookupStatement->setString(1, username.c_str());
+		sql::ResultSet* res = userLookupStatement->executeQuery();
+		if (res->rowsCount() > 0) {
+			std::cout << "Account with name \"" << username << "\" already exists!\n";
+			std::cout << "Do you want to change the password to the one that you input? [y/N]? \n";
+			std::string prompt = "";
+			std::cin >> prompt;
+			if (prompt == "y" || prompt == "yes"){
+				uint32_t accountId = 0;
+				res->next();
+				accountId = res->getUInt(1);
+				if (accountId == 0) return EXIT_FAILURE;
+
+				// Regenerate has based on new password
+				char salt[BCRYPT_HASHSIZE];
+				char hash[BCRYPT_HASHSIZE];
+				int32_t bcryptState = ::bcrypt_gensalt(12, salt);
+				assert(bcryptState == 0);
+				bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
+				assert(bcryptState == 0);
+
+				auto* userUpdateStatement = Database::CreatePreppedStmt("UPDATE accounts SET password = ? WHERE id = ?;");
+				userUpdateStatement->setString(1, std::string(hash, BCRYPT_HASHSIZE).c_str());
+				userUpdateStatement->setUInt(2, accountId);
+				userUpdateStatement->execute();
+				delete userUpdateStatement;
+
+				std::cout << "Account \"" << username << "\" password updated successfully!\n";
+			}
+			return EXIT_SUCCESS;
+		}
 
 		//Generate new hash for bcrypt
-
 		char salt[BCRYPT_HASHSIZE];
 		char hash[BCRYPT_HASHSIZE];
-
 		int32_t bcryptState = ::bcrypt_gensalt(12, salt);
-
 		assert(bcryptState == 0);
-
 		bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-
 		assert(bcryptState == 0);
 
 		//Create account
-
-		auto* statement = Database::CreatePreppedStmt("INSERT INTO accounts (name, password, ""gm_level) VALUES (?, ?, ?);");
+		auto* statement = Database::CreatePreppedStmt("INSERT INTO accounts (name, password, gm_level) VALUES (?, ?, ?);");
 		statement->setString(1, username.c_str());
 		statement->setString(2, std::string(hash, BCRYPT_HASHSIZE).c_str());
 		statement->setInt(3, 9);
-
 		statement->execute();
-
 		delete statement;
 
 		std::cout << "Account created successfully!\n";
-
-
 		return EXIT_SUCCESS;
 	}
 
