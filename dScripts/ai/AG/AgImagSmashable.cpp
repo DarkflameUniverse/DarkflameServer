@@ -4,12 +4,13 @@
 #include "GameMessages.h"
 #include "EntityInfo.h"
 #include "DestroyableComponent.h"
+#include "eReplicaComponentType.h"
 
 void AgImagSmashable::OnDie(Entity* self, Entity* killer) {
 	bool maxImagGreaterThanZero = false;
 
 	if (killer) {
-		DestroyableComponent* dest = static_cast<DestroyableComponent*>(killer->GetComponent(COMPONENT_TYPE_DESTROYABLE));
+		DestroyableComponent* dest = static_cast<DestroyableComponent*>(killer->GetComponent(eReplicaComponentType::DESTROYABLE));
 		if (dest) {
 			maxImagGreaterThanZero = dest->GetMaxImagination() > 0;
 		}

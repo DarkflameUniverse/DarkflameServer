@@ -10,6 +10,7 @@
 #include "dpCollisionChecks.h"
 #include "PhantomPhysicsComponent.h"
 #include "eBubbleType.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 class dpEntity;
@@ -19,7 +20,7 @@ class dpEntity;
  */
 class ControllablePhysicsComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_CONTROLLABLE_PHYSICS;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::CONTROLLABLE_PHYSICS;
 
 	ControllablePhysicsComponent(Entity* entity);
 	~ControllablePhysicsComponent() override;

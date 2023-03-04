@@ -16,6 +16,7 @@
 #include "AssetManager.h"
 #include "InventoryComponent.h"
 #include "Loot.h"
+#include "eReplicaComponentType.h"
 
 Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_t slot, const uint32_t count, const bool bound, const std::vector<LDFBaseData*>& config, const LWOOBJID parent, LWOOBJID subKey, eLootSourceType lootSourceType) {
 	if (!Inventory::IsValidItem(lot)) {
@@ -297,7 +298,7 @@ void Item::UseNonEquip(Item* item) {
 		auto inventory = item->GetInventory();
 		if (inventory && inventory->GetType() == eInventoryType::ITEMS) {
 			auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-			const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_PACKAGE);
+			const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::PACKAGE);
 
 			if (packageComponentId == 0) return;
 
@@ -381,7 +382,7 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 void Item::DisassembleModel() {
 	auto* table = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 
-	const auto componentId = table->GetByIDAndType(GetLot(), COMPONENT_TYPE_RENDER);
+	const auto componentId = table->GetByIDAndType(GetLot(), eReplicaComponentType::RENDER);
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT render_asset FROM RenderComponent WHERE id = ?;");

@@ -4,6 +4,7 @@
 #include "Item.h"
 #include "InventoryComponent.h"
 #include "eItemType.h"
+#include "eReplicaComponentType.h"
 
 std::vector<LOT> Inventory::m_GameMasterRestrictedItems = {
 		1727, // GM Only - JetPack
@@ -277,7 +278,7 @@ const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
 
 	auto* itemComponents = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
 
-	const auto componentId = registry->GetByIDAndType(lot, COMPONENT_TYPE_ITEM);
+	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 
 	if (componentId == 0) {
 		Game::logger->Log("Inventory", "Failed to find item component for (%i)!", lot);
@@ -293,7 +294,7 @@ const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
 bool Inventory::IsValidItem(const LOT lot) {
 	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 
-	const auto componentId = registry->GetByIDAndType(lot, COMPONENT_TYPE_ITEM);
+	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 
 	return componentId != 0;
 }
