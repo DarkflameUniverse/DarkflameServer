@@ -1,5 +1,6 @@
 #include "AgStromlingProperty.h"
 #include "MovementAIComponent.h"
+#include "eReplicaComponentType.h"
 
 void AgStromlingProperty::OnStartup(Entity* self) {
 	auto movementInfo = MovementAIInfo{
@@ -12,5 +13,5 @@ void AgStromlingProperty::OnStartup(Entity* self) {
 	};
 
 	auto* movementAIComponent = new MovementAIComponent(self, movementInfo);
-	self->AddComponent(COMPONENT_TYPE_MOVEMENT_AI, movementAIComponent);
+	self->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAIComponent);
 }

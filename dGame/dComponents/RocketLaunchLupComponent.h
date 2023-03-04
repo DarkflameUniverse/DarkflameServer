@@ -3,6 +3,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Component that handles the LUP/WBL rocket launchpad that can be interacted with to travel to WBL worlds.
@@ -10,7 +11,7 @@
  */
 class RocketLaunchLupComponent : public Component {
 public:
-	static const uint32_t ComponentType = eReplicaComponentType::COMPONENT_TYPE_ROCKET_LAUNCH_LUP;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::ROCKET_LAUNCH_LUP;
 
 	/**
 	 * Constructor for this component, builds the m_LUPWorlds vector

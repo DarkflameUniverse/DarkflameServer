@@ -23,6 +23,7 @@
 #include "eMissionState.h"
 #include "eMissionTaskType.h"
 #include "eMissionLockState.h"
+#include "eReplicaComponentType.h"
 
 Mission::Mission() {
 	m_MissionComponent = nullptr;
@@ -379,7 +380,7 @@ void Mission::CheckCompletion() {
 void Mission::Catchup() {
 	auto* entity = GetAssociate();
 
-	auto* inventory = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
+	auto* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
 
 	for (auto* task : m_Tasks) {
 		const auto type = task->GetType();

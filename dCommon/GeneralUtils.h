@@ -15,6 +15,7 @@
 #include "dLogger.h"
 
 enum eInventoryType : uint32_t;
+enum class eReplicaComponentType : uint32_t;
 
 /*!
   \file GeneralUtils.hpp
@@ -179,6 +180,11 @@ namespace GeneralUtils {
 	template <>
 	inline eInventoryType Parse(const char* value) {
 		return static_cast<eInventoryType>(std::stoul(value));
+	}
+
+	template <>
+	inline eReplicaComponentType Parse(const char* value) {
+		return static_cast<eReplicaComponentType>(std::stoul(value));
 	}
 
 	template <typename T>

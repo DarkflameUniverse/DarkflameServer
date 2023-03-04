@@ -6,6 +6,7 @@
 #include "tinyxml2.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 namespace CppScripts {
 	class Script;
@@ -17,7 +18,7 @@ namespace CppScripts {
  */
 class DestroyableComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_DESTROYABLE;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
 	DestroyableComponent(Entity* parentEntity);
 	~DestroyableComponent() override;

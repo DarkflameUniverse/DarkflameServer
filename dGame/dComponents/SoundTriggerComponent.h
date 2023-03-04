@@ -3,6 +3,7 @@
 #include "Entity.h"
 #include "GUID.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Music that should be played by the client
@@ -19,7 +20,7 @@ struct MusicCue {
  */
 class SoundTriggerComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_SOUND_TRIGGER;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::SOUND_TRIGGER;
 
 	explicit SoundTriggerComponent(Entity* parent);
 	~SoundTriggerComponent() override;

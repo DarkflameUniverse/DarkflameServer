@@ -40,7 +40,7 @@ bool OfferedMission::GetAcceptMission() const {
 MissionOfferComponent::MissionOfferComponent(Entity* parent, const LOT parentLot) : Component(parent) {
 	auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 
-	auto value = compRegistryTable->GetByIDAndType(parentLot, COMPONENT_TYPE_MISSION_OFFER, -1);
+	auto value = compRegistryTable->GetByIDAndType(parentLot, eReplicaComponentType::MISSION_OFFER, -1);
 
 	if (value != -1) {
 		const uint32_t componentId = value;
@@ -77,7 +77,7 @@ void MissionOfferComponent::OnUse(Entity* originator) {
 
 void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifiedMissionId) {
 	// First, get the entity's MissionComponent. If there is not one, then we cannot offer missions to this entity.
-	auto* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
+	auto* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
 
 	if (!missionComponent) {
 		Game::logger->Log("MissionOfferComponent", "Unable to get mission component for Entity %llu", entity->GetObjectID());
