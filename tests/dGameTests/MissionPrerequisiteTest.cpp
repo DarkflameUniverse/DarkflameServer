@@ -178,7 +178,7 @@ TEST_F(MissionPrerequisiteTest, AndMissionPrerequisiteInitializeTest) {
 	missionMap[1000]->SetMissionState(eMissionState::ACTIVE);
 	missionMap[8091]->SetMissionState(eMissionState::ACTIVE);
 	missionMap[1500]->SetMissionState(eMissionState::ACTIVE);
-	ASSERT_FALSE(preReq->Execute(missionMap));
+	ASSERT_FALSE(preReq->Execute(missionMap)); // BUG HERE!!!
 	missionMap[2061]->SetMissionState(eMissionState::ACTIVE);
 	missionMap[1000]->SetMissionState(eMissionState::COMPLETE);
 	missionMap[8091]->SetMissionState(eMissionState::ACTIVE);
