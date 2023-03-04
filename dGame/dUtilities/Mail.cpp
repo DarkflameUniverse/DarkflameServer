@@ -25,6 +25,7 @@
 #include "dZoneManager.h"
 #include "WorldConfig.h"
 #include "eMissionTaskType.h"
+#include "eReplicaComponentType.h"
 
 void Mail::SendMail(const Entity* recipient, const std::string& subject, const std::string& body, const LOT attachment,
 	const uint16_t attachmentCount) {
@@ -196,7 +197,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	//Inventory::InventoryType itemType;
 	int mailCost = dZoneManager::Instance()->GetWorldConfig()->mailBaseFee;
 	int stackSize = 0;
-	auto inv = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
+	auto inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
 	Item* item = nullptr;
 
 	if (itemID > 0 && attachmentCount > 0 && inv) {
@@ -355,7 +356,7 @@ void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddres
 			attachmentCount = res->getInt(2);
 		}
 
-		auto inv = static_cast<InventoryComponent*>(player->GetComponent(COMPONENT_TYPE_INVENTORY));
+		auto inv = static_cast<InventoryComponent*>(player->GetComponent(eReplicaComponentType::INVENTORY));
 		if (!inv) return;
 
 		inv->AddItem(attachmentLOT, attachmentCount, eLootSourceType::LOOT_SOURCE_MAIL);

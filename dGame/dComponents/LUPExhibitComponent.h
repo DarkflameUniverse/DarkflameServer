@@ -2,6 +2,7 @@
 
 #include "Component.h"
 #include "Entity.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Component that handles the LOT that is shown in the LUP exhibit in the LUP world. Works by setting a timer and
@@ -10,7 +11,7 @@
 class LUPExhibitComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_EXHIBIT;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::EXHIBIT;
 
 	LUPExhibitComponent(Entity* parent);
 	~LUPExhibitComponent();

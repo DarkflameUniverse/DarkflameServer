@@ -7,11 +7,11 @@
   \file CDComponentsRegistryTable.hpp
   \brief Contains data for the ComponentsRegistry table
  */
-
+enum class eReplicaComponentType : uint32_t;
  //! ComponentsRegistry Entry Struct
 struct CDComponentsRegistry {
 	unsigned int id;                    //!< The LOT is used as the ID
-	unsigned int component_type;        //!< See ComponentTypes enum for values
+	eReplicaComponentType component_type;        //!< See ComponentTypes enum for values
 	unsigned int component_id;          //!< The ID used within the component's table (0 may either mean it's non-networked, or that the ID is actually 0
 };
 
@@ -36,5 +36,5 @@ public:
 	 */
 	std::string GetName(void) const override;
 
-	int32_t GetByIDAndType(uint32_t id, uint32_t componentType, int32_t defaultValue = 0);
+	int32_t GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue = 0);
 };

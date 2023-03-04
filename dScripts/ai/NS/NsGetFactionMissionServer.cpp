@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "MissionComponent.h"
 #include "Character.h"
+#include "eReplicaComponentType.h"
 
 void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, Entity* player, int reward) {
 	if (missionID != 474) return;
@@ -44,7 +45,7 @@ void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, 
 			player->GetCharacter()->SetPlayerFlag(flagID, true);
 		}
 
-		MissionComponent* mis = static_cast<MissionComponent*>(player->GetComponent(COMPONENT_TYPE_MISSION));
+		MissionComponent* mis = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
 
 		for (int mission : factionMissions) {
 			mis->AcceptMission(mission);

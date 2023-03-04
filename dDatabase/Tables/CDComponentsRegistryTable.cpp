@@ -1,4 +1,5 @@
 #include "CDComponentsRegistryTable.h"
+#include "eReplicaComponentType.h"
 
 #define CDCLIENT_CACHE_ALL
 
@@ -25,7 +26,7 @@ CDComponentsRegistryTable::CDComponentsRegistryTable(void) {
 	while (!tableData.eof()) {
 		CDComponentsRegistry entry;
 		entry.id = tableData.getIntField("id", -1);
-		entry.component_type = tableData.getIntField("component_type", -1);
+		entry.component_type = static_cast<eReplicaComponentType>(tableData.getIntField("component_type", 0));
 		entry.component_id = tableData.getIntField("component_id", -1);
 
 		this->mappedEntries.insert_or_assign(((uint64_t)entry.component_type) << 32 | ((uint64_t)entry.id), entry.component_id);
@@ -63,7 +64,7 @@ std::string CDComponentsRegistryTable::GetName(void) const {
 	return "ComponentsRegistry";
 }
 
-int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, uint32_t componentType, int32_t defaultValue) {
+int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue) {
 	const auto& iter = this->mappedEntries.find(((uint64_t)componentType) << 32 | ((uint64_t)id));
 
 	if (iter == this->mappedEntries.end()) {

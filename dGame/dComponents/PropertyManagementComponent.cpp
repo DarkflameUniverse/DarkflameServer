@@ -256,7 +256,7 @@ void PropertyManagementComponent::OnStartBuilding() {
 
 	LWOMAPID zoneId = 1100;
 
-	const auto entrance = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_PROPERTY_ENTRANCE);
+	const auto entrance = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::PROPERTY_ENTRANCE);
 
 	originalPrivacyOption = privacyOption;
 

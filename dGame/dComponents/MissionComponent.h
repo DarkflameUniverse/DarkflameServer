@@ -16,6 +16,7 @@
 #include "CDClientManager.h"
 #include "CDMissionsTable.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 class AchievementCacheKey;
 
@@ -26,7 +27,7 @@ class AchievementCacheKey;
 class MissionComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_MISSION;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION;
 
 	explicit MissionComponent(Entity* parent);
 	~MissionComponent() override;

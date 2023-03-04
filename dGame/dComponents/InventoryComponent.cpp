@@ -48,7 +48,7 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 	}
 
 	auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	const auto componentId = compRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_INVENTORY);
+	const auto componentId = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::INVENTORY);
 
 	auto* inventoryComponentTable = CDClientManager::Instance()->GetTable<CDInventoryComponentTable>("InventoryComponent");
 	auto items = inventoryComponentTable->Query([=](const CDInventoryComponent entry) { return entry.id == componentId; });
@@ -181,7 +181,7 @@ void InventoryComponent::AddItem(
 		inventoryType = Inventory::FindInventoryTypeForLot(lot);
 	}
 
-	auto* missions = static_cast<MissionComponent*>(this->m_Parent->GetComponent(COMPONENT_TYPE_MISSION));
+	auto* missions = static_cast<MissionComponent*>(this->m_Parent->GetComponent(eReplicaComponentType::MISSION));
 
 	auto* inventory = GetInventory(inventoryType);
 
@@ -818,7 +818,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 	if (character != nullptr && !skipChecks) {
 		// Hacky proximity rocket
 		if (item->GetLot() == 6416) {
-			const auto rocketLauchPads = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_ROCKET_LAUNCH);
+			const auto rocketLauchPads = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::ROCKET_LAUNCH);
 
 			const auto position = m_Parent->GetPosition();
 
@@ -914,7 +914,7 @@ void InventoryComponent::UnEquipItem(Item* item) {
 void InventoryComponent::EquipScripts(Item* equippedItem) {
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 	if (!compRegistryTable) return;
-	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(equippedItem->GetLot(), COMPONENT_TYPE_SCRIPT, -1);
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(equippedItem->GetLot(), eReplicaComponentType::SCRIPT, -1);
 	if (scriptComponentID > -1) {
 		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
@@ -929,7 +929,7 @@ void InventoryComponent::EquipScripts(Item* equippedItem) {
 void InventoryComponent::UnequipScripts(Item* unequippedItem) {
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
 	if (!compRegistryTable) return;
-	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(unequippedItem->GetLot(), COMPONENT_TYPE_SCRIPT, -1);
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(unequippedItem->GetLot(), eReplicaComponentType::SCRIPT, -1);
 	if (scriptComponentID > -1) {
 		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
@@ -1331,7 +1331,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 		return entry.objectTemplate == static_cast<unsigned int>(item->GetLot());
 		});
 
-	auto* missions = static_cast<MissionComponent*>(m_Parent->GetComponent(COMPONENT_TYPE_MISSION));
+	auto* missions = static_cast<MissionComponent*>(m_Parent->GetComponent(eReplicaComponentType::MISSION));
 
 	for (const auto& result : results) {
 		if (result.castOnType == 1) {
