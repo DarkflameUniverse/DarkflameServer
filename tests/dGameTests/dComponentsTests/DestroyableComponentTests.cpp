@@ -4,6 +4,7 @@
 #include "BitStream.h"
 #include "DestroyableComponent.h"
 #include "Entity.h"
+#include "eReplicaComponentType.h"
 
 class DestroyableTest : public GameDependenciesTest {
 protected:
@@ -15,7 +16,7 @@ protected:
 		SetUpDependencies();
 		baseEntity = new Entity(15, GameDependenciesTest::info);
 		destroyableComponent = new DestroyableComponent(baseEntity);
-		baseEntity->AddComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent);
+		baseEntity->AddComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent);
 		// Initialize some values to be not default
 		destroyableComponent->SetMaxHealth(12345.0f);
 		destroyableComponent->SetHealth(23);
@@ -317,7 +318,7 @@ TEST_F(DestroyableTest, DestroyableComponentFactionTest) {
 TEST_F(DestroyableTest, DestroyableComponentValiditiyTest) {
 	auto* enemyEntity = new Entity(19, info);
 	auto* enemyDestroyableComponent = new DestroyableComponent(enemyEntity);
-	enemyEntity->AddComponent(COMPONENT_TYPE_DESTROYABLE, enemyDestroyableComponent);
+	enemyEntity->AddComponent(eReplicaComponentType::DESTROYABLE, enemyDestroyableComponent);
 	enemyDestroyableComponent->AddFactionNoLookup(16);
 	destroyableComponent->AddEnemyFaction(16);
 	EXPECT_TRUE(destroyableComponent->IsEnemy(enemyEntity));

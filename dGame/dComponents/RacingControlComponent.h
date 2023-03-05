@@ -7,6 +7,7 @@
 #include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
  /**
   * Information for each player in the race
@@ -104,7 +105,7 @@ struct RacingPlayerInfo {
  */
 class RacingControlComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_RACING_CONTROL;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
 	RacingControlComponent(Entity* parentEntity);
 	~RacingControlComponent();

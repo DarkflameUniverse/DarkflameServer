@@ -32,7 +32,7 @@
 #include "CharacterComponent.h"
 #include "Database.h"
 #include "dMessageIdentifiers.h"
-
+#include "eReplicaComponentType.h"
 
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
@@ -89,7 +89,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	Entity* entity = EntityManager::Instance()->GetEntity(user->GetLastUsedChar()->GetObjectID());
 	if (!entity) return;
 
-	ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
+	ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
 	if (!comp) return;
 
 	/*

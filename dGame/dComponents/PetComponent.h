@@ -4,6 +4,7 @@
 #include "MovementAIComponent.h"
 #include "Component.h"
 #include "Preconditions.h"
+#include "eReplicaComponentType.h"
 
 enum class PetAbilityType
 {
@@ -20,7 +21,7 @@ enum class PetAbilityType
 class PetComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_PET;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
 	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
 	~PetComponent() override;

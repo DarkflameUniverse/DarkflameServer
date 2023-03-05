@@ -8,6 +8,7 @@
 
 #include "AMFFormat.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 
@@ -55,7 +56,7 @@ struct Effect {
  */
 class RenderComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_RENDER;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
 
 	RenderComponent(Entity* entity);
 	~RenderComponent() override;

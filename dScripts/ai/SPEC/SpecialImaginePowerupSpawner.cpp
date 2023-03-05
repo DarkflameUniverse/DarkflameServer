@@ -4,6 +4,7 @@
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
+#include "eReplicaComponentType.h"
 
 void SpecialImaginePowerupSpawner::OnStartup(Entity* self) {
 	self->SetProximityRadius(1.5f, "powerupEnter");
@@ -26,7 +27,7 @@ void SpecialImaginePowerupSpawner::OnProximityUpdate(Entity* self, Entity* enter
 	GameMessages::SendPlayFXEffect(self, -1, u"pickup", "", LWOOBJID_EMPTY, 1, 1, true);
 
 	SkillComponent* skillComponent;
-	if (!self->TryGetComponent(COMPONENT_TYPE_SKILL, skillComponent)) {
+	if (!self->TryGetComponent(eReplicaComponentType::SKILL, skillComponent)) {
 		return;
 	}
 
@@ -35,7 +36,7 @@ void SpecialImaginePowerupSpawner::OnProximityUpdate(Entity* self, Entity* enter
 	skillComponent->CalculateBehavior(13, 20, source);
 
 	DestroyableComponent* destroyableComponent;
-	if (!self->TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent)) {
+	if (!self->TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent)) {
 		return;
 	}
 

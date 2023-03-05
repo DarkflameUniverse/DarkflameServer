@@ -123,7 +123,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 
 void VendorComponent::SetupConstants() {
 	auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	int componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), COMPONENT_TYPE_VENDOR);
+	int componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::VENDOR);
 
 	auto* vendorComponentTable = CDClientManager::Instance()->GetTable<CDVendorComponentTable>("VendorComponent");
 	std::vector<CDVendorComponent> vendorComps = vendorComponentTable->Query([=](CDVendorComponent entry) { return (entry.id == componentID); });

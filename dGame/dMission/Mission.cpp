@@ -24,7 +24,7 @@
 #include "eMissionState.h"
 #include "eMissionTaskType.h"
 #include "eMissionLockState.h"
-
+#include "eReplicaComponentType.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	m_MissionComponent = missionComponent;
@@ -371,7 +371,7 @@ void Mission::CheckCompletion() {
 void Mission::Catchup() {
 	auto* entity = GetAssociate();
 
-	auto* inventory = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
+	auto* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
 
 	for (auto* task : m_Tasks) {
 		const auto type = task->GetType();
