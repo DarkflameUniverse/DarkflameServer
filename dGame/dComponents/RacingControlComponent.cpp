@@ -306,30 +306,58 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 		auto* vehicle =
 			EntityManager::Instance()->GetEntity(racingPlayer.vehicleID);
 
-		if (vehicle == nullptr) {
-			return;
-		}
+		if (!vehicle) return;
 
 		if (!racingPlayer.noSmashOnReload) {
 			racingPlayer.smashedTimes++;
+			GameMessages::SendDie(vehicle, vehicle->GetObjectID(), LWOOBJID_EMPTY, true,
+				VIOLENT, u"", 0, 0, 90.0f, false, true, 0);
+
+			auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
+			uint32_t respawnImagination = 0;
+			// Reset imagination to half its current value, rounded up to the nearest value divisible by 10, as it was done in live.
+			// Do not actually change the value yet.  Do that on respawn.
+			if (destroyableComponent) {
+				respawnImagination = static_cast<int32_t>(ceil(destroyableComponent->GetImagination() / 2.0f / 10.0f)) * 10.0f;
+				GameMessages::SendSetResurrectRestoreValues(vehicle, -1, -1, respawnImagination);
+			}
+
+			// Respawn the player in 2 seconds, as was done in live.  Not sure if this value is in a setting somewhere else...
+			vehicle->AddCallbackTimer(2.0f, [=]() {
+				if (!vehicle || !this->m_Parent) return;
+				GameMessages::SendRacingResetPlayerToLastReset(
+					m_Parent->GetObjectID(), racingPlayer.playerID,
+					UNASSIGNED_SYSTEM_ADDRESS);
+
+				GameMessages::SendVehicleStopBoost(vehicle, player->GetSystemAddress(), true);
+
+				GameMessages::SendRacingSetPlayerResetInfo(
+					m_Parent->GetObjectID(), racingPlayer.lap,
+					racingPlayer.respawnIndex, player->GetObjectID(),
+					racingPlayer.respawnPosition, racingPlayer.respawnIndex + 1,
+					UNASSIGNED_SYSTEM_ADDRESS);
+
+				GameMessages::SendResurrect(vehicle);
+				auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
+				// Reset imagination to half its current value, rounded up to the nearest value divisible by 10, as it was done in live.
+				if (destroyableComponent) destroyableComponent->SetImagination(respawnImagination);
+				EntityManager::Instance()->SerializeEntity(vehicle);
+			});
+
+			auto* characterComponent = player->GetComponent<CharacterComponent>();
+			if (characterComponent != nullptr) {
+				characterComponent->UpdatePlayerStatistic(RacingTimesWrecked);
+			}
+		} else {
+			GameMessages::SendRacingSetPlayerResetInfo(
+				m_Parent->GetObjectID(), racingPlayer.lap,
+				racingPlayer.respawnIndex, player->GetObjectID(),
+				racingPlayer.respawnPosition, racingPlayer.respawnIndex + 1,
+				UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendRacingResetPlayerToLastReset(
+				m_Parent->GetObjectID(), racingPlayer.playerID,
+				UNASSIGNED_SYSTEM_ADDRESS);
 		}
-
-		// Reset player to last checkpoint
-		GameMessages::SendRacingSetPlayerResetInfo(
-			m_Parent->GetObjectID(), racingPlayer.lap,
-			racingPlayer.respawnIndex, player->GetObjectID(),
-			racingPlayer.respawnPosition, racingPlayer.respawnIndex + 1,
-			UNASSIGNED_SYSTEM_ADDRESS);
-		GameMessages::SendRacingResetPlayerToLastReset(
-			m_Parent->GetObjectID(), racingPlayer.playerID,
-			UNASSIGNED_SYSTEM_ADDRESS);
-
-		auto* characterComponent = player->GetComponent<CharacterComponent>();
-		if (characterComponent != nullptr) {
-			characterComponent->UpdatePlayerStatistic(RacingTimesWrecked);
-		}
-
-		return;
 	}
 }
 
@@ -346,19 +374,6 @@ void RacingControlComponent::OnRacingPlayerInfoResetFinished(Entity* player) {
 
 		if (vehicle == nullptr) {
 			return;
-		}
-
-		if (!racingPlayer.noSmashOnReload) {
-			GameMessages::SendDie(vehicle, LWOOBJID_EMPTY, LWOOBJID_EMPTY, true,
-				VIOLENT, u"", 0, 0, 0, true, false, 0);
-
-			GameMessages::SendVehicleUnlockInput(racingPlayer.vehicleID, false,
-				UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendVehicleSetWheelLockState(
-				racingPlayer.vehicleID, false, false,
-				UNASSIGNED_SYSTEM_ADDRESS);
-
-			GameMessages::SendResurrect(vehicle);
 		}
 
 		racingPlayer.noSmashOnReload = false;
