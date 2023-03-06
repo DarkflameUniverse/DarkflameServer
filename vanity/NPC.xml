@@ -30,6 +30,15 @@
             </locations>
         </zone>
     </npc>
+    <npc name="Pigeon - Cancer Ass Kicker" lot="6738">
+        <equipment>37700, 37701, 37702, 37703, 37704</equipment>
+       <phrases> </phrases>
+        <zone id="1204">
+            <locations>
+                <location x="82.0" y="229.0" z="37.0" rw="0.698" rx="0.0" ry="-0.7155" rz="0.0"/>
+            </locations>
+        </zone>
+    </npc>
     <npc name="averysumner - Destroyer of Worlds" lot="11235">
         <equipment></equipment>
         <phrases>
