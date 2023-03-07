@@ -1,4 +1,5 @@
-set(DSCRIPTS_SOURCES_AI_FV 
+set(DSCRIPTS_SOURCES_AI_FV
+	"ActNinjaRebuild.cpp"
 	"ActNinjaTurret.cpp"
 	"FvFlyingCreviceDragon.cpp"
 	"FvDragonSmashingGolemQb.cpp"
