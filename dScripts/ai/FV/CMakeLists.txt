@@ -1,5 +1,4 @@
 set(DSCRIPTS_SOURCES_AI_FV
-	"ActNinjaRebuild.cpp"
 	"ActNinjaTurret.cpp"
 	"FvFlyingCreviceDragon.cpp"
 	"FvDragonSmashingGolemQb.cpp"

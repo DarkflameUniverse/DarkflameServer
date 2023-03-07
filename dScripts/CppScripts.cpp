@@ -295,10 +295,6 @@
 // WBL scripts
 #include "WblGenericZone.h"
 
-// alpha scripts //
-// alpha FV
-#include "ActNinjaRebuild.h"
-
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
 std::map<std::string, CppScripts::Script*> m_Scripts;
@@ -863,11 +859,6 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	// WBL
 	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
 		script = new WblGenericZone();
-
-	// Alpha //
-	// FV
-	if (scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_REBUILD.lua")
-		script = new ActNinjaRebuild();
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
