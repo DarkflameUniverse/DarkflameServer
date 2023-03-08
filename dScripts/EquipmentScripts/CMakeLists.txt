@@ -7,4 +7,5 @@ set(DSCRIPTS_SOURCES_EQUIPMENTSCRIPTS
 	"BuccaneerValiantShip.cpp"
 	"FireFirstSkillonStartup.cpp"
 	"XMarksTheSpotChest.cpp"
+	"StunImmunity.cpp"
 	PARENT_SCOPE)

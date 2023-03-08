@@ -915,15 +915,23 @@ void GameMessages::SendSetJetPackMode(Entity* entity, bool use, bool bypassCheck
 }
 
 void GameMessages::SendResurrect(Entity* entity) {
-	DestroyableComponent* dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
+	// Restore the players health after the animation for respawning has finished.
+	// This is when the health appered back in live, not immediately upon requesting respawn
+	// Add a half second in case someone decides to cheat and move during the death animation
+	// and just make sure the client has time to be ready.
+	constexpr float respawnTime = 3.66700005531311f + 0.5f;
+	entity->AddCallbackTimer(respawnTime, [=]() {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
-	if (dest != nullptr && entity->GetLOT() == 1) {
-		auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
-		if (levelComponent) {
-			dest->SetHealth(levelComponent->GetLevel() >= 45 ? 8 : 4);
-			dest->SetImagination(levelComponent->GetLevel() >= 45 ? 20 : 6);
+		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
+			auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
+			if (levelComponent) {
+				destroyableComponent->SetHealth(levelComponent->GetLevel() >= 45 ? 8 : 4);
+				destroyableComponent->SetImagination(levelComponent->GetLevel() >= 45 ? 20 : 6);
+			}
 		}
-	}
+	});
+
 
 	auto cont = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
 	if (cont && entity->GetLOT() == 1) {
