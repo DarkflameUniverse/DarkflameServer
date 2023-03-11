@@ -4,6 +4,7 @@
 #include <string>
 #include "dCommonVars.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Component that handles the traveling using rails, e.g. the ninjago posts that can be used to travel using Spinjitzu.
@@ -14,7 +15,7 @@ public:
 	explicit RailActivatorComponent(Entity* parent, int32_t componentID);
 	~RailActivatorComponent() override;
 
-	static const uint32_t ComponentType = COMPONENT_TYPE_RAIL_ACTIVATOR;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::RAIL_ACTIVATOR;
 
 	/**
 	 * Handles the OnUse event from some entity, initiates the rail movement

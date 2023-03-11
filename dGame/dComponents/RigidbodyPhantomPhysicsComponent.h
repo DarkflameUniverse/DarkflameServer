@@ -11,6 +11,7 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
  /**
   * Component that handles rigid bodies that can be interacted with, mostly client-side rendered. An example is the
@@ -18,7 +19,7 @@
   */
 class RigidbodyPhantomPhysicsComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_PHANTOM_PHYSICS;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
 
 	RigidbodyPhantomPhysicsComponent(Entity* parent);
 	~RigidbodyPhantomPhysicsComponent() override;

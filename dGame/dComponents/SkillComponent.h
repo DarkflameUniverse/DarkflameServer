@@ -13,6 +13,7 @@
 #include "Component.h"
 #include "Entity.h"
 #include "dLogger.h"
+#include "eReplicaComponentType.h"
 
 struct ProjectileSyncEntry {
 	LWOOBJID id = LWOOBJID_EMPTY;
@@ -58,7 +59,7 @@ struct SkillExecutionResult {
  */
 class SkillComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_SKILL;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
 
 	explicit SkillComponent(Entity* parent);
 	~SkillComponent() override;

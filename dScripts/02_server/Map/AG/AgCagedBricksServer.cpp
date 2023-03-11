@@ -3,6 +3,7 @@
 #include "GameMessages.h"
 #include "Character.h"
 #include "EntityManager.h"
+#include "eReplicaComponentType.h"
 
 void AgCagedBricksServer::OnUse(Entity* self, Entity* user) {
 	//Tell the client to spawn the baby spiderling:
@@ -19,7 +20,7 @@ void AgCagedBricksServer::OnUse(Entity* self, Entity* user) {
 	character->SetPlayerFlag(74, true);
 
 	//Remove the maelstrom cube:
-	auto inv = static_cast<InventoryComponent*>(user->GetComponent(COMPONENT_TYPE_INVENTORY));
+	auto inv = static_cast<InventoryComponent*>(user->GetComponent(eReplicaComponentType::INVENTORY));
 
 	if (inv) {
 		inv->RemoveItem(14553, 1);

@@ -19,7 +19,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 
 	m_BaseCombatAI = nullptr;
 
-	m_BaseCombatAI = reinterpret_cast<BaseCombatAIComponent*>(m_Parent->GetComponent(COMPONENT_TYPE_BASE_COMBAT_AI));
+	m_BaseCombatAI = reinterpret_cast<BaseCombatAIComponent*>(m_Parent->GetComponent(eReplicaComponentType::BASE_COMBAT_AI));
 
 	//Try and fix the insane values:
 	if (m_Info.wanderRadius > 5.0f) m_Info.wanderRadius = m_Info.wanderRadius * 0.5f;
@@ -286,7 +286,7 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 	int32_t componentID;
 	CDPhysicsComponent* physicsComponent = nullptr;
 
-	componentID = componentRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_CONTROLLABLE_PHYSICS, -1);
+	componentID = componentRegistryTable->GetByIDAndType(lot, eReplicaComponentType::CONTROLLABLE_PHYSICS, -1);
 
 	if (componentID != -1) {
 		physicsComponent = physicsComponentTable->GetByID(componentID);
@@ -294,7 +294,7 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 		goto foundComponent;
 	}
 
-	componentID = componentRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_SIMPLE_PHYSICS, -1);
+	componentID = componentRegistryTable->GetByIDAndType(lot, eReplicaComponentType::SIMPLE_PHYSICS, -1);
 
 	if (componentID != -1) {
 		physicsComponent = physicsComponentTable->GetByID(componentID);

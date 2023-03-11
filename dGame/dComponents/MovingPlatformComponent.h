@@ -14,6 +14,7 @@
 #include "EntityManager.h"
 #include "Component.h"
 #include "eMovementPlatformState.h"
+#include "eReplicaComponentType.h"
 
 class Path;
 
@@ -105,7 +106,7 @@ public:
  */
 class MovingPlatformComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_MOVING_PLATFORM;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
 	MovingPlatformComponent(Entity* parent, const std::string& pathName);
 	~MovingPlatformComponent() override;

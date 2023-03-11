@@ -128,7 +128,7 @@ void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, Behav
 }
 
 void SkillComponent::Update(const float deltaTime) {
-	if (!m_Parent->HasComponent(COMPONENT_TYPE_BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
+	if (!m_Parent->HasComponent(eReplicaComponentType::BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
 		CalculateUpdate(deltaTime);
 	}
 
