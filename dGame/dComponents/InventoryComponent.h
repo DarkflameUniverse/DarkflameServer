@@ -20,6 +20,7 @@
 #include "eItemSetPassiveAbilityID.h"
 #include "PossessorComponent.h"
 #include "eInventoryType.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 class ItemSet;
@@ -36,7 +37,7 @@ enum class eItemType : int32_t;
 class InventoryComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_INVENTORY;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
 
 	void Update(float deltaTime) override;

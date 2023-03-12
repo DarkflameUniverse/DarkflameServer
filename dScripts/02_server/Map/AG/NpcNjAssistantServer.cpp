@@ -4,6 +4,7 @@
 #include "MissionComponent.h"
 #include "Item.h"
 #include "eMissionState.h"
+#include "eReplicaComponentType.h"
 
 void NpcNjAssistantServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	if (missionID != mailMission) return;
@@ -11,7 +12,7 @@ void NpcNjAssistantServer::OnMissionDialogueOK(Entity* self, Entity* target, int
 	if (missionState == eMissionState::COMPLETE || missionState == eMissionState::READY_TO_COMPLETE) {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"switch", 0, 0, LWOOBJID_EMPTY, "", target->GetSystemAddress());
 
-		auto* inv = static_cast<InventoryComponent*>(target->GetComponent(COMPONENT_TYPE_INVENTORY));
+		auto* inv = static_cast<InventoryComponent*>(target->GetComponent(eReplicaComponentType::INVENTORY));
 
 		// If we are ready to complete our missions, we take the kit from you:
 		if (inv && missionState == eMissionState::READY_TO_COMPLETE) {
@@ -22,7 +23,7 @@ void NpcNjAssistantServer::OnMissionDialogueOK(Entity* self, Entity* target, int
 			}
 		}
 	} else if (missionState == eMissionState::AVAILABLE) {
-		auto* missionComponent = static_cast<MissionComponent*>(target->GetComponent(COMPONENT_TYPE_MISSION));
+		auto* missionComponent = static_cast<MissionComponent*>(target->GetComponent(eReplicaComponentType::MISSION));
 		missionComponent->CompleteMission(mailAchievement, true);
 	}
 }

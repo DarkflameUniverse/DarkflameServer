@@ -15,6 +15,7 @@
 #include "EchoSyncSkill.h"
 #include "PhantomPhysicsComponent.h"
 #include "RebuildComponent.h"
+#include "eReplicaComponentType.h"
 
 BehaviorSyncEntry::BehaviorSyncEntry() {
 }
@@ -311,13 +312,13 @@ std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, in
 		}
 	}
 
-	if (ignoreFaction || includeFaction || (!entity->HasComponent(COMPONENT_TYPE_PHANTOM_PHYSICS) && targets.empty())) {
+	if (ignoreFaction || includeFaction || (!entity->HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) && targets.empty())) {
 		DestroyableComponent* destroyableComponent;
-		if (!entity->TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent)) {
+		if (!entity->TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent)) {
 			return targets;
 		}
 
-		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS);
+		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS);
 		for (auto* candidate : entities) {
 			const auto id = candidate->GetObjectID();
 

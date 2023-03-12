@@ -14,6 +14,7 @@
 #include "Loot.h"
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
+#include "eReplicaComponentType.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	Game::logger->Log("SGCannon", "OnStartup");
@@ -295,7 +296,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			if (true) {
 				auto* movementAI = new MovementAIComponent(enemy, {});
 
-				enemy->AddComponent(COMPONENT_TYPE_MOVEMENT_AI, movementAI);
+				enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
 
 				movementAI->SetSpeed(toSpawn.initialSpeed);
 				movementAI->SetCurrentSpeed(toSpawn.initialSpeed);

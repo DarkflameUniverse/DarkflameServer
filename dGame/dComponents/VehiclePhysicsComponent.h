@@ -3,13 +3,14 @@
 #include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Physics component for vehicles.
  */
 class VehiclePhysicsComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_VEHICLE_PHYSICS;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::VEHICLE_PHYSICS;
 
 	VehiclePhysicsComponent(Entity* parentEntity);
 	~VehiclePhysicsComponent() override;

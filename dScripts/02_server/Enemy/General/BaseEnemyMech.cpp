@@ -6,6 +6,7 @@
 #include "EntityInfo.h"
 #include "GeneralUtils.h"
 #include "DestroyableComponent.h"
+#include "eReplicaComponentType.h"
 
 void BaseEnemyMech::OnStartup(Entity* self) {
 	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
@@ -15,7 +16,7 @@ void BaseEnemyMech::OnStartup(Entity* self) {
 }
 
 void BaseEnemyMech::OnDie(Entity* self, Entity* killer) {
-	ControllablePhysicsComponent* controlPhys = static_cast<ControllablePhysicsComponent*>(self->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
+	ControllablePhysicsComponent* controlPhys = static_cast<ControllablePhysicsComponent*>(self->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
 	if (!controlPhys) return;
 
 	NiPoint3 newLoc = { controlPhys->GetPosition().x, dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(controlPhys->GetPosition()), controlPhys->GetPosition().z };
