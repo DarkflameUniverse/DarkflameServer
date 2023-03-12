@@ -430,7 +430,7 @@ void BaseWavesServer::SpawnWave(Entity* self) {
 
 		for (const auto& playerID : state.players) {
 			auto* player = EntityManager::Instance()->GetEntity(playerID);
-			if (player != nullptr) {
+			if (player && player->GetIsDead()) {
 				player->Resurrect();
 			}
 		}
