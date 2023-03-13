@@ -242,9 +242,9 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 		return PROPERTY_DEEDS;
 
 	case eItemType::MODEL:
-	case eItemType::VEHICLE:
+	case eItemType::PET_INVENTORY_ITEM:
 	case eItemType::LOOT_MODEL:
-	case eItemType::LUP_MODEL:
+	case eItemType::VEHICLE:
 	case eItemType::MOUNT:
 		return MODELS;
 
@@ -261,9 +261,8 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 	case eItemType::CHEST:
 	case eItemType::EGG:
 	case eItemType::PET_FOOD:
-	case eItemType::PET_INVENTORY_ITEM:
 	case eItemType::PACKAGE:
-
+	case eItemType::LUP_MODEL:
 		return ITEMS;
 
 	case eItemType::QUEST_OBJECT:
