@@ -93,7 +93,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	NiPoint3 velocity = NiPoint3::ZERO;
 
-	if (AdvanceWaypointIndex()) // Do we have another waypoint to seek?
+	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) // Do we have another waypoint to seek?
 	{
 		m_NextWaypoint = GetCurrentWaypoint();
 
