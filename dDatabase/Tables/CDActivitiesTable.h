@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDActivitiesTable.hpp
- \brief Contains data for the Activities table
- */
-
- //! Activities Entry Struct
 struct CDActivities {
 	unsigned int ActivityID;
 	unsigned int locStatus;
@@ -31,36 +25,17 @@ struct CDActivities {
 	float optionalPercentage;
 };
 
-
-//! Activities table
 class CDActivitiesTable : public CDTable {
 private:
 	std::vector<CDActivities> entries;
 
 public:
+	CDActivitiesTable();
 
-	//! Constructor
-	CDActivitiesTable(void);
+	static const std::string GetTableName() { return "Activities"; };
 
-	//! Destructor
-	~CDActivitiesTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	std::vector<CDActivities> Query(std::function<bool(CDActivities)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
 	std::vector<CDActivities> GetEntries(void) const;
-
 };

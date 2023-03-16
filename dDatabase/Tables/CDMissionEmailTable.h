@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDMissionEmailTable.hpp
- \brief Contains data for the MissionEmail table
- */
-
- //! MissionEmail Entry Struct
 struct CDMissionEmail {
 	unsigned int ID;
 	unsigned int messageType;
@@ -21,35 +15,17 @@ struct CDMissionEmail {
 };
 
 
-//! MissionEmail table
 class CDMissionEmailTable : public CDTable {
 private:
 	std::vector<CDMissionEmail> entries;
 
 public:
+	CDMissionEmailTable();
 
-	//! Constructor
-	CDMissionEmailTable(void);
+	static const std::string GetTableName() { return "MissionEmail"; };
 
-	//! Destructor
-	~CDMissionEmailTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	std::vector<CDMissionEmail> Query(std::function<bool(CDMissionEmail)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
 	std::vector<CDMissionEmail> GetEntries(void) const;
-
 };

@@ -1077,7 +1077,7 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 
 	// Currency and powerups should not sync
 	if (team != nullptr && currency == 0) {
-		CDObjectsTable* objectsTable = CDClientManager::Instance()->GetTable<CDObjectsTable>("Objects");
+		CDObjectsTable* objectsTable = CDClientManager::Instance()->GetTable<CDObjectsTable>();
 
 		const CDObjects& object = objectsTable->GetByID(item);
 
@@ -4720,8 +4720,8 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	InventoryComponent* inv = static_cast<InventoryComponent*>(player->GetComponent(eReplicaComponentType::INVENTORY));
 	if (!inv) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item, eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -4812,8 +4812,8 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	Item* item = inv->FindItemById(iObjID);
 	if (!item) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item->GetLot(), eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -4862,8 +4862,8 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 	Item* item = inv->FindItemById(iObjID);
 	if (!item) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item->GetLot(), eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -5101,7 +5101,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 		}
 	}
 
-	CDEmoteTableTable* emotes = CDClientManager::Instance()->GetTable<CDEmoteTableTable>("EmoteTable");
+	CDEmoteTableTable* emotes = CDClientManager::Instance()->GetTable<CDEmoteTableTable>();
 	if (emotes) {
 		CDEmoteTable* emote = emotes->GetEmote(emoteID);
 		if (emote) sAnimationName = emote->animationName;

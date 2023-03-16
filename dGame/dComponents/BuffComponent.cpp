@@ -101,7 +101,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	const auto& parameters = GetBuffParameters(id);
 	for (const auto& parameter : parameters) {
 		if (parameter.name == "overtime") {
-			auto* behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+			auto* behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>();
 
 			behaviorID = behaviorTemplateTable->GetSkillByID(parameter.values[0]).behaviorID;
 			stacks = static_cast<int32_t>(parameter.values[1]);

@@ -21,29 +21,12 @@ private:
 	std::vector<CDBrickIDTable> entries;
 
 public:
+	CDBrickIDTableTable();
 
-	//! Constructor
-	CDBrickIDTableTable(void);
+	static const std::string GetTableName() { return "BrickIDTable"; };
 
-	//! Destructor
-	~CDBrickIDTableTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	std::vector<CDBrickIDTable> Query(std::function<bool(CDBrickIDTable)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	   \return The entries
-	 */
 	std::vector<CDBrickIDTable> GetEntries(void) const;
-
 };

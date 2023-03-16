@@ -127,7 +127,7 @@ void ItemSet::OnEquip(const LOT lot) {
 	auto* missionComponent = m_InventoryComponent->GetParent()->GetComponent<MissionComponent>();
 
 	for (const auto skill : skillSet) {
-		auto* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+		auto* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>();
 
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
 
@@ -159,7 +159,7 @@ void ItemSet::OnUnEquip(const LOT lot) {
 	const auto& skillComponent = m_InventoryComponent->GetParent()->GetComponent<SkillComponent>();
 
 	for (const auto skill : skillSet) {
-		auto* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+		auto* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>();
 
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
 

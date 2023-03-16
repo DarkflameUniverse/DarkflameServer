@@ -23,10 +23,10 @@ struct CDPhysicsComponent {
 
 class CDPhysicsComponentTable : public CDTable {
 public:
-	CDPhysicsComponentTable(void);
-	~CDPhysicsComponentTable(void);
+	CDPhysicsComponentTable();
+	~CDPhysicsComponentTable();
 
-	std::string GetName(void) const override;
+	static const std::string GetTableName() { return "PhysicsComponent"; };
 	CDPhysicsComponent* GetByID(unsigned int componentID);
 
 private:

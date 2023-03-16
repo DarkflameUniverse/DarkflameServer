@@ -23,29 +23,12 @@ private:
 	std::vector<CDCurrencyTable> entries;
 
 public:
+	CDCurrencyTableTable();
 
-	//! Constructor
-	CDCurrencyTableTable(void);
+	static const std::string GetTableName() { return "CurrencyTable"; };
 
-	//! Destructor
-	~CDCurrencyTableTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	std::vector<CDCurrencyTable> Query(std::function<bool(CDCurrencyTable)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
 	std::vector<CDCurrencyTable> GetEntries(void) const;
-
 };

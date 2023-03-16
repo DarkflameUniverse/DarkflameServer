@@ -34,15 +34,6 @@ CDFeatureGatingTable::CDFeatureGatingTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDFeatureGatingTable::~CDFeatureGatingTable(void) {}
-
-//! Returns the table's name
-std::string CDFeatureGatingTable::GetName(void) const {
-	return "FeatureGating";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDFeatureGating> CDFeatureGatingTable::Query(std::function<bool(CDFeatureGating)> predicate) {
 
 	std::vector<CDFeatureGating> data = cpplinq::from(this->entries)
@@ -62,7 +53,6 @@ bool CDFeatureGatingTable::FeatureUnlocked(const std::string& feature) const {
 	return false;
 }
 
-//! Gets all the entries in the table
 std::vector<CDFeatureGating> CDFeatureGatingTable::GetEntries(void) const {
 	return this->entries;
 }

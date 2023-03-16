@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDRarityTableTable.hpp
- \brief Contains data for the RarityTable table
- */
-
- //! RarityTable Entry Struct
 struct CDRarityTable {
 	unsigned int id;
 	float randmax;
@@ -32,37 +26,18 @@ struct CDRarityTable {
 	}
 };
 
-
-//! RarityTable table
 class CDRarityTableTable : public CDTable {
 private:
 	std::vector<CDRarityTable> entries;
 
 public:
+	CDRarityTableTable();
 
-	//! Constructor
-	CDRarityTableTable(void);
+	static const std::string GetTableName() { return "RarityTable"; };
 
-	//! Destructor
-	~CDRarityTableTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	std::vector<CDRarityTable> Query(std::function<bool(CDRarityTable)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
-	const std::vector<CDRarityTable>& GetEntries(void) const;
-
+	const std::vector<CDRarityTable>& GetEntries() const;
 };
 

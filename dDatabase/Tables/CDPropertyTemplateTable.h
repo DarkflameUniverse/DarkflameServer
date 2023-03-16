@@ -11,9 +11,8 @@ struct CDPropertyTemplate {
 class CDPropertyTemplateTable : public CDTable {
 public:
 	CDPropertyTemplateTable();
-	~CDPropertyTemplateTable();
 
-	[[nodiscard]] std::string GetName() const override;
+	static const std::string GetTableName() { return "PropertyTemplate"; };
 	CDPropertyTemplate GetByMapID(uint32_t mapID);
 private:
 	std::vector<CDPropertyTemplate> entries{};

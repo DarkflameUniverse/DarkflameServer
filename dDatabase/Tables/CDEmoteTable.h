@@ -4,12 +4,6 @@
 #include "CDTable.h"
 #include <map>
 
-/*!
- \file CDEmoteTable.hpp
- \brief Contains data for the CDEmoteTable table
- */
-
- //! CDEmoteEntry Struct
 struct CDEmoteTable {
 	CDEmoteTable() {
 		ID = -1;
@@ -32,25 +26,16 @@ struct CDEmoteTable {
 	std::string gateVersion;
 };
 
-//! CDEmoteTable table
 class CDEmoteTableTable : public CDTable {
 private:
 	std::map<int, CDEmoteTable*> entries;
 
 public:
+	CDEmoteTableTable();
+	~CDEmoteTableTable();
 
-	//! Constructor
-	CDEmoteTableTable(void);
+	static const std::string GetTableName() { return "EmoteTable"; };
 
-	//! Destructor
-	~CDEmoteTableTable(void);
-
-	//! Returns the table's name
-	/*!
-	 \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Returns an emote by ID
+	// Returns an emote by ID
 	CDEmoteTable* GetEmote(int id);
 };

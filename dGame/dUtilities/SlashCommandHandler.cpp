@@ -1912,7 +1912,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		EntityManager::Instance()->SerializeEntity(closest);
 
-		auto* table = CDClientManager::Instance()->GetTable<CDObjectsTable>("Objects");
+		auto* table = CDClientManager::Instance()->GetTable<CDObjectsTable>();
 
 		const auto& info = table->GetByID(closest->GetLOT());
 
@@ -2021,7 +2021,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
 	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>();
 	const CDZoneTable* zone = zoneTable->Query(zoneID);
 	if (zone != nullptr) {
 		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());

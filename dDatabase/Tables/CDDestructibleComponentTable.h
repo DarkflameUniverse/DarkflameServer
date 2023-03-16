@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDDestructibleComponentTable.hpp
- \brief Contains data for the DestructibleComponent table
- */
-
- //! ItemComponent Struct
 struct CDDestructibleComponent {
 	unsigned int id;                            //!< The component ID from the ComponentsRegistry Table
 	int faction;                       //!< The Faction ID of the object
@@ -26,35 +20,17 @@ struct CDDestructibleComponent {
 	int difficultyLevel;               //!< ???
 };
 
-//! ItemComponent table
 class CDDestructibleComponentTable : public CDTable {
 private:
 	std::vector<CDDestructibleComponent> entries;
 
 public:
+	CDDestructibleComponentTable();
 
-	//! Constructor
-	CDDestructibleComponentTable(void);
+	static const std::string GetTableName() { return "DestructibleComponent"; };
 
-	//! Destructor
-	~CDDestructibleComponentTable(void);
-
-	//! Returns the table's name
-	/*!
-	 \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	 \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	std::vector<CDDestructibleComponent> Query(std::function<bool(CDDestructibleComponent)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
 	std::vector<CDDestructibleComponent> GetEntries(void) const;
-
 };

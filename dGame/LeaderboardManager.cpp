@@ -273,7 +273,7 @@ void LeaderboardManager::SendLeaderboard(uint32_t gameID, InfoType infoType, boo
 }
 
 LeaderboardType LeaderboardManager::GetLeaderboardType(uint32_t gameID) {
-	auto* activitiesTable = CDClientManager::Instance()->GetTable<CDActivitiesTable>("Activities");
+	auto* activitiesTable = CDClientManager::Instance()->GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](const CDActivities& entry) {
 		return (entry.ActivityID == gameID);
 		});

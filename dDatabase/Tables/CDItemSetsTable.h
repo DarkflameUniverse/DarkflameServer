@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDItemSetsTable.hpp
- \brief Contains data for the ItemSets table
- */
-
- //! ZoneTable Struct
 struct CDItemSets {
 	unsigned int setID;             //!< The item set ID
 	unsigned int locStatus;         //!< The loc status
@@ -27,36 +21,18 @@ struct CDItemSets {
 	float priority;         //!< The priority
 };
 
-//! ItemSets table
 class CDItemSetsTable : public CDTable {
 private:
 	std::vector<CDItemSets> entries;
 
 public:
+	CDItemSetsTable();
 
-	//! Constructor
-	CDItemSetsTable(void);
+	static const std::string GetTableName() { return "ItemSets"; };
 
-	//! Destructor
-	~CDItemSetsTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	std::vector<CDItemSets> Query(std::function<bool(CDItemSets)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
 	std::vector<CDItemSets> GetEntries(void) const;
-
 };
 

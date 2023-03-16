@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDAnimationsTable.hpp
- \brief Contains data for the Animations table
- */
-
- //! Animations Entry Struct
 struct CDAnimations {
 	unsigned int animationGroupID;          //!< The animation group ID
 	std::string animation_type;        //!< The animation type
@@ -26,35 +20,17 @@ struct CDAnimations {
 };
 
 
-//! Animations table
 class CDAnimationsTable : public CDTable {
 private:
 	std::vector<CDAnimations> entries;
 
 public:
+	CDAnimationsTable();
 
-	//! Constructor
-	CDAnimationsTable(void);
+	static const std::string GetTableName() { return "Animations"; };
 
-	//! Destructor
-	~CDAnimationsTable(void);
-
-	//! Returns the table's name
-	/*!
-	 \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	 \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	std::vector<CDAnimations> Query(std::function<bool(CDAnimations)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
 	std::vector<CDAnimations> GetEntries(void) const;
-
 };

@@ -164,7 +164,7 @@ void Zone::LoadZoneIntoMemory() {
 
 std::string Zone::GetFilePathForZoneID() {
 	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>();
 	const CDZoneTable* zone = zoneTable->Query(this->GetZoneID().GetMapID());
 	if (zone != nullptr) {
 		std::string toReturn = "maps/" + zone->zoneName;

@@ -27,7 +27,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LOT zoneControlTemplate = 2365;
 
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>();
 	if (zoneTable != nullptr) {
 		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
 

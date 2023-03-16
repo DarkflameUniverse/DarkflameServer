@@ -238,7 +238,7 @@ bool Item::IsEquipped() const {
 }
 
 bool Item::Consume() {
-	auto* skillsTable = CDClientManager::Instance()->GetTable<CDObjectSkillsTable>("ObjectSkills");
+	auto* skillsTable = CDClientManager::Instance()->GetTable<CDObjectSkillsTable>();
 
 	auto skills = skillsTable->Query([=](const CDObjectSkills entry) {
 		return entry.objectTemplate == static_cast<uint32_t>(lot);
@@ -297,12 +297,12 @@ void Item::UseNonEquip(Item* item) {
 		bool success = false;
 		auto inventory = item->GetInventory();
 		if (inventory && inventory->GetType() == eInventoryType::ITEMS) {
-			auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+			auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
 			const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::PACKAGE);
 
 			if (packageComponentId == 0) return;
 
-			auto* packCompTable = CDClientManager::Instance()->GetTable<CDPackageComponentTable>("PackageComponent");
+			auto* packCompTable = CDClientManager::Instance()->GetTable<CDPackageComponentTable>();
 			auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
 
 			auto success = !packages.empty();
@@ -380,7 +380,7 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 }
 
 void Item::DisassembleModel() {
-	auto* table = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* table = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
 
 	const auto componentId = table->GetByIDAndType(GetLot(), eReplicaComponentType::RENDER);
 
@@ -457,7 +457,7 @@ void Item::DisassembleModel() {
 		currentBrick = currentBrick->NextSiblingElement(searchTerm.c_str());
 	}
 
-	auto* brickIDTable = CDClientManager::Instance()->GetTable<CDBrickIDTableTable>("BrickIDTable");
+	auto* brickIDTable = CDClientManager::Instance()->GetTable<CDBrickIDTableTable>();
 
 	for (unsigned int part : parts) {
 		const auto brickID = brickIDTable->Query([=](const CDBrickIDTable& entry) {

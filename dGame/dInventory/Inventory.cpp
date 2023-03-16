@@ -274,9 +274,9 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 }
 
 const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
-	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
 
-	auto* itemComponents = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	auto* itemComponents = CDClientManager::Instance()->GetTable<CDItemComponentTable>();
 
 	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 
@@ -292,7 +292,7 @@ const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
 }
 
 bool Inventory::IsValidItem(const LOT lot) {
-	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
 
 	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 

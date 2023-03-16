@@ -3,12 +3,7 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
-  \file CDComponentsRegistryTable.hpp
-  \brief Contains data for the ComponentsRegistry table
- */
 enum class eReplicaComponentType : uint32_t;
- //! ComponentsRegistry Entry Struct
 struct CDComponentsRegistry {
 	unsigned int id;                    //!< The LOT is used as the ID
 	eReplicaComponentType component_type;        //!< See ComponentTypes enum for values
@@ -16,25 +11,14 @@ struct CDComponentsRegistry {
 };
 
 
-//! ComponentsRegistry table
 class CDComponentsRegistryTable : public CDTable {
 private:
-	//std::vector<CDComponentsRegistry> entries;
 	std::map<uint64_t, uint32_t> mappedEntries; //id, component_type, component_id
 
 public:
+	CDComponentsRegistryTable();
 
-	//! Constructor
-	CDComponentsRegistryTable(void);
-
-	//! Destructor
-	~CDComponentsRegistryTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
+	static const std::string GetTableName() { return "ComponentsRegistry"; };
 
 	int32_t GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue = 0);
 };

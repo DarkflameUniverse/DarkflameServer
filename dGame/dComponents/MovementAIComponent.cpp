@@ -280,8 +280,8 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 		return it->second;
 	}
 
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
+	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>();
 
 	int32_t componentID;
 	CDPhysicsComponent* physicsComponent = nullptr;

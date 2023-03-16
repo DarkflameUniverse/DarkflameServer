@@ -1,9 +1,10 @@
 #pragma once
 
-// Custom Classes
+#include <type_traits>
+#include <unordered_map>
+
 #include "CDTable.h"
 
-// Tables
 #include "CDActivityRewardsTable.h"
 #include "CDAnimationsTable.h"
 #include "CDBehaviorParameterTable.h"
@@ -43,25 +44,13 @@
 #include "CDFeatureGatingTable.h"
 #include "CDRailActivatorComponent.h"
 
-// C++
-#include <type_traits>
-#include <unordered_map>
-
-/*!
-  \file CDClientManager.hpp
-  \brief A manager for the CDClient tables
- */
-
- //! Manages all data from the CDClient
 class CDClientManager {
 private:
 	static CDClientManager* m_Address;                 //!< The singleton address
 
-	std::unordered_map<std::string, CDTable*> tables;   //!< The tables
+	std::unordered_map<std::string, CDTable*> tables;
 
 public:
-
-	//! The singleton method
 	static CDClientManager* Instance() {
 		if (m_Address == 0) {
 			m_Address = new CDClientManager;
@@ -70,27 +59,20 @@ public:
 		return m_Address;
 	}
 
-	//! Initializes the manager
-	void Initialize(void);
+	void Initialize();
 
-	//! Fetches a CDClient table
-	/*!
-	  This function uses typename T which must be a subclass of CDTable.
-	  It returns the class that conforms to the class name
-
-	  \param tableName The table name
-	  \return The class or nullptr
+	/**
+	 * Fetch a table from CDClient
+	 * 
+	 * @tparam Table type to fetch
+	 * @return A pointer to the requested table.
 	 */
 	template<typename T>
-	T* GetTable(const std::string& tableName) {
+	T* GetTable() {
 		static_assert(std::is_base_of<CDTable, T>::value, "T should inherit from CDTable!");
 
-		for (auto itr = this->tables.begin(); itr != this->tables.end(); ++itr) {
-			if (itr->first == tableName) {
-				return dynamic_cast<T*>(itr->second);
-			}
-		}
+		auto possibleTable = this->tables.find(T::GetTableName());
 
-		return nullptr;
+		return possibleTable != this->tables.end() ? dynamic_cast<T*>(possibleTable->second) : nullptr;
 	}
 };

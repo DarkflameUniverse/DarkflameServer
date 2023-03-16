@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDRebuildComponentTable.hpp
- \brief Contains data for the RebuildComponent table
- */
-
- //! RebuildComponent Struct
 struct CDRebuildComponent {
 	unsigned int id;                        //!< The component Id
 	float reset_time;               //!< The reset time
@@ -22,36 +16,18 @@ struct CDRebuildComponent {
 	float time_before_smash;        //!< The time before smash
 };
 
-//! ObjectSkills table
 class CDRebuildComponentTable : public CDTable {
 private:
 	std::vector<CDRebuildComponent> entries;
 
 public:
+	CDRebuildComponentTable();
 
-	//! Constructor
-	CDRebuildComponentTable(void);
+	static const std::string GetTableName() { return "RebuildComponent"; };
 
-	//! Destructor
-	~CDRebuildComponentTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	std::vector<CDRebuildComponent> Query(std::function<bool(CDRebuildComponent)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
-	std::vector<CDRebuildComponent> GetEntries(void) const;
-
+	std::vector<CDRebuildComponent> GetEntries() const;
 };
 
