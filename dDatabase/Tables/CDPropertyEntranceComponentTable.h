@@ -9,12 +9,9 @@ struct CDPropertyEntranceComponent {
 	std::string groupType;
 };
 
-class CDPropertyEntranceComponentTable : public CDTable {
+class CDPropertyEntranceComponentTable : public CDTable<CDPropertyEntranceComponentTable> {
 public:
 	CDPropertyEntranceComponentTable();
-
-	static const std::string GetTableName() { return "PropertyEntranceComponent"; };
-
 	// Queries the table with a custom "where" clause
 	CDPropertyEntranceComponent GetByID(uint32_t id);
 

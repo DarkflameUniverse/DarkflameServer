@@ -3,6 +3,9 @@
 #include "CDClientManager.h"
 #include "DestroyableComponent.h"
 
+#include "CDObjectSkillsTable.h"
+#include "CDSkillBehaviorTable.h"
+
 void QbEnemyStunner::OnRebuildComplete(Entity* self, Entity* target) {
 	auto* destroyable = self->GetComponent<DestroyableComponent>();
 
@@ -14,12 +17,12 @@ void QbEnemyStunner::OnRebuildComplete(Entity* self, Entity* target) {
 	if (!skillComponent) return;
 
 	// Get the skill IDs of this object.
-	CDObjectSkillsTable* skillsTable = CDClientManager::Instance()->GetTable<CDObjectSkillsTable>();
+	CDObjectSkillsTable* skillsTable = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
 	auto skills = skillsTable->Query([=](CDObjectSkills entry) {return (entry.objectTemplate == self->GetLOT()); });
 	std::map<uint32_t, uint32_t> skillBehaviorMap;
 	// For each skill, cast it with the associated behavior ID.
 	for (auto skill : skills) {
-		CDSkillBehaviorTable* skillBehaviorTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>();
+		CDSkillBehaviorTable* skillBehaviorTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 		CDSkillBehavior behaviorData = skillBehaviorTable->GetSkillByID(skill.skillID);
 
 		skillBehaviorMap.insert(std::make_pair(skill.skillID, behaviorData.behaviorID));

@@ -73,13 +73,14 @@
 #include "EntityManager.h"
 #include "RenderComponent.h"
 #include "DestroyableComponent.h"
+#include "CDBehaviorTemplateTable.h"
 
 std::unordered_map<uint32_t, Behavior*> Behavior::Cache = {};
 CDBehaviorParameterTable* Behavior::BehaviorParameterTable = nullptr;
 
 Behavior* Behavior::GetBehavior(const uint32_t behaviorId) {
 	if (BehaviorParameterTable == nullptr) {
-		BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>();
+		BehaviorParameterTable = CDClientManager::Instance().GetTable<CDBehaviorParameterTable>();
 	}
 
 	const auto pair = Cache.find(behaviorId);
@@ -290,7 +291,7 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 }
 
 BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
-	auto behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDBehaviorTemplateTable>();
+	auto behaviorTemplateTable = CDClientManager::Instance().GetTable<CDBehaviorTemplateTable>();
 
 	BehaviorTemplates templateID = BehaviorTemplates::BEHAVIOR_EMPTY;
 	// Find behavior template by its behavior id.  Default to 0.
@@ -398,7 +399,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 }
 
 Behavior::Behavior(const uint32_t behaviorId) {
-	auto behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDBehaviorTemplateTable>();
+	auto behaviorTemplateTable = CDClientManager::Instance().GetTable<CDBehaviorTemplateTable>();
 
 	CDBehaviorTemplate templateInDatabase{};
 
@@ -441,7 +442,7 @@ Behavior::Behavior(const uint32_t behaviorId) {
 
 float Behavior::GetFloat(const std::string& name, const float defaultValue) const {
 	// Get the behavior parameter entry and return its value.
-	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>();
+	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance().GetTable<CDBehaviorParameterTable>();
 	return BehaviorParameterTable->GetValue(this->m_behaviorId, name, defaultValue);
 }
 
@@ -469,7 +470,7 @@ Behavior* Behavior::GetAction(float value) const {
 std::map<std::string, float> Behavior::GetParameterNames() const {
 	std::map<std::string, float> templatesInDatabase;
 	// Find behavior template by its behavior id.
-	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>();
+	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance().GetTable<CDBehaviorParameterTable>();
 	if (BehaviorParameterTable) {
 		templatesInDatabase = BehaviorParameterTable->GetParametersByBehaviorID(this->m_behaviorId);
 	}

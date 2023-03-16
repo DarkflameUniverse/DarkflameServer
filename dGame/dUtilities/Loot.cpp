@@ -7,6 +7,8 @@
 #include "CDLootMatrixTable.h"
 #include "CDLootTableTable.h"
 #include "CDRarityTableTable.h"
+#include "CDActivityRewardsTable.h"
+#include "CDCurrencyTableTable.h"
 #include "Character.h"
 #include "Entity.h"
 #include "GameMessages.h"
@@ -17,11 +19,11 @@
 #include "eReplicaComponentType.h"
 
 LootGenerator::LootGenerator() {
-	CDLootTableTable* lootTableTable = CDClientManager::Instance()->GetTable<CDLootTableTable>();
-	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>();
-	CDLootMatrixTable* lootMatrixTable = CDClientManager::Instance()->GetTable<CDLootMatrixTable>();
-	CDRarityTableTable* rarityTableTable = CDClientManager::Instance()->GetTable<CDRarityTableTable>();
+	CDLootTableTable* lootTableTable = CDClientManager::Instance().GetTable<CDLootTableTable>();
+	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
+	CDLootMatrixTable* lootMatrixTable = CDClientManager::Instance().GetTable<CDLootMatrixTable>();
+	CDRarityTableTable* rarityTableTable = CDClientManager::Instance().GetTable<CDRarityTableTable>();
 
 	// ==============================
 	// Cache Item Rarities
@@ -292,7 +294,7 @@ void LootGenerator::GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& r
 }
 
 void LootGenerator::GiveActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating) {
-	CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>();
+	CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 
 	const CDActivityRewards* selectedReward = nullptr;
@@ -308,7 +310,7 @@ void LootGenerator::GiveActivityLoot(Entity* player, Entity* source, uint32_t ac
 	uint32_t minCoins = 0;
 	uint32_t maxCoins = 0;
 
-	CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>();
+	CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
 	std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([selectedReward](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
 
 	if (currencyTable.size() > 0) {
@@ -362,7 +364,7 @@ void LootGenerator::DropLoot(Entity* player, Entity* killedObject, std::unordere
 }
 
 void LootGenerator::DropActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating) {
-	CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>();
+	CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 
 	const CDActivityRewards* selectedReward = nullptr;
@@ -379,7 +381,7 @@ void LootGenerator::DropActivityLoot(Entity* player, Entity* source, uint32_t ac
 	uint32_t minCoins = 0;
 	uint32_t maxCoins = 0;
 
-	CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>();
+	CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
 	std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([selectedReward](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
 
 	if (currencyTable.size() > 0) {

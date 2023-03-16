@@ -14,15 +14,12 @@ struct CDMovementAIComponent {
 	std::string attachedPath;
 };
 
-class CDMovementAIComponentTable : public CDTable {
+class CDMovementAIComponentTable : public CDTable<CDMovementAIComponentTable> {
 private:
 	std::vector<CDMovementAIComponent> entries;
 
 public:
 	CDMovementAIComponentTable();
-
-	static const std::string GetTableName() { return "MovementAIComponent"; };
-
 	// Queries the table with a custom "where" clause
 	std::vector<CDMovementAIComponent> Query(std::function<bool(CDMovementAIComponent)> predicate);
 

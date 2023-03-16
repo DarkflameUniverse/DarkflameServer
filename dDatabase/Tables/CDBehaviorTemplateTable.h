@@ -13,16 +13,13 @@ struct CDBehaviorTemplate {
 };
 
 
-class CDBehaviorTemplateTable : public CDTable {
+class CDBehaviorTemplateTable : public CDTable<CDBehaviorTemplateTable> {
 private:
 	std::vector<CDBehaviorTemplate> entries;
 	std::unordered_map<uint32_t, CDBehaviorTemplate> entriesMappedByBehaviorID;
 	std::unordered_set<std::string> m_EffectHandles;
 public:
 	CDBehaviorTemplateTable();
-
-	static const std::string GetTableName() { return "BehaviorTemplate"; };
-
 	// Queries the table with a custom "where" clause
 	std::vector<CDBehaviorTemplate> Query(std::function<bool(CDBehaviorTemplate)> predicate);
 

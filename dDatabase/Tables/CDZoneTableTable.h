@@ -33,14 +33,12 @@ struct CDZoneTable {
 	UNUSED(bool mountsAllowed);                 //!< Whether or not mounts are allowed
 };
 
-class CDZoneTableTable : public CDTable {
+class CDZoneTableTable : public CDTable<CDZoneTableTable> {
 private:
 	std::map<unsigned int, CDZoneTable> m_Entries;
 
 public:
 	CDZoneTableTable();
-
-	static const std::string GetTableName() { return "ZoneTable"; };
 
 	// Queries the table with a zoneID to find.
 	const CDZoneTable* Query(unsigned int zoneID);

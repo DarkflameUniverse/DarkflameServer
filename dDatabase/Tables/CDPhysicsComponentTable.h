@@ -21,7 +21,7 @@ struct CDPhysicsComponent {
 	UNUSED(std::string gravityVolumeAsset);
 };
 
-class CDPhysicsComponentTable : public CDTable {
+class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable> {
 public:
 	CDPhysicsComponentTable();
 	~CDPhysicsComponentTable();

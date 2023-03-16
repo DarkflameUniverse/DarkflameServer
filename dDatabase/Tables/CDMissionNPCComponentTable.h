@@ -11,15 +11,12 @@ struct CDMissionNPCComponent {
 	std::string gate_version;  //!< The gate version
 };
 
-class CDMissionNPCComponentTable : public CDTable {
+class CDMissionNPCComponentTable : public CDTable<CDMissionNPCComponentTable> {
 private:
 	std::vector<CDMissionNPCComponent> entries;
 
 public:
 	CDMissionNPCComponentTable();
-
-	static const std::string GetTableName() { return "MissionNPCComponent"; };
-
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissionNPCComponent> Query(std::function<bool(CDMissionNPCComponent)> predicate);
 

@@ -20,15 +20,12 @@ struct CDAnimations {
 };
 
 
-class CDAnimationsTable : public CDTable {
+class CDAnimationsTable : public CDTable<CDAnimationsTable> {
 private:
 	std::vector<CDAnimations> entries;
 
 public:
 	CDAnimationsTable();
-
-	static const std::string GetTableName() { return "Animations"; };
-
 	// Queries the table with a custom "where" clause
 	std::vector<CDAnimations> Query(std::function<bool(CDAnimations)> predicate);
 

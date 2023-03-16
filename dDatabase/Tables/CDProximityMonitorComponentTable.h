@@ -10,15 +10,12 @@ struct CDProximityMonitorComponent {
 	bool LoadOnServer;
 };
 
-class CDProximityMonitorComponentTable : public CDTable {
+class CDProximityMonitorComponentTable : public CDTable<CDProximityMonitorComponentTable> {
 private:
 	std::vector<CDProximityMonitorComponent> entries;
 
 public:
 	CDProximityMonitorComponentTable(void);
-
-	static const std::string GetTableName() { return "ProximityMonitorComponent"; };
-
 	//! Queries the table with a custom "where" clause
 	std::vector<CDProximityMonitorComponent> Query(std::function<bool(CDProximityMonitorComponent)> predicate);
 

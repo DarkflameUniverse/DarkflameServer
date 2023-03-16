@@ -9,15 +9,12 @@ struct CDLevelProgressionLookup {
 	std::string BehaviorEffect;    //!< The behavior effect attached to this
 };
 
-class CDLevelProgressionLookupTable : public CDTable {
+class CDLevelProgressionLookupTable : public CDTable<CDLevelProgressionLookupTable> {
 private:
 	std::vector<CDLevelProgressionLookup> entries;
 
 public:
 	CDLevelProgressionLookupTable();
-
-	static const std::string GetTableName() { return "LevelProgressionLookup"; };
-
 	// Queries the table with a custom "where" clause
 	std::vector<CDLevelProgressionLookup> Query(std::function<bool(CDLevelProgressionLookup)> predicate);
 

@@ -19,15 +19,12 @@ struct CDMissionTasks {
 	UNUSED(std::string gate_version);  //!< ???
 };
 
-class CDMissionTasksTable : public CDTable {
+class CDMissionTasksTable : public CDTable<CDMissionTasksTable> {
 private:
 	std::vector<CDMissionTasks> entries;
 
 public:
 	CDMissionTasksTable();
-
-	static const std::string GetTableName() { return "MissionTasks"; };
-
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissionTasks> Query(std::function<bool(CDMissionTasks)> predicate);
 

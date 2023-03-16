@@ -9,16 +9,13 @@ struct CDScriptComponent {
 	std::string client_script_name;    //!< The client script name
 };
 
-class CDScriptComponentTable : public CDTable {
+class CDScriptComponentTable : public CDTable<CDScriptComponentTable> {
 private:
 	std::map<unsigned int, CDScriptComponent> entries;
 	CDScriptComponent m_ToReturnWhenNoneFound;
 
 public:
 	CDScriptComponentTable();
-
-	static const std::string GetTableName() { return "ScriptComponent"; };
-
 	// Gets an entry by scriptID
 	const CDScriptComponent& GetByID(unsigned int id);
 };

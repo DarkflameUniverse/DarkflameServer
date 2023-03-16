@@ -20,7 +20,7 @@ struct CDRailActivatorComponent {
 	bool showNameBillboard;
 };
 
-class CDRailActivatorComponentTable : public CDTable {
+class CDRailActivatorComponentTable : public CDTable<CDRailActivatorComponentTable> {
 public:
 	CDRailActivatorComponentTable();
 	static const std::string GetTableName() { return "RailActivatorComponent"; };

@@ -9,15 +9,12 @@ struct CDPackageComponent {
 	unsigned int packageType;
 };
 
-class CDPackageComponentTable : public CDTable {
+class CDPackageComponentTable : public CDTable<CDPackageComponentTable> {
 private:
 	std::vector<CDPackageComponent> entries;
 
 public:
 	CDPackageComponentTable(void);
-
-	static const std::string GetTableName() { return "PackageComponent"; };
-
 	// Queries the table with a custom "where" clause
 	std::vector<CDPackageComponent> Query(std::function<bool(CDPackageComponent)> predicate);
 

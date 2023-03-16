@@ -15,15 +15,12 @@ struct CDLootMatrix {
 	UNUSED(std::string gate_version);          //!< The Gate Version
 };
 
-class CDLootMatrixTable : public CDTable {
+class CDLootMatrixTable : public CDTable<CDLootMatrixTable> {
 private:
 	std::vector<CDLootMatrix> entries;
 
 public:
 	CDLootMatrixTable();
-
-	static const std::string GetTableName() { return "LootMatrix"; };
-
 	// Queries the table with a custom "where" clause
 	std::vector<CDLootMatrix> Query(std::function<bool(CDLootMatrix)> predicate);
 

@@ -13,15 +13,12 @@ struct CDActivityRewards {
 	std::string description;            //!< The description
 };
 
-class CDActivityRewardsTable : public CDTable {
+class CDActivityRewardsTable : public CDTable<CDActivityRewardsTable> {
 private:
 	std::vector<CDActivityRewards> entries;
 
 public:
 	CDActivityRewardsTable();
-
-	static const std::string GetTableName() { return "ActivityRewards"; };
-
 	// Queries the table with a custom "where" clause
 	std::vector<CDActivityRewards> Query(std::function<bool(CDActivityRewards)> predicate);
 

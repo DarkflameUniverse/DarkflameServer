@@ -8,7 +8,7 @@ struct CDPropertyTemplate {
 	std::string spawnName;
 };
 
-class CDPropertyTemplateTable : public CDTable {
+class CDPropertyTemplateTable : public CDTable<CDPropertyTemplateTable> {
 public:
 	CDPropertyTemplateTable();
 

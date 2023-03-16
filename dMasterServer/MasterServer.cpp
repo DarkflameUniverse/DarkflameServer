@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
 
 	//Get CDClient initial information
 	try {
-		CDClientManager::Instance()->Initialize();
+		CDClientManager::Instance();
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database");
 		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());

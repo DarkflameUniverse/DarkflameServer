@@ -11,7 +11,7 @@ struct CDRewards {
 	int32_t count;
 };
 
-class CDRewardsTable : public CDTable {
+class CDRewardsTable : public CDTable<CDRewardsTable> {
 public:
 	CDRewardsTable();
 	~CDRewardsTable();

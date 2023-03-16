@@ -6,6 +6,8 @@
 #include "dLogger.h"
 #include "CDClientManager.h"
 
+#include "CDPropertyTemplateTable.h"
+
 void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) const {
 	stream.Write<int64_t>(0); // - property id
 
@@ -101,7 +103,7 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 }
 
 GameMessages::PropertyDataMessage::PropertyDataMessage(uint32_t mapID) {
-	const auto propertyTemplate = CDClientManager::Instance()->GetTable<CDPropertyTemplateTable>()->GetByMapID(mapID);
+	const auto propertyTemplate = CDClientManager::Instance().GetTable<CDPropertyTemplateTable>()->GetByMapID(mapID);
 
 	TemplateID = propertyTemplate.id;
 	ZoneId = propertyTemplate.mapID;
