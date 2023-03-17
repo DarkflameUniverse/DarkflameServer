@@ -53,14 +53,6 @@ CDZoneTableTable::CDZoneTableTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDZoneTableTable::~CDZoneTableTable(void) {}
-
-//! Returns the table's name
-std::string CDZoneTableTable::GetName(void) const {
-	return "ZoneTable";
-}
-
 //! Queries the table with a zoneID to find.
 const CDZoneTable* CDZoneTableTable::Query(unsigned int zoneID) {
 	const auto& iter = m_Entries.find(zoneID);

@@ -51,24 +51,8 @@ CDSkillBehaviorTable::CDSkillBehaviorTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDSkillBehaviorTable::~CDSkillBehaviorTable(void) {}
-
-//! Returns the table's name
-std::string CDSkillBehaviorTable::GetName(void) const {
-	return "SkillBehavior";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDSkillBehavior> CDSkillBehaviorTable::Query(std::function<bool(CDSkillBehavior)> predicate) {
-
-	/*std::vector<CDSkillBehavior> data = cpplinq::from(this->entries)
-	>> cpplinq::where(predicate)
-	>> cpplinq::to_vector();
-
-	return data;*/
-
-	//Logger::LogDebug("CDSkillBehaviorTable", "The 'Query' function is no longer working! Please use GetSkillByID instead!");
 	std::vector<CDSkillBehavior> data; //So MSVC shuts up
 	return data;
 }
