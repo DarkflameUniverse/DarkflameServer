@@ -16,9 +16,6 @@
  // Enable this to cache all entries in each table for fast access, comes with more memory cost
  //#define CDCLIENT_CACHE_ALL
 
- // Enable this to skip some unused columns in some tables
-#define UNUSED(v)
-
 /*!
   \file CDClientDatabase.hpp
   \brief An interface between the CDClient.sqlite file and the server

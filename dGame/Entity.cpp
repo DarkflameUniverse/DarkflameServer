@@ -592,8 +592,9 @@ void Entity::Initialize() {
 		m_Components.insert(std::make_pair(eReplicaComponentType::BOUNCER, comp));
 	}
 
-	if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RENDER) > 0 && m_TemplateID != 2365) || m_Character) {
-		RenderComponent* render = new RenderComponent(this);
+	int32_t renderaComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RENDER);
+	if ((renderaComponentId > 0 && m_TemplateID != 2365) || m_Character) {
+		RenderComponent* render = new RenderComponent(this, renderaComponentId);
 		m_Components.insert(std::make_pair(eReplicaComponentType::RENDER, render));
 	}
 

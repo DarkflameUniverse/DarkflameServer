@@ -14,6 +14,7 @@
 #include "GameMessages.h"
 #include "SkillComponent.h"
 #include "eReplicaComponentType.h"
+#include "RenderComponent.h"
 
 #include <vector>
 
@@ -695,11 +696,11 @@ float BossSpiderQueenEnemyServer::PlayAnimAndReturnTime(Entity* self, const std:
 	//TODO: Get the actual animation time
 
 	// Get the anim time
-	float animTimer = defaultAnimPause; //self:GetAnimationTime{animationID = animID}.time
+	float animTimer = RenderComponent::GetAnimationTime(self, animID);
 
 	// If we have an animation play it
 	if (animTimer > 0) {
-		GameMessages::SendPlayAnimation(self, animID);
+		animTimer = RenderComponent::PlayAnimation(self, animID);
 	}
 
 	// If the anim time is less than the the default time use default

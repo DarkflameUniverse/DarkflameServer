@@ -22,7 +22,7 @@
 #include "Database.h"
 #include "EntityInfo.h"
 #include "eMissionTaskType.h"
-
+#include "RenderComponent.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -525,7 +525,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	}
 
 	GameMessages::SendPlayFXEffect(tamer, -1, u"petceleb", "", LWOOBJID_EMPTY, 1, 1, true);
-	GameMessages::SendPlayAnimation(tamer, u"rebuild-celebrate");
+	RenderComponent::PlayAnimation(tamer, u"rebuild-celebrate");
 
 	EntityInfo info{};
 	info.lot = cached->second.puzzleModelLot;

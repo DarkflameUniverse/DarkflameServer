@@ -1,5 +1,7 @@
 #include "GfOrgan.h"
 #include "GameMessages.h"
+#include "Entity.h"
+#include "RenderComponent.h"
 
 void GfOrgan::OnUse(Entity* self, Entity* user) {
 	if (self->GetBoolean(u"bIsInUse")) {
@@ -11,7 +13,7 @@ void GfOrgan::OnUse(Entity* self, Entity* user) {
 	self->SetBoolean(u"bIsInUse", true);
 	self->AddTimer("reset", 5.0f);
 
-	GameMessages::SendPlayAnimation(user, u"jig");
+	RenderComponent::PlayAnimation(user, u"jig");
 }
 
 void GfOrgan::OnTimerDone(Entity* self, std::string timerName) {

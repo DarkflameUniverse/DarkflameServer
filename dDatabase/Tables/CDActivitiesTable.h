@@ -1,38 +1,37 @@
 #pragma once
 
-// Custom Classes
 #include "CDTable.h"
 
+typedef uint32_t ActivityID;
+
 struct CDActivities {
-	unsigned int ActivityID;
-	unsigned int locStatus;
-	unsigned int instanceMapID;
-	unsigned int minTeams;
-	unsigned int maxTeams;
-	unsigned int minTeamSize;
-	unsigned int maxTeamSize;
-	unsigned int waitTime;
-	unsigned int startDelay;
-	bool requiresUniqueData;
-	unsigned int leaderboardType;
-	bool localize;
-	int optionalCostLOT;
-	int optionalCostCount;
-	bool showUIRewards;
-	unsigned int CommunityActivityFlagID;
-	std::string gate_version;
+	UNUSED_COLUMN(uint32_t locStatus);
+	uint32_t instanceMapID;
+	uint32_t minTeams;
+	uint32_t maxTeams;
+	uint32_t minTeamSize;
+	uint32_t maxTeamSize;
+	uint32_t waitTime;
+	uint32_t startDelay;
+	UNUSED_COLUMN(bool requiresUniqueData);
+	uint32_t leaderboardType;
+	UNUSED_COLUMN(bool localize);
+	int32_t optionalCostLOT;
+	int32_t optionalCostCount;
+	UNUSED_COLUMN(bool showUIRewards);
+	UNUSED_COLUMN(uint32_t CommunityActivityFlagID);
+	UNUSED_COLUMN(std::string gate_version);
 	bool noTeamLootOnDeath;
-	float optionalPercentage;
+	UNUSED_COLUMN(float optionalPercentage);
 };
+typedef LookupResult<CDActivities> CDActivitiesResult;
 
 class CDActivitiesTable : public CDTable<CDActivitiesTable> {
 private:
-	std::vector<CDActivities> entries;
+	std::map<ActivityID, CDActivities> entries;
 
 public:
 	CDActivitiesTable();
 	// Queries the table with a custom "where" clause
-	std::vector<CDActivities> Query(std::function<bool(CDActivities)> predicate);
-
-	std::vector<CDActivities> GetEntries(void) const;
+	CDActivitiesResult GetActivity(ActivityID predicate);
 };

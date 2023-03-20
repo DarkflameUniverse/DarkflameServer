@@ -15,13 +15,18 @@
 
 #include "CDActivitiesTable.h"
 
+class ScriptedActivityComponent;
+
  /**
   * Represents an instance of an activity, having participants and score
   */
 class ActivityInstance {
 public:
-	ActivityInstance(Entity* parent, CDActivities activityInfo) { m_Parent = parent; m_ActivityInfo = activityInfo; };
-	//~ActivityInstance();
+	ActivityInstance(Entity* parent, ScriptedActivityComponent* parentComponent, CDActivities activityInfo) {
+		m_Parent = parent;
+		m_OwningComponent = parentComponent;
+		m_ActivityInfo = activityInfo;
+	};
 
 	/**
 	 * Adds an entity to this activity
@@ -87,6 +92,11 @@ private:
 	 * The entity that owns this activity (the entity that has the ScriptedActivityComponent)
 	 */
 	Entity* m_Parent;
+
+	/**
+	 * The component that owns this activity (the ScriptedActivityComponent)
+	 */
+	ScriptedActivityComponent* m_OwningComponent;
 
 	/**
 	 * All the participants of this activity
@@ -212,7 +222,7 @@ public:
 	 * Returns the ID of this activity
 	 * @return the ID of this activity
 	 */
-	int GetActivityID() { return m_ActivityInfo.ActivityID; }
+	int GetActivityID() { return m_ActivityID; }
 
 	/**
 	 * Returns if this activity has a lobby, e.g. if it needs to instance players to some other map

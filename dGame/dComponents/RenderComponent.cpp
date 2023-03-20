@@ -11,72 +11,34 @@
 #include "GameMessages.h"
 #include "Game.h"
 #include "dLogger.h"
+#include "CDAnimationsTable.h"
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
 
-RenderComponent::RenderComponent(Entity* parent) : Component(parent) {
+RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component(parent) {
 	m_Effects = std::vector<Effect*>();
+	m_LastAnimationName = "";
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM RenderComponent WHERE id = ?;");
+	query.bind(1, componentId);
+	auto result = query.execQuery();
 
-	return;
-
-	/*
-	auto* table = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-
-	const auto entry = table->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::RENDER);
-
-	std::stringstream query;
-
-	query << "SELECT effect1, effect2, effect3, effect4, effect5, effect6 FROM RenderComponent WHERE id = " << std::to_string(entry) << ";";
-
-	auto result = CDClientDatabase::ExecuteQuery(query.str());
-
-	if (result.eof())
-	{
-		return;
-	}
-
-	for (auto i = 0; i < 6; ++i)
-	{
-		if (result.fieldIsNull(i))
-		{
-			continue;
-		}
-
-		const auto id = result.getIntField(i);
-
-		if (id <= 0)
-		{
-			continue;
-		}
-
-		query.clear();
-
-		query << "SELECT effectType, effectName FROM BehaviorEffect WHERE effectID = " << std::to_string(id) << ";";
-
-		auto effectResult = CDClientDatabase::ExecuteQuery(query.str());
-
-		while (!effectResult.eof())
-		{
-			const auto type = effectResult.fieldIsNull(0) ? "" : std::string(effectResult.getStringField(0));
-
-			const auto name = effectResult.fieldIsNull(1) ? "" : std::string(effectResult.getStringField(1));
-
-			auto* effect = new Effect();
-
-			effect->name = name;
-			effect->type = GeneralUtils::ASCIIToUTF16(type);
-			effect->scale = 1;
-			effect->effectID = id;
-			effect->secondary = LWOOBJID_EMPTY;
-
-			m_Effects.push_back(effect);
-
-			effectResult.nextRow();
+	if (!result.eof()) {
+		auto animationGroupIDs = std::string(result.getStringField("animationGroupIDs", ""));
+		if (!animationGroupIDs.empty()) {
+			auto* animationsTable = CDClientManager::Instance().GetTable<CDAnimationsTable>();
+			auto groupIdsSplit = GeneralUtils::SplitString(animationGroupIDs, ',');
+			for (auto& groupId : groupIdsSplit) {
+				int32_t groupIdInt;
+				if (!GeneralUtils::TryParse(groupId, groupIdInt)) {
+					Game::logger->Log("RenderComponent", "bad animation group Id %s", groupId.c_str());
+					continue;
+				}
+				m_animationGroupIds.push_back(groupIdInt);
+				animationsTable->CacheAnimationGroup(groupIdInt);
+			}
 		}
 	}
-
 	result.finalize();
-	*/
 }
 
 RenderComponent::~RenderComponent() {
@@ -223,4 +185,48 @@ void RenderComponent::StopEffect(const std::string& name, const bool killImmedia
 
 std::vector<Effect*>& RenderComponent::GetEffects() {
 	return m_Effects;
+}
+
+
+float RenderComponent::PlayAnimation(Entity* self, const std::u16string& animation, float priority, float scale) {
+	if (!self) return 0.0f;
+	return RenderComponent::PlayAnimation(self, GeneralUtils::UTF16ToWTF8(animation), priority, scale);
+}
+
+float RenderComponent::PlayAnimation(Entity* self, const std::string& animation, float priority, float scale) {
+	if (!self) return 0.0f;
+	return RenderComponent::DoAnimation(self, animation, true, priority, scale);
+}
+
+float RenderComponent::GetAnimationTime(Entity* self, const std::u16string& animation) {
+	if (!self) return 0.0f;
+	return RenderComponent::GetAnimationTime(self, GeneralUtils::UTF16ToWTF8(animation));
+}
+
+float RenderComponent::GetAnimationTime(Entity* self, const std::string& animation) {
+	if (!self) return 0.0f;
+	return RenderComponent::DoAnimation(self, animation, false);
+}
+
+
+float RenderComponent::DoAnimation(Entity* self, const std::string& animation, bool sendAnimation, float priority, float scale) {
+	if (!self) return 0.0f;
+	auto* renderComponent = self->GetComponent<RenderComponent>();
+	if (!renderComponent) return 0.0f;
+
+	Game::logger->Log("RenderComponent", "looking up animation %s playing anim %i priority %f scale %f", animation.c_str(), sendAnimation, priority, scale);
+	auto* animationsTable = CDClientManager::Instance().GetTable<CDAnimationsTable>();
+	for (auto& groupId : renderComponent->m_animationGroupIds) {
+		Game::logger->Log("RenderComponent", "checking id %i with previous being %s", groupId, renderComponent->GetLastAnimationName().c_str());
+		auto animationGroup = animationsTable->GetAnimation(animation, renderComponent->GetLastAnimationName(), groupId);
+		if (animationGroup.FoundData()) {
+			auto data = animationGroup.Data();
+			Game::logger->Log("RenderComponent", "animation %s priority %f length %f", data.animation_name.c_str(), data.priority, data.animation_length);
+			if (sendAnimation) GameMessages::SendPlayAnimation(self, GeneralUtils::ASCIIToUTF16(animation), priority, scale);
+			renderComponent->SetLastAnimationName(data.animation_name);
+			return data.animation_length;
+		}
+	}
+	Game::logger->Log("RenderComponent", "unable to find animation %s for lot %i", animation.c_str(), self->GetLOT());
+	return 0.0f;
 }

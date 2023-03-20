@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "GeneralUtils.h"
+#include "RenderComponent.h"
 
 void FvFlyingCreviceDragon::OnStartup(Entity* self) {
 	self->AddTimer("waypoint", 5);
@@ -67,10 +68,10 @@ void FvFlyingCreviceDragon::OnArrived(Entity* self) {
 	auto point = self->GetVar<int32_t>(u"waypoint");
 
 	if (point == 4) {
-		GameMessages::SendPlayAnimation(self, u"attack1", 2);
+		RenderComponent::PlayAnimation(self, u"attack1", 2.0f);
 		self->AddTimer("platform1attack", 1.75f);
 	} else if (point == 12) {
-		GameMessages::SendPlayAnimation(self, u"attack2", 2);
+		RenderComponent::PlayAnimation(self, u"attack2", 2.0f);
 
 		const auto& group2 = EntityManager::Instance()->GetEntitiesInGroup("dragonFireballs2");
 
@@ -101,7 +102,7 @@ void FvFlyingCreviceDragon::OnArrived(Entity* self) {
 			}
 		}
 	} else if (point == 16) {
-		GameMessages::SendPlayAnimation(self, u"attack3", 2);
+		RenderComponent::PlayAnimation(self, u"attack3", 2.0f);
 		self->AddTimer("platform3attack", 0.5f);
 	}
 }

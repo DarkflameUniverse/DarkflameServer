@@ -1,56 +1,84 @@
 #include "CDAnimationsTable.h"
+#include "GeneralUtils.h"
+#include "Game.h"
 
-CDAnimationsTable::CDAnimationsTable(void) {
+bool CDAnimationsTable::CacheData(CppSQLite3Statement queryToCache) {
+	auto tableData = queryToCache.execQuery();
+	// If we received a bad lookup, cache it anyways so we do not run the query again.
+	if (tableData.eof()) return false;
 
-	// First, get the size of the table
-	unsigned int size = 0;
-	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Animations");
-	while (!tableSize.eof()) {
-		size = tableSize.getIntField(0, 0);
+	do {
+		std::string animation_type = tableData.getStringField("animation_type", "");
+		DluAssert(!animation_type.empty());
+		AnimationGroupID animationGroupID = tableData.getIntField("animationGroupID", -1);
+		DluAssert(animationGroupID != -1);
 
-		tableSize.nextRow();
-	}
-
-	tableSize.finalize();
-
-	// Reserve the size
-	this->entries.reserve(size);
-
-	// Now get the data
-	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Animations");
-	while (!tableData.eof()) {
-		CDAnimations entry;
-		entry.animationGroupID = tableData.getIntField("animationGroupID", -1);
-		entry.animation_type = tableData.getStringField("animation_type", "");
+		CDAnimation entry;
 		entry.animation_name = tableData.getStringField("animation_name", "");
-		entry.chance_to_play = tableData.getFloatField("chance_to_play", -1.0f);
-		entry.min_loops = tableData.getIntField("min_loops", -1);
-		entry.max_loops = tableData.getIntField("max_loops", -1);
-		entry.animation_length = tableData.getFloatField("animation_length", -1.0f);
-		entry.hideEquip = tableData.getIntField("hideEquip", -1) == 1 ? true : false;
-		entry.ignoreUpperBody = tableData.getIntField("ignoreUpperBody", -1) == 1 ? true : false;
-		entry.restartable = tableData.getIntField("restartable", -1) == 1 ? true : false;
+		entry.chance_to_play = tableData.getFloatField("chance_to_play", 1.0f);
+		entry.min_loops = tableData.getIntField("min_loops", 0);
+		entry.max_loops = tableData.getIntField("max_loops", 0);
+		entry.animation_length = tableData.getFloatField("animation_length", 0.0f);
+		entry.hideEquip = tableData.getIntField("hideEquip", 0) == 1;
+		entry.ignoreUpperBody = tableData.getIntField("ignoreUpperBody", 0) == 1;
+		entry.restartable = tableData.getIntField("restartable", 0) == 1;
 		entry.face_animation_name = tableData.getStringField("face_animation_name", "");
-		entry.priority = tableData.getFloatField("priority", -1.0f);
-		entry.blendTime = tableData.getFloatField("blendTime", -1.0f);
+		entry.priority = tableData.getFloatField("priority", 0.0f);
+		entry.blendTime = tableData.getFloatField("blendTime", 0.0f);
 
-		this->entries.push_back(entry);
+		this->animations[CDAnimationKey(animation_type, animationGroupID)].push_back(entry);
 		tableData.nextRow();
-	}
+	} while (!tableData.eof());
 
 	tableData.finalize();
+
+	return true;
 }
 
-std::vector<CDAnimations> CDAnimationsTable::Query(std::function<bool(CDAnimations)> predicate) {
-
-	std::vector<CDAnimations> data = cpplinq::from(this->entries)
-		>> cpplinq::where(predicate)
-		>> cpplinq::to_vector();
-
-	return data;
+void CDAnimationsTable::CacheAnimations(const CDAnimationKey animationKey) {
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM Animations WHERE animationGroupID = ? and animation_type = ?");
+	query.bind(1, static_cast<int32_t>(animationKey.second));
+	query.bind(2, animationKey.first.c_str());
+	// If we received a bad lookup, cache it anyways so we do not run the query again.
+	if (!CacheData(query)) {
+		this->animations[animationKey];
+	}
 }
 
-std::vector<CDAnimations> CDAnimationsTable::GetEntries(void) const {
-	return this->entries;
+void CDAnimationsTable::CacheAnimationGroup(AnimationGroupID animationGroupID) {
+	auto animationEntryCached = this->animations.find(CDAnimationKey("", animationGroupID));
+	if (animationEntryCached != this->animations.end()) {
+		return;
+	}
+
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM Animations WHERE animationGroupID = ?");
+	query.bind(1, static_cast<int32_t>(animationGroupID));
+
+	// Cache the query so we don't run the query again.
+	CacheData(query);
+	this->animations[CDAnimationKey("", animationGroupID)];
 }
 
+CDAnimationLookupResult CDAnimationsTable::GetAnimation(const AnimationID& animationType, const std::string& previousAnimationName, const AnimationGroupID animationGroupID) {
+	CDAnimationKey animationKey(animationType, animationGroupID);
+	auto randomAnimation = GeneralUtils::GenerateRandomNumber<float>(0, 1);
+	auto animationEntryCached = this->animations.find(animationKey);
+	if (animationEntryCached == this->animations.end()) {
+		this->CacheAnimations(animationKey);
+	}
+
+	auto animationEntry = this->animations.find(animationKey);
+
+	// If we have only one animation, return it regardless of the chance to play.
+	if (animationEntry->second.size() == 1) {
+		return CDAnimationLookupResult(animationEntry->second.front());
+	}
+
+	for (auto& animationEntry : animationEntry->second) {
+		randomAnimation -= animationEntry.chance_to_play;
+		// This is how the client gets the random animation.
+		if (animationEntry.animation_name != previousAnimationName && randomAnimation <= 0.0f) return CDAnimationLookupResult(animationEntry);
+	}
+
+	return CDAnimationLookupResult();
+}

@@ -29,7 +29,7 @@ CDLootMatrixTable::CDLootMatrixTable(void) {
 		entry.maxToDrop = tableData.getIntField("maxToDrop", -1);
 		entry.id = tableData.getIntField("id", -1);
 		entry.flagID = tableData.getIntField("flagID", -1);
-		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
+		UNUSED_COLUMN(entry.gate_version = tableData.getStringField("gate_version", ""));
 
 		this->entries.push_back(entry);
 		tableData.nextRow();

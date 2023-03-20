@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
+#include "RenderComponent.h"
 
 void NtParadoxTeleServer::OnStartup(Entity* self) {
 	self->SetProximityRadius(5, "teleport");
@@ -27,7 +28,7 @@ void NtParadoxTeleServer::OnProximityUpdate(Entity* self, Entity* entering, std:
 			true, true, true, true, true, true, true
 		);
 
-		GameMessages::SendPlayAnimation(player, u"teledeath", 4.0f);
+		RenderComponent::PlayAnimation(player, u"teledeath", 4.0f);
 
 		const auto animTime = 2;
 
@@ -73,7 +74,7 @@ void NtParadoxTeleServer::TeleportPlayer(Entity* self, Entity* player) {
 
 	GameMessages::SendTeleport(player->GetObjectID(), destPosition, destRotation, player->GetSystemAddress(), true);
 
-	GameMessages::SendPlayAnimation(player, u"paradox-teleport-in", 4.0f);
+	RenderComponent::PlayAnimation(player, u"paradox-teleport-in", 4.0f);
 
 	const auto animTime = 2;
 

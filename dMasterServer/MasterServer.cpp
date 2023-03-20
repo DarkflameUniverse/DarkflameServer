@@ -49,6 +49,7 @@ namespace Game {
 	dConfig* config = nullptr;
 	AssetManager* assetManager = nullptr;
 	bool shouldShutdown = false;
+	std::mt19937 randomEngine;
 } //namespace Game
 
 bool shutdownSequenceStarted = false;
@@ -290,6 +291,7 @@ int main(int argc, char** argv) {
 		return EXIT_SUCCESS;
 	}
 
+	Game::randomEngine = std::mt19937(time(0));
 	uint32_t maxClients = 999;
 	uint32_t ourPort = 1000;
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
@@ -332,8 +334,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("prestart_servers") != "" && Game::config->GetValue("prestart_servers") == "1") {
 		StartChatServer();
 
-		Game::im->GetInstance(0, false, 0);
-		Game::im->GetInstance(1000, false, 0);
+		Game::im->GetInstance(1800, false, 0);
 
 		StartAuthServer();
 	}

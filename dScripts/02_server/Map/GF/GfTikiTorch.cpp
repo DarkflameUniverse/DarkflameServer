@@ -5,6 +5,7 @@
 #include "RenderComponent.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
+#include "RenderComponent.h"
 
 void GfTikiTorch::OnStartup(Entity* self) {
 	LightTorch(self);
@@ -16,7 +17,7 @@ void GfTikiTorch::OnUse(Entity* self, Entity* killer) {
 		return;
 	}
 
-	GameMessages::SendPlayAnimation(self, u"interact");
+	RenderComponent::PlayAnimation(self, u"interact");
 	self->SetI64(u"userID", killer->GetObjectID());
 
 	for (int i = 0; i < m_numspawn; i++) {
@@ -55,7 +56,7 @@ void GfTikiTorch::LightTorch(Entity* self) {
 
 void GfTikiTorch::OnSkillEventFired(Entity* self, Entity* caster, const std::string& message) {
 	if (self->GetBoolean(u"isBurning") && message == "waterspray") {
-		GameMessages::SendPlayAnimation(self, u"water");
+		RenderComponent::PlayAnimation(self, u"water");
 
 		auto* renderComponent = self->GetComponent<RenderComponent>();
 		if (renderComponent != nullptr) {

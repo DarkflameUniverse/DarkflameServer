@@ -22,18 +22,18 @@ CDMissionTasksTable::CDMissionTasksTable(void) {
 	while (!tableData.eof()) {
 		CDMissionTasks entry;
 		entry.id = tableData.getIntField("id", -1);
-		UNUSED(entry.locStatus = tableData.getIntField("locStatus", -1));
+		UNUSED_COLUMN(entry.locStatus = tableData.getIntField("locStatus", -1));
 		entry.taskType = tableData.getIntField("taskType", -1);
 		entry.target = tableData.getIntField("target", -1);
 		entry.targetGroup = tableData.getStringField("targetGroup", "");
 		entry.targetValue = tableData.getIntField("targetValue", -1);
 		entry.taskParam1 = tableData.getStringField("taskParam1", "");
-		UNUSED(entry.largeTaskIcon = tableData.getStringField("largeTaskIcon", ""));
-		UNUSED(entry.IconID = tableData.getIntField("IconID", -1));
+		UNUSED_COLUMN(entry.largeTaskIcon = tableData.getStringField("largeTaskIcon", ""));
+		UNUSED_COLUMN(entry.IconID = tableData.getIntField("IconID", -1));
 		entry.uid = tableData.getIntField("uid", -1);
-		UNUSED(entry.largeTaskIconID = tableData.getIntField("largeTaskIconID", -1));
-		UNUSED(entry.localize = tableData.getIntField("localize", -1) == 1 ? true : false);
-		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
+		UNUSED_COLUMN(entry.largeTaskIconID = tableData.getIntField("largeTaskIconID", -1));
+		UNUSED_COLUMN(entry.localize = tableData.getIntField("localize", -1) == 1 ? true : false);
+		UNUSED_COLUMN(entry.gate_version = tableData.getStringField("gate_version", ""));
 
 		this->entries.push_back(entry);
 		tableData.nextRow();

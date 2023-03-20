@@ -6,6 +6,7 @@
 #include "EntityInfo.h"
 #include "SkillComponent.h"
 #include "eAninmationFlags.h"
+#include "RenderComponent.h"
 
 void BaseEnemyApe::OnStartup(Entity* self) {
 	self->SetVar<uint32_t>(u"timesStunned", 2);
@@ -37,7 +38,7 @@ void BaseEnemyApe::OnHit(Entity* self, Entity* attacker) {
 		if (skillComponent) {
 			skillComponent->Reset();
 		}
-		GameMessages::SendPlayAnimation(self, u"disable", 1.7f);
+		RenderComponent::PlayAnimation(self, u"disable", 1.7f);
 		GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_NONE, eAnimationFlags::IDLE_COMBAT, UNASSIGNED_SYSTEM_ADDRESS);
 		const auto reviveTime = self->GetVar<float_t>(u"reviveTime") != 0.0f
 			? self->GetVar<float_t>(u"reviveTime") : 12.0f;

@@ -4,13 +4,13 @@
 #include "CDTable.h"
 
 struct CDActivityRewards {
-	unsigned int objectTemplate;        //!< The object template (?)
-	unsigned int ActivityRewardIndex;   //!< The activity reward index
-	int activityRating;                 //!< The activity rating
-	unsigned int LootMatrixIndex;       //!< The loot matrix index
-	unsigned int CurrencyIndex;         //!< The currency index
-	unsigned int ChallengeRating;       //!< The challenge rating
-	std::string description;            //!< The description
+	unsigned int objectTemplate;
+	unsigned int ActivityRewardIndex;
+	int activityRating;
+	unsigned int LootMatrixIndex;
+	unsigned int CurrencyIndex;
+	unsigned int ChallengeRating;
+	std::string description;
 };
 
 class CDActivityRewardsTable : public CDTable<CDActivityRewardsTable> {

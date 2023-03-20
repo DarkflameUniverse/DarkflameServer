@@ -15,6 +15,7 @@
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
+#include "RenderComponent.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	Game::logger->Log("SGCannon", "OnStartup");
@@ -508,17 +509,17 @@ void SGCannon::RecordPlayerScore(Entity* self) {
 
 void SGCannon::PlaySceneAnimation(Entity* self, const std::u16string& animationName, bool onCannon, bool onPlayer, float_t priority) {
 	for (auto* cannon : EntityManager::Instance()->GetEntitiesInGroup("cannongroup")) {
-		GameMessages::SendPlayAnimation(cannon, animationName, priority);
+		RenderComponent::PlayAnimation(cannon, animationName, priority);
 	}
 
 	if (onCannon) {
-		GameMessages::SendPlayAnimation(self, animationName, priority);
+		RenderComponent::PlayAnimation(self, animationName, priority);
 	}
 
 	if (onPlayer) {
 		auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 		if (player != nullptr) {
-			GameMessages::SendPlayAnimation(player, animationName, priority);
+			RenderComponent::PlayAnimation(player, animationName, priority);
 		}
 	}
 }

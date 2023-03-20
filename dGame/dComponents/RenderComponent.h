@@ -58,7 +58,7 @@ class RenderComponent : public Component {
 public:
 	static const eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
 
-	RenderComponent(Entity* entity);
+	RenderComponent(Entity* entity, int32_t componentId = -1);
 	~RenderComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
@@ -104,12 +104,27 @@ public:
 	 */
 	std::vector<Effect*>& GetEffects();
 
+	static float DoAnimation(Entity* self, const std::string& animation, bool sendAnimation, float priority = 0.0f, float scale = 1.0f);
+
+	static float PlayAnimation(Entity* self, const std::u16string& animation, float priority = 0.0f, float scale = 1.0f);
+	static float PlayAnimation(Entity* self, const std::string& animation, float priority = 0.0f, float scale = 1.0f);
+	static float GetAnimationTime(Entity* self, const std::string& animation);
+	static float GetAnimationTime(Entity* self, const std::u16string& animation);
+
+	const std::string& GetLastAnimationName() const { return m_LastAnimationName; };
+	void SetLastAnimationName(const std::string& name) { m_LastAnimationName = name; };
+
 private:
 
 	/**
 	 * List of currently active effects
 	 */
 	std::vector<Effect*> m_Effects;
+
+	std::vector<int32_t> m_animationGroupIds;
+
+	// The last animationName that was played
+	std::string m_LastAnimationName;
 
 	/**
 	 * Cache of queries that look for the length of each effect, indexed by effect ID

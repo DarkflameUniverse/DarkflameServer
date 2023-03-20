@@ -4,6 +4,7 @@
 #include "GameMessages.h"
 #include "Character.h"
 #include "dZoneManager.h"
+#include "RenderComponent.h"
 
 void CavePrisonCage::OnStartup(Entity* self) {
 	const auto& myNum = self->GetVar<std::u16string>(u"myNumber");
@@ -101,7 +102,7 @@ void CavePrisonCage::SpawnCounterweight(Entity* self, Spawner* spawner) {
 			}
 
 			// Play the 'down' animation on the button
-			GameMessages::SendPlayAnimation(button, u"down");
+			RenderComponent::PlayAnimation(button, u"down");
 
 			// Setup a timer named 'buttonGoingDown' to be triggered in 5 seconds
 			self->AddTimer("buttonGoingDown", 5.0f);
@@ -136,13 +137,13 @@ void CavePrisonCage::OnTimerDone(Entity* self, std::string timerName) {
 	// the anim of the button down is over
 	if (timerName == "buttonGoingDown") {
 		// Play the 'up' animation
-		GameMessages::SendPlayAnimation(self, u"up");
+		RenderComponent::PlayAnimation(self, u"up");
 
 		// Setup a timer named 'CageOpen' to be triggered in 1 second
 		self->AddTimer("CageOpen", 1.0f);
 	} else if (timerName == "CageOpen") {
 		// play the idle open anim
-		GameMessages::SendPlayAnimation(self, u"idle-up");
+		RenderComponent::PlayAnimation(self, u"idle-up");
 
 		// Get the villeger
 		auto* villager = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"villager"));
@@ -199,13 +200,13 @@ void CavePrisonCage::OnTimerDone(Entity* self, std::string timerName) {
 		}
 
 		// Play the 'up' animation on the button
-		GameMessages::SendPlayAnimation(button, u"up");
+		RenderComponent::PlayAnimation(button, u"up");
 
 		// Setup a timer named 'CageClosed' to be triggered in 1 second
 		self->AddTimer("CageClosed", 1.0f);
 	} else if (timerName == "CageClosed") {
 		// play the idle closed anim
-		GameMessages::SendPlayAnimation(self, u"idle");
+		RenderComponent::PlayAnimation(self, u"idle");
 
 		// Setup a timer named 'ResetPrison' to be triggered in 10 seconds
 		self->AddTimer("ResetPrison", 10.0f);

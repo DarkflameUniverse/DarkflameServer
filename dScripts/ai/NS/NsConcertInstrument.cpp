@@ -9,6 +9,7 @@
 #include "MissionComponent.h"
 #include "eMissionState.h"
 #include "eMissionTaskType.h"
+#include "RenderComponent.h"
 
 // Constants are at the bottom
 
@@ -122,7 +123,7 @@ void NsConcertInstrument::StartPlayingInstrument(Entity* self, Entity* player) {
 		player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 	GameMessages::SendPlayCinematic(player->GetObjectID(), cinematics.at(instrumentLot), UNASSIGNED_SYSTEM_ADDRESS);
 	self->AddCallbackTimer(1.0f, [player, instrumentLot]() {
-		GameMessages::SendPlayAnimation(player, animations.at(instrumentLot), 2.0f);
+		RenderComponent::PlayAnimation(player, animations.at(instrumentLot), 2.0f);
 		});
 
 	for (auto* soundBox : EntityManager::Instance()->GetEntitiesInGroup("Audio-Concert")) {
@@ -153,7 +154,7 @@ void NsConcertInstrument::StopPlayingInstrument(Entity* self, Entity* player) {
 		}
 
 		GameMessages::SendEndCinematic(player->GetObjectID(), cinematics.at(instrumentLot), UNASSIGNED_SYSTEM_ADDRESS, 1.0f);
-		GameMessages::SendPlayAnimation(player, smashAnimations.at(instrumentLot), 2.0f);
+		RenderComponent::PlayAnimation(player, smashAnimations.at(instrumentLot), 2.0f);
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stopCheckingMovement", 0, 0,
 			player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 	}

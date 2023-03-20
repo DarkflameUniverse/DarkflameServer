@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "RenderComponent.h"
 #include "eMissionState.h"
 
 void LegoDieRoll::OnStartup(Entity* self) {
@@ -17,23 +18,23 @@ void LegoDieRoll::OnTimerDone(Entity* self, std::string timerName) {
 
 		switch (dieRoll) {
 		case 1:
-			GameMessages::SendPlayAnimation(self, u"roll-die-1");
+			RenderComponent::PlayAnimation(self, u"roll-die-1");
 			break;
 		case 2:
-			GameMessages::SendPlayAnimation(self, u"roll-die-2");
+			RenderComponent::PlayAnimation(self, u"roll-die-2");
 			break;
 		case 3:
-			GameMessages::SendPlayAnimation(self, u"roll-die-3");
+			RenderComponent::PlayAnimation(self, u"roll-die-3");
 			break;
 		case 4:
-			GameMessages::SendPlayAnimation(self, u"roll-die-4");
+			RenderComponent::PlayAnimation(self, u"roll-die-4");
 			break;
 		case 5:
-			GameMessages::SendPlayAnimation(self, u"roll-die-5");
+			RenderComponent::PlayAnimation(self, u"roll-die-5");
 			break;
 		case 6:
 		{
-			GameMessages::SendPlayAnimation(self, u"roll-die-6");
+			RenderComponent::PlayAnimation(self, u"roll-die-6");
 			// tracking the It's Truly Random Achievement
 			auto* owner = self->GetOwner();
 			auto* missionComponent = owner->GetComponent<MissionComponent>();

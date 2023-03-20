@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "eReplicaComponentType.h"
+#include "RenderComponent.h"
 
 void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 	if (inUse) {
@@ -54,7 +55,7 @@ void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target) {
 
 	const auto group = groups[0];
 
-	GameMessages::SendPlayAnimation(effect, u"jetFX");
+	RenderComponent::PlayAnimation(effect, u"jetFX");
 
 	self->AddTimer("PlayEffect", 2.5f);
 
