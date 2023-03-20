@@ -34,14 +34,6 @@ CDMissionNPCComponentTable::CDMissionNPCComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDMissionNPCComponentTable::~CDMissionNPCComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDMissionNPCComponentTable::GetName(void) const {
-	return "MissionNPCComponent";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDMissionNPCComponent> CDMissionNPCComponentTable::Query(std::function<bool(CDMissionNPCComponent)> predicate) {
 

@@ -33,15 +33,6 @@ CDInventoryComponentTable::CDInventoryComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDInventoryComponentTable::~CDInventoryComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDInventoryComponentTable::GetName(void) const {
-	return "InventoryComponent";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDInventoryComponent> CDInventoryComponentTable::Query(std::function<bool(CDInventoryComponent)> predicate) {
 
 	std::vector<CDInventoryComponent> data = cpplinq::from(this->entries)
@@ -51,7 +42,6 @@ std::vector<CDInventoryComponent> CDInventoryComponentTable::Query(std::function
 	return data;
 }
 
-//! Gets all the entries in the table
 std::vector<CDInventoryComponent> CDInventoryComponentTable::GetEntries(void) const {
 	return this->entries;
 }

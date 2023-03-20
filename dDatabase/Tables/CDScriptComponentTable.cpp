@@ -29,14 +29,6 @@ CDScriptComponentTable::CDScriptComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDScriptComponentTable::~CDScriptComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDScriptComponentTable::GetName(void) const {
-	return "ScriptComponent";
-}
-
 const CDScriptComponent& CDScriptComponentTable::GetByID(unsigned int id) {
 	std::map<unsigned int, CDScriptComponent>::iterator it = this->entries.find(id);
 	if (it != this->entries.end()) {

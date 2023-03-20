@@ -28,16 +28,12 @@ CDPhysicsComponentTable::CDPhysicsComponentTable(void) {
 	tableData.finalize();
 }
 
-CDPhysicsComponentTable::~CDPhysicsComponentTable(void) {
+CDPhysicsComponentTable::~CDPhysicsComponentTable() {
 	for (auto e : m_entries) {
 		if (e.second) delete e.second;
 	}
 
 	m_entries.clear();
-}
-
-std::string CDPhysicsComponentTable::GetName(void) const {
-	return "PhysicsComponent";
 }
 
 CDPhysicsComponent* CDPhysicsComponentTable::GetByID(unsigned int componentID) {
