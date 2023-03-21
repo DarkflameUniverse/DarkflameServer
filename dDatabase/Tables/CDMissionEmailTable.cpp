@@ -37,14 +37,6 @@ CDMissionEmailTable::CDMissionEmailTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDMissionEmailTable::~CDMissionEmailTable(void) {}
-
-//! Returns the table's name
-std::string CDMissionEmailTable::GetName(void) const {
-	return "MissionEmail";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDMissionEmail> CDMissionEmailTable::Query(std::function<bool(CDMissionEmail)> predicate) {
 

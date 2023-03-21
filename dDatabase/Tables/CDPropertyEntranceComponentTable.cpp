@@ -32,12 +32,6 @@ CDPropertyEntranceComponentTable::CDPropertyEntranceComponentTable() {
 	tableData.finalize();
 }
 
-CDPropertyEntranceComponentTable::~CDPropertyEntranceComponentTable(void) = default;
-
-std::string CDPropertyEntranceComponentTable::GetName() const {
-	return "PropertyEntranceComponent";
-}
-
 CDPropertyEntranceComponent CDPropertyEntranceComponentTable::GetByID(uint32_t id) {
 	for (const auto& entry : entries) {
 		if (entry.id == id)

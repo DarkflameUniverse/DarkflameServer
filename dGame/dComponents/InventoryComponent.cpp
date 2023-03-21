@@ -30,6 +30,12 @@
 #include "CppScripts.h"
 #include "eMissionTaskType.h"
 
+#include "CDComponentsRegistryTable.h"
+#include "CDInventoryComponentTable.h"
+#include "CDScriptComponentTable.h"
+#include "CDObjectSkillsTable.h"
+#include "CDSkillBehaviorTable.h"
+
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document): Component(parent) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
@@ -47,10 +53,10 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 		return;
 	}
 
-	auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 	const auto componentId = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::INVENTORY);
 
-	auto* inventoryComponentTable = CDClientManager::Instance()->GetTable<CDInventoryComponentTable>("InventoryComponent");
+	auto* inventoryComponentTable = CDClientManager::Instance().GetTable<CDInventoryComponentTable>();
 	auto items = inventoryComponentTable->Query([=](const CDInventoryComponent entry) { return entry.id == componentId; });
 
 	auto slot = 0u;
@@ -912,11 +918,11 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 
 void InventoryComponent::EquipScripts(Item* equippedItem) {
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 	if (!compRegistryTable) return;
 	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(equippedItem->GetLot(), eReplicaComponentType::SCRIPT, -1);
 	if (scriptComponentID > -1) {
-		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
+		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
 		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
 		if (!itemScript) {
@@ -927,11 +933,11 @@ void InventoryComponent::EquipScripts(Item* equippedItem) {
 }
 
 void InventoryComponent::UnequipScripts(Item* unequippedItem) {
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 	if (!compRegistryTable) return;
 	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(unequippedItem->GetLot(), eReplicaComponentType::SCRIPT, -1);
 	if (scriptComponentID > -1) {
-		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance()->GetTable<CDScriptComponentTable>("ScriptComponent");
+		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
 		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
 		if (!itemScript) {
@@ -1306,7 +1312,7 @@ bool InventoryComponent::IsTransferInventory(eInventoryType type) {
 }
 
 uint32_t InventoryComponent::FindSkill(const LOT lot) {
-	auto* table = CDClientManager::Instance()->GetTable<CDObjectSkillsTable>("ObjectSkills");
+	auto* table = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
 
 	const auto results = table->Query([=](const CDObjectSkills& entry) {
 		return entry.objectTemplate == static_cast<unsigned int>(lot);
@@ -1324,8 +1330,8 @@ uint32_t InventoryComponent::FindSkill(const LOT lot) {
 std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip) const {
 	std::vector<uint32_t> buffs;
 	if (item == nullptr) return buffs;
-	auto* table = CDClientManager::Instance()->GetTable<CDObjectSkillsTable>("ObjectSkills");
-	auto* behaviors = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+	auto* table = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
+	auto* behaviors = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
 	const auto results = table->Query([=](const CDObjectSkills& entry) {
 		return entry.objectTemplate == static_cast<unsigned int>(item->GetLot());

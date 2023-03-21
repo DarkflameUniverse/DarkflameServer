@@ -83,6 +83,9 @@
 #include "AMFFormat_BitStream.h"
 #include "eReplicaComponentType.h"
 
+#include "CDComponentsRegistryTable.h"
+#include "CDObjectsTable.h"
+
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -916,15 +919,23 @@ void GameMessages::SendSetJetPackMode(Entity* entity, bool use, bool bypassCheck
 }
 
 void GameMessages::SendResurrect(Entity* entity) {
-	DestroyableComponent* dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
+	// Restore the players health after the animation for respawning has finished.
+	// This is when the health appered back in live, not immediately upon requesting respawn
+	// Add a half second in case someone decides to cheat and move during the death animation
+	// and just make sure the client has time to be ready.
+	constexpr float respawnTime = 3.66700005531311f + 0.5f;
+	entity->AddCallbackTimer(respawnTime, [=]() {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
-	if (dest != nullptr && entity->GetLOT() == 1) {
-		auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
-		if (levelComponent) {
-			dest->SetHealth(levelComponent->GetLevel() >= 45 ? 8 : 4);
-			dest->SetImagination(levelComponent->GetLevel() >= 45 ? 20 : 6);
+		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
+			auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
+			if (levelComponent) {
+				destroyableComponent->SetHealth(levelComponent->GetLevel() >= 45 ? 8 : 4);
+				destroyableComponent->SetImagination(levelComponent->GetLevel() >= 45 ? 20 : 6);
+			}
 		}
-	}
+	});
+
 
 	auto cont = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
 	if (cont && entity->GetLOT() == 1) {
@@ -1070,7 +1081,7 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 
 	// Currency and powerups should not sync
 	if (team != nullptr && currency == 0) {
-		CDObjectsTable* objectsTable = CDClientManager::Instance()->GetTable<CDObjectsTable>("Objects");
+		CDObjectsTable* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
 
 		const CDObjects& object = objectsTable->GetByID(item);
 
@@ -4397,6 +4408,36 @@ void GameMessages::SendRacingResetPlayerToLastReset(LWOOBJID objectId, LWOOBJID 
 	SEND_PACKET;
 }
 
+void GameMessages::SendVehicleStopBoost(Entity* targetEntity, const SystemAddress& playerSysAddr, bool affectPassive) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(targetEntity->GetObjectID());
+	bitStream.Write(GAME_MSG::GAME_MSG_VEHICLE_STOP_BOOST);
+	
+	bitStream.Write(affectPassive);
+
+	SEND_PACKET_BROADCAST;
+}
+
+void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(targetEntity->GetObjectID());
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_RESURRECT_RESTORE_VALUES);
+	
+	bitStream.Write(armorRestore != -1);
+	if (armorRestore != -1) bitStream.Write(armorRestore);
+
+	bitStream.Write(healthRestore != -1);
+	if (healthRestore != -1) bitStream.Write(healthRestore);
+
+	bitStream.Write(imaginationRestore != -1);
+	if (imaginationRestore != -1) bitStream.Write(imaginationRestore);
+
+	SEND_PACKET_BROADCAST;
+}
 
 void GameMessages::SendNotifyRacingClient(LWOOBJID objectId, int32_t eventType, int32_t param1, LWOOBJID paramObj, std::u16string paramStr, LWOOBJID singleClient, const SystemAddress& sysAddr) {
 	CBITSTREAM;
@@ -4683,8 +4724,8 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	InventoryComponent* inv = static_cast<InventoryComponent*>(player->GetComponent(eReplicaComponentType::INVENTORY));
 	if (!inv) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item, eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -4775,8 +4816,8 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	Item* item = inv->FindItemById(iObjID);
 	if (!item) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item->GetLot(), eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -4825,8 +4866,8 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 	Item* item = inv->FindItemById(iObjID);
 	if (!item) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item->GetLot(), eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -5064,7 +5105,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 		}
 	}
 
-	CDEmoteTableTable* emotes = CDClientManager::Instance()->GetTable<CDEmoteTableTable>("EmoteTable");
+	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
 	if (emotes) {
 		CDEmoteTable* emote = emotes->GetEmote(emoteID);
 		if (emote) sAnimationName = emote->animationName;

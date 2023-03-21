@@ -3,7 +3,6 @@
 
 #define CDCLIENT_CACHE_ALL
 
-//! Constructor
 CDComponentsRegistryTable::CDComponentsRegistryTable(void) {
 
 #ifdef CDCLIENT_CACHE_ALL
@@ -31,37 +30,11 @@ CDComponentsRegistryTable::CDComponentsRegistryTable(void) {
 
 		this->mappedEntries.insert_or_assign(((uint64_t)entry.component_type) << 32 | ((uint64_t)entry.id), entry.component_id);
 
-		//this->entries.push_back(entry);
-
-		/*
-		//Darwin's stuff:
-		const auto& it = this->mappedEntries.find(entry.id);
-		if (it != mappedEntries.end()) {
-			const auto& iter = it->second.find(entry.component_type);
-			if (iter == it->second.end()) {
-				it->second.insert(std::make_pair(entry.component_type, entry.component_id));
-			}
-		}
-		else {
-			std::map<unsigned int, unsigned int> map;
-			map.insert(std::make_pair(entry.component_type, entry.component_id));
-			this->mappedEntries.insert(std::make_pair(entry.id, map));
-		}
-		*/
-
 		tableData.nextRow();
 	}
 
 	tableData.finalize();
 #endif
-}
-
-//! Destructor
-CDComponentsRegistryTable::~CDComponentsRegistryTable(void) {}
-
-//! Returns the table's name
-std::string CDComponentsRegistryTable::GetName(void) const {
-	return "ComponentsRegistry";
 }
 
 int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue) {
@@ -72,16 +45,6 @@ int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponent
 	}
 
 	return iter->second;
-
-	/*
-	const auto& it = this->mappedEntries.find(id);
-	if (it != mappedEntries.end()) {
-		const auto& iter = it->second.find(componentType);
-		if (iter != it->second.end()) {
-			return iter->second;
-		}
-	}
-	*/
 
 #ifndef CDCLIENT_CACHE_ALL
 	// Now get the data

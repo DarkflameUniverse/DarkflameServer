@@ -33,14 +33,6 @@ CDObjectSkillsTable::CDObjectSkillsTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDObjectSkillsTable::~CDObjectSkillsTable(void) {}
-
-//! Returns the table's name
-std::string CDObjectSkillsTable::GetName(void) const {
-	return "ObjectSkills";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDObjectSkills> CDObjectSkillsTable::Query(std::function<bool(CDObjectSkills)> predicate) {
 
@@ -55,4 +47,3 @@ std::vector<CDObjectSkills> CDObjectSkillsTable::Query(std::function<bool(CDObje
 std::vector<CDObjectSkills> CDObjectSkillsTable::GetEntries(void) const {
 	return this->entries;
 }
-

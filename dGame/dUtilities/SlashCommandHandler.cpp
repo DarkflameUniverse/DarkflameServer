@@ -77,6 +77,9 @@
 #include "eServerDisconnectIdentifiers.h"
 #include "eReplicaComponentType.h"
 
+#include "CDObjectsTable.h"
+#include "CDZoneTableTable.h"
+
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
 	std::vector<std::string> args;
@@ -552,21 +555,42 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if ((chatCommand == "setinventorysize" || chatCommand == "setinvsize") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		if (args.size() != 1) return;
-
+	if ((chatCommand == "setinventorysize" || chatCommand == "setinvsize") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
 		uint32_t size;
 
-		if (!GeneralUtils::TryParse(args[0], size)) {
+		if (!GeneralUtils::TryParse(args.at(0), size)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid size.");
 			return;
 		}
 
-		InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-		if (inventory) {
-			auto* items = inventory->GetInventory(ITEMS);
+		eInventoryType selectedInventory = eInventoryType::ITEMS;
 
-			items->SetSize(size);
+		// a possible inventory was provided if we got more than 1 argument
+		if (args.size() >= 2) {
+			selectedInventory = eInventoryType::INVALID;
+			if (!GeneralUtils::TryParse(args.at(1), selectedInventory)) {
+				// In this case, we treat the input as a string and try to find it in the reflection list
+				std::transform(args.at(1).begin(), args.at(1).end(), args.at(1).begin(), ::toupper);
+				for (uint32_t index = 0; index < NUMBER_OF_INVENTORIES; index++) {
+					if (std::string_view(args.at(1)) == std::string_view(InventoryType::InventoryTypeToString(static_cast<eInventoryType>(index)))) selectedInventory = static_cast<eInventoryType>(index);
+				}
+			}
+			if (selectedInventory == eInventoryType::INVALID) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid inventory.");
+				return;
+			}
+
+			ChatPackets::SendSystemMessage(sysAddr, u"Setting inventory " +
+				GeneralUtils::ASCIIToUTF16(args.at(1)) +
+				u" to size " +
+				GeneralUtils::to_u16string(size));
+		} else ChatPackets::SendSystemMessage(sysAddr, u"Setting inventory ITEMS to size " + GeneralUtils::to_u16string(size));
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+		if (inventoryComponent) {
+			auto* inventory = inventoryComponent->GetInventory(selectedInventory);
+
+			inventory->SetSize(size);
 		}
 
 		return;
@@ -581,10 +605,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		auto buf = Game::assetManager->GetFileAsBuffer(("macros/" + args[0] + ".scm").c_str());
 
-		 if (!buf.m_Success){
+		if (!buf.m_Success) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
 			return;
-		 }
+		}
 
 		std::istream infile(&buf);
 
@@ -1331,9 +1355,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		eLootSourceType lootType = eLootSourceType::LOOT_SOURCE_MODERATION;
 
 		int32_t type;
-		if (args.size() >= 2 && GeneralUtils::TryParse(args[1], type))
-		{
-			lootType = (eLootSourceType) type;
+		if (args.size() >= 2 && GeneralUtils::TryParse(args[1], type)) {
+			lootType = (eLootSourceType)type;
 		}
 
 		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, lootType);
@@ -1814,7 +1837,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		eInventoryType inventoryType = eInventoryType::INVALID;
 		if (!GeneralUtils::TryParse(args[0], inventoryType)) {
 			// In this case, we treat the input as a string and try to find it in the reflection list
-			std::transform(args[0].begin(), args[0].end(),args[0].begin(), ::toupper);
+			std::transform(args[0].begin(), args[0].end(), args[0].begin(), ::toupper);
 			Game::logger->Log("SlashCommandHandler", "looking for inventory %s", args[0].c_str());
 			for (uint32_t index = 0; index < NUMBER_OF_INVENTORIES; index++) {
 				if (std::string_view(args[0]) == std::string_view(InventoryType::InventoryTypeToString(static_cast<eInventoryType>(index)))) inventoryType = static_cast<eInventoryType>(index);
@@ -1892,7 +1915,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		EntityManager::Instance()->SerializeEntity(closest);
 
-		auto* table = CDClientManager::Instance()->GetTable<CDObjectsTable>("Objects");
+		auto* table = CDClientManager::Instance().GetTable<CDObjectsTable>();
 
 		const auto& info = table->GetByID(closest->GetLOT());
 
@@ -1988,7 +2011,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				}
 
 				auto* triggerComponent = closest->GetComponent<TriggerComponent>();
-				if (triggerComponent){
+				if (triggerComponent) {
 					auto trigger = triggerComponent->GetTrigger();
 					if (trigger) {
 						ChatPackets::SendSystemMessage(sysAddr, u"Trigger: " + (GeneralUtils::to_u16string(trigger->id)));
@@ -2001,7 +2024,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
 	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	const CDZoneTable* zone = zoneTable->Query(zoneID);
 	if (zone != nullptr) {
 		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());

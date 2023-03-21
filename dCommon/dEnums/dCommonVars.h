@@ -64,11 +64,6 @@ typedef std::set<LWOOBJID> TSetObjID;
 
 const float PI = 3.14159f;
 
-#if defined(__unix) || defined(__APPLE__)
-//For Linux:
-typedef __int64_t __int64;
-#endif
-
 //============ STRUCTS ==============
 
 struct LWOSCENEID {
