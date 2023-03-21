@@ -71,6 +71,7 @@
 #include "LUPExhibitComponent.h"
 #include "TriggerComponent.h"
 #include "ItemComponent.h"
+#include "MutableModelBehaviorComponent.h"
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
 	m_ObjectID = objectID;
