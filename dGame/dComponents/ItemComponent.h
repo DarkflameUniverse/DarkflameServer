@@ -4,13 +4,14 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 enum class eUgcModerationStatus : uint32_t;
 
 class ItemComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_ITEM;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::ITEM;
 
 	ItemComponent(Entity* parent);
 
