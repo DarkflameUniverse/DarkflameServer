@@ -7,6 +7,7 @@
 #include "RenderComponent.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
+#include "eReplicaComponentType.h"
 
 void ZoneAgProperty::SetGameVariables(Entity* self) {
 	self->SetVar<std::string>(GuardGroup, "Guard");
@@ -256,7 +257,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		DeactivateSpawner(self->GetVar<std::string>(SpiderScreamSpawner));
 		DestroySpawner(self->GetVar<std::string>(SpiderScreamSpawner));
 
-		for (auto* player : EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CHARACTER)) {
+		for (auto* player : EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CHARACTER)) {
 			GameMessages::SendStop2DAmbientSound(player, true, GUIDMaelstrom);
 			GameMessages::SendPlay2DAmbientSound(player, GUIDPeaceful);
 		}

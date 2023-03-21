@@ -4,6 +4,7 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 enum class ePhysicsBehaviorType : int32_t;
@@ -13,7 +14,7 @@ enum class ePhysicsBehaviorType : int32_t;
  */
 class ModelComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_MODEL;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
 
 	ModelComponent(Entity* parent);
 

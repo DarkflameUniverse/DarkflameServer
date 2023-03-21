@@ -24,6 +24,8 @@
 #include "DoClientProjectileImpact.h"
 #include "CDClientManager.h"
 
+#include "CDSkillBehaviorTable.h"
+
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
 
@@ -128,7 +130,7 @@ void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, Behav
 }
 
 void SkillComponent::Update(const float deltaTime) {
-	if (!m_Parent->HasComponent(COMPONENT_TYPE_BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
+	if (!m_Parent->HasComponent(eReplicaComponentType::BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
 		CalculateUpdate(deltaTime);
 	}
 
@@ -220,7 +222,7 @@ bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LW
 
 	// if it's not in the cache look it up and cache it
 	if (pair == m_skillBehaviorCache.end()) {
-		auto skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+		auto skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 		behaviorId = skillTable->GetSkillByID(skillId).behaviorID;
 		m_skillBehaviorCache.insert_or_assign(skillId, behaviorId);
 	} else {

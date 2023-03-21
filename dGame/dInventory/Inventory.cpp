@@ -4,6 +4,9 @@
 #include "Item.h"
 #include "InventoryComponent.h"
 #include "eItemType.h"
+#include "eReplicaComponentType.h"
+
+#include "CDComponentsRegistryTable.h"
 
 std::vector<LOT> Inventory::m_GameMasterRestrictedItems = {
 		1727, // GM Only - JetPack
@@ -273,11 +276,11 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 }
 
 const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
-	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* registry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
-	auto* itemComponents = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	auto* itemComponents = CDClientManager::Instance().GetTable<CDItemComponentTable>();
 
-	const auto componentId = registry->GetByIDAndType(lot, COMPONENT_TYPE_ITEM);
+	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 
 	if (componentId == 0) {
 		Game::logger->Log("Inventory", "Failed to find item component for (%i)!", lot);
@@ -291,9 +294,9 @@ const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
 }
 
 bool Inventory::IsValidItem(const LOT lot) {
-	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* registry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
-	const auto componentId = registry->GetByIDAndType(lot, COMPONENT_TYPE_ITEM);
+	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 
 	return componentId != 0;
 }

@@ -22,9 +22,13 @@
 #include "Loot.h"
 #include "eMissionTaskType.h"
 
+#include "CDCurrencyTableTable.h"
+#include "CDActivityRewardsTable.h"
+#include "CDActivitiesTable.h"
+
 ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent) {
 	m_ActivityID = activityID;
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance()->GetTable<CDActivitiesTable>("Activities");
+	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 
 	for (CDActivities activity : activities) {
@@ -53,7 +57,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
 	if (destroyableComponent) {
 		// check for LMIs and set the loot LMIs
-		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
+		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
 		std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) {return (entry.LootMatrixIndex == destroyableComponent->GetLootMatrixID()); });
 
 		uint32_t startingLMI = 0;
@@ -94,7 +98,7 @@ void ScriptedActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool 
 }
 
 void ScriptedActivityComponent::ReloadConfig() {
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance()->GetTable<CDActivitiesTable>("Activities");
+	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 	for (auto activity : activities) {
 		auto mapID = m_ActivityInfo.instanceMapID;
@@ -137,7 +141,7 @@ void ScriptedActivityComponent::PlayerJoin(Entity* player) {
 }
 
 void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
-	if (!m_Parent->HasComponent(COMPONENT_TYPE_REBUILD))
+	if (!m_Parent->HasComponent(eReplicaComponentType::QUICK_BUILD))
 		GameMessages::SendMatchResponse(player, player->GetSystemAddress(), 0); // tell the client they joined a lobby
 	LobbyPlayer* newLobbyPlayer = new LobbyPlayer();
 	newLobbyPlayer->entityID = player->GetObjectID();
@@ -557,14 +561,14 @@ void ActivityInstance::RewardParticipant(Entity* participant) {
 	}
 
 	// First, get the activity data
-	auto* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
+	auto* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) { return (entry.objectTemplate == m_ActivityInfo.ActivityID); });
 
 	if (!activityRewards.empty()) {
 		uint32_t minCoins = 0;
 		uint32_t maxCoins = 0;
 
-		auto* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>("CurrencyTable");
+		auto* currencyTableTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
 		std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == activityRewards[0].CurrencyIndex && entry.npcminlevel == 1); });
 
 		if (!currencyTable.empty()) {

@@ -5,6 +5,11 @@
 #include "Game.h"
 #include "dServer.h"
 
+#include "CDComponentsRegistryTable.h"
+#include "CDVendorComponentTable.h"
+#include "CDLootMatrixTable.h"
+#include "CDLootTableTable.h"
+
 VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
 	SetupConstants();
 	RefreshInventory(true);
@@ -59,13 +64,13 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 		return;
 	}
 	m_Inventory.clear();
-	auto* lootMatrixTable = CDClientManager::Instance()->GetTable<CDLootMatrixTable>("LootMatrix");
+	auto* lootMatrixTable = CDClientManager::Instance().GetTable<CDLootMatrixTable>();
 	std::vector<CDLootMatrix> lootMatrices = lootMatrixTable->Query([=](CDLootMatrix entry) { return (entry.LootMatrixIndex == m_LootMatrixID); });
 
 	if (lootMatrices.empty()) return;
 	// Done with lootMatrix table
 
-	auto* lootTableTable = CDClientManager::Instance()->GetTable<CDLootTableTable>("LootTable");
+	auto* lootTableTable = CDClientManager::Instance().GetTable<CDLootTableTable>();
 
 	for (const auto& lootMatrix : lootMatrices) {
 		int lootTableID = lootMatrix.LootTableIndex;
@@ -118,10 +123,10 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 }
 
 void VendorComponent::SetupConstants() {
-	auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	int componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), COMPONENT_TYPE_VENDOR);
+	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	int componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::VENDOR);
 
-	auto* vendorComponentTable = CDClientManager::Instance()->GetTable<CDVendorComponentTable>("VendorComponent");
+	auto* vendorComponentTable = CDClientManager::Instance().GetTable<CDVendorComponentTable>();
 	std::vector<CDVendorComponent> vendorComps = vendorComponentTable->Query([=](CDVendorComponent entry) { return (entry.id == componentID); });
 	if (vendorComps.empty()) return;
 	m_BuyScalar = vendorComps[0].buyScalar;

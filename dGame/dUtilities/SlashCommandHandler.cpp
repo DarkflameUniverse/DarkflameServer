@@ -74,6 +74,11 @@
 #include "dMessageIdentifiers.h"
 #include "eMissionState.h"
 #include "TriggerComponent.h"
+#include "eServerDisconnectIdentifiers.h"
+#include "eReplicaComponentType.h"
+
+#include "CDObjectsTable.h"
+#include "CDZoneTableTable.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	std::string chatCommand;
@@ -550,21 +555,42 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if ((chatCommand == "setinventorysize" || chatCommand == "setinvsize") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		if (args.size() != 1) return;
-
+	if ((chatCommand == "setinventorysize" || chatCommand == "setinvsize") && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
 		uint32_t size;
 
-		if (!GeneralUtils::TryParse(args[0], size)) {
+		if (!GeneralUtils::TryParse(args.at(0), size)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid size.");
 			return;
 		}
 
-		InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
-		if (inventory) {
-			auto* items = inventory->GetInventory(ITEMS);
+		eInventoryType selectedInventory = eInventoryType::ITEMS;
 
-			items->SetSize(size);
+		// a possible inventory was provided if we got more than 1 argument
+		if (args.size() >= 2) {
+			selectedInventory = eInventoryType::INVALID;
+			if (!GeneralUtils::TryParse(args.at(1), selectedInventory)) {
+				// In this case, we treat the input as a string and try to find it in the reflection list
+				std::transform(args.at(1).begin(), args.at(1).end(), args.at(1).begin(), ::toupper);
+				for (uint32_t index = 0; index < NUMBER_OF_INVENTORIES; index++) {
+					if (std::string_view(args.at(1)) == std::string_view(InventoryType::InventoryTypeToString(static_cast<eInventoryType>(index)))) selectedInventory = static_cast<eInventoryType>(index);
+				}
+			}
+			if (selectedInventory == eInventoryType::INVALID) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid inventory.");
+				return;
+			}
+
+			ChatPackets::SendSystemMessage(sysAddr, u"Setting inventory " +
+				GeneralUtils::ASCIIToUTF16(args.at(1)) +
+				u" to size " +
+				GeneralUtils::to_u16string(size));
+		} else ChatPackets::SendSystemMessage(sysAddr, u"Setting inventory ITEMS to size " + GeneralUtils::to_u16string(size));
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+		if (inventoryComponent) {
+			auto* inventory = inventoryComponent->GetInventory(selectedInventory);
+
+			inventory->SetSize(size);
 		}
 
 		return;
@@ -579,10 +605,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		auto buf = Game::assetManager->GetFileAsBuffer(("macros/" + args[0] + ".scm").c_str());
 
-		 if (!buf.m_Success){
+		if (!buf.m_Success) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
 			return;
-		 }
+		}
 
 		std::istream infile(&buf);
 
@@ -610,7 +636,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto comp = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
+		auto comp = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
 		if (comp) comp->AcceptMission(missionID, true);
 		return;
 	}
@@ -625,7 +651,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto comp = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
+		auto comp = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
 		if (comp) comp->CompleteMission(missionID, true);
 		return;
 	}
@@ -675,7 +701,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto* comp = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
+		auto* comp = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
 
 		if (comp == nullptr) {
 			return;
@@ -752,7 +778,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "getnavmeshheight" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		auto control = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
+		auto control = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
 		if (!control) return;
 
 		float y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(control->GetPosition());
@@ -769,7 +795,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				return;
 			}
 
-			InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
+			InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
 
 			inventory->AddItem(itemLOT, 1, eLootSourceType::LOOT_SOURCE_MODERATION);
 		} else if (args.size() == 2) {
@@ -787,7 +813,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				return;
 			}
 
-			InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
+			InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
 
 			inventory->AddItem(itemLOT, count, eLootSourceType::LOOT_SOURCE_MODERATION);
 		} else {
@@ -933,7 +959,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "tpall" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		const auto pos = entity->GetPosition();
 
-		const auto characters = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CHARACTER);
+		const auto characters = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
 
 		for (auto* character : characters) {
 			GameMessages::SendTeleport(character->GetObjectID(), pos, NiQuaternion(), character->GetSystemAddress());
@@ -1094,7 +1120,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				return;
 			}
 
-			Game::server->Disconnect(player->GetSystemAddress(), SERVER_DISCON_KICK);
+			Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::KICK);
 
 			ChatPackets::SendSystemMessage(sysAddr, u"Kicked: " + username);
 		} else {
@@ -1140,7 +1166,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			delete userUpdate;
 
 			if (player != nullptr) {
-				Game::server->Disconnect(player->GetSystemAddress(), SERVER_DISCON_KICK);
+				Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::FREE_TRIAL_EXPIRED);
 			}
 
 			ChatPackets::SendSystemMessage(sysAddr, u"Banned: " + GeneralUtils::ASCIIToUTF16(args[0]));
@@ -1152,7 +1178,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	//-------------------------------------------------
 
 	if (chatCommand == "buffme" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
+		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
 		if (dest) {
 			dest->SetHealth(999);
 			dest->SetMaxHealth(999.0f);
@@ -1176,7 +1202,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "buffmed" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
-		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
+		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
 		if (dest) {
 			dest->SetHealth(9);
 			dest->SetMaxHealth(9.0f);
@@ -1190,7 +1216,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "refillstats" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 
-		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
+		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
 		if (dest) {
 			dest->SetHealth((int)dest->GetMaxHealth());
 			dest->SetArmor((int)dest->GetMaxArmor());
@@ -1223,7 +1249,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "spawn" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
-		ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
+		ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
 		if (!comp) return;
 
 		uint32_t lot;
@@ -1329,9 +1355,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		eLootSourceType lootType = eLootSourceType::LOOT_SOURCE_MODERATION;
 
 		int32_t type;
-		if (args.size() >= 2 && GeneralUtils::TryParse(args[1], type))
-		{
-			lootType = (eLootSourceType) type;
+		if (args.size() >= 2 && GeneralUtils::TryParse(args[1], type)) {
+			lootType = (eLootSourceType)type;
 		}
 
 		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, lootType);
@@ -1654,18 +1679,18 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "spawnphysicsverts" && entity->GetGMLevel() >= 6) {
 		//Go tell physics to spawn all the vertices:
-		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_PHANTOM_PHYSICS);
+		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::PHANTOM_PHYSICS);
 		for (auto en : entities) {
-			auto phys = static_cast<PhantomPhysicsComponent*>(en->GetComponent(COMPONENT_TYPE_PHANTOM_PHYSICS));
+			auto phys = static_cast<PhantomPhysicsComponent*>(en->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
 			if (phys)
 				phys->SpawnVertices();
 		}
 	}
 
 	if (chatCommand == "reportproxphys" && entity->GetGMLevel() >= 6) {
-		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_PROXIMITY_MONITOR);
+		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::PROXIMITY_MONITOR);
 		for (auto en : entities) {
-			auto phys = static_cast<ProximityMonitorComponent*>(en->GetComponent(COMPONENT_TYPE_PROXIMITY_MONITOR));
+			auto phys = static_cast<ProximityMonitorComponent*>(en->GetComponent(eReplicaComponentType::PROXIMITY_MONITOR));
 			if (phys) {
 				for (auto prox : phys->GetProximitiesData()) {
 					if (!prox.second) continue;
@@ -1759,7 +1784,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		Game::config->ReloadConfig();
 		VanityUtilities::SpawnVanity();
 		dpWorld::Instance().Reload();
-		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
+		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (auto entity : entities) {
 			auto* scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
 			if (!scriptedActivityComponent) continue;
@@ -1812,7 +1837,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		eInventoryType inventoryType = eInventoryType::INVALID;
 		if (!GeneralUtils::TryParse(args[0], inventoryType)) {
 			// In this case, we treat the input as a string and try to find it in the reflection list
-			std::transform(args[0].begin(), args[0].end(),args[0].begin(), ::toupper);
+			std::transform(args[0].begin(), args[0].end(), args[0].begin(), ::toupper);
 			Game::logger->Log("SlashCommandHandler", "looking for inventory %s", args[0].c_str());
 			for (uint32_t index = 0; index < NUMBER_OF_INVENTORIES; index++) {
 				if (std::string_view(args[0]) == std::string_view(InventoryType::InventoryTypeToString(static_cast<eInventoryType>(index)))) inventoryType = static_cast<eInventoryType>(index);
@@ -1838,14 +1863,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
 		Entity* closest = nullptr;
 
-		int32_t component;
+		eReplicaComponentType component;
 
 		std::u16string ldf;
 
 		bool isLDF = false;
 
 		if (!GeneralUtils::TryParse(args[0], component)) {
-			component = -1;
+			component = eReplicaComponentType::INVALID;
 
 			ldf = GeneralUtils::UTF8ToUTF16(args[0]);
 
@@ -1890,7 +1915,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		EntityManager::Instance()->SerializeEntity(closest);
 
-		auto* table = CDClientManager::Instance()->GetTable<CDObjectsTable>("Objects");
+		auto* table = CDClientManager::Instance().GetTable<CDObjectsTable>();
 
 		const auto& info = table->GetByID(closest->GetLOT());
 
@@ -1905,7 +1930,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			std::stringstream stream;
 
-			stream << "Component [" << std::to_string(id) << "]";
+			stream << "Component [" << std::to_string(static_cast<uint32_t>(id)) << "]";
 
 			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(stream.str()));
 		}
@@ -1986,7 +2011,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				}
 
 				auto* triggerComponent = closest->GetComponent<TriggerComponent>();
-				if (triggerComponent){
+				if (triggerComponent) {
 					auto trigger = triggerComponent->GetTrigger();
 					if (trigger) {
 						ChatPackets::SendSystemMessage(sysAddr, u"Trigger: " + (GeneralUtils::to_u16string(trigger->id)));
@@ -1999,7 +2024,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
 	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	const CDZoneTable* zone = zoneTable->Query(zoneID);
 	if (zone != nullptr) {
 		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());

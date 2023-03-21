@@ -3,6 +3,7 @@
 #include "SkillComponent.h"
 #include "CDClientDatabase.h"
 #include "CDObjectSkillsTable.h"
+#include "CDSkillBehaviorTable.h"
 #include "CDClientManager.h"
 
 void FireFirstSkillonStartup::OnStartup(Entity* self) {
@@ -10,12 +11,12 @@ void FireFirstSkillonStartup::OnStartup(Entity* self) {
 	if (!skillComponent) return;
 
 	// Get the skill IDs of this object.
-	CDObjectSkillsTable* skillsTable = CDClientManager::Instance()->GetTable<CDObjectSkillsTable>("ObjectSkills");
+	CDObjectSkillsTable* skillsTable = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
 	std::vector<CDObjectSkills> skills = skillsTable->Query([=](CDObjectSkills entry) {return (entry.objectTemplate == self->GetLOT()); });
 
 	// For each skill, cast it with the associated behavior ID.
 	for (auto skill : skills) {
-		CDSkillBehaviorTable* skillBehaviorTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+		CDSkillBehaviorTable* skillBehaviorTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 		CDSkillBehavior behaviorData = skillBehaviorTable->GetSkillByID(skill.skillID);
 
 		// Should parent entity be null, make the originator self.

@@ -1,6 +1,8 @@
 #pragma once
 #include "BaseWavesServer.h"
 
+#include "dCommonVars.h"
+
 enum SpawnerName {
 	interior_A,
 	interior_B,

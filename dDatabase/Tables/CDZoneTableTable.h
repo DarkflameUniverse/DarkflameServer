@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDZoneTableTable.hpp
- \brief Contains data for the ZoneTable table
- */
-
- //! ZoneTable Struct
 struct CDZoneTable {
 	unsigned int zoneID;                        //!< The Zone ID of the object
 	unsigned int locStatus;                     //!< The Locale Status(?)
@@ -39,28 +33,13 @@ struct CDZoneTable {
 	UNUSED(bool mountsAllowed);                 //!< Whether or not mounts are allowed
 };
 
-//! ZoneTable table
-class CDZoneTableTable : public CDTable {
+class CDZoneTableTable : public CDTable<CDZoneTableTable> {
 private:
 	std::map<unsigned int, CDZoneTable> m_Entries;
 
 public:
+	CDZoneTableTable();
 
-	//! Constructor
-	CDZoneTableTable(void);
-
-	//! Destructor
-	~CDZoneTableTable(void);
-
-	//! Returns the table's name
-	/*!
-	 \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a zoneID to find.
-	/*!
-	 \param id The zoneID
-	 */
+	// Queries the table with a zoneID to find.
 	const CDZoneTable* Query(unsigned int zoneID);
 };

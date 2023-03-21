@@ -43,8 +43,7 @@ typedef uint32_t LWOCLONEID;                 //!< Used for Clone IDs
 typedef uint16_t LWOMAPID;                   //!< Used for Map IDs
 typedef uint16_t LWOINSTANCEID;              //!< Used for Instance IDs
 typedef uint32_t PROPERTYCLONELIST;          //!< Used for Property Clone IDs
-typedef uint32_t STRIPID;
-typedef uint32_t BEHAVIORSTATE;
+typedef uint32_t StripId;
 
 typedef int32_t PetTamingPiece;             //!< Pet Taming Pieces
 
@@ -64,11 +63,6 @@ const uint64_t LWOZONEID_INVALID = 0;       //!< Invalid LWOZONEID
 typedef std::set<LWOOBJID> TSetObjID;
 
 const float PI = 3.14159f;
-
-#if defined(__unix) || defined(__APPLE__)
-//For Linux:
-typedef __int64_t __int64;
-#endif
 
 //============ STRUCTS ==============
 
@@ -262,20 +256,6 @@ enum eReplicaPacketType {
 	PACKET_TYPE_DESTRUCTION                         //!< A destruction packet
 };
 
-enum ServerDisconnectIdentifiers {
-	SERVER_DISCON_UNKNOWN_SERVER_ERROR = 0,               //!< Unknown server error
-	SERVER_DISCON_DUPLICATE_LOGIN = 4,                    //!< Used when another user with the same username is logged in (duplicate login)
-	SERVER_DISCON_SERVER_SHUTDOWN = 5,                    //!< Used when the server is shutdown
-	SERVER_DISCON_SERVER_MAP_LOAD_FAILURE = 6,            //!< Used when the server cannot load a map
-	SERVER_DISCON_INVALID_SESSION_KEY = 7,                //!< Used if the session is invalid
-	SERVER_DISCON_ACCOUNT_NOT_IN_PENDING_LIST = 8,        //!< ???
-	SERVER_DISCON_CHARACTER_NOT_FOUND = 9,                //!< Used if a character that the server has is not found (i.e, corruption with user-player data)
-	SERVER_DISCON_CHARACTER_CORRUPTED = 10,               //!< Similar to abovce
-	SERVER_DISCON_KICK = 11,                              //!< Used if the user is kicked from the server
-	SERVER_DISCON_FREE_TRIAL_EXPIRED = 12,                //!< Used if the user's free trial expired
-	SERVER_DISCON_PLAY_SCHEDULE_TIME_DONE = 13            //!< Used if the user's play time is used up
-};
-
 //! The Behavior Types for use with the AI system
 enum eCombatBehaviorTypes : uint32_t {
 	PASSIVE = 0,                    //!< The object is passive
@@ -380,57 +360,6 @@ enum eNotifyType {
 	NOTIFY_TYPE_NAMINGPET
 };
 
-enum eReplicaComponentType : int32_t {
-	COMPONENT_TYPE_CONTROLLABLE_PHYSICS = 1,			//!< The ControllablePhysics Component
-	COMPONENT_TYPE_RENDER = 2,			//!< The Render Component
-	COMPONENT_TYPE_SIMPLE_PHYSICS = 3,			//!< The SimplePhysics Component
-	COMPONENT_TYPE_CHARACTER = 4,			//!< The Character Component
-	COMPONENT_TYPE_SCRIPT = 5,			//!< The Script Component
-	COMPONENT_TYPE_BOUNCER = 6,			//!< The Bouncer Component
-	COMPONENT_TYPE_BUFF = 7,			//!< The Buff Component
-	COMPONENT_TYPE_SKILL = 9,			//!< The Skill Component
-	COMPONENT_TYPE_ITEM = 11,			//!< The Item Component
-	COMPONENT_TYPE_VENDOR = 16,			//!< The Vendor Component
-	COMPONENT_TYPE_INVENTORY = 17,			//!< The Inventory Component
-	COMPONENT_TYPE_SHOOTING_GALLERY = 19,			//!< The Shooting Gallery Component
-	COMPONENT_TYPE_RIGID_BODY_PHANTOM_PHYSICS = 20,			//!< The RigidBodyPhantomPhysics Component
-	COMPONENT_TYPE_COLLECTIBLE = 23,			//!< The Collectible Component
-	COMPONENT_TYPE_MOVING_PLATFORM = 25,			//!< The MovingPlatform Component
-	COMPONENT_TYPE_PET = 26,			//!< The Pet Component
-	COMPONENT_TYPE_VEHICLE_PHYSICS = 30,			//!< The VehiclePhysics Component
-	COMPONENT_TYPE_MOVEMENT_AI = 31,			//!< The MovementAI Component
-	COMPONENT_TYPE_PROPERTY = 36,			//!< The Property Component
-	COMPONENT_TYPE_SCRIPTED_ACTIVITY = 39,			//!< The ScriptedActivity Component
-	COMPONENT_TYPE_PHANTOM_PHYSICS = 40,			//!< The PhantomPhysics Component
-	COMPONENT_TYPE_MODEL = 42,			//!< The Model Component
-	COMPONENT_TYPE_PROPERTY_ENTRANCE = 43,			//!< The PhantomPhysics Component
-	COMPONENT_TYPE_PROPERTY_MANAGEMENT = 45,			//!< The PropertyManagement Component
-	COMPONENT_TYPE_REBUILD = 48,			//!< The Rebuild Component
-	COMPONENT_TYPE_SWITCH = 49,			//!< The Switch Component
-	COMPONENT_TYPE_ZONE_CONTROL = 50,			//!< The ZoneControl Component
-	COMPONENT_TYPE_PACKAGE = 53,			//!< The Package Component
-	COMPONENT_TYPE_PLAYER_FLAG = 58,			//!< The PlayerFlag Component
-	COMPONENT_TYPE_BASE_COMBAT_AI = 60,			//!< The BaseCombatAI Component
-	COMPONENT_TYPE_MODULE_ASSEMBLY = 61,			//!< The ModuleAssembly Component
-	COMPONENT_TYPE_PROPERTY_VENDOR = 65,			//!< The PropertyVendor Component
-	COMPONENT_TYPE_ROCKET_LAUNCH = 67,			//!< The RocketLaunch Component
-	COMPONENT_TYPE_TRIGGER = 69,
-	COMPONENT_TYPE_RACING_CONTROL = 71,			//!< The RacingControl Component
-	COMPONENT_TYPE_MISSION_OFFER = 73,			//!< The MissionOffer Component
-	COMPONENT_TYPE_EXHIBIT = 75,			//!< The Exhibit Component
-	COMPONENT_TYPE_RACING_STATS = 74,			//!< The Racing Stats Component
-	COMPONENT_TYPE_SOUND_TRIGGER = 77,			//!< The Sound Trigger Component
-	COMPONENT_TYPE_PROXIMITY_MONITOR = 78,			//!< The Proximity Monitor Component
-	COMPONENT_TYPE_MISSION = 84,			//!< The Mission Component
-	COMPONENT_TYPE_ROCKET_LAUNCH_LUP = 97,			//!< The LUP Launchpad Componen
-	COMPONENT_TYPE_RAIL_ACTIVATOR = 104,			//!< The Rail Activator Component
-	COMPONENT_TYPE_PLAYER_FORCED_MOVEMENT = 106,			//!< The Player Forced Movement Component
-	COMPONENT_TYPE_POSSESSABLE = 108,			//!< The Possessable Component
-	COMPONENT_TYPE_LEVEL_PROGRESSION = 109,			//!< The Level Progression Component
-	COMPONENT_TYPE_POSSESSOR = 110,			//!< The Possessor Component
-	COMPONENT_TYPE_BUILD_BORDER = 114,			//!< The Build Border Component
-	COMPONENT_TYPE_DESTROYABLE = 1000,			//!< The Destroyable Component
-};
 
 enum class UseItemResponse : uint32_t {
 	NoImaginationForPet = 1,

@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
 
 	//Get CDClient initial information
 	try {
-		CDClientManager::Instance()->Initialize();
+		CDClientManager::Instance();
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database");
 		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
@@ -212,43 +212,81 @@ int main(int argc, char** argv) {
 		std::cout << "Enter a username: ";
 		std::cin >> username;
 
+		std::unique_ptr<sql::PreparedStatement> userLookupStatement(Database::CreatePreppedStmt("SELECT id FROM accounts WHERE name=? LIMIT 1;"));
+		userLookupStatement->setString(1, username.c_str());
+		std::unique_ptr<sql::ResultSet> res(userLookupStatement->executeQuery());
+		if (res->rowsCount() > 0) {
+			Game::logger->Log("MasterServer", "Account with name \"%s\" already exists", username.c_str());
+			std::cout << "Do you want to change the password of that account? [y/n]?";
+			std::string prompt = "";
+			std::cin >> prompt;
+			if (prompt == "y" || prompt == "yes"){
+				uint32_t accountId = 0;
+				res->next();
+				accountId = res->getUInt(1);
+				if (accountId == 0) return EXIT_FAILURE;
+
+				//Read the password from the console without echoing it.
+				#ifdef __linux__
+						//This function is obsolete, but it only meant to be used by the
+						//sysadmin to create their first account.
+						password = getpass("Enter a password: ");
+				#else
+						std::cout << "Enter a password: ";
+						std::cin >> password;
+				#endif
+
+				// Regenerate hash based on new password
+				char salt[BCRYPT_HASHSIZE];
+				char hash[BCRYPT_HASHSIZE];
+				int32_t bcryptState = ::bcrypt_gensalt(12, salt);
+				assert(bcryptState == 0);
+				bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
+				assert(bcryptState == 0);
+
+				std::unique_ptr<sql::PreparedStatement> userUpdateStatement(Database::CreatePreppedStmt("UPDATE accounts SET password = ? WHERE id = ?;"));
+				userUpdateStatement->setString(1, std::string(hash, BCRYPT_HASHSIZE).c_str());
+				userUpdateStatement->setUInt(2, accountId);
+				userUpdateStatement->execute();
+
+				Game::logger->Log("MasterServer", "Account \"%s\" password updated successfully!", username.c_str());
+			} else {
+				Game::logger->Log("MasterServer", "Account \"%s\" was not updated.", username.c_str());
+			}
+			return EXIT_SUCCESS;
+		}
+
 		//Read the password from the console without echoing it.
-#ifdef __linux__
-		//This function is obsolete, but it only meant to be used by the
-		//sysadmin to create their first account.
-		password = getpass("Enter a password: ");
-#else
-		std::cout << "Enter a password: ";
-		std::cin >> password;
-#endif
+		#ifdef __linux__
+				//This function is obsolete, but it only meant to be used by the
+				//sysadmin to create their first account.
+				password = getpass("Enter a password: ");
+		#else
+				std::cout << "Enter a password: ";
+				std::cin >> password;
+		#endif
 
 		//Generate new hash for bcrypt
-
 		char salt[BCRYPT_HASHSIZE];
 		char hash[BCRYPT_HASHSIZE];
-
 		int32_t bcryptState = ::bcrypt_gensalt(12, salt);
-
 		assert(bcryptState == 0);
-
 		bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-
 		assert(bcryptState == 0);
 
 		//Create account
+		try {
+			std::unique_ptr<sql::PreparedStatement> statement(Database::CreatePreppedStmt("INSERT INTO accounts (name, password, gm_level) VALUES (?, ?, ?);"));
+			statement->setString(1, username.c_str());
+			statement->setString(2, std::string(hash, BCRYPT_HASHSIZE).c_str());
+			statement->setInt(3, 9);
+			statement->execute();
+		} catch(sql::SQLException& e) {
+			Game::logger->Log("MasterServer", "A SQL error occurred!:\n %s",  e.what());
+			return EXIT_FAILURE;
+		}
 
-		auto* statement = Database::CreatePreppedStmt("INSERT INTO accounts (name, password, ""gm_level) VALUES (?, ?, ?);");
-		statement->setString(1, username.c_str());
-		statement->setString(2, std::string(hash, BCRYPT_HASHSIZE).c_str());
-		statement->setInt(3, 9);
-
-		statement->execute();
-
-		delete statement;
-
-		std::cout << "Account created successfully!\n";
-
-
+		Game::logger->Log("MasterServer", "Account created successfully!");
 		return EXIT_SUCCESS;
 	}
 

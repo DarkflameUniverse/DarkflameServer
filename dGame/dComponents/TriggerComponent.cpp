@@ -161,21 +161,16 @@ void TriggerComponent::HandleSetPhysicsVolume(Entity* targetEntity, std::vector<
 }
 
 void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std::string> argArray) {
-	CDMissionTasksTable* missionTasksTable = CDClientManager::Instance()->GetTable<CDMissionTasksTable>("MissionTasks");
+	CDMissionTasksTable* missionTasksTable = CDClientManager::Instance().GetTable<CDMissionTasksTable>();
 	std::vector<CDMissionTasks> missionTasks = missionTasksTable->Query([=](CDMissionTasks entry) {
-		std::string lowerTargetGroup;
-		for (char character : entry.targetGroup) {
-			lowerTargetGroup.push_back(std::tolower(character)); // make lowercase to ensure it works
-		}
-
-		return (lowerTargetGroup == argArray[4]);
+		return (entry.targetGroup == argArray.at(4));
 	});
 
 	for (const CDMissionTasks& task : missionTasks) {
 		MissionComponent* missionComponent = targetEntity->GetComponent<MissionComponent>();
 		if (!missionComponent) continue;
 
-		missionComponent->ForceProgress(task.id, task.uid, std::stoi(argArray[2]));
+		missionComponent->ForceProgress(task.id, task.uid, std::stoi(argArray.at(2)));
 	}
 }
 
