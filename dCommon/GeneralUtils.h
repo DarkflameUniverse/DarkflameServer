@@ -66,7 +66,7 @@ namespace GeneralUtils {
 
 	//! Sets a bit on a numerical value
 	template <typename T>
-	void SetBit(T& value, eObjectBits bits) {
+	inline void SetBit(T& value, eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
 		auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8) - 1) {
@@ -78,7 +78,7 @@ namespace GeneralUtils {
 
 	//! Clears a bit on a numerical value
 	template <typename T>
-	void ClearBit(T& value, eObjectBits bits) {
+	inline void ClearBit(T& value, eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
 		auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8 - 1)) {
