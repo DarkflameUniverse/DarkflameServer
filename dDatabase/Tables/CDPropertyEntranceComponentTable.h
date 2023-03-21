@@ -9,31 +9,13 @@ struct CDPropertyEntranceComponent {
 	std::string groupType;
 };
 
-class CDPropertyEntranceComponentTable : public CDTable {
+class CDPropertyEntranceComponentTable : public CDTable<CDPropertyEntranceComponentTable> {
 public:
-	//! Constructor
 	CDPropertyEntranceComponentTable();
-
-	//! Destructor
-	~CDPropertyEntranceComponentTable();
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	[[nodiscard]] std::string GetName() const override;
-
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	CDPropertyEntranceComponent GetByID(uint32_t id);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
+	// Gets all the entries in the table
 	[[nodiscard]] std::vector<CDPropertyEntranceComponent> GetEntries() const { return entries; }
 private:
 	std::vector<CDPropertyEntranceComponent> entries{};

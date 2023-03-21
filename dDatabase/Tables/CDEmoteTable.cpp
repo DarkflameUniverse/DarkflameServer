@@ -30,11 +30,6 @@ CDEmoteTableTable::~CDEmoteTableTable(void) {
 	entries.clear();
 }
 
-//! Returns the table's name
-std::string CDEmoteTableTable::GetName(void) const {
-	return "Emotes";
-}
-
 CDEmoteTable* CDEmoteTableTable::GetEmote(int id) {
 	for (auto e : entries) {
 		if (e.first == id) return e.second;

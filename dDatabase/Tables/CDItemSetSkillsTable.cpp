@@ -32,15 +32,6 @@ CDItemSetSkillsTable::CDItemSetSkillsTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDItemSetSkillsTable::~CDItemSetSkillsTable(void) {}
-
-//! Returns the table's name
-std::string CDItemSetSkillsTable::GetName(void) const {
-	return "ItemSetSkills";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDItemSetSkills> CDItemSetSkillsTable::Query(std::function<bool(CDItemSetSkills)> predicate) {
 
 	std::vector<CDItemSetSkills> data = cpplinq::from(this->entries)
@@ -50,7 +41,6 @@ std::vector<CDItemSetSkills> CDItemSetSkillsTable::Query(std::function<bool(CDIt
 	return data;
 }
 
-//! Gets all the entries in the table
 std::vector<CDItemSetSkills> CDItemSetSkillsTable::GetEntries(void) const {
 	return this->entries;
 }
@@ -65,4 +55,3 @@ std::vector<CDItemSetSkills> CDItemSetSkillsTable::GetBySkillID(unsigned int Ski
 
 	return toReturn;
 }
-

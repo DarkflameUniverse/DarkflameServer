@@ -32,14 +32,6 @@ CDLevelProgressionLookupTable::CDLevelProgressionLookupTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDLevelProgressionLookupTable::~CDLevelProgressionLookupTable(void) {}
-
-//! Returns the table's name
-std::string CDLevelProgressionLookupTable::GetName(void) const {
-	return "LevelProgressionLookup";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDLevelProgressionLookup> CDLevelProgressionLookupTable::Query(std::function<bool(CDLevelProgressionLookup)> predicate) {
 

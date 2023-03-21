@@ -161,7 +161,7 @@ void TriggerComponent::HandleSetPhysicsVolume(Entity* targetEntity, std::vector<
 }
 
 void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std::string> argArray) {
-	CDMissionTasksTable* missionTasksTable = CDClientManager::Instance()->GetTable<CDMissionTasksTable>("MissionTasks");
+	CDMissionTasksTable* missionTasksTable = CDClientManager::Instance().GetTable<CDMissionTasksTable>();
 	std::vector<CDMissionTasks> missionTasks = missionTasksTable->Query([=](CDMissionTasks entry) {
 		return (entry.targetGroup == argArray.at(4));
 	});

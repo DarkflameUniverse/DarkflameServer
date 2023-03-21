@@ -34,15 +34,6 @@ CDCurrencyTableTable::CDCurrencyTableTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDCurrencyTableTable::~CDCurrencyTableTable(void) {}
-
-//! Returns the table's name
-std::string CDCurrencyTableTable::GetName(void) const {
-	return "CurrencyTable";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDCurrencyTable> CDCurrencyTableTable::Query(std::function<bool(CDCurrencyTable)> predicate) {
 
 	std::vector<CDCurrencyTable> data = cpplinq::from(this->entries)
@@ -52,7 +43,6 @@ std::vector<CDCurrencyTable> CDCurrencyTableTable::Query(std::function<bool(CDCu
 	return data;
 }
 
-//! Gets all the entries in the table
 std::vector<CDCurrencyTable> CDCurrencyTableTable::GetEntries(void) const {
 	return this->entries;
 }

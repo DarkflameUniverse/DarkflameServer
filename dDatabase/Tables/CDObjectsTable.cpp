@@ -43,14 +43,6 @@ CDObjectsTable::CDObjectsTable(void) {
 	m_default.id = 0;
 }
 
-//! Destructor
-CDObjectsTable::~CDObjectsTable(void) {}
-
-//! Returns the table's name
-std::string CDObjectsTable::GetName(void) const {
-	return "Objects";
-}
-
 const CDObjects& CDObjectsTable::GetByID(unsigned int LOT) {
 	const auto& it = this->entries.find(LOT);
 	if (it != this->entries.end()) {

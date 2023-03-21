@@ -11,6 +11,9 @@
 #include "SimplePhysicsComponent.h"
 #include "CDClientManager.h"
 
+#include "CDComponentsRegistryTable.h"
+#include "CDPhysicsComponentTable.h"
+
 std::map<LOT, float> MovementAIComponent::m_PhysicsSpeedCache = {};
 
 MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : Component(parent) {
@@ -93,7 +96,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	NiPoint3 velocity = NiPoint3::ZERO;
 
-	if (AdvanceWaypointIndex()) // Do we have another waypoint to seek?
+	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) // Do we have another waypoint to seek?
 	{
 		m_NextWaypoint = GetCurrentWaypoint();
 
@@ -280,8 +283,8 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 		return it->second;
 	}
 
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
+	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
 	int32_t componentID;
 	CDPhysicsComponent* physicsComponent = nullptr;

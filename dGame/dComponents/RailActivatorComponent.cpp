@@ -10,8 +10,7 @@
 
 RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t componentID) : Component(parent) {
 	m_ComponentID = componentID;
-	const auto tableData = CDClientManager::Instance()
-		->GetTable<CDRailActivatorComponentTable>("RailActivatorComponent")->GetEntryByID(componentID);
+	const auto tableData = CDClientManager::Instance().GetTable<CDRailActivatorComponentTable>()->GetEntryByID(componentID);;
 
 	m_Path = parent->GetVar<std::u16string>(u"rail_path");
 	m_PathDirection = parent->GetVar<bool>(u"rail_path_direction");
