@@ -624,3 +624,21 @@ void Character::SendMuteNotice() const {
 
 	ChatPackets::SendSystemMessage(GetEntity()->GetSystemAddress(), u"You are muted until " + timeStr);
 }
+
+void Character::SetBillboardVisible(bool visible) {
+	if (m_BillboardVisible == visible) return;
+	m_BillboardVisible = visible;
+
+	GameMessages::SendSetNamebillboardState(UNASSIGNED_SYSTEM_ADDRESS, m_OurEntity->GetObjectID());
+
+	if (!visible) return;
+
+	// The GameMessage we send for turning the nameplate off just deletes the BillboardSubcomponent from the parent component.
+	// Because that same message does not allow for custom parameters, we need to create the BillboardSubcomponent a different way
+	// This workaround involves sending an unrelated GameMessage that does not apply to player entites, 
+	// but forces the client to create the necessary SubComponent that controls the billboard.
+	GameMessages::SendShowBillboardInteractIcon(UNASSIGNED_SYSTEM_ADDRESS, m_OurEntity->GetObjectID());
+
+	// Now turn off the billboard for the owner.
+	GameMessages::SendSetNamebillboardState(m_OurEntity->GetSystemAddress(), m_OurEntity->GetObjectID());
+}

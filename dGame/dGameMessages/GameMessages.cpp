@@ -6154,3 +6154,32 @@ void GameMessages::SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const S
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
 }
+
+void GameMessages::SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_NAME_BILLBOARD_STATE);
+
+	// Technically these bits would be written, however the client does not
+	// contain a deserialize method to actually deserialize, so we are leaving it out.
+	// As such this GM only turns the billboard off.
+
+	// bitStream.Write(overrideDefault);
+	// bitStream.Write(state);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
+	else SEND_PACKET
+}
+
+void GameMessages::SendShowBillboardInteractIcon(const SystemAddress& sysAddr, LWOOBJID objectId) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_SHOW_BILLBOARD_INTERACT_ICON);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
+	else SEND_PACKET
+}

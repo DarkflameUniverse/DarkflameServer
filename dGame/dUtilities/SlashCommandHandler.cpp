@@ -173,6 +173,19 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 #endif
 
+	if (chatCommand == "togglenameplate" && (Game::config->GetValue("allownameplateoff") == "1" || entity->GetGMLevel() > GAME_MASTER_LEVEL_DEVELOPER)) {
+		auto* character = entity->GetCharacter();
+
+		if (character && character->GetBillboardVisible()) {
+			character->SetBillboardVisible(false);
+			ChatPackets::SendSystemMessage(sysAddr, u"Your nameplate has been turned off and is not visible to players currently in this zone.");
+		} else {
+			character->SetBillboardVisible(true);
+			ChatPackets::SendSystemMessage(sysAddr, u"Your nameplate is now on and visible to all players.");
+		}
+		return;
+	}
+
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	//HANDLE ALL NON GM SLASH COMMANDS RIGHT HERE!
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
