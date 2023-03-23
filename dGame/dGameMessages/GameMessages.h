@@ -574,6 +574,8 @@ namespace GameMessages {
 	void HandleToggleGhostReferenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSetGhostReferencePosition(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
+	void SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId);
+	void SendShowBillboardInteractIcon(const SystemAddress& sysAddr, LWOOBJID objectId);
 	void HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSellToVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);

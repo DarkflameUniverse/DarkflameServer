@@ -171,6 +171,26 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 #endif
 
+	if (chatCommand == "togglenameplate" && (Game::config->GetValue("allownameplateoff") == "1" || entity->GetGMLevel() > GAME_MASTER_LEVEL_DEVELOPER)) {
+		auto* character = entity->GetCharacter();
+
+		if (character && character->GetBillboardVisible()) {
+			character->SetBillboardVisible(false);
+			GameMessages::SendSetNamebillboardState(UNASSIGNED_SYSTEM_ADDRESS, entity->GetObjectID());
+			ChatPackets::SendSystemMessage(sysAddr, u"Your nameplate has been turned off and is not visible to players currently in this zone.");
+		} else {
+			ChatPackets::SendSystemMessage(sysAddr, u"Your nameplate is now on and visible to all players.");
+			character->SetBillboardVisible(true);
+			// Since SetNameBillboardState does not have a deserialize in the client, we need to do a workaround to 
+			// re-render the billboard only for other players and not the owner of the billboard.
+			GameMessages::SendShowBillboardInteractIcon(UNASSIGNED_SYSTEM_ADDRESS, entity->GetObjectID());
+
+			// Now turn off the billboard for the owner.
+			GameMessages::SendSetNamebillboardState(sysAddr, entity->GetObjectID());
+		}
+		return;
+	}
+
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	//HANDLE ALL NON GM SLASH COMMANDS RIGHT HERE!
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
