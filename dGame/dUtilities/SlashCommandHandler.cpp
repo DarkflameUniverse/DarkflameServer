@@ -175,10 +175,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto* character = entity->GetCharacter();
 
 		if (character && character->GetBillboardVisible()) {
-			character->SetBillboardVisible(false, entity);
+			character->SetBillboardVisible(false);
 			ChatPackets::SendSystemMessage(sysAddr, u"Your nameplate has been turned off and is not visible to players currently in this zone.");
 		} else {
-			character->SetBillboardVisible(true, entity);
+			character->SetBillboardVisible(true);
 			ChatPackets::SendSystemMessage(sysAddr, u"Your nameplate is now on and visible to all players.");
 		}
 		return;

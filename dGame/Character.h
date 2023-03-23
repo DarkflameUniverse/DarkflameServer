@@ -453,7 +453,7 @@ public:
 
 	bool GetBillboardVisible() { return m_BillboardVisible; }
 
-	void SetBillboardVisible(bool visible, Entity* self);
+	void SetBillboardVisible(bool visible);
 
 private:
 	/**
