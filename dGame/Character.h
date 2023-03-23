@@ -451,6 +451,10 @@ public:
 	*/
 	void SetIsFlying(bool isFlying) { m_IsFlying = isFlying; }
 
+	bool GetBillboardVisible() { return m_BillboardVisible; }
+
+	void SetBillboardVisible(bool visible);
+
 private:
 	/**
 	 * The ID of this character. First 32 bits of the ObjectID.
@@ -651,6 +655,11 @@ private:
 	 * Bool that tracks the flying state of the user.
 	*/
 	bool m_IsFlying = false;
+
+	/**
+	 * True if billboard (referred to as nameplate for end users) is visible, false otherwise
+	 */
+	bool m_BillboardVisible = true;
 
 	/**
 	 * Queries the character XML and updates all the fields of this object
