@@ -452,7 +452,8 @@ public:
 	void SetIsFlying(bool isFlying) { m_IsFlying = isFlying; }
 
 	bool GetBillboardVisible() { return m_BillboardVisible; }
-	bool SetBillboardVisible(bool value) { return m_BillboardVisible = value; }
+
+	void SetBillboardVisible(bool visible, Entity* self);
 
 private:
 	/**

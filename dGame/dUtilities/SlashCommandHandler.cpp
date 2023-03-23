@@ -175,20 +175,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto* character = entity->GetCharacter();
 
 		if (character && character->GetBillboardVisible()) {
-			character->SetBillboardVisible(false);
-			GameMessages::SendSetNamebillboardState(UNASSIGNED_SYSTEM_ADDRESS, entity->GetObjectID());
+			character->SetBillboardVisible(false, entity);
 			ChatPackets::SendSystemMessage(sysAddr, u"Your nameplate has been turned off and is not visible to players currently in this zone.");
 		} else {
+			character->SetBillboardVisible(true, entity);
 			ChatPackets::SendSystemMessage(sysAddr, u"Your nameplate is now on and visible to all players.");
-			character->SetBillboardVisible(true);
-			// The GameMessage we send for turning the nameplate off just deletes the BillboardSubcomponent from the parent component.
-			// Because that same message does not allow for custom parameters, we need to create the BillboardSubcomponent a different way
-			// This workaround involves sending an unrelated GameMessage that does not apply to player entites, 
-			// but forces the client to create the necessary SubComponent that controls the billboard.
-			GameMessages::SendShowBillboardInteractIcon(UNASSIGNED_SYSTEM_ADDRESS, entity->GetObjectID());
-
-			// Now turn off the billboard for the owner.
-			GameMessages::SendSetNamebillboardState(sysAddr, entity->GetObjectID());
 		}
 		return;
 	}
