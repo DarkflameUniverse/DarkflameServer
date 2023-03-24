@@ -21,6 +21,7 @@
 #include "dConfig.h"
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
+#include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 
 EntityManager* EntityManager::m_Address = nullptr;
@@ -371,7 +372,7 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	// PacketUtils::SavePacket("[24]_"+std::to_string(entity->GetObjectID()) + "_" + std::to_string(m_SerializationCounter) + ".bin", (char*)stream.GetData(), stream.GetNumberOfBytesUsed());
 
 	if (entity->IsPlayer()) {
-		if (entity->GetGMLevel() > GAME_MASTER_LEVEL_CIVILIAN) {
+		if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
 			GameMessages::SendToggleGMInvis(entity->GetObjectID(), true, sysAddr);
 		}
 	}

@@ -281,6 +281,7 @@
 #include "GemPack.h"
 #include "ShardArmor.h"
 #include "TeslaPack.h"
+#include "StunImmunity.h"
 
 // Survival scripts
 #include "AgSurvivalStromling.h"
@@ -846,6 +847,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new ShardArmor();
 	else if (scriptName == "scripts\\equipmenttriggers\\coilbackpack.lua")
 		script = new TeslaPack();
+	else if (scriptName == "scripts\\EquipmentScripts\\stunImmunity.lua")
+		script = new StunImmunity();
 
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")

@@ -21,6 +21,7 @@ enum class eAnimationFlags : uint32_t;
 
 enum class eUnequippableActiveType;
 enum eInventoryType : uint32_t;
+enum class eGameMasterLevel : uint8_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -31,7 +32,8 @@ namespace GameMessages {
 	void SendPlayerAllowedRespawn(LWOOBJID entityID, bool doNotPromptRespawn, const SystemAddress& systemAddress);
 	void SendInvalidZoneTransferList(Entity* entity, const SystemAddress& sysAddr, const std::u16string& feedbackURL, const std::u16string& invalidMapTransferList, bool feedbackOnExit, bool feedbackOnInvalidTransfer);
 	void SendKnockback(const LWOOBJID& objectID, const LWOOBJID& caster, const LWOOBJID& originator, int knockBackTimeMS, const NiPoint3& vector);
-
+	// https://lcdruniverse.org/lu_packets/lu_packets/world/gm/client/struct.VehicleStopBoost.html
+	void SendVehicleStopBoost(Entity* targetEntity, const SystemAddress& playerSysAddr, bool affectPassive);
 	void SendStartArrangingWithItem(
 		Entity* entity,
 		const SystemAddress& sysAddr,
@@ -60,8 +62,8 @@ namespace GameMessages {
 
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);
 	void SendServerDoneLoadingAllObjects(Entity* entity, const SystemAddress& sysAddr);
-	void SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level);
-	void SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level);
+	void SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level);
+	void SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel level);
 
 	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
 	void SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFlagID, bool bFlag, const SystemAddress& sysAddr);
@@ -124,6 +126,9 @@ namespace GameMessages {
 
 	void HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID);
+
+	// https://lcdruniverse.org/lu_packets/lu_packets/world/gm/client/struct.SetResurrectRestoreValues.html
+	void SendSetResurrectRestoreValues(Entity* targetEntity, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore);
 
 	/**
 	 * Sends a message to an Entity to smash itself, but not delete or destroy itself from the world
@@ -570,6 +575,8 @@ namespace GameMessages {
 	void HandleToggleGhostReferenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSetGhostReferencePosition(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
+	void SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId);
+	void SendShowBillboardInteractIcon(const SystemAddress& sysAddr, LWOOBJID objectId);
 	void HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSellToVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
@@ -617,7 +624,7 @@ namespace GameMessages {
 	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);
 
 	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
-  
+
 	// bubble
 	void HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
 

@@ -32,14 +32,6 @@ CDPackageComponentTable::CDPackageComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDPackageComponentTable::~CDPackageComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDPackageComponentTable::GetName(void) const {
-	return "PackageComponent";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDPackageComponent> CDPackageComponentTable::Query(std::function<bool(CDPackageComponent)> predicate) {
 

@@ -1,6 +1,5 @@
 #include "CDBehaviorTemplateTable.h"
 
-//! Constructor
 CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
 
 	// First, get the size of the table
@@ -40,15 +39,6 @@ CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDBehaviorTemplateTable::~CDBehaviorTemplateTable(void) {}
-
-//! Returns the table's name
-std::string CDBehaviorTemplateTable::GetName(void) const {
-	return "BehaviorTemplate";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDBehaviorTemplate> CDBehaviorTemplateTable::Query(std::function<bool(CDBehaviorTemplate)> predicate) {
 
 	std::vector<CDBehaviorTemplate> data = cpplinq::from(this->entries)
@@ -58,7 +48,6 @@ std::vector<CDBehaviorTemplate> CDBehaviorTemplateTable::Query(std::function<boo
 	return data;
 }
 
-//! Gets all the entries in the table
 std::vector<CDBehaviorTemplate> CDBehaviorTemplateTable::GetEntries(void) const {
 	return this->entries;
 }

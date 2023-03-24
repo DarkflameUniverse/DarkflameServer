@@ -15,6 +15,7 @@
 #include "CharacterComponent.h"
 #include "ZCompression.h"
 
+
 void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_LOAD_STATIC_ZONE);
@@ -127,7 +128,7 @@ void WorldPackets::SendServerState(const SystemAddress& sysAddr) {
 	SEND_PACKET;
 }
 
-void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* entity, const std::string& xmlData, const std::u16string& username, int32_t gm) {
+void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* entity, const std::string& xmlData, const std::u16string& username, eGameMasterLevel gm) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CREATE_CHARACTER);
 
@@ -144,8 +145,8 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 	LDFData<LOT>* lot = new LDFData<LOT>(u"template", 1);
 	LDFData<std::string>* xmlConfigData = new LDFData<std::string>(u"xmlData", xmlData);
 	LDFData<std::u16string>* name = new LDFData<std::u16string>(u"name", username);
-	LDFData<int32_t>* gmlevel = new LDFData<int32_t>(u"gmlevel", gm);
-	LDFData<int32_t>* chatmode = new LDFData<int32_t>(u"chatmode", gm);
+	LDFData<int32_t>* gmlevel = new LDFData<int32_t>(u"gmlevel", static_cast<int32_t>(gm));
+	LDFData<int32_t>* chatmode = new LDFData<int32_t>(u"chatmode", static_cast<int32_t>(gm));
 	LDFData<int64_t>* reputation = new LDFData<int64_t>(u"reputation", character->GetReputation());
 
 	objid->WriteToPacket(&data);
@@ -220,14 +221,14 @@ void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool
 	SEND_PACKET;
 }
 
-void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success, uint8_t highestLevel, uint8_t prevLevel, uint8_t newLevel) {
+void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success, eGameMasterLevel highestLevel, eGameMasterLevel prevLevel, eGameMasterLevel newLevel) {
 	CBITSTREAM;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_MAKE_GM_RESPONSE);
 
 	bitStream.Write<uint8_t>(success);
-	bitStream.Write<uint16_t>(highestLevel);
-	bitStream.Write<uint16_t>(prevLevel);
-	bitStream.Write<uint16_t>(newLevel);
+	bitStream.Write(static_cast<uint16_t>(highestLevel));
+	bitStream.Write(static_cast<uint16_t>(prevLevel));
+	bitStream.Write(static_cast<uint16_t>(newLevel));
 
 	SEND_PACKET;
 }

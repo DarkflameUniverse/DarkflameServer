@@ -85,15 +85,6 @@ CDMissionsTable::CDMissionsTable(void) {
 	Default.id = -1;
 }
 
-//! Destructor
-CDMissionsTable::~CDMissionsTable(void) {}
-
-//! Returns the table's name
-std::string CDMissionsTable::GetName(void) const {
-	return "Missions";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDMissions> CDMissionsTable::Query(std::function<bool(CDMissions)> predicate) {
 
 	std::vector<CDMissions> data = cpplinq::from(this->entries)
@@ -103,7 +94,6 @@ std::vector<CDMissions> CDMissionsTable::Query(std::function<bool(CDMissions)> p
 	return data;
 }
 
-//! Gets all the entries in the table
 const std::vector<CDMissions>& CDMissionsTable::GetEntries(void) const {
 	return this->entries;
 }

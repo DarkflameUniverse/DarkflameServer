@@ -1,7 +1,6 @@
 #include "CDBehaviorParameterTable.h"
 #include "GeneralUtils.h"
 
-//! Constructor
 CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorParameter");
 	uint32_t uniqueParameterId = 0;
@@ -26,14 +25,6 @@ CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 		tableData.nextRow();
 	}
 	tableData.finalize();
-}
-
-//! Destructor
-CDBehaviorParameterTable::~CDBehaviorParameterTable(void) {}
-
-//! Returns the table's name
-std::string CDBehaviorParameterTable::GetName(void) const {
-	return "BehaviorParameter";
 }
 
 float CDBehaviorParameterTable::GetValue(const uint32_t behaviorID, const std::string& name, const float defaultValue) {

@@ -24,6 +24,7 @@
 #include "CDClientDatabase.h"
 #include "dMessageIdentifiers.h"
 #include "eObjectBits.h"
+#include "eGameMasterLevel.h"
 
 UserManager* UserManager::m_Address = nullptr;
 
@@ -331,7 +332,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 				//Check to see if our name was pre-approved:
 				bool nameOk = IsNamePreapproved(name);
-				if (!nameOk && u->GetMaxGMLevel() > 1) nameOk = true;
+				if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
 				if (name != "") {
 					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
