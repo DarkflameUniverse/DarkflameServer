@@ -8,6 +8,7 @@
 
 class User;
 struct SystemAddress;
+enum class eGameMasterLevel : uint8_t;
 
 namespace WorldPackets {
 	void SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum);
@@ -17,9 +18,9 @@ namespace WorldPackets {
 	void SendCharacterDeleteResponse(const SystemAddress& sysAddr, bool response);
 	void SendTransferToWorld(const SystemAddress& sysAddr, const std::string& serverIP, uint32_t serverPort, bool mythranShift);
 	void SendServerState(const SystemAddress& sysAddr);
-	void SendCreateCharacter(const SystemAddress& sysAddr, Entity* entity, const std::string& xmlData, const std::u16string& username, int32_t gm);
+	void SendCreateCharacter(const SystemAddress& sysAddr, Entity* entity, const std::string& xmlData, const std::u16string& username, eGameMasterLevel gm);
 	void SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::vector<std::pair<uint8_t, uint8_t>> unacceptedItems);
-	void SendGMLevelChange(const SystemAddress& sysAddr, bool success, uint8_t highestLevel, uint8_t prevLevel, uint8_t newLevel);
+	void SendGMLevelChange(const SystemAddress& sysAddr, bool success, eGameMasterLevel highestLevel, eGameMasterLevel prevLevel, eGameMasterLevel newLevel);
 }
 
 #endif // WORLDPACKETS_H

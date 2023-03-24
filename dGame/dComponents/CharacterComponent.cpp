@@ -14,6 +14,7 @@
 #include "GameMessages.h"
 #include "Item.h"
 #include "AMFFormat.h"
+#include "eGameMasterLevel.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
@@ -165,9 +166,9 @@ void CharacterComponent::SetPvpEnabled(const bool value) {
 	m_PvpEnabled = value;
 }
 
-void CharacterComponent::SetGMLevel(int gmlevel) {
+void CharacterComponent::SetGMLevel(eGameMasterLevel gmlevel) {
 	m_DirtyGMInfo = true;
-	if (gmlevel > 0) m_IsGM = true;
+	if (gmlevel > eGameMasterLevel::CIVILIAN) m_IsGM = true;
 	else m_IsGM = false;
 	m_GMLevel = gmlevel;
 }
@@ -239,7 +240,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	// End custom attributes
 	//
 
-	if (m_GMLevel > 0) {
+	if (m_GMLevel > eGameMasterLevel::CIVILIAN) {
 		m_IsGM = true;
 		m_DirtyGMInfo = true;
 		m_EditorLevel = m_GMLevel;

@@ -410,7 +410,7 @@ void GameMessages::SendServerDoneLoadingAllObjects(Entity* entity, const SystemA
 	SEND_PACKET;
 }
 
-void GameMessages::SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level) {
+void GameMessages::SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel level) {
 	CBITSTREAM;
 	CMSGHEADER;
 	bitStream.Write(objectID);
@@ -419,7 +419,7 @@ void GameMessages::SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level) {
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level) {
+void GameMessages::SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level) {
 	CBITSTREAM;
 	CMSGHEADER;
 	bitStream.Write(objectID);
@@ -6162,3 +6162,32 @@ void GameMessages::HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entit
 	auto target = EntityManager::Instance()->GetEntity(player_id);
 	entity->TriggerEvent(eTriggerEventType::ZONE_SUMMARY_DISMISSED, target);
 };
+
+void GameMessages::SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_NAME_BILLBOARD_STATE);
+
+	// Technically these bits would be written, however the client does not
+	// contain a deserialize method to actually deserialize, so we are leaving it out.
+	// As such this GM only turns the billboard off.
+
+	// bitStream.Write(overrideDefault);
+	// bitStream.Write(state);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
+	else SEND_PACKET
+}
+
+void GameMessages::SendShowBillboardInteractIcon(const SystemAddress& sysAddr, LWOOBJID objectId) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_SHOW_BILLBOARD_INTERACT_ICON);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
+	else SEND_PACKET
+}

@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 class Character;
+enum class eGameMasterLevel : uint8_t;
 
 struct BehaviorParams {
 	uint32_t behavior;
@@ -29,7 +30,7 @@ public:
 	std::string& GetSessionKey() { return m_SessionKey; }
 	SystemAddress& GetSystemAddress() { return m_SystemAddress; }
 
-	uint32_t GetMaxGMLevel() { return m_MaxGMLevel; }
+	eGameMasterLevel GetMaxGMLevel() { return m_MaxGMLevel; }
 	uint32_t GetLastCharID() { return m_LastCharID; }
 	void SetLastCharID(uint32_t newCharID) { m_LastCharID = newCharID; }
 
@@ -61,7 +62,7 @@ private:
 	std::string m_SessionKey;
 	SystemAddress m_SystemAddress;
 
-	uint32_t m_MaxGMLevel; //The max GM level this account can assign to it's characters
+	eGameMasterLevel m_MaxGMLevel; //The max GM level this account can assign to it's characters
 	uint32_t m_LastCharID;
 	std::vector<Character*> m_Characters;
 	LWOOBJID m_LoggedInCharID;

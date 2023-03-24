@@ -22,6 +22,7 @@ enum class eAnimationFlags : uint32_t;
 
 enum class eUnequippableActiveType;
 enum eInventoryType : uint32_t;
+enum class eGameMasterLevel : uint8_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -62,8 +63,8 @@ namespace GameMessages {
 
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);
 	void SendServerDoneLoadingAllObjects(Entity* entity, const SystemAddress& sysAddr);
-	void SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level);
-	void SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level);
+	void SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level);
+	void SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel level);
 
 	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
 	void SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFlagID, bool bFlag, const SystemAddress& sysAddr);
@@ -575,6 +576,8 @@ namespace GameMessages {
 	void HandleToggleGhostReferenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSetGhostReferencePosition(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
+	void SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId);
+	void SendShowBillboardInteractIcon(const SystemAddress& sysAddr, LWOOBJID objectId);
 	void HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSellToVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
