@@ -18,6 +18,7 @@
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "eGameMasterLevel.h"
 
 Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
@@ -204,7 +205,9 @@ void Character::DoQuickXMLDataParse() {
 	tinyxml2::XMLElement* character = m_Doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (character) {
 		character->QueryAttribute("cc", &m_Coins);
-		character->QueryAttribute("gm", &m_GMLevel);
+		int32_t gm_level = 0;
+		character->QueryAttribute("gm", &gm_level);
+		m_GMLevel = static_cast<eGameMasterLevel>(gm_level);
 
 		uint64_t lzidConcat = 0;
 		if (character->FindAttribute("lzid")) {
@@ -304,7 +307,7 @@ void Character::SaveXMLToDatabase() {
 
 	tinyxml2::XMLElement* character = m_Doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (character) {
-		character->SetAttribute("gm", m_GMLevel);
+		character->SetAttribute("gm", static_cast<uint32_t>(m_GMLevel));
 		character->SetAttribute("cc", m_Coins);
 
 		auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
@@ -545,7 +548,7 @@ void Character::OnZoneLoad() {
 	const auto maxGMLevel = m_ParentUser->GetMaxGMLevel();
 
 	// This does not apply to the GMs
-	if (maxGMLevel > GAME_MASTER_LEVEL_CIVILIAN) {
+	if (maxGMLevel > eGameMasterLevel::CIVILIAN) {
 		return;
 	}
 

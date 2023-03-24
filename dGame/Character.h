@@ -15,6 +15,7 @@ class User;
 struct Packet;
 class Entity;
 enum class ePermissionMap : uint64_t;
+enum class eGameMasterLevel : uint8_t;
 
 /**
  * Meta information about a character, like their name and style
@@ -308,13 +309,13 @@ public:
 	 * Gets the GM level of the character
 	 * @return the GM level
 	 */
-	int32_t GetGMLevel() const { return m_GMLevel; }
+	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
 
 	/**
 	 * Sets the GM level of the character
 	 * @param value the GM level to set
 	 */
-	void SetGMLevel(uint8_t value) { m_GMLevel = value; }
+	void SetGMLevel(eGameMasterLevel value) { m_GMLevel = value; }
 
 	/**
 	 * Gets the current amount of coins of the character
@@ -481,7 +482,7 @@ private:
 	 *
 	 * @see eGameMasterLevel
 	 */
-	int32_t m_GMLevel;
+	eGameMasterLevel m_GMLevel;
 
 	/**
 	 * Bitmap of permission attributes this character has.
