@@ -7,6 +7,7 @@
 #include <vector>
 #include "eMovementPlatformState.h"
 #include "NiPoint3.h"
+#include "eEndBehavior.h"
 
 class AMFValue;
 class Entity;
@@ -266,7 +267,7 @@ namespace GameMessages {
 
 	void SendPlayCinematic(LWOOBJID objectId, std::u16string pathName, const SystemAddress& sysAddr,
 		bool allowGhostUpdates = true, bool bCloseMultiInteract = true, bool bSendServerNotify = false, bool bUseControlledObjectForAudioListener = false,
-		int endBehavior = 0, bool hidePlayerDuringCine = false, float leadIn = -1, bool leavePlayerLockedWhenFinished = false,
+		eEndBehavior endBehavior = eEndBehavior::RETURN, bool hidePlayerDuringCine = false, float leadIn = -1, bool leavePlayerLockedWhenFinished = false,
 		bool lockPlayer = true, bool result = false, bool skipIfSamePath = false, float startTimeAdvance = 0);
 
 	void SendEndCinematic(LWOOBJID objectID, std::u16string pathName, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
@@ -633,6 +634,8 @@ namespace GameMessages {
 	void SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
+
+	void HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity);
 };
 
 #endif // GAMEMESSAGES_H

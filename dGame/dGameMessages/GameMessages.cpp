@@ -34,6 +34,7 @@
 #include "eRacingTaskParam.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "eTriggerEventType.h"
 
 #include <sstream>
 #include <future>
@@ -2813,7 +2814,7 @@ void GameMessages::HandleSetConsumableItem(RakNet::BitStream* inStream, Entity* 
 
 void GameMessages::SendPlayCinematic(LWOOBJID objectId, std::u16string pathName, const SystemAddress& sysAddr,
 	bool allowGhostUpdates, bool bCloseMultiInteract, bool bSendServerNotify, bool bUseControlledObjectForAudioListener,
-	int endBehavior, bool hidePlayerDuringCine, float leadIn, bool leavePlayerLockedWhenFinished,
+	eEndBehavior endBehavior, bool hidePlayerDuringCine, float leadIn, bool leavePlayerLockedWhenFinished,
 	bool lockPlayer, bool result, bool skipIfSamePath, float startTimeAdvance) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -2826,8 +2827,8 @@ void GameMessages::SendPlayCinematic(LWOOBJID objectId, std::u16string pathName,
 	bitStream.Write(bSendServerNotify);
 	bitStream.Write(bUseControlledObjectForAudioListener);
 
-	bitStream.Write(endBehavior != 0);
-	if (endBehavior != 0) bitStream.Write(endBehavior);
+	bitStream.Write(endBehavior != eEndBehavior::RETURN);
+	if (endBehavior != eEndBehavior::RETURN) bitStream.Write(endBehavior);
 
 	bitStream.Write(hidePlayerDuringCine);
 
@@ -6154,6 +6155,13 @@ void GameMessages::SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const S
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
 }
+
+void GameMessages::HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity) {
+	LWOOBJID player_id;
+	inStream->Read<LWOOBJID>(player_id);
+	auto target = EntityManager::Instance()->GetEntity(player_id);
+	entity->TriggerEvent(eTriggerEventType::ZONE_SUMMARY_DISMISSED, target);
+};
 
 void GameMessages::SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId) {
 	CBITSTREAM;
