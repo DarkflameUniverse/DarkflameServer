@@ -8,6 +8,7 @@
 #include "CharacterComponent.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
+#include "eTriggerEventType.h"
 
 #include "dServer.h"
 #include "PacketUtils.h"
@@ -496,6 +497,8 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 		callback(m_State);
 	for (const auto& callback : m_RebuildCompleteCallbacks)
 		callback(user);
+
+	m_Parent->TriggerEvent(eTriggerEventType::REBUILD_COMPLETE, user);
 
 	auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
 	if (movingPlatform != nullptr) {

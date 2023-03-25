@@ -7,6 +7,7 @@
 #include <vector>
 #include "eMovementPlatformState.h"
 #include "NiPoint3.h"
+#include "eEndBehavior.h"
 
 class AMFValue;
 class Entity;
@@ -21,6 +22,7 @@ enum class eAnimationFlags : uint32_t;
 
 enum class eUnequippableActiveType;
 enum eInventoryType : uint32_t;
+enum class eGameMasterLevel : uint8_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -61,8 +63,8 @@ namespace GameMessages {
 
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);
 	void SendServerDoneLoadingAllObjects(Entity* entity, const SystemAddress& sysAddr);
-	void SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level);
-	void SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level);
+	void SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level);
+	void SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel level);
 
 	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
 	void SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFlagID, bool bFlag, const SystemAddress& sysAddr);
@@ -265,7 +267,7 @@ namespace GameMessages {
 
 	void SendPlayCinematic(LWOOBJID objectId, std::u16string pathName, const SystemAddress& sysAddr,
 		bool allowGhostUpdates = true, bool bCloseMultiInteract = true, bool bSendServerNotify = false, bool bUseControlledObjectForAudioListener = false,
-		int endBehavior = 0, bool hidePlayerDuringCine = false, float leadIn = -1, bool leavePlayerLockedWhenFinished = false,
+		eEndBehavior endBehavior = eEndBehavior::RETURN, bool hidePlayerDuringCine = false, float leadIn = -1, bool leavePlayerLockedWhenFinished = false,
 		bool lockPlayer = true, bool result = false, bool skipIfSamePath = false, float startTimeAdvance = 0);
 
 	void SendEndCinematic(LWOOBJID objectID, std::u16string pathName, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
@@ -574,6 +576,8 @@ namespace GameMessages {
 	void HandleToggleGhostReferenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSetGhostReferencePosition(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
+	void SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId);
+	void SendShowBillboardInteractIcon(const SystemAddress& sysAddr, LWOOBJID objectId);
 	void HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSellToVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
@@ -621,7 +625,7 @@ namespace GameMessages {
 	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);
 
 	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
-  
+
 	// bubble
 	void HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
 
@@ -630,6 +634,8 @@ namespace GameMessages {
 	void SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
+
+	void HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity);
 };
 
 #endif // GAMEMESSAGES_H

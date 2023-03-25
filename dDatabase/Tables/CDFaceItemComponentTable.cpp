@@ -27,12 +27,6 @@ CDFaceItemComponentTable::CDFaceItemComponentTable() {
     tableData.finalize();
 }
 
-CDFaceItemComponentTable::~CDFaceItemComponentTable() {}
-
-std::string CDFaceItemComponentTable::GetName() const {
-    return "FaceItemComponent";
-}
-
 std::vector<CDFaceItemComponent> CDFaceItemComponentTable::Query(std::function<bool(CDFaceItemComponent)> predicate) {
 
     std::vector<CDFaceItemComponent> data = cpplinq::from(this->entries) >> cpplinq::where(predicate) >> cpplinq::to_vector();

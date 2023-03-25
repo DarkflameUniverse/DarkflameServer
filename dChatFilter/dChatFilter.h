@@ -4,6 +4,7 @@
 
 #include "dCommonVars.h"
 
+enum class eGameMasterLevel : uint8_t;
 namespace dChatFilterDCF {
 	static const uint32_t header = ('D' + ('C' << 8) + ('F' << 16) + ('B' << 24));
 	static const uint32_t formatVersion = 2;
@@ -23,7 +24,7 @@ public:
 	void ReadWordlistPlaintext(const std::string& filepath, bool whiteList);
 	bool ReadWordlistDCF(const std::string& filepath, bool whiteList);
 	void ExportWordlistToDCF(const std::string& filepath, bool whiteList);
-	std::vector<std::pair<uint8_t, uint8_t>> IsSentenceOkay(const std::string& message, int gmLevel, bool whiteList = true);
+	std::vector<std::pair<uint8_t, uint8_t>> IsSentenceOkay(const std::string& message, eGameMasterLevel gmLevel, bool whiteList = true);
 
 private:
 	bool m_UseWhitelist;

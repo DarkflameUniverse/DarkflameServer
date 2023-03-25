@@ -34,6 +34,7 @@
 #include "eRacingTaskParam.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "eTriggerEventType.h"
 
 #include <sstream>
 #include <future>
@@ -81,6 +82,9 @@
 #include "eAninmationFlags.h"
 #include "AMFFormat_BitStream.h"
 #include "eReplicaComponentType.h"
+
+#include "CDComponentsRegistryTable.h"
+#include "CDObjectsTable.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -406,7 +410,7 @@ void GameMessages::SendServerDoneLoadingAllObjects(Entity* entity, const SystemA
 	SEND_PACKET;
 }
 
-void GameMessages::SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level) {
+void GameMessages::SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel level) {
 	CBITSTREAM;
 	CMSGHEADER;
 	bitStream.Write(objectID);
@@ -415,7 +419,7 @@ void GameMessages::SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level) {
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level) {
+void GameMessages::SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level) {
 	CBITSTREAM;
 	CMSGHEADER;
 	bitStream.Write(objectID);
@@ -1077,7 +1081,7 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 
 	// Currency and powerups should not sync
 	if (team != nullptr && currency == 0) {
-		CDObjectsTable* objectsTable = CDClientManager::Instance()->GetTable<CDObjectsTable>("Objects");
+		CDObjectsTable* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
 
 		const CDObjects& object = objectsTable->GetByID(item);
 
@@ -2810,7 +2814,7 @@ void GameMessages::HandleSetConsumableItem(RakNet::BitStream* inStream, Entity* 
 
 void GameMessages::SendPlayCinematic(LWOOBJID objectId, std::u16string pathName, const SystemAddress& sysAddr,
 	bool allowGhostUpdates, bool bCloseMultiInteract, bool bSendServerNotify, bool bUseControlledObjectForAudioListener,
-	int endBehavior, bool hidePlayerDuringCine, float leadIn, bool leavePlayerLockedWhenFinished,
+	eEndBehavior endBehavior, bool hidePlayerDuringCine, float leadIn, bool leavePlayerLockedWhenFinished,
 	bool lockPlayer, bool result, bool skipIfSamePath, float startTimeAdvance) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -2823,8 +2827,8 @@ void GameMessages::SendPlayCinematic(LWOOBJID objectId, std::u16string pathName,
 	bitStream.Write(bSendServerNotify);
 	bitStream.Write(bUseControlledObjectForAudioListener);
 
-	bitStream.Write(endBehavior != 0);
-	if (endBehavior != 0) bitStream.Write(endBehavior);
+	bitStream.Write(endBehavior != eEndBehavior::RETURN);
+	if (endBehavior != eEndBehavior::RETURN) bitStream.Write(endBehavior);
 
 	bitStream.Write(hidePlayerDuringCine);
 
@@ -4410,7 +4414,7 @@ void GameMessages::SendVehicleStopBoost(Entity* targetEntity, const SystemAddres
 
 	bitStream.Write(targetEntity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_VEHICLE_STOP_BOOST);
-	
+
 	bitStream.Write(affectPassive);
 
 	SEND_PACKET_BROADCAST;
@@ -4422,7 +4426,7 @@ void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, int32_t a
 
 	bitStream.Write(targetEntity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_SET_RESURRECT_RESTORE_VALUES);
-	
+
 	bitStream.Write(armorRestore != -1);
 	if (armorRestore != -1) bitStream.Write(armorRestore);
 
@@ -4723,9 +4727,9 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	Character* character = player->GetCharacter();
 	if (!character) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
-	CDFaceItemComponentTable* faceItemTable = CDClientManager::Instance()->GetTable<CDFaceItemComponentTable>("FaceItemComponent");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>();
+	CDFaceItemComponentTable* faceItemTable = CDClientManager::Instance()->GetTable<CDFaceItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item, eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -4874,8 +4878,8 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	Item* item = inv->FindItemById(iObjID);
 	if (!item) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item->GetLot(), eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -4924,8 +4928,8 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 	Item* item = inv->FindItemById(iObjID);
 	if (!item) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item->GetLot(), eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -5163,7 +5167,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 		}
 	}
 
-	CDEmoteTableTable* emotes = CDClientManager::Instance()->GetTable<CDEmoteTableTable>("EmoteTable");
+	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
 	if (emotes) {
 		CDEmoteTable* emote = emotes->GetEmote(emoteID);
 		if (emote) sAnimationName = emote->animationName;
@@ -6212,4 +6216,40 @@ void GameMessages::SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const S
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
+}
+
+void GameMessages::HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity) {
+	LWOOBJID player_id;
+	inStream->Read<LWOOBJID>(player_id);
+	auto target = EntityManager::Instance()->GetEntity(player_id);
+	entity->TriggerEvent(eTriggerEventType::ZONE_SUMMARY_DISMISSED, target);
+};
+
+void GameMessages::SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_SET_NAME_BILLBOARD_STATE);
+
+	// Technically these bits would be written, however the client does not
+	// contain a deserialize method to actually deserialize, so we are leaving it out.
+	// As such this GM only turns the billboard off.
+
+	// bitStream.Write(overrideDefault);
+	// bitStream.Write(state);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
+	else SEND_PACKET
+}
+
+void GameMessages::SendShowBillboardInteractIcon(const SystemAddress& sysAddr, LWOOBJID objectId) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(GAME_MSG::GAME_MSG_SHOW_BILLBOARD_INTERACT_ICON);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
+	else SEND_PACKET
 }

@@ -9,6 +9,7 @@
 #include "GameMessages.h"
 #include "VanityUtilities.h"
 #include "WorldConfig.h"
+#include "CDZoneTableTable.h"
 #include <chrono>
 // #include "RandomQBManager.h"
 
@@ -28,7 +29,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LOT zoneControlTemplate = 2365;
 
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	if (zoneTable != nullptr) {
 		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
 
@@ -189,17 +190,7 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 		Game::logger->Log("dZoneManager", "Failed to find spawner entity (%llu)", id);
 	}
 
-	for (auto* node : spawner->m_Info.nodes) {
-		for (const auto& element : node->entities) {
-			auto* nodeEntity = EntityManager::Instance()->GetEntity(element);
-
-			if (nodeEntity == nullptr) continue;
-
-			nodeEntity->Kill();
-		}
-
-		node->entities.clear();
-	}
+	spawner->DestroyAllEntities();
 
 	spawner->Deactivate();
 

@@ -9,16 +9,11 @@ struct CDFaceItemComponent {
     int32_t mouth;
 };
 
-class CDFaceItemComponentTable : public CDTable {
+class CDFaceItemComponentTable : public CDTable<CDFaceItemComponentTable> {
   private:
     std::vector<CDFaceItemComponent> entries;
 
   public:
-    CDFaceItemComponentTable();
-    ~CDFaceItemComponentTable();
-
-    std::string GetName() const override;
-
     CDFaceItemComponent GetByLot(LOT lot);
 
     CDFaceItemComponent GetByEyes(uint32_t id);

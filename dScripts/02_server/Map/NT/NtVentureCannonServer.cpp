@@ -1,6 +1,7 @@
 #include "NtVentureCannonServer.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "eEndBehavior.h"
 
 void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 	auto* player = user;
@@ -73,7 +74,7 @@ void NtVentureCannonServer::EnterCannonEnded(Entity* self, Entity* player) {
 
 	const auto exitCinematicUname = exitCinematic;
 	GameMessages::SendPlayCinematic(player->GetObjectID(), exitCinematicUname, player->GetSystemAddress(),
-		true, true, true, false, 0, false, 0, false, false
+		true, true, true, false, eEndBehavior::RETURN, false, 0, false, false
 	);
 
 	self->AddCallbackTimer(1.5f, [this, self, playerID]() {
