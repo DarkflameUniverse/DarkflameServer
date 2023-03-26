@@ -35,7 +35,7 @@ public:
 			{"OnTimerDone", eTriggerEventType::TIMER_DONE},
 			{"OnRebuildComplete", eTriggerEventType::REBUILD_COMPLETE},
 			{"OnActivated", eTriggerEventType::ACTIVATED},
-			{"OnDeactivated", eTriggerEventType::DEACTIVATED},
+			{"OnDectivated", eTriggerEventType::DEACTIVATED}, // Dectivated vs Deactivated
 			{"OnArrived", eTriggerEventType::ARRIVED},
 			{"OnArrivedAtEndOfPath", eTriggerEventType::ARRIVED_AT_END_OF_PATH},
 			{"OnZoneSummaryDismissed", eTriggerEventType::ZONE_SUMMARY_DISMISSED},

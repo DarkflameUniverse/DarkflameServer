@@ -70,6 +70,7 @@
 #include "RailActivatorComponent.h"
 #include "LUPExhibitComponent.h"
 #include "TriggerComponent.h"
+#include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 
 // Table includes
@@ -89,7 +90,7 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_TemplateID = info.lot;
 	m_ParentEntity = parentEntity;
 	m_Character = nullptr;
-	m_GMLevel = 0;
+	m_GMLevel = eGameMasterLevel::CIVILIAN;
 	m_CollectibleID = 0;
 	m_NetworkID = 0;
 	m_Groups = {};
@@ -763,7 +764,7 @@ void Entity::Initialize() {
 
 no_ghosting:
 
-	TriggerEvent(eTriggerEventType::CREATE);
+	TriggerEvent(eTriggerEventType::CREATE, this);
 
 	if (m_Character) {
 		auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
@@ -858,7 +859,7 @@ void Entity::SetProximityRadius(dpEntity* entity, std::string name) {
 	proxMon->SetProximityRadius(entity, name);
 }
 
-void Entity::SetGMLevel(uint8_t value) {
+void Entity::SetGMLevel(eGameMasterLevel value) {
 	m_GMLevel = value;
 	if (GetParentUser()) {
 		Character* character = GetParentUser()->GetLastUsedChar();
@@ -970,7 +971,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 		outBitStream->Write0(); //ObjectWorldState
 
-		if (m_GMLevel != 0) {
+		if (m_GMLevel != eGameMasterLevel::CIVILIAN) {
 			outBitStream->Write1();
 			outBitStream->Write(m_GMLevel);
 		} else outBitStream->Write0(); //No GM Level
@@ -1390,7 +1391,7 @@ void Entity::OnEmoteReceived(const int32_t emote, Entity* target) {
 }
 
 void Entity::OnUse(Entity* originator) {
-	TriggerEvent(eTriggerEventType::INTERACT);
+	TriggerEvent(eTriggerEventType::INTERACT, originator);
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnUse(this, originator);
@@ -1412,6 +1413,7 @@ void Entity::OnHitOrHealResult(Entity* attacker, int32_t damage) {
 }
 
 void Entity::OnHit(Entity* attacker) {
+	TriggerEvent(eTriggerEventType::HIT, attacker);
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnHit(this, attacker);
 	}
