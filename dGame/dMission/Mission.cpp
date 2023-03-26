@@ -26,6 +26,8 @@
 #include "eMissionLockState.h"
 #include "eReplicaComponentType.h"
 
+#include "CDMissionEmailTable.h"
+
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	m_MissionComponent = missionComponent;
 
@@ -39,7 +41,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
 	m_State = eMissionState::UNKNOWN;
 
-	auto* missionsTable = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
+	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
 
 	info = missionsTable->GetPtrByMissionID(missionId);
 
@@ -49,7 +51,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 		return;
 	}
 
-	auto* tasksTable = CDClientManager::Instance()->GetTable<CDMissionTasksTable>("MissionTasks");
+	auto* tasksTable = CDClientManager::Instance().GetTable<CDMissionTasksTable>();
 
 	auto tasks = tasksTable->GetByMissionID(missionId);
 
@@ -177,7 +179,7 @@ void Mission::UpdateXml(tinyxml2::XMLElement* element) {
 }
 
 bool Mission::IsValidMission(const uint32_t missionId) {
-	auto* table = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
+	auto* table = CDClientManager::Instance().GetTable<CDMissionsTable>();
 
 	const auto missions = table->Query([=](const CDMissions& entry) {
 		return entry.id == static_cast<int>(missionId);
@@ -187,7 +189,7 @@ bool Mission::IsValidMission(const uint32_t missionId) {
 }
 
 bool Mission::IsValidMission(const uint32_t missionId, CDMissions& info) {
-	auto* table = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
+	auto* table = CDClientManager::Instance().GetTable<CDMissionsTable>();
 
 	const auto missions = table->Query([=](const CDMissions& entry) {
 		return entry.id == static_cast<int>(missionId);
@@ -331,7 +333,7 @@ void Mission::Complete(const bool yieldRewards) {
 
 	missionComponent->Progress(eMissionTaskType::RACING, info->id, (LWOOBJID)eRacingTaskParam::COMPLETE_TRACK_TASKS);
 
-	auto* missionEmailTable = CDClientManager::Instance()->GetTable<CDMissionEmailTable>("MissionEmail");
+	auto* missionEmailTable = CDClientManager::Instance().GetTable<CDMissionEmailTable>();
 
 	const auto missionId = GetMissionId();
 

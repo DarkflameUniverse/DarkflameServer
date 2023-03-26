@@ -286,7 +286,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			comp->Progress(eMissionTaskType::USE_SKILL, startSkill.skillID);
 		}
 
-		CDSkillBehaviorTable* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+		CDSkillBehaviorTable* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 		unsigned int behaviorId = skillTable->GetSkillByID(startSkill.skillID).behaviorID;
 
 		bool success = false;
@@ -672,6 +672,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		break;
 	case GAME_MSG_ACTIVATE_BUBBLE_BUFF:
 		GameMessages::HandleActivateBubbleBuff(inStream, entity);
+		break;
+	case GAME_MSG_ZONE_SUMMARY_DISMISSED:
+		GameMessages::HandleZoneSummaryDismissed(inStream, entity);
 		break;
 	default:
 		// Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i", messageID);

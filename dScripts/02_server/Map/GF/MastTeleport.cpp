@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "Preconditions.h"
+#include "eEndBehavior.h"
 #include "DestroyableComponent.h"
 
 #ifdef _WIN32
@@ -52,7 +53,7 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		if (!cinematic.empty()) {
 			GameMessages::SendPlayCinematic(playerId, GeneralUtils::ASCIIToUTF16(cinematic), player->GetSystemAddress(),
-				true, true, false, false, 0, false, leanIn
+				true, true, false, false, eEndBehavior::RETURN, false, leanIn
 			);
 		}
 

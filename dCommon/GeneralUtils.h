@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <stdexcept>
 #include <BitStream.h>
+#include "NiPoint3.h"
 
 #include "Game.h"
 #include "dLogger.h"
@@ -207,6 +208,8 @@ namespace GeneralUtils {
 	bool TryParse(const std::string& value, T& dst) {
 		return TryParse<T>(value.c_str(), dst);
 	}
+
+	bool TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst);
 
 	template<typename T>
 	std::u16string to_u16string(T value) {

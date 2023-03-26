@@ -1,6 +1,5 @@
 #include "CDAnimationsTable.h"
 
-//! Constructor
 CDAnimationsTable::CDAnimationsTable(void) {
 
 	// First, get the size of the table
@@ -42,15 +41,6 @@ CDAnimationsTable::CDAnimationsTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDAnimationsTable::~CDAnimationsTable(void) {}
-
-//! Returns the table's name
-std::string CDAnimationsTable::GetName(void) const {
-	return "Animations";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDAnimations> CDAnimationsTable::Query(std::function<bool(CDAnimations)> predicate) {
 
 	std::vector<CDAnimations> data = cpplinq::from(this->entries)
@@ -60,7 +50,6 @@ std::vector<CDAnimations> CDAnimationsTable::Query(std::function<bool(CDAnimatio
 	return data;
 }
 
-//! Gets all the entries in the table
 std::vector<CDAnimations> CDAnimationsTable::GetEntries(void) const {
 	return this->entries;
 }

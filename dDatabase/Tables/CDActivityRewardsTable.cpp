@@ -1,6 +1,5 @@
 #include "CDActivityRewardsTable.h"
 
-//! Constructor
 CDActivityRewardsTable::CDActivityRewardsTable(void) {
 
 	// First, get the size of the table
@@ -36,15 +35,6 @@ CDActivityRewardsTable::CDActivityRewardsTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDActivityRewardsTable::~CDActivityRewardsTable(void) {}
-
-//! Returns the table's name
-std::string CDActivityRewardsTable::GetName(void) const {
-	return "ActivityRewards";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDActivityRewards> CDActivityRewardsTable::Query(std::function<bool(CDActivityRewards)> predicate) {
 
 	std::vector<CDActivityRewards> data = cpplinq::from(this->entries)
@@ -54,7 +44,6 @@ std::vector<CDActivityRewards> CDActivityRewardsTable::Query(std::function<bool(
 	return data;
 }
 
-//! Gets all the entries in the table
 std::vector<CDActivityRewards> CDActivityRewardsTable::GetEntries(void) const {
 	return this->entries;
 }

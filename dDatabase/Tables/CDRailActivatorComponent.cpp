@@ -43,12 +43,6 @@ CDRailActivatorComponentTable::CDRailActivatorComponentTable() {
 	tableData.finalize();
 }
 
-CDRailActivatorComponentTable::~CDRailActivatorComponentTable() = default;
-
-std::string CDRailActivatorComponentTable::GetName() const {
-	return "RailActivatorComponent";
-}
-
 CDRailActivatorComponent CDRailActivatorComponentTable::GetEntryByID(int32_t id) const {
 	for (const auto& entry : m_Entries) {
 		if (entry.id == id)

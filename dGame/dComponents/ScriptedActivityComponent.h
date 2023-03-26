@@ -13,6 +13,8 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
+#include "CDActivitiesTable.h"
+
  /**
   * Represents an instance of an activity, having participants and score
   */

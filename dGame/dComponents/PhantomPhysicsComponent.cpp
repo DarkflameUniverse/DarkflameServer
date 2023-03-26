@@ -14,6 +14,7 @@
 #include "EntityManager.h"
 #include "ControllablePhysicsComponent.h"
 #include "GameMessages.h"
+#include "ePhysicsEffectType.h"
 
 #include "CDClientManager.h"
 #include "CDComponentsRegistryTable.h"
@@ -36,7 +37,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	m_PositionInfoDirty = false;
 
 	m_IsPhysicsEffectActive = false;
-	m_EffectType = 0;
+	m_EffectType = ePhysicsEffectType::PUSH;
 	m_DirectionalMultiplier = 0.0f;
 
 	m_MinMax = false;
@@ -143,10 +144,10 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	*/
 
 	if (!m_HasCreatedPhysics) {
-		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
-		CDPhysicsComponentTable* physComp = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
+		CDPhysicsComponentTable* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
 		if (physComp == nullptr) return;
 
@@ -253,10 +254,10 @@ void PhantomPhysicsComponent::CreatePhysics() {
 		y = m_Parent->GetVar<float>(u"primitiveModelValueY");
 		z = m_Parent->GetVar<float>(u"primitiveModelValueZ");
 	} else {
-		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
-		CDPhysicsComponentTable* physComp = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
+		CDPhysicsComponentTable* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
 		if (physComp == nullptr) return;
 
@@ -405,7 +406,7 @@ void PhantomPhysicsComponent::SetDirectionalMultiplier(float mul) {
 	m_EffectInfoDirty = true;
 }
 
-void PhantomPhysicsComponent::SetEffectType(uint32_t type) {
+void PhantomPhysicsComponent::SetEffectType(ePhysicsEffectType type) {
 	m_EffectType = type;
 	m_EffectInfoDirty = true;
 }

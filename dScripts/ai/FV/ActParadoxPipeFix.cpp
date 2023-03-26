@@ -3,6 +3,7 @@
 #include "RebuildComponent.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "eEndBehavior.h"
 
 void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 	const auto myGroup = "AllPipes";
@@ -42,7 +43,7 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 					missionComponent->ForceProgressTaskType(769, 1, 1, false);
 				}
 
-				GameMessages::SendPlayCinematic(player->GetObjectID(), u"ParadoxPipeFinish", player->GetSystemAddress(), true, true, false, false, 0, false, 2.0f);
+				GameMessages::SendPlayCinematic(player->GetObjectID(), u"ParadoxPipeFinish", player->GetSystemAddress(), true, true, false, false, eEndBehavior::RETURN, false, 2.0f);
 			}
 
 			object->SetVar(u"PlayerID", LWOOBJID_EMPTY);

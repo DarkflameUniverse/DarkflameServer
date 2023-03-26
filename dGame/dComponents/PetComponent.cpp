@@ -22,7 +22,7 @@
 #include "Database.h"
 #include "EntityInfo.h"
 #include "eMissionTaskType.h"
-
+#include "eGameMasterLevel.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -988,7 +988,7 @@ void PetComponent::Command(NiPoint3 position, LWOOBJID source, int32_t commandTy
 		// TODO: Go to player
 	}
 
-	if (owner->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+	if (owner->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		ChatPackets::SendSystemMessage(owner->GetSystemAddress(), u"Commmand Type: " + (GeneralUtils::to_u16string(commandType)) + u" - Type Id: " + (GeneralUtils::to_u16string(typeId)));
 	}
 }
@@ -1080,7 +1080,7 @@ void PetComponent::SetPetNameForModeration(const std::string& petName) {
 	int approved = 1; //default, in mod
 
 	//Make sure that the name isn't already auto-approved:
-	if (Game::chatFilter->IsSentenceOkay(petName, 0).empty()) {
+	if (Game::chatFilter->IsSentenceOkay(petName, eGameMasterLevel::CIVILIAN).empty()) {
 		approved = 2; //approved
 	}
 

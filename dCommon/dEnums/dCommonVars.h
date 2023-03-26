@@ -64,11 +64,6 @@ typedef std::set<LWOOBJID> TSetObjID;
 
 const float PI = 3.14159f;
 
-#if defined(__unix) || defined(__APPLE__)
-//For Linux:
-typedef __int64_t __int64;
-#endif
-
 //============ STRUCTS ==============
 
 struct LWOSCENEID {
@@ -178,21 +173,6 @@ struct Brick {
 union suchar {
 	unsigned char usigned;
 	char svalue;
-};
-
-//=========== DLU ENUMS ============
-
-enum eGameMasterLevel : int32_t {
-	GAME_MASTER_LEVEL_CIVILIAN = 0,             // Normal player.
-	GAME_MASTER_LEVEL_FORUM_MODERATOR = 1,      // No permissions on live servers.
-	GAME_MASTER_LEVEL_JUNIOR_MODERATOR = 2,     // Can kick/mute and pull chat logs.
-	GAME_MASTER_LEVEL_MODERATOR = 3,            // Can return lost items.
-	GAME_MASTER_LEVEL_SENIOR_MODERATOR = 4,     // Can ban.
-	GAME_MASTER_LEVEL_LEAD_MODERATOR = 5,       // Can approve properties.
-	GAME_MASTER_LEVEL_JUNIOR_DEVELOPER = 6,     // Junior developer & future content team. Civilan on live.
-	GAME_MASTER_LEVEL_INACTIVE_DEVELOPER = 7,   // Inactive developer, limited permissions.
-	GAME_MASTER_LEVEL_DEVELOPER = 8,            // Active developer, full permissions on live.
-	GAME_MASTER_LEVEL_OPERATOR = 9              // Can shutdown server for restarts & updates.
 };
 
 //=========== LU ENUMS ============

@@ -33,14 +33,6 @@ CDRarityTableTable::CDRarityTableTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDRarityTableTable::~CDRarityTableTable(void) {}
-
-//! Returns the table's name
-std::string CDRarityTableTable::GetName(void) const {
-	return "RarityTable";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDRarityTable> CDRarityTableTable::Query(std::function<bool(CDRarityTable)> predicate) {
 

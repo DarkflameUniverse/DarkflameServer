@@ -39,14 +39,6 @@ CDRebuildComponentTable::CDRebuildComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDRebuildComponentTable::~CDRebuildComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDRebuildComponentTable::GetName(void) const {
-	return "RebuildComponent";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDRebuildComponent> CDRebuildComponentTable::Query(std::function<bool(CDRebuildComponent)> predicate) {
 
