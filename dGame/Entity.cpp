@@ -1232,6 +1232,7 @@ void Entity::Update(const float deltaTime) {
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
 		} else {
 			timerPosition++;
 		}

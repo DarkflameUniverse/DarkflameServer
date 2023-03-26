@@ -83,8 +83,12 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 			case eTriggerCommandType::REPEL_OBJECT:
 				HandleRepelObject(targetEntity, command->args);
 				break;
-			case eTriggerCommandType::SET_TIMER: break;
-			case eTriggerCommandType::CANCEL_TIMER: break;
+			case eTriggerCommandType::SET_TIMER:
+				HandleSetTimer(targetEntity, argArray);
+				break;
+			case eTriggerCommandType::CANCEL_TIMER:
+				HandleCancelTimer(targetEntity, command->args);
+				break;
 			case eTriggerCommandType::PLAY_CINEMATIC:
 				HandlePlayCinematic(targetEntity, argArray);
 				break;
@@ -269,6 +273,17 @@ void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args)
 	phantomPhysicsComponent->SetDirection(direction);
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
+}
+
+void TriggerComponent::HandleSetTimer(Entity* targetEntity, std::vector<std::string> argArray){
+	if (argArray.size() != 2) return;
+	float time = 0.0;
+	GeneralUtils::TryParse<float>(argArray.at(1), time);
+	m_Parent->AddTimer(argArray.at(0), time);
+}
+
+void TriggerComponent::HandleCancelTimer(Entity* targetEntity, std::string args){
+	m_Parent->CancelTimer(args);
 }
 
 void TriggerComponent::HandlePlayCinematic(Entity* targetEntity, std::vector<std::string> argArray) {

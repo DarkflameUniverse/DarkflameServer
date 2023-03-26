@@ -36,8 +36,6 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 
 	context->caster = m_Parent->GetObjectID();
 
-	context->skillID = skillID;
-
 	this->m_managedBehaviors.insert_or_assign(skillUid, context);
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
@@ -247,6 +245,8 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 	auto* context = new BehaviorContext(originatorOverride != LWOOBJID_EMPTY ? originatorOverride : this->m_Parent->GetObjectID(), true);
 
 	context->caster = m_Parent->GetObjectID();
+
+	context->skillID = skillId;
 
 	context->clientInitalized = clientInitalized;
 
