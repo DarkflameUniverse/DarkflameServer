@@ -16,6 +16,9 @@
 #endif
 #include "cpplinq.hpp"
 
+// Used for legacy
+#define UNUSED(x)
+
 // Enable this to skip some unused columns in some tables
 #define UNUSED_COLUMN(v)
 

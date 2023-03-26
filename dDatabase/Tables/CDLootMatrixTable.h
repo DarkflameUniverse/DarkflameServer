@@ -12,7 +12,7 @@ struct CDLootMatrix {
 	unsigned int maxToDrop;                 //!< The maximum amount of loot from this matrix to drop
 	unsigned int id;                        //!< The ID of the Loot Matrix
 	unsigned int flagID;                    //!< ???
-	UNUSED_COLUMN(std::string gate_version);          //!< The Gate Version
+	UNUSED(std::string gate_version);          //!< The Gate Version
 };
 
 class CDLootMatrixTable : public CDTable<CDLootMatrixTable> {

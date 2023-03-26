@@ -28,9 +28,8 @@ void NtParadoxTeleServer::OnProximityUpdate(Entity* self, Entity* entering, std:
 			true, true, true, true, true, true, true
 		);
 
-		RenderComponent::PlayAnimation(player, u"teledeath", 4.0f);
-
-		const auto animTime = 2;
+		auto animTime = RenderComponent::PlayAnimation(player, u"teledeath", 4.0f);
+		if (animTime == 0.0f) animTime = 2.0f;
 
 		self->AddCallbackTimer(animTime, [this, self, playerID]() {
 			auto* player = EntityManager::Instance()->GetEntity(playerID);

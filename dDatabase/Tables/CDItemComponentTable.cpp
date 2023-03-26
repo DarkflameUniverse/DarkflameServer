@@ -3,7 +3,8 @@
 
 CDItemComponent CDItemComponentTable::Default = {};
 
-CDItemComponentTable::CDItemComponentTable() {
+//! Constructor
+CDItemComponentTable::CDItemComponentTable(void) {
 	Default = CDItemComponent();
 
 #ifdef CDCLIENT_CACHE_ALL
@@ -54,13 +55,13 @@ CDItemComponentTable::CDItemComponentTable() {
 		entry.currencyLOT = tableData.getIntField("currencyLOT", -1);
 		entry.altCurrencyCost = tableData.getIntField("altCurrencyCost", -1);
 		entry.subItems = tableData.getStringField("subItems", "");
-		UNUSED_COLUMN(entry.audioEventUse = tableData.getStringField("audioEventUse", "");)
+		entry.audioEventUse = tableData.getStringField("audioEventUse", "");
 		entry.noEquipAnimation = tableData.getIntField("noEquipAnimation", -1) == 1 ? true : false;
 		entry.commendationLOT = tableData.getIntField("commendationLOT", -1);
 		entry.commendationCost = tableData.getIntField("commendationCost", -1);
-		UNUSED_COLUMN(entry.audioEquipMetaEventSet = tableData.getStringField("audioEquipMetaEventSet", "");)
+		entry.audioEquipMetaEventSet = tableData.getStringField("audioEquipMetaEventSet", "");
 		entry.currencyCosts = tableData.getStringField("currencyCosts", "");
-		UNUSED_COLUMN(entry.ingredientInfo = tableData.getStringField("ingredientInfo", "");)
+		entry.ingredientInfo = tableData.getStringField("ingredientInfo", "");
 		entry.locStatus = tableData.getIntField("locStatus", -1);
 		entry.forgeType = tableData.getIntField("forgeType", -1);
 		entry.SellMultiplier = tableData.getFloatField("SellMultiplier", -1.0f);
@@ -73,8 +74,8 @@ CDItemComponentTable::CDItemComponentTable() {
 #endif
 }
 
-const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int id) {
-	const auto& it = this->entries.find(id);
+const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int skillID) {
+	const auto& it = this->entries.find(skillID);
 	if (it != this->entries.end()) {
 		return it->second;
 	}
@@ -82,11 +83,11 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int i
 #ifndef CDCLIENT_CACHE_ALL
 	std::stringstream query;
 
-	query << "SELECT * FROM ItemComponent WHERE id = " << std::to_string(id);
+	query << "SELECT * FROM ItemComponent WHERE id = " << std::to_string(skillID);
 
 	auto tableData = CDClientDatabase::ExecuteQuery(query.str());
 	if (tableData.eof()) {
-		entries.insert(std::make_pair(id, Default));
+		entries.insert(std::make_pair(skillID, Default));
 		return Default;
 	}
 
@@ -124,13 +125,13 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int i
 		entry.currencyLOT = tableData.getIntField("currencyLOT", -1);
 		entry.altCurrencyCost = tableData.getIntField("altCurrencyCost", -1);
 		entry.subItems = tableData.getStringField("subItems", "");
-		UNUSED_COLUMN(entry.audioEventUse = tableData.getStringField("audioEventUse", ""));
+		UNUSED(entry.audioEventUse = tableData.getStringField("audioEventUse", ""));
 		entry.noEquipAnimation = tableData.getIntField("noEquipAnimation", -1) == 1 ? true : false;
 		entry.commendationLOT = tableData.getIntField("commendationLOT", -1);
 		entry.commendationCost = tableData.getIntField("commendationCost", -1);
-		UNUSED_COLUMN(entry.audioEquipMetaEventSet = tableData.getStringField("audioEquipMetaEventSet", ""));
+		UNUSED(entry.audioEquipMetaEventSet = tableData.getStringField("audioEquipMetaEventSet", ""));
 		entry.currencyCosts = tableData.getStringField("currencyCosts", "");
-		UNUSED_COLUMN(entry.ingredientInfo = tableData.getStringField("ingredientInfo", ""));
+		UNUSED(entry.ingredientInfo = tableData.getStringField("ingredientInfo", ""));
 		entry.locStatus = tableData.getIntField("locStatus", -1);
 		entry.forgeType = tableData.getIntField("forgeType", -1);
 		entry.SellMultiplier = tableData.getFloatField("SellMultiplier", -1.0f);
@@ -139,7 +140,7 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int i
 		tableData.nextRow();
 	}
 
-	const auto& it2 = this->entries.find(id);
+	const auto& it2 = this->entries.find(skillID);
 	if (it2 != this->entries.end()) {
 		return it2->second;
 	}
@@ -168,3 +169,4 @@ std::map<LOT, uint32_t> CDItemComponentTable::ParseCraftingCurrencies(const CDIt
 
 	return currencies;
 }
+

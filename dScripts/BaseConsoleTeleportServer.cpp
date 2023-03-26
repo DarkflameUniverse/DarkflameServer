@@ -33,7 +33,6 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 		}
 
 		const auto& teleIntroAnim = self->GetVar<std::u16string>(u"teleportAnim");
-		Game::logger->Log("BaseConsoleTeleportServer", "%s",GeneralUtils::UTF16ToWTF8(teleIntroAnim).c_str());
 		auto animTime = 3.32999992370605f;
 		if (!teleIntroAnim.empty()) {
 			animTime = RenderComponent::PlayAnimation(player, teleIntroAnim);

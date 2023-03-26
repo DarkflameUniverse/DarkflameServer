@@ -7,7 +7,10 @@
 #include "RenderComponent.h"
 
 void MaestromExtracticatorServer::OnStartup(Entity* self) {
-	self->AddTimer("PlayFail", RenderComponent::PlayAnimation(self, failAnim));
+	float animTime = RenderComponent::PlayAnimation(self, failAnim);
+	if (animTime == 0.0f) animTime = defaultTime;
+
+	self->AddTimer("PlayFail", animTime);
 	self->AddTimer("RemoveSample", destroyAfterNoSampleTime);
 }
 

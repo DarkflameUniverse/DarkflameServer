@@ -18,6 +18,8 @@ std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
 RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component(parent) {
 	m_Effects = std::vector<Effect*>();
 	m_LastAnimationName = "";
+	if (componentId == -1) return;
+
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM RenderComponent WHERE id = ?;");
 	query.bind(1, componentId);
 	auto result = query.execQuery();
@@ -210,23 +212,21 @@ float RenderComponent::GetAnimationTime(Entity* self, const std::string& animati
 
 
 float RenderComponent::DoAnimation(Entity* self, const std::string& animation, bool sendAnimation, float priority, float scale) {
-	if (!self) return 0.0f;
+	float returnlength = 0.0f;
+	if (!self) return returnlength;
 	auto* renderComponent = self->GetComponent<RenderComponent>();
-	if (!renderComponent) return 0.0f;
+	if (!renderComponent) return returnlength;
 
-	Game::logger->Log("RenderComponent", "looking up animation %s playing anim %i priority %f scale %f", animation.c_str(), sendAnimation, priority, scale);
 	auto* animationsTable = CDClientManager::Instance().GetTable<CDAnimationsTable>();
 	for (auto& groupId : renderComponent->m_animationGroupIds) {
-		Game::logger->Log("RenderComponent", "checking id %i with previous being %s", groupId, renderComponent->GetLastAnimationName().c_str());
 		auto animationGroup = animationsTable->GetAnimation(animation, renderComponent->GetLastAnimationName(), groupId);
 		if (animationGroup.FoundData()) {
 			auto data = animationGroup.Data();
-			Game::logger->Log("RenderComponent", "animation %s priority %f length %f", data.animation_name.c_str(), data.priority, data.animation_length);
-			if (sendAnimation) GameMessages::SendPlayAnimation(self, GeneralUtils::ASCIIToUTF16(animation), priority, scale);
 			renderComponent->SetLastAnimationName(data.animation_name);
-			return data.animation_length;
+			returnlength = data.animation_length;
 		}
 	}
-	Game::logger->Log("RenderComponent", "unable to find animation %s for lot %i", animation.c_str(), self->GetLOT());
-	return 0.0f;
+	if (sendAnimation) GameMessages::SendPlayAnimation(self, GeneralUtils::ASCIIToUTF16(animation), priority, scale);
+	if (returnlength == 0.0f) Game::logger->Log("RenderComponent", "WARNING: Unable to find animation %s for lot %i in any group.", animation.c_str(), self->GetLOT());
+	return returnlength;
 }

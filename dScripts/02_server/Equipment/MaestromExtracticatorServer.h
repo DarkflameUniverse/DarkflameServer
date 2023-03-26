@@ -13,5 +13,6 @@ public:
 private:
 	const std::string failAnim = "idle_maelstrom";
 	const std::string collectAnim = "collect_maelstrom";
+	const float defaultTime = 4.0f;
 	const float destroyAfterNoSampleTime = 8.0f;
 };

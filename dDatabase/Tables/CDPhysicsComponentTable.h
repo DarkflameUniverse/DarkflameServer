@@ -6,19 +6,19 @@ struct CDPhysicsComponent {
 	int id;
 	bool bStatic;
 	std::string physicsAsset;
-	UNUSED_COLUMN(bool jump);
-	UNUSED_COLUMN(bool doublejump);
+	UNUSED(bool jump);
+	UNUSED(bool doublejump);
 	float speed;
-	UNUSED_COLUMN(float rotSpeed);
+	UNUSED(float rotSpeed);
 	float playerHeight;
 	float playerRadius;
 	int pcShapeType;
 	int collisionGroup;
-	UNUSED_COLUMN(float airSpeed);
-	UNUSED_COLUMN(std::string boundaryAsset);
-	UNUSED_COLUMN(float jumpAirSpeed);
-	UNUSED_COLUMN(float friction);
-	UNUSED_COLUMN(std::string gravityVolumeAsset);
+	UNUSED(float airSpeed);
+	UNUSED(std::string boundaryAsset);
+	UNUSED(float jumpAirSpeed);
+	UNUSED(float friction);
+	UNUSED(std::string gravityVolumeAsset);
 };
 
 class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable> {

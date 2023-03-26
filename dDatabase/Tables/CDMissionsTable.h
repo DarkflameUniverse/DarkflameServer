@@ -54,9 +54,9 @@ struct CDMissions {
 	bool isRandom;                  //!< ???
 	std::string randomPool;            //!< ???
 	int UIPrereqID;                //!< ???
-	UNUSED_COLUMN(std::string gate_version);          //!< The gate version
-	UNUSED_COLUMN(std::string HUDStates);             //!< ???
-	UNUSED_COLUMN(int locStatus);                 //!< ???
+	UNUSED(std::string gate_version);          //!< The gate version
+	UNUSED(std::string HUDStates);             //!< ???
+	UNUSED(int locStatus);                 //!< ???
 	int reward_bankinventory;      //!< The amount of bank space this mission rewards
 };
 

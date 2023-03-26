@@ -17,7 +17,6 @@
 #include "MissionComponent.h"
 #include "eMissionState.h"
 #include "eReplicaComponentType.h"
-#include "Metrics.hpp"
 
 LootGenerator::LootGenerator() {
 	CDLootTableTable* lootTableTable = CDClientManager::Instance().GetTable<CDLootTableTable>();

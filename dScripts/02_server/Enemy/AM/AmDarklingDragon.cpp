@@ -73,7 +73,7 @@ void AmDarklingDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t
 			GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_NONE, eAnimationFlags::IDLE_COMBAT, UNASSIGNED_SYSTEM_ADDRESS);
 			float animationTime = RenderComponent::PlayAnimation(self, u"stunstart", 1.7f);
 
-			self->AddTimer("timeToStunLoop", animationTime);
+			self->AddTimer("timeToStunLoop", 1.0f);
 
 			auto position = self->GetPosition();
 			auto forward = self->GetRotation().GetForwardVector();

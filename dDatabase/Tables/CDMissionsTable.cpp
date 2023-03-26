@@ -71,9 +71,9 @@ CDMissionsTable::CDMissionsTable(void) {
 		entry.isRandom = tableData.getIntField("isRandom", -1) == 1 ? true : false;
 		entry.randomPool = tableData.getStringField("randomPool", "");
 		entry.UIPrereqID = tableData.getIntField("UIPrereqID", -1);
-		UNUSED_COLUMN(entry.gate_version = tableData.getStringField("gate_version", ""));
-		UNUSED_COLUMN(entry.HUDStates = tableData.getStringField("HUDStates", ""));
-		UNUSED_COLUMN(entry.locStatus = tableData.getIntField("locStatus", -1));
+		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
+		UNUSED(entry.HUDStates = tableData.getStringField("HUDStates", ""));
+		UNUSED(entry.locStatus = tableData.getIntField("locStatus", -1));
 		entry.reward_bankinventory = tableData.getIntField("reward_bankinventory", -1);
 
 		this->entries.push_back(entry);

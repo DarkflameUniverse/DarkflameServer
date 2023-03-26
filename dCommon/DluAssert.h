@@ -3,8 +3,6 @@
 
 #include <assert.h>
 
-#define _DEBUG
-
 #ifdef _DEBUG
 #	define DluAssert(expression) assert(expression)
 #else

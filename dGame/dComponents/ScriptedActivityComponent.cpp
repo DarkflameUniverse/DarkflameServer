@@ -26,13 +26,13 @@
 #include "CDActivityRewardsTable.h"
 #include "CDActivitiesTable.h"
 
-ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID): Component(parent) {
+ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent) {
 	m_ActivityID = activityID;
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
-	auto activityResult = activitiesTable->GetActivity(m_ActivityID);
+	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 
-	if (activityResult.FoundData()) {
-		m_ActivityInfo = activityResult.Data();
+	for (CDActivities activity : activities) {
+		m_ActivityInfo = activity;
 
 		const auto mapID = m_ActivityInfo.instanceMapID;
 
@@ -57,7 +57,6 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
 	if (destroyableComponent) {
 		// check for LMIs and set the loot LMIs
-		Game::logger->Log("ScriptedActivityComponent", "i am %i with lmi %i", m_Parent->GetLOT(), destroyableComponent->GetLootMatrixID());
 		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
 		std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) {return (entry.LootMatrixIndex == destroyableComponent->GetLootMatrixID()); });
 
@@ -65,13 +64,13 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
 		if (activityRewards.size() > 0) {
 			startingLMI = activityRewards[0].LootMatrixIndex;
-			Game::logger->Log("ScriptedActivityComponent", "index 0 is %i %i", activityRewards[0].LootMatrixIndex, activityRewards[0].objectTemplate);
 		}
 
 		if (startingLMI > 0) {
+			// now time for bodge :)
+
 			std::vector<CDActivityRewards> objectTemplateActivities = activityRewardsTable->Query([=](CDActivityRewards entry) {return (activityRewards[0].objectTemplate == entry.objectTemplate); });
 			for (const auto& item : objectTemplateActivities) {
-				Game::logger->Log("ScriptedActivityComponent", "%i added loot matrix with rating %i index %i objectTemplate %i", m_Parent->GetLOT(), item.activityRating, item.LootMatrixIndex, item.objectTemplate);
 				if (item.activityRating > 0 && item.activityRating < 5) {
 					m_ActivityLootMatrices.insert({ item.activityRating, item.LootMatrixIndex });
 				}
@@ -100,22 +99,21 @@ void ScriptedActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool 
 
 void ScriptedActivityComponent::ReloadConfig() {
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
-	auto activityResult = activitiesTable->GetActivity(m_ActivityID);
-	if (activityResult.FoundData()) {
-		auto data = activityResult.Data();
-		auto mapID = data.instanceMapID;
+	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
+	for (auto activity : activities) {
+		auto mapID = m_ActivityInfo.instanceMapID;
 		if ((mapID == 1203 || mapID == 1261 || mapID == 1303 || mapID == 1403) && Game::config->GetValue("solo_racing") == "1") {
 			m_ActivityInfo.minTeamSize = 1;
 			m_ActivityInfo.minTeams = 1;
 		} else {
-			m_ActivityInfo.minTeamSize = data.minTeamSize;
-			m_ActivityInfo.minTeams = data.minTeams;
+			m_ActivityInfo.minTeamSize = activity.minTeamSize;
+			m_ActivityInfo.minTeams = activity.minTeams;
 		}
 	}
 }
 
 void ScriptedActivityComponent::HandleMessageBoxResponse(Entity* player, const std::string& id) {
-	if (m_ActivityID == 103) {
+	if (m_ActivityInfo.ActivityID == 103) {
 		return;
 	}
 
@@ -127,7 +125,7 @@ void ScriptedActivityComponent::HandleMessageBoxResponse(Entity* player, const s
 }
 
 void ScriptedActivityComponent::PlayerJoin(Entity* player) {
-	if (m_ActivityID == 103 || PlayerIsInQueue(player) || !IsValidActivity(player)) {
+	if (m_ActivityInfo.ActivityID == 103 || PlayerIsInQueue(player) || !IsValidActivity(player)) {
 		return;
 	}
 
@@ -392,7 +390,7 @@ void ScriptedActivityComponent::PlayerReady(Entity* player, bool bReady) {
 }
 
 ActivityInstance* ScriptedActivityComponent::NewInstance() {
-	auto* instance = new ActivityInstance(m_Parent, this, m_ActivityInfo);
+	auto* instance = new ActivityInstance(m_Parent, m_ActivityInfo);
 	m_Instances.push_back(instance);
 	return instance;
 }
@@ -559,12 +557,12 @@ void ActivityInstance::StartZone() {
 void ActivityInstance::RewardParticipant(Entity* participant) {
 	auto* missionComponent = participant->GetComponent<MissionComponent>();
 	if (missionComponent) {
-		missionComponent->Progress(eMissionTaskType::ACTIVITY, m_OwningComponent->GetActivityID());
+		missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityInfo.ActivityID);
 	}
 
 	// First, get the activity data
 	auto* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
-	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) { return (entry.objectTemplate == m_OwningComponent->GetActivityID()); });
+	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) { return (entry.objectTemplate == m_ActivityInfo.ActivityID); });
 
 	if (!activityRewards.empty()) {
 		uint32_t minCoins = 0;
