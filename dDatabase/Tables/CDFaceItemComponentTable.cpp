@@ -1,7 +1,6 @@
 #include "CDFaceItemComponentTable.h"
-#include <dCommonVars.h>
 
-CDFaceItemComponentTable::CDFaceItemComponentTable() {
+CDFaceItemComponentTable::CDFaceItemComponentTable(void) {
     unsigned int size = 0;
     auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM FaceItemComponent");
     while (!tableSize.eof()) {

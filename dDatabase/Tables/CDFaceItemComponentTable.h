@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CDTable.h"
+#include "dCommonVars.h"
 
 struct CDFaceItemComponent {
     int32_t id;
@@ -14,8 +15,9 @@ class CDFaceItemComponentTable : public CDTable<CDFaceItemComponentTable> {
     std::vector<CDFaceItemComponent> entries;
 
   public:
-    CDFaceItemComponent GetByLot(LOT lot);
+	CDFaceItemComponentTable();
 
+    CDFaceItemComponent GetByLot(LOT lot);
     CDFaceItemComponent GetByEyes(uint32_t id);
     CDFaceItemComponent GetByEyebrows(uint32_t id);
     CDFaceItemComponent GetByMouth(uint32_t id);

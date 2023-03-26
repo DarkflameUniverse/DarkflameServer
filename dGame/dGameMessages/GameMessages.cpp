@@ -46,6 +46,7 @@
 //CDB includes:
 #include "CDClientManager.h"
 #include "CDEmoteTable.h"
+#include "CDFaceItemComponentTable.h"
 
 //Component includes:
 #include "ControllablePhysicsComponent.h"
@@ -4727,9 +4728,9 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	Character* character = player->GetCharacter();
 	if (!character) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>();
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance()->GetTable<CDItemComponentTable>();
-	CDFaceItemComponentTable* faceItemTable = CDClientManager::Instance()->GetTable<CDFaceItemComponentTable>();
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
+	CDFaceItemComponentTable* faceItemTable = CDClientManager::Instance().GetTable<CDFaceItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item, eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);

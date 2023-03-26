@@ -1549,7 +1549,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		Game::logger->Log("Instance", "Triggered world shutdown\n");
 	}
 
-	if (chatCommand == "getinstances" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+	if (chatCommand == "getinstances" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		CBITSTREAM
 
 			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_GET_INSTANCES);
