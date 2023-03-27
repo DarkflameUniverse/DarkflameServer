@@ -307,13 +307,12 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 
 foundComponent:
 
-	float speed;
+	// Client defaults speed to 10 and if the speed is also null in the table, it defaults to 10.
+	float speed = 10.0f;
 
-	if (physicsComponent == nullptr) {
-		speed = 8;
-	} else {
-		speed = physicsComponent->speed;
-	}
+	if (physicsComponent) speed = physicsComponent->speed;
+
+	if (speed == -1.0f) speed = 10.0f;
 
 	m_PhysicsSpeedCache[lot] = speed;
 
