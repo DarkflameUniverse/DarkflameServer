@@ -319,3 +319,7 @@ std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::stri
 
 	return sortedFiles;
 }
+
+bool GeneralUtils::TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst) {
+	return TryParse<float>(x.c_str(), dst.x) && TryParse<float>(y.c_str(), dst.y) && TryParse<float>(z.c_str(), dst.z);
+}
