@@ -604,6 +604,8 @@ private:
 	uint32_t m_ImmuneToImaginationLossCount;
 	uint32_t m_ImmuneToQuickbuildInterruptCount;
 	uint32_t m_ImmuneToPullToPointCount;
+
+	LWOOBJID m_FirstAttackerId;
 };
 
 #endif // DESTROYABLECOMPONENT_H

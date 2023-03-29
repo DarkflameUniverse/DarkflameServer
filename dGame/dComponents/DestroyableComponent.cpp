@@ -70,6 +70,7 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_ImmuneToImaginationLossCount = 0;
 	m_ImmuneToQuickbuildInterruptCount = 0;
 	m_ImmuneToPullToPointCount = 0;
+	m_FirstAttackerId = LWOOBJID_EMPTY;
 }
 
 DestroyableComponent::~DestroyableComponent() {
@@ -608,6 +609,9 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	auto armor = static_cast<uint32_t>(GetArmor());
 	auto health = static_cast<uint32_t>(GetHealth());
 
+	// Save the first player to deal health damage to this entity.
+	if (health == GetMaxHealth()) m_FirstAttackerId = source;
+
 	const auto absorbDamage = std::min(damage, absorb);
 
 	damage -= absorbDamage;
@@ -709,9 +713,10 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		EntityManager::Instance()->SerializeEntity(m_Parent);
 	}
 
-	m_KillerID = source;
+	// The first player to deal health damage to this entity is the one awarded with credit for the kill.
+	m_KillerID = m_FirstAttackerId != LWOOBJID_EMPTY ? m_FirstAttackerId : source;
 
-	auto* owner = EntityManager::Instance()->GetEntity(source);
+	auto* owner = EntityManager::Instance()->GetEntity(m_KillerID);
 
 	if (owner != nullptr) {
 		owner = owner->GetOwner(); // If the owner is overwritten, we collect that here
@@ -751,7 +756,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 	const auto isPlayer = m_Parent->IsPlayer();
 
-	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, false, 1);
+	GameMessages::SendDie(m_Parent, m_KillerID, m_KillerID, true, killType, deathType, 0, 0, 0, isPlayer, false, 1);
 
 	//NANI?!
 	if (!isPlayer) {
