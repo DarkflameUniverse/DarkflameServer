@@ -16,6 +16,7 @@
 #include "PhantomPhysicsComponent.h"
 #include "RebuildComponent.h"
 #include "eReplicaComponentType.h"
+#include "TeamManager.h"
 
 BehaviorSyncEntry::BehaviorSyncEntry() {
 }
@@ -289,46 +290,78 @@ void BehaviorContext::Reset() {
 	this->scheduledUpdates.clear();
 }
 
-std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, int32_t includeFaction, bool targetSelf, bool targetEnemy, bool targetFriend) const {
-	auto* entity = EntityManager::Instance()->GetEntity(this->caster);
+std::vector<Entity*> BehaviorContext::FilterTargets(std::forward_list<int32_t> ignoreFactionList, std::forward_list<int32_t> includeFactionList, bool targetSelf, bool targetEnemy, bool targetFriend, bool targetTeam) const {
+	std::vector<Entity*> targets = {};
 
-	std::vector<LWOOBJID> targets;
+	// if we aren't targeting anything, then return empty targets list
+	if (!targetSelf && !targetEnemy && !targetFriend && !targetTeam && ignoreFactionList.empty() && includeFactionList.empty()) return targets;
 
-	if (entity == nullptr) {
-		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!", this->originator);
+	auto* caster = EntityManager::Instance()->GetEntity(this->caster);
 
+	// if the caster is not there, return empty targets list
+	if (!caster) {
+		Game::logger->LogDebug("BehaviorContext", "Invalid caster for (%llu)!", this->originator);
 		return targets;
 	}
 
-	if (!ignoreFaction && !includeFaction) {
-		for (auto entry : entity->GetTargetsInPhantom()) {
-			auto* instance = EntityManager::Instance()->GetEntity(entry);
+	auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
+	if (!casterDestroyableComponent) return targets;
 
-			if (instance == nullptr) {
-				continue;
+	auto candidates = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS);
+	for (auto* candidate : candidates) {
+		if (!candidate) continue;
+		if (candidate == caster){
+			if (targetSelf) targets.push_back(candidate);
+		} else {
+			if (CheckTargetingRequirements(candidate)){
+				auto candidateDestroyableComponent = candidate->GetComponent<DestroyableComponent>();
+				if (!candidateDestroyableComponent) continue;
+				if (candidateDestroyableComponent->GetIsDead()) continue;
+				auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
+				if (!CheckFactionList(includeFactionList, candidateFactions)){
+					if (targetTeam){
+						auto* team = TeamManager::Instance()->GetTeam(this->caster);
+						if (team){
+							if(std::find(team->members.begin(), team->members.end(), candidate->GetObjectID()) != team->members.end()){
+								targets.push_back(candidate);
+								continue;
+							}
+						}
+					}
+					auto isEnemy = casterDestroyableComponent->IsEnemy(candidate);
+					if (!targetFriend && !isEnemy) continue;
+					else if(!targetEnemy && isEnemy) continue;
+					else if(!CheckFactionList(ignoreFactionList, candidateFactions)) targets.push_back(candidate);
+				} else targets.push_back(candidate);
 			}
-
-			targets.push_back(entry);
 		}
 	}
-
-	if (ignoreFaction || includeFaction || (!entity->HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) && targets.empty())) {
-		DestroyableComponent* destroyableComponent;
-		if (!entity->TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent)) {
-			return targets;
-		}
-
-		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS);
-		for (auto* candidate : entities) {
-			const auto id = candidate->GetObjectID();
-
-			if ((id != entity->GetObjectID() || targetSelf) && destroyableComponent->CheckValidity(id, ignoreFaction || includeFaction, targetEnemy, targetFriend)) {
-				targets.push_back(id);
-			}
-		}
-	}
-
 	return targets;
+}
+
+// some basic checks as well as the check that matters for this: if the quickbuild is complete
+bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
+	// if the target is a nullptr, then it's not valid
+	if (!target) return false;
+
+	// if there's no destroyable to taget, then we can't hit them
+	auto* targetDestroyable = target->GetComponent<DestroyableComponent>();
+	if (!targetDestroyable) return false;
+
+	// only target quickbuilds in the are completed
+	auto* targetQuickbuild = target->GetComponent<RebuildComponent>();
+	if (targetQuickbuild && targetQuickbuild->GetState() != REBUILD_COMPLETED) return false;
+
+	return true;
+}
+
+// returns true if any of the object factions are in the faction list
+bool BehaviorContext::CheckFactionList(std::forward_list<int32_t> factionList, std::vector<int32_t> objectsFactions) const {
+	if (factionList.empty() || objectsFactions.empty()) return false;
+	for (auto faction : factionList){
+		if(std::find(objectsFactions.begin(), objectsFactions.end(), faction) != objectsFactions.end()) return true;
+	}
+	return false;
 }
 
 

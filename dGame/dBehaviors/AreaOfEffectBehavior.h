@@ -1,30 +1,25 @@
 #pragma once
 #include "Behavior.h"
+#include <forward_list>
 
 class AreaOfEffectBehavior final : public Behavior
 {
 public:
 	Behavior* m_action;
-
 	uint32_t m_maxTargets;
-
 	float m_radius;
+	bool m_UseTargetPosition;
+	bool m_UseTargetAsCaster;
+	NiPoint3 m_offset;
 
-	int32_t m_ignoreFaction;
+	std::forward_list<int32_t> m_ignoreFactionList {};
+	std::forward_list<int32_t> m_includeFactionList {};
+	bool m_targetSelf;
+	bool m_targetEnemy;
+	bool m_targetFriend;
+	bool m_targetTeam;
 
-	int32_t m_includeFaction;
-
-	int32_t m_TargetSelf;
-
-	int32_t m_targetEnemy;
-
-	int32_t m_targetFriend;
-
-	/*
-	 * Inherited
-	 */
-	explicit AreaOfEffectBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {
-	}
+	explicit AreaOfEffectBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {}
 
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 

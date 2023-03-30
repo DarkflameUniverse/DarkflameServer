@@ -367,6 +367,11 @@ public:
 	 */
 	void UnequipScripts(Item* unequippedItem);
 
+	std::map<BehaviorSlot, uint32_t> GetSkills(){ return m_Skills; };
+
+	bool SetSkill(int slot, uint32_t skillId);
+	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
+
 	~InventoryComponent() override;
 
 private:
