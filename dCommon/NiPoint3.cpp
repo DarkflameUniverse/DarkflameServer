@@ -154,6 +154,11 @@ NiPoint3 NiPoint3::operator*(float fScalar) const {
 	return NiPoint3(this->x * fScalar, this->y * fScalar, this->z * fScalar);
 }
 
+//! Operator for scalar multiplication of a vector
+NiPoint3 NiPoint3::operator*=(float fScalar) const {
+	return NiPoint3(this->x * fScalar, this->y * fScalar, this->z * fScalar);
+}
+
 //! Operator for scalar division of a vector
 NiPoint3 NiPoint3::operator/(float fScalar) const {
 	float retX = this->x != 0 ? this->x / fScalar : 0;

@@ -153,6 +153,9 @@ public:
 	//! Operator for scalar division of a vector
 	NiPoint3 operator/(float fScalar) const;
 
+	//! Operator for scalar multiplication of a vector
+	NiPoint3 operator*=(float fScalar) const;
+
 
 	// MARK: Helper Functions
 

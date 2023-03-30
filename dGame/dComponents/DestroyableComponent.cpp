@@ -70,6 +70,8 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_ImmuneToImaginationLossCount = 0;
 	m_ImmuneToQuickbuildInterruptCount = 0;
 	m_ImmuneToPullToPointCount = 0;
+
+	m_atttackPriotiry = 1;
 }
 
 DestroyableComponent::~DestroyableComponent() {

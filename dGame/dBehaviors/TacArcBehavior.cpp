@@ -76,147 +76,99 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 }
 
 void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* self = EntityManager::Instance()->GetEntity(context->originator);
-	if (self == nullptr) {
-		Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!", context->originator);
-		return;
-	}
+	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
+	if (!caster) return;
 
-	const auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
-
-	if ((this->m_usePickedTarget || context->clientInitalized) && branch.target > 0) {
-		const auto* target = EntityManager::Instance()->GetEntity(branch.target);
-
-		if (target == nullptr) {
+	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
+		auto target = EntityManager::Instance()->GetEntity(branch.target);
+		auto allTargets = context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+		if(std::find(allTargets.begin(), allTargets.end(), target) != allTargets.end()) {
+			this->m_action->Calculate(context, bitStream, branch);
 			return;
 		}
+	}
+	if (this->m_useTargetPostion) return;
+	branch.target = LWOOBJID_EMPTY;
 
-		// If the game is specific about who to target, check that
-		if (destroyableComponent == nullptr || ((!m_targetFriend && !m_targetEnemy
-			|| m_targetFriend && destroyableComponent->IsFriend(target)
-			|| m_targetEnemy && destroyableComponent->IsEnemy(target)))) {
-			this->m_action->Calculate(context, bitStream, branch);
-		}
+	auto reference = caster->GetPosition();
+	reference += this->m_offset;
+	auto forward = caster->GetRotation().GetForwardVector();
 
-		return;
+	auto allTargets = context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+	std::vector<Entity*> tacArcTargets {};
+	// get enemies based on tacarc method
+	if (this->m_method == 1){
+		// GetObjectsInsideConeAndPiesliceTacArc()
+	} else if(this->m_method == 2) {
+		// GetObjectsInsideFrustumTacArc()
 	}
 
-	auto* combatAi = self->GetComponent<BaseCombatAIComponent>();
-
-	const auto casterPosition = self->GetPosition();
-
-	auto reference = self->GetPosition(); //+ m_offset;
-
-	std::vector<Entity*> targets;
-
-	std::vector<Entity*> validTargets;
-
-	if (combatAi != nullptr) {
-		if (combatAi->GetTarget() != LWOOBJID_EMPTY) {
-			auto* combatTarget = EntityManager::Instance()->GetEntity(combatAi->GetTarget());
-			validTargets.push_back(combatTarget);
-		}
+	std::vector<Entity*> validCrossTargets {};
+	for (auto* candidate : allTargets){
+		if (std::find(tacArcTargets.begin(), tacArcTargets.end(), candidate) != tacArcTargets.end()) validCrossTargets.push_back(candidate);
 	}
 
-	// Find all valid targets, based on whether we target enemies or friends
-	for (const auto& contextTarget : context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam)) {
-		if (destroyableComponent != nullptr) {
-			if (m_targetEnemy && destroyableComponent->IsEnemy(contextTarget)
-				|| m_targetFriend && destroyableComponent->IsFriend(contextTarget)) {
-				validTargets.push_back(contextTarget);
+	if (validCrossTargets.size() == 0) {
+		// DoMiss
+		bitStream->Write0();
+		if (this->m_checkEnv){
+			reference.y += this->m_height;
+			forward *= this->m_maxRange;
+			forward += reference;
+			if( false /*DoEnvRaycast(reference, forward)*/){
+				bitStream->Write1();
+				this->m_blockedAction->Calculate(context, bitStream, branch);
+				PlayFx(u"blocked", context->caster);
+			} else{
+				bitStream->Write0();
+				this->m_missAction->Calculate(context, bitStream, branch);
+				PlayFx(u"blocked", context->caster);
 			}
-		} else {
-			validTargets.push_back(contextTarget);
-		}
-	}
-
-	for (auto validTarget : validTargets) {
-		if (targets.size() >= this->m_maxTargets) {
-			break;
-		}
-
-		if (std::find(targets.begin(), targets.end(), validTarget) != targets.end()) {
-			continue;
-		}
-
-		if (validTarget->GetIsDead()) continue;
-
-		const auto otherPosition = validTarget->GetPosition();
-
-		const auto heightDifference = std::abs(otherPosition.y - casterPosition.y);
-
-		/*if (otherPosition.y > reference.y && heightDifference > this->m_upperBound || otherPosition.y < reference.y && heightDifference > this->m_lowerBound)
-		{
-			continue;
-		}*/
-
-		const auto forward = self->GetRotation().GetForwardVector();
-
-		// forward is a normalized vector of where the caster is facing.
-		// otherPosition is the position of the target.
-		// reference is the position of the caster.
-		// If we cast a ray forward from the caster, does it come within m_farWidth of the target?
-
-		const auto distance = Vector3::Distance(reference, otherPosition);
-
-		if (m_method == 2) {
-			NiPoint3 rayPoint = casterPosition + forward * distance;
-
-			if (m_farWidth > 0 && Vector3::DistanceSquared(rayPoint, otherPosition) > this->m_farWidth * this->m_farWidth) {
-				continue;
-			}
-		}
-
-		auto normalized = (reference - otherPosition) / distance;
-
-		const float degreeAngle = std::abs(Vector3::Angle(forward, normalized) * (180 / 3.14) - 180);
-
-		if (distance >= this->m_minDistance && this->m_maxRange >= distance && degreeAngle <= 2 * this->m_angle) {
-			targets.push_back(validTarget);
-		}
-	}
-
-	std::sort(targets.begin(), targets.end(), [reference](Entity* a, Entity* b) {
-		const auto aDistance = Vector3::DistanceSquared(reference, a->GetPosition());
-		const auto bDistance = Vector3::DistanceSquared(reference, b->GetPosition());
-
-		return aDistance > bDistance;
-		});
-
-	const auto hit = !targets.empty();
-
-	bitStream->Write(hit);
-
-	if (this->m_checkEnv) {
-		const auto blocked = false; // TODO
-
-		bitStream->Write(blocked);
-	}
-
-	if (hit) {
-		if (combatAi != nullptr) {
-			combatAi->LookAt(targets[0]->GetPosition());
-		}
-
-		context->foundTarget = true; // We want to continue with this behavior
-
-		const auto count = static_cast<uint32_t>(targets.size());
-
-		bitStream->Write(count);
-
-		for (auto* target : targets) {
-			bitStream->Write(target->GetObjectID());
-		}
-
-		for (auto* target : targets) {
-			branch.target = target->GetObjectID();
-
-			this->m_action->Calculate(context, bitStream, branch);
-		}
+		} else this->m_missAction->Calculate(context, bitStream, branch);
 	} else {
-		this->m_missAction->Calculate(context, bitStream, branch);
+		bitStream->Write1();
+		PlayFx(u"cast", context->caster);
+		if (this->m_distanceWeight == 0.0 && this->m_angleWeight == 0.0) {
+			// SortNoWeights()
+		} else{
+			// SortUseWeights()
+		}
+
+		if (this->m_useAttackPriority){
+			// sort by attack_priority highest first (TODO verify this is the correct order)
+			std::sort(validCrossTargets.begin(), validCrossTargets.end(), [reference](Entity* a, Entity* b) {
+					return a->GetComponent<DestroyableComponent>()->GetAttackPriority() > b->GetComponent<DestroyableComponent>()->GetAttackPriority();
+				}
+			);
+		}
+		if (this->m_checkEnv /* && !DoCheckEnv() */) return;
+		// DoHit
+		if (validCrossTargets.size() > this->m_maxTargets) validCrossTargets.resize(this->m_maxTargets);
+
+		bitStream->Write<uint32_t>(validCrossTargets.size());
+
+		if (validCrossTargets.size() > 0) context->foundTarget = true;
+
+		// write all the targets to the bitstream
+		for (auto* validTarget : validCrossTargets) {
+			bitStream->Write(validTarget->GetObjectID());
+		}
+
+		// then case all the actions
+		for (auto* validTarget : validCrossTargets) {
+			bitStream->Write(validTarget->GetObjectID());
+			branch.target = validTarget->GetObjectID();
+			this->m_action->Calculate(context, bitStream, branch);
+		}
 	}
 }
+
+// void DoEnvRaycast()
+// void DoCheckEnv()
+// void GetObjectsInsideConeAndPiesliceTacArc()
+// void GetObjectsInsideFrustumTacArc()
+// void SortNoWeights()
+// void SortUseWeights()
 
 void TacArcBehavior::Load() {
 	this->m_maxRange = GetFloat("max range");

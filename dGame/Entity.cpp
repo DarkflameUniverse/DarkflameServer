@@ -405,17 +405,18 @@ void Entity::Initialize() {
 		}
 
 		if (destCompData.size() > 0) {
-			comp->AddFaction(destCompData[0].faction);
-			std::stringstream ss(destCompData[0].factionList);
+			comp->AddFaction(destCompData.at(0).faction);
+			std::stringstream ss(destCompData.at(0).factionList);
 			std::string token;
 
 			while (std::getline(ss, token, ',')) {
-				if (std::stoi(token) == destCompData[0].faction) continue;
+				if (std::stoi(token) == destCompData.at(0).faction) continue;
 
 				if (token != "") {
 					comp->AddFaction(std::stoi(token));
 				}
 			}
+			comp->SetAttackPriority(destCompData.at(0).attack_priority);
 		}
 
 		m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, comp));

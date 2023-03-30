@@ -448,6 +448,11 @@ public:
 	// handle hardcode mode drops
 	void DoHardcoreModeDrops(const LWOOBJID source);
 
+	void SetAttackPriority(uint attackPriority) { m_atttackPriotiry = attackPriority; };
+
+	uint GetAttackPriority() { return m_atttackPriotiry; };
+
+
 private:
 	/**
 	 * Whether or not the health should be serialized
@@ -596,6 +601,11 @@ private:
 	uint32_t m_ImmuneToImaginationLossCount;
 	uint32_t m_ImmuneToQuickbuildInterruptCount;
 	uint32_t m_ImmuneToPullToPointCount;
+
+	/**
+	 * The priority to attack this entity
+	 */
+	uint m_atttackPriotiry;
 };
 
 #endif // DESTROYABLECOMPONENT_H

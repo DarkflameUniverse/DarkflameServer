@@ -15,7 +15,7 @@ struct CDDestructibleComponent {
 	float armor;                        //!< The amount of armor of the object
 	unsigned int death_behavior;                //!< The behavior ID of the death behavior
 	bool isnpc;                         //!< Whether or not the object is an NPC
-	unsigned int attack_priority;               //!< ???
+	unsigned int attack_priority;               //!< The Priority of attack
 	bool isSmashable;                   //!< Whether or not the object is smashable
 	int difficultyLevel;               //!< ???
 };
