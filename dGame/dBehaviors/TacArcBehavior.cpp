@@ -12,66 +12,77 @@
 #include <vector>
 
 void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	if (this->m_targetEnemy && this->m_usePickedTarget && branch.target > 0) {
-		this->m_action->Handle(context, bitStream, branch);
+	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
+	if (!caster) return;
 
-		return;
+	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
+		auto target = EntityManager::Instance()->GetEntity(branch.target);
+		auto allTargets = context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+		if(std::find(allTargets.begin(), allTargets.end(), target) != allTargets.end()) {
+			this->m_action->Handle(context, bitStream, branch);
+			return;
+		}
 	}
 
-	bool hit = false;
+	bool hasTargets = false;
 
-	if (!bitStream->Read(hit)) {
-		Game::logger->Log("TacArcBehavior", "Unable to read hit from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream->Read(hasTargets)) {
+		Game::logger->Log("TacArcBehavior", "Unable to read hasTargets from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 
-	if (this->m_checkEnv) {
-		bool blocked = false;
+	bool blocked = false;
+	if (!bitStream->Read(blocked)) {
+		Game::logger->Log("TacArcBehavior", "Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		return;
+	};
 
-		if (!bitStream->Read(blocked)) {
-			Game::logger->Log("TacArcBehavior", "Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
-			return;
-		};
-
-		if (blocked) {
-			this->m_blockedAction->Handle(context, bitStream, branch);
-
-			return;
-		}
-	}
-
-	if (hit) {
-		uint32_t count = 0;
-
-		if (!bitStream->Read(count)) {
-			Game::logger->Log("TacArcBehavior", "Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
-			return;
-		};
-
-		if (count > m_maxTargets && m_maxTargets > 0) {
-			count = m_maxTargets;
-		}
-
-		std::vector<LWOOBJID> targets;
-
-		for (auto i = 0u; i < count; ++i) {
-			LWOOBJID id{};
-
-			if (!bitStream->Read(id)) {
-				Game::logger->Log("TacArcBehavior", "Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+	if (hasTargets){
+		if (!this->m_checkEnv || !blocked) this->m_missAction->Handle(context, bitStream, branch);
+		else {
+			uint32_t count = 0;
+			if (!bitStream->Read(count)) {
+				Game::logger->Log("TacArcBehavior", "Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 				return;
 			};
+			if (count <= this->m_maxTargets){
+				auto reference = NiPoint3();
+				if (this->m_useTargetPostion) {
+					auto* target = EntityManager::Instance()->GetEntity(branch.target);
+					if (!target) return;
+					reference = target->GetPosition();
+				} else reference = caster->GetPosition();
+				reference += this->m_offset;
+				std::vector<Entity*> candidateTargets = {};
+				for (auto i = 0u; i < count; ++i) {
+					LWOOBJID id{};
 
-			targets.push_back(id);
-		}
-
-		for (auto target : targets) {
-			branch.target = target;
-
-			this->m_action->Handle(context, bitStream, branch);
+					if (!bitStream->Read(id)) {
+						Game::logger->Log("TacArcBehavior", "Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+						return;
+					};
+					if (id != LWOOBJID_EMPTY) {
+						auto* canidate = EntityManager::Instance()->GetEntity(id);
+						candidateTargets.push_back(canidate);
+					} else {
+						Game::logger->Log("TacArcBehavior", "Bitstream has LWOOBJID_EMPTY as a target!");
+					}
+				}
+				auto allTargets = context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+				for (auto* candidate : allTargets){
+					if (std::find(allTargets.begin(), allTargets.end(), candidate) != allTargets.end()) {
+						bitStream->Write(candidate->GetObjectID());
+						branch.target = candidate->GetObjectID();
+						this->m_action->Calculate(context, bitStream, branch);
+				}
+				}
+			} else {
+				Game::logger->Log("TacArcBehavior", "TacArcBehavior Bitstream too many targets Max:%i Recv:%i", this->m_maxTargets, count);
+			}
 		}
 	} else {
-		this->m_missAction->Handle(context, bitStream, branch);
+		if (!this->m_checkEnv || !blocked) this->m_missAction->Handle(context, bitStream, branch);
+		else this->m_blockedAction->Handle(context, bitStream, branch);
 	}
 }
 
@@ -87,6 +98,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			return;
 		}
 	}
+
 	if (this->m_useTargetPostion) return;
 	branch.target = LWOOBJID_EMPTY;
 
@@ -97,6 +109,14 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	auto allTargets = context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 	std::vector<Entity*> tacArcTargets {};
 	// get enemies based on tacarc method
+	// both of these need to return a vector of
+	// TacArcTargets{
+	// 		Entity* target,
+	//		float angle,
+	//		float distance,
+	//		float weight,
+	// }
+	// so that we can sort calc the weight of distance and angle and then calc the overall weight and sort by that
 	if (this->m_method == 1){
 		// GetObjectsInsideConeAndPiesliceTacArc()
 	} else if(this->m_method == 2) {
