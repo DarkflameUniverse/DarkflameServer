@@ -122,7 +122,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			} else{
 				bitStream->Write0();
 				this->m_missAction->Calculate(context, bitStream, branch);
-				PlayFx(u"blocked", context->caster);
+				PlayFx(u"miss", context->caster);
 			}
 		} else this->m_missAction->Calculate(context, bitStream, branch);
 	} else {
