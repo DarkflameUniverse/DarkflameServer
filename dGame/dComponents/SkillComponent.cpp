@@ -36,6 +36,8 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 
 	context->caster = m_Parent->GetObjectID();
 
+	context->skillID = skillID;
+
 	this->m_managedBehaviors.insert_or_assign(skillUid, context);
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);

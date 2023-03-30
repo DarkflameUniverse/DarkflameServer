@@ -5,19 +5,18 @@
 #include "eReplicaComponentType.h"
 
 void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
-	if (!inUse || self->GetLOT() == 6859) {
-		GameMessages::SendNotifyClientObject(
-			self->GetObjectID(), u"toggleInUse", 1, 0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS
-		);
-		inUse = true;
+	if (inUse || !self->GetLOT() == 6859) return;
+	GameMessages::SendNotifyClientObject(
+		self->GetObjectID(), u"toggleInUse", 1, 0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS
+	);
+	inUse = true;
 
-		auto entities = EntityManager::Instance()->GetEntitiesInGroup("Jet_FX");
-		if (entities.empty()) return;
-		GameMessages::SendPlayFXEffect(entities.at(0), 641, u"create", "radarDish", LWOOBJID_EMPTY, 1, 1, true);
-		self->AddTimer("radarDish", 2);
-		self->AddTimer("PlayEffect", 2.5);
-		self->AddTimer("CineDone", 7.5 + 5);
-	}
+	auto entities = EntityManager::Instance()->GetEntitiesInGroup("Jet_FX");
+	if (entities.empty()) return;
+	GameMessages::SendPlayFXEffect(entities.at(0), 641, u"create", "radarDish", LWOOBJID_EMPTY, 1, 1, true);
+	self->AddTimer("radarDish", 2.0f);
+	self->AddTimer("PlayEffect", 2.5f);
+	self->AddTimer("CineDone", 7.5f + 5.0f); // 7.5f is time the cinematic takes to play
 }
 
 void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target) {
@@ -32,7 +31,7 @@ void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target) {
 	auto groups = self->GetGroups();
 	if (!groups.empty() && groups.at(0) == "Base_Radar") {
 		self->AddTimer("PlayEffect", 2.5f);
-		self->AddTimer("CineDone", 7.5 + 5);
+		self->AddTimer("CineDone", 7.5f + 5.0f); // 7.5f is time the cinematic takes to play
 	}
 }
 
