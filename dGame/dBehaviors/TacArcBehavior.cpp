@@ -158,13 +158,15 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 				bitStream->Write1();
 				this->m_blockedAction->Calculate(context, bitStream, branch);
 				PlayFx(u"blocked", context->caster);
+				return;
+			} else {
+				bitStream->Write0();
 			}
 		}
+
 		// DoHit
 		if (validCrossTargets.size() > this->m_maxTargets) validCrossTargets.resize(this->m_maxTargets);
-
 		bitStream->Write<uint32_t>(validCrossTargets.size());
-
 		if (validCrossTargets.size() > 0) context->foundTarget = true;
 
 		// write all the targets to the bitstream
