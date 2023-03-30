@@ -141,7 +141,25 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 				}
 			);
 		}
-		if (this->m_checkEnv /* && !DoCheckEnv() */) return;
+		if (this->m_checkEnv){
+			// DoEnvCheck
+			reference.y += this->m_height;
+			bool check = true;
+			for (auto* validTarget : validCrossTargets) {
+				auto targetPosition = validTarget->GetPosition();
+				targetPosition.y += this->m_height;
+				if( false /*DoEnvRaycast(reference, forward)*/){
+					for (auto* validTarget2 : validCrossTargets) {
+
+					}
+				}
+			}
+			if(check){
+				bitStream->Write1();
+				this->m_blockedAction->Calculate(context, bitStream, branch);
+				PlayFx(u"blocked", context->caster);
+			}
+		}
 		// DoHit
 		if (validCrossTargets.size() > this->m_maxTargets) validCrossTargets.resize(this->m_maxTargets);
 
