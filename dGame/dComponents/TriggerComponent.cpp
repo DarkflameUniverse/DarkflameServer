@@ -155,7 +155,7 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 			case eTriggerCommandType::DEACTIVATE_MIXER_PROGRAM: break;
 			// DEPRECATED BLOCK END
 			default:
-				Game::logger->LogDebugDebug("TriggerComponent", "Event %i was not handled!", command->id);
+				Game::logger->LogDebug("TriggerComponent", "Event %i was not handled!", command->id);
 				break;
 		}
 	}
@@ -436,6 +436,6 @@ void TriggerComponent::HandleActivatePhysics(Entity* targetEntity, std::string a
 	} else if (args == "false"){
 		// TODO remove Phsyics entity if there is one
 	} else {
-		Game::logger->LogDebugDebug("TriggerComponent", "Invalid argument for ActivatePhysics Trigger: %s", args.c_str());
+		Game::logger->LogDebug("TriggerComponent", "Invalid argument for ActivatePhysics Trigger: %s", args.c_str());
 	}
 }
