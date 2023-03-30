@@ -307,7 +307,7 @@ std::vector<Entity*> BehaviorContext::FilterTargets(std::forward_list<int32_t> i
 	auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
 	if (!casterDestroyableComponent) return targets;
 
-	auto candidates = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS);
+	auto candidates = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::DESTROYABLE);
 	for (auto* candidate : candidates) {
 		if (!candidate) continue;
 		if (candidate == caster){
@@ -343,10 +343,6 @@ std::vector<Entity*> BehaviorContext::FilterTargets(std::forward_list<int32_t> i
 bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
 	// if the target is a nullptr, then it's not valid
 	if (!target) return false;
-
-	// if there's no destroyable to taget, then we can't hit them
-	auto* targetDestroyable = target->GetComponent<DestroyableComponent>();
-	if (!targetDestroyable) return false;
 
 	// only target quickbuilds in the are completed
 	auto* targetQuickbuild = target->GetComponent<RebuildComponent>();
