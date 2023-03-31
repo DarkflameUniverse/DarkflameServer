@@ -216,7 +216,7 @@ void TacArcBehavior::Load() {
 	this->m_distanceWeight = GetFloat("distance_weight", 0.0f);
 	this->m_angleWeight = GetFloat("angle_weight", 0.0f);
 	this->m_angle = GetFloat("angle", 45.0f);
-	this->m_minDistance = GetFloat("min range", 0.0f);
+	this->m_minRange = GetFloat("min range", 0.0f);
 	this->m_offset = NiPoint3(
 		GetFloat("offset_x", 0.0f),
 		GetFloat("offset_y", 0.0f),

@@ -290,53 +290,77 @@ void BehaviorContext::Reset() {
 	this->scheduledUpdates.clear();
 }
 
-std::vector<Entity*> BehaviorContext::FilterTargets(std::forward_list<int32_t> ignoreFactionList, std::forward_list<int32_t> includeFactionList, bool targetSelf, bool targetEnemy, bool targetFriend, bool targetTeam) const {
-	std::vector<Entity*> targets = {};
+void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_list<int32_t> ignoreFactionList, std::forward_list<int32_t> includeFactionList, bool targetSelf, bool targetEnemy, bool targetFriend, bool targetTeam) const {
 
-	// if we aren't targeting anything, then return empty targets list
-	if (!targetSelf && !targetEnemy && !targetFriend && !targetTeam && ignoreFactionList.empty() && includeFactionList.empty()) return targets;
+	// if we aren't targeting anything, then clear the targets vector
+	if (!targetSelf && !targetEnemy && !targetFriend && !targetTeam && ignoreFactionList.empty() && includeFactionList.empty()) {
+		targets.clear();
+	} else {
+		auto* caster = EntityManager::Instance()->GetEntity(this->caster);
 
-	auto* caster = EntityManager::Instance()->GetEntity(this->caster);
+		// if the caster is not there, return empty targets list
+		if (!caster) {
+			Game::logger->LogDebug("BehaviorContext", "Invalid caster for (%llu)!", this->originator);
+			targets.clear();
+			return;
+		}
 
-	// if the caster is not there, return empty targets list
-	if (!caster) {
-		Game::logger->LogDebug("BehaviorContext", "Invalid caster for (%llu)!", this->originator);
-		return targets;
-	}
+		auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
+		if (!casterDestroyableComponent) return;
 
-	auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
-	if (!casterDestroyableComponent) return targets;
-
-	auto candidates = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::DESTROYABLE);
-	for (auto* candidate : candidates) {
-		if (!candidate) continue;
-		if (candidate == caster){
-			if (targetSelf) targets.push_back(candidate);
-		} else {
-			if (CheckTargetingRequirements(candidate)){
-				auto candidateDestroyableComponent = candidate->GetComponent<DestroyableComponent>();
-				if (!candidateDestroyableComponent) continue;
-				if (candidateDestroyableComponent->GetIsDead()) continue;
-				auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
-				if (!CheckFactionList(includeFactionList, candidateFactions)){
-					if (targetTeam){
-						auto* team = TeamManager::Instance()->GetTeam(this->caster);
-						if (team){
-							if(std::find(team->members.begin(), team->members.end(), candidate->GetObjectID()) != team->members.end()){
-								targets.push_back(candidate);
-								continue;
-							}
-						}
+		auto index = targets.begin();
+		while (index != targets.end()) {
+			auto candidate = *index;
+			if (!candidate)index = targets.erase(index);
+			else if (candidate == caster){
+				if (!targetSelf) index = targets.erase(index);
+				else index++;
+			} else {
+				if (!CheckTargetingRequirements(candidate)) {
+					index = targets.erase(index);
+				} else {
+					// get factions to check against
+					// CheckTargetingRequirements checks for a destroyable component
+					// but we check again because bounds check are great!
+					auto candidateDestroyableComponent = candidate->GetComponent<DestroyableComponent>();
+					if (!candidateDestroyableComponent) {
+						index = targets.erase(index);
+						continue;
 					}
-					auto isEnemy = casterDestroyableComponent->IsEnemy(candidate);
-					if (!targetFriend && !isEnemy) continue;
-					else if(!targetEnemy && isEnemy) continue;
-					else if(!CheckFactionList(ignoreFactionList, candidateFactions)) targets.push_back(candidate);
-				} else targets.push_back(candidate);
+					auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
+
+					if (candidateFactions.empty()){
+						index = targets.erase(index);
+					} else {
+						if (candidateDestroyableComponent->GetIsDead()) {
+							index = targets.erase(index);
+							continue;
+						}
+						if (!CheckFactionList(includeFactionList, candidateFactions)){
+							if (targetTeam){
+								auto* team = TeamManager::Instance()->GetTeam(this->caster);
+								if (team){
+									if(std::find(team->members.begin(), team->members.end(), candidate->GetObjectID()) != team->members.end()){
+										index++;
+										continue;
+									}
+								}
+							}
+							auto isEnemy = casterDestroyableComponent->IsEnemy(candidate);
+							if (!targetFriend && !isEnemy) index = targets.erase(index);
+							else if(!targetEnemy && isEnemy) index = targets.erase(index);
+							else if(CheckFactionList(ignoreFactionList, candidateFactions))	index = targets.erase(index);
+							else index++;
+							continue;
+						}
+						index++;
+					}
+				}
 			}
+			continue;
 		}
 	}
-	return targets;
+	return;
 }
 
 // some basic checks as well as the check that matters for this: if the quickbuild is complete
@@ -345,8 +369,12 @@ bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
 	if (!target) return false;
 
 	// only target quickbuilds in the are completed
-	auto* targetQuickbuild = target->GetComponent<RebuildComponent>();
-	if (targetQuickbuild && targetQuickbuild->GetState() != REBUILD_COMPLETED) return false;
+	auto* targetDestroyableComponent = target->GetComponent<DestroyableComponent>();
+	if (!targetDestroyableComponent) return false;
+
+	// only target quickbuilds in the are completed
+	auto* targetQuickbuildComponent = target->GetComponent<RebuildComponent>();
+	if (targetQuickbuildComponent && targetQuickbuildComponent->GetState() != REBUILD_COMPLETED) return false;
 
 	return true;
 }

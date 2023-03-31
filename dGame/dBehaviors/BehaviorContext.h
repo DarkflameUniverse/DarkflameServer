@@ -105,7 +105,7 @@ struct BehaviorContext
 
 	void Reset();
 
-	std::vector<Entity*> FilterTargets(std::forward_list<int32_t> ignoreFaction = {}, std::forward_list<int32_t> includeFaction = {}, const bool targetSelf = false, const bool targetEnemy = true, const bool targetFriend = false, const bool targetTeam = false) const;
+	void FilterTargets(std::vector<Entity*>& targetsReference, std::forward_list<int32_t> ignoreFaction = {}, std::forward_list<int32_t> includeFaction = {}, const bool targetSelf = false, const bool targetEnemy = true, const bool targetFriend = false, const bool targetTeam = false) const;
 
 	bool CheckTargetingRequirements(const Entity* target) const;
 
