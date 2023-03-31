@@ -74,7 +74,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 						bitStream->Write(candidate->GetObjectID());
 						branch.target = candidate->GetObjectID();
 						this->m_action->Calculate(context, bitStream, branch);
-				}
+					}
 				}
 			} else {
 				Game::logger->Log("TacArcBehavior", "TacArcBehavior Bitstream too many targets Max:%i Recv:%i", this->m_maxTargets, count);
