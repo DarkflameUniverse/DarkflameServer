@@ -109,26 +109,10 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 
 	std::vector<Entity*> targets;
 
-	std::vector<Entity*> validTargets;
+	std::vector<Entity*> validTargets = EntityManager::Instance()->GetEntitiesByProximity(reference, this->m_maxRange);
 
-	if (combatAi != nullptr) {
-		if (combatAi->GetTarget() != LWOOBJID_EMPTY) {
-			auto* combatTarget = EntityManager::Instance()->GetEntity(combatAi->GetTarget());
-			validTargets.push_back(combatTarget);
-		}
-	}
-
-	// Find all valid targets, based on whether we target enemies or friends
-	for (const auto& contextTarget : context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam)) {
-		if (destroyableComponent != nullptr) {
-			if (m_targetEnemy && destroyableComponent->IsEnemy(contextTarget)
-				|| m_targetFriend && destroyableComponent->IsFriend(contextTarget)) {
-				validTargets.push_back(contextTarget);
-			}
-		} else {
-			validTargets.push_back(contextTarget);
-		}
-	}
+	// filter all valid targets, based on whether we target enemies or friends
+	context->FilterTargets(validTargets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 
 	for (auto validTarget : validTargets) {
 		if (targets.size() >= this->m_maxTargets) {
@@ -171,7 +155,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 
 		const float degreeAngle = std::abs(Vector3::Angle(forward, normalized) * (180 / 3.14) - 180);
 
-		if (distance >= this->m_minDistance && this->m_maxRange >= distance && degreeAngle <= 2 * this->m_angle) {
+		if (distance >= this->m_minRange && this->m_maxRange >= distance && degreeAngle <= 2 * this->m_angle) {
 			targets.push_back(validTarget);
 		}
 	}
@@ -224,7 +208,7 @@ void TacArcBehavior::Load() {
 	this->m_distanceWeight = GetFloat("distance_weight", 0.0f);
 	this->m_angleWeight = GetFloat("angle_weight", 0.0f);
 	this->m_angle = GetFloat("angle", 45.0f);
-	this->m_minDistance = GetFloat("min range", 0.0f);
+	this->m_minRange = GetFloat("min range", 0.0f);
 	this->m_offset = NiPoint3(
 		GetFloat("offset_x", 0.0f),
 		GetFloat("offset_y", 0.0f),

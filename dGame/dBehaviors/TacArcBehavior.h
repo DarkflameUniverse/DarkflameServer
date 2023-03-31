@@ -11,7 +11,7 @@ public:
 	float m_distanceWeight;
 	float m_angleWeight;
 	float m_angle;
-	float m_minDistance;
+	float m_minRange;
 	NiPoint3 m_offset;
 	uint32_t m_method;
 	float m_upperBound;

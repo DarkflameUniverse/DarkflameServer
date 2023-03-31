@@ -8,8 +8,8 @@ public:
 	Behavior* m_action;
 	uint32_t m_maxTargets;
 	float m_radius;
-	bool m_UseTargetPosition;
-	bool m_UseTargetAsCaster;
+	bool m_useTargetPosition;
+	bool m_useTargetAsCaster;
 	NiPoint3 m_offset;
 
 	std::forward_list<int32_t> m_ignoreFactionList {};

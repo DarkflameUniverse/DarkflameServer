@@ -20,10 +20,25 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 		return;
 	}
 
-	if (targetCount > this->m_maxTargets) {
-		Game::logger->Log("AreaOfEffectBehavior::Handle", "More targets than allowed! Likely a cheating attempt. Got: %i, Max: %i", targetCount, this->m_maxTargets);
+	if (this->m_useTargetPosition){
+		Game::logger->Log("AreaOfEffectBehavior", "target is %llu", branch.target);
+		if (branch.target == LWOOBJID_EMPTY)
 		return;
 	}
+
+	if (targetCount == 0){
+		Game::logger->Log("AreaOfEffectBehavior", "no targets");
+		PlayFx(u"miss", context->originator);
+		return;
+	}
+
+	if (targetCount > this->m_maxTargets) {
+		Game::logger->Log("AreaOfEffectBehavior", "Serialized size is greater than max targets Size: %i, Max: %i", targetCount, this->m_maxTargets);
+		return;
+	}
+
+	auto caster = context->caster;
+	if (this->m_useTargetAsCaster) context->caster = branch.target;
 
 	std::vector<LWOOBJID> targets;
 	targets.reserve(targetCount);
@@ -32,7 +47,6 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 		LWOOBJID target{};
 		if (!bitStream->Read(target)) {
 			Game::logger->Log("AreaOfEffectBehavior", "failed to read in target %i from bitStream, aborting target Handle!", i);
-			return;
 		};
 		targets.push_back(target);
 	}
@@ -41,6 +55,8 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 		branch.target = target;
 		this->m_action->Handle(context, bitStream, branch);
 	}
+	context->caster = caster;
+	PlayFx(u"cast", context->originator);
 }
 
 void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
@@ -52,62 +68,64 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 
 	// determine the position we are casting the AOE from
 	auto reference = branch.isProjectile ? branch.referencePosition : caster->GetPosition();
-	if (m_UseTargetPosition && branch.target) {
+	if (this->m_useTargetPosition) {
+		if (branch.target == LWOOBJID_EMPTY) return;
 		auto branchTarget = EntityManager::Instance()->GetEntity(branch.target);
 		reference = branchTarget->GetPosition();
 	}
 
 	reference += this->m_offset;
 
-	std::vector<Entity*> allTargets {};
-	std::vector<Entity*> validTargets {};
-	// Gets all of the valid validTargets, passing in if should target enemies and friends
-	allTargets = context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-
-	// filter based on the radius
-	for (auto* candidate : allTargets) if (NiPoint3::Distance(reference, candidate->GetPosition()) <= this->m_radius) validTargets.push_back(candidate);
+	std::vector<Entity*> targets {};
+	targets = EntityManager::Instance()->GetEntitiesByProximity(reference, this->m_radius);
+	context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 
 	// sort by distance
-	std::sort(validTargets.begin(), validTargets.end(), [reference](Entity* a, Entity* b) {
+	std::sort(targets.begin(), targets.end(), [reference](Entity* a, Entity* b) {
 		const auto aDistance = NiPoint3::Distance(a->GetPosition(), reference);
 		const auto bDistance = NiPoint3::Distance(b->GetPosition(), reference);
 		return aDistance < bDistance;
 		}
 	);
 
-	// resize if we have more than max validTargets allows
-	if (validTargets.size() > this->m_maxTargets) validTargets.resize(this->m_maxTargets);
+	// resize if we have more than max targets allows
+	if (targets.size() > this->m_maxTargets) targets.resize(this->m_maxTargets);
 
-	bitStream->Write<uint32_t>(validTargets.size());
+	bitStream->Write<uint32_t>(targets.size());
 
-	if (validTargets.size() > 0) context->foundTarget = true;
+	if (targets.size() == 0) {
+		PlayFx(u"miss", context->originator);
+		return;
+	} else {
+		context->foundTarget = true;
+		// write all the targets to the bitstream
+		for (auto* target : targets) {
+			bitStream->Write(target->GetObjectID());
+		}
 
-	// write all the targets to the bitstream
-	for (auto* validTarget : validTargets) {
-		bitStream->Write(validTarget->GetObjectID());
+		// then cast all the actions
+		for (auto* target : targets) {
+			bitStream->Write(target->GetObjectID());
+			branch.target = target->GetObjectID();
+			this->m_action->Calculate(context, bitStream, branch);
+		}
+		PlayFx(u"cast", context->originator);
 	}
-
-	// then case all the actions
-	for (auto* validTarget : validTargets) {
-		bitStream->Write(validTarget->GetObjectID());
-		branch.target = validTarget->GetObjectID();
-		this->m_action->Calculate(context, bitStream, branch);
-	}
-
-	PlayFx(u"cast", context->originator);
 }
 
 void AreaOfEffectBehavior::Load() {
-
-	this->m_action = GetAction("action");
-	this->m_radius = GetFloat("radius");
+	this->m_action = GetAction("action"); // required
+	this->m_radius = GetFloat("radius", 0.0f); // required
 	this->m_maxTargets = GetInt("max targets", 100);
 	if (this->m_maxTargets == 0) this->m_maxTargets = 100;
+	this->m_useTargetPosition = GetBoolean("use_target_position", false);
+	this->m_useTargetAsCaster = GetBoolean("use_target_as_caster", false);
 	this->m_offset = NiPoint3(
 		GetFloat("offset_x", 0.0f),
 		GetFloat("offset_y", 0.0f),
 		GetFloat("offset_z", 0.0f)
 	);
+
 	// params after this are needed for filter targets
 	const auto parameters = GetParameterNames();
 	for (const auto& parameter : parameters) {
@@ -121,6 +139,4 @@ void AreaOfEffectBehavior::Load() {
 	this->m_targetEnemy = GetBoolean("target_enemy", false);
 	this->m_targetFriend = GetBoolean("target_friend", false);
 	this->m_targetTeam = GetBoolean("target_team", false);
-
-
 }
