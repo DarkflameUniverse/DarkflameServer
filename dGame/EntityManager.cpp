@@ -314,6 +314,13 @@ void EntityManager::GetEntitiesInsideTacArc(TacArcInfo& tacArcInfo){
 }
 
 void EntityManager::GetEntitiesInsideConeAndPieSliceTacArc(TacArcInfo& tacArcInfo){
+	float max_range = tacArcInfo.maxRange;
+	if (tacArcInfo.bGetHeight){
+		auto heightAbsMax = std::max(abs(tacArcInfo.heightUpperBound),abs(tacArcInfo.heightLowerBound));
+		max_range = std::max(max_range, heightAbsMax);
+	}
+	// PeGameWorld::GetObjectsInArea replacement
+	tacArcInfo.targets = GetEntitiesByProximity(tacArcInfo.position, max_range);
 
 }
 

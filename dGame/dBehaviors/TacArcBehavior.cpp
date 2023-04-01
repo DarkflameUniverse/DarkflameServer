@@ -112,7 +112,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	reference += this->m_offset;
 	auto forward = caster->GetRotation().GetForwardVector();
 
-	auto tacArcInfo = new *TacArcInfo();
+	auto tacArcInfo = new TacArcInfo();
 	tacArcInfo->position = reference;
 	tacArcInfo->forwardVector = forward;
 	tacArcInfo->weight = 0.0;
@@ -129,7 +129,6 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	tacArcInfo->heightUpperBound = reference.y + this->m_upperBound;
 	tacArcInfo->method = this->m_method;
 	tacArcInfo->targets = {};
-	tacArcInfo->targetsInfo = {};
 
 	EntityManager::Instance()->GetEntitiesInsideTacArc(*tacArcInfo);
 	context->FilterTargets(tacArcInfo->targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
