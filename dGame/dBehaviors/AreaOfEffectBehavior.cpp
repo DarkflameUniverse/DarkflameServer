@@ -20,14 +20,9 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 		return;
 	}
 
-	if (this->m_useTargetPosition){
-		Game::logger->Log("AreaOfEffectBehavior", "target is %llu", branch.target);
-		if (branch.target == LWOOBJID_EMPTY)
-		return;
-	}
+	if (this->m_useTargetPosition && branch.target == LWOOBJID_EMPTY) return;
 
 	if (targetCount == 0){
-		Game::logger->Log("AreaOfEffectBehavior", "no targets");
 		PlayFx(u"miss", context->originator);
 		return;
 	}
@@ -105,7 +100,6 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 
 		// then cast all the actions
 		for (auto* target : targets) {
-			bitStream->Write(target->GetObjectID());
 			branch.target = target->GetObjectID();
 			this->m_action->Calculate(context, bitStream, branch);
 		}
