@@ -14,6 +14,7 @@ class User;
 enum class eReplicaComponentType : uint32_t;
 
 struct SystemAddress;
+struct TacArcInfo;
 
 class EntityManager {
 public:
@@ -39,6 +40,8 @@ public:
 	std::vector<Entity*> GetEntitiesByComponent(eReplicaComponentType componentType) const;
 	std::vector<Entity*> GetEntitiesByLOT(const LOT& lot) const;
 	std::vector<Entity*> GetEntitiesByProximity(NiPoint3 reference, float radius) const;
+	std::vector<Entity*> GetEntitiesInsideTacArc(TacArcInfo* info);
+
 	Entity* GetZoneControlEntity() const;
 
 	// Get spawn point entity by spawn name

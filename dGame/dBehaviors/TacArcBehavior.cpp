@@ -8,6 +8,8 @@
 #include "EntityManager.h"
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
+#include "TacArcInfo.h"
+#include "eTacArcMethod.h"
 
 #include <vector>
 
@@ -15,10 +17,12 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
 	if (!caster) return;
 
+	std::vector<Entity*> targets = {};
 	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
 		auto target = EntityManager::Instance()->GetEntity(branch.target);
-		auto allTargets = context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-		if(std::find(allTargets.begin(), allTargets.end(), target) != allTargets.end()) {
+		targets.push_back(target);
+		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+		if(!targets.empty()) {
 			this->m_action->Handle(context, bitStream, branch);
 			return;
 		}
@@ -53,7 +57,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 					reference = target->GetPosition();
 				} else reference = caster->GetPosition();
 				reference += this->m_offset;
-				std::vector<Entity*> candidateTargets = {};
+
 				for (auto i = 0u; i < count; ++i) {
 					LWOOBJID id{};
 
@@ -63,19 +67,19 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 					};
 					if (id != LWOOBJID_EMPTY) {
 						auto* canidate = EntityManager::Instance()->GetEntity(id);
-						candidateTargets.push_back(canidate);
+						targets.push_back(canidate);
 					} else {
 						Game::logger->Log("TacArcBehavior", "Bitstream has LWOOBJID_EMPTY as a target!");
 					}
 				}
-				auto allTargets = context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-				for (auto* candidate : allTargets){
-					if (std::find(candidateTargets.begin(), candidateTargets.end(), candidate) != candidateTargets.end()) {
-						bitStream->Write(candidate->GetObjectID());
-						branch.target = candidate->GetObjectID();
-						this->m_action->Calculate(context, bitStream, branch);
-					}
+
+				context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+				for (auto* target : targets){
+					bitStream->Write(target->GetObjectID());
+					branch.target = target->GetObjectID();
+					this->m_action->Calculate(context, bitStream, branch);
 				}
+
 			} else {
 				Game::logger->Log("TacArcBehavior", "TacArcBehavior Bitstream too many targets Max:%i Recv:%i", this->m_maxTargets, count);
 			}
@@ -89,11 +93,12 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
 	if (!caster) return;
-
+	std::vector<Entity*> targets = {};
 	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
 		auto target = EntityManager::Instance()->GetEntity(branch.target);
-		auto allTargets = context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-		if(std::find(allTargets.begin(), allTargets.end(), target) != allTargets.end()) {
+		targets.push_back(target);
+		context->FilterTargets(targets,this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+		if(!targets.empty()) {
 			this->m_action->Calculate(context, bitStream, branch);
 			return;
 		}
@@ -106,36 +111,47 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	reference += this->m_offset;
 	auto forward = caster->GetRotation().GetForwardVector();
 
-	auto allTargets = context->FilterTargets(this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-	std::vector<Entity*> tacArcTargets {};
 	// get enemies based on tacarc method
 	// both of these need to return a vector of
 	// TacArcTargets{
 	// 		Entity* target,
 	//		float angle,
 	//		float distance,
-	//		float weight,
+	//		float weight, default 0
 	// }
 	// so that we can sort calc the weight of distance and angle and then calc the overall weight and sort by that
-	if (this->m_method == 1){
-		// GetObjectsInsideConeAndPiesliceTacArc()
-	} else if(this->m_method == 2) {
-		// GetObjectsInsideFrustumTacArc()
-	}
 
-	std::vector<Entity*> validCrossTargets {};
-	for (auto* candidate : allTargets){
-		if (std::find(tacArcTargets.begin(), tacArcTargets.end(), candidate) != tacArcTargets.end()) validCrossTargets.push_back(candidate);
-	}
+	// hack way to get targets
+	targets = EntityManager::Instance()->GetEntitiesByProximity(reference, this->m_maxRange);
 
-	if (validCrossTargets.size() == 0) {
+	auto* tacArcInfo = new TacArcInfo();
+	tacArcInfo->position = reference;
+	tacArcInfo->forwardVector = forward;
+	tacArcInfo->weight = 0.0;
+	tacArcInfo->angleInDegrees = (this->m_angle * 3.141593) / 180.0;
+	tacArcInfo->minRange = this->m_minRange;
+	tacArcInfo->maxRange = this->m_maxRange;
+	tacArcInfo->farWidth = this->m_farWidth;
+	tacArcInfo->farHeight = this->m_farHeight;
+	tacArcInfo->nearWidth = this->m_nearWidth;
+	tacArcInfo->nearHeight = this->m_nearHeight;
+	tacArcInfo->addRadiusToPosition = this->m_method == eTacArcMethod::CONE_AND_PIE_SLICE;
+	tacArcInfo->bGetHeight = this->m_method == eTacArcMethod::CONE_AND_PIE_SLICE;
+	tacArcInfo->heightLowerBound = reference.y + this->m_lowerBound;
+	tacArcInfo->heightUpperBound = reference.y + this->m_upperBound;
+	tacArcInfo->method = this->m_method;
+	targets = EntityManager::Instance()->GetEntitiesInsideTacArc(tacArcInfo);
+
+	context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+
+	if (targets.size() == 0) {
 		// DoMiss
 		bitStream->Write0();
 		if (this->m_checkEnv){
 			reference.y += this->m_height;
 			forward *= this->m_maxRange;
 			forward += reference;
-			if( false /*DoEnvRaycast(reference, forward)*/){
+			if(false /*DoEnvRaycast(reference, forward)*/){
 				bitStream->Write1();
 				this->m_blockedAction->Calculate(context, bitStream, branch);
 				PlayFx(u"blocked", context->caster);
@@ -156,7 +172,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 
 		if (this->m_useAttackPriority){
 			// sort by attack_priority highest first (TODO verify this is the correct order)
-			std::sort(validCrossTargets.begin(), validCrossTargets.end(), [reference](Entity* a, Entity* b) {
+			std::sort(targets.begin(), targets.end(), [reference](Entity* a, Entity* b) {
 					return a->GetComponent<DestroyableComponent>()->GetAttackPriority() > b->GetComponent<DestroyableComponent>()->GetAttackPriority();
 				}
 			);
@@ -165,11 +181,11 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			// DoEnvCheck
 			reference.y += this->m_height;
 			bool check = true;
-			for (auto* validTarget : validCrossTargets) {
+			for (auto* validTarget : targets) {
 				auto targetPosition = validTarget->GetPosition();
 				targetPosition.y += this->m_height;
 				if( false /*DoEnvRaycast(reference, forward)*/){
-					for (auto* validTarget2 : validCrossTargets) {
+					for (auto* validTarget2 : targets) {
 
 					}
 				}
@@ -185,17 +201,17 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		}
 
 		// DoHit
-		if (validCrossTargets.size() > this->m_maxTargets) validCrossTargets.resize(this->m_maxTargets);
-		bitStream->Write<uint32_t>(validCrossTargets.size());
-		if (validCrossTargets.size() > 0) context->foundTarget = true;
+		if (targets.size() > this->m_maxTargets) targets.resize(this->m_maxTargets);
+		bitStream->Write<uint32_t>(targets.size());
+		if (targets.size() > 0) context->foundTarget = true;
 
 		// write all the targets to the bitstream
-		for (auto* validTarget : validCrossTargets) {
+		for (auto* validTarget : targets) {
 			bitStream->Write(validTarget->GetObjectID());
 		}
 
 		// then case all the actions
-		for (auto* validTarget : validCrossTargets) {
+		for (auto* validTarget : targets) {
 			bitStream->Write(validTarget->GetObjectID());
 			branch.target = validTarget->GetObjectID();
 			this->m_action->Calculate(context, bitStream, branch);
@@ -222,7 +238,7 @@ void TacArcBehavior::Load() {
 		GetFloat("offset_y", 0.0f),
 		GetFloat("offset_z", 0.0f)
 	);
-	this->m_method = GetInt("method", 1);
+	this->m_method = static_cast<eTacArcMethod>(GetInt("method", 1));
 	this->m_upperBound = GetFloat("upper_bound", 4.4f);
 	this->m_lowerBound = GetFloat("lower_bound", 0.4f);
 	this->m_usePickedTarget = GetBoolean("use_picked_target", false);

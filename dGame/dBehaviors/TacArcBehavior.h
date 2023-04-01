@@ -4,6 +4,8 @@
 #include "NiPoint3.h"
 #include <forward_list>
 
+enum class eTacArcMethod : uint32_t;
+
 class TacArcBehavior final : public Behavior {
 public:
 	float m_maxRange;
@@ -13,7 +15,7 @@ public:
 	float m_angle;
 	float m_minRange;
 	NiPoint3 m_offset;
-	uint32_t m_method;
+	eTacArcMethod m_method;
 	float m_upperBound;
 	float m_lowerBound;
 	bool m_usePickedTarget;
