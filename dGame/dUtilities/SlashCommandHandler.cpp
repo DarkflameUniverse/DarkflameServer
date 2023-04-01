@@ -1899,12 +1899,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				ChatPackets::SendSystemMessage(sysAddr, u"Error getting slot.");
 				return;
 			} else {
-				Game::logger->Log("SlashCommandHandler", "Got slot %i", slot);
 				if (!GeneralUtils::TryParse(args[1], skillId)) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Error getting skill.");
 					return;
 				} else {
-					Game::logger->Log("SlashCommandHandler", "Got skill %i", skillId);
 					if(inventoryComponent->SetSkill(slot, skillId)) ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot successfully");
 					else ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot failed");
 				}

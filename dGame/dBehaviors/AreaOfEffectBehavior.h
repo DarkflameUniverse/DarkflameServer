@@ -5,6 +5,11 @@
 class AreaOfEffectBehavior final : public Behavior
 {
 public:
+	explicit AreaOfEffectBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {}
+	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Load() override;
+private:
 	Behavior* m_action;
 	uint32_t m_maxTargets;
 	float m_radius;
@@ -18,12 +23,4 @@ public:
 	bool m_targetEnemy;
 	bool m_targetFriend;
 	bool m_targetTeam;
-
-	explicit AreaOfEffectBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {}
-
-	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
-
-	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
-
-	void Load() override;
 };

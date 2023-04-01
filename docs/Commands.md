@@ -107,10 +107,10 @@ These commands are primarily for development and testing. The usage of many of t
 |crash|`/crash`|Crashes the server.|9|
 |rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Rolls loot matrix.|9|
 |castskill|`/castskill <skill id>`|Casts the skill as the player|9|
-|setskillslot|`/setskillslot <slot> <skill id>`||9|
-|setfaction|`/setfaction <faction id>`|Clears the users current factions and sets it|9|
-|addfaction|`/addfaction <faction id>`|Add the faction to the users list of factions|9|
-|getfactions|`/getfactions`|Shows the player's factions|9|
+|setskillslot|`/setskillslot <slot> <skill id>`||8|
+|setfaction|`/setfaction <faction id>`|Clears the users current factions and sets it|8|
+|addfaction|`/addfaction <faction id>`|Add the faction to the users list of factions|8|
+|getfactions|`/getfactions`|Shows the player's factions|8|
 
 ## Detailed `/inspect` Usage
 
@@ -125,7 +125,7 @@ Finds the closest entity with the given component or LDF variable (ignoring play
 * `-s`: Prints the entity's settings and spawner ID.
 * `-p`: Prints the entity's position
 * `-f`: If the entity has a destroyable component, prints whether the entity is smashable and its friendly and enemy faction IDs; if `faction` is specified, adds that faction to the entity.
-* `-cf`: check if the faction of this entity is your enenmy or friend
+* `-cf`: check if the entity is enemy or friend
 * `-t`: If the entity has a phantom physics component, prints the effect type, direction, directional multiplier, and whether the effect is active; in any case, if the entity has a trigger, prints the trigger ID.
 
 ## Game Master Levels

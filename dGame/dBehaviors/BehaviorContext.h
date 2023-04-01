@@ -105,11 +105,11 @@ struct BehaviorContext
 
 	void Reset();
 
-	void FilterTargets(std::vector<Entity*>& targetsReference, std::forward_list<int32_t> ignoreFaction = {}, std::forward_list<int32_t> includeFaction = {}, const bool targetSelf = false, const bool targetEnemy = true, const bool targetFriend = false, const bool targetTeam = false) const;
+	void FilterTargets(std::vector<Entity*>& targetsReference, std::forward_list<int32_t>& ignoreFaction, std::forward_list<int32_t>& includeFaction, const bool targetSelf = false, const bool targetEnemy = true, const bool targetFriend = false, const bool targetTeam = false) const;
 
 	bool CheckTargetingRequirements(const Entity* target) const;
 
-	bool CheckFactionList(std::forward_list<int32_t> factionList, std::vector<int32_t> objectsFactions) const;
+	bool CheckFactionList(std::forward_list<int32_t>& factionList, std::vector<int32_t>& objectsFactions) const;
 
 	explicit BehaviorContext(LWOOBJID originator, bool calculation = false);
 

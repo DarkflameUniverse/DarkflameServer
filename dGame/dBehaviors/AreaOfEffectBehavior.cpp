@@ -66,7 +66,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 	if (this->m_useTargetPosition) {
 		if (branch.target == LWOOBJID_EMPTY) return;
 		auto branchTarget = EntityManager::Instance()->GetEntity(branch.target);
-		reference = branchTarget->GetPosition();
+		if (branchTarget) reference = branchTarget->GetPosition();
 	}
 
 	reference += this->m_offset;

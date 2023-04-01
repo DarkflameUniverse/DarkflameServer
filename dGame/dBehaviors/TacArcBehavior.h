@@ -8,6 +8,11 @@ enum class eTacArcMethod : uint32_t;
 
 class TacArcBehavior final : public Behavior {
 public:
+	explicit TacArcBehavior(const uint32_t behavior_id) : Behavior(behavior_id) {}
+	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Load() override;
+private:
 	float m_maxRange;
 	float m_height;
 	float m_distanceWeight;
@@ -31,16 +36,10 @@ public:
 	float m_nearHeight;
 	float m_nearWidth;
 
-
 	std::forward_list<int32_t> m_ignoreFactionList {};
 	std::forward_list<int32_t> m_includeFactionList {};
 	bool m_targetSelf;
 	bool m_targetEnemy;
 	bool m_targetFriend;
 	bool m_targetTeam;
-
-	explicit TacArcBehavior(const uint32_t behavior_id) : Behavior(behavior_id) {}
-	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
-	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
-	void Load() override;
 };
