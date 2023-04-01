@@ -290,7 +290,7 @@ void BehaviorContext::Reset() {
 	this->scheduledUpdates.clear();
 }
 
-void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_list<int32_t> ignoreFactionList, std::forward_list<int32_t> includeFactionList, bool targetSelf, bool targetEnemy, bool targetFriend, bool targetTeam) const {
+void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_list<int32_t>& ignoreFactionList, std::forward_list<int32_t>& includeFactionList, bool targetSelf, bool targetEnemy, bool targetFriend, bool targetTeam) const {
 
 	// if we aren't targeting anything, then clear the targets vector
 	if (!targetSelf && !targetEnemy && !targetFriend && !targetTeam && ignoreFactionList.empty() && includeFactionList.empty()) {
@@ -368,11 +368,11 @@ bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
 	// if the target is a nullptr, then it's not valid
 	if (!target) return false;
 
-	// only target quickbuilds in the are completed
+	// ignore entities that don't have destroyable components
 	auto* targetDestroyableComponent = target->GetComponent<DestroyableComponent>();
 	if (!targetDestroyableComponent) return false;
 
-	// only target quickbuilds in the are completed
+	// ignore quickbuilds that aren't completed
 	auto* targetQuickbuildComponent = target->GetComponent<RebuildComponent>();
 	if (targetQuickbuildComponent && targetQuickbuildComponent->GetState() != REBUILD_COMPLETED) return false;
 
@@ -380,7 +380,7 @@ bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
 }
 
 // returns true if any of the object factions are in the faction list
-bool BehaviorContext::CheckFactionList(std::forward_list<int32_t> factionList, std::vector<int32_t> objectsFactions) const {
+bool BehaviorContext::CheckFactionList(std::forward_list<int32_t>& factionList, std::vector<int32_t>& objectsFactions) const {
 	if (factionList.empty() || objectsFactions.empty()) return false;
 	for (auto faction : factionList){
 		if(std::find(objectsFactions.begin(), objectsFactions.end(), faction) != objectsFactions.end()) return true;
