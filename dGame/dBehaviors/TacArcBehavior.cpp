@@ -116,7 +116,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	tacArcInfo->position = reference;
 	tacArcInfo->forwardVector = forward;
 	tacArcInfo->weight = 0.0;
-	tacArcInfo->angleInDegrees = (this->m_angle * M_PI) / 180.0;
+	tacArcInfo->angleInDegrees = (this->m_angle * PI) / 180.0;
 	tacArcInfo->minRange = this->m_minRange;
 	tacArcInfo->maxRange = this->m_maxRange;
 	tacArcInfo->farWidth = this->m_farWidth;
