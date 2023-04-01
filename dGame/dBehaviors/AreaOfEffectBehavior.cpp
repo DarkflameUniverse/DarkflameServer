@@ -57,7 +57,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
 	if (!caster) {
-		Game::logger->Log("AreaOfEffectBehavior::Calculate", "There is no caster to be found!");
+		Game::logger->Log("AreaOfEffectBehavior", "There is no caster to be found for skill UID %i", context->GetUniqueSkillId());
 		return;
 	}
 
