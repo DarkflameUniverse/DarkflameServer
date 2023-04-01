@@ -1,7 +1,15 @@
 #include "NiPoint3.h"
 #include "eTacArcMethod.h"
 
-struct TacArcInfo{
+class Entity;
+
+struct TacArcTargetInfo {
+	float angle;
+	float distance;
+	float weight;
+};
+
+struct TacArcInfo {
 	NiPoint3 position;
     NiPoint3 forwardVector;
     float weight = 0.0;
@@ -17,4 +25,6 @@ struct TacArcInfo{
     float heightLowerBound;
     float heightUpperBound;
     eTacArcMethod method;
-}
+	std::vector<Entity*> targets;
+	std::map<Entity*, TacArcTargetInfo*> targetsInfo;
+};

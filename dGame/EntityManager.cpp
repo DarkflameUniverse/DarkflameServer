@@ -22,6 +22,8 @@
 #include "eTriggerEventType.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
+#include "TacArcInfo.h"
+#include "eTacArcMethod.h"
 
 EntityManager* EntityManager::m_Address = nullptr;
 
@@ -302,6 +304,22 @@ std::vector<Entity*> EntityManager::GetEntitiesByProximity(NiPoint3 reference, f
 	return entities;
 }
 
+void EntityManager::GetEntitiesInsideTacArc(TacArcInfo& tacArcInfo){
+	if (tacArcInfo.method == eTacArcMethod::CONE_AND_PIE_SLICE || tacArcInfo.method == eTacArcMethod::INVALID) {
+		GetEntitiesInsideConeAndPieSliceTacArc(tacArcInfo);
+	} else if (tacArcInfo.method == eTacArcMethod::FRUSTUM) {
+		GetEntitiesInsideFrustumTacArc(tacArcInfo);
+	}
+	return;
+}
+
+void EntityManager::GetEntitiesInsideConeAndPieSliceTacArc(TacArcInfo& tacArcInfo){
+
+}
+
+void EntityManager::GetEntitiesInsideFrustumTacArc(TacArcInfo& tacArcInfo){
+
+}
 
 Entity* EntityManager::GetZoneControlEntity() const {
 	return m_ZoneControlEntity;

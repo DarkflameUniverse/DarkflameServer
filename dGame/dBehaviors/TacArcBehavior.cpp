@@ -93,10 +93,11 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
 	if (!caster) return;
-	std::vector<Entity*> targets = {};
+
 	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
+		std::vector<Entity*> targets = {};
 		auto target = EntityManager::Instance()->GetEntity(branch.target);
-		targets.push_back(target);
+		if (target) targets.push_back(target);
 		context->FilterTargets(targets,this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 		if(!targets.empty()) {
 			this->m_action->Calculate(context, bitStream, branch);
@@ -111,24 +112,11 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	reference += this->m_offset;
 	auto forward = caster->GetRotation().GetForwardVector();
 
-	// get enemies based on tacarc method
-	// both of these need to return a vector of
-	// TacArcTargets{
-	// 		Entity* target,
-	//		float angle,
-	//		float distance,
-	//		float weight, default 0
-	// }
-	// so that we can sort calc the weight of distance and angle and then calc the overall weight and sort by that
-
-	// hack way to get targets
-	targets = EntityManager::Instance()->GetEntitiesByProximity(reference, this->m_maxRange);
-
-	auto* tacArcInfo = new TacArcInfo();
+	auto tacArcInfo = new *TacArcInfo();
 	tacArcInfo->position = reference;
 	tacArcInfo->forwardVector = forward;
 	tacArcInfo->weight = 0.0;
-	tacArcInfo->angleInDegrees = (this->m_angle * 3.141593) / 180.0;
+	tacArcInfo->angleInDegrees = (this->m_angle * M_PI) / 180.0;
 	tacArcInfo->minRange = this->m_minRange;
 	tacArcInfo->maxRange = this->m_maxRange;
 	tacArcInfo->farWidth = this->m_farWidth;
@@ -140,11 +128,13 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	tacArcInfo->heightLowerBound = reference.y + this->m_lowerBound;
 	tacArcInfo->heightUpperBound = reference.y + this->m_upperBound;
 	tacArcInfo->method = this->m_method;
-	targets = EntityManager::Instance()->GetEntitiesInsideTacArc(tacArcInfo);
+	tacArcInfo->targets = {};
+	tacArcInfo->targetsInfo = {};
 
-	context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+	EntityManager::Instance()->GetEntitiesInsideTacArc(*tacArcInfo);
+	context->FilterTargets(tacArcInfo->targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 
-	if (targets.size() == 0) {
+	if (tacArcInfo->targets.size() == 0) {
 		// DoMiss
 		bitStream->Write0();
 		if (this->m_checkEnv){
@@ -172,7 +162,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 
 		if (this->m_useAttackPriority){
 			// sort by attack_priority highest first (TODO verify this is the correct order)
-			std::sort(targets.begin(), targets.end(), [reference](Entity* a, Entity* b) {
+			std::sort(tacArcInfo->targets.begin(), tacArcInfo->targets.end(), [reference](Entity* a, Entity* b) {
 					return a->GetComponent<DestroyableComponent>()->GetAttackPriority() > b->GetComponent<DestroyableComponent>()->GetAttackPriority();
 				}
 			);
@@ -181,11 +171,11 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			// DoEnvCheck
 			reference.y += this->m_height;
 			bool check = true;
-			for (auto* validTarget : targets) {
+			for (auto* validTarget : tacArcInfo->targets) {
 				auto targetPosition = validTarget->GetPosition();
 				targetPosition.y += this->m_height;
 				if( false /*DoEnvRaycast(reference, forward)*/){
-					for (auto* validTarget2 : targets) {
+					for (auto* validTarget2 : tacArcInfo->targets) {
 
 					}
 				}
@@ -201,17 +191,17 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		}
 
 		// DoHit
-		if (targets.size() > this->m_maxTargets) targets.resize(this->m_maxTargets);
-		bitStream->Write<uint32_t>(targets.size());
-		if (targets.size() > 0) context->foundTarget = true;
+		if (tacArcInfo->targets.size() > this->m_maxTargets) tacArcInfo->targets.resize(this->m_maxTargets);
+		bitStream->Write<uint32_t>(tacArcInfo->targets.size());
+		if (tacArcInfo->targets.size() > 0) context->foundTarget = true;
 
-		// write all the targets to the bitstream
-		for (auto* validTarget : targets) {
+		// write all the tacArcInfo->targets to the bitstream
+		for (auto* validTarget : tacArcInfo->targets) {
 			bitStream->Write(validTarget->GetObjectID());
 		}
 
 		// then case all the actions
-		for (auto* validTarget : targets) {
+		for (auto* validTarget : tacArcInfo->targets) {
 			bitStream->Write(validTarget->GetObjectID());
 			branch.target = validTarget->GetObjectID();
 			this->m_action->Calculate(context, bitStream, branch);
