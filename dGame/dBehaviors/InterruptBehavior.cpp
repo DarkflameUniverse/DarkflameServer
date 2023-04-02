@@ -46,6 +46,8 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 
 	if (target == nullptr) return;
 
+	if (target->GetLOT() == 1) return;
+
 	auto* skillComponent = target->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) return;
@@ -70,6 +72,8 @@ void InterruptBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* b
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (target == nullptr) return;
+
+	if (target->GetLOT() == 1) return;
 
 	auto* skillComponent = target->GetComponent<SkillComponent>();
 
