@@ -28,7 +28,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 	}
 
 	if (targetCount > this->m_maxTargets) {
-		Game::logger->Log("AreaOfEffectBehavior", "Serialized size is greater than max targets Size: %i, Max: %i", targetCount, this->m_maxTargets);
+		Game::logger->Log("AreaOfEffectBehavior", "Serialized size is greater than max targets! Size: %i, Max: %i", targetCount, this->m_maxTargets);
 		return;
 	}
 
@@ -56,10 +56,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 
 void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
-	if (!caster) {
-		Game::logger->Log("AreaOfEffectBehavior", "There is no caster to be found for skill UID %i", context->GetUniqueSkillId());
-		return;
-	}
+	if (!caster) return;
 
 	// determine the position we are casting the AOE from
 	auto reference = branch.isProjectile ? branch.referencePosition : caster->GetPosition();
