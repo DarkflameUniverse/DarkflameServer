@@ -19,8 +19,8 @@ void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitS
 			NiQuaternion::LookAt(sourceEntity->GetPosition(), destinationEntity->GetPosition())
 		);
 	} else if (this->m_toAngle){
-		auto baseAngle = NiPoint3(this->m_angle, 0, 0);
-		if (this->m_relative) baseAngle += sourceEntity->GetRotation().GetEulerAngles();
+		auto baseAngle = NiPoint3(0, 0, this->m_angle);
+		if (this->m_relative) baseAngle += sourceEntity->GetRotation().GetForwardVector();
 		sourceEntity->SetRotation(NiQuaternion::FromEulerAngles(baseAngle));
 	} else return;
 	EntityManager::Instance()->SerializeEntity(sourceEntity);
