@@ -2,43 +2,40 @@
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "EntityManager.h"
-#include "BaseCombatAIComponent.h"
-
-void ChangeOrientationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-}
 
 void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	if (!m_ToTarget) return; // TODO: Add the other arguments to this behavior
+	Entity* sourceEntity;
+	if (this->m_orientCaster) sourceEntity = EntityManager::Instance()->GetEntity(context->originator);
+	else sourceEntity = EntityManager::Instance()->GetEntity(branch.target);
+	if (!sourceEntity) return;
 
-	auto* self = EntityManager::Instance()->GetEntity(context->originator);
-	auto* other = EntityManager::Instance()->GetEntity(branch.target);
 
-	if (self == nullptr || other == nullptr) return;
+	if (this->m_toTarget) {
+		Entity* destinationEntity;
+		if (this->m_orientCaster) destinationEntity = EntityManager::Instance()->GetEntity(branch.target);
+		else destinationEntity = EntityManager::Instance()->GetEntity(context->originator);
+		if (!destinationEntity) return;
 
-	const auto source = self->GetPosition();
-	const auto destination = other->GetPosition();
-
-	if (m_OrientCaster) {
-		auto* baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();
-
-		/*if (baseCombatAIComponent != nullptr)
-		{
-			baseCombatAIComponent->LookAt(destination);
+		const auto source = sourceEntity->GetPosition();
+		const auto destination = destinationEntity->GetPosition();
+		sourceEntity->SetRotation(NiQuaternion::LookAt(source, destination));
+	} else if (this->m_toAngle){
+		auto baseAngle = NiPoint3(this->m_angle, 0, 0);
+		if (this->m_relative){
+			auto sourceAngle = sourceEntity->GetRotation().GetEulerAngles();
+			baseAngle += sourceAngle;
 		}
-		else*/
-		{
-			self->SetRotation(NiQuaternion::LookAt(source, destination));
-		}
-
-		EntityManager::Instance()->SerializeEntity(self);
-	} else {
-		other->SetRotation(NiQuaternion::LookAt(destination, source));
-
-		EntityManager::Instance()->SerializeEntity(other);
-	}
+		auto newRotation = NiQuaternion::FromEulerAngles(baseAngle);
+		sourceEntity->SetRotation(newRotation);
+	} else return;
+	EntityManager::Instance()->SerializeEntity(sourceEntity);
+	return;
 }
 
 void ChangeOrientationBehavior::Load() {
-	m_OrientCaster = GetBoolean("orient_caster");
-	m_ToTarget = GetBoolean("to_target");
+	this->m_orientCaster = GetBoolean("orient_caster", true);
+	this->m_toTarget = GetBoolean("to_target", false);
+	this->m_toAngle = GetBoolean("to_angle", false);
+	this->m_angle = GetFloat("angle", 0.0f);
+	this->m_relative = GetBoolean("relative", false);
 }
