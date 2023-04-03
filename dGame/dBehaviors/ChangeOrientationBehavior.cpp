@@ -15,17 +15,13 @@ void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitS
 		else destinationEntity = EntityManager::Instance()->GetEntity(context->originator);
 		if (!destinationEntity) return;
 
-		const auto source = sourceEntity->GetPosition();
-		const auto destination = destinationEntity->GetPosition();
-		sourceEntity->SetRotation(NiQuaternion::LookAt(source, destination));
+		sourceEntity->SetRotation(
+			NiQuaternion::LookAt(sourceEntity->GetPosition(), destinationEntity->GetPosition())
+		);
 	} else if (this->m_toAngle){
 		auto baseAngle = NiPoint3(this->m_angle, 0, 0);
-		if (this->m_relative){
-			auto sourceAngle = sourceEntity->GetRotation().GetEulerAngles();
-			baseAngle += sourceAngle;
-		}
-		auto newRotation = NiQuaternion::FromEulerAngles(baseAngle);
-		sourceEntity->SetRotation(newRotation);
+		if (this->m_relative) baseAngle += sourceEntity->GetRotation().GetEulerAngles();
+		sourceEntity->SetRotation(NiQuaternion::FromEulerAngles(baseAngle));
 	} else return;
 	EntityManager::Instance()->SerializeEntity(sourceEntity);
 	return;
