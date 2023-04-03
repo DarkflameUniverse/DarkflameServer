@@ -9,7 +9,6 @@ void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitS
 	else sourceEntity = EntityManager::Instance()->GetEntity(branch.target);
 	if (!sourceEntity) return;
 
-
 	if (this->m_toTarget) {
 		Entity* destinationEntity;
 		if (this->m_orientCaster) destinationEntity = EntityManager::Instance()->GetEntity(branch.target);

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Behavior.h"
-#include <vector>
 
 class ChangeOrientationBehavior final : public Behavior {
 public:
