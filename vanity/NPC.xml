@@ -17,6 +17,18 @@
             </locations>
         </zone>
     </npc>
+    <npc name="EmosewaMC - Quickbuilder" lot="6738">
+        <equipment>12947, 12949, 12962, 12963</equipment>
+        <phrases>
+            <phrase>I hope quickbulds are still working!</phrase>
+            <phrase>Be careful crossing the gap!</phrase>
+        </phrases>
+        <zone id="1800">
+            <locations>
+                <location x="745.756" y="75.262" z="-207.989" rw="0.838565" rx="0.0" ry="0.544801" rz="0.0" />
+            </locations>
+        </zone>
+    </npc>
     <npc name="Neal - Paradox Scout" lot="6738">
         <equipment>9950, 9944, 14102, 14092</equipment>
         <phrases>

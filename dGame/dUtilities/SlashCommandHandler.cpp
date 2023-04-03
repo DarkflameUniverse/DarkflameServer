@@ -179,7 +179,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 #endif
 
-	if (chatCommand == "togglenameplate" && (Game::config->GetValue("allownameplateoff") == "1" || entity->GetGMLevel() > eGameMasterLevel::DEVELOPER)) {
+	if (chatCommand == "togglenameplate" && (Game::config->GetValue("allow_nameplate_off") == "1" || entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER)) {
 		auto* character = entity->GetCharacter();
 
 		if (character && character->GetBillboardVisible()) {
