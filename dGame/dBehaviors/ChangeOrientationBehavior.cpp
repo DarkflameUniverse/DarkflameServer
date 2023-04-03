@@ -16,7 +16,7 @@ void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitS
 	if (self == nullptr || other == nullptr) return;
 
 	const auto source = self->GetPosition();
-	const auto destination = self->GetPosition();
+	const auto destination = other->GetPosition();
 
 	if (m_OrientCaster) {
 		auto* baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();
