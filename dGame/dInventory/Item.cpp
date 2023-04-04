@@ -390,19 +390,22 @@ void Item::DisassembleModel() {
 	const auto componentId = table->GetByIDAndType(GetLot(), eReplicaComponentType::RENDER);
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT render_asset FROM RenderComponent WHERE id = ?;");
+		"SELECT render_asset, LXFMLFolder FROM RenderComponent WHERE id = ?;");
 	query.bind(1, (int)componentId);
 
 	auto result = query.execQuery();
 
-	if (result.eof()) {
+	if (result.eof() || result.fieldIsNull(0)) {
 		return;
 	}
 
-	std::string renderAsset = result.fieldIsNull(0) ? "" : std::string(result.getStringField(0));
-	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '\\');
+	std::string renderAsset = std::string(result.getStringField(0));
+	std::string lxfmlFolderName = std::string(result.getStringField(1));
 
-	std::string lxfmlPath = "BrickModels/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
+	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '\\');
+	if (renderAssetSplit.size() == 0) return;
+
+	std::string lxfmlPath = "BrickModels/" + lxfmlFolderName + "/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
 	auto buffer = Game::assetManager->GetFileAsBuffer(lxfmlPath.c_str());
 
 	if (!buffer.m_Success) {
