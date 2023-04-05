@@ -40,52 +40,58 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		return;
 	};
 
-	if (hasTargets){
-		if (!this->m_checkEnv || !blocked) this->m_missAction->Handle(context, bitStream, branch);
-		else {
-			uint32_t count = 0;
-			if (!bitStream->Read(count)) {
-				Game::logger->Log("TacArcBehavior", "Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
-				return;
-			};
-			if (count <= this->m_maxTargets){
-				auto reference = NiPoint3();
-				if (this->m_useTargetPostion) {
-					auto* target = EntityManager::Instance()->GetEntity(branch.target);
-					if (!target) return;
-					reference = target->GetPosition();
-				} else reference = caster->GetPosition();
-				reference += this->m_offset;
-
-				for (auto i = 0u; i < count; ++i) {
-					LWOOBJID id{};
-
-					if (!bitStream->Read(id)) {
-						Game::logger->Log("TacArcBehavior", "Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
-						return;
-					};
-					if (id != LWOOBJID_EMPTY) {
-						auto* canidate = EntityManager::Instance()->GetEntity(id);
-						targets.push_back(canidate);
-					} else {
-						Game::logger->Log("TacArcBehavior", "Bitstream has LWOOBJID_EMPTY as a target!");
-					}
-				}
-
-				context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-				for (auto* target : targets){
-					bitStream->Write(target->GetObjectID());
-					branch.target = target->GetObjectID();
-					this->m_action->Calculate(context, bitStream, branch);
-				}
-
-			} else {
-				Game::logger->Log("TacArcBehavior", "TacArcBehavior Bitstream too many targets Max:%i Recv:%i", this->m_maxTargets, count);
-			}
-		}
-	} else {
+	if (!hasTargets){
 		if (!this->m_checkEnv || !blocked) this->m_missAction->Handle(context, bitStream, branch);
 		else this->m_blockedAction->Handle(context, bitStream, branch);
+		return;
+	}
+
+	if (this->m_checkEnv || blocked) {
+		this->m_blockedAction->Handle(context, bitStream, branch);
+		return;
+	}
+
+	uint32_t count = 0;
+	if (!bitStream->Read(count)) {
+		Game::logger->Log("TacArcBehavior", "Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		return;
+	};
+
+	if (count > this->m_maxTargets){
+		Game::logger->Log("TacArcBehavior", "TacArcBehavior Bitstream too many targets Max:%i Recv:%i", this->m_maxTargets, count);
+		return;
+	}
+
+	// the client does this and then doesn't really use it?
+	// Need to investigate, maybe a lookat
+	// auto reference = NiPoint3();
+	// if (this->m_useTargetPostion) {
+	// 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	// 	if (!target) return;
+	// 	reference = target->GetPosition();
+	// } else reference = caster->GetPosition();
+	// reference += this->m_offset;
+
+	for (auto i = 0u; i < count; ++i) {
+		LWOOBJID id{};
+
+		if (!bitStream->Read(id)) {
+			Game::logger->Log("TacArcBehavior", "Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			return;
+		};
+		if (id == LWOOBJID_EMPTY) {
+			Game::logger->Log("TacArcBehavior", "Bitstream has LWOOBJID_EMPTY as a target!");
+		} else {
+			auto* canidate = EntityManager::Instance()->GetEntity(id);
+			targets.push_back(canidate);
+		}
+	}
+
+	context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+	for (auto* target : targets){
+		bitStream->Write(target->GetObjectID());
+		branch.target = target->GetObjectID();
+		this->m_action->Calculate(context, bitStream, branch);
 	}
 }
 
