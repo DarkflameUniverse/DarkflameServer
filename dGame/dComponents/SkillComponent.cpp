@@ -134,7 +134,7 @@ void SkillComponent::Update(const float deltaTime) {
 		CalculateUpdate(deltaTime);
 	}
 
-	if (m_Parent->GetLOT() == 1) {
+	if (m_Parent->IsPlayer()) {
 		for (const auto& pair : this->m_managedBehaviors) pair.second->UpdatePlayerSyncs(deltaTime);
 	}
 
@@ -201,7 +201,7 @@ void SkillComponent::Interrupt() {
 			behaviorEndEntry.behavior->End(behavior.second, behaviorEndEntry.branchContext, behaviorEndEntry.second);
 		}
 		behavior.second->endEntries.clear();
-		if (m_Parent->GetLOT() == 1) continue;
+		if (m_Parent->IsPlayer()) continue;
 		behavior.second->Interrupt();
 	}
 
