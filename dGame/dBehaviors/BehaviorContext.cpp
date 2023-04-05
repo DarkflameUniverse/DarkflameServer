@@ -55,6 +55,7 @@ void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* beha
 	entry.branchContext = branchContext;
 	entry.branchContext.isSync = true;
 	entry.ignoreInterrupts = ignoreInterrupts;
+	// Add 10 seconds + duration time to account for lag and give clients time to send their syncs to the server.
 	entry.time = 10.0f + duration;
 
 	this->syncEntries.push_back(entry);
