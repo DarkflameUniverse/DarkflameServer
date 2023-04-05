@@ -134,6 +134,10 @@ void SkillComponent::Update(const float deltaTime) {
 		CalculateUpdate(deltaTime);
 	}
 
+	if (m_Parent->GetLOT() == 1) {
+		for (const auto& pair : this->m_managedBehaviors) pair.second->UpdatePlayerSyncs(deltaTime);
+	}
+
 	std::map<uint32_t, BehaviorContext*> keep{};
 
 	for (const auto& pair : this->m_managedBehaviors) {
