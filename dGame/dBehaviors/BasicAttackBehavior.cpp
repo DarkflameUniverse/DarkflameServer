@@ -147,7 +147,7 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 	DoBehaviorCalculation(context, bitStream, branch);
 
 	const auto endAddress = bitStream->GetWriteOffset();
-	const uint16_t allocate = endAddress - startAddress + 1;
+	const uint16_t allocate = endAddress - startAddress;
 
 	bitStream->SetWriteOffset(allocatedAddress);
 	bitStream->Write(allocate);

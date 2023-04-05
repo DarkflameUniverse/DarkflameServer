@@ -48,7 +48,7 @@ uint32_t BehaviorContext::GetUniqueSkillId() const {
 }
 
 
-void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext, bool ignoreInterrupts) {
+void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext, const float duration, bool ignoreInterrupts) {
 	auto entry = BehaviorSyncEntry();
 
 	entry.handle = syncId;
@@ -56,6 +56,9 @@ void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* beha
 	entry.branchContext = branchContext;
 	entry.branchContext.isSync = true;
 	entry.ignoreInterrupts = ignoreInterrupts;
+	// Add 10 seconds + duration time to account for lag and give clients time to send their syncs to the server.
+	constexpr float lagTime = 10.0f;
+	entry.time = lagTime + duration;
 
 	this->syncEntries.push_back(entry);
 }
@@ -182,6 +185,21 @@ void BehaviorContext::SyncCalculation(const uint32_t syncId, const float time, B
 	entry.ignoreInterrupts = ignoreInterrupts;
 
 	this->syncEntries.push_back(entry);
+}
+
+void BehaviorContext::UpdatePlayerSyncs(float deltaTime) {
+	uint32_t i = 0;
+	while (i < this->syncEntries.size()) {
+		auto& entry = this->syncEntries.at(i);
+
+		entry.time -= deltaTime;
+
+		if (entry.time >= 0.0f) {
+			i++;
+			continue;
+		}
+		this->syncEntries.erase(this->syncEntries.begin() + i);
+	}
 }
 
 void BehaviorContext::InvokeEnd(const uint32_t id) {
