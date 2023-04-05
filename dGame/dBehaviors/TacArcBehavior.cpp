@@ -29,7 +29,6 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 	}
 
 	bool hasTargets = false;
-
 	if (!bitStream->Read(hasTargets)) {
 		Game::logger->Log("TacArcBehavior", "Unable to read hasTargets from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
