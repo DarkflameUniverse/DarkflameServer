@@ -89,7 +89,6 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 
 	context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 	for (auto* target : targets){
-		bitStream->Write(target->GetObjectID());
 		branch.target = target->GetObjectID();
 		this->m_action->Calculate(context, bitStream, branch);
 	}
