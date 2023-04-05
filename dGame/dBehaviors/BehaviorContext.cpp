@@ -295,70 +295,91 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 	// if we aren't targeting anything, then clear the targets vector
 	if (!targetSelf && !targetEnemy && !targetFriend && !targetTeam && ignoreFactionList.empty() && includeFactionList.empty()) {
 		targets.clear();
-	} else {
-		auto* caster = EntityManager::Instance()->GetEntity(this->caster);
+		return;
+	}
+	auto* caster = EntityManager::Instance()->GetEntity(this->caster);
 
-		// if the caster is not there, return empty targets list
-		if (!caster) {
-			Game::logger->LogDebug("BehaviorContext", "Invalid caster for (%llu)!", this->originator);
-			targets.clear();
-			return;
-		}
+	// if the caster is not there, return empty targets list
+	if (!caster) {
+		Game::logger->LogDebug("BehaviorContext", "Invalid caster for (%llu)!", this->originator);
+		targets.clear();
+		return;
+	}
 
-		auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
-		if (!casterDestroyableComponent) return;
+	auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
+	if (!casterDestroyableComponent) return;
 
-		auto index = targets.begin();
-		while (index != targets.end()) {
-			auto candidate = *index;
-			if (!candidate)index = targets.erase(index);
-			else if (candidate == caster){
-				if (!targetSelf) index = targets.erase(index);
-				else index++;
-			} else {
-				if (!CheckTargetingRequirements(candidate)) {
-					index = targets.erase(index);
-				} else {
-					// get factions to check against
-					// CheckTargetingRequirements checks for a destroyable component
-					// but we check again because bounds check are great!
-					auto candidateDestroyableComponent = candidate->GetComponent<DestroyableComponent>();
-					if (!candidateDestroyableComponent) {
-						index = targets.erase(index);
-						continue;
-					}
-					auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
+	auto index = targets.begin();
+	while (index != targets.end()) {
+		auto candidate = *index;
 
-					if (candidateFactions.empty()){
-						index = targets.erase(index);
-					} else {
-						if (candidateDestroyableComponent->GetIsDead()) {
-							index = targets.erase(index);
-							continue;
-						}
-						if (!CheckFactionList(includeFactionList, candidateFactions)){
-							if (targetTeam){
-								auto* team = TeamManager::Instance()->GetTeam(this->caster);
-								if (team){
-									if(std::find(team->members.begin(), team->members.end(), candidate->GetObjectID()) != team->members.end()){
-										index++;
-										continue;
-									}
-								}
-							}
-							auto isEnemy = casterDestroyableComponent->IsEnemy(candidate);
-							if (!targetFriend && !isEnemy) index = targets.erase(index);
-							else if(!targetEnemy && isEnemy) index = targets.erase(index);
-							else if(CheckFactionList(ignoreFactionList, candidateFactions))	index = targets.erase(index);
-							else index++;
-							continue;
-						}
-						index++;
-					}
-				}
-			}
+		// make sure we don't have a nullptr
+		if (!candidate) {
+			index = targets.erase(index);
 			continue;
 		}
+
+		// handle targeting the caster
+		if ((candidate == caster)){
+			// if we aren't targeting self, erase, otherise increment and continue
+			if (!targetSelf) index = targets.erase(index);
+			else index++;
+			continue;
+		}
+
+		// make sure that the entity is targetable
+		if (!CheckTargetingRequirements(candidate)) {
+			index = targets.erase(index);
+			continue;
+		}
+
+		// get factions to check against
+		// CheckTargetingRequirements checks for a destroyable component
+		// but we check again because bounds check are necessary
+		auto candidateDestroyableComponent = candidate->GetComponent<DestroyableComponent>();
+		if (!candidateDestroyableComponent) {
+			index = targets.erase(index);
+			continue;
+		}
+
+		// if they have no factions, then earse and continue
+		auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
+		if (candidateFactions.empty() || candidateDestroyableComponent->GetIsDead()){
+			index = targets.erase(index);
+			continue;
+		}
+
+		// if their faction is explicitly included, increment and continue
+		if (CheckFactionList(includeFactionList, candidateFactions)){
+			index++;
+			continue;
+		}
+
+		// check if they are a team member
+		if (targetTeam){
+			auto* team = TeamManager::Instance()->GetTeam(this->caster);
+			if (team){
+				// if we find a team member keep it and continue to skip enemy checks
+				if(std::find(team->members.begin(), team->members.end(), candidate->GetObjectID()) != team->members.end()){
+					index++;
+					continue;
+				}
+			}
+		}
+
+		// if we arent targeting a friend, and they are a friend OR
+		// if we are not targeting enemies and they are an enemy
+		// if we are ignoring their faction is explicitly ignored
+		// erase and continue
+		auto isEnemy = casterDestroyableComponent->IsEnemy(candidate);
+		if ((!targetFriend && !isEnemy) ||
+			(!targetEnemy && isEnemy) ||
+			CheckFactionList(ignoreFactionList, candidateFactions)) {
+			index = targets.erase(index);
+			continue;
+		}
+
+		index++;
 	}
 	return;
 }
