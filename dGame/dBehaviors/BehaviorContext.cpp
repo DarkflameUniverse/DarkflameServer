@@ -315,17 +315,21 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 		targets.clear();
 		return;
 	}
-	auto* caster = EntityManager::Instance()->GetEntity(this->caster);
 
 	// if the caster is not there, return empty targets list
+	auto* caster = EntityManager::Instance()->GetEntity(this->caster);
 	if (!caster) {
 		Game::logger->LogDebug("BehaviorContext", "Invalid caster for (%llu)!", this->originator);
 		targets.clear();
 		return;
 	}
 
+	// if the caster doesn't have a destroyable component, return an empty targets list
 	auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
-	if (!casterDestroyableComponent) return;
+	if (!casterDestroyableComponent) {
+		targets.clear();
+		return;
+	}
 
 	auto index = targets.begin();
 	while (index != targets.end()) {
@@ -386,7 +390,7 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 		}
 
 		// if we arent targeting a friend, and they are a friend OR
-		// if we are not targeting enemies and they are an enemy
+		// if we are not targeting enemies and they are an enemy OR.
 		// if we are ignoring their faction is explicitly ignored
 		// erase and continue
 		auto isEnemy = casterDestroyableComponent->IsEnemy(candidate);
