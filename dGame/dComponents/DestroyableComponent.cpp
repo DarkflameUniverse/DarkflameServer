@@ -420,6 +420,14 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 }
 
 bool DestroyableComponent::IsEnemy(const Entity* other) const {
+	if (m_Parent->IsPlayer() && other->IsPlayer()){
+		auto* thisCharacterComponent = m_Parent->GetComponent<CharacterComponent>();
+		if (!thisCharacterComponent) return false;
+		auto* otherCharacterComponent = other->GetComponent<CharacterComponent>();
+		if (!otherCharacterComponent) return false;
+		if (thisCharacterComponent->GetPvpEnabled() && otherCharacterComponent->GetPvpEnabled()) return true;
+		return false;
+	}
 	const auto* otherDestroyableComponent = other->GetComponent<DestroyableComponent>();
 	if (otherDestroyableComponent != nullptr) {
 		for (const auto enemyFaction : m_EnemyFactionIDs) {
