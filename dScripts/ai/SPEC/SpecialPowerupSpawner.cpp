@@ -1,16 +1,16 @@
-#include "SpecialImaginePowerupSpawner.h"
+#include "SpecialPowerupSpawner.h"
 
 #include "GameMessages.h"
 #include "SkillComponent.h"
 #include "EntityManager.h"
 #include "eReplicaComponentType.h"
 
-void SpecialImaginePowerupSpawner::OnStartup(Entity* self) {
+void SpecialPowerupSpawner::OnStartup(Entity* self) {
 	self->SetProximityRadius(1.5f, "powerupEnter");
 	self->SetVar(u"bIsDead", false);
 }
 
-void SpecialImaginePowerupSpawner::OnProximityUpdate(Entity* self, Entity* entering, const std::string name, const std::string status) {
+void SpecialPowerupSpawner::OnProximityUpdate(Entity* self, Entity* entering, const std::string name, const std::string status) {
 	if (name != "powerupEnter" && status != "ENTER") return;
 	if (!entering->IsPlayer()) return;
 	if (self->GetVar<bool>(u"bIsDead")) return;
