@@ -4,10 +4,10 @@
 class SpecialCoinSpawner : public CppScripts::Script {
 public:
 	SpecialCoinSpawner(uint32_t CurrencyDenomination) {
-		m_currencyDenomination = CurrencyDenomination;
+		m_CurrencyDenomination = CurrencyDenomination;
 	};
 	void OnStartup(Entity* self) override;
 	void OnProximityUpdate(Entity* self, Entity* entering, const std::string name, const std::string status) override;
 private:
-	int32_t m_currencyDenomination = 0;
+	int32_t m_CurrencyDenomination = 0;
 };
