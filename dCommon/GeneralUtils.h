@@ -139,7 +139,7 @@ namespace GeneralUtils {
 
 	std::vector<std::wstring> SplitString(std::wstring& str, wchar_t delimiter);
 
-	std::vector<std::u16string> SplitString(std::u16string& str, char16_t delimiter);
+	std::vector<std::u16string> SplitString(const std::u16string& str, char16_t delimiter);
 
 	std::vector<std::string> SplitString(const std::string& str, char delimiter);
 
