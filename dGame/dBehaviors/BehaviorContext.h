@@ -80,7 +80,9 @@ struct BehaviorContext
 
 	uint32_t GetUniqueSkillId() const;
 
-	void RegisterSyncBehavior(uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext, bool ignoreInterrupts = false);
+	void UpdatePlayerSyncs(float deltaTime);
+
+	void RegisterSyncBehavior(uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext, const float duration, bool ignoreInterrupts = false);
 
 	void RegisterTimerBehavior(Behavior* behavior, const BehaviorBranchContext& branchContext, LWOOBJID second = LWOOBJID_EMPTY);
 

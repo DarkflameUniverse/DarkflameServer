@@ -12,7 +12,7 @@ void ChargeUpBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 		return;
 	};
 
-	context->RegisterSyncBehavior(handle, this, branch);
+	context->RegisterSyncBehavior(handle, this, branch, this->m_MaxDuration);
 }
 
 void ChargeUpBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
@@ -24,4 +24,5 @@ void ChargeUpBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitStre
 
 void ChargeUpBehavior::Load() {
 	this->m_action = GetAction("action");
+	this->m_MaxDuration = GetFloat("max_duration");
 }

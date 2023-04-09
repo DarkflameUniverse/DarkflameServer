@@ -13,7 +13,7 @@ void AttackDelayBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 	};
 
 	for (auto i = 0u; i < this->m_numIntervals; ++i) {
-		context->RegisterSyncBehavior(handle, this, branch, m_ignoreInterrupts);
+		context->RegisterSyncBehavior(handle, this, branch, m_ignoreInterrupts, this->m_delay * i);
 	}
 }
 
