@@ -19,7 +19,6 @@ void SpecialPowerupSpawner::OnProximityUpdate(Entity* self, Entity* entering, co
 
 	auto skillComponent = self->GetComponent<SkillComponent>();
 	if (!skillComponent) return;
-	Game::logger->Log("SpecialPowerupSpawner", "cast skill %i on %llu", this->m_SkillId, entering->GetObjectID());
 	skillComponent->CastSkill(this->m_SkillId, entering->GetObjectID());
 
 	self->SetVar(u"bIsDead", true);
