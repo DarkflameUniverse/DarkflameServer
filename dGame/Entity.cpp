@@ -1342,6 +1342,10 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
 
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnOffCollisionPhantom(this, other);
+	}
+
 	TriggerEvent(eTriggerEventType::EXIT, other);
 
 	SwitchComponent* switchComp = GetComponent<SwitchComponent>();
