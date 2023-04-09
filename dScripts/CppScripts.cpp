@@ -160,7 +160,6 @@
 #include "AgSalutingNpcs.h"
 #include "BossSpiderQueenEnemyServer.h"
 #include "RockHydrantSmashable.h"
-#include "SpecialImaginePowerupSpawner.h"
 
 // Misc Scripts
 #include "ExplodingAsset.h"
@@ -295,6 +294,21 @@
 // WBL scripts
 #include "WblGenericZone.h"
 
+// pickups
+#include "Special1BronzeCoinSpawner.h"
+#include "Special1SilverCoinSpawner.h"
+#include "Special10BronzeCoinSpawner.h"
+#include "Special25BronzeCoinSpawner.h"
+#include "Special10SilverCoinSpawner.h"
+#include "Special25SilverCoinSpawner.h"
+#include "Special1GoldCoinSpawner.h"
+#include "Special10GoldCoinSpawner.h"
+#include "Special25GoldCoinSpawner.h"
+#include "SpecialImaginePowerupSpawner.h"
+#include "SpecialImaginePowerupSpawner2pt.h"
+#include "SpecialLifePowerupSpawner.h"
+#include "SpecialArmorPowerupSpawner.h"
+
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
 std::map<std::string, CppScripts::Script*> m_Scripts;
@@ -371,8 +385,6 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new RemoveRentalGear();
 	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_NJ_ASSISTANT_SERVER.lua")
 		script = new NpcNjAssistantServer();
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER.lua")
-		script = new SpecialImaginePowerupSpawner();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_SALUTING_NPCS.lua")
 		script = new AgSalutingNpcs();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_JET_EFFECT_SERVER.lua")
@@ -859,6 +871,34 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	// WBL
 	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
 		script = new WblGenericZone();
+
+	// pickups
+	if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_BRONZE-COIN-SPAWNER.lua")
+		script = new Special1BronzeCoinSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_SILVER-COIN-SPAWNER.lua")
+		script = new Special1SilverCoinSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_BRONZE-COIN-SPAWNER.lua")
+		script = new Special10BronzeCoinSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_BRONZE-COIN-SPAWNER.lua")
+		script = new Special25BronzeCoinSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_SILVER-COIN-SPAWNER.lua")
+		script = new Special10SilverCoinSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_SILVER-COIN-SPAWNER.lua")
+		script = new Special25SilverCoinSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_GOLD-COIN-SPAWNER.lua")
+		script = new Special1GoldCoinSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_GOLD-COIN-SPAWNER.lua")
+		script = new Special10GoldCoinSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_GOLD-COIN-SPAWNER.lua")
+		script = new Special25GoldCoinSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER.lua")
+		script = new SpecialImaginePowerupSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER-2PT.lua")
+		script = new SpecialImaginePowerupSpawner2pt();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_LIFE-POWERUP-SPAWNER.lua")
+		script = new SpecialLifePowerupSpawner();
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_ARMOR-POWERUP-SPAWNER.lua")
+		script = new SpecialArmorPowerupSpawner();
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers

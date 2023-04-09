@@ -1,9 +1,13 @@
-#pragma once
-#include "CppScripts.h"
+#ifndef __SPECIALIMAGINEPOWERUPSPAWNER__H__
+#define __SPECIALIMAGINEPOWERUPSPAWNER__H__
 
-class SpecialImaginePowerupSpawner final : public CppScripts::Script
-{
+#include "SpecialPowerupSpawner.h"
+
+class SpecialImaginePowerupSpawner : public SpecialPowerupSpawner {
 public:
-	void OnStartup(Entity* self) override;
-	void OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) override;
+	SpecialImaginePowerupSpawner() : SpecialPowerupSpawner(m_SkillId) {};
+private:
+	uint32_t m_SkillId = 13;
 };
+
+#endif  //!__SPECIALIMAGINEPOWERUPSPAWNER__H__
