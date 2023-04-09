@@ -298,6 +298,12 @@
 #include "SpecialCoinSpawner.h"
 #include "SpecialPowerupSpawner.h"
 
+// Wild Scripts
+#include "WildAndScared.h"
+#include "WildGfGlowbug.h"
+#include "WildAmbientCrab.h"
+#include "WildPants.h"
+
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
 std::map<std::string, CppScripts::Script*> m_Scripts;
@@ -891,11 +897,22 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_SPEED_BUFF_SPAWNER.lua")
 		script = new SpecialPowerupSpawner(500);
 
+	// Wild
+	if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_RAT.lua" || scriptName == "scripts\\ai\\WILD\\L_WILD_GF_SNAIL.lua")
+		script = new WildAndScared();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_GLOWBUG.lua")
+		script = new WildGfGlowbug();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_AMBIENT_CRAB.lua")
+		script = new WildAmbientCrab();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_PANTS.lua")
+		script = new WildPants();
+
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
 	else if (script == invalidToReturn) {
 		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
 			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
+			(scriptName == "scripts\\ai\\WILD\\L_WILD_GF_FROG.lua") ||
 			(scriptName == "scripts\\empty.lua")
 			)) Game::logger->LogDebug("CppScripts", "LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
