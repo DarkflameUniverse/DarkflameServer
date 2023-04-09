@@ -7,5 +7,4 @@ class ActNinjaSensei : public CppScripts::Script {
 private:
 	std::string m_StudentGroup = "Sensei_kids";
 	LOT m_StudentLOT = 2497;
-	std::vector<Entity*> m_Students = {};
 };
