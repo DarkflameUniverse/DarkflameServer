@@ -7,8 +7,8 @@ class TriggerGas : public CppScripts::Script {
 	void OnOffCollisionPhantom(Entity* self, Entity* target) override;
 	void OnTimerDone(Entity* self, std::string timerName) override;
 private:
-	std::string m_timerName = "gasTriggerDamage";
-	float m_time = 3.0f;
-	uint32_t m_maelstromHelmet = 3068;
-	uint32_t m_fogDamageSkill = 103;
+	std::string m_TimerName = "gasTriggerDamage";
+	float m_Time = 3.0f;
+	uint32_t m_MaelstromHelmet = 3068;
+	uint32_t m_FogDamageSkill = 103;
 };

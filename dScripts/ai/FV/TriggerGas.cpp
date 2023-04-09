@@ -6,7 +6,7 @@
 
 
 void TriggerGas::OnStartup(Entity* self) {
-	self->AddTimer(this->m_timerName, this->m_time);
+	self->AddTimer(this->m_TimerName, this->m_Time);
 }
 
 void TriggerGas::OnCollisionPhantom(Entity* self, Entity* target) {
@@ -25,7 +25,7 @@ void TriggerGas::OnOffCollisionPhantom(Entity* self, Entity* target) {
 }
 
 void TriggerGas::OnTimerDone(Entity* self, std::string timerName) {
-	if (timerName != this->m_timerName) return;
+	if (timerName != this->m_TimerName) return;
 	auto players = self->GetVar<std::vector<Entity*>>(u"players");
 	for (auto player : players) {
 		if (player->GetIsDead() || !player){
@@ -35,15 +35,15 @@ void TriggerGas::OnTimerDone(Entity* self, std::string timerName) {
 		}
 		auto inventoryComponent = player->GetComponent<InventoryComponent>();
 		if (inventoryComponent) {
-			if (!inventoryComponent->IsEquipped(this->m_maelstromHelmet)) {
+			if (!inventoryComponent->IsEquipped(this->m_MaelstromHelmet)) {
 				auto* skillComponent = self->GetComponent<SkillComponent>();
 				if (skillComponent) {
-					skillComponent->CastSkill(this->m_fogDamageSkill, player->GetObjectID());
+					skillComponent->CastSkill(this->m_FogDamageSkill, player->GetObjectID());
 				}
 			}
 		}
 	}
 	self->SetVar(u"players", players);
-	self->AddTimer(this->m_timerName, this->m_time);
+	self->AddTimer(this->m_TimerName, this->m_Time);
 }
 
