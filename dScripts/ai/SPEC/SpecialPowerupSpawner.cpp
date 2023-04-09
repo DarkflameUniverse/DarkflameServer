@@ -19,7 +19,8 @@ void SpecialPowerupSpawner::OnProximityUpdate(Entity* self, Entity* entering, co
 
 	SkillComponent* skillComponent;
 	if (!self->TryGetComponent(eReplicaComponentType::SKILL, skillComponent)) return;
-	skillComponent->CastSkill(13, entering->GetObjectID());
+	Game::logger->Log("SpecialPowerupSpawner", "casting skill %i", this->m_SkillId);
+	skillComponent->CastSkill(this->m_SkillId, entering->GetObjectID());
 
 	self->SetVar(u"bIsDead", true);
 	self->Smash(entering->GetObjectID(), eKillType::SILENT);
