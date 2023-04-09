@@ -297,6 +297,7 @@
 
 // Alpha Scripts
 #include "TriggerGas.h"
+#include "ActNinjaSensei.h"
 
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
@@ -866,12 +867,15 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	// Alpha
 	else if (scriptName == "scripts\\ai\\FV\\L_TRIGGER_GAS.lua")
 		script = new TriggerGas();
+	else if (scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_SENSEI.lua")
+		script = new ActNinjaSensei();
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
 	else if (script == invalidToReturn) {
 		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
 			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
+			(scriptName =="scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
 			(scriptName == "scripts\\empty.lua")
 			)) Game::logger->LogDebug("CppScripts", "LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
