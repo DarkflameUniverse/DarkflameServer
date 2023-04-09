@@ -241,7 +241,7 @@ std::vector<std::wstring> GeneralUtils::SplitString(std::wstring& str, wchar_t d
 	return vector;
 }
 
-std::vector<std::u16string> GeneralUtils::SplitString(std::u16string& str, char16_t delimiter) {
+std::vector<std::u16string> GeneralUtils::SplitString(const std::u16string& str, char16_t delimiter) {
 	std::vector<std::u16string> vector = std::vector<std::u16string>();
 	std::u16string current;
 
