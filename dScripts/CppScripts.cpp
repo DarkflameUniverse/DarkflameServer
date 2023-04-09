@@ -304,6 +304,9 @@
 #include "WildGfGlowbug.h"
 #include "WildAmbientCrab.h"
 #include "WildPants.h"
+#include "WildNinjaStudent.h"
+#include "WildNinjaSensei.h"
+#include "WildNinjaBricks.h"
 
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
@@ -875,6 +878,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new TriggerGas();
 	else if (scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_SENSEI.lua")
 		script = new ActNinjaSensei();
+
 	// Wild
 	if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_RAT.lua" || scriptName == "scripts\\ai\\WILD\\L_WILD_GF_SNAIL.lua")
 		script = new WildAndScared();
@@ -884,6 +888,12 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new WildAmbientCrab();
 	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_PANTS.lua")
 		script = new WildPants();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_BRICKS.lua")
+		script = new WildNinjaBricks();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_STUDENT.lua")
+		script = new WildNinjaStudent();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_SENSEI.lua")
+		script = new WildNinjaSensei();
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
