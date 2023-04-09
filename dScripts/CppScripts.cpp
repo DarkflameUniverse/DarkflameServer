@@ -297,6 +297,7 @@
 // pickups
 #include "SpecialCoinSpawner.h"
 #include "SpecialPowerupSpawner.h"
+#include "SpecialSpeedBuffSpawner.h"
 
 // Wild Scripts
 #include "WildAndScared.h"
@@ -893,9 +894,9 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_LIFE-POWERUP-SPAWNER.lua")
 		script = new SpecialPowerupSpawner(5);
 	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_ARMOR-POWERUP-SPAWNER.lua")
-		script = new SpecialPowerupSpawner(80);
+		script = new SpecialPowerupSpawner(747);
 	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_SPEED_BUFF_SPAWNER.lua")
-		script = new SpecialPowerupSpawner(500);
+		script = new SpecialSpeedBuffSpawner();
 
 	// Wild
 	if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_RAT.lua" || scriptName == "scripts\\ai\\WILD\\L_WILD_GF_SNAIL.lua")
