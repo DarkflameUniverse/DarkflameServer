@@ -173,9 +173,8 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 /**
  * @brief This test checks that if we recieve an unimplemented AMFValueType
  * we correctly throw an error and can actch it.
- *
+ * Yes this leaks memory.  
  */
-#pragma message("-- The AMFDeserializeUnimplementedValuesTest causes a known memory leak of 880 bytes since it throws errors! --")
 TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest) {
 	std::vector<AMFValueType> unimplementedValues = {
 		AMFValueType::AMFXMLDoc,
