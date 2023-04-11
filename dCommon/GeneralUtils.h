@@ -10,8 +10,13 @@
 #include <type_traits>
 #include <stdexcept>
 #include <BitStream.h>
+#include "NiPoint3.h"
 
 #include "Game.h"
+#include "dLogger.h"
+
+enum eInventoryType : uint32_t;
+enum class eReplicaComponentType : uint32_t;
 
 /*!
   \file GeneralUtils.hpp
@@ -134,11 +139,11 @@ namespace GeneralUtils {
 
 	std::vector<std::wstring> SplitString(std::wstring& str, wchar_t delimiter);
 
-	std::vector<std::u16string> SplitString(std::u16string& str, char16_t delimiter);
+	std::vector<std::u16string> SplitString(const std::u16string& str, char16_t delimiter);
 
 	std::vector<std::string> SplitString(const std::string& str, char delimiter);
 
-	std::vector<std::string> GetFileNamesFromFolder(const std::string& folder);
+	std::vector<std::string> GetSqlFileNamesFromFolder(const std::string& folder);
 
 	template <typename T>
 	T Parse(const char* value);
@@ -173,6 +178,16 @@ namespace GeneralUtils {
 		return std::stoull(value);
 	}
 
+	template <>
+	inline eInventoryType Parse(const char* value) {
+		return static_cast<eInventoryType>(std::stoul(value));
+	}
+
+	template <>
+	inline eReplicaComponentType Parse(const char* value) {
+		return static_cast<eReplicaComponentType>(std::stoul(value));
+	}
+
 	template <typename T>
 	bool TryParse(const char* value, T& dst) {
 		try {
@@ -193,6 +208,8 @@ namespace GeneralUtils {
 	bool TryParse(const std::string& value, T& dst) {
 		return TryParse<T>(value.c_str(), dst);
 	}
+
+	bool TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst);
 
 	template<typename T>
 	std::u16string to_u16string(T value) {

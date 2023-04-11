@@ -21,24 +21,16 @@ CDRarityTableTable::CDRarityTableTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM RarityTable");
 	while (!tableData.eof()) {
 		CDRarityTable entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.randmax = tableData.getFloatField(1, -1);
-		entry.rarity = tableData.getIntField(2, -1);
-		entry.RarityTableIndex = tableData.getIntField(3, -1);
+		entry.id = tableData.getIntField("id", -1);
+		entry.randmax = tableData.getFloatField("randmax", -1);
+		entry.rarity = tableData.getIntField("rarity", -1);
+		entry.RarityTableIndex = tableData.getIntField("RarityTableIndex", -1);
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
 	}
 
 	tableData.finalize();
-}
-
-//! Destructor
-CDRarityTableTable::~CDRarityTableTable(void) {}
-
-//! Returns the table's name
-std::string CDRarityTableTable::GetName(void) const {
-	return "RarityTable";
 }
 
 //! Queries the table with a custom "where" clause
@@ -55,3 +47,4 @@ std::vector<CDRarityTable> CDRarityTableTable::Query(std::function<bool(CDRarity
 const std::vector<CDRarityTable>& CDRarityTableTable::GetEntries(void) const {
 	return this->entries;
 }
+

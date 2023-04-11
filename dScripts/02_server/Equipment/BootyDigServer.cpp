@@ -2,7 +2,9 @@
 #include "EntityManager.h"
 #include "RenderComponent.h"
 #include "MissionComponent.h"
-#include "MissionTaskType.h"
+#include "eMissionTaskType.h"
+#include "eMissionState.h"
+#include "Loot.h"
 
 void BootyDigServer::OnStartup(Entity* self) {
 	auto* zoneControlObject = EntityManager::Instance()->GetZoneControlEntity();
@@ -36,8 +38,8 @@ BootyDigServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string 
 		auto* missionComponent = player->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			auto* mission = missionComponent->GetMission(1881);
-			if (mission != nullptr && (mission->GetMissionState() == MissionState::MISSION_STATE_ACTIVE || mission->GetMissionState() == MissionState::MISSION_STATE_COMPLETE_ACTIVE)) {
-				mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+			if (mission != nullptr && (mission->GetMissionState() == eMissionState::ACTIVE || mission->GetMissionState() == eMissionState::COMPLETE_ACTIVE)) {
+				mission->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 
 				auto* renderComponent = self->GetComponent<RenderComponent>();
 				if (renderComponent != nullptr)

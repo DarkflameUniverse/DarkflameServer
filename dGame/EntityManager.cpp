@@ -17,6 +17,11 @@
 #include "MissionComponent.h"
 #include "Game.h"
 #include "dLogger.h"
+#include "MessageIdentifiers.h"
+#include "dConfig.h"
+#include "eTriggerEventType.h"
+#include "eGameMasterLevel.h"
+#include "eReplicaComponentType.h"
 
 EntityManager* EntityManager::m_Address = nullptr;
 
@@ -57,6 +62,20 @@ void EntityManager::Initialize() {
 		m_GhostingExcludedZones.end(),
 		dZoneManager::Instance()->GetZoneID().GetMapID()
 	) == m_GhostingExcludedZones.end();
+
+	// grab hardcore mode settings and load them with sane defaults
+	auto hcmode = Game::config->GetValue("hardcore_mode");
+	m_HardcoreMode = hcmode.empty() ? false : (hcmode == "1");
+	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
+	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : std::stoi(hcUscorePercent);
+	auto hcUscoreMult = Game::config->GetValue("hardcore_uscore_enemies_multiplier");
+	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : std::stoi(hcUscoreMult);
+	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
+	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (hcDropInv == "1");
+
+	// If cloneID is not zero, then hardcore mode is disabled
+	// aka minigames and props
+	if (dZoneManager::Instance()->GetZoneID().GetCloneID() != 0) m_HardcoreMode = false;
 }
 
 EntityManager::~EntityManager() {
@@ -143,6 +162,8 @@ void EntityManager::DestroyEntity(Entity* entity) {
 	if (entity == nullptr) {
 		return;
 	}
+
+	entity->TriggerEvent(eTriggerEventType::DESTROY, entity);
 
 	const auto id = entity->GetObjectID();
 
@@ -251,10 +272,10 @@ std::vector<Entity*> EntityManager::GetEntitiesInGroup(const std::string& group)
 	return entitiesInGroup;
 }
 
-std::vector<Entity*> EntityManager::GetEntitiesByComponent(const int componentType) const {
+std::vector<Entity*> EntityManager::GetEntitiesByComponent(const eReplicaComponentType componentType) const {
 	std::vector<Entity*> withComp;
 	for (const auto& entity : m_Entities) {
-		if (componentType != -1 && !entity.second->HasComponent(componentType)) continue;
+		if (componentType != eReplicaComponentType::INVALID && !entity.second->HasComponent(componentType)) continue;
 
 		withComp.push_back(entity.second);
 	}
@@ -352,7 +373,7 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	// PacketUtils::SavePacket("[24]_"+std::to_string(entity->GetObjectID()) + "_" + std::to_string(m_SerializationCounter) + ".bin", (char*)stream.GetData(), stream.GetNumberOfBytesUsed());
 
 	if (entity->IsPlayer()) {
-		if (entity->GetGMLevel() > GAME_MASTER_LEVEL_CIVILIAN) {
+		if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
 			GameMessages::SendToggleGMInvis(entity->GetObjectID(), true, sysAddr);
 		}
 	}
@@ -569,7 +590,7 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 
 	SwitchComponent* switchComp = entity->GetComponent<SwitchComponent>();
 	if (switchComp) {
-		entity->TriggerEvent("OnDectivated");
+		entity->TriggerEvent(eTriggerEventType::DEACTIVATED, entity);
 	}
 
 	const auto objectId = entity->GetObjectID();

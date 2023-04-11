@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cassert>
 #include <algorithm>
+#include <filesystem>
+#include <map>
 
 template <typename T>
 inline size_t MinSize(size_t size, const std::basic_string_view<T>& string) {
@@ -239,7 +241,7 @@ std::vector<std::wstring> GeneralUtils::SplitString(std::wstring& str, wchar_t d
 	return vector;
 }
 
-std::vector<std::u16string> GeneralUtils::SplitString(std::u16string& str, char16_t delimiter) {
+std::vector<std::u16string> GeneralUtils::SplitString(const std::u16string& str, char16_t delimiter) {
 	std::vector<std::u16string> vector = std::vector<std::u16string>();
 	std::u16string current;
 
@@ -290,51 +292,34 @@ std::u16string GeneralUtils::ReadWString(RakNet::BitStream* inStream) {
 	return string;
 }
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-
-std::vector<std::string> GeneralUtils::GetFileNamesFromFolder(const std::string& folder) {
-	std::vector<std::string> names;
-	std::string search_path = folder + "/*.*";
-	WIN32_FIND_DATA fd;
-	HANDLE hFind = ::FindFirstFile(search_path.c_str(), &fd);
-	if (hFind != INVALID_HANDLE_VALUE) {
-		do {
-			if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-				names.push_back(fd.cFileName);
-			}
-		} while (::FindNextFile(hFind, &fd));
-		::FindClose(hFind);
-	}
-	return names;
-}
-#else
-#include <stdio.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <iostream>
-#include <vector>
-#include <cstring>
-
-std::vector<std::string> GeneralUtils::GetFileNamesFromFolder(const std::string& folder) {
-	std::vector<std::string> names;
-	struct dirent* entry;
-	DIR* dir = opendir(folder.c_str());
-	if (dir == NULL) {
-		return names;
+std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::string& folder) {
+	// Because we dont know how large the initial number before the first _ is we need to make it a map like so.
+    std::map<uint32_t, std::string> filenames{};
+	for (auto& t : std::filesystem::directory_iterator(folder)) {
+        auto filename = t.path().filename().string();
+        auto index = std::stoi(GeneralUtils::SplitString(filename, '_').at(0));
+        filenames.insert(std::make_pair(index, filename));
 	}
 
-	while ((entry = readdir(dir)) != NULL) {
-		std::string value(entry->d_name, strlen(entry->d_name));
-		if (value == "." || value == "..") {
-			continue;
+	// Now sort the map by the oldest migration.
+	std::vector<std::string> sortedFiles{};
+    auto fileIterator = filenames.begin();
+    std::map<uint32_t, std::string>::iterator oldest = filenames.begin();
+    while (!filenames.empty()) {
+		if (fileIterator == filenames.end()) {
+            sortedFiles.push_back(oldest->second);
+            filenames.erase(oldest);
+            fileIterator = filenames.begin();
+            oldest = filenames.begin();
+            continue;
 		}
-		names.push_back(value);
+        if (oldest->first > fileIterator->first) oldest = fileIterator;
+        fileIterator++;
 	}
 
-	closedir(dir);
-
-	return names;
+	return sortedFiles;
 }
-#endif
+
+bool GeneralUtils::TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst) {
+	return TryParse<float>(x.c_str(), dst.x) && TryParse<float>(y.c_str(), dst.y) && TryParse<float>(z.c_str(), dst.z);
+}

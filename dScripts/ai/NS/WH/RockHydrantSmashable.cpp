@@ -1,5 +1,6 @@
 #include "RockHydrantSmashable.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 #include "GeneralUtils.h"
 
 void RockHydrantSmashable::OnDie(Entity* self, Entity* killer) {

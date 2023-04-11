@@ -21,6 +21,7 @@
 
 #include "Game.h"
 #include "dConfig.h"
+#include "eServerDisconnectIdentifiers.h"
 
 void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	RakNet::BitStream inStream(packet->data, packet->length, false);
@@ -29,16 +30,16 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	inStream.Read(clientVersion);
 
 	server->GetLogger()->Log("AuthPackets", "Received client version: %i", clientVersion);
-	SendHandshake(server, packet->systemAddress, server->GetIP(), server->GetPort());
+	SendHandshake(server, packet->systemAddress, server->GetIP(), server->GetPort(), server->GetServerType());
 }
 
-void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort) {
+void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServerType serverType) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, SERVER, MSG_SERVER_VERSION_CONFIRM);
 	bitStream.Write<unsigned int>(NET_VERSION);
 	bitStream.Write(uint32_t(0x93));
 
-	if (nextServerPort == 1001) bitStream.Write(uint32_t(1)); //Conn: auth
+	if (serverType == ServerType::Auth) bitStream.Write(uint32_t(1)); //Conn: auth
 	else bitStream.Write(uint32_t(4)); //Conn: world
 
 	bitStream.Write(uint32_t(0)); //Server process ID

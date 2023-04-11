@@ -1,15 +1,17 @@
+#include <filesystem>
+
 #include "AssetManager.h"
 #include "Game.h"
 #include "dLogger.h"
 
 #include <zlib.h>
 
-AssetManager::AssetManager(const std::string& path) {
+AssetManager::AssetManager(const std::filesystem::path& path) {
 	if (!std::filesystem::is_directory(path)) {
-		throw std::runtime_error("Attempted to load asset bundle (" + path + ") however it is not a valid directory.");
+		throw std::runtime_error("Attempted to load asset bundle (" + path.string() + ") however it is not a valid directory.");
 	}
 
-	m_Path = std::filesystem::path(path);
+	m_Path = path;
 
 	if (std::filesystem::exists(m_Path / "client") && std::filesystem::exists(m_Path / "versions")) {
 		m_AssetBundleType = eAssetBundleType::Packed;
@@ -26,11 +28,11 @@ AssetManager::AssetManager(const std::string& path) {
 
 		m_RootPath = (m_Path / ".." / "..");
 		m_ResPath = m_Path;
-	} else if (std::filesystem::exists(m_Path / "res" / "cdclient.fdb") && !std::filesystem::exists(m_Path / "res" / "pack")) {
+	} else if ((std::filesystem::exists(m_Path / "res" / "cdclient.fdb") || std::filesystem::exists(m_Path / "res" / "CDServer.sqlite")) && !std::filesystem::exists(m_Path / "res" / "pack")) {
 		m_AssetBundleType = eAssetBundleType::Unpacked;
 
 		m_ResPath = (m_Path / "res");
-	} else if (std::filesystem::exists(m_Path / "cdclient.fdb") && !std::filesystem::exists(m_Path / "pack")) {
+	} else if ((std::filesystem::exists(m_Path / "cdclient.fdb") || std::filesystem::exists(m_Path / "CDServer.sqlite")) && !std::filesystem::exists(m_Path / "pack")) {
 		m_AssetBundleType = eAssetBundleType::Unpacked;
 
 		m_ResPath = m_Path;
@@ -43,9 +45,6 @@ AssetManager::AssetManager(const std::string& path) {
 	switch (m_AssetBundleType) {
 		case eAssetBundleType::Packed: {
 			this->LoadPackIndex();
-
-			this->UnpackRequiredAssets();
-
 			break;
 		}
 	}
@@ -156,31 +155,6 @@ AssetMemoryBuffer AssetManager::GetFileAsBuffer(const char* name) {
 	bool success = this->GetFile(name, &buf, &len);
 
 	return AssetMemoryBuffer(buf, len, success);
-}
-
-void AssetManager::UnpackRequiredAssets() {
-	if (std::filesystem::exists(m_ResPath / "cdclient.fdb")) return;
-
-	char* data;
-	uint32_t size;
-
-	bool success = this->GetFile("cdclient.fdb", &data, &size);
-
-	if (!success) {
-		Game::logger->Log("AssetManager", "Failed to extract required files from the packs.");
-
-		delete data;
-
-		return;
-	}
-
-	std::ofstream cdclientOutput(m_ResPath / "cdclient.fdb", std::ios::out | std::ios::binary);
-	cdclientOutput.write(data, size);
-	cdclientOutput.close();
-
-	delete data;
-
-	return;
 }
 
 uint32_t AssetManager::crc32b(uint32_t base, uint8_t* message, size_t l) {

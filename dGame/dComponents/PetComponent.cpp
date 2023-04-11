@@ -20,6 +20,9 @@
 #include "dConfig.h"
 #include "dChatFilter.h"
 #include "Database.h"
+#include "EntityInfo.h"
+#include "eMissionTaskType.h"
+#include "eGameMasterLevel.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -59,7 +62,7 @@ std::map<LOT, uint32_t> PetComponent::petFlags = {
 		{ 13067, 838 }, // Skeleton dragon
 };
 
-PetComponent::PetComponent(Entity* parent, uint32_t componentId) : Component(parent) {
+PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(parent) {
 	m_ComponentId = componentId;
 
 	m_Interaction = LWOOBJID_EMPTY;
@@ -118,21 +121,23 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 		outBitStream->Write(m_Owner);
 	}
 
-	outBitStream->Write(tamed);
-	if (tamed) {
-		outBitStream->Write(m_ModerationStatus);
+	if (bIsInitialUpdate) {
+		outBitStream->Write(tamed);
+		if (tamed) {
+			outBitStream->Write(m_ModerationStatus);
 
-		const auto nameData = GeneralUtils::UTF8ToUTF16(m_Name);
-		const auto ownerNameData = GeneralUtils::UTF8ToUTF16(m_OwnerName);
+			const auto nameData = GeneralUtils::UTF8ToUTF16(m_Name);
+			const auto ownerNameData = GeneralUtils::UTF8ToUTF16(m_OwnerName);
 
-		outBitStream->Write(static_cast<uint8_t>(nameData.size()));
-		for (const auto c : nameData) {
-			outBitStream->Write(c);
-		}
+			outBitStream->Write(static_cast<uint8_t>(nameData.size()));
+			for (const auto c : nameData) {
+				outBitStream->Write(c);
+			}
 
-		outBitStream->Write(static_cast<uint8_t>(ownerNameData.size()));
-		for (const auto c : ownerNameData) {
-			outBitStream->Write(c);
+			outBitStream->Write(static_cast<uint8_t>(ownerNameData.size()));
+			for (const auto c : ownerNameData) {
+				outBitStream->Write(c);
+			}
 		}
 	}
 }
@@ -599,7 +604,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	auto* missionComponent = tamer->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PET_TAMING, m_Parent->GetLOT());
+		missionComponent->Progress(eMissionTaskType::PET_TAMING, m_Parent->GetLOT());
 	}
 
 	SetStatus(1);
@@ -916,16 +921,16 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 			return;
 		}
 
-		// If we are out of imagination despawn the pet.
-		if (playerDestroyableComponent->GetImagination() == 0) {
-			this->Deactivate();
-			auto playerEntity = playerDestroyableComponent->GetParent();
-			if (!playerEntity) return;
+	// If we are out of imagination despawn the pet.
+	if (playerDestroyableComponent->GetImagination() == 0) {
+		this->Deactivate();
+		auto playerEntity = playerDestroyableComponent->GetParent();
+		if (!playerEntity) return;
 
-			GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
-		}
+		GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
+	}
 
-		this->AddDrainImaginationTimer(item);
+	this->AddDrainImaginationTimer(item);
 		});
 }
 
@@ -983,7 +988,7 @@ void PetComponent::Command(NiPoint3 position, LWOOBJID source, int32_t commandTy
 		// TODO: Go to player
 	}
 
-	if (owner->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+	if (owner->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		ChatPackets::SendSystemMessage(owner->GetSystemAddress(), u"Commmand Type: " + (GeneralUtils::to_u16string(commandType)) + u" - Type Id: " + (GeneralUtils::to_u16string(typeId)));
 	}
 }
@@ -1075,7 +1080,7 @@ void PetComponent::SetPetNameForModeration(const std::string& petName) {
 	int approved = 1; //default, in mod
 
 	//Make sure that the name isn't already auto-approved:
-	if (Game::chatFilter->IsSentenceOkay(petName, 0).empty()) {
+	if (Game::chatFilter->IsSentenceOkay(petName, eGameMasterLevel::CIVILIAN).empty()) {
 		approved = 2; //approved
 	}
 

@@ -3,6 +3,7 @@
 #include "RebuildComponent.h"
 #include "InventoryComponent.h"
 #include "dZoneManager.h"
+#include "eMissionState.h"
 
 void AmDropshipComputer::OnStartup(Entity* self) {
 	self->AddTimer("reset", 45.0f);
@@ -22,7 +23,7 @@ void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
 		return;
 	}
 
-	if (inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0 || missionComponent->GetMission(979)->GetMissionState() == MissionState::MISSION_STATE_COMPLETE) {
+	if (inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0 || missionComponent->GetMission(979)->GetMissionState() == eMissionState::COMPLETE) {
 		return;
 	}
 

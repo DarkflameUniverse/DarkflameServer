@@ -21,11 +21,11 @@ CDFeatureGatingTable::CDFeatureGatingTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM FeatureGating");
 	while (!tableData.eof()) {
 		CDFeatureGating entry;
-		entry.featureName = tableData.getStringField(0, "");
-		entry.major = tableData.getIntField(1, -1);
-		entry.current = tableData.getIntField(2, -1);
-		entry.minor = tableData.getIntField(3, -1);
-		entry.description = tableData.getStringField(4, "");
+		entry.featureName = tableData.getStringField("featureName", "");
+		entry.major = tableData.getIntField("major", -1);
+		entry.current = tableData.getIntField("current", -1);
+		entry.minor = tableData.getIntField("minor", -1);
+		entry.description = tableData.getStringField("description", "");
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -34,15 +34,6 @@ CDFeatureGatingTable::CDFeatureGatingTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDFeatureGatingTable::~CDFeatureGatingTable(void) {}
-
-//! Returns the table's name
-std::string CDFeatureGatingTable::GetName(void) const {
-	return "FeatureGating";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDFeatureGating> CDFeatureGatingTable::Query(std::function<bool(CDFeatureGating)> predicate) {
 
 	std::vector<CDFeatureGating> data = cpplinq::from(this->entries)
@@ -62,7 +53,7 @@ bool CDFeatureGatingTable::FeatureUnlocked(const std::string& feature) const {
 	return false;
 }
 
-//! Gets all the entries in the table
 std::vector<CDFeatureGating> CDFeatureGatingTable::GetEntries(void) const {
 	return this->entries;
 }
+

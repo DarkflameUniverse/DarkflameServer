@@ -6,6 +6,11 @@
 #include "tinyxml2.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
+
+namespace CppScripts {
+	class Script;
+}; //! namespace CppScripts
 
 /**
  * Represents the stats of an entity, for example its health, imagination and armor. Also handles factions, which
@@ -13,7 +18,7 @@
  */
 class DestroyableComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_DESTROYABLE;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
 	DestroyableComponent(Entity* parentEntity);
 	~DestroyableComponent() override;
@@ -239,7 +244,7 @@ public:
 	 * Sets the multiplier for the explosion that's visible when the bricks fly out when this entity is smashed
 	 * @param value the multiplier for the explosion that's visible when the bricks fly out when this entity is smashed
 	 */
-	void SetExplodeFactor(float value);
+	void SetExplodeFactor(float value) { m_ExplodeFactor = value; };
 
 	/**
 	 * Returns the current multiplier for explosions
@@ -392,16 +397,31 @@ public:
 	void Smash(LWOOBJID source, eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"", uint32_t skillID = 0);
 
 	/**
-	 * Pushes a layer of immunity to this entity, making it immune for longer
-	 * @param stacks the amount of immunity to add
+	 * Push or Pop a layer of status immunity to this entity
 	 */
-	void PushImmunity(int32_t stacks = 1);
+	void SetStatusImmunity(
+		const eStateChangeType state,
+		const bool bImmuneToBasicAttack = false,
+		const bool bImmuneToDamageOverTime = false,
+		const bool bImmuneToKnockback = false,
+		const bool bImmuneToInterrupt = false,
+		const bool bImmuneToSpeed = false,
+		const bool bImmuneToImaginationGain = false,
+		const bool bImmuneToImaginationLoss = false,
+		const bool bImmuneToQuickbuildInterrupt = false,
+		const bool bImmuneToPullToPoint = false
+	);
 
-	/**
-	 * Pops layers of immunity, making it immune for less longer
-	 * @param stacks the number of layers of immunity to remove
-	 */
-	void PopImmunity(int32_t stacks = 1);
+	// Getters for status immunities
+	const bool GetImmuneToBasicAttack() {return m_ImmuneToBasicAttackCount > 0;};
+	const bool GetImmuneToDamageOverTime() {return m_ImmuneToDamageOverTimeCount > 0;};
+	const bool GetImmuneToKnockback() {return m_ImmuneToKnockbackCount > 0;};
+	const bool GetImmuneToInterrupt() {return m_ImmuneToInterruptCount > 0;};
+	const bool GetImmuneToSpeed() {return m_ImmuneToSpeedCount > 0;};
+	const bool GetImmuneToImaginationGain() {return m_ImmuneToImaginationGainCount > 0;};
+	const bool GetImmuneToImaginationLoss() {return m_ImmuneToImaginationLossCount > 0;};
+	const bool GetImmuneToQuickbuildInterrupt() {return m_ImmuneToQuickbuildInterruptCount > 0;};
+	const bool GetImmuneToPullToPoint() {return m_ImmuneToPullToPointCount > 0;};
 
 	/**
 	 * Utility to reset all stats to the default stats based on items and completed missions
@@ -413,6 +433,28 @@ public:
 	 * @param callback the callback to add
 	 */
 	void AddOnHitCallback(const std::function<void(Entity*)>& callback);
+
+	/**
+	 * Pushes a faction back to the list of factions.
+	 * @param value Faction to add to list.
+	 *
+	 * This method should only be used for testing.  Use AddFaction(int32_t, bool) for adding a faction properly.
+	 */
+	void AddFactionNoLookup(int32_t faction) { m_FactionIDs.push_back(faction); };
+
+	/**
+	 * Notify subscribed scripts of Damage actions.
+	 *
+	 * @param attacker The attacking Entity
+	 * @param damage The amount of damage that was done
+	 */
+	void NotifySubscribers(Entity* attacker, uint32_t damage);
+
+	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd);
+	void Unsubscribe(LWOOBJID scriptObjId);
+
+	// handle hardcode mode drops
+	void DoHardcoreModeDrops(const LWOOBJID source);
 
 private:
 	/**
@@ -469,11 +511,6 @@ private:
 	 * The number of attacks this entity can block before being able to be attacked again
 	 */
 	uint32_t m_AttacksToBlock;
-
-	/**
-	 * The layers of immunity this entity has left
-	 */
-	int32_t m_ImmuneStacks;
 
 	/**
 	 * The amount of damage that should be reduced from every attack
@@ -549,6 +586,24 @@ private:
 	 * The list of callbacks that will be called when this entity gets hit
 	 */
 	std::vector<std::function<void(Entity*)>> m_OnHitCallbacks;
+
+	/**
+	 * The list of scripts subscribed to this components actions
+	 */
+	std::map<LWOOBJID, CppScripts::Script*> m_SubscribedScripts;
+
+	/**
+	 * status immunity counters
+	 */
+	uint32_t m_ImmuneToBasicAttackCount;
+	uint32_t m_ImmuneToDamageOverTimeCount;
+	uint32_t m_ImmuneToKnockbackCount;
+	uint32_t m_ImmuneToInterruptCount;
+	uint32_t m_ImmuneToSpeedCount;
+	uint32_t m_ImmuneToImaginationGainCount;
+	uint32_t m_ImmuneToImaginationLossCount;
+	uint32_t m_ImmuneToQuickbuildInterruptCount;
+	uint32_t m_ImmuneToPullToPointCount;
 };
 
 #endif // DESTROYABLECOMPONENT_H

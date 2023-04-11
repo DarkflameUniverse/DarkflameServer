@@ -278,6 +278,10 @@
 #include "ImaginationBackpackHealServer.h"
 #include "LegoDieRoll.h"
 #include "BuccaneerValiantShip.h"
+#include "GemPack.h"
+#include "ShardArmor.h"
+#include "TeslaPack.h"
+#include "StunImmunity.h"
 
 // Survival scripts
 #include "AgSurvivalStromling.h"
@@ -290,6 +294,12 @@
 
 // WBL scripts
 #include "WblGenericZone.h"
+
+// Wild Scripts
+#include "WildAndScared.h"
+#include "WildGfGlowbug.h"
+#include "WildAmbientCrab.h"
+#include "WildPants.h"
 
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
@@ -837,6 +847,14 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new BuccaneerValiantShip();
 	else if (scriptName == "scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua")
 		script = new FireFirstSkillonStartup();
+	else if (scriptName == "scripts\\equipmenttriggers\\gempack.lua")
+		script = new GemPack();
+	else if (scriptName == "scripts\\equipmenttriggers\\shardarmor.lua")
+		script = new ShardArmor();
+	else if (scriptName == "scripts\\equipmenttriggers\\coilbackpack.lua")
+		script = new TeslaPack();
+	else if (scriptName == "scripts\\EquipmentScripts\\stunImmunity.lua")
+		script = new StunImmunity();
 
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
@@ -848,11 +866,22 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
 		script = new WblGenericZone();
 
+	// Wild
+	if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_RAT.lua" || scriptName == "scripts\\ai\\WILD\\L_WILD_GF_SNAIL.lua")
+		script = new WildAndScared();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_GLOWBUG.lua")
+		script = new WildGfGlowbug();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_AMBIENT_CRAB.lua")
+		script = new WildAmbientCrab();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_PANTS.lua")
+		script = new WildPants();
+
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
 	else if (script == invalidToReturn) {
 		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
 			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
+			(scriptName == "scripts\\ai\\WILD\\L_WILD_GF_FROG.lua") ||
 			(scriptName == "scripts\\empty.lua")
 			)) Game::logger->LogDebug("CppScripts", "LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}

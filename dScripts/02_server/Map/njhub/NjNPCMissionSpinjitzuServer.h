@@ -18,7 +18,7 @@ static std::map<std::u16string, uint32_t> ElementMissions = {
 
 class NjNPCMissionSpinjitzuServer : public CppScripts::Script {
 public:
-	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) override;
+	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) override;
 private:
 	const std::u16string ElementVariable = u"element";
 };

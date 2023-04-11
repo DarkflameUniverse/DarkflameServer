@@ -4,9 +4,9 @@
 #define MISSIONTASK_H
 
 #include "CDMissionTasksTable.h"
-#include "MissionTaskType.h"
 #include "dCommonVars.h"
 
+enum class eMissionTaskType : int;
 class Mission;
 
 /**
@@ -57,7 +57,7 @@ public:
 	 * Returns the type of this task
 	 * @return the type of this task
 	 */
-	MissionTaskType GetType() const;
+	eMissionTaskType GetType() const;
 
 	/**
 	 * Returns the value that should be progressed to, to complete the mission (the target value)

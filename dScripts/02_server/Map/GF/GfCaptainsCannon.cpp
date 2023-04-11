@@ -13,7 +13,7 @@ void GfCaptainsCannon::OnUse(Entity* self, Entity* user) {
 	self->SetVar<bool>(u"bIsInUse", true);
 	self->SetNetworkVar<bool>(u"bIsInUse", true);
 
-	GameMessages::SendSetStunned(user->GetObjectID(), PUSH, user->GetSystemAddress(),
+	GameMessages::SendSetStunned(user->GetObjectID(), eStateChangeType::PUSH, user->GetSystemAddress(),
 		LWOOBJID_EMPTY, true, true, true, true, true, true, true, true
 	);
 
@@ -63,7 +63,7 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendPlay2DAmbientSound(player, "{7457d85c-4537-4317-ac9d-2f549219ea87}");
 	} else if (timerName == "cinematicTimer") {
-		GameMessages::SendSetStunned(playerId, POP, player->GetSystemAddress(),
+		GameMessages::SendSetStunned(playerId, eStateChangeType::POP, player->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true, true
 		);
 

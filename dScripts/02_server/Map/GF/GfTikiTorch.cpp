@@ -3,6 +3,8 @@
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "RenderComponent.h"
+#include "eMissionTaskType.h"
+#include "eReplicaComponentType.h"
 
 void GfTikiTorch::OnStartup(Entity* self) {
 	LightTorch(self);
@@ -41,7 +43,7 @@ void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
 }
 
 void GfTikiTorch::LightTorch(Entity* self) {
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 	if (renderComponent == nullptr)
 		return;
 
@@ -65,7 +67,7 @@ void GfTikiTorch::OnSkillEventFired(Entity* self, Entity* caster, const std::str
 		auto* casterMissionComponent = caster->GetComponent<MissionComponent>();
 		if (casterMissionComponent != nullptr) {
 			for (const auto missionID : m_missions) {
-				casterMissionComponent->ForceProgressTaskType(missionID, static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT), 1);
+				casterMissionComponent->ForceProgressTaskType(missionID, static_cast<uint32_t>(eMissionTaskType::SCRIPT), 1);
 			}
 		}
 

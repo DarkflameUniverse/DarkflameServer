@@ -2,6 +2,8 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "Preconditions.h"
+#include "eEndBehavior.h"
+#include "DestroyableComponent.h"
 
 #ifdef _WIN32
 #define _USE_MATH_DEFINES
@@ -16,9 +18,11 @@ void MastTeleport::OnRebuildComplete(Entity* self, Entity* target) {
 	if (Preconditions::Check(target, 154) && Preconditions::Check(target, 44)) {
 		self->SetVar<LWOOBJID>(u"userID", target->GetObjectID());
 
-		GameMessages::SendSetStunned(target->GetObjectID(), PUSH, target->GetSystemAddress(),
+		GameMessages::SendSetStunned(target->GetObjectID(), eStateChangeType::PUSH, target->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true
 		);
+		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
+		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, true, true, true, true, true, false, false, true, true);
 
 		self->AddTimer("Start", 3);
 	}
@@ -49,13 +53,13 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		if (!cinematic.empty()) {
 			GameMessages::SendPlayCinematic(playerId, GeneralUtils::ASCIIToUTF16(cinematic), player->GetSystemAddress(),
-				true, true, false, false, 0, false, leanIn
+				true, true, false, false, eEndBehavior::RETURN, false, leanIn
 			);
 		}
 
 		GameMessages::SendPlayFXEffect(playerId, 6039, u"hook", "hook", LWOOBJID_EMPTY, 1, 1, true);
 
-		GameMessages::SendPlayAnimation(player, u"crow-swing-no-equip");
+		GameMessages::SendPlayAnimation(player, u"crow-swing-no-equip", 4.0f);
 
 		GameMessages::SendPlayAnimation(self, u"swing");
 
@@ -81,8 +85,11 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendTeleport(playerId, position, NiQuaternion::IDENTITY, player->GetSystemAddress());
 
-		GameMessages::SendSetStunned(playerId, POP, player->GetSystemAddress(),
+		GameMessages::SendSetStunned(playerId, eStateChangeType::POP, player->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true
 		);
+		auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
+		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true, true, true, true, true, false, false, true, true);
+		EntityManager::Instance()->SerializeEntity(player);
 	}
 }

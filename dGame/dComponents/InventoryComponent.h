@@ -17,8 +17,10 @@
 #include "DatabasePet.h"
 #include "Component.h"
 #include "ItemSetPassiveAbility.h"
-#include "ItemSetPassiveAbilityID.h"
+#include "eItemSetPassiveAbilityID.h"
 #include "PossessorComponent.h"
+#include "eInventoryType.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 class ItemSet;
@@ -35,7 +37,7 @@ enum class eItemType : int32_t;
 class InventoryComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_INVENTORY;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
 
 	void Update(float deltaTime) override;
@@ -282,7 +284,7 @@ public:
 	 * Triggers one of the passive abilities from the equipped item set
 	 * @param trigger the trigger to fire
 	 */
-	void TriggerPassiveAbility(PassiveAbilityTrigger trigger);
+	void TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target = nullptr);
 
 	/**
 	 * Returns if the entity has any of the passed passive abilities equipped
@@ -290,7 +292,7 @@ public:
 	 * @param equipmentRequirement the number of equipment required to be allowed to have the ability
 	 * @return if the entity has any of the passed passive abilities equipped
 	 */
-	bool HasAnyPassive(const std::vector<ItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const;
+	bool HasAnyPassive(const std::vector<eItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const;
 
 	/**
 	 * Despawns the currently active pet, if any
@@ -350,6 +352,20 @@ public:
 	 * @return the skill related to the passed LOT
 	 */
 	static uint32_t FindSkill(LOT lot);
+
+	/**
+	 * Call this when you equip an item.  This calls OnFactionTriggerItemEquipped for any scripts found on the items.
+	 *
+	 * @param equippedItem The item script to lookup and call equip on
+	 */
+	void EquipScripts(Item* equippedItem);
+
+	/**
+	 * Call this when you unequip an item.  This calls OnFactionTriggerItemUnequipped for any scripts found on the items.
+	 *
+	 * @param unequippedItem The item script to lookup and call unequip on
+	 */
+	void UnequipScripts(Item* unequippedItem);
 
 	~InventoryComponent() override;
 

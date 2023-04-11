@@ -5,7 +5,10 @@
 #include "EntityManager.h"
 #include "RebuildComponent.h"
 #include "SoundTriggerComponent.h"
+#include "InventoryComponent.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
+#include "eMissionTaskType.h"
 
 // Constants are at the bottom
 
@@ -145,8 +148,8 @@ void NsConcertInstrument::StopPlayingInstrument(Entity* self, Entity* player) {
 	// Player might be null if they left
 	if (player != nullptr) {
 		auto* missions = player->GetComponent<MissionComponent>();
-		if (missions != nullptr && missions->GetMissionState(176) == MissionState::MISSION_STATE_ACTIVE) {
-			missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+		if (missions != nullptr && missions->GetMissionState(176) == eMissionState::ACTIVE) {
+			missions->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 		}
 
 		GameMessages::SendEndCinematic(player->GetObjectID(), cinematics.at(instrumentLot), UNASSIGNED_SYSTEM_ADDRESS, 1.0f);

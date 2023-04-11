@@ -2,7 +2,7 @@
 #include "AmTemplateSkillVolume.h"
 
 class NjWuNPC : public AmTemplateSkillVolume {
-	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) override;
+	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) override;
 	const uint32_t m_MainDragonMissionID = 2040;
 	const std::vector<uint32_t> m_SubDragonMissionIDs = { 2064, 2065, 2066, 2067 };
 

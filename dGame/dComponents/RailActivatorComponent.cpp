@@ -10,8 +10,7 @@
 
 RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t componentID) : Component(parent) {
 	m_ComponentID = componentID;
-	const auto tableData = CDClientManager::Instance()
-		->GetTable<CDRailActivatorComponentTable>("RailActivatorComponent")->GetEntryByID(componentID);
+	const auto tableData = CDClientManager::Instance().GetTable<CDRailActivatorComponentTable>()->GetEntryByID(componentID);;
 
 	m_Path = parent->GetVar<std::u16string>(u"rail_path");
 	m_PathDirection = parent->GetVar<bool>(u"rail_path_direction");
@@ -95,7 +94,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 
 void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 	// Stun the originator
-	GameMessages::SendSetStunned(originator->GetObjectID(), PUSH, originator->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(originator->GetObjectID(), eStateChangeType::PUSH, originator->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 
@@ -123,7 +122,7 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 
 void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 	// Remove the stun from the originator
-	GameMessages::SendSetStunned(originator->GetObjectID(), POP, originator->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(originator->GetObjectID(), eStateChangeType::POP, originator->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 

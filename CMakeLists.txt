@@ -76,15 +76,21 @@ endif()
 
 # Our output dir
 set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR})
+
+# TODO make this not have to override the build type directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Create a /res directory
-make_directory(${CMAKE_BINARY_DIR}/res)
-
-# Create a /locale directory
-make_directory(${CMAKE_BINARY_DIR}/locale)
+# Create a /resServer directory
+make_directory(${CMAKE_BINARY_DIR}/resServer)
 
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
@@ -146,6 +152,8 @@ endforeach()
 # Create our list of include directories
 set(INCLUDED_DIRECTORIES
 	"dCommon"
+	"dCommon/dClient"
+	"dCommon/dEnums"
 	"dChatFilter"
 	"dGame"
 	"dGame/dBehaviors"
@@ -155,8 +163,8 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dMission"
 	"dGame/dEntity"
 	"dGame/dPropertyBehaviors"
+	"dGame/dPropertyBehaviors/ControlBehaviorMessages"
 	"dGame/dUtilities"
-	"dCommon/dClient"
 	"dPhysics"
 	"dNavigation"
 	"dNavigation/dTerrain"
@@ -169,6 +177,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/ai"
 	"dScripts/client"
 	"dScripts/EquipmentScripts"
+	"dScripts/EquipmentTriggers"
 	"dScripts/zone"
 	"dScripts/02_server/DLU"
 	"dScripts/02_server/Enemy"
@@ -239,6 +248,11 @@ set(INCLUDED_DIRECTORIES
 	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
+
+	"tests"
+	"tests/dCommonTests"
+	"tests/dGameTests"
+	"tests/dGameTests/dComponentsTests"
 	)
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
@@ -320,8 +334,6 @@ if (UNIX)
 	endif()
 endif()
 
-add_subdirectory(tests)
-
 # Include all of our binary directories
 add_subdirectory(dWorldServer)
 add_subdirectory(dAuthServer)
@@ -354,3 +366,7 @@ target_precompile_headers(
 	tinyxml2 PRIVATE
 	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
 )
+
+if (${__enable_testing__} MATCHES "1")
+	add_subdirectory(tests)
+endif()

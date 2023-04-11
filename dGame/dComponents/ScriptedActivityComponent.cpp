@@ -16,11 +16,20 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 #include "dConfig.h"
+#include "InventoryComponent.h"
 #include "DestroyableComponent.h"
+#include "dMessageIdentifiers.h"
+#include "Loot.h"
+#include "eMissionTaskType.h"
+
+#include "CDCurrencyTableTable.h"
+#include "CDActivityRewardsTable.h"
+#include "CDActivitiesTable.h"
 
 ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent) {
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance()->GetTable<CDActivitiesTable>("Activities");
-	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == activityID); });
+	m_ActivityID = activityID;
+	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 
 	for (CDActivities activity : activities) {
 		m_ActivityInfo = activity;
@@ -48,7 +57,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
 	if (destroyableComponent) {
 		// check for LMIs and set the loot LMIs
-		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
+		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
 		std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) {return (entry.LootMatrixIndex == destroyableComponent->GetLootMatrixID()); });
 
 		uint32_t startingLMI = 0;
@@ -88,6 +97,21 @@ void ScriptedActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool 
 	}
 }
 
+void ScriptedActivityComponent::ReloadConfig() {
+	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
+	for (auto activity : activities) {
+		auto mapID = m_ActivityInfo.instanceMapID;
+		if ((mapID == 1203 || mapID == 1261 || mapID == 1303 || mapID == 1403) && Game::config->GetValue("solo_racing") == "1") {
+			m_ActivityInfo.minTeamSize = 1;
+			m_ActivityInfo.minTeams = 1;
+		} else {
+			m_ActivityInfo.minTeamSize = activity.minTeamSize;
+			m_ActivityInfo.minTeams = activity.minTeams;
+		}
+	}
+}
+
 void ScriptedActivityComponent::HandleMessageBoxResponse(Entity* player, const std::string& id) {
 	if (m_ActivityInfo.ActivityID == 103) {
 		return;
@@ -117,7 +141,7 @@ void ScriptedActivityComponent::PlayerJoin(Entity* player) {
 }
 
 void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
-	if (!m_Parent->HasComponent(COMPONENT_TYPE_REBUILD))
+	if (!m_Parent->HasComponent(eReplicaComponentType::QUICK_BUILD))
 		GameMessages::SendMatchResponse(player, player->GetSystemAddress(), 0); // tell the client they joined a lobby
 	LobbyPlayer* newLobbyPlayer = new LobbyPlayer();
 	newLobbyPlayer->entityID = player->GetObjectID();
@@ -191,7 +215,7 @@ void ScriptedActivityComponent::PlayerLeave(LWOOBJID playerID) {
 }
 
 void ScriptedActivityComponent::Update(float deltaTime) {
-
+	std::vector<Lobby*> lobbiesToRemove{};
 	// Ticks all the lobbies, not applicable for non-instance activities
 	for (Lobby* lobby : m_Queue) {
 		for (LobbyPlayer* player : lobby->players) {
@@ -200,6 +224,11 @@ void ScriptedActivityComponent::Update(float deltaTime) {
 				PlayerLeave(player->entityID);
 				return;
 			}
+		}
+
+		if (lobby->players.empty()) {
+			lobbiesToRemove.push_back(lobby);
+			continue;
 		}
 
 		// Update the match time for all players
@@ -245,12 +274,16 @@ void ScriptedActivityComponent::Update(float deltaTime) {
 		// The timer has elapsed, start the instance
 		if (lobby->timer <= 0.0f) {
 			Game::logger->Log("ScriptedActivityComponent", "Setting up instance.");
-
 			ActivityInstance* instance = NewInstance();
 			LoadPlayersIntoInstance(instance, lobby->players);
-			RemoveLobby(lobby);
 			instance->StartZone();
+			lobbiesToRemove.push_back(lobby);
 		}
+	}
+
+	while (!lobbiesToRemove.empty()) {
+		RemoveLobby(lobbiesToRemove.front());
+		lobbiesToRemove.erase(lobbiesToRemove.begin());
 	}
 }
 
@@ -270,7 +303,7 @@ bool ScriptedActivityComponent::HasLobby() const {
 
 bool ScriptedActivityComponent::IsValidActivity(Entity* player) {
 	// Makes it so that scripted activities with an unimplemented map cannot be joined
-	/*if (player->GetGMLevel() < GAME_MASTER_LEVEL_DEVELOPER && (m_ActivityInfo.instanceMapID == 1302 || m_ActivityInfo.instanceMapID == 1301)) {
+	/*if (player->GetGMLevel() < eGameMasterLevel::DEVELOPER && (m_ActivityInfo.instanceMapID == 1302 || m_ActivityInfo.instanceMapID == 1301)) {
 		if (m_Parent->GetLOT() == 4860) {
 			auto* missionComponent = player->GetComponent<MissionComponent>();
 			missionComponent->CompleteMission(229);
@@ -524,18 +557,18 @@ void ActivityInstance::StartZone() {
 void ActivityInstance::RewardParticipant(Entity* participant) {
 	auto* missionComponent = participant->GetComponent<MissionComponent>();
 	if (missionComponent) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityInfo.ActivityID);
+		missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityInfo.ActivityID);
 	}
 
 	// First, get the activity data
-	auto* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
+	auto* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) { return (entry.objectTemplate == m_ActivityInfo.ActivityID); });
 
 	if (!activityRewards.empty()) {
 		uint32_t minCoins = 0;
 		uint32_t maxCoins = 0;
 
-		auto* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>("CurrencyTable");
+		auto* currencyTableTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
 		std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == activityRewards[0].CurrencyIndex && entry.npcminlevel == 1); });
 
 		if (!currencyTable.empty()) {

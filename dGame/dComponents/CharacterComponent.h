@@ -9,6 +9,7 @@
 #include <string>
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
+#include "eReplicaComponentType.h"
 
 /**
  * The statistics that can be achieved per zone
@@ -59,7 +60,7 @@ enum StatisticID {
  */
 class CharacterComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_CHARACTER;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
 
 	CharacterComponent(Entity* parent, Character* character);
 	~CharacterComponent() override;
@@ -177,7 +178,7 @@ public:
 	 * Sets the GM level of the character, should be called in the entity. Here it's set for serialization
 	 * @param gmlevel the gm level to set
 	 */
-	void SetGMLevel(int gmlevel);
+	void SetGMLevel(eGameMasterLevel gmlevel);
 
 	/**
 	 * Initializes the player statistics from the string stored in the XML
@@ -332,7 +333,7 @@ private:
 	/**
 	 * The current GM level of this character (anything > 0 counts as a GM)
 	 */
-	unsigned char m_GMLevel;
+	eGameMasterLevel m_GMLevel;
 
 	/**
 	 * Whether the character has HF enabled
@@ -342,7 +343,7 @@ private:
 	/**
 	 * The level of the character in HF
 	 */
-	unsigned char m_EditorLevel;
+	eGameMasterLevel m_EditorLevel;
 
 	/**
 	 * Whether the currently active activity has been changed

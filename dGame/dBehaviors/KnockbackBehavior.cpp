@@ -6,11 +6,16 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "DestroyableComponent.h"
+#include "Game.h"
+#include "dLogger.h"
 
 void KnockbackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	bool unknown;
+	bool unknown{};
 
-	bitStream->Read(unknown);
+	if (!bitStream->Read(unknown)) {
+		Game::logger->Log("KnockbackBehavior", "Unable to read unknown from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		return;
+	};
 }
 
 void KnockbackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {

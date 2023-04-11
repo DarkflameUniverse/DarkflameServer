@@ -7,13 +7,16 @@
 #include "dLogger.h"
 #include "CharacterComponent.h"
 #include "MissionComponent.h"
-#include "MissionTaskType.h"
+#include "eMissionTaskType.h"
+#include "eTriggerEventType.h"
 
 #include "dServer.h"
 #include "PacketUtils.h"
 #include "Spawner.h"
 #include "MovingPlatformComponent.h"
 #include "Preconditions.h"
+#include "Loot.h"
+#include "TeamManager.h"
 
 #include "CppScripts.h"
 
@@ -51,7 +54,7 @@ RebuildComponent::~RebuildComponent() {
 }
 
 void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	if (m_Parent->GetComponent(COMPONENT_TYPE_DESTROYABLE) == nullptr) {
+	if (m_Parent->GetComponent(eReplicaComponentType::DESTROYABLE) == nullptr) {
 		if (bIsInitialUpdate) {
 			outBitStream->Write(false);
 		}
@@ -464,12 +467,20 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 
 	auto* builder = GetBuilder();
 
-	if (builder != nullptr) {
-		auto* missionComponent = builder->GetComponent<MissionComponent>();
-		if (missionComponent != nullptr) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityId);
+	if (builder) {
+		auto* team = TeamManager::Instance()->GetTeam(builder->GetObjectID());
+		if (team) {
+			for (const auto memberId : team->members) { // progress missions for all team members
+				auto* member = EntityManager::Instance()->GetEntity(memberId);
+				if (member) {
+					auto* missionComponent = member->GetComponent<MissionComponent>();
+					if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
+				}
+			}
+		} else{
+			auto* missionComponent = builder->GetComponent<MissionComponent>();
+			if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 		}
-
 		LootGenerator::Instance().DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
 	}
 
@@ -484,6 +495,8 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 		callback(m_State);
 	for (const auto& callback : m_RebuildCompleteCallbacks)
 		callback(user);
+
+	m_Parent->TriggerEvent(eTriggerEventType::REBUILD_COMPLETE, user);
 
 	auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
 	if (movingPlatform != nullptr) {

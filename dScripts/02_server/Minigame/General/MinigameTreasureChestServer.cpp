@@ -3,6 +3,7 @@
 #include "TeamManager.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
+#include "Loot.h"
 
 void MinigameTreasureChestServer::OnUse(Entity* self, Entity* user) {
 	auto* sac = self->GetComponent<ScriptedActivityComponent>();

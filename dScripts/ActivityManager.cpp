@@ -5,6 +5,7 @@
 #include "GameMessages.h"
 #include <algorithm>
 #include "dLogger.h"
+#include "Loot.h"
 
 bool ActivityManager::IsPlayerInActivity(Entity* self, LWOOBJID playerID) {
 	const auto* sac = self->GetComponent<ScriptedActivityComponent>();
@@ -123,7 +124,6 @@ void ActivityManager::ActivityTimerStart(Entity* self, const std::string& timerN
 	const float_t stopTime) {
 	auto* timer = new ActivityTimer{ timerName, updateInterval, stopTime };
 	activeTimers.push_back(timer);
-
 	self->AddTimer(GetPrefixedName(timer->name), timer->updateInterval);
 }
 

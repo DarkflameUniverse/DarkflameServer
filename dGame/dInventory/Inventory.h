@@ -6,10 +6,11 @@
 #include <map>
 #include <vector>
 
-
+#include "CDItemComponentTable.h"
 #include "CDClientManager.h"
 #include "dCommonVars.h"
 
+enum eInventoryType : uint32_t;
 class Item;
 class InventoryComponent;
 
@@ -95,7 +96,7 @@ public:
 	 * @param lot the lot to find items for
 	 * @param ignoreEquipped ignores equipped items
 	 * @param ignoreBound ignores bound items
-	 * @return item in the inventory for the provided LOT
+	 * @return item with the lowest stack count in the inventory for the provided LOT
 	 */
 	Item* FindItemByLot(LOT lot, bool ignoreEquipped = false, bool ignoreBound = false) const;
 
@@ -151,6 +152,11 @@ public:
 	 * @return all the items that are restricted to GMs
 	 */
 	static const std::vector<LOT>& GetAllGMItems();
+
+	/**
+	 * Remove ALL Items from this inventory.
+	 */
+	void DeleteAllItems();
 
 	~Inventory();
 

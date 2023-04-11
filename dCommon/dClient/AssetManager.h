@@ -48,7 +48,7 @@ struct AssetMemoryBuffer : std::streambuf {
 
 class AssetManager {
 public:
-	AssetManager(const std::string& path);
+	AssetManager(const std::filesystem::path& path);
 	~AssetManager();
 
 	std::filesystem::path GetResPath();
@@ -60,7 +60,6 @@ public:
 
 private:
 	void LoadPackIndex();
-	void UnpackRequiredAssets();
 
 	// Modified crc algorithm (mpeg2)
 	// Reference: https://stackoverflow.com/questions/54339800/how-to-modify-crc-32-to-crc-32-mpeg-2

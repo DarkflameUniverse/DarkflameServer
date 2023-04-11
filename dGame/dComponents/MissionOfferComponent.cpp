@@ -14,6 +14,9 @@
 #include "dLogger.h"
 #include "Game.h"
 #include "MissionPrerequisites.h"
+#include "eMissionState.h"
+
+#include "CDComponentsRegistryTable.h"
 
 OfferedMission::OfferedMission(const uint32_t missionId, const bool offersMission, const bool acceptsMission) {
 	this->missionId = missionId;
@@ -37,15 +40,15 @@ bool OfferedMission::GetAcceptMission() const {
 //------------------------ MissionOfferComponent below ------------------------
 
 MissionOfferComponent::MissionOfferComponent(Entity* parent, const LOT parentLot) : Component(parent) {
-	auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
-	auto value = compRegistryTable->GetByIDAndType(parentLot, COMPONENT_TYPE_MISSION_OFFER, -1);
+	auto value = compRegistryTable->GetByIDAndType(parentLot, eReplicaComponentType::MISSION_OFFER, -1);
 
 	if (value != -1) {
 		const uint32_t componentId = value;
 
 		// Now lookup the missions in the MissionNPCComponent table
-		auto* missionNpcComponentTable = CDClientManager::Instance()->GetTable<CDMissionNPCComponentTable>("MissionNPCComponent");
+		auto* missionNpcComponentTable = CDClientManager::Instance().GetTable<CDMissionNPCComponentTable>();
 
 		auto missions = missionNpcComponentTable->Query([=](const CDMissionNPCComponent& entry) {
 			return entry.id == static_cast<unsigned>(componentId);
@@ -76,7 +79,7 @@ void MissionOfferComponent::OnUse(Entity* originator) {
 
 void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifiedMissionId) {
 	// First, get the entity's MissionComponent. If there is not one, then we cannot offer missions to this entity.
-	auto* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(COMPONENT_TYPE_MISSION));
+	auto* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
 
 	if (!missionComponent) {
 		Game::logger->Log("MissionOfferComponent", "Unable to get mission component for Entity %llu", entity->GetObjectID());
@@ -170,10 +173,10 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 			for (const auto sample : randomMissionPool) {
 				const auto state = missionComponent->GetMissionState(sample);
 
-				if (state == MissionState::MISSION_STATE_ACTIVE ||
-					state == MissionState::MISSION_STATE_COMPLETE_ACTIVE ||
-					state == MissionState::MISSION_STATE_READY_TO_COMPLETE ||
-					state == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE ||
+				if (state == eMissionState::ACTIVE ||
+					state == eMissionState::COMPLETE_ACTIVE ||
+					state == eMissionState::READY_TO_COMPLETE ||
+					state == eMissionState::COMPLETE_READY_TO_COMPLETE ||
 					sample == specifiedMissionId) {
 					mission = missionComponent->GetMission(sample);
 

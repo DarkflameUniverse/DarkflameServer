@@ -3,6 +3,8 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
+#include "eReplicaComponentType.h"
 
 void TouchMissionUpdateServer::OnStartup(Entity* self) {
 	self->SetProximityRadius(20, "touchCheck"); // Those does not have a collider for some reason?
@@ -15,7 +17,7 @@ void TouchMissionUpdateServer::OnCollisionPhantom(Entity* self, Entity* target) 
 		return;
 	}
 
-	auto* missionComponent = static_cast<MissionComponent*>(target->GetComponent(COMPONENT_TYPE_MISSION));
+	auto* missionComponent = static_cast<MissionComponent*>(target->GetComponent(eReplicaComponentType::MISSION));
 
 	if (missionComponent == nullptr) {
 		return;
@@ -29,7 +31,7 @@ void TouchMissionUpdateServer::OnCollisionPhantom(Entity* self, Entity* target) 
 
 	const auto state = mission->GetMissionState();
 
-	if (state >= MissionState::MISSION_STATE_COMPLETE || mission->GetCompletions() > 1) {
+	if (state >= eMissionState::COMPLETE || mission->GetCompletions() > 1) {
 		return;
 	}
 

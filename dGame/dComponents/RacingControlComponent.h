@@ -7,6 +7,7 @@
 #include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
  /**
   * Information for each player in the race
@@ -104,7 +105,7 @@ struct RacingPlayerInfo {
  */
 class RacingControlComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_RACING_CONTROL;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
 	RacingControlComponent(Entity* parentEntity);
 	~RacingControlComponent();
@@ -123,7 +124,7 @@ public:
 	 * @param player The player who's vehicle to initialize.
 	 * @param initialLoad Is this the first time the player is loading in this race?
 	 */
-	void LoadPlayerVehicle(Entity* player, bool initialLoad = false);
+	void LoadPlayerVehicle(Entity* player, uint32_t positionNumber, bool initialLoad = false);
 
 	/**
 	 * Invoked when the client says it has loaded in.

@@ -22,6 +22,10 @@
 #include "MissionComponent.h"
 #include "ChatPackets.h"
 #include "Character.h"
+#include "dZoneManager.h"
+#include "WorldConfig.h"
+#include "eMissionTaskType.h"
+#include "eReplicaComponentType.h"
 
 void Mail::SendMail(const Entity* recipient, const std::string& subject, const std::string& body, const LOT attachment,
 	const uint16_t attachmentCount) {
@@ -74,12 +78,12 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 	auto* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
 
 	ins->setUInt(1, sender);
-	ins->setString(2, senderName);
+	ins->setString(2, senderName.c_str());
 	ins->setUInt(3, recipient);
 	ins->setString(4, recipientName.c_str());
 	ins->setUInt64(5, time(nullptr));
-	ins->setString(6, subject);
-	ins->setString(7, body);
+	ins->setString(6, subject.c_str());
+	ins->setString(7, body.c_str());
 	ins->setUInt(8, 0);
 	ins->setInt(9, attachment);
 	ins->setInt(10, 0);
@@ -163,7 +167,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 
 	if (!character) return;
 
-	if (character->HasPermission(PermissionMap::RestrictedMailAccess)) {
+	if (character->HasPermission(ePermissionMap::RestrictedMailAccess)) {
 		// Send a message to the player
 		ChatPackets::SendSystemMessage(
 			sysAddr,
@@ -191,15 +195,15 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	uint32_t itemID = static_cast<uint32_t>(attachmentID);
 	LOT itemLOT = 0;
 	//Inventory::InventoryType itemType;
-	int mailCost = 25;
+	int mailCost = dZoneManager::Instance()->GetWorldConfig()->mailBaseFee;
 	int stackSize = 0;
-	auto inv = static_cast<InventoryComponent*>(entity->GetComponent(COMPONENT_TYPE_INVENTORY));
+	auto inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
 	Item* item = nullptr;
 
 	if (itemID > 0 && attachmentCount > 0 && inv) {
 		item = inv->FindItemById(attachmentID);
 		if (item) {
-			mailCost += (item->GetInfo().baseValue * 0.1f);
+			mailCost += (item->GetInfo().baseValue * dZoneManager::Instance()->GetWorldConfig()->mailPercentAttachmentFee);
 			stackSize = item->GetCount();
 			itemLOT = item->GetLot();
 		} else {
@@ -266,7 +270,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 		auto* missionCompoent = entity->GetComponent<MissionComponent>();
 
 		if (missionCompoent != nullptr) {
-			missionCompoent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, itemLOT, LWOOBJID_EMPTY, "", -attachmentCount);
+			missionCompoent->Progress(eMissionTaskType::GATHER, itemLOT, LWOOBJID_EMPTY, "", -attachmentCount);
 		}
 	}
 
@@ -352,7 +356,7 @@ void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddres
 			attachmentCount = res->getInt(2);
 		}
 
-		auto inv = static_cast<InventoryComponent*>(player->GetComponent(COMPONENT_TYPE_INVENTORY));
+		auto inv = static_cast<InventoryComponent*>(player->GetComponent(eReplicaComponentType::INVENTORY));
 		if (!inv) return;
 
 		inv->AddItem(attachmentLOT, attachmentCount, eLootSourceType::LOOT_SOURCE_MAIL);
