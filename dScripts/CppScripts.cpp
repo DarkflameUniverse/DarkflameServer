@@ -160,7 +160,6 @@
 #include "AgSalutingNpcs.h"
 #include "BossSpiderQueenEnemyServer.h"
 #include "RockHydrantSmashable.h"
-#include "SpecialImaginePowerupSpawner.h"
 
 // Misc Scripts
 #include "ExplodingAsset.h"
@@ -299,6 +298,11 @@
 #include "TriggerGas.h"
 #include "ActNinjaSensei.h"
 
+// pickups
+#include "SpecialCoinSpawner.h"
+#include "SpecialPowerupSpawner.h"
+#include "SpecialSpeedBuffSpawner.h"
+
 // Wild Scripts
 #include "WildAndScared.h"
 #include "WildGfGlowbug.h"
@@ -384,8 +388,6 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new RemoveRentalGear();
 	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_NJ_ASSISTANT_SERVER.lua")
 		script = new NpcNjAssistantServer();
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER.lua")
-		script = new SpecialImaginePowerupSpawner();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_SALUTING_NPCS.lua")
 		script = new AgSalutingNpcs();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_JET_EFFECT_SERVER.lua")
@@ -878,6 +880,36 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new TriggerGas();
 	else if (scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_SENSEI.lua")
 		script = new ActNinjaSensei();
+
+	// pickups
+	if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_BRONZE-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(1);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_GOLD-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(10000);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_SILVER-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(100);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_BRONZE-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(10);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_GOLD-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(100000);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_SILVER-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(1000);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_BRONZE-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(25);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_GOLD-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(250000);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_SILVER-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(2500);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER.lua")
+		script = new SpecialPowerupSpawner(13);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER-2PT.lua")
+		script = new SpecialPowerupSpawner(129);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_LIFE-POWERUP-SPAWNER.lua")
+		script = new SpecialPowerupSpawner(5);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_ARMOR-POWERUP-SPAWNER.lua")
+		script = new SpecialPowerupSpawner(747);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_SPEED_BUFF_SPAWNER.lua")
+		script = new SpecialSpeedBuffSpawner();
 
 	// Wild
 	if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_RAT.lua" || scriptName == "scripts\\ai\\WILD\\L_WILD_GF_SNAIL.lua")
