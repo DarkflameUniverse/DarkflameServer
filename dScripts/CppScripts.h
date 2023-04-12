@@ -45,6 +45,13 @@ namespace CppScripts {
 		virtual void OnCollisionPhantom(Entity* self, Entity* target) {};
 
 		/**
+		 * Invoked upon an entity leaving the phantom collider on self.
+		 *
+		 * Equivalent to 'function onOffCollisionPhantom(self, msg)'
+		 */
+		virtual void OnOffCollisionPhantom(Entity* self, Entity* target) {};
+
+		/**
 		 * Invoked when a player accepted a mission.
 		 *
 		 * Equivalent to 'function onMissionDialogueOK(self, msg)'
