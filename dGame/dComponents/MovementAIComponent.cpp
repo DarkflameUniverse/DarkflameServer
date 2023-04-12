@@ -312,7 +312,9 @@ foundComponent:
 
 	if (physicsComponent) speed = physicsComponent->speed;
 
-	if (speed == -1.0f) speed = 10.0f;
+	float delta = fabs(speed) - 1.0f;
+
+	if (delta <= std::numeric_limits<float>::epsilon()) speed = 10.0f;
 
 	m_PhysicsSpeedCache[lot] = speed;
 
