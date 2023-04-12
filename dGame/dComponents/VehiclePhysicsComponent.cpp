@@ -93,7 +93,7 @@ void VehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 	}
 
 	if (bIsInitialUpdate) {
-		outBitStream->Write<uint8_t>(5);
+		outBitStream->Write<uint8_t>(GeneralUtils::GenerateRandomNumber<uint32_t>(0, 7));
 		outBitStream->Write1();
 	}
 
