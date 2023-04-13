@@ -1,80 +1,90 @@
 #pragma once
 #include <vector>
 #include <climits>
+
+#include "Singleton.h"
 #include "dCommonVars.h"
 
-struct LeaderboardEntry {
-	uint64_t playerID;
-	std::string playerName;
-	uint32_t time;
-	uint32_t score;
-	uint32_t placement;
-	time_t lastPlayed;
+namespace RakNet{
+	class BitStream;
 };
 
-enum InfoType : uint32_t {
-	Top,     // Top 11 all time players
-	Standings, // Ranking of the current player
-	Friends    // Ranking between friends
-};
-
-enum LeaderboardType : uint32_t {
-	ShootingGallery,
-	Racing,
-	MonumentRace,
-	FootRace,
-	Survival = 5,
-	SurvivalNS = 6,
-	None = UINT_MAX
-};
+typedef uint32_t GameID;
 
 class Leaderboard {
 public:
-	Leaderboard(uint32_t gameID, uint32_t infoType, bool weekly, std::vector<LeaderboardEntry> entries,
-		LWOOBJID relatedPlayer = LWOOBJID_EMPTY, LeaderboardType = None);
-	std::vector<LeaderboardEntry> GetEntries();
-	[[nodiscard]] std::u16string ToString() const;
-	[[nodiscard]] uint32_t GetGameID() const;
-	[[nodiscard]] uint32_t GetInfoType() const;
+	struct Entry {
+		uint64_t playerID;
+		uint32_t time;
+		uint32_t score;
+		uint32_t placement;
+		time_t lastPlayed;
+		std::string playerName;
+	};
+	typedef std::vector<Entry> LeaderboardEntries;
+
+	// Enums for leaderboards
+	enum InfoType : uint32_t {
+		Top,     // Top 11 all time players
+		MyStanding, // Ranking of the current player
+		Friends    // Ranking between friends
+	};
+
+	enum Type : uint32_t {
+		ShootingGallery,
+		Racing,
+		MonumentRace,
+		FootRace,
+		Survival = 5,
+		SurvivalNS = 6,
+		None = UINT_MAX
+	};
+
+	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const Leaderboard::Type = None);
+
+	/**
+	 * Serialize the Leaderboard to a BitStream
+	 * 
+	 * Expensive!  Leaderboards are very string intensive so be wary of performatnce calling this method.
+	 */
+	void Serialize(RakNet::BitStream* bitStream) const;
+
+	/**
+	 * Based on the associated gameID, return true if the score provided
+	 * is better than the current entries' score
+	 * @param score 
+	 * @return true 
+	 * @return false 
+	 */
+	bool IsScoreBetter(const uint32_t score) const;
+
+	/**
+	 * Builds the leaderboard from the database based on the associated gameID
+	 */
+	void SetupLeaderboard();
+
+	/**
+	 * Sends the leaderboard to the client specified by targetID.
+	 */
 	void Send(LWOOBJID targetID) const;
 private:
-	std::vector<LeaderboardEntry> entries{};
+	LeaderboardEntries entries;
 	LWOOBJID relatedPlayer;
-	uint32_t gameID;
-	uint32_t infoType;
-	LeaderboardType leaderboardType;
+	GameID gameID;
+	InfoType infoType;
+	Leaderboard::Type leaderboardType;
 	bool weekly;
 };
 
-class LeaderboardManager {
+class LeaderboardManager: public Singleton<LeaderboardManager> {
+	typedef std::map<GameID, Leaderboard::Type> LeaderboardCache;
 public:
-	static LeaderboardManager* Instance() {
-		if (address == nullptr)
-			address = new LeaderboardManager;
-		return address;
-	}
-	static void SendLeaderboard(uint32_t gameID, InfoType infoType, bool weekly, LWOOBJID targetID,
+	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID targetID,
 		LWOOBJID playerID = LWOOBJID_EMPTY);
-	static Leaderboard* GetLeaderboard(uint32_t gameID, InfoType infoType, bool weekly, LWOOBJID playerID = LWOOBJID_EMPTY);
-	static void SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t score, uint32_t time);
-	static LeaderboardType GetLeaderboardType(uint32_t gameID);
+	void SaveScore(LWOOBJID playerID, GameID gameID, uint32_t score, uint32_t time);
 private:
-	static LeaderboardManager* address;
-
-	// Modified 12/12/2021: Existing queries were renamed to be more descriptive.
-	static const std::string topPlayersScoreQuery;
-	static const std::string friendsScoreQuery;
-	static const std::string standingsScoreQuery;
-	static const std::string topPlayersScoreQueryAsc;
-	static const std::string friendsScoreQueryAsc;
-	static const std::string standingsScoreQueryAsc;
-
-	// Added 12/12/2021: Queries dictated by time are needed for certain minigames.
-	static const std::string topPlayersTimeQuery;
-	static const std::string friendsTimeQuery;
-	static const std::string standingsTimeQuery;
-	static const std::string topPlayersTimeQueryAsc;
-	static const std::string friendsTimeQueryAsc;
-	static const std::string standingsTimeQueryAsc;
+	Leaderboard::Type GetLeaderboardType(const GameID gameID);
+	void GetLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID = LWOOBJID_EMPTY);
+	LeaderboardCache leaderboardCache;
 };
 
