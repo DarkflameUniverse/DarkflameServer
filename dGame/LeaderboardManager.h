@@ -1,6 +1,7 @@
 #pragma once
-#include <vector>
 #include <climits>
+#include <map>
+#include <vector>
 
 #include "Singleton.h"
 #include "dCommonVars.h"
@@ -14,7 +15,7 @@ typedef uint32_t GameID;
 class Leaderboard {
 public:
 	struct Entry {
-		uint64_t playerID;
+		LWOOBJID playerID;
 		uint32_t time;
 		uint32_t score;
 		uint32_t placement;
@@ -56,7 +57,7 @@ public:
 	 * @return true 
 	 * @return false 
 	 */
-	bool IsScoreBetter(const uint32_t score) const;
+	bool IsScoreBetter(const uint32_t score) const { return false; };
 
 	/**
 	 * Builds the leaderboard from the database based on the associated gameID
@@ -67,6 +68,12 @@ public:
 	 * Sends the leaderboard to the client specified by targetID.
 	 */
 	void Send(LWOOBJID targetID) const;
+
+	/**
+	 * Adds a new entry to the leaderboard
+	 * Used for debug only!
+	 */
+	void AddEntry(Entry entry) { entries.push_back(entry); }
 private:
 	LeaderboardEntries entries;
 	LWOOBJID relatedPlayer;

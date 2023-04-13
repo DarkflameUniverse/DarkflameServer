@@ -74,11 +74,11 @@ void ActivityManager::StopActivity(Entity* self, const LWOOBJID playerID, const 
 		LootGenerator::Instance().GiveActivityLoot(player, self, gameID, CalculateActivityRating(self, playerID));
 
 		// Save the new score to the leaderboard and show the leaderboard to the player
-		LeaderboardManager::SaveScore(playerID, gameID, score, value1);
-		const auto* leaderboard = LeaderboardManager::GetLeaderboard(gameID, InfoType::Standings,
-			false, player->GetObjectID());
-		GameMessages::SendActivitySummaryLeaderboardData(self->GetObjectID(), leaderboard, player->GetSystemAddress());
-		delete leaderboard;
+		//LeaderboardManager::SaveScore(playerID, gameID, score, value1);
+		//const auto* leaderboard = LeaderboardManager::GetLeaderboard(gameID, InfoType::Standings,
+		//	false, player->GetObjectID());
+		//GameMessages::SendActivitySummaryLeaderboardData(self->GetObjectID(), leaderboard, player->GetSystemAddress());
+		//delete leaderboard;
 
 		// Makes the leaderboard show up for the player
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard",
@@ -117,7 +117,7 @@ uint32_t ActivityManager::GetActivityID(const Entity* self) {
 }
 
 void ActivityManager::GetLeaderboardData(Entity* self, const LWOOBJID playerID, const uint32_t activityID, uint32_t numResults) {
-	LeaderboardManager::SendLeaderboard(activityID, Standings, false, self->GetObjectID(), playerID);
+	//LeaderboardManager::SendLeaderboard(activityID, Standings, false, self->GetObjectID(), playerID);
 }
 
 void ActivityManager::ActivityTimerStart(Entity* self, const std::string& timerName, const float_t updateInterval,

@@ -14,6 +14,7 @@ std::vector<MetricVariable> Metrics::m_Variables = {
 	MetricVariable::CPUTime,
 	MetricVariable::Sleep,
 	MetricVariable::Frame,
+	MetricVariable::Leaderboard,
 };
 
 void Metrics::AddMeasurement(MetricVariable variable, int64_t value) {

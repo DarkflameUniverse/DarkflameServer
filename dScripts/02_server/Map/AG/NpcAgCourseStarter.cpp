@@ -96,8 +96,8 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 		}
 
 		EntityManager::Instance()->SerializeEntity(self);
-		LeaderboardManager::SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(),
-			0, (uint32_t)finish);
+		//LeaderboardManager::SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(),
+		//	0, (uint32_t)finish);
 
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard",
 			scriptedActivityComponent->GetActivityID(), 0, sender->GetObjectID(),

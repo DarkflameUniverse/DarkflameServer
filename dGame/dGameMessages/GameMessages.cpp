@@ -1630,17 +1630,17 @@ void GameMessages::SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, 
 
 	bitStream.Write(objectID);
 	bitStream.Write(GAME_MSG::GAME_MSG_SEND_ACTIVITY_SUMMARY_LEADERBOARD_DATA);
-
-	bitStream.Write(leaderboard->GetGameID());
-	bitStream.Write(leaderboard->GetInfoType());
+	throw "";
+	//bitStream.Write(leaderboard->GetGameID());
+	//bitStream.Write(leaderboard->GetInfoType());
 
 	// Leaderboard is written back as LDF string
-	const auto leaderboardString = leaderboard->ToString();
-	bitStream.Write<uint32_t>(leaderboardString.size());
-	for (const auto c : leaderboardString) {
-		bitStream.Write<uint16_t>(c);
-	}
-	if (!leaderboardString.empty()) bitStream.Write(uint16_t(0));
+	//const auto leaderboardString = leaderboard->ToString();
+	//bitStream.Write<uint32_t>(leaderboardString.size());
+	//for (const auto c : leaderboardString) {
+	//	bitStream.Write<uint16_t>(c);
+	//}
+	//if (!leaderboardString.empty()) bitStream.Write(uint16_t(0));
 
 	bitStream.Write0();
 	bitStream.Write0();
@@ -1666,9 +1666,9 @@ void GameMessages::HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream
 
 	bool weekly = inStream->ReadBit();
 
-	const auto* leaderboard = LeaderboardManager::GetLeaderboard(gameID, (InfoType)queryType, weekly, entity->GetObjectID());
-	SendActivitySummaryLeaderboardData(entity->GetObjectID(), leaderboard, sysAddr);
-	delete leaderboard;
+	//const auto* leaderboard = LeaderboardManager::GetLeaderboard(gameID, (InfoType)queryType, weekly, entity->GetObjectID());
+	//SendActivitySummaryLeaderboardData(entity->GetObjectID(), leaderboard, sysAddr);
+	//delete leaderboard;
 }
 
 void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream* inStream, Entity* entity) {

@@ -10,9 +10,10 @@
 #include "CDClientManager.h"
 #include "GeneralUtils.h"
 #include "Entity.h"
+#include <sstream>
 
 #include "CDActivitiesTable.h"
-
+#include "Metrics.hpp"
 Leaderboard::Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const Leaderboard::Type leaderboardType) {
 	this->relatedPlayer = relatedPlayer;
 	this->gameID = gameID;
@@ -22,39 +23,35 @@ Leaderboard::Leaderboard(const GameID gameID, const Leaderboard::InfoType infoTy
 	this->leaderboardType = leaderboardType;
 }
 
-bool Leaderboard::IsScoreBetter(const uint32_t score) const {
-
-}
-
 void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
-	std::string leaderboard;
+	std::ostringstream leaderboard;
 
-	leaderboard += "ADO.Result=7:1\n";
-	leaderboard += "Result.Count=1:1\n";
-	leaderboard += "Result[0].Index=0:RowNumber\n";
-	leaderboard += "Result[0].RowCount=1:" + std::to_string(entries.size()) + "\n";
+	leaderboard << "ADO.Result=7:1\n"; // Unused in 1.10.64, but is in captures
+	leaderboard << "Result.Count=1:1\n"; // number of results, always 1?
+	leaderboard << "Result[0].Index=0:RowNumber\n"; // "Primary key"
+	leaderboard << "Result[0].RowCount=1:" << entries.size() << '\n'; // number of rows
 
 	auto index = 0;
 	for (const auto& entry : entries) {
-		leaderboard += "Result[0].Row[" + std::to_string(index) + "].LastPlayed=8:" + std::to_string(entry.lastPlayed) + "\n";
-		leaderboard += "Result[0].Row[" + std::to_string(index) + "].CharacterID=8:" + std::to_string(entry.playerID) + "\n";
-		leaderboard += "Result[0].Row[" + std::to_string(index) + "].NumPlayed=1:1\n";
-		leaderboard += "Result[0].Row[" + std::to_string(index) + "].RowNumber=8:" + std::to_string(entry.placement) + "\n";
-		leaderboard += "Result[0].Row[" + std::to_string(index) + "].Time=1:" + std::to_string(entry.time) + "\n";
+		leaderboard << "Result[0].Row[" << index << "].LastPlayed=8:" << entry.lastPlayed << '\n';
+		leaderboard << "Result[0].Row[" << index << "].CharacterID=8:" << entry.playerID << '\n';
+		leaderboard << "Result[0].Row[" << index << "].NumPlayed=1:1\n"; // number of times the activity was played
+		leaderboard << "Result[0].Row[" << index << "].RowNumber=8:" << entry.placement << '\n';
+		leaderboard << "Result[0].Row[" << index << "].Time=1:" << entry.time << '\n';
 
 		// Only these minigames have a points system
 		if (leaderboardType == Survival || leaderboardType == ShootingGallery) {
-			leaderboard += "Result[0].Row[" + std::to_string(index) + "].Points=1:" + std::to_string(entry.score) + "\n";
+			leaderboard << "Result[0].Row[" << index << "].Points=1:"<< entry.score << '\n';
 		} else if (leaderboardType == SurvivalNS) {
-			leaderboard += "Result[0].Row[" + std::to_string(index) + "].Wave=1:" + std::to_string(entry.score) + "\n";
+			leaderboard << "Result[0].Row[" << index << "].Wave=1:"<< entry.score << '\n';
 		}
 
-		leaderboard += "Result[0].Row[" + std::to_string(index) + "].name=0:" + entry.playerName + "\n";
+		leaderboard << "Result[0].Row[" << index << "].name=0:" << entry.playerName << '\n';
 		index++;
 	}
 
 	// Serialize the thing to a BitStream
-	bitStream->WriteAlignedBytes((const unsigned char*)leaderboard.c_str(), leaderboard.size());
+	bitStream->Write(leaderboard.str().c_str(), leaderboard.tellp());
 }
 
 void Leaderboard::SetupLeaderboard() {
