@@ -10,17 +10,21 @@
 #include "CDClientManager.h"
 #include "GeneralUtils.h"
 #include "Entity.h"
+#include "LDFFormat.h"
 #include <sstream>
 
 #include "CDActivitiesTable.h"
 #include "Metrics.hpp"
 Leaderboard::Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const Leaderboard::Type leaderboardType) {
-	this->relatedPlayer = relatedPlayer;
 	this->gameID = gameID;
 	this->weekly = weekly;
 	this->infoType = infoType;
-	this->entries = entries;
 	this->leaderboardType = leaderboardType;
+}
+
+template<class TypeToWrite>
+void Leaderboard::WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, const std::string& key, const eLDFType& ldfType, const TypeToWrite& value) const {
+	leaderboard << "Result[0].Row[" << index << "]." << key << '=' << ldfType << ':' << value << '\n';
 }
 
 void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
@@ -33,20 +37,61 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
 
 	auto index = 0;
 	for (const auto& entry : entries) {
-		leaderboard << "Result[0].Row[" << index << "].LastPlayed=8:" << entry.lastPlayed << '\n';
-		leaderboard << "Result[0].Row[" << index << "].CharacterID=8:" << entry.playerID << '\n';
-		leaderboard << "Result[0].Row[" << index << "].NumPlayed=1:1\n"; // number of times the activity was played
-		leaderboard << "Result[0].Row[" << index << "].RowNumber=8:" << entry.placement << '\n';
-		leaderboard << "Result[0].Row[" << index << "].Time=1:" << entry.time << '\n';
+		WriteLeaderboardRow(leaderboard, index, "CharacterID", eLDFType::LDF_TYPE_U64, entry.playerID);
+		WriteLeaderboardRow(leaderboard, index, "LastPlayed", eLDFType::LDF_TYPE_U64, entry.lastPlayed);
+		WriteLeaderboardRow(leaderboard, index, "NumPlayed", eLDFType::LDF_TYPE_S32, 1);
+		WriteLeaderboardRow(leaderboard, index, "name", eLDFType::LDF_TYPE_UTF_16, entry.playerName);
 
-		// Only these minigames have a points system
-		if (leaderboardType == Survival || leaderboardType == ShootingGallery) {
-			leaderboard << "Result[0].Row[" << index << "].Points=1:"<< entry.score << '\n';
-		} else if (leaderboardType == SurvivalNS) {
-			leaderboard << "Result[0].Row[" << index << "].Wave=1:"<< entry.score << '\n';
+		// Each minigame has its own "points" system
+		switch (leaderboardType) {
+			case Type::ShootingGallery:
+			WriteLeaderboardRow(leaderboard, index, "HitPercentage", eLDFType::LDF_TYPE_FLOAT, 0.0f);
+			// HitPercentage:3 between 0 and 1
+			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_S32, entry.placement);
+			// RowNumber:1
+			WriteLeaderboardRow(leaderboard, index, "Score", eLDFType::LDF_TYPE_S32, entry.score);
+			// Score:1
+			case Type::Racing:
+			WriteLeaderboardRow(leaderboard, index, "BestLapTime", eLDFType::LDF_TYPE_FLOAT, 0.0f);
+			// BestLapTime:3
+			WriteLeaderboardRow(leaderboard, index, "BestTime", eLDFType::LDF_TYPE_FLOAT, 0.0f);
+			// BestTime:3
+			WriteLeaderboardRow(leaderboard, index, "License", eLDFType::LDF_TYPE_S32, 0);
+			// License:1
+			WriteLeaderboardRow(leaderboard, index, "NumWins", eLDFType::LDF_TYPE_S32, 0);
+			// NumWins:1
+			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_U64, entry.placement);
+			// RowNumber:8
+			case Type::MonumentRace:
+			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_S32, entry.placement);
+			// RowNumber:1
+			// Time:1(?)
+			case Type::FootRace:
+			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_S32, entry.placement);
+			// RowNumber:1
+			WriteLeaderboardRow(leaderboard, index, "Time", eLDFType::LDF_TYPE_S32, 0);
+			// Time:1
+			case Type::Survival:
+			WriteLeaderboardRow(leaderboard, index, "Points", eLDFType::LDF_TYPE_S32, entry.score);
+			// Points:1
+			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_S32, entry.placement);
+			// RowNumber:1
+			WriteLeaderboardRow(leaderboard, index, "Time", eLDFType::LDF_TYPE_S32, 0);
+			// Time:1
+			case Type::SurvivalNS:
+			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_U64, entry.placement);
+			// RowNumber:8
+			WriteLeaderboardRow(leaderboard, index, "Time", eLDFType::LDF_TYPE_S32, entry.time);
+			// Time:1
+			WriteLeaderboardRow(leaderboard, index, "Wave", eLDFType::LDF_TYPE_S32, entry.score);
+			// Wave:1
+			case Type::Donations:
+			// Something? idk yet.
+			case Type::None:
+				break;
+			default:
+				break;
 		}
-
-		leaderboard << "Result[0].Row[" << index << "].name=0:" << entry.playerName << '\n';
 		index++;
 	}
 

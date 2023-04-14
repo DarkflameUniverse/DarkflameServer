@@ -5,6 +5,7 @@
 
 #include "Singleton.h"
 #include "dCommonVars.h"
+#include "LDFFormat.h"
 
 namespace RakNet{
 	class BitStream;
@@ -36,7 +37,7 @@ public:
 		Racing,
 		MonumentRace,
 		FootRace,
-		// There is no 4
+		// There is no 4 defined anywhere in the client or cdclient
 		Survival = 5,
 		SurvivalNS,
 		Donations,
@@ -77,6 +78,8 @@ public:
 	 */
 	void AddEntry(Entry entry) { entries.push_back(entry); }
 private:
+template<class TypeToWrite>
+	inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, const std::string& key, const eLDFType& ldfType, const TypeToWrite& value) const;
 	LeaderboardEntries entries;
 	LWOOBJID relatedPlayer;
 	GameID gameID;
