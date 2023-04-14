@@ -36,8 +36,10 @@ public:
 		Racing,
 		MonumentRace,
 		FootRace,
+		// There is no 4
 		Survival = 5,
-		SurvivalNS = 6,
+		SurvivalNS,
+		Donations,
 		None = UINT_MAX
 	};
 
