@@ -130,7 +130,7 @@ void Mail::HandleMailStuff(RakNet::BitStream* packet, const SystemAddress& sysAd
 	int mailStuffID = 0;
 	packet->Read(mailStuffID);
 
-	std::async(std::launch::async, [packet, &sysAddr, entity, mailStuffID]() {
+	auto returnVal = std::async(std::launch::async, [packet, &sysAddr, entity, mailStuffID]() {
 		Mail::MailMessageID stuffID = MailMessageID(mailStuffID);
 		switch (stuffID) {
 		case MailMessageID::AttachmentCollect:
@@ -393,7 +393,7 @@ void Mail::HandleMailRead(RakNet::BitStream* packet, const SystemAddress& sysAdd
 }
 
 void Mail::HandleNotificationRequest(const SystemAddress& sysAddr, uint32_t objectID) {
-	std::async(std::launch::async, [&]() {
+	auto returnVal = std::async(std::launch::async, [&]() {
 		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM mail WHERE receiver_id=? AND was_read=0");
 		stmt->setUInt(1, objectID);
 		sql::ResultSet* res = stmt->executeQuery();

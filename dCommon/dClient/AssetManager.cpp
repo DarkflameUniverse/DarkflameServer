@@ -47,6 +47,10 @@ AssetManager::AssetManager(const std::filesystem::path& path) {
 			this->LoadPackIndex();
 			break;
 		}
+		case eAssetBundleType::None:
+		case eAssetBundleType::Unpacked: {
+			break;
+		}
 	}
 }
 
@@ -111,7 +115,7 @@ bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 		*len = ftell(file);
 		*data = (char*)malloc(*len);
 		fseek(file, 0, SEEK_SET);
-		fread(*data, sizeof(uint8_t), *len, file);
+		int32_t readInData = fread(*data, sizeof(uint8_t), *len, file);
 		fclose(file);
 
 		return true;

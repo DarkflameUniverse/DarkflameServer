@@ -65,6 +65,15 @@ void RakNet::BitStream::Write<AMFValue*>(AMFValue* value) {
 			this->Write((AMFArrayValue*)value);
 			break;
 		}
+		case AMFObject:
+		case AMFXML:
+		case AMFByteArray:
+		case AMFVectorInt:
+		case AMFVectorUInt:
+		case AMFVectorDouble:
+		case AMFVectorObject:
+		case AMFDictionary:
+			break;
 		}
 	}
 }
