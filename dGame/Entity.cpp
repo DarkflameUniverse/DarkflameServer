@@ -727,7 +727,7 @@ void Entity::Initialize() {
 
 	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
 		// Don't ghost what is likely large scene elements
-		if (m_Components.size() == 2 && HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER)) {
+		if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
 			goto no_ghosting;
 		}
 
@@ -1341,6 +1341,10 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
+
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnOffCollisionPhantom(this, other);
+	}
 
 	TriggerEvent(eTriggerEventType::EXIT, other);
 

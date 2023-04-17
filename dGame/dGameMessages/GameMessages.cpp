@@ -2571,7 +2571,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 	//We runs this in async because the http library here is blocking, meaning it'll halt the thread.
 	//But we don't want the server to go unresponsive, because then the client would disconnect.
-	std::async(std::launch::async, [&]() {
+	auto returnVal = std::async(std::launch::async, [&]() {
 
 		//We need to get a new ID for our model first:
 		ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t newID) {

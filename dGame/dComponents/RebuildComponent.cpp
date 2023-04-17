@@ -236,6 +236,7 @@ void RebuildComponent::Update(float deltaTime) {
 		}
 		break;
 	}
+	case REBUILD_RESETTING: break;
 	}
 }
 
