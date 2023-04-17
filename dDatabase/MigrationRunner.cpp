@@ -7,9 +7,6 @@
 #include "GeneralUtils.h"
 #include "dLogger.h"
 #include "BinaryPathFinder.h"
-#include "CDActivitiesTable.h"
-#include "CDClientManager.h"
-#include "LeaderboardManager.h"
 
 #include <istream>
 
