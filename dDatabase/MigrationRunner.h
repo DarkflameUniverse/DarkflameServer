@@ -10,4 +10,5 @@ struct Migration {
 namespace MigrationRunner {
 	void RunMigrations();
 	void RunSQLiteMigrations();
+	void MigrateLeaderboard();
 };

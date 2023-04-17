@@ -7,6 +7,8 @@
 #include "GeneralUtils.h"
 #include "dLogger.h"
 #include "BinaryPathFinder.h"
+#include "CDActivitiesTable.h"
+#include "CDClientManager.h"
 
 #include <istream>
 
@@ -56,6 +58,8 @@ void MigrationRunner::RunMigrations() {
 		Game::logger->Log("MigrationRunner", "Running migration: %s", migration.name.c_str());
 		if (migration.name == "dlu/5_brick_model_sd0.sql") {
 			runSd0Migrations = true;
+		} else if (migration.name == "dlu/10_Update_Leaderboard_Columns.sql") {
+			continue;
 		} else {
 			finalSQL.append(migration.data.c_str());
 		}
@@ -109,7 +113,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 
 		// Check if there is an entry in the migration history table on the cdclient database.
 		cdstmt = CDClientDatabase::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
-		cdstmt.bind((int32_t) 1, migration.name.c_str());
+		cdstmt.bind((int32_t)1, migration.name.c_str());
 		auto cdres = cdstmt.execQuery();
 		bool doExit = !cdres.eof();
 		cdres.finalize();
@@ -127,7 +131,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 		if (doExit) {
 			// Insert into cdclient database if there is an entry in the main database but not the cdclient database.
 			cdstmt = CDClientDatabase::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
-			cdstmt.bind((int32_t) 1, migration.name.c_str());
+			cdstmt.bind((int32_t)1, migration.name.c_str());
 			cdstmt.execQuery().finalize();
 			cdstmt.finalize();
 			continue;
@@ -148,11 +152,31 @@ void MigrationRunner::RunSQLiteMigrations() {
 
 		// Insert into cdclient database.
 		cdstmt = CDClientDatabase::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
-		cdstmt.bind((int32_t) 1, migration.name.c_str());
+		cdstmt.bind((int32_t)1, migration.name.c_str());
 		cdstmt.execQuery().finalize();
 		cdstmt.finalize();
 		CDClientDatabase::ExecuteQuery("COMMIT;");
 	}
 
 	Game::logger->Log("MigrationRunner", "CDServer database is up to date.");
+}
+
+void MigrationRunner::MigrateLeaderboard() {
+	Game::logger->Log("MigrationRunner", "Checking if leaderboard migration needs to be run...");
+	{
+		std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("SELECT * FROM migration_history WHERE name = ?;"));
+		stmt->setString(1, "dlu/10_Update_Leaderboard_Columns.sql");
+		std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+		if (res->next()) {
+			Game::logger->Log("MigrationRunner", "Leaderboard migration has already been run.");
+			return;
+		}
+	}
+	auto activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	auto leaderboards = activitiesTable->Query([=](const CDActivities& entry) {
+		return entry.leaderboardType != -1;
+	});
+	for (auto entry : leaderboards) {
+		Game::logger->Log("MigrationRunner", "Got leaderboard type %i for activity %i", entry.leaderboardType, entry.ActivityID);
+	}
 }

@@ -150,12 +150,6 @@ int main(int argc, char** argv) {
 	const bool oldCDServerExists = std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite");
 	const bool fdbExists = std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb");
 
-	auto query = Database::CreatePreppedStmt("select name, score, time, UNIX_TIMESTAMP(last_played) as lastPlayed from leaderboard as l join charinfo as ci on ci.id = l.character_id where game_id = 1864 order by score desc, time desc limit 11;");
-	auto myResult = query->executeQuery();
-	while (myResult->next()) {
-		Game::logger->Log("MasterServer", "%s %i %i %i", myResult->getString("name").c_str(), myResult->getInt("score"), myResult->getInt("time"), myResult->getInt("lastPlayed"));
-	}
-
 	if (!cdServerExists) {
 		if (oldCDServerExists) {
 			// If the file doesn't exist in the new CDServer location, copy it there.  We copy because we may not have write permissions from the previous directory.
@@ -207,6 +201,9 @@ int main(int argc, char** argv) {
 		Game::logger->Log("WorldServer", "Error Code: %i", e.errorCode());
 		return EXIT_FAILURE;
 	}
+
+	// This migration relies on cdclient data so run it last
+	MigrationRunner::MigrateLeaderboard();
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.

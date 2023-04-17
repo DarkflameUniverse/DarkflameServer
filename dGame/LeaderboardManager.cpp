@@ -41,53 +41,59 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
 		WriteLeaderboardRow(leaderboard, index, "LastPlayed", eLDFType::LDF_TYPE_U64, entry.lastPlayed);
 		WriteLeaderboardRow(leaderboard, index, "NumPlayed", eLDFType::LDF_TYPE_S32, 1);
 		WriteLeaderboardRow(leaderboard, index, "name", eLDFType::LDF_TYPE_UTF_16, entry.playerName);
+		WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_S32, entry.placement);
 
 		// Each minigame has its own "points" system
 		switch (leaderboardType) {
 			case Type::ShootingGallery:
-			WriteLeaderboardRow(leaderboard, index, "HitPercentage", eLDFType::LDF_TYPE_FLOAT, 0.0f);
-			// HitPercentage:3 between 0 and 1
-			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_S32, entry.placement);
-			// RowNumber:1
-			WriteLeaderboardRow(leaderboard, index, "Score", eLDFType::LDF_TYPE_S32, entry.score);
-			// Score:1
+				WriteLeaderboardRow(leaderboard, index, "HitPercentage", eLDFType::LDF_TYPE_FLOAT, 0.0f);
+				// HitPercentage:3 between 0 and 1
+				WriteLeaderboardRow(leaderboard, index, "Score", eLDFType::LDF_TYPE_S32, entry.score);
+				// Score:1
+				WriteLeaderboardRow(leaderboard, index, "Streak", eLDFType::LDF_TYPE_S32, 0);
+				// Streak:1
+				break;
 			case Type::Racing:
-			WriteLeaderboardRow(leaderboard, index, "BestLapTime", eLDFType::LDF_TYPE_FLOAT, 0.0f);
-			// BestLapTime:3
-			WriteLeaderboardRow(leaderboard, index, "BestTime", eLDFType::LDF_TYPE_FLOAT, 0.0f);
-			// BestTime:3
-			WriteLeaderboardRow(leaderboard, index, "License", eLDFType::LDF_TYPE_S32, 0);
-			// License:1
-			WriteLeaderboardRow(leaderboard, index, "NumWins", eLDFType::LDF_TYPE_S32, 0);
-			// NumWins:1
-			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_U64, entry.placement);
-			// RowNumber:8
+				WriteLeaderboardRow(leaderboard, index, "BestLapTime", eLDFType::LDF_TYPE_FLOAT, 0.0f);
+				// BestLapTime:3
+				WriteLeaderboardRow(leaderboard, index, "BestTime", eLDFType::LDF_TYPE_FLOAT, 0.0f);
+				// BestTime:3
+				WriteLeaderboardRow(leaderboard, index, "License", eLDFType::LDF_TYPE_S32, 0);
+				// License:1
+				WriteLeaderboardRow(leaderboard, index, "NumWins", eLDFType::LDF_TYPE_S32, 0);
+				// NumWins:1
+				break;
+			case Type::UnusedLeaderboard4:
+				WriteLeaderboardRow(leaderboard, index, "Points", eLDFType::LDF_TYPE_S32, entry.score);
+				// Points:1
+				break;
 			case Type::MonumentRace:
-			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_S32, entry.placement);
-			// RowNumber:1
-			// Time:1(?)
+				WriteLeaderboardRow(leaderboard, index, "Time", eLDFType::LDF_TYPE_S32, entry.time);
+				// Time:1(?)
+				break;
 			case Type::FootRace:
-			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_S32, entry.placement);
-			// RowNumber:1
-			WriteLeaderboardRow(leaderboard, index, "Time", eLDFType::LDF_TYPE_S32, 0);
-			// Time:1
+				WriteLeaderboardRow(leaderboard, index, "Time", eLDFType::LDF_TYPE_S32, entry.time);
+				// Time:1
+				break;
 			case Type::Survival:
-			WriteLeaderboardRow(leaderboard, index, "Points", eLDFType::LDF_TYPE_S32, entry.score);
-			// Points:1
-			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_S32, entry.placement);
-			// RowNumber:1
-			WriteLeaderboardRow(leaderboard, index, "Time", eLDFType::LDF_TYPE_S32, 0);
-			// Time:1
+				WriteLeaderboardRow(leaderboard, index, "Points", eLDFType::LDF_TYPE_S32, entry.score);
+				// Points:1
+				WriteLeaderboardRow(leaderboard, index, "Time", eLDFType::LDF_TYPE_S32, entry.time);
+				// Time:1
+				break;
 			case Type::SurvivalNS:
-			WriteLeaderboardRow(leaderboard, index, "RowNumber", eLDFType::LDF_TYPE_U64, entry.placement);
-			// RowNumber:8
-			WriteLeaderboardRow(leaderboard, index, "Time", eLDFType::LDF_TYPE_S32, entry.time);
-			// Time:1
-			WriteLeaderboardRow(leaderboard, index, "Wave", eLDFType::LDF_TYPE_S32, entry.score);
-			// Wave:1
+				WriteLeaderboardRow(leaderboard, index, "Time", eLDFType::LDF_TYPE_S32, entry.time);
+				// Time:1
+				WriteLeaderboardRow(leaderboard, index, "Wave", eLDFType::LDF_TYPE_S32, entry.score);
+				// Wave:1
+				break;
 			case Type::Donations:
-			// Something? idk yet.
+				WriteLeaderboardRow(leaderboard, index, "Score", eLDFType::LDF_TYPE_S32, entry.score);
+				// Score:1				
+				// Something? idk yet.
+				break;
 			case Type::None:
+				// This type is included here simply to resolve a compiler warning on mac about unused enum types
 				break;
 			default:
 				break;

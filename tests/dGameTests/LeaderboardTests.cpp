@@ -32,6 +32,15 @@ protected:
 		bitStream.Reset();
 	}
 
+	void RunTests(Leaderboard::Type type) {
+		Game::logger->Log("LeaderboardTests", "Testing leaderboard %i for Serialize speed", type);
+		Leaderboard leaderboard(0, Leaderboard::InfoType::Top, false, type);
+		TestLeaderboard(leaderboard, 1);
+		TestLeaderboard(leaderboard, 10);
+		TestLeaderboard(leaderboard, 100);
+		TestLeaderboard(leaderboard, 1000);
+	}
+
 	CBITSTREAM;
 };
 
@@ -68,9 +77,5 @@ protected:
  */
 
 TEST_F(LeaderboardTests, LeaderboardSpeedTest) {
-	Leaderboard leaderboard(10, Leaderboard::InfoType::MyStanding, false, Leaderboard::Type::Survival);
-	TestLeaderboard(leaderboard, 1);
-	TestLeaderboard(leaderboard, 10);
-	TestLeaderboard(leaderboard, 100);
-	TestLeaderboard(leaderboard, 1000);
+	RunTests(Leaderboard::Type::Racing);
 }

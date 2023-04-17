@@ -37,7 +37,7 @@ public:
 		Racing,
 		MonumentRace,
 		FootRace,
-		// There is no 4 defined anywhere in the client or cdclient
+		UnusedLeaderboard4,// There is no 4 defined anywhere in the client or cdclient
 		Survival = 5,
 		SurvivalNS,
 		Donations,
