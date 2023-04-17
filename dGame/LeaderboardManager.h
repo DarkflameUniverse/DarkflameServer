@@ -37,8 +37,8 @@ public:
 		Racing,
 		MonumentRace,
 		FootRace,
-		UnusedLeaderboard4,// There is no 4 defined anywhere in the client or cdclient
-		Survival = 5,
+		UnusedLeaderboard4, // There is no 4 defined anywhere in the cdclient, but it takes a Score.
+		Survival,
 		SurvivalNS,
 		Donations,
 		None = UINT_MAX

@@ -9,6 +9,7 @@
 #include "BinaryPathFinder.h"
 #include "CDActivitiesTable.h"
 #include "CDClientManager.h"
+#include "LeaderboardManager.h"
 
 #include <istream>
 
@@ -58,8 +59,6 @@ void MigrationRunner::RunMigrations() {
 		Game::logger->Log("MigrationRunner", "Running migration: %s", migration.name.c_str());
 		if (migration.name == "dlu/5_brick_model_sd0.sql") {
 			runSd0Migrations = true;
-		} else if (migration.name == "dlu/10_Update_Leaderboard_Columns.sql") {
-			continue;
 		} else {
 			finalSQL.append(migration.data.c_str());
 		}
@@ -159,24 +158,4 @@ void MigrationRunner::RunSQLiteMigrations() {
 	}
 
 	Game::logger->Log("MigrationRunner", "CDServer database is up to date.");
-}
-
-void MigrationRunner::MigrateLeaderboard() {
-	Game::logger->Log("MigrationRunner", "Checking if leaderboard migration needs to be run...");
-	{
-		std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("SELECT * FROM migration_history WHERE name = ?;"));
-		stmt->setString(1, "dlu/10_Update_Leaderboard_Columns.sql");
-		std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
-		if (res->next()) {
-			Game::logger->Log("MigrationRunner", "Leaderboard migration has already been run.");
-			return;
-		}
-	}
-	auto activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
-	auto leaderboards = activitiesTable->Query([=](const CDActivities& entry) {
-		return entry.leaderboardType != -1;
-	});
-	for (auto entry : leaderboards) {
-		Game::logger->Log("MigrationRunner", "Got leaderboard type %i for activity %i", entry.leaderboardType, entry.ActivityID);
-	}
 }

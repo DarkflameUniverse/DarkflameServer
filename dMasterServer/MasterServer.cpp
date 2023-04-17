@@ -202,9 +202,6 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	// This migration relies on cdclient data so run it last
-	MigrationRunner::MigrateLeaderboard();
-
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
 	if (argc > 1 &&
