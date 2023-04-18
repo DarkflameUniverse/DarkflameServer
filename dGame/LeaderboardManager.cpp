@@ -59,7 +59,7 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
 				WriteLeaderboardRow(leaderboard, index, "BestTime", eLDFType::LDF_TYPE_FLOAT, 0.0f);
 				// BestTime:3
 				WriteLeaderboardRow(leaderboard, index, "License", eLDFType::LDF_TYPE_S32, 0);
-				// License:1
+				// License:1 - 1 if player has completed mission 637 and 0 otherwise
 				WriteLeaderboardRow(leaderboard, index, "NumWins", eLDFType::LDF_TYPE_S32, 0);
 				// NumWins:1
 				break;
@@ -118,100 +118,92 @@ void Leaderboard::Send(LWOOBJID targetID) const {
 	}
 }
 
-void LeaderboardManager::SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t score, uint32_t time) {
-	const auto* player = EntityManager::Instance()->GetEntity(playerID);
-	if (player == nullptr)
-		return;
+void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, uint32_t argumentCount, ...) {
+	va_list args;
+	va_start(args, argumentCount);
+	SaveScore(playerID, gameID, leaderboardType, args);
+	va_end(args);
+}
 
-	auto* character = player->GetCharacter();
-	if (!character)
-		return;
+std::string FormatInsert(const char* columns, const char* format, va_list args) {
+	auto queryBase = "INSERT INTO leaderboard (%s) VALUES (%s)";
+	constexpr uint16_t STRING_LENGTH = 400;
+	char formattedInsert[STRING_LENGTH];
+	char finishedQuery[STRING_LENGTH];
+	snprintf(formattedInsert, 400, queryBase, columns, format);
+	vsnprintf(finishedQuery, 400, formattedInsert, args);
+	return finishedQuery;
+}
 
-	std::unique_ptr<sql::PreparedStatement> select(Database::CreatePreppedStmt("SELECT time, score FROM leaderboard WHERE character_id = ? AND game_id = ?;"));
+void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, va_list args){
+	std::string insertStatement;
+	// use replace into to update the score if it already exists instead of needing an update and an insert
+	switch (leaderboardType) {
+		case Leaderboard::Type::ShootingGallery: {
+			// Check that the score exists and is better. If the score is better update it.
+			// If the score is the same but the streak is better, update it.
+			// If the score is the same and the streak is the same but the hit percentage is better, update it.
+			// If the score doesn't exist, insert it.
+			auto lookup = Database::CreatePreppedStmt("SELECT score, streak, hitPercentage FROM leaderboard WHERE playerID = ? AND gameID = ?");
+			lookup->setInt64(1, playerID);
+			lookup->setInt(2, gameID);
+			auto lookupResult = lookup->executeQuery();
+			if (lookupResult->next()) {
 
-	select->setUInt64(1, character->GetID());
-	select->setInt(2, gameID);
-
-	auto any = false;
-	auto* result = select->executeQuery();
-	auto leaderboardType = GetLeaderboardType(gameID);
-
-	// Check if the new score is a high score
-	while (result->next()) {
-		any = true;
-
-		const auto storedTime = result->getInt(1);
-		const auto storedScore = result->getInt(2);
-		auto highscore = true;
-		bool classicSurvivalScoring = Game::config->GetValue("classic_survival_scoring") == "1";
-
-		switch (leaderboardType) {
-		case Leaderboard::Type::ShootingGallery:
-			if (score <= storedScore)
-				highscore = false;
-			break;
-		case Leaderboard::Type::Racing:
-			if (time >= storedTime)
-				highscore = false;
-			break;
-		case Leaderboard::Type::MonumentRace:
-			if (time >= storedTime)
-				highscore = false;
-			break;
-		case Leaderboard::Type::FootRace:
-			if (time <= storedTime)
-				highscore = false;
-			break;
-		case Leaderboard::Type::Survival:
-			if (classicSurvivalScoring) {
-				if (time <= storedTime) { // Based on time (LU live)
-					highscore = false;
-				}
 			} else {
-				if (score <= storedScore) // Based on score (DLU)
-					highscore = false;
+				auto result = FormatInsert("hitPercentage, score, streak", "%f, %i, %i", args);
+				Game::logger->Log("LeaderboardManager", "%s", result.c_str());
 			}
 			break;
-		case Leaderboard::Type::SurvivalNS:
-			if (!(score > storedScore || (time < storedTime && score >= storedScore)))
-				highscore = false;
-			break;
-		default:
-			highscore = false;
 		}
-
-		if (!highscore) {
-			delete result;
+		case Leaderboard::Type::Racing: {
+			auto result = FormatInsert("bestLapTime, bestTime", "%f, %f", args);
+			Game::logger->Log("LeaderboardManager", "%s", result.c_str());
+			break;
+		}
+		case Leaderboard::Type::UnusedLeaderboard4: {
+			auto result = FormatInsert("points", "%i", args);
+			Game::logger->Log("LeaderboardManager", "%s", result.c_str());
+			break;
+		}
+		case Leaderboard::Type::MonumentRace: {
+			auto result = FormatInsert("time", "%i", args);
+			Game::logger->Log("LeaderboardManager", "%s", result.c_str());
+			break;
+		}
+		case Leaderboard::Type::FootRace: {
+			auto result = FormatInsert("time", "%i", args);
+			Game::logger->Log("LeaderboardManager", "%s", result.c_str());
+			break;
+		}
+		case Leaderboard::Type::Survival: {
+			auto result = FormatInsert("points, time", "%i, %i", args);
+			Game::logger->Log("LeaderboardManager", "%s", result.c_str());
+			break;
+		}
+		case Leaderboard::Type::SurvivalNS: {
+			auto result = FormatInsert("time, wave", "%i, %i", args);
+			Game::logger->Log("LeaderboardManager", "%s", result.c_str());
+			break;
+		}
+		case Leaderboard::Type::Donations: {
+			auto result = FormatInsert("score", "%i", args);
+			Game::logger->Log("LeaderboardManager", "%s", result.c_str());
+			break;
+		}
+		case Leaderboard::Type::None: {
+			Game::logger->Log("LeaderboardManager", "Warning: Saving leaderboard of type None. Are you sure this is intended?");
+			break;
+		}
+		default: {
+			Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i.  Cannot save score!", leaderboardType);
 			return;
 		}
 	}
 
-	delete result;
-
-	if (any) {
-		auto* statement = Database::CreatePreppedStmt("UPDATE leaderboard SET time = ?, score = ?, last_played=SYSDATE() WHERE character_id = ? AND game_id = ?;");
-		statement->setInt(1, time);
-		statement->setInt(2, score);
-		statement->setUInt64(3, character->GetID());
-		statement->setInt(4, gameID);
-		statement->execute();
-
-		delete statement;
-	} else {
-		// Note: last_played will be set to SYSDATE() by default when inserting into leaderboard
-		auto* statement = Database::CreatePreppedStmt("INSERT INTO leaderboard (character_id, game_id, time, score) VALUES (?, ?, ?, ?);");
-		statement->setUInt64(1, character->GetID());
-		statement->setInt(2, gameID);
-		statement->setInt(3, time);
-		statement->setInt(4, score);
-		statement->execute();
-
-		delete statement;
-	}
 }
 
-void LeaderboardManager::SendLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID targetID,
-	LWOOBJID playerID) {
+void LeaderboardManager::SendLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID targetID, LWOOBJID playerID) {
 	// Create the leaderboard here and then send it right after.  On the stack.
 	Leaderboard leaderboard(gameID, infoType, weekly, GetLeaderboardType(gameID));
 	leaderboard.SetupLeaderboard();

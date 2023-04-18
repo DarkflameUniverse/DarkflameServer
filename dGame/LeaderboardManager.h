@@ -93,10 +93,19 @@ class LeaderboardManager: public Singleton<LeaderboardManager> {
 public:
 	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID targetID,
 		LWOOBJID playerID = LWOOBJID_EMPTY);
-	void SaveScore(LWOOBJID playerID, GameID gameID, uint32_t score, uint32_t time);
+	/**
+	 * @brief Public facing Score saving method.  This method is simply a wrapper to ensure va_end is called properly.
+	 * 
+	 * @param playerID The player whos score to save
+	 * @param gameID The ID of the game which was played
+	 * @param argumentCount The number of arguments in the va_list
+	 * @param ... 
+	 */
+	void SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, uint32_t argumentCount, ...);
 private:
-	Leaderboard::Type GetLeaderboardType(const GameID gameID);
+	void SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, va_list args);
 	void GetLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID = LWOOBJID_EMPTY);
+	Leaderboard::Type GetLeaderboardType(const GameID gameID);
 	LeaderboardCache leaderboardCache;
 };
 
