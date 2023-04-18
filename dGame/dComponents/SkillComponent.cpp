@@ -260,6 +260,8 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	context->caster = m_Parent->GetObjectID();
 
+	context->skillID = skillId;
+
 	context->clientInitalized = clientInitalized;
 
 	context->foundTarget = target != LWOOBJID_EMPTY || ignoreTarget || clientInitalized;
