@@ -2,12 +2,8 @@
 #define __TRIGGERCOMPONENT__H__
 
 #include "Component.h"
+#include "LUTriggers.h"
 #include "eReplicaComponentType.h"
-
-namespace LUTriggers {
-	struct Trigger;
-	struct Command;
-};
 
 class TriggerComponent : public Component {
 public:
@@ -17,18 +13,37 @@ public:
 
 	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	LUTriggers::Trigger* GetTrigger() const { return m_Trigger; }
+	void SetTriggerEnabled(bool enabled){ m_Trigger->enabled = enabled; };
+
 
 private:
 
 	void HandleTriggerCommand(LUTriggers::Command* command, Entity* optionalTarget);
-	std::vector<std::string> ParseArgs(std::string args);
 	std::vector<Entity*> GatherTargets(LUTriggers::Command* command, Entity* optionalTarget);
 
 	// Trigger Event Handlers
-	void HandleSetPhysicsVolume(Entity* targetEntity, std::vector<std::string> argArray, std::string target);
-	void HandleUpdateMission(Entity* targetEntity, std::vector<std::string> argArray);
 	void HandleFireEvent(Entity* targetEntity, std::string args);
-	void HandleCastSkill(Entity* targetEntity, uint32_t skillID);
+	void HandleDestroyObject(Entity* targetEntity, std::string args);
+	void HandleToggleTrigger(Entity* targetEntity, std::string args);
+	void HandleResetRebuild(Entity* targetEntity, std::string args);
+	void HandleMoveObject(Entity* targetEntity, std::vector<std::string> argArray);
+	void HandleRotateObject(Entity* targetEntity, std::vector<std::string> argArray);
+	void HandlePushObject(Entity* targetEntity, std::vector<std::string> argArray);
+	void HandleRepelObject(Entity* targetEntity, std::string args);
+	void HandleSetTimer(Entity* targetEntity, std::vector<std::string> argArray);
+	void HandleCancelTimer(Entity* targetEntity, std::string args);
+	void HandlePlayCinematic(Entity* targetEntity, std::vector<std::string> argArray);
+	void HandleToggleBBB(Entity* targetEntity, std::string args);
+	void HandleUpdateMission(Entity* targetEntity, std::vector<std::string> argArray);
+	void HandlePlayEffect(Entity* targetEntity, std::vector<std::string> argArray);
+	void HandleCastSkill(Entity* targetEntity, std::string args);
+	void HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::vector<std::string> argArray);
+	void HandleSetPhysicsVolumeStatus(Entity* targetEntity, std::string args);
+	void HandleActivateSpawnerNetwork(std::string args);
+	void HandleDeactivateSpawnerNetwork(std::string args);
+	void HandleResetSpawnerNetwork(std::string args);
+	void HandleDestroySpawnerNetworkObjects(std::string args);
+	void HandleActivatePhysics(Entity* targetEntity, std::string args);
 
 	LUTriggers::Trigger* m_Trigger;
 };

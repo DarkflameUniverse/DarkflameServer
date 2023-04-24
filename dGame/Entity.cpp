@@ -728,7 +728,7 @@ void Entity::Initialize() {
 
 	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
 		// Don't ghost what is likely large scene elements
-		if (m_Components.size() == 2 && HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER)) {
+		if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
 			goto no_ghosting;
 		}
 
@@ -764,7 +764,7 @@ void Entity::Initialize() {
 
 no_ghosting:
 
-	TriggerEvent(eTriggerEventType::CREATE);
+	TriggerEvent(eTriggerEventType::CREATE, this);
 
 	if (m_Character) {
 		auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
@@ -1233,6 +1233,7 @@ void Entity::Update(const float deltaTime) {
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
 		} else {
 			timerPosition++;
 		}
@@ -1343,6 +1344,10 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
 
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnOffCollisionPhantom(this, other);
+	}
+
 	TriggerEvent(eTriggerEventType::EXIT, other);
 
 	SwitchComponent* switchComp = GetComponent<SwitchComponent>();
@@ -1391,7 +1396,7 @@ void Entity::OnEmoteReceived(const int32_t emote, Entity* target) {
 }
 
 void Entity::OnUse(Entity* originator) {
-	TriggerEvent(eTriggerEventType::INTERACT);
+	TriggerEvent(eTriggerEventType::INTERACT, originator);
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnUse(this, originator);
@@ -1413,6 +1418,7 @@ void Entity::OnHitOrHealResult(Entity* attacker, int32_t damage) {
 }
 
 void Entity::OnHit(Entity* attacker) {
+	TriggerEvent(eTriggerEventType::HIT, attacker);
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnHit(this, attacker);
 	}

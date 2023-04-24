@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <stdexcept>
 #include <BitStream.h>
+#include "NiPoint3.h"
 
 #include "Game.h"
 #include "dLogger.h"
@@ -139,7 +140,7 @@ namespace GeneralUtils {
 
 	std::vector<std::wstring> SplitString(std::wstring& str, wchar_t delimiter);
 
-	std::vector<std::u16string> SplitString(std::u16string& str, char16_t delimiter);
+	std::vector<std::u16string> SplitString(const std::u16string& str, char16_t delimiter);
 
 	std::vector<std::string> SplitString(const std::string& str, char delimiter);
 
@@ -208,6 +209,8 @@ namespace GeneralUtils {
 	bool TryParse(const std::string& value, T& dst) {
 		return TryParse<T>(value.c_str(), dst);
 	}
+
+	bool TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst);
 
 	template<typename T>
 	std::u16string to_u16string(T value) {

@@ -14,6 +14,7 @@
 #include "EntityManager.h"
 #include "ControllablePhysicsComponent.h"
 #include "GameMessages.h"
+#include "ePhysicsEffectType.h"
 
 #include "CDClientManager.h"
 #include "CDComponentsRegistryTable.h"
@@ -36,7 +37,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	m_PositionInfoDirty = false;
 
 	m_IsPhysicsEffectActive = false;
-	m_EffectType = 0;
+	m_EffectType = ePhysicsEffectType::PUSH;
 	m_DirectionalMultiplier = 0.0f;
 
 	m_MinMax = false;
@@ -213,6 +214,13 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 4.5f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
+			m_dpEntity->SetPosition(m_Position);
+			dpWorld::Instance().AddEntity(m_dpEntity);
+		} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx"){
+			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
+			m_dpEntity->SetScale(m_Scale);
+			m_dpEntity->SetRotation(m_Rotation);
+			m_Position.y -= (111.467964f * m_Scale) / 2;
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else {
@@ -405,7 +413,7 @@ void PhantomPhysicsComponent::SetDirectionalMultiplier(float mul) {
 	m_EffectInfoDirty = true;
 }
 
-void PhantomPhysicsComponent::SetEffectType(uint32_t type) {
+void PhantomPhysicsComponent::SetEffectType(ePhysicsEffectType type) {
 	m_EffectType = type;
 	m_EffectInfoDirty = true;
 }

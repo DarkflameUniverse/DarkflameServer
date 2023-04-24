@@ -22,13 +22,9 @@ void SwitchMultipleBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 	for (unsigned int i = 0; i < this->m_behaviors.size(); i++) {
 
 		const double data = this->m_behaviors.at(i).first;
+		trigger = i;
 
-		if (value <= data) {
-
-			trigger = i;
-
-			break;
-		}
+		if (value <= data) break;
 	}
 
 	auto* behavior = this->m_behaviors.at(trigger).second;

@@ -673,6 +673,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	case GAME_MSG_ACTIVATE_BUBBLE_BUFF:
 		GameMessages::HandleActivateBubbleBuff(inStream, entity);
 		break;
+	case GAME_MSG_ZONE_SUMMARY_DISMISSED:
+		GameMessages::HandleZoneSummaryDismissed(inStream, entity);
+		break;
 	default:
 		// Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i", messageID);
 		break;

@@ -109,4 +109,5 @@ private:
 	bool m_IsOnRail;
 
 	float m_SoftUpdate = 0;
+	uint32_t m_EndBehavior;
 };

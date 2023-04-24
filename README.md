@@ -245,29 +245,10 @@ To connect to a server follow these steps:
 * In the client directory, locate `boot.cfg`
 * Open it in a text editor and locate where it says `AUTHSERVERIP=0:`
 * Replace the contents after to `:` and the following `,` with what you configured as the server's public facing IP. For example `AUTHSERVERIP=0:localhost` for locally hosted servers
+* Next locate the line `UGCUSE3DSERVICES=7:`
+* Ensure the number after the 7 is a `0`
 * Launch `legouniverse.exe`, through `wine` if on a Unix-like operating system
 * Note that if you are on WSL2, you will need to configure the public IP in the server and client to be the IP of the WSL2 instance and not localhost, which can be found by running `ifconfig` in the terminal. Windows defaults to WSL1, so this will not apply to most users.
-
-## Brick-By-Brick building
-Should you choose to do any brick building, you will want to have some form of a http server that returns a 404 error since we are unable to emulate live User Generated Content at the moment. If you attempt to do any brick building without a 404 server running properly, you will be unable to load into your game. Python is the easiest way to do this, but any thing that returns a 404 should work fine.
-* Note: the client hard codes this request on port 80.
-
-<font size="4">**If you do not plan on doing any Brick Building, then you can skip this step.**</font>
-
-The easiest way to do this is to install [python](https://www.python.org/downloads/).
-
-### Allowing a user to build in Brick-by-Brick mode
-Brick-By-Brick building requires `PATCHSERVERIP=0:` and `UGCSERVERIP=0:` in the `boot.cfg` to point to a HTTP server which always returns `HTTP 404 - Not Found` for all requests. This can be most easily achieved by pointing both of those variables to `localhost` while having running in the background.
-Each client must have their own 404 server running if they are using a locally hosted 404 server.
-```bash
-# If on linux run this command. Because this is run on a port below 1024, binary network permissions are needed.
-sudo python3 -m http.server 80
-
-# If on windows one of the following will work when run through Powershell or Command Prompt assuming python is installed
-python3 -m http.server 80
-python http.server 80
-py -m http.server 80
-```
 
 ## Updating your server
 To update your server to the latest version navigate to your cloned directory

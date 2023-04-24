@@ -83,44 +83,24 @@
 #include "CDZoneTableTable.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
+	auto commandCopy = command;
+	// Sanity check that a command was given
+	if (command.empty() || command.front() != u'/') return;
+	commandCopy.erase(commandCopy.begin());
+
+	// Split the command by spaces
 	std::string chatCommand;
 	std::vector<std::string> args;
+	auto wideCommand = GeneralUtils::SplitString(commandCopy, u' ');
+	if (wideCommand.empty()) return;
 
-	uint32_t breakIndex = 0;
-	for (uint32_t i = 1; i < command.size(); ++i) {
-		if (command[i] == L' ') {
-			breakIndex = i;
-			break;
-		}
+	// Convert the command to lowercase
+	chatCommand = GeneralUtils::UTF16ToWTF8(wideCommand.front());
+	std::transform(chatCommand.begin(), chatCommand.end(), chatCommand.begin(), ::tolower);
+	wideCommand.erase(wideCommand.begin());
 
-		chatCommand.push_back(static_cast<unsigned char>(command[i]));
-		breakIndex++;
-	}
-
-	uint32_t index = ++breakIndex;
-	while (true) {
-		std::string arg;
-
-		while (index < command.size()) {
-			if (command[index] == L' ') {
-				args.push_back(arg);
-				arg = "";
-				index++;
-				continue;
-			}
-
-			arg.push_back(static_cast<char>(command[index]));
-			index++;
-		}
-
-		if (arg != "") {
-			args.push_back(arg);
-		}
-
-		break;
-	}
-
-	//Game::logger->Log("SlashCommandHandler", "Received chat command \"%s\"", GeneralUtils::UTF16ToWTF8(command).c_str());
+	// Convert the arguements to not u16strings
+	for (auto wideArg : wideCommand) args.push_back(GeneralUtils::UTF16ToWTF8(wideArg));
 
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if ((chatCommand == "setgmlevel" || chatCommand == "makegm" || chatCommand == "gmlevel") && user->GetMaxGMLevel() > eGameMasterLevel::CIVILIAN) {
@@ -174,7 +154,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 #endif
 
-	if (chatCommand == "togglenameplate" && (Game::config->GetValue("allownameplateoff") == "1" || entity->GetGMLevel() > eGameMasterLevel::DEVELOPER)) {
+	if (chatCommand == "togglenameplate" && (Game::config->GetValue("allow_nameplate_off") == "1" || entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER)) {
 		auto* character = entity->GetCharacter();
 
 		if (character && character->GetBillboardVisible()) {
@@ -2019,7 +1999,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				auto* phantomPhysicsComponent = closest->GetComponent<PhantomPhysicsComponent>();
 
 				if (phantomPhysicsComponent != nullptr) {
-					ChatPackets::SendSystemMessage(sysAddr, u"Type: " + (GeneralUtils::to_u16string(phantomPhysicsComponent->GetEffectType())));
+					ChatPackets::SendSystemMessage(sysAddr, u"Type: " + (GeneralUtils::to_u16string(static_cast<uint32_t>(phantomPhysicsComponent->GetEffectType()))));
 					const auto dir = phantomPhysicsComponent->GetDirection();
 					ChatPackets::SendSystemMessage(sysAddr, u"Direction: <" + (GeneralUtils::to_u16string(dir.x)) + u", " + (GeneralUtils::to_u16string(dir.y)) + u", " + (GeneralUtils::to_u16string(dir.z)) + u">");
 					ChatPackets::SendSystemMessage(sysAddr, u"Multiplier: " + (GeneralUtils::to_u16string(phantomPhysicsComponent->GetDirectionalMultiplier())));

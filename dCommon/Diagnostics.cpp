@@ -111,7 +111,7 @@ static void ErrorCallback(void* data, const char* msg, int errnum) {
 
 void GenerateDump() {
 	std::string cmd = "sudo gcore " + std::to_string(getpid());
-	system(cmd.c_str());
+	int ret = system(cmd.c_str()); // Saving a return just to prevent warning
 }
 
 void CatchUnhandled(int sig) {

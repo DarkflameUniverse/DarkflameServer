@@ -4,6 +4,7 @@
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "eEndBehavior.h"
 
 void NtAssemblyTubeServer::OnStartup(Entity* self) {
 	self->SetProximityRadius(5, "teleport");
@@ -45,7 +46,7 @@ void NtAssemblyTubeServer::RunAssemblyTube(Entity* self, Entity* player) {
 		if (!teleCinematic.empty()) {
 			const auto teleCinematicUname = teleCinematic;
 			GameMessages::SendPlayCinematic(player->GetObjectID(), teleCinematicUname, player->GetSystemAddress(),
-				true, true, true, false, 0, false, -1, false, true
+				true, true, true, false, eEndBehavior::RETURN, false, -1, false, true
 			);
 		}
 
