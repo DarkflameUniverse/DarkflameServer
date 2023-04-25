@@ -75,6 +75,7 @@
 #include "eMissionState.h"
 #include "TriggerComponent.h"
 #include "eServerDisconnectIdentifiers.h"
+#include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 
@@ -1029,8 +1030,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 						accountId = result->getUInt(1);
 						characterId = result->getUInt64(2);
 
-						characterId = GeneralUtils::SetBit(characterId, OBJECT_BIT_CHARACTER);
-						characterId = GeneralUtils::SetBit(characterId, OBJECT_BIT_PERSISTENT);
+						GeneralUtils::SetBit(characterId, eObjectBits::CHARACTER);
+						GeneralUtils::SetBit(characterId, eObjectBits::PERSISTENT);
 					}
 				}
 

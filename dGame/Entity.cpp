@@ -24,6 +24,7 @@
 #include "Loot.h"
 #include "eMissionTaskType.h"
 #include "eTriggerEventType.h"
+#include "eObjectBits.h"
 
 //Component includes:
 #include "Component.h"
@@ -952,9 +953,9 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 		if (m_ParentEntity != nullptr || m_SpawnerID != 0) {
 			outBitStream->Write1();
-			if (m_ParentEntity != nullptr) outBitStream->Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), OBJECT_BIT_CLIENT));
+			if (m_ParentEntity != nullptr) outBitStream->Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
 			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream->Write(m_SpawnerID);
-			else outBitStream->Write(GeneralUtils::SetBit(m_SpawnerID, OBJECT_BIT_CLIENT));
+			else outBitStream->Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
 		} else outBitStream->Write0();
 
 		outBitStream->Write(m_HasSpawnerNodeID);

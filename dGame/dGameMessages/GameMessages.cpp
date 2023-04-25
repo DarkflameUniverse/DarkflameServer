@@ -34,6 +34,7 @@
 #include "eRacingTaskParam.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "eObjectBits.h"
 #include "eTriggerEventType.h"
 
 #include <sstream>
@@ -2575,14 +2576,14 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 		//We need to get a new ID for our model first:
 		ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t newID) {
 			LWOOBJID newIDL = newID;
-			newIDL = GeneralUtils::SetBit(newIDL, OBJECT_BIT_CHARACTER);
-			newIDL = GeneralUtils::SetBit(newIDL, OBJECT_BIT_PERSISTENT);
+			GeneralUtils::SetBit(newIDL, eObjectBits::CHARACTER);
+			GeneralUtils::SetBit(newIDL, eObjectBits::PERSISTENT);
 
 			ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t blueprintIDSmall) {
 				blueprintIDSmall = ObjectIDManager::Instance()->GenerateRandomObjectID();
 				LWOOBJID blueprintID = blueprintIDSmall;
-				blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_CHARACTER);
-				blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_PERSISTENT);
+				GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
+				GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 				//We need to get the propertyID: (stolen from Wincent's propertyManagementComp)
 				const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
