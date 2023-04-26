@@ -15,6 +15,37 @@
 
 #include "CDActivitiesTable.h"
 #include "Metrics.hpp"
+
+// DON'T YOU DARE MERGE THIS WITH A GLOBAL I WANT TO TEST FAST
+
+// The below query creates 2 derived tables
+// The first is just a straight ranking of the leaderboard based on a provided ranking parameter.
+// The second is a query that finds the ranking of the requested score
+// The third and final query takes the score gotten above and gets the rankings as follows:.
+// 	If the requested score is in the top 5, it will return the top 11 scores.
+// 	If the requested score is in the bottom 5, it will return the bottom 11 scores.
+// 	In all other cases, the second query will return the 5 scores above and below the requested score.
+std::string myStandingsQueryBase = 
+"WITH leaderboardsRanked AS ("
+"	SELECT *,"
+"		RANK() OVER"
+"	("
+"		ORDER BY score desc, streak, hitPercentage DESC"
+"	) AS ranking"
+"	FROM leaderboard WHERE game_id = ?"
+"),"
+"myStanding AS ("
+"	SELECT ranking as myRank"
+"	FROM leaderboardsRanked"
+"	WHERE id = ? LIMIT 1"
+")"
+"SELECT * FROM leaderboardsRanked, myStanding, (SELECT MAX(leaderboardsRanked.ranking) AS lowestRank FROM leaderboardsRanked) AS lowestRanking"
+"WHERE leaderboardsRanked.ranking BETWEEN"
+"LEAST(GREATEST(myRank - 5, 1), lowestRanking.lowestRank - 10)"
+"AND"
+"LEAST(GREATEST(myRank + 5, 11), lowestRanking.lowestRank)"
+"ORDER BY ranking ASC;";
+
 Leaderboard::Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const Leaderboard::Type leaderboardType) {
 	this->gameID = gameID;
 	this->weekly = weekly;
