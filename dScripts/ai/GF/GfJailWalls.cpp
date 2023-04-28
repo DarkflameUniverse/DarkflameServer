@@ -1,6 +1,7 @@
 #include "GfJailWalls.h"
 #include "dZoneManager.h"
 #include "GeneralUtils.h"
+#include "eRebuildState.h"
 
 void GfJailWalls::OnRebuildComplete(Entity* self, Entity* target) {
 	const auto wall = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"Wall"));
@@ -15,7 +16,7 @@ void GfJailWalls::OnRebuildComplete(Entity* self, Entity* target) {
 }
 
 void GfJailWalls::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state != eRebuildState::REBUILD_RESETTING) return;
+	if (state != eRebuildState::RESETTING) return;
 
 	const auto wall = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"Wall"));
 

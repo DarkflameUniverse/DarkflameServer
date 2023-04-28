@@ -36,6 +36,12 @@
 #include "eMissionState.h"
 #include "eObjectBits.h"
 #include "eTriggerEventType.h"
+#include "eMatchUpdate.h"
+#include "eCyclingMode.h"
+#include "eCinematicEvent.h"
+#include "eQuickBuildFailReason.h"
+#include "eControlScheme.h"
+#include "eStateChangeType.h"
 
 #include <sstream>
 #include <future>
@@ -294,9 +300,9 @@ void GameMessages::SendPlayerSetCameraCyclingMode(const LWOOBJID& objectID, cons
 
 	bitStream.Write(bAllowCyclingWhileDeadOnly);
 
-	bitStream.Write(cyclingMode != ALLOW_CYCLE_TEAMMATES);
-	if (cyclingMode != ALLOW_CYCLE_TEAMMATES) {
-		bitStream.Write<uint32_t>(cyclingMode);
+	bitStream.Write(cyclingMode != eCyclingMode::ALLOW_CYCLE_TEAMMATES);
+	if (cyclingMode != eCyclingMode::ALLOW_CYCLE_TEAMMATES) {
+		bitStream.Write(cyclingMode);
 	}
 
 	SEND_PACKET;
@@ -440,8 +446,8 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 	bitStream.Write(item->GetInfo().isBOE);
 	bitStream.Write(item->GetInfo().isBOP);
 
-	bitStream.Write(lootSourceType != eLootSourceType::LOOT_SOURCE_NONE); // Loot source
-	if (lootSourceType != eLootSourceType::LOOT_SOURCE_NONE) bitStream.Write(lootSourceType);
+	bitStream.Write(lootSourceType != eLootSourceType::NONE); // Loot source
+	if (lootSourceType != eLootSourceType::NONE) bitStream.Write(lootSourceType);
 	LWONameValue extraInfo;
 
 	auto config = item->GetConfig();
@@ -489,7 +495,7 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 	SEND_PACKET;
 }
 
-void GameMessages::SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFlagID, bool bFlag, const SystemAddress& sysAddr) {
+void GameMessages::SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t iFlagID, bool bFlag, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -501,7 +507,7 @@ void GameMessages::SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFla
 	SEND_PACKET;
 }
 
-void GameMessages::SendChangeObjectWorldState(const LWOOBJID& objectID, int state, const SystemAddress& sysAddr) {
+void GameMessages::SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectWorldState state, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -582,8 +588,8 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	bitStream.Write((uint16_t)GAME_MSG_MODIFY_LEGO_SCORE);
 	bitStream.Write(score);
 
-	bitStream.Write(sourceType != eLootSourceType::LOOT_SOURCE_NONE);
-	if (sourceType != eLootSourceType::LOOT_SOURCE_NONE) bitStream.Write(sourceType);
+	bitStream.Write(sourceType != eLootSourceType::NONE);
+	if (sourceType != eLootSourceType::NONE) bitStream.Write(sourceType);
 
 	SEND_PACKET;
 }
@@ -743,14 +749,14 @@ void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootTyp
 	bitStream.Write(sourceTradeID != LWOOBJID_EMPTY);
 	if (sourceTradeID != LWOOBJID_EMPTY) bitStream.Write(sourceTradeID);
 
-	bitStream.Write(sourceType != LOOTTYPE_NONE);
-	if (sourceType != LOOTTYPE_NONE) bitStream.Write(sourceType);
+	bitStream.Write(sourceType != eLootSourceType::NONE);
+	if (sourceType != eLootSourceType::NONE) bitStream.Write(sourceType);
 
 	SystemAddress sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
 }
 
-void GameMessages::SendRebuildNotifyState(Entity* entity, int prevState, int state, const LWOOBJID& playerID) {
+void GameMessages::SendRebuildNotifyState(Entity* entity, eRebuildState prevState, eRebuildState state, const LWOOBJID& playerID) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -764,7 +770,7 @@ void GameMessages::SendRebuildNotifyState(Entity* entity, int prevState, int sta
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendEnableRebuild(Entity* entity, bool enable, bool fail, bool success, int failReason, float duration, const LWOOBJID& playerID) {
+void GameMessages::SendEnableRebuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -775,8 +781,8 @@ void GameMessages::SendEnableRebuild(Entity* entity, bool enable, bool fail, boo
 	bitStream.Write(fail);
 	bitStream.Write(success);
 
-	bitStream.Write(failReason != eFailReason::REASON_NOT_GIVEN);
-	if (failReason != eFailReason::REASON_NOT_GIVEN) bitStream.Write(failReason);
+	bitStream.Write(failReason != eQuickBuildFailReason::NOT_GIVEN);
+	if (failReason != eQuickBuildFailReason::NOT_GIVEN) bitStream.Write(failReason);
 
 	bitStream.Write(duration);
 	bitStream.Write(playerID);
@@ -843,8 +849,8 @@ void GameMessages::SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOB
 	bitStream.Write(directionRelative_AngleY);
 	bitStream.Write(directionRelative_Force);
 
-	bitStream.Write(killType != VIOLENT);
-	if (killType != VIOLENT) bitStream.Write(killType);
+	bitStream.Write(killType != eKillType::VIOLENT);
+	if (killType != eKillType::VIOLENT) bitStream.Write(killType);
 
 	bitStream.Write(killerID);
 
@@ -1104,7 +1110,7 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 	SEND_PACKET;
 }
 
-void GameMessages::SendSetPlayerControlScheme(Entity* entity, eControlSceme controlScheme) {
+void GameMessages::SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -1117,8 +1123,8 @@ void GameMessages::SendSetPlayerControlScheme(Entity* entity, eControlSceme cont
 	bitStream.Write(bDelayCamSwitchIfInCinematic);
 	bitStream.Write(bSwitchCam);
 
-	bitStream.Write(controlScheme != SCHEME_A);
-	if (controlScheme != SCHEME_A) bitStream.Write(controlScheme);
+	bitStream.Write(controlScheme != eControlScheme::SCHEME_A);
+	if (controlScheme != eControlScheme::SCHEME_A) bitStream.Write(controlScheme);
 
 	SystemAddress sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
@@ -1376,7 +1382,7 @@ void GameMessages::SendUseItemResult(Entity* entity, LOT templateID, bool useIte
 	SEND_PACKET;
 }
 
-void GameMessages::SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, UseItemResponse itemResponse) {
+void GameMessages::SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, eUseItemResponse itemResponse) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -1449,7 +1455,7 @@ void GameMessages::SendMatchResponse(Entity* entity, const SystemAddress& sysAdd
 	SEND_PACKET;
 }
 
-void GameMessages::SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, int type) {
+void GameMessages::SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, eMatchUpdate type) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -2879,7 +2885,7 @@ void GameMessages::SendEndCinematic(LWOOBJID objectId, std::u16string pathName, 
 void GameMessages::HandleCinematicUpdate(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	eCinematicEvent event;
 	if (!inStream->ReadBit()) {
-		event = STARTED;
+		event = eCinematicEvent::STARTED;
 	} else {
 		inStream->Read<eCinematicEvent>(event);
 	}
@@ -3425,7 +3431,7 @@ void GameMessages::HandleClientTradeUpdate(RakNet::BitStream* inStream, Entity* 
 
 //Pets:
 
-void GameMessages::SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId, LWOOBJID playerTamingId, bool bForceTeleport, uint32_t notifyType, NiPoint3 petsDestPos, NiPoint3 telePos, NiQuaternion teleRot, const SystemAddress& sysAddr) {
+void GameMessages::SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId, LWOOBJID playerTamingId, bool bForceTeleport, ePetTamingNotifyType notifyType, NiPoint3 petsDestPos, NiPoint3 telePos, NiQuaternion teleRot, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -4141,7 +4147,7 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 	float directionRelativeAngleXZ;
 	float directionRelativeAngleY;
 	float directionRelativeForce;
-	int32_t killType = VIOLENT;
+	eKillType killType = eKillType::VIOLENT;
 	LWOOBJID killerID;
 	LWOOBJID lootOwnerID = LWOOBJID_EMPTY;
 
@@ -4415,7 +4421,7 @@ void GameMessages::SendVehicleStopBoost(Entity* targetEntity, const SystemAddres
 
 	bitStream.Write(targetEntity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_VEHICLE_STOP_BOOST);
-	
+
 	bitStream.Write(affectPassive);
 
 	SEND_PACKET_BROADCAST;
@@ -4427,7 +4433,7 @@ void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, int32_t a
 
 	bitStream.Write(targetEntity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_SET_RESURRECT_RESTORE_VALUES);
-	
+
 	bitStream.Write(armorRestore != -1);
 	if (armorRestore != -1) bitStream.Write(armorRestore);
 
@@ -4766,7 +4772,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 		inv->RemoveItem(tokenId, altCurrencyCost);
 
-		inv->AddItem(item, count, eLootSourceType::LOOT_SOURCE_VENDOR);
+		inv->AddItem(item, count, eLootSourceType::VENDOR);
 	} else {
 		float buyScalar = vend->GetBuyScalar();
 
@@ -4786,8 +4792,8 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 			inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 		}
 
-		character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::LOOT_SOURCE_VENDOR);
-		inv->AddItem(item, count, eLootSourceType::LOOT_SOURCE_VENDOR);
+		character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::VENDOR);
+		inv->AddItem(item, count, eLootSourceType::VENDOR);
 	}
 
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
@@ -4829,12 +4835,12 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	float sellScalar = vend->GetSellScalar();
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
 		const auto altCurrency = static_cast<uint32_t>(itemComp.altCurrencyCost * sellScalar) * count;
-		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::LOOT_SOURCE_VENDOR); // Return alt currencies like faction tokens.
+		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::VENDOR); // Return alt currencies like faction tokens.
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::LOOT_SOURCE_VENDOR);
+	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -4893,7 +4899,7 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 
 	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, Inventory::FindInventoryTypeForLot(item->GetLot()), count, true, false);
-	character->SetCoins(character->GetCoins() - cost, eLootSourceType::LOOT_SOURCE_VENDOR);
+	character->SetCoins(character->GetCoins() - cost, eLootSourceType::VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
@@ -5015,7 +5021,7 @@ void GameMessages::HandleRebuildCancel(RakNet::BitStream* inStream, Entity* enti
 	RebuildComponent* rebComp = static_cast<RebuildComponent*>(entity->GetComponent(eReplicaComponentType::QUICK_BUILD));
 	if (!rebComp) return;
 
-	rebComp->CancelRebuild(EntityManager::Instance()->GetEntity(userID), eFailReason::REASON_CANCELED_EARLY);
+	rebComp->CancelRebuild(EntityManager::Instance()->GetEntity(userID), eQuickBuildFailReason::CANCELED_EARLY);
 }
 
 void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5135,12 +5141,12 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, E
 
 	item->Disassemble(TEMP_MODELS);
 
-	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::LOOT_SOURCE_QUICKBUILD);
+	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::QUICKBUILD);
 }
 
 void GameMessages::HandleSetFlag(RakNet::BitStream* inStream, Entity* entity) {
 	bool bFlag{};
-	int iFlagID{};
+	uint32_t iFlagID{};
 
 	inStream->Read(bFlag);
 	inStream->Read(iFlagID);
@@ -5301,7 +5307,7 @@ void GameMessages::HandlePickupCurrency(RakNet::BitStream* inStream, Entity* ent
 
 	auto* ch = entity->GetCharacter();
 	if (entity->CanPickupCoins(currency)) {
-		ch->SetCoins(ch->GetCoins() + currency, eLootSourceType::LOOT_SOURCE_PICKUP);
+		ch->SetCoins(ch->GetCoins() + currency, eLootSourceType::PICKUP);
 	}
 }
 
@@ -5615,9 +5621,9 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 		config.push_back(moduleAssembly);
 
 		if (count == 3) {
-			inv->AddItem(6416, 1, eLootSourceType::LOOT_SOURCE_QUICKBUILD, eInventoryType::MODELS, config);
+			inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config);
 		} else if (count == 7) {
-			inv->AddItem(8092, 1, eLootSourceType::LOOT_SOURCE_QUICKBUILD, eInventoryType::MODELS, config);
+			inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config);
 		}
 
 		auto* missionComponent = character->GetComponent<MissionComponent>();

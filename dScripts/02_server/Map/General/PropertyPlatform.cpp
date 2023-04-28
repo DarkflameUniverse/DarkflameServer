@@ -15,7 +15,7 @@ void PropertyPlatform::OnRebuildComplete(Entity* self, Entity* target) {
 
 void PropertyPlatform::OnUse(Entity* self, Entity* user) {
 	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr && rebuildComponent->GetState() == REBUILD_COMPLETED) {
+	if (rebuildComponent != nullptr && rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 		//        auto* movingPlatform = self->GetComponent<MovingPlatformComponent>();
 		//        if (movingPlatform != nullptr) {
 		//            movingPlatform->GotoWaypoint(1);

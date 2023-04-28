@@ -3,13 +3,14 @@
 #include "Character.h"
 #include "GameMessages.h"
 #include "Loot.h"
+#include "eTerminateType.h"
 
 void VeMissionConsole::OnUse(Entity* self, Entity* user) {
 	LootGenerator::Instance().DropActivityLoot(user, self, 12551);
 
 	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 	if (inventoryComponent != nullptr) {
-		inventoryComponent->AddItem(12547, 1, eLootSourceType::LOOT_SOURCE_ACTIVITY);  // Add the panel required for pickup
+		inventoryComponent->AddItem(12547, 1, eLootSourceType::ACTIVITY);  // Add the panel required for pickup
 	}
 
 	// The flag to set is 101<number>
@@ -22,5 +23,5 @@ void VeMissionConsole::OnUse(Entity* self, Entity* user) {
 	}
 
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"");
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 }

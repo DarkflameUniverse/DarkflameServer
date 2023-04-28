@@ -15,6 +15,10 @@
 #include "PetDigServer.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "eUnequippableActiveType.h"
+#include "eTerminateType.h"
+#include "ePetTamingNotifyType.h"
+#include "eUseItemResponse.h"
+#include "ePlayerFlag.h"
 
 #include "Game.h"
 #include "dConfig.h"
@@ -285,7 +289,7 @@ void PetComponent::OnUse(Entity* originator) {
 		m_Parent->GetObjectID(),
 		LWOOBJID_EMPTY,
 		true,
-		NOTIFY_TYPE_BEGIN,
+		ePetTamingNotifyType::BEGIN,
 		petPosition,
 		position,
 		rotation,
@@ -297,7 +301,7 @@ void PetComponent::OnUse(Entity* originator) {
 		LWOOBJID_EMPTY,
 		originator->GetObjectID(),
 		true,
-		NOTIFY_TYPE_BEGIN,
+		ePetTamingNotifyType::BEGIN,
 		petPosition,
 		position,
 		rotation,
@@ -313,7 +317,7 @@ void PetComponent::OnUse(Entity* originator) {
 
 	// Notify the start of a pet taming minigame
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, originator, NOTIFY_TYPE_BEGIN);
+		script->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
 	}
 }
 
@@ -566,7 +570,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 
 	GameMessages::SendRegisterPetDBID(m_Tamer, petSubKey, tamer->GetSystemAddress());
 
-	inventoryComponent->AddItem(m_Parent->GetLOT(), 1, eLootSourceType::LOOT_SOURCE_ACTIVITY, eInventoryType::MODELS, {}, LWOOBJID_EMPTY, true, false, petSubKey);
+	inventoryComponent->AddItem(m_Parent->GetLOT(), 1, eLootSourceType::ACTIVITY, eInventoryType::MODELS, {}, LWOOBJID_EMPTY, true, false, petSubKey);
 	auto* item = inventoryComponent->FindItemBySubKey(petSubKey, MODELS);
 
 	if (item == nullptr) {
@@ -590,7 +594,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		LWOOBJID_EMPTY,
 		LWOOBJID_EMPTY,
 		false,
-		NOTIFY_TYPE_NAMINGPET,
+		ePetTamingNotifyType::NAMINGPET,
 		NiPoint3::ZERO,
 		NiPoint3::ZERO,
 		NiQuaternion::IDENTITY,
@@ -670,7 +674,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		m_Parent->GetObjectID(),
 		m_Tamer,
 		false,
-		NOTIFY_TYPE_SUCCESS,
+		ePetTamingNotifyType::SUCCESS,
 		NiPoint3::ZERO,
 		NiPoint3::ZERO,
 		NiQuaternion::IDENTITY,
@@ -691,7 +695,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 
 	// Notify the end of a pet taming minigame
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, NOTIFY_TYPE_SUCCESS);
+		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::SUCCESS);
 	}
 }
 
@@ -711,7 +715,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 		m_Parent->GetObjectID(),
 		m_Tamer,
 		false,
-		NOTIFY_TYPE_QUIT,
+		ePetTamingNotifyType::QUIT,
 		NiPoint3::ZERO,
 		NiPoint3::ZERO,
 		NiQuaternion::IDENTITY,
@@ -732,7 +736,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 
 	// Notify the end of a pet taming minigame
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, NOTIFY_TYPE_QUIT);
+		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::QUIT);
 	}
 }
 
@@ -762,7 +766,7 @@ void PetComponent::ClientFailTamingMinigame() {
 		m_Parent->GetObjectID(),
 		m_Tamer,
 		false,
-		NOTIFY_TYPE_FAILED,
+		ePetTamingNotifyType::FAILED,
 		NiPoint3::ZERO,
 		NiPoint3::ZERO,
 		NiQuaternion::IDENTITY,
@@ -783,7 +787,7 @@ void PetComponent::ClientFailTamingMinigame() {
 
 	// Notify the end of a pet taming minigame
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, NOTIFY_TYPE_FAILED);
+		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::FAILED);
 	}
 }
 
@@ -884,7 +888,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
-	owner->GetCharacter()->SetPlayerFlag(69, true);
+	owner->GetCharacter()->SetPlayerFlag(ePlayerFlag::ACTIVATED_PET, true);
 
 	if (registerPet) {
 		GameMessages::SendAddPetToPlayer(m_Owner, 0, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, m_Parent->GetLOT(), owner->GetSystemAddress());
@@ -928,7 +932,7 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 		auto playerEntity = playerDestroyableComponent->GetParent();
 		if (!playerEntity) return;
 
-		GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
+		GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
 	}
 
 	this->AddDrainImaginationTimer(item);

@@ -1,6 +1,7 @@
 #include "FvPandaServer.h"
 #include "PetComponent.h"
 #include "Character.h"
+#include "ePetTamingNotifyType.h"
 
 void FvPandaServer::OnStartup(Entity* self) {
 	const auto* petComponent = self->GetComponent<PetComponent>();
@@ -10,12 +11,12 @@ void FvPandaServer::OnStartup(Entity* self) {
 	}
 }
 
-void FvPandaServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, eNotifyType type) {
-	if (type == NOTIFY_TYPE_BEGIN) {
+void FvPandaServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTamingNotifyType type) {
+	if (type == ePetTamingNotifyType::BEGIN) {
 		self->CancelAllTimers();
-	} else if (type == NOTIFY_TYPE_QUIT || type == NOTIFY_TYPE_FAILED) {
+	} else if (type == ePetTamingNotifyType::QUIT || type == ePetTamingNotifyType::FAILED) {
 		self->Smash();
-	} else if (type == NOTIFY_TYPE_SUCCESS) {
+	} else if (type == ePetTamingNotifyType::SUCCESS) {
 		// TODO: Remove from groups
 
 		auto* character = tamer->GetCharacter();
@@ -29,7 +30,7 @@ void FvPandaServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "killSelf") {
 		const auto* petComponent = self->GetComponent<PetComponent>();
 		if (petComponent != nullptr && petComponent->GetOwner() == nullptr) {
-			self->Smash(self->GetObjectID(), SILENT);
+			self->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 	}
 }

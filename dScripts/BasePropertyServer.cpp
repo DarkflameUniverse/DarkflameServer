@@ -274,7 +274,7 @@ void BasePropertyServer::RequestDie(Entity* self, Entity* other) {
 	if (destroyable == nullptr)
 		return;
 
-	destroyable->Smash(other->GetObjectID(), SILENT);
+	destroyable->Smash(other->GetObjectID(), eKillType::SILENT);
 }
 
 void BasePropertyServer::ActivateSpawner(const std::string& spawnerName) {

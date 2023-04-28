@@ -20,6 +20,7 @@
 #include "eMissionState.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
+#include "ePlayerFlag.h"
 
 Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
@@ -362,9 +363,9 @@ void Character::SaveXMLToDatabase() {
 	}
 
 	// Prevents the news feed from showing up on world transfers
-	if (GetPlayerFlag(ePlayerFlags::IS_NEWS_SCREEN_VISIBLE)) {
+	if (GetPlayerFlag(ePlayerFlag::IS_NEWS_SCREEN_VISIBLE)) {
 		auto* s = m_Doc->NewElement("s");
-		s->SetAttribute("si", ePlayerFlags::IS_NEWS_SCREEN_VISIBLE);
+		s->SetAttribute("si", ePlayerFlag::IS_NEWS_SCREEN_VISIBLE);
 		flags->LinkEndChild(s);
 	}
 
@@ -481,8 +482,8 @@ bool Character::GetPlayerFlag(const uint32_t flagId) const {
 
 void Character::SetRetroactiveFlags() {
 	// Retroactive check for if player has joined a faction to set their 'joined a faction' flag to true.
-	if (GetPlayerFlag(ePlayerFlags::VENTURE_FACTION) || GetPlayerFlag(ePlayerFlags::ASSEMBLY_FACTION) || GetPlayerFlag(ePlayerFlags::PARADOX_FACTION) || GetPlayerFlag(ePlayerFlags::SENTINEL_FACTION)) {
-		SetPlayerFlag(ePlayerFlags::JOINED_A_FACTION, true);
+	if (GetPlayerFlag(ePlayerFlag::VENTURE_FACTION) || GetPlayerFlag(ePlayerFlag::ASSEMBLY_FACTION) || GetPlayerFlag(ePlayerFlag::PARADOX_FACTION) || GetPlayerFlag(ePlayerFlag::SENTINEL_FACTION)) {
+		SetPlayerFlag(ePlayerFlag::JOINED_A_FACTION, true);
 	}
 }
 
@@ -542,7 +543,7 @@ void Character::OnZoneLoad() {
 	if (missionComponent != nullptr) {
 		// Fix the monument race flag
 		if (missionComponent->GetMissionState(319) >= eMissionState::READY_TO_COMPLETE) {
-			SetPlayerFlag(33, true);
+			SetPlayerFlag(ePlayerFlag::AG_FINISH_LINE_BUILT, true);
 		}
 	}
 
@@ -558,7 +559,7 @@ void Character::OnZoneLoad() {
 	 */
 	if (HasPermission(ePermissionMap::Old)) {
 		if (GetCoins() > 1000000) {
-			SetCoins(1000000, eLootSourceType::LOOT_SOURCE_NONE);
+			SetCoins(1000000, eLootSourceType::NONE);
 		}
 	}
 
@@ -636,7 +637,7 @@ void Character::SetBillboardVisible(bool visible) {
 
 	// The GameMessage we send for turning the nameplate off just deletes the BillboardSubcomponent from the parent component.
 	// Because that same message does not allow for custom parameters, we need to create the BillboardSubcomponent a different way
-	// This workaround involves sending an unrelated GameMessage that does not apply to player entites, 
+	// This workaround involves sending an unrelated GameMessage that does not apply to player entites,
 	// but forces the client to create the necessary SubComponent that controls the billboard.
 	GameMessages::SendShowBillboardInteractIcon(UNASSIGNED_SYSTEM_ADDRESS, m_OurEntity->GetObjectID());
 

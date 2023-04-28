@@ -16,6 +16,7 @@ struct Packet;
 class Entity;
 enum class ePermissionMap : uint64_t;
 enum class eGameMasterLevel : uint8_t;
+enum class eLootSourceType : uint32_t;
 
 /**
  * Meta information about a character, like their name and style

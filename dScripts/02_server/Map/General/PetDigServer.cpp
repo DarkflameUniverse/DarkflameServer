@@ -97,7 +97,7 @@ void PetDigServer::OnDie(Entity* self, Entity* killer) {
 	// Handles smashing leftovers (edge case for the AG X)
 	auto* xObject = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
-		xObject->Smash(xObject->GetObjectID(), VIOLENT);
+		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
 	}
 }
 
@@ -136,7 +136,7 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 
 	auto* xObject = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
-		xObject->Smash(xObject->GetObjectID(), VIOLENT);
+		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
 	}
 }
 

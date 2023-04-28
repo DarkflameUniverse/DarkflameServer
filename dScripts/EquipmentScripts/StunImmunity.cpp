@@ -1,6 +1,7 @@
 #include "StunImmunity.h"
 #include "DestroyableComponent.h"
 #include "ControllablePhysicsComponent.h"
+#include "eStateChangeType.h"
 
 void StunImmunity::OnStartup(Entity* self) {
 	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();

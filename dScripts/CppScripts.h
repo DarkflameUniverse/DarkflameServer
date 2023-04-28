@@ -8,6 +8,8 @@ class User;
 class Entity;
 class NiPoint3;
 enum class eMissionState : int32_t;
+enum class ePetTamingNotifyType : uint32_t;
+enum class eRebuildState : uint32_t;
 
 namespace CppScripts {
 	/**
@@ -269,7 +271,7 @@ namespace CppScripts {
 		 *
 		 * Equivalent to 'function onNotifyPetTamingMinigame(self, msg)'
 		 */
-		virtual void OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, eNotifyType type) {};
+		virtual void OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTamingNotifyType type) {};
 
 		/**
 		 * Invoked when a player responded to a message box.

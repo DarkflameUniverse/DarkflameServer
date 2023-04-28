@@ -3,6 +3,7 @@
 #include "MissionComponent.h"
 #include "Character.h"
 #include "eReplicaComponentType.h"
+#include "ePlayerFlag.h"
 
 void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, Entity* player, int reward) {
 	if (missionID != 474) return;
@@ -41,7 +42,7 @@ void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, 
 		}
 
 		if (flagID != -1) {
-			player->GetCharacter()->SetPlayerFlag(ePlayerFlags::JOINED_A_FACTION, true);
+			player->GetCharacter()->SetPlayerFlag(ePlayerFlag::JOINED_A_FACTION, true);
 			player->GetCharacter()->SetPlayerFlag(flagID, true);
 		}
 

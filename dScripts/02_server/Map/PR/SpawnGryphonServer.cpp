@@ -3,6 +3,7 @@
 #include "GameMessages.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
+#include "eTerminateType.h"
 
 void SpawnGryphonServer::SetVariables(Entity* self) {
 	self->SetVar<LOT>(u"petLOT", 12433);
@@ -20,7 +21,7 @@ void SpawnGryphonServer::OnUse(Entity* self, Entity* user) {
 	if (missionComponent != nullptr && inventoryComponent != nullptr
 		&& missionComponent->GetMissionState(1391) == eMissionState::ACTIVE) {
 		inventoryComponent->RemoveItem(12483, inventoryComponent->GetLotCount(12483));
-		GameMessages::SendTerminateInteraction(user->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+		GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 		return;
 	}
 

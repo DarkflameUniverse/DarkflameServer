@@ -25,6 +25,8 @@
 #include "dMessageIdentifiers.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
+#include "eCharacterCreationResponse.h"
+#include "eRenameResponse.h"
 
 UserManager* UserManager::m_Address = nullptr;
 
@@ -269,13 +271,13 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	if (name != "" && !UserManager::IsNameAvailable(name)) {
 		Game::logger->Log("UserManager", "AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
-		WorldPackets::SendCharacterCreationResponse(sysAddr, CREATION_RESPONSE_CUSTOM_NAME_IN_USE);
+		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::CUSTOM_NAME_IN_USE);
 		return;
 	}
 
 	if (!IsNameAvailable(predefinedName)) {
 		Game::logger->Log("UserManager", "AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
-		WorldPackets::SendCharacterCreationResponse(sysAddr, CREATION_RESPONSE_PREDEFINED_NAME_IN_USE);
+		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::PREDEFINED_NAME_IN_USE);
 		return;
 	}
 
@@ -294,7 +296,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 		if (overlapResult->next()) {
 			Game::logger->Log("UserManager", "Character object id unavailable, check objectidtracker!");
-			WorldPackets::SendCharacterCreationResponse(sysAddr, CREATION_RESPONSE_OBJECT_ID_UNAVAILABLE);
+			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
 			return;
 		}
 
@@ -370,7 +372,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				stmt->execute();
 				delete stmt;
 
-				WorldPackets::SendCharacterCreationResponse(sysAddr, CREATION_RESPONSE_SUCCESS);
+				WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 				});
 			});
@@ -500,10 +502,10 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	if (!hasCharacter || !character) {
 		Game::logger->Log("UserManager", "User %i tried to rename a character that it does not own!", u->GetAccountID());
-		WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_UNKNOWN_ERROR);
+		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
 	} else if (hasCharacter && character) {
 		if (newName == character->GetName()) {
-			WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_NAME_UNAVAILABLE);
+			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_UNAVAILABLE);
 			return;
 		}
 
@@ -517,7 +519,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				delete stmt;
 
 				Game::logger->Log("UserManager", "Character %s now known as %s", character->GetName().c_str(), newName.c_str());
-				WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_SUCCESS);
+				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
 				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET pending_name=?, needs_rename=0, last_login=? WHERE id=? LIMIT 1");
@@ -528,15 +530,15 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				delete stmt;
 
 				Game::logger->Log("UserManager", "Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
-				WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_SUCCESS);
+				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			}
 		} else {
-			WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_NAME_IN_USE);
+			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_IN_USE);
 		}
 	} else {
 		Game::logger->Log("UserManager", "Unknown error occurred when renaming character, either hasCharacter or character variable != true.");
-		WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_UNKNOWN_ERROR);
+		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
 	}
 }
 

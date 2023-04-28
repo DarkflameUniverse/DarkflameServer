@@ -7,6 +7,7 @@
 #include "dLogger.h"
 #include "DestroyableComponent.h"
 #include "ControllablePhysicsComponent.h"
+#include "eStateChangeType.h"
 
 void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
