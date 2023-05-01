@@ -334,6 +334,15 @@ int main(int argc, char** argv) {
 
 		Game::im->GetInstance(0, false, 0);
 		Game::im->GetInstance(1000, false, 0);
+		Game::im->GetInstance(1100, false, 0);
+		Game::im->GetInstance(1200, false, 0);
+		Game::im->GetInstance(1300, false, 0);
+		Game::im->GetInstance(1400, false, 0);
+		Game::im->GetInstance(1600, false, 0);
+		Game::im->GetInstance(1700, false, 0);
+		Game::im->GetInstance(1800, false, 0);
+		Game::im->GetInstance(1900, false, 0);
+		Game::im->GetInstance(2000, false, 0);
 
 		StartAuthServer();
 	}
