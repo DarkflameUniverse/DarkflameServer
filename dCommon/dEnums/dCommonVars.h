@@ -177,14 +177,6 @@ union suchar {
 
 //=========== LU ENUMS ============
 
-//! An enum for object ID bits
-enum eObjectBits : int32_t {
-	OBJECT_BIT_PERSISTENT = 32,     //!< The 32 bit index
-	OBJECT_BIT_CLIENT = 46,         //!< The 46 bit index
-	OBJECT_BIT_SPAWNED = 58,        //!< The 58 bit index
-	OBJECT_BIT_CHARACTER = 60       //!< The 60 bit index
-};
-
 //! An enum for MatchUpdate types
 enum eMatchUpdate : int {
 	MATCH_UPDATE_PLAYER_JOINED = 0,

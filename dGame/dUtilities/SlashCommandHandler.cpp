@@ -75,6 +75,7 @@
 #include "eMissionState.h"
 #include "TriggerComponent.h"
 #include "eServerDisconnectIdentifiers.h"
+#include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 
@@ -82,44 +83,24 @@
 #include "CDZoneTableTable.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
+	auto commandCopy = command;
+	// Sanity check that a command was given
+	if (command.empty() || command.front() != u'/') return;
+	commandCopy.erase(commandCopy.begin());
+
+	// Split the command by spaces
 	std::string chatCommand;
 	std::vector<std::string> args;
+	auto wideCommand = GeneralUtils::SplitString(commandCopy, u' ');
+	if (wideCommand.empty()) return;
 
-	uint32_t breakIndex = 0;
-	for (uint32_t i = 1; i < command.size(); ++i) {
-		if (command[i] == L' ') {
-			breakIndex = i;
-			break;
-		}
+	// Convert the command to lowercase
+	chatCommand = GeneralUtils::UTF16ToWTF8(wideCommand.front());
+	std::transform(chatCommand.begin(), chatCommand.end(), chatCommand.begin(), ::tolower);
+	wideCommand.erase(wideCommand.begin());
 
-		chatCommand.push_back(static_cast<unsigned char>(command[i]));
-		breakIndex++;
-	}
-
-	uint32_t index = ++breakIndex;
-	while (true) {
-		std::string arg;
-
-		while (index < command.size()) {
-			if (command[index] == L' ') {
-				args.push_back(arg);
-				arg = "";
-				index++;
-				continue;
-			}
-
-			arg.push_back(static_cast<char>(command[index]));
-			index++;
-		}
-
-		if (arg != "") {
-			args.push_back(arg);
-		}
-
-		break;
-	}
-
-	//Game::logger->Log("SlashCommandHandler", "Received chat command \"%s\"", GeneralUtils::UTF16ToWTF8(command).c_str());
+	// Convert the arguements to not u16strings
+	for (auto wideArg : wideCommand) args.push_back(GeneralUtils::UTF16ToWTF8(wideArg));
 
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if ((chatCommand == "setgmlevel" || chatCommand == "makegm" || chatCommand == "gmlevel") && user->GetMaxGMLevel() > eGameMasterLevel::CIVILIAN) {
@@ -1049,8 +1030,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 						accountId = result->getUInt(1);
 						characterId = result->getUInt64(2);
 
-						characterId = GeneralUtils::SetBit(characterId, OBJECT_BIT_CHARACTER);
-						characterId = GeneralUtils::SetBit(characterId, OBJECT_BIT_PERSISTENT);
+						GeneralUtils::SetBit(characterId, eObjectBits::CHARACTER);
+						GeneralUtils::SetBit(characterId, eObjectBits::PERSISTENT);
 					}
 				}
 

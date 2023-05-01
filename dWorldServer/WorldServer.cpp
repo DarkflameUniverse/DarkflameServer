@@ -64,6 +64,7 @@
 #include "AMFFormat.h"
 #include "NiPoint3.h"
 #include "eServerDisconnectIdentifiers.h"
+#include "eObjectBits.h"
 
 #include "ZCompression.h"
 
@@ -968,8 +969,8 @@ void HandlePacket(Packet* packet) {
 
 		LWOOBJID playerID = 0;
 		inStream.Read(playerID);
-		playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_CHARACTER);
-		playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_PERSISTENT);
+		GeneralUtils::ClearBit(playerID, eObjectBits::CHARACTER);
+		GeneralUtils::ClearBit(playerID, eObjectBits::PERSISTENT);
 
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
 
@@ -1123,8 +1124,8 @@ void HandlePacket(Packet* packet) {
 							//Send message:
 							{
 								LWOOBJID blueprintID = res->getUInt(1);
-								blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_CHARACTER);
-								blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_PERSISTENT);
+								GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
+								GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 								CBITSTREAM;
 								PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);

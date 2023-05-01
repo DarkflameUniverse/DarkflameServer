@@ -22,6 +22,7 @@
 #include "Database.h"
 #include "EntityInfo.h"
 #include "eMissionTaskType.h"
+#include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
@@ -551,8 +552,8 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 
 	LWOOBJID petSubKey = ObjectIDManager::Instance()->GenerateRandomObjectID();
 
-	petSubKey = GeneralUtils::SetBit(petSubKey, OBJECT_BIT_CHARACTER);
-	petSubKey = GeneralUtils::SetBit(petSubKey, OBJECT_BIT_PERSISTENT);
+	GeneralUtils::SetBit(petSubKey, eObjectBits::CHARACTER);
+	GeneralUtils::SetBit(petSubKey, eObjectBits::PERSISTENT);
 
 	m_DatabaseId = petSubKey;
 

@@ -23,6 +23,7 @@
 #include "AssetManager.h"
 #include "CDClientDatabase.h"
 #include "dMessageIdentifiers.h"
+#include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 
 UserManager* UserManager::m_Address = nullptr;
@@ -313,16 +314,16 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			std::stringstream xml2;
 
 			LWOOBJID lwoidforshirt = idforshirt;
-			lwoidforshirt = GeneralUtils::SetBit(lwoidforshirt, OBJECT_BIT_CHARACTER);
-			lwoidforshirt = GeneralUtils::SetBit(lwoidforshirt, OBJECT_BIT_PERSISTENT);
+			GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
+			GeneralUtils::SetBit(lwoidforshirt, eObjectBits::PERSISTENT);
 			xml2 << xmlSave1 << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
 
 			std::string xmlSave2 = xml2.str();
 
 			ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t idforpants) {
 				LWOOBJID lwoidforpants = idforpants;
-				lwoidforpants = GeneralUtils::SetBit(lwoidforpants, OBJECT_BIT_CHARACTER);
-				lwoidforpants = GeneralUtils::SetBit(lwoidforpants, OBJECT_BIT_PERSISTENT);
+				GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
+				GeneralUtils::SetBit(lwoidforpants, eObjectBits::PERSISTENT);
 
 				std::stringstream xml3;
 				xml3 << xmlSave2 << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
@@ -480,8 +481,8 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	}
 
 	LWOOBJID objectID = PacketUtils::ReadPacketS64(8, packet);
-	objectID = GeneralUtils::ClearBit(objectID, OBJECT_BIT_CHARACTER);
-	objectID = GeneralUtils::ClearBit(objectID, OBJECT_BIT_PERSISTENT);
+	GeneralUtils::ClearBit(objectID, eObjectBits::CHARACTER);
+	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 
 	uint32_t charID = static_cast<uint32_t>(objectID);
 	Game::logger->Log("UserManager", "Received char rename request for ID: %llu (%u)", objectID, charID);

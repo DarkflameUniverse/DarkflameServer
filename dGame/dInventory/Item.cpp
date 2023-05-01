@@ -16,6 +16,7 @@
 #include "AssetManager.h"
 #include "InventoryComponent.h"
 #include "Loot.h"
+#include "eObjectBits.h"
 #include "eReplicaComponentType.h"
 
 #include "CDBrickIDTableTable.h"
@@ -77,13 +78,13 @@ Item::Item(
 
 	LWOOBJID id = ObjectIDManager::GenerateRandomObjectID();
 
-	id = GeneralUtils::SetBit(id, OBJECT_BIT_CHARACTER);
-	id = GeneralUtils::SetBit(id, OBJECT_BIT_PERSISTENT);
+	GeneralUtils::SetBit(id, eObjectBits::CHARACTER);
+	GeneralUtils::SetBit(id, eObjectBits::PERSISTENT);
 
 	const auto type = static_cast<eItemType>(info->itemType);
 
 	if (type == eItemType::MOUNT) {
-		id = GeneralUtils::SetBit(id, OBJECT_BIT_CLIENT);
+		GeneralUtils::SetBit(id, eObjectBits::CLIENT);
 	}
 
 	this->id = id;

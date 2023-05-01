@@ -24,6 +24,7 @@
 #include "Loot.h"
 #include "eMissionTaskType.h"
 #include "eTriggerEventType.h"
+#include "eObjectBits.h"
 
 //Component includes:
 #include "Component.h"
@@ -727,7 +728,7 @@ void Entity::Initialize() {
 
 	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
 		// Don't ghost what is likely large scene elements
-		if (m_Components.size() == 2 && HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER)) {
+		if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
 			goto no_ghosting;
 		}
 
@@ -952,9 +953,9 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 		if (m_ParentEntity != nullptr || m_SpawnerID != 0) {
 			outBitStream->Write1();
-			if (m_ParentEntity != nullptr) outBitStream->Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), OBJECT_BIT_CLIENT));
+			if (m_ParentEntity != nullptr) outBitStream->Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
 			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream->Write(m_SpawnerID);
-			else outBitStream->Write(GeneralUtils::SetBit(m_SpawnerID, OBJECT_BIT_CLIENT));
+			else outBitStream->Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
 		} else outBitStream->Write0();
 
 		outBitStream->Write(m_HasSpawnerNodeID);
@@ -1232,6 +1233,7 @@ void Entity::Update(const float deltaTime) {
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
 		} else {
 			timerPosition++;
 		}
@@ -1341,6 +1343,10 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
+
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnOffCollisionPhantom(this, other);
+	}
 
 	TriggerEvent(eTriggerEventType::EXIT, other);
 

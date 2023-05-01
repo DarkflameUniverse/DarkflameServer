@@ -20,6 +20,7 @@
 #include "MessageIdentifiers.h"
 #include "dConfig.h"
 #include "eTriggerEventType.h"
+#include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 
@@ -108,11 +109,11 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 		if (!controller && info.lot != 14) {
 
 			// The client flags means the client should render the entity
-			id = GeneralUtils::SetBit(id, OBJECT_BIT_CLIENT);
+			GeneralUtils::SetBit(id, eObjectBits::CLIENT);
 
 			// Spawned entities require the spawned flag to render
 			if (info.spawnerID != 0) {
-				id = GeneralUtils::SetBit(id, OBJECT_BIT_SPAWNED);
+				GeneralUtils::SetBit(id, eObjectBits::SPAWNED);
 			}
 		}
 	}
