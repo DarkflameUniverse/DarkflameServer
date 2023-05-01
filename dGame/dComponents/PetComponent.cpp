@@ -888,7 +888,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
-	owner->GetCharacter()->SetPlayerFlag(ePlayerFlag::ACTIVATED_PET, true);
+	owner->GetCharacter()->SetPlayerFlag(ePlayerFlag::FIRST_MANUAL_PET_HIBERNATE, true);
 
 	if (registerPet) {
 		GameMessages::SendAddPetToPlayer(m_Owner, 0, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, m_Parent->GetLOT(), owner->GetSystemAddress());

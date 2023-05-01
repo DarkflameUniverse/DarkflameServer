@@ -415,14 +415,14 @@ public:
 	 * @param flagId the ID of the flag to set
 	 * @param value the value to set for the flag
 	 */
-	void SetPlayerFlag(uint32_t flagId, bool value);
+	void SetPlayerFlag(int32_t flagId, bool value);
 
 	/**
 	 * Gets the value for a certain character flag
 	 * @param flagId the ID of the flag to get a value for
 	 * @return the value of the flag given the ID (the default is false, obviously)
 	 */
-	bool GetPlayerFlag(uint32_t flagId) const;
+	bool GetPlayerFlag(int32_t flagId) const;
 
 	/**
 	 * Notifies the character that they're now muted

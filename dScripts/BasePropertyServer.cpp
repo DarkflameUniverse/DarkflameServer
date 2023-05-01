@@ -127,7 +127,7 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 		if (player->GetObjectID() != propertyOwner)
 			return;
 	} else {
-		const auto defeatedFlag = player->GetCharacter()->GetPlayerFlag(self->GetVar<uint32_t>(defeatedProperyFlag));
+		const auto defeatedFlag = player->GetCharacter()->GetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag));
 
 		self->SetNetworkVar(UnclaimedVariable, true);
 		self->SetVar<LWOOBJID>(PlayerIDVariable, player->GetObjectID());
@@ -464,7 +464,7 @@ void BasePropertyServer::HandleOrbsTimer(Entity* self) {
 				if (player != nullptr) {
 					auto* character = player->GetCharacter();
 					if (character != nullptr) {
-						character->SetPlayerFlag(self->GetVar<uint32_t>(defeatedProperyFlag), true);
+						character->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
 					}
 				}
 

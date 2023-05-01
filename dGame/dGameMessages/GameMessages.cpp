@@ -5146,7 +5146,7 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, E
 
 void GameMessages::HandleSetFlag(RakNet::BitStream* inStream, Entity* entity) {
 	bool bFlag{};
-	uint32_t iFlagID{};
+	int32_t iFlagID{};
 
 	inStream->Read(bFlag);
 	inStream->Read(iFlagID);
