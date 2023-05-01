@@ -15,15 +15,15 @@ typedef uint32_t GameID;
 
 class Leaderboard {
 public:
-	struct Entry {
-		LWOOBJID playerID;
-		uint32_t time;
-		uint32_t score;
-		uint32_t placement;
-		time_t lastPlayed;
-		std::string playerName;
-	};
-	typedef std::vector<Entry> LeaderboardEntries;
+	// struct Entry {
+	// 	LWOOBJID playerID;
+	// 	uint32_t time;
+	// 	uint32_t score;
+	// 	uint32_t placement;
+	// 	time_t lastPlayed;
+	// 	std::string playerName;
+	// };
+	typedef std::vector<LDFBaseData> LeaderboardEntries;
 
 	// Enums for leaderboards
 	enum InfoType : uint32_t {
@@ -76,7 +76,7 @@ public:
 	 * Adds a new entry to the leaderboard
 	 * Used for debug only!
 	 */
-	void AddEntry(Entry entry) { entries.push_back(entry); }
+	void AddEntry(LDFBaseData& entry) { entries.push_back(entry); }
 private:
 template<class TypeToWrite>
 	inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, const std::string& key, const eLDFType& ldfType, const TypeToWrite& value) const;
