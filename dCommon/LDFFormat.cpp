@@ -18,6 +18,7 @@ using LDFValue = std::string_view;
 
 //! Returns a pointer to a LDFData value based on string format
 LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
+	// A valid LDF must be at least 3 characters long (=0:) is the shortest valid LDF (empty UTF-16 key with no initial value)
 	if (format.empty() || format.length() <= 2) return nullptr;
 	auto equalsPosition = format.find('=');
 	// You can have an empty key, just make sure the type and value might exist
