@@ -11,7 +11,7 @@ void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, 
 	if (reward != LOT_NULL) {
 		std::vector<int> factionMissions;
 		int celebrationID = -1;
-		uint32_t flagID = -1;
+		int32_t flagID = -1;
 
 		if (reward == 6980) {
 			// Venture League
