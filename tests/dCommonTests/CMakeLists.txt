@@ -3,6 +3,7 @@ set(DCOMMONTEST_SOURCES
 	"TestLDFFormat.cpp"
 	"TestNiPoint3.cpp"
 	"TestEncoding.cpp"
+	"dCommonDependencies.cpp"
 )
 
 # Set our executable

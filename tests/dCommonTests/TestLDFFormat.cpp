@@ -1,14 +1,27 @@
 #include "LDFFormat.h"
 
-#include <iostream>
-
 #include <gtest/gtest.h>
+
+#include "Game.h"
+#include "dCommonDependencies.h"
+#include "dLogger.h"
+
+class LDFTests : public dCommonDependenciesTest {
+protected:
+	void SetUp() override {
+		SetUpDependencies();
+	}
+
+	void TearDown() override {
+		TearDownDependencies();
+	}
+};
 
 #define LdfUniquePtr std::unique_ptr<LDFBaseData>  
 
 // Suite of tests for parsing LDF values
 
-TEST(dCommonTests, LDFUTF16Test) {
+TEST_F(LDFTests, LDFUTF16Test) {
 	std::string testWord = "KEY=0:IAmA weird string with :::: and spac,./;'][\\es that I expect to be parsed correctly...; ";
 	LdfUniquePtr data(LDFBaseData::DataFromString(testWord));
 	ASSERT_NE(data, nullptr);
@@ -18,7 +31,7 @@ TEST(dCommonTests, LDFUTF16Test) {
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
-TEST(dCommonTests, LDFUTF16EmptyTest) {
+TEST_F(LDFTests, LDFUTF16EmptyTest) {
 	std::string testWord = "KEY=0:";
 	LdfUniquePtr data(LDFBaseData::DataFromString(testWord));
 	ASSERT_NE(data, nullptr);
@@ -28,7 +41,7 @@ TEST(dCommonTests, LDFUTF16EmptyTest) {
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
-TEST(dCommonTests, LDFUTF16ColonTest) {
+TEST_F(LDFTests, LDFUTF16ColonTest) {
 	std::string testWord = "KEY=0:::";
 	LdfUniquePtr data(LDFBaseData::DataFromString(testWord));
 	ASSERT_NE(data, nullptr);
@@ -38,7 +51,7 @@ TEST(dCommonTests, LDFUTF16ColonTest) {
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
-TEST(dCommonTests, LDFUTF16EqualsTest) {
+TEST_F(LDFTests, LDFUTF16EqualsTest) {
 	std::string testWord = "KEY=0:==";
 	LdfUniquePtr data(LDFBaseData::DataFromString(testWord));
 	ASSERT_NE(data, nullptr);
@@ -48,7 +61,7 @@ TEST(dCommonTests, LDFUTF16EqualsTest) {
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
-TEST(dCommonTests, LDFS32Test) {
+TEST_F(LDFTests, LDFS32Test) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=1:-15"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_S32);
@@ -56,7 +69,7 @@ TEST(dCommonTests, LDFS32Test) {
 	ASSERT_EQ(((LDFData<int32_t>*)data.get())->GetValue(), -15);
 	ASSERT_EQ(data->GetString(), "KEY=1:-15");
 }
-TEST(dCommonTests, LDFU32Test) {
+TEST_F(LDFTests, LDFU32Test) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=5:15"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_U32);
@@ -65,7 +78,7 @@ TEST(dCommonTests, LDFU32Test) {
 	ASSERT_EQ(data->GetString(), "KEY=5:15");
 }
 
-TEST(dCommonTests, LDFU32TrueTest) {
+TEST_F(LDFTests, LDFU32TrueTest) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=5:true"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_U32);
@@ -74,7 +87,7 @@ TEST(dCommonTests, LDFU32TrueTest) {
 	ASSERT_EQ(data->GetString(), "KEY=5:1");
 }
 
-TEST(dCommonTests, LDFU32FalseTest) {
+TEST_F(LDFTests, LDFU32FalseTest) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=5:false"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_U32);
@@ -85,7 +98,7 @@ TEST(dCommonTests, LDFU32FalseTest) {
 
 
 // Use find since floats and doubles generally have appended 0s
-TEST(dCommonTests, LDFFloatTest) {
+TEST_F(LDFTests, LDFFloatTest) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=3:15.5"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_FLOAT);
@@ -94,7 +107,7 @@ TEST(dCommonTests, LDFFloatTest) {
 	ASSERT_EQ(data->GetString().find("KEY=3:15.5"), 0);
 }
 
-TEST(dCommonTests, LDFDoubleTest) {
+TEST_F(LDFTests, LDFDoubleTest) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=4:15.5"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_DOUBLE);
@@ -104,7 +117,7 @@ TEST(dCommonTests, LDFDoubleTest) {
 }
 
 
-TEST(dCommonTests, LDFBoolTrueTest) {
+TEST_F(LDFTests, LDFBoolTrueTest) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=7:true"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_BOOLEAN);
@@ -113,7 +126,7 @@ TEST(dCommonTests, LDFBoolTrueTest) {
 	ASSERT_EQ(data->GetString(), "KEY=7:1");
 }
 
-TEST(dCommonTests, LDFBoolFalseTest) {
+TEST_F(LDFTests, LDFBoolFalseTest) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=7:false"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_BOOLEAN);
@@ -122,7 +135,7 @@ TEST(dCommonTests, LDFBoolFalseTest) {
 	ASSERT_EQ(data->GetString(), "KEY=7:0");
 }
 
-TEST(dCommonTests, LDFBoolIntTest) {
+TEST_F(LDFTests, LDFBoolIntTest) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=7:3"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_BOOLEAN);
@@ -131,7 +144,7 @@ TEST(dCommonTests, LDFBoolIntTest) {
 	ASSERT_EQ(data->GetString(), "KEY=7:1");
 }
 
-TEST(dCommonTests, LDFU64Test) {
+TEST_F(LDFTests, LDFU64Test) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=8:15"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_U64);
@@ -140,7 +153,7 @@ TEST(dCommonTests, LDFU64Test) {
 	ASSERT_EQ(data->GetString(), "KEY=8:15");
 }
 
-TEST(dCommonTests, LDFLWOOBJIDTest) {
+TEST_F(LDFTests, LDFLWOOBJIDTest) {
 	LdfUniquePtr data(LDFBaseData::DataFromString("KEY=9:15"));
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_OBJID);
@@ -149,7 +162,7 @@ TEST(dCommonTests, LDFLWOOBJIDTest) {
 	ASSERT_EQ(data->GetString(), "KEY=9:15");
 }
 
-TEST(dCommonTests, LDFUTF8Test) {
+TEST_F(LDFTests, LDFUTF8Test) {
 	std::string testWord = "KEY=13:IAmA weird string with :::: and spac,./;'][\\es that I expect to be parsed correctly...; ";
 	LdfUniquePtr data(LDFBaseData::DataFromString(testWord));
 	ASSERT_NE(data, nullptr);
@@ -159,7 +172,7 @@ TEST(dCommonTests, LDFUTF8Test) {
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
-TEST(dCommonTests, LDFUTF8EmptyTest) {
+TEST_F(LDFTests, LDFUTF8EmptyTest) {
 	std::string testWord = "KEY=13:";
 	LdfUniquePtr data(LDFBaseData::DataFromString(testWord));
 	ASSERT_NE(data, nullptr);
@@ -169,7 +182,7 @@ TEST(dCommonTests, LDFUTF8EmptyTest) {
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
-TEST(dCommonTests, LDFUTF8ColonsTest) {
+TEST_F(LDFTests, LDFUTF8ColonsTest) {
 	std::string testWord = "KEY=13:::";
 	LdfUniquePtr data(LDFBaseData::DataFromString(testWord));
 	ASSERT_NE(data, nullptr);
@@ -178,7 +191,7 @@ TEST(dCommonTests, LDFUTF8ColonsTest) {
 	ASSERT_EQ(((LDFData<std::string>*)data.get())->GetValue(), "::");
 	ASSERT_EQ(data->GetString(), testWord);
 }
-TEST(dCommonTests, LDFUTF8EqualsTest) {
+TEST_F(LDFTests, LDFUTF8EqualsTest) {
 	std::string testWord = "KEY=13:==";
 	LdfUniquePtr data(LDFBaseData::DataFromString(testWord));
 	ASSERT_NE(data, nullptr);
@@ -189,7 +202,7 @@ TEST(dCommonTests, LDFUTF8EqualsTest) {
 }
 
 
-TEST(dCommonTests, LDFParseEdgeCaseTest) {
+TEST_F(LDFTests, LDFParseEdgeCaseTest) {
 	std::vector<std::string> tests = {
 		// Test undefined data
 		"", // Empty
@@ -223,7 +236,7 @@ TEST(dCommonTests, LDFParseEdgeCaseTest) {
 		"key=Garbage:value", // invalid LDF type
 	};
 	for (auto testString : tests) {
-		std::cout << "Testing LDF Parsing of invalid string (" << testString << ')' << std::endl;
+		Game::logger->Log("LDFTests", "Testing LDF Parsing of invalid string (%s)", testString.c_str());
 		EXPECT_NO_THROW(LDFBaseData::DataFromString(testString));
 	}
 }
