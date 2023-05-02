@@ -931,8 +931,13 @@ void GameMessages::SendResurrect(Entity* entity) {
 		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
 			auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
 			if (levelComponent) {
-				destroyableComponent->SetHealth(levelComponent->GetLevel() >= 45 ? 8 : 4);
-				destroyableComponent->SetImagination(levelComponent->GetLevel() >= 45 ? 20 : 6);
+				int32_t healthToRestore = levelComponent->GetLevel() >= 45 ? 8 : 4;
+				if (healthToRestore > destroyableComponent->GetMaxHealth()) healthToRestore = destroyableComponent->GetMaxHealth();
+				destroyableComponent->SetHealth(healthToRestore);
+
+				int32_t imaginationToRestore = levelComponent->GetLevel() >= 45 ? 20 : 6;
+				if (imaginationToRestore > destroyableComponent->GetMaxImagination()) imaginationToRestore = destroyableComponent->GetMaxImagination();
+				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
 	});
@@ -4415,7 +4420,7 @@ void GameMessages::SendVehicleStopBoost(Entity* targetEntity, const SystemAddres
 
 	bitStream.Write(targetEntity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_VEHICLE_STOP_BOOST);
-	
+
 	bitStream.Write(affectPassive);
 
 	SEND_PACKET_BROADCAST;
@@ -4427,7 +4432,7 @@ void GameMessages::SendSetResurrectRestoreValues(Entity* targetEntity, int32_t a
 
 	bitStream.Write(targetEntity->GetObjectID());
 	bitStream.Write(GAME_MSG::GAME_MSG_SET_RESURRECT_RESTORE_VALUES);
-	
+
 	bitStream.Write(armorRestore != -1);
 	if (armorRestore != -1) bitStream.Write(armorRestore);
 
