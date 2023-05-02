@@ -233,10 +233,16 @@ TEST_F(LDFTests, LDFParseEdgeCaseTest) {
 		// Test invalid LDF types
 		"key=14:value", // invalid LDF type
 		"key=-1:value", // invalid LDF type
+		"key=-2:value", // invalid LDF type (no enum definition)
 		"key=Garbage:value", // invalid LDF type
 	};
 	for (auto testString : tests) {
 		Game::logger->Log("LDFTests", "Testing LDF Parsing of invalid string (%s)", testString.c_str());
 		EXPECT_NO_THROW(LDFBaseData::DataFromString(testString));
 	}
+}
+
+TEST_F(LDFTests, LDFSpeedTest) {
+	std::string keyToTest = "KEY=0:IAmA weird string with :::: and s";
+	for (int i = 0; i < 10000; i++) LDFBaseData::DataFromString(keyToTest);
 }
