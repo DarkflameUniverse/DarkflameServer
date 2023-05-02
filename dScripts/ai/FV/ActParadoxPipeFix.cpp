@@ -21,7 +21,7 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 
 		auto* rebuildComponent = object->GetComponent<RebuildComponent>();
 
-		if (rebuildComponent->GetState() == REBUILD_COMPLETED) {
+		if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 			indexCount++;
 		}
 	}
@@ -52,7 +52,7 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 }
 
 void ActParadoxPipeFix::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == REBUILD_RESETTING) {
+	if (state == eRebuildState::RESETTING) {
 		const auto refinery = EntityManager::Instance()->GetEntitiesInGroup("Paradox");
 
 		if (!refinery.empty()) {

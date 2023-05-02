@@ -30,6 +30,8 @@ private:
 	void HandleRotateObject(Entity* targetEntity, std::vector<std::string> argArray);
 	void HandlePushObject(Entity* targetEntity, std::vector<std::string> argArray);
 	void HandleRepelObject(Entity* targetEntity, std::string args);
+	void HandleSetTimer(Entity* targetEntity, std::vector<std::string> argArray);
+	void HandleCancelTimer(Entity* targetEntity, std::string args);
 	void HandlePlayCinematic(Entity* targetEntity, std::vector<std::string> argArray);
 	void HandleToggleBBB(Entity* targetEntity, std::string args);
 	void HandleUpdateMission(Entity* targetEntity, std::vector<std::string> argArray);

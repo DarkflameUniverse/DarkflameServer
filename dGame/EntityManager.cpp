@@ -20,8 +20,10 @@
 #include "MessageIdentifiers.h"
 #include "dConfig.h"
 #include "eTriggerEventType.h"
+#include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
+#include "eReplicaPacketType.h"
 
 EntityManager* EntityManager::m_Address = nullptr;
 
@@ -108,11 +110,11 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 		if (!controller && info.lot != 14) {
 
 			// The client flags means the client should render the entity
-			id = GeneralUtils::SetBit(id, OBJECT_BIT_CLIENT);
+			GeneralUtils::SetBit(id, eObjectBits::CLIENT);
 
 			// Spawned entities require the spawned flag to render
 			if (info.spawnerID != 0) {
-				id = GeneralUtils::SetBit(id, OBJECT_BIT_SPAWNED);
+				GeneralUtils::SetBit(id, eObjectBits::SPAWNED);
 			}
 		}
 	}
@@ -196,8 +198,8 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 		stream.Write(static_cast<char>(ID_REPLICA_MANAGER_SERIALIZE));
 		stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
 
-		entity->WriteBaseReplicaData(&stream, PACKET_TYPE_SERIALIZATION);
-		entity->WriteComponents(&stream, PACKET_TYPE_SERIALIZATION);
+		entity->WriteBaseReplicaData(&stream, eReplicaPacketType::SERIALIZATION);
+		entity->WriteComponents(&stream, eReplicaPacketType::SERIALIZATION);
 
 		if (entity->GetIsGhostingCandidate()) {
 			for (auto* player : Player::GetAllPlayers()) {
@@ -217,9 +219,9 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 		if (!entity) continue;
 
 		if (entity->GetScheduledKiller()) {
-			entity->Smash(entity->GetScheduledKiller()->GetObjectID(), SILENT);
+			entity->Smash(entity->GetScheduledKiller()->GetObjectID(), eKillType::SILENT);
 		} else {
-			entity->Smash(LWOOBJID_EMPTY, SILENT);
+			entity->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 		}
 	}
 	m_EntitiesToKill.clear();
@@ -351,8 +353,8 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	stream.Write(true);
 	stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
 
-	entity->WriteBaseReplicaData(&stream, PACKET_TYPE_CONSTRUCTION);
-	entity->WriteComponents(&stream, PACKET_TYPE_CONSTRUCTION);
+	entity->WriteBaseReplicaData(&stream, eReplicaPacketType::CONSTRUCTION);
+	entity->WriteComponents(&stream, eReplicaPacketType::CONSTRUCTION);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 		if (skipChecks) {

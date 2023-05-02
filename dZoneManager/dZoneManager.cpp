@@ -11,6 +11,7 @@
 #include "WorldConfig.h"
 #include "CDZoneTableTable.h"
 #include <chrono>
+#include "eObjectBits.h"
 
 #include "../dWorldServer/ObjectIDManager.h"
 
@@ -133,8 +134,7 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 
 	if (objectId == LWOOBJID_EMPTY) {
 		objectId = ObjectIDManager::Instance()->GenerateObjectID();
-
-		objectId = GeneralUtils::SetBit(objectId, OBJECT_BIT_CLIENT);
+		GeneralUtils::SetBit(objectId, eObjectBits::CLIENT);
 
 		info.spawnerID = objectId;
 	}

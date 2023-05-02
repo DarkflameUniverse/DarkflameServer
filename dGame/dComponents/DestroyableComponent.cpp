@@ -33,6 +33,8 @@
 #include "dZoneManager.h"
 #include "WorldConfig.h"
 #include "eMissionTaskType.h"
+#include "eStateChangeType.h"
+#include "eGameActivity.h"
 
 #include "CDComponentsRegistryTable.h"
 
@@ -468,7 +470,7 @@ bool DestroyableComponent::IsKnockbackImmune() const {
 	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 	auto* inventoryComponent = m_Parent->GetComponent<InventoryComponent>();
 
-	if (characterComponent != nullptr && inventoryComponent != nullptr && characterComponent->GetCurrentActivity() == eGameActivities::ACTIVITY_QUICKBUILDING) {
+	if (characterComponent != nullptr && inventoryComponent != nullptr && characterComponent->GetCurrentActivity() == eGameActivity::QUICKBUILDING) {
 		const auto hasPassive = inventoryComponent->HasAnyPassive({
 			eItemSetPassiveAbilityID::EngineerRank2, eItemSetPassiveAbilityID::EngineerRank3,
 			eItemSetPassiveAbilityID::SummonerRank2, eItemSetPassiveAbilityID::SummonerRank3,
@@ -514,7 +516,7 @@ bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignor
 	if (targetQuickbuild != nullptr) {
 		const auto state = targetQuickbuild->GetState();
 
-		if (state != REBUILD_COMPLETED) {
+		if (state != eRebuildState::COMPLETED) {
 			return false;
 		}
 	}
@@ -803,7 +805,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 				coinsTotal -= coinsToLose;
 
 				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLose, coinsToLose);
-				character->SetCoins(coinsTotal, eLootSourceType::LOOT_SOURCE_PICKUP);
+				character->SetCoins(coinsTotal, eLootSourceType::PICKUP);
 			}
 		}
 
@@ -992,7 +994,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 		auto uscoreToLose = uscore * (EntityManager::Instance()->GetHardcoreLoseUscoreOnDeathPercent() / 100);
 		character->SetUScore(uscore - uscoreToLose);
 
-		GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::LOOT_SOURCE_MISSION);
+		GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::MISSION);
 
 		if (EntityManager::Instance()->GetHardcoreDropinventoryOnDeath()) {
 			//drop all items from inventory:
@@ -1023,7 +1025,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 			auto coins = chars->GetCoins();
 
 			//lose all coins:
-			chars->SetCoins(0, eLootSourceType::LOOT_SOURCE_NONE);
+			chars->SetCoins(0, eLootSourceType::NONE);
 
 			//drop all coins:
 			GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, coins, m_Parent->GetPosition());
@@ -1047,7 +1049,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 			int uscore = maxHealth * EntityManager::Instance()->GetHardcoreUscoreEnemiesMultiplier();
 
 			playerStats->SetUScore(playerStats->GetUScore() + uscore);
-			GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_MISSION);
+			GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::MISSION);
 
 			EntityManager::Instance()->SerializeEntity(m_Parent);
 		}

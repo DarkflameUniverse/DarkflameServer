@@ -12,7 +12,7 @@ void NPCAddRemoveItem::OnMissionDialogueOK(Entity* self, Entity* target, int mis
 			for (const auto& itemSetting : missionSetting.second) {
 				for (const auto& lot : itemSetting.items) {
 					if (itemSetting.add && (missionState == eMissionState::AVAILABLE || missionState == eMissionState::COMPLETE_AVAILABLE)) {
-						inventory->AddItem(lot, 1, eLootSourceType::LOOT_SOURCE_NONE);
+						inventory->AddItem(lot, 1, eLootSourceType::NONE);
 					} else if (itemSetting.remove && (missionState == eMissionState::READY_TO_COMPLETE || missionState == eMissionState::COMPLETE_READY_TO_COMPLETE)) {
 						inventory->RemoveItem(lot, 1);
 					}
