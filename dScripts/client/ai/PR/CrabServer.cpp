@@ -1,5 +1,6 @@
 #include "CrabServer.h"
 #include "PetComponent.h"
+#include "ePetTamingNotifyType.h"
 
 void CrabServer::OnStartup(Entity* self) {
 	auto* petComponent = self->GetComponent<PetComponent>();
@@ -23,16 +24,16 @@ void CrabServer::OnTimerDone(Entity* self, std::string timerName) {
 		if (petComponent == nullptr || petComponent->GetOwner() != nullptr)
 			return;
 
-		self->Smash(self->GetObjectID(), SILENT);
+		self->Smash(self->GetObjectID(), eKillType::SILENT);
 	}
 }
 
-void CrabServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, eNotifyType type) {
-	if (type == NOTIFY_TYPE_BEGIN) {
+void CrabServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTamingNotifyType type) {
+	if (type == ePetTamingNotifyType::BEGIN) {
 		self->CancelTimer("killself");
-	} else if (type == NOTIFY_TYPE_QUIT || type == NOTIFY_TYPE_FAILED) {
-		self->Smash(self->GetObjectID(), SILENT);
-	} else if (type == NOTIFY_TYPE_SUCCESS) {
+	} else if (type == ePetTamingNotifyType::QUIT || type == ePetTamingNotifyType::FAILED) {
+		self->Smash(self->GetObjectID(), eKillType::SILENT);
+	} else if (type == ePetTamingNotifyType::SUCCESS) {
 		auto* petComponent = self->GetComponent<PetComponent>();
 		if (petComponent == nullptr)
 			return;

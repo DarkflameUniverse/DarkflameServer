@@ -22,6 +22,7 @@
 #include "Game.h"
 #include "dConfig.h"
 #include "eServerDisconnectIdentifiers.h"
+#include "eLoginResponse.h"
 
 void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	RakNet::BitStream inStream(packet->data, packet->length, false);
@@ -61,7 +62,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 	if (res->rowsCount() == 0) {
 		server->GetLogger()->Log("AuthPackets", "No user found!");
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_WRONG_PASS_OR_USER, "", "", 2001, username);
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::INVALID_USER, "", "", 2001, username);
 		return;
 	}
 
@@ -85,14 +86,14 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	//If we aren't running in live mode, then only GMs are allowed to enter:
 	const auto& closedToNonDevs = Game::config->GetValue("closed_to_non_devs");
 	if (closedToNonDevs.size() > 0 && bool(std::stoi(closedToNonDevs)) && sqlGmLevel == 0) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::LOGIN_RESPONSE_PERMISSIONS_NOT_HIGH_ENOUGH, "The server is currently only open to developers.", "", 2001, username);
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "The server is currently only open to developers.", "", 2001, username);
 		return;
 	}
 
 	if (Game::config->GetValue("dont_use_keys") != "1") {
 		//Check to see if we have a play key:
 		if (sqlPlayKey == 0 && sqlGmLevel == 0) {
-			AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
+			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
 			server->GetLogger()->Log("AuthPackets", "User %s tried to log in, but they don't have a play key.", username.c_str());
 			return;
 		}
@@ -104,7 +105,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		bool isKeyActive = false;
 
 		if (keyRes->rowsCount() == 0 && sqlGmLevel == 0) {
-			AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
+			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
 			return;
 		}
 
@@ -113,18 +114,18 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		}
 
 		if (!isKeyActive && sqlGmLevel == 0) {
-			AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_PERMISSIONS_NOT_HIGH_ENOUGH, "Your play key has been disabled.", "", 2001, username);
+			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your play key has been disabled.", "", 2001, username);
 			server->GetLogger()->Log("AuthPackets", "User %s tried to log in, but their play key was disabled", username.c_str());
 			return;
 		}
 	}
 
 	if (sqlBanned) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_BANNED, "", "", 2001, username); return;
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::BANNED, "", "", 2001, username); return;
 	}
 
 	if (sqlLocked) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_ACCOUNT_LOCKED, "", "", 2001, username); return;
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::ACCOUNT_LOCKED, "", "", 2001, username); return;
 	}
 
 	/*
@@ -170,18 +171,18 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	}
 
 	if (!loginSuccess) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, LOGIN_RESPONSE_WRONG_PASS_OR_USER, "", "", 2001, username);
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::WRONG_PASS, "", "", 2001, username);
 		server->GetLogger()->Log("AuthPackets", "Wrong password used");
 	} else {
 		SystemAddress system = packet->systemAddress; //Copy the sysAddr before the Packet gets destroyed from main
 
 		if (!server->GetIsConnectedToMaster()) {
-			AuthPackets::SendLoginResponse(server, system, LOGIN_RESPONSE_GENERAL_FAILED, "", "", 0, username);
+			AuthPackets::SendLoginResponse(server, system, eLoginResponse::GENERAL_FAILED, "", "", 0, username);
 			return;
 		}
 
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(server, 0, 0, false, [system, server, username](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string zoneIP, uint16_t zonePort) {
-			AuthPackets::SendLoginResponse(server, system, LOGIN_RESPONSE_SUCCESS, "", zoneIP, zonePort, username);
+			AuthPackets::SendLoginResponse(server, system, eLoginResponse::SUCCESS, "", zoneIP, zonePort, username);
 			});
 	}
 }

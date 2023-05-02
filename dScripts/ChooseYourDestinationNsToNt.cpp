@@ -1,6 +1,7 @@
 #include "ChooseYourDestinationNsToNt.h"
 #include "Character.h"
 #include "GameMessages.h"
+#include "eTerminateType.h"
 
 bool ChooseYourDestinationNsToNt::CheckChoice(Entity* self, Entity* player) {
 	const auto choiceZoneID = self->GetVar<int32_t>(u"choiceZone");
@@ -59,6 +60,6 @@ void ChooseYourDestinationNsToNt::BaseChoiceBoxRespond(Entity* self, Entity* sen
 
 		GameMessages::SendDisplayMessageBox(sender->GetObjectID(), true, self->GetObjectID(), u"TransferBox", 0, strText, u"", sender->GetSystemAddress());
 	} else {
-		GameMessages::SendTerminateInteraction(sender->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+		GameMessages::SendTerminateInteraction(sender->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 	}
 }

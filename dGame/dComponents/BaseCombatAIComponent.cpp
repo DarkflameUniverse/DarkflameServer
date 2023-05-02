@@ -248,7 +248,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	if (rebuild != nullptr) {
 		const auto state = rebuild->GetState();
 
-		if (state != REBUILD_COMPLETED) {
+		if (state != eRebuildState::COMPLETED) {
 			return;
 		}
 	}
@@ -566,7 +566,7 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	if (quickbuild != nullptr) {
 		const auto state = quickbuild->GetState();
 
-		if (state != REBUILD_COMPLETED) {
+		if (state != eRebuildState::COMPLETED) {
 			return false;
 		}
 	}

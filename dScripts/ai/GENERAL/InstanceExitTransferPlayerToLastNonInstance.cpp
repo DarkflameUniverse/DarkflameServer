@@ -3,6 +3,7 @@
 #include "Player.h"
 #include "Character.h"
 #include "dServer.h"
+#include "eTerminateType.h"
 
 void InstanceExitTransferPlayerToLastNonInstance::OnUse(Entity* self, Entity* user) {
 	auto transferText = self->GetVar<std::u16string>(u"transferText");

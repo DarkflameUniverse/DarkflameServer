@@ -17,6 +17,7 @@
 #include "dServer.h"
 #include "dMessageIdentifiers.h"
 #include "PacketUtils.h"
+#include "eObjectWorldState.h"
 
 RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, int rocketId) : Component(parent) {
 	auto query = CDClientDatabase::CreatePreppedStmt(
@@ -77,7 +78,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	GameMessages::SendFireEventClientSide(m_Parent->GetObjectID(), originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
 
-	GameMessages::SendChangeObjectWorldState(rocket->GetId(), WORLDSTATE_ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::SendChangeObjectWorldState(rocket->GetId(), eObjectWorldState::ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
 
 	EntityManager::Instance()->SerializeEntity(originator);
 }

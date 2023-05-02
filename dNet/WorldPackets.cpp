@@ -15,7 +15,6 @@
 #include "CharacterComponent.h"
 #include "ZCompression.h"
 
-
 void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_LOAD_STATIC_ZONE);
@@ -89,7 +88,7 @@ void WorldPackets::SendCharacterList(const SystemAddress& sysAddr, User* user) {
 	SEND_PACKET;
 }
 
-void WorldPackets::SendCharacterCreationResponse(const SystemAddress& sysAddr, eCreationResponse response) {
+void WorldPackets::SendCharacterCreationResponse(const SystemAddress& sysAddr, eCharacterCreationResponse response) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHARACTER_CREATE_RESPONSE);
 	bitStream.Write(response);

@@ -1,11 +1,12 @@
 #include "NtHaelServer.h"
 #include "Entity.h"
+#include "ePlayerFlag.h"
 
 void NtHaelServer::SetVariables(Entity* self) {
 	self->SetVar<float_t>(m_SpyProximityVariable, 25.0f);
 
 	self->SetVar<SpyData>(m_SpyDataVariable, {
-			NT_FACTION_SPY_HAEL, 13892, 1321
+			ePlayerFlag::NT_FACTION_SPY_HAEL, 13892, 1321
 		});
 
 	self->SetVar<std::vector<SpyDialogue>>(m_SpyDialogueTableVariable, {

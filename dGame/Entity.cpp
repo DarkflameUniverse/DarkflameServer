@@ -73,6 +73,7 @@
 #include "TriggerComponent.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
+#include "eReplicaPacketType.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -876,7 +877,7 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 }
 
 void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType) {
-	if (packetType == PACKET_TYPE_CONSTRUCTION) {
+	if (packetType == eReplicaPacketType::CONSTRUCTION) {
 		outBitStream->Write(m_ObjectID);
 		outBitStream->Write(m_TemplateID);
 
@@ -978,8 +979,8 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 	}
 
 	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
-	outBitStream->Write(m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION);
-	if (m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION) {
+	outBitStream->Write(m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION);
+	if (m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION) {
 		m_IsParentChildDirty = false;
 		outBitStream->Write(m_ParentEntity != nullptr);
 		if (m_ParentEntity) {
@@ -1004,7 +1005,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 	bool destroyableSerialized = false;
 	bool bIsInitialUpdate = false;
-	if (packetType == PACKET_TYPE_CONSTRUCTION) bIsInitialUpdate = true;
+	if (packetType == eReplicaPacketType::CONSTRUCTION) bIsInitialUpdate = true;
 	unsigned int flags = 0;
 
 	PossessableComponent* possessableComponent;
@@ -1624,7 +1625,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 					}
 				}
 			} else {
-				inv->AddItem(p.second.lot, p.second.count, eLootSourceType::LOOT_SOURCE_PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
+				inv->AddItem(p.second.lot, p.second.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
 			}
 		}
 	}

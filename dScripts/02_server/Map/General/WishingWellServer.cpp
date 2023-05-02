@@ -3,6 +3,7 @@
 #include "GameMessages.h"
 #include "Loot.h"
 #include "EntityManager.h"
+#include "eTerminateType.h"
 
 void WishingWellServer::OnStartup(Entity* self) {
 }

@@ -37,7 +37,7 @@ void BaseFootRaceManager::OnFireEventServerSide(Entity* self, Entity* sender, st
 					if (character != nullptr) {
 						character->SetPlayerFlag(115, false);
 						if (param2 != -1) // Certain footraces set a flag
-							character->SetPlayerFlag(param2, true);
+							character->SetPlayerFlag(static_cast<uint32_t>(param2), true);
 					}
 
 					StopActivity(self, player->GetObjectID(), 0, param1);

@@ -311,7 +311,7 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 		if (!racingPlayer.noSmashOnReload) {
 			racingPlayer.smashedTimes++;
 			GameMessages::SendDie(vehicle, vehicle->GetObjectID(), LWOOBJID_EMPTY, true,
-				VIOLENT, u"", 0, 0, 90.0f, false, true, 0);
+				eKillType::VIOLENT, u"", 0, 0, 90.0f, false, true, 0);
 
 			auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
 			uint32_t respawnImagination = 0;
@@ -765,7 +765,7 @@ void RacingControlComponent::Update(float deltaTime) {
 		// be smashed by death plane
 		if (vehiclePosition.y < -500) {
 			GameMessages::SendDie(vehicle, m_Parent->GetObjectID(),
-				LWOOBJID_EMPTY, true, VIOLENT, u"", 0, 0, 0,
+				LWOOBJID_EMPTY, true, eKillType::VIOLENT, u"", 0, 0, 0,
 				true, false, 0);
 
 			OnRequestDie(playerEntity);
