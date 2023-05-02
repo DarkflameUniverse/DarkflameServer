@@ -5,7 +5,7 @@
 #include "eReplicaComponentType.h"
 
 void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
-	if (inUse || !self->GetLOT() == 6859) return;
+	if (inUse || self->GetLOT() != 6859) return;
 	GameMessages::SendNotifyClientObject(
 		self->GetObjectID(), u"toggleInUse", 1, 0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS
 	);
