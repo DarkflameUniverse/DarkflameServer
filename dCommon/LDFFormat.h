@@ -7,6 +7,7 @@
 
 // C++
 #include <string>
+#include <string_view>
 #include <sstream>
 
 // RakNet
@@ -50,7 +51,7 @@ public:
 	/**
 	 * Given an input string, return the data as a LDF key.
 	 */
-	static LDFBaseData* DataFromString(const std::string& format);
+	static LDFBaseData* DataFromString(const std::string_view& format);
 
 };
 

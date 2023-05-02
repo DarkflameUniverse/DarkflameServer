@@ -242,7 +242,11 @@ TEST_F(LDFTests, LDFParseEdgeCaseTest) {
 	}
 }
 
+#ifdef PERF_TEST
+
 TEST_F(LDFTests, LDFSpeedTest) {
 	std::string keyToTest = "KEY=0:IAmA weird string with :::: and s";
 	for (int i = 0; i < 10000; i++) LDFBaseData::DataFromString(keyToTest);
 }
+
+#endif //PERF
