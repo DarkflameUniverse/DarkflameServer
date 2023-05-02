@@ -388,7 +388,7 @@ void Mission::Catchup() {
 		}
 
 		if (type == eMissionTaskType::PLAYER_FLAG) {
-			for (auto target : task->GetAllTargets()) {
+			for (int32_t target : task->GetAllTargets()) {
 				const auto flag = GetUser()->GetLastUsedChar()->GetPlayerFlag(target);
 
 				if (!flag) {
