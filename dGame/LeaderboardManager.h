@@ -15,15 +15,8 @@ typedef uint32_t GameID;
 
 class Leaderboard {
 public:
-	// struct Entry {
-	// 	LWOOBJID playerID;
-	// 	uint32_t time;
-	// 	uint32_t score;
-	// 	uint32_t placement;
-	// 	time_t lastPlayed;
-	// 	std::string playerName;
-	// };
-	typedef std::vector<LDFBaseData> LeaderboardEntries;
+	using LeaderboardEntry = std::vector<LDFBaseData*>;
+	using LeaderboardEntries = std::vector<LeaderboardEntry>;
 
 	// Enums for leaderboards
 	enum InfoType : uint32_t {
@@ -44,14 +37,16 @@ public:
 		None = UINT_MAX
 	};
 
-	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const Leaderboard::Type = None);
+	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const Leaderboard::Type = None);
+
+	~Leaderboard();
 
 	/**
 	 * Serialize the Leaderboard to a BitStream
 	 * 
 	 * Expensive!  Leaderboards are very string intensive so be wary of performatnce calling this method.
 	 */
-	void Serialize(RakNet::BitStream* bitStream) const;
+	void Serialize(RakNet::BitStream* bitStream);
 
 	/**
 	 * Based on the associated gameID, return true if the score provided
@@ -71,15 +66,8 @@ public:
 	 * Sends the leaderboard to the client specified by targetID.
 	 */
 	void Send(LWOOBJID targetID) const;
-
-	/**
-	 * Adds a new entry to the leaderboard
-	 * Used for debug only!
-	 */
-	void AddEntry(LDFBaseData& entry) { entries.push_back(entry); }
 private:
-template<class TypeToWrite>
-	inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, const std::string& key, const eLDFType& ldfType, const TypeToWrite& value) const;
+	inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, LDFBaseData* data);
 	LeaderboardEntries entries;
 	LWOOBJID relatedPlayer;
 	GameID gameID;

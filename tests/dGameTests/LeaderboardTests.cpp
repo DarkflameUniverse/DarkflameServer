@@ -15,14 +15,7 @@ protected:
 	}
 
 	void TestLeaderboard(Leaderboard& leaderboard, int32_t entries) {
-		Leaderboard::Entry entry;
-		entry.playerID = UINT64_MAX;
-		entry.time = 100;
-		entry.score = 100;
-		entry.placement = 1;
-		entry.lastPlayed = 0;
-		entry.playerName = "TestThreeWords";
-		for (int32_t i = 0; i < entries; i++) leaderboard.AddEntry(entry);
+		bitStream.Reset();
 		Metrics::StartMeasurement(MetricVariable::Leaderboard);
 		for (int32_t i = 0; i < MAX_MEASURMENT_POINTS; i++) leaderboard.Serialize(&bitStream);
 		Metrics::EndMeasurement(MetricVariable::Leaderboard);
@@ -32,14 +25,15 @@ protected:
 		bitStream.Reset();
 	}
 
-	void RunTests(Leaderboard::Type type) {
-		Game::logger->Log("LeaderboardTests", "Testing leaderboard %i for Serialize speed", type);
-		Leaderboard leaderboard(0, Leaderboard::InfoType::Top, false, type);
+	void RunTests(uint32_t gameID, Leaderboard::Type type, Leaderboard::InfoType infoType) {
+		Game::logger->Log("LeaderboardTests", "Testing leaderboard %i for Serialize speed", infoType);
+		Leaderboard leaderboard(gameID, infoType, false, 14231, type);
 		leaderboard.SetupLeaderboard();
-		// TestLeaderboard(leaderboard, 1);
-		// TestLeaderboard(leaderboard, 10);
-		// TestLeaderboard(leaderboard, 100);
-		// TestLeaderboard(leaderboard, 1000);
+		leaderboard.Serialize(&bitStream);
+		TestLeaderboard(leaderboard, 1);
+		TestLeaderboard(leaderboard, 10);
+		TestLeaderboard(leaderboard, 100);
+		TestLeaderboard(leaderboard, 1000);
 	}
 
 	CBITSTREAM;
@@ -78,20 +72,22 @@ protected:
  */
 
 TEST_F(LeaderboardTests, LeaderboardSpeedTest) {
-	RunTests(Leaderboard::Type::ShootingGallery);
+	RunTests(1864, Leaderboard::Type::ShootingGallery , Leaderboard::InfoType::Top);
+	RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::MyStanding);
+	RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::Friends);
 	// LeaderboardManager::Instance().SaveScore(0, 0, Leaderboard::Type::ShootingGallery, 3, 3000, 15.0f, 100);
-	RunTests(Leaderboard::Type::Racing);
+	// RunTests(0, Leaderboard::Type::Racing);
 	// LeaderboardManager::Instance().SaveScore(0, 0, Leaderboard::Type::Racing, 2, 260.0f, 250.0f);
-	RunTests(Leaderboard::Type::MonumentRace);
+	// RunTests(0, Leaderboard::Type::MonumentRace);
 	// LeaderboardManager::Instance().SaveScore(0, 0, Leaderboard::Type::MonumentRace, 1, 150);
-	RunTests(Leaderboard::Type::FootRace);
+	// RunTests(0, Leaderboard::Type::FootRace);
 	// LeaderboardManager::Instance().SaveScore(0, 0, Leaderboard::Type::FootRace, 1, 150);
-	RunTests(Leaderboard::Type::UnusedLeaderboard4);
+	// RunTests(0, Leaderboard::Type::UnusedLeaderboard4);
 	// LeaderboardManager::Instance().SaveScore(0, 0, Leaderboard::Type::UnusedLeaderboard4, 1, 100);
-	RunTests(Leaderboard::Type::Survival);
+	// RunTests(0, Leaderboard::Type::Survival);
 	// LeaderboardManager::Instance().SaveScore(0, 0, Leaderboard::Type::Survival, 2, 3000, 15);
-	RunTests(Leaderboard::Type::SurvivalNS);
+	// RunTests(0, Leaderboard::Type::SurvivalNS);
 	// LeaderboardManager::Instance().SaveScore(0, 0, Leaderboard::Type::SurvivalNS, 2, 300, 15);
-	RunTests(Leaderboard::Type::Donations);
+	// RunTests(0, Leaderboard::Type::Donations);
 	// LeaderboardManager::Instance().SaveScore(0, 0, Leaderboard::Type::Donations, 1, 300000);
 }
