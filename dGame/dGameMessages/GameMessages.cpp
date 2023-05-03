@@ -937,8 +937,13 @@ void GameMessages::SendResurrect(Entity* entity) {
 		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
 			auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
 			if (levelComponent) {
-				destroyableComponent->SetHealth(levelComponent->GetLevel() >= 45 ? 8 : 4);
-				destroyableComponent->SetImagination(levelComponent->GetLevel() >= 45 ? 20 : 6);
+				int32_t healthToRestore = levelComponent->GetLevel() >= 45 ? 8 : 4;
+				if (healthToRestore > destroyableComponent->GetMaxHealth()) healthToRestore = destroyableComponent->GetMaxHealth();
+				destroyableComponent->SetHealth(healthToRestore);
+
+				int32_t imaginationToRestore = levelComponent->GetLevel() >= 45 ? 20 : 6;
+				if (imaginationToRestore > destroyableComponent->GetMaxImagination()) imaginationToRestore = destroyableComponent->GetMaxImagination();
+				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
 	});
