@@ -31,7 +31,6 @@
 #include "dConfig.h"
 #include "CharacterComponent.h"
 #include "Database.h"
-#include "dMessageIdentifiers.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 

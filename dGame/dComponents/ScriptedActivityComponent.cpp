@@ -18,10 +18,11 @@
 #include "dConfig.h"
 #include "InventoryComponent.h"
 #include "DestroyableComponent.h"
-#include "dMessageIdentifiers.h"
 #include "Loot.h"
 #include "eMissionTaskType.h"
 #include "eMatchUpdate.h"
+#include "eConnectionType.h"
+#include "eChatInternalMessageType.h"
 
 #include "CDCurrencyTableTable.h"
 #include "CDActivityRewardsTable.h"
@@ -517,7 +518,7 @@ void ActivityInstance::StartZone() {
 	// only make a team if we have more than one participant
 	if (participants.size() > 1) {
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_CREATE_TEAM);
+		PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::CREATE_TEAM);
 
 		bitStream.Write(leader->GetObjectID());
 		bitStream.Write(m_Participants.size());

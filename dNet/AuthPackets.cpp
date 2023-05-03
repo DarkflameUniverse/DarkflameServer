@@ -1,6 +1,5 @@
 #include "AuthPackets.h"
 #include "PacketUtils.h"
-#include "dMessageIdentifiers.h"
 
 #include "dNetCommon.h"
 #include "dServer.h"
@@ -23,6 +22,9 @@
 #include "dConfig.h"
 #include "eServerDisconnectIdentifiers.h"
 #include "eLoginResponse.h"
+#include "eConnectionType.h"
+#include "eServerMessageType.h"
+#include "eMasterMessageType.h"
 
 void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	RakNet::BitStream inStream(packet->data, packet->length, false);
@@ -36,7 +38,7 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 
 void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServerType serverType) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, SERVER, MSG_SERVER_VERSION_CONFIRM);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::VERSION_CONFIRM);
 	bitStream.Write<unsigned int>(NET_VERSION);
 	bitStream.Write(uint32_t(0x93));
 
@@ -189,7 +191,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username) {
 	RakNet::BitStream packet;
-	PacketUtils::WriteHeader(packet, CLIENT, MSG_CLIENT_LOGIN_RESPONSE);
+	PacketUtils::WriteHeader(packet, eConnectionType::CLIENT, eClientMessageType::LOGIN_RESPONSE);
 
 	packet.Write(static_cast<uint8_t>(responseCode));
 
@@ -255,7 +257,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	//Inform the master server that we've created a session for this user:
 	{
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SET_SESSION_KEY);
+		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SET_SESSION_KEY);
 		bitStream.Write(sessionKey);
 		PacketUtils::WriteString(bitStream, username, 66);
 		server->SendToMaster(&bitStream);

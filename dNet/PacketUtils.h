@@ -1,11 +1,20 @@
 #ifndef PACKETUTILS_H
 #define PACKETUTILS_H
 
+#include <MessageIdentifiers.h>
 #include <BitStream.h>
 #include <string>
 
+enum class eConnectionType : uint16_t;
+
 namespace PacketUtils {
-	void WriteHeader(RakNet::BitStream& bitStream, uint16_t connectionType, uint32_t internalPacketID);
+	template<typename T>
+	void WriteHeader(RakNet::BitStream& bitStream, eConnectionType connectionType, T internalPacketID) {
+		bitStream.Write(MessageID(ID_USER_PACKET_ENUM));
+		bitStream.Write(connectionType);
+		bitStream.Write(internalPacketID);
+		bitStream.Write(uint8_t(0));
+	}
 
 	uint16_t ReadPacketU16(uint32_t startLoc, Packet* packet);
 	uint32_t ReadPacketU32(uint32_t startLoc, Packet* packet);
