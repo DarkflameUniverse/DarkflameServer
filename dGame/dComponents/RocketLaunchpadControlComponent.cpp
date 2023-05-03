@@ -15,9 +15,10 @@
 #include "PropertyEntranceComponent.h"
 #include "RocketLaunchLupComponent.h"
 #include "dServer.h"
-#include "dMessageIdentifiers.h"
 #include "PacketUtils.h"
 #include "eObjectWorldState.h"
+#include "eConnectionType.h"
+#include "eMasterMessageType.h"
 
 RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, int rocketId) : Component(parent) {
 	auto query = CDClientDatabase::CreatePreppedStmt(
@@ -136,7 +137,7 @@ LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) 
 
 void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_PREP_ZONE);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PREP_ZONE);
 	bitStream.Write(zoneID);
 	Game::server->SendToMaster(&bitStream);
 }

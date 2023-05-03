@@ -15,10 +15,13 @@
 
 //RakNet includes:
 #include "RakNetDefines.h"
+#include <MessageIdentifiers.h>
 
 //Auth includes:
 #include "AuthPackets.h"
-#include "dMessageIdentifiers.h"
+#include "eConnectionType.h"
+#include "eServerMessageType.h"
+#include "eAuthMessageType.h"
 
 #include "Game.h"
 namespace Game {
@@ -169,12 +172,12 @@ dLogger* SetupLogger() {
 
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
-		if (packet->data[1] == SERVER) {
-			if (packet->data[3] == MSG_SERVER_VERSION_CONFIRM) {
+		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
+			if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
 				AuthPackets::HandleHandshake(Game::server, packet);
 			}
-		} else if (packet->data[1] == AUTH) {
-			if (packet->data[3] == MSG_AUTH_LOGIN_REQUEST) {
+		} else if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::AUTH) {
+			if (static_cast<eAuthMessageType>(packet->data[3]) == eAuthMessageType::LOGIN_REQUEST) {
 				AuthPackets::HandleLoginRequest(Game::server, packet);
 			}
 		}

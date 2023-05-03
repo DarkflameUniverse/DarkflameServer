@@ -5,11 +5,10 @@
 #include <string>
 
 #include "BitStream.h"
+#include "eGameMessageType.h"
 
 /*  Message to synchronize a skill cast */
 class SyncSkill {
-	static const GAME_MSG MsgID = GAME_MSG_SYNC_SKILL;
-
 public:
 	SyncSkill() {
 		bDone = false;
@@ -30,7 +29,7 @@ public:
 	}
 
 	void Serialize(RakNet::BitStream* stream) {
-		stream->Write(MsgID);
+		stream->Write(eGameMessageType::SYNC_SKILL);
 
 		stream->Write(bDone);
 		uint32_t sBitStreamLength = sBitStream.length();
