@@ -111,50 +111,53 @@ void Leaderboard::SetupLeaderboard() {
 	char baseStandingBuffer[1024];
 	char lookupBuffer[MAX_QUERY_LENGTH];
 
+	std::string orderBase;
+	std::string selectBase;
+
 	switch (leaderboardType) {
 	case Type::ShootingGallery: {
-		const char* orderBase = "score DESC, streak DESC, hitPercentage DESC";
-		const char* selectBase = "hitPercentage, score, streak";
-		snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), orderBase, selectBase);
-		if (isFriendsQuery) snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), orderBase, friendsQuery, selectBase);
-		else snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), orderBase, "", selectBase);
-		if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), orderBase);
+		orderBase = "score DESC, streak DESC, hitPercentage DESC";
+		selectBase = "hitPercentage, score, streak";
 		break;
 	}
 	case Type::Racing:
-		snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), "bestTime ASC, bestLapTime ASC, numWins DESC", "bestLapTime, bestTime, numWins");
-		if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), "bestTime ASC, bestLapTime ASC, numWins DESC");
+		orderBase = "bestTime ASC, bestLapTime ASC, numWins DESC";
+		selectBase = "bestLapTime, bestTime, numWins";
 		break;
 	case Type::UnusedLeaderboard4:
-		snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), "score DESC", "score");
-		if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), "score DESC");
+		orderBase = "score DESC";
+		selectBase = "score";
 		break;
 	case Type::MonumentRace:
-		snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), "bestTime ASC", "bestTime");
-		if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), "bestTime ASC");
+		orderBase = "bestTime ASC";
+		selectBase = "bestTime";
 		break;
 	case Type::FootRace:
-		snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), "bestTime DESC", "bestTime");
-		if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), "bestTime DESC");
+		orderBase = "bestTime DESC";
+		selectBase = "bestTime";
 		break;
 	case Type::Survival:
-		snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), "score DESC, bestTime DESC", "score, bestTime");
-		if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), "score DESC, bestTime DESC");
+		orderBase = "score DESC, bestTime DESC";
+		selectBase = "score, bestTime";
 		// If the config option default_survival_scoring is 1, reverse the order of the points and time columns
 		break;
 	case Type::SurvivalNS:
-		snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), "bestTime DESC, score DESC", "bestTime, score");
-		if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), "bestTime DESC, score DESC");
+		orderBase = "bestTime DESC, score DESC";
+		selectBase = "bestTime, score";
 		break;
 	case Type::Donations:
-		snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), "score DESC", "score");
-		if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), "score DESC");
+		orderBase = "score DESC";
+		selectBase = "score";
 		break;
 	case Type::None:
 		Game::logger->Log("LeaderboardManager", "Attempting to get leaderboard for type none.	Is this intended?");
 		// This type is included here simply to resolve a compiler warning on mac about unused enum types
 		break;
 	}
+	if (isFriendsQuery) snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), orderBase.c_str(), friendsQuery, selectBase.c_str());
+	else snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), orderBase.c_str(), "", selectBase.c_str());
+	if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), orderBase.c_str());
+
 	Game::logger->Log("LeaderboardManager", "lookup query is %s", (!isTopQuery) ? baseLookupStr.c_str() : baseStandingBuffer);
 	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::CreatePreppedStmt((!isTopQuery) ? baseLookupStr : baseStandingBuffer));
 	baseQuery->setInt(1, this->gameID);
