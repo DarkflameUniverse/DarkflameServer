@@ -87,10 +87,10 @@ void Leaderboard::SetupLeaderboard() {
 		SELECT MAX(ranking) AS lowestRank \
 			FROM leaderboardsRanked \
 	) \
-	SELECT %s, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name FROM leaderboardsRanked, myStanding, lowestRanking \
+	SELECT %s, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking \
 	WHERE leaderboardsRanked.ranking \
 	BETWEEN \
-	LEAST(GREATEST(myRank - 5, 1), lowestRanking.lowestRank - 10) \
+	LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, 1), lowestRanking.lowestRank - 10) \
 	AND \
 	LEAST(GREATEST(myRank + 5, 11), lowestRanking.lowestRank) \
 	ORDER BY ranking ASC;";
@@ -108,12 +108,8 @@ void Leaderboard::SetupLeaderboard() {
 		"JOIN charinfo AS ci ON ci.id = fr.requested_player "
 		"WHERE fr.requested_player IS NOT NULL) OR character_id = ?) ";
 
-	char baseStandingBuffer[1024];
-	char lookupBuffer[MAX_QUERY_LENGTH];
-
 	std::string orderBase;
 	std::string selectBase;
-
 	switch (leaderboardType) {
 	case Type::ShootingGallery: {
 		orderBase = "score DESC, streak DESC, hitPercentage DESC";
@@ -154,6 +150,9 @@ void Leaderboard::SetupLeaderboard() {
 		// This type is included here simply to resolve a compiler warning on mac about unused enum types
 		break;
 	}
+
+	char baseStandingBuffer[1024];
+	char lookupBuffer[MAX_QUERY_LENGTH];
 	if (isFriendsQuery) snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), orderBase.c_str(), friendsQuery, selectBase.c_str());
 	else snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), orderBase.c_str(), "", selectBase.c_str());
 	if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), orderBase.c_str());
