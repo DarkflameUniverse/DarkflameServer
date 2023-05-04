@@ -184,37 +184,8 @@ void Leaderboard::SetupLeaderboard() {
 
 	if (result->rowsCount() == 0) return;
 
-	uint32_t myRanking = 1;
-	uint32_t myCharacterId = 0;
-	int32_t lowestRanking = result->rowsCount() - 5;
-	uint32_t startRanking = 1; // Default to top 11
-	if (this->infoType == InfoType::MyStanding) {
-		// Find my ranking in the leaderboard
-		while (result->next()) {
-			if (result->getInt("character_id") != myCharacterId) myRanking++;
-			else break;
-		}
-		// Once you've found my ranking, figure out if we need to adjust the 
-		// row pointer to get the top 11 or the bottom 11.
-
-		if (lowestRanking > 0 && myRanking >= lowestRanking) { // I am in the bottom 10, so set row pointer back to the top of the bottom 6
-			for (uint32_t i = myRanking - lowestRanking; i > lowestRanking; i--) {
-				result->previous();
-			}
-		}
-
-		if (myRanking >= 6) startRanking = myRanking - 5; // If i am not in the top 5, set row pointer to 5 above my ranking
-		else if (myRanking > result->rowsCount()) { // If i am in the bottom 10, set the row pointer to the top of the bottom 11
-			startRanking = result->rowsCount() - 10;
-		}
-
-		for (uint32_t i = myRanking - 5; i > 0; i--) { // Adjust first row gotten to be 5 above my ranking.	
-			result->previous();
-		}
-	}
-
 	this->entries.reserve(11);
-	for (uint32_t i = 0; i < 11 && result->next(); i++) {
+	while (result->next()) {
 		constexpr int32_t MAX_NUM_DATA_PER_ROW = 9;
 		this->entries.push_back(std::vector<LDFBaseData*>());
 		auto& entry = this->entries.back();
@@ -223,7 +194,7 @@ void Leaderboard::SetupLeaderboard() {
 		entry.push_back(new LDFData<uint64_t>(u"LastPlayed", result->getUInt64("lastPlayed")));
 		entry.push_back(new LDFData<int32_t>(u"NumPlayed", 1));
 		entry.push_back(new LDFData<std::u16string>(u"name", GeneralUtils::ASCIIToUTF16(result->getString("name").c_str())));
-		entry.push_back(new LDFData<int32_t>(u"RowNumber", startRanking + i));
+		entry.push_back(new LDFData<int32_t>(u"RowNumber", result->getInt("ranking")));
 		switch (leaderboardType) {
 		case Type::ShootingGallery:
 			entry.push_back(new LDFData<float>(u"HitPercentage", result->getDouble("hitPercentage")));
