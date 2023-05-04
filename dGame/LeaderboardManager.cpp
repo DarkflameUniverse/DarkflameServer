@@ -52,20 +52,17 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) {
 	bitStream->Write(leaderboard.str().c_str(), leaderboard.tellp());
 }
 
-#define MAX_QUERY_LENGTH 1526
+bool Leaderboard::GetRankingQuery(std::string& lookupReturn) const {
+	if (this->infoType == InfoType::Top) {
+		lookupReturn = "SELECT id FROM leaderboard WHERE game_id = ? ORDER BY %s LIMIT 1";
+		return true;
+	} else {
+		lookupReturn = "SELECT id FROM leaderboard WHERE game_id = ? AND character_id = ? LIMIT 1";
+		return false;
+	}
+}
 
 void Leaderboard::SetupLeaderboard() {
-	bool isTopQuery = this->infoType == InfoType::Top;
-	bool isMyStandingQuery = this->infoType == InfoType::MyStanding;
-	bool isFriendsQuery = this->infoType == InfoType::Friends;
-	std::string baseLookupStr;
-
-	if (!isTopQuery) {
-		baseLookupStr = "SELECT id FROM leaderboard WHERE game_id = ? AND character_id = ? LIMIT 1";
-	} else {
-		baseLookupStr = "SELECT id FROM leaderboard WHERE game_id = ? ORDER BY %s LIMIT 1";
-	}
-
 	std::string queryBase =
 		" \
 	WITH leaderboardsRanked AS ( \
@@ -151,22 +148,26 @@ void Leaderboard::SetupLeaderboard() {
 		break;
 	}
 
-	char baseStandingBuffer[1024];
-	char lookupBuffer[MAX_QUERY_LENGTH];
-	if (isFriendsQuery) snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), orderBase.c_str(), friendsQuery, selectBase.c_str());
-	else snprintf(lookupBuffer, MAX_QUERY_LENGTH, queryBase.c_str(), orderBase.c_str(), "", selectBase.c_str());
-	if (isTopQuery) snprintf(baseStandingBuffer, 1024, baseLookupStr.c_str(), orderBase.c_str());
+	constexpr uint16_t STRING_LENGTH = 1526;
+	char lookupBuffer[STRING_LENGTH];
+	if (this->infoType == InfoType::Friends) snprintf(lookupBuffer, STRING_LENGTH, queryBase.c_str(), orderBase.c_str(), friendsQuery, selectBase.c_str());
+	else snprintf(lookupBuffer, STRING_LENGTH, queryBase.c_str(), orderBase.c_str(), "", selectBase.c_str());
 
-	Game::logger->Log("LeaderboardManager", "lookup query is %s", (!isTopQuery) ? baseLookupStr.c_str() : baseStandingBuffer);
-	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::CreatePreppedStmt((!isTopQuery) ? baseLookupStr : baseStandingBuffer));
+	std::string baseLookupStr;
+	char baseRankingBuffer[STRING_LENGTH];
+	bool neededFormatting = GetRankingQuery(baseLookupStr);
+	if (neededFormatting) snprintf(baseRankingBuffer, STRING_LENGTH, baseLookupStr.c_str(), orderBase.c_str());
+	else std::copy(baseLookupStr.begin(), baseLookupStr.end() + 1, baseRankingBuffer);
+
+	Game::logger->Log("LeaderboardManager", "lookup query is %s", baseRankingBuffer);
+	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::CreatePreppedStmt(baseRankingBuffer));
 	baseQuery->setInt(1, this->gameID);
-	if (!isTopQuery) {
+	if (!neededFormatting) {
 		baseQuery->setInt(2, this->relatedPlayer);
 	}
 
 	std::unique_ptr<sql::ResultSet> baseResult(baseQuery->executeQuery());
-	if (baseResult->rowsCount() == 0) return;
-	baseResult->next();
+	if (!baseResult->next()) return;
 	// Get the ID of the row fetched.
 	uint32_t relatedPlayerLeaderboardId = baseResult->getInt("id");
 
@@ -174,7 +175,7 @@ void Leaderboard::SetupLeaderboard() {
 	Game::logger->Log("LeaderboardManager", "filled in query is %s %i %i %i", lookupBuffer, this->gameID, this->relatedPlayer, relatedPlayerLeaderboardId);
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer));
 	query->setInt(1, this->gameID);
-	if (isFriendsQuery) {
+	if (this->infoType == InfoType::Friends) {
 		query->setInt(2, this->relatedPlayer);
 		query->setInt(3, this->relatedPlayer);
 		query->setInt(4, this->relatedPlayer);
@@ -186,7 +187,7 @@ void Leaderboard::SetupLeaderboard() {
 
 	if (result->rowsCount() == 0) return;
 
-	this->entries.reserve(11);
+	this->entries.reserve(result->rowsCount());
 	while (result->next()) {
 		constexpr int32_t MAX_NUM_DATA_PER_ROW = 9;
 		this->entries.push_back(std::vector<LDFBaseData*>());
@@ -235,15 +236,14 @@ void Leaderboard::SetupLeaderboard() {
 			// Time:1
 			break;
 		case Type::SurvivalNS:
-			entry.push_back(new LDFData<int32_t>(u"Time", result->getInt("bestTime")));
-			// Time:1
 			entry.push_back(new LDFData<int32_t>(u"Score", result->getInt("score")));
 			// Wave:1
+			entry.push_back(new LDFData<int32_t>(u"Time", result->getInt("bestTime")));
+			// Time:1
 			break;
 		case Type::Donations:
 			entry.push_back(new LDFData<int32_t>(u"Score", result->getInt("score")));
 			// Score:1				
-			// Something? idk yet.
 			break;
 		case Type::None:
 			// This type is included here simply to resolve a compiler warning on mac about unused enum types
@@ -278,23 +278,21 @@ std::string FormatInsert(const char* columns, const char* format, va_list args) 
 	constexpr uint16_t STRING_LENGTH = 400;
 	char formattedInsert[STRING_LENGTH];
 	char finishedQuery[STRING_LENGTH];
-	snprintf(formattedInsert, 400, queryBase, columns, format);
-	vsnprintf(finishedQuery, 400, formattedInsert, args);
+	snprintf(formattedInsert, STRING_LENGTH, queryBase, columns, format);
+	vsnprintf(finishedQuery, STRING_LENGTH, formattedInsert, args);
 	return finishedQuery;
 }
 
 void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, va_list args) {
 	std::string insertStatement;
 	// use replace into to update the score if it already exists instead of needing an update and an insert
+	std::unique_ptr<sql::PreparedStatement> lookup(Database::CreatePreppedStmt("SELECT * FROM leaderboard WHERE playerID = ? AND gameID = ?"));
+	lookup->setInt64(1, playerID);
+	lookup->setInt(2, gameID);
+	std::unique_ptr<sql::ResultSet> lookupResult(lookup->executeQuery());
+
 	switch (leaderboardType) {
 	case Leaderboard::Type::ShootingGallery: {
-		// Check that the score exists and is better. If the score is better update it.
-		// If the score is the same but the streak is better, update it.
-		// If the score is the same and the streak is the same but the hit percentage is better, update it.
-		// If the score doesn't exist, insert it.
-		auto lookup = Database::CreatePreppedStmt("SELECT score, streak, hitPercentage FROM leaderboard WHERE playerID = ? AND gameID = ?");
-		lookup->setInt64(1, playerID);
-		lookup->setInt(2, gameID);
 		auto lookupResult = lookup->executeQuery();
 		if (lookupResult->next()) {
 
@@ -352,7 +350,6 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 }
 
 void LeaderboardManager::SendLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID targetID, LWOOBJID playerID) {
-	// Create the leaderboard here and then send it right after.	On the stack.
 	Leaderboard leaderboard(gameID, infoType, weekly, playerID, GetLeaderboardType(gameID));
 	leaderboard.SetupLeaderboard();
 	leaderboard.Send(targetID);

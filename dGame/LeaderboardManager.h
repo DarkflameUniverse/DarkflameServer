@@ -68,6 +68,9 @@ public:
 	void Send(LWOOBJID targetID) const;
 private:
 	inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, LDFBaseData* data);
+
+	// Returns true if the string needs formatting
+	bool GetRankingQuery(std::string& lookupReturn) const;
 	LeaderboardEntries entries;
 	LWOOBJID relatedPlayer;
 	GameID gameID;
