@@ -171,6 +171,8 @@ dLogger* SetupLogger() {
 }
 
 void HandlePacket(Packet* packet) {
+	if (packet->length < 4) return;
+
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
 		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
 			if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
