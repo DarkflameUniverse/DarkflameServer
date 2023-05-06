@@ -1,9 +1,10 @@
 #include "ActNinjaTurret.h"
+#include "eRebuildState.h"
 
 void ActNinjaTurret::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == eRebuildState::REBUILD_COMPLETED) {
+	if (state == eRebuildState::COMPLETED) {
 		self->SetVar(u"AmBuilt", true);
-	} else if (state == eRebuildState::REBUILD_RESETTING) {
+	} else if (state == eRebuildState::RESETTING) {
 		self->SetVar(u"AmBuilt", false);
 	}
 }

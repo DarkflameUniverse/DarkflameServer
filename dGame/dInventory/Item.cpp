@@ -18,6 +18,7 @@
 #include "Loot.h"
 #include "eObjectBits.h"
 #include "eReplicaComponentType.h"
+#include "eUseItemResponse.h"
 
 #include "CDBrickIDTableTable.h"
 #include "CDObjectSkillsTable.h"
@@ -330,7 +331,7 @@ void Item::UseNonEquip(Item* item) {
 						}
 					}
 					if (playerInventoryComponent->HasSpaceForLoot(rolledLoot)) {
-						LootGenerator::Instance().GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
+						LootGenerator::Instance().GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::CONSUMPTION);
 						item->SetCount(item->GetCount() - 1);
 					} else {
 						success = false;
@@ -339,7 +340,7 @@ void Item::UseNonEquip(Item* item) {
 					GameMessages::SendUseItemRequirementsResponse(
 						playerInventoryComponent->GetParent()->GetObjectID(),
 						playerInventoryComponent->GetParent()->GetSystemAddress(),
-						UseItemResponse::FailedPrecondition
+						eUseItemResponse::FailedPrecondition
 					);
 					success = false;
 				}
@@ -379,7 +380,7 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 			}
 
 			for (const auto mod : modArray) {
-				inventory->GetComponent()->AddItem(mod, 1, eLootSourceType::LOOT_SOURCE_DELETION, inventoryType);
+				inventory->GetComponent()->AddItem(mod, 1, eLootSourceType::DELETION, inventoryType);
 			}
 		}
 	}
@@ -477,7 +478,7 @@ void Item::DisassembleModel() {
 			continue;
 		}
 
-		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1, eLootSourceType::LOOT_SOURCE_DELETION);
+		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1, eLootSourceType::DELETION);
 	}
 }
 

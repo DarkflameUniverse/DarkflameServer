@@ -61,8 +61,8 @@ void FvBrickPuzzleServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "reset") {
 		auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-		if (rebuildComponent != nullptr && rebuildComponent->GetState() == REBUILD_OPEN) {
-			self->Smash(self->GetObjectID(), SILENT);
+		if (rebuildComponent != nullptr && rebuildComponent->GetState() == eRebuildState::OPEN) {
+			self->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 	}
 }

@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
+#include "eStateChangeType.h"
 
 void NtParadoxTeleServer::OnStartup(Entity* self) {
 	self->SetProximityRadius(5, "teleport");

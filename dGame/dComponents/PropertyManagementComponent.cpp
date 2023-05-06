@@ -476,7 +476,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		settings.push_back(propertyObjectID);
 		settings.push_back(modelType);
 
-		inventoryComponent->AddItem(6662, 1, eLootSourceType::LOOT_SOURCE_DELETION, eInventoryType::MODELS_IN_BBB, settings, LWOOBJID_EMPTY, false, false, spawnerId);
+		inventoryComponent->AddItem(6662, 1, eLootSourceType::DELETION, eInventoryType::MODELS_IN_BBB, settings, LWOOBJID_EMPTY, false, false, spawnerId);
 		auto* item = inventoryComponent->FindItemBySubKey(spawnerId);
 
 		if (item == nullptr) {
@@ -498,7 +498,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		if (spawner != nullptr) {
 			dZoneManager::Instance()->RemoveSpawner(spawner->m_Info.spawnerID);
 		} else {
-			model->Smash(SILENT);
+			model->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 		}
 
 		item->SetCount(0, true, false, false);
@@ -506,7 +506,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
-	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::LOOT_SOURCE_DELETION, INVALID, {}, LWOOBJID_EMPTY, false);
+	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::DELETION, INVALID, {}, LWOOBJID_EMPTY, false);
 
 	auto* item = inventoryComponent->FindItemByLot(model->GetLOT());
 
@@ -551,7 +551,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	if (spawner != nullptr) {
 		dZoneManager::Instance()->RemoveSpawner(spawner->m_Info.spawnerID);
 	} else {
-		model->Smash(SILENT);
+		model->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 	}
 }
 

@@ -2,12 +2,13 @@
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
+#include "ePlayerFlag.h"
 
 void NtDukeServer::SetVariables(Entity* self) {
 	self->SetVar<float_t>(m_SpyProximityVariable, 35.0f);
 
 	self->SetVar<SpyData>(m_SpyDataVariable, {
-		NT_FACTION_SPY_DUKE, 13548, 1319
+		ePlayerFlag::NT_FACTION_SPY_DUKE, 13548, 1319
 		});
 
 	self->SetVar<std::vector<SpyDialogue>>(m_SpyDialogueTableVariable, {
@@ -31,7 +32,7 @@ void NtDukeServer::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 		auto lotCount = inventoryComponent->GetLotCount(m_SwordLot);
 
 		if ((state == eMissionState::AVAILABLE || state == eMissionState::ACTIVE) && lotCount < 1) {
-			inventoryComponent->AddItem(m_SwordLot, 1, eLootSourceType::LOOT_SOURCE_NONE);
+			inventoryComponent->AddItem(m_SwordLot, 1, eLootSourceType::NONE);
 		} else if (state == eMissionState::READY_TO_COMPLETE) {
 			inventoryComponent->RemoveItem(m_SwordLot, lotCount);
 		}

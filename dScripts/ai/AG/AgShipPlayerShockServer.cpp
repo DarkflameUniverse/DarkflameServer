@@ -1,5 +1,6 @@
 #include "AgShipPlayerShockServer.h"
 #include "GameMessages.h"
+#include "eTerminateType.h"
 
 void AgShipPlayerShockServer::OnUse(Entity* self, Entity* user) {
 	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());

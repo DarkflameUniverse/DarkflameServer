@@ -388,7 +388,7 @@ void Mission::Catchup() {
 		}
 
 		if (type == eMissionTaskType::PLAYER_FLAG) {
-			for (auto target : task->GetAllTargets()) {
+			for (int32_t target : task->GetAllTargets()) {
 				const auto flag = GetUser()->GetLastUsedChar()->GetPlayerFlag(target);
 
 				if (!flag) {
@@ -442,7 +442,7 @@ void Mission::YieldRewards() {
 
 	int32_t coinsToSend = 0;
 	if (info->LegoScore > 0) {
-		eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
+		eLootSourceType lootSource = info->isMission ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT;
 		if (levelComponent->GetLevel() >= dZoneManager::Instance()->GetWorldConfig()->levelCap) {
 			// Since the character is at the level cap we reward them with coins instead of UScore.
 			coinsToSend += info->LegoScore * dZoneManager::Instance()->GetWorldConfig()->levelCapCurrencyConversion;
@@ -475,11 +475,11 @@ void Mission::YieldRewards() {
 				count = 0;
 			}
 
-			inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
+			inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT);
 		}
 
 		if (info->reward_currency_repeatable > 0 || coinsToSend > 0) {
-			eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
+			eLootSourceType lootSource = info->isMission ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT;
 			character->SetCoins(character->GetCoins() + info->reward_currency_repeatable + coinsToSend, lootSource);
 		}
 
@@ -508,11 +508,11 @@ void Mission::YieldRewards() {
 			count = 0;
 		}
 
-		inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT);
+		inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT);
 	}
 
 	if (info->reward_currency > 0 || coinsToSend > 0) {
-		eLootSourceType lootSource = info->isMission ? eLootSourceType::LOOT_SOURCE_MISSION : eLootSourceType::LOOT_SOURCE_ACHIEVEMENT;
+		eLootSourceType lootSource = info->isMission ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT;
 		character->SetCoins(character->GetCoins() + info->reward_currency + coinsToSend, lootSource);
 	}
 

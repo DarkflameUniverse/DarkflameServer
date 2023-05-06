@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __LDFFORMAT__H__
+#define __LDFFORMAT__H__
 
 // Custom Classes
 #include "dCommonVars.h"
@@ -6,18 +7,12 @@
 
 // C++
 #include <string>
+#include <string_view>
 #include <sstream>
 
 // RakNet
+#include "BitStream.h"
 
-#include "../thirdparty/raknet/Source/BitStream.h"
-
-/*!
-  \file LDFFormat.hpp
-  \brief A collection of LDF format classes
- */
-
- //! An enum for LDF Data Types
 enum eLDFType {
 	LDF_TYPE_UNKNOWN = -1,          //!< Unknown data type
 	LDF_TYPE_UTF_16 = 0,            //!< UTF-16 wstring data type
@@ -31,36 +26,21 @@ enum eLDFType {
 	LDF_TYPE_UTF_8 = 13,            //!< UTF-8 string data type
 };
 
-//! A base class for the LDF data
 class LDFBaseData {
 public:
 
-	//! Destructor
-	virtual ~LDFBaseData(void) {}
+	virtual ~LDFBaseData() {}
 
-	//! Writes the data to a packet
-	/*!
-	  \param packet The packet
-	 */
 	virtual void WriteToPacket(RakNet::BitStream* packet) = 0;
 
-	//! Gets the key
-	/*!
-	  \return The key
-	 */
-	virtual const std::u16string& GetKey(void) = 0;
+	virtual const std::u16string& GetKey() = 0;
 
-	//! Gets the value type
-	/*!
-	  \return The value type
-	 */
-	virtual eLDFType GetValueType(void) = 0;
+	virtual eLDFType GetValueType() = 0;
 
-	//! Gets a string from the key/value pair
-	/*!
-	  \param includeKey Whether or not to include the key in the data
-	  \param includeTypeId Whether or not to include the type id in the data
-	  \return The string representation of the data
+	/** Gets a string from the key/value pair
+	 * @param includeKey Whether or not to include the key in the data
+	 * @param includeTypeId Whether or not to include the type id in the data
+	 * @return The string representation of the data
 	 */
 	virtual std::string GetString(bool includeKey = true, bool includeTypeId = true) = 0;
 
@@ -68,19 +48,15 @@ public:
 
 	virtual LDFBaseData* Copy() = 0;
 
-	// MARK: Functions
-
-	//! Returns a pointer to a LDFData value based on string format
-	/*!
-	  \param format The format
+	/**
+	 * Given an input string, return the data as a LDF key.
 	 */
-	static LDFBaseData* DataFromString(const std::string& format);
+	static LDFBaseData* DataFromString(const std::string_view& format);
 
 };
 
-//! A structure for an LDF key-value pair
 template<typename T>
-class LDFData : public LDFBaseData {
+class LDFData: public LDFBaseData {
 private:
 	std::u16string key;
 	T value;
@@ -164,15 +140,11 @@ public:
 
 		if (includeKey) {
 			const std::string& sKey = GeneralUtils::UTF16ToWTF8(this->key, this->key.size());
-
-			stream << sKey << "=";
+			stream << sKey << '=';
 		}
 
 		if (includeTypeId) {
-			const std::string& sType = std::to_string(this->GetValueType());
-
-
-			stream << sType << ":";
+			stream << this->GetValueType() << ':';
 		}
 
 		const std::string& sData = this->GetValueString();
@@ -234,20 +206,18 @@ inline void LDFData<std::string>::WriteValue(RakNet::BitStream* packet) {
 	}
 }
 
-// MARK: String Data
-template<> inline std::string LDFData<std::u16string>::GetValueString(void) {
-	//std::string toReturn(this->value.begin(), this->value.end());
-	//return toReturn;
-
+template<> inline std::string LDFData<std::u16string>::GetValueString() {
 	return GeneralUtils::UTF16ToWTF8(this->value, this->value.size());
 }
 
-template<> inline std::string LDFData<int32_t>::GetValueString(void) { return std::to_string(this->value); }
-template<> inline std::string LDFData<float>::GetValueString(void) { return std::to_string(this->value); }
-template<> inline std::string LDFData<double>::GetValueString(void) { return std::to_string(this->value); }
-template<> inline std::string LDFData<uint32_t>::GetValueString(void) { return std::to_string(this->value); }
-template<> inline std::string LDFData<bool>::GetValueString(void) { return std::to_string(this->value); }
-template<> inline std::string LDFData<uint64_t>::GetValueString(void) { return std::to_string(this->value); }
-template<> inline std::string LDFData<LWOOBJID>::GetValueString(void) { return std::to_string(this->value); }
+template<> inline std::string LDFData<int32_t>::GetValueString() { return std::to_string(this->value); }
+template<> inline std::string LDFData<float>::GetValueString() { return std::to_string(this->value); }
+template<> inline std::string LDFData<double>::GetValueString() { return std::to_string(this->value); }
+template<> inline std::string LDFData<uint32_t>::GetValueString() { return std::to_string(this->value); }
+template<> inline std::string LDFData<bool>::GetValueString() { return std::to_string(this->value); }
+template<> inline std::string LDFData<uint64_t>::GetValueString() { return std::to_string(this->value); }
+template<> inline std::string LDFData<LWOOBJID>::GetValueString() { return std::to_string(this->value); }
 
-template<> inline std::string LDFData<std::string>::GetValueString(void) { return this->value; }
+template<> inline std::string LDFData<std::string>::GetValueString() { return this->value; }
+
+#endif  //!__LDFFORMAT__H__
