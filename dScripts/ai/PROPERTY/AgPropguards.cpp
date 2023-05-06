@@ -39,7 +39,7 @@ void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 	}
 }
 
-uint32_t AgPropguards::GetFlagForMission(uint32_t missionID) {
+int32_t AgPropguards::GetFlagForMission(uint32_t missionID) {
 	switch (missionID) {
 	case 872:
 		return 97;

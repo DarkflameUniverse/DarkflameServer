@@ -29,8 +29,8 @@ void ZoneGfProperty::SetGameVariables(Entity* self) {
 	self->SetVar<std::vector<std::string>>(AmbientFXSpawner, { "Birds", "Falls", "Sunbeam" });
 	self->SetVar<std::vector<std::string>>(BehaviorObjsSpawner, { "TrappedPlatform", "IceBarrier", "FireBeast" });
 
-	self->SetVar<uint32_t>(defeatedProperyFlag, 98);
-	self->SetVar<uint32_t>(placedModelFlag, 106);
+	self->SetVar<int32_t>(defeatedProperyFlag, 98);
+	self->SetVar<int32_t>(placedModelFlag, 106);
 	self->SetVar<uint32_t>(guardMissionFlag, 873);
 	self->SetVar<uint32_t>(brickLinkMissionIDFlag, 949);
 	self->SetVar<std::string>(passwordFlag, "s3kratK1ttN");

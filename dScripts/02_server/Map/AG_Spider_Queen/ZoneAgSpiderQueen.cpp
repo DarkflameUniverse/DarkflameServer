@@ -9,8 +9,8 @@ void ZoneAgSpiderQueen::SetGameVariables(Entity* self) {
 	ZoneAgProperty::SetGameVariables(self);
 
 	// Disable property flags
-	self->SetVar<uint32_t>(defeatedProperyFlag, 0);
-	self->SetVar<uint32_t>(placedModelFlag, 0);
+	self->SetVar<int32_t>(defeatedProperyFlag, 0);
+	self->SetVar<int32_t>(placedModelFlag, 0);
 	self->SetVar<uint32_t>(guardFirstMissionFlag, 0);
 	self->SetVar<uint32_t>(guardMissionFlag, 0);
 	self->SetVar<uint32_t>(brickLinkMissionIDFlag, 0);
