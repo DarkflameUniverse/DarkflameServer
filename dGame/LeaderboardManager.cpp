@@ -64,33 +64,33 @@ bool Leaderboard::GetRankingQuery(std::string& lookupReturn) const {
 
 void Leaderboard::SetupLeaderboard() {
 	std::string queryBase =
-		" \
-	WITH leaderboardsRanked AS ( \
-		SELECT leaderboard.*, charinfo.name, \
-			RANK() OVER \
-			( \
-			ORDER BY %s \
-		) AS ranking \
-			FROM leaderboard JOIN charinfo on charinfo.id = leaderboard.character_id \
-			WHERE game_id = ? %s \
-	), \
-	myStanding AS ( \
-		SELECT \
-			ranking as myRank \
-		FROM leaderboardsRanked \
-		WHERE id = ? \
-	), \
-	lowestRanking AS ( \
-		SELECT MAX(ranking) AS lowestRank \
-			FROM leaderboardsRanked \
-	) \
-	SELECT %s, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking \
-	WHERE leaderboardsRanked.ranking \
-	BETWEEN \
-	LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, 1), lowestRanking.lowestRank - 10) \
-	AND \
-	LEAST(GREATEST(myRank + 5, 11), lowestRanking.lowestRank) \
-	ORDER BY ranking ASC;";
+	R"QUERY( 
+	WITH leaderboardsRanked AS ( 
+		SELECT leaderboard.*, charinfo.name, 
+			RANK() OVER 
+			( 
+			ORDER BY %s 
+		) AS ranking 
+			FROM leaderboard JOIN charinfo on charinfo.id = leaderboard.character_id 
+			WHERE game_id = ? %s 
+	), 
+	myStanding AS ( 
+		SELECT 
+			ranking as myRank 
+		FROM leaderboardsRanked 
+		WHERE id = ? 
+	), 
+	lowestRanking AS ( 
+		SELECT MAX(ranking) AS lowestRank 
+			FROM leaderboardsRanked 
+	) 
+	SELECT %s, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking 
+	WHERE leaderboardsRanked.ranking 
+	BETWEEN 
+	LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, 1), lowestRanking.lowestRank - 10) 
+	AND 
+	LEAST(GREATEST(myRank + 5, 11), lowestRanking.lowestRank) 
+	ORDER BY ranking ASC;)QUERY";
 	// Setup query based on activity. 
 	// Where clause will vary based on what query we are doing
 	// Get base based on InfoType
