@@ -373,7 +373,7 @@ void Character::SaveXMLToDatabase() {
 
 	//Call upon the entity to update our xmlDoc:
 	if (!m_OurEntity) {
-		Game::logger->Log("Character", "We didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!");
+		Game::logger->Log("Character", "%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
 		return;
 	}
 
@@ -384,7 +384,7 @@ void Character::SaveXMLToDatabase() {
 	//For metrics, log the time it took to save:
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed = end - start;
-	Game::logger->Log("Character", "Saved character to Database in: %fs", elapsed.count());
+	Game::logger->Log("Character", "%i:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
 }
 
 void Character::SetIsNewLogin() {
@@ -396,7 +396,7 @@ void Character::SetIsNewLogin() {
 	while (currentChild) {
 		if (currentChild->Attribute("si")) {
 			flags->DeleteChild(currentChild);
-			Game::logger->Log("Character", "Removed isLoggedIn flag from character %i, saving character to database", GetID());
+			Game::logger->Log("Character", "Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
 			WriteToDatabase();
 		}
 		currentChild = currentChild->NextSiblingElement();
