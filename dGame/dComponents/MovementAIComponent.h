@@ -18,6 +18,7 @@
 
 class ControllablePhysicsComponent;
 class BaseCombatAIComponent;
+struct Path;
 
 /**
  * Information that describes the different variables used to make an entity move around

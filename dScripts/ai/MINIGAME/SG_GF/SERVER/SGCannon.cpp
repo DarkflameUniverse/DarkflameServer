@@ -16,6 +16,7 @@
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "eGameActivity.h"
+#include "MovingPlatformComponent.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	Game::logger->Log("SGCannon", "OnStartup");
