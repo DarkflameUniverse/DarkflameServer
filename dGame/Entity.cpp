@@ -24,6 +24,7 @@
 #include "Loot.h"
 #include "eMissionTaskType.h"
 #include "eTriggerEventType.h"
+#include "eObjectBits.h"
 
 //Component includes:
 #include "Component.h"
@@ -72,6 +73,7 @@
 #include "TriggerComponent.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
+#include "eReplicaPacketType.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -727,7 +729,7 @@ void Entity::Initialize() {
 
 	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
 		// Don't ghost what is likely large scene elements
-		if (m_Components.size() == 2 && HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER)) {
+		if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
 			goto no_ghosting;
 		}
 
@@ -875,7 +877,7 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 }
 
 void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType) {
-	if (packetType == PACKET_TYPE_CONSTRUCTION) {
+	if (packetType == eReplicaPacketType::CONSTRUCTION) {
 		outBitStream->Write(m_ObjectID);
 		outBitStream->Write(m_TemplateID);
 
@@ -952,9 +954,9 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 		if (m_ParentEntity != nullptr || m_SpawnerID != 0) {
 			outBitStream->Write1();
-			if (m_ParentEntity != nullptr) outBitStream->Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), OBJECT_BIT_CLIENT));
+			if (m_ParentEntity != nullptr) outBitStream->Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
 			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream->Write(m_SpawnerID);
-			else outBitStream->Write(GeneralUtils::SetBit(m_SpawnerID, OBJECT_BIT_CLIENT));
+			else outBitStream->Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
 		} else outBitStream->Write0();
 
 		outBitStream->Write(m_HasSpawnerNodeID);
@@ -977,8 +979,8 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 	}
 
 	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
-	outBitStream->Write(m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION);
-	if (m_IsParentChildDirty || packetType == PACKET_TYPE_CONSTRUCTION) {
+	outBitStream->Write(m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION);
+	if (m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION) {
 		m_IsParentChildDirty = false;
 		outBitStream->Write(m_ParentEntity != nullptr);
 		if (m_ParentEntity) {
@@ -1003,7 +1005,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 	bool destroyableSerialized = false;
 	bool bIsInitialUpdate = false;
-	if (packetType == PACKET_TYPE_CONSTRUCTION) bIsInitialUpdate = true;
+	if (packetType == eReplicaPacketType::CONSTRUCTION) bIsInitialUpdate = true;
 	unsigned int flags = 0;
 
 	PossessableComponent* possessableComponent;
@@ -1232,6 +1234,7 @@ void Entity::Update(const float deltaTime) {
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
 		} else {
 			timerPosition++;
 		}
@@ -1341,6 +1344,10 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
+
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnOffCollisionPhantom(this, other);
+	}
 
 	TriggerEvent(eTriggerEventType::EXIT, other);
 
@@ -1618,7 +1625,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 					}
 				}
 			} else {
-				inv->AddItem(p.second.lot, p.second.count, eLootSourceType::LOOT_SOURCE_PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
+				inv->AddItem(p.second.lot, p.second.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
 			}
 		}
 	}

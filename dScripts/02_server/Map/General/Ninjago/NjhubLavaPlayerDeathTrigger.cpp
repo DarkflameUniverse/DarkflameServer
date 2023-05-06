@@ -5,5 +5,5 @@ void NjhubLavaPlayerDeathTrigger::OnCollisionPhantom(Entity* self, Entity* targe
 	if (!target->IsPlayer())
 		return;
 
-	target->Smash(self->GetObjectID(), VIOLENT, u"drown");
+	target->Smash(self->GetObjectID(), eKillType::VIOLENT, u"drown");
 }

@@ -15,6 +15,7 @@
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
+#include "eGameActivity.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	Game::logger->Log("SGCannon", "OnStartup");
@@ -102,7 +103,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 
 			if (characterComponent != nullptr) {
 				characterComponent->SetIsRacing(true);
-				characterComponent->SetCurrentActivity(2);
+				characterComponent->SetCurrentActivity(eGameActivity::SHOOTING_GALLERY);
 				auto possessor = player->GetComponent<PossessorComponent>();
 				if (possessor) {
 					possessor->SetPossessable(self->GetObjectID());
@@ -558,7 +559,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		auto* inventory = player->GetComponent<InventoryComponent>();
 		if (inventory != nullptr) {
 			for (const auto rewardLot : self->GetVar<std::vector<LOT>>(RewardsVariable)) {
-				inventory->AddItem(rewardLot, 1, eLootSourceType::LOOT_SOURCE_ACTIVITY, eInventoryType::MODELS);
+				inventory->AddItem(rewardLot, 1, eLootSourceType::ACTIVITY, eInventoryType::MODELS);
 			}
 		}
 

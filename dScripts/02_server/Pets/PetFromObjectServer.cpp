@@ -1,5 +1,6 @@
 #include "PetFromObjectServer.h"
 #include "PetComponent.h"
+#include "ePetTamingNotifyType.h"
 
 void PetFromObjectServer::OnStartup(Entity* self) {
 	self->SetNetworkVar(u"pettamer", std::to_string(self->GetVar<LWOOBJID>(u"tamer")));
@@ -11,20 +12,20 @@ void PetFromObjectServer::OnTimerDone(Entity* self, std::string timerName) {
 		const auto* petComponent = self->GetComponent<PetComponent>();
 		if (petComponent == nullptr || petComponent->GetOwner() != nullptr)
 			return;
-		self->Smash(self->GetObjectID(), SILENT);
+		self->Smash(self->GetObjectID(), eKillType::SILENT);
 	}
 }
 
-void PetFromObjectServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, eNotifyType type) {
+void PetFromObjectServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTamingNotifyType type) {
 	switch (type) {
-	case NOTIFY_TYPE_BEGIN:
+	case ePetTamingNotifyType::BEGIN:
 		self->CancelAllTimers();
 		break;
-	case NOTIFY_TYPE_QUIT:
-	case NOTIFY_TYPE_FAILED:
-		self->Smash(self->GetObjectID(), SILENT);
+	case ePetTamingNotifyType::QUIT:
+	case ePetTamingNotifyType::FAILED:
+		self->Smash(self->GetObjectID(), eKillType::SILENT);
 		break;
-	case NOTIFY_TYPE_SUCCESS:
+	case ePetTamingNotifyType::SUCCESS:
 		// TODO: Remove from groups?
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"UpdateSuccessPicking", 0,
 			0, tamer->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);

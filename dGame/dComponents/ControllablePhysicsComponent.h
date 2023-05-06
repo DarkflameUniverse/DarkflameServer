@@ -14,6 +14,7 @@
 
 class Entity;
 class dpEntity;
+enum class eStateChangeType : uint32_t;
 
 /**
  * Handles the movement of controllable Entities, e.g. enemies and players

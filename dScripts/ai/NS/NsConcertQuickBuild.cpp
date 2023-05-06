@@ -58,7 +58,7 @@ void NsConcertQuickBuild::OnStartup(Entity* self) {
 	// Destroys the quick build after a while if it wasn't built
 	self->AddCallbackTimer(resetActivatorTime, [self]() {
 		self->SetNetworkVar<float>(u"startEffect", -1.0f);
-		self->Smash(self->GetObjectID(), SILENT);
+		self->Smash(self->GetObjectID(), eKillType::SILENT);
 		});
 }
 

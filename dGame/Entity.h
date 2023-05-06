@@ -10,6 +10,7 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "LDFFormat.h"
+#include "eKillType.h"
 
 namespace Loot {
 	class Info;
@@ -33,6 +34,8 @@ class EntityCallbackTimer;
 enum class eTriggerEventType;
 enum class eGameMasterLevel : uint8_t;
 enum class eReplicaComponentType : uint32_t;
+enum class eReplicaPacketType : uint8_t;
+enum class eCinematicEvent : uint32_t;
 
 namespace CppScripts {
 	class Script;

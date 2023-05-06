@@ -2,16 +2,14 @@
 #define __STARTSKILL__H__
 
 #include "dCommonVars.h"
-#include "dMessageIdentifiers.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
+#include "eGameMessageType.h"
 
 /**
  * Same as sync skill but with different network options. An echo down to other clients that need to play the skill.
  */
 class StartSkill {
-	static const GAME_MSG MsgID = GAME_MSG_START_SKILL;
-
 public:
 	StartSkill() {
 		bUsedMouse = false;
@@ -46,7 +44,7 @@ public:
 	}
 
 	void Serialize(RakNet::BitStream* stream) {
-		stream->Write(MsgID);
+		stream->Write(eGameMessageType::START_SKILL);
 
 		stream->Write(bUsedMouse);
 

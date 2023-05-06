@@ -318,13 +318,13 @@ void LootGenerator::GiveActivityLoot(Entity* player, Entity* source, uint32_t ac
 		maxCoins = currencyTable[0].maxvalue;
 	}
 
-	GiveLoot(player, selectedReward->LootMatrixIndex, eLootSourceType::LOOT_SOURCE_ACTIVITY);
+	GiveLoot(player, selectedReward->LootMatrixIndex, eLootSourceType::ACTIVITY);
 
 	uint32_t coins = (int)(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
 
 	auto* character = player->GetCharacter();
 
-	character->SetCoins(character->GetCoins() + coins, eLootSourceType::LOOT_SOURCE_ACTIVITY);
+	character->SetCoins(character->GetCoins() + coins, eLootSourceType::ACTIVITY);
 }
 
 void LootGenerator::DropLoot(Entity* player, Entity* killedObject, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {

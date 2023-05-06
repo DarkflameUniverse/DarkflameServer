@@ -2,13 +2,11 @@
 #define __REQUESTSERVERPROJECTILEIMPACT__H__
 
 #include "dCommonVars.h"
-#include "dMessageIdentifiers.h"
+#include "eGameMessageType.h"
 
 /*  Notifying the server that a locally owned projectile impacted. Sent to the caster of the projectile
 		should always be the local char. */
 class RequestServerProjectileImpact {
-	static const GAME_MSG MsgID = GAME_MSG_REQUEST_SERVER_PROJECTILE_IMPACT;
-
 public:
 	RequestServerProjectileImpact() {
 		i64LocalID = LWOOBJID_EMPTY;
@@ -29,7 +27,7 @@ public:
 	}
 
 	void Serialize(RakNet::BitStream* stream) {
-		stream->Write(MsgID);
+		stream->Write(eGameMessageType::REQUEST_SERVER_PROJECTILE_IMPACT);
 
 		stream->Write(i64LocalID != LWOOBJID_EMPTY);
 		if (i64LocalID != LWOOBJID_EMPTY) stream->Write(i64LocalID);

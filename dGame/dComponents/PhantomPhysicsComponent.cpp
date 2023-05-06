@@ -216,6 +216,13 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
+		} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx"){
+			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
+			m_dpEntity->SetScale(m_Scale);
+			m_dpEntity->SetRotation(m_Rotation);
+			m_Position.y -= (111.467964f * m_Scale) / 2;
+			m_dpEntity->SetPosition(m_Position);
+			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else {
 			//Game::logger->Log("PhantomPhysicsComponent", "This one is supposed to have %s", info->physicsAsset.c_str());
 

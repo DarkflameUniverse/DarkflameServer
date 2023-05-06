@@ -15,6 +15,7 @@
 #include "Item.h"
 #include "AMFFormat.h"
 #include "eGameMasterLevel.h"
+#include "eGameActivity.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
@@ -35,7 +36,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_EditorLevel = m_GMLevel;
 	m_Reputation = 0;
 
-	m_CurrentActivity = 0;
+	m_CurrentActivity = eGameActivity::NONE;
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
 }
