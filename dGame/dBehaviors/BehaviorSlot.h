@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifndef BEHAVIORSLOT_H
 #define BEHAVIORSLOT_H

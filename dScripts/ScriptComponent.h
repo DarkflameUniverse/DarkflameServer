@@ -9,6 +9,7 @@
 #include "CppScripts.h"
 #include "Component.h"
 #include <string>
+#include "eReplicaComponentType.h"
 
 class Entity;
 
@@ -18,30 +19,29 @@ class Entity;
  */
 class ScriptComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_SCRIPT;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
 
-	ScriptComponent(Entity* parent, bool serialized, bool client = false);
-    ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
-    ~ScriptComponent() override;
+	ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
+	~ScriptComponent() override;
 
-    void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
-    /**
-     * Returns the script that's attached to this entity
-     * @return the script that's attached to this entity
-     */
+	/**
+	 * Returns the script that's attached to this entity
+	 * @return the script that's attached to this entity
+	 */
 	CppScripts::Script* GetScript();
 
-    /**
-     * Sets whether the entity should be serialized, unused
-     * @param var whether the entity should be serialized
-     */
+	/**
+	 * Sets whether the entity should be serialized, unused
+	 * @param var whether the entity should be serialized
+	 */
 	void SetSerialized(const bool var) { m_Serialized = var; }
 
-    /**
-     * Sets the script using a path by looking through dScripts for a script that matches
-     * @param scriptName the name of the script to find
-     */
+	/**
+	 * Sets the script using a path by looking through dScripts for a script that matches
+	 * @param scriptName the name of the script to find
+	 */
 	void SetScript(const std::string& scriptName);
 
     /**
@@ -52,19 +52,19 @@ public:
 
 private:
 
-    /**
-     * The script attached to this entity
-     */
+	/**
+	 * The script attached to this entity
+	 */
 	CppScripts::Script* m_Script;
 
-    /**
-     * Whether or not the comp should be serialized, unused
-     */
+	/**
+	 * Whether or not the comp should be serialized, unused
+	 */
 	bool m_Serialized;
 
-    /**
-     * Whether or not this script is a client script
-     */
+	/**
+	 * Whether or not this script is a client script
+	 */
 	bool m_Client;
 };
 

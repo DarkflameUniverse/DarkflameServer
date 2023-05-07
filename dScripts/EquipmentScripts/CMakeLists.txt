@@ -1,0 +1,10 @@
+set(DSCRIPTS_SOURCES_EQUIPMENTSCRIPTS
+	"Sunflower.cpp"
+	"AnvilOfArmor.cpp"
+	"FountainOfImagination.cpp"
+	"CauldronOfLife.cpp"
+	"PersonalFortress.cpp"
+	"BuccaneerValiantShip.cpp"
+	"FireFirstSkillonStartup.cpp"
+	"StunImmunity.cpp"
+	PARENT_SCOPE)

@@ -1,0 +1,3 @@
+set(DSCRIPTS_SOURCES_ZONE_LUPS 
+	"WblGenericZone.cpp"
+	PARENT_SCOPE)

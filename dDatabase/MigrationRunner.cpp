@@ -1,78 +1,158 @@
 #include "MigrationRunner.h"
 
+#include "BrickByBrickFix.h"
+#include "CDClientDatabase.h"
+#include "Database.h"
+#include "Game.h"
 #include "GeneralUtils.h"
+#include "dLogger.h"
+#include "BinaryPathFinder.h"
 
-#include <fstream>
-#include <algorithm>
-#include <thread>
+#include <istream>
 
-void MigrationRunner::RunMigrations() {
-	auto stmt = Database::CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP());");
-	stmt->executeQuery();
-    delete stmt;
+Migration LoadMigration(std::string path) {
+	Migration migration{};
+	std::ifstream file(BinaryPathFinder::GetBinaryDir() / "migrations/" / path);
 
-    sql::SQLString finalSQL = "";
-    Migration checkMigration{};
+	if (file.is_open()) {
+		std::string line;
+		std::string total = "";
 
-    for (const auto& entry : GeneralUtils::GetFileNamesFromFolder("./migrations/")) {
-        auto migration = LoadMigration(entry);
+		while (std::getline(file, line)) {
+			total += line;
+		}
 
-        if (migration.data.empty()) {
-            continue;
-        }
+		file.close();
 
-        checkMigration = migration;
+		migration.name = path;
+		migration.data = total;
+	}
 
-        stmt = Database::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
-        stmt->setString(1, migration.name);
-        auto res = stmt->executeQuery();
-        bool doExit = res->next();
-        delete res;
-        delete stmt;
-        if (doExit) continue;
-
-        Game::logger->Log("MigrationRunner", "Running migration: " + migration.name + "\n");
-
-        finalSQL.append(migration.data);
-        finalSQL.append('\n');
-
-        stmt = Database::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
-        stmt->setString(1, entry);
-        stmt->execute();
-        delete stmt;
-    }
-
-    if (!finalSQL.empty()) {
-        try {
-            auto simpleStatement = Database::CreateStmt();
-            simpleStatement->execute(finalSQL);
-            delete simpleStatement;
-        }
-        catch (sql::SQLException e) {
-            Game::logger->Log("MigrationRunner", std::string("Encountered error running migration: ") + e.what() + "\n");
-        }
-    }
+	return migration;
 }
 
-Migration MigrationRunner::LoadMigration(std::string path) {
-    Migration migration{};
-    std::ifstream file("./migrations/" + path);
+void MigrationRunner::RunMigrations() {
+	auto* stmt = Database::CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP());");
+	stmt->execute();
+	delete stmt;
 
-    if (file.is_open()) {
-        std::hash<std::string> hash;
-        
-        std::string line;
-        std::string total = "";
+	sql::SQLString finalSQL = "";
+	bool runSd0Migrations = false;
+	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/").string())) {
+		auto migration = LoadMigration("dlu/" + entry);
 
-        while (std::getline(file, line)) {
-            total += line;
-        }
+		if (migration.data.empty()) {
+			continue;
+		}
 
-        file.close();
+		stmt = Database::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
+		stmt->setString(1, migration.name.c_str());
+		auto* res = stmt->executeQuery();
+		bool doExit = res->next();
+		delete res;
+		delete stmt;
+		if (doExit) continue;
 
-        migration.name = path;
-        migration.data = total;
-    }
-    
-    return migration;
+		Game::logger->Log("MigrationRunner", "Running migration: %s", migration.name.c_str());
+		if (migration.name == "dlu/5_brick_model_sd0.sql") {
+			runSd0Migrations = true;
+		} else {
+			finalSQL.append(migration.data.c_str());
+		}
+
+		stmt = Database::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
+		stmt->setString(1, migration.name.c_str());
+		stmt->execute();
+		delete stmt;
+	}
+
+	if (finalSQL.empty() && !runSd0Migrations) {
+		Game::logger->Log("MigrationRunner", "Server database is up to date.");
+		return;
+	}
+
+	if (!finalSQL.empty()) {
+		auto migration = GeneralUtils::SplitString(static_cast<std::string>(finalSQL), ';');
+		std::unique_ptr<sql::Statement> simpleStatement(Database::CreateStmt());
+		for (auto& query : migration) {
+			try {
+				if (query.empty()) continue;
+				simpleStatement->execute(query.c_str());
+			} catch (sql::SQLException& e) {
+				Game::logger->Log("MigrationRunner", "Encountered error running migration: %s", e.what());
+			}
+		}
+	}
+
+	// Do this last on the off chance none of the other migrations have been run yet.
+	if (runSd0Migrations) {
+		uint32_t numberOfUpdatedModels = BrickByBrickFix::UpdateBrickByBrickModelsToSd0();
+		Game::logger->Log("MasterServer", "%i models were updated from zlib to sd0.", numberOfUpdatedModels);
+		uint32_t numberOfTruncatedModels = BrickByBrickFix::TruncateBrokenBrickByBrickXml();
+		Game::logger->Log("MasterServer", "%i models were truncated from the database.", numberOfTruncatedModels);
+	}
+}
+
+void MigrationRunner::RunSQLiteMigrations() {
+	auto cdstmt = CDClientDatabase::CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);");
+	cdstmt.execQuery().finalize();
+	cdstmt.finalize();
+
+	auto* stmt = Database::CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP());");
+	stmt->execute();
+	delete stmt;
+
+	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "migrations/cdserver/").string())) {
+		auto migration = LoadMigration("cdserver/" + entry);
+
+		if (migration.data.empty()) continue;
+
+		// Check if there is an entry in the migration history table on the cdclient database.
+		cdstmt = CDClientDatabase::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
+		cdstmt.bind((int32_t) 1, migration.name.c_str());
+		auto cdres = cdstmt.execQuery();
+		bool doExit = !cdres.eof();
+		cdres.finalize();
+		cdstmt.finalize();
+
+		if (doExit) continue;
+
+		// Check first if there is entry in the migration history table on the main database.
+		stmt = Database::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
+		stmt->setString(1, migration.name.c_str());
+		auto* res = stmt->executeQuery();
+		doExit = res->next();
+		delete res;
+		delete stmt;
+		if (doExit) {
+			// Insert into cdclient database if there is an entry in the main database but not the cdclient database.
+			cdstmt = CDClientDatabase::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
+			cdstmt.bind((int32_t) 1, migration.name.c_str());
+			cdstmt.execQuery().finalize();
+			cdstmt.finalize();
+			continue;
+		}
+
+		// Doing these 1 migration at a time since one takes a long time and some may think it is crashing.
+		// This will at the least guarentee that the full migration needs to be run in order to be counted as "migrated".
+		Game::logger->Log("MigrationRunner", "Executing migration: %s.  This may take a while.  Do not shut down server.", migration.name.c_str());
+		CDClientDatabase::ExecuteQuery("BEGIN TRANSACTION;");
+		for (const auto& dml : GeneralUtils::SplitString(migration.data, ';')) {
+			if (dml.empty()) continue;
+			try {
+				CDClientDatabase::ExecuteDML(dml.c_str());
+			} catch (CppSQLite3Exception& e) {
+				Game::logger->Log("MigrationRunner", "Encountered error running DML command: (%i) : %s", e.errorCode(), e.errorMessage());
+			}
+		}
+
+		// Insert into cdclient database.
+		cdstmt = CDClientDatabase::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
+		cdstmt.bind((int32_t) 1, migration.name.c_str());
+		cdstmt.execQuery().finalize();
+		cdstmt.finalize();
+		CDClientDatabase::ExecuteQuery("COMMIT;");
+	}
+
+	Game::logger->Log("MigrationRunner", "CDServer database is up to date.");
 }

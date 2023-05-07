@@ -1,6 +1,5 @@
 # In-game commands
-
-Here is a summary of the commands available in-game. All commands are prefixed by `/` and typed in the in-game chat window. Some commands requires admin privileges. Operands within `<>` are required, operands within `()` are not. For the full list of in-game commands, please checkout [the source file](../dGame/dUtilities/SlashCommandHandler.cpp).
+* All commands are prefixed by `/` and typed in the in-game chat window. Some commands require elevated gmlevel privileges. Operands within `<>` are required, operands within `()` are not.
 
 ## General Commands
 
@@ -14,8 +13,6 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |pvp|`/pvp`|Toggle your PVP flag.||
 |resurrect|`/resurrect`|Resurrects the player.||
 |requestmailcount|`/requestmailcount`|Sends notification with number of unread messages in the player's mailbox.||
-|skip-ags|`/skip-ags`|Skips the Avant Gardens Survival minigame mission, "Impress the Sentinel Faction".||
-|skip-sg|`/skip-sg`|Skips the Shooting Gallery minigame mission, "Monarch of the Sea".||
 |who|`/who`|Displays in chat all players on the instance.||
 
 ## Moderation Commands
@@ -32,14 +29,13 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |gminvis|`/gminvis`|Toggles invisibility for the character, though it's currently a bit buggy. Requires nonzero GM Level for the character, but the account must have a GM level of 8.|8|
 |setname|`/setname <name>`|Sets a temporary name for your player. The name resets when you log out.|8|
 |title|`/title <title>`|Temporarily appends your player's name with " - &#60;title&#62;". This resets when you log out.|8|
+|fly|`/fly <speed>`|This toggles your flying state with an optional parameter for the speed scale.|4|
 
 ## Server Operation Commands
 
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
 |announce|`/announce`|Sends a announcement. `/setanntitle` and `/setannmsg` must be called first to configure the announcement.|8|
-|config-set|`/config-set <key> <value>`|Set configuration item.|8|
-|config-get|`/config-get <key>`|Get current value of a configuration item.|8|
 |kill|`/kill <username>`|Smashes the character whom the given user is playing.|8|
 |metrics|`/metrics`|Prints some information about the server's performance.|8|
 |setannmsg|`/setannmsg <title>`|Sets the message of an announcement.|8|
@@ -52,6 +48,7 @@ These commands are primarily for development and testing. The usage of many of t
 
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
+|togglenameplate|`/togglenameplate`|Turns the nameplate above your head that is visible to other players off and on.|8 or if `allow_nameplate_off` is set to exactly `1` in the settings|
 |fix-stats|`/fix-stats`|Resets skills, buffs, and destroyables.||
 |join|`/join <password>`|Joins a private zone with given password.||
 |leave-zone|`/leave-zone`|If you are in an instanced zone, transfers you to the closest main world. For example, if you are in an instance of Avant Gardens Survival or the Spider Queen Battle, you are sent to Avant Gardens. If you are in the Battle of Nimbus Station, you are sent to Nimbus Station.||
@@ -62,7 +59,8 @@ These commands are primarily for development and testing. The usage of many of t
 |teleport|`/teleport <x> (y) <z>`|Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z). Alias: `/tele`.|6|
 |activatespawner|`/activatespawner <spawner name>`|Activates spawner by name.|8|
 |addmission|`/addmission <mission id>`|Accepts the mission, adding it to your journal.|8|
-|boost|`/boost`|Adds a passive boost action if you are in a vehicle.|8|
+|boost|`/boost (time)`|Adds a passive boost action if you are in a vehicle. If time is given it will end after that amount of time|8|
+|unboost|`/unboost`|Removes a passive vehicle boost|8|
 |buff|`/buff <id> <duration>`|Applies the buff with the given id for the given number of seconds.|8|
 |buffme|`/buffme`|Sets health, armor, and imagination to 999.|8|
 |buffmed|`/buffmed`|Sets health, armor, and imagination to 9.|8|
@@ -70,7 +68,8 @@ These commands are primarily for development and testing. The usage of many of t
 |completemission|`/completemission <mission id>`|Completes the mission, removing it from your journal.|8|
 |createprivate|`/createprivate <zone id> <clone id> <password>`|Creates a private zone with password.|8|
 |debugui|`/debugui`|Toggle Debug UI.|8|
-|dismount|`/dismount`|Dismounts you from the vehicle.|8|
+|dismount|`/dismount`|Dismounts you from the vehicle or mount.|8|
+|reloadconfig|`/reloadconfig`|Reloads the server with the new config values.|8|
 |force-save|`/force-save`|While saving to database usually happens on regular intervals and when you disconnect from the server, this command saves your player's data to the database.|8|
 |freecam|`/freecam`|Toggles freecam mode.|8|
 |freemoney|`/freemoney <coins>`|Gives coins.|8|
@@ -80,7 +79,7 @@ These commands are primarily for development and testing. The usage of many of t
 |inspect|`/inspect <component> (-m <waypoint> \| -a <animation> \| -s \| -p \| -f (faction) \| -t)`|Finds the closest entity with the given component or LDF variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See [Detailed `/inspect` Usage](#detailed-inspect-usage) below.|8|
 |list-spawns|`/list-spawns`|Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one.|8|
 |locrow|`/locrow`|Prints the your current position and rotation information to the console.|8|
-|lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.|8|
+|lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.  Query can be multiple words delimited by spaces.|8|
 |playanimation|`/playanimation <id>`|Plays animation with given ID. Alias: `/playanim`.|8|
 |playeffect|`/playeffect <effect id> <effect type> <effect name>`|Plays an effect.|8|
 |playlvlfx|`/playlvlfx`|Plays the level up animation on your character.|8|
@@ -94,7 +93,7 @@ These commands are primarily for development and testing. The usage of many of t
 |setcontrolscheme|`/setcontrolscheme <scheme number>`|Sets the character control scheme to the specified number.|8|
 |setcurrency|`/setcurrency <coins>`|Sets your coins.|8|
 |setflag|`/setflag (value) <flag id>`|Sets the given inventory or health flag to the given value, where value can be one of "on" or "off". If no value is given, by default this adds the flag to your character (equivalent of calling `/setflag on <flag id>`).|8|
-|setinventorysize|`/setinventorysize <size>`|Sets your inventory size to the given size. Alias: `/setinvsize`|8|
+|setinventorysize|`/setinventorysize <size> (inventory)`|Sets your inventory size to the given size. If `inventory` is provided, the number or string will be used to set that inventory to the requested size. Alias: `/setinvsize`|8|
 |setuistate|`/setuistate <ui state>`|Changes UI state.|8|
 |spawn|`/spawn <id>`|Spawns an object at your location by id.|8|
 |speedboost|`/speedboost <amount>`|Sets the speed multiplier to the given amount. `/speedboost 1.5` will set the speed multiplier to 1.5x the normal speed.|8|
@@ -129,13 +128,13 @@ There are 9 Game master levels
 
 |Level|Variable Name|Description|
 |--- |--- |--- |
-|0|GAME_MASTER_LEVEL_CIVILIAN|Normal player|
-|1|GAME_MASTER_LEVEL_FORUM_MODERATOR|Forum moderator. No permissions on live servers.|
-|2|GAME_MASTER_LEVEL_JUNIOR_MODERATOR|Can kick/mute and pull chat logs|
-|3|GAME_MASTER_LEVEL_MODERATOR|Can return lost items|
-|4|GAME_MASTER_LEVEL_SENIOR_MODERATOR|Can ban|
-|5|GAME_MASTER_LEVEL_LEAD_MODERATOR|Can approve properties|
-|6|GAME_MASTER_LEVEL_JUNIOR_DEVELOPER|Junior developer & future content team. Civilan on live.|
-|7|GAME_MASTER_LEVEL_INACTIVE_DEVELOPER|Inactive developer, limited permissions.|
-|8|GAME_MASTER_LEVEL_DEVELOPER|Active developer, full permissions on live.|
-|9|GAME_MASTER_LEVEL_OPERATOR|Can shutdown server for restarts & updates.|
+|0|CIVILIAN|Normal player|
+|1|FORUM_MODERATOR|Forum moderator. No permissions on live servers.|
+|2|JUNIOR_MODERATOR|Can kick/mute and pull chat logs|
+|3|MODERATOR|Can return lost items|
+|4|SENIOR_MODERATOR|Can ban|
+|5|LEAD_MODERATOR|Can approve properties|
+|6|JUNIOR_DEVELOPER|Junior developer & future content team. Civilan on live.|
+|7|INACTIVE_DEVELOPER|Inactive developer, limited permissions.|
+|8|DEVELOPER|Active developer, full permissions on live.|
+|9|OPERATOR|Can shutdown server for restarts & updates.|

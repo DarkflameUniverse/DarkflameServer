@@ -1,4 +1,2 @@
-set(DAUTHSERVER_SOURCES "AuthServer.cpp")
-
-add_executable(AuthServer ${DAUTHSERVER_SOURCES})
+add_executable(AuthServer "AuthServer.cpp")
 target_link_libraries(AuthServer ${COMMON_LIBRARIES})

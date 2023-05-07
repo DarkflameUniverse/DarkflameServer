@@ -18,196 +18,192 @@ Darkflame Universe is licensed under AGPLv3, please read [LICENSE](LICENSE). Som
 Throughout the entire build and setup process a level of familiarity with the command line and preferably a Unix-like development environment is greatly advantageous.
 
 ### Hosting a server
-We do not recommend hosting public servers. DLU is intended for small scale deployment, for example within a group of friends. It has not been tested for large scale deployment which comes with additional security risks.
+We do not recommend hosting public servers. Darkflame Universe is intended for small scale deployment, for example within a group of friends. It has not been tested for large scale deployment which comes with additional security risks.
 
 ### Supply of resource files
-Darkflame Universe is a server emulator and does not distribute any LEGO® Universe files. A separate game client is required to setup this server emulator and play the game, which we cannot supply. Users are strongly suggested to refer to the safe checksums listed in the resources tab below when checking if a client will work.
+Darkflame Universe is a server emulator and does not distribute any LEGO® Universe files. A separate game client is required to setup this server emulator and play the game, which we cannot supply. Users are strongly suggested to refer to the safe checksums listed [here](#verifying-your-client-files) to see if a client will work.
 
-## Build
-Development of the latest iteration of Darkflame Universe has been done primarily in a Unix-like environment and is where it has been tested and designed for deployment. It is therefore highly recommended that Darkflame Universe be built and deployed using a Unix-like environment for the most streamlined experience.
+## Steps to setup server
+* [Clone this repository](#clone-the-repository)
+* [Install dependencies](#install-dependencies)
+* [Database setup](#database-setup)
+* [Build the server](#build-the-server)
+* [Configuring your server](#configuring-your-server)
+	* [Required Configuration](#required-configuration)
+	* [Optional Configuration](#optional-configuration)
+* [Verify your setup](#verify-your-setup)
+* [Running the server](#running-the-server)
+* [User Guide](#user-guide)
 
-### Prerequisites
-**Clone the repository**
+## Clone the repository
+If you are on Windows, you will need to download and install git from [here](https://git-scm.com/download/win)
+
+Then run the following command
 ```bash
 git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 ```
-**Python**
 
-Some tools utilized to streamline the setup process require Python 3, make sure you have it installed.
+## Install dependencies
 
+### Windows packages
+Ensure that you have either the [MSVC C++ compiler](https://visualstudio.microsoft.com/vs/features/cplusplus/) (recommended) or the [Clang compiler](https://github.com/llvm/llvm-project/releases/) installed.
+You'll also need to download and install [CMake](https://cmake.org/download/) (version <font size="4">**CMake version 3.18**</font> or later!).
 
-### Choosing the right version for your client
-DLU clients identify themselves using a higher version number than the regular live clients out there.
-This was done make sure that older and incomplete clients wouldn't produce false positive bug reports for us, and because we made bug fixes and new content for the client. 
+### MacOS packages
+Ensure you have [brew](https://brew.sh) installed.
+You will need to install the following packages
+```bash
+brew install cmake gcc mariadb openssl zlib
+```
 
-If you're using a DLU client you'll have to go into the "CMakeVariables.txt" file and change the NET_VERSION variable to 171023 to match the modified client's version number.
+### Linux packages
+Make sure packages like `gcc`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available. `libssl-dev` will also be required as well as `openssl`. You will also need a MySQL database solution to use. We recommend using `mariadb-server`.
 
-### Linux builds
-Make sure packages like `gcc`, `cmake`, and `zlib` are installed. Depending on the distribution, these packages might already be installed. Note that on systems like Ubuntu, you will need the `zlib1g-dev` package so that the header files are available. `libssl-dev` will also be required as well as `openssl`.
+For Ubuntu, you would run the following commands. On other systems, the package install command will differ.
 
-CMake must be version 3.14 or higher!
+```bash
+sudo apt update && sudo apt upgrade
 
-**Build the repository**
+# Install packages
+sudo apt install build-essential gcc zlib1g-dev libssl-dev openssl mariadb-server cmake
+```
 
+#### Required CMake version
+This project uses <font size="4">**CMake version 3.18**</font> or higher and as such you will need to ensure you have this version installed.
+You can check your CMake version by using the following command in a terminal.
+```bash
+cmake --version
+```
+
+If you are going to be using an Ubuntu environment to run the server, you may need to get a more recent version of `cmake` than the packages available may provide.
+
+The general approach to do so would be to obtain a copy of the signing key and then add the CMake repository to your apt.
+You can do so with the following commands.
+
+[Source of the below commands](https://askubuntu.com/questions/355565/how-do-i-install-the-latest-version-of-cmake-from-the-command-line)
+
+```bash
+# Remove the old version of CMake
+sudo apt purge --auto-remove cmake
+
+# Prepare for installation
+sudo apt update && sudo apt install -y software-properties-common lsb-release && sudo apt clean all
+
+# Obtain a copy of the signing key
+wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+
+# Add the repository to your sources list.
+sudo apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
+
+# Next you'll want to ensure that Kitware's keyring stays up to date
+sudo apt update
+sudo apt install kitware-archive-keyring
+sudo rm /etc/apt/trusted.gpg.d/kitware.gpg
+
+# If sudo apt update above returned an error, copy the public key at the end of the error message and run the following command
+# if the error message was "The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 6AF7F09730B3F0A4"
+# then the below command would be "sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6AF7F09730B3F0A4"
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys <TheCopiedPublicKey>
+
+# Finally update and install
+sudo apt update
+sudo apt install cmake
+```
+
+## Database setup
+First you'll need to start MariaDB.
+
+For Windows the service is always running by default.
+
+For MacOS, run the following command
+```bash
+brew services start mariadb
+```
+
+For Linux, run the following command
+```bash
+sudo systemctl start mysql
+# If systemctl is not a known command on your distribution, try the following instead
+sudo service mysql start
+```
+
+<font size="4">**You will need to run this command every time you restart your environment**</font>
+
+If you are using Linux and `systemctl` and want the MariaDB instance to start on startup, run the following command
+```bash
+sudo systemctl enable --now mysql
+```
+
+Once MariaDB is started, you'll need to create a user and an empty database for Darkflame Universe to use.
+
+First, login to the MariaDB instance.
+
+To do this on Ubuntu/Linux, MacOS, or another Unix like operating system, run the following command in a terminal
+```bash
+# Logs you into the MariaDB instance as root
+sudo mysql
+```
+
+For Windows, run the following command in the `Command Prompt (MariaDB xx.xx)` terminal
+```bash
+# Logs you into the mysql instance
+mysql -u root -p
+# You will then be prompted for the password you set for root during installation of MariaDB
+```
+
+Now that you are logged in, run the following commands.
+
+```bash
+# Creates a user for this computer which uses a password and grant said user all privileges.
+# Change mydarkflameuser to a custom username and password to a custom password. 
+GRANT ALL ON *.* TO 'mydarkflameuser'@'localhost' IDENTIFIED BY 'password' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+
+# Then create a database for Darkflame Universe to use.
+CREATE DATABASE darkflame;
+```
+
+## Build the server
 You can either run `build.sh` when in the root folder of the repository:
 
 ```bash
 ./build.sh
 ```
 
-Or manually run the commands used in `build.sh`:
+Or manually run the commands used in [build.sh](build.sh).
 
+If you would like to build the server faster, append `-j<number>` where number is the number of simultaneous compile jobs to run at once.  It is recommended that you have this number always be 1 less than your core count to prevent slowdowns.  The command would look like this if you would build with 4 jobs at once:
 ```bash
-# Create the build directory, preserving it if it already exists
-mkdir -p build
-cd build
-
-# Run CMake to generate make files
-cmake ..
-
-# Run make to build the project. To build utilizing multiple cores, append `-j` and the amount of cores to utilize, for example `make -j8`
-make
+./build.sh -j4
 ```
+### Notes
+Depending on your operating system, you may need to adjust some pre-processor defines in [CMakeVariables.txt](./CMakeVariables.txt) before building:
+* If you are on MacOS, ensure OPENSSL_ROOT_DIR is pointing to the openssl root directory.
+* If you are using a Darkflame Universe client, ensure NET_VERSION is changed to 171023.
 
-### MacOS builds
-Ensure `cmake`, `zlib` and `open ssl` are installed as well as a compiler (e.g `clang` or `gcc`).
+## Configuring your server
+This server has a few steps that need to be taken to configure the server for your use case.
 
-In the repository root folder run the following. Ensure -DOPENSSL_ROOT_DIR=/path/to/openssl points to your openssl install location
-```bash
-# Create the build directory, preserving it if it already exists
-mkdir -p build
-cd build
+### Required Configuration
+Darkflame Universe can run with either a packed or an unpacked client.
+Navigate to `build/sharedconfig.ini` and fill in the following fields:
+* `mysql_host` (This is the IP address or hostname of your MariaDB server.  This is highly likely `localhost`)
+  * If you setup your MariaDB instance on a port other than 3306, which can be done on a Windows install, you will need to make this value `tcp://localhost:portNum` where portNum is replaced with the port you chose to run MariaDB on.
+* `mysql_database` (This is the database you created for the server)
+* `mysql_username` (This is the user you created for the server)
+* `mysql_password` (This is the password for the user you created for the server)
+* `client_location` (This is the location of the client files.  This should be the folder path of a packed or unpacked client)
+	* Ideally the path to the client should not contain any spaces.
 
-# Run CMake to generate build files
-cmake .. -DOPENSSL_ROOT_DIR=/path/to/openssl
+### Optional Configuration
+* After the server has been built there should be five `ini` files in the build directory: `sharedconfig.ini`, `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`.
+* `authconfig.ini` contains an option to enable or disable play keys on your server. Do not change the default port for auth.
+* `chatconfig.ini` contains a port option.
+* `masterconfig.ini` contains options related to permissions you want to run your servers with.
+* `sharedconfig.ini` contains several options that are shared across all servers
+* `worldconfig.ini` contains several options to turn on QOL improvements should you want them. If you would like the most vanilla experience possible, you will need to turn some of these settings off.
 
-# Get cmake to build the project. If make files are being used then using make and appending `-j` and the amount of cores to utilize may be preferable, for example `make -j8`
-cmake --build . --config Release
-```
-
-### Windows builds (native)
-Ensure that you have either the [MSVC](https://visualstudio.microsoft.com/vs/) or the [Clang](https://github.com/llvm/llvm-project/releases/) (recommended) compiler installed. You will also need to install [CMake](https://cmake.org/download/). Currently on native Windows the server will only work in Release mode.
-
-**Build the repository**
-```batch
-:: Create the build directory
-mkdir build
-cd build
-
-:: Run CMake to generate make files
-cmake ..
-
-:: Run CMake with build flag to build
-cmake --build . --config Release
-```
-**Windows for ARM** has not been tested but should build by doing the following
-```batch
-:: Create the build directory
-mkdir build
-cd build
-
-:: Run CMake to generate make files
-cmake .. -DMARIADB_BUILD_SOURCE=ON
-
-:: Run CMake with build flag to build
-cmake --build . --config Release
-```
-
-### Windows builds (WSL)
-This section will go through how to install [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) and building in a Linux environment under Windows. WSL requires Windows 10 version 2004 and higher (Build 19041 and higher) or Windows 11.
-
-**Open the Command Prompt application with Administrator permissions and run the following:**
-```bash
-# Installing Windows Subsystem for Linux
-wsl --install
-```
-
-**Open the Ubuntu application and run the following:**
-```bash
-# Make sure the install is up to date
-apt update && apt upgrade
-
-# Make sure the gcc, cmake, and build-essentials are installed
-sudo apt install gcc
-sudo apt install cmake
-sudo apt install build-essential
-```
-
-[**Follow the Linux instructions**](#linux-builds)
-
-### ARM builds
-AArch64 builds should work on linux and MacOS using their respective build steps. Windows ARM should build but it has not been tested
-
-### Updating your build
-To update your server to the latest version navigate to your cloned directory
-```bash
-cd /path/to/DarkflameServer
-```
-run the following commands to update to the latest changes
-```bash
-git pull
-git submodule update --init --recursive
-```
-now follow the build section for your system
-
-## Setting up the environment
-
-### Resources
-
-**LEGO® Universe 1.10.64**
-
-This repository does not distribute any LEGO® Universe files. A full install of LEGO® Universe version 1.10.64 (latest) is required to finish setting up Darkflame Universe.
-
-Known good SHA256 checksums of the client:
-- `8f6c7e84eca3bab93232132a88c4ae6f8367227d7eafeaa0ef9c40e86c14edf5` (packed client, rar compressed)
-- `c1531bf9401426042e8bab2de04ba1b723042dc01d9907c2635033d417de9e05` (packed client, includes extra locales, rar compressed)
-- `0d862f71eedcadc4494c4358261669721b40b2131101cbd6ef476c5a6ec6775b` (unpacked client, includes extra locales, rar compressed)
-
-Known good *SHA1* checksum of the DLU client:
-- `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed) 
-
-How to generate a SHA256 checksum:
-```bash
-# Replace <file> with the file path to the client
-
-# If on Linux or MacOS
-shasum -a 256 <file>
-
-# If on Windows
-certutil -hashfile <file> SHA256
-```
-
-**Unpacking the client**
-* Clone lcdr's utilities repository [here](https://github.com/lcdr/utils)
-* Use `pkextractor.pyw` to unpack the client files if they are not already unpacked
-
-**Setup resource directory**
-* In the `build` directory create a `res` directory if it does not already exist.
-* Copy over or create symlinks from `macros`, `BrickModels`, `chatplus_en_us.txt`, `names`, and `maps` in your client `res` directory to the server `build/res` directory
-* Unzip the navmeshes [here](./resources/navmeshes.zip) and place them in `build/res/maps/navmeshes`
-
-**Setup locale**
-* In the `build` directory create a `locale` directory if it does not already exist
-* Copy over or create symlinks from `locale.xml` in your client `locale` directory to the `build/locale` directory
-
-**Client database**
-* Use `fdb_to_sqlite.py` in lcdr's utilities on `res/cdclient.fdb` in the unpacked client to convert the client database to `cdclient.sqlite`
-* Move and rename `cdclient.sqlite` into `build/res/CDServer.sqlite`
-* Run each SQL file in the order at which they appear [here](migrations/cdserver/) on the SQLite database
-
-### Database
-Darkflame Universe utilizes a MySQL/MariaDB database for account and character information.
-
-Initial setup can vary drastically based on which operating system or distribution you are running; there are instructions out there for most setups, follow those and come back here when you have a database up and running.
-* Create a database for Darkflame Universe to use
-* Use the command `./MasterServer -m` to automatically run them.
-
-**Configuration**
-
-After the server has been built there should be four `ini` files in the build director: `authconfig.ini`, `chatconfig.ini`, `masterconfig.ini`, and `worldconfig.ini`. Go through them and fill in the database credentials and configure other settings if necessary.
-
-**Verify**
-
+## Verify your setup
 Your build directory should now look like this:
 * AuthServer
 * ChatServer
@@ -216,211 +212,105 @@ Your build directory should now look like this:
 * authconfig.ini
 * chatconfig.ini
 * masterconfig.ini
+* sharedconfig.ini
 * worldconfig.ini
-* **locale/**
-  * locale.xml
-* **res/**
-  * CDServer.sqlite
-  * chatplus_en_us.txt
-  * **macros/**
-    * ...
-  * **BrickModels/**
-    * ...
-  * **maps/**
-    * **navmeshes/**
-      * ...
-    * ...
 * ...
 
 ## Running the server
-If everything has been configured correctly you should now be able to run the `MasterServer` binary. Darkflame Universe utilizes port numbers under 1024, so under Linux you either have to give the binary network permissions or run it under sudo.
+If everything has been configured correctly you should now be able to run the `MasterServer` binary which is located in the `build` directory. Darkflame Universe utilizes port numbers under 1024, so under Linux you either have to give the `AuthServer` binary network permissions or run it under sudo.
+To give `AuthServer` network permissions and not require sudo, run the following command
+```bash
+sudo setcap 'cap_net_bind_service=+ep' AuthServer
+```
+and then go to `build/masterconfig.ini` and change `use_sudo_auth` to 0.
 
 ### First admin user
 Run `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
 
-### Account Manager
+### Account management tool (Nexus Dashboard)
+**If you are just using this server for yourself, you can skip setting up Nexus Dashboard**
 
-Follow the instructions [here](https://github.com/DarkflameUniverse/AccountManager) to setup the DLU account management Python web application. This is the intended way for users to create accounts.
+Follow the instructions [here](https://github.com/DarkflameUniverse/NexusDashboard) to setup the DLU Nexus Dashboard web application. This is the intended way for users to create accounts and the intended way for moderators to approve names/pets/properties and do other moderation actions.
 
 ### Admin levels
+The admin level, or Game Master level (hereafter referred to as gmlevel), is specified in the `accounts.gm_level` column in the MySQL database. Normal players should have this set to `0`, which comes with no special privileges. The system administrator will have this set to `9`, which comes will all privileges. gmlevel `8` should be used to give a player a majority of privileges without the safety critical once.
 
-The admin level, or game master level, is specified in the `accounts.gm_level` column in the MySQL database. Normal players should have this set to `0`, which comes with no special privileges. The system administrator will have this set to `9`, which comes will all privileges. Admin level `8` should be used to give a player a majority of privileges without the safety critical once.
+While a character has a gmlevel of anything but `0`, some gameplay behavior will change. When testing gameplay, you should always use a character with a gmlevel of `0`.
 
-While a character has a gmlevel of anything but 0, some gameplay behavior will change. When testing gameplay, you should always use a character with a gmlevel of 0.
+# User guide
+Some changes to the client `boot.cfg` file are needed to play on your server.
 
-## User guide
-A few modifications have to be made to the client.
-
-### Client configuration
+## Allowing a user to connect to your server
 To connect to a server follow these steps:
 * In the client directory, locate `boot.cfg`
 * Open it in a text editor and locate where it says `AUTHSERVERIP=0:`
 * Replace the contents after to `:` and the following `,` with what you configured as the server's public facing IP. For example `AUTHSERVERIP=0:localhost` for locally hosted servers
+* Next locate the line `UGCUSE3DSERVICES=7:`
+* Ensure the number after the 7 is a `0`
 * Launch `legouniverse.exe`, through `wine` if on a Unix-like operating system
 * Note that if you are on WSL2, you will need to configure the public IP in the server and client to be the IP of the WSL2 instance and not localhost, which can be found by running `ifconfig` in the terminal. Windows defaults to WSL1, so this will not apply to most users.
 
-### Survival
+## Updating your server
+To update your server to the latest version navigate to your cloned directory
+```bash
+cd path/to/DarkflameServer
+```
+Run the following commands to update to the latest changes
+```bash
+git pull
+git submodule update --init --recursive
+```
+Now follow the [build](#build-the-server) section for your system and your server is up to date.
 
-The client script for the survival minigame has a bug in it which can cause the minigame to not load. To fix this, follow these instructions:
-* Open `res/scripts/ai/minigame/survival/l_zone_survival_client.lua`
-* Navigate to line `617`
-* Change `PlayerReady(self)` to `onPlayerReady(self)`
-* Save the file, overriding readonly mode if required
+## In-game commands
+* A list of all in-game commands can be found [here](./docs/Commands.md).
 
-If you still experience the bug, try deleting/renaming `res/pack/scripts.pk`.
+## Verifying your client files
 
-### Brick-By-Brick building
+### LEGO® Universe 1.10.64
+To verify that you are indeed using a LEGO® Universe 1.10.64 client, make sure you have the full client compressed **in a rar file** and run the following command.
+```bash
+# Replace <file> with the file path to the zipped client
 
-Brick-By-Brick building requires `PATCHSERVERIP=0:` in the `boot.cfg` to point to a HTTP server which always returns `HTTP 404 - Not Found` for all requests. This can be achieved by pointing it to `localhost` while having `sudo python -m http.server 80` running in the background.
+# If on Linux or MacOS
+shasum -a 256 <file>
 
-### In-game commands
-Here is a summary of the commands available in-game. All commands are prefixed by `/` and typed in the in-game chat window. Some commands requires admin privileges. Operands within `<>` are required, operands within `()` are not. For the full list of in-game commands, please checkout [the source file](./dGame/dUtilities/SlashCommandHandler.cpp).
+# If on Windows using the Command Prompt
+certutil -hashfile <file> SHA256
+```
 
-<table>
-<thead>
-  <th>
-    Command
-  </th>
-  <th>
-    Usage
-  </th>
-  <th>
-    Description
-  </th>
-  <th>
-    Admin Level Requirement
-  </th>
-</thead>
-<tbody>
-  <tr>
-    <td>
-      info
-    </td>
-    <td>
-      /info
-    </td>
-    <td>
-      Displays server info to the user, including where to find the server's source code.
-    </td>
-    <td>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      credits
-    </td>
-    <td>
-      /credits
-    </td>
-    <td>
-      Displays the names of the people behind Darkflame Universe.
-    </td>
-    <td>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      instanceinfo
-    </td>
-    <td>
-      /instanceinfo
-    </td>
-    <td>
-      Displays in the chat the current zone, clone, and instance id. 
-    </td>
-    <td>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      gmlevel
-    </td>
-    <td>
-      /gmlevel &#60;level&#62;
-    </td>
-    <td>
-      Within the authorized range of levels for the current account, changes the character's game master level to the specified value. This is required to use certain commands.
-    </td>
-    <td>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      testmap
-    </td>
-    <td>
-      /testmap &#60;zone&#62; (clone-id)
-    </td>
-    <td>
-      Transfers you to the given zone by id and clone id.
-    </td>
-    <td>
-      1
-    </td>
-  </tr>
-  <tr>
-    <td>
-      ban
-    </td>
-    <td>
-      /ban &#60;username&#62;
-    </td>
-    <td>
-      Bans a user from the server.
-    </td>
-    <td>
-      4
-    </td>
-  </tr>
-  <tr>
-    <td>
-      gmadditem
-    </td>
-    <td>
-      /gmadditem &#60;id&#62; (count)
-    </td>
-    <td>
-      Adds the given item to your inventory by id.
-    </td>
-    <td>
-      8
-    </td>
-  </tr>
-  <tr>
-    <td>
-      spawn
-    </td>
-    <td>
-      /spawn &#60;id&#62;
-    </td>
-    <td>
-      Spawns an object at your location by id.
-    </td>
-    <td>
-      8
-    </td>
-  </tr>
-  <tr>
-    <td>
-      metrics
-    </td>
-    <td>
-      /metrics
-    </td>
-    <td>
-      Prints some information about the server's performance.
-    </td>
-    <td>
-      8
-    </td>
-  </tr>
-</tbody>
-</table>
+Below are known good SHA256 checksums of the client:
+* `8f6c7e84eca3bab93232132a88c4ae6f8367227d7eafeaa0ef9c40e86c14edf5` (packed client, rar compressed)
+* `c1531bf9401426042e8bab2de04ba1b723042dc01d9907c2635033d417de9e05` (packed client, includes extra locales, rar compressed)
+* `0d862f71eedcadc4494c4358261669721b40b2131101cbd6ef476c5a6ec6775b` (unpacked client, includes extra locales, rar compressed)
 
-## Credits
-## Active Contributors
-* [EmosewaMC](https://github.com/EmosewaMC)
-* [Jettford](https://github.com/Jettford)
+If the returned hash matches one of the lines above then you can continue with setting up the server. If you are using a fully downloaded and complete client from live, then it will work, but the hash above may not match. Otherwise you must obtain a full install of LEGO® Universe 1.10.64.
+
+### Darkflame Universe Client
+Darkflame Universe clients identify themselves using a higher version number than the regular live clients out there.
+This was done make sure that older and incomplete clients wouldn't produce false positive bug reports for us, and because we made bug fixes and new content for the client.
+
+To verify that you are indeed using a Darkflame Universe client, make sure you have the full client compressed **in a zip file** and run the following command.
+
+```bash
+# Replace <file> with the file path to the zipped client
+
+# If on Linux or MacOS
+shasum -a 1 <file>
+
+# If on Windows using the Command Prompt
+certutil -hashfile <file> SHA1
+```
+
+Known good *SHA1* checksum of the Darkflame Universe client:
+- `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed)
+
+# Development Documentation
+This is a Work in Progress, but below are some quick links to documentaion for systems and structs in the server
+[Networked message structs](https://lcdruniverse.org/lu_packets/lu_packets/index.html)
+[General system documentation](https://docs.lu-dev.net/en/latest/index.html)
+
+# Credits
 
 ## DLU Team
 * [DarwinAnim8or](https://github.com/DarwinAnim8or)
@@ -429,26 +319,30 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 * [averysumner](https://github.com/codeshaunted)
 * [Jon002](https://github.com/jaller200)
 * [Jonny](https://github.com/cuzitsjonny)
+* [Aaron K.](https://github.com/aronwk-aaron)
+
+### Research and Tools
+* [lcdr](https://github.com/lcdr)
+* [Xiphoseer](https://github.com/Xiphoseer)
+
+### Community Management
+* [Neal](https://github.com/NealSpellman)
+
+### Logo
+* Cole Peterson (BlasterBuilder)
+
+## Active Contributors
+* [EmosewaMC](https://github.com/EmosewaMC)
+* [Jettford](https://github.com/Jettford)
+
+## Former Contributors
 * TheMachine
 * Matthew
 * [Raine](https://github.com/Rainebannister)
 * Bricknave
 
-### Research and tools
-* [lcdr](https://github.com/lcdr)
-* [Xiphoseer](https://github.com/Xiphoseer)
-
-### Community management
-* [Neal](https://github.com/NealSpellman)
-
-### Former contributors
-* TheMachine
-* Matthew
-* Raine
-* Bricknave
-
-### Special thanks
+## Special Thanks
 * humanoid24
 * pwjones1969
-* BlasterBuilder for the logo
-* ALL OF THE NETDEVIL AND LEGO TEAMS!
+* [Simon](https://github.com/SimonNitzsche)
+* [ALL OF THE NETDEVIL AND LEGO TEAMS!](https://www.mobygames.com/game/macintosh/lego-universe/credits)

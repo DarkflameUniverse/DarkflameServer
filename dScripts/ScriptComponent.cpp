@@ -57,7 +57,7 @@ CppScripts::Script* ScriptComponent::GetScript() {
 }
 
 void ScriptComponent::SetScript(const std::string& scriptName) {
-	//we don't need to delete the script because others may be using it :) 
+	//we don't need to delete the script because others may be using it :)
 	/*if (m_Client) {
 		m_Script = new InvalidScript();
 		return;

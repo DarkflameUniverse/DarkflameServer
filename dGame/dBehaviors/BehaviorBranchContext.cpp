@@ -1,13 +1,11 @@
-﻿#include "BehaviorBranchContext.h"
+#include "BehaviorBranchContext.h"
 
 
-BehaviorBranchContext::BehaviorBranchContext()
-{
+BehaviorBranchContext::BehaviorBranchContext() {
 	this->isProjectile = false;
 }
 
-BehaviorBranchContext::BehaviorBranchContext(const LWOOBJID target, const float duration, const NiPoint3& referencePosition)
-{
+BehaviorBranchContext::BehaviorBranchContext(const LWOOBJID target, const float duration, const NiPoint3& referencePosition) {
 	this->target = target;
 	this->duration = duration;
 	this->referencePosition = referencePosition;

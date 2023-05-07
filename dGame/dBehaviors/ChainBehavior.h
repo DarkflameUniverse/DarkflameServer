@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Behavior.h"
 
@@ -13,10 +13,9 @@ public:
 	 * Inherited
 	 */
 
-	explicit ChainBehavior(const uint32_t behaviorId) : Behavior(behaviorId)
-	{
+	explicit ChainBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {
 	}
-	
+
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 
 	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;

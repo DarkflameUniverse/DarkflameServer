@@ -1,45 +1,53 @@
 #include "dConfig.h"
+
 #include <sstream>
 
+#include "BinaryPathFinder.h"
+#include "GeneralUtils.h"
+
 dConfig::dConfig(const std::string& filepath) {
-	m_EmptyString = "";
-	std::ifstream in(filepath);
+	m_ConfigFilePath = filepath;
+	LoadConfig();
+}
+
+void dConfig::LoadConfig() {
+	std::ifstream in(BinaryPathFinder::GetBinaryDir() / m_ConfigFilePath);
 	if (!in.good()) return;
 
-	std::string line;
+	std::string line{};
 	while (std::getline(in, line)) {
-		if (line.length() > 0) {
-			if (line[0] != '#') ProcessLine(line);
-		}
+		if (!line.empty() && line.front() != '#') ProcessLine(line);
 	}
-} 
 
-dConfig::~dConfig(void) {
+	std::ifstream sharedConfig(BinaryPathFinder::GetBinaryDir() / "sharedconfig.ini", std::ios::in);
+	if (!sharedConfig.good()) return;
+
+	line.clear();
+	while (std::getline(sharedConfig, line)) {
+		if (!line.empty() && line.front() != '#') ProcessLine(line);
+	}
+}
+
+void dConfig::ReloadConfig() {
+	this->m_ConfigValues.clear();
+	LoadConfig();
 }
 
 const std::string& dConfig::GetValue(std::string key) {
-	for (size_t i = 0; i < m_Keys.size(); ++i) {
-		if (m_Keys[i] == key) return m_Values[i];
-	}
-
-	return m_EmptyString;
+	return this->m_ConfigValues[key];
 }
 
 void dConfig::ProcessLine(const std::string& line) {
-	std::stringstream ss(line);
-	std::string segment;
-	std::vector<std::string> seglist;
+	auto splitLine = GeneralUtils::SplitString(line, '=');
 
-	while (std::getline(ss, segment, '=')) {
-	   seglist.push_back(segment);
-	}
-
-	if (seglist.size() != 2) return;
+	if (splitLine.size() != 2) return;
 
 	//Make sure that on Linux, we remove special characters:
-	if (!seglist[1].empty() && seglist[1][seglist[1].size() - 1] == '\r')
-    	seglist[1].erase(seglist[1].size() - 1);
+	auto& key = splitLine.at(0);
+	auto& value = splitLine.at(1);
+	if (!value.empty() && value.at(value.size() - 1) == '\r') value.erase(value.size() - 1);
 
-	m_Keys.push_back(seglist[0]);
-	m_Values.push_back(seglist[1]);
+	if (this->m_ConfigValues.find(key) != this->m_ConfigValues.end()) return;
+
+	this->m_ConfigValues.insert(std::make_pair(key, value));
 }

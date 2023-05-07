@@ -6,101 +6,49 @@
 #include "dLogger.h"
 
 
-void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) 
-{
-    if (m_AffectsCaster)
-    {
-        branch.target = context->caster;
-    }
+void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+	if (m_AffectsCaster) branch.target = context->caster;
 
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	if (!target) return;
 
-    if (target == nullptr)
-    {
-        return;
-    }
+	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	if (!controllablePhysicsComponent) return;
 
-    auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	controllablePhysicsComponent->AddSpeedboost(m_RunSpeed);
+	EntityManager::Instance()->SerializeEntity(target);
 
-    if (controllablePhysicsComponent == nullptr)
-    {
-        return;
-    }
-
-    const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-
-    controllablePhysicsComponent->SetSpeedMultiplier(current + ((m_RunSpeed - 500.0f) / 500.0f));
-
-    EntityManager::Instance()->SerializeEntity(target);
-
-    if (branch.duration > 0.0f)
-    {
-        context->RegisterTimerBehavior(this, branch);
-    }
-    else if (branch.start > 0)
-    {
-        controllablePhysicsComponent->SetIgnoreMultipliers(true);
-
-        context->RegisterEndBehavior(this, branch);
-    }
+	if (branch.duration > 0.0f) {
+		context->RegisterTimerBehavior(this, branch);
+	} else if (branch.start > 0) {
+		context->RegisterEndBehavior(this, branch);
+	}
 }
 
-void SpeedBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) 
-{
-    auto* target = EntityManager::Instance()->GetEntity(branch.target);
-
-    if (target == nullptr)
-    {
-        return;
-    }
-
-    auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
-
-    if (controllablePhysicsComponent == nullptr)
-    {
-        return;
-    }
-
-    const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-
-    controllablePhysicsComponent->SetSpeedMultiplier(current - ((m_RunSpeed - 500.0f) / 500.0f));
-
-    EntityManager::Instance()->SerializeEntity(target);
+void SpeedBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+	Handle(context, bitStream, branch);
 }
 
-void SpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) 
-{
-    auto* target = EntityManager::Instance()->GetEntity(branch.target);
-
-    if (target == nullptr)
-    {
-        return;
-    }
-
-    auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
-
-    if (controllablePhysicsComponent == nullptr)
-    {
-        return;
-    }
-
-    const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-
-    controllablePhysicsComponent->SetIgnoreMultipliers(false);
-
-    controllablePhysicsComponent->SetSpeedMultiplier(current - ((m_RunSpeed - 500.0f) / 500.0f));
-
-    EntityManager::Instance()->SerializeEntity(target);
+void SpeedBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
+	End(context, branch, LWOOBJID_EMPTY);
 }
 
-void SpeedBehavior::Load() 
-{
-    m_RunSpeed = GetFloat("run_speed");
+void SpeedBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {
+	End(context, branch, second);
+}
 
-    if (m_RunSpeed < 500.0f)
-    {
-        m_RunSpeed = 500.0f;
-    }
+void SpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {
+	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	if (!target) return;
 
-    m_AffectsCaster = GetBoolean("affects_caster");
+	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	if (!controllablePhysicsComponent) return;
+
+	controllablePhysicsComponent->RemoveSpeedboost(m_RunSpeed);
+	EntityManager::Instance()->SerializeEntity(target);
+}
+
+void SpeedBehavior::Load() {
+	m_RunSpeed = GetFloat("run_speed");
+	m_AffectsCaster = GetBoolean("affects_caster");
 }
