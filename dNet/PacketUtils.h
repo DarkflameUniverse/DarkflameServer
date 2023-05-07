@@ -10,10 +10,10 @@ enum class eConnectionType : uint16_t;
 namespace PacketUtils {
 	template<typename T>
 	void WriteHeader(RakNet::BitStream& bitStream, eConnectionType connectionType, T internalPacketID) {
-		bitStream.Write(MessageID(ID_USER_PACKET_ENUM));
-		bitStream.Write(connectionType);
-		bitStream.Write(internalPacketID);
-		bitStream.Write(uint8_t(0));
+		bitStream.Write<uint8_t>(MessageID(ID_USER_PACKET_ENUM));
+		bitStream.Write<eConnectionType>(connectionType);
+		bitStream.Write<uint32_t>(static_cast<uint32_t>(internalPacketID));
+		bitStream.Write<uint8_t>(0);
 	}
 
 	uint16_t ReadPacketU16(uint32_t startLoc, Packet* packet);
