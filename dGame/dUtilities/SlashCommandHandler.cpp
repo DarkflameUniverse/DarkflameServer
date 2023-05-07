@@ -703,7 +703,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 #endif
 
-	if (chatCommand == "addmission" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
+	if (chatCommand == "addmission" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		if (args.size() == 0) return;
 
 		uint32_t missionID;
