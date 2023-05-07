@@ -273,23 +273,34 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 	va_end(args);
 }
 
-std::string FormatInsert(const std::string& columns, const std::string& format, va_list args, bool update) {
+std::string FormatInsert(const std::string& columns, const std::string& format, va_list args, bool useUpdate) {
 	const char* insert = "INSERT";
 	const char* update = "UPDATE";
-	auto queryBase = "%s leaderboard SET %s WHERE id = ?;";
+	const char* queryType = useUpdate ? update : insert;
+
+	const char* scoreFilter = "character_id = ? AND game_id = ?";
+	const char* usedFilter = useUpdate ? scoreFilter : "";
+
 	constexpr uint16_t STRING_LENGTH = 400;
 	char formattedInsert[STRING_LENGTH];
+	auto queryBase = "%s leaderboard SET %s, character_id = ?, game_id = ? %s;";
+	snprintf(formattedInsert, STRING_LENGTH, queryBase, queryType, format.c_str(), usedFilter);
+
 	char finishedQuery[STRING_LENGTH];
-	snprintf(formattedInsert, STRING_LENGTH, queryBase, columns.c_str(), format.c_str());
 	vsnprintf(finishedQuery, STRING_LENGTH, formattedInsert, args);
 	return finishedQuery;
 }
 
 void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, va_list args) {
+	// Increment the numTimes this player has played this game.
+	std::unique_ptr<sql::PreparedStatement> incrementStatement(Database::CreatePreppedStmt("UPDATE leaderboard SET timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;"));
+	incrementStatement->setInt(1, playerID);
+	incrementStatement->setInt(2, gameID);
+	incrementStatement->executeUpdate();
+
 	std::string insertStatement;
 	std::string selectedColumns;
 	std::string insertFormat;
-	// If ResultSet is empty, just insert our score.
 	std::va_list argsCopy;
 	va_copy(argsCopy, args);
 
@@ -300,8 +311,8 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 		break;
 	}
 	case Leaderboard::Type::Racing: {
-		selectedColumns = "bestLapTime, bestTime";
-		insertFormat = "bestLapTime=%f, bestTime=%f";
+		selectedColumns = "bestLapTime, bestTime, numWins";
+		insertFormat = "bestLapTime=%f, bestTime=%f, numWins=%i";
 		break;
 	}
 	case Leaderboard::Type::UnusedLeaderboard4: {
@@ -311,18 +322,18 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 	}
 	case Leaderboard::Type::MonumentRace:
 	case Leaderboard::Type::FootRace: {
-		selectedColumns = "time";
-		insertFormat = "time=%i";
+		selectedColumns = "bestTime";
+		insertFormat = "bestTime=%i";
 		break;
 	}
 	case Leaderboard::Type::Survival: {
-		selectedColumns = "points, time";
-		insertFormat = "points=%i, time=%i";
+		selectedColumns = "score, bestTime";
+		insertFormat = "score=%i, bestTime=%i";
 		break;
 	}
 	case Leaderboard::Type::SurvivalNS: {
-		selectedColumns = "time, wave";
-		insertFormat = "time=%i, wave=%i";
+		selectedColumns = "bestTime, score";
+		insertFormat = "bestTime=%i, score=%i";
 		break;
 	}
 	case Leaderboard::Type::Donations: {
@@ -340,112 +351,126 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 	}
 	}
 	const char* lookup = "SELECT %s FROM leaderboard WHERE character_id = ? AND game_id = ?;";
+
 	constexpr uint16_t STRING_LENGTH = 400;
 	char lookupBuffer[STRING_LENGTH];
 	snprintf(lookupBuffer, STRING_LENGTH, lookup, selectedColumns.c_str());
+
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer));
 	query->setInt(1, playerID);
 	query->setInt(2, gameID);
 	std::unique_ptr<sql::ResultSet> myScoreResult(query->executeQuery());
 
-	switch (leaderboardType) {
-	case Leaderboard::Type::ShootingGallery: {
-		int32_t oldScore = myScoreResult->getInt("score");
-		int32_t score;
-		score = va_arg(argsCopy, int32_t);
+	std::string saveQuery;
+	if (myScoreResult->next()) {
+		switch (leaderboardType) {
+		case Leaderboard::Type::ShootingGallery: {
+			int32_t oldScore = myScoreResult->getInt("score");
+			int32_t score;
+			score = va_arg(argsCopy, int32_t);
 
-		float oldHitPercentage = myScoreResult->getFloat("hitPercentage");
-		float hitPercentage;
-		hitPercentage = va_arg(argsCopy, double);
+			float oldHitPercentage = myScoreResult->getFloat("hitPercentage");
+			float hitPercentage;
+			hitPercentage = va_arg(argsCopy, double);
 
-		int32_t oldStreak = myScoreResult->getInt("streak");
-		int32_t streak;
-		streak = va_arg(argsCopy, int32_t);
+			int32_t oldStreak = myScoreResult->getInt("streak");
+			int32_t streak;
+			streak = va_arg(argsCopy, int32_t);
 
-		if (
-			score > oldScore || // If score is better
-			(score == oldScore && hitPercentage > oldHitPercentage) || // or if the score is tied and the hitPercentage is better
-			(score == oldScore && hitPercentage == oldHitPercentage && streak > oldStreak)) { // or if the score and hitPercentage are tied and the streak is better
-			// Save
+			if (
+				score > oldScore || // If score is better
+				(score == oldScore && hitPercentage > oldHitPercentage) || // or if the score is tied and the hitPercentage is better
+				(score == oldScore && hitPercentage == oldHitPercentage && streak > oldStreak)) { // or if the score and hitPercentage are tied and the streak is better
+				saveQuery = FormatInsert(selectedColumns, insertFormat, args, true);
+			}
+			break;
 		}
-		break;
-	}
-	case Leaderboard::Type::Racing: {
-		float oldLapTime = myScoreResult->getFloat("bestLapTime");
-		float lapTime;
-		lapTime = va_arg(argsCopy, double);
+		case Leaderboard::Type::Racing: {
+			float oldLapTime = myScoreResult->getFloat("bestLapTime");
+			float lapTime;
+			lapTime = va_arg(argsCopy, double);
 
-		float oldTime = myScoreResult->getFloat("bestTime");
-		float oldTime;
-		oldTime = va_arg(argsCopy, double);
+			float oldTime = myScoreResult->getFloat("bestTime");
+			float newTime;
+			newTime = va_arg(argsCopy, double);
 
-		int32_t oldNumWins = myScoreResult->getInt("numWins");
-		bool won;
-		won = va_arg(argsCopy, int32_t);
-		// Compare bestTime, if LOWER save
-		// Compare bestLapTime, if LOWER save
-		// Increment numWins if player won
-		break;
-	}
-	case Leaderboard::Type::UnusedLeaderboard4: {
-		int32_t oldScore = myScoreResult->getInt("score");
-		int32_t points;
-		points = va_arg(argsCopy, int32_t);
-		// Compare score, if HIGHER save
-		break;
-	}
-	case Leaderboard::Type::MonumentRace: {
-		int32_t oldTime = myScoreResult->getInt("time");
-		int32_t time;
-		time = va_arg(argsCopy, int32_t);
-		// Compare time, if LOWER save
-		break;
-	}
-	case Leaderboard::Type::FootRace: {
-		int32_t oldTime = myScoreResult->getInt("time");
-		int32_t time;
-		time = va_arg(argsCopy, int32_t);
-		// Compare time, if HIGHER save
-		break;
-	}
-	case Leaderboard::Type::Survival: {
-		int32_t oldPoints = myScoreResult->getInt("points");
-		int32_t points;
-		points = va_arg(argsCopy, int32_t);
+			int32_t oldNumWins = myScoreResult->getInt("numWins");
+			bool won;
+			won = va_arg(argsCopy, int32_t);
+			// Compare bestTime, if LOWER save
+			// Compare bestLapTime, if LOWER save
+			// Increment numWins if player won
+			break;
+		}
+		case Leaderboard::Type::UnusedLeaderboard4: {
+			int32_t oldScore = myScoreResult->getInt("score");
+			int32_t points;
+			points = va_arg(argsCopy, int32_t);
+			// Compare score, if HIGHER save
+			break;
+		}
+		case Leaderboard::Type::MonumentRace: {
+			int32_t oldTime = myScoreResult->getInt("bestTime");
+			int32_t time;
+			time = va_arg(argsCopy, int32_t);
+			// Compare time, if LOWER save
+			break;
+		}
+		case Leaderboard::Type::FootRace: {
+			int32_t oldTime = myScoreResult->getInt("bestTime");
+			int32_t time;
+			time = va_arg(argsCopy, int32_t);
+			// Compare time, if HIGHER save
+			break;
+		}
+		case Leaderboard::Type::Survival: {
+			int32_t oldPoints = myScoreResult->getInt("score");
+			int32_t points;
+			points = va_arg(argsCopy, int32_t);
 
-		int32_t oldTime = myScoreResult->getInt("time");
-		int32_t time;
-		time = va_arg(argsCopy, int32_t);
-		// Compare points, if HIGHER save, if TIED compare time, if LOWER save
-		// If classic_survival_scoring is 1, reverse the order of the points and time columns
-		break;
-	}
-	case Leaderboard::Type::SurvivalNS: {
-		int32_t oldTime = myScoreResult->getInt("time");
-		int32_t time;
-		time = va_arg(argsCopy, int32_t);
+			int32_t oldTime = myScoreResult->getInt("bestTime");
+			int32_t time;
+			time = va_arg(argsCopy, int32_t);
+			// Compare points, if HIGHER save, if TIED compare time, if LOWER save
+			// If classic_survival_scoring is 1, reverse the order of the points and time columns
+			break;
+		}
+		case Leaderboard::Type::SurvivalNS: {
+			int32_t oldTime = myScoreResult->getInt("bestTime");
+			int32_t time;
+			time = va_arg(argsCopy, int32_t);
 
-		int32_t oldWave = myScoreResult->getInt("wave");
-		int32_t wave;
-		wave = va_arg(argsCopy, int32_t);
-		// Compare wave, if HIGHER save, if TIED compare time, if LOWER save
-		break;
+			int32_t oldWave = myScoreResult->getInt("score");
+			int32_t wave;
+			wave = va_arg(argsCopy, int32_t);
+			// Compare wave, if HIGHER save, if TIED compare time, if LOWER save
+			break;
+		}
+		case Leaderboard::Type::Donations: {
+			int32_t oldScore = myScoreResult->getInt("score");
+			int32_t score;
+			score = va_arg(argsCopy, int32_t);
+			// Compare score, if HIGHER save
+			break;
+		}
+		case Leaderboard::Type::None: {
+			// This type is included here simply to resolve a compiler warning on mac about unused enum types
+			Game::logger->Log("LeaderboardManager", "Warning: Saving score for leaderboard of type None. Are you sure this is intended?");
+			break;
+		}
+		default:
+			Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i.	Cannot save score!", leaderboardType);
+			break;
+		}
+	} else {
+		saveQuery = FormatInsert(selectedColumns, insertFormat, argsCopy, false);
 	}
-	case Leaderboard::Type::Donations: {
-		int32_t oldScore = myScoreResult->getInt("score");
-		int32_t score;
-		score = va_arg(argsCopy, int32_t);
-		// Compare score, if HIGHER save
-		break;
-	}
-	case Leaderboard::Type::None: {
-		// This type is included here simply to resolve a compiler warning on mac about unused enum types
-		Game::logger->Log("LeaderboardManager", "Warning: Saving score for leaderboard of type None. Are you sure this is intended?");
-		break;
-	}
-	default:
-		Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i.	Cannot save score!", leaderboardType);
-		break;
+	Game::logger->Log("LeaderboardManager", "%s", saveQuery.c_str());
+	if (!saveQuery.empty()) {
+		std::unique_ptr<sql::PreparedStatement> insertQuery(Database::CreatePreppedStmt(saveQuery));
+		insertQuery->setInt(1, playerID);
+		insertQuery->setInt(2, gameID);
+		insertQuery->execute();
 	}
 	va_end(argsCopy);
 }

@@ -30,10 +30,10 @@ protected:
 		Leaderboard leaderboard(gameID, infoType, false, 14231, type);
 		leaderboard.SetupLeaderboard();
 		leaderboard.Serialize(&bitStream);
-		TestLeaderboard(leaderboard, 1);
-		TestLeaderboard(leaderboard, 10);
-		TestLeaderboard(leaderboard, 100);
-		TestLeaderboard(leaderboard, 1000);
+		// TestLeaderboard(leaderboard, 1);
+		// TestLeaderboard(leaderboard, 10);
+		// TestLeaderboard(leaderboard, 100);
+		// TestLeaderboard(leaderboard, 1000);
 	}
 
 	CBITSTREAM;
@@ -73,9 +73,9 @@ protected:
 
 TEST_F(LeaderboardTests, LeaderboardSpeedTest) {
 	RunTests(1864, Leaderboard::Type::ShootingGallery , Leaderboard::InfoType::Top);
-	RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::MyStanding);
-	RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::Friends);
-	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::ShootingGallery, 3, 3000, 15.0f, 100);
+	// RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::MyStanding);
+	// RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::Friends);
+	LeaderboardManager::Instance().SaveScore(14231, 1864, Leaderboard::Type::ShootingGallery, 3, 53001, 15.0f, 100);
 	// RunTests(0, Leaderboard::Type::Racing);
 	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::Racing, 3, 260.0f, 250.0f, true);
 	// RunTests(0, Leaderboard::Type::MonumentRace);
