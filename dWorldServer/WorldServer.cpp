@@ -728,7 +728,7 @@ void HandlePacket(Packet* packet) {
 		Game::server->SendToMaster(&bitStream);
 	}
 
-	if (packet->data[0] != ID_USER_PACKET_ENUM) return;
+	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
 		if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
 			AuthPackets::HandleHandshake(Game::server, packet);

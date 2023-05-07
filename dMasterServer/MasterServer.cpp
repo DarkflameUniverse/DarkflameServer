@@ -495,6 +495,8 @@ void HandlePacket(Packet* packet) {
 		}
 	}
 
+	if (packet->length < 4) return;
+
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
 		switch (static_cast<eMasterMessageType>(packet->data[3])) {
 		case eMasterMessageType::REQUEST_PERSISTENT_ID: {

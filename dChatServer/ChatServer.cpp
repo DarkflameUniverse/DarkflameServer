@@ -203,6 +203,8 @@ void HandlePacket(Packet* packet) {
 		Game::logger->Log("ChatServer", "A server is connecting, awaiting user list.");
 	}
 
+	if (packet->length < 4) return; // Nothing left to process.  Need 4 bytes to continue.
+
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
 		switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
 		case eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION:
