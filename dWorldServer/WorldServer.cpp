@@ -554,9 +554,8 @@ void HandlePacketChat(Packet* packet) {
 		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
 			switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
 			case eChatInternalMessageType::ROUTE_TO_PLAYER: {
-				CINSTREAM;
+				CINSTREAM_SKIP_HEADER;
 				LWOOBJID playerID;
-				inStream.Read(playerID);
 				inStream.Read(playerID);
 
 				auto player = EntityManager::Instance()->GetEntity(playerID);
@@ -576,9 +575,7 @@ void HandlePacketChat(Packet* packet) {
 			}
 
 			case eChatInternalMessageType::ANNOUNCEMENT: {
-				CINSTREAM;
-				LWOOBJID header;
-				inStream.Read(header);
+				CINSTREAM_SKIP_HEADER;
 
 				std::string title;
 				std::string msg;
@@ -615,10 +612,9 @@ void HandlePacketChat(Packet* packet) {
 			}
 
 			case eChatInternalMessageType::MUTE_UPDATE: {
-				CINSTREAM;
+				CINSTREAM_SKIP_HEADER;
 				LWOOBJID playerId;
 				time_t expire = 0;
-				inStream.Read(playerId);
 				inStream.Read(playerId);
 				inStream.Read(expire);
 
@@ -634,9 +630,7 @@ void HandlePacketChat(Packet* packet) {
 			}
 
 			case eChatInternalMessageType::TEAM_UPDATE: {
-				CINSTREAM;
-				LWOOBJID header;
-				inStream.Read(header);
+				CINSTREAM_SKIP_HEADER;
 
 				LWOOBJID teamID = 0;
 				char lootOption = 0;
@@ -1213,10 +1207,8 @@ void HandlePacket(Packet* packet) {
 
 	case eWorldMessageType::ROUTE_PACKET: {
 		//Yeet to chat
-		CINSTREAM;
-		uint64_t header = 0;
+		CINSTREAM_SKIP_HEADER;
 		uint32_t size = 0;
-		inStream.Read(header);
 		inStream.Read(size);
 
 		if (size > 20000) {
