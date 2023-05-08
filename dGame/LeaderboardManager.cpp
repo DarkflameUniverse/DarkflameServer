@@ -69,7 +69,7 @@ void Leaderboard::SetupLeaderboard() {
 		SELECT leaderboard.*, charinfo.name, 
 			RANK() OVER 
 			( 
-			ORDER BY %s 
+			ORDER BY %s, UNIX_TIMESTAMP(last_played) ASC, id DESC
 		) AS ranking 
 			FROM leaderboard JOIN charinfo on charinfo.id = leaderboard.character_id 
 			WHERE game_id = ? %s 
@@ -274,16 +274,17 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 }
 
 std::string FormatInsert(const std::string& columns, const std::string& format, va_list args, bool useUpdate) {
-	const char* insert = "INSERT";
-	const char* update = "UPDATE";
-	const char* queryType = useUpdate ? update : insert;
+	const char* insertClause = "INSERT";
+	const char* updateClause = "UPDATE";
+	const char* queryType = useUpdate ? updateClause : insertClause;
 
-	const char* scoreFilter = "character_id = ? AND game_id = ?";
-	const char* usedFilter = useUpdate ? scoreFilter : "";
+	const char* insertFilter = ", character_id = ?, game_id = ?";
+	const char* updateFilter = "WHERE character_id = ? AND game_id = ?";
+	const char* usedFilter = useUpdate ? updateFilter : insertFilter;
 
 	constexpr uint16_t STRING_LENGTH = 400;
 	char formattedInsert[STRING_LENGTH];
-	auto queryBase = "%s leaderboard SET %s, character_id = ?, game_id = ? %s;";
+	auto queryBase = "%s leaderboard SET %s %s;";
 	snprintf(formattedInsert, STRING_LENGTH, queryBase, queryType, format.c_str(), usedFilter);
 
 	char finishedQuery[STRING_LENGTH];
@@ -406,6 +407,9 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 			int32_t oldScore = myScoreResult->getInt("score");
 			int32_t points;
 			points = va_arg(argsCopy, int32_t);
+			if (points > oldScore) {
+				saveQuery = FormatInsert(selectedColumns, insertFormat, args, true);
+			}
 			// Compare score, if HIGHER save
 			break;
 		}
@@ -413,6 +417,9 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 			int32_t oldTime = myScoreResult->getInt("bestTime");
 			int32_t time;
 			time = va_arg(argsCopy, int32_t);
+			if (time < oldTime) {
+				saveQuery = FormatInsert(selectedColumns, insertFormat, args, true);
+			}
 			// Compare time, if LOWER save
 			break;
 		}
@@ -420,6 +427,9 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 			int32_t oldTime = myScoreResult->getInt("bestTime");
 			int32_t time;
 			time = va_arg(argsCopy, int32_t);
+			if (time < oldTime) {
+				saveQuery = FormatInsert(selectedColumns, insertFormat, args, true);
+			}
 			// Compare time, if HIGHER save
 			break;
 		}
@@ -431,6 +441,9 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 			int32_t oldTime = myScoreResult->getInt("bestTime");
 			int32_t time;
 			time = va_arg(argsCopy, int32_t);
+			if (points > oldPoints || (points == oldPoints && time < oldTime)) {
+				saveQuery = FormatInsert(selectedColumns, insertFormat, args, true);
+			}
 			// Compare points, if HIGHER save, if TIED compare time, if LOWER save
 			// If classic_survival_scoring is 1, reverse the order of the points and time columns
 			break;
@@ -443,6 +456,9 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 			int32_t oldWave = myScoreResult->getInt("score");
 			int32_t wave;
 			wave = va_arg(argsCopy, int32_t);
+			if (time < oldTime || (time == oldTime && wave > oldWave)) {
+				saveQuery = FormatInsert(selectedColumns, insertFormat, args, true);
+			}
 			// Compare wave, if HIGHER save, if TIED compare time, if LOWER save
 			break;
 		}
@@ -450,6 +466,9 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 			int32_t oldScore = myScoreResult->getInt("score");
 			int32_t score;
 			score = va_arg(argsCopy, int32_t);
+			if (score > oldScore) {
+				saveQuery = FormatInsert(selectedColumns, insertFormat, args, true);
+			}
 			// Compare score, if HIGHER save
 			break;
 		}
@@ -458,6 +477,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 			Game::logger->Log("LeaderboardManager", "Warning: Saving score for leaderboard of type None. Are you sure this is intended?");
 			break;
 		}
+
 		default:
 			Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i.	Cannot save score!", leaderboardType);
 			break;
