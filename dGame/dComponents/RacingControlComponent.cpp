@@ -23,6 +23,8 @@
 #include "dConfig.h"
 #include "Loot.h"
 #include "eMissionTaskType.h"
+#include "dZoneManager.h"
+#include "CDActivitiesTable.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327950288
@@ -45,36 +47,14 @@ RacingControlComponent::RacingControlComponent(Entity* parent)
 	m_EmptyTimer = 0;
 	m_SoloRacing = Game::config->GetValue("solo_racing") == "1";
 
-	// Select the main world ID as fallback when a player fails to load.
-
+	m_MainWorld = 1200;
 	const auto worldID = Game::server->GetZoneID();
+	if (dZoneManager::Instance()->CheckIfAccessibleZone((worldID/10)*10)) m_MainWorld = (worldID/10)*10;
 
-	switch (worldID) {
-	case 1203:
-		m_ActivityID = 42;
-		m_MainWorld = 1200;
-		break;
-
-	case 1261:
-		m_ActivityID = 60;
-		m_MainWorld = 1260;
-		break;
-
-	case 1303:
-		m_ActivityID = 39;
-		m_MainWorld = 1300;
-		break;
-
-	case 1403:
-		m_ActivityID = 54;
-		m_MainWorld = 1400;
-		break;
-
-	default:
-		m_ActivityID = 42;
-		m_MainWorld = 1200;
-		break;
-	}
+	m_ActivityID = 42;
+	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.instanceMapID == worldID); });
+	for (CDActivities activity : activities) m_ActivityID = activity.ActivityID;
 }
 
 RacingControlComponent::~RacingControlComponent() {}

@@ -279,7 +279,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "leave-zone") {
 		const auto currentZone = dZoneManager::Instance()->GetZone()->GetZoneID().GetMapID();
 
-		auto newZone = 0;
+		LWOMAPID newZone = 0;
 		if (currentZone % 100 == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"You are not in an instanced zone.");
 			return;
@@ -287,7 +287,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			newZone = (currentZone / 100) * 100;
 		}
 		// If new zone would be inaccessible, then default to Avant Gardens.
-		if (!CheckIfAccessibleZone(newZone)) newZone = 1100;
+		if (!dZoneManager::Instance()->CheckIfAccessibleZone(newZone)) newZone = 1100;
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Leaving zone...");
 
@@ -1559,7 +1559,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		const auto objid = entity->GetObjectID();
 
-		if (force || CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
+		if (force || dZoneManager::Instance()->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
 
 			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 
@@ -2018,17 +2018,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				}
 			}
 		}
-	}
-}
-
-bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
-	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
-	const CDZoneTable* zone = zoneTable->Query(zoneID);
-	if (zone != nullptr) {
-		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());
-	} else {
-		return false;
 	}
 }
 

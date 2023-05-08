@@ -27,6 +27,7 @@
 #include "CDCurrencyTableTable.h"
 #include "CDActivityRewardsTable.h"
 #include "CDActivitiesTable.h"
+#include "LeaderboardManager.h"
 
 ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent) {
 	m_ActivityID = activityID;
@@ -35,10 +36,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
 	for (CDActivities activity : activities) {
 		m_ActivityInfo = activity;
-
-		const auto mapID = m_ActivityInfo.instanceMapID;
-
-		if ((mapID == 1203 || mapID == 1261 || mapID == 1303 || mapID == 1403) && Game::config->GetValue("solo_racing") == "1") {
+		if (static_cast<LeaderboardType>(activity.leaderboardType) == LeaderboardType::Racing && Game::config->GetValue("solo_racing") == "1") {
 			m_ActivityInfo.minTeamSize = 1;
 			m_ActivityInfo.minTeams = 1;
 		}
