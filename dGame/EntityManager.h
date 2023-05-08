@@ -85,6 +85,10 @@ public:
 	const uint32_t GetHardcoreUscoreEnemiesMultiplier() { return m_HardcoreUscoreEnemiesMultiplier; };
 
 private:
+	void SerializeEntities();
+	void KillEntities();
+	void DeleteEntities();
+
 	static EntityManager* m_Address; //For singleton method
 	static std::vector<LWOMAPID> m_GhostingExcludedZones;
 	static std::vector<LOT> m_GhostingExcludedLOTs;
