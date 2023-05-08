@@ -75,19 +75,19 @@ TEST_F(LeaderboardTests, LeaderboardSpeedTest) {
 	RunTests(1864, Leaderboard::Type::ShootingGallery , Leaderboard::InfoType::Top);
 	// RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::MyStanding);
 	// RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::Friends);
-	LeaderboardManager::Instance().SaveScore(14231, 1864, Leaderboard::Type::ShootingGallery, 3, 53001, 15.0f, 100);
+	LeaderboardManager::Instance().SaveScore(14231, 1864, Leaderboard::Type::ShootingGallery, 3, 53002, 15.0f, 100);
 	// RunTests(0, Leaderboard::Type::Racing);
-	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::Racing, 3, 260.0f, 250.0f, true);
+	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::Racing, 3, 259.0f, 250.0f, true);
 	// RunTests(0, Leaderboard::Type::MonumentRace);
-	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::MonumentRace, 1, 150);
+	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::MonumentRace, 1, 149);
 	// RunTests(0, Leaderboard::Type::FootRace);
-	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::FootRace, 1, 150);
+	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::FootRace, 1, 151);
 	// RunTests(0, Leaderboard::Type::UnusedLeaderboard4);
-	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::UnusedLeaderboard4, 1, 100);
+	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::UnusedLeaderboard4, 1, 101);
 	// RunTests(0, Leaderboard::Type::Survival);
-	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::Survival, 2, 3000, 15);
+	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::Survival, 2, 3001, 15);
 	// RunTests(0, Leaderboard::Type::SurvivalNS);
-	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::SurvivalNS, 2, 300, 15);
+	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::SurvivalNS, 2, 301, 15);
 	// RunTests(0, Leaderboard::Type::Donations);
-	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::Donations, 1, 300000);
+	LeaderboardManager::Instance().SaveScore(14231, 0, Leaderboard::Type::Donations, 1, 300001);
 }

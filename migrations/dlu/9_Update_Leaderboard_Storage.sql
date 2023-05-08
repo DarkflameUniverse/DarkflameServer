@@ -7,6 +7,6 @@ ALTER TABLE leaderboard
     MODIFY time FLOAT NOT NULL DEFAULT 0;
 
 ALTER TABLE leaderboard CHANGE time bestTime float;
-ALTER TABLE leaderboard CHANGE last_played TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
+ALTER TABLE leaderboard CHANGE last_played last_played TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
 
 UPDATE leaderboard SET streak = bestTime where game_id = 1864;

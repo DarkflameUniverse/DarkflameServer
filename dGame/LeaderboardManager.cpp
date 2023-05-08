@@ -64,7 +64,7 @@ bool Leaderboard::GetRankingQuery(std::string& lookupReturn) const {
 
 void Leaderboard::SetupLeaderboard() {
 	std::string queryBase =
-	R"QUERY( 
+		R"QUERY( 
 	WITH leaderboardsRanked AS ( 
 		SELECT leaderboard.*, charinfo.name, 
 			RANK() OVER 
@@ -278,8 +278,8 @@ std::string FormatInsert(const std::string& columns, const std::string& format, 
 	const char* updateClause = "UPDATE";
 	const char* queryType = useUpdate ? updateClause : insertClause;
 
-	const char* insertFilter = ", character_id = ?, game_id = ?";
-	const char* updateFilter = "WHERE character_id = ? AND game_id = ?";
+	const char* insertFilter = ", character_id = ?, game_id = ?, timesPlayed = 1";
+	const char* updateFilter = ", timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?";
 	const char* usedFilter = useUpdate ? updateFilter : insertFilter;
 
 	constexpr uint16_t STRING_LENGTH = 400;
@@ -293,12 +293,6 @@ std::string FormatInsert(const std::string& columns, const std::string& format, 
 }
 
 void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, va_list args) {
-	// Increment the numTimes this player has played this game.
-	std::unique_ptr<sql::PreparedStatement> incrementStatement(Database::CreatePreppedStmt("UPDATE leaderboard SET timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;"));
-	incrementStatement->setInt(1, playerID);
-	incrementStatement->setInt(2, gameID);
-	incrementStatement->executeUpdate();
-
 	std::string insertStatement;
 	std::string selectedColumns;
 	std::string insertFormat;
@@ -342,10 +336,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 		insertFormat = "score=%i";
 		break;
 	}
-	case Leaderboard::Type::None: {
-		Game::logger->Log("LeaderboardManager", "Warning: Saving leaderboard of type None. Are you sure this is intended?");
-		break;
-	}
+	case Leaderboard::Type::None:
 	default: {
 		Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i.	Cannot save score!", leaderboardType);
 		return;
@@ -485,12 +476,19 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 	} else {
 		saveQuery = FormatInsert(selectedColumns, insertFormat, argsCopy, false);
 	}
-	Game::logger->Log("LeaderboardManager", "%s", saveQuery.c_str());
 	if (!saveQuery.empty()) {
+		Game::logger->Log("LeaderboardManager", "%s", saveQuery.c_str());
 		std::unique_ptr<sql::PreparedStatement> insertQuery(Database::CreatePreppedStmt(saveQuery));
 		insertQuery->setInt(1, playerID);
 		insertQuery->setInt(2, gameID);
 		insertQuery->execute();
+	} else {
+		Game::logger->Log("LeaderboardManager", "No new score to save, incrementing numTimesPlayed");
+		// Increment the numTimes this player has played this game.
+		std::unique_ptr<sql::PreparedStatement> incrementStatement(Database::CreatePreppedStmt("UPDATE leaderboard SET timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;"));
+		incrementStatement->setInt(1, playerID);
+		incrementStatement->setInt(2, gameID);
+		incrementStatement->executeUpdate();
 	}
 	va_end(argsCopy);
 }
