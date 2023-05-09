@@ -12,7 +12,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        os: [ windows-2022, ubuntu-20.04, macos-11 ]
+        os: [ windows-2022, ubuntu-20.04 ]
 
     steps:
     - uses: actions/checkout@v3
@@ -38,18 +38,11 @@ jobs:
       with:
         name: build-${{matrix.os}}
         path: |
-          build
-          !build/tests
-          !build/Testing
-          !build/CMakeFiles
-          !build/DartConfiguration.tcl
-          !build/CTestTestfile.cmake
-          !build/CMakeCache.txt
-          !build/build.ninja
-          !build/_deps
-          !build/cmake_install.cmake
-          !build/*.a
-          !build/*.lib
-          !build/*.dir
-          !build/*.vcxproj
-          !build/*.vcxproj.filters
+          build/*Server*
+          build/*.ini
+          build/*.so
+          build/*.dll
+          build/vanity/
+          build/navmeshes/
+          build/migrations/
+          build/*.dcf
