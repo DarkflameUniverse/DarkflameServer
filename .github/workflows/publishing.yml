@@ -61,7 +61,7 @@ jobs:
       run: |
         IFS=" - " read -ra PARTS <<< "$(head -n 1 versions.txt)"
         echo "VERSION=${PARTS[0]}" >> $GITHUB_ENV
-        echo "DESCRIPTION=${PARTS[1]}" >> $GITHUB_ENV
+        echo "DESCRIPTION=$(IFS=' '; echo "${PARTS[*]:1}")" >> $GITHUB_ENV
     
     - name: Create Release
       id: create_release
@@ -71,7 +71,7 @@ jobs:
       with:
         tag_name: v${{ env.VERSION }}
         release_name: Release v${{ env.VERSION }}
-        body: Draft release for version v${{ env.VERSION }} \n ${{ env.DESCRIPTION }}
+        body: "Draft release for version v${{ env.VERSION }} \n\n ${{ env.DESCRIPTION }}"
         draft: true
 
     - name: Download all workflow run artifacts
