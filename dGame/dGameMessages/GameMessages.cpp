@@ -1631,26 +1631,14 @@ void GameMessages::HandleActivitySummaryLeaderboardData(RakNet::BitStream* instr
 	Game::logger->Log("AGS", "We got mail!");
 }
 
-void GameMessages::SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard, const SystemAddress& sysAddr) {
+void GameMessages::SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, Leaderboard* leaderboard, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
 	bitStream.Write(objectID);
 	bitStream.Write(GAME_MSG::GAME_MSG_SEND_ACTIVITY_SUMMARY_LEADERBOARD_DATA);
-	throw "";
-	//bitStream.Write(leaderboard->GetGameID());
-	//bitStream.Write(leaderboard->GetInfoType());
 
-	// Leaderboard is written back as LDF string
-	//const auto leaderboardString = leaderboard->ToString();
-	//bitStream.Write<uint32_t>(leaderboardString.size());
-	//for (const auto c : leaderboardString) {
-	//	bitStream.Write<uint16_t>(c);
-	//}
-	//if (!leaderboardString.empty()) bitStream.Write(uint16_t(0));
-
-	bitStream.Write0();
-	bitStream.Write0();
+	leaderboard->Serialize(&bitStream);
 
 	SEND_PACKET;
 }

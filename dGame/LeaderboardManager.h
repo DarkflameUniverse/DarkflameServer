@@ -64,12 +64,12 @@ public:
 	/**
 	 * Builds the leaderboard from the database based on the associated gameID
 	 */
-	void SetupLeaderboard();
+	void SetupLeaderboard(uint32_t resultStart = 0, uint32_t resultEnd = 10);
 
 	/**
 	 * Sends the leaderboard to the client specified by targetID.
 	 */
-	void Send(LWOOBJID targetID) const;
+	void Send(LWOOBJID targetID);
 
 	// Helper functions to get the columns, ordering and insert format for a leaderboard
 	static std::string GetColumns(Type leaderboardType);

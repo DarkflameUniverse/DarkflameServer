@@ -561,7 +561,7 @@ namespace GameMessages {
 	void SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr);
 
 	// Leaderboards
-	void SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard,
+	void SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, Leaderboard* leaderboard,
 		const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void HandleActivitySummaryLeaderboardData(RakNet::BitStream* instream, Entity* entity, const SystemAddress& sysAddr);
 	void SendRequestActivitySummaryLeaderboardData(const LWOOBJID& objectID, const LWOOBJID& targetID,

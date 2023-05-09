@@ -33,6 +33,9 @@ void Leaderboard::WriteLeaderboardRow(std::ostringstream& leaderboard, const uin
 }
 
 void Leaderboard::Serialize(RakNet::BitStream* bitStream) {
+	bitStream->Write(gameID);
+	bitStream->Write(leaderboardType);
+
 	std::ostringstream leaderboard;
 
 	leaderboard << "ADO.Result=7:1\n"; // Unused in 1.10.64, but is in captures
@@ -49,7 +52,9 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) {
 	}
 
 	// Serialize the thing to a BitStream
-	bitStream->Write(leaderboard.str().c_str(), leaderboard.tellp());
+	bitStream->WriteAlignedBytes((const unsigned char*)leaderboard.str().c_str(), leaderboard.tellp());
+	bitStream->Write0();
+	bitStream->Write0();
 }
 
 bool Leaderboard::GetRankingQuery(std::string& lookupReturn) const {
@@ -234,7 +239,7 @@ std::string Leaderboard::GetOrdering(Leaderboard::Type leaderboardType) {
 	return orderBase;
 }
 
-void Leaderboard::SetupLeaderboard() {
+void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	std::string queryBase =
 		R"QUERY( 
 		WITH leaderboardsRanked AS ( 
@@ -259,9 +264,9 @@ void Leaderboard::SetupLeaderboard() {
 		SELECT %s, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking 
 		WHERE leaderboardsRanked.ranking 
 		BETWEEN 
-		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, 1), lowestRanking.lowestRank - 10) 
+		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), lowestRanking.lowestRank - 10) 
 		AND 
-		LEAST(GREATEST(myRank + 5, 11), lowestRanking.lowestRank) 
+		LEAST(GREATEST(myRank + 5, %i), lowestRanking.lowestRank) 
 		ORDER BY ranking ASC;
 	)QUERY";
 
@@ -289,8 +294,14 @@ void Leaderboard::SetupLeaderboard() {
 	constexpr uint16_t STRING_LENGTH = 1526;
 	char lookupBuffer[STRING_LENGTH];
 	// If we are getting the friends leaderboard, add the friends query, otherwise fill it in with nothing.
-	if (this->infoType == InfoType::Friends) snprintf(lookupBuffer, STRING_LENGTH, queryBase.c_str(), orderBase.c_str(), friendsQuery, selectBase.c_str());
-	else snprintf(lookupBuffer, STRING_LENGTH, queryBase.c_str(), orderBase.c_str(), "", selectBase.c_str());
+	if (this->infoType == InfoType::Friends) {
+		snprintf(lookupBuffer, STRING_LENGTH, queryBase.c_str(),
+		orderBase.c_str(), friendsQuery, selectBase.c_str(), resultStart + 1, resultEnd + 1);
+	}
+	else {
+		snprintf(lookupBuffer, STRING_LENGTH, queryBase.c_str(),
+		orderBase.c_str(), "", selectBase.c_str(), resultStart + 1, resultEnd + 1);
+	}
 
 	std::string baseLookupStr;
 	char baseRankingBuffer[STRING_LENGTH];
@@ -328,7 +339,7 @@ void Leaderboard::SetupLeaderboard() {
 	QueryToLdf(result);
 }
 
-void Leaderboard::Send(LWOOBJID targetID) const {
+void Leaderboard::Send(LWOOBJID targetID) {
 	auto* player = EntityManager::Instance()->GetEntity(relatedPlayer);
 	if (player != nullptr) {
 		GameMessages::SendActivitySummaryLeaderboardData(targetID, this, player->GetSystemAddress());
@@ -516,14 +527,12 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 	va_end(argsCopy);
 }
 
-// Done
 void LeaderboardManager::SendLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID targetID, LWOOBJID playerID) {
 	Leaderboard leaderboard(gameID, infoType, weekly, playerID, GetLeaderboardType(gameID));
 	leaderboard.SetupLeaderboard();
 	leaderboard.Send(targetID);
 }
 
-// Done
 Leaderboard::Type LeaderboardManager::GetLeaderboardType(const GameID gameID) {
 	auto lookup = leaderboardCache.find(gameID);
 	if (lookup != leaderboardCache.end()) return lookup->second;
