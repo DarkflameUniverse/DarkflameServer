@@ -54,11 +54,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v2
-      with:
-        name: artifacts
-
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
