@@ -74,7 +74,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        for file in artifacts/*; do
+        for file in artifacts/*; do zip ${file%.*}.zip $file; done
+        for file in *.zip; do
           echo "Uploading $file"
           curl --progress-bar \
             -X POST \
