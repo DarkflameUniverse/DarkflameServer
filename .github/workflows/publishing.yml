@@ -48,3 +48,42 @@ jobs:
           build/*.dcf
           !build/*.pdb
           !build/d*/
+          
+  draft-release:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: artifacts
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v0.0.0-${{ github.run_number }}
+        release_name: Release v0.0.0-${{ github.run_number }}
+        body: Draft release for version v0.0.0-${{ github.run_number }}
+        draft: true
+
+    - name: Download all workflow run artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Upload Release Assets
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        for file in artifacts/*; do
+          echo "Uploading $file"
+          curl --progress-bar \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
+            --upload-file "$file" \
+            -H "Content-Type: $(file --mime-type -b $file)" \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.id }}/assets?name=$(basename $file)"
+        done
