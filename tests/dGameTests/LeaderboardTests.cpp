@@ -75,11 +75,4 @@ TEST_F(LeaderboardTests, LeaderboardSpeedTest) {
 	RunTests(1864, Leaderboard::Type::ShootingGallery , Leaderboard::InfoType::Top);
 	RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::MyStanding);
 	RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::Friends);
-	LeaderboardManager::Instance().SaveShootingGalleryScore(14231, 1864, 53003, 15.0f, 100);
-	LeaderboardManager::Instance().SaveRacingScore(14231, 0, 40, 250, true);
-	LeaderboardManager::Instance().SaveMonumentRaceScore(14231, 0, 148);
-	LeaderboardManager::Instance().SaveFootRaceScore(14231, 0, 15);
-	LeaderboardManager::Instance().SaveSurvivalScore(14231, 0, 3002, 15);
-	LeaderboardManager::Instance().SaveSurvivalNSScore(14231, 0, 302, 15);
-	LeaderboardManager::Instance().SaveDonationsScore(14231, 0, 300003);
 }

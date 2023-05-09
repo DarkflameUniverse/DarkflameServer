@@ -1,6 +1,7 @@
 #include "BaseFootRaceManager.h"
 #include "EntityManager.h"
 #include "Character.h"
+#include "Entity.h"
 
 void BaseFootRaceManager::OnStartup(Entity* self) {
 	// TODO: Add to FootRaceStarter group
