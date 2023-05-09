@@ -54,15 +54,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    
+    - name: Take a gander at versions.txt to get updated information
+      run: |
+        IFS=" - " read -ra PARTS <<< "$(head -n 1 versions.txt)"
+        echo "VERSION=${PARTS[0]}" >> $GITHUB_ENV
+        echo "DESCRIPTION=${PARTS[1]}" >> $GITHUB_ENV
+    
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v0.0.0-${{ github.run_number }}
-        release_name: Release v0.0.0-${{ github.run_number }}
-        body: Draft release for version v0.0.0-${{ github.run_number }}
+        tag_name: v${{ env.VERSION }}
+        release_name: Release v${{ env.VERSION }}
+        body: Draft release for version v${{ env.VERSION }} \n ${{ env.DESCRIPTION }}
         draft: true
 
     - name: Download all workflow run artifacts
