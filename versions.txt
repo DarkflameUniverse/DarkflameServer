@@ -1,4 +1,4 @@
-1.1 - Among Us Crewmate Update!
+1.1 - Among Us Crewmate Update is finally out!
 1.0 - Final cleanup and bug fixing for public release
 0.9 - Includes BBB without the need for a UGC server, cannon cove minigame, and bug fixes.
 0.8 - Added Ninjago! and it's various features + frakjaw minigame. AG survival now works.
