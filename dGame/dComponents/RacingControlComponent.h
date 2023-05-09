@@ -25,9 +25,9 @@ struct RacingPlayerInfo {
 	LWOOBJID vehicleID;
 
 	/**
-	 * The index of this player in the list of players
+	 * The rank of a player
 	 */
-	uint32_t playerIndex;
+	uint32_t rank;
 
 	/**
 	 * Whether the player has finished loading or not
@@ -246,4 +246,11 @@ private:
 	float m_EmptyTimer;
 
 	bool m_SoloRacing;
+
+	bool m_DirtyEndOfRaceInfo;
+	bool m_DirtyRaceInfo;
+	bool m_DirtyPathName;
+	bool m_DirtyRank;
+	bool m_DirtyLoadPlayer;
+	bool m_DirtyLobby;
 };
