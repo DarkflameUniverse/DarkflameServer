@@ -1639,7 +1639,7 @@ void GameMessages::SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, 
 	bitStream.Write(GAME_MSG::GAME_MSG_SEND_ACTIVITY_SUMMARY_LEADERBOARD_DATA);
 
 	leaderboard->Serialize(&bitStream);
-
+	PacketUtils::SavePacket("leaderboardData.bin", (const char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 	SEND_PACKET;
 }
 
@@ -1661,7 +1661,7 @@ void GameMessages::HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream
 
 	bool weekly = inStream->ReadBit();
 
-	LeaderboardManager::Instance().SendLeaderboard(gameID, queryType, weekly, target, resultsStart, resultsEnd);
+	LeaderboardManager::Instance().SendLeaderboard(gameID, queryType, weekly, entity->GetObjectID(), resultsStart, resultsEnd);
 }
 
 void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream* inStream, Entity* entity) {

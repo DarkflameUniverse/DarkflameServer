@@ -23,6 +23,7 @@
 #include "dConfig.h"
 #include "Loot.h"
 #include "eMissionTaskType.h"
+#include "LeaderboardManager.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327950288
@@ -391,9 +392,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player,
 	}
 
 	if (id == "rewardButton") {
-		if (data->collectedRewards) {
-			return;
-		}
+		if (data->collectedRewards) return;
 
 		data->collectedRewards = true;
 
@@ -401,6 +400,8 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player,
 		const auto score = m_LoadedPlayers * 10 + data->finished;
 
 		LootGenerator::Instance().GiveActivityLoot(player, m_Parent, m_ActivityID, score);
+		auto leaderboardType = LeaderboardManager::Instance().GetLeaderboardType(m_ActivityID);
+		LeaderboardManager::Instance().SaveScore(player->GetObjectID(), m_ActivityID, leaderboardType, 3, data->bestLapTime, data->raceTime, data->finished == 1);
 
 		// Giving rewards
 		GameMessages::SendNotifyRacingClient(

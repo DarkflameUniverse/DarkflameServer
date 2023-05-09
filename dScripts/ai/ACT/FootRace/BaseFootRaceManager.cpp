@@ -42,6 +42,7 @@ void BaseFootRaceManager::OnFireEventServerSide(Entity* self, Entity* sender, st
 					}
 
 					StopActivity(self, player->GetObjectID(), 0, param1);
+					SaveScore(self, player->GetObjectID(), param1, param2, param3);
 				}
 			}
 		}

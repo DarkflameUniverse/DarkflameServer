@@ -16,6 +16,8 @@
 #include "CDActivitiesTable.h"
 #include "Metrics.hpp"
 
+LeaderboardManager::LeaderboardCache LeaderboardManager::leaderboardCache = {};
+
 Leaderboard::Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const Leaderboard::Type leaderboardType) {
 	this->gameID = gameID;
 	this->weekly = weekly;
@@ -34,10 +36,10 @@ void Leaderboard::WriteLeaderboardRow(std::ostringstream& leaderboard, const uin
 
 void Leaderboard::Serialize(RakNet::BitStream* bitStream) {
 	bitStream->Write(gameID);
-	bitStream->Write(leaderboardType);
+	bitStream->Write(infoType);
 
 	std::ostringstream leaderboard;
-
+	Game::logger->Log("LeaderboardManager", "game is %i info type %i ", gameID, infoType);
 	leaderboard << "ADO.Result=7:1\n"; // Unused in 1.10.64, but is in captures
 	leaderboard << "Result.Count=1:1\n"; // number of results, always 1?
 	leaderboard << "Result[0].Index=0:RowNumber\n"; // "Primary key"
@@ -46,13 +48,18 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) {
 	int32_t rowNumber = 0;
 	for (auto& entry : entries) {
 		for (auto* data : entry) {
+			Game::logger->Log("LeaderboardManager", "writing data %s", data->GetString().c_str());
 			WriteLeaderboardRow(leaderboard, rowNumber, data);
 		}
 		rowNumber++;
 	}
-
+	Game::logger->Log("LeaderboardManager", "leaderboard is %s", leaderboard.str().c_str());
 	// Serialize the thing to a BitStream
-	bitStream->WriteAlignedBytes((const unsigned char*)leaderboard.str().c_str(), leaderboard.tellp());
+	uint32_t leaderboardSize = leaderboard.tellp();
+	bitStream->Write<uint32_t>(leaderboardSize);
+	// Doing this all in 1 call so there is no possbility of a dangling pointer.
+	bitStream->WriteAlignedBytes(reinterpret_cast<const unsigned char*>(GeneralUtils::ASCIIToUTF16(leaderboard.str()).c_str()), leaderboard.tellp() * 2);
+	if (leaderboardSize > 0) bitStream->Write<uint16_t>(0);
 	bitStream->Write0();
 	bitStream->Write0();
 }
@@ -80,7 +87,7 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 		entry.push_back(new LDFData<uint64_t>(u"LastPlayed", rows->getUInt64("lastPlayed")));
 		entry.push_back(new LDFData<int32_t>(u"NumPlayed", 1));
 		entry.push_back(new LDFData<std::u16string>(u"name", GeneralUtils::ASCIIToUTF16(rows->getString("name").c_str())));
-		entry.push_back(new LDFData<int32_t>(u"RowNumber", rows->getInt("ranking")));
+		entry.push_back(new LDFData<uint64_t>(u"RowNumber", rows->getInt("ranking")));
 		switch (leaderboardType) {
 		case Type::ShootingGallery:
 			entry.push_back(new LDFData<float>(u"HitPercentage", rows->getDouble("hitPercentage")));
@@ -101,7 +108,7 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 			// NumWins:1
 			break;
 		case Type::UnusedLeaderboard4:
-			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("score")));
+			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("score")));
 			// Points:1
 			break;
 		case Type::MonumentRace:
@@ -113,19 +120,19 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 			// Time:1
 			break;
 		case Type::Survival:
-			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("score")));
+			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("score")));
 			// Points:1
 			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("bestTime")));
 			// Time:1
 			break;
 		case Type::SurvivalNS:
-			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("score")));
+			entry.push_back(new LDFData<int32_t>(u"Wave", rows->getInt("score")));
 			// Wave:1
 			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("bestTime")));
 			// Time:1
 			break;
 		case Type::Donations:
-			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("score")));
+			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("score")));
 			// Score:1				
 			break;
 		case Type::None:
@@ -320,11 +327,13 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	}
 
 	std::unique_ptr<sql::ResultSet> baseResult(baseQuery->executeQuery());
+	Game::logger->Log("LeaderboardManager", "%s", baseRankingBuffer);
 	if (!baseResult->next()) return; // In this case, there are no entries in the leaderboard for this game.
 
 	uint32_t relatedPlayerLeaderboardId = baseResult->getInt("id");
 
 	// Create and execute the actual save here
+	Game::logger->Log("LeaderboardManager", "query is %s", lookupBuffer);
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer));
 
 	query->setInt(1, this->gameID);
@@ -461,7 +470,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 			int32_t time;
 			time = va_arg(argsCopy, int32_t);
 
-			if (time < oldTime) {
+			if (time > oldTime) {
 				saveQuery = FormatInsert(selectedColumns, insertFormat, activityScore, true);
 			}
 			break;
@@ -507,7 +516,8 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 		case Leaderboard::Type::None:
 		default:
 			Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i.	Cannot save score!", leaderboardType);
-			break;
+			va_end(argsCopy);
+			return;
 		}
 	} else {
 		saveQuery = FormatInsert(selectedColumns, insertFormat, activityScore, false);
@@ -543,7 +553,7 @@ Leaderboard::Type LeaderboardManager::GetLeaderboardType(const GameID gameID) {
 	std::vector<CDActivities> activities = activitiesTable->Query([=](const CDActivities& entry) {
 		return (entry.ActivityID == gameID);
 		});
-	auto type = activities.empty() ? static_cast<Leaderboard::Type>(activities.at(0).leaderboardType) : Leaderboard::Type::None;
+	auto type = !activities.empty() ? static_cast<Leaderboard::Type>(activities.at(0).leaderboardType) : Leaderboard::Type::None;
 	leaderboardCache.insert_or_assign(gameID, type);
 	return type;
 }

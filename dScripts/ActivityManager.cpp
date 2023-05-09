@@ -73,22 +73,25 @@ void ActivityManager::StopActivity(Entity* self, const LWOOBJID playerID, const 
 
 		LootGenerator::Instance().GiveActivityLoot(player, self, gameID, CalculateActivityRating(self, playerID));
 
-		// Save the new score to the leaderboard and show the leaderboard to the player
-		//LeaderboardManager::SaveScore(playerID, gameID, score, value1);
-		//const auto* leaderboard = LeaderboardManager::GetLeaderboard(gameID, InfoType::Standings,
-		//	false, player->GetObjectID());
-		//GameMessages::SendActivitySummaryLeaderboardData(self->GetObjectID(), leaderboard, player->GetSystemAddress());
-		//delete leaderboard;
-
-		// Makes the leaderboard show up for the player
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard",
-			gameID, 0, playerID, "",
-			player->GetSystemAddress());
-
 		if (sac != nullptr) {
 			sac->PlayerRemove(player->GetObjectID());
 		}
 	}
+}
+
+void ActivityManager::SaveScore(Entity* self, LWOOBJID playerID, uint32_t val1, uint32_t val2, uint32_t val3) {
+	auto* player = EntityManager::Instance()->GetEntity(playerID);
+	if (!player) return;
+
+	auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	uint32_t gameID = sac != nullptr ? sac->GetActivityID() : self->GetLOT();
+	// Save the new score to the leaderboard and show the leaderboard to the player
+	auto leaderboardType = LeaderboardManager::GetLeaderboardType(gameID);
+	Game::logger->Log("ActivityManager", "leaderboard type %i %i", leaderboardType, gameID);
+	LeaderboardManager::Instance().SaveScore(playerID, gameID, leaderboardType, 3, val1, val2, val3);
+
+	// Makes the leaderboard show up for the player
+	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard", gameID, 0, playerID, "", player->GetSystemAddress());
 }
 
 bool ActivityManager::TakeActivityCost(const Entity* self, const LWOOBJID playerID) {
