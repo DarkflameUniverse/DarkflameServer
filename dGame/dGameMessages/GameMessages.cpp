@@ -1647,8 +1647,8 @@ void GameMessages::HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream
 	int32_t gameID = 0;
 	if (inStream->ReadBit()) inStream->Read(gameID);
 
-	int32_t queryType = 1;
-	if (inStream->ReadBit()) inStream->Read(queryType);
+	Leaderboard::InfoType queryType = Leaderboard::InfoType::MyStanding;
+	if (inStream->ReadBit()) inStream->Read<Leaderboard::InfoType>(queryType);
 
 	int32_t resultsEnd = 10;
 	if (inStream->ReadBit()) inStream->Read(resultsEnd);
@@ -1661,9 +1661,7 @@ void GameMessages::HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream
 
 	bool weekly = inStream->ReadBit();
 
-	//const auto* leaderboard = LeaderboardManager::GetLeaderboard(gameID, (InfoType)queryType, weekly, entity->GetObjectID());
-	//SendActivitySummaryLeaderboardData(entity->GetObjectID(), leaderboard, sysAddr);
-	//delete leaderboard;
+	LeaderboardManager::Instance().SendLeaderboard(gameID, queryType, weekly, target, resultsStart, resultsEnd);
 }
 
 void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream* inStream, Entity* entity) {

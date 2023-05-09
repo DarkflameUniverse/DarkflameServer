@@ -63,6 +63,9 @@ public:
 
 	/**
 	 * Builds the leaderboard from the database based on the associated gameID
+	 * 
+	 * @param resultStart The index to start the leaderboard at. Zero indexed.
+	 * @param resultEnd The index to end the leaderboard at. Zero indexed.
 	 */
 	void SetupLeaderboard(uint32_t resultStart = 0, uint32_t resultEnd = 10);
 
@@ -96,7 +99,7 @@ private:
 class LeaderboardManager : public Singleton<LeaderboardManager> {
 	typedef std::map<GameID, Leaderboard::Type> LeaderboardCache;
 public:
-	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID targetID, LWOOBJID playerID = LWOOBJID_EMPTY);
+	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, uint32_t resultStart = 0, uint32_t resultEnd = 10);
 
 	// Saves a score to the database for the Racing minigame
 	inline void SaveRacingScore(const LWOOBJID& playerID, GameID gameID, uint32_t bestLapTime, uint32_t bestTime, bool won) {

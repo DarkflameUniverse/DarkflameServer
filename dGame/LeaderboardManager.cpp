@@ -240,6 +240,8 @@ std::string Leaderboard::GetOrdering(Leaderboard::Type leaderboardType) {
 }
 
 void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
+	resultStart++;
+	resultEnd++;
 	std::string queryBase =
 		R"QUERY( 
 		WITH leaderboardsRanked AS ( 
@@ -296,11 +298,11 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	// If we are getting the friends leaderboard, add the friends query, otherwise fill it in with nothing.
 	if (this->infoType == InfoType::Friends) {
 		snprintf(lookupBuffer, STRING_LENGTH, queryBase.c_str(),
-		orderBase.c_str(), friendsQuery, selectBase.c_str(), resultStart + 1, resultEnd + 1);
+		orderBase.c_str(), friendsQuery, selectBase.c_str(), resultStart, resultEnd);
 	}
 	else {
 		snprintf(lookupBuffer, STRING_LENGTH, queryBase.c_str(),
-		orderBase.c_str(), "", selectBase.c_str(), resultStart + 1, resultEnd + 1);
+		orderBase.c_str(), "", selectBase.c_str(), resultStart, resultEnd);
 	}
 
 	std::string baseLookupStr;
@@ -527,10 +529,10 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 	va_end(argsCopy);
 }
 
-void LeaderboardManager::SendLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID targetID, LWOOBJID playerID) {
+void LeaderboardManager::SendLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, uint32_t resultStart, uint32_t resultEnd) {
 	Leaderboard leaderboard(gameID, infoType, weekly, playerID, GetLeaderboardType(gameID));
-	leaderboard.SetupLeaderboard();
-	leaderboard.Send(targetID);
+	leaderboard.SetupLeaderboard(resultStart, resultEnd);
+	leaderboard.Send(playerID);
 }
 
 Leaderboard::Type LeaderboardManager::GetLeaderboardType(const GameID gameID) {
