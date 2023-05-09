@@ -1,6 +1,7 @@
 #pragma once
 #include <climits>
 #include <map>
+#include <memory>
 #include <vector>
 
 #include "Singleton.h"
@@ -38,7 +39,7 @@ public:
 		Survival,
 		SurvivalNS,
 		Donations,
-		None = UINT_MAX
+		None
 	};
 
 	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const Leaderboard::Type = None);
@@ -101,46 +102,6 @@ class LeaderboardManager : public Singleton<LeaderboardManager> {
 public:
 	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, uint32_t resultStart = 0, uint32_t resultEnd = 10);
 
-	// Saves a score to the database for the Racing minigame
-	inline void SaveRacingScore(const LWOOBJID& playerID, GameID gameID, uint32_t bestLapTime, uint32_t bestTime, bool won) {
-		SaveScore(playerID, gameID, Leaderboard::Racing, 3, bestLapTime, bestTime, won);
-	};
-
-	// Saves a score to the database for the Shooting Gallery minigame
-	inline void SaveShootingGalleryScore(const LWOOBJID& playerID, GameID gameID, uint32_t score, float hitPercentage, uint32_t streak) {
-		SaveScore(playerID, gameID, Leaderboard::ShootingGallery, 3, score, hitPercentage, streak);
-	};
-
-	// Saves a score to the database for the footrace minigame
-	inline void SaveFootRaceScore(const LWOOBJID& playerID, GameID gameID, uint32_t bestTime) {
-		SaveScore(playerID, gameID, Leaderboard::FootRace, 1, bestTime);
-	};
-
-	// Saves a score to the database for the Monument footrace minigame
-	inline void SaveMonumentRaceScore(const LWOOBJID& playerID, GameID gameID, uint32_t bestTime) {
-		SaveScore(playerID, gameID, Leaderboard::MonumentRace, 1, bestTime);
-	};
-
-	// Saves a score to the database for the Survival minigame
-	inline void SaveSurvivalScore(const LWOOBJID& playerID, GameID gameID, uint32_t score, uint32_t waves) {
-		SaveScore(playerID, gameID, Leaderboard::Survival, 2, score, waves);
-	};
-
-	// Saves a score to the database for the SurvivalNS minigame
-	// Same as the Survival minigame, but good for explicitness
-	inline void SaveSurvivalNSScore(const LWOOBJID& playerID, GameID gameID, uint32_t score, uint32_t waves) {
-		SaveScore(playerID, gameID, Leaderboard::SurvivalNS, 2, score, waves);
-	};
-
-	// Saves a score to the database for the Donations minigame
-	inline void SaveDonationsScore(const LWOOBJID& playerID, GameID gameID, uint32_t score) {
-		SaveScore(playerID, gameID, Leaderboard::Donations, 1, score);
-	};
-
-private:
-	void SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, va_list args);
-	void GetLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID = LWOOBJID_EMPTY);
-
 	/**
 	 * @brief Public facing Score saving method.  This method is simply a wrapper to ensure va_end is called properly.
 	 *
@@ -151,7 +112,10 @@ private:
 	 */
 	void SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, uint32_t argumentCount, ...);
 
-	Leaderboard::Type GetLeaderboardType(const GameID gameID);
-	LeaderboardCache leaderboardCache;
+	static Leaderboard::Type GetLeaderboardType(const GameID gameID);
+	static LeaderboardCache leaderboardCache;
+private:
+	void SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, va_list args);
+	void GetLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID = LWOOBJID_EMPTY);
 };
 
