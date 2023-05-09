@@ -1,3 +1,4 @@
+1.2 - Among Us Engineer Update is finally out, start venting to mess with your fellow crewmates!
 1.1 - Among Us Crewmate Update is finally out!
 1.0 - Final cleanup and bug fixing for public release
 0.9 - Includes BBB without the need for a UGC server, cannon cove minigame, and bug fixes.
