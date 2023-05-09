@@ -3891,7 +3891,7 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream* inStream, Entity*
 	auto* racingControlComponent = entity->GetComponent<RacingControlComponent>();
 
 	if (racingControlComponent != nullptr) {
-		racingControlComponent->HandleMessageBoxResponse(userEntity, GeneralUtils::UTF16ToWTF8(identifier));
+		racingControlComponent->HandleMessageBoxResponse(userEntity, iButton, GeneralUtils::UTF16ToWTF8(identifier));
 	}
 
 	for (auto* shootingGallery : EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SHOOTING_GALLERY)) {
