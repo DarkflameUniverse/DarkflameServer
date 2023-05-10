@@ -182,7 +182,7 @@ std::string Leaderboard::GetInsertFormat(Leaderboard::Type leaderboardType) {
 	std::string columns;
 	switch (leaderboardType) {
 	case Type::ShootingGallery:
-		columns = "hitPercentage=%f, score=%i, streak=%i";
+		columns = "score=%i, hitPercentage=%f, streak=%i";
 		break;
 	case Type::Racing:
 		columns = "bestLapTime=%i, bestTime=%i, numWins=numWins + %i";
@@ -539,10 +539,10 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 	va_end(argsCopy);
 }
 
-void LeaderboardManager::SendLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, uint32_t resultStart, uint32_t resultEnd) {
+void LeaderboardManager::SendLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, LWOOBJID targetID, uint32_t resultStart, uint32_t resultEnd) {
 	Leaderboard leaderboard(gameID, infoType, weekly, playerID, GetLeaderboardType(gameID));
 	leaderboard.SetupLeaderboard(resultStart, resultEnd);
-	leaderboard.Send(playerID);
+	leaderboard.Send(targetID);
 }
 
 Leaderboard::Type LeaderboardManager::GetLeaderboardType(const GameID gameID) {

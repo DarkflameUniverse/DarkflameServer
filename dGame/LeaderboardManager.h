@@ -100,7 +100,7 @@ private:
 class LeaderboardManager : public Singleton<LeaderboardManager> {
 	typedef std::map<GameID, Leaderboard::Type> LeaderboardCache;
 public:
-	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, uint32_t resultStart = 0, uint32_t resultEnd = 10);
+	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, LWOOBJID targetID, uint32_t resultStart = 0, uint32_t resultEnd = 10);
 
 	/**
 	 * @brief Public facing Score saving method.  This method is simply a wrapper to ensure va_end is called properly.

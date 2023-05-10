@@ -565,6 +565,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		LootGenerator::Instance().GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
 
 		StopActivity(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable), self->GetVar<uint32_t>(MaxStreakVariable), percentage);
+		SaveScore(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable), percentage, self->GetVar<uint32_t>(MaxStreakVariable));
 		self->SetNetworkVar<bool>(AudioFinalWaveDoneVariable, true);
 
 		// Give the player the model rewards they earned

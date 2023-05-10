@@ -125,7 +125,7 @@ void ActivityManager::GetLeaderboardData(Entity* self, const LWOOBJID playerID, 
 	// Save the new score to the leaderboard and show the leaderboard to the player
 	auto leaderboardType = LeaderboardManager::GetLeaderboardType(gameID);
 	Game::logger->Log("ActivityManager", "gameID %i", gameID, activityID);
-	LeaderboardManager::Instance().SendLeaderboard(activityID, Leaderboard::InfoType::MyStanding, false, playerID, 0, numResults);
+	LeaderboardManager::Instance().SendLeaderboard(activityID, Leaderboard::InfoType::MyStanding, false, playerID, self->GetObjectID(), 0, numResults);
 }
 
 void ActivityManager::ActivityTimerStart(Entity* self, const std::string& timerName, const float_t updateInterval,
