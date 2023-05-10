@@ -1,104 +1,116 @@
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #include "Amf3.h"
 
-TEST(dCommonTests, Amf3AssociativeArrayTest) {
+TEST(dCommonTests, AMF3AssociativeArrayTest) {
 
 	AMFArrayValue array;
-	array.InsertAssociative("true", true);
-	array.InsertAssociative("false", false);
+	array.Insert("true", true);
+	array.Insert("false", false);
 
 	// test associative can insert values
 	ASSERT_EQ(array.GetAssociative().size(), 2);
-	ASSERT_EQ(array.FindValue<AMFTrueValue>("true")->GetValueType(), eAmf::True);
-	ASSERT_EQ(array.FindValue<AMFFalseValue>("false")->GetValueType(), eAmf::False);
+	ASSERT_EQ(array.Get<bool>("true")->GetValueType(), eAmf::True);
+	ASSERT_EQ(array.Get<bool>("false")->GetValueType(), eAmf::False);
 
 	// Test associative can remove values
-	array.RemoveAssociative("true");
+	array.Remove("true");
 	ASSERT_EQ(array.GetAssociative().size(), 1);
-	ASSERT_EQ(array.FindValue<AMFTrueValue>("true"), nullptr);
-	ASSERT_EQ(array.FindValue<AMFFalseValue>("false")->GetValueType(), eAmf::False);
+	ASSERT_EQ(array.Get<bool>("true"), nullptr);
+	ASSERT_EQ(array.Get<bool>("false")->GetValueType(), eAmf::False);
 
-	array.RemoveAssociative("false");
+	array.Remove("false");
 	ASSERT_EQ(array.GetAssociative().size(), 0);
-	ASSERT_EQ(array.FindValue<AMFTrueValue>("true"), nullptr);
-	ASSERT_EQ(array.FindValue<AMFFalseValue>("false"), nullptr);
+	ASSERT_EQ(array.Get<bool>("true"), nullptr);
+	ASSERT_EQ(array.Get<bool>("false"), nullptr);
 
 	// Test that multiple of the same key respect only the first element of that key
-	array.InsertAssociative("true", true);
-	array.InsertAssociative("true", false);
+	array.Insert("true", true);
+	array.Insert("true", false);
 	ASSERT_EQ(array.GetAssociative().size(), 1);
-	ASSERT_EQ(array.FindValue<AMFTrueValue>("true")->GetValueType(), eAmf::True);
-	array.RemoveAssociative("true");
+	ASSERT_EQ(array.Get<bool>("true")->GetValueType(), eAmf::True);
+	array.Remove("true");
 
 	// Now test the dense portion
 	// Get some out of bounds values and cast to incorrect template types
-	array.PushDense(true);
-	array.PushDense(false);
+	array.Push(true);
+	array.Push(false);
 
 	ASSERT_EQ(array.GetDense().size(), 2);
-	ASSERT_EQ(array.GetValueAt<AMFTrueValue>(0)->GetValueType(), eAmf::True);
-	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(0), nullptr);
-	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(1)->GetValueType(), eAmf::False);
-	ASSERT_EQ(array.GetValueAt<AMFTrueValue>(155), nullptr);
+	ASSERT_EQ(array.Get<bool>(0)->GetValueType(), eAmf::True);
+	ASSERT_EQ(array.Get<std::string>(0), nullptr);
+	ASSERT_EQ(array.Get<bool>(1)->GetValueType(), eAmf::False);
+	ASSERT_EQ(array.Get<bool>(155), nullptr);
 
-	array.PopDense();
+	array.Pop();
 
 	ASSERT_EQ(array.GetDense().size(), 1);
-	ASSERT_EQ(array.GetValueAt<AMFTrueValue>(0)->GetValueType(), eAmf::True);
-	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(0), nullptr);
-	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(1), nullptr);
+	ASSERT_EQ(array.Get<bool>(0)->GetValueType(), eAmf::True);
+	ASSERT_EQ(array.Get<std::string>(0), nullptr);
+	ASSERT_EQ(array.Get<bool>(1), nullptr);
 
-	array.PopDense();
+	array.Pop();
 
 	ASSERT_EQ(array.GetDense().size(), 0);
-	ASSERT_EQ(array.GetValueAt<AMFTrueValue>(0), nullptr);
-	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(0), nullptr);
-	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(1), nullptr);
+	ASSERT_EQ(array.Get<bool>(0), nullptr);
+	ASSERT_EQ(array.Get<std::string>(0), nullptr);
+	ASSERT_EQ(array.Get<bool>(1), nullptr);
 }
 
-TEST(dCommonTests, Amf3InsertionAssociativeTest) {
+TEST(dCommonTests, AMF3InsertionAssociativeTest) {
 	AMFArrayValue array;
-	array.InsertAssociative("CString", "string");
-	array.InsertAssociative("String", std::string("string"));
-	array.InsertAssociative("False", false);
-	array.InsertAssociative("True", true);
-	array.InsertAssociative("Integer", 42U);
-	array.InsertAssociative("Double", 42.0);
-	array.InsertAssociativeArray("Array");
-	array.InsertAssociativeUndefined("Undefined");
-	array.InsertAssociativeNull("Null");
+	array.Insert<std::string>("CString", "string");
+	array.Insert("String", std::string("string"));
+	array.Insert("False", false);
+	array.Insert("True", true);
+	array.Insert<int32_t>("Integer", 42U);
+	array.Insert("Double", 42.0);
+	array.InsertArray("Array");
+	array.Insert<std::vector<uint32_t>>("Undefined", {});
+	array.Insert("Null", nullptr);
 
-	ASSERT_EQ(array.FindValue<AMFStringValue>("CString")->GetValueType(), eAmf::String);
-	ASSERT_EQ(array.FindValue<AMFStringValue>("String")->GetValueType(), eAmf::String);
-	ASSERT_EQ(array.FindValue<AMFFalseValue>("False")->GetValueType(), eAmf::False);
-	ASSERT_EQ(array.FindValue<AMFTrueValue>("True")->GetValueType(), eAmf::True);
-	ASSERT_EQ(array.FindValue<AMFIntegerValue>("Integer")->GetValueType(), eAmf::Integer);
-	ASSERT_EQ(array.FindValue<AMFDoubleValue>("Double")->GetValueType(), eAmf::Double);
-	ASSERT_EQ(array.FindValue<AMFArrayValue>("Array")->GetValueType(), eAmf::Array);
-	ASSERT_EQ(array.FindValue<AMFNullValue>("Null")->GetValueType(), eAmf::Null);
-	ASSERT_EQ(array.FindValue<AMFUndefinedValue>("Undefined")->GetValueType(), eAmf::Undefined);
+	std::cout << "test" << std::endl;
+	ASSERT_EQ(array.Get<std::string>("CString")->GetValueType(), eAmf::String);
+	std::cout << "test" << std::endl;
+	ASSERT_EQ(array.Get<std::string>("String")->GetValueType(), eAmf::String);
+	std::cout << "test" << std::endl;
+	ASSERT_EQ(array.Get<bool>("False")->GetValueType(), eAmf::False);
+	std::cout << "test" << std::endl;
+	ASSERT_EQ(array.Get<bool>("True")->GetValueType(), eAmf::True);
+	std::cout << "test" << std::endl;
+	ASSERT_EQ(array.Get<int32_t>("Integer")->GetValueType(), eAmf::Integer);
+	std::cout << "test" << std::endl;
+	ASSERT_EQ(array.Get<double>("Double")->GetValueType(), eAmf::Double);
+	std::cout << "test" << std::endl;
+	ASSERT_EQ(array.GetArray("Array")->GetValueType(), eAmf::Array);
+	std::cout << "test" << std::endl;
+	ASSERT_EQ(array.Get<nullptr_t>("Null")->GetValueType(), eAmf::Null);
+	std::cout << "test" << std::endl;
+	ASSERT_EQ(array.Get<std::vector<uint32_t>>("Undefined")->GetValueType(), eAmf::Undefined);
+	std::cout << "test" << std::endl;
 }
 
-TEST(dCommonTests, Amf3InsertionDenseTest) {
+TEST(dCommonTests, AMF3InsertionDenseTest) {
 	AMFArrayValue array;
-	array.PushDense(std::string("string"));
-	array.PushDense("CString");
-	array.PushDense(false);
-	array.PushDense(true);
-	array.PushDense(42U);
-	array.PushDense(42.0);
-	array.PushDenseArray();
-	array.PushDenseNull();
-	array.PushDenseUndefined();
+	array.Push(std::string("string"));
+	array.Push<std::string>("CString");
+	array.Push(false);
+	array.Push(true);
+	array.Push<int32_t>(42U);
+	array.Push(42.0);
+	array.PushArray();
+	array.Push(nullptr);
+	array.Push<std::vector<uint32_t>>({});
 
-	ASSERT_EQ(array.GetValueAt<AMFStringValue>(0)->GetValueType(), eAmf::String);
-	ASSERT_EQ(array.GetValueAt<AMFStringValue>(1)->GetValueType(), eAmf::String);
-	ASSERT_EQ(array.GetValueAt<AMFFalseValue>(2)->GetValueType(), eAmf::False);
-	ASSERT_EQ(array.GetValueAt<AMFTrueValue>(3)->GetValueType(), eAmf::True);
-	ASSERT_EQ(array.GetValueAt<AMFIntegerValue>(4)->GetValueType(), eAmf::Integer);
-	ASSERT_EQ(array.GetValueAt<AMFDoubleValue>(5)->GetValueType(), eAmf::Double);
-	ASSERT_EQ(array.GetValueAt<AMFArrayValue>(6)->GetValueType(), eAmf::Array);
-	ASSERT_EQ(array.GetValueAt<AMFNullValue>(7)->GetValueType(), eAmf::Null);
-	ASSERT_EQ(array.GetValueAt<AMFUndefinedValue>(8)->GetValueType(), eAmf::Undefined);
+	ASSERT_EQ(array.Get<std::string>(0)->GetValueType(), eAmf::String);
+	ASSERT_EQ(array.Get<std::string>(1)->GetValueType(), eAmf::String);
+	ASSERT_EQ(array.Get<bool>(2)->GetValueType(), eAmf::False);
+	ASSERT_EQ(array.Get<bool>(3)->GetValueType(), eAmf::True);
+	ASSERT_EQ(array.Get<int32_t>(4)->GetValueType(), eAmf::Integer);
+	ASSERT_EQ(array.Get<double>(5)->GetValueType(), eAmf::Double);
+	ASSERT_EQ(array.GetArray(6)->GetValueType(), eAmf::Array);
+	ASSERT_EQ(array.Get<nullptr_t>(7)->GetValueType(), eAmf::Null);
+	ASSERT_EQ(array.Get<std::vector<uint32_t>>(8)->GetValueType(), eAmf::Undefined);
 }

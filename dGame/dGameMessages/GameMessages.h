@@ -8,7 +8,7 @@
 #include "eMovementPlatformState.h"
 #include "NiPoint3.h"
 
-class AMFValue;
+class AMFBaseValue;
 class Entity;
 class Item;
 class NiQuaternion;
@@ -73,8 +73,8 @@ namespace GameMessages {
 	void NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards);
 
 	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
-	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFValue* args);
-	void SendUIMessageServerToAllClients(const std::string& message, AMFValue* args);
+	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue* args);
+	void SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue* args);
 
 	void SendPlayEmbeddedEffectOnAllClientsNearObject(Entity* entity, std::u16string effectName, const LWOOBJID& fromObjectID, float radius);
 	void SendPlayFXEffect(Entity* entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary, float priority = 1, float scale = 1, bool serialize = true);

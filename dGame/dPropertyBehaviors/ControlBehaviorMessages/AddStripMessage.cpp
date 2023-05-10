@@ -4,17 +4,16 @@
 
 AddStripMessage::AddStripMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
 	actionContext = ActionContext(arguments);
-
 	position = StripUiPosition(arguments);
 
-	auto* strip = arguments->FindValue<AMFArrayValue>("strip");
+	auto* strip = arguments->GetArray("strip");
 	if (!strip) return;
 
-	auto* actions = strip->FindValue<AMFArrayValue>("actions");
+	auto* actions = strip->GetArray("actions");
 	if (!actions) return;
 
 	for (uint32_t actionNumber = 0; actionNumber < actions->GetDense().size(); actionNumber++) {
-		auto* actionValue = actions->GetValueAt<AMFArrayValue>(actionNumber);
+		auto* actionValue = actions->GetArray(actionNumber);
 		if (!actionValue) continue;
 
 		actionsToAdd.push_back(Action(actionValue));

@@ -34,7 +34,7 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 
 	AMFArrayValue args;
 
-	args.InsertAssociative("state", "property_menu");
+	args.Insert("state", "property_menu");
 
 	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
 }

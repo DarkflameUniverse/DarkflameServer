@@ -10,11 +10,11 @@ StripUiPosition::StripUiPosition() {
 StripUiPosition::StripUiPosition(AMFArrayValue* arguments, std::string uiKeyName) {
 	xPosition = 0.0;
 	yPosition = 0.0;
-	auto* uiArray = arguments->FindValue<AMFArrayValue>(uiKeyName);
+	auto* uiArray = arguments->GetArray(uiKeyName);
 	if (!uiArray) return;
 
-	auto* xPositionValue = uiArray->FindValue<AMFDoubleValue>("x");
-	auto* yPositionValue = uiArray->FindValue<AMFDoubleValue>("y");
+	auto* xPositionValue = uiArray->Get<double>("x");
+	auto* yPositionValue = uiArray->Get<double>("y");
 	if (!xPositionValue || !yPositionValue) return;
 
 	yPosition = yPositionValue->GetValue();

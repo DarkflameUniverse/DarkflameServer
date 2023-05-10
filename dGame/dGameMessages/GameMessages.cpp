@@ -582,7 +582,7 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFValue* args) {
+void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue* args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -600,7 +600,7 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFValue* args) {
+void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue* args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -2459,7 +2459,7 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 
 void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	AMFDeserialize reader;
-	std::unique_ptr<AMFValue> amfArguments(reader.Read(inStream));
+	std::unique_ptr<AMFBaseValue> amfArguments(reader.Read(inStream));
 	if (amfArguments->GetValueType() != eAmf::Array) return;
 
 	uint32_t commandLength{};

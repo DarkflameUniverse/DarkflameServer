@@ -2,7 +2,7 @@
 
 AddMessage::AddMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
 	behaviorIndex = 0;
-	auto* behaviorIndexValue = arguments->FindValue<AMFDoubleValue>("BehaviorIndex");
+	auto* behaviorIndexValue = arguments->Get<double>("BehaviorIndex");
 
 	if (!behaviorIndexValue) return;
 

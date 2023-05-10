@@ -22,7 +22,7 @@ void PropertyBankInteract::OnUse(Entity* self, Entity* user) {
 
 	AMFArrayValue args;
 
-	args.InsertAssociative("state", "bank");
+	args.Insert("state", "bank");
 
 	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
 
@@ -35,7 +35,7 @@ void PropertyBankInteract::OnFireEventServerSide(Entity* self, Entity* sender, s
 	if (args == "ToggleBank") {
 		AMFArrayValue amfArgs;
 
-		amfArgs.InsertAssociative("visible", false);
+		amfArgs.Insert("visible", false);
 
 		GameMessages::SendUIMessageServerToSingleClient(sender, sender->GetSystemAddress(), "ToggleBank", &amfArgs);
 

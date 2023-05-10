@@ -11,12 +11,12 @@ BehaviorMessageBase::BehaviorMessageBase(AMFArrayValue* arguments) {
 
 int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(AMFArrayValue* arguments) {
 	const auto* key = "BehaviorID";
-	auto* behaviorIDValue = arguments->FindValue<AMFStringValue>(key);
+	auto* behaviorIDValue = arguments->Get<std::string>(key);
 	int32_t behaviorID = -1;
 
-	if (behaviorIDValue) {
+	if (behaviorIDValue && behaviorIDValue->GetValueType() == eAmf::String) {
 		behaviorID = std::stoul(behaviorIDValue->GetValue());
-	} else if (!arguments->FindValue<AMFUndefinedValue>(key)) {
+	} else if (arguments->Get(key)->GetValueType() != eAmf::Undefined) {
 		throw std::invalid_argument("Unable to find behavior ID");
 	}
 
@@ -24,7 +24,7 @@ int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(AMFArrayValue* arguments)
 }
 
 uint32_t BehaviorMessageBase::GetActionIndexFromArgument(AMFArrayValue* arguments, const std::string& keyName) {
-	auto* actionIndexAmf = arguments->FindValue<AMFDoubleValue>(keyName);
+	auto* actionIndexAmf = arguments->Get<double>(keyName);
 	if (!actionIndexAmf) {
 		throw std::invalid_argument("Unable to find actionIndex");
 	}

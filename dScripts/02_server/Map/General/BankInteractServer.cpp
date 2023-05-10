@@ -6,7 +6,7 @@
 void BankInteractServer::OnUse(Entity* self, Entity* user) {
 	AMFArrayValue args;
 
-	args.InsertAssociative("state", "bank");
+	args.Insert("state", "bank");
 
 	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
 }
@@ -16,7 +16,7 @@ void BankInteractServer::OnFireEventServerSide(Entity* self, Entity* sender, std
 	if (args == "ToggleBank") {
 		AMFArrayValue args;
 
-		args.InsertAssociative("visible", false);
+		args.Insert("visible", false);
 
 		GameMessages::SendUIMessageServerToSingleClient(sender, sender->GetSystemAddress(), "ToggleBank", &args);
 

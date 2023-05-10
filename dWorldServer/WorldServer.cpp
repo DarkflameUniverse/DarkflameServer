@@ -597,8 +597,8 @@ void HandlePacketChat(Packet* packet) {
 				//Send to our clients:
 				AMFArrayValue args;
 
-				args.InsertAssociative("title", title);
-				args.InsertAssociative("message", msg);
+				args.Insert("title", title);
+				args.Insert("message", msg);
 
 				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
 

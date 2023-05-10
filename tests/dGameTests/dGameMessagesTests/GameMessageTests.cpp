@@ -40,7 +40,7 @@ protected:
 	}
 	AMFArrayValue* ReadArrayFromBitStream(RakNet::BitStream* inStream) {
 		AMFDeserialize des;
-		AMFValue* readArray = des.Read(inStream);
+		AMFBaseValue* readArray = des.Read(inStream);
 		EXPECT_EQ(readArray->GetValueType(), eAmf::Array);
 		return static_cast<AMFArrayValue*>(readArray);
 	}

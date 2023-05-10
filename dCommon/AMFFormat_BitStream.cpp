@@ -5,55 +5,29 @@
 
 // Writes an AMFValue pointer to a RakNet::BitStream
 template<>
-void RakNet::BitStream::Write<AMFValue*>(AMFValue* value) {
+void RakNet::BitStream::Write<AMFBaseValue*>(AMFBaseValue* value) {
+	this->Write(value->GetValueType());
 	if (value != nullptr) {
 		eAmf type = value->GetValueType();
 
 		switch (type) {
-		case eAmf::Undefined: {
-			AMFUndefinedValue* v = (AMFUndefinedValue*)value;
-			this->Write(*v);
-			break;
-		}
-
-		case eAmf::Null: {
-			AMFNullValue* v = (AMFNullValue*)value;
-			this->Write(*v);
-			break;
-		}
-
-		case eAmf::False: {
-			AMFFalseValue* v = (AMFFalseValue*)value;
-			this->Write(*v);
-			break;
-		}
-
-		case eAmf::True: {
-			AMFTrueValue* v = (AMFTrueValue*)value;
-			this->Write(*v);
-			break;
-		}
-
 		case eAmf::Integer: {
-			AMFIntegerValue* v = (AMFIntegerValue*)value;
-			this->Write(*v);
+			this->Write(static_cast<AMFIntValue*>(value));
 			break;
 		}
 
 		case eAmf::Double: {
-			AMFDoubleValue* v = (AMFDoubleValue*)value;
-			this->Write(*v);
+			this->Write(static_cast<AMFDoubleValue*>(value));
 			break;
 		}
 
 		case eAmf::String: {
-			AMFStringValue* v = (AMFStringValue*)value;
-			this->Write(*v);
+			this->Write(static_cast<AMFStringValue*>(value));
 			break;
 		}
 
 		case eAmf::Array: {
-			this->Write((AMFArrayValue*)value);
+			this->Write(static_cast<AMFArrayValue*>(value));
 			break;
 		}
 		default: {
@@ -150,58 +124,28 @@ void WriteAMFU64(RakNet::BitStream* bs, uint64_t value) {
 	bs->Write(value);
 }
 
-
-// Writes an AMFUndefinedValue to BitStream
-template<>
-void RakNet::BitStream::Write<AMFUndefinedValue>(AMFUndefinedValue value) {
-	this->Write(eAmf::Undefined);
-}
-
-// Writes an AMFNullValue to BitStream
-template<>
-void RakNet::BitStream::Write<AMFNullValue>(AMFNullValue value) {
-	this->Write(eAmf::Null);
-}
-
-// Writes an AMFFalseValue to BitStream
-template<>
-void RakNet::BitStream::Write<AMFFalseValue>(AMFFalseValue value) {
-	this->Write(eAmf::False);
-}
-
-// Writes an AMFTrueValue to BitStream
-template<>
-void RakNet::BitStream::Write<AMFTrueValue>(AMFTrueValue value) {
-	this->Write(eAmf::True);
-}
-
 // Writes an AMFIntegerValue to BitStream
 template<>
-void RakNet::BitStream::Write<AMFIntegerValue>(AMFIntegerValue value) {
-	this->Write(eAmf::Integer);
-	WriteUInt29(this, value.GetValue());
+void RakNet::BitStream::Write<AMFIntValue*>(AMFIntValue* value) {
+	WriteUInt29(this, value->GetValue());
 }
 
 // Writes an AMFDoubleValue to BitStream
 template<>
-void RakNet::BitStream::Write<AMFDoubleValue>(AMFDoubleValue value) {
-	this->Write(eAmf::Double);
-	double d = value.GetValue();
-	WriteAMFU64(this, *((unsigned long long*) & d));
+void RakNet::BitStream::Write<AMFDoubleValue*>(AMFDoubleValue* value) {
+	double d = value->GetValue();
+	WriteAMFU64(this, *reinterpret_cast<uint64_t*>(&d));
 }
 
 // Writes an AMFStringValue to BitStream
 template<>
-void RakNet::BitStream::Write<AMFStringValue>(AMFStringValue value) {
-	this->Write(eAmf::String);
-	std::string v = value.GetValue();
-	WriteAMFString(this, v);
+void RakNet::BitStream::Write<AMFStringValue*>(AMFStringValue* value) {
+	WriteAMFString(this, value->GetValue());
 }
 
 // Writes an AMFArrayValue to BitStream
 template<>
 void RakNet::BitStream::Write<AMFArrayValue*>(AMFArrayValue* value) {
-	this->Write(eAmf::Array);
 	uint32_t denseSize = value->GetDense().size();
 	WriteFlagNumber(this, denseSize);
 

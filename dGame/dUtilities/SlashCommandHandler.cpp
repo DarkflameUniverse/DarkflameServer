@@ -248,7 +248,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		{
 			AMFArrayValue args;
 
-			args.InsertAssociative("state", "Story");
+			args.Insert("state", "Story");
 
 			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
 		}
@@ -256,8 +256,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		entity->AddCallbackTimer(0.5f, [customText, entity]() {
 			AMFArrayValue args;
 
-			args.InsertAssociative("visible", true);
-			args.InsertAssociative("text", customText);
+			args.Insert("visible", true);
+			args.Insert("text", customText);
 
 			Game::logger->Log("SlashCommandHandler", "Sending %s", customText.c_str());
 
@@ -523,7 +523,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "setuistate" && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		AMFArrayValue uiState;
 
-		uiState.InsertAssociative("state", args.at(0));
+		uiState.Insert("state", args.at(0));
 
 		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", &uiState);
 
@@ -535,7 +535,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "toggle" && args.size() == 1 && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER) {
 		AMFArrayValue amfArgs;
 
-		amfArgs.InsertAssociative("visible", true);
+		amfArgs.Insert("visible", true);
 
 		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, args[0], &amfArgs);
 
@@ -2005,8 +2005,8 @@ bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
 	AMFArrayValue args;
 
-	args.InsertAssociative("title", title);
-	args.InsertAssociative("message", message);
+	args.Insert("title", title);
+	args.Insert("message", message);
 
 	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
 

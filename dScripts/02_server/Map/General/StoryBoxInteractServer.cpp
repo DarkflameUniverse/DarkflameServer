@@ -12,7 +12,7 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 		{
 			AMFArrayValue args;
 
-			args.InsertAssociative("state", "Story");
+			args.Insert("state", "Story");
 
 			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
 		}
@@ -20,8 +20,8 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 		user->AddCallbackTimer(0.1f, [user, customText]() {
 			AMFArrayValue args;
 
-			args.InsertAssociative("visible", true);
-			args.InsertAssociative("text", customText);
+			args.Insert("visible", true);
+			args.Insert("text", customText);
 
 			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "ToggleStoryBox", &args);
 			});

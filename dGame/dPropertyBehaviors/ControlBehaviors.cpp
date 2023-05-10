@@ -73,14 +73,14 @@ void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const Syste
 	 * "name": The name of the behavior formatted as an AMFString
 	 */
 
-	behaviorsToSerialize.InsertAssociativeArray("behaviors");
-	behaviorsToSerialize.InsertAssociative("objectID", std::to_string(modelComponent->GetParent()->GetObjectID()));
+	behaviorsToSerialize.Insert("behaviors");
+	behaviorsToSerialize.Insert("objectID", std::to_string(modelComponent->GetParent()->GetObjectID()));
 
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", &behaviorsToSerialize);
 }
 
 void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent) {
-	auto* modelTypeAmf = arguments->FindValue<AMFDoubleValue>("ModelType");
+	auto* modelTypeAmf = arguments->Get<double>("ModelType");
 	if (!modelTypeAmf) return;
 
 	uint32_t modelType = static_cast<uint32_t>(modelTypeAmf->GetValue());
@@ -270,7 +270,7 @@ void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const Sys
 	// This closes the UI menu should it be open while the player is removing behaviors
 	AMFArrayValue args;
 
-	args.InsertAssociative("visible", false);
+	args.Insert("visible", false);
 
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "ToggleBehaviorEditor", &args);
 

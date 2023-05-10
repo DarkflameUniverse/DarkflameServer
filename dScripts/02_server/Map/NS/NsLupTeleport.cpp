@@ -12,28 +12,28 @@ void NsLupTeleport::OnStartup(Entity* self) {
 
 	args = {};
 
-	args.InsertAssociative("callbackClient", std::to_string(self->GetObjectID()));
-	args.InsertAssociative("strIdentifier", "choiceDoor");
-	args.InsertAssociative("title", "%[UI_CHOICE_DESTINATION]");
+	args.Insert("callbackClient", std::to_string(self->GetObjectID()));
+	args.Insert("strIdentifier", "choiceDoor");
+	args.Insert("title", "%[UI_CHOICE_DESTINATION]");
 
-	AMFArrayValue* choiceOptions = args.InsertAssociativeArray("options");
+	AMFArrayValue* choiceOptions = args.InsertArray("options");
 
 	{
-		AMFArrayValue* nsArgs = choiceOptions->PushDenseArray();
+		AMFArrayValue* nsArgs = choiceOptions->PushArray();
 
-		nsArgs->InsertAssociative("image", "textures/ui/zone_thumnails/Nimbus_Station.dds");
-		nsArgs->InsertAssociative("caption", "%[UI_CHOICE_NS]");
-		nsArgs->InsertAssociative("identifier", "zoneID_1200");
-		nsArgs->InsertAssociative("tooltipText", "%[UI_CHOICE_NS_HOVER]");
+		nsArgs->Insert("image", "textures/ui/zone_thumnails/Nimbus_Station.dds");
+		nsArgs->Insert("caption", "%[UI_CHOICE_NS]");
+		nsArgs->Insert("identifier", "zoneID_1200");
+		nsArgs->Insert("tooltipText", "%[UI_CHOICE_NS_HOVER]");
 	}
 
 	{
-		AMFArrayValue* ntArgs = choiceOptions->PushDenseArray();
+		AMFArrayValue* ntArgs = choiceOptions->PushArray();
 
-		ntArgs->InsertAssociative("image", "textures/ui/zone_thumnails/Nexus_Tower.dds");
-		ntArgs->InsertAssociative("caption", "%[UI_CHOICE_NT]");
-		ntArgs->InsertAssociative("identifier", "zoneID_1900");
-		ntArgs->InsertAssociative("tooltipText", "%[UI_CHOICE_NT_HOVER]");
+		ntArgs->Insert("image", "textures/ui/zone_thumnails/Nexus_Tower.dds");
+		ntArgs->Insert("caption", "%[UI_CHOICE_NT]");
+		ntArgs->Insert("identifier", "zoneID_1900");
+		ntArgs->Insert("tooltipText", "%[UI_CHOICE_NT_HOVER]");
 	}
 }
 

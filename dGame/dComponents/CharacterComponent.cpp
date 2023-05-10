@@ -732,6 +732,6 @@ void CharacterComponent::RemoveVentureVisionEffect(std::string ventureVisionType
 void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const {
 	if (!m_Parent) return;
 	AMFArrayValue arrayToSend;
-	arrayToSend.InsertAssociative(ventureVisionType, showFaction);
+	arrayToSend.Insert(ventureVisionType, showFaction);
 	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", &arrayToSend);
 }
