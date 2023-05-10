@@ -56,12 +56,22 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+      
+    - name: Get Previous Tag
+      id: previoustag
+      uses: "WyriHaximus/github-action-get-previous-tag@v1"
+      with:
+        fallback: v1.0
     
     - name: Generate Changelog
       uses: Bullrich/generate-release-changelog@master
       id: changelog
       env:
           REPO: ${{ github.repository }}
+      with:
+          from-tag: ${{ steps.previoustag.outputs.tag }}
+          to-tag: HEAD
+
       
     - name: Take a gander at versions.txt to get updated information
       run: |
