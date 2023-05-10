@@ -182,7 +182,7 @@ std::string Leaderboard::GetInsertFormat(Leaderboard::Type leaderboardType) {
 	std::string columns;
 	switch (leaderboardType) {
 	case Type::ShootingGallery:
-		columns = "score=%i, hitPercentage=%f, streak=%i";
+		columns = "score=%i, hitPercentage=%i, streak=%i";
 		break;
 	case Type::Racing:
 		columns = "bestLapTime=%i, bestTime=%i, numWins=numWins + %i";
@@ -407,9 +407,9 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 			int32_t score;
 			score = va_arg(argsCopy, int32_t);
 
-			float oldHitPercentage = myScoreResult->getFloat("hitPercentage");
-			float hitPercentage;
-			hitPercentage = va_arg(argsCopy, double);
+			int32_t oldHitPercentage = myScoreResult->getFloat("hitPercentage");
+			int32_t hitPercentage;
+			hitPercentage = va_arg(argsCopy, int32_t);
 
 			int32_t oldStreak = myScoreResult->getInt("streak");
 			int32_t streak;

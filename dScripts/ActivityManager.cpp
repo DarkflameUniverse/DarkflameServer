@@ -87,7 +87,7 @@ void ActivityManager::SaveScore(Entity* self, LWOOBJID playerID, uint32_t val1, 
 	uint32_t gameID = sac != nullptr ? sac->GetActivityID() : self->GetLOT();
 	// Save the new score to the leaderboard and show the leaderboard to the player
 	auto leaderboardType = LeaderboardManager::GetLeaderboardType(gameID);
-	Game::logger->Log("ActivityManager", "leaderboard type %i %i", leaderboardType, gameID);
+	Game::logger->Log("ActivityManager", "leaderboard type %i %i args %i %i %i", leaderboardType, gameID, val1, val2, val3);
 	LeaderboardManager::Instance().SaveScore(playerID, gameID, leaderboardType, 3, val1, val2, val3);
 
 	// Makes the leaderboard show up for the player

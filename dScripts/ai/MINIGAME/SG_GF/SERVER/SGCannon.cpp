@@ -546,13 +546,13 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 	// The player won, store all the score and send rewards
 	if (!cancel) {
-		auto percentage = 0;
+		int32_t percentage = 50;
 		auto misses = self->GetVar<uint32_t>(MissesVariable);
 		auto fired = self->GetVar<uint32_t>(ShotsFiredVariable);
 
-		if (fired > 0) {
-			percentage = misses / fired;
-		}
+		// if (fired > 0) {
+		// 	percentage = misses / fired;
+		// }
 
 		auto* missionComponent = player->GetComponent<MissionComponent>();
 
