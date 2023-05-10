@@ -404,7 +404,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::LAST_PLACE_FINISH); // Finished first place in specific world.
 			}
 		}
-	} else if (id == "ACT_RACE_EXIT_THE_RACE?" && button == m_ActivityExitConfirm) {
+	} else if ((id == "ACT_RACE_EXIT_THE_RACE?" || id == "Exit") && button == m_ActivityExitConfirm) {
 		auto* vehicle = EntityManager::Instance()->GetEntity(data->vehicleID);
 
 		if (vehicle == nullptr) {
