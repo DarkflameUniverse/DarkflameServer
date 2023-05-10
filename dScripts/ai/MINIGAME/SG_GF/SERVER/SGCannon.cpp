@@ -349,7 +349,7 @@ void SGCannon::StartGame(Entity* self) {
 
 	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 	if (player != nullptr) {
-		GetLeaderboardData(self, player->GetObjectID(), GetActivityID(self));
+		GetLeaderboardData(self, player->GetObjectID(), GetActivityID(self), 1);
 		Game::logger->Log("SGCannon", "Sending ActivityStart");
 		GameMessages::SendActivityStart(self->GetObjectID(), player->GetSystemAddress());
 

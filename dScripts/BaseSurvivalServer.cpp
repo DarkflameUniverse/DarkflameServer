@@ -377,6 +377,7 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 		}
 
 		StopActivity(self, playerID, score, time);
+		SaveScore(self, playerID, time, score);
 	}
 
 	state.waveNumber = 1;

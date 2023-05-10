@@ -31,7 +31,7 @@ Leaderboard::~Leaderboard() {
 }
 
 void Leaderboard::WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, LDFBaseData* data) {
-	leaderboard << "Result[0].Row[" << index << "]." << data->GetString() << '\n';
+	leaderboard << "\nResult[0].Row[" << index << "]." << data->GetString();
 }
 
 void Leaderboard::Serialize(RakNet::BitStream* bitStream) {
@@ -40,10 +40,10 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) {
 
 	std::ostringstream leaderboard;
 	Game::logger->Log("LeaderboardManager", "game is %i info type %i ", gameID, infoType);
-	leaderboard << "ADO.Result=7:1\n"; // Unused in 1.10.64, but is in captures
-	leaderboard << "Result.Count=1:1\n"; // number of results, always 1?
-	leaderboard << "Result[0].Index=0:RowNumber\n"; // "Primary key"
-	leaderboard << "Result[0].RowCount=1:" << entries.size() << '\n'; // number of rows
+	leaderboard << "ADO.Result=7:1"; // Unused in 1.10.64, but is in captures
+	leaderboard << "\nResult.Count=1:1"; // number of results, always 1?
+	if (!this->entries.empty()) leaderboard << "\nResult[0].Index=0:RowNumber"; // "Primary key"
+	leaderboard << "\nResult[0].RowCount=1:" << entries.size(); // number of rows
 
 	int32_t rowNumber = 0;
 	for (auto& entry : entries) {
