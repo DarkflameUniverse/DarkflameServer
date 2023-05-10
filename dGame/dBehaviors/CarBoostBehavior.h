@@ -14,10 +14,9 @@ public:
 	 * Inherited
 	 */
 
-	explicit CarBoostBehavior(const uint32_t behaviorId) : Behavior(behaviorId)
-	{
+	explicit CarBoostBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {
 	}
-	
+
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 
 	void Load() override;

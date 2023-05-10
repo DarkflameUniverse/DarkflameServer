@@ -34,7 +34,6 @@ dpEntity::dpEntity(const LWOOBJID& objectID, NiPoint3 boxDimensions, bool isStat
 	m_CollisionGroup = COLLISION_GROUP_ALL;
 
 	m_CollisionShape = new dpShapeBox(this, boxDimensions.x, boxDimensions.y, boxDimensions.z);
-	if (boxDimensions.x > 100.0f) m_IsGargantuan = true;
 }
 
 dpEntity::dpEntity(const LWOOBJID& objectID, float width, float height, float depth, bool isStatic) {
@@ -45,7 +44,6 @@ dpEntity::dpEntity(const LWOOBJID& objectID, float width, float height, float de
 	m_CollisionGroup = COLLISION_GROUP_ALL;
 
 	m_CollisionShape = new dpShapeBox(this, width, height, depth);
-	if (width > 100.0f) m_IsGargantuan = true;
 }
 
 dpEntity::dpEntity(const LWOOBJID& objectID, float radius, bool isStatic) {
@@ -56,7 +54,6 @@ dpEntity::dpEntity(const LWOOBJID& objectID, float radius, bool isStatic) {
 	m_CollisionGroup = COLLISION_GROUP_ALL;
 
 	m_CollisionShape = new dpShapeSphere(this, radius);
-	if (radius > 200.0f) m_IsGargantuan = true;
 }
 
 dpEntity::~dpEntity() {
@@ -89,8 +86,7 @@ void dpEntity::CheckCollision(dpEntity* other) {
 
 		//if (m_CollisionShape->GetShapeType() == dpShapeType::Sphere && other->GetShape()->GetShapeType() == dpShapeType::Sphere)
 			//std::cout << "started sphere col at: " << other->GetPosition().x << ", " << other->GetPosition().y << ", " << other->GetPosition().z << std::endl;
-	}
-	else if (!isColliding && wasFound) {
+	} else if (!isColliding && wasFound) {
 		m_CurrentlyCollidingObjects.erase(other->GetObjectID());
 		m_RemovedObjects.push_back(other);
 
@@ -147,5 +143,12 @@ void dpEntity::SetAngularVelocity(const NiPoint3& newAngularVelocity) {
 
 void dpEntity::SetGrid(dpGrid* grid) {
 	m_Grid = grid;
+
+	if (m_CollisionShape->GetShapeType() == dpShapeType::Sphere && static_cast<dpShapeSphere*>(m_CollisionShape)->GetRadius() * 2.0f > static_cast<float>(m_Grid->CELL_SIZE)) {
+		m_IsGargantuan = true;
+	} else if (m_CollisionShape->GetShapeType() == dpShapeType::Box && static_cast<dpShapeBox*>(m_CollisionShape)->GetWidth() > static_cast<float>(m_Grid->CELL_SIZE)) {
+		m_IsGargantuan = true;
+	}
+
 	m_Grid->Add(this);
 }

@@ -1,25 +1,21 @@
-# create the testing file and list of tests
-create_test_sourcelist (Tests
-   CommonCxxTests.cpp
-   TestNiPoint3.cpp
-   TestLDFFormat.cpp
+message (STATUS "Testing is enabled.  Fetching gtest...")
+enable_testing()
+
+include(FetchContent)
+FetchContent_Declare(
+	googletest
+	GIT_REPOSITORY https://github.com/google/googletest.git
+	GIT_TAG release-1.12.1
 )
- 
-# add the executable
-add_executable (CommonCxxTests ${Tests})
-target_link_libraries(CommonCxxTests dCommon raknet)
 
-if(WIN32)
-	target_link_libraries(CommonCxxTests ws2_32)
-endif(WIN32)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-# remove the test driver source file
-set (TestsToRun ${Tests})
-remove (TestsToRun CommonCxxTests.cpp)
+FetchContent_MakeAvailable(GoogleTest)
+include(GoogleTest)
 
-# Add all the ADD_TEST for each test
-foreach (test ${TestsToRun})
-   get_filename_component (TName ${test} NAME_WE)
-   add_test (NAME ${TName} COMMAND CommonCxxTests ${TName})
-   set_property(TEST ${TName} PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=1)
-endforeach ()
+message(STATUS "gtest fetched and is now ready.")
+
+# Add the subdirectories
+add_subdirectory(dCommonTests)
+add_subdirectory(dGameTests)

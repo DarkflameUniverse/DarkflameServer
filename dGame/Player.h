@@ -1,29 +1,29 @@
-﻿#pragma once
+#pragma once
 
 #include "Entity.h"
 
 /**
  * Extended Entity for player data and behavior.
- * 
+ *
  * Contains properties only a player entity would require, like associated SystemAddress and User.
- * 
+ *
  * Keeps track of which entities are observed by this user for ghosting.
  */
 class Player final : public Entity
 {
 public:
 	explicit Player(const LWOOBJID& objectID, EntityInfo info, User* user, Entity* parentEntity = nullptr);
-	
+
 	/**
 	 * Getters
 	 */
 
 	User* GetParentUser() const override;
-	
+
 	SystemAddress GetSystemAddress() const override;
-	
+
 	NiPoint3 GetRespawnPosition() const override;
-	
+
 	NiQuaternion GetRespawnRotation() const override;
 
 	const NiPoint3& GetGhostReferencePoint() const;
@@ -41,11 +41,11 @@ public:
 	/**
 	 * Setters
 	 */
-	
+
 	void SetSystemAddress(const SystemAddress& value) override;
-	
+
 	void SetRespawnPos(NiPoint3 position) override;
-	
+
 	void SetRespawnRot(NiQuaternion rotation) override;
 
 	void SetGhostReferencePoint(const NiPoint3& value);
@@ -58,7 +58,7 @@ public:
 
 	/**
 	 * Wrapper for sending an in-game mail.
-	 * 
+	 *
 	 * @param sender id of the sender. LWOOBJID_EMPTY for system mail
 	 * @param senderName name of the sender. Max 32 characters.
 	 * @param subject mail subject. Max 50 characters.
@@ -67,10 +67,10 @@ public:
 	 * @param attachmentCount stack size for attachment.
 	 */
 	void SendMail(LWOOBJID sender, const std::string& senderName, const std::string& subject, const std::string& body, LOT attachment, uint16_t attachmentCount) const;
-	
+
 	/**
 	 * Wrapper for transfering the player to another instance.
-	 * 
+	 *
 	 * @param zoneId zoneID for the new instance.
 	 * @param cloneId cloneID for the new instance.
 	 */
@@ -81,7 +81,7 @@ public:
 	 */
 
 	void AddLimboConstruction(LWOOBJID objectId);
-	
+
 	void RemoveLimboConstruction(LWOOBJID objectId);
 
 	void ConstructLimboEntities();
@@ -99,19 +99,19 @@ public:
 	static Player* GetPlayer(const SystemAddress& sysAddr);
 
 	static Player* GetPlayer(const std::string& name);
-	
+
 	static Player* GetPlayer(LWOOBJID playerID);
 
 	static const std::vector<Player*>& GetAllPlayers();
-	
+
 	~Player() override;
 private:
 	SystemAddress m_SystemAddress;
-	
+
 	NiPoint3 m_respawnPos;
-	
+
 	NiQuaternion m_respawnRot;
-	
+
 	User* m_ParentUser;
 
 	NiPoint3 m_GhostReferencePoint;
@@ -121,7 +121,7 @@ private:
 	bool m_GhostOverride;
 
 	std::vector<int32_t> m_ObservedEntities;
-	
+
 	int32_t m_ObservedEntitiesLength;
 
 	int32_t m_ObservedEntitiesUsed;

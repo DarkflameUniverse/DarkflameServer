@@ -31,6 +31,7 @@ public:
 		m_PendingAffirmations = {};
 		m_PendingRequests = {};
 		m_Ready = false;
+		m_IsShuttingDown = false;
 	}
 
 	const std::string& GetIP() const { return m_IP; }
@@ -46,9 +47,11 @@ public:
 
 	bool GetIsReady() const { return m_Ready; }
 	void SetIsReady(bool value) { m_Ready = value; }
+	bool GetIsShuttingDown() const { return m_IsShuttingDown; }
+	void SetIsShuttingDown(bool value) { m_IsShuttingDown = value; }
 	std::vector<PendingInstanceRequest>& GetPendingRequests() { return m_PendingRequests; }
 	std::vector<PendingInstanceRequest>& GetPendingAffirmations() { return m_PendingAffirmations; }
-	
+
 	int GetHardCap() const { return m_MaxClientsHardCap; }
 	int GetSoftCap() const { return m_MaxClientsSoftCap; }
 	int GetCurrentClientCount() const { return m_CurrentClientCount; }
@@ -57,10 +60,10 @@ public:
 	uint32_t GetAffirmationTimeout() const { return m_AffirmationTimeout; }
 
 	void AddPlayer(Player player) { /*m_Players.push_back(player);*/ m_CurrentClientCount++; }
-	void RemovePlayer(Player player) { 
+	void RemovePlayer(Player player) {
 		m_CurrentClientCount--;
 		if (m_CurrentClientCount < 0) m_CurrentClientCount = 0;
-		/*for (size_t i = 0; i < m_Players.size(); ++i) 
+		/*for (size_t i = 0; i < m_Players.size(); ++i)
 			if (m_Players[i].addr == player.addr) m_Players.erase(m_Players.begin() + i);*/
 	}
 
@@ -69,7 +72,7 @@ public:
 
 	void SetShutdownComplete(bool value);
 	bool GetShutdownComplete() const;
-	
+
 	void Shutdown();
 
 private:
@@ -82,11 +85,12 @@ private:
 	std::vector<Player> m_Players;
 	SystemAddress m_SysAddr;
 	bool m_Ready;
+	bool m_IsShuttingDown;
 	std::vector<PendingInstanceRequest> m_PendingRequests;
 	std::vector<PendingInstanceRequest> m_PendingAffirmations;
 
 	uint32_t m_AffirmationTimeout;
-	
+
 	bool m_IsPrivate;
 	std::string m_Password;
 
@@ -103,7 +107,7 @@ public:
 	Instance* GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID); //Creates an instance if none found
 	bool IsPortInUse(uint32_t port);
 	uint32_t GetFreePort();
-	
+
 	void AddPlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID);
 	void RemovePlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID);
 
@@ -124,6 +128,7 @@ public:
 
 	Instance* CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password);
 	Instance* FindPrivateInstance(const std::string& password);
+	void SetIsShuttingDown(bool value) { this->m_IsShuttingDown = value; };
 
 private:
 	dLogger* mLogger;
@@ -131,6 +136,11 @@ private:
 	std::vector<Instance*> m_Instances;
 	unsigned short m_LastPort;
 	LWOINSTANCEID m_LastInstanceID;
+
+	/**
+	 * Whether or not the master server is currently shutting down.
+	 */
+	bool m_IsShuttingDown = false;
 
 	//Private functions:
 	bool IsInstanceFull(Instance* instance, bool isFriendTransfer);

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Behavior.h"
 
 class AttackDelayBehavior final : public Behavior
@@ -15,9 +15,8 @@ public:
 	/*
 	 * Inherited
 	 */
-	
-	explicit AttackDelayBehavior(const uint32_t behaviorId) : Behavior(behaviorId)
-	{
+
+	explicit AttackDelayBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {
 	}
 
 	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
@@ -27,6 +26,6 @@ public:
 	void Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
 
 	void SyncCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
-	
+
 	void Load() override;
 };

@@ -8,26 +8,31 @@
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
 #include "VanityUtilities.h"
+#include "WorldConfig.h"
+#include "CDZoneTableTable.h"
 #include <chrono>
+#include "eObjectBits.h"
+#include "CDZoneTableTable.h"
+#include "AssetManager.h"
 
 #include "../dWorldServer/ObjectIDManager.h"
 
 dZoneManager* dZoneManager::m_Address = nullptr;
 
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
-	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i\n", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
+	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 
-    int64_t startTime = 0;
-    int64_t endTime = 0;
+	int64_t startTime = 0;
+	int64_t endTime = 0;
 
-    startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
-    LoadZone(zoneID);
+	LoadZone(zoneID);
 
 	LOT zoneControlTemplate = 2365;
 
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
-	if (zoneTable != nullptr){
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	if (zoneTable != nullptr) {
 		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
 
 		if (zone != nullptr) {
@@ -37,10 +42,10 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 			EntityManager::Instance()->SetGhostDistanceMax(max + min);
 			EntityManager::Instance()->SetGhostDistanceMin(max);
 			m_PlayerLoseCoinsOnDeath = zone->PlayerLoseCoinsOnDeath;
-        }
+		}
 	}
 
-	Game::logger->Log("dZoneManager", "Creating zone control object %i\n", zoneControlTemplate);
+	Game::logger->Log("dZoneManager", "Creating zone control object %i", zoneControlTemplate);
 
 	// Create ZoneControl object
 	EntityInfo info;
@@ -51,9 +56,11 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	m_pZone->Initalize();
 
-    endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
-    Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms\n", (endTime - startTime));
+	LoadWorldConfig();
+
+	Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms", (endTime - startTime));
 
 	VanityUtilities::SpawnVanity();
 }
@@ -61,17 +68,18 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 dZoneManager::~dZoneManager() {
 	if (m_pZone) delete m_pZone;
 
-    for (std::pair<LWOOBJID, Spawner*> p : m_Spawners) {
-        if (p.second) {
-            delete p.second;
-            p.second = nullptr;
-        }
+	for (std::pair<LWOOBJID, Spawner*> p : m_Spawners) {
+		if (p.second) {
+			delete p.second;
+			p.second = nullptr;
+		}
 
-        m_Spawners.erase(p.first);
-    }
+		m_Spawners.erase(p.first);
+	}
+	if (m_WorldConfig) delete m_WorldConfig;
 }
 
-Zone * dZoneManager::GetZone() {
+Zone* dZoneManager::GetZone() {
 	return m_pZone;
 }
 
@@ -82,14 +90,14 @@ void dZoneManager::LoadZone(const LWOZONEID& zoneID) {
 	m_pZone = new Zone(zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 }
 
-void dZoneManager::NotifyZone(const dZoneNotifier & notifier, const LWOOBJID& objectID) {
+void dZoneManager::NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& objectID) {
 	switch (notifier) {
 	case dZoneNotifier::SpawnedObjectDestroyed:
 		break;
 	case dZoneNotifier::SpawnedChildObjectDestroyed:
 		break;
 	case dZoneNotifier::ReloadZone:
-        Game::logger->Log("dZoneManager", "Forcing reload of zone %i\n", m_ZoneID.GetMapID());
+		Game::logger->Log("dZoneManager", "Forcing reload of zone %i", m_ZoneID.GetMapID());
 		LoadZone(m_ZoneID);
 
 		m_pZone->Initalize();
@@ -102,39 +110,19 @@ void dZoneManager::NotifyZone(const dZoneNotifier & notifier, const LWOOBJID& ob
 		m_pZone->PrintAllGameObjects();
 		break;
 	case dZoneNotifier::InvalidNotifier:
-		Game::logger->Log("dZoneManager", "Got an invalid zone notifier.\n");
+		Game::logger->Log("dZoneManager", "Got an invalid zone notifier.");
 		break;
 	default:
-		Game::logger->Log("dZoneManager", "Unknown zone notifier: %i\n", int(notifier));
+		Game::logger->Log("dZoneManager", "Unknown zone notifier: %i", int(notifier));
 	}
 }
 
-void dZoneManager::AddSpawner(LWOOBJID id, Spawner* spawner)
-{
+void dZoneManager::AddSpawner(LWOOBJID id, Spawner* spawner) {
 	m_Spawners.insert_or_assign(id, spawner);
 }
 
-LWOZONEID dZoneManager::GetZoneID() const
-{
+LWOZONEID dZoneManager::GetZoneID() const {
 	return m_ZoneID;
-}
-
-uint32_t dZoneManager::GetMaxLevel() {
-	if (m_MaxLevel == 0) {
-		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCap FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
-    	m_MaxLevel = tableData.getIntField(0, -1);
-    	tableData.finalize();
-	}
-	return m_MaxLevel;
-}
-
-int32_t dZoneManager::GetLevelCapCurrencyConversion() {
-	if (m_CurrencyConversionRate == 0) {
-		auto tableData = CDClientDatabase::ExecuteQuery("SELECT LevelCapCurrencyConversion FROM WorldConfig WHERE WorldConfigID = 1 LIMIT 1;");
-    	m_CurrencyConversionRate = tableData.getIntField(0, -1);
-    	tableData.finalize();
-	}
-	return m_CurrencyConversionRate;
 }
 
 void dZoneManager::Update(float deltaTime) {
@@ -143,15 +131,12 @@ void dZoneManager::Update(float deltaTime) {
 	}
 }
 
-LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info)
-{
+LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 	auto objectId = info.spawnerID;
 
-	if (objectId == LWOOBJID_EMPTY)
-	{
+	if (objectId == LWOOBJID_EMPTY) {
 		objectId = ObjectIDManager::Instance()->GenerateObjectID();
-
-		objectId = GeneralUtils::SetBit(objectId, OBJECT_BIT_CLIENT);
+		GeneralUtils::SetBit(objectId, eObjectBits::CLIENT);
 
 		info.spawnerID = objectId;
 	}
@@ -172,8 +157,7 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info)
 	return objectId;
 }
 
-Spawner* dZoneManager::GetSpawner(const LWOOBJID id)
-{
+Spawner* dZoneManager::GetSpawner(const LWOOBJID id) {
 	const auto& index = m_Spawners.find(id);
 
 	if (index == m_Spawners.end()) {
@@ -183,12 +167,11 @@ Spawner* dZoneManager::GetSpawner(const LWOOBJID id)
 	return index->second;
 }
 
-void dZoneManager::RemoveSpawner(const LWOOBJID id)
-{
+void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 	auto* spawner = GetSpawner(id);
 
 	if (spawner == nullptr) {
-		Game::logger->Log("dZoneManager", "Failed to find spawner (%llu)\n", id);
+		Game::logger->Log("dZoneManager", "Failed to find spawner (%llu)", id);
 		return;
 	}
 
@@ -196,29 +179,16 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id)
 
 	if (entity != nullptr) {
 		entity->Kill();
+	} else {
+
+		Game::logger->Log("dZoneManager", "Failed to find spawner entity (%llu)", id);
 	}
-	else {
 
-		Game::logger->Log("dZoneManager", "Failed to find spawner entity (%llu)\n", id);
-	}
-
-	for (auto* node : spawner->m_Info.nodes)
-	{
-		for (const auto& element : node->entities)
-		{
-			auto* nodeEntity = EntityManager::Instance()->GetEntity(element);
-
-			if (nodeEntity == nullptr) continue;
-
-			nodeEntity->Kill();
-		}
-
-		node->entities.clear();
-	}
+	spawner->DestroyAllEntities();
 
 	spawner->Deactivate();
 
-	Game::logger->Log("dZoneManager", "Destroying spawner (%llu)\n", id);
+	Game::logger->Log("dZoneManager", "Destroying spawner (%llu)", id);
 
 	m_Spawners.erase(id);
 
@@ -248,4 +218,98 @@ std::vector<Spawner*> dZoneManager::GetSpawnersInGroup(std::string group) {
 	}
 
 	return spawnersInGroup;
+}
+
+uint32_t dZoneManager::GetUniqueMissionIdStartingValue() {
+	if (m_UniqueMissionIdStart == 0) {
+		auto tableData = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Missions WHERE isMission = 0 GROUP BY isMission;");
+		m_UniqueMissionIdStart = tableData.getIntField(0, -1);
+		tableData.finalize();
+	}
+	return m_UniqueMissionIdStart;
+}
+
+bool dZoneManager::CheckIfAccessibleZone(LWOMAPID zoneID) {
+	//We're gonna go ahead and presume we've got the db loaded already:
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	const CDZoneTable* zone = zoneTable->Query(zoneID);
+	if (zone != nullptr) {
+		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());
+	} else {
+		return false;
+	}
+}
+
+void dZoneManager::LoadWorldConfig() {
+	Game::logger->Log("dZoneManager", "Loading WorldConfig into memory");
+
+	auto worldConfig = CDClientDatabase::ExecuteQuery("SELECT * FROM WorldConfig;");
+
+	if (!m_WorldConfig) m_WorldConfig = new WorldConfig();
+
+	if (worldConfig.eof()) {
+		Game::logger->Log("dZoneManager", "WorldConfig table is empty.  Is this intended?");
+		return;
+	}
+
+	// Now read in the giant table
+	m_WorldConfig->worldConfigID = worldConfig.getIntField("WorldConfigID");
+	m_WorldConfig->peGravityValue = worldConfig.getFloatField("pegravityvalue");
+	m_WorldConfig->peBroadphaseWorldSize = worldConfig.getFloatField("pebroadphaseworldsize");
+	m_WorldConfig->peGameObjScaleFactor = worldConfig.getFloatField("pegameobjscalefactor");
+	m_WorldConfig->characterRotationSpeed = worldConfig.getFloatField("character_rotation_speed");
+	m_WorldConfig->characterWalkForwardSpeed = worldConfig.getFloatField("character_walk_forward_speed");
+	m_WorldConfig->characterWalkBackwardSpeed = worldConfig.getFloatField("character_walk_backward_speed");
+	m_WorldConfig->characterWalkStrafeSpeed = worldConfig.getFloatField("character_walk_strafe_speed");
+	m_WorldConfig->characterWalkStrafeForwardSpeed = worldConfig.getFloatField("character_walk_strafe_forward_speed");
+	m_WorldConfig->characterWalkStrafeBackwardSpeed = worldConfig.getFloatField("character_walk_strafe_backward_speed");
+	m_WorldConfig->characterRunBackwardSpeed = worldConfig.getFloatField("character_run_backward_speed");
+	m_WorldConfig->characterRunStrafeSpeed = worldConfig.getFloatField("character_run_strafe_speed");
+	m_WorldConfig->characterRunStrafeForwardSpeed = worldConfig.getFloatField("character_run_strafe_forward_speed");
+	m_WorldConfig->characterRunStrafeBackwardSpeed = worldConfig.getFloatField("character_run_strafe_backward_speed");
+	m_WorldConfig->globalCooldown = worldConfig.getFloatField("global_cooldown");
+	m_WorldConfig->characterGroundedTime = worldConfig.getFloatField("characterGroundedTime");
+	m_WorldConfig->characterGroundedSpeed = worldConfig.getFloatField("characterGroundedSpeed");
+	m_WorldConfig->globalImmunityTime = worldConfig.getFloatField("globalImmunityTime");
+	m_WorldConfig->characterMaxSlope = worldConfig.getFloatField("character_max_slope");
+	m_WorldConfig->defaultRespawnTime = worldConfig.getFloatField("defaultrespawntime");
+	m_WorldConfig->missionTooltipTimeout = worldConfig.getFloatField("mission_tooltip_timeout");
+	m_WorldConfig->vendorBuyMultiplier = worldConfig.getFloatField("vendor_buy_multiplier");
+	m_WorldConfig->petFollowRadius = worldConfig.getFloatField("pet_follow_radius");
+	m_WorldConfig->characterEyeHeight = worldConfig.getFloatField("character_eye_height");
+	m_WorldConfig->flightVerticalVelocity = worldConfig.getFloatField("flight_vertical_velocity");
+	m_WorldConfig->flightAirspeed = worldConfig.getFloatField("flight_airspeed");
+	m_WorldConfig->flightFuelRatio = worldConfig.getFloatField("flight_fuel_ratio");
+	m_WorldConfig->flightMaxAirspeed = worldConfig.getFloatField("flight_max_airspeed");
+	m_WorldConfig->fReputationPerVote = worldConfig.getFloatField("fReputationPerVote");
+	m_WorldConfig->propertyCloneLimit = worldConfig.getIntField("nPropertyCloneLimit");
+	m_WorldConfig->defaultHomespaceTemplate = worldConfig.getIntField("defaultHomespaceTemplate");
+	m_WorldConfig->coinsLostOnDeathPercent = worldConfig.getFloatField("coins_lost_on_death_percent");
+	m_WorldConfig->coinsLostOnDeathMin = worldConfig.getIntField("coins_lost_on_death_min");
+	m_WorldConfig->coinsLostOnDeathMax = worldConfig.getIntField("coins_lost_on_death_max");
+	m_WorldConfig->characterVotesPerDay = worldConfig.getIntField("character_votes_per_day");
+	m_WorldConfig->propertyModerationRequestApprovalCost = worldConfig.getIntField("property_moderation_request_approval_cost");
+	m_WorldConfig->propertyModerationRequestReviewCost = worldConfig.getIntField("property_moderation_request_review_cost");
+	m_WorldConfig->propertyModRequestsAllowedSpike = worldConfig.getIntField("propertyModRequestsAllowedSpike");
+	m_WorldConfig->propertyModRequestsAllowedInterval = worldConfig.getIntField("propertyModRequestsAllowedInterval");
+	m_WorldConfig->propertyModRequestsAllowedTotal = worldConfig.getIntField("propertyModRequestsAllowedTotal");
+	m_WorldConfig->propertyModRequestsSpikeDuration = worldConfig.getIntField("propertyModRequestsSpikeDuration");
+	m_WorldConfig->propertyModRequestsIntervalDuration = worldConfig.getIntField("propertyModRequestsIntervalDuration");
+	m_WorldConfig->modelModerateOnCreate = worldConfig.getIntField("modelModerateOnCreate") != 0;
+	m_WorldConfig->defaultPropertyMaxHeight = worldConfig.getFloatField("defaultPropertyMaxHeight");
+	m_WorldConfig->reputationPerVoteCast = worldConfig.getFloatField("reputationPerVoteCast");
+	m_WorldConfig->reputationPerVoteReceived = worldConfig.getFloatField("reputationPerVoteReceived");
+	m_WorldConfig->showcaseTopModelConsiderationBattles = worldConfig.getIntField("showcaseTopModelConsiderationBattles");
+	m_WorldConfig->reputationPerBattlePromotion = worldConfig.getFloatField("reputationPerBattlePromotion");
+	m_WorldConfig->coinsLostOnDeathMinTimeout = worldConfig.getFloatField("coins_lost_on_death_min_timeout");
+	m_WorldConfig->coinsLostOnDeathMaxTimeout = worldConfig.getFloatField("coins_lost_on_death_max_timeout");
+	m_WorldConfig->mailBaseFee = worldConfig.getIntField("mail_base_fee");
+	m_WorldConfig->mailPercentAttachmentFee = worldConfig.getFloatField("mail_percent_attachment_fee");
+	m_WorldConfig->propertyReputationDelay = worldConfig.getIntField("propertyReputationDelay");
+	m_WorldConfig->levelCap = worldConfig.getIntField("LevelCap");
+	m_WorldConfig->levelUpBehaviorEffect = worldConfig.getStringField("LevelUpBehaviorEffect");
+	m_WorldConfig->characterVersion = worldConfig.getIntField("CharacterVersion");
+	m_WorldConfig->levelCapCurrencyConversion = worldConfig.getIntField("LevelCapCurrencyConversion");
+	worldConfig.finalize();
+	Game::logger->Log("dZoneManager", "Loaded WorldConfig into memory");
 }

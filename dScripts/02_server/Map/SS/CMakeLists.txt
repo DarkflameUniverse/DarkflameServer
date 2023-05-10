@@ -1,0 +1,3 @@
+set(DSCRIPTS_SOURCES_02_SERVER_MAP_SS 
+	"SsModularBuildServer.cpp"
+	PARENT_SCOPE)

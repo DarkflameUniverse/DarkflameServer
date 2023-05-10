@@ -1,6 +1,4 @@
-
-
-PROJECT(RakNetStaticLib)
+project(RakNetStaticLib)
 
 SET(RAKNET_SOURCES 
 
@@ -27,7 +25,7 @@ Source/FileList.cpp                Source/RakMemoryOverride.cpp          Source/
 Source/FileListTransfer.cpp        Source/RakNetCommandParser.cpp        Source/TCPInterface.cpp
 Source/FileOperations.cpp          Source/RakNetStatistics.cpp           Source/TelnetTransport.cpp
 Source/_FindFirst.cpp              Source/RakNetTransport.cpp            Source/ThreadsafePacketLogger.cpp
-Source/RakThread.cpp							Source/SuperFastHash.cpp 								Source/Itoa.cpp
+Source/RakThread.cpp               Source/SuperFastHash.cpp              Source/Itoa.cpp
 Source/HTTPConnection.cpp
 )
 
@@ -70,18 +68,25 @@ Source/DS_Tree.h                         Source/RakNetCommandParser.h          S
 Source/DS_WeightedGraph.h                Source/RakNetDefines.h                Source/ThreadsafePacketLogger.h
 Source/EmailSender.h                     Source/RakNetStatistics.h             Source/TransportInterface.h
 Source/EpochTimeToString.h               Source/RakNetTransport.h              Source/Types.h
-Source/RakThread.h											Source/SuperFastHash.h									Source/Itoa.h
-Source/HTTPConnection.h									Kbhit.h\
+Source/RakThread.h                       Source/SuperFastHash.h                Source/Itoa.h
+Source/HTTPConnection.h                  Kbhit.h
 )
 
 
-ADD_LIBRARY(RakNet STATIC ${RAKNET_SOURCES})
+add_library(raknet STATIC ${RAKNET_SOURCES})
+target_compile_options(raknet PRIVATE
+     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
+        -w>
+     $<$<CXX_COMPILER_ID:MSVC>:
+        /w>)
 
+if(WIN32)
+        # Link Win Sockets 2 to RakNet
+	target_link_libraries(raknet ws2_32)
+endif()
 
-INSTALL(TARGETS RakNet
+install(TARGETS raknet
         DESTINATION lib)
 
-INSTALL(FILES ${RAKNET_HEADERS}
+install(FILES ${RAKNET_HEADERS}
         DESTINATION include/raknet)
-
-

@@ -15,23 +15,23 @@ public:
 		if (!m_Address) {
 			m_Address = new UserManager();
 		}
-		
+
 		return m_Address;
 	}
-	
+
 	void Initialize();
 	~UserManager();
-	
+
 	User* CreateUser(const SystemAddress& sysAddr, const std::string& username, const std::string& sessionKey);
 	User* GetUser(const SystemAddress& sysAddr);
 	User* GetUser(const std::string& username);
 	bool DeleteUser(const SystemAddress& sysAddr); //Returns true on succesful deletion
 	void DeletePendingRemovals();
-	
+
 	bool IsNameAvailable(const std::string& requestedName);
 	std::string GetPredefinedName(uint32_t firstNameIndex, uint32_t middleNameIndex, uint32_t lastNameIndex);
 	bool IsNamePreapproved(const std::string& requestedName);
-	
+
 	void RequestCharacterList(const SystemAddress& sysAddr);
 	void CreateCharacter(const SystemAddress& sysAddr, Packet* packet);
 	void DeleteCharacter(const SystemAddress& sysAddr, Packet* packet);
@@ -46,7 +46,7 @@ private:
 	static UserManager* m_Address; //Singleton
 	std::map<SystemAddress, User*> m_Users;
 	std::vector<User*> m_UsersToDelete;
-	
+
 	std::vector<std::string> m_FirstNames;
 	std::vector<std::string> m_MiddleNames;
 	std::vector<std::string> m_LastNames;

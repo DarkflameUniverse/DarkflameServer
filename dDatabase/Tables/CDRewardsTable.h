@@ -11,12 +11,12 @@ struct CDRewards {
 	int32_t count;
 };
 
-class CDRewardsTable : public CDTable {
+class CDRewardsTable : public CDTable<CDRewardsTable> {
 public:
-    CDRewardsTable(void);
-    ~CDRewardsTable(void);
-    
-    std::string GetName(void) const override;
+	CDRewardsTable();
+	~CDRewardsTable();
+
+	static const std::string GetTableName() { return "Rewards"; };
 	std::vector<CDRewards*> GetByLevelID(uint32_t levelID);
 
 private:

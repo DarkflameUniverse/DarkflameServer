@@ -9,6 +9,7 @@
 #include <string>
 #include <functional>
 #include "LDFFormat.h"
+#include "EntityInfo.h"
 
 struct SpawnerNode {
 	NiPoint3 position = NiPoint3::ZERO;
@@ -37,15 +38,15 @@ struct SpawnerInfo {
 	bool noTimedSpawn = false;
 	std::string grpNameQBShowBricks = "";
 	bool spawnActivator = true;
-	
+
 	bool emulated = false;
 	LWOOBJID emulator = LWOOBJID_EMPTY;
 };
 
 class Spawner {
 public:
-    Spawner(SpawnerInfo info);
-    ~Spawner();
+	Spawner(SpawnerInfo info);
+	~Spawner();
 
 	Entity* Spawn();
 	Entity* Spawn(std::vector<SpawnerNode*> freeNodes, bool force = false);
@@ -60,6 +61,7 @@ public:
 	void AddEntitySpawnedCallback(std::function<void(Entity*)> callback);
 	void SetSpawnLot(LOT lot);
 	void Reset();
+	void DestroyAllEntities();
 	void SoftReset();
 	void SetRespawnTime(float time);
 	void SetNumToMaintain(int32_t value);
@@ -69,7 +71,7 @@ public:
 	bool m_Active = true;
 private:
 	std::vector<std::function<void()>> m_SpawnedEntityDieCallbacks = {};
-    std::vector<std::function<void(Entity*)>> m_EntitySpawnedCallbacks = {};
+	std::vector<std::function<void(Entity*)>> m_EntitySpawnedCallbacks = {};
 
 
 	bool m_SpawnSmashFoundGroup = false;

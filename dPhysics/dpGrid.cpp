@@ -6,6 +6,7 @@
 dpGrid::dpGrid(int numCells, int cellSize) {
 	NUM_CELLS = numCells;
 	CELL_SIZE = cellSize;
+	m_DeleteGrid = true;
 
 	//dumb method but i can't be bothered
 
@@ -23,6 +24,7 @@ dpGrid::dpGrid(int numCells, int cellSize) {
 }
 
 dpGrid::~dpGrid() {
+	if (!this->m_DeleteGrid) return;
 	for (auto& x : m_Cells) { //x
 		for (auto& y : x) { //y
 			for (auto en : y) {
@@ -61,13 +63,13 @@ void dpGrid::Move(dpEntity* entity, float x, float z) {
 
 	if (cellX < 0) cellX = 0;
 	if (cellZ < 0) cellZ = 0;
-	if (cellX > NUM_CELLS) cellX = NUM_CELLS;
-	if (cellZ > NUM_CELLS) cellZ = NUM_CELLS;
+	if (cellX >= NUM_CELLS) cellX = NUM_CELLS - 1;
+	if (cellZ >= NUM_CELLS) cellZ = NUM_CELLS - 1;
 
 	if (oldCellX < 0) oldCellX = 0;
 	if (oldCellZ < 0) oldCellZ = 0;
-	if (oldCellX > NUM_CELLS) oldCellX = NUM_CELLS;
-	if (oldCellZ > NUM_CELLS) oldCellZ = NUM_CELLS;
+	if (oldCellX >= NUM_CELLS) oldCellX = NUM_CELLS - 1;
+	if (oldCellZ >= NUM_CELLS) oldCellZ = NUM_CELLS - 1;
 
 	if (oldCellX == cellX && oldCellZ == cellZ) return;
 
