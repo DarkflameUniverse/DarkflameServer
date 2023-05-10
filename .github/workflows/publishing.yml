@@ -57,6 +57,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
     
+    - name: Generate Changelog
+      uses: Bullrich/generate-release-changelog@master
+      id: changelog
+      env:
+          REPO: ${{ github.repository }}
+      
     - name: Take a gander at versions.txt to get updated information
       run: |
         IFS=" - " read -ra PARTS <<< "$(head -n 1 versions.txt)"
@@ -71,7 +77,7 @@ jobs:
       with:
         tag_name: v${{ env.VERSION }}
         release_name: Release v${{ env.VERSION }}
-        body: "Draft release for version v${{ env.VERSION }} \n\n ${{ env.DESCRIPTION }}"
+        body: "Draft release for version v${{ env.VERSION }} \n\n ${{ env.DESCRIPTION }} \n\n ${{ steps.changelog.outputs.changelog }}"
         draft: true
 
     - name: Download all workflow run artifacts
