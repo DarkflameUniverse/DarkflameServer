@@ -356,7 +356,7 @@ void RacingControlComponent::OnRacingPlayerInfoResetFinished(Entity* player) {
 	}
 }
 
-void RacingControlComponent::HandleMessageBoxResponse(Entity* player, const std::string& id) {
+void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t button, const std::string& id) {
 	auto* data = GetPlayerData(player->GetObjectID());
 	if (!data) return;
 
@@ -397,7 +397,8 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, const std:
 				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::LAST_PLACE_FINISH); // Finished first place in specific world.
 			}
 		}
-	} else if (id == "ACT_RACE_EXIT_THE_RACE?" || id == "Exit") {
+
+	} else if (id == "ACT_RACE_EXIT_THE_RACE?" && button == m_ActivityExitConfirm) {
 		Game::logger->Log("RacingControlComponent", "exiting race");
 		auto* vehicle = EntityManager::Instance()->GetEntity(data->vehicleID);
 		if (!vehicle) return;

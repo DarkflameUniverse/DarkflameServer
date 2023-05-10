@@ -144,7 +144,7 @@ public:
 	/**
 	 * Invoked when the player responds to the GUI.
 	 */
-	void HandleMessageBoxResponse(Entity* player, const std::string& id);
+	void HandleMessageBoxResponse(Entity* player, int32_t button, const std::string& id);
 
 	/**
 	 * Get the racing data from a player's LWOOBJID.
@@ -253,4 +253,8 @@ private:
 	bool m_DirtyRank;
 	bool m_DirtyLoadPlayer;
 	bool m_DirtyLobby;
+	/**
+	 * Value for message box response to know if we are exiting the race via the activity dialogue
+	 */
+	const int32_t m_ActivityExitConfirm = 1;
 };
