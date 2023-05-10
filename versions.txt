@@ -1,7 +1,4 @@
-1.4 - I genuinely have run out of bad among us jokes, what test text do I use now?
-1.3 - I can't think of anymore poor Among Us jokes.
-1.2 - Among Us Engineer Update is finally out, start venting to mess with your fellow crewmates!
-1.1 - Among Us Crewmate Update is finally out!
+1.2 - I genuinely have run out of bad among us jokes, what test text do I use now?
 1.0 - Final cleanup and bug fixing for public release
 0.9 - Includes BBB without the need for a UGC server, cannon cove minigame, and bug fixes.
 0.8 - Added Ninjago! and it's various features + frakjaw minigame. AG survival now works.
