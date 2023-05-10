@@ -203,7 +203,7 @@ void RebuildComponent::Update(float deltaTime) {
 
 			++m_DrainedImagination;
 
-			if (newImagination == 0 && m_DrainedImagination < m_TakeImagination) {
+			if (newImagination <= 0 && m_DrainedImagination < m_TakeImagination) {
 				CancelRebuild(builder, eQuickBuildFailReason::OUT_OF_IMAGINATION, true);
 
 				break;
