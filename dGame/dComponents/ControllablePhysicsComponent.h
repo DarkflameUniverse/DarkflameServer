@@ -276,7 +276,7 @@ public:
 	 * The speed boosts of this component.
 	 * @return All active Speed boosts for this component.
 	 */
-	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
+	std::vector<float> GetActiveSpeedboosts() { return m_ActiveSpeedBoosts; };
 
 	/**
 	* Activates the Bubble Buff
@@ -316,6 +316,24 @@ public:
 	const bool GetImmuneToStunMove() { return m_ImmuneToStunMoveCount > 0;};
 	const bool GetImmuneToStunTurn() { return m_ImmuneToStunTurnCount > 0;};
 	const bool GetImmuneToStunUseItem() { return m_ImmuneToStunUseItemCount > 0;};
+
+	/**
+	 * Add a Fall Speed to the entity
+	 * This will recalculate the Fall Speed based on what is being added
+	 */
+	void AddFallSpeed(float value);
+
+	/**
+	 * Remove Fall Speed from entity
+	 * This will recalculate the Fall Speed based on what is the last one in te vector
+	 */
+	void RemoveFallSpeed(float value);
+
+	/**
+	 * The Fall Speeds of this component.
+	 * @return All active Fall Speeds for this component.
+	 */
+	std::vector<float> GetActiveFallSpeeds() { return m_ActiveFallSpeeds; };
 
 private:
 	/**
@@ -473,6 +491,16 @@ private:
 	int32_t m_ImmuneToStunMoveCount;
 	int32_t m_ImmuneToStunTurnCount;
 	int32_t m_ImmuneToStunUseItemCount;
+
+	/**
+	 * The list of fall speeds for this entity
+	 */
+	std::vector<float> m_ActiveFallSpeeds;
+
+	/**
+	 * The active fall speed for this entity
+	 */
+	float m_FallSpeed;
 };
 
 #endif // CONTROLLABLEPHYSICSCOMPONENT_H
