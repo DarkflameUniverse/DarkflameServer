@@ -6215,8 +6215,5 @@ void GameMessages::HandleRequestActivityExit(RakNet::BitStream* inStream, Entity
 	inStream->Read(player_id);
 	auto player = EntityManager::Instance()->GetEntity(player_id);
 	if (!entity || !player) return;
-
-	for (auto* shootingGallery : EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SHOOTING_GALLERY)) {
-		shootingGallery->RequestActivityExit(entity, player_id, true);
-	}
+	entity->RequestActivityExit(entity, player_id, canceled);
 }

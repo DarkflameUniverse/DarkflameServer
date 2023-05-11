@@ -67,7 +67,7 @@ public:
 	void OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) override;
 	void OnActivityTimerDone(Entity* self, const std::string& name) override;
 	void OnActivityTimerUpdate(Entity* self, const std::string& name, float_t timeRemaining, float_t elapsedTime) override;
-	void OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled);
+	void OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled) override;
 private:
 	static std::vector<std::vector<SGEnemy>> GetWaves();
 	static SGConstants GetConstants();
