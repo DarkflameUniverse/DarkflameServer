@@ -21,7 +21,7 @@ void AgLaserSensorServer::OnCollisionPhantom(Entity* self, Entity* target) {
 	auto active = self->GetVar<bool>(u"active");
 	if (!active) return;
 	auto skillCastID = self->GetVarAs<float>(u"skillCastID");
-	if (!skillCastID) skillCastID = m_SkillCastID;
+	if (skillCastID == 0) skillCastID = m_SkillCastID;
 	auto* skillComponent = self->GetComponent<SkillComponent>();
 	if (!skillComponent) return;
 	skillComponent->CastSkill(m_SkillCastID, target->GetObjectID());
