@@ -6,9 +6,9 @@
 // Writes an AMFValue pointer to a RakNet::BitStream
 template<>
 void RakNet::BitStream::Write<AMFBaseValue*>(AMFBaseValue* value) {
-	this->Write(value->GetValueType());
 	if (value != nullptr) {
 		eAmf type = value->GetValueType();
+		this->Write(type);
 
 		switch (type) {
 		case eAmf::Integer: {
