@@ -14,6 +14,7 @@
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
+#include "eReplicaComponentType.h"
 
 MissionTask::MissionTask(Mission* mission, CDMissionTasks* info, uint32_t mask) {
 	this->info = info;
@@ -237,7 +238,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 			break;
 		}
 
-		activity = static_cast<ScriptedActivityComponent*>(entity->GetComponent(COMPONENT_TYPE_REBUILD));
+		activity = static_cast<ScriptedActivityComponent*>(entity->GetComponent(eReplicaComponentType::QUICK_BUILD));
 		if (activity == nullptr) {
 			break;
 		}

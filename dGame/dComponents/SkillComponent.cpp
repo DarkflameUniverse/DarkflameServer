@@ -20,9 +20,11 @@
 #include "ScriptComponent.h"
 #include "BuffComponent.h"
 #include "EchoStartSkill.h"
-#include "dMessageIdentifiers.h"
 #include "DoClientProjectileImpact.h"
 #include "CDClientManager.h"
+#include "CDSkillBehaviorTable.h"
+#include "eConnectionType.h"
+#include "eClientMessageType.h"
 
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
@@ -128,8 +130,12 @@ void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, Behav
 }
 
 void SkillComponent::Update(const float deltaTime) {
-	if (!m_Parent->HasComponent(COMPONENT_TYPE_BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
+	if (!m_Parent->HasComponent(eReplicaComponentType::BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
 		CalculateUpdate(deltaTime);
+	}
+
+	if (m_Parent->IsPlayer()) {
+		for (const auto& pair : this->m_managedBehaviors) pair.second->UpdatePlayerSyncs(deltaTime);
 	}
 
 	std::map<uint32_t, BehaviorContext*> keep{};
@@ -190,7 +196,15 @@ void SkillComponent::Interrupt() {
 	auto* combat = m_Parent->GetComponent<BaseCombatAIComponent>();
 	if (combat != nullptr && combat->GetStunImmune()) return;
 
-	for (const auto& behavior : this->m_managedBehaviors) behavior.second->Interrupt();
+	for (const auto& behavior : this->m_managedBehaviors) {
+		for (const auto& behaviorEndEntry : behavior.second->endEntries) {
+			behaviorEndEntry.behavior->End(behavior.second, behaviorEndEntry.branchContext, behaviorEndEntry.second);
+		}
+		behavior.second->endEntries.clear();
+		if (m_Parent->IsPlayer()) continue;
+		behavior.second->Interrupt();
+	}
+
 }
 
 void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, BehaviorContext* context, const BehaviorBranchContext& branch, const LOT lot, const float maxTime,
@@ -213,14 +227,14 @@ void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, B
 	this->m_managedProjectiles.push_back(entry);
 }
 
-bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID){
+bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID) {
 	uint32_t behaviorId = -1;
 	// try to find it via the cache
 	const auto& pair = m_skillBehaviorCache.find(skillId);
 
 	// if it's not in the cache look it up and cache it
 	if (pair == m_skillBehaviorCache.end()) {
-		auto skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+		auto skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 		behaviorId = skillTable->GetSkillByID(skillId).behaviorID;
 		m_skillBehaviorCache.insert_or_assign(skillId, behaviorId);
 	} else {
@@ -245,6 +259,8 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 	auto* context = new BehaviorContext(originatorOverride != LWOOBJID_EMPTY ? originatorOverride : this->m_Parent->GetObjectID(), true);
 
 	context->caster = m_Parent->GetObjectID();
+
+	context->skillID = skillId;
 
 	context->clientInitalized = clientInitalized;
 
@@ -288,7 +304,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		// Write message
 		RakNet::BitStream message;
 
-		PacketUtils::WriteHeader(message, CLIENT, MSG_CLIENT_GAME_MSG);
+		PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 		message.Write(this->m_Parent->GetObjectID());
 		start.Serialize(&message);
 
@@ -421,7 +437,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	RakNet::BitStream message;
 
-	PacketUtils::WriteHeader(message, CLIENT, MSG_CLIENT_GAME_MSG);
+	PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 	message.Write(this->m_Parent->GetObjectID());
 	projectileImpact.Serialize(&message);
 
@@ -461,7 +477,7 @@ void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID targ
 	delete context;
 }
 
-SkillComponent::SkillComponent(Entity* parent) : Component(parent) {
+SkillComponent::SkillComponent(Entity* parent): Component(parent) {
 	this->m_skillUid = 0;
 }
 

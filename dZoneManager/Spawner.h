@@ -61,6 +61,7 @@ public:
 	void AddEntitySpawnedCallback(std::function<void(Entity*)> callback);
 	void SetSpawnLot(LOT lot);
 	void Reset();
+	void DestroyAllEntities();
 	void SoftReset();
 	void SetRespawnTime(float time);
 	void SetNumToMaintain(int32_t value);

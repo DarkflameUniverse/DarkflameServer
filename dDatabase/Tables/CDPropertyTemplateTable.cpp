@@ -30,12 +30,6 @@ CDPropertyTemplateTable::CDPropertyTemplateTable() {
 	tableData.finalize();
 }
 
-CDPropertyTemplateTable::~CDPropertyTemplateTable() = default;
-
-std::string CDPropertyTemplateTable::GetName() const {
-	return "PropertyTemplate";
-}
-
 CDPropertyTemplate CDPropertyTemplateTable::GetByMapID(uint32_t mapID) {
 	for (const auto& entry : entries) {
 		if (entry.mapID == mapID)

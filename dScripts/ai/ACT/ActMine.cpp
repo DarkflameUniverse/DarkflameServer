@@ -9,7 +9,7 @@ void ActMine::OnStartup(Entity* self) {
 }
 
 void ActMine::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == eRebuildState::REBUILD_COMPLETED) {
+	if (state == eRebuildState::COMPLETED) {
 		auto* rebuild = self->GetComponent<RebuildComponent>();
 		if (rebuild) {
 			auto* builder = rebuild->GetBuilder();

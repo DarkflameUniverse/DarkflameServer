@@ -10,16 +10,18 @@
 #include "dpCollisionChecks.h"
 #include "PhantomPhysicsComponent.h"
 #include "eBubbleType.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 class dpEntity;
+enum class eStateChangeType : uint32_t;
 
 /**
  * Handles the movement of controllable Entities, e.g. enemies and players
  */
 class ControllablePhysicsComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_CONTROLLABLE_PHYSICS;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::CONTROLLABLE_PHYSICS;
 
 	ControllablePhysicsComponent(Entity* entity);
 	~ControllablePhysicsComponent() override;

@@ -13,6 +13,7 @@
 #include "Character.h"
 #include "dZoneManager.h"
 #include "LevelProgressionComponent.h"
+#include "eStateChangeType.h"
 
 ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Component(entity) {
 	m_Position = {};

@@ -38,8 +38,8 @@ void BasePropertyServer::SetGameVariables(Entity* self) {
 	self->SetVar<std::vector<std::string>>(AmbientFXSpawner, {});
 	self->SetVar<std::vector<std::string>>(BehaviorObjsSpawner, {});
 
-	self->SetVar<uint32_t>(defeatedProperyFlag, 0);
-	self->SetVar<uint32_t>(placedModelFlag, 0);
+	self->SetVar<int32_t>(defeatedProperyFlag, 0);
+	self->SetVar<int32_t>(placedModelFlag, 0);
 	self->SetVar<uint32_t>(guardMissionFlag, 0);
 	self->SetVar<uint32_t>(brickLinkMissionIDFlag, 0);
 	self->SetVar<std::string>(passwordFlag, "s3kratK1ttN");
@@ -127,7 +127,7 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 		if (player->GetObjectID() != propertyOwner)
 			return;
 	} else {
-		const auto defeatedFlag = player->GetCharacter()->GetPlayerFlag(self->GetVar<uint32_t>(defeatedProperyFlag));
+		const auto defeatedFlag = player->GetCharacter()->GetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag));
 
 		self->SetNetworkVar(UnclaimedVariable, true);
 		self->SetVar<LWOOBJID>(PlayerIDVariable, player->GetObjectID());
@@ -274,7 +274,7 @@ void BasePropertyServer::RequestDie(Entity* self, Entity* other) {
 	if (destroyable == nullptr)
 		return;
 
-	destroyable->Smash(other->GetObjectID(), SILENT);
+	destroyable->Smash(other->GetObjectID(), eKillType::SILENT);
 }
 
 void BasePropertyServer::ActivateSpawner(const std::string& spawnerName) {
@@ -303,18 +303,8 @@ void BasePropertyServer::ResetSpawner(const std::string& spawnerName) {
 
 void BasePropertyServer::DestroySpawner(const std::string& spawnerName) {
 	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(spawnerName)) {
-		for (auto* node : spawner->m_Info.nodes) {
-			for (const auto& element : node->entities) {
-				auto* entity = EntityManager::Instance()->GetEntity(element);
-				if (entity == nullptr)
-					continue;
-
-				entity->Kill();
-			}
-
-			node->entities.clear();
-		}
-
+		if (!spawner) return;
+		spawner->DestroyAllEntities();
 		spawner->Deactivate();
 	}
 }
@@ -474,7 +464,7 @@ void BasePropertyServer::HandleOrbsTimer(Entity* self) {
 				if (player != nullptr) {
 					auto* character = player->GetCharacter();
 					if (character != nullptr) {
-						character->SetPlayerFlag(self->GetVar<uint32_t>(defeatedProperyFlag), true);
+						character->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
 					}
 				}
 

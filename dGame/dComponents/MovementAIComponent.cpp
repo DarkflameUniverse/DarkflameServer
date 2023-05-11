@@ -11,6 +11,9 @@
 #include "SimplePhysicsComponent.h"
 #include "CDClientManager.h"
 
+#include "CDComponentsRegistryTable.h"
+#include "CDPhysicsComponentTable.h"
+
 std::map<LOT, float> MovementAIComponent::m_PhysicsSpeedCache = {};
 
 MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : Component(parent) {
@@ -19,7 +22,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 
 	m_BaseCombatAI = nullptr;
 
-	m_BaseCombatAI = reinterpret_cast<BaseCombatAIComponent*>(m_Parent->GetComponent(COMPONENT_TYPE_BASE_COMBAT_AI));
+	m_BaseCombatAI = reinterpret_cast<BaseCombatAIComponent*>(m_Parent->GetComponent(eReplicaComponentType::BASE_COMBAT_AI));
 
 	//Try and fix the insane values:
 	if (m_Info.wanderRadius > 5.0f) m_Info.wanderRadius = m_Info.wanderRadius * 0.5f;
@@ -93,7 +96,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	NiPoint3 velocity = NiPoint3::ZERO;
 
-	if (AdvanceWaypointIndex()) // Do we have another waypoint to seek?
+	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) // Do we have another waypoint to seek?
 	{
 		m_NextWaypoint = GetCurrentWaypoint();
 
@@ -280,13 +283,13 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 		return it->second;
 	}
 
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
+	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
 	int32_t componentID;
 	CDPhysicsComponent* physicsComponent = nullptr;
 
-	componentID = componentRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_CONTROLLABLE_PHYSICS, -1);
+	componentID = componentRegistryTable->GetByIDAndType(lot, eReplicaComponentType::CONTROLLABLE_PHYSICS, -1);
 
 	if (componentID != -1) {
 		physicsComponent = physicsComponentTable->GetByID(componentID);
@@ -294,7 +297,7 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 		goto foundComponent;
 	}
 
-	componentID = componentRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_SIMPLE_PHYSICS, -1);
+	componentID = componentRegistryTable->GetByIDAndType(lot, eReplicaComponentType::SIMPLE_PHYSICS, -1);
 
 	if (componentID != -1) {
 		physicsComponent = physicsComponentTable->GetByID(componentID);

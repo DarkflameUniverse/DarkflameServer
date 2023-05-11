@@ -3,6 +3,7 @@
 #include "RebuildComponent.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "eEndBehavior.h"
 
 void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 	const auto myGroup = "AllPipes";
@@ -20,7 +21,7 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 
 		auto* rebuildComponent = object->GetComponent<RebuildComponent>();
 
-		if (rebuildComponent->GetState() == REBUILD_COMPLETED) {
+		if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 			indexCount++;
 		}
 	}
@@ -42,7 +43,7 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 					missionComponent->ForceProgressTaskType(769, 1, 1, false);
 				}
 
-				GameMessages::SendPlayCinematic(player->GetObjectID(), u"ParadoxPipeFinish", player->GetSystemAddress(), true, true, false, false, 0, false, 2.0f);
+				GameMessages::SendPlayCinematic(player->GetObjectID(), u"ParadoxPipeFinish", player->GetSystemAddress(), true, true, false, false, eEndBehavior::RETURN, false, 2.0f);
 			}
 
 			object->SetVar(u"PlayerID", LWOOBJID_EMPTY);
@@ -51,7 +52,7 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 }
 
 void ActParadoxPipeFix::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == REBUILD_RESETTING) {
+	if (state == eRebuildState::RESETTING) {
 		const auto refinery = EntityManager::Instance()->GetEntitiesInGroup("Paradox");
 
 		if (!refinery.empty()) {

@@ -11,6 +11,7 @@ class Entity;
 class EntityInfo;
 class Player;
 class User;
+enum class eReplicaComponentType : uint32_t;
 
 struct SystemAddress;
 
@@ -35,7 +36,7 @@ public:
 	void DestroyEntity(Entity* entity);
 	Entity* GetEntity(const LWOOBJID& objectId) const;
 	std::vector<Entity*> GetEntitiesInGroup(const std::string& group);
-	std::vector<Entity*> GetEntitiesByComponent(int componentType) const;
+	std::vector<Entity*> GetEntitiesByComponent(eReplicaComponentType componentType) const;
 	std::vector<Entity*> GetEntitiesByLOT(const LOT& lot) const;
 	Entity* GetZoneControlEntity() const;
 
@@ -84,6 +85,10 @@ public:
 	const uint32_t GetHardcoreUscoreEnemiesMultiplier() { return m_HardcoreUscoreEnemiesMultiplier; };
 
 private:
+	void SerializeEntities();
+	void KillEntities();
+	void DeleteEntities();
+
 	static EntityManager* m_Address; //For singleton method
 	static std::vector<LWOMAPID> m_GhostingExcludedZones;
 	static std::vector<LOT> m_GhostingExcludedLOTs;

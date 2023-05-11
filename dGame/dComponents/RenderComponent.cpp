@@ -20,9 +20,9 @@ RenderComponent::RenderComponent(Entity* parent) : Component(parent) {
 	return;
 
 	/*
-	auto* table = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* table = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
-	const auto entry = table->GetByIDAndType(parent->GetLOT(), COMPONENT_TYPE_RENDER);
+	const auto entry = table->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::RENDER);
 
 	std::stringstream query;
 

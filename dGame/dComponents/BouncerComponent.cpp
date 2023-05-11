@@ -7,6 +7,7 @@
 #include "dLogger.h"
 #include "GameMessages.h"
 #include <BitStream.h>
+#include "eTriggerEventType.h"
 
 BouncerComponent::BouncerComponent(Entity* parent) : Component(parent) {
 	m_PetEnabled = false;
@@ -46,8 +47,10 @@ void BouncerComponent::SetPetBouncerEnabled(bool value) {
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 
 	if (value) {
+		m_Parent->TriggerEvent(eTriggerEventType::PET_ON_SWITCH, m_Parent);
 		GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 1513, u"create", "PetOnSwitch", LWOOBJID_EMPTY, 1, 1, true);
 	} else {
+		m_Parent->TriggerEvent(eTriggerEventType::PET_OFF_SWITCH, m_Parent);
 		GameMessages::SendStopFXEffect(m_Parent, true, "PetOnSwitch");
 	}
 

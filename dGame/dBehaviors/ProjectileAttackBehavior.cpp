@@ -6,6 +6,7 @@
 #include "dLogger.h"
 #include "SkillComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
+#include "eObjectBits.h"
 
 void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	LWOOBJID target{};
@@ -107,7 +108,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 	for (auto i = 0u; i < this->m_projectileCount; ++i) {
 		auto id = static_cast<LWOOBJID>(ObjectIDManager::Instance()->GenerateObjectID());
 
-		id = GeneralUtils::SetBit(id, OBJECT_BIT_SPAWNED);
+		GeneralUtils::SetBit(id, eObjectBits::SPAWNED);
 
 		bitStream->Write(id);
 

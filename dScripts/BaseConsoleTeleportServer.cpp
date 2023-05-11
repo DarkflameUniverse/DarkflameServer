@@ -1,6 +1,8 @@
 #include "BaseConsoleTeleportServer.h"
 #include "GameMessages.h"
 #include "Player.h"
+#include "eTerminateType.h"
+#include "eStateChangeType.h"
 
 void BaseConsoleTeleportServer::BaseOnUse(Entity* self, Entity* user) {
 	auto* player = user;
@@ -52,7 +54,7 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 			GameMessages::SendDisplayZoneSummary(playerID, player->GetSystemAddress(), false, false, self->GetObjectID());
 			});
 	} else if (button == -1 || button == 0) {
-		GameMessages::SendTerminateInteraction(player->GetObjectID(), FROM_INTERACTION, player->GetObjectID());
+		GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, player->GetObjectID());
 	}
 }
 
@@ -88,7 +90,7 @@ void BaseConsoleTeleportServer::TransferPlayer(Entity* self, Entity* player, int
 		true, true, true, true, true, true, true
 	);
 
-	GameMessages::SendTerminateInteraction(player->GetObjectID(), FROM_INTERACTION, player->GetObjectID());
+	GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, player->GetObjectID());
 
 	const auto& teleportZone = self->GetVar<std::u16string>(u"transferZoneID");
 

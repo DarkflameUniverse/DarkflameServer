@@ -33,6 +33,10 @@
 #include "dZoneManager.h"
 #include "WorldConfig.h"
 #include "eMissionTaskType.h"
+#include "eStateChangeType.h"
+#include "eGameActivity.h"
+
+#include "CDComponentsRegistryTable.h"
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_iArmor = 0;
@@ -74,18 +78,18 @@ DestroyableComponent::~DestroyableComponent() {
 }
 
 void DestroyableComponent::Reinitialize(LOT templateID) {
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
-	int32_t buffComponentID = compRegistryTable->GetByIDAndType(templateID, COMPONENT_TYPE_BUFF);
-	int32_t collectibleComponentID = compRegistryTable->GetByIDAndType(templateID, COMPONENT_TYPE_COLLECTIBLE);
-	int32_t rebuildComponentID = compRegistryTable->GetByIDAndType(templateID, COMPONENT_TYPE_REBUILD);
+	int32_t buffComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::BUFF);
+	int32_t collectibleComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::COLLECTIBLE);
+	int32_t rebuildComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::QUICK_BUILD);
 
 	int32_t componentID = 0;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;
 	if (rebuildComponentID > 0) componentID = rebuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
-	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance()->GetTable<CDDestructibleComponentTable>("DestructibleComponent");
+	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
 	if (componentID > 0) {
@@ -454,7 +458,7 @@ bool DestroyableComponent::IsKnockbackImmune() const {
 	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 	auto* inventoryComponent = m_Parent->GetComponent<InventoryComponent>();
 
-	if (characterComponent != nullptr && inventoryComponent != nullptr && characterComponent->GetCurrentActivity() == eGameActivities::ACTIVITY_QUICKBUILDING) {
+	if (characterComponent != nullptr && inventoryComponent != nullptr && characterComponent->GetCurrentActivity() == eGameActivity::QUICKBUILDING) {
 		const auto hasPassive = inventoryComponent->HasAnyPassive({
 			eItemSetPassiveAbilityID::EngineerRank2, eItemSetPassiveAbilityID::EngineerRank3,
 			eItemSetPassiveAbilityID::SummonerRank2, eItemSetPassiveAbilityID::SummonerRank3,
@@ -500,7 +504,7 @@ bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignor
 	if (targetQuickbuild != nullptr) {
 		const auto state = targetQuickbuild->GetState();
 
-		if (state != REBUILD_COMPLETED) {
+		if (state != eRebuildState::COMPLETED) {
 			return false;
 		}
 	}
@@ -789,7 +793,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 				coinsTotal -= coinsToLose;
 
 				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLose, coinsToLose);
-				character->SetCoins(coinsTotal, eLootSourceType::LOOT_SOURCE_PICKUP);
+				character->SetCoins(coinsTotal, eLootSourceType::PICKUP);
 			}
 		}
 
@@ -798,7 +802,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 			script->OnPlayerDied(zoneControl, m_Parent);
 		}
 
-		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
+		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
@@ -978,7 +982,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 		auto uscoreToLose = uscore * (EntityManager::Instance()->GetHardcoreLoseUscoreOnDeathPercent() / 100);
 		character->SetUScore(uscore - uscoreToLose);
 
-		GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::LOOT_SOURCE_MISSION);
+		GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::MISSION);
 
 		if (EntityManager::Instance()->GetHardcoreDropinventoryOnDeath()) {
 			//drop all items from inventory:
@@ -1009,7 +1013,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 			auto coins = chars->GetCoins();
 
 			//lose all coins:
-			chars->SetCoins(0, eLootSourceType::LOOT_SOURCE_NONE);
+			chars->SetCoins(0, eLootSourceType::NONE);
 
 			//drop all coins:
 			GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, coins, m_Parent->GetPosition());
@@ -1033,7 +1037,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 			int uscore = maxHealth * EntityManager::Instance()->GetHardcoreUscoreEnemiesMultiplier();
 
 			playerStats->SetUScore(playerStats->GetUScore() + uscore);
-			GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::LOOT_SOURCE_MISSION);
+			GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::MISSION);
 
 			EntityManager::Instance()->SerializeEntity(m_Parent);
 		}

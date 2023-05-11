@@ -20,6 +20,8 @@
 #include "eItemSetPassiveAbilityID.h"
 #include "PossessorComponent.h"
 #include "eInventoryType.h"
+#include "eReplicaComponentType.h"
+#include "eLootSourceType.h"
 
 class Entity;
 class ItemSet;
@@ -36,7 +38,7 @@ enum class eItemType : int32_t;
 class InventoryComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_INVENTORY;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
 
 	void Update(float deltaTime) override;
@@ -98,7 +100,7 @@ public:
 	void AddItem(
 		LOT lot,
 		uint32_t count,
-		eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE,
+		eLootSourceType lootSourceType = eLootSourceType::NONE,
 		eInventoryType inventoryType = INVALID,
 		const std::vector<LDFBaseData*>& config = {},
 		LWOOBJID parent = LWOOBJID_EMPTY,

@@ -5,12 +5,14 @@
 #include "EntityManager.h"
 #include "AgMonumentLaserServer.h"
 #include "EntityManager.h"
+#include "ePhysicsEffectType.h"
+#include "eReplicaComponentType.h"
 
 void AgLaserSensorServer::OnStartup(Entity* self) {
 
-	PhantomPhysicsComponent* physComp = static_cast<PhantomPhysicsComponent*>(self->GetComponent(COMPONENT_TYPE_PHANTOM_PHYSICS));
+	PhantomPhysicsComponent* physComp = static_cast<PhantomPhysicsComponent*>(self->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
 	physComp->SetPhysicsEffectActive(true);
-	physComp->SetEffectType(2); // repulse (prolly should make definitions of these are in Entity.cpp)
+	physComp->SetEffectType(ePhysicsEffectType::REPULSE);
 	physComp->SetDirectionalMultiplier(static_cast<float>(m_RepelForce));
 	physComp->SetDirection(NiPoint3::UNIT_Y);
 
@@ -25,7 +27,7 @@ void AgLaserSensorServer::OnCollisionPhantom(Entity* self, Entity* target) {
 
 	Entity* laser = nullptr;
 
-	for (auto script : EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPT)) {
+	for (auto script : EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPT)) {
 
 		AgMonumentLaserServer* hasLaser = (AgMonumentLaserServer*)script;
 

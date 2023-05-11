@@ -14,6 +14,8 @@
 #include "Loot.h"
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
+#include "eReplicaComponentType.h"
+#include "eGameActivity.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	Game::logger->Log("SGCannon", "OnStartup");
@@ -101,7 +103,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 
 			if (characterComponent != nullptr) {
 				characterComponent->SetIsRacing(true);
-				characterComponent->SetCurrentActivity(2);
+				characterComponent->SetCurrentActivity(eGameActivity::SHOOTING_GALLERY);
 				auto possessor = player->GetComponent<PossessorComponent>();
 				if (possessor) {
 					possessor->SetPossessable(self->GetObjectID());
@@ -273,6 +275,11 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 				toSpawn.spawnPaths.at(pathIndex)
 			);
 
+			if (!path) {
+				Game::logger->Log("SGCannon", "Path %s at index %i is null", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
+				return;
+			}
+
 			auto info = EntityInfo{};
 			info.lot = toSpawn.lot;
 			info.spawnerID = self->GetObjectID();
@@ -292,31 +299,29 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			auto* enemy = EntityManager::Instance()->CreateEntity(info, nullptr, self);
 			EntityManager::Instance()->ConstructEntity(enemy);
 
-			if (true) {
-				auto* movementAI = new MovementAIComponent(enemy, {});
+			auto* movementAI = new MovementAIComponent(enemy, {});
 
-				enemy->AddComponent(COMPONENT_TYPE_MOVEMENT_AI, movementAI);
+			enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
 
-				movementAI->SetSpeed(toSpawn.initialSpeed);
-				movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
-				movementAI->SetHaltDistance(0.0f);
+			movementAI->SetSpeed(toSpawn.initialSpeed);
+			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
+			movementAI->SetHaltDistance(0.0f);
 
-				std::vector<NiPoint3> pathWaypoints;
+			std::vector<NiPoint3> pathWaypoints;
 
-				for (const auto& waypoint : path->pathWaypoints) {
-					pathWaypoints.push_back(waypoint.position);
-				}
-
-				if (GeneralUtils::GenerateRandomNumber<float_t>(0, 1) < 0.5f) {
-					std::reverse(pathWaypoints.begin(), pathWaypoints.end());
-				}
-
-				movementAI->SetPath(pathWaypoints);
-
-				enemy->AddDieCallback([this, self, enemy, name]() {
-					RegisterHit(self, enemy, name);
-					});
+			for (const auto& waypoint : path->pathWaypoints) {
+				pathWaypoints.push_back(waypoint.position);
 			}
+
+			if (GeneralUtils::GenerateRandomNumber<float_t>(0, 1) < 0.5f) {
+				std::reverse(pathWaypoints.begin(), pathWaypoints.end());
+			}
+
+			movementAI->SetPath(pathWaypoints);
+
+			enemy->AddDieCallback([this, self, enemy, name]() {
+				RegisterHit(self, enemy, name);
+				});
 
 			// Save the enemy and tell it to start pathing
 			if (enemy != nullptr) {
@@ -569,13 +574,13 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		auto* inventory = player->GetComponent<InventoryComponent>();
 		if (inventory != nullptr) {
 			for (const auto rewardLot : self->GetVar<std::vector<LOT>>(RewardsVariable)) {
-				inventory->AddItem(rewardLot, 1, eLootSourceType::LOOT_SOURCE_ACTIVITY, eInventoryType::MODELS);
+				inventory->AddItem(rewardLot, 1, eLootSourceType::ACTIVITY, eInventoryType::MODELS);
 			}
 		}
 
 		self->SetNetworkVar<std::u16string>(u"UI_Rewards",
 			GeneralUtils::to_u16string(self->GetVar<uint32_t>(TotalScoreVariable)) + u"_0_0_0_0_0_0"
-			);
+		);
 
 		GameMessages::SendRequestActivitySummaryLeaderboardData(
 			player->GetObjectID(),

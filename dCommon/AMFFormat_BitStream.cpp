@@ -33,6 +33,15 @@ void RakNet::BitStream::Write<AMFBaseValue*>(AMFBaseValue* value) {
 		default: {
 			Game::logger->Log("AMFFormat_BitStream", "Encountered unwritable AMFType %i!", type);
 		}
+		case AMFObject:
+		case AMFXML:
+		case AMFByteArray:
+		case AMFVectorInt:
+		case AMFVectorUInt:
+		case AMFVectorDouble:
+		case AMFVectorObject:
+		case AMFDictionary:
+			break;
 		}
 	}
 }

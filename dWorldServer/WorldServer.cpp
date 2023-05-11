@@ -31,7 +31,6 @@
 #include "PacketUtils.h"
 #include "WorldPackets.h"
 #include "UserManager.h"
-#include "dMessageIdentifiers.h"
 #include "CDClientManager.h"
 #include "CDClientDatabase.h"
 #include "GeneralUtils.h"
@@ -64,7 +63,13 @@
 #include "Amf3.h"
 #include "NiPoint3.h"
 #include "eServerDisconnectIdentifiers.h"
-
+#include "eObjectBits.h"
+#include "eConnectionType.h"
+#include "eServerMessageType.h"
+#include "eChatInternalMessageType.h"
+#include "eWorldMessageType.h"
+#include "eMasterMessageType.h"
+#include "eGameMessageType.h"
 #include "ZCompression.h"
 
 namespace Game {
@@ -168,7 +173,7 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	CDClientManager::Instance()->Initialize();
+	CDClientManager::Instance();
 
 	//Connect to the MySQL Database
 	std::string mysql_host = Game::config->GetValue("mysql_host");
@@ -546,12 +551,11 @@ void HandlePacketChat(Packet* packet) {
 	}
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
-		if (packet->data[1] == CHAT_INTERNAL) {
-			switch (packet->data[3]) {
-			case MSG_CHAT_INTERNAL_ROUTE_TO_PLAYER: {
-				CINSTREAM;
+		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
+			switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
+			case eChatInternalMessageType::ROUTE_TO_PLAYER: {
+				CINSTREAM_SKIP_HEADER;
 				LWOOBJID playerID;
-				inStream.Read(playerID);
 				inStream.Read(playerID);
 
 				auto player = EntityManager::Instance()->GetEntity(playerID);
@@ -570,10 +574,8 @@ void HandlePacketChat(Packet* packet) {
 				break;
 			}
 
-			case MSG_CHAT_INTERNAL_ANNOUNCEMENT: {
-				CINSTREAM;
-				LWOOBJID header;
-				inStream.Read(header);
+			case eChatInternalMessageType::ANNOUNCEMENT: {
+				CINSTREAM_SKIP_HEADER;
 
 				std::string title;
 				std::string msg;
@@ -605,11 +607,10 @@ void HandlePacketChat(Packet* packet) {
 				break;
 			}
 
-			case MSG_CHAT_INTERNAL_MUTE_UPDATE: {
-				CINSTREAM;
+			case eChatInternalMessageType::MUTE_UPDATE: {
+				CINSTREAM_SKIP_HEADER;
 				LWOOBJID playerId;
 				time_t expire = 0;
-				inStream.Read(playerId);
 				inStream.Read(playerId);
 				inStream.Read(expire);
 
@@ -624,10 +625,8 @@ void HandlePacketChat(Packet* packet) {
 				break;
 			}
 
-			case MSG_CHAT_INTERNAL_TEAM_UPDATE: {
-				CINSTREAM;
-				LWOOBJID header;
-				inStream.Read(header);
+			case eChatInternalMessageType::TEAM_UPDATE: {
+				CINSTREAM_SKIP_HEADER;
 
 				LWOOBJID teamID = 0;
 				char lootOption = 0;
@@ -701,7 +700,7 @@ void HandlePacket(Packet* packet) {
 
 		{
 			CBITSTREAM;
-			PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
+			PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
 			bitStream.Write(user->GetLoggedInChar());
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
@@ -713,35 +712,35 @@ void HandlePacket(Packet* packet) {
 		}
 
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_PLAYER_REMOVED);
+		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_REMOVED);
 		bitStream.Write((LWOMAPID)Game::server->GetZoneID());
 		bitStream.Write((LWOINSTANCEID)instanceID);
 		Game::server->SendToMaster(&bitStream);
 	}
 
-	if (packet->data[0] != ID_USER_PACKET_ENUM) return;
-	if (packet->data[1] == SERVER) {
-		if (packet->data[3] == MSG_SERVER_VERSION_CONFIRM) {
+	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
+	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
+		if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
 			AuthPackets::HandleHandshake(Game::server, packet);
 		}
 	}
 
-	if (packet->data[1] == MASTER) {
-		switch (packet->data[3]) {
-		case MSG_MASTER_REQUEST_PERSISTENT_ID_RESPONSE: {
+	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
+		switch (static_cast<eMasterMessageType>(packet->data[3])) {
+		case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
 			uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
 			uint32_t objectID = PacketUtils::ReadPacketU32(16, packet);
 			ObjectIDManager::Instance()->HandleRequestPersistentIDResponse(requestID, objectID);
 			break;
 		}
 
-		case MSG_MASTER_REQUEST_ZONE_TRANSFER_RESPONSE: {
+		case eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE: {
 			uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
 			ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
 			break;
 		}
 
-		case MSG_MASTER_SESSION_KEY_RESPONSE: {
+		case eMasterMessageType::SESSION_KEY_RESPONSE: {
 			//Read our session key and to which user it belongs:
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
@@ -798,7 +797,7 @@ void HandlePacket(Packet* packet) {
 				//Notify master:
 				{
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_PLAYER_ADDED);
+					PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_ADDED);
 					bitStream.Write((LWOMAPID)Game::server->GetZoneID());
 					bitStream.Write((LWOINSTANCEID)instanceID);
 					Game::server->SendToMaster(&bitStream);
@@ -807,27 +806,27 @@ void HandlePacket(Packet* packet) {
 
 			break;
 		}
-		case MSG_MASTER_AFFIRM_TRANSFER_REQUEST: {
+		case eMasterMessageType::AFFIRM_TRANSFER_REQUEST: {
 			const uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
 
 			Game::logger->Log("MasterServer", "Got affirmation request of transfer %llu", requestID);
 
 			CBITSTREAM;
 
-			PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_AFFIRM_TRANSFER_RESPONSE);
+			PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_RESPONSE);
 			bitStream.Write(requestID);
 			Game::server->SendToMaster(&bitStream);
 
 			break;
 		}
 
-		case MSG_MASTER_SHUTDOWN: {
+		case eMasterMessageType::SHUTDOWN: {
 			Game::shouldShutdown = true;
 			Game::logger->Log("WorldServer", "Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
 			break;
 		}
 
-		case MSG_MASTER_NEW_SESSION_ALERT: {
+		case eMasterMessageType::NEW_SESSION_ALERT: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 			uint32_t sessionKey = inStream.Read(sessionKey);
@@ -865,10 +864,10 @@ void HandlePacket(Packet* packet) {
 		return;
 	}
 
-	if (packet->data[1] != WORLD) return;
+	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::WORLD) return;
 
-	switch (packet->data[3]) {
-	case MSG_WORLD_CLIENT_VALIDATION: {
+	switch (static_cast<eWorldMessageType>(packet->data[3])) {
+	case eWorldMessageType::VALIDATION: {
 		std::string username = PacketUtils::ReadString(0x08, packet, true);
 		std::string sessionKey = PacketUtils::ReadString(74, packet, true);
 		std::string clientDatabaseChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
@@ -900,7 +899,7 @@ void HandlePacket(Packet* packet) {
 
 		//Request the session info from Master:
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_REQUEST_SESSION_KEY);
+		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_SESSION_KEY);
 		PacketUtils::WriteString(bitStream, username, 64);
 		Game::server->SendToMaster(&bitStream);
 
@@ -913,7 +912,7 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_CHARACTER_LIST_REQUEST: {
+	case eWorldMessageType::CHARACTER_LIST_REQUEST: {
 		//We need to delete the entity first, otherwise the char list could delete it while it exists in the world!
 		if (Game::server->GetZoneID() != 0) {
 			auto user = UserManager::Instance()->GetUser(packet->systemAddress);
@@ -935,12 +934,12 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_GAME_MSG: {
+	case eWorldMessageType::GAME_MSG: {
 		RakNet::BitStream bitStream(packet->data, packet->length, false);
 
 		uint64_t header;
 		LWOOBJID objectID;
-		uint16_t messageID;
+		eGameMessageType messageID;
 
 		bitStream.Read(header);
 		bitStream.Read(objectID);
@@ -949,23 +948,23 @@ void HandlePacket(Packet* packet) {
 		RakNet::BitStream dataStream;
 		bitStream.Read(dataStream, bitStream.GetNumberOfUnreadBits());
 
-		GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, GAME_MSG(messageID));
+		GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, messageID);
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_CHARACTER_CREATE_REQUEST: {
+	case eWorldMessageType::CHARACTER_CREATE_REQUEST: {
 		UserManager::Instance()->CreateCharacter(packet->systemAddress, packet);
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_LOGIN_REQUEST: {
+	case eWorldMessageType::LOGIN_REQUEST: {
 		RakNet::BitStream inStream(packet->data, packet->length, false);
 		uint64_t header = inStream.Read(header);
 
 		LWOOBJID playerID = 0;
 		inStream.Read(playerID);
-		playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_CHARACTER);
-		playerID = GeneralUtils::ClearBit(playerID, OBJECT_BIT_PERSISTENT);
+		GeneralUtils::ClearBit(playerID, eObjectBits::CHARACTER);
+		GeneralUtils::ClearBit(playerID, eObjectBits::PERSISTENT);
 
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
 
@@ -974,7 +973,7 @@ void HandlePacket(Packet* packet) {
 			// This means we swapped characters and we need to remove the previous player from the container.
 			if (static_cast<uint32_t>(lastCharacter) != playerID) {
 				CBITSTREAM;
-				PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
+				PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
 				bitStream.Write(lastCharacter);
 				Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 			}
@@ -984,18 +983,18 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_CHARACTER_DELETE_REQUEST: {
+	case eWorldMessageType::CHARACTER_DELETE_REQUEST: {
 		UserManager::Instance()->DeleteCharacter(packet->systemAddress, packet);
 		UserManager::Instance()->RequestCharacterList(packet->systemAddress);
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_CHARACTER_RENAME_REQUEST: {
+	case eWorldMessageType::CHARACTER_RENAME_REQUEST: {
 		UserManager::Instance()->RenameCharacter(packet->systemAddress, packet);
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_LEVEL_LOAD_COMPLETE: {
+	case eWorldMessageType::LEVEL_LOAD_COMPLETE: {
 		Game::logger->Log("WorldServer", "Received level load complete from user.");
 		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (user) {
@@ -1119,11 +1118,11 @@ void HandlePacket(Packet* packet) {
 							//Send message:
 							{
 								LWOOBJID blueprintID = res->getUInt(1);
-								blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_CHARACTER);
-								blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_PERSISTENT);
+								GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
+								GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 								CBITSTREAM;
-								PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_BLUEPRINT_SAVE_RESPONSE);
+								PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
 								bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
 								bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
 								bitStream.Write<uint32_t>(1);
@@ -1164,7 +1163,7 @@ void HandlePacket(Packet* packet) {
 					//RakNet::RakString playerName(player->GetCharacter()->GetName().c_str());
 
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_ADDED_NOTIFICATION);
+					PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION);
 					bitStream.Write(player->GetObjectID());
 					bitStream.Write<uint32_t>(playerName.size());
 					for (size_t i = 0; i < playerName.size(); i++) {
@@ -1189,12 +1188,12 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_POSITION_UPDATE: {
+	case eWorldMessageType::POSITION_UPDATE: {
 		ClientPackets::HandleClientPositionUpdate(packet->systemAddress, packet);
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_MAIL: {
+	case eWorldMessageType::MAIL: {
 		RakNet::BitStream bitStream(packet->data, packet->length, false);
 		LWOOBJID space;
 		bitStream.Read(space);
@@ -1202,12 +1201,10 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_ROUTE_PACKET: {
+	case eWorldMessageType::ROUTE_PACKET: {
 		//Yeet to chat
-		CINSTREAM;
-		uint64_t header = 0;
+		CINSTREAM_SKIP_HEADER;
 		uint32_t size = 0;
-		inStream.Read(header);
 		inStream.Read(size);
 
 		if (size > 20000) {
@@ -1217,7 +1214,7 @@ void HandlePacket(Packet* packet) {
 
 		CBITSTREAM;
 
-		PacketUtils::WriteHeader(bitStream, CHAT, packet->data[14]);
+		PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT, packet->data[14]);
 
 		//We need to insert the player's objectID so the chat server can find who originated this request:
 		LWOOBJID objectID = 0;
@@ -1238,12 +1235,12 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_STRING_CHECK: {
+	case eWorldMessageType::STRING_CHECK: {
 		ClientPackets::HandleChatModerationRequest(packet->systemAddress, packet);
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_GENERAL_CHAT_MESSAGE: {
+	case eWorldMessageType::GENERAL_CHAT_MESSAGE: {
 		if (chatDisabled) {
 			ChatPackets::SendMessageFail(packet->systemAddress);
 		} else {
@@ -1253,7 +1250,7 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case MSG_WORLD_CLIENT_HANDLE_FUNNESS: {
+	case eWorldMessageType::HANDLE_FUNNESS: {
 		//This means the client is running slower or faster than it should.
 		//Could be insane lag, but I'mma just YEET them as it's usually speedhacking.
 		//This is updated to now count the amount of times we've been caught "speedhacking" to kick with a delay
@@ -1341,6 +1338,6 @@ void FinalizeShutdown() {
 
 void SendShutdownMessageToMaster() {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_RESPONSE);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_RESPONSE);
 	Game::server->SendToMaster(&bitStream);
 }

@@ -11,7 +11,7 @@ void LegoDieRoll::OnStartup(Entity* self) {
 
 void LegoDieRoll::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "DoneRolling") {
-		self->Smash(self->GetObjectID(), SILENT);
+		self->Smash(self->GetObjectID(), eKillType::SILENT);
 	} else if (timerName == "ThrowDice") {
 		int dieRoll = GeneralUtils::GenerateRandomNumber<int>(1, 6);
 

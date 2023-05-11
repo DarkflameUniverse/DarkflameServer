@@ -49,7 +49,7 @@ void AgQbElevator::OnTimerDone(Entity* self, std::string timerName) {
 	} else if (timerName == "startKillTimer") {
 		killTimerStartup(self);
 	} else if (timerName == "KillTimer") {
-		self->Smash(self->GetObjectID(), VIOLENT);
+		self->Smash(self->GetObjectID(), eKillType::VIOLENT);
 	}
 }
 

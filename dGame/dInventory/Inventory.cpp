@@ -4,6 +4,9 @@
 #include "Item.h"
 #include "InventoryComponent.h"
 #include "eItemType.h"
+#include "eReplicaComponentType.h"
+
+#include "CDComponentsRegistryTable.h"
 
 std::vector<LOT> Inventory::m_GameMasterRestrictedItems = {
 		1727, // GM Only - JetPack
@@ -241,9 +244,9 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 		return PROPERTY_DEEDS;
 
 	case eItemType::MODEL:
-	case eItemType::VEHICLE:
+	case eItemType::PET_INVENTORY_ITEM:
 	case eItemType::LOOT_MODEL:
-	case eItemType::LUP_MODEL:
+	case eItemType::VEHICLE:
 	case eItemType::MOUNT:
 		return MODELS;
 
@@ -260,9 +263,8 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 	case eItemType::CHEST:
 	case eItemType::EGG:
 	case eItemType::PET_FOOD:
-	case eItemType::PET_INVENTORY_ITEM:
 	case eItemType::PACKAGE:
-
+	case eItemType::LUP_MODEL:
 		return ITEMS;
 
 	case eItemType::QUEST_OBJECT:
@@ -273,11 +275,11 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 }
 
 const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
-	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* registry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
-	auto* itemComponents = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	auto* itemComponents = CDClientManager::Instance().GetTable<CDItemComponentTable>();
 
-	const auto componentId = registry->GetByIDAndType(lot, COMPONENT_TYPE_ITEM);
+	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 
 	if (componentId == 0) {
 		Game::logger->Log("Inventory", "Failed to find item component for (%i)!", lot);
@@ -291,9 +293,9 @@ const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
 }
 
 bool Inventory::IsValidItem(const LOT lot) {
-	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* registry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
-	const auto componentId = registry->GetByIDAndType(lot, COMPONENT_TYPE_ITEM);
+	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 
 	return componentId != 0;
 }
