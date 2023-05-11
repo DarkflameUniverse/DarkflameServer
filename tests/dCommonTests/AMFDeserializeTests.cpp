@@ -8,13 +8,6 @@
 #include "Game.h"
 #include "dLogger.h"
 
-// This is needed to prevent linker errors with the external dLogger class in Game.h.
-// I need to put the full namespace definition in a separate cpp file with a header and a Test_F for all
-// tests so they properly delete this memory.  So yes, right now this leaks memory.
-namespace Game {
-	dLogger* logger = new dLogger("testing.log", true, true);
-}
-
 /**
  * Helper method that all tests use to get their respective AMF.
  */
