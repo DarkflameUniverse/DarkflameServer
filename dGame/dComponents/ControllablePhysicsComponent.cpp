@@ -320,7 +320,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 
 	// Recalculate speedboost since we removed one
 	m_SpeedBoost = 0.0f;
-	if (m_ActiveSpeedBoosts.size() == 0) { // no active speed boosts left, so return to base speed
+	if (m_ActiveSpeedBoosts.empty()) { // no active speed boosts left, so return to base speed
 		auto* levelProgressionComponent = m_Parent->GetComponent<LevelProgressionComponent>();
 		if (levelProgressionComponent) m_SpeedBoost = levelProgressionComponent->GetSpeedBase();
 	} else { // Used the last applied speedboost
@@ -387,30 +387,4 @@ void ControllablePhysicsComponent::SetStunImmunity(
 		bImmuneToStunTurn,
 		bImmuneToStunUseItem
 	);
-}
-
-void ControllablePhysicsComponent::AddFallSpeed(float value) {
-	m_ActiveFallSpeeds.push_back(value);
-	m_FallSpeed = value;
-	SetGravityScale(value);
-}
-
-void ControllablePhysicsComponent::RemoveFallSpeed(float value) {
-	const auto pos = std::find(m_ActiveFallSpeeds.begin(), m_ActiveFallSpeeds.end(), value);
-	if (pos != m_ActiveFallSpeeds.end()) {
-		m_ActiveFallSpeeds.erase(pos);
-	} else {
-		Game::logger->LogDebug("ControllablePhysicsComponent", "Warning: Could not find FallSpeed %f in list of active FallSpeeds.  List has %i active FallSpeeds.", value, m_ActiveFallSpeeds.size());
-		return;
-	}
-
-	// Recalculate FallSpeed since we removed one
-	m_FallSpeed = 0.0f;
-	if (m_ActiveFallSpeeds.size() == 0) { // no active fall speeds left, so return to base gravity
-		m_FallSpeed = 1;
-	} else { // Used the last applied FallSpeed
-		m_FallSpeed = m_ActiveFallSpeeds.back();
-	}
-	SetSpeedMultiplier(m_FallSpeed); // 500 being the base speed
-	EntityManager::Instance()->SerializeEntity(m_Parent);
 }

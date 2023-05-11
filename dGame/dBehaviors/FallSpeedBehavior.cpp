@@ -8,14 +8,12 @@
 void FallSpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	// make sure required parameter has non-default value
 	if (m_PercentSlowed == 0.0f) return;
-
-	branch.target = context->caster;
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 	if (!target) return;
 
 	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
-	controllablePhysicsComponent->AddFallSpeed(m_PercentSlowed);
+	controllablePhysicsComponent->SetGravityScale(m_PercentSlowed);
 	EntityManager::Instance()->SerializeEntity(target);
 
 	if (branch.duration > 0.0f) {
@@ -43,7 +41,7 @@ void FallSpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext bran
 
 	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
-	controllablePhysicsComponent->RemoveFallSpeed(m_PercentSlowed);
+	controllablePhysicsComponent->SetGravityScale(1);
 	EntityManager::Instance()->SerializeEntity(target);
 }
 
