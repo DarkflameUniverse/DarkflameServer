@@ -1485,6 +1485,12 @@ void Entity::OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16s
 	}
 }
 
+void Entity::RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnRequestActivityExit(sender, player, canceled);
+	}
+}
+
 void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType) {
 	if (!m_PlayerIsReadyForUpdates) return;
 

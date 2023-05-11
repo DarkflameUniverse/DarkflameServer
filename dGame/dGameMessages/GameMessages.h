@@ -648,6 +648,7 @@ namespace GameMessages {
 	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	void HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity);
+	void HandleRequestActivityExit(RakNet::BitStream* inStream, Entity* entity);
 };
 
 #endif // GAMEMESSAGES_H

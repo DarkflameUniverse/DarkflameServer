@@ -349,6 +349,15 @@ namespace CppScripts {
 		 * @param itemObjId The items Object ID
 		 */
 		virtual void OnFactionTriggerItemUnequipped(Entity* itemOwner, LWOOBJID itemObjId) {};
+
+		/**
+		 * Handles exiting a scripted activity
+		 *
+		 * @param sender
+		 * @param player the player to remove
+		 * @param canceled if it was done via the cancel button
+		 */
+		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled){};
 	};
 
 	Script* GetScript(Entity* parent, const std::string& scriptName);
