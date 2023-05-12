@@ -51,6 +51,22 @@ protected:
 	ValueType data;
 };
 
+// As a string this is much easier to write and read from a BitStream.
+template<>
+class AMFValue<const char*> : public AMFBaseValue {
+public:
+	AMFValue() {};
+	AMFValue(const char* value) { SetValue(std::string(value)); };
+	virtual ~AMFValue() override {};
+
+	eAmf GetValueType() override { return eAmf::String; };
+
+	const std::string& GetValue() { return data; };
+	void SetValue(std::string value) { data = value; };
+protected:
+	std::string data;
+};
+
 typedef AMFValue<std::nullptr_t> AMFNullValue;
 typedef AMFValue<bool> AMFBoolValue;
 typedef AMFValue<int32_t> AMFIntValue;
