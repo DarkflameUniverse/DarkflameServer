@@ -4,6 +4,7 @@
 #include "Preconditions.h"
 #include "eEndBehavior.h"
 #include "DestroyableComponent.h"
+#include "eStateChangeType.h"
 
 #ifdef _WIN32
 #define _USE_MATH_DEFINES

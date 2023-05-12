@@ -12,6 +12,7 @@
 #include "UserManager.h"
 #include "dLogger.h"
 #include "AMFFormat.h"
+#include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 
 PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent) {
@@ -243,8 +244,8 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
 		// Convert owner char id to LWOOBJID
 		LWOOBJID ownerObjId = owner;
-		ownerObjId = GeneralUtils::SetBit(ownerObjId, OBJECT_BIT_CHARACTER);
-		ownerObjId = GeneralUtils::SetBit(ownerObjId, OBJECT_BIT_PERSISTENT);
+		GeneralUtils::SetBit(ownerObjId, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(ownerObjId, eObjectBits::PERSISTENT);
 
 		// Query to get friend and best friend fields
 		auto friendCheck = Database::CreatePreppedStmt("SELECT best_friend FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)");

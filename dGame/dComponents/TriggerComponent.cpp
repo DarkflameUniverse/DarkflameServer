@@ -235,6 +235,8 @@ void TriggerComponent::HandleRotateObject(Entity* targetEntity, std::vector<std:
 }
 
 void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::string> argArray){
+	if (argArray.size() < 3) return;
+
 	auto* phantomPhysicsComponent = m_Parent->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
 		Game::logger->LogDebug("TriggerComponent::HandlePushObject", "Phantom Physics component not found!");

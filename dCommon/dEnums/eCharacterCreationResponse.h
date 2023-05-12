@@ -1,0 +1,14 @@
+#ifndef __ECHARACTERCREATIONRESPONSE__H__
+#define __ECHARACTERCREATIONRESPONSE__H__
+
+#include <cstdint>
+
+enum class eCharacterCreationResponse : uint8_t {
+	SUCCESS = 0,
+	OBJECT_ID_UNAVAILABLE,
+	NAME_NOT_ALLOWED,
+	PREDEFINED_NAME_IN_USE,
+	CUSTOM_NAME_IN_USE
+};
+
+#endif  //!__ECHARACTERCREATIONRESPONSE__H__

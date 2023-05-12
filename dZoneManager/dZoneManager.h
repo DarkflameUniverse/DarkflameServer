@@ -51,6 +51,7 @@ public:
 	Entity* GetZoneControlObject() { return m_ZoneControlObject; }
 	bool GetPlayerLoseCoinOnDeath() { return m_PlayerLoseCoinsOnDeath; }
 	uint32_t GetUniqueMissionIdStartingValue();
+	bool CheckIfAccessibleZone(LWOMAPID zoneID);
 
 	// The world config should not be modified by a caller.
 	const WorldConfig* GetWorldConfig() {

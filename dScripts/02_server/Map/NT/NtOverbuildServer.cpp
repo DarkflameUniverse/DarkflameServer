@@ -1,11 +1,12 @@
 #include "NtOverbuildServer.h"
 #include "EntityManager.h"
+#include "ePlayerFlag.h"
 
 void NtOverbuildServer::SetVariables(Entity* self) {
 	self->SetVar<float_t>(m_SpyProximityVariable, 30.0f);
 
 	self->SetVar<SpyData>(m_SpyDataVariable, {
-			NT_FACTION_SPY_OVERBUILD, 13891, 1320
+			ePlayerFlag::NT_FACTION_SPY_OVERBUILD, 13891, 1320
 		});
 
 	self->SetVar<std::vector<SpyDialogue>>(m_SpyDialogueTableVariable, {

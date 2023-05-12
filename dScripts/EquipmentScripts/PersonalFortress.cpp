@@ -4,6 +4,7 @@
 #include "DestroyableComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
+#include "eStateChangeType.h"
 
 void PersonalFortress::OnStartup(Entity* self) {
 	auto* owner = self->GetOwner();

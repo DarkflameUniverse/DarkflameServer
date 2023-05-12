@@ -9,7 +9,7 @@ void ImaginationShrineServer::OnUse(Entity* self, Entity* user) {
 		return;
 	}
 
-	if (rebuildComponent->GetState() == REBUILD_COMPLETED) {
+	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 		// Use the shrine
 		BaseUse(self, user);
 	}
