@@ -50,7 +50,7 @@ void NsLegoClubDoor::OnUse(Entity* self, Entity* user) {
 		multiArgs.Insert("title", "%[UI_CHOICE_DESTINATION]");
 		multiArgs.Insert("options", static_cast<AMFBaseValue*>(options));
 
-		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "QueueChoiceBox", &multiArgs);
+		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "QueueChoiceBox", multiArgs);
 
 		multiArgs.Remove("options", false); // We do not want the local amf to delete the options!
 	} else if (self->GetVar<int32_t>(u"currentZone") != m_ChoiceZoneID) {
@@ -63,7 +63,7 @@ void NsLegoClubDoor::OnUse(Entity* self, Entity* user) {
 		context->Insert("HelpVisible", "show");
 		context->Insert("type", "Lego_Club_Valid");
 
-		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "pushGameState", &multiArgs);
+		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "pushGameState", multiArgs);
 	} else {
 		BaseOnUse(self, player);
 	}

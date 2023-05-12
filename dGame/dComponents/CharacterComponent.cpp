@@ -735,5 +735,5 @@ void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventu
 	if (!m_Parent) return;
 	AMFArrayValue arrayToSend;
 	arrayToSend.Insert(ventureVisionType, showFaction);
-	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", &arrayToSend);
+	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", arrayToSend);
 }

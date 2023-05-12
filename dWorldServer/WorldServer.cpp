@@ -602,7 +602,7 @@ void HandlePacketChat(Packet* packet) {
 				args.Insert("title", title);
 				args.Insert("message", msg);
 
-				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
+				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
 
 				break;
 			}

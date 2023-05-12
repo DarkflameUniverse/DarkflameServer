@@ -250,7 +250,7 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 		args.Insert("amount", std::to_string(difference));
 		args.Insert("type", "health");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -291,7 +291,7 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 		args.Insert("amount", std::to_string(value));
 		args.Insert("type", "armor");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -331,7 +331,7 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 		args.Insert("amount", std::to_string(difference));
 		args.Insert("type", "imagination");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }

@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-enum class eAmf : unsigned char {
+enum class eAmf : uint8_t {
 	Undefined = 0x00,            // An undefined AMF Value
 	Null = 0x01,                 // A null AMF value
 	False = 0x02,                // A false AMF value
@@ -136,7 +136,7 @@ public:
 	 * or nullptr if a key existed and was not the same type
 	 */
 	template<typename ValueType>
-	std::pair<AMFBaseValue*, bool> Insert(const std::string& key, ValueType value) {
+	std::pair<AMFValue<ValueType>*, bool> Insert(const std::string& key, ValueType value) {
 		auto element = associative.find(key);
 		AMFValue<ValueType>* val = nullptr;
 		bool found = true;

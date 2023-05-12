@@ -253,7 +253,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			args.Insert("state", "Story");
 
-			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
+			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
 		}
 
 		entity->AddCallbackTimer(0.5f, [customText, entity]() {
@@ -264,7 +264,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			Game::logger->Log("SlashCommandHandler", "Sending %s", customText.c_str());
 
-			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", &args);
+			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", args);
 			});
 
 		return;
@@ -528,7 +528,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		uiState.Insert("state", args.at(0));
 
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", &uiState);
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", uiState);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Switched UI state.");
 
@@ -540,7 +540,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		amfArgs.Insert("visible", true);
 
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, args[0], &amfArgs);
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, args[0], amfArgs);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Toggled UI state.");
 
@@ -1610,7 +1610,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if ((chatCommand == "debugui") && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		ChatPackets::SendSystemMessage(sysAddr, u"Opening UIDebugger...");
 		AMFArrayValue args;
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleUIDebugger;", nullptr);
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleUIDebugger;", args);
 	}
 
 	if ((chatCommand == "boost") && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
@@ -2020,7 +2020,7 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	args.Insert("title", title);
 	args.Insert("message", message);
 
-	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
+	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
 
 	//Notify chat about it
 	CBITSTREAM;

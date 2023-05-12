@@ -18,33 +18,33 @@ namespace RakNet {
 	 \param value The value to write
 	 */
 	template <>
-	void RakNet::BitStream::Write<AMFBaseValue*>(AMFBaseValue* value);
+	void RakNet::BitStream::Write<AMFBaseValue&>(AMFBaseValue& value);
 
 	//! Writes an AMFIntegerValue to a RakNet::BitStream
 	/*!
 	 \param value The value to write
 	 */
 	template <>
-	void RakNet::BitStream::Write<AMFIntValue*>(AMFIntValue* value);
+	void RakNet::BitStream::Write<AMFIntValue&>(AMFIntValue& value);
 
 	//! Writes an AMFDoubleValue to a RakNet::BitStream
 	/*!
 	 \param value The value to write
 	 */
 	template <>
-	void RakNet::BitStream::Write<AMFDoubleValue*>(AMFDoubleValue* value);
+	void RakNet::BitStream::Write<AMFDoubleValue&>(AMFDoubleValue& value);
 
 	//! Writes an AMFStringValue to a RakNet::BitStream
 	/*!
 	 \param value The value to write
 	 */
 	template <>
-	void RakNet::BitStream::Write<AMFStringValue*>(AMFStringValue* value);
+	void RakNet::BitStream::Write<AMFStringValue&>(AMFStringValue& value);
 
 	//! Writes an AMFArrayValue to a RakNet::BitStream
 	/*!
 	 \param value The value to write
 	 */
 	template <>
-	void RakNet::BitStream::Write<AMFArrayValue*>(AMFArrayValue* value);
+	void RakNet::BitStream::Write<AMFArrayValue&>(AMFArrayValue& value);
 } // namespace RakNet

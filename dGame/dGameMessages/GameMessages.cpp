@@ -595,14 +595,14 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue* args) {
+void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write((uint16_t)eGameMessageType::UI_MESSAGE_SERVER_TO_SINGLE_CLIENT);
 
-	bitStream.Write(args);
+	bitStream.Write<AMFBaseValue&>(args);
 	uint32_t strMessageNameLength = message.size();
 	bitStream.Write(strMessageNameLength);
 
@@ -613,7 +613,7 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue* args) {
+void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue& args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -621,7 +621,7 @@ void GameMessages::SendUIMessageServerToAllClients(const std::string& message, A
 	bitStream.Write(empty);
 	bitStream.Write((uint16_t)eGameMessageType::UI_MESSAGE_SERVER_TO_ALL_CLIENTS);
 
-	bitStream.Write(args);
+	bitStream.Write<AMFBaseValue&>(args);
 	uint32_t strMessageNameLength = message.size();
 	bitStream.Write(strMessageNameLength);
 

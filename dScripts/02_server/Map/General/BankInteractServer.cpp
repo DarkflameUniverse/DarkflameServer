@@ -8,7 +8,7 @@ void BankInteractServer::OnUse(Entity* self, Entity* user) {
 
 	args.Insert("state", "bank");
 
-	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
+	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", args);
 }
 
 void BankInteractServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,
@@ -18,7 +18,7 @@ void BankInteractServer::OnFireEventServerSide(Entity* self, Entity* sender, std
 
 		args.Insert("visible", false);
 
-		GameMessages::SendUIMessageServerToSingleClient(sender, sender->GetSystemAddress(), "ToggleBank", &args);
+		GameMessages::SendUIMessageServerToSingleClient(sender, sender->GetSystemAddress(), "ToggleBank", args);
 
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"CloseBank", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 	}

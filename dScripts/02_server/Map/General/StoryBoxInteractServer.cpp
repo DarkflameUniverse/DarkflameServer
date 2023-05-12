@@ -14,7 +14,7 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 
 			args.Insert("state", "Story");
 
-			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
+			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", args);
 		}
 
 		user->AddCallbackTimer(0.1f, [user, customText]() {
@@ -23,7 +23,7 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 			args.Insert("visible", true);
 			args.Insert("text", customText);
 
-			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "ToggleStoryBox", &args);
+			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "ToggleStoryBox", args);
 			});
 
 		return;

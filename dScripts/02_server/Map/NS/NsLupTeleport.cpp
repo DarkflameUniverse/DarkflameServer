@@ -41,7 +41,7 @@ void NsLupTeleport::OnUse(Entity* self, Entity* user) {
 	auto* player = user;
 
 	if (CheckChoice(self, player)) {
-		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "QueueChoiceBox", &args);
+		GameMessages::SendUIMessageServerToSingleClient(player, player->GetSystemAddress(), "QueueChoiceBox", args);
 	} else {
 		BaseOnUse(self, player);
 	}

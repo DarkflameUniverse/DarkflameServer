@@ -38,7 +38,7 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 
 	args.Insert("state", "property_menu");
 
-	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
+	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
 }
 
 void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, bool returnToZone, const SystemAddress& sysAddr) {

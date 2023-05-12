@@ -76,7 +76,7 @@ void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const Syste
 	behaviorsToSerialize.Insert("behaviors");
 	behaviorsToSerialize.Insert("objectID", std::to_string(modelComponent->GetParent()->GetObjectID()));
 
-	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", &behaviorsToSerialize);
+	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", behaviorsToSerialize);
 }
 
 void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent) {
@@ -272,7 +272,7 @@ void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const Sys
 
 	args.Insert("visible", false);
 
-	GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "ToggleBehaviorEditor", &args);
+	GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "ToggleBehaviorEditor", args);
 
 	MoveToInventoryMessage moveToInventoryMessage(arguments);
 
