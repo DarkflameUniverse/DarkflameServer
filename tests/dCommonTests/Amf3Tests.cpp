@@ -61,7 +61,7 @@ TEST(dCommonTests, AMF3AssociativeArrayTest) {
 
 TEST(dCommonTests, AMF3InsertionAssociativeTest) {
 	AMFArrayValue array;
-	array.Insert<std::string>("CString", "string");
+	array.Insert("CString", "string");
 	array.Insert("String", std::string("string"));
 	array.Insert("False", false);
 	array.Insert("True", true);
@@ -72,7 +72,7 @@ TEST(dCommonTests, AMF3InsertionAssociativeTest) {
 	array.Insert("Null", nullptr);
 
 	std::cout << "test" << std::endl;
-	ASSERT_EQ(array.Get<std::string>("CString")->GetValueType(), eAmf::String);
+	ASSERT_EQ(array.Get<const char*>("CString")->GetValueType(), eAmf::String);
 	std::cout << "test" << std::endl;
 	ASSERT_EQ(array.Get<std::string>("String")->GetValueType(), eAmf::String);
 	std::cout << "test" << std::endl;
@@ -94,8 +94,8 @@ TEST(dCommonTests, AMF3InsertionAssociativeTest) {
 
 TEST(dCommonTests, AMF3InsertionDenseTest) {
 	AMFArrayValue array;
-	array.Push(std::string("string"));
-	array.Push<std::string>("CString");
+	array.Push<std::string>("string");
+	array.Push("CString");
 	array.Push(false);
 	array.Push(true);
 	array.Push<int32_t>(42U);
@@ -105,7 +105,7 @@ TEST(dCommonTests, AMF3InsertionDenseTest) {
 	array.Push<std::vector<uint32_t>>({});
 
 	ASSERT_EQ(array.Get<std::string>(0)->GetValueType(), eAmf::String);
-	ASSERT_EQ(array.Get<std::string>(1)->GetValueType(), eAmf::String);
+	ASSERT_EQ(array.Get<const char*>(1)->GetValueType(), eAmf::String);
 	ASSERT_EQ(array.Get<bool>(2)->GetValueType(), eAmf::False);
 	ASSERT_EQ(array.Get<bool>(3)->GetValueType(), eAmf::True);
 	ASSERT_EQ(array.Get<int32_t>(4)->GetValueType(), eAmf::Integer);
