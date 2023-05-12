@@ -9,11 +9,13 @@
 class User;
 struct SystemAddress;
 enum class eGameMasterLevel : uint8_t;
+enum class eCharacterCreationResponse : uint8_t;
+enum class eRenameResponse : uint8_t;
 
 namespace WorldPackets {
 	void SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum);
 	void SendCharacterList(const SystemAddress& sysAddr, User* user);
-	void SendCharacterCreationResponse(const SystemAddress& sysAddr, eCreationResponse response);
+	void SendCharacterCreationResponse(const SystemAddress& sysAddr, eCharacterCreationResponse response);
 	void SendCharacterRenameResponse(const SystemAddress& sysAddr, eRenameResponse response);
 	void SendCharacterDeleteResponse(const SystemAddress& sysAddr, bool response);
 	void SendTransferToWorld(const SystemAddress& sysAddr, const std::string& serverIP, uint32_t serverPort, bool mythranShift);

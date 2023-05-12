@@ -12,6 +12,9 @@
 #include "CDZoneTableTable.h"
 #include <chrono>
 // #include "RandomQBManager.h"
+#include "eObjectBits.h"
+#include "CDZoneTableTable.h"
+#include "AssetManager.h"
 
 #include "../dWorldServer/ObjectIDManager.h"
 
@@ -141,8 +144,7 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 
 	if (objectId == LWOOBJID_EMPTY) {
 		objectId = ObjectIDManager::Instance()->GenerateObjectID();
-
-		objectId = GeneralUtils::SetBit(objectId, OBJECT_BIT_CLIENT);
+		GeneralUtils::SetBit(objectId, eObjectBits::CLIENT);
 
 		info.spawnerID = objectId;
 	}
@@ -233,6 +235,17 @@ uint32_t dZoneManager::GetUniqueMissionIdStartingValue() {
 		tableData.finalize();
 	}
 	return m_UniqueMissionIdStart;
+}
+
+bool dZoneManager::CheckIfAccessibleZone(LWOMAPID zoneID) {
+	//We're gonna go ahead and presume we've got the db loaded already:
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	const CDZoneTable* zone = zoneTable->Query(zoneID);
+	if (zone != nullptr) {
+		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());
+	} else {
+		return false;
+	}
 }
 
 void dZoneManager::LoadWorldConfig() {

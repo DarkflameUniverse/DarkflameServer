@@ -1,8 +1,10 @@
 set(DCOMMONTEST_SOURCES
 	"AMFDeserializeTests.cpp"
+	"HeaderSkipTest.cpp"
 	"TestLDFFormat.cpp"
 	"TestNiPoint3.cpp"
 	"TestEncoding.cpp"
+	"dCommonDependencies.cpp"
 )
 
 # Set our executable

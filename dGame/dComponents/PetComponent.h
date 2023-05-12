@@ -263,7 +263,7 @@ private:
 	/**
 	 * Flags that indicate that a player has tamed a pet, indexed by the LOT of the pet
 	 */
-	static std::map<LOT, uint32_t> petFlags;
+	static std::map<LOT, int32_t> petFlags;
 
 	/**
 	 * The ID of the component in the pet component table

@@ -4,6 +4,7 @@
 #include "eMissionState.h"
 #include "Character.h"
 #include "eReplicaComponentType.h"
+#include "ePlayerFlag.h"
 
 /*
 --------------------------------------------------------------
@@ -36,6 +37,6 @@ void RemoveRentalGear::OnMissionDialogueOK(Entity* self, Entity* target, int mis
 
 		//reset the equipment flag
 		auto character = target->GetCharacter();
-		if (character) character->SetPlayerFlag(equipFlag, false);
+		if (character) character->SetPlayerFlag(ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR, false);
 	}
 }

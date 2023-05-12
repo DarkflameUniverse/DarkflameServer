@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "PetComponent.h"
 #include "EntityInfo.h"
+#include "eTerminateType.h"
 
 void SpawnPetBaseServer::OnStartup(Entity* self) {
 	SetVariables(self);
@@ -43,7 +44,7 @@ void SpawnPetBaseServer::OnUse(Entity* self, Entity* user) {
 		GameMessages::SendPlayCinematic(user->GetObjectID(), spawnCinematic, UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 }
 
 bool SpawnPetBaseServer::CheckNumberOfPets(Entity* self, Entity* user) {

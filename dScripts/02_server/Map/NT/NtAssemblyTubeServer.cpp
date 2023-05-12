@@ -5,6 +5,7 @@
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
 #include "eEndBehavior.h"
+#include "eStateChangeType.h"
 
 void NtAssemblyTubeServer::OnStartup(Entity* self) {
 	self->SetProximityRadius(5, "teleport");

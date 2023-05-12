@@ -14,7 +14,7 @@ class ModuleAssemblyComponent : public Component {
 public:
 	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODULE_ASSEMBLY;
 
-	ModuleAssemblyComponent(Entity* MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
+	ModuleAssemblyComponent(Entity* parent);
 	~ModuleAssemblyComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
