@@ -335,7 +335,6 @@ int main(int argc, char** argv) {
 
 		Game::im->GetInstance(0, false, 0);
 		Game::im->GetInstance(1000, false, 0);
-
 		StartAuthServer();
 	}
 

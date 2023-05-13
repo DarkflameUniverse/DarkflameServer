@@ -22,9 +22,8 @@ extern PlayerContainer playerContainer;
 
 void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	//Get from the packet which player we want to do something with:
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = 0;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 
 	auto player = playerContainer.GetPlayerData(playerID);
@@ -99,9 +98,8 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	auto maxNumberOfBestFriendsAsString = Game::config->GetValue("max_number_of_best_friends");
 	// If this config option doesn't exist, default to 5 which is what live used.
 	auto maxNumberOfBestFriends = maxNumberOfBestFriendsAsString != "" ? std::stoi(maxNumberOfBestFriendsAsString) : 5U;
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID requestorPlayerID;
-	inStream.Read(requestorPlayerID);
 	inStream.Read(requestorPlayerID);
 	uint32_t spacing{};
 	inStream.Read(spacing);
@@ -247,9 +245,8 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 
 	eAddFriendResponseCode clientResponseCode = static_cast<eAddFriendResponseCode>(packet->data[0x14]);
@@ -323,9 +320,8 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 	std::string friendName = PacketUtils::ReadString(0x14, packet, true);
 
@@ -381,9 +377,8 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleChatMessage(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 
 	auto* sender = playerContainer.GetPlayerData(playerID);
@@ -501,9 +496,8 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 	std::string invitedPlayer = PacketUtils::ReadString(0x14, packet, true);
 
@@ -542,9 +536,8 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 	uint32_t size = 0;
 	inStream.Read(size);
@@ -576,9 +569,8 @@ void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleTeamLeave(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 	uint32_t size = 0;
 	inStream.Read(size);
@@ -593,9 +585,8 @@ void ChatPacketHandler::HandleTeamLeave(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleTeamKick(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 
 	std::string kickedPlayer = PacketUtils::ReadString(0x14, packet, true);
@@ -624,9 +615,8 @@ void ChatPacketHandler::HandleTeamKick(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleTeamPromote(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 
 	std::string promotedPlayer = PacketUtils::ReadString(0x14, packet, true);
@@ -647,9 +637,8 @@ void ChatPacketHandler::HandleTeamPromote(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleTeamLootOption(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 	uint32_t size = 0;
 	inStream.Read(size);
@@ -671,9 +660,8 @@ void ChatPacketHandler::HandleTeamLootOption(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
 	inStream.Read(playerID);
 
 	auto* team = playerContainer.GetTeam(playerID);

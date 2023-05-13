@@ -707,6 +707,13 @@ void Entity::Initialize() {
 				// TODO: create movementAIcomp and set path
 			}
 		}*/
+	} else {
+		// else we still need to setup moving platform if it has a moving platform comp but no path
+		int32_t movingPlatformComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);
+		if (movingPlatformComponentId >= 0) {
+			MovingPlatformComponent* plat = new MovingPlatformComponent(this, pathName);
+			m_Components.insert(std::make_pair(eReplicaComponentType::MOVING_PLATFORM, plat));
+		}
 	}
 
 	int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
@@ -1482,6 +1489,12 @@ void Entity::OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16
 void Entity::OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier) {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnChoiceBoxResponse(this, sender, button, buttonIdentifier, identifier);
+	}
+}
+
+void Entity::RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+		script->OnRequestActivityExit(sender, player, canceled);
 	}
 }
 

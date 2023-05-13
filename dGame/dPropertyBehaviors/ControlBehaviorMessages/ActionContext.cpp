@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 ActionContext::ActionContext() {
 	stripId = 0;
@@ -17,15 +17,15 @@ ActionContext::ActionContext(AMFArrayValue* arguments, std::string customStateKe
 }
 
 BehaviorState ActionContext::GetBehaviorStateFromArgument(AMFArrayValue* arguments, const std::string& key) {
-	auto* stateIDValue = arguments->FindValue<AMFDoubleValue>(key);
+	auto* stateIDValue = arguments->Get<double>(key);
 	if (!stateIDValue) throw std::invalid_argument("Unable to find behavior state from argument \"" + key + "\"");
 
-	return static_cast<BehaviorState>(stateIDValue->GetDoubleValue());
+	return static_cast<BehaviorState>(stateIDValue->GetValue());
 }
 
 StripId ActionContext::GetStripIdFromArgument(AMFArrayValue* arguments, const std::string& key) {
-	auto* stripIdValue = arguments->FindValue<AMFDoubleValue>(key);
+	auto* stripIdValue = arguments->Get<double>(key);
 	if (!stripIdValue) throw std::invalid_argument("Unable to find strip ID from argument \"" + key + "\"");
 
-	return static_cast<StripId>(stripIdValue->GetDoubleValue());
+	return static_cast<StripId>(stripIdValue->GetValue());
 }

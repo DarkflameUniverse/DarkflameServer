@@ -19,9 +19,8 @@ PlayerContainer::~PlayerContainer() {
 }
 
 void PlayerContainer::InsertPlayer(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	PlayerData* data = new PlayerData();
-	inStream.SetReadOffset(inStream.GetReadOffset() + 64);
 	inStream.Read(data->playerID);
 
 	uint32_t len;
@@ -52,9 +51,8 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 }
 
 void PlayerContainer::RemovePlayer(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
-	inStream.Read(playerID); //skip header
 	inStream.Read(playerID);
 
 	//Before they get kicked, we need to also send a message to their friends saying that they disconnected.
@@ -97,9 +95,8 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 }
 
 void PlayerContainer::MuteUpdate(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
-	inStream.Read(playerID); //skip header
 	inStream.Read(playerID);
 	time_t expire = 0;
 	inStream.Read(expire);
@@ -118,9 +115,8 @@ void PlayerContainer::MuteUpdate(Packet* packet) {
 }
 
 void PlayerContainer::CreateTeamServer(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
-	inStream.Read(playerID); //skip header
 	inStream.Read(playerID);
 	size_t membersSize = 0;
 	inStream.Read(membersSize);
