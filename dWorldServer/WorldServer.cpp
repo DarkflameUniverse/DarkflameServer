@@ -861,7 +861,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_RESPOND_INSTANCES: {
+		case eMasterMessageType::RESPOND_INSTANCES: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
