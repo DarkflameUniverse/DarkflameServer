@@ -13,8 +13,10 @@ AMFBaseValue* AMFDeserialize::Read(RakNet::BitStream* inStream) {
 	if (!inStream) return nullptr;
 	AMFBaseValue* returnValue = nullptr;
 	// Read in the value type from the bitStream
-	eAmf marker;
-	inStream->Read(marker);
+	uint8_t i;
+	inStream->Read(i);
+	if (i > static_cast<uint8_t>(eAmf::Dictionary)) return nullptr;
+	eAmf marker = static_cast<eAmf>(i);
 	// Based on the typing, create the value associated with that and return the base value class
 	switch (marker) {
 	case eAmf::Undefined: {
