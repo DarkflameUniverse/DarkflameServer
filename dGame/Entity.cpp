@@ -690,23 +690,11 @@ void Entity::Initialize() {
 	}
 
 	std::string pathName = GetVarAsString(u"attached_path");
-	const Path* path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
 
-	//Check to see if we have an attached path and add the appropiate component to handle it:
-	if (path){
-		// if we have a moving platform path, then we need a moving platform component
-		if (path->pathType == PathType::MovingPlatform) {
-			MovingPlatformComponent* plat = new MovingPlatformComponent(this, pathName);
-			m_Components.insert(std::make_pair(eReplicaComponentType::MOVING_PLATFORM, plat));
-		// else if we are a movement path
-		} /*else if (path->pathType == PathType::Movement) {
-			auto movementAIcomp = GetComponent<MovementAIComponent>();
-			if (movementAIcomp){
-				// TODO: set path in existing movementAIComp
-			} else {
-				// TODO: create movementAIcomp and set path
-			}
-		}*/
+	int32_t movingPlatformComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);
+	if (movingPlatformComponentId >= 0 || !pathName.empty()) {
+		MovingPlatformComponent* plat = new MovingPlatformComponent(this, pathName);
+		m_Components.insert(std::make_pair(eReplicaComponentType::MOVING_PLATFORM, plat));
 	}
 
 	int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
