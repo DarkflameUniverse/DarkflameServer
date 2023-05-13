@@ -1013,6 +1013,8 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		possessableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
+	// Blueprint
+
 	ModuleAssemblyComponent* moduleAssemblyComponent;
 	if (TryGetComponent(eReplicaComponentType::MODULE_ASSEMBLY, moduleAssemblyComponent)) {
 		moduleAssemblyComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
@@ -1023,9 +1025,14 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		controllablePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	SimplePhysicsComponent* simplePhysicsComponent;
-	if (TryGetComponent(eReplicaComponentType::SIMPLE_PHYSICS, simplePhysicsComponent)) {
-		simplePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	// ProjectilePhysics Deserilized
+	// PhysicsSystem Deserialized
+	// VehiclePhysics Deserialized
+
+	// This is Havok Vehicle
+	VehiclePhysicsComponent* vehiclePhysicsComponent;
+	if (TryGetComponent(eReplicaComponentType::VEHICLE_PHYSICS, vehiclePhysicsComponent)) {
+		vehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	RigidbodyPhantomPhysicsComponent* rigidbodyPhantomPhysics;
@@ -1033,19 +1040,14 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		rigidbodyPhantomPhysics->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	VehiclePhysicsComponent* vehiclePhysicsComponent;
-	if (TryGetComponent(eReplicaComponentType::VEHICLE_PHYSICS, vehiclePhysicsComponent)) {
-		vehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	SimplePhysicsComponent* simplePhysicsComponent;
+	if (TryGetComponent(eReplicaComponentType::SIMPLE_PHYSICS, simplePhysicsComponent)) {
+		simplePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	PhantomPhysicsComponent* phantomPhysicsComponent;
 	if (TryGetComponent(eReplicaComponentType::PHANTOM_PHYSICS, phantomPhysicsComponent)) {
 		phantomPhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
-
-	SoundTriggerComponent* soundTriggerComponent;
-	if (TryGetComponent(eReplicaComponentType::SOUND_TRIGGER, soundTriggerComponent)) {
-		soundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	BuffComponent* buffComponent;
@@ -1066,11 +1068,6 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		}
 		destroyableSerialized = true;
 		outBitStream->Write(m_CollectibleID); // Collectable component
-	}
-
-	PetComponent* petComponent;
-	if (TryGetComponent(eReplicaComponentType::PET, petComponent)) {
-		petComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	CharacterComponent* characterComponent;
@@ -1103,14 +1100,18 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	if (HasComponent(eReplicaComponentType::ITEM)) {
-		outBitStream->Write0();
+	PetComponent* petComponent;
+	if (TryGetComponent(eReplicaComponentType::PET, petComponent)) {
+		petComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	InventoryComponent* inventoryComponent;
 	if (TryGetComponent(eReplicaComponentType::INVENTORY, inventoryComponent)) {
 		inventoryComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
+
+	// ProximityMonitor
+	// MovementAI
 
 	ScriptComponent* scriptComponent;
 	if (TryGetComponent(eReplicaComponentType::SCRIPT, scriptComponent)) {
@@ -1127,6 +1128,18 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		baseCombatAiComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
+	// Spawner
+
+	if (HasComponent(eReplicaComponentType::ITEM)) {
+		outBitStream->Write0();
+	}
+
+	// Rebuild (The real one)
+	// BuildBorder
+	// Module
+	// RebuildStart
+	// RebuildActivator
+
 	RebuildComponent* rebuildComponent;
 	if (TryGetComponent(eReplicaComponentType::QUICK_BUILD, rebuildComponent)) {
 		DestroyableComponent* destroyableComponent;
@@ -1137,54 +1150,54 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		rebuildComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	MovingPlatformComponent* movingPlatformComponent;
-	if (TryGetComponent(eReplicaComponentType::MOVING_PLATFORM, movingPlatformComponent)) {
-		movingPlatformComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
-
-	SwitchComponent* switchComponent;
-	if (TryGetComponent(eReplicaComponentType::SWITCH, switchComponent)) {
-		switchComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
+	// MissionOffer
 
 	VendorComponent* vendorComponent;
 	if (TryGetComponent(eReplicaComponentType::VENDOR, vendorComponent)) {
 		vendorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	BouncerComponent* bouncerComponent;
-	if (TryGetComponent(eReplicaComponentType::BOUNCER, bouncerComponent)) {
-		bouncerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
-
-	ScriptedActivityComponent* scriptedActivityComponent;
-	if (TryGetComponent(eReplicaComponentType::SCRIPTED_ACTIVITY, scriptedActivityComponent)) {
-		scriptedActivityComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
+	// Donation Vendor
+	// Achievement Vendor
 
 	ShootingGalleryComponent* shootingGalleryComponent;
 	if (TryGetComponent(eReplicaComponentType::SHOOTING_GALLERY, shootingGalleryComponent)) {
 		shootingGalleryComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
-	RacingControlComponent* racingControlComponent;
-	if (TryGetComponent(eReplicaComponentType::RACING_CONTROL, racingControlComponent)) {
-		racingControlComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	// Roller Deserialized
+
+	ScriptedActivityComponent* scriptedActivityComponent;
+	if (TryGetComponent(eReplicaComponentType::SCRIPTED_ACTIVITY, scriptedActivityComponent)) {
+		scriptedActivityComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
+
+	// Collectible??? why is it done that way above
+
+	MovingPlatformComponent* movingPlatformComponent;
+	if (TryGetComponent(eReplicaComponentType::MOVING_PLATFORM, movingPlatformComponent)) {
+		movingPlatformComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	}
+
+	// Changling
+	// ChoiceBuilds Deserialized
+	// Package
+	// PlatformBoundary
+	// HF Light Direction Gadget
+	// Culling Plane
+	// Exhibit
 
 	LUPExhibitComponent* lupExhibitComponent;
 	if (TryGetComponent(eReplicaComponentType::LUP_EXHIBIT, lupExhibitComponent)) {
 		lupExhibitComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
+	// Property
+	// Property Plaque
+
 	ModelComponent* modelComponent;
 	if (TryGetComponent(eReplicaComponentType::MODEL, modelComponent)) {
 		modelComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
-	}
-
-	RenderComponent* renderComponent;
-	if (TryGetComponent(eReplicaComponentType::RENDER, renderComponent)) {
-		renderComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	if (modelComponent) {
@@ -1195,14 +1208,67 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		}
 	}
 
+	// PropertyEntrance
+	// Rocket Launch LUP
+	// Property Management
+	// Rail Activator
+
+	BouncerComponent* bouncerComponent;
+	if (TryGetComponent(eReplicaComponentType::BOUNCER, bouncerComponent)) {
+		bouncerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	}
+
+	// Spring Pad
+
+	SwitchComponent* switchComponent;
+	if (TryGetComponent(eReplicaComponentType::SWITCH, switchComponent)) {
+		switchComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	}
+
 	if (HasComponent(eReplicaComponentType::ZONE_CONTROL)) {
 		outBitStream->Write<uint32_t>(0x40000000);
 	}
+
+	// Model Builder
+	// Sound Repeater Deserialized
+	// Chest Deserialized
+	// Showcase Model Handler
+	// Arcade (Jetpackpad)
+
+	RenderComponent* renderComponent;
+	if (TryGetComponent(eReplicaComponentType::RENDER, renderComponent)) {
+		renderComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	}
+
+	// Soung Ambient 2D
+	// Soung Ambient 2D
+
+	SoundTriggerComponent* soundTriggerComponent;
+	if (TryGetComponent(eReplicaComponentType::SOUND_TRIGGER, soundTriggerComponent)) {
+		soundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	}
+
+	// Racing Sound Trigger Deserialize
+	// Custom Build Assembly
+	// Generic Activator
+	// Property Vendor
+	// Rocket Launch
+	// Rocket Landing
+	// Faction Trigger
+
+	RacingControlComponent* racingControlComponent;
+	if (TryGetComponent(eReplicaComponentType::RACING_CONTROL, racingControlComponent)) {
+		racingControlComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	}
+
+	// Gate Rush
 
 	// BBB Component, unused currently
 	// Need to to write0 so that is serialized correctly
 	// TODO: Implement BBB Component
 	outBitStream->Write0();
+
+	// Crafting
 }
 
 void Entity::ResetFlags() {
