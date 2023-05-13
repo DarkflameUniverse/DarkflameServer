@@ -5,6 +5,7 @@
 #include "DestroyableComponent.h"
 #include "Entity.h"
 #include "eReplicaComponentType.h"
+#include "eStateChangeType.h"
 
 class DestroyableTest : public GameDependenciesTest {
 protected:

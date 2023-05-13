@@ -10,6 +10,7 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "LDFFormat.h"
+#include "eKillType.h"
 
 namespace Loot {
 	class Info;
@@ -33,6 +34,8 @@ class EntityCallbackTimer;
 enum class eTriggerEventType;
 enum class eGameMasterLevel : uint8_t;
 enum class eReplicaComponentType : uint32_t;
+enum class eReplicaPacketType : uint8_t;
+enum class eCinematicEvent : uint32_t;
 
 namespace CppScripts {
 	class Script;
@@ -204,6 +207,7 @@ public:
 
 	void OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData);
 	void OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);
+	void RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled);
 
 	void Smash(const LWOOBJID source = LWOOBJID_EMPTY, const eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
 	void Kill(Entity* murderer = nullptr);

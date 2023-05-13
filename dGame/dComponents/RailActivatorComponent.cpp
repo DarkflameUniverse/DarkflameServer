@@ -7,6 +7,7 @@
 #include "RebuildComponent.h"
 #include "Game.h"
 #include "dLogger.h"
+#include "eStateChangeType.h"
 
 RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t componentID) : Component(parent) {
 	m_ComponentID = componentID;
@@ -41,7 +42,7 @@ RailActivatorComponent::~RailActivatorComponent() = default;
 
 void RailActivatorComponent::OnUse(Entity* originator) {
 	auto* rebuildComponent = m_Parent->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr && rebuildComponent->GetState() != REBUILD_COMPLETED)
+	if (rebuildComponent != nullptr && rebuildComponent->GetState() != eRebuildState::COMPLETED)
 		return;
 
 	if (rebuildComponent != nullptr) {

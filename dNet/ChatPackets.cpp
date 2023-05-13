@@ -8,12 +8,13 @@
 #include "BitStream.h"
 #include "Game.h"
 #include "PacketUtils.h"
-#include "dMessageIdentifiers.h"
 #include "dServer.h"
+#include "eConnectionType.h"
+#include "eChatMessageType.h"
 
 void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel, const std::string& senderName, LWOOBJID playerObjectID, bool senderMythran, const std::u16string& message) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, CHAT, MSG_CHAT_GENERAL_CHAT_MESSAGE);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GENERAL_CHAT_MESSAGE);
 
 	bitStream.Write(static_cast<uint64_t>(0));
 	bitStream.Write(chatChannel);
@@ -35,7 +36,7 @@ void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel
 
 void ChatPackets::SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, const bool broadcast) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, CHAT, MSG_CHAT_GENERAL_CHAT_MESSAGE);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GENERAL_CHAT_MESSAGE);
 
 	bitStream.Write(static_cast<uint64_t>(0));
 	bitStream.Write(static_cast<char>(4));
@@ -67,7 +68,7 @@ void ChatPackets::SendMessageFail(const SystemAddress& sysAddr) {
 	//0x01 - "Upgrade to a full LEGO Universe Membership to chat with other players."
 
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_SEND_CANNED_TEXT);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::SEND_CANNED_TEXT);
 	bitStream.Write<uint8_t>(0); //response type, options above ^
 	//docs say there's a wstring here-- no idea what it's for, or if it's even needed so leaving it as is for now.
 	SEND_PACKET;

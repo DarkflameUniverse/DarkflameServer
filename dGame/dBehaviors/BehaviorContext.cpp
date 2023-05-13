@@ -10,13 +10,13 @@
 
 #include <sstream>
 
-#include "dMessageIdentifiers.h"
 #include "DestroyableComponent.h"
 #include "EchoSyncSkill.h"
 #include "PhantomPhysicsComponent.h"
 #include "RebuildComponent.h"
 #include "eReplicaComponentType.h"
 #include "TeamManager.h"
+#include "eConnectionType.h"
 
 BehaviorSyncEntry::BehaviorSyncEntry() {
 }
@@ -254,7 +254,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 			// Write message
 			RakNet::BitStream message;
 
-			PacketUtils::WriteHeader(message, CLIENT, MSG_CLIENT_GAME_MSG);
+			PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			message.Write(this->originator);
 			echo.Serialize(&message);
 
@@ -417,7 +417,7 @@ bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
 
 	// ignore quickbuilds that aren't completed
 	auto* targetQuickbuildComponent = target->GetComponent<RebuildComponent>();
-	if (targetQuickbuildComponent && targetQuickbuildComponent->GetState() != REBUILD_COMPLETED) return false;
+	if (targetQuickbuildComponent && targetQuickbuildComponent->GetState() != eRebuildState::COMPLETED) return false;
 
 	return true;
 }

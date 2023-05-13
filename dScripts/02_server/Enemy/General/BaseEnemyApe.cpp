@@ -6,6 +6,7 @@
 #include "EntityInfo.h"
 #include "SkillComponent.h"
 #include "eAninmationFlags.h"
+#include "eStateChangeType.h"
 
 void BaseEnemyApe::OnStartup(Entity* self) {
 	self->SetVar<uint32_t>(u"timesStunned", 2);
@@ -15,7 +16,7 @@ void BaseEnemyApe::OnStartup(Entity* self) {
 void BaseEnemyApe::OnDie(Entity* self, Entity* killer) {
 	auto* anchor = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"QB"));
 	if (anchor != nullptr && !anchor->GetIsDead()) {
-		anchor->Smash(self->GetObjectID(), SILENT);
+		anchor->Smash(self->GetObjectID(), eKillType::SILENT);
 	}
 }
 

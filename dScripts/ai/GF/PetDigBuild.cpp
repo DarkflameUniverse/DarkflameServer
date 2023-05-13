@@ -46,6 +46,6 @@ void PetDigBuild::OnDie(Entity* self, Entity* killer) {
 
 	// If the quick build expired and the treasure was not collected, hide the treasure
 	if (!treasure->GetIsDead()) {
-		treasure->Smash(self->GetObjectID(), SILENT);
+		treasure->Smash(self->GetObjectID(), eKillType::SILENT);
 	}
 }

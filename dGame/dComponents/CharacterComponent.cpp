@@ -13,8 +13,9 @@
 #include "VehiclePhysicsComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "eGameMasterLevel.h"
+#include "eGameActivity.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
@@ -35,7 +36,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_EditorLevel = m_GMLevel;
 	m_Reputation = 0;
 
-	m_CurrentActivity = 0;
+	m_CurrentActivity = eGameActivity::NONE;
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
 }
@@ -733,6 +734,6 @@ void CharacterComponent::RemoveVentureVisionEffect(std::string ventureVisionType
 void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const {
 	if (!m_Parent) return;
 	AMFArrayValue arrayToSend;
-	arrayToSend.InsertValue(ventureVisionType, showFaction ? static_cast<AMFValue*>(new AMFTrueValue()) : static_cast<AMFValue*>(new AMFFalseValue()));
-	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", &arrayToSend);
+	arrayToSend.Insert(ventureVisionType, showFaction);
+	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", arrayToSend);
 }

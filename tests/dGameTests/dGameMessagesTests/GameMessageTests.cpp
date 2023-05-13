@@ -1,5 +1,5 @@
 #include "Action.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "AMFDeserialize.h"
 #include "GameMessages.h"
 #include "GameDependencies.h"
@@ -40,8 +40,8 @@ protected:
 	}
 	AMFArrayValue* ReadArrayFromBitStream(RakNet::BitStream* inStream) {
 		AMFDeserialize des;
-		AMFValue* readArray = des.Read(inStream);
-		EXPECT_EQ(readArray->GetValueType(), AMFValueType::AMFArray);
+		AMFBaseValue* readArray = des.Read(inStream);
+		EXPECT_EQ(readArray->GetValueType(), eAmf::Array);
 		return static_cast<AMFArrayValue*>(readArray);
 	}
 };

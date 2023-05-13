@@ -18,13 +18,16 @@
 #include "dConfig.h"
 #include "InventoryComponent.h"
 #include "DestroyableComponent.h"
-#include "dMessageIdentifiers.h"
 #include "Loot.h"
 #include "eMissionTaskType.h"
+#include "eMatchUpdate.h"
+#include "eConnectionType.h"
+#include "eChatInternalMessageType.h"
 
 #include "CDCurrencyTableTable.h"
 #include "CDActivityRewardsTable.h"
 #include "CDActivitiesTable.h"
+#include "LeaderboardManager.h"
 
 ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent) {
 	m_ActivityID = activityID;
@@ -33,10 +36,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
 	for (CDActivities activity : activities) {
 		m_ActivityInfo = activity;
-
-		const auto mapID = m_ActivityInfo.instanceMapID;
-
-		if ((mapID == 1203 || mapID == 1261 || mapID == 1303 || mapID == 1403) && Game::config->GetValue("solo_racing") == "1") {
+		if (static_cast<LeaderboardType>(activity.leaderboardType) == LeaderboardType::Racing && Game::config->GetValue("solo_racing") == "1") {
 			m_ActivityInfo.minTeamSize = 1;
 			m_ActivityInfo.minTeams = 1;
 		}
@@ -167,9 +167,9 @@ void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
 				}
 
 				std::string matchUpdate = "player=9:" + std::to_string(entity->GetObjectID()) + "\nplayerName=0:" + entity->GetCharacter()->GetName();
-				GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchUpdate, eMatchUpdate::MATCH_UPDATE_PLAYER_JOINED);
+				GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchUpdate, eMatchUpdate::PLAYER_ADDED);
 				PlayerReady(entity, joinedPlayer->ready);
-				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateJoined, eMatchUpdate::MATCH_UPDATE_PLAYER_JOINED);
+				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateJoined, eMatchUpdate::PLAYER_ADDED);
 			}
 		}
 	}
@@ -185,7 +185,7 @@ void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
 	if (m_ActivityInfo.maxTeamSize != 1 && playerLobby->players.size() >= m_ActivityInfo.minTeamSize || m_ActivityInfo.maxTeamSize == 1 && playerLobby->players.size() >= m_ActivityInfo.minTeams) {
 		// Update the joining player on the match timer
 		std::string matchTimerUpdate = "time=3:" + std::to_string(playerLobby->timer);
-		GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::MATCH_UPDATE_TIME);
+		GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::PHASE_WAIT_READY);
 	}
 }
 
@@ -201,7 +201,7 @@ void ScriptedActivityComponent::PlayerLeave(LWOOBJID playerID) {
 					if (entity == nullptr)
 						continue;
 
-					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateLeft, eMatchUpdate::MATCH_UPDATE_PLAYER_LEFT);
+					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateLeft, eMatchUpdate::PLAYER_REMOVED);
 				}
 
 				delete lobby->players[i];
@@ -242,7 +242,7 @@ void ScriptedActivityComponent::Update(float deltaTime) {
 						continue;
 
 					std::string matchTimerUpdate = "time=3:" + std::to_string(lobby->timer);
-					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::MATCH_UPDATE_TIME);
+					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::PHASE_WAIT_READY);
 				}
 			}
 
@@ -267,7 +267,7 @@ void ScriptedActivityComponent::Update(float deltaTime) {
 				if (entity == nullptr)
 					continue;
 
-				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::MATCH_UPDATE_TIME_START_DELAY);
+				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::PHASE_WAIT_START);
 			}
 		}
 
@@ -375,8 +375,8 @@ void ScriptedActivityComponent::PlayerReady(Entity* player, bool bReady) {
 
 				// Update players in lobby on player being ready
 				std::string matchReadyUpdate = "player=9:" + std::to_string(player->GetObjectID());
-				eMatchUpdate readyStatus = eMatchUpdate::MATCH_UPDATE_PLAYER_READY;
-				if (!bReady) readyStatus = eMatchUpdate::MATCH_UPDATE_PLAYER_UNREADY;
+				eMatchUpdate readyStatus = eMatchUpdate::PLAYER_READY;
+				if (!bReady) readyStatus = eMatchUpdate::PLAYER_NOT_READY;
 				for (LobbyPlayer* otherPlayer : lobby->players) {
 					auto* entity = otherPlayer->GetEntity();
 					if (entity == nullptr)
@@ -516,7 +516,7 @@ void ActivityInstance::StartZone() {
 	// only make a team if we have more than one participant
 	if (participants.size() > 1) {
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_CREATE_TEAM);
+		PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::CREATE_TEAM);
 
 		bitStream.Write(leader->GetObjectID());
 		bitStream.Write(m_Participants.size());

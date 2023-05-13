@@ -6,6 +6,8 @@
 #include "MissionComponent.h"
 #include "eMissionState.h"
 #include "eReplicaComponentType.h"
+#include "eCinematicEvent.h"
+#include "ePlayerFlag.h"
 
 void NtFactionSpyServer::OnStartup(Entity* self) {
 	SetVariables(self);
@@ -77,14 +79,14 @@ void NtFactionSpyServer::OnCinematicUpdate(Entity* self, Entity* sender, eCinema
 
 		// Make sure we're listening to the root we're interested in
 		if (pathRoot == cinematicRoot) {
-			if (event == STARTED && pathIndex >= 0 && pathIndex < dialogueTable.size()) {
+			if (event == eCinematicEvent::STARTED && pathIndex >= 0 && pathIndex < dialogueTable.size()) {
 
 				// If the cinematic started, show part of the conversation
 				GameMessages::SendNotifyClientObject(self->GetObjectID(), m_SpyDialogueNotification, 0,
 					0, ParamObjectForConversationID(self, dialogueTable.at(pathIndex).conversationID),
 					dialogueTable.at(pathIndex).token, sender->GetSystemAddress());
 
-			} else if (event == ENDED && pathIndex >= dialogueTable.size() - 1) {
+			} else if (event == eCinematicEvent::ENDED && pathIndex >= dialogueTable.size() - 1) {
 				auto spyData = self->GetVar<SpyData>(m_SpyDataVariable);
 				auto* character = sender->GetCharacter();
 				if (character != nullptr) {

@@ -11,6 +11,7 @@
 namespace CppScripts {
 	class Script;
 }; //! namespace CppScripts
+enum class eStateChangeType : uint32_t;
 
 /**
  * Represents the stats of an entity, for example its health, imagination and armor. Also handles factions, which
