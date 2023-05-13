@@ -872,7 +872,7 @@ void HandlePacket(Packet* packet) {
 
 			CBITSTREAM
 
-			PacketUtils::WriteHeader(bitStream, MASTER, eMasterMessageTypeRESPOND_INSTANCES);
+			PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::RESPOND_INSTANCES);
 
 			bitStream.Write(objectID);
 
