@@ -20,11 +20,11 @@
 #include "ScriptComponent.h"
 #include "BuffComponent.h"
 #include "EchoStartSkill.h"
-#include "dMessageIdentifiers.h"
 #include "DoClientProjectileImpact.h"
 #include "CDClientManager.h"
-
 #include "CDSkillBehaviorTable.h"
+#include "eConnectionType.h"
+#include "eClientMessageType.h"
 
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
@@ -260,6 +260,8 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	context->caster = m_Parent->GetObjectID();
 
+	context->skillID = skillId;
+
 	context->clientInitalized = clientInitalized;
 
 	context->foundTarget = target != LWOOBJID_EMPTY || ignoreTarget || clientInitalized;
@@ -302,7 +304,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		// Write message
 		RakNet::BitStream message;
 
-		PacketUtils::WriteHeader(message, CLIENT, MSG_CLIENT_GAME_MSG);
+		PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 		message.Write(this->m_Parent->GetObjectID());
 		start.Serialize(&message);
 
@@ -435,7 +437,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	RakNet::BitStream message;
 
-	PacketUtils::WriteHeader(message, CLIENT, MSG_CLIENT_GAME_MSG);
+	PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 	message.Write(this->m_Parent->GetObjectID());
 	projectileImpact.Serialize(&message);
 

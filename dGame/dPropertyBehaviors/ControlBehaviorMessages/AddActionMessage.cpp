@@ -4,7 +4,7 @@ AddActionMessage::AddActionMessage(AMFArrayValue* arguments) : BehaviorMessageBa
 	actionContext = ActionContext(arguments);
 	actionIndex = GetActionIndexFromArgument(arguments);
 
-	auto* actionValue = arguments->FindValue<AMFArrayValue>("action");
+	auto* actionValue = arguments->GetArray("action");
 	if (!actionValue) return;
 
 	action = Action(actionValue);

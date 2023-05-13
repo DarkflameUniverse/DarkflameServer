@@ -31,7 +31,6 @@
 #include "dConfig.h"
 #include "CharacterComponent.h"
 #include "Database.h"
-#include "dMessageIdentifiers.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 
@@ -47,9 +46,7 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 		return;
 	}
 
-	CINSTREAM;
-	uint64_t header;
-	inStream.Read(header);
+	CINSTREAM_SKIP_HEADER;
 
 	char chatChannel;
 	uint16_t unknown;
@@ -83,9 +80,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		return;
 	}
 
-	CINSTREAM;
-	uint64_t header;
-	inStream.Read(header);
+	CINSTREAM_SKIP_HEADER;
 
 	Entity* entity = EntityManager::Instance()->GetEntity(user->GetLastUsedChar()->GetObjectID());
 	if (!entity) return;

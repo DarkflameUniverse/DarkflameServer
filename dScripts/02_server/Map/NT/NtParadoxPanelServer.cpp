@@ -4,6 +4,8 @@
 #include "EntityManager.h"
 #include "Character.h"
 #include "eMissionState.h"
+#include "eTerminateType.h"
+#include "eStateChangeType.h"
 
 void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"bActive", 1, 0, user->GetObjectID(), "", user->GetSystemAddress());

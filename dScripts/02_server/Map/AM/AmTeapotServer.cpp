@@ -2,6 +2,7 @@
 #include "InventoryComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
+#include "eTerminateType.h"
 
 void AmTeapotServer::OnUse(Entity* self, Entity* user) {
 	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
@@ -18,5 +19,5 @@ void AmTeapotServer::OnUse(Entity* self, Entity* user) {
 		blueFlowerItem->SetCount(blueFlowerItem->GetCount() - 10);
 		inventoryComponent->AddItem(WU_S_IMAGINATION_TEA, 1);
 	}
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 }

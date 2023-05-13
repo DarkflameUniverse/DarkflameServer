@@ -7,7 +7,7 @@ struct SpyDialogue {
 };
 
 struct SpyData {
-	uint32_t flagID;
+	int32_t flagID;
 	LOT itemID;
 	uint32_t missionID;
 };

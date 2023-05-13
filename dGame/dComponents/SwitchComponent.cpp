@@ -39,7 +39,7 @@ bool SwitchComponent::GetActive() const {
 void SwitchComponent::EntityEnter(Entity* entity) {
 	if (!m_Active) {
 		if (m_Rebuild) {
-			if (m_Rebuild->GetState() != eRebuildState::REBUILD_COMPLETED) return;
+			if (m_Rebuild->GetState() != eRebuildState::COMPLETED) return;
 		}
 		m_Active = true;
 		if (!m_Parent) return;

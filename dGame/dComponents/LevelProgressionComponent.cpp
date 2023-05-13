@@ -59,7 +59,7 @@ void LevelProgressionComponent::HandleLevelUp() {
 	for (auto* reward : rewards) {
 		switch (reward->rewardType) {
 		case 0:
-			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LOOT_SOURCE_LEVEL_REWARD);
+			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LEVEL_REWARD);
 			break;
 		case 4:
 		{

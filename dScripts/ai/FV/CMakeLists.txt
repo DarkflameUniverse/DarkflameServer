@@ -1,4 +1,5 @@
-set(DSCRIPTS_SOURCES_AI_FV 
+set(DSCRIPTS_SOURCES_AI_FV
+	"ActNinjaSensei.cpp"
 	"ActNinjaTurret.cpp"
 	"FvFlyingCreviceDragon.cpp"
 	"FvDragonSmashingGolemQb.cpp"
@@ -15,4 +16,5 @@ set(DSCRIPTS_SOURCES_AI_FV
 	"FvPassThroughWall.cpp"
 	"FvBounceOverWall.cpp"
 	"FvMaelstromGeyser.cpp"
+	"TriggerGas.cpp"
 	PARENT_SCOPE)

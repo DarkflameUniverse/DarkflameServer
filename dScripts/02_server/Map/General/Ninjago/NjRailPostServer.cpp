@@ -19,7 +19,7 @@ void NjRailPostServer::OnNotifyObject(Entity* self, Entity* sender, const std::s
 }
 
 void NjRailPostServer::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == REBUILD_COMPLETED) {
+	if (state == eRebuildState::COMPLETED) {
 		auto* relatedRail = GetRelatedRail(self);
 		if (relatedRail == nullptr)
 			return;
@@ -30,7 +30,7 @@ void NjRailPostServer::OnRebuildNotifyState(Entity* self, eRebuildState state) {
 			return;
 
 		self->SetNetworkVar(NetworkNotActiveVariable, false);
-	} else if (state == REBUILD_RESETTING) {
+	} else if (state == eRebuildState::RESETTING) {
 		auto* relatedRail = GetRelatedRail(self);
 		if (relatedRail == nullptr)
 			return;
