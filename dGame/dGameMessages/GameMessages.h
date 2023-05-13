@@ -237,8 +237,6 @@ namespace GameMessages {
 
 	void SendZonePropertyModelEquipped(LWOOBJID objectId, LWOOBJID playerId, LWOOBJID propertyId, const SystemAddress& sysAddr);
 
-	void SendActivateBubbleBuffFromServer(LWOOBJID objectId, bool specialAnims, std::u16string wszType, const SystemAddress& sysAddr);
-
 	void SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress& sysAddr, NiPoint3 position, LWOOBJID plaque, int32_t response, NiQuaternion rotation);
 
 	void SendUGCEquipPreCreateBasedOnEditMode(LWOOBJID objectId, const SystemAddress& sysAddr, int modelCount, LWOOBJID model);
