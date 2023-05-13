@@ -60,7 +60,7 @@
 #include "AssetManager.h"
 #include "LevelProgressionComponent.h"
 #include "eBlueprintSaveResponseType.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "NiPoint3.h"
 #include "eServerDisconnectIdentifiers.h"
 #include "eObjectBits.h"
@@ -598,15 +598,11 @@ void HandlePacketChat(Packet* packet) {
 
 				//Send to our clients:
 				AMFArrayValue args;
-				auto* titleValue = new AMFStringValue();
-				titleValue->SetStringValue(title.c_str());
-				auto* messageValue = new AMFStringValue();
-				messageValue->SetStringValue(msg.c_str());
 
-				args.InsertValue("title", titleValue);
-				args.InsertValue("message", messageValue);
+				args.Insert("title", title);
+				args.Insert("message", msg);
 
-				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
+				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
 
 				break;
 			}

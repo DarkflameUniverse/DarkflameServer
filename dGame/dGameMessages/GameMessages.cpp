@@ -28,7 +28,7 @@
 #include "eUnequippableActiveType.h"
 #include "eMovementPlatformState.h"
 #include "LeaderboardManager.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "Loot.h"
 #include "eRacingTaskParam.h"
 #include "eMissionTaskType.h"
@@ -87,7 +87,7 @@
 #include "AMFDeserialize.h"
 #include "eBlueprintSaveResponseType.h"
 #include "eAninmationFlags.h"
-#include "AMFFormat_BitStream.h"
+#include "AmfSerialize.h"
 #include "eReplicaComponentType.h"
 #include "eClientMessageType.h"
 #include "eGameMessageType.h"
@@ -596,14 +596,14 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFValue* args) {
+void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write((uint16_t)eGameMessageType::UI_MESSAGE_SERVER_TO_SINGLE_CLIENT);
 
-	bitStream.Write(args);
+	bitStream.Write<AMFBaseValue&>(args);
 	uint32_t strMessageNameLength = message.size();
 	bitStream.Write(strMessageNameLength);
 
@@ -614,7 +614,7 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFValue* args) {
+void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue& args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -622,7 +622,7 @@ void GameMessages::SendUIMessageServerToAllClients(const std::string& message, A
 	bitStream.Write(empty);
 	bitStream.Write((uint16_t)eGameMessageType::UI_MESSAGE_SERVER_TO_ALL_CLIENTS);
 
-	bitStream.Write(args);
+	bitStream.Write<AMFBaseValue&>(args);
 	uint32_t strMessageNameLength = message.size();
 	bitStream.Write(strMessageNameLength);
 
@@ -2486,8 +2486,8 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 
 void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	AMFDeserialize reader;
-	std::unique_ptr<AMFValue> amfArguments(reader.Read(inStream));
-	if (amfArguments->GetValueType() != AMFValueType::AMFArray) return;
+	std::unique_ptr<AMFBaseValue> amfArguments(reader.Read(inStream));
+	if (amfArguments->GetValueType() != eAmf::Array) return;
 
 	uint32_t commandLength{};
 	inStream->Read(commandLength);

@@ -4,8 +4,8 @@
 #include "Game.h"
 #include "dConfig.h"
 
-#include "AMFFormat.h"
-#include "AMFFormat_BitStream.h"
+#include "Amf3.h"
+#include "AmfSerialize.h"
 #include "GameMessages.h"
 #include "User.h"
 #include "CDClientManager.h"
@@ -245,16 +245,12 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 	if (playAnim) {
 		// Now update the player bar
 		if (!m_Parent->GetParentUser()) return;
-		AMFStringValue* amount = new AMFStringValue();
-		amount->SetStringValue(std::to_string(difference));
-		AMFStringValue* type = new AMFStringValue();
-		type->SetStringValue("health");
 
 		AMFArrayValue args;
-		args.InsertValue("amount", amount);
-		args.InsertValue("type", type);
+		args.Insert("amount", std::to_string(difference));
+		args.Insert("type", "health");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -290,16 +286,12 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 	if (playAnim) {
 		// Now update the player bar
 		if (!m_Parent->GetParentUser()) return;
-		AMFStringValue* amount = new AMFStringValue();
-		amount->SetStringValue(std::to_string(value));
-		AMFStringValue* type = new AMFStringValue();
-		type->SetStringValue("armor");
 
 		AMFArrayValue args;
-		args.InsertValue("amount", amount);
-		args.InsertValue("type", type);
+		args.Insert("amount", std::to_string(value));
+		args.Insert("type", "armor");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
@@ -334,16 +326,12 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 	if (playAnim) {
 		// Now update the player bar
 		if (!m_Parent->GetParentUser()) return;
-		AMFStringValue* amount = new AMFStringValue();
-		amount->SetStringValue(std::to_string(difference));
-		AMFStringValue* type = new AMFStringValue();
-		type->SetStringValue("imagination");
 
 		AMFArrayValue args;
-		args.InsertValue("amount", amount);
-		args.InsertValue("type", type);
+		args.Insert("amount", std::to_string(difference));
+		args.Insert("type", "imagination");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", &args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 }

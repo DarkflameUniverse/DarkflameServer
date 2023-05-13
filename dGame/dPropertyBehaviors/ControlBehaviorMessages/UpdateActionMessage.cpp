@@ -5,7 +5,7 @@
 UpdateActionMessage::UpdateActionMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
 	actionContext = ActionContext(arguments);
 
-	auto* actionValue = arguments->FindValue<AMFArrayValue>("action");
+	auto* actionValue = arguments->GetArray("action");
 	if (!actionValue) return;
 
 	action = Action(actionValue);
