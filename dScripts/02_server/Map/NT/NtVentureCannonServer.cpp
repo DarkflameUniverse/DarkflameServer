@@ -1,6 +1,9 @@
 #include "NtVentureCannonServer.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "eEndBehavior.h"
+#include "eTerminateType.h"
+#include "eStateChangeType.h"
 
 void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 	auto* player = user;
@@ -14,7 +17,7 @@ void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 
 	self->SetNetworkVar(u"bIsInUse", true);
 
-	GameMessages::SendSetStunned(playerID, PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(playerID, eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 
@@ -73,7 +76,7 @@ void NtVentureCannonServer::EnterCannonEnded(Entity* self, Entity* player) {
 
 	const auto exitCinematicUname = exitCinematic;
 	GameMessages::SendPlayCinematic(player->GetObjectID(), exitCinematicUname, player->GetSystemAddress(),
-		true, true, true, false, 0, false, 0, false, false
+		true, true, true, false, eEndBehavior::RETURN, false, 0, false, false
 	);
 
 	self->AddCallbackTimer(1.5f, [this, self, playerID]() {
@@ -92,13 +95,13 @@ void NtVentureCannonServer::ExitCannonEnded(Entity* self, Entity* player) {
 }
 
 void NtVentureCannonServer::UnlockCannonPlayer(Entity* self, Entity* player) {
-	GameMessages::SendSetStunned(player->GetObjectID(), POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 
 	self->SetNetworkVar(u"bIsInUse", false);
 
-	GameMessages::SendTerminateInteraction(player->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+	GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 }
 
 void NtVentureCannonServer::FirePlayer(Entity* self, Entity* player) {

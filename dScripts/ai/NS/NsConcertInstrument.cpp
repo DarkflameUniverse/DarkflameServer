@@ -7,6 +7,8 @@
 #include "SoundTriggerComponent.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
+#include "eMissionTaskType.h"
 
 // Constants are at the bottom
 
@@ -18,7 +20,7 @@ void NsConcertInstrument::OnStartup(Entity* self) {
 }
 
 void NsConcertInstrument::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == REBUILD_RESETTING || state == REBUILD_OPEN) {
+	if (state == eRebuildState::RESETTING || state == eRebuildState::OPEN) {
 		self->SetVar<LWOOBJID>(u"activePlayer", LWOOBJID_EMPTY);
 	}
 }
@@ -94,7 +96,7 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 		if (rebuildComponent != nullptr)
 			rebuildComponent->ResetRebuild(false);
 
-		self->Smash(self->GetObjectID(), VIOLENT);
+		self->Smash(self->GetObjectID(), eKillType::VIOLENT);
 		self->SetVar<LWOOBJID>(u"activePlayer", LWOOBJID_EMPTY);
 	} else if (activePlayer != nullptr && name == "achievement") {
 		auto* missionComponent = activePlayer->GetComponent<MissionComponent>();
@@ -146,8 +148,8 @@ void NsConcertInstrument::StopPlayingInstrument(Entity* self, Entity* player) {
 	// Player might be null if they left
 	if (player != nullptr) {
 		auto* missions = player->GetComponent<MissionComponent>();
-		if (missions != nullptr && missions->GetMissionState(176) == MissionState::MISSION_STATE_ACTIVE) {
-			missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+		if (missions != nullptr && missions->GetMissionState(176) == eMissionState::ACTIVE) {
+			missions->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 		}
 
 		GameMessages::SendEndCinematic(player->GetObjectID(), cinematics.at(instrumentLot), UNASSIGNED_SYSTEM_ADDRESS, 1.0f);
@@ -197,7 +199,7 @@ void NsConcertInstrument::EquipInstruments(Entity* self, Entity* player) {
 		// Equip the left hand instrument
 		const auto leftInstrumentLot = instrumentLotLeft.find(GetInstrumentLot(self))->second;
 		if (leftInstrumentLot != LOT_NULL) {
-			inventory->AddItem(leftInstrumentLot, 1, eLootSourceType::LOOT_SOURCE_NONE, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
+			inventory->AddItem(leftInstrumentLot, 1, eLootSourceType::NONE, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
 			auto* leftInstrument = inventory->FindItemByLot(leftInstrumentLot, TEMP_ITEMS);
 			leftInstrument->Equip();
 		}
@@ -205,7 +207,7 @@ void NsConcertInstrument::EquipInstruments(Entity* self, Entity* player) {
 		// Equip the right hand instrument
 		const auto rightInstrumentLot = instrumentLotRight.find(GetInstrumentLot(self))->second;
 		if (rightInstrumentLot != LOT_NULL) {
-			inventory->AddItem(rightInstrumentLot, 1, eLootSourceType::LOOT_SOURCE_NONE, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
+			inventory->AddItem(rightInstrumentLot, 1, eLootSourceType::NONE, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
 			auto* rightInstrument = inventory->FindItemByLot(rightInstrumentLot, TEMP_ITEMS);
 			rightInstrument->Equip();
 		}

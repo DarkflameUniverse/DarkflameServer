@@ -1,6 +1,7 @@
 #include "NtCombatChallengeServer.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
 

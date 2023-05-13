@@ -2,6 +2,10 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
+#include "eMissionState.h"
+#include "eEndBehavior.h"
+#include "eStateChangeType.h"
 
 void NtAssemblyTubeServer::OnStartup(Entity* self) {
 	self->SetProximityRadius(5, "teleport");
@@ -22,7 +26,7 @@ void NtAssemblyTubeServer::OnProximityUpdate(Entity* self, Entity* entering, std
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+		missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 	}
 }
 
@@ -36,14 +40,14 @@ void NtAssemblyTubeServer::RunAssemblyTube(Entity* self, Entity* player) {
 	if (player->IsPlayer() && !bPlayerBeingTeleported) {
 		auto teleCinematic = self->GetVar<std::u16string>(u"Cinematic");
 
-		GameMessages::SendSetStunned(playerID, PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
+		GameMessages::SendSetStunned(playerID, eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
 			true, true, true, true, true, true, true
 		);
 
 		if (!teleCinematic.empty()) {
 			const auto teleCinematicUname = teleCinematic;
 			GameMessages::SendPlayCinematic(player->GetObjectID(), teleCinematicUname, player->GetSystemAddress(),
-				true, true, true, false, 0, false, -1, false, true
+				true, true, true, false, eEndBehavior::RETURN, false, -1, false, true
 			);
 		}
 
@@ -108,7 +112,7 @@ void NtAssemblyTubeServer::UnlockPlayer(Entity* self, Entity* player) {
 
 	m_TeleportingPlayerTable[playerID] = false;
 
-	GameMessages::SendSetStunned(playerID, POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(playerID, eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 }

@@ -3,6 +3,7 @@
 #include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Component that belongs to an object that may be modularly built, like cars and rockets. Note that this is not the
@@ -11,9 +12,9 @@
  */
 class ModuleAssemblyComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_MODULE_ASSEMBLY;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODULE_ASSEMBLY;
 
-	ModuleAssemblyComponent(Entity* MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
+	ModuleAssemblyComponent(Entity* parent);
 	~ModuleAssemblyComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);

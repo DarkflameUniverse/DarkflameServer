@@ -1,6 +1,6 @@
 #include "NjJayMissionItems.h"
 
-void NjJayMissionItems::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void NjJayMissionItems::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	NjNPCMissionSpinjitzuServer::OnMissionDialogueOK(self, target, missionID, missionState);
 	NPCAddRemoveItem::OnMissionDialogueOK(self, target, missionID, missionState);
 }

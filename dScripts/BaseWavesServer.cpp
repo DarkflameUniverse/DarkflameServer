@@ -4,7 +4,8 @@
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Player.h"
-#include "MissionTaskType.h"
+#include "eMissionTaskType.h"
+#include "eMissionState.h"
 #include "MissionComponent.h"
 #include "Character.h"
 
@@ -373,7 +374,7 @@ void BaseWavesServer::GameOver(Entity* self, bool won) {
 		// Update all mission progression
 		auto* missionComponent = player->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_MINIGAME, time, self->GetObjectID(), self->GetVar<std::string>(MissionTypeVariable));
+			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, time, self->GetObjectID(), self->GetVar<std::string>(MissionTypeVariable));
 		}
 
 		StopActivity(self, playerID, wave, time, score);
@@ -429,7 +430,7 @@ void BaseWavesServer::SpawnWave(Entity* self) {
 
 		for (const auto& playerID : state.players) {
 			auto* player = EntityManager::Instance()->GetEntity(playerID);
-			if (player != nullptr) {
+			if (player && player->GetIsDead()) {
 				player->Resurrect();
 			}
 		}
@@ -510,15 +511,15 @@ bool BaseWavesServer::UpdateSpawnedEnemies(Entity* self, LWOOBJID enemyID, uint3
 						// Get the mission state
 						auto missionState = missionComponent->GetMissionState(missionID);
 						// For some reason these achievements are not accepted by default, so we accept them here if they arent already.
-						if (missionState != MissionState::MISSION_STATE_COMPLETE && missionState != MissionState::MISSION_STATE_UNKNOWN) {
+						if (missionState != eMissionState::COMPLETE && missionState != eMissionState::UNKNOWN) {
 							missionComponent->AcceptMission(missionID);
 							missionState = missionComponent->GetMissionState(missionID);
 						}
 
-						if (missionState != MissionState::MISSION_STATE_COMPLETE) {
+						if (missionState != eMissionState::COMPLETE) {
 							auto mission = missionComponent->GetMission(missionID);
 							if (mission != nullptr) {
-								mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+								mission->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 							}
 						}
 					}
@@ -528,15 +529,15 @@ bool BaseWavesServer::UpdateSpawnedEnemies(Entity* self, LWOOBJID enemyID, uint3
 							// Get the mission state
 							auto missionState = missionComponent->GetMissionState(missionID);
 							// For some reason these achievements are not accepted by default, so we accept them here if they arent already.
-							if (missionState != MissionState::MISSION_STATE_COMPLETE && missionState != MissionState::MISSION_STATE_UNKNOWN) {
+							if (missionState != eMissionState::COMPLETE && missionState != eMissionState::UNKNOWN) {
 								missionComponent->AcceptMission(missionID);
 								missionState = missionComponent->GetMissionState(missionID);
 							}
 
-							if (missionState != MissionState::MISSION_STATE_COMPLETE) {
+							if (missionState != eMissionState::COMPLETE) {
 								auto mission = missionComponent->GetMission(missionID);
 								if (mission != nullptr) {
-									mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+									mission->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 								}
 							}
 						}
@@ -564,14 +565,14 @@ void BaseWavesServer::UpdateMissionForAllPlayers(Entity* self, uint32_t missionI
 			// Get the mission state
 			auto missionState = missionComponent->GetMissionState(missionID);
 			// For some reason these achievements are not accepted by default, so we accept them here if they arent already.
-			if (missionState != MissionState::MISSION_STATE_COMPLETE && missionState != MissionState::MISSION_STATE_UNKNOWN) {
+			if (missionState != eMissionState::COMPLETE && missionState != eMissionState::UNKNOWN) {
 				missionComponent->AcceptMission(missionID);
 				missionState = missionComponent->GetMissionState(missionID);
 			}
-			if (missionState != MissionState::MISSION_STATE_COMPLETE) {
+			if (missionState != eMissionState::COMPLETE) {
 				auto mission = missionComponent->GetMission(missionID);
 				if (mission != nullptr) {
-					mission->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+					mission->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 				}
 			}
 		}

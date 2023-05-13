@@ -18,18 +18,25 @@
 #include "dConfig.h"
 #include "InventoryComponent.h"
 #include "DestroyableComponent.h"
+#include "Loot.h"
+#include "eMissionTaskType.h"
+#include "eMatchUpdate.h"
+#include "eConnectionType.h"
+#include "eChatInternalMessageType.h"
+
+#include "CDCurrencyTableTable.h"
+#include "CDActivityRewardsTable.h"
+#include "CDActivitiesTable.h"
+#include "LeaderboardManager.h"
 
 ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activityID) : Component(parent) {
 	m_ActivityID = activityID;
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance()->GetTable<CDActivitiesTable>("Activities");
+	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 
 	for (CDActivities activity : activities) {
 		m_ActivityInfo = activity;
-
-		const auto mapID = m_ActivityInfo.instanceMapID;
-
-		if ((mapID == 1203 || mapID == 1261 || mapID == 1303 || mapID == 1403) && Game::config->GetValue("solo_racing") == "1") {
+		if (static_cast<LeaderboardType>(activity.leaderboardType) == LeaderboardType::Racing && Game::config->GetValue("solo_racing") == "1") {
 			m_ActivityInfo.minTeamSize = 1;
 			m_ActivityInfo.minTeams = 1;
 		}
@@ -50,7 +57,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
 	if (destroyableComponent) {
 		// check for LMIs and set the loot LMIs
-		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
+		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
 		std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) {return (entry.LootMatrixIndex == destroyableComponent->GetLootMatrixID()); });
 
 		uint32_t startingLMI = 0;
@@ -91,7 +98,7 @@ void ScriptedActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool 
 }
 
 void ScriptedActivityComponent::ReloadConfig() {
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance()->GetTable<CDActivitiesTable>("Activities");
+	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 	for (auto activity : activities) {
 		auto mapID = m_ActivityInfo.instanceMapID;
@@ -134,7 +141,7 @@ void ScriptedActivityComponent::PlayerJoin(Entity* player) {
 }
 
 void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
-	if (!m_Parent->HasComponent(COMPONENT_TYPE_REBUILD))
+	if (!m_Parent->HasComponent(eReplicaComponentType::QUICK_BUILD))
 		GameMessages::SendMatchResponse(player, player->GetSystemAddress(), 0); // tell the client they joined a lobby
 	LobbyPlayer* newLobbyPlayer = new LobbyPlayer();
 	newLobbyPlayer->entityID = player->GetObjectID();
@@ -160,9 +167,9 @@ void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
 				}
 
 				std::string matchUpdate = "player=9:" + std::to_string(entity->GetObjectID()) + "\nplayerName=0:" + entity->GetCharacter()->GetName();
-				GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchUpdate, eMatchUpdate::MATCH_UPDATE_PLAYER_JOINED);
+				GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchUpdate, eMatchUpdate::PLAYER_ADDED);
 				PlayerReady(entity, joinedPlayer->ready);
-				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateJoined, eMatchUpdate::MATCH_UPDATE_PLAYER_JOINED);
+				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateJoined, eMatchUpdate::PLAYER_ADDED);
 			}
 		}
 	}
@@ -178,7 +185,7 @@ void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
 	if (m_ActivityInfo.maxTeamSize != 1 && playerLobby->players.size() >= m_ActivityInfo.minTeamSize || m_ActivityInfo.maxTeamSize == 1 && playerLobby->players.size() >= m_ActivityInfo.minTeams) {
 		// Update the joining player on the match timer
 		std::string matchTimerUpdate = "time=3:" + std::to_string(playerLobby->timer);
-		GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::MATCH_UPDATE_TIME);
+		GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::PHASE_WAIT_READY);
 	}
 }
 
@@ -194,7 +201,7 @@ void ScriptedActivityComponent::PlayerLeave(LWOOBJID playerID) {
 					if (entity == nullptr)
 						continue;
 
-					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateLeft, eMatchUpdate::MATCH_UPDATE_PLAYER_LEFT);
+					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateLeft, eMatchUpdate::PLAYER_REMOVED);
 				}
 
 				delete lobby->players[i];
@@ -235,7 +242,7 @@ void ScriptedActivityComponent::Update(float deltaTime) {
 						continue;
 
 					std::string matchTimerUpdate = "time=3:" + std::to_string(lobby->timer);
-					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::MATCH_UPDATE_TIME);
+					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::PHASE_WAIT_READY);
 				}
 			}
 
@@ -260,7 +267,7 @@ void ScriptedActivityComponent::Update(float deltaTime) {
 				if (entity == nullptr)
 					continue;
 
-				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::MATCH_UPDATE_TIME_START_DELAY);
+				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::PHASE_WAIT_START);
 			}
 		}
 
@@ -296,7 +303,7 @@ bool ScriptedActivityComponent::HasLobby() const {
 
 bool ScriptedActivityComponent::IsValidActivity(Entity* player) {
 	// Makes it so that scripted activities with an unimplemented map cannot be joined
-	/*if (player->GetGMLevel() < GAME_MASTER_LEVEL_DEVELOPER && (m_ActivityInfo.instanceMapID == 1302 || m_ActivityInfo.instanceMapID == 1301)) {
+	/*if (player->GetGMLevel() < eGameMasterLevel::DEVELOPER && (m_ActivityInfo.instanceMapID == 1302 || m_ActivityInfo.instanceMapID == 1301)) {
 		if (m_Parent->GetLOT() == 4860) {
 			auto* missionComponent = player->GetComponent<MissionComponent>();
 			missionComponent->CompleteMission(229);
@@ -368,8 +375,8 @@ void ScriptedActivityComponent::PlayerReady(Entity* player, bool bReady) {
 
 				// Update players in lobby on player being ready
 				std::string matchReadyUpdate = "player=9:" + std::to_string(player->GetObjectID());
-				eMatchUpdate readyStatus = eMatchUpdate::MATCH_UPDATE_PLAYER_READY;
-				if (!bReady) readyStatus = eMatchUpdate::MATCH_UPDATE_PLAYER_UNREADY;
+				eMatchUpdate readyStatus = eMatchUpdate::PLAYER_READY;
+				if (!bReady) readyStatus = eMatchUpdate::PLAYER_NOT_READY;
 				for (LobbyPlayer* otherPlayer : lobby->players) {
 					auto* entity = otherPlayer->GetEntity();
 					if (entity == nullptr)
@@ -509,7 +516,7 @@ void ActivityInstance::StartZone() {
 	// only make a team if we have more than one participant
 	if (participants.size() > 1) {
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_CREATE_TEAM);
+		PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::CREATE_TEAM);
 
 		bitStream.Write(leader->GetObjectID());
 		bitStream.Write(m_Participants.size());
@@ -550,18 +557,18 @@ void ActivityInstance::StartZone() {
 void ActivityInstance::RewardParticipant(Entity* participant) {
 	auto* missionComponent = participant->GetComponent<MissionComponent>();
 	if (missionComponent) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ACTIVITY, m_ActivityInfo.ActivityID);
+		missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityInfo.ActivityID);
 	}
 
 	// First, get the activity data
-	auto* activityRewardsTable = CDClientManager::Instance()->GetTable<CDActivityRewardsTable>("ActivityRewards");
+	auto* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) { return (entry.objectTemplate == m_ActivityInfo.ActivityID); });
 
 	if (!activityRewards.empty()) {
 		uint32_t minCoins = 0;
 		uint32_t maxCoins = 0;
 
-		auto* currencyTableTable = CDClientManager::Instance()->GetTable<CDCurrencyTableTable>("CurrencyTable");
+		auto* currencyTableTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
 		std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == activityRewards[0].CurrencyIndex && entry.npcminlevel == 1); });
 
 		if (!currencyTable.empty()) {

@@ -21,28 +21,20 @@ CDMovementAIComponentTable::CDMovementAIComponentTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MovementAIComponent");
 	while (!tableData.eof()) {
 		CDMovementAIComponent entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.MovementType = tableData.getStringField(1, "");
-		entry.WanderChance = tableData.getFloatField(2, -1.0f);
-		entry.WanderDelayMin = tableData.getFloatField(3, -1.0f);
-		entry.WanderDelayMax = tableData.getFloatField(4, -1.0f);
-		entry.WanderSpeed = tableData.getFloatField(5, -1.0f);
-		entry.WanderRadius = tableData.getFloatField(6, -1.0f);
-		entry.attachedPath = tableData.getStringField(7, "");
+		entry.id = tableData.getIntField("id", -1);
+		entry.MovementType = tableData.getStringField("MovementType", "");
+		entry.WanderChance = tableData.getFloatField("WanderChance", -1.0f);
+		entry.WanderDelayMin = tableData.getFloatField("WanderDelayMin", -1.0f);
+		entry.WanderDelayMax = tableData.getFloatField("WanderDelayMax", -1.0f);
+		entry.WanderSpeed = tableData.getFloatField("WanderSpeed", -1.0f);
+		entry.WanderRadius = tableData.getFloatField("WanderRadius", -1.0f);
+		entry.attachedPath = tableData.getStringField("attachedPath", "");
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
 	}
 
 	tableData.finalize();
-}
-
-//! Destructor
-CDMovementAIComponentTable::~CDMovementAIComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDMovementAIComponentTable::GetName(void) const {
-	return "MovementAIComponent";
 }
 
 //! Queries the table with a custom "where" clause
@@ -59,3 +51,4 @@ std::vector<CDMovementAIComponent> CDMovementAIComponentTable::Query(std::functi
 std::vector<CDMovementAIComponent> CDMovementAIComponentTable::GetEntries(void) const {
 	return this->entries;
 }
+

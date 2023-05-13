@@ -1,6 +1,6 @@
 #include "ActSharkPlayerDeathTrigger.h"
 #include "MissionComponent.h"
-#include "MissionTaskType.h"
+#include "eMissionTaskType.h"
 #include "Entity.h"
 
 void ActSharkPlayerDeathTrigger::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,
@@ -9,7 +9,7 @@ void ActSharkPlayerDeathTrigger::OnFireEventServerSide(Entity* self, Entity* sen
 		auto missionComponent = sender->GetComponent<MissionComponent>();
 		if (!missionComponent) return;
 
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, 8419);
+		missionComponent->Progress(eMissionTaskType::SCRIPT, 8419);
 
 		if (sender->GetIsDead() || !sender->GetPlayerReadyForUpdates()) return; //Don't kill already dead players or players not ready
 

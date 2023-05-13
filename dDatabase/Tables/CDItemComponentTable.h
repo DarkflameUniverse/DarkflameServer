@@ -4,12 +4,6 @@
 #include "CDTable.h"
 #include "dCommonVars.h"
 
-/*!
-  \file CDItemComponentTable.hpp
-  \brief Contains data for the ItemComponent table
- */
-
- //! ItemComponent Struct
 struct CDItemComponent {
 	unsigned int id;                        //!< The Component ID
 	std::string equipLocation;         //!< The equip location
@@ -55,28 +49,15 @@ struct CDItemComponent {
 	float SellMultiplier;           //!< Something to do with early vendors perhaps (but replaced)
 };
 
-//! ItemComponent table
-class CDItemComponentTable : public CDTable {
+class CDItemComponentTable : public CDTable<CDItemComponentTable> {
 private:
 	std::map<unsigned int, CDItemComponent> entries;
 
 public:
-
-	//! Constructor
-	CDItemComponentTable(void);
-
-	//! Destructor
-	~CDItemComponentTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
+	CDItemComponentTable();
 	static std::map<LOT, uint32_t> ParseCraftingCurrencies(const CDItemComponent& itemComponent);
 
-	//! Gets an entry by ID
+	// Gets an entry by ID
 	const CDItemComponent& GetItemComponentByID(unsigned int skillID);
 
 	static CDItemComponent Default;

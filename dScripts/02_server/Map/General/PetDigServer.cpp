@@ -4,6 +4,8 @@
 #include "EntityManager.h"
 #include "Character.h"
 #include "PetComponent.h"
+#include "User.h"
+#include "eMissionState.h"
 
 std::vector<LWOOBJID> PetDigServer::treasures{};
 
@@ -95,7 +97,7 @@ void PetDigServer::OnDie(Entity* self, Entity* killer) {
 	// Handles smashing leftovers (edge case for the AG X)
 	auto* xObject = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
-		xObject->Smash(xObject->GetObjectID(), VIOLENT);
+		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
 	}
 }
 
@@ -110,7 +112,7 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 
 	auto* player = playerEntity->GetCharacter();
 	const auto groupID = self->GetVar<std::u16string>(u"groupID");
-	auto playerFlag = 0;
+	int32_t playerFlag = 0;
 
 	// The flag that the player dug up
 	if (groupID == u"Flag1") {
@@ -134,7 +136,7 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 
 	auto* xObject = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
-		xObject->Smash(xObject->GetObjectID(), VIOLENT);
+		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
 	}
 }
 
@@ -162,13 +164,13 @@ void PetDigServer::ProgressPetDigMissions(const Entity* owner, const Entity* che
 	if (missionComponent != nullptr) {
 		// Can You Dig It progress
 		const auto digMissionState = missionComponent->GetMissionState(843);
-		if (digMissionState == MissionState::MISSION_STATE_ACTIVE) {
+		if (digMissionState == eMissionState::ACTIVE) {
 			missionComponent->ForceProgress(843, 1216, 1);
 		}
 
 		// Pet Excavator progress
 		const auto excavatorMissionState = missionComponent->GetMissionState(505);
-		if (excavatorMissionState == MissionState::MISSION_STATE_ACTIVE) {
+		if (excavatorMissionState == eMissionState::ACTIVE) {
 			if (chest->HasVar(u"PetDig")) {
 				int32_t playerFlag = 1260 + chest->GetVarAs<int32_t>(u"PetDig");
 				Character* player = owner->GetCharacter();
@@ -192,7 +194,7 @@ void PetDigServer::SpawnPet(Entity* self, const Entity* owner, const DigInfo dig
 	// Some treasures require a mission to be active
 	if (digInfo.requiredMission >= 0) {
 		auto* missionComponent = owner->GetComponent<MissionComponent>();
-		if (missionComponent != nullptr && missionComponent->GetMissionState(digInfo.requiredMission) < MissionState::MISSION_STATE_ACTIVE) {
+		if (missionComponent != nullptr && missionComponent->GetMissionState(digInfo.requiredMission) < eMissionState::ACTIVE) {
 			return;
 		}
 	}

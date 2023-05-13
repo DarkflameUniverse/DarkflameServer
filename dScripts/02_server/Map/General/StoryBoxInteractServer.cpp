@@ -2,7 +2,8 @@
 #include "Character.h"
 #include "GameMessages.h"
 #include "dServer.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
+#include "Entity.h"
 
 void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 	if (self->GetVar<bool>(u"hasCustomText")) {
@@ -11,24 +12,18 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 		{
 			AMFArrayValue args;
 
-			auto* state = new AMFStringValue();
-			state->SetStringValue("Story");
+			args.Insert("state", "Story");
 
-			args.InsertValue("state", state);
-
-			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", &args);
+			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", args);
 		}
 
 		user->AddCallbackTimer(0.1f, [user, customText]() {
 			AMFArrayValue args;
 
-			auto* text = new AMFStringValue();
-			text->SetStringValue(customText);
+			args.Insert("visible", true);
+			args.Insert("text", customText);
 
-			args.InsertValue("visible", new AMFTrueValue());
-			args.InsertValue("text", text);
-
-			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "ToggleStoryBox", &args);
+			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "ToggleStoryBox", args);
 			});
 
 		return;

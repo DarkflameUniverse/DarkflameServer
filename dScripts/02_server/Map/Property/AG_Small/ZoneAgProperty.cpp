@@ -6,6 +6,8 @@
 #include "dZoneManager.h"
 #include "RenderComponent.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
+#include "eReplicaComponentType.h"
 
 void ZoneAgProperty::SetGameVariables(Entity* self) {
 	self->SetVar<std::string>(GuardGroup, "Guard");
@@ -37,8 +39,8 @@ void ZoneAgProperty::SetGameVariables(Entity* self) {
 	self->SetVar<std::string>(LauncherSpawner, "Launcher");
 	self->SetVar<std::string>(InstancerSpawner, "Instancer");
 
-	self->SetVar<uint32_t>(defeatedProperyFlag, 71);
-	self->SetVar<uint32_t>(placedModelFlag, 73);
+	self->SetVar<int32_t>(defeatedProperyFlag, 71);
+	self->SetVar<int32_t>(placedModelFlag, 73);
 	self->SetVar<uint32_t>(guardFirstMissionFlag, 891);
 	self->SetVar<uint32_t>(guardMissionFlag, 320);
 	self->SetVar<uint32_t>(brickLinkMissionIDFlag, 951);
@@ -80,7 +82,7 @@ void ZoneAgProperty::PropGuardCheck(Entity* self, Entity* player) {
 	const auto state = missionComponent->GetMissionState(self->GetVar<uint32_t>(guardMissionFlag));
 	const auto firstState = missionComponent->GetMissionState(self->GetVar<uint32_t>(guardFirstMissionFlag));
 
-	if (firstState < MissionState::MISSION_STATE_COMPLETE || (state != MissionState::MISSION_STATE_COMPLETE && state != MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE))
+	if (firstState < eMissionState::COMPLETE || (state != eMissionState::COMPLETE && state != eMissionState::COMPLETE_READY_TO_COMPLETE))
 		ActivateSpawner(self->GetVar<std::string>(PropertyMGSpawner));
 }
 
@@ -255,7 +257,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		DeactivateSpawner(self->GetVar<std::string>(SpiderScreamSpawner));
 		DestroySpawner(self->GetVar<std::string>(SpiderScreamSpawner));
 
-		for (auto* player : EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CHARACTER)) {
+		for (auto* player : EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CHARACTER)) {
 			GameMessages::SendStop2DAmbientSound(player, true, GUIDMaelstrom);
 			GameMessages::SendPlay2DAmbientSound(player, GUIDPeaceful);
 		}
@@ -304,13 +306,13 @@ void ZoneAgProperty::OnZonePropertyModelPlaced(Entity* self, Entity* player) {
 	if (!character->GetPlayerFlag(101)) {
 		BaseZonePropertyModelPlaced(self, player);
 		character->SetPlayerFlag(101, true);
-		if (missionComponent->GetMissionState(871) == MissionState::MISSION_STATE_ACTIVE) {
+		if (missionComponent->GetMissionState(871) == eMissionState::ACTIVE) {
 			self->SetNetworkVar<std::u16string>(u"Tooltip", u"AnotherModel");
 		}
 
 	} else if (!character->GetPlayerFlag(102)) {
 		character->SetPlayerFlag(102, true);
-		if (missionComponent->GetMissionState(871) == MissionState::MISSION_STATE_ACTIVE) {
+		if (missionComponent->GetMissionState(871) == eMissionState::ACTIVE) {
 			self->SetNetworkVar<std::u16string>(u"Tooltip", u"TwoMoreModels");
 		}
 
@@ -331,7 +333,7 @@ void ZoneAgProperty::OnZonePropertyModelPickedUp(Entity* self, Entity* player) {
 
 	if (!character->GetPlayerFlag(109)) {
 		character->SetPlayerFlag(109, true);
-		if (missionComponent->GetMissionState(891) == MissionState::MISSION_STATE_ACTIVE && !character->GetPlayerFlag(110)) {
+		if (missionComponent->GetMissionState(891) == eMissionState::ACTIVE && !character->GetPlayerFlag(110)) {
 			self->SetNetworkVar<std::u16string>(u"Tooltip", u"Rotate");
 		}
 	}
@@ -353,7 +355,7 @@ void ZoneAgProperty::OnZonePropertyModelRotated(Entity* self, Entity* player) {
 	if (!character->GetPlayerFlag(110)) {
 		character->SetPlayerFlag(110, true);
 
-		if (missionComponent->GetMissionState(891) == MissionState::MISSION_STATE_ACTIVE) {
+		if (missionComponent->GetMissionState(891) == eMissionState::ACTIVE) {
 			self->SetNetworkVar<std::u16string>(u"Tooltip", u"PlaceModel");
 			self->SetVar<std::string>(u"tutorial", "place_model");
 		}
@@ -411,7 +413,7 @@ void ZoneAgProperty::BaseOnFireEventServerSide(Entity* self, Entity* sender, std
 		if (player == nullptr)
 			return;
 
-		player->GetCharacter()->SetPlayerFlag(self->GetVar<uint32_t>(defeatedProperyFlag), true);
+		player->GetCharacter()->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0,
 			LWOOBJID_EMPTY, destroyedCinematic, UNASSIGNED_SYSTEM_ADDRESS);
 

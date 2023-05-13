@@ -45,9 +45,10 @@ AssetManager::AssetManager(const std::filesystem::path& path) {
 	switch (m_AssetBundleType) {
 		case eAssetBundleType::Packed: {
 			this->LoadPackIndex();
-
-			this->UnpackRequiredAssets();
-
+			break;
+		}
+		case eAssetBundleType::None:
+		case eAssetBundleType::Unpacked: {
 			break;
 		}
 	}
@@ -114,7 +115,7 @@ bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 		*len = ftell(file);
 		*data = (char*)malloc(*len);
 		fseek(file, 0, SEEK_SET);
-		fread(*data, sizeof(uint8_t), *len, file);
+		int32_t readInData = fread(*data, sizeof(uint8_t), *len, file);
 		fclose(file);
 
 		return true;
@@ -158,31 +159,6 @@ AssetMemoryBuffer AssetManager::GetFileAsBuffer(const char* name) {
 	bool success = this->GetFile(name, &buf, &len);
 
 	return AssetMemoryBuffer(buf, len, success);
-}
-
-void AssetManager::UnpackRequiredAssets() {
-	if (std::filesystem::exists(m_ResPath / "cdclient.fdb")) return;
-
-	char* data;
-	uint32_t size;
-
-	bool success = this->GetFile("cdclient.fdb", &data, &size);
-
-	if (!success) {
-		Game::logger->Log("AssetManager", "Failed to extract required files from the packs.");
-
-		delete data;
-
-		return;
-	}
-
-	std::ofstream cdclientOutput(m_ResPath / "cdclient.fdb", std::ios::out | std::ios::binary);
-	cdclientOutput.write(data, size);
-	cdclientOutput.close();
-
-	delete data;
-
-	return;
 }
 
 uint32_t AssetManager::crc32b(uint32_t base, uint8_t* message, size_t l) {

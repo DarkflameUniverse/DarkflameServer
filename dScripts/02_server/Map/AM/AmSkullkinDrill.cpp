@@ -4,6 +4,8 @@
 #include "DestroyableComponent.h"
 #include "ProximityMonitorComponent.h"
 #include "MissionComponent.h"
+#include "EntityInfo.h"
+#include "eStateChangeType.h"
 
 void AmSkullkinDrill::OnStartup(Entity* self) {
 	self->SetNetworkVar(u"bIsInUse", false);
@@ -146,21 +148,21 @@ void AmSkullkinDrill::OnUse(Entity* self, Entity* user) {
 }
 
 void AmSkullkinDrill::FreezePlayer(Entity* self, Entity* player, bool bFreeze) {
-	eStunState eChangeType = POP;
+	auto StateChangeType = eStateChangeType::POP;
 
 	if (bFreeze) {
 		if (player->GetIsDead()) {
 			return;
 		}
 
-		eChangeType = PUSH;
+		StateChangeType = eStateChangeType::PUSH;
 	} else {
 		if (player->GetIsDead()) {
 			//
 		}
 	}
 
-	GameMessages::SendSetStunned(player->GetObjectID(), eChangeType, player->GetSystemAddress(), self->GetObjectID(),
+	GameMessages::SendSetStunned(player->GetObjectID(), StateChangeType, player->GetSystemAddress(), self->GetObjectID(),
 		true, false, true, false, true, false, true
 	);
 }
@@ -245,7 +247,7 @@ void AmSkullkinDrill::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t 
 		}
 	}
 
-	self->Smash(attacker->GetObjectID(), SILENT);
+	self->Smash(attacker->GetObjectID(), eKillType::SILENT);
 
 	self->CancelAllTimers();
 
@@ -263,7 +265,7 @@ void AmSkullkinDrill::OnTimerDone(Entity* self, std::string timerName) {
 		auto* child = EntityManager::Instance()->GetEntity(childID);
 
 		if (child != nullptr) {
-			child->Smash(self->GetObjectID(), SILENT);
+			child->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 
 		self->SetNetworkVar(u"bIsInUse", false);

@@ -4,6 +4,8 @@
 #include "CharacterComponent.h"
 #include "tinyxml2.h"
 
+#include "CDRewardsTable.h"
+
 LevelProgressionComponent::LevelProgressionComponent(Entity* parent) : Component(parent) {
 	m_Parent = parent;
 	m_Level = 1;
@@ -42,7 +44,7 @@ void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool 
 }
 
 void LevelProgressionComponent::HandleLevelUp() {
-	auto* rewardsTable = CDClientManager::Instance()->GetTable<CDRewardsTable>("Rewards");
+	auto* rewardsTable = CDClientManager::Instance().GetTable<CDRewardsTable>();
 
 	const auto& rewards = rewardsTable->GetByLevelID(m_Level);
 	bool rewardingItem = rewards.size() > 0;
@@ -57,7 +59,7 @@ void LevelProgressionComponent::HandleLevelUp() {
 	for (auto* reward : rewards) {
 		switch (reward->rewardType) {
 		case 0:
-			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LOOT_SOURCE_LEVEL_REWARD);
+			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LEVEL_REWARD);
 			break;
 		case 4:
 		{

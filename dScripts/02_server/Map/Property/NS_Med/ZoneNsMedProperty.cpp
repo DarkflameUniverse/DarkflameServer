@@ -29,8 +29,8 @@ void ZoneNsMedProperty::SetGameVariables(Entity* self) {
 	self->SetVar<std::vector<std::string>>(AmbientFXSpawner, { "Rockets" });
 	self->SetVar<std::vector<std::string>>(BehaviorObjsSpawner, { });
 
-	self->SetVar<uint32_t>(defeatedProperyFlag, 122);
-	self->SetVar<uint32_t>(placedModelFlag, 123);
+	self->SetVar<int32_t>(defeatedProperyFlag, 122);
+	self->SetVar<int32_t>(placedModelFlag, 123);
 	self->SetVar<uint32_t>(guardMissionFlag, 1322);
 	self->SetVar<uint32_t>(brickLinkMissionIDFlag, 1294);
 	self->SetVar<std::string>(passwordFlag, "s3kratK1ttN");

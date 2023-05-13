@@ -77,7 +77,7 @@ bool Pack::ReadFileFromPack(uint32_t crc, char** data, uint32_t* len) {
 
 	if (!isCompressed) {
 		char* tempData = (char*)malloc(pkRecord.m_UncompressedSize);
-		fread(tempData, sizeof(uint8_t), pkRecord.m_UncompressedSize, file);
+		int32_t readInData = fread(tempData, sizeof(uint8_t), pkRecord.m_UncompressedSize, file);
 
 		*data = tempData;
 		*len = pkRecord.m_UncompressedSize;
@@ -97,11 +97,11 @@ bool Pack::ReadFileFromPack(uint32_t crc, char** data, uint32_t* len) {
 		if (currentReadPos >= pkRecord.m_UncompressedSize) break;
 
 		uint32_t size;
-		fread(&size, sizeof(uint32_t), 1, file);
+		int32_t readInData = fread(&size, sizeof(uint32_t), 1, file);
 		pos += 4; // Move pointer position 4 to the right
 
 		char* chunk = (char*)malloc(size);
-		fread(chunk, sizeof(int8_t), size, file);
+		int32_t readInData2 = fread(chunk, sizeof(int8_t), size, file);
 		pos += size; // Move pointer position the amount of bytes read to the right
 
 		int32_t err;

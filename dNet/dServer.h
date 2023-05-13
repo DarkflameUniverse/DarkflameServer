@@ -6,6 +6,7 @@
 
 class dLogger;
 class dConfig;
+enum class eServerDisconnectIdentifiers : uint32_t;
 
 enum class ServerType : uint32_t {
 	Master,
@@ -41,7 +42,7 @@ public:
 	virtual void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast);
 	void SendToMaster(RakNet::BitStream* bitStream);
 
-	void Disconnect(const SystemAddress& sysAddr, uint32_t disconNotifyID);
+	void Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID);
 
 	bool IsConnected(const SystemAddress& sysAddr);
 	const std::string& GetIP() const { return mIP; }

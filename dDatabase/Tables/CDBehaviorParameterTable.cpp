@@ -1,15 +1,14 @@
 #include "CDBehaviorParameterTable.h"
 #include "GeneralUtils.h"
 
-//! Constructor
 CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorParameter");
 	uint32_t uniqueParameterId = 0;
 	uint64_t hash = 0;
 	while (!tableData.eof()) {
 		CDBehaviorParameter entry;
-		entry.behaviorID = tableData.getIntField(0, -1);
-		auto candidateStringToAdd = std::string(tableData.getStringField(1, ""));
+		entry.behaviorID = tableData.getIntField("behaviorID", -1);
+		auto candidateStringToAdd = std::string(tableData.getStringField("parameterID", ""));
 		auto parameter = m_ParametersList.find(candidateStringToAdd);
 		if (parameter != m_ParametersList.end()) {
 			entry.parameterID = parameter;
@@ -19,21 +18,13 @@ CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 		}
 		hash = entry.behaviorID;
 		hash = (hash << 31U) | entry.parameterID->second;
-		entry.value = tableData.getFloatField(2, -1.0f);
+		entry.value = tableData.getFloatField("value", -1.0f);
 
 		m_Entries.insert(std::make_pair(hash, entry));
 
 		tableData.nextRow();
 	}
 	tableData.finalize();
-}
-
-//! Destructor
-CDBehaviorParameterTable::~CDBehaviorParameterTable(void) {}
-
-//! Returns the table's name
-std::string CDBehaviorParameterTable::GetName(void) const {
-	return "BehaviorParameter";
 }
 
 float CDBehaviorParameterTable::GetValue(const uint32_t behaviorID, const std::string& name, const float defaultValue) {
@@ -62,3 +53,4 @@ std::map<std::string, float> CDBehaviorParameterTable::GetParametersByBehaviorID
 	}
 	return returnInfo;
 }
+

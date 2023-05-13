@@ -17,9 +17,11 @@
 #include "DatabasePet.h"
 #include "Component.h"
 #include "ItemSetPassiveAbility.h"
-#include "ItemSetPassiveAbilityID.h"
+#include "eItemSetPassiveAbilityID.h"
 #include "PossessorComponent.h"
 #include "eInventoryType.h"
+#include "eReplicaComponentType.h"
+#include "eLootSourceType.h"
 
 class Entity;
 class ItemSet;
@@ -36,7 +38,7 @@ enum class eItemType : int32_t;
 class InventoryComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_INVENTORY;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
 
 	void Update(float deltaTime) override;
@@ -98,7 +100,7 @@ public:
 	void AddItem(
 		LOT lot,
 		uint32_t count,
-		eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE,
+		eLootSourceType lootSourceType = eLootSourceType::NONE,
 		eInventoryType inventoryType = INVALID,
 		const std::vector<LDFBaseData*>& config = {},
 		LWOOBJID parent = LWOOBJID_EMPTY,
@@ -291,7 +293,7 @@ public:
 	 * @param equipmentRequirement the number of equipment required to be allowed to have the ability
 	 * @return if the entity has any of the passed passive abilities equipped
 	 */
-	bool HasAnyPassive(const std::vector<ItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const;
+	bool HasAnyPassive(const std::vector<eItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const;
 
 	/**
 	 * Despawns the currently active pet, if any
@@ -354,14 +356,14 @@ public:
 
 	/**
 	 * Call this when you equip an item.  This calls OnFactionTriggerItemEquipped for any scripts found on the items.
-	 * 
+	 *
 	 * @param equippedItem The item script to lookup and call equip on
 	 */
 	void EquipScripts(Item* equippedItem);
-	
+
 	/**
 	 * Call this when you unequip an item.  This calls OnFactionTriggerItemUnequipped for any scripts found on the items.
-	 * 
+	 *
 	 * @param unequippedItem The item script to lookup and call unequip on
 	 */
 	void UnequipScripts(Item* unequippedItem);

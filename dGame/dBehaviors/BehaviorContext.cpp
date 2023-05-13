@@ -10,10 +10,12 @@
 
 #include <sstream>
 
-
 #include "DestroyableComponent.h"
+#include "EchoSyncSkill.h"
 #include "PhantomPhysicsComponent.h"
 #include "RebuildComponent.h"
+#include "eReplicaComponentType.h"
+#include "eConnectionType.h"
 
 BehaviorSyncEntry::BehaviorSyncEntry() {
 }
@@ -45,7 +47,7 @@ uint32_t BehaviorContext::GetUniqueSkillId() const {
 }
 
 
-void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext, bool ignoreInterrupts) {
+void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext, const float duration, bool ignoreInterrupts) {
 	auto entry = BehaviorSyncEntry();
 
 	entry.handle = syncId;
@@ -53,6 +55,9 @@ void BehaviorContext::RegisterSyncBehavior(const uint32_t syncId, Behavior* beha
 	entry.branchContext = branchContext;
 	entry.branchContext.isSync = true;
 	entry.ignoreInterrupts = ignoreInterrupts;
+	// Add 10 seconds + duration time to account for lag and give clients time to send their syncs to the server.
+	constexpr float lagTime = 10.0f;
+	entry.time = lagTime + duration;
 
 	this->syncEntries.push_back(entry);
 }
@@ -181,6 +186,21 @@ void BehaviorContext::SyncCalculation(const uint32_t syncId, const float time, B
 	this->syncEntries.push_back(entry);
 }
 
+void BehaviorContext::UpdatePlayerSyncs(float deltaTime) {
+	uint32_t i = 0;
+	while (i < this->syncEntries.size()) {
+		auto& entry = this->syncEntries.at(i);
+
+		entry.time -= deltaTime;
+
+		if (entry.time >= 0.0f) {
+			i++;
+			continue;
+		}
+		this->syncEntries.erase(this->syncEntries.begin() + i);
+	}
+}
+
 void BehaviorContext::InvokeEnd(const uint32_t id) {
 	std::vector<BehaviorEndEntry> entries;
 
@@ -216,7 +236,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 		}
 
 		// Echo sync
-		GameMessages::EchoSyncSkill echo;
+		EchoSyncSkill echo;
 
 		echo.bDone = true;
 		echo.uiBehaviorHandle = entry.handle;
@@ -233,7 +253,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 			// Write message
 			RakNet::BitStream message;
 
-			PacketUtils::WriteHeader(message, CLIENT, MSG_CLIENT_GAME_MSG);
+			PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			message.Write(this->originator);
 			echo.Serialize(&message);
 
@@ -310,13 +330,13 @@ std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, in
 		}
 	}
 
-	if (ignoreFaction || includeFaction || (!entity->HasComponent(COMPONENT_TYPE_PHANTOM_PHYSICS) && targets.empty())) {
+	if (ignoreFaction || includeFaction || (!entity->HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) && targets.empty())) {
 		DestroyableComponent* destroyableComponent;
-		if (!entity->TryGetComponent(COMPONENT_TYPE_DESTROYABLE, destroyableComponent)) {
+		if (!entity->TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent)) {
 			return targets;
 		}
 
-		auto entities = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS);
+		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS);
 		for (auto* candidate : entities) {
 			const auto id = candidate->GetObjectID();
 

@@ -3,12 +3,9 @@
 #ifndef __BEHAVIORSTATES__H__
 #define __BEHAVIORSTATES__H__
 
-#include <string>
 #include <cstdint>
 
-#include "dCommonVars.h"
-
-enum States : BEHAVIORSTATE {
+enum class BehaviorState : uint32_t {
     HOME_STATE = 0,                         //!< The HOME behavior state
     CIRCLE_STATE,                           //!< The CIRCLE behavior state
     SQUARE_STATE,                           //!< The SQUARE behavior state

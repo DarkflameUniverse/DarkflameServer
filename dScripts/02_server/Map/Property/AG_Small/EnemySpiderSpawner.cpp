@@ -1,7 +1,9 @@
 #include "EnemySpiderSpawner.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 #include "DestroyableComponent.h"
+#include "eReplicaComponentType.h"
 
 //----------------------------------------------
 //--Initiate egg hatching on call
@@ -13,7 +15,7 @@ void EnemySpiderSpawner::OnFireEventServerSide(Entity* self, Entity* sender, std
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2856, u"maelstrom", "test", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
 
 		// Make indestructible
-		auto dest = static_cast<DestroyableComponent*>(self->GetComponent(COMPONENT_TYPE_DESTROYABLE));
+		auto dest = static_cast<DestroyableComponent*>(self->GetComponent(eReplicaComponentType::DESTROYABLE));
 		if (dest) {
 			dest->SetFaction(-1);
 		}

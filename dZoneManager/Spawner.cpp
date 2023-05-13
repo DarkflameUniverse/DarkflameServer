@@ -134,22 +134,21 @@ void Spawner::AddEntitySpawnedCallback(std::function<void(Entity*)> callback) {
 
 void Spawner::Reset() {
 	m_Start = true;
-
-	for (auto* node : m_Info.nodes) {
-		for (const auto& spawned : node->entities) {
-			auto* entity = EntityManager::Instance()->GetEntity(spawned);
-
-			if (entity == nullptr) continue;
-
-			entity->Kill();
-		}
-
-		node->entities.clear();
-	}
-
+	DestroyAllEntities();
 	m_Entities.clear();
 	m_AmountSpawned = 0;
 	m_NeedsUpdate = true;
+}
+
+void Spawner::DestroyAllEntities(){
+	for (auto* node : m_Info.nodes) {
+		for (const auto& element : node->entities) {
+			auto* entity = EntityManager::Instance()->GetEntity(element);
+			if (entity == nullptr) continue;
+			entity->Kill();
+		}
+		node->entities.clear();
+	}
 }
 
 void Spawner::SoftReset() {

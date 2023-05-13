@@ -13,7 +13,7 @@ class DamagingPets : public CppScripts::Script {
 public:
 	void OnStartup(Entity* self) override;
 	void OnTimerDone(Entity* self, std::string message) override;
-	void OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, eNotifyType type) override;
+	void OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTamingNotifyType type) override;
 	void OnSkillEventFired(Entity* self, Entity* target, const std::string& message) override;
 	void OnPlayerLoaded(Entity* self, Entity* player) override;
 private:

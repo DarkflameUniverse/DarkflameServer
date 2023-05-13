@@ -4,6 +4,8 @@
 #include "Spawner.h"
 #include <map>
 
+class WorldConfig;
+
 class dZoneManager {
 public:
 	enum class dZoneNotifier {
@@ -15,6 +17,12 @@ public:
 		PrintAllGameObjects, //Using this is a BAD idea in production
 		InvalidNotifier
 	};
+
+private:
+	/**
+	 * Reads the WorldConfig from the CDClientDatabase into memory
+	 */
+	void LoadWorldConfig();
 
 public:
 	static dZoneManager* Instance() {
@@ -33,8 +41,6 @@ public:
 	void NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& objectID); //Notifies the zone of a certain event or command.
 	void AddSpawner(LWOOBJID id, Spawner* spawner);
 	LWOZONEID GetZoneID() const;
-	uint32_t GetMaxLevel();
-	int32_t GetLevelCapCurrencyConversion();
 	LWOOBJID MakeSpawner(SpawnerInfo info);
 	Spawner* GetSpawner(LWOOBJID id);
 	void RemoveSpawner(LWOOBJID id);
@@ -44,28 +50,26 @@ public:
 	Entity* GetZoneControlObject() { return m_ZoneControlObject; }
 	bool GetPlayerLoseCoinOnDeath() { return m_PlayerLoseCoinsOnDeath; }
 	uint32_t GetUniqueMissionIdStartingValue();
+	bool CheckIfAccessibleZone(LWOMAPID zoneID);
+
+	// The world config should not be modified by a caller.
+	const WorldConfig* GetWorldConfig() {
+		if (!m_WorldConfig) LoadWorldConfig();
+		return m_WorldConfig;
+	};
 
 private:
-	/**
-	 * The maximum level of the world.
-	 */
-	uint32_t m_MaxLevel = 0;
-
-	/**
-	 * The ratio of LEGO Score to currency when the character has hit the max level.
-	 */
-	int32_t m_CurrencyConversionRate = 0;
-
 	/**
 	 * The starting unique mission ID.
 	 */
 	uint32_t m_UniqueMissionIdStart = 0;
 
 	static dZoneManager* m_Address; //Singleton
-	Zone* m_pZone;
+	Zone* m_pZone = nullptr;
 	LWOZONEID m_ZoneID;
 	bool m_PlayerLoseCoinsOnDeath; //Do players drop coins in this zone when smashed
 	std::map<LWOOBJID, Spawner*> m_Spawners;
+	WorldConfig* m_WorldConfig = nullptr;
 
-	Entity* m_ZoneControlObject;
+	Entity* m_ZoneControlObject = nullptr;
 };

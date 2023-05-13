@@ -4,6 +4,8 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "eUnequippableActiveType.h"
+#include "eControlScheme.h"
+#include "eStateChangeType.h"
 
 PossessorComponent::PossessorComponent(Entity* parent) : Component(parent) {
 	m_Possessable = LWOOBJID_EMPTY;
@@ -54,7 +56,7 @@ void PossessorComponent::Mount(Entity* mount) {
 	// GM's to send
 	GameMessages::SendSetJetPackMode(m_Parent, false);
 	GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_Parent->GetSystemAddress());
-	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStateChangeType::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
 	EntityManager::Instance()->SerializeEntity(m_Parent);
 	EntityManager::Instance()->SerializeEntity(mount);
@@ -78,5 +80,5 @@ void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
 		if (characterComponent) characterComponent->SetIsRacing(false);
 	}
 	// Make sure we don't have wacky controls
-	GameMessages::SendSetPlayerControlScheme(m_Parent, eControlSceme::SCHEME_A);
+	GameMessages::SendSetPlayerControlScheme(m_Parent, eControlScheme::SCHEME_A);
 }

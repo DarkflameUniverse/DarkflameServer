@@ -6,6 +6,7 @@
 #include "dNetCommon.h"
 
 enum class ServerType : uint32_t;
+enum class eLoginResponse : uint8_t;
 class dServer;
 
 namespace AuthPackets {

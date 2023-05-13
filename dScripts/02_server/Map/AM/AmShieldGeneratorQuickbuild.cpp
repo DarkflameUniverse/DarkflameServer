@@ -5,6 +5,7 @@
 #include "MovementAIComponent.h"
 #include "BaseCombatAIComponent.h"
 #include "SkillComponent.h"
+#include "EntityInfo.h"
 #include "RebuildComponent.h"
 #include "MissionComponent.h"
 
@@ -175,7 +176,7 @@ void AmShieldGeneratorQuickbuild::BuffPlayers(Entity* self) {
 void AmShieldGeneratorQuickbuild::EnemyEnteredShield(Entity* self, Entity* intruder) {
 	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-	if (rebuildComponent == nullptr || rebuildComponent->GetState() != REBUILD_COMPLETED) {
+	if (rebuildComponent == nullptr || rebuildComponent->GetState() != eRebuildState::COMPLETED) {
 		return;
 	}
 

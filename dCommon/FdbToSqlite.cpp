@@ -10,6 +10,7 @@
 #include "GeneralUtils.h"
 #include "Game.h"
 #include "dLogger.h"
+#include "AssetManager.h"
 
 #include "eSqliteDataType.h"
 
@@ -23,26 +24,23 @@ std::map<eSqliteDataType, std::string> FdbToSqlite::Convert::m_SqliteType = {
 			{ eSqliteDataType::TEXT_8, "text_8"}
 };
 
-FdbToSqlite::Convert::Convert(std::string basePath, std::string binaryOutPath) {
-	this->m_BasePath = basePath;
+FdbToSqlite::Convert::Convert(std::string binaryOutPath) {
 	this->m_BinaryOutPath = binaryOutPath;
-	m_Fdb.open(m_BasePath + "/cdclient.fdb", std::ios::binary);
 }
 
-FdbToSqlite::Convert::~Convert() {
-	this->m_Fdb.close();
-}
-
-bool FdbToSqlite::Convert::ConvertDatabase() {
+bool FdbToSqlite::Convert::ConvertDatabase(AssetMemoryBuffer& buffer) {
 	if (m_ConversionStarted) return false;
+
+	std::istream cdClientBuffer(&buffer);
+
 	this->m_ConversionStarted = true;
 	try {
 		CDClientDatabase::Connect(m_BinaryOutPath + "/CDServer.sqlite");
 
 		CDClientDatabase::ExecuteQuery("BEGIN TRANSACTION;");
 
-		int32_t numberOfTables = ReadInt32();
-		ReadTables(numberOfTables);
+		int32_t numberOfTables = ReadInt32(cdClientBuffer);
+		ReadTables(numberOfTables, cdClientBuffer);
 
 		CDClientDatabase::ExecuteQuery("COMMIT;");
 	} catch (CppSQLite3Exception& e) {
@@ -53,130 +51,130 @@ bool FdbToSqlite::Convert::ConvertDatabase() {
 	return true;
 }
 
-int32_t FdbToSqlite::Convert::ReadInt32() {
+int32_t FdbToSqlite::Convert::ReadInt32(std::istream& cdClientBuffer) {
 	int32_t nextInt{};
-	BinaryIO::BinaryRead(m_Fdb, nextInt);
+	BinaryIO::BinaryRead(cdClientBuffer, nextInt);
 	return nextInt;
 }
 
-int64_t FdbToSqlite::Convert::ReadInt64() {
-	int32_t prevPosition = SeekPointer();
+int64_t FdbToSqlite::Convert::ReadInt64(std::istream& cdClientBuffer) {
+	int32_t prevPosition = SeekPointer(cdClientBuffer);
 
 	int64_t value{};
-	BinaryIO::BinaryRead(m_Fdb, value);
+	BinaryIO::BinaryRead(cdClientBuffer, value);
 
-	m_Fdb.seekg(prevPosition);
+	cdClientBuffer.seekg(prevPosition);
 	return value;
 }
 
-std::string FdbToSqlite::Convert::ReadString() {
-	int32_t prevPosition = SeekPointer();
+std::string FdbToSqlite::Convert::ReadString(std::istream& cdClientBuffer) {
+	int32_t prevPosition = SeekPointer(cdClientBuffer);
 
-	auto readString = BinaryIO::ReadString(m_Fdb);
+	auto readString = BinaryIO::ReadString(cdClientBuffer);
 
-	m_Fdb.seekg(prevPosition);
+	cdClientBuffer.seekg(prevPosition);
 	return readString;
 }
 
-int32_t FdbToSqlite::Convert::SeekPointer() {
+int32_t FdbToSqlite::Convert::SeekPointer(std::istream& cdClientBuffer) {
 	int32_t position{};
-	BinaryIO::BinaryRead(m_Fdb, position);
-	int32_t prevPosition = m_Fdb.tellg();
-	m_Fdb.seekg(position);
+	BinaryIO::BinaryRead(cdClientBuffer, position);
+	int32_t prevPosition = cdClientBuffer.tellg();
+	cdClientBuffer.seekg(position);
 	return prevPosition;
 }
 
-std::string FdbToSqlite::Convert::ReadColumnHeader() {
-	int32_t prevPosition = SeekPointer();
+std::string FdbToSqlite::Convert::ReadColumnHeader(std::istream& cdClientBuffer) {
+	int32_t prevPosition = SeekPointer(cdClientBuffer);
 
-	int32_t numberOfColumns = ReadInt32();
-	std::string tableName = ReadString();
+	int32_t numberOfColumns = ReadInt32(cdClientBuffer);
+	std::string tableName = ReadString(cdClientBuffer);
 
-	auto columns = ReadColumns(numberOfColumns);
+	auto columns = ReadColumns(numberOfColumns, cdClientBuffer);
 	std::string newTable = "CREATE TABLE IF NOT EXISTS '" + tableName + "' (" + columns + ");";
 	CDClientDatabase::ExecuteDML(newTable);
 
-	m_Fdb.seekg(prevPosition);
+	cdClientBuffer.seekg(prevPosition);
 
 	return tableName;
 }
 
-void FdbToSqlite::Convert::ReadTables(int32_t& numberOfTables) {
-	int32_t prevPosition = SeekPointer();
+void FdbToSqlite::Convert::ReadTables(int32_t& numberOfTables, std::istream& cdClientBuffer) {
+	int32_t prevPosition = SeekPointer(cdClientBuffer);
 
 	for (int32_t i = 0; i < numberOfTables; i++) {
-		auto columnHeader = ReadColumnHeader();
-		ReadRowHeader(columnHeader);
+		auto columnHeader = ReadColumnHeader(cdClientBuffer);
+		ReadRowHeader(columnHeader, cdClientBuffer);
 	}
 
-	m_Fdb.seekg(prevPosition);
+	cdClientBuffer.seekg(prevPosition);
 }
 
-std::string FdbToSqlite::Convert::ReadColumns(int32_t& numberOfColumns) {
+std::string FdbToSqlite::Convert::ReadColumns(int32_t& numberOfColumns, std::istream& cdClientBuffer) {
 	std::stringstream columnsToCreate;
-	int32_t prevPosition = SeekPointer();
+	int32_t prevPosition = SeekPointer(cdClientBuffer);
 
 	std::string name{};
 	eSqliteDataType dataType{};
 	for (int32_t i = 0; i < numberOfColumns; i++) {
 		if (i != 0) columnsToCreate << ", ";
-		dataType = static_cast<eSqliteDataType>(ReadInt32());
-		name = ReadString();
+		dataType = static_cast<eSqliteDataType>(ReadInt32(cdClientBuffer));
+		name = ReadString(cdClientBuffer);
 		columnsToCreate << "'" << name << "' " << FdbToSqlite::Convert::m_SqliteType[dataType];
 	}
 
-	m_Fdb.seekg(prevPosition);
+	cdClientBuffer.seekg(prevPosition);
 	return columnsToCreate.str();
 }
 
-void FdbToSqlite::Convert::ReadRowHeader(std::string& tableName) {
-	int32_t prevPosition = SeekPointer();
+void FdbToSqlite::Convert::ReadRowHeader(std::string& tableName, std::istream& cdClientBuffer) {
+	int32_t prevPosition = SeekPointer(cdClientBuffer);
 
-	int32_t numberOfAllocatedRows = ReadInt32();
+	int32_t numberOfAllocatedRows = ReadInt32(cdClientBuffer);
 	if (numberOfAllocatedRows != 0) assert((numberOfAllocatedRows & (numberOfAllocatedRows - 1)) == 0);  // assert power of 2 allocation size
-	ReadRows(numberOfAllocatedRows, tableName);
+	ReadRows(numberOfAllocatedRows, tableName, cdClientBuffer);
 
-	m_Fdb.seekg(prevPosition);
+	cdClientBuffer.seekg(prevPosition);
 }
 
-void FdbToSqlite::Convert::ReadRows(int32_t& numberOfAllocatedRows, std::string& tableName) {
-	int32_t prevPosition = SeekPointer();
+void FdbToSqlite::Convert::ReadRows(int32_t& numberOfAllocatedRows, std::string& tableName, std::istream& cdClientBuffer) {
+	int32_t prevPosition = SeekPointer(cdClientBuffer);
 
 	int32_t rowid = 0;
 	for (int32_t row = 0; row < numberOfAllocatedRows; row++) {
-		int32_t rowPointer = ReadInt32();
+		int32_t rowPointer = ReadInt32(cdClientBuffer);
 		if (rowPointer == -1) rowid++;
-		else ReadRow(rowPointer, tableName);
+		else ReadRow(rowPointer, tableName, cdClientBuffer);
 	}
 
-	m_Fdb.seekg(prevPosition);
+	cdClientBuffer.seekg(prevPosition);
 }
 
-void FdbToSqlite::Convert::ReadRow(int32_t& position, std::string& tableName) {
-	int32_t prevPosition = m_Fdb.tellg();
-	m_Fdb.seekg(position);
+void FdbToSqlite::Convert::ReadRow(int32_t& position, std::string& tableName, std::istream& cdClientBuffer) {
+	int32_t prevPosition = cdClientBuffer.tellg();
+	cdClientBuffer.seekg(position);
 
 	while (true) {
-		ReadRowInfo(tableName);
-		int32_t linked = ReadInt32();
+		ReadRowInfo(tableName, cdClientBuffer);
+		int32_t linked = ReadInt32(cdClientBuffer);
 		if (linked == -1) break;
-		m_Fdb.seekg(linked);
+		cdClientBuffer.seekg(linked);
 	}
 
-	m_Fdb.seekg(prevPosition);
+	cdClientBuffer.seekg(prevPosition);
 }
 
-void FdbToSqlite::Convert::ReadRowInfo(std::string& tableName) {
-	int32_t prevPosition = SeekPointer();
+void FdbToSqlite::Convert::ReadRowInfo(std::string& tableName, std::istream& cdClientBuffer) {
+	int32_t prevPosition = SeekPointer(cdClientBuffer);
 
-	int32_t numberOfColumns = ReadInt32();
-	ReadRowValues(numberOfColumns, tableName);
+	int32_t numberOfColumns = ReadInt32(cdClientBuffer);
+	ReadRowValues(numberOfColumns, tableName, cdClientBuffer);
 
-	m_Fdb.seekg(prevPosition);
+	cdClientBuffer.seekg(prevPosition);
 }
 
-void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& tableName) {
-	int32_t prevPosition = SeekPointer();
+void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& tableName, std::istream& cdClientBuffer) {
+	int32_t prevPosition = SeekPointer(cdClientBuffer);
 
 	int32_t emptyValue{};
 	int32_t intValue{};
@@ -190,26 +188,26 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 
 	for (int32_t i = 0; i < numberOfColumns; i++) {
 		if (i != 0) insertedRow << ", "; // Only append comma and space after first entry in row.
-		switch (static_cast<eSqliteDataType>(ReadInt32())) {
+		switch (static_cast<eSqliteDataType>(ReadInt32(cdClientBuffer))) {
 		case eSqliteDataType::NONE:
-			BinaryIO::BinaryRead(m_Fdb, emptyValue);
+			BinaryIO::BinaryRead(cdClientBuffer, emptyValue);
 			assert(emptyValue == 0);
 			insertedRow << "NULL";
 			break;
 
 		case eSqliteDataType::INT32:
-			intValue = ReadInt32();
+			intValue = ReadInt32(cdClientBuffer);
 			insertedRow << intValue;
 			break;
 
 		case eSqliteDataType::REAL:
-			BinaryIO::BinaryRead(m_Fdb, floatValue);
+			BinaryIO::BinaryRead(cdClientBuffer, floatValue);
 			insertedRow << std::fixed << std::setprecision(34) << floatValue; // maximum precision of floating point number
 			break;
 
 		case eSqliteDataType::TEXT_4:
 		case eSqliteDataType::TEXT_8: {
-			stringValue = ReadString();
+			stringValue = ReadString(cdClientBuffer);
 			size_t position = 0;
 
 			// Need to escape quote with a double of ".
@@ -225,12 +223,12 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 		}
 
 		case eSqliteDataType::INT_BOOL:
-			BinaryIO::BinaryRead(m_Fdb, boolValue);
+			BinaryIO::BinaryRead(cdClientBuffer, boolValue);
 			insertedRow << static_cast<bool>(boolValue);
 			break;
 
 		case eSqliteDataType::INT64:
-			int64Value = ReadInt64();
+			int64Value = ReadInt64(cdClientBuffer);
 			insertedRow << std::to_string(int64Value);
 			break;
 
@@ -245,5 +243,5 @@ void FdbToSqlite::Convert::ReadRowValues(int32_t& numberOfColumns, std::string& 
 
 	auto copiedString = insertedRow.str();
 	CDClientDatabase::ExecuteDML(copiedString);
-	m_Fdb.seekg(prevPosition);
+	cdClientBuffer.seekg(prevPosition);
 }

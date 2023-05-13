@@ -1,6 +1,7 @@
 #include "NjColeNPC.h"
 #include "MissionComponent.h"
 #include "InventoryComponent.h"
+#include "eMissionState.h"
 
 void NjColeNPC::OnEmoteReceived(Entity* self, int32_t emote, Entity* target) {
 	if (emote != 393) {
@@ -26,10 +27,10 @@ void NjColeNPC::OnEmoteReceived(Entity* self, int32_t emote, Entity* target) {
 	missionComponent->ForceProgressTaskType(1818, 1, 1);
 }
 
-void NjColeNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void NjColeNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	NjNPCMissionSpinjitzuServer::OnMissionDialogueOK(self, target, missionID, missionState);
 
-	if (missionID == 1818 && missionState >= MissionState::MISSION_STATE_READY_TO_COMPLETE) {
+	if (missionID == 1818 && missionState >= eMissionState::READY_TO_COMPLETE) {
 		auto* missionComponent = target->GetComponent<MissionComponent>();
 		auto* inventoryComponent = target->GetComponent<InventoryComponent>();
 
@@ -43,6 +44,6 @@ void NjColeNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID,
 			return;
 		}
 
-		inventoryComponent->AddItem(16644, 1, eLootSourceType::LOOT_SOURCE_NONE);
+		inventoryComponent->AddItem(16644, 1, eLootSourceType::NONE);
 	}
 }

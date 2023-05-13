@@ -42,5 +42,5 @@ void NtDirtCloudServer::OnSkillEventFired(Entity* self, Entity* caster, const st
 
 	self->SetVar(u"CloudOn", false);
 
-	self->Smash(self->GetObjectID(), VIOLENT);
+	self->Smash(self->GetObjectID(), eKillType::VIOLENT);
 }

@@ -3,6 +3,7 @@
 #include "RebuildComponent.h"
 #include "InventoryComponent.h"
 #include "dZoneManager.h"
+#include "eMissionState.h"
 
 void AmDropshipComputer::OnStartup(Entity* self) {
 	self->AddTimer("reset", 45.0f);
@@ -11,7 +12,7 @@ void AmDropshipComputer::OnStartup(Entity* self) {
 void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
 	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-	if (rebuildComponent == nullptr || rebuildComponent->GetState() != REBUILD_COMPLETED) {
+	if (rebuildComponent == nullptr || rebuildComponent->GetState() != eRebuildState::COMPLETED) {
 		return;
 	}
 
@@ -22,11 +23,11 @@ void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
 		return;
 	}
 
-	if (inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0 || missionComponent->GetMission(979)->GetMissionState() == MissionState::MISSION_STATE_COMPLETE) {
+	if (inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0 || missionComponent->GetMission(979)->GetMissionState() == eMissionState::COMPLETE) {
 		return;
 	}
 
-	inventoryComponent->AddItem(m_NexusTalonDataCard, 1, eLootSourceType::LOOT_SOURCE_NONE);
+	inventoryComponent->AddItem(m_NexusTalonDataCard, 1, eLootSourceType::NONE);
 }
 
 void AmDropshipComputer::OnDie(Entity* self, Entity* killer) {
@@ -75,7 +76,7 @@ void AmDropshipComputer::OnTimerDone(Entity* self, std::string timerName) {
 		return;
 	}
 
-	if (timerName == "reset" && rebuildComponent->GetState() == REBUILD_OPEN) {
-		self->Smash(self->GetObjectID(), SILENT);
+	if (timerName == "reset" && rebuildComponent->GetState() == eRebuildState::OPEN) {
+		self->Smash(self->GetObjectID(), eKillType::SILENT);
 	}
 }
