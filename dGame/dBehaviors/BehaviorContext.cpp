@@ -417,7 +417,7 @@ bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
 
 	// ignore quickbuilds that aren't completed
 	auto* targetQuickbuildComponent = target->GetComponent<RebuildComponent>();
-	if (targetQuickbuildComponent && targetQuickbuildComponent->GetState() != REBUILD_COMPLETED) return false;
+	if (targetQuickbuildComponent && targetQuickbuildComponent->GetState() != eRebuildState::COMPLETED) return false;
 
 	return true;
 }
