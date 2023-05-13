@@ -25,6 +25,7 @@
 #include "eMissionTaskType.h"
 #include "eMissionLockState.h"
 #include "eReplicaComponentType.h"
+#include "ePlayerFlags.h"
 
 #include "CDMissionEmailTable.h"
 
