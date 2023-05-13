@@ -70,6 +70,7 @@
 #include "PetComponent.h"
 #include "ModuleAssemblyComponent.h"
 #include "VehiclePhysicsComponent.h"
+#include "RenderComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "RacingControlComponent.h"
