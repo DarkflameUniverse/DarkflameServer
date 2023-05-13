@@ -6,10 +6,12 @@
 #include "tinyxml2.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 namespace CppScripts {
 	class Script;
 }; //! namespace CppScripts
+enum class eStateChangeType : uint32_t;
 
 /**
  * Represents the stats of an entity, for example its health, imagination and armor. Also handles factions, which
@@ -17,7 +19,7 @@ namespace CppScripts {
  */
 class DestroyableComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_DESTROYABLE;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
 	DestroyableComponent(Entity* parentEntity);
 	~DestroyableComponent() override;

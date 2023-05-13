@@ -22,6 +22,9 @@
 #include "SkillComponent.h"
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
+#include "Metrics.hpp"
+#include "CDComponentsRegistryTable.h"
+#include "CDPhysicsComponentTable.h"
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id): Component(parent) {
 	m_Target = LWOOBJID_EMPTY;
@@ -104,10 +107,10 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 
 	int32_t collisionGroup = (COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_ENEMY);
 
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	auto componentID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), COMPONENT_TYPE_CONTROLLABLE_PHYSICS);
+	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	auto componentID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
 
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
 	if (physicsComponentTable != nullptr) {
 		auto* info = physicsComponentTable->GetByID(componentID);
@@ -228,12 +231,24 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 
 
 void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
+	bool hasSkillToCast = false;
+	for (auto& entry : m_SkillEntries) {
+		if (entry.cooldown > 0.0f) {
+			entry.cooldown -= deltaTime;
+		} else {
+			hasSkillToCast = true;
+		}
+	}
+
+	bool hadRemainingDowntime = m_SkillTime > 0.0f;
+	if (m_SkillTime > 0.0f) m_SkillTime -= deltaTime;
+
 	auto* rebuild = m_Parent->GetComponent<RebuildComponent>();
 
 	if (rebuild != nullptr) {
 		const auto state = rebuild->GetState();
 
-		if (state != REBUILD_COMPLETED) {
+		if (state != eRebuildState::COMPLETED) {
 			return;
 		}
 	}
@@ -258,9 +273,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		m_Stunned = false;
 	}
 
-	if (m_Stunned) {
-		return;
-	}
+	if (m_Stunned || hadRemainingDowntime) return;
 
 	auto newTarget = FindTarget();
 
@@ -325,35 +338,13 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		SetAiState(AiState::idle);
 	}
 
-	for (auto i = 0; i < m_SkillEntries.size(); ++i) {
-		auto entry = m_SkillEntries.at(i);
-
-		if (entry.cooldown > 0) {
-			entry.cooldown -= deltaTime;
-
-			m_SkillEntries[i] = entry;
-		}
-	}
-
-	if (m_SkillTime > 0) {
-		m_SkillTime -= deltaTime;
-
-		return;
-	}
-
-	if (m_Downtime > 0) {
-		m_Downtime -= deltaTime;
-
-		return;
-	}
+	if (!hasSkillToCast) return;
 
 	if (m_Target == LWOOBJID_EMPTY) {
 		SetAiState(AiState::idle);
 
 		return;
 	}
-
-	m_Downtime = 0.5f;
 
 	auto* target = GetTargetEntity();
 
@@ -575,7 +566,7 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	if (quickbuild != nullptr) {
 		const auto state = quickbuild->GetState();
 
-		if (state != REBUILD_COMPLETED) {
+		if (state != eRebuildState::COMPLETED) {
 			return false;
 		}
 	}

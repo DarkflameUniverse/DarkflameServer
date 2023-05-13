@@ -33,14 +33,6 @@ CDProximityMonitorComponentTable::CDProximityMonitorComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDProximityMonitorComponentTable::~CDProximityMonitorComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDProximityMonitorComponentTable::GetName(void) const {
-	return "ProximityMonitorComponent";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDProximityMonitorComponent> CDProximityMonitorComponentTable::Query(std::function<bool(CDProximityMonitorComponent)> predicate) {
 

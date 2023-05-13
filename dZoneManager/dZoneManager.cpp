@@ -9,7 +9,11 @@
 #include "GameMessages.h"
 #include "VanityUtilities.h"
 #include "WorldConfig.h"
+#include "CDZoneTableTable.h"
 #include <chrono>
+#include "eObjectBits.h"
+#include "CDZoneTableTable.h"
+#include "AssetManager.h"
 
 #include "../dWorldServer/ObjectIDManager.h"
 
@@ -27,7 +31,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LOT zoneControlTemplate = 2365;
 
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	if (zoneTable != nullptr) {
 		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
 
@@ -132,8 +136,7 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 
 	if (objectId == LWOOBJID_EMPTY) {
 		objectId = ObjectIDManager::Instance()->GenerateObjectID();
-
-		objectId = GeneralUtils::SetBit(objectId, OBJECT_BIT_CLIENT);
+		GeneralUtils::SetBit(objectId, eObjectBits::CLIENT);
 
 		info.spawnerID = objectId;
 	}
@@ -181,17 +184,7 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 		Game::logger->Log("dZoneManager", "Failed to find spawner entity (%llu)", id);
 	}
 
-	for (auto* node : spawner->m_Info.nodes) {
-		for (const auto& element : node->entities) {
-			auto* nodeEntity = EntityManager::Instance()->GetEntity(element);
-
-			if (nodeEntity == nullptr) continue;
-
-			nodeEntity->Kill();
-		}
-
-		node->entities.clear();
-	}
+	spawner->DestroyAllEntities();
 
 	spawner->Deactivate();
 
@@ -234,6 +227,17 @@ uint32_t dZoneManager::GetUniqueMissionIdStartingValue() {
 		tableData.finalize();
 	}
 	return m_UniqueMissionIdStart;
+}
+
+bool dZoneManager::CheckIfAccessibleZone(LWOMAPID zoneID) {
+	//We're gonna go ahead and presume we've got the db loaded already:
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	const CDZoneTable* zone = zoneTable->Query(zoneID);
+	if (zone != nullptr) {
+		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());
+	} else {
+		return false;
+	}
 }
 
 void dZoneManager::LoadWorldConfig() {

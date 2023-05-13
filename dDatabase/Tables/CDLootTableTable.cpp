@@ -35,14 +35,6 @@ CDLootTableTable::CDLootTableTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDLootTableTable::~CDLootTableTable(void) {}
-
-//! Returns the table's name
-std::string CDLootTableTable::GetName(void) const {
-	return "LootTable";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDLootTable> CDLootTableTable::Query(std::function<bool(CDLootTable)> predicate) {
 

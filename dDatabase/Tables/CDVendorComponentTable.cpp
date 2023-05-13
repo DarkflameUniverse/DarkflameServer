@@ -34,14 +34,6 @@ CDVendorComponentTable::CDVendorComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDVendorComponentTable::~CDVendorComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDVendorComponentTable::GetName(void) const {
-	return "VendorComponent";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDVendorComponent> CDVendorComponentTable::Query(std::function<bool(CDVendorComponent)> predicate) {
 

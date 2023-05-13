@@ -2,7 +2,7 @@
 #include "CppScripts.h"
 #include "ChooseYourDestinationNsToNt.h"
 #include "BaseConsoleTeleportServer.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 class NsLegoClubDoor : public CppScripts::Script, ChooseYourDestinationNsToNt, BaseConsoleTeleportServer
 {

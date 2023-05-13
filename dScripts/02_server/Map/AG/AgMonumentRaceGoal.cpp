@@ -7,9 +7,9 @@ void AgMonumentRaceGoal::OnStartup(Entity* self) {
 }
 
 void AgMonumentRaceGoal::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
-	if (name == "RaceGoal" && entering->IsPlayer() && status == "ENTER") {
-		auto* manager = EntityManager::Instance()->GetEntitiesInGroup("race_manager")[0];
-
-		manager->OnFireEventServerSide(entering, "course_finish");
+	if (name == "RaceGoal" && entering && entering->IsPlayer() && status == "ENTER") {
+		auto managers = EntityManager::Instance()->GetEntitiesInGroup("race_manager");
+		if (managers.empty() || !managers.at(0)) return;
+		managers.at(0)->OnFireEventServerSide(entering, "course_finish");
 	}
 }

@@ -16,7 +16,7 @@ void ForceMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream* 
 		Game::logger->Log("ForceMovementBehavior", "Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
-	context->RegisterSyncBehavior(handle, this, branch);
+	context->RegisterSyncBehavior(handle, this, branch, this->m_Duration);
 }
 
 void ForceMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {

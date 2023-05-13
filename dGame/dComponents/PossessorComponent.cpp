@@ -4,6 +4,8 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "eUnequippableActiveType.h"
+#include "eControlScheme.h"
+#include "eStateChangeType.h"
 
 PossessorComponent::PossessorComponent(Entity* parent) : Component(parent) {
 	m_Possessable = LWOOBJID_EMPTY;
@@ -78,5 +80,5 @@ void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
 		if (characterComponent) characterComponent->SetIsRacing(false);
 	}
 	// Make sure we don't have wacky controls
-	GameMessages::SendSetPlayerControlScheme(m_Parent, eControlSceme::SCHEME_A);
+	GameMessages::SendSetPlayerControlScheme(m_Parent, eControlScheme::SCHEME_A);
 }

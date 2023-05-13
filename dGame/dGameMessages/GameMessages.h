@@ -7,8 +7,12 @@
 #include <vector>
 #include "eMovementPlatformState.h"
 #include "NiPoint3.h"
+#include "eEndBehavior.h"
+#include "eCyclingMode.h"
+#include "eLootSourceType.h"
+#include "Brick.h"
 
-class AMFValue;
+class AMFBaseValue;
 class Entity;
 class Item;
 class NiQuaternion;
@@ -21,6 +25,17 @@ enum class eAnimationFlags : uint32_t;
 
 enum class eUnequippableActiveType;
 enum eInventoryType : uint32_t;
+enum class eGameMasterLevel : uint8_t;
+enum class eMatchUpdate : int32_t;
+enum class eKillType : uint32_t;
+enum class eObjectWorldState : uint32_t;
+enum class eTerminateType : uint32_t;
+enum class eControlScheme : uint32_t;
+enum class eStateChangeType : uint32_t;
+enum class ePetTamingNotifyType : uint32_t;
+enum class eUseItemResponse : uint32_t;
+enum class eQuickBuildFailReason : uint32_t;
+enum class eRebuildState : uint32_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -31,7 +46,8 @@ namespace GameMessages {
 	void SendPlayerAllowedRespawn(LWOOBJID entityID, bool doNotPromptRespawn, const SystemAddress& systemAddress);
 	void SendInvalidZoneTransferList(Entity* entity, const SystemAddress& sysAddr, const std::u16string& feedbackURL, const std::u16string& invalidMapTransferList, bool feedbackOnExit, bool feedbackOnInvalidTransfer);
 	void SendKnockback(const LWOOBJID& objectID, const LWOOBJID& caster, const LWOOBJID& originator, int knockBackTimeMS, const NiPoint3& vector);
-
+	// https://lcdruniverse.org/lu_packets/lu_packets/world/gm/client/struct.VehicleStopBoost.html
+	void SendVehicleStopBoost(Entity* targetEntity, const SystemAddress& playerSysAddr, bool affectPassive);
 	void SendStartArrangingWithItem(
 		Entity* entity,
 		const SystemAddress& sysAddr,
@@ -48,8 +64,7 @@ namespace GameMessages {
 		int targetTYPE = 0
 	);
 
-	void SendPlayerSetCameraCyclingMode(const LWOOBJID& objectID, const SystemAddress& sysAddr,
-		bool bAllowCyclingWhileDeadOnly = true, eCyclingMode cyclingMode = ALLOW_CYCLE_TEAMMATES);
+	void SendPlayerSetCameraCyclingMode(const LWOOBJID& objectID, const SystemAddress& sysAddr, bool bAllowCyclingWhileDeadOnly = true, eCyclingMode cyclingMode = eCyclingMode::ALLOW_CYCLE_TEAMMATES);
 
 	void SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& sysAddr, std::string audioGUID);
 
@@ -60,12 +75,12 @@ namespace GameMessages {
 
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);
 	void SendServerDoneLoadingAllObjects(Entity* entity, const SystemAddress& sysAddr);
-	void SendGMLevelBroadcast(const LWOOBJID& objectID, uint8_t level);
-	void SendChatModeUpdate(const LWOOBJID& objectID, uint8_t level);
+	void SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level);
+	void SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel level);
 
-	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
-	void SendNotifyClientFlagChange(const LWOOBJID& objectID, int iFlagID, bool bFlag, const SystemAddress& sysAddr);
-	void SendChangeObjectWorldState(const LWOOBJID& objectID, int state, const SystemAddress& sysAddr);
+	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::NONE);
+	void SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t iFlagID, bool bFlag, const SystemAddress& sysAddr);
+	void SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectWorldState state, const SystemAddress& sysAddr);
 
 	void SendOfferMission(const LWOOBJID& entity, const SystemAddress& sysAddr, int32_t missionID, const LWOOBJID& offererID);
 	void SendNotifyMission(Entity* entity, const SystemAddress& sysAddr, int missionID, int missionState, bool sendingRewards);
@@ -73,8 +88,8 @@ namespace GameMessages {
 	void NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards);
 
 	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
-	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFValue* args);
-	void SendUIMessageServerToAllClients(const std::string& message, AMFValue* args);
+	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args);
+	void SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue& args);
 
 	void SendPlayEmbeddedEffectOnAllClientsNearObject(Entity* entity, std::u16string effectName, const LWOOBJID& fromObjectID, float radius);
 	void SendPlayFXEffect(Entity* entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary, float priority = 1, float scale = 1, bool serialize = true);
@@ -83,8 +98,8 @@ namespace GameMessages {
 	void SendBroadcastTextToChatbox(Entity* entity, const SystemAddress& sysAddr, const std::u16string& attrs, const std::u16string& wsText);
 	void SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent, eLootSourceType sourceType);
 
-	void SendRebuildNotifyState(Entity* entity, int prevState, int state, const LWOOBJID& playerID);
-	void SendEnableRebuild(Entity* entity, bool enable, bool fail, bool success, int failReason, float duration, const LWOOBJID& playerID);
+	void SendRebuildNotifyState(Entity* entity, eRebuildState prevState, eRebuildState state, const LWOOBJID& playerID);
+	void SendEnableRebuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID);
 	void AddActivityOwner(Entity* entity, LWOOBJID& ownerID);
 	void SendTerminateInteraction(const LWOOBJID& objectID, eTerminateType type, const LWOOBJID& terminator);
 
@@ -101,7 +116,7 @@ namespace GameMessages {
 	void SendSetNetworkScriptVar(Entity* entity, const SystemAddress& sysAddr, std::string data);
 	void SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos = NiPoint3::ZERO, int count = 1);
 
-	void SendSetPlayerControlScheme(Entity* entity, eControlSceme controlScheme);
+	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
 	void SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPoint3& position, const NiQuaternion& rotation);
 
 	void SendAddSkill(Entity* entity, TSkillID skillID, int slotID);
@@ -120,10 +135,13 @@ namespace GameMessages {
 	void SendMoveInventoryBatch(Entity* entity, uint32_t stackCount, int srcInv, int dstInv, const LWOOBJID& iObjID);
 
 	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
-	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, int type);
+	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, eMatchUpdate type);
 
 	void HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID);
+
+	// https://lcdruniverse.org/lu_packets/lu_packets/world/gm/client/struct.SetResurrectRestoreValues.html
+	void SendSetResurrectRestoreValues(Entity* targetEntity, int32_t armorRestore, int32_t healthRestore, int32_t imaginationRestore);
 
 	/**
 	 * Sends a message to an Entity to smash itself, but not delete or destroy itself from the world
@@ -261,7 +279,7 @@ namespace GameMessages {
 
 	void SendPlayCinematic(LWOOBJID objectId, std::u16string pathName, const SystemAddress& sysAddr,
 		bool allowGhostUpdates = true, bool bCloseMultiInteract = true, bool bSendServerNotify = false, bool bUseControlledObjectForAudioListener = false,
-		int endBehavior = 0, bool hidePlayerDuringCine = false, float leadIn = -1, bool leavePlayerLockedWhenFinished = false,
+		eEndBehavior endBehavior = eEndBehavior::RETURN, bool hidePlayerDuringCine = false, float leadIn = -1, bool leavePlayerLockedWhenFinished = false,
 		bool lockPlayer = true, bool result = false, bool skipIfSamePath = false, float startTimeAdvance = 0);
 
 	void SendEndCinematic(LWOOBJID objectID, std::u16string pathName, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
@@ -344,7 +362,7 @@ namespace GameMessages {
 	void HandleClientTradeUpdate(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	//Pets:
-	void SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId, LWOOBJID playerTamingId, bool bForceTeleport, uint32_t notifyType, NiPoint3 petsDestPos, NiPoint3 telePos, NiQuaternion teleRot, const SystemAddress& sysAddr);
+	void SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId, LWOOBJID playerTamingId, bool bForceTeleport, ePetTamingNotifyType notifyType, NiPoint3 petsDestPos, NiPoint3 telePos, NiQuaternion teleRot, const SystemAddress& sysAddr);
 
 	void SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, std::vector<Brick>& bricks, const SystemAddress& sysAddr);
 
@@ -514,7 +532,7 @@ namespace GameMessages {
 	void SendActivityPause(LWOOBJID objectId, bool pause = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SendStartActivityTime(LWOOBJID objectId, float_t startTime, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SendRequestActivityEnter(LWOOBJID objectId, const SystemAddress& sysAddr, bool bStart, LWOOBJID userID);
-	void SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, UseItemResponse itemResponse);
+	void SendUseItemRequirementsResponse(LWOOBJID objectID, const SystemAddress& sysAddr, eUseItemResponse itemResponse);
 
 	// SG:
 
@@ -570,6 +588,8 @@ namespace GameMessages {
 	void HandleToggleGhostReferenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSetGhostReferencePosition(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
+	void SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId);
+	void SendShowBillboardInteractIcon(const SystemAddress& sysAddr, LWOOBJID objectId);
 	void HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSellToVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
@@ -617,7 +637,7 @@ namespace GameMessages {
 	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);
 
 	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
-  
+
 	// bubble
 	void HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
 
@@ -626,6 +646,9 @@ namespace GameMessages {
 	void SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
+
+	void HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity);
+	void HandleRequestActivityExit(RakNet::BitStream* inStream, Entity* entity);
 };
 
 #endif // GAMEMESSAGES_H

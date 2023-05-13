@@ -39,11 +39,11 @@ bool SwitchComponent::GetActive() const {
 void SwitchComponent::EntityEnter(Entity* entity) {
 	if (!m_Active) {
 		if (m_Rebuild) {
-			if (m_Rebuild->GetState() != eRebuildState::REBUILD_COMPLETED) return;
+			if (m_Rebuild->GetState() != eRebuildState::COMPLETED) return;
 		}
 		m_Active = true;
 		if (!m_Parent) return;
-		m_Parent->TriggerEvent(eTriggerEventType::ACTIVATED);
+		m_Parent->TriggerEvent(eTriggerEventType::ACTIVATED, entity);
 
 		const auto grpName = m_Parent->GetVarAsString(u"grp_name");
 
@@ -79,7 +79,7 @@ void SwitchComponent::Update(float deltaTime) {
 		if (m_Timer <= 0.0f) {
 			m_Active = false;
 			if (!m_Parent) return;
-			m_Parent->TriggerEvent(eTriggerEventType::DEACTIVATED);
+			m_Parent->TriggerEvent(eTriggerEventType::DEACTIVATED, m_Parent);
 
 			const auto grpName = m_Parent->GetVarAsString(u"grp_name");
 

@@ -6,7 +6,7 @@
 #include <map>
 #include <vector>
 
-
+#include "CDItemComponentTable.h"
 #include "CDClientManager.h"
 #include "dCommonVars.h"
 

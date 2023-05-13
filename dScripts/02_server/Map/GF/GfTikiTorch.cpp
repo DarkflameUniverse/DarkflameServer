@@ -4,6 +4,8 @@
 #include "MissionComponent.h"
 #include "RenderComponent.h"
 #include "eMissionTaskType.h"
+#include "eReplicaComponentType.h"
+#include "eTerminateType.h"
 
 void GfTikiTorch::OnStartup(Entity* self) {
 	LightTorch(self);
@@ -32,7 +34,7 @@ void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
 		Entity* player = EntityManager::Instance()->GetEntity(self->GetI64(u"userID"));
 
 		if (player != nullptr && player->GetCharacter()) {
-			GameMessages::SendTerminateInteraction(player->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+			GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 		}
 
 		self->SetBoolean(u"isInUse", false);
@@ -42,7 +44,7 @@ void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
 }
 
 void GfTikiTorch::LightTorch(Entity* self) {
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 	if (renderComponent == nullptr)
 		return;
 

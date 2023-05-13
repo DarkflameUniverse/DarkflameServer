@@ -37,14 +37,6 @@ CDMovementAIComponentTable::CDMovementAIComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDMovementAIComponentTable::~CDMovementAIComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDMovementAIComponentTable::GetName(void) const {
-	return "MovementAIComponent";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDMovementAIComponent> CDMovementAIComponentTable::Query(std::function<bool(CDMovementAIComponent)> predicate) {
 

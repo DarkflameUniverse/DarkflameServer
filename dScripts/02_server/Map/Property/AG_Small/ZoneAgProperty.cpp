@@ -7,6 +7,7 @@
 #include "RenderComponent.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
+#include "eReplicaComponentType.h"
 
 void ZoneAgProperty::SetGameVariables(Entity* self) {
 	self->SetVar<std::string>(GuardGroup, "Guard");
@@ -38,8 +39,8 @@ void ZoneAgProperty::SetGameVariables(Entity* self) {
 	self->SetVar<std::string>(LauncherSpawner, "Launcher");
 	self->SetVar<std::string>(InstancerSpawner, "Instancer");
 
-	self->SetVar<uint32_t>(defeatedProperyFlag, 71);
-	self->SetVar<uint32_t>(placedModelFlag, 73);
+	self->SetVar<int32_t>(defeatedProperyFlag, 71);
+	self->SetVar<int32_t>(placedModelFlag, 73);
 	self->SetVar<uint32_t>(guardFirstMissionFlag, 891);
 	self->SetVar<uint32_t>(guardMissionFlag, 320);
 	self->SetVar<uint32_t>(brickLinkMissionIDFlag, 951);
@@ -256,7 +257,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		DeactivateSpawner(self->GetVar<std::string>(SpiderScreamSpawner));
 		DestroySpawner(self->GetVar<std::string>(SpiderScreamSpawner));
 
-		for (auto* player : EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CHARACTER)) {
+		for (auto* player : EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CHARACTER)) {
 			GameMessages::SendStop2DAmbientSound(player, true, GUIDMaelstrom);
 			GameMessages::SendPlay2DAmbientSound(player, GUIDPeaceful);
 		}
@@ -412,7 +413,7 @@ void ZoneAgProperty::BaseOnFireEventServerSide(Entity* self, Entity* sender, std
 		if (player == nullptr)
 			return;
 
-		player->GetCharacter()->SetPlayerFlag(self->GetVar<uint32_t>(defeatedProperyFlag), true);
+		player->GetCharacter()->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0,
 			LWOOBJID_EMPTY, destroyedCinematic, UNASSIGNED_SYSTEM_ADDRESS);
 

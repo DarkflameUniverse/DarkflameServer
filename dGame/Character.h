@@ -15,6 +15,8 @@ class User;
 struct Packet;
 class Entity;
 enum class ePermissionMap : uint64_t;
+enum class eGameMasterLevel : uint8_t;
+enum class eLootSourceType : uint32_t;
 
 /**
  * Meta information about a character, like their name and style
@@ -308,13 +310,13 @@ public:
 	 * Gets the GM level of the character
 	 * @return the GM level
 	 */
-	int32_t GetGMLevel() const { return m_GMLevel; }
+	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
 
 	/**
 	 * Sets the GM level of the character
 	 * @param value the GM level to set
 	 */
-	void SetGMLevel(uint8_t value) { m_GMLevel = value; }
+	void SetGMLevel(eGameMasterLevel value) { m_GMLevel = value; }
 
 	/**
 	 * Gets the current amount of coins of the character
@@ -413,14 +415,14 @@ public:
 	 * @param flagId the ID of the flag to set
 	 * @param value the value to set for the flag
 	 */
-	void SetPlayerFlag(uint32_t flagId, bool value);
+	void SetPlayerFlag(int32_t flagId, bool value);
 
 	/**
 	 * Gets the value for a certain character flag
 	 * @param flagId the ID of the flag to get a value for
 	 * @return the value of the flag given the ID (the default is false, obviously)
 	 */
-	bool GetPlayerFlag(uint32_t flagId) const;
+	bool GetPlayerFlag(int32_t flagId) const;
 
 	/**
 	 * Notifies the character that they're now muted
@@ -451,6 +453,10 @@ public:
 	*/
 	void SetIsFlying(bool isFlying) { m_IsFlying = isFlying; }
 
+	bool GetBillboardVisible() { return m_BillboardVisible; }
+
+	void SetBillboardVisible(bool visible);
+
 private:
 	/**
 	 * The ID of this character. First 32 bits of the ObjectID.
@@ -477,7 +483,7 @@ private:
 	 *
 	 * @see eGameMasterLevel
 	 */
-	int32_t m_GMLevel;
+	eGameMasterLevel m_GMLevel;
 
 	/**
 	 * Bitmap of permission attributes this character has.
@@ -651,6 +657,11 @@ private:
 	 * Bool that tracks the flying state of the user.
 	*/
 	bool m_IsFlying = false;
+
+	/**
+	 * True if billboard (referred to as nameplate for end users) is visible, false otherwise
+	 */
+	bool m_BillboardVisible = true;
 
 	/**
 	 * Queries the character XML and updates all the fields of this object

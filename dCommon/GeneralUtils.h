@@ -10,11 +10,14 @@
 #include <type_traits>
 #include <stdexcept>
 #include <BitStream.h>
+#include "NiPoint3.h"
 
 #include "Game.h"
 #include "dLogger.h"
 
 enum eInventoryType : uint32_t;
+enum class eObjectBits : size_t;
+enum class eReplicaComponentType : uint32_t;
 
 /*!
   \file GeneralUtils.hpp
@@ -64,9 +67,9 @@ namespace GeneralUtils {
 
 	//! Sets a bit on a numerical value
 	template <typename T>
-	void SetBit(T& value, size_t index) {
+	inline void SetBit(T& value, eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-
+		auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8) - 1) {
 			return;
 		}
@@ -76,9 +79,9 @@ namespace GeneralUtils {
 
 	//! Clears a bit on a numerical value
 	template <typename T>
-	void ClearBit(T& value, size_t index) {
+	inline void ClearBit(T& value, eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-
+		auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8 - 1)) {
 			return;
 		}
@@ -137,7 +140,7 @@ namespace GeneralUtils {
 
 	std::vector<std::wstring> SplitString(std::wstring& str, wchar_t delimiter);
 
-	std::vector<std::u16string> SplitString(std::u16string& str, char16_t delimiter);
+	std::vector<std::u16string> SplitString(const std::u16string& str, char16_t delimiter);
 
 	std::vector<std::string> SplitString(const std::string& str, char delimiter);
 
@@ -181,6 +184,11 @@ namespace GeneralUtils {
 		return static_cast<eInventoryType>(std::stoul(value));
 	}
 
+	template <>
+	inline eReplicaComponentType Parse(const char* value) {
+		return static_cast<eReplicaComponentType>(std::stoul(value));
+	}
+
 	template <typename T>
 	bool TryParse(const char* value, T& dst) {
 		try {
@@ -201,6 +209,8 @@ namespace GeneralUtils {
 	bool TryParse(const std::string& value, T& dst) {
 		return TryParse<T>(value.c_str(), dst);
 	}
+
+	bool TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst);
 
 	template<typename T>
 	std::u16string to_u16string(T value) {

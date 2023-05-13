@@ -18,7 +18,7 @@ void NpcCowboyServer::OnMissionDialogueOK(Entity* self, Entity* target, int miss
 		missionState == eMissionState::AVAILABLE ||
 		missionState == eMissionState::COMPLETE_AVAILABLE) {
 		if (inventoryComponent->GetLotCount(14378) == 0) {
-			inventoryComponent->AddItem(14378, 1, eLootSourceType::LOOT_SOURCE_NONE);
+			inventoryComponent->AddItem(14378, 1, eLootSourceType::NONE);
 		}
 	} else if (missionState == eMissionState::READY_TO_COMPLETE || missionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
 		inventoryComponent->RemoveItem(14378, 1);

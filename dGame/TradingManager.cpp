@@ -156,21 +156,21 @@ void Trade::Complete() {
 	}
 
 	// Now actually do the trade.
-	characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, eLootSourceType::LOOT_SOURCE_TRADE);
-	characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, eLootSourceType::LOOT_SOURCE_TRADE);
+	characterA->SetCoins(characterA->GetCoins() - m_CoinsA + m_CoinsB, eLootSourceType::TRADE);
+	characterB->SetCoins(characterB->GetCoins() - m_CoinsB + m_CoinsA, eLootSourceType::TRADE);
 
 	for (const auto& tradeItem : m_ItemsA) {
 		auto* itemToRemove = inventoryA->FindItemById(tradeItem.itemId);
 		if (itemToRemove) itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
 		missionsA->Progress(eMissionTaskType::GATHER, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
-		inventoryB->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::LOOT_SOURCE_TRADE);
+		inventoryB->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE);
 	}
 
 	for (const auto& tradeItem : m_ItemsB) {
 		auto* itemToRemove = inventoryB->FindItemById(tradeItem.itemId);
 		if (itemToRemove) itemToRemove->SetCount(itemToRemove->GetCount() - tradeItem.itemCount);
 		missionsB->Progress(eMissionTaskType::GATHER, tradeItem.itemLot, LWOOBJID_EMPTY, "", -tradeItem.itemCount);
-		inventoryA->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::LOOT_SOURCE_TRADE);
+		inventoryA->AddItem(tradeItem.itemLot, tradeItem.itemCount, eLootSourceType::TRADE);
 	}
 
 	characterA->SaveXMLToDatabase();

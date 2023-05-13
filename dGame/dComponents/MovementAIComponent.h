@@ -13,6 +13,7 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 #include <vector>
 
 class ControllablePhysicsComponent;
@@ -56,7 +57,7 @@ struct MovementAIInfo {
  */
 class MovementAIComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_MOVEMENT_AI;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
 
 	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
 	~MovementAIComponent() override;

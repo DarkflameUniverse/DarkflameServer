@@ -74,14 +74,6 @@ CDItemComponentTable::CDItemComponentTable(void) {
 #endif
 }
 
-//! Destructor
-CDItemComponentTable::~CDItemComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDItemComponentTable::GetName(void) const {
-	return "ItemComponent";
-}
-
 const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int skillID) {
 	const auto& it = this->entries.find(skillID);
 	if (it != this->entries.end()) {

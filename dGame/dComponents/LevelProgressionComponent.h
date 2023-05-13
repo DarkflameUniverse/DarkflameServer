@@ -4,6 +4,7 @@
 #include "GameMessages.h"
 #include "Component.h"
 #include "eCharacterVersion.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Component that handles level progression and serilization.
@@ -12,7 +13,7 @@
 
 class LevelProgressionComponent : public Component {
 public:
-	static const uint32_t ComponentType = eReplicaComponentType::COMPONENT_TYPE_LEVEL_PROGRESSION;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::LEVEL_PROGRESSION;
 
 	/**
 	 * Constructor for this component
