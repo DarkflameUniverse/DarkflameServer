@@ -91,6 +91,7 @@
 #include "eReplicaComponentType.h"
 #include "eClientMessageType.h"
 #include "eGameMessageType.h"
+#include "ActivityManager.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
@@ -6203,4 +6204,16 @@ void GameMessages::SendShowBillboardInteractIcon(const SystemAddress& sysAddr, L
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
 	else SEND_PACKET
+}
+
+void GameMessages::HandleRequestActivityExit(RakNet::BitStream* inStream, Entity* entity) {
+	bool canceled = false;
+	inStream->Read(canceled);
+	if (!canceled) return;
+
+	LWOOBJID player_id = LWOOBJID_EMPTY;
+	inStream->Read(player_id);
+	auto player = EntityManager::Instance()->GetEntity(player_id);
+	if (!entity || !player) return;
+	entity->RequestActivityExit(entity, player_id, canceled);
 }

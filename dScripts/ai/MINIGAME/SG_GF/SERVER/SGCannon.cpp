@@ -135,38 +135,26 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 	}
 }
 
-void SGCannon::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier,
-	const std::u16string& userData) {
+void SGCannon::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {
 	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
-	if (player != nullptr) {
-		if (button == 1 && identifier == u"Shooting_Gallery_Stop") {
+	if (!player) return;
+
+	if (identifier == u"Scoreboardinfo") {
+		GameMessages::SendDisplayMessageBox(player->GetObjectID(), true,
+			dZoneManager::Instance()->GetZoneControlObject()->GetObjectID(),
+			u"Shooting_Gallery_Retry", 2, u"Retry?",
+			u"", player->GetSystemAddress());
+	} else {
+		if ((button == 1 && (identifier == u"Shooting_Gallery_Retry" || identifier == u"RePlay")) || identifier == u"SG1" || button == 0) {
+			if (IsPlayerInActivity(self, player->GetObjectID())) return;
+			self->SetNetworkVar<bool>(ClearVariable, true);
+			StartGame(self);
+		} else if (button == 0 && ((identifier == u"Shooting_Gallery_Retry" || identifier == u"RePlay"))){
+			RemovePlayer(player->GetObjectID());
+			UpdatePlayer(self, player->GetObjectID(), true);
+		} else if (button == 1 && identifier == u"Shooting_Gallery_Exit") {
 			UpdatePlayer(self, player->GetObjectID(), true);
 			RemovePlayer(player->GetObjectID());
-			StopGame(self, true);
-			return;
-		}
-
-		if (identifier == u"Scoreboardinfo") {
-			GameMessages::SendDisplayMessageBox(player->GetObjectID(), true,
-				dZoneManager::Instance()->GetZoneControlObject()->GetObjectID(),
-				u"Shooting_Gallery_Retry?", 2, u"Retry?",
-				u"", player->GetSystemAddress());
-		} else {
-			if ((button == 1 && (identifier == u"Shooting_Gallery_Retry" || identifier == u"RePlay"))
-				|| identifier == u"SG1" || button == 0) {
-
-				if (identifier == u"RePlay") {
-					static_cast<Player*>(player)->SendToZone(1300);
-
-					return;
-				}
-
-				self->SetNetworkVar<bool>(ClearVariable, true);
-				StartGame(self);
-			} else if (button == 1 && identifier == u"Shooting_Gallery_Exit") {
-				UpdatePlayer(self, player->GetObjectID(), true);
-				RemovePlayer(player->GetObjectID());
-			}
 		}
 	}
 }
@@ -267,14 +255,13 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 		if (self->GetVar<bool>(GameStartedVariable)) {
 			const auto spawnNumber = (uint32_t)std::stoi(name.substr(7));
 			const auto& activeSpawns = self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable);
+			if (activeSpawns.size() < spawnNumber) {
+				Game::logger->Log("SGCannon", "Trying to spawn %i when spawns size is only %i", spawnNumber, activeSpawns.size());
+				return;
+			}
 			const auto& toSpawn = activeSpawns.at(spawnNumber);
-
 			const auto pathIndex = GeneralUtils::GenerateRandomNumber<float_t>(0, toSpawn.spawnPaths.size() - 1);
-
-			const auto* path = dZoneManager::Instance()->GetZone()->GetPath(
-				toSpawn.spawnPaths.at(pathIndex)
-			);
-
+			const auto* path = dZoneManager::Instance()->GetZone()->GetPath(toSpawn.spawnPaths.at(pathIndex));
 			if (!path) {
 				Game::logger->Log("SGCannon", "Path %s at index %i is null", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
 				return;
@@ -341,6 +328,7 @@ SGCannon::OnActivityTimerUpdate(Entity* self, const std::string& name, float_t t
 }
 
 void SGCannon::StartGame(Entity* self) {
+	if (self->GetVar<bool>(GameStartedVariable)) return;
 	self->SetNetworkVar<uint32_t>(TimeLimitVariable, self->GetVar<uint32_t>(TimeLimitVariable));
 	self->SetNetworkVar<bool>(AudioStartIntroVariable, true);
 	self->SetVar<LOT>(CurrentRewardVariable, LOT_NULL);
@@ -446,6 +434,14 @@ void SGCannon::RemovePlayer(LWOOBJID playerID) {
 		playerObject->SendToZone(character->GetLastNonInstanceZoneID());
 	}
 }
+
+void SGCannon::OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled){
+	if (canceled){
+		StopGame(self, canceled);
+		RemovePlayer(player);
+	}
+}
+
 
 void SGCannon::StartChargedCannon(Entity* self, uint32_t optionalTime) {
 	optionalTime = optionalTime == 0 ? constants.chargedTime : optionalTime;
