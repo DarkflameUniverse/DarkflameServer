@@ -5,6 +5,8 @@
 #include "GeneralUtils.h"
 #include "RenderComponent.h"
 #include "eEndBehavior.h"
+#include "eTerminateType.h"
+#include "eStateChangeType.h"
 
 void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 	auto* player = user;
@@ -102,7 +104,7 @@ void NtVentureCannonServer::UnlockCannonPlayer(Entity* self, Entity* player) {
 
 	self->SetNetworkVar(u"bIsInUse", false);
 
-	GameMessages::SendTerminateInteraction(player->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+	GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 }
 
 void NtVentureCannonServer::FirePlayer(Entity* self, Entity* player) {

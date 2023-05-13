@@ -16,7 +16,9 @@
 #include "AssetManager.h"
 #include "InventoryComponent.h"
 #include "Loot.h"
+#include "eObjectBits.h"
 #include "eReplicaComponentType.h"
+#include "eUseItemResponse.h"
 
 #include "CDBrickIDTableTable.h"
 #include "CDObjectSkillsTable.h"
@@ -77,13 +79,13 @@ Item::Item(
 
 	LWOOBJID id = ObjectIDManager::GenerateRandomObjectID();
 
-	id = GeneralUtils::SetBit(id, OBJECT_BIT_CHARACTER);
-	id = GeneralUtils::SetBit(id, OBJECT_BIT_PERSISTENT);
+	GeneralUtils::SetBit(id, eObjectBits::CHARACTER);
+	GeneralUtils::SetBit(id, eObjectBits::PERSISTENT);
 
 	const auto type = static_cast<eItemType>(info->itemType);
 
 	if (type == eItemType::MOUNT) {
-		id = GeneralUtils::SetBit(id, OBJECT_BIT_CLIENT);
+		GeneralUtils::SetBit(id, eObjectBits::CLIENT);
 	}
 
 	this->id = id;
@@ -329,7 +331,7 @@ void Item::UseNonEquip(Item* item) {
 						}
 					}
 					if (playerInventoryComponent->HasSpaceForLoot(rolledLoot)) {
-						LootGenerator::Instance().GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::LOOT_SOURCE_CONSUMPTION);
+						LootGenerator::Instance().GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::CONSUMPTION);
 						item->SetCount(item->GetCount() - 1);
 					} else {
 						success = false;
@@ -338,7 +340,7 @@ void Item::UseNonEquip(Item* item) {
 					GameMessages::SendUseItemRequirementsResponse(
 						playerInventoryComponent->GetParent()->GetObjectID(),
 						playerInventoryComponent->GetParent()->GetSystemAddress(),
-						UseItemResponse::FailedPrecondition
+						eUseItemResponse::FailedPrecondition
 					);
 					success = false;
 				}
@@ -378,7 +380,7 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 			}
 
 			for (const auto mod : modArray) {
-				inventory->GetComponent()->AddItem(mod, 1, eLootSourceType::LOOT_SOURCE_DELETION, inventoryType);
+				inventory->GetComponent()->AddItem(mod, 1, eLootSourceType::DELETION, inventoryType);
 			}
 		}
 	}
@@ -390,19 +392,22 @@ void Item::DisassembleModel() {
 	const auto componentId = table->GetByIDAndType(GetLot(), eReplicaComponentType::RENDER);
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT render_asset FROM RenderComponent WHERE id = ?;");
+		"SELECT render_asset, LXFMLFolder FROM RenderComponent WHERE id = ?;");
 	query.bind(1, (int)componentId);
 
 	auto result = query.execQuery();
 
-	if (result.eof()) {
+	if (result.eof() || result.fieldIsNull(0)) {
 		return;
 	}
 
-	std::string renderAsset = result.fieldIsNull(0) ? "" : std::string(result.getStringField(0));
-	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '\\');
+	std::string renderAsset = std::string(result.getStringField(0));
+	std::string lxfmlFolderName = std::string(result.getStringField(1));
 
-	std::string lxfmlPath = "BrickModels/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
+	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '\\');
+	if (renderAssetSplit.size() == 0) return;
+
+	std::string lxfmlPath = "BrickModels/" + lxfmlFolderName + "/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
 	auto buffer = Game::assetManager->GetFileAsBuffer(lxfmlPath.c_str());
 
 	if (!buffer.m_Success) {
@@ -473,7 +478,7 @@ void Item::DisassembleModel() {
 			continue;
 		}
 
-		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1, eLootSourceType::LOOT_SOURCE_DELETION);
+		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1, eLootSourceType::DELETION);
 	}
 }
 

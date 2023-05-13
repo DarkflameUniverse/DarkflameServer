@@ -6,6 +6,7 @@
 #include "MissionComponent.h"
 #include "eMissionState.h"
 #include "InventoryComponent.h"
+#include "eTerminateType.h"
 
 int32_t ImgBrickConsoleQB::ResetBricks = 30;
 int32_t ImgBrickConsoleQB::ResetConsole = 60;
@@ -20,7 +21,7 @@ void ImgBrickConsoleQB::OnStartup(Entity* self) {
 void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-	if (rebuildComponent->GetState() == REBUILD_COMPLETED) {
+	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 		if (!self->GetNetworkVar<bool>(u"used")) {
 			const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console");
 
@@ -29,7 +30,7 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 			for (auto* console : consoles) {
 				auto* consoleRebuildComponent = console->GetComponent<RebuildComponent>();
 
-				if (consoleRebuildComponent->GetState() != REBUILD_COMPLETED) {
+				if (consoleRebuildComponent->GetState() != eRebuildState::COMPLETED) {
 					continue;
 				}
 
@@ -87,7 +88,7 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 
 		self->SetNetworkVar(u"used", true);
 
-		GameMessages::SendTerminateInteraction(player->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+		GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 	}
 }
 
@@ -113,7 +114,7 @@ void ImgBrickConsoleQB::SmashCanister(Entity* self) {
 
 	const auto canisters = EntityManager::Instance()->GetEntitiesInGroup("Canister");
 	for (auto* canister : canisters) {
-		canister->Smash(canister->GetObjectID(), VIOLENT);
+		canister->Smash(canister->GetObjectID(), eKillType::VIOLENT);
 	}
 
 	const auto canister = dZoneManager::Instance()->GetSpawnersByName("BrickCanister");
@@ -146,7 +147,7 @@ void ImgBrickConsoleQB::OnRebuildComplete(Entity* self, Entity* target) {
 	for (auto* console : consoles) {
 		auto* consoleRebuildComponent = console->GetComponent<RebuildComponent>();
 
-		if (consoleRebuildComponent->GetState() != REBUILD_COMPLETED) {
+		if (consoleRebuildComponent->GetState() != eRebuildState::COMPLETED) {
 			continue;
 		}
 
@@ -167,7 +168,7 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 
 	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-	if (rebuildComponent->GetState() == REBUILD_COMPLETED) {
+	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 		auto offFX = 0;
 
 		const auto location = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"console"));
@@ -228,14 +229,14 @@ void ImgBrickConsoleQB::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "reset") {
 		auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-		if (rebuildComponent->GetState() == REBUILD_OPEN) {
-			self->Smash(self->GetObjectID(), SILENT);
+		if (rebuildComponent->GetState() == eRebuildState::OPEN) {
+			self->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 	} else if (timerName == "Die") {
 		const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console");
 
 		for (auto* console : consoles) {
-			console->Smash(console->GetObjectID(), VIOLENT);
+			console->Smash(console->GetObjectID(), eKillType::VIOLENT);
 		}
 	}
 }

@@ -69,58 +69,42 @@
 #include "BinaryPathFinder.h"
 #include "dConfig.h"
 #include "eBubbleType.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "MovingPlatformComponent.h"
-#include "dMessageIdentifiers.h"
 #include "eMissionState.h"
 #include "TriggerComponent.h"
 #include "eServerDisconnectIdentifiers.h"
+#include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "RenderComponent.h"
+#include "eControlScheme.h"
+#include "eConnectionType.h"
+#include "eChatInternalMessageType.h"
+#include "eMasterMessageType.h"
 
 #include "CDObjectsTable.h"
 #include "CDZoneTableTable.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
+	auto commandCopy = command;
+	// Sanity check that a command was given
+	if (command.empty() || command.front() != u'/') return;
+	commandCopy.erase(commandCopy.begin());
+
+	// Split the command by spaces
 	std::string chatCommand;
 	std::vector<std::string> args;
+	auto wideCommand = GeneralUtils::SplitString(commandCopy, u' ');
+	if (wideCommand.empty()) return;
 
-	uint32_t breakIndex = 0;
-	for (uint32_t i = 1; i < command.size(); ++i) {
-		if (command[i] == L' ') {
-			breakIndex = i;
-			break;
-		}
+	// Convert the command to lowercase
+	chatCommand = GeneralUtils::UTF16ToWTF8(wideCommand.front());
+	std::transform(chatCommand.begin(), chatCommand.end(), chatCommand.begin(), ::tolower);
+	wideCommand.erase(wideCommand.begin());
 
-		chatCommand.push_back(static_cast<unsigned char>(command[i]));
-		breakIndex++;
-	}
-
-	uint32_t index = ++breakIndex;
-	while (true) {
-		std::string arg;
-
-		while (index < command.size()) {
-			if (command[index] == L' ') {
-				args.push_back(arg);
-				arg = "";
-				index++;
-				continue;
-			}
-
-			arg.push_back(static_cast<char>(command[index]));
-			index++;
-		}
-
-		if (arg != "") {
-			args.push_back(arg);
-		}
-
-		break;
-	}
-
-	//Game::logger->Log("SlashCommandHandler", "Received chat command \"%s\"", GeneralUtils::UTF16ToWTF8(command).c_str());
+	// Convert the arguements to not u16strings
+	for (auto wideArg : wideCommand) args.push_back(GeneralUtils::UTF16ToWTF8(wideArg));
 
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if ((chatCommand == "setgmlevel" || chatCommand == "makegm" || chatCommand == "gmlevel") && user->GetMaxGMLevel() > eGameMasterLevel::CIVILIAN) {
@@ -174,7 +158,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 #endif
 
-	if (chatCommand == "togglenameplate" && (Game::config->GetValue("allownameplateoff") == "1" || entity->GetGMLevel() > eGameMasterLevel::DEVELOPER)) {
+	if (chatCommand == "togglenameplate" && (Game::config->GetValue("allow_nameplate_off") == "1" || entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER)) {
 		auto* character = entity->GetCharacter();
 
 		if (character && character->GetBillboardVisible()) {
@@ -268,26 +252,20 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		{
 			AMFArrayValue args;
 
-			auto* state = new AMFStringValue();
-			state->SetStringValue("Story");
+			args.Insert("state", "Story");
 
-			args.InsertValue("state", state);
-
-			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
+			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
 		}
 
 		entity->AddCallbackTimer(0.5f, [customText, entity]() {
 			AMFArrayValue args;
 
-			auto* text = new AMFStringValue();
-			text->SetStringValue(customText);
-
-			args.InsertValue("visible", new AMFTrueValue());
-			args.InsertValue("text", text);
+			args.Insert("visible", true);
+			args.Insert("text", customText);
 
 			Game::logger->Log("SlashCommandHandler", "Sending %s", customText.c_str());
 
-			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", &args);
+			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", args);
 			});
 
 		return;
@@ -296,7 +274,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "leave-zone") {
 		const auto currentZone = dZoneManager::Instance()->GetZone()->GetZoneID().GetMapID();
 
-		auto newZone = 0;
+		LWOMAPID newZone = 0;
 		if (currentZone % 100 == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"You are not in an instanced zone.");
 			return;
@@ -304,7 +282,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			newZone = (currentZone / 100) * 100;
 		}
 		// If new zone would be inaccessible, then default to Avant Gardens.
-		if (!CheckIfAccessibleZone(newZone)) newZone = 1100;
+		if (!dZoneManager::Instance()->CheckIfAccessibleZone(newZone)) newZone = 1100;
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Leaving zone...");
 
@@ -517,7 +495,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		const auto state = !entity->GetVar<bool>(u"freecam");
 		entity->SetVar<bool>(u"freecam", state);
 
-		GameMessages::SendSetPlayerControlScheme(entity, static_cast<eControlSceme>(state ? 9 : 1));
+		GameMessages::SendSetPlayerControlScheme(entity, static_cast<eControlScheme>(state ? 9 : 1));
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Toggled freecam.");
 		return;
@@ -531,7 +509,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		GameMessages::SendSetPlayerControlScheme(entity, static_cast<eControlSceme>(scheme));
+		GameMessages::SendSetPlayerControlScheme(entity, static_cast<eControlScheme>(scheme));
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Switched control scheme.");
 		return;
@@ -547,12 +525,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "setuistate" && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		AMFStringValue* value = new AMFStringValue();
-		value->SetStringValue(args[0]);
+		AMFArrayValue uiState;
 
-		AMFArrayValue args;
-		args.InsertValue("state", value);
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", &args);
+		uiState.Insert("state", args.at(0));
+
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", uiState);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Switched UI state.");
 
@@ -560,11 +537,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "toggle" && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		AMFTrueValue* value = new AMFTrueValue();
-
 		AMFArrayValue amfArgs;
-		amfArgs.InsertValue("visible", value);
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, args[0], &amfArgs);
+
+		amfArgs.Insert("visible", true);
+
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, args[0], amfArgs);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Toggled UI state.");
 
@@ -673,7 +650,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "setflag" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
-		uint32_t flagId;
+		int32_t flagId;
 
 		if (!GeneralUtils::TryParse(args[0], flagId)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid flag id.");
@@ -684,7 +661,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "setflag" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 2) {
-		uint32_t flagId;
+		int32_t flagId;
 		std::string onOffFlag = args[0];
 		if (!GeneralUtils::TryParse(args[1], flagId)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid flag id.");
@@ -697,7 +674,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		entity->GetCharacter()->SetPlayerFlag(flagId, onOffFlag == "on");
 	}
 	if (chatCommand == "clearflag" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
-		uint32_t flagId;
+		int32_t flagId;
 
 		if (!GeneralUtils::TryParse(args[0], flagId)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid flag id.");
@@ -784,7 +761,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "shutdownuniverse" && entity->GetGMLevel() == eGameMasterLevel::OPERATOR) {
 		//Tell the master server that we're going to be shutting down whole "universe":
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_UNIVERSE);
+		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_UNIVERSE);
 		Game::server->SendToMaster(&bitStream);
 		ChatPackets::SendSystemMessage(sysAddr, u"Sent universe shutdown notification to master.");
 
@@ -813,7 +790,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
 
-			inventory->AddItem(itemLOT, 1, eLootSourceType::LOOT_SOURCE_MODERATION);
+			inventory->AddItem(itemLOT, 1, eLootSourceType::MODERATION);
 		} else if (args.size() == 2) {
 			uint32_t itemLOT;
 
@@ -831,7 +808,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
 
-			inventory->AddItem(itemLOT, count, eLootSourceType::LOOT_SOURCE_MODERATION);
+			inventory->AddItem(itemLOT, count, eLootSourceType::MODERATION);
 		} else {
 			ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /gmadditem <lot>");
 		}
@@ -1050,8 +1027,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 						accountId = result->getUInt(1);
 						characterId = result->getUInt64(2);
 
-						characterId = GeneralUtils::SetBit(characterId, OBJECT_BIT_CHARACTER);
-						characterId = GeneralUtils::SetBit(characterId, OBJECT_BIT_PERSISTENT);
+						GeneralUtils::SetBit(characterId, eObjectBits::CHARACTER);
+						GeneralUtils::SetBit(characterId, eObjectBits::PERSISTENT);
 					}
 				}
 
@@ -1115,7 +1092,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			//Notify chat about it
 			CBITSTREAM;
-			PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_MUTE_UPDATE);
+			PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
 
 			bitStream.Write(characterId);
 			bitStream.Write(expire);
@@ -1366,9 +1343,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		CharacterComponent* character = entity->GetComponent<CharacterComponent>();
 		if (character) character->SetUScore(character->GetUScore() + uscore);
-		// LOOT_SOURCE_MODERATION should work but it doesn't.  Relog to see uscore changes
+		// MODERATION should work but it doesn't.  Relog to see uscore changes
 
-		eLootSourceType lootType = eLootSourceType::LOOT_SOURCE_MODERATION;
+		eLootSourceType lootType = eLootSourceType::MODERATION;
 
 		int32_t type;
 		if (args.size() >= 2 && GeneralUtils::TryParse(args[1], type)) {
@@ -1486,7 +1463,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		auto* ch = entity->GetCharacter();
-		ch->SetCoins(ch->GetCoins() + money, eLootSourceType::LOOT_SOURCE_MODERATION);
+		ch->SetCoins(ch->GetCoins() + money, eLootSourceType::MODERATION);
 	}
 
 	if ((chatCommand == "setcurrency") && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
@@ -1498,7 +1475,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		auto* ch = entity->GetCharacter();
-		ch->SetCoins(money, eLootSourceType::LOOT_SOURCE_MODERATION);
+		ch->SetCoins(money, eLootSourceType::MODERATION);
 	}
 
 	// Allow for this on even while not a GM, as it sometimes toggles incorrrectly.
@@ -1576,7 +1553,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		const auto objid = entity->GetObjectID();
 
-		if (force || CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
+		if (force || dZoneManager::Instance()->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
 
 			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 
@@ -1634,7 +1611,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if ((chatCommand == "debugui") && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		ChatPackets::SendSystemMessage(sysAddr, u"Opening UIDebugger...");
 		AMFArrayValue args;
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleUIDebugger;", nullptr);
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleUIDebugger;", args);
 	}
 
 	if ((chatCommand == "boost") && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
@@ -1747,7 +1724,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		std::vector<LDFBaseData*> data{};
 		data.push_back(new LDFData<int32_t>(u"reforgedLOT", reforgedItem));
 
-		inventoryComponent->AddItem(baseItem, 1, eLootSourceType::LOOT_SOURCE_MODERATION, eInventoryType::INVALID, data);
+		inventoryComponent->AddItem(baseItem, 1, eLootSourceType::MODERATION, eInventoryType::INVALID, data);
 	}
 
 	if (chatCommand == "crash" && entity->GetGMLevel() >= eGameMasterLevel::OPERATOR) {
@@ -2038,32 +2015,17 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 }
 
-bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
-	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
-	const CDZoneTable* zone = zoneTable->Query(zoneID);
-	if (zone != nullptr) {
-		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());
-	} else {
-		return false;
-	}
-}
-
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
 	AMFArrayValue args;
-	auto* titleValue = new AMFStringValue();
-	titleValue->SetStringValue(title);
-	auto* messageValue = new AMFStringValue();
-	messageValue->SetStringValue(message);
 
-	args.InsertValue("title", titleValue);
-	args.InsertValue("message", messageValue);
+	args.Insert("title", title);
+	args.Insert("message", message);
 
-	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
+	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
 
 	//Notify chat about it
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_ANNOUNCEMENT);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ANNOUNCEMENT);
 
 	bitStream.Write<uint32_t>(title.size());
 	for (auto character : title) {

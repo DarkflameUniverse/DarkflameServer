@@ -19,6 +19,7 @@
 #include "PropertyEntranceComponent.h"
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
+#include "eObjectBits.h"
 
 #include <vector>
 #include "CppScripts.h"
@@ -66,8 +67,8 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 	if (propertyEntry->next()) {
 		this->propertyId = propertyEntry->getUInt64(1);
 		this->owner = propertyEntry->getUInt64(2);
-		this->owner = GeneralUtils::SetBit(this->owner, OBJECT_BIT_CHARACTER);
-		this->owner = GeneralUtils::SetBit(this->owner, OBJECT_BIT_PERSISTENT);
+		GeneralUtils::SetBit(this->owner, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(this->owner, eObjectBits::PERSISTENT);
 		this->clone_Id = propertyEntry->getInt(2);
 		this->propertyName = propertyEntry->getString(5).c_str();
 		this->propertyDescription = propertyEntry->getString(6).c_str();
@@ -372,16 +373,15 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		info.emulated = true;
 		info.emulator = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
 
-		LWOOBJID id = static_cast<LWOOBJID>(persistentId) | 1ull << OBJECT_BIT_CLIENT;
-
-		info.spawnerID = id;
+		info.spawnerID = persistentId;
+		GeneralUtils::SetBit(info.spawnerID, eObjectBits::CLIENT);
 
 		const auto spawnerId = dZoneManager::Instance()->MakeSpawner(info);
 
 		auto* spawner = dZoneManager::Instance()->GetSpawner(spawnerId);
 
 		auto ldfModelBehavior = new LDFData<LWOOBJID>(u"modelBehaviors", 0);
-		auto userModelID = new LDFData<LWOOBJID>(u"userModelID", id);
+		auto userModelID = new LDFData<LWOOBJID>(u"userModelID", info.spawnerID);
 		auto modelType = new LDFData<int>(u"modelType", 2);
 		auto propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
 		auto componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
@@ -476,7 +476,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		settings.push_back(propertyObjectID);
 		settings.push_back(modelType);
 
-		inventoryComponent->AddItem(6662, 1, eLootSourceType::LOOT_SOURCE_DELETION, eInventoryType::MODELS_IN_BBB, settings, LWOOBJID_EMPTY, false, false, spawnerId);
+		inventoryComponent->AddItem(6662, 1, eLootSourceType::DELETION, eInventoryType::MODELS_IN_BBB, settings, LWOOBJID_EMPTY, false, false, spawnerId);
 		auto* item = inventoryComponent->FindItemBySubKey(spawnerId);
 
 		if (item == nullptr) {
@@ -498,7 +498,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		if (spawner != nullptr) {
 			dZoneManager::Instance()->RemoveSpawner(spawner->m_Info.spawnerID);
 		} else {
-			model->Smash(SILENT);
+			model->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 		}
 
 		item->SetCount(0, true, false, false);
@@ -506,7 +506,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
-	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::LOOT_SOURCE_DELETION, INVALID, {}, LWOOBJID_EMPTY, false);
+	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::DELETION, INVALID, {}, LWOOBJID_EMPTY, false);
 
 	auto* item = inventoryComponent->FindItemByLot(model->GetLOT());
 
@@ -551,7 +551,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	if (spawner != nullptr) {
 		dZoneManager::Instance()->RemoveSpawner(spawner->m_Info.spawnerID);
 	} else {
-		model->Smash(SILENT);
+		model->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 	}
 }
 
@@ -622,8 +622,8 @@ void PropertyManagementComponent::Load() {
 		//BBB property models need to have extra stuff set for them:
 		if (lot == 14) {
 			LWOOBJID blueprintID = lookupResult->getUInt(10);
-			blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_CHARACTER);
-			blueprintID = GeneralUtils::SetBit(blueprintID, OBJECT_BIT_PERSISTENT);
+			GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
+			GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 			LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintid", blueprintID);
 			LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);

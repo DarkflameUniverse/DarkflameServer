@@ -1,77 +1,81 @@
 #include "AMFDeserialize.h"
 
-#include "AMFFormat.h"
+#include <stdexcept>
+
+#include "Amf3.h"
 
 /**
  * AMF3 Reference document https://rtmp.veriskope.com/pdf/amf3-file-format-spec.pdf
  * AMF3 Deserializer written by EmosewaMC
  */
 
-AMFValue* AMFDeserialize::Read(RakNet::BitStream* inStream) {
+AMFBaseValue* AMFDeserialize::Read(RakNet::BitStream* inStream) {
 	if (!inStream) return nullptr;
-	AMFValue* returnValue = nullptr;
+	AMFBaseValue* returnValue = nullptr;
 	// Read in the value type from the bitStream
-	int8_t marker;
-	inStream->Read(marker);
+	uint8_t i;
+	inStream->Read(i);
+	if (i > static_cast<uint8_t>(eAmf::Dictionary)) return nullptr;
+	eAmf marker = static_cast<eAmf>(i);
 	// Based on the typing, create the value associated with that and return the base value class
 	switch (marker) {
-	case AMFValueType::AMFUndefined: {
-		returnValue = new AMFUndefinedValue();
+	case eAmf::Undefined: {
+		returnValue = new AMFBaseValue();
 		break;
 	}
 
-	case AMFValueType::AMFNull: {
+	case eAmf::Null: {
 		returnValue = new AMFNullValue();
 		break;
 	}
 
-	case AMFValueType::AMFFalse: {
-		returnValue = new AMFFalseValue();
+	case eAmf::False: {
+		returnValue = new AMFBoolValue(false);
 		break;
 	}
 
-	case AMFValueType::AMFTrue: {
-		returnValue = new AMFTrueValue();
+	case eAmf::True: {
+		returnValue = new AMFBoolValue(true);
 		break;
 	}
 
-	case AMFValueType::AMFInteger: {
+	case eAmf::Integer: {
 		returnValue = ReadAmfInteger(inStream);
 		break;
 	}
 
-	case AMFValueType::AMFDouble: {
+	case eAmf::Double: {
 		returnValue = ReadAmfDouble(inStream);
 		break;
 	}
 
-	case AMFValueType::AMFString: {
+	case eAmf::String: {
 		returnValue = ReadAmfString(inStream);
 		break;
 	}
 
-	case AMFValueType::AMFArray: {
+	case eAmf::Array: {
 		returnValue = ReadAmfArray(inStream);
 		break;
 	}
 
-							   // TODO We do not need these values, but if someone wants to implement them
-							   // then please do so and add the corresponding unit tests.
-	case AMFValueType::AMFXMLDoc:
-	case AMFValueType::AMFDate:
-	case AMFValueType::AMFObject:
-	case AMFValueType::AMFXML:
-	case AMFValueType::AMFByteArray:
-	case AMFValueType::AMFVectorInt:
-	case AMFValueType::AMFVectorUInt:
-	case AMFValueType::AMFVectorDouble:
-	case AMFValueType::AMFVectorObject:
-	case AMFValueType::AMFDictionary: {
-		throw static_cast<AMFValueType>(marker);
+	// These values are unimplemented in the live client and will remain unimplemented
+	// unless someone modifies the client to allow serializing of these values.
+	case eAmf::XMLDoc:
+	case eAmf::Date:
+	case eAmf::Object:
+	case eAmf::XML:
+	case eAmf::ByteArray:
+	case eAmf::VectorInt:
+	case eAmf::VectorUInt:
+	case eAmf::VectorDouble:
+	case eAmf::VectorObject:
+	case eAmf::Dictionary: {
+		throw marker;
 		break;
 	}
 	default:
-		throw static_cast<AMFValueType>(marker);
+		throw std::invalid_argument("Invalid AMF3 marker" + std::to_string(static_cast<int32_t>(marker)));
 		break;
 	}
 	return returnValue;
@@ -99,7 +103,7 @@ uint32_t AMFDeserialize::ReadU29(RakNet::BitStream* inStream) {
 	return actualNumber;
 }
 
-std::string AMFDeserialize::ReadString(RakNet::BitStream* inStream) {
+const std::string AMFDeserialize::ReadString(RakNet::BitStream* inStream) {
 	auto length = ReadU29(inStream);
 	// Check if this is a reference
 	bool isReference = length % 2 == 1;
@@ -113,48 +117,39 @@ std::string AMFDeserialize::ReadString(RakNet::BitStream* inStream) {
 		return value;
 	} else {
 		// Length is a reference to a previous index - use that as the read in value
-		return accessedElements[length];
+		return accessedElements.at(length);
 	}
 }
 
-AMFValue* AMFDeserialize::ReadAmfDouble(RakNet::BitStream* inStream) {
-	auto doubleValue = new AMFDoubleValue();
+AMFBaseValue* AMFDeserialize::ReadAmfDouble(RakNet::BitStream* inStream) {
 	double value;
 	inStream->Read<double>(value);
-	doubleValue->SetDoubleValue(value);
-	return doubleValue;
+	return new AMFDoubleValue(value);
 }
 
-AMFValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
+AMFBaseValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
 	auto arrayValue = new AMFArrayValue();
 
 	// Read size of dense array
 	auto sizeOfDenseArray = (ReadU29(inStream) >> 1);
-
-	// Then read Key'd portion
+	// Then read associative portion
 	while (true) {
 		auto key = ReadString(inStream);
-		// No more values when we encounter an empty string
+		// No more associative values when we encounter an empty string key
 		if (key.size() == 0) break;
-		arrayValue->InsertValue(key, Read(inStream));
+		arrayValue->Insert(key, Read(inStream));
 	}
-
 	// Finally read dense portion
 	for (uint32_t i = 0; i < sizeOfDenseArray; i++) {
-		arrayValue->PushBackValue(Read(inStream));
+		arrayValue->Insert(i, Read(inStream));
 	}
-
 	return arrayValue;
 }
 
-AMFValue* AMFDeserialize::ReadAmfString(RakNet::BitStream* inStream) {
-	auto stringValue = new AMFStringValue();
-	stringValue->SetStringValue(ReadString(inStream));
-	return stringValue;
+AMFBaseValue* AMFDeserialize::ReadAmfString(RakNet::BitStream* inStream) {
+	return new AMFStringValue(ReadString(inStream));
 }
 
-AMFValue* AMFDeserialize::ReadAmfInteger(RakNet::BitStream* inStream) {
-	auto integerValue = new AMFIntegerValue();
-	integerValue->SetIntegerValue(ReadU29(inStream));
-	return integerValue;
+AMFBaseValue* AMFDeserialize::ReadAmfInteger(RakNet::BitStream* inStream) {
+	return new AMFIntValue(ReadU29(inStream));
 }

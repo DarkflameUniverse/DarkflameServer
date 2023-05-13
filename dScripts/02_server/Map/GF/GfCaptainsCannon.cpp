@@ -3,6 +3,8 @@
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "RenderComponent.h"
+#include "eTerminateType.h"
+#include "eStateChangeType.h"
 
 void GfCaptainsCannon::OnUse(Entity* self, Entity* user) {
 	if (self->GetVar<bool>(u"bIsInUse")) {
@@ -79,6 +81,6 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 			missionComponent->ForceProgress(601, 910, 1);
 		}
 
-		GameMessages::SendTerminateInteraction(playerId, FROM_INTERACTION, self->GetObjectID());
+		GameMessages::SendTerminateInteraction(playerId, eTerminateType::FROM_INTERACTION, self->GetObjectID());
 	}
 }

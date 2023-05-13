@@ -14,6 +14,7 @@
 
 class Entity;
 class dpEntity;
+enum class eStateChangeType : uint32_t;
 
 /**
  * Handles the movement of controllable Entities, e.g. enemies and players
@@ -275,7 +276,7 @@ public:
 	 * The speed boosts of this component.
 	 * @return All active Speed boosts for this component.
 	 */
-	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
+	std::vector<float> GetActiveSpeedboosts() { return m_ActiveSpeedBoosts; };
 
 	/**
 	* Activates the Bubble Buff

@@ -4,6 +4,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "eMissionState.h"
+#include "ePlayerFlag.h"
 
 void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 
@@ -24,7 +25,7 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, e
 				missionComponent->AcceptMission(subMissionID);
 			}
 
-			character->SetPlayerFlag(ePlayerFlags::NJ_WU_SHOW_DAILY_CHEST, false);
+			character->SetPlayerFlag(ePlayerFlag::NJ_WU_SHOW_DAILY_CHEST, false);
 
 			// Hide the chest
 			for (auto* chest : EntityManager::Instance()->GetEntitiesInGroup(m_DragonChestGroup)) {
@@ -37,7 +38,7 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, e
 		case eMissionState::READY_TO_COMPLETE:
 		case eMissionState::COMPLETE_READY_TO_COMPLETE:
 		{
-			character->SetPlayerFlag(NJ_WU_SHOW_DAILY_CHEST, true);
+			character->SetPlayerFlag(ePlayerFlag::NJ_WU_SHOW_DAILY_CHEST, true);
 
 			// Show the chest
 			for (auto* chest : EntityManager::Instance()->GetEntitiesInGroup(m_DragonChestGroup)) {

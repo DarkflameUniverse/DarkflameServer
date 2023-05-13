@@ -18,7 +18,9 @@
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "eObjectBits.h"
 #include "eGameMasterLevel.h"
+#include "ePlayerFlag.h"
 
 Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
@@ -69,8 +71,8 @@ Character::Character(uint32_t id, User* parentUser) {
 
 	//Set our objectID:
 	m_ObjectID = m_ID;
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_CHARACTER);
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_PERSISTENT);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::CHARACTER);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::PERSISTENT);
 
 	m_ParentUser = parentUser;
 	m_OurEntity = nullptr;
@@ -128,8 +130,8 @@ void Character::UpdateFromDatabase() {
 
 	//Set our objectID:
 	m_ObjectID = m_ID;
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_CHARACTER);
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_PERSISTENT);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::CHARACTER);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::PERSISTENT);
 
 	m_OurEntity = nullptr;
 	m_BuildMode = false;
@@ -361,9 +363,9 @@ void Character::SaveXMLToDatabase() {
 	}
 
 	// Prevents the news feed from showing up on world transfers
-	if (GetPlayerFlag(ePlayerFlags::IS_NEWS_SCREEN_VISIBLE)) {
+	if (GetPlayerFlag(ePlayerFlag::IS_NEWS_SCREEN_VISIBLE)) {
 		auto* s = m_Doc->NewElement("s");
-		s->SetAttribute("si", ePlayerFlags::IS_NEWS_SCREEN_VISIBLE);
+		s->SetAttribute("si", ePlayerFlag::IS_NEWS_SCREEN_VISIBLE);
 		flags->LinkEndChild(s);
 	}
 
@@ -371,7 +373,7 @@ void Character::SaveXMLToDatabase() {
 
 	//Call upon the entity to update our xmlDoc:
 	if (!m_OurEntity) {
-		Game::logger->Log("Character", "We didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!");
+		Game::logger->Log("Character", "%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
 		return;
 	}
 
@@ -382,7 +384,7 @@ void Character::SaveXMLToDatabase() {
 	//For metrics, log the time it took to save:
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed = end - start;
-	Game::logger->Log("Character", "Saved character to Database in: %fs", elapsed.count());
+	Game::logger->Log("Character", "%i:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
 }
 
 void Character::SetIsNewLogin() {
@@ -394,7 +396,7 @@ void Character::SetIsNewLogin() {
 	while (currentChild) {
 		if (currentChild->Attribute("si")) {
 			flags->DeleteChild(currentChild);
-			Game::logger->Log("Character", "Removed isLoggedIn flag from character %i, saving character to database", GetID());
+			Game::logger->Log("Character", "Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
 			WriteToDatabase();
 		}
 		currentChild = currentChild->NextSiblingElement();
@@ -416,7 +418,7 @@ void Character::WriteToDatabase() {
 	delete printer;
 }
 
-void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
+void Character::SetPlayerFlag(const int32_t flagId, const bool value) {
 	// If the flag is already set, we don't have to recalculate it
 	if (GetPlayerFlag(flagId) == value) return;
 
@@ -463,7 +465,7 @@ void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
 	GameMessages::SendNotifyClientFlagChange(m_ObjectID, flagId, value, m_ParentUser->GetSystemAddress());
 }
 
-bool Character::GetPlayerFlag(const uint32_t flagId) const {
+bool Character::GetPlayerFlag(const int32_t flagId) const {
 	// Calculate the index first
 	const auto flagIndex = uint32_t(std::floor(flagId / 64));
 
@@ -480,8 +482,8 @@ bool Character::GetPlayerFlag(const uint32_t flagId) const {
 
 void Character::SetRetroactiveFlags() {
 	// Retroactive check for if player has joined a faction to set their 'joined a faction' flag to true.
-	if (GetPlayerFlag(ePlayerFlags::VENTURE_FACTION) || GetPlayerFlag(ePlayerFlags::ASSEMBLY_FACTION) || GetPlayerFlag(ePlayerFlags::PARADOX_FACTION) || GetPlayerFlag(ePlayerFlags::SENTINEL_FACTION)) {
-		SetPlayerFlag(ePlayerFlags::JOINED_A_FACTION, true);
+	if (GetPlayerFlag(ePlayerFlag::VENTURE_FACTION) || GetPlayerFlag(ePlayerFlag::ASSEMBLY_FACTION) || GetPlayerFlag(ePlayerFlag::PARADOX_FACTION) || GetPlayerFlag(ePlayerFlag::SENTINEL_FACTION)) {
+		SetPlayerFlag(ePlayerFlag::JOINED_A_FACTION, true);
 	}
 }
 
@@ -541,7 +543,7 @@ void Character::OnZoneLoad() {
 	if (missionComponent != nullptr) {
 		// Fix the monument race flag
 		if (missionComponent->GetMissionState(319) >= eMissionState::READY_TO_COMPLETE) {
-			SetPlayerFlag(33, true);
+			SetPlayerFlag(ePlayerFlag::AG_FINISH_LINE_BUILT, true);
 		}
 	}
 
@@ -557,7 +559,7 @@ void Character::OnZoneLoad() {
 	 */
 	if (HasPermission(ePermissionMap::Old)) {
 		if (GetCoins() > 1000000) {
-			SetCoins(1000000, eLootSourceType::LOOT_SOURCE_NONE);
+			SetCoins(1000000, eLootSourceType::NONE);
 		}
 	}
 
@@ -635,7 +637,7 @@ void Character::SetBillboardVisible(bool visible) {
 
 	// The GameMessage we send for turning the nameplate off just deletes the BillboardSubcomponent from the parent component.
 	// Because that same message does not allow for custom parameters, we need to create the BillboardSubcomponent a different way
-	// This workaround involves sending an unrelated GameMessage that does not apply to player entites, 
+	// This workaround involves sending an unrelated GameMessage that does not apply to player entites,
 	// but forces the client to create the necessary SubComponent that controls the billboard.
 	GameMessages::SendShowBillboardInteractIcon(UNASSIGNED_SYSTEM_ADDRESS, m_OurEntity->GetObjectID());
 

@@ -1,13 +1,10 @@
 #ifndef __DOCLIENTPROJECTILEIMPACT__H__
 #define __DOCLIENTPROJECTILEIMPACT__H__
 
-#include "dMessageIdentifiers.h"
 #include "dCommonVars.h"
 
 /*  Tell a client local projectile to impact */
 class DoClientProjectileImpact {
-	static const GAME_MSG MsgID = GAME_MSG_DO_CLIENT_PROJECTILE_IMPACT;
-
 public:
 	DoClientProjectileImpact() {
 		i64OrgID = LWOOBJID_EMPTY;
@@ -30,7 +27,7 @@ public:
 	}
 
 	void Serialize(RakNet::BitStream* stream) {
-		stream->Write(MsgID);
+		stream->Write(eGameMessageType::DO_CLIENT_PROJECTILE_IMPACT);
 
 		stream->Write(i64OrgID != LWOOBJID_EMPTY);
 		if (i64OrgID != LWOOBJID_EMPTY) stream->Write(i64OrgID);

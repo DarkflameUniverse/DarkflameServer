@@ -24,5 +24,5 @@ void AmBridge::OnTimerDone(Entity* self, std::string timerName) {
 		return;
 	}
 
-	self->Smash(self->GetObjectID(), VIOLENT);
+	self->Smash(self->GetObjectID(), eKillType::VIOLENT);
 }

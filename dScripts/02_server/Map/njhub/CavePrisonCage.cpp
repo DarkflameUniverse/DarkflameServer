@@ -46,7 +46,7 @@ void CavePrisonCage::Setup(Entity* self, Spawner* spawner) {
 }
 
 void CavePrisonCage::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state != eRebuildState::REBUILD_RESETTING) {
+	if (state != eRebuildState::RESETTING) {
 		return;
 	}
 

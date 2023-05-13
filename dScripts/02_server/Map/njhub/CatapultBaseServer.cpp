@@ -61,6 +61,6 @@ void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 
 		// kill the bouncer
 		GameMessages::SendNotifyClientObject(bouncer->GetObjectID(), u"TimeToDie");
-		bouncer->Smash(self->GetObjectID(), VIOLENT);
+		bouncer->Smash(self->GetObjectID(), eKillType::VIOLENT);
 	}
 }

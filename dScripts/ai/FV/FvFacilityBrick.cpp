@@ -56,7 +56,7 @@ void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::st
 		object = EntityManager::Instance()->GetEntitiesInGroup("Canister")[0];
 
 		if (object != nullptr) {
-			object->Smash(self->GetObjectID(), SILENT);
+			object->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 
 		canisterSpawner->Reset();

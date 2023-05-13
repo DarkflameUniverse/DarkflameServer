@@ -6,6 +6,7 @@
 #include "MissionComponent.h"
 #include "EntityInfo.h"
 #include "RenderComponent.h"
+#include "eStateChangeType.h"
 
 void AmSkullkinDrill::OnStartup(Entity* self) {
 	self->SetNetworkVar(u"bIsInUse", false);
@@ -247,7 +248,7 @@ void AmSkullkinDrill::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t 
 		}
 	}
 
-	self->Smash(attacker->GetObjectID(), SILENT);
+	self->Smash(attacker->GetObjectID(), eKillType::SILENT);
 
 	self->CancelAllTimers();
 
@@ -265,7 +266,7 @@ void AmSkullkinDrill::OnTimerDone(Entity* self, std::string timerName) {
 		auto* child = EntityManager::Instance()->GetEntity(childID);
 
 		if (child != nullptr) {
-			child->Smash(self->GetObjectID(), SILENT);
+			child->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 
 		self->SetNetworkVar(u"bIsInUse", false);

@@ -226,21 +226,21 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 		rebuildComponent->AddRebuildStateCallback([this, self, counterWeight](eRebuildState state) {
 
 			switch (state) {
-			case REBUILD_BUILDING:
+			case eRebuildState::BUILDING:
 				GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification,
 					0, 0, counterWeight->GetObjectID(),
 					BaseCounterweightQB + std::to_string(self->GetVar<uint32_t>(WaveNumberVariable)),
 					UNASSIGNED_SYSTEM_ADDRESS);
 				return;
-			case REBUILD_INCOMPLETE:
+			case eRebuildState::INCOMPLETE:
 				GameMessages::SendNotifyClientObject(self->GetObjectID(), EndCinematicNotification,
 					0, 0, LWOOBJID_EMPTY, "",
 					UNASSIGNED_SYSTEM_ADDRESS);
 				return;
-			case REBUILD_RESETTING:
+			case eRebuildState::RESETTING:
 				ActivityTimerStart(self, SpawnCounterWeightTimer, 0.0f, 0.0f);
 				return;
-			case REBUILD_COMPLETED: {
+			case eRebuildState::COMPLETED: {
 				// TODO: Move the platform?
 
 				// The counterweight is actually a moving platform and we should listen to the last waypoint event here

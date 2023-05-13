@@ -11,6 +11,8 @@
 #include "tinyxml2.h"
 #include "eReplicaComponentType.h"
 
+enum class eGameActivity : uint32_t;
+
 /**
  * The statistics that can be achieved per zone
  */
@@ -112,13 +114,13 @@ public:
 	 * Gets the current activity that the character is partaking in, see ScriptedActivityComponent for more details
 	 * @return the current activity that the character is partaking in
 	 */
-	const uint32_t GetCurrentActivity() const { return m_CurrentActivity; }
+	const eGameActivity GetCurrentActivity() const { return m_CurrentActivity; }
 
 	/**
 	 * Set the current activity of the character, see ScriptedActivityComponent for more details
 	 * @param currentActivity the activity to set
 	 */
-	void SetCurrentActivity(uint32_t currentActivity) { m_CurrentActivity = currentActivity; m_DirtyCurrentActivity = true; }
+	void SetCurrentActivity(eGameActivity currentActivity) { m_CurrentActivity = currentActivity; m_DirtyCurrentActivity = true; }
 
 	/**
 	 * Gets if the entity is currently racing
@@ -353,7 +355,7 @@ private:
 	/**
 	 * The ID of the curently active activity
 	 */
-	int m_CurrentActivity;
+	eGameActivity m_CurrentActivity;
 
 	/**
 	 * Whether the social info has been changed
