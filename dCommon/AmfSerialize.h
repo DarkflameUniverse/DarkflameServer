@@ -7,7 +7,7 @@
 #include <BitStream.h>
 
 /*!
- \file AMFFormat_BitStream.h
+ \file AmfSerialize.h
  \brief A class that implements native writing of AMF values to RakNet::BitStream
  */
 

@@ -1,6 +1,6 @@
 set(DCOMMON_SOURCES
 		"AMFDeserialize.cpp"
-		"AMFFormat_BitStream.cpp"
+		"AmfSerialize.cpp"
 		"BinaryIO.cpp"
 		"dConfig.cpp"
 		"Diagnostics.cpp"

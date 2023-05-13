@@ -5,7 +5,7 @@
 #include "dConfig.h"
 
 #include "Amf3.h"
-#include "AMFFormat_BitStream.h"
+#include "AmfSerialize.h"
 #include "GameMessages.h"
 #include "User.h"
 #include "CDClientManager.h"

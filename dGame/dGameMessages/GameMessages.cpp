@@ -87,7 +87,7 @@
 #include "AMFDeserialize.h"
 #include "eBlueprintSaveResponseType.h"
 #include "eAninmationFlags.h"
-#include "AMFFormat_BitStream.h"
+#include "AmfSerialize.h"
 #include "eReplicaComponentType.h"
 #include "eClientMessageType.h"
 #include "eGameMessageType.h"
