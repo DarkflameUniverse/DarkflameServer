@@ -87,6 +87,7 @@
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
 #include "eMasterMessageType.h"
+#include "ePlayerFlag.h"
 
 #include "CDObjectsTable.h"
 #include "CDZoneTableTable.h"
@@ -189,10 +190,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			if (levelComponent->GetLevel() >= dZoneManager::Instance()->GetWorldConfig()->levelCap) {
 				auto character = entity->GetCharacter();
 				character->SetPlayerFlag(
-					ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL,
-					!character->GetPlayerFlag(ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL));
+					ePlayerFlag::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL,
+					!character->GetPlayerFlag(ePlayerFlag::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL));
 				character->GetPlayerFlag(
-					ePlayerFlags::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL) == true
+					ePlayerFlag::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL) == true
 					? ChatPackets::SendSystemMessage(
 						sysAddr, u"You will now get coins and u-score as rewards.")
 					: ChatPackets::SendSystemMessage(
