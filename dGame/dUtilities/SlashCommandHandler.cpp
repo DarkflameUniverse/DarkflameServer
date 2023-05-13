@@ -1522,7 +1522,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		CBITSTREAM
 
-			PacketUtils::WriteHeader(bitStream, MASTER, eMasterMessageType::SHUTDOWN_INSTANCE);
+			PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_INSTANCE);
 
 		bitStream.Write(zoneID);
 		bitStream.Write<uint16_t>(instanceID);
@@ -1535,7 +1535,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "getinstances" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		CBITSTREAM
 
-			PacketUtils::WriteHeader(bitStream, MASTER, eMasterMessageType::GET_INSTANCES);
+			PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::GET_INSTANCES);
 
 		bitStream.Write(entity->GetObjectID());
 
