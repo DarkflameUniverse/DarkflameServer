@@ -104,7 +104,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 
 	auto reference = self->GetPosition(); //+ m_offset;
 
-	std::vector<Entity*> targets;
+	targets.clear();
 
 	std::vector<Entity*> validTargets = EntityManager::Instance()->GetEntitiesByProximity(reference, this->m_maxRange);
 
