@@ -12,10 +12,15 @@
 #include <vector>
 
 void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	if (this->m_targetEnemy && this->m_usePickedTarget && branch.target > 0) {
-		this->m_action->Handle(context, bitStream, branch);
-
-		return;
+	std::vector<Entity*> targets = {};
+	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
+		auto target = EntityManager::Instance()->GetEntity(branch.target);
+		targets.push_back(target);
+		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+		if(!targets.empty()) {
+			this->m_action->Handle(context, bitStream, branch);
+			return;
+		}
 	}
 
 	bool hit = false;
@@ -82,23 +87,15 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		return;
 	}
 
-	const auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
-
-	if ((this->m_usePickedTarget || context->clientInitalized) && branch.target > 0) {
-		const auto* target = EntityManager::Instance()->GetEntity(branch.target);
-
-		if (target == nullptr) {
+	std::vector<Entity*> targets = {};
+	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
+		auto target = EntityManager::Instance()->GetEntity(branch.target);
+		targets.push_back(target);
+		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+		if(!targets.empty()) {
+			this->m_action->Handle(context, bitStream, branch);
 			return;
 		}
-
-		// If the game is specific about who to target, check that
-		if (destroyableComponent == nullptr || ((!m_targetFriend && !m_targetEnemy
-			|| m_targetFriend && destroyableComponent->IsFriend(target)
-			|| m_targetEnemy && destroyableComponent->IsEnemy(target)))) {
-			this->m_action->Calculate(context, bitStream, branch);
-		}
-
-		return;
 	}
 
 	auto* combatAi = self->GetComponent<BaseCombatAIComponent>();

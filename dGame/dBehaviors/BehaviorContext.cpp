@@ -324,13 +324,6 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 		return;
 	}
 
-	// if the caster doesn't have a destroyable component, return an empty targets list
-	auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
-	if (!casterDestroyableComponent) {
-		targets.clear();
-		return;
-	}
-
 	auto index = targets.begin();
 	while (index != targets.end()) {
 		auto candidate = *index;
@@ -364,14 +357,14 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 			continue;
 		}
 
-		// if they have no factions, then earse and continue
-		auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
-		if (candidateFactions.empty() || candidateDestroyableComponent->GetIsDead()){
+		// if they are dead, then earse and continue
+		if (candidateDestroyableComponent->GetIsDead()){
 			index = targets.erase(index);
 			continue;
 		}
 
 		// if their faction is explicitly included, increment and continue
+		auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
 		if (CheckFactionList(includeFactionList, candidateFactions)){
 			index++;
 			continue;
@@ -387,6 +380,13 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 					continue;
 				}
 			}
+		}
+
+		// if the caster doesn't have a destroyable component, return an empty targets list
+		auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
+		if (!casterDestroyableComponent) {
+			targets.clear();
+			return;
 		}
 
 		// if we arent targeting a friend, and they are a friend OR
@@ -410,10 +410,6 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
 	// if the target is a nullptr, then it's not valid
 	if (!target) return false;
-
-	// ignore entities that don't have destroyable components
-	auto* targetDestroyableComponent = target->GetComponent<DestroyableComponent>();
-	if (!targetDestroyableComponent) return false;
 
 	// ignore quickbuilds that aren't completed
 	auto* targetQuickbuildComponent = target->GetComponent<RebuildComponent>();
