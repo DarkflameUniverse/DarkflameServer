@@ -4,6 +4,8 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "PhantomPhysicsComponent.h"
+#include "RenderComponent.h"
+#include "Entity.h"
 
 void WhFans::OnStartup(Entity* self) {
 	self->SetVar<bool>(u"alive", true);
@@ -30,7 +32,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 	if (fanVolumes.size() == 0 || !self->GetVar<bool>(u"alive")) return;
 
 	if (self->GetVar<bool>(u"on")) {
-		GameMessages::SendPlayAnimation(self, u"fan-off");
+		RenderComponent::PlayAnimation(self, u"fan-off");
 
 		renderComponent->StopEffect("fanOn");
 		self->SetVar<bool>(u"on", false);
@@ -42,7 +44,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 			EntityManager::Instance()->SerializeEntity(volume);
 		}
 	} else if (!self->GetVar<bool>(u"on") && self->GetVar<bool>(u"alive")) {
-		GameMessages::SendPlayAnimation(self, u"fan-on");
+		RenderComponent::PlayAnimation(self, u"fan-on");
 
 		self->SetVar<bool>(u"on", true);
 

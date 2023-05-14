@@ -1,6 +1,7 @@
 #include "NtSleepingGuard.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "RenderComponent.h"
 
 void NtSleepingGuard::OnStartup(Entity* self) {
 	self->SetNetworkVar<bool>(u"asleep", true);
@@ -17,7 +18,7 @@ void NtSleepingGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity*
 	// Set asleep to false
 	self->SetNetworkVar<bool>(u"asleep", false);
 
-	GameMessages::SendPlayAnimation(self, u"greet");
+	RenderComponent::PlayAnimation(self, u"greet");
 
 	auto* missionComponent = target->GetComponent<MissionComponent>();
 

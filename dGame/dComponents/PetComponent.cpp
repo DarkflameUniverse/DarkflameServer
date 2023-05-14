@@ -26,6 +26,7 @@
 #include "Database.h"
 #include "EntityInfo.h"
 #include "eMissionTaskType.h"
+#include "RenderComponent.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 
@@ -530,7 +531,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	}
 
 	GameMessages::SendPlayFXEffect(tamer, -1, u"petceleb", "", LWOOBJID_EMPTY, 1, 1, true);
-	GameMessages::SendPlayAnimation(tamer, u"rebuild-celebrate");
+	RenderComponent::PlayAnimation(tamer, u"rebuild-celebrate");
 
 	EntityInfo info{};
 	info.lot = cached->second.puzzleModelLot;

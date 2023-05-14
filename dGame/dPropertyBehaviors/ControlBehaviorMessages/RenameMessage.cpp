@@ -1,9 +1,9 @@
 #include "RenameMessage.h"
 
 RenameMessage::RenameMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
-	auto* nameAmf = arguments->FindValue<AMFStringValue>("Name");
+	auto* nameAmf = arguments->Get<std::string>("Name");
 	if (!nameAmf) return;
 
-	name = nameAmf->GetStringValue();
+	name = nameAmf->GetValue();
 	Game::logger->LogDebug("RenameMessage", "behaviorId %i n %s", behaviorId, name.c_str());
 }

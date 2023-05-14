@@ -4,6 +4,8 @@
 
 #include "Singleton.h"
 
+#define UNUSED_TABLE(v)
+
 /**
  * Initialize the CDClient tables so they are all loaded into memory.
  */

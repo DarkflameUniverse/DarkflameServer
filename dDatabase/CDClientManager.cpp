@@ -40,7 +40,7 @@
 
 CDClientManager::CDClientManager() {
 	CDActivityRewardsTable::Instance();
-	UNUSED(CDAnimationsTable::Instance());
+	CDAnimationsTable::Instance();
 	CDBehaviorParameterTable::Instance();
 	CDBehaviorTemplateTable::Instance();
 	CDComponentsRegistryTable::Instance();

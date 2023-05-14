@@ -5,6 +5,7 @@
 #include "DestroyableComponent.h"
 #include "eAninmationFlags.h"
 #include "EntityInfo.h"
+#include "RenderComponent.h"
 
 void FvMaelstromDragon::OnStartup(Entity* self) {
 	self->SetVar<int32_t>(u"weakspot", 0);
@@ -86,9 +87,9 @@ void FvMaelstromDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_
 			self->SetVar<int32_t>(u"weakpoint", 2);
 
 			GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_NONE, eAnimationFlags::IDLE_COMBAT, UNASSIGNED_SYSTEM_ADDRESS);
-			GameMessages::SendPlayAnimation(self, u"stunstart", 1.7f);
+			RenderComponent::PlayAnimation(self, u"stunstart", 1.7f);
 
-			self->AddTimer("timeToStunLoop", 1);
+			self->AddTimer("timeToStunLoop", 1.0f);
 
 			auto position = self->GetPosition();
 			auto forward = self->GetRotation().GetForwardVector();
@@ -137,10 +138,10 @@ void FvMaelstromDragon::OnTimerDone(Entity* self, std::string timerName) {
 	} else if (timerName == "ExposeWeakSpotTimer") {
 		self->SetVar<int32_t>(u"weakspot", 1);
 	} else if (timerName == "timeToStunLoop") {
-		GameMessages::SendPlayAnimation(self, u"stunloop", 1.8f);
+		RenderComponent::PlayAnimation(self, u"stunloop", 1.8f);
 	} else if (timerName == "ReviveTimer") {
-		GameMessages::SendPlayAnimation(self, u"stunend", 2.0f);
-		self->AddTimer("backToAttack", 1);
+		RenderComponent::PlayAnimation(self, u"stunend", 2.0f);
+		self->AddTimer("backToAttack", 1.0f);
 	} else if (timerName == "backToAttack") {
 		auto* baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();
 		auto* skillComponent = self->GetComponent<SkillComponent>();
@@ -174,5 +175,5 @@ FvMaelstromDragon::OnFireEventServerSide(Entity* self, Entity* sender, std::stri
 
 	self->SetVar<LWOOBJID>(u"Golem", sender->GetObjectID());
 
-	GameMessages::SendPlayAnimation(self, u"quickbuildhold", 1.9f);
+	RenderComponent::PlayAnimation(self, u"quickbuildhold", 1.9f);
 }
