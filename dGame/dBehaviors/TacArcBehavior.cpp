@@ -13,15 +13,18 @@
 
 void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	std::vector<Entity*> targets = {};
+	Game::logger->Log("TacArcBehavior", "m_usePickedTarget is %i and branch.target is %llu", this->m_usePickedTarget, branch.target);
 	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
 		auto target = EntityManager::Instance()->GetEntity(branch.target);
 		targets.push_back(target);
 		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 		if(!targets.empty()) {
+			Game::logger->Log("TacArcBehavior", "Skipping reaing and passing to action");
 			this->m_action->Handle(context, bitStream, branch);
 			return;
 		}
 	}
+	Game::logger->Log("TacArcBehavior", "Reading from bitstream");
 
 	bool hit = false;
 
