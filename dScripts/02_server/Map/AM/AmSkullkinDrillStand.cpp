@@ -1,6 +1,8 @@
 #include "AmSkullkinDrillStand.h"
 #include "GameMessages.h"
 #include "dpEntity.h"
+#include "Entity.h"
+#include "RenderComponent.h"
 
 void AmSkullkinDrillStand::OnStartup(Entity* self) {
 	self->SetVar(u"bActive", true);
@@ -31,5 +33,5 @@ void AmSkullkinDrillStand::OnProximityUpdate(Entity* self, Entity* entering, std
 
 	GameMessages::SendPlayFXEffect(entering->GetObjectID(), 1378, u"create", "pushBack");
 
-	GameMessages::SendPlayAnimation(entering, u"knockback-recovery");
+	RenderComponent::PlayAnimation(entering, u"knockback-recovery");
 }

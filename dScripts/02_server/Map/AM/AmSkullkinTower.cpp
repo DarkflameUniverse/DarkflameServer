@@ -5,6 +5,7 @@
 #include "EntityInfo.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "RenderComponent.h"
 
 void AmSkullkinTower::OnStartup(Entity* self) {
 	self->SetProximityRadius(20, "Tower");
@@ -117,13 +118,13 @@ void AmSkullkinTower::OnChildRemoved(Entity* self, Entity* child) {
 	self->SetVar(u"legTable", legTable);
 
 	if (legTable.size() == 2) {
-		GameMessages::SendPlayAnimation(self, u"wobble-1");
+		RenderComponent::PlayAnimation(self, u"wobble-1");
 	} else if (legTable.size() == 1) {
-		GameMessages::SendPlayAnimation(self, u"wobble-2");
+		RenderComponent::PlayAnimation(self, u"wobble-2");
 	} else if (legTable.empty()) {
 		const auto animTime = 2.5f;
 
-		GameMessages::SendPlayAnimation(self, u"fall");
+		RenderComponent::PlayAnimation(self, u"fall");
 
 		self->AddTimer("spawnGuys", animTime - 0.2f);
 

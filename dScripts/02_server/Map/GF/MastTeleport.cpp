@@ -10,6 +10,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #endif
+#include "RenderComponent.h"
 
 void MastTeleport::OnStartup(Entity* self) {
 	self->SetNetworkVar<std::string>(u"hookPreconditions", "154;44", UNASSIGNED_SYSTEM_ADDRESS);
@@ -63,11 +64,12 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendPlayFXEffect(playerId, 6039, u"hook", "hook", LWOOBJID_EMPTY, 1, 1, true);
 
-		GameMessages::SendPlayAnimation(player, u"crow-swing-no-equip", 4.0f);
+		float animationTime = 6.25f;
+		animationTime = RenderComponent::PlayAnimation(player, "crow-swing-no-equip", 4.0f);
 
-		GameMessages::SendPlayAnimation(self, u"swing");
+		RenderComponent::PlayAnimation(self, u"swing");
 
-		self->AddTimer("PlayerAnimDone", 6.25f);
+		self->AddTimer("PlayerAnimDone", animationTime);
 	} else if (timerName == "PlayerAnimDone") {
 		GameMessages::SendStopFXEffect(player, true, "hook");
 

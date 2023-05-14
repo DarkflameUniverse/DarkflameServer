@@ -58,7 +58,7 @@ class RenderComponent : public Component {
 public:
 	static const eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
 
-	RenderComponent(Entity* entity);
+	RenderComponent(Entity* entity, int32_t componentId = -1);
 	~RenderComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
@@ -104,12 +104,43 @@ public:
 	 */
 	std::vector<Effect*>& GetEffects();
 
+	/**
+	 * Verifies that an animation can be played on this entity by checking
+	 * if it has the animation assigned to its group.  If it does, the animation is echo'd
+	 * down to all clients to be played and the duration of the played animation is returned.
+	 * If the animation did not exist or the function was called in an invalid state, 0 is returned.
+	 * 
+	 * The logic here matches the exact client logic.
+	 * 
+	 * @param self The entity that wants to play an animation
+	 * @param animation The animation_type (animationID in the client) to be played.
+	 * @param sendAnimation Whether or not to echo the animation down to all clients.
+	 * @param priority The priority of the animation.  Only used if sendAnimation is true.
+	 * @param scale	The scale of the animation.  Only used if sendAnimation is true.
+	 * 
+	 * @return The duration of the animation that was played.
+	 */
+	static float DoAnimation(Entity* self, const std::string& animation, bool sendAnimation, float priority = 0.0f, float scale = 1.0f);
+
+	static float PlayAnimation(Entity* self, const std::u16string& animation, float priority = 0.0f, float scale = 1.0f);
+	static float PlayAnimation(Entity* self, const std::string& animation, float priority = 0.0f, float scale = 1.0f);
+	static float GetAnimationTime(Entity* self, const std::string& animation);
+	static float GetAnimationTime(Entity* self, const std::u16string& animation);
+
+	const std::string& GetLastAnimationName() const { return m_LastAnimationName; };
+	void SetLastAnimationName(const std::string& name) { m_LastAnimationName = name; };
+
 private:
 
 	/**
 	 * List of currently active effects
 	 */
 	std::vector<Effect*> m_Effects;
+
+	std::vector<int32_t> m_animationGroupIds;
+
+	// The last animationName that was played
+	std::string m_LastAnimationName;
 
 	/**
 	 * Cache of queries that look for the length of each effect, indexed by effect ID

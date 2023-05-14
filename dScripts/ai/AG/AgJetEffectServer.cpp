@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "eReplicaComponentType.h"
+#include "RenderComponent.h"
 
 void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 	if (inUse || self->GetLOT() != 6859) return;
@@ -23,7 +24,7 @@ void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target) {
 	if (self->GetLOT() != 6209) return;
 	auto entities = EntityManager::Instance()->GetEntitiesInGroup("Jet_FX");
 	if (entities.empty()) return;
-	GameMessages::SendPlayAnimation(entities.at(0), u"jetFX");
+	RenderComponent::PlayAnimation(entities.at(0), u"jetFX");
 
 	// So we can give kill credit to person who build this
 	builder = target->GetObjectID();

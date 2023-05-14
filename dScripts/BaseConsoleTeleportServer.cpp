@@ -1,6 +1,8 @@
 #include "BaseConsoleTeleportServer.h"
 #include "GameMessages.h"
 #include "Player.h"
+#include "RenderComponent.h"
+#include "EntityManager.h"
 #include "eTerminateType.h"
 #include "eStateChangeType.h"
 
@@ -33,12 +35,10 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 		}
 
 		const auto& teleIntroAnim = self->GetVar<std::u16string>(u"teleportAnim");
-
+		auto animTime = 3.32999992370605f;
 		if (!teleIntroAnim.empty()) {
-			GameMessages::SendPlayAnimation(player, teleIntroAnim);
+			animTime = RenderComponent::PlayAnimation(player, teleIntroAnim);
 		}
-
-		const auto animTime = 3.32999992370605f;
 
 		UpdatePlayerTable(self, player, true);
 

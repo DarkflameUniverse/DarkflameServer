@@ -77,6 +77,7 @@
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
+#include "RenderComponent.h"
 #include "eControlScheme.h"
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
@@ -411,11 +412,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if ((chatCommand == "playanimation" || chatCommand == "playanim") && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		std::u16string anim = GeneralUtils::ASCIIToUTF16(args[0], args[0].size());
-		GameMessages::SendPlayAnimation(entity, anim);
+		RenderComponent::PlayAnimation(entity, anim);
 		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 		if (possessorComponent) {
 			auto* possessedComponent = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
-			if (possessedComponent) GameMessages::SendPlayAnimation(possessedComponent, anim);
+			if (possessedComponent) RenderComponent::PlayAnimation(possessedComponent, anim);
 		}
 	}
 
@@ -1947,7 +1948,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 				EntityManager::Instance()->SerializeEntity(closest);
 			} else if (args[1] == "-a" && args.size() >= 3) {
-				GameMessages::SendPlayAnimation(closest, GeneralUtils::UTF8ToUTF16(args[2]));
+				RenderComponent::PlayAnimation(closest, args.at(2));
 			} else if (args[1] == "-s") {
 				for (auto* entry : closest->GetSettings()) {
 					ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(entry->GetString()));
