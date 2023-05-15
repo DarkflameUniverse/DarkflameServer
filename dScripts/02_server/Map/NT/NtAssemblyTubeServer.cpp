@@ -4,6 +4,7 @@
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "RenderComponent.h"
 #include "eEndBehavior.h"
 #include "eStateChangeType.h"
 
@@ -51,7 +52,7 @@ void NtAssemblyTubeServer::RunAssemblyTube(Entity* self, Entity* player) {
 			);
 		}
 
-		GameMessages::SendPlayAnimation(player, u"tube-sucker", 4.0f);
+		RenderComponent::PlayAnimation(player, u"tube-sucker", 4.0f);
 
 		const auto animTime = 3;
 
@@ -84,7 +85,7 @@ void NtAssemblyTubeServer::TeleportPlayer(Entity* self, Entity* player) {
 
 	GameMessages::SendTeleport(player->GetObjectID(), destPosition, destRotation, player->GetSystemAddress(), true);
 
-	GameMessages::SendPlayAnimation(player, u"tube-resurrect", 4.0f);
+	RenderComponent::PlayAnimation(player, u"tube-resurrect", 4.0f);
 
 	const auto animTime = 2;
 

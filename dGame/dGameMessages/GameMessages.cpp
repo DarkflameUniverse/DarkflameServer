@@ -70,6 +70,7 @@
 #include "PetComponent.h"
 #include "ModuleAssemblyComponent.h"
 #include "VehiclePhysicsComponent.h"
+#include "RenderComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "RacingControlComponent.h"
@@ -5125,7 +5126,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 		if (emote) sAnimationName = emote->animationName;
 	}
 
-	GameMessages::SendPlayAnimation(entity, GeneralUtils::ASCIIToUTF16(sAnimationName));
+	RenderComponent::PlayAnimation(entity, sAnimationName);
 }
 
 void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {

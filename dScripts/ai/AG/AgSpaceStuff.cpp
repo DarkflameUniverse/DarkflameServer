@@ -3,6 +3,8 @@
 #include "GeneralUtils.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "RenderComponent.h"
+#include "Entity.h"
 
 void AgSpaceStuff::OnStartup(Entity* self) {
 	self->AddTimer("FloaterScale", 5.0f);
@@ -27,13 +29,13 @@ void AgSpaceStuff::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "FloaterScale") {
 		int scaleType = GeneralUtils::GenerateRandomNumber<int>(1, 5);
 
-		GameMessages::SendPlayAnimation(self, u"scale_0" + GeneralUtils::to_u16string(scaleType));
+		RenderComponent::PlayAnimation(self, u"scale_0" + GeneralUtils::to_u16string(scaleType));
 		self->AddTimer("FloaterPath", 0.4);
 	} else if (timerName == "FloaterPath") {
 		int pathType = GeneralUtils::GenerateRandomNumber<int>(1, 4);
 		int randTime = GeneralUtils::GenerateRandomNumber<int>(20, 25);
 
-		GameMessages::SendPlayAnimation(self, u"path_0" + (GeneralUtils::to_u16string(pathType)));
+		RenderComponent::PlayAnimation(self, u"path_0" + (GeneralUtils::to_u16string(pathType)));
 		self->AddTimer("FloaterScale", randTime);
 	} else if (timerName == "ShipShakeExplode") {
 		DoShake(self, true);
@@ -76,16 +78,16 @@ void AgSpaceStuff::DoShake(Entity* self, bool explodeIdle) {
 
 		auto* shipFxObject2 = GetEntityInGroup(ShipFX2);
 		if (shipFxObject2)
-			GameMessages::SendPlayAnimation(shipFxObject2, u"explosion");
+			RenderComponent::PlayAnimation(shipFxObject2, u"explosion");
 	} else {
 		auto* shipFxObject = GetEntityInGroup(ShipFX);
 		auto* shipFxObject2 = GetEntityInGroup(ShipFX2);
 
 		if (shipFxObject)
-			GameMessages::SendPlayAnimation(shipFxObject, u"idle");
+			RenderComponent::PlayAnimation(shipFxObject, u"idle");
 
 		if (shipFxObject2)
-			GameMessages::SendPlayAnimation(shipFxObject2, u"idle");
+			RenderComponent::PlayAnimation(shipFxObject2, u"idle");
 	}
 }
 
