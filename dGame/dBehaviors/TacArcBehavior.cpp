@@ -52,7 +52,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		};
 
 		if (count > m_maxTargets) {
-			Game::logger->Log("TacArcBehavior", "TacArcBehavior Bitstream too many targets Max:%i Recv:%i", this->m_maxTargets, count);
+			Game::logger->Log("TacArcBehavior", "Bitstream has too many targets Max:%i Recv:%i", this->m_maxTargets, count);
 			return;
 		}
 
