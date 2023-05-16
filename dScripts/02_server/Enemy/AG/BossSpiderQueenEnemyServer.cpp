@@ -309,7 +309,7 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 		impactList.erase(impactList.begin());
 
 		if (entity == nullptr) {
-			Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find impact!");
+			Log("Failed to find impact!");
 
 			return;
 		}
@@ -317,7 +317,7 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 		auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 		if (skillComponent == nullptr) {
-			Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find impact skill component!");
+			Log("Failed to find impact skill component!");
 
 			return;
 		}
@@ -366,7 +366,7 @@ void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
 	}
 
 	if (targets.empty()) {
-		Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find RFS targets");
+		Log("Failed to find RFS targets");
 
 		self->AddTimer("RFS", GeneralUtils::GenerateRandomNumber<float>(5, 10));
 

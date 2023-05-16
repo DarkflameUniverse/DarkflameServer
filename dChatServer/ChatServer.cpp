@@ -6,7 +6,7 @@
 //DLU Includes:
 #include "dCommonVars.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Database.h"
 #include "dConfig.h"
 #include "dChatFilter.h"
@@ -27,7 +27,6 @@
 #include <MessageIdentifiers.h>
 
 namespace Game {
-	dLogger* logger = nullptr;
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
 	dChatFilter* chatFilter = nullptr;
@@ -36,7 +35,7 @@ namespace Game {
 }
 
 
-dLogger* SetupLogger();
+void SetupLogger();
 void HandlePacket(Packet* packet);
 
 PlayerContainer playerContainer;
@@ -49,17 +48,16 @@ int main(int argc, char** argv) {
 	Diagnostics::Initialize();
 
 	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger();
-	if (!Game::logger) return EXIT_FAILURE;
+	SetupLogger();
 
 	//Read our config:
 	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "chatconfig.ini").string());
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
+	Logger::Instance().SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
+	Logger::Instance().SetLogDebug(Game::config->GetValue("log_debug_statements") == "1");
 
-	Game::logger->Log("ChatServer", "Starting Chat server...");
-	Game::logger->Log("ChatServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("ChatServer", "Compiled on: %s", __TIMESTAMP__);
+	Log("Starting Chat server...");
+	Log("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	Log("Compiled on: %s", __TIMESTAMP__);
 
 	try {
 		std::string clientPathStr = Game::config->GetValue("client_location");
@@ -71,8 +69,7 @@ int main(int argc, char** argv) {
 
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
-		Game::logger->Log("ChatServer", "Got an error while setting up assets: %s", ex.what());
-
+		LogError("Failed to setup assets: %s", ex.what());
 		return EXIT_FAILURE;
 	}
 
@@ -85,10 +82,9 @@ int main(int argc, char** argv) {
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
-		Game::logger->Log("ChatServer", "Got an error while connecting to the database: %s", ex.what());
+		LogError("Failed to connect to database: %s", ex.what());
 		Database::Destroy("ChatServer");
 		delete Game::server;
-		delete Game::logger;
 		return EXIT_FAILURE;
 	}
 
@@ -111,7 +107,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::shouldShutdown);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, masterIP, masterPort, ServerType::Chat, Game::config, &Game::shouldShutdown);
 
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 
@@ -146,7 +142,7 @@ int main(int argc, char** argv) {
 
 		//Push our log every 30s:
 		if (framesSinceLastFlush >= logFlushTime) {
-			Game::logger->Flush();
+			Logger::Instance().Flush();
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
 
@@ -176,13 +172,12 @@ int main(int argc, char** argv) {
 	//Delete our objects here:
 	Database::Destroy("ChatServer");
 	delete Game::server;
-	delete Game::logger;
 	delete Game::config;
 
 	return EXIT_SUCCESS;
 }
 
-dLogger* SetupLogger() {
+void SetupLogger() {
 	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/ChatServer_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
@@ -191,16 +186,16 @@ dLogger* SetupLogger() {
 	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole, logDebugStatements);
+	Logger::Instance().Initialize(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-		Game::logger->Log("ChatServer", "A server has disconnected, erasing their connected players from the list.");
+		Log("A server has disconnected, erasing their connected players from the list.");
 	}
 
 	if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {
-		Game::logger->Log("ChatServer", "A server is connecting, awaiting user list.");
+		Log("A server is connecting, awaiting user list.");
 	}
 
 	if (packet->length < 4) return; // Nothing left to process.  Need 4 bytes to continue.
@@ -231,7 +226,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown CHAT_INTERNAL id: %i", int(packet->data[3]));
+			Log("Unknown CHAT_INTERNAL id: %i", int(packet->data[3]));
 		}
 	}
 
@@ -242,7 +237,7 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		case eChatMessageType::GET_IGNORE_LIST:
-			Game::logger->Log("ChatServer", "Asked for ignore list, but is unimplemented right now.");
+			Log("Asked for ignore list, but is unimplemented right now.");
 			break;
 
 		case eChatMessageType::TEAM_GET_STATUS:
@@ -300,19 +295,19 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown CHAT id: %i", int(packet->data[3]));
+			Log("Unknown CHAT id: %i", int(packet->data[3]));
 		}
 	}
 
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::WORLD) {
 		switch (static_cast<eWorldMessageType>(packet->data[3])) {
 		case eWorldMessageType::ROUTE_PACKET: {
-			Game::logger->Log("ChatServer", "Routing packet from world");
+			Log("Routing packet from world");
 			break;
 		}
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown World id: %i", int(packet->data[3]));
+			Log("Unknown World id: %i", int(packet->data[3]));
 		}
 	}
 }

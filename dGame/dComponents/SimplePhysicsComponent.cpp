@@ -6,7 +6,7 @@
 #include "SimplePhysicsComponent.h"
 #include "BitStream.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dpWorld.h"
 #include "CDClientManager.h"
 #include "CDPhysicsComponentTable.h"

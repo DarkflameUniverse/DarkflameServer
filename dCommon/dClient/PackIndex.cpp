@@ -1,7 +1,7 @@
 #include "PackIndex.h"
 #include "BinaryIO.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 PackIndex::PackIndex(const std::filesystem::path& filePath) {
 	m_FileStream = std::ifstream(filePath / "versions" / "primary.pki", std::ios::in | std::ios::binary);
@@ -34,7 +34,7 @@ PackIndex::PackIndex(const std::filesystem::path& filePath) {
 		m_PackFileIndices.push_back(packFileIndex);
 	}
 
-	Game::logger->Log("PackIndex", "Loaded pack catalog with %i pack files and %i files", m_PackPaths.size(), m_PackFileIndices.size());
+	Log("Loaded pack catalog with %i pack files and %i files", m_PackPaths.size(), m_PackFileIndices.size());
 
 	for (auto& item : m_PackPaths) {
 		std::replace(item.begin(), item.end(), '\\', '/');

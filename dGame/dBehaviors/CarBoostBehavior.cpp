@@ -5,7 +5,7 @@
 #include "BehaviorContext.h"
 #include "CharacterComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "PossessableComponent.h"
 
 void CarBoostBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
@@ -17,7 +17,7 @@ void CarBoostBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 		return;
 	}
 
-	Game::logger->Log("Car boost", "Activating car boost!");
+	Log("Activating car boost!");
 
 	auto* possessableComponent = entity->GetComponent<PossessableComponent>();
 	if (possessableComponent != nullptr) {
@@ -27,7 +27,7 @@ void CarBoostBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 
 			auto* characterComponent = possessor->GetComponent<CharacterComponent>();
 			if (characterComponent != nullptr) {
-				Game::logger->Log("Car boost", "Tracking car boost!");
+				Log("Tracking car boost!");
 				characterComponent->UpdatePlayerStatistic(RacingCarBoostsActivated);
 			}
 		}

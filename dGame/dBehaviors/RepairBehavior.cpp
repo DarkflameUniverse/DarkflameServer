@@ -3,7 +3,7 @@
 #include "DestroyableComponent.h"
 #include "dpWorld.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 #include "eReplicaComponentType.h"
 
@@ -11,7 +11,7 @@ void RepairBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_str
 	auto* entity = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (entity == nullptr) {
-		Game::logger->Log("RepairBehavior", "Failed to find entity for (%llu)!", branch.target);
+		Log("Failed to find entity for (%llu)!", branch.target);
 
 		return;
 	}
@@ -19,7 +19,7 @@ void RepairBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_str
 	auto* destroyable = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
 
 	if (destroyable == nullptr) {
-		Game::logger->Log("RepairBehavior", "Failed to find destroyable component for %(llu)!", branch.target);
+		Log("Failed to find destroyable component for %(llu)!", branch.target);
 
 		return;
 	}

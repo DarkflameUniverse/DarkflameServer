@@ -3,7 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GeneralUtils.h"
 #include "BinaryIO.h"
 #include "LUTriggers.h"
@@ -28,7 +28,7 @@ Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLON
 }
 
 Zone::~Zone() {
-	Game::logger->Log("Zone", "Destroying zone %i", m_ZoneID.GetMapID());
+	Log("Destroying zone %i", m_ZoneID.GetMapID());
 	for (std::map<LWOSCENEID, SceneRef>::iterator it = m_Scenes.begin(); it != m_Scenes.end(); ++it) {
 		if (it->second.level != nullptr) delete it->second.level;
 	}
@@ -48,7 +48,7 @@ void Zone::LoadZoneIntoMemory() {
 	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer(m_ZoneFilePath.c_str());
 
 	if (!buffer.m_Success) {
-		Game::logger->Log("Zone", "Failed to load %s", m_ZoneFilePath.c_str());
+		Log("Failed to load %s", m_ZoneFilePath.c_str());
 		throw std::runtime_error("Aborting Zone loading due to no Zone File.");
 	}
 
@@ -60,7 +60,7 @@ void Zone::LoadZoneIntoMemory() {
 		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
 
 		BinaryIO::BinaryRead(file, m_WorldID);
-		if ((uint16_t)m_WorldID != m_ZoneID.GetMapID()) Game::logger->Log("Zone", "WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
+		if ((uint16_t)m_WorldID != m_ZoneID.GetMapID()) Log("WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
 
 		AddRevision(LWOSCENEID_INVALID, mapRevision);
 
@@ -155,7 +155,7 @@ void Zone::LoadZoneIntoMemory() {
 			}
 		}
 	} else {
-		Game::logger->Log("Zone", "Failed to open: %s", m_ZoneFilePath.c_str());
+		Log("Failed to open: %s", m_ZoneFilePath.c_str());
 	}
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 
@@ -222,7 +222,7 @@ void Zone::AddRevision(LWOSCENEID sceneID, uint32_t revision) {
 
 const void Zone::PrintAllGameObjects() {
 	for (std::pair<LWOSCENEID, SceneRef> scene : m_Scenes) {
-		Game::logger->Log("Zone", "In sceneID: %i", scene.first.GetSceneID());
+		Log("In sceneID: %i", scene.first.GetSceneID());
 		scene.second.level->PrintAllObjects();
 	}
 }
@@ -265,7 +265,7 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 	auto buffer = Game::assetManager->GetFileAsBuffer((m_ZonePath + triggerFile).c_str());
 
 	if (!buffer.m_Success) {
-		Game::logger->Log("Zone", "Failed to load %s from disk. Skipping loading triggers", (m_ZonePath + triggerFile).c_str());
+		Log("Failed to load %s from disk. Skipping loading triggers", (m_ZonePath + triggerFile).c_str());
 		return lvlTriggers;
 	}
 
@@ -281,9 +281,9 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 	if (!doc) return lvlTriggers;
 
 	if (doc->Parse(data.str().c_str(), data.str().size()) == 0) {
-		//Game::logger->Log("Zone", "Loaded LUTriggers from file %s!", triggerFile.c_str());
+		//Log("Loaded LUTriggers from file %s!", triggerFile.c_str());
 	} else {
-		Game::logger->Log("Zone", "Failed to load LUTriggers from file %s", triggerFile.c_str());
+		Log("Failed to load LUTriggers from file %s", triggerFile.c_str());
 		return lvlTriggers;
 	}
 

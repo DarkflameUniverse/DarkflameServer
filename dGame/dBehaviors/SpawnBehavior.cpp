@@ -4,7 +4,7 @@
 #include "BehaviorBranchContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 #include "RebuildComponent.h"
 #include "Entity.h"
@@ -15,7 +15,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	auto* origin = EntityManager::Instance()->GetEntity(context->originator);
 
 	if (origin == nullptr) {
-		Game::logger->Log("SpawnBehavior", "Failed to find self entity (%llu)!", context->originator);
+		Log("Failed to find self entity (%llu)!", context->originator);
 
 		return;
 	}
@@ -45,7 +45,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	);
 
 	if (entity == nullptr) {
-		Game::logger->Log("SpawnBehavior", "Failed to spawn entity (%i)!", this->m_lot);
+		Log("Failed to spawn entity (%i)!", this->m_lot);
 
 		return;
 	}
@@ -82,7 +82,7 @@ void SpawnBehavior::Timer(BehaviorContext* context, const BehaviorBranchContext 
 	auto* entity = EntityManager::Instance()->GetEntity(second);
 
 	if (entity == nullptr) {
-		Game::logger->Log("SpawnBehavior", "Failed to find spawned entity (%llu)!", second);
+		Log("Failed to find spawned entity (%llu)!", second);
 
 		return;
 	}

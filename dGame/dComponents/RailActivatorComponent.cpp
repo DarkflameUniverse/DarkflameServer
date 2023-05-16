@@ -6,7 +6,7 @@
 #include "GameMessages.h"
 #include "RebuildComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
 #include "eStateChangeType.h"

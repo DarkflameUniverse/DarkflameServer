@@ -7,5 +7,5 @@ SplitStripMessage::SplitStripMessage(AMFArrayValue* arguments) : BehaviorMessage
 	destinationActionContext = ActionContext(arguments, "dstStateID", "dstStripID");
 	destinationPosition = StripUiPosition(arguments, "dstStripUI");
 
-	Game::logger->LogDebug("SplitStripMessage", "behaviorId %i xPosition %f yPosition %f sourceStrip %i destinationStrip %i sourceState %i destinationState %i srcActindex %i", behaviorId, destinationPosition.GetX(), destinationPosition.GetY(), sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), srcActionIndex);
+	LogDebug("behaviorId %i xPosition %f yPosition %f sourceStrip %i destinationStrip %i sourceState %i destinationState %i srcActindex %i", behaviorId, destinationPosition.GetX(), destinationPosition.GetY(), sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), srcActionIndex);
 }

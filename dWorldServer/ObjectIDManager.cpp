@@ -6,7 +6,7 @@
 // Custom Classes
 #include "MasterPackets.h"
 #include "Database.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 
 // Static Variables

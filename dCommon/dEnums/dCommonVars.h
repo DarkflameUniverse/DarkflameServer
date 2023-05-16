@@ -17,6 +17,10 @@
 #define FRAMES_TO_MS(x) 1000 / x
 #define MS_TO_FRAMES(x) 1000 / x
 
+#define STRINGIFY_IMPL(x) #x
+
+#define STRINGIFY(x) STRINGIFY_IMPL(x)
+
 //=========== FRAME TIMINGS ===========
 constexpr uint32_t highFramerate = 60;
 constexpr uint32_t mediumFramerate = 30;

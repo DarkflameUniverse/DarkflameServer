@@ -47,7 +47,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	User* usr = UserManager::Instance()->GetUser(sysAddr);
 
 	if (!entity) {
-		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!", objectID, messageID);
+		Log("Failed to find associated entity (%llu), aborting GM (%X)!", objectID, messageID);
 
 		return;
 	}
@@ -166,7 +166,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			character->OnZoneLoad();
 		}
 
-		Game::logger->Log("GameMessageHandler", "Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
+		Log("Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
 
 		// After we've done our thing, tell the client they're ready
 		GameMessages::SendPlayerReady(entity, sysAddr);
@@ -681,7 +681,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleRequestActivityExit(inStream, entity);
 		break;
 	default:
-		// Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i", messageID);
+		// Log("Unknown game message ID: %i", messageID);
 		break;
 	}
 }

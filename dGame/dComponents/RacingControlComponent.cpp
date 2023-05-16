@@ -73,7 +73,7 @@ void RacingControlComponent::OnPlayerLoaded(Entity* player) {
 
 	m_LoadedPlayers++;
 
-	Game::logger->Log("RacingControlComponent", "Loading player %i",
+	Log("Loading player %i",
 		m_LoadedPlayers);
 
 	m_LobbyPlayers.push_back(objectID);
@@ -98,7 +98,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	auto* item = inventoryComponent->FindItemByLot(8092);
 
 	if (item == nullptr) {
-		Game::logger->Log("RacingControlComponent", "Failed to find item");
+		Log("Failed to find item");
 
 		return;
 	}
@@ -545,12 +545,10 @@ void RacingControlComponent::Update(float deltaTime) {
 		// From the first 2 players loading in the rest have a max of 15 seconds
 		// to load in, can raise this if it's too low
 		if (m_LoadTimer >= 15) {
-			Game::logger->Log("RacingControlComponent",
-				"Loading all players...");
+			Log("Loading all players...");
 
 			for (size_t positionNumber = 0; positionNumber < m_LobbyPlayers.size(); positionNumber++) {
-				Game::logger->Log("RacingControlComponent",
-					"Loading player now!");
+				Log("Loading player now!");
 
 				auto* player =
 					EntityManager::Instance()->GetEntity(m_LobbyPlayers[positionNumber]);
@@ -559,8 +557,7 @@ void RacingControlComponent::Update(float deltaTime) {
 					return;
 				}
 
-				Game::logger->Log("RacingControlComponent",
-					"Loading player now NOW!");
+				Log("Loading player now NOW!");
 
 				LoadPlayerVehicle(player, positionNumber + 1, true);
 
@@ -710,7 +707,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
 				m_Started = true;
 
-				Game::logger->Log("RacingControlComponent", "Starting race");
+				Log("Starting race");
 
 				EntityManager::Instance()->SerializeEntity(m_Parent);
 
@@ -813,8 +810,7 @@ void RacingControlComponent::Update(float deltaTime) {
 				if (player.bestLapTime == 0 || player.bestLapTime > lapTime) {
 					player.bestLapTime = lapTime;
 
-					Game::logger->Log("RacingControlComponent",
-						"Best lap time (%llu)", lapTime);
+					Log("Best lap time (%llu)", lapTime);
 				}
 
 				auto* missionComponent =
@@ -834,9 +830,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
 						player.raceTime = raceTime;
 
-						Game::logger->Log("RacingControlComponent",
-							"Completed time %llu, %llu",
-							raceTime, raceTime * 1000);
+						Log("Completed time %llu, %llu", raceTime, raceTime * 1000);
 
 						// Entire race time
 						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, (LWOOBJID)eRacingTaskParam::TOTAL_TRACK_TIME);
@@ -850,14 +844,10 @@ void RacingControlComponent::Update(float deltaTime) {
 					}
 				}
 
-				Game::logger->Log("RacingControlComponent",
-					"Lapped (%i) in (%llu)", player.lap,
-					lapTime);
+				Log("Lapped (%i) in (%llu)", player.lap, lapTime);
 			}
 
-			Game::logger->Log("RacingControlComponent",
-				"Reached point (%i)/(%i)", player.respawnIndex,
-				path->pathWaypoints.size());
+			Log("Reached point (%i)/(%i)", player.respawnIndex, path->pathWaypoints.size());
 
 			break;
 		}

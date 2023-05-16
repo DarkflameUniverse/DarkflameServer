@@ -2,7 +2,7 @@
 #define __AMF3__H__
 
 #include "dCommonVars.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 
 #include <unordered_map>

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "ChatPacketHandler.h"
 #include "GeneralUtils.h"
 #include "PacketUtils.h"
@@ -38,7 +38,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	mNames[data->playerID] = GeneralUtils::UTF8ToUTF16(data->playerName);
 
 	mPlayers.insert(std::make_pair(data->playerID, data));
-	Game::logger->Log("PlayerContainer", "Added user: %s (%llu), zone: %i", data->playerName.c_str(), data->playerID, data->zoneID.GetMapID());
+	Log("Added user: %s (%llu), zone: %i", data->playerName.c_str(), data->playerID, data->zoneID.GetMapID());
 
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
@@ -81,7 +81,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 		}
 	}
 
-	Game::logger->Log("PlayerContainer", "Removed user: %llu", playerID);
+	Log("Removed user: %llu", playerID);
 	mPlayers.erase(playerID);
 
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
@@ -104,7 +104,7 @@ void PlayerContainer::MuteUpdate(Packet* packet) {
 	auto* player = this->GetPlayerData(playerID);
 
 	if (player == nullptr) {
-		Game::logger->Log("PlayerContainer", "Failed to find user: %llu", playerID);
+		Log("Failed to find user: %llu", playerID);
 
 		return;
 	}

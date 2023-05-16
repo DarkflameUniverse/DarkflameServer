@@ -1,22 +1,23 @@
+
 #include "AreaOfEffectBehavior.h"
 
 #include <vector>
 
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	uint32_t targetCount{};
 
 	if (!bitStream->Read(targetCount)) {
-		Game::logger->Log("AreaOfEffectBehavior", "Unable to read targetCount from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		Log("Unable to read targetCount from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
 
@@ -32,7 +33,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 		LWOOBJID target{};
 
 		if (!bitStream->Read(target)) {
-			Game::logger->Log("AreaOfEffectBehavior", "failed to read in target %i from bitStream, aborting target Handle!", i);
+			Log("failed to read in target %i from bitStream, aborting target Handle!", i);
 			return;
 		};
 
@@ -49,7 +50,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* self = EntityManager::Instance()->GetEntity(context->caster);
 	if (self == nullptr) {
-		Game::logger->Log("AreaOfEffectBehavior", "Invalid self for (%llu)!", context->originator);
+		Log("Invalid self for (%llu)!", context->originator);
 
 		return;
 	}
@@ -78,7 +79,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 		auto* entity = EntityManager::Instance()->GetEntity(validTarget);
 
 		if (entity == nullptr) {
-			Game::logger->Log("AreaOfEffectBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);
+			Log("Invalid target (%llu) for (%llu)!", validTarget, context->originator);
 
 			continue;
 		}

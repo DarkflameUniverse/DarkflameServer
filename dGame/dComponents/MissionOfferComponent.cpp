@@ -11,7 +11,7 @@
 #include "GameMessages.h"
 #include "Entity.h"
 #include "MissionComponent.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 #include "MissionPrerequisites.h"
 #include "eMissionState.h"
@@ -82,7 +82,7 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 	auto* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
 
 	if (!missionComponent) {
-		Game::logger->Log("MissionOfferComponent", "Unable to get mission component for Entity %llu", entity->GetObjectID());
+		Log("Unable to get mission component for Entity %llu", entity->GetObjectID());
 		return;
 	}
 
@@ -154,7 +154,7 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 
 					randomMissionPool.push_back(value);
 				} catch (std::invalid_argument& exception) {
-					Game::logger->Log("MissionOfferComponent", "Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
+					Log("Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
 				}
 			}
 

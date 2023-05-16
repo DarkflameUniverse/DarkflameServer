@@ -4,5 +4,5 @@ RemoveActionsMessage::RemoveActionsMessage(AMFArrayValue* arguments) : BehaviorM
 	actionContext = ActionContext(arguments);
 	actionIndex = GetActionIndexFromArgument(arguments);
 
-	Game::logger->LogDebug("RemoveActionsMessage", "behaviorId %i actionIndex %i stripId %i stateId %i", behaviorId, actionIndex, actionContext.GetStripId(), actionContext.GetStateId());
+	LogDebug("behaviorId %i actionIndex %i stripId %i stateId %i", behaviorId, actionIndex, actionContext.GetStripId(), actionContext.GetStateId());
 }

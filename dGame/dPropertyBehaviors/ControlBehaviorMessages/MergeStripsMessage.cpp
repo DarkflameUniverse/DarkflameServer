@@ -6,6 +6,6 @@ MergeStripsMessage::MergeStripsMessage(AMFArrayValue* arguments) : BehaviorMessa
 	destinationActionContext = ActionContext(arguments, "dstStateID", "dstStripID");
 	dstActionIndex = GetActionIndexFromArgument(arguments, "dstActionIndex");
 
-	Game::logger->LogDebug("MergeStripsMessage", "srcstripId %i dststripId %i srcstateId %i dststateId %i dstactionIndex %i behaviorId %i", sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), dstActionIndex, behaviorId);
+	LogDebug("srcstripId %i dststripId %i srcstateId %i dststateId %i dstactionIndex %i behaviorId %i", sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), dstActionIndex, behaviorId);
 }
 

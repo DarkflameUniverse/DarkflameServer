@@ -1,7 +1,7 @@
 #include "Database.h"
 #include "Game.h"
 #include "dConfig.h"
-#include "dLogger.h"
+#include "Logger.h"
 using namespace std;
 
 #pragma warning (disable:4251) //Disables SQL warnings
@@ -64,8 +64,8 @@ void Database::Destroy(std::string source, bool log) {
 	if (!con) return;
 
 	if (log) {
-		if (source != "") Game::logger->Log("Database", "Destroying MySQL connection from %s!", source.c_str());
-		else Game::logger->Log("Database", "Destroying MySQL connection!");
+		if (source != "") Log("Destroying MySQL connection from %s!", source.c_str());
+		else Log("Destroying MySQL connection!");
 	}
 
 	con->close();
@@ -84,7 +84,7 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 
 	if (!con) {
 		Connect();
-		Game::logger->Log("Database", "Trying to reconnect to MySQL");
+		Log("Trying to reconnect to MySQL");
 	}
 
 	if (!con->isValid() || con->isClosed()) {
@@ -93,7 +93,7 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 		con = nullptr;
 
 		Connect();
-		Game::logger->Log("Database", "Trying to reconnect to MySQL from invalid or closed connection");
+		Log("Trying to reconnect to MySQL from invalid or closed connection");
 	}
 
 	auto* stmt = con->prepareStatement(str);

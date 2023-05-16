@@ -4,7 +4,7 @@
 
 #include "Game.h"
 #include "dCommonDependencies.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 class LDFTests : public dCommonDependenciesTest {
 protected:
@@ -237,7 +237,7 @@ TEST_F(LDFTests, LDFParseEdgeCaseTest) {
 		"key=Garbage:value", // invalid LDF type
 	};
 	for (auto testString : tests) {
-		Game::logger->Log("LDFTests", "Testing LDF Parsing of invalid string (%s)", testString.c_str());
+		Log("Testing LDF Parsing of invalid string (%s)", testString.c_str());
 		EXPECT_NO_THROW(LDFBaseData::DataFromString(testString));
 	}
 }

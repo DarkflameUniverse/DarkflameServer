@@ -1,7 +1,7 @@
 #include "TacArcBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Entity.h"
 #include "BehaviorContext.h"
 #include "BaseCombatAIComponent.h"
@@ -21,7 +21,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 	bool hit = false;
 
 	if (!bitStream->Read(hit)) {
-		Game::logger->Log("TacArcBehavior", "Unable to read hit from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		Log("Unable to read hit from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 
@@ -29,7 +29,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		bool blocked = false;
 
 		if (!bitStream->Read(blocked)) {
-			Game::logger->Log("TacArcBehavior", "Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			Log("Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 			return;
 		};
 
@@ -44,7 +44,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		uint32_t count = 0;
 
 		if (!bitStream->Read(count)) {
-			Game::logger->Log("TacArcBehavior", "Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			Log("Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 			return;
 		};
 
@@ -58,7 +58,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 			LWOOBJID id{};
 
 			if (!bitStream->Read(id)) {
-				Game::logger->Log("TacArcBehavior", "Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+				Log("Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 				return;
 			};
 
@@ -78,7 +78,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* self = EntityManager::Instance()->GetEntity(context->originator);
 	if (self == nullptr) {
-		Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!", context->originator);
+		Log("Invalid self for (%llu)!", context->originator);
 		return;
 	}
 
@@ -139,7 +139,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		auto* entity = EntityManager::Instance()->GetEntity(validTarget);
 
 		if (entity == nullptr) {
-			Game::logger->Log("TacArcBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);
+			Log("Invalid target (%llu) for (%llu)!", validTarget, context->originator);
 
 			continue;
 		}

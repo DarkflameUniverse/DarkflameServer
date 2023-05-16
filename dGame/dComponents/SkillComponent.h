@@ -12,7 +12,7 @@
 #include "BitStream.h"
 #include "Component.h"
 #include "Entity.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "eReplicaComponentType.h"
 
 struct ProjectileSyncEntry {

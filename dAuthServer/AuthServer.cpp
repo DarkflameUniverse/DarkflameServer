@@ -7,7 +7,7 @@
 //DLU Includes:
 #include "dCommonVars.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Database.h"
 #include "dConfig.h"
 #include "Diagnostics.h"
@@ -25,13 +25,12 @@
 
 #include "Game.h"
 namespace Game {
-	dLogger* logger = nullptr;
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
 	bool shouldShutdown = false;
 }
 
-dLogger* SetupLogger();
+void SetupLogger();
 void HandlePacket(Packet* packet);
 
 int main(int argc, char** argv) {
@@ -42,17 +41,16 @@ int main(int argc, char** argv) {
 	Diagnostics::Initialize();
 
 	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger();
-	if (!Game::logger) return EXIT_FAILURE;
+	SetupLogger();
 
 	//Read our config:
 	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "authconfig.ini").string());
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
+	Logger::Instance().SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
+	Logger::Instance().SetLogDebug(Game::config->GetValue("log_debug_statements") == "1");
 
-	Game::logger->Log("AuthServer", "Starting Auth server...");
-	Game::logger->Log("AuthServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("AuthServer", "Compiled on: %s", __TIMESTAMP__);
+	Log("Starting Auth server...");
+	Log("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	Log("Compiled on: %s", __TIMESTAMP__);
 
 	//Connect to the MySQL Database
 	std::string mysql_host = Game::config->GetValue("mysql_host");
@@ -63,10 +61,9 @@ int main(int argc, char** argv) {
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
-		Game::logger->Log("AuthServer", "Got an error while connecting to the database: %s", ex.what());
+		LogError("Could not connect to database: %s", ex.what());
 		Database::Destroy("AuthServer");
 		delete Game::server;
-		delete Game::logger;
 		return EXIT_FAILURE;
 	}
 
@@ -89,7 +86,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::shouldShutdown);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, masterIP, masterPort, ServerType::Auth, Game::config, &Game::shouldShutdown);
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -122,7 +119,7 @@ int main(int argc, char** argv) {
 
 		//Push our log every 30s:
 		if (framesSinceLastFlush >= logFlushTime) {
-			Game::logger->Flush();
+			Logger::Instance().Flush();
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
 
@@ -152,13 +149,12 @@ int main(int argc, char** argv) {
 	//Delete our objects here:
 	Database::Destroy("AuthServer");
 	delete Game::server;
-	delete Game::logger;
 	delete Game::config;
 
 	return EXIT_SUCCESS;
 }
 
-dLogger* SetupLogger() {
+void SetupLogger() {
 	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/AuthServer_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
@@ -167,7 +163,7 @@ dLogger* SetupLogger() {
 	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole, logDebugStatements);
+	Logger::Instance().Initialize(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {

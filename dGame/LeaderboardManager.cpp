@@ -5,7 +5,7 @@
 #include "Character.h"
 #include "Game.h"
 #include "GameMessages.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 #include "CDClientManager.h"
 #include "GeneralUtils.h"

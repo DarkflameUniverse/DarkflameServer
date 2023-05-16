@@ -4,7 +4,7 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CharacterComponent.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
@@ -39,7 +39,7 @@ RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
 		GeneralUtils::TryParse(positionAsVector[1], m_ActivatorPosition.y) &&
 		GeneralUtils::TryParse(positionAsVector[2], m_ActivatorPosition.z)) {
 	} else {
-		Game::logger->Log("RebuildComponent", "Failed to find activator position for lot %i.  Defaulting to parents position.", m_Parent->GetLOT());
+		Log("Failed to find activator position for lot %i.  Defaulting to parents position.", m_Parent->GetLOT());
 		m_ActivatorPosition = m_Parent->GetPosition();
 	}
 
@@ -439,7 +439,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		characterComponent->TrackRebuildComplete();
 	} else {
-		Game::logger->Log("RebuildComponent", "Some user tried to finish the rebuild but they didn't have a character somehow.");
+		Log("Some user tried to finish the rebuild but they didn't have a character somehow.");
 		return;
 	}
 

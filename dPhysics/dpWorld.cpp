@@ -6,7 +6,7 @@
 #include <string>
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 
 void dpWorld::Initialize(unsigned int zoneID, bool generateNewNavMesh) {
@@ -23,7 +23,7 @@ void dpWorld::Initialize(unsigned int zoneID, bool generateNewNavMesh) {
 
 	if (generateNewNavMesh) m_NavMesh = new dNavMesh(zoneID);
 
-	Game::logger->Log("dpWorld", "Physics world initialized!");
+	Log("Physics world initialized!");
 	m_ZoneID = zoneID;
 }
 
@@ -42,9 +42,9 @@ void dpWorld::Reload() {
 				}
 			}
 		}
-		Game::logger->Log("dpWorld", "Successfully reloaded physics world!");
+		Log("Successfully reloaded physics world!");
 	} else {
-		Game::logger->Log("dpWorld", "No physics world to reload!");
+		Log("No physics world to reload!");
 	}
 }
 

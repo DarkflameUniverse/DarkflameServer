@@ -5,7 +5,7 @@
 #include "Entity.h"
 #include "Item.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDClientManager.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "MissionComponent.h"
@@ -172,14 +172,14 @@ void InventoryComponent::AddItem(
 	const bool bound,
 	int32_t preferredSlot) {
 	if (count == 0) {
-		Game::logger->Log("InventoryComponent", "Attempted to add 0 of item (%i) to the inventory!", lot);
+		Log("Attempted to add 0 of item (%i) to the inventory!", lot);
 
 		return;
 	}
 
 	if (!Inventory::IsValidItem(lot)) {
 		if (lot > 0) {
-			Game::logger->Log("InventoryComponent", "Attempted to add invalid item (%i) to the inventory!", lot);
+			Log("Attempted to add invalid item (%i) to the inventory!", lot);
 		}
 
 		return;
@@ -197,7 +197,7 @@ void InventoryComponent::AddItem(
 		const auto slot = preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot) ? preferredSlot : inventory->FindEmptySlot();
 
 		if (slot == -1) {
-			Game::logger->Log("InventoryComponent", "Failed to find empty slot for inventory (%i)!", inventoryType);
+			Log("Failed to find empty slot for inventory (%i)!", inventoryType);
 
 			return;
 		}
@@ -299,7 +299,7 @@ void InventoryComponent::AddItem(
 
 void InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound) {
 	if (count == 0) {
-		Game::logger->Log("InventoryComponent", "Attempted to remove 0 of item (%i) from the inventory!", lot);
+		Log("Attempted to remove 0 of item (%i) from the inventory!", lot);
 
 		return;
 	}
@@ -493,7 +493,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 	auto* inventoryElement = document->FirstChildElement("obj")->FirstChildElement("inv");
 
 	if (inventoryElement == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'inv' xml element!");
+		Log("Failed to find 'inv' xml element!");
 
 		return;
 	}
@@ -501,7 +501,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 	auto* bags = inventoryElement->FirstChildElement("bag");
 
 	if (bags == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'bags' xml element!");
+		Log("Failed to find 'bags' xml element!");
 
 		return;
 	}
@@ -527,7 +527,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 	auto* items = inventoryElement->FirstChildElement("items");
 
 	if (items == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'items' xml element!");
+		Log("Failed to find 'items' xml element!");
 
 		return;
 	}
@@ -542,7 +542,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 		auto* inventory = GetInventory(static_cast<eInventoryType>(type));
 
 		if (inventory == nullptr) {
-			Game::logger->Log("InventoryComponent", "Failed to find inventory (%i)!", type);
+			Log("Failed to find inventory (%i)!", type);
 
 			return;
 		}
@@ -615,7 +615,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	auto* inventoryElement = document->FirstChildElement("obj")->FirstChildElement("inv");
 
 	if (inventoryElement == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'inv' xml element!");
+		Log("Failed to find 'inv' xml element!");
 
 		return;
 	}
@@ -638,7 +638,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	auto* bags = inventoryElement->FirstChildElement("bag");
 
 	if (bags == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'bags' xml element!");
+		Log("Failed to find 'bags' xml element!");
 
 		return;
 	}
@@ -657,7 +657,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	auto* items = inventoryElement->FirstChildElement("items");
 
 	if (items == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'items' xml element!");
+		Log("Failed to find 'items' xml element!");
 
 		return;
 	}
@@ -928,7 +928,7 @@ void InventoryComponent::EquipScripts(Item* equippedItem) {
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
 		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
 		if (!itemScript) {
-			Game::logger->Log("InventoryComponent", "null script?");
+			Log("null script?");
 		}
 		itemScript->OnFactionTriggerItemEquipped(m_Parent, equippedItem->GetId());
 	}
@@ -943,7 +943,7 @@ void InventoryComponent::UnequipScripts(Item* unequippedItem) {
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
 		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
 		if (!itemScript) {
-			Game::logger->Log("InventoryComponent", "null script?");
+			Log("null script?");
 		}
 		itemScript->OnFactionTriggerItemUnequipped(m_Parent, unequippedItem->GetId());
 	}
@@ -1346,7 +1346,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 			const auto entry = behaviors->GetSkillByID(result.skillID);
 
 			if (entry.skillID == 0) {
-				Game::logger->Log("InventoryComponent", "Failed to find buff behavior for skill (%i)!", result.skillID);
+				Log("Failed to find buff behavior for skill (%i)!", result.skillID);
 
 				continue;
 			}
@@ -1413,7 +1413,7 @@ std::vector<Item*> InventoryComponent::GenerateProxies(Item* parent) {
 		try {
 			lots.push_back(std::stoi(segment));
 		} catch (std::invalid_argument& exception) {
-			Game::logger->Log("InventoryComponent", "Failed to parse proxy (%s): (%s)!", segment.c_str(), exception.what());
+			Log("Failed to parse proxy (%s): (%s)!", segment.c_str(), exception.what());
 		}
 	}
 

@@ -3,7 +3,7 @@
 // C++
 #include <cstdint>
 
-class dLogger;
+class Logger;
 
 /*!
   \file ObjectIDManager.hpp
@@ -13,7 +13,6 @@ class dLogger;
  //! The Object ID Manager
 class ObjectIDManager {
 private:
-	dLogger* mLogger;
 	static ObjectIDManager* m_Address;         //!< The singleton instance
 
 	uint32_t currentPersistentID;               //!< The highest current persistent ID in use
@@ -35,7 +34,7 @@ public:
 	}
 
 	//! Initializes the manager
-	void Initialize(dLogger* logger);
+	void Initialize();
 
 	//! Generates a new persistent ID
 	/*!

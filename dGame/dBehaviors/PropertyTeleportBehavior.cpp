@@ -40,7 +40,7 @@ void PropertyTeleportBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		if (zoneClone != 0) ChatPackets::SendSystemMessage(sysAddr, u"Transfering to your property!");
 		else ChatPackets::SendSystemMessage(sysAddr, u"Transfering back to previous world!");
 
-		Game::logger->Log("PropertyTeleportBehavior", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+		Log("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 		if (entity->GetCharacter()) {
 			entity->GetCharacter()->SetZoneID(zoneID);
 			entity->GetCharacter()->SetZoneInstance(zoneInstance);

@@ -1,7 +1,7 @@
 #include "MovementSwitchBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void MovementSwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	uint32_t movementType{};
@@ -15,7 +15,7 @@ void MovementSwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 			this->m_movingAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY) {
 			return;
 		}
-		Game::logger->Log("MovementSwitchBehavior", "Unable to read movementType from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		Log("Unable to read movementType from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 

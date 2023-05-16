@@ -23,7 +23,7 @@
 #include "Diagnostics.h"
 #include "dCommonVars.h"
 #include "dConfig.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
@@ -44,7 +44,6 @@
 #include "FdbToSqlite.h"
 
 namespace Game {
-	dLogger* logger = nullptr;
 	dServer* server = nullptr;
 	InstanceManager* im = nullptr;
 	dConfig* config = nullptr;
@@ -56,7 +55,7 @@ namespace Game {
 bool shutdownSequenceStarted = false;
 void ShutdownSequence(int32_t signal = -1);
 int32_t FinalizeShutdown(int32_t signal = -1);
-dLogger* SetupLogger();
+void SetupLogger();
 void StartAuthServer();
 void StartChatServer();
 void HandlePacket(Packet* packet);
@@ -81,41 +80,40 @@ int main(int argc, char** argv) {
 	signal(SIGTERM, [](int32_t signal) { ShutdownSequence(EXIT_FAILURE); });
 
 	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger();
-	if (!Game::logger) return EXIT_FAILURE;
+	SetupLogger();
 
 	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "authconfig.ini")) {
-		Game::logger->Log("MasterServer", "Couldnt find authconfig.ini");
+		Log("Couldnt find authconfig.ini");
 		return EXIT_FAILURE;
 	}
 
 	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "chatconfig.ini")) {
-		Game::logger->Log("MasterServer", "Couldnt find chatconfig.ini");
+		Log("Couldnt find chatconfig.ini");
 		return EXIT_FAILURE;
 	}
 
 	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "masterconfig.ini")) {
-		Game::logger->Log("MasterServer", "Couldnt find masterconfig.ini");
+		Log("Couldnt find masterconfig.ini");
 		return EXIT_FAILURE;
 	}
 
 	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "sharedconfig.ini")) {
-		Game::logger->Log("MasterServer", "Couldnt find sharedconfig.ini");
+		Log("Couldnt find sharedconfig.ini");
 		return EXIT_FAILURE;
 	}
 
 	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "worldconfig.ini")) {
-		Game::logger->Log("MasterServer", "Couldnt find worldconfig.ini");
+		Log("Couldnt find worldconfig.ini");
 		return EXIT_FAILURE;
 	}
 
 	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "masterconfig.ini").string());
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
+	Logger::Instance().SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
+	Logger::Instance().SetLogDebug(Game::config->GetValue("log_debug_statements") == "1");
 
-	Game::logger->Log("MasterServer", "Starting Master server...");
-	Game::logger->Log("MasterServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("MasterServer", "Compiled on: %s", __TIMESTAMP__);
+	Log("Starting Master server...");
+	Log("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	Log("Compiled on: %s", __TIMESTAMP__);
 
 	//Connect to the MySQL Database
 	std::string mysql_host = Game::config->GetValue("mysql_host");
@@ -126,8 +124,7 @@ int main(int argc, char** argv) {
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
-		Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s", ex.what());
-		Game::logger->Log("MigrationRunner", "Migrations not run");
+		LogError("Could not connect to database: %s, Migrations not run", ex.what());
 		return EXIT_FAILURE;
 	}
 
@@ -141,8 +138,7 @@ int main(int argc, char** argv) {
 
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
-		Game::logger->Log("MasterServer", "Got an error while setting up assets: %s", ex.what());
-
+		LogError("Could not setup assets: %s", ex.what());
 		return EXIT_FAILURE;
 	}
 
@@ -155,25 +151,24 @@ int main(int argc, char** argv) {
 	if (!cdServerExists) {
 		if (oldCDServerExists) {
 			// If the file doesn't exist in the new CDServer location, copy it there.  We copy because we may not have write permissions from the previous directory.
-			Game::logger->Log("MasterServer", "CDServer.sqlite is not located at resServer, but is located at res path.  Copying file...");
+			Log("CDServer.sqlite is not located at resServer, but is located at res path.  Copying file...");
 			std::filesystem::copy_file(Game::assetManager->GetResPath() / "CDServer.sqlite", BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite");
 		} else {
-			Game::logger->Log("MasterServer",
-				"%s could not be found in resServer or res. Looking for %s to convert to sqlite.",
+			Log("%s could not be found in resServer or res. Looking for %s to convert to sqlite.",
 				(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").c_str(),
 				(Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
 
 			AssetMemoryBuffer cdClientBuffer = Game::assetManager->GetFileAsBuffer("cdclient.fdb");
 			if (!cdClientBuffer.m_Success) {
-				Game::logger->Log("MasterServer", "Failed to load %s", (Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
+				Log("Failed to load %s", (Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
 				throw std::runtime_error("Aborting initialization due to missing cdclient.fdb.");
 			}
 
-			Game::logger->Log("MasterServer", "Found %s.  Converting to SQLite", (Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
-			Game::logger->Flush();
+			Log("Found %s.  Converting to SQLite", (Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
+			Logger::Instance().Flush();
 
 			if (FdbToSqlite::Convert((BinaryPathFinder::GetBinaryDir() / "resServer").string()).ConvertDatabase(cdClientBuffer) == false) {
-				Game::logger->Log("MasterServer", "Failed to convert fdb to sqlite.");
+				Log("Failed to convert fdb to sqlite.");
 				return EXIT_FAILURE;
 			}
 			cdClientBuffer.close();
@@ -184,9 +179,9 @@ int main(int argc, char** argv) {
 	try {
 		CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").string());
 	} catch (CppSQLite3Exception& e) {
-		Game::logger->Log("WorldServer", "Unable to connect to CDServer SQLite Database");
-		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
-		Game::logger->Log("WorldServer", "Error Code: %i", e.errorCode());
+		Log("Unable to connect to CDServer SQLite Database");
+		LogError("%s", e.errorMessage());
+		LogError("Code %i", e.errorCode());
 		return EXIT_FAILURE;
 	}
 
@@ -197,10 +192,8 @@ int main(int argc, char** argv) {
 	try {
 		CDClientManager::Instance();
 	} catch (CppSQLite3Exception& e) {
-		Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database");
-		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
-		Game::logger->Log("WorldServer", "Error: %s", e.errorMessage());
-		Game::logger->Log("WorldServer", "Error Code: %i", e.errorCode());
+		LogError("Failed to initialize CDServer SQLite Database message (%s), code %i", e.errorMessage(), e.errorCode());
+		LogError("May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
 		return EXIT_FAILURE;
 	}
 
@@ -218,7 +211,7 @@ int main(int argc, char** argv) {
 		userLookupStatement->setString(1, username.c_str());
 		std::unique_ptr<sql::ResultSet> res(userLookupStatement->executeQuery());
 		if (res->rowsCount() > 0) {
-			Game::logger->Log("MasterServer", "Account with name \"%s\" already exists", username.c_str());
+			Log("Account with name \"%s\" already exists", username.c_str());
 			std::cout << "Do you want to change the password of that account? [y/n]?";
 			std::string prompt = "";
 			std::cin >> prompt;
@@ -251,9 +244,9 @@ int main(int argc, char** argv) {
 				userUpdateStatement->setUInt(2, accountId);
 				userUpdateStatement->execute();
 
-				Game::logger->Log("MasterServer", "Account \"%s\" password updated successfully!", username.c_str());
+				Log("Account \"%s\" password updated successfully!", username.c_str());
 			} else {
-				Game::logger->Log("MasterServer", "Account \"%s\" was not updated.", username.c_str());
+				Log("Account \"%s\" was not updated.", username.c_str());
 			}
 			return EXIT_SUCCESS;
 		}
@@ -284,11 +277,11 @@ int main(int argc, char** argv) {
 			statement->setInt(3, 9);
 			statement->execute();
 		} catch(sql::SQLException& e) {
-			Game::logger->Log("MasterServer", "A SQL error occurred!:\n %s",  e.what());
+			LogError("Encountered SQL exception: (%s) when creating an account",  e.what());
 			return EXIT_FAILURE;
 		}
 
-		Game::logger->Log("MasterServer", "Account created successfully!");
+		Log("Account created successfully!");
 		return EXIT_SUCCESS;
 	}
 
@@ -298,7 +291,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::stoi(Game::config->GetValue("port"));
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::shouldShutdown);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, "", 0, ServerType::Master, Game::config, &Game::shouldShutdown);
 
 	//Query for the database for a server labeled "master"
 	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");
@@ -328,8 +321,8 @@ int main(int argc, char** argv) {
 	}
 
 	//Create additional objects here:
-	ObjectIDManager::Instance()->Initialize(Game::logger);
-	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
+	ObjectIDManager::Instance()->Initialize();
+	Game::im = new InstanceManager(Game::server->GetIP());
 
 	//Depending on the config, start up servers:
 	if (Game::config->GetValue("prestart_servers") != "" && Game::config->GetValue("prestart_servers") == "1") {
@@ -363,7 +356,7 @@ int main(int argc, char** argv) {
 
 		//Push our log every 15s:
 		if (framesSinceLastFlush >= logFlushTime) {
-			Game::logger->Flush();
+			Logger::Instance().Flush();
 			framesSinceLastFlush = 0;
 		} else
 			framesSinceLastFlush++;
@@ -438,7 +431,7 @@ int main(int argc, char** argv) {
 	return FinalizeShutdown(EXIT_SUCCESS);
 }
 
-dLogger* SetupLogger() {
+void SetupLogger() {
 	std::string logPath =
 		(BinaryPathFinder::GetBinaryDir() / ("logs/MasterServer_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
@@ -448,19 +441,19 @@ dLogger* SetupLogger() {
 	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole, logDebugStatements);
+	Logger::Instance().Initialize(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION) {
-		Game::logger->Log("MasterServer", "A server has disconnected");
+		Log("A server has disconnected");
 
 		//Since this disconnection is intentional, we'll just delete it as
 		//we'll start a new one anyway if needed:
 		Instance* instance =
 			Game::im->GetInstanceBySysAddr(packet->systemAddress);
 		if (instance) {
-			Game::logger->Log("MasterServer", "Actually disconnected from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
+			Log("Actually disconnected from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
 			Game::im->RemoveInstance(instance); //Delete the old
 		}
 
@@ -476,7 +469,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (packet->data[0] == ID_CONNECTION_LOST) {
-		Game::logger->Log("MasterServer", "A server has lost the connection");
+		Log("A server has lost the connection");
 
 		Instance* instance =
 			Game::im->GetInstanceBySysAddr(packet->systemAddress);
@@ -501,7 +494,7 @@ void HandlePacket(Packet* packet) {
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
 		switch (static_cast<eMasterMessageType>(packet->data[3])) {
 		case eMasterMessageType::REQUEST_PERSISTENT_ID: {
-			Game::logger->Log("MasterServer", "A persistent ID req");
+			Log("A persistent ID req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 			uint64_t requestID = 0;
@@ -513,7 +506,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case eMasterMessageType::REQUEST_ZONE_TRANSFER: {
-			Game::logger->Log("MasterServer", "Received zone transfer req");
+			Log("Received zone transfer req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 			uint64_t requestID = 0;
@@ -526,24 +519,24 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(zoneID);
 			inStream.Read(zoneClone);
 			if (shutdownSequenceStarted) {
-				Game::logger->Log("MasterServer", "Shutdown sequence has been started.  Not creating a new zone.");
+				Log("Shutdown sequence has been started.  Not creating a new zone.");
 				break;
 			}
 			Instance* in = Game::im->GetInstance(zoneID, false, zoneClone);
 
 			for (auto* instance : Game::im->GetInstances()) {
-				Game::logger->Log("MasterServer", "Instance: %i/%i/%i -> %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in);
+				Log("Instance: %i/%i/%i -> %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in);
 			}
 
 			if (in && !in->GetIsReady()) //Instance not ready, make a pending request
 			{
 				in->GetPendingRequests().push_back({ requestID, static_cast<bool>(mythranShift), packet->systemAddress });
-				Game::logger->Log("MasterServer", "Server not ready, adding pending request %llu %i %i", requestID, zoneID, zoneClone);
+				Log("Server not ready, adding pending request %llu %i %i", requestID, zoneID, zoneClone);
 				break;
 			}
 
 			//Instance is ready, transfer
-			Game::logger->Log("MasterServer", "Responding to transfer request %llu for zone %i %i", requestID, zoneID, zoneClone);
+			Log("Responding to transfer request %llu for zone %i %i", requestID, zoneID, zoneClone);
 			Game::im->RequestAffirmation(in, { requestID, static_cast<bool>(mythranShift), packet->systemAddress });
 			break;
 		}
@@ -602,7 +595,7 @@ void HandlePacket(Packet* packet) {
 				authServerMasterPeerSysAddr = copy;
 			}
 
-			Game::logger->Log("MasterServer", "Received server info, instance: %i port: %i", theirInstanceID, theirPort);
+			Log("Received server info, instance: %i port: %i", theirInstanceID, theirPort);
 
 			break;
 		}
@@ -634,7 +627,7 @@ void HandlePacket(Packet* packet) {
 			}
 
 			activeSessions.insert(std::make_pair(sessionKey, username));
-			Game::logger->Log("MasterServer", "Got sessionKey %i for user %s", sessionKey, username.c_str());
+			Log("Got sessionKey %i for user %s", sessionKey, username.c_str());
 			break;
 		}
 
@@ -740,7 +733,7 @@ void HandlePacket(Packet* packet) {
 
 			auto* instance = Game::im->FindPrivateInstance(password.c_str());
 
-			Game::logger->Log("MasterServer", "Join private zone: %llu %d %s %p", requestID, mythranShift, password.c_str(), instance);
+			Log("Join private zone: %llu %d %s %p", requestID, mythranShift, password.c_str(), instance);
 
 			if (instance == nullptr) {
 				return;
@@ -763,16 +756,16 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(zoneID);
 			inStream.Read(instanceID);
 
-			Game::logger->Log("MasterServer", "Got world ready %i %i", zoneID, instanceID);
+			Log("Got world ready %i %i", zoneID, instanceID);
 
 			auto* instance = Game::im->FindInstance(zoneID, instanceID);
 
 			if (instance == nullptr) {
-				Game::logger->Log("MasterServer", "Failed to find zone to ready");
+				Log("Failed to find zone to ready");
 				return;
 			}
 
-			Game::logger->Log("MasterServer", "Ready zone %i", zoneID);
+			Log("Ready zone %i", zoneID);
 			Game::im->ReadyInstance(instance);
 			break;
 		}
@@ -784,10 +777,10 @@ void HandlePacket(Packet* packet) {
 			int32_t zoneID;
 			inStream.Read(zoneID);
 			if (shutdownSequenceStarted) {
-				Game::logger->Log("MasterServer", "Shutdown sequence has been started.  Not prepping a new zone.");
+				Log("Shutdown sequence has been started.  Not prepping a new zone.");
 				break;
 			} else {
-				Game::logger->Log("MasterServer", "Prepping zone %i", zoneID);
+				Log("Prepping zone %i", zoneID);
 				Game::im->GetInstance(zoneID, false, 0);
 			}
 			break;
@@ -801,7 +794,7 @@ void HandlePacket(Packet* packet) {
 
 			inStream.Read(requestID);
 
-			Game::logger->Log("MasterServer", "Got affirmation of transfer %llu", requestID);
+			Log("Got affirmation of transfer %llu", requestID);
 
 			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
 
@@ -809,7 +802,7 @@ void HandlePacket(Packet* packet) {
 				return;
 
 			Game::im->AffirmTransfer(instance, requestID);
-			Game::logger->Log("MasterServer", "Affirmation complete %llu", requestID);
+			Log("Affirmation complete %llu", requestID);
 			break;
 		}
 
@@ -823,26 +816,26 @@ void HandlePacket(Packet* packet) {
 				return;
 			}
 
-			Game::logger->Log("MasterServer", "Got shutdown response from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
+			Log("Got shutdown response from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
 			instance->SetIsShuttingDown(true);
 			break;
 		}
 
 		case eMasterMessageType::SHUTDOWN_UNIVERSE: {
-			Game::logger->Log("MasterServer", "Received shutdown universe command, shutting down in 10 minutes.");
+			Log("Received shutdown universe command, shutting down in 10 minutes.");
 			Game::shouldShutdown = true;
 			break;
 		}
 
 		default:
-			Game::logger->Log("MasterServer", "Unknown master packet ID from server: %i", packet->data[3]);
+			Log("Unknown master packet ID from server: %i", packet->data[3]);
 		}
 	}
 }
 
 void StartChatServer() {
 	if (Game::shouldShutdown) {
-		Game::logger->Log("MasterServer", "Currently shutting down.  Chat will not be restarted.");
+		Log("Currently shutting down.  Chat will not be restarted.");
 		return;
 	}
 #ifdef __APPLE__
@@ -861,7 +854,7 @@ void StartChatServer() {
 
 void StartAuthServer() {
 	if (Game::shouldShutdown) {
-		Game::logger->Log("MasterServer", "Currently shutting down.  Auth will not be restarted.");
+		Log("Currently shutting down.  Auth will not be restarted.");
 		return;
 	}
 #ifdef __APPLE__
@@ -894,13 +887,13 @@ void ShutdownSequence(int32_t signal) {
 		CBITSTREAM;
 		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 		Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
-		Game::logger->Log("MasterServer", "Triggered master shutdown");
+		Log("Triggered master shutdown");
 	}
 
 	auto* objIdManager = ObjectIDManager::TryInstance();
 	if (objIdManager) {
 		objIdManager->SaveToDatabase();
-		Game::logger->Log("MasterServer", "Saved ObjectIDTracker to DB");
+		Log("Saved ObjectIDTracker to DB");
 	}
 
 	// A server might not be finished spinning up yet, remove all of those here.
@@ -914,7 +907,7 @@ void ShutdownSequence(int32_t signal) {
 		instance->SetIsShuttingDown(true);
 	}
 
-	Game::logger->Log("MasterServer", "Attempting to shutdown instances, max 60 seconds...");
+	Log("Attempting to shutdown instances, max 60 seconds...");
 
 	auto t = std::chrono::high_resolution_clock::now();
 	uint32_t framesSinceShutdownStart = 0;
@@ -942,7 +935,7 @@ void ShutdownSequence(int32_t signal) {
 		}
 
 		if (allInstancesShutdown && authServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS && chatServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
-			Game::logger->Log("MasterServer", "Finished shutting down MasterServer!");
+			Log("Finished shutting down MasterServer!");
 			break;
 		}
 
@@ -952,7 +945,7 @@ void ShutdownSequence(int32_t signal) {
 		framesSinceShutdownStart++;
 
 		if (framesSinceShutdownStart == maxShutdownTime) {
-			Game::logger->Log("MasterServer", "Finished shutting down by timeout!");
+			Log("Finished shutting down by timeout!");
 			break;
 		}
 	}
@@ -966,7 +959,6 @@ int32_t FinalizeShutdown(int32_t signal) {
 	if (Game::config) delete Game::config;
 	if (Game::im) delete Game::im;
 	if (Game::server) delete Game::server;
-	if (Game::logger) delete Game::logger;
 
 	if (signal != EXIT_SUCCESS) exit(signal);
 	return signal;

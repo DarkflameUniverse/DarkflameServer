@@ -11,7 +11,7 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
 #include <vector>

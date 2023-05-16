@@ -1,7 +1,7 @@
 #include "Preconditions.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 #include <sstream>
 
@@ -28,7 +28,7 @@ Precondition::Precondition(const uint32_t condition) {
 		this->count = 1;
 		this->values = { 0 };
 
-		Game::logger->Log("Precondition", "Failed to find precondition of id (%i)!", condition);
+		Log("Failed to find precondition of id (%i)!", condition);
 
 		return;
 	}

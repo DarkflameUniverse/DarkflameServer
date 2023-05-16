@@ -5,5 +5,5 @@ RenameMessage::RenameMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arg
 	if (!nameAmf) return;
 
 	name = nameAmf->GetValue();
-	Game::logger->LogDebug("RenameMessage", "behaviorId %i n %s", behaviorId, name.c_str());
+	LogDebug("behaviorId %i n %s", behaviorId, name.c_str());
 }

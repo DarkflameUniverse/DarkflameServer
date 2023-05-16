@@ -8,7 +8,7 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
 #include "CppScripts.h"
 #include "SimplePhysicsComponent.h"
@@ -63,7 +63,7 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::stri
 	m_NoAutoStart = false;
 
 	if (m_Path == nullptr) {
-		Game::logger->Log("MovingPlatformComponent", "Path not found: %s", pathName.c_str());
+		Log("Path not found: %s", pathName.c_str());
 	}
 }
 

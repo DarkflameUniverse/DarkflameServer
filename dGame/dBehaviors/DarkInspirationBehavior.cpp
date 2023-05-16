@@ -10,7 +10,7 @@ void DarkInspirationBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->LogDebug("DarkInspirationBehavior", "Failed to find target (%llu)!", branch.target);
+		LogDebug("Failed to find target (%llu)!", branch.target);
 		return;
 	}
 
@@ -29,7 +29,7 @@ void DarkInspirationBehavior::Calculate(BehaviorContext* context, RakNet::BitStr
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->LogDebug("DarkInspirationBehavior", "Failed to find target (%llu)!", branch.target);
+		LogDebug("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}

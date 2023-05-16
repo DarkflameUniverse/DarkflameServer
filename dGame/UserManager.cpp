@@ -6,14 +6,14 @@
 
 #include "Database.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "User.h"
 #include <WorldPackets.h>
 #include "Character.h"
 #include <BitStream.h>
 #include "PacketUtils.h"
 #include "../dWorldServer/ObjectIDManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GeneralUtils.h"
 #include "ZoneInstanceManager.h"
 #include "dServer.h"
@@ -44,7 +44,7 @@ void UserManager::Initialize() {
 
 	AssetMemoryBuffer fnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_first.txt");
 	if (!fnBuff.m_Success) {
-		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_first.txt").string().c_str());
+		Log("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_first.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
 	std::istream fnStream = std::istream(&fnBuff);
@@ -57,7 +57,7 @@ void UserManager::Initialize() {
 
 	AssetMemoryBuffer mnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_middle.txt");
 	if (!mnBuff.m_Success) {
-		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_middle.txt").string().c_str());
+		Log("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_middle.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
 	std::istream mnStream = std::istream(&mnBuff);
@@ -70,7 +70,7 @@ void UserManager::Initialize() {
 
 	AssetMemoryBuffer lnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_last.txt");
 	if (!lnBuff.m_Success) {
-		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_last.txt").string().c_str());
+		Log("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_last.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
 	std::istream lnStream = std::istream(&lnBuff);
@@ -84,7 +84,7 @@ void UserManager::Initialize() {
 	//Load our pre-approved names:
 	AssetMemoryBuffer chatListBuff = Game::assetManager->GetFileAsBuffer("chatplus_en_us.txt");
 	if (!chatListBuff.m_Success) {
-		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string().c_str());
+		Log("Failed to load %s", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing chat whitelist file.");
 	}
 	std::istream chatListStream = std::istream(&chatListBuff);
@@ -148,7 +148,7 @@ bool UserManager::DeleteUser(const SystemAddress& sysAddr) {
 
 void UserManager::DeletePendingRemovals() {
 	for (auto* user : m_UsersToDelete) {
-		Game::logger->Log("UserManager", "Deleted user %i", user->GetAccountID());
+		Log("Deleted user %i", user->GetAccountID());
 
 		delete user;
 	}
@@ -271,21 +271,21 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	LOT pantsLOT = FindCharPantsID(pantsColor);
 
 	if (name != "" && !UserManager::IsNameAvailable(name)) {
-		Game::logger->Log("UserManager", "AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
+		Log("AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::CUSTOM_NAME_IN_USE);
 		return;
 	}
 
 	if (!IsNameAvailable(predefinedName)) {
-		Game::logger->Log("UserManager", "AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
+		Log("AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::PREDEFINED_NAME_IN_USE);
 		return;
 	}
 
 	if (name == "") {
-		Game::logger->Log("UserManager", "AccountID: %i is creating a character with predefined name: %s", u->GetAccountID(), predefinedName.c_str());
+		Log("AccountID: %i is creating a character with predefined name: %s", u->GetAccountID(), predefinedName.c_str());
 	} else {
-		Game::logger->Log("UserManager", "AccountID: %i is creating a character with name: %s (temporary: %s)", u->GetAccountID(), name.c_str(), predefinedName.c_str());
+		Log("AccountID: %i is creating a character with name: %s (temporary: %s)", u->GetAccountID(), name.c_str(), predefinedName.c_str());
 	}
 
 	//Now that the name is ok, we can get an objectID from Master:
@@ -296,7 +296,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		auto* overlapResult = overlapStmt->executeQuery();
 
 		if (overlapResult->next()) {
-			Game::logger->Log("UserManager", "Character object id unavailable, check objectidtracker!");
+			Log("Character object id unavailable, check objectidtracker!");
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
 			return;
 		}
@@ -383,14 +383,14 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
-		Game::logger->Log("UserManager", "Couldn't get user to delete character");
+		Log("Couldn't get user to delete character");
 		return;
 	}
 
 	LWOOBJID objectID = PacketUtils::ReadPacketS64(8, packet);
 	uint32_t charID = static_cast<uint32_t>(objectID);
 
-	Game::logger->Log("UserManager", "Received char delete req for ID: %llu (%u)", objectID, charID);
+	Log("Received char delete req for ID: %llu (%u)", objectID, charID);
 
 	//Check if this user has this character:
 	bool hasCharacter = false;
@@ -400,10 +400,10 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	}
 
 	if (!hasCharacter) {
-		Game::logger->Log("UserManager", "User %i tried to delete a character that it does not own!", u->GetAccountID());
+		Log("User %i tried to delete a character that it does not own!", u->GetAccountID());
 		WorldPackets::SendCharacterDeleteResponse(sysAddr, false);
 	} else {
-		Game::logger->Log("UserManager", "Deleting character %i", charID);
+		Log("Deleting character %i", charID);
 		{
 			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM charxml WHERE id=? LIMIT 1;");
 			stmt->setUInt64(1, charID);
@@ -479,7 +479,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
-		Game::logger->Log("UserManager", "Couldn't get user to delete character");
+		Log("Couldn't get user to delete character");
 		return;
 	}
 
@@ -488,7 +488,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 
 	uint32_t charID = static_cast<uint32_t>(objectID);
-	Game::logger->Log("UserManager", "Received char rename request for ID: %llu (%u)", objectID, charID);
+	Log("Received char rename request for ID: %llu (%u)", objectID, charID);
 
 	std::string newName = PacketUtils::ReadString(16, packet, true);
 
@@ -502,7 +502,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	}
 
 	if (!hasCharacter || !character) {
-		Game::logger->Log("UserManager", "User %i tried to rename a character that it does not own!", u->GetAccountID());
+		Log("User %i tried to rename a character that it does not own!", u->GetAccountID());
 		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
 	} else if (hasCharacter && character) {
 		if (newName == character->GetName()) {
@@ -519,7 +519,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				stmt->execute();
 				delete stmt;
 
-				Game::logger->Log("UserManager", "Character %s now known as %s", character->GetName().c_str(), newName.c_str());
+				Log("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
@@ -530,7 +530,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				stmt->execute();
 				delete stmt;
 
-				Game::logger->Log("UserManager", "Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
+				Log("Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			}
@@ -538,7 +538,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_IN_USE);
 		}
 	} else {
-		Game::logger->Log("UserManager", "Unknown error occurred when renaming character, either hasCharacter or character variable != true.");
+		LogError("Could not rename character, either hasCharacter or character variable != true.");
 		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
 	}
 }
@@ -546,7 +546,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
-		Game::logger->Log("UserManager", "Couldn't get user to log in character");
+		Log("Couldn't get user to log in character");
 		return;
 	}
 
@@ -569,7 +569,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 		if (zoneID == LWOZONEID_INVALID) zoneID = 1000; //Send char to VE
 
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneID, character->GetZoneClone(), false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			Log("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			if (character) {
 				character->SetZoneID(zoneID);
 				character->SetZoneInstance(zoneInstance);
@@ -579,7 +579,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 			return;
 			});
 	} else {
-		Game::logger->Log("UserManager", "Unknown error occurred when logging in a character, either hasCharacter or character variable != true.");
+		LogError("Could not login character, either hasCharacter %i or character variable != true %i.", hasCharacter, character != nullptr);
 	}
 }
 
@@ -594,7 +594,7 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 		tableData.finalize();
 		return shirtLOT;
 	} catch (const std::exception&) {
-		Game::logger->Log("Character Create", "Failed to execute query! Using backup...");
+		Log("Failed to execute query! Using backup...");
 		// in case of no shirt found in CDServer, return problematic red vest.
 		return 4069;
 	}
@@ -609,7 +609,7 @@ uint32_t FindCharPantsID(uint32_t pantsColor) {
 		tableData.finalize();
 		return pantsLOT;
 	} catch (const std::exception&) {
-		Game::logger->Log("Character Create", "Failed to execute query! Using backup...");
+		Log("Failed to execute query! Using backup...");
 		// in case of no pants color found in CDServer, return red pants.
 		return 2508;
 	}

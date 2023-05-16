@@ -4,7 +4,7 @@
 #include "BehaviorContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "eStateChangeType.h"
@@ -13,7 +13,7 @@ void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (!target) {
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
+		Log("Failed to find target (%llu)!", branch.target);
 		return;
 	}
 
@@ -59,7 +59,7 @@ void ImmunityBehavior::Timer(BehaviorContext* context, BehaviorBranchContext bra
 	auto* target = EntityManager::Instance()->GetEntity(second);
 
 	if (!target) {
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", second);
+		Log("Failed to find target (%llu)!", second);
 		return;
 	}
 

@@ -7,5 +7,5 @@ MigrateActionsMessage::MigrateActionsMessage(AMFArrayValue* arguments) : Behavio
 	destinationActionContext = ActionContext(arguments, "dstStateID", "dstStripID");
 	dstActionIndex = GetActionIndexFromArgument(arguments, "dstActionIndex");
 
-	Game::logger->LogDebug("MigrateActionsMessage", "srcactionIndex %i dstactionIndex %i srcstripId %i dststripId %i srcstateId %i dststateId %i behaviorId %i", srcActionIndex, dstActionIndex, sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), behaviorId);
+	LogDebug("srcactionIndex %i dstactionIndex %i srcstripId %i dststripId %i srcstateId %i dststateId %i behaviorId %i", srcActionIndex, dstActionIndex, sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), behaviorId);
 }

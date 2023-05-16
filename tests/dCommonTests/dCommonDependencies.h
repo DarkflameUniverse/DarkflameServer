@@ -2,7 +2,7 @@
 #define __DCOMMONDEPENDENCIES__H__
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
@@ -12,14 +12,11 @@
 class dCommonDependenciesTest : public ::testing::Test {
 protected:
 	void SetUpDependencies() {
-		Game::logger = new dLogger("./testing.log", true, true);
+		Logger::Instance().Initialize("./testing.log", true, true);
 	}
 
 	void TearDownDependencies() {
-		if (Game::logger) {
-			Game::logger->Flush();
-			delete Game::logger;
-		}
+		Logger::Instance().Flush();
 	}
 };
 

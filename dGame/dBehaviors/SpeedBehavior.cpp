@@ -3,7 +3,7 @@
 #include "ControllablePhysicsComponent.h"
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 
 void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {

@@ -6,7 +6,7 @@
 #include "GameMessages.h"
 #include "ModelComponent.h"
 #include "../../dWorldServer/ObjectIDManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BehaviorStates.h"
 #include "AssetManager.h"
 #include "BlockDefinition.h"
@@ -170,7 +170,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 	// AMFArrayValue* stateSerialize = new AMFArrayValue();
 
 	// for (auto it = states.begin(); it != states.end(); it++) {
-	// 	Game::logger->Log("PropertyBehaviors", "Begin serialization of state %i!\n", it->first);
+	// 	Log("Begin serialization of state %i!\n", it->first);
 	// 	AMFArrayValue* state = new AMFArrayValue();
 
 	// 	AMFDoubleValue* stateAsDouble = new AMFDoubleValue();
@@ -180,7 +180,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 	// 	AMFArrayValue* strips = new AMFArrayValue();
 	// 	auto stripsInState = it->second->GetStrips();
 	// 	for (auto strip = stripsInState.begin(); strip != stripsInState.end(); strip++) {
-	// 		Game::logger->Log("PropertyBehaviors", "Begin serialization of strip %i!\n", strip->first);
+	// 		Log("Begin serialization of strip %i!\n", strip->first);
 	// 		AMFArrayValue* thisStrip = new AMFArrayValue();
 
 	// 		AMFDoubleValue* stripID = new AMFDoubleValue();
@@ -202,7 +202,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 
 	// 		AMFArrayValue* stripSerialize = new AMFArrayValue();
 	// 		for (auto behaviorAction : strip->second->GetActions()) {
-	// 			Game::logger->Log("PropertyBehaviors", "Begin serialization of action %s!\n", behaviorAction->actionName.c_str());
+	// 			Log("Begin serialization of action %s!\n", behaviorAction->actionName.c_str());
 	// 			AMFArrayValue* thisAction = new AMFArrayValue();
 
 	// 			AMFStringValue* actionName = new AMFStringValue();
@@ -247,20 +247,20 @@ void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
 	auto* blockDefinition = GetBlockInfo(updateActionMessage.GetAction().GetType());
 
 	if (!blockDefinition) {
-		Game::logger->Log("ControlBehaviors", "Received undefined block type %s. Ignoring.", updateActionMessage.GetAction().GetType().c_str());
+		Log("Received undefined block type %s. Ignoring.", updateActionMessage.GetAction().GetType().c_str());
 		return;
 	}
 
 	if (updateActionMessage.GetAction().GetValueParameterString().size() > 0) {
 		if (updateActionMessage.GetAction().GetValueParameterString().size() < blockDefinition->GetMinimumValue() ||
 			updateActionMessage.GetAction().GetValueParameterString().size() > blockDefinition->GetMaximumValue()) {
-			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().c_str());
+			Log("Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().c_str());
 			return;
 		}
 	} else {
 		if (updateActionMessage.GetAction().GetValueParameterDouble() < blockDefinition->GetMinimumValue() ||
 			updateActionMessage.GetAction().GetValueParameterDouble() > blockDefinition->GetMaximumValue()) {
-			Game::logger->Log("ControlBehaviors", "Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().c_str());
+			Log("Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().c_str());
 			return;
 		}
 	}
@@ -320,18 +320,18 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	else if (command == "updateAction")
 		UpdateAction(arguments);
 	else
-		Game::logger->Log("ControlBehaviors", "Unknown behavior command (%s)\n", command.c_str());
+		Log("Unknown behavior command (%s)\n", command.c_str());
 }
 
 ControlBehaviors::ControlBehaviors() {
 	auto blocksDefStreamBuffer = Game::assetManager->GetFileAsBuffer("ui\\ingame\\blocksdef.xml");
 	if (!blocksDefStreamBuffer.m_Success) {
-		Game::logger->Log("ControlBehaviors", "failed to open blocksdef");
+		Log("failed to open blocksdef");
 		return;
 	}
 	std::istream blocksBuffer(&blocksDefStreamBuffer);
 	if (!blocksBuffer.good()) {
-		Game::logger->Log("ControlBehaviors", "Blocks buffer is not good!");
+		Log("Blocks buffer is not good!");
 		return;
 	}
 
@@ -356,14 +356,14 @@ ControlBehaviors::ControlBehaviors() {
 
 	auto ret = m_Doc.Parse(buffer.c_str());
 	if (ret == tinyxml2::XML_SUCCESS) {
-		Game::logger->LogDebug("ControlBehaviors", "Successfully parsed the blocksdef file!");
+		LogDebug("Successfully parsed the blocksdef file!");
 	} else {
-		Game::logger->Log("Character", "Failed to parse BlocksDef xmlData due to error %i!", ret);
+		LogError("Failed to parse BlocksDef xmlData due to err num %i!", ret);
 		return;
 	}
 	auto* blockLibrary = m_Doc.FirstChildElement();
 	if (!blockLibrary) {
-		Game::logger->Log("ControlBehaviors", "No Block Library child element found.");
+		LogError("No Block Library child element found.");
 		return;
 	}
 
@@ -413,13 +413,13 @@ ControlBehaviors::ControlBehaviors() {
 					} else {
 						values = argument->FirstChildElement("EnumerationSource");
 						if (!values) {
-							Game::logger->Log("ControlBehaviors", "Failed to parse EnumerationSource from block (%s)", blockName.c_str());
+							Log("Failed to parse EnumerationSource from block (%s)", blockName.c_str());
 							continue;
 						}
 
 						auto* serviceNameNode = values->FirstChildElement("ServiceName");
 						if (!serviceNameNode) {
-							Game::logger->Log("ControlBehaviors", "Failed to parse ServiceName from block (%s)", blockName.c_str());
+							Log("Failed to parse ServiceName from block (%s)", blockName.c_str());
 							continue;
 						}
 
@@ -429,12 +429,12 @@ ControlBehaviors::ControlBehaviors() {
 							blockDefinition->SetMaximumValue(res.getIntField("countSounds"));
 							blockDefinition->SetDefaultValue("0");
 						} else {
-							Game::logger->Log("ControlBehaviors", "Unsupported Enumeration ServiceType (%s)", serviceName.c_str());
+							Log("Unsupported Enumeration ServiceType (%s)", serviceName.c_str());
 							continue;
 						}
 					}
 				} else {
-					Game::logger->Log("ControlBehaviors", "Unsupported block value type (%s)!", typeName.c_str());
+					Log("Unsupported block value type (%s)!", typeName.c_str());
 					continue;
 				}
 			}
@@ -444,9 +444,9 @@ ControlBehaviors::ControlBehaviors() {
 		blockSections = blockSections->NextSiblingElement();
 	}
 	isInitialized = true;
-	Game::logger->LogDebug("ControlBehaviors", "Created all base block classes");
+	LogDebug("Created all base block classes");
 	for (auto b : blockTypes) {
-		Game::logger->LogDebug("ControlBehaviors", "block name is %s default %s min %f max %f", b.first.c_str(), b.second->GetDefaultValue().c_str(), b.second->GetMinimumValue(), b.second->GetMaximumValue());
+		LogDebug("block name is %s default %s min %f max %f", b.first.c_str(), b.second->GetDefaultValue().c_str(), b.second->GetMinimumValue(), b.second->GetMaximumValue());
 	}
 }
 

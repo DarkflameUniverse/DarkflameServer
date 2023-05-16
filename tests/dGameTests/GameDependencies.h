@@ -2,7 +2,7 @@
 #define __GAMEDEPENDENCIES__H__
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
@@ -29,7 +29,7 @@ protected:
 		info.scale = 1.0f;
 		info.spawner = nullptr;
 		info.lot = 999;
-		Game::logger = new dLogger("./testing.log", true, true);
+		Logger::Instance().Initialize("./testing.log", true, true);
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
 	}
@@ -37,10 +37,7 @@ protected:
 	void TearDownDependencies() {
 		if (Game::server) delete Game::server;
 		delete EntityManager::Instance();
-		if (Game::logger) {
-			Game::logger->Flush();
-			delete Game::logger;
-		}
+		Logger::Instance().Flush();
 		if (Game::config) delete Game::config;
 	}
 

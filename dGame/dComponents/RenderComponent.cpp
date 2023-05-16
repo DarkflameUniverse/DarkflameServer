@@ -10,7 +10,7 @@
 #include "CDClientManager.h"
 #include "GameMessages.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDAnimationsTable.h"
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
@@ -32,7 +32,7 @@ RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component
 			for (auto& groupId : groupIdsSplit) {
 				int32_t groupIdInt;
 				if (!GeneralUtils::TryParse(groupId, groupIdInt)) {
-					Game::logger->Log("RenderComponent", "bad animation group Id %s", groupId.c_str());
+					Log("bad animation group Id %s", groupId.c_str());
 					continue;
 				}
 				m_animationGroupIds.push_back(groupIdInt);
@@ -227,6 +227,6 @@ float RenderComponent::DoAnimation(Entity* self, const std::string& animation, b
 		}
 	}
 	if (sendAnimation) GameMessages::SendPlayAnimation(self, GeneralUtils::ASCIIToUTF16(animation), priority, scale);
-	if (returnlength == 0.0f) Game::logger->Log("RenderComponent", "WARNING: Unable to find animation %s for lot %i in any group.", animation.c_str(), self->GetLOT());
+	if (returnlength == 0.0f) LogWarning("Unable to find animation %s for lot %i in any group.", animation.c_str(), self->GetLOT());
 	return returnlength;
 }

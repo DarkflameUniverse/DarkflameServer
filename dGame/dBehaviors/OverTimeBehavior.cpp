@@ -2,7 +2,7 @@
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"

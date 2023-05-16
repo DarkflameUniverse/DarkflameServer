@@ -3,7 +3,6 @@
 #include <random>
 
 class dServer;
-class dLogger;
 class InstanceManager;
 class dChatFilter;
 class dConfig;
@@ -12,7 +11,6 @@ class AssetManager;
 struct SystemAddress;
 
 namespace Game {
-	extern dLogger* logger;
 	extern dServer* server;
 	extern InstanceManager* im;
 	extern dChatFilter* chatFilter;

@@ -11,7 +11,7 @@
 #include "Entity.h"
 #include "ControllablePhysicsComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "WorldPackets.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -37,7 +37,7 @@
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse chat message");
+		Log("Unable to get user to parse chat message");
 		return;
 	}
 
@@ -69,14 +69,14 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 	if (!user->GetLastChatMessageApproved() && !isMythran) return;
 
 	std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
-	Game::logger->Log("Chat", "%s: %s", playerName.c_str(), sMessage.c_str());
+	Log("%s: %s", playerName.c_str(), sMessage.c_str());
 	ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
 }
 
 void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse position update");
+		Log("Unable to get user to parse position update");
 		return;
 	}
 
@@ -250,14 +250,14 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse chat moderation request");
+		Log("Unable to get user to parse chat moderation request");
 		return;
 	}
 
 	auto* entity = Player::GetPlayer(sysAddr);
 
 	if (entity == nullptr) {
-		Game::logger->Log("ClientPackets", "Unable to get player to parse chat moderation request");
+		Log("Unable to get player to parse chat moderation request");
 		return;
 	}
 

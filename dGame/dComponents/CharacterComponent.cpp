@@ -2,7 +2,7 @@
 #include <BitStream.h>
 #include "tinyxml2.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GeneralUtils.h"
 #include "dServer.h"
 #include "dZoneManager.h"
@@ -178,7 +178,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("CharacterComponent", "Failed to find char tag while loading XML!");
+		Log("Failed to find char tag while loading XML!");
 		return;
 	}
 	if (character->QueryAttribute("rpt", &m_Reputation) == tinyxml2::XML_NO_ATTRIBUTE) {
@@ -283,7 +283,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* minifig = doc->FirstChildElement("obj")->FirstChildElement("mf");
 	if (!minifig) {
-		Game::logger->Log("CharacterComponent", "Failed to find mf tag while updating XML!");
+		Log("Failed to find mf tag while updating XML!");
 		return;
 	}
 
@@ -303,7 +303,7 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("CharacterComponent", "Failed to find char tag while updating XML!");
+		Log("Failed to find char tag while updating XML!");
 		return;
 	}
 
@@ -351,7 +351,7 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	//
 
 	auto newUpdateTimestamp = std::time(nullptr);
-	Game::logger->Log("TotalTimePlayed", "Time since last save: %d", newUpdateTimestamp - m_LastUpdateTimestamp);
+	Log("Time since last save: %d", newUpdateTimestamp - m_LastUpdateTimestamp);
 
 	m_TotalTimePlayed += newUpdateTimestamp - m_LastUpdateTimestamp;
 	character->SetAttribute("time", m_TotalTimePlayed);
@@ -381,7 +381,7 @@ Item* CharacterComponent::GetRocket(Entity* player) {
 	}
 
 	if (!rocket) {
-		Game::logger->Log("CharacterComponent", "Unable to find rocket to equip!");
+		Log("Unable to find rocket to equip!");
 		return rocket;
 	}
 	return rocket;

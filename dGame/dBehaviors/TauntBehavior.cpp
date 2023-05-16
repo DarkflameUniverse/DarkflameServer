@@ -3,14 +3,14 @@
 #include "BehaviorContext.h"
 #include "BaseCombatAIComponent.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 
 void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->Log("TauntBehavior", "Failed to find target (%llu)!", branch.target);
+		Log("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -26,7 +26,7 @@ void TauntBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitSt
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->Log("TauntBehavior", "Failed to find target (%llu)!", branch.target);
+		Log("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}

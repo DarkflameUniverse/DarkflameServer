@@ -1,7 +1,7 @@
 #define _VARIADIC_MAX 10
 #include "dServer.h"
 #include "dNetCommon.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 
 #include "RakNetworkFactory.h"
@@ -38,7 +38,7 @@ public:
 	}
 } ReceiveDownloadCompleteCB;
 
-dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
+dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
 	mIP = ip;
 	mPort = port;
 	mZoneID = zoneID;
@@ -46,7 +46,6 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mMaxConnections = maxConnections;
 	mIsInternal = isInternal;
 	mUseEncryption = useEncryption;
-	mLogger = logger;
 	mMasterIP = masterIP;
 	mMasterPort = masterPort;
 	mMasterConnectionActive = false;
@@ -59,17 +58,16 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mIsOkay = Startup();
 
 	//Forcibly log to both the console and our file what ip, port and possibly zoneID / instanceID we're running on:
-	bool prevLogSetting = mLogger->GetIsLoggingToConsole();
-	mLogger->SetLogToConsole(true);
-
+	auto prev = Logger::Instance().GetLogToConsole();
+	Logger::Instance().SetLogToConsole(true);
 	if (mIsOkay) {
 		if (zoneID == 0)
-			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i", ip.c_str(), port, int(useEncryption));
+			Log("Server is listening on %s:%i with encryption: %i", ip.c_str(), port, int(useEncryption));
 		else
-			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i, running zone %i / %i", ip.c_str(), port, int(useEncryption), zoneID, instanceID);
-	} else { mLogger->Log("dServer", "FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
+			Log("Server is listening on %s:%i with encryption: %i, running zone %i / %i", ip.c_str(), port, int(useEncryption), zoneID, instanceID);
+	} else { Log("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
 
-	mLogger->SetLogToConsole(prevLogSetting);
+	Logger::Instance().SetLogToConsole(prev);
 
 	//Connect to master if we are not master:
 	if (serverType != ServerType::Master) {
@@ -107,13 +105,13 @@ Packet* dServer::ReceiveFromMaster() {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
 
 		if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-			mLogger->Log("dServer", "Lost our connection to master, shutting DOWN!");
+			Log("Lost our connection to master, shutting DOWN!");
 			mMasterConnectionActive = false;
 			//ConnectToMaster(); //We'll just shut down now
 		}
 
 		if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
-			mLogger->Log("dServer", "Established connection to master, zone (%i), instance (%i)", this->GetZoneID(), this->GetInstanceID());
+			Log("Established connection to master, zone (%i), instance (%i)", this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
 			MasterPackets::SendServerInfo(this, packet);

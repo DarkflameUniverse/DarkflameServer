@@ -101,7 +101,7 @@ void NjMonastryBossInstance::OnPlayerExit(Entity* self, Entity* player) {
 	if (playerToRemove != totalPlayersLoaded.end()) {
 		totalPlayersLoaded.erase(playerToRemove);
 	} else {
-		Game::logger->Log("NjMonastryBossInstance", "Failed to remove player at exit.");
+		Log("Failed to remove player at exit.");
 	}
 
 	// Set the players loaded var back

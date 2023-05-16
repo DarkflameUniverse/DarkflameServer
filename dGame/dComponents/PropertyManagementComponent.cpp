@@ -123,7 +123,7 @@ std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const {
 
 			points.push_back(value);
 		} catch (std::invalid_argument& exception) {
-			Game::logger->Log("PropertyManagementComponent", "Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
+			Log("Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
 		}
 	}
 
@@ -234,7 +234,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	try {
 		insertion->execute();
 	} catch (sql::SQLException& exception) {
-		Game::logger->Log("PropertyManagementComponent", "Failed to execute query: (%s)!", exception.what());
+		Log("Failed to execute query: (%s)!", exception.what());
 
 		throw exception;
 		return false;
@@ -294,7 +294,7 @@ void PropertyManagementComponent::OnFinishBuilding() {
 }
 
 void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation) {
-	Game::logger->Log("PropertyManagementComponent", "Placing model <%f, %f, %f>", position.x, position.y, position.z);
+	Log("Placing model <%f, %f, %f>", position.x, position.y, position.z);
 
 	auto* entity = GetOwner();
 
@@ -311,7 +311,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 	auto* item = inventoryComponent->FindItemById(id);
 
 	if (item == nullptr) {
-		Game::logger->Log("PropertyManagementComponent", "Failed to find item with id %d", id);
+		Log("Failed to find item with id %d", id);
 
 		return;
 	}
@@ -409,7 +409,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 }
 
 void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int deleteReason) {
-	Game::logger->Log("PropertyManagementComponent", "Delete model: (%llu) (%i)", id, deleteReason);
+	Log("Delete model: (%llu) (%i)", id, deleteReason);
 
 	auto* entity = GetOwner();
 
@@ -426,7 +426,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	const auto index = models.find(id);
 
 	if (index == models.end()) {
-		Game::logger->Log("PropertyManagementComponent", "Failed to find model");
+		Log("Failed to find model");
 
 		return;
 	}
@@ -438,20 +438,20 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	models.erase(id);
 
 	if (spawner == nullptr) {
-		Game::logger->Log("PropertyManagementComponent", "Failed to find spawner");
+		Log("Failed to find spawner");
 	}
 
 	auto* model = EntityManager::Instance()->GetEntity(id);
 
 	if (model == nullptr) {
-		Game::logger->Log("PropertyManagementComponent", "Failed to find model entity");
+		Log("Failed to find model entity");
 
 		return;
 	}
 
 	EntityManager::Instance()->DestructEntity(model);
 
-	Game::logger->Log("PropertyManagementComponent", "Deleting model LOT %i", model->GetLOT());
+	Log("Deleting model LOT %i", model->GetLOT());
 
 	if (model->GetLOT() == 14) {
 		//add it to the inv
@@ -534,13 +534,13 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	{
 		item->SetCount(item->GetCount() - 1);
 
-		Game::logger->Log("BODGE TIME", "YES IT GOES HERE");
+		Log("[BODGE TIME] YES IT GOES HERE");
 
 		break;
 	}
 	default:
 	{
-		Game::logger->Log("PropertyManagementComponent", "Invalid delete reason");
+		Log("Invalid delete reason");
 	}
 	}
 
@@ -679,7 +679,7 @@ void PropertyManagementComponent::Save() {
 	try {
 		lookupResult = lookup->executeQuery();
 	} catch (sql::SQLException& ex) {
-		Game::logger->Log("PropertyManagementComponent", "lookup error %s", ex.what());
+		LogError("Lookup exception: %s", ex.what());
 	}
 	std::vector<LWOOBJID> present;
 
@@ -729,7 +729,7 @@ void PropertyManagementComponent::Save() {
 			try {
 				insertion->execute();
 			} catch (sql::SQLException& ex) {
-				Game::logger->Log("PropertyManagementComponent", "Error inserting into properties_contents. Error %s", ex.what());
+				LogError("Cannot insert into properties_contents. Error %s", ex.what());
 			}
 		} else {
 			update->setDouble(1, position.x);
@@ -744,7 +744,7 @@ void PropertyManagementComponent::Save() {
 			try {
 				update->executeUpdate();
 			} catch (sql::SQLException& ex) {
-				Game::logger->Log("PropertyManagementComponent", "Error updating properties_contents. Error: %s", ex.what());
+				LogError("Cannot update properties_contents. Error: %s", ex.what());
 			}
 		}
 	}
@@ -758,7 +758,7 @@ void PropertyManagementComponent::Save() {
 		try {
 			remove->execute();
 		} catch (sql::SQLException& ex) {
-			Game::logger->Log("PropertyManagementComponent", "Error removing from properties_contents. Error %s", ex.what());
+			LogError("Cannot remove from properties_contents. Error %s", ex.what());
 		}
 	}
 
@@ -789,7 +789,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 	const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
 	const auto zoneId = worldId.GetMapID();
 
-	Game::logger->Log("Properties", "Getting property info for %d", zoneId);
+	Log("Getting property info for %d", zoneId);
 	GameMessages::PropertyDataMessage message = GameMessages::PropertyDataMessage(zoneId);
 
 	const auto isClaimed = GetOwnerId() != LWOOBJID_EMPTY;

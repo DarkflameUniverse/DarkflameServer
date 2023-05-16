@@ -3,7 +3,7 @@
 
 #include "dNetCommon.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Database.h"
 #include "ZoneInstanceManager.h"
 #include "MD5.h"
@@ -32,7 +32,7 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	uint32_t clientVersion = 0;
 	inStream.Read(clientVersion);
 
-	server->GetLogger()->Log("AuthPackets", "Received client version: %i", clientVersion);
+	Log("Received client version: %i", clientVersion);
 	SendHandshake(server, packet->systemAddress, server->GetIP(), server->GetPort(), server->GetServerType());
 }
 
@@ -63,7 +63,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	sql::ResultSet* res = stmt->executeQuery();
 
 	if (res->rowsCount() == 0) {
-		server->GetLogger()->Log("AuthPackets", "No user found!");
+		Log("No user found!");
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::INVALID_USER, "", "", 2001, username);
 		return;
 	}
@@ -96,7 +96,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		//Check to see if we have a play key:
 		if (sqlPlayKey == 0 && sqlGmLevel == 0) {
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
-			server->GetLogger()->Log("AuthPackets", "User %s tried to log in, but they don't have a play key.", username.c_str());
+			Log("User %s tried to log in, but they don't have a play key.", username.c_str());
 			return;
 		}
 
@@ -117,7 +117,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 		if (!isKeyActive && sqlGmLevel == 0) {
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your play key has been disabled.", "", 2001, username);
-			server->GetLogger()->Log("AuthPackets", "User %s tried to log in, but their play key was disabled", username.c_str());
+			Log("User %s tried to log in, but their play key was disabled", username.c_str());
 			return;
 		}
 	}
@@ -174,7 +174,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 	if (!loginSuccess) {
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::WRONG_PASS, "", "", 2001, username);
-		server->GetLogger()->Log("AuthPackets", "Wrong password used");
+		Log("Wrong password used");
 	} else {
 		SystemAddress system = packet->systemAddress; //Copy the sysAddr before the Packet gets destroyed from main
 
@@ -262,6 +262,6 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 		PacketUtils::WriteString(bitStream, username, 66);
 		server->SendToMaster(&bitStream);
 
-		server->GetLogger()->Log("AuthPackets", "Set sessionKey: %i for user %s", sessionKey, username.c_str());
+		Log("Set sessionKey: %i for user %s", sessionKey, username.c_str());
 	}
 }

@@ -5,7 +5,7 @@
 #include "BehaviorContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 #include "eReplicaComponentType.h"
 
@@ -17,14 +17,14 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 
 	bool blocked{};
 	if (!bitStream->Read(blocked)) {
-		Game::logger->Log("StunBehavior", "Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		Log("Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->Log("StunBehavior", "Failed to find target (%llu)!", branch.target);
+		Log("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -47,7 +47,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 		auto* self = EntityManager::Instance()->GetEntity(context->originator);
 
 		if (self == nullptr) {
-			Game::logger->Log("StunBehavior", "Invalid self entity (%llu)!", context->originator);
+			Log("Invalid self entity (%llu)!", context->originator);
 
 			return;
 		}
@@ -82,7 +82,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 	bitStream->Write(blocked);
 
 	if (target == nullptr) {
-		Game::logger->Log("StunBehavior", "Failed to find target (%llu)!", branch.target);
+		Log("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}

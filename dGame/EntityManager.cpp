@@ -16,7 +16,7 @@
 #include "dZoneManager.h"
 #include "MissionComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "MessageIdentifiers.h"
 #include "dConfig.h"
 #include "eTriggerEventType.h"
@@ -213,7 +213,7 @@ void EntityManager::KillEntities() {
 		auto* entity = GetEntity(*entry);
 
 		if (!entity) {
-			Game::logger->Log("EntityManager", "Attempting to kill null entity %llu", *entry);
+			Log("Attempting to kill null entity %llu", *entry);
 			continue;
 		}
 
@@ -242,7 +242,7 @@ void EntityManager::DeleteEntities() {
 
 			if (ghostingToDelete != m_EntitiesToGhost.end()) m_EntitiesToGhost.erase(ghostingToDelete);
 		} else {
-			Game::logger->Log("EntityManager", "Attempted to delete non-existent entity %llu", *entry);
+			Log("Attempted to delete non-existent entity %llu", *entry);
 		}
 		m_Entities.erase(*entry);
 	}
@@ -325,7 +325,7 @@ const std::unordered_map<std::string, LWOOBJID>& EntityManager::GetSpawnPointEnt
 
 void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr, const bool skipChecks) {
 	if (!entity) {
-		Game::logger->Log("EntityManager", "Attempted to construct null entity");
+		Log("Attempted to construct null entity");
 		return;
 	}
 

@@ -16,7 +16,7 @@ LevelProgressionComponent::LevelProgressionComponent(Entity* parent) : Component
 void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* level = doc->FirstChildElement("obj")->FirstChildElement("lvl");
 	if (!level) {
-		Game::logger->Log("LevelProgressionComponent", "Failed to find lvl tag while updating XML!");
+		Log("Failed to find lvl tag while updating XML!");
 		return;
 	}
 	level->SetAttribute("l", m_Level);
@@ -27,7 +27,7 @@ void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* level = doc->FirstChildElement("obj")->FirstChildElement("lvl");
 	if (!level) {
-		Game::logger->Log("LevelProgressionComponent", "Failed to find lvl tag while loading XML!");
+		Log("Failed to find lvl tag while loading XML!");
 		return;
 	}
 	level->QueryAttribute("l", &m_Level);

@@ -4,7 +4,7 @@
 #include "ReplicaManager.h"
 #include "NetworkIDManager.h"
 
-class dLogger;
+class Logger;
 class dConfig;
 enum class eServerDisconnectIdentifiers : uint32_t;
 
@@ -26,7 +26,6 @@ public:
 		int maxConnections,
 		bool isInternal,
 		bool useEncryption,
-		dLogger* logger,
 		const std::string masterIP,
 		int masterPort,
 		ServerType serverType,
@@ -51,7 +50,6 @@ public:
 	const bool GetIsEncrypted() const { return mUseEncryption; }
 	const bool GetIsInternal() const { return mIsInternal; }
 	const bool GetIsOkay() const { return mIsOkay; }
-	dLogger* GetLogger() const { return mLogger; }
 	const bool GetIsConnectedToMaster() const { return mMasterConnectionActive; }
 	const unsigned int GetZoneID() const { return mZoneID; }
 	const int GetInstanceID() const { return mInstanceID; }
@@ -74,7 +72,7 @@ private:
 	bool ConnectToMaster();
 
 private:
-	dLogger* mLogger = nullptr;
+	Logger* mLogger = nullptr;
 	dConfig* mConfig = nullptr;
 	RakPeerInterface* mPeer = nullptr;
 	ReplicaManager* mReplicaManager = nullptr;

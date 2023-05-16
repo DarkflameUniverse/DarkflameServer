@@ -1,7 +1,6 @@
 #include "GameDependencies.h"
 
 namespace Game {
-	dLogger* logger;
 	dServer* server;
 	dZoneManager* zoneManager;
 	dChatFilter* chatFilter;

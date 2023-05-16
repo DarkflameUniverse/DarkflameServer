@@ -4,7 +4,7 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
 #include "PacketUtils.h"
 
@@ -30,7 +30,7 @@ uint32_t BehaviorContext::GetUniqueSkillId() const {
 	auto* entity = EntityManager::Instance()->GetEntity(this->originator);
 
 	if (entity == nullptr) {
-		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!", this->originator);
+		Log("Invalid entity for (%llu)!", this->originator);
 
 		return 0;
 	}
@@ -38,7 +38,7 @@ uint32_t BehaviorContext::GetUniqueSkillId() const {
 	auto* component = entity->GetComponent<SkillComponent>();
 
 	if (component == nullptr) {
-		Game::logger->Log("BehaviorContext", "No skill component attached to (%llu)!", this->originator);;
+		Log("No skill component attached to (%llu)!", this->originator);;
 
 		return 0;
 	}
@@ -125,7 +125,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bit
 	}
 
 	if (!found) {
-		Game::logger->Log("BehaviorContext", "Failed to find behavior sync entry with sync id (%i)!", syncId);
+		Log("Failed to find behavior sync entry with sync id (%i)!", syncId);
 
 		return;
 	}
@@ -134,7 +134,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bit
 	const auto branch = entry.branchContext;
 
 	if (behavior == nullptr) {
-		Game::logger->Log("BehaviorContext", "Invalid behavior for sync id (%i)!", syncId);
+		Log("Invalid behavior for sync id (%i)!", syncId);
 
 		return;
 	}
@@ -313,7 +313,7 @@ std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, in
 	std::vector<LWOOBJID> targets;
 
 	if (entity == nullptr) {
-		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!", this->originator);
+		Log("Invalid entity for (%llu)!", this->originator);
 
 		return targets;
 	}
