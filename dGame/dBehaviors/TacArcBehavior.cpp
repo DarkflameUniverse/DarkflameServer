@@ -16,6 +16,8 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 
 	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
 		auto target = EntityManager::Instance()->GetEntity(branch.target);
+		if (target) Game::logger->Log("TacArcBehavior", "lot %i is dead %i", target->GetLOT(), target->GetIsDead());
+		else Game::logger->Log("TacArcBehavior", "target %llu is null", branch.target);
 		targets.push_back(target);
 		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 		if(!targets.empty()) {
