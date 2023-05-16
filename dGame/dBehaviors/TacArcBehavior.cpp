@@ -14,15 +14,16 @@
 void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	std::vector<Entity*> targets = {};
 
-	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
+	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY) {
 		auto target = EntityManager::Instance()->GetEntity(branch.target);
-		if (target) Game::logger->Log("TacArcBehavior", "target objid %llu lot %i is dead %i", branch.target, target->GetLOT(), target->GetIsDead());
-		else Game::logger->Log("TacArcBehavior", "target %llu is null", branch.target);
-		targets.push_back(target);
-		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-		if(!targets.empty()) {
-			this->m_action->Handle(context, bitStream, branch);
-			return;
+		if (!target) Game::logger->Log("TacArcBehavior", "target %llu is null", branch.target);
+		else {
+			targets.push_back(target);
+			context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+			if (!targets.empty()) {
+				this->m_action->Handle(context, bitStream, branch);
+				return;
+			}
 		}
 	}
 
@@ -89,11 +90,11 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	}
 
 	std::vector<Entity*> targets = {};
-	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
+	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY) {
 		auto target = EntityManager::Instance()->GetEntity(branch.target);
 		targets.push_back(target);
 		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-		if(!targets.empty()) {
+		if (!targets.empty()) {
 			this->m_action->Handle(context, bitStream, branch);
 			return;
 		}
