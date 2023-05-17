@@ -64,6 +64,7 @@
 #include "FallSpeedBehavior.h"
 #include "ChangeIdleFlagsBehavior.h"
 #include "DarkInspirationBehavior.h"
+#include "ConsumeItemBehavior.h"
 
  //CDClient includes
 #include "CDBehaviorParameterTable.h"
@@ -175,7 +176,7 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_SPEED:
 		behavior = new SpeedBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: 
+	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION:
 		behavior = new DarkInspirationBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF:
@@ -200,7 +201,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_SKILL_EVENT:
 		behavior = new SkillEventBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_CONSUME_ITEM: break;
+	case BehaviorTemplates::BEHAVIOR_CONSUME_ITEM:
+		behavior = new ConsumeItemBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_CAST_FAILED:
 		behavior = new SkillCastFailedBehavior(behaviorId);
 		break;
