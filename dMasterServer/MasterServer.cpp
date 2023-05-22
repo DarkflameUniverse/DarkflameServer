@@ -82,6 +82,7 @@ int main(int argc, char** argv) {
 
 	//Create all the objects we need to run our service:
 	SetupLogger();
+	if (!Game::logger) return EXIT_FAILURE;
 
 	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "authconfig.ini")) {
 		Log("Couldnt find authconfig.ini");

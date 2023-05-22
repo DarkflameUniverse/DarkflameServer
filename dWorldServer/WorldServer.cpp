@@ -136,6 +136,7 @@ int main(int argc, char** argv) {
 
 	//Create all the objects we need to run our service:
 	SetupLogger(zoneID, instanceID);
+	if (!Game::logger) return EXIT_FAILURE;
 
 	//Read our config:
 	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "worldconfig.ini").string());

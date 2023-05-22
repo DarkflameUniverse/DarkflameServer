@@ -50,6 +50,7 @@ int main(int argc, char** argv) {
 
 	//Create all the objects we need to run our service:
 	SetupLogger();
+	if (!Game::logger) return EXIT_FAILURE;
 
 	//Read our config:
 	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "chatconfig.ini").string());
