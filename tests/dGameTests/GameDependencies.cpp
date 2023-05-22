@@ -1,6 +1,7 @@
 #include "GameDependencies.h"
 
 namespace Game {
+	std::unique_ptr<Logger> logger;
 	dServer* server;
 	dZoneManager* zoneManager;
 	dChatFilter* chatFilter;

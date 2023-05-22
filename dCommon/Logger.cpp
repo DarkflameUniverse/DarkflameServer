@@ -1,13 +1,15 @@
 #include "Logger.h"
 
-Logger::~Logger() {
-	if (m_File.good()) m_File.flush();
-}
+#include <array>
 
-void Logger::Initialize(const std::string& outpath, bool logToConsole, bool logDebugStatements) {
+Logger::Logger(const std::string& outpath, const bool logToConsole, const bool logDebugStatements) {
 	m_logToConsole = logToConsole;
 	m_logDebugStatements = logDebugStatements;
 	m_File = std::ofstream(outpath);
+}
+
+Logger::~Logger() {
+	m_File.flush();
 }
 
 void Logger::_Log(const char* location, const char* format, LogLevel logLevel, va_list args) {
@@ -24,21 +26,21 @@ void Logger::_Log(const char* location, const char* format, LogLevel logLevel, v
 	};
 	time_t t = time(NULL);
 	struct tm* time = localtime(&t);
-	char timeStr[70];
-	strftime(timeStr, sizeof(timeStr), "%d-%m-%y %H:%M:%S", time);
-	char message[2048];
-	vsnprintf(message, 2048, format, args);
+	std::array<char, 70> timeStr;
+	strftime(timeStr.begin(), timeStr.size(), "%d-%m-%y %H:%M:%S", time);
+	std::array<char, 2048> message;
+	vsnprintf(message.begin(), message.size(), format, args);
 	if (m_logToConsole) {
 		fputc('[', stdout);
-		fputs(timeStr, stdout);
+		fputs(timeStr.begin(), stdout);
 		fputc(' ', stdout);
 		fputs(location, stdout);
 		fputs("] ", stdout);
 		fputs(consoleLogLevel.at(logLevel).c_str(), stdout);
-		fputs(message, stdout);
+		fputs(message.begin(), stdout);
 		fputc('\n', stdout);
 	}
-	if (m_File.good()) m_File << '[' << timeStr << ' ' << location << "] " << fileLogLevel.at(logLevel) << message << '\n';
+	if (m_File.good()) m_File << '[' << timeStr.begin() << ' ' << location << "] " << fileLogLevel.at(logLevel) << message.begin() << '\n';
 	else std::cout << "Log file is not in a good state and cannot be written to.\n";
 }
 

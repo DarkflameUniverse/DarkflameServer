@@ -2,6 +2,7 @@
 
 // Custom Classes
 #include "Database.h"
+#include "Game.h"
 #include "Logger.h"
 
 // Static Variables

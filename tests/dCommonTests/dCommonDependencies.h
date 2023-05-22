@@ -12,12 +12,10 @@
 class dCommonDependenciesTest : public ::testing::Test {
 protected:
 	void SetUpDependencies() {
-		Logger::Instance().Initialize("./testing.log", true, true);
+		Game::logger = std::make_unique<Logger>("./testing.log", true, true);
 	}
 
-	void TearDownDependencies() {
-		Logger::Instance().Flush();
-	}
+	void TearDownDependencies() { }
 };
 
 #endif  //!__DCOMMONDEPENDENCIES__H__

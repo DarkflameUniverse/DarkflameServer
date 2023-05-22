@@ -29,7 +29,7 @@ protected:
 		info.scale = 1.0f;
 		info.spawner = nullptr;
 		info.lot = 999;
-		Logger::Instance().Initialize("./testing.log", true, true);
+		Game::logger = std::make_unique<Logger>("./testing.log", true, true);
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
 	}
@@ -37,7 +37,6 @@ protected:
 	void TearDownDependencies() {
 		if (Game::server) delete Game::server;
 		delete EntityManager::Instance();
-		Logger::Instance().Flush();
 		if (Game::config) delete Game::config;
 	}
 

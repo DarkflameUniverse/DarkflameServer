@@ -28,6 +28,7 @@
 
 namespace Game {
 	dServer* server = nullptr;
+	std::unique_ptr<Logger> logger;
 	dConfig* config = nullptr;
 	dChatFilter* chatFilter = nullptr;
 	AssetManager* assetManager = nullptr;
@@ -52,8 +53,8 @@ int main(int argc, char** argv) {
 
 	//Read our config:
 	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "chatconfig.ini").string());
-	Logger::Instance().SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Logger::Instance().SetLogDebug(Game::config->GetValue("log_debug_statements") == "1");
+	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
+	Game::logger->SetLogDebug(Game::config->GetValue("log_debug_statements") == "1");
 
 	Log("Starting Chat server...");
 	Log("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
@@ -142,7 +143,7 @@ int main(int argc, char** argv) {
 
 		//Push our log every 30s:
 		if (framesSinceLastFlush >= logFlushTime) {
-			Logger::Instance().Flush();
+			Game::logger->Flush();
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
 
@@ -186,7 +187,7 @@ void SetupLogger() {
 	logDebugStatements = true;
 #endif
 
-	Logger::Instance().Initialize(logPath, logToConsole, logDebugStatements);
+	Game::logger = std::make_unique<Logger>(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {

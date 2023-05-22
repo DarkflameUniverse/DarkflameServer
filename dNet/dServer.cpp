@@ -1,6 +1,7 @@
 #define _VARIADIC_MAX 10
 #include "dServer.h"
 #include "dNetCommon.h"
+#include "Game.h"
 #include "Logger.h"
 #include "dConfig.h"
 
@@ -58,8 +59,8 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mIsOkay = Startup();
 
 	//Forcibly log to both the console and our file what ip, port and possibly zoneID / instanceID we're running on:
-	auto prev = Logger::Instance().GetLogToConsole();
-	Logger::Instance().SetLogToConsole(true);
+	auto prev = Game::logger->GetLogToConsole();
+	Game::logger->SetLogToConsole(true);
 	if (mIsOkay) {
 		if (zoneID == 0)
 			Log("Server is listening on %s:%i with encryption: %i", ip.c_str(), port, int(useEncryption));
@@ -67,7 +68,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 			Log("Server is listening on %s:%i with encryption: %i, running zone %i / %i", ip.c_str(), port, int(useEncryption), zoneID, instanceID);
 	} else { Log("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
 
-	Logger::Instance().SetLogToConsole(prev);
+	Game::logger->SetLogToConsole(prev);
 
 	//Connect to master if we are not master:
 	if (serverType != ServerType::Master) {

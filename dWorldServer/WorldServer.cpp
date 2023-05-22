@@ -73,6 +73,7 @@
 #include "ZCompression.h"
 
 namespace Game {
+	std::unique_ptr<Logger> logger;
 	dServer* server = nullptr;
 	dpWorld* physicsWorld = nullptr;
 	dChatFilter* chatFilter = nullptr;
@@ -138,8 +139,8 @@ int main(int argc, char** argv) {
 
 	//Read our config:
 	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "worldconfig.ini").string());
-	Logger::Instance().SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Logger::Instance().SetLogDebug(Game::config->GetValue("log_debug_statements") == "1");
+	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
+	Game::logger->SetLogDebug(Game::config->GetValue("log_debug_statements") == "1");
 
 	Log("Starting World server...");
 	Log("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
@@ -441,7 +442,7 @@ int main(int argc, char** argv) {
 
 		//Push our log every 15s:
 		if (framesSinceLastFlush >= logFlushTime) {
-			Logger::Instance().Flush();
+			Game::logger->Flush();
 			framesSinceLastFlush = 0;
 		} else framesSinceLastFlush++;
 
@@ -528,7 +529,7 @@ void SetupLogger(uint32_t zoneID, uint32_t instanceID) {
 	logDebugStatements = true;
 #endif
 
-	Logger::Instance().Initialize(logPath, logToConsole, logDebugStatements);
+	Game::logger = std::make_unique<Logger>(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacketChat(Packet* packet) {

@@ -54,7 +54,7 @@ void make_minidump(EXCEPTION_POINTERS* e) {
 
 LONG CALLBACK unhandled_handler(EXCEPTION_POINTERS* e) {
 	make_minidump(e);
-	Logger::Instance().Flush(); // Flush our log if we have one, before exiting.
+	Game::logger->Flush(); // Flush our log if we have one, before exiting.
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 #endif

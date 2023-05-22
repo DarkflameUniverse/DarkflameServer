@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "dCommonVars.h"
-#include "Singleton.h"
 
 #define GET_FILE_NAME(x, y) GetFileName(__FILE__ x y)
 
@@ -30,14 +29,14 @@ constexpr char* GetFileName(const char* path) {
 // Logging macros.  Use these when you want to log something
 
 // We could #define the LogDebug away, but you may want to turn it on mid gameplay, so we'll just check the logger's debug flag instead.
-#define LogDebug(message, ...) if (Logger::Instance().GetLogDebug()) { Logger::Instance()._Log(FILENAME, message, ##__VA_ARGS__); }
+#define LogDebug(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, message, ##__VA_ARGS__); }
 
-#define FlushLog Logger::Instance().Flush()
-#define Log(message, ...) Logger::Instance()._Log(FILENAME, message, ##__VA_ARGS__)
-#define LogWarning(message, ...) Logger::Instance()._LogWarning(FILENAME, message, ##__VA_ARGS__)
-#define LogError(message, ...) Logger::Instance()._LogError(FILENAME, message, ##__VA_ARGS__)
+#define FlushLog Game::logger->Flush()
+#define Log(message, ...) Game::logger->_Log(FILENAME, message, ##__VA_ARGS__)
+#define LogWarning(message, ...) Game::logger->_LogWarning(FILENAME, message, ##__VA_ARGS__)
+#define LogError(message, ...) Game::logger->_LogError(FILENAME, message, ##__VA_ARGS__)
 
-class Logger : public Singleton<Logger> {
+class Logger {
 private:
 	enum LogLevel : uint32_t {
 		INFO,
@@ -47,9 +46,9 @@ private:
 	};
 
 public:
+	Logger(const std::string& outpath, const bool logToConsole, const bool logDebugStatements);
 	~Logger();
 
-	void Initialize(const std::string& outpath, bool logToConsole, bool logDebugStatements);
 	void _Log(const char* location, const char* format, ...);
 	void _LogWarning(const char* location, const char* format, ...);
 	void _LogError(const char* location, const char* format, ...);
