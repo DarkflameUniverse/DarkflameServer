@@ -26,24 +26,24 @@ constexpr char* GetFileName(const char* path) {
 
 // We could #define the LogDebugs away, but you may want to turn it on mid gameplay, so we'll just check the logger's debug flag instead.
 
-#define Log(message, ...) Game::logger->_Log(FILENAME, Logger::INFO, message, ##__VA_ARGS__)
-#define LogDebug(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, Logger::INFO, message, ##__VA_ARGS__); }
+#define Log(message, ...) Game::logger->_Log(FILENAME, Logger::Info, message, ##__VA_ARGS__)
+#define LogDebug(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, Logger::Info, message, ##__VA_ARGS__); }
 
 // Log a warning message. This is for when something unexpected happens, but the game can continue.  This log will print WARNING to the console in yellow.
-#define LogWarning(message, ...) Game::logger->_Log(FILENAME, Logger::WARNING, message, ##__VA_ARGS__)
-#define LogDebugWarning(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, Logger::WARNING, message, ##__VA_ARGS__); }
+#define LogWarning(message, ...) Game::logger->_Log(FILENAME, Logger::Warning, message, ##__VA_ARGS__)
+#define LogDebugWarning(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, Logger::Warning, message, ##__VA_ARGS__); }
 
 // Log an error message. This is for when something unexpected happens and the game likely cannot continue. This log will print ERROR to the console in red.
-#define LogError(message, ...) Game::logger->_Log(FILENAME, Logger::ERROR, message, ##__VA_ARGS__)
-#define LogDebugError(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, Logger::ERROR, message, ##__VA_ARGS__); }
+#define LogError(message, ...) Game::logger->_Log(FILENAME, Logger::Error, message, ##__VA_ARGS__)
+#define LogDebugError(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, Logger::Error, message, ##__VA_ARGS__); }
 
 #define FlushLog Game::logger->Flush()
 class Logger {
 public:
 	enum Level : uint32_t {
-		INFO,
-		WARNING,
-		ERROR,
+		Info,
+		Warning,
+		Error,
 		NUM_LEVELS
 	};
 
@@ -57,9 +57,9 @@ public:
 	void SetLogDebug(bool logDebugStatements) { m_logDebugStatements = logDebugStatements; }
 
 	inline void Flush() { m_File.flush(); };
-	void _Log(const char* location, Logger::Level level, const char* format, ...);
+	void _Log(const char* location, const Logger::Level level, const char* format, ...);
 private:
-	void _Log(const char* location, Logger::Level logLevel, const char* format, va_list args);
+	void _Log(const char* location, const Logger::Level logLevel, const char* format, va_list args);
 
 	bool m_logToConsole;
 	bool m_logDebugStatements;
