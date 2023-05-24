@@ -3,6 +3,7 @@
 // C++
 #include <functional>
 #include <vector>
+#include <random>
 #include <stdint.h>
 
 /*!
