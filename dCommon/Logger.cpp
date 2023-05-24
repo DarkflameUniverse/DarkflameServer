@@ -1,6 +1,9 @@
 #include "Logger.h"
 
-#include <array>
+#include <ctime>
+#include <cstdarg>
+#include <iostream>
+#include <vector>
 
 Logger::Logger(const std::string& outpath, const bool logToConsole, const bool logDebugStatements) {
 	m_logToConsole = logToConsole;
@@ -12,7 +15,19 @@ Logger::~Logger() {
 	m_File.flush();
 }
 
-void Logger::_Log(const char* location, const char* format, LogLevel logLevel, va_list args) {
+// Helper function so what we log to stdout and the file is the same.
+inline void _LogOut(std::ostream& out, const char* timeStr, const char* location, const char* logLevel, const char* message) {
+	out << '[' << timeStr << ' ' << location << "] " << logLevel << message << '\n';
+}
+
+void Logger::_Log(const char* location, Logger::Level level, const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	_Log(location, level, format, args);
+	va_end(args);
+}
+
+void Logger::_Log(const char* location, Logger::Level logLevel, const char* format, va_list args) {
 	static std::vector<std::string> fileLogLevel = {
 		"", // INFO
 		"WARNING: ", // WARNING
@@ -26,41 +41,11 @@ void Logger::_Log(const char* location, const char* format, LogLevel logLevel, v
 	};
 	time_t t = time(NULL);
 	struct tm* time = localtime(&t);
-	std::array<char, 70> timeStr;
-	strftime(timeStr.begin(), timeStr.size(), "%d-%m-%y %H:%M:%S", time);
-	std::array<char, 2048> message;
-	vsnprintf(message.begin(), message.size(), format, args);
-	if (m_logToConsole) {
-		fputc('[', stdout);
-		fputs(timeStr.begin(), stdout);
-		fputc(' ', stdout);
-		fputs(location, stdout);
-		fputs("] ", stdout);
-		fputs(consoleLogLevel.at(logLevel).c_str(), stdout);
-		fputs(message.begin(), stdout);
-		fputc('\n', stdout);
-	}
-	if (m_File.good()) m_File << '[' << timeStr.begin() << ' ' << location << "] " << fileLogLevel.at(logLevel) << message.begin() << '\n';
+	char timeStr[70];
+	strftime(timeStr, 70, "%d-%m-%y %H:%M:%S", time);
+	char message[2048];
+	vsnprintf(message, 2048, format, args);
+	if (m_logToConsole) _LogOut(std::cout, timeStr, location, consoleLogLevel.at(logLevel).c_str(), message);
+	[[likely]] if (m_File.good()) _LogOut(m_File, timeStr, location, fileLogLevel.at(logLevel).c_str(), message);
 	else std::cout << "Log file is not in a good state and cannot be written to.\n";
-}
-
-void Logger::_Log(const char* location, const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	_Log(location, format, LogLevel::INFO, args);
-	va_end(args);
-}
-
-void Logger::_LogWarning(const char* location, const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	_Log(location, format, LogLevel::WARNING, args);
-	va_end(args);
-}
-
-void Logger::_LogError(const char* location, const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	_Log(location, format, LogLevel::ERROR, args);
-	va_end(args);
 }

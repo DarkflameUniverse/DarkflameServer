@@ -1,15 +1,13 @@
 #ifndef __LOGGER__H__
 #define __LOGGER__H__
 
-#include <ctime>
-#include <cstdarg>
 #include <string>
 #include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
 
-#include "dCommonVars.h"
+// FIXME: The stringify macros are defined in dCommonVars but i want to keep this header small.
+#define STRINGIFY_IMPL(x) #x
+
+#define STRINGIFY(x) STRINGIFY_IMPL(x)
 
 #define GET_FILE_NAME(x, y) GetFileName(__FILE__ x y)
 
@@ -26,41 +24,42 @@ constexpr char* GetFileName(const char* path) {
 	return (char*)filename;
 }
 
-// Logging macros.  Use these when you want to log something
+// We could #define the LogDebugs away, but you may want to turn it on mid gameplay, so we'll just check the logger's debug flag instead.
 
-// We could #define the LogDebug away, but you may want to turn it on mid gameplay, so we'll just check the logger's debug flag instead.
-#define LogDebug(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, message, ##__VA_ARGS__); }
+#define Log(message, ...) Game::logger->_Log(FILENAME, Logger::INFO, message, ##__VA_ARGS__)
+#define LogDebug(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, Logger::INFO, message, ##__VA_ARGS__); }
+
+// Log a warning message. This is for when something unexpected happens, but the game can continue.  This log will print WARNING to the console in yellow.
+#define LogWarning(message, ...) Game::logger->_Log(FILENAME, Logger::WARNING, message, ##__VA_ARGS__)
+#define LogDebugWarning(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, Logger::WARNING, message, ##__VA_ARGS__); }
+
+// Log an error message. This is for when something unexpected happens and the game likely cannot continue. This log will print ERROR to the console in red.
+#define LogError(message, ...) Game::logger->_Log(FILENAME, Logger::ERROR, message, ##__VA_ARGS__)
+#define LogDebugError(message, ...) if (Game::logger->GetLogDebug()) { Game::logger->_Log(FILENAME, Logger::ERROR, message, ##__VA_ARGS__); }
 
 #define FlushLog Game::logger->Flush()
-#define Log(message, ...) Game::logger->_Log(FILENAME, message, ##__VA_ARGS__)
-#define LogWarning(message, ...) Game::logger->_LogWarning(FILENAME, message, ##__VA_ARGS__)
-#define LogError(message, ...) Game::logger->_LogError(FILENAME, message, ##__VA_ARGS__)
-
 class Logger {
-private:
-	enum LogLevel : uint32_t {
+public:
+	enum Level : uint32_t {
 		INFO,
 		WARNING,
 		ERROR,
 		NUM_LEVELS
 	};
 
-public:
 	Logger(const std::string& outpath, const bool logToConsole, const bool logDebugStatements);
 	~Logger();
-
-	void _Log(const char* location, const char* format, ...);
-	void _LogWarning(const char* location, const char* format, ...);
-	void _LogError(const char* location, const char* format, ...);
 
 	const bool GetLogToConsole() const { return m_logToConsole; }
 	void SetLogToConsole(bool logToConsole) { m_logToConsole = logToConsole; }
 
 	const bool GetLogDebug() const { return m_logDebugStatements; }
 	void SetLogDebug(bool logDebugStatements) { m_logDebugStatements = logDebugStatements; }
+
 	inline void Flush() { m_File.flush(); };
+	void _Log(const char* location, Logger::Level level, const char* format, ...);
 private:
-	void _Log(const char* location, const char* format, LogLevel logLevel, va_list args);
+	void _Log(const char* location, Logger::Level logLevel, const char* format, va_list args);
 
 	bool m_logToConsole;
 	bool m_logDebugStatements;

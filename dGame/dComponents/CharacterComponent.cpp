@@ -16,6 +16,7 @@
 #include "Amf3.h"
 #include "eGameMasterLevel.h"
 #include "eGameActivity.h"
+#include <ctime>
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
