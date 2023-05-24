@@ -16,6 +16,7 @@ Logger::~Logger() {
 }
 
 // Helper function so what we log to stdout and the file is the same.
+// Yes we could move that space to the strftime call, but this is more readable.
 inline void _LogOut(std::ostream& out, const char* timeStr, const char* location, const char* logLevel, const char* message) {
 	out << '[' << timeStr << ' ' << location << "] " << logLevel << message << '\n';
 }
