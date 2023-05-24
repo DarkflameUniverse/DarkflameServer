@@ -27,12 +27,17 @@ private:
 
 	uint32_t currentObjectID;                   //!< The current object ID
 
+	std::random_device rd;
+
+	std::mt19937 rng;
+
 public:
 
 	//! The singleton instance
 	static ObjectIDManager* Instance() {
 		if (m_Address == 0) {
 			m_Address = new ObjectIDManager;
+			m_Address->rng = std::mt19937(m_Address->rd());
 		}
 
 		return m_Address;

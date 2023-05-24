@@ -48,11 +48,17 @@ void ObjectIDManager::HandleRequestPersistentIDResponse(uint64_t requestID, uint
 
 //! Handles cases where we have to get a unique object ID synchronously
 uint32_t ObjectIDManager::GenerateRandomObjectID() {
-	std::random_device rd;
-
-	std::mt19937 rng(rd());
-
-	return  uni(rng);
+	auto* objidmgr = ObjectIDManager::Instance();
+	bool coinFlip = rand() % 2;
+	if (objidmgr && coinFlip) {
+		Game::logger->Log("ObjectIDManager", "using new version");
+		return uni(objidmgr->rng);
+	} else {
+		Game::logger->Log("ObjectIDManager", "using old version");
+		std::random_device rd;
+		std::mt19937 rng(rd());
+		return uni(rng);
+	}
 }
 
 
