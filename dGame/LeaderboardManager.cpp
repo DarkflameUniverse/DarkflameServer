@@ -41,24 +41,23 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) {
 	std::ostringstream leaderboard;
 	Game::logger->Log("LeaderboardManager", "game is %i info type %i ", gameID, infoType);
 	leaderboard << "ADO.Result=7:1"; // Unused in 1.10.64, but is in captures
-	leaderboard << "\nResult.Count=1:1"; // number of results, always 1?
-	if (!this->entries.empty()) leaderboard << "\nResult[0].Index=0:RowNumber"; // "Primary key"
-	leaderboard << "\nResult[0].RowCount=1:" << entries.size(); // number of rows
+	leaderboard << "\nResult.Count=1:1"; // number of results, always 1
+	if (!this->entries.empty()) leaderboard << "\nResult[0].Index=0:RowNumber"; // "Primary key".  Live doesn't include this if there are no entries.
+	leaderboard << "\nResult[0].RowCount=1:" << entries.size();
 
 	int32_t rowNumber = 0;
 	for (auto& entry : entries) {
 		for (auto* data : entry) {
-			Game::logger->Log("LeaderboardManager", "writing data %s", data->GetString().c_str());
 			WriteLeaderboardRow(leaderboard, rowNumber, data);
 		}
 		rowNumber++;
 	}
-	Game::logger->Log("LeaderboardManager", "leaderboard is %s", leaderboard.str().c_str());
+
 	// Serialize the thing to a BitStream
 	uint32_t leaderboardSize = leaderboard.tellp();
 	bitStream->Write<uint32_t>(leaderboardSize);
 	// Doing this all in 1 call so there is no possbility of a dangling pointer.
-	bitStream->WriteAlignedBytes(reinterpret_cast<const unsigned char*>(GeneralUtils::ASCIIToUTF16(leaderboard.str()).c_str()), leaderboard.tellp() * 2);
+	bitStream->WriteAlignedBytes(reinterpret_cast<const unsigned char*>(GeneralUtils::ASCIIToUTF16(leaderboard.str()).c_str()), leaderboardSize * sizeof(char16_t));
 	if (leaderboardSize > 0) bitStream->Write<uint16_t>(0);
 	bitStream->Write0();
 	bitStream->Write0();
@@ -90,7 +89,7 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 		entry.push_back(new LDFData<uint64_t>(u"RowNumber", rows->getInt("ranking")));
 		switch (leaderboardType) {
 		case Type::ShootingGallery:
-			entry.push_back(new LDFData<float>(u"HitPercentage", rows->getDouble("hitPercentage")));
+			entry.push_back(new LDFData<float>(u"HitPercentage", (rows->getInt("hitPercentage") / 100.0f)));
 			// HitPercentage:3 between 0 and 1
 			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("score")));
 			// Score:1
@@ -144,7 +143,7 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 	}
 }
 
-std::string Leaderboard::GetColumns(Leaderboard::Type leaderboardType) {
+const std::string Leaderboard::GetColumns(Leaderboard::Type leaderboardType) {
 	std::string columns;
 	switch (leaderboardType) {
 	case Type::ShootingGallery:
@@ -178,7 +177,7 @@ std::string Leaderboard::GetColumns(Leaderboard::Type leaderboardType) {
 	return columns;
 }
 
-std::string Leaderboard::GetInsertFormat(Leaderboard::Type leaderboardType) {
+const std::string Leaderboard::GetInsertFormat(Leaderboard::Type leaderboardType) {
 	std::string columns;
 	switch (leaderboardType) {
 	case Type::ShootingGallery:
@@ -212,7 +211,7 @@ std::string Leaderboard::GetInsertFormat(Leaderboard::Type leaderboardType) {
 	return columns;
 }
 
-std::string Leaderboard::GetOrdering(Leaderboard::Type leaderboardType) {
+const std::string Leaderboard::GetOrdering(Leaderboard::Type leaderboardType) {
 	std::string orderBase;
 	switch (leaderboardType) {
 	case Type::ShootingGallery:
@@ -297,8 +296,8 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 		)
 	)QUERY";
 
-	std::string orderBase = GetOrdering(this->leaderboardType);
-	std::string selectBase = GetColumns(this->leaderboardType);
+	const std::string orderBase = GetOrdering(this->leaderboardType);
+	const std::string selectBase = GetColumns(this->leaderboardType);
 
 	constexpr uint16_t STRING_LENGTH = 1526;
 	char lookupBuffer[STRING_LENGTH];
@@ -327,13 +326,12 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	}
 
 	std::unique_ptr<sql::ResultSet> baseResult(baseQuery->executeQuery());
-	Game::logger->Log("LeaderboardManager", "%s", baseRankingBuffer);
+
 	if (!baseResult->next()) return; // In this case, there are no entries in the leaderboard for this game.
 
 	uint32_t relatedPlayerLeaderboardId = baseResult->getInt("id");
 
 	// Create and execute the actual save here
-	Game::logger->Log("LeaderboardManager", "query is %s", lookupBuffer);
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer));
 
 	query->setInt(1, this->gameID);

@@ -20,8 +20,6 @@ typedef uint32_t GameID;
 
 class Leaderboard {
 public:
-	using LeaderboardEntry = std::vector<LDFBaseData*>;
-	using LeaderboardEntries = std::vector<LeaderboardEntry>;
 
 	// Enums for leaderboards
 	enum InfoType : uint32_t {
@@ -76,9 +74,9 @@ public:
 	void Send(LWOOBJID targetID);
 
 	// Helper functions to get the columns, ordering and insert format for a leaderboard
-	static std::string GetColumns(Type leaderboardType);
-	static std::string GetInsertFormat(Type leaderboardType);
-	static std::string GetOrdering(Type leaderboardType);
+	static const std::string GetColumns(Type leaderboardType);
+	static const std::string GetInsertFormat(Type leaderboardType);
+	static const std::string GetOrdering(Type leaderboardType);
 private:
 	inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, LDFBaseData* data);
 
@@ -89,6 +87,9 @@ private:
 	// to send it to a client.
 	void QueryToLdf(std::unique_ptr<sql::ResultSet>& rows);
 
+	using LeaderboardEntry = std::vector<LDFBaseData*>;
+	using LeaderboardEntries = std::vector<LeaderboardEntry>;
+
 	LeaderboardEntries entries;
 	LWOOBJID relatedPlayer;
 	GameID gameID;
@@ -98,7 +99,7 @@ private:
 };
 
 class LeaderboardManager : public Singleton<LeaderboardManager> {
-	typedef std::map<GameID, Leaderboard::Type> LeaderboardCache;
+	using LeaderboardCache = std::map<GameID, Leaderboard::Type>;
 public:
 	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, LWOOBJID targetID, uint32_t resultStart = 0, uint32_t resultEnd = 10);
 
