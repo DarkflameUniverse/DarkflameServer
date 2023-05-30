@@ -38,8 +38,8 @@ void BasePropertyServer::SetGameVariables(Entity* self) {
 	self->SetVar<std::vector<std::string>>(AmbientFXSpawner, {});
 	self->SetVar<std::vector<std::string>>(BehaviorObjsSpawner, {});
 
-	self->SetVar<uint32_t>(defeatedProperyFlag, 0);
-	self->SetVar<uint32_t>(placedModelFlag, 0);
+	self->SetVar<int32_t>(defeatedProperyFlag, 0);
+	self->SetVar<int32_t>(placedModelFlag, 0);
 	self->SetVar<uint32_t>(guardMissionFlag, 0);
 	self->SetVar<uint32_t>(brickLinkMissionIDFlag, 0);
 	self->SetVar<std::string>(passwordFlag, "s3kratK1ttN");

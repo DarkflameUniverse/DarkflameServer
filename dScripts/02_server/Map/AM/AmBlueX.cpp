@@ -18,7 +18,7 @@ void AmBlueX::OnSkillEventFired(Entity* self, Entity* caster, const std::string&
 
 		auto* character = caster->GetCharacter();
 		if (character != nullptr) {
-			character->SetPlayerFlag(self->GetVar<uint32_t>(m_FlagVariable), true);
+			character->SetPlayerFlag(self->GetVar<int32_t>(m_FlagVariable), true);
 		}
 
 		EntityInfo info{};

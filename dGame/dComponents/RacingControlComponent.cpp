@@ -24,6 +24,8 @@
 #include "Loot.h"
 #include "eMissionTaskType.h"
 #include "LeaderboardManager.h"
+#include "dZoneManager.h"
+#include "CDActivitiesTable.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327950288
@@ -46,36 +48,14 @@ RacingControlComponent::RacingControlComponent(Entity* parent)
 	m_EmptyTimer = 0;
 	m_SoloRacing = Game::config->GetValue("solo_racing") == "1";
 
-	// Select the main world ID as fallback when a player fails to load.
-
+	m_MainWorld = 1200;
 	const auto worldID = Game::server->GetZoneID();
+	if (dZoneManager::Instance()->CheckIfAccessibleZone((worldID/10)*10)) m_MainWorld = (worldID/10)*10;
 
-	switch (worldID) {
-	case 1203:
-		m_ActivityID = 42;
-		m_MainWorld = 1200;
-		break;
-
-	case 1261:
-		m_ActivityID = 60;
-		m_MainWorld = 1260;
-		break;
-
-	case 1303:
-		m_ActivityID = 39;
-		m_MainWorld = 1300;
-		break;
-
-	case 1403:
-		m_ActivityID = 54;
-		m_MainWorld = 1400;
-		break;
-
-	default:
-		m_ActivityID = 42;
-		m_MainWorld = 1200;
-		break;
-	}
+	m_ActivityID = 42;
+	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.instanceMapID == worldID); });
+	for (CDActivities activity : activities) m_ActivityID = activity.ActivityID;
 }
 
 RacingControlComponent::~RacingControlComponent() {}
@@ -383,8 +363,7 @@ void RacingControlComponent::OnRacingPlayerInfoResetFinished(Entity* player) {
 	}
 }
 
-void RacingControlComponent::HandleMessageBoxResponse(Entity* player,
-	const std::string& id) {
+void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t button, const std::string& id) {
 	auto* data = GetPlayerData(player->GetObjectID());
 
 	if (data == nullptr) {
@@ -426,7 +405,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player,
 				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::LAST_PLACE_FINISH); // Finished first place in specific world.
 			}
 		}
-	} else if (id == "ACT_RACE_EXIT_THE_RACE?" || id == "Exit") {
+	} else if ((id == "ACT_RACE_EXIT_THE_RACE?" || id == "Exit") && button == m_ActivityExitConfirm) {
 		auto* vehicle = EntityManager::Instance()->GetEntity(data->vehicleID);
 
 		if (vehicle == nullptr) {

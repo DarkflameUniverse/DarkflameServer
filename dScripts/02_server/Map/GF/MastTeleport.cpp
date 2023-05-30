@@ -10,6 +10,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #endif
+#include "RenderComponent.h"
 
 void MastTeleport::OnStartup(Entity* self) {
 	self->SetNetworkVar<std::string>(u"hookPreconditions", "154;44", UNASSIGNED_SYSTEM_ADDRESS);
@@ -43,10 +44,13 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 		GameMessages::SendTeleport(playerId, position, rotation, player->GetSystemAddress(), true);
 
 		// Hacky fix for odd rotations
-		if (self->GetVar<std::u16string>(u"MastName") != u"Jail") {
+		auto mastName = self->GetVar<std::u16string>(u"MastName");
+		if (mastName == u"Elephant") {
 			GameMessages::SendOrientToAngle(playerId, true, (M_PI / 180) * 140.0f, player->GetSystemAddress());
-		} else {
+		} else if (mastName == u"Jail") {
 			GameMessages::SendOrientToAngle(playerId, true, (M_PI / 180) * 100.0f, player->GetSystemAddress());
+		} else if (mastName == u""){
+			GameMessages::SendOrientToAngle(playerId, true, (M_PI / 180) * 203.0f, player->GetSystemAddress());
 		}
 
 		const auto cinematic = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"Cinematic"));
@@ -60,11 +64,12 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendPlayFXEffect(playerId, 6039, u"hook", "hook", LWOOBJID_EMPTY, 1, 1, true);
 
-		GameMessages::SendPlayAnimation(player, u"crow-swing-no-equip", 4.0f);
+		float animationTime = 6.25f;
+		animationTime = RenderComponent::PlayAnimation(player, "crow-swing-no-equip", 4.0f);
 
-		GameMessages::SendPlayAnimation(self, u"swing");
+		RenderComponent::PlayAnimation(self, u"swing");
 
-		self->AddTimer("PlayerAnimDone", 6.25f);
+		self->AddTimer("PlayerAnimDone", animationTime);
 	} else if (timerName == "PlayerAnimDone") {
 		GameMessages::SendStopFXEffect(player, true, "hook");
 

@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "dCommonVars.h"
 
 #include "Game.h"

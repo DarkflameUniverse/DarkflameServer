@@ -13,7 +13,7 @@
 #include "InventoryComponent.h"
 #include "GameMessages.h"
 #include "Game.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "dZoneManager.h"
 #include "Mail.h"
 #include "MissionPrerequisites.h"

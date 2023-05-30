@@ -207,6 +207,7 @@ public:
 
 	void OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData);
 	void OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);
+	void RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled);
 
 	void Smash(const LWOOBJID source = LWOOBJID_EMPTY, const eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
 	void Kill(Entity* murderer = nullptr);

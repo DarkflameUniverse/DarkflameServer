@@ -5,6 +5,7 @@
 #include "ProximityMonitorComponent.h"
 #include "MissionComponent.h"
 #include "EntityInfo.h"
+#include "RenderComponent.h"
 #include "eStateChangeType.h"
 
 void AmSkullkinDrill::OnStartup(Entity* self) {
@@ -71,7 +72,7 @@ void AmSkullkinDrill::OnSkillEventFired(Entity* self, Entity* caster, const std:
 }
 
 void AmSkullkinDrill::TriggerDrill(Entity* self) {
-	GameMessages::SendPlayAnimation(self, u"slowdown");
+	RenderComponent::PlayAnimation(self, u"slowdown");
 
 	self->AddTimer("killDrill", 10.0f);
 
@@ -171,7 +172,7 @@ void AmSkullkinDrill::OnArrived(Entity* self, uint32_t waypointIndex) {
 	auto* standObj = GetStandObj(self);
 
 	if (waypointIndex == 1) {
-		GameMessages::SendPlayAnimation(self, u"no-spin");
+		RenderComponent::PlayAnimation(self, u"no-spin");
 		GameMessages::SendStopFXEffect(self, true, "active");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"indicator", "indicator");
 
@@ -191,7 +192,7 @@ void AmSkullkinDrill::OnArrived(Entity* self, uint32_t waypointIndex) {
 
 		return;
 	} else {
-		GameMessages::SendPlayAnimation(self, u"idle");
+		RenderComponent::PlayAnimation(self, u"idle");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"spin", "active");
 		GameMessages::SendStopFXEffect(self, true, "indicator");
 	}
@@ -216,7 +217,7 @@ void AmSkullkinDrill::PlayCinematic(Entity* self) {
 void AmSkullkinDrill::PlayAnim(Entity* self, Entity* player, const std::string& animName) {
 	const auto animTime = animName == "spinjitzu-staff-end" ? 0.5f : 1.0f;
 
-	GameMessages::SendPlayAnimation(player, GeneralUtils::ASCIIToUTF16(animName));
+	RenderComponent::PlayAnimation(player, animName);
 
 	self->AddTimer("AnimDone_" + animName, animTime);
 }
@@ -309,7 +310,7 @@ void AmSkullkinDrill::OnTimerDone(Entity* self, std::string timerName) {
 		if (animName == "spinjitzu-staff-windup") {
 			TriggerDrill(self);
 
-			GameMessages::SendPlayAnimation(player, u"spinjitzu-staff-loop");
+			RenderComponent::PlayAnimation(player, u"spinjitzu-staff-loop");
 		} else if (animName == "spinjitzu-staff-end") {
 			FreezePlayer(self, player, false);
 

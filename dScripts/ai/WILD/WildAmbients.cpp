@@ -1,6 +1,7 @@
 #include "WildAmbients.h"
 #include "GameMessages.h"
+#include "RenderComponent.h"
 
 void WildAmbients::OnUse(Entity* self, Entity* user) {
-	GameMessages::SendPlayAnimation(self, u"interact");
+	RenderComponent::PlayAnimation(self, u"interact");
 }

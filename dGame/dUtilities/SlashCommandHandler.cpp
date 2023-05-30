@@ -69,16 +69,19 @@
 #include "BinaryPathFinder.h"
 #include "dConfig.h"
 #include "eBubbleType.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "MovingPlatformComponent.h"
-#include "dMessageIdentifiers.h"
 #include "eMissionState.h"
 #include "TriggerComponent.h"
 #include "eServerDisconnectIdentifiers.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
+#include "RenderComponent.h"
 #include "eControlScheme.h"
+#include "eConnectionType.h"
+#include "eChatInternalMessageType.h"
+#include "eMasterMessageType.h"
 
 #include "CDObjectsTable.h"
 #include "CDZoneTableTable.h"
@@ -249,26 +252,20 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		{
 			AMFArrayValue args;
 
-			auto* state = new AMFStringValue();
-			state->SetStringValue("Story");
+			args.Insert("state", "Story");
 
-			args.InsertValue("state", state);
-
-			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
+			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
 		}
 
 		entity->AddCallbackTimer(0.5f, [customText, entity]() {
 			AMFArrayValue args;
 
-			auto* text = new AMFStringValue();
-			text->SetStringValue(customText);
-
-			args.InsertValue("visible", new AMFTrueValue());
-			args.InsertValue("text", text);
+			args.Insert("visible", true);
+			args.Insert("text", customText);
 
 			Game::logger->Log("SlashCommandHandler", "Sending %s", customText.c_str());
 
-			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", &args);
+			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", args);
 			});
 
 		return;
@@ -277,7 +274,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "leave-zone") {
 		const auto currentZone = dZoneManager::Instance()->GetZone()->GetZoneID().GetMapID();
 
-		auto newZone = 0;
+		LWOMAPID newZone = 0;
 		if (currentZone % 100 == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"You are not in an instanced zone.");
 			return;
@@ -285,7 +282,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			newZone = (currentZone / 100) * 100;
 		}
 		// If new zone would be inaccessible, then default to Avant Gardens.
-		if (!CheckIfAccessibleZone(newZone)) newZone = 1100;
+		if (!dZoneManager::Instance()->CheckIfAccessibleZone(newZone)) newZone = 1100;
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Leaving zone...");
 
@@ -415,11 +412,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if ((chatCommand == "playanimation" || chatCommand == "playanim") && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		std::u16string anim = GeneralUtils::ASCIIToUTF16(args[0], args[0].size());
-		GameMessages::SendPlayAnimation(entity, anim);
+		RenderComponent::PlayAnimation(entity, anim);
 		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 		if (possessorComponent) {
 			auto* possessedComponent = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
-			if (possessedComponent) GameMessages::SendPlayAnimation(possessedComponent, anim);
+			if (possessedComponent) RenderComponent::PlayAnimation(possessedComponent, anim);
 		}
 	}
 
@@ -528,12 +525,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "setuistate" && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		AMFStringValue* value = new AMFStringValue();
-		value->SetStringValue(args[0]);
+		AMFArrayValue uiState;
 
-		AMFArrayValue args;
-		args.InsertValue("state", value);
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", &args);
+		uiState.Insert("state", args.at(0));
+
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "pushGameState", uiState);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Switched UI state.");
 
@@ -541,11 +537,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "toggle" && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		AMFTrueValue* value = new AMFTrueValue();
-
 		AMFArrayValue amfArgs;
-		amfArgs.InsertValue("visible", value);
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, args[0], &amfArgs);
+
+		amfArgs.Insert("visible", true);
+
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, args[0], amfArgs);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Toggled UI state.");
 
@@ -765,7 +761,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "shutdownuniverse" && entity->GetGMLevel() == eGameMasterLevel::OPERATOR) {
 		//Tell the master server that we're going to be shutting down whole "universe":
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN_UNIVERSE);
+		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_UNIVERSE);
 		Game::server->SendToMaster(&bitStream);
 		ChatPackets::SendSystemMessage(sysAddr, u"Sent universe shutdown notification to master.");
 
@@ -1096,7 +1092,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			//Notify chat about it
 			CBITSTREAM;
-			PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_MUTE_UPDATE);
+			PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
 
 			bitStream.Write(characterId);
 			bitStream.Write(expire);
@@ -1557,7 +1553,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		const auto objid = entity->GetObjectID();
 
-		if (force || CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
+		if (force || dZoneManager::Instance()->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
 
 			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 
@@ -1615,7 +1611,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if ((chatCommand == "debugui") && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		ChatPackets::SendSystemMessage(sysAddr, u"Opening UIDebugger...");
 		AMFArrayValue args;
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleUIDebugger;", nullptr);
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, "ToggleUIDebugger;", args);
 	}
 
 	if ((chatCommand == "boost") && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
@@ -1952,7 +1948,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 				EntityManager::Instance()->SerializeEntity(closest);
 			} else if (args[1] == "-a" && args.size() >= 3) {
-				GameMessages::SendPlayAnimation(closest, GeneralUtils::UTF8ToUTF16(args[2]));
+				RenderComponent::PlayAnimation(closest, args.at(2));
 			} else if (args[1] == "-s") {
 				for (auto* entry : closest->GetSettings()) {
 					ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(entry->GetString()));
@@ -2019,32 +2015,17 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 }
 
-bool SlashCommandHandler::CheckIfAccessibleZone(const unsigned int zoneID) {
-	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
-	const CDZoneTable* zone = zoneTable->Query(zoneID);
-	if (zone != nullptr) {
-		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());
-	} else {
-		return false;
-	}
-}
-
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
 	AMFArrayValue args;
-	auto* titleValue = new AMFStringValue();
-	titleValue->SetStringValue(title);
-	auto* messageValue = new AMFStringValue();
-	messageValue->SetStringValue(message);
 
-	args.InsertValue("title", titleValue);
-	args.InsertValue("message", messageValue);
+	args.Insert("title", title);
+	args.Insert("message", message);
 
-	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
+	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
 
 	//Notify chat about it
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_ANNOUNCEMENT);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ANNOUNCEMENT);
 
 	bitStream.Write<uint32_t>(title.size());
 	for (auto character : title) {

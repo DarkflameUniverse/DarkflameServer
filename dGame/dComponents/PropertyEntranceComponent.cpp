@@ -11,7 +11,7 @@
 #include "CharacterComponent.h"
 #include "UserManager.h"
 #include "dLogger.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 
@@ -36,12 +36,9 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 
 	AMFArrayValue args;
 
-	auto* state = new AMFStringValue();
-	state->SetStringValue("property_menu");
+	args.Insert("state", "property_menu");
 
-	args.InsertValue("state", state);
-
-	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
+	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
 }
 
 void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, bool returnToZone, const SystemAddress& sysAddr) {

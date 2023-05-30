@@ -9,6 +9,7 @@
 #include "SkillComponent.h"
 #include "TeamManager.h"
 #include <algorithm>
+#include "RenderComponent.h"
 
 // // // // // // //
 // Event handling //
@@ -261,7 +262,7 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 						skillComponent->CalculateBehavior(1635, 39097, frakjaw->GetObjectID(), true, false);
 					}
 
-					GameMessages::SendPlayAnimation(frakjaw, StunnedAnimation);
+					RenderComponent::PlayAnimation(frakjaw, StunnedAnimation);
 					GameMessages::SendPlayNDAudioEmitter(frakjaw, UNASSIGNED_SYSTEM_ADDRESS, CounterSmashAudio);
 
 					// Before wave 4 we should lower frakjaw from the ledge
@@ -281,7 +282,7 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 }
 
 void NjMonastryBossInstance::HandleLowerFrakjawSpawned(Entity* self, Entity* lowerFrakjaw) {
-	GameMessages::SendPlayAnimation(lowerFrakjaw, TeleportInAnimation);
+	RenderComponent::PlayAnimation(lowerFrakjaw, TeleportInAnimation);
 	self->SetVar<LWOOBJID>(LowerFrakjawVariable, lowerFrakjaw->GetObjectID());
 
 	auto* combatAI = lowerFrakjaw->GetComponent<BaseCombatAIComponent>();
@@ -401,7 +402,7 @@ void NjMonastryBossInstance::TeleportPlayer(Entity* player, uint32_t position) {
 void NjMonastryBossInstance::SummonWave(Entity* self, Entity* frakjaw) {
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0, LWOOBJID_EMPTY,
 		LedgeFrakSummon, UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendPlayAnimation(frakjaw, SummonAnimation);
+	RenderComponent::PlayAnimation(frakjaw, SummonAnimation);
 
 	// Stop the music for the first, fourth and fifth wave
 	const auto wave = self->GetVar<uint32_t>(WaveNumberVariable);
@@ -425,7 +426,7 @@ void NjMonastryBossInstance::LowerFrakjawSummon(Entity* self, Entity* frakjaw) {
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
 		LWOOBJID_EMPTY, BottomFrakSummon, UNASSIGNED_SYSTEM_ADDRESS);
 	ActivityTimerStart(self, SpawnWaveTimer, 2.0f, 2.0f);
-	GameMessages::SendPlayAnimation(frakjaw, SummonAnimation);
+	RenderComponent::PlayAnimation(frakjaw, SummonAnimation);
 }
 
 void NjMonastryBossInstance::RemovePoison(Entity* self) {
@@ -444,7 +445,7 @@ void NjMonastryBossInstance::RemovePoison(Entity* self) {
 }
 
 void NjMonastryBossInstance::LowerFrakjaw(Entity* self, Entity* frakjaw) {
-	GameMessages::SendPlayAnimation(frakjaw, TeleportOutAnimation);
+	RenderComponent::PlayAnimation(frakjaw, TeleportOutAnimation);
 	ActivityTimerStart(self, LowerFrakjawCamTimer, 2.0f, 2.0f);
 
 	GameMessages::SendNotifyClientObject(frakjaw->GetObjectID(), StopMusicNotification, 0, 0,

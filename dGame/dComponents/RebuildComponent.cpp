@@ -20,6 +20,7 @@
 #include "Preconditions.h"
 #include "Loot.h"
 #include "TeamManager.h"
+#include "RenderComponent.h"
 
 #include "CppScripts.h"
 
@@ -196,18 +197,18 @@ void RebuildComponent::Update(float deltaTime) {
 			DestroyableComponent* destComp = builder->GetComponent<DestroyableComponent>();
 			if (!destComp) break;
 
-			int newImagination = destComp->GetImagination() - 1;
+			int newImagination = destComp->GetImagination();
+			if (newImagination <= 0) {
+				CancelRebuild(builder, eQuickBuildFailReason::OUT_OF_IMAGINATION, true);
+				break;
+			}
 
+			++m_DrainedImagination;
+			--newImagination;
 			destComp->SetImagination(newImagination);
 			EntityManager::Instance()->SerializeEntity(builder);
 
-			++m_DrainedImagination;
 
-			if (newImagination == 0 && m_DrainedImagination < m_TakeImagination) {
-				CancelRebuild(builder, eQuickBuildFailReason::OUT_OF_IMAGINATION, true);
-
-				break;
-			}
 		}
 
 		if (m_Timer >= m_CompleteTime && m_DrainedImagination >= m_TakeImagination) {
@@ -517,7 +518,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 			character->SetPlayerFlag(flagNumber, true);
 		}
 	}
-	GameMessages::SendPlayAnimation(user, u"rebuild-celebrate", 1.09f);
+	RenderComponent::PlayAnimation(user, u"rebuild-celebrate", 1.09f);
 }
 
 void RebuildComponent::ResetRebuild(bool failed) {
@@ -527,7 +528,7 @@ void RebuildComponent::ResetRebuild(bool failed) {
 		GameMessages::SendEnableRebuild(m_Parent, false, false, failed, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, builder->GetObjectID());
 
 		if (failed) {
-			GameMessages::SendPlayAnimation(builder, u"rebuild-fail");
+			RenderComponent::PlayAnimation(builder, u"rebuild-fail");
 		}
 	}
 

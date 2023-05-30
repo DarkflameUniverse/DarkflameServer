@@ -22,11 +22,12 @@
 #include "SkillComponent.h"
 #include "AssetManager.h"
 #include "CDClientDatabase.h"
-#include "dMessageIdentifiers.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eCharacterCreationResponse.h"
 #include "eRenameResponse.h"
+#include "eConnectionType.h"
+#include "eChatInternalMessageType.h"
 
 UserManager* UserManager::m_Address = nullptr;
 
@@ -422,7 +423,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			stmt->execute();
 			delete stmt;
 			CBITSTREAM;
-			PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
+			PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
 			bitStream.Write(objectID);
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
