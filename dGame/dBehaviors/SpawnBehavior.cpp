@@ -70,8 +70,12 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	}
 
 	entity->AddCallbackTimer(60, [entity]() {
+		if (entity->GetLOT() == 10310) {
+			return;
+		}
+
 		entity->Smash();
-		});
+	});
 }
 
 void SpawnBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
@@ -84,6 +88,10 @@ void SpawnBehavior::Timer(BehaviorContext* context, const BehaviorBranchContext 
 	if (entity == nullptr) {
 		Game::logger->Log("SpawnBehavior", "Failed to find spawned entity (%llu)!", second);
 
+		return;
+	}
+
+	if (this->m_lot == 10310) {
 		return;
 	}
 
