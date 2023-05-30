@@ -1639,7 +1639,7 @@ void GameMessages::HandleActivitySummaryLeaderboardData(RakNet::BitStream* instr
 	Game::logger->Log("AGS", "We got mail!");
 }
 
-void GameMessages::SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, Leaderboard* leaderboard, const SystemAddress& sysAddr) {
+void GameMessages::SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 

@@ -149,7 +149,7 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 }
 
 const std::string_view Leaderboard::GetColumns(Leaderboard::Type leaderboardType) {
-	std::string columns;
+	const char* columns;
 	switch (leaderboardType) {
 	case Type::ShootingGallery:
 		columns = "hitPercentage, score, streak";
@@ -157,12 +157,11 @@ const std::string_view Leaderboard::GetColumns(Leaderboard::Type leaderboardType
 	case Type::Racing:
 		columns = "bestLapTime, bestTime, numWins";
 		break;
+	case Type::Donations:
 	case Type::UnusedLeaderboard4:
 		columns = "score";
 		break;
 	case Type::MonumentRace:
-		columns = "bestTime";
-		break;
 	case Type::FootRace:
 		columns = "bestTime";
 		break;
@@ -171,9 +170,6 @@ const std::string_view Leaderboard::GetColumns(Leaderboard::Type leaderboardType
 		break;
 	case Type::SurvivalNS:
 		columns = "bestTime, score";
-		break;
-	case Type::Donations:
-		columns = "score";
 		break;
 	case Type::None:
 		// This type is included here simply to resolve a compiler warning on mac about unused enum types
@@ -183,7 +179,7 @@ const std::string_view Leaderboard::GetColumns(Leaderboard::Type leaderboardType
 }
 
 const std::string_view Leaderboard::GetInsertFormat(Leaderboard::Type leaderboardType) {
-	std::string columns;
+	const char* columns;
 	switch (leaderboardType) {
 	case Type::ShootingGallery:
 		columns = "score=%i, hitPercentage=%i, streak=%i";
@@ -191,12 +187,11 @@ const std::string_view Leaderboard::GetInsertFormat(Leaderboard::Type leaderboar
 	case Type::Racing:
 		columns = "bestLapTime=%i, bestTime=%i, numWins=numWins + %i";
 		break;
+	case Type::Donations:
 	case Type::UnusedLeaderboard4:
 		columns = "score=%i";
 		break;
 	case Type::MonumentRace:
-		columns = "bestTime=%i";
-		break;
 	case Type::FootRace:
 		columns = "bestTime=%i";
 		break;
@@ -206,9 +201,6 @@ const std::string_view Leaderboard::GetInsertFormat(Leaderboard::Type leaderboar
 	case Type::SurvivalNS:
 		columns = "bestTime=%i, score=%i";
 		break;
-	case Type::Donations:
-		columns = "score=%i";
-		break;
 	case Type::None:
 		// This type is included here simply to resolve a compiler warning on mac about unused enum types
 		break;
@@ -217,7 +209,7 @@ const std::string_view Leaderboard::GetInsertFormat(Leaderboard::Type leaderboar
 }
 
 const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardType) {
-	std::string orderBase;
+	const char* orderBase;
 	switch (leaderboardType) {
 	case Type::ShootingGallery:
 		orderBase = "score DESC, streak DESC, hitPercentage DESC";
@@ -225,6 +217,7 @@ const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardTyp
 	case Type::Racing:
 		orderBase = "bestTime ASC, bestLapTime ASC, numWins DESC";
 		break;
+	case Type::Donations:
 	case Type::UnusedLeaderboard4:
 		orderBase = "score DESC";
 		break;
@@ -239,9 +232,6 @@ const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardTyp
 		break;
 	case Type::SurvivalNS:
 		orderBase = "bestTime DESC, score DESC";
-		break;
-	case Type::Donations:
-		orderBase = "score DESC";
 		break;
 	case Type::None:
 		// This type is included here simply to resolve a compiler warning on mac about unused enum types
@@ -352,7 +342,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	QueryToLdf(result);
 }
 
-void Leaderboard::Send(LWOOBJID targetID) {
+void Leaderboard::Send(const LWOOBJID targetID) const {
 	auto* player = EntityManager::Instance()->GetEntity(relatedPlayer);
 	if (player != nullptr) {
 		GameMessages::SendActivitySummaryLeaderboardData(targetID, this, player->GetSystemAddress());
@@ -465,7 +455,7 @@ Leaderboard::Type LeaderboardManager::GetLeaderboardType(const GameID gameID) {
 
 	auto* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](const CDActivities& entry) {
-		return (entry.ActivityID == gameID);
+		return entry.ActivityID == gameID;
 		});
 	auto type = !activities.empty() ? static_cast<Leaderboard::Type>(activities.at(0).leaderboardType) : Leaderboard::Type::None;
 	leaderboardCache.insert_or_assign(gameID, type);

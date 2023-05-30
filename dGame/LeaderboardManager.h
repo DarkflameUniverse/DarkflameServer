@@ -72,7 +72,7 @@ public:
 	/**
 	 * Sends the leaderboard to the client specified by targetID.
 	 */
-	void Send(LWOOBJID targetID);
+	void Send(const LWOOBJID targetID) const;
 
 	// Helper functions to get the columns, ordering and insert format for a leaderboard
 	static const std::string_view GetColumns(Type leaderboardType);
