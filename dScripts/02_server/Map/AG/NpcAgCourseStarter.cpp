@@ -94,7 +94,7 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 
 		EntityManager::Instance()->SerializeEntity(self);
 		auto leaderboardType = LeaderboardManager::GetLeaderboardType(scriptedActivityComponent->GetActivityID());
-		LeaderboardManager::Instance().SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(), leaderboardType, 1, finish);
+		// LeaderboardManager::Instance().SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(), leaderboardType, 1, finish);
 
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard",
 			scriptedActivityComponent->GetActivityID(), 0, sender->GetObjectID(),

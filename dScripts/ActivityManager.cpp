@@ -88,7 +88,7 @@ void ActivityManager::SaveScore(Entity* self, LWOOBJID playerID, uint32_t val1, 
 	// Save the new score to the leaderboard and show the leaderboard to the player
 	auto leaderboardType = LeaderboardManager::GetLeaderboardType(gameID);
 	Game::logger->Log("ActivityManager", "leaderboard type %i %i args %i %i %i", leaderboardType, gameID, val1, val2, val3);
-	LeaderboardManager::Instance().SaveScore(playerID, gameID, leaderboardType, 3, val1, val2, val3);
+	// LeaderboardManager::Instance().SaveScore(playerID, gameID, leaderboardType, 3, val1, val2, val3);
 
 	// Makes the leaderboard show up for the player
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard", gameID, 0, playerID, "", player->GetSystemAddress());
@@ -125,7 +125,7 @@ void ActivityManager::GetLeaderboardData(Entity* self, const LWOOBJID playerID, 
 	// Save the new score to the leaderboard and show the leaderboard to the player
 	auto leaderboardType = LeaderboardManager::GetLeaderboardType(gameID);
 	Game::logger->Log("ActivityManager", "gameID %i", gameID, activityID);
-	LeaderboardManager::Instance().SendLeaderboard(activityID, Leaderboard::InfoType::MyStanding, false, playerID, self->GetObjectID(), 0, numResults);
+	// LeaderboardManager::Instance().SendLeaderboard(activityID, Leaderboard::InfoType::MyStanding, false, playerID, self->GetObjectID(), 0, numResults);
 }
 
 void ActivityManager::ActivityTimerStart(Entity* self, const std::string& timerName, const float_t updateInterval,
