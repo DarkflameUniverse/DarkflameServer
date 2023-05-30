@@ -35,11 +35,11 @@ Leaderboard::~Leaderboard() {
 	for (auto& entry : entries) for (auto data : entry) delete data;
 }
 
-void Leaderboard::WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, LDFBaseData* data) {
+inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, LDFBaseData* data) {
 	leaderboard << "\nResult[0].Row[" << index << "]." << data->GetString();
 }
 
-void Leaderboard::Serialize(RakNet::BitStream* bitStream) {
+void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
 	bitStream->Write(gameID);
 	bitStream->Write(infoType);
 
@@ -172,6 +172,7 @@ const std::string_view Leaderboard::GetColumns(Leaderboard::Type leaderboardType
 		columns = "bestTime, score";
 		break;
 	case Type::None:
+		columns = "";
 		// This type is included here simply to resolve a compiler warning on mac about unused enum types
 		break;
 	}
@@ -202,6 +203,7 @@ const std::string_view Leaderboard::GetInsertFormat(Leaderboard::Type leaderboar
 		columns = "bestTime=%i, score=%i";
 		break;
 	case Type::None:
+		columns = "";
 		// This type is included here simply to resolve a compiler warning on mac about unused enum types
 		break;
 	}
@@ -234,6 +236,7 @@ const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardTyp
 		orderBase = "bestTime DESC, score DESC";
 		break;
 	case Type::None:
+		orderBase = "";
 		// This type is included here simply to resolve a compiler warning on mac about unused enum types
 		break;
 	}
@@ -349,7 +352,7 @@ void Leaderboard::Send(const LWOOBJID targetID) const {
 	}
 }
 
-std::string LeaderboardManager::FormatInsert(const Leaderboard::Type& type, const Score& score, const bool useUpdate) {
+std::string FormatInsert(const Leaderboard::Type& type, const Score& score, const bool useUpdate) {
 	auto insertFormat = Leaderboard::GetInsertFormat(type);
 
 	auto* queryType = useUpdate ? "UPDATE" : "INSERT";
@@ -371,7 +374,7 @@ std::string LeaderboardManager::FormatInsert(const Leaderboard::Type& type, cons
 	return finishedQuery;
 }
 
-void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, uint32_t primaryScore, uint32_t secondaryScore, uint32_t tertiaryScore) {
+void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID gameID, const Leaderboard::Type leaderboardType, const uint32_t primaryScore, const uint32_t secondaryScore, const uint32_t tertiaryScore) {
 	auto* lookup = "SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;";
 
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookup));
@@ -443,7 +446,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 	saveStatement->execute();
 }
 
-void LeaderboardManager::SendLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, LWOOBJID targetID, uint32_t resultStart, uint32_t resultEnd) {
+void LeaderboardManager::SendLeaderboard(const uint32_t gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t resultStart, const uint32_t resultEnd) {
 	Leaderboard leaderboard(gameID, infoType, weekly, playerID, GetLeaderboardType(gameID));
 	leaderboard.SetupLeaderboard(resultStart, resultEnd);
 	leaderboard.Send(targetID);

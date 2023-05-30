@@ -36,7 +36,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
 	for (CDActivities activity : activities) {
 		m_ActivityInfo = activity;
-		if (static_cast<LeaderboardType>(activity.leaderboardType) == LeaderboardType::Racing && Game::config->GetValue("solo_racing") == "1") {
+		if (static_cast<Leaderboard::Type>(activity.leaderboardType) == Leaderboard::Type::Racing && Game::config->GetValue("solo_racing") == "1") {
 			m_ActivityInfo.minTeamSize = 1;
 			m_ActivityInfo.minTeams = 1;
 		}

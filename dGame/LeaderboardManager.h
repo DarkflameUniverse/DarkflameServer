@@ -17,7 +17,39 @@ namespace RakNet {
 	class BitStream;
 };
 
-typedef uint32_t GameID;
+class Score {
+public:
+	Score() {
+		primaryScore = 0;
+		secondaryScore = 0;
+		tertiaryScore = 0;
+	}
+	Score(const uint32_t primaryScore, const uint32_t secondaryScore = 0, const uint32_t tertiaryScore = 0) {
+		this->primaryScore = primaryScore;
+		this->secondaryScore = secondaryScore;
+		this->tertiaryScore = tertiaryScore;
+	}
+	bool operator<(const Score& rhs) const {
+		return primaryScore < rhs.primaryScore || (primaryScore == rhs.primaryScore && secondaryScore < rhs.secondaryScore) || (primaryScore == rhs.primaryScore && secondaryScore == rhs.secondaryScore && tertiaryScore < rhs.tertiaryScore);
+	}
+	bool operator>(const Score& rhs) const {
+		return primaryScore > rhs.primaryScore || (primaryScore == rhs.primaryScore && secondaryScore > rhs.secondaryScore) || (primaryScore == rhs.primaryScore && secondaryScore == rhs.secondaryScore && tertiaryScore > rhs.tertiaryScore);
+	}
+	void SetPrimaryScore(const uint32_t score) { primaryScore = score; }
+	uint32_t GetPrimaryScore() const { return primaryScore; }
+
+	void SetSecondaryScore(const uint32_t score) { secondaryScore = score; }
+	uint32_t GetSecondaryScore() const { return secondaryScore; }
+
+	void SetTertiaryScore(const uint32_t score) { tertiaryScore = score; }
+	uint32_t GetTertiaryScore() const { return tertiaryScore; }
+private:
+	uint32_t primaryScore;
+	uint32_t secondaryScore;
+	uint32_t tertiaryScore;
+};
+
+using GameID = uint32_t;
 
 class Leaderboard {
 public:
@@ -50,7 +82,7 @@ public:
 	 *
 	 * Expensive!  Leaderboards are very string intensive so be wary of performatnce calling this method.
 	 */
-	void Serialize(RakNet::BitStream* bitStream);
+	void Serialize(RakNet::BitStream* bitStream) const;
 
 	/**
 	 * Based on the associated gameID, return true if the score provided
@@ -79,8 +111,6 @@ public:
 	static const std::string_view GetInsertFormat(Type leaderboardType);
 	static const std::string_view GetOrdering(Type leaderboardType);
 private:
-	inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, LDFBaseData* data);
-
 	// Returns true if the string needs formatting
 	bool GetRankingQuery(std::string& lookupReturn) const;
 
@@ -100,53 +130,13 @@ private:
 };
 
 namespace LeaderboardManager {
-	class Score {
-	public:
-		Score() {
-			primaryScore = 0;
-			secondaryScore = 0;
-			tertiaryScore = 0;
-		}
-		Score(const uint32_t primaryScore, const uint32_t secondaryScore = 0, const uint32_t tertiaryScore = 0) {
-			this->primaryScore = primaryScore;
-			this->secondaryScore = secondaryScore;
-			this->tertiaryScore = tertiaryScore;
-		}
-		bool operator<(const Score& rhs) const {
-			return primaryScore < rhs.primaryScore || (primaryScore == rhs.primaryScore && secondaryScore < rhs.secondaryScore) || (primaryScore == rhs.primaryScore && secondaryScore == rhs.secondaryScore && tertiaryScore < rhs.tertiaryScore);
-		}
-		bool operator>(const Score& rhs) const {
-			return primaryScore > rhs.primaryScore || (primaryScore == rhs.primaryScore && secondaryScore > rhs.secondaryScore) || (primaryScore == rhs.primaryScore && secondaryScore == rhs.secondaryScore && tertiaryScore > rhs.tertiaryScore);
-		}
-		void SetPrimaryScore(const uint32_t score) { primaryScore = score; }
-		uint32_t GetPrimaryScore() const { return primaryScore; }
-		
-		void SetSecondaryScore(const uint32_t score) { secondaryScore = score; }
-		uint32_t GetSecondaryScore() const { return secondaryScore; }
-
-		void SetTertiaryScore(const uint32_t score) { tertiaryScore = score; }
-		uint32_t GetTertiaryScore() const { return tertiaryScore; }
-	private:
-		uint32_t primaryScore;
-		uint32_t secondaryScore;
-		uint32_t tertiaryScore;
-	};
 
 	using LeaderboardCache = std::map<GameID, Leaderboard::Type>;
 	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, LWOOBJID targetID, uint32_t resultStart = 0, uint32_t resultEnd = 10);
 
-	/**
-	 * @brief Public facing Score saving method.  This method is simply a wrapper to ensure va_end is called properly.
-	 *
-	 * @param playerID The player whos score to save
-	 * @param gameID The ID of the game which was played
-	 * @param argumentCount The number of arguments in the va_list
-	 * @param ... The score to save
-	 */
-	void SaveScore(const LWOOBJID& playerID, GameID gameID, Leaderboard::Type leaderboardType, uint32_t primaryScore, uint32_t secondaryScore = 0, uint32_t tertiaryScore = 0);
+	void SaveScore(const LWOOBJID& playerID, const GameID gameID, const Leaderboard::Type leaderboardType, const uint32_t primaryScore, const uint32_t secondaryScore = 0, const uint32_t tertiaryScore = 0);
 
-	void GetLeaderboard(uint32_t gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID = LWOOBJID_EMPTY);
-	std::string FormatInsert(const Leaderboard::Type& type, const Score& score, const bool useUpdate);
+	void GetLeaderboard(const uint32_t gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID = LWOOBJID_EMPTY);
 
 	Leaderboard::Type GetLeaderboardType(const GameID gameID);
 	extern LeaderboardCache leaderboardCache;
