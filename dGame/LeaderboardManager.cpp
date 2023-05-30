@@ -1,3 +1,5 @@
+#define _DEBUG
+
 #include "LeaderboardManager.h"
 #include <utility>
 #include "Database.h"
@@ -318,7 +320,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	bool neededFormatting = GetRankingQuery(baseLookupStr);
 
 	// If we need to format the base ranking query, do so, otherwise just copy the query since it's already formatted.
-	if (neededFormatting) snprintf(baseRankingBuffer, STRING_LENGTH, baseLookupStr.c_str(), orderBase.c_str());
+	if (neededFormatting) snprintf(baseRankingBuffer, STRING_LENGTH, baseLookupStr.c_str(), orderBase.data());
 	else std::copy(baseLookupStr.begin(), baseLookupStr.end() + 1, baseRankingBuffer);
 
 	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::CreatePreppedStmt(baseRankingBuffer));
@@ -369,12 +371,13 @@ std::string LeaderboardManager::FormatInsert(const Leaderboard::Type& type, cons
 	// First fill in the format
 	constexpr uint16_t STRING_LENGTH = 400;
 	char formattedInsert[STRING_LENGTH];
-	snprintf(formattedInsert, STRING_LENGTH, "%s leaderboard SET %s %s;", queryType, insertFormat.data(), usedFilter);
+	int32_t res = snprintf(formattedInsert, STRING_LENGTH, "%s leaderboard SET %s %s;", queryType, insertFormat.data(), usedFilter);
+	DluAssert(res != -1);
 
 	// Then fill in our score
 	char finishedQuery[STRING_LENGTH];
-	snprintf(finishedQuery, STRING_LENGTH, formattedInsert, score.GetPrimaryScore(), score.GetSecondaryScore(), score.GetTertiaryScore());
-	DluAssert()
+	res = snprintf(finishedQuery, STRING_LENGTH, formattedInsert, score.GetPrimaryScore(), score.GetSecondaryScore(), score.GetTertiaryScore());
+	DluAssert(res != -1);
 	return finishedQuery;
 }
 
@@ -386,7 +389,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 	query->setInt(2, gameID);
 	std::unique_ptr<sql::ResultSet> myScoreResult(query->executeQuery());
 
-	std::string saveQuery;
+	std::string saveQuery("UPDATE leaderboard SET timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;");
 	Score newScore(primaryScore, secondaryScore, tertiaryScore);
 	if (myScoreResult->next()) {
 		Score oldScore;
@@ -439,8 +442,6 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, GameID gameID, Lead
 			saveQuery = FormatInsert(leaderboardType, newScore, true);
 		} else if (leaderboardType == Leaderboard::Type::Racing && tertiaryScore) {
 			saveQuery = "UPDATE leaderboard SET numWins = numWins + 1, timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;";
-		} else {
-			saveQuery = "UPDATE leaderboard SET timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;";
 		}
 	} else {
 		saveQuery = FormatInsert(leaderboardType, newScore, false);
