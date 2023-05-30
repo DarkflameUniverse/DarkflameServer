@@ -107,7 +107,7 @@ namespace LeaderboardManager {
 			secondaryScore = 0;
 			tertiaryScore = 0;
 		}
-		Score(uint32_t primaryScore, uint32_t secondaryScore = 0, uint32_t tertiaryScore = 0) {
+		Score(const uint32_t primaryScore, const uint32_t secondaryScore = 0, const uint32_t tertiaryScore = 0) {
 			this->primaryScore = primaryScore;
 			this->secondaryScore = secondaryScore;
 			this->tertiaryScore = tertiaryScore;
