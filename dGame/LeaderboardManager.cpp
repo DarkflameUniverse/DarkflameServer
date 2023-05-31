@@ -236,7 +236,7 @@ const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardTyp
 void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	resultStart++;
 	resultEnd++;
-	std::string queryBase =
+	const std::string queryBase =
 		R"QUERY( 
 		WITH leaderboardsRanked AS ( 
 			SELECT leaderboard.*, charinfo.name, 
