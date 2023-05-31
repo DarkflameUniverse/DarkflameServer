@@ -2,6 +2,7 @@
 #define __LEADERBOARDMANAGER__H__
 
 #include <map>
+#include <memory>
 #include <string_view>
 #include <vector>
 

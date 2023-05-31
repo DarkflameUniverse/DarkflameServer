@@ -68,16 +68,6 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
 	bitStream->Write0();
 }
 
-bool Leaderboard::GetRankingQuery(std::string& lookupReturn) const {
-	if (this->infoType == InfoType::Top) {
-		lookupReturn = "SELECT id FROM leaderboard WHERE game_id = ? ORDER BY %s LIMIT 1";
-		return true;
-	} else {
-		lookupReturn = "SELECT id FROM leaderboard WHERE game_id = ? AND character_id = ? LIMIT 1";
-		return false;
-	}
-}
-
 void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 	if (rows->rowsCount() == 0) return;
 
@@ -276,7 +266,8 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 		ORDER BY ranking ASC;
 	)QUERY";
 
-	const char* friendsQuery =
+	// If we are getting the friends leaderboard, add the friends query, otherwise fill it in with nothing.
+	std::string friendsQuery =
 		R"QUERY( AND (
 		character_id IN (
 			SELECT fr.requested_player FROM (
@@ -294,23 +285,25 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 		)
 	)QUERY";
 
+	[[likely]] if (this->infoType != InfoType::Friends) friendsQuery.clear();
 	const auto orderBase = GetOrdering(this->leaderboardType);
 	const auto selectBase = GetColumns(this->leaderboardType);
 
-	constexpr uint16_t STRING_LENGTH = 1526;
+	constexpr uint16_t STRING_LENGTH = 2048;
 	char lookupBuffer[STRING_LENGTH];
-	// If we are getting the friends leaderboard, add the friends query, otherwise fill it in with nothing.
-	if (this->infoType == InfoType::Friends) {
-		snprintf(lookupBuffer, STRING_LENGTH, queryBase.data(),
-			orderBase.data(), friendsQuery, selectBase.data(), resultStart, resultEnd);
-	} else {
-		snprintf(lookupBuffer, STRING_LENGTH, queryBase.data(),
-			orderBase.data(), "", selectBase.data(), resultStart, resultEnd);
-	}
+	int32_t res = snprintf(lookupBuffer, STRING_LENGTH, queryBase.data(), orderBase.data(), friendsQuery.data(), selectBase.data(), resultStart, resultEnd);
+	DluAssert(res != -1);
 
 	std::string baseLookupStr;
 	char baseRankingBuffer[STRING_LENGTH];
-	bool neededFormatting = GetRankingQuery(baseLookupStr);
+	bool neededFormatting;
+	[[unlikely]] if (this->infoType == InfoType::Top) {
+		baseLookupStr = "SELECT id FROM leaderboard WHERE game_id = ? ORDER BY %s LIMIT 1";
+		neededFormatting = true;
+	} else {
+		baseLookupStr = "SELECT id FROM leaderboard WHERE game_id = ? AND character_id = ? LIMIT 1";
+		neededFormatting = false;
+	}
 
 	// If we need to format the base ranking query, do so, otherwise just copy the query since it's already formatted.
 	if (neededFormatting) snprintf(baseRankingBuffer, STRING_LENGTH, baseLookupStr.c_str(), orderBase.data());
@@ -318,9 +311,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 
 	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::CreatePreppedStmt(baseRankingBuffer));
 	baseQuery->setInt(1, this->gameID);
-	if (!neededFormatting) {
-		baseQuery->setInt(2, this->relatedPlayer);
-	}
+	if (!neededFormatting) baseQuery->setInt(2, this->relatedPlayer);
 
 	std::unique_ptr<sql::ResultSet> baseResult(baseQuery->executeQuery());
 
@@ -415,16 +406,18 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID gameID
 			oldScore.SetPrimaryScore(myScoreResult->getInt("score"));
 			break;
 		}
-		case Leaderboard::Type::Racing:
+		case Leaderboard::Type::Racing: {
 			oldScore.SetPrimaryScore(myScoreResult->getInt("bestTime"));
 			oldScore.SetSecondaryScore(myScoreResult->getInt("bestLapTime"));
 			lowerScoreBetter = true;
 			break;
-		case Leaderboard::Type::MonumentRace:
+		}
+		case Leaderboard::Type::MonumentRace: {
 			oldScore.SetPrimaryScore(myScoreResult->getInt("bestTime"));
 			lowerScoreBetter = true;
 			// Do score checking here
 			break;
+		}
 		case Leaderboard::Type::None:
 		default:
 			Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i.  Cannot save score!", leaderboardType);
