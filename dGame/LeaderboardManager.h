@@ -25,7 +25,7 @@ public:
 		secondaryScore = 0;
 		tertiaryScore = 0;
 	}
-	Score(const uint32_t primaryScore, const uint32_t secondaryScore = 0, const uint32_t tertiaryScore = 0) {
+	Score(const float primaryScore, const float secondaryScore = 0, const float tertiaryScore = 0) {
 		this->primaryScore = primaryScore;
 		this->secondaryScore = secondaryScore;
 		this->tertiaryScore = tertiaryScore;
@@ -36,18 +36,18 @@ public:
 	bool operator>(const Score& rhs) const {
 		return primaryScore > rhs.primaryScore || (primaryScore == rhs.primaryScore && secondaryScore > rhs.secondaryScore) || (primaryScore == rhs.primaryScore && secondaryScore == rhs.secondaryScore && tertiaryScore > rhs.tertiaryScore);
 	}
-	void SetPrimaryScore(const uint32_t score) { primaryScore = score; }
-	uint32_t GetPrimaryScore() const { return primaryScore; }
+	void SetPrimaryScore(const float score) { primaryScore = score; }
+	float GetPrimaryScore() const { return primaryScore; }
 
-	void SetSecondaryScore(const uint32_t score) { secondaryScore = score; }
-	uint32_t GetSecondaryScore() const { return secondaryScore; }
+	void SetSecondaryScore(const float score) { secondaryScore = score; }
+	float GetSecondaryScore() const { return secondaryScore; }
 
-	void SetTertiaryScore(const uint32_t score) { tertiaryScore = score; }
-	uint32_t GetTertiaryScore() const { return tertiaryScore; }
+	void SetTertiaryScore(const float score) { tertiaryScore = score; }
+	float GetTertiaryScore() const { return tertiaryScore; }
 private:
-	uint32_t primaryScore;
-	uint32_t secondaryScore;
-	uint32_t tertiaryScore;
+	float primaryScore;
+	float secondaryScore;
+	float tertiaryScore;
 };
 
 using GameID = uint32_t;
@@ -73,10 +73,11 @@ public:
 		Donations,
 		None
 	};
-
+	Leaderboard() = delete;
 	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const Leaderboard::Type = None);
 
 	~Leaderboard();
+	void Clear();
 
 	/**
 	 * Serialize the Leaderboard to a BitStream
@@ -84,15 +85,6 @@ public:
 	 * Expensive!  Leaderboards are very string intensive so be wary of performatnce calling this method.
 	 */
 	void Serialize(RakNet::BitStream* bitStream) const;
-
-	/**
-	 * Based on the associated gameID, return true if the score provided
-	 * is better than the current entries' score
-	 * @param score
-	 * @return true
-	 * @return false
-	 */
-	bool IsScoreBetter(const uint32_t score) const { return false; };
 
 	/**
 	 * Builds the leaderboard from the database based on the associated gameID
@@ -135,7 +127,7 @@ namespace LeaderboardManager {
 	using LeaderboardCache = std::map<GameID, Leaderboard::Type>;
 	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, LWOOBJID targetID, uint32_t resultStart = 0, uint32_t resultEnd = 10);
 
-	void SaveScore(const LWOOBJID& playerID, const GameID gameID, const Leaderboard::Type leaderboardType, const uint32_t primaryScore, const uint32_t secondaryScore = 0, const uint32_t tertiaryScore = 0);
+	void SaveScore(const LWOOBJID& playerID, const GameID gameID, const Leaderboard::Type leaderboardType, const float primaryScore, const float secondaryScore = 0, const float tertiaryScore = 0);
 
 	void GetLeaderboard(const uint32_t gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID = LWOOBJID_EMPTY);
 

@@ -1,7 +1,8 @@
-#define _DEBUG
-
 #include "LeaderboardManager.h"
+
+#include <sstream>
 #include <utility>
+
 #include "Database.h"
 #include "EntityManager.h"
 #include "Character.h"
@@ -14,7 +15,6 @@
 #include "Entity.h"
 #include "LDFFormat.h"
 #include "DluAssert.h"
-#include <sstream>
 
 #include "CDActivitiesTable.h"
 #include "Metrics.hpp"
@@ -32,7 +32,12 @@ Leaderboard::Leaderboard(const GameID gameID, const Leaderboard::InfoType infoTy
 }
 
 Leaderboard::~Leaderboard() {
+	Clear();
+}
+
+void Leaderboard::Clear() {
 	for (auto& entry : entries) for (auto data : entry) delete data;
+
 }
 
 inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, LDFBaseData* data) {
@@ -44,7 +49,7 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
 	bitStream->Write(infoType);
 
 	std::ostringstream leaderboard;
-	Game::logger->Log("LeaderboardManager", "game is %i info type %i ", gameID, infoType);
+
 	leaderboard << "ADO.Result=7:1"; // Unused in 1.10.64, but is in captures
 	leaderboard << "\nResult.Count=1:1"; // number of results, always 1
 	if (!this->entries.empty()) leaderboard << "\nResult[0].Index=0:RowNumber"; // "Primary key".  Live doesn't include this if there are no entries.
@@ -63,12 +68,12 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
 	bitStream->Write<uint32_t>(leaderboardSize);
 	// Doing this all in 1 call so there is no possbility of a dangling pointer.
 	bitStream->WriteAlignedBytes(reinterpret_cast<const unsigned char*>(GeneralUtils::ASCIIToUTF16(leaderboard.str()).c_str()), leaderboardSize * sizeof(char16_t));
-	if (leaderboardSize > 0) bitStream->Write<uint16_t>(0);
 	bitStream->Write0();
 	bitStream->Write0();
 }
 
 void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
+	Clear();
 	if (rows->rowsCount() == 0) return;
 
 	this->entries.reserve(rows->rowsCount());
@@ -84,49 +89,49 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 		entry.push_back(new LDFData<uint64_t>(u"RowNumber", rows->getInt("ranking")));
 		switch (leaderboardType) {
 		case Type::ShootingGallery:
-			entry.push_back(new LDFData<float>(u"HitPercentage", (rows->getInt("hitPercentage") / 100.0f)));
+			entry.push_back(new LDFData<float>(u"HitPercentage", (rows->getInt("primaryScore") / 100.0f)));
 			// HitPercentage:3 between 0 and 1
-			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("score")));
+			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("secondaryScore")));
 			// Score:1
-			entry.push_back(new LDFData<int32_t>(u"Streak", rows->getInt("streak")));
+			entry.push_back(new LDFData<int32_t>(u"Streak", rows->getInt("tertiaryScore")));
 			// Streak:1
 			break;
 		case Type::Racing:
-			entry.push_back(new LDFData<float>(u"BestLapTime", rows->getDouble("bestLapTime")));
+			entry.push_back(new LDFData<float>(u"BestTime", rows->getDouble("primaryScore")));
 			// BestLapTime:3
-			entry.push_back(new LDFData<float>(u"BestTime", rows->getDouble("bestTime")));
+			entry.push_back(new LDFData<float>(u"BestLapTime", rows->getDouble("secondaryScore")));
 			// BestTime:3
 			entry.push_back(new LDFData<int32_t>(u"License", 1));
 			// License:1 - 1 if player has completed mission 637 and 0 otherwise
-			entry.push_back(new LDFData<int32_t>(u"NumWins", rows->getInt("numWins")));
+			entry.push_back(new LDFData<int32_t>(u"NumWins", rows->getInt("tertiaryScore")));
 			// NumWins:1
 			break;
 		case Type::UnusedLeaderboard4:
-			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("score")));
+			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("primaryScore")));
 			// Points:1
 			break;
 		case Type::MonumentRace:
-			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("bestTime")));
+			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("primaryScore")));
 			// Time:1(?)
 			break;
 		case Type::FootRace:
-			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("bestTime")));
+			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("primaryScore")));
 			// Time:1
 			break;
 		case Type::Survival:
-			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("score")));
+			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("primaryScore")));
 			// Points:1
-			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("bestTime")));
+			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("secondaryScore")));
 			// Time:1
 			break;
 		case Type::SurvivalNS:
-			entry.push_back(new LDFData<int32_t>(u"Wave", rows->getInt("score")));
+			entry.push_back(new LDFData<int32_t>(u"Wave", rows->getInt("primaryScore")));
 			// Wave:1
-			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("bestTime")));
+			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("secondaryScore")));
 			// Time:1
 			break;
 		case Type::Donations:
-			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("score")));
+			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("primaryScore")));
 			// Score:1				
 			break;
 		case Type::None:
@@ -139,98 +144,33 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 }
 
 const std::string_view Leaderboard::GetColumns(Leaderboard::Type leaderboardType) {
-	const char* columns;
-	switch (leaderboardType) {
-	case Type::ShootingGallery:
-		columns = "hitPercentage, score, streak";
-		break;
-	case Type::Racing:
-		columns = "bestLapTime, bestTime, numWins";
-		break;
-	case Type::Donations:
-	case Type::UnusedLeaderboard4:
-		columns = "score";
-		break;
-	case Type::MonumentRace:
-	case Type::FootRace:
-		columns = "bestTime";
-		break;
-	case Type::Survival:
-		columns = "bestTime, score";
-		break;
-	case Type::SurvivalNS:
-		columns = "bestTime, score";
-		break;
-	case Type::None:
-		columns = "";
-		// This type is included here simply to resolve a compiler warning on mac about unused enum types
-		break;
-	}
-	return columns;
+	return "primaryScore, secondaryScore, tertiaryScore";
 }
 
 const std::string_view Leaderboard::GetInsertFormat(Leaderboard::Type leaderboardType) {
-	const char* columns;
-	switch (leaderboardType) {
-	case Type::ShootingGallery:
-		columns = "score=%i, hitPercentage=%i, streak=%i";
-		break;
-	case Type::Racing:
-		columns = "bestLapTime=%i, bestTime=%i, numWins=numWins + %i";
-		break;
-	case Type::Donations:
-	case Type::UnusedLeaderboard4:
-		columns = "score=%i";
-		break;
-	case Type::MonumentRace:
-	case Type::FootRace:
-		columns = "bestTime=%i";
-		break;
-	case Type::Survival:
-		columns = "bestTime=%i, score=%i";
-		break;
-	case Type::SurvivalNS:
-		columns = "bestTime=%i, score=%i";
-		break;
-	case Type::None:
-		columns = "";
-		// This type is included here simply to resolve a compiler warning on mac about unused enum types
-		break;
-	}
-	return columns;
+	return "primaryScore %f, secondaryScore %f, tertiaryScore %f";
 }
 
 const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardType) {
-	const char* orderBase;
+	// Use a switch case and return desc for all 3 columns if higher is better and asc if lower is better
 	switch (leaderboardType) {
 	case Type::ShootingGallery:
-		orderBase = "score DESC, streak DESC, hitPercentage DESC";
-		break;
-	case Type::Racing:
-		orderBase = "bestTime ASC, bestLapTime ASC, numWins DESC";
-		break;
-	case Type::Donations:
-	case Type::UnusedLeaderboard4:
-		orderBase = "score DESC";
-		break;
-	case Type::MonumentRace:
-		orderBase = "bestTime ASC";
-		break;
 	case Type::FootRace:
-		orderBase = "bestTime DESC";
-		break;
-	case Type::Survival:
-		orderBase = "score DESC, bestTime DESC";
-		break;
+	case Type::UnusedLeaderboard4:
 	case Type::SurvivalNS:
-		orderBase = "bestTime DESC, score DESC";
-		break;
+	case Type::Donations:
+		return "primaryScore DESC, secondaryScore DESC, tertiaryScore DESC";
+	case Type::Racing:
+	case Type::MonumentRace:
+		return "primaryScore ASC, secondaryScore ASC, tertiaryScore ASC";
 	case Type::None:
-		orderBase = "";
-		// This type is included here simply to resolve a compiler warning on mac about unused enum types
-		break;
+	case Type::Survival:
+		return Game::config->GetValue("classic_survival_scoring") == "1" ?
+			"primaryScore DESC, secondaryScore DESC, tertiaryScore DESC" :
+			"secondaryScore DESC, primaryScore DESC, tertiaryScore DESC";
+	default:
+		return "";
 	}
-	return orderBase;
 }
 
 void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
@@ -285,34 +225,22 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 		)
 	)QUERY";
 
-	[[likely]] if (this->infoType != InfoType::Friends) friendsQuery.clear();
+	if (this->infoType != InfoType::Friends) friendsQuery.clear();
 	const auto orderBase = GetOrdering(this->leaderboardType);
 	const auto selectBase = GetColumns(this->leaderboardType);
 
-	constexpr uint16_t STRING_LENGTH = 2048;
-	char lookupBuffer[STRING_LENGTH];
-	int32_t res = snprintf(lookupBuffer, STRING_LENGTH, queryBase.data(), orderBase.data(), friendsQuery.data(), selectBase.data(), resultStart, resultEnd);
-	DluAssert(res != -1);
-
-	std::string baseLookupStr;
-	char baseRankingBuffer[STRING_LENGTH];
-	bool neededFormatting;
-	[[unlikely]] if (this->infoType == InfoType::Top) {
-		baseLookupStr = "SELECT id FROM leaderboard WHERE game_id = ? ORDER BY %s LIMIT 1";
-		neededFormatting = true;
+	std::string baseLookup;
+	if (this->infoType == InfoType::Top) {
+		baseLookup = "SELECT id FROM leaderboard WHERE game_id = ? ORDER BY ";
+		baseLookup += orderBase.data();
 	} else {
-		baseLookupStr = "SELECT id FROM leaderboard WHERE game_id = ? AND character_id = ? LIMIT 1";
-		neededFormatting = false;
+		baseLookup = "SELECT id FROM leaderboard WHERE game_id = ? AND character_id = ";
+		baseLookup += std::to_string(this->relatedPlayer);
 	}
+	baseLookup += " LIMIT 1";
 
-	// If we need to format the base ranking query, do so, otherwise just copy the query since it's already formatted.
-	if (neededFormatting) snprintf(baseRankingBuffer, STRING_LENGTH, baseLookupStr.c_str(), orderBase.data());
-	else std::copy(baseLookupStr.begin(), baseLookupStr.end() + 1, baseRankingBuffer);
-
-	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::CreatePreppedStmt(baseRankingBuffer));
+	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::CreatePreppedStmt(baseLookup));
 	baseQuery->setInt(1, this->gameID);
-	if (!neededFormatting) baseQuery->setInt(2, this->relatedPlayer);
-
 	std::unique_ptr<sql::ResultSet> baseResult(baseQuery->executeQuery());
 
 	if (!baseResult->next()) return; // In this case, there are no entries in the leaderboard for this game.
@@ -320,6 +248,10 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	uint32_t relatedPlayerLeaderboardId = baseResult->getInt("id");
 
 	// Create and execute the actual save here
+	constexpr uint16_t STRING_LENGTH = 2048;
+	char lookupBuffer[STRING_LENGTH];
+	[[maybe_unused]] int32_t res = snprintf(lookupBuffer, STRING_LENGTH, queryBase.data(), orderBase.data(), friendsQuery.data(), selectBase.data(), resultStart, resultEnd);
+	DluAssert(res != -1);
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer));
 
 	query->setInt(1, this->gameID);
@@ -365,7 +297,7 @@ std::string FormatInsert(const Leaderboard::Type& type, const Score& score, cons
 	return finishedQuery;
 }
 
-void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID gameID, const Leaderboard::Type leaderboardType, const uint32_t primaryScore, const uint32_t secondaryScore, const uint32_t tertiaryScore) {
+void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID gameID, const Leaderboard::Type leaderboardType, const float primaryScore, const float secondaryScore, const float tertiaryScore) {
 	auto* lookup = "SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;";
 
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookup));
@@ -381,46 +313,46 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID gameID
 		switch (leaderboardType) {
 			// Higher score better
 		case Leaderboard::Type::ShootingGallery: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("score"));
-			oldScore.SetSecondaryScore(myScoreResult->getInt("hitPercentage"));
-			oldScore.SetTertiaryScore(myScoreResult->getInt("streak"));
+			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
+			oldScore.SetSecondaryScore(myScoreResult->getInt("secondaryScore"));
+			oldScore.SetTertiaryScore(myScoreResult->getInt("tertiaryScore"));
 			break;
 		}
 		case Leaderboard::Type::FootRace: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("bestTime"));
+			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
 			break;
 		}
 		case Leaderboard::Type::Survival: {
 			// Config option may reverse these
-			oldScore.SetPrimaryScore(myScoreResult->getInt("bestTime"));
-			oldScore.SetSecondaryScore(myScoreResult->getInt("score"));
+			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
+			oldScore.SetSecondaryScore(myScoreResult->getInt("secondaryScore"));
 			break;
 		}
 		case Leaderboard::Type::SurvivalNS: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("bestTime"));
-			oldScore.SetSecondaryScore(myScoreResult->getInt("score"));
+			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
+			oldScore.SetSecondaryScore(myScoreResult->getInt("secondaryScore"));
 			break;
 		}
 		case Leaderboard::Type::UnusedLeaderboard4:
 		case Leaderboard::Type::Donations: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("score"));
+			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
 			break;
 		}
 		case Leaderboard::Type::Racing: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("bestTime"));
-			oldScore.SetSecondaryScore(myScoreResult->getInt("bestLapTime"));
+			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
+			oldScore.SetSecondaryScore(myScoreResult->getInt("secondaryScore"));
 			lowerScoreBetter = true;
 			break;
 		}
 		case Leaderboard::Type::MonumentRace: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("bestTime"));
+			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
 			lowerScoreBetter = true;
 			// Do score checking here
 			break;
 		}
 		case Leaderboard::Type::None:
 		default:
-			Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i.  Cannot save score!", leaderboardType);
+			Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i for game %i.  Cannot save score!", leaderboardType, gameID);
 			return;
 		}
 		bool newHighScore = lowerScoreBetter ? newScore < oldScore : newScore > oldScore;
