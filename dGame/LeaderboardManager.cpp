@@ -143,14 +143,6 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 	}
 }
 
-const std::string_view Leaderboard::GetColumns(Leaderboard::Type leaderboardType) {
-	return "primaryScore, secondaryScore, tertiaryScore";
-}
-
-const std::string_view Leaderboard::GetInsertFormat(Leaderboard::Type leaderboardType) {
-	return "primaryScore %f, secondaryScore %f, tertiaryScore %f";
-}
-
 const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardType) {
 	// Use a switch case and return desc for all 3 columns if higher is better and asc if lower is better
 	switch (leaderboardType) {
@@ -179,7 +171,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	const std::string queryBase =
 		R"QUERY( 
 		WITH leaderboardsRanked AS ( 
-			SELECT leaderboard.*, charinfo.name, 
+			SELECT leaderboard.primaryScore, leaderboard.secondaryScore, leaderboard.tertiaryScore, charinfo.name, 
 				RANK() OVER 
 				( 
 				ORDER BY %s, UNIX_TIMESTAMP(last_played) ASC, id DESC
@@ -197,7 +189,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 			SELECT MAX(ranking) AS lowestRank 
 				FROM leaderboardsRanked 
 		) 
-		SELECT %s, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking 
+		SELECT leaderboardsRanked.*, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking 
 		WHERE leaderboardsRanked.ranking 
 		BETWEEN 
 		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), lowestRanking.lowestRank - 10) 
@@ -227,7 +219,6 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 
 	if (this->infoType != InfoType::Friends) friendsQuery.clear();
 	const auto orderBase = GetOrdering(this->leaderboardType);
-	const auto selectBase = GetColumns(this->leaderboardType);
 
 	std::string baseLookup;
 	if (this->infoType == InfoType::Top) {
@@ -250,7 +241,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	// Create and execute the actual save here
 	constexpr uint16_t STRING_LENGTH = 2048;
 	char lookupBuffer[STRING_LENGTH];
-	[[maybe_unused]] int32_t res = snprintf(lookupBuffer, STRING_LENGTH, queryBase.data(), orderBase.data(), friendsQuery.data(), selectBase.data(), resultStart, resultEnd);
+	[[maybe_unused]] int32_t res = snprintf(lookupBuffer, STRING_LENGTH, queryBase.data(), orderBase.data(), friendsQuery.data(), resultStart, resultEnd);
 	DluAssert(res != -1);
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer));
 
@@ -276,23 +267,27 @@ void Leaderboard::Send(const LWOOBJID targetID) const {
 }
 
 std::string FormatInsert(const Leaderboard::Type& type, const Score& score, const bool useUpdate) {
-	auto insertFormat = Leaderboard::GetInsertFormat(type);
+	std::string insertStatement;
+	if (useUpdate) {
+		insertStatement =
+			R"QUERY(
+			UPDATE leaderboard 
+			SET primaryScore %f, secondaryScore %f, tertiaryScore %f, 
+			timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;
+			)QUERY";
+	} else {
+		insertStatement =
+			R"QUERY(
+			INSERT leaderboard SET 
+			primaryScore %f, secondaryScore %f, tertiaryScore %f, 
+			character_id = ?, game_id = ?;
+			)QUERY";
+	}
 
-	auto* queryType = useUpdate ? "UPDATE" : "INSERT";
-
-	auto* usedFilter = useUpdate ?
-		", timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?" :
-		", character_id = ?, game_id = ?";
-
-	// First fill in the format
 	constexpr uint16_t STRING_LENGTH = 400;
-	char formattedInsert[STRING_LENGTH];
-	int32_t res = snprintf(formattedInsert, STRING_LENGTH, "%s leaderboard SET %s %s;", queryType, insertFormat.data(), usedFilter);
-	DluAssert(res != -1);
-
 	// Then fill in our score
 	char finishedQuery[STRING_LENGTH];
-	res = snprintf(finishedQuery, STRING_LENGTH, formattedInsert, score.GetPrimaryScore(), score.GetSecondaryScore(), score.GetTertiaryScore());
+	int32_t res = snprintf(finishedQuery, STRING_LENGTH, insertStatement.c_str(), score.GetPrimaryScore(), score.GetSecondaryScore(), score.GetTertiaryScore());
 	DluAssert(res != -1);
 	return finishedQuery;
 }

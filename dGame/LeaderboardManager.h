@@ -99,9 +99,7 @@ public:
 	 */
 	void Send(const LWOOBJID targetID) const;
 
-	// Helper functions to get the columns, ordering and insert format for a leaderboard
-	static const std::string_view GetColumns(Type leaderboardType);
-	static const std::string_view GetInsertFormat(Type leaderboardType);
+	// Helper function to get the columns, ordering and insert format for a leaderboard
 	static const std::string_view GetOrdering(Type leaderboardType);
 private:
 	// Returns true if the string needs formatting
