@@ -1,12 +1,18 @@
 ALTER TABLE leaderboard 
-    ADD COLUMN hitPercentage INT NOT NULL DEFAULT 0,
-    ADD COLUMN streak INT NOT NULL DEFAULT 0,
-    ADD COLUMN bestLapTime INT NOT NULL DEFAULT 0,
+    ADD COLUMN tertiaryScore FLOAT NOT NULL DEFAULT 0,
     ADD COLUMN numWins INT NOT NULL DEFAULT 0,
     ADD COLUMN timesPlayed INT NOT NULL DEFAULT 1,
     MODIFY time INT NOT NULL DEFAULT 0;
 
-ALTER TABLE leaderboard CHANGE time bestTime INT;
-ALTER TABLE leaderboard CHANGE last_played last_played TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
+/* Can only ALTER one column at a time... */
+ALTER TABLE leaderboard 
+	CHANGE last_played last_played TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
+ALTER TABLE leaderboard RENAME COLUMN score TO primaryScore;
+ALTER TABLE leaderboard RENAME COLUMN time TO secondaryScore;
+ALTER TABLE leaderboard MODIFY COLUMN secondaryScore FLOAT NOT NULL DEFAULT 0 AFTER primaryScore;
+ALTER TABLE leaderboard MODIFY COLUMN primaryScore FLOAT NOT NULL DEFAULT 0;
 
-UPDATE leaderboard SET streak = bestTime where game_id = 1864;
+/* A bit messy, but better than going through a bunch of code fixes all to be run once. */
+UPDATE leaderboard SET
+	primaryScore = secondaryScore,
+	secondaryScore = 0 WHERE game_id IN (1, 44, 46, 47, 48, 49, 53, 103, 104, 108, 1901);
