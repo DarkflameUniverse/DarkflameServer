@@ -71,8 +71,9 @@ protected:
  * 19: [13-04-23 00:39:19] [LeaderboardManager] average time passed for 1000 leaderboard entries is 279457375ns
  */
 
-TEST_F(LeaderboardTests, LeaderboardSpeedTest) {
-	RunTests(1864, Leaderboard::Type::ShootingGallery , Leaderboard::InfoType::Top);
-	RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::MyStanding);
-	RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::Friends);
-}
+// Commented tests out because we dont have a sql server running for tests
+// TEST_F(LeaderboardTests, LeaderboardSpeedTest) {
+	// RunTests(1864, Leaderboard::Type::ShootingGallery , Leaderboard::InfoType::Top);
+	// RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::MyStanding);
+	// RunTests(1864, Leaderboard::Type::ShootingGallery, Leaderboard::InfoType::Friends);
+// }
