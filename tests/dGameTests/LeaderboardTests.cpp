@@ -30,10 +30,10 @@ protected:
 		Leaderboard leaderboard(gameID, infoType, false, 14231, type);
 		leaderboard.SetupLeaderboard();
 		leaderboard.Serialize(&bitStream);
-		// TestLeaderboard(leaderboard, 1);
-		// TestLeaderboard(leaderboard, 10);
-		// TestLeaderboard(leaderboard, 100);
-		// TestLeaderboard(leaderboard, 1000);
+		TestLeaderboard(leaderboard, 1);
+		TestLeaderboard(leaderboard, 10);
+		TestLeaderboard(leaderboard, 100);
+		TestLeaderboard(leaderboard, 1000);
 	}
 
 	CBITSTREAM;

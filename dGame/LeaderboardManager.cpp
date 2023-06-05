@@ -84,7 +84,7 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 		entry.reserve(MAX_NUM_DATA_PER_ROW);
 		entry.push_back(new LDFData<uint64_t>(u"CharacterID", rows->getInt("character_id")));
 		entry.push_back(new LDFData<uint64_t>(u"LastPlayed", rows->getUInt64("lastPlayed")));
-		entry.push_back(new LDFData<int32_t>(u"NumPlayed", 1));
+		entry.push_back(new LDFData<int32_t>(u"NumPlayed", rows->getInt("timesPlayed")));
 		entry.push_back(new LDFData<std::u16string>(u"name", GeneralUtils::ASCIIToUTF16(rows->getString("name").c_str())));
 		entry.push_back(new LDFData<uint64_t>(u"RowNumber", rows->getInt("ranking")));
 		switch (leaderboardType) {
@@ -168,10 +168,11 @@ const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardTyp
 void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	resultStart++;
 	resultEnd++;
+	// We need everything except 1 column so i'm selecting * from leaderboard
 	const std::string queryBase =
 		R"QUERY( 
 		WITH leaderboardsRanked AS ( 
-			SELECT leaderboard.primaryScore, leaderboard.secondaryScore, leaderboard.tertiaryScore, charinfo.name, 
+			SELECT leaderboard.*, charinfo.name, 
 				RANK() OVER 
 				( 
 				ORDER BY %s, UNIX_TIMESTAMP(last_played) ASC, id DESC
