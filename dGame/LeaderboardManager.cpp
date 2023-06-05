@@ -287,7 +287,7 @@ std::string FormatInsert(const Leaderboard::Type& type, const Score& score, cons
 	constexpr uint16_t STRING_LENGTH = 400;
 	// Then fill in our score
 	char finishedQuery[STRING_LENGTH];
-	int32_t res = snprintf(finishedQuery, STRING_LENGTH, insertStatement.c_str(), score.GetPrimaryScore(), score.GetSecondaryScore(), score.GetTertiaryScore());
+	[[maybe_unused]] int32_t res = snprintf(finishedQuery, STRING_LENGTH, insertStatement.c_str(), score.GetPrimaryScore(), score.GetSecondaryScore(), score.GetTertiaryScore());
 	DluAssert(res != -1);
 	return finishedQuery;
 }
