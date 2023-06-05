@@ -200,19 +200,20 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 
 	// If we are getting the friends leaderboard, add the friends query, otherwise fill it in with nothing.
 	std::string friendsQuery =
-		R"QUERY( AND (
-		character_id IN (
-			SELECT fr.requested_player FROM (
-				SELECT CASE
-				WHEN player_id = ? THEN friend_id
-				WHEN friend_id = ? THEN player_id
-				END AS requested_player
-				FROM friends
-			) AS fr
-			JOIN charinfo AS ci
-			ON ci.id = fr.requested_player
-			WHERE fr.requested_player IS NOT NULL
-		)
+		R"QUERY(
+		AND (
+			character_id IN (
+				SELECT fr.requested_player FROM (
+					SELECT CASE
+					WHEN player_id = ? THEN friend_id
+					WHEN friend_id = ? THEN player_id
+					END AS requested_player
+					FROM friends
+				) AS fr
+				JOIN charinfo AS ci
+				ON ci.id = fr.requested_player
+				WHERE fr.requested_player IS NOT NULL
+			)
 		OR character_id = ?
 		)
 	)QUERY";
@@ -378,7 +379,7 @@ Leaderboard::Type LeaderboardManager::GetLeaderboardType(const GameID gameID) {
 	if (lookup != leaderboardCache.end()) return lookup->second;
 
 	auto* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
-	std::vector<CDActivities> activities = activitiesTable->Query([=](const CDActivities& entry) {
+	std::vector<CDActivities> activities = activitiesTable->Query([gameID](const CDActivities& entry) {
 		return entry.ActivityID == gameID;
 		});
 	auto type = !activities.empty() ? static_cast<Leaderboard::Type>(activities.at(0).leaderboardType) : Leaderboard::Type::None;

@@ -102,9 +102,6 @@ public:
 	// Helper function to get the columns, ordering and insert format for a leaderboard
 	static const std::string_view GetOrdering(Type leaderboardType);
 private:
-	// Returns true if the string needs formatting
-	bool GetRankingQuery(std::string& lookupReturn) const;
-
 	// Takes the resulting query from a leaderboard lookup and converts it to the LDF we need
 	// to send it to a client.
 	void QueryToLdf(std::unique_ptr<sql::ResultSet>& rows);
@@ -123,11 +120,9 @@ private:
 namespace LeaderboardManager {
 
 	using LeaderboardCache = std::map<GameID, Leaderboard::Type>;
-	void SendLeaderboard(GameID gameID, Leaderboard::InfoType infoType, bool weekly, LWOOBJID playerID, LWOOBJID targetID, uint32_t resultStart = 0, uint32_t resultEnd = 10);
+	void SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t resultStart = 0, const uint32_t resultEnd = 10);
 
 	void SaveScore(const LWOOBJID& playerID, const GameID gameID, const Leaderboard::Type leaderboardType, const float primaryScore, const float secondaryScore = 0, const float tertiaryScore = 0);
-
-	void GetLeaderboard(const uint32_t gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID = LWOOBJID_EMPTY);
 
 	Leaderboard::Type GetLeaderboardType(const GameID gameID);
 	extern LeaderboardCache leaderboardCache;
