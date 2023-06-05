@@ -97,7 +97,7 @@ public:
 	 * @param resultStart The index to start the leaderboard at. Zero indexed.
 	 * @param resultEnd The index to end the leaderboard at. Zero indexed.
 	 */
-	void SetupLeaderboard(uint32_t resultStart = 0, uint32_t resultEnd = 10);
+	void SetupLeaderboard(bool weekly, uint32_t resultStart = 0, uint32_t resultEnd = 10);
 
 	/**
 	 * Sends the leaderboard to the client specified by targetID.

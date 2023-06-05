@@ -28,7 +28,7 @@ protected:
 	void RunTests(uint32_t gameID, Leaderboard::Type type, Leaderboard::InfoType infoType) {
 		Game::logger->Log("LeaderboardTests", "Testing leaderboard %i for Serialize speed", infoType);
 		Leaderboard leaderboard(gameID, infoType, false, 14231, type);
-		leaderboard.SetupLeaderboard();
+		leaderboard.SetupLeaderboard(true, 0, 10);
 		leaderboard.Serialize(&bitStream);
 		TestLeaderboard(leaderboard, 1);
 		TestLeaderboard(leaderboard, 10);

@@ -164,7 +164,7 @@ const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardTyp
 	}
 }
 
-void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
+void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t resultEnd) {
 	resultStart++;
 	resultEnd++;
 	// We need everything except 1 column so i'm selecting * from leaderboard
@@ -198,8 +198,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 		ORDER BY ranking ASC;
 	)QUERY";
 
-	// If we are getting the friends leaderboard, add the friends query, otherwise fill it in with nothing.
-	std::string friendsQuery =
+	std::string friendsFilter =
 		R"QUERY(
 		AND (
 			character_id IN (
@@ -218,7 +217,12 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 		)
 	)QUERY";
 
-	if (this->infoType != InfoType::Friends) friendsQuery.clear();
+	std::string weeklyFilter = " AND date >= curdate() - INTERVAL DAYOFWEEK(curdate()) - 7 DAY";
+
+	std::string filter;
+	// Setup our filter based on the query type
+	if (this->infoType == InfoType::Friends) filter += friendsFilter;
+	if (this->weekly) filter += weeklyFilter;
 	const auto orderBase = GetOrdering(this->leaderboardType);
 
 	// For top query, we want to just rank all scores, but for all others we need the scores around a specific player
@@ -243,7 +247,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	// Create and execute the actual save here. Using a heap allocated buffer to avoid stack overflow
 	constexpr uint16_t STRING_LENGTH = 4096;
 	std::unique_ptr<char[]> lookupBuffer = std::make_unique<char[]>(STRING_LENGTH);
-	[[maybe_unused]] int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.c_str(), orderBase.data(), friendsQuery.c_str(), resultStart, resultEnd);
+	[[maybe_unused]] int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.c_str(), orderBase.data(), filter.c_str(), resultStart, resultEnd);
 	DluAssert(res != -1);
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer.get()));
 
@@ -370,7 +374,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 
 void LeaderboardManager::SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t resultStart, const uint32_t resultEnd) {
 	Leaderboard leaderboard(gameID, infoType, weekly, playerID, GetLeaderboardType(gameID));
-	leaderboard.SetupLeaderboard(resultStart, resultEnd);
+	leaderboard.SetupLeaderboard(weekly, resultStart, resultEnd);
 	leaderboard.Send(targetID);
 }
 
