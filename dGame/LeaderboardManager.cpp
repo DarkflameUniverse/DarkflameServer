@@ -146,22 +146,21 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardType) {
 	// Use a switch case and return desc for all 3 columns if higher is better and asc if lower is better
 	switch (leaderboardType) {
+	case Type::Racing:
+	case Type::MonumentRace:
+		return "primaryScore ASC, secondaryScore ASC, tertiaryScore ASC";
+	case Type::Survival:
+		return Game::config->GetValue("classic_survival_scoring") == "1" ?
+			"primaryScore DESC, secondaryScore DESC, tertiaryScore DESC" :
+			"secondaryScore DESC, primaryScore DESC, tertiaryScore DESC";
 	case Type::ShootingGallery:
 	case Type::FootRace:
 	case Type::UnusedLeaderboard4:
 	case Type::SurvivalNS:
 	case Type::Donations:
-		return "primaryScore DESC, secondaryScore DESC, tertiaryScore DESC";
-	case Type::Racing:
-	case Type::MonumentRace:
-		return "primaryScore ASC, secondaryScore ASC, tertiaryScore ASC";
 	case Type::None:
-	case Type::Survival:
-		return Game::config->GetValue("classic_survival_scoring") == "1" ?
-			"primaryScore DESC, secondaryScore DESC, tertiaryScore DESC" :
-			"secondaryScore DESC, primaryScore DESC, tertiaryScore DESC";
 	default:
-		return "";
+		return "primaryScore DESC, secondaryScore DESC, tertiaryScore DESC";
 	}
 }
 
@@ -221,6 +220,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	if (this->infoType != InfoType::Friends) friendsQuery.clear();
 	const auto orderBase = GetOrdering(this->leaderboardType);
 
+	// For top query, we want to just rank all scores, but for all others we need the scores around a specific player
 	std::string baseLookup;
 	if (this->infoType == InfoType::Top) {
 		baseLookup = "SELECT id FROM leaderboard WHERE game_id = ? ORDER BY ";
@@ -239,12 +239,12 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 
 	uint32_t relatedPlayerLeaderboardId = baseResult->getInt("id");
 
-	// Create and execute the actual save here
-	constexpr uint16_t STRING_LENGTH = 2048;
-	char lookupBuffer[STRING_LENGTH];
-	[[maybe_unused]] int32_t res = snprintf(lookupBuffer, STRING_LENGTH, queryBase.data(), orderBase.data(), friendsQuery.data(), resultStart, resultEnd);
+	// Create and execute the actual save here. Using a heap allocated buffer to avoid stack overflow
+	constexpr uint16_t STRING_LENGTH = 4096;
+	std::unique_ptr<char[]> lookupBuffer = std::make_unique<char[]>(STRING_LENGTH);
+	[[maybe_unused]] int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.data(), orderBase.data(), friendsQuery.data(), resultStart, resultEnd);
 	DluAssert(res != -1);
-	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer));
+	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer.get()));
 
 	query->setInt(1, this->gameID);
 	if (this->infoType == InfoType::Friends) {
