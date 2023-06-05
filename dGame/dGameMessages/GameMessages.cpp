@@ -1669,7 +1669,7 @@ void GameMessages::HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream
 
 	bool weekly = inStream->ReadBit();
 
-	// LeaderboardManager::Instance().SendLeaderboard(gameID, queryType, weekly, entity->GetObjectID(), entity->GetObjectID(), resultsStart, resultsEnd);
+	LeaderboardManager::SendLeaderboard(gameID, queryType, weekly, entity->GetObjectID(), entity->GetObjectID(), resultsStart, resultsEnd);
 }
 
 void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream* inStream, Entity* entity) {

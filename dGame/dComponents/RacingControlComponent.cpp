@@ -379,8 +379,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 		const auto score = m_LoadedPlayers * 10 + data->finished;
 
 		LootGenerator::Instance().GiveActivityLoot(player, m_Parent, m_ActivityID, score);
-		// auto leaderboardType = LeaderboardManager::Instance().GetLeaderboardType(m_ActivityID);
-		// LeaderboardManager::Instance().SaveScore(player->GetObjectID(), m_ActivityID, leaderboardType, 3, data->bestLapTime, data->raceTime, data->finished == 1);
+		LeaderboardManager::SaveScore(player->GetObjectID(), m_ActivityID, static_cast<float>(data->bestLapTime), static_cast<float>(data->raceTime), static_cast<float>(data->finished == 1));
 
 		// Giving rewards
 		GameMessages::SendNotifyRacingClient(

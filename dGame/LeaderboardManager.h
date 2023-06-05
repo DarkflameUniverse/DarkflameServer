@@ -77,6 +77,11 @@ public:
 	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const Leaderboard::Type = None);
 
 	~Leaderboard();
+
+	/**
+	 * @brief Resets the leaderboard state and frees its allocated memory
+	 * 
+	 */
 	void Clear();
 
 	/**
@@ -118,14 +123,12 @@ private:
 };
 
 namespace LeaderboardManager {
-
-	using LeaderboardCache = std::map<GameID, Leaderboard::Type>;
 	void SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t resultStart = 0, const uint32_t resultEnd = 10);
 
-	void SaveScore(const LWOOBJID& playerID, const GameID gameID, const Leaderboard::Type leaderboardType, const float primaryScore, const float secondaryScore = 0, const float tertiaryScore = 0);
+	void SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore = 0, const float tertiaryScore = 0);
 
 	Leaderboard::Type GetLeaderboardType(const GameID gameID);
-	extern LeaderboardCache leaderboardCache;
+	extern std::map<GameID, Leaderboard::Type> leaderboardCache;
 };
 
 #endif  //!__LEADERBOARDMANAGER__H__

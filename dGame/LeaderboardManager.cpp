@@ -20,7 +20,7 @@
 #include "Metrics.hpp"
 
 namespace LeaderboardManager {
-	LeaderboardCache leaderboardCache;
+	std::map<GameID, Leaderboard::Type> leaderboardCache;
 }
 
 Leaderboard::Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const Leaderboard::Type leaderboardType) {
@@ -36,8 +36,7 @@ Leaderboard::~Leaderboard() {
 }
 
 void Leaderboard::Clear() {
-	for (auto& entry : entries) for (auto data : entry) delete data;
-
+	for (auto& entry : entries) for (auto ldfData : entry) delete ldfData;
 }
 
 inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, LDFBaseData* data) {
@@ -68,6 +67,7 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
 	bitStream->Write<uint32_t>(leaderboardSize);
 	// Doing this all in 1 call so there is no possbility of a dangling pointer.
 	bitStream->WriteAlignedBytes(reinterpret_cast<const unsigned char*>(GeneralUtils::ASCIIToUTF16(leaderboard.str()).c_str()), leaderboardSize * sizeof(char16_t));
+	if (leaderboardSize > 0) bitStream->Write<uint16_t>(0);
 	bitStream->Write0();
 	bitStream->Write0();
 }
@@ -192,7 +192,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 		SELECT leaderboardsRanked.*, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking 
 		WHERE leaderboardsRanked.ranking 
 		BETWEEN 
-		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), lowestRanking.lowestRank - 10) 
+		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), lowestRanking.lowestRank - 9) 
 		AND 
 		LEAST(GREATEST(myRank + 5, %i), lowestRanking.lowestRank) 
 		ORDER BY ranking ASC;
@@ -228,7 +228,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 		baseLookup += orderBase.data();
 	} else {
 		baseLookup = "SELECT id FROM leaderboard WHERE game_id = ? AND character_id = ";
-		baseLookup += std::to_string(this->relatedPlayer);
+		baseLookup += std::to_string(static_cast<uint32_t>(this->relatedPlayer));
 	}
 	baseLookup += " LIMIT 1";
 
@@ -243,7 +243,7 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	// Create and execute the actual save here. Using a heap allocated buffer to avoid stack overflow
 	constexpr uint16_t STRING_LENGTH = 4096;
 	std::unique_ptr<char[]> lookupBuffer = std::make_unique<char[]>(STRING_LENGTH);
-	[[maybe_unused]] int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.data(), orderBase.data(), friendsQuery.data(), resultStart, resultEnd);
+	[[maybe_unused]] int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.c_str(), orderBase.data(), friendsQuery.c_str(), resultStart, resultEnd);
 	DluAssert(res != -1);
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer.get()));
 
@@ -256,7 +256,6 @@ void Leaderboard::SetupLeaderboard(uint32_t resultStart, uint32_t resultEnd) {
 	} else {
 		query->setInt(2, relatedPlayerLeaderboardId);
 	}
-
 	std::unique_ptr<sql::ResultSet> result(query->executeQuery());
 	QueryToLdf(result);
 }
@@ -274,14 +273,14 @@ std::string FormatInsert(const Leaderboard::Type& type, const Score& score, cons
 		insertStatement =
 			R"QUERY(
 			UPDATE leaderboard 
-			SET primaryScore %f, secondaryScore %f, tertiaryScore %f, 
+			SET primaryScore = %f, secondaryScore = %f, tertiaryScore = %f, 
 			timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;
 			)QUERY";
 	} else {
 		insertStatement =
 			R"QUERY(
 			INSERT leaderboard SET 
-			primaryScore %f, secondaryScore %f, tertiaryScore %f, 
+			primaryScore = %f, secondaryScore = %f, tertiaryScore = %f, 
 			character_id = ?, game_id = ?;
 			)QUERY";
 	}
@@ -294,12 +293,13 @@ std::string FormatInsert(const Leaderboard::Type& type, const Score& score, cons
 	return finishedQuery;
 }
 
-void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID gameID, const Leaderboard::Type leaderboardType, const float primaryScore, const float secondaryScore, const float tertiaryScore) {
+void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore, const float tertiaryScore) {
+	const Leaderboard::Type leaderboardType = GetLeaderboardType(activityId);
 	auto* lookup = "SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;";
 
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookup));
 	query->setInt(1, playerID);
-	query->setInt(2, gameID);
+	query->setInt(2, activityId);
 	std::unique_ptr<sql::ResultSet> myScoreResult(query->executeQuery());
 
 	std::string saveQuery("UPDATE leaderboard SET timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;");
@@ -349,7 +349,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID gameID
 		}
 		case Leaderboard::Type::None:
 		default:
-			Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i for game %i.  Cannot save score!", leaderboardType, gameID);
+			Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i for game %i. Cannot save score!", leaderboardType, activityId);
 			return;
 		}
 		bool newHighScore = lowerScoreBetter ? newScore < oldScore : newScore > oldScore;
@@ -364,11 +364,11 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID gameID
 
 	std::unique_ptr<sql::PreparedStatement> saveStatement(Database::CreatePreppedStmt(saveQuery));
 	saveStatement->setInt(1, playerID);
-	saveStatement->setInt(2, gameID);
+	saveStatement->setInt(2, activityId);
 	saveStatement->execute();
 }
 
-void LeaderboardManager::SendLeaderboard(const uint32_t gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t resultStart, const uint32_t resultEnd) {
+void LeaderboardManager::SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t resultStart, const uint32_t resultEnd) {
 	Leaderboard leaderboard(gameID, infoType, weekly, playerID, GetLeaderboardType(gameID));
 	leaderboard.SetupLeaderboard(resultStart, resultEnd);
 	leaderboard.Send(targetID);

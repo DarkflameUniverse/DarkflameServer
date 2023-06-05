@@ -150,7 +150,7 @@ void SGCannon::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button
 			if (IsPlayerInActivity(self, player->GetObjectID())) return;
 			self->SetNetworkVar<bool>(ClearVariable, true);
 			StartGame(self);
-		} else if (button == 0 && ((identifier == u"Shooting_Gallery_Retry" || identifier == u"RePlay"))){
+		} else if (button == 0 && ((identifier == u"Shooting_Gallery_Retry" || identifier == u"RePlay"))) {
 			RemovePlayer(player->GetObjectID());
 			UpdatePlayer(self, player->GetObjectID(), true);
 		} else if (button == 1 && identifier == u"Shooting_Gallery_Exit") {
@@ -436,8 +436,8 @@ void SGCannon::RemovePlayer(LWOOBJID playerID) {
 	}
 }
 
-void SGCannon::OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled){
-	if (canceled){
+void SGCannon::OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled) {
+	if (canceled) {
 		StopGame(self, canceled);
 		RemovePlayer(player);
 	}
@@ -565,7 +565,8 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		LootGenerator::Instance().GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
 
 		StopActivity(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable), self->GetVar<uint32_t>(MaxStreakVariable), percentage);
-		SaveScore(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable), percentage, self->GetVar<uint32_t>(MaxStreakVariable));
+		SaveScore(self, player->GetObjectID(),
+			static_cast<float>(self->GetVar<uint32_t>(TotalScoreVariable)), percentage, static_cast<float>(self->GetVar<uint32_t>(MaxStreakVariable)));
 		self->SetNetworkVar<bool>(AudioFinalWaveDoneVariable, true);
 
 		// Give the player the model rewards they earned
