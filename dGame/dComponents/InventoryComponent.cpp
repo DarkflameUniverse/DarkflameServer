@@ -725,6 +725,7 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 			outBitStream->Write(item.id);
 			outBitStream->Write(item.lot);
 
+			// subkey
 			outBitStream->Write0();
 
 			outBitStream->Write(item.count > 0);
@@ -732,7 +733,7 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 
 			outBitStream->Write(item.slot != 0);
 			if (item.slot != 0) outBitStream->Write<uint16_t>(item.slot);
-
+			//invtype
 			outBitStream->Write0();
 
 			bool flag = !item.config.empty();
@@ -763,7 +764,7 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 	} else {
 		outBitStream->Write(false);
 	}
-
+	//EquippedModelTransform
 	outBitStream->Write(false);
 }
 
