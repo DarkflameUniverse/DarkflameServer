@@ -11,7 +11,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 	if (context->unmanaged) {
 		auto* entity = EntityManager::Instance()->GetEntity(branch.target);
 
-		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
 			PlayFx(u"onhit", entity->GetObjectID());
 			destroyableComponent->Damage(this->m_MaxDamage, context->originator, context->skillID);
@@ -44,7 +44,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 		return;
 	}
 
-	auto* destroyableComponent = targetEntity->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = targetEntity->GetComponent<DestroyableComponent>();
 	if (!destroyableComponent) {
 		Game::logger->Log("BasicAttackBehavior", "No destroyable found on the obj/lot %llu/%i", branch.target, targetEntity->GetLOT());
 		return;
@@ -161,7 +161,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 		return;
 	}
 
-	auto* destroyableComponent = targetEntity->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = targetEntity->GetComponent<DestroyableComponent>();
 	if (!destroyableComponent || !destroyableComponent->GetOwningEntity()) {
 		Game::logger->Log("BasicAttackBehavior", "No destroyable component on %llu", branch.target);
 		return;

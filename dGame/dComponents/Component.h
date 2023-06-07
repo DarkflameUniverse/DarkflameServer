@@ -4,6 +4,10 @@
 
 class Entity;
 
+namespace RakNet {
+	class BitStream;
+}
+
 /**
  * Component base class, provides methods for game loop updates, usage events and loading and saving to XML.
  */
@@ -56,6 +60,11 @@ public:
 	 * Loads the data of this component from the cdclient database
 	 */
 	virtual void LoadTemplateData();
+
+	/**
+	 * Serializes the component for delivery to the client(s)
+	 */
+	virtual void Serialize(RakNet::BitStream* bitStream, bool isConstruction = false);
 protected:
 
 	/**

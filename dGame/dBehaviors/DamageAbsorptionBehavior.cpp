@@ -16,7 +16,7 @@ void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		return;
 	}
 
-	auto* destroyable = target->GetComponent<DestroyableComponent>();
+	auto destroyable = target->GetComponent<DestroyableComponent>();
 
 	if (destroyable == nullptr) {
 		return;

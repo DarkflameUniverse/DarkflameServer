@@ -18,7 +18,7 @@ void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 		return;
 	}
 
-	auto* component = entity->GetComponent<DestroyableComponent>();
+	auto component = entity->GetComponent<DestroyableComponent>();
 
 	if (component == nullptr) {
 		Game::logger->Log("BuffBehavior", "Invalid target, no destroyable component (%llu)!", target);
@@ -52,7 +52,7 @@ void BuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch
 		return;
 	}
 
-	auto* component = entity->GetComponent<DestroyableComponent>();
+	auto component = entity->GetComponent<DestroyableComponent>();
 
 	if (component == nullptr) {
 		Game::logger->Log("BuffBehavior", "Invalid target, no destroyable component (%llu)!", target);

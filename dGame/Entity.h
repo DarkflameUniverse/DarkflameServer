@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -44,6 +45,8 @@ namespace CppScripts {
 /**
  * An entity in the world. Has multiple components.
  */
+
+using ComponentPtr = std::shared_ptr<Component>;
 class Entity {
 public:
 	explicit Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity = nullptr);
@@ -136,19 +139,17 @@ public:
 	 * Component management
 	 */
 
-	Component* GetComponent(eReplicaComponentType componentID) const;
+	const ComponentPtr GetComponent(eReplicaComponentType componentID) const;
 
 	template<typename T>
-	T* GetComponent() const;
-
-	template<typename T>
-	bool TryGetComponent(eReplicaComponentType componentId, T*& component) const;
+	std::shared_ptr<T> GetComponent() const;
 
 	bool HasComponent(eReplicaComponentType componentId) const;
 
-	void AddComponent(eReplicaComponentType componentId, Component* component);
+	template<typename ComponentType, typename...ConstructorValues>
+	std::shared_ptr<ComponentType> AddComponent(ConstructorValues... arguments);
 
-	std::vector<ScriptComponent*> GetScriptComponents();
+	std::vector<std::shared_ptr<ScriptComponent>> GetScriptComponents();
 
 	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
 	void Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName);
@@ -168,8 +169,6 @@ public:
 
 	void AddToGroup(const std::string& group);
 	bool IsPlayer() const;
-
-	std::unordered_map<eReplicaComponentType, Component*>& GetComponents() { return m_Components; } // TODO: Remove
 
 	void WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
 	void WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
@@ -320,7 +319,7 @@ protected:
 	std::vector<std::function<void()>> m_DieCallbacks;
 	std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
 
-	std::unordered_map<eReplicaComponentType, Component*> m_Components;
+	std::unordered_map<eReplicaComponentType, ComponentPtr> m_Components;
 	std::vector<EntityTimer*> m_Timers;
 	std::vector<EntityTimer*> m_PendingTimers;
 	std::vector<EntityCallbackTimer*> m_CallbackTimers;
@@ -345,30 +344,10 @@ protected:
 	std::vector<LWOOBJID> m_TargetsInPhantom;
 };
 
-/**
- * Template definitions.
- */
-
-template<typename T>
-bool Entity::TryGetComponent(const eReplicaComponentType componentId, T*& component) const {
-	const auto& index = m_Components.find(componentId);
-
-	if (index == m_Components.end()) {
-		component = nullptr;
-
-		return false;
-	}
-
-	component = dynamic_cast<T*>(index->second);
-
-	return true;
-}
-
 template <typename T>
-T* Entity::GetComponent() const {
-	return dynamic_cast<T*>(GetComponent(T::ComponentType));
+std::shared_ptr<T> Entity::GetComponent() const {
+	return std::dynamic_pointer_cast<T>(GetComponent(T::ComponentType));
 }
-
 
 template<typename T>
 const T& Entity::GetVar(const std::u16string& name) const {
@@ -500,4 +479,11 @@ T Entity::GetNetworkVar(const std::u16string& name) {
 	}
 
 	return LDFData<T>::Default;
+}
+
+template<typename ComponentType, typename...ConstructorValues>
+std::shared_ptr<ComponentType> Entity::AddComponent(ConstructorValues...arguments) {
+	if (GetComponent<ComponentType>()) return nullptr;
+
+	m_Components.insert_or_assign(ComponentType::ComponentType, std::make_shared<ComponentType>(arguments...));
 }

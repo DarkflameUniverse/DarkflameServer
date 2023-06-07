@@ -2,6 +2,7 @@
 
 // Custom Classes
 #include "CDTable.h"
+#include "dCommonVars.h"
 
 enum class eReplicaComponentType : uint32_t;
 struct CDComponentsRegistry {
@@ -18,4 +19,5 @@ private:
 public:
 	CDComponentsRegistryTable();
 	int32_t GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue = 0);
+	std::vector<std::pair<eReplicaComponentType, uint32_t>> GetTemplateComponents(LOT templateId);
 };

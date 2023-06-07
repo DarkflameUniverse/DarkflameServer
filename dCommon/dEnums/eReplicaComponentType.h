@@ -121,6 +121,7 @@ enum class eReplicaComponentType : uint32_t {
 	BUILD_BORDER,
 	UNKNOWN_115,
 	CULLING_PLANE,
+	NUMBER_OF_COMPONENTS,
 	DESTROYABLE = 1000 // Actually 7
 };
 

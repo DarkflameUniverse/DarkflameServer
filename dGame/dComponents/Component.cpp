@@ -37,3 +37,7 @@ void Component::LoadConfigData() {
 void Component::LoadTemplateData() {
 
 }
+
+void Component::Serialize(RakNet::BitStream* bitStream, bool isConstruction = false) {
+
+}

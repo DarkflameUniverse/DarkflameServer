@@ -483,7 +483,7 @@ void EntityManager::UpdateGhosting(Player* player) {
 		return;
 	}
 
-	auto* missionComponent = player->GetComponent<MissionComponent>();
+	auto missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent == nullptr) {
 		return;
@@ -599,7 +599,7 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 	if (!entity)
 		return;
 
-	SwitchComponent* switchComp = entity->GetComponent<SwitchComponent>();
+	auto switchComp = entity->GetComponent<SwitchComponent>();
 	if (switchComp) {
 		entity->TriggerEvent(eTriggerEventType::DEACTIVATED, entity);
 	}

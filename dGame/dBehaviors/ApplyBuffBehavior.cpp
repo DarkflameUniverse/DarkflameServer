@@ -4,13 +4,12 @@
 #include "BehaviorBranchContext.h"
 #include "BuffComponent.h"
 
-
 void ApplyBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* entity = EntityManager::Instance()->GetEntity(branch.target == LWOOBJID_EMPTY ? context->originator : branch.target);
 
 	if (entity == nullptr) return;
 
-	auto* buffComponent = entity->GetComponent<BuffComponent>();
+	auto buffComponent = entity->GetComponent<BuffComponent>();
 
 	if (buffComponent == nullptr) return;
 
@@ -23,7 +22,7 @@ void ApplyBuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext b
 
 	if (entity == nullptr) return;
 
-	auto* buffComponent = entity->GetComponent<BuffComponent>();
+	auto buffComponent = entity->GetComponent<BuffComponent>();
 
 	if (buffComponent == nullptr) return;
 

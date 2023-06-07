@@ -18,7 +18,7 @@ void BlockBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 		return;
 	}
 
-	auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent == nullptr) {
 		return;
@@ -48,7 +48,7 @@ void BlockBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branc
 		return;
 	}
 
-	auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 	destroyableComponent->SetAttacksToBlock(this->m_numAttacksCanBlock);
 

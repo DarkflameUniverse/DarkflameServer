@@ -87,7 +87,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 			continue;
 		}
 
-		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent == nullptr) {
 			continue;

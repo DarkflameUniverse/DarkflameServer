@@ -214,7 +214,7 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 				continue;
 			}
 
-			auto* skillComponent = chars[i]->GetEntity()->GetComponent<SkillComponent>();
+			auto skillComponent = chars[i]->GetEntity()->GetComponent<SkillComponent>();
 
 			if (skillComponent != nullptr) {
 				skillComponent->Reset();
