@@ -7,7 +7,7 @@ void NpcCowboyServer::OnMissionDialogueOK(Entity* self, Entity* target, int miss
 		return;
 	}
 
-	auto* inventoryComponent = target->GetComponent<InventoryComponent>();
+	auto inventoryComponent = target->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;

@@ -22,7 +22,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		return;
 	}
 
-	auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent == nullptr) {
 		return;
@@ -46,7 +46,7 @@ void SwitchBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		state = entity != nullptr;
 
 		if (state && m_targetHasBuff != 0) {
-			auto* buffComponent = entity->GetComponent<BuffComponent>();
+			auto buffComponent = entity->GetComponent<BuffComponent>();
 
 			if (buffComponent != nullptr && !buffComponent->HasBuff(m_targetHasBuff)) {
 				state = false;

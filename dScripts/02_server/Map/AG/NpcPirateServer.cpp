@@ -3,7 +3,7 @@
 #include "InventoryComponent.h"
 
 void NpcPirateServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
-	auto* inventory = target->GetComponent<InventoryComponent>();
+	auto inventory = target->GetComponent<InventoryComponent>();
 	if (inventory != nullptr && missionID == 1881) {
 		auto* luckyShovel = inventory->FindItemByLot(14591);
 

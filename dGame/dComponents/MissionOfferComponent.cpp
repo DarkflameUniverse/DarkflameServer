@@ -79,7 +79,7 @@ void MissionOfferComponent::OnUse(Entity* originator) {
 
 void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifiedMissionId) {
 	// First, get the entity's MissionComponent. If there is not one, then we cannot offer missions to this entity.
-	auto* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
+	auto missionComponent = entity->GetComponent<MissionComponent>();
 
 	if (!missionComponent) {
 		Game::logger->Log("MissionOfferComponent", "Unable to get mission component for Entity %llu", entity->GetObjectID());

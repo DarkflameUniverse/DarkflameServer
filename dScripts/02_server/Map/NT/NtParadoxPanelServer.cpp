@@ -15,7 +15,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 
 	self->SetVar(u"bActive", true);
 
-	auto* missionComponent = user->GetComponent<MissionComponent>();
+	auto missionComponent = user->GetComponent<MissionComponent>();
 
 	const auto playerID = user->GetObjectID();
 

@@ -195,14 +195,14 @@ public:
 	 * @param tamer the entity that's currently taming
 	 * @return the pet component of the entity that's being tamed
 	 */
-	static PetComponent* GetTamingPet(LWOOBJID tamer);
+	static std::shared_ptr<PetComponent> GetTamingPet(LWOOBJID tamer);
 
 	/**
 	 * Returns the pet that's currently spawned for some entity (if any)
 	 * @param owner the owner of the pet that's spawned
 	 * @return the pet component of the entity that was spawned by the owner
 	 */
-	static PetComponent* GetActivePet(LWOOBJID owner);
+	static std::shared_ptr<PetComponent> GetActivePet(LWOOBJID owner);
 
 	/**
 	 * Adds the timer to the owner of this pet to drain imagination at the rate
@@ -349,7 +349,7 @@ private:
 	/**
 	 * The movement AI component that is related to this pet, required to move it around
 	 */
-	MovementAIComponent* m_MovementAI;
+	std::shared_ptr<MovementAIComponent> m_MovementAI;
 
 	/**
 	 * Preconditions that need to be met before an entity can tame this pet

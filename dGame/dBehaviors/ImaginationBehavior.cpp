@@ -13,7 +13,7 @@ void ImaginationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		return;
 	}
 
-	auto* destroyable = entity->GetComponent<DestroyableComponent>();
+	auto destroyable = entity->GetComponent<DestroyableComponent>();
 
 	if (destroyable == nullptr) {
 		return;

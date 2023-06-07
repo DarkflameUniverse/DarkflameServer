@@ -137,7 +137,7 @@ LootGenerator::LootGenerator() {
 }
 
 std::unordered_map<LOT, int32_t> LootGenerator::RollLootMatrix(Entity* player, uint32_t matrixIndex) {
-	auto* missionComponent = player->GetComponent<MissionComponent>();
+	auto missionComponent = player->GetComponent<MissionComponent>();
 
 	std::unordered_map<LOT, int32_t> drops;
 
@@ -283,7 +283,7 @@ void LootGenerator::GiveLoot(Entity* player, uint32_t matrixIndex, eLootSourceTy
 void LootGenerator::GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& result, eLootSourceType lootSourceType) {
 	player = player->GetOwner(); // if the owner is overwritten, we collect that here
 
-	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	auto inventoryComponent = player->GetComponent<InventoryComponent>();
 
 	if (!inventoryComponent)
 		return;
@@ -330,7 +330,7 @@ void LootGenerator::GiveActivityLoot(Entity* player, Entity* source, uint32_t ac
 void LootGenerator::DropLoot(Entity* player, Entity* killedObject, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {
 	player = player->GetOwner(); // if the owner is overwritten, we collect that here
 
-	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	auto inventoryComponent = player->GetComponent<InventoryComponent>();
 
 	if (!inventoryComponent)
 		return;
@@ -343,7 +343,7 @@ void LootGenerator::DropLoot(Entity* player, Entity* killedObject, uint32_t matr
 void LootGenerator::DropLoot(Entity* player, Entity* killedObject, std::unordered_map<LOT, int32_t>& result, uint32_t minCoins, uint32_t maxCoins) {
 	player = player->GetOwner(); // if the owner is overwritten, we collect that here
 
-	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	auto inventoryComponent = player->GetComponent<InventoryComponent>();
 
 	if (!inventoryComponent)
 		return;

@@ -136,7 +136,7 @@ void Entity::Initialize() {
 	for (const auto& [componentTemplate, componentId] : components) {
 		switch (componentTemplate) {
 		case eReplicaComponentType::CONTROLLABLE_PHYSICS:
-			AddComponent<ControllablePhysicsComponent>(this);
+			AddComponent<ControllablePhysicsComponent>();
 			break;
 		case eReplicaComponentType::RENDER:
 			break;
@@ -432,12 +432,12 @@ void Entity::Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationNa
 }
 
 void Entity::SetProximityRadius(float proxRadius, std::string name) {
-	auto proximityMonitorComponent = AddComponent<ProximityMonitorComponent>(this);
+	auto proximityMonitorComponent = AddComponent<ProximityMonitorComponent>();
 	if (proximityMonitorComponent) proximityMonitorComponent->SetProximityRadius(proxRadius, name);
 }
 
 void Entity::SetProximityRadius(dpEntity* entity, std::string name) {
-	auto proximityMonitorComponent = AddComponent<ProximityMonitorComponent>(this);
+	auto proximityMonitorComponent = AddComponent<ProximityMonitorComponent>();
 	if (proximityMonitorComponent) proximityMonitorComponent->SetProximityRadius(entity, name);
 }
 

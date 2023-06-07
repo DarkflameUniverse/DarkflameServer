@@ -82,7 +82,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		return;
 	}
 
-	const auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
+	const auto destroyableComponent = self->GetComponent<DestroyableComponent>();
 
 	if ((this->m_usePickedTarget || context->clientInitalized) && branch.target > 0) {
 		const auto* target = EntityManager::Instance()->GetEntity(branch.target);
@@ -101,7 +101,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		return;
 	}
 
-	auto* combatAi = self->GetComponent<BaseCombatAIComponent>();
+	auto combatAi = self->GetComponent<BaseCombatAIComponent>();
 
 	const auto casterPosition = self->GetPosition();
 

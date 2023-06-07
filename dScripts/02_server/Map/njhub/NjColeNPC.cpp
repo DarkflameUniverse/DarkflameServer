@@ -8,7 +8,7 @@ void NjColeNPC::OnEmoteReceived(Entity* self, int32_t emote, Entity* target) {
 		return;
 	}
 
-	auto* inventoryComponent = target->GetComponent<InventoryComponent>();
+	auto inventoryComponent = target->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -18,7 +18,7 @@ void NjColeNPC::OnEmoteReceived(Entity* self, int32_t emote, Entity* target) {
 		return;
 	}
 
-	auto* missionComponent = target->GetComponent<MissionComponent>();
+	auto missionComponent = target->GetComponent<MissionComponent>();
 
 	if (missionComponent == nullptr) {
 		return;
@@ -31,8 +31,8 @@ void NjColeNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID,
 	NjNPCMissionSpinjitzuServer::OnMissionDialogueOK(self, target, missionID, missionState);
 
 	if (missionID == 1818 && missionState >= eMissionState::READY_TO_COMPLETE) {
-		auto* missionComponent = target->GetComponent<MissionComponent>();
-		auto* inventoryComponent = target->GetComponent<InventoryComponent>();
+		auto missionComponent = target->GetComponent<MissionComponent>();
+		auto inventoryComponent = target->GetComponent<InventoryComponent>();
 
 		if (missionComponent == nullptr || inventoryComponent == nullptr) {
 			return;

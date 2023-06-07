@@ -4,7 +4,7 @@
 #include "MovingPlatformComponent.h"
 
 void PropertyPlatform::OnRebuildComplete(Entity* self, Entity* target) {
-	//    auto* movingPlatform = self->GetComponent<MovingPlatformComponent>();
+	//    auto movingPlatform = self->GetComponent<MovingPlatformComponent>();
 	//    if (movingPlatform != nullptr) {
 	//        movingPlatform->StopPathing();
 	//        movingPlatform->SetNoAutoStart(true);
@@ -14,9 +14,9 @@ void PropertyPlatform::OnRebuildComplete(Entity* self, Entity* target) {
 }
 
 void PropertyPlatform::OnUse(Entity* self, Entity* user) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto rebuildComponent = self->GetComponent<RebuildComponent>();
 	if (rebuildComponent != nullptr && rebuildComponent->GetState() == eRebuildState::COMPLETED) {
-		//        auto* movingPlatform = self->GetComponent<MovingPlatformComponent>();
+		//        auto movingPlatform = self->GetComponent<MovingPlatformComponent>();
 		//        if (movingPlatform != nullptr) {
 		//            movingPlatform->GotoWaypoint(1);
 		//        }

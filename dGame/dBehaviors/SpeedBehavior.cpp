@@ -12,7 +12,7 @@ void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 	if (!target) return;
 
-	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	auto controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 
 	controllablePhysicsComponent->AddSpeedboost(m_RunSpeed);
@@ -41,7 +41,7 @@ void SpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext branch, 
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 	if (!target) return;
 
-	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	auto controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 
 	controllablePhysicsComponent->RemoveSpeedboost(m_RunSpeed);

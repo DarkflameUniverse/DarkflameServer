@@ -3,7 +3,7 @@
 #include "eMissionState.h"
 
 void NPCAddRemoveItem::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
-	auto* inventory = target->GetComponent<InventoryComponent>();
+	auto inventory = target->GetComponent<InventoryComponent>();
 	if (inventory == nullptr)
 		return;
 

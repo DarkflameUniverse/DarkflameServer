@@ -40,7 +40,7 @@ void FvFlyingCreviceDragon::OnTimerDone(Entity* self, std::string timerName) {
 		return;
 	}
 
-	auto* skillComponent = group[0]->GetComponent<SkillComponent>();
+	auto skillComponent = group[0]->GetComponent<SkillComponent>();
 
 	if (skillComponent != nullptr) {
 		skillComponent->CalculateBehavior(762, 12506, LWOOBJID_EMPTY, true);
@@ -79,7 +79,7 @@ void FvFlyingCreviceDragon::OnArrived(Entity* self) {
 			return;
 		}
 
-		auto* skillComponent = group2[0]->GetComponent<SkillComponent>();
+		auto skillComponent = group2[0]->GetComponent<SkillComponent>();
 
 		if (skillComponent != nullptr) {
 			skillComponent->CalculateBehavior(762, 12506, LWOOBJID_EMPTY);

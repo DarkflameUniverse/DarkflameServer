@@ -5,7 +5,7 @@ void NjScrollChestServer::OnUse(Entity* self, Entity* user) {
 	const auto keyLOT = self->GetVar<LOT>(u"KeyNum");
 	const auto rewardItemLOT = self->GetVar<LOT>(u"openItemID");
 
-	auto* playerInventory = user->GetComponent<InventoryComponent>();
+	auto playerInventory = user->GetComponent<InventoryComponent>();
 	if (playerInventory != nullptr && playerInventory->GetLotCount(keyLOT) == 1) {
 
 		// Check for the key and remove

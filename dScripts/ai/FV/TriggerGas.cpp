@@ -36,7 +36,7 @@ void TriggerGas::OnTimerDone(Entity* self, std::string timerName) {
 		auto inventoryComponent = player->GetComponent<InventoryComponent>();
 		if (inventoryComponent) {
 			if (!inventoryComponent->IsEquipped(this->m_MaelstromHelmet)) {
-				auto* skillComponent = self->GetComponent<SkillComponent>();
+				auto skillComponent = self->GetComponent<SkillComponent>();
 				if (skillComponent) {
 					skillComponent->CastSkill(this->m_FogDamageSkill, player->GetObjectID());
 				}

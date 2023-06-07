@@ -23,7 +23,7 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 		return;
 	}
 
-	auto* possessableComponent = entering->GetComponent<PossessableComponent>();
+	auto possessableComponent = entering->GetComponent<PossessableComponent>();
 
 	Entity* vehicle;
 	Entity* player;
@@ -37,7 +37,7 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 
 		vehicle = entering;
 	} else if (entering->IsPlayer()) {
-		auto* possessorComponent = entering->GetComponent<PossessorComponent>();
+		auto possessorComponent = entering->GetComponent<PossessorComponent>();
 
 		if (possessorComponent == nullptr) {
 			return;
@@ -59,7 +59,7 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
+	auto racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
 
 	if (racingControlComponent != nullptr) {
 		racingControlComponent->OnRequestDie(player);

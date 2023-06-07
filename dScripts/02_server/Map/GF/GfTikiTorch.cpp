@@ -45,7 +45,7 @@ void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
 }
 
 void GfTikiTorch::LightTorch(Entity* self) {
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
+	auto renderComponent = self->GetComponent<RenderComponent>();
 	if (renderComponent == nullptr)
 		return;
 
@@ -59,14 +59,14 @@ void GfTikiTorch::OnSkillEventFired(Entity* self, Entity* caster, const std::str
 	if (self->GetBoolean(u"isBurning") && message == "waterspray") {
 		RenderComponent::PlayAnimation(self, u"water");
 
-		auto* renderComponent = self->GetComponent<RenderComponent>();
+		auto renderComponent = self->GetComponent<RenderComponent>();
 		if (renderComponent != nullptr) {
 			renderComponent->StopEffect("tikitorch");
 			renderComponent->PlayEffect(611, u"water", "water");
 			renderComponent->PlayEffect(611, u"steam", "steam");
 		}
 
-		auto* casterMissionComponent = caster->GetComponent<MissionComponent>();
+		auto casterMissionComponent = caster->GetComponent<MissionComponent>();
 		if (casterMissionComponent != nullptr) {
 			for (const auto missionID : m_missions) {
 				casterMissionComponent->ForceProgressTaskType(missionID, static_cast<uint32_t>(eMissionTaskType::SCRIPT), 1);

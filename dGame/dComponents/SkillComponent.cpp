@@ -193,7 +193,7 @@ void SkillComponent::Reset() {
 
 void SkillComponent::Interrupt() {
 	// TODO: need to check immunities on the destroyable component, but they aren't implemented
-	auto* combat = m_OwningEntity->GetComponent<BaseCombatAIComponent>();
+	auto combat = m_OwningEntity->GetComponent<BaseCombatAIComponent>();
 	if (combat != nullptr && combat->GetStunImmune()) return;
 
 	for (const auto& behavior : this->m_managedBehaviors) {

@@ -8,7 +8,7 @@
 void DamagingPets::OnStartup(Entity* self) {
 
 	// Make the pet hostile or non-hostile based on whether or not it is tamed
-	const auto* petComponent = self->GetComponent<PetComponent>();
+	const auto petComponent = self->GetComponent<PetComponent>();
 	if (petComponent != nullptr && petComponent->GetOwner() == nullptr) {
 		self->AddTimer("GoEvil", 0.5f);
 	}
@@ -19,9 +19,9 @@ void DamagingPets::OnPlayerLoaded(Entity* self, Entity* player) {
 	// Makes it so that new players also see the effect
 	self->AddCallbackTimer(2.5f, [self]() {
 		if (self != nullptr) {
-			const auto* petComponent = self->GetComponent<PetComponent>();
+			const auto petComponent = self->GetComponent<PetComponent>();
 			if (petComponent != nullptr && petComponent->GetOwner() == nullptr && self->GetVar<bool>(u"IsEvil")) {
-				auto* renderComponent = self->GetComponent<RenderComponent>();
+				auto renderComponent = self->GetComponent<RenderComponent>();
 				if (renderComponent != nullptr) {
 					auto counter = 1;
 					for (const auto petEffect : GetPetInfo(self).effect) {
@@ -58,7 +58,7 @@ void DamagingPets::OnSkillEventFired(Entity* self, Entity* caster, const std::st
 	if (infoForPet.skill == message) {
 
 		// Only make pets tamable that aren't tamed yet
-		const auto* petComponent = self->GetComponent<PetComponent>();
+		const auto petComponent = self->GetComponent<PetComponent>();
 		if (petComponent != nullptr && petComponent->GetOwner() == nullptr && self->GetVar<bool>(u"IsEvil")) {
 			ClearEffects(self);
 			self->AddTimer("GoEvil", 30.0f);
@@ -74,7 +74,7 @@ void DamagingPets::OnTimerDone(Entity* self, std::string message) {
 }
 
 void DamagingPets::MakeUntamable(Entity* self) {
-	auto* petComponent = self->GetComponent<PetComponent>();
+	auto petComponent = self->GetComponent<PetComponent>();
 
 	// If the pet is currently not being tamed, make it hostile
 	if (petComponent != nullptr && petComponent->GetStatus() != 5) {
@@ -82,19 +82,19 @@ void DamagingPets::MakeUntamable(Entity* self) {
 		self->SetVar<bool>(u"IsEvil", true);
 		petComponent->SetStatus(1);
 
-		auto* combatAIComponent = self->GetComponent<BaseCombatAIComponent>();
+		auto combatAIComponent = self->GetComponent<BaseCombatAIComponent>();
 		if (combatAIComponent != nullptr) {
 			combatAIComponent->SetDisabled(false);
 		}
 
 		// Special faction that can attack the player but the player can't attack
-		auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
+		auto destroyableComponent = self->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
 			destroyableComponent->SetFaction(114);
 			destroyableComponent->SetHealth(5);
 		}
 
-		auto* renderComponent = self->GetComponent<RenderComponent>();
+		auto renderComponent = self->GetComponent<RenderComponent>();
 		if (renderComponent != nullptr) {
 			auto counter = 1;
 			for (const auto petEffect : GetPetInfo(self).effect) {
@@ -108,22 +108,22 @@ void DamagingPets::MakeUntamable(Entity* self) {
 void DamagingPets::ClearEffects(Entity* self) {
 	self->SetVar<bool>(u"IsEvil", false);
 
-	auto* petComponent = self->GetComponent<PetComponent>();
+	auto petComponent = self->GetComponent<PetComponent>();
 	if (petComponent != nullptr) {
 		petComponent->SetStatus(67108866);
 	}
 
-	auto* combatAIComponent = self->GetComponent<BaseCombatAIComponent>();
+	auto combatAIComponent = self->GetComponent<BaseCombatAIComponent>();
 	if (combatAIComponent != nullptr) {
 		combatAIComponent->SetDisabled(true);
 	}
 
-	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = self->GetComponent<DestroyableComponent>();
 	if (destroyableComponent != nullptr) {
 		destroyableComponent->SetFaction(99);
 	}
 
-	auto* renderComponent = self->GetComponent<RenderComponent>();
+	auto renderComponent = self->GetComponent<RenderComponent>();
 	if (renderComponent != nullptr) {
 		auto counter = 1;
 		for (const auto petEffect : GetPetInfo(self).effect) {

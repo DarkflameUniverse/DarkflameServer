@@ -7,7 +7,7 @@
 void EnemySkeletonSpawner::OnStartup(Entity* self) {
 	self->SetProximityRadius(15, "ronin");
 
-	auto* skillComponent = self->GetComponent<SkillComponent>();
+	auto skillComponent = self->GetComponent<SkillComponent>();
 
 	if (skillComponent != nullptr) {
 		skillComponent->CalculateBehavior(1127, 24812, LWOOBJID_EMPTY, true);
@@ -16,7 +16,7 @@ void EnemySkeletonSpawner::OnStartup(Entity* self) {
 
 void EnemySkeletonSpawner::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "hatchTime") {
-		auto* renderComponent = self->GetComponent<RenderComponent>();
+		auto renderComponent = self->GetComponent<RenderComponent>();
 
 		if (renderComponent != nullptr) {
 			renderComponent->PlayEffect(644, u"create", "BurstFX1");
@@ -48,7 +48,7 @@ void EnemySkeletonSpawner::OnProximityUpdate(Entity* self, Entity* entering, std
 	if (entering->IsPlayer() && name == "ronin" && status == "ENTER" && !self->GetVar<bool>(u"hatching")) {
 		StartHatching(self);
 
-		auto* skillComponent = self->GetComponent<SkillComponent>();
+		auto skillComponent = self->GetComponent<SkillComponent>();
 
 		if (skillComponent != nullptr) {
 			skillComponent->CalculateBehavior(305, 3568, LWOOBJID_EMPTY);
@@ -65,7 +65,7 @@ void EnemySkeletonSpawner::OnHit(Entity* self, Entity* attacker) {
 void EnemySkeletonSpawner::StartHatching(Entity* self) {
 	self->SetVar(u"hatching", true);
 
-	auto* renderComponent = self->GetComponent<RenderComponent>();
+	auto renderComponent = self->GetComponent<RenderComponent>();
 
 	if (renderComponent != nullptr) {
 		renderComponent->PlayEffect(9017, u"cast", "WakeUpFX1");

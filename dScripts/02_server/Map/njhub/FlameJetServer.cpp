@@ -19,7 +19,7 @@ void FlameJetServer::OnCollisionPhantom(Entity* self, Entity* target) {
 		return;
 	}
 
-	auto* skillComponent = target->GetComponent<SkillComponent>();
+	auto skillComponent = target->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
 		return;

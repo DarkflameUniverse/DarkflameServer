@@ -10,7 +10,7 @@ void AgImagSmashable::OnDie(Entity* self, Entity* killer) {
 	bool maxImagGreaterThanZero = false;
 
 	if (killer) {
-		DestroyableComponent* dest = static_cast<DestroyableComponent*>(killer->GetComponent(eReplicaComponentType::DESTROYABLE));
+		auto dest = killer->GetComponent<DestroyableComponent>();
 		if (dest) {
 			maxImagGreaterThanZero = dest->GetMaxImagination() > 0;
 		}

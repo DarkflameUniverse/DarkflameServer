@@ -37,8 +37,8 @@ void ItemSetPassiveAbility::Activate(Entity* target) {
 		return;
 	}
 
-	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
-	auto* skillComponent = m_Parent->GetComponent<SkillComponent>();
+	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+	auto skillComponent = m_Parent->GetComponent<SkillComponent>();
 
 	if (destroyableComponent == nullptr || skillComponent == nullptr) {
 		return;
@@ -196,8 +196,8 @@ std::vector<ItemSetPassiveAbility> ItemSetPassiveAbility::FindAbilities(uint32_t
 }
 
 void ItemSetPassiveAbility::OnEnemySmshed(Entity* target) {
-	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
-	auto* skillComponent = m_Parent->GetComponent<SkillComponent>();
+	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+	auto skillComponent = m_Parent->GetComponent<SkillComponent>();
 
 	if (destroyableComponent == nullptr || skillComponent == nullptr) {
 		return;

@@ -5,7 +5,7 @@
 
 void FvFreeGfNinjas::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	if (missionID == 705 && missionState == eMissionState::AVAILABLE) {
-		auto* missionComponent = target->GetComponent<MissionComponent>();
+		auto missionComponent = target->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr)
 			return;
 
@@ -26,7 +26,7 @@ void FvFreeGfNinjas::OnMissionDialogueOK(Entity* self, Entity* target, int missi
 
 void FvFreeGfNinjas::OnUse(Entity* self, Entity* user) {
 	// To allow player who already have the mission to progress.
-	auto* missionComponent = user->GetComponent<MissionComponent>();
+	auto missionComponent = user->GetComponent<MissionComponent>();
 	if (missionComponent == nullptr)
 		return;
 

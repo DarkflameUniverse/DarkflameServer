@@ -214,7 +214,7 @@ float RenderComponent::GetAnimationTime(Entity* self, const std::string& animati
 float RenderComponent::DoAnimation(Entity* self, const std::string& animation, bool sendAnimation, float priority, float scale) {
 	float returnlength = 0.0f;
 	if (!self) return returnlength;
-	auto* renderComponent = self->GetComponent<RenderComponent>();
+	auto renderComponent = self->GetComponent<RenderComponent>();
 	if (!renderComponent) return returnlength;
 
 	auto* animationsTable = CDClientManager::Instance().GetTable<CDAnimationsTable>();

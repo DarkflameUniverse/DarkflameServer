@@ -6,7 +6,7 @@
 std::vector<int32_t> FvCandle::m_Missions = { 850, 1431, 1529, 1566, 1603 };
 
 void FvCandle::OnStartup(Entity* self) {
-	auto* render = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
+	auto render = self->GetComponent<RenderComponent>();
 	if (render == nullptr)
 		return;
 
@@ -23,11 +23,11 @@ void FvCandle::BlowOutCandle(Entity* self, Entity* blower) {
 	if (self->GetBoolean(u"AmHit"))
 		return;
 
-	auto* render = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
+	auto render = self->GetComponent<RenderComponent>();
 	if (render == nullptr)
 		return;
 
-	auto* missionComponent = blower->GetComponent<MissionComponent>();
+	auto missionComponent = blower->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		for (const auto mission : m_Missions) {
@@ -47,7 +47,7 @@ void FvCandle::BlowOutCandle(Entity* self, Entity* blower) {
 void FvCandle::OnTimerDone(Entity* self, std::string timerName) {
 	self->SetBoolean(u"AmHit", false);
 
-	auto* render = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
+	auto render = self->GetComponent<RenderComponent>();
 	if (render == nullptr)
 		return;
 

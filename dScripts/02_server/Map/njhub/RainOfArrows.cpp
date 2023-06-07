@@ -43,7 +43,7 @@ void RainOfArrows::OnTimerDone(Entity* self, std::string timerName) {
 			return;
 		}
 
-		auto* skillComponent = child->GetComponent<SkillComponent>();
+		auto skillComponent = child->GetComponent<SkillComponent>();
 
 		if (skillComponent == nullptr) {
 			return;

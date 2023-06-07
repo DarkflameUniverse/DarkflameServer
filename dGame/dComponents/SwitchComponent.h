@@ -75,7 +75,7 @@ private:
 	/**
 	 * Attached rebuild component.
 	 */
-	RebuildComponent* m_Rebuild;
+	std::shared_ptr<RebuildComponent> m_Rebuild;
 
 	/**
 	 * If the switch is on or off.

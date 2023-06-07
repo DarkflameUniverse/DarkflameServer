@@ -10,14 +10,14 @@ void AmDropshipComputer::OnStartup(Entity* self) {
 }
 
 void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto rebuildComponent = self->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent == nullptr || rebuildComponent->GetState() != eRebuildState::COMPLETED) {
 		return;
 	}
 
-	auto* missionComponent = user->GetComponent<MissionComponent>();
-	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
+	auto missionComponent = user->GetComponent<MissionComponent>();
+	auto inventoryComponent = user->GetComponent<InventoryComponent>();
 
 	if (missionComponent == nullptr || inventoryComponent == nullptr) {
 		return;
@@ -70,7 +70,7 @@ void AmDropshipComputer::OnDie(Entity* self, Entity* killer) {
 }
 
 void AmDropshipComputer::OnTimerDone(Entity* self, std::string timerName) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto rebuildComponent = self->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent == nullptr) {
 		return;

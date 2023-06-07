@@ -30,7 +30,7 @@ void SGCannon::OnStartup(Entity* self) {
 	self->SetVar<Vector3>(InitialVelocityVariable, {});
 	self->SetVar<uint32_t>(ImpactSkillVariale, constants.impactSkillID);
 
-	auto* shootingGalleryComponent = self->GetComponent<ShootingGalleryComponent>();
+	auto shootingGalleryComponent = self->GetComponent<ShootingGalleryComponent>();
 	if (shootingGalleryComponent != nullptr) {
 		shootingGalleryComponent->SetStaticParams({
 			Vector3 { -327.8609924316406, 256.8999938964844, 1.6482199430465698 },
@@ -57,7 +57,7 @@ void SGCannon::OnStartup(Entity* self) {
 	self->SetVar<uint32_t>(MatrixVariable, 1);
 	self->SetVar<bool>(InitVariable, true);
 
-	auto* simplePhysicsComponent = self->GetComponent<SimplePhysicsComponent>();
+	auto simplePhysicsComponent = self->GetComponent<SimplePhysicsComponent>();
 
 	if (simplePhysicsComponent != nullptr) {
 		simplePhysicsComponent->SetPhysicsMotionState(5);
@@ -88,7 +88,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 
 			GameMessages::SendActivityEnter(self->GetObjectID(), player->GetSystemAddress());
 
-			auto* shootingGalleryComponent = self->GetComponent<ShootingGalleryComponent>();
+			auto shootingGalleryComponent = self->GetComponent<ShootingGalleryComponent>();
 
 			if (shootingGalleryComponent != nullptr) {
 				shootingGalleryComponent->SetCurrentPlayerID(player->GetObjectID());
@@ -100,7 +100,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 				Game::logger->Log("SGCannon", "Shooting gallery component is null");
 			}
 
-			auto* characterComponent = player->GetComponent<CharacterComponent>();
+			auto characterComponent = player->GetComponent<CharacterComponent>();
 
 			if (characterComponent != nullptr) {
 				characterComponent->SetIsRacing(true);
@@ -287,9 +287,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			auto* enemy = EntityManager::Instance()->CreateEntity(info, nullptr, self);
 			EntityManager::Instance()->ConstructEntity(enemy);
 
-			auto* movementAI = new MovementAIComponent(enemy, {});
-
-			enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
+			auto movementAI = enemy->AddComponent<MovementAIComponent, MovementAIInfo>({});
 
 			movementAI->SetSpeed(toSpawn.initialSpeed);
 			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
@@ -554,7 +552,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 			percentage = misses / fired;
 		}
 
-		auto* missionComponent = player->GetComponent<MissionComponent>();
+		auto missionComponent = player->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
 			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, self->GetVar<uint32_t>(TotalScoreVariable), self->GetObjectID(), "performact_score");
@@ -568,7 +566,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		self->SetNetworkVar<bool>(AudioFinalWaveDoneVariable, true);
 
 		// Give the player the model rewards they earned
-		auto* inventory = player->GetComponent<InventoryComponent>();
+		auto inventory = player->GetComponent<InventoryComponent>();
 		if (inventory != nullptr) {
 			for (const auto rewardLot : self->GetVar<std::vector<LOT>>(RewardsVariable)) {
 				inventory->AddItem(rewardLot, 1, eLootSourceType::ACTIVITY, eInventoryType::MODELS);
@@ -720,7 +718,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 		return;
 	}
 
-	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	auto inventoryComponent = player->GetComponent<InventoryComponent>();
 
 	auto equippedItems = inventoryComponent->GetEquippedItems();
 
@@ -729,7 +727,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 	auto skillID = constants.cannonSkill;
 	auto cooldown = constants.cannonRefireRate;
 
-	auto* selfInventoryComponent = self->GetComponent<InventoryComponent>();
+	auto selfInventoryComponent = self->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		Game::logger->Log("SGCannon", "Inventory component not found");
@@ -772,7 +770,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 	const auto& constants = GetConstants();
 
-	auto* shootingGalleryComponent = self->GetComponent<ShootingGalleryComponent>();
+	auto shootingGalleryComponent = self->GetComponent<ShootingGalleryComponent>();
 
 	if (shootingGalleryComponent == nullptr) {
 		return;

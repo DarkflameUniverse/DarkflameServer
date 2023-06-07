@@ -185,7 +185,7 @@ void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 
-	auto* buffComponent = m_OwningEntity->GetComponent<BuffComponent>();
+	auto buffComponent = m_OwningEntity->GetComponent<BuffComponent>();
 
 	if (buffComponent != nullptr) {
 		buffComponent->LoadFromXml(doc);
@@ -207,7 +207,7 @@ void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 
-	auto* buffComponent = m_OwningEntity->GetComponent<BuffComponent>();
+	auto buffComponent = m_OwningEntity->GetComponent<BuffComponent>();
 
 	if (buffComponent != nullptr) {
 		buffComponent->UpdateXml(doc);
@@ -224,7 +224,7 @@ void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 void DestroyableComponent::SetHealth(int32_t value) {
 	m_DirtyHealth = true;
 
-	auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+	auto characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->TrackHealthDelta(value - m_iHealth);
 	}
@@ -262,14 +262,14 @@ void DestroyableComponent::SetArmor(int32_t value) {
 	// If Destroyable Component already has zero armor do not trigger the passive ability again.
 	bool hadArmor = m_iArmor > 0;
 
-	auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+	auto characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->TrackArmorDelta(value - m_iArmor);
 	}
 
 	m_iArmor = value;
 
-	auto* inventroyComponent = m_OwningEntity->GetComponent<InventoryComponent>();
+	auto inventroyComponent = m_OwningEntity->GetComponent<InventoryComponent>();
 	if (m_iArmor == 0 && inventroyComponent != nullptr && hadArmor) {
 		inventroyComponent->TriggerPassiveAbility(PassiveAbilityTrigger::SentinelArmor);
 	}
@@ -300,14 +300,14 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 void DestroyableComponent::SetImagination(int32_t value) {
 	m_DirtyHealth = true;
 
-	auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+	auto characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->TrackImaginationDelta(value - m_iImagination);
 	}
 
 	m_iImagination = value;
 
-	auto* inventroyComponent = m_OwningEntity->GetComponent<InventoryComponent>();
+	auto inventroyComponent = m_OwningEntity->GetComponent<InventoryComponent>();
 	if (m_iImagination == 0 && inventroyComponent != nullptr) {
 		inventroyComponent->TriggerPassiveAbility(PassiveAbilityTrigger::AssemblyImagination);
 	}
@@ -407,7 +407,7 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 }
 
 bool DestroyableComponent::IsEnemy(const Entity* other) const {
-	const auto* otherDestroyableComponent = other->GetComponent<DestroyableComponent>();
+	const auto otherDestroyableComponent = other->GetComponent<DestroyableComponent>();
 	if (otherDestroyableComponent != nullptr) {
 		for (const auto enemyFaction : m_EnemyFactionIDs) {
 			for (const auto otherFaction : otherDestroyableComponent->GetFactionIDs()) {
@@ -421,7 +421,7 @@ bool DestroyableComponent::IsEnemy(const Entity* other) const {
 }
 
 bool DestroyableComponent::IsFriend(const Entity* other) const {
-	const auto* otherDestroyableComponent = other->GetComponent<DestroyableComponent>();
+	const auto otherDestroyableComponent = other->GetComponent<DestroyableComponent>();
 	if (otherDestroyableComponent != nullptr) {
 		for (const auto enemyFaction : m_EnemyFactionIDs) {
 			for (const auto otherFaction : otherDestroyableComponent->GetFactionIDs()) {
@@ -455,8 +455,8 @@ bool DestroyableComponent::IsImmune() const {
 }
 
 bool DestroyableComponent::IsKnockbackImmune() const {
-	auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
-	auto* inventoryComponent = m_OwningEntity->GetComponent<InventoryComponent>();
+	auto characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+	auto inventoryComponent = m_OwningEntity->GetComponent<InventoryComponent>();
 
 	if (characterComponent != nullptr && inventoryComponent != nullptr && characterComponent->GetCurrentActivity() == eGameActivity::QUICKBUILDING) {
 		const auto hasPassive = inventoryComponent->HasAnyPassive({
@@ -493,13 +493,13 @@ bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignor
 		return false;
 	}
 
-	auto* targetDestroyable = targetEntity->GetComponent<DestroyableComponent>();
+	auto targetDestroyable = targetEntity->GetComponent<DestroyableComponent>();
 
 	if (targetDestroyable == nullptr) {
 		return false;
 	}
 
-	auto* targetQuickbuild = targetEntity->GetComponent<RebuildComponent>();
+	auto targetQuickbuild = targetEntity->GetComponent<RebuildComponent>();
 
 	if (targetQuickbuild != nullptr) {
 		const auto state = targetQuickbuild->GetState();
@@ -651,7 +651,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	if (health != 0) {
-		auto* combatComponent = m_OwningEntity->GetComponent<BaseCombatAIComponent>();
+		auto combatComponent = m_OwningEntity->GetComponent<BaseCombatAIComponent>();
 
 		if (combatComponent != nullptr) {
 			combatComponent->Taunt(source, sourceDamage * 10); // * 10 is arbatrary
@@ -710,13 +710,13 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 		const auto isEnemy = m_OwningEntity->GetComponent<BaseCombatAIComponent>() != nullptr;
 
-		auto* inventoryComponent = owner->GetComponent<InventoryComponent>();
+		auto inventoryComponent = owner->GetComponent<InventoryComponent>();
 
 		if (inventoryComponent != nullptr && isEnemy) {
 			inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::EnemySmashed, m_OwningEntity);
 		}
 
-		auto* missions = owner->GetComponent<MissionComponent>();
+		auto missions = owner->GetComponent<MissionComponent>();
 
 		if (missions != nullptr) {
 			if (team != nullptr) {
@@ -725,7 +725,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 					if (member == nullptr) continue;
 
-					auto* memberMissions = member->GetComponent<MissionComponent>();
+					auto memberMissions = member->GetComponent<MissionComponent>();
 
 					if (memberMissions == nullptr) continue;
 
@@ -750,7 +750,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 			if (team != nullptr && m_OwningEntity->GetComponent<BaseCombatAIComponent>() != nullptr) {
 				LWOOBJID specificOwner = LWOOBJID_EMPTY;
-				auto* scriptedActivityComponent = m_OwningEntity->GetComponent<ScriptedActivityComponent>();
+				auto scriptedActivityComponent = m_OwningEntity->GetComponent<ScriptedActivityComponent>();
 				uint32_t teamSize = team->members.size();
 				uint32_t lootMatrixId = GetLootMatrixID();
 
@@ -877,11 +877,11 @@ void DestroyableComponent::FixStats() {
 	if (entity == nullptr) return;
 
 	// Reset skill component and buff component
-	auto* skillComponent = entity->GetComponent<SkillComponent>();
-	auto* buffComponent = entity->GetComponent<BuffComponent>();
-	auto* missionComponent = entity->GetComponent<MissionComponent>();
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-	auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+	auto skillComponent = entity->GetComponent<SkillComponent>();
+	auto buffComponent = entity->GetComponent<BuffComponent>();
+	auto missionComponent = entity->GetComponent<MissionComponent>();
+	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 	// If any of the components are nullptr, return
 	if (skillComponent == nullptr || buffComponent == nullptr || missionComponent == nullptr || inventoryComponent == nullptr || destroyableComponent == nullptr) {
@@ -976,7 +976,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 	//check if this is a player:
 	if (m_OwningEntity->IsPlayer()) {
 		//remove hardcore_lose_uscore_on_death_percent from the player's uscore:
-		auto* character = m_OwningEntity->GetComponent<CharacterComponent>();
+		auto character = m_OwningEntity->GetComponent<CharacterComponent>();
 		auto uscore = character->GetUScore();
 
 		auto uscoreToLose = uscore * (EntityManager::Instance()->GetHardcoreLoseUscoreOnDeathPercent() / 100);
@@ -986,7 +986,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 
 		if (EntityManager::Instance()->GetHardcoreDropinventoryOnDeath()) {
 			//drop all items from inventory:
-			auto* inventory = m_OwningEntity->GetComponent<InventoryComponent>();
+			auto inventory = m_OwningEntity->GetComponent<InventoryComponent>();
 			if (inventory) {
 				//get the items inventory:
 				auto items = inventory->GetInventory(eInventoryType::ITEMS);
@@ -1029,7 +1029,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 	//award the player some u-score:
 	auto* player = EntityManager::Instance()->GetEntity(source);
 	if (player && player->IsPlayer()) {
-		auto* playerStats = player->GetComponent<CharacterComponent>();
+		auto playerStats = player->GetComponent<CharacterComponent>();
 		if (playerStats) {
 			//get the maximum health from this enemy:
 			auto maxHealth = GetMaxHealth();

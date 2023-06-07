@@ -6,9 +6,9 @@
 
 void NpcNpSpacemanBob::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	if (missionState == eMissionState::READY_TO_COMPLETE && missionID == 173) {
-		DestroyableComponent* destroyable = static_cast<DestroyableComponent*>(target->GetComponent(eReplicaComponentType::DESTROYABLE));
+		auto destroyable = target->GetComponent<DestroyableComponent>();
 		destroyable->SetImagination(6);
-		MissionComponent* mission = static_cast<MissionComponent*>(target->GetComponent(eReplicaComponentType::MISSION));
+		auto mission = target->GetComponent<MissionComponent>();
 
 		mission->CompleteMission(664);
 	}

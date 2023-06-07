@@ -110,7 +110,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			player->ConstructLimboEntities();
 		}
 
-		InventoryComponent* inv = entity->GetComponent<InventoryComponent>();
+		auto inv = entity->GetComponent<InventoryComponent>();
 		if (inv) {
 			auto items = inv->GetEquippedItems();
 			for (auto pair : items) {
@@ -120,13 +120,13 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			}
 		}
 
-		auto* destroyable = entity->GetComponent<DestroyableComponent>();
+		auto destroyable = entity->GetComponent<DestroyableComponent>();
 		destroyable->SetImagination(destroyable->GetImagination());
 		EntityManager::Instance()->SerializeEntity(entity);
 
 		std::vector<Entity*> racingControllers = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
 		for (Entity* racingController : racingControllers) {
-			auto* racingComponent = racingController->GetComponent<RacingControlComponent>();
+			auto racingComponent = racingController->GetComponent<RacingControlComponent>();
 			if (racingComponent != nullptr) {
 				racingComponent->OnPlayerLoaded(entity);
 			}
@@ -243,13 +243,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	case eGameMessageType::REQUEST_RESURRECT: {
 		GameMessages::SendResurrect(entity);
-		/*auto* dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
-		if (dest) {
-			dest->SetHealth(4);
-			dest->SetArmor(0);
-			dest->SetImagination(6);
-			EntityManager::Instance()->SerializeEntity(entity);
-		}*/
 		break;
 	}
 	case eGameMessageType::HANDLE_HOT_PROPERTY_DATA: {
@@ -263,7 +256,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		message.Deserialize(inStream);
 
-		auto* skill_component = entity->GetComponent<SkillComponent>();
+		auto skill_component = entity->GetComponent<SkillComponent>();
 
 		if (skill_component != nullptr) {
 			auto* bs = new RakNet::BitStream((unsigned char*)message.sBitStream.c_str(), message.sBitStream.size(), false);
@@ -282,7 +275,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		if (startSkill.skillID == 1561 || startSkill.skillID == 1562 || startSkill.skillID == 1541) return;
 
-		MissionComponent* comp = entity->GetComponent<MissionComponent>();
+		auto comp = entity->GetComponent<MissionComponent>();
 		if (comp) {
 			comp->Progress(eMissionTaskType::USE_SKILL, startSkill.skillID);
 		}
@@ -295,12 +288,12 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		if (behaviorId > 0) {
 			RakNet::BitStream* bs = new RakNet::BitStream((unsigned char*)startSkill.sBitStream.c_str(), startSkill.sBitStream.size(), false);
 
-			auto* skillComponent = entity->GetComponent<SkillComponent>();
+			auto skillComponent = entity->GetComponent<SkillComponent>();
 
 			success = skillComponent->CastPlayerSkill(behaviorId, startSkill.uiSkillHandle, bs, startSkill.optionalTargetID, startSkill.skillID);
 
 			if (success && entity->GetCharacter()) {
-				DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();
+				auto destComp = entity->GetComponent<DestroyableComponent>();
 				destComp->SetImagination(destComp->GetImagination() - skillTable->GetSkillByID(startSkill.skillID).imaginationcost);
 			}
 
@@ -357,7 +350,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		if (usr != nullptr) {
 			RakNet::BitStream* bs = new RakNet::BitStream((unsigned char*)sync.sBitStream.c_str(), sync.sBitStream.size(), false);
 
-			auto* skillComponent = entity->GetComponent<SkillComponent>();
+			auto skillComponent = entity->GetComponent<SkillComponent>();
 
 			skillComponent->SyncPlayerSkill(sync.uiSkillHandle, sync.uiBehaviorHandle, bs);
 

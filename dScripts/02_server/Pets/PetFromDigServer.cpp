@@ -3,7 +3,7 @@
 #include "ePetTamingNotifyType.h"
 
 void PetFromDigServer::OnStartup(Entity* self) {
-	auto* petComponent = self->GetComponent<PetComponent>();
+	auto petComponent = self->GetComponent<PetComponent>();
 	if (petComponent == nullptr || petComponent->GetOwner() != nullptr)
 		return;
 
@@ -21,7 +21,7 @@ void PetFromDigServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "killself") {
 
 		// Don't accidentally kill a pet that is already owned
-		auto* petComponent = self->GetComponent<PetComponent>();
+		auto petComponent = self->GetComponent<PetComponent>();
 		if (petComponent == nullptr || petComponent->GetOwner() != nullptr)
 			return;
 
@@ -35,7 +35,7 @@ void PetFromDigServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, eP
 	} else if (type == ePetTamingNotifyType::QUIT || type == ePetTamingNotifyType::FAILED) {
 		self->Smash(self->GetObjectID(), eKillType::SILENT);
 	} else if (type == ePetTamingNotifyType::SUCCESS) {
-		auto* petComponent = self->GetComponent<PetComponent>();
+		auto petComponent = self->GetComponent<PetComponent>();
 		if (petComponent == nullptr)
 			return;
 		// TODO: Remove custom group?

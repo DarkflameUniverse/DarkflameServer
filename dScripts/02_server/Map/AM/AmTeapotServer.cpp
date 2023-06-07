@@ -5,7 +5,7 @@
 #include "eTerminateType.h"
 
 void AmTeapotServer::OnUse(Entity* self, Entity* user) {
-	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
+	auto inventoryComponent = user->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) return;
 
 	auto* blueFlowerItem = inventoryComponent->FindItemByLot(BLUE_FLOWER_LEAVES, eInventoryType::ITEMS);

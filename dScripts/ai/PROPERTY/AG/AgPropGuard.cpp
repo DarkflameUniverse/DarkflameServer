@@ -9,8 +9,8 @@
 
 void AgPropGuard::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	auto* character = target->GetCharacter();
-	auto* missionComponent = target->GetComponent<MissionComponent>();
-	auto* inventoryComponent = target->GetComponent<InventoryComponent>();
+	auto missionComponent = target->GetComponent<MissionComponent>();
+	auto inventoryComponent = target->GetComponent<InventoryComponent>();
 
 	const auto state = missionComponent->GetMissionState(320);
 	if (missionID == 768 && missionState == eMissionState::AVAILABLE) {

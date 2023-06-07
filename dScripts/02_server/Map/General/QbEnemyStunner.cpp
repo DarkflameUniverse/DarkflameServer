@@ -7,7 +7,7 @@
 #include "CDSkillBehaviorTable.h"
 
 void QbEnemyStunner::OnRebuildComplete(Entity* self, Entity* target) {
-	auto* destroyable = self->GetComponent<DestroyableComponent>();
+	auto destroyable = self->GetComponent<DestroyableComponent>();
 
 	if (destroyable != nullptr) {
 		destroyable->SetFaction(115);
@@ -51,7 +51,7 @@ void QbEnemyStunner::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->AddTimer("DieTime", 5.0f);
 	} else if (timerName == "TickTime") {
-		auto* skillComponent = self->GetComponent<SkillComponent>();
+		auto skillComponent = self->GetComponent<SkillComponent>();
 
 		if (skillComponent != nullptr) {
 			auto skillBehaviorMap = self->GetVar<std::map<uint32_t, uint32_t>>(u"skillBehaviorMap");

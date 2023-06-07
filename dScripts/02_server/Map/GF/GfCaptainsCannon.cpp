@@ -75,7 +75,7 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendStopFXEffect(player, true, "hook");
 
-		auto* missionComponent = player->GetComponent<MissionComponent>();
+		auto missionComponent = player->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
 			missionComponent->ForceProgress(601, 910, 1);

@@ -23,7 +23,7 @@ void ScriptedPowerupSpawner::OnTimerDone(Entity* self, std::string message) {
 		// Spawn the required number of powerups
 		auto* owner = EntityManager::Instance()->GetEntity(self->GetSpawnerID());
 		if (owner != nullptr) {
-			auto* renderComponent = self->GetComponent<RenderComponent>();
+			auto renderComponent = self->GetComponent<RenderComponent>();
 			for (auto i = 0; i < self->GetVar<uint32_t>(u"numberOfPowerups"); i++) {
 				if (renderComponent != nullptr) {
 					renderComponent->PlayEffect(0, u"cast", "N_cast");

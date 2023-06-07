@@ -630,8 +630,8 @@ no_ghosting:
 	TriggerEvent(eTriggerEventType::CREATE, this);
 
 	if (m_Character) {
-		auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
-		auto* levelComponent = GetComponent<LevelProgressionComponent>();
+		auto controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
+		auto levelComponent = GetComponent<LevelProgressionComponent>();
 
 		if (controllablePhysicsComponent && levelComponent) {
 			controllablePhysicsComponent->SetSpeedMultiplier(levelComponent->GetSpeedBase() / 500.0f);

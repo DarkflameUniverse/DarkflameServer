@@ -42,7 +42,7 @@ void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchCon
 		return;
 	}
 
-	auto* destroyable = target->GetComponent<DestroyableComponent>();
+	auto destroyable = target->GetComponent<DestroyableComponent>();
 
 	if (destroyable == nullptr) {
 		return;

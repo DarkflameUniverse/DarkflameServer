@@ -13,7 +13,7 @@ void NpcAgCourseStarter::OnStartup(Entity* self) {
 }
 
 void NpcAgCourseStarter::OnUse(Entity* self, Entity* user) {
-	auto* scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
+	auto scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
 
 	if (scriptedActivityComponent == nullptr) {
 		return;
@@ -27,7 +27,7 @@ void NpcAgCourseStarter::OnUse(Entity* self, Entity* user) {
 }
 
 void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {
-	auto* scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
+	auto scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
 
 	if (scriptedActivityComponent == nullptr) {
 		return;
@@ -70,7 +70,7 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 
 void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2,
 	int32_t param3) {
-	auto* scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
+	auto scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
 	if (scriptedActivityComponent == nullptr)
 		return;
 
@@ -88,7 +88,7 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 
 		data->values[2] = *(float*)&finish;
 
-		auto* missionComponent = sender->GetComponent<MissionComponent>();
+		auto missionComponent = sender->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			missionComponent->ForceProgressTaskType(1884, 1, 1, false);
 			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, -finish, self->GetObjectID(),

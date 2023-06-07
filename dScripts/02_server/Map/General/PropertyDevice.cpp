@@ -16,7 +16,7 @@ void PropertyDevice::OnRebuildComplete(Entity* self, Entity* target) {
 	if (propertyOwnerID == std::to_string(LWOOBJID_EMPTY))
 		return;
 
-	auto* missionComponent = target->GetComponent<MissionComponent>();
+	auto missionComponent = target->GetComponent<MissionComponent>();
 	if (missionComponent != nullptr) {
 		if (missionComponent->GetMissionState(m_PropertyMissionID) == eMissionState::ACTIVE) {
 			GameMessages::SendPlayFXEffect(self->GetObjectID(), 641, u"create", "callhome");

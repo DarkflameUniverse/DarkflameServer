@@ -8,7 +8,7 @@ void AgLaserSensorServer::OnStartup(Entity* self) {
 	self->SetBoolean(u"active", true);
 	auto repelForce = self->GetVarAs<float>(u"repelForce");
 	if (!repelForce) repelForce = m_RepelForce;
-	auto* phantomPhysicsComponent = self->GetComponent<PhantomPhysicsComponent>();
+	auto phantomPhysicsComponent = self->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) return;
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::REPULSE);
@@ -22,7 +22,7 @@ void AgLaserSensorServer::OnCollisionPhantom(Entity* self, Entity* target) {
 	if (!active) return;
 	auto skillCastID = self->GetVarAs<float>(u"skillCastID");
 	if (skillCastID == 0) skillCastID = m_SkillCastID;
-	auto* skillComponent = self->GetComponent<SkillComponent>();
+	auto skillComponent = self->GetComponent<SkillComponent>();
 	if (!skillComponent) return;
 	skillComponent->CastSkill(m_SkillCastID, target->GetObjectID());
 }

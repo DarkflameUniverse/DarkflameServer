@@ -9,7 +9,7 @@ void PetFromObjectServer::OnStartup(Entity* self) {
 
 void PetFromObjectServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "killSelf") {
-		const auto* petComponent = self->GetComponent<PetComponent>();
+		const auto petComponent = self->GetComponent<PetComponent>();
 		if (petComponent == nullptr || petComponent->GetOwner() != nullptr)
 			return;
 		self->Smash(self->GetObjectID(), eKillType::SILENT);

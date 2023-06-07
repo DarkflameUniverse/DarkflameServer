@@ -15,7 +15,7 @@ void TreasureChestDragonServer::OnUse(Entity* self, Entity* user) {
 
 	self->SetVar<bool>(u"bUsed", true);
 
-	auto* scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
+	auto scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
 
 	if (scriptedActivityComponent == nullptr) {
 		return;

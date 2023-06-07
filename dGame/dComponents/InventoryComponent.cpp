@@ -189,7 +189,7 @@ void InventoryComponent::AddItem(
 		inventoryType = Inventory::FindInventoryTypeForLot(lot);
 	}
 
-	auto* missions = static_cast<MissionComponent*>(this->m_OwningEntity->GetComponent(eReplicaComponentType::MISSION));
+	auto missions = m_OwningEntity->GetComponent<MissionComponent>();
 
 	auto* inventory = GetInventory(inventoryType);
 
@@ -378,7 +378,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 		item->SetCount(item->GetCount() - delta, false, false);
 	}
 
-	auto* missionComponent = m_OwningEntity->GetComponent<MissionComponent>();
+	auto missionComponent = m_OwningEntity->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		if (IsTransferInventory(inventory)) {
@@ -833,7 +833,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 			for (auto* lauchPad : rocketLauchPads) {
 				if (Vector3::DistanceSquared(lauchPad->GetPosition(), position) > 13 * 13) continue;
 
-				auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+				auto characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
 
 				if (characterComponent != nullptr) characterComponent->SetLastRocketItemID(item->GetId());
 
@@ -950,10 +950,10 @@ void InventoryComponent::UnequipScripts(Item* unequippedItem) {
 }
 
 void InventoryComponent::HandlePossession(Item* item) {
-	auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+	auto characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 
-	auto* possessorComponent = m_OwningEntity->GetComponent<PossessorComponent>();
+	auto possessorComponent = m_OwningEntity->GetComponent<PossessorComponent>();
 	if (!possessorComponent) return;
 
 	// Don't do anything if we are busy dismounting
@@ -986,7 +986,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* mount = EntityManager::Instance()->CreateEntity(info, nullptr, m_OwningEntity);
 
 	// Check to see if the mount is a vehicle, if so, flip it
-	auto* vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
+	auto vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
 	if (vehicleComponent) {
 		auto angles = startRotation.GetEulerAngles();
 		// Make it right side up
@@ -1000,14 +1000,14 @@ void InventoryComponent::HandlePossession(Item* item) {
 	}
 
 	// Setup the destroyable stats
-	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = mount->GetComponent<DestroyableComponent>();
 	if (destroyableComponent) {
 		destroyableComponent->SetIsSmashable(false);
 		destroyableComponent->SetIsImmune(true);
 	}
 
 	// Mount it
-	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
+	auto possessableComponent = mount->GetComponent<PossessableComponent>();
 	if (possessableComponent) {
 		possessableComponent->SetIsItemSpawned(true);
 		possessableComponent->SetPossessor(m_OwningEntity->GetObjectID());
@@ -1227,7 +1227,7 @@ bool InventoryComponent::HasAnyPassive(const std::vector<eItemSetPassiveAbilityI
 }
 
 void InventoryComponent::DespawnPet() {
-	auto* current = PetComponent::GetActivePet(m_OwningEntity->GetObjectID());
+	auto current = PetComponent::GetActivePet(m_OwningEntity->GetObjectID());
 
 	if (current != nullptr) {
 		current->Deactivate();
@@ -1235,7 +1235,7 @@ void InventoryComponent::DespawnPet() {
 }
 
 void InventoryComponent::SpawnPet(Item* item) {
-	auto* current = PetComponent::GetActivePet(m_OwningEntity->GetObjectID());
+	auto current = PetComponent::GetActivePet(m_OwningEntity->GetObjectID());
 
 	if (current != nullptr) {
 		current->Deactivate();
@@ -1261,7 +1261,7 @@ void InventoryComponent::SpawnPet(Item* item) {
 
 	auto* pet = EntityManager::Instance()->CreateEntity(info);
 
-	auto* petComponent = pet->GetComponent<PetComponent>();
+	auto petComponent = pet->GetComponent<PetComponent>();
 
 	if (petComponent != nullptr) {
 		petComponent->Activate(item);
@@ -1339,7 +1339,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 		return entry.objectTemplate == static_cast<unsigned int>(item->GetLot());
 		});
 
-	auto* missions = static_cast<MissionComponent*>(m_OwningEntity->GetComponent(eReplicaComponentType::MISSION));
+	auto missions = m_OwningEntity->GetComponent<MissionComponent>();
 
 	for (const auto& result : results) {
 		if (result.castOnType == 1) {

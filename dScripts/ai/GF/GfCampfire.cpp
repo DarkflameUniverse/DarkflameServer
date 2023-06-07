@@ -11,7 +11,7 @@ void GfCampfire::OnStartup(Entity* self) {
 	self->SetProximityRadius(2.0f, "placeholder");
 	self->SetBoolean(u"isBurning", true);
 
-	auto* render = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
+	auto render = self->GetComponent<RenderComponent>();
 	if (render == nullptr)
 		return;
 
@@ -21,14 +21,14 @@ void GfCampfire::OnStartup(Entity* self) {
 void GfCampfire::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2,
 	int32_t param3) {
 	if (args == "physicsReady") {
-		auto* render = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
+		auto render = self->GetComponent<RenderComponent>();
 
 		render->PlayEffect(295, u"running", "Burn");
 	}
 }
 
 void GfCampfire::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
-	auto* skill = self->GetComponent<SkillComponent>();
+	auto skill = self->GetComponent<SkillComponent>();
 
 	if (self->GetBoolean(u"isBurning")) {
 		if (status == "ENTER") {
@@ -43,7 +43,7 @@ void GfCampfire::OnProximityUpdate(Entity* self, Entity* entering, std::string n
 
 					//self->SetVar<LWOOBJID>("target", entering->GetObjectID());
 
-					auto* missionComponet = entering->GetComponent<MissionComponent>();
+					auto missionComponet = entering->GetComponent<MissionComponent>();
 
 					if (missionComponet != nullptr) {
 						missionComponet->ForceProgress(440, 658, 1);
@@ -65,7 +65,7 @@ void GfCampfire::OnProximityUpdate(Entity* self, Entity* entering, std::string n
 
 void GfCampfire::OnSkillEventFired(Entity* self, Entity* caster, const std::string& message) {
 	if (message == "waterspray" && self->GetVar<bool>(u"isBurning")) {
-		auto* renderComponent = self->GetComponent<RenderComponent>();
+		auto renderComponent = self->GetComponent<RenderComponent>();
 		if (renderComponent != nullptr) {
 			renderComponent->StopEffect("Burn");
 			renderComponent->PlayEffect(295, u"idle", "Off");
@@ -91,7 +91,7 @@ void GfCampfire::OnTimerDone(Entity* self, std::string timerName) {
 		}
 		*/
 	} else if (timerName == "FireRestart" && !self->GetVar<bool>(u"isBurning")) {
-		auto* renderComponent = self->GetComponent<RenderComponent>();
+		auto renderComponent = self->GetComponent<RenderComponent>();
 		if (renderComponent != nullptr) {
 			renderComponent->StopEffect("Off");
 			renderComponent->PlayEffect(295, u"running", "Burn");

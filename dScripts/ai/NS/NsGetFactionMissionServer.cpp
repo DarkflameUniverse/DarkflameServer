@@ -46,7 +46,7 @@ void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, 
 			player->GetCharacter()->SetPlayerFlag(flagID, true);
 		}
 
-		MissionComponent* mis = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
+		auto mis = player->GetComponent<MissionComponent>();
 
 		for (int mission : factionMissions) {
 			mis->AcceptMission(mission);

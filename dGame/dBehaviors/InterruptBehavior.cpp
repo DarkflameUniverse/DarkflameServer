@@ -46,7 +46,7 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 
 	if (target == nullptr) return;
 
-	auto* skillComponent = target->GetComponent<SkillComponent>();
+	auto skillComponent = target->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) return;
 
@@ -71,7 +71,7 @@ void InterruptBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* b
 
 	if (target == nullptr) return;
 
-	auto* skillComponent = target->GetComponent<SkillComponent>();
+	auto skillComponent = target->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) return;
 

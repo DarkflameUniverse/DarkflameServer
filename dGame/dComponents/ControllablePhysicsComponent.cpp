@@ -321,7 +321,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	// Recalculate speedboost since we removed one
 	m_SpeedBoost = 0.0f;
 	if (m_ActiveSpeedBoosts.empty()) { // no active speed boosts left, so return to base speed
-		auto* levelProgressionComponent = m_OwningEntity->GetComponent<LevelProgressionComponent>();
+		auto levelProgressionComponent = m_OwningEntity->GetComponent<LevelProgressionComponent>();
 		if (levelProgressionComponent) m_SpeedBoost = levelProgressionComponent->GetSpeedBase();
 	} else { // Used the last applied speedboost
 		m_SpeedBoost = m_ActiveSpeedBoosts.back();

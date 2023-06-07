@@ -14,7 +14,7 @@ void FvPandaSpawnerServer::OnCollisionPhantom(Entity* self, Entity* target) {
 			return;
 
 		// Check if the player is currently in a footrace
-		auto* scriptedActivityComponent = raceObjects.at(0)->GetComponent<ScriptedActivityComponent>();
+		auto scriptedActivityComponent = raceObjects.at(0)->GetComponent<ScriptedActivityComponent>();
 		if (scriptedActivityComponent == nullptr || !scriptedActivityComponent->IsPlayedBy(target))
 			return;
 

@@ -3,7 +3,7 @@
 #include "EntityManager.h"
 
 void NjRailPostServer::OnStartup(Entity* self) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto rebuildComponent = self->GetComponent<RebuildComponent>();
 	if (rebuildComponent != nullptr) {
 		self->SetNetworkVar<bool>(NetworkNotActiveVariable, true);
 	}

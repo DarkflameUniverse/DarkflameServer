@@ -38,7 +38,7 @@ void GfBanana::OnStartup(Entity* self) {
 }
 
 void GfBanana::OnHit(Entity* self, Entity* attacker) {
-	auto* destroyable = self->GetComponent<DestroyableComponent>();
+	auto destroyable = self->GetComponent<DestroyableComponent>();
 
 	destroyable->SetHealth(9999);
 
@@ -58,7 +58,7 @@ void GfBanana::OnHit(Entity* self, Entity* attacker) {
 
 	bananaEntity->SetPosition(bananaEntity->GetPosition() - NiPoint3::UNIT_Y * 8);
 
-	auto* bananaDestroyable = bananaEntity->GetComponent<DestroyableComponent>();
+	auto bananaDestroyable = bananaEntity->GetComponent<DestroyableComponent>();
 
 	bananaDestroyable->SetHealth(0);
 

@@ -19,7 +19,7 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 			continue;
 		}
 
-		auto* rebuildComponent = object->GetComponent<RebuildComponent>();
+		auto rebuildComponent = object->GetComponent<RebuildComponent>();
 
 		if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 			indexCount++;
@@ -37,7 +37,7 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 			auto* player = EntityManager::Instance()->GetEntity(object->GetVar<LWOOBJID>(u"PlayerID"));
 
 			if (player != nullptr) {
-				auto* missionComponent = player->GetComponent<MissionComponent>();
+				auto missionComponent = player->GetComponent<MissionComponent>();
 
 				if (missionComponent != nullptr) {
 					missionComponent->ForceProgressTaskType(769, 1, 1, false);

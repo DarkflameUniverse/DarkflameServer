@@ -15,7 +15,7 @@ void GrowingFlower::OnSkillEventFired(Entity* self, Entity* target, const std::s
 
 		LootGenerator::Instance().DropActivityLoot(target, self, self->GetLOT(), 0);
 
-		auto* missionComponent = target->GetComponent<MissionComponent>();
+		auto missionComponent = target->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			for (const auto mission : achievementIDs)
 				missionComponent->ForceProgressTaskType(mission, static_cast<uint32_t>(eMissionTaskType::SCRIPT), 1);

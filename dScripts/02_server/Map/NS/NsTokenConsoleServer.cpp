@@ -12,7 +12,7 @@ void NsTokenConsoleServer::OnStartup(Entity* self) {
 }
 
 void NsTokenConsoleServer::OnUse(Entity* self, Entity* user) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto rebuildComponent = self->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent == nullptr) {
 		return;
@@ -22,8 +22,8 @@ void NsTokenConsoleServer::OnUse(Entity* self, Entity* user) {
 		return;
 	}
 
-	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
-	auto* missionComponent = user->GetComponent<MissionComponent>();
+	auto inventoryComponent = user->GetComponent<InventoryComponent>();
+	auto missionComponent = user->GetComponent<MissionComponent>();
 	auto* character = user->GetCharacter();
 
 	if (inventoryComponent == nullptr || missionComponent == nullptr || character == nullptr) {

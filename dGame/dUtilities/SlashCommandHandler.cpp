@@ -176,7 +176,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	if (chatCommand == "pvp") {
-		auto* character = entity->GetComponent<CharacterComponent>();
+		auto character = entity->GetComponent<CharacterComponent>();
 
 		if (character == nullptr) {
 			Game::logger->Log("SlashCommandHandler", "Failed to find character component!");
@@ -227,9 +227,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "fix-stats") {
 		// Reset skill component and buff component
-		auto* skillComponent = entity->GetComponent<SkillComponent>();
-		auto* buffComponent = entity->GetComponent<BuffComponent>();
-		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		auto skillComponent = entity->GetComponent<SkillComponent>();
+		auto buffComponent = entity->GetComponent<BuffComponent>();
+		auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 		// If any of the components are nullptr, return
 		if (skillComponent == nullptr || buffComponent == nullptr || destroyableComponent == nullptr) {
@@ -336,7 +336,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		if (chatCommand == "resurrect") {
-			ScriptedActivityComponent* scriptedActivityComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<ScriptedActivityComponent>();
+			auto scriptedActivityComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<ScriptedActivityComponent>();
 
 			if (scriptedActivityComponent) { // check if user is in activity world and if so, they can't resurrect
 				ChatPackets::SendSystemMessage(sysAddr, u"You cannot resurrect in an activity world.");
@@ -373,7 +373,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 		EntityManager::Instance()->DestructEntity(entity, sysAddr);
-		auto* charComp = entity->GetComponent<CharacterComponent>();
+		auto charComp = entity->GetComponent<CharacterComponent>();
 		std::string lowerName = args[0];
 		if (lowerName.empty()) return;
 		std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
@@ -413,7 +413,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if ((chatCommand == "playanimation" || chatCommand == "playanim") && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		std::u16string anim = GeneralUtils::ASCIIToUTF16(args[0], args[0].size());
 		RenderComponent::PlayAnimation(entity, anim);
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto possessorComponent = entity->GetComponent<PossessorComponent>();
 		if (possessorComponent) {
 			auto* possessedComponent = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
 			if (possessedComponent) RenderComponent::PlayAnimation(possessedComponent, anim);
@@ -468,7 +468,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+		auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
 
 		if (!controllablePhysicsComponent) return;
 		controllablePhysicsComponent->SetSpeedMultiplier(boost);
@@ -480,7 +480,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			if (possessedID != LWOOBJID_EMPTY) {
 				auto possessable = EntityManager::Instance()->GetEntity(possessedID);
 				if (possessable) {
-					auto* possessControllablePhysicsComponent = possessable->GetComponent<ControllablePhysicsComponent>();
+					auto possessControllablePhysicsComponent = possessable->GetComponent<ControllablePhysicsComponent>();
 					if (possessControllablePhysicsComponent) {
 						possessControllablePhysicsComponent->SetSpeedMultiplier(boost);
 					}
@@ -579,7 +579,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				GeneralUtils::to_u16string(size));
 		} else ChatPackets::SendSystemMessage(sysAddr, u"Setting inventory ITEMS to size " + GeneralUtils::to_u16string(size));
 
-		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+		auto inventoryComponent = entity->GetComponent<InventoryComponent>();
 		if (inventoryComponent) {
 			auto* inventory = inventoryComponent->GetInventory(selectedInventory);
 
@@ -629,7 +629,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto comp = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
+		auto comp = entity->GetComponent<MissionComponent>();
 		if (comp) comp->AcceptMission(missionID, true);
 		return;
 	}
@@ -644,7 +644,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto comp = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
+		auto comp = entity->GetComponent<MissionComponent>();
 		if (comp) comp->CompleteMission(missionID, true);
 		return;
 	}
@@ -694,7 +694,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto* comp = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
+		auto comp = entity->GetComponent<MissionComponent>();
 
 		if (comp == nullptr) {
 			return;
@@ -771,7 +771,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "getnavmeshheight" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto control = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
+		auto control = entity->GetComponent<ControllablePhysicsComponent>();
 		if (!control) return;
 
 		float y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(control->GetPosition());
@@ -788,7 +788,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				return;
 			}
 
-			InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
+			auto inventory = entity->GetComponent<InventoryComponent>();
 
 			inventory->AddItem(itemLOT, 1, eLootSourceType::MODERATION);
 		} else if (args.size() == 2) {
@@ -806,7 +806,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				return;
 			}
 
-			InventoryComponent* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
+			auto inventory = entity->GetComponent<InventoryComponent>();
 
 			inventory->AddItem(itemLOT, count, eLootSourceType::MODERATION);
 		} else {
@@ -935,12 +935,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto possessorComponent = entity->GetComponent<PossessorComponent>();
 		if (possessorComponent) {
 			auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
 
 			if (possassableEntity != nullptr) {
-				auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
+				auto vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 				if (vehiclePhysicsComponent) {
 					vehiclePhysicsComponent->SetPosition(pos);
 					EntityManager::Instance()->SerializeEntity(possassableEntity);
@@ -962,7 +962,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "dismount" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto possessorComponent = entity->GetComponent<PossessorComponent>();
 		if (possessorComponent) {
 			auto possessableId = possessorComponent->GetPossessable();
 			if (possessableId != LWOOBJID_EMPTY) {
@@ -1171,7 +1171,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	//-------------------------------------------------
 
 	if (chatCommand == "buffme" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
+		auto dest = entity->GetComponent<DestroyableComponent>();
 		if (dest) {
 			dest->SetHealth(999);
 			dest->SetMaxHealth(999.0f);
@@ -1195,7 +1195,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "buffmed" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
+		auto dest = entity->GetComponent<DestroyableComponent>();
 		if (dest) {
 			dest->SetHealth(9);
 			dest->SetMaxHealth(9.0f);
@@ -1209,7 +1209,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "refillstats" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 
-		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
+		auto dest = entity->GetComponent<DestroyableComponent>();
 		if (dest) {
 			dest->SetHealth((int)dest->GetMaxHealth());
 			dest->SetArmor((int)dest->GetMaxArmor());
@@ -1242,7 +1242,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "spawn" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
-		ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
+		auto comp = entity->GetComponent<ControllablePhysicsComponent>();
 		if (!comp) return;
 
 		uint32_t lot;
@@ -1341,7 +1341,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		CharacterComponent* character = entity->GetComponent<CharacterComponent>();
+		auto character = entity->GetComponent<CharacterComponent>();
 		if (character) character->SetUScore(character->GetUScore() + uscore);
 		// MODERATION should work but it doesn't.  Relog to see uscore changes
 
@@ -1486,7 +1486,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "gmimmune" && args.size() >= 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 		int32_t state = false;
 
@@ -1503,7 +1503,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "buff" && args.size() >= 2 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto* buffComponent = entity->GetComponent<BuffComponent>();
+		auto buffComponent = entity->GetComponent<BuffComponent>();
 
 		int32_t id = 0;
 		int32_t duration = 0;
@@ -1615,7 +1615,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if ((chatCommand == "boost") && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto possessorComponent = entity->GetComponent<PossessorComponent>();
 
 		if (possessorComponent == nullptr) {
 			return;
@@ -1647,7 +1647,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if ((chatCommand == "unboost") && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto possessorComponent = entity->GetComponent<PossessorComponent>();
 
 		if (possessorComponent == nullptr) return;
 		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
@@ -1674,7 +1674,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		//Go tell physics to spawn all the vertices:
 		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::PHANTOM_PHYSICS);
 		for (auto en : entities) {
-			auto phys = static_cast<PhantomPhysicsComponent*>(en->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
+			auto phys = en->GetComponent<PhantomPhysicsComponent>();
 			if (phys)
 				phys->SpawnVertices();
 		}
@@ -1683,7 +1683,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "reportproxphys" && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_DEVELOPER) {
 		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::PROXIMITY_MONITOR);
 		for (auto en : entities) {
-			auto phys = static_cast<ProximityMonitorComponent*>(en->GetComponent(eReplicaComponentType::PROXIMITY_MONITOR));
+			auto phys = en->GetComponent<ProximityMonitorComponent>();
 			if (phys) {
 				for (auto prox : phys->GetProximitiesData()) {
 					if (!prox.second) continue;
@@ -1717,7 +1717,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (!GeneralUtils::TryParse(args[0], baseItem)) return;
 		if (!GeneralUtils::TryParse(args[1], reforgedItem)) return;
 
-		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+		auto inventoryComponent = entity->GetComponent<InventoryComponent>();
 
 		if (inventoryComponent == nullptr) return;
 
@@ -1779,7 +1779,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		dpWorld::Instance().Reload();
 		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (auto entity : entities) {
-			auto* scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
+			auto scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
 			if (!scriptedActivityComponent) continue;
 
 			scriptedActivityComponent->ReloadConfig();
@@ -1842,7 +1842,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+		auto inventoryComponent = entity->GetComponent<InventoryComponent>();
 		if (!inventoryComponent) return;
 
 		auto* inventoryToDelete = inventoryComponent->GetInventory(inventoryType);
@@ -1930,7 +1930,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		if (args.size() >= 2) {
 			if (args[1] == "-m" && args.size() >= 3) {
-				auto* movingPlatformComponent = closest->GetComponent<MovingPlatformComponent>();
+				auto movingPlatformComponent = closest->GetComponent<MovingPlatformComponent>();
 
 				int32_t value = 0;
 
@@ -1964,7 +1964,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					GeneralUtils::ASCIIToUTF16("< " + std::to_string(postion.x) + ", " + std::to_string(postion.y) + ", " + std::to_string(postion.z) + " >")
 				);
 			} else if (args[1] == "-f") {
-				auto* destuctable = closest->GetComponent<DestroyableComponent>();
+				auto destuctable = closest->GetComponent<DestroyableComponent>();
 
 				if (destuctable == nullptr) {
 					ChatPackets::SendSystemMessage(sysAddr, u"No destroyable component on this entity!");
@@ -1993,7 +1993,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					destuctable->AddFaction(faction, true);
 				}
 			} else if (args[1] == "-t") {
-				auto* phantomPhysicsComponent = closest->GetComponent<PhantomPhysicsComponent>();
+				auto phantomPhysicsComponent = closest->GetComponent<PhantomPhysicsComponent>();
 
 				if (phantomPhysicsComponent != nullptr) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Type: " + (GeneralUtils::to_u16string(static_cast<uint32_t>(phantomPhysicsComponent->GetEffectType()))));
@@ -2003,7 +2003,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					ChatPackets::SendSystemMessage(sysAddr, u"Active: " + (GeneralUtils::to_u16string(phantomPhysicsComponent->GetPhysicsEffectActive())));
 				}
 
-				auto* triggerComponent = closest->GetComponent<TriggerComponent>();
+				auto triggerComponent = closest->GetComponent<TriggerComponent>();
 				if (triggerComponent) {
 					auto trigger = triggerComponent->GetTrigger();
 					if (trigger) {

@@ -38,6 +38,6 @@ void Component::LoadTemplateData() {
 
 }
 
-void Component::Serialize(RakNet::BitStream* bitStream, bool isConstruction = false) {
+void Component::Serialize(RakNet::BitStream* bitStream, bool isConstruction) {
 
 }

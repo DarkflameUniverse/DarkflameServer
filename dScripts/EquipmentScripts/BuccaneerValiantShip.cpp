@@ -3,7 +3,7 @@
 
 void BuccaneerValiantShip::OnStartup(Entity* self) {
 	self->AddCallbackTimer(1.0F, [self]() {
-		auto* skillComponent = self->GetComponent<SkillComponent>();
+		auto skillComponent = self->GetComponent<SkillComponent>();
 		auto* owner = self->GetOwner();
 
 		if (skillComponent != nullptr && owner != nullptr) {

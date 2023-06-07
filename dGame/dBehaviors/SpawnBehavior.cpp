@@ -53,7 +53,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	entity->SetOwnerOverride(context->originator);
 
 	// Unset the flag to reposition the player, this makes it harder to glitch out of the map
-	auto* rebuildComponent = entity->GetComponent<RebuildComponent>();
+	auto rebuildComponent = entity->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent != nullptr) {
 		rebuildComponent->SetRepositionPlayer(false);
@@ -87,9 +87,9 @@ void SpawnBehavior::Timer(BehaviorContext* context, const BehaviorBranchContext 
 		return;
 	}
 
-	auto* destroyable = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
+	auto destroyable = entity->GetComponent<DestroyableComponent>();
 
-	if (destroyable == nullptr) {
+	if (!destroyable) {
 		entity->Smash(context->originator);
 
 		return;

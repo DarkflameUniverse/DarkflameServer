@@ -163,7 +163,7 @@ void PetComponent::OnUse(Entity* originator) {
 		m_Tamer = LWOOBJID_EMPTY;
 	}
 
-	auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
+	auto inventoryComponent = originator->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -173,7 +173,7 @@ void PetComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	auto* movementAIComponent = m_OwningEntity->GetComponent<MovementAIComponent>();
+	auto movementAIComponent = m_OwningEntity->GetComponent<MovementAIComponent>();
 
 	if (movementAIComponent != nullptr) {
 		movementAIComponent->Stop();
@@ -224,7 +224,7 @@ void PetComponent::OnUse(Entity* originator) {
 		imaginationCost = cached->second.imaginationCost;
 	}
 
-	auto* destroyableComponent = originator->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = originator->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent == nullptr) {
 		return;
@@ -362,10 +362,9 @@ void PetComponent::Update(float deltaTime) {
 		return;
 	}
 
-	m_MovementAI = m_OwningEntity->GetComponent<MovementAIComponent>();
-
 	if (m_MovementAI == nullptr) {
-		return;
+		m_MovementAI = m_OwningEntity->GetComponent<MovementAIComponent>();
+		if (!m_MovementAI) return;
 	}
 
 	if (m_TresureTime > 0) {
@@ -488,7 +487,7 @@ void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
 
 	if (cached == buildCache.end()) return;
 
-	auto* destroyableComponent = tamer->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = tamer->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent == nullptr) return;
 
@@ -549,7 +548,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 
 	GameMessages::SendPetResponse(m_Tamer, m_OwningEntity->GetObjectID(), 0, 10, 0, tamer->GetSystemAddress());
 
-	auto* inventoryComponent = tamer->GetComponent<InventoryComponent>();
+	auto inventoryComponent = tamer->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -607,7 +606,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		tamer->GetCharacter()->SetPlayerFlag(petFlags.at(m_OwningEntity->GetLOT()), true);
 	}
 
-	auto* missionComponent = tamer->GetComponent<MissionComponent>();
+	auto missionComponent = tamer->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		missionComponent->Progress(eMissionTaskType::PET_TAMING, m_OwningEntity->GetLOT());
@@ -615,7 +614,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 
 	SetStatus(1);
 
-	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
+	auto characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->UpdatePlayerStatistic(PetsTamed);
 	}
@@ -649,7 +648,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 
 	Game::logger->Log("PetComponent", "Got set pet name (%s)", GeneralUtils::UTF16ToWTF8(name).c_str());
 
-	auto* inventoryComponent = tamer->GetComponent<InventoryComponent>();
+	auto inventoryComponent = tamer->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -841,7 +840,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 	m_ItemId = item->GetId();
 	m_DatabaseId = item->GetSubKey();
 
-	auto* inventoryComponent = item->GetInventory()->GetComponent();
+	auto inventoryComponent = item->GetInventory()->GetComponent();
 
 	if (inventoryComponent == nullptr) return;
 
@@ -963,7 +962,7 @@ void PetComponent::Deactivate() {
 }
 
 void PetComponent::Release() {
-	auto* inventoryComponent = GetOwner()->GetComponent<InventoryComponent>();
+	auto inventoryComponent = GetOwner()->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -1039,7 +1038,7 @@ void PetComponent::SetAbility(PetAbilityType value) {
 	m_Ability = value;
 }
 
-PetComponent* PetComponent::GetTamingPet(LWOOBJID tamer) {
+std::shared_ptr<PetComponent> PetComponent::GetTamingPet(LWOOBJID tamer) {
 	const auto& pair = currentActivities.find(tamer);
 
 	if (pair == currentActivities.end()) {
@@ -1057,7 +1056,7 @@ PetComponent* PetComponent::GetTamingPet(LWOOBJID tamer) {
 	return entity->GetComponent<PetComponent>();
 }
 
-PetComponent* PetComponent::GetActivePet(LWOOBJID owner) {
+std::shared_ptr<PetComponent> PetComponent::GetActivePet(LWOOBJID owner) {
 	const auto& pair = activePets.find(owner);
 
 	if (pair == activePets.end()) {

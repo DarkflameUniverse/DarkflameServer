@@ -17,7 +17,7 @@ void TouchMissionUpdateServer::OnCollisionPhantom(Entity* self, Entity* target) 
 		return;
 	}
 
-	auto* missionComponent = static_cast<MissionComponent*>(target->GetComponent(eReplicaComponentType::MISSION));
+	auto missionComponent = target->GetComponent<MissionComponent>();
 
 	if (missionComponent == nullptr) {
 		return;

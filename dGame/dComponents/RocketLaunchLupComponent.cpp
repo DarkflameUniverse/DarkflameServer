@@ -17,7 +17,7 @@ RocketLaunchLupComponent::RocketLaunchLupComponent(Entity* parent) : Component(p
 RocketLaunchLupComponent::~RocketLaunchLupComponent() {}
 
 void RocketLaunchLupComponent::OnUse(Entity* originator) {
-	auto* rocket = originator->GetComponent<CharacterComponent>()->RocketEquip(originator);
+	auto rocket = originator->GetComponent<CharacterComponent>()->RocketEquip(originator);
 	if (!rocket) return;
 
 	// the LUP world menu is just the property menu, the client knows how to handle it
@@ -25,7 +25,7 @@ void RocketLaunchLupComponent::OnUse(Entity* originator) {
 }
 
 void RocketLaunchLupComponent::OnSelectWorld(Entity* originator, uint32_t index) {
-	auto* rocketLaunchpadControlComponent = m_OwningEntity->GetComponent<RocketLaunchpadControlComponent>();
+	auto rocketLaunchpadControlComponent = m_OwningEntity->GetComponent<RocketLaunchpadControlComponent>();
 	if (!rocketLaunchpadControlComponent) return;
 
 	rocketLaunchpadControlComponent->Launch(originator, m_LUPWorlds[index], 0);

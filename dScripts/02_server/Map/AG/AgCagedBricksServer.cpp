@@ -21,7 +21,7 @@ void AgCagedBricksServer::OnUse(Entity* self, Entity* user) {
 	character->SetPlayerFlag(ePlayerFlag::CAGED_SPIDER, true);
 
 	//Remove the maelstrom cube:
-	auto inv = static_cast<InventoryComponent*>(user->GetComponent(eReplicaComponentType::INVENTORY));
+	auto inv = user->GetComponent<InventoryComponent>();
 
 	if (inv) {
 		inv->RemoveItem(14553, 1);

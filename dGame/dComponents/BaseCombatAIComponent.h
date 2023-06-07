@@ -10,6 +10,7 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
+#include <memory>
 #include <vector>
 #include <map>
 
@@ -319,7 +320,7 @@ private:
 	/**
 	 * The component that handles movement AI, also owned by this entity
 	 */
-	MovementAIComponent* m_MovementAI;
+	std::shared_ptr<MovementAIComponent> m_MovementAI;
 
 	/**
 	 * The position at which this entity spawned

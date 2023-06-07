@@ -47,8 +47,8 @@ bool NtFactionSpyServer::IsSpy(Entity* self, Entity* possibleSpy) {
 	if (!spyData.missionID || !spyData.flagID || !spyData.itemID)
 		return false;
 
-	auto* missionComponent = possibleSpy->GetComponent<MissionComponent>();
-	auto* inventoryComponent = possibleSpy->GetComponent<InventoryComponent>();
+	auto missionComponent = possibleSpy->GetComponent<MissionComponent>();
+	auto inventoryComponent = possibleSpy->GetComponent<InventoryComponent>();
 	auto* character = possibleSpy->GetCharacter();
 
 	// A player is a spy if they have the spy mission, have the spy equipment equipped and don't have the spy flag set yet

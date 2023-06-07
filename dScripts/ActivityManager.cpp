@@ -8,12 +8,12 @@
 #include "Loot.h"
 
 bool ActivityManager::IsPlayerInActivity(Entity* self, LWOOBJID playerID) {
-	const auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	const auto sac = self->GetComponent<ScriptedActivityComponent>();
 	return sac != nullptr && sac->IsPlayedBy(playerID);
 }
 
 void ActivityManager::UpdatePlayer(Entity* self, LWOOBJID playerID, const bool remove) {
-	auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	auto sac = self->GetComponent<ScriptedActivityComponent>();
 	if (sac == nullptr)
 		return;
 
@@ -34,7 +34,7 @@ void ActivityManager::SetActivityScore(Entity* self, LWOOBJID playerID, uint32_t
 
 void ActivityManager::SetActivityValue(Entity* self, const LWOOBJID playerID, const uint32_t valueIndex,
 	const float_t value) {
-	auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	auto sac = self->GetComponent<ScriptedActivityComponent>();
 	if (sac == nullptr)
 		return;
 
@@ -42,7 +42,7 @@ void ActivityManager::SetActivityValue(Entity* self, const LWOOBJID playerID, co
 }
 
 float_t ActivityManager::GetActivityValue(Entity* self, const LWOOBJID playerID, const uint32_t valueIndex) {
-	auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	auto sac = self->GetComponent<ScriptedActivityComponent>();
 	if (sac == nullptr)
 		return -1.0f;
 
@@ -53,7 +53,7 @@ void ActivityManager::StopActivity(Entity* self, const LWOOBJID playerID, const 
 	const uint32_t value1, const uint32_t value2, bool quit) {
 	int32_t gameID = 0;
 
-	auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	auto sac = self->GetComponent<ScriptedActivityComponent>();
 	if (sac == nullptr) {
 		gameID = self->GetLOT();
 	} else {
@@ -92,7 +92,7 @@ void ActivityManager::StopActivity(Entity* self, const LWOOBJID playerID, const 
 }
 
 bool ActivityManager::TakeActivityCost(const Entity* self, const LWOOBJID playerID) {
-	auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	auto sac = self->GetComponent<ScriptedActivityComponent>();
 	if (sac == nullptr)
 		return false;
 
@@ -104,7 +104,7 @@ bool ActivityManager::TakeActivityCost(const Entity* self, const LWOOBJID player
 }
 
 uint32_t ActivityManager::CalculateActivityRating(Entity* self, const LWOOBJID playerID) {
-	auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	auto sac = self->GetComponent<ScriptedActivityComponent>();
 	if (sac == nullptr)
 		return 0;
 
@@ -112,7 +112,7 @@ uint32_t ActivityManager::CalculateActivityRating(Entity* self, const LWOOBJID p
 }
 
 uint32_t ActivityManager::GetActivityID(const Entity* self) {
-	auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	auto sac = self->GetComponent<ScriptedActivityComponent>();
 	return sac != nullptr ? sac->GetActivityID() : 0;
 }
 
@@ -147,7 +147,7 @@ float_t ActivityManager::ActivityTimerGetCurrentTime(Entity* self, const std::st
 int32_t ActivityManager::GetGameID(Entity* self) const {
 	int32_t gameID = 0;
 
-	auto* sac = self->GetComponent<ScriptedActivityComponent>();
+	auto sac = self->GetComponent<ScriptedActivityComponent>();
 	if (sac == nullptr) {
 		gameID = self->GetLOT();
 	} else {

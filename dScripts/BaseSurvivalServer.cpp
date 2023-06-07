@@ -225,7 +225,7 @@ void BaseSurvivalServer::ResetStats(LWOOBJID playerID) {
 	if (player != nullptr) {
 
 		// Boost all the player stats when loading in
-		auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
+		auto destroyableComponent = player->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
 			destroyableComponent->SetHealth(destroyableComponent->GetMaxHealth());
 			destroyableComponent->SetArmor(destroyableComponent->GetMaxArmor());
@@ -360,7 +360,7 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 		player->Resurrect();
 
 		// Update all mission progression
-		auto* missionComponent = player->GetComponent<MissionComponent>();
+		auto missionComponent = player->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, time, self->GetObjectID(),
 				self->GetVar<std::string>(MissionTypeVariable));

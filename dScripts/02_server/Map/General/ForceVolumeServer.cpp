@@ -4,7 +4,7 @@
 #include "ePhysicsEffectType.h"
 
 void ForceVolumeServer::OnStartup(Entity* self) {
-	auto* phantomPhysicsComponent = self->GetComponent<PhantomPhysicsComponent>();
+	auto phantomPhysicsComponent = self->GetComponent<PhantomPhysicsComponent>();
 
 	if (phantomPhysicsComponent == nullptr) return;
 

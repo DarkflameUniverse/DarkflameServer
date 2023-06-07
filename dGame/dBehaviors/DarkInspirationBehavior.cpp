@@ -14,7 +14,7 @@ void DarkInspirationBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 		return;
 	}
 
-	auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = target->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent == nullptr) {
 		return;
@@ -34,7 +34,7 @@ void DarkInspirationBehavior::Calculate(BehaviorContext* context, RakNet::BitStr
 		return;
 	}
 
-	auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = target->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent == nullptr) {
 		return;

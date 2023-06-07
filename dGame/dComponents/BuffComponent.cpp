@@ -149,7 +149,7 @@ void BuffComponent::ApplyBuffEffect(int32_t id) {
 		if (parameter.name == "max_health") {
 			const auto maxHealth = parameter.value;
 
-			auto* destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
+			auto destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
 
 			if (destroyable == nullptr) return;
 
@@ -157,7 +157,7 @@ void BuffComponent::ApplyBuffEffect(int32_t id) {
 		} else if (parameter.name == "max_armor") {
 			const auto maxArmor = parameter.value;
 
-			auto* destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
+			auto destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
 
 			if (destroyable == nullptr) return;
 
@@ -165,13 +165,13 @@ void BuffComponent::ApplyBuffEffect(int32_t id) {
 		} else if (parameter.name == "max_imagination") {
 			const auto maxImagination = parameter.value;
 
-			auto* destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
+			auto destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
 
 			if (destroyable == nullptr) return;
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() + maxImagination);
 		} else if (parameter.name == "speed") {
-			auto* controllablePhysicsComponent = this->GetOwningEntity()->GetComponent<ControllablePhysicsComponent>();
+			auto controllablePhysicsComponent = this->GetOwningEntity()->GetComponent<ControllablePhysicsComponent>();
 			if (!controllablePhysicsComponent) return;
 			const auto speed = parameter.value;
 			controllablePhysicsComponent->AddSpeedboost(speed);
@@ -185,7 +185,7 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 		if (parameter.name == "max_health") {
 			const auto maxHealth = parameter.value;
 
-			auto* destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
+			auto destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
 
 			if (destroyable == nullptr) return;
 
@@ -193,7 +193,7 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 		} else if (parameter.name == "max_armor") {
 			const auto maxArmor = parameter.value;
 
-			auto* destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
+			auto destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
 
 			if (destroyable == nullptr) return;
 
@@ -201,13 +201,13 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 		} else if (parameter.name == "max_imagination") {
 			const auto maxImagination = parameter.value;
 
-			auto* destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
+			auto destroyable = this->GetOwningEntity()->GetComponent<DestroyableComponent>();
 
 			if (destroyable == nullptr) return;
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() - maxImagination);
 		} else if (parameter.name == "speed") {
-			auto* controllablePhysicsComponent = this->GetOwningEntity()->GetComponent<ControllablePhysicsComponent>();
+			auto controllablePhysicsComponent = this->GetOwningEntity()->GetComponent<ControllablePhysicsComponent>();
 			if (!controllablePhysicsComponent) return;
 			const auto speed = parameter.value;
 			controllablePhysicsComponent->RemoveSpeedboost(speed);

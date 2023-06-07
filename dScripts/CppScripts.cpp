@@ -944,8 +944,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 
 std::vector<CppScripts::Script*> CppScripts::GetEntityScripts(Entity* entity) {
 	std::vector<CppScripts::Script*> scripts;
-	std::vector<ScriptComponent*> comps = entity->GetScriptComponents();
-	for (ScriptComponent* scriptComp : comps) {
+	auto comps = entity->GetScriptComponents();
+	for (auto& scriptComp : comps) {
 		if (scriptComp != nullptr) {
 			scripts.push_back(scriptComp->GetScript());
 		}

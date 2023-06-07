@@ -12,7 +12,7 @@
 void AmDarklingDragon::OnStartup(Entity* self) {
 	self->SetVar<int32_t>(u"weakspot", 0);
 
-	auto* baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();
+	auto baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();
 
 	if (baseCombatAIComponent != nullptr) {
 		baseCombatAIComponent->SetStunImmune(true);
@@ -46,7 +46,7 @@ void AmDarklingDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t
 		}
 	}
 
-	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = self->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent != nullptr) {
 		if (destroyableComponent->GetArmor() > 0) return;
@@ -56,8 +56,8 @@ void AmDarklingDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t
 		if (weakpoint == 0) {
 			self->AddTimer("ReviveTimer", 12);
 
-			auto* baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();
-			auto* skillComponent = self->GetComponent<SkillComponent>();
+			auto baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();
+			auto skillComponent = self->GetComponent<SkillComponent>();
 
 			if (baseCombatAIComponent != nullptr) {
 				baseCombatAIComponent->SetDisabled(true);
@@ -127,8 +127,8 @@ void AmDarklingDragon::OnTimerDone(Entity* self, std::string timerName) {
 		RenderComponent::PlayAnimation(self, u"stunend", 2.0f);
 		self->AddTimer("backToAttack", 1);
 	} else if (timerName == "backToAttack") {
-		auto* baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();
-		auto* skillComponent = self->GetComponent<SkillComponent>();
+		auto baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();
+		auto skillComponent = self->GetComponent<SkillComponent>();
 		if (baseCombatAIComponent != nullptr) {
 			baseCombatAIComponent->SetDisabled(false);
 			baseCombatAIComponent->SetStunned(false);

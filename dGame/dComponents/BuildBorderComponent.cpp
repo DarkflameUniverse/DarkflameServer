@@ -27,7 +27,7 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 			Game::logger->Log("BuildBorderComponent", "Using PropertyPlaque");
 		}
 
-		auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
+		auto inventoryComponent = originator->GetComponent<InventoryComponent>();
 
 		if (inventoryComponent == nullptr) {
 			return;
@@ -63,7 +63,7 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 			GameMessages::SendStartArrangingWithItem(originator, originator->GetSystemAddress(), true, buildArea, originator->GetPosition());
 		}
 
-		InventoryComponent* inv = m_OwningEntity->GetComponent<InventoryComponent>();
+		auto inv = m_OwningEntity->GetComponent<InventoryComponent>();
 		if (!inv) return;
 		inv->PushEquippedItems(); // technically this is supposed to happen automatically... but it doesnt? so just keep this here
 	}

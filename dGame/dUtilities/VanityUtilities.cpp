@@ -117,7 +117,7 @@ void VanityUtilities::SpawnVanity() {
 
 		npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
 
-		auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
+		auto scriptComponent = npcEntity->GetComponent<ScriptComponent>();
 
 		if (scriptComponent != nullptr) {
 			scriptComponent->SetScript(npc.m_Script);
@@ -161,13 +161,13 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 	auto* entity = EntityManager::Instance()->CreateEntity(info);
 	entity->SetVar(u"npcName", name);
 
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent != nullptr) {
 		inventoryComponent->SetNPCItems(inventory);
 	}
 
-	auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent != nullptr) {
 		destroyableComponent->SetIsGMImmune(true);
@@ -519,7 +519,7 @@ void VanityUtilities::SetupNPCTalk(Entity* npc) {
 }
 
 void VanityUtilities::NPCTalk(Entity* npc) {
-	auto* proximityMonitorComponent = npc->GetComponent<ProximityMonitorComponent>();
+	auto proximityMonitorComponent = npc->GetComponent<ProximityMonitorComponent>();
 
 	if (!proximityMonitorComponent->GetProximityObjects("talk").empty()) {
 		const auto& chats = npc->GetVar<std::vector<std::string>>(u"chats");

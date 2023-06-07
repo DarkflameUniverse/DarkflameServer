@@ -49,8 +49,8 @@ void LevelProgressionComponent::HandleLevelUp() {
 	const auto& rewards = rewardsTable->GetByLevelID(m_Level);
 	bool rewardingItem = rewards.size() > 0;
 
-	auto* inventoryComponent = m_OwningEntity->GetComponent<InventoryComponent>();
-	auto* controllablePhysicsComponent = m_OwningEntity->GetComponent<ControllablePhysicsComponent>();
+	auto inventoryComponent = m_OwningEntity->GetComponent<InventoryComponent>();
+	auto controllablePhysicsComponent = m_OwningEntity->GetComponent<ControllablePhysicsComponent>();
 
 	if (!inventoryComponent || !controllablePhysicsComponent) return;
 	// Tell the client we beginning to send level rewards.
@@ -84,6 +84,6 @@ void LevelProgressionComponent::HandleLevelUp() {
 
 void LevelProgressionComponent::SetRetroactiveBaseSpeed(){
 	if (m_Level >= 20) m_SpeedBase = 525.0f;
-	auto* controllablePhysicsComponent = m_OwningEntity->GetComponent<ControllablePhysicsComponent>();
+	auto controllablePhysicsComponent = m_OwningEntity->GetComponent<ControllablePhysicsComponent>();
 	if (controllablePhysicsComponent) controllablePhysicsComponent->SetSpeedMultiplier(m_SpeedBase / 500.0f);
 }

@@ -2,7 +2,7 @@
 #include "SkillComponent.h"
 
 void EnemyNjBuff::OnStartup(Entity* self) {
-	auto* skillComponent = self->GetComponent<SkillComponent>();
+	auto skillComponent = self->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
 		return;

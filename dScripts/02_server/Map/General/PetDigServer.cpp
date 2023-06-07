@@ -125,7 +125,7 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 
 	// If the player doesn't have the flag yet
 	if (playerFlag != 0 && !player->GetPlayerFlag(playerFlag)) {
-		auto* petComponent = pet->GetComponent<PetComponent>();
+		auto petComponent = pet->GetComponent<PetComponent>();
 		if (petComponent != nullptr) {
 			// TODO: Pet state = 9 ??
 		}
@@ -159,7 +159,7 @@ void PetDigServer::HandleBouncerDig(const Entity* self, const Entity* owner) {
  * \param owner the owner that just made a pet dig something up
  */
 void PetDigServer::ProgressPetDigMissions(const Entity* owner, const Entity* chest) {
-	auto* missionComponent = owner->GetComponent<MissionComponent>();
+	auto missionComponent = owner->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		// Can You Dig It progress
@@ -193,7 +193,7 @@ void PetDigServer::ProgressPetDigMissions(const Entity* owner, const Entity* che
 void PetDigServer::SpawnPet(Entity* self, const Entity* owner, const DigInfo digInfo) {
 	// Some treasures require a mission to be active
 	if (digInfo.requiredMission >= 0) {
-		auto* missionComponent = owner->GetComponent<MissionComponent>();
+		auto missionComponent = owner->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr && missionComponent->GetMissionState(digInfo.requiredMission) < eMissionState::ACTIVE) {
 			return;
 		}

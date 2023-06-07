@@ -48,7 +48,7 @@ void PossessableComponent::Dismount() {
 }
 
 void PossessableComponent::OnUse(Entity* originator) {
-	auto* possessor = originator->GetComponent<PossessorComponent>();
+	auto possessor = originator->GetComponent<PossessorComponent>();
 	if (possessor) {
 		possessor->Mount(m_OwningEntity);
 	}

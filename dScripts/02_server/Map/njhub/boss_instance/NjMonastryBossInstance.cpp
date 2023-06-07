@@ -51,7 +51,7 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity* self, Entity* player) {
 	UpdatePlayer(self, player->GetObjectID());
 
 	// Buff the player
-	auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = player->GetComponent<DestroyableComponent>();
 	if (destroyableComponent != nullptr) {
 		destroyableComponent->SetHealth((int32_t)destroyableComponent->GetMaxHealth());
 		destroyableComponent->SetArmor((int32_t)destroyableComponent->GetMaxArmor());
@@ -147,7 +147,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 	} else if (timerName + TimerSplitChar == UnstunTimer) {
 		auto* entity = EntityManager::Instance()->GetEntity(objectID);
 		if (entity != nullptr) {
-			auto* combatAI = entity->GetComponent<BaseCombatAIComponent>();
+			auto combatAI = entity->GetComponent<BaseCombatAIComponent>();
 			if (combatAI != nullptr) {
 				combatAI->SetDisabled(false);
 			}
@@ -221,7 +221,7 @@ void NjMonastryBossInstance::HandleLedgedFrakjawSpawned(Entity* self, Entity* le
 }
 
 void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* counterWeight) {
-	auto* rebuildComponent = counterWeight->GetComponent<RebuildComponent>();
+	auto rebuildComponent = counterWeight->GetComponent<RebuildComponent>();
 	if (rebuildComponent != nullptr) {
 		rebuildComponent->AddRebuildStateCallback([this, self, counterWeight](eRebuildState state) {
 
@@ -257,7 +257,7 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 						return;
 					}
 
-					auto* skillComponent = frakjaw->GetComponent<SkillComponent>();
+					auto skillComponent = frakjaw->GetComponent<SkillComponent>();
 					if (skillComponent != nullptr) {
 						skillComponent->CalculateBehavior(1635, 39097, frakjaw->GetObjectID(), true, false);
 					}
@@ -285,12 +285,12 @@ void NjMonastryBossInstance::HandleLowerFrakjawSpawned(Entity* self, Entity* low
 	RenderComponent::PlayAnimation(lowerFrakjaw, TeleportInAnimation);
 	self->SetVar<LWOOBJID>(LowerFrakjawVariable, lowerFrakjaw->GetObjectID());
 
-	auto* combatAI = lowerFrakjaw->GetComponent<BaseCombatAIComponent>();
+	auto combatAI = lowerFrakjaw->GetComponent<BaseCombatAIComponent>();
 	if (combatAI != nullptr) {
 		combatAI->SetDisabled(true);
 	}
 
-	auto* destroyableComponent = lowerFrakjaw->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = lowerFrakjaw->GetComponent<DestroyableComponent>();
 	if (destroyableComponent != nullptr) {
 		destroyableComponent->AddOnHitCallback([this, self, lowerFrakjaw](Entity* attacker) {
 			NjMonastryBossInstance::HandleLowerFrakjawHit(self, lowerFrakjaw, attacker);
@@ -323,7 +323,7 @@ void NjMonastryBossInstance::HandleLowerFrakjawSpawned(Entity* self, Entity* low
 }
 
 void NjMonastryBossInstance::HandleLowerFrakjawHit(Entity* self, Entity* lowerFrakjaw, Entity* attacker) {
-	auto* destroyableComponent = lowerFrakjaw->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = lowerFrakjaw->GetComponent<DestroyableComponent>();
 	if (destroyableComponent == nullptr)
 		return;
 
@@ -332,7 +332,7 @@ void NjMonastryBossInstance::HandleLowerFrakjawHit(Entity* self, Entity* lowerFr
 		self->SetVar<bool>(OnLastWaveVarbiale, true);
 
 		// Stun frakjaw during the cinematic
-		auto* combatAI = lowerFrakjaw->GetComponent<BaseCombatAIComponent>();
+		auto combatAI = lowerFrakjaw->GetComponent<BaseCombatAIComponent>();
 		if (combatAI != nullptr) {
 			combatAI->SetDisabled(true);
 		}
@@ -347,7 +347,7 @@ void NjMonastryBossInstance::HandleLowerFrakjawHit(Entity* self, Entity* lowerFr
 				newTrashMobs.push_back(trashMobID);
 
 				// Stun all the enemies until the cinematic is over
-				auto* trashMobCombatAI = trashMob->GetComponent<BaseCombatAIComponent>();
+				auto trashMobCombatAI = trashMob->GetComponent<BaseCombatAIComponent>();
 				if (trashMobCombatAI != nullptr) {
 					trashMobCombatAI->SetDisabled(true);
 				}
@@ -375,7 +375,7 @@ void NjMonastryBossInstance::HandleWaveEnemySpawned(Entity* self, Entity* waveEn
 	waveEnemies.push_back(waveEnemy->GetObjectID());
 	self->SetVar<std::vector<LWOOBJID>>(TrashMobsAliveVariable, waveEnemies);
 
-	auto* combatAI = waveEnemy->GetComponent<BaseCombatAIComponent>();
+	auto combatAI = waveEnemy->GetComponent<BaseCombatAIComponent>();
 	if (combatAI != nullptr) {
 		combatAI->SetDisabled(true);
 		ActivityTimerStart(self, UnstunTimer + std::to_string(waveEnemy->GetObjectID()), 3.0f, 3.0f);
@@ -436,7 +436,7 @@ void NjMonastryBossInstance::RemovePoison(Entity* self) {
 		auto* player = EntityManager::Instance()->GetEntity(playerID);
 		if (player != nullptr) {
 
-			auto* buffComponent = player->GetComponent<BuffComponent>();
+			auto buffComponent = player->GetComponent<BuffComponent>();
 			if (buffComponent != nullptr) {
 				buffComponent->RemoveBuff(PoisonBuff);
 			}

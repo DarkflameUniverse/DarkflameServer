@@ -87,7 +87,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 		return;
 	}
 
-	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	auto inventoryComponent = player->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -141,8 +141,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	// Make the vehicle a child of the racing controller.
 	m_OwningEntity->AddChild(carEntity);
 
-	auto* destroyableComponent =
-		carEntity->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = carEntity->GetComponent<DestroyableComponent>();
 
 	// Setup the vehicle stats.
 	if (destroyableComponent != nullptr) {
@@ -151,16 +150,14 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	}
 
 	// Setup the vehicle as being possessed by the player.
-	auto* possessableComponent =
-		carEntity->GetComponent<PossessableComponent>();
+	auto possessableComponent = carEntity->GetComponent<PossessableComponent>();
 
 	if (possessableComponent != nullptr) {
 		possessableComponent->SetPossessor(player->GetObjectID());
 	}
 
 	// Load the vehicle's assemblyPartLOTs for display.
-	auto* moduleAssemblyComponent =
-		carEntity->GetComponent<ModuleAssemblyComponent>();
+	auto moduleAssemblyComponent = carEntity->GetComponent<ModuleAssemblyComponent>();
 
 	if (moduleAssemblyComponent) {
 		moduleAssemblyComponent->SetSubKey(item->GetSubKey());
@@ -175,7 +172,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	}
 
 	// Setup the player as possessing the vehicle.
-	auto* possessorComponent = player->GetComponent<PossessorComponent>();
+	auto possessorComponent = player->GetComponent<PossessorComponent>();
 
 	if (possessorComponent != nullptr) {
 		possessorComponent->SetPossessable(carEntity->GetObjectID());
@@ -183,7 +180,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	}
 
 	// Set the player's current activity as racing.
-	auto* characterComponent = player->GetComponent<CharacterComponent>();
+	auto characterComponent = player->GetComponent<CharacterComponent>();
 
 	if (characterComponent != nullptr) {
 		characterComponent->SetIsRacing(true);
@@ -293,7 +290,7 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 			GameMessages::SendDie(vehicle, vehicle->GetObjectID(), LWOOBJID_EMPTY, true,
 				eKillType::VIOLENT, u"", 0, 0, 90.0f, false, true, 0);
 
-			auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
+			auto destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
 			uint32_t respawnImagination = 0;
 			// Reset imagination to half its current value, rounded up to the nearest value divisible by 10, as it was done in live.
 			// Do not actually change the value yet.  Do that on respawn.
@@ -318,13 +315,13 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 					UNASSIGNED_SYSTEM_ADDRESS);
 
 				GameMessages::SendResurrect(vehicle);
-				auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
+				auto destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
 				// Reset imagination to half its current value, rounded up to the nearest value divisible by 10, as it was done in live.
 				if (destroyableComponent) destroyableComponent->SetImagination(respawnImagination);
 				EntityManager::Instance()->SerializeEntity(vehicle);
 			});
 
-			auto* characterComponent = player->GetComponent<CharacterComponent>();
+			auto characterComponent = player->GetComponent<CharacterComponent>();
 			if (characterComponent != nullptr) {
 				characterComponent->UpdatePlayerStatistic(RacingTimesWrecked);
 			}
@@ -386,7 +383,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 			m_OwningEntity->GetObjectID(), 2, 0, LWOOBJID_EMPTY, u"",
 			player->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 
-		auto* missionComponent = player->GetComponent<MissionComponent>();
+		auto missionComponent = player->GetComponent<MissionComponent>();
 
 		if (missionComponent == nullptr) return;
 
@@ -639,8 +636,7 @@ void RacingControlComponent::Update(float deltaTime) {
 						vehicle->SetPosition(player.respawnPosition);
 						vehicle->SetRotation(player.respawnRotation);
 
-						auto* destroyableComponent =
-							vehicle->GetComponent<DestroyableComponent>();
+						auto destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
 
 						if (destroyableComponent != nullptr) {
 							destroyableComponent->SetImagination(0);
@@ -817,8 +813,7 @@ void RacingControlComponent::Update(float deltaTime) {
 						"Best lap time (%llu)", lapTime);
 				}
 
-				auto* missionComponent =
-					playerEntity->GetComponent<MissionComponent>();
+				auto missionComponent = playerEntity->GetComponent<MissionComponent>();
 
 				if (missionComponent != nullptr) {
 
@@ -841,7 +836,7 @@ void RacingControlComponent::Update(float deltaTime) {
 						// Entire race time
 						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, (LWOOBJID)eRacingTaskParam::TOTAL_TRACK_TIME);
 
-						auto* characterComponent = playerEntity->GetComponent<CharacterComponent>();
+						auto characterComponent = playerEntity->GetComponent<CharacterComponent>();
 						if (characterComponent != nullptr) {
 							characterComponent->TrackRaceCompleted(m_Finished == 1);
 						}

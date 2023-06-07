@@ -319,12 +319,12 @@ void Mission::Complete(const bool yieldRewards) {
 		return;
 	}
 
-	auto* characterComponent = entity->GetComponent<CharacterComponent>();
+	auto characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->TrackMissionCompletion(!info->isMission);
 	}
 
-	auto* missionComponent = entity->GetComponent<MissionComponent>();
+	auto missionComponent = entity->GetComponent<MissionComponent>();
 
 	missionComponent->Progress(eMissionTaskType::META, info->id);
 
@@ -372,7 +372,7 @@ void Mission::CheckCompletion() {
 void Mission::Catchup() {
 	auto* entity = GetAssociate();
 
-	auto* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
+	auto inventory = entity->GetComponent<InventoryComponent>();
 
 	for (auto* task : m_Tasks) {
 		const auto type = task->GetType();
@@ -414,11 +414,11 @@ void Mission::YieldRewards() {
 
 	auto* character = GetUser()->GetLastUsedChar();
 
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-	auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
-	auto* characterComponent = entity->GetComponent<CharacterComponent>();
-	auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
-	auto* missionComponent = entity->GetComponent<MissionComponent>();
+	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto levelComponent = entity->GetComponent<LevelProgressionComponent>();
+	auto characterComponent = entity->GetComponent<CharacterComponent>();
+	auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
+	auto missionComponent = entity->GetComponent<MissionComponent>();
 
 	// Remove mission items
 	for (auto* task : m_Tasks) {

@@ -92,7 +92,7 @@ Item::Item(
 
 	inventory->AddManagedItem(this);
 
-	auto* entity = inventory->GetComponent()->GetOwningEntity();
+	auto entity = inventory->GetComponent()->GetOwningEntity();
 	GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, static_cast<int>(this->count), subKey, lootSourceType);
 
 	if (isModMoveAndEquip) {
@@ -166,7 +166,7 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 	}
 
 	if (!silent) {
-		auto* entity = inventory->GetComponent()->GetOwningEntity();
+		auto entity = inventory->GetComponent()->GetOwningEntity();
 
 		if (value > count) {
 			GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, delta, LWOOBJID_EMPTY, lootSourceType);
@@ -231,7 +231,7 @@ void Item::UnEquip() {
 }
 
 bool Item::IsEquipped() const {
-	auto* component = inventory->GetComponent();
+	auto component = inventory->GetComponent();
 
 	for (const auto& pair : component->GetEquippedItems()) {
 		const auto item = pair.second;
@@ -278,7 +278,7 @@ void Item::UseNonEquip(Item* item) {
 		return;
 	}
 
-	auto* playerInventoryComponent = GetInventory()->GetComponent();
+	auto playerInventoryComponent = GetInventory()->GetComponent();
 	if (!playerInventoryComponent) {
 		Game::logger->LogDebug("Item", "no inventory component attached to item id %llu lot %i", this->GetId(), this->GetLot());
 		return;

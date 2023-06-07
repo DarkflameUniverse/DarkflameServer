@@ -6,7 +6,7 @@
 #include "ePhysicsEffectType.h"
 
 void NtSentinelWalkwayServer::OnStartup(Entity* self) {
-	auto* phantomPhysicsComponent = self->GetComponent<PhantomPhysicsComponent>();
+	auto phantomPhysicsComponent = self->GetComponent<PhantomPhysicsComponent>();
 
 	if (phantomPhysicsComponent == nullptr) {
 		return;
@@ -37,7 +37,7 @@ void NtSentinelWalkwayServer::OnProximityUpdate(Entity* self, Entity* entering, 
 
 	auto* player = entering;
 
-	auto* missionComponent = player->GetComponent<MissionComponent>();
+	auto missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT());

@@ -4,7 +4,7 @@
 #include "eMissionState.h"
 
 void GfJailkeepMission::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
-	auto* missionComponent = target->GetComponent<MissionComponent>();
+	auto missionComponent = target->GetComponent<MissionComponent>();
 	if (missionComponent == nullptr)
 		return;
 
@@ -25,7 +25,7 @@ void GfJailkeepMission::OnMissionDialogueOK(Entity* self, Entity* target, int mi
 }
 
 void GfJailkeepMission::OnUse(Entity* self, Entity* user) {
-	auto* missionComponent = user->GetComponent<MissionComponent>();
+	auto missionComponent = user->GetComponent<MissionComponent>();
 	if (missionComponent == nullptr)
 		return;
 

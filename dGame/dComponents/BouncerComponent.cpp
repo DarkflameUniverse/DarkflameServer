@@ -71,7 +71,7 @@ void BouncerComponent::LookupPetSwitch() {
 		const auto& entities = EntityManager::Instance()->GetEntitiesInGroup(group);
 
 		for (auto* entity : entities) {
-			auto* switchComponent = entity->GetComponent<SwitchComponent>();
+			auto switchComponent = entity->GetComponent<SwitchComponent>();
 
 			if (switchComponent != nullptr) {
 				switchComponent->SetPetBouncer(this);

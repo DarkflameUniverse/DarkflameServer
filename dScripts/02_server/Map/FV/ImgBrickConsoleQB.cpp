@@ -19,7 +19,7 @@ void ImgBrickConsoleQB::OnStartup(Entity* self) {
 }
 
 void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto rebuildComponent = self->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 		if (!self->GetNetworkVar<bool>(u"used")) {
@@ -28,7 +28,7 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 			auto bothBuilt = false;
 
 			for (auto* console : consoles) {
-				auto* consoleRebuildComponent = console->GetComponent<RebuildComponent>();
+				auto consoleRebuildComponent = console->GetComponent<RebuildComponent>();
 
 				if (consoleRebuildComponent->GetState() != eRebuildState::COMPLETED) {
 					continue;
@@ -69,8 +69,8 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 
 		auto* player = user;
 
-		auto* missionComponent = player->GetComponent<MissionComponent>();
-		auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+		auto missionComponent = player->GetComponent<MissionComponent>();
+		auto inventoryComponent = player->GetComponent<InventoryComponent>();
 
 		if (missionComponent != nullptr && inventoryComponent != nullptr) {
 			if (missionComponent->GetMissionState(1302) == eMissionState::ACTIVE) {
@@ -145,7 +145,7 @@ void ImgBrickConsoleQB::OnRebuildComplete(Entity* self, Entity* target) {
 	const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console");
 
 	for (auto* console : consoles) {
-		auto* consoleRebuildComponent = console->GetComponent<RebuildComponent>();
+		auto consoleRebuildComponent = console->GetComponent<RebuildComponent>();
 
 		if (consoleRebuildComponent->GetState() != eRebuildState::COMPLETED) {
 			continue;
@@ -166,7 +166,7 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 
 	self->SetVar(u"Died", true);
 
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto rebuildComponent = self->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 		auto offFX = 0;
@@ -227,7 +227,7 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 
 void ImgBrickConsoleQB::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "reset") {
-		auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+		auto rebuildComponent = self->GetComponent<RebuildComponent>();
 
 		if (rebuildComponent->GetState() == eRebuildState::OPEN) {
 			self->Smash(self->GetObjectID(), eKillType::SILENT);

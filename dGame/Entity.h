@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __ENTITY__H__
+#define __ENTITY__H__
 
 #include <map>
 #include <functional>
@@ -146,8 +147,8 @@ public:
 
 	bool HasComponent(eReplicaComponentType componentId) const;
 
-	template<typename ComponentType, typename...ConstructorValues>
-	std::shared_ptr<ComponentType> AddComponent(ConstructorValues... arguments);
+	template<typename Cmpt, typename...ConstructorValues>
+	std::shared_ptr<Cmpt> AddComponent(ConstructorValues... arguments);
 
 	std::vector<std::shared_ptr<ScriptComponent>> GetScriptComponents();
 
@@ -289,6 +290,8 @@ public:
 	std::vector<LWOOBJID>& GetTargetsInPhantom();
 
 	Entity* GetScheduledKiller() { return m_ScheduleKiller; }
+
+	std::unordered_map<eReplicaComponentType, ComponentPtr>& GetComponents() { return m_Components; }
 
 protected:
 	LWOOBJID m_ObjectID;
@@ -481,9 +484,14 @@ T Entity::GetNetworkVar(const std::u16string& name) {
 	return LDFData<T>::Default;
 }
 
-template<typename ComponentType, typename...ConstructorValues>
-std::shared_ptr<ComponentType> Entity::AddComponent(ConstructorValues...arguments) {
-	if (GetComponent<ComponentType>()) return nullptr;
+template<typename Cmpt, typename...ConstructorValues>
+std::shared_ptr<Cmpt> Entity::AddComponent(ConstructorValues...arguments) {
+	auto component = GetComponent<Cmpt>();
+	if (component) return component;
 
-	m_Components.insert_or_assign(ComponentType::ComponentType, std::make_shared<ComponentType>(arguments...));
+	auto insertedComponent = m_Components.insert_or_assign(Cmpt::ComponentType,
+		std::make_shared<Cmpt>(this, std::forward<ConstructorValues>(arguments)...)).first->second;
+	return std::dynamic_pointer_cast<Cmpt>(insertedComponent);
 }
+
+#endif  //!__ENTITY__H__

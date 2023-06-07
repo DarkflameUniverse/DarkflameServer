@@ -23,7 +23,7 @@ void MastTeleport::OnRebuildComplete(Entity* self, Entity* target) {
 		GameMessages::SendSetStunned(target->GetObjectID(), eStateChangeType::PUSH, target->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true
 		);
-		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
+		auto destroyableComponent = target->GetComponent<DestroyableComponent>();
 		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, true, true, true, true, true, false, false, true, true);
 
 		self->AddTimer("Start", 3);
@@ -94,7 +94,7 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 		GameMessages::SendSetStunned(playerId, eStateChangeType::POP, player->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true
 		);
-		auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
+		auto destroyableComponent = player->GetComponent<DestroyableComponent>();
 		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true, true, true, true, true, false, false, true, true);
 		EntityManager::Instance()->SerializeEntity(player);
 	}

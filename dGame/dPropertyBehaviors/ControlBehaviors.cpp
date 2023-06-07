@@ -30,7 +30,7 @@
 #include "UpdateActionMessage.h"
 #include "UpdateStripUiMessage.h"
 
-void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, ModelComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr) {
+void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, std::shared_ptr<ModelComponent> modelComponent, Entity* modelOwner, const SystemAddress& sysAddr) {
 	// auto behavior = modelComponent->FindBehavior(behaviorID);
 	// if (behavior->GetBehaviorID() == -1 || behavior->GetShouldSetNewID()) {
 	// 	ObjectIDManager::Instance()->RequestPersistentID(
@@ -57,7 +57,7 @@ void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, ModelComponent* mode
 }
 
 void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner) {
-	auto* modelComponent = modelEntity->GetComponent<ModelComponent>();
+	auto modelComponent = modelEntity->GetComponent<ModelComponent>();
 
 	if (!modelComponent) return;
 
@@ -79,7 +79,7 @@ void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const Syste
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", behaviorsToSerialize);
 }
 
-void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent) {
+void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, std::shared_ptr<ModelComponent> ModelComponent) {
 	auto* modelTypeAmf = arguments->Get<double>("ModelType");
 	if (!modelTypeAmf) return;
 
@@ -137,7 +137,7 @@ void ControlBehaviors::Rename(Entity* modelEntity, const SystemAddress& sysAddr,
 }
 
 // TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
-void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
+void ControlBehaviors::SendBehaviorBlocksToClient(std::shared_ptr<ModelComponent> modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	// uint32_t behaviorID = ControlBehaviors::GetBehaviorIDFromArgument(arguments);
 
 	// auto modelBehavior = modelComponent->FindBehavior(behaviorID);
@@ -266,7 +266,7 @@ void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
 	}
 }
 
-void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
+void ControlBehaviors::MoveToInventory(std::shared_ptr<ModelComponent> modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	// This closes the UI menu should it be open while the player is removing behaviors
 	AMFArrayValue args;
 
@@ -281,7 +281,7 @@ void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const Sys
 
 void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
 	if (!isInitialized || !modelEntity || !modelOwner || !arguments) return;
-	auto* modelComponent = modelEntity->GetComponent<ModelComponent>();
+	auto modelComponent = modelEntity->GetComponent<ModelComponent>();
 
 	if (!modelComponent) return;
 

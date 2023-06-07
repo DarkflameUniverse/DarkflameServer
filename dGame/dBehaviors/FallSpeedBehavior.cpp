@@ -11,7 +11,7 @@ void FallSpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 	if (!target) return;
 
-	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	auto controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 	controllablePhysicsComponent->SetGravityScale(m_PercentSlowed);
 	EntityManager::Instance()->SerializeEntity(target);
@@ -39,7 +39,7 @@ void FallSpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext bran
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 	if (!target) return;
 
-	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	auto controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 	controllablePhysicsComponent->SetGravityScale(1);
 	EntityManager::Instance()->SerializeEntity(target);

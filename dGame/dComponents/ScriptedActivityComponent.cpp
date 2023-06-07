@@ -53,7 +53,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 		}
 	}
 
-	auto* destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
+	auto destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent) {
 		// check for LMIs and set the loot LMIs
@@ -305,7 +305,7 @@ bool ScriptedActivityComponent::IsValidActivity(Entity* player) {
 	// Makes it so that scripted activities with an unimplemented map cannot be joined
 	/*if (player->GetGMLevel() < eGameMasterLevel::DEVELOPER && (m_ActivityInfo.instanceMapID == 1302 || m_ActivityInfo.instanceMapID == 1301)) {
 		if (m_OwningEntity->GetLOT() == 4860) {
-			auto* missionComponent = player->GetComponent<MissionComponent>();
+			auto missionComponent = player->GetComponent<MissionComponent>();
 			missionComponent->CompleteMission(229);
 		}
 
@@ -354,7 +354,7 @@ bool ScriptedActivityComponent::TakeCost(Entity* player) const {
 	if (m_ActivityInfo.optionalCostLOT <= 0 || m_ActivityInfo.optionalCostCount <= 0)
 		return true;
 
-	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	auto inventoryComponent = player->GetComponent<InventoryComponent>();
 	if (inventoryComponent == nullptr)
 		return false;
 
@@ -555,7 +555,7 @@ void ActivityInstance::StartZone() {
 }
 
 void ActivityInstance::RewardParticipant(Entity* participant) {
-	auto* missionComponent = participant->GetComponent<MissionComponent>();
+	auto missionComponent = participant->GetComponent<MissionComponent>();
 	if (missionComponent) {
 		missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityInfo.ActivityID);
 	}

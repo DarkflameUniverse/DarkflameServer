@@ -26,10 +26,10 @@ PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entit
 }
 
 void PropertyEntranceComponent::OnUse(Entity* entity) {
-	auto* characterComponent = entity->GetComponent<CharacterComponent>();
+	auto characterComponent = entity->GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 
-	auto* rocket = entity->GetComponent<CharacterComponent>()->RocketEquip(entity);
+	auto rocket = entity->GetComponent<CharacterComponent>()->RocketEquip(entity);
 	if (!rocket) return;
 
 	GameMessages::SendPropertyEntranceBegin(m_OwningEntity->GetObjectID(), entity->GetSystemAddress());
@@ -63,7 +63,7 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
 		cloneId = query[index].CloneId;
 	}
 
-	auto* launcher = m_OwningEntity->GetComponent<RocketLaunchpadControlComponent>();
+	auto launcher = m_OwningEntity->GetComponent<RocketLaunchpadControlComponent>();
 
 	if (launcher == nullptr) {
 		return;

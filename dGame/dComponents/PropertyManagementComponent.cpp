@@ -263,7 +263,7 @@ void PropertyManagementComponent::OnStartBuilding() {
 	SetPrivacyOption(PropertyPrivacyOption::Private); // Cant visit player which is building
 
 	if (!entrance.empty()) {
-		auto* rocketPad = entrance[0]->GetComponent<RocketLaunchpadControlComponent>();
+		auto rocketPad = entrance[0]->GetComponent<RocketLaunchpadControlComponent>();
 
 		if (rocketPad != nullptr) {
 			zoneId = rocketPad->GetDefaultZone();
@@ -302,7 +302,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		return;
 	}
 
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -417,7 +417,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;

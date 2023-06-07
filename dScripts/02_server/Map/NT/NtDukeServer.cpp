@@ -24,8 +24,8 @@ void NtDukeServer::SetVariables(Entity* self) {
 void NtDukeServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 
 	// Handles adding and removing the sword for the Crux Prime Sword mission
-	auto* missionComponent = target->GetComponent<MissionComponent>();
-	auto* inventoryComponent = target->GetComponent<InventoryComponent>();
+	auto missionComponent = target->GetComponent<MissionComponent>();
+	auto inventoryComponent = target->GetComponent<InventoryComponent>();
 
 	if (missionComponent != nullptr && inventoryComponent != nullptr) {
 		auto state = missionComponent->GetMissionState(m_SwordMissionID);

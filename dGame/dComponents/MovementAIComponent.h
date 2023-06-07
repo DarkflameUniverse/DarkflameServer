@@ -57,7 +57,7 @@ struct MovementAIInfo {
  */
 class MovementAIComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
 
 	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
 	~MovementAIComponent() override;
@@ -310,7 +310,7 @@ private:
 	/**
 	 * Optional direct link to the combat AI component of the parent entity
 	 */
-	BaseCombatAIComponent* m_BaseCombatAI = nullptr;
+	std::shared_ptr<BaseCombatAIComponent> m_BaseCombatAI = nullptr;
 
 	/**
 	 * The path the entity is currently following
