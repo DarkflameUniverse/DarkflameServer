@@ -1,7 +1,7 @@
 #include "PlayerForcedMovementComponent.h"
 
 PlayerForcedMovementComponent::PlayerForcedMovementComponent(Entity* parent) : Component(parent) {
-	m_Parent = parent;
+	m_OwningEntity = parent;
 }
 
 PlayerForcedMovementComponent::~PlayerForcedMovementComponent() {}

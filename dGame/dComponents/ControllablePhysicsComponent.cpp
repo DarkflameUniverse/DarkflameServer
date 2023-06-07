@@ -58,7 +58,7 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 		Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics");
 
 		float radius = 1.5f;
-		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), radius, false);
+		m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), radius, false);
 		m_dpEntity->SetCollisionGroup(COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_FRIENDLY);
 		dpWorld::Instance().AddEntity(m_dpEntity);
 	}
@@ -168,7 +168,7 @@ void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 
-	m_Parent->GetCharacter()->LoadXmlRespawnCheckpoints();
+	m_OwningEntity->GetCharacter()->LoadXmlRespawnCheckpoints();
 
 	character->QueryAttribute("lzx", &m_Position.x);
 	character->QueryAttribute("lzy", &m_Position.y);
@@ -300,7 +300,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 		auto candidateRadius = m_ActivePickupRadiusScales[i];
 		if (m_PickupRadius < candidateRadius) m_PickupRadius = candidateRadius;
 	}
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 }
 
 void ControllablePhysicsComponent::AddSpeedboost(float value) {
@@ -321,13 +321,13 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	// Recalculate speedboost since we removed one
 	m_SpeedBoost = 0.0f;
 	if (m_ActiveSpeedBoosts.empty()) { // no active speed boosts left, so return to base speed
-		auto* levelProgressionComponent = m_Parent->GetComponent<LevelProgressionComponent>();
+		auto* levelProgressionComponent = m_OwningEntity->GetComponent<LevelProgressionComponent>();
 		if (levelProgressionComponent) m_SpeedBoost = levelProgressionComponent->GetSpeedBase();
 	} else { // Used the last applied speedboost
 		m_SpeedBoost = m_ActiveSpeedBoosts.back();
 	}
 	SetSpeedMultiplier(m_SpeedBoost / 500.0f); // 500 being the base speed
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 }
 
 void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims){
@@ -339,13 +339,13 @@ void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bo
 	m_IsInBubble = true;
 	m_DirtyBubble = true;
 	m_SpecialAnims = specialAnims;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 }
 
 void ControllablePhysicsComponent::DeactivateBubbleBuff(){
 	m_DirtyBubble = true;
 	m_IsInBubble = false;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 };
 
 void ControllablePhysicsComponent::SetStunImmunity(
@@ -378,7 +378,7 @@ void ControllablePhysicsComponent::SetStunImmunity(
 	}
 
 	GameMessages::SendSetStunImmunity(
-		m_Parent->GetObjectID(), state, m_Parent->GetSystemAddress(), originator,
+		m_OwningEntity->GetObjectID(), state, m_OwningEntity->GetSystemAddress(), originator,
 		bImmuneToStunAttack,
 		bImmuneToStunEquip,
 		bImmuneToStunInteract,

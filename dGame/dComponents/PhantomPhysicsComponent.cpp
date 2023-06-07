@@ -28,9 +28,9 @@
 #include "dpShapeSphere.h"
 
 PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(parent) {
-	m_Position = m_Parent->GetDefaultPosition();
-	m_Rotation = m_Parent->GetDefaultRotation();
-	m_Scale = m_Parent->GetDefaultScale();
+	m_Position = m_OwningEntity->GetDefaultPosition();
+	m_Rotation = m_OwningEntity->GetDefaultRotation();
+	m_Scale = m_OwningEntity->GetDefaultScale();
 	m_dpEntity = nullptr;
 
 	m_EffectInfoDirty = false;
@@ -47,17 +47,17 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	m_IsDirectional = false;
 	m_Direction = NiPoint3(); // * m_DirectionalMultiplier
 
-	if (m_Parent->GetVar<bool>(u"create_physics")) {
+	if (m_OwningEntity->GetVar<bool>(u"create_physics")) {
 		CreatePhysics();
 	}
 
-	if (m_Parent->GetVar<bool>(u"respawnVol")) {
+	if (m_OwningEntity->GetVar<bool>(u"respawnVol")) {
 		m_IsRespawnVolume = true;
 	}
 
 	if (m_IsRespawnVolume) {
 		{
-			auto respawnString = std::stringstream(m_Parent->GetVarAsString(u"rspPos"));
+			auto respawnString = std::stringstream(m_OwningEntity->GetVarAsString(u"rspPos"));
 
 			std::string segment;
 			std::vector<std::string> seglist;
@@ -70,7 +70,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 		}
 
 		{
-			auto respawnString = std::stringstream(m_Parent->GetVarAsString(u"rspRot"));
+			auto respawnString = std::stringstream(m_OwningEntity->GetVarAsString(u"rspRot"));
 
 			std::string segment;
 			std::vector<std::string> seglist;
@@ -84,7 +84,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	}
 
 	// HF - RespawnPoints. Legacy respawn entity.
-	if (m_Parent->GetLOT() == 4945) {
+	if (m_OwningEntity->GetLOT() == 4945) {
 		m_IsRespawnVolume = true;
 		m_RespawnPos = m_Position;
 		m_RespawnRot = m_Rotation;
@@ -133,7 +133,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 				}
 			}
 
-			if (m_Parent->GetLOT() == 4945) // HF - RespawnPoints
+			if (m_OwningEntity->GetLOT() == 4945) // HF - RespawnPoints
 			{
 				m_IsRespawnVolume = true;
 				m_RespawnPos = m_Position;
@@ -145,7 +145,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 
 	if (!m_HasCreatedPhysics) {
 		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
+		auto componentID = compRegistryTable->GetByIDAndType(m_OwningEntity->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
 		CDPhysicsComponentTable* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
@@ -156,7 +156,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 
 		//temp test
 		if (info->physicsAsset == "miscellaneous\\misc_phys_10x1x5.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 10.0f, 5.0f, 1.0f);
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 10.0f, 5.0f, 1.0f);
 
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
@@ -167,7 +167,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 			// Move this down by 13.521004 units so it is still effectively at the same height as before
 			m_Position = m_Position - NiPoint3::UNIT_Y * 13.521004f;
 			// TODO Fix physics simulation to do simulation at high velocities due to bullet through paper problem...
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1638.4f, 13.521004f * 2.0f, 1638.4f);
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 1638.4f, 13.521004f * 2.0f, 1638.4f);
 
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
@@ -175,49 +175,49 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\trigger_wall_tall.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 10.0f, 25.0f, 1.0f);
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 10.0f, 25.0f, 1.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\env_gen_placeholderphysics.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 20.0f, 20.0f, 20.0f);
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 20.0f, 20.0f, 20.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\POI_trigger_wall.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1.0f, 12.5f, 20.0f); // Not sure what the real size is
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 1.0f, 12.5f, 20.0f); // Not sure what the real size is
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\NG_NinjaGo\\env_ng_gen_gate_chamber_puzzle_ceiling_tile_falling_phantom.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 18.0f, 5.0f, 15.0f);
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 18.0f, 5.0f, 15.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position + m_Rotation.GetForwardVector() * 7.5f);
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\NG_NinjaGo\\ng_flamejet_brick_phantom.HKX") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1.0f, 1.0f, 12.0f);
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 1.0f, 1.0f, 12.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position + m_Rotation.GetForwardVector() * 6.0f);
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\Ring_Trigger.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 6.0f, 6.0f, 6.0f);
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 6.0f, 6.0f, 6.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\vfx_propertyImaginationBall.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 4.5f);
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 4.5f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx"){
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_Position.y -= (111.467964f * m_Scale) / 2;
@@ -227,7 +227,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 			//Game::logger->Log("PhantomPhysicsComponent", "This one is supposed to have %s", info->physicsAsset.c_str());
 
 			//add fallback cube:
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);
+			m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), 2.0f, 2.0f, 2.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
@@ -255,14 +255,14 @@ void PhantomPhysicsComponent::CreatePhysics() {
 	float width = 0.0f; //aka "radius"
 	float height = 0.0f;
 
-	if (m_Parent->HasVar(u"primitiveModelType")) {
-		type = m_Parent->GetVar<int32_t>(u"primitiveModelType");
-		x = m_Parent->GetVar<float>(u"primitiveModelValueX");
-		y = m_Parent->GetVar<float>(u"primitiveModelValueY");
-		z = m_Parent->GetVar<float>(u"primitiveModelValueZ");
+	if (m_OwningEntity->HasVar(u"primitiveModelType")) {
+		type = m_OwningEntity->GetVar<int32_t>(u"primitiveModelType");
+		x = m_OwningEntity->GetVar<float>(u"primitiveModelValueX");
+		y = m_OwningEntity->GetVar<float>(u"primitiveModelValueY");
+		z = m_OwningEntity->GetVar<float>(u"primitiveModelValueZ");
 	} else {
 		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
+		auto componentID = compRegistryTable->GetByIDAndType(m_OwningEntity->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
 		CDPhysicsComponentTable* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
@@ -292,7 +292,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 			boxSize = NiPoint3(width, height, width);
 		}
 
-		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), boxSize);
+		m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), boxSize);
 		break;
 	}
 	}
@@ -358,7 +358,7 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 
 	//Process enter events
 	for (auto en : m_dpEntity->GetNewObjects()) {
-		m_Parent->OnCollisionPhantom(en->GetObjectID());
+		m_OwningEntity->OnCollisionPhantom(en->GetObjectID());
 
 		//If we are a respawn volume, inform the client:
 		if (m_IsRespawnVolume) {
@@ -374,7 +374,7 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 
 	//Process exit events
 	for (auto en : m_dpEntity->GetRemovedObjects()) {
-		m_Parent->OnCollisionLeavePhantom(en->GetObjectID());
+		m_OwningEntity->OnCollisionLeavePhantom(en->GetObjectID());
 	}
 }
 
@@ -391,7 +391,7 @@ void PhantomPhysicsComponent::SetDirection(const NiPoint3& pos) {
 void PhantomPhysicsComponent::SpawnVertices() {
 	if (!m_dpEntity) return;
 
-	std::cout << m_Parent->GetObjectID() << std::endl;
+	std::cout << m_OwningEntity->GetObjectID() << std::endl;
 	auto box = static_cast<dpShapeBox*>(m_dpEntity->GetShape());
 	for (auto vert : box->GetVertices()) {
 		std::cout << vert.x << ", " << vert.y << ", " << vert.z << std::endl;
@@ -400,7 +400,7 @@ void PhantomPhysicsComponent::SpawnVertices() {
 		info.lot = 33;
 		info.pos = vert;
 		info.spawner = nullptr;
-		info.spawnerID = m_Parent->GetObjectID();
+		info.spawnerID = m_OwningEntity->GetObjectID();
 		info.spawnerNodeID = 0;
 
 		Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);

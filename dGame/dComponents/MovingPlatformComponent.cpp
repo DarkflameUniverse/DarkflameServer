@@ -57,7 +57,7 @@ void MoverSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIniti
 
 MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::string& pathName) : Component(parent) {
 	m_MoverSubComponentType = eMoverSubComponentType::mover;
-	m_MoverSubComponent = new MoverSubComponent(m_Parent->GetDefaultPosition());
+	m_MoverSubComponent = new MoverSubComponent(m_OwningEntity->GetDefaultPosition());
 	m_PathName = GeneralUtils::ASCIIToUTF16(pathName);
 	m_Path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
 	m_NoAutoStart = false;
@@ -133,7 +133,7 @@ void MovingPlatformComponent::SetMovementState(eMovementPlatformState value) {
 
 	subComponent->mState = value;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 }
 
 void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint) {
@@ -147,7 +147,7 @@ void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint) 
 }
 
 void MovingPlatformComponent::StartPathing() {
-	//GameMessages::SendStartPathing(m_Parent);
+	//GameMessages::SendStartPathing(m_OwningEntity);
 	m_PathingStopped = false;
 
 	auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
@@ -167,14 +167,14 @@ void MovingPlatformComponent::StartPathing() {
 
 		targetPosition = nextWaypoint.position;
 	} else {
-		subComponent->mPosition = m_Parent->GetPosition();
+		subComponent->mPosition = m_OwningEntity->GetPosition();
 		subComponent->mSpeed = 1.0f;
 		subComponent->mWaitTime = 2.0f;
 
-		targetPosition = m_Parent->GetPosition() + NiPoint3(0.0f, 10.0f, 0.0f);
+		targetPosition = m_OwningEntity->GetPosition() + NiPoint3(0.0f, 10.0f, 0.0f);
 	}
 
-	m_Parent->AddCallbackTimer(subComponent->mWaitTime, [this] {
+	m_OwningEntity->AddCallbackTimer(subComponent->mWaitTime, [this] {
 		SetMovementState(eMovementPlatformState::Moving);
 		});
 
@@ -182,19 +182,19 @@ void MovingPlatformComponent::StartPathing() {
 
 	const auto travelNext = subComponent->mWaitTime + travelTime;
 
-	m_Parent->AddCallbackTimer(travelTime, [subComponent, this] {
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-			script->OnWaypointReached(m_Parent, subComponent->mNextWaypointIndex);
+	m_OwningEntity->AddCallbackTimer(travelTime, [subComponent, this] {
+		for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_OwningEntity)) {
+			script->OnWaypointReached(m_OwningEntity, subComponent->mNextWaypointIndex);
 		}
 		});
 
-	m_Parent->AddCallbackTimer(travelNext, [this] {
+	m_OwningEntity->AddCallbackTimer(travelNext, [this] {
 		ContinuePathing();
 		});
 
-	//GameMessages::SendPlatformResync(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
+	//GameMessages::SendPlatformResync(m_OwningEntity, UNASSIGNED_SYSTEM_ADDRESS);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 }
 
 void MovingPlatformComponent::ContinuePathing() {
@@ -222,17 +222,17 @@ void MovingPlatformComponent::ContinuePathing() {
 
 		targetPosition = nextWaypoint.position;
 	} else {
-		subComponent->mPosition = m_Parent->GetPosition();
+		subComponent->mPosition = m_OwningEntity->GetPosition();
 		subComponent->mSpeed = 1.0f;
 		subComponent->mWaitTime = 2.0f;
 
-		targetPosition = m_Parent->GetPosition() + NiPoint3(0.0f, 10.0f, 0.0f);
+		targetPosition = m_OwningEntity->GetPosition() + NiPoint3(0.0f, 10.0f, 0.0f);
 
 		pathSize = 1;
 		behavior = PathBehavior::Loop;
 	}
 
-	if (m_Parent->GetLOT() == 9483) {
+	if (m_OwningEntity->GetLOT() == 9483) {
 		behavior = PathBehavior::Bounce;
 	} else {
 		return;
@@ -242,7 +242,7 @@ void MovingPlatformComponent::ContinuePathing() {
 		subComponent->mCurrentWaypointIndex = pathSize;
 		switch (behavior) {
 		case PathBehavior::Once:
-			EntityManager::Instance()->SerializeEntity(m_Parent);
+			EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 			return;
 
 		case PathBehavior::Bounce:
@@ -271,7 +271,7 @@ void MovingPlatformComponent::ContinuePathing() {
 	subComponent->mCurrentWaypointIndex = 1;
 	*/
 
-	//GameMessages::SendPlatformResync(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
+	//GameMessages::SendPlatformResync(m_OwningEntity, UNASSIGNED_SYSTEM_ADDRESS);
 
 	if (subComponent->mCurrentWaypointIndex == subComponent->mDesiredWaypointIndex) {
 		// TODO: Send event?
@@ -280,35 +280,35 @@ void MovingPlatformComponent::ContinuePathing() {
 		return;
 	}
 
-	m_Parent->CancelCallbackTimers();
+	m_OwningEntity->CancelCallbackTimers();
 
-	m_Parent->AddCallbackTimer(subComponent->mWaitTime, [this] {
+	m_OwningEntity->AddCallbackTimer(subComponent->mWaitTime, [this] {
 		SetMovementState(eMovementPlatformState::Moving);
 		});
 
 	auto travelTime = Vector3::Distance(targetPosition, subComponent->mPosition) / subComponent->mSpeed + 1.5;
 
-	if (m_Parent->GetLOT() == 9483) {
+	if (m_OwningEntity->GetLOT() == 9483) {
 		travelTime += 20;
 	}
 
 	const auto travelNext = subComponent->mWaitTime + travelTime;
 
-	m_Parent->AddCallbackTimer(travelTime, [subComponent, this] {
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-			script->OnWaypointReached(m_Parent, subComponent->mNextWaypointIndex);
+	m_OwningEntity->AddCallbackTimer(travelTime, [subComponent, this] {
+		for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_OwningEntity)) {
+			script->OnWaypointReached(m_OwningEntity, subComponent->mNextWaypointIndex);
 		}
 		});
 
-	m_Parent->AddCallbackTimer(travelNext, [this] {
+	m_OwningEntity->AddCallbackTimer(travelNext, [this] {
 		ContinuePathing();
 		});
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 }
 
 void MovingPlatformComponent::StopPathing() {
-	//m_Parent->CancelCallbackTimers();
+	//m_OwningEntity->CancelCallbackTimers();
 
 	auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
 
@@ -318,9 +318,9 @@ void MovingPlatformComponent::StopPathing() {
 	subComponent->mDesiredWaypointIndex = -1;
 	subComponent->mShouldStopAtDesiredWaypoint = false;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 
-	//GameMessages::SendPlatformResync(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
+	//GameMessages::SendPlatformResync(m_OwningEntity, UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void MovingPlatformComponent::SetSerialized(bool value) {
@@ -338,10 +338,10 @@ void MovingPlatformComponent::SetNoAutoStart(const bool value) {
 void MovingPlatformComponent::WarpToWaypoint(size_t index) {
 	const auto& waypoint = m_Path->pathWaypoints[index];
 
-	m_Parent->SetPosition(waypoint.position);
-	m_Parent->SetRotation(waypoint.rotation);
+	m_OwningEntity->SetPosition(waypoint.position);
+	m_OwningEntity->SetRotation(waypoint.rotation);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 }
 
 size_t MovingPlatformComponent::GetLastWaypointIndex() const {

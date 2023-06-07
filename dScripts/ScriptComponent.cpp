@@ -19,7 +19,7 @@ ScriptComponent::~ScriptComponent() {
 
 void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	if (bIsInitialUpdate) {
-		const auto& networkSettings = m_Parent->GetNetworkSettings();
+		const auto& networkSettings = m_OwningEntity->GetNetworkSettings();
 		auto hasNetworkSettings = !networkSettings.empty();
 		outBitStream->Write(hasNetworkSettings);
 
@@ -52,5 +52,5 @@ void ScriptComponent::SetScript(const std::string& scriptName) {
 		return;
 	}*/
 
-	m_Script = CppScripts::GetScript(m_Parent, scriptName);
+	m_Script = CppScripts::GetScript(m_OwningEntity, scriptName);
 }

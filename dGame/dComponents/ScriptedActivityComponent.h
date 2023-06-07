@@ -20,7 +20,7 @@
   */
 class ActivityInstance {
 public:
-	ActivityInstance(Entity* parent, CDActivities activityInfo) { m_Parent = parent; m_ActivityInfo = activityInfo; };
+	ActivityInstance(Entity* parent, CDActivities activityInfo) { m_OwningEntity = parent; m_ActivityInfo = activityInfo; };
 	//~ActivityInstance();
 
 	/**
@@ -86,7 +86,7 @@ private:
 	/**
 	 * The entity that owns this activity (the entity that has the ScriptedActivityComponent)
 	 */
-	Entity* m_Parent;
+	Entity* m_OwningEntity;
 
 	/**
 	 * All the participants of this activity

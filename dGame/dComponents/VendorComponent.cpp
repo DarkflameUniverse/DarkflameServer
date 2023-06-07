@@ -24,8 +24,8 @@ void VendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitial
 }
 
 void VendorComponent::OnUse(Entity* originator) {
-	GameMessages::SendVendorOpenWindow(m_Parent, originator->GetSystemAddress());
-	GameMessages::SendVendorStatusUpdate(m_Parent, originator->GetSystemAddress());
+	GameMessages::SendVendorOpenWindow(m_OwningEntity, originator->GetSystemAddress());
+	GameMessages::SendVendorStatusUpdate(m_OwningEntity, originator->GetSystemAddress());
 }
 
 float VendorComponent::GetBuyScalar() const {
@@ -50,12 +50,12 @@ std::map<LOT, int>& VendorComponent::GetInventory() {
 
 bool VendorComponent::HasCraftingStation() {
 	// As far as we know, only Umami has a crafting station
-	return m_Parent->GetLOT() == 13800;
+	return m_OwningEntity->GetLOT() == 13800;
 }
 
 void VendorComponent::RefreshInventory(bool isCreation) {
 	//Custom code for Max vanity NPC
-	if (m_Parent->GetLOT() == 9749 && Game::server->GetZoneID() == 1201) {
+	if (m_OwningEntity->GetLOT() == 9749 && Game::server->GetZoneID() == 1201) {
 		if (!isCreation) return;
 		m_Inventory.insert({ 11909, 0 }); //Top hat w frog
 		m_Inventory.insert({ 7785, 0 }); //Flash bulb
@@ -97,7 +97,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	}
 
 	//Because I want a vendor to sell these cameras
-	if (m_Parent->GetLOT() == 13569) {
+	if (m_OwningEntity->GetLOT() == 13569) {
 		auto randomCamera = GeneralUtils::GenerateRandomNumber<int32_t>(0, 2);
 
 		switch (randomCamera) {
@@ -116,15 +116,15 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	}
 
 	// Callback timer to refresh this inventory.
-	m_Parent->AddCallbackTimer(m_RefreshTimeSeconds, [this]() {
+	m_OwningEntity->AddCallbackTimer(m_RefreshTimeSeconds, [this]() {
 		RefreshInventory();
 		});
-	GameMessages::SendVendorStatusUpdate(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::SendVendorStatusUpdate(m_OwningEntity, UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void VendorComponent::SetupConstants() {
 	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	int componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::VENDOR);
+	int componentID = compRegistryTable->GetByIDAndType(m_OwningEntity->GetLOT(), eReplicaComponentType::VENDOR);
 
 	auto* vendorComponentTable = CDClientManager::Instance().GetTable<CDVendorComponentTable>();
 	std::vector<CDVendorComponent> vendorComps = vendorComponentTable->Query([=](CDVendorComponent entry) { return (entry.id == componentID); });

@@ -162,7 +162,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 	}
 
 	auto* destroyableComponent = targetEntity->GetComponent<DestroyableComponent>();
-	if (!destroyableComponent || !destroyableComponent->GetParent()) {
+	if (!destroyableComponent || !destroyableComponent->GetOwningEntity()) {
 		Game::logger->Log("BasicAttackBehavior", "No destroyable component on %llu", branch.target);
 		return;
 	}

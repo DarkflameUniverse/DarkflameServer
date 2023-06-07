@@ -491,7 +491,7 @@ void CharacterComponent::TrackRaceCompleted(bool won) {
 }
 
 void CharacterComponent::TrackPositionUpdate(const NiPoint3& newPosition) {
-	const auto distance = NiPoint3::Distance(newPosition, m_Parent->GetPosition());
+	const auto distance = NiPoint3::Distance(newPosition, m_OwningEntity->GetPosition());
 
 	if (m_IsRacing) {
 		UpdatePlayerStatistic(DistanceDriven, (uint64_t)distance);
@@ -732,8 +732,8 @@ void CharacterComponent::RemoveVentureVisionEffect(std::string ventureVisionType
 }
 
 void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const {
-	if (!m_Parent) return;
+	if (!m_OwningEntity) return;
 	AMFArrayValue arrayToSend;
 	arrayToSend.Insert(ventureVisionType, showFaction);
-	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", arrayToSend);
+	GameMessages::SendUIMessageServerToSingleClient(m_OwningEntity, m_OwningEntity ? m_OwningEntity->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", arrayToSend);
 }

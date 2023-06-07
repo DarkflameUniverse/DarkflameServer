@@ -7,8 +7,8 @@
 #include "Entity.h"
 
 RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* parent) : Component(parent) {
-	m_Position = m_Parent->GetDefaultPosition();
-	m_Rotation = m_Parent->GetDefaultRotation();
+	m_Position = m_OwningEntity->GetDefaultPosition();
+	m_Rotation = m_OwningEntity->GetDefaultRotation();
 	m_IsDirty = true;
 }
 

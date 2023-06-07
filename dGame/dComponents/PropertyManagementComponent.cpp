@@ -206,7 +206,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	std::string name = zone->GetZoneName();
 	std::string description = "";
 
-	auto prop_path = zone->GetPath(m_Parent->GetVarAsString(u"propertyName"));
+	auto prop_path = zone->GetPath(m_OwningEntity->GetVarAsString(u"propertyName"));
 
 	if (prop_path){
 		if (!prop_path->property.displayName.empty()) name = prop_path->property.displayName;
@@ -395,7 +395,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
 
-		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), position, m_Parent->GetObjectID(), 14, originalRotation);
+		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), position, m_OwningEntity->GetObjectID(), 14, originalRotation);
 
 		GameMessages::SendUGCEquipPreCreateBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), 0, spawnerId);
 
@@ -783,7 +783,7 @@ PropertyManagementComponent* PropertyManagementComponent::Instance() {
 
 void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author) {
 	if (author == LWOOBJID_EMPTY) {
-		author = m_Parent->GetObjectID();
+		author = m_OwningEntity->GetObjectID();
 	}
 
 	const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
@@ -861,7 +861,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 
 void PropertyManagementComponent::OnUse(Entity* originator) {
 	OnQueryPropertyData(originator, UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendOpenPropertyManagment(m_Parent->GetObjectID(), originator->GetSystemAddress());
+	GameMessages::SendOpenPropertyManagment(m_OwningEntity->GetObjectID(), originator->GetSystemAddress());
 }
 
 void PropertyManagementComponent::SetOwnerId(const LWOOBJID value) {

@@ -6,7 +6,7 @@
 
 PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId) : Component(parent) {
 	m_Possessor = LWOOBJID_EMPTY;
-	CDItemComponent item = Inventory::FindItemComponent(m_Parent->GetLOT());
+	CDItemComponent item = Inventory::FindItemComponent(m_OwningEntity->GetLOT());
 	m_AnimationFlag = static_cast<eAnimationFlags>(item.animationFlag);
 
 	// Get the possession Type from the CDClient
@@ -44,12 +44,12 @@ void PossessableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 
 void PossessableComponent::Dismount() {
 	SetPossessor(LWOOBJID_EMPTY);
-	if (m_ItemSpawned) m_Parent->ScheduleKillAfterUpdate();
+	if (m_ItemSpawned) m_OwningEntity->ScheduleKillAfterUpdate();
 }
 
 void PossessableComponent::OnUse(Entity* originator) {
 	auto* possessor = originator->GetComponent<PossessorComponent>();
 	if (possessor) {
-		possessor->Mount(m_Parent);
+		possessor->Mount(m_OwningEntity);
 	}
 }

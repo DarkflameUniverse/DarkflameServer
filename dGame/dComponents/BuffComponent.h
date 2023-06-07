@@ -48,7 +48,7 @@ public:
 
 	~BuffComponent();
 
-	Entity* GetParent() const;
+	Entity* GetOwningEntity() const;
 
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 

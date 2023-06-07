@@ -7,7 +7,7 @@
 #include "CDRewardsTable.h"
 
 LevelProgressionComponent::LevelProgressionComponent(Entity* parent) : Component(parent) {
-	m_Parent = parent;
+	m_OwningEntity = parent;
 	m_Level = 1;
 	m_SpeedBase = 500.0f;
 	m_CharacterVersion = eCharacterVersion::LIVE;
@@ -49,12 +49,12 @@ void LevelProgressionComponent::HandleLevelUp() {
 	const auto& rewards = rewardsTable->GetByLevelID(m_Level);
 	bool rewardingItem = rewards.size() > 0;
 
-	auto* inventoryComponent = m_Parent->GetComponent<InventoryComponent>();
-	auto* controllablePhysicsComponent = m_Parent->GetComponent<ControllablePhysicsComponent>();
+	auto* inventoryComponent = m_OwningEntity->GetComponent<InventoryComponent>();
+	auto* controllablePhysicsComponent = m_OwningEntity->GetComponent<ControllablePhysicsComponent>();
 
 	if (!inventoryComponent || !controllablePhysicsComponent) return;
 	// Tell the client we beginning to send level rewards.
-	if (rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, rewardingItem);
+	if (rewardingItem) GameMessages::NotifyLevelRewards(m_OwningEntity->GetObjectID(), m_OwningEntity->GetSystemAddress(), m_Level, rewardingItem);
 
 	for (auto* reward : rewards) {
 		switch (reward->rewardType) {
@@ -79,11 +79,11 @@ void LevelProgressionComponent::HandleLevelUp() {
 		}
 	}
 	// Tell the client we have finished sending level rewards.
-	if (rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, !rewardingItem);
+	if (rewardingItem) GameMessages::NotifyLevelRewards(m_OwningEntity->GetObjectID(), m_OwningEntity->GetSystemAddress(), m_Level, !rewardingItem);
 }
 
 void LevelProgressionComponent::SetRetroactiveBaseSpeed(){
 	if (m_Level >= 20) m_SpeedBase = 525.0f;
-	auto* controllablePhysicsComponent = m_Parent->GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = m_OwningEntity->GetComponent<ControllablePhysicsComponent>();
 	if (controllablePhysicsComponent) controllablePhysicsComponent->SetSpeedMultiplier(m_SpeedBase / 500.0f);
 }

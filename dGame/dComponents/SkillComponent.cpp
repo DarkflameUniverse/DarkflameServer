@@ -32,9 +32,9 @@ ProjectileSyncEntry::ProjectileSyncEntry() {
 std::unordered_map<uint32_t, uint32_t> SkillComponent::m_skillBehaviorCache = {};
 
 bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream* bitStream, const LWOOBJID target, uint32_t skillID) {
-	auto* context = new BehaviorContext(this->m_Parent->GetObjectID());
+	auto* context = new BehaviorContext(this->m_OwningEntity->GetObjectID());
 
-	context->caster = m_Parent->GetObjectID();
+	context->caster = m_OwningEntity->GetObjectID();
 
 	context->skillID = skillID;
 
@@ -130,11 +130,11 @@ void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, Behav
 }
 
 void SkillComponent::Update(const float deltaTime) {
-	if (!m_Parent->HasComponent(eReplicaComponentType::BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
+	if (!m_OwningEntity->HasComponent(eReplicaComponentType::BASE_COMBAT_AI) && m_OwningEntity->GetLOT() != 1) {
 		CalculateUpdate(deltaTime);
 	}
 
-	if (m_Parent->IsPlayer()) {
+	if (m_OwningEntity->IsPlayer()) {
 		for (const auto& pair : this->m_managedBehaviors) pair.second->UpdatePlayerSyncs(deltaTime);
 	}
 
@@ -193,7 +193,7 @@ void SkillComponent::Reset() {
 
 void SkillComponent::Interrupt() {
 	// TODO: need to check immunities on the destroyable component, but they aren't implemented
-	auto* combat = m_Parent->GetComponent<BaseCombatAIComponent>();
+	auto* combat = m_OwningEntity->GetComponent<BaseCombatAIComponent>();
 	if (combat != nullptr && combat->GetStunImmune()) return;
 
 	for (const auto& behavior : this->m_managedBehaviors) {
@@ -201,7 +201,7 @@ void SkillComponent::Interrupt() {
 			behaviorEndEntry.behavior->End(behavior.second, behaviorEndEntry.branchContext, behaviorEndEntry.second);
 		}
 		behavior.second->endEntries.clear();
-		if (m_Parent->IsPlayer()) continue;
+		if (m_OwningEntity->IsPlayer()) continue;
 		behavior.second->Interrupt();
 	}
 
@@ -256,9 +256,9 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
-	auto* context = new BehaviorContext(originatorOverride != LWOOBJID_EMPTY ? originatorOverride : this->m_Parent->GetObjectID(), true);
+	auto* context = new BehaviorContext(originatorOverride != LWOOBJID_EMPTY ? originatorOverride : this->m_OwningEntity->GetObjectID(), true);
 
-	context->caster = m_Parent->GetObjectID();
+	context->caster = m_OwningEntity->GetObjectID();
 
 	context->skillID = skillId;
 
@@ -268,8 +268,8 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	behavior->Calculate(context, bitStream, { target, 0 });
 
-	for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnSkillCast(m_Parent, skillId);
+	for (auto* script : CppScripts::GetEntityScripts(m_OwningEntity)) {
+		script->OnSkillCast(m_OwningEntity, skillId);
 	}
 
 	if (!context->foundTarget) {
@@ -305,7 +305,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		RakNet::BitStream message;
 
 		PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
-		message.Write(this->m_Parent->GetObjectID());
+		message.Write(this->m_OwningEntity->GetObjectID());
 		start.Serialize(&message);
 
 		Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
@@ -431,14 +431,14 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	DoClientProjectileImpact projectileImpact;
 
 	projectileImpact.sBitStream.assign((char*)bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
-	projectileImpact.i64OwnerID = this->m_Parent->GetObjectID();
+	projectileImpact.i64OwnerID = this->m_OwningEntity->GetObjectID();
 	projectileImpact.i64OrgID = entry.id;
 	projectileImpact.i64TargetID = entry.branchContext.target;
 
 	RakNet::BitStream message;
 
 	PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
-	message.Write(this->m_Parent->GetObjectID());
+	message.Write(this->m_OwningEntity->GetObjectID());
 	projectileImpact.Serialize(&message);
 
 	Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);

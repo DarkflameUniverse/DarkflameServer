@@ -21,7 +21,7 @@ void PropertyVendorComponent::OnUse(Entity* originator) {
 	if (PropertyManagementComponent::Instance()->GetOwnerId() == LWOOBJID_EMPTY) {
 		Game::logger->Log("PropertyVendorComponent", "Property vendor opening!");
 
-		GameMessages::SendOpenPropertyVendor(m_Parent->GetObjectID(), originator->GetSystemAddress());
+		GameMessages::SendOpenPropertyVendor(m_OwningEntity->GetObjectID(), originator->GetSystemAddress());
 
 		return;
 	}
@@ -30,7 +30,7 @@ void PropertyVendorComponent::OnUse(Entity* originator) {
 void PropertyVendorComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr) {
 	if (PropertyManagementComponent::Instance() == nullptr) return;
 
-	PropertyManagementComponent::Instance()->OnQueryPropertyData(originator, sysAddr, m_Parent->GetObjectID());
+	PropertyManagementComponent::Instance()->OnQueryPropertyData(originator, sysAddr, m_OwningEntity->GetObjectID());
 }
 
 void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool confirmed, const LOT lot, const uint32_t count) {
@@ -41,11 +41,11 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 		return;
 	}
 
-	GameMessages::SendPropertyRentalResponse(m_Parent->GetObjectID(), 0, 0, 0, 0, originator->GetSystemAddress());
+	GameMessages::SendPropertyRentalResponse(m_OwningEntity->GetObjectID(), 0, 0, 0, 0, originator->GetSystemAddress());
 
 	auto* controller = dZoneManager::Instance()->GetZoneControlObject();
 
-	controller->OnFireEventServerSide(m_Parent, "propertyRented");
+	controller->OnFireEventServerSide(m_OwningEntity, "propertyRented");
 
 	PropertyManagementComponent::Instance()->SetOwner(originator);
 

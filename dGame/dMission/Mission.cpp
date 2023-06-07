@@ -204,7 +204,7 @@ bool Mission::IsValidMission(const uint32_t missionId, CDMissions& info) {
 }
 
 Entity* Mission::GetAssociate() const {
-	return m_MissionComponent->GetParent();
+	return m_MissionComponent->GetOwningEntity();
 }
 
 User* Mission::GetUser() const {

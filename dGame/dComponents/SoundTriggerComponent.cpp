@@ -76,7 +76,7 @@ void SoundTriggerComponent::ActivateMusicCue(const std::string& name) {
 			-1.0f
 			});
 		dirty = true;
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 	}
 }
 
@@ -88,6 +88,6 @@ void SoundTriggerComponent::DeactivateMusicCue(const std::string& name) {
 	if (musicCue != this->musicCues.end()) {
 		this->musicCues.erase(musicCue);
 		dirty = true;
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 	}
 }

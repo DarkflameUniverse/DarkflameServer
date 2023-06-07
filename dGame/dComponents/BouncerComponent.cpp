@@ -30,28 +30,28 @@ void BouncerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitia
 }
 
 Entity* BouncerComponent::GetParentEntity() const {
-	return m_Parent;
+	return m_OwningEntity;
 }
 
 void BouncerComponent::SetPetEnabled(bool value) {
 	m_PetEnabled = value;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 }
 
 void BouncerComponent::SetPetBouncerEnabled(bool value) {
 	m_PetBouncerEnabled = value;
 
-	GameMessages::SendBouncerActiveStatus(m_Parent->GetObjectID(), value, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::SendBouncerActiveStatus(m_OwningEntity->GetObjectID(), value, UNASSIGNED_SYSTEM_ADDRESS);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 
 	if (value) {
-		m_Parent->TriggerEvent(eTriggerEventType::PET_ON_SWITCH, m_Parent);
-		GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 1513, u"create", "PetOnSwitch", LWOOBJID_EMPTY, 1, 1, true);
+		m_OwningEntity->TriggerEvent(eTriggerEventType::PET_ON_SWITCH, m_OwningEntity);
+		GameMessages::SendPlayFXEffect(m_OwningEntity->GetObjectID(), 1513, u"create", "PetOnSwitch", LWOOBJID_EMPTY, 1, 1, true);
 	} else {
-		m_Parent->TriggerEvent(eTriggerEventType::PET_OFF_SWITCH, m_Parent);
-		GameMessages::SendStopFXEffect(m_Parent, true, "PetOnSwitch");
+		m_OwningEntity->TriggerEvent(eTriggerEventType::PET_OFF_SWITCH, m_OwningEntity);
+		GameMessages::SendStopFXEffect(m_OwningEntity, true, "PetOnSwitch");
 	}
 
 }
@@ -65,7 +65,7 @@ bool BouncerComponent::GetPetBouncerEnabled() const {
 }
 
 void BouncerComponent::LookupPetSwitch() {
-	const auto& groups = m_Parent->GetGroups();
+	const auto& groups = m_OwningEntity->GetGroups();
 
 	for (const auto& group : groups) {
 		const auto& entities = EntityManager::Instance()->GetEntitiesInGroup(group);
@@ -79,7 +79,7 @@ void BouncerComponent::LookupPetSwitch() {
 				m_PetSwitchLoaded = true;
 				m_PetEnabled = true;
 
-				EntityManager::Instance()->SerializeEntity(m_Parent);
+				EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 
 				Game::logger->Log("BouncerComponent", "Loaded pet bouncer");
 			}
@@ -89,7 +89,7 @@ void BouncerComponent::LookupPetSwitch() {
 	if (!m_PetSwitchLoaded) {
 		Game::logger->Log("BouncerComponent", "Failed to load pet bouncer");
 
-		m_Parent->AddCallbackTimer(0.5f, [this]() {
+		m_OwningEntity->AddCallbackTimer(0.5f, [this]() {
 			LookupPetSwitch();
 			});
 	}

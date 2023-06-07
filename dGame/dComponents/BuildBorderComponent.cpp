@@ -19,7 +19,7 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 	if (originator->GetCharacter()) {
 		const auto& entities = EntityManager::Instance()->GetEntitiesInGroup("PropertyPlaque");
 
-		auto buildArea = m_Parent->GetObjectID();
+		auto buildArea = m_OwningEntity->GetObjectID();
 
 		if (!entities.empty()) {
 			buildArea = entities[0]->GetObjectID();
@@ -63,7 +63,7 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 			GameMessages::SendStartArrangingWithItem(originator, originator->GetSystemAddress(), true, buildArea, originator->GetPosition());
 		}
 
-		InventoryComponent* inv = m_Parent->GetComponent<InventoryComponent>();
+		InventoryComponent* inv = m_OwningEntity->GetComponent<InventoryComponent>();
 		if (!inv) return;
 		inv->PushEquippedItems(); // technically this is supposed to happen automatically... but it doesnt? so just keep this here
 	}
