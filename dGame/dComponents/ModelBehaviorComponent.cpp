@@ -1,14 +1,14 @@
-#include "ModelComponent.h"
+#include "ModelBehaviorComponent.h"
 #include "Entity.h"
 
-ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
+ModelBehaviorComponent::ModelBehaviorComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_OwningEntity->GetDefaultPosition();
 	m_OriginalRotation = m_OwningEntity->GetDefaultRotation();
 
 	m_userModelID = m_OwningEntity->GetVarAs<LWOOBJID>(u"userModelID");
 }
 
-void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void ModelBehaviorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	// ItemComponent Serialization.  Pets do not get this serialization.
 	if (!m_OwningEntity->HasComponent(eReplicaComponentType::PET)) {
 		outBitStream->Write1();

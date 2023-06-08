@@ -11,11 +11,11 @@ class Entity;
 /**
  * Component that represents entities that are a model, e.g. collectible models and BBB models.
  */
-class ModelComponent : public Component {
+class ModelBehaviorComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL_BEHAVIOR;
 
-	ModelComponent(Entity* parent);
+	ModelBehaviorComponent(Entity* parent);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 

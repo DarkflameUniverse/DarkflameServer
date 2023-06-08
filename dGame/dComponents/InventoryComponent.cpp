@@ -19,7 +19,7 @@
 #include "PossessorComponent.h"
 #include "PossessableComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "CharacterComponent.h"
 #include "dZoneManager.h"
 #include "PropertyManagementComponent.h"
@@ -826,7 +826,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 	if (character != nullptr && !skipChecks) {
 		// Hacky proximity rocket
 		if (item->GetLot() == 6416) {
-			const auto rocketLauchPads = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::ROCKET_LAUNCH);
+			const auto rocketLauchPads = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::ROCKET_LAUNCHPAD_CONTROL);
 
 			const auto position = m_OwningEntity->GetPosition();
 
@@ -986,8 +986,8 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* mount = EntityManager::Instance()->CreateEntity(info, nullptr, m_OwningEntity);
 
 	// Check to see if the mount is a vehicle, if so, flip it
-	auto vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
-	if (vehicleComponent) {
+	auto havokVehiclePhysicsComponent = mount->GetComponent<HavokVehiclePhysicsComponent>();
+	if (havokVehiclePhysicsComponent) {
 		auto angles = startRotation.GetEulerAngles();
 		// Make it right side up
 		angles.x -= PI;
@@ -1024,7 +1024,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 
 	// have to unlock the input so it vehicle can be driven
-	if (vehicleComponent) GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_OwningEntity->GetSystemAddress());
+	if (havokVehiclePhysicsComponent) GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_OwningEntity->GetSystemAddress());
 	GameMessages::SendMarkInventoryItemAsActive(m_OwningEntity->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_OwningEntity->GetSystemAddress());
 }
 

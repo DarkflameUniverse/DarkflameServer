@@ -30,7 +30,7 @@
 #include "Component.h"
 #include "ControllablePhysicsComponent.h"
 #include "RenderComponent.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "CharacterComponent.h"
 #include "DestroyableComponent.h"
 #include "BuffComponent.h"
@@ -58,10 +58,10 @@
 #include "PropertyVendorComponent.h"
 #include "ProximityMonitorComponent.h"
 #include "PropertyEntranceComponent.h"
-#include "ModelComponent.h"
+#include "ModelBehaviorComponent.h"
 #include "ZCompression.h"
 #include "PetComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "ModuleAssemblyComponent.h"
@@ -148,21 +148,21 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::BOUNCER:
 			break;
-		case eReplicaComponentType::BUFF:
+		case eReplicaComponentType::DESTROYABLE:
 			break;
 		case eReplicaComponentType::GHOST:
 			break;
 		case eReplicaComponentType::SKILL:
 			break;
-		case eReplicaComponentType::SPAWNER:
+		case eReplicaComponentType::SPAWN:
 			break;
 		case eReplicaComponentType::ITEM:
 			break;
-		case eReplicaComponentType::REBUILD:
+		case eReplicaComponentType::MODULAR_BUILD:
 			break;
-		case eReplicaComponentType::REBUILD_START:
+		case eReplicaComponentType::BUILD_CONTROLLER:
 			break;
-		case eReplicaComponentType::REBUILD_ACTIVATOR:
+		case eReplicaComponentType::BUILD_ACTIVATOR:
 			break;
 		case eReplicaComponentType::ICON_ONLY:
 			break;
@@ -192,9 +192,9 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::MODULE:
 			break;
-		case eReplicaComponentType::ARCADE:
+		case eReplicaComponentType::JETPACKPAD:
 			break;
-		case eReplicaComponentType::VEHICLE_PHYSICS:
+		case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS:
 			break;
 		case eReplicaComponentType::MOVEMENT_AI:
 			break;
@@ -218,7 +218,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::SPRINGPAD:
 			break;
-		case eReplicaComponentType::MODEL:
+		case eReplicaComponentType::MODEL_BEHAVIOR:
 			break;
 		case eReplicaComponentType::PROPERTY_ENTRANCE:
 			break;
@@ -226,7 +226,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::PROPERTY_MANAGEMENT:
 			break;
-		case eReplicaComponentType::VEHICLE_PHYSICS_NEW:
+		case eReplicaComponentType::VEHICLE_PHYSICS:
 			break;
 		case eReplicaComponentType::PHYSICS_SYSTEM:
 			break;
@@ -234,9 +234,9 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::SWITCH:
 			break;
-		case eReplicaComponentType::ZONE_CONTROL:
+		case eReplicaComponentType::MINIGAME_CONTROL:
 			break;
-		case eReplicaComponentType::CHANGLING:
+		case eReplicaComponentType::CHANGLING_BUILD:
 			break;
 		case eReplicaComponentType::CHOICE_BUILD:
 			break;
@@ -250,7 +250,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::PRECONDITION:
 			break;
-		case eReplicaComponentType::PLAYER_FLAG:
+		case eReplicaComponentType::FLAG:
 			break;
 		case eReplicaComponentType::CUSTOM_BUILD_ASSEMBLY:
 			break;
@@ -268,9 +268,9 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::HF_LIGHT_DIRECTION_GADGET:
 			break;
-		case eReplicaComponentType::ROCKET_LAUNCH:
+		case eReplicaComponentType::ROCKET_LAUNCHPAD_CONTROL:
 			break;
-		case eReplicaComponentType::ROCKET_LANDING:
+		case eReplicaComponentType::ROCKET_ANIMATION_CONTROL:
 			break;
 		case eReplicaComponentType::TRIGGER:
 			break;
@@ -294,7 +294,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::RACING_SOUND_TRIGGER:
 			break;
-		case eReplicaComponentType::CHAT:
+		case eReplicaComponentType::CHAT_BUBBLE:
 			break;
 		case eReplicaComponentType::FRIENDS_LIST:
 			break;
@@ -328,9 +328,9 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::IGNORE_LIST:
 			break;
-		case eReplicaComponentType::ROCKET_LAUNCH_LUP:
+		case eReplicaComponentType::MULTI_ZONE_ENTRANCE:
 			break;
-		case eReplicaComponentType::BUFF_REAL:
+		case eReplicaComponentType::BUFF:
 			break;
 		case eReplicaComponentType::INTERACTION_MANAGER:
 			break;
@@ -338,7 +338,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::COMBAT_MEDIATOR:
 			break;
-		case eReplicaComponentType::COMMENDATION_VENDOR:
+		case eReplicaComponentType::ACHIEVEMENT_VENDOR:
 			break;
 		case eReplicaComponentType::GATE_RUSH_CONTROL:
 			break;
@@ -369,8 +369,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::CULLING_PLANE:
 			break;
 		case eReplicaComponentType::NUMBER_OF_COMPONENTS:
-			break;
-		case eReplicaComponentType::DESTROYABLE:
 			break;
 		case eReplicaComponentType::INVALID:
 		default:
@@ -483,7 +481,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		// Only sync for models.
-		if (m_Settings.size() > 0 && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
+		if (m_Settings.size() > 0 && (GetComponent<ModelBehaviorComponent>() && !GetComponent<PetComponent>())) {
 			outBitStream->Write1(); //ldf data
 
 			RakNet::BitStream settingStream;
@@ -1216,7 +1214,7 @@ const NiPoint3& Entity::GetPosition() const {
 		return simple->GetPosition();
 	}
 
-	auto vehicle = GetComponent<VehiclePhysicsComponent>();
+	auto vehicle = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicle != nullptr) {
 		return vehicle->GetPosition();
@@ -1244,7 +1242,7 @@ const NiQuaternion& Entity::GetRotation() const {
 		return simple->GetRotation();
 	}
 
-	auto vehicle = GetComponent<VehiclePhysicsComponent>();
+	auto vehicle = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicle != nullptr) {
 		return vehicle->GetRotation();
@@ -1272,7 +1270,7 @@ void Entity::SetPosition(NiPoint3 position) {
 		simple->SetPosition(position);
 	}
 
-	auto vehicle = GetComponent<VehiclePhysicsComponent>();
+	auto vehicle = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicle != nullptr) {
 		vehicle->SetPosition(position);
@@ -1300,7 +1298,7 @@ void Entity::SetRotation(NiQuaternion rotation) {
 		simple->SetRotation(rotation);
 	}
 
-	auto vehicle = GetComponent<VehiclePhysicsComponent>();
+	auto vehicle = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicle != nullptr) {
 		vehicle->SetRotation(rotation);

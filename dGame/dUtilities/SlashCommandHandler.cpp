@@ -59,7 +59,7 @@
 #include "dpShapeSphere.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "BuffComponent.h"
 #include "SkillComponent.h"
 #include "VanityUtilities.h"
@@ -940,9 +940,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
 
 			if (possassableEntity != nullptr) {
-				auto vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
-				if (vehiclePhysicsComponent) {
-					vehiclePhysicsComponent->SetPosition(pos);
+				auto havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+				if (havokVehiclePhysicsComponent) {
+					havokVehiclePhysicsComponent->SetPosition(pos);
 					EntityManager::Instance()->SerializeEntity(possassableEntity);
 				} else GameMessages::SendTeleport(possassableEntity->GetObjectID(), pos, NiQuaternion(), sysAddr);
 			}
@@ -1267,8 +1267,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto vehiclePhysicsComponent = newEntity->GetComponent<VehiclePhysicsComponent>();
-		if (vehiclePhysicsComponent) {
+		auto havokVehiclePhysicsComponent = newEntity->GetComponent<HavokVehiclePhysicsComponent>();
+		if (havokVehiclePhysicsComponent) {
 			auto newRot = newEntity->GetRotation();
 			auto angles = newRot.GetEulerAngles();
 			// make it right side up

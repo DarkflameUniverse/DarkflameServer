@@ -27,7 +27,7 @@
 #include "Zone.h"
 #include "PossessorComponent.h"
 #include "PossessableComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "dConfig.h"
 #include "CharacterComponent.h"
 #include "Database.h"
@@ -148,19 +148,19 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				if (possessableComponent->GetPossessionType() != ePossessionType::ATTACHED_VISIBLE) updateChar = false;
 			}
 
-			auto vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
-			if (vehiclePhysicsComponent != nullptr) {
+			auto havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+			if (havokVehiclePhysicsComponent != nullptr) {
 				// This is flipped for whatever reason
 				rotation = NiQuaternion(rotation.z, rotation.y, rotation.x, rotation.w);
 
-				vehiclePhysicsComponent->SetPosition(position);
-				vehiclePhysicsComponent->SetRotation(rotation);
-				vehiclePhysicsComponent->SetIsOnGround(onGround);
-				vehiclePhysicsComponent->SetIsOnRail(onRail);
-				vehiclePhysicsComponent->SetVelocity(velocity);
-				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
-				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
-				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
+				havokVehiclePhysicsComponent->SetPosition(position);
+				havokVehiclePhysicsComponent->SetRotation(rotation);
+				havokVehiclePhysicsComponent->SetIsOnGround(onGround);
+				havokVehiclePhysicsComponent->SetIsOnRail(onRail);
+				havokVehiclePhysicsComponent->SetVelocity(velocity);
+				havokVehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
+				havokVehiclePhysicsComponent->SetAngularVelocity(angVelocity);
+				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 			} else {
 				// Need to get the mount's controllable physics
 				auto controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();

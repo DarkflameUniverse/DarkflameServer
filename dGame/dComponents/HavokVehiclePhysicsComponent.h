@@ -8,12 +8,12 @@
 /**
  * Physics component for vehicles.
  */
-class VehiclePhysicsComponent : public Component {
+class HavokVehiclePhysicsComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::VEHICLE_PHYSICS;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::HAVOK_VEHICLE_PHYSICS;
 
-	VehiclePhysicsComponent(Entity* parentEntity);
-	~VehiclePhysicsComponent() override;
+	HavokVehiclePhysicsComponent(Entity* parentEntity);
+	~HavokVehiclePhysicsComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 

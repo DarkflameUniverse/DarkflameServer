@@ -4,7 +4,7 @@
 #include "Entity.h"
 #include "Game.h"
 #include "GameMessages.h"
-#include "ModelComponent.h"
+#include "ModelBehaviorComponent.h"
 #include "../../dWorldServer/ObjectIDManager.h"
 #include "dLogger.h"
 #include "BehaviorStates.h"
@@ -30,7 +30,7 @@
 #include "UpdateActionMessage.h"
 #include "UpdateStripUiMessage.h"
 
-void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, std::shared_ptr<ModelComponent> modelComponent, Entity* modelOwner, const SystemAddress& sysAddr) {
+void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, std::shared_ptr<ModelBehaviorComponent> modelComponent, Entity* modelOwner, const SystemAddress& sysAddr) {
 	// auto behavior = modelComponent->FindBehavior(behaviorID);
 	// if (behavior->GetBehaviorID() == -1 || behavior->GetShouldSetNewID()) {
 	// 	ObjectIDManager::Instance()->RequestPersistentID(
@@ -57,7 +57,7 @@ void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, std::shared_ptr<Mode
 }
 
 void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner) {
-	auto modelComponent = modelEntity->GetComponent<ModelComponent>();
+	auto modelComponent = modelEntity->GetComponent<ModelBehaviorComponent>();
 
 	if (!modelComponent) return;
 
@@ -79,7 +79,7 @@ void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const Syste
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", behaviorsToSerialize);
 }
 
-void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, std::shared_ptr<ModelComponent> ModelComponent) {
+void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, std::shared_ptr<ModelBehaviorComponent> ModelBehaviorComponent) {
 	auto* modelTypeAmf = arguments->Get<double>("ModelType");
 	if (!modelTypeAmf) return;
 
@@ -137,7 +137,7 @@ void ControlBehaviors::Rename(Entity* modelEntity, const SystemAddress& sysAddr,
 }
 
 // TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
-void ControlBehaviors::SendBehaviorBlocksToClient(std::shared_ptr<ModelComponent> modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
+void ControlBehaviors::SendBehaviorBlocksToClient(std::shared_ptr<ModelBehaviorComponent> modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	// uint32_t behaviorID = ControlBehaviors::GetBehaviorIDFromArgument(arguments);
 
 	// auto modelBehavior = modelComponent->FindBehavior(behaviorID);
@@ -266,7 +266,7 @@ void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
 	}
 }
 
-void ControlBehaviors::MoveToInventory(std::shared_ptr<ModelComponent> modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
+void ControlBehaviors::MoveToInventory(std::shared_ptr<ModelBehaviorComponent> modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	// This closes the UI menu should it be open while the player is removing behaviors
 	AMFArrayValue args;
 
@@ -281,7 +281,7 @@ void ControlBehaviors::MoveToInventory(std::shared_ptr<ModelComponent> modelComp
 
 void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
 	if (!isInitialized || !modelEntity || !modelOwner || !arguments) return;
-	auto modelComponent = modelEntity->GetComponent<ModelComponent>();
+	auto modelComponent = modelEntity->GetComponent<ModelBehaviorComponent>();
 
 	if (!modelComponent) return;
 
@@ -342,7 +342,7 @@ ControlBehaviors::ControlBehaviors() {
 	std::string buffer{};
 	bool commentBlockStart = false;
 	while (std::getline(blocksBuffer, read)) {
-		// tinyxml2 should handle comment blocks but the client has one that fails the processing.  
+		// tinyxml2 should handle comment blocks but the client has one that fails the processing.
 		// This preprocessing just removes all comments from the read file out of an abundance of caution.
 		if (read.find("<!--") != std::string::npos) {
 			commentBlockStart = true;

@@ -10,7 +10,6 @@
 #include "InventoryComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
-#include "VehiclePhysicsComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
 #include "Amf3.h"
