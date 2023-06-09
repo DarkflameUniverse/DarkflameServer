@@ -7,6 +7,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "eReplicaComponentType.h"
+#include "PropertySelectQueryProperty.h"
 
 /**
  * Represents the launch pad that's used to select and browse properties
