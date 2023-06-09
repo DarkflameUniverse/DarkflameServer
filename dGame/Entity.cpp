@@ -1244,9 +1244,7 @@ bool Entity::IsSleeping() const {
 
 
 const NiPoint3& Entity::GetPosition() const {
-	if (!this) return NiPoint3::ZERO;
-
-	auto controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
 		return controllable->GetPosition();
