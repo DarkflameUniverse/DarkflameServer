@@ -1985,7 +1985,7 @@ void GameMessages::SendOpenPropertyManagment(const LWOOBJID objectId, const Syst
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(PropertyManagementComponent::Instance()->GetOwningEntity()->GetObjectID());
+	bitStream.Write(PropertyManagementComponent::Instance()->GetParentEntity()->GetObjectID());
 	bitStream.Write(eGameMessageType::OPEN_PROPERTY_MANAGEMENT);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;

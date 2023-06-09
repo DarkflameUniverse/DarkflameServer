@@ -76,7 +76,7 @@ void Inventory::SetSize(const uint32_t value) {
 
 	size = value;
 
-	GameMessages::SendSetInventorySize(component->GetOwningEntity(), type, static_cast<int>(size));
+	GameMessages::SendSetInventorySize(component->GetParentEntity(), type, static_cast<int>(size));
 }
 
 int32_t Inventory::FindEmptySlot() {

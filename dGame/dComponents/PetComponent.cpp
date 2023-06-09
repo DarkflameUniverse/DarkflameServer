@@ -846,7 +846,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 
 	inventoryComponent->DespawnPet();
 
-	m_Owner = inventoryComponent->GetOwningEntity()->GetObjectID();
+	m_Owner = inventoryComponent->GetParentEntity()->GetObjectID();
 
 	auto* owner = GetOwner();
 
@@ -910,7 +910,7 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 	auto playerInventoryComponent = playerInventory->GetComponent();
 	if (!playerInventoryComponent) return;
 
-	auto playerEntity = playerInventoryComponent->GetOwningEntity();
+	auto playerEntity = playerInventoryComponent->GetParentEntity();
 	if (!playerEntity) return;
 
 	auto* playerDestroyableComponent = playerEntity->GetComponent<DestroyableComponent>();
@@ -929,7 +929,7 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 	// If we are out of imagination despawn the pet.
 	if (playerDestroyableComponent->GetImagination() == 0) {
 		this->Deactivate();
-		auto playerEntity = playerDestroyableComponent->GetOwningEntity();
+		auto playerEntity = playerDestroyableComponent->GetParentEntity();
 		if (!playerEntity) return;
 
 		GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);

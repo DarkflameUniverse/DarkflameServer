@@ -47,11 +47,11 @@ void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, ModelBehaviorCompone
 	// 		args.InsertValue("behaviorID", behaviorIDString);
 
 	// 		AMFStringValue* objectIDAsString = new AMFStringValue();
-	// 		objectIDAsString->SetValue(std::to_string(modelComponent->GetOwningEntity()->GetObjectID()));
+	// 		objectIDAsString->SetValue(std::to_string(modelComponent->GetParentEntity()->GetObjectID()));
 	// 		args.InsertValue("objectID", objectIDAsString);
 
 	// 		GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorID", &args);
-	// 		ControlBehaviors::SendBehaviorListToClient(modelComponent->GetOwningEntity(), sysAddr, modelOwner);
+	// 		ControlBehaviors::SendBehaviorListToClient(modelComponent->GetParentEntity(), sysAddr, modelOwner);
 	// 	});
 	// }
 }
@@ -74,7 +74,7 @@ void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const Syste
 	 */
 
 	behaviorsToSerialize.Insert("behaviors");
-	behaviorsToSerialize.Insert("objectID", std::to_string(modelComponent->GetOwningEntity()->GetObjectID()));
+	behaviorsToSerialize.Insert("objectID", std::to_string(modelComponent->GetParentEntity()->GetObjectID()));
 
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", behaviorsToSerialize);
 }
@@ -197,7 +197,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelBehaviorComponent* modelC
 	// 		uiArray->InsertValue("x", xPosition);
 
 	// 		thisStrip->InsertValue("ui", uiArray);
-	// 		targetObjectID = modelComponent->GetOwningEntity()->GetObjectID();
+	// 		targetObjectID = modelComponent->GetParentEntity()->GetObjectID();
 	// 		behaviorID = modelBehavior->GetBehaviorID();
 
 	// 		AMFArrayValue* stripSerialize = new AMFArrayValue();
@@ -276,7 +276,7 @@ void ControlBehaviors::MoveToInventory(ModelBehaviorComponent* modelComponent, c
 
 	MoveToInventoryMessage moveToInventoryMessage(arguments);
 
-	SendBehaviorListToClient(modelComponent->GetOwningEntity(), sysAddr, modelOwner);
+	SendBehaviorListToClient(modelComponent->GetParentEntity(), sysAddr, modelOwner);
 }
 
 void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {

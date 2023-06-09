@@ -872,7 +872,7 @@ void DestroyableComponent::SetStatusImmunity(
 }
 
 void DestroyableComponent::FixStats() {
-	auto* entity = GetOwningEntity();
+	auto* entity = GetParentEntity();
 
 	if (entity == nullptr) return;
 

@@ -261,7 +261,7 @@ void InventoryComponent::AddItem(
 		}
 
 		if (slot == -1) {
-			auto* player = dynamic_cast<Player*>(GetOwningEntity());
+			auto* player = dynamic_cast<Player*>(GetParentEntity());
 
 			if (player == nullptr) {
 				return;
@@ -687,7 +687,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 			itemElement->SetAttribute("sk", item->GetSubKey());
 
 			// Begin custom xml
-			itemElement->SetAttribute("parent", item->GetOwningEntity());
+			itemElement->SetAttribute("parent", item->GetParentEntity());
 			// End custom xml
 
 			for (auto* data : item->GetConfig()) {
@@ -913,7 +913,7 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 	// Trigger property event
 	if (PropertyManagementComponent::Instance() != nullptr && item->GetCount() > 0 && Inventory::FindInventoryTypeForLot(item->GetLot()) == MODELS) {
-		PropertyManagementComponent::Instance()->GetOwningEntity()->OnZonePropertyModelRemovedWhileEquipped(m_OwningEntity);
+		PropertyManagementComponent::Instance()->GetParentEntity()->OnZonePropertyModelRemovedWhileEquipped(m_OwningEntity);
 		dZoneManager::Instance()->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_OwningEntity);
 	}
 }
@@ -1356,7 +1356,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 			}
 
 			// If item is not a proxy, add its buff to the added buffs.
-			if (item->GetOwningEntity() == LWOOBJID_EMPTY) buffs.push_back(static_cast<uint32_t>(entry.behaviorID));
+			if (item->GetParentEntity() == LWOOBJID_EMPTY) buffs.push_back(static_cast<uint32_t>(entry.behaviorID));
 		}
 	}
 
@@ -1442,7 +1442,7 @@ std::vector<Item*> InventoryComponent::FindProxies(const LWOOBJID parent) {
 	for (const auto& pair : inventory->GetItems()) {
 		auto* item = pair.second;
 
-		if (item->GetOwningEntity() == parent) {
+		if (item->GetParentEntity() == parent) {
 			proxies.push_back(item);
 		}
 	}
@@ -1479,7 +1479,7 @@ bool InventoryComponent::IsParentValid(Item* root) {
 		for (const auto& candidate : items) {
 			auto* item = candidate.second;
 
-			if (item->GetOwningEntity() == id) {
+			if (item->GetParentEntity() == id) {
 				return true;
 			}
 		}
@@ -1497,7 +1497,7 @@ void InventoryComponent::CheckProxyIntegrity() {
 		for (const auto& candidate : items) {
 			auto* item = candidate.second;
 
-			const auto parent = item->GetOwningEntity();
+			const auto parent = item->GetParentEntity();
 
 			if (parent == LWOOBJID_EMPTY) {
 				continue;
@@ -1526,7 +1526,7 @@ void InventoryComponent::CheckProxyIntegrity() {
 		{
 			auto* item = candidate.second;
 
-			const auto parent = item->GetOwningEntity();
+			const auto parent = item->GetParentEntity();
 
 			if (parent != LWOOBJID_EMPTY)
 			{
@@ -1555,7 +1555,7 @@ void InventoryComponent::CheckProxyIntegrity() {
 }
 
 void InventoryComponent::PurgeProxies(Item* item) {
-	const auto root = item->GetOwningEntity();
+	const auto root = item->GetParentEntity();
 
 	if (root != LWOOBJID_EMPTY) {
 		item = FindItemById(root);

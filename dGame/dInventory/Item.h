@@ -150,7 +150,7 @@ public:
 	 * Returns the parent of this item, e.g. for proxy items
 	 * @return the parent of this item
 	 */
-	LWOOBJID GetOwningEntity() const;
+	LWOOBJID GetParentEntity() const;
 
 	/**
 	 * Sets the subkey for this item, e.g. for pets

@@ -92,7 +92,7 @@ Item::Item(
 
 	inventory->AddManagedItem(this);
 
-	auto entity = inventory->GetComponent()->GetOwningEntity();
+	auto entity = inventory->GetComponent()->GetParentEntity();
 	GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, static_cast<int>(this->count), subKey, lootSourceType);
 
 	if (isModMoveAndEquip) {
@@ -100,7 +100,7 @@ Item::Item(
 
 		Game::logger->Log("Item", "Move and equipped (%i) from (%i)", this->lot, this->inventory->GetType());
 
-		EntityManager::Instance()->SerializeEntity(inventory->GetComponent()->GetOwningEntity());
+		EntityManager::Instance()->SerializeEntity(inventory->GetComponent()->GetParentEntity());
 	}
 }
 
@@ -136,7 +136,7 @@ Inventory* Item::GetInventory() const {
 	return inventory;
 }
 
-LWOOBJID Item::GetOwningEntity() const {
+LWOOBJID Item::GetParentEntity() const {
 	return parent;
 }
 
@@ -166,7 +166,7 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 	}
 
 	if (!silent) {
-		auto entity = inventory->GetComponent()->GetOwningEntity();
+		auto entity = inventory->GetComponent()->GetParentEntity();
 
 		if (value > count) {
 			GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, delta, LWOOBJID_EMPTY, lootSourceType);
@@ -262,7 +262,7 @@ bool Item::Consume() {
 
 	Game::logger->LogDebug("Item", "Consumed LOT (%i) itemID (%llu).  Success=(%d)", lot, id, success);
 
-	GameMessages::SendUseItemResult(inventory->GetComponent()->GetOwningEntity(), lot, success);
+	GameMessages::SendUseItemResult(inventory->GetComponent()->GetParentEntity(), lot, success);
 
 	if (success) {
 		inventory->GetComponent()->RemoveItem(lot, 1);
@@ -284,7 +284,7 @@ void Item::UseNonEquip(Item* item) {
 		return;
 	}
 
-	auto* playerEntity = playerInventoryComponent->GetOwningEntity();
+	auto* playerEntity = playerInventoryComponent->GetParentEntity();
 	if (!playerEntity) {
 		Game::logger->LogDebug("Item", "no player entity attached to inventory? item id is %llu", this->GetId());
 		return;
@@ -314,8 +314,8 @@ void Item::UseNonEquip(Item* item) {
 
 			auto success = !packages.empty();
 			if (success) {
-				if (this->GetPreconditionExpression()->Check(playerInventoryComponent->GetOwningEntity())) {
-					auto* entityParent = playerInventoryComponent->GetOwningEntity();
+				if (this->GetPreconditionExpression()->Check(playerInventoryComponent->GetParentEntity())) {
+					auto* entityParent = playerInventoryComponent->GetParentEntity();
 					// Roll the loot for all the packages then see if it all fits.  If it fits, give it to the player, otherwise don't.
 					std::unordered_map<LOT, int32_t> rolledLoot{};
 					for (auto& pack : packages) {
@@ -331,15 +331,15 @@ void Item::UseNonEquip(Item* item) {
 						}
 					}
 					if (playerInventoryComponent->HasSpaceForLoot(rolledLoot)) {
-						LootGenerator::Instance().GiveLoot(playerInventoryComponent->GetOwningEntity(), rolledLoot, eLootSourceType::CONSUMPTION);
+						LootGenerator::Instance().GiveLoot(playerInventoryComponent->GetParentEntity(), rolledLoot, eLootSourceType::CONSUMPTION);
 						item->SetCount(item->GetCount() - 1);
 					} else {
 						success = false;
 					}
 				} else {
 					GameMessages::SendUseItemRequirementsResponse(
-						playerInventoryComponent->GetOwningEntity()->GetObjectID(),
-						playerInventoryComponent->GetOwningEntity()->GetSystemAddress(),
+						playerInventoryComponent->GetParentEntity()->GetObjectID(),
+						playerInventoryComponent->GetParentEntity()->GetSystemAddress(),
 						eUseItemResponse::FailedPrecondition
 					);
 					success = false;
@@ -347,7 +347,7 @@ void Item::UseNonEquip(Item* item) {
 			}
 		}
 		Game::logger->LogDebug("Item", "Player %llu %s used item %i", playerEntity->GetObjectID(), success ? "successfully" : "unsuccessfully", thisLot);
-		GameMessages::SendUseItemResult(playerInventoryComponent->GetOwningEntity(), thisLot, success);
+		GameMessages::SendUseItemResult(playerInventoryComponent->GetParentEntity(), thisLot, success);
 	}
 }
 
@@ -360,7 +360,7 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 			if (GetInventory()) {
 				auto inventoryComponent = GetInventory()->GetComponent();
 				if (inventoryComponent) {
-					auto entity = inventoryComponent->GetOwningEntity();
+					auto entity = inventoryComponent->GetParentEntity();
 					if (entity) entity->SetVar<std::string>(u"currentModifiedBuild", modStr);
 				}
 			}
