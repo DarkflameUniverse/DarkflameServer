@@ -3,54 +3,54 @@ Entity::Initialize() {
 	 * Setup trigger
 	 */
 
-	const auto triggerInfo = GetVarAsString(u"trigger_id");
+	// const auto triggerInfo = GetVarAsString(u"trigger_id");
 
-	if (!triggerInfo.empty()) m_Components.emplace(eReplicaComponentType::TRIGGER, new TriggerComponent(this, triggerInfo));
+	// if (!triggerInfo.empty()) m_Components.emplace(eReplicaComponentType::TRIGGER, new TriggerComponent(this, triggerInfo));
 
 	/**
 	 * Setup groups
 	 */
 
-	const auto groupIDs = GetVarAsString(u"groupID");
+	// const auto groupIDs = GetVarAsString(u"groupID");
 
-	if (!groupIDs.empty()) {
-		m_Groups = GeneralUtils::SplitString(groupIDs, ';');
-		m_Groups.erase(m_Groups.end() - 1);
-	}
+	// if (!groupIDs.empty()) {
+	// 	m_Groups = GeneralUtils::SplitString(groupIDs, ';');
+	// 	if (m_Groups.back().empty()) m_Groups.erase(m_Groups.end() - 1);
+	// }
 
 	/**
 	 * Set ourselves as a child of our parent
 	 */
 
-	if (m_ParentEntity != nullptr) {
-		m_ParentEntity->AddChild(this);
-	}
+	// if (m_ParentEntity != nullptr) {
+	// 	m_ParentEntity->AddChild(this);
+	// }
 
 	// Get the registry table
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	// CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
 	/**
 	 * Special case for BBB models. They have components not corresponding to the registry.
 	 */
 
 	if (m_TemplateID == 14) {
-		const auto simplePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SIMPLE_PHYSICS);
+		// const auto simplePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SIMPLE_PHYSICS);
 
-		SimplePhysicsComponent* comp = new SimplePhysicsComponent(simplePhysicsComponentID, this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::SIMPLE_PHYSICS, comp));
+		// SimplePhysicsComponent* comp = new SimplePhysicsComponent(simplePhysicsComponentID, this);
+		// m_Components.insert(std::make_pair(eReplicaComponentType::SIMPLE_PHYSICS, comp));
 
-		ModelComponent* modelcomp = new ModelComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::MODEL, modelcomp));
+		// ModelComponent* modelcomp = new ModelComponent(this);
+		// m_Components.insert(std::make_pair(eReplicaComponentType::MODEL, modelcomp));
 
-		RenderComponent* render = new RenderComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::RENDER, render));
+		// RenderComponent* render = new RenderComponent(this);
+		// m_Components.insert(std::make_pair(eReplicaComponentType::RENDER, render));
 
-		auto destroyableComponent = new DestroyableComponent(this);
+		// auto destroyableComponent = new DestroyableComponent(this);
 		destroyableComponent->SetHealth(1);
 		destroyableComponent->SetMaxHealth(1.0f);
 		destroyableComponent->SetFaction(-1, true);
 		destroyableComponent->SetIsSmashable(true);
-		m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, destroyableComponent));
+		// m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, destroyableComponent));
 		// We have all our components.
 		return;
 	}
@@ -61,47 +61,47 @@ Entity::Initialize() {
 	 * Not all components are implemented. Some are represented by a nullptr, as they hold no data.
 	 */
 
-	if (GetParentUser()) {
-		auto missions = new MissionComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::MISSION, missions));
-		missions->LoadFromXml(m_Character->GetXMLDoc());
-	}
+	// if (GetParentUser()) {
+	// 	auto missions = new MissionComponent(this);
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::MISSION, missions));
+	// 	missions->LoadFromXml(m_Character->GetXMLDoc());
+	// }
 
-	uint32_t petComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PET);
-	if (petComponentId > 0) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::PET, new PetComponent(this, petComponentId)));
-	}
+	// uint32_t petComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PET);
+	// if (petComponentId > 0) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::PET, new PetComponent(this, petComponentId)));
+	// }
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ZONE_CONTROL) > 0) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::ZONE_CONTROL, nullptr));
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ZONE_CONTROL) > 0) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::ZONE_CONTROL, nullptr));
+	// }
 
-	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
-	if (possessableComponentId > 0) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::POSSESSABLE, new PossessableComponent(this, possessableComponentId)));
-	}
+	// uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
+	// if (possessableComponentId > 0) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::POSSESSABLE, new PossessableComponent(this, possessableComponentId)));
+	// }
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODULE_ASSEMBLY) > 0) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::MODULE_ASSEMBLY, new ModuleAssemblyComponent(this)));
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODULE_ASSEMBLY) > 0) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::MODULE_ASSEMBLY, new ModuleAssemblyComponent(this)));
+	// }
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_STATS) > 0) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::RACING_STATS, nullptr));
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_STATS) > 0) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::RACING_STATS, nullptr));
+	// }
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::LUP_EXHIBIT, -1) >= 0) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::LUP_EXHIBIT, new LUPExhibitComponent(this)));
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::LUP_EXHIBIT, -1) >= 0) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::LUP_EXHIBIT, new LUPExhibitComponent(this)));
+	// }
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_CONTROL) > 0) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::RACING_CONTROL, new RacingControlComponent(this)));
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_CONTROL) > 0) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::RACING_CONTROL, new RacingControlComponent(this)));
+	// }
 
-	const auto propertyEntranceComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_ENTRANCE);
-	if (propertyEntranceComponentID > 0) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::PROPERTY_ENTRANCE,
-			new PropertyEntranceComponent(propertyEntranceComponentID, this)));
-	}
+	// const auto propertyEntranceComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_ENTRANCE);
+	// if (propertyEntranceComponentID > 0) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::PROPERTY_ENTRANCE,
+	// 		new PropertyEntranceComponent(propertyEntranceComponentID, this)));
+	// }
 
 	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CONTROLLABLE_PHYSICS) > 0) {
 	// 	ControllablePhysicsComponent* controllablePhysics = new ControllablePhysicsComponent(this);
@@ -371,16 +371,16 @@ Entity::Initialize() {
 		}
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SKILL, -1) != -1 || m_Character) {
-		SkillComponent* comp = new SkillComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::SKILL, comp));
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SKILL, -1) != -1 || m_Character) {
+	// 	SkillComponent* comp = new SkillComponent(this);
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::SKILL, comp));
+	// }
 
-	const auto combatAiId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BASE_COMBAT_AI);
-	if (combatAiId > 0) {
-		BaseCombatAIComponent* comp = new BaseCombatAIComponent(this, combatAiId);
-		m_Components.insert(std::make_pair(eReplicaComponentType::BASE_COMBAT_AI, comp));
-	}
+	// const auto combatAiId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BASE_COMBAT_AI);
+	// if (combatAiId > 0) {
+	// 	BaseCombatAIComponent* comp = new BaseCombatAIComponent(this, combatAiId);
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::BASE_COMBAT_AI, comp));
+	// }
 
 	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
 		RebuildComponent* comp = new RebuildComponent(this);
@@ -424,50 +424,50 @@ Entity::Initialize() {
 		}
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SWITCH, -1) != -1) {
-		SwitchComponent* comp = new SwitchComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::SWITCH, comp));
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SWITCH, -1) != -1) {
+	// 	SwitchComponent* comp = new SwitchComponent(this);
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::SWITCH, comp));
+	// }
 
-	if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VENDOR) > 0)) {
-		VendorComponent* comp = new VendorComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::VENDOR, comp));
-	}
+	// if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VENDOR) > 0)) {
+	// 	VendorComponent* comp = new VendorComponent(this);
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::VENDOR, comp));
+	// }
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_VENDOR, -1) != -1) {
-		auto* component = new PropertyVendorComponent(this);
-		m_Components.insert_or_assign(eReplicaComponentType::PROPERTY_VENDOR, component);
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_VENDOR, -1) != -1) {
+	// 	auto* component = new PropertyVendorComponent(this);
+	// 	m_Components.insert_or_assign(eReplicaComponentType::PROPERTY_VENDOR, component);
+	// }
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_MANAGEMENT, -1) != -1) {
-		auto* component = new PropertyManagementComponent(this);
-		m_Components.insert_or_assign(eReplicaComponentType::PROPERTY_MANAGEMENT, component);
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_MANAGEMENT, -1) != -1) {
+	// 	auto* component = new PropertyManagementComponent(this);
+	// 	m_Components.insert_or_assign(eReplicaComponentType::PROPERTY_MANAGEMENT, component);
+	// }
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BOUNCER, -1) != -1) { // you have to determine it like this because all bouncers have a componentID of 0
-		BouncerComponent* comp = new BouncerComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::BOUNCER, comp));
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BOUNCER, -1) != -1) { // you have to determine it like this because all bouncers have a componentID of 0
+	// 	BouncerComponent* comp = new BouncerComponent(this);
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::BOUNCER, comp));
+	// }
 
-	int32_t renderComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RENDER);
-	if ((renderComponentId > 0 && m_TemplateID != 2365) || m_Character) {
-		RenderComponent* render = new RenderComponent(this, renderComponentId);
-		m_Components.insert(std::make_pair(eReplicaComponentType::RENDER, render));
-	}
+	// int32_t renderComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RENDER);
+	// if ((renderComponentId > 0 && m_TemplateID != 2365) || m_Character) {
+	// 	RenderComponent* render = new RenderComponent(this, renderComponentId);
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::RENDER, render));
+	// }
 
-	if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MISSION_OFFER) > 0) || m_Character) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::MISSION_OFFER, new MissionOfferComponent(this, m_TemplateID)));
-	}
+	// if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MISSION_OFFER) > 0) || m_Character) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::MISSION_OFFER, new MissionOfferComponent(this, m_TemplateID)));
+	// }
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUILD_BORDER, -1) != -1) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::BUILD_BORDER, new BuildBorderComponent(this)));
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUILD_BORDER, -1) != -1) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::BUILD_BORDER, new BuildBorderComponent(this)));
+	// }
 
 	// Scripted activity component
-	int scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY);
-	if ((scriptedActivityID > 0)) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::SCRIPTED_ACTIVITY, new ScriptedActivityComponent(this, scriptedActivityID)));
-	}
+	// int scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY);
+	// if ((scriptedActivityID > 0)) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::SCRIPTED_ACTIVITY, new ScriptedActivityComponent(this, scriptedActivityID)));
+	// }
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
 		m_Components.insert(std::make_pair(eReplicaComponentType::MODEL, new ModelComponent(this)));
@@ -487,9 +487,9 @@ Entity::Initialize() {
 	}
 
 	// Shooting gallery component
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SHOOTING_GALLERY) > 0) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::SHOOTING_GALLERY, new ShootingGalleryComponent(this)));
-	}
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SHOOTING_GALLERY) > 0) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::SHOOTING_GALLERY, new ShootingGalleryComponent(this)));
+	// }
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY, -1) != -1) {
 		m_Components.insert(std::make_pair(eReplicaComponentType::PROPERTY, new PropertyComponent(this)));

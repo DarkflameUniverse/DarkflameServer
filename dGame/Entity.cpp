@@ -74,6 +74,8 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
+#include "RacingStatsComponent.h"
+#include "MinigameControlComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -134,28 +136,55 @@ Entity::~Entity() {
 }
 
 void Entity::Initialize() {
+	// A few edge cases to tackle first
+	const auto triggerInfo = GetVarAsString(u"trigger_id");
+	if (!triggerInfo.empty()) AddComponent<TriggerComponent>(triggerInfo);
+
+	const auto groupIDs = GetVarAsString(u"groupID");
+	if (!groupIDs.empty()) {
+		m_Groups = GeneralUtils::SplitString(groupIDs, ';');
+		if (m_Groups.back().empty()) m_Groups.erase(m_Groups.end() - 1);
+	}
+
+	if (m_ParentEntity) m_ParentEntity->AddChild(this);
+
+	// Brick-by-Brick models don't have all their components in the registry for some reason?  Might have to be related to using ldf keys for physics
+	if (GetLOT() == 14) {
+		AddComponent<SimplePhysicsComponent>(0);
+		AddComponent<ModelBehaviorComponent>();
+		AddComponent<RenderComponent>();
+		AddComponent<DestroyableComponent>();
+		return;
+	}
+
 	auto* componentsRegistry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 	auto components = componentsRegistry->GetTemplateComponents(m_TemplateID);
+	// Apply the whitelist here based on the corresponding ldf key. Removes components that are not whitelisted. List is determined based on the clients whitelist data.
 	for (const auto& [componentTemplate, componentId] : components) {
 		switch (componentTemplate) {
 		case eReplicaComponentType::CONTROLLABLE_PHYSICS:
 			AddComponent<ControllablePhysicsComponent>();
 			break;
 		case eReplicaComponentType::RENDER:
+			AddComponent<RenderComponent>();
 			break;
 		case eReplicaComponentType::SIMPLE_PHYSICS:
 			break;
 		case eReplicaComponentType::CHARACTER:
+			AddComponent<CharacterComponent>(m_Character);
+			AddComponent<MissionComponent>();
 			break;
 		case eReplicaComponentType::SCRIPT:
 			break;
 		case eReplicaComponentType::BOUNCER:
+			AddComponent<BouncerComponent>();
 			break;
 		case eReplicaComponentType::DESTROYABLE:
 			break;
 		case eReplicaComponentType::GHOST:
 			break;
 		case eReplicaComponentType::SKILL:
+			AddComponent<SkillComponent>();
 			break;
 		case eReplicaComponentType::SPAWN:
 			break;
@@ -170,12 +199,14 @@ void Entity::Initialize() {
 		case eReplicaComponentType::ICON_ONLY:
 			break;
 		case eReplicaComponentType::VENDOR:
+			AddComponent<VendorComponent>();
 			break;
 		case eReplicaComponentType::INVENTORY:
 			break;
 		case eReplicaComponentType::PROJECTILE_PHYSICS:
 			break;
 		case eReplicaComponentType::SHOOTING_GALLERY:
+			AddComponent<ShootingGalleryComponent>();
 			break;
 		case eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS:
 			break;
@@ -190,6 +221,7 @@ void Entity::Initialize() {
 		case eReplicaComponentType::MOVING_PLATFORM:
 			break;
 		case eReplicaComponentType::PET:
+			AddComponent<PetComponent>(componentId);
 			break;
 		case eReplicaComponentType::PLATFORM_BOUNDARY:
 			break;
@@ -210,12 +242,14 @@ void Entity::Initialize() {
 		case eReplicaComponentType::MINIFIG:
 			break;
 		case eReplicaComponentType::PROPERTY:
+			AddComponent<PropertyComponent>();
 			break;
 		case eReplicaComponentType::PET_CREATOR:
 			break;
 		case eReplicaComponentType::MODEL_BUILDER:
 			break;
 		case eReplicaComponentType::SCRIPTED_ACTIVITY:
+			AddComponent<ScriptedActivityComponent>(componentId);
 			break;
 		case eReplicaComponentType::PHANTOM_PHYSICS:
 			break;
@@ -224,10 +258,12 @@ void Entity::Initialize() {
 		case eReplicaComponentType::MODEL_BEHAVIOR:
 			break;
 		case eReplicaComponentType::PROPERTY_ENTRANCE:
+			AddComponent<PropertyEntranceComponent>(componentId);
 			break;
 		case eReplicaComponentType::FX:
 			break;
 		case eReplicaComponentType::PROPERTY_MANAGEMENT:
+			AddComponent<PropertyManagementComponent>();
 			break;
 		case eReplicaComponentType::VEHICLE_PHYSICS:
 			break;
@@ -236,8 +272,10 @@ void Entity::Initialize() {
 		case eReplicaComponentType::QUICK_BUILD:
 			break;
 		case eReplicaComponentType::SWITCH:
+			AddComponent<SwitchComponent>();
 			break;
 		case eReplicaComponentType::MINIGAME_CONTROL:
+			AddComponent<MinigameControlComponent>();
 			break;
 		case eReplicaComponentType::CHANGLING_BUILD:
 			break;
@@ -258,8 +296,10 @@ void Entity::Initialize() {
 		case eReplicaComponentType::CUSTOM_BUILD_ASSEMBLY:
 			break;
 		case eReplicaComponentType::BASE_COMBAT_AI:
+			AddComponent<BaseCombatAIComponent>(componentId);
 			break;
 		case eReplicaComponentType::MODULE_ASSEMBLY:
+			AddComponent<ModuleAssemblyComponent>();
 			break;
 		case eReplicaComponentType::SHOWCASE_MODEL_HANDLER:
 			break;
@@ -268,6 +308,7 @@ void Entity::Initialize() {
 		case eReplicaComponentType::GENERIC_ACTIVATOR:
 			break;
 		case eReplicaComponentType::PROPERTY_VENDOR:
+			AddComponent<PropertyVendorComponent>();
 			break;
 		case eReplicaComponentType::HF_LIGHT_DIRECTION_GADGET:
 			break;
@@ -280,14 +321,18 @@ void Entity::Initialize() {
 		case eReplicaComponentType::DROPPED_LOOT:
 			break;
 		case eReplicaComponentType::RACING_CONTROL:
+			AddComponent<RacingControlComponent>();
 			break;
 		case eReplicaComponentType::FACTION_TRIGGER:
 			break;
 		case eReplicaComponentType::MISSION_OFFER:
+			AddComponent<MissionOfferComponent>(GetLOT());
 			break;
 		case eReplicaComponentType::RACING_STATS:
+			AddComponent<RacingStatsComponent>();
 			break;
 		case eReplicaComponentType::LUP_EXHIBIT:
+			AddComponent<LUPExhibitComponent>();
 			break;
 		case eReplicaComponentType::BBB:
 			break;
@@ -354,6 +399,7 @@ void Entity::Initialize() {
 		case eReplicaComponentType::CRAFTING:
 			break;
 		case eReplicaComponentType::POSSESSABLE:
+			AddComponent<PossessableComponent>(componentId);
 			break;
 		case eReplicaComponentType::LEVEL_PROGRESSION:
 			break;
@@ -366,6 +412,7 @@ void Entity::Initialize() {
 		case eReplicaComponentType::PROPERTY_PLAQUE:
 			break;
 		case eReplicaComponentType::BUILD_BORDER:
+			AddComponent<BuildBorderComponent>();
 			break;
 		case eReplicaComponentType::UNKNOWN_115:
 			break;
@@ -379,20 +426,20 @@ void Entity::Initialize() {
 		}
 	}
 
-	for (const auto&[componentId, component] : m_Components) {
+	for (const auto& [componentId, component] : m_Components) {
 		component->LoadTemplateData();
 	}
 
-	for (const auto&[componentId, component] : m_Components) {
+	for (const auto& [componentId, component] : m_Components) {
 		component->LoadConfigData();
 	}
 
-	for (const auto&[componentId, component] : m_Components) {
+	for (const auto& [componentId, component] : m_Components) {
 		component->Startup();
 	}
 	if (!IsPlayer()) return; // No save data to load for non players
 
-	for (const auto&[componentId, component] : m_Components) {
+	for (const auto& [componentId, component] : m_Components) {
 		component->LoadFromXml(m_Character->GetXMLDoc());
 	}
 }
@@ -419,7 +466,7 @@ bool Entity::HasComponent(const eReplicaComponentType componentId) const {
 
 std::vector<ScriptComponent*> Entity::GetScriptComponents() {
 	std::vector<ScriptComponent*> comps;
-	for (const auto&[componentType, component] : m_Components) {
+	for (const auto& [componentType, component] : m_Components) {
 		if (componentType == eReplicaComponentType::SCRIPT) {
 			comps.push_back(dynamic_cast<ScriptComponent*>(component.get()));
 		}
