@@ -43,7 +43,7 @@ RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t component
 RailActivatorComponent::~RailActivatorComponent() = default;
 
 void RailActivatorComponent::OnUse(Entity* originator) {
-	auto rebuildComponent = m_OwningEntity->GetComponent<RebuildComponent>();
+	auto* rebuildComponent = m_OwningEntity->GetComponent<RebuildComponent>();
 	if (rebuildComponent != nullptr && rebuildComponent->GetState() != eRebuildState::COMPLETED)
 		return;
 
@@ -116,7 +116,7 @@ void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 		true, true, true, true, true, true, true
 	);
 
-	auto rebuildComponent = m_OwningEntity->GetComponent<RebuildComponent>();
+	auto* rebuildComponent = m_OwningEntity->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent != nullptr) {
 		// Set back reset time

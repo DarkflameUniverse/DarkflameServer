@@ -934,10 +934,10 @@ void GameMessages::SendResurrect(Entity* entity) {
 	// and just make sure the client has time to be ready.
 	constexpr float respawnTime = 3.66700005531311f + 0.5f;
 	entity->AddCallbackTimer(respawnTime, [=]() {
-		auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
-			auto levelComponent = entity->GetComponent<LevelProgressionComponent>();
+			auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
 			if (levelComponent) {
 				int32_t healthToRestore = levelComponent->GetLevel() >= 45 ? 8 : 4;
 				if (healthToRestore > destroyableComponent->GetMaxHealth()) healthToRestore = destroyableComponent->GetMaxHealth();
@@ -951,7 +951,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 	});
 
 
-	auto cont = entity->GetComponent<ControllablePhysicsComponent>();
+	auto* cont = entity->GetComponent<ControllablePhysicsComponent>();
 	if (cont && entity->GetLOT() == 1) {
 		cont->SetPosition(entity->GetRespawnPosition());
 		cont->SetRotation(entity->GetRespawnRotation());
@@ -1148,7 +1148,7 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	bitStream.Write(position.y);
 	bitStream.Write(position.z);
 
-	auto con = entity->GetComponent<ControllablePhysicsComponent>();
+	auto* con = entity->GetComponent<ControllablePhysicsComponent>();
 	if (con) {
 		auto rot = con->GetRotation();
 		bitStream.Write(rot.x);
@@ -1283,7 +1283,7 @@ void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& s
 	CBITSTREAM;
 	CMSGHEADER;
 
-	auto vendor = entity->GetComponent<VendorComponent>();
+	auto* vendor = entity->GetComponent<VendorComponent>();
 	if (!vendor) return;
 
 	std::map<LOT, int> vendorItems = vendor->GetInventory();
@@ -1405,7 +1405,7 @@ void GameMessages::SendMoveInventoryBatch(Entity* entity, uint32_t stackCount, i
 	CBITSTREAM;
 	CMSGHEADER;
 
-	auto inv = entity->GetComponent<InventoryComponent>();
+	auto* inv = entity->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	Item* itemStack = inv->FindItemById(iObjID);
@@ -2181,7 +2181,7 @@ void GameMessages::HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity,
 	LWOOBJID objIdToAddToInventory{};
 	inStream->Read(unknown);
 	inStream->Read(objIdToAddToInventory);
-	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 	if (inventoryComponent) {
 		auto* inventory = inventoryComponent->GetInventory(eInventoryType::MODELS_IN_BBB);
 		auto* item = inventory->FindItemById(objIdToAddToInventory);
@@ -2243,7 +2243,7 @@ void GameMessages::HandleQueryPropertyData(RakNet::BitStream* inStream, Entity* 
 	entity = entites[0];
 	*/
 
-	auto propertyVendorComponent = entity->GetComponent<PropertyVendorComponent>();
+	auto* propertyVendorComponent = entity->GetComponent<PropertyVendorComponent>();
 
 	if (propertyVendorComponent != nullptr) {
 		propertyVendorComponent->OnQueryPropertyData(entity, sysAddr);
@@ -2255,7 +2255,7 @@ void GameMessages::HandleQueryPropertyData(RakNet::BitStream* inStream, Entity* 
 	entity = entites[0];
 	*/
 
-	auto propertyManagerComponent = entity->GetComponent<PropertyManagementComponent>();
+	auto* propertyManagerComponent = entity->GetComponent<PropertyManagementComponent>();
 
 	if (propertyManagerComponent != nullptr) {
 		propertyManagerComponent->OnQueryPropertyData(entity, sysAddr);
@@ -2421,7 +2421,7 @@ void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream* inStream, Entity*
 
 	Game::logger->Log("BBB", "Load item request for: %lld", previousItemID);
 	LWOOBJID newId = previousItemID;
-	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 	if (inventoryComponent) {
 		auto* inventory = inventoryComponent->GetInventory(eInventoryType::MODELS);
 		auto* itemToMove = inventory->FindItemById(previousItemID);
@@ -2775,7 +2775,7 @@ void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream* inStream, Entit
 
 	auto* player = Player::GetPlayer(sysAddr);
 
-	auto entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
+	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
 
 	if (entranceComponent == nullptr) return;
 
@@ -2802,13 +2802,13 @@ void GameMessages::HandleEnterProperty(RakNet::BitStream* inStream, Entity* enti
 
 	auto* player = Player::GetPlayer(sysAddr);
 
-	auto entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
+	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
 	if (entranceComponent != nullptr) {
 		entranceComponent->OnEnterProperty(player, index, returnToZone, sysAddr);
 		return;
 	}
 
-	auto multiZoneEntranceComponent = entity->GetComponent<MultiZoneEntranceComponent>();
+	auto* multiZoneEntranceComponent = entity->GetComponent<MultiZoneEntranceComponent>();
 	if (multiZoneEntranceComponent != nullptr) {
 		multiZoneEntranceComponent->OnSelectWorld(player, index);
 	}
@@ -2819,7 +2819,7 @@ void GameMessages::HandleSetConsumableItem(RakNet::BitStream* inStream, Entity* 
 
 	inStream->Read(lot);
 
-	auto inventory = entity->GetComponent<InventoryComponent>();
+	auto* inventory = entity->GetComponent<InventoryComponent>();
 
 	if (inventory == nullptr) return;
 
@@ -3817,7 +3817,7 @@ void GameMessages::HandleCommandPet(RakNet::BitStream* inStream, Entity* entity,
 	inStream->Read(iTypeID);
 	overrideObey = inStream->ReadBit();
 
-	auto petComponent = entity->GetComponent<PetComponent>();
+	auto* petComponent = entity->GetComponent<PetComponent>();
 
 	if (petComponent == nullptr) {
 		return;
@@ -3883,13 +3883,13 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream* inStream, Entity*
 
 	entity->OnMessageBoxResponse(userEntity, iButton, identifier, userData);
 
-	auto scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
+	auto* scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
 
 	if (scriptedActivityComponent != nullptr) {
 		scriptedActivityComponent->HandleMessageBoxResponse(userEntity, GeneralUtils::UTF16ToWTF8(identifier));
 	}
 
-	auto racingControlComponent = entity->GetComponent<RacingControlComponent>();
+	auto* racingControlComponent = entity->GetComponent<RacingControlComponent>();
 
 	if (racingControlComponent != nullptr) {
 		racingControlComponent->HandleMessageBoxResponse(userEntity, iButton, GeneralUtils::UTF16ToWTF8(identifier));
@@ -4055,7 +4055,7 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 
 	// If we aren't possessing somethings, the don't do anything
 	if (objectId != LWOOBJID_EMPTY) {
-		auto possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 		auto* mount = EntityManager::Instance()->GetEntity(objectId);
 		// make sure we have the things we need and they aren't null
 		if (possessorComponent && mount) {
@@ -4065,7 +4065,7 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 			possessorComponent->SetPossessableType(ePossessionType::NO_POSSESSION);
 
 			// character related things
-			auto character = entity->GetComponent<CharacterComponent>();
+			auto* character = entity->GetComponent<CharacterComponent>();
 			if (character) {
 				// If we had an active item turn it off
 				if (possessorComponent->GetMountItemID() != LWOOBJID_EMPTY) GameMessages::SendMarkInventoryItemAsActive(entity->GetObjectID(), false, eUnequippableActiveType::MOUNT, possessorComponent->GetMountItemID(), entity->GetSystemAddress());
@@ -4073,11 +4073,11 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 			}
 
 			// Set that the controllabel phsyics comp is teleporting
-			auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+			auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
 			if (controllablePhysicsComponent) controllablePhysicsComponent->SetIsTeleporting(true);
 
 			// Call dismoint on the possessable comp to let it handle killing the possessable
-			auto possessableComponent = mount->GetComponent<PossessableComponent>();
+			auto* possessableComponent = mount->GetComponent<PossessableComponent>();
 			if (possessableComponent) possessableComponent->Dismount();
 
 			// Update the entity that was possessing
@@ -4101,7 +4101,7 @@ void GameMessages::HandleAcknowledgePossession(RakNet::BitStream* inStream, Enti
 //Racing
 
 void GameMessages::HandleModuleAssemblyQueryData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	auto moduleAssemblyComponent = entity->GetComponent<ModuleAssemblyComponent>();
+	auto* moduleAssemblyComponent = entity->GetComponent<ModuleAssemblyComponent>();
 
 	Game::logger->Log("HandleModuleAssemblyQueryData", "Got Query from %i", entity->GetLOT());
 
@@ -4137,7 +4137,7 @@ void GameMessages::HandleRacingClientReady(RakNet::BitStream* inStream, Entity* 
 		return;
 	}
 
-	auto racingControlComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<RacingControlComponent>();
+	auto* racingControlComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<RacingControlComponent>();
 
 	if (racingControlComponent == nullptr) {
 		return;
@@ -4187,12 +4187,12 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
+	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
 
 	Game::logger->Log("HandleRequestDie", "Got die request: %i", entity->GetLOT());
 
 	if (racingControlComponent != nullptr) {
-		auto possessableComponent = entity->GetComponent<PossessableComponent>();
+		auto* possessableComponent = entity->GetComponent<PossessableComponent>();
 
 		if (possessableComponent != nullptr) {
 			entity = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
@@ -4230,7 +4230,7 @@ void GameMessages::HandleRacingPlayerInfoResetFinished(RakNet::BitStream* inStre
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
+	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
 
 	Game::logger->Log("HandleRacingPlayerInfoResetFinished", "Got finished: %i", entity->GetLOT());
 
@@ -4292,7 +4292,7 @@ void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream* in
 		return;
 	}
 
-	auto possessableComponent = entity->GetComponent<PossessableComponent>();
+	auto* possessableComponent = entity->GetComponent<PossessableComponent>();
 
 	if (possessableComponent != nullptr) {
 		entity = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
@@ -4302,7 +4302,7 @@ void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream* in
 		}
 	}
 
-	auto characterComponent = entity->GetComponent<CharacterComponent>();
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->UpdatePlayerStatistic(RacingImaginationPowerUpsCollected);
 	}
@@ -4629,7 +4629,7 @@ void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream*
 		return;
 	}
 
-	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent != nullptr) {
 		if (itemID != LWOOBJID_EMPTY) {
@@ -4722,7 +4722,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	Entity* player = EntityManager::Instance()->GetEntity(user->GetLoggedInChar());
 	if (!player) return;
 
-	auto propertyVendorComponent = entity->GetComponent<PropertyVendorComponent>();
+	auto* propertyVendorComponent = entity->GetComponent<PropertyVendorComponent>();
 
 	if (propertyVendorComponent != nullptr) {
 		propertyVendorComponent->OnBuyFromVendor(player, bConfirmed, item, count);
@@ -4732,10 +4732,10 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 	const auto isCommendationVendor = entity->GetLOT() == 13806;
 
-	auto vend = entity->GetComponent<VendorComponent>();
+	auto* vend = entity->GetComponent<VendorComponent>();
 	if (!vend && !isCommendationVendor) return;
 
-	auto inv = player->GetComponent<InventoryComponent>();
+	auto* inv = player->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	if (!isCommendationVendor && !vend->SellsItem(item)) {
@@ -4763,7 +4763,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 			return;
 		}
 
-		auto missionComponent = player->GetComponent<MissionComponent>();
+		auto* missionComponent = player->GetComponent<MissionComponent>();
 
 		if (missionComponent == nullptr) {
 			return;
@@ -4826,10 +4826,10 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	if (!player) return;
 	Character* character = player->GetCharacter();
 	if (!character) return;
-	auto inv = player->GetComponent<InventoryComponent>();
+	auto* inv = player->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
-	auto vend = entity->GetComponent<VendorComponent>();
+	auto* vend = entity->GetComponent<VendorComponent>();
 	if (!vend) return;
 
 	Item* item = inv->FindItemById(iObjID);
@@ -4876,10 +4876,10 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 	if (!player) return;
 	Character* character = player->GetCharacter();
 	if (!character) return;
-	auto inv = player->GetComponent<InventoryComponent>();
+	auto* inv = player->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
-	auto vend = entity->GetComponent<VendorComponent>();
+	auto* vend = entity->GetComponent<VendorComponent>();
 	if (!vend) return;
 
 	Item* item = inv->FindItemById(iObjID);
@@ -4973,7 +4973,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 		LWOCLONEID cloneId = 0;
 		LWOMAPID mapId = 0;
 
-		auto rocketPad = entity->GetComponent<RocketLaunchpadControlComponent>();
+		auto* rocketPad = entity->GetComponent<RocketLaunchpadControlComponent>();
 
 		if (rocketPad == nullptr) return;
 
@@ -5030,7 +5030,7 @@ void GameMessages::HandleRebuildCancel(RakNet::BitStream* inStream, Entity* enti
 	inStream->Read(bEarlyRelease);
 	inStream->Read(userID);
 
-	auto rebComp = entity->GetComponent<RebuildComponent>();
+	auto* rebComp = entity->GetComponent<RebuildComponent>();
 	if (!rebComp) return;
 
 	rebComp->CancelRebuild(EntityManager::Instance()->GetEntity(userID), eQuickBuildFailReason::CANCELED_EARLY);
@@ -5063,7 +5063,7 @@ void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity,
 
 	if (bIsMultiInteractUse) {
 		if (multiInteractType == 0) {
-			auto missionOfferComponent = interactedObject->GetComponent<MissionOfferComponent>();
+			auto* missionOfferComponent = interactedObject->GetComponent<MissionOfferComponent>();
 
 			if (missionOfferComponent != nullptr) {
 				missionOfferComponent->OfferMissions(entity, multiInteractID);
@@ -5076,7 +5076,7 @@ void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity,
 	}
 
 	//Perform use task if possible:
-	auto missionComponent = entity->GetComponent<MissionComponent>();
+	auto* missionComponent = entity->GetComponent<MissionComponent>();
 
 	if (missionComponent == nullptr) return;
 
@@ -5098,7 +5098,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	if (emoteID == 0) return;
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
-	auto missionComponent = entity->GetComponent<MissionComponent>();
+	auto* missionComponent = entity->GetComponent<MissionComponent>();
 	if (!missionComponent) return;
 
 	if (targetID != LWOOBJID_EMPTY) {
@@ -5142,7 +5142,7 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, E
 	if (!user) return;
 	Entity* character = EntityManager::Instance()->GetEntity(user->GetLoggedInChar());
 	if (!character) return;
-	auto inv = character->GetComponent<InventoryComponent>();
+	auto* inv = character->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	auto* item = inv->FindItemById(modelID);
@@ -5185,7 +5185,7 @@ void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* e
 	inStream->Read(isDefaultReward);
 	if (isDefaultReward) inStream->Read(reward);
 
-	auto missionComponent = entity->GetComponent<MissionComponent>();
+	auto* missionComponent = entity->GetComponent<MissionComponent>();
 	if (!missionComponent) {
 		Game::logger->Log("GameMessages", "Unable to get mission component for entity %llu to handle RespondToMission", playerID);
 		return;
@@ -5228,7 +5228,7 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* en
 	}
 
 	// Get the player's mission component
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 	if (!missionComponent) {
 		Game::logger->Log("GameMessages", "Unable to get mission component for entity %llu to handle MissionDialogueOK", player->GetObjectID());
 		return;
@@ -5252,7 +5252,7 @@ void GameMessages::HandleRequestLinkedMission(RakNet::BitStream* inStream, Entit
 
 	auto* player = EntityManager::Instance()->GetEntity(playerId);
 
-	auto missionOfferComponent = entity->GetComponent<MissionOfferComponent>();
+	auto* missionOfferComponent = entity->GetComponent<MissionOfferComponent>();
 
 	if (missionOfferComponent != nullptr) {
 		missionOfferComponent->OfferMissions(player, 0);
@@ -5266,16 +5266,16 @@ void GameMessages::HandleHasBeenCollected(RakNet::BitStream* inStream, Entity* e
 	Entity* player = EntityManager::Instance()->GetEntity(playerID);
 	if (!player || !entity || entity->GetCollectibleID() == 0) return;
 
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 	if (missionComponent) {
 		missionComponent->Progress(eMissionTaskType::COLLECTION, entity->GetLOT(), entity->GetObjectID());
 	}
 }
 
 void GameMessages::HandleNotifyServerLevelProcessingComplete(RakNet::BitStream* inStream, Entity* entity) {
-	auto levelComp = entity->GetComponent<LevelProgressionComponent>();
+	auto* levelComp = entity->GetComponent<LevelProgressionComponent>();
 	if (!levelComp) return;
-	auto character = entity->GetComponent<CharacterComponent>();
+	auto* character = entity->GetComponent<CharacterComponent>();
 	if (!character) return;
 
 	//Update our character's level in memory:
@@ -5283,7 +5283,7 @@ void GameMessages::HandleNotifyServerLevelProcessingComplete(RakNet::BitStream* 
 
 	levelComp->HandleLevelUp();
 
-	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent != nullptr) {
 		auto* inventory = inventoryComponent->GetInventory(ITEMS);
@@ -5369,7 +5369,7 @@ void GameMessages::HandleEquipItem(RakNet::BitStream* inStream, Entity* entity) 
 	inStream->Read(immediate); //twice?
 	inStream->Read(objectID);
 
-	auto inv = entity->GetComponent<InventoryComponent>();
+	auto* inv = entity->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	Item* item = inv->FindItemById(objectID);
@@ -5388,7 +5388,7 @@ void GameMessages::HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity
 	inStream->Read(immediate);
 	inStream->Read(objectID);
 
-	auto inv = entity->GetComponent<InventoryComponent>();
+	auto* inv = entity->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	auto* item = inv->FindItemById(objectID);
@@ -5463,7 +5463,7 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 	inStream->Read(iTradeIDIsDefault);
 	if (iTradeIDIsDefault) inStream->Read(iTradeID);
 
-	auto inv = entity->GetComponent<InventoryComponent>();
+	auto* inv = entity->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	auto* item = inv->FindItemById(iObjID);
@@ -5484,7 +5484,7 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 		item->SetCount(item->GetCount() - iStackCount, true);
 		EntityManager::Instance()->SerializeEntity(entity);
 
-		auto missionComponent = entity->GetComponent<MissionComponent>();
+		auto* missionComponent = entity->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
 			missionComponent->Progress(eMissionTaskType::GATHER, item->GetLot(), LWOOBJID_EMPTY, "", -iStackCount);
@@ -5506,7 +5506,7 @@ void GameMessages::HandleMoveItemInInventory(RakNet::BitStream* inStream, Entity
 	inStream->Read(responseCode);
 	inStream->Read(slot);
 
-	auto inv = entity->GetComponent<InventoryComponent>();
+	auto* inv = entity->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	auto* item = inv->FindItemById(iObjID);
@@ -5538,7 +5538,7 @@ void GameMessages::HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStre
 	inStream->Read(templateIDIsDefault);
 	if (templateIDIsDefault) inStream->Read(templateID);
 
-	auto inv = entity->GetComponent<InventoryComponent>();
+	auto* inv = entity->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	auto* item = inv->FindItemById(objectID);
@@ -5583,7 +5583,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 	if (!user) return;
 	Entity* character = EntityManager::Instance()->GetEntity(user->GetLoggedInChar());
 	if (!character) return;
-	auto inv = character->GetComponent<InventoryComponent>();
+	auto* inv = character->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	Game::logger->Log("GameMessages", "Build finished");
@@ -5638,7 +5638,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 			inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config);
 		}
 
-		auto missionComponent = character->GetComponent<MissionComponent>();
+		auto* missionComponent = character->GetComponent<MissionComponent>();
 
 		if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
 			if (missionComponent != nullptr) {
@@ -5648,7 +5648,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 		}
 	}
 
-	auto script = entity->GetComponent<ScriptComponent>();
+	auto* script = entity->GetComponent<ScriptComponent>();
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
 		script->OnModularBuildExit(entity, character, count >= 3, modList);
@@ -5671,7 +5671,7 @@ void GameMessages::HandleDoneArrangingWithItem(RakNet::BitStream* inStream, Enti
 	if (!user) return;
 	Entity* character = EntityManager::Instance()->GetEntity(user->GetLoggedInChar());
 	if (!character) return;
-	auto inv = character->GetComponent<InventoryComponent>();
+	auto* inv = character->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	/**
@@ -5789,7 +5789,7 @@ void GameMessages::HandleModularBuildMoveAndEquip(RakNet::BitStream* inStream, E
 
 	inStream->Read(templateID);
 
-	auto inv = character->GetComponent<InventoryComponent>();
+	auto* inv = character->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	auto* item = inv->FindItemByLot(templateID, TEMP_MODELS);
@@ -5841,13 +5841,13 @@ void GameMessages::HandleResurrect(RakNet::BitStream* inStream, Entity* entity) 
 }
 
 void GameMessages::HandlePushEquippedItemsState(RakNet::BitStream* inStream, Entity* entity) {
-	auto inv = entity->GetComponent<InventoryComponent>();
+	auto* inv = entity->GetComponent<InventoryComponent>();
 	if (!inv) return;
 	inv->PushEquippedItems();
 }
 
 void GameMessages::HandlePopEquippedItemsState(RakNet::BitStream* inStream, Entity* entity) {
-	auto inv = entity->GetComponent<InventoryComponent>();
+	auto* inv = entity->GetComponent<InventoryComponent>();
 	if (!inv) return;
 	inv->PopEquippedItems();
 	EntityManager::Instance()->SerializeEntity(entity); // so it updates on client side
@@ -5859,7 +5859,7 @@ void GameMessages::HandleClientItemConsumed(RakNet::BitStream* inStream, Entity*
 
 	inStream->Read(itemConsumed);
 
-	auto inventory = entity->GetComponent<InventoryComponent>();
+	auto* inventory = entity->GetComponent<InventoryComponent>();
 
 	if (inventory == nullptr) {
 		return;
@@ -5873,7 +5873,7 @@ void GameMessages::HandleClientItemConsumed(RakNet::BitStream* inStream, Entity*
 
 	item->Consume();
 
-	auto missions = entity->GetComponent<MissionComponent>();
+	auto* missions = entity->GetComponent<MissionComponent>();
 	if (missions != nullptr) {
 		missions->Progress(eMissionTaskType::USE_ITEM, itemLot);
 	}
@@ -5885,7 +5885,7 @@ void GameMessages::HandleUseNonEquipmentItem(RakNet::BitStream* inStream, Entity
 
 	inStream->Read(itemConsumed);
 
-	auto inv = entity->GetComponent<InventoryComponent>();
+	auto* inv = entity->GetComponent<InventoryComponent>();
 
 	if (!inv) return;
 
@@ -5920,7 +5920,7 @@ void GameMessages::HandleMatchRequest(RakNet::BitStream* inStream, Entity* entit
 	if (type == 0) { // join
 		if (value != 0) {
 			for (Entity* scriptedAct : scriptedActs) {
-				auto comp = scriptedAct->GetComponent<ScriptedActivityComponent>();
+				auto* comp = scriptedAct->GetComponent<ScriptedActivityComponent>();
 				if (!comp) continue;
 				if (comp->GetActivityID() == value) {
 					comp->PlayerJoin(entity);
@@ -5931,7 +5931,7 @@ void GameMessages::HandleMatchRequest(RakNet::BitStream* inStream, Entity* entit
 		}
 	} else if (type == 1) { // ready/unready
 		for (Entity* scriptedAct : scriptedActs) {
-			auto comp = scriptedAct->GetComponent<ScriptedActivityComponent>();
+			auto* comp = scriptedAct->GetComponent<ScriptedActivityComponent>();
 			if (!comp) continue;
 			if (comp->PlayerIsInQueue(entity)) {
 				comp->PlayerReady(entity, value);
@@ -6051,7 +6051,7 @@ void
 GameMessages::HandleClientRailMovementReady(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	const auto possibleRails = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::RAIL_ACTIVATOR);
 	for (const auto* possibleRail : possibleRails) {
-		const auto rail = possibleRail->GetComponent<RailActivatorComponent>();
+		const auto* rail = possibleRail->GetComponent<RailActivatorComponent>();
 		if (rail != nullptr) {
 			rail->OnRailMovementReady(entity);
 		}
@@ -6063,7 +6063,7 @@ void GameMessages::HandleCancelRailMovement(RakNet::BitStream* inStream, Entity*
 
 	const auto possibleRails = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::RAIL_ACTIVATOR);
 	for (const auto* possibleRail : possibleRails) {
-		auto rail = possibleRail->GetComponent<RailActivatorComponent>();
+		auto* rail = possibleRail->GetComponent<RailActivatorComponent>();
 		if (rail != nullptr) {
 			rail->OnCancelRailMovement(entity);
 		}
@@ -6112,7 +6112,7 @@ void GameMessages::HandleModifyPlayerZoneStatistic(RakNet::BitStream* inStream, 
 	}
 
 	// Notify the character component that something's changed
-	auto characterComponent = entity->GetComponent<CharacterComponent>();
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->HandleZoneStatisticsUpdate(zone, statisticsName, value);
 	}
@@ -6129,14 +6129,14 @@ void GameMessages::HandleUpdatePlayerStatistic(RakNet::BitStream* inStream, Enti
 		updateValue = 1;
 	}
 
-	auto characterComponent = entity->GetComponent<CharacterComponent>();
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->UpdatePlayerStatistic((StatisticID)updateID, (uint64_t)std::max(updateValue, int64_t(0)));
 	}
 }
 
 void GameMessages::HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity) {
-	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
 	if (controllablePhysicsComponent) controllablePhysicsComponent->DeactivateBubbleBuff();
 }
 
@@ -6149,7 +6149,7 @@ void GameMessages::HandleActivateBubbleBuff(RakNet::BitStream* inStream, Entity*
 	if (type == u"skunk") bubbleType = eBubbleType::SKUNK;
 	else if (type == u"energy") bubbleType = eBubbleType::ENERGY;
 
-	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
 	if (controllablePhysicsComponent) controllablePhysicsComponent->ActivateBubbleBuff(bubbleType, specialAnimations);
 }
 

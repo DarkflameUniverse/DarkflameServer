@@ -8,7 +8,7 @@ void FvMaelstromGeyser::OnStartup(Entity* self) {
 
 void FvMaelstromGeyser::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == m_StartSkillTimerName) {
-		auto skillComponent = self->GetComponent<SkillComponent>();
+		auto* skillComponent = self->GetComponent<SkillComponent>();
 		skillComponent->CalculateBehavior(m_SkillID, m_BehaviorID, LWOOBJID_EMPTY, true);
 	}
 	if (timerName == m_KillSelfTimerName) {

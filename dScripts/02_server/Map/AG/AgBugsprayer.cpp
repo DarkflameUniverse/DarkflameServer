@@ -8,7 +8,7 @@ void AgBugsprayer::OnRebuildComplete(Entity* self, Entity* target) {
 
 void AgBugsprayer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "castSkill") {
-		auto skillComponent = self->GetComponent<SkillComponent>();
+		auto* skillComponent = self->GetComponent<SkillComponent>();
 
 		if (skillComponent == nullptr) return;
 

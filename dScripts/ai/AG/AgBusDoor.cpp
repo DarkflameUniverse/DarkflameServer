@@ -16,7 +16,7 @@ void AgBusDoor::OnProximityUpdate(Entity* self, Entity* entering, std::string na
 	// Make sure only humans are taken into account
 	if (!entering->GetCharacter()) return;
 
-	auto proximityMonitorComponent = self->GetComponent<ProximityMonitorComponent>();
+	auto* proximityMonitorComponent = self->GetComponent<ProximityMonitorComponent>();
 
 	if (proximityMonitorComponent == nullptr) return;
 

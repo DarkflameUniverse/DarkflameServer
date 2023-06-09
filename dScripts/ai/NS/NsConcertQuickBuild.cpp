@@ -103,7 +103,7 @@ void NsConcertQuickBuild::OnRebuildComplete(Entity* self, Entity* target) {
 		// Move all the platforms so the user can collect the imagination brick
 		const auto movingPlatforms = EntityManager::Instance()->GetEntitiesInGroup("ConcertPlatforms");
 		for (auto* movingPlatform : movingPlatforms) {
-			auto component = movingPlatform->GetComponent<MovingPlatformComponent>();
+			auto* component = movingPlatform->GetComponent<MovingPlatformComponent>();
 			if (component) {
 				component->WarpToWaypoint(component->GetLastWaypointIndex());
 
@@ -132,7 +132,7 @@ void NsConcertQuickBuild::OnRebuildComplete(Entity* self, Entity* target) {
 				quickBuild->Smash();
 				});
 
-			auto destroyableComponent = quickBuild->GetComponent<DestroyableComponent>();
+			auto* destroyableComponent = quickBuild->GetComponent<DestroyableComponent>();
 			if (destroyableComponent)
 				destroyableComponent->SetFaction(-1);
 		}
@@ -157,7 +157,7 @@ void NsConcertQuickBuild::OnRebuildComplete(Entity* self, Entity* target) {
 }
 
 void NsConcertQuickBuild::ProgressStageCraft(Entity* self, Entity* player) {
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 	if (missionComponent) {
 
 		// Has to be forced as to not accidentally trigger the licensed technician achievement
@@ -186,7 +186,7 @@ void NsConcertQuickBuild::ProgressLicensedTechnician(Entity* self) {
 		if (playerID != LWOOBJID_EMPTY) {
 			const auto player = EntityManager::Instance()->GetEntity(playerID);
 			if (player) {
-				auto playerMissionComponent = player->GetComponent<MissionComponent>();
+				auto* playerMissionComponent = player->GetComponent<MissionComponent>();
 				if (playerMissionComponent)
 					playerMissionComponent->ForceProgress(598, 903, self->GetLOT());
 			}

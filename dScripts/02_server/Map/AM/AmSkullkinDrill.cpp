@@ -14,7 +14,7 @@ void AmSkullkinDrill::OnStartup(Entity* self) {
 
 	GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"spin", "active");
 
-	auto movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
+	auto* movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
 
 	if (movingPlatformComponent == nullptr) {
 		return;
@@ -58,7 +58,7 @@ void AmSkullkinDrill::OnSkillEventFired(Entity* self, Entity* caster, const std:
 		return;
 	}
 
-	auto proximityMonitorComponent = self->GetComponent<ProximityMonitorComponent>();
+	auto* proximityMonitorComponent = self->GetComponent<ProximityMonitorComponent>();
 
 	if (proximityMonitorComponent == nullptr || !proximityMonitorComponent->IsInProximity("spin_distance", caster->GetObjectID())) {
 		return;
@@ -82,7 +82,7 @@ void AmSkullkinDrill::TriggerDrill(Entity* self) {
 		standObj->SetVar(u"bActive", false);
 	}
 
-	auto movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
+	auto* movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
 
 	if (movingPlatformComponent == nullptr) {
 		return;
@@ -223,7 +223,7 @@ void AmSkullkinDrill::PlayAnim(Entity* self, Entity* player, const std::string& 
 }
 
 void AmSkullkinDrill::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {
-	auto destroyableComponent = self->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent == nullptr || !attacker->IsPlayer()) {
 		return;
@@ -239,7 +239,7 @@ void AmSkullkinDrill::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t 
 
 	// TODO: Missions
 	if (activator != nullptr) {
-		auto missionComponent = activator->GetComponent<MissionComponent>();
+		auto* missionComponent = activator->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
 			for (const auto missionID : m_MissionsToUpdate) {
@@ -279,7 +279,7 @@ void AmSkullkinDrill::OnTimerDone(Entity* self, std::string timerName) {
 			standObj->SetVar(u"bActive", true);
 		}
 
-		auto movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
+		auto* movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
 
 		if (movingPlatformComponent == nullptr) {
 			return;

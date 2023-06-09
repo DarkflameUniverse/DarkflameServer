@@ -16,8 +16,8 @@ void Darkitect::Reveal(Entity* self, Entity* player) {
 
 		if (!player) return;
 
-		auto destroyableComponent = player->GetComponent<DestroyableComponent>();
-		auto missionComponent = player->GetComponent<MissionComponent>();
+		auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
+		auto* missionComponent = player->GetComponent<MissionComponent>();
 		auto* character = player->GetCharacter();
 
 		if (destroyableComponent != nullptr && missionComponent != nullptr && character != nullptr) {

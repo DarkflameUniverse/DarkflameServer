@@ -15,7 +15,7 @@ PossessorComponent::~PossessorComponent() {
 	if (m_Possessable != LWOOBJID_EMPTY) {
 		auto* mount = EntityManager::Instance()->GetEntity(m_Possessable);
 		if (mount) {
-			auto possessable = mount->GetComponent<PossessableComponent>();
+			auto* possessable = mount->GetComponent<PossessableComponent>();
 			if (possessable) {
 				if (possessable->GetIsItemSpawned()) {
 					GameMessages::SendMarkInventoryItemAsActive(m_OwningEntity->GetObjectID(), false, eUnequippableActiveType::MOUNT, GetMountItemID(), m_OwningEntity->GetSystemAddress());
@@ -43,14 +43,14 @@ void PossessorComponent::Mount(Entity* mount) {
 	if (GetIsDismounting() || !mount) return;
 
 	GameMessages::SendSetMountInventoryID(m_OwningEntity, mount->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-	auto possessableComponent = mount->GetComponent<PossessableComponent>();
+	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
 	if (possessableComponent) {
 		possessableComponent->SetPossessor(m_OwningEntity->GetObjectID());
 		SetPossessable(mount->GetObjectID());
 		SetPossessableType(possessableComponent->GetPossessionType());
 	}
 
-	auto characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+	auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
 	if (characterComponent) characterComponent->SetIsRacing(true);
 
 	// GM's to send
@@ -68,7 +68,7 @@ void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
 	SetIsDismounting(true);
 
 	if (mount) {
-		auto possessableComponent = mount->GetComponent<PossessableComponent>();
+		auto* possessableComponent = mount->GetComponent<PossessableComponent>();
 		if (possessableComponent) {
 			possessableComponent->SetPossessor(LWOOBJID_EMPTY);
 			if (forceDismount) possessableComponent->ForceDepossess();
@@ -76,7 +76,7 @@ void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
 		EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 		EntityManager::Instance()->SerializeEntity(mount);
 
-		auto characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+		auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
 		if (characterComponent) characterComponent->SetIsRacing(false);
 	}
 	// Make sure we don't have wacky controls

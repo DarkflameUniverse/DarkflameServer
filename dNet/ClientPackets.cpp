@@ -85,7 +85,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	Entity* entity = EntityManager::Instance()->GetEntity(user->GetLastUsedChar()->GetObjectID());
 	if (!entity) return;
 
-	auto comp = entity->GetComponent<ControllablePhysicsComponent>();
+	auto* comp = entity->GetComponent<ControllablePhysicsComponent>();
 	if (!comp) return;
 
 	/*
@@ -100,7 +100,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	}
 	*/
 
-	auto possessorComponent = entity->GetComponent<PossessorComponent>();
+	auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 
 	NiPoint3 position;
 	inStream.Read(position.x);
@@ -142,13 +142,13 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
 
 		if (possassableEntity != nullptr) {
-			auto possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
+			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
 			if (possessableComponent) {
 				// While possessing something, only update char if we are attached to the thing we are possessing
 				if (possessableComponent->GetPossessionType() != ePossessionType::ATTACHED_VISIBLE) updateChar = false;
 			}
 
-			auto havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+			auto* havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
 			if (havokVehiclePhysicsComponent != nullptr) {
 				// This is flipped for whatever reason
 				rotation = NiQuaternion(rotation.z, rotation.y, rotation.x, rotation.w);
@@ -163,7 +163,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 			} else {
 				// Need to get the mount's controllable physics
-				auto controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				auto* controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
 				if (!controllablePhysicsComponent) return;
 				controllablePhysicsComponent->SetPosition(position);
 				controllablePhysicsComponent->SetRotation(rotation);
@@ -186,7 +186,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 
 	// Handle statistics
-	auto characterComponent = entity->GetComponent<CharacterComponent>();
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->TrackPositionUpdate(position);
 	}

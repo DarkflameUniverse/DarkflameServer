@@ -6,11 +6,11 @@
 #include "TeamManager.h"
 
 void AgSurvivalBuffStation::OnRebuildComplete(Entity* self, Entity* target) {
-	auto destroyableComponent = self->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
 	// We set the faction to 1 so that the buff station sees players as friendly targets to buff
 	if (destroyableComponent != nullptr) destroyableComponent->SetFaction(1);
 
-	auto skillComponent = self->GetComponent<SkillComponent>();
+	auto* skillComponent = self->GetComponent<SkillComponent>();
 
 	if (skillComponent != nullptr) skillComponent->CalculateBehavior(skillIdForBuffStation, behaviorIdForBuffStation, self->GetObjectID());
 

@@ -15,13 +15,13 @@ void NtVentureSpeedPadServer::OnProximityUpdate(Entity* self, Entity* entering, 
 
 	auto* player = entering;
 
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 	}
 
-	auto skillComponent = player->GetComponent<SkillComponent>();
+	auto* skillComponent = player->GetComponent<SkillComponent>();
 
 	if (skillComponent != nullptr) {
 		skillComponent->CalculateBehavior(927, 18913, player->GetObjectID(), true);

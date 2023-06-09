@@ -22,7 +22,7 @@ void PetDigBuild::OnRebuildComplete(Entity* self, Entity* target) {
 		info.lot = 7410; // Normal GF treasure
 		info.settings.push_back(new LDFData<std::u16string>(u"groupID", u"Flag" + flagNumber));
 	} else {
-		auto missionComponent = target->GetComponent<MissionComponent>();
+		auto* missionComponent = target->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr && missionComponent->GetMissionState(746) == eMissionState::ACTIVE) {
 			info.lot = 9307; // Special Captain Jack treasure that drops a mission item
 		} else {

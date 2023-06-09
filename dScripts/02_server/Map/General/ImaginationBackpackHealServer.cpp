@@ -12,7 +12,7 @@ void ImaginationBackpackHealServer::OnSkillEventFired(Entity* self, Entity* cast
 		if (healMission == 0)
 			return;
 
-		auto missionComponent = caster->GetComponent<MissionComponent>();
+		auto* missionComponent = caster->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr && missionComponent->GetMissionState(healMission) == eMissionState::ACTIVE) {
 			missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 			GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ClearMaelstrom", 0, 0,

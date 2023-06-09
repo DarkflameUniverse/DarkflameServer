@@ -228,7 +228,7 @@ void BaseWavesServer::ResetStats(LWOOBJID playerID) {
 	if (player != nullptr) {
 
 		// Boost all the player stats when loading in
-		auto destroyableComponent = player->GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
 			destroyableComponent->SetHealth(destroyableComponent->GetMaxHealth());
 			destroyableComponent->SetArmor(destroyableComponent->GetMaxArmor());
@@ -372,7 +372,7 @@ void BaseWavesServer::GameOver(Entity* self, bool won) {
 		}
 
 		// Update all mission progression
-		auto missionComponent = player->GetComponent<MissionComponent>();
+		auto* missionComponent = player->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, time, self->GetObjectID(), self->GetVar<std::string>(MissionTypeVariable));
 		}
@@ -505,7 +505,7 @@ bool BaseWavesServer::UpdateSpawnedEnemies(Entity* self, LWOOBJID enemyID, uint3
 				SetActivityValue(self, playerID, 2, state.waveNumber);
 
 				// Update player missions
-				auto missionComponent = player->GetComponent<MissionComponent>();
+				auto* missionComponent = player->GetComponent<MissionComponent>();
 				if (missionComponent != nullptr) {
 					for (const auto& missionID : waveMission) {
 						// Get the mission state
@@ -560,7 +560,7 @@ void BaseWavesServer::UpdateMissionForAllPlayers(Entity* self, uint32_t missionI
 	for (const auto& playerID : state.players) {
 		auto* player = EntityManager::Instance()->GetEntity(playerID);
 		if (player != nullptr) {
-			auto missionComponent = player->GetComponent<MissionComponent>();
+			auto* missionComponent = player->GetComponent<MissionComponent>();
 			if (missionComponent == nullptr) return;
 			// Get the mission state
 			auto missionState = missionComponent->GetMissionState(missionID);

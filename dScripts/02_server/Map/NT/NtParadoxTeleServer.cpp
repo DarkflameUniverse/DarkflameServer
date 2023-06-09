@@ -43,7 +43,7 @@ void NtParadoxTeleServer::OnProximityUpdate(Entity* self, Entity* entering, std:
 			});
 	}
 
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT());

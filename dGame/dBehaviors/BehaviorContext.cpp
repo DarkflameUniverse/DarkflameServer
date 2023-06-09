@@ -35,7 +35,7 @@ uint32_t BehaviorContext::GetUniqueSkillId() const {
 		return 0;
 	}
 
-	auto component = entity->GetComponent<SkillComponent>();
+	auto* component = entity->GetComponent<SkillComponent>();
 
 	if (component == nullptr) {
 		Game::logger->Log("BehaviorContext", "No skill component attached to (%llu)!", this->originator);;
@@ -331,7 +331,7 @@ std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, in
 	}
 
 	if (ignoreFaction || includeFaction || (!entity->HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) && targets.empty())) {
-		auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) {
 			return targets;
 		}

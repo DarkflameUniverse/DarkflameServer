@@ -2,7 +2,7 @@
 #include "PetComponent.h"
 
 void NjEarthPetServer::OnStartup(Entity* self) {
-	auto petComponent = self->GetComponent<PetComponent>();
+	auto* petComponent = self->GetComponent<PetComponent>();
 	if (petComponent == nullptr || petComponent->GetOwnerId() != LWOOBJID_EMPTY)
 		return;
 

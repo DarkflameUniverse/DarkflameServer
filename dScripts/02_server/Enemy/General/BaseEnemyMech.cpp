@@ -9,14 +9,14 @@
 #include "eReplicaComponentType.h"
 
 void BaseEnemyMech::OnStartup(Entity* self) {
-	auto destroyableComponent = self->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
 	if (destroyableComponent != nullptr) {
 		destroyableComponent->SetFaction(4);
 	}
 }
 
 void BaseEnemyMech::OnDie(Entity* self, Entity* killer) {
-	auto controlPhys = self->GetComponent<ControllablePhysicsComponent>();
+	auto* controlPhys = self->GetComponent<ControllablePhysicsComponent>();
 	if (!controlPhys) return;
 
 	NiPoint3 newLoc = { controlPhys->GetPosition().x, dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(controlPhys->GetPosition()), controlPhys->GetPosition().z };

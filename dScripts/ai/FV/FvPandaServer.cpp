@@ -4,7 +4,7 @@
 #include "ePetTamingNotifyType.h"
 
 void FvPandaServer::OnStartup(Entity* self) {
-	const auto petComponent = self->GetComponent<PetComponent>();
+	const auto* petComponent = self->GetComponent<PetComponent>();
 	if (petComponent != nullptr && petComponent->GetOwner() == nullptr) {
 		self->SetNetworkVar<std::string>(u"pandatamer", std::to_string(self->GetVar<LWOOBJID>(u"tamer")));
 		self->AddTimer("killSelf", 45);
@@ -28,7 +28,7 @@ void FvPandaServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetT
 
 void FvPandaServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "killSelf") {
-		const auto petComponent = self->GetComponent<PetComponent>();
+		const auto* petComponent = self->GetComponent<PetComponent>();
 		if (petComponent != nullptr && petComponent->GetOwner() == nullptr) {
 			self->Smash(self->GetObjectID(), eKillType::SILENT);
 		}

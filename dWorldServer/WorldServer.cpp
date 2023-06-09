@@ -685,7 +685,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		if (entity) {
-			auto skillComponent = entity->GetComponent<SkillComponent>();
+			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 			if (skillComponent != nullptr) {
 				skillComponent->Reset();
@@ -1020,13 +1020,13 @@ void HandlePacket(Packet* packet) {
 
 				EntityManager::Instance()->ConstructAllEntities(packet->systemAddress);
 
-				auto characterComponent = player->GetComponent<CharacterComponent>();
+				auto* characterComponent = player->GetComponent<CharacterComponent>();
 				if (characterComponent) {
 					player->GetComponent<CharacterComponent>()->RocketUnEquip(player);
 				}
 
 				// Do charxml fixes here
-				auto levelComponent = player->GetComponent<LevelProgressionComponent>();
+				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
 				if (!levelComponent) return;
 
 				auto version = levelComponent->GetCharacterVersion();
@@ -1052,7 +1052,7 @@ void HandlePacket(Packet* packet) {
 				player->GetCharacter()->SetTargetScene("");
 
 				// Fix the destroyable component
-				auto destroyableComponent = player->GetComponent<DestroyableComponent>();
+				auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
 
 				if (destroyableComponent != nullptr) {
 					destroyableComponent->FixStats();
@@ -1281,7 +1281,7 @@ void WorldShutdownProcess(uint32_t zoneId) {
 		auto* entity = Player::GetPlayer(player);
 		Game::logger->Log("WorldServer", "Saving data!");
 		if (entity != nullptr && entity->GetCharacter() != nullptr) {
-			auto skillComponent = entity->GetComponent<SkillComponent>();
+			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 			if (skillComponent != nullptr) {
 				skillComponent->Reset();

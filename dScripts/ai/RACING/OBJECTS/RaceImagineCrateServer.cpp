@@ -19,13 +19,13 @@ void RaceImagineCrateServer::OnDie(Entity* self, Entity* killer) {
 		return;
 	}
 
-	auto skillComponent = killer->GetComponent<SkillComponent>();
+	auto* skillComponent = killer->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
 		return;
 	}
 
-	auto destroyableComponent = killer->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = killer->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent != nullptr) {
 		destroyableComponent->SetImagination(60);
@@ -34,14 +34,14 @@ void RaceImagineCrateServer::OnDie(Entity* self, Entity* killer) {
 	}
 
 	// Find possessor of race car to progress missions and update stats.
-	auto possessableComponent = killer->GetComponent<PossessableComponent>();
+	auto* possessableComponent = killer->GetComponent<PossessableComponent>();
 	if (possessableComponent != nullptr) {
 
 		auto* possessor = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
 		if (possessor != nullptr) {
 
-			auto missionComponent = possessor->GetComponent<MissionComponent>();
-			auto characterComponent = possessor->GetComponent<CharacterComponent>();
+			auto* missionComponent = possessor->GetComponent<MissionComponent>();
+			auto* characterComponent = possessor->GetComponent<CharacterComponent>();
 
 			if (characterComponent != nullptr) {
 				characterComponent->UpdatePlayerStatistic(RacingImaginationCratesSmashed);

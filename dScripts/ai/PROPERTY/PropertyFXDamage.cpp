@@ -6,8 +6,8 @@ void PropertyFXDamage::OnCollisionPhantom(Entity* self, Entity* target) {
 	if (target == nullptr)
 		return;
 
-	auto skills = self->GetComponent<SkillComponent>();
-	auto targetStats = target->GetComponent<DestroyableComponent>();
+	auto* skills = self->GetComponent<SkillComponent>();
+	auto* targetStats = target->GetComponent<DestroyableComponent>();
 
 	if (skills != nullptr && targetStats != nullptr) {
 		auto targetFactions = targetStats->GetFactionIDs();

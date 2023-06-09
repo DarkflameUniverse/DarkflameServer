@@ -35,13 +35,13 @@ BootyDigServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string 
 		// Make sure players only dig up one booty per instance
 		player->SetVar<bool>(u"bootyDug", true);
 
-		auto missionComponent = player->GetComponent<MissionComponent>();
+		auto* missionComponent = player->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			auto* mission = missionComponent->GetMission(1881);
 			if (mission != nullptr && (mission->GetMissionState() == eMissionState::ACTIVE || mission->GetMissionState() == eMissionState::COMPLETE_ACTIVE)) {
 				mission->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 
-				auto renderComponent = self->GetComponent<RenderComponent>();
+				auto* renderComponent = self->GetComponent<RenderComponent>();
 				if (renderComponent != nullptr)
 					renderComponent->PlayEffect(7730, u"cast", "bootyshine");
 

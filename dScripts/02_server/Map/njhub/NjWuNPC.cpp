@@ -11,7 +11,7 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, e
 	// The Dragon statue daily mission
 	if (missionID == m_MainDragonMissionID) {
 		auto* character = target->GetCharacter();
-		auto missionComponent = target->GetComponent<MissionComponent>();
+		auto* missionComponent = target->GetComponent<MissionComponent>();
 		if (character == nullptr || missionComponent == nullptr)
 			return;
 

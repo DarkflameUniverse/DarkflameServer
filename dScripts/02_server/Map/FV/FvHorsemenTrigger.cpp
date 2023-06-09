@@ -39,7 +39,7 @@ FvHorsemenTrigger::OnFireEventServerSide(Entity* self, Entity* sender, std::stri
 				continue;
 			}
 
-			auto missionComponent = player->GetComponent<MissionComponent>();
+			auto* missionComponent = player->GetComponent<MissionComponent>();
 
 			if (missionComponent == nullptr) {
 				continue;

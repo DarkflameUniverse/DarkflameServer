@@ -5,7 +5,7 @@
 #include "Character.h"
 
 void AmBlueX::OnUse(Entity* self, Entity* user) {
-	auto skillComponent = user->GetComponent<SkillComponent>();
+	auto* skillComponent = user->GetComponent<SkillComponent>();
 	if (skillComponent != nullptr) {
 		skillComponent->CalculateBehavior(m_SwordSkill, m_SwordBehavior, self->GetObjectID());
 	}
@@ -37,7 +37,7 @@ void AmBlueX::OnSkillEventFired(Entity* self, Entity* caster, const std::string&
 		self->AddCallbackTimer(m_BombTime, [this, self, fxObjectID, playerID]() {
 			auto* fxObject = EntityManager::Instance()->GetEntity(fxObjectID);
 			auto* player = EntityManager::Instance()->GetEntity(playerID);
-			auto skillComponent = self->GetComponent<SkillComponent>();
+			auto* skillComponent = self->GetComponent<SkillComponent>();
 
 			if (skillComponent == nullptr)
 				return;

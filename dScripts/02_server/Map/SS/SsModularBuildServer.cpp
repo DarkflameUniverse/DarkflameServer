@@ -7,7 +7,7 @@ void SsModularBuildServer::OnModularBuildExit(Entity* self, Entity* player, bool
 	int missionNum = 1732;
 
 	if (bCompleted) {
-		auto mission = self->GetComponent<MissionComponent>();
+		auto* mission = self->GetComponent<MissionComponent>();
 		Mission* rocketMission = mission->GetMission(missionNum);
 
 		if (rocketMission->GetMissionState() == eMissionState::ACTIVE) {

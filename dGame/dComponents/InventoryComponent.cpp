@@ -189,7 +189,7 @@ void InventoryComponent::AddItem(
 		inventoryType = Inventory::FindInventoryTypeForLot(lot);
 	}
 
-	auto missions = m_OwningEntity->GetComponent<MissionComponent>();
+	auto* missions = m_OwningEntity->GetComponent<MissionComponent>();
 
 	auto* inventory = GetInventory(inventoryType);
 
@@ -378,7 +378,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 		item->SetCount(item->GetCount() - delta, false, false);
 	}
 
-	auto missionComponent = m_OwningEntity->GetComponent<MissionComponent>();
+	auto* missionComponent = m_OwningEntity->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		if (IsTransferInventory(inventory)) {
@@ -833,7 +833,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 			for (auto* lauchPad : rocketLauchPads) {
 				if (Vector3::DistanceSquared(lauchPad->GetPosition(), position) > 13 * 13) continue;
 
-				auto characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+				auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
 
 				if (characterComponent != nullptr) characterComponent->SetLastRocketItemID(item->GetId());
 
@@ -950,10 +950,10 @@ void InventoryComponent::UnequipScripts(Item* unequippedItem) {
 }
 
 void InventoryComponent::HandlePossession(Item* item) {
-	auto characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+	auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 
-	auto possessorComponent = m_OwningEntity->GetComponent<PossessorComponent>();
+	auto* possessorComponent = m_OwningEntity->GetComponent<PossessorComponent>();
 	if (!possessorComponent) return;
 
 	// Don't do anything if we are busy dismounting
@@ -986,7 +986,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* mount = EntityManager::Instance()->CreateEntity(info, nullptr, m_OwningEntity);
 
 	// Check to see if the mount is a vehicle, if so, flip it
-	auto havokVehiclePhysicsComponent = mount->GetComponent<HavokVehiclePhysicsComponent>();
+	auto* havokVehiclePhysicsComponent = mount->GetComponent<HavokVehiclePhysicsComponent>();
 	if (havokVehiclePhysicsComponent) {
 		auto angles = startRotation.GetEulerAngles();
 		// Make it right side up
@@ -1000,14 +1000,14 @@ void InventoryComponent::HandlePossession(Item* item) {
 	}
 
 	// Setup the destroyable stats
-	auto destroyableComponent = mount->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
 	if (destroyableComponent) {
 		destroyableComponent->SetIsSmashable(false);
 		destroyableComponent->SetIsImmune(true);
 	}
 
 	// Mount it
-	auto possessableComponent = mount->GetComponent<PossessableComponent>();
+	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
 	if (possessableComponent) {
 		possessableComponent->SetIsItemSpawned(true);
 		possessableComponent->SetPossessor(m_OwningEntity->GetObjectID());
@@ -1076,7 +1076,7 @@ void InventoryComponent::PopEquippedItems() {
 
 	m_Pushed.clear();
 
-	auto destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
 
 	// Reset stats to full
 	if (destroyableComponent) {
@@ -1246,7 +1246,7 @@ void InventoryComponent::SpawnPet(Item* item) {
 	}
 
 	// First check if we can summon the pet.  You need 1 imagination to do so.
-	auto destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
 
 	if (Game::config->GetValue("pets_take_imagination") == "1" && destroyableComponent && destroyableComponent->GetImagination() <= 0) {
 		GameMessages::SendUseItemRequirementsResponse(m_OwningEntity->GetObjectID(), m_OwningEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
@@ -1261,7 +1261,7 @@ void InventoryComponent::SpawnPet(Item* item) {
 
 	auto* pet = EntityManager::Instance()->CreateEntity(info);
 
-	auto petComponent = pet->GetComponent<PetComponent>();
+	auto* petComponent = pet->GetComponent<PetComponent>();
 
 	if (petComponent != nullptr) {
 		petComponent->Activate(item);
@@ -1339,7 +1339,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 		return entry.objectTemplate == static_cast<unsigned int>(item->GetLot());
 		});
 
-	auto missions = m_OwningEntity->GetComponent<MissionComponent>();
+	auto* missions = m_OwningEntity->GetComponent<MissionComponent>();
 
 	for (const auto& result : results) {
 		if (result.castOnType == 1) {

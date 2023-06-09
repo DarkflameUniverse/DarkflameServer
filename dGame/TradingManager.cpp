@@ -114,10 +114,10 @@ void Trade::Complete() {
 
 	if (entityA == nullptr || entityB == nullptr) return;
 
-	auto inventoryA = entityA->GetComponent<InventoryComponent>();
-	auto inventoryB = entityB->GetComponent<InventoryComponent>();
-	auto missionsA = entityA->GetComponent<MissionComponent>();
-	auto missionsB = entityB->GetComponent<MissionComponent>();
+	auto* inventoryA = entityA->GetComponent<InventoryComponent>();
+	auto* inventoryB = entityB->GetComponent<InventoryComponent>();
+	auto* missionsA = entityA->GetComponent<MissionComponent>();
+	auto* missionsB = entityB->GetComponent<MissionComponent>();
 	auto* characterA = entityA->GetCharacter();
 	auto* characterB = entityB->GetCharacter();
 
@@ -214,7 +214,7 @@ void Trade::SendUpdateToOther(LWOOBJID participant) {
 
 	std::vector<TradeItem> items{};
 
-	auto inventoryComponent = self->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = self->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) return;
 

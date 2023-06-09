@@ -90,7 +90,7 @@ void Player::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) {
 		const auto sysAddr = entity->GetSystemAddress();
 
 		auto* character = entity->GetCharacter();
-		auto characterComponent = entity->GetComponent<CharacterComponent>();
+		auto* characterComponent = entity->GetComponent<CharacterComponent>();
 
 		if (character != nullptr && characterComponent != nullptr) {
 			character->SetZoneID(zoneID);

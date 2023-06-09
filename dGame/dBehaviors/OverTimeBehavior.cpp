@@ -24,7 +24,7 @@ void OverTimeBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 
 			if (entity == nullptr) return;
 
-			auto skillComponent = entity->GetComponent<SkillComponent>();
+			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 			if (skillComponent == nullptr) return;
 

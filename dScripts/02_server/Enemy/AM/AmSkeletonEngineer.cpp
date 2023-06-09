@@ -3,8 +3,8 @@
 #include "SkillComponent.h"
 
 void AmSkeletonEngineer::OnHit(Entity* self, Entity* attacker) {
-	auto destroyableComponent = self->GetComponent<DestroyableComponent>();
-	auto skillComponent = self->GetComponent<SkillComponent>();
+	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
+	auto* skillComponent = self->GetComponent<SkillComponent>();
 
 	if (destroyableComponent == nullptr || skillComponent == nullptr) {
 		return;

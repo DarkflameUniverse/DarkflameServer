@@ -48,7 +48,7 @@ void NtCombatChallengeServer::OnMessageBoxResponse(Entity* self, Entity* sender,
 
 		self->SetVar(u"playerID", sender->GetObjectID());
 
-		auto inventoryComponent = sender->GetComponent<InventoryComponent>();
+		auto* inventoryComponent = sender->GetComponent<InventoryComponent>();
 
 		if (inventoryComponent != nullptr) {
 			inventoryComponent->RemoveItem(3039, 1);
@@ -133,7 +133,7 @@ void NtCombatChallengeServer::ResetGame(Entity* self) {
 	auto* player = EntityManager::Instance()->GetEntity(playerID);
 
 	if (player != nullptr) {
-		auto missionComponent = player->GetComponent<MissionComponent>();
+		auto* missionComponent = player->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
 			for (const auto& mission : tMissions) {

@@ -95,7 +95,7 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 		const auto& mapID = dZoneManager::Instance()->GetZone()->GetZoneID();
 
 		if (propertyOwner > 0) {
-			auto missionComponent = player->GetComponent<MissionComponent>();
+			auto* missionComponent = player->GetComponent<MissionComponent>();
 
 			if (missionComponent != nullptr) {
 				missionComponent->Progress(
@@ -149,7 +149,7 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 }
 
 void BasePropertyServer::PropGuardCheck(Entity* self, Entity* player) {
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr
 		&& missionComponent->GetMissionState(self->GetVar<uint32_t>(guardMissionFlag)) != eMissionState::COMPLETE) {
@@ -171,7 +171,7 @@ void BasePropertyServer::BaseZonePropertyRented(Entity* self, Entity* player) co
 
 	auto brickLinkMissionID = self->GetVar<uint32_t>(brickLinkMissionIDFlag);
 	if (brickLinkMissionID != 0) {
-		auto missionComponent = player->GetComponent<MissionComponent>();
+		auto* missionComponent = player->GetComponent<MissionComponent>();
 		if (missionComponent) missionComponent->CompleteMission(brickLinkMissionID, true);
 	}
 
@@ -241,7 +241,7 @@ void BasePropertyServer::StartTornadoFx(Entity* self) const {
 	}
 
 	for (auto* entity : entities) {
-		auto renderComponent = entity->GetComponent<RenderComponent>();
+		auto* renderComponent = entity->GetComponent<RenderComponent>();
 		if (renderComponent != nullptr) {
 			renderComponent->PlayEffect(-1, u"debrisOn", "TornadoDebris");
 			renderComponent->PlayEffect(-1, u"VortexOn", "TornadoVortex");
@@ -270,7 +270,7 @@ void BasePropertyServer::KillGuard(Entity* self) {
 }
 
 void BasePropertyServer::RequestDie(Entity* self, Entity* other) {
-	auto destroyable = other->GetComponent<DestroyableComponent>();
+	auto* destroyable = other->GetComponent<DestroyableComponent>();
 	if (destroyable == nullptr)
 		return;
 
@@ -344,7 +344,7 @@ void BasePropertyServer::BaseTimerDone(Entity* self, const std::string& timerNam
 		auto fxManagers = EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup));
 
 		for (auto* fxManager : fxManagers) {
-			auto renderComponent = fxManager->GetComponent<RenderComponent>();
+			auto* renderComponent = fxManager->GetComponent<RenderComponent>();
 			if (renderComponent != nullptr) {
 				renderComponent->StopEffect("TornadoDebris", false);
 				renderComponent->StopEffect("TornadoVortex", false);
@@ -357,7 +357,7 @@ void BasePropertyServer::BaseTimerDone(Entity* self, const std::string& timerNam
 		auto fxManagers = EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup));
 
 		for (auto* fxManager : fxManagers) {
-			auto renderComponent = fxManager->GetComponent<RenderComponent>();
+			auto* renderComponent = fxManager->GetComponent<RenderComponent>();
 			if (renderComponent != nullptr)
 				renderComponent->PlayEffect(-1, u"beamOn", "beam");
 		}
@@ -423,7 +423,7 @@ void BasePropertyServer::BaseTimerDone(Entity* self, const std::string& timerNam
 		}
 
 		for (auto* fxManager : fxManagers) {
-			auto renderComponent = fxManager->GetComponent<RenderComponent>();
+			auto* renderComponent = fxManager->GetComponent<RenderComponent>();
 			if (renderComponent != nullptr) {
 				renderComponent->StopEffect("beam");
 			}

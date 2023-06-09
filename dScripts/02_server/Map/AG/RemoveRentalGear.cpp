@@ -23,7 +23,7 @@ void RemoveRentalGear::OnMissionDialogueOK(Entity* self, Entity* target, int mis
 	if (missionID != defaultMission && missionID != 313) return;
 
 	if (missionState == eMissionState::COMPLETE || missionState == eMissionState::READY_TO_COMPLETE) {
-		auto inv = target->GetComponent<InventoryComponent>();
+		auto* inv = target->GetComponent<InventoryComponent>();
 		if (!inv) return;
 
 		//remove the inventory items

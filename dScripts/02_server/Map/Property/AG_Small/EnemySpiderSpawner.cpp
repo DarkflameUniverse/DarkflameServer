@@ -15,7 +15,7 @@ void EnemySpiderSpawner::OnFireEventServerSide(Entity* self, Entity* sender, std
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2856, u"maelstrom", "test", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
 
 		// Make indestructible
-		auto dest = self->GetComponent<DestroyableComponent>();
+		auto* dest = self->GetComponent<DestroyableComponent>();
 		if (dest) {
 			dest->SetFaction(-1);
 		}
@@ -54,7 +54,7 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 			newEntity->AddToGroups("BabySpider");
 
 			/*
-			auto movementAi = newEntity->GetComponent<MovementAIComponent>();
+			auto* movementAi = newEntity->GetComponent<MovementAIComponent>();
 
 			movementAi->SetDestination(newEntity->GetPosition());
 			*/

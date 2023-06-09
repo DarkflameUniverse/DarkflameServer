@@ -15,7 +15,7 @@ void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 		return;
 	}
 
-	auto combatComponent = target->GetComponent<BaseCombatAIComponent>();
+	auto* combatComponent = target->GetComponent<BaseCombatAIComponent>();
 
 	if (combatComponent != nullptr) {
 		combatComponent->Taunt(context->originator, m_threatToAdd);
@@ -31,7 +31,7 @@ void TauntBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitSt
 		return;
 	}
 
-	auto combatComponent = target->GetComponent<BaseCombatAIComponent>();
+	auto* combatComponent = target->GetComponent<BaseCombatAIComponent>();
 
 	if (combatComponent != nullptr) {
 		combatComponent->Taunt(context->originator, m_threatToAdd);

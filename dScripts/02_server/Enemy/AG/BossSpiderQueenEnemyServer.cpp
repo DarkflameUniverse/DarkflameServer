@@ -29,9 +29,9 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 	//self:SetStatusImmunity{ StateChangeType = "PUSH", bImmuneToPullToPoint = true, bImmuneToKnockback = true, bImmuneToInterrupt = true }
 
 	//Get our components:
-	auto destroyable = self->GetComponent<DestroyableComponent>();
-	auto controllable = self->GetComponent<ControllablePhysicsComponent>();
-	auto combat = self->GetComponent<BaseCombatAIComponent>();
+	auto* destroyable = self->GetComponent<DestroyableComponent>();
+	auto* controllable = self->GetComponent<ControllablePhysicsComponent>();
+	auto* combat = self->GetComponent<BaseCombatAIComponent>();
 
 	if (!destroyable || !controllable) return;
 
@@ -53,7 +53,7 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 
 void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
 	if (dZoneManager::Instance()->GetZoneID().GetMapID() == instanceZoneID) {
-		auto missionComponent = killer->GetComponent<MissionComponent>();
+		auto* missionComponent = killer->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr)
 			return;
 
@@ -99,7 +99,7 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 
 		EntityManager::Instance()->SerializeEntity(self);
 
-		auto baseCombatAi = self->GetComponent<BaseCombatAIComponent>();
+		auto* baseCombatAi = self->GetComponent<BaseCombatAIComponent>();
 
 		baseCombatAi->SetDisabled(true);
 
@@ -123,7 +123,7 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 		//Cancel all remaining timers for say idle anims:
 		self->CancelAllTimers();
 
-		auto baseCombatAi = self->GetComponent<BaseCombatAIComponent>();
+		auto* baseCombatAi = self->GetComponent<BaseCombatAIComponent>();
 
 		baseCombatAi->SetDisabled(false);
 
@@ -314,7 +314,7 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 			return;
 		}
 
-		auto skillComponent = entity->GetComponent<SkillComponent>();
+		auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 		if (skillComponent == nullptr) {
 			Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find impact skill component!");
@@ -347,7 +347,7 @@ void BossSpiderQueenEnemyServer::RapidFireShooterManager(Entity* self) {
 
 	const auto target = attackTargetTable[0];
 
-	auto skillComponent = self->GetComponent<SkillComponent>();
+	auto* skillComponent = self->GetComponent<SkillComponent>();
 
 	skillComponent->CalculateBehavior(1394, 32612, target, true);
 
@@ -381,7 +381,7 @@ void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
 
 	attackTargetTable.push_back(attackFocus);
 
-	auto skillComponent = self->GetComponent<SkillComponent>();
+	auto* skillComponent = self->GetComponent<SkillComponent>();
 
 	skillComponent->CalculateBehavior(1480, 36652, attackFocus, true);
 
@@ -493,14 +493,14 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		auto landingTarget = self->GetI64(u"LandingTarget");
 		auto landingEntity = EntityManager::Instance()->GetEntity(landingTarget);
 
-		auto skillComponent = self->GetComponent<SkillComponent>();
+		auto* skillComponent = self->GetComponent<SkillComponent>();
 
 		if (skillComponent != nullptr) {
 			skillComponent->CalculateBehavior(bossLandingSkill, 37739, LWOOBJID_EMPTY);
 		}
 
 		if (landingEntity) {
-			auto landingSkill = landingEntity->GetComponent<SkillComponent>();
+			auto* landingSkill = landingEntity->GetComponent<SkillComponent>();
 
 			if (landingSkill != nullptr) {
 				landingSkill->CalculateBehavior(bossLandingSkill, 37739, LWOOBJID_EMPTY, true);

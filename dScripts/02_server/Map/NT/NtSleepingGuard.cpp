@@ -20,7 +20,7 @@ void NtSleepingGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity*
 
 	RenderComponent::PlayAnimation(self, u"greet");
 
-	auto missionComponent = target->GetComponent<MissionComponent>();
+	auto* missionComponent = target->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		missionComponent->CompleteMission(1346);

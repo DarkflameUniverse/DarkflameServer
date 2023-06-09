@@ -163,7 +163,7 @@ void PetComponent::OnUse(Entity* originator) {
 		m_Tamer = LWOOBJID_EMPTY;
 	}
 
-	auto inventoryComponent = originator->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -173,7 +173,7 @@ void PetComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	auto movementAIComponent = m_OwningEntity->GetComponent<MovementAIComponent>();
+	auto* movementAIComponent = m_OwningEntity->GetComponent<MovementAIComponent>();
 
 	if (movementAIComponent != nullptr) {
 		movementAIComponent->Stop();
@@ -224,7 +224,7 @@ void PetComponent::OnUse(Entity* originator) {
 		imaginationCost = cached->second.imaginationCost;
 	}
 
-	auto destroyableComponent = originator->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = originator->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent == nullptr) {
 		return;
@@ -487,7 +487,7 @@ void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
 
 	if (cached == buildCache.end()) return;
 
-	auto destroyableComponent = tamer->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = tamer->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent == nullptr) return;
 
@@ -548,7 +548,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 
 	GameMessages::SendPetResponse(m_Tamer, m_OwningEntity->GetObjectID(), 0, 10, 0, tamer->GetSystemAddress());
 
-	auto inventoryComponent = tamer->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = tamer->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -606,7 +606,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		tamer->GetCharacter()->SetPlayerFlag(petFlags.at(m_OwningEntity->GetLOT()), true);
 	}
 
-	auto missionComponent = tamer->GetComponent<MissionComponent>();
+	auto* missionComponent = tamer->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		missionComponent->Progress(eMissionTaskType::PET_TAMING, m_OwningEntity->GetLOT());
@@ -614,7 +614,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 
 	SetStatus(1);
 
-	auto characterComponent = tamer->GetComponent<CharacterComponent>();
+	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->UpdatePlayerStatistic(PetsTamed);
 	}
@@ -648,7 +648,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 
 	Game::logger->Log("PetComponent", "Got set pet name (%s)", GeneralUtils::UTF16ToWTF8(name).c_str());
 
-	auto inventoryComponent = tamer->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = tamer->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -913,7 +913,7 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 	auto playerEntity = playerInventoryComponent->GetOwningEntity();
 	if (!playerEntity) return;
 
-	auto playerDestroyableComponent = playerEntity->GetComponent<DestroyableComponent>();
+	auto* playerDestroyableComponent = playerEntity->GetComponent<DestroyableComponent>();
 	if (!playerDestroyableComponent) return;
 
 	// Drain by 1 when you summon pet or when this method is called, but not when we have just tamed this pet.
@@ -962,7 +962,7 @@ void PetComponent::Deactivate() {
 }
 
 void PetComponent::Release() {
-	auto inventoryComponent = GetOwner()->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = GetOwner()->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;

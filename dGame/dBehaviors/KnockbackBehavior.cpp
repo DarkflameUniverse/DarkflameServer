@@ -24,7 +24,7 @@ void KnockbackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* b
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (target != nullptr) {
-		auto destroyableComponent = target->GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent != nullptr) {
 			blocked = destroyableComponent->IsKnockbackImmune();

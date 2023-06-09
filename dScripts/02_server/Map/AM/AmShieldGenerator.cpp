@@ -15,7 +15,7 @@ void AmShieldGenerator::OnStartup(Entity* self) {
 }
 
 void AmShieldGenerator::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
-	auto destroyableComponent = entering->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = entering->GetComponent<DestroyableComponent>();
 
 	if (status == "ENTER" && name == "shield") {
 		if (destroyableComponent->HasFaction(4)) {
@@ -102,7 +102,7 @@ void AmShieldGenerator::StartShield(Entity* self) {
 }
 
 void AmShieldGenerator::BuffPlayers(Entity* self) {
-	auto skillComponent = self->GetComponent<SkillComponent>();
+	auto* skillComponent = self->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
 		return;
@@ -122,8 +122,8 @@ void AmShieldGenerator::BuffPlayers(Entity* self) {
 }
 
 void AmShieldGenerator::EnemyEnteredShield(Entity* self, Entity* intruder) {
-	auto baseCombatAIComponent = intruder->GetComponent<BaseCombatAIComponent>();
-	auto movementAIComponent = intruder->GetComponent<MovementAIComponent>();
+	auto* baseCombatAIComponent = intruder->GetComponent<BaseCombatAIComponent>();
+	auto* movementAIComponent = intruder->GetComponent<MovementAIComponent>();
 
 	if (baseCombatAIComponent == nullptr || movementAIComponent == nullptr) {
 		return;

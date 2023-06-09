@@ -14,7 +14,7 @@ void AgFans::OnStartup(Entity* self) {
 
 	ToggleFX(self, false);
 
-	auto renderComponent = self->GetComponent<RenderComponent>();
+	auto* renderComponent = self->GetComponent<RenderComponent>();
 
 	if (renderComponent == nullptr) {
 		return;
@@ -27,7 +27,7 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 	std::string fanGroup = self->GetGroups()[0];
 	std::vector<Entity*> fanVolumes = EntityManager::Instance()->GetEntitiesInGroup(fanGroup);
 
-	auto renderComponent = self->GetComponent<RenderComponent>();
+	auto* renderComponent = self->GetComponent<RenderComponent>();
 
 	if (renderComponent == nullptr) {
 		return;
@@ -42,7 +42,7 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 		self->SetVar<bool>(u"on", false);
 
 		for (Entity* volume : fanVolumes) {
-			auto volumePhys = volume->GetComponent<PhantomPhysicsComponent>();
+			auto* volumePhys = volume->GetComponent<PhantomPhysicsComponent>();
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(false);
 			EntityManager::Instance()->SerializeEntity(volume);
@@ -58,7 +58,7 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 		self->SetVar<bool>(u"on", true);
 
 		for (Entity* volume : fanVolumes) {
-			auto volumePhys = volume->GetComponent<PhantomPhysicsComponent>();
+			auto* volumePhys = volume->GetComponent<PhantomPhysicsComponent>();
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(true);
 			EntityManager::Instance()->SerializeEntity(volume);

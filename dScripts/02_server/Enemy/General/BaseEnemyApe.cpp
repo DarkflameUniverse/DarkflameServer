@@ -31,11 +31,11 @@ void BaseEnemyApe::OnSkillCast(Entity* self, uint32_t skillID) {
 }
 
 void BaseEnemyApe::OnHit(Entity* self, Entity* attacker) {
-	auto destroyableComponent = self->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
 	if (destroyableComponent != nullptr && destroyableComponent->GetArmor() < 1 && !self->GetBoolean(u"knockedOut")) {
 		StunApe(self, true);
 		self->CancelTimer("spawnQBTime");
-		auto skillComponent = self->GetComponent<SkillComponent>();
+		auto* skillComponent = self->GetComponent<SkillComponent>();
 		if (skillComponent) {
 			skillComponent->Reset();
 		}
@@ -52,7 +52,7 @@ void BaseEnemyApe::OnTimerDone(Entity* self, std::string timerName) {
 
 		// Revives the ape, giving it back some armor
 		const auto timesStunned = self->GetVar<uint32_t>(u"timesStunned");
-		auto destroyableComponent = self->GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
 			destroyableComponent->SetArmor(destroyableComponent->GetMaxArmor() / timesStunned);
 		}
@@ -104,7 +104,7 @@ void BaseEnemyApe::OnTimerDone(Entity* self, std::string timerName) {
 			return;
 		}
 
-		auto skillComponent = self->GetComponent<SkillComponent>();
+		auto* skillComponent = self->GetComponent<SkillComponent>();
 		if (skillComponent != nullptr) {
 			skillComponent->CalculateBehavior(1273, 29446, self->GetObjectID(), true, false, player->GetObjectID());
 		}
@@ -123,12 +123,12 @@ void BaseEnemyApe::OnFireEventServerSide(Entity* self, Entity* sender, std::stri
 }
 
 void BaseEnemyApe::StunApe(Entity* self, bool stunState) {
-	auto combatAIComponent = self->GetComponent<BaseCombatAIComponent>();
+	auto* combatAIComponent = self->GetComponent<BaseCombatAIComponent>();
 	if (combatAIComponent != nullptr) {
 		combatAIComponent->SetDisabled(stunState);
 		combatAIComponent->SetStunned(stunState);
 
-		auto skillComponent = self->GetComponent<SkillComponent>();
+		auto* skillComponent = self->GetComponent<SkillComponent>();
 		if (skillComponent != nullptr) {
 			skillComponent->Interrupt();
 		}

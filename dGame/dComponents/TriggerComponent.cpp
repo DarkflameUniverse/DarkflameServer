@@ -196,7 +196,7 @@ void TriggerComponent::HandleDestroyObject(Entity* targetEntity, std::string arg
 }
 
 void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string args){
-	auto triggerComponent = targetEntity->GetComponent<TriggerComponent>();
+	auto* triggerComponent = targetEntity->GetComponent<TriggerComponent>();
 	if (!triggerComponent) {
 		Game::logger->LogDebug("TriggerComponent::HandleToggleTrigger", "Trigger component not found!");
 		return;
@@ -205,7 +205,7 @@ void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string arg
 }
 
 void TriggerComponent::HandleResetRebuild(Entity* targetEntity, std::string args){
-	auto rebuildComponent = targetEntity->GetComponent<RebuildComponent>();
+	auto* rebuildComponent = targetEntity->GetComponent<RebuildComponent>();
 	if (!rebuildComponent) {
 		Game::logger->LogDebug("TriggerComponent::HandleResetRebuild", "Rebuild component not found!");
 		return;
@@ -237,7 +237,7 @@ void TriggerComponent::HandleRotateObject(Entity* targetEntity, std::vector<std:
 void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::string> argArray){
 	if (argArray.size() < 3) return;
 
-	auto phantomPhysicsComponent = m_OwningEntity->GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = m_OwningEntity->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
 		Game::logger->LogDebug("TriggerComponent::HandlePushObject", "Phantom Physics component not found!");
 		return;
@@ -254,7 +254,7 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 
 
 void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args){
-	auto phantomPhysicsComponent = m_OwningEntity->GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = m_OwningEntity->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
 		Game::logger->LogDebug("TriggerComponent::HandleRepelObject", "Phantom Physics component not found!");
 		return;
@@ -334,7 +334,7 @@ void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std
 	// If others need to be implemented for modding
 	// then we need a good way to convert this from a string to that enum
 	if (argArray.at(0) != "exploretask") return;
-	auto missionComponent = targetEntity->GetComponent<MissionComponent>();
+	auto* missionComponent = targetEntity->GetComponent<MissionComponent>();
 	if (!missionComponent){
 		Game::logger->LogDebug("TriggerComponent::HandleUpdateMission", "Mission component not found!");
 		return;
@@ -353,7 +353,7 @@ void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::s
 }
 
 void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
-	auto skillComponent = targetEntity->GetComponent<SkillComponent>();
+	auto* skillComponent = targetEntity->GetComponent<SkillComponent>();
 	if (!skillComponent) {
 		Game::logger->LogDebug("TriggerComponent::HandleCastSkill", "Skill component not found!");
 		return;
@@ -364,7 +364,7 @@ void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
 }
 
 void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::vector<std::string> argArray) {
-	auto phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
 		Game::logger->LogDebug("TriggerComponent::HandleSetPhysicsVolumeEffect", "Phantom Physics component not found!");
 		return;
@@ -399,7 +399,7 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 }
 
 void TriggerComponent::HandleSetPhysicsVolumeStatus(Entity* targetEntity, std::string args) {
-	auto phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
 		Game::logger->LogDebug("TriggerComponent::HandleSetPhysicsVolumeEffect", "Phantom Physics component not found!");
 		return;

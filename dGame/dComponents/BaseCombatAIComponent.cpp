@@ -244,7 +244,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	bool hadRemainingDowntime = m_SkillTime > 0.0f;
 	if (m_SkillTime > 0.0f) m_SkillTime -= deltaTime;
 
-	auto rebuild = m_OwningEntity->GetComponent<RebuildComponent>();
+	auto* rebuild = m_OwningEntity->GetComponent<RebuildComponent>();
 
 	if (rebuild != nullptr) {
 		const auto state = rebuild->GetState();
@@ -254,7 +254,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		}
 	}
 
-	auto skillComponent = m_OwningEntity->GetComponent<SkillComponent>();
+	auto* skillComponent = m_OwningEntity->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
 		return;
@@ -288,7 +288,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	}
 
 	if (!m_TetherEffectActive && m_OutOfCombat && (m_OutOfCombatTime -= deltaTime) <= 0) {
-		auto destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent != nullptr && destroyableComponent->HasFaction(4)) {
 			auto serilizationRequired = false;
@@ -548,13 +548,13 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 		return false;
 	}
 
-	auto destroyable = entity->GetComponent<DestroyableComponent>();
+	auto* destroyable = entity->GetComponent<DestroyableComponent>();
 
 	if (destroyable == nullptr) {
 		return false;
 	}
 
-	auto referenceDestroyable = m_OwningEntity->GetComponent<DestroyableComponent>();
+	auto* referenceDestroyable = m_OwningEntity->GetComponent<DestroyableComponent>();
 
 	if (referenceDestroyable == nullptr) {
 		Game::logger->Log("BaseCombatAIComponent", "Invalid reference destroyable component on (%llu)!", m_OwningEntity->GetObjectID());
@@ -562,7 +562,7 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 		return false;
 	}
 
-	auto quickbuild = entity->GetComponent<RebuildComponent>();
+	auto* quickbuild = entity->GetComponent<RebuildComponent>();
 
 	if (quickbuild != nullptr) {
 		const auto state = quickbuild->GetState();

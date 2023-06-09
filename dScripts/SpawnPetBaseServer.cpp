@@ -61,7 +61,7 @@ bool SpawnPetBaseServer::CheckNumberOfPets(Entity* self, Entity* user) {
 		if (spawnedPet == nullptr)
 			continue;
 
-		const auto petComponent = spawnedPet->GetComponent<PetComponent>();
+		const auto* petComponent = spawnedPet->GetComponent<PetComponent>();
 		if (petComponent == nullptr || petComponent->GetOwner() != nullptr)
 			continue;
 

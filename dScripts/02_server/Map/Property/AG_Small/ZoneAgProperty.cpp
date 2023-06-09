@@ -75,7 +75,7 @@ void ZoneAgProperty::OnPlayerLoaded(Entity* self, Entity* player) {
 }
 
 void ZoneAgProperty::PropGuardCheck(Entity* self, Entity* player) {
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 	if (missionComponent == nullptr)
 		return;
 
@@ -211,7 +211,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		KillGuard(self);
 	} else if (timerName == "tornadoOff") {
 		for (auto* entity : EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup))) {
-			auto renderComponent = entity->GetComponent<RenderComponent>();
+			auto* renderComponent = entity->GetComponent<RenderComponent>();
 			if (renderComponent != nullptr) {
 				renderComponent->StopEffect("TornadoDebris", false);
 				renderComponent->StopEffect("TornadoVortex", false);
@@ -223,7 +223,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		self->AddTimer("ShowClearEffects", 2);
 	} else if (timerName == "ShowClearEffects") {
 		for (auto* entity : EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup))) {
-			auto renderComponent = entity->GetComponent<RenderComponent>();
+			auto* renderComponent = entity->GetComponent<RenderComponent>();
 			if (renderComponent != nullptr) {
 				renderComponent->PlayEffect(-1, u"beamOn", "beam");
 			}
@@ -275,7 +275,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		StartTornadoFx(self);
 	} else if (timerName == "killFXObject") {
 		for (auto* entity : EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup))) {
-			auto renderComponent = entity->GetComponent<RenderComponent>();
+			auto* renderComponent = entity->GetComponent<RenderComponent>();
 			if (renderComponent != nullptr) {
 				renderComponent->StopEffect("beam");
 			}
@@ -301,7 +301,7 @@ void ZoneAgProperty::OnZonePropertyRented(Entity* self, Entity* player) {
 
 void ZoneAgProperty::OnZonePropertyModelPlaced(Entity* self, Entity* player) {
 	auto* character = player->GetCharacter();
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (!character->GetPlayerFlag(101)) {
 		BaseZonePropertyModelPlaced(self, player);
@@ -329,7 +329,7 @@ void ZoneAgProperty::OnZonePropertyModelPlaced(Entity* self, Entity* player) {
 
 void ZoneAgProperty::OnZonePropertyModelPickedUp(Entity* self, Entity* player) {
 	auto* character = player->GetCharacter();
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (!character->GetPlayerFlag(109)) {
 		character->SetPlayerFlag(109, true);
@@ -350,7 +350,7 @@ void ZoneAgProperty::OnZonePropertyModelRemovedWhileEquipped(Entity* self, Entit
 
 void ZoneAgProperty::OnZonePropertyModelRotated(Entity* self, Entity* player) {
 	auto* character = player->GetCharacter();
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (!character->GetPlayerFlag(110)) {
 		character->SetPlayerFlag(110, true);

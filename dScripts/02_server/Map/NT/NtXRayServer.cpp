@@ -2,7 +2,7 @@
 #include "SkillComponent.h"
 
 void NtXRayServer::OnCollisionPhantom(Entity* self, Entity* target) {
-	auto skillComponent = target->GetComponent<SkillComponent>();
+	auto* skillComponent = target->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
 		return;

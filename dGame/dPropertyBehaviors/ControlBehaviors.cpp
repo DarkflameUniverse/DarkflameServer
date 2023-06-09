@@ -57,7 +57,7 @@ void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, ModelBehaviorCompone
 }
 
 void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner) {
-	auto modelComponent = modelEntity->GetComponent<ModelBehaviorComponent>();
+	auto* modelComponent = modelEntity->GetComponent<ModelBehaviorComponent>();
 
 	if (!modelComponent) return;
 
@@ -281,7 +281,7 @@ void ControlBehaviors::MoveToInventory(ModelBehaviorComponent* modelComponent, c
 
 void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
 	if (!isInitialized || !modelEntity || !modelOwner || !arguments) return;
-	auto modelComponent = modelEntity->GetComponent<ModelBehaviorComponent>();
+	auto* modelComponent = modelEntity->GetComponent<ModelBehaviorComponent>();
 
 	if (!modelComponent) return;
 

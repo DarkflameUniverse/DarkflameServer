@@ -263,7 +263,7 @@ void PropertyManagementComponent::OnStartBuilding() {
 	SetPrivacyOption(PropertyPrivacyOption::Private); // Cant visit player which is building
 
 	if (!entrance.empty()) {
-		auto rocketPad = entrance[0]->GetComponent<RocketLaunchpadControlComponent>();
+		auto* rocketPad = entrance[0]->GetComponent<RocketLaunchpadControlComponent>();
 
 		if (rocketPad != nullptr) {
 			zoneId = rocketPad->GetDefaultZone();
@@ -275,7 +275,7 @@ void PropertyManagementComponent::OnStartBuilding() {
 
 		player->SendToZone(zoneId);
 	}
-	auto inventoryComponent = ownerEntity->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = ownerEntity->GetComponent<InventoryComponent>();
 
 	// Push equipped items
 	if (inventoryComponent) inventoryComponent->PushEquippedItems();
@@ -302,7 +302,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		return;
 	}
 
-	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -404,7 +404,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelPlaced(entity);
 		});
 	// Progress place model missions
-	auto missionComponent = entity->GetComponent<MissionComponent>();
+	auto* missionComponent = entity->GetComponent<MissionComponent>();
 	if (missionComponent != nullptr) missionComponent->Progress(eMissionTaskType::PLACE_MODEL, 0);
 }
 
@@ -417,7 +417,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
-	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;

@@ -17,7 +17,7 @@ void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 		return;
 	}
 
-	auto destroyableComponent = target->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
 	if (destroyableComponent) {
 		destroyableComponent->SetStatusImmunity(
 			eStateChangeType::PUSH,
@@ -33,7 +33,7 @@ void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 		);
 	}
 
-	auto controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (controllablePhysicsComponent) {
 		controllablePhysicsComponent->SetStunImmunity(
 			eStateChangeType::PUSH,
@@ -63,7 +63,7 @@ void ImmunityBehavior::Timer(BehaviorContext* context, BehaviorBranchContext bra
 		return;
 	}
 
-	auto destroyableComponent = target->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
 	if (destroyableComponent) {
 		destroyableComponent->SetStatusImmunity(
 			eStateChangeType::POP,
@@ -79,7 +79,7 @@ void ImmunityBehavior::Timer(BehaviorContext* context, BehaviorBranchContext bra
 		);
 	}
 
-	auto controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (controllablePhysicsComponent) {
 		controllablePhysicsComponent->SetStunImmunity(
 			eStateChangeType::POP,

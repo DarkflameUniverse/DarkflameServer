@@ -4,7 +4,7 @@
 void AgSurvivalMech::OnStartup(Entity* self) {
 	BaseWavesGenericEnemy::OnStartup(self);
 
-	auto destroyable = self->GetComponent<DestroyableComponent>();
+	auto* destroyable = self->GetComponent<DestroyableComponent>();
 	if (destroyable != nullptr) {
 		destroyable->SetFaction(4);
 	}

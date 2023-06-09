@@ -24,7 +24,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		return;
 	}
 
-	auto skillComponent = entity->GetComponent<SkillComponent>();
+	auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
 		Game::logger->Log("ProjectileAttackBehavior", "Failed to find skill component for (%llu)!", -context->originator);
@@ -69,7 +69,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 		return;
 	}
 
-	auto skillComponent = entity->GetComponent<SkillComponent>();
+	auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
 		Game::logger->Log("ProjectileAttackBehavior", "Failed to find skill component for (%llu)!", context->originator);

@@ -319,12 +319,12 @@ void Mission::Complete(const bool yieldRewards) {
 		return;
 	}
 
-	auto characterComponent = entity->GetComponent<CharacterComponent>();
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->TrackMissionCompletion(!info->isMission);
 	}
 
-	auto missionComponent = entity->GetComponent<MissionComponent>();
+	auto* missionComponent = entity->GetComponent<MissionComponent>();
 
 	missionComponent->Progress(eMissionTaskType::META, info->id);
 
@@ -372,7 +372,7 @@ void Mission::CheckCompletion() {
 void Mission::Catchup() {
 	auto* entity = GetAssociate();
 
-	auto inventory = entity->GetComponent<InventoryComponent>();
+	auto* inventory = entity->GetComponent<InventoryComponent>();
 
 	for (auto* task : m_Tasks) {
 		const auto type = task->GetType();
@@ -414,11 +414,11 @@ void Mission::YieldRewards() {
 
 	auto* character = GetUser()->GetLastUsedChar();
 
-	auto inventoryComponent = entity->GetComponent<InventoryComponent>();
-	auto levelComponent = entity->GetComponent<LevelProgressionComponent>();
-	auto characterComponent = entity->GetComponent<CharacterComponent>();
-	auto destroyableComponent = entity->GetComponent<DestroyableComponent>();
-	auto missionComponent = entity->GetComponent<MissionComponent>();
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
+	auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+	auto* missionComponent = entity->GetComponent<MissionComponent>();
 
 	// Remove mission items
 	for (auto* task : m_Tasks) {
@@ -532,7 +532,7 @@ void Mission::YieldRewards() {
 
 	if (info->reward_reputation > 0) {
 		missionComponent->Progress(eMissionTaskType::EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
-		auto character = entity->GetComponent<CharacterComponent>();
+		auto* character = entity->GetComponent<CharacterComponent>();
 		if (character) {
 			character->SetReputation(character->GetReputation() + info->reward_reputation);
 			GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());

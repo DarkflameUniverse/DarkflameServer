@@ -427,7 +427,7 @@ void Character::SetPlayerFlag(const int32_t flagId, const bool value) {
 		auto* player = EntityManager::Instance()->GetEntity(m_ObjectID);
 
 		if (player != nullptr) {
-			auto missionComponent = player->GetComponent<MissionComponent>();
+			auto* missionComponent = player->GetComponent<MissionComponent>();
 
 			if (missionComponent != nullptr) {
 				missionComponent->Progress(eMissionTaskType::PLAYER_FLAG, flagId);
@@ -538,7 +538,7 @@ void Character::OnZoneLoad() {
 		return;
 	}
 
-	auto missionComponent = m_OurEntity->GetComponent<MissionComponent>();
+	auto* missionComponent = m_OurEntity->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		// Fix the monument race flag
@@ -563,7 +563,7 @@ void Character::OnZoneLoad() {
 		}
 	}
 
-	auto inventoryComponent = m_OurEntity->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = m_OurEntity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;

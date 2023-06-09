@@ -3,7 +3,7 @@
 #include "ePetTamingNotifyType.h"
 
 void CrabServer::OnStartup(Entity* self) {
-	auto petComponent = self->GetComponent<PetComponent>();
+	auto* petComponent = self->GetComponent<PetComponent>();
 	if (petComponent == nullptr || petComponent->GetOwner() != nullptr)
 		return;
 
@@ -20,7 +20,7 @@ void CrabServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "killself") {
 
 		// Don't accidentally kill a pet that is already owned
-		auto petComponent = self->GetComponent<PetComponent>();
+		auto* petComponent = self->GetComponent<PetComponent>();
 		if (petComponent == nullptr || petComponent->GetOwner() != nullptr)
 			return;
 
@@ -34,7 +34,7 @@ void CrabServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTami
 	} else if (type == ePetTamingNotifyType::QUIT || type == ePetTamingNotifyType::FAILED) {
 		self->Smash(self->GetObjectID(), eKillType::SILENT);
 	} else if (type == ePetTamingNotifyType::SUCCESS) {
-		auto petComponent = self->GetComponent<PetComponent>();
+		auto* petComponent = self->GetComponent<PetComponent>();
 		if (petComponent == nullptr)
 			return;
 		// TODO: Remove custom group?

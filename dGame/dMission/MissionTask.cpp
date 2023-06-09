@@ -194,7 +194,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 				return;
 			}
 
-			auto inventoryComponent = mission->GetAssociate()->GetComponent<InventoryComponent>();
+			auto* inventoryComponent = mission->GetAssociate()->GetComponent<InventoryComponent>();
 
 			if (inventoryComponent != nullptr) {
 				int32_t itemCount = inventoryComponent->GetLotCountNonTransfer(value);
@@ -308,7 +308,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
 		int32_t gameID = minigameManager->GetLOT();
 
-		auto sac = minigameManager->GetComponent<ScriptedActivityComponent>();
+		auto* sac = minigameManager->GetComponent<ScriptedActivityComponent>();
 		if (sac != nullptr) {
 			gameID = sac->GetActivityID();
 		}
@@ -368,7 +368,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
 		if (entity == nullptr) break;
 
-		auto missionComponent = entity->GetComponent<MissionComponent>();
+		auto* missionComponent = entity->GetComponent<MissionComponent>();
 
 		if (missionComponent == nullptr) break;
 

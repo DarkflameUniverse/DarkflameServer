@@ -6,7 +6,7 @@ void NtVandaServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 
 	// Removes the alien parts after completing the mission
 	if (missionID == m_AlienPartMissionID && missionState == eMissionState::READY_TO_COMPLETE) {
-		auto inventoryComponent = target->GetComponent<InventoryComponent>();
+		auto* inventoryComponent = target->GetComponent<InventoryComponent>();
 		for (const auto& alienPartLot : m_AlienPartLots) {
 			inventoryComponent->RemoveItem(alienPartLot, 1);
 		}

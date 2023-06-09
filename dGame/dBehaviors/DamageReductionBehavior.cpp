@@ -16,7 +16,7 @@ void DamageReductionBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 		return;
 	}
 
-	auto destroyable = target->GetComponent<DestroyableComponent>();
+	auto* destroyable = target->GetComponent<DestroyableComponent>();
 
 	if (destroyable == nullptr) {
 		return;
@@ -40,7 +40,7 @@ void DamageReductionBehavior::Timer(BehaviorContext* context, BehaviorBranchCont
 		return;
 	}
 
-	auto destroyable = target->GetComponent<DestroyableComponent>();
+	auto* destroyable = target->GetComponent<DestroyableComponent>();
 
 	if (destroyable == nullptr) {
 		return;

@@ -9,7 +9,7 @@ void WishingWellServer::OnStartup(Entity* self) {
 }
 
 void WishingWellServer::OnUse(Entity* self, Entity* user) {
-	auto scriptedActivity = self->GetComponent<ScriptedActivityComponent>();
+	auto* scriptedActivity = self->GetComponent<ScriptedActivityComponent>();
 
 	if (!scriptedActivity->TakeCost(user)) {
 		return;

@@ -366,7 +366,7 @@ void CharacterComponent::SetLastRocketConfig(std::u16string config) {
 Item* CharacterComponent::GetRocket(Entity* player) {
 	Item* rocket = nullptr;
 
-	auto inventoryComponent = player->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 
 	if (!inventoryComponent) return rocket;
 

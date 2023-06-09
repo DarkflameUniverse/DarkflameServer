@@ -328,7 +328,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 		return;
 	}
 
-	auto renderComponent = targetEntity->GetComponent<RenderComponent>();
+	auto* renderComponent = targetEntity->GetComponent<RenderComponent>();
 
 	const auto typeString = GeneralUtils::UTF16ToWTF8(type);
 

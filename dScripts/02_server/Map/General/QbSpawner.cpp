@@ -115,14 +115,14 @@ void QbSpawner::OnChildRemoved(Entity* self, Entity* child) {
 }
 
 void QbSpawner::AggroTargetObject(Entity* self, Entity* enemy) {
-	auto baseCombatAIComponent = enemy->GetComponent<BaseCombatAIComponent>();
+	auto* baseCombatAIComponent = enemy->GetComponent<BaseCombatAIComponent>();
 	if (!baseCombatAIComponent) return;
 
 	auto gateObjID = self->GetVar<LWOOBJID>(u"gateObj");
 	if (gateObjID) {
 		auto* gate = EntityManager::Instance()->GetEntity(gateObjID);
 		if (gate) {
-			auto movementAIComponent = enemy->GetComponent<MovementAIComponent>();
+			auto* movementAIComponent = enemy->GetComponent<MovementAIComponent>();
 			if (movementAIComponent) movementAIComponent->SetDestination(gate->GetPosition());
 			baseCombatAIComponent->Taunt(gateObjID, 1000);
 		}

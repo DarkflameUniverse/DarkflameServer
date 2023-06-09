@@ -49,7 +49,7 @@ void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName) {
 		// so we give proper credit to the builder for the kills from this skill
 		mortar->SetOwnerOverride(builder);
 
-		auto skillComponent = mortar->GetComponent<SkillComponent>();
+		auto* skillComponent = mortar->GetComponent<SkillComponent>();
 		if (skillComponent) skillComponent->CastSkill(318);
 	} else if (timerName == "CineDone") {
 		GameMessages::SendNotifyClientObject(

@@ -125,8 +125,8 @@ void ItemSet::OnEquip(const LOT lot) {
 		return;
 	}
 
-	auto skillComponent = m_InventoryComponent->GetOwningEntity()->GetComponent<SkillComponent>();
-	auto missionComponent = m_InventoryComponent->GetOwningEntity()->GetComponent<MissionComponent>();
+	auto* skillComponent = m_InventoryComponent->GetOwningEntity()->GetComponent<SkillComponent>();
+	auto* missionComponent = m_InventoryComponent->GetOwningEntity()->GetComponent<MissionComponent>();
 
 	for (const auto skill : skillSet) {
 		auto* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
@@ -158,7 +158,7 @@ void ItemSet::OnUnEquip(const LOT lot) {
 		return;
 	}
 
-	const auto& skillComponent = m_InventoryComponent->GetOwningEntity()->GetComponent<SkillComponent>();
+	const auto* skillComponent = m_InventoryComponent->GetOwningEntity()->GetComponent<SkillComponent>();
 
 	for (const auto skill : skillSet) {
 		auto* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();

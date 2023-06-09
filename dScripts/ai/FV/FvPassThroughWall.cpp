@@ -3,11 +3,11 @@
 #include "MissionComponent.h"
 
 void FvPassThroughWall::OnCollisionPhantom(Entity* self, Entity* target) {
-	auto missionComponent = target->GetComponent<MissionComponent>();
+	auto* missionComponent = target->GetComponent<MissionComponent>();
 	if (missionComponent == nullptr) return;
 
 	//Because at the moment we do not have an ItemComponent component, we check to make sure a Maelstrom-Infused hood is equipped.  There are only three in the game right now.
-	auto inventoryComponent = target->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = target->GetComponent<InventoryComponent>();
 	// If no inventory component is found then abort.
 	if (inventoryComponent == nullptr) return;
 	// If no Maelstrom hoods are equipped then abort.

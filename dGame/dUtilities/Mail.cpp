@@ -197,7 +197,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	//Inventory::InventoryType itemType;
 	int mailCost = dZoneManager::Instance()->GetWorldConfig()->mailBaseFee;
 	int stackSize = 0;
-	auto inv = entity->GetComponent<InventoryComponent>();
+	auto* inv = entity->GetComponent<InventoryComponent>();
 	Item* item = nullptr;
 
 	if (itemID > 0 && attachmentCount > 0 && inv) {
@@ -267,7 +267,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 		Game::logger->Log("Mail", "Trying to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
 		inv->RemoveItem(itemLOT, attachmentCount, INVALID, true);
 
-		auto missionCompoent = entity->GetComponent<MissionComponent>();
+		auto* missionCompoent = entity->GetComponent<MissionComponent>();
 
 		if (missionCompoent != nullptr) {
 			missionCompoent->Progress(eMissionTaskType::GATHER, itemLOT, LWOOBJID_EMPTY, "", -attachmentCount);
@@ -356,7 +356,7 @@ void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddres
 			attachmentCount = res->getInt(2);
 		}
 
-		auto inv = player->GetComponent<InventoryComponent>();
+		auto* inv = player->GetComponent<InventoryComponent>();
 		if (!inv) return;
 
 		inv->AddItem(attachmentLOT, attachmentCount, eLootSourceType::MAIL);

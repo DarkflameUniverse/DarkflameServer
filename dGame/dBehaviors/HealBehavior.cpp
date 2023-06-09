@@ -16,7 +16,7 @@ void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_strea
 		return;
 	}
 
-	auto destroyable = entity->GetComponent<DestroyableComponent>();
+	auto* destroyable = entity->GetComponent<DestroyableComponent>();
 
 	if (destroyable == nullptr) {
 		Game::logger->Log("HealBehavior", "Failed to find destroyable component for %(llu)!", branch.target);

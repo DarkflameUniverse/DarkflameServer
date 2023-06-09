@@ -15,7 +15,7 @@ void AmShieldGeneratorQuickbuild::OnStartup(Entity* self) {
 }
 
 void AmShieldGeneratorQuickbuild::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
-	auto destroyableComponent = entering->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = entering->GetComponent<DestroyableComponent>();
 
 	if (name == "shield") {
 		if (!destroyableComponent->HasFaction(4) || entering->IsPlayer()) {
@@ -122,7 +122,7 @@ void AmShieldGeneratorQuickbuild::OnRebuildComplete(Entity* self, Entity* target
 			continue;
 		}
 
-		auto missionComponent = player->GetComponent<MissionComponent>();
+		auto* missionComponent = player->GetComponent<MissionComponent>();
 
 		if (missionComponent == nullptr) {
 			return;
@@ -154,7 +154,7 @@ void AmShieldGeneratorQuickbuild::StartShield(Entity* self) {
 }
 
 void AmShieldGeneratorQuickbuild::BuffPlayers(Entity* self) {
-	auto skillComponent = self->GetComponent<SkillComponent>();
+	auto* skillComponent = self->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
 		return;
@@ -174,14 +174,14 @@ void AmShieldGeneratorQuickbuild::BuffPlayers(Entity* self) {
 }
 
 void AmShieldGeneratorQuickbuild::EnemyEnteredShield(Entity* self, Entity* intruder) {
-	auto rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent == nullptr || rebuildComponent->GetState() != eRebuildState::COMPLETED) {
 		return;
 	}
 
-	auto baseCombatAIComponent = intruder->GetComponent<BaseCombatAIComponent>();
-	auto movementAIComponent = intruder->GetComponent<MovementAIComponent>();
+	auto* baseCombatAIComponent = intruder->GetComponent<BaseCombatAIComponent>();
+	auto* movementAIComponent = intruder->GetComponent<MovementAIComponent>();
 
 	if (baseCombatAIComponent == nullptr || movementAIComponent == nullptr) {
 		return;

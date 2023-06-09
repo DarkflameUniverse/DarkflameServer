@@ -8,7 +8,7 @@
 
 
 void ActVehicleDeathTrigger::OnCollisionPhantom(Entity* self, Entity* target) {
-	auto possessableComponent = target->GetComponent<PossessableComponent>();
+	auto* possessableComponent = target->GetComponent<PossessableComponent>();
 
 	Entity* vehicle;
 	Entity* player;
@@ -22,7 +22,7 @@ void ActVehicleDeathTrigger::OnCollisionPhantom(Entity* self, Entity* target) {
 
 		return;
 	} else if (target->IsPlayer()) {
-		auto possessorComponent = target->GetComponent<PossessorComponent>();
+		auto* possessorComponent = target->GetComponent<PossessorComponent>();
 
 		if (possessorComponent == nullptr) {
 			return;
@@ -44,7 +44,7 @@ void ActVehicleDeathTrigger::OnCollisionPhantom(Entity* self, Entity* target) {
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
+	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
 
 	if (racingControlComponent != nullptr) {
 		racingControlComponent->OnRequestDie(player);

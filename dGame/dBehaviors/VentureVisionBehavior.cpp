@@ -8,7 +8,7 @@ void VentureVisionBehavior::Handle(BehaviorContext* context, RakNet::BitStream* 
 	const auto targetEntity = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (targetEntity) {
-		auto characterComponent = targetEntity->GetComponent<CharacterComponent>();
+		auto* characterComponent = targetEntity->GetComponent<CharacterComponent>();
 
 		if (characterComponent) {
 			if (m_show_collectibles) characterComponent->AddVentureVisionEffect(m_ShowCollectibles);
@@ -24,7 +24,7 @@ void VentureVisionBehavior::UnCast(BehaviorContext* context, BehaviorBranchConte
 	const auto targetEntity = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (targetEntity) {
-		auto characterComponent = targetEntity->GetComponent<CharacterComponent>();
+		auto* characterComponent = targetEntity->GetComponent<CharacterComponent>();
 
 		if (characterComponent) {
 			if (m_show_collectibles) characterComponent->RemoveVentureVisionEffect(m_ShowCollectibles);

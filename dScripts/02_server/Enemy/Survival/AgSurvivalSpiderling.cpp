@@ -4,7 +4,7 @@
 void AgSurvivalSpiderling::OnStartup(Entity* self) {
 	BaseWavesGenericEnemy::OnStartup(self);
 
-	auto combatAI = self->GetComponent<BaseCombatAIComponent>();
+	auto* combatAI = self->GetComponent<BaseCombatAIComponent>();
 	if (combatAI != nullptr) {
 		combatAI->SetStunImmune(true);
 	}

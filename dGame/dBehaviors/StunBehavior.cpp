@@ -33,7 +33,7 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 	 * If our target is an enemy we can go ahead and stun it.
 	 */
 
-	auto combatAiComponent = target->GetComponent<BaseCombatAIComponent>();
+	auto* combatAiComponent = target->GetComponent<BaseCombatAIComponent>();
 
 	if (combatAiComponent == nullptr) {
 		return;
@@ -56,7 +56,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 		 * See if we can stun ourselves
 		 */
 
-		auto combatAiComponent = self->GetComponent<BaseCombatAIComponent>();
+		auto* combatAiComponent = self->GetComponent<BaseCombatAIComponent>();
 
 		if (combatAiComponent == nullptr) {
 			return;
@@ -72,7 +72,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 	auto* target = EntityManager::Instance()->GetEntity(branch.target);
 
 	if (target != nullptr) {
-		auto destroyableComponent = target->GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent != nullptr) {
 			blocked = destroyableComponent->IsKnockbackImmune();
@@ -91,7 +91,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 	 * If our target is an enemy we can go ahead and stun it.
 	 */
 
-	auto combatAiComponent = target->GetComponent<BaseCombatAIComponent>();
+	auto* combatAiComponent = target->GetComponent<BaseCombatAIComponent>();
 
 	if (combatAiComponent == nullptr) {
 		return;

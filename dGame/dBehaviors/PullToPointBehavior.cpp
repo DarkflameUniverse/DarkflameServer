@@ -14,7 +14,7 @@ void PullToPointBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		return;
 	}
 
-	auto movement = target->GetComponent<MovementAIComponent>();
+	auto* movement = target->GetComponent<MovementAIComponent>();
 
 	if (movement == nullptr) {
 		return;

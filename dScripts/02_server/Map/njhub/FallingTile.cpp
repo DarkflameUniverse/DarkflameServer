@@ -3,7 +3,7 @@
 #include "GameMessages.h"
 
 void FallingTile::OnStartup(Entity* self) {
-	auto movingPlatfromComponent = self->GetComponent<MovingPlatformComponent>();
+	auto* movingPlatfromComponent = self->GetComponent<MovingPlatformComponent>();
 
 	if (movingPlatfromComponent == nullptr) {
 		return;
@@ -31,7 +31,7 @@ void FallingTile::OnWaypointReached(Entity* self, uint32_t waypointIndex) {
 }
 
 void FallingTile::OnTimerDone(Entity* self, std::string timerName) {
-	auto movingPlatfromComponent = self->GetComponent<MovingPlatformComponent>();
+	auto* movingPlatfromComponent = self->GetComponent<MovingPlatformComponent>();
 
 	if (movingPlatfromComponent == nullptr) {
 		return;

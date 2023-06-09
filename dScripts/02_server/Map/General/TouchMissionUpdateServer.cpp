@@ -17,7 +17,7 @@ void TouchMissionUpdateServer::OnCollisionPhantom(Entity* self, Entity* target) 
 		return;
 	}
 
-	auto missionComponent = target->GetComponent<MissionComponent>();
+	auto* missionComponent = target->GetComponent<MissionComponent>();
 
 	if (missionComponent == nullptr) {
 		return;

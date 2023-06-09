@@ -5,7 +5,7 @@
 
 void NsModularBuild::OnModularBuildExit(Entity* self, Entity* player, bool bCompleted, std::vector<LOT> modules) {
 	if (bCompleted) {
-		auto mission = self->GetComponent<MissionComponent>();
+		auto* mission = self->GetComponent<MissionComponent>();
 
 		if (mission->GetMissionState(m_MissionNum) == eMissionState::ACTIVE) {
 			for (LOT mod : modules) {

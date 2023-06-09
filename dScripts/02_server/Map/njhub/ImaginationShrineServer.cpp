@@ -3,7 +3,7 @@
 
 void ImaginationShrineServer::OnUse(Entity* self, Entity* user) {
 	// If the rebuild component is complete, use the shrine
-	auto rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent == nullptr) {
 		return;

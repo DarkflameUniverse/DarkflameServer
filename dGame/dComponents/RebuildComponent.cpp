@@ -194,7 +194,7 @@ void RebuildComponent::Update(float deltaTime) {
 		if (m_TimeBeforeDrain <= 0.0f) {
 			m_TimeBeforeDrain = m_CompleteTime / static_cast<float>(m_TakeImagination);
 
-			auto destComp = builder->GetComponent<DestroyableComponent>();
+			auto* destComp = builder->GetComponent<DestroyableComponent>();
 			if (!destComp) break;
 
 			int newImagination = destComp->GetImagination();
@@ -400,7 +400,7 @@ void RebuildComponent::StartRebuild(Entity* user) {
 	if (m_State == eRebuildState::OPEN || m_State == eRebuildState::COMPLETED || m_State == eRebuildState::INCOMPLETE) {
 		m_Builder = user->GetObjectID();
 
-		auto character = user->GetComponent<CharacterComponent>();
+		auto* character = user->GetComponent<CharacterComponent>();
 		character->SetCurrentActivity(eGameActivity::QUICKBUILDING);
 
 		EntityManager::Instance()->SerializeEntity(user);
@@ -412,7 +412,7 @@ void RebuildComponent::StartRebuild(Entity* user) {
 		m_StateDirty = true;
 		EntityManager::Instance()->SerializeEntity(m_OwningEntity);
 
-		auto movingPlatform = m_OwningEntity->GetComponent<MovingPlatformComponent>();
+		auto* movingPlatform = m_OwningEntity->GetComponent<MovingPlatformComponent>();
 		if (movingPlatform != nullptr) {
 			movingPlatform->OnRebuildInitilized();
 		}
@@ -434,7 +434,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 		return;
 	}
 
-	auto characterComponent = user->GetComponent<CharacterComponent>();
+	auto* characterComponent = user->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		characterComponent->TrackRebuildComplete();
@@ -478,12 +478,12 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 			for (const auto memberId : team->members) { // progress missions for all team members
 				auto* member = EntityManager::Instance()->GetEntity(memberId);
 				if (member) {
-					auto missionComponent = member->GetComponent<MissionComponent>();
+					auto* missionComponent = member->GetComponent<MissionComponent>();
 					if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 				}
 			}
 		} else{
-			auto missionComponent = builder->GetComponent<MissionComponent>();
+			auto* missionComponent = builder->GetComponent<MissionComponent>();
 			if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 		}
 		LootGenerator::Instance().DropActivityLoot(builder, m_OwningEntity, m_ActivityId, 1);
@@ -503,7 +503,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 
 	m_OwningEntity->TriggerEvent(eTriggerEventType::REBUILD_COMPLETE, user);
 
-	auto movingPlatform = m_OwningEntity->GetComponent<MovingPlatformComponent>();
+	auto* movingPlatform = m_OwningEntity->GetComponent<MovingPlatformComponent>();
 	if (movingPlatform != nullptr) {
 		movingPlatform->OnCompleteRebuild();
 	}
@@ -588,7 +588,7 @@ void RebuildComponent::CancelRebuild(Entity* entity, eQuickBuildFailReason failR
 		return;
 	}
 
-	auto characterComponent = entity->GetComponent<CharacterComponent>();
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		EntityManager::Instance()->SerializeEntity(entity);

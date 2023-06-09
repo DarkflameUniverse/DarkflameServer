@@ -60,7 +60,7 @@ void AmDrawBridge::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->SetNetworkVar(u"BridgeLeaving", false);
 
-		auto simplePhysicsComponent = bridge->GetComponent<SimplePhysicsComponent>();
+		auto* simplePhysicsComponent = bridge->GetComponent<SimplePhysicsComponent>();
 
 		if (simplePhysicsComponent == nullptr) {
 			return;
@@ -87,7 +87,7 @@ void AmDrawBridge::OnNotifyObject(Entity* self, Entity* sender, const std::strin
 }
 
 void AmDrawBridge::MoveBridgeDown(Entity* self, Entity* bridge, bool down) {
-	auto simplePhysicsComponent = bridge->GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = bridge->GetComponent<SimplePhysicsComponent>();
 
 	if (simplePhysicsComponent == nullptr) {
 		return;

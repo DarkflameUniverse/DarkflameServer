@@ -72,7 +72,7 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 	if (activePlayer != nullptr && name == "checkPlayer" && self->GetVar<bool>(u"beingPlayed")) {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"checkMovement", 0, 0,
 			activePlayer->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
-		auto stats = activePlayer->GetComponent<DestroyableComponent>();
+		auto* stats = activePlayer->GetComponent<DestroyableComponent>();
 		if (stats) {
 			if (stats->GetImagination() > 0) {
 				self->AddTimer("checkPlayer", updateFrequency);
@@ -81,7 +81,7 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 			}
 		}
 	} else if (activePlayer != nullptr && name == "deductImagination" && self->GetVar<bool>(u"beingPlayed")) {
-		auto stats = activePlayer->GetComponent<DestroyableComponent>();
+		auto* stats = activePlayer->GetComponent<DestroyableComponent>();
 		if (stats)
 			stats->SetImagination(stats->GetImagination() - instrumentImaginationCost);
 
@@ -93,20 +93,20 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 				activePlayer->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
-		auto rebuildComponent = self->GetComponent<RebuildComponent>();
+		auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 		if (rebuildComponent != nullptr)
 			rebuildComponent->ResetRebuild(false);
 
 		self->Smash(self->GetObjectID(), eKillType::VIOLENT);
 		self->SetVar<LWOOBJID>(u"activePlayer", LWOOBJID_EMPTY);
 	} else if (activePlayer != nullptr && name == "achievement") {
-		auto missionComponent = activePlayer->GetComponent<MissionComponent>();
+		auto* missionComponent = activePlayer->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			missionComponent->ForceProgress(302, 462, self->GetLOT());
 		}
 		self->AddTimer("achievement2", 10.0f);
 	} else if (activePlayer != nullptr && name == "achievement2") {
-		auto missionComponent = activePlayer->GetComponent<MissionComponent>();
+		auto* missionComponent = activePlayer->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			missionComponent->ForceProgress(602, achievementTaskID.at(GetInstrumentLot(self)), self->GetLOT());
 		}
@@ -127,7 +127,7 @@ void NsConcertInstrument::StartPlayingInstrument(Entity* self, Entity* player) {
 		});
 
 	for (auto* soundBox : EntityManager::Instance()->GetEntitiesInGroup("Audio-Concert")) {
-		auto soundTrigger = soundBox->GetComponent<SoundTriggerComponent>();
+		auto* soundTrigger = soundBox->GetComponent<SoundTriggerComponent>();
 		if (soundTrigger != nullptr) {
 			soundTrigger->ActivateMusicCue(music.at(instrumentLot));
 		}
@@ -148,7 +148,7 @@ void NsConcertInstrument::StopPlayingInstrument(Entity* self, Entity* player) {
 
 	// Player might be null if they left
 	if (player != nullptr) {
-		auto missions = player->GetComponent<MissionComponent>();
+		auto* missions = player->GetComponent<MissionComponent>();
 		if (missions != nullptr && missions->GetMissionState(176) == eMissionState::ACTIVE) {
 			missions->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 		}
@@ -162,7 +162,7 @@ void NsConcertInstrument::StopPlayingInstrument(Entity* self, Entity* player) {
 	self->SetVar<bool>(u"beingPlayed", false);
 
 	for (auto* soundBox : EntityManager::Instance()->GetEntitiesInGroup("Audio-Concert")) {
-		auto soundTrigger = soundBox->GetComponent<SoundTriggerComponent>();
+		auto* soundTrigger = soundBox->GetComponent<SoundTriggerComponent>();
 		if (soundTrigger != nullptr) {
 			soundTrigger->DeactivateMusicCue(music.at(instrumentLot));
 		}
@@ -173,7 +173,7 @@ void NsConcertInstrument::StopPlayingInstrument(Entity* self, Entity* player) {
 }
 
 void NsConcertInstrument::EquipInstruments(Entity* self, Entity* player) {
-	auto inventory = player->GetComponent<InventoryComponent>();
+	auto* inventory = player->GetComponent<InventoryComponent>();
 	if (inventory != nullptr) {
 		auto equippedItems = inventory->GetEquippedItems();
 
@@ -216,7 +216,7 @@ void NsConcertInstrument::EquipInstruments(Entity* self, Entity* player) {
 }
 
 void NsConcertInstrument::UnEquipInstruments(Entity* self, Entity* player) {
-	auto inventory = player->GetComponent<InventoryComponent>();
+	auto* inventory = player->GetComponent<InventoryComponent>();
 	if (inventory != nullptr) {
 		auto equippedItems = inventory->GetEquippedItems();
 

@@ -24,7 +24,7 @@ void NtCombatChallengeExplodingDummy::OnHitOrHealResult(Entity* self, Entity* at
 			script->OnHitOrHealResult(challengeObject, attacker, damage);
 		}
 	}
-	auto skillComponent = self->GetComponent<SkillComponent>();
+	auto* skillComponent = self->GetComponent<SkillComponent>();
 	if (skillComponent != nullptr) {
 		skillComponent->CalculateBehavior(1338, 30875, attacker->GetObjectID());
 	}

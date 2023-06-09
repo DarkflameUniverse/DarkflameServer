@@ -50,7 +50,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 	}
 
 	// This also gets triggered by a proximity monitor + item equip, I will set that up when havok is ready
-	auto characterComponent = originator->GetComponent<CharacterComponent>();
+	auto* characterComponent = originator->GetComponent<CharacterComponent>();
 	auto* character = originator->GetCharacter();
 
 	if (!characterComponent || !character) return;
@@ -89,18 +89,18 @@ void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
 	// instead we let their OnUse handlers do their things
 	// which components of an Object have their OnUse called when using them
 	// so we don't need to call it here
-	auto propertyEntrance = m_OwningEntity->GetComponent<PropertyEntranceComponent>();
+	auto* propertyEntrance = m_OwningEntity->GetComponent<PropertyEntranceComponent>();
 	if (propertyEntrance) {
 		return;
 	}
 
-	auto multiZoneEntranceComponent = m_OwningEntity->GetComponent<MultiZoneEntranceComponent>();
+	auto* multiZoneEntranceComponent = m_OwningEntity->GetComponent<MultiZoneEntranceComponent>();
 	if (multiZoneEntranceComponent) {
 		return;
 	}
 
 	// No rocket no launch
-	auto rocket = originator->GetComponent<CharacterComponent>()->RocketEquip(originator);
+	auto* rocket = originator->GetComponent<CharacterComponent>()->RocketEquip(originator);
 	if (!rocket) {
 		return;
 	}

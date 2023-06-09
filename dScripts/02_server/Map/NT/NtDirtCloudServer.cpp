@@ -30,7 +30,7 @@ void NtDirtCloudServer::OnSkillEventFired(Entity* self, Entity* caster, const st
 
 	const auto& myMis = m_Missions[mySpawner];
 
-	auto missionComponent = caster->GetComponent<MissionComponent>();
+	auto* missionComponent = caster->GetComponent<MissionComponent>();
 
 	if (missionComponent == nullptr) {
 		return;

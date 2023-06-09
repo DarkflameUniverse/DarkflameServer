@@ -12,7 +12,7 @@ void AmSkullkinTower::OnStartup(Entity* self) {
 
 	// onPhysicsComponentReady
 
-	auto movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
+	auto* movingPlatformComponent = self->GetComponent<MovingPlatformComponent>();
 
 	if (movingPlatformComponent != nullptr) {
 		movingPlatformComponent->StopPathing();
@@ -82,7 +82,7 @@ void AmSkullkinTower::OnChildLoaded(Entity* self, Entity* child) {
 
 	child->AddDieCallback([this, selfID, child]() {
 		auto* self = EntityManager::Instance()->GetEntity(selfID);
-		auto destroyableComponent = child->GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = child->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent == nullptr || self == nullptr) {
 			return;
@@ -163,7 +163,7 @@ void AmSkullkinTower::OnChildRemoved(Entity* self, Entity* child) {
 				continue;
 			}
 
-			auto missionComponent = player->GetComponent<MissionComponent>();
+			auto* missionComponent = player->GetComponent<MissionComponent>();
 
 			if (missionComponent == nullptr) {
 				continue;

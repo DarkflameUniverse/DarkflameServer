@@ -17,7 +17,7 @@ void SpecialPowerupSpawner::OnProximityUpdate(Entity* self, Entity* entering, co
 
 	GameMessages::SendPlayFXEffect(self, -1, u"pickup", "", LWOOBJID_EMPTY, 1, 1, true);
 
-	auto skillComponent = self->GetComponent<SkillComponent>();
+	auto* skillComponent = self->GetComponent<SkillComponent>();
 	if (!skillComponent) return;
 	skillComponent->CastSkill(this->m_SkillId, entering->GetObjectID());
 

@@ -14,8 +14,8 @@ void SpawnGryphonServer::SetVariables(Entity* self) {
 }
 
 void SpawnGryphonServer::OnUse(Entity* self, Entity* user) {
-	auto missionComponent = user->GetComponent<MissionComponent>();
-	auto inventoryComponent = user->GetComponent<InventoryComponent>();
+	auto* missionComponent = user->GetComponent<MissionComponent>();
+	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 
 	// Little extra for handling the case of the egg being placed the first time
 	if (missionComponent != nullptr && inventoryComponent != nullptr

@@ -37,7 +37,7 @@ void LegoDieRoll::OnTimerDone(Entity* self, std::string timerName) {
 			RenderComponent::PlayAnimation(self, u"roll-die-6");
 			// tracking the It's Truly Random Achievement
 			auto* owner = self->GetOwner();
-			auto missionComponent = owner->GetComponent<MissionComponent>();
+			auto* missionComponent = owner->GetComponent<MissionComponent>();
 
 			if (missionComponent != nullptr) {
 				const auto rollMissionState = missionComponent->GetMissionState(756);

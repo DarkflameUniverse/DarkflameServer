@@ -9,7 +9,7 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	if (missionID != 1849 && missionID != 1883)
 		return;
 
-	auto inventory = target->GetComponent<InventoryComponent>();
+	auto* inventory = target->GetComponent<InventoryComponent>();
 	if (inventory == nullptr)
 		return;
 

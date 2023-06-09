@@ -690,7 +690,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 	const auto& poi = GetVar<std::u16string>(u"POI");
 
 	if (!poi.empty()) {
-		auto missionComponent = other->GetComponent<MissionComponent>();
+		auto* missionComponent = other->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
 			missionComponent->Progress(eMissionTaskType::EXPLORE, 0, 0, GeneralUtils::UTF16ToWTF8(poi));
@@ -936,7 +936,7 @@ void Entity::Kill(Entity* murderer) {
 
 	// Track a player smashing something else
 	if (murderer != nullptr) {
-		auto murdererCharacterComponent = murderer->GetComponent<CharacterComponent>();
+		auto* murdererCharacterComponent = murderer->GetComponent<CharacterComponent>();
 		if (murdererCharacterComponent != nullptr) {
 			murdererCharacterComponent->UpdatePlayerStatistic(SmashablesSmashed);
 		}

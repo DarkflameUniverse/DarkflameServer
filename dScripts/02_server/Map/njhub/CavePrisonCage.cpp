@@ -68,7 +68,7 @@ void CavePrisonCage::SpawnCounterweight(Entity* self, Spawner* spawner) {
 
 	self->SetVar<LWOOBJID>(u"Counterweight", counterweight->GetObjectID());
 
-	auto rebuildComponent = counterweight->GetComponent<RebuildComponent>();
+	auto* rebuildComponent = counterweight->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent != nullptr) {
 		rebuildComponent->AddRebuildStateCallback([this, self](eRebuildState state) {

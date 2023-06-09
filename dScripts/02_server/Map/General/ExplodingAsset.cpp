@@ -24,7 +24,7 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 			if (en->GetObjectID() == attacker->GetObjectID()) {
 				if (Vector3::DistanceSquared(en->GetPosition(), self->GetPosition()) > 10 * 10) continue;
 
-				auto destroyable = en->GetComponent<DestroyableComponent>();
+				auto* destroyable = en->GetComponent<DestroyableComponent>();
 				if (destroyable == nullptr) {
 					continue;
 				}
@@ -40,7 +40,7 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 
 	GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(self, u"camshake", self->GetObjectID(), 16);
 
-	auto skillComponent = self->GetComponent<SkillComponent>();
+	auto* skillComponent = self->GetComponent<SkillComponent>();
 	if (skillComponent != nullptr) {
 		skillComponent->CalculateBehavior(147, 4721, LWOOBJID_EMPTY, true);
 	}
@@ -49,7 +49,7 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 	auto achievementIDs = self->GetVar<std::u16string>(u"achieveID");
 
 	// Progress all scripted missions related to this asset
-	auto missionComponent = attacker->GetComponent<MissionComponent>();
+	auto* missionComponent = attacker->GetComponent<MissionComponent>();
 	if (missionComponent != nullptr) {
 		if (missionID != 0) {
 			missionComponent->ForceProgressValue(missionID,
@@ -70,7 +70,7 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 }
 
 void ExplodingAsset::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
-	auto destuctableComponent = entering->GetComponent<DestroyableComponent>();
+	auto* destuctableComponent = entering->GetComponent<DestroyableComponent>();
 
 	if (destuctableComponent == nullptr) return;
 

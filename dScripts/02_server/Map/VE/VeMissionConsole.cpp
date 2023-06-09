@@ -8,7 +8,7 @@
 void VeMissionConsole::OnUse(Entity* self, Entity* user) {
 	LootGenerator::Instance().DropActivityLoot(user, self, 12551);
 
-	auto inventoryComponent = user->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 	if (inventoryComponent != nullptr) {
 		inventoryComponent->AddItem(12547, 1, eLootSourceType::ACTIVITY);  // Add the panel required for pickup
 	}

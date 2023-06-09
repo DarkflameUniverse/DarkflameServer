@@ -28,7 +28,7 @@ void ZoneAgSpiderQueen::BasePlayerLoaded(Entity* self, Entity* player) {
 	ActivityManager::TakeActivityCost(self, player->GetObjectID());
 
 	// Make sure the player has full stats when they join
-	auto playerDestroyableComponent = player->GetComponent<DestroyableComponent>();
+	auto* playerDestroyableComponent = player->GetComponent<DestroyableComponent>();
 	if (playerDestroyableComponent != nullptr) {
 		playerDestroyableComponent->SetImagination(playerDestroyableComponent->GetMaxImagination());
 		playerDestroyableComponent->SetArmor(playerDestroyableComponent->GetMaxArmor());

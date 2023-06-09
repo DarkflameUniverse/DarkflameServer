@@ -9,7 +9,7 @@ void ApplyBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 
 	if (entity == nullptr) return;
 
-	auto buffComponent = entity->GetComponent<BuffComponent>();
+	auto* buffComponent = entity->GetComponent<BuffComponent>();
 
 	if (buffComponent == nullptr) return;
 
@@ -22,7 +22,7 @@ void ApplyBuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext b
 
 	if (entity == nullptr) return;
 
-	auto buffComponent = entity->GetComponent<BuffComponent>();
+	auto* buffComponent = entity->GetComponent<BuffComponent>();
 
 	if (buffComponent == nullptr) return;
 

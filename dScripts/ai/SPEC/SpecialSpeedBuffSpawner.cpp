@@ -17,7 +17,7 @@ void SpecialSpeedBuffSpawner::OnProximityUpdate(Entity* self, Entity* entering, 
 
 	GameMessages::SendPlayFXEffect(self, -1, u"pickup", "", LWOOBJID_EMPTY, 1, 1, true);
 
-	auto skillComponent = entering->GetComponent<SkillComponent>();
+	auto* skillComponent = entering->GetComponent<SkillComponent>();
 	if (!skillComponent) return;
 	skillComponent->CastSkill(this->m_SkillId, entering->GetObjectID());
 
