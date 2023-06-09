@@ -13,7 +13,7 @@
  */
 class PropertyEntranceComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
 	explicit PropertyEntranceComponent(uint32_t componentID, Entity* parent);
 
 	/**

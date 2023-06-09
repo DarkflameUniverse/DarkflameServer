@@ -310,7 +310,7 @@ private:
 	/**
 	 * Optional direct link to the combat AI component of the parent entity
 	 */
-	std::shared_ptr<BaseCombatAIComponent> m_BaseCombatAI = nullptr;
+	BaseCombatAIComponent* m_BaseCombatAI = nullptr;
 
 	/**
 	 * The path the entity is currently following

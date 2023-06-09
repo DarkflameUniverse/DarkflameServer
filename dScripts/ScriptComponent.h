@@ -19,7 +19,7 @@ class Entity;
  */
 class ScriptComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
 
 	ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
 	~ScriptComponent() override;

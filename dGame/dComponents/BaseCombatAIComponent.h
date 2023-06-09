@@ -48,7 +48,7 @@ struct AiSkillEntry
  */
 class BaseCombatAIComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
 
 	BaseCombatAIComponent(Entity* parentEntity, uint32_t id);
 	~BaseCombatAIComponent() override;
@@ -320,7 +320,7 @@ private:
 	/**
 	 * The component that handles movement AI, also owned by this entity
 	 */
-	std::shared_ptr<MovementAIComponent> m_MovementAI;
+	MovementAIComponent* m_MovementAI;
 
 	/**
 	 * The position at which this entity spawned

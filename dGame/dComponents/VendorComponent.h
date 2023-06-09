@@ -14,7 +14,7 @@
  */
 class VendorComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::VENDOR;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::VENDOR;
 
 	VendorComponent(Entity* parent);
 	~VendorComponent() override;

@@ -363,7 +363,7 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	if (m_MovementAI == nullptr) {
-		m_MovementAI = m_OwningEntity->GetSharedComponent<MovementAIComponent>();
+		m_MovementAI = m_OwningEntity->GetComponent<MovementAIComponent>();
 		if (!m_MovementAI) return;
 	}
 
@@ -792,7 +792,7 @@ void PetComponent::ClientFailTamingMinigame() {
 }
 
 void PetComponent::Wander() {
-	if (!m_MovementAI) m_MovementAI = m_OwningEntity->GetSharedComponent<MovementAIComponent>();
+	if (!m_MovementAI) m_MovementAI = m_OwningEntity->GetComponent<MovementAIComponent>();
 
 	if (m_MovementAI == nullptr || !m_MovementAI->AtFinalWaypoint()) {
 		return;

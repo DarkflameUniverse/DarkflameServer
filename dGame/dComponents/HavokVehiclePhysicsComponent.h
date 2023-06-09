@@ -10,7 +10,7 @@
  */
 class HavokVehiclePhysicsComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::HAVOK_VEHICLE_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::HAVOK_VEHICLE_PHYSICS;
 
 	HavokVehiclePhysicsComponent(Entity* parentEntity);
 	~HavokVehiclePhysicsComponent() override;

@@ -38,7 +38,7 @@ enum class eItemType : int32_t;
 class InventoryComponent : public Component
 {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
 
 	void Update(float deltaTime) override;

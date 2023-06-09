@@ -48,7 +48,7 @@ namespace CppScripts {
  * Entities are composed of components which define their behavior.
  */
 
-using ComponentPtr = std::shared_ptr<Component>;
+using ComponentPtr = std::unique_ptr<Component>;
 
 class Entity {
 public:
@@ -277,15 +277,6 @@ public:
 	 */
 	template<typename Cmpt>
 	Cmpt* GetComponent() const;
-
-	/**
-	 * @brief Get an owning reference to a component.
-	 *
-	 * @tparam Cmpt The component to get a shared reference of
-	 * @return std::shared_ptr<Cmpt> The owning shared pointer
-	 */
-	template<typename Cmpt>
-	std::shared_ptr<Cmpt> GetSharedComponent() const;
 
 	/**
 	 * @brief Adds a component to this Entity.

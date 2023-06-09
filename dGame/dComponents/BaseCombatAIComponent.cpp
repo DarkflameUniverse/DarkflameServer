@@ -190,7 +190,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	}
 
 	if (m_MovementAI == nullptr) {
-		m_MovementAI = m_OwningEntity->GetSharedComponent<MovementAIComponent>();
+		m_MovementAI = m_OwningEntity->GetComponent<MovementAIComponent>();
 		if (m_MovementAI == nullptr) {
 			return;
 		}

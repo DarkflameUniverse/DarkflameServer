@@ -102,7 +102,6 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_ChildEntities = {};
 	m_ScheduleKiller = nullptr;
 	m_TargetsInPhantom = {};
-	m_Components = {};
 	m_DieCallbacks = {};
 	m_PhantomCollisionCallbacks = {};
 	m_IsParentChildDirty = true;

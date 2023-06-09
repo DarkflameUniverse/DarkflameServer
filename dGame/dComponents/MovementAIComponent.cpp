@@ -22,7 +22,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 
 	m_BaseCombatAI = nullptr;
 
-	m_BaseCombatAI = m_OwningEntity->GetSharedComponent<BaseCombatAIComponent>();
+	m_BaseCombatAI = m_OwningEntity->GetComponent<BaseCombatAIComponent>();
 
 	//Try and fix the insane values:
 	if (m_Info.wanderRadius > 5.0f) m_Info.wanderRadius = m_Info.wanderRadius * 0.5f;

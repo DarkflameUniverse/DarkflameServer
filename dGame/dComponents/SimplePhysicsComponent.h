@@ -28,7 +28,7 @@ enum class eClimbableType : int32_t {
  */
 class SimplePhysicsComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SIMPLE_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SIMPLE_PHYSICS;
 
 	SimplePhysicsComponent(uint32_t componentID, Entity* parent);
 	~SimplePhysicsComponent() override;

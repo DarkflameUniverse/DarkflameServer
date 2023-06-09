@@ -42,7 +42,7 @@ struct Buff
  */
 class BuffComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
 
 	explicit BuffComponent(Entity* parent);
 

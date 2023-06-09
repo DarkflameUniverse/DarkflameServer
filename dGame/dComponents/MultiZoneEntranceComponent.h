@@ -11,7 +11,7 @@
  */
 class MultiZoneEntranceComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MULTI_ZONE_ENTRANCE;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MULTI_ZONE_ENTRANCE;
 
 	/**
 	 * Constructor for this component, builds the m_LUPWorlds vector

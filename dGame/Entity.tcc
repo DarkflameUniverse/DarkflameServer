@@ -9,10 +9,15 @@ Cmpt* Entity::GetComponent() const {
 	const auto& componentItr = this->m_Components.find(Cmpt::ComponentType);
 	return componentItr == this->m_Components.end() ? nullptr : dynamic_cast<Cmpt*>(componentItr->second.get());
 }
-template<typename Cmpt>
-std::shared_ptr<Cmpt> Entity::GetSharedComponent() const {
-	const auto& componentItr = this->m_Components.find(Cmpt::ComponentType);
-	return componentItr == this->m_Components.end() ? nullptr : std::dynamic_pointer_cast<Cmpt>(componentItr->second);	
+
+template<typename Cmpt, typename...ConstructorValues>
+Cmpt* Entity::AddComponent(ConstructorValues...arguments) {
+	auto component = GetComponent<Cmpt>();
+	if (component) return dynamic_cast<Cmpt*>(component);
+
+	auto& insertedComponent = m_Components.insert_or_assign(Cmpt::ComponentType,
+		std::make_unique<Cmpt>(this, std::forward<ConstructorValues>(arguments)...)).first->second;
+	return dynamic_cast<Cmpt*>(insertedComponent.get());
 }
 
 template<typename T>
@@ -145,14 +150,4 @@ T Entity::GetNetworkVar(const std::u16string& name) {
 	}
 
 	return LDFData<T>::Default;
-}
-
-template<typename Cmpt, typename...ConstructorValues>
-Cmpt* Entity::AddComponent(ConstructorValues...arguments) {
-	auto component = GetComponent<Cmpt>();
-	if (component) return dynamic_cast<Cmpt*>(component);
-
-	auto& insertedComponent = m_Components.insert_or_assign(Cmpt::ComponentType,
-		std::make_shared<Cmpt>(this, std::forward<ConstructorValues>(arguments)...)).first->second;
-	return dynamic_cast<Cmpt*>(insertedComponent.get());
 }

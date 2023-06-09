@@ -156,7 +156,7 @@ struct ActivityPlayer {
  */
 class ScriptedActivityComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPTED_ACTIVITY;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPTED_ACTIVITY;
 
 	ScriptedActivityComponent(Entity* parent, int activityID);
 	~ScriptedActivityComponent() override;

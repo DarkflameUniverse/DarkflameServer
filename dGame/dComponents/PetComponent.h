@@ -21,7 +21,7 @@ enum class PetAbilityType
 class PetComponent : public Component
 {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
 	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
 	~PetComponent() override;
@@ -349,7 +349,7 @@ private:
 	/**
 	 * The movement AI component that is related to this pet, required to move it around
 	 */
-	std::shared_ptr<MovementAIComponent> m_MovementAI;
+	MovementAIComponent* m_MovementAI;
 
 	/**
 	 * Preconditions that need to be met before an entity can tame this pet
