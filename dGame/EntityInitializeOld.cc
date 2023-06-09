@@ -103,43 +103,43 @@ Entity::Initialize() {
 			new PropertyEntranceComponent(propertyEntranceComponentID, this)));
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CONTROLLABLE_PHYSICS) > 0) {
-		ControllablePhysicsComponent* controllablePhysics = new ControllablePhysicsComponent(this);
+	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CONTROLLABLE_PHYSICS) > 0) {
+	// 	ControllablePhysicsComponent* controllablePhysics = new ControllablePhysicsComponent(this);
 
-		if (m_Character) {
-			controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
+	// 	if (m_Character) {
+	// 		controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
 
-			const auto mapID = Game::server->GetZoneID();
+	// 		const auto mapID = Game::server->GetZoneID();
 
-			//If we came from another zone, put us in the starting loc
-			if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603) { // Exception for Moon Base as you tend to spawn on the roof.
-				NiPoint3 pos;
-				NiQuaternion rot;
+	// 		//If we came from another zone, put us in the starting loc
+	// 		if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603) { // Exception for Moon Base as you tend to spawn on the roof.
+	// 			NiPoint3 pos;
+	// 			NiQuaternion rot;
 
-				const auto& targetSceneName = m_Character->GetTargetScene();
-				auto* targetScene = EntityManager::Instance()->GetSpawnPointEntity(targetSceneName);
+	// 			const auto& targetSceneName = m_Character->GetTargetScene();
+	// 			auto* targetScene = EntityManager::Instance()->GetSpawnPointEntity(targetSceneName);
 
-				if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
-					pos = m_Character->GetRespawnPoint(mapID);
-					rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
-				} else if (targetScene != nullptr) {
-					pos = targetScene->GetPosition();
-					rot = targetScene->GetRotation();
-				} else {
-					pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
-					rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
-				}
+	// 			if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
+	// 				pos = m_Character->GetRespawnPoint(mapID);
+	// 				rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+	// 			} else if (targetScene != nullptr) {
+	// 				pos = targetScene->GetPosition();
+	// 				rot = targetScene->GetRotation();
+	// 			} else {
+	// 				pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
+	// 				rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+	// 			}
 
-				controllablePhysics->SetPosition(pos);
-				controllablePhysics->SetRotation(rot);
-			}
-		} else {
-			controllablePhysics->SetPosition(m_DefaultPosition);
-			controllablePhysics->SetRotation(m_DefaultRotation);
-		}
+	// 			controllablePhysics->SetPosition(pos);
+	// 			controllablePhysics->SetRotation(rot);
+	// 		}
+	// 	} else {
+	// 		controllablePhysics->SetPosition(m_DefaultPosition);
+	// 		controllablePhysics->SetRotation(m_DefaultRotation);
+	// 	}
 
-		m_Components.insert(std::make_pair(eReplicaComponentType::CONTROLLABLE_PHYSICS, controllablePhysics));
-	}
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::CONTROLLABLE_PHYSICS, controllablePhysics));
+	// }
 
 	// If an entity is marked a phantom, simple physics is made into phantom phyics.
 	bool markedAsPhantom = GetVar<bool>(u"markedAsPhantom");

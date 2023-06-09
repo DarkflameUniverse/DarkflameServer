@@ -3,7 +3,7 @@
 
 Component::Component(Entity* owningEntity) {
 	DluAssert(owningEntity != nullptr);
-	m_OwningEntity = owningEntity;
+	m_ParentEntity = owningEntity;
 }
 
 Component::~Component() {

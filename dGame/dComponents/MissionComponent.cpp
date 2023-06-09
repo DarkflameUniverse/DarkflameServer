@@ -103,9 +103,9 @@ void MissionComponent::AcceptMission(const uint32_t missionId, const bool skipCh
 	if (missionId == 1728) {
 		//Needs to send a mail
 
-		auto address = m_OwningEntity->GetSystemAddress();
+		auto address = m_ParentEntity->GetSystemAddress();
 
-		Mail::HandleNotificationRequest(address, m_OwningEntity->GetObjectID());
+		Mail::HandleNotificationRequest(address, m_ParentEntity->GetObjectID());
 	}
 }
 

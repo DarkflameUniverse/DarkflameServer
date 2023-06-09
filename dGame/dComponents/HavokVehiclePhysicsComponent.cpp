@@ -103,7 +103,7 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 
 void HavokVehiclePhysicsComponent::Update(float deltaTime) {
 	if (m_SoftUpdate > 5) {
-		EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+		EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 		m_SoftUpdate = 0;
 	} else {

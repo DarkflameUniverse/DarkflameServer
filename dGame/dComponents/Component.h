@@ -20,7 +20,7 @@ public:
 	 * Gets the owner of this component
 	 * @return the owner of this component
 	 */
-	Entity* GetParentEntity() const { return m_OwningEntity; };
+	Entity* GetParentEntity() const { return m_ParentEntity; };
 
 	/**
 	 * Event called when this component is being used, e.g. when some entity interacted with it
@@ -70,5 +70,5 @@ protected:
 	/**
 	 * The entity that owns this component
 	 */
-	Entity* m_OwningEntity;
+	Entity* m_ParentEntity;
 };

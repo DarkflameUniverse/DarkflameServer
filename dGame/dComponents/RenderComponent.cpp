@@ -141,7 +141,7 @@ void RenderComponent::Update(const float deltaTime) {
 void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& effectType, const std::string& name, const LWOOBJID secondary, const float priority, const float scale, const bool serialize) {
 	RemoveEffect(name);
 
-	GameMessages::SendPlayFXEffect(m_OwningEntity, effectId, effectType, name, secondary, priority, scale, serialize);
+	GameMessages::SendPlayFXEffect(m_ParentEntity, effectId, effectType, name, secondary, priority, scale, serialize);
 
 	auto* effect = AddEffect(effectId, name, effectType);
 
@@ -180,7 +180,7 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
 }
 
 void RenderComponent::StopEffect(const std::string& name, const bool killImmediate) {
-	GameMessages::SendStopFXEffect(m_OwningEntity, killImmediate, name);
+	GameMessages::SendStopFXEffect(m_ParentEntity, killImmediate, name);
 
 	RemoveEffect(name);
 }

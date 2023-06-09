@@ -96,14 +96,14 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_CollectibleID = 0;
 	m_NetworkID = 0;
 	m_Observers = 0;
-	m_Groups = {};
 	m_OwnerOverride = LWOOBJID_EMPTY;
-	m_Timers = {};
-	m_ChildEntities = {};
+	m_Groups.clear();
+	m_Timers.clear();
+	m_ChildEntities.clear();
+	m_TargetsInPhantom.clear();
+	m_DieCallbacks.clear();
+	m_PhantomCollisionCallbacks.clear();
 	m_ScheduleKiller = nullptr;
-	m_TargetsInPhantom = {};
-	m_DieCallbacks = {};
-	m_PhantomCollisionCallbacks = {};
 	m_IsParentChildDirty = true;
 	m_IsGhostingCandidate = false;
 	m_PlayerIsReadyForUpdates = false;
@@ -377,6 +377,23 @@ void Entity::Initialize() {
 		default:
 			Game::logger->Log("Entity", "blah %i %i", componentId, m_TemplateID);
 		}
+	}
+
+	for (const auto&[componentId, component] : m_Components) {
+		component->LoadTemplateData();
+	}
+
+	for (const auto&[componentId, component] : m_Components) {
+		component->LoadConfigData();
+	}
+
+	for (const auto&[componentId, component] : m_Components) {
+		component->Startup();
+	}
+	if (!IsPlayer()) return; // No save data to load for non players
+
+	for (const auto&[componentId, component] : m_Components) {
+		component->LoadFromXml(m_Character->GetXMLDoc());
 	}
 }
 

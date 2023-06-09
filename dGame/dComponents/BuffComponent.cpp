@@ -64,7 +64,7 @@ void BuffComponent::Update(float deltaTime) {
 				buff.second.tickTime = buff.second.tick;
 				buff.second.stacks--;
 
-				SkillComponent::HandleUnmanaged(buff.second.behaviorID, m_OwningEntity->GetObjectID(), buff.second.source);
+				SkillComponent::HandleUnmanaged(buff.second.behaviorID, m_ParentEntity->GetObjectID(), buff.second.source);
 			}
 		}
 
@@ -91,7 +91,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 		return;
 	}
 
-	GameMessages::SendAddBuff(m_OwningEntity->GetObjectID(), source, (uint32_t)id,
+	GameMessages::SendAddBuff(m_ParentEntity->GetObjectID(), source, (uint32_t)id,
 		(uint32_t)duration * 1000, addImmunity, cancelOnDamaged, cancelOnDeath,
 		cancelOnLogout, cancelOnRemoveBuff, cancelOnUi, cancelOnUnequip, cancelOnZone);
 
@@ -132,7 +132,7 @@ void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity
 		return;
 	}
 
-	GameMessages::SendRemoveBuff(m_OwningEntity, fromUnEquip, removeImmunity, id);
+	GameMessages::SendRemoveBuff(m_ParentEntity, fromUnEquip, removeImmunity, id);
 
 	m_Buffs.erase(iter);
 
@@ -234,7 +234,7 @@ void BuffComponent::ReApplyBuffs() {
 }
 
 Entity* BuffComponent::GetParentEntity() const {
-	return m_OwningEntity;
+	return m_ParentEntity;
 }
 
 void BuffComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {

@@ -43,7 +43,7 @@ RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t component
 RailActivatorComponent::~RailActivatorComponent() = default;
 
 void RailActivatorComponent::OnUse(Entity* originator) {
-	auto* rebuildComponent = m_OwningEntity->GetComponent<RebuildComponent>();
+	auto* rebuildComponent = m_ParentEntity->GetComponent<RebuildComponent>();
 	if (rebuildComponent != nullptr && rebuildComponent->GetState() != eRebuildState::COMPLETED)
 		return;
 
@@ -67,7 +67,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 
 	const auto originatorID = originator->GetObjectID();
 
-	m_OwningEntity->AddCallbackTimer(animationLength, [originatorID, this]() {
+	m_ParentEntity->AddCallbackTimer(animationLength, [originatorID, this]() {
 		auto* originator = EntityManager::Instance()->GetEntity(originatorID);
 
 		if (originator == nullptr) {
@@ -78,7 +78,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 			m_loopSound, m_StopSound, originator->GetSystemAddress(),
 			m_PathStart, m_PathDirection, m_DamageImmune, m_NoAggro, m_NotifyArrived,
 			m_ShowNameBillboard, m_CameraLocked, m_CollisionEnabled, m_UseDB, m_ComponentID,
-			m_OwningEntity->GetObjectID());
+			m_ParentEntity->GetObjectID());
 		});
 }
 
@@ -106,7 +106,7 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 
 		GameMessages::SendSetRailMovement(originator->GetObjectID(), m_PathDirection, m_Path, m_PathStart,
 			originator->GetSystemAddress(), m_ComponentID,
-			m_OwningEntity->GetObjectID());
+			m_ParentEntity->GetObjectID());
 	}
 }
 
@@ -116,7 +116,7 @@ void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 		true, true, true, true, true, true, true
 	);
 
-	auto* rebuildComponent = m_OwningEntity->GetComponent<RebuildComponent>();
+	auto* rebuildComponent = m_ParentEntity->GetComponent<RebuildComponent>();
 
 	if (rebuildComponent != nullptr) {
 		// Set back reset time

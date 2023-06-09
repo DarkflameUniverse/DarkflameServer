@@ -189,7 +189,7 @@ void InventoryComponent::AddItem(
 		inventoryType = Inventory::FindInventoryTypeForLot(lot);
 	}
 
-	auto* missions = m_OwningEntity->GetComponent<MissionComponent>();
+	auto* missions = m_ParentEntity->GetComponent<MissionComponent>();
 
 	auto* inventory = GetInventory(inventoryType);
 
@@ -276,7 +276,7 @@ void InventoryComponent::AddItem(
 
 			case 1:
 				for (size_t i = 0; i < size; i++) {
-					GameMessages::SendDropClientLoot(this->m_OwningEntity, this->m_OwningEntity->GetObjectID(), lot, 0, this->m_OwningEntity->GetPosition(), 1);
+					GameMessages::SendDropClientLoot(this->m_ParentEntity, this->m_ParentEntity->GetObjectID(), lot, 0, this->m_ParentEntity->GetPosition(), 1);
 				}
 
 				break;
@@ -378,7 +378,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 		item->SetCount(item->GetCount() - delta, false, false);
 	}
 
-	auto* missionComponent = m_OwningEntity->GetComponent<MissionComponent>();
+	auto* missionComponent = m_ParentEntity->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
 		if (IsTransferInventory(inventory)) {
@@ -479,7 +479,7 @@ bool InventoryComponent::HasSpaceForLoot(const std::unordered_map<LOT, int32_t>&
 	}
 
 	if (slotsNeeded > 0) {
-		GameMessages::SendNotifyNotEnoughInvSpace(m_OwningEntity->GetObjectID(), slotsNeeded, ITEMS, m_OwningEntity->GetSystemAddress());
+		GameMessages::SendNotifyNotEnoughInvSpace(m_ParentEntity->GetObjectID(), slotsNeeded, ITEMS, m_ParentEntity->GetSystemAddress());
 
 		return false;
 	}
@@ -821,23 +821,23 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 		return;
 	}
 
-	auto* character = m_OwningEntity->GetCharacter();
+	auto* character = m_ParentEntity->GetCharacter();
 
 	if (character != nullptr && !skipChecks) {
 		// Hacky proximity rocket
 		if (item->GetLot() == 6416) {
 			const auto rocketLauchPads = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::ROCKET_LAUNCHPAD_CONTROL);
 
-			const auto position = m_OwningEntity->GetPosition();
+			const auto position = m_ParentEntity->GetPosition();
 
 			for (auto* lauchPad : rocketLauchPads) {
 				if (Vector3::DistanceSquared(lauchPad->GetPosition(), position) > 13 * 13) continue;
 
-				auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+				auto* characterComponent = m_ParentEntity->GetComponent<CharacterComponent>();
 
 				if (characterComponent != nullptr) characterComponent->SetLastRocketItemID(item->GetId());
 
-				lauchPad->OnUse(m_OwningEntity);
+				lauchPad->OnUse(m_ParentEntity);
 
 				break;
 			}
@@ -853,7 +853,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 		if (!building && (item->GetLot() == 6086 || type == eItemType::LOOT_MODEL || type == eItemType::VEHICLE)) return;
 
 		if (type != eItemType::LOOT_MODEL && type != eItemType::MODEL) {
-			if (!item->GetBound() && !item->GetPreconditionExpression()->Check(m_OwningEntity)) {
+			if (!item->GetBound() && !item->GetPreconditionExpression()->Check(m_ParentEntity)) {
 				return;
 			}
 		}
@@ -879,7 +879,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 
 	EquipScripts(item);
 
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 void InventoryComponent::UnEquipItem(Item* item) {
@@ -909,12 +909,12 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 	UnequipScripts(item);
 
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 	// Trigger property event
 	if (PropertyManagementComponent::Instance() != nullptr && item->GetCount() > 0 && Inventory::FindInventoryTypeForLot(item->GetLot()) == MODELS) {
-		PropertyManagementComponent::Instance()->GetParentEntity()->OnZonePropertyModelRemovedWhileEquipped(m_OwningEntity);
-		dZoneManager::Instance()->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_OwningEntity);
+		PropertyManagementComponent::Instance()->GetParentEntity()->OnZonePropertyModelRemovedWhileEquipped(m_ParentEntity);
+		dZoneManager::Instance()->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_ParentEntity);
 	}
 }
 
@@ -926,11 +926,11 @@ void InventoryComponent::EquipScripts(Item* equippedItem) {
 	if (scriptComponentID > -1) {
 		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
-		auto* itemScript = CppScripts::GetScript(m_OwningEntity, scriptCompData.script_name);
+		auto* itemScript = CppScripts::GetScript(m_ParentEntity, scriptCompData.script_name);
 		if (!itemScript) {
 			Game::logger->Log("InventoryComponent", "null script?");
 		}
-		itemScript->OnFactionTriggerItemEquipped(m_OwningEntity, equippedItem->GetId());
+		itemScript->OnFactionTriggerItemEquipped(m_ParentEntity, equippedItem->GetId());
 	}
 }
 
@@ -941,19 +941,19 @@ void InventoryComponent::UnequipScripts(Item* unequippedItem) {
 	if (scriptComponentID > -1) {
 		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
-		auto* itemScript = CppScripts::GetScript(m_OwningEntity, scriptCompData.script_name);
+		auto* itemScript = CppScripts::GetScript(m_ParentEntity, scriptCompData.script_name);
 		if (!itemScript) {
 			Game::logger->Log("InventoryComponent", "null script?");
 		}
-		itemScript->OnFactionTriggerItemUnequipped(m_OwningEntity, unequippedItem->GetId());
+		itemScript->OnFactionTriggerItemUnequipped(m_ParentEntity, unequippedItem->GetId());
 	}
 }
 
 void InventoryComponent::HandlePossession(Item* item) {
-	auto* characterComponent = m_OwningEntity->GetComponent<CharacterComponent>();
+	auto* characterComponent = m_ParentEntity->GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 
-	auto* possessorComponent = m_OwningEntity->GetComponent<PossessorComponent>();
+	auto* possessorComponent = m_ParentEntity->GetComponent<PossessorComponent>();
 	if (!possessorComponent) return;
 
 	// Don't do anything if we are busy dismounting
@@ -968,22 +968,22 @@ void InventoryComponent::HandlePossession(Item* item) {
 		return;
 	}
 
-	GameMessages::SendSetStunned(m_OwningEntity->GetObjectID(), eStateChangeType::PUSH, m_OwningEntity->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+	GameMessages::SendSetStunned(m_ParentEntity->GetObjectID(), eStateChangeType::PUSH, m_ParentEntity->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
 	// Set the mount Item ID so that we know what were handling
 	possessorComponent->SetMountItemID(item->GetId());
-	GameMessages::SendSetMountInventoryID(m_OwningEntity, item->GetId(), UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::SendSetMountInventoryID(m_ParentEntity, item->GetId(), UNASSIGNED_SYSTEM_ADDRESS);
 
 	// Create entity to mount
-	auto startRotation = m_OwningEntity->GetRotation();
+	auto startRotation = m_ParentEntity->GetRotation();
 
 	EntityInfo info{};
 	info.lot = item->GetLot();
-	info.pos = m_OwningEntity->GetPosition();
+	info.pos = m_ParentEntity->GetPosition();
 	info.rot = startRotation;
-	info.spawnerID = m_OwningEntity->GetObjectID();
+	info.spawnerID = m_ParentEntity->GetObjectID();
 
-	auto* mount = EntityManager::Instance()->CreateEntity(info, nullptr, m_OwningEntity);
+	auto* mount = EntityManager::Instance()->CreateEntity(info, nullptr, m_ParentEntity);
 
 	// Check to see if the mount is a vehicle, if so, flip it
 	auto* havokVehiclePhysicsComponent = mount->GetComponent<HavokVehiclePhysicsComponent>();
@@ -1010,29 +1010,29 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
 	if (possessableComponent) {
 		possessableComponent->SetIsItemSpawned(true);
-		possessableComponent->SetPossessor(m_OwningEntity->GetObjectID());
+		possessableComponent->SetPossessor(m_ParentEntity->GetObjectID());
 		// Possess it
 		possessorComponent->SetPossessable(mount->GetObjectID());
 		possessorComponent->SetPossessableType(possessableComponent->GetPossessionType());
 	}
 
-	GameMessages::SendSetJetPackMode(m_OwningEntity, false);
+	GameMessages::SendSetJetPackMode(m_ParentEntity, false);
 
 	// Make it go to the client
 	EntityManager::Instance()->ConstructEntity(mount);
 	// Update the possessor
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 	// have to unlock the input so it vehicle can be driven
-	if (havokVehiclePhysicsComponent) GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_OwningEntity->GetSystemAddress());
-	GameMessages::SendMarkInventoryItemAsActive(m_OwningEntity->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_OwningEntity->GetSystemAddress());
+	if (havokVehiclePhysicsComponent) GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_ParentEntity->GetSystemAddress());
+	GameMessages::SendMarkInventoryItemAsActive(m_ParentEntity->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_ParentEntity->GetSystemAddress());
 }
 
 void InventoryComponent::ApplyBuff(Item* item) const {
 	const auto buffs = FindBuffs(item, true);
 
 	for (const auto buff : buffs) {
-		SkillComponent::HandleUnmanaged(buff, m_OwningEntity->GetObjectID());
+		SkillComponent::HandleUnmanaged(buff, m_ParentEntity->GetObjectID());
 	}
 }
 
@@ -1041,7 +1041,7 @@ void InventoryComponent::RemoveBuff(Item* item) const {
 	const auto buffs = FindBuffs(item, false);
 
 	for (const auto buff : buffs) {
-		SkillComponent::HandleUnCast(buff, m_OwningEntity->GetObjectID());
+		SkillComponent::HandleUnCast(buff, m_ParentEntity->GetObjectID());
 	}
 }
 
@@ -1076,14 +1076,14 @@ void InventoryComponent::PopEquippedItems() {
 
 	m_Pushed.clear();
 
-	auto* destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = m_ParentEntity->GetComponent<DestroyableComponent>();
 
 	// Reset stats to full
 	if (destroyableComponent) {
 		destroyableComponent->SetHealth(static_cast<int32_t>(destroyableComponent->GetMaxHealth()));
 		destroyableComponent->SetArmor(static_cast<int32_t>(destroyableComponent->GetMaxArmor()));
 		destroyableComponent->SetImagination(static_cast<int32_t>(destroyableComponent->GetMaxImagination()));
-		EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+		EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 	}
 
 	m_Dirty = true;
@@ -1169,10 +1169,10 @@ void InventoryComponent::AddItemSkills(const LOT lot) {
 	if (index != m_Skills.end()) {
 		const auto old = index->second;
 
-		GameMessages::SendRemoveSkill(m_OwningEntity, old);
+		GameMessages::SendRemoveSkill(m_ParentEntity, old);
 	}
 
-	GameMessages::SendAddSkill(m_OwningEntity, skill, static_cast<int>(slot));
+	GameMessages::SendAddSkill(m_ParentEntity, skill, static_cast<int>(slot));
 
 	m_Skills.insert_or_assign(slot, skill);
 }
@@ -1194,14 +1194,14 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 
 	const auto old = index->second;
 
-	GameMessages::SendRemoveSkill(m_OwningEntity, old);
+	GameMessages::SendRemoveSkill(m_ParentEntity, old);
 
 	m_Skills.erase(slot);
 
 	if (slot == BehaviorSlot::Primary) {
 		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
 
-		GameMessages::SendAddSkill(m_OwningEntity, 1, static_cast<int>(BehaviorSlot::Primary));
+		GameMessages::SendAddSkill(m_ParentEntity, 1, static_cast<int>(BehaviorSlot::Primary));
 	}
 }
 
@@ -1227,7 +1227,7 @@ bool InventoryComponent::HasAnyPassive(const std::vector<eItemSetPassiveAbilityI
 }
 
 void InventoryComponent::DespawnPet() {
-	auto current = PetComponent::GetActivePet(m_OwningEntity->GetObjectID());
+	auto current = PetComponent::GetActivePet(m_ParentEntity->GetObjectID());
 
 	if (current != nullptr) {
 		current->Deactivate();
@@ -1235,7 +1235,7 @@ void InventoryComponent::DespawnPet() {
 }
 
 void InventoryComponent::SpawnPet(Item* item) {
-	auto current = PetComponent::GetActivePet(m_OwningEntity->GetObjectID());
+	auto current = PetComponent::GetActivePet(m_ParentEntity->GetObjectID());
 
 	if (current != nullptr) {
 		current->Deactivate();
@@ -1246,18 +1246,18 @@ void InventoryComponent::SpawnPet(Item* item) {
 	}
 
 	// First check if we can summon the pet.  You need 1 imagination to do so.
-	auto* destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = m_ParentEntity->GetComponent<DestroyableComponent>();
 
 	if (Game::config->GetValue("pets_take_imagination") == "1" && destroyableComponent && destroyableComponent->GetImagination() <= 0) {
-		GameMessages::SendUseItemRequirementsResponse(m_OwningEntity->GetObjectID(), m_OwningEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
+		GameMessages::SendUseItemRequirementsResponse(m_ParentEntity->GetObjectID(), m_ParentEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
 		return;
 	}
 
 	EntityInfo info{};
 	info.lot = item->GetLot();
-	info.pos = m_OwningEntity->GetPosition();
+	info.pos = m_ParentEntity->GetPosition();
 	info.rot = NiQuaternion::IDENTITY;
-	info.spawnerID = m_OwningEntity->GetObjectID();
+	info.spawnerID = m_ParentEntity->GetObjectID();
 
 	auto* pet = EntityManager::Instance()->CreateEntity(info);
 
@@ -1339,7 +1339,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 		return entry.objectTemplate == static_cast<unsigned int>(item->GetLot());
 		});
 
-	auto* missions = m_OwningEntity->GetComponent<MissionComponent>();
+	auto* missions = m_ParentEntity->GetComponent<MissionComponent>();
 
 	for (const auto& result : results) {
 		if (result.castOnType == 1) {
@@ -1376,7 +1376,7 @@ void InventoryComponent::SetNPCItems(const std::vector<LOT>& items) {
 		UpdateSlot(info.equipLocation, { id, static_cast<LOT>(item), 1, slot++ }, true);
 	}
 
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 InventoryComponent::~InventoryComponent() {

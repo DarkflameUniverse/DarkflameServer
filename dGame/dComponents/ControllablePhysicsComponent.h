@@ -26,11 +26,13 @@ public:
 	ControllablePhysicsComponent(Entity* entity);
 	~ControllablePhysicsComponent() override;
 
-	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void ResetFlags();
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
+	void Startup() override;
+	void LoadConfigData() override;
+	void LoadTemplateData() override;
 
 	/**
 	 * Sets the position of this entity, also ensures this update is serialized next tick.

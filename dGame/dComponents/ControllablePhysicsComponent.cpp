@@ -3,6 +3,7 @@
 #include "BitStream.h"
 #include "dLogger.h"
 #include "Game.h"
+#include "dServer.h"
 
 #include "dpWorld.h"
 #include "dpEntity.h"
@@ -51,17 +52,15 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_ImmuneToStunTurnCount = 0;
 	m_ImmuneToStunUseItemCount = 0;
 
-	if (entity->GetLOT() != 1) // Other physics entities we care about will be added by BaseCombatAI
-		return;
+	// Other physics entities we care about will be added by BaseCombatAI
+	if (entity->GetLOT() != 1) return;
 
-	if (entity->GetLOT() == 1) {
-		Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics");
+	Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics");
 
-		float radius = 1.5f;
-		m_dpEntity = new dpEntity(m_OwningEntity->GetObjectID(), radius, false);
-		m_dpEntity->SetCollisionGroup(COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_FRIENDLY);
-		dpWorld::Instance().AddEntity(m_dpEntity);
-	}
+	float radius = 1.5f;
+	m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), radius, false);
+	m_dpEntity->SetCollisionGroup(COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_FRIENDLY);
+	dpWorld::Instance().AddEntity(m_dpEntity);
 }
 
 ControllablePhysicsComponent::~ControllablePhysicsComponent() {
@@ -70,7 +69,18 @@ ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 	}
 }
 
-void ControllablePhysicsComponent::Update(float deltaTime) {
+void ControllablePhysicsComponent::Startup() {
+	NiPoint3 pos = m_ParentEntity->GetDefaultPosition();
+	NiQuaternion rot = m_ParentEntity->GetDefaultRotation();
+	SetPosition(pos);
+	SetRotation(rot);
+}
+
+void ControllablePhysicsComponent::LoadConfigData() {
+
+}
+
+void ControllablePhysicsComponent::LoadTemplateData() {
 
 }
 
@@ -162,22 +172,45 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 }
 
 void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
-	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
-	if (!character) {
+	tinyxml2::XMLElement* characterElem = doc->FirstChildElement("obj")->FirstChildElement("char");
+	if (!characterElem) {
 		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag!");
 		return;
 	}
 
-	m_OwningEntity->GetCharacter()->LoadXmlRespawnCheckpoints();
+	m_ParentEntity->GetCharacter()->LoadXmlRespawnCheckpoints();
 
-	character->QueryAttribute("lzx", &m_Position.x);
-	character->QueryAttribute("lzy", &m_Position.y);
-	character->QueryAttribute("lzz", &m_Position.z);
-	character->QueryAttribute("lzrx", &m_Rotation.x);
-	character->QueryAttribute("lzry", &m_Rotation.y);
-	character->QueryAttribute("lzrz", &m_Rotation.z);
-	character->QueryAttribute("lzrw", &m_Rotation.w);
+	characterElem->QueryAttribute("lzx", &m_Position.x);
+	characterElem->QueryAttribute("lzy", &m_Position.y);
+	characterElem->QueryAttribute("lzz", &m_Position.z);
+	characterElem->QueryAttribute("lzrx", &m_Rotation.x);
+	characterElem->QueryAttribute("lzry", &m_Rotation.y);
+	characterElem->QueryAttribute("lzrz", &m_Rotation.z);
+	characterElem->QueryAttribute("lzrw", &m_Rotation.w);
 
+	auto* character = GetParentEntity()->GetCharacter();
+	const auto mapID = Game::server->GetZoneID();
+
+	//If we came from another zone, put us in the starting loc
+	if (character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603) { // Exception for Moon Base as you tend to spawn on the roof.
+		const auto& targetSceneName = character->GetTargetScene();
+		auto* targetScene = EntityManager::Instance()->GetSpawnPointEntity(targetSceneName);
+
+		NiPoint3 pos;
+		NiQuaternion rot;
+		if (character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
+			pos = character->GetRespawnPoint(mapID);
+			rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+		} else if (targetScene) {
+			pos = targetScene->GetPosition();
+			rot = targetScene->GetRotation();
+		} else {
+			pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
+			rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+		}
+		SetPosition(pos);
+		SetRotation(rot);
+	}
 	m_DirtyPosition = true;
 }
 
@@ -208,9 +241,7 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 }
 
 void ControllablePhysicsComponent::SetPosition(const NiPoint3& pos) {
-	if (m_Static) {
-		return;
-	}
+	if (m_Static || pos == m_Position) return;
 
 	m_Position.x = pos.x;
 	m_Position.y = pos.y;
@@ -221,9 +252,7 @@ void ControllablePhysicsComponent::SetPosition(const NiPoint3& pos) {
 }
 
 void ControllablePhysicsComponent::SetRotation(const NiQuaternion& rot) {
-	if (m_Static) {
-		return;
-	}
+	if (m_Static || rot == m_Rotation) return;
 
 	m_Rotation = rot;
 	m_DirtyPosition = true;
@@ -244,7 +273,7 @@ void ControllablePhysicsComponent::SetVelocity(const NiPoint3& vel) {
 }
 
 void ControllablePhysicsComponent::SetAngularVelocity(const NiPoint3& vel) {
-	if (m_Static) {
+	if (m_Static || vel == m_AngularVelocity) {
 		return;
 	}
 
@@ -254,13 +283,15 @@ void ControllablePhysicsComponent::SetAngularVelocity(const NiPoint3& vel) {
 }
 
 void ControllablePhysicsComponent::SetIsOnGround(bool val) {
-	m_DirtyPosition = true;
+	if (m_IsOnGround == val) return;
 	m_IsOnGround = val;
+	m_DirtyPosition = true;
 }
 
 void ControllablePhysicsComponent::SetIsOnRail(bool val) {
-	m_DirtyPosition = true;
+	if (m_IsOnRail == val) return;
 	m_IsOnRail = val;
+	m_DirtyPosition = true;
 }
 
 void ControllablePhysicsComponent::SetDirtyPosition(bool val) {
@@ -300,7 +331,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 		auto candidateRadius = m_ActivePickupRadiusScales[i];
 		if (m_PickupRadius < candidateRadius) m_PickupRadius = candidateRadius;
 	}
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 void ControllablePhysicsComponent::AddSpeedboost(float value) {
@@ -321,16 +352,16 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	// Recalculate speedboost since we removed one
 	m_SpeedBoost = 0.0f;
 	if (m_ActiveSpeedBoosts.empty()) { // no active speed boosts left, so return to base speed
-		auto* levelProgressionComponent = m_OwningEntity->GetComponent<LevelProgressionComponent>();
+		auto* levelProgressionComponent = m_ParentEntity->GetComponent<LevelProgressionComponent>();
 		if (levelProgressionComponent) m_SpeedBoost = levelProgressionComponent->GetSpeedBase();
 	} else { // Used the last applied speedboost
 		m_SpeedBoost = m_ActiveSpeedBoosts.back();
 	}
 	SetSpeedMultiplier(m_SpeedBoost / 500.0f); // 500 being the base speed
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
-void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims){
+void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims) {
 	if (m_IsInBubble) {
 		Game::logger->Log("ControllablePhysicsComponent", "Already in bubble");
 		return;
@@ -339,13 +370,13 @@ void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bo
 	m_IsInBubble = true;
 	m_DirtyBubble = true;
 	m_SpecialAnims = specialAnims;
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
-void ControllablePhysicsComponent::DeactivateBubbleBuff(){
+void ControllablePhysicsComponent::DeactivateBubbleBuff() {
 	m_DirtyBubble = true;
 	m_IsInBubble = false;
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 };
 
 void ControllablePhysicsComponent::SetStunImmunity(
@@ -357,9 +388,9 @@ void ControllablePhysicsComponent::SetStunImmunity(
 	const bool bImmuneToStunJump,
 	const bool bImmuneToStunMove,
 	const bool bImmuneToStunTurn,
-	const bool bImmuneToStunUseItem){
+	const bool bImmuneToStunUseItem) {
 
-	if (state == eStateChangeType::POP){
+	if (state == eStateChangeType::POP) {
 		if (bImmuneToStunAttack && m_ImmuneToStunAttackCount > 0) 		m_ImmuneToStunAttackCount -= 1;
 		if (bImmuneToStunEquip && m_ImmuneToStunEquipCount > 0) 		m_ImmuneToStunEquipCount -= 1;
 		if (bImmuneToStunInteract && m_ImmuneToStunInteractCount > 0) 	m_ImmuneToStunInteractCount -= 1;
@@ -378,7 +409,7 @@ void ControllablePhysicsComponent::SetStunImmunity(
 	}
 
 	GameMessages::SendSetStunImmunity(
-		m_OwningEntity->GetObjectID(), state, m_OwningEntity->GetSystemAddress(), originator,
+		m_ParentEntity->GetObjectID(), state, m_ParentEntity->GetSystemAddress(), originator,
 		bImmuneToStunAttack,
 		bImmuneToStunEquip,
 		bImmuneToStunInteract,

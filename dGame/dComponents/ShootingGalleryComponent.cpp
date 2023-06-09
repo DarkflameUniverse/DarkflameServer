@@ -14,7 +14,7 @@ void ShootingGalleryComponent::SetStaticParams(const StaticShootingGalleryParams
 void ShootingGalleryComponent::SetDynamicParams(const DynamicShootingGalleryParams& params) {
 	m_DynamicParams = params;
 	m_Dirty = true;
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 void ShootingGalleryComponent::Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate, uint32_t& flags) const {

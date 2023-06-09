@@ -35,7 +35,7 @@ void LUPExhibitComponent::NextExhibit() {
 
 	m_Exhibit = m_Exhibits[m_ExhibitIndex];
 
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 void LUPExhibitComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, uint32_t& flags) {

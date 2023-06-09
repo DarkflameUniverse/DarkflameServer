@@ -13,12 +13,12 @@
 
 #include "Entity.h"
 
-SimplePhysicsComponent::SimplePhysicsComponent(uint32_t componentID, Entity* parent) : Component(parent) {
-	m_Position = m_OwningEntity->GetDefaultPosition();
-	m_Rotation = m_OwningEntity->GetDefaultRotation();
+SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, uint32_t componentID) : Component(parent) {
+	m_Position = m_ParentEntity->GetDefaultPosition();
+	m_Rotation = m_ParentEntity->GetDefaultRotation();
 	m_IsDirty = true;
 
-	const auto& climbable_type = m_OwningEntity->GetVar<std::u16string>(u"climbable");
+	const auto& climbable_type = m_ParentEntity->GetVar<std::u16string>(u"climbable");
 	if (climbable_type == u"wall") {
 		SetClimbableType(eClimbableType::CLIMBABLE_TYPE_WALL);
 	} else if (climbable_type == u"ladder") {

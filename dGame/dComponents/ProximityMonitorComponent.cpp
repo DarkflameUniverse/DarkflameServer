@@ -25,8 +25,8 @@ ProximityMonitorComponent::~ProximityMonitorComponent() {
 }
 
 void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::string& name) {
-	dpEntity* en = new dpEntity(m_OwningEntity->GetObjectID(), proxRadius);
-	en->SetPosition(m_OwningEntity->GetPosition());
+	dpEntity* en = new dpEntity(m_ParentEntity->GetObjectID(), proxRadius);
+	en->SetPosition(m_ParentEntity->GetPosition());
 
 	dpWorld::Instance().AddEntity(en);
 	m_ProximitiesData.insert(std::make_pair(name, en));
@@ -34,7 +34,7 @@ void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::
 
 void ProximityMonitorComponent::SetProximityRadius(dpEntity* entity, const std::string& name) {
 	dpWorld::Instance().AddEntity(entity);
-	entity->SetPosition(m_OwningEntity->GetPosition());
+	entity->SetPosition(m_ParentEntity->GetPosition());
 	m_ProximitiesData.insert(std::make_pair(name, entity));
 }
 
@@ -66,12 +66,12 @@ void ProximityMonitorComponent::Update(float deltaTime) {
 
 		//Process enter events
 		for (auto* en : prox.second->GetNewObjects()) {
-			m_OwningEntity->OnCollisionProximity(en->GetObjectID(), prox.first, "ENTER");
+			m_ParentEntity->OnCollisionProximity(en->GetObjectID(), prox.first, "ENTER");
 		}
 
 		//Process exit events
 		for (auto* en : prox.second->GetRemovedObjects()) {
-			m_OwningEntity->OnCollisionProximity(en->GetObjectID(), prox.first, "LEAVE");
+			m_ParentEntity->OnCollisionProximity(en->GetObjectID(), prox.first, "LEAVE");
 		}
 	}
 }

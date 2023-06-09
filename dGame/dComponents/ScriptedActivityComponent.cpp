@@ -53,7 +53,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 		}
 	}
 
-	auto* destroyableComponent = m_OwningEntity->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = m_ParentEntity->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent) {
 		// check for LMIs and set the loot LMIs
@@ -137,11 +137,11 @@ void ScriptedActivityComponent::PlayerJoin(Entity* player) {
 		instance->AddParticipant(player);
 	}
 
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
-	if (!m_OwningEntity->HasComponent(eReplicaComponentType::QUICK_BUILD))
+	if (!m_ParentEntity->HasComponent(eReplicaComponentType::QUICK_BUILD))
 		GameMessages::SendMatchResponse(player, player->GetSystemAddress(), 0); // tell the client they joined a lobby
 	LobbyPlayer* newLobbyPlayer = new LobbyPlayer();
 	newLobbyPlayer->entityID = player->GetObjectID();
@@ -304,7 +304,7 @@ bool ScriptedActivityComponent::HasLobby() const {
 bool ScriptedActivityComponent::IsValidActivity(Entity* player) {
 	// Makes it so that scripted activities with an unimplemented map cannot be joined
 	/*if (player->GetGMLevel() < eGameMasterLevel::DEVELOPER && (m_ActivityInfo.instanceMapID == 1302 || m_ActivityInfo.instanceMapID == 1301)) {
-		if (m_OwningEntity->GetLOT() == 4860) {
+		if (m_ParentEntity->GetLOT() == 4860) {
 			auto* missionComponent = player->GetComponent<MissionComponent>();
 			missionComponent->CompleteMission(229);
 		}
@@ -390,7 +390,7 @@ void ScriptedActivityComponent::PlayerReady(Entity* player, bool bReady) {
 }
 
 ActivityInstance* ScriptedActivityComponent::NewInstance() {
-	auto* instance = new ActivityInstance(m_OwningEntity, m_ActivityInfo);
+	auto* instance = new ActivityInstance(m_ParentEntity, m_ActivityInfo);
 	m_Instances.push_back(instance);
 	return instance;
 }
@@ -445,7 +445,7 @@ void ScriptedActivityComponent::RemoveActivityPlayerData(LWOOBJID playerID) {
 			m_ActivityPlayers[i] = nullptr;
 
 			m_ActivityPlayers.erase(m_ActivityPlayers.begin() + i);
-			EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+			EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 			return;
 		}
@@ -458,7 +458,7 @@ ActivityPlayer* ScriptedActivityComponent::AddActivityPlayerData(LWOOBJID player
 		return data;
 
 	m_ActivityPlayers.push_back(new ActivityPlayer{ playerID, {} });
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 	return GetActivityPlayerData(playerID);
 }
@@ -480,7 +480,7 @@ void ScriptedActivityComponent::SetActivityValue(LWOOBJID playerID, uint32_t ind
 		data->values[std::min(index, (uint32_t)9)] = value;
 	}
 
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 void ScriptedActivityComponent::PlayerRemove(LWOOBJID playerID) {
@@ -576,7 +576,7 @@ void ActivityInstance::RewardParticipant(Entity* participant) {
 			maxCoins = currencyTable[0].maxvalue;
 		}
 
-		LootGenerator::Instance().DropLoot(participant, m_OwningEntity, activityRewards[0].LootMatrixIndex, minCoins, maxCoins);
+		LootGenerator::Instance().DropLoot(participant, m_ParentEntity, activityRewards[0].LootMatrixIndex, minCoins, maxCoins);
 	}
 }
 

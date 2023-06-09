@@ -22,14 +22,14 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 
 	m_BaseCombatAI = nullptr;
 
-	m_BaseCombatAI = m_OwningEntity->GetComponent<BaseCombatAIComponent>();
+	m_BaseCombatAI = m_ParentEntity->GetComponent<BaseCombatAIComponent>();
 
 	//Try and fix the insane values:
 	if (m_Info.wanderRadius > 5.0f) m_Info.wanderRadius = m_Info.wanderRadius * 0.5f;
 	if (m_Info.wanderRadius > 8.0f) m_Info.wanderRadius = 8.0f;
 	if (m_Info.wanderSpeed > 0.5f) m_Info.wanderSpeed = m_Info.wanderSpeed * 0.5f;
 
-	m_BaseSpeed = GetBaseSpeed(m_OwningEntity->GetLOT());
+	m_BaseSpeed = GetBaseSpeed(m_ParentEntity->GetLOT());
 
 	m_NextWaypoint = GetCurrentPosition();
 	m_Acceleration = 0.4f;
@@ -149,7 +149,7 @@ nextAction:
 
 	SetVelocity(velocity);
 
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 const MovementAIInfo& MovementAIComponent::GetInfo() const {
@@ -179,7 +179,7 @@ NiPoint3 MovementAIComponent::GetNextWaypoint() const {
 }
 
 NiPoint3 MovementAIComponent::GetCurrentPosition() const {
-	return m_OwningEntity->GetPosition();
+	return m_ParentEntity->GetPosition();
 }
 
 NiPoint3 MovementAIComponent::ApproximateLocation() const {
@@ -221,7 +221,7 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 
 	SetPosition(destination);
 
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 	return true;
 }
@@ -253,7 +253,7 @@ void MovementAIComponent::Stop() {
 
 	m_CurrentSpeed = 0;
 
-	EntityManager::Instance()->SerializeEntity(m_OwningEntity);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 void MovementAIComponent::PullToPoint(const NiPoint3& point) {
@@ -322,7 +322,7 @@ foundComponent:
 }
 
 void MovementAIComponent::SetPosition(const NiPoint3& value) {
-	auto* controllablePhysicsComponent = m_OwningEntity->GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = m_ParentEntity->GetComponent<ControllablePhysicsComponent>();
 
 	if (controllablePhysicsComponent != nullptr) {
 		controllablePhysicsComponent->SetPosition(value);
@@ -330,7 +330,7 @@ void MovementAIComponent::SetPosition(const NiPoint3& value) {
 		return;
 	}
 
-	auto* simplePhysicsComponent = m_OwningEntity->GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = m_ParentEntity->GetComponent<SimplePhysicsComponent>();
 
 	if (simplePhysicsComponent != nullptr) {
 		simplePhysicsComponent->SetPosition(value);
@@ -342,7 +342,7 @@ void MovementAIComponent::SetRotation(const NiQuaternion& value) {
 		return;
 	}
 
-	auto* controllablePhysicsComponent = m_OwningEntity->GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = m_ParentEntity->GetComponent<ControllablePhysicsComponent>();
 
 	if (controllablePhysicsComponent != nullptr) {
 		controllablePhysicsComponent->SetRotation(value);
@@ -350,7 +350,7 @@ void MovementAIComponent::SetRotation(const NiQuaternion& value) {
 		return;
 	}
 
-	auto* simplePhysicsComponent = m_OwningEntity->GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = m_ParentEntity->GetComponent<SimplePhysicsComponent>();
 
 	if (simplePhysicsComponent != nullptr) {
 		simplePhysicsComponent->SetRotation(value);
@@ -358,7 +358,7 @@ void MovementAIComponent::SetRotation(const NiQuaternion& value) {
 }
 
 void MovementAIComponent::SetVelocity(const NiPoint3& value) {
-	auto* controllablePhysicsComponent = m_OwningEntity->GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = m_ParentEntity->GetComponent<ControllablePhysicsComponent>();
 
 	if (controllablePhysicsComponent != nullptr) {
 		controllablePhysicsComponent->SetVelocity(value);
@@ -366,7 +366,7 @@ void MovementAIComponent::SetVelocity(const NiPoint3& value) {
 		return;
 	}
 
-	auto* simplePhysicsComponent = m_OwningEntity->GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = m_ParentEntity->GetComponent<SimplePhysicsComponent>();
 
 	if (simplePhysicsComponent != nullptr) {
 		simplePhysicsComponent->SetVelocity(value);
