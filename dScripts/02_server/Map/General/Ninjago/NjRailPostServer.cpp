@@ -1,10 +1,10 @@
 #include "NjRailPostServer.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "EntityManager.h"
 
 void NjRailPostServer::OnStartup(Entity* self) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr) {
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr) {
 		self->SetNetworkVar<bool>(NetworkNotActiveVariable, true);
 	}
 }

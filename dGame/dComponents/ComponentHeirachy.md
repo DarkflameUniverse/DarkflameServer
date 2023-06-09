@@ -12,9 +12,9 @@ Legend
 LWOActivityComponent
 ├── LWOShootingGalleryComponent
 ├── LWOScriptedActivityComponent
-	└── LWOBaseRacingControlComponent
-		├── LWORacingControlComponent
-		└── LWOGateRushControlComponent
+|	└── LWOBaseRacingControlComponent
+|		├── LWORacingControlComponent
+|		└── LWOGateRushControlComponent
 ├── LWOQuickBuildComponent
 ├── LWOMiniGameControlComponent
 LWOBaseCombatAIComponent
@@ -32,11 +32,11 @@ LWOBaseRenderComponent
 ├── LWOSkinnedRenderComponent
 LWOBaseVendorComponent
 ├── LWOVendorComponent
-	├~~ LWOProximityMonitorComponent
+|	├~~ LWOProximityMonitorComponent
 ├── LWODonationVendorComponent
-	├~~ LWOProximityMonitorComponent
+|	├~~ LWOProximityMonitorComponent
 ├── LWOAchievementVendorComponent
-	├~~ LWOProximityMonitorComponent
+|	├~~ LWOProximityMonitorComponent
 LWOBBBComponent_Common
 ├── LWOBBBComponent_Client
 LWOBlueprintComponent
@@ -51,7 +51,7 @@ LWOCharacterComponent
 ├~~ LWOPetCreatorComponent
 ├~~ LWOLevelProgressionComponent
 ├~~ LWOPlayerForcedMovementComponent
-	├~? LWOPathfindingControlComponent
+|	├~? LWOPathfindingControlComponent
 LWOChestComponent
 LWOChoiceBuildComponent
 LWOCollectibleComponent
@@ -68,7 +68,7 @@ LWOGhostComponent
 LWOHFLightDirectionGadgetComponent
 LWOInventoryComponent_Common
 ├── LWOInventoryComponent_Client
-	└── LWOInventoryComponent_EquippedItem
+|	└── LWOInventoryComponent_EquippedItem
 LWOItemComponent
 LWOLUPExhibitComponent
 LWOMissionOfferComponent
@@ -91,7 +91,7 @@ LWOPetComponent
 ├~~ LWOPathfindingControlComponent
 ├~? LWOItemComponent
 ├~? LWOModelBehaviorComponent
-	├~~ ...
+|	├~~ ...
 LWOPlatformBoundaryComponent
 LWOPlatformComponent
 ├-> LWOMoverPlatformSubComponent

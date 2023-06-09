@@ -47,7 +47,7 @@
 #include "MovingPlatformComponent.h"
 #include "MissionComponent.h"
 #include "MissionOfferComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "BuildBorderComponent.h"
 #include "MovementAIComponent.h"
 #include "VendorComponent.h"
@@ -1016,9 +1016,9 @@ void Entity::AddCollisionPhantomCallback(const std::function<void(Entity* target
 }
 
 void Entity::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const {
-	auto rebuildComponent = GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr) {
-		rebuildComponent->AddRebuildCompleteCallback(callback);
+	auto quickBuildComponent = GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr) {
+		quickBuildComponent->AddRebuildCompleteCallback(callback);
 	}
 }
 

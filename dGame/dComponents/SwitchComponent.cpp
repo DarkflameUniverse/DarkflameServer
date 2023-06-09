@@ -10,7 +10,7 @@ SwitchComponent::SwitchComponent(Entity* parent) : Component(parent) {
 
 	m_ResetTime = m_ParentEntity->GetVarAs<int32_t>(u"switch_reset_time");
 
-	m_Rebuild = m_ParentEntity->GetComponent<RebuildComponent>();
+	m_Rebuild = m_ParentEntity->GetComponent<QuickBuildComponent>();
 }
 
 SwitchComponent::~SwitchComponent() {

@@ -1,5 +1,5 @@
-#ifndef REBUILDCOMPONENT_H
-#define REBUILDCOMPONENT_H
+#ifndef __QUICKBUILDCOMPONENT__H__
+#define __QUICKBUILDCOMPONENT__H__
 
 #include <BitStream.h>
 #include <vector>
@@ -20,12 +20,12 @@ enum class eQuickBuildFailReason : uint32_t;
  * consists of an activator that shows a popup and then the actual entity that the bricks are built into. Note
  * that quick builds are also scripted activities so this shared some logic with the ScriptedActivityComponent.
  */
-class RebuildComponent : public Component {
+class QuickBuildComponent : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
-	RebuildComponent(Entity* entity);
-	~RebuildComponent() override;
+	QuickBuildComponent(Entity* entity);
+	~QuickBuildComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void Update(float deltaTime) override;
@@ -362,4 +362,4 @@ private:
 	void CompleteRebuild(Entity* user);
 };
 
-#endif // REBUILDCOMPONENT_H
+#endif  //!__QUICKBUILDCOMPONENT__H__

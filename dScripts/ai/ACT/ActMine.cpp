@@ -1,7 +1,7 @@
 #include "ActMine.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 
 void ActMine::OnStartup(Entity* self) {
 	self->SetVar(u"RebuildComplete", false);
@@ -10,7 +10,7 @@ void ActMine::OnStartup(Entity* self) {
 
 void ActMine::OnRebuildNotifyState(Entity* self, eRebuildState state) {
 	if (state == eRebuildState::COMPLETED) {
-		auto* rebuild = self->GetComponent<RebuildComponent>();
+		auto* rebuild = self->GetComponent<QuickBuildComponent>();
 		if (rebuild) {
 			auto* builder = rebuild->GetBuilder();
 			self->SetVar(u"Builder", builder->GetObjectID());

@@ -3,7 +3,7 @@
 #include "GameMessages.h"
 #include "Character.h"
 #include "MissionComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "eTerminateType.h"
 #include "ePlayerFlag.h"
 
@@ -12,13 +12,13 @@ void NsTokenConsoleServer::OnStartup(Entity* self) {
 }
 
 void NsTokenConsoleServer::OnUse(Entity* self, Entity* user) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent == nullptr) {
+	if (quickBuildComponent == nullptr) {
 		return;
 	}
 
-	if (rebuildComponent->GetState() != eRebuildState::COMPLETED) {
+	if (quickBuildComponent->GetState() != eRebuildState::COMPLETED) {
 		return;
 	}
 

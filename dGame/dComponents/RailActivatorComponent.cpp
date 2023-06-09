@@ -4,7 +4,7 @@
 #include "CDRailActivatorComponent.h"
 #include "Entity.h"
 #include "GameMessages.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "Game.h"
 #include "dLogger.h"
 #include "RenderComponent.h"
@@ -43,13 +43,13 @@ RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t component
 RailActivatorComponent::~RailActivatorComponent() = default;
 
 void RailActivatorComponent::OnUse(Entity* originator) {
-	auto* rebuildComponent = m_ParentEntity->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr && rebuildComponent->GetState() != eRebuildState::COMPLETED)
+	auto* quickBuildComponent = m_ParentEntity->GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr && quickBuildComponent->GetState() != eRebuildState::COMPLETED)
 		return;
 
-	if (rebuildComponent != nullptr) {
+	if (quickBuildComponent != nullptr) {
 		// Don't want it to be destroyed while a player is using it
-		rebuildComponent->SetResetTime(rebuildComponent->GetResetTime() + 10.0f);
+		quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() + 10.0f);
 	}
 
 	m_EntitiesOnRail.push_back(originator->GetObjectID());
@@ -59,7 +59,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 		GameMessages::SendPlayFXEffect(originator->GetObjectID(), m_StartEffect.first, m_StartEffect.second,
 			std::to_string(m_StartEffect.first));
 	}
-	
+
 	float animationLength = 0.5f;
 	if (!m_StartAnimation.empty()) {
 		animationLength = RenderComponent::PlayAnimation(originator, m_StartAnimation);
@@ -116,11 +116,11 @@ void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 		true, true, true, true, true, true, true
 	);
 
-	auto* rebuildComponent = m_ParentEntity->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = m_ParentEntity->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent != nullptr) {
+	if (quickBuildComponent != nullptr) {
 		// Set back reset time
-		rebuildComponent->SetResetTime(rebuildComponent->GetResetTime() - 10.0f);
+		quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() - 10.0f);
 	}
 
 	if (std::find(m_EntitiesOnRail.begin(), m_EntitiesOnRail.end(), originator->GetObjectID()) != m_EntitiesOnRail.end()) {

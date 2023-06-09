@@ -192,11 +192,11 @@ Entity::Initialize() {
 	 */
 
 	int buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUFF);
-	int rebuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
+	int quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
 
 	int componentID = 0;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;
-	if (rebuildComponentID > 0) componentID = rebuildComponentID;
+	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
 	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
@@ -383,11 +383,11 @@ Entity::Initialize() {
 	// }
 
 	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
-		RebuildComponent* comp = new RebuildComponent(this);
+		QuickBuildComponent* comp = new QuickBuildComponent(this);
 		m_Components.insert(std::make_pair(eReplicaComponentType::QUICK_BUILD, comp));
 
 		CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
-		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == rebuildComponentID); });
+		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
 
 		if (rebCompData.size() > 0) {
 			comp->SetResetTime(rebCompData[0].reset_time);

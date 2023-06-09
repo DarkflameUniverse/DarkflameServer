@@ -1,5 +1,5 @@
 #include "NjMonastryBossInstance.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
@@ -221,9 +221,9 @@ void NjMonastryBossInstance::HandleLedgedFrakjawSpawned(Entity* self, Entity* le
 }
 
 void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* counterWeight) {
-	auto* rebuildComponent = counterWeight->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr) {
-		rebuildComponent->AddRebuildStateCallback([this, self, counterWeight](eRebuildState state) {
+	auto* quickBuildComponent = counterWeight->GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr) {
+		quickBuildComponent->AddRebuildStateCallback([this, self, counterWeight](eRebuildState state) {
 
 			switch (state) {
 			case eRebuildState::BUILDING:

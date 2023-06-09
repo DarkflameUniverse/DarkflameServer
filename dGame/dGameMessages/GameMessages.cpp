@@ -61,7 +61,7 @@
 #include "MissionComponent.h"
 #include "DestroyableComponent.h"
 #include "ScriptComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "VendorComponent.h"
 #include "InventoryComponent.h"
 #include "RocketLaunchpadControlComponent.h"
@@ -5030,7 +5030,7 @@ void GameMessages::HandleRebuildCancel(RakNet::BitStream* inStream, Entity* enti
 	inStream->Read(bEarlyRelease);
 	inStream->Read(userID);
 
-	auto* rebComp = entity->GetComponent<RebuildComponent>();
+	auto* rebComp = entity->GetComponent<QuickBuildComponent>();
 	if (!rebComp) return;
 
 	rebComp->CancelRebuild(EntityManager::Instance()->GetEntity(userID), eQuickBuildFailReason::CANCELED_EARLY);

@@ -1,4 +1,4 @@
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "Entity.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
@@ -24,7 +24,7 @@
 
 #include "CppScripts.h"
 
-RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
+QuickBuildComponent::QuickBuildComponent(Entity* entity) : Component(entity) {
 	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
 
 	if (!checkPreconditions.empty()) {
@@ -39,14 +39,14 @@ RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
 		GeneralUtils::TryParse(positionAsVector[1], m_ActivatorPosition.y) &&
 		GeneralUtils::TryParse(positionAsVector[2], m_ActivatorPosition.z)) {
 	} else {
-		Game::logger->Log("RebuildComponent", "Failed to find activator position for lot %i.  Defaulting to parents position.", m_ParentEntity->GetLOT());
+		Game::logger->Log("QuickBuildComponent", "Failed to find activator position for lot %i.  Defaulting to parents position.", m_ParentEntity->GetLOT());
 		m_ActivatorPosition = m_ParentEntity->GetPosition();
 	}
 
 	SpawnActivator();
 }
 
-RebuildComponent::~RebuildComponent() {
+QuickBuildComponent::~QuickBuildComponent() {
 	delete m_Precondition;
 
 	Entity* builder = GetBuilder();
@@ -57,7 +57,7 @@ RebuildComponent::~RebuildComponent() {
 	DespawnActivator();
 }
 
-void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void QuickBuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	if (!m_ParentEntity->GetComponent<DestroyableComponent>()) {
 		if (bIsInitialUpdate) {
 			outBitStream->Write(false);
@@ -110,7 +110,7 @@ void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitia
 	m_StateDirty = false;
 }
 
-void RebuildComponent::Update(float deltaTime) {
+void QuickBuildComponent::Update(float deltaTime) {
 	m_Activator = GetActivator();
 
 	// Serialize the quickbuild every so often, fixes the odd bug where the quickbuild is not buildable
@@ -242,7 +242,7 @@ void RebuildComponent::Update(float deltaTime) {
 	}
 }
 
-void RebuildComponent::OnUse(Entity* originator) {
+void QuickBuildComponent::OnUse(Entity* originator) {
 	if (GetBuilder() != nullptr || m_State == eRebuildState::COMPLETED) {
 		return;
 	}
@@ -254,7 +254,7 @@ void RebuildComponent::OnUse(Entity* originator) {
 	StartRebuild(originator);
 }
 
-void RebuildComponent::SpawnActivator() {
+void QuickBuildComponent::SpawnActivator() {
 	if (!m_SelfActivator || m_ActivatorPosition != NiPoint3::ZERO) {
 		if (!m_Activator) {
 			EntityInfo info;
@@ -274,7 +274,7 @@ void RebuildComponent::SpawnActivator() {
 	}
 }
 
-void RebuildComponent::DespawnActivator() {
+void QuickBuildComponent::DespawnActivator() {
 	if (m_Activator) {
 		EntityManager::Instance()->DestructEntity(m_Activator);
 
@@ -286,73 +286,73 @@ void RebuildComponent::DespawnActivator() {
 	}
 }
 
-Entity* RebuildComponent::GetActivator() {
+Entity* QuickBuildComponent::GetActivator() {
 	return EntityManager::Instance()->GetEntity(m_ActivatorId);
 }
 
-NiPoint3 RebuildComponent::GetActivatorPosition() {
+NiPoint3 QuickBuildComponent::GetActivatorPosition() {
 	return m_ActivatorPosition;
 }
 
-float RebuildComponent::GetResetTime() {
+float QuickBuildComponent::GetResetTime() {
 	return m_ResetTime;
 }
 
-float RebuildComponent::GetCompleteTime() {
+float QuickBuildComponent::GetCompleteTime() {
 	return m_CompleteTime;
 }
 
-int RebuildComponent::GetTakeImagination() {
+int QuickBuildComponent::GetTakeImagination() {
 	return m_TakeImagination;
 }
 
-bool RebuildComponent::GetInterruptible() {
+bool QuickBuildComponent::GetInterruptible() {
 	return m_Interruptible;
 }
 
-bool RebuildComponent::GetSelfActivator() {
+bool QuickBuildComponent::GetSelfActivator() {
 	return m_SelfActivator;
 }
 
-std::vector<int> RebuildComponent::GetCustomModules() {
+std::vector<int> QuickBuildComponent::GetCustomModules() {
 	return m_CustomModules;
 }
 
-int RebuildComponent::GetActivityId() {
+int QuickBuildComponent::GetActivityId() {
 	return m_ActivityId;
 }
 
-int RebuildComponent::GetPostImaginationCost() {
+int QuickBuildComponent::GetPostImaginationCost() {
 	return m_PostImaginationCost;
 }
 
-float RebuildComponent::GetTimeBeforeSmash() {
+float QuickBuildComponent::GetTimeBeforeSmash() {
 	return m_TimeBeforeSmash;
 }
 
-eRebuildState RebuildComponent::GetState() {
+eRebuildState QuickBuildComponent::GetState() {
 	return m_State;
 }
 
-Entity* RebuildComponent::GetBuilder() const {
+Entity* QuickBuildComponent::GetBuilder() const {
 	auto* builder = EntityManager::Instance()->GetEntity(m_Builder);
 
 	return builder;
 }
 
-bool RebuildComponent::GetRepositionPlayer() const {
+bool QuickBuildComponent::GetRepositionPlayer() const {
 	return m_RepositionPlayer;
 }
 
-void RebuildComponent::SetActivatorPosition(NiPoint3 value) {
+void QuickBuildComponent::SetActivatorPosition(NiPoint3 value) {
 	m_ActivatorPosition = value;
 }
 
-void RebuildComponent::SetResetTime(float value) {
+void QuickBuildComponent::SetResetTime(float value) {
 	m_ResetTime = value;
 }
 
-void RebuildComponent::SetCompleteTime(float value) {
+void QuickBuildComponent::SetCompleteTime(float value) {
 	if (value < 0) {
 		m_CompleteTime = 4.5f;
 	} else {
@@ -360,31 +360,31 @@ void RebuildComponent::SetCompleteTime(float value) {
 	}
 }
 
-void RebuildComponent::SetTakeImagination(int value) {
+void QuickBuildComponent::SetTakeImagination(int value) {
 	m_TakeImagination = value;
 }
 
-void RebuildComponent::SetInterruptible(bool value) {
+void QuickBuildComponent::SetInterruptible(bool value) {
 	m_Interruptible = value;
 }
 
-void RebuildComponent::SetSelfActivator(bool value) {
+void QuickBuildComponent::SetSelfActivator(bool value) {
 	m_SelfActivator = value;
 }
 
-void RebuildComponent::SetCustomModules(std::vector<int> value) {
+void QuickBuildComponent::SetCustomModules(std::vector<int> value) {
 	m_CustomModules = value;
 }
 
-void RebuildComponent::SetActivityId(int value) {
+void QuickBuildComponent::SetActivityId(int value) {
 	m_ActivityId = value;
 }
 
-void RebuildComponent::SetPostImaginationCost(int value) {
+void QuickBuildComponent::SetPostImaginationCost(int value) {
 	m_PostImaginationCost = value;
 }
 
-void RebuildComponent::SetTimeBeforeSmash(float value) {
+void QuickBuildComponent::SetTimeBeforeSmash(float value) {
 	if (value < 0) {
 		m_TimeBeforeSmash = 10.0f;
 	} else {
@@ -392,11 +392,11 @@ void RebuildComponent::SetTimeBeforeSmash(float value) {
 	}
 }
 
-void RebuildComponent::SetRepositionPlayer(bool value) {
+void QuickBuildComponent::SetRepositionPlayer(bool value) {
 	m_RepositionPlayer = value;
 }
 
-void RebuildComponent::StartRebuild(Entity* user) {
+void QuickBuildComponent::StartRebuild(Entity* user) {
 	if (m_State == eRebuildState::OPEN || m_State == eRebuildState::COMPLETED || m_State == eRebuildState::INCOMPLETE) {
 		m_Builder = user->GetObjectID();
 
@@ -429,7 +429,7 @@ void RebuildComponent::StartRebuild(Entity* user) {
 	}
 }
 
-void RebuildComponent::CompleteRebuild(Entity* user) {
+void QuickBuildComponent::CompleteRebuild(Entity* user) {
 	if (user == nullptr) {
 		return;
 	}
@@ -439,7 +439,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		characterComponent->TrackRebuildComplete();
 	} else {
-		Game::logger->Log("RebuildComponent", "Some user tried to finish the rebuild but they didn't have a character somehow.");
+		Game::logger->Log("QuickBuildComponent", "Some user tried to finish the rebuild but they didn't have a character somehow.");
 		return;
 	}
 
@@ -521,7 +521,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	RenderComponent::PlayAnimation(user, u"rebuild-celebrate", 1.09f);
 }
 
-void RebuildComponent::ResetRebuild(bool failed) {
+void QuickBuildComponent::ResetRebuild(bool failed) {
 	Entity* builder = GetBuilder();
 
 	if (m_State == eRebuildState::BUILDING && builder) {
@@ -556,7 +556,7 @@ void RebuildComponent::ResetRebuild(bool failed) {
 	}
 }
 
-void RebuildComponent::CancelRebuild(Entity* entity, eQuickBuildFailReason failReason, bool skipChecks) {
+void QuickBuildComponent::CancelRebuild(Entity* entity, eQuickBuildFailReason failReason, bool skipChecks) {
 	if (m_State != eRebuildState::COMPLETED || skipChecks) {
 
 		m_Builder = LWOOBJID_EMPTY;
@@ -595,10 +595,10 @@ void RebuildComponent::CancelRebuild(Entity* entity, eQuickBuildFailReason failR
 	}
 }
 
-void RebuildComponent::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) {
+void QuickBuildComponent::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) {
 	m_RebuildCompleteCallbacks.push_back(callback);
 }
 
-void RebuildComponent::AddRebuildStateCallback(const std::function<void(eRebuildState state)>& callback) {
+void QuickBuildComponent::AddRebuildStateCallback(const std::function<void(eRebuildState state)>& callback) {
 	m_RebuildStateCallbacks.push_back(callback);
 }
