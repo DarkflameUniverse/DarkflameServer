@@ -95,6 +95,7 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_GMLevel = eGameMasterLevel::CIVILIAN;
 	m_CollectibleID = 0;
 	m_NetworkID = 0;
+	m_Observers = 0;
 	m_Groups = {};
 	m_OwnerOverride = LWOOBJID_EMPTY;
 	m_Timers = {};
@@ -105,6 +106,9 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_DieCallbacks = {};
 	m_PhantomCollisionCallbacks = {};
 	m_IsParentChildDirty = true;
+	m_IsGhostingCandidate = false;
+	m_PlayerIsReadyForUpdates = false;
+	m_ShouldDestroyAfterUpdate = false;
 
 	m_Settings = info.settings;
 	m_NetworkSettings = info.networkSettings;
@@ -382,7 +386,7 @@ bool Entity::operator==(const Entity& other) const {
 }
 
 bool Entity::operator!=(const Entity& other) const {
-	return other.m_ObjectID != m_ObjectID;
+	return !(other.m_ObjectID == m_ObjectID);
 }
 
 User* Entity::GetParentUser() const {
@@ -393,27 +397,22 @@ User* Entity::GetParentUser() const {
 	return static_cast<const Player*>(this)->GetParentUser();
 }
 
-const ComponentPtr Entity::GetComponent(eReplicaComponentType componentID) const {
-	const auto& index = m_Components.find(componentID);
-	return index != m_Components.end() ? index->second : nullptr;
-}
-
 bool Entity::HasComponent(const eReplicaComponentType componentId) const {
 	return m_Components.find(componentId) != m_Components.end();
 }
 
-std::vector<std::shared_ptr<ScriptComponent>> Entity::GetScriptComponents() {
-	std::vector<std::shared_ptr<ScriptComponent>> comps;
+std::vector<ScriptComponent*> Entity::GetScriptComponents() {
+	std::vector<ScriptComponent*> comps;
 	for (const auto&[componentType, component] : m_Components) {
 		if (componentType == eReplicaComponentType::SCRIPT) {
-			comps.push_back(std::dynamic_pointer_cast<ScriptComponent>(component));
+			comps.push_back(dynamic_cast<ScriptComponent*>(component.get()));
 		}
 	}
 
 	return comps;
 }
 
-void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName) {
+void Entity::Subscribe(const LWOOBJID& scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName) {
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
 		auto destroyableComponent = GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
@@ -421,7 +420,7 @@ void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, co
 	}
 }
 
-void Entity::Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName) {
+void Entity::Unsubscribe(const LWOOBJID& scriptObjId, const std::string& notificationName) {
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
 		auto destroyableComponent = GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
@@ -429,12 +428,12 @@ void Entity::Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationNa
 	}
 }
 
-void Entity::SetProximityRadius(float proxRadius, std::string name) {
+void Entity::SetProximityRadius(const float proxRadius, const std::string& name) {
 	auto proximityMonitorComponent = AddComponent<ProximityMonitorComponent>();
 	if (proximityMonitorComponent) proximityMonitorComponent->SetProximityRadius(proxRadius, name);
 }
 
-void Entity::SetProximityRadius(dpEntity* entity, std::string name) {
+void Entity::SetProximityRadius(dpEntity* entity, const std::string& name) {
 	auto proximityMonitorComponent = AddComponent<ProximityMonitorComponent>();
 	if (proximityMonitorComponent) proximityMonitorComponent->SetProximityRadius(entity, name);
 }
@@ -860,7 +859,7 @@ void Entity::OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16s
 	}
 }
 
-void Entity::RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {
+void Entity::RequestActivityExit(Entity* sender, const LWOOBJID& player, const bool canceled) {
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 		script->OnRequestActivityExit(sender, player, canceled);
 	}
@@ -1014,7 +1013,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 	droppedLoot.erase(objectID);
 }
 
-bool Entity::CanPickupCoins(uint64_t count) {
+bool Entity::CanPickupCoins(const uint64_t& count) {
 	if (!IsPlayer()) return false;
 	auto* player = static_cast<Player*>(this);
 	auto droppedCoins = player->GetDroppedCoins();
@@ -1026,7 +1025,7 @@ bool Entity::CanPickupCoins(uint64_t count) {
 	}
 }
 
-void Entity::RegisterCoinDrop(uint64_t count) {
+void Entity::RegisterCoinDrop(const uint64_t& count) {
 	if (!IsPlayer()) return;
 	auto* player = static_cast<Player*>(this);
 	auto droppedCoins = player->GetDroppedCoins();
@@ -1056,12 +1055,12 @@ void Entity::RemoveParent() {
 	this->m_ParentEntity = nullptr;
 }
 
-void Entity::AddTimer(std::string name, float time) {
+void Entity::AddTimer(const std::string& name, float time) {
 	EntityTimer* timer = new EntityTimer(name, time);
 	m_PendingTimers.push_back(timer);
 }
 
-void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
+void Entity::AddCallbackTimer(const float time, const std::function<void()>& callback) {
 	EntityCallbackTimer* timer = new EntityCallbackTimer(time, callback);
 	m_CallbackTimers.push_back(timer);
 }
@@ -1148,20 +1147,8 @@ const NiQuaternion& Entity::GetDefaultRotation() const {
 	return m_DefaultRotation;
 }
 
-float Entity::GetDefaultScale() const {
-	return m_Scale;
-}
-
-void Entity::SetOwnerOverride(const LWOOBJID value) {
+void Entity::SetOwnerOverride(const LWOOBJID& value) {
 	m_OwnerOverride = value;
-}
-
-bool Entity::GetIsGhostingCandidate() const {
-	return m_IsGhostingCandidate;
-}
-
-int8_t Entity::GetObservers() const {
-	return m_Observers;
 }
 
 void Entity::SetObservers(int8_t value) {
@@ -1251,7 +1238,7 @@ const NiQuaternion& Entity::GetRotation() const {
 	return NiQuaternion::IDENTITY;
 }
 
-void Entity::SetPosition(NiPoint3 position) {
+void Entity::SetPosition(const NiPoint3& position) {
 	auto controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
@@ -1279,7 +1266,7 @@ void Entity::SetPosition(NiPoint3 position) {
 	EntityManager::Instance()->SerializeEntity(this);
 }
 
-void Entity::SetRotation(NiQuaternion rotation) {
+void Entity::SetRotation(const NiQuaternion& rotation) {
 	auto controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
@@ -1339,10 +1326,6 @@ bool Entity::HasVar(const std::u16string& name) const {
 	}
 
 	return false;
-}
-
-uint16_t Entity::GetNetworkId() const {
-	return m_NetworkID;
 }
 
 void Entity::SetNetworkId(const uint16_t id) {
@@ -1406,7 +1389,7 @@ void Entity::Resurrect() {
 	}
 }
 
-void Entity::AddToGroup(const std::string& group) {
+void Entity::AddToGroups(const std::string& group) {
 	if (std::find(m_Groups.begin(), m_Groups.end(), group) == m_Groups.end()) {
 		m_Groups.push_back(group);
 	}

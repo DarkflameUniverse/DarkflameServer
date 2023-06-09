@@ -213,7 +213,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	}
 
 	Entity* entity;
-	std::shared_ptr<ScriptedActivityComponent> activity;
+	ScriptedActivityComponent* activity;
 	uint32_t activityId;
 	uint32_t lot;
 	uint32_t collectionId;

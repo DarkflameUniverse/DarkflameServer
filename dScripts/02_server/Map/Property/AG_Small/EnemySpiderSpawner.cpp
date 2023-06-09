@@ -51,7 +51,7 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);
 		if (newEntity) {
 			EntityManager::Instance()->ConstructEntity(newEntity);
-			newEntity->GetGroups().push_back("BabySpider");
+			newEntity->AddToGroups("BabySpider");
 
 			/*
 			auto movementAi = newEntity->GetComponent<MovementAIComponent>();

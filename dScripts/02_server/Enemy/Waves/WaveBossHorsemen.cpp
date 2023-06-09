@@ -11,7 +11,7 @@ void WaveBossHorsemen::OnStartup(Entity* self) {
 		combatAIComponent->SetStunImmune(true);
 	}
 
-	self->AddToGroup("boss");
+	self->AddToGroups("boss");
 }
 
 void

@@ -91,7 +91,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 		return;
 	}
 
-	GameMessages::SendAddBuff(const_cast<LWOOBJID&>(m_OwningEntity->GetObjectID()), source, (uint32_t)id,
+	GameMessages::SendAddBuff(m_OwningEntity->GetObjectID(), source, (uint32_t)id,
 		(uint32_t)duration * 1000, addImmunity, cancelOnDamaged, cancelOnDeath,
 		cancelOnLogout, cancelOnRemoveBuff, cancelOnUi, cancelOnUnequip, cancelOnZone);
 

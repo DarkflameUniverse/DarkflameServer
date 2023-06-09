@@ -4565,7 +4565,7 @@ void GameMessages::SendVehicleNotifyFinishedRace(LWOOBJID objectId, const System
 	SEND_PACKET;
 }
 
-void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
+void GameMessages::SendAddBuff(const LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
 	bool addImmunity, bool cancelOnDamaged, bool cancelOnDeath, bool cancelOnLogout,
 	bool cancelOnRemoveBuff, bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone,
 	const SystemAddress& sysAddr) {

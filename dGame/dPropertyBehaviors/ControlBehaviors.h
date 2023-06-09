@@ -41,9 +41,9 @@ public:
 	 */
 	BlockDefinition* GetBlockInfo(const BlockName& blockName);
 private:
-	void RequestUpdatedID(int32_t behaviorID, std::shared_ptr<ModelBehaviorComponent> modelComponent, Entity* modelOwner, const SystemAddress& sysAddr);
+	void RequestUpdatedID(int32_t behaviorID, ModelBehaviorComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr);
 	void SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner);
-	void ModelTypeChanged(AMFArrayValue* arguments, std::shared_ptr<ModelBehaviorComponent> ModelBehaviorComponent);
+	void ModelTypeChanged(AMFArrayValue* arguments, ModelBehaviorComponent* ModelComponent);
 	void ToggleExecutionUpdates();
 	void AddStrip(AMFArrayValue* arguments);
 	void RemoveStrip(AMFArrayValue* arguments);
@@ -56,9 +56,9 @@ private:
 	void Add(AMFArrayValue* arguments);
 	void RemoveActions(AMFArrayValue* arguments);
 	void Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
-	void SendBehaviorBlocksToClient(std::shared_ptr<ModelBehaviorComponent> modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
+	void SendBehaviorBlocksToClient(ModelBehaviorComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
 	void UpdateAction(AMFArrayValue* arguments);
-	void MoveToInventory(std::shared_ptr<ModelBehaviorComponent> modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
+	void MoveToInventory(ModelBehaviorComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
 	std::map<BlockName, BlockDefinition*> blockTypes{};
 
 	// If false, property behaviors will not be able to be edited.

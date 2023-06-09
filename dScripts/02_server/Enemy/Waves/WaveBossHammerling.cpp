@@ -11,7 +11,7 @@ void WaveBossHammerling::OnStartup(Entity* self) {
 		combatAIComponent->SetStunImmune(true);
 	}
 
-	self->AddToGroup("boss");
+	self->AddToGroups("boss");
 }
 
 void WaveBossHammerling::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,

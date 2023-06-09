@@ -58,7 +58,7 @@ RebuildComponent::~RebuildComponent() {
 }
 
 void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	if (m_OwningEntity->GetComponent(eReplicaComponentType::DESTROYABLE) == nullptr) {
+	if (!m_OwningEntity->GetComponent<DestroyableComponent>()) {
 		if (bIsInitialUpdate) {
 			outBitStream->Write(false);
 		}

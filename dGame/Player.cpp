@@ -51,21 +51,17 @@ User* Player::GetParentUser() const {
 	return m_ParentUser;
 }
 
-SystemAddress Player::GetSystemAddress() const {
-	return m_SystemAddress;
-}
-
 void Player::SetSystemAddress(const SystemAddress& value) {
 	m_SystemAddress = value;
 }
 
-void Player::SetRespawnPos(const NiPoint3 position) {
+void Player::SetRespawnPos(const NiPoint3& position) {
 	m_respawnPos = position;
 
 	m_Character->SetRespawnPoint(dZoneManager::Instance()->GetZone()->GetWorldID(), position);
 }
 
-void Player::SetRespawnRot(const NiQuaternion rotation) {
+void Player::SetRespawnRot(const NiQuaternion& rotation) {
 	m_respawnRot = rotation;
 }
 

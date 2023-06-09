@@ -20,7 +20,7 @@ public:
 
 	User* GetParentUser() const override;
 
-	SystemAddress GetSystemAddress() const override;
+	const SystemAddress GetSystemAddress() const override { return m_SystemAddress; }
 
 	NiPoint3 GetRespawnPosition() const override;
 
@@ -44,9 +44,9 @@ public:
 
 	void SetSystemAddress(const SystemAddress& value) override;
 
-	void SetRespawnPos(NiPoint3 position) override;
+	void SetRespawnPos(const NiPoint3& position) override;
 
-	void SetRespawnRot(NiQuaternion rotation) override;
+	void SetRespawnRot(const NiQuaternion& rotation) override;
 
 	void SetGhostReferencePoint(const NiPoint3& value);
 

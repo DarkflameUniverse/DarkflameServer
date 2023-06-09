@@ -102,23 +102,23 @@ Entity* Spawner::Spawn(std::vector<SpawnerNode*> freeNodes, const bool force) {
 			m_EntityInfo.spawnerID = m_Info.spawnerID;
 		}
 
-		Entity* rezdE = EntityManager::Instance()->CreateEntity(m_EntityInfo, nullptr);
+		Entity* spawnedEntity = EntityManager::Instance()->CreateEntity(m_EntityInfo, nullptr);
 
-		rezdE->GetGroups() = m_Info.groups;
+		spawnedEntity->SetGroups(m_Info.groups);
 
-		EntityManager::Instance()->ConstructEntity(rezdE);
+		EntityManager::Instance()->ConstructEntity(spawnedEntity);
 
-		m_Entities.insert({ rezdE->GetObjectID(), spawnNode });
-		spawnNode->entities.push_back(rezdE->GetObjectID());
+		m_Entities.insert({ spawnedEntity->GetObjectID(), spawnNode });
+		spawnNode->entities.push_back(spawnedEntity->GetObjectID());
 		if (m_Entities.size() == m_Info.amountMaintained) {
 			m_NeedsUpdate = false;
 		}
 
 		for (const auto& cb : m_EntitySpawnedCallbacks) {
-			cb(rezdE);
+			cb(spawnedEntity);
 		}
 
-		return rezdE;
+		return spawnedEntity;
 	}
 
 	return nullptr;

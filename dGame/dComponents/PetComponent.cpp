@@ -363,7 +363,7 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	if (m_MovementAI == nullptr) {
-		m_MovementAI = m_OwningEntity->GetComponent<MovementAIComponent>();
+		m_MovementAI = m_OwningEntity->GetSharedComponent<MovementAIComponent>();
 		if (!m_MovementAI) return;
 	}
 
@@ -792,7 +792,7 @@ void PetComponent::ClientFailTamingMinigame() {
 }
 
 void PetComponent::Wander() {
-	m_MovementAI = m_OwningEntity->GetComponent<MovementAIComponent>();
+	if (!m_MovementAI) m_MovementAI = m_OwningEntity->GetSharedComponent<MovementAIComponent>();
 
 	if (m_MovementAI == nullptr || !m_MovementAI->AtFinalWaypoint()) {
 		return;
@@ -1038,7 +1038,7 @@ void PetComponent::SetAbility(PetAbilityType value) {
 	m_Ability = value;
 }
 
-std::shared_ptr<PetComponent> PetComponent::GetTamingPet(LWOOBJID tamer) {
+PetComponent* PetComponent::GetTamingPet(LWOOBJID tamer) {
 	const auto& pair = currentActivities.find(tamer);
 
 	if (pair == currentActivities.end()) {
@@ -1056,7 +1056,7 @@ std::shared_ptr<PetComponent> PetComponent::GetTamingPet(LWOOBJID tamer) {
 	return entity->GetComponent<PetComponent>();
 }
 
-std::shared_ptr<PetComponent> PetComponent::GetActivePet(LWOOBJID owner) {
+PetComponent* PetComponent::GetActivePet(LWOOBJID owner) {
 	const auto& pair = activePets.find(owner);
 
 	if (pair == activePets.end()) {

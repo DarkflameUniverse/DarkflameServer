@@ -5,9 +5,9 @@
 #include <functional>
 #include <typeinfo>
 #include <type_traits>
+#include <memory>
 #include <unordered_map>
 #include <vector>
-#include <memory>
 
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -44,10 +44,12 @@ namespace CppScripts {
 };
 
 /**
- * An entity in the world. Has multiple components.
+ * An entity in the world.
+ * Entities are composed of components which define their behavior.
  */
 
 using ComponentPtr = std::shared_ptr<Component>;
+
 class Entity {
 public:
 	explicit Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity = nullptr);
@@ -61,20 +63,22 @@ public:
 	/**
 	 * Getters
 	 */
+	Character* GetCharacter() const { return m_Character; }
+	void SetCharacter(Character* value) { m_Character = value; }
 
-	const LWOOBJID& GetObjectID() const { return m_ObjectID; }
+	const LWOOBJID GetObjectID() const { return m_ObjectID; }
 
 	const LOT GetLOT() const { return m_TemplateID; }
 
-	Character* GetCharacter() const { return m_Character; }
-
 	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
+	void SetGMLevel(const eGameMasterLevel value);
 
-	uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
+	const uint32_t GetCollectibleID() const { return m_CollectibleID; }
 
 	Entity* GetParentEntity() const { return m_ParentEntity; }
 
-	std::vector<std::string>& GetGroups() { return m_Groups; };
+	const std::vector<std::string>& GetGroups() { return m_Groups; };
+	void SetGroups(const std::vector<std::string>& value) { m_Groups = value; }
 
 	Spawner* GetSpawner() const { return m_Spawner; }
 
@@ -87,113 +91,90 @@ public:
 	bool GetIsDead() const;
 
 	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates; }
+	void SetPlayerReadyForUpdates() { m_PlayerIsReadyForUpdates = true; }
 
-	bool GetIsGhostingCandidate() const;
+	const bool GetIsGhostingCandidate() const { return m_IsGhostingCandidate; }
 
-	int8_t GetObservers() const;
+	const int8_t GetObservers() const { return m_Observers; }
+	void SetObservers(const int8_t value);
 
-	uint16_t GetNetworkId() const;
+	const uint16_t GetNetworkId() const { return m_NetworkID; }
+	void SetNetworkId(const uint16_t id);
 
 	Entity* GetOwner() const;
+	void SetOwnerOverride(const LWOOBJID& value);
 
 	const NiPoint3& GetDefaultPosition() const;
 
 	const NiQuaternion& GetDefaultRotation() const;
 
-	float GetDefaultScale() const;
+	const float GetDefaultScale() const { return m_Scale; }
 
 	const NiPoint3& GetPosition() const;
+	void SetPosition(const NiPoint3& position);
 
 	const NiQuaternion& GetRotation() const;
+	void SetRotation(const NiQuaternion& rotation);
 
 	virtual User* GetParentUser() const;
 
-	virtual SystemAddress GetSystemAddress() const { return UNASSIGNED_SYSTEM_ADDRESS; };
+	virtual const SystemAddress GetSystemAddress() const { return UNASSIGNED_SYSTEM_ADDRESS; };
 
-	/**
-	 * Setters
-	 */
+	virtual void SetRespawnPos(const NiPoint3& position) {};
 
-	void SetCharacter(Character* value) { m_Character = value; }
-
-	void SetGMLevel(eGameMasterLevel value);
-
-	void SetOwnerOverride(LWOOBJID value);
-
-	void SetPlayerReadyForUpdates() { m_PlayerIsReadyForUpdates = true; }
-
-	void SetObservers(int8_t value);
-
-	void SetNetworkId(uint16_t id);
-
-	void SetPosition(NiPoint3 position);
-
-	void SetRotation(NiQuaternion rotation);
-
-	virtual void SetRespawnPos(NiPoint3 position) {}
-
-	virtual void SetRespawnRot(NiQuaternion rotation) {}
+	virtual void SetRespawnRot(const NiQuaternion& rotation) {};
 
 	virtual void SetSystemAddress(const SystemAddress& value) {};
 
 	/**
 	 * Component management
 	 */
+	bool HasComponent(const eReplicaComponentType componentId) const;
 
-	const ComponentPtr GetComponent(eReplicaComponentType componentID) const;
+	std::vector<ScriptComponent*> GetScriptComponents();
 
-	template<typename T>
-	std::shared_ptr<T> GetComponent() const;
+	void Subscribe(const LWOOBJID& scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
+	void Unsubscribe(const LWOOBJID& scriptObjId, const std::string& notificationName);
 
-	bool HasComponent(eReplicaComponentType componentId) const;
-
-	template<typename Cmpt, typename...ConstructorValues>
-	std::shared_ptr<Cmpt> AddComponent(ConstructorValues... arguments);
-
-	std::vector<std::shared_ptr<ScriptComponent>> GetScriptComponents();
-
-	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
-	void Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName);
-
-	void SetProximityRadius(float proxRadius, std::string name);
-	void SetProximityRadius(dpEntity* entity, std::string name);
+	void SetProximityRadius(const float proxRadius, const std::string& name);
+	void SetProximityRadius(dpEntity* entity, const std::string& name);
 
 	void AddChild(Entity* child);
 	void RemoveChild(Entity* child);
 	void RemoveParent();
-	void AddTimer(std::string name, float time);
-	void AddCallbackTimer(float time, std::function<void()> callback);
+	void AddTimer(const std::string& name, const float time);
+	void AddCallbackTimer(const float time, const std::function<void()>& callback);
 	bool HasTimer(const std::string& name);
 	void CancelCallbackTimers();
 	void CancelAllTimers();
 	void CancelTimer(const std::string& name);
 
-	void AddToGroup(const std::string& group);
+	void AddToGroups(const std::string& group);
 	bool IsPlayer() const;
 
-	void WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
-	void WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
+	void WriteBaseReplicaData(RakNet::BitStream* outBitStream, const eReplicaPacketType packetType);
+	void WriteComponents(RakNet::BitStream* outBitStream, const eReplicaPacketType packetType);
 	void ResetFlags();
 	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
 	void Update(float deltaTime);
 
 	// Events
-	void OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxName, const std::string& status);
-	void OnCollisionPhantom(LWOOBJID otherEntity);
-	void OnCollisionLeavePhantom(LWOOBJID otherEntity);
+	void OnCollisionProximity(const LWOOBJID otherEntity, const std::string& proxName, const std::string& status);
+	void OnCollisionPhantom(const LWOOBJID otherEntity);
+	void OnCollisionLeavePhantom(const LWOOBJID otherEntity);
 
-	void OnFireEventServerSide(Entity* sender, std::string args, int32_t param1 = -1, int32_t param2 = -1, int32_t param3 = -1);
+	void OnFireEventServerSide(Entity* sender, const std::string args, const int32_t param1 = -1, const int32_t param2 = -1, const int32_t param3 = -1);
 	void OnActivityStateChangeRequest(const LWOOBJID senderID, const int32_t value1, const int32_t value2,
 		const std::u16string& stringValue);
-	void OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent event, const std::u16string& pathName,
-		float_t pathTime, float_t totalTime, int32_t waypoint);
+	void OnCinematicUpdate(Entity* self, Entity* sender, const eCinematicEvent event, const std::u16string& pathName,
+		const float pathTime, const float totalTime, const int32_t waypoint);
 
-	void NotifyObject(Entity* sender, const std::string& name, int32_t param1 = 0, int32_t param2 = 0);
-	void OnEmoteReceived(int32_t emote, Entity* target);
+	void NotifyObject(Entity* sender, const std::string& name, const int32_t param1 = 0, const int32_t param2 = 0);
+	void OnEmoteReceived(const int32_t emote, Entity* target);
 
 	void OnUse(Entity* originator);
 
-	void OnHitOrHealResult(Entity* attacker, int32_t damage);
+	void OnHitOrHealResult(Entity* attacker, const int32_t damage);
 	void OnHit(Entity* attacker);
 
 	void OnZonePropertyEditBegin();
@@ -205,9 +186,9 @@ public:
 	void OnZonePropertyModelRemovedWhileEquipped(Entity* player);
 	void OnZonePropertyModelRotated(Entity* player);
 
-	void OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData);
-	void OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);
-	void RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled);
+	void OnMessageBoxResponse(Entity* sender, const int32_t button, const std::u16string& identifier, const std::u16string& userData);
+	void OnChoiceBoxResponse(Entity* sender, const int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);
+	void RequestActivityExit(Entity* sender, const LWOOBJID& player, const bool canceled);
 
 	void Smash(const LWOOBJID source = LWOOBJID_EMPTY, const eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
 	void Kill(Entity* murderer = nullptr);
@@ -219,11 +200,11 @@ public:
 	void AddLootItem(const Loot::Info& info);
 	void PickupItem(const LWOOBJID& objectID);
 
-	bool CanPickupCoins(uint64_t count);
-	void RegisterCoinDrop(uint64_t count);
+	bool CanPickupCoins(const uint64_t& count);
+	void RegisterCoinDrop(const uint64_t& count);
 
 	void ScheduleKillAfterUpdate(Entity* murderer = nullptr);
-	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
+	void TriggerEvent(const eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
 
 	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }
@@ -236,10 +217,8 @@ public:
 	/*
 	 * Utility
 	 */
-	 /**
-	  * Retroactively corrects the model vault size due to incorrect initialization in a previous patch.
-	  *
-	  */
+
+	 //Retroactively corrects the model vault size due to incorrect initialization in a previous patch.
 	void RetroactiveVaultSize();
 	bool GetBoolean(const std::u16string& name) const;
 	int32_t GetI32(const std::u16string& name) const;
@@ -250,29 +229,6 @@ public:
 	void SetI64(const std::u16string& name, int64_t value);
 
 	bool HasVar(const std::u16string& name) const;
-
-	template<typename T>
-	const T& GetVar(const std::u16string& name) const;
-
-	template<typename T>
-	void SetVar(const std::u16string& name, T value);
-
-	void SendNetworkVar(const std::string& data, const SystemAddress& sysAddr);
-
-	template<typename T>
-	void SetNetworkVar(const std::u16string& name, T value, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-
-	template<typename T>
-	void SetNetworkVar(const std::u16string& name, std::vector<T> value, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-
-	template<typename T>
-	T GetNetworkVar(const std::u16string& name);
-
-	/**
-	 * Get the LDF value and cast it as T.
-	 */
-	template<typename T>
-	T GetVarAs(const std::u16string& name) const;
 
 	/**
 	 * Get the LDF data.
@@ -291,7 +247,57 @@ public:
 
 	Entity* GetScheduledKiller() { return m_ScheduleKiller; }
 
-	std::unordered_map<eReplicaComponentType, ComponentPtr>& GetComponents() { return m_Components; }
+	const std::unordered_map<eReplicaComponentType, ComponentPtr>& GetComponents() { return m_Components; }
+
+	// Template declarations
+	template<typename T>
+	const T& GetVar(const std::u16string& name) const;
+
+	template<typename T>
+	T GetVarAs(const std::u16string& name) const;
+
+	template<typename T>
+	void SetVar(const std::u16string& name, const T& value);
+
+	template<typename T>
+	T GetNetworkVar(const std::u16string& name);
+
+	void SendNetworkVar(const std::string& data, const SystemAddress& sysAddr);
+
+	template<typename T>
+	void SetNetworkVar(const std::u16string& name, const T& value, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+
+	template<typename T>
+	void SetNetworkVar(const std::u16string& name, const std::vector<T>& value, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+	/**
+	 * @brief Get a non-owning reference to a component
+	 *
+	 * @tparam Cmpt The component to get a non-owning reference of
+	 * @return Cmpt* The non-owning pointer to the component
+	 */
+	template<typename Cmpt>
+	Cmpt* GetComponent() const;
+
+	/**
+	 * @brief Get an owning reference to a component.
+	 *
+	 * @tparam Cmpt The component to get a shared reference of
+	 * @return std::shared_ptr<Cmpt> The owning shared pointer
+	 */
+	template<typename Cmpt>
+	std::shared_ptr<Cmpt> GetSharedComponent() const;
+
+	/**
+	 * @brief Adds a component to this Entity.
+	 *
+	 * @tparam Cmpt The component to create
+	 * @tparam ConstructorValues The constructor values to forward to the component
+	 * @param arguments The constructor values to forward to the component
+	 * @return Cmpt* A non-owning pointer to the created component,
+	 * or a non-owning pointer to the existing component if the component already existed.
+	 */
+	template<typename Cmpt, typename...ConstructorValues>
+	Cmpt* AddComponent(ConstructorValues... arguments);
 
 protected:
 	LWOOBJID m_ObjectID;
@@ -316,30 +322,30 @@ protected:
 	Entity* m_ParentEntity; //For spawners and the like
 	std::vector<Entity*> m_ChildEntities;
 	eGameMasterLevel m_GMLevel;
-	uint16_t m_CollectibleID;
+	uint32_t m_CollectibleID;
 	std::vector<std::string> m_Groups;
 	uint16_t m_NetworkID;
 	std::vector<std::function<void()>> m_DieCallbacks;
-	std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
+	std::vector<std::function<void(Entity*)>> m_PhantomCollisionCallbacks;
 
 	std::unordered_map<eReplicaComponentType, ComponentPtr> m_Components;
 	std::vector<EntityTimer*> m_Timers;
 	std::vector<EntityTimer*> m_PendingTimers;
 	std::vector<EntityCallbackTimer*> m_CallbackTimers;
 
-	bool m_ShouldDestroyAfterUpdate = false;
+	bool m_ShouldDestroyAfterUpdate;
 
 	LWOOBJID m_OwnerOverride;
 
 	Entity* m_ScheduleKiller;
 
-	bool m_PlayerIsReadyForUpdates = false;
+	bool m_PlayerIsReadyForUpdates;
 
-	bool m_IsGhostingCandidate = false;
+	bool m_IsGhostingCandidate;
 
-	int8_t m_Observers = 0;
+	int8_t m_Observers;
 
-	bool m_IsParentChildDirty = true;
+	bool m_IsParentChildDirty;
 
 	/*
 	 * Collision
@@ -347,151 +353,6 @@ protected:
 	std::vector<LWOOBJID> m_TargetsInPhantom;
 };
 
-template <typename T>
-std::shared_ptr<T> Entity::GetComponent() const {
-	return std::dynamic_pointer_cast<T>(GetComponent(T::ComponentType));
-}
-
-template<typename T>
-const T& Entity::GetVar(const std::u16string& name) const {
-	auto* data = GetVarData(name);
-
-	if (data == nullptr) {
-		return LDFData<T>::Default;
-	}
-
-	auto* typed = dynamic_cast<LDFData<T>*>(data);
-
-	if (typed == nullptr) {
-		return LDFData<T>::Default;
-	}
-
-	return typed->GetValue();
-}
-
-template<typename T>
-T Entity::GetVarAs(const std::u16string& name) const {
-	const auto data = GetVarAsString(name);
-
-	T value;
-
-	if (!GeneralUtils::TryParse(data, value)) {
-		return LDFData<T>::Default;
-	}
-
-	return value;
-}
-
-template<typename T>
-void Entity::SetVar(const std::u16string& name, T value) {
-	auto* data = GetVarData(name);
-
-	if (data == nullptr) {
-		auto* data = new LDFData<T>(name, value);
-
-		m_Settings.push_back(data);
-
-		return;
-	}
-
-	auto* typed = dynamic_cast<LDFData<T>*>(data);
-
-	if (typed == nullptr) {
-		return;
-	}
-
-	typed->SetValue(value);
-}
-
-template<typename T>
-void Entity::SetNetworkVar(const std::u16string& name, T value, const SystemAddress& sysAddr) {
-	LDFData<T>* newData = nullptr;
-
-	for (auto* data : m_NetworkSettings) {
-		if (data->GetKey() != name)
-			continue;
-
-		newData = dynamic_cast<LDFData<T>*>(data);
-		if (newData != nullptr) {
-			newData->SetValue(value);
-		} else {  // If we're changing types
-			m_NetworkSettings.erase(
-				std::remove(m_NetworkSettings.begin(), m_NetworkSettings.end(), data), m_NetworkSettings.end()
-			);
-			delete data;
-		}
-
-		break;
-	}
-
-	if (newData == nullptr) {
-		newData = new LDFData<T>(name, value);
-	}
-
-	m_NetworkSettings.push_back(newData);
-	SendNetworkVar(newData->GetString(true), sysAddr);
-}
-
-template<typename T>
-void Entity::SetNetworkVar(const std::u16string& name, std::vector<T> values, const SystemAddress& sysAddr) {
-	std::stringstream updates;
-	auto index = 1;
-
-	for (const auto& value : values) {
-		LDFData<T>* newData = nullptr;
-		const auto& indexedName = name + u"." + GeneralUtils::to_u16string(index);
-
-		for (auto* data : m_NetworkSettings) {
-			if (data->GetKey() != indexedName)
-				continue;
-
-			newData = dynamic_cast<LDFData<T>*>(data);
-			newData->SetValue(value);
-			break;
-		}
-
-		if (newData == nullptr) {
-			newData = new LDFData<T>(indexedName, value);
-		}
-
-		m_NetworkSettings.push_back(newData);
-
-		if (index == values.size()) {
-			updates << newData->GetString(true);
-		} else {
-			updates << newData->GetString(true) << "\n";
-		}
-
-		index++;
-	}
-
-	SendNetworkVar(updates.str(), sysAddr);
-}
-
-template<typename T>
-T Entity::GetNetworkVar(const std::u16string& name) {
-	for (auto* data : m_NetworkSettings) {
-		if (data == nullptr || data->GetKey() != name)
-			continue;
-
-		auto* typed = dynamic_cast<LDFData<T>*>(data);
-		if (typed == nullptr)
-			continue;
-
-		return typed->GetValue();
-	}
-
-	return LDFData<T>::Default;
-}
-
-template<typename Cmpt, typename...ConstructorValues>
-std::shared_ptr<Cmpt> Entity::AddComponent(ConstructorValues...arguments) {
-	auto component = GetComponent<Cmpt>();
-	if (component) return component;
-
-	auto insertedComponent = m_Components.insert_or_assign(Cmpt::ComponentType,
-		std::make_shared<Cmpt>(this, std::forward<ConstructorValues>(arguments)...)).first->second;
-	return std::dynamic_pointer_cast<Cmpt>(insertedComponent);
-}
+#include "Entity.tcc"
 
 #endif  //!__ENTITY__H__
