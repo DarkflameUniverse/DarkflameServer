@@ -312,6 +312,7 @@
 #include "WildNinjaStudent.h"
 #include "WildNinjaSensei.h"
 #include "WildNinjaBricks.h"
+#include "RubyScepterDrop.h"
 
 //Big bad global bc this is a namespace and not a class:
 InvalidScript* invalidToReturn = new InvalidScript();
@@ -913,6 +914,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new SpecialPowerupSpawner(747);
 	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_SPEED_BUFF_SPAWNER.lua")
 		script = new SpecialSpeedBuffSpawner();
+	else if (scriptName == "scripts\\DLU\\L_RUBY_SCEPTER_DROP.lua")
+		script = new RubyScepterDrop();
 
 	// Wild
 	if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_RAT.lua" || scriptName == "scripts\\ai\\WILD\\L_WILD_GF_SNAIL.lua")
