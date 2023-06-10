@@ -57,8 +57,15 @@ public:
 	explicit Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity = nullptr);
 	virtual ~Entity();
 
-	void ApplyComponentWhitelist(TemplateComponents& components);
+	void ApplyComponentWhitelist(TemplateComponents& components) const;
 	static const std::vector<ComponentWhitelist>& GetComponentWhitelists() { return m_ComponentWhitelists; }
+
+	// There are some very very edge cases we need to take care of with what components
+	// are kept and removed. Here is where we take care of those cases.
+	void ApplyComponentBlacklist(TemplateComponents& components) const;
+
+	// For adding and removing components based on LDF keys
+	void ApplyComponentConfig(TemplateComponents& components) const;
 	virtual void Initialize();
 
 	bool operator==(const Entity& other) const;
@@ -76,8 +83,6 @@ public:
 
 	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
 	void SetGMLevel(const eGameMasterLevel value);
-
-	const uint32_t GetCollectibleID() const { return m_CollectibleID; }
 
 	Entity* GetParentEntity() const { return m_ParentEntity; }
 
@@ -317,7 +322,6 @@ protected:
 	Entity* m_ParentEntity; //For spawners and the like
 	std::vector<Entity*> m_ChildEntities;
 	eGameMasterLevel m_GMLevel;
-	uint32_t m_CollectibleID;
 	std::vector<std::string> m_Groups;
 	uint16_t m_NetworkID;
 	std::vector<std::function<void()>> m_DieCallbacks;

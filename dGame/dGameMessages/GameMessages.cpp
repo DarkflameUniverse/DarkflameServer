@@ -66,6 +66,7 @@
 #include "InventoryComponent.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
+#include "CollectibleComponent.h"
 #include "MovingPlatformComponent.h"
 #include "PetComponent.h"
 #include "ModuleAssemblyComponent.h"
@@ -5264,7 +5265,9 @@ void GameMessages::HandleHasBeenCollected(RakNet::BitStream* inStream, Entity* e
 	inStream->Read(playerID);
 
 	Entity* player = EntityManager::Instance()->GetEntity(playerID);
-	if (!player || !entity || entity->GetCollectibleID() == 0) return;
+	if (!player || !entity) return;
+	auto* collectibleComponent = entity->GetComponent<CollectibleComponent>();
+	if (!collectibleComponent || collectibleComponent->GetCollectibleId() == 0) return;
 
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 	if (missionComponent) {
