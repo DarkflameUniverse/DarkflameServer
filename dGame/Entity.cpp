@@ -185,13 +185,13 @@ void Entity::ApplyComponentWhitelist(TemplateComponents& components) const {
 void Entity::ApplyComponentBlacklist(TemplateComponents& components) const {
 	bool hasPetComponent = std::find_if(components.begin(), components.end(), [](const auto& componentCandidate) {
 		return componentCandidate.first == eReplicaComponentType::PET;
-	}) != components.end();
-	if (hasPetComponent) {
-		auto toRemove = std::remove_if(components.begin(), components.end(), [](const auto& componentCandidate) {
-			return componentCandidate.first == eReplicaComponentType::MODEL_BEHAVIOR || componentCandidate.first == eReplicaComponentType::ITEM;
-			});
-		components.erase(toRemove, components.end());
-	}
+		}) != components.end();
+		if (hasPetComponent) {
+			auto toRemove = std::remove_if(components.begin(), components.end(), [](const auto& componentCandidate) {
+				return componentCandidate.first == eReplicaComponentType::MODEL_BEHAVIOR || componentCandidate.first == eReplicaComponentType::ITEM;
+				});
+			components.erase(toRemove, components.end());
+		}
 }
 
 void Entity::ApplyComponentConfig(TemplateComponents& components) const {
@@ -253,6 +253,9 @@ void Entity::Initialize() {
 		case eReplicaComponentType::BOUNCER:
 			AddComponent<BouncerComponent>();
 			break;
+		case eReplicaComponentType::DESTROYABLE:
+			AddComponent<DestroyableComponent>();
+			break;
 		case eReplicaComponentType::SKILL:
 			AddComponent<SkillComponent>();
 			break;
@@ -273,6 +276,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::COLLECTIBLE:
 			AddComponent<CollectibleComponent>();
+			AddComponent<DestroyableComponent>();
 			break;
 		case eReplicaComponentType::MOVING_PLATFORM:
 			AddComponent<MovingPlatformComponent>(GetVarAsString(u"attached_path"));
@@ -300,6 +304,10 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::PROPERTY_MANAGEMENT:
 			AddComponent<PropertyManagementComponent>();
+			break;
+		case eReplicaComponentType::QUICK_BUILD:
+			AddComponent<QuickBuildComponent>();
+			AddComponent<DestroyableComponent>();
 			break;
 		case eReplicaComponentType::SWITCH:
 			AddComponent<SwitchComponent>();
@@ -337,6 +345,7 @@ void Entity::Initialize() {
 		case eReplicaComponentType::MULTI_ZONE_ENTRANCE:
 			AddComponent<MultiZoneEntranceComponent>();
 			break;
+
 		case eReplicaComponentType::BUFF:
 			AddComponent<BuffComponent>();
 			break;
@@ -350,7 +359,6 @@ void Entity::Initialize() {
 			AddComponent<BuildBorderComponent>();
 			break;
 		case eReplicaComponentType::SCRIPT:
-		case eReplicaComponentType::DESTROYABLE:
 		case eReplicaComponentType::GHOST:
 		case eReplicaComponentType::SPAWN:
 		case eReplicaComponentType::MODULAR_BUILD:
@@ -375,7 +383,7 @@ void Entity::Initialize() {
 		case eReplicaComponentType::FX:
 		case eReplicaComponentType::VEHICLE_PHYSICS:
 		case eReplicaComponentType::PHYSICS_SYSTEM:
-		case eReplicaComponentType::QUICK_BUILD:
+
 		case eReplicaComponentType::CHANGLING_BUILD:
 		case eReplicaComponentType::CHOICE_BUILD:
 		case eReplicaComponentType::PACKAGE:

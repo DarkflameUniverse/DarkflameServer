@@ -191,24 +191,24 @@
 	 * Multiple components require the destructible component.
 	 */
 
-	int buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUFF);
-	int quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
+	// int destroyableComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DESTROYABLE);
+	// int quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
 
-	int componentID = 0;
-	if (collectibleComponentID > 0) componentID = collectibleComponentID;
-	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
-	if (buffComponentID > 0) componentID = buffComponentID;
+	// int componentID = 0;
+	// if (collectibleComponentID > 0) componentID = collectibleComponentID;
+	// if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
+	// if (destroyableComponentID > 0) componentID = destroyableComponentID;
 
-	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
-	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
+	// CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
+	// std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
-	if (buffComponentID > 0 || collectibleComponentID > 0) {
-		DestroyableComponent* comp = new DestroyableComponent(this);
+	// if (destroyableComponentID > 0 || collectibleComponentID > 0) {
+		// DestroyableComponent* comp = new DestroyableComponent(this);
 		if (m_Character) {
 			comp->LoadFromXml(m_Character->GetXMLDoc());
 		} else {
 			if (componentID > 0) {
-				std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
+				// std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
 				if (destCompData.size() > 0) {
 					if (HasComponent(eReplicaComponentType::RACING_STATS)) {
@@ -274,7 +274,7 @@
 			}
 		}
 
-		m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, comp));
+		// m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, comp));
 	}
 
 	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHARACTER) > 0 || m_Character) {
