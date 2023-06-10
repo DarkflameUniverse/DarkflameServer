@@ -174,13 +174,11 @@ void Entity::ApplyComponentWhitelist(std::vector<eReplicaComponentType>& compone
 	const auto whitelistIndex = GetVar<int32_t>(u"componentWhitelist");
 	if (whitelistIndex < 0 || whitelistIndex >= m_ComponentWhitelists.size()) return;
 
-	for (const auto& componentToKeep : m_ComponentWhitelists.at(whitelistIndex)) {
-		while (true) {
-			const auto componentIter = std::find(components.begin(), components.end(), componentToKeep);
-			if (componentIter == components.end()) break;
-			components.erase(componentIter);
-		}
-	}
+	const auto& whitelist = m_ComponentWhitelists.at(whitelistIndex);
+	const auto endRange = std::remove_if(components.begin(), components.end(), [&whitelist](const eReplicaComponentType& componentCandidate) {
+		return std::find(whitelist.begin(), whitelist.end(), componentCandidate) == whitelist.end();
+	});
+	components.erase(endRange, components.end());
 }
 
 void Entity::Initialize() {

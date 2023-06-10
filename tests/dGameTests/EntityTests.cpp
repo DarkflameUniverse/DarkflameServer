@@ -21,19 +21,20 @@ protected:
 		this->TearDownDependencies();
 	}
 
-	void RunWhitelistTest(const int32_t componentIndex, std::vector<eReplicaComponentType>& whitelist) {
-		entity->SetVar<int32_t>(u"componentWhitelist", componentIndex);
-		entity->ApplyComponentWhitelist(whitelist);
-		const auto whitelists = Entity::GetComponentWhitelists();
-		for (const auto& component : whitelists.at(componentIndex)) {
-			EXPECT_FALSE(std::find(whitelist.begin(), whitelist.end(), component) != whitelist.end());
-		}
+	void RunWhitelistTest(const int32_t whitelistIndex, std::vector<eReplicaComponentType> componentList) {
+		Game::logger->Log("EntityTests", "whitelist test %i", whitelistIndex);
+		entity->SetVar<int32_t>(u"componentWhitelist", whitelistIndex);
+		entity->ApplyComponentWhitelist(componentList);
+		const auto whitelist = Entity::GetComponentWhitelists().at(whitelistIndex);
+		std::for_each(whitelist.begin(), whitelist.end(), [&componentList](const eReplicaComponentType& keptComponent) {
+			EXPECT_EQ(std::count(componentList.begin(), componentList.end(), keptComponent), 2);
+		});
 	}
 };
 
 TEST_F(EntityTests, WhitelistTest) {
 	const auto whitelists = Entity::GetComponentWhitelists();
-	std::vector<eReplicaComponentType> whitelist = {
+	std::vector<eReplicaComponentType> components = {
 		eReplicaComponentType::CONTROLLABLE_PHYSICS,
 		eReplicaComponentType::SIMPLE_PHYSICS,
 		eReplicaComponentType::MODEL_BEHAVIOR,
@@ -55,9 +56,9 @@ TEST_F(EntityTests, WhitelistTest) {
 		eReplicaComponentType::SKILL,
 		eReplicaComponentType::DESTROYABLE,
 	};
-	RunWhitelistTest(0, whitelist);
-	RunWhitelistTest(1, whitelist);
-	RunWhitelistTest(2, whitelist);
-	RunWhitelistTest(3, whitelist);
-	RunWhitelistTest(4, whitelist);
+	RunWhitelistTest(0, components);
+	RunWhitelistTest(1, components);
+	RunWhitelistTest(2, components);
+	RunWhitelistTest(3, components);
+	RunWhitelistTest(4, components);
 }
