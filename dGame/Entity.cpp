@@ -170,13 +170,13 @@ Entity::~Entity() {
 	if (m_ParentEntity) m_ParentEntity->RemoveChild(this);
 }
 
-void Entity::ApplyComponentWhitelist(std::vector<eReplicaComponentType>& components) {
+void Entity::ApplyComponentWhitelist(TemplateComponents& components) {
 	const auto whitelistIndex = GetVar<int32_t>(u"componentWhitelist");
 	if (whitelistIndex < 0 || whitelistIndex >= m_ComponentWhitelists.size()) return;
 
 	const auto& whitelist = m_ComponentWhitelists.at(whitelistIndex);
-	const auto endRange = std::remove_if(components.begin(), components.end(), [&whitelist](const eReplicaComponentType& componentCandidate) {
-		return std::find(whitelist.begin(), whitelist.end(), componentCandidate) == whitelist.end();
+	const auto endRange = std::remove_if(components.begin(), components.end(), [&whitelist](const auto& componentCandidate) {
+		return std::find(whitelist.begin(), whitelist.end(), componentCandidate.first) == whitelist.end();
 	});
 	components.erase(endRange, components.end());
 }
@@ -204,8 +204,8 @@ void Entity::Initialize() {
 	}
 
 	auto* componentsRegistry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	auto components = componentsRegistry->GetTemplateComponents(m_TemplateID);
-	// Apply the whitelist here based on the corresponding ldf key. Removes components that are not whitelisted. List is determined based on the clients whitelist data.
+	TemplateComponents components = componentsRegistry->GetTemplateComponents(m_TemplateID);
+	ApplyComponentWhitelist(components);
 	for (const auto& [componentTemplate, componentId] : components) {
 		switch (componentTemplate) {
 		case eReplicaComponentType::CONTROLLABLE_PHYSICS:

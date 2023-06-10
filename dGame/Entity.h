@@ -50,13 +50,14 @@ namespace CppScripts {
 
 using ComponentPtr = std::unique_ptr<Component>;
 using ComponentWhitelist = std::vector<eReplicaComponentType>;
+using TemplateComponents = std::vector<std::pair<eReplicaComponentType, uint32_t>>;
 
 class Entity {
 public:
 	explicit Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity = nullptr);
 	virtual ~Entity();
 
-	void ApplyComponentWhitelist(std::vector<eReplicaComponentType>& components);
+	void ApplyComponentWhitelist(TemplateComponents& components);
 	static const std::vector<ComponentWhitelist>& GetComponentWhitelists() { return m_ComponentWhitelists; }
 	virtual void Initialize();
 

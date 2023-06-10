@@ -21,40 +21,40 @@ protected:
 		this->TearDownDependencies();
 	}
 
-	void RunWhitelistTest(const int32_t whitelistIndex, std::vector<eReplicaComponentType> componentList) {
+	void RunWhitelistTest(const int32_t whitelistIndex, TemplateComponents componentList) {
 		Game::logger->Log("EntityTests", "whitelist test %i", whitelistIndex);
 		entity->SetVar<int32_t>(u"componentWhitelist", whitelistIndex);
 		entity->ApplyComponentWhitelist(componentList);
 		const auto whitelist = Entity::GetComponentWhitelists().at(whitelistIndex);
 		std::for_each(whitelist.begin(), whitelist.end(), [&componentList](const eReplicaComponentType& keptComponent) {
-			EXPECT_EQ(std::count(componentList.begin(), componentList.end(), keptComponent), 2);
+			EXPECT_EQ(std::count(componentList.begin(), componentList.end(), std::pair(keptComponent, 0U)), 2);
 		});
 	}
 };
 
 TEST_F(EntityTests, WhitelistTest) {
 	const auto whitelists = Entity::GetComponentWhitelists();
-	std::vector<eReplicaComponentType> components = {
-		eReplicaComponentType::CONTROLLABLE_PHYSICS,
-		eReplicaComponentType::SIMPLE_PHYSICS,
-		eReplicaComponentType::MODEL_BEHAVIOR,
-		eReplicaComponentType::SPAWN,
-		eReplicaComponentType::RENDER,
-		eReplicaComponentType::ITEM,
-		eReplicaComponentType::BLUEPRINT,
-		eReplicaComponentType::PET,
-		eReplicaComponentType::SKILL,
-		eReplicaComponentType::DESTROYABLE,
-		eReplicaComponentType::CONTROLLABLE_PHYSICS,
-		eReplicaComponentType::SIMPLE_PHYSICS,
-		eReplicaComponentType::MODEL_BEHAVIOR,
-		eReplicaComponentType::SPAWN,
-		eReplicaComponentType::RENDER,
-		eReplicaComponentType::ITEM,
-		eReplicaComponentType::BLUEPRINT,
-		eReplicaComponentType::PET,
-		eReplicaComponentType::SKILL,
-		eReplicaComponentType::DESTROYABLE,
+	TemplateComponents components = {
+		{ eReplicaComponentType::CONTROLLABLE_PHYSICS, 0},
+		{ eReplicaComponentType::SIMPLE_PHYSICS, 0},
+		{ eReplicaComponentType::MODEL_BEHAVIOR, 0},
+		{ eReplicaComponentType::SPAWN, 0},
+		{ eReplicaComponentType::RENDER, 0},
+		{ eReplicaComponentType::ITEM, 0},
+		{ eReplicaComponentType::BLUEPRINT, 0},
+		{ eReplicaComponentType::PET, 0},
+		{ eReplicaComponentType::SKILL, 0},
+		{ eReplicaComponentType::DESTROYABLE, 0},
+		{ eReplicaComponentType::CONTROLLABLE_PHYSICS, 0},
+		{ eReplicaComponentType::SIMPLE_PHYSICS, 0},
+		{ eReplicaComponentType::MODEL_BEHAVIOR, 0},
+		{ eReplicaComponentType::SPAWN, 0},
+		{ eReplicaComponentType::RENDER, 0},
+		{ eReplicaComponentType::ITEM, 0},
+		{ eReplicaComponentType::BLUEPRINT, 0},
+		{ eReplicaComponentType::PET, 0},
+		{ eReplicaComponentType::SKILL, 0},
+		{ eReplicaComponentType::DESTROYABLE, 0},
 	};
 	RunWhitelistTest(0, components);
 	RunWhitelistTest(1, components);
