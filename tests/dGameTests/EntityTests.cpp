@@ -34,12 +34,26 @@ protected:
 TEST_F(EntityTests, WhitelistTest) {
 	const auto whitelists = Entity::GetComponentWhitelists();
 	std::vector<eReplicaComponentType> whitelist = {
-		eReplicaComponentType::RACING_STATS,
-		eReplicaComponentType::SIMPLE_PHYSICS,
 		eReplicaComponentType::CONTROLLABLE_PHYSICS,
+		eReplicaComponentType::SIMPLE_PHYSICS,
+		eReplicaComponentType::MODEL_BEHAVIOR,
+		eReplicaComponentType::SPAWN,
 		eReplicaComponentType::RENDER,
+		eReplicaComponentType::ITEM,
+		eReplicaComponentType::BLUEPRINT,
+		eReplicaComponentType::PET,
+		eReplicaComponentType::SKILL,
 		eReplicaComponentType::DESTROYABLE,
-		eReplicaComponentType::RACING_CONTROL
+		eReplicaComponentType::CONTROLLABLE_PHYSICS,
+		eReplicaComponentType::SIMPLE_PHYSICS,
+		eReplicaComponentType::MODEL_BEHAVIOR,
+		eReplicaComponentType::SPAWN,
+		eReplicaComponentType::RENDER,
+		eReplicaComponentType::ITEM,
+		eReplicaComponentType::BLUEPRINT,
+		eReplicaComponentType::PET,
+		eReplicaComponentType::SKILL,
+		eReplicaComponentType::DESTROYABLE,
 	};
 	RunWhitelistTest(0, whitelist);
 	RunWhitelistTest(1, whitelist);
