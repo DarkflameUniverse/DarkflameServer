@@ -89,6 +89,41 @@
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
 
+const std::vector<ComponentWhitelist> Entity::m_ComponentWhitelists = {
+	{ // Unknown use case
+		eReplicaComponentType::CONTROLLABLE_PHYSICS,
+		eReplicaComponentType::SIMPLE_PHYSICS,
+		eReplicaComponentType::RENDER
+	},
+	{ // Used for BBB
+		eReplicaComponentType::RENDER,
+		eReplicaComponentType::DESTROYABLE,
+		eReplicaComponentType::ITEM,
+		eReplicaComponentType::BLUEPRINT,
+		eReplicaComponentType::MODEL_BEHAVIOR,
+		eReplicaComponentType::CONTROLLABLE_PHYSICS,
+		eReplicaComponentType::SIMPLE_PHYSICS,
+		eReplicaComponentType::SPAWN
+	},
+	{ // Unknown use case
+		eReplicaComponentType::RENDER,
+		eReplicaComponentType::ITEM,
+		eReplicaComponentType::BLUEPRINT,
+	},
+	{ // Used for Pets
+		eReplicaComponentType::PET,
+		eReplicaComponentType::SKILL,
+		eReplicaComponentType::DESTROYABLE,
+		eReplicaComponentType::RENDER,
+		eReplicaComponentType::CONTROLLABLE_PHYSICS
+	},
+	{ // Unknown use case
+		eReplicaComponentType::CONTROLLABLE_PHYSICS,
+		eReplicaComponentType::SIMPLE_PHYSICS,
+		eReplicaComponentType::RENDER,
+	},
+};
+
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;
@@ -133,6 +168,16 @@ Entity::~Entity() {
 	for (auto child : m_ChildEntities) if (child) child->RemoveParent();
 
 	if (m_ParentEntity) m_ParentEntity->RemoveChild(this);
+}
+
+void Entity::ApplyComponentWhitelist(std::vector<eReplicaComponentType>& components) {
+	const auto whitelistIndex = GetVar<int32_t>(u"componentWhitelist");
+	if (whitelistIndex < 0 || whitelistIndex >= m_ComponentWhitelists.size()) return;
+
+	for (const auto& componentToKeep : m_ComponentWhitelists.at(whitelistIndex)) {
+		const auto componentIter = std::find(components.begin(), components.end(), componentToKeep);
+		if (componentIter != components.end()) components.erase(componentIter);
+	}
 }
 
 void Entity::Initialize() {

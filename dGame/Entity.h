@@ -49,12 +49,15 @@ namespace CppScripts {
  */
 
 using ComponentPtr = std::unique_ptr<Component>;
+using ComponentWhitelist = std::vector<eReplicaComponentType>;
 
 class Entity {
 public:
 	explicit Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity = nullptr);
 	virtual ~Entity();
 
+	void ApplyComponentWhitelist(std::vector<eReplicaComponentType>& components);
+	static const std::vector<ComponentWhitelist>& GetComponentWhitelists() { return m_ComponentWhitelists; }
 	virtual void Initialize();
 
 	bool operator==(const Entity& other) const;
@@ -342,6 +345,8 @@ protected:
 	 * Collision
 	 */
 	std::vector<LWOOBJID> m_TargetsInPhantom;
+
+	static const std::vector<ComponentWhitelist> m_ComponentWhitelists;
 };
 
 #include "Entity.tcc"
