@@ -5,16 +5,13 @@
 
 #include "Entity.h"
 #include "ScriptComponent.h"
+#include "CDClientManager.h"
+#include "CDScriptComponentTable.h"
+#include "CDZoneTableTable.h"
+#include "dZoneManager.h"
 
-ScriptComponent::ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client) : Component(parent) {
-	m_Serialized = serialized;
-	m_Client = client;
-
+ScriptComponent::ScriptComponent(Entity* parent, std::string scriptName) : Component(parent) {
 	SetScript(scriptName);
-}
-
-ScriptComponent::~ScriptComponent() {
-
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -46,11 +43,30 @@ CppScripts::Script* ScriptComponent::GetScript() {
 }
 
 void ScriptComponent::SetScript(const std::string& scriptName) {
-	//we don't need to delete the script because others may be using it :)
-	/*if (m_Client) {
-		m_Script = new InvalidScript();
-		return;
-	}*/
-
 	m_Script = CppScripts::GetScript(m_ParentEntity, scriptName);
+}
+
+const std::string ScriptComponent::GetScriptName(Entity* parentEntity, const uint32_t componentId) {
+	if (!parentEntity) return "";
+	// LDF key script overrides script component Id
+	const auto customScriptServer = parentEntity->GetVarAsString(u"custom_script_server");
+	if (!customScriptServer.empty() || componentId == 0) return customScriptServer;
+
+	auto* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
+	CDScriptComponent scriptCompData = scriptCompTable->GetByID(componentId);
+	return scriptCompData.script_name;
+}
+
+const std::string ScriptComponent::GetZoneScriptName(const uint32_t componentId) {
+	auto* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	const auto zoneID = dZoneManager::Instance()->GetZoneID();
+	const auto* zoneData = zoneTable->Query(zoneID.GetMapID());
+
+	if (!zoneData) return "";
+
+	int zoneScriptID = zoneData->scriptID;
+	if (zoneScriptID == -1) return "";
+	auto* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
+	const auto& zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
+	return zoneScriptData.script_name;
 }

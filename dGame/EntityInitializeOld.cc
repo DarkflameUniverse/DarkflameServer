@@ -1,4 +1,4 @@
-// Entity::Initialize() {
+Entity::Initialize() {
 	/**
 	 * Setup trigger
 	 */
@@ -309,67 +309,67 @@
 	 * This is a bit of a mess
 	 */
 
-	CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
-	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
+	// CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
+	// int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
 
-	std::string scriptName = "";
-	bool client = false;
-	if (scriptComponentID > 0 || m_Character) {
-		std::string clientScriptName;
-		if (!m_Character) {
-			CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
-			scriptName = scriptCompData.script_name;
-			clientScriptName = scriptCompData.client_script_name;
-		} else {
-			scriptName = "";
-		}
+	// std::string scriptName = "";
+	// bool client = false;
+	// if (scriptComponentID > 0 || m_Character) {
+	// 	std::string clientScriptName;
+	// 	if (!m_Character) {
+	// 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+	// 		scriptName = scriptCompData.script_name;
+	// 		clientScriptName = scriptCompData.client_script_name;
+	// 	} else {
+	// 		scriptName = "";
+	// 	}
 
-		if (scriptName != "" || (scriptName == "" && m_Character)) {
+	// 	if (!scriptName.empty() || (scriptName.empty() && m_Character)) {
 
-		} else if (clientScriptName != "") {
-			client = true;
-		} else if (!m_Character) {
-			client = true;
-		}
-	}
+	// 	} else if (!clientScriptName.empty()) {
+	// 		client = true;
+	// 	} else if (!m_Character) {
+	// 		client = true;
+	// 	}
+	// }
 
-	std::string customScriptServer;
-	bool hasCustomServerScript = false;
+	// std::string customScriptServer;
+	// bool hasCustomServerScript = false;
 
-	const auto customScriptServerName = GetVarAsString(u"custom_script_server");
-	const auto customScriptClientName = GetVarAsString(u"custom_script_client");
+	// const auto customScriptServerName = GetVarAsString(u"custom_script_server");
+	// const auto customScriptClientName = GetVarAsString(u"custom_script_client");
 
-	if (!customScriptServerName.empty()) {
-		customScriptServer = customScriptServerName;
-		hasCustomServerScript = true;
-	}
+	// if (!customScriptServerName.empty()) {
+	// 	customScriptServer = customScriptServerName;
+	// 	hasCustomServerScript = true;
+	// }
 
-	if (!customScriptClientName.empty()) {
-		client = true;
-	}
+	// if (!customScriptClientName.empty()) {
+	// 	client = true;
+	// }
 
-	if (hasCustomServerScript && scriptName.empty()) {
-		scriptName = customScriptServer;
-	}
+	// if (hasCustomServerScript && scriptName.empty()) {
+	// 	scriptName = customScriptServer;
+	// }
 
-	if (!scriptName.empty() || client || m_Character || scriptComponentID >= 0) {
-		m_Components.insert(std::make_pair(eReplicaComponentType::SCRIPT, new ScriptComponent(this, scriptName, true, client && scriptName.empty())));
-	}
+	// if (!scriptName.empty() || client || m_Character || scriptComponentID >= 0) {
+	// 	m_Components.insert(std::make_pair(eReplicaComponentType::SCRIPT, new ScriptComponent(this, scriptName, true, client && scriptName.empty())));
+	// }
 
-	// ZoneControl script
-	if (m_TemplateID == 2365) {
-		CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
-		const auto zoneID = dZoneManager::Instance()->GetZoneID();
-		const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
+	// // ZoneControl script
+	// if (m_TemplateID == 2365) {
+	// 	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	// 	const auto zoneID = dZoneManager::Instance()->GetZoneID();
+	// 	const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
 
-		if (zoneData != nullptr) {
-			int zoneScriptID = zoneData->scriptID;
-			CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
+	// 	if (zoneData != nullptr) {
+	// 		int zoneScriptID = zoneData->scriptID;
+	// 		CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
 
-			ScriptComponent* comp = new ScriptComponent(this, zoneScriptData.script_name, true);
-			m_Components.insert(std::make_pair(eReplicaComponentType::SCRIPT, comp));
-		}
-	}
+	// 		ScriptComponent* comp = new ScriptComponent(this, zoneScriptData.script_name, true);
+	// 		m_Components.insert(std::make_pair(eReplicaComponentType::SCRIPT, comp));
+	// 	}
+	// }
 
 	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SKILL, -1) != -1 || m_Character) {
 	// 	SkillComponent* comp = new SkillComponent(this);
@@ -383,8 +383,8 @@
 	// }
 
 	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
-		QuickBuildComponent* comp = new QuickBuildComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::QUICK_BUILD, comp));
+		// QuickBuildComponent* comp = new QuickBuildComponent(this);
+		// m_Components.insert(std::make_pair(eReplicaComponentType::QUICK_BUILD, comp));
 
 		CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
 		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
@@ -638,4 +638,4 @@ no_ghosting:
 			controllablePhysicsComponent->SetSpeedMultiplier(levelComponent->GetSpeedBase() / 500.0f);
 		}
 	}
-// }
+}

@@ -121,7 +121,6 @@ void VanityUtilities::SpawnVanity() {
 
 		if (scriptComponent != nullptr) {
 			scriptComponent->SetScript(npc.m_Script);
-			scriptComponent->SetSerialized(false);
 
 			for (const auto& npc : npc.m_Flags) {
 				npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);

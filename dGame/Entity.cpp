@@ -218,9 +218,9 @@ void Entity::Initialize() {
 
 	if (m_ParentEntity) m_ParentEntity->AddChild(this);
 
-	// Brick-by-Brick models don't have all their components in the registry for some reason?  Might have to be related to using ldf keys for physics
+	// Brick-by-Brick models don't have all their components in the registry for some reason? Might have to be related to using ldf keys for physics
 	if (GetLOT() == 14) {
-		AddComponent<SimplePhysicsComponent>(0);
+		AddComponent<SimplePhysicsComponent>(4246);
 		AddComponent<ModelBehaviorComponent>();
 		AddComponent<RenderComponent>();
 		AddComponent<DestroyableComponent>();
@@ -231,7 +231,6 @@ void Entity::Initialize() {
 	TemplateComponents components = componentsRegistry->GetTemplateComponents(m_TemplateID);
 	ApplyComponentWhitelist(components);
 	ApplyComponentBlacklist(components);
-	ApplyComponentConfig(components);
 	for (const auto& [componentTemplate, componentId] : components) {
 		switch (componentTemplate) {
 		case eReplicaComponentType::CONTROLLABLE_PHYSICS:
@@ -250,6 +249,15 @@ void Entity::Initialize() {
 			AddComponent<LevelProgressionComponent>();
 			AddComponent<PlayerForcedMovementComponent>();
 			break;
+		case eReplicaComponentType::SCRIPT: {
+			auto script = ScriptComponent::GetScriptName(this, componentId);
+			if (!script.empty()) AddComponent<ScriptComponent>(script);
+			if (m_TemplateID == ZONE_CONTROL_LOT) {
+				const auto zoneScript = ScriptComponent::GetZoneScriptName(componentId);
+				if (!zoneScript.empty()) AddComponent<ScriptComponent>(zoneScript);
+			}
+			break;
+		}
 		case eReplicaComponentType::BOUNCER:
 			AddComponent<BouncerComponent>();
 			break;
@@ -345,7 +353,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::MULTI_ZONE_ENTRANCE:
 			AddComponent<MultiZoneEntranceComponent>();
 			break;
-
 		case eReplicaComponentType::BUFF:
 			AddComponent<BuffComponent>();
 			break;
@@ -358,7 +365,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::BUILD_BORDER:
 			AddComponent<BuildBorderComponent>();
 			break;
-		case eReplicaComponentType::SCRIPT:
 		case eReplicaComponentType::GHOST:
 		case eReplicaComponentType::SPAWN:
 		case eReplicaComponentType::MODULAR_BUILD:
@@ -383,7 +389,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::FX:
 		case eReplicaComponentType::VEHICLE_PHYSICS:
 		case eReplicaComponentType::PHYSICS_SYSTEM:
-
 		case eReplicaComponentType::CHANGLING_BUILD:
 		case eReplicaComponentType::CHOICE_BUILD:
 		case eReplicaComponentType::PACKAGE:
@@ -443,22 +448,22 @@ void Entity::Initialize() {
 		}
 	}
 
-	for (const auto& [componentId, component] : m_Components) {
-		component->LoadTemplateData();
-	}
+	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
+		component.second->LoadTemplateData();
+		});
 
-	for (const auto& [componentId, component] : m_Components) {
-		component->LoadConfigData();
-	}
+	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
+		component.second->LoadConfigData();
+		});
 
-	for (const auto& [componentId, component] : m_Components) {
-		component->Startup();
-	}
+	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
+		component.second->Startup();
+		});
 	if (!IsPlayer()) return; // No save data to load for non players
 
-	for (const auto& [componentId, component] : m_Components) {
-		component->LoadFromXml(m_Character->GetXMLDoc());
-	}
+	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
+		component.second->LoadFromXml(m_Character->GetXMLDoc());
+		});
 }
 
 bool Entity::operator==(const Entity& other) const {

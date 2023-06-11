@@ -20,6 +20,11 @@ Cmpt* Entity::AddComponent(ConstructorValues...arguments) {
 	return dynamic_cast<Cmpt*>(insertedComponent.get());
 }
 
+template<typename Cmpt>
+void Entity::RemoveComponent() {
+	m_Components.erase(Cmpt::ComponentType);
+}
+
 template<typename T>
 const T& Entity::GetVar(const std::u16string& name) const {
 	auto* data = GetVarData(name);

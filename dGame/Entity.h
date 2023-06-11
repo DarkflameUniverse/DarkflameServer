@@ -299,6 +299,12 @@ public:
 	template<typename Cmpt, typename...ConstructorValues>
 	Cmpt* AddComponent(ConstructorValues... arguments);
 
+	/**
+	 * @brief Removes a component from this Entity.
+	 */
+	template<typename Cmpt>
+	void RemoveComponent();
+
 protected:
 	LWOOBJID m_ObjectID;
 
