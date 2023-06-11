@@ -257,7 +257,7 @@ void Entity::Initialize() {
 			AddComponent<BouncerComponent>();
 			break;
 		case eReplicaComponentType::DESTROYABLE:
-			if (HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
 			break;
 		case eReplicaComponentType::SKILL:
 			AddComponent<SkillComponent>();
@@ -279,7 +279,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::COLLECTIBLE:
 			AddComponent<CollectibleComponent>();
-			if (HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
 			break;
 		case eReplicaComponentType::MOVING_PLATFORM:
 			AddComponent<MovingPlatformComponent>(GetVarAsString(u"attached_path"));
@@ -308,7 +308,7 @@ void Entity::Initialize() {
 		}
 		case eReplicaComponentType::MODEL_BEHAVIOR: {
 			AddComponent<ModelBehaviorComponent>();
-			if (HasComponent(eReplicaComponentType::DESTROYABLE)) {
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
 				auto* destroyableComponent = AddComponent<DestroyableComponent>();
 				if (destroyableComponent) {
 					destroyableComponent->SetHealth(1);
@@ -327,7 +327,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::QUICK_BUILD:
 			AddComponent<QuickBuildComponent>(componentId);
-			if (HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
 			break;
 		case eReplicaComponentType::SWITCH:
 			AddComponent<SwitchComponent>();
