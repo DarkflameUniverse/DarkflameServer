@@ -4,6 +4,7 @@
 #error "Include Entity.h instead of Entity.tpp"
 #endif
 
+// Access definitions
 template <typename Cmpt>
 Cmpt* Entity::GetComponent() const {
 	const auto& componentItr = this->m_Components.find(Cmpt::ComponentType);

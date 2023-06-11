@@ -312,11 +312,8 @@
 #include "WildNinjaSensei.h"
 #include "WildNinjaBricks.h"
 
-//Big bad global bc this is a namespace and not a class:
-InvalidScript* invalidToReturn = new InvalidScript();
-std::map<std::string, CppScripts::Script*> m_Scripts;
-
-// yeah sorry darwin ill fix the global later
+InvalidScript* CppScripts::invalidToReturn = new InvalidScript();
+std::map<std::string, CppScripts::Script*> CppScripts::m_Scripts;
 
 CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scriptName) {
 	Script* script;

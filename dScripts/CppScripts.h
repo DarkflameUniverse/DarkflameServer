@@ -7,11 +7,15 @@
 class User;
 class Entity;
 class NiPoint3;
+class InvalidScript;
 enum class eMissionState : int32_t;
 enum class ePetTamingNotifyType : uint32_t;
 enum class eRebuildState : uint32_t;
 
 namespace CppScripts {
+
+	extern InvalidScript* invalidToReturn;
+	extern std::map<std::string, CppScripts::Script*> m_Scripts;
 	/**
 	 * Base class for all scripts. Includes virtual methods to be overridden to handle LUA equivelent events.
 	 *
@@ -357,7 +361,7 @@ namespace CppScripts {
 		 * @param player the player to remove
 		 * @param canceled if it was done via the cancel button
 		 */
-		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled){};
+		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {};
 	};
 
 	Script* GetScript(Entity* parent, const std::string& scriptName);

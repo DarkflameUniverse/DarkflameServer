@@ -24,11 +24,13 @@ class QuickBuildComponent : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
-	QuickBuildComponent(Entity* entity);
+	QuickBuildComponent(Entity* entity, uint32_t componentId = 0);
 	~QuickBuildComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void Update(float deltaTime) override;
+	void LoadTemplateData() override;
+	void LoadConfigData() override;
 
 	/**
 	 * Handles a OnUse event from some entity, initiating the quick build
@@ -348,6 +350,8 @@ private:
 	 * Preconditions to be met before being able to start the rebuild
 	 */
 	PreconditionExpression* m_Precondition = nullptr;
+
+	uint32_t m_ComponentId = 0;
 
 	/**
 	 * Starts the rebuild for a certain entity

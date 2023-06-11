@@ -21,10 +21,12 @@
 #include "Loot.h"
 #include "TeamManager.h"
 #include "RenderComponent.h"
+#include "CDRebuildComponentTable.h"
 
 #include "CppScripts.h"
 
-QuickBuildComponent::QuickBuildComponent(Entity* entity) : Component(entity) {
+QuickBuildComponent::QuickBuildComponent(Entity* entity, uint32_t componentId) : Component(entity) {
+	m_ComponentId = componentId;
 	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
 
 	if (!checkPreconditions.empty()) {
@@ -55,6 +57,42 @@ QuickBuildComponent::~QuickBuildComponent() {
 	}
 
 	DespawnActivator();
+}
+
+void QuickBuildComponent::LoadConfigData() {
+	const auto rebuildResetTime = m_ParentEntity->GetVar<float>(u"rebuild_reset_time");
+
+	if (rebuildResetTime != 0.0f) {
+		SetResetTime(rebuildResetTime);
+
+		if (m_ParentEntity->GetLOT() == 9483) // Look away!
+		{
+			SetResetTime(GetResetTime() + 25);
+		}
+	}
+
+	const auto activityID = m_ParentEntity->GetVar<int32_t>(u"activityID");
+
+	if (activityID > 0) SetActivityId(activityID);
+
+	const auto compTime = m_ParentEntity->GetVar<float>(u"compTime");
+
+	if (compTime > 0) SetCompleteTime(compTime);
+}
+
+void QuickBuildComponent::LoadTemplateData() {
+	auto* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
+	std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([this](CDRebuildComponent entry) { return (entry.id == this->m_ComponentId); });
+	if (rebCompData.empty()) return;
+	const auto& quickbuildData = rebCompData.at(0);
+	SetResetTime(quickbuildData.reset_time);
+	SetCompleteTime(quickbuildData.complete_time);
+	SetTakeImagination(quickbuildData.take_imagination);
+	SetInterruptible(quickbuildData.interruptible);
+	SetSelfActivator(quickbuildData.self_activator);
+	SetActivityId(quickbuildData.activityID);
+	SetPostImaginationCost(quickbuildData.post_imagination_cost);
+	SetTimeBeforeSmash(quickbuildData.time_before_smash);
 }
 
 void QuickBuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -482,7 +520,7 @@ void QuickBuildComponent::CompleteRebuild(Entity* user) {
 					if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 				}
 			}
-		} else{
+		} else {
 			auto* missionComponent = builder->GetComponent<MissionComponent>();
 			if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 		}

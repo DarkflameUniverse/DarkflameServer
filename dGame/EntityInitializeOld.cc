@@ -157,15 +157,15 @@ Entity::Initialize() {
 
 	// if (markedAsPhantom || compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHANTOM_PHYSICS) > 0) {
 	// 	PhantomPhysicsComponent* phantomPhysics = new PhantomPhysicsComponent(this);
-		phantomPhysics->SetPhysicsEffectActive(false);
+		// phantomPhysics->SetPhysicsEffectActive(false);
 		// m_Components.insert(std::make_pair(eReplicaComponentType::PHANTOM_PHYSICS, phantomPhysics));
 	// }
 
 	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VEHICLE_PHYSICS) > 0) {
 		// VehiclePhysicsComponent* vehiclePhysicsComponent = new VehiclePhysicsComponent(this);
 		// m_Components.insert(std::make_pair(eReplicaComponentType::VEHICLE_PHYSICS, vehiclePhysicsComponent));
-		vehiclePhysicsComponent->SetPosition(m_DefaultPosition);
-		vehiclePhysicsComponent->SetRotation(m_DefaultRotation);
+		// vehiclePhysicsComponent->SetPosition(m_DefaultPosition);
+		// vehiclePhysicsComponent->SetRotation(m_DefaultRotation);
 	// }
 
 	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_TRIGGER, -1) != -1) {
@@ -382,47 +382,47 @@ Entity::Initialize() {
 	// 	m_Components.insert(std::make_pair(eReplicaComponentType::BASE_COMBAT_AI, comp));
 	// }
 
-	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
+	// if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
 		// QuickBuildComponent* comp = new QuickBuildComponent(this);
 		// m_Components.insert(std::make_pair(eReplicaComponentType::QUICK_BUILD, comp));
 
-		CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
-		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
+		// CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
+		// std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
 
-		if (rebCompData.size() > 0) {
-			comp->SetResetTime(rebCompData[0].reset_time);
-			comp->SetCompleteTime(rebCompData[0].complete_time);
-			comp->SetTakeImagination(rebCompData[0].take_imagination);
-			comp->SetInterruptible(rebCompData[0].interruptible);
-			comp->SetSelfActivator(rebCompData[0].self_activator);
-			comp->SetActivityId(rebCompData[0].activityID);
-			comp->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
-			comp->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
+		// if (rebCompData.size() > 0) {
+			// comp->SetResetTime(rebCompData[0].reset_time);
+			// comp->SetCompleteTime(rebCompData[0].complete_time);
+			// comp->SetTakeImagination(rebCompData[0].take_imagination);
+			// comp->SetInterruptible(rebCompData[0].interruptible);
+			// comp->SetSelfActivator(rebCompData[0].self_activator);
+			// comp->SetActivityId(rebCompData[0].activityID);
+			// comp->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
+			// comp->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
 
-			const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
+			// const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
 
-			if (rebuildResetTime != 0.0f) {
-				comp->SetResetTime(rebuildResetTime);
+			// if (rebuildResetTime != 0.0f) {
+			// 	comp->SetResetTime(rebuildResetTime);
 
-				if (m_TemplateID == 9483) // Look away!
-				{
-					comp->SetResetTime(comp->GetResetTime() + 25);
-				}
-			}
+			// 	if (m_TemplateID == 9483) // Look away!
+			// 	{
+			// 		comp->SetResetTime(comp->GetResetTime() + 25);
+			// 	}
+			// }
 
-			const auto activityID = GetVar<int32_t>(u"activityID");
+			// const auto activityID = GetVar<int32_t>(u"activityID");
 
-			if (activityID > 0) {
-				comp->SetActivityId(activityID);
-			}
+			// if (activityID > 0) {
+			// 	comp->SetActivityId(activityID);
+			// }
 
-			const auto compTime = GetVar<float>(u"compTime");
+			// const auto compTime = GetVar<float>(u"compTime");
 
-			if (compTime > 0) {
-				comp->SetCompleteTime(compTime);
-			}
-		}
-	}
+			// if (compTime > 0) {
+			// 	comp->SetCompleteTime(compTime);
+			// }
+		// }
+	// }
 
 	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SWITCH, -1) != -1) {
 	// 	SwitchComponent* comp = new SwitchComponent(this);
@@ -471,14 +471,14 @@ Entity::Initialize() {
 
 	// if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
 		// m_Components.insert(std::make_pair(eReplicaComponentType::MODEL, new ModelComponent(this)));
-		if (m_Components.find(eReplicaComponentType::DESTROYABLE) == m_Components.end()) {
-			auto destroyableComponent = new DestroyableComponent(this);
-			destroyableComponent->SetHealth(1);
-			destroyableComponent->SetMaxHealth(1.0f);
-			destroyableComponent->SetFaction(-1, true);
-			destroyableComponent->SetIsSmashable(true);
-			m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, destroyableComponent));
-		}
+		// if (m_Components.find(eReplicaComponentType::DESTROYABLE) == m_Components.end()) {
+		// 	auto destroyableComponent = new DestroyableComponent(this);
+		// 	destroyableComponent->SetHealth(1);
+		// 	destroyableComponent->SetMaxHealth(1.0f);
+		// 	destroyableComponent->SetFaction(-1, true);
+		// 	destroyableComponent->SetIsSmashable(true);
+		// 	m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, destroyableComponent));
+		// }
 	// }
 
 	// PetComponent* petComponent;

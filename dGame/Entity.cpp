@@ -218,19 +218,15 @@ void Entity::Initialize() {
 
 	if (m_ParentEntity) m_ParentEntity->AddChild(this);
 
-	// Brick-by-Brick models don't have all their components in the registry for some reason? Might have to be related to using ldf keys for physics
-	if (GetLOT() == 14) {
-		AddComponent<SimplePhysicsComponent>(4246);
-		AddComponent<ModelBehaviorComponent>();
-		AddComponent<RenderComponent>();
-		AddComponent<DestroyableComponent>();
-		return;
-	}
-
 	auto* componentsRegistry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 	TemplateComponents components = componentsRegistry->GetTemplateComponents(m_TemplateID);
 	ApplyComponentWhitelist(components);
 	ApplyComponentBlacklist(components);
+	// Brick-by-Brick models use custom physics depending on _something_ but the client uses 4246 as the simple
+	// physics component id and 4247 for phantom physics. We'll just use the simple physics component for now
+	// since we dont know what the phantom physics are for at the moment.
+	if (GetLOT() == 14) components.emplace_back(eReplicaComponentType::SIMPLE_PHYSICS, 4246U);
+
 	for (const auto& [componentTemplate, componentId] : components) {
 		switch (componentTemplate) {
 		case eReplicaComponentType::CONTROLLABLE_PHYSICS:
@@ -250,8 +246,7 @@ void Entity::Initialize() {
 			AddComponent<PlayerForcedMovementComponent>();
 			break;
 		case eReplicaComponentType::SCRIPT: {
-			auto script = ScriptComponent::GetScriptName(this, componentId);
-			if (!script.empty()) AddComponent<ScriptComponent>(script);
+			AddComponent<ScriptComponent>(ScriptComponent::GetScriptName(this, componentId));
 			if (m_TemplateID == ZONE_CONTROL_LOT) {
 				const auto zoneScript = ScriptComponent::GetZoneScriptName(componentId);
 				if (!zoneScript.empty()) AddComponent<ScriptComponent>(zoneScript);
@@ -262,7 +257,7 @@ void Entity::Initialize() {
 			AddComponent<BouncerComponent>();
 			break;
 		case eReplicaComponentType::DESTROYABLE:
-			AddComponent<DestroyableComponent>();
+			if (HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
 			break;
 		case eReplicaComponentType::SKILL:
 			AddComponent<SkillComponent>();
@@ -284,7 +279,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::COLLECTIBLE:
 			AddComponent<CollectibleComponent>();
-			AddComponent<DestroyableComponent>();
+			if (HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
 			break;
 		case eReplicaComponentType::MOVING_PLATFORM:
 			AddComponent<MovingPlatformComponent>(GetVarAsString(u"attached_path"));
@@ -292,21 +287,38 @@ void Entity::Initialize() {
 		case eReplicaComponentType::PET:
 			AddComponent<PetComponent>(componentId);
 			break;
-		case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS:
-			AddComponent<HavokVehiclePhysicsComponent>();
+		case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS: {
+			auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>();
+			if (havokVehiclePhysicsComponent) {
+				havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
+				havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
+			}
 			break;
+		}
 		case eReplicaComponentType::PROPERTY:
 			AddComponent<PropertyComponent>();
 			break;
 		case eReplicaComponentType::SCRIPTED_ACTIVITY:
 			AddComponent<ScriptedActivityComponent>(componentId);
 			break;
-		case eReplicaComponentType::PHANTOM_PHYSICS:
-			AddComponent<PhantomPhysicsComponent>();
+		case eReplicaComponentType::PHANTOM_PHYSICS: {
+			auto* phantomPhysicsComponent = AddComponent<PhantomPhysicsComponent>();
+			if (phantomPhysicsComponent) phantomPhysicsComponent->SetPhysicsEffectActive(false);
 			break;
-		case eReplicaComponentType::MODEL_BEHAVIOR:
+		}
+		case eReplicaComponentType::MODEL_BEHAVIOR: {
 			AddComponent<ModelBehaviorComponent>();
+			if (HasComponent(eReplicaComponentType::DESTROYABLE)) {
+				auto* destroyableComponent = AddComponent<DestroyableComponent>();
+				if (destroyableComponent) {
+					destroyableComponent->SetHealth(1);
+					destroyableComponent->SetMaxHealth(1.0f);
+					destroyableComponent->SetFaction(-1, true);
+					destroyableComponent->SetIsSmashable(true);
+				}
+			}
 			break;
+		}
 		case eReplicaComponentType::PROPERTY_ENTRANCE:
 			AddComponent<PropertyEntranceComponent>(componentId);
 			break;
@@ -314,8 +326,8 @@ void Entity::Initialize() {
 			AddComponent<PropertyManagementComponent>();
 			break;
 		case eReplicaComponentType::QUICK_BUILD:
-			AddComponent<QuickBuildComponent>();
-			AddComponent<DestroyableComponent>();
+			AddComponent<QuickBuildComponent>(componentId);
+			if (HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
 			break;
 		case eReplicaComponentType::SWITCH:
 			AddComponent<SwitchComponent>();
