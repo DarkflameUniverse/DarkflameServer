@@ -64,19 +64,16 @@ void QuickBuildComponent::LoadConfigData() {
 
 	if (rebuildResetTime != 0.0f) {
 		SetResetTime(rebuildResetTime);
-
-		if (m_ParentEntity->GetLOT() == 9483) // Look away!
+		if (m_ParentEntity->GetLOT() == 9483) // TODO: Fix the moving platform in Forbidden valley spawning at the end.
 		{
 			SetResetTime(GetResetTime() + 25);
 		}
 	}
 
 	const auto activityID = m_ParentEntity->GetVar<int32_t>(u"activityID");
-
 	if (activityID > 0) SetActivityId(activityID);
 
 	const auto compTime = m_ParentEntity->GetVar<float>(u"compTime");
-
 	if (compTime > 0) SetCompleteTime(compTime);
 }
 
