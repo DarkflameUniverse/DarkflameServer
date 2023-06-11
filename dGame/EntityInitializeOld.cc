@@ -46,10 +46,10 @@ Entity::Initialize() {
 		// m_Components.insert(std::make_pair(eReplicaComponentType::RENDER, render));
 
 		// auto destroyableComponent = new DestroyableComponent(this);
-		destroyableComponent->SetHealth(1);
-		destroyableComponent->SetMaxHealth(1.0f);
-		destroyableComponent->SetFaction(-1, true);
-		destroyableComponent->SetIsSmashable(true);
+		// destroyableComponent->SetHealth(1);
+		// destroyableComponent->SetMaxHealth(1.0f);
+		// destroyableComponent->SetFaction(-1, true);
+		// destroyableComponent->SetIsSmashable(true);
 		// m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, destroyableComponent));
 		// We have all our components.
 		// return;
