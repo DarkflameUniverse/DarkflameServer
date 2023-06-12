@@ -732,7 +732,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 		auto* team = TeamManager::Instance()->GetTeam(owner->GetObjectID());
 
-		const auto* isEnemy = m_ParentEntity->GetComponent<BaseCombatAIComponent>() != nullptr;
+		const auto isEnemy = m_ParentEntity->GetComponent<BaseCombatAIComponent>() != nullptr;
 
 		auto* inventoryComponent = owner->GetComponent<InventoryComponent>();
 
