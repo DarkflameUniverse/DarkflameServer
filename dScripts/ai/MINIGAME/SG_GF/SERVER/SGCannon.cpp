@@ -287,11 +287,11 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			auto* enemy = EntityManager::Instance()->CreateEntity(info, nullptr, self);
 			EntityManager::Instance()->ConstructEntity(enemy);
 
-			auto movementAI = enemy->AddComponent<MovementAIComponent, MovementAIInfo>({});
-
-			movementAI->SetSpeed(toSpawn.initialSpeed);
-			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
-			movementAI->SetHaltDistance(0.0f);
+			auto movementAiComponent = enemy->AddComponent<MovementAIComponent>(0U);
+	
+			movementAiComponent->SetSpeed(toSpawn.initialSpeed);
+			movementAiComponent->SetCurrentSpeed(toSpawn.initialSpeed);
+			movementAiComponent->SetHaltDistance(0.0f);
 
 			std::vector<NiPoint3> pathWaypoints;
 
@@ -303,7 +303,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 				std::reverse(pathWaypoints.begin(), pathWaypoints.end());
 			}
 
-			movementAI->SetPath(pathWaypoints);
+			movementAiComponent->SetPath(pathWaypoints);
 
 			enemy->AddDieCallback([this, self, enemy, name]() {
 				RegisterHit(self, enemy, name);

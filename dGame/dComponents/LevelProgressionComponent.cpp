@@ -35,6 +35,10 @@ void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	uint32_t characterVersion;
 	level->QueryAttribute("cv", &characterVersion);
 	m_CharacterVersion = static_cast<eCharacterVersion>(characterVersion);
+	auto* controllablePhysicsComponent = m_ParentEntity->GetComponent<ControllablePhysicsComponent>();
+
+	if (!controllablePhysicsComponent) return;
+	controllablePhysicsComponent->SetSpeedMultiplier(GetSpeedBase() / 500.0f);
 }
 
 void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -68,7 +72,7 @@ void LevelProgressionComponent::HandleLevelUp() {
 		}
 		break;
 		case 9:
-			SetSpeedBase(static_cast<float>(reward->value) );
+			SetSpeedBase(static_cast<float>(reward->value));
 			controllablePhysicsComponent->SetSpeedMultiplier(GetSpeedBase() / 500.0f);
 			break;
 		case 11:
@@ -82,7 +86,7 @@ void LevelProgressionComponent::HandleLevelUp() {
 	if (rewardingItem) GameMessages::NotifyLevelRewards(m_ParentEntity->GetObjectID(), m_ParentEntity->GetSystemAddress(), m_Level, !rewardingItem);
 }
 
-void LevelProgressionComponent::SetRetroactiveBaseSpeed(){
+void LevelProgressionComponent::SetRetroactiveBaseSpeed() {
 	if (m_Level >= 20) m_SpeedBase = 525.0f;
 	auto* controllablePhysicsComponent = m_ParentEntity->GetComponent<ControllablePhysicsComponent>();
 	if (controllablePhysicsComponent) controllablePhysicsComponent->SetSpeedMultiplier(m_SpeedBase / 500.0f);

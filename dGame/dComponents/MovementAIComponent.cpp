@@ -13,21 +13,17 @@
 
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
+#include "CDMovementAIComponentTable.h"
 
 std::map<LOT, float> MovementAIComponent::m_PhysicsSpeedCache = {};
 
-MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : Component(parent) {
-	m_Info = std::move(info);
+MovementAIComponent::MovementAIComponent(Entity* parent, int32_t componentId) : Component(parent) {
+	m_ComponentId = componentId;
 	m_Done = true;
 
 	m_BaseCombatAI = nullptr;
 
 	m_BaseCombatAI = m_ParentEntity->GetComponent<BaseCombatAIComponent>();
-
-	//Try and fix the insane values:
-	if (m_Info.wanderRadius > 5.0f) m_Info.wanderRadius = m_Info.wanderRadius * 0.5f;
-	if (m_Info.wanderRadius > 8.0f) m_Info.wanderRadius = 8.0f;
-	if (m_Info.wanderSpeed > 0.5f) m_Info.wanderSpeed = m_Info.wanderSpeed * 0.5f;
 
 	m_BaseSpeed = GetBaseSpeed(m_ParentEntity->GetLOT());
 
@@ -43,7 +39,48 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_LockRotation = false;
 }
 
-MovementAIComponent::~MovementAIComponent() = default;
+void MovementAIComponent::Startup() {
+
+}
+
+void MovementAIComponent::LoadConfigData() {
+	bool useWanderDB = m_ParentEntity->GetVar<bool>(u"usewanderdb");
+
+	if (!useWanderDB) {
+		const auto wanderOverride = m_ParentEntity->GetVarAs<float>(u"wanderRadius");
+
+		if (wanderOverride != 0.0f) {
+			m_Info.wanderRadius = wanderOverride;
+		}
+	}
+}
+
+void MovementAIComponent::LoadTemplateData() {
+	if (m_ComponentId == -1) return;
+	auto* movementAiComponentTable = CDClientManager::Instance().GetTable<CDMovementAIComponentTable>();
+	auto movementEntries = movementAiComponentTable->Query([this](CDMovementAIComponent entry) {return (entry.id == this->m_ComponentId); });
+	if (movementEntries.empty()) return;
+	auto movementEntry = movementEntries.at(0);
+	MovementAIInfo moveInfo{};
+
+	moveInfo.movementType = movementEntry.MovementType;
+	moveInfo.wanderChance = movementEntry.WanderChance;
+	moveInfo.wanderRadius = movementEntry.WanderRadius;
+	moveInfo.wanderSpeed = movementEntry.WanderSpeed;
+	moveInfo.wanderDelayMax = movementEntry.WanderDelayMax;
+	moveInfo.wanderDelayMin = movementEntry.WanderDelayMin;
+
+	this->SetMoveInfo(moveInfo);
+}
+
+void MovementAIComponent::SetMoveInfo(const MovementAIInfo& info) {
+	m_Info = info;
+
+	//Try and fix the insane values:
+	if (m_Info.wanderRadius > 5.0f) m_Info.wanderRadius *= 0.5f;
+	if (m_Info.wanderRadius > 8.0f) m_Info.wanderRadius = 8.0f;
+	if (m_Info.wanderSpeed > 0.5f) m_Info.wanderSpeed *= 0.5f;
+}
 
 void MovementAIComponent::Update(const float deltaTime) {
 	if (m_Interrupted) {

@@ -21,8 +21,10 @@ class ProximityMonitorComponent : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROXIMITY_MONITOR;
 
-	ProximityMonitorComponent(Entity* parentEntity, int smallRadius = -1, int largeRadius = -1);
+	ProximityMonitorComponent(Entity* parentEntity, int32_t componentId = -1);
 	~ProximityMonitorComponent() override;
+
+	void LoadTemplateData() override;
 	void Update(float deltaTime) override;
 
 	/**
@@ -71,6 +73,8 @@ private:
 	 * Default value for the proximity data
 	 */
 	static const std::map<LWOOBJID, dpEntity*> m_EmptyObjectMap;
+
+	int32_t m_ComponentId = 0;
 };
 
 #endif // PROXIMITYMONITORCOMPONENT_H

@@ -1,4 +1,4 @@
-Entity::Initialize() {
+// Entity::Initialize() {
 	/**
 	 * Setup trigger
 	 */
@@ -204,75 +204,75 @@ Entity::Initialize() {
 
 	// if (destroyableComponentID > 0 || collectibleComponentID > 0) {
 		// DestroyableComponent* comp = new DestroyableComponent(this);
-		if (m_Character) {
-			comp->LoadFromXml(m_Character->GetXMLDoc());
-		} else {
-			if (componentID > 0) {
-				// std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
+		// if (m_Character) {
+			// comp->LoadFromXml(m_Character->GetXMLDoc());
+		// } else {
+			// if (componentID > 0) {
+			// 	// std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
-				if (destCompData.size() > 0) {
-					if (HasComponent(eReplicaComponentType::RACING_STATS)) {
-						destCompData[0].imagination = 60;
-					}
+			// 	if (destCompData.size() > 0) {
+			// 		if (HasComponent(eReplicaComponentType::RACING_STATS)) {
+			// 			destCompData[0].imagination = 60;
+			// 		}
 
-					comp->SetHealth(destCompData[0].life);
-					comp->SetImagination(destCompData[0].imagination);
-					comp->SetArmor(destCompData[0].armor);
+			// 		comp->SetHealth(destCompData[0].life);
+			// 		comp->SetImagination(destCompData[0].imagination);
+			// 		comp->SetArmor(destCompData[0].armor);
 
-					comp->SetMaxHealth(destCompData[0].life);
-					comp->SetMaxImagination(destCompData[0].imagination);
-					comp->SetMaxArmor(destCompData[0].armor);
+			// 		comp->SetMaxHealth(destCompData[0].life);
+			// 		comp->SetMaxImagination(destCompData[0].imagination);
+			// 		comp->SetMaxArmor(destCompData[0].armor);
 
-					comp->SetIsSmashable(destCompData[0].isSmashable);
+			// 		comp->SetIsSmashable(destCompData[0].isSmashable);
 
-					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
+			// 		comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
 
-					// Now get currency information
-					uint32_t npcMinLevel = destCompData[0].level;
-					uint32_t currencyIndex = destCompData[0].CurrencyIndex;
+			// 		// Now get currency information
+			// 		uint32_t npcMinLevel = destCompData[0].level;
+			// 		uint32_t currencyIndex = destCompData[0].CurrencyIndex;
 
-					CDCurrencyTableTable* currencyTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
-					std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
+			// 		CDCurrencyTableTable* currencyTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
+			// 		std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
 
-					if (currencyValues.size() > 0) {
-						// Set the coins
-						comp->SetMinCoins(currencyValues[0].minvalue);
-						comp->SetMaxCoins(currencyValues[0].maxvalue);
-					}
+			// 		if (currencyValues.size() > 0) {
+			// 			// Set the coins
+			// 			comp->SetMinCoins(currencyValues[0].minvalue);
+			// 			comp->SetMaxCoins(currencyValues[0].maxvalue);
+			// 		}
 
-					// extraInfo overrides
-					comp->SetIsSmashable(GetVarAs<int32_t>(u"is_smashable") != 0);
-				}
-			} else {
-				comp->SetHealth(1);
-				comp->SetArmor(0);
+			// 		// extraInfo overrides
+			// 		// comp->SetIsSmashable(GetVarAs<int32_t>(u"is_smashable") != 0);
+			// 	}
+			// } else {
+				// comp->SetHealth(1);
+				// comp->SetArmor(0);
 
-				comp->SetMaxHealth(1);
-				comp->SetMaxArmor(0);
+				// comp->SetMaxHealth(1);
+				// comp->SetMaxArmor(0);
 
-				comp->SetIsSmashable(true);
-				comp->AddFaction(-1);
-				comp->AddFaction(6); //Smashables
+				// comp->SetIsSmashable(true);
+				// comp->AddFaction(-1);
+				// comp->AddFaction(6); //Smashables
 
-				// A race car has 60 imagination, other entities defaults to 0.
-				comp->SetImagination(HasComponent(eReplicaComponentType::RACING_STATS) ? 60 : 0);
-				comp->SetMaxImagination(HasComponent(eReplicaComponentType::RACING_STATS) ? 60 : 0);
-			}
-		}
+				// // A race car has 60 imagination, other entities defaults to 0.
+				// comp->SetImagination(HasComponent(eReplicaComponentType::RACING_STATS) ? 60 : 0);
+				// comp->SetMaxImagination(HasComponent(eReplicaComponentType::RACING_STATS) ? 60 : 0);
+		// 	}
+		// }
 
-		if (destCompData.size() > 0) {
-			comp->AddFaction(destCompData[0].faction);
-			std::stringstream ss(destCompData[0].factionList);
-			std::string token;
+		// if (destCompData.size() > 0) {
+		// 	comp->AddFaction(destCompData[0].faction);
+		// 	std::stringstream ss(destCompData[0].factionList);
+		// 	std::string token;
 
-			while (std::getline(ss, token, ',')) {
-				if (std::stoi(token) == destCompData[0].faction) continue;
+		// 	while (std::getline(ss, token, ',')) {
+		// 		if (std::stoi(token) == destCompData[0].faction) continue;
 
-				if (token != "") {
-					comp->AddFaction(std::stoi(token));
-				}
-			}
-		}
+		// 		if (token != "") {
+		// 			comp->AddFaction(std::stoi(token));
+		// 		}
+		// 	}
+		// }
 
 		// m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, comp));
 	}
@@ -505,64 +505,64 @@ Entity::Initialize() {
 	// 	m_Components.insert(std::make_pair(eReplicaComponentType::RAIL_ACTIVATOR, new RailActivatorComponent(this, railComponentID)));
 	// }
 
-	int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
-	if (movementAIID > 0) {
-		CDMovementAIComponentTable* moveAITable = CDClientManager::Instance().GetTable<CDMovementAIComponentTable>();
-		std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
+	// int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
+	// if (movementAIID > 0) {
+	// 	CDMovementAIComponentTable* moveAITable = CDClientManager::Instance().GetTable<CDMovementAIComponentTable>();
+	// 	std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
 
-		if (moveAIComp.size() > 0) {
-			MovementAIInfo moveInfo = MovementAIInfo();
+	// 	if (moveAIComp.size() > 0) {
+	// 		MovementAIInfo moveInfo = MovementAIInfo();
 
-			moveInfo.movementType = moveAIComp[0].MovementType;
-			moveInfo.wanderChance = moveAIComp[0].WanderChance;
-			moveInfo.wanderRadius = moveAIComp[0].WanderRadius;
-			moveInfo.wanderSpeed = moveAIComp[0].WanderSpeed;
-			moveInfo.wanderDelayMax = moveAIComp[0].WanderDelayMax;
-			moveInfo.wanderDelayMin = moveAIComp[0].WanderDelayMin;
+	// 		moveInfo.movementType = moveAIComp[0].MovementType;
+	// 		moveInfo.wanderChance = moveAIComp[0].WanderChance;
+	// 		moveInfo.wanderRadius = moveAIComp[0].WanderRadius;
+	// 		moveInfo.wanderSpeed = moveAIComp[0].WanderSpeed;
+	// 		moveInfo.wanderDelayMax = moveAIComp[0].WanderDelayMax;
+	// 		moveInfo.wanderDelayMin = moveAIComp[0].WanderDelayMin;
 
-			bool useWanderDB = GetVar<bool>(u"usewanderdb");
+	// 		bool useWanderDB = GetVar<bool>(u"usewanderdb");
 
-			if (!useWanderDB) {
-				const auto wanderOverride = GetVarAs<float>(u"wanderRadius");
+	// 		if (!useWanderDB) {
+	// 			const auto wanderOverride = GetVarAs<float>(u"wanderRadius");
 
-				if (wanderOverride != 0.0f) {
-					moveInfo.wanderRadius = wanderOverride;
-				}
-			}
+	// 			if (wanderOverride != 0.0f) {
+	// 				moveInfo.wanderRadius = wanderOverride;
+	// 			}
+	// 		}
 
-			m_Components.insert(std::make_pair(eReplicaComponentType::MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
-		}
-	} else if (petComponentId > 0 || combatAiId > 0 && GetComponent<BaseCombatAIComponent>()->GetTetherSpeed() > 0) {
-		MovementAIInfo moveInfo = MovementAIInfo();
-		moveInfo.movementType = "";
-		moveInfo.wanderChance = 0;
-		moveInfo.wanderRadius = 16;
-		moveInfo.wanderSpeed = 2.5f;
-		moveInfo.wanderDelayMax = 5;
-		moveInfo.wanderDelayMin = 2;
+	// 		m_Components.insert(std::make_pair(eReplicaComponentType::MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
+	// 	}
+	// } else if (petComponentId > 0 || combatAiId > 0 && GetComponent<BaseCombatAIComponent>()->GetTetherSpeed() > 0) {
+	// 	MovementAIInfo moveInfo = MovementAIInfo();
+	// 	moveInfo.movementType = "";
+	// 	moveInfo.wanderChance = 0;
+	// 	moveInfo.wanderRadius = 16;
+	// 	moveInfo.wanderSpeed = 2.5f;
+	// 	moveInfo.wanderDelayMax = 5;
+	// 	moveInfo.wanderDelayMin = 2;
 
-		m_Components.insert(std::make_pair(eReplicaComponentType::MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
-	}
+	// 	// m_Components.insert(std::make_pair(eReplicaComponentType::MOVEMENT_AI, new MovementAIComponent(this, moveInfo)));
+	// }
 
-	std::string pathName = GetVarAsString(u"attached_path");
-	const Path* path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
+	// std::string pathName = GetVarAsString(u"attached_path");
+	// const Path* path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
 
-	//Check to see if we have an attached path and add the appropiate component to handle it:
-	if (path){
-		// if we have a moving platform path, then we need a moving platform component
-		if (path->pathType == PathType::MovingPlatform) {
-			MovingPlatformComponent* plat = new MovingPlatformComponent(this, pathName);
-			m_Components.insert(std::make_pair(eReplicaComponentType::MOVING_PLATFORM, plat));
-		// else if we are a movement path
-		} /*else if (path->pathType == PathType::Movement) {
-			auto movementAIcomp = GetComponent<MovementAIComponent>();
-			if (movementAIcomp){
-				// TODO: set path in existing movementAIComp
-			} else {
-				// TODO: create movementAIcomp and set path
-			}
-		}*/
-	} 
+	// //Check to see if we have an attached path and add the appropiate component to handle it:
+	// if (path){
+	// 	// if we have a moving platform path, then we need a moving platform component
+	// 	if (path->pathType == PathType::MovingPlatform) {
+	// 		MovingPlatformComponent* plat = new MovingPlatformComponent(this, pathName);
+	// 		m_Components.insert(std::make_pair(eReplicaComponentType::MOVING_PLATFORM, plat));
+	// 	// else if we are a movement path
+	// 	} /*else if (path->pathType == PathType::Movement) {
+	// 		auto movementAIcomp = GetComponent<MovementAIComponent>();
+	// 		if (movementAIcomp){
+	// 			// TODO: set path in existing movementAIComp
+	// 		} else {
+	// 			// TODO: create movementAIcomp and set path
+	// 		}
+	// 	}*/
+	// } 
 	// else {
 		// else we still need to setup moving platform if it has a moving platform comp but no path
 		// int32_t movingPlatformComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);
@@ -572,70 +572,67 @@ Entity::Initialize() {
 		// }
 	// }
 
-	int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
-	if (proximityMonitorID > 0) {
-		CDProximityMonitorComponentTable* proxCompTable = CDClientManager::Instance().GetTable<CDProximityMonitorComponentTable>();
-		std::vector<CDProximityMonitorComponent> proxCompData = proxCompTable->Query([=](CDProximityMonitorComponent entry) { return (entry.id == proximityMonitorID); });
-		if (proxCompData.size() > 0) {
-			std::vector<std::string> proximityStr = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
-			ProximityMonitorComponent* comp = new ProximityMonitorComponent(this, std::stoi(proximityStr[0]), std::stoi(proximityStr[1]));
-			m_Components.insert(std::make_pair(eReplicaComponentType::PROXIMITY_MONITOR, comp));
-		}
-	}
+	// int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
+	// if (proximityMonitorID > 0) {
+	// 	CDProximityMonitorComponentTable* proxCompTable = CDClientManager::Instance().GetTable<CDProximityMonitorComponentTable>();
+	// 	std::vector<CDProximityMonitorComponent> proxCompData = proxCompTable->Query([=](CDProximityMonitorComponent entry) { return (entry.id == proximityMonitorID); });
+	// 	if (proxCompData.size() > 0) {
+	// 		std::vector<std::string> proximityStr = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
+	// 		ProximityMonitorComponent* comp = new ProximityMonitorComponent(this, std::stoi(proximityStr[0]), std::stoi(proximityStr[1]));
+	// 		m_Components.insert(std::make_pair(eReplicaComponentType::PROXIMITY_MONITOR, comp));
+	// 	}
+	// }
 
 	// Hacky way to trigger these when the object has had a chance to get constructed
-	AddCallbackTimer(0, [this]() {
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-			script->OnStartup(this);
-		}
-		});
+	// AddCallbackTimer(0, [this]() {
+	// 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
+	// 		script->OnStartup(this);
+	// 	}
+	// 	});
 
-	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
-		// Don't ghost what is likely large scene elements
-		if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
-			goto no_ghosting;
-		}
+	// if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
+	// 	// Don't ghost what is likely large scene elements
+	// 	if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
+	// 		goto no_ghosting;
+	// 	}
 
-		/* Filter for ghosting candidates.
-		 *
-		 * Don't ghost moving platforms, until we've got proper syncing for those.
-		 * Don't ghost big phantom physics triggers, as putting those to sleep might prevent interactions.
-		 * Don't ghost property related objects, as the client expects those to always be loaded.
-		 */
-		if (
-			!EntityManager::IsExcludedFromGhosting(GetLOT()) &&
-			!HasComponent(eReplicaComponentType::SCRIPTED_ACTIVITY) &&
-			!HasComponent(eReplicaComponentType::MOVING_PLATFORM) &&
-			!HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) &&
-			!HasComponent(eReplicaComponentType::PROPERTY) &&
-			!HasComponent(eReplicaComponentType::RACING_CONTROL) &&
-			!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)
-			)
-			//if (HasComponent(eReplicaComponentType::BASE_COMBAT_AI))
-		{
-			m_IsGhostingCandidate = true;
-		}
+	// 	/* Filter for ghosting candidates.
+	// 	 *
+	// 	 * Don't ghost moving platforms, until we've got proper syncing for those.
+	// 	 * Don't ghost big phantom physics triggers, as putting those to sleep might prevent interactions.
+	// 	 * Don't ghost property related objects, as the client expects those to always be loaded.
+	// 	 */
+	// 	if (
+	// 		!EntityManager::IsExcludedFromGhosting(GetLOT()) &&
+	// 		!HasComponent(eReplicaComponentType::SCRIPTED_ACTIVITY) &&
+	// 		!HasComponent(eReplicaComponentType::MOVING_PLATFORM) &&
+	// 		!HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) &&
+	// 		!HasComponent(eReplicaComponentType::PROPERTY) &&
+	// 		!HasComponent(eReplicaComponentType::RACING_CONTROL) &&
+	// 		!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)
+	// 		)
+	// 	{
+	// 		m_IsGhostingCandidate = true;
+	// 	}
 
-		if (GetLOT() == 6368) {
-			m_IsGhostingCandidate = true;
-		}
+	// 	if (GetLOT() == 6368) m_IsGhostingCandidate = true;
 
-		// Special case for collectibles in Ninjago
-		if (HasComponent(eReplicaComponentType::COLLECTIBLE) && Game::server->GetZoneID() == 2000) {
-			m_IsGhostingCandidate = true;
-		}
-	}
+	// 	// Special case for collectibles in Ninjago
+	// 	if (HasComponent(eReplicaComponentType::COLLECTIBLE) && Game::server->GetZoneID() == 2000) {
+	// 		m_IsGhostingCandidate = true;
+	// 	}
+	// }
 
-no_ghosting:
+// no_ghosting:
 
-	TriggerEvent(eTriggerEventType::CREATE, this);
+	// TriggerEvent(eTriggerEventType::CREATE, this);
 
-	if (m_Character) {
-		auto controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
-		auto levelComponent = GetComponent<LevelProgressionComponent>();
+	// if (m_Character) {
+	// 	auto controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
+	// 	auto levelComponent = GetComponent<LevelProgressionComponent>();
 
-		if (controllablePhysicsComponent && levelComponent) {
-			controllablePhysicsComponent->SetSpeedMultiplier(levelComponent->GetSpeedBase() / 500.0f);
-		}
-	}
-}
+	// 	if (controllablePhysicsComponent && levelComponent) {
+	// 		controllablePhysicsComponent->SetSpeedMultiplier(levelComponent->GetSpeedBase() / 500.0f);
+	// 	}
+	// }
+// }

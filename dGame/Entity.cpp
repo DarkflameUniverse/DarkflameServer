@@ -205,6 +205,29 @@ void Entity::ApplyComponentConfig(TemplateComponents& components) const {
 	}
 }
 
+void Entity::AddPathComponent(TemplateComponents& components) const {
+	const Path* path = dZoneManager::Instance()->GetZone()->GetPath(GetVarAsString(u"attached_path"));
+	//Check to see if we have an attached path and add the appropiate component to handle it:
+	if (path) {
+		// if we have a moving platform path, then we need a moving platform component
+		if (path->pathType == PathType::MovingPlatform) {
+			bool hasMovingPlatform = std::count_if(components.begin(), components.end(), [](const auto& componentCandidate) {
+				return componentCandidate.first == eReplicaComponentType::MOVING_PLATFORM;
+				}) > 0;
+			if (!hasMovingPlatform) components.emplace_back(eReplicaComponentType::MOVING_PLATFORM, 0U);
+		} else if (path->pathType == PathType::Movement) {
+			bool hasMovementAi = std::count_if(components.begin(), components.end(), [](const auto& componentCandidate) {
+				return componentCandidate.first == eReplicaComponentType::MOVEMENT_AI;
+				}) > 0;
+			if (!hasMovementAi) {
+				components.emplace_back(eReplicaComponentType::MOVEMENT_AI, 0U);
+			}
+		} else {
+			Game::logger->Log("Entity", "Unsupported path type %i provided for lot %i.", path->pathType, GetLOT());
+		}
+	}
+}
+
 void Entity::Initialize() {
 	// A few edge cases to tackle first
 	const auto triggerInfo = GetVarAsString(u"trigger_id");
@@ -222,11 +245,11 @@ void Entity::Initialize() {
 	TemplateComponents components = componentsRegistry->GetTemplateComponents(m_TemplateID);
 	ApplyComponentWhitelist(components);
 	ApplyComponentBlacklist(components);
+	AddPathComponent(components);
 	// Brick-by-Brick models use custom physics depending on _something_ but the client uses 4246 as the simple
 	// physics component id and 4247 for phantom physics. We'll just use the simple physics component for now
 	// since we dont know what the phantom physics are for at the moment.
-	if (GetLOT() == 14) components.emplace_back(eReplicaComponentType::SIMPLE_PHYSICS, 4246U);
-
+	if (GetLOT() == LOT_MODEL_IN_WORLD) components.emplace_back(eReplicaComponentType::SIMPLE_PHYSICS, 4246U);
 	for (const auto& [componentTemplate, componentId] : components) {
 		switch (componentTemplate) {
 		case eReplicaComponentType::CONTROLLABLE_PHYSICS:
@@ -247,7 +270,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::SCRIPT: {
 			AddComponent<ScriptComponent>(ScriptComponent::GetScriptName(this, componentId));
-			if (m_TemplateID == ZONE_CONTROL_LOT) {
+			if (m_TemplateID == LOT_ZONE_CONTROL) {
 				const auto zoneScript = ScriptComponent::GetZoneScriptName(componentId);
 				if (!zoneScript.empty()) AddComponent<ScriptComponent>(zoneScript);
 			}
@@ -257,7 +280,7 @@ void Entity::Initialize() {
 			AddComponent<BouncerComponent>();
 			break;
 		case eReplicaComponentType::DESTROYABLE:
-			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>(componentId);
 			break;
 		case eReplicaComponentType::SKILL:
 			AddComponent<SkillComponent>();
@@ -279,13 +302,14 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::COLLECTIBLE:
 			AddComponent<CollectibleComponent>();
-			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>(componentId);
 			break;
 		case eReplicaComponentType::MOVING_PLATFORM:
 			AddComponent<MovingPlatformComponent>(GetVarAsString(u"attached_path"));
 			break;
 		case eReplicaComponentType::PET:
 			AddComponent<PetComponent>(componentId);
+			AddComponent<MovementAIComponent>();
 			break;
 		case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS: {
 			auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>();
@@ -295,6 +319,9 @@ void Entity::Initialize() {
 			}
 			break;
 		}
+		case eReplicaComponentType::MOVEMENT_AI:
+			AddComponent<MovementAIComponent>();
+			break;
 		case eReplicaComponentType::PROPERTY:
 			AddComponent<PropertyComponent>();
 			break;
@@ -309,7 +336,7 @@ void Entity::Initialize() {
 		case eReplicaComponentType::MODEL_BEHAVIOR: {
 			AddComponent<ModelBehaviorComponent>();
 			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
-				auto* destroyableComponent = AddComponent<DestroyableComponent>();
+				auto* destroyableComponent = AddComponent<DestroyableComponent>(componentId);
 				if (destroyableComponent) {
 					destroyableComponent->SetHealth(1);
 					destroyableComponent->SetMaxHealth(1.0f);
@@ -327,7 +354,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::QUICK_BUILD:
 			AddComponent<QuickBuildComponent>(componentId);
-			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>();
+			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>(componentId);
 			break;
 		case eReplicaComponentType::SWITCH:
 			AddComponent<SwitchComponent>();
@@ -335,9 +362,22 @@ void Entity::Initialize() {
 		case eReplicaComponentType::MINIGAME_CONTROL:
 			AddComponent<MinigameControlComponent>();
 			break;
-		case eReplicaComponentType::BASE_COMBAT_AI:
-			AddComponent<BaseCombatAIComponent>(componentId);
+		case eReplicaComponentType::BASE_COMBAT_AI: {
+			auto* baseCombatAiComponent = AddComponent<BaseCombatAIComponent>(componentId);
+			if (baseCombatAiComponent && baseCombatAiComponent->GetTetherSpeed() > 0.0f) {
+				auto* movementAiComponent = AddComponent<MovementAIComponent>();
+				if (!movementAiComponent) break;
+				MovementAIInfo movementAiInfo{};
+				movementAiInfo.movementType = "";
+				movementAiInfo.wanderChance = 0;
+				movementAiInfo.wanderRadius = 16;
+				movementAiInfo.wanderSpeed = 2.5f;
+				movementAiInfo.wanderDelayMax = 5;
+				movementAiInfo.wanderDelayMin = 2;
+				movementAiComponent->SetMoveInfo(movementAiInfo);
+			}
 			break;
+		}
 		case eReplicaComponentType::MODULE_ASSEMBLY:
 			AddComponent<ModuleAssemblyComponent>();
 			break;
@@ -361,6 +401,9 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::SOUND_TRIGGER:
 			AddComponent<SoundTriggerComponent>();
+			break;
+		case eReplicaComponentType::PROXIMITY_MONITOR:
+			AddComponent<ProximityMonitorComponent>();
 			break;
 		case eReplicaComponentType::MULTI_ZONE_ENTRANCE:
 			AddComponent<MultiZoneEntranceComponent>();
@@ -390,7 +433,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::PLATFORM_BOUNDARY:
 		case eReplicaComponentType::MODULE:
 		case eReplicaComponentType::JETPACKPAD:
-		case eReplicaComponentType::MOVEMENT_AI:
 		case eReplicaComponentType::EXHIBIT:
 		case eReplicaComponentType::OVERHEAD_ICON:
 		case eReplicaComponentType::PET_CONTROL:
@@ -419,7 +461,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::DROPPED_LOOT:
 		case eReplicaComponentType::FACTION_TRIGGER:
 		case eReplicaComponentType::BBB:
-		case eReplicaComponentType::PROXIMITY_MONITOR:
 		case eReplicaComponentType::RACING_SOUND_TRIGGER:
 		case eReplicaComponentType::CHAT_BUBBLE:
 		case eReplicaComponentType::FRIENDS_LIST:
@@ -460,6 +501,13 @@ void Entity::Initialize() {
 		}
 	}
 
+	AddCallbackTimer(0.0f, [this]() {
+		auto scripts = CppScripts::GetEntityScripts(this);
+		std::for_each(scripts.begin(), scripts.end(), [this](const auto& script) {
+			script->OnStartup(this);
+			});
+		});
+
 	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
 		component.second->LoadTemplateData();
 		});
@@ -471,11 +519,47 @@ void Entity::Initialize() {
 	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
 		component.second->Startup();
 		});
-	if (!IsPlayer()) return; // No save data to load for non players
-
-	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
+	// No save data to load for non players
+	if (!IsPlayer()) std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
 		component.second->LoadFromXml(m_Character->GetXMLDoc());
 		});
+
+	TriggerEvent(eTriggerEventType::CREATE, this);
+	IsGhosted();
+}
+
+void Entity::IsGhosted() {
+	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
+		// Don't ghost what is likely large scene elements
+		if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
+			return;
+		}
+
+		/* Filter for ghosting candidates.
+		 *
+		 * Don't ghost moving platforms, until we've got proper syncing for those.
+		 * Don't ghost big phantom physics triggers, as putting those to sleep might prevent interactions.
+		 * Don't ghost property related objects, as the client expects those to always be loaded.
+		 */
+		if (
+			!EntityManager::IsExcludedFromGhosting(GetLOT()) &&
+			!HasComponent(eReplicaComponentType::SCRIPTED_ACTIVITY) &&
+			!HasComponent(eReplicaComponentType::MOVING_PLATFORM) &&
+			!HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) &&
+			!HasComponent(eReplicaComponentType::PROPERTY) &&
+			!HasComponent(eReplicaComponentType::RACING_CONTROL) &&
+			!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)
+			) {
+			m_IsGhostingCandidate = true;
+		}
+
+		if (GetLOT() == LOT_3D_AMBIENT_SOUND) m_IsGhostingCandidate = true;
+
+		// Special case for collectibles in Ninjago
+		if (HasComponent(eReplicaComponentType::COLLECTIBLE) && Game::server->GetZoneID() == 2000) {
+			m_IsGhostingCandidate = true;
+		}
+	}
 }
 
 bool Entity::operator==(const Entity& other) const {

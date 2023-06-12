@@ -66,6 +66,11 @@ public:
 
 	// For adding and removing components based on LDF keys
 	void ApplyComponentConfig(TemplateComponents& components) const;
+
+	// Paths have several components they could add. This function will add them.
+	void AddPathComponent(TemplateComponents& components) const;
+
+	void IsGhosted();
 	virtual void Initialize();
 
 	bool operator==(const Entity& other) const;

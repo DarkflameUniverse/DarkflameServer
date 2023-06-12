@@ -23,6 +23,10 @@ class BaseCombatAIComponent;
  * Information that describes the different variables used to make an entity move around
  */
 struct MovementAIInfo {
+
+	// copy assignment
+	MovementAIInfo& operator=(const MovementAIInfo& other) = default;
+	
 	std::string movementType;
 
 	/**
@@ -59,8 +63,10 @@ class MovementAIComponent : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
 
-	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
-	~MovementAIComponent() override;
+	MovementAIComponent(Entity* parentEntity, int32_t componentId = -1);
+	void Startup() override;
+	void LoadTemplateData() override;
+	void LoadConfigData() override;
 
 	void Update(float deltaTime) override;
 
@@ -217,6 +223,7 @@ public:
 	 */
 	static float GetBaseSpeed(LOT lot);
 
+	void SetMoveInfo(const MovementAIInfo& value);
 private:
 
 	/**
@@ -326,6 +333,8 @@ private:
 	 * Cache of all lots and their respective speeds
 	 */
 	static std::map<LOT, float> m_PhysicsSpeedCache;
+
+	int32_t m_ComponentId;
 };
 
 #endif // MOVEMENTAICOMPONENT_H

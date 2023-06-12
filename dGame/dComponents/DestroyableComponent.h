@@ -21,18 +21,14 @@ class DestroyableComponent : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
-	DestroyableComponent(Entity* parentEntity);
-	~DestroyableComponent() override;
+	DestroyableComponent(Entity* parentEntity, int32_t componentId = -1);
 
+	void Startup() override;
+	void LoadConfigData() override;
+	void LoadTemplateData() override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, uint32_t& flags);
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
-
-	/**
-	 * Initializes the component using a different LOT
-	 * @param templateID the ID to use for initialization
-	 */
-	void Reinitialize(LOT templateID);
 
 	/**
 	 * Sets the health of this entity. Makes sure this is serialized on the next tick and if this is a character its
@@ -458,6 +454,8 @@ public:
 	void DoHardcoreModeDrops(const LWOOBJID source);
 
 private:
+	// The ID of this component
+	int32_t m_ComponentId;
 	/**
 	 * Whether or not the health should be serialized
 	 */

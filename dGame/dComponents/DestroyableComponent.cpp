@@ -37,8 +37,9 @@
 #include "eGameActivity.h"
 
 #include "CDComponentsRegistryTable.h"
+#include "CDCurrencyTableTable.h"
 
-DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
+DestroyableComponent::DestroyableComponent(Entity* parent, int32_t componentId) : Component(parent) {
 	m_iArmor = 0;
 	m_fMaxArmor = 0.0f;
 	m_iImagination = 0;
@@ -62,6 +63,7 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_MinCoins = 0;
 	m_MaxCoins = 0;
 	m_DamageReduction = 0;
+	m_ComponentId = componentId;
 
 	m_ImmuneToBasicAttackCount = 0;
 	m_ImmuneToDamageOverTimeCount = 0;
@@ -73,49 +75,71 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_ImmuneToQuickbuildInterruptCount = 0;
 	m_ImmuneToPullToPointCount = 0;
 }
+void DestroyableComponent::Startup() {
 
-DestroyableComponent::~DestroyableComponent() {
 }
-
-void DestroyableComponent::Reinitialize(LOT templateID) {
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-
-	int32_t buffComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::BUFF);
-	int32_t collectibleComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::COLLECTIBLE);
-	int32_t quickBuildComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::QUICK_BUILD);
-
-	int32_t componentID = 0;
-	if (collectibleComponentID > 0) componentID = collectibleComponentID;
-	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
-	if (buffComponentID > 0) componentID = buffComponentID;
-
-	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
-	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
-
-	if (componentID > 0) {
-		std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
-
-		if (destCompData.size() > 0) {
-			SetHealth(destCompData[0].life);
-			SetImagination(destCompData[0].imagination);
-			SetArmor(destCompData[0].armor);
-
-			SetMaxHealth(destCompData[0].life);
-			SetMaxImagination(destCompData[0].imagination);
-			SetMaxArmor(destCompData[0].armor);
-
-			SetIsSmashable(destCompData[0].isSmashable);
-		}
-	} else {
+void DestroyableComponent::LoadConfigData() {
+	SetIsSmashable(m_ParentEntity->GetVarAs<int32_t>(u"is_smashable") != 0);
+}
+void DestroyableComponent::LoadTemplateData() {
+	[[unlikely]] if (m_ParentEntity->IsPlayer()) return;
+	auto* destroyableComponentTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
+	auto destroyableDataLookup = destroyableComponentTable->Query([this](CDDestructibleComponent entry) { return (entry.id == this->m_ComponentId); });
+	if (m_ComponentId == -1 || destroyableDataLookup.empty()) {
 		SetHealth(1);
-		SetImagination(0);
 		SetArmor(0);
 
 		SetMaxHealth(1);
-		SetMaxImagination(0);
 		SetMaxArmor(0);
 
 		SetIsSmashable(true);
+		AddFaction(-1);
+		AddFaction(6); //Smashables
+
+		// A race car has 60 imagination, other entities defaults to 0.
+		SetImagination(m_ParentEntity->HasComponent(eReplicaComponentType::RACING_STATS) ? 60 : 0);
+		SetMaxImagination(m_ParentEntity->HasComponent(eReplicaComponentType::RACING_STATS) ? 60 : 0);
+		return;
+	}
+
+	auto destroyableData = destroyableDataLookup.at(0);
+	if (m_ParentEntity->HasComponent(eReplicaComponentType::RACING_STATS)) {
+		destroyableData.imagination = 60;
+	}
+
+	SetHealth(destroyableData.life);
+	SetImagination(destroyableData.imagination);
+	SetArmor(destroyableData.armor);
+
+	SetMaxHealth(destroyableData.life);
+	SetMaxImagination(destroyableData.imagination);
+	SetMaxArmor(destroyableData.armor);
+
+	SetIsSmashable(destroyableData.isSmashable);
+
+	SetLootMatrixID(destroyableData.LootMatrixIndex);
+
+	// Now get currency information
+	uint32_t npcMinLevel = destroyableData.level;
+	uint32_t currencyIndex = destroyableData.CurrencyIndex;
+
+	auto* currencyTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
+	auto currencyValues = currencyTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
+
+	if (currencyValues.size() > 0) {
+		// Set the coins
+		SetMinCoins(currencyValues.at(0).minvalue);
+		SetMaxCoins(currencyValues.at(0).maxvalue);
+	}
+	AddFaction(destroyableData.faction);
+	std::stringstream ss(destroyableData.factionList);
+	std::string tokenStr;
+
+	while (std::getline(ss, tokenStr, ',')) {
+		int32_t factionToAdd = -2;
+		if (!GeneralUtils::TryParse(tokenStr, factionToAdd) || factionToAdd == -2 || factionToAdd == destroyableData.faction) continue;
+
+		AddFaction(factionToAdd);
 	}
 }
 
@@ -661,9 +685,9 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	//check if hardcore mode is enabled
-    if (EntityManager::Instance()->GetHardcoreMode()) {
+	if (EntityManager::Instance()->GetHardcoreMode()) {
 		DoHardcoreModeDrops(source);
-    }
+	}
 
 	Smash(source, eKillType::VIOLENT, u"", skillID);
 }
@@ -823,16 +847,16 @@ void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
 }
 
 void DestroyableComponent::SetStatusImmunity(
-		const eStateChangeType state,
-		const bool bImmuneToBasicAttack,
-		const bool bImmuneToDamageOverTime,
-		const bool bImmuneToKnockback,
-		const bool bImmuneToInterrupt,
-		const bool bImmuneToSpeed,
-		const bool bImmuneToImaginationGain,
-		const bool bImmuneToImaginationLoss,
-		const bool bImmuneToQuickbuildInterrupt,
-		const bool bImmuneToPullToPoint) {
+	const eStateChangeType state,
+	const bool bImmuneToBasicAttack,
+	const bool bImmuneToDamageOverTime,
+	const bool bImmuneToKnockback,
+	const bool bImmuneToInterrupt,
+	const bool bImmuneToSpeed,
+	const bool bImmuneToImaginationGain,
+	const bool bImmuneToImaginationLoss,
+	const bool bImmuneToQuickbuildInterrupt,
+	const bool bImmuneToPullToPoint) {
 
 	if (state == eStateChangeType::POP) {
 		if (bImmuneToBasicAttack && m_ImmuneToBasicAttackCount > 0) 				m_ImmuneToBasicAttackCount -= 1;
@@ -845,7 +869,7 @@ void DestroyableComponent::SetStatusImmunity(
 		if (bImmuneToQuickbuildInterrupt && m_ImmuneToQuickbuildInterruptCount > 0) m_ImmuneToQuickbuildInterruptCount -= 1;
 		if (bImmuneToPullToPoint && m_ImmuneToPullToPointCount > 0) 				m_ImmuneToPullToPointCount -= 1;
 
-	} else if (state == eStateChangeType::PUSH){
+	} else if (state == eStateChangeType::PUSH) {
 		if (bImmuneToBasicAttack) 			m_ImmuneToBasicAttackCount += 1;
 		if (bImmuneToDamageOverTime) 		m_ImmuneToDamageOverTimeCount += 1;
 		if (bImmuneToKnockback) 			m_ImmuneToKnockbackCount += 1;
@@ -972,7 +996,7 @@ void DestroyableComponent::AddOnHitCallback(const std::function<void(Entity*)>& 
 	m_OnHitCallbacks.push_back(callback);
 }
 
-void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
+void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 	//check if this is a player:
 	if (m_ParentEntity->IsPlayer()) {
 		//remove hardcore_lose_uscore_on_death_percent from the player's uscore:
@@ -990,9 +1014,9 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 			if (inventory) {
 				//get the items inventory:
 				auto items = inventory->GetInventory(eInventoryType::ITEMS);
-				if (items){
+				if (items) {
 					auto itemMap = items->GetItems();
-					if (!itemMap.empty()){
+					if (!itemMap.empty()) {
 						for (const auto& item : itemMap) {
 							//drop the item:
 							if (!item.second) continue;

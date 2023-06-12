@@ -4,14 +4,13 @@
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
 #include "SimplePhysicsComponent.h"
+#include "CDClientManager.h"
+#include "CDProximityMonitorComponentTable.h"
 
 const std::map<LWOOBJID, dpEntity*> ProximityMonitorComponent::m_EmptyObjectMap = {};
 
-ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, int radiusSmall, int radiusLarge) : Component(parent) {
-	if (radiusSmall != -1 && radiusLarge != -1) {
-		SetProximityRadius(radiusSmall, "rocketSmall");
-		SetProximityRadius(radiusLarge, "rocketLarge");
-	}
+ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, int32_t componentId) : Component(parent) {
+	m_ComponentId = componentId;
 }
 
 ProximityMonitorComponent::~ProximityMonitorComponent() {
@@ -22,6 +21,25 @@ ProximityMonitorComponent::~ProximityMonitorComponent() {
 	}
 
 	m_ProximitiesData.clear();
+}
+
+void ProximityMonitorComponent::LoadTemplateData() {
+	if (m_ComponentId == -1) return;
+	auto* proxCompTable = CDClientManager::Instance().GetTable<CDProximityMonitorComponentTable>();
+	auto proxCompData = proxCompTable->Query([this](CDProximityMonitorComponent entry) { return (entry.id == this->m_ComponentId); });
+
+	if (!proxCompData.empty()) {
+		float radiusSmall = -1.0f;
+		float radiusLarge = -1.0f;
+		auto proximitySplit = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
+		if (proximitySplit.size() < 2) return;
+		GeneralUtils::TryParse(proximitySplit.at(0), radiusSmall);
+		GeneralUtils::TryParse(proximitySplit.at(1), radiusLarge);
+		if (radiusSmall != -1.0f && radiusLarge != -1.0f) {
+			SetProximityRadius(radiusSmall, "rocketSmall");
+			SetProximityRadius(radiusLarge, "rocketLarge");
+		}
+	}
 }
 
 void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::string& name) {
