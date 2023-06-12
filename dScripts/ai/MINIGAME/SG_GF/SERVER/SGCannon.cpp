@@ -287,7 +287,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			auto* enemy = EntityManager::Instance()->CreateEntity(info, nullptr, self);
 			EntityManager::Instance()->ConstructEntity(enemy);
 
-			auto movementAiComponent = enemy->AddComponent<MovementAIComponent>(0U);
+			auto* movementAiComponent = enemy->AddComponent<MovementAIComponent>(0U);
 	
 			movementAiComponent->SetSpeed(toSpawn.initialSpeed);
 			movementAiComponent->SetCurrentSpeed(toSpawn.initialSpeed);
