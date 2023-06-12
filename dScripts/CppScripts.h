@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -14,7 +15,7 @@ enum class eRebuildState : uint32_t;
 
 namespace CppScripts {
 
-	extern InvalidScript* invalidToReturn;
+	extern std::unique_ptr<InvalidScript> invalidScript;
 	extern std::map<std::string, CppScripts::Script*> m_Scripts;
 	/**
 	 * Base class for all scripts. Includes virtual methods to be overridden to handle LUA equivelent events.
@@ -33,8 +34,7 @@ namespace CppScripts {
 	 */
 	class Script {
 	public:
-		Script();
-		~Script();
+		virtual ~Script() = default;
 
 		/**
 		 * Invoked one frame after the script is loaded.
@@ -365,5 +365,4 @@ namespace CppScripts {
 	};
 
 	Script* GetScript(Entity* parent, const std::string& scriptName);
-	std::vector<Script*> GetEntityScripts(Entity* entity);
 };

@@ -504,10 +504,7 @@ void Entity::Initialize() {
 	}
 
 	AddCallbackTimer(0.0f, [this]() {
-		auto scripts = CppScripts::GetEntityScripts(this);
-		std::for_each(scripts.begin(), scripts.end(), [this](const auto& script) {
-			script->OnStartup(this);
-			});
+		GetScript()->OnStartup(this);
 		});
 
 	// Load data specific to this LOT first. These act as defaults for the components.
@@ -523,7 +520,7 @@ void Entity::Initialize() {
 		});
 
 	/**
-	 * @brief Startup all the components. Some components need or want data from other components so
+	 * Startup all the components. Some components need or want data from other components so
 	 * we want to ensure that
 	 * A) Most if not all components are newed and ready to be accessed.
 	 * B) All components have their personal data loaded and ready to be used.
@@ -533,7 +530,7 @@ void Entity::Initialize() {
 		});
 
 	/**
-	 * @brief Load the player save data from XML. Ideally we do this after all initialization so the player
+	 * Load the player save data from XML. Ideally we do this after all initialization so the player
 	 * save data overrides any defaults that may be applied.
 	 */
 	if (!IsPlayer()) std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
@@ -647,7 +644,7 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	GameMessages::SendGMLevelBroadcast(m_ObjectID, value);
 }
 
-void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType) {
+void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, const eReplicaPacketType packetType) {
 	if (packetType == eReplicaPacketType::CONSTRUCTION) {
 		outBitStream->Write(m_ObjectID);
 		outBitStream->Write(m_TemplateID);
@@ -768,7 +765,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 	}
 }
 
-void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType) {
+void Entity::WriteComponents(RakNet::BitStream* outBitStream, const eReplicaPacketType packetType) {
 
 }
 
@@ -787,34 +784,36 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 	}
 }
 
+CppScripts::Script* Entity::GetScript() const {
+	auto* scriptComponent = GetComponent<ScriptComponent>();
+	auto* script = scriptComponent->GetScript();
+	DluAssert(script != nullptr);
+	return script;
+}
+
 void Entity::Update(const float deltaTime) {
-	uint32_t timerPosition;
-	timerPosition = 0;
-	while (timerPosition < m_Timers.size()) {
-		m_Timers[timerPosition]->Update(deltaTime);
-		if (m_Timers[timerPosition]->GetTime() <= 0) {
-			const auto timerName = m_Timers[timerPosition]->GetName();
-
-			delete m_Timers[timerPosition];
-			m_Timers.erase(m_Timers.begin() + timerPosition);
-
-			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-				script->OnTimerDone(this, timerName);
-			}
+	auto namedTimerItr = std::remove_if(m_Timers.begin(), m_Timers.end(), [this, &deltaTime](EntityTimer* timer) {
+		timer->Update(deltaTime);
+		if (timer->GetTime() <= 0) {
+			GetScript()->OnTimerDone(this, timer->GetName());
 			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
-		} else {
-			timerPosition++;
+			delete timer;
+			return true;
 		}
-	}
+		return false;
+		});
+	m_Timers.erase(namedTimerItr, m_Timers.end());
 
-	for (int i = 0; i < m_CallbackTimers.size(); i++) {
-		m_CallbackTimers[i]->Update(deltaTime);
-		if (m_CallbackTimers[i]->GetTime() <= 0) {
-			m_CallbackTimers[i]->GetCallback()();
-			delete m_CallbackTimers[i];
-			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
+	auto callbackTimerItr = std::remove_if(m_CallbackTimers.begin(), m_CallbackTimers.end(), [this, &deltaTime](EntityCallbackTimer* timer) {
+		timer->Update(deltaTime);
+		if (timer->GetTime() <= 0) {
+			timer->GetCallback()();
+			delete timer;
+			return true;
 		}
-	}
+		return false;
+		});
+	m_CallbackTimers.erase(callbackTimerItr, m_CallbackTimers.end());
 
 	// Add pending timers to the list of timers so they start next tick.
 	if (m_PendingTimers.size() > 0) {
@@ -1294,10 +1293,6 @@ void Entity::CancelTimer(const std::string& name) {
 }
 
 void Entity::CancelAllTimers() {
-	/*for (auto timer : m_Timers) {
-		if (timer) delete timer;
-	}*/
-
 	for (auto* timer : m_Timers) {
 		delete timer;
 	}

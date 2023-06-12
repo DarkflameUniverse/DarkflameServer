@@ -223,6 +223,7 @@ public:
 
 	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }
 	virtual NiQuaternion GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
+	CppScripts::Script* GetScript() const;
 
 	void Sleep();
 	void Wake();
