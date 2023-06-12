@@ -499,7 +499,7 @@ void Entity::Initialize() {
 		case eReplicaComponentType::NUMBER_OF_COMPONENTS:
 		case eReplicaComponentType::INVALID:
 		default:
-			Game::logger->Log("Entity", "blah %i %i", componentId, m_TemplateID);
+			Game::logger->Log("Entity", "Attempted to create component %i for lot %i but no creator exists. Component will not be created.", componentId, m_TemplateID);
 		}
 	}
 
@@ -510,7 +510,7 @@ void Entity::Initialize() {
 			});
 		});
 
-	// Load data specific to this LOT first
+	// Load data specific to this LOT first. These act as defaults for the components.
 	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
 		component.second->LoadTemplateData();
 		});
