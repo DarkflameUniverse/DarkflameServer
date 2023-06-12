@@ -13,7 +13,7 @@ Cmpt* Entity::GetComponent() const {
 
 template<typename Cmpt, typename...ConstructorValues>
 Cmpt* Entity::AddComponent(ConstructorValues...arguments) {
-	auto component = GetComponent<Cmpt>();
+	auto* component = GetComponent<Cmpt>();
 	if (component) return dynamic_cast<Cmpt*>(component);
 
 	auto& insertedComponent = m_Components.insert_or_assign(Cmpt::ComponentType,

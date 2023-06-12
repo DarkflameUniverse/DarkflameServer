@@ -593,7 +593,7 @@ std::vector<ScriptComponent*> Entity::GetScriptComponents() {
 
 void Entity::Subscribe(const LWOOBJID& scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName) {
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
-		auto destroyableComponent = GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		destroyableComponent->Subscribe(scriptObjId, scriptToAdd);
 	}
@@ -601,7 +601,7 @@ void Entity::Subscribe(const LWOOBJID& scriptObjId, CppScripts::Script* scriptTo
 
 void Entity::Unsubscribe(const LWOOBJID& scriptObjId, const std::string& notificationName) {
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
-		auto destroyableComponent = GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		destroyableComponent->Unsubscribe(scriptObjId);
 	}
@@ -627,7 +627,7 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 		}
 	}
 
-	auto character = GetComponent<CharacterComponent>();
+	auto* character = GetComponent<CharacterComponent>();
 	if (character) character->SetGMLevel(value);
 
 	GameMessages::SendGMLevelBroadcast(m_ObjectID, value);
@@ -699,7 +699,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			outBitStream->Write0(); //No ldf data
 		}
 
-		auto triggerComponent = GetComponent<TriggerComponent>();
+		auto* triggerComponent = GetComponent<TriggerComponent>();
 		if (triggerComponent) {
 			// has trigger component, check to see if we have events to handle
 			auto* trigger = triggerComponent->GetTrigger();
@@ -841,7 +841,7 @@ void Entity::OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxN
 		script->OnProximityUpdate(this, other, proxName, status);
 	}
 
-	auto rocketComp = GetComponent<RocketLaunchpadControlComponent>();
+	auto* rocketComp = GetComponent<RocketLaunchpadControlComponent>();
 	if (!rocketComp) return;
 
 	rocketComp->OnProximityUpdate(other, proxName, status);
@@ -859,7 +859,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 		callback(other);
 	}
 
-	auto switchComp = GetComponent<SwitchComponent>();
+	auto* switchComp = GetComponent<SwitchComponent>();
 	if (switchComp) {
 		switchComp->EntityEnter(other);
 	}
@@ -878,7 +878,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 	}
 
 	if (!other->GetIsDead()) {
-		auto combat = GetComponent<BaseCombatAIComponent>();
+		auto* combat = GetComponent<BaseCombatAIComponent>();
 
 		if (combat != nullptr) {
 			const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
@@ -904,7 +904,7 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 
 	TriggerEvent(eTriggerEventType::EXIT, other);
 
-	auto switchComp = GetComponent<SwitchComponent>();
+	auto* switchComp = GetComponent<SwitchComponent>();
 	if (switchComp) {
 		switchComp->EntityLeave(other);
 	}
@@ -1047,12 +1047,12 @@ void Entity::RequestActivityExit(Entity* sender, const LWOOBJID& player, const b
 void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType) {
 	if (!m_PlayerIsReadyForUpdates) return;
 
-	auto destroyableComponent = GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = GetComponent<DestroyableComponent>();
 	if (destroyableComponent == nullptr) {
 		Kill(EntityManager::Instance()->GetEntity(source));
 		return;
 	}
-	auto possessorComponent = GetComponent<PossessorComponent>();
+	auto* possessorComponent = GetComponent<PossessorComponent>();
 	if (possessorComponent) {
 		if (possessorComponent->GetPossessable() != LWOOBJID_EMPTY) {
 			auto* mount = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
@@ -1109,7 +1109,7 @@ void Entity::Kill(Entity* murderer) {
 	}
 
 	// Track a player being smashed
-	auto characterComponent = GetComponent<CharacterComponent>();
+	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->UpdatePlayerStatistic(TimesSmashed);
 	}
@@ -1132,14 +1132,14 @@ void Entity::AddCollisionPhantomCallback(const std::function<void(Entity* target
 }
 
 void Entity::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const {
-	auto quickBuildComponent = GetComponent<QuickBuildComponent>();
+	auto* quickBuildComponent = GetComponent<QuickBuildComponent>();
 	if (quickBuildComponent != nullptr) {
 		quickBuildComponent->AddRebuildCompleteCallback(callback);
 	}
 }
 
 bool Entity::GetIsDead() const {
-	auto dest = GetComponent<DestroyableComponent>();
+	auto* dest = GetComponent<DestroyableComponent>();
 	if (dest && dest->GetArmor() == 0 && dest->GetHealth() == 0) return true;
 
 	return false;
@@ -1153,7 +1153,7 @@ void Entity::AddLootItem(const Loot::Info& info) {
 
 void Entity::PickupItem(const LWOOBJID& objectID) {
 	if (!IsPlayer()) return;
-	auto inv = GetComponent<InventoryComponent>();
+	auto* inv = GetComponent<InventoryComponent>();
 	if (!inv) return;
 
 	CDObjectsTable* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
@@ -1162,7 +1162,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 	for (const auto& p : droppedLoot) {
 		if (p.first == objectID) {
-			auto characterComponent = GetComponent<CharacterComponent>();
+			auto* characterComponent = GetComponent<CharacterComponent>();
 			if (characterComponent != nullptr) {
 				characterComponent->TrackLOTCollection(p.second.lot);
 			}
@@ -1177,7 +1177,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 					SkillComponent::HandleUnmanaged(behaviorData.behaviorID, GetObjectID());
 
-					auto missionComponent = GetComponent<MissionComponent>();
+					auto* missionComponent = GetComponent<MissionComponent>();
 
 					if (missionComponent != nullptr) {
 						missionComponent->Progress(eMissionTaskType::POWERUP, skill.skillID);
@@ -1302,7 +1302,7 @@ bool Entity::IsPlayer() const {
 }
 
 void Entity::TriggerEvent(eTriggerEventType event, Entity* optionalTarget) {
-	auto triggerComponent = GetComponent<TriggerComponent>();
+	auto* triggerComponent = GetComponent<TriggerComponent>();
 	if (triggerComponent) triggerComponent->TriggerEvent(event, optionalTarget);
 }
 
@@ -1339,7 +1339,7 @@ void Entity::SetObservers(int8_t value) {
 }
 
 void Entity::Sleep() {
-	auto baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
+	auto* baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
 
 	if (baseCombatAIComponent != nullptr) {
 		baseCombatAIComponent->Sleep();
@@ -1347,7 +1347,7 @@ void Entity::Sleep() {
 }
 
 void Entity::Wake() {
-	auto baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
+	auto* baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
 
 	if (baseCombatAIComponent != nullptr) {
 		baseCombatAIComponent->Wake();
@@ -1366,19 +1366,19 @@ const NiPoint3& Entity::GetPosition() const {
 		return controllable->GetPosition();
 	}
 
-	auto phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantom = GetComponent<PhantomPhysicsComponent>();
 
 	if (phantom != nullptr) {
 		return phantom->GetPosition();
 	}
 
-	auto simple = GetComponent<SimplePhysicsComponent>();
+	auto* simple = GetComponent<SimplePhysicsComponent>();
 
 	if (simple != nullptr) {
 		return simple->GetPosition();
 	}
 
-	auto vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicle != nullptr) {
 		return vehicle->GetPosition();
@@ -1388,25 +1388,25 @@ const NiPoint3& Entity::GetPosition() const {
 }
 
 const NiQuaternion& Entity::GetRotation() const {
-	auto controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
 		return controllable->GetRotation();
 	}
 
-	auto phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantom = GetComponent<PhantomPhysicsComponent>();
 
 	if (phantom != nullptr) {
 		return phantom->GetRotation();
 	}
 
-	auto simple = GetComponent<SimplePhysicsComponent>();
+	auto* simple = GetComponent<SimplePhysicsComponent>();
 
 	if (simple != nullptr) {
 		return simple->GetRotation();
 	}
 
-	auto vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicle != nullptr) {
 		return vehicle->GetRotation();
@@ -1416,25 +1416,25 @@ const NiQuaternion& Entity::GetRotation() const {
 }
 
 void Entity::SetPosition(const NiPoint3& position) {
-	auto controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
 		controllable->SetPosition(position);
 	}
 
-	auto phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantom = GetComponent<PhantomPhysicsComponent>();
 
 	if (phantom != nullptr) {
 		phantom->SetPosition(position);
 	}
 
-	auto simple = GetComponent<SimplePhysicsComponent>();
+	auto* simple = GetComponent<SimplePhysicsComponent>();
 
 	if (simple != nullptr) {
 		simple->SetPosition(position);
 	}
 
-	auto vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicle != nullptr) {
 		vehicle->SetPosition(position);
@@ -1444,25 +1444,25 @@ void Entity::SetPosition(const NiPoint3& position) {
 }
 
 void Entity::SetRotation(const NiQuaternion& rotation) {
-	auto controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
 		controllable->SetRotation(rotation);
 	}
 
-	auto phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantom = GetComponent<PhantomPhysicsComponent>();
 
 	if (phantom != nullptr) {
 		phantom->SetRotation(rotation);
 	}
 
-	auto simple = GetComponent<SimplePhysicsComponent>();
+	auto* simple = GetComponent<SimplePhysicsComponent>();
 
 	if (simple != nullptr) {
 		simple->SetRotation(rotation);
 	}
 
-	auto vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicle != nullptr) {
 		vehicle->SetRotation(rotation);
@@ -1573,7 +1573,7 @@ void Entity::AddToGroups(const std::string& group) {
 }
 
 void Entity::RetroactiveVaultSize() {
-	auto inventoryComponent = GetComponent<InventoryComponent>();
+	auto* inventoryComponent = GetComponent<InventoryComponent>();
 	if (!inventoryComponent) return;
 
 	auto itemsVault = inventoryComponent->GetInventory(eInventoryType::VAULT_ITEMS);
