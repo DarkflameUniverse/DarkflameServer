@@ -47,10 +47,10 @@ void ScriptComponent::SetScript(const std::string& scriptName) {
 }
 
 const std::string ScriptComponent::GetScriptName(Entity* parentEntity, const uint32_t componentId) {
-	if (!parentEntity) return "";
+	if (!parentEntity || componentId == 0) return "";
 	// LDF key script overrides script component Id
 	const auto customScriptServer = parentEntity->GetVarAsString(u"custom_script_server");
-	if (!customScriptServer.empty() || componentId == 0) return customScriptServer;
+	if (!customScriptServer.empty()) return customScriptServer;
 
 	auto* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
 	CDScriptComponent scriptCompData = scriptCompTable->GetByID(componentId);

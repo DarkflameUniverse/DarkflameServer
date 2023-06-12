@@ -82,7 +82,7 @@ void DestroyableComponent::LoadConfigData() {
 	SetIsSmashable(m_ParentEntity->GetVarAs<int32_t>(u"is_smashable") != 0);
 }
 void DestroyableComponent::LoadTemplateData() {
-	[[unlikely]] if (m_ParentEntity->IsPlayer()) return;
+	if (m_ParentEntity->IsPlayer()) return;
 	auto* destroyableComponentTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
 	auto destroyableDataLookup = destroyableComponentTable->Query([this](CDDestructibleComponent entry) { return (entry.id == this->m_ComponentId); });
 	if (m_ComponentId == -1 || destroyableDataLookup.empty()) {

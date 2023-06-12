@@ -510,55 +510,67 @@ void Entity::Initialize() {
 			});
 		});
 
+	// Load data specific to this LOT first
 	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
 		component.second->LoadTemplateData();
 		});
 
+	// Then load data specific to this Entity. This will vary on an Entity to Entity basis.
+	// If there is data you want to override the LOT default value, generally you would attach it via LDF
+	// and it would get loaded and overridden here.
 	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
 		component.second->LoadConfigData();
 		});
 
+	/**
+	 * @brief Startup all the components. Some components need or want data from other components so
+	 * we want to ensure that
+	 * A) Most if not all components are newed and ready to be accessed.
+	 * B) All components have their personal data loaded and ready to be used.
+	 */
 	std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
 		component.second->Startup();
 		});
-	// No save data to load for non players
+
+	/**
+	 * @brief Load the player save data from XML. Ideally we do this after all initialization so the player
+	 * save data overrides any defaults that may be applied.
+	 */
 	if (!IsPlayer()) std::for_each(m_Components.begin(), m_Components.end(), [this](auto& component) {
 		component.second->LoadFromXml(m_Character->GetXMLDoc());
 		});
 
 	TriggerEvent(eTriggerEventType::CREATE, this);
-	IsGhosted();
+	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) IsGhosted();
 }
 
 void Entity::IsGhosted() {
-	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
-		// Don't ghost what is likely large scene elements
-		if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
-			return;
-		}
+	// Don't ghost what is likely large scene elements
+	if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
+		return;
+	}
 
-		/* Filter for ghosting candidates.
-		 *
-		 * Don't ghost moving platforms, until we've got proper syncing for those.
-		 * Don't ghost big phantom physics triggers, as putting those to sleep might prevent interactions.
-		 * Don't ghost property related objects, as the client expects those to always be loaded.
-		 */
-		if (!EntityManager::IsExcludedFromGhosting(GetLOT()) &&
-			!HasComponent(eReplicaComponentType::SCRIPTED_ACTIVITY) &&
-			!HasComponent(eReplicaComponentType::MOVING_PLATFORM) &&
-			!HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) &&
-			!HasComponent(eReplicaComponentType::PROPERTY) &&
-			!HasComponent(eReplicaComponentType::RACING_CONTROL) &&
-			!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)) {
-			m_IsGhostingCandidate = true;
-		}
+	/* Filter for ghosting candidates.
+	 *
+	 * Don't ghost moving platforms, until we've got proper syncing for those.
+	 * Don't ghost big phantom physics triggers, as putting those to sleep might prevent interactions.
+	 * Don't ghost property related objects, as the client expects those to always be loaded.
+	 */
+	if (!EntityManager::IsExcludedFromGhosting(GetLOT()) &&
+		!HasComponent(eReplicaComponentType::SCRIPTED_ACTIVITY) &&
+		!HasComponent(eReplicaComponentType::MOVING_PLATFORM) &&
+		!HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) &&
+		!HasComponent(eReplicaComponentType::PROPERTY) &&
+		!HasComponent(eReplicaComponentType::RACING_CONTROL) &&
+		!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)) {
+		m_IsGhostingCandidate = true;
+	}
 
-		if (GetLOT() == LOT_3D_AMBIENT_SOUND) m_IsGhostingCandidate = true;
+	if (GetLOT() == LOT_3D_AMBIENT_SOUND) m_IsGhostingCandidate = true;
 
-		// Special case for collectibles in Ninjago
-		if (HasComponent(eReplicaComponentType::COLLECTIBLE) && Game::server->GetZoneID() == 2000) {
-			m_IsGhostingCandidate = true;
-		}
+	// Special case for collectibles in Ninjago
+	if (HasComponent(eReplicaComponentType::COLLECTIBLE) && Game::server->GetZoneID() == 2000) {
+		m_IsGhostingCandidate = true;
 	}
 }
 
