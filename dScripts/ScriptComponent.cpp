@@ -10,7 +10,7 @@
 #include "CDZoneTableTable.h"
 #include "dZoneManager.h"
 
-ScriptComponent::ScriptComponent(Entity* parent, std::string scriptName) : Component(parent) {
+ScriptComponent::ScriptComponent(Entity* parent, const std::string& scriptName) : Component(parent) {
 	SetScript(scriptName);
 }
 

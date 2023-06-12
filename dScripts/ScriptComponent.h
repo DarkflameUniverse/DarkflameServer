@@ -21,7 +21,7 @@ class ScriptComponent : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
 
-	ScriptComponent(Entity* parent, std::string scriptName);
+	ScriptComponent(Entity* parent, const std::string& scriptName);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 

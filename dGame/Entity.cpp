@@ -269,11 +269,13 @@ void Entity::Initialize() {
 			AddComponent<PlayerForcedMovementComponent>();
 			break;
 		case eReplicaComponentType::SCRIPT: {
-			AddComponent<ScriptComponent>(ScriptComponent::GetScriptName(this, componentId));
+			std::string script;
 			if (m_TemplateID == LOT_ZONE_CONTROL) {
-				const auto zoneScript = ScriptComponent::GetZoneScriptName(componentId);
-				if (!zoneScript.empty()) AddComponent<ScriptComponent>(zoneScript);
+				script = ScriptComponent::GetZoneScriptName(componentId);
+			} else {
+				script = ScriptComponent::GetScriptName(this, componentId);
 			}
+			AddComponent<ScriptComponent>(script); // Technically this should check for if the script name is empty and not create a component if it is.
 			break;
 		}
 		case eReplicaComponentType::BOUNCER:
