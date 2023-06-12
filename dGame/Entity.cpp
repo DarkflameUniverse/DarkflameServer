@@ -541,15 +541,13 @@ void Entity::IsGhosted() {
 		 * Don't ghost big phantom physics triggers, as putting those to sleep might prevent interactions.
 		 * Don't ghost property related objects, as the client expects those to always be loaded.
 		 */
-		if (
-			!EntityManager::IsExcludedFromGhosting(GetLOT()) &&
+		if (!EntityManager::IsExcludedFromGhosting(GetLOT()) &&
 			!HasComponent(eReplicaComponentType::SCRIPTED_ACTIVITY) &&
 			!HasComponent(eReplicaComponentType::MOVING_PLATFORM) &&
 			!HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) &&
 			!HasComponent(eReplicaComponentType::PROPERTY) &&
 			!HasComponent(eReplicaComponentType::RACING_CONTROL) &&
-			!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)
-			) {
+			!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)) {
 			m_IsGhostingCandidate = true;
 		}
 
