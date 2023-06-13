@@ -25,11 +25,14 @@ LWOBasePhysComponent
 ├── LWOPhantomPhysComponent
 ├── LWOVehiclePhysicsComponent
 ├── LWOSimplePhysComponent
+|	├~~ LWOPhantomPhysicsComponent
 ├── LWOPhysicsSystemComponent
 ├── LWOHavokVehiclePhysicsComponent
 ├── LWOControllablePhysComponent
 LWOBaseRenderComponent
 ├── LWOSkinnedRenderComponent
+├~~ LWOSkinnedRenderComponent
+├~~ LWOFXComponent
 LWOBaseVendorComponent
 ├── LWOVendorComponent
 |	├~~ LWOProximityMonitorComponent
@@ -62,7 +65,6 @@ LWODestroyableComponent
 LWODropEffectComponent
 LWODroppedLootComponent
 LWOExhibitComponent
-LWOFXComponent
 LWOGenericActivatorComponent
 LWOGhostComponent
 LWOHFLightDirectionGadgetComponent
