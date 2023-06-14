@@ -949,7 +949,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
-	});
+		});
 
 
 	auto* cont = entity->GetComponent<ControllablePhysicsComponent>();
@@ -2984,14 +2984,14 @@ void GameMessages::SendSetStunned(LWOOBJID objectId, eStateChangeType stateChang
 }
 
 void GameMessages::SendSetStunImmunity(LWOOBJID target, eStateChangeType state, const SystemAddress& sysAddr,
-		LWOOBJID originator,
-		bool bImmuneToStunAttack,
-		bool bImmuneToStunEquip,
-		bool bImmuneToStunInteract,
-		bool bImmuneToStunJump,
-		bool bImmuneToStunMove,
-		bool bImmuneToStunTurn,
-		bool bImmuneToStunUseItem) {
+	LWOOBJID originator,
+	bool bImmuneToStunAttack,
+	bool bImmuneToStunEquip,
+	bool bImmuneToStunInteract,
+	bool bImmuneToStunJump,
+	bool bImmuneToStunMove,
+	bool bImmuneToStunTurn,
+	bool bImmuneToStunUseItem) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -3016,15 +3016,15 @@ void GameMessages::SendSetStunImmunity(LWOOBJID target, eStateChangeType state, 
 }
 
 void GameMessages::SendSetStatusImmunity(LWOOBJID objectId, eStateChangeType state, const SystemAddress& sysAddr,
-		bool bImmuneToBasicAttack,
-		bool bImmuneToDamageOverTime,
-		bool bImmuneToKnockback,
-		bool bImmuneToInterrupt,
-		bool bImmuneToSpeed,
-		bool bImmuneToImaginationGain,
-		bool bImmuneToImaginationLoss,
-		bool bImmuneToQuickbuildInterrupt,
-		bool bImmuneToPullToPoint) {
+	bool bImmuneToBasicAttack,
+	bool bImmuneToDamageOverTime,
+	bool bImmuneToKnockback,
+	bool bImmuneToInterrupt,
+	bool bImmuneToSpeed,
+	bool bImmuneToImaginationGain,
+	bool bImmuneToImaginationLoss,
+	bool bImmuneToQuickbuildInterrupt,
+	bool bImmuneToPullToPoint) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -5206,9 +5206,7 @@ void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* e
 		return;
 	}
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(offerer)) {
-		script->OnRespondToMission(offerer, missionID, EntityManager::Instance()->GetEntity(playerID), reward);
-	}
+	offerer->GetScript()->OnRespondToMission(offerer, missionID, EntityManager::Instance()->GetEntity(playerID), reward);
 }
 
 void GameMessages::HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* entity) {
@@ -5224,9 +5222,7 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* en
 	inStream->Read(responder);
 	player = EntityManager::Instance()->GetEntity(responder);
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
-		script->OnMissionDialogueOK(entity, player, missionID, iMissionState);
-	}
+	entity->GetScript()->OnMissionDialogueOK(entity, player, missionID, iMissionState);
 
 	// Get the player's mission component
 	auto* missionComponent = player->GetComponent<MissionComponent>();
@@ -5653,9 +5649,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 	auto* script = entity->GetComponent<ScriptComponent>();
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
-		script->OnModularBuildExit(entity, character, count >= 3, modList);
-	}
+	entity->GetScript()->OnModularBuildExit(entity, character, count >= 3, modList);
 
 	// Move remaining temp models back to models
 	std::vector<Item*> items;
@@ -5829,16 +5823,12 @@ void GameMessages::HandleResurrect(RakNet::BitStream* inStream, Entity* entity) 
 	bool immediate = inStream->ReadBit();
 
 	Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-		script->OnPlayerResurrected(zoneControl, entity);
-	}
+	zoneControl->GetScript()->OnPlayerResurrected(zoneControl, entity);
 
 	std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 	for (Entity* scriptEntity : scriptedActs) {
 		if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-			for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-				script->OnPlayerResurrected(scriptEntity, entity);
-			}
+			scriptEntity->GetScript()->OnPlayerResurrected(scriptEntity, entity);
 		}
 	}
 }
@@ -6090,9 +6080,7 @@ void GameMessages::HandlePlayerRailArrivedNotification(RakNet::BitStream* inStre
 
 	const auto possibleRails = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::RAIL_ACTIVATOR);
 	for (auto* possibleRail : possibleRails) {
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(possibleRail)) {
-			script->OnPlayerRailArrived(possibleRail, entity, pathName, waypointNumber);
-		}
+		possibleRail->GetScript()->OnPlayerRailArrived(possibleRail, entity, pathName, waypointNumber);
 	}
 }
 
