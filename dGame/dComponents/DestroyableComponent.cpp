@@ -51,7 +51,7 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_IsGMImmune = false;
 	m_IsShielded = false;
 	m_DamageToAbsorb = 0;
-	m_HasBricks = false;
+	m_HasBricks = m_Parent->HasComponent(eReplicaComponentType::MODULE_ASSEMBLY);
 	m_DirtyThreatList = false;
 	m_HasThreats = false;
 	m_ExplodeFactor = 1.0f;

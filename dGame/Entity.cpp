@@ -387,7 +387,7 @@ void Entity::Initialize() {
 					}
 
 					// extraInfo overrides. Client ORs the database smashable and the luz smashable.
-					comp->SetIsSmashable(comp->GetIsSmashable() | GetVarAs<int32_t>(u"is_smashable") != 0);
+					comp->SetIsSmashable(comp->GetIsSmashable() | (GetVarAs<int32_t>(u"is_smashable") != 0));
 				}
 			} else {
 				comp->SetHealth(1);
