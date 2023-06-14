@@ -282,16 +282,12 @@ Player::~Player() {
 
 	if (IsPlayer()) {
 		Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-			script->OnPlayerExit(zoneControl, this);
-		}
+		zoneControl->GetScript()->OnPlayerExit(zoneControl, this);
 
 		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-					script->OnPlayerExit(scriptEntity, this);
-				}
+					scriptEntity->GetScript()->OnPlayerExit(scriptEntity, this);
 			}
 		}
 	}

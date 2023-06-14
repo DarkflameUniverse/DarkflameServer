@@ -241,9 +241,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	}
 
 	auto* zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControlObject)) {
-		script->OnZonePropertyRented(zoneControlObject, entity);
-	}
+		zoneControlObject->GetScript()->OnZonePropertyRented(zoneControlObject, entity);
 	return true;
 }
 

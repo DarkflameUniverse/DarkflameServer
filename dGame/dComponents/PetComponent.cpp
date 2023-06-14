@@ -317,9 +317,8 @@ void PetComponent::OnUse(Entity* originator) {
 	currentActivities.insert_or_assign(m_Tamer, m_ParentEntity->GetObjectID());
 
 	// Notify the start of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_ParentEntity)) {
-		script->OnNotifyPetTamingMinigame(m_ParentEntity, originator, ePetTamingNotifyType::BEGIN);
-	}
+	m_ParentEntity->GetScript()->OnNotifyPetTamingMinigame(m_ParentEntity, originator, ePetTamingNotifyType::BEGIN);
+
 }
 
 void PetComponent::Update(float deltaTime) {
@@ -694,9 +693,8 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 	m_Tamer = LWOOBJID_EMPTY;
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_ParentEntity)) {
-		script->OnNotifyPetTamingMinigame(m_ParentEntity, tamer, ePetTamingNotifyType::SUCCESS);
-	}
+	m_ParentEntity->GetScript()->OnNotifyPetTamingMinigame(m_ParentEntity, tamer, ePetTamingNotifyType::SUCCESS);
+
 }
 
 void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
@@ -735,9 +733,8 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_ParentEntity)) {
-		script->OnNotifyPetTamingMinigame(m_ParentEntity, tamer, ePetTamingNotifyType::QUIT);
-	}
+	m_ParentEntity->GetScript()->OnNotifyPetTamingMinigame(m_ParentEntity, tamer, ePetTamingNotifyType::QUIT);
+
 }
 
 void PetComponent::StartTimer() {
@@ -786,9 +783,8 @@ void PetComponent::ClientFailTamingMinigame() {
 	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_ParentEntity)) {
-		script->OnNotifyPetTamingMinigame(m_ParentEntity, tamer, ePetTamingNotifyType::FAILED);
-	}
+	m_ParentEntity->GetScript()->OnNotifyPetTamingMinigame(m_ParentEntity, tamer, ePetTamingNotifyType::FAILED);
+
 }
 
 void PetComponent::Wander() {

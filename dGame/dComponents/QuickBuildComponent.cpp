@@ -452,15 +452,11 @@ void QuickBuildComponent::StartRebuild(Entity* user) {
 			movingPlatform->OnRebuildInitilized();
 		}
 
-		for (auto* script : CppScripts::GetEntityScripts(m_ParentEntity)) {
-			script->OnRebuildStart(m_ParentEntity, user);
-		}
+		m_ParentEntity->GetScript()->OnRebuildStart(m_ParentEntity, user);
 
 		// Notify scripts and possible subscribers
-		for (auto* script : CppScripts::GetEntityScripts(m_ParentEntity))
-			script->OnRebuildNotifyState(m_ParentEntity, m_State);
-		for (const auto& cb : m_RebuildStateCallbacks)
-			cb(m_State);
+		m_ParentEntity->GetScript()->OnRebuildNotifyState(m_ParentEntity, m_State);
+		for (const auto& cb : m_RebuildStateCallbacks) cb(m_State);
 	}
 }
 
@@ -525,10 +521,8 @@ void QuickBuildComponent::CompleteRebuild(Entity* user) {
 	}
 
 	// Notify scripts
-	for (auto* script : CppScripts::GetEntityScripts(m_ParentEntity)) {
-		script->OnRebuildComplete(m_ParentEntity, user);
-		script->OnRebuildNotifyState(m_ParentEntity, m_State);
-	}
+	m_ParentEntity->GetScript()->OnRebuildComplete(m_ParentEntity, user);
+	m_ParentEntity->GetScript()->OnRebuildNotifyState(m_ParentEntity, m_State);
 
 	// Notify subscribers
 	for (const auto& callback : m_RebuildStateCallbacks)
@@ -579,10 +573,8 @@ void QuickBuildComponent::ResetRebuild(bool failed) {
 	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 	// Notify scripts and possible subscribers
-	for (auto* script : CppScripts::GetEntityScripts(m_ParentEntity))
-		script->OnRebuildNotifyState(m_ParentEntity, m_State);
-	for (const auto& cb : m_RebuildStateCallbacks)
-		cb(m_State);
+	m_ParentEntity->GetScript()->OnRebuildNotifyState(m_ParentEntity, m_State);
+	for (const auto& cb : m_RebuildStateCallbacks) cb(m_State);
 
 	m_ParentEntity->ScheduleKillAfterUpdate();
 
@@ -611,10 +603,8 @@ void QuickBuildComponent::CancelRebuild(Entity* entity, eQuickBuildFailReason fa
 		m_StateDirty = true;
 
 		// Notify scripts and possible subscribers
-		for (auto* script : CppScripts::GetEntityScripts(m_ParentEntity))
-			script->OnRebuildNotifyState(m_ParentEntity, m_State);
-		for (const auto& cb : m_RebuildStateCallbacks)
-			cb(m_State);
+		m_ParentEntity->GetScript()->OnRebuildNotifyState(m_ParentEntity, m_State);
+		for (const auto& cb : m_RebuildStateCallbacks) cb(m_State);
 
 		EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 	}

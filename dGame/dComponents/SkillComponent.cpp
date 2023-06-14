@@ -268,9 +268,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	behavior->Calculate(context, bitStream, { target, 0 });
 
-	for (auto* script : CppScripts::GetEntityScripts(m_ParentEntity)) {
-		script->OnSkillCast(m_ParentEntity, skillId);
-	}
+	m_ParentEntity->GetScript()->OnSkillCast(m_ParentEntity, skillId);
 
 	if (!context->foundTarget) {
 		delete bitStream;

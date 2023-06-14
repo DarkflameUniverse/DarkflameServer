@@ -832,9 +832,7 @@ void Entity::Update(const float deltaTime) {
 		Wake();
 	}
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnUpdate(this);
-	}
+	GetScript()->OnUpdate(this);
 
 	for (const auto& pair : m_Components) {
 		if (pair.second == nullptr) continue;
@@ -851,9 +849,7 @@ void Entity::OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxN
 	Entity* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnProximityUpdate(this, other, proxName, status);
-	}
+	GetScript()->OnProximityUpdate(this, other, proxName, status);
 
 	auto* rocketComp = GetComponent<RocketLaunchpadControlComponent>();
 	if (!rocketComp) return;
@@ -865,9 +861,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnCollisionPhantom(this, other);
-	}
+	GetScript()->OnCollisionPhantom(this, other);
 
 	for (const auto& callback : m_PhantomCollisionCallbacks) {
 		callback(other);
@@ -912,9 +906,7 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnOffCollisionPhantom(this, other);
-	}
+	GetScript()->OnOffCollisionPhantom(this, other);
 
 	TriggerEvent(eTriggerEventType::EXIT, other);
 
@@ -931,44 +923,32 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 }
 
 void Entity::OnFireEventServerSide(Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnFireEventServerSide(this, sender, args, param1, param2, param3);
-	}
+	GetScript()->OnFireEventServerSide(this, sender, args, param1, param2, param3);
 }
 
 void Entity::OnActivityStateChangeRequest(LWOOBJID senderID, int32_t value1, int32_t value2, const std::u16string& stringValue) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnActivityStateChangeRequest(this, senderID, value1, value2, stringValue);
-	}
+	GetScript()->OnActivityStateChangeRequest(this, senderID, value1, value2, stringValue);
 }
 
 void Entity::OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent event, const std::u16string& pathName,
 	float_t pathTime, float_t totalTime, int32_t waypoint) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnCinematicUpdate(self, sender, event, pathName, pathTime, totalTime, waypoint);
-	}
+	GetScript()->OnCinematicUpdate(self, sender, event, pathName, pathTime, totalTime, waypoint);
 }
 
 void Entity::NotifyObject(Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
 	GameMessages::SendNotifyObject(GetObjectID(), sender->GetObjectID(), GeneralUtils::ASCIIToUTF16(name), UNASSIGNED_SYSTEM_ADDRESS);
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnNotifyObject(this, sender, name, param1, param2);
-	}
+	GetScript()->OnNotifyObject(this, sender, name, param1, param2);
 }
 
 void Entity::OnEmoteReceived(const int32_t emote, Entity* target) {
-	for (auto* script : CppScripts::GetEntityScripts(this)) {
-		script->OnEmoteReceived(this, emote, target);
-	}
+	GetScript()->OnEmoteReceived(this, emote, target);
 }
 
 void Entity::OnUse(Entity* originator) {
 	TriggerEvent(eTriggerEventType::INTERACT, originator);
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnUse(this, originator);
-	}
+	GetScript()->OnUse(this, originator);
 
 	// component base class when
 
@@ -980,82 +960,56 @@ void Entity::OnUse(Entity* originator) {
 }
 
 void Entity::OnHitOrHealResult(Entity* attacker, int32_t damage) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnHitOrHealResult(this, attacker, damage);
-	}
+	GetScript()->OnHitOrHealResult(this, attacker, damage);
 }
 
 void Entity::OnHit(Entity* attacker) {
 	TriggerEvent(eTriggerEventType::HIT, attacker);
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnHit(this, attacker);
-	}
+	GetScript()->OnHit(this, attacker);
 }
 
 void Entity::OnZonePropertyEditBegin() {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyEditBegin(this);
-	}
+	GetScript()->OnZonePropertyEditBegin(this);
 }
 
 void Entity::OnZonePropertyEditEnd() {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyEditEnd(this);
-	}
+	GetScript()->OnZonePropertyEditEnd(this);
 }
 
 void Entity::OnZonePropertyModelEquipped() {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelEquipped(this);
-	}
+	GetScript()->OnZonePropertyModelEquipped(this);
 }
 
 void Entity::OnZonePropertyModelPlaced(Entity* player) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelPlaced(this, player);
-	}
+	GetScript()->OnZonePropertyModelPlaced(this, player);
 }
 
 void Entity::OnZonePropertyModelPickedUp(Entity* player) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelPickedUp(this, player);
-	}
+	GetScript()->OnZonePropertyModelPickedUp(this, player);
 }
 
 void Entity::OnZonePropertyModelRemoved(Entity* player) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelRemoved(this, player);
-	}
+	GetScript()->OnZonePropertyModelRemoved(this, player);
 }
 
 void Entity::OnZonePropertyModelRemovedWhileEquipped(Entity* player) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelRemovedWhileEquipped(this, player);
-	}
+	GetScript()->OnZonePropertyModelRemovedWhileEquipped(this, player);
 }
 
 void Entity::OnZonePropertyModelRotated(Entity* player) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelRotated(this, player);
-	}
+	GetScript()->OnZonePropertyModelRotated(this, player);
 }
 
 void Entity::OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnMessageBoxResponse(this, sender, button, identifier, userData);
-	}
+	GetScript()->OnMessageBoxResponse(this, sender, button, identifier, userData);
 }
 
 void Entity::OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnChoiceBoxResponse(this, sender, button, buttonIdentifier, identifier);
-	}
+	GetScript()->OnChoiceBoxResponse(this, sender, button, buttonIdentifier, identifier);
 }
 
 void Entity::RequestActivityExit(Entity* sender, const LWOOBJID& player, const bool canceled) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnRequestActivityExit(sender, player, canceled);
-	}
+	GetScript()->OnRequestActivityExit(sender, player, canceled);
 }
 
 void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType) {
@@ -1088,9 +1042,7 @@ void Entity::Kill(Entity* murderer) {
 
 	//OMAI WA MOU, SHINDERIU
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnDie(this, murderer);
-	}
+	GetScript()->OnDie(this, murderer);
 
 	if (m_Spawner != nullptr) {
 		m_Spawner->NotifyOfEntityDeath(m_ObjectID);
