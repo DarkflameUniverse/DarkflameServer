@@ -786,6 +786,7 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 
 CppScripts::Script* Entity::GetScript() const {
 	auto* scriptComponent = GetComponent<ScriptComponent>();
+	if (!scriptComponent) return CppScripts::invalidScript.get();
 	auto* script = scriptComponent->GetScript();
 	DluAssert(script != nullptr);
 	return script;
