@@ -11,7 +11,7 @@ void BuccaneerValiantShip::OnStartup(Entity* self) {
 
 			// Kill self if missed
 			self->AddCallbackTimer(1.1F, [self]() {
-				self->Kill();
+				self->Smash();
 				});
 		}
 		});
