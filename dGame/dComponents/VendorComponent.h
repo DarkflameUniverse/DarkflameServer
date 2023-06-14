@@ -72,6 +72,8 @@ public:
 	 * Called on startup of vendor to setup the variables for the component.
 	 */
 	void SetupConstants();
+
+	bool SellsItem(const LOT item) const;
 private:
 	/**
 	 * The buy scalar.

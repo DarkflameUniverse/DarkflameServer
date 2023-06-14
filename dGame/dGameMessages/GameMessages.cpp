@@ -4734,11 +4734,17 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 	const auto isCommendationVendor = entity->GetLOT() == 13806;
 
-	VendorComponent* vend = static_cast<VendorComponent*>(entity->GetComponent(eReplicaComponentType::VENDOR));
+	auto* vend = entity->GetComponent<VendorComponent>();
 	if (!vend && !isCommendationVendor) return;
 
-	InventoryComponent* inv = static_cast<InventoryComponent*>(player->GetComponent(eReplicaComponentType::INVENTORY));
+	auto* inv = player->GetComponent<InventoryComponent>();
 	if (!inv) return;
+
+
+	if (!isCommendationVendor && !vend->SellsItem(item)) {
+		Game::logger->Log("GameMessages", "User %llu %s tried to buy an item %i from a vendor when they do not sell said item", player->GetObjectID(), user->GetUsername().c_str(), item);
+		return;
+	}
 
 	Character* character = player->GetCharacter();
 	if (!character) return;

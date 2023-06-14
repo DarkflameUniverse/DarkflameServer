@@ -138,3 +138,7 @@ void VendorComponent::SetupConstants() {
 	m_RefreshTimeSeconds = vendorComps[0].refreshTimeSeconds;
 	m_LootMatrixID = vendorComps[0].LootMatrixIndex;
 }
+
+bool VendorComponent::SellsItem(const LOT item) const {
+	return m_Inventory.find(item) != m_Inventory.end();
+}
