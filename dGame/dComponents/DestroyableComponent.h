@@ -239,7 +239,7 @@ public:
 	 * Returns whether or not this entity has bricks flying out when smashed
 	 * @return whether or not this entity has bricks flying out when smashed
 	 */
-	bool GetHasBricks() const { return m_HasBricks; }
+	bool GetHasBricks() const { return m_IsModuleAssembly; }
 
 	/**
 	 * Sets the multiplier for the explosion that's visible when the bricks fly out when this entity is smashed
@@ -546,7 +546,7 @@ private:
 	/**
 	 * Whether this entity has bricks flying out when smashed (causes the client to look up the files)
 	 */
-	bool m_HasBricks;
+	bool m_IsModuleAssembly;
 
 	/**
 	 * The rate at which bricks fly out when smashed

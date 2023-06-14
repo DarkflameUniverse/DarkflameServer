@@ -51,7 +51,7 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_IsGMImmune = false;
 	m_IsShielded = false;
 	m_DamageToAbsorb = 0;
-	m_HasBricks = m_Parent->HasComponent(eReplicaComponentType::MODULE_ASSEMBLY);
+	m_IsModuleAssembly = m_Parent->HasComponent(eReplicaComponentType::MODULE_ASSEMBLY);
 	m_DirtyThreatList = false;
 	m_HasThreats = false;
 	m_ExplodeFactor = 1.0f;
@@ -163,7 +163,7 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 			outBitStream->Write(m_IsSmashed);
 
 			if (m_IsSmashable) {
-				outBitStream->Write(m_HasBricks);
+				outBitStream->Write(m_IsModuleAssembly);
 				outBitStream->Write(m_ExplodeFactor != 1.0f);
 				if (m_ExplodeFactor != 1.0f) outBitStream->Write(m_ExplodeFactor);
 			}
