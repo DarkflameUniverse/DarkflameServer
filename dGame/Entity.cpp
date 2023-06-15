@@ -1243,18 +1243,12 @@ void Entity::SetObservers(int8_t value) {
 
 void Entity::Sleep() {
 	auto* baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
-
-	if (baseCombatAIComponent != nullptr) {
-		baseCombatAIComponent->Sleep();
-	}
+	if (baseCombatAIComponent) baseCombatAIComponent->Sleep();
 }
 
 void Entity::Wake() {
 	auto* baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
-
-	if (baseCombatAIComponent != nullptr) {
-		baseCombatAIComponent->Wake();
-	}
+	if (baseCombatAIComponent) baseCombatAIComponent->Wake();
 }
 
 bool Entity::IsSleeping() const {
@@ -1263,173 +1257,164 @@ bool Entity::IsSleeping() const {
 
 
 const NiPoint3& Entity::GetPosition() const {
-	auto* controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr) {
-		return controllable->GetPosition();
+	if (controllablePhysicsComponent != nullptr) {
+		return controllablePhysicsComponent->GetPosition();
 	}
 
-	auto* phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr) {
-		return phantom->GetPosition();
+	if (phantomPhysicsComponent != nullptr) {
+		return phantomPhysicsComponent->GetPosition();
 	}
 
-	auto* simple = GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr) {
-		return simple->GetPosition();
+	if (simplePhysicsComponent != nullptr) {
+		return simplePhysicsComponent->GetPosition();
 	}
 
-	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehiclePhysicsComponent = GetComponent<HavokVehiclePhysicsComponent>();
 
-	if (vehicle != nullptr) {
-		return vehicle->GetPosition();
+	if (vehiclePhysicsComponent != nullptr) {
+		return vehiclePhysicsComponent->GetPosition();
 	}
 
 	return NiPoint3::ZERO;
 }
 
 const NiQuaternion& Entity::GetRotation() const {
-	auto* controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr) {
-		return controllable->GetRotation();
+	if (controllablePhysicsComponent != nullptr) {
+		return controllablePhysicsComponent->GetRotation();
 	}
 
-	auto* phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr) {
-		return phantom->GetRotation();
+	if (phantomPhysicsComponent != nullptr) {
+		return phantomPhysicsComponent->GetRotation();
 	}
 
-	auto* simple = GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr) {
-		return simple->GetRotation();
+	if (simplePhysicsComponent != nullptr) {
+		return simplePhysicsComponent->GetRotation();
 	}
 
-	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehiclePhysicsComponent = GetComponent<HavokVehiclePhysicsComponent>();
 
-	if (vehicle != nullptr) {
-		return vehicle->GetRotation();
+	if (vehiclePhysicsComponent != nullptr) {
+		return vehiclePhysicsComponent->GetRotation();
 	}
 
 	return NiQuaternion::IDENTITY;
 }
 
 void Entity::SetPosition(const NiPoint3& position) {
-	auto* controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr) {
-		controllable->SetPosition(position);
+	if (controllablePhysicsComponent != nullptr) {
+		controllablePhysicsComponent->SetPosition(position);
 	}
 
-	auto* phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr) {
-		phantom->SetPosition(position);
+	if (phantomPhysicsComponent != nullptr) {
+		phantomPhysicsComponent->SetPosition(position);
 	}
 
-	auto* simple = GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr) {
-		simple->SetPosition(position);
+	if (simplePhysicsComponent != nullptr) {
+		simplePhysicsComponent->SetPosition(position);
 	}
 
-	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehiclePhysicsComponent = GetComponent<HavokVehiclePhysicsComponent>();
 
-	if (vehicle != nullptr) {
-		vehicle->SetPosition(position);
+	if (vehiclePhysicsComponent != nullptr) {
+		vehiclePhysicsComponent->SetPosition(position);
 	}
 
 	EntityManager::Instance()->SerializeEntity(this);
 }
 
 void Entity::SetRotation(const NiQuaternion& rotation) {
-	auto* controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr) {
-		controllable->SetRotation(rotation);
+	if (controllablePhysicsComponent != nullptr) {
+		controllablePhysicsComponent->SetRotation(rotation);
 	}
 
-	auto* phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr) {
-		phantom->SetRotation(rotation);
+	if (phantomPhysicsComponent != nullptr) {
+		phantomPhysicsComponent->SetRotation(rotation);
 	}
 
-	auto* simple = GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr) {
-		simple->SetRotation(rotation);
+	if (simplePhysicsComponent != nullptr) {
+		simplePhysicsComponent->SetRotation(rotation);
 	}
 
-	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehiclePhysicsComponent = GetComponent<HavokVehiclePhysicsComponent>();
 
-	if (vehicle != nullptr) {
-		vehicle->SetRotation(rotation);
+	if (vehiclePhysicsComponent != nullptr) {
+		vehiclePhysicsComponent->SetRotation(rotation);
 	}
 
 	EntityManager::Instance()->SerializeEntity(this);
 }
 
+// Move to header
 bool Entity::GetBoolean(const std::u16string& name) const {
 	return GetVar<bool>(name);
 }
 
+// Move to header
 int32_t Entity::GetI32(const std::u16string& name) const {
 	return GetVar<int32_t>(name);
 }
 
+// Move to header
 int64_t Entity::GetI64(const std::u16string& name) const {
 	return GetVar<int64_t>(name);
 }
 
+// Move to header
 void Entity::SetBoolean(const std::u16string& name, const bool value) {
 	SetVar(name, value);
 }
 
+// Move to header
 void Entity::SetI32(const std::u16string& name, const int32_t value) {
 	SetVar(name, value);
 }
 
+// Move to header
 void Entity::SetI64(const std::u16string& name, const int64_t value) {
 	SetVar(name, value);
 }
 
 bool Entity::HasVar(const std::u16string& name) const {
-	for (auto* data : m_Settings) {
-		if (data->GetKey() == name) {
-			return true;
-		}
-	}
-
-	return false;
+	auto hasVar = std::find_if(m_Settings.begin(), m_Settings.end(), [&name](const LDFBaseData* data) {
+		return data->GetKey() == name;
+		});
+	return hasVar != m_Settings.end();
 }
 
+// Move to header
 void Entity::SetNetworkId(const uint16_t id) {
 	m_NetworkID = id;
 }
 
 std::vector<LWOOBJID>& Entity::GetTargetsInPhantom() {
-	std::vector<LWOOBJID> valid;
-
-	// Clean up invalid targets, like disconnected players
-	for (auto i = 0u; i < m_TargetsInPhantom.size(); ++i) {
-		const auto id = m_TargetsInPhantom.at(i);
-
-		auto* entity = EntityManager::Instance()->GetEntity(id);
-
-		if (entity == nullptr) {
-			continue;
-		}
-
-		valid.push_back(id);
-	}
-
-	m_TargetsInPhantom = valid;
-
+	auto toRemove = std::remove_if(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), [this](const LWOOBJID& id) {
+		return EntityManager::Instance()->GetEntity(id) == nullptr;
+		});
+	m_TargetsInPhantom.erase(toRemove, m_TargetsInPhantom.end());
 	return m_TargetsInPhantom;
 }
 
@@ -1439,34 +1424,18 @@ void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAdd
 
 LDFBaseData* Entity::GetVarData(const std::u16string& name) const {
 	for (auto* data : m_Settings) {
-		if (data == nullptr) {
-			continue;
-		}
-
-		if (data->GetKey() != name) {
-			continue;
-		}
-
-		return data;
+		if (data && data->GetKey() == name) return data;
 	}
-
 	return nullptr;
 }
 
 std::string Entity::GetVarAsString(const std::u16string& name) const {
 	auto* data = GetVarData(name);
-
-	if (data == nullptr) {
-		return "";
-	}
-
-	return data->GetValueAsString();
+	return data ? data->GetValueAsString() : "";
 }
 
 void Entity::Resurrect() {
-	if (IsPlayer()) {
-		GameMessages::SendResurrect(this);
-	}
+	if (IsPlayer()) GameMessages::SendResurrect(this);
 }
 
 void Entity::AddToGroups(const std::string& group) {
