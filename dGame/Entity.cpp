@@ -3,19 +3,12 @@
 #include "CDClientManager.h"
 #include "Game.h"
 #include "dLogger.h"
-#include <PacketUtils.h>
-#include <functional>
-#include "CDDestructibleComponentTable.h"
-#include "CDClientDatabase.h"
-#include <sstream>
 #include "dServer.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Zone.h"
 #include "Spawner.h"
-#include "UserManager.h"
-#include "dpWorld.h"
 #include "Player.h"
 #include "LUTriggers.h"
 #include "User.h"
@@ -60,7 +53,6 @@
 #include "ProximityMonitorComponent.h"
 #include "PropertyEntranceComponent.h"
 #include "ModelBehaviorComponent.h"
-#include "ZCompression.h"
 #include "PetComponent.h"
 #include "HavokVehiclePhysicsComponent.h"
 #include "PossessableComponent.h"
@@ -81,15 +73,9 @@
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
-#include "CDCurrencyTableTable.h"
-#include "CDMovementAIComponentTable.h"
-#include "CDProximityMonitorComponentTable.h"
-#include "CDRebuildComponentTable.h"
 #include "CDObjectSkillsTable.h"
 #include "CDObjectsTable.h"
-#include "CDScriptComponentTable.h"
 #include "CDSkillBehaviorTable.h"
-#include "CDZoneTableTable.h"
 
 const std::vector<ComponentWhitelist> Entity::m_ComponentWhitelists = {
 	{ // Unknown use case

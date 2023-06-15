@@ -183,7 +183,7 @@ void MovingPlatformComponent::StartPathing() {
 	const auto travelNext = subComponent->mWaitTime + travelTime;
 
 	m_ParentEntity->AddCallbackTimer(travelTime, [subComponent, this] {
-			m_ParentEntity>GetScript()->OnWaypointReached(m_ParentEntity, subComponent->mNextWaypointIndex);
+			m_ParentEntity->GetScript()->OnWaypointReached(m_ParentEntity, subComponent->mNextWaypointIndex);
 		});
 
 	m_ParentEntity->AddCallbackTimer(travelNext, [this] {

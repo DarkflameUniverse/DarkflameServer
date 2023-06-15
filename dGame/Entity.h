@@ -1,17 +1,13 @@
 #ifndef __ENTITY__H__
 #define __ENTITY__H__
 
-#include <map>
-#include <functional>
-#include <typeinfo>
-#include <type_traits>
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
+#include "dCommonVars.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
-#include "LDFFormat.h"
 #include "eKillType.h"
 
 namespace Loot {
@@ -33,6 +29,7 @@ class Component;
 class Item;
 class Character;
 class EntityCallbackTimer;
+class LDFBaseData;
 enum class eTriggerEventType;
 enum class eGameMasterLevel : uint8_t;
 enum class eReplicaComponentType : uint32_t;
