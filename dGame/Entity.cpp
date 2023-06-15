@@ -810,7 +810,6 @@ void Entity::Update(const float deltaTime) {
 
 	// Add pending timers to the list of timers so they start next tick.
 	if (!m_PendingTimers.empty()) {
-		// unique_ptrs are not CopyConstructible. Must move an rvalue.
 		this->m_Timers.reserve(m_Timers.size() + m_PendingTimers.size());
 		for (auto& timer : m_PendingTimers) {
 			this->m_Timers.push_back(std::move(timer));
