@@ -9,6 +9,10 @@ EntityCallbackTimer::~EntityCallbackTimer() {
 
 }
 
+void EntityCallbackTimer::ExecuteCallback() {
+	m_Callback();
+}
+
 std::function<void()> EntityCallbackTimer::GetCallback() {
 	return m_Callback;
 }

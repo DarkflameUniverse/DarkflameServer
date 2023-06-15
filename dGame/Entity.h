@@ -145,8 +145,6 @@ public:
 	 */
 	bool HasComponent(const eReplicaComponentType componentId) const;
 
-	std::vector<ScriptComponent*> GetScriptComponents();
-
 	void Subscribe(const LWOOBJID& scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
 	void Unsubscribe(const LWOOBJID& scriptObjId, const std::string& notificationName);
 

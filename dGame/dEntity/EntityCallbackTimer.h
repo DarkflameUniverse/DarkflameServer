@@ -8,6 +8,7 @@ public:
 	EntityCallbackTimer(float time, std::function<void()> callback);
 	~EntityCallbackTimer();
 
+	void ExecuteCallback();
 	std::function<void()> GetCallback();
 	float GetTime();
 
