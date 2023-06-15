@@ -5,10 +5,6 @@ EntityCallbackTimer::EntityCallbackTimer(const float& time, const std::function<
 	m_Callback = callback;
 }
 
-EntityCallbackTimer::~EntityCallbackTimer() {
-
-}
-
 void EntityCallbackTimer::ExecuteCallback() {
 	m_Callback();
 }

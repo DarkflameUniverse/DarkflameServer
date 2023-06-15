@@ -5,10 +5,6 @@ EntityTimer::EntityTimer(const std::string& name, const float& time) {
 	m_Time = time;
 }
 
-EntityTimer::~EntityTimer() {
-
-}
-
 std::string EntityTimer::GetName() {
 	return m_Name;
 }
