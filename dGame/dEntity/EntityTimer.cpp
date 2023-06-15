@@ -1,6 +1,6 @@
 #include "EntityTimer.h"
 
-EntityTimer::EntityTimer(std::string name, float time) {
+EntityTimer::EntityTimer(const std::string& name, const float& time) {
 	m_Name = name;
 	m_Time = time;
 }

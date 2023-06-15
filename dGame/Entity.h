@@ -338,9 +338,9 @@ protected:
 	std::vector<std::function<void(Entity*)>> m_PhantomCollisionCallbacks;
 
 	std::unordered_map<eReplicaComponentType, ComponentPtr> m_Components;
-	std::vector<EntityTimer*> m_Timers;
-	std::vector<EntityTimer*> m_PendingTimers;
-	std::vector<EntityCallbackTimer*> m_CallbackTimers;
+	std::vector<std::unique_ptr<EntityTimer>> m_Timers;
+	std::vector<std::unique_ptr<EntityTimer>> m_PendingTimers;
+	std::vector<std::unique_ptr<EntityCallbackTimer>> m_CallbackTimers;
 
 	bool m_ShouldDestroyAfterUpdate;
 

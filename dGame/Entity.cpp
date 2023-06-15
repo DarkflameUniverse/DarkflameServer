@@ -787,23 +787,21 @@ CppScripts::Script* Entity::GetScript() const {
 }
 
 void Entity::Update(const float deltaTime) {
-	auto namedTimerItr = std::remove_if(m_Timers.begin(), m_Timers.end(), [this, &deltaTime](EntityTimer* timer) {
+	auto namedTimerItr = std::remove_if(m_Timers.begin(), m_Timers.end(), [this, &deltaTime](const std::unique_ptr<EntityTimer>& timer) {
 		timer->Update(deltaTime);
 		if (timer->GetTime() <= 0) {
 			GetScript()->OnTimerDone(this, timer->GetName());
 			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
-			delete timer;
 			return true;
 		}
 		return false;
 		});
 	m_Timers.erase(namedTimerItr, m_Timers.end());
 
-	auto callbackTimerItr = std::remove_if(m_CallbackTimers.begin(), m_CallbackTimers.end(), [this, &deltaTime](EntityCallbackTimer* timer) {
+	auto callbackTimerItr = std::remove_if(m_CallbackTimers.begin(), m_CallbackTimers.end(), [this, &deltaTime](const std::unique_ptr<EntityCallbackTimer>& timer) {
 		timer->Update(deltaTime);
 		if (timer->GetTime() <= 0) {
 			timer->ExecuteCallback();
-			delete timer;
 			return true;
 		}
 		return false;
@@ -811,8 +809,12 @@ void Entity::Update(const float deltaTime) {
 	m_CallbackTimers.erase(callbackTimerItr, m_CallbackTimers.end());
 
 	// Add pending timers to the list of timers so they start next tick.
-	if (m_PendingTimers.size() > 0) {
-		m_Timers.insert(m_Timers.end(), m_PendingTimers.begin(), m_PendingTimers.end());
+	if (!m_PendingTimers.empty()) {
+		// unique_ptrs are not CopyConstructible. Must move an rvalue.
+		this->m_Timers.reserve(m_Timers.size() + m_PendingTimers.size());
+		for (auto& timer : m_PendingTimers) {
+			this->m_Timers.push_back(std::move(timer));
+		}
 		m_PendingTimers.clear();
 	}
 
@@ -1163,24 +1165,21 @@ void Entity::RemoveParent() {
 }
 
 void Entity::AddTimer(const std::string& name, float time) {
-	m_PendingTimers.push_back(new EntityTimer(name, time));
+	m_PendingTimers.emplace_back(std::make_unique<EntityTimer>(name, time));
 }
 
 void Entity::AddCallbackTimer(const float time, const std::function<void()>& callback) {
-	m_CallbackTimers.push_back(new EntityCallbackTimer(time, callback));
+	m_CallbackTimers.emplace_back(std::make_unique<EntityCallbackTimer>(time, callback));
 }
 
 bool Entity::HasTimer(const std::string& name) {
-	auto possibleTimer = std::find_if(m_Timers.begin(), m_Timers.end(), [name](EntityTimer* timer) {
+	auto possibleTimer = std::find_if(m_Timers.begin(), m_Timers.end(), [name](const std::unique_ptr<EntityTimer>& timer) {
 		return timer->GetName() == name;
 		});
 	return possibleTimer != m_Timers.end();
 }
 
 void Entity::CancelCallbackTimers() {
-	std::for_each(m_CallbackTimers.begin(), m_CallbackTimers.end(), [](EntityCallbackTimer* timer) {
-		delete timer;
-		});
 	m_CallbackTimers.clear();
 }
 
@@ -1191,27 +1190,14 @@ void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
 }
 
 void Entity::CancelTimer(const std::string& name) {
-	auto toErase = std::remove_if(m_Timers.begin(), m_Timers.end(), [&name](EntityTimer* timer) {
-		if (timer->GetName() == name) {
-			delete timer;
-			return true;
-		}
-		return false;
-	});
+	auto toErase = std::remove_if(m_Timers.begin(), m_Timers.end(), [&name](const std::unique_ptr<EntityTimer>& timer) {
+		return timer->GetName() == name;
+		});
 	m_Timers.erase(m_Timers.begin(), toErase);
 }
 // ### LEFT OFF HERE ###
 void Entity::CancelAllTimers() {
-	for (auto* timer : m_Timers) {
-		delete timer;
-	}
-
 	m_Timers.clear();
-
-	for (auto* callBackTimer : m_CallbackTimers) {
-		delete callBackTimer;
-	}
-
 	m_CallbackTimers.clear();
 }
 
