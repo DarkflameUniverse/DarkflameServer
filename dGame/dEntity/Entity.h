@@ -2,6 +2,7 @@
 #define __ENTITY__H__
 
 #include <memory>
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -110,14 +111,14 @@ public:
 	void SetObservers(const int8_t value);
 
 	const uint16_t GetNetworkId() const { return m_NetworkID; }
-	void SetNetworkId(const uint16_t id);
+	void SetNetworkId(const uint16_t id) { m_NetworkID = id; }
 
 	Entity* GetOwner() const;
-	void SetOwnerOverride(const LWOOBJID& value);
+	void SetOwnerOverride(const LWOOBJID& value) { m_OwnerOverride = value; };
 
-	const NiPoint3& GetDefaultPosition() const;
+	const NiPoint3& GetDefaultPosition() const { return m_DefaultPosition; };
 
-	const NiQuaternion& GetDefaultRotation() const;
+	const NiQuaternion& GetDefaultRotation() const { return m_DefaultRotation; };
 
 	const float GetDefaultScale() const { return m_Scale; }
 
@@ -178,7 +179,7 @@ public:
 	void OnCinematicUpdate(Entity* self, Entity* sender, const eCinematicEvent event, const std::u16string& pathName,
 		const float pathTime, const float totalTime, const int32_t waypoint);
 
-	void NotifyObject(Entity* sender, const std::string& name, const int32_t param1 = 0, const int32_t param2 = 0);
+	void NotifyObject(Entity* sender, const std::u16string& name, const int32_t param1 = 0, const int32_t param2 = 0);
 	void OnEmoteReceived(const int32_t emote, Entity* target);
 
 	void OnUse(Entity* originator);
@@ -202,14 +203,15 @@ public:
 	void Smash(const LWOOBJID source = LWOOBJID_EMPTY, const eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
 	void Kill(Entity* murderer = nullptr);
 	void AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const;
-	void AddCollisionPhantomCallback(const std::function<void(Entity* target)>& callback);
-	void AddDieCallback(const std::function<void()>& callback);
+	void AddCollisionPhantomCallback(const std::function<void(Entity* target)>& callback) { m_PhantomCollisionCallbacks.push_back(callback); };
+	void AddDieCallback(const std::function<void()>& callback) { m_DieCallbacks.push_back(callback); };
 	void Resurrect();
 
 	void AddLootItem(const Loot::Info& info);
 	void PickupItem(const LWOOBJID& objectID);
 
-	bool CanPickupCoins(const uint64_t& count);
+	bool CanPickupCoins(const uint64_t& count) const;
+	void PickupCoins(const uint64_t& count);
 	void RegisterCoinDrop(const uint64_t& count);
 
 	void ScheduleKillAfterUpdate(Entity* murderer = nullptr);
@@ -230,13 +232,13 @@ public:
 
 	 //Retroactively corrects the model vault size due to incorrect initialization in a previous patch.
 	void RetroactiveVaultSize();
-	bool GetBoolean(const std::u16string& name) const;
-	int32_t GetI32(const std::u16string& name) const;
-	int64_t GetI64(const std::u16string& name) const;
+	bool GetBoolean(const std::u16string& name) const { return GetVar<bool>(name); };
+	int32_t GetI32(const std::u16string& name) const { return GetVar<int32_t>(name); };
+	int64_t GetI64(const std::u16string& name) const { return GetVar<int64_t>(name); };
 
-	void SetBoolean(const std::u16string& name, bool value);
-	void SetI32(const std::u16string& name, int32_t value);
-	void SetI64(const std::u16string& name, int64_t value);
+	void SetBoolean(const std::u16string& name, bool value) { SetVar<bool>(name, value); }
+	void SetI32(const std::u16string& name, int32_t value) { SetVar<int32_t>(name, value); };
+	void SetI64(const std::u16string& name, int64_t value) { SetVar<int64_t>(name, value); };
 
 	bool HasVar(const std::u16string& name) const;
 

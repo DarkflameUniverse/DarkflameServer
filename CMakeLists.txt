@@ -305,7 +305,7 @@ file(
 file(
 	GLOB HEADERS_DGAME
 	LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/dGame/Entity.h
+	${PROJECT_SOURCE_DIR}/dGame/dEntity/Entity.h
 	${PROJECT_SOURCE_DIR}/dGame/dGameMessages/GameMessages.h
 	${PROJECT_SOURCE_DIR}/dGame/EntityManager.h
 	${PROJECT_SOURCE_DIR}/dScripts/CppScripts.h

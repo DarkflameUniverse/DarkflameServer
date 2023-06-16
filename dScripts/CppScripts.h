@@ -12,11 +12,9 @@ class InvalidScript;
 enum class eMissionState : int32_t;
 enum class ePetTamingNotifyType : uint32_t;
 enum class eRebuildState : uint32_t;
+enum class eCinematicEvent : uint32_t;
 
 namespace CppScripts {
-
-	extern std::unique_ptr<InvalidScript> invalidScript;
-	extern std::map<std::string, CppScripts::Script*> m_Scripts;
 	/**
 	 * Base class for all scripts. Includes virtual methods to be overridden to handle LUA equivelent events.
 	 *
@@ -76,7 +74,7 @@ namespace CppScripts {
 		 *
 		 * Equivalent to 'function onNotifyObject(self, msg)'
 		 */
-		virtual void OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1 = 0, int32_t param2 = 0) {};
+		virtual void OnNotifyObject(Entity* self, Entity* sender, const std::u16string& name, int32_t param1 = 0, int32_t param2 = 0) {};
 
 		/**
 		 * Invoked upon a player exiting the modular build minigame.
@@ -363,6 +361,8 @@ namespace CppScripts {
 		 */
 		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {};
 	};
-
 	Script* GetScript(Entity* parent, const std::string& scriptName);
+
+	extern std::unique_ptr<InvalidScript> invalidScript;
+	extern std::map<std::string, CppScripts::Script*> m_Scripts;
 };

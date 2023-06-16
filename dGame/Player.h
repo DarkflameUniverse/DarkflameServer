@@ -36,7 +36,7 @@ public:
 
 	std::map<LWOOBJID, Loot::Info>& GetDroppedLoot();
 
-	uint64_t GetDroppedCoins();
+	uint64_t GetDroppedCoins() const;
 
 	/**
 	 * Setters

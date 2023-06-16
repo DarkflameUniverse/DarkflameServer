@@ -905,8 +905,12 @@ void Entity::OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent eve
 	GetScript()->OnCinematicUpdate(self, sender, event, pathName, pathTime, totalTime, waypoint);
 }
 
-void Entity::NotifyObject(Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
-	GameMessages::SendNotifyObject(GetObjectID(), sender->GetObjectID(), GeneralUtils::ASCIIToUTF16(name), UNASSIGNED_SYSTEM_ADDRESS);
+void Entity::CancelCallbackTimers() {
+	m_CallbackTimers.clear();
+}
+
+void Entity::NotifyObject(Entity* sender, const std::u16string& name, int32_t param1, int32_t param2) {
+	GameMessages::SendNotifyObject(GetObjectID(), sender->GetObjectID(), name, UNASSIGNED_SYSTEM_ADDRESS, param1, param2);
 
 	GetScript()->OnNotifyObject(this, sender, name, param1, param2);
 }
@@ -1037,20 +1041,11 @@ void Entity::Kill(Entity* murderer) {
 	}
 
 	// Track a player smashing something else
-	if (murderer) {
-		auto* murdererCharacterComponent = murderer->GetComponent<CharacterComponent>();
-		if (murdererCharacterComponent) {
-			murdererCharacterComponent->UpdatePlayerStatistic(SmashablesSmashed);
-		}
+	if (!murderer) return;
+	auto* murdererCharacterComponent = murderer->GetComponent<CharacterComponent>();
+	if (murdererCharacterComponent) {
+		murdererCharacterComponent->UpdatePlayerStatistic(SmashablesSmashed);
 	}
-}
-
-void Entity::AddDieCallback(const std::function<void()>& callback) {
-	m_DieCallbacks.push_back(callback);
-}
-
-void Entity::AddCollisionPhantomCallback(const std::function<void(Entity* target)>& callback) {
-	m_PhantomCollisionCallbacks.push_back(callback);
 }
 
 void Entity::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const {
@@ -1063,11 +1058,10 @@ bool Entity::GetIsDead() const {
 	return dest && dest->GetArmor() == 0 && dest->GetHealth() == 0;
 }
 
-// Replace static_cast with dynamic_cast
 void Entity::AddLootItem(const Loot::Info& info) {
 	if (!IsPlayer()) return;
-	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
-	droppedLoot.insert(std::make_pair(info.id, info));
+	auto* player = dynamic_cast<Player*>(this);
+	if (player) player->GetDroppedLoot().insert(std::make_pair(info.id, info)); // Move this to Player
 }
 
 // Replace static_cast with dynamic_cast
@@ -1079,73 +1073,80 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 	auto* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
 	auto* skillsTable = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
 
-	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
+	auto* player = dynamic_cast<Player*>(this);
+	if (!player) return;
+	auto& droppedLoot = player->GetDroppedLoot();
 
-	// See if there is some faster way to do this.
-	for (const auto& [lootObjId, loot] : droppedLoot) {
-		if (lootObjId != objectID) continue;
-		auto* characterComponent = GetComponent<CharacterComponent>();
-		if (characterComponent) characterComponent->TrackLOTCollection(loot.lot);
+	auto lootIterator = droppedLoot.find(objectID);
+	if (lootIterator == droppedLoot.end()) return;
+	const auto& [objId, loot] = *lootIterator;
 
-		const CDObjects& object = objectsTable->GetByID(loot.lot);
-		if (object.id != 0 && object.type == "Powerup") {
-			const auto lootLot = loot.lot;
-			auto skills = skillsTable->Query([lootLot](CDObjectSkills entry) {return (entry.objectTemplate == lootLot); });
-			for (const auto& skill : skills) {
-				auto* skillBehaviorTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
-				auto behaviorData = skillBehaviorTable->GetSkillByID(skill.skillID);
-				// This should take a skillID, not a behaviorID.
-				SkillComponent::HandleUnmanaged(behaviorData.behaviorID, GetObjectID());
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->TrackLOTCollection(loot.lot);
 
-				auto* missionComponent = GetComponent<MissionComponent>();
+	const CDObjects& object = objectsTable->GetByID(loot.lot);
+	if (object.id != 0 && object.type == "Powerup") {
+		const auto lootLot = loot.lot;
+		auto skills = skillsTable->Query([lootLot](CDObjectSkills entry) { return (entry.objectTemplate == lootLot); });
+		auto* skillBehaviorTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+		for (const auto& skill : skills) {
+			auto behaviorData = skillBehaviorTable->GetSkillByID(skill.skillID);
+			// This should take a skillID, not a behaviorID.
+			SkillComponent::HandleUnmanaged(behaviorData.behaviorID, GetObjectID());
 
-				if (missionComponent) missionComponent->Progress(eMissionTaskType::POWERUP, skill.skillID);
-			}
-		} else {
-			inventoryComponent->AddItem(loot.lot, loot.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
+			auto* missionComponent = GetComponent<MissionComponent>();
+
+			if (missionComponent) missionComponent->Progress(eMissionTaskType::POWERUP, skill.skillID);
 		}
+	} else {
+		inventoryComponent->AddItem(loot.lot, loot.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
 	}
-	droppedLoot.erase(objectID);
+	droppedLoot.erase(lootIterator);
 }
 
 // This functions name is misleading and should not modify the number of dropped coins.
 // A separate function, PickupCoins should modify that.
 // Replace static_cast with dynamic_cast
-bool Entity::CanPickupCoins(const uint64_t& count) {
+bool Entity::CanPickupCoins(const uint64_t& count) const {
 	if (!IsPlayer()) return false;
-	auto* player = static_cast<Player*>(this);
-	auto droppedCoins = player->GetDroppedCoins();
-	if (count > droppedCoins) {
-		return false;
-	} else {
-		player->SetDroppedCoins(droppedCoins - count);
-		return true;
-	}
+	const auto* player = dynamic_cast<const Player*>(this);
+	return count <= player->GetDroppedCoins();
 }
 
-// Replace static_cast with dynamic_cast
+void Entity::PickupCoins(const uint64_t& count) {
+	if (!IsPlayer()) return;
+	auto* player = dynamic_cast<Player*>(this);
+	if (!player) return;
+	const auto droppedCoins = player->GetDroppedCoins();
+	if (count <= droppedCoins) player->SetDroppedCoins(droppedCoins - count);
+}
+
 void Entity::RegisterCoinDrop(const uint64_t& coinsDropped) {
 	if (!IsPlayer()) return;
-	auto* player = static_cast<Player*>(this);
+	auto* player = dynamic_cast<Player*>(this);
+	if (!player) return;
 	player->SetDroppedCoins(player->GetDroppedCoins() + coinsDropped);
 }
 
 void Entity::AddChild(Entity* child) {
 	m_IsParentChildDirty = true;
-	if (std::find(m_ChildEntities.begin(), m_ChildEntities.end(), child) == m_ChildEntities.end()) m_ChildEntities.push_back(child);
+	if (std::find(m_ChildEntities.begin(), m_ChildEntities.end(), child) != m_ChildEntities.end()) return;
+	m_ChildEntities.push_back(child);
 }
 
 void Entity::RemoveChild(Entity* child) {
 	if (!child) return;
 	uint32_t entityPosition = 0;
 	auto toRemove = std::remove(m_ChildEntities.begin(), m_ChildEntities.end(), child);
-	if (toRemove != m_ChildEntities.end()) m_IsParentChildDirty = true;
-	m_ChildEntities.erase(toRemove, m_ChildEntities.end());
+	if (toRemove != m_ChildEntities.end()) {
+		m_ChildEntities.erase(toRemove, m_ChildEntities.end());
+		m_IsParentChildDirty = true;
+	}
 }
 
 void Entity::RemoveParent() {
 	if (m_ParentEntity) m_IsParentChildDirty = true;
-	else Game::logger->Log("Entity", "Attempted to remove parent from(objid:lot) (%llu:%i) when no parent existed", GetObjectID(), GetLOT());
+	else Game::logger->Log("Entity", "WARNING: Attempted to remove parent from(objid:lot) (%llu:%i) when no parent existed", GetObjectID(), GetLOT());
 	this->m_ParentEntity = nullptr;
 }
 
@@ -1164,13 +1165,8 @@ bool Entity::HasTimer(const std::string& name) {
 	return possibleTimer != m_Timers.end();
 }
 
-void Entity::CancelCallbackTimers() {
-	m_CallbackTimers.clear();
-}
-
 void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
 	EntityManager::Instance()->ScheduleForKill(this);
-
 	if (murderer) m_ScheduleKiller = murderer;
 }
 
@@ -1180,10 +1176,10 @@ void Entity::CancelTimer(const std::string& name) {
 		});
 	m_Timers.erase(m_Timers.begin(), toErase);
 }
-// ### LEFT OFF HERE ###
+
 void Entity::CancelAllTimers() {
 	m_Timers.clear();
-	m_CallbackTimers.clear();
+	CancelCallbackTimers();
 }
 
 bool Entity::IsPlayer() const {
@@ -1207,22 +1203,8 @@ Entity* Entity::GetOwner() const {
 	return const_cast<Entity*>(this);
 }
 
-const NiPoint3& Entity::GetDefaultPosition() const {
-	return m_DefaultPosition;
-}
-
-const NiQuaternion& Entity::GetDefaultRotation() const {
-	return m_DefaultRotation;
-}
-
-void Entity::SetOwnerOverride(const LWOOBJID& value) {
-	m_OwnerOverride = value;
-}
-
 void Entity::SetObservers(int8_t value) {
-	if (value < 0) {
-		value = 0;
-	}
+	if (value < 0) value = 0;
 
 	m_Observers = value;
 }
@@ -1241,7 +1223,7 @@ bool Entity::IsSleeping() const {
 	return m_IsGhostingCandidate && m_Observers == 0;
 }
 
-
+// The following 3 should share a base component class so we can else if it.
 const NiPoint3& Entity::GetPosition() const {
 	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 
@@ -1354,46 +1336,11 @@ void Entity::SetRotation(const NiQuaternion& rotation) {
 	EntityManager::Instance()->SerializeEntity(this);
 }
 
-// Move to header
-bool Entity::GetBoolean(const std::u16string& name) const {
-	return GetVar<bool>(name);
-}
-
-// Move to header
-int32_t Entity::GetI32(const std::u16string& name) const {
-	return GetVar<int32_t>(name);
-}
-
-// Move to header
-int64_t Entity::GetI64(const std::u16string& name) const {
-	return GetVar<int64_t>(name);
-}
-
-// Move to header
-void Entity::SetBoolean(const std::u16string& name, const bool value) {
-	SetVar(name, value);
-}
-
-// Move to header
-void Entity::SetI32(const std::u16string& name, const int32_t value) {
-	SetVar(name, value);
-}
-
-// Move to header
-void Entity::SetI64(const std::u16string& name, const int64_t value) {
-	SetVar(name, value);
-}
-
 bool Entity::HasVar(const std::u16string& name) const {
 	auto hasVar = std::find_if(m_Settings.begin(), m_Settings.end(), [&name](const LDFBaseData* data) {
 		return data->GetKey() == name;
 		});
 	return hasVar != m_Settings.end();
-}
-
-// Move to header
-void Entity::SetNetworkId(const uint16_t id) {
-	m_NetworkID = id;
 }
 
 std::vector<LWOOBJID>& Entity::GetTargetsInPhantom() {

@@ -247,7 +247,7 @@ const std::vector<Player*>& Player::GetAllPlayers() {
 	return m_Players;
 }
 
-uint64_t Player::GetDroppedCoins() {
+uint64_t Player::GetDroppedCoins() const {
 	return m_DroppedCoins;
 }
 

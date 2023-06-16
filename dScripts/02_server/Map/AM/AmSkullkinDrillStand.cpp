@@ -10,7 +10,7 @@ void AmSkullkinDrillStand::OnStartup(Entity* self) {
 	self->SetProximityRadius(new dpEntity(self->GetObjectID(), { 6, 14, 6 }), "knockback");
 }
 
-void AmSkullkinDrillStand::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
+void AmSkullkinDrillStand::OnNotifyObject(Entity* self, Entity* sender, const std::u16string& name, int32_t param1, int32_t param2) {
 
 }
 

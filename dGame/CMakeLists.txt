@@ -1,5 +1,4 @@
 set(DGAME_SOURCES "Character.cpp"
-		"Entity.cpp"
 		"EntityManager.cpp"
 		"LeaderboardManager.cpp"
 		"Player.cpp"

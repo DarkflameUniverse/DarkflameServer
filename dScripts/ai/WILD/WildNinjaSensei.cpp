@@ -9,27 +9,27 @@ void WildNinjaSensei::OnStartup(Entity* self) {
 void WildNinjaSensei::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "CraneStart") {
 		auto ninjas = EntityManager::Instance()->GetEntitiesInGroup("Ninjastuff");
-		for (auto ninja : ninjas) ninja->NotifyObject(self, "Crane");
+		for (auto ninja : ninjas) ninja->NotifyObject(self, u"Crane");
 		self->AddTimer("Bow", 15.5f);
 		self->AddTimer("TigerStart", 25);
 		GameMessages::SendPlayAnimation(self, u"crane");
 	} else if (timerName == "TigerStart") {
 		auto ninjas = EntityManager::Instance()->GetEntitiesInGroup("Ninjastuff");
 		GameMessages::SendPlayAnimation(self, u"bow");
-		for (auto ninja : ninjas) ninja->NotifyObject(self, "Tiger");
+		for (auto ninja : ninjas) ninja->NotifyObject(self, u"Tiger");
 		self->AddTimer("Bow", 15.5f);
 		self->AddTimer("MantisStart", 25);
 		GameMessages::SendPlayAnimation(self, u"tiger");
 	} else if (timerName == "MantisStart") {
 		auto ninjas = EntityManager::Instance()->GetEntitiesInGroup("Ninjastuff");
 		GameMessages::SendPlayAnimation(self, u"tiger");
-		for (auto ninja : ninjas) ninja->NotifyObject(self, "Mantis");
+		for (auto ninja : ninjas) ninja->NotifyObject(self, u"Mantis");
 		self->AddTimer("Bow", 15.5f);
 		self->AddTimer("CraneStart", 25);
 		GameMessages::SendPlayAnimation(self, u"mantis");
 	} else if (timerName == "Bow") {
 		auto ninjas = EntityManager::Instance()->GetEntitiesInGroup("Ninjastuff");
-		for (auto ninja : ninjas) ninja->NotifyObject(self, "Bow");
+		for (auto ninja : ninjas) ninja->NotifyObject(self, u"Bow");
 		GameMessages::SendPlayAnimation(self, u"bow");
 	}
 }

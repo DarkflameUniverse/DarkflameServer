@@ -1,6 +1,7 @@
 #include "NjRailPostServer.h"
 #include "QuickBuildComponent.h"
 #include "EntityManager.h"
+#include "Entity.h"
 
 void NjRailPostServer::OnStartup(Entity* self) {
 	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
@@ -9,11 +10,11 @@ void NjRailPostServer::OnStartup(Entity* self) {
 	}
 }
 
-void NjRailPostServer::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1,
+void NjRailPostServer::OnNotifyObject(Entity* self, Entity* sender, const std::u16string& name, int32_t param1,
 	int32_t param2) {
-	if (name == "PostRebuilt") {
+	if (name == u"PostRebuilt") {
 		self->SetNetworkVar<bool>(NetworkNotActiveVariable, false);
-	} else if (name == "PostDied") {
+	} else if (name == u"PostDied") {
 		self->SetNetworkVar<bool>(NetworkNotActiveVariable, true);
 	}
 }
@@ -24,7 +25,7 @@ void NjRailPostServer::OnRebuildNotifyState(Entity* self, eRebuildState state) {
 		if (relatedRail == nullptr)
 			return;
 
-		relatedRail->NotifyObject(self, "PostRebuilt");
+		relatedRail->NotifyObject(self, u"PostRebuilt");
 
 		if (self->GetVar<bool>(NotActiveVariable))
 			return;
@@ -35,7 +36,7 @@ void NjRailPostServer::OnRebuildNotifyState(Entity* self, eRebuildState state) {
 		if (relatedRail == nullptr)
 			return;
 
-		relatedRail->NotifyObject(self, "PostDied");
+		relatedRail->NotifyObject(self, u"PostDied");
 	}
 }
 

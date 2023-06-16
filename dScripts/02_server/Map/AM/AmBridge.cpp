@@ -1,5 +1,6 @@
 #include "AmBridge.h"
 #include "EntityManager.h"
+#include "Entity.h"
 
 void AmBridge::OnStartup(Entity* self) {
 
@@ -14,7 +15,7 @@ void AmBridge::OnRebuildComplete(Entity* self, Entity* target) {
 
 	auto* console = consoles[0];
 
-	console->NotifyObject(self, "BridgeBuilt");
+	console->NotifyObject(self, u"BridgeBuilt");
 
 	self->AddTimer("SmashBridge", 50);
 }
