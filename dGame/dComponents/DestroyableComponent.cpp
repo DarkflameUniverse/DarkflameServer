@@ -692,26 +692,32 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	Smash(source, eKillType::VIOLENT, u"", skillID);
 }
 
-void DestroyableComponent::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd) {
-	m_SubscribedScripts.insert(std::make_pair(scriptObjId, scriptToAdd));
-	Game::logger->LogDebug("DestroyableComponent", "Added script %llu to entity %llu", scriptObjId, m_ParentEntity->GetObjectID());
+void DestroyableComponent::Subscribe(CppScripts::Script* scriptToAdd) {
+	auto foundScript = std::find(m_SubscribedScripts.begin(), m_SubscribedScripts.end(), scriptToAdd);
+	if (foundScript != m_SubscribedScripts.end()) {
+		Game::logger->LogDebug("DestroyableComponent", "WARNING: Tried to add a script for Entity %llu but the script was already subscribed", m_ParentEntity->GetObjectID());
+		return;
+	}
+	m_SubscribedScripts.push_back(scriptToAdd);
+	Game::logger->LogDebug("DestroyableComponent", "A script has subscribed to entity %llu", m_ParentEntity->GetObjectID());
 	Game::logger->LogDebug("DestroyableComponent", "Number of subscribed scripts %i", m_SubscribedScripts.size());
 }
 
-void DestroyableComponent::Unsubscribe(LWOOBJID scriptObjId) {
-	auto foundScript = m_SubscribedScripts.find(scriptObjId);
+void DestroyableComponent::Unsubscribe(CppScripts::Script* scriptToRemove) {
+	auto foundScript = std::find(m_SubscribedScripts.begin(), m_SubscribedScripts.end(), scriptToRemove);
 	if (foundScript != m_SubscribedScripts.end()) {
 		m_SubscribedScripts.erase(foundScript);
-		Game::logger->LogDebug("DestroyableComponent", "Removed script %llu from entity %llu", scriptObjId, m_ParentEntity->GetObjectID());
-	} else {
-		Game::logger->LogDebug("DestroyableComponent", "Tried to remove a script for Entity %llu but script %llu didnt exist", m_ParentEntity->GetObjectID(), scriptObjId);
+		Game::logger->LogDebug("DestroyableComponent", "Unsubscribed a script from entity %llu", m_ParentEntity->GetObjectID());
+		Game::logger->LogDebug("DestroyableComponent", "Number of subscribed scripts %i", m_SubscribedScripts.size());
+		return;
 	}
-	Game::logger->LogDebug("DestroyableComponent", "Number of subscribed scripts %i", m_SubscribedScripts.size());
+	Game::logger->LogDebug("DestroyableComponent", "WARNING: Tried to remove a script for Entity %llu but the script was not subscribed", m_ParentEntity->GetObjectID());
 }
 
 void DestroyableComponent::NotifySubscribers(Entity* attacker, uint32_t damage) {
-	for (auto script : m_SubscribedScripts) {
-		script.second->NotifyHitOrHealResult(m_ParentEntity, attacker, damage);
+	for (auto* script : m_SubscribedScripts) {
+		DluAssert(script != nullptr);
+		script->NotifyHitOrHealResult(m_ParentEntity, attacker, damage);
 	}
 }
 
@@ -827,7 +833,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-					scriptEntity->GetScript()->OnPlayerDied(scriptEntity, m_ParentEntity);
+				scriptEntity->GetScript()->OnPlayerDied(scriptEntity, m_ParentEntity);
 			}
 		}
 	}

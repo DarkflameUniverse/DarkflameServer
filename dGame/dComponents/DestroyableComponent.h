@@ -447,8 +447,8 @@ public:
 	 */
 	void NotifySubscribers(Entity* attacker, uint32_t damage);
 
-	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd);
-	void Unsubscribe(LWOOBJID scriptObjId);
+	void Subscribe(CppScripts::Script* scriptToAdd);
+	void Unsubscribe(CppScripts::Script* scriptToRemove);
 
 	// handle hardcode mode drops
 	void DoHardcoreModeDrops(const LWOOBJID source);
@@ -587,9 +587,9 @@ private:
 	std::vector<std::function<void(Entity*)>> m_OnHitCallbacks;
 
 	/**
-	 * The list of scripts subscribed to this components actions
+	 * Scripts that are subscribed to this component
 	 */
-	std::map<LWOOBJID, CppScripts::Script*> m_SubscribedScripts;
+	std::vector<CppScripts::Script*> m_SubscribedScripts;
 
 	/**
 	 * status immunity counters

@@ -55,13 +55,13 @@ void Player::SetSystemAddress(const SystemAddress& value) {
 	m_SystemAddress = value;
 }
 
-void Player::SetRespawnPos(const NiPoint3& position) {
+void Player::SetRespawnPosition(const NiPoint3& position) {
 	m_respawnPos = position;
 
 	m_Character->SetRespawnPoint(dZoneManager::Instance()->GetZone()->GetWorldID(), position);
 }
 
-void Player::SetRespawnRot(const NiQuaternion& rotation) {
+void Player::SetRespawnRotation(const NiQuaternion& rotation) {
 	m_respawnRot = rotation;
 }
 

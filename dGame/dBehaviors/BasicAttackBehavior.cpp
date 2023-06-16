@@ -213,7 +213,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 
 		bitStream->Write(armorDamageDealt);
 		bitStream->Write(healthDamageDealt);
-		bitStream->Write(targetEntity->GetIsDead());
+		bitStream->Write(targetEntity->IsDead());
 	}
 
 	bitStream->Write(successState);

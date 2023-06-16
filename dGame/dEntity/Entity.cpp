@@ -570,30 +570,25 @@ bool Entity::operator!=(const Entity& other) const {
 }
 
 // Move to header
-User* Entity::GetParentUser() const {
-	return IsPlayer() ? static_cast<const Player*>(this)->GetParentUser() : nullptr;
-}
-
-// Move to header
 bool Entity::HasComponent(const eReplicaComponentType componentId) const {
 	return m_Components.find(componentId) != m_Components.end();
 }
 
 // Fine
-void Entity::Subscribe(const LWOOBJID& scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName) {
+void Entity::Subscribe(CppScripts::Script* scriptToAdd, const std::string& notificationName) {
+	Game::logger->Log("Entity", "Subscribing a script with notification %s", notificationName.c_str());
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
 		auto* destroyableComponent = GetComponent<DestroyableComponent>();
-		if (!destroyableComponent) return;
-		destroyableComponent->Subscribe(scriptObjId, scriptToAdd);
+		if (destroyableComponent) destroyableComponent->Subscribe(scriptToAdd);
 	}
 }
 
 // Fine
-void Entity::Unsubscribe(const LWOOBJID& scriptObjId, const std::string& notificationName) {
+void Entity::Unsubscribe(CppScripts::Script* scriptToRemove, const std::string& notificationName) {
+	Game::logger->Log("Entity", "Unsubscribing a script with notification %s", notificationName.c_str());
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
 		auto* destroyableComponent = GetComponent<DestroyableComponent>();
-		if (!destroyableComponent) return;
-		destroyableComponent->Unsubscribe(scriptObjId);
+		if (destroyableComponent) destroyableComponent->Unsubscribe(scriptToRemove);
 	}
 }
 
@@ -857,7 +852,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 		}
 	}
 
-	if (!other->GetIsDead()) {
+	if (!other->IsDead()) {
 		auto* combat = GetComponent<BaseCombatAIComponent>();
 
 		if (combat != nullptr) {
@@ -1053,7 +1048,7 @@ void Entity::AddRebuildCompleteCallback(const std::function<void(Entity* user)>&
 	if (quickBuildComponent) quickBuildComponent->AddRebuildCompleteCallback(callback);
 }
 
-bool Entity::GetIsDead() const {
+bool Entity::IsDead() const {
 	auto* dest = GetComponent<DestroyableComponent>();
 	return dest && dest->GetArmor() == 0 && dest->GetHealth() == 0;
 }

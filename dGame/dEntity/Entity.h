@@ -19,6 +19,10 @@ namespace tinyxml2 {
 	class XMLDocument;
 };
 
+namespace CppScripts {
+	class Script;
+};
+
 class Player;
 class EntityInfo;
 class User;
@@ -37,10 +41,6 @@ enum class eReplicaComponentType : uint32_t;
 enum class eReplicaPacketType : uint8_t;
 enum class eCinematicEvent : uint32_t;
 
-namespace CppScripts {
-	class Script;
-};
-
 /**
  * An entity in the world.
  * Entities are composed of components which define their behavior.
@@ -58,8 +58,15 @@ public:
 	void ApplyComponentWhitelist(TemplateComponents& components) const;
 	static const std::vector<ComponentWhitelist>& GetComponentWhitelists() { return m_ComponentWhitelists; }
 
-	// There are some very very edge cases we need to take care of with what components
-	// are kept and removed. Here is where we take care of those cases.
+	/**
+	 * Functions used for creating and setting up an Entity.
+	 */
+	void Initialize();
+
+	/**
+	 * There are some very very edge cases we need to take care of with what components
+	 * are kept and removed. Here is where we take care of those cases.
+	 */
 	void ApplyComponentBlacklist(TemplateComponents& components) const;
 
 	// For adding and removing components based on LDF keys
@@ -68,59 +75,33 @@ public:
 	// Paths have several components they could add. This function will add them.
 	void AddPathComponent(TemplateComponents& components) const;
 
+	/**
+	 * Determines if we should ghost an Entity or not.
+	 * Ghosting means we no longer serialize it to a specific player because it is out of range.
+	 */
 	void IsGhosted();
-	virtual void Initialize();
 
 	bool operator==(const Entity& other) const;
 	bool operator!=(const Entity& other) const;
 
-	/**
-	 * Getters
-	 */
-	Character* GetCharacter() const { return m_Character; }
-	void SetCharacter(Character* value) { m_Character = value; }
-
+	// General Entity info
 	const LWOOBJID GetObjectID() const { return m_ObjectID; }
 
 	const LOT GetLOT() const { return m_TemplateID; }
 
-	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
-	void SetGMLevel(const eGameMasterLevel value);
-
 	Entity* GetParentEntity() const { return m_ParentEntity; }
-
-	const std::vector<std::string>& GetGroups() { return m_Groups; };
-	void SetGroups(const std::vector<std::string>& value) { m_Groups = value; }
-
-	Spawner* GetSpawner() const { return m_Spawner; }
-
-	LWOOBJID GetSpawnerID() const { return m_SpawnerID; }
-
-	const std::vector<LDFBaseData*>& GetSettings() const { return m_Settings; }
-
-	const std::vector<LDFBaseData*>& GetNetworkSettings() const { return m_NetworkSettings; }
-
-	bool GetIsDead() const;
-
-	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates; }
-	void SetPlayerReadyForUpdates() { m_PlayerIsReadyForUpdates = true; }
 
 	const bool GetIsGhostingCandidate() const { return m_IsGhostingCandidate; }
 
-	const int8_t GetObservers() const { return m_Observers; }
-	void SetObservers(const int8_t value);
-
-	const uint16_t GetNetworkId() const { return m_NetworkID; }
-	void SetNetworkId(const uint16_t id) { m_NetworkID = id; }
+	const float GetDefaultScale() const { return m_Scale; }
 
 	Entity* GetOwner() const;
 	void SetOwnerOverride(const LWOOBJID& value) { m_OwnerOverride = value; };
 
+	// Position related info
 	const NiPoint3& GetDefaultPosition() const { return m_DefaultPosition; };
 
 	const NiQuaternion& GetDefaultRotation() const { return m_DefaultRotation; };
-
-	const float GetDefaultScale() const { return m_Scale; }
 
 	const NiPoint3& GetPosition() const;
 	void SetPosition(const NiPoint3& position);
@@ -128,24 +109,66 @@ public:
 	const NiQuaternion& GetRotation() const;
 	void SetRotation(const NiQuaternion& rotation);
 
-	virtual User* GetParentUser() const;
+	// Spawner related info
+	Spawner* GetSpawner() const { return m_Spawner; }
+
+	LWOOBJID GetSpawnerID() const { return m_SpawnerID; }
+
+	const std::vector<std::string>& GetGroups() { return m_Groups; };
+	void SetGroups(const std::vector<std::string>& value) { m_Groups = value; }
+
+	// LDF related into
+	const std::vector<LDFBaseData*>& GetSettings() const { return m_Settings; }
+
+	const std::vector<LDFBaseData*>& GetNetworkSettings() const { return m_NetworkSettings; }
+
+	// Networking related info
+	const int8_t GetObservers() const { return m_Observers; }
+	void SetObservers(const int8_t value);
+
+	const uint16_t GetNetworkId() const { return m_NetworkID; }
+	void SetNetworkId(const uint16_t id) { m_NetworkID = id; }
+
+	// Player extended info
+	virtual User* GetParentUser() const { return nullptr; };
 
 	virtual const SystemAddress GetSystemAddress() const { return UNASSIGNED_SYSTEM_ADDRESS; };
 
-	virtual void SetRespawnPos(const NiPoint3& position) {};
+	virtual void SetRespawnPosition(const NiPoint3& position) {};
 
-	virtual void SetRespawnRot(const NiQuaternion& rotation) {};
+	virtual void SetRespawnRotation(const NiQuaternion& rotation) {};
 
 	virtual void SetSystemAddress(const SystemAddress& value) {};
 
-	/**
-	 * Component management
-	 */
+	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
+	void SetGMLevel(const eGameMasterLevel value);
+
+	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates; }
+	void SetPlayerReadyForUpdates() { m_PlayerIsReadyForUpdates = true; }
+
+	Character* GetCharacter() const { return m_Character; }
+	void SetCharacter(Character* value) { m_Character = value; }
+
+	// End info
+
+	bool IsDead() const;
+
+	// If you are calling this, then calling GetComponent<T>, just call GetComponent<T> and check for nullptr.
 	bool HasComponent(const eReplicaComponentType componentId) const;
 
-	void Subscribe(const LWOOBJID& scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
-	void Unsubscribe(const LWOOBJID& scriptObjId, const std::string& notificationName);
+	/**
+	 * Call these when you want to observe events. Observed events should follow the following naming convention
+	 * in scripts Notify<NotificationName>. For example, if you want to observe the "OnDeath" event, you would call
+	 * entity->Subscribe(script, "OnDeath"). Then in your script, you would have a function called NotifyOnDeath.
+	 */
+	void Subscribe(CppScripts::Script* scriptToAdd, const std::string& notificationName);
 
+	/**
+	 * Call this when you want to stop observing an event. The scriptToRemove will
+	 * no longer be notified of notificationName events
+	 */
+	void Unsubscribe(CppScripts::Script* scriptToRemove, const std::string& notificationName);
+// ### STOPPED HERE ###
 	void SetProximityRadius(const float proxRadius, const std::string& name);
 	void SetProximityRadius(dpEntity* entity, const std::string& name);
 

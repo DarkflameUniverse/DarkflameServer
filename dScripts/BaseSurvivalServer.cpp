@@ -312,7 +312,7 @@ bool BaseSurvivalServer::CheckAllPlayersDead() {
 
 	for (const auto& playerID : state.players) {
 		auto* player = EntityManager::Instance()->GetEntity(playerID);
-		if (player == nullptr || player->GetIsDead()) {
+		if (player == nullptr || player->IsDead()) {
 			deadPlayers++;
 		}
 	}

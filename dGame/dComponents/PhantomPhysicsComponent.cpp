@@ -366,8 +366,8 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 
 			if (entity) {
 				GameMessages::SendPlayerReachedRespawnCheckpoint(entity, m_RespawnPos, m_RespawnRot);
-				entity->SetRespawnPos(m_RespawnPos);
-				entity->SetRespawnRot(m_RespawnRot);
+				entity->SetRespawnPosition(m_RespawnPos);
+				entity->SetRespawnRotation(m_RespawnRot);
 			}
 		}
 	}

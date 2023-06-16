@@ -148,7 +148,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			continue;
 		}
 
-		if (entity->GetIsDead()) continue;
+		if (entity->IsDead()) continue;
 
 		const auto otherPosition = entity->GetPosition();
 

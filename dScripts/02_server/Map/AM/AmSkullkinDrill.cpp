@@ -152,13 +152,13 @@ void AmSkullkinDrill::FreezePlayer(Entity* self, Entity* player, bool bFreeze) {
 	auto StateChangeType = eStateChangeType::POP;
 
 	if (bFreeze) {
-		if (player->GetIsDead()) {
+		if (player->IsDead()) {
 			return;
 		}
 
 		StateChangeType = eStateChangeType::PUSH;
 	} else {
-		if (player->GetIsDead()) {
+		if (player->IsDead()) {
 			//
 		}
 	}

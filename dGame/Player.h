@@ -44,9 +44,9 @@ public:
 
 	void SetSystemAddress(const SystemAddress& value) override;
 
-	void SetRespawnPos(const NiPoint3& position) override;
+	void SetRespawnPosition(const NiPoint3& position) override;
 
-	void SetRespawnRot(const NiQuaternion& rotation) override;
+	void SetRespawnRotation(const NiQuaternion& rotation) override;
 
 	void SetGhostReferencePoint(const NiPoint3& value);
 

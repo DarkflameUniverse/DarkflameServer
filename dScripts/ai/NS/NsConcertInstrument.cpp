@@ -27,7 +27,7 @@ void NsConcertInstrument::OnRebuildNotifyState(Entity* self, eRebuildState state
 }
 
 void NsConcertInstrument::OnRebuildComplete(Entity* self, Entity* target) {
-	if (!target->GetIsDead()) {
+	if (!target->IsDead()) {
 		self->SetVar<LWOOBJID>(u"activePlayer", target->GetObjectID());
 
 		self->AddCallbackTimer(0.2f, [self, target]() {
