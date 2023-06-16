@@ -1,17 +1,13 @@
 #ifndef __ENTITY__H__
 #define __ENTITY__H__
 
-#include <map>
-#include <functional>
-#include <typeinfo>
-#include <type_traits>
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
+#include "dCommonVars.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
-#include "LDFFormat.h"
 #include "eKillType.h"
 
 namespace Loot {
@@ -33,6 +29,7 @@ class Component;
 class Item;
 class Character;
 class EntityCallbackTimer;
+class LDFBaseData;
 enum class eTriggerEventType;
 enum class eGameMasterLevel : uint8_t;
 enum class eReplicaComponentType : uint32_t;
@@ -144,8 +141,6 @@ public:
 	 * Component management
 	 */
 	bool HasComponent(const eReplicaComponentType componentId) const;
-
-	std::vector<ScriptComponent*> GetScriptComponents();
 
 	void Subscribe(const LWOOBJID& scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
 	void Unsubscribe(const LWOOBJID& scriptObjId, const std::string& notificationName);
@@ -340,9 +335,9 @@ protected:
 	std::vector<std::function<void(Entity*)>> m_PhantomCollisionCallbacks;
 
 	std::unordered_map<eReplicaComponentType, ComponentPtr> m_Components;
-	std::vector<EntityTimer*> m_Timers;
-	std::vector<EntityTimer*> m_PendingTimers;
-	std::vector<EntityCallbackTimer*> m_CallbackTimers;
+	std::vector<std::unique_ptr<EntityTimer>> m_Timers;
+	std::vector<std::unique_ptr<EntityTimer>> m_PendingTimers;
+	std::vector<std::unique_ptr<EntityCallbackTimer>> m_CallbackTimers;
 
 	bool m_ShouldDestroyAfterUpdate;
 

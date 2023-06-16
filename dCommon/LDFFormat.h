@@ -33,7 +33,7 @@ public:
 
 	virtual void WriteToPacket(RakNet::BitStream* packet) = 0;
 
-	virtual const std::u16string& GetKey() = 0;
+	virtual const std::u16string& GetKey() const = 0;
 
 	virtual eLDFType GetValueType() = 0;
 
@@ -117,7 +117,7 @@ public:
 	/*!
 	 \return The key
 	 */
-	const std::u16string& GetKey(void) override { return this->key; }
+	const std::u16string& GetKey(void) const override { return this->key; }
 
 	//! Gets the LDF Type
 	/*!

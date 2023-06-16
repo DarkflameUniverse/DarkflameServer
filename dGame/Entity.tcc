@@ -4,6 +4,8 @@
 #error "Include Entity.h instead of Entity.tpp"
 #endif
 
+#include "LDFFormat.h"
+
 // Access definitions
 template <typename Cmpt>
 Cmpt* Entity::GetComponent() const {

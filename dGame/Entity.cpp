@@ -3,19 +3,12 @@
 #include "CDClientManager.h"
 #include "Game.h"
 #include "dLogger.h"
-#include <PacketUtils.h>
-#include <functional>
-#include "CDDestructibleComponentTable.h"
-#include "CDClientDatabase.h"
-#include <sstream>
 #include "dServer.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Zone.h"
 #include "Spawner.h"
-#include "UserManager.h"
-#include "dpWorld.h"
 #include "Player.h"
 #include "LUTriggers.h"
 #include "User.h"
@@ -60,7 +53,6 @@
 #include "ProximityMonitorComponent.h"
 #include "PropertyEntranceComponent.h"
 #include "ModelBehaviorComponent.h"
-#include "ZCompression.h"
 #include "PetComponent.h"
 #include "HavokVehiclePhysicsComponent.h"
 #include "PossessableComponent.h"
@@ -81,15 +73,9 @@
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
-#include "CDCurrencyTableTable.h"
-#include "CDMovementAIComponentTable.h"
-#include "CDProximityMonitorComponentTable.h"
-#include "CDRebuildComponentTable.h"
 #include "CDObjectSkillsTable.h"
 #include "CDObjectsTable.h"
-#include "CDScriptComponentTable.h"
 #include "CDSkillBehaviorTable.h"
-#include "CDZoneTableTable.h"
 
 const std::vector<ComponentWhitelist> Entity::m_ComponentWhitelists = {
 	{ // Unknown use case
@@ -541,6 +527,8 @@ void Entity::Initialize() {
 	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) IsGhosted();
 }
 
+// Invert this check and build it into the component initialization. The ghosting property is an intrinsic property of which components the Entity has.
+// Keep the first check since that is a special case for large scene elements like Brig Rock as a whole.
 void Entity::IsGhosted() {
 	// Don't ghost what is likely large scene elements
 	if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
@@ -571,37 +559,27 @@ void Entity::IsGhosted() {
 	}
 }
 
+// Move to header
 bool Entity::operator==(const Entity& other) const {
 	return other.m_ObjectID == m_ObjectID;
 }
 
+// Move to header
 bool Entity::operator!=(const Entity& other) const {
 	return !(other.m_ObjectID == m_ObjectID);
 }
 
+// Move to header
 User* Entity::GetParentUser() const {
-	if (!IsPlayer()) {
-		return nullptr;
-	}
-
-	return static_cast<const Player*>(this)->GetParentUser();
+	return IsPlayer() ? static_cast<const Player*>(this)->GetParentUser() : nullptr;
 }
 
+// Move to header
 bool Entity::HasComponent(const eReplicaComponentType componentId) const {
 	return m_Components.find(componentId) != m_Components.end();
 }
 
-std::vector<ScriptComponent*> Entity::GetScriptComponents() {
-	std::vector<ScriptComponent*> comps;
-	for (const auto& [componentType, component] : m_Components) {
-		if (componentType == eReplicaComponentType::SCRIPT) {
-			comps.push_back(dynamic_cast<ScriptComponent*>(component.get()));
-		}
-	}
-
-	return comps;
-}
-
+// Fine
 void Entity::Subscribe(const LWOOBJID& scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName) {
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
 		auto* destroyableComponent = GetComponent<DestroyableComponent>();
@@ -610,6 +588,7 @@ void Entity::Subscribe(const LWOOBJID& scriptObjId, CppScripts::Script* scriptTo
 	}
 }
 
+// Fine
 void Entity::Unsubscribe(const LWOOBJID& scriptObjId, const std::string& notificationName) {
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
 		auto* destroyableComponent = GetComponent<DestroyableComponent>();
@@ -618,11 +597,13 @@ void Entity::Unsubscribe(const LWOOBJID& scriptObjId, const std::string& notific
 	}
 }
 
+// Fine
 void Entity::SetProximityRadius(const float proxRadius, const std::string& name) {
 	auto* proximityMonitorComponent = AddComponent<ProximityMonitorComponent>();
 	if (proximityMonitorComponent) proximityMonitorComponent->SetProximityRadius(proxRadius, name);
 }
 
+// Remove in favor of a square constructor
 void Entity::SetProximityRadius(dpEntity* entity, const std::string& name) {
 	auto* proximityMonitorComponent = AddComponent<ProximityMonitorComponent>();
 	if (proximityMonitorComponent) proximityMonitorComponent->SetProximityRadius(entity, name);
@@ -630,6 +611,7 @@ void Entity::SetProximityRadius(dpEntity* entity, const std::string& name) {
 
 void Entity::SetGMLevel(eGameMasterLevel value) {
 	m_GMLevel = value;
+	// User m_Character?
 	if (GetParentUser()) {
 		Character* character = GetParentUser()->GetLastUsedChar();
 
@@ -670,6 +652,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, const eReplic
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		// Only sync for models.
+		// PetComponent check un-needed since we should be removing the component during construction.
 		if (m_Settings.size() > 0 && (GetComponent<ModelBehaviorComponent>() && !GetComponent<PetComponent>())) {
 			outBitStream->Write1(); //ldf data
 
@@ -719,31 +702,27 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, const eReplic
 			outBitStream->Write0();
 		}
 
-
+		outBitStream->Write<bool>(m_ParentEntity != nullptr || m_SpawnerID != 0);
 		if (m_ParentEntity != nullptr || m_SpawnerID != 0) {
-			outBitStream->Write1();
 			if (m_ParentEntity != nullptr) outBitStream->Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
 			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream->Write(m_SpawnerID);
 			else outBitStream->Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
-		} else outBitStream->Write0();
+		}
 
 		outBitStream->Write(m_HasSpawnerNodeID);
 		if (m_HasSpawnerNodeID) outBitStream->Write(m_SpawnerNodeID);
 
 		//outBitStream->Write0(); //Spawner node id
 
-		if (m_Scale == 1.0f || m_Scale == 0.0f) outBitStream->Write0();
-		else {
-			outBitStream->Write1();
-			outBitStream->Write(m_Scale);
-		}
+		outBitStream->Write<bool>(m_Scale != 1.0f || m_Scale != 0.0f);
+		if (m_Scale != 1.0f || m_Scale != 0.0f) outBitStream->Write(m_Scale);
 
 		outBitStream->Write0(); //ObjectWorldState
 
+		outBitStream->Write(m_GMLevel != eGameMasterLevel::CIVILIAN);
 		if (m_GMLevel != eGameMasterLevel::CIVILIAN) {
-			outBitStream->Write1();
 			outBitStream->Write(m_GMLevel);
-		} else outBitStream->Write0(); //No GM Level
+		}
 	}
 
 	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
@@ -757,26 +736,27 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, const eReplic
 		}
 		outBitStream->Write(m_ChildEntities.size() > 0);
 		if (m_ChildEntities.size() > 0) {
-			outBitStream->Write((uint16_t)m_ChildEntities.size());
+			outBitStream->Write<uint16_t>(m_ChildEntities.size());
 			for (Entity* child : m_ChildEntities) {
-				outBitStream->Write((uint64_t)child->GetObjectID());
+				outBitStream->Write<LWOOBJID>(child->GetObjectID());
 			}
 		}
 	}
 }
 
+// uh
 void Entity::WriteComponents(RakNet::BitStream* outBitStream, const eReplicaPacketType packetType) {
 
 }
 
+// We should be able to use this at some point
 void Entity::ResetFlags() {
 	// Unused
 }
 
+// std::for_each
 void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
-	//This function should only ever be called from within Character, meaning doc should always exist when this is called.
-	//Naturally, we don't include any non-player components in this update function.
-
+	DluAssert(doc != nullptr);
 	for (const auto& pair : m_Components) {
 		if (pair.second == nullptr) continue;
 
@@ -793,23 +773,21 @@ CppScripts::Script* Entity::GetScript() const {
 }
 
 void Entity::Update(const float deltaTime) {
-	auto namedTimerItr = std::remove_if(m_Timers.begin(), m_Timers.end(), [this, &deltaTime](EntityTimer* timer) {
+	auto namedTimerItr = std::remove_if(m_Timers.begin(), m_Timers.end(), [this, &deltaTime](const std::unique_ptr<EntityTimer>& timer) {
 		timer->Update(deltaTime);
 		if (timer->GetTime() <= 0) {
 			GetScript()->OnTimerDone(this, timer->GetName());
 			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
-			delete timer;
 			return true;
 		}
 		return false;
 		});
 	m_Timers.erase(namedTimerItr, m_Timers.end());
 
-	auto callbackTimerItr = std::remove_if(m_CallbackTimers.begin(), m_CallbackTimers.end(), [this, &deltaTime](EntityCallbackTimer* timer) {
+	auto callbackTimerItr = std::remove_if(m_CallbackTimers.begin(), m_CallbackTimers.end(), [this, &deltaTime](const std::unique_ptr<EntityCallbackTimer>& timer) {
 		timer->Update(deltaTime);
 		if (timer->GetTime() <= 0) {
-			timer->GetCallback()();
-			delete timer;
+			timer->ExecuteCallback();
 			return true;
 		}
 		return false;
@@ -817,9 +795,10 @@ void Entity::Update(const float deltaTime) {
 	m_CallbackTimers.erase(callbackTimerItr, m_CallbackTimers.end());
 
 	// Add pending timers to the list of timers so they start next tick.
-	if (m_PendingTimers.size() > 0) {
-		for (auto namedTimer : m_PendingTimers) {
-			m_Timers.push_back(namedTimer);
+	if (!m_PendingTimers.empty()) {
+		this->m_Timers.reserve(m_Timers.size() + m_PendingTimers.size());
+		for (auto& timer : m_PendingTimers) {
+			this->m_Timers.push_back(std::move(timer));
 		}
 		m_PendingTimers.clear();
 	}
@@ -828,33 +807,28 @@ void Entity::Update(const float deltaTime) {
 		Sleep();
 
 		return;
-	} else {
-		Wake();
 	}
+	Wake();
 
 	GetScript()->OnUpdate(this);
 
-	for (const auto& pair : m_Components) {
-		if (pair.second == nullptr) continue;
-
-		pair.second->Update(deltaTime);
+	for (const auto& [componentId, component] : m_Components) {
+		if (component) component->Update(deltaTime);
 	}
 
-	if (m_ShouldDestroyAfterUpdate) {
-		EntityManager::Instance()->DestroyEntity(this->GetObjectID());
-	}
+	if (m_ShouldDestroyAfterUpdate) EntityManager::Instance()->DestroyEntity(this);
 }
 
 void Entity::OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxName, const std::string& status) {
-	Entity* other = EntityManager::Instance()->GetEntity(otherEntity);
+	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
 	if (!other) return;
 
 	GetScript()->OnProximityUpdate(this, other, proxName, status);
 
-	auto* rocketComp = GetComponent<RocketLaunchpadControlComponent>();
-	if (!rocketComp) return;
+	auto* rocketLaunchpadControlComponent = GetComponent<RocketLaunchpadControlComponent>();
+	if (!rocketLaunchpadControlComponent) return;
 
-	rocketComp->OnProximityUpdate(other, proxName, status);
+	rocketLaunchpadControlComponent->OnProximityUpdate(other, proxName, status);
 }
 
 void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
@@ -863,14 +837,12 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 
 	GetScript()->OnCollisionPhantom(this, other);
 
-	for (const auto& callback : m_PhantomCollisionCallbacks) {
+	std::for_each(m_PhantomCollisionCallbacks.begin(), m_PhantomCollisionCallbacks.end(), [other](const auto& callback) {
 		callback(other);
-	}
+		});
 
-	auto* switchComp = GetComponent<SwitchComponent>();
-	if (switchComp) {
-		switchComp->EntityEnter(other);
-	}
+	auto* switchComponent = GetComponent<SwitchComponent>();
+	if (switchComponent) switchComponent->EntityEnter(other);
 
 	TriggerEvent(eTriggerEventType::ENTER, other);
 
@@ -910,10 +882,8 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 
 	TriggerEvent(eTriggerEventType::EXIT, other);
 
-	auto* switchComp = GetComponent<SwitchComponent>();
-	if (switchComp) {
-		switchComp->EntityLeave(other);
-	}
+	auto* switchComponent = GetComponent<SwitchComponent>();
+	if (switchComponent) switchComponent->EntityLeave(other);
 
 	const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
 
@@ -950,12 +920,8 @@ void Entity::OnUse(Entity* originator) {
 
 	GetScript()->OnUse(this, originator);
 
-	// component base class when
-
-	for (const auto& pair : m_Components) {
-		if (pair.second == nullptr) continue;
-
-		pair.second->OnUse(originator);
+	for (const auto& [componentId, component] : m_Components) {
+		if (component) component->OnUse(originator);
 	}
 }
 
@@ -1016,7 +982,7 @@ void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u
 	if (!m_PlayerIsReadyForUpdates) return;
 
 	auto* destroyableComponent = GetComponent<DestroyableComponent>();
-	if (destroyableComponent == nullptr) {
+	if (!destroyableComponent) {
 		Kill(EntityManager::Instance()->GetEntity(source));
 		return;
 	}
@@ -1034,9 +1000,7 @@ void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u
 void Entity::Kill(Entity* murderer) {
 	if (!m_PlayerIsReadyForUpdates) return;
 
-	for (const auto& cb : m_DieCallbacks) {
-		cb();
-	}
+	for (const auto& cb : m_DieCallbacks) cb();
 
 	m_DieCallbacks.clear();
 
@@ -1044,13 +1008,9 @@ void Entity::Kill(Entity* murderer) {
 
 	GetScript()->OnDie(this, murderer);
 
-	if (m_Spawner != nullptr) {
-		m_Spawner->NotifyOfEntityDeath(m_ObjectID);
-	}
+	if (m_Spawner) m_Spawner->NotifyOfEntityDeath(m_ObjectID);
 
-	if (!IsPlayer()) {
-		EntityManager::Instance()->DestroyEntity(this);
-	}
+	if (!IsPlayer()) EntityManager::Instance()->DestroyEntity(this);
 
 	const auto& grpNameQBShowBricks = GetVar<std::string>(u"grpNameQBShowBricks");
 
@@ -1060,30 +1020,26 @@ void Entity::Kill(Entity* murderer) {
 		Spawner* spawner = nullptr;
 
 		if (!spawners.empty()) {
-			spawner = spawners[0];
+			spawner = spawners.front();
 		} else {
 			spawners = dZoneManager::Instance()->GetSpawnersInGroup(grpNameQBShowBricks);
 
-			if (!spawners.empty()) {
-				spawner = spawners[0];
-			}
+			if (!spawners.empty()) spawner = spawners.front();
 		}
 
-		if (spawner != nullptr) {
-			spawner->Spawn();
-		}
+		if (spawner) spawner->Spawn();
 	}
 
 	// Track a player being smashed
 	auto* characterComponent = GetComponent<CharacterComponent>();
-	if (characterComponent != nullptr) {
+	if (characterComponent) {
 		characterComponent->UpdatePlayerStatistic(TimesSmashed);
 	}
 
 	// Track a player smashing something else
-	if (murderer != nullptr) {
+	if (murderer) {
 		auto* murdererCharacterComponent = murderer->GetComponent<CharacterComponent>();
-		if (murdererCharacterComponent != nullptr) {
+		if (murdererCharacterComponent) {
 			murdererCharacterComponent->UpdatePlayerStatistic(SmashablesSmashed);
 		}
 	}
@@ -1099,65 +1055,62 @@ void Entity::AddCollisionPhantomCallback(const std::function<void(Entity* target
 
 void Entity::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const {
 	auto* quickBuildComponent = GetComponent<QuickBuildComponent>();
-	if (quickBuildComponent != nullptr) {
-		quickBuildComponent->AddRebuildCompleteCallback(callback);
-	}
+	if (quickBuildComponent) quickBuildComponent->AddRebuildCompleteCallback(callback);
 }
 
 bool Entity::GetIsDead() const {
 	auto* dest = GetComponent<DestroyableComponent>();
-	if (dest && dest->GetArmor() == 0 && dest->GetHealth() == 0) return true;
-
-	return false;
+	return dest && dest->GetArmor() == 0 && dest->GetHealth() == 0;
 }
 
+// Replace static_cast with dynamic_cast
 void Entity::AddLootItem(const Loot::Info& info) {
 	if (!IsPlayer()) return;
 	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
 	droppedLoot.insert(std::make_pair(info.id, info));
 }
 
+// Replace static_cast with dynamic_cast
 void Entity::PickupItem(const LWOOBJID& objectID) {
 	if (!IsPlayer()) return;
-	auto* inv = GetComponent<InventoryComponent>();
-	if (!inv) return;
+	auto* inventoryComponent = GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
 
-	CDObjectsTable* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
+	auto* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
+	auto* skillsTable = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
 
 	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
 
-	for (const auto& p : droppedLoot) {
-		if (p.first == objectID) {
-			auto* characterComponent = GetComponent<CharacterComponent>();
-			if (characterComponent != nullptr) {
-				characterComponent->TrackLOTCollection(p.second.lot);
+	// See if there is some faster way to do this.
+	for (const auto& [lootObjId, loot] : droppedLoot) {
+		if (lootObjId != objectID) continue;
+		auto* characterComponent = GetComponent<CharacterComponent>();
+		if (characterComponent) characterComponent->TrackLOTCollection(loot.lot);
+
+		const CDObjects& object = objectsTable->GetByID(loot.lot);
+		if (object.id != 0 && object.type == "Powerup") {
+			const auto lootLot = loot.lot;
+			auto skills = skillsTable->Query([lootLot](CDObjectSkills entry) {return (entry.objectTemplate == lootLot); });
+			for (const auto& skill : skills) {
+				auto* skillBehaviorTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+				auto behaviorData = skillBehaviorTable->GetSkillByID(skill.skillID);
+				// This should take a skillID, not a behaviorID.
+				SkillComponent::HandleUnmanaged(behaviorData.behaviorID, GetObjectID());
+
+				auto* missionComponent = GetComponent<MissionComponent>();
+
+				if (missionComponent) missionComponent->Progress(eMissionTaskType::POWERUP, skill.skillID);
 			}
-
-			const CDObjects& object = objectsTable->GetByID(p.second.lot);
-			if (object.id != 0 && object.type == "Powerup") {
-				CDObjectSkillsTable* skillsTable = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
-				std::vector<CDObjectSkills> skills = skillsTable->Query([=](CDObjectSkills entry) {return (entry.objectTemplate == p.second.lot); });
-				for (CDObjectSkills skill : skills) {
-					CDSkillBehaviorTable* skillBehTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
-					CDSkillBehavior behaviorData = skillBehTable->GetSkillByID(skill.skillID);
-
-					SkillComponent::HandleUnmanaged(behaviorData.behaviorID, GetObjectID());
-
-					auto* missionComponent = GetComponent<MissionComponent>();
-
-					if (missionComponent != nullptr) {
-						missionComponent->Progress(eMissionTaskType::POWERUP, skill.skillID);
-					}
-				}
-			} else {
-				inv->AddItem(p.second.lot, p.second.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
-			}
+		} else {
+			inventoryComponent->AddItem(loot.lot, loot.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
 		}
 	}
-
 	droppedLoot.erase(objectID);
 }
 
+// This functions name is misleading and should not modify the number of dropped coins.
+// A separate function, PickupCoins should modify that.
+// Replace static_cast with dynamic_cast
 bool Entity::CanPickupCoins(const uint64_t& count) {
 	if (!IsPlayer()) return false;
 	auto* player = static_cast<Player*>(this);
@@ -1170,92 +1123,66 @@ bool Entity::CanPickupCoins(const uint64_t& count) {
 	}
 }
 
-void Entity::RegisterCoinDrop(const uint64_t& count) {
+// Replace static_cast with dynamic_cast
+void Entity::RegisterCoinDrop(const uint64_t& coinsDropped) {
 	if (!IsPlayer()) return;
 	auto* player = static_cast<Player*>(this);
-	auto droppedCoins = player->GetDroppedCoins();
-	droppedCoins += count;
-	player->SetDroppedCoins(droppedCoins);
+	player->SetDroppedCoins(player->GetDroppedCoins() + coinsDropped);
 }
 
 void Entity::AddChild(Entity* child) {
 	m_IsParentChildDirty = true;
-	m_ChildEntities.push_back(child);
+	if (std::find(m_ChildEntities.begin(), m_ChildEntities.end(), child) == m_ChildEntities.end()) m_ChildEntities.push_back(child);
 }
 
 void Entity::RemoveChild(Entity* child) {
 	if (!child) return;
 	uint32_t entityPosition = 0;
-	while (entityPosition < m_ChildEntities.size()) {
-		if (!m_ChildEntities[entityPosition] || (m_ChildEntities[entityPosition])->GetObjectID() == child->GetObjectID()) {
-			m_IsParentChildDirty = true;
-			m_ChildEntities.erase(m_ChildEntities.begin() + entityPosition);
-		} else {
-			entityPosition++;
-		}
-	}
+	auto toRemove = std::remove(m_ChildEntities.begin(), m_ChildEntities.end(), child);
+	if (toRemove != m_ChildEntities.end()) m_IsParentChildDirty = true;
+	m_ChildEntities.erase(toRemove, m_ChildEntities.end());
 }
 
 void Entity::RemoveParent() {
+	if (m_ParentEntity) m_IsParentChildDirty = true;
+	else Game::logger->Log("Entity", "Attempted to remove parent from(objid:lot) (%llu:%i) when no parent existed", GetObjectID(), GetLOT());
 	this->m_ParentEntity = nullptr;
 }
 
 void Entity::AddTimer(const std::string& name, float time) {
-	EntityTimer* timer = new EntityTimer(name, time);
-	m_PendingTimers.push_back(timer);
+	m_PendingTimers.emplace_back(std::make_unique<EntityTimer>(name, time));
 }
 
 void Entity::AddCallbackTimer(const float time, const std::function<void()>& callback) {
-	EntityCallbackTimer* timer = new EntityCallbackTimer(time, callback);
-	m_CallbackTimers.push_back(timer);
+	m_CallbackTimers.emplace_back(std::make_unique<EntityCallbackTimer>(time, callback));
 }
 
 bool Entity::HasTimer(const std::string& name) {
-	for (auto* timer : m_Timers) {
-		if (timer->GetName() == name) {
-			return true;
-		}
-	}
-
-	return false;
+	auto possibleTimer = std::find_if(m_Timers.begin(), m_Timers.end(), [name](const std::unique_ptr<EntityTimer>& timer) {
+		return timer->GetName() == name;
+		});
+	return possibleTimer != m_Timers.end();
 }
 
 void Entity::CancelCallbackTimers() {
-	for (auto* callback : m_CallbackTimers) {
-		delete callback;
-	}
-
 	m_CallbackTimers.clear();
 }
 
 void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
-	//if (m_Info.spawner) m_Info.spawner->ScheduleKill(this);
 	EntityManager::Instance()->ScheduleForKill(this);
 
 	if (murderer) m_ScheduleKiller = murderer;
 }
 
 void Entity::CancelTimer(const std::string& name) {
-	for (int i = 0; i < m_Timers.size(); i++) {
-		if (m_Timers[i]->GetName() == name) {
-			delete m_Timers[i];
-			m_Timers.erase(m_Timers.begin() + i);
-			return;
-		}
-	}
+	auto toErase = std::remove_if(m_Timers.begin(), m_Timers.end(), [&name](const std::unique_ptr<EntityTimer>& timer) {
+		return timer->GetName() == name;
+		});
+	m_Timers.erase(m_Timers.begin(), toErase);
 }
-
+// ### LEFT OFF HERE ###
 void Entity::CancelAllTimers() {
-	for (auto* timer : m_Timers) {
-		delete timer;
-	}
-
 	m_Timers.clear();
-
-	for (auto* callBackTimer : m_CallbackTimers) {
-		delete callBackTimer;
-	}
-
 	m_CallbackTimers.clear();
 }
 
@@ -1302,18 +1229,12 @@ void Entity::SetObservers(int8_t value) {
 
 void Entity::Sleep() {
 	auto* baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
-
-	if (baseCombatAIComponent != nullptr) {
-		baseCombatAIComponent->Sleep();
-	}
+	if (baseCombatAIComponent) baseCombatAIComponent->Sleep();
 }
 
 void Entity::Wake() {
 	auto* baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
-
-	if (baseCombatAIComponent != nullptr) {
-		baseCombatAIComponent->Wake();
-	}
+	if (baseCombatAIComponent) baseCombatAIComponent->Wake();
 }
 
 bool Entity::IsSleeping() const {
@@ -1322,173 +1243,164 @@ bool Entity::IsSleeping() const {
 
 
 const NiPoint3& Entity::GetPosition() const {
-	auto* controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr) {
-		return controllable->GetPosition();
+	if (controllablePhysicsComponent != nullptr) {
+		return controllablePhysicsComponent->GetPosition();
 	}
 
-	auto* phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr) {
-		return phantom->GetPosition();
+	if (phantomPhysicsComponent != nullptr) {
+		return phantomPhysicsComponent->GetPosition();
 	}
 
-	auto* simple = GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr) {
-		return simple->GetPosition();
+	if (simplePhysicsComponent != nullptr) {
+		return simplePhysicsComponent->GetPosition();
 	}
 
-	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehiclePhysicsComponent = GetComponent<HavokVehiclePhysicsComponent>();
 
-	if (vehicle != nullptr) {
-		return vehicle->GetPosition();
+	if (vehiclePhysicsComponent != nullptr) {
+		return vehiclePhysicsComponent->GetPosition();
 	}
 
 	return NiPoint3::ZERO;
 }
 
 const NiQuaternion& Entity::GetRotation() const {
-	auto* controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr) {
-		return controllable->GetRotation();
+	if (controllablePhysicsComponent != nullptr) {
+		return controllablePhysicsComponent->GetRotation();
 	}
 
-	auto* phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr) {
-		return phantom->GetRotation();
+	if (phantomPhysicsComponent != nullptr) {
+		return phantomPhysicsComponent->GetRotation();
 	}
 
-	auto* simple = GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr) {
-		return simple->GetRotation();
+	if (simplePhysicsComponent != nullptr) {
+		return simplePhysicsComponent->GetRotation();
 	}
 
-	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehiclePhysicsComponent = GetComponent<HavokVehiclePhysicsComponent>();
 
-	if (vehicle != nullptr) {
-		return vehicle->GetRotation();
+	if (vehiclePhysicsComponent != nullptr) {
+		return vehiclePhysicsComponent->GetRotation();
 	}
 
 	return NiQuaternion::IDENTITY;
 }
 
 void Entity::SetPosition(const NiPoint3& position) {
-	auto* controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr) {
-		controllable->SetPosition(position);
+	if (controllablePhysicsComponent != nullptr) {
+		controllablePhysicsComponent->SetPosition(position);
 	}
 
-	auto* phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr) {
-		phantom->SetPosition(position);
+	if (phantomPhysicsComponent != nullptr) {
+		phantomPhysicsComponent->SetPosition(position);
 	}
 
-	auto* simple = GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr) {
-		simple->SetPosition(position);
+	if (simplePhysicsComponent != nullptr) {
+		simplePhysicsComponent->SetPosition(position);
 	}
 
-	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehiclePhysicsComponent = GetComponent<HavokVehiclePhysicsComponent>();
 
-	if (vehicle != nullptr) {
-		vehicle->SetPosition(position);
+	if (vehiclePhysicsComponent != nullptr) {
+		vehiclePhysicsComponent->SetPosition(position);
 	}
 
 	EntityManager::Instance()->SerializeEntity(this);
 }
 
 void Entity::SetRotation(const NiQuaternion& rotation) {
-	auto* controllable = GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 
-	if (controllable != nullptr) {
-		controllable->SetRotation(rotation);
+	if (controllablePhysicsComponent != nullptr) {
+		controllablePhysicsComponent->SetRotation(rotation);
 	}
 
-	auto* phantom = GetComponent<PhantomPhysicsComponent>();
+	auto* phantomPhysicsComponent = GetComponent<PhantomPhysicsComponent>();
 
-	if (phantom != nullptr) {
-		phantom->SetRotation(rotation);
+	if (phantomPhysicsComponent != nullptr) {
+		phantomPhysicsComponent->SetRotation(rotation);
 	}
 
-	auto* simple = GetComponent<SimplePhysicsComponent>();
+	auto* simplePhysicsComponent = GetComponent<SimplePhysicsComponent>();
 
-	if (simple != nullptr) {
-		simple->SetRotation(rotation);
+	if (simplePhysicsComponent != nullptr) {
+		simplePhysicsComponent->SetRotation(rotation);
 	}
 
-	auto* vehicle = GetComponent<HavokVehiclePhysicsComponent>();
+	auto* vehiclePhysicsComponent = GetComponent<HavokVehiclePhysicsComponent>();
 
-	if (vehicle != nullptr) {
-		vehicle->SetRotation(rotation);
+	if (vehiclePhysicsComponent != nullptr) {
+		vehiclePhysicsComponent->SetRotation(rotation);
 	}
 
 	EntityManager::Instance()->SerializeEntity(this);
 }
 
+// Move to header
 bool Entity::GetBoolean(const std::u16string& name) const {
 	return GetVar<bool>(name);
 }
 
+// Move to header
 int32_t Entity::GetI32(const std::u16string& name) const {
 	return GetVar<int32_t>(name);
 }
 
+// Move to header
 int64_t Entity::GetI64(const std::u16string& name) const {
 	return GetVar<int64_t>(name);
 }
 
+// Move to header
 void Entity::SetBoolean(const std::u16string& name, const bool value) {
 	SetVar(name, value);
 }
 
+// Move to header
 void Entity::SetI32(const std::u16string& name, const int32_t value) {
 	SetVar(name, value);
 }
 
+// Move to header
 void Entity::SetI64(const std::u16string& name, const int64_t value) {
 	SetVar(name, value);
 }
 
 bool Entity::HasVar(const std::u16string& name) const {
-	for (auto* data : m_Settings) {
-		if (data->GetKey() == name) {
-			return true;
-		}
-	}
-
-	return false;
+	auto hasVar = std::find_if(m_Settings.begin(), m_Settings.end(), [&name](const LDFBaseData* data) {
+		return data->GetKey() == name;
+		});
+	return hasVar != m_Settings.end();
 }
 
+// Move to header
 void Entity::SetNetworkId(const uint16_t id) {
 	m_NetworkID = id;
 }
 
 std::vector<LWOOBJID>& Entity::GetTargetsInPhantom() {
-	std::vector<LWOOBJID> valid;
-
-	// Clean up invalid targets, like disconnected players
-	for (auto i = 0u; i < m_TargetsInPhantom.size(); ++i) {
-		const auto id = m_TargetsInPhantom.at(i);
-
-		auto* entity = EntityManager::Instance()->GetEntity(id);
-
-		if (entity == nullptr) {
-			continue;
-		}
-
-		valid.push_back(id);
-	}
-
-	m_TargetsInPhantom = valid;
-
+	auto toRemove = std::remove_if(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), [this](const LWOOBJID& id) {
+		return EntityManager::Instance()->GetEntity(id) == nullptr;
+		});
+	m_TargetsInPhantom.erase(toRemove, m_TargetsInPhantom.end());
 	return m_TargetsInPhantom;
 }
 
@@ -1498,34 +1410,18 @@ void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAdd
 
 LDFBaseData* Entity::GetVarData(const std::u16string& name) const {
 	for (auto* data : m_Settings) {
-		if (data == nullptr) {
-			continue;
-		}
-
-		if (data->GetKey() != name) {
-			continue;
-		}
-
-		return data;
+		if (data && data->GetKey() == name) return data;
 	}
-
 	return nullptr;
 }
 
 std::string Entity::GetVarAsString(const std::u16string& name) const {
 	auto* data = GetVarData(name);
-
-	if (data == nullptr) {
-		return "";
-	}
-
-	return data->GetValueAsString();
+	return data ? data->GetValueAsString() : "";
 }
 
 void Entity::Resurrect() {
-	if (IsPlayer()) {
-		GameMessages::SendResurrect(this);
-	}
+	if (IsPlayer()) GameMessages::SendResurrect(this);
 }
 
 void Entity::AddToGroups(const std::string& group) {
