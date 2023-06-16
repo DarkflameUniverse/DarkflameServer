@@ -52,7 +52,7 @@ DestroyableComponent::DestroyableComponent(Entity* parent, int32_t componentId) 
 	m_IsGMImmune = false;
 	m_IsShielded = false;
 	m_DamageToAbsorb = 0;
-	m_IsModuleAssembly = m_Parent->HasComponent(eReplicaComponentType::MODULE_ASSEMBLY);
+	m_IsModuleAssembly = m_ParentEntity->HasComponent(eReplicaComponentType::MODULE_ASSEMBLY);
 	m_DirtyThreatList = false;
 	m_HasThreats = false;
 	m_ExplodeFactor = 1.0f;
@@ -79,7 +79,7 @@ void DestroyableComponent::Startup() {
 
 }
 void DestroyableComponent::LoadConfigData() {
-	SetIsSmashable(m_ParentEntity->GetVarAs<int32_t>(u"is_smashable") != 0);
+	SetIsSmashable(GetIsSmashable() | (m_ParentEntity->GetVarAs<int32_t>(u"is_smashable") != 0));
 }
 void DestroyableComponent::LoadTemplateData() {
 	if (m_ParentEntity->IsPlayer()) return;
