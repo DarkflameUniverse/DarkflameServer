@@ -1002,7 +1002,6 @@ void InventoryComponent::HandlePossession(Item* item) {
 	// Setup the destroyable stats
 	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
 	if (destroyableComponent) {
-		destroyableComponent->SetIsSmashable(false);
 		destroyableComponent->SetIsImmune(true);
 	}
 
