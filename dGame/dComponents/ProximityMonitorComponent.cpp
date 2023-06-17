@@ -36,23 +36,24 @@ void ProximityMonitorComponent::LoadTemplateData() {
 		GeneralUtils::TryParse(proximitySplit.at(0), radiusSmall);
 		GeneralUtils::TryParse(proximitySplit.at(1), radiusLarge);
 		if (radiusSmall != -1.0f && radiusLarge != -1.0f) {
-			SetProximityRadius(radiusSmall, "rocketSmall");
-			SetProximityRadius(radiusLarge, "rocketLarge");
+			AddProximityRadius(radiusSmall, "rocketSmall");
+			AddProximityRadius(radiusLarge, "rocketLarge");
 		}
 	}
 }
 
-void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::string& name) {
-	dpEntity* en = new dpEntity(m_ParentEntity->GetObjectID(), proxRadius);
-	en->SetPosition(m_ParentEntity->GetPosition());
+void ProximityMonitorComponent::AddProximityRadius(float proxRadius, const std::string& name) {
+	dpEntity* entity = new dpEntity(m_ParentEntity->GetObjectID(), proxRadius);
+	entity->SetPosition(m_ParentEntity->GetPosition());
 
-	dpWorld::Instance().AddEntity(en);
-	m_ProximitiesData.insert(std::make_pair(name, en));
+	dpWorld::Instance().AddEntity(entity);
+	m_ProximitiesData.insert(std::make_pair(name, entity));
 }
 
-void ProximityMonitorComponent::SetProximityRadius(dpEntity* entity, const std::string& name) {
-	dpWorld::Instance().AddEntity(entity);
+void ProximityMonitorComponent::AddProximityRadius(const BoxDimensions& dimensions, const std::string& name) {
+	dpEntity* entity = new dpEntity(m_ParentEntity->GetObjectID(), dimensions);
 	entity->SetPosition(m_ParentEntity->GetPosition());
+	dpWorld::Instance().AddEntity(entity);
 	m_ProximitiesData.insert(std::make_pair(name, entity));
 }
 

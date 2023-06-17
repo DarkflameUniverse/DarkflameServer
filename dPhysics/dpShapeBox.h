@@ -4,9 +4,16 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 
+struct BoxDimensions {
+	BoxDimensions(float width, float height, float depth) : width(width), height(height), depth(depth) { }
+	float width;
+	float height;
+	float depth;
+};
+
 class dpShapeBox : public dpShapeBase {
 public:
-	dpShapeBox(dpEntity* parentEntity, float width, float height, float depth);
+	dpShapeBox(dpEntity* parentEntity, const BoxDimensions& dimensions);
 	~dpShapeBox();
 
 	bool IsColliding(dpShapeBase* other);

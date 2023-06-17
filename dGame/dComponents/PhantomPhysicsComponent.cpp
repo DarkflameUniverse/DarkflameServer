@@ -279,7 +279,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 
 	switch (type) {
 	case 1: { //Make a new box shape
-		NiPoint3 boxSize(x, y, z);
+		BoxDimensions boxSize(x, y, z);
 		if (x == 0.0f) {
 			//LU has some weird values, so I think it's best to scale them down a bit
 			if (height < 0.5f) height = 2.0f;
@@ -289,7 +289,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 			width = width * m_Scale;
 			height = height * m_Scale;
 
-			boxSize = NiPoint3(width, height, width);
+			boxSize = BoxDimensions(width, height, width);
 		}
 
 		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), boxSize);

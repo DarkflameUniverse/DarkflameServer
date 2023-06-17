@@ -35,6 +35,7 @@ class Item;
 class Character;
 class EntityCallbackTimer;
 class LDFBaseData;
+class BoxDimensions;
 enum class eTriggerEventType;
 enum class eGameMasterLevel : uint8_t;
 enum class eReplicaComponentType : uint32_t;
@@ -168,9 +169,14 @@ public:
 	 * no longer be notified of notificationName events
 	 */
 	void Unsubscribe(CppScripts::Script* scriptToRemove, const std::string& notificationName);
-// ### STOPPED HERE ###
-	void SetProximityRadius(const float proxRadius, const std::string& name);
-	void SetProximityRadius(dpEntity* entity, const std::string& name);
+
+	void AddProximityRadius(const float proxRadius, const std::string& name);
+	void AddProximityRadius(const BoxDimensions& dimensions, const std::string& name);
+
+	// Technically this is the live accrate API, however what it does is not setting the proximity radius, but rather
+	// adding a new one to the list of proximity radii. For that reason we will have the old API just call AddProximityRadius.
+	inline void SetProximityRadius(const float proxRadius, const std::string& name) { this->AddProximityRadius(proxRadius, name); }
+	inline void SetProximityRadius(const BoxDimensions& dimensions, const std::string& name) { this->AddProximityRadius(dimensions, name); }
 
 	void AddChild(Entity* child);
 	void RemoveChild(Entity* child);

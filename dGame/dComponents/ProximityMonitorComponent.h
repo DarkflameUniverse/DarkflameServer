@@ -32,14 +32,14 @@ public:
 	 * @param proxRadius the radius to use for the physics entity we use to detect proximity
 	 * @param name the name of this check
 	 */
-	void SetProximityRadius(float proxRadius, const std::string& name);
+	void AddProximityRadius(float proxRadius, const std::string& name);
 
 	/**
 	 * Creates an entry to check proximity for, given a name
 	 * @param entity the physics entity to add to our proximity sensors
 	 * @param name the name of this check
 	 */
-	void SetProximityRadius(dpEntity* entity, const std::string& name);
+	void AddProximityRadius(const BoxDimensions& entity, const std::string& name);
 
 	/**
 	 * Returns the last of entities that are used to check proximity, given a name

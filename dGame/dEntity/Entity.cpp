@@ -559,17 +559,14 @@ void Entity::IsGhosted() {
 	}
 }
 
-// Move to header
 bool Entity::operator==(const Entity& other) const {
 	return other.m_ObjectID == m_ObjectID;
 }
 
-// Move to header
 bool Entity::operator!=(const Entity& other) const {
 	return !(other.m_ObjectID == m_ObjectID);
 }
 
-// Move to header
 bool Entity::HasComponent(const eReplicaComponentType componentId) const {
 	return m_Components.find(componentId) != m_Components.end();
 }
@@ -593,15 +590,15 @@ void Entity::Unsubscribe(CppScripts::Script* scriptToRemove, const std::string& 
 }
 
 // Fine
-void Entity::SetProximityRadius(const float proxRadius, const std::string& name) {
+void Entity::AddProximityRadius(const float proxRadius, const std::string& name) {
 	auto* proximityMonitorComponent = AddComponent<ProximityMonitorComponent>();
-	if (proximityMonitorComponent) proximityMonitorComponent->SetProximityRadius(proxRadius, name);
+	if (proximityMonitorComponent) proximityMonitorComponent->AddProximityRadius(proxRadius, name);
 }
 
 // Remove in favor of a square constructor
-void Entity::SetProximityRadius(dpEntity* entity, const std::string& name) {
+void Entity::AddProximityRadius(const BoxDimensions& dimensions, const std::string& name) {
 	auto* proximityMonitorComponent = AddComponent<ProximityMonitorComponent>();
-	if (proximityMonitorComponent) proximityMonitorComponent->SetProximityRadius(entity, name);
+	if (proximityMonitorComponent) proximityMonitorComponent->AddProximityRadius(dimensions, name);
 }
 
 void Entity::SetGMLevel(eGameMasterLevel value) {

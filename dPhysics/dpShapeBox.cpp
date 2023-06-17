@@ -9,11 +9,11 @@
 
 #include <iostream>
 
-dpShapeBox::dpShapeBox(dpEntity* parentEntity, float width, float height, float depth) :
+dpShapeBox::dpShapeBox(dpEntity* parentEntity, const BoxDimensions& dimensions) :
 	dpShapeBase(parentEntity),
-	m_Width(width / 2),
-	m_Height(height / 2),
-	m_Depth(depth / 2),
+	m_Width(dimensions.width / 2),
+	m_Height(dimensions.height / 2),
+	m_Depth(dimensions.depth / 2),
 	m_Scale(1.0f) {
 	m_ShapeType = dpShapeType::Box;
 
