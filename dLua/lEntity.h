@@ -97,7 +97,7 @@ struct lEntity {
     template <typename T>
     void AssertComponent() {
         if (!GetEntity()->HasComponent(T::ComponentType)) {
-            throw std::runtime_error("Entity does not have component " + std::to_string(T::ComponentType));
+            throw std::runtime_error("Entity does not have component " + std::to_string((int32_t) T::ComponentType));
         }
     }
     
@@ -107,7 +107,7 @@ struct lEntity {
     template <typename T>
     static inline void AssertComponent(lEntity entity) {
         if (!entity->HasComponent(T::ComponentType)) {
-            throw std::runtime_error("Entity does not have component " + std::to_string(T::ComponentType));
+            throw std::runtime_error("Entity does not have component " + std::to_string((int32_t) T::ComponentType));
         }
     }
 

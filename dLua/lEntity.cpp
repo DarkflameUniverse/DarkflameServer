@@ -8,6 +8,7 @@
 #include "BaseCombatAIComponent.h"
 #include "MovementAIComponent.h"
 #include "GameMessages.h"
+#include "EntityInfo.h"
 
 void lEntity::RegisterClass(LuaScript* script)
 {
@@ -139,12 +140,6 @@ void lEntity::RegisterClass(LuaScript* script)
         },
         "SetLootMatrixID", [](lEntity& entity, int32_t lootMatrixID) {
             GetComponent<DestroyableComponent>(entity)->SetLootMatrixID(lootMatrixID);
-        },
-        "PushImmunity", [](lEntity& entity, int32_t immunity) {
-            GetComponent<DestroyableComponent>(entity)->PushImmunity(immunity);
-        },
-        "PopImmunity", [](lEntity& entity) {
-            GetComponent<DestroyableComponent>(entity)->PopImmunity();
         },
         "GetIsSmashable", [](lEntity& entity) {
             AssertComponent<DestroyableComponent>(entity);

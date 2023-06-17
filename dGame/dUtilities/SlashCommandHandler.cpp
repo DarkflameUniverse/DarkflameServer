@@ -632,7 +632,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 #if __include_lua__ == 1
-	if (chatCommand == "lua" && entity->GetGMLevel() >= GAME_MASTER_LEVEL_DEVELOPER && args.size() >= 1) {
+	if (chatCommand == "lua" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
 		std::string input = "";
 
 		// If the first argument is "load", load the file

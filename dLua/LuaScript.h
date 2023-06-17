@@ -81,7 +81,7 @@ public:
      * 
      * Equivalent to 'function onMissionDialogueOK(self, msg)'
      */
-    void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) override { 
+    void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) override { 
         Invoke("onMissionDialogueOK", lEntity(target), missionID, (int32_t) missionState);
     }
 
@@ -345,7 +345,7 @@ public:
      * 
      * Equivalent to 'function onNotifyPetTamingMinigame(self, msg)'
      */
-    void OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, eNotifyType type) override {
+    void OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTamingNotifyType type) override {
         Invoke("onNotifyPetTamingMinigame", lEntity(tamer), (int32_t) type);
     }
     

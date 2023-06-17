@@ -255,6 +255,11 @@ set(INCLUDED_DIRECTORIES
 	"tests/dGameTests/dComponentsTests"
 	)
 
+if(__include_lua__)
+	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "dLua")
+	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "dLua/sol")
+endif()
+
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
 if (APPLE)
 	include_directories("/usr/local/include/")

@@ -1,4 +1,4 @@
-set(DGAME_DLUA "dLua.cpp"
+set(DGAME_DLUA_SOURCES "dLua.cpp"
 	"lCommonTypes.cpp"
 	"lEntity.cpp"
 	"LuaScript.cpp"
