@@ -18,7 +18,7 @@ void ActMine::OnRebuildNotifyState(Entity* self, eRebuildState state) {
 
 		self->SetVar(u"RebuildComplete", true);
 		self->SetVar(u"NumWarnings", 0);
-		self->AddToGroups("reset");
+		self->AddGroup("reset");
 	}
 
 }

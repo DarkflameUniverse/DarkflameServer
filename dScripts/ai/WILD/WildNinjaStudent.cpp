@@ -3,7 +3,7 @@
 #include "Entity.h"
 
 void WildNinjaStudent::OnStartup(Entity* self) {
-	self->AddToGroups("Ninjastuff");
+	self->AddGroup("Ninjastuff");
 	GameMessages::SendPlayAnimation(self, u"bow");
 }
 

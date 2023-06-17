@@ -17,7 +17,7 @@ void WaveBossApe::OnStartup(Entity* self) {
 		combatAIComponent->SetStunImmune(true);
 	}
 
-	self->AddToGroups("boss");
+	self->AddGroup("boss");
 
 	BaseEnemyApe::OnStartup(self);
 }

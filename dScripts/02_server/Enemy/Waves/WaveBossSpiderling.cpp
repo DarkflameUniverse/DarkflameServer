@@ -11,7 +11,7 @@ void WaveBossSpiderling::OnStartup(Entity* self) {
 		combatAIComponent->SetStunImmune(true);
 	}
 
-	self->AddToGroups("boss");
+	self->AddGroup("boss");
 }
 
 void WaveBossSpiderling::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,

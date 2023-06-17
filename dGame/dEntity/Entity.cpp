@@ -746,13 +746,10 @@ void Entity::ResetFlags() {
 	// Unused
 }
 
-// std::for_each
 void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 	DluAssert(doc != nullptr);
-	for (const auto& pair : m_Components) {
-		if (pair.second == nullptr) continue;
-
-		pair.second->UpdateXml(doc);
+	for (const auto&[componentId, component] : m_Components) {
+		if (component) component->UpdateXml(doc);
 	}
 }
 
@@ -1121,9 +1118,10 @@ void Entity::RegisterCoinDrop(const uint64_t& coinsDropped) {
 }
 
 void Entity::AddChild(Entity* child) {
+	if (!child) return;
 	m_IsParentChildDirty = true;
-	if (std::find(m_ChildEntities.begin(), m_ChildEntities.end(), child) != m_ChildEntities.end()) return;
-	m_ChildEntities.push_back(child);
+	if (std::find(m_ChildEntities.begin(), m_ChildEntities.end(), child) == m_ChildEntities.end()) m_ChildEntities.push_back(child);
+	else Game::logger->Log("Entity", "WARNING: Entity (objid:lot) %llu:%i already has (%llu:%i) as a child", GetObjectID(), GetLOT(), child->GetObjectID(), child->GetLOT());
 }
 
 void Entity::RemoveChild(Entity* child) {
@@ -1138,7 +1136,7 @@ void Entity::RemoveChild(Entity* child) {
 
 void Entity::RemoveParent() {
 	if (m_ParentEntity) m_IsParentChildDirty = true;
-	else Game::logger->Log("Entity", "WARNING: Attempted to remove parent from(objid:lot) (%llu:%i) when no parent existed", GetObjectID(), GetLOT());
+	else Game::logger->Log("Entity", "WARNING: Attempted to remove parent from (objid:lot) (%llu:%i) when no parent existed", GetObjectID(), GetLOT());
 	this->m_ParentEntity = nullptr;
 }
 
@@ -1363,7 +1361,7 @@ void Entity::Resurrect() {
 	if (IsPlayer()) GameMessages::SendResurrect(this);
 }
 
-void Entity::AddToGroups(const std::string& group) {
+void Entity::AddGroup(const std::string& group) {
 	if (std::find(m_Groups.begin(), m_Groups.end(), group) == m_Groups.end()) {
 		m_Groups.push_back(group);
 	}

@@ -2,7 +2,7 @@
 #include "Entity.h"
 
 void WildNinjaBricks::OnStartup(Entity* self) {
-	self->AddToGroups("Ninjastuff");
+	self->AddGroup("Ninjastuff");
 }
 
 void WildNinjaBricks::OnNotifyObject(Entity* self, Entity* sender, const std::u16string& name, int32_t param1, int32_t param2) {

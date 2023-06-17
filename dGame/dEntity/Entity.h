@@ -98,6 +98,9 @@ public:
 
 	Entity* GetOwner() const;
 	void SetOwnerOverride(const LWOOBJID& value) { m_OwnerOverride = value; };
+	Entity* GetScheduledKiller() { return m_ScheduleKiller; }
+	std::vector<LWOOBJID>& GetTargetsInPhantom();
+	const std::unordered_map<eReplicaComponentType, ComponentPtr>& GetComponents() { return m_Components; }
 
 	// Position related info
 	const NiPoint3& GetDefaultPosition() const { return m_DefaultPosition; };
@@ -110,6 +113,9 @@ public:
 	const NiQuaternion& GetRotation() const;
 	void SetRotation(const NiQuaternion& rotation);
 
+	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }
+	virtual NiQuaternion GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
+
 	// Spawner related info
 	Spawner* GetSpawner() const { return m_Spawner; }
 
@@ -117,6 +123,7 @@ public:
 
 	const std::vector<std::string>& GetGroups() { return m_Groups; };
 	void SetGroups(const std::vector<std::string>& value) { m_Groups = value; }
+	void AddGroup(const std::string& group);
 
 	// LDF related into
 	const std::vector<LDFBaseData*>& GetSettings() const { return m_Settings; }
@@ -149,14 +156,12 @@ public:
 
 	Character* GetCharacter() const { return m_Character; }
 	void SetCharacter(Character* value) { m_Character = value; }
-
 	// End info
-
-	bool IsDead() const;
 
 	// If you are calling this, then calling GetComponent<T>, just call GetComponent<T> and check for nullptr.
 	bool HasComponent(const eReplicaComponentType componentId) const;
 
+	// Event management
 	/**
 	 * Call these when you want to observe events. Observed events should follow the following naming convention
 	 * in scripts Notify<NotificationName>. For example, if you want to observe the "OnDeath" event, you would call
@@ -170,6 +175,7 @@ public:
 	 */
 	void Unsubscribe(CppScripts::Script* scriptToRemove, const std::string& notificationName);
 
+	// Proximity radius management
 	void AddProximityRadius(const float proxRadius, const std::string& name);
 	void AddProximityRadius(const BoxDimensions& dimensions, const std::string& name);
 
@@ -178,9 +184,18 @@ public:
 	inline void SetProximityRadius(const float proxRadius, const std::string& name) { this->AddProximityRadius(proxRadius, name); }
 	inline void SetProximityRadius(const BoxDimensions& dimensions, const std::string& name) { this->AddProximityRadius(dimensions, name); }
 
+	void AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const;
+	void AddCollisionPhantomCallback(const std::function<void(Entity* target)>& callback) { m_PhantomCollisionCallbacks.push_back(callback); };
+	void AddDieCallback(const std::function<void()>& callback) { m_DieCallbacks.push_back(callback); };
+	void TriggerEvent(const eTriggerEventType event, Entity* optionalTarget = nullptr);
+	void NotifyObject(Entity* sender, const std::u16string& name, const int32_t param1 = 0, const int32_t param2 = 0);
+
+	// Parent Child management
 	void AddChild(Entity* child);
 	void RemoveChild(Entity* child);
 	void RemoveParent();
+
+	// Timer management
 	void AddTimer(const std::string& name, const float time);
 	void AddCallbackTimer(const float time, const std::function<void()>& callback);
 	bool HasTimer(const std::string& name);
@@ -188,16 +203,13 @@ public:
 	void CancelAllTimers();
 	void CancelTimer(const std::string& name);
 
-	void AddToGroups(const std::string& group);
-	bool IsPlayer() const;
-
+	// Serialization
 	void WriteBaseReplicaData(RakNet::BitStream* outBitStream, const eReplicaPacketType packetType);
 	void WriteComponents(RakNet::BitStream* outBitStream, const eReplicaPacketType packetType);
-	void ResetFlags();
-	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
-	void Update(float deltaTime);
 
-	// Events
+	// Scripting
+	// Get the script attached to this entity. Will never return nullptr.
+	CppScripts::Script* GetScript() const;
 	void OnCollisionProximity(const LWOOBJID otherEntity, const std::string& proxName, const std::string& status);
 	void OnCollisionPhantom(const LWOOBJID otherEntity);
 	void OnCollisionLeavePhantom(const LWOOBJID otherEntity);
@@ -208,7 +220,6 @@ public:
 	void OnCinematicUpdate(Entity* self, Entity* sender, const eCinematicEvent event, const std::u16string& pathName,
 		const float pathTime, const float totalTime, const int32_t waypoint);
 
-	void NotifyObject(Entity* sender, const std::u16string& name, const int32_t param1 = 0, const int32_t param2 = 0);
 	void OnEmoteReceived(const int32_t emote, Entity* target);
 
 	void OnUse(Entity* originator);
@@ -228,14 +239,19 @@ public:
 	void OnMessageBoxResponse(Entity* sender, const int32_t button, const std::u16string& identifier, const std::u16string& userData);
 	void OnChoiceBoxResponse(Entity* sender, const int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);
 	void RequestActivityExit(Entity* sender, const LWOOBJID& player, const bool canceled);
+	// End scripting
 
+	// Cleanup functions
 	void Smash(const LWOOBJID source = LWOOBJID_EMPTY, const eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
+	// Odds are you do not need to call this. Call Smash instead.
 	void Kill(Entity* murderer = nullptr);
-	void AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const;
-	void AddCollisionPhantomCallback(const std::function<void(Entity* target)>& callback) { m_PhantomCollisionCallbacks.push_back(callback); };
-	void AddDieCallback(const std::function<void()>& callback) { m_DieCallbacks.push_back(callback); };
+
+	void ScheduleKillAfterUpdate(Entity* murderer = nullptr);
+	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
+
 	void Resurrect();
 
+	// Loot management (should be moved to Player. Not every Entity needs this.)
 	void AddLootItem(const Loot::Info& info);
 	void PickupItem(const LWOOBJID& objectID);
 
@@ -243,37 +259,29 @@ public:
 	void PickupCoins(const uint64_t& count);
 	void RegisterCoinDrop(const uint64_t& count);
 
-	void ScheduleKillAfterUpdate(Entity* murderer = nullptr);
-	void TriggerEvent(const eTriggerEventType event, Entity* optionalTarget = nullptr);
-	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
-
-	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }
-	virtual NiQuaternion GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
-	CppScripts::Script* GetScript() const;
-
+	// State checkers
 	void Sleep();
 	void Wake();
 	bool IsSleeping() const;
+	bool IsDead() const;
+	bool IsPlayer() const;
 
-	/*
+	// Update
+	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
+	void Update(float deltaTime);
+	/**
 	 * Utility
 	 */
 
-	 //Retroactively corrects the model vault size due to incorrect initialization in a previous patch.
+	//Retroactively corrects the model vault size due to incorrect initialization in a previous patch.
 	void RetroactiveVaultSize();
+	void ResetFlags();
+
+	// LDF Setting accessors
 	bool GetBoolean(const std::u16string& name) const { return GetVar<bool>(name); };
 	int32_t GetI32(const std::u16string& name) const { return GetVar<int32_t>(name); };
 	int64_t GetI64(const std::u16string& name) const { return GetVar<int64_t>(name); };
-
-	void SetBoolean(const std::u16string& name, bool value) { SetVar<bool>(name, value); }
-	void SetI32(const std::u16string& name, int32_t value) { SetVar<int32_t>(name, value); };
-	void SetI64(const std::u16string& name, int64_t value) { SetVar<int64_t>(name, value); };
-
 	bool HasVar(const std::u16string& name) const;
-
-	/**
-	 * Get the LDF data.
-	 */
 	LDFBaseData* GetVarData(const std::u16string& name) const;
 
 	/**
@@ -281,14 +289,10 @@ public:
 	 */
 	std::string GetVarAsString(const std::u16string& name) const;
 
-	/*
-	 * Collision
-	 */
-	std::vector<LWOOBJID>& GetTargetsInPhantom();
-
-	Entity* GetScheduledKiller() { return m_ScheduleKiller; }
-
-	const std::unordered_map<eReplicaComponentType, ComponentPtr>& GetComponents() { return m_Components; }
+	// LDF Setting assignment shorthands
+	void SetBoolean(const std::u16string& name, bool value) { SetVar<bool>(name, value); }
+	void SetI32(const std::u16string& name, int32_t value) { SetVar<int32_t>(name, value); };
+	void SetI64(const std::u16string& name, int64_t value) { SetVar<int64_t>(name, value); };
 
 	// Template declarations
 	template<typename T>
