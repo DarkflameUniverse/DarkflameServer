@@ -136,6 +136,34 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		inStream.Read(angVelocity.z);
 	}
 
+	// TODO figure out how to use these. Ignoring for now, but reading in if they exist.
+	bool hasLocalSpaceInfo{};
+	LWOOBJID objectId{};
+	NiPoint3 localSpacePosition{};
+	bool hasLinearVelocity{};
+	NiPoint3 linearVelocity{};
+	if (inStream.Read(hasLocalSpaceInfo) && hasLocalSpaceInfo) {
+		inStream.Read(objectId);
+		inStream.Read(localSpacePosition.x);
+		inStream.Read(localSpacePosition.y);
+		inStream.Read(localSpacePosition.z);
+		if (inStream.Read(hasLinearVelocity) && hasLinearVelocity) {
+			inStream.Read(linearVelocity.x);
+			inStream.Read(linearVelocity.y);
+			inStream.Read(linearVelocity.z);
+		}
+	}
+	bool hasRemoteInputInfo{};
+	RemoteInputInfo remoteInput{};
+
+	if (inStream.Read(hasRemoteInputInfo) && hasRemoteInputInfo) {
+		// read 8 bits at a time until we get to the end
+		inStream.Read(remoteInput.m_RemoteInputX);
+		inStream.Read(remoteInput.m_RemoteInputY);
+		inStream.Read(remoteInput.m_IsPowersliding);
+		inStream.Read(remoteInput.m_IsModified);
+	}
+
 	bool updateChar = true;
 
 	if (possessorComponent != nullptr) {
@@ -151,7 +179,6 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 			if (vehiclePhysicsComponent != nullptr) {
 				// This is flipped for whatever reason
-				rotation = NiQuaternion(rotation.z, rotation.y, rotation.x, rotation.w);
 
 				vehiclePhysicsComponent->SetPosition(position);
 				vehiclePhysicsComponent->SetRotation(rotation);
@@ -161,6 +188,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
 				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
 				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
+				vehiclePhysicsComponent->SetRemoteInputInfo(remoteInput);
 			} else {
 				// Need to get the mount's controllable physics
 				auto* controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
