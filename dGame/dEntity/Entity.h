@@ -269,9 +269,6 @@ public:
 	// Update
 	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
 	void Update(float deltaTime);
-	/**
-	 * Utility
-	 */
 
 	//Retroactively corrects the model vault size due to incorrect initialization in a previous patch.
 	void RetroactiveVaultSize();
@@ -343,54 +340,42 @@ public:
 
 protected:
 	LWOOBJID m_ObjectID;
+	LWOOBJID m_SpawnerID;
+	LWOOBJID m_OwnerOverride;
 
+	uint32_t m_SpawnerNodeID;
 	LOT m_TemplateID;
-
-	std::vector<LDFBaseData*> m_Settings;
-	std::vector<LDFBaseData*> m_NetworkSettings;
 
 	NiPoint3 m_DefaultPosition;
 	NiQuaternion m_DefaultRotation;
+
 	float m_Scale;
-
-	Spawner* m_Spawner;
-	LWOOBJID m_SpawnerID;
-
-	bool m_HasSpawnerNodeID;
-	uint32_t m_SpawnerNodeID;
-
-	Character* m_Character;
+	int8_t m_Observers;
+	eGameMasterLevel m_GMLevel;
 
 	Entity* m_ParentEntity; //For spawners and the like
-	std::vector<Entity*> m_ChildEntities;
-	eGameMasterLevel m_GMLevel;
-	std::vector<std::string> m_Groups;
+	Entity* m_ScheduleKiller;
+	Spawner* m_Spawner;
+	Character* m_Character;
+
+	bool m_HasSpawnerNodeID;
+
+	bool m_ShouldDestroyAfterUpdate;
+	bool m_PlayerIsReadyForUpdates;
+	bool m_IsGhostingCandidate;
+	bool m_IsParentChildDirty;
 	uint16_t m_NetworkID;
-	std::vector<std::function<void()>> m_DieCallbacks;
-	std::vector<std::function<void(Entity*)>> m_PhantomCollisionCallbacks;
 
 	std::unordered_map<eReplicaComponentType, ComponentPtr> m_Components;
 	std::vector<std::unique_ptr<EntityTimer>> m_Timers;
 	std::vector<std::unique_ptr<EntityTimer>> m_PendingTimers;
 	std::vector<std::unique_ptr<EntityCallbackTimer>> m_CallbackTimers;
-
-	bool m_ShouldDestroyAfterUpdate;
-
-	LWOOBJID m_OwnerOverride;
-
-	Entity* m_ScheduleKiller;
-
-	bool m_PlayerIsReadyForUpdates;
-
-	bool m_IsGhostingCandidate;
-
-	int8_t m_Observers;
-
-	bool m_IsParentChildDirty;
-
-	/*
-	 * Collision
-	 */
+	std::vector<LDFBaseData*> m_Settings;
+	std::vector<LDFBaseData*> m_NetworkSettings;
+	std::vector<Entity*> m_ChildEntities;
+	std::vector<std::string> m_Groups;
+	std::vector<std::function<void()>> m_DieCallbacks;
+	std::vector<std::function<void(Entity*)>> m_PhantomCollisionCallbacks;
 	std::vector<LWOOBJID> m_TargetsInPhantom;
 
 	static const std::vector<ComponentWhitelist> m_ComponentWhitelists;
