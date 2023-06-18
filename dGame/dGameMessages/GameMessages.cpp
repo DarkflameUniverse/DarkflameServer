@@ -120,7 +120,7 @@ void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const Syste
 	SEND_PACKET;
 }
 
-void GameMessages::SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation, bool noGravTeleport) {
+void GameMessages::SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation) {
 	CBITSTREAM;
 	CMSGHEADER;
 	bitStream.Write(objectID);
