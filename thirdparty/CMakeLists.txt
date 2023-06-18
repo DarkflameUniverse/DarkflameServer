@@ -48,3 +48,11 @@ if(UNIX AND NOT APPLE)
 		include_directories(${backtrace_SOURCE_DIR})
 	endif()
 endif()
+
+# Link dGame to LUA
+if(__include_lua__)
+    find_package(Lua REQUIRED)
+
+    include_directories(/usr/include ${LUA_INCLUDE_DIR})
+    include_directories(${PROJECT_SOURCE_DIR}/dLua/)
+endif()

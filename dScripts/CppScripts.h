@@ -360,6 +360,7 @@ namespace CppScripts {
 		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled){};
 	};
 
+	Script* GetInvalidScript();
 	Script* GetScript(Entity* parent, const std::string& scriptName);
 	std::vector<Script*> GetEntityScripts(Entity* entity);
 };

@@ -22,6 +22,7 @@ public:
 	static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
 
 	ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
+	ScriptComponent(Entity* parent, bool serialized, bool client = false);
 	~ScriptComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
@@ -43,6 +44,12 @@ public:
 	 * @param scriptName the name of the script to find
 	 */
 	void SetScript(const std::string& scriptName);
+
+    /**
+     * Sets the script directly
+     * @param script the script to set
+     */
+	void SetScript(CppScripts::Script* script);
 
 private:
 

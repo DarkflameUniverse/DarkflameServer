@@ -13,32 +13,43 @@ ScriptComponent::ScriptComponent(Entity* parent, std::string scriptName, bool se
 	SetScript(scriptName);
 }
 
+ScriptComponent::ScriptComponent(Entity* parent, bool serialized, bool client) : Component(parent) {
+	m_Serialized = serialized;
+	m_Client = client;
+
+    m_Script = nullptr;
+}
+
 ScriptComponent::~ScriptComponent() {
 
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	if (bIsInitialUpdate) {
-		const auto& networkSettings = m_Parent->GetNetworkSettings();
-		auto hasNetworkSettings = !networkSettings.empty();
-		outBitStream->Write(hasNetworkSettings);
+    if (!m_Serialized) {
+        return;
+    }
 
-		if (hasNetworkSettings) {
+    if (bIsInitialUpdate) {
+        const auto& networkSettings = m_Parent->GetNetworkSettings();
+        auto hasNetworkSettings = !networkSettings.empty();
+        outBitStream->Write(hasNetworkSettings);
 
-			// First write the most inner LDF data
-			RakNet::BitStream ldfData;
-			ldfData.Write<uint8_t>(0);
-			ldfData.Write<uint32_t>(networkSettings.size());
+        if (hasNetworkSettings) {
 
-			for (auto* networkSetting : networkSettings) {
-				networkSetting->WriteToPacket(&ldfData);
-			}
+            // First write the most inner LDF data
+            RakNet::BitStream ldfData;
+            ldfData.Write<uint8_t>(0);
+            ldfData.Write<uint32_t>(networkSettings.size());
 
-			// Finally write everything to the stream
-			outBitStream->Write<uint32_t>(ldfData.GetNumberOfBytesUsed());
-			outBitStream->Write(ldfData);
-		}
-	}
+            for (auto* networkSetting : networkSettings) {
+                networkSetting->WriteToPacket(&ldfData);
+            }
+
+            // Finally write everything to the stream
+            outBitStream->Write<uint32_t>(ldfData.GetNumberOfBytesUsed());
+            outBitStream->Write(ldfData);
+        }
+    }
 }
 
 CppScripts::Script* ScriptComponent::GetScript() {
@@ -53,4 +64,8 @@ void ScriptComponent::SetScript(const std::string& scriptName) {
 	}*/
 
 	m_Script = CppScripts::GetScript(m_Parent, scriptName);
+}
+
+void ScriptComponent::SetScript(CppScripts::Script* script) {
+    m_Script = script;
 }

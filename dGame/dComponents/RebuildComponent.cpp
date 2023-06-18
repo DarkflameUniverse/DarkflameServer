@@ -263,6 +263,8 @@ void RebuildComponent::SpawnActivator() {
 			info.spawnerID = m_Parent->GetObjectID();
 			info.pos = m_ActivatorPosition == NiPoint3::ZERO ? m_Parent->GetPosition() : m_ActivatorPosition;
 
+			Game::logger->Log("RebuildComponent", "Spawning activator at <%f, %f, %f>", info.pos.x, info.pos.y, info.pos.z);
+
 			m_Activator = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
 			if (m_Activator) {
 				m_ActivatorId = m_Activator->GetObjectID();

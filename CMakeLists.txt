@@ -255,6 +255,11 @@ set(INCLUDED_DIRECTORIES
 	"tests/dGameTests/dComponentsTests"
 	)
 
+if(__include_lua__)
+	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "dLua")
+	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "dLua/sol")
+endif()
+
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
 if (APPLE)
 	include_directories("/usr/local/include/")
@@ -317,6 +322,7 @@ add_subdirectory(dDatabase)
 add_subdirectory(dChatFilter)
 add_subdirectory(dNet)
 add_subdirectory(dScripts) # Add for dGame to use
+add_subdirectory(dLua)
 add_subdirectory(dGame)
 add_subdirectory(dZoneManager)
 add_subdirectory(dNavigation)

@@ -942,6 +942,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	return script;
 }
 
+CppScripts::Script* CppScripts::GetInvalidScript() {
+	return invalidToReturn;
+}
+
 std::vector<CppScripts::Script*> CppScripts::GetEntityScripts(Entity* entity) {
 	std::vector<CppScripts::Script*> scripts;
 	std::vector<ScriptComponent*> comps = entity->GetScriptComponents();

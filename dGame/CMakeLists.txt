@@ -60,6 +60,25 @@ foreach(file ${DSCRIPTS_SOURCES})
 	set(DGAME_SOURCES ${DGAME_SOURCES} "${PROJECT_SOURCE_DIR}/dScripts/${file}")
 endforeach()
 
-add_library(dGame STATIC ${DGAME_SOURCES})
+# If we are including LUA, include the dLua files in dGame
+if(__include_lua__)
+	# Append the dLua files to the dGame files
+	foreach(file ${DGAME_DLUA_SOURCES})
+		set(DGAME_SOURCES ${DGAME_SOURCES} "${PROJECT_SOURCE_DIR}/dLua/${file}")
+	endforeach()
 
-target_link_libraries(dGame dDatabase Recast Detour)
+    find_package(Lua REQUIRED)
+
+	add_library(dGame STATIC ${DGAME_SOURCES})
+
+	target_link_libraries(dGame dDatabase Recast Detour ${LUA_LIBRARIES})
+
+	include_directories("${PROJECT_SOURCE_DIR}/dLua/")
+
+    message(STATUS "Linking dGame to LUA " ${LUA_LIBRARIES})
+else()
+	add_library(dGame STATIC ${DGAME_SOURCES})
+
+	target_link_libraries(dGame dDatabase Recast Detour)
+endif()
+
