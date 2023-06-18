@@ -157,7 +157,6 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	RemoteInputInfo remoteInput{};
 
 	if (inStream.Read(hasRemoteInputInfo) && hasRemoteInputInfo) {
-		// read 8 bits at a time until we get to the end
 		inStream.Read(remoteInput.m_RemoteInputX);
 		inStream.Read(remoteInput.m_RemoteInputY);
 		inStream.Read(remoteInput.m_IsPowersliding);
