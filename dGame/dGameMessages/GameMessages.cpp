@@ -141,7 +141,6 @@ void GameMessages::SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, c
 	bitStream.Write(pos.y);
 	bitStream.Write(pos.z);
 	bitStream.Write(bUseNavmesh);
-	bitStream.Write(noGravTeleport);
 
 	bitStream.Write(rot.w != 1.0f);
 	if (rot.w != 1.0f) bitStream.Write(rot.w);
