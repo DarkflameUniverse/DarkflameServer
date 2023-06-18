@@ -6,7 +6,6 @@
 #include "eReplicaComponentType.h"
 
 struct RemoteInputInfo {
-	// make an operator= for this
 	void operator=(const RemoteInputInfo& other) {
 		m_RemoteInputX = other.m_RemoteInputX;
 		m_RemoteInputY = other.m_RemoteInputY;
