@@ -177,8 +177,6 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 			if (vehiclePhysicsComponent != nullptr) {
-				// This is flipped for whatever reason
-
 				vehiclePhysicsComponent->SetPosition(position);
 				vehiclePhysicsComponent->SetRotation(rotation);
 				vehiclePhysicsComponent->SetIsOnGround(onGround);
