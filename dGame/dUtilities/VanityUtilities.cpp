@@ -119,7 +119,7 @@ void VanityUtilities::SpawnVanity() {
 
 		auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
 
-		if (scriptComponent != nullptr) {
+		if (scriptComponent && !npc.m_Script.empty()) {
 			scriptComponent->SetScript(npc.m_Script);
 			scriptComponent->SetSerialized(false);
 
