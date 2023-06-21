@@ -507,6 +507,9 @@
         </zone>
     </npc>
     <npc lot="30016">
+		<ldf>
+            <entry data="CheckPrecondition=0:47"/>
+        </ldf>
         <zone id="1200">
             <locations>
                 <location x="-96.529" y="291.870" z="-107.131" rw="0.650137" rx="0.00" ry="0.759817" rz="0.00" />
