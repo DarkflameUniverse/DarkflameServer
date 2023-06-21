@@ -496,6 +496,33 @@
             </locations>
         </zone>
     </npc>
+	<npc lot="30003">
+        <ldf>
+            <entry data="CheckPrecondition=0:1003|1004"/>
+        </ldf>
+        <zone id="1200">
+            <locations>
+                <location x="-93.964" y="291.865" z="-97.840" rw="0.630100" rx="0.00" ry="0.776514" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+    <npc lot="30016">
+        <zone id="1200">
+            <locations>
+                <location x="-96.529" y="291.870" z="-107.131" rw="0.650137" rx="0.00" ry="0.759817" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1200">
+            <locations>
+                <location x="52.166" y="291.371" z="-75.067" rw="-0.446235" rx="0.00" ry="0.894916" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
     <party zone="1200" chance="0.0">
         <locations>
             <location x="-24.3963" y="291.542" z="-117.871" rw="0.480946" rx="0" ry="0.87675" rz="0" />
