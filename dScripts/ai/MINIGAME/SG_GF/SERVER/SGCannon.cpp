@@ -546,13 +546,13 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 	// The player won, store all the score and send rewards
 	if (!cancel) {
-		int32_t percentage = 50;
+		int32_t percentage = 0.0f;
 		auto misses = self->GetVar<uint32_t>(MissesVariable);
 		auto fired = self->GetVar<uint32_t>(ShotsFiredVariable);
 
-		// if (fired > 0) {
-		// 	percentage = misses / fired;
-		// }
+		if (fired > 0) {
+			percentage = misses / fired;
+		}
 
 		auto* missionComponent = player->GetComponent<MissionComponent>();
 
@@ -566,7 +566,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 		StopActivity(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable), self->GetVar<uint32_t>(MaxStreakVariable), percentage);
 		SaveScore(self, player->GetObjectID(),
-			static_cast<float>(self->GetVar<uint32_t>(TotalScoreVariable)), percentage, static_cast<float>(self->GetVar<uint32_t>(MaxStreakVariable)));
+			static_cast<float>(self->GetVar<uint32_t>(TotalScoreVariable)), static_cast<float>(self->GetVar<uint32_t>(MaxStreakVariable)), percentage);
 		self->SetNetworkVar<bool>(AudioFinalWaveDoneVariable, true);
 
 		// Give the player the model rewards they earned
@@ -579,17 +579,6 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 		self->SetNetworkVar<std::u16string>(u"UI_Rewards",
 			GeneralUtils::to_u16string(self->GetVar<uint32_t>(TotalScoreVariable)) + u"_0_0_0_0_0_0"
-		);
-
-		GameMessages::SendRequestActivitySummaryLeaderboardData(
-			player->GetObjectID(),
-			self->GetObjectID(),
-			player->GetSystemAddress(),
-			GetGameID(self),
-			1,
-			10,
-			0,
-			false
 		);
 	}
 

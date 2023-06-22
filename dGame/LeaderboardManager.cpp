@@ -89,12 +89,12 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 		entry.push_back(new LDFData<uint64_t>(u"RowNumber", rows->getInt("ranking")));
 		switch (leaderboardType) {
 		case Type::ShootingGallery:
-			entry.push_back(new LDFData<float>(u"HitPercentage", (rows->getInt("primaryScore") / 100.0f)));
-			// HitPercentage:3 between 0 and 1
-			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("secondaryScore")));
+			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("primaryScore")));
 			// Score:1
-			entry.push_back(new LDFData<int32_t>(u"Streak", rows->getInt("tertiaryScore")));
+			entry.push_back(new LDFData<int32_t>(u"Streak", rows->getInt("secondaryScore")));
 			// Streak:1
+			entry.push_back(new LDFData<float>(u"HitPercentage", (rows->getInt("tertiaryScore") / 100.0f)));
+			// HitPercentage:3 between 0 and 1
 			break;
 		case Type::Racing:
 			entry.push_back(new LDFData<float>(u"BestTime", rows->getDouble("primaryScore")));
@@ -229,14 +229,14 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 	// For top query, we want to just rank all scores, but for all others we need the scores around a specific player
 	std::string baseLookup;
 	if (this->infoType == InfoType::Top) {
-		baseLookup = "SELECT id FROM leaderboard WHERE game_id = ? ORDER BY ";
+		baseLookup = "SELECT id, last_played FROM leaderboard WHERE game_id = ? " + (this->weekly ? weeklyFilter : std::string("")) + " ORDER BY ";
 		baseLookup += orderBase.data();
 	} else {
-		baseLookup = "SELECT id FROM leaderboard WHERE game_id = ? AND character_id = ";
+		baseLookup = "SELECT id, last_played FROM leaderboard WHERE game_id = ? " + (this->weekly ? weeklyFilter : std::string("")) + " AND character_id = ";
 		baseLookup += std::to_string(static_cast<uint32_t>(this->relatedPlayer));
 	}
 	baseLookup += " LIMIT 1";
-
+	Game::logger->LogDebug("LeaderboardManager", "query is %s", baseLookup.c_str());
 	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::CreatePreppedStmt(baseLookup));
 	baseQuery->setInt(1, this->gameID);
 	std::unique_ptr<sql::ResultSet> baseResult(baseQuery->executeQuery());
@@ -251,7 +251,7 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 	int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.c_str(), orderBase.data(), filter.c_str(), resultStart, resultEnd);
 	DluAssert(res != -1);
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer.get()));
-
+	Game::logger->LogDebug("LeaderboardManager", "Query is %s vars are %i %i %i", lookupBuffer.get(), this->gameID, this->relatedPlayer, relatedPlayerLeaderboardId);
 	query->setInt(1, this->gameID);
 	if (this->infoType == InfoType::Friends) {
 		query->setInt(2, this->relatedPlayer);

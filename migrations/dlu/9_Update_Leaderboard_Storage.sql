@@ -5,8 +5,6 @@ ALTER TABLE leaderboard
     MODIFY time INT NOT NULL DEFAULT 0;
 
 /* Can only ALTER one column at a time... */
-ALTER TABLE leaderboard 
-	CHANGE last_played last_played TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
 ALTER TABLE leaderboard CHANGE score primaryScore FLOAT NOT NULL DEFAULT 0;
 ALTER TABLE leaderboard CHANGE time secondaryScore FLOAT NOT NULL DEFAULT 0 AFTER primaryScore;
 
@@ -14,3 +12,7 @@ ALTER TABLE leaderboard CHANGE time secondaryScore FLOAT NOT NULL DEFAULT 0 AFTE
 UPDATE leaderboard SET
 	primaryScore = secondaryScore,
 	secondaryScore = 0 WHERE game_id IN (1, 44, 46, 47, 48, 49, 53, 103, 104, 108, 1901);
+
+/* Do this last so we dont update entry times erroneously */
+ALTER TABLE leaderboard 
+	CHANGE last_played last_played TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
