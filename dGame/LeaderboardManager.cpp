@@ -151,12 +151,13 @@ const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardTyp
 		return "primaryScore ASC, secondaryScore ASC, tertiaryScore ASC";
 	case Type::Survival:
 		return Game::config->GetValue("classic_survival_scoring") == "1" ?
-			"primaryScore DESC, secondaryScore DESC, tertiaryScore DESC" :
-			"secondaryScore DESC, primaryScore DESC, tertiaryScore DESC";
+			"secondaryScore DESC, primaryScore DESC, tertiaryScore DESC" :
+			"primaryScore DESC, secondaryScore DESC, tertiaryScore DESC";
+	case Type::SurvivalNS:
+		return "primaryScore DESC, secondaryScore ASC, tertiaryScore DESC";
 	case Type::ShootingGallery:
 	case Type::FootRace:
 	case Type::UnusedLeaderboard4:
-	case Type::SurvivalNS:
 	case Type::Donations:
 	case Type::None:
 	default:
@@ -217,7 +218,7 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 		)
 	)QUERY";
 
-	std::string weeklyFilter = " AND date >= curdate() - INTERVAL DAYOFWEEK(curdate()) - 7 DAY";
+	std::string weeklyFilter = " AND UNIX_TIMESTAMP(last_played) BETWEEN UNIX_TIMESTAMP(date_sub(now(),INTERVAL 1 WEEK)) AND UNIX_TIMESTAMP(now()) ";
 
 	std::string filter;
 	// Setup our filter based on the query type
@@ -247,7 +248,7 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 	// Create and execute the actual save here. Using a heap allocated buffer to avoid stack overflow
 	constexpr uint16_t STRING_LENGTH = 4096;
 	std::unique_ptr<char[]> lookupBuffer = std::make_unique<char[]>(STRING_LENGTH);
-	[[maybe_unused]] int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.c_str(), orderBase.data(), filter.c_str(), resultStart, resultEnd);
+	int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.c_str(), orderBase.data(), filter.c_str(), resultStart, resultEnd);
 	DluAssert(res != -1);
 	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer.get()));
 
@@ -292,7 +293,7 @@ std::string FormatInsert(const Leaderboard::Type& type, const Score& score, cons
 	constexpr uint16_t STRING_LENGTH = 400;
 	// Then fill in our score
 	char finishedQuery[STRING_LENGTH];
-	[[maybe_unused]] int32_t res = snprintf(finishedQuery, STRING_LENGTH, insertStatement.c_str(), score.GetPrimaryScore(), score.GetSecondaryScore(), score.GetTertiaryScore());
+	int32_t res = snprintf(finishedQuery, STRING_LENGTH, insertStatement.c_str(), score.GetPrimaryScore(), score.GetSecondaryScore(), score.GetTertiaryScore());
 	DluAssert(res != -1);
 	return finishedQuery;
 }
@@ -324,7 +325,6 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 			break;
 		}
 		case Leaderboard::Type::Survival: {
-			// Config option may reverse these
 			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
 			oldScore.SetSecondaryScore(myScoreResult->getInt("secondaryScore"));
 			break;
@@ -357,6 +357,15 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 			return;
 		}
 		bool newHighScore = lowerScoreBetter ? newScore < oldScore : newScore > oldScore;
+		// Nimbus station has a weird leaderboard where we need a custom scoring system
+		if (leaderboardType == Leaderboard::Type::SurvivalNS) {
+			newHighScore = newScore.GetPrimaryScore() > oldScore.GetPrimaryScore() ||
+				(newScore.GetPrimaryScore() == oldScore.GetPrimaryScore() && newScore.GetSecondaryScore() < oldScore.GetSecondaryScore());
+		} else if (leaderboardType == Leaderboard::Type::Survival && Game::config->GetValue("classic_survival_scoring") == "1") {
+			Score oldScoreFlipped(oldScore.GetSecondaryScore(), oldScore.GetPrimaryScore());
+			Score newScoreFlipped(newScore.GetSecondaryScore(), newScore.GetPrimaryScore());
+			newHighScore = newScoreFlipped > oldScoreFlipped;
+		}
 		if (newHighScore) {
 			saveQuery = FormatInsert(leaderboardType, newScore, true);
 		} else if (leaderboardType == Leaderboard::Type::Racing && tertiaryScore) {

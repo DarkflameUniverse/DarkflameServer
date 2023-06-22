@@ -8,6 +8,8 @@
 #include "eMissionState.h"
 #include "MissionComponent.h"
 #include "Character.h"
+#include "Game.h"
+#include "dConfig.h"
 
 void BaseSurvivalServer::SetGameVariables(Entity* self) {
 	this->constants = std::move(GetConstants());
@@ -354,6 +356,7 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 
 		const auto score = GetActivityValue(self, playerID, 0);
 		const auto time = GetActivityValue(self, playerID, 1);
+		SaveScore(self, playerID, score, time);
 
 		GameMessages::SendNotifyClientZoneObject(self->GetObjectID(), u"Update_ScoreBoard", time, 0,
 			playerID, std::to_string(score), UNASSIGNED_SYSTEM_ADDRESS);
@@ -377,7 +380,6 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 		}
 
 		StopActivity(self, playerID, score, time);
-		SaveScore(self, playerID, time, score);
 	}
 
 	state.waveNumber = 1;

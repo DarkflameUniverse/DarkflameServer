@@ -378,7 +378,7 @@ void BaseWavesServer::GameOver(Entity* self, bool won) {
 		}
 
 		StopActivity(self, playerID, wave, time, score);
-		SaveScore(self, playerID, time, wave);
+		SaveScore(self, playerID, wave, time);
 	}
 }
 

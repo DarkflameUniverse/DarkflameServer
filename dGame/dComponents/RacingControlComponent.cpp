@@ -50,7 +50,7 @@ RacingControlComponent::RacingControlComponent(Entity* parent)
 
 	m_MainWorld = 1200;
 	const auto worldID = Game::server->GetZoneID();
-	if (dZoneManager::Instance()->CheckIfAccessibleZone((worldID/10)*10)) m_MainWorld = (worldID/10)*10;
+	if (dZoneManager::Instance()->CheckIfAccessibleZone((worldID / 10) * 10)) m_MainWorld = (worldID / 10) * 10;
 
 	m_ActivityID = 42;
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
@@ -323,7 +323,7 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 				// Reset imagination to half its current value, rounded up to the nearest value divisible by 10, as it was done in live.
 				if (destroyableComponent) destroyableComponent->SetImagination(respawnImagination);
 				EntityManager::Instance()->SerializeEntity(vehicle);
-			});
+				});
 
 			auto* characterComponent = player->GetComponent<CharacterComponent>();
 			if (characterComponent != nullptr) {
@@ -379,7 +379,6 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 		const auto score = m_LoadedPlayers * 10 + data->finished;
 
 		LootGenerator::Instance().GiveActivityLoot(player, m_Parent, m_ActivityID, score);
-		LeaderboardManager::SaveScore(player->GetObjectID(), m_ActivityID, static_cast<float>(data->bestLapTime), static_cast<float>(data->raceTime), static_cast<float>(data->finished == 1));
 
 		// Giving rewards
 		GameMessages::SendNotifyRacingClient(
@@ -838,6 +837,7 @@ void RacingControlComponent::Update(float deltaTime) {
 							"Completed time %llu, %llu",
 							raceTime, raceTime * 1000);
 
+						LeaderboardManager::SaveScore(playerEntity->GetObjectID(), m_ActivityID, static_cast<float>(player.bestLapTime), static_cast<float>(player.raceTime), static_cast<float>(player.finished == 1));
 						// Entire race time
 						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, (LWOOBJID)eRacingTaskParam::TOTAL_TRACK_TIME);
 
