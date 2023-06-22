@@ -125,8 +125,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	// Make sure the player is at the correct position.
 
 	GameMessages::SendTeleport(player->GetObjectID(), startPosition,
-		startRotation, player->GetSystemAddress(), true,
-		true);
+		startRotation, player->GetSystemAddress(), true);
 
 	// Spawn the vehicle entity.
 
@@ -244,11 +243,9 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 
 	// Make sure everything has the correct position.
 	GameMessages::SendTeleport(player->GetObjectID(), startPosition,
-		startRotation, player->GetSystemAddress(), true,
-		true);
+		startRotation, player->GetSystemAddress(), true);
 	GameMessages::SendTeleport(carEntity->GetObjectID(), startPosition,
-		startRotation, player->GetSystemAddress(), true,
-		true);
+		startRotation, player->GetSystemAddress(), true);
 }
 
 void RacingControlComponent::OnRacingClientReady(Entity* player) {
@@ -633,7 +630,7 @@ void RacingControlComponent::Update(float deltaTime) {
 						GameMessages::SendTeleport(
 							player.playerID, player.respawnPosition,
 							player.respawnRotation,
-							playerEntity->GetSystemAddress(), true, true);
+							playerEntity->GetSystemAddress(), true);
 
 						vehicle->SetPosition(player.respawnPosition);
 						vehicle->SetRotation(player.respawnRotation);

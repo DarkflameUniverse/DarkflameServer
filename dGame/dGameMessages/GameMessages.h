@@ -40,7 +40,7 @@ enum class eRebuildState : uint32_t;
 namespace GameMessages {
 	class PropertyDataMessage;
 	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
-	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false, bool noGravTeleport = true);
+	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false);
 	void SendPlayAnimation(Entity* entity, const std::u16string& animationName, float fPriority = 0.0f, float fScale = 1.0f);
 	void SendPlayerReady(Entity* entity, const SystemAddress& sysAddr);
 	void SendPlayerAllowedRespawn(LWOOBJID entityID, bool doNotPromptRespawn, const SystemAddress& systemAddress);

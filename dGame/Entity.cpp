@@ -386,8 +386,8 @@ void Entity::Initialize() {
 						comp->SetMaxCoins(currencyValues[0].maxvalue);
 					}
 
-					// extraInfo overrides
-					comp->SetIsSmashable(GetVarAs<int32_t>(u"is_smashable") != 0);
+					// extraInfo overrides. Client ORs the database smashable and the luz smashable.
+					comp->SetIsSmashable(comp->GetIsSmashable() | (GetVarAs<int32_t>(u"is_smashable") != 0));
 				}
 			} else {
 				comp->SetHealth(1);
@@ -1827,8 +1827,6 @@ bool Entity::IsSleeping() const {
 
 
 const NiPoint3& Entity::GetPosition() const {
-	if (!this) return NiPoint3::ZERO;
-
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {

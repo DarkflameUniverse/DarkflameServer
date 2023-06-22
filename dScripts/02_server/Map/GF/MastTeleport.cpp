@@ -43,15 +43,7 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendTeleport(playerId, position, rotation, player->GetSystemAddress(), true);
 
-		// Hacky fix for odd rotations
-		auto mastName = self->GetVar<std::u16string>(u"MastName");
-		if (mastName == u"Elephant") {
-			GameMessages::SendOrientToAngle(playerId, true, (M_PI / 180) * 140.0f, player->GetSystemAddress());
-		} else if (mastName == u"Jail") {
-			GameMessages::SendOrientToAngle(playerId, true, (M_PI / 180) * 100.0f, player->GetSystemAddress());
-		} else if (mastName == u""){
-			GameMessages::SendOrientToAngle(playerId, true, (M_PI / 180) * 203.0f, player->GetSystemAddress());
-		}
+		GameMessages::SendTeleport(playerId, position, rotation, player->GetSystemAddress(), true);
 
 		const auto cinematic = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"Cinematic"));
 		const auto leanIn = self->GetVar<float>(u"LeanIn");

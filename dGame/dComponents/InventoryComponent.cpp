@@ -38,7 +38,7 @@
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
 
-InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document): Component(parent) {
+InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
 	this->m_Pushed = {};
@@ -830,14 +830,22 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 
 			const auto position = m_Parent->GetPosition();
 
-			for (auto* lauchPad : rocketLauchPads) {
-				if (Vector3::DistanceSquared(lauchPad->GetPosition(), position) > 13 * 13) continue;
+			for (auto* launchPad : rocketLauchPads) {
+				if (!launchPad) continue;
+
+				auto prereq = launchPad->GetVarAsString(u"rocketLaunchPreCondition");
+				if (!prereq.empty()) {
+					PreconditionExpression expression(prereq);
+					if (!expression.Check(m_Parent)) continue;
+				}
+
+				if (Vector3::DistanceSquared(launchPad->GetPosition(), position) > 13 * 13) continue;
 
 				auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 
 				if (characterComponent != nullptr) characterComponent->SetLastRocketItemID(item->GetId());
 
-				lauchPad->OnUse(m_Parent);
+				launchPad->OnUse(m_Parent);
 
 				break;
 			}
@@ -1002,7 +1010,6 @@ void InventoryComponent::HandlePossession(Item* item) {
 	// Setup the destroyable stats
 	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
 	if (destroyableComponent) {
-		destroyableComponent->SetIsSmashable(false);
 		destroyableComponent->SetIsImmune(true);
 	}
 
