@@ -464,7 +464,7 @@
 		</zone>
 	</npc>
 	
-	<!--Crystal Ball in Red Blocks-->
+	<!--Crystal Ball in NS Red Blocks-->
 	<npc lot="30003">
         <ldf>
             <entry data="CheckPrecondition=0:1003|1004"/>
@@ -476,7 +476,7 @@
         </zone>
     </npc>
 	
-	<!--Riplea in Red Blocks-->
+	<!--Riplea in NS Red Blocks-->
     <npc lot="30016">
 		<ldf>
             <entry data="CheckPrecondition=0:47"/>
@@ -484,6 +484,30 @@
         <zone id="1200">
             <locations>
                 <location x="199.716" y="259.137" z="-613.309" rw="0.757318" rx="0.00" ry="0.653046" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--Crystal Ball in NT Sentinel War Room-->
+	<npc lot="30003">
+        <ldf>
+            <entry data="CheckPrecondition=0:1003|1004"/>
+        </ldf>
+        <zone id="1900">
+            <locations>
+				<location x="-575.163" y="1128.775" z="-80.926" rw="0.532370" rx="0.00" ry="0.846512" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--Riplea in NT Sentinel War Room-->
+    <npc lot="30016">
+		<ldf>
+            <entry data="CheckPrecondition=0:47"/>
+        </ldf>
+        <zone id="1900">
+            <locations>
+				<location x="-581.036" y="1128.775" z="-93.233" rw="0.603595" rx="0.00" ry="0.797291" rz="0.00" />
             </locations>
         </zone>
     </npc>
@@ -637,7 +661,7 @@
         <ldf>
             <entry data="CheckPrecondition=0:168"/>
         </ldf>
-        <zone id="1800">
+        <zone id="2000">
             <locations>
                 <location x="-63.487" y="208.359" z="379.195" rw="0.00" rx="0.00" ry="1" rz="0.00" />
             </locations>
