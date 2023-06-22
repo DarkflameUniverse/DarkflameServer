@@ -467,7 +467,7 @@
 	<!--Crystal Ball in Red Blocks-->
 	<npc lot="30003">
         <ldf>
-            <entry data="CheckPrecondition=0:47&(1003|1004)"/>
+            <entry data="CheckPrecondition=0:1003|1004"/>
         </ldf>
         <zone id="1200">
             <locations>
