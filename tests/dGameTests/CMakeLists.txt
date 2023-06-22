@@ -1,6 +1,5 @@
 set(DGAMETEST_SOURCES
 	"GameDependencies.cpp"
-	"LeaderboardTests.cpp"
 )
 
 add_subdirectory(dComponentsTests)

@@ -6,7 +6,6 @@
 #include "dServer.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
-#include "Database.h"
 #include "dConfig.h"
 #include <gtest/gtest.h>
 
@@ -33,7 +32,6 @@ protected:
 		Game::logger = new dLogger("./testing.log", true, true);
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
-		// Database::Connect(Game::config->GetValue("mysql_host"), Game::config->GetValue("mysql_database"), Game::config->GetValue("mysql_username"), Game::config->GetValue("mysql_password"));
 	}
 
 	void TearDownDependencies() {
