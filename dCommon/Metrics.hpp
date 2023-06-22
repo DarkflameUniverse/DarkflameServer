@@ -20,7 +20,6 @@ enum class MetricVariable : int32_t
 	CPUTime,
 	Sleep,
 	Frame,
-	Leaderboard,
 };
 
 struct Metric
