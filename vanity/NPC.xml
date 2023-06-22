@@ -436,7 +436,9 @@
             </locations>
         </zone>
     </npc>
-		<npc lot="12442">
+	
+	<!--NS Frostburgh Launchpad-->
+	<npc lot="12442">
 		<ldf>
 			<entry data="CheckPrecondition=0:47"/>
 			<entry data="rocketLaunchPreCondition=0:47"/>
@@ -448,6 +450,8 @@
 			</locations>
 		</zone>
 	</npc>
+	
+	<!--NS Frostburgh Launchpad Audio-->
 	<npc lot="6368">
 		<ldf>
 			<entry data="NDAEG=13:"/>
@@ -459,73 +463,187 @@
 			</locations>
 		</zone>
 	</npc>
-	    <npc lot="13834">
-        <ldf>
-            <entry data="CheckPrecondition=0:167|168"/>
-        </ldf>
-        <zone id="4000">
-            <locations>
-                <location x="10.00" y="200.00" z="200.00" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
-            </locations>
-        </zone>
-    </npc>
-    <npc lot="13538">
-        <ldf>
-            <entry data="CheckPrecondition=0:167|168"/>
-        </ldf>
-        <zone id="4000">
-            <locations>
-                <location x="30.00" y="200.00" z="200.00" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
-            </locations>
-        </zone>
-    </npc>
-    <npc lot="30003">
-        <ldf>
-            <entry data="CheckPrecondition=0:167|168"/>
-        </ldf>
-        <zone id="4000">
-            <locations>
-                <location x="50.00" y="200.00" z="200.00" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
-            </locations>
-        </zone>
-    </npc>
-    <npc lot="30016">
-        <zone id="4000">
-            <locations>
-                <location x="70.00" y="200.00" z="200.00" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
-            </locations>
-        </zone>
-    </npc>
+	
+	<!--Crystal Ball in Red Blocks-->
 	<npc lot="30003">
         <ldf>
-            <entry data="CheckPrecondition=0:1003|1004"/>
+            <entry data="CheckPrecondition=0:47&(1003|1004)"/>
         </ldf>
         <zone id="1200">
             <locations>
-                <location x="-93.964" y="291.865" z="-97.840" rw="0.630100" rx="0.00" ry="0.776514" rz="0.00" />
+                <location x="203.127" y="259.137" z="-627.265" rw="0.797109" rx="0.00" ry="0.603835" rz="0.00" />
             </locations>
         </zone>
     </npc>
+	
+	<!--Riplea in Red Blocks-->
     <npc lot="30016">
 		<ldf>
             <entry data="CheckPrecondition=0:47"/>
         </ldf>
         <zone id="1200">
             <locations>
-                <location x="-96.529" y="291.870" z="-107.131" rw="0.650137" rx="0.00" ry="0.759817" rz="0.00" />
+                <location x="199.716" y="259.137" z="-613.309" rw="0.757318" rx="0.00" ry="0.653046" rz="0.00" />
             </locations>
         </zone>
     </npc>
+	
+	<!--ATM in AG Sentinel Base Camp-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1100">
+            <locations>
+                <location x="248.792" y="381.869" z="-181.114" rw="0.782761" rx="0.00" ry="-0.622322" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in AG Picnic-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1100">
+            <locations>
+                <location x="471.545" y="413.979" z="27.176" rw="0.874378" rx="0.00" ry="-0.485246" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in NS Nimbus Plaza-->
 	<npc lot="13538">
         <ldf>
             <entry data="CheckPrecondition=0:168"/>
         </ldf>
         <zone id="1200">
             <locations>
-                <location x="52.166" y="291.371" z="-75.067" rw="-0.446235" rx="0.00" ry="0.894916" rz="0.00" />
+                <location x="51.663" y="291.371" z="-74.650" rw="-0.446235" rx="0.00" ry="0.894916" rz="0.00" />
             </locations>
         </zone>
     </npc>
+	
+	<!--ATM in NS Red Blocks-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1200">
+            <locations>
+                <location x="203.348" y="259.136" z="-543.400" rw="0.481554" rx="0.00" ry="0.876416" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in Pet Cove by Lighthouse-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1201">
+            <locations>
+                <location x="46.537" y="233.137" z="-311.395" rw="0.780747" rx="0.00" ry="-0.624847" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in Frostburgh-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1260">
+            <locations>
+                <location x="-255.991" y="535.731" z="322.299" rw="0.683777" rx="0.00" ry="-0.729691" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in Starbase 3001-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1600">
+            <locations>
+                <location x="85.210" y="1526.810" z="314.816" rw="-0.159486" rx="0.00" ry="0.987200" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in LEGO Club-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1700">
+            <locations>
+                <location x="-256.293" y="1035.092" z="109.761" rw="0.00" rx="0.00" ry="1" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in GF Pirate Camp-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1300">
+            <locations>
+                <location x="363.259" y="259.367" z="-210.834" rw="0.961918" rx="0.00" ry="-0.273340" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in FV Great Tree-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1400">
+            <locations>
+                <location x="-220.939" y="380.822" z="-81.028" rw="0.468011" rx="0.00" ry="0.883722" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in FV Paradox Refinery-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1400">
+            <locations>
+                <location x="-696.957" y="-3.206" z="-452.441" rw="0.884105" rx="0.00" ry="0.467288" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in CP Sentinel Point Zeta-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1800">
+            <locations>
+                <location x="-222.634" y="92.693" z="568.392" rw="-0.435024" rx="0.00" ry="0.900419" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
+	<!--ATM in NJ Monastery Courtyard-->
+	<npc lot="13538">
+        <ldf>
+            <entry data="CheckPrecondition=0:168"/>
+        </ldf>
+        <zone id="1800">
+            <locations>
+                <location x="-63.487" y="208.359" z="379.195" rw="0.00" rx="0.00" ry="1" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+	
     <party zone="1200" chance="0.0">
         <locations>
             <location x="-24.3963" y="291.542" z="-117.871" rw="0.480946" rx="0" ry="0.87675" rz="0" />
