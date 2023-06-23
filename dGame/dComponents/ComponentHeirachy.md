@@ -20,6 +20,7 @@ LWOActivityComponent
 LWOBaseCombatAIComponent
 ├~~ LWOPathfindingControlComponent
 ├~~ LWOProximityMonitorComponent
+LWOProjectilePhysComponent
 LWOBasePhysComponent
 ├── LWORigidBodyPhantomComponent
 ├── LWOPhantomPhysComponent
@@ -99,7 +100,6 @@ LWOPlatformComponent
 ├-> LWOMoverPlatformSubComponent
 ├-> LWOSimpleMoverPlatformSubComponent
 ├-> LWORotaterPlatformSubComponent
-LWOProjectilePhysComponent
 LWOPropertyComponent
 LWOPropertyEntranceComponent
 LWOPropertyManagementComponent

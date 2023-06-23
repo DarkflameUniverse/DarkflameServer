@@ -476,7 +476,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::BUILD_CONTROLLER:
 		case eReplicaComponentType::BUILD_ACTIVATOR:
 		case eReplicaComponentType::ICON_ONLY:
-
 		case eReplicaComponentType::DROP_EFFECT:
 		case eReplicaComponentType::CHEST:
 		case eReplicaComponentType::BLUEPRINT:
