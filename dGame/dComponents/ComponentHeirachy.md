@@ -10,13 +10,13 @@ Legend
 ```tree
 
 LWOActivityComponent
+├── LWOQuickBuildComponent
+├── LWOMiniGameControlComponent
 ├── LWOShootingGalleryComponent
 ├── LWOScriptedActivityComponent
 |	└── LWOBaseRacingControlComponent
 |		├── LWORacingControlComponent
 |		└── LWOGateRushControlComponent
-├── LWOQuickBuildComponent
-├── LWOMiniGameControlComponent
 LWOBaseCombatAIComponent
 ├~~ LWOPathfindingControlComponent
 ├~~ LWOProximityMonitorComponent
