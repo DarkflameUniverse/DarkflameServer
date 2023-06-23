@@ -6,7 +6,7 @@
 
 #include "BitStream.h"
 #include "Entity.h"
-#include "Component.h"
+#include "BaseRacingControlComponent.h"
 #include "eReplicaComponentType.h"
 
  /**
@@ -103,7 +103,7 @@ struct RacingPlayerInfo {
 /**
  * Component that's attached to a manager entity in each race zone that loads player vehicles, keep scores, etc.
  */
-class RacingControlComponent : public Component {
+class RacingControlComponent : public BaseRacingControlComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 

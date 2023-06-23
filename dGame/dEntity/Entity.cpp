@@ -71,6 +71,8 @@
 #include "MinigameControlComponent.h"
 #include "ItemComponent.h"
 #include "DonationVendorComponent.h"
+#include "GateRushControlComponent.h"
+#include "RacingSoundTriggerComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -418,6 +420,12 @@ void Entity::Initialize() {
 				AddComponent<ProximityMonitorComponent>();
 			}
 			break;
+		case eReplicaComponentType::GATE_RUSH_CONTROL:
+			AddComponent<GateRushControlComponent>();
+			break;
+		case eReplicaComponentType::RACING_SOUND_TRIGGER:
+			AddComponent<RacingSoundTriggerComponent>();
+			break;
 		case eReplicaComponentType::GHOST:
 		case eReplicaComponentType::SPAWN:
 		case eReplicaComponentType::MODULAR_BUILD:
@@ -459,7 +467,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::DROPPED_LOOT:
 		case eReplicaComponentType::FACTION_TRIGGER:
 		case eReplicaComponentType::BBB:
-		case eReplicaComponentType::RACING_SOUND_TRIGGER:
 		case eReplicaComponentType::CHAT_BUBBLE:
 		case eReplicaComponentType::FRIENDS_LIST:
 		case eReplicaComponentType::GUILD:
@@ -480,7 +487,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::INTERACTION_MANAGER:
 		case eReplicaComponentType::COMBAT_MEDIATOR:
 		case eReplicaComponentType::ACHIEVEMENT_VENDOR:
-		case eReplicaComponentType::GATE_RUSH_CONTROL:
 		case eReplicaComponentType::ROLLER:
 		case eReplicaComponentType::PLAYER_FORCED_MOVEMENT:
 		case eReplicaComponentType::CRAFTING:

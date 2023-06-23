@@ -8,7 +8,7 @@
 #include "NiPoint3.h"
 #include "ScriptedActivityComponent.h"
 #include "Preconditions.h"
-#include "Component.h"
+#include "ActivityComponent.h"
 #include "eReplicaComponentType.h"
 #include "eRebuildState.h"
 
@@ -20,7 +20,7 @@ enum class eQuickBuildFailReason : uint32_t;
  * consists of an activator that shows a popup and then the actual entity that the bricks are built into. Note
  * that quick builds are also scripted activities so this shared some logic with the ScriptedActivityComponent.
  */
-class QuickBuildComponent : public Component {
+class QuickBuildComponent : public ActivityComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
