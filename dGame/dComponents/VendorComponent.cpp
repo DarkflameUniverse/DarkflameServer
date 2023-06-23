@@ -9,18 +9,21 @@
 #include "CDVendorComponentTable.h"
 #include "CDLootMatrixTable.h"
 #include "CDLootTableTable.h"
+#include "CDItemComponentTable.h"
 
 VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
+	m_HasStandardCostItems = false;
+	m_HasMultiCostItems = false;
 	SetupConstants();
 	RefreshInventory(true);
 }
 
-VendorComponent::~VendorComponent() = default;
-
 void VendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	outBitStream->Write1();
-	outBitStream->Write1(); // Has standard items (Required for vendors with missions.)
-	outBitStream->Write(HasCraftingStation()); // Has multi use items
+	outBitStream->Write(bIsInitialUpdate || m_DirtyVendor);
+	if (bIsInitialUpdate || m_DirtyVendor) {
+		outBitStream->Write(m_HasStandardCostItems);
+		outBitStream->Write(m_HasMultiCostItems);
+	}
 }
 
 void VendorComponent::OnUse(Entity* originator) {
@@ -28,39 +31,19 @@ void VendorComponent::OnUse(Entity* originator) {
 	GameMessages::SendVendorStatusUpdate(m_ParentEntity, originator->GetSystemAddress());
 }
 
-float VendorComponent::GetBuyScalar() const {
-	return m_BuyScalar;
-}
-
-float VendorComponent::GetSellScalar() const {
-	return m_SellScalar;
-}
-
-void VendorComponent::SetBuyScalar(float value) {
-	m_BuyScalar = value;
-}
-
-void VendorComponent::SetSellScalar(float value) {
-	m_SellScalar = value;
-}
-
-std::map<LOT, int>& VendorComponent::GetInventory() {
-	return m_Inventory;
-}
-
-bool VendorComponent::HasCraftingStation() {
-	// As far as we know, only Umami has a crafting station
-	return m_ParentEntity->GetLOT() == 13800;
-}
 
 void VendorComponent::RefreshInventory(bool isCreation) {
+	SetHasStandardCostItems(false);
+	SetHasMultiCostItems(false);
+
 	//Custom code for Max vanity NPC
 	if (m_ParentEntity->GetLOT() == 9749 && Game::server->GetZoneID() == 1201) {
 		if (!isCreation) return;
-		m_Inventory.insert({ 11909, 0 }); //Top hat w frog
-		m_Inventory.insert({ 7785, 0 }); //Flash bulb
-		m_Inventory.insert({ 12764, 0 }); //Big fountain soda
-		m_Inventory.insert({ 12241, 0 }); //Hot cocoa (from fb)
+		SetHasStandardCostItems(true);
+		m_Inventory.insert({ 11909, 0 }); // Top hat w frog
+		m_Inventory.insert({ 7785, 0 });  // Flash bulb
+		m_Inventory.insert({ 12764, 0 }); // Big fountain soda
+		m_Inventory.insert({ 12241, 0 }); // Hot cocoa (from fb)
 		return;
 	}
 	m_Inventory.clear();
@@ -71,12 +54,20 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	// Done with lootMatrix table
 
 	auto* lootTableTable = CDClientManager::Instance().GetTable<CDLootTableTable>();
+	auto* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
+	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
 	for (const auto& lootMatrix : lootMatrices) {
 		int lootTableID = lootMatrix.LootTableIndex;
 		std::vector<CDLootTable> vendorItems = lootTableTable->Query([=](CDLootTable entry) { return (entry.LootTableIndex == lootTableID); });
 		if (lootMatrix.maxToDrop == 0 || lootMatrix.minToDrop == 0) {
 			for (CDLootTable item : vendorItems) {
+				if (!m_HasStandardCostItems || !m_HasMultiCostItems){
+					auto itemComponentID = compRegistryTable->GetByIDAndType(item.itemid, eReplicaComponentType::ITEM);
+					auto itemComponent = itemComponentTable->GetItemComponentByID(itemComponentID);
+					if (!m_HasStandardCostItems && itemComponent.baseValue != -1) SetHasStandardCostItems(true);
+					if (!m_HasMultiCostItems && !itemComponent.currencyCosts.empty()) SetHasMultiCostItems(true);
+				}
 				m_Inventory.insert({ item.itemid, item.sortPriority });
 			}
 		} else {
@@ -84,19 +75,21 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 
 			for (size_t i = 0; i < randomCount; i++) {
 				if (vendorItems.empty()) break;
-
 				auto randomItemIndex = GeneralUtils::GenerateRandomNumber<int32_t>(0, vendorItems.size() - 1);
-
 				const auto& randomItem = vendorItems[randomItemIndex];
-
 				vendorItems.erase(vendorItems.begin() + randomItemIndex);
-
+				if (!m_HasStandardCostItems || !m_HasMultiCostItems){
+					auto itemComponentID = compRegistryTable->GetByIDAndType(randomItem.itemid, eReplicaComponentType::ITEM);
+					auto itemComponent = itemComponentTable->GetItemComponentByID(itemComponentID);
+					if (!m_HasStandardCostItems && itemComponent.baseValue != -1) SetHasStandardCostItems(true);
+					if (!m_HasMultiCostItems && !itemComponent.currencyCosts.empty()) SetHasMultiCostItems(true);
+				}
 				m_Inventory.insert({ randomItem.itemid, randomItem.sortPriority });
 			}
 		}
 	}
 
-	//Because I want a vendor to sell these cameras
+	//Because I (Max) want a vendor to sell these cameras
 	if (m_ParentEntity->GetLOT() == 13569) {
 		auto randomCamera = GeneralUtils::GenerateRandomNumber<int32_t>(0, 2);
 
@@ -118,7 +111,9 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	// Callback timer to refresh this inventory.
 	m_ParentEntity->AddCallbackTimer(m_RefreshTimeSeconds, [this]() {
 		RefreshInventory();
-		});
+		}
+	);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 	GameMessages::SendVendorStatusUpdate(m_ParentEntity, UNASSIGNED_SYSTEM_ADDRESS);
 }
 
@@ -135,6 +130,4 @@ void VendorComponent::SetupConstants() {
 	m_LootMatrixID = vendorComps[0].LootMatrixIndex;
 }
 
-bool VendorComponent::SellsItem(const LOT item) const {
-	return m_Inventory.find(item) != m_Inventory.end();
-}
+

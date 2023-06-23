@@ -70,6 +70,7 @@
 #include "RacingStatsComponent.h"
 #include "MinigameControlComponent.h"
 #include "ItemComponent.h"
+#include "DonationVendorComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -469,6 +470,8 @@ void Entity::Initialize() {
 		case eReplicaComponentType::IGNORE_LIST:
 		case eReplicaComponentType::INTERACTION_MANAGER:
 		case eReplicaComponentType::DONATION_VENDOR:
+			AddComponent<DonationVendorComponent>();
+			break;
 		case eReplicaComponentType::COMBAT_MEDIATOR:
 		case eReplicaComponentType::ACHIEVEMENT_VENDOR:
 		case eReplicaComponentType::GATE_RUSH_CONTROL:

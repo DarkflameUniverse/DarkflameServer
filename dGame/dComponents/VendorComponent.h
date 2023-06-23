@@ -17,40 +17,41 @@ public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::VENDOR;
 
 	VendorComponent(Entity* parent);
-	~VendorComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
 	void OnUse(Entity* originator) override;
 
-	/**
-	 * Gets the buy scaler
-	 * @return the buy scaler
-	 */
-	float GetBuyScalar() const;
+	float GetBuyScalar() const {
+		return m_BuyScalar;
+	}
 
-	/**
-	 * Sets the buy scalar.
-	 * @param value the new value.
-	 */
-	void SetBuyScalar(float value);
+	float GetSellScalar() const {
+		return m_SellScalar;
+	}
 
-	/**
-	 * Gets the buy scaler
-	 * @return the buy scaler
-	 */
-	float GetSellScalar() const;
+	void SetBuyScalar(float value) {
+		m_BuyScalar = value;
+	}
 
-	/**
-	 * Sets the sell scalar.
-	 * @param value the new value.
-	 */
-	void SetSellScalar(float value);
+	void SetSellScalar(float value) {
+		m_SellScalar = value;
+	}
 
-	/**
-	 * True if the NPC LOT is 13800, the only NPC with a crafting station.
-	 */
-	bool HasCraftingStation();
+	std::map<LOT, int>& GetInventory() {
+		return m_Inventory;
+	}
+
+	void SetHasMultiCostItems(bool hasMultiCostItems) {
+		if (m_HasMultiCostItems == hasMultiCostItems) return;
+		m_HasMultiCostItems = hasMultiCostItems;
+		m_DirtyVendor = true;
+	}
+	void SetHasStandardCostItems(bool hasStandardCostItems) {
+		if (m_HasStandardCostItems == hasStandardCostItems) return;
+		m_HasStandardCostItems = hasStandardCostItems;
+		m_DirtyVendor = true;
+	}
 
 	/**
 	 * Gets the list if items the vendor sells.
@@ -68,7 +69,9 @@ public:
 	 */
 	void SetupConstants();
 
-	bool SellsItem(const LOT item) const;
+	bool SellsItem(const LOT item) const {
+		return m_Inventory.find(item) != m_Inventory.end();
+	}
 private:
 	/**
 	 * The buy scalar.
@@ -94,6 +97,10 @@ private:
 	 * The list of items the vendor sells.
 	 */
 	std::map<LOT, int> m_Inventory;
+
+	bool m_DirtyVendor;
+	bool m_HasStandardCostItems;
+	bool m_HasMultiCostItems;
 };
 
 #endif // VENDORCOMPONENT_H

@@ -74,8 +74,8 @@ CDItemComponentTable::CDItemComponentTable(void) {
 #endif
 }
 
-const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int skillID) {
-	const auto& it = this->entries.find(skillID);
+const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int id) {
+	const auto& it = this->entries.find(id);
 	if (it != this->entries.end()) {
 		return it->second;
 	}
@@ -83,11 +83,11 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int s
 #ifndef CDCLIENT_CACHE_ALL
 	std::stringstream query;
 
-	query << "SELECT * FROM ItemComponent WHERE id = " << std::to_string(skillID);
+	query << "SELECT * FROM ItemComponent WHERE id = " << std::to_string(id);
 
 	auto tableData = CDClientDatabase::ExecuteQuery(query.str());
 	if (tableData.eof()) {
-		entries.insert(std::make_pair(skillID, Default));
+		entries.insert(std::make_pair(id, Default));
 		return Default;
 	}
 
@@ -140,7 +140,7 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int s
 		tableData.nextRow();
 	}
 
-	const auto& it2 = this->entries.find(skillID);
+	const auto& it2 = this->entries.find(id);
 	if (it2 != this->entries.end()) {
 		return it2->second;
 	}

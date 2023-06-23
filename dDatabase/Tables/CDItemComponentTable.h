@@ -58,7 +58,7 @@ public:
 	static std::map<LOT, uint32_t> ParseCraftingCurrencies(const CDItemComponent& itemComponent);
 
 	// Gets an entry by ID
-	const CDItemComponent& GetItemComponentByID(unsigned int skillID);
+	const CDItemComponent& GetItemComponentByID(unsigned int id);
 
 	static CDItemComponent Default;
 };
