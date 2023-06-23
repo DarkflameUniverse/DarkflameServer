@@ -1,6 +1,6 @@
 #include "VendorComponent.h"
 
-#include <BitStream.h>
+#include "BitStream.h"
 
 #include "Game.h"
 #include "dServer.h"

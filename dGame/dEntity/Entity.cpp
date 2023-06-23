@@ -279,6 +279,9 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::VENDOR:
 			AddComponent<VendorComponent>();
+			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) {
+				AddComponent<ProximityMonitorComponent>();
+			}
 			break;
 		case eReplicaComponentType::INVENTORY:
 			AddComponent<InventoryComponent>();
@@ -409,6 +412,12 @@ void Entity::Initialize() {
 		case eReplicaComponentType::BUILD_BORDER:
 			AddComponent<BuildBorderComponent>();
 			break;
+		case eReplicaComponentType::DONATION_VENDOR:
+			AddComponent<DonationVendorComponent>();
+			if (!HasComponent(eReplicaComponentType::PROXIMITY_MONITOR)) {
+				AddComponent<ProximityMonitorComponent>();
+			}
+			break;
 		case eReplicaComponentType::GHOST:
 		case eReplicaComponentType::SPAWN:
 		case eReplicaComponentType::MODULAR_BUILD:
@@ -469,9 +478,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::USER_CONTROL:
 		case eReplicaComponentType::IGNORE_LIST:
 		case eReplicaComponentType::INTERACTION_MANAGER:
-		case eReplicaComponentType::DONATION_VENDOR:
-			AddComponent<DonationVendorComponent>();
-			break;
 		case eReplicaComponentType::COMBAT_MEDIATOR:
 		case eReplicaComponentType::ACHIEVEMENT_VENDOR:
 		case eReplicaComponentType::GATE_RUSH_CONTROL:
