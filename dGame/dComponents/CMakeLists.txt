@@ -1,4 +1,5 @@
-set(DGAME_DCOMPONENTS_SOURCES "ActivityComponent.cpp"
+set(DGAME_DCOMPONENTS_SOURCES "AchievementVendorComponent.cpp"
+	"ActivityComponent.cpp"
 	"BaseCombatAIComponent.cpp"
 	"BaseRacingControlComponent.cpp"
 	"BouncerComponent.cpp"

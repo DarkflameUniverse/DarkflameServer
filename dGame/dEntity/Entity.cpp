@@ -73,6 +73,7 @@
 #include "DonationVendorComponent.h"
 #include "GateRushControlComponent.h"
 #include "RacingSoundTriggerComponent.h"
+#include "AchievementVendorComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -426,6 +427,9 @@ void Entity::Initialize() {
 		case eReplicaComponentType::RACING_SOUND_TRIGGER:
 			AddComponent<RacingSoundTriggerComponent>();
 			break;
+		case eReplicaComponentType::ACHIEVEMENT_VENDOR:
+			AddComponent<AchievementVendorComponent>();
+			break;
 		case eReplicaComponentType::GHOST:
 		case eReplicaComponentType::SPAWN:
 		case eReplicaComponentType::MODULAR_BUILD:
@@ -486,7 +490,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::IGNORE_LIST:
 		case eReplicaComponentType::INTERACTION_MANAGER:
 		case eReplicaComponentType::COMBAT_MEDIATOR:
-		case eReplicaComponentType::ACHIEVEMENT_VENDOR:
 		case eReplicaComponentType::ROLLER:
 		case eReplicaComponentType::PLAYER_FORCED_MOVEMENT:
 		case eReplicaComponentType::CRAFTING:
