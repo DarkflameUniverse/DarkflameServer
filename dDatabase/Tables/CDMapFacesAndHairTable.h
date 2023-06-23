@@ -2,7 +2,7 @@
 
 #include "CDTable.h"
 #include "dCommonVars.h"
-#error This table needs to be renamed to mapFacesAndHair
+
 struct CDMapFacesAndHair {
     int32_t id;
     int32_t eyes;
