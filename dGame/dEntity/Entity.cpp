@@ -74,6 +74,7 @@
 #include "GateRushControlComponent.h"
 #include "RacingSoundTriggerComponent.h"
 #include "AchievementVendorComponent.h"
+#include "MutableModelBehaviorComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -219,6 +220,9 @@ void Entity::AddPathComponent(TemplateComponents& components) const {
 }
 
 void Entity::Initialize() {
+	// TODO DoPreLoadObject
+	// TODO set m_HasModelBehaviors accordingly and used appropiately: see Ghidra;
+
 	// A few edge cases to tackle first
 	const auto triggerInfo = GetVarAsString(u"trigger_id");
 	if (!triggerInfo.empty()) AddComponent<TriggerComponent>(triggerInfo);
@@ -236,20 +240,19 @@ void Entity::Initialize() {
 	ApplyComponentWhitelist(components);
 	ApplyComponentBlacklist(components);
 	AddPathComponent(components);
-	// Brick-by-Brick models use custom physics depending on _something_ but the client uses 4246 as the simple
-	// physics component id and 4247 for phantom physics. We'll just use the simple physics component for now
-	// since we dont know what the phantom physics are for at the moment.
-	if (GetLOT() == LOT_MODEL_IN_WORLD) components.emplace_back(eReplicaComponentType::SIMPLE_PHYSICS, 4246U);
+
 	for (const auto& [componentTemplate, componentId] : components) {
 		switch (componentTemplate) {
 		case eReplicaComponentType::CONTROLLABLE_PHYSICS:
 			AddComponent<ControllablePhysicsComponent>();
+			m_HasPhysicsComponent = true;
 			break;
 		case eReplicaComponentType::RENDER:
 			AddComponent<RenderComponent>();
 			break;
 		case eReplicaComponentType::SIMPLE_PHYSICS:
 			AddComponent<SimplePhysicsComponent>(componentId);
+			m_HasPhysicsComponent = true;
 			break;
 		case eReplicaComponentType::CHARACTER:
 			AddComponent<CharacterComponent>(m_Character);
@@ -294,6 +297,7 @@ void Entity::Initialize() {
 			break;
 		case eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS:
 			AddComponent<RigidbodyPhantomPhysicsComponent>();
+			m_HasPhysicsComponent = true;
 			break;
 		case eReplicaComponentType::COLLECTIBLE:
 			AddComponent<CollectibleComponent>();
@@ -307,11 +311,15 @@ void Entity::Initialize() {
 			AddComponent<MovementAIComponent>();
 			break;
 		case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS: {
+			// if ldf of use_simple_physics == true
+			// AddComponent<SimplePhysicsComponent>(componentId);
+			// else
 			auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>();
 			if (havokVehiclePhysicsComponent) {
 				havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
 				havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
 			}
+			m_HasPhysicsComponent = true;
 			break;
 		}
 		case eReplicaComponentType::MOVEMENT_AI:
@@ -326,9 +334,29 @@ void Entity::Initialize() {
 		case eReplicaComponentType::PHANTOM_PHYSICS: {
 			auto* phantomPhysicsComponent = AddComponent<PhantomPhysicsComponent>();
 			if (phantomPhysicsComponent) phantomPhysicsComponent->SetPhysicsEffectActive(false);
+			m_HasPhysicsComponent = true;
 			break;
 		}
 		case eReplicaComponentType::MODEL_BEHAVIOR: {
+			uint32_t modelType = -1;
+			// Get Model Type form ldf/DB
+			if (!m_HasModelBehaviors && !m_HasPhysicsComponent){
+				AddComponent<SimplePhysicsComponent>(m_PhysicsComponentID);
+				m_HasPhysicsComponent = true;
+			} else if (!m_HasPhysicsComponent) {
+				if (modelType == 0){
+					if(m_PhysicsComponentID == -1) m_PhysicsComponentID = 4246U;
+					AddComponent<ControllablePhysicsComponent>(m_PhysicsComponentID);
+					m_HasPhysicsComponent = true;
+				} else {
+					if(m_PhysicsComponentID == -1) m_PhysicsComponentID = 4247U;
+					AddComponent<SimplePhysicsComponent>(m_PhysicsComponentID);
+					m_HasPhysicsComponent = true;
+				}
+			}
+			// if has LDF of propertyObjectID || inInventory is true
+			// AddComponent<MutableModelBehaviorComponent>();
+			// else
 			AddComponent<ModelBehaviorComponent>();
 			if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
 				auto* destroyableComponent = AddComponent<DestroyableComponent>(componentId);
@@ -430,13 +458,25 @@ void Entity::Initialize() {
 		case eReplicaComponentType::ACHIEVEMENT_VENDOR:
 			AddComponent<AchievementVendorComponent>();
 			break;
+		case eReplicaComponentType::PROJECTILE_PHYSICS:
+			// AddComponent<ProjectilePhysicsComponent>();
+			m_HasPhysicsComponent = true;
+			break;
+		case eReplicaComponentType::VEHICLE_PHYSICS:
+			// AddComponent<VehiclePhysicsComponent>();
+			m_HasPhysicsComponent = true;
+			break;
+		case eReplicaComponentType::PHYSICS_SYSTEM:
+			// AddComponent<PhysicsSystemComponent>();
+			m_HasPhysicsComponent = true;
+			break;
 		case eReplicaComponentType::GHOST:
 		case eReplicaComponentType::SPAWN:
 		case eReplicaComponentType::MODULAR_BUILD:
 		case eReplicaComponentType::BUILD_CONTROLLER:
 		case eReplicaComponentType::BUILD_ACTIVATOR:
 		case eReplicaComponentType::ICON_ONLY:
-		case eReplicaComponentType::PROJECTILE_PHYSICS:
+
 		case eReplicaComponentType::DROP_EFFECT:
 		case eReplicaComponentType::CHEST:
 		case eReplicaComponentType::BLUEPRINT:
@@ -451,8 +491,6 @@ void Entity::Initialize() {
 		case eReplicaComponentType::MODEL_BUILDER:
 		case eReplicaComponentType::SPRINGPAD:
 		case eReplicaComponentType::FX:
-		case eReplicaComponentType::VEHICLE_PHYSICS:
-		case eReplicaComponentType::PHYSICS_SYSTEM:
 		case eReplicaComponentType::CHANGLING_BUILD:
 		case eReplicaComponentType::CHOICE_BUILD:
 		case eReplicaComponentType::PACKAGE:
