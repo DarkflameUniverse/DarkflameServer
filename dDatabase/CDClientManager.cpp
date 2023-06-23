@@ -77,5 +77,5 @@ CDClientManager::CDClientManager() {
 	CDPropertyTemplateTable::Instance();
 	CDFeatureGatingTable::Instance();
 	CDRailActivatorComponentTable::Instance();
-	CDFaceItemComponentTable::Instance();
+	CDMapFacesAndHairTable::Instance();
 }

@@ -53,7 +53,7 @@
 //CDB includes:
 #include "CDClientManager.h"
 #include "CDEmoteTable.h"
-#include "CDFaceItemComponentTable.h"
+#include "CDMapFacesAndHairTable.h"
 
 //Component includes:
 #include "ControllablePhysicsComponent.h"
@@ -4750,13 +4750,13 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
-	CDFaceItemComponentTable* faceItemTable = CDClientManager::Instance().GetTable<CDFaceItemComponentTable>();
+	CDMapFacesAndHairTable* faceAndHairTable = CDClientManager::Instance().GetTable<CDMapFacesAndHairTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item, eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
 
-	CDFaceItemComponent faceCompId = faceItemTable->GetByLot(item);
-	CDFaceItemComponent oldEyes = faceItemTable->GetByEyes(character->GetEyes());
+	CDMapFacesAndHair faceAndHairId = faceAndHairTable->GetByLot(item);
+	CDMapFacesAndHair oldEyes = faceAndHairTable->GetByEyes(character->GetEyes());
 
 	uint32_t bobEyes = 9;
 	uint32_t bobMouth = 8;
@@ -4767,23 +4767,23 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	uint32_t eyebrowsToSet = 0;
 
 	// if we are buying a face vendor item
-    if (faceCompId.id != 0) {
-		if (faceCompId.eyes != 0) { // we have new eyes
-			eyesToSet = faceCompId.eyes;
+    if (faceAndHairId.id != 0) {
+		if (faceAndHairId.eyes != 0) { // we have new eyes
+			eyesToSet = faceAndHairId.eyes;
 			if (oldEyes.eyebrows != 0) eyebrowsToSet = bobEyebrows;
 			if (oldEyes.mouth != 0)	mouthToSet = bobMouth;
 		}
 
-		if (faceCompId.eyebrows != 0) { // we have new eyebrows
-			eyebrowsToSet = faceCompId.eyebrows;
+		if (faceAndHairId.eyebrows != 0) { // we have new eyebrows
+			eyebrowsToSet = faceAndHairId.eyebrows;
 			if (oldEyes.eyebrows != 0 && eyesToSet == 0) {
 				eyesToSet = bobEyes;
 				if (oldEyes.mouth != 0)	mouthToSet = bobMouth;
 			}
 		}
 
-		if (faceCompId.mouth != 0) { // we have a new mouth
-			mouthToSet = faceCompId.mouth;
+		if (faceAndHairId.mouth != 0) { // we have a new mouth
+			mouthToSet = faceAndHairId.mouth;
 
 			if (oldEyes.mouth != 0 && eyesToSet == 0) {
 				eyesToSet = bobEyes;
