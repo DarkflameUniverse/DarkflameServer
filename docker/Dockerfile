@@ -1,4 +1,4 @@
-FROM gcc:11 as build
+FROM gcc:12 as build
 
 WORKDIR /build
 
@@ -40,7 +40,7 @@ RUN echo "Build server" && \
     cmake .. -DCMAKE_BUILD_RPATH_USE_ORIGIN=TRUE && \
     make -j $BUILD_THREADS
 
-FROM gcc:11 as runtime
+FROM gcc:12 as runtime
 
 RUN --mount=type=cache,id=runtime-apt-cache,target=/var/cache/apt \
     apt update && \
