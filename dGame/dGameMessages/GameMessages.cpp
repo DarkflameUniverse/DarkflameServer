@@ -4791,6 +4791,18 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 			}
 		}
 
+		if (faceAndHairId.haircolor != -1) {
+			character->SetHairColor(faceAndHairId.haircolor);
+			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateHairColor", faceAndHairId.haircolor, 0, LWOOBJID_EMPTY, "", sysAddr);
+			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedHairColor", faceAndHairId.haircolor, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+		}
+
+		if (faceAndHairId.hairstyle != -1) {
+			character->SetHairStyle(faceAndHairId.hairstyle);
+			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateHairStyle", faceAndHairId.hairstyle, 0, LWOOBJID_EMPTY, "", sysAddr);
+			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"SomeoneElseUpdatedHairStyle", faceAndHairId.hairstyle, 0, player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+		}
+
 		if (eyebrowsToSet != 0) {
 			character->SetEyebrows(eyebrowsToSet);
 			GameMessages::SendNotifyClientObject(vend->GetParent()->GetObjectID(), u"UpdateEyebrows", eyebrowsToSet, 0, LWOOBJID_EMPTY, "", sysAddr);
