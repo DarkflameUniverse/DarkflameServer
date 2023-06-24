@@ -379,10 +379,6 @@ protected:
 	std::vector<LWOOBJID> m_TargetsInPhantom;
 
 	static const std::vector<ComponentWhitelist> m_ComponentWhitelists;
-
-	bool m_HasModelBehaviors = false;
-	bool m_HasPhysicsComponent = false;
-	uint32_t m_PhysicsComponentID = -1;
 };
 
 #include "Entity.tcc"
