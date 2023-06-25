@@ -418,7 +418,7 @@ void Character::WriteToDatabase() {
 	delete printer;
 }
 
-void Character::SetPlayerFlag(const int32_t flagId, const bool value) {
+void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
 	// If the flag is already set, we don't have to recalculate it
 	if (GetPlayerFlag(flagId) == value) return;
 
@@ -465,7 +465,7 @@ void Character::SetPlayerFlag(const int32_t flagId, const bool value) {
 	GameMessages::SendNotifyClientFlagChange(m_ObjectID, flagId, value, m_ParentUser->GetSystemAddress());
 }
 
-bool Character::GetPlayerFlag(const int32_t flagId) const {
+bool Character::GetPlayerFlag(const uint32_t flagId) const {
 	// Calculate the index first
 	const auto flagIndex = uint32_t(std::floor(flagId / 64));
 
