@@ -134,7 +134,7 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_PhantomCollisionCallbacks.clear();
 	m_ScheduleKiller = nullptr;
 	m_IsParentChildDirty = true;
-	m_IsGhostingCandidate = false;
+	m_IsGhostingCandidate = true;
 	m_PlayerIsReadyForUpdates = false;
 	m_ShouldDestroyAfterUpdate = false;
 
@@ -585,35 +585,14 @@ void Entity::Initialize() {
 	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) IsGhosted();
 }
 
-// Invert this check and build it into the component initialization. The ghosting property is an intrinsic property of which components the Entity has.
-// Keep the first check since that is a special case for large scene elements like Brig Rock as a whole.
 void Entity::IsGhosted() {
 	// Don't ghost what is likely large scene elements
-	if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
-		return;
-	}
-
-	/* Filter for ghosting candidates.
-	 *
-	 * Don't ghost moving platforms, until we've got proper syncing for those.
-	 * Don't ghost big phantom physics triggers, as putting those to sleep might prevent interactions.
-	 * Don't ghost property related objects, as the client expects those to always be loaded.
-	 */
-	if (!EntityManager::IsExcludedFromGhosting(GetLOT()) &&
-		!HasComponent(eReplicaComponentType::SCRIPTED_ACTIVITY) &&
-		!HasComponent(eReplicaComponentType::MOVING_PLATFORM) &&
-		!HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) &&
-		!HasComponent(eReplicaComponentType::PROPERTY) &&
-		!HasComponent(eReplicaComponentType::RACING_CONTROL) &&
-		!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)) {
-		m_IsGhostingCandidate = true;
-	}
-
-	if (GetLOT() == LOT_3D_AMBIENT_SOUND) m_IsGhostingCandidate = true;
-
-	// Special case for collectibles in Ninjago
-	if (HasComponent(eReplicaComponentType::COLLECTIBLE) && Game::server->GetZoneID() == 2000) {
-		m_IsGhostingCandidate = true;
+	if (m_Components.size() == 2 && HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER)) {
+		m_IsGhostingCandidate = false;
+	} else if (m_Components.size() == 3 && HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && HasComponent(eReplicaComponentType::TRIGGER)) {
+		m_IsGhostingCandidate = false;
+	} else if (EntityManager::IsExcludedFromGhosting(GetLOT())) {
+		m_IsGhostingCandidate = false;
 	}
 }
 
@@ -806,7 +785,7 @@ void Entity::ResetFlags() {
 
 void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 	DluAssert(doc != nullptr);
-	for (const auto&[componentId, component] : m_Components) {
+	for (const auto& [componentId, component] : m_Components) {
 		if (component) component->UpdateXml(doc);
 	}
 }
