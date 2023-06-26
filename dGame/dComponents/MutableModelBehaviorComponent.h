@@ -13,7 +13,7 @@ class Entity;
  */
 class MutableModelBehaviorComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL_BEHAVIOR;
 
 	MutableModelBehaviorComponent(Entity* parent);
 

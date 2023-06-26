@@ -226,9 +226,7 @@ void Entity::Initialize() {
 	bool hasProximityMonitorComponent = false;
 	bool hasScriptComponent = false;
 	bool hasDroppedLootComponent = false;
-	bool hasModelBehaviors = false;
 	uint32_t physicsComponentID = -1;
-	uint32_t modelType = -1;
 
 	// A few edge cases to tackle first
 	const auto triggerInfo = GetVarAsString(u"trigger_id");
@@ -250,303 +248,324 @@ void Entity::Initialize() {
 
 	for (const auto& [componentTemplate, componentId] : components) {
 		switch (componentTemplate) {
-			case eReplicaComponentType::CONTROLLABLE_PHYSICS:
-				AddComponent<ControllablePhysicsComponent>();
-				hasPhysicsComponent = true;
-				break;
-			case eReplicaComponentType::RENDER:
-				AddComponent<RenderComponent>();
-				break;
-			case eReplicaComponentType::SIMPLE_PHYSICS:
+		case eReplicaComponentType::CONTROLLABLE_PHYSICS:
+			if (hasPhysicsComponent) continue;
+			AddComponent<ControllablePhysicsComponent>();
+			physicsComponentID = componentId;
+			hasPhysicsComponent = true;
+			break;
+		case eReplicaComponentType::RENDER:
+			AddComponent<RenderComponent>();
+			break;
+		case eReplicaComponentType::SIMPLE_PHYSICS:
+			if (hasPhysicsComponent) continue;
+			AddComponent<SimplePhysicsComponent>(componentId);
+			physicsComponentID = componentId;
+			hasPhysicsComponent = true;
+			break;
+		case eReplicaComponentType::CHARACTER:
+			AddComponent<CharacterComponent>(m_Character);
+			AddComponent<MissionComponent>();
+			AddComponent<PossessorComponent>();
+			AddComponent<LevelProgressionComponent>();
+			AddComponent<PlayerForcedMovementComponent>();
+			break;
+		case eReplicaComponentType::SCRIPT: {
+			std::string script;
+			if (m_TemplateID == LOT_ZONE_CONTROL) {
+				script = ScriptComponent::GetZoneScriptName(componentId);
+			} else {
+				script = ScriptComponent::GetScriptName(this, componentId);
+			}
+			AddComponent<ScriptComponent>(script); // Technically this should check for if the script name is empty and not create a component if it is.
+			hasScriptComponent = true;
+			break;
+		}
+		case eReplicaComponentType::BOUNCER:
+			AddComponent<BouncerComponent>();
+			break;
+		case eReplicaComponentType::DESTROYABLE:
+			if (hasDestroyableComponent) continue;
+			AddComponent<DestroyableComponent>(componentId);
+			hasDestroyableComponent = true;
+			break;
+		case eReplicaComponentType::SKILL:
+			AddComponent<SkillComponent>();
+			break;
+		case eReplicaComponentType::ITEM:
+			AddComponent<ItemComponent>();
+			break;
+		case eReplicaComponentType::VENDOR:
+			AddComponent<VendorComponent>();
+			if (hasProximityMonitorComponent) continue;
+			AddComponent<ProximityMonitorComponent>();
+			hasProximityMonitorComponent = true;
+			break;
+		case eReplicaComponentType::INVENTORY:
+			AddComponent<InventoryComponent>();
+			break;
+		case eReplicaComponentType::SHOOTING_GALLERY:
+			AddComponent<ShootingGalleryComponent>();
+			break;
+		case eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS:
+			if (hasPhysicsComponent) continue;
+			AddComponent<RigidbodyPhantomPhysicsComponent>();
+			physicsComponentID = componentId;
+			hasPhysicsComponent = true;
+			break;
+		case eReplicaComponentType::COLLECTIBLE:
+			AddComponent<CollectibleComponent>();
+			if (!hasDestroyableComponent) AddComponent<DestroyableComponent>(componentId);
+			break;
+		case eReplicaComponentType::MOVING_PLATFORM:
+			AddComponent<MovingPlatformComponent>(GetVarAsString(u"attached_path"));
+			m_IsGhostingCandidate = false;
+			break;
+		case eReplicaComponentType::PET:
+			AddComponent<PetComponent>(componentId);
+			AddComponent<MovementAIComponent>();
+			break;
+		case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS: {
+			if (hasPhysicsComponent) continue;
+			if (GetVar<bool>(u"use_simple_physics")) {
 				AddComponent<SimplePhysicsComponent>(componentId);
-				hasPhysicsComponent = true;
-				break;
-			case eReplicaComponentType::CHARACTER:
-				AddComponent<CharacterComponent>(m_Character);
-				AddComponent<MissionComponent>();
-				AddComponent<PossessorComponent>();
-				AddComponent<LevelProgressionComponent>();
-				AddComponent<PlayerForcedMovementComponent>();
-				break;
-			case eReplicaComponentType::SCRIPT: {
-				std::string script;
-				if (m_TemplateID == LOT_ZONE_CONTROL) {
-					script = ScriptComponent::GetZoneScriptName(componentId);
-				} else {
-					script = ScriptComponent::GetScriptName(this, componentId);
+			} else {
+				auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>();
+				if (havokVehiclePhysicsComponent) {
+					havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
+					havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
 				}
-				AddComponent<ScriptComponent>(script); // Technically this should check for if the script name is empty and not create a component if it is.
-				break;
 			}
-			case eReplicaComponentType::BOUNCER:
-				AddComponent<BouncerComponent>();
-				break;
-			case eReplicaComponentType::DESTROYABLE:
-				if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>(componentId);
-				break;
-			case eReplicaComponentType::SKILL:
-				AddComponent<SkillComponent>();
-				break;
-			case eReplicaComponentType::ITEM:
-				AddComponent<ItemComponent>();
-				break;
-			case eReplicaComponentType::VENDOR:
-				AddComponent<VendorComponent>();
-				if (!hasProximityMonitorComponent) AddComponent<ProximityMonitorComponent>();
-				break;
-			case eReplicaComponentType::INVENTORY:
-				AddComponent<InventoryComponent>();
-				break;
-			case eReplicaComponentType::SHOOTING_GALLERY:
-				AddComponent<ShootingGalleryComponent>();
-				break;
-			case eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS:
-				AddComponent<RigidbodyPhantomPhysicsComponent>();
-				hasPhysicsComponent = true;
-				break;
-			case eReplicaComponentType::COLLECTIBLE:
-				AddComponent<CollectibleComponent>();
-				if (!hasDestroyableComponent) AddComponent<DestroyableComponent>(componentId);
-				break;
-			case eReplicaComponentType::MOVING_PLATFORM:
-				AddComponent<MovingPlatformComponent>(GetVarAsString(u"attached_path"));
-				m_IsGhostingCandidate = false;
-				break;
-			case eReplicaComponentType::PET:
-				AddComponent<PetComponent>(componentId);
-				AddComponent<MovementAIComponent>();
-				break;
-			case eReplicaComponentType::HAVOK_VEHICLE_PHYSICS: {
-				if (GetVar<bool>(u"use_simple_physics")) {
-					AddComponent<SimplePhysicsComponent>(componentId);
+			physicsComponentID = componentId;
+			m_IsGhostingCandidate = false;
+			hasPhysicsComponent = true;
+			break;
+		}
+		case eReplicaComponentType::MOVEMENT_AI:
+			AddComponent<MovementAIComponent>();
+			break;
+		case eReplicaComponentType::PROPERTY:
+			AddComponent<PropertyComponent>();
+			m_IsGhostingCandidate = false;
+			break;
+		case eReplicaComponentType::SCRIPTED_ACTIVITY:
+			AddComponent<ScriptedActivityComponent>(componentId);
+			m_IsGhostingCandidate = false;
+			break;
+		case eReplicaComponentType::PHANTOM_PHYSICS: {
+			if (hasPhysicsComponent) continue;
+			auto* phantomPhysicsComponent = AddComponent<PhantomPhysicsComponent>();
+			if (phantomPhysicsComponent) phantomPhysicsComponent->SetPhysicsEffectActive(false);
+			physicsComponentID = componentId;
+			hasPhysicsComponent = true;
+			m_IsGhostingCandidate = false;
+			break;
+		}
+		case eReplicaComponentType::MODEL_BEHAVIOR: {
+			AddComponent<ModelBehaviorComponent>();
+			// Get Model Type form ldf
+			if (!hasPhysicsComponent) {
+				uint32_t modelType = -1;
+				if (modelType == 0) {
+					if (physicsComponentID == -1) physicsComponentID = 4246U;
+					AddComponent<ControllablePhysicsComponent>();
+					hasPhysicsComponent = true;
 				} else {
-					auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>(componentId);
-					if (havokVehiclePhysicsComponent) {
-						havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
-						havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
-					}
-				}
-				m_IsGhostingCandidate = false;
-				hasPhysicsComponent = true;
-				break;
-			}
-			case eReplicaComponentType::MOVEMENT_AI:
-				AddComponent<MovementAIComponent>();
-				break;
-			case eReplicaComponentType::PROPERTY:
-				AddComponent<PropertyComponent>();
-				m_IsGhostingCandidate = false;
-				break;
-			case eReplicaComponentType::SCRIPTED_ACTIVITY:
-				AddComponent<ScriptedActivityComponent>(componentId);
-				m_IsGhostingCandidate = false;
-				break;
-			case eReplicaComponentType::PHANTOM_PHYSICS: {
-				auto* phantomPhysicsComponent = AddComponent<PhantomPhysicsComponent>();
-				if (phantomPhysicsComponent) phantomPhysicsComponent->SetPhysicsEffectActive(false);
-				hasPhysicsComponent = true;
-				m_IsGhostingCandidate = false;
-				break;
-			}
-			case eReplicaComponentType::MODEL_BEHAVIOR: {
-				// Get Model Type form ldf/DB
-				if (!hasModelBehaviors && !hasPhysicsComponent){
+					if (physicsComponentID == -1) physicsComponentID = 4247U;
 					AddComponent<SimplePhysicsComponent>(physicsComponentID);
 					hasPhysicsComponent = true;
-				} else if (!hasPhysicsComponent) {
-					if (modelType == 0){
-						if(physicsComponentID == -1) physicsComponentID = 4246U;
-						AddComponent<ControllablePhysicsComponent>(physicsComponentID);
-						hasPhysicsComponent = true;
-					} else {
-						if(physicsComponentID == -1) physicsComponentID = 4247U;
-						AddComponent<SimplePhysicsComponent>(physicsComponentID);
-						hasPhysicsComponent = true;
-					}
 				}
-				AddComponent<ModelBehaviorComponent>();
-				if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
-					auto* destroyableComponent = AddComponent<DestroyableComponent>(componentId);
-					if (destroyableComponent) {
-						destroyableComponent->SetHealth(1);
-						destroyableComponent->SetMaxHealth(1.0f);
-						destroyableComponent->SetFaction(-1, true);
-						destroyableComponent->SetIsSmashable(true);
-					}
-				}
-				break;
 			}
-			case eReplicaComponentType::PROPERTY_ENTRANCE:
-				AddComponent<PropertyEntranceComponent>(componentId);
-				break;
-			case eReplicaComponentType::PROPERTY_MANAGEMENT:
-				AddComponent<PropertyManagementComponent>();
-				break;
-			case eReplicaComponentType::QUICK_BUILD:
-				AddComponent<QuickBuildComponent>(componentId);
-				if (!HasComponent(eReplicaComponentType::DESTROYABLE)) AddComponent<DestroyableComponent>(componentId);
-				break;
-			case eReplicaComponentType::SWITCH:
-				AddComponent<SwitchComponent>();
-				break;
-			case eReplicaComponentType::MINIGAME_CONTROL:
-				AddComponent<MinigameControlComponent>();
-				break;
-			case eReplicaComponentType::BASE_COMBAT_AI: {
-				auto* baseCombatAiComponent = AddComponent<BaseCombatAIComponent>(componentId);
-				if (baseCombatAiComponent && baseCombatAiComponent->GetTetherSpeed() > 0.0f) {
-					auto* movementAiComponent = AddComponent<MovementAIComponent>();
-					if (!movementAiComponent) break;
-					MovementAIInfo movementAiInfo{};
-					movementAiInfo.movementType = "";
-					movementAiInfo.wanderChance = 0;
-					movementAiInfo.wanderRadius = 16;
-					movementAiInfo.wanderSpeed = 2.5f;
-					movementAiInfo.wanderDelayMax = 5;
-					movementAiInfo.wanderDelayMin = 2;
-					movementAiComponent->SetMoveInfo(movementAiInfo);
-				}
-				break;
+			if (hasDestroyableComponent) continue;
+			auto* destroyableComponent = AddComponent<DestroyableComponent>(componentId);
+			if (!destroyableComponent) continue;
+			destroyableComponent->SetHealth(1);
+			destroyableComponent->SetMaxHealth(1.0f);
+			destroyableComponent->SetFaction(-1, true);
+			destroyableComponent->SetIsSmashable(true);
+			hasDestroyableComponent = true;
+			break;
+		}
+		case eReplicaComponentType::PROPERTY_ENTRANCE:
+			AddComponent<PropertyEntranceComponent>(componentId);
+			break;
+		case eReplicaComponentType::PROPERTY_MANAGEMENT:
+			AddComponent<PropertyManagementComponent>();
+			break;
+		case eReplicaComponentType::QUICK_BUILD:
+			AddComponent<QuickBuildComponent>(componentId);
+			if (hasDestroyableComponent) continue;
+			AddComponent<DestroyableComponent>(componentId);
+			hasDestroyableComponent = true;
+			break;
+		case eReplicaComponentType::SWITCH:
+			AddComponent<SwitchComponent>();
+			break;
+		case eReplicaComponentType::MINIGAME_CONTROL:
+			AddComponent<MinigameControlComponent>();
+			break;
+		case eReplicaComponentType::BASE_COMBAT_AI: {
+			auto* baseCombatAiComponent = AddComponent<BaseCombatAIComponent>(componentId);
+			if (baseCombatAiComponent && baseCombatAiComponent->GetTetherSpeed() > 0.0f) {
+				auto* movementAiComponent = AddComponent<MovementAIComponent>();
+				if (!movementAiComponent) break;
+				MovementAIInfo movementAiInfo{};
+				movementAiInfo.movementType = "";
+				movementAiInfo.wanderChance = 0;
+				movementAiInfo.wanderRadius = 16;
+				movementAiInfo.wanderSpeed = 2.5f;
+				movementAiInfo.wanderDelayMax = 5;
+				movementAiInfo.wanderDelayMin = 2;
+				movementAiComponent->SetMoveInfo(movementAiInfo);
 			}
-			case eReplicaComponentType::MODULE_ASSEMBLY:
-				AddComponent<ModuleAssemblyComponent>();
-				break;
-			case eReplicaComponentType::PROPERTY_VENDOR:
-				AddComponent<PropertyVendorComponent>();
-				break;
-			case eReplicaComponentType::ROCKET_LAUNCHPAD_CONTROL:
-				AddComponent<RocketLaunchpadControlComponent>(componentId);
-				break;
-			case eReplicaComponentType::RACING_CONTROL:
-				AddComponent<RacingControlComponent>();
-				m_IsGhostingCandidate = false;
-				break;
-			case eReplicaComponentType::MISSION_OFFER:
-				AddComponent<MissionOfferComponent>(GetLOT());
-				break;
-			case eReplicaComponentType::RACING_STATS:
-				AddComponent<RacingStatsComponent>();
-				break;
-			case eReplicaComponentType::LUP_EXHIBIT:
-				AddComponent<LUPExhibitComponent>();
-				break;
-			case eReplicaComponentType::SOUND_TRIGGER:
-				AddComponent<SoundTriggerComponent>();
-				break;
-			case eReplicaComponentType::PROXIMITY_MONITOR:
-				AddComponent<ProximityMonitorComponent>();
-				break;
-			case eReplicaComponentType::MULTI_ZONE_ENTRANCE:
-				AddComponent<MultiZoneEntranceComponent>();
-				break;
-			case eReplicaComponentType::BUFF:
-				AddComponent<BuffComponent>();
-				break;
-			case eReplicaComponentType::RAIL_ACTIVATOR:
-				AddComponent<RailActivatorComponent>(componentId);
-				break;
-			case eReplicaComponentType::POSSESSABLE:
-				AddComponent<PossessableComponent>(componentId);
-				break;
-			case eReplicaComponentType::BUILD_BORDER:
-				AddComponent<BuildBorderComponent>();
-				break;
-			case eReplicaComponentType::DONATION_VENDOR:
-				AddComponent<DonationVendorComponent>();
-				if (!hasProximityMonitorComponent) AddComponent<ProximityMonitorComponent>();
-				break;
-			case eReplicaComponentType::GATE_RUSH_CONTROL:
-				AddComponent<GateRushControlComponent>();
-				break;
-			case eReplicaComponentType::RACING_SOUND_TRIGGER:
-				AddComponent<RacingSoundTriggerComponent>();
-				break;
-			case eReplicaComponentType::ACHIEVEMENT_VENDOR:
-				AddComponent<AchievementVendorComponent>();
-				break;
-			case eReplicaComponentType::PROJECTILE_PHYSICS:
-				// AddComponent<ProjectilePhysicsComponent>();
-				hasPhysicsComponent = true;
-				break;
-			case eReplicaComponentType::VEHICLE_PHYSICS:
-				// AddComponent<VehiclePhysicsComponent>();
-				hasPhysicsComponent = true;
-				break;
-			case eReplicaComponentType::PHYSICS_SYSTEM:
-				// AddComponent<PhysicsSystemComponent>();
-				hasPhysicsComponent = true;
-				break;
-			case eReplicaComponentType::GHOST:
-			case eReplicaComponentType::SPAWN:
-			case eReplicaComponentType::MODULAR_BUILD:
-			case eReplicaComponentType::BUILD_CONTROLLER:
-			case eReplicaComponentType::BUILD_ACTIVATOR:
-			case eReplicaComponentType::ICON_ONLY:
-			case eReplicaComponentType::DROP_EFFECT:
-			case eReplicaComponentType::CHEST:
-			case eReplicaComponentType::BLUEPRINT:
-			case eReplicaComponentType::PLATFORM_BOUNDARY:
-			case eReplicaComponentType::MODULE:
-			case eReplicaComponentType::JETPACKPAD:
-			case eReplicaComponentType::EXHIBIT:
-			case eReplicaComponentType::OVERHEAD_ICON:
-			case eReplicaComponentType::PET_CONTROL:
-			case eReplicaComponentType::MINIFIG:
-			case eReplicaComponentType::PET_CREATOR:
-			case eReplicaComponentType::MODEL_BUILDER:
-			case eReplicaComponentType::SPRINGPAD:
-			case eReplicaComponentType::FX:
-			case eReplicaComponentType::CHANGLING_BUILD:
-			case eReplicaComponentType::CHOICE_BUILD:
-			case eReplicaComponentType::PACKAGE:
-			case eReplicaComponentType::SOUND_REPEATER:
-			case eReplicaComponentType::SOUND_AMBIENT_2D:
-			case eReplicaComponentType::SOUND_AMBIENT_3D:
-			case eReplicaComponentType::PRECONDITION:
-			case eReplicaComponentType::FLAG:
-			case eReplicaComponentType::CUSTOM_BUILD_ASSEMBLY:
-			case eReplicaComponentType::SHOWCASE_MODEL_HANDLER:
-			case eReplicaComponentType::RACING_MODULE:
-			case eReplicaComponentType::GENERIC_ACTIVATOR:
-			case eReplicaComponentType::HF_LIGHT_DIRECTION_GADGET:
-			case eReplicaComponentType::ROCKET_ANIMATION_CONTROL:
-			case eReplicaComponentType::TRIGGER:
-			case eReplicaComponentType::DROPPED_LOOT:
-			case eReplicaComponentType::FACTION_TRIGGER:
-			case eReplicaComponentType::BBB:
-			case eReplicaComponentType::CHAT_BUBBLE:
-			case eReplicaComponentType::FRIENDS_LIST:
-			case eReplicaComponentType::GUILD:
-			case eReplicaComponentType::LOCAL_SYSTEM:
-			case eReplicaComponentType::MISSION:
-			case eReplicaComponentType::MUTABLE_MODEL_BEHAVIORS:
-			case eReplicaComponentType::PATHFINDING:
-			case eReplicaComponentType::PET_TAMING_CONTROL:
-			case eReplicaComponentType::PROPERTY_EDITOR:
-			case eReplicaComponentType::SKINNED_RENDER:
-			case eReplicaComponentType::SLASH_COMMAND:
-			case eReplicaComponentType::STATUS_EFFECT:
-			case eReplicaComponentType::TEAMS:
-			case eReplicaComponentType::TEXT_EFFECT:
-			case eReplicaComponentType::TRADE:
-			case eReplicaComponentType::USER_CONTROL:
-			case eReplicaComponentType::IGNORE_LIST:
-			case eReplicaComponentType::INTERACTION_MANAGER:
-			case eReplicaComponentType::COMBAT_MEDIATOR:
-			case eReplicaComponentType::ROLLER:
-			case eReplicaComponentType::PLAYER_FORCED_MOVEMENT:
-			case eReplicaComponentType::CRAFTING:
-			case eReplicaComponentType::LEVEL_PROGRESSION:
-			case eReplicaComponentType::POSSESSOR:
-			case eReplicaComponentType::MOUNT_CONTROL:
-			case eReplicaComponentType::UNKNOWN_112:
-			case eReplicaComponentType::PROPERTY_PLAQUE:
-			case eReplicaComponentType::UNKNOWN_115:
-			case eReplicaComponentType::CULLING_PLANE:
-			case eReplicaComponentType::NUMBER_OF_COMPONENTS:
-			case eReplicaComponentType::INVALID:
-			default:
-				Game::logger->Log("Entity", "Attempted to create component %i for lot %i but no creator exists. Component will not be created.", componentId, m_TemplateID);
+			break;
+		}
+		case eReplicaComponentType::MODULE_ASSEMBLY:
+			AddComponent<ModuleAssemblyComponent>();
+			break;
+		case eReplicaComponentType::PROPERTY_VENDOR:
+			AddComponent<PropertyVendorComponent>();
+			break;
+		case eReplicaComponentType::ROCKET_LAUNCHPAD_CONTROL:
+			AddComponent<RocketLaunchpadControlComponent>(componentId);
+			break;
+		case eReplicaComponentType::RACING_CONTROL:
+			AddComponent<RacingControlComponent>(componentId);
+			m_IsGhostingCandidate = false;
+			break;
+		case eReplicaComponentType::MISSION_OFFER:
+			AddComponent<MissionOfferComponent>(GetLOT());
+			break;
+		case eReplicaComponentType::RACING_STATS:
+			AddComponent<RacingStatsComponent>();
+			break;
+		case eReplicaComponentType::LUP_EXHIBIT:
+			AddComponent<LUPExhibitComponent>();
+			break;
+		case eReplicaComponentType::SOUND_TRIGGER:
+			AddComponent<SoundTriggerComponent>();
+			break;
+		case eReplicaComponentType::PROXIMITY_MONITOR:
+			AddComponent<ProximityMonitorComponent>();
+			break;
+		case eReplicaComponentType::MULTI_ZONE_ENTRANCE:
+			AddComponent<MultiZoneEntranceComponent>();
+			break;
+		case eReplicaComponentType::BUFF:
+			AddComponent<BuffComponent>();
+			break;
+		case eReplicaComponentType::RAIL_ACTIVATOR:
+			AddComponent<RailActivatorComponent>(componentId);
+			break;
+		case eReplicaComponentType::POSSESSABLE:
+			AddComponent<PossessableComponent>(componentId);
+			break;
+		case eReplicaComponentType::BUILD_BORDER:
+			AddComponent<BuildBorderComponent>();
+			break;
+		case eReplicaComponentType::DONATION_VENDOR:
+			AddComponent<DonationVendorComponent>();
+			if (hasProximityMonitorComponent) continue;
+			AddComponent<ProximityMonitorComponent>();
+			hasProximityMonitorComponent = true;
+			break;
+		case eReplicaComponentType::GATE_RUSH_CONTROL:
+			AddComponent<GateRushControlComponent>(componentId);
+			break;
+		case eReplicaComponentType::RACING_SOUND_TRIGGER:
+			AddComponent<RacingSoundTriggerComponent>();
+			break;
+		case eReplicaComponentType::ACHIEVEMENT_VENDOR:
+			AddComponent<AchievementVendorComponent>();
+			break;
+		case eReplicaComponentType::PROJECTILE_PHYSICS:
+			if (hasPhysicsComponent) continue;
+			// AddComponent<ProjectilePhysicsComponent>();
+			physicsComponentID = componentId;
+			hasPhysicsComponent = true;
+			break;
+		case eReplicaComponentType::VEHICLE_PHYSICS:
+			if (hasPhysicsComponent) continue;
+			// AddComponent<VehiclePhysicsComponent>();
+			physicsComponentID = componentId;
+			hasPhysicsComponent = true;
+			break;
+		case eReplicaComponentType::PHYSICS_SYSTEM:
+			// AddComponent<PhysicsSystemComponent>();
+			physicsComponentID = componentId;
+			hasPhysicsComponent = true;
+			break;
+		case eReplicaComponentType::GHOST:
+		case eReplicaComponentType::SPAWN:
+		case eReplicaComponentType::MODULAR_BUILD:
+		case eReplicaComponentType::BUILD_CONTROLLER:
+		case eReplicaComponentType::BUILD_ACTIVATOR:
+		case eReplicaComponentType::ICON_ONLY:
+		case eReplicaComponentType::DROP_EFFECT:
+		case eReplicaComponentType::CHEST:
+		case eReplicaComponentType::BLUEPRINT:
+		case eReplicaComponentType::PLATFORM_BOUNDARY:
+		case eReplicaComponentType::MODULE:
+		case eReplicaComponentType::JETPACKPAD:
+		case eReplicaComponentType::EXHIBIT:
+		case eReplicaComponentType::OVERHEAD_ICON:
+		case eReplicaComponentType::PET_CONTROL:
+		case eReplicaComponentType::MINIFIG:
+		case eReplicaComponentType::PET_CREATOR:
+		case eReplicaComponentType::MODEL_BUILDER:
+		case eReplicaComponentType::SPRINGPAD:
+		case eReplicaComponentType::FX:
+		case eReplicaComponentType::CHANGLING_BUILD:
+		case eReplicaComponentType::CHOICE_BUILD:
+		case eReplicaComponentType::PACKAGE:
+		case eReplicaComponentType::SOUND_REPEATER:
+		case eReplicaComponentType::SOUND_AMBIENT_2D:
+		case eReplicaComponentType::SOUND_AMBIENT_3D:
+		case eReplicaComponentType::PRECONDITION:
+		case eReplicaComponentType::FLAG:
+		case eReplicaComponentType::CUSTOM_BUILD_ASSEMBLY:
+		case eReplicaComponentType::SHOWCASE_MODEL_HANDLER:
+		case eReplicaComponentType::RACING_MODULE:
+		case eReplicaComponentType::GENERIC_ACTIVATOR:
+		case eReplicaComponentType::HF_LIGHT_DIRECTION_GADGET:
+		case eReplicaComponentType::ROCKET_ANIMATION_CONTROL:
+		case eReplicaComponentType::TRIGGER:
+		case eReplicaComponentType::DROPPED_LOOT:
+		case eReplicaComponentType::FACTION_TRIGGER:
+		case eReplicaComponentType::BBB:
+		case eReplicaComponentType::CHAT_BUBBLE:
+		case eReplicaComponentType::FRIENDS_LIST:
+		case eReplicaComponentType::GUILD:
+		case eReplicaComponentType::LOCAL_SYSTEM:
+		case eReplicaComponentType::MISSION:
+		case eReplicaComponentType::MUTABLE_MODEL_BEHAVIORS:
+		case eReplicaComponentType::PATHFINDING:
+		case eReplicaComponentType::PET_TAMING_CONTROL:
+		case eReplicaComponentType::PROPERTY_EDITOR:
+		case eReplicaComponentType::SKINNED_RENDER:
+		case eReplicaComponentType::SLASH_COMMAND:
+		case eReplicaComponentType::STATUS_EFFECT:
+		case eReplicaComponentType::TEAMS:
+		case eReplicaComponentType::TEXT_EFFECT:
+		case eReplicaComponentType::TRADE:
+		case eReplicaComponentType::USER_CONTROL:
+		case eReplicaComponentType::IGNORE_LIST:
+		case eReplicaComponentType::INTERACTION_MANAGER:
+		case eReplicaComponentType::COMBAT_MEDIATOR:
+		case eReplicaComponentType::ROLLER:
+		case eReplicaComponentType::PLAYER_FORCED_MOVEMENT:
+		case eReplicaComponentType::CRAFTING:
+		case eReplicaComponentType::LEVEL_PROGRESSION:
+		case eReplicaComponentType::POSSESSOR:
+		case eReplicaComponentType::MOUNT_CONTROL:
+		case eReplicaComponentType::UNKNOWN_112:
+		case eReplicaComponentType::PROPERTY_PLAQUE:
+		case eReplicaComponentType::UNKNOWN_115:
+		case eReplicaComponentType::CULLING_PLANE:
+		case eReplicaComponentType::NUMBER_OF_COMPONENTS:
+		case eReplicaComponentType::INVALID:
+		default:
+			Game::logger->Log("Entity", "Attempted to create component %i for lot %i but no creator exists. Component will not be created.", componentId, m_TemplateID);
 		}
 	}
 

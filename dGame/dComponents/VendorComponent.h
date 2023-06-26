@@ -54,12 +54,6 @@ public:
 	}
 
 	/**
-	 * Gets the list if items the vendor sells.
-	 * @return the list of items.
-	 */
-	std::map<LOT, int>& GetInventory();
-
-	/**
 	 * Refresh the inventory of this vendor.
 	 */
 	void RefreshInventory(bool isCreation = false);

@@ -9,7 +9,7 @@ class Entity;
 class BaseRacingControlComponent : public ScriptedActivityComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
-	BaseRacingControlComponent(Entity* parent);
+	BaseRacingControlComponent(Entity* parent, int32_t componentId);
 };
 
 

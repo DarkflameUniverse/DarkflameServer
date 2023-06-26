@@ -107,7 +107,7 @@ class RacingControlComponent : public BaseRacingControlComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
-	RacingControlComponent(Entity* parentEntity);
+	RacingControlComponent(Entity* parentEntity, int32_t componentId);
 	~RacingControlComponent();
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);

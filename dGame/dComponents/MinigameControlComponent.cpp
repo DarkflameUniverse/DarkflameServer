@@ -2,6 +2,6 @@
 
 #include "Entity.h"
 
-MinigameControlComponent::MinigameControlComponent(Entity* parent) : Component(parent) {
+MinigameControlComponent::MinigameControlComponent(Entity* parent) : ActivityComponent(parent) {
 
 }

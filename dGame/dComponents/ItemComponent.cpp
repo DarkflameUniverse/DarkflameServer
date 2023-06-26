@@ -4,12 +4,12 @@
 
 
 ItemComponent::ItemComponent(Entity* parent) : Component(parent) {
-	m_Parent = parent;
+	m_ParentEntity = parent;
 
 	m_DirtyItemInfo = false;
 
-	m_UgId = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
-	if (m_UgId == LWOOBJID_EMPTY) m_UgId = m_Parent->GetObjectID();
+	m_UgId = m_ParentEntity->GetVarAs<LWOOBJID>(u"userModelID");
+	if (m_UgId == LWOOBJID_EMPTY) m_UgId = m_ParentEntity->GetObjectID();
 
 	m_UgModerationStatus = eUgcModerationStatus::NoStatus;
 
