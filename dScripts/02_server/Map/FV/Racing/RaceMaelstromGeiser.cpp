@@ -3,7 +3,7 @@
 #include "PossessableComponent.h"
 #include "PossessionComponent.h"
 #include "EntityManager.h"
-#include "VehicleRacingControlComponent.h"
+#include "RacingComponent.h"
 #include "dZoneManager.h"
 
 void RaceMaelstromGeiser::OnStartup(Entity* self) {
@@ -59,9 +59,9 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto* vehicleRacingControlComponent = zoneController->GetComponent<VehicleRacingControlComponent>();
+	auto* racingComponent = zoneController->GetComponent<RacingComponent>();
 
-	if (vehicleRacingControlComponent) vehicleRacingControlComponent->OnRequestDie(player);
+	if (racingComponent) racingComponent->OnRequestDie(player);
 }
 
 void RaceMaelstromGeiser::OnTimerDone(Entity* self, std::string timerName) {

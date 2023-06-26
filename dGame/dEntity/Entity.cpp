@@ -58,7 +58,6 @@
 #include "PossessableComponent.h"
 #include "PossessionComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "RacingControlComponent.h"
 #include "SoundTriggerComponent.h"
 #include "ShootingGalleryComponent.h"
 #include "RailActivatorComponent.h"
@@ -71,10 +70,11 @@
 #include "MinigameControlComponent.h"
 #include "ItemComponent.h"
 #include "DonationVendorComponent.h"
-#include "GateRushControlComponent.h"
+#include "GateRushComponent.h"
 #include "RacingSoundTriggerComponent.h"
 #include "AchievementVendorComponent.h"
 #include "MutableModelBehaviorComponent.h"
+#include "RacingComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -430,7 +430,7 @@ void Entity::Initialize() {
 			AddComponent<RocketLaunchpadControlComponent>(componentId);
 			break;
 		case eReplicaComponentType::RACING_CONTROL:
-			AddComponent<RacingControlComponent>(componentId);
+			AddComponent<RacingComponent>(componentId);
 			m_IsGhostingCandidate = false;
 			break;
 		case eReplicaComponentType::MISSION_OFFER:
@@ -470,7 +470,7 @@ void Entity::Initialize() {
 			hasProximityMonitorComponent = true;
 			break;
 		case eReplicaComponentType::GATE_RUSH_CONTROL:
-			AddComponent<GateRushControlComponent>(componentId);
+			AddComponent<GateRushComponent>(componentId);
 			break;
 		case eReplicaComponentType::RACING_SOUND_TRIGGER:
 			AddComponent<RacingSoundTriggerComponent>();
