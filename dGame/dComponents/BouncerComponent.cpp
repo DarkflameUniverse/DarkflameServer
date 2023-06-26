@@ -46,7 +46,6 @@ void BouncerComponent::SetBouncerEnabled(bool value) {
 		m_ParentEntity->TriggerEvent(eTriggerEventType::PET_OFF_SWITCH, m_ParentEntity);
 		GameMessages::SendStopFXEffect(m_ParentEntity, true, "PetOnSwitch");
 	}
-
 }
 
 void BouncerComponent::LookupPetSwitch() {

@@ -14,20 +14,18 @@ class Entity;
 /**
  * Extra information on effects to apply after applying a buff, for example whether to buff armor, imag or health and by how much
  */
-struct BuffParameter
-{
-	int32_t buffId;
+struct BuffParameter {
+	int32_t buffId = 0;
 	std::string name;
-	float value;
+	float value = 0.0f;
 	std::vector<float> values;
-	int32_t effectId;
+	int32_t effectId = 0;
 };
 
 /**
  * Meta information about a buff that can be applied, e.g. how long it's applied, who applied it, etc.
  */
-struct Buff
-{
+struct Buff {
 	int32_t id = 0;
 	float time = 0;
 	float tick = 0;
@@ -40,13 +38,11 @@ struct Buff
 /**
  * Allows for the application of buffs to the parent entity, altering health, armor and imagination.
  */
-class BuffComponent : public Component {
+class BuffComponent final : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
 
-	explicit BuffComponent(Entity* parent);
-
-	~BuffComponent();
+	explicit BuffComponent(Entity* parent) : Component(parent) { };
 
 	Entity* GetParentEntity() const;
 

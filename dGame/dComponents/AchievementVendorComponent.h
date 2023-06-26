@@ -6,7 +6,7 @@
 
 class Entity;
 
-class AchievementVendorComponent : public VendorComponent {
+class AchievementVendorComponent final : public VendorComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::ACHIEVEMENT_VENDOR;
 	AchievementVendorComponent(Entity* parent);

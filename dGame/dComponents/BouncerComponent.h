@@ -10,7 +10,7 @@
 /**
  * Attached to bouncer entities, allowing other entities to bounce off of it
  */
-class BouncerComponent : public Component {
+class BouncerComponent final : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
 

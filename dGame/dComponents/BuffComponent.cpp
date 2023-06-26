@@ -14,12 +14,6 @@
 
 std::unordered_map<int32_t, std::vector<BuffParameter>> BuffComponent::m_Cache{};
 
-BuffComponent::BuffComponent(Entity* parent) : Component(parent) {
-}
-
-BuffComponent::~BuffComponent() {
-}
-
 void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	if (!bIsInitialUpdate) return;
 	if (m_Buffs.empty()) {

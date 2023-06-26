@@ -51,7 +51,7 @@ struct AiSkillEntry {
 /**
  * Handles the AI of entities, making them wander, tether and attack their enemies
  */
-class BaseCombatAIComponent : public Component {
+class BaseCombatAIComponent final : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
 
