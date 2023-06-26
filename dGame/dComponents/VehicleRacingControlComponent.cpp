@@ -14,7 +14,7 @@
 #include "ModuleAssemblyComponent.h"
 #include "Player.h"
 #include "PossessableComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "eRacingTaskParam.h"
 #include "Spawner.h"
 #include "dServer.h"
@@ -169,11 +169,11 @@ void VehicleRacingControlComponent::LoadPlayerVehicle(Entity* player,
 	}
 
 	// Setup the player as possessing the vehicle.
-	auto* possessorComponent = player->GetComponent<PossessorComponent>();
+	auto* possessionComponent = player->GetComponent<PossessionComponent>();
 
-	if (possessorComponent != nullptr) {
-		possessorComponent->SetPossessable(carEntity->GetObjectID());
-		possessorComponent->SetPossessableType(ePossessionType::ATTACHED_VISIBLE); // for racing it's always Attached_Visible
+	if (possessionComponent != nullptr) {
+		possessionComponent->SetPossessable(carEntity->GetObjectID());
+		possessionComponent->SetPossessableType(ePossessionType::ATTACHED_VISIBLE); // for racing it's always Attached_Visible
 	}
 
 	// Set the player's current activity as racing.

@@ -56,7 +56,7 @@
 #include "PetComponent.h"
 #include "HavokVehiclePhysicsComponent.h"
 #include "PossessableComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "ModuleAssemblyComponent.h"
 #include "RacingControlComponent.h"
 #include "SoundTriggerComponent.h"
@@ -266,7 +266,7 @@ void Entity::Initialize() {
 		case eReplicaComponentType::CHARACTER:
 			AddComponent<CharacterComponent>(m_Character);
 			AddComponent<MissionComponent>();
-			AddComponent<PossessorComponent>();
+			AddComponent<PossessionComponent>();
 			AddComponent<LevelProgressionComponent>();
 			AddComponent<PlayerForcedMovementComponent>();
 			break;
@@ -1038,11 +1038,11 @@ void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u
 		Kill(EntityManager::Instance()->GetEntity(source));
 		return;
 	}
-	auto* possessorComponent = GetComponent<PossessorComponent>();
-	if (possessorComponent) {
-		if (possessorComponent->GetPossessable() != LWOOBJID_EMPTY) {
-			auto* mount = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
-			if (mount) possessorComponent->Dismount(mount, true);
+	auto* possessionComponent = GetComponent<PossessionComponent>();
+	if (possessionComponent) {
+		if (possessionComponent->GetPossessable() != LWOOBJID_EMPTY) {
+			auto* mount = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
+			if (mount) possessionComponent->Dismount(mount, true);
 		}
 	}
 

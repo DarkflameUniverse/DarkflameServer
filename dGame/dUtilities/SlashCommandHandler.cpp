@@ -58,7 +58,7 @@
 #include "ProximityMonitorComponent.h"
 #include "dpShapeSphere.h"
 #include "PossessableComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "HavokVehiclePhysicsComponent.h"
 #include "BuffComponent.h"
 #include "SkillComponent.h"
@@ -413,9 +413,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if ((chatCommand == "playanimation" || chatCommand == "playanim") && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		std::u16string anim = GeneralUtils::ASCIIToUTF16(args[0], args[0].size());
 		RenderComponent::PlayAnimation(entity, anim);
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
-		if (possessorComponent) {
-			auto* possessedComponent = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* possessionComponent = entity->GetComponent<PossessionComponent>();
+		if (possessionComponent) {
+			auto* possessedComponent = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
 			if (possessedComponent) RenderComponent::PlayAnimation(possessedComponent, anim);
 		}
 	}
@@ -474,7 +474,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		controllablePhysicsComponent->SetSpeedMultiplier(boost);
 
 		// speedboost possesables
-		auto* possessor = entity->GetComponent<PossessorComponent>();
+		auto* possessor = entity->GetComponent<PossessionComponent>();
 		if (possessor) {
 			auto possessedID = possessor->GetPossessable();
 			if (possessedID != LWOOBJID_EMPTY) {
@@ -935,9 +935,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
-		if (possessorComponent) {
-			auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* possessionComponent = entity->GetComponent<PossessionComponent>();
+		if (possessionComponent) {
+			auto* possassableEntity = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
 
 			if (possassableEntity != nullptr) {
 				auto* havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
@@ -962,12 +962,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "dismount" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
-		if (possessorComponent) {
-			auto possessableId = possessorComponent->GetPossessable();
+		auto* possessionComponent = entity->GetComponent<PossessionComponent>();
+		if (possessionComponent) {
+			auto possessableId = possessionComponent->GetPossessable();
 			if (possessableId != LWOOBJID_EMPTY) {
 				auto* possessableEntity = EntityManager::Instance()->GetEntity(possessableId);
-				if (possessableEntity) possessorComponent->Dismount(possessableEntity, true);
+				if (possessableEntity) possessionComponent->Dismount(possessableEntity, true);
 			}
 		}
 	}
@@ -1615,13 +1615,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if ((chatCommand == "boost") && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto* possessionComponent = entity->GetComponent<PossessionComponent>();
 
-		if (possessorComponent == nullptr) {
+		if (possessionComponent == nullptr) {
 			return;
 		}
 
-		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* vehicle = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
 
 		if (vehicle == nullptr) {
 			return;
@@ -1647,10 +1647,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if ((chatCommand == "unboost") && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto* possessionComponent = entity->GetComponent<PossessionComponent>();
 
-		if (possessorComponent == nullptr) return;
-		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		if (possessionComponent == nullptr) return;
+		auto* vehicle = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
 
 		if (vehicle == nullptr) return;
 		GameMessages::SendVehicleRemovePassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);

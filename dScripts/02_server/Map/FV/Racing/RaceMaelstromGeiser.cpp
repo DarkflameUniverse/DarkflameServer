@@ -1,7 +1,7 @@
 #include "RaceMaelstromGeiser.h"
 #include "GameMessages.h"
 #include "PossessableComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "EntityManager.h"
 #include "VehicleRacingControlComponent.h"
 #include "dZoneManager.h"
@@ -37,13 +37,13 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 
 		vehicle = entering;
 	} else if (entering->IsPlayer()) {
-		auto* possessorComponent = entering->GetComponent<PossessorComponent>();
+		auto* possessionComponent = entering->GetComponent<PossessionComponent>();
 
-		if (possessorComponent == nullptr) {
+		if (possessionComponent == nullptr) {
 			return;
 		}
 
-		vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		vehicle = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
 
 		if (vehicle == nullptr) {
 			return;

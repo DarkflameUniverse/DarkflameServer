@@ -72,7 +72,7 @@
 #include "ModuleAssemblyComponent.h"
 #include "RenderComponent.h"
 #include "PossessableComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "VehicleRacingControlComponent.h"
 #include "RailActivatorComponent.h"
 #include "LevelProgressionComponent.h"
@@ -4053,21 +4053,21 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 
 	// If we aren't possessing somethings, the don't do anything
 	if (objectId != LWOOBJID_EMPTY) {
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto* possessionComponent = entity->GetComponent<PossessionComponent>();
 		auto* mount = EntityManager::Instance()->GetEntity(objectId);
 		// make sure we have the things we need and they aren't null
-		if (possessorComponent && mount) {
-			if (!possessorComponent->GetIsDismounting()) return;
-			possessorComponent->SetIsDismounting(false);
-			possessorComponent->SetPossessable(LWOOBJID_EMPTY);
-			possessorComponent->SetPossessableType(ePossessionType::NO_POSSESSION);
+		if (possessionComponent && mount) {
+			if (!possessionComponent->GetIsDismounting()) return;
+			possessionComponent->SetIsDismounting(false);
+			possessionComponent->SetPossessable(LWOOBJID_EMPTY);
+			possessionComponent->SetPossessableType(ePossessionType::NO_POSSESSION);
 
 			// character related things
 			auto* character = entity->GetComponent<CharacterComponent>();
 			if (character) {
 				// If we had an active item turn it off
-				if (possessorComponent->GetMountItemID() != LWOOBJID_EMPTY) GameMessages::SendMarkInventoryItemAsActive(entity->GetObjectID(), false, eUnequippableActiveType::MOUNT, possessorComponent->GetMountItemID(), entity->GetSystemAddress());
-				possessorComponent->SetMountItemID(LWOOBJID_EMPTY);
+				if (possessionComponent->GetMountItemID() != LWOOBJID_EMPTY) GameMessages::SendMarkInventoryItemAsActive(entity->GetObjectID(), false, eUnequippableActiveType::MOUNT, possessionComponent->GetMountItemID(), entity->GetSystemAddress());
+				possessionComponent->SetMountItemID(LWOOBJID_EMPTY);
 			}
 
 			// Set that the controllabel phsyics comp is teleporting

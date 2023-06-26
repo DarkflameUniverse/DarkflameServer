@@ -1,6 +1,6 @@
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "RaceImaginePowerup.h"
 #include "eRacingTaskParam.h"
 #include "MissionComponent.h"
@@ -9,13 +9,13 @@
 void RaceImaginePowerup::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,
 	int32_t param2, int32_t param3) {
 	if (sender->IsPlayer() && args == "powerup") {
-		auto* possessorComponent = sender->GetComponent<PossessorComponent>();
+		auto* possessionComponent = sender->GetComponent<PossessionComponent>();
 
-		if (possessorComponent == nullptr) {
+		if (possessionComponent == nullptr) {
 			return;
 		}
 
-		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* vehicle = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
 
 		if (vehicle == nullptr) {
 			return;
