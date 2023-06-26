@@ -15,36 +15,22 @@ public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
 
 	BouncerComponent(Entity* parentEntity);
-	~BouncerComponent() override;
 
+	void Startup() override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-
-	Entity* GetParentEntity() const;
 
 	/**
 	 * Sets whether or not this bouncer needs to be activated by a pet
 	 * @param value whether or not this bouncer needs to be activated by a pet
 	 */
-	void SetPetEnabled(bool value);
+	void SetBounceOnCollision(bool value);
 
 	/**
 	 * Sets whether or not this bouncer is currently being activated by a pet, allowing entities to bounce off of it,
 	 * also displays FX accordingly.
 	 * @param value whether or not this bouncer is activated by a pet
 	 */
-	void SetPetBouncerEnabled(bool value);
-
-	/**
-	 * Gets whether this bouncer should be enabled using pets
-	 * @return whether this bouncer should be enabled using pets
-	 */
-	bool GetPetEnabled() const;
-
-	/**
-	 * Gets whether this bouncer is currently activated by a pet
-	 * @return whether this bouncer is currently activated by a pet
-	 */
-	bool GetPetBouncerEnabled() const;
+	void SetBouncerEnabled(bool value);
 
 	/**
 	 * Finds the switch used to activate this bouncer if its pet-enabled and stores this components' state there
@@ -53,19 +39,11 @@ public:
 
 private:
 	/**
-	 * Whether this bouncer needs to be activated by a pet
-	 */
-	bool m_PetEnabled;
-
-	/**
 	 * Whether this bouncer is currently being activated by a pet
 	 */
-	bool m_PetBouncerEnabled;
+	bool m_BounceOnCollision;
 
-	/**
-	 * Whether the pet switch for this bouncer has been located
-	 */
-	bool m_PetSwitchLoaded;
+	bool m_DirtyBounceInfo;
 };
 
 #endif // BOUNCERCOMPONENT_H

@@ -28,9 +28,7 @@ void SwitchComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitial
 void SwitchComponent::SetActive(bool active) {
 	m_Active = active;
 
-	if (m_PetBouncer != nullptr) {
-		m_PetBouncer->SetPetBouncerEnabled(active);
-	}
+	if (m_PetBouncer) m_PetBouncer->SetBouncerEnabled(active);
 }
 
 bool SwitchComponent::GetActive() const {
@@ -61,7 +59,7 @@ void SwitchComponent::EntityEnter(Entity* entity) {
 		if (m_PetBouncer != nullptr) {
 			GameMessages::SendPlayFXEffect(m_ParentEntity->GetObjectID(), 2602, u"pettriggeractive", "BounceEffect", LWOOBJID_EMPTY, 1, 1, true);
 			RenderComponent::PlayAnimation(m_ParentEntity, u"engaged");
-			m_PetBouncer->SetPetBouncerEnabled(true);
+			m_PetBouncer->SetBouncerEnabled(true);
 		} else {
 			EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 		}
@@ -92,8 +90,8 @@ void SwitchComponent::Update(float deltaTime) {
 				}
 			}
 
-			if (m_PetBouncer != nullptr) {
-				m_PetBouncer->SetPetBouncerEnabled(false);
+			if (m_PetBouncer) {
+				m_PetBouncer->SetBouncerEnabled(false);
 			} else {
 				EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 			}
@@ -126,7 +124,8 @@ void SwitchComponent::SetPetBouncer(BouncerComponent* value) {
 	m_PetBouncer = value;
 
 	if (value != nullptr) {
-		m_PetBouncer->SetPetEnabled(true);
+		m_PetBouncer->SetBounceOnCollision(true);
+		EntityManager::Instance()->SerializeEntity(m_PetBouncer->GetParentEntity());
 		petSwitches.push_back(this);
 	}
 }
