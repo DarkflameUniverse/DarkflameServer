@@ -15,10 +15,16 @@ class Entity;
  * Extra information on effects to apply after applying a buff, for example whether to buff armor, imag or health and by how much
  */
 struct BuffParameter {
+	struct ParameterValues {
+		int32_t skillId = 0;
+		int32_t stacks = 0;
+		float tick = 0.0f;
+		int32_t unknown2 = 0;
+	};
 	int32_t buffId = 0;
 	std::string name;
 	float value = 0.0f;
-	std::vector<float> values;
+	ParameterValues values;
 	int32_t effectId = 0;
 };
 
@@ -42,9 +48,7 @@ class BuffComponent final : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
 
-	explicit BuffComponent(Entity* parent) : Component(parent) { };
-
-	Entity* GetParentEntity() const;
+	explicit BuffComponent(Entity* parent) : Component(parent) {};
 
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 
@@ -106,7 +110,7 @@ public:
 	/**
 	 * Removes all buffs for the entity and reverses all of their effects
 	 */
-	void Reset();
+	void Reset() { RemoveAllBuffs(); };
 
 	/**
 	 * Applies all effects for all buffs, active or not, again

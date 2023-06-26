@@ -16,12 +16,10 @@ std::unordered_map<int32_t, std::vector<BuffParameter>> BuffComponent::m_Cache{}
 
 void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	if (!bIsInitialUpdate) return;
-	if (m_Buffs.empty()) {
-		outBitStream->Write0();
-	} else {
-		outBitStream->Write1();
-		outBitStream->Write<uint32_t>(m_Buffs.size());
 
+	outBitStream->Write(!m_Buffs.empty());
+	if (!m_Buffs.empty()) {
+		outBitStream->Write<uint32_t>(m_Buffs.size());
 		for (const auto& buff : m_Buffs) {
 			outBitStream->Write<uint32_t>(buff.first);
 			outBitStream->Write0();
@@ -41,7 +39,7 @@ void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUp
 		}
 	}
 
-	outBitStream->Write0();
+	outBitStream->Write0(); // immunities
 }
 
 void BuffComponent::Update(float deltaTime) {
@@ -49,30 +47,28 @@ void BuffComponent::Update(float deltaTime) {
 	 * Loop through all buffs and apply deltaTime to ther time.
 	 * If they have expired, remove the buff and break.
 	 */
-	for (auto& buff : m_Buffs) {
+	for (auto& [buffId, buffInfo] : m_Buffs) {
 		// For damage buffs
-		if (buff.second.tick != 0.0f && buff.second.stacks > 0) {
-			buff.second.tickTime -= deltaTime;
+		if (buffInfo.tick != 0.0f && buffInfo.stacks > 0) {
+			buffInfo.tickTime -= deltaTime;
 
-			if (buff.second.tickTime <= 0.0f) {
-				buff.second.tickTime = buff.second.tick;
-				buff.second.stacks--;
+			if (buffInfo.tickTime <= 0.0f) {
+				buffInfo.tickTime = buffInfo.tick;
+				buffInfo.stacks--;
 
-				SkillComponent::HandleUnmanaged(buff.second.behaviorID, m_ParentEntity->GetObjectID(), buff.second.source);
+				SkillComponent::HandleUnmanaged(buffInfo.behaviorID, m_ParentEntity->GetObjectID(), buffInfo.source);
 			}
 		}
 
 		// These are indefinate buffs, don't update them.
-		if (buff.second.time == 0.0f) {
-			continue;
-		}
+		if (buffInfo.time == 0.0f) continue;
 
-		buff.second.time -= deltaTime;
+		buffInfo.time -= deltaTime;
 
-		if (buff.second.time <= 0.0f) {
-			RemoveBuff(buff.first);
+		if (buffInfo.time <= 0.0f) {
+			RemoveBuff(buffId);
 
-			break;
+			break; // Break because we modified or may modify the map.
 		}
 	}
 }
@@ -81,9 +77,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	bool cancelOnDamaged, bool cancelOnDeath, bool cancelOnLogout, bool cancelOnRemoveBuff,
 	bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone) {
 	// Prevent buffs from stacking.
-	if (HasBuff(id)) {
-		return;
-	}
+	if (HasBuff(id)) return;
 
 	GameMessages::SendAddBuff(m_ParentEntity->GetObjectID(), source, (uint32_t)id,
 		(uint32_t)duration * 1000, addImmunity, cancelOnDamaged, cancelOnDeath,
@@ -94,14 +88,14 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	int32_t behaviorID = 0;
 
 	const auto& parameters = GetBuffParameters(id);
+	auto* skillBehaviorTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 	for (const auto& parameter : parameters) {
 		if (parameter.name == "overtime") {
-			auto* behaviorTemplateTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
-			behaviorID = behaviorTemplateTable->GetSkillByID(parameter.values[0]).behaviorID;
-			stacks = static_cast<int32_t>(parameter.values[1]);
-			tick = parameter.values[2];
-			const auto unknown2 = parameter.values[3]; // Always 0
+			behaviorID = skillBehaviorTable->GetSkillByID(parameter.values.skillId).behaviorID;
+			stacks = static_cast<int32_t>(parameter.values.stacks);
+			tick = parameter.values.tick;
+			const auto unknown2 = parameter.values.unknown2; // Always 0
 		}
 	}
 
@@ -116,15 +110,13 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	buff.source = source;
 	buff.behaviorID = behaviorID;
 
-	m_Buffs.emplace(id, buff);
+	m_Buffs.insert_or_assign(id, buff);
 }
 
 void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity) {
 	const auto& iter = m_Buffs.find(id);
 
-	if (iter == m_Buffs.end()) {
-		return;
-	}
+	if (iter == m_Buffs.end()) return;
 
 	GameMessages::SendRemoveBuff(m_ParentEntity, fromUnEquip, removeImmunity, id);
 
@@ -181,7 +173,7 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 
 			auto* destroyable = this->GetParentEntity()->GetComponent<DestroyableComponent>();
 
-			if (destroyable == nullptr) return;
+			if (!destroyable) return;
 
 			destroyable->SetMaxHealth(destroyable->GetMaxHealth() - maxHealth);
 		} else if (parameter.name == "max_armor") {
@@ -189,7 +181,7 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 
 			auto* destroyable = this->GetParentEntity()->GetComponent<DestroyableComponent>();
 
-			if (destroyable == nullptr) return;
+			if (!destroyable) return;
 
 			destroyable->SetMaxArmor(destroyable->GetMaxArmor() - maxArmor);
 		} else if (parameter.name == "max_imagination") {
@@ -197,7 +189,7 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 
 			auto* destroyable = this->GetParentEntity()->GetComponent<DestroyableComponent>();
 
-			if (destroyable == nullptr) return;
+			if (!destroyable) return;
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() - maxImagination);
 		} else if (parameter.name == "speed") {
@@ -210,25 +202,17 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 }
 
 void BuffComponent::RemoveAllBuffs() {
-	for (const auto& buff : m_Buffs) {
-		RemoveBuffEffect(buff.first);
+	for (const auto& [buffId, buffInfo] : m_Buffs) {
+		RemoveBuffEffect(buffId);
 	}
 
 	m_Buffs.clear();
 }
 
-void BuffComponent::Reset() {
-	RemoveAllBuffs();
-}
-
 void BuffComponent::ReApplyBuffs() {
-	for (const auto& buff : m_Buffs) {
-		ApplyBuffEffect(buff.first);
+	for (const auto& [buffId, buffInfo] : m_Buffs) {
+		ApplyBuffEffect(buffId);
 	}
-}
-
-Entity* BuffComponent::GetParentEntity() const {
-	return m_ParentEntity;
 }
 
 void BuffComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
@@ -239,9 +223,7 @@ void BuffComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	auto* buffElement = dest->FirstChildElement("buff");
 
 	// Old character, no buffs to load
-	if (buffElement == nullptr) {
-		return;
-	}
+	if (buffElement) return;
 
 	auto* buffEntry = buffElement->FirstChildElement("b");
 
@@ -299,12 +281,9 @@ void BuffComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffId) {
 	const auto& pair = m_Cache.find(buffId);
 
-	if (pair != m_Cache.end()) {
-		return pair->second;
-	}
+	if (pair != m_Cache.end()) return pair->second;
 
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT * FROM BuffParameters WHERE BuffID = ?;");
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM BuffParameters WHERE BuffID = ?;");
 	query.bind(1, (int)buffId);
 
 	auto result = query.execQuery();
@@ -319,17 +298,15 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 		param.value = result.getFloatField(2);
 
 		if (!result.fieldIsNull(3)) {
-			std::istringstream stream(result.getStringField(3));
-			std::string token;
-
-			while (std::getline(stream, token, ',')) {
-				try {
-					const auto value = std::stof(token);
-
-					param.values.push_back(value);
-				} catch (std::invalid_argument& exception) {
-					Game::logger->Log("BuffComponent", "Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
-				}
+			const auto parameterInfo = result.getStringField(3);
+			const auto values = GeneralUtils::SplitString(parameterInfo, ',');
+			if (values.size() >= 4) {
+				GeneralUtils::TryParse(values.at(0), param.values.skillId);
+				GeneralUtils::TryParse(values.at(1), param.values.stacks);
+				GeneralUtils::TryParse(values.at(2), param.values.tick);
+				GeneralUtils::TryParse(values.at(3), param.values.unknown2);
+			} else {
+				Game::logger->Log("BuffComponent", "Failed to parse %s into parameter struct. Too few parameters to split on.", parameterInfo);
 			}
 		}
 
