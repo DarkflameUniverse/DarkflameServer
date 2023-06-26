@@ -310,6 +310,7 @@ void Entity::Initialize() {
 				break;
 			case eReplicaComponentType::MOVING_PLATFORM:
 				AddComponent<MovingPlatformComponent>(GetVarAsString(u"attached_path"));
+				m_IsGhostingCandidate = false;
 				break;
 			case eReplicaComponentType::PET:
 				AddComponent<PetComponent>(componentId);
@@ -325,6 +326,7 @@ void Entity::Initialize() {
 						havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
 					}
 				}
+				m_IsGhostingCandidate = false;
 				hasPhysicsComponent = true;
 				break;
 			}
@@ -333,14 +335,17 @@ void Entity::Initialize() {
 				break;
 			case eReplicaComponentType::PROPERTY:
 				AddComponent<PropertyComponent>();
+				m_IsGhostingCandidate = false;
 				break;
 			case eReplicaComponentType::SCRIPTED_ACTIVITY:
 				AddComponent<ScriptedActivityComponent>(componentId);
+				m_IsGhostingCandidate = false;
 				break;
 			case eReplicaComponentType::PHANTOM_PHYSICS: {
 				auto* phantomPhysicsComponent = AddComponent<PhantomPhysicsComponent>();
 				if (phantomPhysicsComponent) phantomPhysicsComponent->SetPhysicsEffectActive(false);
 				hasPhysicsComponent = true;
+				m_IsGhostingCandidate = false;
 				break;
 			}
 			case eReplicaComponentType::MODEL_BEHAVIOR: {
@@ -359,9 +364,6 @@ void Entity::Initialize() {
 						hasPhysicsComponent = true;
 					}
 				}
-				// if has LDF of propertyObjectID || inInventory is true
-				// AddComponent<MutableModelBehaviorComponent>();
-				// else
 				AddComponent<ModelBehaviorComponent>();
 				if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
 					auto* destroyableComponent = AddComponent<DestroyableComponent>(componentId);
@@ -417,6 +419,7 @@ void Entity::Initialize() {
 				break;
 			case eReplicaComponentType::RACING_CONTROL:
 				AddComponent<RacingControlComponent>();
+				m_IsGhostingCandidate = false;
 				break;
 			case eReplicaComponentType::MISSION_OFFER:
 				AddComponent<MissionOfferComponent>(GetLOT());
