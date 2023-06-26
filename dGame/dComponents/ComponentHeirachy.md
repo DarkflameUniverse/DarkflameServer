@@ -128,7 +128,7 @@ LWOSpawnComponent
 LWOSpringpadComponent
 LWOSwitchComponent
 LWOTriggerComponent
-LocalPlayer (not a component)
+LocalPlayer - This is a function call in the client which, if the generated Entity is a player, the below components are added. This **must** be done for all players.
 ├~~ LWOInteractionManagerComponent
 ├~~ LWOUserControlComponent
 ├~~ LWOFriendsListComponent

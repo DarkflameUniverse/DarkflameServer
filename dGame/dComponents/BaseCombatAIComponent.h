@@ -20,20 +20,25 @@ class Entity;
 /**
  * The current state of the AI
  */
-enum class AiState : int {
-	idle = 0,   // Doing nothing
-	aggro,      // Waiting for an enemy to cross / running back to spawn
-	tether,     // Chasing an enemy
-	spawn,      // Spawning into the world
-	dead        // Killed
+enum class AiState : int32_t {
+	Idle = 0,   // Doing nothing
+	Aggro,      // Waiting for an enemy to cross / running back to spawn
+	Tether,     // Chasing an enemy
+	Spawn,      // Spawning into the world
+	Dead        // Killed
 };
 
 /**
  * Represents a skill that can be cast by this enemy, including its cooldowns, which determines how often the skill
  * may be cast.
  */
-struct AiSkillEntry
-{
+struct AiSkillEntry {
+	AiSkillEntry(uint32_t skillId, float cooldown, float abilityCooldown, Behavior* behavior) {
+		this->skillId = skillId;
+		this->cooldown = cooldown;
+		this->abilityCooldown = abilityCooldown;
+		this->behavior = behavior;
+	}
 	uint32_t skillId;
 
 	float cooldown;
@@ -53,6 +58,9 @@ public:
 	BaseCombatAIComponent(Entity* parentEntity, uint32_t id);
 	~BaseCombatAIComponent() override;
 
+	void LoadTemplateData() override;
+	void LoadConfigData() override;
+	void Startup() override;
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -147,37 +155,37 @@ public:
 	 * Gets whether or not the entity is currently stunned
 	 * @return whether the entity is currently stunned
 	 */
-	bool GetStunned() const;
+	bool GetStunned() const { return m_Stunned; }
 
 	/**
 	 * (un)stuns the entity, determining whether it'll be able to attack other entities
 	 * @param value whether the enemy is stunned
 	 */
-	void SetStunned(bool value);
+	void SetStunned(bool value) { m_Stunned = value; }
 
 	/**
 	 * Gets if this entity may be stunned
 	 * @return if this entity may be stunned
 	 */
-	bool GetStunImmune() const;
+	bool GetStunImmune() const { return m_StunImmune; }
 
 	/**
 	 * Set the stun immune value, determining if the entity may be stunned
 	 * @param value
 	 */
-	void SetStunImmune(bool value);
+	void SetStunImmune(bool value) { m_StunImmune = value; }
 
 	/**
 	 * Gets the current speed at which an entity runs when tethering
 	 * @return the current speed at which an entity runs when tethering
 	 */
-	float GetTetherSpeed() const;
+	float GetTetherSpeed() const { return m_TetherSpeed; }
 
 	/**
 	 * Sets the speed at which an entity will tether
 	 * @param value the new tether speed
 	 */
-	void SetTetherSpeed(float value);
+	void SetTetherSpeed(float value) { m_TetherSpeed = value; }
 
 	/**
 	 * Stuns the entity for a certain amount of time, will not work if the entity is stun immune
@@ -189,13 +197,13 @@ public:
 	 * Gets the radius that will cause this entity to get aggro'd, causing a target chase
 	 * @return the aggro radius of the entity
 	 */
-	float GetAggroRadius() const;
+	float GetAggroRadius() const { return m_AggroRadius; }
 
 	/**
 	 * Sets the aggro radius, causing the entity to start chasing enemies in this range
 	 * @param value the aggro radius to set
 	 */
-	void SetAggroRadius(float value);
+	void SetAggroRadius(float value) { m_AggroRadius = value; }
 
 	/**
 	 * Makes the entity look at a certain point in space
@@ -207,13 +215,13 @@ public:
 	 * (dis)ables the AI, causing it to stop/start attacking enemies
 	 * @param value
 	 */
-	void SetDisabled(bool value);
+	void SetDisabled(bool value) { m_Disabled = value; }
 
 	/**
 	 * Gets the current state of the AI, whether or not it's looking for enemies to attack
 	 * @return
 	 */
-	bool GetDistabled() const;
+	bool GetDistabled() const { return m_Disabled; }
 
 	/**
 	 * Turns the entity asleep, stopping updates to its physics volumes
@@ -387,7 +395,9 @@ private:
 	 * Whether the current entity is a mech enemy, needed as mechs tether radius works differently
 	 * @return whether this entity is a mech
 	 */
-	bool IsMech();
+	bool IsMech() const { return m_ParentEntity->GetLOT() == 6253; };
+
+	int32_t m_ComponentId;
 };
 
 #endif // BASECOMBATAICOMPONENT_H

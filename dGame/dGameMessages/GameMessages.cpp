@@ -1286,7 +1286,7 @@ void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& s
 	auto* vendor = entity->GetComponent<VendorComponent>();
 	if (!vendor) return;
 
-	std::map<LOT, int> vendorItems = vendor->GetInventory();
+	auto vendorItems = vendor->GetInventory();
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(eGameMessageType::VENDOR_STATUS_UPDATE);
@@ -1294,9 +1294,9 @@ void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& s
 	bitStream.Write(bUpdateOnly);
 	bitStream.Write(static_cast<uint32_t>(vendorItems.size()));
 
-	for (std::pair<LOT, int> item : vendorItems) {
-		bitStream.Write(static_cast<int>(item.first));
-		bitStream.Write(static_cast<int>(item.second));
+	for (const auto&[lot, sortPriority] : vendorItems) {
+		bitStream.Write<int32_t>(lot);
+		bitStream.Write<int32_t>(sortPriority);
 	}
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
