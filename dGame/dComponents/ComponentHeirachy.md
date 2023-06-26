@@ -4,6 +4,9 @@ Legend
 ├~~ Loaded with Parent
 ├-> SubComponent
 ├-? idk lol, but related
+
+originalName -> newName
+
 ```
 
 
@@ -14,8 +17,8 @@ LWOActivityComponent
 ├── LWOMiniGameControlComponent
 ├── LWOShootingGalleryComponent
 ├── LWOScriptedActivityComponent
-|	└── LWOBaseRacingControlComponent
-|		├── LWORacingControlComponent
+|	└── LWOBaseRacingControlComponent -> RacingControlComponent
+|		├── LWORacingControlComponent -> VehicleRacingControlComponent
 |		└── LWOGateRushControlComponent
 LWOBaseCombatAIComponent
 ├~~ LWOPathfindingControlComponent

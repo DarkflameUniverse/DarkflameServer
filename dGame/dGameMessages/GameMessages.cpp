@@ -73,7 +73,7 @@
 #include "RenderComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
-#include "RacingControlComponent.h"
+#include "VehicleRacingControlComponent.h"
 #include "RailActivatorComponent.h"
 #include "LevelProgressionComponent.h"
 
@@ -3889,11 +3889,9 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream* inStream, Entity*
 		scriptedActivityComponent->HandleMessageBoxResponse(userEntity, GeneralUtils::UTF16ToWTF8(identifier));
 	}
 
-	auto* racingControlComponent = entity->GetComponent<RacingControlComponent>();
+	auto* vehicleRacingControlComponent = entity->GetComponent<VehicleRacingControlComponent>();
 
-	if (racingControlComponent != nullptr) {
-		racingControlComponent->HandleMessageBoxResponse(userEntity, iButton, GeneralUtils::UTF16ToWTF8(identifier));
-	}
+	if (vehicleRacingControlComponent) vehicleRacingControlComponent->HandleMessageBoxResponse(userEntity, iButton, GeneralUtils::UTF16ToWTF8(identifier));
 
 	for (auto* shootingGallery : EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SHOOTING_GALLERY)) {
 		shootingGallery->OnMessageBoxResponse(userEntity, iButton, identifier, userData);
@@ -4137,13 +4135,11 @@ void GameMessages::HandleRacingClientReady(RakNet::BitStream* inStream, Entity* 
 		return;
 	}
 
-	auto* racingControlComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<RacingControlComponent>();
+	auto* vehicleRacingControlComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<VehicleRacingControlComponent>();
 
-	if (racingControlComponent == nullptr) {
-		return;
-	}
+	if (!vehicleRacingControlComponent) return;
 
-	racingControlComponent->OnRacingClientReady(player);
+	vehicleRacingControlComponent->OnRacingClientReady(player);
 }
 
 
@@ -4187,23 +4183,20 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
+	auto* vehicleRacingControlComponent = zoneController->GetComponent<VehicleRacingControlComponent>();
 
 	Game::logger->Log("HandleRequestDie", "Got die request: %i", entity->GetLOT());
 
-	if (racingControlComponent != nullptr) {
-		auto* possessableComponent = entity->GetComponent<PossessableComponent>();
+	if (!vehicleRacingControlComponent) return;
+	auto* possessableComponent = entity->GetComponent<PossessableComponent>();
 
-		if (possessableComponent != nullptr) {
-			entity = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
+	if (possessableComponent) {
+		entity = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
 
-			if (entity == nullptr) {
-				return;
-			}
-		}
-
-		racingControlComponent->OnRequestDie(entity);
+		if (!entity) return;
 	}
+
+	vehicleRacingControlComponent->OnRequestDie(entity);
 }
 
 
@@ -4230,13 +4223,11 @@ void GameMessages::HandleRacingPlayerInfoResetFinished(RakNet::BitStream* inStre
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
+	auto* vehicleRacingControlComponent = zoneController->GetComponent<VehicleRacingControlComponent>();
 
 	Game::logger->Log("HandleRacingPlayerInfoResetFinished", "Got finished: %i", entity->GetLOT());
 
-	if (racingControlComponent != nullptr) {
-		racingControlComponent->OnRacingPlayerInfoResetFinished(player);
-	}
+	if (vehicleRacingControlComponent) vehicleRacingControlComponent->OnRacingPlayerInfoResetFinished(player);
 }
 
 void GameMessages::SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr) {

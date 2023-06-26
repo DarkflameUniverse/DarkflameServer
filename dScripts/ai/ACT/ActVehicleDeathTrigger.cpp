@@ -1,7 +1,7 @@
 #include "ActVehicleDeathTrigger.h"
 #include "PossessableComponent.h"
 #include "GameMessages.h"
-#include "RacingControlComponent.h"
+#include "VehicleRacingControlComponent.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
 #include "PossessorComponent.h"
@@ -44,9 +44,7 @@ void ActVehicleDeathTrigger::OnCollisionPhantom(Entity* self, Entity* target) {
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
+	auto* vehicleRacingControlComponent = zoneController->GetComponent<VehicleRacingControlComponent>();
 
-	if (racingControlComponent != nullptr) {
-		racingControlComponent->OnRequestDie(player);
-	}
+	if (vehicleRacingControlComponent) vehicleRacingControlComponent->OnRequestDie(player);
 }
