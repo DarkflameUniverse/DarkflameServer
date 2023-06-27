@@ -64,9 +64,8 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 }
 
 ControllablePhysicsComponent::~ControllablePhysicsComponent() {
-	if (m_dpEntity) {
-		dpWorld::Instance().RemoveEntity(m_dpEntity);
-	}
+	if (!m_dpEntity) return;
+	dpWorld::Instance().RemoveEntity(m_dpEntity);
 }
 
 void ControllablePhysicsComponent::Startup() {
@@ -76,19 +75,7 @@ void ControllablePhysicsComponent::Startup() {
 	SetRotation(rot);
 }
 
-void ControllablePhysicsComponent::LoadConfigData() {
-
-}
-
-void ControllablePhysicsComponent::LoadTemplateData() {
-
-}
-
 void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	//If this is a creation, then we assume the position is dirty, even when it isn't.
-	//This is because new clients will still need to receive the position.
-	//if (bIsInitialUpdate) m_DirtyPosition = true;
-
 	if (bIsInitialUpdate) {
 		outBitStream->Write(m_InJetpackMode);
 		if (m_InJetpackMode) {
@@ -109,33 +96,32 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 
 	if (m_IgnoreMultipliers) m_DirtyCheats = false;
 
-	outBitStream->Write(m_DirtyCheats);
-	if (m_DirtyCheats) {
+	outBitStream->Write(bIsInitialUpdate || m_DirtyCheats);
+	if (bIsInitialUpdate || m_DirtyCheats) {
 		outBitStream->Write(m_GravityScale);
 		outBitStream->Write(m_SpeedMultiplier);
-
-		m_DirtyCheats = false;
+		if (!bIsInitialUpdate) m_DirtyCheats = false;
 	}
 
-	outBitStream->Write(m_DirtyEquippedItemInfo);
-	if (m_DirtyEquippedItemInfo) {
+	outBitStream->Write(bIsInitialUpdate || m_DirtyEquippedItemInfo);
+	if (bIsInitialUpdate || m_DirtyEquippedItemInfo) {
 		outBitStream->Write(m_PickupRadius);
 		outBitStream->Write(m_InJetpackMode);
-		m_DirtyEquippedItemInfo = false;
+		if (!bIsInitialUpdate) m_DirtyEquippedItemInfo = false;
 	}
 
-	outBitStream->Write(m_DirtyBubble);
-	if (m_DirtyBubble) {
+	outBitStream->Write(bIsInitialUpdate || m_DirtyBubble);
+	if (bIsInitialUpdate || m_DirtyBubble) {
 		outBitStream->Write(m_IsInBubble);
 		if (m_IsInBubble) {
 			outBitStream->Write(m_BubbleType);
 			outBitStream->Write(m_SpecialAnims);
 		}
-		m_DirtyBubble = false;
+		if (!bIsInitialUpdate) m_DirtyBubble = false;
 	}
 
-	outBitStream->Write(m_DirtyPosition || bIsInitialUpdate);
-	if (m_DirtyPosition || bIsInitialUpdate) {
+	outBitStream->Write(bIsInitialUpdate || m_DirtyPosition);
+	if (bIsInitialUpdate || m_DirtyPosition) {
 		outBitStream->Write(m_Position.x);
 		outBitStream->Write(m_Position.y);
 		outBitStream->Write(m_Position.z);
@@ -148,20 +134,22 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write(m_IsOnGround);
 		outBitStream->Write(m_IsOnRail);
 
-		outBitStream->Write(m_DirtyVelocity);
-		if (m_DirtyVelocity) {
+		outBitStream->Write(bIsInitialUpdate || m_DirtyVelocity);
+		if (bIsInitialUpdate || m_DirtyVelocity) {
 			outBitStream->Write(m_Velocity.x);
 			outBitStream->Write(m_Velocity.y);
 			outBitStream->Write(m_Velocity.z);
+			if (!bIsInitialUpdate) m_DirtyVelocity = false;
 		}
 
-		outBitStream->Write(m_DirtyAngularVelocity);
-		if (m_DirtyAngularVelocity) {
+		outBitStream->Write(bIsInitialUpdate || m_DirtyAngularVelocity);
+		if (bIsInitialUpdate || m_DirtyAngularVelocity) {
 			outBitStream->Write(m_AngularVelocity.x);
 			outBitStream->Write(m_AngularVelocity.y);
 			outBitStream->Write(m_AngularVelocity.z);
+			if (!bIsInitialUpdate) m_DirtyAngularVelocity = false;
 		}
-
+		if (!bIsInitialUpdate) m_DirtyPosition = false;
 		outBitStream->Write0();
 	}
 
@@ -261,9 +249,7 @@ void ControllablePhysicsComponent::SetRotation(const NiQuaternion& rot) {
 }
 
 void ControllablePhysicsComponent::SetVelocity(const NiPoint3& vel) {
-	if (m_Static) {
-		return;
-	}
+	if (m_Static || m_Velocity == vel) return;
 
 	m_Velocity = vel;
 	m_DirtyPosition = true;
@@ -273,9 +259,7 @@ void ControllablePhysicsComponent::SetVelocity(const NiPoint3& vel) {
 }
 
 void ControllablePhysicsComponent::SetAngularVelocity(const NiPoint3& vel) {
-	if (m_Static || vel == m_AngularVelocity) {
-		return;
-	}
+	if (m_Static || vel == m_AngularVelocity) return;
 
 	m_AngularVelocity = vel;
 	m_DirtyPosition = true;
@@ -292,18 +276,6 @@ void ControllablePhysicsComponent::SetIsOnRail(bool val) {
 	if (m_IsOnRail == val) return;
 	m_IsOnRail = val;
 	m_DirtyPosition = true;
-}
-
-void ControllablePhysicsComponent::SetDirtyPosition(bool val) {
-	m_DirtyPosition = val;
-}
-
-void ControllablePhysicsComponent::SetDirtyVelocity(bool val) {
-	m_DirtyVelocity = val;
-}
-
-void ControllablePhysicsComponent::SetDirtyAngularVelocity(bool val) {
-	m_DirtyAngularVelocity = val;
 }
 
 void ControllablePhysicsComponent::AddPickupRadiusScale(float value) {
@@ -328,7 +300,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 	m_PickupRadius = 0.0f;
 	m_DirtyEquippedItemInfo = true;
 	for (uint32_t i = 0; i < m_ActivePickupRadiusScales.size(); i++) {
-		auto candidateRadius = m_ActivePickupRadiusScales[i];
+		auto candidateRadius = m_ActivePickupRadiusScales.at(i);
 		if (m_PickupRadius < candidateRadius) m_PickupRadius = candidateRadius;
 	}
 	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
@@ -350,7 +322,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	}
 
 	// Recalculate speedboost since we removed one
-	m_SpeedBoost = 0.0f;
+	m_SpeedBoost = 500.0f;
 	if (m_ActiveSpeedBoosts.empty()) { // no active speed boosts left, so return to base speed
 		auto* levelProgressionComponent = m_ParentEntity->GetComponent<LevelProgressionComponent>();
 		if (levelProgressionComponent) m_SpeedBoost = levelProgressionComponent->GetSpeedBase();
@@ -363,7 +335,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 
 void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims) {
 	if (m_IsInBubble) {
-		Game::logger->Log("ControllablePhysicsComponent", "Already in bubble");
+		Game::logger->Log("ControllablePhysicsComponent", "%llu is already in bubble", m_ParentEntity->GetObjectID());
 		return;
 	}
 	m_BubbleType = bubbleType;

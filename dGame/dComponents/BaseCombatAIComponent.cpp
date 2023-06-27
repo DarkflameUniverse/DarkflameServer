@@ -506,11 +506,11 @@ std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 }
 
 void BaseCombatAIComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	outBitStream->Write(m_DirtyStateOrTarget || bIsInitialUpdate);
-	if (m_DirtyStateOrTarget || bIsInitialUpdate) {
+	outBitStream->Write(m_DirtyStateOrTarget);
+	if (bIsInitialUpdate || m_DirtyStateOrTarget) {
 		outBitStream->Write(m_State);
 		outBitStream->Write(m_Target);
-		m_DirtyStateOrTarget = false;
+		if (!bIsInitialUpdate) m_DirtyStateOrTarget = false;
 	}
 }
 

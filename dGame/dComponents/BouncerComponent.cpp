@@ -22,7 +22,7 @@ void BouncerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitia
 	outBitStream->Write(bIsInitialUpdate || m_DirtyBounceInfo);
 	if (bIsInitialUpdate || m_DirtyBounceInfo) {
 		outBitStream->Write(m_BounceOnCollision);
-		m_DirtyBounceInfo = false;
+		if (!bIsInitialUpdate) m_DirtyBounceInfo = false;
 	}
 }
 
