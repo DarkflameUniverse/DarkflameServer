@@ -25,7 +25,7 @@
 #include "dZoneManager.h"
 #include "Player.h"
 #include "Zone.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "PossessableComponent.h"
 #include "HavokVehiclePhysicsComponent.h"
 #include "dConfig.h"
@@ -100,7 +100,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	}
 	*/
 
-	auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+	auto* possessionComponent = entity->GetComponent<PossessionComponent>();
 
 	NiPoint3 position;
 	inStream.Read(position.x);
@@ -165,8 +165,8 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 	bool updateChar = true;
 
-	if (possessorComponent != nullptr) {
-		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+	if (possessionComponent != nullptr) {
+		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
 
 		if (possassableEntity != nullptr) {
 			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();

@@ -16,7 +16,7 @@
 #include "ItemSet.h"
 #include "Player.h"
 #include "PetComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "PossessableComponent.h"
 #include "ModuleAssemblyComponent.h"
 #include "HavokVehiclePhysicsComponent.h"
@@ -961,25 +961,25 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* characterComponent = m_ParentEntity->GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 
-	auto* possessorComponent = m_ParentEntity->GetComponent<PossessorComponent>();
-	if (!possessorComponent) return;
+	auto* possessionComponent = m_ParentEntity->GetComponent<PossessionComponent>();
+	if (!possessionComponent) return;
 
 	// Don't do anything if we are busy dismounting
-	if (possessorComponent->GetIsDismounting()) return;
+	if (possessionComponent->GetIsDismounting()) return;
 
 	// Check to see if we are already mounting something
-	auto* currentlyPossessedEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
-	auto currentlyPossessedItem = possessorComponent->GetMountItemID();
+	auto* currentlyPossessedEntity = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
+	auto currentlyPossessedItem = possessionComponent->GetMountItemID();
 
 	if (currentlyPossessedItem) {
-		if (currentlyPossessedEntity) possessorComponent->Dismount(currentlyPossessedEntity);
+		if (currentlyPossessedEntity) possessionComponent->Dismount(currentlyPossessedEntity);
 		return;
 	}
 
 	GameMessages::SendSetStunned(m_ParentEntity->GetObjectID(), eStateChangeType::PUSH, m_ParentEntity->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
 	// Set the mount Item ID so that we know what were handling
-	possessorComponent->SetMountItemID(item->GetId());
+	possessionComponent->SetMountItemID(item->GetId());
 	GameMessages::SendSetMountInventoryID(m_ParentEntity, item->GetId(), UNASSIGNED_SYSTEM_ADDRESS);
 
 	// Create entity to mount
@@ -1019,8 +1019,8 @@ void InventoryComponent::HandlePossession(Item* item) {
 		possessableComponent->SetIsItemSpawned(true);
 		possessableComponent->SetPossessor(m_ParentEntity->GetObjectID());
 		// Possess it
-		possessorComponent->SetPossessable(mount->GetObjectID());
-		possessorComponent->SetPossessableType(possessableComponent->GetPossessionType());
+		possessionComponent->SetPossessable(mount->GetObjectID());
+		possessionComponent->SetPossessableType(possessableComponent->GetPossessionType());
 	}
 
 	GameMessages::SendSetJetPackMode(m_ParentEntity, false);

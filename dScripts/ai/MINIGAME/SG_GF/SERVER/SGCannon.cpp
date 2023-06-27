@@ -5,7 +5,7 @@
 #include "Player.h"
 #include "Character.h"
 #include "ShootingGalleryComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "CharacterComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "MovementAIComponent.h"
@@ -105,7 +105,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 			if (characterComponent != nullptr) {
 				characterComponent->SetIsRacing(true);
 				characterComponent->SetCurrentActivity(eGameActivity::SHOOTING_GALLERY);
-				auto* possessor = player->GetComponent<PossessorComponent>();
+				auto* possessor = player->GetComponent<PossessionComponent>();
 				if (possessor) {
 					possessor->SetPossessable(self->GetObjectID());
 					possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
@@ -288,7 +288,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			EntityManager::Instance()->ConstructEntity(enemy);
 
 			auto* movementAiComponent = enemy->AddComponent<MovementAIComponent>(0U);
-	
+
 			movementAiComponent->SetSpeed(toSpawn.initialSpeed);
 			movementAiComponent->SetCurrentSpeed(toSpawn.initialSpeed);
 			movementAiComponent->SetHaltDistance(0.0f);

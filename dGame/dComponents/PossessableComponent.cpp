@@ -1,5 +1,5 @@
 #include "PossessableComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "EntityManager.h"
 #include "Inventory.h"
 #include "Item.h"
@@ -48,7 +48,7 @@ void PossessableComponent::Dismount() {
 }
 
 void PossessableComponent::OnUse(Entity* originator) {
-	auto* possessor = originator->GetComponent<PossessorComponent>();
+	auto* possessor = originator->GetComponent<PossessionComponent>();
 	if (possessor) {
 		possessor->Mount(m_ParentEntity);
 	}

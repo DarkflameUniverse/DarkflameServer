@@ -4,7 +4,7 @@
 #include "Entity.h"
 #include "Component.h"
 #include "Item.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "eAninmationFlags.h"
 #include "eReplicaComponentType.h"
 

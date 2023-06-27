@@ -16,12 +16,12 @@ enum class ePossessionType : uint8_t {
 /**
  * Represents an entity that can posess other entities. Generally used by players to drive a car.
  */
-class PossessorComponent : public Component {
+class PossessionComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSOR;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSION;
 
-	PossessorComponent(Entity* parent);
-	~PossessorComponent() override;
+	PossessionComponent(Entity* parent);
+	~PossessionComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -97,13 +97,13 @@ private:
 	ePossessionType m_PossessableType = ePossessionType::NO_POSSESSION;
 
 	/**
-	 * @brief If the possessor is dirty
+	 * @brief If the possession is dirty
 	 *
 	 */
 	bool m_DirtyPossesor = false;
 
 	/**
-	 * @brief If the possessor is busy dismounting
+	 * @brief If the possession is busy dismounting
 	 *
 	 */
 	bool m_IsDismounting = false;

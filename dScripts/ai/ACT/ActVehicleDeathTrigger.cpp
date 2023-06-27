@@ -1,10 +1,10 @@
 #include "ActVehicleDeathTrigger.h"
 #include "PossessableComponent.h"
 #include "GameMessages.h"
-#include "VehicleRacingControlComponent.h"
+#include "RacingComponent.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 
 
 void ActVehicleDeathTrigger::OnCollisionPhantom(Entity* self, Entity* target) {
@@ -22,13 +22,13 @@ void ActVehicleDeathTrigger::OnCollisionPhantom(Entity* self, Entity* target) {
 
 		return;
 	} else if (target->IsPlayer()) {
-		auto* possessorComponent = target->GetComponent<PossessorComponent>();
+		auto* possessionComponent = target->GetComponent<PossessionComponent>();
 
-		if (possessorComponent == nullptr) {
+		if (possessionComponent == nullptr) {
 			return;
 		}
 
-		vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		vehicle = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
 
 		if (vehicle == nullptr) {
 			return;
@@ -44,7 +44,7 @@ void ActVehicleDeathTrigger::OnCollisionPhantom(Entity* self, Entity* target) {
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto* vehicleRacingControlComponent = zoneController->GetComponent<VehicleRacingControlComponent>();
+	auto* racingComponent = zoneController->GetComponent<RacingComponent>();
 
-	if (vehicleRacingControlComponent) vehicleRacingControlComponent->OnRequestDie(player);
+	if (racingComponent) racingComponent->OnRequestDie(player);
 }

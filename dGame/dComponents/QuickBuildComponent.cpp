@@ -25,7 +25,7 @@
 
 #include "CppScripts.h"
 
-QuickBuildComponent::QuickBuildComponent(Entity* entity, uint32_t componentId) : ActivityComponent(entity) {
+QuickBuildComponent::QuickBuildComponent(Entity* entity) : ActivityComponent(entity) {
 	m_ComponentId = componentId;
 	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
 

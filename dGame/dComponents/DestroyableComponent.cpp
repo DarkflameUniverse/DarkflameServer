@@ -28,7 +28,7 @@
 #include "MissionComponent.h"
 #include "CharacterComponent.h"
 #include "PossessableComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "InventoryComponent.h"
 #include "dZoneManager.h"
 #include "WorldConfig.h"
@@ -646,7 +646,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	// Dismount on the possessor hit
-	auto* possessor = m_ParentEntity->GetComponent<PossessorComponent>();
+	auto* possessor = m_ParentEntity->GetComponent<PossessionComponent>();
 	if (possessor) {
 		auto possessableId = possessor->GetPossessable();
 		if (possessableId != LWOOBJID_EMPTY) {

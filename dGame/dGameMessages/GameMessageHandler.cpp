@@ -25,7 +25,7 @@
 #include "CDClientManager.h"
 #include "CDSkillBehaviorTable.h"
 #include "SkillComponent.h"
-#include "VehicleRacingControlComponent.h"
+#include "RacingComponent.h"
 #include "RequestServerProjectileImpact.h"
 #include "SyncSkill.h"
 #include "StartSkill.h"
@@ -126,8 +126,8 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		std::vector<Entity*> racingControllers = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
 		for (Entity* racingController : racingControllers) {
-			auto* vehicleRacingControlComponent = racingController->GetComponent<VehicleRacingControlComponent>();
-			if (vehicleRacingControlComponent) vehicleRacingControlComponent->OnPlayerLoaded(entity);
+			auto* racingComponent = racingController->GetComponent<RacingComponent>();
+			if (racingComponent) racingComponent->OnPlayerLoaded(entity);
 		}
 
 		Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();

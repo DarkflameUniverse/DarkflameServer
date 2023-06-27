@@ -72,8 +72,8 @@
 #include "ModuleAssemblyComponent.h"
 #include "RenderComponent.h"
 #include "PossessableComponent.h"
-#include "PossessorComponent.h"
-#include "VehicleRacingControlComponent.h"
+#include "PossessionComponent.h"
+#include "RacingComponent.h"
 #include "RailActivatorComponent.h"
 #include "LevelProgressionComponent.h"
 
@@ -3889,9 +3889,9 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream* inStream, Entity*
 		scriptedActivityComponent->HandleMessageBoxResponse(userEntity, GeneralUtils::UTF16ToWTF8(identifier));
 	}
 
-	auto* vehicleRacingControlComponent = entity->GetComponent<VehicleRacingControlComponent>();
+	auto* racingComponent = entity->GetComponent<RacingComponent>();
 
-	if (vehicleRacingControlComponent) vehicleRacingControlComponent->HandleMessageBoxResponse(userEntity, iButton, GeneralUtils::UTF16ToWTF8(identifier));
+	if (racingComponent) racingComponent->HandleMessageBoxResponse(userEntity, iButton, GeneralUtils::UTF16ToWTF8(identifier));
 
 	for (auto* shootingGallery : EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SHOOTING_GALLERY)) {
 		shootingGallery->OnMessageBoxResponse(userEntity, iButton, identifier, userData);
@@ -4053,21 +4053,21 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream* inStream, Entity* e
 
 	// If we aren't possessing somethings, the don't do anything
 	if (objectId != LWOOBJID_EMPTY) {
-		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+		auto* possessionComponent = entity->GetComponent<PossessionComponent>();
 		auto* mount = EntityManager::Instance()->GetEntity(objectId);
 		// make sure we have the things we need and they aren't null
-		if (possessorComponent && mount) {
-			if (!possessorComponent->GetIsDismounting()) return;
-			possessorComponent->SetIsDismounting(false);
-			possessorComponent->SetPossessable(LWOOBJID_EMPTY);
-			possessorComponent->SetPossessableType(ePossessionType::NO_POSSESSION);
+		if (possessionComponent && mount) {
+			if (!possessionComponent->GetIsDismounting()) return;
+			possessionComponent->SetIsDismounting(false);
+			possessionComponent->SetPossessable(LWOOBJID_EMPTY);
+			possessionComponent->SetPossessableType(ePossessionType::NO_POSSESSION);
 
 			// character related things
 			auto* character = entity->GetComponent<CharacterComponent>();
 			if (character) {
 				// If we had an active item turn it off
-				if (possessorComponent->GetMountItemID() != LWOOBJID_EMPTY) GameMessages::SendMarkInventoryItemAsActive(entity->GetObjectID(), false, eUnequippableActiveType::MOUNT, possessorComponent->GetMountItemID(), entity->GetSystemAddress());
-				possessorComponent->SetMountItemID(LWOOBJID_EMPTY);
+				if (possessionComponent->GetMountItemID() != LWOOBJID_EMPTY) GameMessages::SendMarkInventoryItemAsActive(entity->GetObjectID(), false, eUnequippableActiveType::MOUNT, possessionComponent->GetMountItemID(), entity->GetSystemAddress());
+				possessionComponent->SetMountItemID(LWOOBJID_EMPTY);
 			}
 
 			// Set that the controllabel phsyics comp is teleporting
@@ -4135,11 +4135,11 @@ void GameMessages::HandleRacingClientReady(RakNet::BitStream* inStream, Entity* 
 		return;
 	}
 
-	auto* vehicleRacingControlComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<VehicleRacingControlComponent>();
+	auto* racingComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<RacingComponent>();
 
-	if (!vehicleRacingControlComponent) return;
+	if (!racingComponent) return;
 
-	vehicleRacingControlComponent->OnRacingClientReady(player);
+	racingComponent->OnRacingClientReady(player);
 }
 
 
@@ -4183,11 +4183,11 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto* vehicleRacingControlComponent = zoneController->GetComponent<VehicleRacingControlComponent>();
+	auto* racingComponent = zoneController->GetComponent<RacingComponent>();
 
 	Game::logger->Log("HandleRequestDie", "Got die request: %i", entity->GetLOT());
 
-	if (!vehicleRacingControlComponent) return;
+	if (!racingComponent) return;
 	auto* possessableComponent = entity->GetComponent<PossessableComponent>();
 
 	if (possessableComponent) {
@@ -4196,7 +4196,7 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 		if (!entity) return;
 	}
 
-	vehicleRacingControlComponent->OnRequestDie(entity);
+	racingComponent->OnRequestDie(entity);
 }
 
 
@@ -4223,11 +4223,11 @@ void GameMessages::HandleRacingPlayerInfoResetFinished(RakNet::BitStream* inStre
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto* vehicleRacingControlComponent = zoneController->GetComponent<VehicleRacingControlComponent>();
+	auto* racingComponent = zoneController->GetComponent<RacingComponent>();
 
 	Game::logger->Log("HandleRacingPlayerInfoResetFinished", "Got finished: %i", entity->GetLOT());
 
-	if (vehicleRacingControlComponent) vehicleRacingControlComponent->OnRacingPlayerInfoResetFinished(player);
+	if (racingComponent) racingComponent->OnRacingPlayerInfoResetFinished(player);
 }
 
 void GameMessages::SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr) {

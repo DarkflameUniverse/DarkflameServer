@@ -18,8 +18,8 @@ LWOActivityComponent
 ├── LWOShootingGalleryComponent
 ├── LWOScriptedActivityComponent
 |	└── LWOBaseRacingControlComponent -> RacingControlComponent
-|		├── LWORacingControlComponent -> VehicleRacingControlComponent
-|		└── LWOGateRushControlComponent
+|		├── LWORacingControlComponent -> RacingComponent
+|		└── LWOGateRushControlComponent -> GateRushComponent
 LWOBaseCombatAIComponent
 ├~~ LWOPathfindingControlComponent
 ├~~ LWOProximityMonitorComponent

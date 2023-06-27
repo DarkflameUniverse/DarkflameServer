@@ -1,4 +1,4 @@
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "PossessableComponent.h"
 #include "CharacterComponent.h"
 #include "EntityManager.h"
@@ -7,11 +7,11 @@
 #include "eControlScheme.h"
 #include "eStateChangeType.h"
 
-PossessorComponent::PossessorComponent(Entity* parent) : Component(parent) {
+PossessionComponent::PossessionComponent(Entity* parent) : Component(parent) {
 	m_Possessable = LWOOBJID_EMPTY;
 }
 
-PossessorComponent::~PossessorComponent() {
+PossessionComponent::~PossessionComponent() {
 	if (m_Possessable != LWOOBJID_EMPTY) {
 		auto* mount = EntityManager::Instance()->GetEntity(m_Possessable);
 		if (mount) {
@@ -26,7 +26,7 @@ PossessorComponent::~PossessorComponent() {
 	}
 }
 
-void PossessorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void PossessionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	outBitStream->Write(m_DirtyPossesor || bIsInitialUpdate);
 	if (m_DirtyPossesor || bIsInitialUpdate) {
 		m_DirtyPossesor = false;
@@ -38,7 +38,7 @@ void PossessorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 	}
 }
 
-void PossessorComponent::Mount(Entity* mount) {
+void PossessionComponent::Mount(Entity* mount) {
 	// Don't do anything if we are busy dismounting
 	if (GetIsDismounting() || !mount) return;
 
@@ -62,7 +62,7 @@ void PossessorComponent::Mount(Entity* mount) {
 	EntityManager::Instance()->SerializeEntity(mount);
 }
 
-void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
+void PossessionComponent::Dismount(Entity* mount, bool forceDismount) {
 	// Don't do anything if we are busy dismounting
 	if (GetIsDismounting() || !mount) return;
 	SetIsDismounting(true);

@@ -18,7 +18,7 @@
 #include "Component.h"
 #include "ItemSetPassiveAbility.h"
 #include "eItemSetPassiveAbilityID.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "eInventoryType.h"
 #include "eReplicaComponentType.h"
 #include "eLootSourceType.h"
