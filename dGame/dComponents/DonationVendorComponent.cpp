@@ -6,8 +6,6 @@ DonationVendorComponent::DonationVendorComponent(Entity* parent) : VendorCompone
 	m_TotalRemaining = 0;
 }
 
-
-
 void DonationVendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	VendorComponent::Serialize(outBitStream, bIsInitialUpdate, flags);
 	outBitStream->Write(bIsInitialUpdate || m_DirtyDonationVendor);
@@ -15,6 +13,7 @@ void DonationVendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 		outBitStream->Write(m_PercentComplete);
 		outBitStream->Write(m_TotalDonated);
 		outBitStream->Write(m_TotalRemaining);
+		if (!bIsInitialUpdate) m_DirtyDonationVendor = false;
 	}
 }
 
