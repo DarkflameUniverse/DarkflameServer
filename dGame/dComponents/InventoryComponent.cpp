@@ -40,10 +40,10 @@
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent) {
 	this->m_Dirty = true;
-	this->m_Equipped = {};
-	this->m_Pushed = {};
+	this->m_Equipped.clear();
+	this->m_Pushed.clear();
 	this->m_Consumable = LOT_NULL;
-	this->m_Pets = {};
+	this->m_Pets.clear();
 
 	const auto lot = parent->GetLOT();
 
@@ -72,7 +72,7 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 
 		const auto& info = Inventory::FindItemComponent(item.itemid);
 
-		UpdateSlot(info.equipLocation, { id, static_cast<LOT>(item.itemid), item.count, slot++ });
+		UpdateSlot(info.equipLocation, EquippedItem(id, static_cast<LOT>(item.itemid), item.count, slot++));
 
 		// Equip this items proxies.
 		auto subItems = info.subItems;
@@ -89,7 +89,7 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 				const LWOOBJID proxyId = ObjectIDManager::Instance()->GenerateObjectID();
 
 				// Use item.count since we equip item.count number of the item this is a requested proxy of
-				UpdateSlot(proxyInfo.equipLocation, { proxyId, proxyLOT, item.count, slot++ });
+				UpdateSlot(proxyInfo.equipLocation, EquippedItem(proxyId, proxyLOT, item.count, slot++));
 			}
 		}
 	}
@@ -589,7 +589,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 			if (equipped) {
 				const auto info = Inventory::FindItemComponent(lot);
 
-				UpdateSlot(info.equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot() });
+				UpdateSlot(info.equipLocation, EquippedItem(item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot()));
 
 				AddItemSkills(item->GetLot());
 			}
@@ -715,12 +715,8 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 
 		outBitStream->Write<uint32_t>(m_Equipped.size());
 
-		for (const auto& pair : m_Equipped) {
-			const auto item = pair.second;
-
-			if (bIsInitialUpdate) {
-				AddItemSkills(item.lot);
-			}
+		for (const auto&[x, item] : m_Equipped) {
+			if (bIsInitialUpdate) AddItemSkills(item.lot);
 
 			outBitStream->Write(item.id);
 			outBitStream->Write(item.lot);
@@ -879,7 +875,7 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 
 	GenerateProxies(item);
 
-	UpdateSlot(item->GetInfo().equipLocation, { item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot(), item->GetConfig() });
+	UpdateSlot(item->GetInfo().equipLocation, EquippedItem(item->GetId(), item->GetLot(), item->GetCount(), item->GetSlot(), item->GetConfig()));
 
 	ApplyBuff(item);
 
@@ -1380,7 +1376,7 @@ void InventoryComponent::SetNPCItems(const std::vector<LOT>& items) {
 
 		const auto& info = Inventory::FindItemComponent(item);
 
-		UpdateSlot(info.equipLocation, { id, static_cast<LOT>(item), 1, slot++ }, true);
+		UpdateSlot(info.equipLocation, EquippedItem(id, static_cast<LOT>(item), 1, slot++), true);
 	}
 
 	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
