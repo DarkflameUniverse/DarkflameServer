@@ -6,8 +6,6 @@
 #ifndef BUILDBORDERCOMPONENT_H
 #define BUILDBORDERCOMPONENT_H
 
-#include "BitStream.h"
-#include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
@@ -18,15 +16,13 @@ class BuildBorderComponent : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUILD_BORDER;
 
-	BuildBorderComponent(Entity* parent);
-	~BuildBorderComponent() override;
+	BuildBorderComponent(Entity* parent) : Component(parent) { };
 
 	/**
 	 * Causes the originator to start build with this entity as a reference point
 	 * @param originator the entity (probably a player) that triggered the event
 	 */
 	void OnUse(Entity* originator) override;
-private:
 };
 
 #endif // BUILDBORDERCOMPONENT_H

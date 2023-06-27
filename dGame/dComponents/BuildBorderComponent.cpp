@@ -9,62 +9,40 @@
 #include "Item.h"
 #include "PropertyManagementComponent.h"
 
-BuildBorderComponent::BuildBorderComponent(Entity* parent) : Component(parent) {
-}
-
-BuildBorderComponent::~BuildBorderComponent() {
-}
-
 void BuildBorderComponent::OnUse(Entity* originator) {
-	if (originator->GetCharacter()) {
-		const auto& entities = EntityManager::Instance()->GetEntitiesInGroup("PropertyPlaque");
+	if (!originator->GetCharacter()) return;
 
-		auto buildArea = m_ParentEntity->GetObjectID();
+	const auto& entities = EntityManager::Instance()->GetEntitiesInGroup("PropertyPlaque");
 
-		if (!entities.empty()) {
-			buildArea = entities[0]->GetObjectID();
+	auto buildArea = entities.empty() ? m_ParentEntity->GetObjectID() : entities.front()->GetObjectID();
 
-			Game::logger->Log("BuildBorderComponent", "Using PropertyPlaque");
-		}
+	auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
 
-		auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
 
-		if (inventoryComponent == nullptr) {
-			return;
-		}
+	auto* thinkingHat = inventoryComponent->FindItemByLot(LOT_THINKING_CAP);
 
-		auto* thinkingHat = inventoryComponent->FindItemByLot(6086);
+	if (!thinkingHat) return;
 
-		if (thinkingHat == nullptr) {
-			return;
-		}
+	Game::logger->Log("BuildBorderComponent", "Using BuildArea %llu for player %llu", buildArea, originator->GetObjectID());
 
-		inventoryComponent->PushEquippedItems();
+	inventoryComponent->PushEquippedItems();
 
-		Game::logger->Log("BuildBorderComponent", "Starting with %llu", buildArea);
-
-		if (PropertyManagementComponent::Instance() != nullptr) {
-			GameMessages::SendStartArrangingWithItem(
-				originator,
-				originator->GetSystemAddress(),
-				true,
-				buildArea,
-				originator->GetPosition(),
-				0,
-				thinkingHat->GetId(),
-				thinkingHat->GetLot(),
-				4,
-				0,
-				-1,
-				NiPoint3::ZERO,
-				0
-			);
-		} else {
-			GameMessages::SendStartArrangingWithItem(originator, originator->GetSystemAddress(), true, buildArea, originator->GetPosition());
-		}
-
-		auto* inv = m_ParentEntity->GetComponent<InventoryComponent>();
-		if (!inv) return;
-		inv->PushEquippedItems(); // technically this is supposed to happen automatically... but it doesnt? so just keep this here
+	if (PropertyManagementComponent::Instance()) {
+		GameMessages::SendStartArrangingWithItem(
+			originator,
+			originator->GetSystemAddress(),
+			true,
+			buildArea,
+			originator->GetPosition(),
+			0,
+			thinkingHat->GetId(),
+			thinkingHat->GetLot(),
+			4,
+			0,
+			-1
+		);
+	} else {
+		GameMessages::SendStartArrangingWithItem(originator, originator->GetSystemAddress(), true, buildArea, originator->GetPosition());
 	}
 }

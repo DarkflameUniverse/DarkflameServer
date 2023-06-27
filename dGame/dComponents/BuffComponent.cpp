@@ -125,10 +125,6 @@ void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity
 	RemoveBuffEffect(id);
 }
 
-bool BuffComponent::HasBuff(int32_t id) {
-	return m_Buffs.find(id) != m_Buffs.end();
-}
-
 void BuffComponent::ApplyBuffEffect(int32_t id) {
 	const auto& parameters = GetBuffParameters(id);
 	for (const auto& parameter : parameters) {

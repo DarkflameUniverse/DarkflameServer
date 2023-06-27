@@ -59,6 +59,7 @@ const uint64_t LWOZONEID_INVALID = 0;       //!< Invalid LWOZONEID
 const LOT LOT_ZONE_CONTROL = 2365;
 const LOT LOT_3D_AMBIENT_SOUND = 6368;
 const LOT LOT_MODEL_IN_WORLD = 14;
+const LOT LOT_THINKING_CAP = 6086;
 
 
 const float PI = 3.14159f;
