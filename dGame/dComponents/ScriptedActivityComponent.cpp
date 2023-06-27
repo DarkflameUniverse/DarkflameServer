@@ -1,5 +1,5 @@
 #include "ScriptedActivityComponent.h"
 
-ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent) : ActivityComponent(parent) {
+ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int32_t componentId) : ActivityComponent(parent, componentId) {
 
 }

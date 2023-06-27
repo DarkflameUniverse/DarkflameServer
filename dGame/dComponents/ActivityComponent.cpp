@@ -29,8 +29,8 @@
 #include "CDActivitiesTable.h"
 #include "LeaderboardManager.h"
 
-ActivityComponent::ActivityComponent(Entity* parent) : Component(parent) {
-	m_ActivityID = activityID;
+ActivityComponent::ActivityComponent(Entity* parent, int32_t componentId) : Component(parent) {
+	m_ActivityID = componentId;
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 

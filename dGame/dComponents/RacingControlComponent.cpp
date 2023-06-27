@@ -29,7 +29,7 @@
 #define M_PI 3.14159265358979323846264338327950288
 #endif
 
-RacingControlComponent::RacingControlComponent(Entity* parent) : ScriptedActivityComponent(parent) {
+RacingControlComponent::RacingControlComponent(Entity* parent, int32_t componentId) : ScriptedActivityComponent(parent, componentId) {
 	m_PathName = u"MainPath";
 	m_RemainingLaps = 3;
 	m_LeadingPlayer = LWOOBJID_EMPTY;

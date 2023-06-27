@@ -156,7 +156,7 @@ struct ActivityPlayer {
  */
 class ActivityComponent : public Component {
 public:
-	ActivityComponent(Entity* parent);
+	ActivityComponent(Entity* parent, int32_t componentId);
 	~ActivityComponent() override;
 
 	void Update(float deltaTime) override;

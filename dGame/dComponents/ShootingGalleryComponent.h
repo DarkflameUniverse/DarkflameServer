@@ -75,7 +75,7 @@ class ShootingGalleryComponent : public ActivityComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SHOOTING_GALLERY;
 
-	explicit ShootingGalleryComponent(Entity* parent);
+	explicit ShootingGalleryComponent(Entity* parent, int32_t componentId);
 	~ShootingGalleryComponent();
 	void Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate, uint32_t& flags) const;
 

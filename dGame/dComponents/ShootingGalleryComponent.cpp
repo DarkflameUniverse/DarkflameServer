@@ -2,7 +2,7 @@
 #include "EntityManager.h"
 #include "ScriptedActivityComponent.h"
 
-ShootingGalleryComponent::ShootingGalleryComponent(Entity* parent) : ActivityComponent(parent) {
+ShootingGalleryComponent::ShootingGalleryComponent(Entity* parent, int32_t componentId) : ActivityComponent(parent, componentId) {
 }
 
 ShootingGalleryComponent::~ShootingGalleryComponent() = default;

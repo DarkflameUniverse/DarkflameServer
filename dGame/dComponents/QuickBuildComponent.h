@@ -24,7 +24,7 @@ class QuickBuildComponent : public ActivityComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
-	QuickBuildComponent(Entity* entity, uint32_t componentId = 0);
+	QuickBuildComponent(Entity* entity, int32_t componentId = 0);
 	~QuickBuildComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
@@ -351,7 +351,7 @@ private:
 	 */
 	PreconditionExpression* m_Precondition = nullptr;
 
-	uint32_t m_ComponentId = 0;
+	int32_t m_ComponentId = 0;
 
 	/**
 	 * Starts the rebuild for a certain entity

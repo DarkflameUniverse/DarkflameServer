@@ -9,7 +9,7 @@ class Entity;
 class GateRushComponent : public RacingControlComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::GATE_RUSH_CONTROL;
-	GateRushComponent(Entity* parent);
+	GateRushComponent(Entity* parent, int32_t componentId);
 };
 
 #endif  //!__GATERUSHCONTROLCOMPONENT__H__

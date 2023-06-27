@@ -60,12 +60,11 @@ enum StatisticID {
 /**
  * Represents a character, including their rockets and stats
  */
-class CharacterComponent : public Component {
+class CharacterComponent final : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
 
 	CharacterComponent(Entity* parent, Character* character);
-	~CharacterComponent() override;
 
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;

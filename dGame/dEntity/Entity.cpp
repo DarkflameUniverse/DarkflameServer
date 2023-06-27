@@ -305,7 +305,7 @@ void Entity::Initialize() {
 			AddComponent<InventoryComponent>();
 			break;
 		case eReplicaComponentType::SHOOTING_GALLERY:
-			AddComponent<ShootingGalleryComponent>();
+			AddComponent<ShootingGalleryComponent>(componentId);
 			break;
 		case eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS:
 			if (hasPhysicsComponent) continue;
@@ -402,7 +402,7 @@ void Entity::Initialize() {
 			AddComponent<SwitchComponent>();
 			break;
 		case eReplicaComponentType::MINIGAME_CONTROL:
-			AddComponent<MinigameControlComponent>();
+			AddComponent<MinigameControlComponent>(componentId);
 			break;
 		case eReplicaComponentType::BASE_COMBAT_AI: {
 			auto* baseCombatAiComponent = AddComponent<BaseCombatAIComponent>(componentId);
@@ -556,7 +556,7 @@ void Entity::Initialize() {
 		case eReplicaComponentType::PLAYER_FORCED_MOVEMENT:
 		case eReplicaComponentType::CRAFTING:
 		case eReplicaComponentType::LEVEL_PROGRESSION:
-		case eReplicaComponentType::POSSESSOR:
+		case eReplicaComponentType::POSSESSION:
 		case eReplicaComponentType::MOUNT_CONTROL:
 		case eReplicaComponentType::UNKNOWN_112:
 		case eReplicaComponentType::PROPERTY_PLAQUE:

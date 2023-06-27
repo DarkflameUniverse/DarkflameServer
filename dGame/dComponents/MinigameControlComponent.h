@@ -9,7 +9,7 @@ class Entity;
 class MinigameControlComponent : public ActivityComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MINIGAME_CONTROL;
-	MinigameControlComponent(Entity* parent);
+	MinigameControlComponent(Entity* parent, int32_t componentId);
 };
 
 #endif  //!__MINIGAMECONTROLCOMPONENT__H__
