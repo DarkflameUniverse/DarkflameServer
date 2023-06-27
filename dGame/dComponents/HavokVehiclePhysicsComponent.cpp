@@ -14,10 +14,6 @@ HavokVehiclePhysicsComponent::HavokVehiclePhysicsComponent(Entity* parent) : Com
 	m_EndBehavior = GeneralUtils::GenerateRandomNumber<uint32_t>(0, 7);
 }
 
-HavokVehiclePhysicsComponent::~HavokVehiclePhysicsComponent() {
-
-}
-
 void HavokVehiclePhysicsComponent::SetPosition(const NiPoint3& pos) {
 	if (pos == m_Position) return;
 	m_DirtyPosition = true;
@@ -60,23 +56,11 @@ void HavokVehiclePhysicsComponent::SetRemoteInputInfo(const RemoteInputInfo& rem
 	m_DirtyRemoteInput = true;
 }
 
-void HavokVehiclePhysicsComponent::SetDirtyPosition(bool val) {
-	m_DirtyPosition = val;
-}
-
-void HavokVehiclePhysicsComponent::SetDirtyVelocity(bool val) {
-	m_DirtyVelocity = val;
-}
-
-void HavokVehiclePhysicsComponent::SetDirtyAngularVelocity(bool val) {
-	m_DirtyAngularVelocity = val;
-}
-
 void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	outBitStream->Write(bIsInitialUpdate || m_DirtyPosition);
 
 	if (bIsInitialUpdate || m_DirtyPosition) {
-		m_DirtyPosition = false;
+		if (!bIsInitialUpdate) m_DirtyPosition = false;
 		outBitStream->Write(m_Position.x);
 		outBitStream->Write(m_Position.y);
 		outBitStream->Write(m_Position.z);
@@ -95,7 +79,7 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 			outBitStream->Write(m_Velocity.x);
 			outBitStream->Write(m_Velocity.y);
 			outBitStream->Write(m_Velocity.z);
-			m_DirtyVelocity = false;
+			if (!bIsInitialUpdate) m_DirtyVelocity = false;
 		}
 
 		outBitStream->Write(bIsInitialUpdate || m_DirtyAngularVelocity);
@@ -104,7 +88,7 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 			outBitStream->Write(m_AngularVelocity.x);
 			outBitStream->Write(m_AngularVelocity.y);
 			outBitStream->Write(m_AngularVelocity.z);
-			m_DirtyAngularVelocity = false;
+			if (!bIsInitialUpdate) m_DirtyAngularVelocity = false;
 		}
 
 		outBitStream->Write0(); // local_space_info. TODO: Implement this
@@ -115,7 +99,7 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 			outBitStream->Write(m_RemoteInputInfo.m_RemoteInputY);
 			outBitStream->Write(m_RemoteInputInfo.m_IsPowersliding);
 			outBitStream->Write(m_RemoteInputInfo.m_IsModified);
-			m_DirtyRemoteInput = false;
+			if (!bIsInitialUpdate) m_DirtyRemoteInput = false;
 		}
 
 		outBitStream->Write(125.0f); // remote_input_ping TODO: Figure out how this should be calculated as it seems to be constant through the whole race.
@@ -131,13 +115,4 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 	}
 
 	outBitStream->Write0();
-}
-
-void HavokVehiclePhysicsComponent::Update(float deltaTime) {
-	if (m_SoftUpdate > 5) {
-		EntityManager::Instance()->SerializeEntity(m_ParentEntity);
-		m_SoftUpdate = 0;
-	} else {
-		m_SoftUpdate += deltaTime;
-	}
 }
