@@ -9,7 +9,7 @@
 class CollectibleComponent : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::COLLECTIBLE;
-	CollectibleComponent(Entity* parent);
+	CollectibleComponent(Entity* parent) : Component(parent) { };
 
 	void Startup() override;
 
