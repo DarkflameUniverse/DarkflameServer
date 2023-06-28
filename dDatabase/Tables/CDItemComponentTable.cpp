@@ -1,6 +1,8 @@
 #include "CDItemComponentTable.h"
 #include "GeneralUtils.h"
 
+#include "eItemType.h"
+
 CDItemComponent CDItemComponentTable::Default = {};
 
 //! Constructor
@@ -98,7 +100,7 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int i
 		entry.baseValue = tableData.getIntField("baseValue", -1);
 		entry.isKitPiece = tableData.getIntField("isKitPiece", -1) == 1 ? true : false;
 		entry.rarity = tableData.getIntField("rarity", 0);
-		entry.itemType = tableData.getIntField("itemType", -1);
+		entry.itemType = static_cast<eItemType>(tableData.getIntField("itemType", -1));
 		entry.itemInfo = tableData.getInt64Field("itemInfo", -1);
 		entry.inLootTable = tableData.getIntField("inLootTable", -1) == 1 ? true : false;
 		entry.inVendor = tableData.getIntField("inVendor", -1) == 1 ? true : false;

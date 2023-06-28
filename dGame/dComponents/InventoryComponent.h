@@ -45,7 +45,7 @@ public:
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void LoadXml(tinyxml2::XMLDocument* document);
 	void UpdateXml(tinyxml2::XMLDocument* document) override;
-	void ResetFlags();
+	void ResetFlags() { m_Dirty = false; };
 
 	/**
 	 * Returns an inventory of the specified type, if it exists
@@ -58,10 +58,12 @@ public:
 	 * Returns all the inventories this entity has, indexed by type
 	 * @return all the inventories this entity has, indexed by type
 	 */
-	const std::map<eInventoryType, Inventory*>& GetInventories() const;
+	const std::map<eInventoryType, Inventory*>& GetInventories() const { return m_Inventories; }
 
 	/**
 	 * Returns the amount of items this entity possesses of a certain LOT
+	 * This method counts the lot count for all inventories, including inventories the player may not be able to see.
+	 * If you need the count in a specific inventory, call the inventory equivalent.
 	 * @param lot the lot to search for
 	 * @return the amount of items this entity possesses the specified LOT
 	 */
@@ -79,7 +81,7 @@ public:
 	 * Returns the items that are currently equipped by this entity
 	 * @return the items that are currently equipped by this entity
 	 */
-	const EquipmentMap& GetEquippedItems() const;
+	const EquipmentMap& GetEquippedItems() const { return m_Equipped; }
 
 	/**
 	 * Adds an item to the inventory of the entity
@@ -206,7 +208,7 @@ public:
 	 * @param item the Item to unequip
 	 * @return if we were successful
 	 */
-	void HandlePossession(Item* item);
+	void HandlePossession(Item* item) const;
 
 	/**
 	 * Adds a buff related to equipping a lot to the entity
@@ -247,13 +249,13 @@ public:
 	 * Sets the current consumable lot
 	 * @param lot the lot to set as consumable
 	 */
-	void SetConsumable(LOT lot);
+	void SetConsumable(LOT lot) { m_Consumable = lot; };
 
 	/**
 	 * Returns the current consumable lot
 	 * @return the current consumable lot
 	 */
-	LOT GetConsumable() const;
+	LOT GetConsumable() const { return m_Consumable; }
 
 	/**
 	 * Finds all the buffs related to a lot
@@ -285,7 +287,7 @@ public:
 	 * Triggers one of the passive abilities from the equipped item set
 	 * @param trigger the trigger to fire
 	 */
-	void TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target = nullptr);
+	void TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target = nullptr) const;
 
 	/**
 	 * Returns if the entity has any of the passed passive abilities equipped
@@ -325,13 +327,13 @@ public:
 	 * @param id the id of the object to check for
 	 * @return if the provided object ID is in this inventory and is a pet
 	 */
-	bool IsPet(LWOOBJID id) const;
+	bool IsPet(const LWOOBJID& id) const { return m_Pets.find(id) != m_Pets.end(); }
 
 	/**
 	 * Removes pet database information from the item with the specified object id
 	 * @param id the object id to remove pet info for
 	 */
-	void RemoveDatabasePet(LWOOBJID id);
+	void RemoveDatabasePet(const LWOOBJID& id) { m_Pets.erase(id); }
 
 	/**
 	 * Returns the current behavior slot active for the passed item type
@@ -359,14 +361,14 @@ public:
 	 *
 	 * @param equippedItem The item script to lookup and call equip on
 	 */
-	void EquipScripts(Item* equippedItem);
+	void EquipScripts(Item* equippedItem) const;
 
 	/**
 	 * Call this when you unequip an item.  This calls OnFactionTriggerItemUnequipped for any scripts found on the items.
 	 *
 	 * @param unequippedItem The item script to lookup and call unequip on
 	 */
-	void UnequipScripts(Item* unequippedItem);
+	void UnequipScripts(Item* unequippedItem) const;
 
 	~InventoryComponent() override;
 

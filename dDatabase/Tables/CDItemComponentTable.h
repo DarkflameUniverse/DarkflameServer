@@ -4,13 +4,15 @@
 #include "CDTable.h"
 #include "dCommonVars.h"
 
+enum class eItemType : int32_t;
+
 struct CDItemComponent {
 	unsigned int id;                        //!< The Component ID
 	std::string equipLocation;         //!< The equip location
 	unsigned int baseValue;                 //!< The monetary base value of the item
 	bool isKitPiece;                //!< Whether or not the item belongs to a kit
 	unsigned int rarity;                    //!< The rarity of the item
-	unsigned int itemType;                  //!< The item type
+	eItemType itemType;                  //!< The item type
 	int64_t itemInfo;                  //!< The item info
 	bool inLootTable;               //!< Whether or not the item is in a loot table
 	bool inVendor;                  //!< Whether or not the item is in a vendor inventory
