@@ -379,6 +379,7 @@ protected:
 	std::vector<LWOOBJID> m_TargetsInPhantom;
 
 	static const std::vector<ComponentWhitelist> m_ComponentWhitelists;
+	static const std::array<eReplicaComponentType> m_ComponentOrder;
 };
 
 #include "Entity.tcc"

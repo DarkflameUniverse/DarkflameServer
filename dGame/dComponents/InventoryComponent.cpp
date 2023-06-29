@@ -79,7 +79,7 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 
 		subItems.erase(std::remove_if(subItems.begin(), subItems.end(), ::isspace), subItems.end());
 
-		if (subItems.empty()) return;
+		if (subItems.empty()) continue;
 		const auto subItemsSplit = GeneralUtils::SplitString(subItems, ',');
 
 		for (const auto& proxyLotAsString : subItemsSplit) {
