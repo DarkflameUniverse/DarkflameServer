@@ -995,17 +995,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 
 	// Check to see if the mount is a vehicle, if so, flip it
 	auto* vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
-	if (vehicleComponent) {
-		auto angles = startRotation.GetEulerAngles();
-		// Make it right side up
-		angles.x -= PI;
-		// Make it going in the direction of the player
-		angles.y -= PI;
-		startRotation = NiQuaternion::FromEulerAngles(angles);
-		mount->SetRotation(startRotation);
-		// We're pod racing now
-		characterComponent->SetIsRacing(true);
-	}
+	if (vehicleComponent) characterComponent->SetIsRacing(true);
 
 	// Setup the destroyable stats
 	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
