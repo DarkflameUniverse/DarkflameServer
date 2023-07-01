@@ -338,7 +338,7 @@ This is a Work in Progress, but below are some quick links to documentaion for s
 ## Former Contributors
 * TheMachine
 * Matthew
-* [Raine](https://github.com/Rainebannister)
+* [Raine](https://github.com/uwainium)
 * Bricknave
 
 ## Special Thanks
