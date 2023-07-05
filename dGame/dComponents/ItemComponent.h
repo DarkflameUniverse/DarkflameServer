@@ -12,7 +12,7 @@
 class Entity;
 enum class eUgcModerationStatus : uint32_t;
 
-class ItemComponent : public Component {
+class ItemComponent final : public Component {
 public:
 	static const eReplicaComponentType ComponentType = eReplicaComponentType::ITEM;
 

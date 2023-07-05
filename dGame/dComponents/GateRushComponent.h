@@ -6,7 +6,7 @@
 
 class Entity;
 
-class GateRushComponent : public RacingControlComponent {
+class GateRushComponent final : public RacingControlComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::GATE_RUSH_CONTROL;
 	GateRushComponent(Entity* parent, int32_t componentId);

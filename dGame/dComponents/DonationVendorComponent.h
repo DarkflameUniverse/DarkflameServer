@@ -6,7 +6,7 @@
 
 class Entity;
 
-class DonationVendorComponent : public VendorComponent {
+class DonationVendorComponent final : public VendorComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::DONATION_VENDOR;
 	DonationVendorComponent(Entity* parent);

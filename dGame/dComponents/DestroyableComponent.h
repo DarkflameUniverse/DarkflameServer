@@ -17,7 +17,7 @@ enum class eStateChangeType : uint32_t;
  * Represents the stats of an entity, for example its health, imagination and armor. Also handles factions, which
  * indicate which enemies this entity has.
  */
-class DestroyableComponent : public Component {
+class DestroyableComponent final : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
