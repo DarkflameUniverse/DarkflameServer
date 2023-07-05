@@ -1266,19 +1266,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			ChatPackets::SendSystemMessage(sysAddr, u"Failed to spawn entity.");
 			return;
 		}
-
-		auto* havokVehiclePhysicsComponent = newEntity->GetComponent<HavokVehiclePhysicsComponent>();
-		if (havokVehiclePhysicsComponent) {
-			auto newRot = newEntity->GetRotation();
-			auto angles = newRot.GetEulerAngles();
-			// make it right side up
-			angles.x -= PI;
-			// make it going in the direction of the player
-			angles.y -= PI;
-			newRot = NiQuaternion::FromEulerAngles(angles);
-			newEntity->SetRotation(newRot);
-		}
-
 		EntityManager::Instance()->ConstructEntity(newEntity);
 	}
 
