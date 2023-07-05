@@ -43,47 +43,48 @@ void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 
 void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	outBitStream->Write(bIsInitialUpdate || m_DirtyLevelInfo);
-	if (bIsInitialUpdate || m_DirtyLevelInfo) outBitStream->Write(m_Level);
-	m_DirtyLevelInfo = false;
+	if (bIsInitialUpdate || m_DirtyLevelInfo) {
+		outBitStream->Write(m_Level);
+		if (!bIsInitialUpdate) m_DirtyLevelInfo = false;
+	}
 }
 
 void LevelProgressionComponent::HandleLevelUp() {
 	auto* rewardsTable = CDClientManager::Instance().GetTable<CDRewardsTable>();
 
 	const auto& rewards = rewardsTable->GetByLevelID(m_Level);
-	bool rewardingItem = rewards.size() > 0;
+	if (rewards.empty()) return;
 
 	auto* inventoryComponent = m_ParentEntity->GetComponent<InventoryComponent>();
 	auto* controllablePhysicsComponent = m_ParentEntity->GetComponent<ControllablePhysicsComponent>();
 
 	if (!inventoryComponent || !controllablePhysicsComponent) return;
 	// Tell the client we beginning to send level rewards.
-	if (rewardingItem) GameMessages::NotifyLevelRewards(m_ParentEntity->GetObjectID(), m_ParentEntity->GetSystemAddress(), m_Level, rewardingItem);
+	GameMessages::NotifyLevelRewards(m_ParentEntity->GetObjectID(), m_ParentEntity->GetSystemAddress(), m_Level, true);
 
 	for (auto* reward : rewards) {
 		switch (reward->rewardType) {
 		case 0:
 			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LEVEL_REWARD);
 			break;
-		case 4:
-		{
+		case 4: {
 			auto* items = inventoryComponent->GetInventory(eInventoryType::ITEMS);
+			if (!items) continue;
 			items->SetSize(items->GetSize() + reward->value);
+			break;
 		}
-		break;
 		case 9:
 			SetSpeedBase(static_cast<float>(reward->value));
 			controllablePhysicsComponent->SetSpeedMultiplier(GetSpeedBase() / 500.0f);
 			break;
 		case 11:
 		case 12:
-			break;
 		default:
 			break;
 		}
 	}
 	// Tell the client we have finished sending level rewards.
-	if (rewardingItem) GameMessages::NotifyLevelRewards(m_ParentEntity->GetObjectID(), m_ParentEntity->GetSystemAddress(), m_Level, !rewardingItem);
+	GameMessages::NotifyLevelRewards(m_ParentEntity->GetObjectID(), m_ParentEntity->GetSystemAddress(), m_Level, false);
 }
 
 void LevelProgressionComponent::SetRetroactiveBaseSpeed() {

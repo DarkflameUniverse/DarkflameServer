@@ -11,7 +11,7 @@
   *
  */
 
-class LevelProgressionComponent : public Component {
+class LevelProgressionComponent final : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::LEVEL_PROGRESSION;
 
@@ -45,7 +45,11 @@ public:
 	 * Sets the level of the entity
 	 * @param level the level to set
 	 */
-	void SetLevel(uint32_t level) { m_Level = level; m_DirtyLevelInfo = true; }
+	void SetLevel(uint32_t level) {
+		if (m_Level == level) return;
+		m_Level = level;
+		m_DirtyLevelInfo = true;
+	}
 
 	/**
 	 * Gets the current Speed Base of the entity
@@ -98,7 +102,7 @@ private:
 	float m_SpeedBase;
 
 	/**
-	 * The Character format version
+	 * The Character format version.  Certain bug fixes increment this version number.
 	 */
 	eCharacterVersion m_CharacterVersion;
 
