@@ -3,7 +3,7 @@
 #include "ePhysicsBehaviorType.h"
 
 ModelBehaviorComponent::ModelBehaviorComponent(Entity* parent) : Component(parent) {
-	m_DirtyModelInfo = false;
+	m_DirtyModelInfo = true;
 	m_IsPickable = false;
 	m_PhysicsType = ePhysicsBehaviorType::STANDARD;
 	m_OriginalPosition = m_ParentEntity->GetDefaultPosition();
@@ -17,7 +17,7 @@ void ModelBehaviorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIs
 		outBitStream->Write(m_PhysicsType);
 		outBitStream->Write(m_OriginalPosition);
 		outBitStream->Write(m_OriginalRotation);
-		m_DirtyModelInfo = false;
+		if (!bIsInitialUpdate) m_DirtyModelInfo = false;
 	}
 }
 

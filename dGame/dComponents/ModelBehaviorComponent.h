@@ -30,7 +30,11 @@ public:
 	 * Sets the original position of the model
 	 * @param pos the original position to set
 	 */
-	void SetPosition(const NiPoint3& pos) { m_OriginalPosition = pos; m_DirtyModelInfo = true; }
+	void SetPosition(const NiPoint3& pos) {
+		if (m_OriginalPosition == pos) return;
+		m_OriginalPosition = pos;
+		m_DirtyModelInfo = true;
+	}
 
 	/**
 	 * Returns the original rotation of the model
@@ -42,7 +46,11 @@ public:
 	 * Sets the original rotation of the model
 	 * @param rot the original rotation to set
 	 */
-	void SetRotation(const NiQuaternion& rot) { m_OriginalRotation = rot; m_DirtyModelInfo = true; }
+	void SetRotation(const NiQuaternion& rot) {
+		if (m_OriginalRotation == rot) return;
+		m_OriginalRotation = rot;
+		m_DirtyModelInfo = true;
+	}
 
 private:
 
