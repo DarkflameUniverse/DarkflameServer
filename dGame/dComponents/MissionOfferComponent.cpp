@@ -1,6 +1,6 @@
 /*
  * Darkflame Universe
- * Copyright 2019
+ * Copyright 2023
  */
 
 #include <sstream>
@@ -18,59 +18,24 @@
 
 #include "CDComponentsRegistryTable.h"
 
-OfferedMission::OfferedMission(const uint32_t missionId, const bool offersMission, const bool acceptsMission) {
-	this->missionId = missionId;
-	this->offersMission = offersMission;
-	this->acceptsMission = acceptsMission;
+MissionOfferComponent::MissionOfferComponent(Entity* parent, const int32_t componentId) : Component(parent) {
+	m_ComponentId = componentId;
 }
 
+void MissionOfferComponent::LoadTemplateData() {
+	if (m_ComponentId == -1) return;
+	// Now lookup the missions in the MissionNPCComponent table
+	auto* missionNpcComponentTable = CDClientManager::Instance().GetTable<CDMissionNPCComponentTable>();
 
-uint32_t OfferedMission::GetMissionId() const {
-	return this->missionId;
-}
+	auto missions = missionNpcComponentTable->Query([=](const CDMissionNPCComponent& entry) {
+		return entry.id == static_cast<int32_t>(m_ComponentId);
+		});
 
-bool OfferedMission::GetOfferMission() const {
-	return this->offersMission;
-}
-
-bool OfferedMission::GetAcceptMission() const {
-	return this->acceptsMission;
-}
-
-//------------------------ MissionOfferComponent below ------------------------
-
-MissionOfferComponent::MissionOfferComponent(Entity* parent, const LOT parentLot) : Component(parent) {
-	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-
-	auto value = compRegistryTable->GetByIDAndType(parentLot, eReplicaComponentType::MISSION_OFFER, -1);
-
-	if (value != -1) {
-		const uint32_t componentId = value;
-
-		// Now lookup the missions in the MissionNPCComponent table
-		auto* missionNpcComponentTable = CDClientManager::Instance().GetTable<CDMissionNPCComponentTable>();
-
-		auto missions = missionNpcComponentTable->Query([=](const CDMissionNPCComponent& entry) {
-			return entry.id == static_cast<unsigned>(componentId);
-			});
-
-		for (auto& mission : missions) {
-			auto* offeredMission = new OfferedMission(mission.missionID, mission.offersMission, mission.acceptsMission);
-			this->offeredMissions.push_back(offeredMission);
-		}
+	for (const auto& mission : missions) {
+		this->offeredMissions.emplace_back(
+			std::make_unique<OfferedMission>(mission.missionID, mission.offersMission, mission.acceptsMission)
+		);
 	}
-}
-
-
-MissionOfferComponent::~MissionOfferComponent() {
-	for (auto* mission : this->offeredMissions) {
-		if (mission) {
-			delete mission;
-			mission = nullptr;
-		}
-	}
-
-	offeredMissions.clear();
 }
 
 void MissionOfferComponent::OnUse(Entity* originator) {
@@ -88,17 +53,15 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 
 	std::vector<uint32_t> offered{};
 
-	CDMissions info{};
+	CDMissions missionInfo{};
 
-	if (specifiedMissionId > 0 && !Mission::IsValidMission(specifiedMissionId, info)) {
+	if (specifiedMissionId > 0 && !Mission::IsValidMission(specifiedMissionId, missionInfo)) {
 		return;
 	}
 
-	for (auto* offeredMission : this->offeredMissions) {
-		if (specifiedMissionId > 0) {
-			if (offeredMission->GetMissionId() != specifiedMissionId && !info.isRandom) {
-				continue;
-			}
+	for (const auto& offeredMission : offeredMissions) {
+		if (specifiedMissionId > 0 && (offeredMission->GetMissionId() != specifiedMissionId && !missionInfo.isRandom)) {
+			continue;
 		}
 
 		// First, check if we already have the mission
@@ -106,10 +69,13 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 
 		auto* mission = missionComponent->GetMission(missionId);
 
-		if (mission != nullptr) {
+		if (mission) {
 			if (specifiedMissionId <= 0) {
 				// Handles the odd case where the offer object should not display the mission again
-				if (!mission->IsComplete() && mission->GetClientInfo().offer_objectID == m_ParentEntity->GetLOT() && mission->GetClientInfo().target_objectID != m_ParentEntity->GetLOT() && mission->IsFetchMission()) {
+				if (!mission->IsComplete() &&
+					mission->GetClientInfo().offer_objectID == m_ParentEntity->GetLOT() &&
+					mission->GetClientInfo().target_objectID != m_ParentEntity->GetLOT() &&
+					mission->IsFetchMission()) {
 					continue;
 				}
 			}
@@ -127,50 +93,30 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 		const auto canAccept = MissionPrerequisites::CanAccept(missionId, missionComponent->GetMissions());
 
 		// Mission has not yet been accepted - check the prereqs
-		if (!canAccept)
-			continue;
+		if (!canAccept || !Mission::IsValidMission(missionId, missionInfo)) continue;
 
-		if (!Mission::IsValidMission(missionId, info)) {
-			continue;
-		}
+		// This means the mission is part of a random pool of missions.
+		if (missionInfo.isRandom && missionInfo.randomPool.empty()) continue;
 
-		const auto& randomPool = info.randomPool;
-		const auto isRandom = info.isRandom;
+		if (missionInfo.isRandom && !missionInfo.randomPool.empty()) {
+			auto randomMissionPoolStr = GeneralUtils::SplitString(missionInfo.randomPool, ',');
 
-		if (isRandom && randomPool.empty()) // This means the mission is part of a random pool of missions.
-		{
-			continue;
-		}
-
-		if (isRandom && !randomPool.empty()) {
-			std::istringstream stream(randomPool);
-			std::string token;
-
-			std::vector<uint32_t> randomMissionPool;
-
-			while (std::getline(stream, token, ',')) {
-				try {
-					const auto value = std::stoul(token);
-
-					randomMissionPool.push_back(value);
-				} catch (std::invalid_argument& exception) {
-					Game::logger->Log("MissionOfferComponent", "Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
-				}
+			std::vector<uint32_t> randomMissions;
+			for (const auto& randomMissionStr : randomMissionPoolStr) {
+				uint32_t randomMission;
+				if (GeneralUtils::TryParse(randomMissionStr, randomMission)) randomMissions.push_back(randomMission);
 			}
 
 			if (specifiedMissionId > 0) {
-				const auto& iter = std::find(randomMissionPool.begin(), randomMissionPool.end(), specifiedMissionId);
-
-				if (iter != randomMissionPool.end() && MissionPrerequisites::CanAccept(specifiedMissionId, missionComponent->GetMissions())) {
+				if (std::find(randomMissions.begin(), randomMissions.end(), specifiedMissionId) != randomMissions.end() &&
+					MissionPrerequisites::CanAccept(specifiedMissionId, missionComponent->GetMissions())) {
 					GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), specifiedMissionId, m_ParentEntity->GetObjectID());
-
 					return;
 				}
 			}
 
 			std::vector<uint32_t> canAcceptPool;
-
-			for (const auto sample : randomMissionPool) {
+			for (const auto& sample : randomMissions) {
 				const auto state = missionComponent->GetMissionState(sample);
 
 				if (state == eMissionState::ACTIVE ||
@@ -180,9 +126,7 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 					sample == specifiedMissionId) {
 					mission = missionComponent->GetMission(sample);
 
-					if (mission == nullptr || mission->IsAchievement()) {
-						continue;
-					}
+					if (!mission || mission->IsAchievement()) continue;
 
 					GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), sample, m_ParentEntity->GetObjectID());
 
@@ -191,16 +135,16 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 					break;
 				}
 
-				if (std::find(offered.begin(), offered.end(), sample) == offered.end() && MissionPrerequisites::CanAccept(sample, missionComponent->GetMissions())) {
+				if (std::find(offered.begin(), offered.end(), sample) == offered.end() &&
+					MissionPrerequisites::CanAccept(sample, missionComponent->GetMissions())) {
 					canAcceptPool.push_back(sample);
 				}
 			}
 
 			// If the mission is already active or we already completed one of them today
-			if (canAcceptPool.empty())
-				continue;
+			if (canAcceptPool.empty()) continue;
 
-			const auto selected = canAcceptPool[GeneralUtils::GenerateRandomNumber<int>(0, canAcceptPool.size() - 1)];
+			const auto selected = canAcceptPool[GeneralUtils::GenerateRandomNumber<int32_t>(0, canAcceptPool.size() - 1)];
 
 			GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), selected, m_ParentEntity->GetObjectID());
 		} else if (std::find(offered.begin(), offered.end(), missionId) == offered.end() && offeredMission->GetOfferMission()) {
