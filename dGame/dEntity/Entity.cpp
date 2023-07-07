@@ -1013,9 +1013,6 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 
 	TriggerEvent(eTriggerEventType::EXIT, other);
 
-	auto* switchComponent = GetComponent<SwitchComponent>();
-	if (switchComponent) switchComponent->EntityLeave(other);
-
 	const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
 
 	if (index == m_TargetsInPhantom.end()) return;

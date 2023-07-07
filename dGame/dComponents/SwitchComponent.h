@@ -21,9 +21,9 @@ public:
 	SwitchComponent(Entity* parent);
 	~SwitchComponent() override;
 
+	void LoadConfigData() override;
+	void Startup() override;
 	void Update(float deltaTime) override;
-
-	Entity* GetParentEntity() const;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -31,12 +31,12 @@ public:
 	 * Sets whether the switch is on or off.
 	 * @param active whether the switch is on or off.
 	 */
-	void SetActive(bool active);
+	void SetActive(const bool active);
 
 	/**
 	 * Returns whether the switch is on or off.
 	 */
-	bool GetActive() const;
+	bool GetActive() const { return m_Active; }
 
 	/**
 	 * Sets the attached pet bouncer
@@ -47,7 +47,7 @@ public:
 	/**
 	 * Returns the attached pet bouncer
 	 */
-	BouncerComponent* GetPetBouncer() const;
+	BouncerComponent* GetBouncer() const { return m_Bouncer; }
 
 	/**
 	 * Invoked when a entity enters the trigger area.
@@ -55,22 +55,17 @@ public:
 	void EntityEnter(Entity* entity);
 
 	/**
-	 * Invoked when a entity leaves the trigger area.
-	 */
-	void EntityLeave(Entity* entity);
-
-	/**
 	 * Returns the closest switch from a given position
 	 * @param position the position to check
 	 * @return the closest switch from a given position
 	 */
-	static SwitchComponent* GetClosestSwitch(NiPoint3 position);
+	static SwitchComponent* GetClosestSwitch(const NiPoint3& position);
 
 private:
 	/**
 	 * A list of all pet switches.
 	 */
-	static std::vector<SwitchComponent*> petSwitches;
+	static std::vector<SwitchComponent*> switches;
 
 	/**
 	 * Attached rebuild component.
@@ -100,7 +95,7 @@ private:
 	/**
 	 * Attached pet bouncer
 	 */
-	BouncerComponent* m_PetBouncer = nullptr;
+	BouncerComponent* m_Bouncer = nullptr;
 };
 
 #endif // SWITCHCOMPONENT_H
