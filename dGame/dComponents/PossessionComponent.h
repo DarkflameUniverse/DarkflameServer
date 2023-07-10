@@ -44,7 +44,11 @@ public:
 	 * Sets the ID that this entity is possessing
 	 * @param value The ID that this entity is possessing
 	 */
-	void SetPossessable(LWOOBJID value) { m_Possessable = value; m_DirtyPossesor = true; }
+	void SetPossessable(const LWOOBJID& value) {
+		if (m_Possessable == value) return;
+		m_Possessable = value;
+		m_DirtyPossesor = true;
+	}
 
 	/**
 	 * Returns the entity that this entity is currently posessing
@@ -68,7 +72,11 @@ public:
 	 * Sets the possesible type that's currently used, merely used by the shooting gallery if it's 0
 	 * @param value The possesible type to set
 	 */
-	void SetPossessableType(ePossessionType value) { m_PossessableType = value; m_DirtyPossesor = true; }
+	void SetPossessableType(ePossessionType value) {
+		if (m_PossessableType == value) return;
+		m_PossessableType = value;
+		m_DirtyPossesor = true;
+	}
 
 
 	/**
