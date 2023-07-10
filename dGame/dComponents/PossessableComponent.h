@@ -18,12 +18,9 @@ public:
 
 	PossessableComponent(Entity* parentEntity, uint32_t componentId);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void LoadTemplateData() override;
 
-	/**
-	 * @brief mounts the Entity
-	 */
-	void Mount();
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
 	/**
 	 * @brief dismounts the Entity
@@ -34,7 +31,11 @@ public:
 	 * Sets the possessor of this Entity
 	 * @param value the ID of the possessor to set
 	 */
-	void SetPossessor(LWOOBJID value) { m_Possessor = value; m_DirtyPossessable = true; };
+	void SetPossessor(const LWOOBJID& value) {
+		if (m_Possessor == value) return;
+		m_Possessor = value;
+		m_DirtyPossessable = true;
+	}
 
 	/**
 	 * Returns the possessor of this Entity
@@ -46,7 +47,11 @@ public:
 	 * Sets the animation Flag of the possessable
 	 * @param value the animation flag to set to
 	 */
-	void SetAnimationFlag(eAnimationFlags value) { m_AnimationFlag = value; m_DirtyPossessable = true; };
+	void SetAnimationFlag(eAnimationFlags value) {
+		if (m_AnimationFlag == value) return;
+		m_AnimationFlag = value;
+		m_DirtyPossessable = true;
+	}
 
 	/**
 	 * Returns the possession type of this Entity
@@ -63,7 +68,10 @@ public:
 	/**
 	 * Forcibly depossess the Entity
 	 */
-	void ForceDepossess() { m_ImmediatelyDepossess = true; m_DirtyPossessable = true; };
+	void ForceDepossess() {
+		m_ImmediatelyDepossess = true;
+		m_DirtyPossessable = true;
+	}
 
 	/**
 	 * Set if the parent entity was spawned from an item
@@ -123,4 +131,6 @@ private:
 	 *
 	 */
 	bool m_ItemSpawned = false;
+
+	int32_t m_ComponentId = -1;
 };
