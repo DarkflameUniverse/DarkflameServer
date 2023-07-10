@@ -81,6 +81,8 @@
 #include "CDObjectSkillsTable.h"
 #include "CDObjectsTable.h"
 #include "CDSkillBehaviorTable.h"
+#include "CppScripts.h"
+#include "InvalidScript.h"
 
 const std::vector<ComponentWhitelist> Entity::m_ComponentWhitelists = {
 	{ // Unknown use case
