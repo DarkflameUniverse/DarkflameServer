@@ -1,4 +1,7 @@
+#ifndef __ITEMCOMPONENT__H__
+#define __ITEMCOMPONENT__H__
 #pragma once
+
 #include "dCommonVars.h"
 #include "RakNetTypes.h"
 #include "NiPoint3.h"
@@ -9,7 +12,7 @@
 class Entity;
 enum class eUgcModerationStatus : uint32_t;
 
-class ItemComponent : public Component {
+class ItemComponent final : public Component {
 public:
 	static const eReplicaComponentType ComponentType = eReplicaComponentType::ITEM;
 
@@ -39,7 +42,7 @@ private:
 	LWOOBJID m_UgId;
 
 	/**
-	 *
+	 * Whether or not the description of this item is approved.
 	 */
 	eUgcModerationStatus m_UgModerationStatus;
 
@@ -48,3 +51,5 @@ private:
 	 */
 	std::u16string m_UgDescription;
 };
+
+#endif  //!__ITEMCOMPONENT__H__

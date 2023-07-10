@@ -35,7 +35,7 @@ enum class eItemType : int32_t;
  * of different types, each type representing a different group of items, see `eInventoryType` for a list of
  * inventories.
  */
-class InventoryComponent : public Component
+class InventoryComponent final : public Component
 {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;

@@ -517,7 +517,7 @@ void Entity::Initialize() {
 			m_IsGhostingCandidate = false;
 			break;
 		case eReplicaComponentType::MISSION_OFFER:
-			AddComponent<MissionOfferComponent>(GetLOT());
+			AddComponent<MissionOfferComponent>(componentId);
 			break;
 		case eReplicaComponentType::RACING_STATS:
 			AddComponent<RacingStatsComponent>();

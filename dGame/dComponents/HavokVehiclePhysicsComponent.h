@@ -26,7 +26,7 @@ struct RemoteInputInfo {
 /**
  * Physics component for vehicles.
  */
-class HavokVehiclePhysicsComponent : public Component {
+class HavokVehiclePhysicsComponent final : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::HAVOK_VEHICLE_PHYSICS;
 

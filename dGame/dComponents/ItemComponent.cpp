@@ -2,7 +2,6 @@
 #include "Entity.h"
 #include "eUgcModerationStatus.h"
 
-
 ItemComponent::ItemComponent(Entity* parent) : Component(parent) {
 	m_ParentEntity = parent;
 
@@ -19,13 +18,13 @@ ItemComponent::ItemComponent(Entity* parent) : Component(parent) {
 void ItemComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 
 	outBitStream->Write(m_DirtyItemInfo || bIsInitialUpdate);
-	if (m_DirtyItemInfo || bIsInitialUpdate){
+	if (m_DirtyItemInfo || bIsInitialUpdate) {
 		outBitStream->Write(m_UgId);
 		outBitStream->Write(m_UgModerationStatus);
-		outBitStream->Write(m_UgDescription != u"");
-		if (m_UgDescription != u""){
+		outBitStream->Write(!m_UgDescription.empty());
+		if (!m_UgDescription.empty()){
 			outBitStream->Write<uint32_t>(m_UgDescription.length());
-			for (uint16_t character : m_UgDescription) outBitStream->Write(character);
+			outBitStream->Write(reinterpret_cast<const char*>(m_UgDescription.c_str()), m_UgDescription.length() * sizeof(uint16_t));
 		}
 		m_DirtyItemInfo = false;
 	}
