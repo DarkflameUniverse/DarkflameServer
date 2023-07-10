@@ -27,6 +27,9 @@ public:
 
 	PhantomPhysicsComponent(Entity* parent);
 	~PhantomPhysicsComponent() override;
+
+	void LoadTemplateData() override;
+	void LoadConfigData() override;
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void ResetFlags();

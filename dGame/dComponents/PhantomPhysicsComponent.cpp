@@ -48,34 +48,13 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 
 	m_IsDirectional = false;
 	m_Direction = NiPoint3::ZERO;
+}
 
-	if (m_ParentEntity->GetVar<bool>(u"create_physics")) {
-		CreatePhysics();
-	}
+PhantomPhysicsComponent::~PhantomPhysicsComponent() {
+	if (m_dpEntity) dpWorld::Instance().RemoveEntity(m_dpEntity);
+}
 
-	if (m_ParentEntity->GetVar<bool>(u"respawnVol")) {
-		m_IsRespawnVolume = true;
-	}
-
-	if (m_IsRespawnVolume) {
-		auto respawnPosSplit = GeneralUtils::SplitString(m_ParentEntity->GetVarAsString(u"rspPos"), '\x1f');
-		m_RespawnPos = NiPoint3::ZERO;
-		if (respawnPosSplit.size() >= 3) {
-			GeneralUtils::TryParse(respawnPosSplit[0], m_RespawnPos.x);
-			GeneralUtils::TryParse(respawnPosSplit[1], m_RespawnPos.y);
-			GeneralUtils::TryParse(respawnPosSplit[2], m_RespawnPos.z);
-		}
-
-		auto respawnRotSplit = GeneralUtils::SplitString(m_ParentEntity->GetVarAsString(u"rspRot"), '\x1f');
-		m_RespawnRot = NiQuaternion::IDENTITY;
-		if (respawnRotSplit.size() >= 4) {
-			GeneralUtils::TryParse(respawnRotSplit[0], m_RespawnRot.w);
-			GeneralUtils::TryParse(respawnRotSplit[1], m_RespawnRot.x);
-			GeneralUtils::TryParse(respawnRotSplit[2], m_RespawnRot.y);
-			GeneralUtils::TryParse(respawnRotSplit[3], m_RespawnRot.z);
-		}
-	}
-
+void PhantomPhysicsComponent::LoadTemplateData() {
 	// HF - RespawnPoints. Legacy respawn entity.
 	if (m_ParentEntity->GetLOT() == LOT_LEGACY_RESPAWN_POINT) {
 		m_IsRespawnVolume = true;
@@ -83,18 +62,16 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 		m_RespawnRot = m_Rotation;
 	}
 
-	if (m_HasCreatedPhysics) return;
 	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 	auto componentID = compRegistryTable->GetByIDAndType(m_ParentEntity->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
-	auto* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
+	auto* physCompTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
-	if (!physComp) return;
+	if (!physCompTable) return;
 
-	auto* info = physComp->GetByID(componentID);
+	auto* info = physCompTable->GetByID(componentID);
 	if (!info || info->physicsAsset.empty() || info->physicsAsset == "NO_PHYSICS") return;
 
-	//temp test
 	if (info->physicsAsset == "miscellaneous\\misc_phys_10x1x5.hkx") {
 		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 10.0f, 5.0f, 1.0f);
 		m_dpEntity->SetScale(m_Scale);
@@ -158,10 +135,36 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 		m_dpEntity->SetPosition(m_Position);
 	}
 	dpWorld::Instance().AddEntity(m_dpEntity);
+
 }
 
-PhantomPhysicsComponent::~PhantomPhysicsComponent() {
-	if (m_dpEntity) dpWorld::Instance().RemoveEntity(m_dpEntity);
+void PhantomPhysicsComponent::LoadConfigData() {
+	if (m_ParentEntity->GetVar<bool>(u"create_physics")) {
+		CreatePhysics();
+	}
+
+	if (m_ParentEntity->GetVar<bool>(u"respawnVol")) {
+		m_IsRespawnVolume = true;
+	}
+
+	if (m_IsRespawnVolume) {
+		auto respawnPosSplit = GeneralUtils::SplitString(m_ParentEntity->GetVarAsString(u"rspPos"), '\x1f');
+		m_RespawnPos = NiPoint3::ZERO;
+		if (respawnPosSplit.size() >= 3) {
+			GeneralUtils::TryParse(respawnPosSplit[0], m_RespawnPos.x);
+			GeneralUtils::TryParse(respawnPosSplit[1], m_RespawnPos.y);
+			GeneralUtils::TryParse(respawnPosSplit[2], m_RespawnPos.z);
+		}
+
+		auto respawnRotSplit = GeneralUtils::SplitString(m_ParentEntity->GetVarAsString(u"rspRot"), '\x1f');
+		m_RespawnRot = NiQuaternion::IDENTITY;
+		if (respawnRotSplit.size() >= 4) {
+			GeneralUtils::TryParse(respawnRotSplit[0], m_RespawnRot.w);
+			GeneralUtils::TryParse(respawnRotSplit[1], m_RespawnRot.x);
+			GeneralUtils::TryParse(respawnRotSplit[2], m_RespawnRot.y);
+			GeneralUtils::TryParse(respawnRotSplit[3], m_RespawnRot.z);
+		}
+	}
 }
 
 void PhantomPhysicsComponent::CreatePhysics() {
@@ -206,7 +209,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 
 			boxSize = BoxDimensions(width, height, width);
 		}
-
+		if (m_dpEntity) delete m_dpEntity;
 		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), boxSize);
 		break;
 	}
