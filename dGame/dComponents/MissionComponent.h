@@ -24,7 +24,7 @@ class AchievementCacheKey;
   * The mission inventory of an entity. Tracks mission state for each mission that can be accepted and allows for
   * progression of each of the mission task types (see eMissionTaskType).
   */
-class MissionComponent : public Component
+class MissionComponent final : public Component
 {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION;

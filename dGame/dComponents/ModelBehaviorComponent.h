@@ -12,7 +12,7 @@ enum class ePhysicsBehaviorType : int32_t;
 /**
  * Component that represents entities that are a model, e.g. collectible models and BBB models.
  */
-class ModelBehaviorComponent : public Component {
+class ModelBehaviorComponent final : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL_BEHAVIOR;
 
