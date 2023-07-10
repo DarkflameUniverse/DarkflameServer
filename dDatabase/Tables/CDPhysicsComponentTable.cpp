@@ -37,10 +37,7 @@ CDPhysicsComponentTable::~CDPhysicsComponentTable() {
 }
 
 CDPhysicsComponent* CDPhysicsComponentTable::GetByID(unsigned int componentID) {
-	for (auto e : m_entries) {
-		if (e.first == componentID) return e.second;
-	}
-
-	return nullptr;
+	auto itr = m_entries.find(componentID);
+	return itr != m_entries.end() ? itr->second : nullptr;
 }
 
