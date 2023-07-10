@@ -1,18 +1,20 @@
 #pragma once
 
 #include "Entity.h"
-#include "MovementAIComponent.h"
 #include "Component.h"
-#include "Preconditions.h"
 #include "eReplicaComponentType.h"
 
-enum class PetAbilityType
-{
+class PreconditionExpression;
+class MovementAIComponent;
+
+enum class PetAbilityType : uint32_t {
 	Invalid,
 	GoToObject,
 	JumpOnObject,
 	DigAtPosition
 };
+
+enum ePlayerFlag : int32_t;
 
 /**
  * Represents an entity that is a pet. This pet can be tamed and consequently follows the tamer around, allowing it
@@ -24,7 +26,6 @@ public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
 	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
-	~PetComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void Update(float deltaTime) override;
@@ -109,7 +110,7 @@ public:
 	 * Returns the ID of the owner of this pet (if any)
 	 * @return the ID of the owner of this pet
 	 */
-	LWOOBJID GetOwnerId() const;
+	LWOOBJID GetOwnerId() const { return m_Owner; }
 
 	/**
 	 * Returns the entity that owns this pet (if any)
@@ -121,44 +122,44 @@ public:
 	 * Returns the ID that is stored in the database with regards to this pet, only set for pets that are tamed
 	 * @return the ID that is stored in the database with regards to this pet
 	 */
-	LWOOBJID GetDatabaseId() const;
+	LWOOBJID GetDatabaseId() const { return m_DatabaseId; }
 
 	/**
 	 * Returns the ID of the object that the pet is currently interacting with, could be a treasure chest or a switch
 	 * @return the ID of the object that the pet is currently interacting with
 	 */
-	LWOOBJID GetInteraction() const;
+	LWOOBJID GetInteraction() const { return m_Interaction; }
 
 	/**
 	 * Sets the ID that the pet is interacting with
 	 * @param value the ID that the pet is interacting with
 	 */
-	void SetInteraction(LWOOBJID value);
+	void SetInteraction(const LWOOBJID& value) { m_Interaction = value; }
 
 	/**
 	 * Returns the ID that this pet was spawned from, only set for tamed pets
 	 * @return the ID that this pet was spawned from
 	 */
-	LWOOBJID GetItemId() const;
+	LWOOBJID GetItemId() const { return m_ItemId; }
 
 	/**
 	 * Returns the status of this pet, e.g. tamable or tamed. The values here are still a bit of mystery and likely a
 	 * bit map
 	 * @return the status of this pet
 	 */
-	uint32_t GetStatus() const;
+	uint32_t GetStatus() const { return m_Status; }
 
 	/**
 	 * Sets the current status of the pet
 	 * @param value the current status of the pet to set
 	 */
-	void SetStatus(uint32_t value);
+	void SetStatus(const uint32_t value) { m_Status = value; }
 
 	/**
 	 * Returns an ability the pet may perform, currently unused
 	 * @return an ability the pet may perform
 	 */
-	PetAbilityType GetAbility() const;
+	PetAbilityType GetAbility() const { return m_Ability; }
 
 	/**
 	 * Sets the ability of the pet, currently unused
@@ -171,12 +172,6 @@ public:
 	 * @param conditions the preconditions to set
 	 */
 	void SetPreconditions(std::string& conditions);
-
-	/**
-	 * Returns the entity that this component belongs to
-	 * @return the entity that this component belongs to
-	 */
-	Entity* GetParentEntity() const;
 
 	/**
 	 * Sets the name of the pet to be moderated
@@ -195,14 +190,14 @@ public:
 	 * @param tamer the entity that's currently taming
 	 * @return the pet component of the entity that's being tamed
 	 */
-	static PetComponent* GetTamingPet(LWOOBJID tamer);
+	static PetComponent* GetTamingPet(const LWOOBJID& tamer);
 
 	/**
 	 * Returns the pet that's currently spawned for some entity (if any)
 	 * @param owner the owner of the pet that's spawned
 	 * @return the pet component of the entity that was spawned by the owner
 	 */
-	static PetComponent* GetActivePet(LWOOBJID owner);
+	static PetComponent* GetActivePet(const LWOOBJID& owner);
 
 	/**
 	 * Adds the timer to the owner of this pet to drain imagination at the rate
@@ -263,7 +258,7 @@ private:
 	/**
 	 * Flags that indicate that a player has tamed a pet, indexed by the LOT of the pet
 	 */
-	static std::map<LOT, int32_t> petFlags;
+	static std::map<LOT, ePlayerFlag> petFlags;
 
 	/**
 	 * The ID of the component in the pet component table
@@ -359,5 +354,5 @@ private:
 	/**
 	 * The rate at which imagination is drained from the user for having the pet out.
 	 */
-	float imaginationDrainRate;
+	float m_ImaginationDrainRate;
 };
