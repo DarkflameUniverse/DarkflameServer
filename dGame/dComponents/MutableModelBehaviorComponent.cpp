@@ -9,22 +9,21 @@ MutableModelBehaviorComponent::MutableModelBehaviorComponent(Entity* parent) : C
 	m_DirtyModelEditingInfo = false;
 	m_OldObjId = LWOOBJID_EMPTY;
 	m_Editor = LWOOBJID_EMPTY;
-
 }
 
 void MutableModelBehaviorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	outBitStream->Write(m_DirtyModelBehaviorInfo || bIsInitialUpdate);
-	if (m_DirtyModelBehaviorInfo){
+	if (m_DirtyModelBehaviorInfo || bIsInitialUpdate) {
 		outBitStream->Write(m_BehaviorCount);
 		outBitStream->Write(m_IsPaused);
-		m_DirtyModelBehaviorInfo = false;
-	}
 
-	outBitStream->Write(m_DirtyModelEditingInfo && bIsInitialUpdate);
-	if (m_DirtyModelEditingInfo && bIsInitialUpdate) {
-		outBitStream->Write(m_OldObjId);
-		outBitStream->Write(m_Editor);
-		m_DirtyModelEditingInfo = false;
+		outBitStream->Write(m_DirtyModelEditingInfo && bIsInitialUpdate);
+		if (m_DirtyModelEditingInfo && bIsInitialUpdate) {
+			outBitStream->Write(m_OldObjId);
+			outBitStream->Write(m_Editor);
+			if (!bIsInitialUpdate) m_DirtyModelEditingInfo = false;
+		}
+		if (!bIsInitialUpdate) m_DirtyModelBehaviorInfo = false;
 	}
 }
 

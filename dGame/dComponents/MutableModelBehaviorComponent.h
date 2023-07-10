@@ -11,7 +11,7 @@ class Entity;
 /**
  * Component that represents entities that are a model, e.g. collectible models and BBB models.
  */
-class MutableModelBehaviorComponent : public Component {
+class MutableModelBehaviorComponent final : public Component {
 public:
 	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL_BEHAVIOR;
 
