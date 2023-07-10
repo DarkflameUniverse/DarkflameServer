@@ -1,6 +1,6 @@
 /*
  * Darkflame Universe
- * Copyright 2019
+ * Copyright 2023
  */
 
 #include "MovingPlatformComponent.h"
@@ -15,7 +15,7 @@
 #include "Zone.h"
 
 MoverSubComponent::MoverSubComponent(const NiPoint3& startPos) {
-	mPosition = {};
+	mPosition = NiPoint3::ZERO;
 
 	mState = eMovementPlatformState::Stopped;
 	mDesiredWaypointIndex = 0; // -1;
@@ -29,8 +29,6 @@ MoverSubComponent::MoverSubComponent(const NiPoint3& startPos) {
 
 	mIdleTimeElapsed = 0.0f;
 }
-
-MoverSubComponent::~MoverSubComponent() = default;
 
 void MoverSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) const {
 	outBitStream->Write<bool>(true);
@@ -62,7 +60,7 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::stri
 	m_Path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
 	m_NoAutoStart = false;
 
-	if (m_Path == nullptr) {
+	if (!m_Path) {
 		Game::logger->Log("MovingPlatformComponent", "Path not found: %s", pathName.c_str());
 	}
 }
@@ -75,13 +73,13 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 	// Here we don't serialize the moving platform to let the client simulate the movement
 
 	if (!m_Serialize) {
-		outBitStream->Write<bool>(false);
-		outBitStream->Write<bool>(false);
+		outBitStream->Write0();
+		outBitStream->Write0();
 
 		return;
 	}
 
-	outBitStream->Write<bool>(true);
+	outBitStream->Write1();
 
 	auto hasPath = !m_PathingStopped && !m_PathName.empty();
 	outBitStream->Write(hasPath);

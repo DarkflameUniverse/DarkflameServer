@@ -6,12 +6,10 @@
 #ifndef MOVINGPLATFORMCOMPONENT_H
 #define MOVINGPLATFORMCOMPONENT_H
 
-#include "RakNetTypes.h"
 #include "NiPoint3.h"
 #include <string>
 
 #include "dCommonVars.h"
-#include "EntityManager.h"
 #include "Component.h"
 #include "eMovementPlatformState.h"
 #include "eReplicaComponentType.h"
@@ -36,7 +34,6 @@ enum class eMoverSubComponentType : uint32_t {
 class MoverSubComponent {
 public:
 	MoverSubComponent(const NiPoint3& startPos);
-	~MoverSubComponent();
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) const;
 
