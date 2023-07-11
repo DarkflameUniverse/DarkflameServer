@@ -15,7 +15,7 @@
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
 
-RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component(parent) {
+RenderComponent::RenderComponent(Entity* parent, int32_t componentId) : Component(parent) {
 	m_Effects = std::vector<Effect*>();
 	m_LastAnimationName = "";
 	if (componentId == -1) return;
@@ -45,13 +45,10 @@ RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component
 
 RenderComponent::~RenderComponent() {
 	for (Effect* eff : m_Effects) {
-		if (eff) {
-			delete eff;
-			eff = nullptr;
-		}
+		if (!eff) continue;
+		delete eff;
+		eff = nullptr;
 	}
-
-	m_Effects.clear();
 }
 
 void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -59,9 +56,9 @@ void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitial
 
 	outBitStream->Write<uint32_t>(m_Effects.size());
 
-	for (Effect* eff : m_Effects) {
+	for (auto* eff : m_Effects) {
 		// Check that the effect is non-null
-		assert(eff);
+		DluAssert(eff);
 
 		outBitStream->Write<uint8_t>(eff->name.size());
 		for (const auto& value : eff->name)
@@ -189,7 +186,6 @@ std::vector<Effect*>& RenderComponent::GetEffects() {
 	return m_Effects;
 }
 
-
 float RenderComponent::PlayAnimation(Entity* self, const std::u16string& animation, float priority, float scale) {
 	if (!self) return 0.0f;
 	return RenderComponent::PlayAnimation(self, GeneralUtils::UTF16ToWTF8(animation), priority, scale);
@@ -209,7 +205,6 @@ float RenderComponent::GetAnimationTime(Entity* self, const std::string& animati
 	if (!self) return 0.0f;
 	return RenderComponent::DoAnimation(self, animation, false);
 }
-
 
 float RenderComponent::DoAnimation(Entity* self, const std::string& animation, bool sendAnimation, float priority, float scale) {
 	float returnlength = 0.0f;

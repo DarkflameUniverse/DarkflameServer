@@ -12,9 +12,6 @@ RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* paren
 	m_IsDirty = true;
 }
 
-RigidbodyPhantomPhysicsComponent::~RigidbodyPhantomPhysicsComponent() {
-}
-
 void RigidbodyPhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
 	outBitStream->Write(m_IsDirty || bIsInitialUpdate);
 	if (m_IsDirty || bIsInitialUpdate) {
