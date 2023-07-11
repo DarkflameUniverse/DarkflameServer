@@ -10,34 +10,30 @@
 #include "PropertyManagementComponent.h"
 #include "UserManager.h"
 
-PropertyVendorComponent::PropertyVendorComponent(Entity* parent) : Component(parent) {
-}
+PropertyVendorComponent::PropertyVendorComponent(Entity* parent) : Component(parent) { }
 
 void PropertyVendorComponent::OnUse(Entity* originator) {
-	if (PropertyManagementComponent::Instance() == nullptr) return;
+	if (!PropertyManagementComponent::Instance()) return;
 
 	OnQueryPropertyData(originator, originator->GetSystemAddress());
 
-	if (PropertyManagementComponent::Instance()->GetOwnerId() == LWOOBJID_EMPTY) {
-		Game::logger->Log("PropertyVendorComponent", "Property vendor opening!");
+	if (PropertyManagementComponent::Instance()->GetOwnerId() != LWOOBJID_EMPTY) return;
+	Game::logger->Log("PropertyVendorComponent", "Property vendor opening!");
 
-		GameMessages::SendOpenPropertyVendor(m_ParentEntity->GetObjectID(), originator->GetSystemAddress());
-
-		return;
-	}
+	GameMessages::SendOpenPropertyVendor(m_ParentEntity->GetObjectID(), originator->GetSystemAddress());
 }
 
 void PropertyVendorComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr) {
-	if (PropertyManagementComponent::Instance() == nullptr) return;
+	if (!PropertyManagementComponent::Instance()) return;
 
 	PropertyManagementComponent::Instance()->OnQueryPropertyData(originator, sysAddr, m_ParentEntity->GetObjectID());
 }
 
 void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool confirmed, const LOT lot, const uint32_t count) {
-	if (PropertyManagementComponent::Instance() == nullptr) return;
+	if (!PropertyManagementComponent::Instance()) return;
 
-	if (PropertyManagementComponent::Instance()->Claim(originator->GetObjectID()) == false) {
-		Game::logger->Log("PropertyVendorComponent", "FAILED TO CLAIM PROPERTY.  PLAYER ID IS %llu", originator->GetObjectID());
+	if (!PropertyManagementComponent::Instance()->Claim(originator->GetObjectID())) {
+		Game::logger->Log("PropertyVendorComponent", "Player %llu attempted to claim a property that did not belong to them.", originator->GetObjectID());
 		return;
 	}
 
@@ -51,6 +47,6 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 
 	PropertyManagementComponent::Instance()->OnQueryPropertyData(originator, originator->GetSystemAddress());
 
-	Game::logger->Log("PropertyVendorComponent", "Fired event; (%d) (%i) (%i)", confirmed, lot, count);
+	Game::logger->Log("PropertyVendorComponent", "Fired event, (%d) (%i) (%i)", confirmed, lot, count);
 }
 
