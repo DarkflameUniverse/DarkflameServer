@@ -64,17 +64,19 @@ public:
 
 private:
 
+	void AddProximityRadius(dpEntity* entity, const std::string& name);
+
 	/**
 	 * All the proximity sensors for this component, indexed by name
 	 */
-	std::map<std::string, dpEntity*> m_ProximitiesData = {};
+	std::map<std::string, dpEntity*> m_ProximitiesData;
 
 	/**
 	 * Default value for the proximity data
 	 */
 	static const std::map<LWOOBJID, dpEntity*> m_EmptyObjectMap;
 
-	int32_t m_ComponentId = 0;
+	int32_t m_ComponentId = -1;
 };
 
 #endif // PROXIMITYMONITORCOMPONENT_H
