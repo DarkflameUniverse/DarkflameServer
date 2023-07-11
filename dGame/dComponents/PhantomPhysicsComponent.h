@@ -1,22 +1,18 @@
 /*
  * Darkflame Universe
- * Copyright 2018
+ * Copyright 2023
  */
 
 #pragma once
 
-#include "NiPoint3.h"
-#include "NiQuaternion.h"
-#include "BitStream.h"
-#include <vector>
-#include "CppScripts.h"
-#include "InvalidScript.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
 class LDFBaseData;
 class Entity;
 class dpEntity;
+class NiPoint3;
+class NiQuaternion;
 enum class ePhysicsEffectType : uint32_t ;
 
 /**
@@ -27,10 +23,13 @@ enum class ePhysicsEffectType : uint32_t ;
  */
 class PhantomPhysicsComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
 
 	PhantomPhysicsComponent(Entity* parent);
 	~PhantomPhysicsComponent() override;
+
+	void LoadTemplateData() override;
+	void LoadConfigData() override;
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void ResetFlags();
@@ -110,7 +109,7 @@ public:
 	 * Sets the effect that's currently active
 	 * @param type the effect to set
 	 */
-	void SetEffectType(ePhysicsEffectType type);
+	void SetEffectType(const ePhysicsEffectType type);
 
 	/**
 	 * Returns the Physics entity for the component
@@ -127,12 +126,12 @@ public:
 	/**
 	 * Legacy stuff no clue what this does
 	 */
-	void SetMin(uint32_t min);
+	void SetMin(const uint32_t min);
 
 	/**
 	 * Legacy stuff no clue what this does
 	 */
-	void SetMax(uint32_t max);
+	void SetMax(const uint32_t max);
 
 private:
 

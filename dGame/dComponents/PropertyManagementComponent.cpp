@@ -206,7 +206,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	std::string name = zone->GetZoneName();
 	std::string description = "";
 
-	auto prop_path = zone->GetPath(m_Parent->GetVarAsString(u"propertyName"));
+	auto prop_path = zone->GetPath(m_ParentEntity->GetVarAsString(u"propertyName"));
 
 	if (prop_path){
 		if (!prop_path->property.displayName.empty()) name = prop_path->property.displayName;
@@ -241,9 +241,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	}
 
 	auto* zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControlObject)) {
-		script->OnZonePropertyRented(zoneControlObject, entity);
-	}
+		zoneControlObject->GetScript()->OnZonePropertyRented(zoneControlObject, entity);
 	return true;
 }
 
@@ -275,7 +273,7 @@ void PropertyManagementComponent::OnStartBuilding() {
 
 		player->SendToZone(zoneId);
 	}
-	auto inventoryComponent = ownerEntity->GetComponent<InventoryComponent>();
+	auto* inventoryComponent = ownerEntity->GetComponent<InventoryComponent>();
 
 	// Push equipped items
 	if (inventoryComponent) inventoryComponent->PushEquippedItems();
@@ -395,7 +393,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
 
-		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), position, m_Parent->GetObjectID(), 14, originalRotation);
+		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), position, m_ParentEntity->GetObjectID(), 14, originalRotation);
 
 		GameMessages::SendUGCEquipPreCreateBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), 0, spawnerId);
 
@@ -404,7 +402,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelPlaced(entity);
 		});
 	// Progress place model missions
-	auto missionComponent = entity->GetComponent<MissionComponent>();
+	auto* missionComponent = entity->GetComponent<MissionComponent>();
 	if (missionComponent != nullptr) missionComponent->Progress(eMissionTaskType::PLACE_MODEL, 0);
 }
 
@@ -783,7 +781,7 @@ PropertyManagementComponent* PropertyManagementComponent::Instance() {
 
 void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author) {
 	if (author == LWOOBJID_EMPTY) {
-		author = m_Parent->GetObjectID();
+		author = m_ParentEntity->GetObjectID();
 	}
 
 	const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
@@ -861,7 +859,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 
 void PropertyManagementComponent::OnUse(Entity* originator) {
 	OnQueryPropertyData(originator, UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendOpenPropertyManagment(m_Parent->GetObjectID(), originator->GetSystemAddress());
+	GameMessages::SendOpenPropertyManagment(m_ParentEntity->GetObjectID(), originator->GetSystemAddress());
 }
 
 void PropertyManagementComponent::SetOwnerId(const LWOOBJID value) {

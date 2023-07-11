@@ -10,7 +10,7 @@ trim_trailing_whitespace=true
 end_of_line=lf
 insert_final_newline=true
 
-[*.{c++,cc,cpp,cxx,h,h++,hh,hpp,hxx,inl,ipp,tlh,tli}]
+[*.{c++,cc,cpp,cxx,h,h++,hh,hpp,hxx,inl,ipp,tlh,tli,tcc,tpp}]
 
 vc_generate_documentation_comments=doxygen_slash_star
 

@@ -33,7 +33,7 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 	 * If our target is an enemy we can go ahead and stun it.
 	 */
 
-	auto* combatAiComponent = static_cast<BaseCombatAIComponent*>(target->GetComponent(eReplicaComponentType::BASE_COMBAT_AI));
+	auto* combatAiComponent = target->GetComponent<BaseCombatAIComponent>();
 
 	if (combatAiComponent == nullptr) {
 		return;
@@ -56,7 +56,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 		 * See if we can stun ourselves
 		 */
 
-		auto* combatAiComponent = static_cast<BaseCombatAIComponent*>(self->GetComponent(eReplicaComponentType::BASE_COMBAT_AI));
+		auto* combatAiComponent = self->GetComponent<BaseCombatAIComponent>();
 
 		if (combatAiComponent == nullptr) {
 			return;
@@ -91,7 +91,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 	 * If our target is an enemy we can go ahead and stun it.
 	 */
 
-	auto* combatAiComponent = static_cast<BaseCombatAIComponent*>(target->GetComponent(eReplicaComponentType::BASE_COMBAT_AI));
+	auto* combatAiComponent = target->GetComponent<BaseCombatAIComponent>();
 
 	if (combatAiComponent == nullptr) {
 		return;

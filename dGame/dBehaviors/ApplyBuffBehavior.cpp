@@ -4,7 +4,6 @@
 #include "BehaviorBranchContext.h"
 #include "BuffComponent.h"
 
-
 void ApplyBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* entity = EntityManager::Instance()->GetEntity(branch.target == LWOOBJID_EMPTY ? context->originator : branch.target);
 

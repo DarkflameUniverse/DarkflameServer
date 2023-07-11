@@ -19,10 +19,12 @@
   */
 class ProximityMonitorComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PROXIMITY_MONITOR;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROXIMITY_MONITOR;
 
-	ProximityMonitorComponent(Entity* parentEntity, int smallRadius = -1, int largeRadius = -1);
+	ProximityMonitorComponent(Entity* parentEntity, int32_t componentId = -1);
 	~ProximityMonitorComponent() override;
+
+	void LoadTemplateData() override;
 	void Update(float deltaTime) override;
 
 	/**
@@ -30,14 +32,14 @@ public:
 	 * @param proxRadius the radius to use for the physics entity we use to detect proximity
 	 * @param name the name of this check
 	 */
-	void SetProximityRadius(float proxRadius, const std::string& name);
+	void AddProximityRadius(float proxRadius, const std::string& name);
 
 	/**
 	 * Creates an entry to check proximity for, given a name
 	 * @param entity the physics entity to add to our proximity sensors
 	 * @param name the name of this check
 	 */
-	void SetProximityRadius(dpEntity* entity, const std::string& name);
+	void AddProximityRadius(const BoxDimensions& entity, const std::string& name);
 
 	/**
 	 * Returns the last of entities that are used to check proximity, given a name
@@ -62,15 +64,19 @@ public:
 
 private:
 
+	void AddProximityRadius(dpEntity* entity, const std::string& name);
+
 	/**
 	 * All the proximity sensors for this component, indexed by name
 	 */
-	std::map<std::string, dpEntity*> m_ProximitiesData = {};
+	std::map<std::string, dpEntity*> m_ProximitiesData;
 
 	/**
 	 * Default value for the proximity data
 	 */
 	static const std::map<LWOOBJID, dpEntity*> m_EmptyObjectMap;
+
+	int32_t m_ComponentId = -1;
 };
 
 #endif // PROXIMITYMONITORCOMPONENT_H

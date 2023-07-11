@@ -28,12 +28,12 @@ void TriggerGas::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName != this->m_TimerName) return;
 	auto players = self->GetVar<std::vector<Entity*>>(u"players");
 	for (auto player : players) {
-		if (player->GetIsDead() || !player){
+		if (player->IsDead() || !player){
 			auto position = std::find(players.begin(), players.end(), player);
 			if (position != players.end()) players.erase(position);
 			continue;
 		}
-		auto inventoryComponent = player->GetComponent<InventoryComponent>();
+		auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 		if (inventoryComponent) {
 			if (!inventoryComponent->IsEquipped(this->m_MaelstromHelmet)) {
 				auto* skillComponent = self->GetComponent<SkillComponent>();

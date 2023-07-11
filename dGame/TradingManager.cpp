@@ -219,7 +219,7 @@ void Trade::SendUpdateToOther(LWOOBJID participant) {
 	if (inventoryComponent == nullptr) return;
 
 	for (const auto tradeItem : itemIds) {
-		auto* item = inventoryComponent->FindItemById(tradeItem.itemId);
+		auto item = inventoryComponent->FindItemById(tradeItem.itemId);
 
 		if (item == nullptr) return;
 

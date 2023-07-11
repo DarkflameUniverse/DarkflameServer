@@ -1,9 +1,8 @@
 /*
  * Darkflame Universe
- * Copyright 2019
+ * Copyright 2023
  */
 
-#include <sstream>
 #include <string>
 
 #include "MissionComponent.h"
@@ -19,61 +18,39 @@
 #include "MissionPrerequisites.h"
 #include "AchievementCacheKey.h"
 #include "eMissionState.h"
-
- // MARK: Mission Component
+#include "GeneralUtils.h"
 
 std::unordered_map<AchievementCacheKey, std::vector<uint32_t>> MissionComponent::m_AchievementCache = {};
 
-//! Initializer
 MissionComponent::MissionComponent(Entity* parent) : Component(parent) {
 	m_LastUsedMissionOrderUID = dZoneManager::Instance()->GetUniqueMissionIdStartingValue();
 }
 
-//! Destructor
 MissionComponent::~MissionComponent() {
-	for (const auto& mission : m_Missions) {
-		delete mission.second;
+	for (const auto& [missionId, mission] : m_Missions) {
+		delete mission;
 	}
-
-	this->m_Missions.clear();
 }
 
-
 Mission* MissionComponent::GetMission(const uint32_t missionId) const {
-	if (m_Missions.count(missionId) == 0) {
-		return nullptr;
-	}
+	if (m_Missions.count(missionId) == 0) return nullptr;
 
 	const auto& index = m_Missions.find(missionId);
 
-	if (index == m_Missions.end()) {
-		return nullptr;
-	}
-
-	return index->second;
+	return index == m_Missions.end() ? nullptr : index->second;
 }
-
 
 eMissionState MissionComponent::GetMissionState(const uint32_t missionId) const {
 	auto* mission = GetMission(missionId);
 
-	if (mission == nullptr) {
-		return CanAccept(missionId) ? eMissionState::AVAILABLE : eMissionState::UNKNOWN;
-	}
+	if (!mission) return CanAccept(missionId) ? eMissionState::AVAILABLE : eMissionState::UNKNOWN;
 
 	return mission->GetMissionState();
 }
 
-
-const std::unordered_map<uint32_t, Mission*>& MissionComponent::GetMissions() const {
-	return m_Missions;
-}
-
-
 bool MissionComponent::CanAccept(const uint32_t missionId) const {
 	return MissionPrerequisites::CanAccept(missionId, m_Missions);
 }
-
 
 void MissionComponent::AcceptMission(const uint32_t missionId, const bool skipChecks) {
 	if (!skipChecks && !CanAccept(missionId)) {
@@ -83,7 +60,7 @@ void MissionComponent::AcceptMission(const uint32_t missionId, const bool skipCh
 	// If this is a daily mission, it may already be "accepted"
 	auto* mission = this->GetMission(missionId);
 
-	if (mission != nullptr) {
+	if (mission) {
 		if (mission->GetClientInfo().repeatable) {
 			mission->Accept();
 			if (mission->IsMission()) mission->SetUniqueMissionOrderID(++m_LastUsedMissionOrderUID);
@@ -100,54 +77,41 @@ void MissionComponent::AcceptMission(const uint32_t missionId, const bool skipCh
 
 	this->m_Missions.insert_or_assign(missionId, mission);
 
-	if (missionId == 1728) {
-		//Needs to send a mail
-
-		auto address = m_Parent->GetSystemAddress();
-
-		Mail::HandleNotificationRequest(address, m_Parent->GetObjectID());
-	}
+	//Needs to send a mail
+	if (missionId == 1728) Mail::HandleNotificationRequest(m_ParentEntity->GetSystemAddress(), m_ParentEntity->GetObjectID());
 }
-
 
 void MissionComponent::CompleteMission(const uint32_t missionId, const bool skipChecks, const bool yieldRewards) {
 	// Get the mission first
 	auto* mission = this->GetMission(missionId);
 
-	if (mission == nullptr) {
+	if (!mission) {
 		AcceptMission(missionId, skipChecks);
 
 		mission = this->GetMission(missionId);
 
-		if (mission == nullptr) {
-			return;
-		}
+		if (!mission) return;
 	}
 
 	//If this mission is not repeatable, and already completed, we stop here.
-	if (mission->IsComplete() && !mission->IsRepeatable()) {
-		return;
-	}
+	if (mission->IsComplete() && !mission->IsRepeatable()) return;
 
 	mission->Complete(yieldRewards);
 }
 
-void MissionComponent::RemoveMission(uint32_t missionId) {
-	auto* mission = this->GetMission(missionId);
+void MissionComponent::RemoveMission(const uint32_t missionId) {
+	auto missionItr = m_Missions.find(missionId);
 
-	if (mission == nullptr) {
-		return;
-	}
+	if (missionItr == m_Missions.end()) return;
 
-	delete mission;
+	delete missionItr->second;
 
-	m_Missions.erase(missionId);
+	m_Missions.erase(missionItr);
 }
 
-void MissionComponent::Progress(eMissionTaskType type, int32_t value, LWOOBJID associate, const std::string& targets, int32_t count, bool ignoreAchievements) {
-	for (const auto& pair : m_Missions) {
-		auto* mission = pair.second;
-
+void MissionComponent::Progress(const eMissionTaskType type, const int32_t value, const LWOOBJID& associate, const std::string& targets, const int32_t count, const bool ignoreAchievements) {
+	for (const auto& [missionId, mission] : m_Missions) {
+		if (!mission) continue;
 		if (mission->IsAchievement() && ignoreAchievements) continue;
 
 		if (mission->IsComplete()) continue;
@@ -163,73 +127,57 @@ void MissionComponent::Progress(eMissionTaskType type, int32_t value, LWOOBJID a
 void MissionComponent::ForceProgress(const uint32_t missionId, const uint32_t taskId, const int32_t value, const bool acceptMission) {
 	auto* mission = GetMission(missionId);
 
-	if (mission == nullptr) {
-		if (!acceptMission) {
-			return;
-		}
+	if (!mission) {
+		if (!acceptMission) return;
 
 		AcceptMission(missionId);
 
 		mission = GetMission(missionId);
 
-		if (mission == nullptr) {
-			return;
-		}
+		if (!mission) return;
 	}
 
-	for (auto* element : mission->GetTasks()) {
-		if (element->GetClientInfo().uid != taskId) continue;
+	std::for_each(mission->GetTasks().begin(), mission->GetTasks().end(), [value, taskId](MissionTask* element) {
+		if (element->GetClientInfo().uid != taskId) return;
 
 		element->AddProgress(value);
-	}
+		});
 
-	if (!mission->IsComplete()) {
-		mission->CheckCompletion();
-	}
+	if (!mission->IsComplete()) mission->CheckCompletion();
 }
 
 void MissionComponent::ForceProgressTaskType(const uint32_t missionId, const uint32_t taskType, const int32_t value, const bool acceptMission) {
 	auto* mission = GetMission(missionId);
 
-	if (mission == nullptr) {
-		if (!acceptMission) {
-			return;
-		}
+	if (!mission) {
+		if (!acceptMission) return;
 
 		CDMissions missionInfo;
 
-		if (!GetMissionInfo(missionId, missionInfo)) {
-			return;
-		}
+		if (!GetMissionInfo(missionId, missionInfo)) return;
 
-		if (missionInfo.isMission) {
-			return;
-		}
+		if (missionInfo.isMission) return;
 
 		AcceptMission(missionId);
 
 		mission = GetMission(missionId);
 
-		if (mission == nullptr) {
-			return;
-		}
+		if (!mission) return;
 	}
 
-	for (auto* element : mission->GetTasks()) {
-		if (element->GetType() != static_cast<eMissionTaskType>(taskType)) continue;
+	std::for_each(mission->GetTasks().begin(), mission->GetTasks().end(), [value, taskType](MissionTask* element) {
+		if (element->GetType() != static_cast<eMissionTaskType>(taskType)) return;
 
 		element->AddProgress(value);
-	}
+		});
 
-	if (!mission->IsComplete()) {
-		mission->CheckCompletion();
-	}
+	if (!mission->IsComplete()) mission->CheckCompletion();
 }
 
-void MissionComponent::ForceProgressValue(uint32_t missionId, uint32_t taskType, int32_t value, bool acceptMission) {
+void MissionComponent::ForceProgressValue(const uint32_t missionId, const uint32_t taskType, const int32_t value, const bool acceptMission) {
 	auto* mission = GetMission(missionId);
 
-	if (mission == nullptr) {
+	if (!mission) {
 		if (!acceptMission) {
 			return;
 		}
@@ -264,11 +212,11 @@ void MissionComponent::ForceProgressValue(uint32_t missionId, uint32_t taskType,
 	}
 }
 
-bool MissionComponent::GetMissionInfo(uint32_t missionId, CDMissions& result) {
+bool MissionComponent::GetMissionInfo(const uint32_t missionId, CDMissions& result) const {
 	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
 
 	const auto missions = missionsTable->Query([=](const CDMissions& entry) {
-		return entry.id == static_cast<int>(missionId);
+		return entry.id == static_cast<uint32_t>(missionId);
 		});
 
 	if (missions.empty()) {
@@ -280,10 +228,7 @@ bool MissionComponent::GetMissionInfo(uint32_t missionId, CDMissions& result) {
 	return true;
 }
 
-#define MISSION_NEW_METHOD
-
-bool MissionComponent::LookForAchievements(eMissionTaskType type, int32_t value, bool progress, LWOOBJID associate, const std::string& targets, int32_t count) {
-#ifdef MISSION_NEW_METHOD
+bool MissionComponent::LookForAchievements(const eMissionTaskType type, const int32_t value, const bool progress, const LWOOBJID& associate, const std::string& targets, const int32_t count) {
 	// Query for achievments, using the cache
 	const auto& result = QueryAchievements(type, value, targets);
 
@@ -291,9 +236,7 @@ bool MissionComponent::LookForAchievements(eMissionTaskType type, int32_t value,
 
 	for (const uint32_t missionID : result) {
 		// Check if we already have this achievement
-		if (GetMission(missionID) != nullptr) {
-			continue;
-		}
+		if (GetMission(missionID)) continue;
 
 		// Check if we can accept this achievement
 		if (!MissionPrerequisites::CanAccept(missionID, m_Missions)) {
@@ -311,87 +254,15 @@ bool MissionComponent::LookForAchievements(eMissionTaskType type, int32_t value,
 
 		any = true;
 
-		if (progress) {
-			// Progress mission to bring it up to speed
-			instance->Progress(type, value, associate, targets, count);
-		}
+		if (!progress) continue;
+		// Progress mission to bring it up to speed
+		instance->Progress(type, value, associate, targets, count);
 	}
 
 	return any;
-#else
-	auto* missionTasksTable = CDClientManager::Instance().GetTable<CDMissionTasksTable>();
-	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
-
-	auto tasks = missionTasksTable->Query([=](const CDMissionTasks& entry) {
-		return entry.taskType == static_cast<unsigned>(type);
-		});
-
-	auto any = false;
-
-	for (const auto& task : tasks) {
-		if (GetMission(task.id) != nullptr) {
-			continue;
-		}
-
-		const auto missionEntries = missionsTable->Query([=](const CDMissions& entry) {
-			return entry.id == static_cast<int>(task.id) && !entry.isMission;
-			});
-
-		if (missionEntries.empty()) {
-			continue;
-		}
-
-		const auto mission = missionEntries[0];
-
-		if (mission.isMission || !MissionPrerequisites::CanAccept(mission.id, m_Missions)) {
-			continue;
-		}
-
-		if (task.target != value && task.targetGroup != targets) {
-			auto stream = std::istringstream(task.targetGroup);
-			std::string token;
-
-			auto found = false;
-
-			while (std::getline(stream, token, ',')) {
-				try {
-					const auto target = std::stoul(token);
-
-					found = target == value;
-
-					if (found) {
-						break;
-					}
-				} catch (std::invalid_argument& exception) {
-					Game::logger->Log("MissionComponent", "Failed to parse target (%s): (%s)!", token.c_str(), exception.what());
-				}
-			}
-
-			if (!found) {
-				continue;
-			}
-		}
-
-		auto* instance = new Mission(this, mission.id);
-
-		m_Missions.insert_or_assign(mission.id, instance);
-
-		if (instance->IsMission()) instance->SetUniqueMissionOrderID(++m_LastUsedMissionOrderUID);
-
-		instance->Accept();
-
-		any = true;
-
-		if (progress) {
-			instance->Progress(type, value, associate, targets, count);
-		}
-	}
-
-	return any;
-#endif
 }
 
-const std::vector<uint32_t>& MissionComponent::QueryAchievements(eMissionTaskType type, int32_t value, const std::string targets) {
+const std::vector<uint32_t>& MissionComponent::QueryAchievements(const eMissionTaskType type, const int32_t value, const std::string& targets) {
 	// Create a hash which represent this query for achievements
 	AchievementCacheKey toFind;
 	toFind.SetType(type);
@@ -420,95 +291,68 @@ const std::vector<uint32_t>& MissionComponent::QueryAchievements(eMissionTaskTyp
 		// Seek the assosicated mission
 		auto foundMission = false;
 
-		const auto& mission = missionsTable->GetByMissionID(task.id, foundMission);
+		const auto& cdMission = missionsTable->GetByMissionID(task.id, foundMission);
 
-		if (!foundMission || mission.isMission) {
-			continue;
-		}
+		if (!foundMission || cdMission.isMission) continue;
 
 		// Compare the easy values
 		if (task.target == value || task.targetGroup == targets) {
-			result.push_back(mission.id);
+			result.push_back(cdMission.id);
 
 			continue;
 		}
 
 		// Compare the target group, array separated by ','
-		auto stream = std::istringstream(task.targetGroup);
-		std::string token;
+		for (const auto& possibleMissionStr : GeneralUtils::SplitString(task.targetGroup, ',')) {
+			uint32_t possibleMission;
+			if (GeneralUtils::TryParse(possibleMissionStr, possibleMission) && possibleMission == value) {
+				result.push_back(cdMission.id);
 
-		while (std::getline(stream, token, ',')) {
-			try {
-				if (std::stoi(token) == value) {
-					result.push_back(mission.id);
-
-					continue;
-				}
-			} catch (std::invalid_argument& exception) {
-				// Ignored
+				break;
 			}
 		}
 	}
-	// Insert into cache
-	m_AchievementCache.insert_or_assign(toFind, result);
-	return m_AchievementCache.find(toFind)->second;
+	// Insert into cache and return the inserted value.
+	return m_AchievementCache.insert_or_assign(toFind, result).first->second;
 }
 
 bool MissionComponent::RequiresItem(const LOT lot) {
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT type FROM Objects WHERE id = ?;");
-	query.bind(1, (int)lot);
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT type FROM Objects WHERE id = ?;");
+	query.bind(1, static_cast<int>(lot));
 
 	auto result = query.execQuery();
 
-	if (result.eof()) {
-		return false;
-	}
+	if (result.eof()) return false;
 
 	if (!result.fieldIsNull(0)) {
 		const auto type = std::string(result.getStringField(0));
 
-		result.finalize();
-
-		if (type == "Powerup") {
-			return true;
-		}
+		if (type == "Powerup") return true;
 	}
 
-	result.finalize();
-
-	for (const auto& pair : m_Missions) {
-		auto* mission = pair.second;
-
-		if (mission->IsComplete()) {
-			continue;
-		}
+	for (const auto& [missionId, mission] : m_Missions) {
+		if (mission->IsComplete()) continue;
 
 		for (auto* task : mission->GetTasks()) {
 			if (task->IsComplete() || task->GetType() != eMissionTaskType::GATHER) {
 				continue;
 			}
 
-			if (!task->InAllTargets(lot)) {
-				continue;
-			}
+			if (!task->InAllTargets(lot)) continue;
 
 			return true;
 		}
 	}
-
-	const auto required = LookForAchievements(eMissionTaskType::GATHER, lot, false);
-
-	return required;
+	return LookForAchievements(eMissionTaskType::GATHER, lot, false);
 }
 
 
 void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
-	if (doc == nullptr) return;
+	if (!doc) return;
 
 	auto* mis = doc->FirstChildElement("obj")->FirstChildElement("mis");
 
-	if (mis == nullptr) return;
+	if (!mis) return;
 
 	auto* cur = mis->FirstChildElement("cur");
 	auto* done = mis->FirstChildElement("done");
@@ -516,7 +360,7 @@ void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	auto* doneM = done->FirstChildElement();
 
 	while (doneM) {
-		int missionId;
+		uint32_t missionId;
 
 		doneM->QueryAttribute("id", &missionId);
 
@@ -533,7 +377,7 @@ void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 
 	uint32_t missionOrder{};
 	while (currentM) {
-		int missionId;
+		uint32_t missionId;
 
 		currentM->QueryAttribute("id", &missionId);
 
@@ -543,7 +387,7 @@ void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 
 		if (currentM->QueryAttribute("o", &missionOrder) == tinyxml2::XML_SUCCESS && mission->IsMission()) {
 			mission->SetUniqueMissionOrderID(missionOrder);
-			if (missionOrder > m_LastUsedMissionOrderUID) m_LastUsedMissionOrderUID = missionOrder;
+			m_LastUsedMissionOrderUID = std::max(missionOrder, m_LastUsedMissionOrderUID);
 		}
 
 		currentM = currentM->NextSiblingElement();
@@ -554,7 +398,7 @@ void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 
 
 void MissionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
-	if (doc == nullptr) return;
+	if (!doc) return;
 
 	auto shouldInsertMis = false;
 
@@ -562,7 +406,7 @@ void MissionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 
 	auto* mis = obj->FirstChildElement("mis");
 
-	if (mis == nullptr) {
+	if (!mis) {
 		mis = doc->NewElement("mis");
 
 		shouldInsertMis = true;
@@ -573,50 +417,33 @@ void MissionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	auto* done = doc->NewElement("done");
 	auto* cur = doc->NewElement("cur");
 
-	for (const auto& pair : m_Missions) {
-		auto* mission = pair.second;
+	for (const auto& [missionId, mission] : m_Missions) {
+		if (!mission) continue;
+		const auto complete = mission->IsComplete();
 
-		if (mission) {
-			const auto complete = mission->IsComplete();
+		auto* missionElement = doc->NewElement("m");
 
-			auto* m = doc->NewElement("m");
+		if (!complete && mission->IsMission()) missionElement->SetAttribute("o", mission->GetUniqueMissionOrderID());
 
-			if (complete) {
-				mission->UpdateXml(m);
+		mission->UpdateXml(missionElement);
 
-				done->LinkEndChild(m);
-
-				continue;
-			}
-			if (mission->IsMission()) m->SetAttribute("o", mission->GetUniqueMissionOrderID());
-
-			mission->UpdateXml(m);
-
-			cur->LinkEndChild(m);
-		}
+		cur->LinkEndChild(missionElement);
 	}
 
 	mis->InsertFirstChild(done);
 	mis->InsertEndChild(cur);
 
-	if (shouldInsertMis) {
-		obj->LinkEndChild(mis);
-	}
+	if (shouldInsertMis) obj->LinkEndChild(mis);
 }
 
-void MissionComponent::AddCollectible(int32_t collectibleID) {
-	// Check if this collectible is already in the list
-	if (HasCollectible(collectibleID)) {
-		return;
-	}
-
-	m_Collectibles.push_back(collectibleID);
+void MissionComponent::AddCollectible(const int32_t collectibleID) {
+	if (!HasCollectible(collectibleID)) m_Collectibles.push_back(collectibleID);
 }
 
-bool MissionComponent::HasCollectible(int32_t collectibleID) {
+bool MissionComponent::HasCollectible(const int32_t collectibleID) const {
 	return std::find(m_Collectibles.begin(), m_Collectibles.end(), collectibleID) != m_Collectibles.end();
 }
 
-bool MissionComponent::HasMission(uint32_t missionId) {
+bool MissionComponent::HasMission(const uint32_t missionId) const {
 	return GetMission(missionId) != nullptr;
 }

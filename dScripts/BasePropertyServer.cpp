@@ -171,7 +171,7 @@ void BasePropertyServer::BaseZonePropertyRented(Entity* self, Entity* player) co
 
 	auto brickLinkMissionID = self->GetVar<uint32_t>(brickLinkMissionIDFlag);
 	if (brickLinkMissionID != 0) {
-		auto missionComponent = player->GetComponent<MissionComponent>();
+		auto* missionComponent = player->GetComponent<MissionComponent>();
 		if (missionComponent) missionComponent->CompleteMission(brickLinkMissionID, true);
 	}
 

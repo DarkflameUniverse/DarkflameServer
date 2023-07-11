@@ -4,8 +4,7 @@
 
 class EntityTimer {
 public:
-	EntityTimer(std::string name, float time);
-	~EntityTimer();
+	EntityTimer(const std::string& name, const float& time);
 
 	std::string GetName();
 	float GetTime();

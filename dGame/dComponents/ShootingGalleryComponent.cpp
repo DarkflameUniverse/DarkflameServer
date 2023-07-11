@@ -2,7 +2,7 @@
 #include "EntityManager.h"
 #include "ScriptedActivityComponent.h"
 
-ShootingGalleryComponent::ShootingGalleryComponent(Entity* parent) : Component(parent) {
+ShootingGalleryComponent::ShootingGalleryComponent(Entity* parent, int32_t componentId) : ActivityComponent(parent, componentId) {
 }
 
 ShootingGalleryComponent::~ShootingGalleryComponent() = default;
@@ -14,7 +14,7 @@ void ShootingGalleryComponent::SetStaticParams(const StaticShootingGalleryParams
 void ShootingGalleryComponent::SetDynamicParams(const DynamicShootingGalleryParams& params) {
 	m_DynamicParams = params;
 	m_Dirty = true;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 void ShootingGalleryComponent::Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate, uint32_t& flags) const {

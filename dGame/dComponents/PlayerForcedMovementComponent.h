@@ -10,14 +10,13 @@
  */
 class PlayerForcedMovementComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PLAYER_FORCED_MOVEMENT;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PLAYER_FORCED_MOVEMENT;
 
 	/**
 	 * Constructor for this component
 	 * @param parent parent that contains this component
 	 */
-	PlayerForcedMovementComponent(Entity* parent);
-	~PlayerForcedMovementComponent() override;
+	PlayerForcedMovementComponent(Entity* parent) : Component(parent) {};
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -26,28 +25,23 @@ public:
 	 *
 	 * @param value if the player is on a rail
 	 */
-	void SetPlayerOnRail(bool value) { m_PlayerOnRail = value; m_DirtyInfo = true; }
+	void SetPlayerOnRail(bool value) {
+		if (m_PlayerOnRail == value) return;
+		m_PlayerOnRail = value;
+		m_DirtyInfo = true;
+	}
 
 	/**
 	 * @brief Set the Show Billboard object
 	 *
 	 * @param value if the billboard should be shown
 	 */
-	void SetShowBillboard(bool value) { m_ShowBillboard = value; m_DirtyInfo = true; }
+	void SetShowBillboard(bool value) {
+		if (m_ShowBillboard == value) return;
+		m_ShowBillboard = value;
+		m_DirtyInfo = true;
+	}
 
-	/**
-	 * @brief Get the Player On Rail object
-	 *
-	 * @return true
-	 * @return false
-	 */
-
-	 /**
-	  * @brief Get the Player On Rail object
-	  *
-	  * @return true
-	  * @return false
-	  */
 	bool GetPlayerOnRail() { return m_PlayerOnRail; }
 	bool GetShowBillboard() { return m_ShowBillboard; }
 

@@ -17,22 +17,18 @@ enum class eStateChangeType : uint32_t;
  * Represents the stats of an entity, for example its health, imagination and armor. Also handles factions, which
  * indicate which enemies this entity has.
  */
-class DestroyableComponent : public Component {
+class DestroyableComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
-	DestroyableComponent(Entity* parentEntity);
-	~DestroyableComponent() override;
+	DestroyableComponent(Entity* parentEntity, int32_t componentId = -1);
 
+	void Startup() override;
+	void LoadConfigData() override;
+	void LoadTemplateData() override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, uint32_t& flags);
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
-
-	/**
-	 * Initializes the component using a different LOT
-	 * @param templateID the ID to use for initialization
-	 */
-	void Reinitialize(LOT templateID);
 
 	/**
 	 * Sets the health of this entity. Makes sure this is serialized on the next tick and if this is a character its
@@ -451,13 +447,15 @@ public:
 	 */
 	void NotifySubscribers(Entity* attacker, uint32_t damage);
 
-	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd);
-	void Unsubscribe(LWOOBJID scriptObjId);
+	void Subscribe(CppScripts::Script* scriptToAdd);
+	void Unsubscribe(CppScripts::Script* scriptToRemove);
 
 	// handle hardcode mode drops
 	void DoHardcoreModeDrops(const LWOOBJID source);
 
 private:
+	// The ID of this component
+	int32_t m_ComponentId;
 	/**
 	 * Whether or not the health should be serialized
 	 */
@@ -589,9 +587,9 @@ private:
 	std::vector<std::function<void(Entity*)>> m_OnHitCallbacks;
 
 	/**
-	 * The list of scripts subscribed to this components actions
+	 * Scripts that are subscribed to this component
 	 */
-	std::map<LWOOBJID, CppScripts::Script*> m_SubscribedScripts;
+	std::vector<CppScripts::Script*> m_SubscribedScripts;
 
 	/**
 	 * status immunity counters

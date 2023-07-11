@@ -6,7 +6,7 @@
 #include "BehaviorContext.h"
 #include "BaseCombatAIComponent.h"
 #include "EntityManager.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 
 #include <vector>
@@ -148,7 +148,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			continue;
 		}
 
-		if (entity->GetIsDead()) continue;
+		if (entity->IsDead()) continue;
 
 		const auto otherPosition = entity->GetPosition();
 

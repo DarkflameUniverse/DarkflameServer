@@ -29,9 +29,9 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 	//self:SetStatusImmunity{ StateChangeType = "PUSH", bImmuneToPullToPoint = true, bImmuneToKnockback = true, bImmuneToInterrupt = true }
 
 	//Get our components:
-	destroyable = static_cast<DestroyableComponent*>(self->GetComponent(eReplicaComponentType::DESTROYABLE));
-	controllable = static_cast<ControllablePhysicsComponent*>(self->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
-	combat = static_cast<BaseCombatAIComponent*>(self->GetComponent(eReplicaComponentType::BASE_COMBAT_AI));
+	auto* destroyable = self->GetComponent<DestroyableComponent>();
+	auto* controllable = self->GetComponent<ControllablePhysicsComponent>();
+	auto* combat = self->GetComponent<BaseCombatAIComponent>();
 
 	if (!destroyable || !controllable) return;
 

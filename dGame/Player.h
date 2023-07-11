@@ -20,7 +20,7 @@ public:
 
 	User* GetParentUser() const override;
 
-	SystemAddress GetSystemAddress() const override;
+	const SystemAddress GetSystemAddress() const override { return m_SystemAddress; }
 
 	NiPoint3 GetRespawnPosition() const override;
 
@@ -36,7 +36,7 @@ public:
 
 	std::map<LWOOBJID, Loot::Info>& GetDroppedLoot();
 
-	uint64_t GetDroppedCoins();
+	uint64_t GetDroppedCoins() const;
 
 	/**
 	 * Setters
@@ -44,9 +44,9 @@ public:
 
 	void SetSystemAddress(const SystemAddress& value) override;
 
-	void SetRespawnPos(NiPoint3 position) override;
+	void SetRespawnPosition(const NiPoint3& position) override;
 
-	void SetRespawnRot(NiQuaternion rotation) override;
+	void SetRespawnRotation(const NiQuaternion& rotation) override;
 
 	void SetGhostReferencePoint(const NiPoint3& value);
 

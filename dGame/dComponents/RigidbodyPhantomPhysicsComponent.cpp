@@ -7,12 +7,9 @@
 #include "Entity.h"
 
 RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* parent) : Component(parent) {
-	m_Position = m_Parent->GetDefaultPosition();
-	m_Rotation = m_Parent->GetDefaultRotation();
+	m_Position = m_ParentEntity->GetDefaultPosition();
+	m_Rotation = m_ParentEntity->GetDefaultRotation();
 	m_IsDirty = true;
-}
-
-RigidbodyPhantomPhysicsComponent::~RigidbodyPhantomPhysicsComponent() {
 }
 
 void RigidbodyPhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {

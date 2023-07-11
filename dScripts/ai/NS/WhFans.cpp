@@ -38,7 +38,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 		self->SetVar<bool>(u"on", false);
 
 		for (Entity* volume : fanVolumes) {
-			auto volumePhys = volume->GetComponent<PhantomPhysicsComponent>();
+			auto* volumePhys = volume->GetComponent<PhantomPhysicsComponent>();
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(false);
 			EntityManager::Instance()->SerializeEntity(volume);
@@ -49,7 +49,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 		self->SetVar<bool>(u"on", true);
 
 		for (Entity* volume : fanVolumes) {
-			auto volumePhys = volume->GetComponent<PhantomPhysicsComponent>();
+			auto* volumePhys = volume->GetComponent<PhantomPhysicsComponent>();
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(true);
 			EntityManager::Instance()->SerializeEntity(volume);

@@ -10,12 +10,14 @@
 #include "dpCollisionGroups.h"
 #include "dpGrid.h"
 
+class BoxDimensions;
+
 class dpEntity {
 	friend class dpGrid; //using friend here for now so grid can access everything
 
 public:
 	dpEntity(const LWOOBJID& objectID, dpShapeType shapeType, bool isStatic = true);
-	dpEntity(const LWOOBJID& objectID, NiPoint3 boxDimensions, bool isStatic = true);
+	dpEntity(const LWOOBJID& objectID, const BoxDimensions& boxDimensions, bool isStatic = true);
 	dpEntity(const LWOOBJID& objectID, float width, float height, float depth, bool isStatic = true);
 	dpEntity(const LWOOBJID& objectID, float radius, bool isStatic = true);
 

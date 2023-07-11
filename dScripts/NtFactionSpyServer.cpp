@@ -13,13 +13,7 @@ void NtFactionSpyServer::OnStartup(Entity* self) {
 	SetVariables(self);
 
 	// Set the proximity to sense later
-	auto* proximityMonitor = self->GetComponent<ProximityMonitorComponent>();
-	if (proximityMonitor == nullptr) {
-		proximityMonitor = new ProximityMonitorComponent(self, -1, -1);
-		self->AddComponent(eReplicaComponentType::PROXIMITY_MONITOR, proximityMonitor);
-	}
-
-	proximityMonitor->SetProximityRadius(self->GetVar<float_t>(m_SpyProximityVariable), m_ProximityName);
+	self->SetProximityRadius(self->GetVar<float_t>(m_SpyProximityVariable), m_ProximityName);
 }
 
 void NtFactionSpyServer::SetVariables(Entity* self) {

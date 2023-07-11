@@ -3,7 +3,7 @@
 #include "Item.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "SoundTriggerComponent.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
@@ -27,7 +27,7 @@ void NsConcertInstrument::OnRebuildNotifyState(Entity* self, eRebuildState state
 }
 
 void NsConcertInstrument::OnRebuildComplete(Entity* self, Entity* target) {
-	if (!target->GetIsDead()) {
+	if (!target->IsDead()) {
 		self->SetVar<LWOOBJID>(u"activePlayer", target->GetObjectID());
 
 		self->AddCallbackTimer(0.2f, [self, target]() {
@@ -93,9 +93,9 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 				activePlayer->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
-		auto* rebuildComponent = self->GetComponent<RebuildComponent>();
-		if (rebuildComponent != nullptr)
-			rebuildComponent->ResetRebuild(false);
+		auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
+		if (quickBuildComponent != nullptr)
+			quickBuildComponent->ResetRebuild(false);
 
 		self->Smash(self->GetObjectID(), eKillType::VIOLENT);
 		self->SetVar<LWOOBJID>(u"activePlayer", LWOOBJID_EMPTY);

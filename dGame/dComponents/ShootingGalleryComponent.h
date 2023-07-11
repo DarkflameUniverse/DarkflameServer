@@ -2,7 +2,7 @@
 #include "dCommonVars.h"
 #include "NiPoint3.h"
 #include "Entity.h"
-#include "Component.h"
+#include "ActivityComponent.h"
 #include "eReplicaComponentType.h"
 
 /**
@@ -71,11 +71,11 @@ struct StaticShootingGalleryParams {
  * A very ancient component that was used to guide shooting galleries, it's still kind of used but a lot of logic is
  * also in the related scripts.
  */
-class ShootingGalleryComponent : public Component {
+class ShootingGalleryComponent : public ActivityComponent {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SHOOTING_GALLERY;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SHOOTING_GALLERY;
 
-	explicit ShootingGalleryComponent(Entity* parent);
+	explicit ShootingGalleryComponent(Entity* parent, int32_t componentId);
 	~ShootingGalleryComponent();
 	void Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate, uint32_t& flags) const;
 

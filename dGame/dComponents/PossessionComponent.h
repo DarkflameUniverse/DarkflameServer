@@ -16,12 +16,12 @@ enum class ePossessionType : uint8_t {
 /**
  * Represents an entity that can posess other entities. Generally used by players to drive a car.
  */
-class PossessorComponent : public Component {
+class PossessionComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSOR;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSION;
 
-	PossessorComponent(Entity* parent);
-	~PossessorComponent() override;
+	PossessionComponent(Entity* parent);
+	~PossessionComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -44,7 +44,11 @@ public:
 	 * Sets the ID that this entity is possessing
 	 * @param value The ID that this entity is possessing
 	 */
-	void SetPossessable(LWOOBJID value) { m_Possessable = value; m_DirtyPossesor = true; }
+	void SetPossessable(const LWOOBJID& value) {
+		if (m_Possessable == value) return;
+		m_Possessable = value;
+		m_DirtyPossesor = true;
+	}
 
 	/**
 	 * Returns the entity that this entity is currently posessing
@@ -68,7 +72,11 @@ public:
 	 * Sets the possesible type that's currently used, merely used by the shooting gallery if it's 0
 	 * @param value The possesible type to set
 	 */
-	void SetPossessableType(ePossessionType value) { m_PossessableType = value; m_DirtyPossesor = true; }
+	void SetPossessableType(ePossessionType value) {
+		if (m_PossessableType == value) return;
+		m_PossessableType = value;
+		m_DirtyPossesor = true;
+	}
 
 
 	/**
@@ -97,13 +105,13 @@ private:
 	ePossessionType m_PossessableType = ePossessionType::NO_POSSESSION;
 
 	/**
-	 * @brief If the possessor is dirty
+	 * @brief If the possession is dirty
 	 *
 	 */
 	bool m_DirtyPossesor = false;
 
 	/**
-	 * @brief If the possessor is busy dismounting
+	 * @brief If the possession is busy dismounting
 	 *
 	 */
 	bool m_IsDismounting = false;

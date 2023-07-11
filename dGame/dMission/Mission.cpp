@@ -204,7 +204,7 @@ bool Mission::IsValidMission(const uint32_t missionId, CDMissions& info) {
 }
 
 Entity* Mission::GetAssociate() const {
-	return m_MissionComponent->GetParent();
+	return m_MissionComponent->GetParentEntity();
 }
 
 User* Mission::GetUser() const {
@@ -372,7 +372,7 @@ void Mission::CheckCompletion() {
 void Mission::Catchup() {
 	auto* entity = GetAssociate();
 
-	auto* inventory = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
+	auto* inventory = entity->GetComponent<InventoryComponent>();
 
 	for (auto* task : m_Tasks) {
 		const auto type = task->GetType();
@@ -532,7 +532,7 @@ void Mission::YieldRewards() {
 
 	if (info->reward_reputation > 0) {
 		missionComponent->Progress(eMissionTaskType::EARN_REPUTATION, 0, 0L, "", info->reward_reputation);
-		auto character = entity->GetComponent<CharacterComponent>();
+		auto* character = entity->GetComponent<CharacterComponent>();
 		if (character) {
 			character->SetReputation(character->GetReputation() + info->reward_reputation);
 			GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());

@@ -9,7 +9,7 @@
 //2021-05-03 - max - added script, omitted some parts related to inheritance in lua which we don't need
 
 void TokenConsoleServer::OnUse(Entity* self, Entity* user) {
-	auto* inv = static_cast<InventoryComponent*>(user->GetComponent(eReplicaComponentType::INVENTORY));
+	auto* inv = user->GetComponent<InventoryComponent>();
 
 	//make sure the user has the required amount of infected bricks
 	if (inv && inv->GetLotCount(6194) >= bricksToTake) {

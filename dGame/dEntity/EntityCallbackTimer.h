@@ -5,9 +5,9 @@
 
 class EntityCallbackTimer {
 public:
-	EntityCallbackTimer(float time, std::function<void()> callback);
-	~EntityCallbackTimer();
+	EntityCallbackTimer(const float& time, const std::function<void()>& callback);
 
+	void ExecuteCallback();
 	std::function<void()> GetCallback();
 	float GetTime();
 

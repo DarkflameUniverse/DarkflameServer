@@ -90,4 +90,11 @@ int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponent
 	return defaultValue;
 #endif
 }
-
+std::vector<std::pair<eReplicaComponentType, uint32_t>> CDComponentsRegistryTable::GetTemplateComponents(LOT templateId) {
+	std::vector<std::pair<eReplicaComponentType, uint32_t>> components;
+	for (int8_t i = 0; static_cast<eReplicaComponentType>(i) < eReplicaComponentType::NUMBER_OF_COMPONENTS; i++) {
+		auto compId = GetByIDAndType(templateId, static_cast<eReplicaComponentType>(i), -1);
+		if (compId != -1) components.push_back(std::make_pair(static_cast<eReplicaComponentType>(i), compId));
+	}
+	return components;
+}

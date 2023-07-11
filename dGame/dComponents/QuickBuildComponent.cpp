@@ -1,4 +1,4 @@
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "Entity.h"
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
@@ -21,10 +21,12 @@
 #include "Loot.h"
 #include "TeamManager.h"
 #include "RenderComponent.h"
+#include "CDRebuildComponentTable.h"
 
 #include "CppScripts.h"
 
-RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
+QuickBuildComponent::QuickBuildComponent(Entity* entity, int32_t componentId) : ActivityComponent(entity, componentId) {
+	m_ComponentId = componentId;
 	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
 
 	if (!checkPreconditions.empty()) {
@@ -33,20 +35,20 @@ RebuildComponent::RebuildComponent(Entity* entity) : Component(entity) {
 
 	// Should a setting that has the build activator position exist, fetch that setting here and parse it for position.
 	// It is assumed that the user who sets this setting uses the correct character delimiter (character 31 or in hex 0x1F)
-	auto positionAsVector = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rebuild_activators"), 0x1F);
+	auto positionAsVector = GeneralUtils::SplitString(m_ParentEntity->GetVarAsString(u"rebuild_activators"), 0x1F);
 	if (positionAsVector.size() == 3 &&
 		GeneralUtils::TryParse(positionAsVector[0], m_ActivatorPosition.x) &&
 		GeneralUtils::TryParse(positionAsVector[1], m_ActivatorPosition.y) &&
 		GeneralUtils::TryParse(positionAsVector[2], m_ActivatorPosition.z)) {
 	} else {
-		Game::logger->Log("RebuildComponent", "Failed to find activator position for lot %i.  Defaulting to parents position.", m_Parent->GetLOT());
-		m_ActivatorPosition = m_Parent->GetPosition();
+		Game::logger->Log("QuickBuildComponent", "Failed to find activator position for lot %i.  Defaulting to parents position.", m_ParentEntity->GetLOT());
+		m_ActivatorPosition = m_ParentEntity->GetPosition();
 	}
 
 	SpawnActivator();
 }
 
-RebuildComponent::~RebuildComponent() {
+QuickBuildComponent::~QuickBuildComponent() {
 	delete m_Precondition;
 
 	Entity* builder = GetBuilder();
@@ -57,8 +59,41 @@ RebuildComponent::~RebuildComponent() {
 	DespawnActivator();
 }
 
-void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	if (m_Parent->GetComponent(eReplicaComponentType::DESTROYABLE) == nullptr) {
+void QuickBuildComponent::LoadConfigData() {
+	const auto rebuildResetTime = m_ParentEntity->GetVar<float>(u"rebuild_reset_time");
+
+	if (rebuildResetTime != 0.0f) {
+		SetResetTime(rebuildResetTime);
+		if (m_ParentEntity->GetLOT() == 9483) // TODO: Fix the moving platform in Forbidden valley spawning at the end.
+		{
+			SetResetTime(GetResetTime() + 25);
+		}
+	}
+
+	const auto activityID = m_ParentEntity->GetVar<int32_t>(u"activityID");
+	if (activityID > 0) SetActivityId(activityID);
+
+	const auto compTime = m_ParentEntity->GetVar<float>(u"compTime");
+	if (compTime > 0) SetCompleteTime(compTime);
+}
+
+void QuickBuildComponent::LoadTemplateData() {
+	auto* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
+	std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([this](CDRebuildComponent entry) { return (entry.id == this->m_ComponentId); });
+	if (rebCompData.empty()) return;
+	const auto& quickbuildData = rebCompData.at(0);
+	SetResetTime(quickbuildData.reset_time);
+	SetCompleteTime(quickbuildData.complete_time);
+	SetTakeImagination(quickbuildData.take_imagination);
+	SetInterruptible(quickbuildData.interruptible);
+	SetSelfActivator(quickbuildData.self_activator);
+	SetActivityId(quickbuildData.activityID);
+	SetPostImaginationCost(quickbuildData.post_imagination_cost);
+	SetTimeBeforeSmash(quickbuildData.time_before_smash);
+}
+
+void QuickBuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+	if (!m_ParentEntity->GetComponent<DestroyableComponent>()) {
 		if (bIsInitialUpdate) {
 			outBitStream->Write(false);
 		}
@@ -110,7 +145,7 @@ void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitia
 	m_StateDirty = false;
 }
 
-void RebuildComponent::Update(float deltaTime) {
+void QuickBuildComponent::Update(float deltaTime) {
 	m_Activator = GetActivator();
 
 	// Serialize the quickbuild every so often, fixes the odd bug where the quickbuild is not buildable
@@ -120,7 +155,7 @@ void RebuildComponent::Update(float deltaTime) {
 	else {
 		m_SoftTimer = 5.0f;
 
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 	}*/
 
 	switch (m_State) {
@@ -128,7 +163,7 @@ void RebuildComponent::Update(float deltaTime) {
 		SpawnActivator();
 		m_TimeBeforeDrain = 0;
 
-		auto* spawner = m_Parent->GetSpawner();
+		auto* spawner = m_ParentEntity->GetSpawner();
 		const bool isSmashGroup = spawner != nullptr ? spawner->GetIsSpawnSmashGroup() : false;
 
 		if (isSmashGroup) {
@@ -139,13 +174,13 @@ void RebuildComponent::Update(float deltaTime) {
 				if (m_TimerIncomplete >= m_TimeBeforeSmash - 4.0f) {
 					m_ShowResetEffect = true;
 
-					EntityManager::Instance()->SerializeEntity(m_Parent);
+					EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 				}
 
 				if (m_TimerIncomplete >= m_TimeBeforeSmash) {
 					m_Builder = LWOOBJID_EMPTY;
 
-					GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
+					GameMessages::SendDieNoImplCode(m_ParentEntity, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
 
 					ResetRebuild(false);
 				}
@@ -163,13 +198,13 @@ void RebuildComponent::Update(float deltaTime) {
 				if (!m_ShowResetEffect) {
 					m_ShowResetEffect = true;
 
-					EntityManager::Instance()->SerializeEntity(m_Parent);
+					EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 				}
 			}
 
 			if (m_Timer >= m_ResetTime) {
 
-				GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
+				GameMessages::SendDieNoImplCode(m_ParentEntity, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
 
 				ResetRebuild(false);
 			}
@@ -194,7 +229,7 @@ void RebuildComponent::Update(float deltaTime) {
 		if (m_TimeBeforeDrain <= 0.0f) {
 			m_TimeBeforeDrain = m_CompleteTime / static_cast<float>(m_TakeImagination);
 
-			DestroyableComponent* destComp = builder->GetComponent<DestroyableComponent>();
+			auto* destComp = builder->GetComponent<DestroyableComponent>();
 			if (!destComp) break;
 
 			int newImagination = destComp->GetImagination();
@@ -225,13 +260,13 @@ void RebuildComponent::Update(float deltaTime) {
 			if (m_TimerIncomplete >= m_TimeBeforeSmash - 4.0f) {
 				m_ShowResetEffect = true;
 
-				EntityManager::Instance()->SerializeEntity(m_Parent);
+				EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 			}
 
 			if (m_TimerIncomplete >= m_TimeBeforeSmash) {
 				m_Builder = LWOOBJID_EMPTY;
 
-				GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
+				GameMessages::SendDieNoImplCode(m_ParentEntity, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
 
 				ResetRebuild(false);
 			}
@@ -242,7 +277,7 @@ void RebuildComponent::Update(float deltaTime) {
 	}
 }
 
-void RebuildComponent::OnUse(Entity* originator) {
+void QuickBuildComponent::OnUse(Entity* originator) {
 	if (GetBuilder() != nullptr || m_State == eRebuildState::COMPLETED) {
 		return;
 	}
@@ -254,27 +289,27 @@ void RebuildComponent::OnUse(Entity* originator) {
 	StartRebuild(originator);
 }
 
-void RebuildComponent::SpawnActivator() {
+void QuickBuildComponent::SpawnActivator() {
 	if (!m_SelfActivator || m_ActivatorPosition != NiPoint3::ZERO) {
 		if (!m_Activator) {
 			EntityInfo info;
 
 			info.lot = 6604;
-			info.spawnerID = m_Parent->GetObjectID();
-			info.pos = m_ActivatorPosition == NiPoint3::ZERO ? m_Parent->GetPosition() : m_ActivatorPosition;
+			info.spawnerID = m_ParentEntity->GetObjectID();
+			info.pos = m_ActivatorPosition == NiPoint3::ZERO ? m_ParentEntity->GetPosition() : m_ActivatorPosition;
 
-			m_Activator = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
+			m_Activator = EntityManager::Instance()->CreateEntity(info, nullptr, m_ParentEntity);
 			if (m_Activator) {
 				m_ActivatorId = m_Activator->GetObjectID();
 				EntityManager::Instance()->ConstructEntity(m_Activator);
 			}
 
-			EntityManager::Instance()->SerializeEntity(m_Parent);
+			EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 		}
 	}
 }
 
-void RebuildComponent::DespawnActivator() {
+void QuickBuildComponent::DespawnActivator() {
 	if (m_Activator) {
 		EntityManager::Instance()->DestructEntity(m_Activator);
 
@@ -286,73 +321,73 @@ void RebuildComponent::DespawnActivator() {
 	}
 }
 
-Entity* RebuildComponent::GetActivator() {
+Entity* QuickBuildComponent::GetActivator() {
 	return EntityManager::Instance()->GetEntity(m_ActivatorId);
 }
 
-NiPoint3 RebuildComponent::GetActivatorPosition() {
+NiPoint3 QuickBuildComponent::GetActivatorPosition() {
 	return m_ActivatorPosition;
 }
 
-float RebuildComponent::GetResetTime() {
+float QuickBuildComponent::GetResetTime() {
 	return m_ResetTime;
 }
 
-float RebuildComponent::GetCompleteTime() {
+float QuickBuildComponent::GetCompleteTime() {
 	return m_CompleteTime;
 }
 
-int RebuildComponent::GetTakeImagination() {
+int QuickBuildComponent::GetTakeImagination() {
 	return m_TakeImagination;
 }
 
-bool RebuildComponent::GetInterruptible() {
+bool QuickBuildComponent::GetInterruptible() {
 	return m_Interruptible;
 }
 
-bool RebuildComponent::GetSelfActivator() {
+bool QuickBuildComponent::GetSelfActivator() {
 	return m_SelfActivator;
 }
 
-std::vector<int> RebuildComponent::GetCustomModules() {
+std::vector<int> QuickBuildComponent::GetCustomModules() {
 	return m_CustomModules;
 }
 
-int RebuildComponent::GetActivityId() {
+int QuickBuildComponent::GetActivityId() {
 	return m_ActivityId;
 }
 
-int RebuildComponent::GetPostImaginationCost() {
+int QuickBuildComponent::GetPostImaginationCost() {
 	return m_PostImaginationCost;
 }
 
-float RebuildComponent::GetTimeBeforeSmash() {
+float QuickBuildComponent::GetTimeBeforeSmash() {
 	return m_TimeBeforeSmash;
 }
 
-eRebuildState RebuildComponent::GetState() {
+eRebuildState QuickBuildComponent::GetState() {
 	return m_State;
 }
 
-Entity* RebuildComponent::GetBuilder() const {
+Entity* QuickBuildComponent::GetBuilder() const {
 	auto* builder = EntityManager::Instance()->GetEntity(m_Builder);
 
 	return builder;
 }
 
-bool RebuildComponent::GetRepositionPlayer() const {
+bool QuickBuildComponent::GetRepositionPlayer() const {
 	return m_RepositionPlayer;
 }
 
-void RebuildComponent::SetActivatorPosition(NiPoint3 value) {
+void QuickBuildComponent::SetActivatorPosition(NiPoint3 value) {
 	m_ActivatorPosition = value;
 }
 
-void RebuildComponent::SetResetTime(float value) {
+void QuickBuildComponent::SetResetTime(float value) {
 	m_ResetTime = value;
 }
 
-void RebuildComponent::SetCompleteTime(float value) {
+void QuickBuildComponent::SetCompleteTime(float value) {
 	if (value < 0) {
 		m_CompleteTime = 4.5f;
 	} else {
@@ -360,31 +395,31 @@ void RebuildComponent::SetCompleteTime(float value) {
 	}
 }
 
-void RebuildComponent::SetTakeImagination(int value) {
+void QuickBuildComponent::SetTakeImagination(int value) {
 	m_TakeImagination = value;
 }
 
-void RebuildComponent::SetInterruptible(bool value) {
+void QuickBuildComponent::SetInterruptible(bool value) {
 	m_Interruptible = value;
 }
 
-void RebuildComponent::SetSelfActivator(bool value) {
+void QuickBuildComponent::SetSelfActivator(bool value) {
 	m_SelfActivator = value;
 }
 
-void RebuildComponent::SetCustomModules(std::vector<int> value) {
+void QuickBuildComponent::SetCustomModules(std::vector<int> value) {
 	m_CustomModules = value;
 }
 
-void RebuildComponent::SetActivityId(int value) {
+void QuickBuildComponent::SetActivityId(int value) {
 	m_ActivityId = value;
 }
 
-void RebuildComponent::SetPostImaginationCost(int value) {
+void QuickBuildComponent::SetPostImaginationCost(int value) {
 	m_PostImaginationCost = value;
 }
 
-void RebuildComponent::SetTimeBeforeSmash(float value) {
+void QuickBuildComponent::SetTimeBeforeSmash(float value) {
 	if (value < 0) {
 		m_TimeBeforeSmash = 10.0f;
 	} else {
@@ -392,11 +427,11 @@ void RebuildComponent::SetTimeBeforeSmash(float value) {
 	}
 }
 
-void RebuildComponent::SetRepositionPlayer(bool value) {
+void QuickBuildComponent::SetRepositionPlayer(bool value) {
 	m_RepositionPlayer = value;
 }
 
-void RebuildComponent::StartRebuild(Entity* user) {
+void QuickBuildComponent::StartRebuild(Entity* user) {
 	if (m_State == eRebuildState::OPEN || m_State == eRebuildState::COMPLETED || m_State == eRebuildState::INCOMPLETE) {
 		m_Builder = user->GetObjectID();
 
@@ -405,31 +440,27 @@ void RebuildComponent::StartRebuild(Entity* user) {
 
 		EntityManager::Instance()->SerializeEntity(user);
 
-		GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::BUILDING, user->GetObjectID());
-		GameMessages::SendEnableRebuild(m_Parent, true, false, false, eQuickBuildFailReason::NOT_GIVEN, 0.0f, user->GetObjectID());
+		GameMessages::SendRebuildNotifyState(m_ParentEntity, m_State, eRebuildState::BUILDING, user->GetObjectID());
+		GameMessages::SendEnableRebuild(m_ParentEntity, true, false, false, eQuickBuildFailReason::NOT_GIVEN, 0.0f, user->GetObjectID());
 
 		m_State = eRebuildState::BUILDING;
 		m_StateDirty = true;
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
-		auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
+		auto* movingPlatform = m_ParentEntity->GetComponent<MovingPlatformComponent>();
 		if (movingPlatform != nullptr) {
 			movingPlatform->OnRebuildInitilized();
 		}
 
-		for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
-			script->OnRebuildStart(m_Parent, user);
-		}
+		m_ParentEntity->GetScript()->OnRebuildStart(m_ParentEntity, user);
 
 		// Notify scripts and possible subscribers
-		for (auto* script : CppScripts::GetEntityScripts(m_Parent))
-			script->OnRebuildNotifyState(m_Parent, m_State);
-		for (const auto& cb : m_RebuildStateCallbacks)
-			cb(m_State);
+		m_ParentEntity->GetScript()->OnRebuildNotifyState(m_ParentEntity, m_State);
+		for (const auto& cb : m_RebuildStateCallbacks) cb(m_State);
 	}
 }
 
-void RebuildComponent::CompleteRebuild(Entity* user) {
+void QuickBuildComponent::CompleteRebuild(Entity* user) {
 	if (user == nullptr) {
 		return;
 	}
@@ -439,16 +470,16 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		characterComponent->TrackRebuildComplete();
 	} else {
-		Game::logger->Log("RebuildComponent", "Some user tried to finish the rebuild but they didn't have a character somehow.");
+		Game::logger->Log("QuickBuildComponent", "Some user tried to finish the rebuild but they didn't have a character somehow.");
 		return;
 	}
 
 	EntityManager::Instance()->SerializeEntity(user);
 
-	GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::COMPLETED, user->GetObjectID());
-	GameMessages::SendPlayFXEffect(m_Parent, 507, u"create", "BrickFadeUpVisCompleteEffect", LWOOBJID_EMPTY, 0.4f, 1.0f, true);
-	GameMessages::SendEnableRebuild(m_Parent, false, false, true, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, user->GetObjectID());
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+	GameMessages::SendRebuildNotifyState(m_ParentEntity, m_State, eRebuildState::COMPLETED, user->GetObjectID());
+	GameMessages::SendPlayFXEffect(m_ParentEntity, 507, u"create", "BrickFadeUpVisCompleteEffect", LWOOBJID_EMPTY, 0.4f, 1.0f, true);
+	GameMessages::SendEnableRebuild(m_ParentEntity, false, false, true, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, user->GetObjectID());
+	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_ParentEntity->GetObjectID());
 
 
 	m_State = eRebuildState::COMPLETED;
@@ -456,7 +487,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	m_Timer = 0.0f;
 	m_DrainedImagination = 0;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 	// Removes extra item requirements, isn't live accurate.
 	// In live, all items were removed at the start of the quickbuild, then returned if it was cancelled.
@@ -468,7 +499,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	DespawnActivator();
 
 	// Set owner override so that entities smashed by this quickbuild will result in the builder getting rewards.
-	m_Parent->SetOwnerOverride(user->GetObjectID());
+	m_ParentEntity->SetOwnerOverride(user->GetObjectID());
 
 	auto* builder = GetBuilder();
 
@@ -482,18 +513,16 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 					if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 				}
 			}
-		} else{
+		} else {
 			auto* missionComponent = builder->GetComponent<MissionComponent>();
 			if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 		}
-		LootGenerator::Instance().DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
+		LootGenerator::Instance().DropActivityLoot(builder, m_ParentEntity, m_ActivityId, 1);
 	}
 
 	// Notify scripts
-	for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnRebuildComplete(m_Parent, user);
-		script->OnRebuildNotifyState(m_Parent, m_State);
-	}
+	m_ParentEntity->GetScript()->OnRebuildComplete(m_ParentEntity, user);
+	m_ParentEntity->GetScript()->OnRebuildNotifyState(m_ParentEntity, m_State);
 
 	// Notify subscribers
 	for (const auto& callback : m_RebuildStateCallbacks)
@@ -501,9 +530,9 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	for (const auto& callback : m_RebuildCompleteCallbacks)
 		callback(user);
 
-	m_Parent->TriggerEvent(eTriggerEventType::REBUILD_COMPLETE, user);
+	m_ParentEntity->TriggerEvent(eTriggerEventType::REBUILD_COMPLETE, user);
 
-	auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
+	auto* movingPlatform = m_ParentEntity->GetComponent<MovingPlatformComponent>();
 	if (movingPlatform != nullptr) {
 		movingPlatform->OnCompleteRebuild();
 	}
@@ -512,7 +541,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	auto* character = user->GetCharacter();
 
 	if (character != nullptr) {
-		const auto flagNumber = m_Parent->GetVar<int32_t>(u"quickbuild_single_build_player_flag");
+		const auto flagNumber = m_ParentEntity->GetVar<int32_t>(u"quickbuild_single_build_player_flag");
 
 		if (flagNumber != 0) {
 			character->SetPlayerFlag(flagNumber, true);
@@ -521,18 +550,18 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	RenderComponent::PlayAnimation(user, u"rebuild-celebrate", 1.09f);
 }
 
-void RebuildComponent::ResetRebuild(bool failed) {
+void QuickBuildComponent::ResetRebuild(bool failed) {
 	Entity* builder = GetBuilder();
 
 	if (m_State == eRebuildState::BUILDING && builder) {
-		GameMessages::SendEnableRebuild(m_Parent, false, false, failed, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, builder->GetObjectID());
+		GameMessages::SendEnableRebuild(m_ParentEntity, false, false, failed, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, builder->GetObjectID());
 
 		if (failed) {
 			RenderComponent::PlayAnimation(builder, u"rebuild-fail");
 		}
 	}
 
-	GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::RESETTING, LWOOBJID_EMPTY);
+	GameMessages::SendRebuildNotifyState(m_ParentEntity, m_State, eRebuildState::RESETTING, LWOOBJID_EMPTY);
 
 	m_State = eRebuildState::RESETTING;
 	m_StateDirty = true;
@@ -541,22 +570,20 @@ void RebuildComponent::ResetRebuild(bool failed) {
 	m_ShowResetEffect = false;
 	m_DrainedImagination = 0;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 	// Notify scripts and possible subscribers
-	for (auto* script : CppScripts::GetEntityScripts(m_Parent))
-		script->OnRebuildNotifyState(m_Parent, m_State);
-	for (const auto& cb : m_RebuildStateCallbacks)
-		cb(m_State);
+	m_ParentEntity->GetScript()->OnRebuildNotifyState(m_ParentEntity, m_State);
+	for (const auto& cb : m_RebuildStateCallbacks) cb(m_State);
 
-	m_Parent->ScheduleKillAfterUpdate();
+	m_ParentEntity->ScheduleKillAfterUpdate();
 
 	if (m_Activator) {
 		m_Activator->ScheduleKillAfterUpdate();
 	}
 }
 
-void RebuildComponent::CancelRebuild(Entity* entity, eQuickBuildFailReason failReason, bool skipChecks) {
+void QuickBuildComponent::CancelRebuild(Entity* entity, eQuickBuildFailReason failReason, bool skipChecks) {
 	if (m_State != eRebuildState::COMPLETED || skipChecks) {
 
 		m_Builder = LWOOBJID_EMPTY;
@@ -564,41 +591,39 @@ void RebuildComponent::CancelRebuild(Entity* entity, eQuickBuildFailReason failR
 		const auto entityID = entity != nullptr ? entity->GetObjectID() : LWOOBJID_EMPTY;
 
 		// Notify the client that a state has changed
-		GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::INCOMPLETE, entityID);
-		GameMessages::SendEnableRebuild(m_Parent, false, true, false, failReason, m_Timer, entityID);
+		GameMessages::SendRebuildNotifyState(m_ParentEntity, m_State, eRebuildState::INCOMPLETE, entityID);
+		GameMessages::SendEnableRebuild(m_ParentEntity, false, true, false, failReason, m_Timer, entityID);
 
 		// Now terminate any interaction with the rebuild
-		GameMessages::SendTerminateInteraction(entityID, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
-		GameMessages::SendTerminateInteraction(m_Parent->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+		GameMessages::SendTerminateInteraction(entityID, eTerminateType::FROM_INTERACTION, m_ParentEntity->GetObjectID());
+		GameMessages::SendTerminateInteraction(m_ParentEntity->GetObjectID(), eTerminateType::FROM_INTERACTION, m_ParentEntity->GetObjectID());
 
 		// Now update the component itself
 		m_State = eRebuildState::INCOMPLETE;
 		m_StateDirty = true;
 
 		// Notify scripts and possible subscribers
-		for (auto* script : CppScripts::GetEntityScripts(m_Parent))
-			script->OnRebuildNotifyState(m_Parent, m_State);
-		for (const auto& cb : m_RebuildStateCallbacks)
-			cb(m_State);
+		m_ParentEntity->GetScript()->OnRebuildNotifyState(m_ParentEntity, m_State);
+		for (const auto& cb : m_RebuildStateCallbacks) cb(m_State);
 
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 	}
 
 	if (entity == nullptr) {
 		return;
 	}
 
-	CharacterComponent* characterComponent = entity->GetComponent<CharacterComponent>();
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		EntityManager::Instance()->SerializeEntity(entity);
 	}
 }
 
-void RebuildComponent::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) {
+void QuickBuildComponent::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) {
 	m_RebuildCompleteCallbacks.push_back(callback);
 }
 
-void RebuildComponent::AddRebuildStateCallback(const std::function<void(eRebuildState state)>& callback) {
+void QuickBuildComponent::AddRebuildStateCallback(const std::function<void(eRebuildState state)>& callback) {
 	m_RebuildStateCallbacks.push_back(callback);
 }

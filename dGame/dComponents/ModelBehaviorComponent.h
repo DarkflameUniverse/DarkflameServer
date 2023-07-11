@@ -7,15 +7,16 @@
 #include "eReplicaComponentType.h"
 
 class Entity;
+enum class ePhysicsBehaviorType : int32_t;
 
 /**
  * Component that represents entities that are a model, e.g. collectible models and BBB models.
  */
-class ModelComponent : public Component {
+class ModelBehaviorComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL_BEHAVIOR;
 
-	ModelComponent(Entity* parent);
+	ModelBehaviorComponent(Entity* parent);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -29,7 +30,11 @@ public:
 	 * Sets the original position of the model
 	 * @param pos the original position to set
 	 */
-	void SetPosition(const NiPoint3& pos) { m_OriginalPosition = pos; }
+	void SetPosition(const NiPoint3& pos) {
+		if (m_OriginalPosition == pos) return;
+		m_OriginalPosition = pos;
+		m_DirtyModelInfo = true;
+	}
 
 	/**
 	 * Returns the original rotation of the model
@@ -41,9 +46,28 @@ public:
 	 * Sets the original rotation of the model
 	 * @param rot the original rotation to set
 	 */
-	void SetRotation(const NiQuaternion& rot) { m_OriginalRotation = rot; }
+	void SetRotation(const NiQuaternion& rot) {
+		if (m_OriginalRotation == rot) return;
+		m_OriginalRotation = rot;
+		m_DirtyModelInfo = true;
+	}
 
 private:
+
+	/**
+	 * if the model info has changed
+	 */
+	bool m_DirtyModelInfo;
+
+	/**
+	 * If the model is pickable
+	 */
+	bool m_IsPickable;
+
+	/**
+	 * the phsyics type of the model
+	 */
+	ePhysicsBehaviorType m_PhysicsType;
 
 	/**
 	 * The original position of the model
@@ -55,8 +79,4 @@ private:
 	 */
 	NiQuaternion m_OriginalRotation;
 
-	/**
-	 * The ID of the user that made the model
-	 */
-	LWOOBJID m_userModelID;
 };

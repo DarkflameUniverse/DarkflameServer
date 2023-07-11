@@ -3,32 +3,16 @@
  * Copyright 2018
  */
 
-#ifndef PROPERTYCOMPONENT_H
-#define PROPERTYCOMPONENT_H
+#ifndef __PROPERTYCOMPONENT_H__
+#define __PROPERTYCOMPONENT_H__
 
-#include "BitStream.h"
-#include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
-struct PropertyState {
-	LWOOBJID ownerID;
-	LWOOBJID propertyID;
-	bool rented;
-};
-
-/**
- * This component is unused and has no functionality
- */
 class PropertyComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
-	explicit PropertyComponent(Entity* parentEntity);
-	~PropertyComponent() override;
-	[[nodiscard]] PropertyState* GetPropertyState() const { return m_PropertyState; };
-private:
-	PropertyState* m_PropertyState;
-	std::string m_PropertyName;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
+	PropertyComponent(Entity* parentEntity);
 };
 
-#endif // PROPERTYCOMPONENT_H
+#endif // __PROPERTYCOMPONENT_H__

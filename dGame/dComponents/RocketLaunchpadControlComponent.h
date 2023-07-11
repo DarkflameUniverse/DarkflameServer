@@ -18,7 +18,7 @@ class PreconditionExpression;
  */
 class RocketLaunchpadControlComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::ROCKET_LAUNCH;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::ROCKET_LAUNCHPAD_CONTROL;
 
 	RocketLaunchpadControlComponent(Entity* parent, int rocketId);
 	~RocketLaunchpadControlComponent() override;

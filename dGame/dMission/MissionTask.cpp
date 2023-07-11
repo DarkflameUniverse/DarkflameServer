@@ -15,6 +15,7 @@
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
+#include "CollectibleComponent.h"
 
 MissionTask::MissionTask(Mission* mission, CDMissionTasks* info, uint32_t mask) {
 	this->info = info;
@@ -238,7 +239,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 			break;
 		}
 
-		activity = static_cast<ScriptedActivityComponent*>(entity->GetComponent(eReplicaComponentType::QUICK_BUILD));
+		activity = entity->GetComponent<ScriptedActivityComponent>();
 		if (activity == nullptr) {
 			break;
 		}
@@ -353,8 +354,9 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
 			break;
 		}
-
-		collectionId = entity->GetCollectibleID();
+		auto* collectibleComponent = entity->GetComponent<CollectibleComponent>();
+		if (!collectibleComponent) break;
+		collectionId = collectibleComponent->GetCollectibleId();
 
 		collectionId = static_cast<uint32_t>(collectionId) + static_cast<uint32_t>(Game::server->GetZoneID() << 8);
 

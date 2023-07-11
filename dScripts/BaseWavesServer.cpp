@@ -310,7 +310,7 @@ bool BaseWavesServer::CheckAllPlayersDead() {
 
 	for (const auto& playerID : state.players) {
 		auto* player = EntityManager::Instance()->GetEntity(playerID);
-		if (player == nullptr || player->GetIsDead()) {
+		if (player == nullptr || player->IsDead()) {
 			deadPlayers++;
 		}
 	}
@@ -430,7 +430,7 @@ void BaseWavesServer::SpawnWave(Entity* self) {
 
 		for (const auto& playerID : state.players) {
 			auto* player = EntityManager::Instance()->GetEntity(playerID);
-			if (player && player->GetIsDead()) {
+			if (player && player->IsDead()) {
 				player->Resurrect();
 			}
 		}
@@ -500,7 +500,7 @@ bool BaseWavesServer::UpdateSpawnedEnemies(Entity* self, LWOOBJID enemyID, uint3
 
 		for (const auto& playerID : state.players) {
 			auto* player = EntityManager::Instance()->GetEntity(playerID);
-			if (player != nullptr && !player->GetIsDead()) {
+			if (player != nullptr && !player->IsDead()) {
 				SetActivityValue(self, playerID, 1, currentTime);
 				SetActivityValue(self, playerID, 2, state.waveNumber);
 

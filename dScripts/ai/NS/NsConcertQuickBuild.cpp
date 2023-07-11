@@ -186,7 +186,7 @@ void NsConcertQuickBuild::ProgressLicensedTechnician(Entity* self) {
 		if (playerID != LWOOBJID_EMPTY) {
 			const auto player = EntityManager::Instance()->GetEntity(playerID);
 			if (player) {
-				auto playerMissionComponent = player->GetComponent<MissionComponent>();
+				auto* playerMissionComponent = player->GetComponent<MissionComponent>();
 				if (playerMissionComponent)
 					playerMissionComponent->ForceProgress(598, 903, self->GetLOT());
 			}

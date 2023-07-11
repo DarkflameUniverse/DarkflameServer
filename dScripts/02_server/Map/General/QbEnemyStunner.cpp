@@ -13,7 +13,7 @@ void QbEnemyStunner::OnRebuildComplete(Entity* self, Entity* target) {
 		destroyable->SetFaction(115);
 	}
 
-	auto skillComponent = self->GetComponent<SkillComponent>();
+	auto* skillComponent = self->GetComponent<SkillComponent>();
 	if (!skillComponent) return;
 
 	// Get the skill IDs of this object.

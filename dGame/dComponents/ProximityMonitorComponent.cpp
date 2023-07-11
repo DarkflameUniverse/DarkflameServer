@@ -4,14 +4,13 @@
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
 #include "SimplePhysicsComponent.h"
+#include "CDClientManager.h"
+#include "CDProximityMonitorComponentTable.h"
 
 const std::map<LWOOBJID, dpEntity*> ProximityMonitorComponent::m_EmptyObjectMap = {};
 
-ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, int radiusSmall, int radiusLarge) : Component(parent) {
-	if (radiusSmall != -1 && radiusLarge != -1) {
-		SetProximityRadius(radiusSmall, "rocketSmall");
-		SetProximityRadius(radiusLarge, "rocketLarge");
-	}
+ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, int32_t componentId) : Component(parent) {
+	m_ComponentId = componentId;
 }
 
 ProximityMonitorComponent::~ProximityMonitorComponent() {
@@ -20,32 +19,52 @@ ProximityMonitorComponent::~ProximityMonitorComponent() {
 
 		dpWorld::Instance().RemoveEntity(en.second);
 	}
-
-	m_ProximitiesData.clear();
 }
 
-void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::string& name) {
-	dpEntity* en = new dpEntity(m_Parent->GetObjectID(), proxRadius);
-	en->SetPosition(m_Parent->GetPosition());
+void ProximityMonitorComponent::LoadTemplateData() {
+	if (m_ComponentId == -1) return;
+	auto* proxCompTable = CDClientManager::Instance().GetTable<CDProximityMonitorComponentTable>();
+	auto proxCompData = proxCompTable->Query([this](CDProximityMonitorComponent entry) { return (entry.id == this->m_ComponentId); });
 
-	dpWorld::Instance().AddEntity(en);
-	m_ProximitiesData.insert(std::make_pair(name, en));
+	if (!proxCompData.empty()) {
+		float radiusSmall = -1.0f;
+		float radiusLarge = -1.0f;
+		auto proximitySplit = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
+		if (proximitySplit.size() < 2) return;
+		GeneralUtils::TryParse(proximitySplit.at(0), radiusSmall);
+		GeneralUtils::TryParse(proximitySplit.at(1), radiusLarge);
+		if (radiusSmall != -1.0f && radiusLarge != -1.0f) {
+			AddProximityRadius(radiusSmall, "rocketSmall");
+			AddProximityRadius(radiusLarge, "rocketLarge");
+		}
+	}
 }
 
-void ProximityMonitorComponent::SetProximityRadius(dpEntity* entity, const std::string& name) {
+void ProximityMonitorComponent::AddProximityRadius(float proxRadius, const std::string& name) {
+	dpEntity* entity = new dpEntity(m_ParentEntity->GetObjectID(), proxRadius);
+	AddProximityRadius(entity, name);
+}
+
+void ProximityMonitorComponent::AddProximityRadius(const BoxDimensions& dimensions, const std::string& name) {
+	dpEntity* entity = new dpEntity(m_ParentEntity->GetObjectID(), dimensions);
+	AddProximityRadius(entity, name);
+}
+
+void ProximityMonitorComponent::AddProximityRadius(dpEntity* entity, const std::string& name) {
+	entity->SetPosition(m_ParentEntity->GetPosition());
+
 	dpWorld::Instance().AddEntity(entity);
-	entity->SetPosition(m_Parent->GetPosition());
-	m_ProximitiesData.insert(std::make_pair(name, entity));
+	auto existing = m_ProximitiesData.find(name);
+	if (existing != m_ProximitiesData.end()) {
+		dpWorld::Instance().RemoveEntity(existing->second);
+	}
+	m_ProximitiesData.insert_or_assign(name, entity);
 }
 
 const std::map<LWOOBJID, dpEntity*>& ProximityMonitorComponent::GetProximityObjects(const std::string& name) {
 	const auto& iter = m_ProximitiesData.find(name);
 
-	if (iter == m_ProximitiesData.end()) {
-		return m_EmptyObjectMap;
-	}
-
-	return iter->second->GetCurrentlyCollidingObjects();
+	return iter == m_ProximitiesData.end() ? m_EmptyObjectMap : iter->second->GetCurrentlyCollidingObjects();
 }
 
 bool ProximityMonitorComponent::IsInProximity(const std::string& name, LWOOBJID objectID) {
@@ -55,24 +74,23 @@ bool ProximityMonitorComponent::IsInProximity(const std::string& name, LWOOBJID 
 		return false;
 	}
 
-	const auto& collitions = iter->second->GetCurrentlyCollidingObjects();
+	const auto& collisions = iter->second->GetCurrentlyCollidingObjects();
 
-	return collitions.find(objectID) != collitions.end();
+	return collisions.find(objectID) != collisions.end();
 }
 
 void ProximityMonitorComponent::Update(float deltaTime) {
-	for (const auto& prox : m_ProximitiesData) {
-		if (!prox.second) continue;
+	for (const auto& [proximityName, proximityEntity] : m_ProximitiesData) {
+		if (!proximityEntity) continue;
 
 		//Process enter events
-		for (auto* en : prox.second->GetNewObjects()) {
-			m_Parent->OnCollisionProximity(en->GetObjectID(), prox.first, "ENTER");
+		for (auto* en : proximityEntity->GetNewObjects()) {
+			m_ParentEntity->OnCollisionProximity(en->GetObjectID(), proximityName, "ENTER");
 		}
 
 		//Process exit events
-		for (auto* en : prox.second->GetRemovedObjects()) {
-			m_Parent->OnCollisionProximity(en->GetObjectID(), prox.first, "LEAVE");
+		for (auto* en : proximityEntity->GetRemovedObjects()) {
+			m_ParentEntity->OnCollisionProximity(en->GetObjectID(), proximityName, "LEAVE");
 		}
 	}
 }
-

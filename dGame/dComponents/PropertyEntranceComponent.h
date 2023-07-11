@@ -3,18 +3,25 @@
 #include <map>
 
 #include "Component.h"
-#include "Entity.h"
-#include "EntityManager.h"
-#include "GameMessages.h"
 #include "eReplicaComponentType.h"
+#include "PropertySelectQueryProperty.h"
+
+enum class ePropertySortType : int32_t {
+	SORT_TYPE_FRIENDS = 0,
+	SORT_TYPE_REPUTATION = 1,
+	SORT_TYPE_RECENT = 3,
+	SORT_TYPE_FEATURED = 5
+};
 
 /**
  * Represents the launch pad that's used to select and browse properties
  */
-class PropertyEntranceComponent : public Component {
+class PropertyEntranceComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
-	explicit PropertyEntranceComponent(uint32_t componentID, Entity* parent);
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
+	explicit PropertyEntranceComponent(Entity* parent, int32_t componentID);
+
+	void LoadTemplateData() override;
 
 	/**
 	 * Handles an OnUse request for some other entity, rendering the property browse menu
@@ -45,7 +52,7 @@ public:
 	 * @param filterText property names to search for
 	 * @param sysAddr the address to send gamemessage responses to
 	 */
-	void OnPropertyEntranceSync(Entity* entity, bool includeNullAddress, bool includeNullDescription, bool playerOwn, bool updateUi, int32_t numResults, int32_t lReputationTime, int32_t sortMethod, int32_t startIndex, std::string filterText, const SystemAddress& sysAddr);
+	void OnPropertyEntranceSync(Entity* entity, bool includeNullAddress, bool includeNullDescription, bool playerOwn, bool updateUi, int32_t numResults, int32_t lReputationTime, ePropertySortType sortMethod, int32_t startIndex, std::string filterText, const SystemAddress& sysAddr);
 
 	/**
 	 * Returns the name of this property
@@ -59,9 +66,7 @@ public:
 	 */
 	[[nodiscard]] LWOMAPID GetMapID() const { return m_MapID; };
 
-	PropertySelectQueryProperty SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId = LWOCLONEID_INVALID, std::string ownerName = "", std::string propertyName = "", std::string propertyDescription = "", float reputation = 0, bool isBFF = false, bool isFriend = false, bool isModeratorApproved = false, bool isAlt = false, bool isOwned = false, uint32_t privacyOption = 0, uint32_t timeLastUpdated = 0, float performanceCost = 0.0f);
-
-	std::string BuildQuery(Entity* entity, int32_t sortMethod, Character* character, std::string customQuery = "", bool wantLimits = true);
+	[[nodiscard]] static std::string BuildQuery(const ePropertySortType sortMethod, Character* character, const std::string& customQuery = "", const bool wantLimits = true);
 
 private:
 	/**
@@ -79,12 +84,5 @@ private:
 	 */
 	LWOMAPID m_MapID;
 
-	enum ePropertySortType : int32_t {
-		SORT_TYPE_FRIENDS = 0,
-		SORT_TYPE_REPUTATION = 1,
-		SORT_TYPE_RECENT = 3,
-		SORT_TYPE_FEATURED = 5
-	};
-
-	std::string baseQueryForProperties = "SELECT p.* FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ";
+	int32_t m_ComponentId = -1;
 };

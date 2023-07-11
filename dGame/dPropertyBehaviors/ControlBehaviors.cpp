@@ -4,7 +4,7 @@
 #include "Entity.h"
 #include "Game.h"
 #include "GameMessages.h"
-#include "ModelComponent.h"
+#include "ModelBehaviorComponent.h"
 #include "../../dWorldServer/ObjectIDManager.h"
 #include "dLogger.h"
 #include "BehaviorStates.h"
@@ -30,7 +30,7 @@
 #include "UpdateActionMessage.h"
 #include "UpdateStripUiMessage.h"
 
-void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, ModelComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr) {
+void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, ModelBehaviorComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr) {
 	// auto behavior = modelComponent->FindBehavior(behaviorID);
 	// if (behavior->GetBehaviorID() == -1 || behavior->GetShouldSetNewID()) {
 	// 	ObjectIDManager::Instance()->RequestPersistentID(
@@ -47,17 +47,17 @@ void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, ModelComponent* mode
 	// 		args.InsertValue("behaviorID", behaviorIDString);
 
 	// 		AMFStringValue* objectIDAsString = new AMFStringValue();
-	// 		objectIDAsString->SetValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
+	// 		objectIDAsString->SetValue(std::to_string(modelComponent->GetParentEntity()->GetObjectID()));
 	// 		args.InsertValue("objectID", objectIDAsString);
 
 	// 		GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorID", &args);
-	// 		ControlBehaviors::SendBehaviorListToClient(modelComponent->GetParent(), sysAddr, modelOwner);
+	// 		ControlBehaviors::SendBehaviorListToClient(modelComponent->GetParentEntity(), sysAddr, modelOwner);
 	// 	});
 	// }
 }
 
 void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner) {
-	auto* modelComponent = modelEntity->GetComponent<ModelComponent>();
+	auto* modelComponent = modelEntity->GetComponent<ModelBehaviorComponent>();
 
 	if (!modelComponent) return;
 
@@ -74,12 +74,12 @@ void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const Syste
 	 */
 
 	behaviorsToSerialize.Insert("behaviors");
-	behaviorsToSerialize.Insert("objectID", std::to_string(modelComponent->GetParent()->GetObjectID()));
+	behaviorsToSerialize.Insert("objectID", std::to_string(modelComponent->GetParentEntity()->GetObjectID()));
 
 	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", behaviorsToSerialize);
 }
 
-void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent) {
+void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, ModelBehaviorComponent* ModelComponent) {
 	auto* modelTypeAmf = arguments->Get<double>("ModelType");
 	if (!modelTypeAmf) return;
 
@@ -137,7 +137,7 @@ void ControlBehaviors::Rename(Entity* modelEntity, const SystemAddress& sysAddr,
 }
 
 // TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
-void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
+void ControlBehaviors::SendBehaviorBlocksToClient(ModelBehaviorComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	// uint32_t behaviorID = ControlBehaviors::GetBehaviorIDFromArgument(arguments);
 
 	// auto modelBehavior = modelComponent->FindBehavior(behaviorID);
@@ -197,7 +197,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent
 	// 		uiArray->InsertValue("x", xPosition);
 
 	// 		thisStrip->InsertValue("ui", uiArray);
-	// 		targetObjectID = modelComponent->GetParent()->GetObjectID();
+	// 		targetObjectID = modelComponent->GetParentEntity()->GetObjectID();
 	// 		behaviorID = modelBehavior->GetBehaviorID();
 
 	// 		AMFArrayValue* stripSerialize = new AMFArrayValue();
@@ -266,7 +266,7 @@ void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
 	}
 }
 
-void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
+void ControlBehaviors::MoveToInventory(ModelBehaviorComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	// This closes the UI menu should it be open while the player is removing behaviors
 	AMFArrayValue args;
 
@@ -276,12 +276,12 @@ void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const Sys
 
 	MoveToInventoryMessage moveToInventoryMessage(arguments);
 
-	SendBehaviorListToClient(modelComponent->GetParent(), sysAddr, modelOwner);
+	SendBehaviorListToClient(modelComponent->GetParentEntity(), sysAddr, modelOwner);
 }
 
 void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
 	if (!isInitialized || !modelEntity || !modelOwner || !arguments) return;
-	auto* modelComponent = modelEntity->GetComponent<ModelComponent>();
+	auto* modelComponent = modelEntity->GetComponent<ModelBehaviorComponent>();
 
 	if (!modelComponent) return;
 
@@ -342,7 +342,7 @@ ControlBehaviors::ControlBehaviors() {
 	std::string buffer{};
 	bool commentBlockStart = false;
 	while (std::getline(blocksBuffer, read)) {
-		// tinyxml2 should handle comment blocks but the client has one that fails the processing.  
+		// tinyxml2 should handle comment blocks but the client has one that fails the processing.
 		// This preprocessing just removes all comments from the read file out of an abundance of caution.
 		if (read.find("<!--") != std::string::npos) {
 			commentBlockStart = true;

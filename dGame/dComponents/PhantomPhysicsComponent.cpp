@@ -26,11 +26,13 @@
 #include "dpEntity.h"
 #include "dpShapeBox.h"
 #include "dpShapeSphere.h"
+#include "NiPoint3.h"
+#include "NiQuaternion.h"
 
 PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(parent) {
-	m_Position = m_Parent->GetDefaultPosition();
-	m_Rotation = m_Parent->GetDefaultRotation();
-	m_Scale = m_Parent->GetDefaultScale();
+	m_Position = m_ParentEntity->GetDefaultPosition();
+	m_Rotation = m_ParentEntity->GetDefaultRotation();
+	m_Scale = m_ParentEntity->GetDefaultScale();
 	m_dpEntity = nullptr;
 
 	m_EffectInfoDirty = false;
@@ -45,232 +47,148 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	m_Max = 1;
 
 	m_IsDirectional = false;
-	m_Direction = NiPoint3(); // * m_DirectionalMultiplier
+	m_Direction = NiPoint3::ZERO;
+}
 
-	if (m_Parent->GetVar<bool>(u"create_physics")) {
-		CreatePhysics();
-	}
+PhantomPhysicsComponent::~PhantomPhysicsComponent() {
+	if (m_dpEntity) dpWorld::Instance().RemoveEntity(m_dpEntity);
+}
 
-	if (m_Parent->GetVar<bool>(u"respawnVol")) {
-		m_IsRespawnVolume = true;
-	}
-
-	if (m_IsRespawnVolume) {
-		{
-			auto respawnString = std::stringstream(m_Parent->GetVarAsString(u"rspPos"));
-
-			std::string segment;
-			std::vector<std::string> seglist;
-
-			while (std::getline(respawnString, segment, '\x1f')) {
-				seglist.push_back(segment);
-			}
-
-			m_RespawnPos = NiPoint3(std::stof(seglist[0]), std::stof(seglist[1]), std::stof(seglist[2]));
-		}
-
-		{
-			auto respawnString = std::stringstream(m_Parent->GetVarAsString(u"rspRot"));
-
-			std::string segment;
-			std::vector<std::string> seglist;
-
-			while (std::getline(respawnString, segment, '\x1f')) {
-				seglist.push_back(segment);
-			}
-
-			m_RespawnRot = NiQuaternion(std::stof(seglist[0]), std::stof(seglist[1]), std::stof(seglist[2]), std::stof(seglist[3]));
-		}
-	}
-
+void PhantomPhysicsComponent::LoadTemplateData() {
 	// HF - RespawnPoints. Legacy respawn entity.
-	if (m_Parent->GetLOT() == 4945) {
+	if (m_ParentEntity->GetLOT() == LOT_LEGACY_RESPAWN_POINT) {
 		m_IsRespawnVolume = true;
 		m_RespawnPos = m_Position;
 		m_RespawnRot = m_Rotation;
 	}
 
-	/*
-	for (LDFBaseData* data : settings) {
-		if (data) {
-			if (data->GetKey() == u"create_physics") {
-				if (bool(std::stoi(data->GetValueAsString()))) {
-					CreatePhysics(settings);
-				}
-			}
+	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	auto componentID = compRegistryTable->GetByIDAndType(m_ParentEntity->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
-			if (data->GetKey() == u"respawnVol") {
-				if (bool(std::stoi(data->GetValueAsString()))) {
-					m_IsRespawnVolume = true;
-				}
-			}
+	auto* physCompTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
-			if (m_IsRespawnVolume) {
-				if (data->GetKey() == u"rspPos") {
-					//Joy, we get to split strings!
-					std::stringstream test(data->GetValueAsString());
-					std::string segment;
-					std::vector<std::string> seglist;
+	if (!physCompTable) return;
 
-					while (std::getline(test, segment, '\x1f')) {
-						seglist.push_back(segment);
-					}
+	auto* info = physCompTable->GetByID(componentID);
+	if (!info || info->physicsAsset.empty() || info->physicsAsset == "NO_PHYSICS") return;
 
-					m_RespawnPos = NiPoint3(std::stof(seglist[0]), std::stof(seglist[1]), std::stof(seglist[2]));
-				}
-
-				if (data->GetKey() == u"rspRot") {
-					//Joy, we get to split strings!
-					std::stringstream test(data->GetValueAsString());
-					std::string segment;
-					std::vector<std::string> seglist;
-
-					while (std::getline(test, segment, '\x1f')) {
-						seglist.push_back(segment);
-					}
-
-					m_RespawnRot = NiQuaternion(std::stof(seglist[0]), std::stof(seglist[1]), std::stof(seglist[2]), std::stof(seglist[3]));
-				}
-			}
-
-			if (m_Parent->GetLOT() == 4945) // HF - RespawnPoints
-			{
-				m_IsRespawnVolume = true;
-				m_RespawnPos = m_Position;
-				m_RespawnRot = m_Rotation;
-			}
-		}
+	if (info->physicsAsset == "miscellaneous\\misc_phys_10x1x5.hkx") {
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 10.0f, 5.0f, 1.0f);
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_dpEntity->SetPosition(m_Position);
+	} else if (info->physicsAsset == "miscellaneous\\misc_phys_640x640.hkx") {
+		// Move this down by 13.521004 units so it is still effectively at the same height as before
+		m_Position = m_Position - NiPoint3::UNIT_Y * 13.521004f;
+		// TODO Fix physics simulation to do simulation at high velocities due to bullet through paper problem...
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 1638.4f, 13.521004f * 2.0f, 1638.4f);
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_dpEntity->SetPosition(m_Position);
+	} else if (info->physicsAsset == "env\\trigger_wall_tall.hkx") {
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 10.0f, 25.0f, 1.0f);
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_dpEntity->SetPosition(m_Position);
+	} else if (info->physicsAsset == "env\\env_gen_placeholderphysics.hkx") {
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 20.0f, 20.0f, 20.0f);
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_dpEntity->SetPosition(m_Position);
+	} else if (info->physicsAsset == "env\\POI_trigger_wall.hkx") {
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 1.0f, 12.5f, 20.0f); // Not sure what the real size is
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_dpEntity->SetPosition(m_Position);
+	} else if (info->physicsAsset == "env\\NG_NinjaGo\\env_ng_gen_gate_chamber_puzzle_ceiling_tile_falling_phantom.hkx") {
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 18.0f, 5.0f, 15.0f);
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_dpEntity->SetPosition(m_Position + m_Rotation.GetForwardVector() * 7.5f);
+	} else if (info->physicsAsset == "env\\NG_NinjaGo\\ng_flamejet_brick_phantom.HKX") {
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 1.0f, 1.0f, 12.0f);
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_dpEntity->SetPosition(m_Position + m_Rotation.GetForwardVector() * 6.0f);
+	} else if (info->physicsAsset == "env\\Ring_Trigger.hkx") {
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 6.0f, 6.0f, 6.0f);
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_dpEntity->SetPosition(m_Position);
+	} else if (info->physicsAsset == "env\\vfx_propertyImaginationBall.hkx") {
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 4.5f);
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_dpEntity->SetPosition(m_Position);
+	} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx") {
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_Position.y -= (111.467964f * m_Scale) / 2;
+		m_dpEntity->SetPosition(m_Position);
+	} else {
+		Game::logger->LogDebug("PhantomPhysicsComponent", "This component is supposed to have asset %s but is defaulting to fallback cube.", info->physicsAsset.c_str());
+		//add fallback cube:
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), 2.0f, 2.0f, 2.0f);
+		m_dpEntity->SetScale(m_Scale);
+		m_dpEntity->SetRotation(m_Rotation);
+		m_dpEntity->SetPosition(m_Position);
 	}
-	*/
+	dpWorld::Instance().AddEntity(m_dpEntity);
 
-	if (!m_HasCreatedPhysics) {
-		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
-
-		CDPhysicsComponentTable* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
-
-		if (physComp == nullptr) return;
-
-		auto* info = physComp->GetByID(componentID);
-		if (info == nullptr || info->physicsAsset == "" || info->physicsAsset == "NO_PHYSICS") return;
-
-		//temp test
-		if (info->physicsAsset == "miscellaneous\\misc_phys_10x1x5.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 10.0f, 5.0f, 1.0f);
-
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_dpEntity->SetPosition(m_Position);
-
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else if (info->physicsAsset == "miscellaneous\\misc_phys_640x640.hkx") {
-			// Move this down by 13.521004 units so it is still effectively at the same height as before
-			m_Position = m_Position - NiPoint3::UNIT_Y * 13.521004f;
-			// TODO Fix physics simulation to do simulation at high velocities due to bullet through paper problem...
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1638.4f, 13.521004f * 2.0f, 1638.4f);
-
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_dpEntity->SetPosition(m_Position);
-
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else if (info->physicsAsset == "env\\trigger_wall_tall.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 10.0f, 25.0f, 1.0f);
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else if (info->physicsAsset == "env\\env_gen_placeholderphysics.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 20.0f, 20.0f, 20.0f);
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else if (info->physicsAsset == "env\\POI_trigger_wall.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1.0f, 12.5f, 20.0f); // Not sure what the real size is
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else if (info->physicsAsset == "env\\NG_NinjaGo\\env_ng_gen_gate_chamber_puzzle_ceiling_tile_falling_phantom.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 18.0f, 5.0f, 15.0f);
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_dpEntity->SetPosition(m_Position + m_Rotation.GetForwardVector() * 7.5f);
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else if (info->physicsAsset == "env\\NG_NinjaGo\\ng_flamejet_brick_phantom.HKX") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1.0f, 1.0f, 12.0f);
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_dpEntity->SetPosition(m_Position + m_Rotation.GetForwardVector() * 6.0f);
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else if (info->physicsAsset == "env\\Ring_Trigger.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 6.0f, 6.0f, 6.0f);
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else if (info->physicsAsset == "env\\vfx_propertyImaginationBall.hkx") {
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 4.5f);
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx"){
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_Position.y -= (111.467964f * m_Scale) / 2;
-			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else {
-			//Game::logger->Log("PhantomPhysicsComponent", "This one is supposed to have %s", info->physicsAsset.c_str());
-
-			//add fallback cube:
-			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);
-			m_dpEntity->SetScale(m_Scale);
-			m_dpEntity->SetRotation(m_Rotation);
-			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
-		}
-
-	}
 }
 
-PhantomPhysicsComponent::~PhantomPhysicsComponent() {
-	if (m_dpEntity) {
-		dpWorld::Instance().RemoveEntity(m_dpEntity);
+void PhantomPhysicsComponent::LoadConfigData() {
+	if (m_ParentEntity->GetVar<bool>(u"create_physics")) {
+		CreatePhysics();
+	}
+
+	if (m_ParentEntity->GetVar<bool>(u"respawnVol")) {
+		m_IsRespawnVolume = true;
+	}
+
+	if (m_IsRespawnVolume) {
+		auto respawnPosSplit = GeneralUtils::SplitString(m_ParentEntity->GetVarAsString(u"rspPos"), '\x1f');
+		m_RespawnPos = NiPoint3::ZERO;
+		if (respawnPosSplit.size() >= 3) {
+			GeneralUtils::TryParse(respawnPosSplit[0], m_RespawnPos.x);
+			GeneralUtils::TryParse(respawnPosSplit[1], m_RespawnPos.y);
+			GeneralUtils::TryParse(respawnPosSplit[2], m_RespawnPos.z);
+		}
+
+		auto respawnRotSplit = GeneralUtils::SplitString(m_ParentEntity->GetVarAsString(u"rspRot"), '\x1f');
+		m_RespawnRot = NiQuaternion::IDENTITY;
+		if (respawnRotSplit.size() >= 4) {
+			GeneralUtils::TryParse(respawnRotSplit[0], m_RespawnRot.w);
+			GeneralUtils::TryParse(respawnRotSplit[1], m_RespawnRot.x);
+			GeneralUtils::TryParse(respawnRotSplit[2], m_RespawnRot.y);
+			GeneralUtils::TryParse(respawnRotSplit[3], m_RespawnRot.z);
+		}
 	}
 }
 
 void PhantomPhysicsComponent::CreatePhysics() {
-	unsigned char alpha;
-	unsigned char red;
-	unsigned char green;
-	unsigned char blue;
-	int type = -1;
-	float x = 0.0f;
-	float y = 0.0f;
-	float z = 0.0f;
+	int32_t type = -1;
+	NiPoint3 pos;
 	float width = 0.0f; //aka "radius"
 	float height = 0.0f;
 
-	if (m_Parent->HasVar(u"primitiveModelType")) {
-		type = m_Parent->GetVar<int32_t>(u"primitiveModelType");
-		x = m_Parent->GetVar<float>(u"primitiveModelValueX");
-		y = m_Parent->GetVar<float>(u"primitiveModelValueY");
-		z = m_Parent->GetVar<float>(u"primitiveModelValueZ");
+	if (m_ParentEntity->HasVar(u"primitiveModelType")) {
+		type = m_ParentEntity->GetVar<int32_t>(u"primitiveModelType");
+		pos.x = m_ParentEntity->GetVar<float>(u"primitiveModelValueX");
+		pos.y = m_ParentEntity->GetVar<float>(u"primitiveModelValueY");
+		pos.z = m_ParentEntity->GetVar<float>(u"primitiveModelValueZ");
 	} else {
-		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
+		auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+		auto componentID = compRegistryTable->GetByIDAndType(m_ParentEntity->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
-		CDPhysicsComponentTable* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
+		auto* physCompTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
-		if (physComp == nullptr) return;
+		if (!physCompTable) return;
 
-		auto info = physComp->GetByID(componentID);
+		auto info = physCompTable->GetByID(componentID);
 
-		if (info == nullptr) return;
+		if (!info) return;
 
 		type = info->pcShapeType;
 		width = info->playerRadius;
@@ -279,8 +197,8 @@ void PhantomPhysicsComponent::CreatePhysics() {
 
 	switch (type) {
 	case 1: { //Make a new box shape
-		NiPoint3 boxSize(x, y, z);
-		if (x == 0.0f) {
+		BoxDimensions boxSize(pos.x, pos.y, pos.z);
+		if (pos.x == 0.0f) {
 			//LU has some weird values, so I think it's best to scale them down a bit
 			if (height < 0.5f) height = 2.0f;
 			if (width < 0.5f) width = 2.0f;
@@ -289,17 +207,21 @@ void PhantomPhysicsComponent::CreatePhysics() {
 			width = width * m_Scale;
 			height = height * m_Scale;
 
-			boxSize = NiPoint3(width, height, width);
+			boxSize = BoxDimensions(width, height, width);
 		}
-
-		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), boxSize);
+		if (m_dpEntity) delete m_dpEntity;
+		m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), boxSize);
+		break;
+	}
+	default: {
+		Game::logger->Log("PhantomPhysicsComponent", "Unknown shape type: %d", type);
 		break;
 	}
 	}
 
 	if (!m_dpEntity) return;
 
-	m_dpEntity->SetPosition({ m_Position.x, m_Position.y - (height / 2), m_Position.z });
+	m_dpEntity->SetPosition(NiPoint3(m_Position.x, m_Position.y - (height / 2), m_Position.z));
 
 	dpWorld::Instance().AddEntity(m_dpEntity);
 
@@ -312,12 +234,13 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 		outBitStream->Write(m_Position.x);
 		outBitStream->Write(m_Position.y);
 		outBitStream->Write(m_Position.z);
+
 		outBitStream->Write(m_Rotation.x);
 		outBitStream->Write(m_Rotation.y);
 		outBitStream->Write(m_Rotation.z);
 		outBitStream->Write(m_Rotation.w);
 
-		m_PositionInfoDirty = false;
+		if (!bIsInitialUpdate) m_PositionInfoDirty = false;
 	}
 
 	outBitStream->Write(m_EffectInfoDirty || bIsInitialUpdate);
@@ -328,7 +251,7 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 			outBitStream->Write(m_EffectType);
 			outBitStream->Write(m_DirectionalMultiplier);
 
-			// forgive me father for i have sinned
+			// distance info.  Option.
 			outBitStream->Write0();
 			//outBitStream->Write(m_MinMax);
 			//if (m_MinMax) {
@@ -344,7 +267,7 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 			}
 		}
 
-		m_EffectInfoDirty = false;
+		if (!bIsInitialUpdate) m_EffectInfoDirty = false;
 	}
 }
 
@@ -357,28 +280,28 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 	if (!m_dpEntity) return;
 
 	//Process enter events
-	for (auto en : m_dpEntity->GetNewObjects()) {
-		m_Parent->OnCollisionPhantom(en->GetObjectID());
+	for (auto* en : m_dpEntity->GetNewObjects()) {
+		m_ParentEntity->OnCollisionPhantom(en->GetObjectID());
 
 		//If we are a respawn volume, inform the client:
-		if (m_IsRespawnVolume) {
-			auto entity = EntityManager::Instance()->GetEntity(en->GetObjectID());
+		if (!m_IsRespawnVolume) continue;
+		auto entity = EntityManager::Instance()->GetEntity(en->GetObjectID());
 
-			if (entity) {
-				GameMessages::SendPlayerReachedRespawnCheckpoint(entity, m_RespawnPos, m_RespawnRot);
-				entity->SetRespawnPos(m_RespawnPos);
-				entity->SetRespawnRot(m_RespawnRot);
-			}
-		}
+		if (!entity) continue;
+
+		GameMessages::SendPlayerReachedRespawnCheckpoint(entity, m_RespawnPos, m_RespawnRot);
+		entity->SetRespawnPosition(m_RespawnPos);
+		entity->SetRespawnRotation(m_RespawnRot);
 	}
 
 	//Process exit events
-	for (auto en : m_dpEntity->GetRemovedObjects()) {
-		m_Parent->OnCollisionLeavePhantom(en->GetObjectID());
+	for (auto* en : m_dpEntity->GetRemovedObjects()) {
+		m_ParentEntity->OnCollisionLeavePhantom(en->GetObjectID());
 	}
 }
 
 void PhantomPhysicsComponent::SetDirection(const NiPoint3& pos) {
+	if (m_Direction == pos) return;
 	m_Direction = pos;
 	m_Direction.x *= m_DirectionalMultiplier;
 	m_Direction.y *= m_DirectionalMultiplier;
@@ -391,53 +314,60 @@ void PhantomPhysicsComponent::SetDirection(const NiPoint3& pos) {
 void PhantomPhysicsComponent::SpawnVertices() {
 	if (!m_dpEntity) return;
 
-	std::cout << m_Parent->GetObjectID() << std::endl;
-	auto box = static_cast<dpShapeBox*>(m_dpEntity->GetShape());
+	Game::logger->Log("PhantomPhysicsComponent", "objectId is %llu", m_ParentEntity->GetObjectID());
+	auto box = dynamic_cast<dpShapeBox*>(m_dpEntity->GetShape());
+	if (!box) return;
 	for (auto vert : box->GetVertices()) {
-		std::cout << vert.x << ", " << vert.y << ", " << vert.z << std::endl;
+		Game::logger->Log("PhantomPhysicsComponent", "%f, %f, %f", vert.x, vert.y, vert.z);
 
 		EntityInfo info;
 		info.lot = 33;
 		info.pos = vert;
 		info.spawner = nullptr;
-		info.spawnerID = m_Parent->GetObjectID();
+		info.spawnerID = m_ParentEntity->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);
+		Entity* newEntity = EntityManager::Instance()->CreateEntity(info);
 		EntityManager::Instance()->ConstructEntity(newEntity);
 	}
 }
 
 void PhantomPhysicsComponent::SetDirectionalMultiplier(float mul) {
+	if (mul == m_DirectionalMultiplier) return;
 	m_DirectionalMultiplier = mul;
 	m_EffectInfoDirty = true;
 }
 
-void PhantomPhysicsComponent::SetEffectType(ePhysicsEffectType type) {
+void PhantomPhysicsComponent::SetEffectType(const ePhysicsEffectType type) {
+	if (type == m_EffectType) return;
 	m_EffectType = type;
 	m_EffectInfoDirty = true;
 }
 
-void PhantomPhysicsComponent::SetMin(uint32_t min) {
+void PhantomPhysicsComponent::SetMin(const uint32_t min) {
+	if (min == m_Min) return;
 	m_Min = min;
 	m_MinMax = true;
 	m_EffectInfoDirty = true;
 }
 
-void PhantomPhysicsComponent::SetMax(uint32_t max) {
+void PhantomPhysicsComponent::SetMax(const uint32_t max) {
+	if (max == m_Max) return;
 	m_Max = max;
 	m_MinMax = true;
 	m_EffectInfoDirty = true;
 }
 
 void PhantomPhysicsComponent::SetPosition(const NiPoint3& pos) {
+	if (pos == m_Position) return;
 	m_Position = pos;
-
+	m_PositionInfoDirty = true;
 	if (m_dpEntity) m_dpEntity->SetPosition(pos);
 }
 
 void PhantomPhysicsComponent::SetRotation(const NiQuaternion& rot) {
+	if (rot == m_Rotation) return;
 	m_Rotation = rot;
-
+	m_PositionInfoDirty = true;
 	if (m_dpEntity) m_dpEntity->SetRotation(rot);
 }

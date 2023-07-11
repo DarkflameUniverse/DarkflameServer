@@ -1,9 +1,9 @@
 #include "RaceMaelstromGeiser.h"
 #include "GameMessages.h"
 #include "PossessableComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "EntityManager.h"
-#include "RacingControlComponent.h"
+#include "RacingComponent.h"
 #include "dZoneManager.h"
 
 void RaceMaelstromGeiser::OnStartup(Entity* self) {
@@ -37,13 +37,13 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 
 		vehicle = entering;
 	} else if (entering->IsPlayer()) {
-		auto* possessorComponent = entering->GetComponent<PossessorComponent>();
+		auto* possessionComponent = entering->GetComponent<PossessionComponent>();
 
-		if (possessorComponent == nullptr) {
+		if (possessionComponent == nullptr) {
 			return;
 		}
 
-		vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		vehicle = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
 
 		if (vehicle == nullptr) {
 			return;
@@ -59,11 +59,9 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 
 	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
 
-	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
+	auto* racingComponent = zoneController->GetComponent<RacingComponent>();
 
-	if (racingControlComponent != nullptr) {
-		racingControlComponent->OnRequestDie(player);
-	}
+	if (racingComponent) racingComponent->OnRequestDie(player);
 }
 
 void RaceMaelstromGeiser::OnTimerDone(Entity* self, std::string timerName) {

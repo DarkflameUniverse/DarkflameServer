@@ -162,7 +162,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 	}
 
 	auto* destroyableComponent = targetEntity->GetComponent<DestroyableComponent>();
-	if (!destroyableComponent || !destroyableComponent->GetParent()) {
+	if (!destroyableComponent || !destroyableComponent->GetParentEntity()) {
 		Game::logger->Log("BasicAttackBehavior", "No destroyable component on %llu", branch.target);
 		return;
 	}
@@ -213,7 +213,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 
 		bitStream->Write(armorDamageDealt);
 		bitStream->Write(healthDamageDealt);
-		bitStream->Write(targetEntity->GetIsDead());
+		bitStream->Write(targetEntity->IsDead());
 	}
 
 	bitStream->Write(successState);

@@ -25,7 +25,7 @@
 #include "CDClientManager.h"
 #include "CDSkillBehaviorTable.h"
 #include "SkillComponent.h"
-#include "RacingControlComponent.h"
+#include "RacingComponent.h"
 #include "RequestServerProjectileImpact.h"
 #include "SyncSkill.h"
 #include "StartSkill.h"
@@ -110,7 +110,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			player->ConstructLimboEntities();
 		}
 
-		InventoryComponent* inv = entity->GetComponent<InventoryComponent>();
+		auto* inv = entity->GetComponent<InventoryComponent>();
 		if (inv) {
 			auto items = inv->GetEquippedItems();
 			for (auto pair : items) {
@@ -126,28 +126,22 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		std::vector<Entity*> racingControllers = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
 		for (Entity* racingController : racingControllers) {
-			auto* racingComponent = racingController->GetComponent<RacingControlComponent>();
-			if (racingComponent != nullptr) {
-				racingComponent->OnPlayerLoaded(entity);
-			}
+			auto* racingComponent = racingController->GetComponent<RacingComponent>();
+			if (racingComponent) racingComponent->OnPlayerLoaded(entity);
 		}
 
 		Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-			script->OnPlayerLoaded(zoneControl, player);
-		}
+		if (zoneControl) zoneControl->GetScript()->OnPlayerLoaded(zoneControl, player);
 
 		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-					script->OnPlayerLoaded(scriptEntity, player);
-				}
+				scriptEntity->GetScript()->OnPlayerLoaded(scriptEntity, player);
 			}
 		}
 
 		//Kill player if health == 0
-		if (entity->GetIsDead()) {
+		if (entity->IsDead()) {
 			entity->Smash(entity->GetObjectID());
 		}
 
@@ -243,13 +237,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	case eGameMessageType::REQUEST_RESURRECT: {
 		GameMessages::SendResurrect(entity);
-		/*auto* dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
-		if (dest) {
-			dest->SetHealth(4);
-			dest->SetArmor(0);
-			dest->SetImagination(6);
-			EntityManager::Instance()->SerializeEntity(entity);
-		}*/
 		break;
 	}
 	case eGameMessageType::HANDLE_HOT_PROPERTY_DATA: {
@@ -282,7 +269,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		if (startSkill.skillID == 1561 || startSkill.skillID == 1562 || startSkill.skillID == 1541) return;
 
-		MissionComponent* comp = entity->GetComponent<MissionComponent>();
+		auto* comp = entity->GetComponent<MissionComponent>();
 		if (comp) {
 			comp->Progress(eMissionTaskType::USE_SKILL, startSkill.skillID);
 		}
@@ -300,7 +287,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			success = skillComponent->CastPlayerSkill(behaviorId, startSkill.uiSkillHandle, bs, startSkill.optionalTargetID, startSkill.skillID);
 
 			if (success && entity->GetCharacter()) {
-				DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();
+				auto* destComp = entity->GetComponent<DestroyableComponent>();
 				destComp->SetImagination(destComp->GetImagination() - skillTable->GetSkillByID(startSkill.skillID).imaginationcost);
 			}
 

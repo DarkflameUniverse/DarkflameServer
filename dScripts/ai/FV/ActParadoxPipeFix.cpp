@@ -1,6 +1,6 @@
 #include "ActParadoxPipeFix.h"
 #include "EntityManager.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
 #include "eEndBehavior.h"
@@ -19,9 +19,9 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 			continue;
 		}
 
-		auto* rebuildComponent = object->GetComponent<RebuildComponent>();
+		auto* quickBuildComponent = object->GetComponent<QuickBuildComponent>();
 
-		if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
+		if (quickBuildComponent->GetState() == eRebuildState::COMPLETED) {
 			indexCount++;
 		}
 	}

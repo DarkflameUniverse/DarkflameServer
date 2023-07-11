@@ -15,7 +15,7 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 	this->m_ID = id;
 	this->m_InventoryComponent = inventoryComponent;
 
-	this->m_PassiveAbilities = ItemSetPassiveAbility::FindAbilities(id, m_InventoryComponent->GetParent(), this);
+	this->m_PassiveAbilities = ItemSetPassiveAbility::FindAbilities(id, m_InventoryComponent->GetParentEntity(), this);
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillSetWith2, skillSetWith3, skillSetWith4, skillSetWith5, skillSetWith6, itemIDs FROM ItemSets WHERE setID = ?;");
@@ -125,8 +125,8 @@ void ItemSet::OnEquip(const LOT lot) {
 		return;
 	}
 
-	auto* skillComponent = m_InventoryComponent->GetParent()->GetComponent<SkillComponent>();
-	auto* missionComponent = m_InventoryComponent->GetParent()->GetComponent<MissionComponent>();
+	auto* skillComponent = m_InventoryComponent->GetParentEntity()->GetComponent<SkillComponent>();
+	auto* missionComponent = m_InventoryComponent->GetParentEntity()->GetComponent<MissionComponent>();
 
 	for (const auto skill : skillSet) {
 		auto* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
@@ -135,7 +135,7 @@ void ItemSet::OnEquip(const LOT lot) {
 
 		missionComponent->Progress(eMissionTaskType::USE_SKILL, skill);
 
-		skillComponent->HandleUnmanaged(behaviorId, m_InventoryComponent->GetParent()->GetObjectID());
+		skillComponent->HandleUnmanaged(behaviorId, m_InventoryComponent->GetParentEntity()->GetObjectID());
 	}
 }
 
@@ -158,14 +158,14 @@ void ItemSet::OnUnEquip(const LOT lot) {
 		return;
 	}
 
-	const auto& skillComponent = m_InventoryComponent->GetParent()->GetComponent<SkillComponent>();
+	const auto* skillComponent = m_InventoryComponent->GetParentEntity()->GetComponent<SkillComponent>();
 
 	for (const auto skill : skillSet) {
 		auto* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
 
-		skillComponent->HandleUnCast(behaviorId, m_InventoryComponent->GetParent()->GetObjectID());
+		skillComponent->HandleUnCast(behaviorId, m_InventoryComponent->GetParentEntity()->GetObjectID());
 	}
 }
 

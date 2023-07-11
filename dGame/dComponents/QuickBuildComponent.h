@@ -1,5 +1,5 @@
-#ifndef REBUILDCOMPONENT_H
-#define REBUILDCOMPONENT_H
+#ifndef __QUICKBUILDCOMPONENT__H__
+#define __QUICKBUILDCOMPONENT__H__
 
 #include <BitStream.h>
 #include <vector>
@@ -8,7 +8,7 @@
 #include "NiPoint3.h"
 #include "ScriptedActivityComponent.h"
 #include "Preconditions.h"
-#include "Component.h"
+#include "ActivityComponent.h"
 #include "eReplicaComponentType.h"
 #include "eRebuildState.h"
 
@@ -20,15 +20,17 @@ enum class eQuickBuildFailReason : uint32_t;
  * consists of an activator that shows a popup and then the actual entity that the bricks are built into. Note
  * that quick builds are also scripted activities so this shared some logic with the ScriptedActivityComponent.
  */
-class RebuildComponent : public Component {
+class QuickBuildComponent : public ActivityComponent {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
-	RebuildComponent(Entity* entity);
-	~RebuildComponent() override;
+	QuickBuildComponent(Entity* entity, int32_t componentId = 0);
+	~QuickBuildComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void Update(float deltaTime) override;
+	void LoadTemplateData() override;
+	void LoadConfigData() override;
 
 	/**
 	 * Handles a OnUse event from some entity, initiating the quick build
@@ -349,6 +351,8 @@ private:
 	 */
 	PreconditionExpression* m_Precondition = nullptr;
 
+	int32_t m_ComponentId = 0;
+
 	/**
 	 * Starts the rebuild for a certain entity
 	 * @param user the entity to start the rebuild
@@ -362,4 +366,4 @@ private:
 	void CompleteRebuild(Entity* user);
 };
 
-#endif // REBUILDCOMPONENT_H
+#endif  //!__QUICKBUILDCOMPONENT__H__

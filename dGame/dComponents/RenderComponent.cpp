@@ -15,7 +15,7 @@
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
 
-RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component(parent) {
+RenderComponent::RenderComponent(Entity* parent, int32_t componentId) : Component(parent) {
 	m_Effects = std::vector<Effect*>();
 	m_LastAnimationName = "";
 	if (componentId == -1) return;
@@ -45,13 +45,10 @@ RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component
 
 RenderComponent::~RenderComponent() {
 	for (Effect* eff : m_Effects) {
-		if (eff) {
-			delete eff;
-			eff = nullptr;
-		}
+		if (!eff) continue;
+		delete eff;
+		eff = nullptr;
 	}
-
-	m_Effects.clear();
 }
 
 void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -59,9 +56,9 @@ void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitial
 
 	outBitStream->Write<uint32_t>(m_Effects.size());
 
-	for (Effect* eff : m_Effects) {
+	for (auto* eff : m_Effects) {
 		// Check that the effect is non-null
-		assert(eff);
+		DluAssert(eff);
 
 		outBitStream->Write<uint8_t>(eff->name.size());
 		for (const auto& value : eff->name)
@@ -141,7 +138,7 @@ void RenderComponent::Update(const float deltaTime) {
 void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& effectType, const std::string& name, const LWOOBJID secondary, const float priority, const float scale, const bool serialize) {
 	RemoveEffect(name);
 
-	GameMessages::SendPlayFXEffect(m_Parent, effectId, effectType, name, secondary, priority, scale, serialize);
+	GameMessages::SendPlayFXEffect(m_ParentEntity, effectId, effectType, name, secondary, priority, scale, serialize);
 
 	auto* effect = AddEffect(effectId, name, effectType);
 
@@ -180,7 +177,7 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
 }
 
 void RenderComponent::StopEffect(const std::string& name, const bool killImmediate) {
-	GameMessages::SendStopFXEffect(m_Parent, killImmediate, name);
+	GameMessages::SendStopFXEffect(m_ParentEntity, killImmediate, name);
 
 	RemoveEffect(name);
 }
@@ -188,7 +185,6 @@ void RenderComponent::StopEffect(const std::string& name, const bool killImmedia
 std::vector<Effect*>& RenderComponent::GetEffects() {
 	return m_Effects;
 }
-
 
 float RenderComponent::PlayAnimation(Entity* self, const std::u16string& animation, float priority, float scale) {
 	if (!self) return 0.0f;
@@ -209,7 +205,6 @@ float RenderComponent::GetAnimationTime(Entity* self, const std::string& animati
 	if (!self) return 0.0f;
 	return RenderComponent::DoAnimation(self, animation, false);
 }
-
 
 float RenderComponent::DoAnimation(Entity* self, const std::string& animation, bool sendAnimation, float priority, float scale) {
 	float returnlength = 0.0f;

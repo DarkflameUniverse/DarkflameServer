@@ -20,7 +20,7 @@ struct MusicCue {
  */
 class SoundTriggerComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SOUND_TRIGGER;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SOUND_TRIGGER;
 
 	explicit SoundTriggerComponent(Entity* parent);
 	~SoundTriggerComponent() override;

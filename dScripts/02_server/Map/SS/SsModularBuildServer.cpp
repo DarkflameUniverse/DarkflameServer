@@ -7,7 +7,7 @@ void SsModularBuildServer::OnModularBuildExit(Entity* self, Entity* player, bool
 	int missionNum = 1732;
 
 	if (bCompleted) {
-		MissionComponent* mission = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
+		auto* mission = self->GetComponent<MissionComponent>();
 		Mission* rocketMission = mission->GetMission(missionNum);
 
 		if (rocketMission->GetMissionState() == eMissionState::ACTIVE) {

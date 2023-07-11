@@ -19,18 +19,18 @@ enum class eStateChangeType : uint32_t;
 /**
  * Handles the movement of controllable Entities, e.g. enemies and players
  */
-class ControllablePhysicsComponent : public Component {
+class ControllablePhysicsComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::CONTROLLABLE_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::CONTROLLABLE_PHYSICS;
 
 	ControllablePhysicsComponent(Entity* entity);
 	~ControllablePhysicsComponent() override;
 
-	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void ResetFlags();
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
+	void Startup() override;
 
 	/**
 	 * Sets the position of this entity, also ensures this update is serialized next tick.
@@ -115,19 +115,19 @@ public:
 	 * Mark the position as dirty, forcing a serialization update next tick
 	 * @param val whether or not the position is dirty
 	 */
-	void SetDirtyPosition(bool val);
+	void SetDirtyPosition(bool val) { m_DirtyPosition = val; }
 
 	/**
 	 * Mark the velocity as dirty, forcing a serializtion update next tick
 	 * @param val whether or not the velocity is dirty
 	 */
-	void SetDirtyVelocity(bool val);
+	void SetDirtyVelocity(bool val) { m_DirtyVelocity = val; }
 
 	/**
 	 * Mark the angular velocity as dirty, forcing a serialization update next tick
 	 * @param val whether or not the angular velocity is dirty
 	 */
-	void SetDirtyAngularVelocity(bool val);
+	void SetDirtyAngularVelocity(bool val) { m_DirtyAngularVelocity = val; }
 
 	/**
 	 * Sets whether or not the entity is currently wearing a jetpack

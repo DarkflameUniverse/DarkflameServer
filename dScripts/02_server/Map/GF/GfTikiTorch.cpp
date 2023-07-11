@@ -45,7 +45,7 @@ void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
 }
 
 void GfTikiTorch::LightTorch(Entity* self) {
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
+	auto* renderComponent = self->GetComponent<RenderComponent>();
 	if (renderComponent == nullptr)
 		return;
 

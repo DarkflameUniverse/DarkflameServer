@@ -1,7 +1,8 @@
-#include "eMissionTaskType.h"
-
 #ifndef __ACHIEVEMENTCACHEKEY__H__
 #define __ACHIEVEMENTCACHEKEY__H__
+
+#include "eMissionTaskType.h"
+#include "GeneralUtils.h"
 
 class AchievementCacheKey {
 public:

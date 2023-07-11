@@ -6,66 +6,50 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "GameMessages.h"
-#include <BitStream.h>
+#include "BitStream.h"
 #include "eTriggerEventType.h"
 
 BouncerComponent::BouncerComponent(Entity* parent) : Component(parent) {
-	m_PetEnabled = false;
-	m_PetBouncerEnabled = false;
-	m_PetSwitchLoaded = false;
-
-	if (parent->GetLOT() == 7625) {
-		LookupPetSwitch();
-	}
+	m_BounceOnCollision = false;
+	m_DirtyBounceInfo = false;
 }
 
-BouncerComponent::~BouncerComponent() {
+void BouncerComponent::Startup() {
+	if (m_ParentEntity->GetLOT() == 7625) LookupPetSwitch();
 }
 
 void BouncerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	outBitStream->Write(m_PetEnabled);
-	if (m_PetEnabled) {
-		outBitStream->Write(m_PetBouncerEnabled);
+	outBitStream->Write(bIsInitialUpdate || m_DirtyBounceInfo);
+	if (bIsInitialUpdate || m_DirtyBounceInfo) {
+		outBitStream->Write(m_BounceOnCollision);
+		if (!bIsInitialUpdate) m_DirtyBounceInfo = false;
 	}
 }
 
-Entity* BouncerComponent::GetParentEntity() const {
-	return m_Parent;
+void BouncerComponent::SetBounceOnCollision(bool value) {
+	if (m_BounceOnCollision == value) return;
+	m_BounceOnCollision = value;
+	m_DirtyBounceInfo = true;
 }
 
-void BouncerComponent::SetPetEnabled(bool value) {
-	m_PetEnabled = value;
+void BouncerComponent::SetBouncerEnabled(bool value) {
+	m_BounceOnCollision = value;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
-}
+	GameMessages::SendBouncerActiveStatus(m_ParentEntity->GetObjectID(), value, UNASSIGNED_SYSTEM_ADDRESS);
 
-void BouncerComponent::SetPetBouncerEnabled(bool value) {
-	m_PetBouncerEnabled = value;
-
-	GameMessages::SendBouncerActiveStatus(m_Parent->GetObjectID(), value, UNASSIGNED_SYSTEM_ADDRESS);
-
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
 	if (value) {
-		m_Parent->TriggerEvent(eTriggerEventType::PET_ON_SWITCH, m_Parent);
-		GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 1513, u"create", "PetOnSwitch", LWOOBJID_EMPTY, 1, 1, true);
+		m_ParentEntity->TriggerEvent(eTriggerEventType::PET_ON_SWITCH, m_ParentEntity);
+		GameMessages::SendPlayFXEffect(m_ParentEntity->GetObjectID(), 1513, u"create", "PetOnSwitch");
 	} else {
-		m_Parent->TriggerEvent(eTriggerEventType::PET_OFF_SWITCH, m_Parent);
-		GameMessages::SendStopFXEffect(m_Parent, true, "PetOnSwitch");
+		m_ParentEntity->TriggerEvent(eTriggerEventType::PET_OFF_SWITCH, m_ParentEntity);
+		GameMessages::SendStopFXEffect(m_ParentEntity, true, "PetOnSwitch");
 	}
-
-}
-
-bool BouncerComponent::GetPetEnabled() const {
-	return m_PetEnabled;
-}
-
-bool BouncerComponent::GetPetBouncerEnabled() const {
-	return m_PetBouncerEnabled;
 }
 
 void BouncerComponent::LookupPetSwitch() {
-	const auto& groups = m_Parent->GetGroups();
+	const auto& groups = m_ParentEntity->GetGroups();
 
 	for (const auto& group : groups) {
 		const auto& entities = EntityManager::Instance()->GetEntitiesInGroup(group);
@@ -73,24 +57,22 @@ void BouncerComponent::LookupPetSwitch() {
 		for (auto* entity : entities) {
 			auto* switchComponent = entity->GetComponent<SwitchComponent>();
 
-			if (switchComponent != nullptr) {
-				switchComponent->SetPetBouncer(this);
+			if (!switchComponent) continue;
+			switchComponent->SetPetBouncer(this);
 
-				m_PetSwitchLoaded = true;
-				m_PetEnabled = true;
+			m_DirtyBounceInfo = true;
 
-				EntityManager::Instance()->SerializeEntity(m_Parent);
+			EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 
-				Game::logger->Log("BouncerComponent", "Loaded pet bouncer");
-			}
+			Game::logger->Log("BouncerComponent", "Loaded bouncer %i:%llu", m_ParentEntity->GetLOT(), m_ParentEntity->GetObjectID());
+			return;
 		}
 	}
 
-	if (!m_PetSwitchLoaded) {
-		Game::logger->Log("BouncerComponent", "Failed to load pet bouncer");
+	float retryTime = 0.5f;
+	Game::logger->Log("BouncerComponent", "Failed to load pet bouncer for %i:%llu, trying again in %f seconds", m_ParentEntity->GetLOT(), m_ParentEntity->GetObjectID(), retryTime);
 
-		m_Parent->AddCallbackTimer(0.5f, [this]() {
-			LookupPetSwitch();
-			});
-	}
+	m_ParentEntity->AddCallbackTimer(retryTime, [this]() {
+		LookupPetSwitch();
+		});
 }

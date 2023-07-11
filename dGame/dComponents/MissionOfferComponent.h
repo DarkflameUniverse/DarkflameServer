@@ -1,15 +1,18 @@
 /*
  * Darkflame Universe
- * Copyright 2019
+ * Copyright 2023
  */
 
-#ifndef MISSIONOFFERCOMPONENT_H
-#define MISSIONOFFERCOMPONENT_H
+#ifndef __MISSIONOFFERCOMPONENT_H__
+#define __MISSIONOFFERCOMPONENT_H__
+#pragma once
+
+#include <memory>
+#include <vector>
+#include <stdint.h>
 
 #include "dCommonVars.h"
 #include "Component.h"
-#include <vector>
-#include <stdint.h>
 #include "eReplicaComponentType.h"
 
 class Entity;
@@ -18,25 +21,29 @@ class Entity;
  * Light wrapper around missions that may be offered by an entity
  */
 struct OfferedMission {
-	OfferedMission(uint32_t missionId, bool offersMission, bool acceptsMission);
+	OfferedMission(const uint32_t missionId, const bool offersMission, const bool acceptsMission) {
+		this->missionId = missionId;
+		this->offersMission = offersMission;
+		this->acceptsMission = acceptsMission;
+	};
 
 	/**
 	 * Returns the ID of the mission
 	 * @return the ID of the mission
 	 */
-	uint32_t GetMissionId() const;
+	uint32_t GetMissionId() const { return missionId; };
 
 	/**
 	 * Returns if this mission is offered by the entity
 	 * @return true if this mission is offered by the entity, false otherwise
 	 */
-	bool GetOfferMission() const;
+	bool GetOfferMission() const { return offersMission; };
 
 	/**
 	 * Returns if this mission may be accepted by the entity (currently unused)
 	 * @return true if this mission may be accepted by the entity, false otherwise
 	 */
-	bool GetAcceptMission() const;
+	bool GetAcceptMission() const { return acceptsMission; };
 
 private:
 
@@ -59,12 +66,13 @@ private:
 /**
  * Allows entities to offer missions to other entities, depending on their mission inventory progression.
  */
-class MissionOfferComponent : public Component {
+class MissionOfferComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION_OFFER;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION_OFFER;
 
-	MissionOfferComponent(Entity* parent, LOT parentLot);
-	~MissionOfferComponent() override;
+	MissionOfferComponent(Entity* parent, const int32_t componentId = -1);
+
+	void LoadTemplateData() override;
 
 	/**
 	 * Handles the OnUse event triggered by some entity, determines which missions to show based on what they may
@@ -85,7 +93,9 @@ private:
 	/**
 	 * The missions this entity has to offer
 	 */
-	std::vector<OfferedMission*> offeredMissions;
+	std::vector<std::unique_ptr<OfferedMission>> offeredMissions;
+
+	int32_t m_ComponentId;
 };
 
-#endif // MISSIONOFFERCOMPONENT_H
+#endif // __MISSIONOFFERCOMPONENT_H__

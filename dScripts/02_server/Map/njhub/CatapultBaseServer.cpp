@@ -4,8 +4,8 @@
 #include "Entity.h"
 #include "RenderComponent.h"
 
-void CatapultBaseServer::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
-	if (name == "BouncerBuilt") {
+void CatapultBaseServer::OnNotifyObject(Entity* self, Entity* sender, const std::u16string& name, int32_t param1, int32_t param2) {
+	if (name == u"BouncerBuilt") {
 		// start a timer for the arm to player the with bouncer animation
 		self->AddTimer("PlatAnim", .75);
 
@@ -46,7 +46,7 @@ void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 		if (bouncer == nullptr) return;
 
 		// bounce all players
-		bouncer->NotifyObject(bouncer, "bounceAllInProximity"); // Likely to trigger server side bounce, bodging this
+		bouncer->NotifyObject(bouncer, u"bounceAllInProximity"); // Likely to trigger server side bounce, bodging this
 		// add a delay to play the animation
 		self->AddTimer("launchAnim", .3);
 	} else if (timerName == "resetArm") {

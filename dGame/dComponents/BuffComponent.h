@@ -14,20 +14,24 @@ class Entity;
 /**
  * Extra information on effects to apply after applying a buff, for example whether to buff armor, imag or health and by how much
  */
-struct BuffParameter
-{
-	int32_t buffId;
+struct BuffParameter {
+	struct ParameterValues {
+		int32_t skillId = 0;
+		int32_t stacks = 0;
+		float tick = 0.0f;
+		int32_t unknown2 = 0;
+	};
+	int32_t buffId = 0;
 	std::string name;
-	float value;
-	std::vector<float> values;
-	int32_t effectId;
+	float value = 0.0f;
+	ParameterValues values;
+	int32_t effectId = 0;
 };
 
 /**
  * Meta information about a buff that can be applied, e.g. how long it's applied, who applied it, etc.
  */
-struct Buff
-{
+struct Buff {
 	int32_t id = 0;
 	float time = 0;
 	float tick = 0;
@@ -40,15 +44,11 @@ struct Buff
 /**
  * Allows for the application of buffs to the parent entity, altering health, armor and imagination.
  */
-class BuffComponent : public Component {
+class BuffComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
 
-	explicit BuffComponent(Entity* parent);
-
-	~BuffComponent();
-
-	Entity* GetParent() const;
+	explicit BuffComponent(Entity* parent) : Component(parent) {};
 
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 
@@ -88,7 +88,7 @@ public:
 	 * @param id the id of the buff to find
 	 * @return whether or not the entity has a buff with the specified id active
 	 */
-	bool HasBuff(int32_t id);
+	bool HasBuff(int32_t id) { return m_Buffs.find(id) != m_Buffs.end(); };
 
 	/**
 	 * Applies the effects of the buffs on the entity, e.g.: changing armor, health, imag, etc.
@@ -110,7 +110,7 @@ public:
 	/**
 	 * Removes all buffs for the entity and reverses all of their effects
 	 */
-	void Reset();
+	void Reset() { RemoveAllBuffs(); };
 
 	/**
 	 * Applies all effects for all buffs, active or not, again

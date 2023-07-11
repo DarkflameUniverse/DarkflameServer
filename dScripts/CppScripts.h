@@ -1,15 +1,18 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
 class User;
 class Entity;
 class NiPoint3;
+class InvalidScript;
 enum class eMissionState : int32_t;
 enum class ePetTamingNotifyType : uint32_t;
 enum class eRebuildState : uint32_t;
+enum class eCinematicEvent : uint32_t;
 
 namespace CppScripts {
 	/**
@@ -29,8 +32,7 @@ namespace CppScripts {
 	 */
 	class Script {
 	public:
-		Script();
-		~Script();
+		virtual ~Script() = default;
 
 		/**
 		 * Invoked one frame after the script is loaded.
@@ -72,7 +74,7 @@ namespace CppScripts {
 		 *
 		 * Equivalent to 'function onNotifyObject(self, msg)'
 		 */
-		virtual void OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1 = 0, int32_t param2 = 0) {};
+		virtual void OnNotifyObject(Entity* self, Entity* sender, const std::u16string& name, int32_t param1 = 0, int32_t param2 = 0) {};
 
 		/**
 		 * Invoked upon a player exiting the modular build minigame.
@@ -357,9 +359,10 @@ namespace CppScripts {
 		 * @param player the player to remove
 		 * @param canceled if it was done via the cancel button
 		 */
-		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled){};
+		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {};
 	};
-
 	Script* GetScript(Entity* parent, const std::string& scriptName);
-	std::vector<Script*> GetEntityScripts(Entity* entity);
+
+	extern std::unique_ptr<InvalidScript> invalidScript;
+	extern std::map<std::string, CppScripts::Script*> m_Scripts;
 };

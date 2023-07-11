@@ -24,6 +24,7 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
+#include "CollectibleComponent.h"
 
 EntityManager* EntityManager::m_Address = nullptr;
 
@@ -518,16 +519,18 @@ void EntityManager::UpdateGhosting(Player* player) {
 			entity->SetObservers(entity->GetObservers() - 1);
 		} else if (!observed && ghostingDistanceMin > distance) {
 			// Check collectables, don't construct if it has been collected
-			uint32_t collectionId = entity->GetCollectibleID();
+			auto* collectibleComponent = entity->GetComponent<CollectibleComponent>();
+			if (collectibleComponent) {
+				uint32_t collectionId = collectibleComponent->GetCollectibleId();
 
-			if (collectionId != 0) {
-				collectionId = static_cast<uint32_t>(collectionId) + static_cast<uint32_t>(Game::server->GetZoneID() << 8);
+				if (collectionId != 0) {
+					collectionId = static_cast<uint32_t>(collectionId) + static_cast<uint32_t>(Game::server->GetZoneID() << 8);
 
-				if (missionComponent->HasCollectible(collectionId)) {
-					continue;
+					if (missionComponent->HasCollectible(collectionId)) {
+						continue;
+					}
 				}
 			}
-
 			player->ObserveEntity(id);
 
 			ConstructEntity(entity, player->GetSystemAddress());
@@ -599,7 +602,7 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 	if (!entity)
 		return;
 
-	SwitchComponent* switchComp = entity->GetComponent<SwitchComponent>();
+	auto* switchComp = entity->GetComponent<SwitchComponent>();
 	if (switchComp) {
 		entity->TriggerEvent(eTriggerEventType::DEACTIVATED, entity);
 	}

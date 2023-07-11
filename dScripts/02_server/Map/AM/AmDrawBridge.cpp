@@ -3,6 +3,7 @@
 #include "GameMessages.h"
 #include "SimplePhysicsComponent.h"
 #include "eTerminateType.h"
+#include "Entity.h"
 
 void AmDrawBridge::OnStartup(Entity* self) {
 	self->SetNetworkVar(u"InUse", false);
@@ -72,8 +73,8 @@ void AmDrawBridge::OnTimerDone(Entity* self, std::string timerName) {
 	}
 }
 
-void AmDrawBridge::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
-	if (name == "BridgeBuilt") {
+void AmDrawBridge::OnNotifyObject(Entity* self, Entity* sender, const std::u16string& name, int32_t param1, int32_t param2) {
+	if (name == u"BridgeBuilt") {
 		self->SetVar(u"BridgeID", sender->GetObjectID());
 
 		self->AddTimer("SmashEffectBridge", 45);

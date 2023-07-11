@@ -3,6 +3,7 @@
 #include "GameMessages.h"
 #include "eTerminateType.h"
 #include "eRebuildState.h"
+#include "Entity.h"
 
 void FvConsoleRightQuickbuild::OnStartup(Entity* self) {
 	self->SetVar(u"IAmBuilt", false);
@@ -16,7 +17,7 @@ void FvConsoleRightQuickbuild::OnRebuildNotifyState(Entity* self, eRebuildState 
 		const auto objects = EntityManager::Instance()->GetEntitiesInGroup("Facility");
 
 		if (!objects.empty()) {
-			objects[0]->NotifyObject(self, "ConsoleRightUp");
+			objects[0]->NotifyObject(self, u"ConsoleRightUp");
 		}
 	} else if (state == eRebuildState::RESETTING) {
 		self->SetVar(u"IAmBuilt", false);
@@ -25,7 +26,7 @@ void FvConsoleRightQuickbuild::OnRebuildNotifyState(Entity* self, eRebuildState 
 		const auto objects = EntityManager::Instance()->GetEntitiesInGroup("Facility");
 
 		if (!objects.empty()) {
-			objects[0]->NotifyObject(self, "ConsoleRightDown");
+			objects[0]->NotifyObject(self, u"ConsoleRightDown");
 		}
 	}
 }
@@ -41,7 +42,7 @@ void FvConsoleRightQuickbuild::OnUse(Entity* self, Entity* user) {
 		const auto objects = EntityManager::Instance()->GetEntitiesInGroup("Facility");
 
 		if (!objects.empty()) {
-			objects[0]->NotifyObject(self, "ConsoleRightActive");
+			objects[0]->NotifyObject(self, u"ConsoleRightActive");
 		}
 	}
 

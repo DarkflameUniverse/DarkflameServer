@@ -1,49 +1,51 @@
+#ifndef __MODULEASSEMBLYCOMPONENT__H__
+#define __MODULEASSEMBLYCOMPONENT__H__
+
 #pragma once
 
-#include "BitStream.h"
-#include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+
+namespace RakNet {
+	class BitStream;
+};
 
 /**
  * Component that belongs to an object that may be modularly built, like cars and rockets. Note that this is not the
  * same as having said items in your inventory (the subkey for this component) this component is the one that
  * renders the entity into the world.
  */
-class ModuleAssemblyComponent : public Component {
+class ModuleAssemblyComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODULE_ASSEMBLY;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MODULE_ASSEMBLY;
 
 	ModuleAssemblyComponent(Entity* parent);
-	~ModuleAssemblyComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-	void Update(float deltaTime) override;
 
 	/**
 	 * Sets the subkey of this entity
 	 * @param value the subkey to set
 	 */
-	void SetSubKey(LWOOBJID value);
+	void SetSubKey(const LWOOBJID& value) { m_SubKey = value; };
 
 	/**
 	 * Returns the subkey for this entity
 	 * @return the subkey for this entity
 	 */
-	LWOOBJID GetSubKey() const;
-
+	LWOOBJID GetSubKey() const { return m_SubKey; };
 
 	/**
 	 * Sets the optional parts value
 	 * @param value the value to set
 	 */
-	void SetUseOptionalParts(bool value);
+	void SetUseOptionalParts(bool value) { m_UseOptionalParts = value; };
 
 	/**
 	 * Returns the optional parts value
 	 * @return the value to set
 	 */
-	bool GetUseOptionalParts() const;
+	bool GetUseOptionalParts() const { return m_UseOptionalParts; };
 
 	/**
 	 * Sets the assembly part lots (the subsections of this modular build)
@@ -55,7 +57,7 @@ public:
 	 * Returns the assembly part lots (the subsections of this modular build)
 	 * @return
 	 */
-	const std::u16string& GetAssemblyPartsLOTs() const;
+	const std::u16string& GetAssemblyPartsLOTs() const { return m_AssemblyPartsLOTs; };
 
 private:
 
@@ -75,3 +77,5 @@ private:
 	 */
 	std::u16string m_AssemblyPartsLOTs;
 };
+
+#endif  //!__MODULEASSEMBLYCOMPONENT__H__

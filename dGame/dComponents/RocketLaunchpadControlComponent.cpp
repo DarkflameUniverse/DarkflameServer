@@ -13,7 +13,7 @@
 #include "ChatPackets.h"
 #include "MissionComponent.h"
 #include "PropertyEntranceComponent.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "dServer.h"
 #include "PacketUtils.h"
 #include "eObjectWorldState.h"
@@ -77,7 +77,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	SetSelectedMapId(originator->GetObjectID(), zone);
 
-	GameMessages::SendFireEventClientSide(m_Parent->GetObjectID(), originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
+	GameMessages::SendFireEventClientSide(m_ParentEntity->GetObjectID(), originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
 
 	GameMessages::SendChangeObjectWorldState(rocket->GetId(), eObjectWorldState::ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
 
@@ -89,13 +89,13 @@ void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
 	// instead we let their OnUse handlers do their things
 	// which components of an Object have their OnUse called when using them
 	// so we don't need to call it here
-	auto* propertyEntrance = m_Parent->GetComponent<PropertyEntranceComponent>();
+	auto* propertyEntrance = m_ParentEntity->GetComponent<PropertyEntranceComponent>();
 	if (propertyEntrance) {
 		return;
 	}
 
-	auto* rocketLaunchLUP = m_Parent->GetComponent<RocketLaunchLupComponent>();
-	if (rocketLaunchLUP) {
+	auto* multiZoneEntranceComponent = m_ParentEntity->GetComponent<MultiZoneEntranceComponent>();
+	if (multiZoneEntranceComponent) {
 		return;
 	}
 

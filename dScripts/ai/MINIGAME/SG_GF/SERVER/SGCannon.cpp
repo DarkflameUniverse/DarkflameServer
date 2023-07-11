@@ -5,7 +5,7 @@
 #include "Player.h"
 #include "Character.h"
 #include "ShootingGalleryComponent.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "CharacterComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "MovementAIComponent.h"
@@ -105,7 +105,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 			if (characterComponent != nullptr) {
 				characterComponent->SetIsRacing(true);
 				characterComponent->SetCurrentActivity(eGameActivity::SHOOTING_GALLERY);
-				auto possessor = player->GetComponent<PossessorComponent>();
+				auto* possessor = player->GetComponent<PossessionComponent>();
 				if (possessor) {
 					possessor->SetPossessable(self->GetObjectID());
 					possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
@@ -287,13 +287,11 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			auto* enemy = EntityManager::Instance()->CreateEntity(info, nullptr, self);
 			EntityManager::Instance()->ConstructEntity(enemy);
 
-			auto* movementAI = new MovementAIComponent(enemy, {});
+			auto* movementAiComponent = enemy->AddComponent<MovementAIComponent>(0U);
 
-			enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
-
-			movementAI->SetSpeed(toSpawn.initialSpeed);
-			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
-			movementAI->SetHaltDistance(0.0f);
+			movementAiComponent->SetSpeed(toSpawn.initialSpeed);
+			movementAiComponent->SetCurrentSpeed(toSpawn.initialSpeed);
+			movementAiComponent->SetHaltDistance(0.0f);
 
 			std::vector<NiPoint3> pathWaypoints;
 
@@ -305,7 +303,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 				std::reverse(pathWaypoints.begin(), pathWaypoints.end());
 			}
 
-			movementAI->SetPath(pathWaypoints);
+			movementAiComponent->SetPath(pathWaypoints);
 
 			enemy->AddDieCallback([this, self, enemy, name]() {
 				RegisterHit(self, enemy, name);
@@ -666,7 +664,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 	if (player == nullptr) return;
 
-	auto missionComponent = player->GetComponent<MissionComponent>();
+	auto* missionComponent = player->GetComponent<MissionComponent>();
 	if (missionComponent == nullptr) return;
 
 	missionComponent->Progress(eMissionTaskType::SMASH, spawnInfo.lot, self->GetObjectID());

@@ -312,11 +312,8 @@
 #include "WildNinjaSensei.h"
 #include "WildNinjaBricks.h"
 
-//Big bad global bc this is a namespace and not a class:
-InvalidScript* invalidToReturn = new InvalidScript();
-std::map<std::string, CppScripts::Script*> m_Scripts;
-
-// yeah sorry darwin ill fix the global later
+std::unique_ptr<InvalidScript> CppScripts::invalidScript = std::make_unique<InvalidScript>();
+std::map<std::string, CppScripts::Script*> CppScripts::m_Scripts;
 
 CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scriptName) {
 	Script* script;
@@ -327,7 +324,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		return script;
 	}
 
-	script = invalidToReturn;
+	script = invalidScript.get();
 
 	//VE / AG:
 	if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua")
@@ -929,7 +926,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
-	else if (script == invalidToReturn) {
+	else if (script == invalidScript.get()) {
 		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
 			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
 			(scriptName =="scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
@@ -940,23 +937,4 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 
 	m_Scripts[scriptName] = script;
 	return script;
-}
-
-std::vector<CppScripts::Script*> CppScripts::GetEntityScripts(Entity* entity) {
-	std::vector<CppScripts::Script*> scripts;
-	std::vector<ScriptComponent*> comps = entity->GetScriptComponents();
-	for (ScriptComponent* scriptComp : comps) {
-		if (scriptComp != nullptr) {
-			scripts.push_back(scriptComp->GetScript());
-		}
-	}
-	return scripts;
-}
-
-CppScripts::Script::Script() {
-
-}
-
-CppScripts::Script::~Script() {
-
 }

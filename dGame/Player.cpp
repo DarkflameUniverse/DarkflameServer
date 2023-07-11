@@ -51,21 +51,17 @@ User* Player::GetParentUser() const {
 	return m_ParentUser;
 }
 
-SystemAddress Player::GetSystemAddress() const {
-	return m_SystemAddress;
-}
-
 void Player::SetSystemAddress(const SystemAddress& value) {
 	m_SystemAddress = value;
 }
 
-void Player::SetRespawnPos(const NiPoint3 position) {
+void Player::SetRespawnPosition(const NiPoint3& position) {
 	m_respawnPos = position;
 
 	m_Character->SetRespawnPoint(dZoneManager::Instance()->GetZone()->GetWorldID(), position);
 }
 
-void Player::SetRespawnRot(const NiQuaternion rotation) {
+void Player::SetRespawnRotation(const NiQuaternion& rotation) {
 	m_respawnRot = rotation;
 }
 
@@ -251,7 +247,7 @@ const std::vector<Player*>& Player::GetAllPlayers() {
 	return m_Players;
 }
 
-uint64_t Player::GetDroppedCoins() {
+uint64_t Player::GetDroppedCoins() const {
 	return m_DroppedCoins;
 }
 
@@ -286,16 +282,12 @@ Player::~Player() {
 
 	if (IsPlayer()) {
 		Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-			script->OnPlayerExit(zoneControl, this);
-		}
+		zoneControl->GetScript()->OnPlayerExit(zoneControl, this);
 
 		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-					script->OnPlayerExit(scriptEntity, this);
-				}
+					scriptEntity->GetScript()->OnPlayerExit(scriptEntity, this);
 			}
 		}
 	}

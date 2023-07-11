@@ -8,37 +8,37 @@ void FvFacilityBrick::OnStartup(Entity* self) {
 	self->SetVar(u"ConsoleRIGHTtActive", false);
 }
 
-void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
+void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::u16string& name, int32_t param1, int32_t param2) {
 	auto* brickSpawner = dZoneManager::Instance()->GetSpawnersByName("ImaginationBrick")[0];
 	auto* bugSpawner = dZoneManager::Instance()->GetSpawnersByName("MaelstromBug")[0];
 	auto* canisterSpawner = dZoneManager::Instance()->GetSpawnersByName("BrickCanister")[0];
 
-	if (name == "ConsoleLeftUp") {
+	if (name == u"ConsoleLeftUp") {
 		GameMessages::SendStopFXEffect(self, true, "LeftPipeOff");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2775, u"create", "LeftPipeEnergy");
-	} else if (name == "ConsoleLeftDown") {
+	} else if (name == u"ConsoleLeftDown") {
 		self->SetVar(u"ConsoleLEFTActive", false);
 
 		GameMessages::SendStopFXEffect(self, true, "LeftPipeEnergy");
 		GameMessages::SendStopFXEffect(self, true, "LeftPipeOn");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2774, u"create", "LeftPipeOff");
-	} else if (name == "ConsoleLeftActive") {
+	} else if (name == u"ConsoleLeftActive") {
 		self->SetVar(u"ConsoleLEFTActive", true);
 
 		GameMessages::SendStopFXEffect(self, true, "LeftPipeEnergy");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2776, u"create", "LeftPipeOn");
 	}
 
-	else if (name == "ConsoleRightUp") {
+	else if (name == u"ConsoleRightUp") {
 		GameMessages::SendStopFXEffect(self, true, "RightPipeOff");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2778, u"create", "RightPipeEnergy");
-	} else if (name == "ConsoleRightDown") {
+	} else if (name == u"ConsoleRightDown") {
 		self->SetVar(u"ConsoleRIGHTActive", false);
 
 		GameMessages::SendStopFXEffect(self, true, "RightPipeEnergy");
 		GameMessages::SendStopFXEffect(self, true, "RightPipeOn");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 2777, u"create", "RightPipeOff");
-	} else if (name == "ConsoleRightActive") {
+	} else if (name == u"ConsoleRightActive") {
 		self->SetVar(u"ConsoleRIGHTActive", true);
 
 		GameMessages::SendStopFXEffect(self, true, "RightPipeOff");

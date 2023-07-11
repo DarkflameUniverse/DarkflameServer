@@ -1,16 +1,16 @@
 #include "AmSkullkinDrillStand.h"
 #include "GameMessages.h"
-#include "dpEntity.h"
+#include "dpShapeBox.h"
 #include "Entity.h"
 #include "RenderComponent.h"
 
 void AmSkullkinDrillStand::OnStartup(Entity* self) {
 	self->SetVar(u"bActive", true);
 
-	self->SetProximityRadius(new dpEntity(self->GetObjectID(), { 6, 14, 6 }), "knockback");
+	self->SetProximityRadius(BoxDimensions(6.0f, 14.0f, 6.0f), "knockback");
 }
 
-void AmSkullkinDrillStand::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
+void AmSkullkinDrillStand::OnNotifyObject(Entity* self, Entity* sender, const std::u16string& name, int32_t param1, int32_t param2) {
 
 }
 

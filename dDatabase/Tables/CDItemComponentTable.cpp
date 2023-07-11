@@ -1,6 +1,8 @@
 #include "CDItemComponentTable.h"
 #include "GeneralUtils.h"
 
+#include "eItemType.h"
+
 CDItemComponent CDItemComponentTable::Default = {};
 
 //! Constructor
@@ -74,8 +76,8 @@ CDItemComponentTable::CDItemComponentTable(void) {
 #endif
 }
 
-const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int skillID) {
-	const auto& it = this->entries.find(skillID);
+const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int id) {
+	const auto& it = this->entries.find(id);
 	if (it != this->entries.end()) {
 		return it->second;
 	}
@@ -83,11 +85,11 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int s
 #ifndef CDCLIENT_CACHE_ALL
 	std::stringstream query;
 
-	query << "SELECT * FROM ItemComponent WHERE id = " << std::to_string(skillID);
+	query << "SELECT * FROM ItemComponent WHERE id = " << std::to_string(id);
 
 	auto tableData = CDClientDatabase::ExecuteQuery(query.str());
 	if (tableData.eof()) {
-		entries.insert(std::make_pair(skillID, Default));
+		entries.insert(std::make_pair(id, Default));
 		return Default;
 	}
 
@@ -98,7 +100,7 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int s
 		entry.baseValue = tableData.getIntField("baseValue", -1);
 		entry.isKitPiece = tableData.getIntField("isKitPiece", -1) == 1 ? true : false;
 		entry.rarity = tableData.getIntField("rarity", 0);
-		entry.itemType = tableData.getIntField("itemType", -1);
+		entry.itemType = static_cast<eItemType>(tableData.getIntField("itemType", -1));
 		entry.itemInfo = tableData.getInt64Field("itemInfo", -1);
 		entry.inLootTable = tableData.getIntField("inLootTable", -1) == 1 ? true : false;
 		entry.inVendor = tableData.getIntField("inVendor", -1) == 1 ? true : false;
@@ -140,7 +142,7 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int s
 		tableData.nextRow();
 	}
 
-	const auto& it2 = this->entries.find(skillID);
+	const auto& it2 = this->entries.find(id);
 	if (it2 != this->entries.end()) {
 		return it2->second;
 	}

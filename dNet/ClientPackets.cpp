@@ -25,9 +25,9 @@
 #include "dZoneManager.h"
 #include "Player.h"
 #include "Zone.h"
-#include "PossessorComponent.h"
+#include "PossessionComponent.h"
 #include "PossessableComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "dConfig.h"
 #include "CharacterComponent.h"
 #include "Database.h"
@@ -85,7 +85,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	Entity* entity = EntityManager::Instance()->GetEntity(user->GetLastUsedChar()->GetObjectID());
 	if (!entity) return;
 
-	ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
+	auto* comp = entity->GetComponent<ControllablePhysicsComponent>();
 	if (!comp) return;
 
 	/*
@@ -100,7 +100,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	}
 	*/
 
-	auto* possessorComponent = entity->GetComponent<PossessorComponent>();
+	auto* possessionComponent = entity->GetComponent<PossessionComponent>();
 
 	NiPoint3 position;
 	inStream.Read(position.x);
@@ -165,8 +165,8 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 	bool updateChar = true;
 
-	if (possessorComponent != nullptr) {
-		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+	if (possessionComponent != nullptr) {
+		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessionComponent->GetPossessable());
 
 		if (possassableEntity != nullptr) {
 			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
@@ -175,17 +175,17 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				if (possessableComponent->GetPossessionType() != ePossessionType::ATTACHED_VISIBLE) updateChar = false;
 			}
 
-			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
-			if (vehiclePhysicsComponent != nullptr) {
-				vehiclePhysicsComponent->SetPosition(position);
-				vehiclePhysicsComponent->SetRotation(rotation);
-				vehiclePhysicsComponent->SetIsOnGround(onGround);
-				vehiclePhysicsComponent->SetIsOnRail(onRail);
-				vehiclePhysicsComponent->SetVelocity(velocity);
-				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
-				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
-				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
-				vehiclePhysicsComponent->SetRemoteInputInfo(remoteInput);
+			auto* havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+			if (havokVehiclePhysicsComponent != nullptr) {
+				havokVehiclePhysicsComponent->SetPosition(position);
+				havokVehiclePhysicsComponent->SetRotation(rotation);
+				havokVehiclePhysicsComponent->SetIsOnGround(onGround);
+				havokVehiclePhysicsComponent->SetIsOnRail(onRail);
+				havokVehiclePhysicsComponent->SetVelocity(velocity);
+				havokVehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
+				havokVehiclePhysicsComponent->SetAngularVelocity(angVelocity);
+				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
+				havokVehiclePhysicsComponent->SetRemoteInputInfo(remoteInput);
 			} else {
 				// Need to get the mount's controllable physics
 				auto* controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();

@@ -13,7 +13,7 @@
 #include "DestroyableComponent.h"
 #include "EchoSyncSkill.h"
 #include "PhantomPhysicsComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "eReplicaComponentType.h"
 #include "eConnectionType.h"
 
@@ -331,8 +331,8 @@ std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, in
 	}
 
 	if (ignoreFaction || includeFaction || (!entity->HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) && targets.empty())) {
-		DestroyableComponent* destroyableComponent;
-		if (!entity->TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent)) {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		if (!destroyableComponent) {
 			return targets;
 		}
 

@@ -123,7 +123,7 @@ void NtCombatChallengeServer::OnChildLoaded(Entity* self, Entity* child) {
 
 	EntityManager::Instance()->SerializeEntity(child);
 
-	child->GetGroups().push_back("targets_" + std::to_string(self->GetObjectID()));
+	child->AddGroup("targets_" + std::to_string(self->GetObjectID()));
 }
 
 void NtCombatChallengeServer::ResetGame(Entity* self) {

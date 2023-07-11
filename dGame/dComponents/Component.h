@@ -1,52 +1,74 @@
 #pragma once
 
-#include "../thirdparty/tinyxml2/tinyxml2.h"
+#include "tinyxml2.h"
 
 class Entity;
+
+namespace RakNet {
+	class BitStream;
+}
 
 /**
  * Component base class, provides methods for game loop updates, usage events and loading and saving to XML.
  */
-class Component
-{
+class Component {
 public:
-	Component(Entity* parent);
-	virtual ~Component();
+	Component(Entity* owningEntity);
+	virtual ~Component() {};
 
 	/**
 	 * Gets the owner of this component
 	 * @return the owner of this component
 	 */
-	Entity* GetParent() const;
-
-	/**
-	 * Updates the component in the game loop
-	 * @param deltaTime time passed since last update
-	 */
-	virtual void Update(float deltaTime);
+	Entity* GetParentEntity() const { return m_ParentEntity; };
 
 	/**
 	 * Event called when this component is being used, e.g. when some entity interacted with it
 	 * @param originator
 	 */
-	virtual void OnUse(Entity* originator);
+	virtual void OnUse(Entity* originator) {};
 
 	/**
 	 * Save data from this componennt to character XML
 	 * @param doc the document to write data to
 	 */
-	virtual void UpdateXml(tinyxml2::XMLDocument* doc);
+	virtual void UpdateXml(tinyxml2::XMLDocument* doc) {};
 
 	/**
 	 * Load base data for this component from character XML
 	 * @param doc the document to read data from
 	 */
-	virtual void LoadFromXml(tinyxml2::XMLDocument* doc);
+	virtual void LoadFromXml(tinyxml2::XMLDocument* doc) {};
 
+	/**
+	 * Call after you have newed the component to initialize it
+	 */
+	virtual void Startup() {};
+
+	/**
+	 * Updates the component in the game loop
+	 * @param deltaTime time passed since last update
+	 */
+	virtual void Update(float deltaTime) {};
+
+	/**
+	 * Loads the data of this component from the luz/lvl configuration
+	 */
+	virtual void LoadConfigData() {};
+
+	/**
+	 * Loads the data of this component from the cdclient database
+	 */
+	virtual void LoadTemplateData() {};
+
+	/**
+	 * Serializes the component for delivery to the client(s)
+	 */
+	virtual void Serialize(RakNet::BitStream* bitStream, bool isConstruction = false) {};
 protected:
 
 	/**
 	 * The entity that owns this component
 	 */
-	Entity* m_Parent;
+	Entity* m_ParentEntity;
 };

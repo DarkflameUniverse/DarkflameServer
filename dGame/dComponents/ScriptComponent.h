@@ -19,10 +19,9 @@ class Entity;
  */
 class ScriptComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
 
-	ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
-	~ScriptComponent() override;
+	ScriptComponent(Entity* parent, const std::string& scriptName);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -33,33 +32,22 @@ public:
 	CppScripts::Script* GetScript();
 
 	/**
-	 * Sets whether the entity should be serialized, unused
-	 * @param var whether the entity should be serialized
-	 */
-	void SetSerialized(const bool var) { m_Serialized = var; }
-
-	/**
 	 * Sets the script using a path by looking through dScripts for a script that matches
 	 * @param scriptName the name of the script to find
 	 */
 	void SetScript(const std::string& scriptName);
 
+	// Get the script attached to the provided component id.
+	// LDF key custom_script_server overrides component id script.
+	static const std::string GetScriptName(Entity* parentEntity, const uint32_t componentId = 0);
+
+	static const std::string GetZoneScriptName(const uint32_t componentId);
 private:
 
 	/**
 	 * The script attached to this entity
 	 */
 	CppScripts::Script* m_Script;
-
-	/**
-	 * Whether or not the comp should be serialized, unused
-	 */
-	bool m_Serialized;
-
-	/**
-	 * Whether or not this script is a client script
-	 */
-	bool m_Client;
 };
 
 #endif // SCRIPTCOMPONENT_H

@@ -1,0 +1,82 @@
+#include "PossessionComponent.h"
+#include "PossessableComponent.h"
+#include "CharacterComponent.h"
+#include "EntityManager.h"
+#include "GameMessages.h"
+#include "eUnequippableActiveType.h"
+#include "eControlScheme.h"
+#include "eStateChangeType.h"
+
+PossessionComponent::PossessionComponent(Entity* parent) : Component(parent) {
+	m_Possessable = LWOOBJID_EMPTY;
+}
+
+PossessionComponent::~PossessionComponent() {
+	if (m_Possessable == LWOOBJID_EMPTY) return;
+
+	auto* mount = EntityManager::Instance()->GetEntity(m_Possessable);
+	if (!mount) return;
+
+	auto* possessable = mount->GetComponent<PossessableComponent>();
+	if (!possessable) return;
+
+	if (possessable->GetIsItemSpawned()) {
+		GameMessages::SendMarkInventoryItemAsActive(m_ParentEntity->GetObjectID(), false, eUnequippableActiveType::MOUNT, GetMountItemID(), m_ParentEntity->GetSystemAddress());
+	}
+	possessable->Dismount();
+}
+
+void PossessionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+	outBitStream->Write(m_DirtyPossesor || bIsInitialUpdate);
+	if (m_DirtyPossesor || bIsInitialUpdate) {
+		outBitStream->Write(m_Possessable != LWOOBJID_EMPTY);
+		if (m_Possessable != LWOOBJID_EMPTY) outBitStream->Write(m_Possessable);
+
+		outBitStream->Write(m_PossessableType);
+		if (!bIsInitialUpdate) m_DirtyPossesor = false;
+	}
+}
+
+void PossessionComponent::Mount(Entity* mount) {
+	// Don't do anything if we are busy dismounting
+	if (GetIsDismounting() || !mount) return;
+
+	GameMessages::SendSetMountInventoryID(m_ParentEntity, mount->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
+	if (possessableComponent) {
+		possessableComponent->SetPossessor(m_ParentEntity->GetObjectID());
+		SetPossessable(mount->GetObjectID());
+		SetPossessableType(possessableComponent->GetPossessionType());
+	}
+
+	auto* characterComponent = m_ParentEntity->GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->SetIsRacing(true);
+
+	// GM's to send
+	GameMessages::SendSetJetPackMode(m_ParentEntity, false);
+	GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_ParentEntity->GetSystemAddress());
+	GameMessages::SendSetStunned(m_ParentEntity->GetObjectID(), eStateChangeType::PUSH, m_ParentEntity->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
+	EntityManager::Instance()->SerializeEntity(mount);
+}
+
+void PossessionComponent::Dismount(Entity* mount, bool forceDismount) {
+	// Don't do anything if we are busy dismounting
+	if (GetIsDismounting() || !mount) return;
+	SetIsDismounting(true);
+	// Make sure we don't have wacky controls
+	GameMessages::SendSetPlayerControlScheme(m_ParentEntity, eControlScheme::SCHEME_A);
+
+	if (!mount) return;
+	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
+	if (possessableComponent) {
+		possessableComponent->SetPossessor(LWOOBJID_EMPTY);
+		if (forceDismount) possessableComponent->ForceDepossess();
+	}
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
+	EntityManager::Instance()->SerializeEntity(mount);
+
+	auto* characterComponent = m_ParentEntity->GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->SetIsRacing(false);
+}

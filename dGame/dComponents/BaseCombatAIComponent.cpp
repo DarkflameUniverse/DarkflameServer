@@ -1,6 +1,10 @@
 #include "BaseCombatAIComponent.h"
-#include <BitStream.h>
 
+#include <algorithm>
+#include <sstream>
+#include <vector>
+
+#include "BitStream.h"
 #include "Entity.h"
 #include "EntityManager.h"
 #include "ControllablePhysicsComponent.h"
@@ -15,32 +19,32 @@
 #include "CDClientManager.h"
 #include "DestroyableComponent.h"
 
-#include <algorithm>
-#include <sstream>
-#include <vector>
-
 #include "SkillComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 #include "Metrics.hpp"
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
 
-BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id): Component(parent) {
+BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t componentId) : Component(parent) {
 	m_Target = LWOOBJID_EMPTY;
-	SetAiState(AiState::spawn);
+	m_ComponentId = componentId;
+	SetAiState(AiState::Spawn);
 	m_Timer = 1.0f;
 	m_StartPosition = parent->GetPosition();
-	m_MovementAI = nullptr;
 	m_Disabled = false;
 	m_SkillEntries = {};
 	m_MovementAI = nullptr;
 	m_SoftTimer = 5.0f;
+	m_dpEntity = nullptr;
+	m_dpEntityEnemy = nullptr;
+}
 
+void BaseCombatAIComponent::LoadTemplateData() {
 	//Grab the aggro information from BaseCombatAI:
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = ?;");
-	componentQuery.bind(1, (int)id);
+	componentQuery.bind(1, m_ComponentId);
 
 	auto componentResult = componentQuery.execQuery();
 
@@ -63,21 +67,12 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 
 	componentResult.finalize();
 
-	// Get aggro and tether radius from settings and use this if it is present.  Only overwrite the
-	// radii if it is greater than the one in the database.
-	if (m_Parent) {
-		auto aggroRadius = m_Parent->GetVar<float>(u"aggroRadius");
-		m_AggroRadius = aggroRadius != 0 ? aggroRadius : m_AggroRadius;
-		auto tetherRadius = m_Parent->GetVar<float>(u"tetherRadius");
-		m_HardTetherRadius = tetherRadius != 0 ? tetherRadius : m_HardTetherRadius;
-	}
-
 	/*
 	 * Find skills
 	 */
 	auto skillQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	skillQuery.bind(1, (int)parent->GetLOT());
+	skillQuery.bind(1, m_ParentEntity->GetLOT());
 
 	auto result = skillQuery.execQuery();
 
@@ -90,44 +85,51 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 
 		auto* behavior = Behavior::CreateBehavior(behaviorId);
 
-		std::stringstream behaviorQuery;
-
-		AiSkillEntry entry = { skillId, 0, abilityCooldown, behavior };
-
-		m_SkillEntries.push_back(entry);
+		m_SkillEntries.push_back(AiSkillEntry(skillId, 0, abilityCooldown, behavior));
 
 		result.nextRow();
 	}
+}
 
+void BaseCombatAIComponent::LoadConfigData() {
+	// Get aggro and tether radius from settings and use this if it is present.  Only overwrite the
+	// radii if it is greater than the one in the database.
+	if (m_ParentEntity) {
+		auto aggroRadius = m_ParentEntity->GetVar<float>(u"aggroRadius");
+		m_AggroRadius = aggroRadius != 0 ? aggroRadius : m_AggroRadius;
+		auto tetherRadius = m_ParentEntity->GetVar<float>(u"tetherRadius");
+		m_HardTetherRadius = tetherRadius != 0 ? tetherRadius : m_HardTetherRadius;
+	}
+}
+
+void BaseCombatAIComponent::Startup() {
 	Stun(1.0f);
 
-	/*
-	 * Add physics
-	 */
-
+	// Add physics
 	int32_t collisionGroup = (COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_ENEMY);
 
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	auto componentID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
+	auto* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	if (!componentRegistryTable) return;
 
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
+	auto componentID = componentRegistryTable->GetByIDAndType(m_ParentEntity->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
 
-	if (physicsComponentTable != nullptr) {
-		auto* info = physicsComponentTable->GetByID(componentID);
-		if (info != nullptr) {
-			collisionGroup = info->bStatic ? COLLISION_GROUP_NEUTRAL : info->collisionGroup;
-		}
-	}
+	auto* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
+	if (!physicsComponentTable) return;
+
+	auto* info = physicsComponentTable->GetByID(componentID);
+	if (info) collisionGroup = info->bStatic ? COLLISION_GROUP_NEUTRAL : info->collisionGroup;
+
+	// Why are these new'd here and then deleted by the dpworld??
 	//Create a phantom physics volume so we can detect when we're aggro'd.
-	m_dpEntity = new dpEntity(m_Parent->GetObjectID(), m_AggroRadius);
-	m_dpEntityEnemy = new dpEntity(m_Parent->GetObjectID(), m_AggroRadius, false);
+	m_dpEntity = new dpEntity(m_ParentEntity->GetObjectID(), m_AggroRadius);
+	m_dpEntityEnemy = new dpEntity(m_ParentEntity->GetObjectID(), m_AggroRadius, false);
 
 	m_dpEntity->SetCollisionGroup(collisionGroup);
 	m_dpEntityEnemy->SetCollisionGroup(collisionGroup);
 
-	m_dpEntity->SetPosition(m_Parent->GetPosition());
-	m_dpEntityEnemy->SetPosition(m_Parent->GetPosition());
+	m_dpEntity->SetPosition(m_ParentEntity->GetPosition());
+	m_dpEntityEnemy->SetPosition(m_ParentEntity->GetPosition());
 
 	dpWorld::Instance().AddEntity(m_dpEntity);
 	dpWorld::Instance().AddEntity(m_dpEntityEnemy);
@@ -135,28 +137,29 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 }
 
 BaseCombatAIComponent::~BaseCombatAIComponent() {
-	if (m_dpEntity)
-		dpWorld::Instance().RemoveEntity(m_dpEntity);
+	if (m_dpEntity) dpWorld::Instance().RemoveEntity(m_dpEntity);
 
-	if (m_dpEntityEnemy)
-		dpWorld::Instance().RemoveEntity(m_dpEntityEnemy);
+	if (m_dpEntityEnemy) dpWorld::Instance().RemoveEntity(m_dpEntityEnemy);
+	m_MovementAI = nullptr;
+	m_dpEntity = nullptr;
+	m_dpEntityEnemy = nullptr;
 }
 
 void BaseCombatAIComponent::Update(const float deltaTime) {
 	//First, we need to process physics:
 	if (!m_dpEntity) return;
 
-	m_dpEntity->SetPosition(m_Parent->GetPosition()); //make sure our position is synced with our dpEntity
-	m_dpEntityEnemy->SetPosition(m_Parent->GetPosition());
+	m_dpEntity->SetPosition(m_ParentEntity->GetPosition()); //make sure our position is synced with our dpEntity
+	m_dpEntityEnemy->SetPosition(m_ParentEntity->GetPosition());
 
 	//Process enter events
 	for (auto en : m_dpEntity->GetNewObjects()) {
-		m_Parent->OnCollisionPhantom(en->GetObjectID());
+		m_ParentEntity->OnCollisionPhantom(en->GetObjectID());
 	}
 
 	//Process exit events
 	for (auto en : m_dpEntity->GetRemovedObjects()) {
-		m_Parent->OnCollisionLeavePhantom(en->GetObjectID());
+		m_ParentEntity->OnCollisionLeavePhantom(en->GetObjectID());
 	}
 
 	// Check if we should stop the tether effect
@@ -165,39 +168,35 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 		const auto& info = m_MovementAI->GetInfo();
 		if (m_Target != LWOOBJID_EMPTY || (NiPoint3::DistanceSquared(
 			m_StartPosition,
-			m_Parent->GetPosition()) < 20 * 20 && m_TetherTime <= 0)
+			m_ParentEntity->GetPosition()) < 20 * 20 && m_TetherTime <= 0)
 			) {
-			GameMessages::SendStopFXEffect(m_Parent, true, "tether");
+			GameMessages::SendStopFXEffect(m_ParentEntity, true, "tether");
 			m_TetherEffectActive = false;
 		}
 	}
 
 	if (m_SoftTimer <= 0.0f) {
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-
+		EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 		m_SoftTimer = 5.0f;
 	} else {
 		m_SoftTimer -= deltaTime;
 	}
 
-	if (m_Disabled || m_Parent->GetIsDead())
-		return;
+	if (m_Disabled || m_ParentEntity->IsDead()) return;
 	bool stunnedThisFrame = m_Stunned;
 	CalculateCombat(deltaTime); // Putting this here for now
 
 	if (m_StartPosition == NiPoint3::ZERO) {
-		m_StartPosition = m_Parent->GetPosition();
+		m_StartPosition = m_ParentEntity->GetPosition();
 	}
 
-	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
-
-	if (m_MovementAI == nullptr) {
-		return;
+	if (!m_MovementAI) {
+		m_MovementAI = m_ParentEntity->GetComponent<MovementAIComponent>();
+		if (!m_MovementAI) return;
 	}
 
 	if (stunnedThisFrame) {
 		m_MovementAI->Stop();
-
 		return;
 	}
 
@@ -207,24 +206,25 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	}
 
 	switch (m_State) {
-	case AiState::spawn:
+	case AiState::Spawn:
 		Stun(2.0f);
-		SetAiState(AiState::idle);
+		SetAiState(AiState::Idle);
 		break;
 
-	case AiState::idle:
+	case AiState::Idle:
 		Wander();
 		break;
 
-	case AiState::aggro:
+	case AiState::Aggro:
 		OnAggro();
 		break;
 
-	case AiState::tether:
+	case AiState::Tether:
 		OnTether();
 		break;
 
 	default:
+		Game::logger->Log("BaseCombatAIComponent", "Entity %i is in an invalid state %i", m_ParentEntity->GetLOT(), m_State);
 		break;
 	}
 }
@@ -243,7 +243,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	bool hadRemainingDowntime = m_SkillTime > 0.0f;
 	if (m_SkillTime > 0.0f) m_SkillTime -= deltaTime;
 
-	auto* rebuild = m_Parent->GetComponent<RebuildComponent>();
+	auto* rebuild = m_ParentEntity->GetComponent<QuickBuildComponent>();
 
 	if (rebuild != nullptr) {
 		const auto state = rebuild->GetState();
@@ -253,11 +253,9 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		}
 	}
 
-	auto* skillComponent = m_Parent->GetComponent<SkillComponent>();
+	auto* skillComponent = m_ParentEntity->GetComponent<SkillComponent>();
 
-	if (skillComponent == nullptr) {
-		return;
-	}
+	if (!skillComponent) return;
 
 	skillComponent->CalculateUpdate(deltaTime);
 
@@ -287,7 +285,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	}
 
 	if (!m_TetherEffectActive && m_OutOfCombat && (m_OutOfCombatTime -= deltaTime) <= 0) {
-		auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+		auto* destroyableComponent = m_ParentEntity->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent != nullptr && destroyableComponent->HasFaction(4)) {
 			auto serilizationRequired = false;
@@ -305,10 +303,10 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 			}
 
 			if (serilizationRequired) {
-				EntityManager::Instance()->SerializeEntity(m_Parent);
+				EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 			}
 
-			GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 6270, u"tether", "tether");
+			GameMessages::SendPlayFXEffect(m_ParentEntity->GetObjectID(), 6270, u"tether", "tether");
 
 			m_TetherEffectActive = true;
 
@@ -329,19 +327,19 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	SetTarget(newTarget);
 
 	if (m_Target != LWOOBJID_EMPTY) {
-		if (m_State == AiState::idle) {
+		if (m_State == AiState::Idle) {
 			m_Timer = 0;
 		}
 
-		SetAiState(AiState::aggro);
+		SetAiState(AiState::Aggro);
 	} else {
-		SetAiState(AiState::idle);
+		SetAiState(AiState::Idle);
 	}
 
 	if (!hasSkillToCast) return;
 
 	if (m_Target == LWOOBJID_EMPTY) {
-		SetAiState(AiState::idle);
+		SetAiState(AiState::Idle);
 
 		return;
 	}
@@ -366,7 +364,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 				m_MovementAI->Stop();
 			}
 
-			SetAiState(AiState::aggro);
+			SetAiState(AiState::Aggro);
 
 			m_Timer = 0;
 
@@ -382,8 +380,6 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 }
 
 LWOOBJID BaseCombatAIComponent::FindTarget() {
-	//const auto reference = m_MovementAI == nullptr ? m_StartPosition : m_MovementAI->ApproximateLocation();
-
 	NiPoint3 reference = m_StartPosition;
 
 	if (m_MovementAI) reference = m_MovementAI->ApproximateLocation();
@@ -496,10 +492,10 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 	std::vector<LWOOBJID> targets;
 
-	for (auto id : m_Parent->GetTargetsInPhantom()) {
+	for (auto id : m_ParentEntity->GetTargetsInPhantom()) {
 		auto* other = EntityManager::Instance()->GetEntity(id);
 
-		const auto distance = Vector3::DistanceSquared(m_Parent->GetPosition(), other->GetPosition());
+		const auto distance = Vector3::DistanceSquared(m_ParentEntity->GetPosition(), other->GetPosition());
 
 		if (distance > m_AggroRadius * m_AggroRadius) continue;
 
@@ -509,25 +505,12 @@ std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 	return targets;
 }
 
-bool BaseCombatAIComponent::IsMech() {
-	switch (m_Parent->GetLOT()) {
-	case 6253:
-		return true;
-
-	default:
-		return false;
-	}
-
-	return false;
-}
-
-
 void BaseCombatAIComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	outBitStream->Write(m_DirtyStateOrTarget || bIsInitialUpdate);
-	if (m_DirtyStateOrTarget || bIsInitialUpdate) {
-		outBitStream->Write(uint32_t(m_State));
+	outBitStream->Write(m_DirtyStateOrTarget);
+	if (bIsInitialUpdate || m_DirtyStateOrTarget) {
+		outBitStream->Write(m_State);
 		outBitStream->Write(m_Target);
-		m_DirtyStateOrTarget = false;
+		if (!bIsInitialUpdate) m_DirtyStateOrTarget = false;
 	}
 }
 
@@ -535,13 +518,13 @@ void BaseCombatAIComponent::SetAiState(AiState newState) {
 	if (newState == this->m_State) return;
 	this->m_State = newState;
 	m_DirtyStateOrTarget = true;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	auto* entity = EntityManager::Instance()->GetEntity(target);
 
-	if (entity == nullptr) {
+	if (!entity) {
 		Game::logger->Log("BaseCombatAIComponent", "Invalid entity for checking validity (%llu)!", target);
 
 		return false;
@@ -549,21 +532,19 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 
 	auto* destroyable = entity->GetComponent<DestroyableComponent>();
 
-	if (destroyable == nullptr) {
-		return false;
-	}
+	if (!destroyable) return false;
 
-	auto* referenceDestroyable = m_Parent->GetComponent<DestroyableComponent>();
+	auto* referenceDestroyable = m_ParentEntity->GetComponent<DestroyableComponent>();
 
-	if (referenceDestroyable == nullptr) {
-		Game::logger->Log("BaseCombatAIComponent", "Invalid reference destroyable component on (%llu)!", m_Parent->GetObjectID());
+	if (!referenceDestroyable) {
+		Game::logger->Log("BaseCombatAIComponent", "Invalid reference destroyable component on (%llu)!", m_ParentEntity->GetObjectID());
 
 		return false;
 	}
 
-	auto* quickbuild = entity->GetComponent<RebuildComponent>();
+	auto* quickbuild = entity->GetComponent<QuickBuildComponent>();
 
-	if (quickbuild != nullptr) {
+	if (quickbuild) {
 		const auto state = quickbuild->GetState();
 
 		if (state != eRebuildState::COMPLETED) {
@@ -575,7 +556,7 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 
 	auto candidateList = destroyable->GetFactionIDs();
 
-	for (auto value : candidateList) {
+	for (const auto value : candidateList) {
 		if (std::find(enemyList.begin(), enemyList.end(), value) != enemyList.end()) {
 			return true;
 		}
@@ -588,7 +569,7 @@ void BaseCombatAIComponent::SetTarget(const LWOOBJID target) {
 	if (this->m_Target == target) return;
 	m_Target = target;
 	m_DirtyStateOrTarget = true;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EntityManager::Instance()->SerializeEntity(m_ParentEntity);
 }
 
 Entity* BaseCombatAIComponent::GetTargetEntity() const {
@@ -597,8 +578,7 @@ Entity* BaseCombatAIComponent::GetTargetEntity() const {
 
 void BaseCombatAIComponent::Taunt(LWOOBJID offender, float threat) {
 	// Can't taunt self
-	if (offender == m_Parent->GetObjectID())
-		return;
+	if (offender == m_ParentEntity->GetObjectID()) return;
 
 	m_ThreatEntries[offender] += threat;
 	m_DirtyThreat = true;
@@ -633,9 +613,7 @@ void BaseCombatAIComponent::ClearThreat() {
 }
 
 void BaseCombatAIComponent::Wander() {
-	if (!m_MovementAI->AtFinalWaypoint()) {
-		return;
-	}
+	if (!m_MovementAI->AtFinalWaypoint()) return;
 
 	m_MovementAI->SetHaltDistance(0);
 
@@ -678,9 +656,7 @@ void BaseCombatAIComponent::OnAggro() {
 
 	auto* target = GetTargetEntity();
 
-	if (target == nullptr) {
-		return;
-	}
+	if (!target) return;
 
 	m_MovementAI->SetHaltDistance(m_AttackRadius);
 
@@ -703,7 +679,7 @@ void BaseCombatAIComponent::OnAggro() {
 
 		m_MovementAI->SetDestination(targetPos);
 
-		SetAiState(AiState::tether);
+		SetAiState(AiState::Tether);
 	}
 
 	m_Timer += 0.5f;
@@ -729,7 +705,7 @@ void BaseCombatAIComponent::OnTether() {
 
 		m_MovementAI->SetDestination(m_StartPosition);
 
-		SetAiState(AiState::aggro);
+		SetAiState(AiState::Aggro);
 	} else {
 		if (IsMech() && Vector3::DistanceSquared(targetPos, currentPos) > m_AttackRadius * m_AttackRadius * 3 * 3) return;
 
@@ -741,62 +717,18 @@ void BaseCombatAIComponent::OnTether() {
 	m_Timer += 0.5f;
 }
 
-bool BaseCombatAIComponent::GetStunned() const {
-	return m_Stunned;
-}
-
-void BaseCombatAIComponent::SetStunned(const bool value) {
-	m_Stunned = value;
-}
-
-bool BaseCombatAIComponent::GetStunImmune() const {
-	return m_StunImmune;
-}
-
-void BaseCombatAIComponent::SetStunImmune(bool value) {
-	m_StunImmune = value;
-}
-
-float BaseCombatAIComponent::GetTetherSpeed() const {
-	return m_TetherSpeed;
-}
-
-void BaseCombatAIComponent::SetTetherSpeed(float value) {
-	m_TetherSpeed = value;
-}
-
 void BaseCombatAIComponent::Stun(const float time) {
-	if (m_StunImmune || m_StunTime > time) {
-		return;
-	}
+	if (m_StunImmune || m_StunTime > time) return;
 
 	m_StunTime = time;
 
 	m_Stunned = true;
 }
 
-float BaseCombatAIComponent::GetAggroRadius() const {
-	return m_AggroRadius;
-}
-
-void BaseCombatAIComponent::SetAggroRadius(const float value) {
-	m_AggroRadius = value;
-}
-
 void BaseCombatAIComponent::LookAt(const NiPoint3& point) {
-	if (m_Stunned) {
-		return;
-	}
+	if (m_Stunned) return;
 
-	m_Parent->SetRotation(NiQuaternion::LookAt(m_Parent->GetPosition(), point));
-}
-
-void BaseCombatAIComponent::SetDisabled(bool value) {
-	m_Disabled = value;
-}
-
-bool BaseCombatAIComponent::GetDistabled() const {
-	return m_Disabled;
+	m_ParentEntity->SetRotation(NiQuaternion::LookAt(m_ParentEntity->GetPosition(), point));
 }
 
 void BaseCombatAIComponent::Sleep() {

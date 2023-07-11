@@ -6,8 +6,16 @@
 /**
  * An item that's equipped, generally as a smaller return type than the regular Item class
  */
-struct EquippedItem
-{
+struct EquippedItem {
+	EquippedItem() {}
+
+	EquippedItem(const LWOOBJID& id, const LOT lot, const uint32_t count, const uint32_t slot, const std::vector<LDFBaseData*>& config = {}) {
+		this->id = id;
+		this->lot = lot;
+		this->count = count;
+		this->slot = slot;
+		this->config = config;
+	}
 	/**
 	 * The object ID of the equipped item
 	 */

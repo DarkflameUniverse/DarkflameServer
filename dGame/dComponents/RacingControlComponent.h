@@ -6,7 +6,7 @@
 
 #include "BitStream.h"
 #include "Entity.h"
-#include "Component.h"
+#include "ScriptedActivityComponent.h"
 #include "eReplicaComponentType.h"
 
  /**
@@ -103,11 +103,11 @@ struct RacingPlayerInfo {
 /**
  * Component that's attached to a manager entity in each race zone that loads player vehicles, keep scores, etc.
  */
-class RacingControlComponent : public Component {
+class RacingControlComponent : public ScriptedActivityComponent {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
-	RacingControlComponent(Entity* parentEntity);
+	RacingControlComponent(Entity* parentEntity, int32_t componentId);
 	~RacingControlComponent();
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);

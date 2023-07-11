@@ -11,7 +11,7 @@
 class AMFArrayValue;
 class BlockDefinition;
 class Entity;
-class ModelComponent;
+class ModelBehaviorComponent;
 class SystemAddress;
 
 // Type definition to clarify what is used where
@@ -34,16 +34,16 @@ public:
 	/**
 	 * @brief Gets a blocks parameter values by the name
 	 * No exception will be thrown in this function.
-	 * 
+	 *
 	 * @param blockName The block name to get the parameters of
-	 * 
+	 *
 	 * @return A pair of the block parameter name to its typing
 	 */
 	BlockDefinition* GetBlockInfo(const BlockName& blockName);
 private:
-	void RequestUpdatedID(int32_t behaviorID, ModelComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr);
+	void RequestUpdatedID(int32_t behaviorID, ModelBehaviorComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr);
 	void SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner);
-	void ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent);
+	void ModelTypeChanged(AMFArrayValue* arguments, ModelBehaviorComponent* ModelComponent);
 	void ToggleExecutionUpdates();
 	void AddStrip(AMFArrayValue* arguments);
 	void RemoveStrip(AMFArrayValue* arguments);
@@ -56,9 +56,9 @@ private:
 	void Add(AMFArrayValue* arguments);
 	void RemoveActions(AMFArrayValue* arguments);
 	void Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
-	void SendBehaviorBlocksToClient(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
+	void SendBehaviorBlocksToClient(ModelBehaviorComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
 	void UpdateAction(AMFArrayValue* arguments);
-	void MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
+	void MoveToInventory(ModelBehaviorComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
 	std::map<BlockName, BlockDefinition*> blockTypes{};
 
 	// If false, property behaviors will not be able to be edited.

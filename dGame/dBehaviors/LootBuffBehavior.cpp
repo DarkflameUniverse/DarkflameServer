@@ -4,7 +4,7 @@ void LootBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 	auto target = EntityManager::Instance()->GetEntity(context->caster);
 	if (!target) return;
 
-	auto controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 
 	controllablePhysicsComponent->AddPickupRadiusScale(m_Scale);
@@ -22,7 +22,7 @@ void LootBuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext br
 	auto target = EntityManager::Instance()->GetEntity(context->caster);
 	if (!target) return;
 
-	auto controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
+	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 
 	controllablePhysicsComponent->RemovePickupRadiusScale(m_Scale);

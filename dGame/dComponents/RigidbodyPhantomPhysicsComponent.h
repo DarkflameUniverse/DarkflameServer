@@ -3,8 +3,8 @@
  * Copyright 2019
  */
 
-#ifndef RIGIDBODYPHANTOMPHYSICS_H
-#define RIGIDBODYPHANTOMPHYSICS_H
+#ifndef __RIGIDBODYPHANTOMPHYSICS_H__
+#define __RIGIDBODYPHANTOMPHYSICS_H__
 
 #include "BitStream.h"
 #include "dCommonVars.h"
@@ -19,10 +19,9 @@
   */
 class RigidbodyPhantomPhysicsComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
 
 	RigidbodyPhantomPhysicsComponent(Entity* parent);
-	~RigidbodyPhantomPhysicsComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -68,4 +67,4 @@ private:
 	bool m_IsDirty;
 };
 
-#endif // RIGIDBODYPHANTOMPHYSICS_H
+#endif // __RIGIDBODYPHANTOMPHYSICS_H__

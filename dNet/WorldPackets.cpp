@@ -134,7 +134,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 	RakNet::BitStream data;
 	data.Write<uint32_t>(7); //LDF key count
 
-	auto character = entity->GetComponent<CharacterComponent>();
+	auto* character = entity->GetComponent<CharacterComponent>();
 	if (!character) {
 		Game::logger->Log("WorldPackets", "Entity is not a character?? what??");
 		return;

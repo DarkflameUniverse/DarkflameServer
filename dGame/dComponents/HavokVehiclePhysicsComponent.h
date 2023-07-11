@@ -26,16 +26,13 @@ struct RemoteInputInfo {
 /**
  * Physics component for vehicles.
  */
-class VehiclePhysicsComponent : public Component {
+class HavokVehiclePhysicsComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::VEHICLE_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::HAVOK_VEHICLE_PHYSICS;
 
-	VehiclePhysicsComponent(Entity* parentEntity);
-	~VehiclePhysicsComponent() override;
+	HavokVehiclePhysicsComponent(Entity* parentEntity);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-
-	void Update(float deltaTime) override;
 
 	/**
 	 * Sets the position
@@ -109,9 +106,9 @@ public:
 	 */
 	const bool GetIsOnRail() const { return m_IsOnRail; }
 
-	void SetDirtyPosition(bool val);
-	void SetDirtyVelocity(bool val);
-	void SetDirtyAngularVelocity(bool val);
+	void SetDirtyPosition(bool val) { m_DirtyPosition = val; }
+	void SetDirtyVelocity(bool val) { m_DirtyVelocity = val; }
+	void SetDirtyAngularVelocity(bool val) { m_DirtyAngularVelocity = val; }
 	void SetRemoteInputInfo(const RemoteInputInfo&);
 
 private:

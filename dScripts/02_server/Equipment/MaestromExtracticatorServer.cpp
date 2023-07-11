@@ -21,7 +21,7 @@ void MaestromExtracticatorServer::OnFireEventServerSide(Entity* self, Entity* se
 		Entity* player = EntityManager::Instance()->GetEntity(self->GetSpawnerID());
 		if (!player) return;
 
-		auto missionComponent = player->GetComponent<MissionComponent>();
+		auto* missionComponent = player->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr) return;
 
 		missionComponent->Progress(eMissionTaskType::SMASH, 14718);

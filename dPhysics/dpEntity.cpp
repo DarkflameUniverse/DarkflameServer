@@ -18,7 +18,7 @@ dpEntity::dpEntity(const LWOOBJID& objectID, dpShapeType shapeType, bool isStati
 		break;
 
 	case dpShapeType::Box:
-		m_CollisionShape = new dpShapeBox(this, 1.0f, 1.0f, 1.0f);
+		m_CollisionShape = new dpShapeBox(this, BoxDimensions(1.0f, 1.0f, 1.0f));
 		break;
 
 	default:
@@ -26,14 +26,14 @@ dpEntity::dpEntity(const LWOOBJID& objectID, dpShapeType shapeType, bool isStati
 	}
 }
 
-dpEntity::dpEntity(const LWOOBJID& objectID, NiPoint3 boxDimensions, bool isStatic) {
+dpEntity::dpEntity(const LWOOBJID& objectID, const BoxDimensions& boxDimensions, bool isStatic) {
 	m_ObjectID = objectID;
 	m_IsStatic = isStatic;
 	m_CollisionShape = nullptr;
 	m_Scale = 1.0f;
 	m_CollisionGroup = COLLISION_GROUP_ALL;
 
-	m_CollisionShape = new dpShapeBox(this, boxDimensions.x, boxDimensions.y, boxDimensions.z);
+	m_CollisionShape = new dpShapeBox(this, boxDimensions);
 }
 
 dpEntity::dpEntity(const LWOOBJID& objectID, float width, float height, float depth, bool isStatic) {
@@ -43,7 +43,7 @@ dpEntity::dpEntity(const LWOOBJID& objectID, float width, float height, float de
 	m_Scale = 1.0f;
 	m_CollisionGroup = COLLISION_GROUP_ALL;
 
-	m_CollisionShape = new dpShapeBox(this, width, height, depth);
+	m_CollisionShape = new dpShapeBox(this, BoxDimensions(width, height, depth));
 }
 
 dpEntity::dpEntity(const LWOOBJID& objectID, float radius, bool isStatic) {

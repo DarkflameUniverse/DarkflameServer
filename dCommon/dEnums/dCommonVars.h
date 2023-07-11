@@ -56,6 +56,13 @@ const uint32_t LWOCLONEID_INVALID = -1;     //!< Invalid LWOCLONEID
 const uint16_t LWOINSTANCEID_INVALID = -1;  //!< Invalid LWOINSTANCEID
 const uint16_t LWOMAPID_INVALID = -1;       //!< Invalid LWOMAPID
 const uint64_t LWOZONEID_INVALID = 0;       //!< Invalid LWOZONEID
+const LOT LOT_ZONE_CONTROL = 2365;
+const LOT LOT_3D_AMBIENT_SOUND = 6368;
+const LOT LOT_MODEL_IN_WORLD = 14;
+const LOT LOT_THINKING_CAP = 6086;
+const LOT LOT_ROCKET = 6416;
+const LOT LOT_LEGACY_RESPAWN_POINT = 4945;
+
 
 const float PI = 3.14159f;
 
