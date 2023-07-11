@@ -3,9 +3,6 @@
 #include <map>
 
 #include "Component.h"
-#include "Entity.h"
-#include "EntityManager.h"
-#include "GameMessages.h"
 #include "eReplicaComponentType.h"
 #include "PropertySelectQueryProperty.h"
 
@@ -16,6 +13,8 @@ class PropertyEntranceComponent : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
 	explicit PropertyEntranceComponent(Entity* parent, uint32_t componentID);
+
+	void LoadTemplateData() override;
 
 	/**
 	 * Handles an OnUse request for some other entity, rendering the property browse menu
@@ -60,8 +59,6 @@ public:
 	 */
 	[[nodiscard]] LWOMAPID GetMapID() const { return m_MapID; };
 
-	PropertySelectQueryProperty SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId = LWOCLONEID_INVALID, std::string ownerName = "", std::string propertyName = "", std::string propertyDescription = "", float reputation = 0, bool isBFF = false, bool isFriend = false, bool isModeratorApproved = false, bool isAlt = false, bool isOwned = false, uint32_t privacyOption = 0, uint32_t timeLastUpdated = 0, float performanceCost = 0.0f);
-
 	std::string BuildQuery(Entity* entity, int32_t sortMethod, Character* character, std::string customQuery = "", bool wantLimits = true);
 
 private:
@@ -88,4 +85,6 @@ private:
 	};
 
 	std::string baseQueryForProperties = "SELECT p.* FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ";
+
+	int32_t m_ComponentId = -1;
 };
