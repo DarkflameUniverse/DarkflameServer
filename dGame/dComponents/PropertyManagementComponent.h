@@ -8,7 +8,7 @@
 /**
  * Information regarding which players may visit this property
  */
-enum class PropertyPrivacyOption
+enum class PropertyPrivacyOption : uint32_t
 {
 	/**
 	 * Default, only you can visit your property
@@ -18,12 +18,12 @@ enum class PropertyPrivacyOption
 	/**
 	 * Your friends can visit your property
 	 */
-	 Friends = 1,
+	Friends = 1,
 
-	 /**
-	  * Requires Mythran approval, everyone can visit your property
-	  */
-	  Public = 2
+	/**
+	 * Requires Mythran approval, everyone can visit your property
+	 */
+	Public = 2
 };
 
 /**

@@ -6,13 +6,20 @@
 #include "eReplicaComponentType.h"
 #include "PropertySelectQueryProperty.h"
 
+enum class ePropertySortType : int32_t {
+	SORT_TYPE_FRIENDS = 0,
+	SORT_TYPE_REPUTATION = 1,
+	SORT_TYPE_RECENT = 3,
+	SORT_TYPE_FEATURED = 5
+};
+
 /**
  * Represents the launch pad that's used to select and browse properties
  */
-class PropertyEntranceComponent : public Component {
+class PropertyEntranceComponent final : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
-	explicit PropertyEntranceComponent(Entity* parent, uint32_t componentID);
+	explicit PropertyEntranceComponent(Entity* parent, int32_t componentID);
 
 	void LoadTemplateData() override;
 
@@ -45,7 +52,7 @@ public:
 	 * @param filterText property names to search for
 	 * @param sysAddr the address to send gamemessage responses to
 	 */
-	void OnPropertyEntranceSync(Entity* entity, bool includeNullAddress, bool includeNullDescription, bool playerOwn, bool updateUi, int32_t numResults, int32_t lReputationTime, int32_t sortMethod, int32_t startIndex, std::string filterText, const SystemAddress& sysAddr);
+	void OnPropertyEntranceSync(Entity* entity, bool includeNullAddress, bool includeNullDescription, bool playerOwn, bool updateUi, int32_t numResults, int32_t lReputationTime, ePropertySortType sortMethod, int32_t startIndex, std::string filterText, const SystemAddress& sysAddr);
 
 	/**
 	 * Returns the name of this property
@@ -59,7 +66,7 @@ public:
 	 */
 	[[nodiscard]] LWOMAPID GetMapID() const { return m_MapID; };
 
-	std::string BuildQuery(Entity* entity, int32_t sortMethod, Character* character, std::string customQuery = "", bool wantLimits = true);
+	[[nodiscard]] static std::string BuildQuery(const ePropertySortType sortMethod, Character* character, const std::string& customQuery = "", const bool wantLimits = true);
 
 private:
 	/**
@@ -76,15 +83,6 @@ private:
 	 * The base map ID for this property (Avant Grove, etc).
 	 */
 	LWOMAPID m_MapID;
-
-	enum ePropertySortType : int32_t {
-		SORT_TYPE_FRIENDS = 0,
-		SORT_TYPE_REPUTATION = 1,
-		SORT_TYPE_RECENT = 3,
-		SORT_TYPE_FEATURED = 5
-	};
-
-	std::string baseQueryForProperties = "SELECT p.* FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ";
 
 	int32_t m_ComponentId = -1;
 };

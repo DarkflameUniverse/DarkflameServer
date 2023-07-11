@@ -2752,7 +2752,7 @@ void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream* inStream, Entit
 	bool updateUi{};
 	int32_t numResults{};
 	int32_t reputation{};
-	int32_t sortMethod{};
+	ePropertySortType sortMethod{};
 	int32_t startIndex{};
 	uint32_t filterTextLength{};
 	std::string filterText{};
@@ -2769,15 +2769,14 @@ void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream* inStream, Entit
 
 	for (auto i = 0u; i < filterTextLength; i++) {
 		char c;
-		inStream->Read(c);
-		filterText.push_back(c);
+		if (inStream->Read(c)) filterText.push_back(c);
 	}
 
 	auto* player = Player::GetPlayer(sysAddr);
 
 	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
 
-	if (entranceComponent == nullptr) return;
+	if (!entranceComponent) return;
 
 	entranceComponent->OnPropertyEntranceSync(player,
 		includeNullAddress,
