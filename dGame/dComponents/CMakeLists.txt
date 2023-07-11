@@ -1,4 +1,5 @@
-set(DGAME_DCOMPONENTS_SOURCES "BaseCombatAIComponent.cpp"
+set(DGAME_DCOMPONENTS_SOURCES
+	"BaseCombatAIComponent.cpp"
 	"BouncerComponent.cpp"
 	"BuffComponent.cpp"
 	"BuildBorderComponent.cpp"
