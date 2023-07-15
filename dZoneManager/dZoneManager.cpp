@@ -17,8 +17,6 @@
 
 #include "../dWorldServer/ObjectIDManager.h"
 
-dZoneManager* dZoneManager::m_Address = nullptr;
-
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 

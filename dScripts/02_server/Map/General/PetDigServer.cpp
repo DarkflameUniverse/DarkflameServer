@@ -48,8 +48,8 @@ void PetDigServer::OnStartup(Entity* self) {
 	// Reset any bouncers that might've been created by the previous dig
 	if (digInfo.bouncer) {
 		auto bounceNumber = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"BouncerNumber"));
-		auto bouncerSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncer" + bounceNumber);
-		auto switchSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
+		auto bouncerSpawners = Game::zoneManager->GetSpawnersByName("PetBouncer" + bounceNumber);
+		auto switchSpawners = Game::zoneManager->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
 
 		for (auto* bouncerSpawner : bouncerSpawners) {
 			for (auto* bouncer : bouncerSpawner->m_Info.nodes)
@@ -142,8 +142,8 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 
 void PetDigServer::HandleBouncerDig(const Entity* self, const Entity* owner) {
 	auto bounceNumber = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"BouncerNumber"));
-	auto bouncerSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncer" + bounceNumber);
-	auto switchSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
+	auto bouncerSpawners = Game::zoneManager->GetSpawnersByName("PetBouncer" + bounceNumber);
+	auto switchSpawners = Game::zoneManager->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
 
 	for (auto* bouncerSpawner : bouncerSpawners) {
 		bouncerSpawner->Activate();

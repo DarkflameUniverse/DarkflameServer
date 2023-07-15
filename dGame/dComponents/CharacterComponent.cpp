@@ -419,7 +419,7 @@ void CharacterComponent::TrackMissionCompletion(bool isAchievement) {
 
 	// Achievements are tracked separately for the zone
 	if (isAchievement) {
-		const auto mapID = dZoneManager::Instance()->GetZoneID().GetMapID();
+		const auto mapID = Game::zoneManager->GetZoneID().GetMapID();
 		GetZoneStatisticsForMap(mapID).m_AchievementsCollected++;
 	}
 }
@@ -480,7 +480,7 @@ void CharacterComponent::TrackArmorDelta(int32_t armor) {
 void CharacterComponent::TrackRebuildComplete() {
 	UpdatePlayerStatistic(QuickBuildsCompleted);
 
-	const auto mapID = dZoneManager::Instance()->GetZoneID().GetMapID();
+	const auto mapID = Game::zoneManager->GetZoneID().GetMapID();
 	GetZoneStatisticsForMap(mapID).m_QuickBuildsCompleted++;
 }
 

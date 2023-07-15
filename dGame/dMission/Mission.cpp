@@ -34,7 +34,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
 	m_Timestamp = 0;
 
-	m_UniqueMissionID = dZoneManager::Instance()->GetUniqueMissionIdStartingValue();
+	m_UniqueMissionID = Game::zoneManager->GetUniqueMissionIdStartingValue();
 
 	m_Reward = 0;
 
@@ -443,9 +443,9 @@ void Mission::YieldRewards() {
 	int32_t coinsToSend = 0;
 	if (info->LegoScore > 0) {
 		eLootSourceType lootSource = info->isMission ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT;
-		if (levelComponent->GetLevel() >= dZoneManager::Instance()->GetWorldConfig()->levelCap) {
+		if (levelComponent->GetLevel() >= Game::zoneManager->GetWorldConfig()->levelCap) {
 			// Since the character is at the level cap we reward them with coins instead of UScore.
-			coinsToSend += info->LegoScore * dZoneManager::Instance()->GetWorldConfig()->levelCapCurrencyConversion;
+			coinsToSend += info->LegoScore * Game::zoneManager->GetWorldConfig()->levelCapCurrencyConversion;
 		} else {
 			characterComponent->SetUScore(characterComponent->GetUScore() + info->LegoScore);
 			GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), info->LegoScore, lootSource);

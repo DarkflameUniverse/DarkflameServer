@@ -61,7 +61,7 @@ void ZoneAgProperty::OnPlayerLoaded(Entity* self, Entity* player) {
 		self->SetVar<int32_t>(u"numberOfPlayers", numberOfPlayers + 1);
 	}
 
-	if (dZoneManager::Instance()->GetZone()->GetZoneID().GetMapID() == 1102) {
+	if (Game::zoneManager->GetZone()->GetZoneID().GetMapID() == 1102) {
 		GameMessages::SendPlay2DAmbientSound(player, GUIDMaelstrom);
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0,
 			LWOOBJID_EMPTY, "", player->GetSystemAddress());
@@ -93,7 +93,7 @@ void ZoneAgProperty::OnZoneLoadedInfo(Entity* self) {
 void ZoneAgProperty::LoadInstance(Entity* self) {
 	SetGameVariables(self);
 
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(self->GetVar<std::string>(InstancerSpawner))) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(self->GetVar<std::string>(InstancerSpawner))) {
 		for (auto* spawnerNode : spawner->m_Info.nodes) {
 			spawnerNode->config.push_back(
 				new LDFData<std::string>(u"custom_script_server",
@@ -180,7 +180,7 @@ void ZoneAgProperty::StartMaelstrom(Entity* self, Entity* player) {
 }
 
 uint32_t ZoneAgProperty::RetrieveSpawnerId(Entity* self, const std::string& spawner) {
-	auto spawnerIDs = dZoneManager::Instance()->GetSpawnersByName(spawner);
+	auto spawnerIDs = Game::zoneManager->GetSpawnersByName(spawner);
 	if (spawnerIDs.empty())
 		return 0;
 
@@ -193,7 +193,7 @@ void ZoneAgProperty::OnTimerDone(Entity* self, std::string timerName) {
 
 void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 	if (timerName == "GuardFlyAway") {
-		const auto zoneId = dZoneManager::Instance()->GetZone()->GetWorldID();
+		const auto zoneId = Game::zoneManager->GetZone()->GetWorldID();
 		if (zoneId != 1150)
 			return;
 

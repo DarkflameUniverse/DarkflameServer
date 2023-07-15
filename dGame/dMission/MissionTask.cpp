@@ -391,7 +391,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		// The meaning of associate can be found in eRacingTaskParam.h
 		if (parameters.empty()) break;
 
-		if (!InAllTargets(dZoneManager::Instance()->GetZone()->GetWorldID()) && !(parameters[0] == 4 || parameters[0] == 5) && !InAllTargets(value)) break;
+		if (!InAllTargets(Game::zoneManager->GetZone()->GetWorldID()) && !(parameters[0] == 4 || parameters[0] == 5) && !InAllTargets(value)) break;
 
 		if (parameters[0] != associate) break;
 

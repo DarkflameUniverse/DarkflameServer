@@ -52,7 +52,7 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 }
 
 void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
-	if (dZoneManager::Instance()->GetZoneID().GetMapID() == instanceZoneID) {
+	if (Game::zoneManager->GetZoneID().GetMapID() == instanceZoneID) {
 		auto* missionComponent = killer->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr)
 			return;
@@ -276,7 +276,7 @@ void BossSpiderQueenEnemyServer::RunRainOfFire(Entity* self) {
 
 	auto index = 0u;
 	for (const auto& rofGroup : ROFTargetGroupIDTable) {
-		const auto spawners = dZoneManager::Instance()->GetSpawnersInGroup(rofGroup);
+		const auto spawners = Game::zoneManager->GetSpawnersInGroup(rofGroup);
 
 		std::vector<LWOOBJID> spawned;
 

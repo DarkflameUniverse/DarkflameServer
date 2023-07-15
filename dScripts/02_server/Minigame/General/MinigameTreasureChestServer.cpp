@@ -40,7 +40,7 @@ void MinigameTreasureChestServer::OnUse(Entity* self, Entity* user) {
 
 	sac->PlayerRemove(user->GetObjectID());
 
-	auto* zoneControl = dZoneManager::Instance()->GetZoneControlObject();
+	auto* zoneControl = Game::zoneManager->GetZoneControlObject();
 	if (zoneControl != nullptr) {
 		zoneControl->OnFireEventServerSide(self, "Survival_Update", 0);
 	}
@@ -56,7 +56,7 @@ uint32_t MinigameTreasureChestServer::CalculateActivityRating(Entity* self, LWOO
 void MinigameTreasureChestServer::OnStartup(Entity* self) {
 
 	// BONS treasure chest thinks it's on FV, causing it to start a lobby
-	if (dZoneManager::Instance()->GetZoneID().GetMapID() == 1204) {
+	if (Game::zoneManager->GetZoneID().GetMapID() == 1204) {
 		auto* sac = self->GetComponent<ScriptedActivityComponent>();
 		if (sac != nullptr) {
 			sac->SetInstanceMapID(1204);

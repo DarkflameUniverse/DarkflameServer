@@ -170,7 +170,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		// After we've done our thing, tell the client they're ready
 		GameMessages::SendPlayerReady(entity, sysAddr);
-		GameMessages::SendPlayerReady(dZoneManager::Instance()->GetZoneControlObject(), sysAddr);
+		GameMessages::SendPlayerReady(Game::zoneManager->GetZoneControlObject(), sysAddr);
 
 		break;
 	}

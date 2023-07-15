@@ -25,14 +25,6 @@ private:
 	void LoadWorldConfig();
 
 public:
-	static dZoneManager* Instance() {
-		if (!m_Address) {
-			m_Address = new dZoneManager();
-		}
-
-		return m_Address;
-	}
-
 	void Initialize(const LWOZONEID& zoneID);
 	~dZoneManager();
 
@@ -64,7 +56,6 @@ private:
 	 */
 	uint32_t m_UniqueMissionIdStart = 0;
 
-	static dZoneManager* m_Address; //Singleton
 	Zone* m_pZone = nullptr;
 	LWOZONEID m_ZoneID;
 	bool m_PlayerLoseCoinsOnDeath; //Do players drop coins in this zone when smashed

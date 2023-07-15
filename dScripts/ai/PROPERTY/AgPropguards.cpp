@@ -29,7 +29,7 @@ void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 			if (spawnerName.empty())
 				spawnerName = "Guard";
 
-			auto spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+			auto spawners = Game::zoneManager->GetSpawnersByName(spawnerName);
 			for (auto* spawner : spawners) {
 				spawner->Deactivate();
 			}

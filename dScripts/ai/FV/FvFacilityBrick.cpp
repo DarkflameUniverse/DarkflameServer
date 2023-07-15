@@ -9,9 +9,9 @@ void FvFacilityBrick::OnStartup(Entity* self) {
 }
 
 void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
-	auto* brickSpawner = dZoneManager::Instance()->GetSpawnersByName("ImaginationBrick")[0];
-	auto* bugSpawner = dZoneManager::Instance()->GetSpawnersByName("MaelstromBug")[0];
-	auto* canisterSpawner = dZoneManager::Instance()->GetSpawnersByName("BrickCanister")[0];
+	auto* brickSpawner = Game::zoneManager->GetSpawnersByName("ImaginationBrick")[0];
+	auto* bugSpawner = Game::zoneManager->GetSpawnersByName("MaelstromBug")[0];
+	auto* canisterSpawner = Game::zoneManager->GetSpawnersByName("BrickCanister")[0];
 
 	if (name == "ConsoleLeftUp") {
 		GameMessages::SendStopFXEffect(self, true, "LeftPipeOff");
