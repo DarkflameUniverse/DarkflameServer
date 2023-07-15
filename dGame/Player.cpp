@@ -110,7 +110,7 @@ void Player::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) {
 
 		EntityManager::Instance()->DestructEntity(entity);
 		return;
-		});
+	});
 }
 
 void Player::AddLimboConstruction(LWOOBJID objectId) {

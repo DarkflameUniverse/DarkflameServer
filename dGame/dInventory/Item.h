@@ -8,6 +8,8 @@
 #include "Preconditions.h"
 #include "eInventoryType.h"
 #include "eLootSourceType.h"
+#include "StatProperty.h"
+#include "ItemModifierTemplate.h"
 
 /**
  * An item that can be stored in an inventory and optionally consumed or equipped
@@ -115,6 +117,18 @@ public:
 	 * @return current config info for this item
 	 */
 	std::vector<LDFBaseData*>& GetConfig();
+
+	/**
+	 * Returns the stats for this item
+	 * @return the stats for this item
+	 */
+	std::vector<StatProperty>& GetStats();
+
+	/**
+	 * Returns the modifiers for this item
+	 * @return the modifiers for this item
+	 */
+	std::vector<ItemModifierTemplate*>& GetModifiers();
 
 	/**
 	 * Returns the database info for this item
@@ -254,6 +268,16 @@ private:
 	 * Config data for this item, e.g. for rocket parts and car parts
 	 */
 	std::vector<LDFBaseData*> config;
+
+	/**
+	 * Modifiers
+	 */
+	std::vector<StatProperty> stats;
+
+	/**
+	 * Templates
+	 */
+	std::vector<ItemModifierTemplate*> templates;
 
 	/**
 	 * The inventory this item belongs to

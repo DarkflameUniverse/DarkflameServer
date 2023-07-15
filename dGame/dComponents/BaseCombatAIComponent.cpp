@@ -146,6 +146,12 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	//First, we need to process physics:
 	if (!m_dpEntity) return;
 
+	if (m_State == AiState::spawn) {
+		auto* destroyable = m_Parent->GetComponent<DestroyableComponent>();
+
+		destroyable->ComputeBaseStats(true);
+	}
+
 	m_dpEntity->SetPosition(m_Parent->GetPosition()); //make sure our position is synced with our dpEntity
 	m_dpEntityEnemy->SetPosition(m_Parent->GetPosition());
 
@@ -234,7 +240,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	bool hasSkillToCast = false;
 	for (auto& entry : m_SkillEntries) {
 		if (entry.cooldown > 0.0f) {
-			entry.cooldown -= deltaTime;
+			entry.cooldown -= deltaTime * 2;
 		} else {
 			hasSkillToCast = true;
 		}

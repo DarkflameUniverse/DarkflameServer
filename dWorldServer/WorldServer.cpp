@@ -71,6 +71,11 @@
 #include "eMasterMessageType.h"
 #include "eGameMessageType.h"
 #include "ZCompression.h"
+#include "InventoryComponent.h"
+#include "DamageProfile.h"
+#include "ResistanceProfile.h"
+#include "SpawnPatterns.h"
+#include "EntityProfile.h"
 
 namespace Game {
 	dLogger* logger = nullptr;
@@ -146,6 +151,12 @@ int main(int argc, char** argv) {
 	Game::logger->Log("WorldServer", "Starting World server...");
 	Game::logger->Log("WorldServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("WorldServer", "Compiled on: %s", __TIMESTAMP__);
+
+	ItemModifierTemplate::LoadItemModifierTemplates((BinaryPathFinder::GetBinaryDir() / "ItemModifierTemplates.xml").string());
+	DamageProfile::LoadDamageProfiles((BinaryPathFinder::GetBinaryDir() / "DamageProfiles.xml").string());
+	ResistanceProfile::LoadResistanceProfiles((BinaryPathFinder::GetBinaryDir() / "ResistanceProfiles.xml").string());
+	SpawnPatterns::LoadSpawnPatterns((BinaryPathFinder::GetBinaryDir() / "SpawnPatterns.xml").string());
+	EntityProfile::LoadEntityProfiles((BinaryPathFinder::GetBinaryDir() / "EntityProfiles.xml").string());
 
 	if (Game::config->GetValue("disable_chat") == "1") chatDisabled = true;
 
@@ -489,6 +500,8 @@ int main(int argc, char** argv) {
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
 
+		Spawner::UpdateRatings(deltaTime);
+
 		Metrics::EndMeasurement(MetricVariable::GameLoop);
 
 		Metrics::StartMeasurement(MetricVariable::Sleep);
@@ -510,6 +523,12 @@ int main(int argc, char** argv) {
 
 				ready = true;
 			}
+		}
+
+		auto* controller = dZoneManager::Instance()->GetZoneControlObject();
+
+		if (controller != nullptr && controller->HasVar(u"shutdown") && controller->GetVar<bool>(u"shutdown")) {
+			Game::shouldShutdown = true;
 		}
 
 		if (Game::shouldShutdown && !worldShutdownSequenceComplete) {

@@ -26,8 +26,15 @@ void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 		return;
 	}
 
+	component->AddStat(StatProperty(eStatTypes::Health, eStatModifier::Absolute, this->m_health * BASE_MULTIPLIER));
+	component->AddStat(StatProperty(eStatTypes::Armor, eStatModifier::Absolute, this->m_armor * BASE_MULTIPLIER));
+	//component->AddStat(StatProperty(eStatTypes::Imagination, eStatModifier::Absolute, this->m_imagination * BASE_MULTIPLIER));
+
+	/*
 	component->SetMaxHealth(component->GetMaxHealth() + this->m_health);
 	component->SetMaxArmor(component->GetMaxArmor() + this->m_armor);
+	component->SetMaxImagination(component->GetMaxImagination() + this->m_imagination);
+	*/
 	component->SetMaxImagination(component->GetMaxImagination() + this->m_imagination);
 
 	EntityManager::Instance()->SerializeEntity(entity);
@@ -60,8 +67,15 @@ void BuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch
 		return;
 	}
 
+	component->RemoveStat(StatProperty(eStatTypes::Health, eStatModifier::Absolute, this->m_health * BASE_MULTIPLIER));
+	component->RemoveStat(StatProperty(eStatTypes::Armor, eStatModifier::Absolute, this->m_armor * BASE_MULTIPLIER));
+	//component->RemoveStat(StatProperty(eStatTypes::Imagination, eStatModifier::Absolute, this->m_imagination * BASE_MULTIPLIER));
+
+	/*
 	component->SetMaxHealth(component->GetMaxHealth() - this->m_health);
 	component->SetMaxArmor(component->GetMaxArmor() - this->m_armor);
+	component->SetMaxImagination(component->GetMaxImagination() - this->m_imagination);
+	*/
 	component->SetMaxImagination(component->GetMaxImagination() - this->m_imagination);
 
 	EntityManager::Instance()->SerializeEntity(entity);

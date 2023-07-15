@@ -5,6 +5,7 @@
 #include "EntityManager.h"
 #include "DestroyableComponent.h"
 #include "eReplicaComponentType.h"
+#include "LevelProgressionComponent.h"
 
 
 void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
@@ -24,7 +25,18 @@ void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_strea
 		return;
 	}
 
-	destroyable->Heal(this->m_health);
+	int32_t toApply = this->m_health * 5;
+
+	auto* levelProgressComponent = entity->GetComponent<LevelProgressionComponent>();
+
+	if (levelProgressComponent != nullptr) {
+		toApply *= levelProgressComponent->GetLevel();
+	}
+
+	// Apply a standard deviations of 20%
+	toApply = static_cast<uint32_t>(toApply * (1.0f + (static_cast<float>(rand() % 40) / 100.0f) - 0.2f));
+
+	destroyable->Heal(toApply);
 }
 
 

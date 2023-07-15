@@ -169,15 +169,17 @@ public:
 	 * @param behaviorId the root behavior ID of the skill
 	 * @param target the explicit target of the skill
 	 * @param source the explicit source of the skill
+	 * @param itemID the explicit item ID of the skill
 	 */
-	static void HandleUnmanaged(uint32_t behaviorId, LWOOBJID target, LWOOBJID source = LWOOBJID_EMPTY);
+	static void HandleUnmanaged(uint32_t behaviorId, LWOOBJID target, LWOOBJID source = LWOOBJID_EMPTY, LWOOBJID itemID = LWOOBJID_EMPTY);
 
 	/**
 	 * Computes a server-side skill uncast calculation without an associated entity.
 	 * @param behaviorId the root behavior ID of the skill
 	 * @param target the explicit target of the skill
+	 * @param itemID the explicit item ID of the skill
 	 */
-	static void HandleUnCast(uint32_t behaviorId, LWOOBJID target);
+	static void HandleUnCast(uint32_t behaviorId, LWOOBJID target, LWOOBJID itemID = LWOOBJID_EMPTY);
 
 	/**
 	 * @returns a unique ID for the next skill calculation

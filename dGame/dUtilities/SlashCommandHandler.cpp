@@ -82,6 +82,7 @@
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
 #include "eMasterMessageType.h"
+#include "CDSkillBehaviorTable.h"
 
 #include "CDObjectsTable.h"
 #include "CDZoneTableTable.h"
@@ -192,6 +193,67 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, GeneralUtils::UTF8ToUTF16(message.str()), true);
 
 		return;
+	}
+
+	if (chatCommand == "d" && args.size() >= 2) {
+		// Print all the arguments
+		Game::logger->Log("SlashCommandHandler", "Args: %s, %s", args[0].c_str(), args[1].c_str());
+
+		int32_t ticketIndex;
+		LWOOBJID itemID;
+
+		AMFArrayValue amfArgs;
+
+		if (!GeneralUtils::TryParse(args[0], ticketIndex) || !GeneralUtils::TryParse(args[1], itemID)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid arguments.");
+			return;
+		}
+
+		std::stringstream message;
+		message << "desc";
+		message << ticketIndex;
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+		if (inventoryComponent == nullptr) {
+			return;
+		}
+
+		auto* item = inventoryComponent->FindItemById(itemID);
+
+		if (item == nullptr) {
+			return;
+		}
+
+		Game::logger->Log("SlashCommandHandler", "Sending ticket %i, item LOT %i", ticketIndex, item->GetLot());
+
+		auto& stats = item->GetStats();
+
+		if (!stats.empty())
+		{
+			std::stringstream description;
+			std::stringstream name;
+
+			name << "NAME";
+		
+			amfArgs.Insert("t", true);
+
+			description << ItemModifierTemplate::HtmlString(item->GetModifiers()) << "\n";
+
+			for (auto& stat : stats) {
+				description << "\n" << stat.HtmlString();
+			}
+
+			amfArgs.Insert("d", description.str());
+
+			amfArgs.Insert("n", name.str());
+		}
+		else
+		{
+			amfArgs.Insert("t", false);
+		}
+
+		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, message.str(), amfArgs);
 	}
 
 	if (chatCommand == "who") {
@@ -722,8 +784,139 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		GameMessages::SendPlayFXEffect(entity->GetObjectID(), effectID, GeneralUtils::ASCIIToUTF16(args[1]), args[2]);
 	}
 
+	if (chatCommand == "playeffect-weapon" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 3) {
+		int32_t effectID = 0;
+
+		if (!GeneralUtils::TryParse(args[0], effectID)) {
+			return;
+		}
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+		if (inventoryComponent == nullptr) {
+			return;
+		}
+
+		const auto& equipped = inventoryComponent->GetEquippedItems();
+
+		const auto& weapon = equipped.find("special_r");
+
+		if (weapon == equipped.end()) {
+			ChatPackets::SendSystemMessage(sysAddr, u"You need to have a weapon equipped.");
+			return;
+		}
+
+		// FIXME: use fallible ASCIIToUTF16 conversion, because non-ascii isn't valid anyway
+		GameMessages::SendPlayFXEffect(weapon->second.id, effectID, GeneralUtils::ASCIIToUTF16(args[1]), args[2]);
+	}
+
+
+	if (chatCommand == "itemx" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 3) {
+		int32_t itemLot;
+
+		if (!GeneralUtils::TryParse(args[0], itemLot)) {
+			return;
+		}
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+		if (inventoryComponent == nullptr) {
+			return;
+		}
+
+		std::vector<LDFBaseData*> data;
+
+		for (int32_t i = 1; (i + 1) < args.size(); i += 2) {
+			const auto& key = args[i];
+			const auto& value = args[i + 1];
+
+
+			auto* x = new LDFData<std::string>(GeneralUtils::ASCIIToUTF16(key), value);
+
+			data.push_back(x);
+		}
+
+		inventoryComponent->AddItem(itemLot, 1, eLootSourceType::NONE, INVALID, data);
+	}
+
+	if (chatCommand == "dismantle" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		GameMessages::SendServerTradeInvite(
+			entity->GetObjectID(),
+			false,
+			entity->GetObjectID(),
+			GeneralUtils::UTF8ToUTF16("Dismantle"),
+			sysAddr
+		);
+
+		ChatPackets::SendSystemMessage(sysAddr, u"Opened dismantle window.");
+	}
+
+	if (chatCommand == "bar" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		int32_t barID;
+
+		if (!GeneralUtils::TryParse(args[0], barID)) {
+			return;
+		}
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+		if (inventoryComponent == nullptr) {
+			return;
+		}
+
+		inventoryComponent->SetSelectedSkillBar(static_cast<eSkillBar>(barID));
+	}
+
+	if (chatCommand == "setskill" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 3) {
+		int32_t barID;
+		int32_t slotID;
+		int32_t skillID;
+
+		if (!GeneralUtils::TryParse(args[0], barID)) {
+			return;
+		}
+
+		if (!GeneralUtils::TryParse(args[1], slotID)) {
+			return;
+		}
+
+		if (!GeneralUtils::TryParse(args[2], skillID)) {
+			return;
+		}
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+		if (inventoryComponent == nullptr) {
+			return;
+		}
+
+		if (skillID == 0) {
+			inventoryComponent->UnequipSkill(static_cast<eSkillBar>(barID), static_cast<BehaviorSlot>(slotID));
+			return;
+		}
+
+		inventoryComponent->EquipSkill(static_cast<eSkillBar>(barID), static_cast<BehaviorSlot>(slotID), skillID);
+	}
+
 	if (chatCommand == "stopeffect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
 		GameMessages::SendStopFXEffect(entity, true, args[0]);
+	}
+
+	if (chatCommand == "skill" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		int32_t skillID;
+
+		if (!GeneralUtils::TryParse(args[0], skillID)) {
+			return;
+		}
+
+		CDSkillBehaviorTable* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+		uint32_t behaviorID = skillTable->GetSkillByID(skillID).behaviorID;
+
+		ChatPackets::SendSystemMessage(sysAddr, u"Skill ID: " + GeneralUtils::to_u16string(skillID) + u" Behavior ID: " + GeneralUtils::to_u16string(behaviorID));
+
+		auto* skillComponent = entity->GetComponent<SkillComponent>();
+
+		skillComponent->CalculateBehavior(skillID, behaviorID, LWOOBJID_EMPTY);
 	}
 
 	if (chatCommand == "setanntitle" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
@@ -2010,6 +2203,38 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 						ChatPackets::SendSystemMessage(sysAddr, u"Trigger: " + (GeneralUtils::to_u16string(trigger->id)));
 					}
 				}
+			} else if (args[1] == "-h") {
+				auto* destroyableComponent = closest->GetComponent<DestroyableComponent>();
+
+				if (destroyableComponent == nullptr) {
+					ChatPackets::SendSystemMessage(sysAddr, u"No destroyable component on this entity!");
+					return;
+				}
+
+				ChatPackets::SendSystemMessage(sysAddr, u"Health: " + (GeneralUtils::to_u16string(destroyableComponent->GetHealth())));
+				ChatPackets::SendSystemMessage(sysAddr, u"Max health: " + (GeneralUtils::to_u16string(destroyableComponent->GetMaxHealth())));
+				ChatPackets::SendSystemMessage(sysAddr, u"Armor: " + (GeneralUtils::to_u16string(destroyableComponent->GetArmor())));
+				ChatPackets::SendSystemMessage(sysAddr, u"Max armor: " + (GeneralUtils::to_u16string(destroyableComponent->GetMaxArmor())));
+			} else if (args[1] == "-c" && args.size() >= 3) {
+				int32_t skillID;
+
+				if (!GeneralUtils::TryParse(args[2], skillID)) {
+					return;
+				}
+
+				CDSkillBehaviorTable* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+				uint32_t behaviorID = skillTable->GetSkillByID(skillID).behaviorID;
+
+				ChatPackets::SendSystemMessage(sysAddr, u"Skill ID: " + GeneralUtils::to_u16string(skillID) + u" Behavior ID: " + GeneralUtils::to_u16string(behaviorID));
+
+				auto* skillComponent = closest->GetComponent<SkillComponent>();
+
+				if (skillComponent == nullptr) {
+					ChatPackets::SendSystemMessage(sysAddr, u"No skill component on this entity!");
+					return;
+				}
+
+				skillComponent->CalculateBehavior(skillID, behaviorID, LWOOBJID_EMPTY);
 			}
 		}
 	}

@@ -448,11 +448,12 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	delete bitStream;
 }
 
-void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID target, LWOOBJID source) {
+void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID target, LWOOBJID source, LWOOBJID itemID) {
 	auto* context = new BehaviorContext(source);
 
 	context->unmanaged = true;
 	context->caster = target;
+	context->itemID = itemID;
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
@@ -465,7 +466,7 @@ void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID t
 	delete context;
 }
 
-void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID target) {
+void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID target, LWOOBJID itemID) {
 	auto* context = new BehaviorContext(target);
 
 	context->caster = target;

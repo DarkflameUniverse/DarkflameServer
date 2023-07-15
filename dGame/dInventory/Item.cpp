@@ -41,6 +41,7 @@ Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_
 	this->info = &Inventory::FindItemComponent(lot);
 	this->preconditions = new PreconditionExpression(this->info->reqPrecondition);
 	this->subKey = subKey;
+	this->stats = {};
 
 	inventory->AddManagedItem(this);
 }
@@ -76,6 +77,7 @@ Item::Item(
 	this->bound = info->isBOP || bound;
 	this->preconditions = new PreconditionExpression(this->info->reqPrecondition);
 	this->subKey = subKey;
+	this->stats = {};
 
 	LWOOBJID id = ObjectIDManager::GenerateRandomObjectID();
 
@@ -102,6 +104,21 @@ Item::Item(
 
 		EntityManager::Instance()->SerializeEntity(inventory->GetComponent()->GetParent());
 	}
+
+	if (parent != LWOOBJID_EMPTY) return;
+
+	eItemType itemType = static_cast<eItemType>(info->itemType);
+
+	if (info->stackSize != 1) return;
+
+	if (itemType != eItemType::RIGHT_HAND && 
+		itemType != eItemType::LEFT_HAND && 
+		itemType != eItemType::HAT &&
+		itemType != eItemType::CHEST &&
+		itemType != eItemType::LEGS &&
+		itemType != eItemType::NECK) return;
+
+	ItemModifierTemplate::RollItemModifierTemplates(this, lootSourceType);
 }
 
 LWOOBJID Item::GetId() const {
@@ -122,6 +139,14 @@ uint32_t Item::GetSlot() const {
 
 std::vector<LDFBaseData*>& Item::GetConfig() {
 	return config;
+}
+
+std::vector<StatProperty>& Item::GetStats() {
+	return stats;
+}
+
+std::vector<ItemModifierTemplate*>& Item::GetModifiers() {
+	return templates;
 }
 
 const CDItemComponent& Item::GetInfo() const {
@@ -220,6 +245,37 @@ void Item::Equip(const bool skipChecks) {
 	}
 
 	inventory->GetComponent()->EquipItem(this, skipChecks);
+
+	if (info->equipLocation != "special_r") return;
+
+	inventory->GetComponent()->GetParent()->AddCallbackTimer(1, [this]() {
+		// Find the greatest stat for this item
+		eStatTypes statType = eStatTypes::Physical;
+		float statValue = 0.0f;
+
+		for (const auto& stat : stats) {
+			if (stat.value > statValue) {
+				statType = stat.type;
+				statValue = stat.value;
+			}
+		}
+
+		switch (statType)
+		{
+		case eStatTypes::Electric:
+			GameMessages::SendPlayFXEffect(id, 4027, u"create", "electric");
+			break;
+		case eStatTypes::Shadow:
+			GameMessages::SendPlayFXEffect(id, 2710, u"create", "shadow");
+			break;
+		case eStatTypes::Corruption:
+			GameMessages::SendPlayFXEffect(id, 663, u"create", "corruption");
+			break;
+		
+		default:
+			break;
+		}
+	});
 }
 
 void Item::UnEquip() {

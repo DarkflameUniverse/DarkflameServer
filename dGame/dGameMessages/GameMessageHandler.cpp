@@ -34,6 +34,7 @@
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "eConnectionType.h"
+#include "CDLookupTable.h"
 
 using namespace std;
 
@@ -305,6 +306,48 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			}
 
 			delete bs;
+		}
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+		const auto switching = entity->HasVar(u"switching") && entity->GetVar<bool>(u"switching");
+
+		if (inventoryComponent != nullptr && !switching) {
+			bool switched;
+
+			const auto primarySkill = inventoryComponent->GetSkill(eSkillBar::Primary, BehaviorSlot::Primary);
+
+			if (startSkill.skillID == rose::id("grim:skills:main-1")) {
+				inventoryComponent->SetSelectedSkillBar(eSkillBar::Gear);
+				switched = true;
+			}
+			else if (startSkill.skillID == rose::id("grim:skills:main-2")) {
+				inventoryComponent->SetSelectedSkillBar(eSkillBar::ClassPrimary);
+				switched = true;
+			}
+			else if (startSkill.skillID == rose::id("grim:skills:main-3")) {
+				inventoryComponent->SetSelectedSkillBar(eSkillBar::ClassSecondary);
+				switched = true;
+			}
+			else if (startSkill.skillID != primarySkill) {
+				inventoryComponent->SetSelectedSkillBar(eSkillBar::Primary);
+				switched = false;
+			}
+			else {
+				switched = false;
+			}
+
+			if (switched) {
+				entity->SetVar(u"switching", true);
+
+				entity->AddCallbackTimer(2, [inventoryComponent]() {
+					inventoryComponent->SetSelectedSkillBar(eSkillBar::Primary);
+				});
+
+				entity->AddCallbackTimer(0.25, [entity]() {
+					entity->SetVar(u"switching", false);
+				});
+			}
 		}
 
 		if (Game::server->GetZoneID() == 1302) {

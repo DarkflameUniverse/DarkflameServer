@@ -35,4 +35,5 @@ set(DDATABASE_TABLES_SOURCES "CDActivitiesTable.cpp"
 	"CDScriptComponentTable.cpp"
 	"CDSkillBehaviorTable.cpp"
 	"CDVendorComponentTable.cpp"
+	"CDLookupTable.cpp"
 	"CDZoneTableTable.cpp" PARENT_SCOPE)

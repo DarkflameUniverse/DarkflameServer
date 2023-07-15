@@ -7,6 +7,8 @@
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include "StatProperty.h"
+#include "CDDestructibleComponentTable.h"
 
 namespace CppScripts {
 	class Script;
@@ -429,6 +431,46 @@ public:
 	 */
 	void FixStats();
 
+	void SetInfo(const CDDestructibleComponent& info) { m_Info = info; }
+
+	CDDestructibleComponent& GetInfo() { return m_Info; }
+
+	/**
+	 * Add a stat property to this entity
+	 */
+	void AddStat(const StatProperty& stat);
+
+	/**
+	 * Remove a stat property from this entity
+	 */
+	void RemoveStat(const StatProperty& stat);
+
+	/**
+	 * Get a stat property from this entity
+	 */
+	float GetStat(eStatTypes statType, eStatModifier statModifier) const;
+
+	/**
+	 * Compute the entity's health, armor, and imagination based on its stats
+	 */
+	void ComputeBaseStats(bool refill = false);
+
+	/**
+	 * Compute damage
+	 */
+	std::map<eStatTypes, float> ComputeDamage(uint32_t baseDamage, Entity* source, class DamageProfile* damageProfile);
+
+	/**
+	 * Damage this entity with a damage map
+	 */
+	void Damage(const std::map<eStatTypes, float>& damage, LWOOBJID source, uint32_t skillID = 0, bool echo = true);
+
+	/**
+	 * Updates the component in the game loop
+	 * @param deltaTime time passed since last update
+	 */
+	void Update(float deltaTime) override;
+
 	/**
 	 * Adds a callback that is called when this entity is hit by some other entity
 	 * @param callback the callback to add
@@ -605,6 +647,26 @@ private:
 	uint32_t m_ImmuneToImaginationLossCount;
 	uint32_t m_ImmuneToQuickbuildInterruptCount;
 	uint32_t m_ImmuneToPullToPointCount;
+
+	/**
+	 * Stats for the entity
+	 */
+	std::map<eStatTypes, std::map<eStatModifier, float>> m_Stats;
+
+	/**
+	 * Dirty flag for stats
+	 */
+	bool m_DirtyStats;
+
+	/**
+	 * The info for this component
+	 */
+	CDDestructibleComponent m_Info;
+
+	/**
+	 * Resistance profile for this entity
+	 */
+	class ResistanceProfile* m_ResistanceProfile;
 };
 
 #endif // DESTROYABLECOMPONENT_H

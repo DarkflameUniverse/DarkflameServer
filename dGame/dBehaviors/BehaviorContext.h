@@ -78,6 +78,8 @@ struct BehaviorContext
 
 	LWOOBJID caster = LWOOBJID_EMPTY;
 
+	LWOOBJID itemID = LWOOBJID_EMPTY;
+
 	uint32_t GetUniqueSkillId() const;
 
 	void UpdatePlayerSyncs(float deltaTime);

@@ -39,7 +39,7 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 		return;
 	}
 
-	combatAiComponent->Stun(branch.duration);
+	combatAiComponent->Stun(branch.duration / 2.0f);
 }
 
 void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {

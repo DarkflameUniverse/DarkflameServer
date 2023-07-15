@@ -22,6 +22,7 @@
 #include "eInventoryType.h"
 #include "eReplicaComponentType.h"
 #include "eLootSourceType.h"
+#include "eSkillBar.h"
 
 class Entity;
 class ItemSet;
@@ -282,6 +283,36 @@ public:
 	void RemoveItemSkills(LOT lot);
 
 	/**
+	 * Equip a skill to a bar and slot
+	 */
+	void EquipSkill(eSkillBar bar, BehaviorSlot slot, uint32_t skillID);
+
+	/**
+	 * Unequip a skill from a bar and slot
+	 */
+	void UnequipSkill(eSkillBar bar, BehaviorSlot slot);
+
+	/**
+	 * Get the skill in a bar and slot
+	 */
+	uint32_t GetSkill(eSkillBar bar, BehaviorSlot slot) const;
+
+	/**
+	 * Get the currently selected skill bar
+	 */
+	eSkillBar GetSelectedSkillBar() const;
+
+	/**
+	 * Set the currently selected skill bar
+	 */
+	void SetSelectedSkillBar(eSkillBar bar);
+
+	/**
+	 * Update skills on client
+	 */
+	void UpdateSkills();
+
+	/**
 	 * Triggers one of the passive abilities from the equipped item set
 	 * @param trigger the trigger to fire
 	 */
@@ -415,6 +446,16 @@ private:
 	 * The currently active consumable
 	 */
 	LOT m_Consumable;
+
+	/**
+	 * Equipped skills
+	 */
+	std::map<eSkillBar, std::map<BehaviorSlot, uint32_t>> m_EquippedSkills;
+
+	/**
+	 * The currently selected skill bar
+	 */
+	eSkillBar m_SelectedSkillBar = eSkillBar::Primary;
 
 	/**
 	 * Currently has a car equipped

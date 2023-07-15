@@ -15,6 +15,8 @@
 #include "SkillComponent.h"
 #include "eReplicaComponentType.h"
 #include "RenderComponent.h"
+#include "Player.h"
+#include "ZoneInstanceManager.h"
 
 #include <vector>
 
@@ -35,6 +37,12 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 
 	if (!destroyable || !controllable) return;
 
+	destroyable->GetInfo().level = 3;
+	destroyable->GetInfo().armor = 330;
+	destroyable->ComputeBaseStats(true);
+
+	EntityManager::Instance()->SerializeEntity(self);
+
 	// Determine Spider Boss health transition thresholds
 	int spiderBossHealth = destroyable->GetMaxHealth();
 	int transitionTickHealth = spiderBossHealth / 3;
@@ -45,6 +53,11 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 
 	originRotation = controllable->GetRotation();
 	combat->SetStunImmune(true);
+	combat->SetDisabled(true);
+
+	self->AddCallbackTimer(10, [this, self]() {
+		combat->SetDisabled(false);
+	});
 
 	m_CurrentBossStage = 1;
 
@@ -103,20 +116,22 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 
 		baseCombatAi->SetDisabled(true);
 
-		float animTime = PlayAnimAndReturnTime(self, spiderWithdrawAnim);
-		float withdrawTime = animTime - 0.25f;
+		self->AddCallbackTimer(3, [this, self]() {
+			float animTime = PlayAnimAndReturnTime(self, spiderWithdrawAnim);
+			float withdrawTime = animTime - 0.25f;
 
-		combat->SetStunImmune(false);
-		combat->Stun(withdrawTime + 6.0f);
-		combat->SetStunImmune(true);
+			combat->SetStunImmune(false);
+			combat->Stun(withdrawTime + 6.0f);
+			combat->SetStunImmune(true);
 
-		//TODO: Set faction to -1 and set immunity
-		destroyable->SetFaction(-1);
-		destroyable->SetIsImmune(true);
-		EntityManager::Instance()->SerializeEntity(self);
+			//TODO: Set faction to -1 and set immunity
+			destroyable->SetFaction(-1);
+			destroyable->SetIsImmune(true);
+			EntityManager::Instance()->SerializeEntity(self);
 
-		self->AddTimer("WithdrawComplete", withdrawTime + 1.0f);
-		waitForIdle = true;
+			self->AddTimer("WithdrawComplete", withdrawTime + 1.0f);
+			waitForIdle = true;
+		});
 	} else {
 		controllable->SetStatic(false);
 
@@ -145,6 +160,10 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 
 		//Reset the current wave death counter
 		m_DeathCounter = 0;
+
+		auto* destroyable = self->GetComponent<DestroyableComponent>();
+
+		destroyable->SetArmor(destroyable->GetMaxArmor() / 3);
 
 		EntityManager::Instance()->SerializeEntity(self);
 
@@ -297,9 +316,20 @@ void BossSpiderQueenEnemyServer::RunRainOfFire(Entity* self) {
 		index++;
 	}
 
-	const auto animTime = PlayAnimAndReturnTime(self, spiderROFAnim);
+	self->AddCallbackTimer(5, [self, this]() {
+		/*
+		auto* skillComponent = self->GetComponent<SkillComponent>();
 
-	self->AddTimer("StartROF", animTime);
+		skillComponent->Interrupt();
+
+		auto* baseCombatAIComponent = self->GetComponent<BaseCombatAIComponent>();*/
+
+		const auto animTime = PlayAnimAndReturnTime(self, spiderROFAnim);
+
+		//baseCombatAIComponent->Stun(animTime * 2);
+
+		self->AddTimer("StartROF", animTime);
+	});
 }
 
 void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
@@ -323,6 +353,44 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 		}
 
 		skillComponent->CalculateBehavior(1376, 32168, LWOOBJID_EMPTY, true);
+
+		if (GeneralUtils::GenerateRandomNumber<int32_t>(0, 2) == 1)
+		{
+			entity->AddCallbackTimer(2, [entity](){
+					EntityInfo info;
+					info.lot = 16197;
+					info.pos = entity->GetPosition();
+					info.spawnerID = entity->GetObjectID();
+
+					auto* spawned = EntityManager::Instance()->CreateEntity(info);
+
+					EntityManager::Instance()->ConstructEntity(spawned);
+			});
+		}
+		else
+		{
+			for (size_t i = 0; i < 15; i++)
+			{
+				entity->AddCallbackTimer((0.15 * i), [entity](){
+					// Random area within 10 units on the X and Z axis, circle, using sin and cos
+					float angle = GeneralUtils::GenerateRandomNumber<float>(0, 360) * M_PI / 180.0f;
+					float radius = GeneralUtils::GenerateRandomNumber<float>(0, 10);
+
+					float x = radius * cos(angle);
+					float z = radius * sin(angle);
+
+					EntityInfo info;
+					info.lot = 10314;
+					info.pos = entity->GetPosition() + NiPoint3(x, 0, z);
+					info.spawnerID = entity->GetObjectID();
+
+					auto* spawned = EntityManager::Instance()->CreateEntity(info);
+
+					EntityManager::Instance()->ConstructEntity(spawned);
+				});
+			}
+			
+		}
 
 		self->AddTimer("PollROFManager", 0.5f);
 
@@ -561,6 +629,22 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 			self->SetBoolean(u"bSpecialQueued", false);
 		}
 	}
+}
+
+void BossSpiderQueenEnemyServer::OnPlayerDied(Entity* self, Entity* player) {
+	Game::logger->Log("BossSpiderQueenEnemyServer", "OnPlayerDied");
+
+	if (!player->IsPlayer()) return;
+
+	Game::logger->Log("BossSpiderQueenEnemyServer", "OnPlayerDied 2");
+
+	auto* ply = static_cast<Player*>(player);
+	
+	ply->SendToZone(1100);
+
+	self->AddCallbackTimer(10, [] () {
+		dZoneManager::Instance()->GetZoneControlObject()->SetVar(u"shutdown", true);
+	});
 }
 
 void BossSpiderQueenEnemyServer::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {

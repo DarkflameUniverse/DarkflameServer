@@ -490,6 +490,11 @@ bool InventoryComponent::HasSpaceForLoot(const std::unordered_map<LOT, int32_t>&
 void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 	LoadPetXml(document);
 
+	EquipSkill(eSkillBar::Primary, BehaviorSlot::Primary, 1);
+	EquipSkill(eSkillBar::Primary, BehaviorSlot::Head, 6);
+	EquipSkill(eSkillBar::Primary, BehaviorSlot::Offhand, 7);
+	EquipSkill(eSkillBar::Primary, BehaviorSlot::Neck, 8);
+
 	auto* inventoryElement = document->FirstChildElement("obj")->FirstChildElement("inv");
 
 	if (inventoryElement == nullptr) {
@@ -577,14 +582,79 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 			auto* extraInfo = itemElement->FirstChildElement("x");
 
 			if (extraInfo) {
-				std::string modInfo = extraInfo->Attribute("ma");
+				// Check if has attribute "ma"
+				if (extraInfo->Attribute("ma") != nullptr) {
+					std::string modInfo = extraInfo->Attribute("ma");
 
-				LDFBaseData* moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(modInfo.substr(2, modInfo.size() - 1)));
+					LDFBaseData* moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(modInfo.substr(2, modInfo.size() - 1)));
 
-				config.push_back(moduleAssembly);
+					config.push_back(moduleAssembly);
+				}
 			}
 
-			const auto* item = new Item(id, lot, inventory, slot, count, bound, config, parent, subKey);
+			auto* statInfo = itemElement->Attribute("st");
+
+			std::vector<StatProperty> stats;
+
+			if (statInfo != nullptr) {
+				// type,modifier,value;...
+				std::vector<std::string> statData = GeneralUtils::SplitString(statInfo, ';');
+
+				for (const auto& stat : statData) {
+					if (stat.empty()) {
+						continue;
+					}
+
+					std::vector<std::string> statParts = GeneralUtils::SplitString(stat, ',');
+
+					if (statParts.size() != 3) {
+						continue;
+					}
+					
+					eStatTypes type = static_cast<eStatTypes>(std::stoi(statParts[0]));
+					eStatModifier modifier = static_cast<eStatModifier>(std::stoi(statParts[1]));
+					float value = std::stof(statParts[2]);
+
+					stats.push_back(StatProperty(type, modifier, value));
+				}
+			}
+
+			std::vector<ItemModifierTemplate*> modifiers;
+
+			auto* modifierInfo = itemElement->Attribute("mo");
+
+			if (modifierInfo != nullptr) {
+				// name;...
+				std::vector<std::string> modifierData = GeneralUtils::SplitString(modifierInfo, ';');
+
+				for (const auto& modifier : modifierData) {
+					if (modifier.empty()) {
+						continue;
+					}
+
+					auto* modifierTemplate = ItemModifierTemplate::FindItemModifierTemplate(modifier);
+
+					if (modifierTemplate == nullptr) {
+						Game::logger->Log("InventoryComponent", "Failed to find modifier template (%s)!", modifier.c_str());
+						continue;
+					}
+
+					modifiers.push_back(modifierTemplate);
+				}
+			}
+
+
+			auto* item = new Item(id, lot, inventory, slot, count, bound, config, parent, subKey);
+
+			if (!stats.empty())
+			{
+				item->GetStats() = stats;
+			}
+
+			if (!modifiers.empty())
+			{
+				item->GetModifiers() = modifiers;
+			}
 
 			if (equipped) {
 				const auto info = Inventory::FindItemComponent(lot);
@@ -701,6 +771,24 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 
 				itemElement->LinkEndChild(extraInfo);
 			}
+
+			// St attribute
+			std::stringstream ss;
+
+			for (const auto& stat : item->GetStats()) {
+				ss << static_cast<uint32_t>(stat.type) << "," << static_cast<uint32_t>(stat.modifier) << "," << stat.value << ";";
+			}
+
+			itemElement->SetAttribute("st", ss.str().c_str());
+
+			// Mo attribute
+			ss.str("");
+
+			for (const auto& modifier : item->GetModifiers()) {
+				ss << modifier->GetName() << ";";
+			}
+
+			itemElement->SetAttribute("mo", ss.str().c_str());
 
 			bagElement->LinkEndChild(itemElement);
 		}
@@ -1031,7 +1119,17 @@ void InventoryComponent::ApplyBuff(Item* item) const {
 	const auto buffs = FindBuffs(item, true);
 
 	for (const auto buff : buffs) {
-		SkillComponent::HandleUnmanaged(buff, m_Parent->GetObjectID());
+		SkillComponent::HandleUnmanaged(buff, m_Parent->GetObjectID(), LWOOBJID_EMPTY, item->GetId());
+	}
+
+	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+
+	if (destroyableComponent == nullptr) {
+		return;
+	}
+
+	for (const auto& stat : item->GetStats()) {
+		destroyableComponent->AddStat(stat);
 	}
 }
 
@@ -1040,7 +1138,17 @@ void InventoryComponent::RemoveBuff(Item* item) const {
 	const auto buffs = FindBuffs(item, false);
 
 	for (const auto buff : buffs) {
-		SkillComponent::HandleUnCast(buff, m_Parent->GetObjectID());
+		SkillComponent::HandleUnCast(buff, m_Parent->GetObjectID(), item->GetId());
+	}
+
+	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+
+	if (destroyableComponent == nullptr) {
+		return;
+	}
+
+	for (const auto& stat : item->GetStats()) {
+		destroyableComponent->RemoveStat(stat);
 	}
 }
 
@@ -1157,23 +1265,35 @@ void InventoryComponent::AddItemSkills(const LOT lot) {
 		return;
 	}
 
-	const auto index = m_Skills.find(slot);
+	eSkillBar bar = eSkillBar::Gear;
+
+	switch (slot)
+	{
+	case BehaviorSlot::Primary:
+		bar = eSkillBar::Primary;
+		break;
+	case BehaviorSlot::Consumable:
+		bar = eSkillBar::Consumable;
+		break;
+	}
 
 	const auto skill = FindSkill(lot);
 
 	if (skill == 0) {
+		UnequipSkill(bar, slot);
+
 		return;
 	}
 
-	if (index != m_Skills.end()) {
-		const auto old = index->second;
-
-		GameMessages::SendRemoveSkill(m_Parent, old);
+	if (slot == BehaviorSlot::Primary) {
+		EquipSkill(eSkillBar::Primary, BehaviorSlot::Primary, skill);
+		EquipSkill(eSkillBar::Gear, BehaviorSlot::Primary, skill);
+		EquipSkill(eSkillBar::ClassPrimary, BehaviorSlot::Primary, skill);
+		EquipSkill(eSkillBar::ClassSecondary, BehaviorSlot::Primary, skill);
 	}
-
-	GameMessages::SendAddSkill(m_Parent, skill, static_cast<int>(slot));
-
-	m_Skills.insert_or_assign(slot, skill);
+	else {
+		EquipSkill(bar, slot, skill);
+	}
 }
 
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
@@ -1185,23 +1305,155 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 		return;
 	}
 
-	const auto index = m_Skills.find(slot);
+	if (slot == BehaviorSlot::Primary) {
+		EquipSkill(eSkillBar::Primary, BehaviorSlot::Primary, 1);
+		EquipSkill(eSkillBar::Gear, BehaviorSlot::Primary, 1);
+		EquipSkill(eSkillBar::ClassPrimary, BehaviorSlot::Primary, 1);
+		EquipSkill(eSkillBar::ClassSecondary, BehaviorSlot::Primary, 1);
 
-	if (index == m_Skills.end()) {
 		return;
 	}
 
-	const auto old = index->second;
+	eSkillBar bar = eSkillBar::Gear;
 
-	GameMessages::SendRemoveSkill(m_Parent, old);
-
-	m_Skills.erase(slot);
-
-	if (slot == BehaviorSlot::Primary) {
-		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
-
-		GameMessages::SendAddSkill(m_Parent, 1, static_cast<int>(BehaviorSlot::Primary));
+	switch (slot)
+	{
+	case BehaviorSlot::Primary:
+		bar = eSkillBar::Primary;
+		break;
+	case BehaviorSlot::Consumable:
+		bar = eSkillBar::Consumable;
+		break;
 	}
+
+	UnequipSkill(bar, slot);
+}
+
+void InventoryComponent::EquipSkill(eSkillBar bar, BehaviorSlot slot, uint32_t skillID) {
+	Game::logger->Log("InventoryComponent", "Equipping skill %i to slot %i on bar %i", skillID, slot, bar);
+
+	const auto& barIt = m_EquippedSkills.find(bar);
+
+	if (barIt == m_EquippedSkills.end()) {
+		m_EquippedSkills.emplace(bar, std::map<BehaviorSlot, uint32_t>());
+	}
+
+	auto& barMap = m_EquippedSkills.at(bar);
+
+	const auto& slotIt = barMap.find(slot);
+
+	barMap.insert_or_assign(slot, skillID);
+
+	UpdateSkills();
+}
+
+void InventoryComponent::UnequipSkill(eSkillBar bar, BehaviorSlot slot) {
+	Game::logger->Log("InventoryComponent", "Unequipping skill from slot %i on bar %i", slot, bar);
+
+	const auto& barIt = m_EquippedSkills.find(bar);
+
+	if (barIt == m_EquippedSkills.end()) {
+		return;
+	}
+
+	auto& barMap = m_EquippedSkills.at(bar);
+
+	const auto& slotIt = barMap.find(slot);
+
+	if (slotIt == barMap.end()) {
+		return;
+	}
+
+	const auto old = slotIt->second;
+
+	barMap.erase(slot);
+
+	if (bar == eSkillBar::Primary && slot == BehaviorSlot::Primary) {
+		barMap.insert_or_assign(BehaviorSlot::Primary, 1);
+	}
+
+	if (barMap.empty()) {
+		m_EquippedSkills.erase(bar);
+	}
+
+	UpdateSkills();
+}
+
+uint32_t InventoryComponent::GetSkill(eSkillBar bar, BehaviorSlot slot) const {
+    	const auto& barIt = m_EquippedSkills.find(bar);
+
+	if (barIt == m_EquippedSkills.end()) {
+		return 0;
+	}
+
+	const auto& barMap = barIt->second;
+
+	const auto& slotIt = barMap.find(slot);
+
+	if (slotIt == barMap.end()) {
+		return 0;
+	}
+
+	return slotIt->second;
+}
+
+eSkillBar InventoryComponent::GetSelectedSkillBar() const {
+	return m_SelectedSkillBar;
+}
+
+void InventoryComponent::SetSelectedSkillBar(eSkillBar bar) {
+	if (bar == m_SelectedSkillBar) {
+		return;
+	}
+
+	m_SelectedSkillBar = bar;
+
+	UpdateSkills();
+}
+
+void InventoryComponent::UpdateSkills() {
+	// The active skills are kept in m_Skills, compare what is there to what should be there
+	// and add/remove skills as needed
+	const auto& barIt = m_EquippedSkills.find(m_SelectedSkillBar);
+
+	if (barIt == m_EquippedSkills.end()) {
+		// Unequip all skills
+		for (auto& pair : m_Skills) {
+			GameMessages::SendRemoveSkill(m_Parent, pair.second);
+		}
+
+		return;
+	}
+
+	const auto& barMap = barIt->second;
+
+	for (BehaviorSlot slot = BehaviorSlot::Primary; slot < BehaviorSlot::Consumable;) {
+		const auto& slotIt = barMap.find(slot);
+
+		if (slotIt == barMap.end()) {
+			// Unequip the skill
+			const auto& skillIt = m_Skills.find(slot);
+
+			if (skillIt != m_Skills.end()) {
+				GameMessages::SendRemoveSkill(m_Parent, skillIt->second);
+			}
+		}
+		else {
+			// Equip the skill
+			const auto& skillIt = m_Skills.find(slot);
+
+			if (skillIt != m_Skills.end()) {
+				GameMessages::SendRemoveSkill(m_Parent, skillIt->second);
+			}
+
+			GameMessages::SendAddSkill(m_Parent, slotIt->second, static_cast<int32_t>(slot));
+		}
+
+		slot = static_cast<BehaviorSlot>(static_cast<int32_t>(slot) + 1);
+	}
+
+	// Update the active skills
+	m_Skills = barMap;
 }
 
 void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target) {

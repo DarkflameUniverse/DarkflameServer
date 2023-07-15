@@ -96,6 +96,7 @@
 
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
+#include "CDLookupTable.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -1200,6 +1201,8 @@ void GameMessages::SendAddSkill(Entity* entity, TSkillID skillID, int slotID) {
 
 	bitStream.Write(temporary);
 
+	Game::logger->Log("GameMessages", "SendAddSkill: %d", skillID);
+
 	SystemAddress sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
 }
@@ -1212,6 +1215,8 @@ void GameMessages::SendRemoveSkill(Entity* entity, TSkillID skillID) {
 	bitStream.Write(eGameMessageType::REMOVE_SKILL);
 	bitStream.Write(false);
 	bitStream.Write(skillID);
+
+	Game::logger->Log("GameMessages", "SendRemoveSkill: %d", skillID);
 
 	SystemAddress sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
@@ -4845,15 +4850,49 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	// Items with a base value of 0 or max int are special items that should not be sold if they're not sub items
 	if (itemComp.baseValue == 0 || itemComp.baseValue == UINT_MAX) return;
 
-	float sellScalar = vend->GetSellScalar();
-	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
-		const auto altCurrency = static_cast<uint32_t>(itemComp.altCurrencyCost * sellScalar) * count;
-		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::VENDOR); // Return alt currencies like faction tokens.
+	auto craftingCurrencies = CDItemComponentTable::ParseCraftingCurrencies(itemComp);
+
+	Game::logger->Log("GameMessages", "User %llu %s selling %i to a vendor %i", player->GetObjectID(), user->GetUsername().c_str(), item->GetLot(), entity->GetLOT());
+
+	if (entity->GetLOT() == rose::id("grim:froge-anvil")) {
+		Game::logger->Log("GameMessages", "User %llu %s tried to sell an item %i to a forge anvil", player->GetObjectID(), user->GetUsername().c_str(), item->GetLot());
+
+		if (craftingCurrencies.empty()) return;
+
+		for (const auto& craftingCurrency : craftingCurrencies) {
+			uint32_t count;
+
+			if (craftingCurrency.second == 1) {
+				count = GeneralUtils::GenerateRandomNumber<size_t>(0, 100) > 75 ? 1 : 0;
+			} else {
+				count = static_cast<uint32_t>(std::floor(craftingCurrency.second * GeneralUtils::GenerateRandomNumber<float>(0, 1)));
+			}
+
+			if (count == 0) continue;
+
+			inv->AddItem(craftingCurrency.first, count, eLootSourceType::VENDOR);
+		}
+		
+		item->SetCount(0);
+		
+		Game::logger->Log("GameMessages", "User %llu %s sold an item %i to a forge anvil", player->GetObjectID(), user->GetUsername().c_str(), item->GetLot());
+	} else {
+		float sellScalar = vend->GetSellScalar();
+		if (Inventory::IsValidItem(itemComp.currencyLOT)) {
+			const auto altCurrency = static_cast<uint32_t>(itemComp.altCurrencyCost * sellScalar) * count;
+			inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::VENDOR); // Return alt currencies like faction tokens.
+		}
+
+		if (!craftingCurrencies.empty() || !item->GetStats().empty()) {
+			item->SetCount(0);
+		} else {
+			inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
+		}
+
+		character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::VENDOR);
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
-	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
-	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::VENDOR);
 	//EntityManager::Instance()->SerializeEntity(player); // so inventory updates
 	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }

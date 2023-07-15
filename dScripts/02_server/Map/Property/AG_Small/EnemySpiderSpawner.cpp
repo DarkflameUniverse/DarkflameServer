@@ -37,6 +37,7 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "StartSpawnTime") {
 		SpawnSpiderling(self);
 	} else if (timerName == "SpawnSpiderling") {
+		GameMessages::SendStopFXEffect(self, true, "egg_puff_b");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 644, u"create", "egg_puff_b", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
 
 		//TODO: set the aggro radius larger
@@ -59,8 +60,10 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 			movementAi->SetDestination(newEntity->GetPosition());
 			*/
 		}
+		
+		self->AddTimer("StartSpawnTime", 5);
 
-		self->ScheduleKillAfterUpdate();
+		//self->ScheduleKillAfterUpdate();
 	}
 }
 
@@ -69,6 +72,7 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 //--------------------------------------------------------------
 void EnemySpiderSpawner::SpawnSpiderling(Entity* self) {
 	//Initiate the actual spawning
+	GameMessages::SendStopFXEffect(self, true, "dropdustmedium");
 	GameMessages::SendPlayFXEffect(self->GetObjectID(), 2260, u"rebuild_medium", "dropdustmedium", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
 	self->AddTimer("SpawnSpiderling", spawnTime);
 }

@@ -22,7 +22,7 @@ void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		return;
 	}
 
-	destroyable->SetDamageToAbsorb(static_cast<uint32_t>(destroyable->GetDamageToAbsorb()) + this->m_absorbAmount);
+	destroyable->SetDamageToAbsorb(static_cast<uint32_t>(destroyable->GetDamageToAbsorb()) + this->m_absorbAmount * 50);
 
 	destroyable->SetIsShielded(true);
 
@@ -50,7 +50,7 @@ void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchCon
 
 	const auto present = static_cast<uint32_t>(destroyable->GetDamageToAbsorb());
 
-	const auto toRemove = std::min(present, this->m_absorbAmount);
+	const auto toRemove = std::min(present, this->m_absorbAmount * 50);
 
 	destroyable->SetDamageToAbsorb(present - toRemove);
 }

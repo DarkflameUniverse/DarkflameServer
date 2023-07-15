@@ -25,6 +25,7 @@
 #include "eMissionTaskType.h"
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
+#include "EntityProfile.h"
 
 //Component includes:
 #include "Component.h"
@@ -361,6 +362,18 @@ void Entity::Initialize() {
 						destCompData[0].imagination = 60;
 					}
 
+					auto& info = destCompData[0];
+
+					auto* entityProfile = EntityProfile::FindEntityProfile(m_TemplateID);
+
+					if (entityProfile != nullptr) {
+						if (entityProfile->GetLevel() > 0) info.level = entityProfile->GetLevel();
+						if (entityProfile->GetHealth() > 0) info.life = entityProfile->GetHealth();
+						if (entityProfile->GetArmor() > 0) info.armor = entityProfile->GetArmor();
+					}
+
+					comp->SetInfo(destCompData[0]);
+
 					comp->SetHealth(destCompData[0].life);
 					comp->SetImagination(destCompData[0].imagination);
 					comp->SetArmor(destCompData[0].armor);
@@ -372,6 +385,15 @@ void Entity::Initialize() {
 					comp->SetIsSmashable(destCompData[0].isSmashable);
 
 					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
+
+					comp->ComputeBaseStats(true);
+
+					if (true)
+					{
+						comp->SetHealth(comp->GetMaxHealth());
+						comp->SetImagination(comp->GetMaxImagination());
+						comp->SetArmor(comp->GetMaxArmor());
+					}
 
 					// Now get currency information
 					uint32_t npcMinLevel = destCompData[0].level;

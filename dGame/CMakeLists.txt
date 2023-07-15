@@ -56,8 +56,19 @@ foreach(file ${DGAME_DUTILITIES_SOURCES})
 	set(DGAME_SOURCES ${DGAME_SOURCES} "dUtilities/${file}")
 endforeach()
 
+add_subdirectory(dGrim)
+
+foreach(file ${DGAME_DGRIM_SOURCES})
+	set(DGAME_SOURCES ${DGAME_SOURCES} "dGrim/${file}")
+endforeach()
+
 foreach(file ${DSCRIPTS_SOURCES})
 	set(DGAME_SOURCES ${DGAME_SOURCES} "${PROJECT_SOURCE_DIR}/dScripts/${file}")
+endforeach()
+
+foreach(file ${DZONEMANAGER_SOURCES})
+	message("Adding ${file}")
+	set(DGAME_SOURCES ${DGAME_SOURCES} "${PROJECT_SOURCE_DIR}/dZoneManager/${file}")
 endforeach()
 
 add_library(dGame STATIC ${DGAME_SOURCES})

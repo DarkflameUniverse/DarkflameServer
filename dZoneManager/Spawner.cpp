@@ -6,6 +6,9 @@
 #include <functional>
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
+#include "SpawnPatterns.h"
+
+std::map<LOT, std::vector<std::pair<NiPoint3, float>>> Spawner::m_Ratings;
 
 Spawner::Spawner(const SpawnerInfo info) {
 	m_Info = info;
@@ -69,6 +72,10 @@ Spawner::Spawner(const SpawnerInfo info) {
 				});
 		}
 	}
+
+	m_SpawnPattern = SpawnPatterns::FindSpawnPatterns(m_Info.templateID);
+
+	m_LotsToCheck.push_back(m_Info.templateID);
 }
 
 Spawner::~Spawner() {
@@ -100,6 +107,95 @@ Entity* Spawner::Spawn(std::vector<SpawnerNode*> freeNodes, const bool force) {
 			m_EntityInfo.spawnerNodeID = spawnNode->nodeID;
 			m_EntityInfo.hasSpawnerNodeID = true;
 			m_EntityInfo.spawnerID = m_Info.spawnerID;
+		}
+
+		bool usedSpawnPattern = false;
+		
+		if (m_SpawnPattern != nullptr) {
+			auto pattern = m_SpawnPattern->GetSpawnPatterns();
+
+			// Check the area rating
+			// std::map<LOT, std::vector<std::pair<NiPoint3, float>>> m_Ratings
+			for (const auto& lot : m_LotsToCheck)
+			{
+				const auto& it = m_Ratings.find(lot);
+
+				int32_t rating = 0;
+
+				if (it != m_Ratings.end()) {
+					// Check if we are within 50units of a rating
+					for (const auto& ratingIt : it->second)
+					{
+						if (NiPoint3::DistanceSquared(ratingIt.first, m_EntityInfo.pos) <= 100.0f * 100.0f)
+						{
+							rating = ratingIt.second;
+							break;
+						}
+					}
+				}
+
+				for (const auto& it : pattern)
+				{
+					if (it.first > rating) continue;
+
+					// Random number between 0 and 1
+					float random = GeneralUtils::GenerateRandomNumber<float>(0, 1);
+
+					const auto& change = it.second.first;
+
+					if (random >= change) continue;
+
+					usedSpawnPattern = true;
+
+					Entity* first = nullptr;
+
+					for (const auto& spawn : it.second.second)
+					{
+						float angle = GeneralUtils::GenerateRandomNumber<float>(0, 360) * M_PI / 180.0f;
+						float radius = GeneralUtils::GenerateRandomNumber<float>(0, 6);
+
+						float x = radius * cos(angle);
+						float z = radius * sin(angle);
+
+						auto copy = m_EntityInfo;
+						copy.pos.x += x;
+						copy.pos.z += z;
+						copy.lot = spawn;
+
+						if (std::find(m_LotsToCheck.begin(), m_LotsToCheck.end(), spawn) == m_LotsToCheck.end()) {
+							m_LotsToCheck.push_back(spawn);
+						}
+
+						Entity* rezdE = EntityManager::Instance()->CreateEntity(copy, nullptr);
+
+						rezdE->GetGroups() = m_Info.groups;
+
+						EntityManager::Instance()->ConstructEntity(rezdE);
+
+						m_Entities.insert({ rezdE->GetObjectID(), spawnNode });
+
+						spawnNode->entities.push_back(rezdE->GetObjectID());
+
+						for (const auto& cb : m_EntitySpawnedCallbacks) {
+							cb(rezdE);
+						}
+
+						if (first == nullptr) {
+							first = rezdE;
+						}
+
+						break;
+					}
+
+					usedSpawnPattern = true;
+
+					if (m_Entities.size() == m_Info.amountMaintained) {
+						m_NeedsUpdate = false;
+					}
+					
+					return first;
+				}
+			}
 		}
 
 		Entity* rezdE = EntityManager::Instance()->CreateEntity(m_EntityInfo, nullptr);
@@ -232,6 +328,65 @@ void Spawner::NotifyOfEntityDeath(const LWOOBJID& objectID) {
 
 	if (m_SpawnOnSmash != nullptr) {
 		m_SpawnOnSmash->Reset();
+	}
+
+	const auto& lot = m_Info.templateID;
+
+	// Add to area rating
+	// std::map<LOT, std::vector<std::pair<NiPoint3, float>>> m_Ratings
+	// First check if the lot is in the map, if not, add it
+	// Than check if there exist any ratings for that lot within 50units of the spawner
+	// If there is, add 1 to the rating
+	// If there isn't, add a new rating
+	const auto& pos = node->position;
+
+	const auto& it2 = m_Ratings.find(lot);
+
+	if (it2 == m_Ratings.end()) {
+		m_Ratings.insert({ lot, { { pos, 1.0f } } });
+	} else {
+		auto& ratings = it2->second;
+
+		bool found = false;
+		for (auto& rating : ratings) {
+			if (NiPoint3::DistanceSquared(rating.first, pos) < 100.0f * 100.0f) {
+				rating.second += 1.0f;
+
+				Game::logger->Log("Spawner", "Rating %f", rating.second);
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			ratings.push_back({ pos, 1.0f });
+		}
+	}
+}
+
+void Spawner::UpdateRatings(float deltaTime) {
+	// Loop through all ratings and decrease them by deltaTime
+	for (auto& rating : m_Ratings) {
+		for (auto& rating2 : rating.second) {
+			rating2.second -= deltaTime * 0.1f;
+		}
+	}
+
+	// Loop through all ratings and remove any that are 0 or less
+	for (auto it = m_Ratings.begin(); it != m_Ratings.end();) {
+		for (auto it2 = it->second.begin(); it2 != it->second.end();) {
+			if (it2->second <= 0.0f) {
+				it2 = it->second.erase(it2);
+			} else {
+				++it2;
+			}
+		}
+
+		if (it->second.empty()) {
+			it = m_Ratings.erase(it);
+		} else {
+			++it;
+		}
 	}
 }
 

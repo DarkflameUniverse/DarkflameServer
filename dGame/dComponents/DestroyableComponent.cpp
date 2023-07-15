@@ -35,6 +35,9 @@
 #include "eMissionTaskType.h"
 #include "eStateChangeType.h"
 #include "eGameActivity.h"
+#include "LevelProgressionComponent.h"
+#include "ResistanceProfile.h"
+#include "DamageProfile.h"
 
 #include "CDComponentsRegistryTable.h"
 
@@ -62,6 +65,7 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_MinCoins = 0;
 	m_MaxCoins = 0;
 	m_DamageReduction = 0;
+	m_DirtyStats = true;
 
 	m_ImmuneToBasicAttackCount = 0;
 	m_ImmuneToDamageOverTimeCount = 0;
@@ -72,6 +76,8 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_ImmuneToImaginationLossCount = 0;
 	m_ImmuneToQuickbuildInterruptCount = 0;
 	m_ImmuneToPullToPointCount = 0;
+
+	m_ResistanceProfile = ResistanceProfile::FindResistanceProfile(m_Parent->GetLOT());
 }
 
 DestroyableComponent::~DestroyableComponent() {
@@ -95,6 +101,8 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 	if (componentID > 0) {
 		std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
+		m_Info = destCompData[0];
+
 		if (destCompData.size() > 0) {
 			SetHealth(destCompData[0].life);
 			SetImagination(destCompData[0].imagination);
@@ -107,6 +115,11 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 			SetIsSmashable(destCompData[0].isSmashable);
 		}
 	} else {
+		m_Info = {};
+		m_Info.life = 1;
+		m_Info.imagination = 0;
+		m_Info.armor = 0;
+
 		SetHealth(1);
 		SetImagination(0);
 		SetArmor(0);
@@ -116,6 +129,15 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 		SetMaxArmor(0);
 
 		SetIsSmashable(true);
+	}
+
+	ComputeBaseStats();
+
+	if (!m_Parent->IsPlayer())
+	{
+		SetHealth(GetMaxHealth());
+		SetImagination(GetMaxImagination());
+		SetArmor(GetMaxArmor());
 	}
 }
 
@@ -810,6 +832,18 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 				}
 			}
 		}
+		
+		std::vector<Entity*> scripts = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
+		for (Entity* scriptEntity : scripts) {
+			// Prevent double triggering
+			if (scriptEntity->GetObjectID() == zoneControl->GetObjectID()) continue;
+			if (std::find(scriptedActs.begin(), scriptedActs.end(), scriptEntity) != scriptedActs.end()) continue;
+			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
+					script->OnPlayerDied(scriptEntity, m_Parent);
+				}
+			}
+		}
 	}
 
 	m_Parent->Kill(owner);
@@ -949,6 +983,8 @@ void DestroyableComponent::FixStats() {
 		item->Equip();
 	}
 
+	destroyableComponent->ComputeBaseStats();
+
 	// Fetch correct max stats after everything is done
 	maxHealth = destroyableComponent->GetMaxHealth();
 	maxArmor = destroyableComponent->GetMaxArmor();
@@ -966,6 +1002,325 @@ void DestroyableComponent::FixStats() {
 
 	// Serialize the entity
 	EntityManager::Instance()->SerializeEntity(entity);
+}
+
+void DestroyableComponent::AddStat(const StatProperty& stat) {
+	m_DirtyStats = true;
+
+	const auto& typeIter = m_Stats.find(stat.type);
+
+	if (typeIter == m_Stats.end()) {
+		m_Stats.emplace(stat.type, std::map<eStatModifier, float>());
+	}
+
+	auto& typeMap = m_Stats.at(stat.type);
+
+	const auto& modifierIter = typeMap.find(stat.modifier);
+
+	if (modifierIter == typeMap.end()) {
+		typeMap.emplace(stat.modifier, stat.value);
+		return;
+	}
+
+	typeMap.at(stat.modifier) += stat.value;
+}
+
+void DestroyableComponent::RemoveStat(const StatProperty& stat) {
+	m_DirtyStats = true;
+
+	const auto& typeIter = m_Stats.find(stat.type);
+
+	if (typeIter == m_Stats.end()) {
+		return;
+	}
+
+	auto& typeMap = m_Stats.at(stat.type);
+
+	const auto& modifierIter = typeMap.find(stat.modifier);
+
+	if (modifierIter == typeMap.end()) {
+		return;
+	}
+
+	typeMap.at(stat.modifier) -= stat.value;
+
+	if (typeMap.at(stat.modifier) <= 0) {
+		typeMap.erase(stat.modifier);
+	}
+
+	if (typeMap.empty()) {
+		m_Stats.erase(stat.type);
+	}
+}
+
+float DestroyableComponent::GetStat(eStatTypes statType, eStatModifier statModifier) const {
+	const auto& typeIter = m_Stats.find(statType);
+
+	float baseResistance = 0;
+
+	if (statModifier == eStatModifier::DamageResistance) {
+		if (m_ResistanceProfile != nullptr) {
+			baseResistance = m_ResistanceProfile->GetResistanceProfile(statType);
+
+			Game::logger->Log("DestroyableComponent", "Base resistance: %f for %i, type %i", baseResistance, m_Parent->GetLOT(), statType);
+		}
+		else {
+			Game::logger->Log("DestroyableComponent", "No resistance profile for %i", m_Parent->GetLOT());
+		}
+	}
+
+	if (typeIter == m_Stats.end()) {
+		return baseResistance;
+	}
+
+	const auto& typeMap = m_Stats.at(statType);
+
+	const auto& modifierIter = typeMap.find(statModifier);
+
+	if (modifierIter == typeMap.end()) {
+		return baseResistance;
+	}
+
+	return typeMap.at(statModifier);
+}
+
+void DestroyableComponent::ComputeBaseStats(bool refill) {
+	if (!m_Parent->IsPlayer())
+	{
+		auto* combatAI = m_Parent->GetComponent<BaseCombatAIComponent>();
+
+		if (combatAI == nullptr)
+		{
+			return;
+		}
+	}
+
+	// Store the current health, armor and imagination
+	const auto currentHealth = GetHealth();
+	const auto currentArmor = GetArmor();
+
+	float maxHealth = 0.0f;
+	float maxArmor = 0.0f;
+	
+	int32_t level = (static_cast<int32_t>(m_Info.level) <= 1) ? 1 : m_Info.level;
+
+	if (m_Parent->IsPlayer())
+	{
+		level = m_Parent->GetComponent<LevelProgressionComponent>()->GetLevel();
+		m_Info.life = 4;
+	}
+
+	maxHealth += level * m_Info.life;
+
+	maxHealth *= 10;
+
+	maxHealth += GetStat(eStatTypes::Health, eStatModifier::Absolute);
+	maxHealth *= 1.0f + GetStat(eStatTypes::Health, eStatModifier::Percent);
+
+	maxArmor = level * m_Info.armor;
+
+	maxArmor *= 10;
+
+	maxArmor += GetStat(eStatTypes::Armor, eStatModifier::Absolute);
+	maxArmor *= 1.0f + GetStat(eStatTypes::Armor, eStatModifier::Percent);
+
+	// Set the base stats
+	SetMaxHealth(maxHealth);
+	SetMaxArmor(maxArmor);
+
+	// If any of the current stats are more than their max, set them to the max
+	if (currentHealth > maxHealth || refill) SetHealth(maxHealth);
+	else SetHealth(currentHealth);
+
+	if (currentArmor > maxArmor || refill) SetArmor(maxArmor);
+	else SetArmor(currentArmor);
+
+	EntityManager::Instance()->SerializeEntity(m_Parent);
+}
+
+std::map<eStatTypes, float> DestroyableComponent::ComputeDamage(uint32_t baseDamage, Entity* source, DamageProfile* damageProfile) {
+	const bool debug = true;
+
+	auto* sourceDestroyable = source->GetComponent<DestroyableComponent>();
+
+	if (sourceDestroyable == nullptr) {
+		Game::logger->Log("Damage", "Source entity has no destroyable componen %i", source->GetLOT());
+		return {{eStatTypes::Physical, baseDamage}};
+	}
+
+	std::stringstream ss;
+
+	std::map<eStatTypes, float> damageMap = {{eStatTypes::Physical, baseDamage}};
+
+	for (eStatTypes damageType = eStatTypes::Physical; damageType < eStatTypes::MAX; 
+		 damageType = static_cast<eStatTypes>(static_cast<uint32_t>(damageType) + 1)) {
+		// Get the damage for this damage type
+		float damage = sourceDestroyable->GetStat(damageType, eStatModifier::DamageAbsolute);
+
+		damage *= 1.0f + sourceDestroyable->GetStat(damageType, eStatModifier::DamagePercent) + ::log(baseDamage);
+
+		if (damageProfile != nullptr)
+		{
+			damage += damageProfile->GetDamageProfile(damageType);
+		}
+
+		/*
+		  Level scaling
+		 */
+		float ourLevel = (static_cast<int32_t>(m_Info.level) <= 1) ? 1 : m_Info.level;
+		float sourceLevel;
+
+		if (source->IsPlayer())
+		{
+			auto* levelProgressionComponent = source->GetComponent<LevelProgressionComponent>();
+
+			if (levelProgressionComponent == nullptr)
+			{
+				Game::logger->Log("Damage", "Source entity is player but has no level progression component %i", source->GetLOT());
+				return {{eStatTypes::Physical, baseDamage}};
+			}
+
+			sourceLevel = levelProgressionComponent->GetLevel();
+
+			// Player max is level 45, scale it to between 1 and 10
+			sourceLevel = static_cast<int32_t>(static_cast<float>(sourceLevel) / 4.5f);
+
+			// Make sure it's between 1 and 10
+			sourceLevel = std::max(sourceLevel, 1.0f);
+			sourceLevel = std::min(sourceLevel, 10.0f);
+
+			if (ourLevel < sourceLevel)
+			{
+				damage /= 1 + (sourceLevel - ourLevel);
+			}
+		}
+		else
+		{
+			sourceLevel = (static_cast<int32_t>(sourceDestroyable->m_Info.level) <= 1) ? 1 : sourceDestroyable->m_Info.level;
+		
+			if (m_Parent->IsPlayer())
+			{
+				auto* levelProgressionComponent = m_Parent->GetComponent<LevelProgressionComponent>();
+
+				if (levelProgressionComponent == nullptr)
+				{
+					Game::logger->Log("Damage", "Source entity is player but has no level progression component %i", m_Parent->GetLOT());
+					return {{eStatTypes::Physical, baseDamage}};
+				}
+
+				ourLevel = levelProgressionComponent->GetLevel();
+
+				// Player max is level 45, scale it to between 1 and 10
+				ourLevel = static_cast<int32_t>(static_cast<float>(ourLevel) / 4.5f);
+
+				// Make sure it's between 1 and 10
+				ourLevel = std::max(ourLevel, 1.0f);
+				ourLevel = std::min(ourLevel, 10.0f);
+
+				if (ourLevel > sourceLevel)
+				{
+					damage *= 1 + (ourLevel - sourceLevel);
+				}
+			}
+		}
+
+		// Idk
+
+		// If the damage is 0, skip this damage type
+		if (damage == 0) {
+			continue;
+		}
+
+		// Calculate our resistance for this damage type
+		const auto resistance = this->GetStat(damageType, eStatModifier::DamageResistance);
+
+		// Cap resistance at 80%
+		const auto cappedResistance = std::min(resistance, 0.8f);
+
+		// Calculate the damage we take
+		const auto damageTaken = damage * (1.0f - cappedResistance);
+
+		// Add the damage to our total damage
+		const auto& it = damageMap.find(damageType);
+
+		if (it == damageMap.end()) {
+			damageMap[damageType] = damageTaken;
+		} else {
+			damageMap[damageType] += damageTaken;
+		}
+
+		// Log the calculation
+		if (debug) {
+			ss << "Damage type: " << static_cast<int32_t>(damageType) << std::endl;
+			ss << "\tDamage: " << damage << std::endl;
+			ss << "\tResistance: " << resistance << std::endl;
+			ss << "\tCapped resistance: " << cappedResistance << std::endl;
+			ss << "\tDamage taken: " << damageTaken << std::endl;
+		}
+	}
+
+	return damageMap;
+}
+
+void DestroyableComponent::Damage(const std::map<eStatTypes, float>& damage, LWOOBJID source, uint32_t skillID, bool echo) {
+	float totalDamage = 0;
+
+	for (const auto& [damageType, damageAmount] : damage) {
+		totalDamage += damageAmount;
+	}
+
+	// Find the greatest damage type
+	eStatTypes greatestDamageType = eStatTypes::Physical;
+
+	for (const auto& [damageType, damageAmount] : damage) {
+		if (damageAmount > damage.at(greatestDamageType)) {
+			greatestDamageType = damageType;
+		}
+	}
+
+	const auto effectName = std::to_string(GeneralUtils::GenerateRandomNumber<size_t>(100, 10000));
+
+	const auto& objectId = m_Parent->GetObjectID();
+
+	const bool critical = GeneralUtils::GenerateRandomNumber<size_t>(0, 100) <= 10;
+
+	if (critical) {
+		totalDamage *= 2;
+	}
+
+	// Play an effect on us representing the damage
+	switch (greatestDamageType) {
+	case eStatTypes::Heat:
+		if (!critical) GameMessages::SendPlayFXEffect(objectId, 50, u"onhit", effectName);
+		else GameMessages::SendPlayFXEffect(objectId, 1578, u"onhit", effectName);
+		break;
+	case eStatTypes::Electric:
+		if (!critical) GameMessages::SendPlayFXEffect(objectId, 4027, u"create", effectName);
+		else GameMessages::SendPlayFXEffect(objectId, 953, u"onhit", effectName);
+		break;
+	case eStatTypes::Corruption:
+		if (!critical) GameMessages::SendPlayFXEffect(objectId, 7, u"onhit", effectName);
+		else GameMessages::SendPlayFXEffect(objectId, 1153, u"death", effectName);
+		break;
+	case eStatTypes::Physical:
+	default:
+		if (!critical) GameMessages::SendPlayFXEffect(objectId, 5039, u"on-anim", effectName);
+		else GameMessages::SendPlayFXEffect(objectId, 4972, u"onhitObject", effectName);
+		break;
+	}
+
+	m_Parent->AddCallbackTimer(1.5f, [this, effectName]() {
+		GameMessages::SendStopFXEffect(m_Parent, true, effectName);
+	});
+
+	Damage(totalDamage, source, skillID, echo);
+}
+
+void DestroyableComponent::Update(float deltaTime) {
+	if (m_DirtyStats) {
+		ComputeBaseStats();
+		m_DirtyStats = false;
+	}
 }
 
 void DestroyableComponent::AddOnHitCallback(const std::function<void(Entity*)>& callback) {

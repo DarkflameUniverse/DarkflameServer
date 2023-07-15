@@ -6,6 +6,7 @@
 #include "DestroyableComponent.h"
 #include "BehaviorContext.h"
 #include "eBasicAttackSuccessTypes.h"
+#include "DamageProfile.h"
 
 void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	if (context->unmanaged) {
@@ -101,6 +102,17 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 			totalDamageDealt = this->m_MinDamage;
 		}
 
+		auto* source = EntityManager::Instance()->GetEntity(context->originator);
+
+		auto* damageProfile = DamageProfile::FindDamageProfile(context->skillID);
+
+		auto damageMap = destroyableComponent->ComputeDamage(totalDamageDealt, source, damageProfile);
+
+		// Apply a standard diviation of (+/-)20%
+		for (auto& damage : damageMap) {
+			damage.second = static_cast<uint32_t>(damage.second * (1.0f + (static_cast<float>(rand() % 40) / 100.0f) - 0.2f));
+		}
+		
 		bool died{};
 		if (!bitStream->Read(died)) {
 			Game::logger->Log("BasicAttackBehavior", "Unable to read died");
@@ -109,7 +121,8 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 		auto previousArmor = destroyableComponent->GetArmor();
 		auto previousHealth = destroyableComponent->GetHealth();
 		PlayFx(u"onhit", targetEntity->GetObjectID());
-		destroyableComponent->Damage(totalDamageDealt, context->originator, context->skillID);
+		destroyableComponent->Damage(damageMap, context->originator, context->skillID);
+		//destroyableComponent->Damage(totalDamageDealt, context->originator, context->skillID);
 	}
 
 	uint8_t successState{};
@@ -191,10 +204,28 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 	const uint32_t previousHealth = destroyableComponent->GetHealth();
 	const uint32_t previousArmor = destroyableComponent->GetArmor();
 
-	const auto damage = this->m_MinDamage;
+	auto damage = this->m_MinDamage;
+
+	auto* source = EntityManager::Instance()->GetEntity(context->originator);
+
+	auto* damageProfile = DamageProfile::FindDamageProfile(context->skillID);
+
+	if (damageProfile != nullptr) {
+		Game::logger->Log("BasicAttackBehavior", "Found damage profile for skill %i, originator %i", context->skillID, source->GetLOT());
+	}
+	else {
+		Game::logger->Log("BasicAttackBehavior", "No damage profile found for skill %i, originator %i", context->skillID, source->GetLOT());
+	}
+
+	auto damageMap = destroyableComponent->ComputeDamage(damage, source, damageProfile);
+
+	// Apply a standard diviation of (+/-)20%
+	for (auto& damage : damageMap) {
+		damage.second = static_cast<uint32_t>(damage.second * (1.0f + (static_cast<float>(rand() % 40) / 100.0f) - 0.2f));
+	}
 
 	PlayFx(u"onhit", targetEntity->GetObjectID(), 1);
-	destroyableComponent->Damage(damage, context->originator, context->skillID, false);
+	destroyableComponent->Damage(damageMap, context->originator, context->skillID, false);
 	context->ScheduleUpdate(branch.target);
 
 	const uint32_t armorDamageDealt = previousArmor - destroyableComponent->GetArmor();

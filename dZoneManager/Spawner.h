@@ -10,6 +10,7 @@
 #include <functional>
 #include "LDFFormat.h"
 #include "EntityInfo.h"
+#include "SpawnPatterns.h"
 
 struct SpawnerNode {
 	NiPoint3 position = NiPoint3::ZERO;
@@ -67,6 +68,8 @@ public:
 	void SetNumToMaintain(int32_t value);
 	bool GetIsSpawnSmashGroup() const { return m_SpawnSmashFoundGroup; };
 
+	static void UpdateRatings(float deltaTime);
+
 	SpawnerInfo m_Info;
 	bool m_Active = true;
 private:
@@ -82,6 +85,12 @@ private:
 	int32_t m_AmountSpawned = 0;
 	bool m_Start = false;
 	Spawner* m_SpawnOnSmash = nullptr;
+
+	SpawnPatterns* m_SpawnPattern = nullptr;
+
+	std::vector<LOT> m_LotsToCheck = {};
+
+	static std::map<LOT, std::vector<std::pair<NiPoint3, float>>> m_Ratings;
 };
 
 #endif // SPAWNER_H

@@ -46,6 +46,8 @@ public:
 
 	void OnTimerDone(Entity* self, std::string timerName) override;
 
+	void OnPlayerDied(Entity* self, Entity* player) override;
+
 private:
 	//Regular variables:
 	DestroyableComponent* destroyable = nullptr;
@@ -61,7 +63,7 @@ private:
 
 	//Const variables:
 
-	const std::vector<int> spiderWaveCntTable = { 2, 3 };	//The number of Dark Spiderling enemies to spawn per indexed wave number
+	const std::vector<int> spiderWaveCntTable = { 6, 8 };	//The number of Dark Spiderling enemies to spawn per indexed wave number
 
 	const int ROFImpactCnt = 2;			//The number of ROF impacts in each quadrant of the arena selected at random
 

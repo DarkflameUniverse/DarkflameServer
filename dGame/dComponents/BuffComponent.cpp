@@ -153,7 +153,7 @@ void BuffComponent::ApplyBuffEffect(int32_t id) {
 
 			if (destroyable == nullptr) return;
 
-			destroyable->SetMaxHealth(destroyable->GetMaxHealth() + maxHealth);
+			destroyable->SetMaxHealth(destroyable->GetMaxHealth() + maxHealth * BASE_MULTIPLIER);
 		} else if (parameter.name == "max_armor") {
 			const auto maxArmor = parameter.value;
 
@@ -161,7 +161,7 @@ void BuffComponent::ApplyBuffEffect(int32_t id) {
 
 			if (destroyable == nullptr) return;
 
-			destroyable->SetMaxArmor(destroyable->GetMaxArmor() + maxArmor);
+			destroyable->SetMaxArmor(destroyable->GetMaxArmor() + maxArmor * BASE_MULTIPLIER);
 		} else if (parameter.name == "max_imagination") {
 			const auto maxImagination = parameter.value;
 
@@ -169,7 +169,7 @@ void BuffComponent::ApplyBuffEffect(int32_t id) {
 
 			if (destroyable == nullptr) return;
 
-			destroyable->SetMaxImagination(destroyable->GetMaxImagination() + maxImagination);
+			destroyable->SetMaxImagination(destroyable->GetMaxImagination() + maxImagination * BASE_MULTIPLIER);
 		} else if (parameter.name == "speed") {
 			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
 			if (!controllablePhysicsComponent) return;
@@ -189,7 +189,7 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 
 			if (destroyable == nullptr) return;
 
-			destroyable->SetMaxHealth(destroyable->GetMaxHealth() - maxHealth);
+			destroyable->SetMaxHealth(destroyable->GetMaxHealth() - maxHealth * BASE_MULTIPLIER);
 		} else if (parameter.name == "max_armor") {
 			const auto maxArmor = parameter.value;
 
@@ -197,7 +197,7 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 
 			if (destroyable == nullptr) return;
 
-			destroyable->SetMaxArmor(destroyable->GetMaxArmor() - maxArmor);
+			destroyable->SetMaxArmor(destroyable->GetMaxArmor() - maxArmor * BASE_MULTIPLIER);
 		} else if (parameter.name == "max_imagination") {
 			const auto maxImagination = parameter.value;
 
@@ -205,7 +205,7 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 
 			if (destroyable == nullptr) return;
 
-			destroyable->SetMaxImagination(destroyable->GetMaxImagination() - maxImagination);
+			destroyable->SetMaxImagination(destroyable->GetMaxImagination() - maxImagination * BASE_MULTIPLIER);
 		} else if (parameter.name == "speed") {
 			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
 			if (!controllablePhysicsComponent) return;

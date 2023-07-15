@@ -162,6 +162,7 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dInventory"
 	"dGame/dMission"
 	"dGame/dEntity"
+	"dGame/dGrim"
 	"dGame/dPropertyBehaviors"
 	"dGame/dPropertyBehaviors/ControlBehaviorMessages"
 	"dGame/dUtilities"
@@ -312,13 +313,13 @@ file(
 )
 
 # Add our library subdirectories for creation of the library object
+add_subdirectory(dZoneManager)
 add_subdirectory(dCommon)
 add_subdirectory(dDatabase)
 add_subdirectory(dChatFilter)
 add_subdirectory(dNet)
 add_subdirectory(dScripts) # Add for dGame to use
 add_subdirectory(dGame)
-add_subdirectory(dZoneManager)
 add_subdirectory(dNavigation)
 add_subdirectory(dPhysics)
 
@@ -346,10 +347,10 @@ target_precompile_headers(
 	${HEADERS_DGAME}
 )
 
-target_precompile_headers(
-	dZoneManager PRIVATE
-	${HEADERS_DZONEMANAGER}
-)
+#target_precompile_headers(
+#	dZoneManager PRIVATE
+#	${HEADERS_DZONEMANAGER}
+#)
 
 # Need to specify to use the CXX compiler language here or else we get errors including <string>.
 target_precompile_headers(

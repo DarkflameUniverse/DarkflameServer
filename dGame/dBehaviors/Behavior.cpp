@@ -361,7 +361,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 		"SELECT effectName FROM BehaviorEffect WHERE effectType = ? AND effectID = ?;");
 
 	auto idQuery = CDClientDatabase::CreatePreppedStmt(
-		"SELECT effectName, effectType FROM BehaviorEffect WHERE effectID = ?;");
+		"SELECT effectName, effectType FROM BehaviorEffect WHERE effectID = ? AND effectType IS NOT NULL;");
 
 	if (!type.empty()) {
 		typeQuery.bind(1, typeString.c_str());
