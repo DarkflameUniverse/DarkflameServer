@@ -252,7 +252,6 @@ int main(int argc, char** argv) {
 	auto ghostingLastTime = std::chrono::high_resolution_clock::now();
 
 	PerformanceManager::SelectProfile(zoneID);
-	Game::entityManager = new EntityManager();
 
 	//Load our level:
 	if (zoneID != 0) {
@@ -300,9 +299,10 @@ int main(int argc, char** argv) {
 
 			Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s", databaseChecksum.c_str());
 		}
-	} else {
-		Game::entityManager->Initialize();
 	}
+
+	Game::entityManager = new EntityManager();
+	Game::entityManager->Initialize();
 
 	uint32_t currentFrameDelta = highFrameDelta;
 	// These values are adjust them selves to the current framerate should it update.

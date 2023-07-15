@@ -56,7 +56,6 @@ const uint32_t LWOCLONEID_INVALID = -1;     //!< Invalid LWOCLONEID
 const uint16_t LWOINSTANCEID_INVALID = -1;  //!< Invalid LWOINSTANCEID
 const uint16_t LWOMAPID_INVALID = -1;       //!< Invalid LWOMAPID
 const uint64_t LWOZONEID_INVALID = 0;       //!< Invalid LWOZONEID
-constexpr LOT LOT_ZONE_CONTROL = 2365;
 
 const float PI = 3.14159f;
 
