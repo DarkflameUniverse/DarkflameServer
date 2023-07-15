@@ -25,8 +25,6 @@
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
 
-EntityManager* EntityManager::m_Address = nullptr;
-
 // Configure which zones have ghosting disabled, mostly small worlds.
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
 	// Small zones
@@ -78,9 +76,6 @@ void EntityManager::Initialize() {
 	// If cloneID is not zero, then hardcore mode is disabled
 	// aka minigames and props
 	if (dZoneManager::Instance()->GetZoneID().GetCloneID() != 0) m_HardcoreMode = false;
-}
-
-EntityManager::~EntityManager() {
 }
 
 Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentEntity, const bool controller, const LWOOBJID explicitId) {

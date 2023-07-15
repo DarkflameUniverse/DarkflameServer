@@ -230,7 +230,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 			break;
 		}
 
-		entity = EntityManager::Instance()->GetEntity(associate);
+		entity = Game::entityManager->GetEntity(associate);
 		if (entity == nullptr) {
 			if (associate != LWOOBJID_EMPTY) {
 				Game::logger->Log("MissionTask", "Failed to find associated entity (%llu)!", associate);
@@ -272,7 +272,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	{
 		if (!InParameters(value)) break;
 
-		entity = EntityManager::Instance()->GetEntity(associate);
+		entity = Game::entityManager->GetEntity(associate);
 
 		if (entity == nullptr) {
 			Game::logger->Log("MissionTask", "Failed to find associated entity (%llu)!", associate);
@@ -302,7 +302,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
 	case eMissionTaskType::PERFORM_ACTIVITY:
 	{
-		auto* minigameManager = EntityManager::Instance()->GetEntity(associate);
+		auto* minigameManager = Game::entityManager->GetEntity(associate);
 		if (minigameManager == nullptr)
 			break;
 
@@ -346,7 +346,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	{
 		if (!InAllTargets(value)) break;
 
-		entity = EntityManager::Instance()->GetEntity(associate);
+		entity = Game::entityManager->GetEntity(associate);
 
 		if (entity == nullptr) {
 			Game::logger->Log("MissionTask", "Failed to find associated entity (%llu)!", associate);

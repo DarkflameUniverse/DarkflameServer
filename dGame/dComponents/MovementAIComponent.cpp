@@ -149,7 +149,7 @@ nextAction:
 
 	SetVelocity(velocity);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 const MovementAIInfo& MovementAIComponent::GetInfo() const {
@@ -221,7 +221,7 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 
 	SetPosition(destination);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	return true;
 }
@@ -253,7 +253,7 @@ void MovementAIComponent::Stop() {
 
 	m_CurrentSpeed = 0;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovementAIComponent::PullToPoint(const NiPoint3& point) {

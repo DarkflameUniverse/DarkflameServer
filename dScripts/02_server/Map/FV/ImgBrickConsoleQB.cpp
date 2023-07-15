@@ -23,7 +23,7 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 
 	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 		if (!self->GetNetworkVar<bool>(u"used")) {
-			const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console");
+			const auto consoles = Game::entityManager->GetEntitiesInGroup("Console");
 
 			auto bothBuilt = false;
 
@@ -59,7 +59,7 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 				onFX = 2779;
 			}
 
-			const auto& facility = EntityManager::Instance()->GetEntitiesInGroup("FacilityPipes");
+			const auto& facility = Game::entityManager->GetEntitiesInGroup("FacilityPipes");
 
 			if (!facility.empty()) {
 				GameMessages::SendStopFXEffect(facility[0], true, location + "PipeEnergy");
@@ -106,13 +106,13 @@ void ImgBrickConsoleQB::SpawnBrick(Entity* self) {
 }
 
 void ImgBrickConsoleQB::SmashCanister(Entity* self) {
-	const auto brick = EntityManager::Instance()->GetEntitiesInGroup("Imagination");
+	const auto brick = Game::entityManager->GetEntitiesInGroup("Imagination");
 	if (!brick.empty()) {
 		GameMessages::SendPlayFXEffect(brick[0]->GetObjectID(), 122, u"create", "bluebrick");
 		GameMessages::SendPlayFXEffect(brick[0]->GetObjectID(), 1034, u"cast", "imaginationexplosion");
 	}
 
-	const auto canisters = EntityManager::Instance()->GetEntitiesInGroup("Canister");
+	const auto canisters = Game::entityManager->GetEntitiesInGroup("Canister");
 	for (auto* canister : canisters) {
 		canister->Smash(canister->GetObjectID(), eKillType::VIOLENT);
 	}
@@ -135,14 +135,14 @@ void ImgBrickConsoleQB::OnRebuildComplete(Entity* self, Entity* target) {
 		energyFX = 2778;
 	}
 
-	const auto& facility = EntityManager::Instance()->GetEntitiesInGroup("FacilityPipes");
+	const auto& facility = Game::entityManager->GetEntitiesInGroup("FacilityPipes");
 
 	if (!facility.empty()) {
 		GameMessages::SendStopFXEffect(facility[0], true, location + "PipeOff");
 		GameMessages::SendPlayFXEffect(facility[0]->GetObjectID(), energyFX, u"create", location + "PipeEnergy");
 	}
 
-	const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console");
+	const auto consoles = Game::entityManager->GetEntitiesInGroup("Console");
 
 	for (auto* console : consoles) {
 		auto* consoleRebuildComponent = console->GetComponent<RebuildComponent>();
@@ -179,7 +179,7 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 			offFX = 2777;
 		}
 
-		const auto& facility = EntityManager::Instance()->GetEntitiesInGroup("FacilityPipes");
+		const auto& facility = Game::entityManager->GetEntitiesInGroup("FacilityPipes");
 
 		if (!facility.empty()) {
 			GameMessages::SendStopFXEffect(facility[0], true, location + "PipeEnergy");
@@ -233,7 +233,7 @@ void ImgBrickConsoleQB::OnTimerDone(Entity* self, std::string timerName) {
 			self->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 	} else if (timerName == "Die") {
-		const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console");
+		const auto consoles = Game::entityManager->GetEntitiesInGroup("Console");
 
 		for (auto* console : consoles) {
 			console->Smash(console->GetObjectID(), eKillType::VIOLENT);

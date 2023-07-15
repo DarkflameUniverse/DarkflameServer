@@ -21,7 +21,7 @@ void ScriptedPowerupSpawner::OnTimerDone(Entity* self, std::string message) {
 		drops.emplace(itemLOT, 1);
 
 		// Spawn the required number of powerups
-		auto* owner = EntityManager::Instance()->GetEntity(self->GetSpawnerID());
+		auto* owner = Game::entityManager->GetEntity(self->GetSpawnerID());
 		if (owner != nullptr) {
 			auto* renderComponent = self->GetComponent<RenderComponent>();
 			for (auto i = 0; i < self->GetVar<uint32_t>(u"numberOfPowerups"); i++) {

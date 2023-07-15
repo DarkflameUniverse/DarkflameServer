@@ -12,14 +12,14 @@ void FvRaceSmashEggImagineServer::OnDie(Entity* self, Entity* killer) {
 		auto* destroyableComponent = killer->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
 			destroyableComponent->SetImagination(destroyableComponent->GetImagination() + 10);
-			EntityManager::Instance()->SerializeEntity(killer);
+			Game::entityManager->SerializeEntity(killer);
 		}
 
 		// get possessor to progress statistics and tasks.
 		auto* possessableComponent = killer->GetComponent<PossessableComponent>();
 		if (possessableComponent != nullptr) {
 
-			auto* possessor = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
+			auto* possessor = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
 			if (possessor != nullptr) {
 
 				auto* missionComponent = possessor->GetComponent<MissionComponent>();
