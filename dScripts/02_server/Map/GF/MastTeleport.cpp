@@ -33,7 +33,7 @@ void MastTeleport::OnRebuildComplete(Entity* self, Entity* target) {
 void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 	const auto playerId = self->GetVar<LWOOBJID>(u"userID");
 
-	auto* player = EntityManager::Instance()->GetEntity(playerId);
+	auto* player = Game::entityManager->GetEntity(playerId);
 
 	if (player == nullptr) return;
 
@@ -88,6 +88,6 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 		);
 		auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
 		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true, true, true, true, true, false, false, true, true);
-		EntityManager::Instance()->SerializeEntity(player);
+		Game::entityManager->SerializeEntity(player);
 	}
 }

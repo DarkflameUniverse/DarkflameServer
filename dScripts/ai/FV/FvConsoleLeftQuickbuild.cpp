@@ -13,7 +13,7 @@ void FvConsoleLeftQuickbuild::OnRebuildNotifyState(Entity* self, eRebuildState s
 	if (state == eRebuildState::COMPLETED) {
 		self->SetVar(u"IAmBuilt", true);
 
-		const auto objects = EntityManager::Instance()->GetEntitiesInGroup("Facility");
+		const auto objects = Game::entityManager->GetEntitiesInGroup("Facility");
 
 		if (!objects.empty()) {
 			objects[0]->NotifyObject(self, "ConsoleLeftUp");
@@ -22,7 +22,7 @@ void FvConsoleLeftQuickbuild::OnRebuildNotifyState(Entity* self, eRebuildState s
 		self->SetVar(u"IAmBuilt", false);
 		self->SetVar(u"AmActive", false);
 
-		const auto objects = EntityManager::Instance()->GetEntitiesInGroup("Facility");
+		const auto objects = Game::entityManager->GetEntitiesInGroup("Facility");
 
 		if (!objects.empty()) {
 			objects[0]->NotifyObject(self, "ConsoleLeftDown");
@@ -38,7 +38,7 @@ void FvConsoleLeftQuickbuild::OnUse(Entity* self, Entity* user) {
 	if (self->GetVar<bool>(u"IAmBuilt")) {
 		self->SetVar(u"AmActive", true);
 
-		const auto objects = EntityManager::Instance()->GetEntitiesInGroup("Facility");
+		const auto objects = Game::entityManager->GetEntitiesInGroup("Facility");
 
 		if (!objects.empty()) {
 			objects[0]->NotifyObject(self, "ConsoleLeftActive");

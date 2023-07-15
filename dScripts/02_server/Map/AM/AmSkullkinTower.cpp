@@ -64,9 +64,9 @@ void AmSkullkinTower::SpawnLegs(Entity* self, const std::string& loc) {
 
 	info.rot = NiQuaternion::LookAt(info.pos, self->GetPosition());
 
-	auto* entity = EntityManager::Instance()->CreateEntity(info);
+	auto* entity = Game::entityManager->CreateEntity(info);
 
-	EntityManager::Instance()->ConstructEntity(entity);
+	Game::entityManager->ConstructEntity(entity);
 
 	OnChildLoaded(self, entity);
 }
@@ -81,7 +81,7 @@ void AmSkullkinTower::OnChildLoaded(Entity* self, Entity* child) {
 	const auto selfID = self->GetObjectID();
 
 	child->AddDieCallback([this, selfID, child]() {
-		auto* self = EntityManager::Instance()->GetEntity(selfID);
+		auto* self = Game::entityManager->GetEntity(selfID);
 		auto* destroyableComponent = child->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent == nullptr || self == nullptr) {
@@ -157,7 +157,7 @@ void AmSkullkinTower::OnChildRemoved(Entity* self, Entity* child) {
 		const auto& players = self->GetVar<std::vector<LWOOBJID>>(u"Players");
 
 		for (const auto& playerID : players) {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 
 			if (player == nullptr) {
 				continue;
@@ -233,9 +233,9 @@ void AmSkullkinTower::OnTimerDone(Entity* self, std::string timerName) {
 		for (size_t i = 0; i < 2; i++) {
 			info.pos.x += i * 2; // Just to set the apart a bit
 
-			auto* entity = EntityManager::Instance()->CreateEntity(info);
+			auto* entity = Game::entityManager->CreateEntity(info);
 
-			EntityManager::Instance()->ConstructEntity(entity);
+			Game::entityManager->ConstructEntity(entity);
 		}
 
 		self->AddTimer("killTower", 0.7f);

@@ -25,7 +25,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 		}
 
 		self->AddCallbackTimer(2, [this, self, playerID]() {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 
 			if (player == nullptr) {
 				return;
@@ -55,7 +55,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 	GameMessages::SendPlayFXEffect(self, 6432, u"create", "console_sparks", LWOOBJID_EMPTY, 1.0, 1.0, true);
 
 	self->AddCallbackTimer(2, [this, self, playerID]() {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (player == nullptr) {
 			return;

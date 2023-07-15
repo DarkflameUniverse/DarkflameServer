@@ -332,7 +332,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 				if (zoneControlObject != nullptr && info.lot == zoneControlObject->GetLOT())
 					goto deleteSettings;
 
-				EntityManager::Instance()->CreateEntity(info, nullptr);
+				Game::entityManager->CreateEntity(info, nullptr);
 			} else {
 			deleteSettings:
 

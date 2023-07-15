@@ -547,7 +547,7 @@ void Mission::YieldRewards() {
 		destroyableComponent->SetMaxImagination(destroyableComponent->GetMaxImagination() + static_cast<float>(info->reward_maximagination), true);
 	}
 
-	EntityManager::Instance()->SerializeEntity(entity);
+	Game::entityManager->SerializeEntity(entity);
 
 	if (info->reward_emote > 0) {
 		character->UnlockEmote(info->reward_emote);

@@ -133,7 +133,7 @@ void MovingPlatformComponent::SetMovementState(eMovementPlatformState value) {
 
 	subComponent->mState = value;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint) {
@@ -194,7 +194,7 @@ void MovingPlatformComponent::StartPathing() {
 
 	//GameMessages::SendPlatformResync(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovingPlatformComponent::ContinuePathing() {
@@ -242,7 +242,7 @@ void MovingPlatformComponent::ContinuePathing() {
 		subComponent->mCurrentWaypointIndex = pathSize;
 		switch (behavior) {
 		case PathBehavior::Once:
-			EntityManager::Instance()->SerializeEntity(m_Parent);
+			Game::entityManager->SerializeEntity(m_Parent);
 			return;
 
 		case PathBehavior::Bounce:
@@ -304,7 +304,7 @@ void MovingPlatformComponent::ContinuePathing() {
 		ContinuePathing();
 		});
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovingPlatformComponent::StopPathing() {
@@ -318,7 +318,7 @@ void MovingPlatformComponent::StopPathing() {
 	subComponent->mDesiredWaypointIndex = -1;
 	subComponent->mShouldStopAtDesiredWaypoint = false;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	//GameMessages::SendPlatformResync(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
 }
@@ -341,7 +341,7 @@ void MovingPlatformComponent::WarpToWaypoint(size_t index) {
 	m_Parent->SetPosition(waypoint.position);
 	m_Parent->SetRotation(waypoint.rotation);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 size_t MovingPlatformComponent::GetLastWaypointIndex() const {

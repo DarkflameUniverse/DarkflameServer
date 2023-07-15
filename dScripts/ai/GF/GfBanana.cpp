@@ -20,9 +20,9 @@ void GfBanana::SpawnBanana(Entity* self) {
 	info.lot = 6909;
 	info.spawnerID = self->GetObjectID();
 
-	auto* entity = EntityManager::Instance()->CreateEntity(info);
+	auto* entity = Game::entityManager->CreateEntity(info);
 
-	EntityManager::Instance()->ConstructEntity(entity);
+	Game::entityManager->ConstructEntity(entity);
 
 	self->SetVar(u"banana", entity->GetObjectID());
 
@@ -46,7 +46,7 @@ void GfBanana::OnHit(Entity* self, Entity* attacker) {
 
 	if (bananaId == LWOOBJID_EMPTY) return;
 
-	auto* bananaEntity = EntityManager::Instance()->GetEntity(bananaId);
+	auto* bananaEntity = Game::entityManager->GetEntity(bananaId);
 
 	if (bananaEntity == nullptr) {
 		self->SetVar(u"banana", LWOOBJID_EMPTY);
@@ -79,12 +79,12 @@ void GfBanana::OnHit(Entity* self, Entity* attacker) {
 	info.lot = 6718;
 	info.spawnerID = self->GetObjectID();
 
-	auto* entity = EntityManager::Instance()->CreateEntity(info);
+	auto* entity = Game::entityManager->CreateEntity(info);
 
-	EntityManager::Instance()->ConstructEntity(entity, UNASSIGNED_SYSTEM_ADDRESS);
+	Game::entityManager->ConstructEntity(entity, UNASSIGNED_SYSTEM_ADDRESS);
 	*/
 
-	EntityManager::Instance()->SerializeEntity(self);
+	Game::entityManager->SerializeEntity(self);
 }
 
 void GfBanana::OnTimerDone(Entity* self, std::string timerName) {

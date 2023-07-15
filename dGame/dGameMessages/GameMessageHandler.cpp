@@ -42,7 +42,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	CBITSTREAM;
 
 	// Get the entity
-	Entity* entity = EntityManager::Instance()->GetEntity(objectID);
+	Entity* entity = Game::entityManager->GetEntity(objectID);
 
 	User* usr = UserManager::Instance()->GetUser(sysAddr);
 
@@ -122,9 +122,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		auto* destroyable = entity->GetComponent<DestroyableComponent>();
 		destroyable->SetImagination(destroyable->GetImagination());
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 
-		std::vector<Entity*> racingControllers = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
+		std::vector<Entity*> racingControllers = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
 		for (Entity* racingController : racingControllers) {
 			auto* racingComponent = racingController->GetComponent<RacingControlComponent>();
 			if (racingComponent != nullptr) {
@@ -132,12 +132,12 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			}
 		}
 
-		Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
+		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
 		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
 			script->OnPlayerLoaded(zoneControl, player);
 		}
 
-		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
+		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
@@ -248,7 +248,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			dest->SetHealth(4);
 			dest->SetArmor(0);
 			dest->SetImagination(6);
-			EntityManager::Instance()->SerializeEntity(entity);
+			Game::entityManager->SerializeEntity(entity);
 		}*/
 		break;
 	}
@@ -560,7 +560,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		break;
 
 	case eGameMessageType::ZONE_PROPERTY_MODEL_ROTATED:
-		EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelRotated(usr->GetLastUsedChar()->GetEntity());
+		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelRotated(usr->GetLastUsedChar()->GetEntity());
 		break;
 
 	case eGameMessageType::UPDATE_PROPERTY_OR_MODEL_FOR_FILTER_CHECK:
