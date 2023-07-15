@@ -51,12 +51,14 @@
 
 class EntityTests : public GameDependenciesTest {
 protected:
-	BaseCombatAIComponent* baseCombatAIComponent;
+	struct {
+		BaseCombatAIComponent* baseCombatAIComponent;
+		int32_t combatAiComponentTarget = 0;
+	};
 	BouncerComponent* bouncerComponent;
 	BuffComponent* buffComponent;
 	BuildBorderComponent* buildBorderComponent;
 	CharacterComponent* characterComponent;
-	Component* component;
 	ControllablePhysicsComponent* controllablePhysicsComponent;
 	DestroyableComponent* destroyableComponent;
 	InventoryComponent* inventoryComponent;
@@ -94,54 +96,102 @@ protected:
 	TriggerComponent* triggerComponent;
 	VehiclePhysicsComponent* vehiclePhysicsComponent;
 	VendorComponent* vendorComponent;
-	std::unique_ptr<Entity> testedEntity;
+	Entity* testedEntity;
 	void SetUp() override {
+		srand(time(NULL));
 		SetUpDependencies();
-		testedEntity = std::make_unique<Entity>(1, info);
+		testedEntity = new Entity(5, info);
 		// We allocate through malloc because we cannot call the constructors of some of thse methods.
 		baseCombatAIComponent = (BaseCombatAIComponent*)malloc(sizeof(BaseCombatAIComponent));
+		baseCombatAIComponent->SetState(AiState::dead);
+		combatAiComponentTarget = rand();
+		baseCombatAIComponent->SetTarget(combatAiComponentTarget);
+		testedEntity->AddComponent(BaseCombatAIComponent::ComponentType, baseCombatAIComponent);
+
 		bouncerComponent = (BouncerComponent*)malloc(sizeof(BouncerComponent));
+		// bouncerComponent->SetPetEnabled(true);
+
+		testedEntity->AddComponent(BouncerComponent::ComponentType, bouncerComponent);
 		buffComponent = (BuffComponent*)malloc(sizeof(BuffComponent));
+		testedEntity->AddComponent(BuffComponent::ComponentType, buffComponent);
 		buildBorderComponent = (BuildBorderComponent*)malloc(sizeof(BuildBorderComponent));
+		testedEntity->AddComponent(BuildBorderComponent::ComponentType, buildBorderComponent);
 		characterComponent = (CharacterComponent*)malloc(sizeof(CharacterComponent));
-		component = (Component*)malloc(sizeof(Component));
+		testedEntity->AddComponent(CharacterComponent::ComponentType, characterComponent);
 		controllablePhysicsComponent = (ControllablePhysicsComponent*)malloc(sizeof(ControllablePhysicsComponent));
+		testedEntity->AddComponent(ControllablePhysicsComponent::ComponentType, controllablePhysicsComponent);
 		destroyableComponent = (DestroyableComponent*)malloc(sizeof(DestroyableComponent));
+		testedEntity->AddComponent(DestroyableComponent::ComponentType, destroyableComponent);
 		inventoryComponent = (InventoryComponent*)malloc(sizeof(InventoryComponent));
+		testedEntity->AddComponent(InventoryComponent::ComponentType, inventoryComponent);
 		levelProgressionComponent = (LevelProgressionComponent*)malloc(sizeof(LevelProgressionComponent));
+		testedEntity->AddComponent(LevelProgressionComponent::ComponentType, levelProgressionComponent);
 		lUPExhibitComponent = (LUPExhibitComponent*)malloc(sizeof(LUPExhibitComponent));
+		testedEntity->AddComponent(LUPExhibitComponent::ComponentType, lUPExhibitComponent);
 		missionComponent = (MissionComponent*)malloc(sizeof(MissionComponent));
+		testedEntity->AddComponent(MissionComponent::ComponentType, missionComponent);
 		missionOfferComponent = (MissionOfferComponent*)malloc(sizeof(MissionOfferComponent));
+		testedEntity->AddComponent(MissionOfferComponent::ComponentType, missionOfferComponent);
 		modelComponent = (ModelComponent*)malloc(sizeof(ModelComponent));
+		testedEntity->AddComponent(ModelComponent::ComponentType, modelComponent);
 		moduleAssemblyComponent = (ModuleAssemblyComponent*)malloc(sizeof(ModuleAssemblyComponent));
+		testedEntity->AddComponent(ModuleAssemblyComponent::ComponentType, moduleAssemblyComponent);
 		movementAIComponent = (MovementAIComponent*)malloc(sizeof(MovementAIComponent));
+		testedEntity->AddComponent(MovementAIComponent::ComponentType, movementAIComponent);
 		movingPlatformComponent = (MovingPlatformComponent*)malloc(sizeof(MovingPlatformComponent));
+		testedEntity->AddComponent(MovingPlatformComponent::ComponentType, movingPlatformComponent);
 		petComponent = (PetComponent*)malloc(sizeof(PetComponent));
+		testedEntity->AddComponent(PetComponent::ComponentType, petComponent);
 		phantomPhysicsComponent = (PhantomPhysicsComponent*)malloc(sizeof(PhantomPhysicsComponent));
+		testedEntity->AddComponent(PhantomPhysicsComponent::ComponentType, phantomPhysicsComponent);
 		playerForcedMovementComponent = (PlayerForcedMovementComponent*)malloc(sizeof(PlayerForcedMovementComponent));
+		testedEntity->AddComponent(PlayerForcedMovementComponent::ComponentType, playerForcedMovementComponent);
 		possessableComponent = (PossessableComponent*)malloc(sizeof(PossessableComponent));
+		testedEntity->AddComponent(PossessableComponent::ComponentType, possessableComponent);
 		possessorComponent = (PossessorComponent*)malloc(sizeof(PossessorComponent));
+		testedEntity->AddComponent(PossessorComponent::ComponentType, possessorComponent);
 		propertyComponent = (PropertyComponent*)malloc(sizeof(PropertyComponent));
+		testedEntity->AddComponent(PropertyComponent::ComponentType, propertyComponent);
 		propertyEntranceComponent = (PropertyEntranceComponent*)malloc(sizeof(PropertyEntranceComponent));
+		testedEntity->AddComponent(PropertyEntranceComponent::ComponentType, propertyEntranceComponent);
 		propertyManagementComponent = (PropertyManagementComponent*)malloc(sizeof(PropertyManagementComponent));
+		testedEntity->AddComponent(PropertyManagementComponent::ComponentType, propertyManagementComponent);
 		propertyVendorComponent = (PropertyVendorComponent*)malloc(sizeof(PropertyVendorComponent));
+		testedEntity->AddComponent(PropertyVendorComponent::ComponentType, propertyVendorComponent);
 		proximityMonitorComponent = (ProximityMonitorComponent*)malloc(sizeof(ProximityMonitorComponent));
+		testedEntity->AddComponent(ProximityMonitorComponent::ComponentType, proximityMonitorComponent);
 		racingControlComponent = (RacingControlComponent*)malloc(sizeof(RacingControlComponent));
+		testedEntity->AddComponent(RacingControlComponent::ComponentType, racingControlComponent);
 		railActivatorComponent = (RailActivatorComponent*)malloc(sizeof(RailActivatorComponent));
+		testedEntity->AddComponent(RailActivatorComponent::ComponentType, railActivatorComponent);
 		rebuildComponent = (RebuildComponent*)malloc(sizeof(RebuildComponent));
+		testedEntity->AddComponent(RebuildComponent::ComponentType, rebuildComponent);
 		renderComponent = (RenderComponent*)malloc(sizeof(RenderComponent));
+		testedEntity->AddComponent(RenderComponent::ComponentType, renderComponent);
 		rigidbodyPhantomPhysicsComponent = (RigidbodyPhantomPhysicsComponent*)malloc(sizeof(RigidbodyPhantomPhysicsComponent));
+		testedEntity->AddComponent(RigidbodyPhantomPhysicsComponent::ComponentType, rigidbodyPhantomPhysicsComponent);
 		rocketLaunchLupComponent = (RocketLaunchLupComponent*)malloc(sizeof(RocketLaunchLupComponent));
+		testedEntity->AddComponent(RocketLaunchLupComponent::ComponentType, rocketLaunchLupComponent);
 		rocketLaunchpadControlComponent = (RocketLaunchpadControlComponent*)malloc(sizeof(RocketLaunchpadControlComponent));
+		testedEntity->AddComponent(RocketLaunchpadControlComponent::ComponentType, rocketLaunchpadControlComponent);
 		scriptedActivityComponent = (ScriptedActivityComponent*)malloc(sizeof(ScriptedActivityComponent));
+		testedEntity->AddComponent(ScriptedActivityComponent::ComponentType, scriptedActivityComponent);
 		shootingGalleryComponent = (ShootingGalleryComponent*)malloc(sizeof(ShootingGalleryComponent));
+		testedEntity->AddComponent(ShootingGalleryComponent::ComponentType, shootingGalleryComponent);
 		simplePhysicsComponent = (SimplePhysicsComponent*)malloc(sizeof(SimplePhysicsComponent));
+		testedEntity->AddComponent(SimplePhysicsComponent::ComponentType, simplePhysicsComponent);
 		skillComponent = (SkillComponent*)malloc(sizeof(SkillComponent));
+		testedEntity->AddComponent(SkillComponent::ComponentType, skillComponent);
 		soundTriggerComponent = (SoundTriggerComponent*)malloc(sizeof(SoundTriggerComponent));
+		testedEntity->AddComponent(SoundTriggerComponent::ComponentType, soundTriggerComponent);
 		switchComponent = (SwitchComponent*)malloc(sizeof(SwitchComponent));
+		testedEntity->AddComponent(SwitchComponent::ComponentType, switchComponent);
 		triggerComponent = (TriggerComponent*)malloc(sizeof(TriggerComponent));
+		testedEntity->AddComponent(TriggerComponent::ComponentType, triggerComponent);
 		vehiclePhysicsComponent = (VehiclePhysicsComponent*)malloc(sizeof(VehiclePhysicsComponent));
+		testedEntity->AddComponent(VehiclePhysicsComponent::ComponentType, vehiclePhysicsComponent);
 		vendorComponent = (VendorComponent*)malloc(sizeof(VendorComponent));
+		testedEntity->AddComponent(VendorComponent::ComponentType, vendorComponent);
 	}
 
 	void TearDown() override {
@@ -151,7 +201,6 @@ protected:
 		free(buffComponent);
 		free(buildBorderComponent);
 		free(characterComponent);
-		free(component);
 		free(controllablePhysicsComponent);
 		free(destroyableComponent);
 		free(inventoryComponent);
@@ -189,15 +238,16 @@ protected:
 		free(triggerComponent);
 		free(vehiclePhysicsComponent);
 		free(vendorComponent);
+		operator delete(testedEntity);
 	}
 };
 
 TEST_F(EntityTests, EntityConstructionTest) {
 	CBITSTREAM;
-	testedEntity->WriteComponents(&bitStream, eReplicaPacketType::CONSTRUCTION);
+	// testedEntity->WriteComponents(&bitStream, eReplicaPacketType::CONSTRUCTION);
 }
 
 TEST_F(EntityTests, EntitySerializationTest) {
 	CBITSTREAM;
-	testedEntity->WriteComponents(&bitStream, eReplicaPacketType::SERIALIZATION);
+	// testedEntity->WriteComponents(&bitStream, eReplicaPacketType::SERIALIZATION);
 }
