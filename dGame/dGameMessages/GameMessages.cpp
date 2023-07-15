@@ -3471,7 +3471,7 @@ void GameMessages::SendNotifyTamingModelLoadedOnServer(LWOOBJID objectId, const 
 	SEND_PACKET;
 }
 
-void GameMessages::SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, std::vector<Brick>& bricks, const SystemAddress& sysAddr) {
+void GameMessages::SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, const std::vector<Brick>& bricks, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 

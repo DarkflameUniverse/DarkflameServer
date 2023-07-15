@@ -5,14 +5,9 @@
 #include "Game.h"
 #include "AssetManager.h"
 #include "tinyxml2.h"
+#include "Brick.h"
 
-std::vector<Brick> BrickDatabase::emptyCache{};
-BrickDatabase* BrickDatabase::m_Address = nullptr;
-
-BrickDatabase::BrickDatabase() = default;
-BrickDatabase::~BrickDatabase() = default;
-
-std::vector<Brick>& BrickDatabase::GetBricks(const std::string& lxfmlPath) {
+const BrickList& BrickDatabase::GetBricks(const LxfmlPath& lxfmlPath) {
 	const auto cached = m_Cache.find(lxfmlPath);
 
 	if (cached != m_Cache.end()) {
@@ -45,7 +40,7 @@ std::vector<Brick>& BrickDatabase::GetBricks(const std::string& lxfmlPath) {
 		return emptyCache;
 	}
 
-	std::vector<Brick> parts;
+	BrickList parts;
 
 	auto* lxfml = doc->FirstChildElement("LXFML");
 	auto* bricks = lxfml->FirstChildElement("Bricks");

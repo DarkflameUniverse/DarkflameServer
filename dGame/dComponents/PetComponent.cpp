@@ -236,7 +236,7 @@ void PetComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	auto& bricks = BrickDatabase::Instance()->GetBricks(buildFile);
+	const auto& bricks = BrickDatabase::GetBricks(buildFile);
 
 	if (bricks.empty()) {
 		ChatPackets::SendSystemMessage(originator->GetSystemAddress(), u"Failed to load the puzzle minigame for this pet.");
