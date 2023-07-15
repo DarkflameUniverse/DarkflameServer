@@ -1,4 +1,5 @@
 set(DGAMETEST_SOURCES
+	"EntityTests.cpp"
 	"GameDependencies.cpp"
 	"EntityTests.cpp"
 )
