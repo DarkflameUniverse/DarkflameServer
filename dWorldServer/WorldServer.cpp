@@ -227,8 +227,6 @@ int main(int argc, char** argv) {
 
 	//Set up other things:
 	Game::randomEngine = std::mt19937(time(0));
-	Game::entityManager = new EntityManager();
-	Game::entityManager->Initialize();
 
 	//Run it until server gets a kill message from Master:
 	auto lastTime = std::chrono::high_resolution_clock::now();
@@ -302,6 +300,9 @@ int main(int argc, char** argv) {
 			Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s", databaseChecksum.c_str());
 		}
 	}
+
+	Game::entityManager = new EntityManager();
+	Game::entityManager->Initialize();
 
 	uint32_t currentFrameDelta = highFrameDelta;
 	// These values are adjust them selves to the current framerate should it update.
