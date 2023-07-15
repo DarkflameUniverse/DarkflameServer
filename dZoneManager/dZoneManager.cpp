@@ -22,21 +22,19 @@ dZoneManager* dZoneManager::m_Address = nullptr;
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 
-	int64_t startTime = 0;
-	int64_t endTime = 0;
-
-	startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	int64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
 	LoadZone(zoneID);
 
-	LOT zoneControlTemplate = 2365;
+	EntityInfo info;
+	info.id = 0x3FFFFFFFFFFE;
+	info.lot = LOT_ZONE_CONTROL;
 
 	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
-	if (zoneTable != nullptr) {
+	if (zoneTable) {
 		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
-
-		if (zone != nullptr) {
-			zoneControlTemplate = zone->zoneControlTemplate != -1 ? zone->zoneControlTemplate : 2365;
+		if (zone) {
+			info.lot = zone->zoneControlTemplate != -1 ? zone->zoneControlTemplate : LOT_ZONE_CONTROL;
 			const auto min = zone->ghostdistance_min != -1.0f ? zone->ghostdistance_min : 100;
 			const auto max = zone->ghostdistance != -1.0f ? zone->ghostdistance : 100;
 			Game::entityManager->SetGhostDistanceMax(max + min);
@@ -45,18 +43,15 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 		}
 	}
 
-	Game::logger->Log("dZoneManager", "Creating zone control object %i", zoneControlTemplate);
+	Game::logger->Log("dZoneManager", "Creating zone control object %i", info.lot);
 
 	// Create ZoneControl object
-	EntityInfo info;
-	info.lot = zoneControlTemplate;
-	info.id = 70368744177662;
-	Entity* zoneControl = Game::entityManager->CreateEntity(info, nullptr, nullptr, true);
-	m_ZoneControlObject = zoneControl;
+	if (Game::entityManager) Game::entityManager->Initialize();
+	m_ZoneControlObject = Game::entityManager->CreateEntity(info, nullptr, nullptr, true);
 
 	m_pZone->Initalize();
 
-	endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	int64_t endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
 	LoadWorldConfig();
 
@@ -68,13 +63,11 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 dZoneManager::~dZoneManager() {
 	if (m_pZone) delete m_pZone;
 
-	for (std::pair<LWOOBJID, Spawner*> p : m_Spawners) {
-		if (p.second) {
-			delete p.second;
-			p.second = nullptr;
+	for (auto&[spawnerId, spawner] : m_Spawners) {
+		if (spawner) {
+			delete spawner;
+			spawner = nullptr;
 		}
-
-		m_Spawners.erase(p.first);
 	}
 	if (m_WorldConfig) delete m_WorldConfig;
 }
