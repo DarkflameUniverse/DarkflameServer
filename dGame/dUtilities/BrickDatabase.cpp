@@ -7,6 +7,9 @@
 #include "tinyxml2.h"
 #include "Brick.h"
 
+std::unordered_map<LxfmlPath, BrickList> BrickDatabase::m_Cache;
+const BrickList BrickDatabase::emptyCache;
+
 const BrickList& BrickDatabase::GetBricks(const LxfmlPath& lxfmlPath) {
 	const auto cached = m_Cache.find(lxfmlPath);
 

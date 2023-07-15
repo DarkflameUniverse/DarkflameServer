@@ -1,3 +1,6 @@
+#ifndef __BRICKDATABASE__H__
+#define __BRICKDATABASE__H__
+
 #pragma once
 
 #include "Entity.h"
@@ -9,6 +12,8 @@ using LxfmlPath = std::string;
 namespace BrickDatabase {
 	const BrickList& GetBricks(const LxfmlPath& lxfmlPath);
 
-	std::unordered_map<LxfmlPath, BrickList> m_Cache;
-	const BrickList emptyCache;
+	extern std::unordered_map<LxfmlPath, BrickList> m_Cache;
+	extern const BrickList emptyCache;
 };
+
+#endif  //!__BRICKDATABASE__H__
