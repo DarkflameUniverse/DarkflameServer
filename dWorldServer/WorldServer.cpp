@@ -1334,11 +1334,11 @@ void FinalizeShutdown() {
 	Metrics::Clear();
 	Database::Destroy("WorldServer");
 	if (Game::chatFilter) delete Game::chatFilter;
+	if (Game::zoneManager) delete Game::zoneManager;
 	if (Game::server) delete Game::server;
-	if (Game::logger) delete Game::logger;
 	if (Game::config) delete Game::config;
 	if (Game::entityManager) delete Game::entityManager;
-	if (Game::zoneManager) delete Game::zoneManager;
+	if (Game::logger) delete Game::logger;
 
 	worldShutdownSequenceComplete = true;
 
