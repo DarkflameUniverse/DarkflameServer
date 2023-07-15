@@ -46,7 +46,11 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	Game::logger->Log("dZoneManager", "Creating zone control object %i", info.lot);
 
 	// Create ZoneControl object
-	if (Game::entityManager) Game::entityManager->Initialize();
+	if (!Game::entityManager) {
+		Game::logger->Log("dZoneManager", "ERROR: No entity manager loaded. Cannot proceed.");
+		throw std::invalid_argument("No entity manager loaded. Cannot proceed.");
+	}
+	Game::entityManager->Initialize();
 	m_ZoneControlObject = Game::entityManager->CreateEntity(info, nullptr, nullptr, true);
 
 	m_pZone->Initalize();
