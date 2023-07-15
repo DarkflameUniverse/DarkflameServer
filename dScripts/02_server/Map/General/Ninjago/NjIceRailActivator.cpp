@@ -10,13 +10,13 @@ void NjIceRailActivator::OnPlayerRailArrived(Entity* self, Entity* sender, const
 	if (breakPoint == waypoint) {
 		const auto& blockGroup = self->GetVar<std::u16string>(BlockGroupVariable);
 
-		for (auto* block : EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(blockGroup))) {
+		for (auto* block : Game::entityManager->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(blockGroup))) {
 			RenderComponent::PlayAnimation(block, u"explode");
 
 			const auto blockID = block->GetObjectID();
 
 			self->AddCallbackTimer(1.0f, [self, blockID]() {
-				auto* block = EntityManager::Instance()->GetEntity(blockID);
+				auto* block = Game::entityManager->GetEntity(blockID);
 
 				if (block != nullptr) {
 					block->Kill(self);

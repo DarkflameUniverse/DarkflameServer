@@ -21,7 +21,7 @@ void MinigameTreasureChestServer::OnUse(Entity* self, Entity* user) {
 	uint32_t activityRating = 0;
 	if (team != nullptr) {
 		for (const auto& teamMemberID : team->members) {
-			auto* teamMember = EntityManager::Instance()->GetEntity(teamMemberID);
+			auto* teamMember = Game::entityManager->GetEntity(teamMemberID);
 			if (teamMember != nullptr) {
 				activityRating = CalculateActivityRating(self, teamMemberID);
 

@@ -12,7 +12,7 @@
 #include "dZoneManager.h"
 
 void PropertyTeleportBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
+	auto* caster = Game::entityManager->GetEntity(context->caster);
 	if (!caster) return;
 
 	auto* character = caster->GetCharacter();
@@ -32,7 +32,7 @@ void PropertyTeleportBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 
 	ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, targetMapId, targetCloneId, false, [objId](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 
-		auto* entity = EntityManager::Instance()->GetEntity(objId);
+		auto* entity = Game::entityManager->GetEntity(objId);
 		if (!entity) return;
 
 		const auto sysAddr = entity->GetSystemAddress();

@@ -39,8 +39,8 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 			zoneControlTemplate = zone->zoneControlTemplate != -1 ? zone->zoneControlTemplate : 2365;
 			const auto min = zone->ghostdistance_min != -1.0f ? zone->ghostdistance_min : 100;
 			const auto max = zone->ghostdistance != -1.0f ? zone->ghostdistance : 100;
-			EntityManager::Instance()->SetGhostDistanceMax(max + min);
-			EntityManager::Instance()->SetGhostDistanceMin(max);
+			Game::entityManager->SetGhostDistanceMax(max + min);
+			Game::entityManager->SetGhostDistanceMin(max);
 			m_PlayerLoseCoinsOnDeath = zone->PlayerLoseCoinsOnDeath;
 		}
 	}
@@ -51,7 +51,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	EntityInfo info;
 	info.lot = zoneControlTemplate;
 	info.id = 70368744177662;
-	Entity* zoneControl = EntityManager::Instance()->CreateEntity(info, nullptr, nullptr, true);
+	Entity* zoneControl = Game::entityManager->CreateEntity(info, nullptr, nullptr, true);
 	m_ZoneControlObject = zoneControl;
 
 	m_pZone->Initalize();
@@ -148,9 +148,9 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 	entityInfo.id = objectId;
 	entityInfo.lot = 176;
 
-	auto* entity = EntityManager::Instance()->CreateEntity(entityInfo, nullptr, nullptr, false, objectId);
+	auto* entity = Game::entityManager->CreateEntity(entityInfo, nullptr, nullptr, false, objectId);
 
-	EntityManager::Instance()->ConstructEntity(entity);
+	Game::entityManager->ConstructEntity(entity);
 
 	AddSpawner(objectId, spawner);
 
@@ -175,7 +175,7 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 		return;
 	}
 
-	auto* entity = EntityManager::Instance()->GetEntity(id);
+	auto* entity = Game::entityManager->GetEntity(id);
 
 	if (entity != nullptr) {
 		entity->Kill();

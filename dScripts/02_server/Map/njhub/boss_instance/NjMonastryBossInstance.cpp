@@ -122,7 +122,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 	if (timerName == WaitingForPlayersTimer) {
 		StartFight(self);
 	} else if (timerName == SpawnNextWaveTimer) {
-		auto* frakjaw = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
+		auto* frakjaw = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
 		if (frakjaw != nullptr) {
 			SummonWave(self, frakjaw);
 		}
@@ -145,7 +145,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 			}
 		}
 	} else if (timerName + TimerSplitChar == UnstunTimer) {
-		auto* entity = EntityManager::Instance()->GetEntity(objectID);
+		auto* entity = Game::entityManager->GetEntity(objectID);
 		if (entity != nullptr) {
 			auto* combatAI = entity->GetComponent<BaseCombatAIComponent>();
 			if (combatAI != nullptr) {
@@ -164,7 +164,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 		}
 	} else if (timerName == LowerFrakjawCamTimer) {
 		// Destroy the frakjaw on the ledge
-		auto* ledgeFrakjaw = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
+		auto* ledgeFrakjaw = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
 		if (ledgeFrakjaw != nullptr) {
 			ledgeFrakjaw->Kill();
 		}
@@ -188,7 +188,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 			spawner->Activate();
 		}
 	} else if (timerName + TimerSplitChar == FrakjawSpawnInTimer) {
-		auto* lowerFrakjaw = EntityManager::Instance()->GetEntity(objectID);
+		auto* lowerFrakjaw = Game::entityManager->GetEntity(objectID);
 		if (lowerFrakjaw != nullptr) {
 			LowerFrakjawSummon(self, lowerFrakjaw);
 		}
@@ -250,7 +250,7 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 						counterWeight->Kill();
 					}
 
-					auto* frakjaw = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
+					auto* frakjaw = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
 					if (frakjaw == nullptr) {
 						GameMessages::SendNotifyClientObject(self->GetObjectID(), u"LedgeFrakjawDead", 0,
 							0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
@@ -342,7 +342,7 @@ void NjMonastryBossInstance::HandleLowerFrakjawHit(Entity* self, Entity* lowerFr
 		std::vector<LWOOBJID> newTrashMobs = {};
 
 		for (const auto& trashMobID : trashMobsAlive) {
-			auto* trashMob = EntityManager::Instance()->GetEntity(trashMobID);
+			auto* trashMob = Game::entityManager->GetEntity(trashMobID);
 			if (trashMob != nullptr) {
 				newTrashMobs.push_back(trashMobID);
 
@@ -393,7 +393,7 @@ void NjMonastryBossInstance::HandleWaveEnemyDied(Entity* self, Entity* waveEnemy
 }
 
 void NjMonastryBossInstance::TeleportPlayer(Entity* player, uint32_t position) {
-	for (const auto* spawnPoint : EntityManager::Instance()->GetEntitiesInGroup("SpawnPoint" + std::to_string(position))) {
+	for (const auto* spawnPoint : Game::entityManager->GetEntitiesInGroup("SpawnPoint" + std::to_string(position))) {
 		GameMessages::SendTeleport(player->GetObjectID(), spawnPoint->GetPosition(), spawnPoint->GetRotation(),
 			player->GetSystemAddress(), true);
 	}
@@ -433,7 +433,7 @@ void NjMonastryBossInstance::RemovePoison(Entity* self) {
 	const auto& totalPlayer = self->GetVar<std::vector<LWOOBJID>>(TotalPlayersLoadedVariable);
 	for (const auto& playerID : totalPlayer) {
 
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player != nullptr) {
 
 			auto* buffComponent = player->GetComponent<BuffComponent>();
@@ -505,7 +505,7 @@ void NjMonastryBossInstance::FightOver(Entity* self) {
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
 		LWOOBJID_EMPTY, TreasureChestSpawning, UNASSIGNED_SYSTEM_ADDRESS);
 
-	auto treasureChests = EntityManager::Instance()->GetEntitiesInGroup(ChestSpawnpointGroup);
+	auto treasureChests = Game::entityManager->GetEntitiesInGroup(ChestSpawnpointGroup);
 	for (auto* treasureChest : treasureChests) {
 		auto info = EntityInfo{};
 
@@ -518,7 +518,7 @@ void NjMonastryBossInstance::FightOver(Entity* self) {
 		};
 
 		// Finally spawn a treasure chest at the correct spawn point
-		auto* chestObject = EntityManager::Instance()->CreateEntity(info);
-		EntityManager::Instance()->ConstructEntity(chestObject);
+		auto* chestObject = Game::entityManager->CreateEntity(info);
+		Game::entityManager->ConstructEntity(chestObject);
 	}
 }

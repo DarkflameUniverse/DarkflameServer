@@ -68,7 +68,7 @@ void AmDrawBridge::OnTimerDone(Entity* self, std::string timerName) {
 
 		simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
 
-		EntityManager::Instance()->SerializeEntity(bridge);
+		Game::entityManager->SerializeEntity(bridge);
 	}
 }
 
@@ -103,7 +103,7 @@ void AmDrawBridge::MoveBridgeDown(Entity* self, Entity* bridge, bool down) {
 
 	simplePhysicsComponent->SetAngularVelocity(forwardVect);
 
-	EntityManager::Instance()->SerializeEntity(bridge);
+	Game::entityManager->SerializeEntity(bridge);
 
 	self->AddTimer("rotateBridgeDown", travelTime);
 }
@@ -118,5 +118,5 @@ void AmDrawBridge::NotifyDie(Entity* self, Entity* other) {
 Entity* AmDrawBridge::GetBridge(Entity* self) {
 	const auto bridgeID = self->GetVar<LWOOBJID>(u"BridgeID");
 
-	return EntityManager::Instance()->GetEntity(bridgeID);
+	return Game::entityManager->GetEntity(bridgeID);
 }

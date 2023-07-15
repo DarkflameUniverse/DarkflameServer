@@ -32,11 +32,12 @@ protected:
 		Game::logger = new dLogger("./testing.log", true, true);
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
+		Game::entityManager = new EntityManager();
 	}
 
 	void TearDownDependencies() {
 		if (Game::server) delete Game::server;
-		delete EntityManager::Instance();
+		if (Game::entityManager) delete Game::entityManager;
 		if (Game::logger) {
 			Game::logger->Flush();
 			delete Game::logger;
@@ -44,7 +45,7 @@ protected:
 		if (Game::config) delete Game::config;
 	}
 
-	EntityInfo info;
+	EntityInfo info{};
 };
 
 #endif //!__GAMEDEPENDENCIES__H__

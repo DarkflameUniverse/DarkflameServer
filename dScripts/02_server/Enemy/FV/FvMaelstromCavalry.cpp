@@ -3,7 +3,7 @@
 
 void FvMaelstromCavalry::OnStartup(Entity* self) {
 	for (const auto& group : self->GetGroups()) {
-		const auto& objects = EntityManager::Instance()->GetEntitiesInGroup(group);
+		const auto& objects = Game::entityManager->GetEntitiesInGroup(group);
 
 		for (auto* obj : objects) {
 			if (obj->GetLOT() != 8551) continue;
@@ -22,7 +22,7 @@ void FvMaelstromCavalry::OnDie(Entity* self, Entity* killer) {
 		return;
 	}
 
-	const auto& triggers = EntityManager::Instance()->GetEntitiesInGroup("HorsemenTrigger");
+	const auto& triggers = Game::entityManager->GetEntitiesInGroup("HorsemenTrigger");
 
 	for (auto* trigger : triggers) {
 		trigger->OnFireEventServerSide(self, "HorsemenDeath");

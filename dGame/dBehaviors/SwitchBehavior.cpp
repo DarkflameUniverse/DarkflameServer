@@ -16,7 +16,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		};
 	}
 
-	auto* entity = EntityManager::Instance()->GetEntity(context->originator);
+	auto* entity = Game::entityManager->GetEntity(context->originator);
 
 	if (entity == nullptr) {
 		return;
@@ -41,7 +41,7 @@ void SwitchBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	auto state = true;
 
 	if (this->m_imagination > 0 || !this->m_isEnemyFaction) {
-		auto* entity = EntityManager::Instance()->GetEntity(branch.target);
+		auto* entity = Game::entityManager->GetEntity(branch.target);
 
 		state = entity != nullptr;
 

@@ -47,7 +47,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 }
 
 void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* self = EntityManager::Instance()->GetEntity(context->caster);
+	auto* self = Game::entityManager->GetEntity(context->caster);
 	if (self == nullptr) {
 		Game::logger->Log("AreaOfEffectBehavior", "Invalid self for (%llu)!", context->originator);
 
@@ -58,7 +58,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 
 	std::vector<Entity*> targets;
 
-	auto* presetTarget = EntityManager::Instance()->GetEntity(branch.target);
+	auto* presetTarget = Game::entityManager->GetEntity(branch.target);
 
 	if (presetTarget != nullptr) {
 		if (this->m_radius * this->m_radius >= Vector3::DistanceSquared(reference, presetTarget->GetPosition())) {
@@ -75,7 +75,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 
 	// Gets all of the valid targets, passing in if should target enemies and friends
 	for (auto validTarget : context->GetValidTargets(m_ignoreFaction, includeFaction, m_TargetSelf == 1, m_targetEnemy == 1, m_targetFriend == 1)) {
-		auto* entity = EntityManager::Instance()->GetEntity(validTarget);
+		auto* entity = Game::entityManager->GetEntity(validTarget);
 
 		if (entity == nullptr) {
 			Game::logger->Log("AreaOfEffectBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);

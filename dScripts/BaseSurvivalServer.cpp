@@ -212,7 +212,7 @@ void BaseSurvivalServer::OnActivityTimerDone(Entity* self, const std::string& na
 		ActivityTimerStart(self, PlaySpawnSoundTimer, 3, 3);
 	} else if (name == PlaySpawnSoundTimer) {
 		for (const auto& playerID : state.players) {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 			if (player != nullptr) {
 				GameMessages::SendPlayNDAudioEmitter(player, player->GetSystemAddress(), spawnSoundGUID);
 			}
@@ -221,7 +221,7 @@ void BaseSurvivalServer::OnActivityTimerDone(Entity* self, const std::string& na
 }
 
 void BaseSurvivalServer::ResetStats(LWOOBJID playerID) {
-	auto* player = EntityManager::Instance()->GetEntity(playerID);
+	auto* player = Game::entityManager->GetEntity(playerID);
 	if (player != nullptr) {
 
 		// Boost all the player stats when loading in
@@ -284,7 +284,7 @@ void BaseSurvivalServer::StartWaves(Entity* self) {
 	state.waitingPlayers.clear();
 
 	for (const auto& playerID : state.players) {
-		const auto player = EntityManager::Instance()->GetEntity(playerID);
+		const auto player = Game::entityManager->GetEntity(playerID);
 		if (player != nullptr) {
 			state.waitingPlayers.push_back(playerID);
 			UpdatePlayer(self, playerID);
@@ -311,7 +311,7 @@ bool BaseSurvivalServer::CheckAllPlayersDead() {
 	auto deadPlayers = 0;
 
 	for (const auto& playerID : state.players) {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player == nullptr || player->GetIsDead()) {
 			deadPlayers++;
 		}
@@ -323,9 +323,9 @@ bool BaseSurvivalServer::CheckAllPlayersDead() {
 void BaseSurvivalServer::SetPlayerSpawnPoints() {
 	auto spawnerIndex = 1;
 	for (const auto& playerID : state.players) {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player != nullptr) {
-			auto possibleSpawners = EntityManager::Instance()->GetEntitiesInGroup("P" + std::to_string(spawnerIndex) + "_Spawn");
+			auto possibleSpawners = Game::entityManager->GetEntitiesInGroup("P" + std::to_string(spawnerIndex) + "_Spawn");
 			if (!possibleSpawners.empty()) {
 				auto* spawner = possibleSpawners.at(0);
 				GameMessages::SendTeleport(playerID, spawner->GetPosition(), spawner->GetRotation(), player->GetSystemAddress(), true);
@@ -348,7 +348,7 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 	SpawnerReset(spawnerNetworks.rewardNetworks);
 
 	for (const auto& playerID : state.players) {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player == nullptr)
 			continue;
 
