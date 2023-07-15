@@ -7,7 +7,7 @@
 
 
 void ImaginationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
-	auto* entity = EntityManager::Instance()->GetEntity(branch.target);
+	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	if (entity == nullptr) {
 		return;

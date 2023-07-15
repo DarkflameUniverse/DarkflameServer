@@ -34,7 +34,7 @@ void FvFlyingCreviceDragon::OnTimerDone(Entity* self, std::string timerName) {
 		groupName = "dragonFireballs3";
 	}
 
-	const auto& group = EntityManager::Instance()->GetEntitiesInGroup(groupName);
+	const auto& group = Game::entityManager->GetEntitiesInGroup(groupName);
 
 	if (group.empty()) {
 		return;
@@ -73,7 +73,7 @@ void FvFlyingCreviceDragon::OnArrived(Entity* self) {
 	} else if (point == 12) {
 		RenderComponent::PlayAnimation(self, u"attack2", 2.0f);
 
-		const auto& group2 = EntityManager::Instance()->GetEntitiesInGroup("dragonFireballs2");
+		const auto& group2 = Game::entityManager->GetEntitiesInGroup("dragonFireballs2");
 
 		if (group2.empty()) {
 			return;

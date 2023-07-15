@@ -26,7 +26,7 @@ void PersonalFortress::OnStartup(Entity* self) {
 		true, true, true, true, true, true, true, true, true
 	);
 
-	EntityManager::Instance()->SerializeEntity(owner);
+	Game::entityManager->SerializeEntity(owner);
 }
 
 void PersonalFortress::OnDie(Entity* self, Entity* killer) {
@@ -47,7 +47,7 @@ void PersonalFortress::OnDie(Entity* self, Entity* killer) {
 		true, true, true, true, true, true, true, true, true
 	);
 
-	EntityManager::Instance()->SerializeEntity(owner);
+	Game::entityManager->SerializeEntity(owner);
 }
 
 void PersonalFortress::OnTimerDone(Entity* self, std::string timerName) {

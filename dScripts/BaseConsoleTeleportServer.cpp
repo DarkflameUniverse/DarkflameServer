@@ -45,7 +45,7 @@ void BaseConsoleTeleportServer::BaseOnMessageBoxResponse(Entity* self, Entity* s
 		const auto playerID = player->GetObjectID();
 
 		self->AddCallbackTimer(animTime, [playerID, self]() {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 
 			if (player == nullptr) {
 				return;

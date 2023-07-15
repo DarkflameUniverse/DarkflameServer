@@ -39,7 +39,7 @@ void AirMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitS
 
 	auto* behavior = CreateBehavior(behaviorId);
 
-	if (EntityManager::Instance()->GetEntity(target) != nullptr) {
+	if (Game::entityManager->GetEntity(target) != nullptr) {
 		branch.target = target;
 	}
 

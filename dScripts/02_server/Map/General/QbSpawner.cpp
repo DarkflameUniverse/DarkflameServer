@@ -41,7 +41,7 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		auto gateObjID = self->GetVar<LWOOBJID>(u"gateObj");
 		if (!gateObjID) return;
 
-		auto* gate = EntityManager::Instance()->GetEntity(gateObjID);
+		auto* gate = Game::entityManager->GetEntity(gateObjID);
 		if (!gate) return;
 
 		auto oPos = gate->GetPosition();
@@ -75,12 +75,12 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 					new LDFData<int>(u"mobTableLoc", i)
 				};
 
-				auto* child = EntityManager::Instance()->CreateEntity(info, nullptr, self);
-				EntityManager::Instance()->ConstructEntity(child);
+				auto* child = Game::entityManager->CreateEntity(info, nullptr, self);
+				Game::entityManager->ConstructEntity(child);
 
 				OnChildLoaded(self, child);
 			} else {
-				auto* mob = EntityManager::Instance()->GetEntity(mobTable[i]);
+				auto* mob = Game::entityManager->GetEntity(mobTable[i]);
 				AggroTargetObject(self, mob);
 			}
 		}
@@ -100,7 +100,7 @@ void QbSpawner::OnChildLoaded(Entity* self, Entity* child) {
 	const auto selfID = self->GetObjectID();
 
 	child->AddDieCallback([this, selfID, child]() {
-		auto* self = EntityManager::Instance()->GetEntity(selfID);
+		auto* self = Game::entityManager->GetEntity(selfID);
 		OnChildRemoved(self, child);
 		}
 	);
@@ -120,7 +120,7 @@ void QbSpawner::AggroTargetObject(Entity* self, Entity* enemy) {
 
 	auto gateObjID = self->GetVar<LWOOBJID>(u"gateObj");
 	if (gateObjID) {
-		auto* gate = EntityManager::Instance()->GetEntity(gateObjID);
+		auto* gate = Game::entityManager->GetEntity(gateObjID);
 		if (gate) {
 			auto* movementAIComponent = enemy->GetComponent<MovementAIComponent>();
 			if (movementAIComponent) movementAIComponent->SetDestination(gate->GetPosition());

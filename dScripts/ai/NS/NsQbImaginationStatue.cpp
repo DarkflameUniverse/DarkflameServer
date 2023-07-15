@@ -31,7 +31,7 @@ void NsQbImaginationStatue::OnTimerDone(Entity* self, std::string timerName) {
 void NsQbImaginationStatue::SpawnLoot(Entity* self) {
 	const auto playerId = self->GetVar<LWOOBJID>(u"Player");
 
-	auto* player = EntityManager::Instance()->GetEntity(playerId);
+	auto* player = Game::entityManager->GetEntity(playerId);
 
 	if (player == nullptr) return;
 

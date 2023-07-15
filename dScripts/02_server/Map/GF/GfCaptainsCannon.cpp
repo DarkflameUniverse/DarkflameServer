@@ -40,7 +40,7 @@ void GfCaptainsCannon::OnUse(Entity* self, Entity* user) {
 void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 	const auto playerId = self->GetVar<LWOOBJID>(u"userID");
 
-	auto* player = EntityManager::Instance()->GetEntity(playerId);
+	auto* player = Game::entityManager->GetEntity(playerId);
 
 	if (player == nullptr) {
 		self->SetVar<bool>(u"bIsInUse", false);
@@ -56,7 +56,7 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->AddTimer("cinematicTimer", cinematicTime);
 
-		const auto sharkObjects = EntityManager::Instance()->GetEntitiesInGroup("SharkCannon");
+		const auto sharkObjects = Game::entityManager->GetEntitiesInGroup("SharkCannon");
 
 		for (auto* shark : sharkObjects) {
 			if (shark->GetLOT() != m_SharkItemID) continue;

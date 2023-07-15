@@ -29,7 +29,7 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 	Entity* player;
 
 	if (possessableComponent != nullptr) {
-		player = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
+		player = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
 
 		if (player == nullptr) {
 			return;
@@ -43,7 +43,7 @@ void RaceMaelstromGeiser::OnProximityUpdate(Entity* self, Entity* entering, std:
 			return;
 		}
 
-		vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		vehicle = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 		if (vehicle == nullptr) {
 			return;

@@ -362,7 +362,7 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 
 		//If we are a respawn volume, inform the client:
 		if (m_IsRespawnVolume) {
-			auto entity = EntityManager::Instance()->GetEntity(en->GetObjectID());
+			auto entity = Game::entityManager->GetEntity(en->GetObjectID());
 
 			if (entity) {
 				GameMessages::SendPlayerReachedRespawnCheckpoint(entity, m_RespawnPos, m_RespawnRot);
@@ -403,8 +403,8 @@ void PhantomPhysicsComponent::SpawnVertices() {
 		info.spawnerID = m_Parent->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);
-		EntityManager::Instance()->ConstructEntity(newEntity);
+		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+		Game::entityManager->ConstructEntity(newEntity);
 	}
 }
 

@@ -35,7 +35,7 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	: std::vector<std::string>{ "MaelstromSamples", "MaelstromSamples2ndary1", "MaelstromSamples2ndary2" };
 
 	for (const auto& group : groups) {
-		auto samples = EntityManager::Instance()->GetEntitiesInGroup(group);
+		auto samples = Game::entityManager->GetEntitiesInGroup(group);
 		for (auto* sample : samples) {
 			GameMessages::SendNotifyClientObject(sample->GetObjectID(), u"SetVisibility", visible, 0,
 				target->GetObjectID(), "", target->GetSystemAddress());

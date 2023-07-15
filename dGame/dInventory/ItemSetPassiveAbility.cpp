@@ -44,7 +44,7 @@ void ItemSetPassiveAbility::Activate(Entity* target) {
 		return;
 	}
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	const auto id = static_cast<eItemSetPassiveAbilityID>(m_ItemSet->GetID());
 	const auto parentID = m_Parent->GetObjectID();
@@ -203,7 +203,7 @@ void ItemSetPassiveAbility::OnEnemySmshed(Entity* target) {
 		return;
 	}
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	const auto id = static_cast<eItemSetPassiveAbilityID>(m_ItemSet->GetID());
 	const auto parentID = m_Parent->GetObjectID();
