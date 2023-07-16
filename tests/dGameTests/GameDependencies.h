@@ -7,6 +7,8 @@
 #include "EntityInfo.h"
 #include "EntityManager.h"
 #include "dConfig.h"
+
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 class dZoneManager;
@@ -21,6 +23,11 @@ public:
 	void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast) override { sentBitStream = bitStream; };
 };
 
+class EntityManagerMock : public EntityManager {
+public:
+	void SerializeEntity(Entity* entity) override {};
+};
+
 class GameDependenciesTest : public ::testing::Test {
 protected:
 	void SetUpDependencies() {
@@ -32,7 +39,7 @@ protected:
 		Game::logger = new dLogger("./testing.log", true, true);
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
-		Game::entityManager = new EntityManager();
+		Game::entityManager = new EntityManagerMock();
 	}
 
 	void TearDownDependencies() {

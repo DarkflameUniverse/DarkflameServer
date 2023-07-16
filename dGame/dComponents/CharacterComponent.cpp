@@ -30,7 +30,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_DirtySocialInfo = false;
 
 	m_PvpEnabled = false;
-	m_GMLevel = character->GetGMLevel();
+	m_GMLevel = character != nullptr ? character->GetGMLevel() : eGameMasterLevel::CIVILIAN;
 
 	m_EditorEnabled = false;
 	m_EditorLevel = m_GMLevel;

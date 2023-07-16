@@ -43,7 +43,7 @@ public:
 
 	void ConstructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS, bool skipChecks = false);
 	void DestructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-	void SerializeEntity(Entity* entity);
+	virtual void SerializeEntity(Entity* entity);
 
 	void ConstructAllEntities(const SystemAddress& sysAddr);
 	void DestructAllEntities(const SystemAddress& sysAddr);
