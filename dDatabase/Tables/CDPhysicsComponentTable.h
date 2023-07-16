@@ -21,10 +21,9 @@ struct CDPhysicsComponent {
 	UNUSED(std::string gravityVolumeAsset);
 };
 
-class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable> {
+namespace CDPhysicsComponentTable {
 public:
-	CDPhysicsComponentTable();
-	~CDPhysicsComponentTable();
+	void LoadTableIntoMemory();
 
 	static const std::string GetTableName() { return "PhysicsComponent"; };
 	CDPhysicsComponent* GetByID(unsigned int componentID);

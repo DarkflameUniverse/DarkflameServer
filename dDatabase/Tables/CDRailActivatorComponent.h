@@ -20,9 +20,9 @@ struct CDRailActivatorComponent {
 	bool showNameBillboard;
 };
 
-class CDRailActivatorComponentTable : public CDTable<CDRailActivatorComponentTable> {
+namespace CDRailActivatorComponentTable {
 public:
-	CDRailActivatorComponentTable();
+	void LoadTableIntoMemory();
 	static const std::string GetTableName() { return "RailActivatorComponent"; };
 	[[nodiscard]] CDRailActivatorComponent GetEntryByID(int32_t id) const;
 	[[nodiscard]] std::vector<CDRailActivatorComponent> GetEntries() const;

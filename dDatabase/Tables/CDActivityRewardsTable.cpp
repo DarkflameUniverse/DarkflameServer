@@ -1,7 +1,10 @@
 #include "CDActivityRewardsTable.h"
 
-CDActivityRewardsTable::CDActivityRewardsTable(void) {
+namespace {
+	std::vector<CDActivityRewards> entries;
+};
 
+void CDActivityRewardsTable::LoadTableIntoMemory() {
 	// First, get the size of the table
 	unsigned int size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM ActivityRewards");
@@ -14,7 +17,7 @@ CDActivityRewardsTable::CDActivityRewardsTable(void) {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ActivityRewards");
@@ -28,7 +31,7 @@ CDActivityRewardsTable::CDActivityRewardsTable(void) {
 		entry.ChallengeRating = tableData.getIntField("ChallengeRating", -1);
 		entry.description = tableData.getStringField("description", "");
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -37,14 +40,9 @@ CDActivityRewardsTable::CDActivityRewardsTable(void) {
 
 std::vector<CDActivityRewards> CDActivityRewardsTable::Query(std::function<bool(CDActivityRewards)> predicate) {
 
-	std::vector<CDActivityRewards> data = cpplinq::from(this->entries)
+	std::vector<CDActivityRewards> data = cpplinq::from(entries)
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-std::vector<CDActivityRewards> CDActivityRewardsTable::GetEntries(void) const {
-	return this->entries;
-}
-

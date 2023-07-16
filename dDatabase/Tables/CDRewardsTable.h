@@ -11,10 +11,9 @@ struct CDRewards {
 	int32_t count;
 };
 
-class CDRewardsTable : public CDTable<CDRewardsTable> {
+namespace CDRewardsTable {
 public:
-	CDRewardsTable();
-	~CDRewardsTable();
+	void LoadTableIntoMemory();
 
 	static const std::string GetTableName() { return "Rewards"; };
 	std::vector<CDRewards*> GetByLevelID(uint32_t levelID);

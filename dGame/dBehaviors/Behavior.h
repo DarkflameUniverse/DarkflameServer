@@ -11,7 +11,7 @@
 
 struct BehaviorContext;
 struct BehaviorBranchContext;
-class CDBehaviorParameterTable;
+namespace CDBehaviorParameterTable; {
 
 class Behavior
 {

@@ -60,12 +60,12 @@ struct CDMissions {
 	int reward_bankinventory;      //!< The amount of bank space this mission rewards
 };
 
-class CDMissionsTable : public CDTable<CDMissionsTable> {
+namespace CDMissionsTable {
 private:
 	std::vector<CDMissions> entries;
 
 public:
-	CDMissionsTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissions> Query(std::function<bool(CDMissions)> predicate);
 

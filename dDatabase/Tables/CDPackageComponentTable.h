@@ -9,7 +9,7 @@ struct CDPackageComponent {
 	unsigned int packageType;
 };
 
-class CDPackageComponentTable : public CDTable<CDPackageComponentTable> {
+namespace CDPackageComponentTable {
 private:
 	std::vector<CDPackageComponent> entries;
 

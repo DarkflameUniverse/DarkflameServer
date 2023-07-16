@@ -20,13 +20,13 @@ struct CDObjects {
 	UNUSED(unsigned int HQ_valid);                      //!< Probably used for the Nexus HQ database on LEGOUniverse.com
 };
 
-class CDObjectsTable : public CDTable<CDObjectsTable> {
+namespace CDObjectsTable {
 private:
 	std::map<unsigned int, CDObjects> entries;
 	CDObjects m_default;
 
 public:
-	CDObjectsTable();
+	void LoadTableIntoMemory();
 	// Gets an entry by ID
 	const CDObjects& GetByID(unsigned int LOT);
 };

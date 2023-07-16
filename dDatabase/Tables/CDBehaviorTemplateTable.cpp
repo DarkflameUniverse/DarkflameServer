@@ -1,6 +1,12 @@
 #include "CDBehaviorTemplateTable.h"
 
-CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
+namespace {
+	std::vector<CDBehaviorTemplate> entries;
+	std::unordered_map<uint32_t, CDBehaviorTemplate> entriesMappedByBehaviorID;
+	std::unordered_set<std::string> m_EffectHandles;
+};
+
+void CDBehaviorTemplateTable::LoadTableIntoMemory() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -14,7 +20,7 @@ CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorTemplate");
@@ -31,8 +37,8 @@ CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
 			entry.effectHandle = m_EffectHandles.insert(candidateToAdd).first;
 		}
 
-		this->entries.push_back(entry);
-		this->entriesMappedByBehaviorID.insert(std::make_pair(entry.behaviorID, entry));
+		entries.push_back(entry);
+		entriesMappedByBehaviorID.insert(std::make_pair(entry.behaviorID, entry));
 		tableData.nextRow();
 	}
 
@@ -41,20 +47,16 @@ CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
 
 std::vector<CDBehaviorTemplate> CDBehaviorTemplateTable::Query(std::function<bool(CDBehaviorTemplate)> predicate) {
 
-	std::vector<CDBehaviorTemplate> data = cpplinq::from(this->entries)
+	std::vector<CDBehaviorTemplate> data = cpplinq::from(entries)
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
 
-std::vector<CDBehaviorTemplate> CDBehaviorTemplateTable::GetEntries(void) const {
-	return this->entries;
-}
-
 const CDBehaviorTemplate CDBehaviorTemplateTable::GetByBehaviorID(uint32_t behaviorID) {
-	auto entry = this->entriesMappedByBehaviorID.find(behaviorID);
-	if (entry == this->entriesMappedByBehaviorID.end()) {
+	auto entry = entriesMappedByBehaviorID.find(behaviorID);
+	if (entry == entriesMappedByBehaviorID.end()) {
 		CDBehaviorTemplate entryToReturn;
 		entryToReturn.behaviorID = 0;
 		entryToReturn.effectHandle = m_EffectHandles.end();

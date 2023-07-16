@@ -49,12 +49,12 @@ struct CDItemComponent {
 	float SellMultiplier;           //!< Something to do with early vendors perhaps (but replaced)
 };
 
-class CDItemComponentTable : public CDTable<CDItemComponentTable> {
+namespace CDItemComponentTable {
 private:
 	std::map<unsigned int, CDItemComponent> entries;
 
 public:
-	CDItemComponentTable();
+	void LoadTableIntoMemory();
 	static std::map<LOT, uint32_t> ParseCraftingCurrencies(const CDItemComponent& itemComponent);
 
 	// Gets an entry by ID

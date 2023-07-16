@@ -20,12 +20,12 @@ struct CDDestructibleComponent {
 	int difficultyLevel;               //!< ???
 };
 
-class CDDestructibleComponentTable : public CDTable<CDDestructibleComponentTable> {
+namespace CDDestructibleComponentTable {
 private:
 	std::vector<CDDestructibleComponent> entries;
 
 public:
-	CDDestructibleComponentTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDDestructibleComponent> Query(std::function<bool(CDDestructibleComponent)> predicate);
 

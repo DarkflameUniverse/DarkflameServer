@@ -11,12 +11,12 @@ struct CDFeatureGating {
 	std::string description;
 };
 
-class CDFeatureGatingTable : public CDTable<CDFeatureGatingTable> {
+namespace CDFeatureGatingTable {
 private:
 	std::vector<CDFeatureGating> entries;
 
 public:
-	CDFeatureGatingTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDFeatureGating> Query(std::function<bool(CDFeatureGating)> predicate);
 

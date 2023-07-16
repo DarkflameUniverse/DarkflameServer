@@ -1,7 +1,12 @@
 #include "CDBehaviorParameterTable.h"
 #include "GeneralUtils.h"
 
-CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
+namespace {
+	std::unordered_map<uint64_t, CDBehaviorParameter> m_Entries;
+	std::unordered_map<std::string, uint32_t> m_ParametersList;
+};
+
+void CDBehaviorParameterTable::LoadTableIntoMemory() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorParameter");
 	uint32_t uniqueParameterId = 0;
 	uint64_t hash = 0;
@@ -28,8 +33,8 @@ CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 }
 
 float CDBehaviorParameterTable::GetValue(const uint32_t behaviorID, const std::string& name, const float defaultValue) {
-	auto parameterID = this->m_ParametersList.find(name);
-	if (parameterID == this->m_ParametersList.end()) return defaultValue;
+	auto parameterID = m_ParametersList.find(name);
+	if (parameterID == m_ParametersList.end()) return defaultValue;
 
 	uint64_t hash = behaviorID;
 

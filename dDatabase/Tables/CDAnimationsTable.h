@@ -22,11 +22,11 @@ struct CDAnimation {
 
 typedef LookupResult<CDAnimation> CDAnimationLookupResult;
 
-class CDAnimationsTable : public CDTable<CDAnimationsTable> {
+namespace CDAnimationsTable {
 	typedef int32_t AnimationGroupID;
 	typedef std::string AnimationID;
 	typedef std::pair<std::string, AnimationGroupID> CDAnimationKey;
-public:
+	void LoadTableIntoMemory();
 	/**
 	 * Given an animationType and the previousAnimationName played, return the next animationType to play.
 	 * If there are more than 1 animationTypes that can be played, one is selected at random but also does not allow
@@ -43,24 +43,4 @@ public:
 	 * Cache a full AnimationGroup by its ID.
 	 */
 	void CacheAnimationGroup(AnimationGroupID animationGroupID);
-private:
-
-	/**
-	 * Cache all animations given a premade key
-	 */
-	void CacheAnimations(const CDAnimationKey animationKey);
-
-	/**
-	 * Run the query responsible for caching the data.
-	 * @param queryToCache 
-	 * @return true 
-	 * @return false 
-	 */
-	bool CacheData(CppSQLite3Statement& queryToCache);
-
-	/**
-	 * Each animation is key'd by its animationName and its animationGroupID.  Each
-	 * animation has a possible list of animations.  This is because there can be animations have a percent chance to play so one is selected at random.
-	 */
-	std::map<CDAnimationKey, std::list<CDAnimation>> animations;
 };

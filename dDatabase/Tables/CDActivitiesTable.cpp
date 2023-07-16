@@ -1,7 +1,10 @@
 #include "CDActivitiesTable.h"
 
-CDActivitiesTable::CDActivitiesTable(void) {
+namespace {
+	std::vector<CDActivities> entries;
+};
 
+void CDActivitiesTable::LoadTableIntoMemory() {
 	// First, get the size of the table
 	unsigned int size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Activities");
@@ -14,7 +17,7 @@ CDActivitiesTable::CDActivitiesTable(void) {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Activities");
@@ -40,7 +43,7 @@ CDActivitiesTable::CDActivitiesTable(void) {
 		entry.noTeamLootOnDeath = tableData.getIntField("noTeamLootOnDeath", -1);
 		entry.optionalPercentage = tableData.getFloatField("optionalPercentage", -1.0f);
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -49,14 +52,9 @@ CDActivitiesTable::CDActivitiesTable(void) {
 
 std::vector<CDActivities> CDActivitiesTable::Query(std::function<bool(CDActivities)> predicate) {
 
-	std::vector<CDActivities> data = cpplinq::from(this->entries)
+	std::vector<CDActivities> data = cpplinq::from(entries)
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-std::vector<CDActivities> CDActivitiesTable::GetEntries(void) const {
-	return this->entries;
-}
-

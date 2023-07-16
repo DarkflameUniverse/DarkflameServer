@@ -26,13 +26,8 @@ struct CDEmoteTable {
 	std::string gateVersion;
 };
 
-class CDEmoteTableTable : public CDTable<CDEmoteTableTable> {
-private:
-	std::map<int, CDEmoteTable*> entries;
-
-public:
-	CDEmoteTableTable();
-	~CDEmoteTableTable();
+namespace CDEmoteTableTable {
+	void LoadTableIntoMemory();
 	// Returns an emote by ID
 	CDEmoteTable* GetEmote(int id);
 };

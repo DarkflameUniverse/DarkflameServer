@@ -11,12 +11,12 @@ struct CDLootTable {
 	unsigned int sortPriority;           //!< The sorting priority
 };
 
-class CDLootTableTable : public CDTable<CDLootTableTable> {
+namespace CDLootTableTable {
 private:
 	std::vector<CDLootTable> entries;
 
 public:
-	CDLootTableTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDLootTable> Query(std::function<bool(CDLootTable)> predicate);
 

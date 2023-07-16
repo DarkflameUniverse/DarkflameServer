@@ -25,12 +25,6 @@
 #pragma warning (disable : 4244) //Disable double to float conversion warnings
 #pragma warning (disable : 4715) //Disable "not all control paths return a value"
 
-template<class Table>
-class CDTable : public Singleton<Table> {
-protected:
-	virtual ~CDTable() = default;
-};
-
 template<class T>
 class LookupResult {
 	typedef std::pair<T, bool> DataType;

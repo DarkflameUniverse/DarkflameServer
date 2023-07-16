@@ -10,12 +10,12 @@ struct CDInventoryComponent {
 	bool equip;             //!< Whether or not to equip the item
 };
 
-class CDInventoryComponentTable : public CDTable<CDInventoryComponentTable> {
+namespace CDInventoryComponentTable {
 private:
 	std::vector<CDInventoryComponent> entries;
 
 public:
-	CDInventoryComponentTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDInventoryComponent> Query(std::function<bool(CDInventoryComponent)> predicate);
 

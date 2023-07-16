@@ -26,12 +26,12 @@ struct CDRarityTable {
 	}
 };
 
-class CDRarityTableTable : public CDTable<CDRarityTableTable> {
+namespace CDRarityTableTable {
 private:
 	std::vector<CDRarityTable> entries;
 
 public:
-	CDRarityTableTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDRarityTable> Query(std::function<bool(CDRarityTable)> predicate);
 

@@ -11,12 +11,12 @@ struct CDVendorComponent {
 	unsigned int LootMatrixIndex; //!< LootMatrixIndex of the vendor's items
 };
 
-class CDVendorComponentTable : public CDTable<CDVendorComponentTable> {
+namespace CDVendorComponentTable {
 private:
 	std::vector<CDVendorComponent> entries;
 
 public:
-	CDVendorComponentTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDVendorComponent> Query(std::function<bool(CDVendorComponent)> predicate);
 

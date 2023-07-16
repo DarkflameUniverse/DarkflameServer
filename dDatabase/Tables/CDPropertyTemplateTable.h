@@ -8,9 +8,9 @@ struct CDPropertyTemplate {
 	std::string spawnName;
 };
 
-class CDPropertyTemplateTable : public CDTable<CDPropertyTemplateTable> {
+namespace CDPropertyTemplateTable {
 public:
-	CDPropertyTemplateTable();
+	void LoadTableIntoMemory();
 
 	static const std::string GetTableName() { return "PropertyTemplate"; };
 	CDPropertyTemplate GetByMapID(uint32_t mapID);

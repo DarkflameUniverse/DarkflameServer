@@ -9,12 +9,12 @@ struct CDItemSetSkills {
 	unsigned int SkillCastType;         //!< The skill cast type
 };
 
-class CDItemSetSkillsTable : public CDTable<CDItemSetSkillsTable> {
+namespace CDItemSetSkillsTable {
 private:
 	std::vector<CDItemSetSkills> entries;
 
 public:
-	CDItemSetSkillsTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDItemSetSkills> Query(std::function<bool(CDItemSetSkills)> predicate);
 

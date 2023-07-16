@@ -10,7 +10,7 @@ struct CDProximityMonitorComponent {
 	bool LoadOnServer;
 };
 
-class CDProximityMonitorComponentTable : public CDTable<CDProximityMonitorComponentTable> {
+namespace CDProximityMonitorComponentTable {
 private:
 	std::vector<CDProximityMonitorComponent> entries;
 

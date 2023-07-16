@@ -1,5 +1,4 @@
 set(DDATABASE_SOURCES "CDClientDatabase.cpp"
-		"CDClientManager.cpp"
 		"Database.cpp"
 		"MigrationRunner.cpp")
 

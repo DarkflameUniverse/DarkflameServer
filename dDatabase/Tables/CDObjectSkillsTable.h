@@ -10,12 +10,12 @@ struct CDObjectSkills {
 	unsigned int AICombatWeight;        //!< ???
 };
 
-class CDObjectSkillsTable : public CDTable<CDObjectSkillsTable> {
+namespace CDObjectSkillsTable {
 private:
 	std::vector<CDObjectSkills> entries;
 
 public:
-	CDObjectSkillsTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDObjectSkills> Query(std::function<bool(CDObjectSkills)> predicate);
 

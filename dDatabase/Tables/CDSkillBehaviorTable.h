@@ -25,13 +25,13 @@ struct CDSkillBehavior {
 	UNUSED(unsigned int cancelType);            //!< The cancel type (?)
 };
 
-class CDSkillBehaviorTable : public CDTable<CDSkillBehaviorTable> {
+namespace CDSkillBehaviorTable {
 private:
 	std::map<unsigned int, CDSkillBehavior> entries;
 	CDSkillBehavior m_empty;
 
 public:
-	CDSkillBehaviorTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDSkillBehavior> Query(std::function<bool(CDSkillBehavior)> predicate);
 

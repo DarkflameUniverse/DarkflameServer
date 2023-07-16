@@ -21,12 +21,12 @@ struct CDItemSets {
 	float priority;         //!< The priority
 };
 
-class CDItemSetsTable : public CDTable<CDItemSetsTable> {
+namespace CDItemSetsTable {
 private:
 	std::vector<CDItemSets> entries;
 
 public:
-	CDItemSetsTable();
+	void LoadTableIntoMemory();
 	// Queries the table with a custom "where" clause
 	std::vector<CDItemSets> Query(std::function<bool(CDItemSets)> predicate);
 
