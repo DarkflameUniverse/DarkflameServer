@@ -7,16 +7,13 @@
 #include "tinyxml2.h"
 #include "Brick.h"
 
-namespace {
-	std::unordered_map<LxfmlPath, BrickList> m_Cache;
-	const BrickList emptyCache;
-}
-
 const BrickList& BrickDatabase::GetBricks(const LxfmlPath& lxfmlPath) {
+	static std::unordered_map<LxfmlPath, BrickList> m_Cache;
+	static const BrickList emptyCache;
+
 	const auto cached = m_Cache.find(lxfmlPath);
 
 	if (cached != m_Cache.end()) {
-		Game::logger->Log("BrickDatabase", "found cached entry %s", lxfmlPath.c_str());
 		return cached->second;
 	}
 
