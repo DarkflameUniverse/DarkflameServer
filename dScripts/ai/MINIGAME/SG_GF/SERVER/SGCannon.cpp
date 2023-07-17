@@ -142,7 +142,7 @@ void SGCannon::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button
 
 	if (identifier == u"Scoreboardinfo") {
 		GameMessages::SendDisplayMessageBox(player->GetObjectID(), true,
-			dZoneManager::Instance()->GetZoneControlObject()->GetObjectID(),
+			Game::zoneManager->GetZoneControlObject()->GetObjectID(),
 			u"Shooting_Gallery_Retry", 2, u"Retry?",
 			u"", player->GetSystemAddress());
 	} else {
@@ -262,7 +262,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			}
 			const auto& toSpawn = activeSpawns.at(spawnNumber);
 			const auto pathIndex = GeneralUtils::GenerateRandomNumber<float_t>(0, toSpawn.spawnPaths.size() - 1);
-			const auto* path = dZoneManager::Instance()->GetZone()->GetPath(toSpawn.spawnPaths.at(pathIndex));
+			const auto* path = Game::zoneManager->GetZone()->GetPath(toSpawn.spawnPaths.at(pathIndex));
 			if (!path) {
 				Game::logger->Log("SGCannon", "Path %s at index %i is null", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
 				return;

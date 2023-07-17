@@ -47,8 +47,8 @@ Spawner::Spawner(const SpawnerInfo info) {
 
 	if (m_Info.spawnOnSmashGroupName != "") {
 		std::vector<Entity*> spawnSmashEntities = Game::entityManager->GetEntitiesInGroup(m_Info.spawnOnSmashGroupName);
-		std::vector<Spawner*> spawnSmashSpawners = dZoneManager::Instance()->GetSpawnersInGroup(m_Info.spawnOnSmashGroupName);
-		std::vector<Spawner*> spawnSmashSpawnersN = dZoneManager::Instance()->GetSpawnersByName(m_Info.spawnOnSmashGroupName);
+		std::vector<Spawner*> spawnSmashSpawners = Game::zoneManager->GetSpawnersInGroup(m_Info.spawnOnSmashGroupName);
+		std::vector<Spawner*> spawnSmashSpawnersN = Game::zoneManager->GetSpawnersByName(m_Info.spawnOnSmashGroupName);
 		for (Entity* ssEntity : spawnSmashEntities) {
 			m_SpawnSmashFoundGroup = true;
 			ssEntity->AddDieCallback([=]() {

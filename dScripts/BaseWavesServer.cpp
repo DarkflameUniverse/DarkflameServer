@@ -392,7 +392,7 @@ void BaseWavesServer::GameWon(Entity* self) {
 
 // Done
 void BaseWavesServer::SpawnNow(const std::string& spawnerName, uint32_t amount, LOT spawnLot) {
-	const auto spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+	const auto spawners = Game::zoneManager->GetSpawnersByName(spawnerName);
 	for (auto* spawner : spawners) {
 		if (spawnLot != LOT_NULL) {
 			spawner->SetSpawnLot(spawnLot);
@@ -581,7 +581,7 @@ void BaseWavesServer::UpdateMissionForAllPlayers(Entity* self, uint32_t missionI
 
 void BaseWavesServer::ClearSpawners() {
 	for (const auto& spawnerName : spawners) {
-		const auto spawnerObjects = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+		const auto spawnerObjects = Game::zoneManager->GetSpawnersByName(spawnerName);
 
 		for (auto* spawnerObject : spawnerObjects) {
 			spawnerObject->Reset();

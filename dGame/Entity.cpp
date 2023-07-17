@@ -267,13 +267,13 @@ void Entity::Initialize() {
 
 				if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
 					pos = m_Character->GetRespawnPoint(mapID);
-					rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+					rot = Game::zoneManager->GetZone()->GetSpawnRot();
 				} else if (targetScene != nullptr) {
 					pos = targetScene->GetPosition();
 					rot = targetScene->GetRotation();
 				} else {
-					pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
-					rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+					pos = Game::zoneManager->GetZone()->GetSpawnPos();
+					rot = Game::zoneManager->GetZone()->GetSpawnRot();
 				}
 
 				controllablePhysics->SetPosition(pos);
@@ -505,7 +505,7 @@ void Entity::Initialize() {
 	// ZoneControl script
 	if (m_TemplateID == 2365) {
 		CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
-		const auto zoneID = dZoneManager::Instance()->GetZoneID();
+		const auto zoneID = Game::zoneManager->GetZoneID();
 		const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
 
 		if (zoneData != nullptr) {
@@ -691,7 +691,7 @@ void Entity::Initialize() {
 	}
 
 	std::string pathName = GetVarAsString(u"attached_path");
-	const Path* path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
+	const Path* path = Game::zoneManager->GetZone()->GetPath(pathName);
 
 	//Check to see if we have an attached path and add the appropiate component to handle it:
 	if (path){
@@ -1544,14 +1544,14 @@ void Entity::Kill(Entity* murderer) {
 	const auto& grpNameQBShowBricks = GetVar<std::string>(u"grpNameQBShowBricks");
 
 	if (!grpNameQBShowBricks.empty()) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(grpNameQBShowBricks);
+		auto spawners = Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks);
 
 		Spawner* spawner = nullptr;
 
 		if (!spawners.empty()) {
 			spawner = spawners[0];
 		} else {
-			spawners = dZoneManager::Instance()->GetSpawnersInGroup(grpNameQBShowBricks);
+			spawners = Game::zoneManager->GetSpawnersInGroup(grpNameQBShowBricks);
 
 			if (!spawners.empty()) {
 				spawner = spawners[0];

@@ -49,7 +49,7 @@ RacingControlComponent::RacingControlComponent(Entity* parent)
 
 	m_MainWorld = 1200;
 	const auto worldID = Game::server->GetZoneID();
-	if (dZoneManager::Instance()->CheckIfAccessibleZone((worldID/10)*10)) m_MainWorld = (worldID/10)*10;
+	if (Game::zoneManager->CheckIfAccessibleZone((worldID/10)*10)) m_MainWorld = (worldID/10)*10;
 
 	m_ActivityID = 42;
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
@@ -105,7 +105,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 
 	// Calculate the vehicle's starting position.
 
-	auto* path = dZoneManager::Instance()->GetZone()->GetPath(
+	auto* path = Game::zoneManager->GetZone()->GetPath(
 		GeneralUtils::UTF16ToWTF8(m_PathName));
 
 	auto spawnPointEntities = Game::entityManager->GetEntitiesByLOT(4843);
@@ -394,11 +394,11 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 		if (m_SoloRacing || m_LoadedPlayers > 2) {
 			missionComponent->Progress(eMissionTaskType::RACING, data->finished, (LWOOBJID)eRacingTaskParam::FINISH_WITH_PLACEMENT); // Finish in 1st place on a race
 			if (data->finished == 1) {
-				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::FIRST_PLACE_MULTIPLE_TRACKS); // Finish in 1st place on multiple tracks.
-				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::WIN_RACE_IN_WORLD); // Finished first place in specific world.
+				missionComponent->Progress(eMissionTaskType::RACING, Game::zoneManager->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::FIRST_PLACE_MULTIPLE_TRACKS); // Finish in 1st place on multiple tracks.
+				missionComponent->Progress(eMissionTaskType::RACING, Game::zoneManager->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::WIN_RACE_IN_WORLD); // Finished first place in specific world.
 			}
 			if (data->finished == m_LoadedPlayers) {
-				missionComponent->Progress(eMissionTaskType::RACING, dZoneManager::Instance()->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::LAST_PLACE_FINISH); // Finished first place in specific world.
+				missionComponent->Progress(eMissionTaskType::RACING, Game::zoneManager->GetZone()->GetWorldID(), (LWOOBJID)eRacingTaskParam::LAST_PLACE_FINISH); // Finished first place in specific world.
 			}
 		}
 	} else if ((id == "ACT_RACE_EXIT_THE_RACE?" || id == "Exit") && button == m_ActivityExitConfirm) {
@@ -650,11 +650,11 @@ void RacingControlComponent::Update(float deltaTime) {
 				}
 
 				// Spawn imagination pickups
-				auto* minSpawner = dZoneManager::Instance()->GetSpawnersByName(
+				auto* minSpawner = Game::zoneManager->GetSpawnersByName(
 					"ImaginationSpawn_Min")[0];
-				auto* medSpawner = dZoneManager::Instance()->GetSpawnersByName(
+				auto* medSpawner = Game::zoneManager->GetSpawnersByName(
 					"ImaginationSpawn_Med")[0];
-				auto* maxSpawner = dZoneManager::Instance()->GetSpawnersByName(
+				auto* maxSpawner = Game::zoneManager->GetSpawnersByName(
 					"ImaginationSpawn_Max")[0];
 
 				minSpawner->Activate();
@@ -723,7 +723,7 @@ void RacingControlComponent::Update(float deltaTime) {
 	}
 
 	// Race routines
-	auto* path = dZoneManager::Instance()->GetZone()->GetPath(
+	auto* path = Game::zoneManager->GetZone()->GetPath(
 		GeneralUtils::UTF16ToWTF8(m_PathName));
 
 	for (auto& player : m_RacingPlayers) {

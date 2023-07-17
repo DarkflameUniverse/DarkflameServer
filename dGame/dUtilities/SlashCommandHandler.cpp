@@ -272,7 +272,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "leave-zone") {
-		const auto currentZone = dZoneManager::Instance()->GetZone()->GetZoneID().GetMapID();
+		const auto currentZone = Game::zoneManager->GetZone()->GetZoneID().GetMapID();
 
 		LWOMAPID newZone = 0;
 		if (currentZone % 100 == 0) {
@@ -282,7 +282,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			newZone = (currentZone / 100) * 100;
 		}
 		// If new zone would be inaccessible, then default to Avant Gardens.
-		if (!dZoneManager::Instance()->CheckIfAccessibleZone(newZone)) newZone = 1100;
+		if (!Game::zoneManager->CheckIfAccessibleZone(newZone)) newZone = 1100;
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Leaving zone...");
 
@@ -336,7 +336,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		if (chatCommand == "resurrect") {
-			ScriptedActivityComponent* scriptedActivityComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<ScriptedActivityComponent>();
+			ScriptedActivityComponent* scriptedActivityComponent = Game::zoneManager->GetZoneControlObject()->GetComponent<ScriptedActivityComponent>();
 
 			if (scriptedActivityComponent) { // check if user is in activity world and if so, they can't resurrect
 				ChatPackets::SendSystemMessage(sysAddr, u"You cannot resurrect in an activity world.");
@@ -351,7 +351,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		if (chatCommand == "instanceinfo") {
-			const auto zoneId = dZoneManager::Instance()->GetZone()->GetZoneID();
+			const auto zoneId = Game::zoneManager->GetZone()->GetZoneID();
 
 			ChatPackets::SendSystemMessage(sysAddr, u"Map: " + (GeneralUtils::to_u16string(zoneId.GetMapID())) + u"\nClone: " + (GeneralUtils::to_u16string(zoneId.GetCloneID())) + u"\nInstance: " + (GeneralUtils::to_u16string(zoneId.GetInstanceID())));
 		}
@@ -1541,7 +1541,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		const auto objid = entity->GetObjectID();
 
-		if (force || dZoneManager::Instance()->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
+		if (force || Game::zoneManager->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
 
 			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 
@@ -1645,13 +1645,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "activatespawner" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(args[0]);
+		auto spawners = Game::zoneManager->GetSpawnersByName(args[0]);
 
 		for (auto* spawner : spawners) {
 			spawner->Activate();
 		}
 
-		spawners = dZoneManager::Instance()->GetSpawnersInGroup(args[0]);
+		spawners = Game::zoneManager->GetSpawnersInGroup(args[0]);
 
 		for (auto* spawner : spawners) {
 			spawner->Activate();
@@ -1685,13 +1685,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "triggerspawner" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(args[0]);
+		auto spawners = Game::zoneManager->GetSpawnersByName(args[0]);
 
 		for (auto* spawner : spawners) {
 			spawner->Spawn();
 		}
 
-		spawners = dZoneManager::Instance()->GetSpawnersInGroup(args[0]);
+		spawners = Game::zoneManager->GetSpawnersInGroup(args[0]);
 
 		for (auto* spawner : spawners) {
 			spawner->Spawn();

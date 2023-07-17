@@ -149,7 +149,7 @@ void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
 
 	auto* character = player->GetCharacter();
 	if (character != nullptr)
-		character->SetLastNonInstanceZoneID(dZoneManager::Instance()->GetZone()->GetWorldID());
+		character->SetLastNonInstanceZoneID(Game::zoneManager->GetZone()->GetWorldID());
 
 	for (Lobby* lobby : m_Queue) {
 		if (lobby->players.size() < m_ActivityInfo.maxTeamSize || m_ActivityInfo.maxTeamSize == 1 && lobby->players.size() < m_ActivityInfo.maxTeams) {
@@ -310,7 +310,7 @@ bool ScriptedActivityComponent::IsValidActivity(Entity* player) {
 		}
 
 		ChatPackets::SendSystemMessage(player->GetSystemAddress(), u"Sorry, this activity is not ready.");
-		static_cast<Player*>(player)->SendToZone(dZoneManager::Instance()->GetZone()->GetWorldID()); // Gets them out of this stuck state
+		static_cast<Player*>(player)->SendToZone(Game::zoneManager->GetZone()->GetWorldID()); // Gets them out of this stuck state
 
 		return false;
 	}*/

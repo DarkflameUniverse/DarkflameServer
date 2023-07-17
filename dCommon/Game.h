@@ -11,6 +11,7 @@ class RakPeerInterface;
 class AssetManager;
 struct SystemAddress;
 class EntityManager;
+class dZoneManager;
 
 namespace Game {
 	extern dLogger* logger;
@@ -24,4 +25,5 @@ namespace Game {
 	extern SystemAddress chatSysAddr;
 	extern bool shouldShutdown;
 	extern EntityManager* entityManager;
+	extern dZoneManager* zoneManager;
 }

@@ -31,7 +31,7 @@ void Lieutenant::OnDie(Entity* self, Entity* killer) {
 		return;
 	}
 
-	const auto spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+	const auto spawners = Game::zoneManager->GetSpawnersByName(spawnerName);
 
 	if (spawners.empty()) {
 		return;

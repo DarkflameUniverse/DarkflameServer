@@ -60,7 +60,7 @@ void EntityManager::Initialize() {
 	m_GhostingEnabled = std::find(
 		m_GhostingExcludedZones.begin(),
 		m_GhostingExcludedZones.end(),
-		dZoneManager::Instance()->GetZoneID().GetMapID()
+		Game::zoneManager->GetZoneID().GetMapID()
 	) == m_GhostingExcludedZones.end();
 
 	// grab hardcore mode settings and load them with sane defaults
@@ -75,7 +75,7 @@ void EntityManager::Initialize() {
 
 	// If cloneID is not zero, then hardcore mode is disabled
 	// aka minigames and props
-	if (dZoneManager::Instance()->GetZoneID().GetCloneID() != 0) m_HardcoreMode = false;
+	if (Game::zoneManager->GetZoneID().GetCloneID() != 0) m_HardcoreMode = false;
 }
 
 Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentEntity, const bool controller, const LWOOBJID explicitId) {

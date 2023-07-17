@@ -194,7 +194,7 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 
-	auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
+	auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
 
 	if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
 		character->SetAttribute("lzx", m_Position.x);

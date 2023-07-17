@@ -38,7 +38,7 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 
 	instance = this;
 
-	const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
+	const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
 
 	const auto zoneId = worldId.GetMapID();
 	const auto cloneId = worldId.GetCloneID();
@@ -98,7 +98,7 @@ void PropertyManagementComponent::SetOwner(Entity* value) {
 }
 
 std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const {
-	const auto zoneId = dZoneManager::Instance()->GetZone()->GetWorldID();
+	const auto zoneId = Game::zoneManager->GetZone()->GetWorldID();
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT path FROM PropertyTemplate WHERE mapID = ?;");
@@ -192,7 +192,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	auto character = entity->GetCharacter();
 	if (!character) return false;
 
-	auto* zone = dZoneManager::Instance()->GetZone();
+	auto* zone = Game::zoneManager->GetZone();
 
 	const auto& worldId = zone->GetZoneID();
 	const auto propertyZoneId = worldId.GetMapID();
@@ -240,7 +240,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 		return false;
 	}
 
-	auto* zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
+	auto* zoneControlObject = Game::zoneManager->GetZoneControlObject();
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControlObject)) {
 		script->OnZonePropertyRented(zoneControlObject, entity);
 	}
@@ -376,9 +376,9 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		info.spawnerID = persistentId;
 		GeneralUtils::SetBit(info.spawnerID, eObjectBits::CLIENT);
 
-		const auto spawnerId = dZoneManager::Instance()->MakeSpawner(info);
+		const auto spawnerId = Game::zoneManager->MakeSpawner(info);
 
-		auto* spawner = dZoneManager::Instance()->GetSpawner(spawnerId);
+		auto* spawner = Game::zoneManager->GetSpawner(spawnerId);
 
 		auto ldfModelBehavior = new LDFData<LWOOBJID>(u"modelBehaviors", 0);
 		auto userModelID = new LDFData<LWOOBJID>(u"userModelID", info.spawnerID);
@@ -433,7 +433,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 
 	const auto spawnerId = index->second;
 
-	auto* spawner = dZoneManager::Instance()->GetSpawner(spawnerId);
+	auto* spawner = Game::zoneManager->GetSpawner(spawnerId);
 
 	models.erase(id);
 
@@ -496,7 +496,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), NiPoint3::ZERO, LWOOBJID_EMPTY, 16, NiQuaternion::IDENTITY);
 
 		if (spawner != nullptr) {
-			dZoneManager::Instance()->RemoveSpawner(spawner->m_Info.spawnerID);
+			Game::zoneManager->RemoveSpawner(spawner->m_Info.spawnerID);
 		} else {
 			model->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 		}
@@ -549,7 +549,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), NiPoint3::ZERO, LWOOBJID_EMPTY, 16, NiQuaternion::IDENTITY);
 
 	if (spawner != nullptr) {
-		dZoneManager::Instance()->RemoveSpawner(spawner->m_Info.spawnerID);
+		Game::zoneManager->RemoveSpawner(spawner->m_Info.spawnerID);
 	} else {
 		model->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 	}
@@ -652,9 +652,9 @@ void PropertyManagementComponent::Load() {
 
 		node->config = settings;
 
-		const auto spawnerId = dZoneManager::Instance()->MakeSpawner(info);
+		const auto spawnerId = Game::zoneManager->MakeSpawner(info);
 
-		auto* spawner = dZoneManager::Instance()->GetSpawner(spawnerId);
+		auto* spawner = Game::zoneManager->GetSpawner(spawnerId);
 
 		auto* model = spawner->Spawn();
 
@@ -786,7 +786,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 		author = m_Parent->GetObjectID();
 	}
 
-	const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
+	const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
 	const auto zoneId = worldId.GetMapID();
 
 	Game::logger->Log("Properties", "Getting property info for %d", zoneId);

@@ -26,7 +26,7 @@ TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo
 	uint32_t triggerID;
 	GeneralUtils::TryParse<uint32_t>(tokens.at(1), triggerID);
 
-	m_Trigger = dZoneManager::Instance()->GetZone()->GetTrigger(sceneID, triggerID);
+	m_Trigger = Game::zoneManager->GetZone()->GetTrigger(sceneID, triggerID);
 
 	if (!m_Trigger) m_Trigger = new LUTriggers::Trigger();
 }
@@ -409,25 +409,25 @@ void TriggerComponent::HandleSetPhysicsVolumeStatus(Entity* targetEntity, std::s
 }
 
 void TriggerComponent::HandleActivateSpawnerNetwork(std::string args){
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(args)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->Activate();
 	}
 }
 
 void TriggerComponent::HandleDeactivateSpawnerNetwork(std::string args){
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(args)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->Deactivate();
 	}
 }
 
 void TriggerComponent::HandleResetSpawnerNetwork(std::string args){
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(args)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->Reset();
 	}
 }
 
 void TriggerComponent::HandleDestroySpawnerNetworkObjects(std::string args){
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(args)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->DestroyAllEntities();
 	}
 }

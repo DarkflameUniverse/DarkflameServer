@@ -92,7 +92,7 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 			Game::entityManager->DestructEntity(plaque);
 		}
 
-		const auto& mapID = dZoneManager::Instance()->GetZone()->GetZoneID();
+		const auto& mapID = Game::zoneManager->GetZone()->GetZoneID();
 
 		if (propertyOwner > 0) {
 			auto* missionComponent = player->GetComponent<MissionComponent>();
@@ -278,31 +278,31 @@ void BasePropertyServer::RequestDie(Entity* self, Entity* other) {
 }
 
 void BasePropertyServer::ActivateSpawner(const std::string& spawnerName) {
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(spawnerName)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(spawnerName)) {
 		spawner->Activate();
 	}
 }
 
 void BasePropertyServer::DeactivateSpawner(const std::string& spawnerName) {
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(spawnerName)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(spawnerName)) {
 		spawner->Deactivate();
 	}
 }
 
 void BasePropertyServer::TriggerSpawner(const std::string& spawnerName) {
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersInGroup(spawnerName)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersInGroup(spawnerName)) {
 		spawner->Spawn();
 	}
 }
 
 void BasePropertyServer::ResetSpawner(const std::string& spawnerName) {
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(spawnerName)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(spawnerName)) {
 		spawner->Reset();
 	}
 }
 
 void BasePropertyServer::DestroySpawner(const std::string& spawnerName) {
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(spawnerName)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(spawnerName)) {
 		if (!spawner) return;
 		spawner->DestroyAllEntities();
 		spawner->Deactivate();
@@ -322,10 +322,10 @@ void BasePropertyServer::BaseTimerDone(Entity* self, const std::string& timerNam
 	} else if (timerName == StartQuickbuildTimer) {
 		HandleQuickBuildTimer(self);
 	} else if (timerName == "GuardFlyAway") {
-		const auto zoneId = dZoneManager::Instance()->GetZone()->GetWorldID();
+		const auto zoneId = Game::zoneManager->GetZone()->GetWorldID();
 
 		// No guard for the spider instance fight
-		if (dZoneManager::Instance()->GetZoneID().GetMapID() == 1150)
+		if (Game::zoneManager->GetZoneID().GetMapID() == 1150)
 			return;
 
 		const auto entities = Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(GuardGroup));
@@ -366,7 +366,7 @@ void BasePropertyServer::BaseTimerDone(Entity* self, const std::string& timerNam
 		self->AddTimer(TurnSkyOffTimer, 1.5f);
 		self->AddTimer(KillFXObjectTimer, 8.0f);
 	} else if (timerName == TurnSkyOffTimer) {
-		auto* controller = dZoneManager::Instance()->GetZoneControlObject();
+		auto* controller = Game::zoneManager->GetZoneControlObject();
 		GameMessages::SendNotifyClientObject(controller->GetObjectID(), u"SkyOff", 0, 0,
 			LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == KillStrombiesTimer) {

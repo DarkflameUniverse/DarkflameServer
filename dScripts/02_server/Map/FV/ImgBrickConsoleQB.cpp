@@ -93,13 +93,13 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 }
 
 void ImgBrickConsoleQB::SpawnBrick(Entity* self) {
-	const auto netDevil = dZoneManager::Instance()->GetSpawnersByName("MaelstromBug");
+	const auto netDevil = Game::zoneManager->GetSpawnersByName("MaelstromBug");
 	if (!netDevil.empty()) {
 		netDevil[0]->Reset();
 		netDevil[0]->Deactivate();
 	}
 
-	const auto brick = dZoneManager::Instance()->GetSpawnersByName("Imagination");
+	const auto brick = Game::zoneManager->GetSpawnersByName("Imagination");
 	if (!brick.empty()) {
 		brick[0]->Activate();
 	}
@@ -117,7 +117,7 @@ void ImgBrickConsoleQB::SmashCanister(Entity* self) {
 		canister->Smash(canister->GetObjectID(), eKillType::VIOLENT);
 	}
 
-	const auto canister = dZoneManager::Instance()->GetSpawnersByName("BrickCanister");
+	const auto canister = Game::zoneManager->GetSpawnersByName("BrickCanister");
 	if (!canister.empty()) {
 		canister[0]->Reset();
 		canister[0]->Deactivate();
@@ -195,29 +195,29 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 
 	const auto firstPipe = pipeGroup + "1";
 
-	const auto samePipeSpawner = dZoneManager::Instance()->GetSpawnersByName(myGroup);
+	const auto samePipeSpawner = Game::zoneManager->GetSpawnersByName(myGroup);
 	if (!samePipeSpawner.empty()) {
 		samePipeSpawner[0]->Reset();
 		samePipeSpawner[0]->Deactivate();
 	}
 
-	const auto firstPipeSpawner = dZoneManager::Instance()->GetSpawnersByName(firstPipe);
+	const auto firstPipeSpawner = Game::zoneManager->GetSpawnersByName(firstPipe);
 	if (!firstPipeSpawner.empty()) {
 		firstPipeSpawner[0]->Activate();
 	}
 
-	const auto netdevil = dZoneManager::Instance()->GetSpawnersByName("Imagination");
+	const auto netdevil = Game::zoneManager->GetSpawnersByName("Imagination");
 	if (!netdevil.empty()) {
 		netdevil[0]->Reset();
 		netdevil[0]->Deactivate();
 	}
 
-	const auto brick = dZoneManager::Instance()->GetSpawnersByName("MaelstromBug");
+	const auto brick = Game::zoneManager->GetSpawnersByName("MaelstromBug");
 	if (!brick.empty()) {
 		brick[0]->Activate();
 	}
 
-	const auto canister = dZoneManager::Instance()->GetSpawnersByName("BrickCanister");
+	const auto canister = Game::zoneManager->GetSpawnersByName("BrickCanister");
 	if (!canister.empty()) {
 		canister[0]->Activate();
 	}

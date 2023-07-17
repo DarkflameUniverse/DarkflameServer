@@ -779,13 +779,13 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		}
 	} else {
 		//Check if this zone allows coin drops
-		if (dZoneManager::Instance()->GetPlayerLoseCoinOnDeath()) {
+		if (Game::zoneManager->GetPlayerLoseCoinOnDeath()) {
 			auto* character = m_Parent->GetCharacter();
 			uint64_t coinsTotal = character->GetCoins();
-			const uint64_t minCoinsToLose = dZoneManager::Instance()->GetWorldConfig()->coinsLostOnDeathMin;
+			const uint64_t minCoinsToLose = Game::zoneManager->GetWorldConfig()->coinsLostOnDeathMin;
 			if (coinsTotal >= minCoinsToLose) {
-				const uint64_t maxCoinsToLose = dZoneManager::Instance()->GetWorldConfig()->coinsLostOnDeathMax;
-				const float coinPercentageToLose = dZoneManager::Instance()->GetWorldConfig()->coinsLostOnDeathPercent;
+				const uint64_t maxCoinsToLose = Game::zoneManager->GetWorldConfig()->coinsLostOnDeathMax;
+				const float coinPercentageToLose = Game::zoneManager->GetWorldConfig()->coinsLostOnDeathPercent;
 
 				uint64_t coinsToLose = std::max(static_cast<uint64_t>(coinsTotal * coinPercentageToLose), minCoinsToLose);
 				coinsToLose = std::min(maxCoinsToLose, coinsToLose);
