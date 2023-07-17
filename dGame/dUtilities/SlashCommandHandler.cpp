@@ -1299,18 +1299,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto vehiclePhysicsComponent = newEntity->GetComponent<VehiclePhysicsComponent>();
-		if (vehiclePhysicsComponent) {
-			auto newRot = newEntity->GetRotation();
-			auto angles = newRot.GetEulerAngles();
-			// make it right side up
-			angles.x -= PI;
-			// make it going in the direction of the player
-			angles.y -= PI;
-			newRot = NiQuaternion::FromEulerAngles(angles);
-			newEntity->SetRotation(newRot);
-		}
-
 		EntityManager::Instance()->ConstructEntity(newEntity);
 	}
 
