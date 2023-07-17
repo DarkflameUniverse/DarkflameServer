@@ -47,9 +47,7 @@ public:
 	const std::unordered_map<std::string, LWOOBJID>& GetSpawnPointEntities() const;
 
 	//To make it obvious this SHOULD NOT be used outside of debug:
-#ifdef _DEBUG
-	const std::unordered_map<LWOOBJID, Entity*> GetAllEntities() const { return m_Entities; }
-#endif
+	const std::unordered_map<LWOOBJID, Entity*>& GetAllEntities() const { return m_Entities; }
 
 	void ConstructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS, bool skipChecks = false);
 	void DestructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);

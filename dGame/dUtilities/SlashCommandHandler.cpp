@@ -753,6 +753,28 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		GameMessages::SendPlayFXEffect(entity->GetObjectID(), effectID, GeneralUtils::ASCIIToUTF16(args[1]), args[2]);
 	}
 
+	if (chatCommand == "printallobjects" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		auto allEntities = Game::entityManager->GetAllEntities();
+		std::ofstream output((BinaryPathFinder::GetBinaryDir() / std::to_string(dZoneManager::Instance()->GetZoneID().GetMapID())).string() + "_Objects.txt");
+		auto* cdobjectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
+		std::map<std::string, std::pair<CDObjects, uint32_t>> objects;
+		for (const auto& [id, entity] : allEntities) {
+			const auto lotInfo = cdobjectsTable->GetByID(entity->GetLOT());
+			std::string name = lotInfo.name.empty() ? "Object_" + std::to_string(entity->GetLOT()) + "_name" : lotInfo.name;
+			auto itr = objects.find(name);
+			if (itr == objects.end()) {
+				objects.insert_or_assign(name, std::pair<CDObjects, uint32_t>(lotInfo, 1));
+			} else {
+				itr->second.second++;
+			}
+		}
+		// now output the LOT, name, type and count of each object
+		for (const auto& [name, pair] : objects) {
+			output << "LOT: " << pair.first.id << ", " << std::quoted(name) << ", " << pair.first.type << ": " << pair.second << " instances\n";
+		}
+		ChatPackets::SendSystemMessage(sysAddr, u"Printed all objects to " + GeneralUtils::ASCIIToUTF16((BinaryPathFinder::GetBinaryDir() / std::to_string(dZoneManager::Instance()->GetZoneID().GetMapID())).string() + "_Objects.txt"));
+	}
+
 	if (chatCommand == "stopeffect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
 		GameMessages::SendStopFXEffect(entity, true, args[0]);
 	}
