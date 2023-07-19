@@ -43,7 +43,7 @@ void NtCombatChallengeServer::OnFireEventServerSide(Entity* self, Entity* sender
 
 
 void NtCombatChallengeServer::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {
-	if (identifier == u"PlayButton" && button == 1 && !self->GetVar<bool>(u"bInUse")) {
+	if (identifier == u"PlayButton" && button == 1 && !self->GetNetworkVar<bool>(u"bInUse")) {
 		self->SetNetworkVar(u"bInUse", true);
 
 		self->SetVar(u"playerID", sender->GetObjectID());
