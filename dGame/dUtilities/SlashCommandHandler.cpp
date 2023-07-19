@@ -1443,7 +1443,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if ((chatCommand == "freemoney" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) && args.size() == 1) {
-		int32_t money;
+		int64_t money;
 
 		if (!GeneralUtils::TryParse(args[0], money)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid money.");
