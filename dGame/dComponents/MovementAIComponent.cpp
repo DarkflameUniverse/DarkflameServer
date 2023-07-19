@@ -74,10 +74,8 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	if (m_HaltDistance > 0) {
 		// Prevent us from hugging the target
-		if (Vector3::DistanceSquared(ApproximateLocation(), GetDestination()) < std::pow(m_HaltDistance, 2))
-		{
+		if (Vector3::DistanceSquared(ApproximateLocation(), GetDestination()) < std::pow(m_HaltDistance, 2)) {
 			Stop();
-
 			return;
 		}
 	}
@@ -85,9 +83,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 	if (m_Timer > 0) {
 		m_Timer -= deltaTime;
 
-		if (m_Timer > 0) {
-			return;
-		}
+		if (m_Timer > 0) return;
 
 		m_Timer = 0;
 	}
@@ -136,10 +132,10 @@ void MovementAIComponent::Update(const float deltaTime) {
 		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 	} else {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
-		if (!m_Queue.empty()) {
-			SetDestination(m_Queue.top());
+		if (!m_Stack.empty()) {
+			SetDestination(m_Stack.top());
 
-			m_Queue.pop();
+			m_Stack.pop();
 		} else {
 			// We have reached our final waypoint
 			Stop();
@@ -170,11 +166,7 @@ bool MovementAIComponent::AdvanceWaypointIndex() {
 }
 
 NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
-	if (m_PathIndex >= m_CurrentPath.size()) {
-		return m_Parent->GetPosition();
-	}
-
-	return m_CurrentPath[m_PathIndex];
+	return m_PathIndex >= m_CurrentPath.size() ? m_Parent->GetPosition() : m_CurrentPath[m_PathIndex];
 }
 
 NiPoint3 MovementAIComponent::ApproximateLocation() const {
@@ -248,12 +240,12 @@ void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 
 void MovementAIComponent::SetPath(std::vector<NiPoint3> path) {
 	std::for_each(path.rbegin(), path.rend(), [this](const NiPoint3& point) {
-		this->m_Queue.push(point);
+		this->m_Stack.push(point);
 	});
 
-	SetDestination(m_Queue.top());
+	SetDestination(m_Stack.top());
 
-	m_Queue.pop();
+	m_Stack.pop();
 }
 
 float MovementAIComponent::GetBaseSpeed(LOT lot) {

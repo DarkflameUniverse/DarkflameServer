@@ -311,9 +311,9 @@ private:
 	std::vector<NiPoint3> m_CurrentPath;
 
 	/**
-	 * Queue of positions to traverse
+	 * Stack of positions to traverse
 	 */
-	std::stack<NiPoint3> m_Queue;
+	std::stack<NiPoint3> m_Stack;
 };
 
 #endif // MOVEMENTAICOMPONENT_H
