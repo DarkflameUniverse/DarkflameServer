@@ -395,7 +395,7 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	auto destination = owner->GetPosition();
-	NiPoint3 position = m_MovementAI->GetCurrentPosition();
+	NiPoint3 position = m_MovementAI->GetParent()->GetPosition();
 
 	float distanceToOwner = Vector3::DistanceSquared(position, destination);
 
@@ -822,7 +822,7 @@ void PetComponent::Wander() {
 		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
-	if (Vector3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {
+	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {
 		m_MovementAI->Stop();
 
 		return;
@@ -832,7 +832,7 @@ void PetComponent::Wander() {
 
 	m_MovementAI->SetDestination(destination);
 
-	m_Timer += (m_MovementAI->GetCurrentPosition().x - destination.x) / info.wanderSpeed;
+	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / info.wanderSpeed;
 }
 
 void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
