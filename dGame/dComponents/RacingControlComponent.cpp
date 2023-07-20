@@ -60,22 +60,25 @@ RacingControlComponent::RacingControlComponent(Entity* parent)
 RacingControlComponent::~RacingControlComponent() {}
 
 void RacingControlComponent::OnPlayerLoaded(Entity* player) {
-	// If the race has already started, send the player back to the main world.
-	if (m_Loaded) {
-		auto* playerInstance = dynamic_cast<Player*>(player);
-
-		playerInstance->SendToZone(m_MainWorld);
+	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) {
 		return;
 	}
 
-	const auto objectID = player->GetObjectID();
+	auto* vehicle = inventoryComponent->FindItemByLot(8092);
+
+	// If the race has already started, send the player back to the main world.
+	if (m_Loaded || !vehicle) {
+		auto* playerInstance = dynamic_cast<Player*>(player);
+		playerInstance->SendToZone(m_MainWorld);
+		return;
+	}
 
 	m_LoadedPlayers++;
 
 	Game::logger->Log("RacingControlComponent", "Loading player %i",
 		m_LoadedPlayers);
-
-	m_LobbyPlayers.push_back(objectID);
+	m_LobbyPlayers.push_back(player->GetObjectID());
 }
 
 void RacingControlComponent::LoadPlayerVehicle(Entity* player,
