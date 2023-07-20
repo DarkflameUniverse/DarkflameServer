@@ -65,7 +65,6 @@ void RacingControlComponent::OnPlayerLoaded(Entity* player) {
 		auto* playerInstance = dynamic_cast<Player*>(player);
 
 		playerInstance->SendToZone(m_MainWorld);
-
 		return;
 	}
 
@@ -99,7 +98,9 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 
 	if (item == nullptr) {
 		Game::logger->Log("RacingControlComponent", "Failed to find item");
-
+		auto* playerInstance = dynamic_cast<Player*>(player);
+		m_LoadedPlayers--;
+		playerInstance->SendToZone(m_MainWorld);
 		return;
 	}
 
