@@ -374,7 +374,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 		data->collectedRewards = true;
 
 		// Calculate the score, different loot depending on player count
-		auto playersRating = m_LoadedPlayers * 10;
+		auto playersRating = m_LoadedPlayers;
         if (m_SoloRacing) {
 			playersRating *= 2;
 		}
