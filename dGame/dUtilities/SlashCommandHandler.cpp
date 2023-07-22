@@ -754,7 +754,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "printallobjects" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		auto allEntities = EntityManager::Instance()->GetAllEntities();
+		auto allEntities = Game::entityManager->GetAllEntities();
 		std::ofstream output((BinaryPathFinder::GetBinaryDir() / std::to_string(dZoneManager::Instance()->GetZoneID().GetMapID())).string() + "_Objects.txt");
 		auto* cdobjectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
 		std::map<std::string, std::pair<CDObjects, uint32_t>> objects;

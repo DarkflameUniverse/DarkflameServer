@@ -36,7 +36,7 @@ void XMarksTheSpotChest::OnTimerDone(Entity* self, std::string timerName) {
         for (const auto& objid : entities) {
             for (const auto& pair : result) {
                 for (int i = 0; i < pair.second; ++i) {
-                    GameMessages::SendDropClientLoot(EntityManager::Instance()->GetEntity(objid), source, pair.first, 0, spawnPosition, 1);
+                    GameMessages::SendDropClientLoot(Game::entityManager->GetEntity(objid), source, pair.first, 0, spawnPosition, 1);
                 }
             }
         }
