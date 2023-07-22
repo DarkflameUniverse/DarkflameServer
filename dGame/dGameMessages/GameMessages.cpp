@@ -2340,13 +2340,13 @@ void GameMessages::HandleStartBuildingWithItem(RakNet::BitStream* inStream, Enti
 void GameMessages::HandlePropertyEditorBegin(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	PropertyManagementComponent::Instance()->OnStartBuilding();
 
-	dZoneManager::Instance()->GetZoneControlObject()->OnZonePropertyEditBegin();
+	Game::zoneManager->GetZoneControlObject()->OnZonePropertyEditBegin();
 }
 
 void GameMessages::HandlePropertyEditorEnd(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	PropertyManagementComponent::Instance()->OnFinishBuilding();
 
-	dZoneManager::Instance()->GetZoneControlObject()->OnZonePropertyEditEnd();
+	Game::zoneManager->GetZoneControlObject()->OnZonePropertyEditEnd();
 }
 
 void GameMessages::HandlePropertyContentsFromClient(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -2358,7 +2358,7 @@ void GameMessages::HandlePropertyContentsFromClient(RakNet::BitStream* inStream,
 }
 
 void GameMessages::HandlePropertyModelEquipped(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	dZoneManager::Instance()->GetZoneControlObject()->OnZonePropertyModelEquipped();
+	Game::zoneManager->GetZoneControlObject()->OnZonePropertyModelEquipped();
 }
 
 void GameMessages::HandlePlacePropertyModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -2584,7 +2584,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 				//We need to get the propertyID: (stolen from Wincent's propertyManagementComp)
-				const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
+				const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
 
 				const auto zoneId = worldId.GetMapID();
 				const auto cloneId = worldId.GetCloneID();
@@ -3456,7 +3456,7 @@ void GameMessages::SendNotifyTamingModelLoadedOnServer(LWOOBJID objectId, const 
 	SEND_PACKET;
 }
 
-void GameMessages::SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, std::vector<Brick>& bricks, const SystemAddress& sysAddr) {
+void GameMessages::SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, const std::vector<Brick>& bricks, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -4122,7 +4122,7 @@ void GameMessages::HandleRacingClientReady(RakNet::BitStream* inStream, Entity* 
 		return;
 	}
 
-	auto* racingControlComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<RacingControlComponent>();
+	auto* racingControlComponent = Game::zoneManager->GetZoneControlObject()->GetComponent<RacingControlComponent>();
 
 	if (racingControlComponent == nullptr) {
 		return;
@@ -4170,7 +4170,7 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 		inStream->Read(lootOwnerID);
 	}
 
-	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
+	auto* zoneController = Game::zoneManager->GetZoneControlObject();
 
 	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
 
@@ -4213,7 +4213,7 @@ void GameMessages::HandleRacingPlayerInfoResetFinished(RakNet::BitStream* inStre
 		return;
 	}
 
-	auto* zoneController = dZoneManager::Instance()->GetZoneControlObject();
+	auto* zoneController = Game::zoneManager->GetZoneControlObject();
 
 	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
 
@@ -4243,7 +4243,7 @@ void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStre
 
 	if (performanceCost == 0.0f) return;
 
-	auto zone = dZoneManager::Instance()->GetZone();
+	auto zone = Game::zoneManager->GetZone();
 	const auto& worldId = zone->GetZoneID();
 	const auto cloneId = worldId.GetCloneID();
 	const auto zoneId = worldId.GetMapID();
@@ -4975,7 +4975,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 		}
 
 		if (mapId == 0) {
-			mapId = dZoneManager::Instance()->GetZoneID().GetMapID(); // Fallback to sending the player back to the same zone.
+			mapId = Game::zoneManager->GetZoneID().GetMapID(); // Fallback to sending the player back to the same zone.
 		}
 
 		Game::logger->Log("FireEventServerSide", "Player %llu has requested zone transfer to (%i, %i).", sender->GetObjectID(), (int)mapId, (int)cloneId);

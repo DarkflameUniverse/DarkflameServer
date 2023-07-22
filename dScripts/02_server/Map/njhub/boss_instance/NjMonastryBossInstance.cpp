@@ -22,7 +22,7 @@ void NjMonastryBossInstance::OnStartup(Entity* self) {
 
 	// Add a notification request for all the spawned entities, corresponds to notifySpawnedObjectLoaded
 	for (const auto& spawnerName : spawnerNames) {
-		for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(spawnerName)) {
+		for (auto* spawner : Game::zoneManager->GetSpawnersByName(spawnerName)) {
 			spawner->AddEntitySpawnedCallback([self, this](Entity* entity) {
 				const auto lot = entity->GetLOT();
 				switch (lot) {
@@ -153,7 +153,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 			}
 		}
 	} else if (timerName == SpawnCounterWeightTimer) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(CounterweightSpawner);
+		auto spawners = Game::zoneManager->GetSpawnersByName(CounterweightSpawner);
 		if (!spawners.empty()) {
 			// Spawn the counter weight at a specific waypoint, there's one for each round
 			auto* spawner = spawners.front();
@@ -173,7 +173,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
 			LWOOBJID_EMPTY, BottomFrakSpawn, UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == SpawnLowerFrakjawTimer) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(LowerFrakjawSpawner);
+		auto spawners = Game::zoneManager->GetSpawnersByName(LowerFrakjawSpawner);
 		if (!spawners.empty()) {
 			auto* spawner = spawners.front();
 			spawner->Activate();
@@ -182,7 +182,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
 			LWOOBJID_EMPTY, FireRailSpawn, UNASSIGNED_SYSTEM_ADDRESS);
 
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(FireRailSpawner);
+		auto spawners = Game::zoneManager->GetSpawnersByName(FireRailSpawner);
 		if (!spawners.empty()) {
 			auto* spawner = spawners.front();
 			spawner->Activate();
@@ -210,7 +210,7 @@ void NjMonastryBossInstance::StartFight(Entity* self) {
 	self->SetVar<bool>(FightStartedVariable, true);
 
 	// Activate the frakjaw spawner
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(LedgeFrakjawSpawner)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(LedgeFrakjawSpawner)) {
 		spawner->Activate();
 	}
 }
@@ -455,7 +455,7 @@ void NjMonastryBossInstance::LowerFrakjaw(Entity* self, Entity* frakjaw) {
 }
 
 void NjMonastryBossInstance::SpawnOnNetwork(Entity* self, const LOT& toSpawn, const uint32_t& numberToSpawn, const std::string& spawnerName) {
-	auto spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+	auto spawners = Game::zoneManager->GetSpawnersByName(spawnerName);
 	if (spawners.empty() || numberToSpawn <= 0)
 		return;
 
@@ -485,7 +485,7 @@ void NjMonastryBossInstance::FightOver(Entity* self) {
 
 	// Remove all the enemies from the battlefield
 	for (auto i = 1; i < 5; i++) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(BaseEnemiesSpawner + std::to_string(i));
+		auto spawners = Game::zoneManager->GetSpawnersByName(BaseEnemiesSpawner + std::to_string(i));
 		if (!spawners.empty()) {
 			auto* spawner = spawners.front();
 			spawner->Deactivate();

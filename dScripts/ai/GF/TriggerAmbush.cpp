@@ -13,7 +13,7 @@ void TriggerAmbush::OnProximityUpdate(Entity* self, Entity* entering, std::strin
 
 	self->SetVar(u"triggered", true);
 
-	const auto spawners = dZoneManager::Instance()->GetSpawnersByName("Ambush");
+	const auto spawners = Game::zoneManager->GetSpawnersByName("Ambush");
 
 	for (auto* spawner : spawners) {
 		spawner->Activate();
@@ -27,7 +27,7 @@ void TriggerAmbush::OnTimerDone(Entity* self, std::string timerName) {
 
 	self->SetVar(u"triggered", false);
 
-	const auto spawners = dZoneManager::Instance()->GetSpawnersByName("Ambush");
+	const auto spawners = Game::zoneManager->GetSpawnersByName("Ambush");
 
 	for (auto* spawner : spawners) {
 		spawner->Reset();

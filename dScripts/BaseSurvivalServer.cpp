@@ -402,7 +402,7 @@ void BaseSurvivalServer::SpawnerReset(SpawnerNetworkCollection& spawnerNetworkCo
 
 	for (auto& spawner : spawnerNetworkCollection.networks) {
 		for (auto& spawnerName : spawner.names) {
-			auto spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName + spawner.number);
+			auto spawners = Game::zoneManager->GetSpawnersByName(spawnerName + spawner.number);
 			if (!spawners.empty()) {
 				auto* spawnerObject = spawners.at(0);
 
@@ -431,7 +431,7 @@ void BaseSurvivalServer::SpawnerUpdate(Entity* self, SpawnerNetworkCollection& s
 	// If we want to spawn something specific now
 	if (amount != 0) {
 		auto spawnerNetwork = spawnerNetworkCollection.networks.at(0);
-		auto possibleSpawners = dZoneManager::Instance()->GetSpawnersByName(spawnerNetwork.names.at(0) + spawnerNetwork.number);
+		auto possibleSpawners = Game::zoneManager->GetSpawnersByName(spawnerNetwork.names.at(0) + spawnerNetwork.number);
 		if (!possibleSpawners.empty()) {
 			SpawnNow(possibleSpawners.at(0), amount);
 			return;
@@ -447,7 +447,7 @@ void BaseSurvivalServer::SpawnerUpdate(Entity* self, SpawnerNetworkCollection& s
 			const auto& name = spawnerNetwork.names.at(i);
 			const auto& toSpawn = newSet.at(i);
 
-			auto possibleSpawners = dZoneManager::Instance()->GetSpawnersByName(name + spawnerNetwork.number);
+			auto possibleSpawners = Game::zoneManager->GetSpawnersByName(name + spawnerNetwork.number);
 			if (!possibleSpawners.empty()) {
 				SpawnNow(possibleSpawners.front(), toSpawn);
 			}
@@ -498,7 +498,7 @@ SpawnerNetwork BaseSurvivalServer::GetRandomSpawner(SpawnerNetworkCollection& sp
 void BaseSurvivalServer::ActivateSpawnerNetwork(SpawnerNetworkCollection& spawnerNetworkCollection) {
 	for (auto& spawner : spawnerNetworkCollection.networks) {
 		for (const auto& spawnerName : spawner.names) {
-			auto possibleSpawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName + spawner.number);
+			auto possibleSpawners = Game::zoneManager->GetSpawnersByName(spawnerName + spawner.number);
 			if (!possibleSpawners.empty()) {
 				auto* spawnerObject = possibleSpawners.at(0);
 				spawnerObject->Activate();
@@ -512,7 +512,7 @@ void BaseSurvivalServer::UpdateMobLots(SpawnerNetworkCollection& spawnerNetworkC
 	for (auto& spawner : spawnerNetworkCollection.networks) {
 		for (auto& spawnerName : spawner.names) {
 			if (!spawnerName.empty()) {
-				auto spawnerObjects = dZoneManager::Instance()->GetSpawnersByName(spawnerName + spawner.number);
+				auto spawnerObjects = Game::zoneManager->GetSpawnersByName(spawnerName + spawner.number);
 				if (!spawnerObjects.empty()) {
 					auto splitName = GeneralUtils::SplitString(spawnerName, '_');
 					auto cleanName = splitName.size() > 1 ? splitName.at(1) : splitName.at(0);

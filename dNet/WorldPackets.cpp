@@ -19,7 +19,7 @@ void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, flo
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::LOAD_STATIC_ZONE);
 
-	auto zone = dZoneManager::Instance()->GetZone()->GetZoneID();
+	auto zone = Game::zoneManager->GetZone()->GetZoneID();
 	bitStream.Write(static_cast<uint16_t>(zone.GetMapID()));
 	bitStream.Write(static_cast<uint16_t>(zone.GetInstanceID()));
 	//bitStream.Write(static_cast<uint32_t>(zone.GetCloneID()));

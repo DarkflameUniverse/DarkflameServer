@@ -6,7 +6,7 @@ void BaseWavesGenericEnemy::OnStartup(Entity* self) {
 }
 
 void BaseWavesGenericEnemy::OnDie(Entity* self, Entity* killer) {
-	auto* zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
+	auto* zoneControlObject = Game::zoneManager->GetZoneControlObject();
 	if (zoneControlObject != nullptr) {
 		zoneControlObject->OnFireEventServerSide(killer, "Survival_Update", GetPoints());
 	}

@@ -85,6 +85,7 @@ namespace Game {
 	SystemAddress chatSysAddr;
 	bool shouldShutdown = false;
 	EntityManager* entityManager = nullptr;
+	dZoneManager* zoneManager = nullptr;
 } // namespace Game
 
 bool chatDisabled = false;
@@ -254,10 +255,11 @@ int main(int argc, char** argv) {
 	PerformanceManager::SelectProfile(zoneID);
 
 	Game::entityManager = new EntityManager();
+	Game::zoneManager = new dZoneManager();
 	//Load our level:
 	if (zoneID != 0) {
 		dpWorld::Instance().Initialize(zoneID);
-		dZoneManager::Instance()->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
+		Game::zoneManager->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
 
 		// pre calculate the FDB checksum
@@ -399,7 +401,7 @@ int main(int argc, char** argv) {
 			Metrics::EndMeasurement(MetricVariable::Ghosting);
 
 			Metrics::StartMeasurement(MetricVariable::UpdateSpawners);
-			dZoneManager::Instance()->Update(deltaTime);
+			Game::zoneManager->Update(deltaTime);
 			Metrics::EndMeasurement(MetricVariable::UpdateSpawners);
 		}
 
@@ -776,7 +778,7 @@ void HandlePacket(Packet* packet) {
 				//Create our user and send them in:
 				UserManager::Instance()->CreateUser(it->second.sysAddr, username, userHash);
 
-				auto zone = dZoneManager::Instance()->GetZone();
+				auto zone = Game::zoneManager->GetZone();
 				if (zone) {
 					float x = 0.0f;
 					float y = 0.0f;
@@ -1015,7 +1017,7 @@ void HandlePacket(Packet* packet) {
 				WorldPackets::SendCreateCharacter(packet->systemAddress, player, c->GetXMLData(), username, c->GetGMLevel());
 				WorldPackets::SendServerState(packet->systemAddress);
 
-				const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(dZoneManager::Instance()->GetZone()->GetWorldID());
+				const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID());
 
 				Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS, true);
 
@@ -1065,7 +1067,7 @@ void HandlePacket(Packet* packet) {
 
 				//Tell the player to generate BBB models, if any:
 				if (g_CloneID != 0) {
-					const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
+					const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
 
 					const auto zoneId = Game::server->GetZoneID();
 					const auto cloneId = g_CloneID;
@@ -1175,7 +1177,7 @@ void HandlePacket(Packet* packet) {
 						bitStream.Write(playerName[i]);
 					}
 
-					auto zone = dZoneManager::Instance()->GetZone()->GetZoneID();
+					auto zone = Game::zoneManager->GetZone()->GetZoneID();
 					bitStream.Write(zone.GetMapID());
 					bitStream.Write(zone.GetInstanceID());
 					bitStream.Write(zone.GetCloneID());
@@ -1332,10 +1334,11 @@ void FinalizeShutdown() {
 	Metrics::Clear();
 	Database::Destroy("WorldServer");
 	if (Game::chatFilter) delete Game::chatFilter;
+	if (Game::zoneManager) delete Game::zoneManager;
 	if (Game::server) delete Game::server;
-	if (Game::logger) delete Game::logger;
 	if (Game::config) delete Game::config;
 	if (Game::entityManager) delete Game::entityManager;
+	if (Game::logger) delete Game::logger;
 
 	worldShutdownSequenceComplete = true;
 

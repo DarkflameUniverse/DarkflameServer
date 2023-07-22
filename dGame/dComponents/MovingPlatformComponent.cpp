@@ -59,7 +59,7 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::stri
 	m_MoverSubComponentType = eMoverSubComponentType::mover;
 	m_MoverSubComponent = new MoverSubComponent(m_Parent->GetDefaultPosition());
 	m_PathName = GeneralUtils::ASCIIToUTF16(pathName);
-	m_Path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
+	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
 	m_NoAutoStart = false;
 
 	if (m_Path == nullptr) {

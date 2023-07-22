@@ -241,7 +241,7 @@ void Character::DoQuickXMLDataParse() {
 		//To try and fix the AG landing into:
 		if (m_ZoneID == 1000 && Game::server->GetZoneID() == 1100) {
 			//sneakily insert our position:
-			auto pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
+			auto pos = Game::zoneManager->GetZone()->GetSpawnPos();
 			character->SetAttribute("lzx", pos.x);
 			character->SetAttribute("lzy", pos.y);
 			character->SetAttribute("lzz", pos.z);
@@ -296,7 +296,7 @@ void Character::UnlockEmote(int emoteID) {
 void Character::SetBuildMode(bool buildMode) {
 	m_BuildMode = buildMode;
 
-	auto* controller = dZoneManager::Instance()->GetZoneControlObject();
+	auto* controller = Game::zoneManager->GetZoneControlObject();
 
 	controller->OnFireEventServerSide(m_OurEntity, buildMode ? "OnBuildModeEnter" : "OnBuildModeLeave");
 }
@@ -312,7 +312,7 @@ void Character::SaveXMLToDatabase() {
 		character->SetAttribute("gm", static_cast<uint32_t>(m_GMLevel));
 		character->SetAttribute("cc", m_Coins);
 
-		auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
+		auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
 		// lzid garbage, binary concat of zoneID, zoneInstance and zoneClone
 		if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
 			uint64_t lzidConcat = zoneInfo.GetCloneID();

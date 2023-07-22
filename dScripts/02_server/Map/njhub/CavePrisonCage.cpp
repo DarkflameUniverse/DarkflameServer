@@ -13,7 +13,7 @@ void CavePrisonCage::OnStartup(Entity* self) {
 		return;
 	}
 
-	auto* spawner = dZoneManager::Instance()->GetSpawnersByName("PrisonCounterweight_0" + GeneralUtils::UTF16ToWTF8(myNum))[0];
+	auto* spawner = Game::zoneManager->GetSpawnersByName("PrisonCounterweight_0" + GeneralUtils::UTF16ToWTF8(myNum))[0];
 
 	self->SetVar<Spawner*>(u"CWSpawner", spawner);
 
