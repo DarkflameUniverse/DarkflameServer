@@ -8,6 +8,7 @@
 #include "ZoneInstanceManager.h"
 #include "MD5.h"
 #include "SHA512.h"
+#include "GeneralUtils.h"
 
 #ifdef _WIN32
 #include <bcrypt/BCrypt.hpp>
@@ -211,7 +212,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	packet.Write(static_cast<uint16_t>(64));        // Version Minor
 
 	// Writes the user key
-	uint32_t sessionKey = rand(); // not mt but whatever
+	uint32_t sessionKey = GeneralUtils::GenerateRandomNumber<int32_t>(0, INT32_MAX); // not mt but whatever
 	std::string userHash = std::to_string(sessionKey);
 	userHash = md5(userHash);
 	PacketUtils::WritePacketWString(userHash, 33, &packet);

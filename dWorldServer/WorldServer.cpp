@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
 	Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
 
 	//Set up other things:
-	Game::randomEngine = std::mt19937(time(0));
+	Game::randomEngine = std::mt19937(time(NULL));
 
 	//Run it until server gets a kill message from Master:
 	auto lastTime = std::chrono::high_resolution_clock::now();

@@ -29,6 +29,7 @@ namespace Game {
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
 	bool shouldShutdown = false;
+	std::mt19937 randomEngine;
 }
 
 dLogger* SetupLogger();
@@ -90,6 +91,8 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
 
 	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::shouldShutdown);
+	
+	Game::randomEngine = std::mt19937(time(NULL));
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
