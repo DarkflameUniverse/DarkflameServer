@@ -188,7 +188,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "togglexp") {
 		auto levelComponent = entity->GetComponent<LevelProgressionComponent>();
 		if (levelComponent != nullptr) {
-			if (levelComponent->GetLevel() >= dZoneManager::Instance()->GetWorldConfig()->levelCap) {
+			if (levelComponent->GetLevel() >= Game::zoneManager->GetWorldConfig()->levelCap) {
 				auto character = entity->GetCharacter();
 				character->SetPlayerFlag(
 					ePlayerFlag::GIVE_USCORE_FROM_MISSIONS_AT_MAX_LEVEL,
@@ -755,7 +755,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "printallobjects" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		auto allEntities = Game::entityManager->GetAllEntities();
-		std::ofstream output((BinaryPathFinder::GetBinaryDir() / std::to_string(dZoneManager::Instance()->GetZoneID().GetMapID())).string() + "_Objects.txt");
+		std::ofstream output((BinaryPathFinder::GetBinaryDir() / std::to_string(Game::zoneManager->GetZoneID().GetMapID())).string() + "_Objects.txt");
 		auto* cdobjectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
 		std::map<std::string, std::pair<CDObjects, uint32_t>> objects;
 		for (const auto& [id, entity] : allEntities) {
@@ -772,7 +772,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		for (const auto& [name, pair] : objects) {
 			output << "LOT: " << pair.first.id << ", " << std::quoted(name) << ", " << pair.first.type << ": " << pair.second << " instances\n";
 		}
-		ChatPackets::SendSystemMessage(sysAddr, u"Printed all objects to " + GeneralUtils::ASCIIToUTF16((BinaryPathFinder::GetBinaryDir() / std::to_string(dZoneManager::Instance()->GetZoneID().GetMapID())).string() + "_Objects.txt"));
+		ChatPackets::SendSystemMessage(sysAddr, u"Printed all objects to " + GeneralUtils::ASCIIToUTF16((BinaryPathFinder::GetBinaryDir() / std::to_string(Game::zoneManager->GetZoneID().GetMapID())).string() + "_Objects.txt"));
 	}
 
 	if (chatCommand == "stopeffect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
@@ -1559,7 +1559,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			bitStream.Write0();
 		}
 
-		const auto zoneId = dZoneManager::Instance()->GetZone()->GetZoneID();
+		const auto zoneId = Game::zoneManager->GetZone()->GetZoneID();
 
 		bitStream.Write(zoneId.GetMapID());
 		bitStream.Write(zoneId.GetInstanceID());
