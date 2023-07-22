@@ -103,7 +103,7 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 			// BestTime:3
 			entry.push_back(new LDFData<int32_t>(u"License", 1));
 			// License:1 - 1 if player has completed mission 637 and 0 otherwise
-			entry.push_back(new LDFData<int32_t>(u"NumWins", rows->getInt("tertiaryScore")));
+			entry.push_back(new LDFData<int32_t>(u"NumWins", rows->getInt("numWins")));
 			// NumWins:1
 			break;
 		case Type::UnusedLeaderboard4:
@@ -342,6 +342,11 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 		case Leaderboard::Type::Racing: {
 			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
 			oldScore.SetSecondaryScore(myScoreResult->getInt("secondaryScore"));
+
+			// For wins we dont care about the score, just the time, so zero out the tertiary.
+			// Wins are updated later.
+			oldScore.SetTertiaryScore(0);
+			newScore.SetTertiaryScore(0);
 			lowerScoreBetter = true;
 			break;
 		}
@@ -368,17 +373,23 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 		}
 		if (newHighScore) {
 			saveQuery = FormatInsert(leaderboardType, newScore, true);
-		} else if (leaderboardType == Leaderboard::Type::Racing && tertiaryScore) {
-			saveQuery = "UPDATE leaderboard SET numWins = numWins + 1, timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;";
 		}
 	} else {
 		saveQuery = FormatInsert(leaderboardType, newScore, false);
 	}
-
+	Game::logger->Log("LeaderboardManager", "save query %s %i %i", saveQuery.c_str(), playerID, activityId);
 	std::unique_ptr<sql::PreparedStatement> saveStatement(Database::CreatePreppedStmt(saveQuery));
 	saveStatement->setInt(1, playerID);
 	saveStatement->setInt(2, activityId);
 	saveStatement->execute();
+	
+	// track wins separately
+	if (leaderboardType == Leaderboard::Type::Racing && tertiaryScore != 0.0f) {
+		std::unique_ptr<sql::PreparedStatement> winUpdate(Database::CreatePreppedStmt("UPDATE leaderboard SET numWins = numWins + 1 WHERE character_id = ? AND game_id = ?;"));
+		winUpdate->setInt(1, playerID);
+		winUpdate->setInt(2, activityId);
+		winUpdate->execute();
+	}
 }
 
 void LeaderboardManager::SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t resultStart, const uint32_t resultEnd) {

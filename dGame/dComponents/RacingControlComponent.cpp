@@ -838,7 +838,7 @@ void RacingControlComponent::Update(float deltaTime) {
 							"Completed time %llu, %llu",
 							raceTime, raceTime * 1000);
 
-						LeaderboardManager::SaveScore(playerEntity->GetObjectID(), m_ActivityID, static_cast<float>(player.bestLapTime), static_cast<float>(player.raceTime), static_cast<float>(player.finished == 1));
+						LeaderboardManager::SaveScore(playerEntity->GetObjectID(), m_ActivityID, static_cast<float>(player.raceTime), static_cast<float>(player.bestLapTime), static_cast<float>(player.finished == 1));
 						// Entire race time
 						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, (LWOOBJID)eRacingTaskParam::TOTAL_TRACK_TIME);
 
