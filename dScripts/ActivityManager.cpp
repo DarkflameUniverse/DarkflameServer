@@ -80,7 +80,7 @@ void ActivityManager::StopActivity(Entity* self, const LWOOBJID playerID, const 
 }
 
 void ActivityManager::SaveScore(Entity* self, const LWOOBJID playerID, const float primaryScore, const float secondaryScore, const float tertiaryScore) const {
-	auto* player = EntityManager::Instance()->GetEntity(playerID);
+	auto* player = Game::entityManager->GetEntity(playerID);
 	if (!player) return;
 
 	auto* sac = self->GetComponent<ScriptedActivityComponent>();
