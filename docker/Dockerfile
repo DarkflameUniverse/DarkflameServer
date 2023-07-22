@@ -35,10 +35,10 @@ ARG BUILD_VERSION=171022
 RUN echo "Build server" && \
     mkdir -p cmake_build && \
     cd cmake_build && \
-    sed -i -e "s/NET_VERSION=.*/NET_VERSION=${BUILD_VERSION}/g" ../CMakeVariables.txt && \
     sed -i -e "s/__maria_db_connector_compile_jobs__=.*/__maria_db_connector_compile_jobs__=${BUILD_THREADS}/g" ../CMakeVariables.txt && \
     cmake .. -DCMAKE_BUILD_RPATH_USE_ORIGIN=TRUE && \
-    make -j $BUILD_THREADS
+    make -j $BUILD_THREADS && \
+	sed -i -e "s/client_net_version=.*/client_net_version=${BUILD_VERSION}/g"
 
 FROM gcc:12 as runtime
 
