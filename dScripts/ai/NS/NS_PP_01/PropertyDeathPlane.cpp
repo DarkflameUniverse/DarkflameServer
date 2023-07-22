@@ -4,7 +4,7 @@
 #include "EntityManager.h"
 
 void PropertyDeathPlane::OnCollisionPhantom(Entity* self, Entity* target) {
-	const auto teleportGroup = EntityManager::Instance()->GetEntitiesInGroup("Teleport");
+	const auto teleportGroup = Game::entityManager->GetEntitiesInGroup("Teleport");
 
 	if (teleportGroup.size() == 0) {
 		return;

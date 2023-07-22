@@ -90,7 +90,7 @@ LWOOBJID PropertyManagementComponent::GetOwnerId() const {
 }
 
 Entity* PropertyManagementComponent::GetOwner() const {
-	return EntityManager::Instance()->GetEntity(owner);
+	return Game::entityManager->GetEntity(owner);
 }
 
 void PropertyManagementComponent::SetOwner(Entity* value) {
@@ -185,7 +185,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 		return false;
 	}
 
-	auto* entity = EntityManager::Instance()->GetEntity(playerId);
+	auto* entity = Game::entityManager->GetEntity(playerId);
 
 	auto* user = entity->GetParentUser();
 
@@ -256,7 +256,7 @@ void PropertyManagementComponent::OnStartBuilding() {
 
 	LWOMAPID zoneId = 1100;
 
-	const auto entrance = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::PROPERTY_ENTRANCE);
+	const auto entrance = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PROPERTY_ENTRANCE);
 
 	originalPrivacyOption = privacyOption;
 
@@ -339,9 +339,9 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 			info.settings.push_back(setting->Copy());
 		}
 
-		Entity* newEntity = EntityManager::Instance()->CreateEntity(info);
+		Entity* newEntity = Game::entityManager->CreateEntity(info);
 		if (newEntity != nullptr) {
-			EntityManager::Instance()->ConstructEntity(newEntity);
+			Game::entityManager->ConstructEntity(newEntity);
 
 			// Make sure the propMgmt doesn't delete our model after the server dies
 			// Trying to do this after the entity is constructed. Shouldn't really change anything but
@@ -371,7 +371,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		info.respawnTime = 10;
 
 		info.emulated = true;
-		info.emulator = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
+		info.emulator = Game::entityManager->GetZoneControlEntity()->GetObjectID();
 
 		info.spawnerID = persistentId;
 		GeneralUtils::SetBit(info.spawnerID, eObjectBits::CLIENT);
@@ -401,7 +401,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 		GameMessages::SendGetModelsOnProperty(entity->GetObjectID(), GetModels(), UNASSIGNED_SYSTEM_ADDRESS);
 
-		EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelPlaced(entity);
+		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelPlaced(entity);
 		});
 	// Progress place model missions
 	auto missionComponent = entity->GetComponent<MissionComponent>();
@@ -441,7 +441,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		Game::logger->Log("PropertyManagementComponent", "Failed to find spawner");
 	}
 
-	auto* model = EntityManager::Instance()->GetEntity(id);
+	auto* model = Game::entityManager->GetEntity(id);
 
 	if (model == nullptr) {
 		Game::logger->Log("PropertyManagementComponent", "Failed to find model entity");
@@ -449,7 +449,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
-	EntityManager::Instance()->DestructEntity(model);
+	Game::entityManager->DestructEntity(model);
 
 	Game::logger->Log("PropertyManagementComponent", "Deleting model LOT %i", model->GetLOT());
 
@@ -520,13 +520,13 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		item->Equip();
 
 		GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), item->GetId(), item->GetCount());
-		EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelPickedUp(entity);
+		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelPickedUp(entity);
 
 		break;
 	}
 	case 1: // Return to inv
 	{
-		EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelRemoved(entity);
+		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelRemoved(entity);
 
 		break;
 	}
@@ -613,7 +613,7 @@ void PropertyManagementComponent::Load() {
 		info.respawnTime = 10;
 
 		//info.emulated = true;
-		//info.emulator = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
+		//info.emulator = Game::entityManager->GetZoneControlEntity()->GetObjectID();
 
 		info.spawnerID = id;
 
@@ -698,7 +698,7 @@ void PropertyManagementComponent::Save() {
 
 		modelIds.push_back(id);
 
-		auto* entity = EntityManager::Instance()->GetEntity(pair.first);
+		auto* entity = Game::entityManager->GetEntity(pair.first);
 
 		if (entity == nullptr) {
 			continue;

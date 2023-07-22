@@ -68,7 +68,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 	const auto originatorID = originator->GetObjectID();
 
 	m_Parent->AddCallbackTimer(animationLength, [originatorID, this]() {
-		auto* originator = EntityManager::Instance()->GetEntity(originatorID);
+		auto* originator = Game::entityManager->GetEntity(originatorID);
 
 		if (originator == nullptr) {
 			return;

@@ -20,7 +20,7 @@ void ActivityManager::UpdatePlayer(Entity* self, LWOOBJID playerID, const bool r
 	if (remove) {
 		sac->PlayerRemove(playerID);
 	} else {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player != nullptr) {
 			sac->PlayerJoin(player);
 			SetActivityScore(self, playerID, 0);
@@ -63,7 +63,7 @@ void ActivityManager::StopActivity(Entity* self, const LWOOBJID playerID, const 
 	if (quit) {
 		UpdatePlayer(self, playerID, true);
 	} else {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player == nullptr)
 			return;
 
@@ -97,7 +97,7 @@ bool ActivityManager::TakeActivityCost(const Entity* self, const LWOOBJID player
 	if (sac == nullptr)
 		return false;
 
-	auto* player = EntityManager::Instance()->GetEntity(playerID);
+	auto* player = Game::entityManager->GetEntity(playerID);
 	if (player == nullptr)
 		return false;
 

@@ -266,7 +266,7 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 }
 
 void Leaderboard::Send(const LWOOBJID targetID) const {
-	auto* player = EntityManager::Instance()->GetEntity(relatedPlayer);
+	auto* player = Game::entityManager->GetEntity(relatedPlayer);
 	if (player != nullptr) {
 		GameMessages::SendActivitySummaryLeaderboardData(targetID, this, player->GetSystemAddress());
 	}

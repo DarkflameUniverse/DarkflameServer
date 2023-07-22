@@ -40,11 +40,11 @@ LWOOBJID Trade::GetParticipantB() const {
 }
 
 Entity* Trade::GetParticipantAEntity() const {
-	return EntityManager::Instance()->GetEntity(m_ParticipantA);
+	return Game::entityManager->GetEntity(m_ParticipantA);
 }
 
 Entity* Trade::GetParticipantBEntity() const {
-	return EntityManager::Instance()->GetEntity(m_ParticipantB);
+	return Game::entityManager->GetEntity(m_ParticipantB);
 }
 
 void Trade::SetCoins(LWOOBJID participant, uint64_t coins) {

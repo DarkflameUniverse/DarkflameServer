@@ -292,7 +292,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		start.optionalOriginatorID = context->originator;
 		start.optionalTargetID = target;
 
-		auto* originator = EntityManager::Instance()->GetEntity(context->originator);
+		auto* originator = Game::entityManager->GetEntity(context->originator);
 
 		if (originator != nullptr) {
 			start.originatorRot = originator->GetRotation();
@@ -338,7 +338,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 
 		entry.time += deltaTime;
 
-		auto* origin = EntityManager::Instance()->GetEntity(entry.context->originator);
+		auto* origin = Game::entityManager->GetEntity(entry.context->originator);
 
 		if (origin == nullptr) {
 			continue;
@@ -349,7 +349,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 		const auto position = entry.startPosition + (entry.velocity * entry.time);
 
 		for (const auto& targetId : targets) {
-			auto* target = EntityManager::Instance()->GetEntity(targetId);
+			auto* target = Game::entityManager->GetEntity(targetId);
 
 			const auto targetPosition = target->GetPosition();
 
@@ -397,7 +397,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 
 
 void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry) const {
-	auto* other = EntityManager::Instance()->GetEntity(entry.branchContext.target);
+	auto* other = Game::entityManager->GetEntity(entry.branchContext.target);
 
 	if (other == nullptr) {
 		if (entry.branchContext.target != LWOOBJID_EMPTY) {

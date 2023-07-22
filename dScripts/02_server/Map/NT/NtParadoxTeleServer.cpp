@@ -33,7 +33,7 @@ void NtParadoxTeleServer::OnProximityUpdate(Entity* self, Entity* entering, std:
 		if (animTime == 0.0f) animTime = 2.0f;
 
 		self->AddCallbackTimer(animTime, [this, self, playerID]() {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 
 			if (player == nullptr) {
 				return;
@@ -55,7 +55,7 @@ void NtParadoxTeleServer::TeleportPlayer(Entity* self, Entity* player) {
 	auto* destination = self;
 
 	if (!destinationGroup.empty()) {
-		const auto& groupObjs = EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(destinationGroup));
+		const auto& groupObjs = Game::entityManager->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(destinationGroup));
 
 		if (!groupObjs.empty()) {
 			destination = groupObjs[0];
@@ -81,7 +81,7 @@ void NtParadoxTeleServer::TeleportPlayer(Entity* self, Entity* player) {
 	const auto playerID = player->GetObjectID();
 
 	self->AddCallbackTimer(animTime, [this, self, playerID]() {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (player == nullptr) {
 			return;

@@ -170,10 +170,10 @@ std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* comman
 	else if (command->target == "targetTeam" && optionalTarget) {
 		auto* team = TeamManager::Instance()->GetTeam(optionalTarget->GetObjectID());
 		for (const auto memberId : team->members) {
-			auto* member = EntityManager::Instance()->GetEntity(memberId);
+			auto* member = Game::entityManager->GetEntity(memberId);
 			if (member) entities.push_back(member);
 		}
-	} else if (command->target == "objGroup") entities = EntityManager::Instance()->GetEntitiesInGroup(command->targetName);
+	} else if (command->target == "objGroup") entities = Game::entityManager->GetEntitiesInGroup(command->targetName);
 	else if (command->target == "allPlayers") {
 		for (auto* player : Player::GetAllPlayers()) {
 			entities.push_back(player);
@@ -249,7 +249,7 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), direction);
 	phantomPhysicsComponent->SetDirection(direction);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 
@@ -274,7 +274,7 @@ void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args)
 	NiPoint3 direction = delta / length;
 	phantomPhysicsComponent->SetDirection(direction);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void TriggerComponent::HandleSetTimer(Entity* targetEntity, std::vector<std::string> argArray){
@@ -395,7 +395,7 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 		phantomPhysicsComponent->SetMax(max);
 	}
 
-	EntityManager::Instance()->SerializeEntity(targetEntity);
+	Game::entityManager->SerializeEntity(targetEntity);
 }
 
 void TriggerComponent::HandleSetPhysicsVolumeStatus(Entity* targetEntity, std::string args) {
@@ -405,7 +405,7 @@ void TriggerComponent::HandleSetPhysicsVolumeStatus(Entity* targetEntity, std::s
 		return;
 	}
 	phantomPhysicsComponent->SetPhysicsEffectActive(args == "On");
-	EntityManager::Instance()->SerializeEntity(targetEntity);
+	Game::entityManager->SerializeEntity(targetEntity);
 }
 
 void TriggerComponent::HandleActivateSpawnerNetwork(std::string args){

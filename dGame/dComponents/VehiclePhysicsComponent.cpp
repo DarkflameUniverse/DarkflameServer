@@ -135,7 +135,7 @@ void VehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 
 void VehiclePhysicsComponent::Update(float deltaTime) {
 	if (m_SoftUpdate > 5) {
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		Game::entityManager->SerializeEntity(m_Parent);
 		m_SoftUpdate = 0;
 	} else {
 		m_SoftUpdate += deltaTime;

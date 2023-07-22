@@ -40,7 +40,7 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 
 		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 	} else if (identifier == u"player_dialog_start_course" && button == 1) {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"start_timer", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 
@@ -54,7 +54,7 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 
 		data->values[1] = *(float*)&startTime;
 
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 	} else if (identifier == u"FootRaceCancel") {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stop_timer", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 
@@ -92,7 +92,7 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 				"performact_time");
 		}
 
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 		LeaderboardManager::SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(), static_cast<float>(finish));
 
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard",

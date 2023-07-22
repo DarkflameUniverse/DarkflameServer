@@ -14,7 +14,7 @@ void ActVehicleDeathTrigger::OnCollisionPhantom(Entity* self, Entity* target) {
 	Entity* player;
 
 	if (possessableComponent != nullptr) {
-		auto* player = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
+		auto* player = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
 
 		if (player == nullptr) {
 			return;
@@ -28,7 +28,7 @@ void ActVehicleDeathTrigger::OnCollisionPhantom(Entity* self, Entity* target) {
 			return;
 		}
 
-		vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		vehicle = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 		if (vehicle == nullptr) {
 			return;

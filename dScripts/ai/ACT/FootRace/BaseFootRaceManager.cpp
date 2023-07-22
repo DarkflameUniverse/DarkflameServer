@@ -7,13 +7,12 @@ void BaseFootRaceManager::OnStartup(Entity* self) {
 	// TODO: Add to FootRaceStarter group
 }
 
-void BaseFootRaceManager::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,
-	int32_t param2, int32_t param3) {
+void BaseFootRaceManager::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {
 	const auto splitArguments = GeneralUtils::SplitString(args, '_');
 	if (splitArguments.size() > 1) {
 
 		const auto eventName = splitArguments[0];
-		const auto player = EntityManager::Instance()->GetEntity(std::stoull(splitArguments[1]));
+		const auto player = Game::entityManager->GetEntity(std::stoull(splitArguments[1]));
 
 		if (player != nullptr) {
 			if (eventName == "updatePlayer") {
@@ -38,7 +37,7 @@ void BaseFootRaceManager::OnFireEventServerSide(Entity* self, Entity* sender, st
 					if (character != nullptr) {
 						character->SetPlayerFlag(115, false);
 						if (param2 != -1) // Certain footraces set a flag
-							character->SetPlayerFlag(static_cast<uint32_t>(param2), true);
+							character->SetPlayerFlag(param2, true);
 					}
 
 					StopActivity(self, player->GetObjectID(), 0, param1);

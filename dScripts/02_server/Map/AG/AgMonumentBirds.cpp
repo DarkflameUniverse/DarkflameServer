@@ -28,7 +28,7 @@ void AgMonumentBirds::OnProximityUpdate(Entity* self, Entity* entering, std::str
 void AgMonumentBirds::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName != "killBird") return;
 
-	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"PlayerID"));
+	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"PlayerID"));
 
 	if (player == nullptr) return;
 
