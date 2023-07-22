@@ -19,7 +19,7 @@ void CatapultBaseServer::OnNotifyObject(Entity* self, Entity* sender, const std:
 void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "PlatAnim") {
 		// get the arm asset
-		const auto arm = EntityManager::Instance()->GetEntitiesInGroup(self->GetVarAsString(u"ArmGroup"));
+		const auto arm = Game::entityManager->GetEntitiesInGroup(self->GetVarAsString(u"ArmGroup"));
 
 		// tell the arm to the play the platform animation, which is just the arm laying there but with bouncer
 		for (auto* obj : arm) {
@@ -34,7 +34,7 @@ void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 		self->AddTimer("bounce", 3);
 	} else if (timerName == "launchAnim") {
 		// get the arm asset
-		auto* arm = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"Arm"));
+		auto* arm = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Arm"));
 		if (arm == nullptr) return;
 
 		// tell the arm to player the launcher animation
@@ -42,7 +42,7 @@ void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 		self->AddTimer("resetArm", animTime);
 		RenderComponent::PlayAnimation(arm, u"launch");
 	} else if (timerName == "bounce") {
-		auto* bouncer = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"Bouncer"));
+		auto* bouncer = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Bouncer"));
 		if (bouncer == nullptr) return;
 
 		// bounce all players
@@ -50,13 +50,13 @@ void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 		// add a delay to play the animation
 		self->AddTimer("launchAnim", .3);
 	} else if (timerName == "resetArm") {
-		auto* arm = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"Arm"));
+		auto* arm = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Arm"));
 		if (arm == nullptr) return;
 
 		// set the arm back to natural state
 		RenderComponent::PlayAnimation(arm, u"idle");
 
-		auto* bouncer = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"Bouncer"));
+		auto* bouncer = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Bouncer"));
 		if (bouncer == nullptr) return;
 
 		// kill the bouncer

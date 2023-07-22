@@ -120,7 +120,7 @@ void RebuildComponent::Update(float deltaTime) {
 	else {
 		m_SoftTimer = 5.0f;
 
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		Game::entityManager->SerializeEntity(m_Parent);
 	}*/
 
 	switch (m_State) {
@@ -139,7 +139,7 @@ void RebuildComponent::Update(float deltaTime) {
 				if (m_TimerIncomplete >= m_TimeBeforeSmash - 4.0f) {
 					m_ShowResetEffect = true;
 
-					EntityManager::Instance()->SerializeEntity(m_Parent);
+					Game::entityManager->SerializeEntity(m_Parent);
 				}
 
 				if (m_TimerIncomplete >= m_TimeBeforeSmash) {
@@ -164,7 +164,7 @@ void RebuildComponent::Update(float deltaTime) {
 				if (!m_ShowResetEffect) {
 					m_ShowResetEffect = true;
 
-					EntityManager::Instance()->SerializeEntity(m_Parent);
+					Game::entityManager->SerializeEntity(m_Parent);
 				}
 			}
 
@@ -207,7 +207,7 @@ void RebuildComponent::Update(float deltaTime) {
 			++m_DrainedImagination;
 			--newImagination;
 			destComp->SetImagination(newImagination);
-			EntityManager::Instance()->SerializeEntity(builder);
+			Game::entityManager->SerializeEntity(builder);
 
 
 		}
@@ -226,7 +226,7 @@ void RebuildComponent::Update(float deltaTime) {
 			if (m_TimerIncomplete >= m_TimeBeforeSmash - 4.0f) {
 				m_ShowResetEffect = true;
 
-				EntityManager::Instance()->SerializeEntity(m_Parent);
+				Game::entityManager->SerializeEntity(m_Parent);
 			}
 
 			if (m_TimerIncomplete >= m_TimeBeforeSmash) {
@@ -264,20 +264,20 @@ void RebuildComponent::SpawnActivator() {
 			info.spawnerID = m_Parent->GetObjectID();
 			info.pos = m_ActivatorPosition == NiPoint3::ZERO ? m_Parent->GetPosition() : m_ActivatorPosition;
 
-			m_Activator = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
+			m_Activator = Game::entityManager->CreateEntity(info, nullptr, m_Parent);
 			if (m_Activator) {
 				m_ActivatorId = m_Activator->GetObjectID();
-				EntityManager::Instance()->ConstructEntity(m_Activator);
+				Game::entityManager->ConstructEntity(m_Activator);
 			}
 
-			EntityManager::Instance()->SerializeEntity(m_Parent);
+			Game::entityManager->SerializeEntity(m_Parent);
 		}
 	}
 }
 
 void RebuildComponent::DespawnActivator() {
 	if (m_Activator) {
-		EntityManager::Instance()->DestructEntity(m_Activator);
+		Game::entityManager->DestructEntity(m_Activator);
 
 		m_Activator->ScheduleKillAfterUpdate();
 
@@ -288,7 +288,7 @@ void RebuildComponent::DespawnActivator() {
 }
 
 Entity* RebuildComponent::GetActivator() {
-	return EntityManager::Instance()->GetEntity(m_ActivatorId);
+	return Game::entityManager->GetEntity(m_ActivatorId);
 }
 
 NiPoint3 RebuildComponent::GetActivatorPosition() {
@@ -336,7 +336,7 @@ eRebuildState RebuildComponent::GetState() {
 }
 
 Entity* RebuildComponent::GetBuilder() const {
-	auto* builder = EntityManager::Instance()->GetEntity(m_Builder);
+	auto* builder = Game::entityManager->GetEntity(m_Builder);
 
 	return builder;
 }
@@ -404,14 +404,14 @@ void RebuildComponent::StartRebuild(Entity* user) {
 		auto* character = user->GetComponent<CharacterComponent>();
 		character->SetCurrentActivity(eGameActivity::QUICKBUILDING);
 
-		EntityManager::Instance()->SerializeEntity(user);
+		Game::entityManager->SerializeEntity(user);
 
 		GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::BUILDING, user->GetObjectID());
 		GameMessages::SendEnableRebuild(m_Parent, true, false, false, eQuickBuildFailReason::NOT_GIVEN, 0.0f, user->GetObjectID());
 
 		m_State = eRebuildState::BUILDING;
 		m_StateDirty = true;
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		Game::entityManager->SerializeEntity(m_Parent);
 
 		auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
 		if (movingPlatform != nullptr) {
@@ -444,7 +444,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 		return;
 	}
 
-	EntityManager::Instance()->SerializeEntity(user);
+	Game::entityManager->SerializeEntity(user);
 
 	GameMessages::SendRebuildNotifyState(m_Parent, m_State, eRebuildState::COMPLETED, user->GetObjectID());
 	GameMessages::SendPlayFXEffect(m_Parent, 507, u"create", "BrickFadeUpVisCompleteEffect", LWOOBJID_EMPTY, 0.4f, 1.0f, true);
@@ -457,7 +457,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 	m_Timer = 0.0f;
 	m_DrainedImagination = 0;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Removes extra item requirements, isn't live accurate.
 	// In live, all items were removed at the start of the quickbuild, then returned if it was cancelled.
@@ -477,7 +477,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 		auto* team = TeamManager::Instance()->GetTeam(builder->GetObjectID());
 		if (team) {
 			for (const auto memberId : team->members) { // progress missions for all team members
-				auto* member = EntityManager::Instance()->GetEntity(memberId);
+				auto* member = Game::entityManager->GetEntity(memberId);
 				if (member) {
 					auto* missionComponent = member->GetComponent<MissionComponent>();
 					if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
@@ -542,7 +542,7 @@ void RebuildComponent::ResetRebuild(bool failed) {
 	m_ShowResetEffect = false;
 	m_DrainedImagination = 0;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Notify scripts and possible subscribers
 	for (auto* script : CppScripts::GetEntityScripts(m_Parent))
@@ -582,7 +582,7 @@ void RebuildComponent::CancelRebuild(Entity* entity, eQuickBuildFailReason failR
 		for (const auto& cb : m_RebuildStateCallbacks)
 			cb(m_State);
 
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		Game::entityManager->SerializeEntity(m_Parent);
 	}
 
 	if (entity == nullptr) {
@@ -592,7 +592,7 @@ void RebuildComponent::CancelRebuild(Entity* entity, eQuickBuildFailReason failR
 	CharacterComponent* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 	}
 }
 

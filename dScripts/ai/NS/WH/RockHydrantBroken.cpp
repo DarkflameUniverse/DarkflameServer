@@ -7,7 +7,7 @@ void RockHydrantBroken::OnStartup(Entity* self) {
 
 	const auto hydrant = "hydrant" + self->GetVar<std::string>(u"hydrant");
 
-	const auto bouncers = EntityManager::Instance()->GetEntitiesInGroup(hydrant);
+	const auto bouncers = Game::entityManager->GetEntitiesInGroup(hydrant);
 
 	for (auto* bouncer : bouncers) {
 		self->SetVar<LWOOBJID>(u"bouncer", bouncer->GetObjectID());
@@ -23,7 +23,7 @@ void RockHydrantBroken::OnStartup(Entity* self) {
 
 void RockHydrantBroken::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "KillBroken") {
-		auto* bouncer = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"bouncer"));
+		auto* bouncer = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"bouncer"));
 
 		if (bouncer != nullptr) {
 			GameMessages::SendBouncerActiveStatus(bouncer->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);

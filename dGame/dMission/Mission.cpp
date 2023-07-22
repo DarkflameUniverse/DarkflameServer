@@ -36,7 +36,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
 	m_Timestamp = 0;
 
-	m_UniqueMissionID = dZoneManager::Instance()->GetUniqueMissionIdStartingValue();
+	m_UniqueMissionID = Game::zoneManager->GetUniqueMissionIdStartingValue();
 
 	m_Reward = 0;
 
@@ -549,7 +549,7 @@ void Mission::YieldRewards() {
 		destroyableComponent->SetMaxImagination(destroyableComponent->GetMaxImagination() + static_cast<float>(info->reward_maximagination), true);
 	}
 
-	EntityManager::Instance()->SerializeEntity(entity);
+	Game::entityManager->SerializeEntity(entity);
 
 	if (info->reward_emote > 0) {
 		character->UnlockEmote(info->reward_emote);

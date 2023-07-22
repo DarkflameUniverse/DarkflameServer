@@ -12,7 +12,7 @@ void NjNPCMissionSpinjitzuServer::OnMissionDialogueOK(Entity* self, Entity* targ
 
 		// Wait for an animation to complete and flag that the player has learned spinjitzu
 		self->AddCallbackTimer(5.0f, [targetID, element]() {
-			auto* target = EntityManager::Instance()->GetEntity(targetID);
+			auto* target = Game::entityManager->GetEntity(targetID);
 			if (target != nullptr) {
 				auto* character = target->GetCharacter();
 				if (character != nullptr) {

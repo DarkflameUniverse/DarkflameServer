@@ -18,7 +18,7 @@ void MaestromExtracticatorServer::OnFireEventServerSide(Entity* self, Entity* se
 	if (sender == nullptr) return;
 
 	if (args == "attemptCollection") {
-		Entity* player = EntityManager::Instance()->GetEntity(self->GetSpawnerID());
+		Entity* player = Game::entityManager->GetEntity(self->GetSpawnerID());
 		if (!player) return;
 
 		auto missionComponent = player->GetComponent<MissionComponent>();

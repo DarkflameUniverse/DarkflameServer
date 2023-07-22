@@ -7,7 +7,7 @@ void CatapultBouncerServer::OnRebuildComplete(Entity* self, Entity* target) {
 
 	self->SetNetworkVar<bool>(u"Built", true);
 
-	const auto base = EntityManager::Instance()->GetEntitiesInGroup(self->GetVarAsString(u"BaseGroup"));
+	const auto base = Game::entityManager->GetEntitiesInGroup(self->GetVarAsString(u"BaseGroup"));
 
 	for (auto* obj : base) {
 		obj->NotifyObject(self, "BouncerBuilt");

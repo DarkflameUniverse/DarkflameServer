@@ -214,7 +214,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		character->SetPvpEnabled(!character->GetPvpEnabled());
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 
 		std::stringstream message;
 		message << character->GetName() << " changed their PVP flag to " << std::to_string(character->GetPvpEnabled()) << "!";
@@ -301,7 +301,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "leave-zone") {
-		const auto currentZone = dZoneManager::Instance()->GetZone()->GetZoneID().GetMapID();
+		const auto currentZone = Game::zoneManager->GetZone()->GetZoneID().GetMapID();
 
 		LWOMAPID newZone = 0;
 		if (currentZone % 100 == 0) {
@@ -311,14 +311,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			newZone = (currentZone / 100) * 100;
 		}
 		// If new zone would be inaccessible, then default to Avant Gardens.
-		if (!dZoneManager::Instance()->CheckIfAccessibleZone(newZone)) newZone = 1100;
+		if (!Game::zoneManager->CheckIfAccessibleZone(newZone)) newZone = 1100;
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Leaving zone...");
 
 		const auto objid = entity->GetObjectID();
 
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, newZone, 0, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-			auto* entity = EntityManager::Instance()->GetEntity(objid);
+			auto* entity = Game::entityManager->GetEntity(objid);
 
 			if (entity == nullptr) {
 				return;
@@ -365,7 +365,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		if (chatCommand == "resurrect") {
-			ScriptedActivityComponent* scriptedActivityComponent = dZoneManager::Instance()->GetZoneControlObject()->GetComponent<ScriptedActivityComponent>();
+			ScriptedActivityComponent* scriptedActivityComponent = Game::zoneManager->GetZoneControlObject()->GetComponent<ScriptedActivityComponent>();
 
 			if (scriptedActivityComponent) { // check if user is in activity world and if so, they can't resurrect
 				ChatPackets::SendSystemMessage(sysAddr, u"You cannot resurrect in an activity world.");
@@ -380,7 +380,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		if (chatCommand == "instanceinfo") {
-			const auto zoneId = dZoneManager::Instance()->GetZone()->GetZoneID();
+			const auto zoneId = Game::zoneManager->GetZone()->GetZoneID();
 
 			ChatPackets::SendSystemMessage(sysAddr, u"Map: " + (GeneralUtils::to_u16string(zoneId.GetMapID())) + u"\nClone: " + (GeneralUtils::to_u16string(zoneId.GetCloneID())) + u"\nInstance: " + (GeneralUtils::to_u16string(zoneId.GetInstanceID())));
 		}
@@ -401,7 +401,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig Item Id ID.");
 			return;
 		}
-		EntityManager::Instance()->DestructEntity(entity, sysAddr);
+		Game::entityManager->DestructEntity(entity, sysAddr);
 		auto* charComp = entity->GetComponent<CharacterComponent>();
 		std::string lowerName = args[0];
 		if (lowerName.empty())
@@ -429,12 +429,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			charComp->m_Character->SetLeftHand(minifigItemId);
 			charComp->m_Character->SetRightHand(minifigItemId);
 		} else {
-			EntityManager::Instance()->ConstructEntity(entity);
+			Game::entityManager->ConstructEntity(entity);
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig item to change, try one of the following: Eyebrows, Eyes, HairColor, HairStyle, Pants, LeftHand, Mouth, RightHand, Shirt, Hands");
 			return;
 		}
 
-		EntityManager::Instance()->ConstructEntity(entity);
+		Game::entityManager->ConstructEntity(entity);
 		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(lowerName) + u" set to " + (GeneralUtils::to_u16string(minifigItemId)));
 
 		GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS); // need to retoggle because it gets reenabled on creation of new character
@@ -445,13 +445,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		RenderComponent::PlayAnimation(entity, anim);
 		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 		if (possessorComponent) {
-			auto* possessedComponent = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+			auto* possessedComponent = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 			if (possessedComponent) RenderComponent::PlayAnimation(possessedComponent, anim);
 		}
 	}
 
 	if (chatCommand == "list-spawns" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		for (const auto& pair : EntityManager::Instance()->GetSpawnPointEntities()) {
+		for (const auto& pair : Game::entityManager->GetSpawnPointEntities()) {
 			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(pair.first));
 		}
 
@@ -480,7 +480,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		auto* user = UserManager::Instance()->GetUser(args[0]);
 		if (user) {
-			auto* player = EntityManager::Instance()->GetEntity(user->GetLoggedInChar());
+			auto* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
 			player->Smash(entity->GetObjectID());
 			ChatPackets::SendSystemMessage(sysAddr, u"It has been done, do you feel good about yourself now?");
 			return;
@@ -508,7 +508,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (possessor) {
 			auto possessedID = possessor->GetPossessable();
 			if (possessedID != LWOOBJID_EMPTY) {
-				auto possessable = EntityManager::Instance()->GetEntity(possessedID);
+				auto possessable = Game::entityManager->GetEntity(possessedID);
 				if (possessable) {
 					auto* possessControllablePhysicsComponent = possessable->GetComponent<ControllablePhysicsComponent>();
 					if (possessControllablePhysicsComponent) {
@@ -518,7 +518,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			}
 		}
 
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 	}
 
 	if (chatCommand == "freecam" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
@@ -991,13 +991,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 		if (possessorComponent) {
-			auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+			auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 			if (possassableEntity != nullptr) {
 				auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 				if (vehiclePhysicsComponent) {
 					vehiclePhysicsComponent->SetPosition(pos);
-					EntityManager::Instance()->SerializeEntity(possassableEntity);
+					Game::entityManager->SerializeEntity(possassableEntity);
 				} else GameMessages::SendTeleport(possassableEntity->GetObjectID(), pos, NiQuaternion(), sysAddr);
 			}
 		}
@@ -1006,7 +1006,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "tpall" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		const auto pos = entity->GetPosition();
 
-		const auto characters = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
+		const auto characters = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
 
 		for (auto* character : characters) {
 			GameMessages::SendTeleport(character->GetObjectID(), pos, NiQuaternion(), character->GetSystemAddress());
@@ -1020,7 +1020,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (possessorComponent) {
 			auto possessableId = possessorComponent->GetPossessable();
 			if (possessableId != LWOOBJID_EMPTY) {
-				auto* possessableEntity = EntityManager::Instance()->GetEntity(possessableId);
+				auto* possessableEntity = Game::entityManager->GetEntity(possessableId);
 				if (possessableEntity) possessorComponent->Dismount(possessableEntity, true);
 			}
 		}
@@ -1235,7 +1235,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			dest->SetImagination(999);
 			dest->SetMaxImagination(999.0f);
 		}
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 	}
 
 	if (chatCommand == "startcelebration" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
@@ -1259,7 +1259,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			dest->SetImagination(9);
 			dest->SetMaxImagination(9.0f);
 		}
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 	}
 
 	if (chatCommand == "refillstats" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
@@ -1270,7 +1270,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			dest->SetArmor((int)dest->GetMaxArmor());
 			dest->SetImagination((int)dest->GetMaxImagination());
 		}
-		EntityManager::Instance()->SerializeEntity(entity);
+
+		Game::entityManager->SerializeEntity(entity);
 	}
 
 	if (chatCommand == "lookup" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
@@ -1314,14 +1315,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);
+		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 
 		if (newEntity == nullptr) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Failed to spawn entity.");
 			return;
 		}
 
-		EntityManager::Instance()->ConstructEntity(newEntity);
+		Game::entityManager->ConstructEntity(newEntity);
 	}
 
 	if (chatCommand == "spawngroup" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 3) {
@@ -1364,13 +1365,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			info.pos = playerPosition + NiPoint3(cos(randomAngle) * randomRadius, 0.0f, sin(randomAngle) * randomRadius);
 			info.rot = NiQuaternion();
 
-			auto newEntity = EntityManager::Instance()->CreateEntity(info);
+			auto newEntity = Game::entityManager->CreateEntity(info);
 			if (newEntity == nullptr) {
 				ChatPackets::SendSystemMessage(sysAddr, u"Failed to spawn entity.");
 				return;
 			}
 
-			EntityManager::Instance()->ConstructEntity(newEntity);
+			Game::entityManager->ConstructEntity(newEntity);
 			numberToSpawn--;
 		}
 	}
@@ -1500,7 +1501,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if ((chatCommand == "freemoney" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) && args.size() == 1) {
-		int32_t money;
+		int64_t money;
 
 		if (!GeneralUtils::TryParse(args[0], money)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid money.");
@@ -1653,12 +1654,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		const auto objid = entity->GetObjectID();
 
-		if (force || dZoneManager::Instance()->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
+		if (force || Game::zoneManager->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
 
 			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-				auto* entity = EntityManager::Instance()->GetEntity(objid);
-				if (!entity)
-					return;
+
+				auto* entity = Game::entityManager->GetEntity(objid);
+				if (!entity) return;
 
 				const auto sysAddr = entity->GetSystemAddress();
 
@@ -1721,7 +1722,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* vehicle = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 		if (vehicle == nullptr) {
 			return;
@@ -1750,20 +1751,20 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto* possessorComponent = entity->GetComponent<PossessorComponent>();
 
 		if (possessorComponent == nullptr) return;
-		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* vehicle = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 		if (vehicle == nullptr) return;
 		GameMessages::SendVehicleRemovePassiveBoostAction(vehicle->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	if (chatCommand == "activatespawner" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(args[0]);
+		auto spawners = Game::zoneManager->GetSpawnersByName(args[0]);
 
 		for (auto* spawner : spawners) {
 			spawner->Activate();
 		}
 
-		spawners = dZoneManager::Instance()->GetSpawnersInGroup(args[0]);
+		spawners = Game::zoneManager->GetSpawnersInGroup(args[0]);
 
 		for (auto* spawner : spawners) {
 			spawner->Activate();
@@ -1772,7 +1773,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "spawnphysicsverts" && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_DEVELOPER) {
 		//Go tell physics to spawn all the vertices:
-		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::PHANTOM_PHYSICS);
+		auto entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PHANTOM_PHYSICS);
 		for (auto en : entities) {
 			auto phys = static_cast<PhantomPhysicsComponent*>(en->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
 			if (phys)
@@ -1781,7 +1782,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "reportproxphys" && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_DEVELOPER) {
-		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::PROXIMITY_MONITOR);
+		auto entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PROXIMITY_MONITOR);
 		for (auto en : entities) {
 			auto phys = static_cast<ProximityMonitorComponent*>(en->GetComponent(eReplicaComponentType::PROXIMITY_MONITOR));
 			if (phys) {
@@ -1798,13 +1799,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "triggerspawner" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(args[0]);
+		auto spawners = Game::zoneManager->GetSpawnersByName(args[0]);
 
 		for (auto* spawner : spawners) {
 			spawner->Spawn();
 		}
 
-		spawners = dZoneManager::Instance()->GetSpawnersInGroup(args[0]);
+		spawners = Game::zoneManager->GetSpawnersInGroup(args[0]);
 
 		for (auto* spawner : spawners) {
 			spawner->Spawn();
@@ -1877,7 +1878,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		Game::config->ReloadConfig();
 		VanityUtilities::SpawnVanity();
 		dpWorld::Instance().Reload();
-		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
+		auto entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (auto entity : entities) {
 			auto* scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
 			if (!scriptedActivityComponent) continue;
@@ -1971,7 +1972,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		auto closestDistance = 0.0f;
 
-		const auto candidates = EntityManager::Instance()->GetEntitiesByComponent(component);
+		const auto candidates = Game::entityManager->GetEntitiesByComponent(component);
 
 		for (auto* candidate : candidates) {
 			if (candidate->GetLOT() == 1 || candidate->GetLOT() == 8092) {
@@ -2003,7 +2004,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		EntityManager::Instance()->SerializeEntity(closest);
+		Game::entityManager->SerializeEntity(closest);
 
 		auto* table = CDClientManager::Instance().GetTable<CDObjectsTable>();
 
@@ -2044,7 +2045,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					movingPlatformComponent->GotoWaypoint(value);
 				}
 
-				EntityManager::Instance()->SerializeEntity(closest);
+				Game::entityManager->SerializeEntity(closest);
 			} else if (args[1] == "-a" && args.size() >= 3) {
 				RenderComponent::PlayAnimation(closest, args.at(2));
 			} else if (args[1] == "-s") {

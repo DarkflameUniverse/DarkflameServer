@@ -263,17 +263,17 @@ void Entity::Initialize() {
 				NiQuaternion rot;
 
 				const auto& targetSceneName = m_Character->GetTargetScene();
-				auto* targetScene = EntityManager::Instance()->GetSpawnPointEntity(targetSceneName);
+				auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
 
 				if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
 					pos = m_Character->GetRespawnPoint(mapID);
-					rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+					rot = Game::zoneManager->GetZone()->GetSpawnRot();
 				} else if (targetScene != nullptr) {
 					pos = targetScene->GetPosition();
 					rot = targetScene->GetRotation();
 				} else {
-					pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
-					rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+					pos = Game::zoneManager->GetZone()->GetSpawnPos();
+					rot = Game::zoneManager->GetZone()->GetSpawnRot();
 				}
 
 				controllablePhysics->SetPosition(pos);
@@ -505,7 +505,7 @@ void Entity::Initialize() {
 	// ZoneControl script
 	if (m_TemplateID == 2365) {
 		CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
-		const auto zoneID = dZoneManager::Instance()->GetZoneID();
+		const auto zoneID = Game::zoneManager->GetZoneID();
 		const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
 
 		if (zoneData != nullptr) {
@@ -691,7 +691,7 @@ void Entity::Initialize() {
 	}
 
 	std::string pathName = GetVarAsString(u"attached_path");
-	const Path* path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
+	const Path* path = Game::zoneManager->GetZone()->GetPath(pathName);
 
 	//Check to see if we have an attached path and add the appropiate component to handle it:
 	if (path){
@@ -735,7 +735,7 @@ void Entity::Initialize() {
 		}
 		});
 
-	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
+	if (!m_Character && Game::entityManager->GetGhostingEnabled()) {
 		// Don't ghost what is likely large scene elements
 		if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
 			goto no_ghosting;
@@ -1284,12 +1284,12 @@ void Entity::Update(const float deltaTime) {
 	}
 
 	if (m_ShouldDestroyAfterUpdate) {
-		EntityManager::Instance()->DestroyEntity(this->GetObjectID());
+		Game::entityManager->DestroyEntity(this->GetObjectID());
 	}
 }
 
 void Entity::OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxName, const std::string& status) {
-	Entity* other = EntityManager::Instance()->GetEntity(otherEntity);
+	Entity* other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
@@ -1303,7 +1303,7 @@ void Entity::OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxN
 }
 
 void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
-	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
+	auto* other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
@@ -1350,7 +1350,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 }
 
 void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
-	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
+	auto* other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
@@ -1504,13 +1504,13 @@ void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u
 
 	auto* destroyableComponent = GetComponent<DestroyableComponent>();
 	if (destroyableComponent == nullptr) {
-		Kill(EntityManager::Instance()->GetEntity(source));
+		Kill(Game::entityManager->GetEntity(source));
 		return;
 	}
 	auto* possessorComponent = GetComponent<PossessorComponent>();
 	if (possessorComponent) {
 		if (possessorComponent->GetPossessable() != LWOOBJID_EMPTY) {
-			auto* mount = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+			auto* mount = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 			if (mount) possessorComponent->Dismount(mount, true);
 		}
 	}
@@ -1538,20 +1538,20 @@ void Entity::Kill(Entity* murderer) {
 	}
 
 	if (!IsPlayer()) {
-		EntityManager::Instance()->DestroyEntity(this);
+		Game::entityManager->DestroyEntity(this);
 	}
 
 	const auto& grpNameQBShowBricks = GetVar<std::string>(u"grpNameQBShowBricks");
 
 	if (!grpNameQBShowBricks.empty()) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(grpNameQBShowBricks);
+		auto spawners = Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks);
 
 		Spawner* spawner = nullptr;
 
 		if (!spawners.empty()) {
 			spawner = spawners[0];
 		} else {
-			spawners = dZoneManager::Instance()->GetSpawnersInGroup(grpNameQBShowBricks);
+			spawners = Game::zoneManager->GetSpawnersInGroup(grpNameQBShowBricks);
 
 			if (!spawners.empty()) {
 				spawner = spawners[0];
@@ -1719,7 +1719,7 @@ void Entity::CancelCallbackTimers() {
 
 void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
 	//if (m_Info.spawner) m_Info.spawner->ScheduleKill(this);
-	EntityManager::Instance()->ScheduleForKill(this);
+	Game::entityManager->ScheduleForKill(this);
 
 	if (murderer) m_ScheduleKiller = murderer;
 }
@@ -1763,7 +1763,7 @@ void Entity::TriggerEvent(eTriggerEventType event, Entity* optionalTarget) {
 
 Entity* Entity::GetOwner() const {
 	if (m_OwnerOverride != LWOOBJID_EMPTY) {
-		auto* other = EntityManager::Instance()->GetEntity(m_OwnerOverride);
+		auto* other = Game::entityManager->GetEntity(m_OwnerOverride);
 
 		if (other != nullptr) {
 			return other->GetOwner();
@@ -1907,7 +1907,7 @@ void Entity::SetPosition(NiPoint3 position) {
 		vehicel->SetPosition(position);
 	}
 
-	EntityManager::Instance()->SerializeEntity(this);
+	Game::entityManager->SerializeEntity(this);
 }
 
 void Entity::SetRotation(NiQuaternion rotation) {
@@ -1935,7 +1935,7 @@ void Entity::SetRotation(NiQuaternion rotation) {
 		vehicel->SetRotation(rotation);
 	}
 
-	EntityManager::Instance()->SerializeEntity(this);
+	Game::entityManager->SerializeEntity(this);
 }
 
 bool Entity::GetBoolean(const std::u16string& name) const {
@@ -1987,7 +1987,7 @@ std::vector<LWOOBJID>& Entity::GetTargetsInPhantom() {
 	for (auto i = 0u; i < m_TargetsInPhantom.size(); ++i) {
 		const auto id = m_TargetsInPhantom.at(i);
 
-		auto* entity = EntityManager::Instance()->GetEntity(id);
+		auto* entity = Game::entityManager->GetEntity(id);
 
 		if (entity == nullptr) {
 			continue;

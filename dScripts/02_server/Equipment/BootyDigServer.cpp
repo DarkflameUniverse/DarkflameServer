@@ -7,14 +7,14 @@
 #include "Loot.h"
 
 void BootyDigServer::OnStartup(Entity* self) {
-	auto* zoneControlObject = EntityManager::Instance()->GetZoneControlEntity();
+	auto* zoneControlObject = Game::entityManager->GetZoneControlEntity();
 	if (zoneControlObject != nullptr) {
 		zoneControlObject->OnFireEventServerSide(self, "CheckForPropertyOwner");
 	}
 }
 
 void BootyDigServer::OnPlayerLoaded(Entity* self, Entity* player) {
-	auto* zoneControlObject = EntityManager::Instance()->GetZoneControlEntity();
+	auto* zoneControlObject = Game::entityManager->GetZoneControlEntity();
 	if (zoneControlObject != nullptr) {
 		zoneControlObject->OnFireEventServerSide(self, "CheckForPropertyOwner");
 	}

@@ -82,7 +82,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 	CINSTREAM_SKIP_HEADER;
 
-	Entity* entity = EntityManager::Instance()->GetEntity(user->GetLastUsedChar()->GetObjectID());
+	Entity* entity = Game::entityManager->GetEntity(user->GetLastUsedChar()->GetObjectID());
 	if (!entity) return;
 
 	ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
@@ -95,7 +95,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		comp->SetVelocity(zeroVel);
 		comp->SetAngularVelocity(zeroVel);
 		comp->SetIsOnGround(true); //probably8
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 		return;
 	}
 	*/
@@ -166,7 +166,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	bool updateChar = true;
 
 	if (possessorComponent != nullptr) {
-		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 		if (possassableEntity != nullptr) {
 			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
@@ -199,7 +199,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				controllablePhysicsComponent->SetAngularVelocity(angVelocity);
 				controllablePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 			}
-			EntityManager::Instance()->SerializeEntity(possassableEntity);
+			Game::entityManager->SerializeEntity(possassableEntity);
 		}
 	}
 
@@ -227,9 +227,9 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 	auto* player = static_cast<Player*>(entity);
 	player->SetGhostReferencePoint(position);
-	EntityManager::Instance()->QueueGhostUpdate(player->GetObjectID());
+	Game::entityManager->QueueGhostUpdate(player->GetObjectID());
 
-	if (updateChar) EntityManager::Instance()->SerializeEntity(entity);
+	if (updateChar) Game::entityManager->SerializeEntity(entity);
 
 	//TODO: add moving platform stuffs
 	/*bool movingPlatformFlag;
@@ -267,7 +267,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 			continue;
 		}
 
-		EntityManager::Instance()->SerializeEntity(entity, player);
+		Game::entityManager->SerializeEntity(entity, player);
 	}
 	*/
 }
