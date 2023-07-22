@@ -874,7 +874,7 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(objectID);
 			inStream.Read(numberOfInstances);
 
-			auto player = EntityManager::Instance()->GetEntity(objectID);
+			auto player = Game::entityManager->GetEntity(objectID);
 
 			if (!player) return;
 
