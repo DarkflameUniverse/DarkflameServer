@@ -217,7 +217,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	packet.Write(static_cast<uint16_t>(64));        // Version Minor
 
 	// Writes the user key
-	uint32_t sessionKey = rand(); // not mt but whatever
+	uint32_t sessionKey = GeneralUtils::GenerateRandomNumber<uint32_t>();
 	std::string userHash = std::to_string(sessionKey);
 	userHash = md5(userHash);
 	PacketUtils::WritePacketWString(userHash, 33, &packet);

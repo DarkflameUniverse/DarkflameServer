@@ -23,6 +23,7 @@
 #include "dConfig.h"
 #include "Loot.h"
 #include "eMissionTaskType.h"
+#include "LeaderboardManager.h"
 #include "dZoneManager.h"
 #include "CDActivitiesTable.h"
 
@@ -367,9 +368,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 	}
 
 	if (id == "rewardButton") {
-		if (data->collectedRewards) {
-			return;
-		}
+		if (data->collectedRewards) return;
 
 		data->collectedRewards = true;
 
@@ -839,6 +838,7 @@ void RacingControlComponent::Update(float deltaTime) {
 							"Completed time %llu, %llu",
 							raceTime, raceTime * 1000);
 
+						LeaderboardManager::SaveScore(playerEntity->GetObjectID(), m_ActivityID, static_cast<float>(player.raceTime), static_cast<float>(player.bestLapTime), static_cast<float>(player.finished == 1));
 						// Entire race time
 						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, (LWOOBJID)eRacingTaskParam::TOTAL_TRACK_TIME);
 
