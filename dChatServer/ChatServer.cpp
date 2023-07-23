@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 	
-	Game::randomEngine = std::mt19937(time(NULL));
+	Game::randomEngine = std::mt19937(time(0));
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
