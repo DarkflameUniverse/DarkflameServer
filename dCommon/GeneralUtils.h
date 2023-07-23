@@ -111,34 +111,6 @@ namespace GeneralUtils {
 	 */
 	bool CheckBit(int64_t value, uint32_t index);
 
-	// MARK: Random Number Generation
-
-	//! Generates a random number
-	/*!
-	  \param min The minimum the generate from
-	  \param max The maximum to generate to
-	 */
-	template <typename T>
-	inline T GenerateRandomNumber(std::size_t min, std::size_t max) {
-		// Make sure it is a numeric type
-		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-
-		if constexpr (std::is_integral_v<T>) {  // constexpr only necessary on first statement
-			std::uniform_int_distribution<T> distribution(min, max);
-			return distribution(Game::randomEngine);
-		} else if (std::is_floating_point_v<T>) {
-			std::uniform_real_distribution<T> distribution(min, max);
-			return distribution(Game::randomEngine);
-		}
-
-		return T();
-	}
-
-	template <typename T>
-	inline T GenerateRandomNumber() {
-		return GenerateRandomNumber<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
-	}
-
 	bool ReplaceInString(std::string& str, const std::string& from, const std::string& to);
 
 	std::u16string ReadWString(RakNet::BitStream* inStream);
@@ -227,5 +199,43 @@ namespace GeneralUtils {
 	void hash_combine(std::size_t& s, const T& v) {
 		std::hash<T> h;
 		s ^= h(v) + 0x9e3779b9 + (s << 6) + (s >> 2);
+	}
+
+	// MARK: Random Number Generation
+
+	//! Generates a random number
+	/*!
+	  \param min The minimum the generate from
+	  \param max The maximum to generate to
+	 */
+	template <typename T>
+	inline T GenerateRandomNumber(std::size_t min, std::size_t max) {
+		// Make sure it is a numeric type
+		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
+
+		if constexpr (std::is_integral_v<T>) {  // constexpr only necessary on first statement
+			std::uniform_int_distribution<T> distribution(min, max);
+			return distribution(Game::randomEngine);
+		} else if (std::is_floating_point_v<T>) {
+			std::uniform_real_distribution<T> distribution(min, max);
+			return distribution(Game::randomEngine);
+		}
+
+		return T();
+	}
+
+// on Windows we need to undef these or else they conflict with our numeric limits calls
+// DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS
+#ifdef _WIN32
+#undef min
+#undef max
+#endif
+
+	template <typename T>
+	inline T GenerateRandomNumber() {
+		// Make sure it is a numeric type
+		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
+		
+		return GenerateRandomNumber<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 	}
 }
