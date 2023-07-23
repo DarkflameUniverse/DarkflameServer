@@ -84,6 +84,8 @@ int main(int argc, char** argv) {
 	delete res;
 	delete stmt;
 
+	Game::randomEngine = std::mt19937(time(0));
+
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
 	uint32_t maxClients = 50;
 	uint32_t ourPort = 1001; //LU client is hardcoded to use this for auth port, so I'm making it the default.
