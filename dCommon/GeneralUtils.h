@@ -134,6 +134,11 @@ namespace GeneralUtils {
 		return T();
 	}
 
+	template <typename T>
+	inline T GenerateRandomNumber() {
+		return GenerateRandomNumber<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+	}
+
 	bool ReplaceInString(std::string& str, const std::string& from, const std::string& to);
 
 	std::u16string ReadWString(RakNet::BitStream* inStream);
