@@ -40,8 +40,8 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServerType serverType) {
 	RakNet::BitStream bitStream;
 	PacketUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::VERSION_CONFIRM);
-	int32_t netVersion;
-	if (GeneralUtils::TryParse(Game::config->GetValue("client_net_version"), netVersion)) {
+	uint32_t netVersion;
+	if (!GeneralUtils::TryParse(Game::config->GetValue("client_net_version"), netVersion)) {
 		Game::logger->Log("AuthPackets", "Failed to parse client_net_version. Cannot authenticate to %s:%i", nextServerIP.c_str(), nextServerPort);
 		return;
 	}

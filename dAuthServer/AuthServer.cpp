@@ -12,7 +12,6 @@
 #include "dConfig.h"
 #include "Diagnostics.h"
 #include "BinaryPathFinder.h"
-#include "GeneralUtils.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -48,16 +47,6 @@ int main(int argc, char** argv) {
 
 	//Read our config:
 	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "authconfig.ini").string());
-	int32_t clientNetVersion = 0;
-	if (GeneralUtils::TryParse(Game::config->GetValue("client_net_version"), clientNetVersion)) {
-		Game::logger->Log("AuthServer", "Failed to parse %s as net version.  Cannot start server as no clients could connect.",Game::config->GetValue("client_net_version").c_str());
-		Game::logger->Log("AuthServer", "As of version 1.1.1, client_net_version is required to be defined in sharedconfig.ini as opposed to in CMakeVariables.txt as NET_VERSION.");
-		Game::logger->Log("AuthServer", "Please define client_net_version in sharedconfig.ini (if you are using a vanilla client, client_net_version should be 171022.)");
-		delete Game::config;
-		delete Game::logger;
-		return EXIT_FAILURE;
-	}
-	Game::logger->Log("AuthServer", "Auth server running with client_net_version %i", clientNetVersion);
 	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 

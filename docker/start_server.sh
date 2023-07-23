@@ -15,19 +15,8 @@ if [[ ! -f "/app/initialized" ]]; then
     symlink_config_files
     # do not run symlinks more than once
     touch /app/initialized
-	touch /app/darkflame_1.1.1
 else
     echo "Server already initialized"
-fi
-
-if [[ ! -f "/app/darkflame_1.1.1" ]]; then
-    # setup symlinks for volume files
-    echo "Adding default client_net_version 171022 sharedconfig.ini"
-	echo "\nclient_net_version=171022" >> /app/sharedconfig.ini
-    # do not run symlinks more than once
-    touch /app/darkflame_1.1.1
-else
-    echo "darkflame_1.1.1 patch already applied"
 fi
 
 # start the server
