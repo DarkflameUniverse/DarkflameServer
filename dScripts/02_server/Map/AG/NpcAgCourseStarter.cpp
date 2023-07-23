@@ -50,7 +50,7 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 
 		if (data->values[1] != 0) return;
 
-		time_t startTime = std::time(NULL) + 4; // Offset for starting timer
+		time_t startTime = std::time(0) + 4; // Offset for starting timer
 
 		data->values[1] = *(float*)&startTime;
 
@@ -83,7 +83,7 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 			LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 	} else if (args == "course_finish") {
-		time_t endTime = std::time(NULL);
+		time_t endTime = std::time(0);
 		time_t finish = (endTime - *(time_t*)&data->values[1]);
 
 		data->values[2] = *(float*)&finish;
