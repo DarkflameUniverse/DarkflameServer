@@ -4,6 +4,7 @@
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "RenderComponent.h"
 #include "eEndBehavior.h"
 #include "eStateChangeType.h"
 
@@ -51,12 +52,12 @@ void NtAssemblyTubeServer::RunAssemblyTube(Entity* self, Entity* player) {
 			);
 		}
 
-		GameMessages::SendPlayAnimation(player, u"tube-sucker", 4.0f);
+		RenderComponent::PlayAnimation(player, u"tube-sucker", 4.0f);
 
 		const auto animTime = 3;
 
 		self->AddCallbackTimer(animTime, [this, self, playerID]() {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 
 			if (player == nullptr) {
 				return;
@@ -72,7 +73,7 @@ void NtAssemblyTubeServer::TeleportPlayer(Entity* self, Entity* player) {
 	auto* destination = self;
 
 	if (!destinationGroup.empty()) {
-		const auto& groupObjs = EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(destinationGroup));
+		const auto& groupObjs = Game::entityManager->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(destinationGroup));
 
 		if (!groupObjs.empty()) {
 			destination = groupObjs[0];
@@ -84,14 +85,14 @@ void NtAssemblyTubeServer::TeleportPlayer(Entity* self, Entity* player) {
 
 	GameMessages::SendTeleport(player->GetObjectID(), destPosition, destRotation, player->GetSystemAddress(), true);
 
-	GameMessages::SendPlayAnimation(player, u"tube-resurrect", 4.0f);
+	RenderComponent::PlayAnimation(player, u"tube-resurrect", 4.0f);
 
 	const auto animTime = 2;
 
 	const auto playerID = player->GetObjectID();
 
 	self->AddCallbackTimer(animTime, [this, self, playerID]() {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (player == nullptr) {
 			return;

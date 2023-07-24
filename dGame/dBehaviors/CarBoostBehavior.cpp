@@ -11,7 +11,7 @@
 void CarBoostBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	GameMessages::SendVehicleAddPassiveBoostAction(branch.target, UNASSIGNED_SYSTEM_ADDRESS);
 
-	auto* entity = EntityManager::Instance()->GetEntity(context->originator);
+	auto* entity = Game::entityManager->GetEntity(context->originator);
 
 	if (entity == nullptr) {
 		return;
@@ -22,7 +22,7 @@ void CarBoostBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 	auto* possessableComponent = entity->GetComponent<PossessableComponent>();
 	if (possessableComponent != nullptr) {
 
-		auto* possessor = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
+		auto* possessor = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
 		if (possessor != nullptr) {
 
 			auto* characterComponent = possessor->GetComponent<CharacterComponent>();

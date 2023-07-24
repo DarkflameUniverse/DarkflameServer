@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "dServer.h"
 #include "VanityUtilities.h"
+#include "RenderComponent.h"
 
 void DLUVanityNPC::OnStartup(Entity* self) {
 	m_NPC = VanityUtilities::GetNPC("averysumner - Destroyer of Worlds");
@@ -17,7 +18,7 @@ void DLUVanityNPC::OnStartup(Entity* self) {
 
 void DLUVanityNPC::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "setupTeleport") {
-		GameMessages::SendPlayAnimation(self, u"interact");
+		RenderComponent::PlayAnimation(self, u"interact");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportBeam", "teleportBeam");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportRings", "teleportRings");
 

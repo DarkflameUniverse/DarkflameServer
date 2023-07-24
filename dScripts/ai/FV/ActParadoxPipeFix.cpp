@@ -8,7 +8,7 @@
 void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 	const auto myGroup = "AllPipes";
 
-	const auto groupObjs = EntityManager::Instance()->GetEntitiesInGroup(myGroup);
+	const auto groupObjs = Game::entityManager->GetEntitiesInGroup(myGroup);
 
 	auto indexCount = 0;
 
@@ -27,14 +27,14 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 	}
 
 	if (indexCount >= 2) {
-		const auto refinery = EntityManager::Instance()->GetEntitiesInGroup("Paradox");
+		const auto refinery = Game::entityManager->GetEntitiesInGroup("Paradox");
 
 		if (!refinery.empty()) {
 			GameMessages::SendPlayFXEffect(refinery[0]->GetObjectID(), 3999, u"create", "pipeFX");
 		}
 
 		for (auto* object : groupObjs) {
-			auto* player = EntityManager::Instance()->GetEntity(object->GetVar<LWOOBJID>(u"PlayerID"));
+			auto* player = Game::entityManager->GetEntity(object->GetVar<LWOOBJID>(u"PlayerID"));
 
 			if (player != nullptr) {
 				auto* missionComponent = player->GetComponent<MissionComponent>();
@@ -53,7 +53,7 @@ void ActParadoxPipeFix::OnRebuildComplete(Entity* self, Entity* target) {
 
 void ActParadoxPipeFix::OnRebuildNotifyState(Entity* self, eRebuildState state) {
 	if (state == eRebuildState::RESETTING) {
-		const auto refinery = EntityManager::Instance()->GetEntitiesInGroup("Paradox");
+		const auto refinery = Game::entityManager->GetEntitiesInGroup("Paradox");
 
 		if (!refinery.empty()) {
 			GameMessages::SendStopFXEffect(refinery[0], true, "pipeFX");

@@ -13,7 +13,7 @@ PossessorComponent::PossessorComponent(Entity* parent) : Component(parent) {
 
 PossessorComponent::~PossessorComponent() {
 	if (m_Possessable != LWOOBJID_EMPTY) {
-		auto* mount = EntityManager::Instance()->GetEntity(m_Possessable);
+		auto* mount = Game::entityManager->GetEntity(m_Possessable);
 		if (mount) {
 			auto* possessable = mount->GetComponent<PossessableComponent>();
 			if (possessable) {
@@ -58,8 +58,8 @@ void PossessorComponent::Mount(Entity* mount) {
 	GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_Parent->GetSystemAddress());
 	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStateChangeType::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
-	EntityManager::Instance()->SerializeEntity(mount);
+	Game::entityManager->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(mount);
 }
 
 void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
@@ -73,8 +73,8 @@ void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
 			possessableComponent->SetPossessor(LWOOBJID_EMPTY);
 			if (forceDismount) possessableComponent->ForceDepossess();
 		}
-		EntityManager::Instance()->SerializeEntity(m_Parent);
-		EntityManager::Instance()->SerializeEntity(mount);
+		Game::entityManager->SerializeEntity(m_Parent);
+		Game::entityManager->SerializeEntity(mount);
 
 		auto characterComponent = m_Parent->GetComponent<CharacterComponent>();
 		if (characterComponent) characterComponent->SetIsRacing(false);

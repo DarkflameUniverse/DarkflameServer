@@ -30,8 +30,8 @@ void PetDigBuild::OnRebuildComplete(Entity* self, Entity* target) {
 		}
 	}
 
-	auto* treasure = EntityManager::Instance()->CreateEntity(info);
-	EntityManager::Instance()->ConstructEntity(treasure);
+	auto* treasure = Game::entityManager->CreateEntity(info);
+	Game::entityManager->ConstructEntity(treasure);
 	self->SetVar<LWOOBJID>(u"chestObj", treasure->GetObjectID());
 }
 
@@ -40,7 +40,7 @@ void PetDigBuild::OnDie(Entity* self, Entity* killer) {
 	if (treasureID == LWOOBJID_EMPTY)
 		return;
 
-	auto treasure = EntityManager::Instance()->GetEntity(treasureID);
+	auto treasure = Game::entityManager->GetEntity(treasureID);
 	if (treasure == nullptr)
 		return;
 

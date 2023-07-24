@@ -9,14 +9,14 @@
 void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	if (m_AffectsCaster) branch.target = context->caster;
 
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 	if (!target) return;
 
 	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 
 	controllablePhysicsComponent->AddSpeedboost(m_RunSpeed);
-	EntityManager::Instance()->SerializeEntity(target);
+	Game::entityManager->SerializeEntity(target);
 
 	if (branch.duration > 0.0f) {
 		context->RegisterTimerBehavior(this, branch);
@@ -38,14 +38,14 @@ void SpeedBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch
 }
 
 void SpeedBehavior::End(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 	if (!target) return;
 
 	auto* controllablePhysicsComponent = target->GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 
 	controllablePhysicsComponent->RemoveSpeedboost(m_RunSpeed);
-	EntityManager::Instance()->SerializeEntity(target);
+	Game::entityManager->SerializeEntity(target);
 }
 
 void SpeedBehavior::Load() {

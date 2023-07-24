@@ -1,8 +1,5 @@
 #include "ObjectIDManager.h"
 
-// Std
-#include <random>
-
 // Custom Classes
 #include "MasterPackets.h"
 #include "Database.h"
@@ -48,11 +45,7 @@ void ObjectIDManager::HandleRequestPersistentIDResponse(uint64_t requestID, uint
 
 //! Handles cases where we have to get a unique object ID synchronously
 uint32_t ObjectIDManager::GenerateRandomObjectID() {
-	std::random_device rd;
-
-	std::mt19937 rng(rd());
-
-	return  uni(rng);
+	return  uni(Game::randomEngine);
 }
 
 

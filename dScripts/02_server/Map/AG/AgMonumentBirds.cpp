@@ -1,5 +1,8 @@
 #include "AgMonumentBirds.h"
 #include "GameMessages.h"
+#include "Entity.h"
+#include "RenderComponent.h"
+#include "EntityManager.h"
 
 //--------------------------------------------------------------
 //Makes the ag birds fly away when you get close and smashes them.
@@ -16,7 +19,7 @@ void AgMonumentBirds::OnProximityUpdate(Entity* self, Entity* entering, std::str
 
 	if (name == "MonumentBirds" && status == "ENTER") {
 		self->AddTimer("killBird", 1.0f);
-		GameMessages::SendPlayAnimation(self, sOnProximityAnim);
+		RenderComponent::PlayAnimation(self, sOnProximityAnim);
 		self->SetVar<bool>(u"IsFlying", true);
 		self->SetVar<LWOOBJID>(u"PlayerID", entering->GetObjectID());
 	}
@@ -25,7 +28,7 @@ void AgMonumentBirds::OnProximityUpdate(Entity* self, Entity* entering, std::str
 void AgMonumentBirds::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName != "killBird") return;
 
-	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"PlayerID"));
+	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"PlayerID"));
 
 	if (player == nullptr) return;
 

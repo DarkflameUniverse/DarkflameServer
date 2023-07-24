@@ -15,7 +15,7 @@ void RaceImaginePowerup::OnFireEventServerSide(Entity* self, Entity* sender, std
 			return;
 		}
 
-		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* vehicle = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 		if (vehicle == nullptr) {
 			return;

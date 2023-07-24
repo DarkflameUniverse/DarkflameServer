@@ -14,7 +14,7 @@ void VeBricksampleServer::OnUse(Entity* self, Entity* user) {
 		if (loot && inventoryComponent != nullptr && inventoryComponent->GetLotCount(loot) == 0) {
 			inventoryComponent->AddItem(loot, 1, eLootSourceType::ACTIVITY);
 
-			for (auto* brickEntity : EntityManager::Instance()->GetEntitiesInGroup("Bricks")) {
+			for (auto* brickEntity : Game::entityManager->GetEntitiesInGroup("Bricks")) {
 				GameMessages::SendNotifyClientObject(brickEntity->GetObjectID(), u"Pickedup");
 			}
 		}

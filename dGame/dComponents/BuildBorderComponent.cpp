@@ -17,7 +17,7 @@ BuildBorderComponent::~BuildBorderComponent() {
 
 void BuildBorderComponent::OnUse(Entity* originator) {
 	if (originator->GetCharacter()) {
-		const auto& entities = EntityManager::Instance()->GetEntitiesInGroup("PropertyPlaque");
+		const auto& entities = Game::entityManager->GetEntitiesInGroup("PropertyPlaque");
 
 		auto buildArea = m_Parent->GetObjectID();
 

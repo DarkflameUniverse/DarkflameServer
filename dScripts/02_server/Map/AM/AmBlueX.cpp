@@ -18,7 +18,7 @@ void AmBlueX::OnSkillEventFired(Entity* self, Entity* caster, const std::string&
 
 		auto* character = caster->GetCharacter();
 		if (character != nullptr) {
-			character->SetPlayerFlag(self->GetVar<uint32_t>(m_FlagVariable), true);
+			character->SetPlayerFlag(self->GetVar<int32_t>(m_FlagVariable), true);
 		}
 
 		EntityInfo info{};
@@ -27,16 +27,16 @@ void AmBlueX::OnSkillEventFired(Entity* self, Entity* caster, const std::string&
 		info.rot = self->GetRotation();
 		info.spawnerID = self->GetObjectID();
 
-		auto* fxObject = EntityManager::Instance()->CreateEntity(info, nullptr, self);
-		EntityManager::Instance()->ConstructEntity(fxObject);
+		auto* fxObject = Game::entityManager->CreateEntity(info, nullptr, self);
+		Game::entityManager->ConstructEntity(fxObject);
 
 		auto fxObjectID = fxObject->GetObjectID();
 		auto playerID = caster->GetObjectID();
 
 		// Add a callback for the bomb to explode
 		self->AddCallbackTimer(m_BombTime, [this, self, fxObjectID, playerID]() {
-			auto* fxObject = EntityManager::Instance()->GetEntity(fxObjectID);
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* fxObject = Game::entityManager->GetEntity(fxObjectID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 			auto* skillComponent = self->GetComponent<SkillComponent>();
 
 			if (skillComponent == nullptr)

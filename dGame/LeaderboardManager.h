@@ -1,80 +1,134 @@
-#pragma once
+#ifndef __LEADERBOARDMANAGER__H__
+#define __LEADERBOARDMANAGER__H__
+
+#include <map>
+#include <memory>
+#include <string_view>
 #include <vector>
-#include <climits>
+
+#include "Singleton.h"
 #include "dCommonVars.h"
+#include "LDFFormat.h"
 
-struct LeaderboardEntry {
-	uint64_t playerID;
-	std::string playerName;
-	uint32_t time;
-	uint32_t score;
-	uint32_t placement;
-	time_t lastPlayed;
+namespace sql {
+	class ResultSet;
 };
 
-enum InfoType : uint32_t {
-	Top,     // Top 11 all time players
-	Standings, // Ranking of the current player
-	Friends    // Ranking between friends
+namespace RakNet {
+	class BitStream;
 };
 
-enum LeaderboardType : uint32_t {
-	ShootingGallery,
-	Racing,
-	MonumentRace,
-	FootRace,
-	Survival = 5,
-	SurvivalNS = 6,
-	None = UINT_MAX
+class Score {
+public:
+	Score() {
+		primaryScore = 0;
+		secondaryScore = 0;
+		tertiaryScore = 0;
+	}
+	Score(const float primaryScore, const float secondaryScore = 0, const float tertiaryScore = 0) {
+		this->primaryScore = primaryScore;
+		this->secondaryScore = secondaryScore;
+		this->tertiaryScore = tertiaryScore;
+	}
+	bool operator<(const Score& rhs) const {
+		return primaryScore < rhs.primaryScore || (primaryScore == rhs.primaryScore && secondaryScore < rhs.secondaryScore) || (primaryScore == rhs.primaryScore && secondaryScore == rhs.secondaryScore && tertiaryScore < rhs.tertiaryScore);
+	}
+	bool operator>(const Score& rhs) const {
+		return primaryScore > rhs.primaryScore || (primaryScore == rhs.primaryScore && secondaryScore > rhs.secondaryScore) || (primaryScore == rhs.primaryScore && secondaryScore == rhs.secondaryScore && tertiaryScore > rhs.tertiaryScore);
+	}
+	void SetPrimaryScore(const float score) { primaryScore = score; }
+	float GetPrimaryScore() const { return primaryScore; }
+
+	void SetSecondaryScore(const float score) { secondaryScore = score; }
+	float GetSecondaryScore() const { return secondaryScore; }
+
+	void SetTertiaryScore(const float score) { tertiaryScore = score; }
+	float GetTertiaryScore() const { return tertiaryScore; }
+private:
+	float primaryScore;
+	float secondaryScore;
+	float tertiaryScore;
 };
+
+using GameID = uint32_t;
 
 class Leaderboard {
 public:
-	Leaderboard(uint32_t gameID, uint32_t infoType, bool weekly, std::vector<LeaderboardEntry> entries,
-		LWOOBJID relatedPlayer = LWOOBJID_EMPTY, LeaderboardType = None);
-	std::vector<LeaderboardEntry> GetEntries();
-	[[nodiscard]] std::u16string ToString() const;
-	[[nodiscard]] uint32_t GetGameID() const;
-	[[nodiscard]] uint32_t GetInfoType() const;
-	void Send(LWOOBJID targetID) const;
+
+	// Enums for leaderboards
+	enum InfoType : uint32_t {
+		Top,     // Top 11 all time players
+		MyStanding, // Ranking of the current player
+		Friends    // Ranking between friends
+	};
+
+	enum Type : uint32_t {
+		ShootingGallery,
+		Racing,
+		MonumentRace,
+		FootRace,
+		UnusedLeaderboard4, // There is no 4 defined anywhere in the cdclient, but it takes a Score.
+		Survival,
+		SurvivalNS,
+		Donations,
+		None
+	};
+	Leaderboard() = delete;
+	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const Leaderboard::Type = None);
+
+	~Leaderboard();
+
+	/**
+	 * @brief Resets the leaderboard state and frees its allocated memory
+	 * 
+	 */
+	void Clear();
+
+	/**
+	 * Serialize the Leaderboard to a BitStream
+	 *
+	 * Expensive!  Leaderboards are very string intensive so be wary of performatnce calling this method.
+	 */
+	void Serialize(RakNet::BitStream* bitStream) const;
+
+	/**
+	 * Builds the leaderboard from the database based on the associated gameID
+	 *
+	 * @param resultStart The index to start the leaderboard at. Zero indexed.
+	 * @param resultEnd The index to end the leaderboard at. Zero indexed.
+	 */
+	void SetupLeaderboard(bool weekly, uint32_t resultStart = 0, uint32_t resultEnd = 10);
+
+	/**
+	 * Sends the leaderboard to the client specified by targetID.
+	 */
+	void Send(const LWOOBJID targetID) const;
+
+	// Helper function to get the columns, ordering and insert format for a leaderboard
+	static const std::string_view GetOrdering(Type leaderboardType);
 private:
-	std::vector<LeaderboardEntry> entries{};
+	// Takes the resulting query from a leaderboard lookup and converts it to the LDF we need
+	// to send it to a client.
+	void QueryToLdf(std::unique_ptr<sql::ResultSet>& rows);
+
+	using LeaderboardEntry = std::vector<LDFBaseData*>;
+	using LeaderboardEntries = std::vector<LeaderboardEntry>;
+
+	LeaderboardEntries entries;
 	LWOOBJID relatedPlayer;
-	uint32_t gameID;
-	uint32_t infoType;
-	LeaderboardType leaderboardType;
+	GameID gameID;
+	InfoType infoType;
+	Leaderboard::Type leaderboardType;
 	bool weekly;
 };
 
-class LeaderboardManager {
-public:
-	static LeaderboardManager* Instance() {
-		if (address == nullptr)
-			address = new LeaderboardManager;
-		return address;
-	}
-	static void SendLeaderboard(uint32_t gameID, InfoType infoType, bool weekly, LWOOBJID targetID,
-		LWOOBJID playerID = LWOOBJID_EMPTY);
-	static Leaderboard* GetLeaderboard(uint32_t gameID, InfoType infoType, bool weekly, LWOOBJID playerID = LWOOBJID_EMPTY);
-	static void SaveScore(LWOOBJID playerID, uint32_t gameID, uint32_t score, uint32_t time);
-	static LeaderboardType GetLeaderboardType(uint32_t gameID);
-private:
-	static LeaderboardManager* address;
+namespace LeaderboardManager {
+	void SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t resultStart = 0, const uint32_t resultEnd = 10);
 
-	// Modified 12/12/2021: Existing queries were renamed to be more descriptive.
-	static const std::string topPlayersScoreQuery;
-	static const std::string friendsScoreQuery;
-	static const std::string standingsScoreQuery;
-	static const std::string topPlayersScoreQueryAsc;
-	static const std::string friendsScoreQueryAsc;
-	static const std::string standingsScoreQueryAsc;
+	void SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore = 0, const float tertiaryScore = 0);
 
-	// Added 12/12/2021: Queries dictated by time are needed for certain minigames.
-	static const std::string topPlayersTimeQuery;
-	static const std::string friendsTimeQuery;
-	static const std::string standingsTimeQuery;
-	static const std::string topPlayersTimeQueryAsc;
-	static const std::string friendsTimeQueryAsc;
-	static const std::string standingsTimeQueryAsc;
+	Leaderboard::Type GetLeaderboardType(const GameID gameID);
+	extern std::map<GameID, Leaderboard::Type> leaderboardCache;
 };
 
+#endif  //!__LEADERBOARDMANAGER__H__

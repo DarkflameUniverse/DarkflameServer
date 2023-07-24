@@ -119,7 +119,7 @@ void VanityUtilities::SpawnVanity() {
 
 		auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
 
-		if (scriptComponent != nullptr) {
+		if (scriptComponent && !npc.m_Script.empty()) {
 			scriptComponent->SetScript(npc.m_Script);
 			scriptComponent->SetSerialized(false);
 
@@ -137,14 +137,14 @@ void VanityUtilities::SpawnVanity() {
 			info.lot = 8139;
 			info.pos = { 259.5f, 246.4f, -705.2f };
 			info.rot = { 0.0f, 0.0f, 1.0f, 0.0f };
-			info.spawnerID = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
+			info.spawnerID = Game::entityManager->GetZoneControlEntity()->GetObjectID();
 
 			info.settings = { new LDFData<bool>(u"hasCustomText", true),
 				new LDFData<std::string>(u"customText", ParseMarkdown((BinaryPathFinder::GetBinaryDir() / "vanity/TESTAMENT.md").string())) };
 
-			auto* entity = EntityManager::Instance()->CreateEntity(info);
+			auto* entity = Game::entityManager->CreateEntity(info);
 
-			EntityManager::Instance()->ConstructEntity(entity);
+			Game::entityManager->ConstructEntity(entity);
 		}
 	}
 }
@@ -155,15 +155,15 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 	info.lot = lot;
 	info.pos = position;
 	info.rot = rotation;
-	info.spawnerID = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
+	info.spawnerID = Game::entityManager->GetZoneControlEntity()->GetObjectID();
 	info.settings = ldf;
 
-	auto* entity = EntityManager::Instance()->CreateEntity(info);
+	auto* entity = Game::entityManager->CreateEntity(info);
 	entity->SetVar(u"npcName", name);
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
-	if (inventoryComponent != nullptr) {
+	if (inventoryComponent && !inventory.empty()) {
 		inventoryComponent->SetNPCItems(inventory);
 	}
 
@@ -175,7 +175,7 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 		destroyableComponent->SetHealth(0);
 	}
 
-	EntityManager::Instance()->ConstructEntity(entity);
+	Game::entityManager->ConstructEntity(entity);
 
 	return entity;
 }
@@ -535,7 +535,7 @@ void VanityUtilities::NPCTalk(Entity* npc) {
 			npc->GetObjectID(), u"sendToclient_bubble", 0, 0, npc->GetObjectID(), selected, UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
-	EntityManager::Instance()->SerializeEntity(npc);
+	Game::entityManager->SerializeEntity(npc);
 
 	const float nextTime = GeneralUtils::GenerateRandomNumber<float>(15, 60);
 

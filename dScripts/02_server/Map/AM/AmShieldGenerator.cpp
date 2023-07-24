@@ -49,7 +49,7 @@ void AmShieldGenerator::OnProximityUpdate(Entity* self, Entity* entering, std::s
 void AmShieldGenerator::OnDie(Entity* self, Entity* killer) {
 	self->CancelAllTimers();
 
-	auto* child = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"Child"));
+	auto* child = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Child"));
 
 	if (child != nullptr) {
 		child->Kill();
@@ -69,7 +69,7 @@ void AmShieldGenerator::OnTimerDone(Entity* self, std::string timerName) {
 		auto enemiesInProximity = self->GetVar<std::vector<LWOOBJID>>(u"Enemies");
 
 		for (const auto enemyID : enemiesInProximity) {
-			auto* enemy = EntityManager::Instance()->GetEntity(enemyID);
+			auto* enemy = Game::entityManager->GetEntity(enemyID);
 
 			if (enemy != nullptr) {
 				EnemyEnteredShield(self, enemy);
@@ -94,7 +94,7 @@ void AmShieldGenerator::StartShield(Entity* self) {
 	info.rot = myRot;
 	info.spawnerID = self->GetObjectID();
 
-	auto* child = EntityManager::Instance()->CreateEntity(info);
+	auto* child = Game::entityManager->CreateEntity(info);
 
 	self->SetVar(u"Child", child->GetObjectID());
 
@@ -111,7 +111,7 @@ void AmShieldGenerator::BuffPlayers(Entity* self) {
 	auto entitiesInProximity = self->GetVar<std::vector<LWOOBJID>>(u"Players");
 
 	for (const auto playerID : entitiesInProximity) {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (player == nullptr) {
 			return;
