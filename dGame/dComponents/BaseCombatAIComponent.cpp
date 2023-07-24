@@ -522,7 +522,7 @@ bool BaseCombatAIComponent::IsMech() {
 }
 
 
-void BaseCombatAIComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void BaseCombatAIComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_DirtyStateOrTarget || bIsInitialUpdate);
 	if (m_DirtyStateOrTarget || bIsInitialUpdate) {
 		outBitStream->Write(uint32_t(m_State));

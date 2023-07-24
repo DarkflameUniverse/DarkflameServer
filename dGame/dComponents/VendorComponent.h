@@ -19,7 +19,7 @@ public:
 	VendorComponent(Entity* parent);
 	~VendorComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	void OnUse(Entity* originator) override;
 

@@ -24,7 +24,7 @@ public:
 	RigidbodyPhantomPhysicsComponent(Entity* parent);
 	~RigidbodyPhantomPhysicsComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Returns the position of this entity

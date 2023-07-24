@@ -23,7 +23,7 @@ SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent)
 
 SoundTriggerComponent::~SoundTriggerComponent() = default;
 
-void SoundTriggerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void SoundTriggerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate)
 		dirty = true;
 

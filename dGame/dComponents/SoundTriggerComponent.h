@@ -25,7 +25,7 @@ public:
 	explicit SoundTriggerComponent(Entity* parent);
 	~SoundTriggerComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Activates a music cue, making it played by any client in range
