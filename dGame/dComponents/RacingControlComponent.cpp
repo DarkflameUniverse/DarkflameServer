@@ -23,6 +23,7 @@
 #include "dConfig.h"
 #include "Loot.h"
 #include "eMissionTaskType.h"
+#include "LeaderboardManager.h"
 #include "dZoneManager.h"
 #include "CDActivitiesTable.h"
 
@@ -367,19 +368,12 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 	}
 
 	if (id == "rewardButton") {
-		if (data->collectedRewards) {
-			return;
-		}
+		if (data->collectedRewards) return;
 
 		data->collectedRewards = true;
 
 		// Calculate the score, different loot depending on player count
-		auto playersRating = m_LoadedPlayers;
-		if(m_LoadedPlayers == 1 && m_SoloRacing) {
-			playersRating *= 2;
-		}
-
-        const auto score = playersRating * 10 + data->finished;
+		const auto score = m_LoadedPlayers * 10 + data->finished;
 		LootGenerator::Instance().GiveActivityLoot(player, m_Parent, m_ActivityID, score);
 
 		// Giving rewards
@@ -839,6 +833,7 @@ void RacingControlComponent::Update(float deltaTime) {
 							"Completed time %llu, %llu",
 							raceTime, raceTime * 1000);
 
+						LeaderboardManager::SaveScore(playerEntity->GetObjectID(), m_ActivityID, static_cast<float>(player.raceTime), static_cast<float>(player.bestLapTime), static_cast<float>(player.finished == 1));
 						// Entire race time
 						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, (LWOOBJID)eRacingTaskParam::TOTAL_TRACK_TIME);
 
