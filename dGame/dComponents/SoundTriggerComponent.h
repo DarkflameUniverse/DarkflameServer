@@ -14,6 +14,11 @@ struct MusicCue {
 	float boredomTime;
 };
 
+struct MusicParemeter {
+	std::string name;
+	float value;
+};
+
 /**
  * Handles specific music triggers like the instruments in Red Block
  * Credits to https://github.com/SimonNitzsche/OpCrux-Server/blob/master/src/Entity/Components/SoundTriggerComponent.hpp
@@ -41,19 +46,11 @@ public:
 
 private:
 
-	/**
-	 * Currently active cues
-	 */
-	std::vector<MusicCue> musicCues = {};
+	std::vector<MusicCue> m_MusicCues = {};
+	std::vector<MusicParemeter> m_MusicParameters = {};
+	std::vector<GUID> m_GUID = {};
+	std::vector<GUID> m_GUID2 = {};
+	std::vector<std::string> m_MixerPrograms = {};
 
-	/**
-	 * Currently active mixer programs
-	 */
-	std::vector<std::string> mixerPrograms = {};
-
-	/**
-	 * GUID found in the LDF
-	 */
-	std::vector<GUID> guids = {};
-	bool dirty = false;
+	bool m_Dirty = false;
 };
