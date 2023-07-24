@@ -27,14 +27,13 @@
 #include "dpShapeBox.h"
 #include "dpShapeSphere.h"
 
-PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(parent) {
+PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsComponent(parent) {
 	m_Position = m_Parent->GetDefaultPosition();
 	m_Rotation = m_Parent->GetDefaultRotation();
 	m_Scale = m_Parent->GetDefaultScale();
 	m_dpEntity = nullptr;
 
 	m_EffectInfoDirty = false;
-	m_PositionInfoDirty = false;
 
 	m_IsPhysicsEffectActive = false;
 	m_EffectType = ePhysicsEffectType::PUSH;
@@ -307,18 +306,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 }
 
 void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(m_PositionInfoDirty || bIsInitialUpdate);
-	if (m_PositionInfoDirty || bIsInitialUpdate) {
-		outBitStream->Write(m_Position.x);
-		outBitStream->Write(m_Position.y);
-		outBitStream->Write(m_Position.z);
-		outBitStream->Write(m_Rotation.x);
-		outBitStream->Write(m_Rotation.y);
-		outBitStream->Write(m_Rotation.z);
-		outBitStream->Write(m_Rotation.w);
-
-		m_PositionInfoDirty = false;
-	}
+	PhysicsComponent::Serialize(outBitStream, bIsInitialUpdate);
 
 	outBitStream->Write(m_EffectInfoDirty || bIsInitialUpdate);
 	if (m_EffectInfoDirty || bIsInitialUpdate) {
@@ -426,13 +414,11 @@ void PhantomPhysicsComponent::SetMax(uint32_t max) {
 }
 
 void PhantomPhysicsComponent::SetPosition(const NiPoint3& pos) {
-	m_Position = pos;
-
 	if (m_dpEntity) m_dpEntity->SetPosition(pos);
+	PhysicsComponent::SetPosition(pos);
 }
 
 void PhantomPhysicsComponent::SetRotation(const NiQuaternion& rot) {
-	m_Rotation = rot;
-
 	if (m_dpEntity) m_dpEntity->SetRotation(rot);
+	PhysicsComponent::SetRotation(rot);
 }
