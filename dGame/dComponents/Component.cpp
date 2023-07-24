@@ -28,3 +28,7 @@ void Component::UpdateXml(tinyxml2::XMLDocument* doc) {
 void Component::LoadFromXml(tinyxml2::XMLDocument* doc) {
 
 }
+
+void Component::Serialize(RakNet::BitStream* outBitStream, bool isConstruction) {
+
+}

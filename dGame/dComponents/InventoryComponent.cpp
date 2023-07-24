@@ -709,7 +709,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	}
 }
 
-void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool bIsInitialUpdate, unsigned& flags) {
+void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool bIsInitialUpdate) {
 	if (bIsInitialUpdate || m_Dirty) {
 		outBitStream->Write(true);
 
@@ -765,10 +765,6 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 	}
 
 	outBitStream->Write(false);
-}
-
-void InventoryComponent::ResetFlags() {
-	m_Dirty = false;
 }
 
 void InventoryComponent::Update(float deltaTime) {

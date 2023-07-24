@@ -17,7 +17,7 @@ VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
 
 VendorComponent::~VendorComponent() = default;
 
-void VendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void VendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write1();
 	outBitStream->Write1(); // Has standard items (Required for vendors with missions.)
 	outBitStream->Write(HasCraftingStation()); // Has multi use items

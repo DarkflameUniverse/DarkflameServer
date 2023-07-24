@@ -20,7 +20,7 @@ BuffComponent::BuffComponent(Entity* parent) : Component(parent) {
 BuffComponent::~BuffComponent() {
 }
 
-void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
 	if (m_Buffs.empty()) {
 		outBitStream->Write0();
