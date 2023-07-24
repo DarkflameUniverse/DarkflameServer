@@ -449,7 +449,7 @@ void PetComponent::Update(float deltaTime) {
 
 		NiPoint3 tresurePosition = closestTresure->GetPosition();
 		float distance = Vector3::DistanceSquared(position, tresurePosition);
-		if (distance < 3 * 3) {
+		if (distance < 5 * 5) {
 			m_Interaction = closestTresure->GetObjectID();
 
 			Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, 202, true);
