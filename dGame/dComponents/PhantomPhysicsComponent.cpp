@@ -414,11 +414,11 @@ void PhantomPhysicsComponent::SetMax(uint32_t max) {
 }
 
 void PhantomPhysicsComponent::SetPosition(const NiPoint3& pos) {
-	if (m_dpEntity) m_dpEntity->SetPosition(pos);
 	PhysicsComponent::SetPosition(pos);
+	if (m_dpEntity) m_dpEntity->SetPosition(pos);
 }
 
 void PhantomPhysicsComponent::SetRotation(const NiQuaternion& rot) {
-	if (m_dpEntity) m_dpEntity->SetRotation(rot);
 	PhysicsComponent::SetRotation(rot);
+	if (m_dpEntity) m_dpEntity->SetRotation(rot);
 }
