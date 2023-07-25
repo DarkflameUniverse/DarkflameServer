@@ -4,12 +4,20 @@
 
 SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent) {
 	const auto musicCueName = parent->GetVar<std::string>(u"NDAudioMusicCue_Name");
-	const auto musicCueBoredomTime = parent->GetVar<float>(u"NDAudioMusicCue_BoredomTime");
-	this->m_MusicCues.push_back(MusicCue(musicCueName, musicCueBoredomTime));
+	if (!musicCueName.empty()) {
+		auto newCue = MusicCue(musicCueName);
+		const auto musicCueBoredomTime = parent->GetVar<float>(u"NDAudioMusicCue_BoredomTime");
+		if (musicCueBoredomTime) newCue.boredomTime = musicCueBoredomTime;
+		this->m_MusicCues.push_back(newCue);
+	}
 
-	const auto musicParemeterName = parent->GetVar<std::string>(u"NDAudioMusicParameter_Name");
-	const auto musicParemeterValue = parent->GetVar<float>(u"NDAudioMusicParameter_Value");
-	this->m_MusicParameters.push_back(MusicParemeter( musicParemeterName, musicParemeterValue));
+	const auto musicParameterName = parent->GetVar<std::string>(u"NDAudioMusicParameter_Name");
+	if (!musicParameterName.empty()) {
+		auto newParams = MusicParameter(musicParameterName);
+		const auto musicParameterValue = parent->GetVar<float>(u"NDAudioMusicParameter_Value");
+		if (musicParameterValue) newParams.value = musicParameterValue;
+		this->m_MusicParameters.push_back(newParams);
+	}
 
 	const auto guidString = parent->GetVar<std::string>(u"NDAudioEventGUID");
 	if (!guidString.empty()) this->m_2DAmbientSounds.push_back(GUIDResults(guidString));
@@ -18,15 +26,12 @@ SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent)
 	if (!guid2String.empty()) this->m_3DAmbientSounds.push_back(GUIDResults(guid2String));
 
 	const auto mixerName = parent->GetVar<std::string>(u"NDAudioMixerProgram_Name");
-	this->m_MixerPrograms.push_back(MixerProgram(mixerName));
+	if (!mixerName.empty()) this->m_MixerPrograms.push_back(MixerProgram(mixerName));
 }
 
 void SoundTriggerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	if (bIsInitialUpdate) this->m_Dirty = true;
-
-	outBitStream->Write(this->m_Dirty);
-
-	if (this->m_Dirty) {
+	outBitStream->Write(this->m_Dirty || bIsInitialUpdate);
+	if (this->m_Dirty || bIsInitialUpdate) {
 		outBitStream->Write<uint8_t>(this->m_MusicCues.size());
 		for (auto& musicCue : this->m_MusicCues) {
 			musicCue.Serialize(outBitStream);
@@ -56,11 +61,14 @@ void SoundTriggerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsI
 	}
 }
 
-void SoundTriggerComponent::ActivateMusicCue(const std::string& name) {
-	if (std::find_if(this->m_MusicCues.begin(), this->m_MusicCues.end(), [name](const MusicCue& musicCue) {
+void SoundTriggerComponent::ActivateMusicCue(const std::string& name, float bordemTime) {
+	const auto musicCue = std::find_if(this->m_MusicCues.begin(), this->m_MusicCues.end(), [name](const MusicCue& musicCue) {
 		return  musicCue.name == name;
-		}) == this->m_MusicCues.end()) {
-		this->m_MusicCues.push_back(MusicCue(name, -1.0f));
+		}
+	);
+
+	if (musicCue == this->m_MusicCues.end()) {
+		this->m_MusicCues.push_back(MusicCue(name, bordemTime));
 		this->m_Dirty = true;
 		Game::entityManager->SerializeEntity(m_Parent);
 	}
@@ -69,7 +77,8 @@ void SoundTriggerComponent::ActivateMusicCue(const std::string& name) {
 void SoundTriggerComponent::DeactivateMusicCue(const std::string& name) {
 	const auto musicCue = std::find_if(this->m_MusicCues.begin(), this->m_MusicCues.end(), [name](const MusicCue& musicCue) {
 		return  musicCue.name == name;
-		});
+		}
+	);
 
 	if (musicCue != this->m_MusicCues.end()) {
 		this->m_MusicCues.erase(musicCue);
