@@ -317,6 +317,9 @@ void Entity::Initialize() {
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_TRIGGER, -1) != -1) {
 		auto* comp = new SoundTriggerComponent(this);
 		m_Components.insert(std::make_pair(eReplicaComponentType::SOUND_TRIGGER, comp));
+	} else if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_SOUND_TRIGGER, -1) != -1) {
+		auto* comp = new SoundTriggerComponent(this);
+		m_Components.insert(std::make_pair(eReplicaComponentType::SOUND_TRIGGER, comp));
 	}
 
 	//Also check for the collectible id:
