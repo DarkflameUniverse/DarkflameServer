@@ -1,7 +1,6 @@
 #include "CDPackageComponentTable.h"
 
-//! Constructor
-CDPackageComponentTable::CDPackageComponentTable(void) {
+void CDPackageComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -43,7 +42,7 @@ std::vector<CDPackageComponent> CDPackageComponentTable::Query(std::function<boo
 }
 
 //! Gets all the entries in the table
-std::vector<CDPackageComponent> CDPackageComponentTable::GetEntries(void) const {
+const std::vector<CDPackageComponent>& CDPackageComponentTable::GetEntries() const {
 	return this->entries;
 }
 

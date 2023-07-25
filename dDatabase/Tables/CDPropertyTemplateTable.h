@@ -10,7 +10,7 @@ struct CDPropertyTemplate {
 
 class CDPropertyTemplateTable : public CDTable<CDPropertyTemplateTable> {
 public:
-	CDPropertyTemplateTable();
+	void LoadValuesFromDatabase();
 
 	static const std::string GetTableName() { return "PropertyTemplate"; };
 	CDPropertyTemplate GetByMapID(uint32_t mapID);

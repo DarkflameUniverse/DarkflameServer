@@ -2,6 +2,35 @@
 #include "GeneralUtils.h"
 #include "Game.h"
 
+
+void CDAnimationsTable::LoadValuesFromDatabase() {
+	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Animations");
+	while (!tableData.eof()) {
+		std::string animation_type = tableData.getStringField("animation_type", "");
+		DluAssert(!animation_type.empty());
+		AnimationGroupID animationGroupID = tableData.getIntField("animationGroupID", -1);
+		DluAssert(animationGroupID != -1);
+
+		CDAnimation entry;
+		entry.animation_name = tableData.getStringField("animation_name", "");
+		entry.chance_to_play = tableData.getFloatField("chance_to_play", 1.0f);
+		UNUSED_COLUMN(entry.min_loops = tableData.getIntField("min_loops", 0);)
+		UNUSED_COLUMN(entry.max_loops = tableData.getIntField("max_loops", 0);)
+		entry.animation_length = tableData.getFloatField("animation_length", 0.0f);
+		UNUSED_COLUMN(entry.hideEquip = tableData.getIntField("hideEquip", 0) == 1;)
+		UNUSED_COLUMN(entry.ignoreUpperBody = tableData.getIntField("ignoreUpperBody", 0) == 1;)
+		UNUSED_COLUMN(entry.restartable = tableData.getIntField("restartable", 0) == 1;)
+		UNUSED_COLUMN(entry.face_animation_name = tableData.getStringField("face_animation_name", "");)
+		UNUSED_COLUMN(entry.priority = tableData.getFloatField("priority", 0.0f);)
+		UNUSED_COLUMN(entry.blendTime = tableData.getFloatField("blendTime", 0.0f);)
+
+		this->animations[CDAnimationKey(animation_type, animationGroupID)].push_back(entry);
+		tableData.nextRow();
+	}
+
+	tableData.finalize();
+}
+
 bool CDAnimationsTable::CacheData(CppSQLite3Statement& queryToCache) {
 	auto tableData = queryToCache.execQuery();
 	// If we received a bad lookup, cache it anyways so we do not run the query again.

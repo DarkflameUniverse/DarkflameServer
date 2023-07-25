@@ -30,9 +30,10 @@ private:
 	std::vector<CDActivities> entries;
 
 public:
-	CDActivitiesTable();
+	void LoadValuesFromDatabase();
+
 	// Queries the table with a custom "where" clause
 	std::vector<CDActivities> Query(std::function<bool(CDActivities)> predicate);
 
-	std::vector<CDActivities> GetEntries(void) const;
+	const std::vector<CDActivities>& GetEntries() const { return this->entries; }
 };
