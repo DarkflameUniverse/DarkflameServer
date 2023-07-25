@@ -3,6 +3,8 @@
 #include <string>
 #include <array>
 
+const std::string EMPTY_GUID = "{00000000-0000-0000-0000-000000000000}";
+
 class GUID {
 public:
 	explicit GUID();

@@ -11,9 +11,9 @@ struct MusicCue {
 	float boredomTime;
 
 	MusicCue(std::string name, float boredomTime = -1.0, uint32_t result = 1){
-		name = name;
-		result = result;
-		boredomTime = boredomTime;
+		this->name = name;
+		this->result = result;
+		this->boredomTime = boredomTime;
 	};
 
 	void Serialize(RakNet::BitStream* outBitStream){
@@ -30,8 +30,8 @@ struct MusicParameter {
 	float value;
 
 	MusicParameter(std::string name, float value = 0.0){
-		name = name;
-		value = value;
+		this->name = name;
+		this->value = value;
 	}
 
 	void Serialize(RakNet::BitStream* outBitStream){
@@ -47,8 +47,8 @@ struct GUIDResults{
 	uint32_t result;
 
 	GUIDResults(std::string guidString, uint32_t result = 1){
-		guid = GUID(guidString);
-		result = result;
+		this->guid = GUID(guidString);
+		this->result = result;
 	}
 
 	void Serialize(RakNet::BitStream* outBitStream){
@@ -62,8 +62,8 @@ struct MixerProgram{
 	uint32_t result;
 
 	MixerProgram(std::string name, uint32_t result = 0){
-		name = name;
-		result = result;
+		this->name = name;
+		this->result = result;
 	}
 
 	void Serialize(RakNet::BitStream* outBitStream){

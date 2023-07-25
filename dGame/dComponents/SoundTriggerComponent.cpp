@@ -1,8 +1,9 @@
 #include "SoundTriggerComponent.h"
-#include "EntityManager.h"
 #include "Game.h"
+#include "dLogger.h"
 
 SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent) {
+
 	const auto musicCueName = parent->GetVar<std::string>(u"NDAudioMusicCue_Name");
 	if (!musicCueName.empty()) {
 		auto newCue = MusicCue(musicCueName);
@@ -20,10 +21,12 @@ SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent)
 	}
 
 	const auto guidString = parent->GetVar<std::string>(u"NDAudioEventGUID");
-	if (!guidString.empty()) this->m_2DAmbientSounds.push_back(GUIDResults(guidString));
+	if (!guidString.empty() && guidString != EMPTY_GUID)
+		this->m_2DAmbientSounds.push_back(GUIDResults(guidString));
 
 	const auto guid2String = parent->GetVar<std::string>(u"NDAudioEventGUID2");
-	if (!guid2String.empty()) this->m_3DAmbientSounds.push_back(GUIDResults(guid2String));
+	if (!guid2String.empty() && guid2String != EMPTY_GUID)
+		this->m_3DAmbientSounds.push_back(GUIDResults(guid2String));
 
 	const auto mixerName = parent->GetVar<std::string>(u"NDAudioMixerProgram_Name");
 	if (!mixerName.empty()) this->m_MixerPrograms.push_back(MixerProgram(mixerName));
@@ -57,7 +60,7 @@ void SoundTriggerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsI
 			mixerProgram.Serialize(outBitStream);
 		}
 
-		this->m_Dirty = false;
+		if (!bIsInitialUpdate) this->m_Dirty = false;
 	}
 }
 
