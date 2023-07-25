@@ -1,7 +1,7 @@
 #include "CDBehaviorParameterTable.h"
 #include "GeneralUtils.h"
 
-CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
+void CDBehaviorParameterTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorParameter");
 	uint32_t uniqueParameterId = 0;
 	uint64_t hash = 0;
@@ -53,4 +53,3 @@ std::map<std::string, float> CDBehaviorParameterTable::GetParametersByBehaviorID
 	}
 	return returnInfo;
 }
-

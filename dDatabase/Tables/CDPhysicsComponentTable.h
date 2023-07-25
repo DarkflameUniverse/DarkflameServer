@@ -23,12 +23,11 @@ struct CDPhysicsComponent {
 
 class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable> {
 public:
-	CDPhysicsComponentTable();
-	~CDPhysicsComponentTable();
+	void LoadValuesFromDatabase();
 
 	static const std::string GetTableName() { return "PhysicsComponent"; };
 	CDPhysicsComponent* GetByID(unsigned int componentID);
 
 private:
-	std::map<unsigned int, CDPhysicsComponent*> m_entries;
+	std::map<unsigned int, CDPhysicsComponent> m_entries;
 };

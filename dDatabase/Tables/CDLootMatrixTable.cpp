@@ -1,7 +1,6 @@
 #include "CDLootMatrixTable.h"
 
-//! Constructor
-CDLootMatrixTable::CDLootMatrixTable(void) {
+void CDLootMatrixTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -47,7 +46,7 @@ std::vector<CDLootMatrix> CDLootMatrixTable::Query(std::function<bool(CDLootMatr
 	return data;
 }
 
-const std::vector<CDLootMatrix>& CDLootMatrixTable::GetEntries(void) const {
+const std::vector<CDLootMatrix>& CDLootMatrixTable::GetEntries() const {
 	return this->entries;
 }
 

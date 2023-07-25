@@ -27,6 +27,7 @@ class CDAnimationsTable : public CDTable<CDAnimationsTable> {
 	typedef std::string AnimationID;
 	typedef std::pair<std::string, AnimationGroupID> CDAnimationKey;
 public:
+	void LoadValuesFromDatabase();
 	/**
 	 * Given an animationType and the previousAnimationName played, return the next animationType to play.
 	 * If there are more than 1 animationTypes that can be played, one is selected at random but also does not allow

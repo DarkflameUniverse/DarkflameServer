@@ -26,7 +26,7 @@ private:
 	CDObjects m_default;
 
 public:
-	CDObjectsTable();
+	void LoadValuesFromDatabase();
 	// Gets an entry by ID
 	const CDObjects& GetByID(unsigned int LOT);
 };

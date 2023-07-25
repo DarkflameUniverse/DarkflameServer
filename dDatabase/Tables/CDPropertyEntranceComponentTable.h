@@ -11,12 +11,12 @@ struct CDPropertyEntranceComponent {
 
 class CDPropertyEntranceComponentTable : public CDTable<CDPropertyEntranceComponentTable> {
 public:
-	CDPropertyEntranceComponentTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	CDPropertyEntranceComponent GetByID(uint32_t id);
 
 	// Gets all the entries in the table
-	[[nodiscard]] std::vector<CDPropertyEntranceComponent> GetEntries() const { return entries; }
+	[[nodiscard]] const std::vector<CDPropertyEntranceComponent>& GetEntries() const { return entries; }
 private:
 	std::vector<CDPropertyEntranceComponent> entries{};
 	CDPropertyEntranceComponent defaultEntry{};

@@ -14,10 +14,10 @@ private:
 	std::vector<CDLevelProgressionLookup> entries;
 
 public:
-	CDLevelProgressionLookupTable();
+	void LoadValuesFromDatabase();
+
 	// Queries the table with a custom "where" clause
 	std::vector<CDLevelProgressionLookup> Query(std::function<bool(CDLevelProgressionLookup)> predicate);
 
-	// Gets all the entries in the table
-	std::vector<CDLevelProgressionLookup> GetEntries(void) const;
+	const std::vector<CDLevelProgressionLookup>& GetEntries() const;
 };
