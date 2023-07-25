@@ -131,3 +131,24 @@ TEST_F(SimplePhysicsTest, SimplePhysicsConstructionTest) {
 	bitStream.Read(rotation.w);
 	ASSERT_EQ(rotation, NiQuaternion(1.0f, 2.0f, 3.0f, 4.0f));
 }
+
+TEST_F(SimplePhysicsTest, SimplePhysicsGettersAndSettersTest) {
+	ASSERT_EQ(simplePhysicsComponent->GetClimabbleType(), eClimbableType::CLIMBABLE_TYPE_WALL);
+	ASSERT_EQ(simplePhysicsComponent->GetPosition(), NiPoint3(1.0f, 2.0f, 3.0f));
+	ASSERT_EQ(simplePhysicsComponent->GetRotation(), NiQuaternion(1.0f, 2.0f, 3.0f, 4.0f));
+	ASSERT_EQ(simplePhysicsComponent->GetVelocity(), NiPoint3(5.0f, 6.0f, 7.0f));
+	ASSERT_EQ(simplePhysicsComponent->GetAngularVelocity(), NiPoint3(5.0f, 6.0f, 7.0f));
+	ASSERT_EQ(simplePhysicsComponent->GetPhysicsMotionState(), 2);
+	simplePhysicsComponent->SetClimbableType(eClimbableType::CLIMBABLE_TYPE_LADDER);
+	simplePhysicsComponent->SetPosition(NiPoint3(4.0f, 5.0f, 6.0f));
+	simplePhysicsComponent->SetRotation(NiQuaternion(4.0f, 5.0f, 6.0f, 7.0f));
+	simplePhysicsComponent->SetVelocity(NiPoint3(6.0f, 7.0f, 8.0f));
+	simplePhysicsComponent->SetAngularVelocity(NiPoint3(6.0f, 7.0f, 8.0f));
+	simplePhysicsComponent->SetPhysicsMotionState(3);
+	ASSERT_EQ(simplePhysicsComponent->GetClimabbleType(), eClimbableType::CLIMBABLE_TYPE_LADDER);
+	ASSERT_EQ(simplePhysicsComponent->GetPosition(), NiPoint3(4.0f, 5.0f, 6.0f));
+	ASSERT_EQ(simplePhysicsComponent->GetRotation(), NiQuaternion(4.0f, 5.0f, 6.0f, 7.0f));
+	ASSERT_EQ(simplePhysicsComponent->GetVelocity(), NiPoint3(6.0f, 7.0f, 8.0f));
+	ASSERT_EQ(simplePhysicsComponent->GetAngularVelocity(), NiPoint3(6.0f, 7.0f, 8.0f));
+	ASSERT_EQ(simplePhysicsComponent->GetPhysicsMotionState(), 3);
+}
