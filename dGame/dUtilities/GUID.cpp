@@ -1,6 +1,7 @@
 #include "GUID.h"
 
 GUID::GUID(const std::string& guid) {
+	if(guid == EMPTY_GUID) return;
 	sscanf(guid.c_str(),
 		"{%8x-%4hx-%4hx-%2hhx%2hhx-%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx}",
 		&this->data1, &this->data2, &this->data3,

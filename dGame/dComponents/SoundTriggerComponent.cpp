@@ -21,11 +21,11 @@ SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent)
 	}
 
 	const auto guidString = parent->GetVar<std::string>(u"NDAudioEventGUID");
-	if (!guidString.empty() && guidString != EMPTY_GUID)
+	if (!guidString.empty())
 		this->m_2DAmbientSounds.push_back(GUIDResults(guidString));
 
 	const auto guid2String = parent->GetVar<std::string>(u"NDAudioEventGUID2");
-	if (!guid2String.empty() && guid2String != EMPTY_GUID)
+	if (!guid2String.empty())
 		this->m_3DAmbientSounds.push_back(GUIDResults(guid2String));
 
 	const auto mixerName = parent->GetVar<std::string>(u"NDAudioMixerProgram_Name");
