@@ -1,31 +1,16 @@
 #include "CDRarityTableTable.h"
 
 void CDRarityTableTable::LoadValuesFromDatabase() {
-
-	// First, get the size of the table
-	unsigned int size = 0;
-	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM RarityTable");
-	while (!tableSize.eof()) {
-		size = tableSize.getIntField(0, 0);
-
-		tableSize.nextRow();
-	}
-
-	tableSize.finalize();
-
-	// Reserve the size
-	this->entries.reserve(size);
-
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM RarityTable");
 	while (!tableData.eof()) {
 		CDRarityTable entry;
-		entry.id = tableData.getIntField("id", -1);
+		uint32_t id = tableData.getIntField("id", -1);
 		entry.randmax = tableData.getFloatField("randmax", -1);
 		entry.rarity = tableData.getIntField("rarity", -1);
 		entry.RarityTableIndex = tableData.getIntField("RarityTableIndex", -1);
 
-		this->entries.push_back(entry);
+		this->entries.insert_or_assign(id, entry);
 		tableData.nextRow();
 	}
 
@@ -33,17 +18,7 @@ void CDRarityTableTable::LoadValuesFromDatabase() {
 }
 
 //! Queries the table with a custom "where" clause
-std::vector<CDRarityTable> CDRarityTableTable::Query(std::function<bool(CDRarityTable)> predicate) {
-
-	std::vector<CDRarityTable> data = cpplinq::from(this->entries)
-		>> cpplinq::where(predicate)
-		>> cpplinq::to_vector();
-
-	return data;
+const std::optional<CDRarityTable> CDRarityTableTable::Get(uint32_t id) {
+	auto it = this->entries.find(id);
+	return it != this->entries.end() ? std::make_optional(it->second) : std::nullopt;
 }
-
-//! Gets all the entries in the table
-const std::vector<CDRarityTable>& CDRarityTableTable::GetEntries() const {
-	return this->entries;
-}
-

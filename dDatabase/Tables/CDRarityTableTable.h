@@ -28,13 +28,11 @@ struct CDRarityTable {
 
 class CDRarityTableTable : public CDTable<CDRarityTableTable> {
 private:
-	std::vector<CDRarityTable> entries;
+	std::unordered_map<uint32_t, CDRarityTable> entries;
 
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
-	std::vector<CDRarityTable> Query(std::function<bool(CDRarityTable)> predicate);
-
-	const std::vector<CDRarityTable>& GetEntries() const;
+	const std::optional<CDRarityTable> Get(uint32_t predicate);
 };
 
