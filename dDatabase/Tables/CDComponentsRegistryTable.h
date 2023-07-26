@@ -13,7 +13,7 @@ struct CDComponentsRegistry {
 
 class CDComponentsRegistryTable : public CDTable<CDComponentsRegistryTable> {
 private:
-	std::map<uint64_t, uint32_t> mappedEntries; //id, component_type, component_id
+	std::unordered_map<uint64_t, uint32_t> mappedEntries; //id, component_type, component_id
 
 public:
 	void LoadValuesFromDatabase();

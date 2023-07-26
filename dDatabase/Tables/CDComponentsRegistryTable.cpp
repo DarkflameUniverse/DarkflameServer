@@ -11,6 +11,7 @@ void CDComponentsRegistryTable::LoadValuesFromDatabase() {
 		entry.component_id = tableData.getIntField("component_id", -1);
 
 		this->mappedEntries.insert_or_assign(((uint64_t)entry.component_type) << 32 | ((uint64_t)entry.id), entry.component_id);
+		this->mappedEntries.insert_or_assign(entry.id, 0);
 
 		tableData.nextRow();
 	}
@@ -19,19 +20,18 @@ void CDComponentsRegistryTable::LoadValuesFromDatabase() {
 }
 
 int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue) {
-	auto iter = mappedEntries.find(((uint64_t)componentType) << 32 | ((uint64_t)id));
-
-	if (iter == this->mappedEntries.end()) {
-		return defaultValue;
+	auto exists = mappedEntries.find(id);
+	if (exists != mappedEntries.end()) {
+		auto iter = mappedEntries.find(((uint64_t)componentType) << 32 | ((uint64_t)id));
+		return iter == mappedEntries.end() ? defaultValue : iter->second;
 	}
 
-	return iter->second;
-	// Now get the data
-	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM ComponentsRegistry WHERE id = ? AND component_type = ?;");
+	// Now get the data. Get all components of this entity so we dont do a query for each component
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM ComponentsRegistry WHERE id = ?;");
 	query.bind(1, static_cast<int32_t>(id));
-	query.bind(2, static_cast<int32_t>(componentType));
 
 	auto tableData = query.execQuery();
+
 	while (!tableData.eof()) {
 		CDComponentsRegistry entry;
 		entry.id = tableData.getIntField("id", -1);
@@ -43,7 +43,9 @@ int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponent
 		tableData.nextRow();
 	}
 
-	iter = this->mappedEntries.find(((uint64_t)componentType) << 32 | ((uint64_t)id));
+	mappedEntries.insert_or_assign(id, 0);
+
+	auto iter = this->mappedEntries.find(((uint64_t)componentType) << 32 | ((uint64_t)id));
 
 	return iter == this->mappedEntries.end() ? defaultValue : iter->second;
 }
