@@ -17,7 +17,7 @@ struct CDRebuildComponent {
 
 class CDRebuildComponentTable : public CDTable<CDRebuildComponentTable> {
 private:
-	std::vector<std::pair<uint32_t, CDRebuildComponent>> entries;
+	std::unordered_map<uint32_t, CDRebuildComponent> entries;
 
 public:
 	void LoadValuesFromDatabase();
