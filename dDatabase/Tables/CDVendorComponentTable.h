@@ -4,7 +4,6 @@
 #include "CDTable.h"
 
 struct CDVendorComponent {
-	unsigned int id;           //!< The Component ID
 	float buyScalar;            //!< Buy Scalar (what does that mean?)
 	float sellScalar;          //!< Sell Scalar (what does that mean?)
 	float refreshTimeSeconds;  //!< The refresh time
@@ -13,13 +12,11 @@ struct CDVendorComponent {
 
 class CDVendorComponentTable : public CDTable<CDVendorComponentTable> {
 private:
-	std::vector<CDVendorComponent> entries;
+	std::map<uint32_t, CDVendorComponent> entries;
 
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
-	std::vector<CDVendorComponent> Query(std::function<bool(CDVendorComponent)> predicate);
-
-	const std::vector<CDVendorComponent>& GetEntries(void) const;
+	const std::optional<CDVendorComponent> Query(uint32_t id);
 };
 

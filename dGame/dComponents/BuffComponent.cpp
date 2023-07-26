@@ -104,7 +104,12 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 		if (parameter.name == "overtime") {
 			auto* behaviorTemplateTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
-			behaviorID = behaviorTemplateTable->GetSkillByID(parameter.values[0]).behaviorID;
+			auto skillInfo = behaviorTemplateTable->GetSkillByID(parameter.values[0]);
+			if (skillInfo) {
+				behaviorID = skillInfo->behaviorID;
+			} else {
+				Game::logger->Log("BuffComponent", "Failed to find skill info for skill ID %d!", parameter.values[0]);
+			}
 			stacks = static_cast<int32_t>(parameter.values[1]);
 			tick = parameter.values[2];
 			const auto unknown2 = parameter.values[3]; // Always 0

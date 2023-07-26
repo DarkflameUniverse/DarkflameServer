@@ -131,11 +131,12 @@ void ItemSet::OnEquip(const LOT lot) {
 	for (const auto skill : skillSet) {
 		auto* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
-		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
+		auto skillData = skillTable->GetSkillByID(skill);
+		if (!skillData) continue;
 
 		missionComponent->Progress(eMissionTaskType::USE_SKILL, skill);
 
-		skillComponent->HandleUnmanaged(behaviorId, m_InventoryComponent->GetParent()->GetObjectID());
+		skillComponent->HandleUnmanaged(skillData->behaviorID, m_InventoryComponent->GetParent()->GetObjectID());
 	}
 }
 
@@ -163,9 +164,10 @@ void ItemSet::OnUnEquip(const LOT lot) {
 	for (const auto skill : skillSet) {
 		auto* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
-		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
+		auto skillData = skillTable->GetSkillByID(skill);
+		if (!skillData) continue;
 
-		skillComponent->HandleUnCast(behaviorId, m_InventoryComponent->GetParent()->GetObjectID());
+		skillComponent->HandleUnCast(skillData->behaviorID, m_InventoryComponent->GetParent()->GetObjectID());
 	}
 }
 

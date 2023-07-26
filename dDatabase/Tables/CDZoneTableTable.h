@@ -2,8 +2,6 @@
 
 #include "CDTable.h"
 
-#include <optional>
-
 struct CDZoneTable {
 	unsigned int zoneID;                        //!< The Zone ID of the object
 	unsigned int locStatus;                     //!< The Locale Status(?)

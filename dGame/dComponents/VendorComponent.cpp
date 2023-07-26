@@ -127,12 +127,12 @@ void VendorComponent::SetupConstants() {
 	int componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::VENDOR);
 
 	auto* vendorComponentTable = CDClientManager::Instance().GetTable<CDVendorComponentTable>();
-	std::vector<CDVendorComponent> vendorComps = vendorComponentTable->Query([=](CDVendorComponent entry) { return (entry.id == componentID); });
-	if (vendorComps.empty()) return;
-	m_BuyScalar = vendorComps[0].buyScalar;
-	m_SellScalar = vendorComps[0].sellScalar;
-	m_RefreshTimeSeconds = vendorComps[0].refreshTimeSeconds;
-	m_LootMatrixID = vendorComps[0].LootMatrixIndex;
+	auto vendorCompData = vendorComponentTable->Query(componentID);
+	if (!vendorCompData) return;
+	m_BuyScalar = vendorCompData->buyScalar;
+	m_SellScalar = vendorCompData->sellScalar;
+	m_RefreshTimeSeconds = vendorCompData->refreshTimeSeconds;
+	m_LootMatrixID = vendorCompData->LootMatrixIndex;
 }
 
 bool VendorComponent::SellsItem(const LOT item) const {

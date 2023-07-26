@@ -28,12 +28,10 @@ struct CDSkillBehavior {
 class CDSkillBehaviorTable : public CDTable<CDSkillBehaviorTable> {
 private:
 	std::map<unsigned int, CDSkillBehavior> entries;
-	CDSkillBehavior m_empty;
-
 public:
 	void LoadValuesFromDatabase();
 
 	// Gets an entry by skillID
-	const CDSkillBehavior& GetSkillByID(unsigned int skillID);
+	const std::optional<CDSkillBehavior> GetSkillByID(unsigned int skillID);
 };
 

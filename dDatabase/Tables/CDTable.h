@@ -5,6 +5,7 @@
 #include "DluAssert.h"
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 #include <map>

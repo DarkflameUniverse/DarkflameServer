@@ -23,9 +23,10 @@ void QbEnemyStunner::OnRebuildComplete(Entity* self, Entity* target) {
 	// For each skill, cast it with the associated behavior ID.
 	for (auto skill : skills) {
 		CDSkillBehaviorTable* skillBehaviorTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
-		CDSkillBehavior behaviorData = skillBehaviorTable->GetSkillByID(skill.skillID);
+		auto behaviorData = skillBehaviorTable->GetSkillByID(skill.skillID);
+		if (!behaviorData) continue;
 
-		skillBehaviorMap.insert(std::make_pair(skill.skillID, behaviorData.behaviorID));
+		skillBehaviorMap.insert(std::make_pair(skill.skillID, behaviorData->behaviorID));
 	}
 
 	// If there are no skills found, insert a default skill to use.

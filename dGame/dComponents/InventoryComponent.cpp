@@ -1341,8 +1341,12 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 	for (const auto& result : results) {
 		if (result.castOnType == 1) {
 			const auto entry = behaviors->GetSkillByID(result.skillID);
+			if (!entry) {
+				Game::logger->Log("InventoryComponent", "Buff %i not in database!", result.skillID);
 
-			if (entry.skillID == 0) {
+				continue;
+			}
+			if (entry->skillID == 0) {
 				Game::logger->Log("InventoryComponent", "Failed to find buff behavior for skill (%i)!", result.skillID);
 
 				continue;
@@ -1353,7 +1357,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 			}
 
 			// If item is not a proxy, add its buff to the added buffs.
-			if (item->GetParent() == LWOOBJID_EMPTY) buffs.push_back(static_cast<uint32_t>(entry.behaviorID));
+			if (item->GetParent() == LWOOBJID_EMPTY) buffs.push_back(static_cast<uint32_t>(entry->behaviorID));
 		}
 	}
 

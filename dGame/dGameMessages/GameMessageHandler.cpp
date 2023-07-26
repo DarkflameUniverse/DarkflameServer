@@ -288,7 +288,12 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		}
 
 		CDSkillBehaviorTable* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
-		unsigned int behaviorId = skillTable->GetSkillByID(startSkill.skillID).behaviorID;
+		auto skill = skillTable->GetSkillByID(startSkill.skillID);
+		if (!skill) {
+			Game::logger->Log("GameMessageHandler", "Failed to find skill %d in the skill table!", startSkill.skillID);
+			return;
+		}
+		unsigned int behaviorId = skill->behaviorID;
 
 		bool success = false;
 
@@ -301,7 +306,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 			if (success && entity->GetCharacter()) {
 				DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();
-				destComp->SetImagination(destComp->GetImagination() - skillTable->GetSkillByID(startSkill.skillID).imaginationcost);
+				destComp->SetImagination(destComp->GetImagination() - skill->imaginationcost);
 			}
 
 			delete bs;

@@ -17,10 +17,11 @@ void FireFirstSkillonStartup::OnStartup(Entity* self) {
 	// For each skill, cast it with the associated behavior ID.
 	for (auto skill : skills) {
 		CDSkillBehaviorTable* skillBehaviorTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
-		CDSkillBehavior behaviorData = skillBehaviorTable->GetSkillByID(skill.skillID);
+		auto behaviorData = skillBehaviorTable->GetSkillByID(skill.skillID);
+		if (!behaviorData) continue;
 
 		// Should parent entity be null, make the originator self.
 		const auto target = self->GetParentEntity() ? self->GetParentEntity()->GetObjectID() : self->GetObjectID();
-		skillComponent->CalculateBehavior(skill.skillID, behaviorData.behaviorID, LWOOBJID_EMPTY, false, false, target);
+		skillComponent->CalculateBehavior(skill.skillID, behaviorData->behaviorID, LWOOBJID_EMPTY, false, false, target);
 	}
 }

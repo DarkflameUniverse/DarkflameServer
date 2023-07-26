@@ -1,8 +1,6 @@
 #include "CDSkillBehaviorTable.h"
 
 void CDSkillBehaviorTable::LoadValuesFromDatabase() {
-	m_empty = CDSkillBehavior();
-
 	// First, get the size of the table
 	unsigned int size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM SkillBehavior");
@@ -49,12 +47,8 @@ void CDSkillBehaviorTable::LoadValuesFromDatabase() {
 	tableData.finalize();
 }
 
-const CDSkillBehavior& CDSkillBehaviorTable::GetSkillByID(unsigned int skillID) {
-	std::map<unsigned int, CDSkillBehavior>::iterator it = this->entries.find(skillID);
-	if (it != this->entries.end()) {
-		return it->second;
-	}
-
-	return m_empty;
+const std::optional<CDSkillBehavior> CDSkillBehaviorTable::GetSkillByID(unsigned int skillID) {
+	auto it = this->entries.find(skillID);
+	return it != this->entries.end() ? std::make_optional(it->second) : std::nullopt;
 }
 

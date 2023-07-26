@@ -42,7 +42,8 @@ void OverTimeBehavior::Load() {
 	// Since m_Action is a skillID and not a behavior, get is correlated behaviorID.
 
 	CDSkillBehaviorTable* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
-	m_ActionBehaviorId = skillTable->GetSkillByID(m_Action).behaviorID;
+	auto skillData = skillTable->GetSkillByID(m_Action);
+	if (skillData) m_ActionBehaviorId = skillData->behaviorID;
 
 	m_Delay = GetFloat("delay");
 	m_NumIntervals = GetInt("num_intervals");
