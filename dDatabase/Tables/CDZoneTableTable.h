@@ -34,7 +34,7 @@ struct CDZoneTable {
 
 class CDZoneTableTable : public CDTable<CDZoneTableTable> {
 private:
-	std::map<unsigned int, CDZoneTable> m_Entries;
+	std::unordered_map<uint32_t, CDZoneTable> m_Entries;
 
 public:
 	void LoadValuesFromDatabase();

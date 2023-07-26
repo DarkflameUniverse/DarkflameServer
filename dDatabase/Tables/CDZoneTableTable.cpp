@@ -1,18 +1,6 @@
 #include "CDZoneTableTable.h"
 
 void CDZoneTableTable::LoadValuesFromDatabase() {
-
-	// First, get the size of the table
-	unsigned int size = 0;
-	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM ZoneTable");
-	while (!tableSize.eof()) {
-		size = tableSize.getIntField(0, 0);
-
-		tableSize.nextRow();
-	}
-
-	tableSize.finalize();
-
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ZoneTable");
 	while (!tableData.eof()) {
@@ -48,8 +36,6 @@ void CDZoneTableTable::LoadValuesFromDatabase() {
 		this->m_Entries.insert(std::make_pair(entry.zoneID, entry));
 		tableData.nextRow();
 	}
-
-	tableData.finalize();
 }
 
 //! Queries the table with a zoneID to find.

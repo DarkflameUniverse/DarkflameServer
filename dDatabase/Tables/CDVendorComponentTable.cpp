@@ -14,8 +14,6 @@ void CDVendorComponentTable::LoadValuesFromDatabase() {
 		this->entries.insert_or_assign(id, entry);
 		tableData.nextRow();
 	}
-
-	tableData.finalize();
 }
 
 const std::optional<CDVendorComponent> CDVendorComponentTable::Query(uint32_t id) {

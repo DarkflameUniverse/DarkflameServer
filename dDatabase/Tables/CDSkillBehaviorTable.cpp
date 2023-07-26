@@ -1,25 +1,10 @@
 #include "CDSkillBehaviorTable.h"
 
 void CDSkillBehaviorTable::LoadValuesFromDatabase() {
-	// First, get the size of the table
-	unsigned int size = 0;
-	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM SkillBehavior");
-	while (!tableSize.eof()) {
-		size = tableSize.getIntField(0, 0);
-
-		tableSize.nextRow();
-	}
-
-	tableSize.finalize();
-
-	// Reserve the size
-	//this->entries.reserve(size);
-
-	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM SkillBehavior");
 	while (!tableData.eof()) {
 		CDSkillBehavior entry;
-		entry.skillID = tableData.getIntField("skillID", -1);
+		uint32_t skillID = tableData.getIntField("skillID", -1);
 		UNUSED(entry.locStatus = tableData.getIntField("locStatus", -1));
 		entry.behaviorID = tableData.getIntField("behaviorID", -1);
 		entry.imaginationcost = tableData.getIntField("imaginationcost", -1);
@@ -39,12 +24,9 @@ void CDSkillBehaviorTable::LoadValuesFromDatabase() {
 		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
 		UNUSED(entry.cancelType = tableData.getIntField("cancelType", -1));
 
-		this->entries.insert(std::make_pair(entry.skillID, entry));
-		//this->entries.push_back(entry);
+		this->entries.insert_or_assign(skillID, entry);
 		tableData.nextRow();
 	}
-
-	tableData.finalize();
 }
 
 const std::optional<CDSkillBehavior> CDSkillBehaviorTable::GetSkillByID(unsigned int skillID) {

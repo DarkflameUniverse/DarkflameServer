@@ -4,7 +4,6 @@
 #include "CDTable.h"
 
 struct CDSkillBehavior {
-	unsigned int skillID;               //!< The Skill ID of the skill
 	UNUSED(unsigned int locStatus);             //!< ??
 	unsigned int behaviorID;            //!< The Behavior ID of the skill
 	unsigned int imaginationcost;       //!< The imagination cost of the skill
@@ -27,7 +26,7 @@ struct CDSkillBehavior {
 
 class CDSkillBehaviorTable : public CDTable<CDSkillBehaviorTable> {
 private:
-	std::map<unsigned int, CDSkillBehavior> entries;
+	std::unordered_map<uint32_t, CDSkillBehavior> entries;
 public:
 	void LoadValuesFromDatabase();
 

@@ -12,7 +12,7 @@ struct CDVendorComponent {
 
 class CDVendorComponentTable : public CDTable<CDVendorComponentTable> {
 private:
-	std::map<uint32_t, CDVendorComponent> entries;
+	std::unordered_map<uint32_t, CDVendorComponent> entries;
 
 public:
 	void LoadValuesFromDatabase();
