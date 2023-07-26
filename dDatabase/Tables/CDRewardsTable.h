@@ -3,7 +3,6 @@
 #include <string>
 
 struct CDRewards {
-	int32_t id;
 	int32_t levelID;
 	int32_t missionID;
 	int32_t rewardType;
@@ -14,10 +13,7 @@ struct CDRewards {
 class CDRewardsTable : public CDTable<CDRewardsTable> {
 public:
 	void LoadValuesFromDatabase();
-
-	static const std::string GetTableName() { return "Rewards"; };
 	std::vector<CDRewards> GetByLevelID(uint32_t levelID);
-
 private:
-	std::map<uint32_t, CDRewards> m_entries;
+	std::vector<CDRewards> m_entries;
 };
