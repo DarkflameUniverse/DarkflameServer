@@ -4,7 +4,6 @@
 #include "CDTable.h"
 
 struct CDRebuildComponent {
-	unsigned int id;                        //!< The component Id
 	float reset_time;               //!< The reset time
 	float complete_time;            //!< The complete time
 	unsigned int take_imagination;          //!< The amount of imagination it costs
@@ -18,13 +17,11 @@ struct CDRebuildComponent {
 
 class CDRebuildComponentTable : public CDTable<CDRebuildComponentTable> {
 private:
-	std::vector<CDRebuildComponent> entries;
+	std::vector<std::pair<uint32_t, CDRebuildComponent>> entries;
 
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
-	std::vector<CDRebuildComponent> Query(std::function<bool(CDRebuildComponent)> predicate);
-
-	const std::vector<CDRebuildComponent>& GetEntries() const;
+	const std::optional<CDRebuildComponent> Get(uint32_t componentId);
 };
 

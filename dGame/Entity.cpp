@@ -536,17 +536,17 @@ void Entity::Initialize() {
 		m_Components.insert(std::make_pair(eReplicaComponentType::QUICK_BUILD, comp));
 
 		CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
-		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == rebuildComponentID); });
+		auto rebCompData = rebCompTable->Get(rebuildComponentID);
 
-		if (rebCompData.size() > 0) {
-			comp->SetResetTime(rebCompData[0].reset_time);
-			comp->SetCompleteTime(rebCompData[0].complete_time);
-			comp->SetTakeImagination(rebCompData[0].take_imagination);
-			comp->SetInterruptible(rebCompData[0].interruptible);
-			comp->SetSelfActivator(rebCompData[0].self_activator);
-			comp->SetActivityId(rebCompData[0].activityID);
-			comp->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
-			comp->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
+		if (rebCompData) {
+			comp->SetResetTime(rebCompData->reset_time);
+			comp->SetCompleteTime(rebCompData->complete_time);
+			comp->SetTakeImagination(rebCompData->take_imagination);
+			comp->SetInterruptible(rebCompData->interruptible);
+			comp->SetSelfActivator(rebCompData->self_activator);
+			comp->SetActivityId(rebCompData->activityID);
+			comp->SetPostImaginationCost(rebCompData->post_imagination_cost);
+			comp->SetTimeBeforeSmash(rebCompData->time_before_smash);
 
 			const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
 

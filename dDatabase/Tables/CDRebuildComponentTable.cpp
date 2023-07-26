@@ -1,7 +1,6 @@
 #include "CDRebuildComponentTable.h"
 
 void CDRebuildComponentTable::LoadValuesFromDatabase() {
-
 	// First, get the size of the table
 	unsigned int size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM RebuildComponent");
@@ -11,16 +10,13 @@ void CDRebuildComponentTable::LoadValuesFromDatabase() {
 		tableSize.nextRow();
 	}
 
-	tableSize.finalize();
-
-	// Reserve the size
 	this->entries.reserve(size);
 
 	// Now get the data
-	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM RebuildComponent");
+	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM RebuildComponent order by id");
 	while (!tableData.eof()) {
 		CDRebuildComponent entry;
-		entry.id = tableData.getIntField("id", -1);
+		uint32_t id = tableData.getIntField("id", -1);
 		entry.reset_time = tableData.getFloatField("reset_time", -1.0f);
 		entry.complete_time = tableData.getFloatField("complete_time", -1.0f);
 		entry.take_imagination = tableData.getIntField("take_imagination", -1);
@@ -31,23 +27,14 @@ void CDRebuildComponentTable::LoadValuesFromDatabase() {
 		entry.post_imagination_cost = tableData.getIntField("post_imagination_cost", -1);
 		entry.time_before_smash = tableData.getFloatField("time_before_smash", -1.0f);
 
-		this->entries.push_back(entry);
+		this->entries.push_back(std::make_pair(id, entry));
 		tableData.nextRow();
 	}
-
-	tableData.finalize();
 }
 
-std::vector<CDRebuildComponent> CDRebuildComponentTable::Query(std::function<bool(CDRebuildComponent)> predicate) {
-
-	std::vector<CDRebuildComponent> data = cpplinq::from(this->entries)
-		>> cpplinq::where(predicate)
-		>> cpplinq::to_vector();
-
-	return data;
+const std::optional<CDRebuildComponent> CDRebuildComponentTable::Get(uint32_t componentId) {
+	auto result = std::lower_bound(this->entries.begin(), this->entries.end(), componentId, [](const auto& entry, const auto& componentId) {
+		return entry.first < componentId;
+	});
+	return result == this->entries.end() ? std::nullopt : std::make_optional(result->second);
 }
-
-const std::vector<CDRebuildComponent>& CDRebuildComponentTable::GetEntries() const {
-	return this->entries;
-}
-
