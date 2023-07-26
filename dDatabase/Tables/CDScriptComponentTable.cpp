@@ -1,7 +1,6 @@
 #include "CDScriptComponentTable.h"
 
 void CDScriptComponentTable::LoadValuesFromDatabase() {
-
 	// First, get the size of the table
 	unsigned int size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM ScriptComponent");
@@ -28,12 +27,8 @@ void CDScriptComponentTable::LoadValuesFromDatabase() {
 	tableData.finalize();
 }
 
-const CDScriptComponent& CDScriptComponentTable::GetByID(unsigned int id) {
+const std::optional<CDScriptComponent> CDScriptComponentTable::GetByID(unsigned int id) {
 	std::map<unsigned int, CDScriptComponent>::iterator it = this->entries.find(id);
-	if (it != this->entries.end()) {
-		return it->second;
-	}
-
-	return m_ToReturnWhenNoneFound;
+	return (it != this->entries.end()) ? std::make_optional<CDScriptComponent>(it->second) : std::nullopt;
 }
 

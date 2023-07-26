@@ -933,8 +933,9 @@ void InventoryComponent::EquipScripts(Item* equippedItem) {
 	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(equippedItem->GetLot(), eReplicaComponentType::SCRIPT, -1);
 	if (scriptComponentID > -1) {
 		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
-		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
-		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
+		auto scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+		if (!scriptCompData) return;
+		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData->script_name);
 		if (!itemScript) {
 			Game::logger->Log("InventoryComponent", "null script?");
 		}
@@ -948,8 +949,9 @@ void InventoryComponent::UnequipScripts(Item* unequippedItem) {
 	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(unequippedItem->GetLot(), eReplicaComponentType::SCRIPT, -1);
 	if (scriptComponentID > -1) {
 		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
-		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
-		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
+		auto scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+		if (!scriptCompData) return;
+		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData->script_name);
 		if (!itemScript) {
 			Game::logger->Log("InventoryComponent", "null script?");
 		}

@@ -463,9 +463,11 @@ void Entity::Initialize() {
 	if (scriptComponentID > 0 || m_Character) {
 		std::string clientScriptName;
 		if (!m_Character) {
-			CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
-			scriptName = scriptCompData.script_name;
-			clientScriptName = scriptCompData.client_script_name;
+			auto scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+			if (scriptCompData) {
+				scriptName = scriptCompData->script_name;
+				clientScriptName = scriptCompData->client_script_name;
+			}
 		} else {
 			scriptName = "";
 		}
@@ -510,10 +512,11 @@ void Entity::Initialize() {
 
 		if (zoneData) {
 			int zoneScriptID = zoneData->scriptID;
-			CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
-
-			ScriptComponent* comp = new ScriptComponent(this, zoneScriptData.script_name, true);
-			m_Components.insert(std::make_pair(eReplicaComponentType::SCRIPT, comp));
+			auto zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
+			if (zoneScriptData) {
+				ScriptComponent* comp = new ScriptComponent(this, zoneScriptData->script_name, true);
+				m_Components.insert(std::make_pair(eReplicaComponentType::SCRIPT, comp));
+			}
 		}
 	}
 
