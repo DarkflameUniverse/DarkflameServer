@@ -372,9 +372,9 @@ Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
 int InstanceManager::GetSoftCap(LWOMAPID mapID) {
 	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	if (zoneTable) {
-		const CDZoneTable* zone = zoneTable->Query(mapID);
+		auto zone = zoneTable->Query(mapID);
 
-		if (zone != nullptr) {
+		if (zone) {
 			return zone->population_soft_cap;
 		}
 	}
@@ -385,9 +385,9 @@ int InstanceManager::GetSoftCap(LWOMAPID mapID) {
 int InstanceManager::GetHardCap(LWOMAPID mapID) {
 	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	if (zoneTable) {
-		const CDZoneTable* zone = zoneTable->Query(mapID);
+		auto zone = zoneTable->Query(mapID);
 
-		if (zone != nullptr) {
+		if (zone) {
 			return zone->population_hard_cap;
 		}
 	}

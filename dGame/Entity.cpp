@@ -504,11 +504,11 @@ void Entity::Initialize() {
 
 	// ZoneControl script
 	if (m_TemplateID == 2365) {
-		CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+		auto* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 		const auto zoneID = Game::zoneManager->GetZoneID();
-		const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
+		auto zoneData = zoneTable->Query(zoneID.GetMapID());
 
-		if (zoneData != nullptr) {
+		if (zoneData) {
 			int zoneScriptID = zoneData->scriptID;
 			CDScriptComponent zoneScriptData = scriptCompTable->GetByID(zoneScriptID);
 

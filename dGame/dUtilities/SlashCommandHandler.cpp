@@ -84,7 +84,6 @@
 #include "eMasterMessageType.h"
 
 #include "CDObjectsTable.h"
-#include "CDZoneTableTable.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	auto commandCopy = command;

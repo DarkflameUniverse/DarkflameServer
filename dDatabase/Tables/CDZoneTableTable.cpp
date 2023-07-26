@@ -53,13 +53,8 @@ void CDZoneTableTable::LoadValuesFromDatabase() {
 }
 
 //! Queries the table with a zoneID to find.
-const CDZoneTable* CDZoneTableTable::Query(unsigned int zoneID) {
+const std::optional<CDZoneTable> CDZoneTableTable::Query(unsigned int zoneID) {
 	const auto& iter = m_Entries.find(zoneID);
-
-	if (iter != m_Entries.end()) {
-		return &iter->second;
-	}
-
-	return nullptr;
+	return iter != m_Entries.end() ? std::make_optional(iter->second) : std::nullopt;
 }
 

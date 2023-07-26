@@ -12,7 +12,6 @@
 #include "CDZoneTableTable.h"
 #include <chrono>
 #include "eObjectBits.h"
-#include "CDZoneTableTable.h"
 #include "AssetManager.h"
 
 #include "../dWorldServer/ObjectIDManager.h"
@@ -31,9 +30,9 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	if (zoneTable != nullptr) {
-		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
+		auto zone = zoneTable->Query(zoneID.GetMapID());
 
-		if (zone != nullptr) {
+		if (zone) {
 			zoneControlTemplate = zone->zoneControlTemplate != -1 ? zone->zoneControlTemplate : 2365;
 			const auto min = zone->ghostdistance_min != -1.0f ? zone->ghostdistance_min : 100;
 			const auto max = zone->ghostdistance != -1.0f ? zone->ghostdistance : 100;
@@ -235,8 +234,8 @@ uint32_t dZoneManager::GetUniqueMissionIdStartingValue() {
 bool dZoneManager::CheckIfAccessibleZone(LWOMAPID zoneID) {
 	//We're gonna go ahead and presume we've got the db loaded already:
 	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
-	const CDZoneTable* zone = zoneTable->Query(zoneID);
-	if (zone != nullptr) {
+	auto zone = zoneTable->Query(zoneID);
+	if (zone) {
 		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());
 	} else {
 		return false;

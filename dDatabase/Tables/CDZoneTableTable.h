@@ -1,7 +1,8 @@
 #pragma once
 
-// Custom Classes
 #include "CDTable.h"
+
+#include <optional>
 
 struct CDZoneTable {
 	unsigned int zoneID;                        //!< The Zone ID of the object
@@ -41,5 +42,5 @@ public:
 	void LoadValuesFromDatabase();
 
 	// Queries the table with a zoneID to find.
-	const CDZoneTable* Query(unsigned int zoneID);
+	const std::optional<CDZoneTable> Query(unsigned int zoneID);
 };
