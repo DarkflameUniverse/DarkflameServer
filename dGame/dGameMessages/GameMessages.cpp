@@ -76,6 +76,7 @@
 #include "RacingControlComponent.h"
 #include "RailActivatorComponent.h"
 #include "LevelProgressionComponent.h"
+#include "DonationVendorComponent.h"
 
 // Message includes:
 #include "dZoneManager.h"
@@ -6206,4 +6207,84 @@ void GameMessages::HandleRequestActivityExit(RakNet::BitStream* inStream, Entity
 	auto player = Game::entityManager->GetEntity(player_id);
 	if (!entity || !player) return;
 	entity->RequestActivityExit(entity, player_id, canceled);
+}
+
+void GameMessages::HandleAddDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	uint32_t count = 1;
+	bool hasCount = false;
+	inStream->Read(hasCount);
+	if (hasCount) inStream->Read(count);
+	LWOOBJID itemId = LWOOBJID_EMPTY;
+	inStream->Read(itemId);
+	if (!itemId) return;
+
+	User* user = UserManager::Instance()->GetUser(sysAddr);
+	if (!user) return;
+	Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
+	if (!player) return;
+	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
+	Item* item = inventoryComponent->FindItemById(itemId);
+	if (!item) return;
+	if (item->GetCount() < count) return;
+	inventoryComponent->MoveItemToInventory(item, eInventoryType::DONATION, count, true, false, true);
+}
+
+void GameMessages::HandleRemoveDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
+	bool confirmed = false;
+	inStream->Read(confirmed);
+	Game::logger->Log("GameMessages", "confirmed %i", confirmed);
+	uint32_t count = 1;
+	bool hasCount = false;
+	inStream->Read(hasCount);
+	if (hasCount) inStream->Read(count);
+	LWOOBJID itemId = LWOOBJID_EMPTY;
+	inStream->Read(itemId);
+	if (!itemId) return;
+
+	User* user = UserManager::Instance()->GetUser(sysAddr);
+	if (!user) return;
+	Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
+	if (!player) return;
+
+	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
+	// is this needed?
+	auto* donationVendorComponent = entity->GetComponent<DonationVendorComponent>();
+	if (!donationVendorComponent) return;
+
+	Item* item = inventoryComponent->FindItemById(itemId);
+	if (!item) return;
+	if (item->GetCount() < count) return;
+	inventoryComponent->MoveItemToInventory(item, eInventoryType::BRICKS, count, true, false, true);
+}
+
+void GameMessages::HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity) {
+	Game::logger->Log("GameMessages", "HandleConfirmDonationOnPlayer entity id: %llu lot: %i", entity->GetObjectID(), entity->GetLOT());
+	Character* character = entity->GetCharacter();
+	if (!character) return;
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
+	auto* inventory = inventoryComponent->GetInventory(eInventoryType::DONATION);
+	if (!inventory) return;
+	auto items = inventory->GetItems();
+	uint32_t count = 0;
+	for (auto& [itemID, item] : items){
+		count += item->GetCount();
+		item->RemoveFromInventory();
+	}
+	LeaderboardManager::SaveScore(entity->GetObjectID(), 117, count);
+}
+
+void GameMessages::HandleCancelDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity) {
+	Character* character = entity->GetCharacter();
+	if (!character) return;
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
+	auto* inventory = inventoryComponent->GetInventory(eInventoryType::DONATION);
+	if (!inventory) return;
+	auto items = inventory->GetItems();
+	for (auto& [itemID, item] : items){
+		inventoryComponent->MoveItemToInventory(item, eInventoryType::BRICKS, item->GetCount(), false, false, true);
+	}
 }
