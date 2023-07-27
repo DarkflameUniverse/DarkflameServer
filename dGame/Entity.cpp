@@ -372,6 +372,7 @@ void Entity::Initialize() {
 					comp->SetIsSmashable(destCompData[0].isSmashable);
 
 					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
+					Loot::CacheMatrix(destCompData[0].LootMatrixIndex);
 
 					// Now get currency information
 					uint32_t npcMinLevel = destCompData[0].level;

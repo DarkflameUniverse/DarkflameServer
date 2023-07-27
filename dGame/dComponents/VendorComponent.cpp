@@ -65,7 +65,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	}
 	m_Inventory.clear();
 	auto* lootMatrixTable = CDClientManager::Instance().GetTable<CDLootMatrixTable>();
-	std::vector<CDLootMatrix> lootMatrices = lootMatrixTable->Query([=](CDLootMatrix entry) { return (entry.LootMatrixIndex == m_LootMatrixID); });
+	const auto& lootMatrices = lootMatrixTable->GetMatrix(m_LootMatrixID);
 
 	if (lootMatrices.empty()) return;
 	// Done with lootMatrix table
@@ -73,8 +73,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	auto* lootTableTable = CDClientManager::Instance().GetTable<CDLootTableTable>();
 
 	for (const auto& lootMatrix : lootMatrices) {
-		int lootTableID = lootMatrix.LootTableIndex;
-		std::vector<CDLootTable> vendorItems = lootTableTable->Query([=](CDLootTable entry) { return (entry.LootTableIndex == lootTableID); });
+		auto vendorItems = lootTableTable->GetTable(lootMatrix.LootTableIndex);
 		if (lootMatrix.maxToDrop == 0 || lootMatrix.minToDrop == 0) {
 			for (CDLootTable item : vendorItems) {
 				m_Inventory.insert({ item.itemid, item.sortPriority });
