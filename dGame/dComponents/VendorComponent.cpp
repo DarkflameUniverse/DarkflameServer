@@ -95,8 +95,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	if (m_RefreshTimeSeconds > 0.0) {
 		m_Parent->AddCallbackTimer(m_RefreshTimeSeconds, [this]() {
 			RefreshInventory();
-			}
-		);
+		});
 	}
 	Game::entityManager->SerializeEntity(m_Parent);
 	GameMessages::SendVendorStatusUpdate(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
