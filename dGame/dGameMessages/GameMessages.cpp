@@ -6265,6 +6265,8 @@ void GameMessages::HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, En
 	if (!character) return;
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) return;
+	auto* missionComponent = entity->GetComponent<MissionComponent>();
+	if (!missionComponent) return;
 	auto* inventory = inventoryComponent->GetInventory(eInventoryType::DONATION);
 	if (!inventory) return;
 	auto items = inventory->GetItems();
@@ -6273,6 +6275,7 @@ void GameMessages::HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, En
 		count += item->GetCount();
 		item->RemoveFromInventory();
 	}
+	missionComponent->Progress(eMissionTaskType::DONATION, 0, LWOOBJID_EMPTY, "", count);
 	LeaderboardManager::SaveScore(entity->GetObjectID(), 117, count);
 }
 
