@@ -6218,15 +6218,24 @@ void GameMessages::HandleAddDonationItem(RakNet::BitStream* inStream, Entity* en
 	inStream->Read(itemId);
 	if (!itemId) return;
 
+	auto* donationVendorComponent = entity->GetComponent<DonationVendorComponent>();
+	if (!donationVendorComponent) return;
+	if (donationVendorComponent->GetActivityID() == 0) {
+		Game::logger->Log("GameMessages", "WARNING: Trying to dontate to a vendor with no activity");
+		return;
+	}
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) return;
 	Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
 	if (!player) return;
+	auto* characterComponent = player->GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) return;
 	Item* item = inventoryComponent->FindItemById(itemId);
 	if (!item) return;
 	if (item->GetCount() < count) return;
+	characterComponent->SetCurrentInteracting(entity->GetObjectID());
 	inventoryComponent->MoveItemToInventory(item, eInventoryType::DONATION, count, true, false, true);
 }
 
@@ -6249,9 +6258,6 @@ void GameMessages::HandleRemoveDonationItem(RakNet::BitStream* inStream, Entity*
 
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) return;
-	// is this needed?
-	auto* donationVendorComponent = entity->GetComponent<DonationVendorComponent>();
-	if (!donationVendorComponent) return;
 
 	Item* item = inventoryComponent->FindItemById(itemId);
 	if (!item) return;
@@ -6260,28 +6266,38 @@ void GameMessages::HandleRemoveDonationItem(RakNet::BitStream* inStream, Entity*
 }
 
 void GameMessages::HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity) {
-	Game::logger->Log("GameMessages", "HandleConfirmDonationOnPlayer entity id: %llu lot: %i", entity->GetObjectID(), entity->GetLOT());
-	Character* character = entity->GetCharacter();
-	if (!character) return;
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) return;
 	auto* missionComponent = entity->GetComponent<MissionComponent>();
 	if (!missionComponent) return;
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
+	if (!characterComponent || !characterComponent->GetCurrentInteracting()) return;
+	auto* donationEntity = Game::entityManager->GetEntity(characterComponent->GetCurrentInteracting());
+	if (!donationEntity) return;
+	auto* donationVendorComponent = donationEntity->GetComponent<DonationVendorComponent>();
+	if(!donationVendorComponent) return;
+	if (donationVendorComponent->GetActivityID() == 0) {
+		Game::logger->Log("GameMessages", "WARNING: Trying to dontate to a vendor with no activity");
+		return;
+	}
 	auto* inventory = inventoryComponent->GetInventory(eInventoryType::DONATION);
 	if (!inventory) return;
 	auto items = inventory->GetItems();
-	uint32_t count = 0;
-	for (auto& [itemID, item] : items){
-		count += item->GetCount();
-		item->RemoveFromInventory();
+	if (!items.empty()) {
+		uint32_t count = 0;
+		for (auto& [itemID, item] : items){
+			count += item->GetCount();
+			item->RemoveFromInventory();
+		}
+		missionComponent->Progress(eMissionTaskType::DONATION, 0, LWOOBJID_EMPTY, "", count);
+		LeaderboardManager::SaveScore(entity->GetObjectID(), donationVendorComponent->GetActivityID(), count);
+		donationVendorComponent->SubmitDonation(count);
+		Game::entityManager->SerializeEntity(donationEntity);
 	}
-	missionComponent->Progress(eMissionTaskType::DONATION, 0, LWOOBJID_EMPTY, "", count);
-	LeaderboardManager::SaveScore(entity->GetObjectID(), 117, count);
+	characterComponent->SetCurrentInteracting(LWOOBJID_EMPTY);
 }
 
 void GameMessages::HandleCancelDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity) {
-	Character* character = entity->GetCharacter();
-	if (!character) return;
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) return;
 	auto* inventory = inventoryComponent->GetInventory(eInventoryType::DONATION);
@@ -6290,4 +6306,7 @@ void GameMessages::HandleCancelDonationOnPlayer(RakNet::BitStream* inStream, Ent
 	for (auto& [itemID, item] : items){
 		inventoryComponent->MoveItemToInventory(item, eInventoryType::BRICKS, item->GetCount(), false, false, true);
 	}
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+	characterComponent->SetCurrentInteracting(LWOOBJID_EMPTY);
 }

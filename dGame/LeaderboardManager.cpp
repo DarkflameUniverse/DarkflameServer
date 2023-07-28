@@ -300,9 +300,8 @@ std::string FormatInsert(const Leaderboard::Type& type, const Score& score, cons
 
 void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore, const float tertiaryScore) {
 	const Leaderboard::Type leaderboardType = GetLeaderboardType(activityId);
-	auto* lookup = "SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;";
 
-	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookup));
+	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt("SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;"));
 	query->setInt(1, playerID);
 	query->setInt(2, activityId);
 	std::unique_ptr<sql::ResultSet> myScoreResult(query->executeQuery());
