@@ -23,7 +23,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 
 	m_BaseCombatAI = nullptr;
 
-	m_BaseCombatAI = reinterpret_cast<BaseCombatAIComponent*>(m_Parent->GetComponent(eReplicaComponentType::BASE_COMBAT_AI));
+	m_BaseCombatAI = m_Parent->GetComponent<BaseCombatAIComponent>();
 
 	//Try and fix the insane values:
 	if (m_Info.wanderRadius > 5.0f) m_Info.wanderRadius = m_Info.wanderRadius * 0.5f;
