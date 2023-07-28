@@ -7,13 +7,14 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "RakNetTypes.h"
+#include "eReplicaComponentType.h"
 
 /**
  * A component for vendor NPCs. A vendor sells items to the player.
  */
 class VendorComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_VENDOR;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::VENDOR;
 
 	VendorComponent(Entity* parent);
 	~VendorComponent() override;
@@ -66,6 +67,8 @@ public:
 	 * Called on startup of vendor to setup the variables for the component.
 	 */
 	void SetupConstants();
+
+	bool SellsItem(const LOT item) const;
 private:
 	/**
 	 * The buy scalar.

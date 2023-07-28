@@ -20,12 +20,18 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 
 	bool hit = false;
 
-	bitStream->Read(hit);
+	if (!bitStream->Read(hit)) {
+		Game::logger->Log("TacArcBehavior", "Unable to read hit from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		return;
+	};
 
 	if (this->m_checkEnv) {
 		bool blocked = false;
 
-		bitStream->Read(blocked);
+		if (!bitStream->Read(blocked)) {
+			Game::logger->Log("TacArcBehavior", "Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			return;
+		};
 
 		if (blocked) {
 			this->m_blockedAction->Handle(context, bitStream, branch);
@@ -37,7 +43,10 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 	if (hit) {
 		uint32_t count = 0;
 
-		bitStream->Read(count);
+		if (!bitStream->Read(count)) {
+			Game::logger->Log("TacArcBehavior", "Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			return;
+		};
 
 		if (count > m_maxTargets && m_maxTargets > 0) {
 			count = m_maxTargets;
@@ -46,9 +55,12 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		std::vector<LWOOBJID> targets;
 
 		for (auto i = 0u; i < count; ++i) {
-			LWOOBJID id;
+			LWOOBJID id{};
 
-			bitStream->Read(id);
+			if (!bitStream->Read(id)) {
+				Game::logger->Log("TacArcBehavior", "Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+				return;
+			};
 
 			targets.push_back(id);
 		}
@@ -64,7 +76,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 }
 
 void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* self = EntityManager::Instance()->GetEntity(context->originator);
+	auto* self = Game::entityManager->GetEntity(context->originator);
 	if (self == nullptr) {
 		Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!", context->originator);
 		return;
@@ -73,7 +85,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	const auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
 
 	if ((this->m_usePickedTarget || context->clientInitalized) && branch.target > 0) {
-		const auto* target = EntityManager::Instance()->GetEntity(branch.target);
+		const auto* target = Game::entityManager->GetEntity(branch.target);
 
 		if (target == nullptr) {
 			return;
@@ -108,7 +120,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	// Find all valid targets, based on whether we target enemies or friends
 	for (const auto& contextTarget : context->GetValidTargets()) {
 		if (destroyableComponent != nullptr) {
-			const auto* targetEntity = EntityManager::Instance()->GetEntity(contextTarget);
+			const auto* targetEntity = Game::entityManager->GetEntity(contextTarget);
 
 			if (m_targetEnemy && destroyableComponent->IsEnemy(targetEntity)
 				|| m_targetFriend && destroyableComponent->IsFriend(targetEntity)) {
@@ -124,7 +136,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			break;
 		}
 
-		auto* entity = EntityManager::Instance()->GetEntity(validTarget);
+		auto* entity = Game::entityManager->GetEntity(validTarget);
 
 		if (entity == nullptr) {
 			Game::logger->Log("TacArcBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);

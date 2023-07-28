@@ -1,0 +1,16 @@
+set(DSCRIPTS_SOURCES_02_SERVER_MAP_AG 
+	"AgCagedBricksServer.cpp"
+	"NpcWispServer.cpp"
+	"NpcEpsilonServer.cpp"
+	"AgLaserSensorServer.cpp"
+	"AgMonumentLaserServer.cpp"
+	"AgMonumentBirds.cpp"
+	"RemoveRentalGear.cpp"
+	"NpcNjAssistantServer.cpp"
+	"AgBugsprayer.cpp"
+	"NpcAgCourseStarter.cpp"
+	"AgMonumentRaceGoal.cpp"
+	"AgMonumentRaceCancel.cpp"
+	"NpcCowboyServer.cpp"
+	"NpcPirateServer.cpp"
+	PARENT_SCOPE)

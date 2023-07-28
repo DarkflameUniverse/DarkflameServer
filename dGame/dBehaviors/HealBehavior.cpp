@@ -4,10 +4,11 @@
 #include "dLogger.h"
 #include "EntityManager.h"
 #include "DestroyableComponent.h"
+#include "eReplicaComponentType.h"
 
 
 void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
-	auto* entity = EntityManager::Instance()->GetEntity(branch.target);
+	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	if (entity == nullptr) {
 		Game::logger->Log("HealBehavior", "Failed to find entity for (%llu)!", branch.target);
@@ -15,7 +16,7 @@ void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_strea
 		return;
 	}
 
-	auto* destroyable = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
+	auto* destroyable = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
 
 	if (destroyable == nullptr) {
 		Game::logger->Log("HealBehavior", "Failed to find destroyable component for %(llu)!", branch.target);

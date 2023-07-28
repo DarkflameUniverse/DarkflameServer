@@ -43,7 +43,7 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 
 	GameMessages::SendPropertyRentalResponse(m_Parent->GetObjectID(), 0, 0, 0, 0, originator->GetSystemAddress());
 
-	auto* controller = dZoneManager::Instance()->GetZoneControlObject();
+	auto* controller = Game::zoneManager->GetZoneControlObject();
 
 	controller->OnFireEventServerSide(m_Parent, "propertyRented");
 

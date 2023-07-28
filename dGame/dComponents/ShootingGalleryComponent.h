@@ -3,6 +3,7 @@
 #include "NiPoint3.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Parameters for the shooting gallery that change during playtime
@@ -72,7 +73,7 @@ struct StaticShootingGalleryParams {
  */
 class ShootingGalleryComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_SHOOTING_GALLERY;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::SHOOTING_GALLERY;
 
 	explicit ShootingGalleryComponent(Entity* parent);
 	~ShootingGalleryComponent();

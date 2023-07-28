@@ -1,16 +1,8 @@
 #include "PacketUtils.h"
-#include <MessageIdentifiers.h>
 #include <vector>
 #include <fstream>
 #include "dLogger.h"
 #include "Game.h"
-
-void PacketUtils::WriteHeader(RakNet::BitStream& bitStream, uint16_t connectionType, uint32_t internalPacketID) {
-	bitStream.Write(MessageID(ID_USER_PACKET_ENUM));
-	bitStream.Write(connectionType);
-	bitStream.Write(internalPacketID);
-	bitStream.Write(uint8_t(0));
-}
 
 uint16_t PacketUtils::ReadPacketU16(uint32_t startLoc, Packet* packet) {
 	if (startLoc + 2 > packet->length) return 0;

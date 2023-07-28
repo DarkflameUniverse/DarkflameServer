@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDMovementAIComponentTable.hpp
- \brief Contains data for the MovementAIComponent table
- */
-
- //! MovementAIComponent Struct
 struct CDMovementAIComponent {
 	unsigned int id;
 	std::string MovementType;
@@ -20,36 +14,15 @@ struct CDMovementAIComponent {
 	std::string attachedPath;
 };
 
-//! MovementAIComponent table
-class CDMovementAIComponentTable : public CDTable {
+class CDMovementAIComponentTable : public CDTable<CDMovementAIComponentTable> {
 private:
 	std::vector<CDMovementAIComponent> entries;
 
 public:
-
-	//! Constructor
-	CDMovementAIComponentTable(void);
-
-	//! Destructor
-	~CDMovementAIComponentTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	CDMovementAIComponentTable();
+	// Queries the table with a custom "where" clause
 	std::vector<CDMovementAIComponent> Query(std::function<bool(CDMovementAIComponent)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
+	// Gets all the entries in the table
 	std::vector<CDMovementAIComponent> GetEntries(void) const;
-
 };
-

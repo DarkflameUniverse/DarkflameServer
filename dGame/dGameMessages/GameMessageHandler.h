@@ -7,7 +7,6 @@
 #define GAMEMESSAGEHANDLER_H
 
 #include "RakNetTypes.h"
-#include "dMessageIdentifiers.h"
 #include "dCommonVars.h"
 #include <iostream>
 #include <sstream>
@@ -21,8 +20,10 @@
 #include "GameMessages.h"
 #include "../dDatabase/CDClientDatabase.h"
 
+enum class eGameMessageType : uint16_t;
+
 namespace GameMessageHandler {
-	void HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, GAME_MSG messageID);
+	void HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID);
 };
 
 #endif // GAMEMESSAGEHANDLER_H

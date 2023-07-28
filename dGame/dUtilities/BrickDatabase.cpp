@@ -3,21 +3,27 @@
 
 #include "BrickDatabase.h"
 #include "Game.h"
+#include "AssetManager.h"
+#include "tinyxml2.h"
+#include "Brick.h"
 
-std::vector<Brick> BrickDatabase::emptyCache{};
-BrickDatabase* BrickDatabase::m_Address = nullptr;
+const BrickList& BrickDatabase::GetBricks(const LxfmlPath& lxfmlPath) {
+	static std::unordered_map<LxfmlPath, BrickList> m_Cache;
+	static const BrickList emptyCache;
 
-BrickDatabase::BrickDatabase() = default;
-BrickDatabase::~BrickDatabase() = default;
-
-std::vector<Brick>& BrickDatabase::GetBricks(const std::string& lxfmlPath) {
 	const auto cached = m_Cache.find(lxfmlPath);
 
 	if (cached != m_Cache.end()) {
 		return cached->second;
 	}
 
-	std::ifstream file(lxfmlPath);
+	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer((lxfmlPath).c_str());
+
+	if (!buffer.m_Success) {
+		return emptyCache;
+	}
+
+	std::istream file(&buffer);
 	if (!file.good()) {
 		return emptyCache;
 	}
@@ -25,8 +31,11 @@ std::vector<Brick>& BrickDatabase::GetBricks(const std::string& lxfmlPath) {
 	std::stringstream data;
 	data << file.rdbuf();
 	if (data.str().empty()) {
+		buffer.close();
 		return emptyCache;
 	}
+
+	buffer.close();
 
 	auto* doc = new tinyxml2::XMLDocument();
 	if (doc->Parse(data.str().c_str(), data.str().size()) != 0) {
@@ -34,7 +43,7 @@ std::vector<Brick>& BrickDatabase::GetBricks(const std::string& lxfmlPath) {
 		return emptyCache;
 	}
 
-	std::vector<Brick> parts;
+	BrickList parts;
 
 	auto* lxfml = doc->FirstChildElement("LXFML");
 	auto* bricks = lxfml->FirstChildElement("Bricks");

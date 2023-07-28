@@ -44,13 +44,19 @@ foreach(file ${DGAME_DMISSION_SOURCES})
 	set(DGAME_SOURCES ${DGAME_SOURCES} "dMission/${file}")
 endforeach()
 
+add_subdirectory(dPropertyBehaviors)
+
+foreach(file ${DGAME_DPROPERTYBEHAVIORS_SOURCES})
+	set(DGAME_SOURCES ${DGAME_SOURCES} "dPropertyBehaviors/${file}")
+endforeach()
+
 add_subdirectory(dUtilities)
 
 foreach(file ${DGAME_DUTILITIES_SOURCES})
 	set(DGAME_SOURCES ${DGAME_SOURCES} "dUtilities/${file}")
 endforeach()
 
-foreach(file ${DSCRIPT_SOURCES})
+foreach(file ${DSCRIPTS_SOURCES})
 	set(DGAME_SOURCES ${DGAME_SOURCES} "${PROJECT_SOURCE_DIR}/dScripts/${file}")
 endforeach()
 

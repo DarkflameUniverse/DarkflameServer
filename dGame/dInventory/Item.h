@@ -6,6 +6,8 @@
 #include "CDClientManager.h"
 #include "dLogger.h"
 #include "Preconditions.h"
+#include "eInventoryType.h"
+#include "eLootSourceType.h"
 
 /**
  * An item that can be stored in an inventory and optionally consumed or equipped
@@ -37,7 +39,7 @@ public:
 		const std::vector<LDFBaseData*>& config,
 		LWOOBJID parent,
 		LWOOBJID subKey,
-		eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE
+		eLootSourceType lootSourceType = eLootSourceType::NONE
 	);
 
 	/**
@@ -64,7 +66,7 @@ public:
 		bool isModMoveAndEquip = false,
 		LWOOBJID subKey = LWOOBJID_EMPTY,
 		bool bound = false,
-		eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE
+		eLootSourceType lootSourceType = eLootSourceType::NONE
 	);
 
 	~Item();
@@ -88,7 +90,7 @@ public:
 	 * @param disassemble if items were removed, this returns all the sub parts of the item individually if it had assembly part lots
 	 * @param showFlyingLoot shows flying loot to the client, if not silent
 	 */
-	void SetCount(uint32_t value, bool silent = false, bool disassemble = true, bool showFlyingLoot = true, eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE);
+	void SetCount(uint32_t value, bool silent = false, bool disassemble = true, bool showFlyingLoot = true, eLootSourceType lootSourceType = eLootSourceType::NONE);
 
 	/**
 	 * Returns the number of items this item represents (e.g. for stacks)
@@ -194,7 +196,7 @@ public:
 	/**
 	 * Uses this item if its non equip, essentially an interface for the linked GM
 	 */
-	void UseNonEquip();
+	void UseNonEquip(Item* item);
 
 	/**
 	 * Disassembles the part LOTs of this item back into the inventory, if it has any

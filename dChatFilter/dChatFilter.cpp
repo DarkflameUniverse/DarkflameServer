@@ -12,6 +12,7 @@
 #include "dConfig.h"
 #include "Database.h"
 #include "Game.h"
+#include "eGameMasterLevel.h"
 
 using namespace dChatFilterDCF;
 
@@ -108,8 +109,8 @@ void dChatFilter::ExportWordlistToDCF(const std::string& filepath, bool whiteLis
 	}
 }
 
-std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::string& message, int gmLevel, bool whiteList) {
-	if (gmLevel > GAME_MASTER_LEVEL_FORUM_MODERATOR) return { }; //If anything but a forum mod, return true.
+std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::string& message, eGameMasterLevel gmLevel, bool whiteList) {
+	if (gmLevel > eGameMasterLevel::FORUM_MODERATOR) return { }; //If anything but a forum mod, return true.
 	if (message.empty()) return { };
 	if (!whiteList && m_DeniedWords.empty()) return { { 0, message.length() } };
 

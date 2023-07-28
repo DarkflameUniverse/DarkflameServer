@@ -9,13 +9,14 @@
 #include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
  /**
   * Component for the build border, allowing the user to start building when interacting with it
   */
 class BuildBorderComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_BUILD_BORDER;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::BUILD_BORDER;
 
 	BuildBorderComponent(Entity* parent);
 	~BuildBorderComponent() override;

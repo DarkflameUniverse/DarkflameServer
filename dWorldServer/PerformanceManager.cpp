@@ -2,23 +2,18 @@
 
 #include "UserManager.h"
 
-//Times are 1 / fps, in ms
-#define HIGH 16     //60 fps
-#define MEDIUM 33   //30 fps
-#define LOW 66      //15 fps
-
-#define SOCIAL { LOW }
-#define SOCIAL_HUB { MEDIUM } //Added to compensate for the large playercounts in NS and NT
-#define BATTLE { HIGH }
-#define BATTLE_INSTANCE { MEDIUM }
-#define RACE { HIGH }
-#define PROPERTY { LOW }
+#define SOCIAL { lowFrameDelta }
+#define SOCIAL_HUB { mediumFrameDelta } //Added to compensate for the large playercounts in NS and NT
+#define BATTLE { highFrameDelta }
+#define BATTLE_INSTANCE { mediumFrameDelta }
+#define RACE { highFrameDelta }
+#define PROPERTY { lowFrameDelta }
 
 PerformanceProfile PerformanceManager::m_CurrentProfile = SOCIAL;
 
 PerformanceProfile PerformanceManager::m_DefaultProfile = SOCIAL;
 
-PerformanceProfile PerformanceManager::m_InactiveProfile = { LOW };
+PerformanceProfile PerformanceManager::m_InactiveProfile = { lowFrameDelta };
 
 std::map<LWOMAPID, PerformanceProfile> PerformanceManager::m_Profiles = {
 	// VE
@@ -72,13 +67,6 @@ std::map<LWOMAPID, PerformanceProfile> PerformanceManager::m_Profiles = {
 	{ 2001, BATTLE_INSTANCE },
 };
 
-
-PerformanceManager::PerformanceManager() {
-}
-
-PerformanceManager::~PerformanceManager() {
-}
-
 void PerformanceManager::SelectProfile(LWOMAPID mapID) {
 	const auto pair = m_Profiles.find(mapID);
 
@@ -91,10 +79,10 @@ void PerformanceManager::SelectProfile(LWOMAPID mapID) {
 	m_CurrentProfile = pair->second;
 }
 
-uint32_t PerformanceManager::GetServerFramerate() {
+uint32_t PerformanceManager::GetServerFrameDelta() {
 	if (UserManager::Instance()->GetUserCount() == 0) {
-		return m_InactiveProfile.serverFramerate;
+		return m_InactiveProfile.serverFrameDelta;
 	}
 
-	return m_CurrentProfile.serverFramerate;
+	return m_CurrentProfile.serverFrameDelta;
 }

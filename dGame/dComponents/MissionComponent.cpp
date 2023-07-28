@@ -13,18 +13,20 @@
 #include "InventoryComponent.h"
 #include "GameMessages.h"
 #include "Game.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "dZoneManager.h"
 #include "Mail.h"
 #include "MissionPrerequisites.h"
+#include "AchievementCacheKey.h"
+#include "eMissionState.h"
 
  // MARK: Mission Component
 
-std::unordered_map<size_t, std::vector<uint32_t>> MissionComponent::m_AchievementCache = {};
+std::unordered_map<AchievementCacheKey, std::vector<uint32_t>> MissionComponent::m_AchievementCache = {};
 
 //! Initializer
 MissionComponent::MissionComponent(Entity* parent) : Component(parent) {
-	m_LastUsedMissionOrderUID = dZoneManager::Instance()->GetUniqueMissionIdStartingValue();
+	m_LastUsedMissionOrderUID = Game::zoneManager->GetUniqueMissionIdStartingValue();
 }
 
 //! Destructor
@@ -52,11 +54,11 @@ Mission* MissionComponent::GetMission(const uint32_t missionId) const {
 }
 
 
-MissionState MissionComponent::GetMissionState(const uint32_t missionId) const {
+eMissionState MissionComponent::GetMissionState(const uint32_t missionId) const {
 	auto* mission = GetMission(missionId);
 
 	if (mission == nullptr) {
-		return CanAccept(missionId) ? MissionState::MISSION_STATE_AVAILABLE : MissionState::MISSION_STATE_UNKNOWN;
+		return CanAccept(missionId) ? eMissionState::AVAILABLE : eMissionState::UNKNOWN;
 	}
 
 	return mission->GetMissionState();
@@ -142,7 +144,7 @@ void MissionComponent::RemoveMission(uint32_t missionId) {
 	m_Missions.erase(missionId);
 }
 
-void MissionComponent::Progress(MissionTaskType type, int32_t value, LWOOBJID associate, const std::string& targets, int32_t count, bool ignoreAchievements) {
+void MissionComponent::Progress(eMissionTaskType type, int32_t value, LWOOBJID associate, const std::string& targets, int32_t count, bool ignoreAchievements) {
 	for (const auto& pair : m_Missions) {
 		auto* mission = pair.second;
 
@@ -214,7 +216,7 @@ void MissionComponent::ForceProgressTaskType(const uint32_t missionId, const uin
 	}
 
 	for (auto* element : mission->GetTasks()) {
-		if (element->GetType() != static_cast<MissionTaskType>(taskType)) continue;
+		if (element->GetType() != static_cast<eMissionTaskType>(taskType)) continue;
 
 		element->AddProgress(value);
 	}
@@ -252,7 +254,7 @@ void MissionComponent::ForceProgressValue(uint32_t missionId, uint32_t taskType,
 	}
 
 	for (auto* element : mission->GetTasks()) {
-		if (element->GetType() != static_cast<MissionTaskType>(taskType) || !element->InAllTargets(value)) continue;
+		if (element->GetType() != static_cast<eMissionTaskType>(taskType) || !element->InAllTargets(value)) continue;
 
 		element->AddProgress(1);
 	}
@@ -263,7 +265,7 @@ void MissionComponent::ForceProgressValue(uint32_t missionId, uint32_t taskType,
 }
 
 bool MissionComponent::GetMissionInfo(uint32_t missionId, CDMissions& result) {
-	auto* missionsTable = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
+	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
 
 	const auto missions = missionsTable->Query([=](const CDMissions& entry) {
 		return entry.id == static_cast<int>(missionId);
@@ -280,7 +282,7 @@ bool MissionComponent::GetMissionInfo(uint32_t missionId, CDMissions& result) {
 
 #define MISSION_NEW_METHOD
 
-bool MissionComponent::LookForAchievements(MissionTaskType type, int32_t value, bool progress, LWOOBJID associate, const std::string& targets, int32_t count) {
+bool MissionComponent::LookForAchievements(eMissionTaskType type, int32_t value, bool progress, LWOOBJID associate, const std::string& targets, int32_t count) {
 #ifdef MISSION_NEW_METHOD
 	// Query for achievments, using the cache
 	const auto& result = QueryAchievements(type, value, targets);
@@ -317,8 +319,8 @@ bool MissionComponent::LookForAchievements(MissionTaskType type, int32_t value, 
 
 	return any;
 #else
-	auto* missionTasksTable = CDClientManager::Instance()->GetTable<CDMissionTasksTable>("MissionTasks");
-	auto* missionsTable = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
+	auto* missionTasksTable = CDClientManager::Instance().GetTable<CDMissionTasksTable>();
+	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
 
 	auto tasks = missionTasksTable->Query([=](const CDMissionTasks& entry) {
 		return entry.taskType == static_cast<unsigned>(type);
@@ -389,14 +391,14 @@ bool MissionComponent::LookForAchievements(MissionTaskType type, int32_t value, 
 #endif
 }
 
-const std::vector<uint32_t>& MissionComponent::QueryAchievements(MissionTaskType type, int32_t value, const std::string targets) {
+const std::vector<uint32_t>& MissionComponent::QueryAchievements(eMissionTaskType type, int32_t value, const std::string targets) {
 	// Create a hash which represent this query for achievements
-	size_t hash = 0;
-	GeneralUtils::hash_combine(hash, type);
-	GeneralUtils::hash_combine(hash, value);
-	GeneralUtils::hash_combine(hash, targets);
+	AchievementCacheKey toFind;
+	toFind.SetType(type);
+	toFind.SetValue(value);
+	toFind.SetTargets(targets);
 
-	const std::unordered_map<size_t, std::vector<uint32_t>>::iterator& iter = m_AchievementCache.find(hash);
+	const auto& iter = m_AchievementCache.find(toFind);
 
 	// Check if this query is cached
 	if (iter != m_AchievementCache.end()) {
@@ -404,8 +406,8 @@ const std::vector<uint32_t>& MissionComponent::QueryAchievements(MissionTaskType
 	}
 
 	// Find relevent tables
-	auto* missionTasksTable = CDClientManager::Instance()->GetTable<CDMissionTasksTable>("MissionTasks");
-	auto* missionsTable = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
+	auto* missionTasksTable = CDClientManager::Instance().GetTable<CDMissionTasksTable>();
+	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
 
 	std::vector<uint32_t> result;
 
@@ -447,11 +449,9 @@ const std::vector<uint32_t>& MissionComponent::QueryAchievements(MissionTaskType
 			}
 		}
 	}
-
 	// Insert into cache
-	m_AchievementCache.insert_or_assign(hash, result);
-
-	return m_AchievementCache.find(hash)->second;
+	m_AchievementCache.insert_or_assign(toFind, result);
+	return m_AchievementCache.find(toFind)->second;
 }
 
 bool MissionComponent::RequiresItem(const LOT lot) {
@@ -485,7 +485,7 @@ bool MissionComponent::RequiresItem(const LOT lot) {
 		}
 
 		for (auto* task : mission->GetTasks()) {
-			if (task->IsComplete() || task->GetType() != MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION) {
+			if (task->IsComplete() || task->GetType() != eMissionTaskType::GATHER) {
 				continue;
 			}
 
@@ -497,7 +497,7 @@ bool MissionComponent::RequiresItem(const LOT lot) {
 		}
 	}
 
-	const auto required = LookForAchievements(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, lot, false);
+	const auto required = LookForAchievements(eMissionTaskType::GATHER, lot, false);
 
 	return required;
 }

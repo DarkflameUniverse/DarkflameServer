@@ -4,14 +4,19 @@
 #include "dLogger.h"
 
 void ChainBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
-	uint32_t chain_index;
+	uint32_t chainIndex{};
 
-	bitStream->Read(chain_index);
+	if (!bitStream->Read(chainIndex)) {
+		Game::logger->Log("ChainBehavior", "Unable to read chainIndex from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		return;
+	}
 
-	chain_index--;
+	chainIndex--;
 
-	if (chain_index < this->m_behaviors.size()) {
-		this->m_behaviors.at(chain_index)->Handle(context, bitStream, branch);
+	if (chainIndex < this->m_behaviors.size()) {
+		this->m_behaviors.at(chainIndex)->Handle(context, bitStream, branch);
+	} else {
+		Game::logger->Log("ChainBehavior", "chainIndex out of bounds, aborting handle of chain %i bits unread %i", chainIndex, bitStream->GetNumberOfUnreadBits());
 	}
 }
 

@@ -11,11 +11,14 @@
 #include "CharacterComponent.h"
 #include "UserManager.h"
 #include "dLogger.h"
+#include "Amf3.h"
+#include "eObjectBits.h"
+#include "eGameMasterLevel.h"
 
 PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent) {
 	this->propertyQueries = {};
 
-	auto table = CDClientManager::Instance()->GetTable<CDPropertyEntranceComponentTable>("PropertyEntranceComponent");
+	auto table = CDClientManager::Instance().GetTable<CDPropertyEntranceComponentTable>();
 	const auto& entry = table->GetByID(componentID);
 
 	this->m_MapID = entry.mapID;
@@ -33,12 +36,9 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 
 	AMFArrayValue args;
 
-	auto* state = new AMFStringValue();
-	state->SetStringValue("property_menu");
+	args.Insert("state", "property_menu");
 
-	args.InsertValue("state", state);
-
-	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", &args);
+	GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
 }
 
 void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, bool returnToZone, const SystemAddress& sysAddr) {
@@ -241,8 +241,8 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
 		// Convert owner char id to LWOOBJID
 		LWOOBJID ownerObjId = owner;
-		ownerObjId = GeneralUtils::SetBit(ownerObjId, OBJECT_BIT_CHARACTER);
-		ownerObjId = GeneralUtils::SetBit(ownerObjId, OBJECT_BIT_PERSISTENT);
+		GeneralUtils::SetBit(ownerObjId, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(ownerObjId, eObjectBits::PERSISTENT);
 
 		// Query to get friend and best friend fields
 		auto friendCheck = Database::CreatePreppedStmt("SELECT best_friend FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)");
@@ -270,7 +270,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
 		bool isModeratorApproved = propertyEntry->getBoolean(10);
 
-		if (!isModeratorApproved && entity->GetGMLevel() >= GAME_MASTER_LEVEL_LEAD_MODERATOR) {
+		if (!isModeratorApproved && entity->GetGMLevel() >= eGameMasterLevel::LEAD_MODERATOR) {
 			propertyName = "[AWAITING APPROVAL]";
 			propertyDescription = "[AWAITING APPROVAL]";
 			isModeratorApproved = true;

@@ -10,30 +10,42 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	file(MAKE_DIRECTORY "${MARIADB_MSI_DIR}")
 	file(MAKE_DIRECTORY "${MARIADB_CONNECTOR_DIR}")
 
-	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi" )
+    # These values need to be updated whenever a new minor release replaces an old one
+	# Go to https://mariadb.com/downloads/connectors/ to find the up-to-date URL parts
+    set(MARIADB_CONNECTOR_C_VERSION "3.2.7")
+	set(MARIADB_CONNECTOR_C_BUCKET "2319651")
+	set(MARIADB_CONNECTOR_C_MD5 "f8636d733f1d093af9d4f22f3239f885")
+    set(MARIADB_CONNECTOR_CPP_VERSION "1.0.2")
+	set(MARIADB_CONNECTOR_CPP_BUCKET "2531525")
+	set(MARIADB_CONNECTOR_CPP_MD5 "3034bbd6ca00a0125345f9fd1a178401")
+	
+	set(MARIADB_CONNECTOR_C_MSI "mariadb-connector-c-${MARIADB_CONNECTOR_C_VERSION}-win64.msi")
+	set(MARIADB_CONNECTOR_CPP_MSI "mariadb-connector-cpp-${MARIADB_CONNECTOR_CPP_VERSION}-win64.msi")
+	
+	if(NOT EXISTS "${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_C_MSI}" )
 		message("Downloading mariadb connector/c")
-		file(DOWNLOAD https://dlm.mariadb.com/1936366/connectors/c/connector-c-3.2.5/mariadb-connector-c-3.2.5-win64.msi
-			"${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi"
-			EXPECTED_HASH MD5=09d418c290109068a5bea136dafca36b)
+		file(DOWNLOAD https://dlm.mariadb.com/${MARIADB_CONNECTOR_C_BUCKET}/Connectors/c/connector-c-${MARIADB_CONNECTOR_C_VERSION}/${MARIADB_CONNECTOR_C_MSI}
+			"${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_C_MSI}"
+			EXPECTED_HASH MD5=${MARIADB_CONNECTOR_C_MD5})
 	endif()
 
-	if(NOT EXISTS "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi" )
+	if(NOT EXISTS "${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_CPP_MSI}" )
 		message("Downloading mariadb connector/c++")
-		file(DOWNLOAD https://dlm.mariadb.com/1683453/connectors/cpp/connector-cpp-1.0.1/mariadb-connector-cpp-1.0.1-win64.msi
-			"${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi"
-			EXPECTED_HASH MD5=548e743fbf067d21d42b81d958bf4ed7)
+		file(DOWNLOAD https://dlm.mariadb.com/${MARIADB_CONNECTOR_CPP_BUCKET}/Connectors/cpp/connector-cpp-${MARIADB_CONNECTOR_CPP_VERSION}/${MARIADB_CONNECTOR_CPP_MSI}
+			"${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_CPP_MSI}"
+			EXPECTED_HASH MD5=${MARIADB_CONNECTOR_CPP_MD5})
 	endif()
 
 
 	file(TO_NATIVE_PATH "${MARIADB_CONNECTOR_DIR}" MSIEXEC_TARGETDIR)
 	# extract msi files without installing to users system
 	if(NOT EXISTS "${MARIADB_C_CONNECTOR_DIR}")
-		file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/mariadb-connector-c-3.2.5-win64.msi" MSI_DIR)
+		file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_C_MSI}" MSI_DIR)
 		execute_process(COMMAND msiexec /a ${MSI_DIR} /qn TARGETDIR=${MSIEXEC_TARGETDIR})
 	endif()
 
 	if(NOT EXISTS "${MARIADB_CPP_CONNECTOR_DIR}")
-	file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/mariadb-connector-cpp-1.0.1-win64.msi" MSI_DIR)
+	file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_CPP_MSI}" MSI_DIR)
 		execute_process(COMMAND msiexec /a ${MSI_DIR} /qn TARGETDIR=${MSIEXEC_TARGETDIR})
 	endif()
 
@@ -43,7 +55,7 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 
 	add_custom_target(mariadb_connector_cpp)
 	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
-					COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different
 					"${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll"
 					"${MARIADB_C_CONNECTOR_DIR}/lib/libmariadb.dll"
 					"${PROJECT_BINARY_DIR}")
@@ -118,7 +130,7 @@ else() # Build from source
 						${BINARY_DIR}/mariadbcpp/plugin
 						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
 
-						COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+						COMMAND ${CMAKE_COMMAND} -E copy_if_different
 						${MARIADB_SHARED_LIBRARY_LOCATION}
 						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
 

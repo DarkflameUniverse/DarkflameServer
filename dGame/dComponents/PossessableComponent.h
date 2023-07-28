@@ -6,6 +6,7 @@
 #include "Item.h"
 #include "PossessorComponent.h"
 #include "eAninmationFlags.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Represents an entity that can be controlled by some other entity, generally used by cars to indicate that some
@@ -13,7 +14,7 @@
  */
 class PossessableComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_POSSESSABLE;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSABLE;
 
 	PossessableComponent(Entity* parentEntity, uint32_t componentId);
 
@@ -109,7 +110,7 @@ private:
 	 * @brief What animaiton flag to use
 	 *
 	 */
-	eAnimationFlags m_AnimationFlag = eAnimationFlags::IDLE_INVALID;
+	eAnimationFlags m_AnimationFlag = eAnimationFlags::IDLE_NONE;
 
 	/**
 	 * @brief Should this be immediately depossessed

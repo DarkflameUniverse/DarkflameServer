@@ -16,9 +16,6 @@
  // Enable this to cache all entries in each table for fast access, comes with more memory cost
  //#define CDCLIENT_CACHE_ALL
 
- // Enable this to skip some unused columns in some tables
-#define UNUSED(v)
-
 /*!
   \file CDClientDatabase.hpp
   \brief An interface between the CDClient.sqlite file and the server
@@ -39,6 +36,14 @@ namespace CDClientDatabase {
 	  \return The results of the query
 	 */
 	CppSQLite3Query ExecuteQuery(const std::string& query);
+
+	//! Updates the CDClient file with Data Manipulation Language (DML) commands.
+	/*!
+	  \param query The DML command to run.  DML command can be multiple queries in one string but only
+		the last one will return its number of updated rows.
+	  \return The number of updated rows.
+	*/
+	int ExecuteDML(const std::string& query);
 
 	//! Queries the CDClient and parses arguments
 	/*!

@@ -9,6 +9,10 @@
 #include "dpWorld.h"
 #include "EntityManager.h"
 #include "SimplePhysicsComponent.h"
+#include "CDClientManager.h"
+
+#include "CDComponentsRegistryTable.h"
+#include "CDPhysicsComponentTable.h"
 
 std::map<LOT, float> MovementAIComponent::m_PhysicsSpeedCache = {};
 
@@ -18,7 +22,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 
 	m_BaseCombatAI = nullptr;
 
-	m_BaseCombatAI = reinterpret_cast<BaseCombatAIComponent*>(m_Parent->GetComponent(COMPONENT_TYPE_BASE_COMBAT_AI));
+	m_BaseCombatAI = reinterpret_cast<BaseCombatAIComponent*>(m_Parent->GetComponent(eReplicaComponentType::BASE_COMBAT_AI));
 
 	//Try and fix the insane values:
 	if (m_Info.wanderRadius > 5.0f) m_Info.wanderRadius = m_Info.wanderRadius * 0.5f;
@@ -92,7 +96,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	NiPoint3 velocity = NiPoint3::ZERO;
 
-	if (AdvanceWaypointIndex()) // Do we have another waypoint to seek?
+	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) // Do we have another waypoint to seek?
 	{
 		m_NextWaypoint = GetCurrentWaypoint();
 
@@ -145,7 +149,7 @@ nextAction:
 
 	SetVelocity(velocity);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 const MovementAIInfo& MovementAIComponent::GetInfo() const {
@@ -217,7 +221,7 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 
 	SetPosition(destination);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	return true;
 }
@@ -249,7 +253,7 @@ void MovementAIComponent::Stop() {
 
 	m_CurrentSpeed = 0;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovementAIComponent::PullToPoint(const NiPoint3& point) {
@@ -279,13 +283,13 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 		return it->second;
 	}
 
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
+	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
 	int32_t componentID;
 	CDPhysicsComponent* physicsComponent = nullptr;
 
-	componentID = componentRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_CONTROLLABLE_PHYSICS, -1);
+	componentID = componentRegistryTable->GetByIDAndType(lot, eReplicaComponentType::CONTROLLABLE_PHYSICS, -1);
 
 	if (componentID != -1) {
 		physicsComponent = physicsComponentTable->GetByID(componentID);
@@ -293,7 +297,7 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 		goto foundComponent;
 	}
 
-	componentID = componentRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_SIMPLE_PHYSICS, -1);
+	componentID = componentRegistryTable->GetByIDAndType(lot, eReplicaComponentType::SIMPLE_PHYSICS, -1);
 
 	if (componentID != -1) {
 		physicsComponent = physicsComponentTable->GetByID(componentID);
@@ -303,13 +307,14 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 
 foundComponent:
 
-	float speed;
+	// Client defaults speed to 10 and if the speed is also null in the table, it defaults to 10.
+	float speed = 10.0f;
 
-	if (physicsComponent == nullptr) {
-		speed = 8;
-	} else {
-		speed = physicsComponent->speed;
-	}
+	if (physicsComponent) speed = physicsComponent->speed;
+
+	float delta = fabs(speed) - 1.0f;
+
+	if (delta <= std::numeric_limits<float>::epsilon()) speed = 10.0f;
 
 	m_PhysicsSpeedCache[lot] = speed;
 

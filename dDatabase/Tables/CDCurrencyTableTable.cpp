@@ -21,11 +21,11 @@ CDCurrencyTableTable::CDCurrencyTableTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM CurrencyTable");
 	while (!tableData.eof()) {
 		CDCurrencyTable entry;
-		entry.currencyIndex = tableData.getIntField(0, -1);
-		entry.npcminlevel = tableData.getIntField(1, -1);
-		entry.minvalue = tableData.getIntField(2, -1);
-		entry.maxvalue = tableData.getIntField(3, -1);
-		entry.id = tableData.getIntField(4, -1);
+		entry.currencyIndex = tableData.getIntField("currencyIndex", -1);
+		entry.npcminlevel = tableData.getIntField("npcminlevel", -1);
+		entry.minvalue = tableData.getIntField("minvalue", -1);
+		entry.maxvalue = tableData.getIntField("maxvalue", -1);
+		entry.id = tableData.getIntField("id", -1);
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -34,15 +34,6 @@ CDCurrencyTableTable::CDCurrencyTableTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDCurrencyTableTable::~CDCurrencyTableTable(void) {}
-
-//! Returns the table's name
-std::string CDCurrencyTableTable::GetName(void) const {
-	return "CurrencyTable";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDCurrencyTable> CDCurrencyTableTable::Query(std::function<bool(CDCurrencyTable)> predicate) {
 
 	std::vector<CDCurrencyTable> data = cpplinq::from(this->entries)
@@ -52,7 +43,7 @@ std::vector<CDCurrencyTable> CDCurrencyTableTable::Query(std::function<bool(CDCu
 	return data;
 }
 
-//! Gets all the entries in the table
 std::vector<CDCurrencyTable> CDCurrencyTableTable::GetEntries(void) const {
 	return this->entries;
 }
+

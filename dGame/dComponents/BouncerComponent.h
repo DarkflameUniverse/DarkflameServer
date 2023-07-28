@@ -5,13 +5,14 @@
 #include "RakNetTypes.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Attached to bouncer entities, allowing other entities to bounce off of it
  */
 class BouncerComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_BOUNCER;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
 
 	BouncerComponent(Entity* parentEntity);
 	~BouncerComponent() override;

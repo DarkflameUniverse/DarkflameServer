@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <map>
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 
@@ -41,7 +42,7 @@ struct Buff
  */
 class BuffComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_BUFF;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
 
 	explicit BuffComponent(Entity* parent);
 
@@ -78,8 +79,9 @@ public:
 	/**
 	 * Removes a buff from the parent entity, reversing its effects
 	 * @param id the id of the buff to remove
+	 * @param removeImmunity whether or not to remove immunity on removing the buff
 	 */
-	void RemoveBuff(int32_t id);
+	void RemoveBuff(int32_t id, bool fromUnEquip = false, bool removeImmunity = false);
 
 	/**
 	 * Returns whether or not the entity has a buff identified by `id`

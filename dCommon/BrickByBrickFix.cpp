@@ -49,10 +49,10 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 				}
 
 				// Ignore the valgrind warning about uninitialized values.  These are discarded later when we know the actual uncompressed size.
-				std::unique_ptr<uint8_t[]> uncompressedChunk(new uint8_t[MAX_SD0_CHUNK_SIZE]);
+				std::unique_ptr<uint8_t[]> uncompressedChunk(new uint8_t[ZCompression::MAX_SD0_CHUNK_SIZE]);
 				int32_t err{};
 				int32_t actualUncompressedSize = ZCompression::Decompress(
-					compressedChunk.get(), chunkSize, uncompressedChunk.get(), MAX_SD0_CHUNK_SIZE, err);
+					compressedChunk.get(), chunkSize, uncompressedChunk.get(), ZCompression::MAX_SD0_CHUNK_SIZE, err);
 
 				if (actualUncompressedSize != -1) {
 					uint32_t previousSize = completeUncompressedModel.size();

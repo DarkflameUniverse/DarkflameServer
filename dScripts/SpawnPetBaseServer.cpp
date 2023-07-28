@@ -2,6 +2,8 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "PetComponent.h"
+#include "EntityInfo.h"
+#include "eTerminateType.h"
 
 void SpawnPetBaseServer::OnStartup(Entity* self) {
 	SetVariables(self);
@@ -9,7 +11,7 @@ void SpawnPetBaseServer::OnStartup(Entity* self) {
 }
 
 void SpawnPetBaseServer::OnUse(Entity* self, Entity* user) {
-	auto possibleSpawners = EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(u"petType") + "Spawner");
+	auto possibleSpawners = Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(u"petType") + "Spawner");
 	if (possibleSpawners.empty())
 		return;
 
@@ -31,8 +33,8 @@ void SpawnPetBaseServer::OnUse(Entity* self, Entity* user) {
 		new LDFData<float_t>(u"spawnTimer", 1.0f)
 	};
 
-	auto* pet = EntityManager::Instance()->CreateEntity(info);
-	EntityManager::Instance()->ConstructEntity(pet);
+	auto* pet = Game::entityManager->CreateEntity(info);
+	Game::entityManager->ConstructEntity(pet);
 
 	self->SetVar<std::string>(u"spawnedPets", self->GetVar<std::string>(u"spawnedPets") + ","
 		+ std::to_string(pet->GetObjectID()));
@@ -42,7 +44,7 @@ void SpawnPetBaseServer::OnUse(Entity* self, Entity* user) {
 		GameMessages::SendPlayCinematic(user->GetObjectID(), spawnCinematic, UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 }
 
 bool SpawnPetBaseServer::CheckNumberOfPets(Entity* self, Entity* user) {
@@ -55,7 +57,7 @@ bool SpawnPetBaseServer::CheckNumberOfPets(Entity* self, Entity* user) {
 		if (petID.empty())
 			continue;
 
-		const auto* spawnedPet = EntityManager::Instance()->GetEntity(std::stoull(petID));
+		const auto* spawnedPet = Game::entityManager->GetEntity(std::stoull(petID));
 		if (spawnedPet == nullptr)
 			continue;
 

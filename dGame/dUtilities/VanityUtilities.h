@@ -20,6 +20,7 @@ struct VanityNPC
 	std::string m_Script;
 	std::map<std::string, bool> m_Flags;
 	std::map<uint32_t, std::vector<VanityNPCLocation>> m_Locations;
+	std::vector<LDFBaseData*> ldf;
 };
 
 struct VanityParty
