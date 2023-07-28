@@ -123,7 +123,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 				SetRotation(NiQuaternion::LookAt(source, dest));
 				SetVelocity(velocity);
 				SetPosition(source + velocity_pos);
-				EntityManager::Instance()->SerializeEntity(m_Parent);
+				Game::entityManager->SerializeEntity(m_Parent);
 			}
 		} else if (!m_Done && m_Waiting) { // waiting, meaing we are at a waypoint, and we want to do something
 			// handle waiting
@@ -236,7 +236,7 @@ void MovementAIComponent::ArrivedAtPathWaypoint(){
 				if (action->GetKey() == u"delay"){
 					m_WaitingTime += std::stof(action->GetValueAsString());
 					SetVelocity(NiPoint3::ZERO);
-					EntityManager::Instance()->SerializeEntity(m_Parent);
+					Game::entityManager->SerializeEntity(m_Parent);
 
 				// emote: has name of animation to play
 				} else if (action->GetKey() == u"emote"){
@@ -244,7 +244,7 @@ void MovementAIComponent::ArrivedAtPathWaypoint(){
 					// TODO Get proper animation time and add to wait
 					m_WaitingTime += 1;
 					SetVelocity(NiPoint3::ZERO);
-					EntityManager::Instance()->SerializeEntity(m_Parent);
+					Game::entityManager->SerializeEntity(m_Parent);
 
 				// pathspeed: has pathing speed as a float
 				} else if (action->GetKey() == u"pathspeed") {
@@ -267,7 +267,7 @@ void MovementAIComponent::ArrivedAtPathWaypoint(){
 					}
 
 					if (path_string != "") {
-						m_CurrentPath = const_cast<Path*>(dZoneManager::Instance()->GetZone()->GetPath(path_string));
+						m_CurrentPath = const_cast<Path*>(Game::zoneManager->GetZone()->GetPath(path_string));
 					} else m_CurrentPath = nullptr;
 
 				} else {
