@@ -27,12 +27,12 @@ public:
 	void OnUse(Entity* originator) override;
 	void RefreshInventory(bool isCreation = false);
 	void SetupConstants();
+	bool SellsItem(const LOT item) const;
 	float GetBuyScalar() const { return m_BuyScalar; }
 	float GetSellScalar() const { return m_SellScalar; }
 	void SetBuyScalar(const float value) { m_BuyScalar = value; }
 	void SetSellScalar(const float value) { m_SellScalar = value; }
-
-	std::vector<SoldItem>& GetInventory() { return m_Inventory; }
+	const std::vector<SoldItem>& GetInventory() { return m_Inventory; }
 
 	void SetHasMultiCostItems(const bool hasMultiCostItems) {
 		if (m_HasMultiCostItems == hasMultiCostItems) return;
@@ -46,14 +46,10 @@ public:
 		m_DirtyVendor = true;
 	}
 
-	bool SellsItem(const LOT item) const {
-		return std::count_if(m_Inventory.begin(), m_Inventory.end(), [item](const SoldItem& lhs) {
-			return lhs.lot == item;
-			}) > 0;
-	}
 
-	void MaxCustomVendorRefreshInventory(bool isCreation = false);
 private:
+	void SetupMaxCustomVendor();
+	void HandleMrReeCameras();
 	float m_BuyScalar = 0.0f;
 	float m_SellScalar = 0.0f;
 	float m_RefreshTimeSeconds = 0.0f;
