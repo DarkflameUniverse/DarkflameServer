@@ -42,7 +42,7 @@ void ForceMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStrea
 		return;
 	}
 
-	auto* casterEntity = EntityManager::Instance()->GetEntity(context->caster);
+	auto* casterEntity = Game::entityManager->GetEntity(context->caster);
 	if (casterEntity != nullptr) {
 		auto* controllablePhysicsComponent = casterEntity->GetComponent<ControllablePhysicsComponent>();
 		if (controllablePhysicsComponent != nullptr) {
@@ -51,7 +51,7 @@ void ForceMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStrea
 				controllablePhysicsComponent->SetVelocity(controllablePhysicsComponent->GetRotation().GetForwardVector() * 25);
 			}
 
-			EntityManager::Instance()->SerializeEntity(casterEntity);
+			Game::entityManager->SerializeEntity(casterEntity);
 		}
 	}
 
@@ -72,7 +72,7 @@ void ForceMovementBehavior::Load() {
 }
 
 void ForceMovementBehavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* casterEntity = EntityManager::Instance()->GetEntity(context->caster);
+	auto* casterEntity = Game::entityManager->GetEntity(context->caster);
 	if (casterEntity != nullptr) {
 		auto* controllablePhysicsComponent = casterEntity->GetComponent<ControllablePhysicsComponent>();
 		if (controllablePhysicsComponent != nullptr) {
@@ -80,7 +80,7 @@ void ForceMovementBehavior::SyncCalculation(BehaviorContext* context, RakNet::Bi
 			controllablePhysicsComponent->SetPosition(controllablePhysicsComponent->GetPosition() + controllablePhysicsComponent->GetVelocity() * m_Duration);
 			controllablePhysicsComponent->SetVelocity({});
 
-			EntityManager::Instance()->SerializeEntity(casterEntity);
+			Game::entityManager->SerializeEntity(casterEntity);
 		}
 	}
 

@@ -36,9 +36,9 @@ void AgImagSmashable::CrateAnimal(Entity* self) {
 		info.spawnerID = self->GetSpawnerID();
 		info.spawnerNodeID = 0;
 
-		Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);
+		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		if (newEntity) {
-			EntityManager::Instance()->ConstructEntity(newEntity);
+			Game::entityManager->ConstructEntity(newEntity);
 		}
 	}
 }

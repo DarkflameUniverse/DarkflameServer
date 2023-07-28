@@ -11,7 +11,7 @@ void RaceSmashServer::OnDie(Entity* self, Entity* killer) {
 	auto* possessableComponent = killer->GetComponent<PossessableComponent>();
 	if (possessableComponent != nullptr) {
 
-		auto* possessor = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
+		auto* possessor = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
 		if (possessor != nullptr) {
 
 			auto* missionComponent = possessor->GetComponent<MissionComponent>();

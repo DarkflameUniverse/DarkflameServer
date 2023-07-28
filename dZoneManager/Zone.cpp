@@ -149,7 +149,7 @@ void Zone::LoadZoneIntoMemory() {
 					info.activeOnLoad = path.spawner.spawnerNetActive;
 					info.isNetwork = true;
 					Spawner* spawner = new Spawner(info);
-					dZoneManager::Instance()->AddSpawner(info.spawnerID, spawner);
+					Game::zoneManager->AddSpawner(info.spawnerID, spawner);
 				}
 
 			}

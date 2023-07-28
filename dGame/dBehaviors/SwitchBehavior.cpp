@@ -16,7 +16,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		};
 	}
 
-	auto* entity = EntityManager::Instance()->GetEntity(context->originator);
+	auto* entity = Game::entityManager->GetEntity(context->originator);
 
 	if (entity == nullptr) {
 		return;
@@ -30,7 +30,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 
 	Game::logger->LogDebug("SwitchBehavior", "[%i] State: (%d), imagination: (%i) / (%f)", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
 
-	if (state || (entity->GetLOT() == 8092 && destroyableComponent->GetImagination() >= m_imagination)) {
+	if (state) {
 		this->m_actionTrue->Handle(context, bitStream, branch);
 	} else {
 		this->m_actionFalse->Handle(context, bitStream, branch);
@@ -41,7 +41,7 @@ void SwitchBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	auto state = true;
 
 	if (this->m_imagination > 0 || !this->m_isEnemyFaction) {
-		auto* entity = EntityManager::Instance()->GetEntity(branch.target);
+		auto* entity = Game::entityManager->GetEntity(branch.target);
 
 		state = entity != nullptr;
 

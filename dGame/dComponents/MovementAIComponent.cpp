@@ -377,7 +377,7 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 
 	SetPosition(destination);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	return true;
 }
@@ -406,7 +406,7 @@ void MovementAIComponent::Stop() {
 
 	m_CurrentSpeed = 0;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovementAIComponent::PullToPoint(const NiPoint3& point) {
@@ -448,13 +448,14 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 
 foundComponent:
 
-	float speed;
+	// Client defaults speed to 10 and if the speed is also null in the table, it defaults to 10.
+	float speed = 10.0f;
 
-	if (physicsComponent == nullptr) {
-		speed = 8;
-	} else {
-		speed = physicsComponent->speed;
-	}
+	if (physicsComponent) speed = physicsComponent->speed;
+
+	float delta = fabs(speed) - 1.0f;
+
+	if (delta <= std::numeric_limits<float>::epsilon()) speed = 10.0f;
 
 	m_PhysicsSpeedCache[lot] = speed;
 

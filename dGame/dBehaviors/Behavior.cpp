@@ -61,6 +61,7 @@
 #include "SpeedBehavior.h"
 #include "DamageReductionBehavior.h"
 #include "JetPackBehavior.h"
+#include "FallSpeedBehavior.h"
 #include "ChangeIdleFlagsBehavior.h"
 #include "DarkInspirationBehavior.h"
 
@@ -164,7 +165,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_CAR_BOOST:
 		behavior = new CarBoostBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_FALL_SPEED: break;
+	case BehaviorTemplates::BEHAVIOR_FALL_SPEED:
+		behavior = new FallSpeedBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_SHIELD: break;
 	case BehaviorTemplates::BEHAVIOR_REPAIR_ARMOR:
 		behavior = new RepairBehavior(behaviorId);
@@ -311,7 +314,7 @@ BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
 
 // For use with enemies, to display the correct damage animations on the players
 void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID secondary) {
-	auto* targetEntity = EntityManager::Instance()->GetEntity(target);
+	auto* targetEntity = Game::entityManager->GetEntity(target);
 
 	if (targetEntity == nullptr) {
 		return;

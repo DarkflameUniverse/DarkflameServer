@@ -195,7 +195,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	uint32_t itemID = static_cast<uint32_t>(attachmentID);
 	LOT itemLOT = 0;
 	//Inventory::InventoryType itemType;
-	int mailCost = dZoneManager::Instance()->GetWorldConfig()->mailBaseFee;
+	int mailCost = Game::zoneManager->GetWorldConfig()->mailBaseFee;
 	int stackSize = 0;
 	auto inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
 	Item* item = nullptr;
@@ -203,7 +203,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	if (itemID > 0 && attachmentCount > 0 && inv) {
 		item = inv->FindItemById(attachmentID);
 		if (item) {
-			mailCost += (item->GetInfo().baseValue * dZoneManager::Instance()->GetWorldConfig()->mailPercentAttachmentFee);
+			mailCost += (item->GetInfo().baseValue * Game::zoneManager->GetWorldConfig()->mailPercentAttachmentFee);
 			stackSize = item->GetCount();
 			itemLOT = item->GetLot();
 		} else {

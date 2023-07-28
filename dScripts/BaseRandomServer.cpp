@@ -52,7 +52,7 @@ void BaseRandomServer::SpawnSection(Entity* self, const std::string& sectionName
 }
 
 void BaseRandomServer::SetSpawnerNetwork(Entity* self, const std::string& spawnerName, int32_t spawnNum, LOT spawnLOT) {
-	const auto& spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+	const auto& spawners = Game::zoneManager->GetSpawnersByName(spawnerName);
 
 	if (spawnLOT == 11217 && spawnNum > 1) {
 		spawnNum = 1;

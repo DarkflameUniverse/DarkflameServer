@@ -38,8 +38,8 @@ void BaseEnemyMech::OnDie(Entity* self, Entity* killer) {
 	info.spawnerID = self->GetObjectID();
 	info.settings = cfg;
 
-	Entity* turret = EntityManager::Instance()->CreateEntity(info, nullptr);
+	Entity* turret = Game::entityManager->CreateEntity(info, nullptr);
 	if (turret) {
-		EntityManager::Instance()->ConstructEntity(turret);
+		Game::entityManager->ConstructEntity(turret);
 	}
 }

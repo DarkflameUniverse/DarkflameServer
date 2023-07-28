@@ -4,6 +4,7 @@
 #include "MissionComponent.h"
 #include "SkillComponent.h"
 #include "eMissionTaskType.h"
+#include "RenderComponent.h"
 
 //TODO: this has to be updated so that you only get killed if you're in a certain radius.
 //And so that all entities in a certain radius are killed, not just the attacker.
@@ -69,23 +70,6 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 }
 
 void ExplodingAsset::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
-	/*
-	if msg.objId:BelongsToFaction{factionID = 1}.bIsInFaction then
-		if (msg.status == "ENTER") then
-			self:PlayAnimation{ animationID = "bounce" }
-			self:PlayFXEffect{ name = "bouncin", effectType = "anim" }
-			self:SetVar("playersNearChest", (self:GetVar("playersNearChest") + 1 ))
-		elseif (msg.status == "LEAVE") then
-			self:SetVar("playersNearChest", (self:GetVar("playersNearChest") - 1 ))
-			if self:GetVar("playersNearChest") < 1 then
-				self:PlayAnimation{ animationID = "idle" }
-				self:StopFXEffect{ name = "bouncin" }
-				self:SetVar("playersNearChest", 0)
-			end
-		end
-	end
-	*/
-
 	auto* destuctableComponent = entering->GetComponent<DestroyableComponent>();
 
 	if (destuctableComponent == nullptr) return;
@@ -95,14 +79,14 @@ void ExplodingAsset::OnProximityUpdate(Entity* self, Entity* entering, std::stri
 	if (!std::count(factions.begin(), factions.end(), 1)) return;
 
 	if (status == "ENTER") {
-		GameMessages::SendPlayAnimation(self, u"bounce");
+		RenderComponent::PlayAnimation(self, u"bounce");
 		GameMessages::SendPlayFXEffect(self, -1, u"anim", "bouncin", LWOOBJID_EMPTY, 1, 1, true);
 		self->SetVar(u"playersNearChest", self->GetVar<int32_t>(u"playersNearChest") + 1);
 	} else if (status == "LEAVE") {
 		self->SetVar(u"playersNearChest", self->GetVar<int32_t>(u"playersNearChest") - 1);
 
 		if (self->GetVar<int32_t>(u"playersNearChest") < 1) {
-			GameMessages::SendPlayAnimation(self, u"idle");
+			RenderComponent::PlayAnimation(self, u"idle");
 			GameMessages::SendStopFXEffect(self, true, "bouncin");
 			self->SetVar<int32_t>(u"playersNearChest", 0);
 		}

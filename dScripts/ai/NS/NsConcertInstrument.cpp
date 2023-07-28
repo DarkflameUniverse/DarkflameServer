@@ -9,6 +9,7 @@
 #include "MissionComponent.h"
 #include "eMissionState.h"
 #include "eMissionTaskType.h"
+#include "RenderComponent.h"
 
 // Constants are at the bottom
 
@@ -48,7 +49,7 @@ void NsConcertInstrument::OnFireEventServerSide(Entity* self, Entity* sender, st
 		if (activePlayerID == LWOOBJID_EMPTY)
 			return;
 
-		const auto activePlayer = EntityManager::Instance()->GetEntity(activePlayerID);
+		const auto activePlayer = Game::entityManager->GetEntity(activePlayerID);
 		if (activePlayer == nullptr)
 			return;
 
@@ -62,7 +63,7 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 		return;
 
 	// If for some reason the player becomes null (for example an unexpected leave), we need to clean up
-	const auto activePlayer = EntityManager::Instance()->GetEntity(activePlayerID);
+	const auto activePlayer = Game::entityManager->GetEntity(activePlayerID);
 	if (activePlayer == nullptr && name != "cleanupAfterStop") {
 		StopPlayingInstrument(self, nullptr);
 		return;
@@ -122,10 +123,10 @@ void NsConcertInstrument::StartPlayingInstrument(Entity* self, Entity* player) {
 		player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 	GameMessages::SendPlayCinematic(player->GetObjectID(), cinematics.at(instrumentLot), UNASSIGNED_SYSTEM_ADDRESS);
 	self->AddCallbackTimer(1.0f, [player, instrumentLot]() {
-		GameMessages::SendPlayAnimation(player, animations.at(instrumentLot), 2.0f);
+		RenderComponent::PlayAnimation(player, animations.at(instrumentLot), 2.0f);
 		});
 
-	for (auto* soundBox : EntityManager::Instance()->GetEntitiesInGroup("Audio-Concert")) {
+	for (auto* soundBox : Game::entityManager->GetEntitiesInGroup("Audio-Concert")) {
 		auto* soundTrigger = soundBox->GetComponent<SoundTriggerComponent>();
 		if (soundTrigger != nullptr) {
 			soundTrigger->ActivateMusicCue(music.at(instrumentLot));
@@ -153,14 +154,14 @@ void NsConcertInstrument::StopPlayingInstrument(Entity* self, Entity* player) {
 		}
 
 		GameMessages::SendEndCinematic(player->GetObjectID(), cinematics.at(instrumentLot), UNASSIGNED_SYSTEM_ADDRESS, 1.0f);
-		GameMessages::SendPlayAnimation(player, smashAnimations.at(instrumentLot), 2.0f);
+		RenderComponent::PlayAnimation(player, smashAnimations.at(instrumentLot), 2.0f);
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stopCheckingMovement", 0, 0,
 			player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	self->SetVar<bool>(u"beingPlayed", false);
 
-	for (auto* soundBox : EntityManager::Instance()->GetEntitiesInGroup("Audio-Concert")) {
+	for (auto* soundBox : Game::entityManager->GetEntitiesInGroup("Audio-Concert")) {
 		auto* soundTrigger = soundBox->GetComponent<SoundTriggerComponent>();
 		if (soundTrigger != nullptr) {
 			soundTrigger->DeactivateMusicCue(music.at(instrumentLot));

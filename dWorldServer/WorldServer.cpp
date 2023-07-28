@@ -60,7 +60,7 @@
 #include "AssetManager.h"
 #include "LevelProgressionComponent.h"
 #include "eBlueprintSaveResponseType.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "NiPoint3.h"
 #include "eServerDisconnectIdentifiers.h"
 #include "eObjectBits.h"
@@ -71,6 +71,7 @@
 #include "eMasterMessageType.h"
 #include "eGameMessageType.h"
 #include "ZCompression.h"
+#include "EntityManager.h"
 
 namespace Game {
 	dLogger* logger = nullptr;
@@ -83,6 +84,8 @@ namespace Game {
 	std::mt19937 randomEngine;
 	SystemAddress chatSysAddr;
 	bool shouldShutdown = false;
+	EntityManager* entityManager = nullptr;
+	dZoneManager* zoneManager = nullptr;
 } // namespace Game
 
 bool chatDisabled = false;
@@ -251,10 +254,12 @@ int main(int argc, char** argv) {
 
 	PerformanceManager::SelectProfile(zoneID);
 
+	Game::entityManager = new EntityManager();
+	Game::zoneManager = new dZoneManager();
 	//Load our level:
 	if (zoneID != 0) {
 		dpWorld::Instance().Initialize(zoneID);
-		dZoneManager::Instance()->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
+		Game::zoneManager->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
 
 		// pre calculate the FDB checksum
@@ -297,6 +302,8 @@ int main(int argc, char** argv) {
 
 			Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s", databaseChecksum.c_str());
 		}
+	} else {
+		Game::entityManager->Initialize();
 	}
 
 	uint32_t currentFrameDelta = highFrameDelta;
@@ -383,18 +390,18 @@ int main(int argc, char** argv) {
 			Metrics::EndMeasurement(MetricVariable::Physics);
 
 			Metrics::StartMeasurement(MetricVariable::UpdateEntities);
-			EntityManager::Instance()->UpdateEntities(deltaTime);
+			Game::entityManager->UpdateEntities(deltaTime);
 			Metrics::EndMeasurement(MetricVariable::UpdateEntities);
 
 			Metrics::StartMeasurement(MetricVariable::Ghosting);
 			if (std::chrono::duration<float>(currentTime - ghostingLastTime).count() >= 1.0f) {
-				EntityManager::Instance()->UpdateGhosting();
+				Game::entityManager->UpdateGhosting();
 				ghostingLastTime = currentTime;
 			}
 			Metrics::EndMeasurement(MetricVariable::Ghosting);
 
 			Metrics::StartMeasurement(MetricVariable::UpdateSpawners);
-			dZoneManager::Instance()->Update(deltaTime);
+			Game::zoneManager->Update(deltaTime);
 			Metrics::EndMeasurement(MetricVariable::UpdateSpawners);
 		}
 
@@ -554,12 +561,11 @@ void HandlePacketChat(Packet* packet) {
 		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
 			switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
 			case eChatInternalMessageType::ROUTE_TO_PLAYER: {
-				CINSTREAM;
+				CINSTREAM_SKIP_HEADER;
 				LWOOBJID playerID;
 				inStream.Read(playerID);
-				inStream.Read(playerID);
 
-				auto player = EntityManager::Instance()->GetEntity(playerID);
+				auto player = Game::entityManager->GetEntity(playerID);
 				if (!player) return;
 
 				auto sysAddr = player->GetSystemAddress();
@@ -576,9 +582,7 @@ void HandlePacketChat(Packet* packet) {
 			}
 
 			case eChatInternalMessageType::ANNOUNCEMENT: {
-				CINSTREAM;
-				LWOOBJID header;
-				inStream.Read(header);
+				CINSTREAM_SKIP_HEADER;
 
 				std::string title;
 				std::string msg;
@@ -601,28 +605,23 @@ void HandlePacketChat(Packet* packet) {
 
 				//Send to our clients:
 				AMFArrayValue args;
-				auto* titleValue = new AMFStringValue();
-				titleValue->SetStringValue(title.c_str());
-				auto* messageValue = new AMFStringValue();
-				messageValue->SetStringValue(msg.c_str());
 
-				args.InsertValue("title", titleValue);
-				args.InsertValue("message", messageValue);
+				args.Insert("title", title);
+				args.Insert("message", msg);
 
-				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", &args);
+				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
 
 				break;
 			}
 
 			case eChatInternalMessageType::MUTE_UPDATE: {
-				CINSTREAM;
+				CINSTREAM_SKIP_HEADER;
 				LWOOBJID playerId;
 				time_t expire = 0;
 				inStream.Read(playerId);
-				inStream.Read(playerId);
 				inStream.Read(expire);
 
-				auto* entity = EntityManager::Instance()->GetEntity(playerId);
+				auto* entity = Game::entityManager->GetEntity(playerId);
 
 				if (entity != nullptr) {
 					entity->GetParentUser()->SetMuteExpire(expire);
@@ -634,9 +633,7 @@ void HandlePacketChat(Packet* packet) {
 			}
 
 			case eChatInternalMessageType::TEAM_UPDATE: {
-				CINSTREAM;
-				LWOOBJID header;
-				inStream.Read(header);
+				CINSTREAM_SKIP_HEADER;
 
 				LWOOBJID teamID = 0;
 				char lootOption = 0;
@@ -688,7 +685,7 @@ void HandlePacket(Packet* packet) {
 			return;
 		}
 
-		auto* entity = EntityManager::Instance()->GetEntity(c->GetObjectID());
+		auto* entity = Game::entityManager->GetEntity(c->GetObjectID());
 
 		if (!entity) {
 			entity = Player::GetPlayer(packet->systemAddress);
@@ -705,7 +702,7 @@ void HandlePacket(Packet* packet) {
 
 			Game::logger->Log("WorldServer", "Deleting player %llu", entity->GetObjectID());
 
-			EntityManager::Instance()->DestroyEntity(entity);
+			Game::entityManager->DestroyEntity(entity);
 		}
 
 		{
@@ -728,7 +725,7 @@ void HandlePacket(Packet* packet) {
 		Game::server->SendToMaster(&bitStream);
 	}
 
-	if (packet->data[0] != ID_USER_PACKET_ENUM) return;
+	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
 		if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
 			AuthPackets::HandleHandshake(Game::server, packet);
@@ -781,7 +778,7 @@ void HandlePacket(Packet* packet) {
 				//Create our user and send them in:
 				UserManager::Instance()->CreateUser(it->second.sysAddr, username, userHash);
 
-				auto zone = dZoneManager::Instance()->GetZone();
+				auto zone = Game::zoneManager->GetZone();
 				if (zone) {
 					float x = 0.0f;
 					float y = 0.0f;
@@ -927,7 +924,7 @@ void HandlePacket(Packet* packet) {
 		if (Game::server->GetZoneID() != 0) {
 			auto user = UserManager::Instance()->GetUser(packet->systemAddress);
 			if (!user) return;
-			EntityManager::Instance()->DestroyEntity(user->GetLastUsedChar()->GetEntity());
+			Game::entityManager->DestroyEntity(user->GetLastUsedChar()->GetEntity());
 		}
 
 		//This loops prevents users who aren't authenticated to double-request the char list, which
@@ -1015,20 +1012,20 @@ void HandlePacket(Packet* packet) {
 
 				EntityInfo info{};
 				info.lot = 1;
-				Entity* player = EntityManager::Instance()->CreateEntity(info, UserManager::Instance()->GetUser(packet->systemAddress));
+				Entity* player = Game::entityManager->CreateEntity(info, UserManager::Instance()->GetUser(packet->systemAddress));
 
 				WorldPackets::SendCreateCharacter(packet->systemAddress, player, c->GetXMLData(), username, c->GetGMLevel());
 				WorldPackets::SendServerState(packet->systemAddress);
 
-				const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(dZoneManager::Instance()->GetZone()->GetWorldID());
+				const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID());
 
-				EntityManager::Instance()->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS, true);
+				Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS, true);
 
 				if (respawnPoint != NiPoint3::ZERO) {
 					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, NiQuaternion::IDENTITY);
 				}
 
-				EntityManager::Instance()->ConstructAllEntities(packet->systemAddress);
+				Game::entityManager->ConstructAllEntities(packet->systemAddress);
 
 				auto* characterComponent = player->GetComponent<CharacterComponent>();
 				if (characterComponent) {
@@ -1070,7 +1067,7 @@ void HandlePacket(Packet* packet) {
 
 				//Tell the player to generate BBB models, if any:
 				if (g_CloneID != 0) {
-					const auto& worldId = dZoneManager::Instance()->GetZone()->GetZoneID();
+					const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
 
 					const auto zoneId = Game::server->GetZoneID();
 					const auto cloneId = g_CloneID;
@@ -1180,7 +1177,7 @@ void HandlePacket(Packet* packet) {
 						bitStream.Write(playerName[i]);
 					}
 
-					auto zone = dZoneManager::Instance()->GetZone()->GetZoneID();
+					auto zone = Game::zoneManager->GetZone()->GetZoneID();
 					bitStream.Write(zone.GetMapID());
 					bitStream.Write(zone.GetInstanceID());
 					bitStream.Write(zone.GetCloneID());
@@ -1213,10 +1210,8 @@ void HandlePacket(Packet* packet) {
 
 	case eWorldMessageType::ROUTE_PACKET: {
 		//Yeet to chat
-		CINSTREAM;
-		uint64_t header = 0;
+		CINSTREAM_SKIP_HEADER;
 		uint32_t size = 0;
-		inStream.Read(header);
 		inStream.Read(size);
 
 		if (size > 20000) {
@@ -1339,9 +1334,11 @@ void FinalizeShutdown() {
 	Metrics::Clear();
 	Database::Destroy("WorldServer");
 	if (Game::chatFilter) delete Game::chatFilter;
+	if (Game::zoneManager) delete Game::zoneManager;
 	if (Game::server) delete Game::server;
-	if (Game::logger) delete Game::logger;
 	if (Game::config) delete Game::config;
+	if (Game::entityManager) delete Game::entityManager;
+	if (Game::logger) delete Game::logger;
 
 	worldShutdownSequenceComplete = true;
 

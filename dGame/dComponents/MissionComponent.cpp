@@ -13,7 +13,7 @@
 #include "InventoryComponent.h"
 #include "GameMessages.h"
 #include "Game.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 #include "dZoneManager.h"
 #include "Mail.h"
 #include "MissionPrerequisites.h"
@@ -26,7 +26,7 @@ std::unordered_map<AchievementCacheKey, std::vector<uint32_t>> MissionComponent:
 
 //! Initializer
 MissionComponent::MissionComponent(Entity* parent) : Component(parent) {
-	m_LastUsedMissionOrderUID = dZoneManager::Instance()->GetUniqueMissionIdStartingValue();
+	m_LastUsedMissionOrderUID = Game::zoneManager->GetUniqueMissionIdStartingValue();
 }
 
 //! Destructor

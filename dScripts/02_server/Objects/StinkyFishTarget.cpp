@@ -25,8 +25,8 @@ void StinkyFishTarget::OnSkillEventFired(Entity* self, Entity* caster, const std
 		new LDFData<bool>(u"no_timed_spawn", true)
 	};
 
-	auto* fish = EntityManager::Instance()->CreateEntity(entityInfo);
-	EntityManager::Instance()->ConstructEntity(fish);
+	auto* fish = Game::entityManager->CreateEntity(entityInfo);
+	Game::entityManager->ConstructEntity(fish);
 
 	self->SetVar<LWOOBJID>(u"fish", fish->GetObjectID());
 	self->AddTimer("smash", 5.0f);
@@ -35,7 +35,7 @@ void StinkyFishTarget::OnSkillEventFired(Entity* self, Entity* caster, const std
 void StinkyFishTarget::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "smash") {
 		const auto playerID = self->GetVar<LWOOBJID>(u"player");
-		auto* fish = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"fish"));
+		auto* fish = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"fish"));
 
 		if (fish) {
 			fish->Smash(playerID);

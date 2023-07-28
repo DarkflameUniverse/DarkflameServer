@@ -9,8 +9,8 @@ void ZoneAgSpiderQueen::SetGameVariables(Entity* self) {
 	ZoneAgProperty::SetGameVariables(self);
 
 	// Disable property flags
-	self->SetVar<uint32_t>(defeatedProperyFlag, 0);
-	self->SetVar<uint32_t>(placedModelFlag, 0);
+	self->SetVar<int32_t>(defeatedProperyFlag, 0);
+	self->SetVar<int32_t>(placedModelFlag, 0);
 	self->SetVar<uint32_t>(guardFirstMissionFlag, 0);
 	self->SetVar<uint32_t>(guardMissionFlag, 0);
 	self->SetVar<uint32_t>(brickLinkMissionIDFlag, 0);
@@ -63,7 +63,7 @@ void ZoneAgSpiderQueen::OnTimerDone(Entity* self, std::string timerName) {
 		return;
 
 	if (timerName == "killSpider") {
-		auto spawnTargets = EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(LandTargetGroup));
+		auto spawnTargets = Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(LandTargetGroup));
 		for (auto* spawnTarget : spawnTargets) {
 			EntityInfo info{};
 
@@ -75,8 +75,8 @@ void ZoneAgSpiderQueen::OnTimerDone(Entity* self, std::string timerName) {
 					new LDFData<LWOOBJID>(u"parent_tag", self->GetObjectID())
 			};
 
-			auto* chest = EntityManager::Instance()->CreateEntity(info);
-			EntityManager::Instance()->ConstructEntity(chest);
+			auto* chest = Game::entityManager->CreateEntity(info);
+			Game::entityManager->ConstructEntity(chest);
 		}
 	}
 

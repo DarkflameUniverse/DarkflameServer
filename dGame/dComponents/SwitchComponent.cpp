@@ -1,6 +1,7 @@
 #include "SwitchComponent.h"
 #include "EntityManager.h"
 #include "eTriggerEventType.h"
+#include "RenderComponent.h"
 
 std::vector<SwitchComponent*> SwitchComponent::petSwitches;
 
@@ -48,7 +49,7 @@ void SwitchComponent::EntityEnter(Entity* entity) {
 		const auto grpName = m_Parent->GetVarAsString(u"grp_name");
 
 		if (!grpName.empty()) {
-			const auto entities = EntityManager::Instance()->GetEntitiesInGroup(grpName);
+			const auto entities = Game::entityManager->GetEntitiesInGroup(grpName);
 
 			for (auto* entity : entities) {
 				entity->OnFireEventServerSide(entity, "OnActivated");
@@ -59,10 +60,10 @@ void SwitchComponent::EntityEnter(Entity* entity) {
 
 		if (m_PetBouncer != nullptr) {
 			GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 2602, u"pettriggeractive", "BounceEffect", LWOOBJID_EMPTY, 1, 1, true);
-			GameMessages::SendPlayAnimation(m_Parent, u"engaged", 0, 1);
+			RenderComponent::PlayAnimation(m_Parent, u"engaged");
 			m_PetBouncer->SetPetBouncerEnabled(true);
 		} else {
-			EntityManager::Instance()->SerializeEntity(m_Parent);
+			Game::entityManager->SerializeEntity(m_Parent);
 		}
 
 	}
@@ -84,7 +85,7 @@ void SwitchComponent::Update(float deltaTime) {
 			const auto grpName = m_Parent->GetVarAsString(u"grp_name");
 
 			if (!grpName.empty()) {
-				const auto entities = EntityManager::Instance()->GetEntitiesInGroup(grpName);
+				const auto entities = Game::entityManager->GetEntitiesInGroup(grpName);
 
 				for (auto* entity : entities) {
 					entity->OnFireEventServerSide(entity, "OnDectivated");
@@ -94,7 +95,7 @@ void SwitchComponent::Update(float deltaTime) {
 			if (m_PetBouncer != nullptr) {
 				m_PetBouncer->SetPetBouncerEnabled(false);
 			} else {
-				EntityManager::Instance()->SerializeEntity(m_Parent);
+				Game::entityManager->SerializeEntity(m_Parent);
 			}
 		}
 	}
