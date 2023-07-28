@@ -56,8 +56,8 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 		if (lootMatrix.maxToDrop == 0 || lootMatrix.minToDrop == 0) {
 			for (const auto& item : vendorItems) {
 				if (!m_HasStandardCostItems || !m_HasMultiCostItems) {
-					auto itemComponentID = compRegistryTable->GetByIDAndType(item.itemid, eReplicaComponentType::ITEM);
-					if (itemComponentID != -1) {
+					auto itemComponentID = compRegistryTable->GetByIDAndType(item.itemid, eReplicaComponentType::ITEM, -1);
+					if (itemComponentID == -1) {
 						Game::logger->Log("VendorComponent", "Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
 						continue;
 					}
@@ -77,7 +77,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 				vendorItems.erase(vendorItems.begin() + randomItemIndex);
 				if (!m_HasStandardCostItems || !m_HasMultiCostItems) {
 					auto itemComponentID = compRegistryTable->GetByIDAndType(randomItem.itemid, eReplicaComponentType::ITEM, -1);
-					if (itemComponentID != -1) {
+					if (itemComponentID == -1) {
 						Game::logger->Log("VendorComponent", "Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
 						continue;
 					}
