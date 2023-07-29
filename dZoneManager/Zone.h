@@ -18,6 +18,11 @@ struct SceneRef {
 	uint32_t id;
 	uint32_t sceneType; //0 = general, 1 = audio?
 	std::string name;
+	NiPoint3 unknown1;
+	float unknown2;
+	uint8_t color_r;
+	uint8_t color_g;
+	uint8_t color_b;
 	Level* level;
 	std::map<uint32_t, LUTriggers::Trigger*> triggers;
 };
@@ -100,7 +105,7 @@ enum class PropertyType : int32_t {
 	Headspace = 3
 };
 
-enum class PropertyRentalTimeUnit : int32_t {
+enum class PropertyRentalTimeUnit : uint32_t {
 	Forever = 0,
 	Seconds = 1,
 	Minutes = 2,
@@ -111,7 +116,7 @@ enum class PropertyRentalTimeUnit : int32_t {
 	Years = 7
 };
 
-enum class PropertyAchievmentRequired : int32_t {
+enum class PropertyAchievmentRequired : uint32_t {
 	None = 0,
 	Builder = 1,
 	Craftsman = 2,
@@ -138,7 +143,7 @@ struct PropertyPath {
 	std::string displayName;
 	std::string displayDesc;
 	PropertyType type;
-	int32_t cloneLimit;
+	uint32_t cloneLimit;
 	float repMultiplier;
 	PropertyAchievmentRequired achievementRequired;
 	NiPoint3 playerZoneCoords;
@@ -177,7 +182,9 @@ struct Path {
 class Zone {
 public:
 	enum class ZoneFileFormatVersion : uint32_t { //Times are guessed.
+		PrePreAlpha = 0x1e,
 		PreAlpha = 0x20,
+		LatePreAlpha = 0x21,
 		EarlyAlpha = 0x23,
 		Alpha = 0x24,
 		LateAlpha = 0x25,

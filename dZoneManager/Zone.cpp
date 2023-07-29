@@ -244,16 +244,29 @@ void Zone::LoadScene(std::istream& file) {
 		scene.triggers.insert({ trigger->id, trigger });
 	}
 
-	BinaryIO::BinaryRead(file, scene.id);
-	BinaryIO::BinaryRead(file, scene.sceneType);
-	lwoSceneID.SetSceneID(scene.id);
+	if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::LatePreAlpha || m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::PrePreAlpha) {
+		BinaryIO::BinaryRead(file, scene.id);
+		lwoSceneID.SetSceneID(scene.id);
+	}
+	if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::LatePreAlpha) {
+		BinaryIO::BinaryRead(file, scene.sceneType);
+		lwoSceneID.SetLayerID(scene.sceneType);
 
-	uint8_t sceneNameLength;
-	BinaryIO::BinaryRead(file, sceneNameLength);
-	scene.name = BinaryIO::ReadString(file, sceneNameLength);
-	file.ignore(3);
+		uint8_t sceneNameLength;
+		BinaryIO::BinaryRead(file, sceneNameLength);
+		scene.name = BinaryIO::ReadString(file, sceneNameLength);
+	}
 
-	lwoSceneID.SetLayerID(scene.sceneType);
+	if (m_ZoneFileFormatVersion == Zone::ZoneFileFormatVersion::LatePreAlpha){
+		BinaryIO::BinaryRead(file, scene.unknown1);
+		BinaryIO::BinaryRead(file, scene.unknown2);
+	}
+
+	if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::LatePreAlpha) {
+		BinaryIO::BinaryRead(file, scene.color_r);
+		BinaryIO::BinaryRead(file, scene.color_b);
+		BinaryIO::BinaryRead(file, scene.color_g);
+	}
 
 	m_Scenes.insert(std::make_pair(lwoSceneID, scene));
 	m_NumberOfScenesLoaded++;
@@ -431,9 +444,7 @@ void Zone::LoadPath(std::istream& file) {
 
 		if (path.pathVersion >= 8) {
 			BinaryIO::BinaryRead(file, path.property.achievementRequired);
-			BinaryIO::BinaryRead(file, path.property.playerZoneCoords.x);
-			BinaryIO::BinaryRead(file, path.property.playerZoneCoords.y);
-			BinaryIO::BinaryRead(file, path.property.playerZoneCoords.z);
+			BinaryIO::BinaryRead(file, path.property.playerZoneCoords);
 			BinaryIO::BinaryRead(file, path.property.maxBuildHeight);
 		}
 	} else if (path.pathType == PathType::Camera) {
