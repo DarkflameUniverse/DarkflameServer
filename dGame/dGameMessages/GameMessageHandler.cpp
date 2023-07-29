@@ -73,11 +73,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		break;
 	}
 
-	case eGameMessageType::EQUIP_ITEM:
+	case eGameMessageType::EQUIP_INVENTORY:
 		GameMessages::HandleEquipItem(inStream, entity);
 		break;
 
-	case eGameMessageType::UN_EQUIP_ITEM:
+	case eGameMessageType::UN_EQUIP_INVENTORY:
 		GameMessages::HandleUnequipItem(inStream, entity);
 		break;
 
