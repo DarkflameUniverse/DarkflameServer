@@ -41,7 +41,8 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_PullingToPoint = false;
 	m_PullPoint = NiPoint3::ZERO;
 	m_HaltDistance = 0;
-	m_Timer = 0;
+	m_TimeToTravel = 0;
+	m_TimeTravelled = 0;
 	m_CurrentSpeed = 0;
 	m_MaxSpeed = 0;
 	m_LockRotation = false;
@@ -79,9 +80,9 @@ void MovementAIComponent::Update(const float deltaTime) {
 		}
 	}
 
-	m_Timer -= deltaTime;
-	if (m_Timer > 0.0f) return;
-	m_Timer = 0;
+	m_TimeTravelled += deltaTime;
+	if (m_TimeTravelled < m_TimeToTravel) return;
+	m_TimeTravelled = 0.0f;
 
 	const auto source = GetCurrentWaypoint();
 
@@ -94,7 +95,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		m_NextWaypoint = GetCurrentWaypoint();
 
 		if (m_NextWaypoint == source) {
-			m_Timer = 0;
+			m_TimeTravelled = 0.0f;
 
 			goto nextAction;
 		}
@@ -117,9 +118,11 @@ void MovementAIComponent::Update(const float deltaTime) {
 			velocity.y = (delta.y / length) * speed;
 			velocity.z = (delta.z / length) * speed;
 		}
+		Game::logger->Log("MovementAIComponent", "vel %f %f %f", velocity.x, velocity.y, velocity.z);
 
 		// Calclute the time it will take to reach the next waypoint with the current speed
-		m_Timer = length / speed;
+		m_TimeTravelled = 0.0f;
+		m_TimeToTravel = length / speed;
 
 		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 	} else {
@@ -164,17 +167,13 @@ NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
 NiPoint3 MovementAIComponent::ApproximateLocation() const {
 	auto source = m_Parent->GetPosition();
 
-	if (m_Done) return source;
+	if (AtFinalWaypoint()) return source;
 
 	auto destination = m_NextWaypoint;
 
-	auto factor = m_TotalTime > 0 ? (m_TotalTime - m_Timer) / m_TotalTime : 0;
+	auto percentageToWaypoint = m_TimeToTravel > 0 ? m_TimeTravelled / m_TimeToTravel : 0;
 
-	NiPoint3 approximation(
-		source.x + factor * (destination.x - source.x),
-		source.y + factor * (destination.y - source.y),
-		source.z + factor * (destination.z - source.z)
-	);
+	auto approximation = source + ((destination - source) * percentageToWaypoint);
 
 	if (dpWorld::Instance().IsLoaded()) {
 		approximation.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(approximation);
@@ -210,7 +209,8 @@ void MovementAIComponent::Stop() {
 
 	SetVelocity(NiPoint3::ZERO);
 
-	m_Timer = 0;
+	m_TimeToTravel = 0;
+	m_TimeTravelled = 0;
 
 	m_AtFinalWaypoint = true;
 
@@ -348,7 +348,8 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 
 	m_PathIndex = 0;
 
-	m_Timer = 0;
+	m_TimeTravelled = 0;
+	m_TimeToTravel = 0;
 
 	m_AtFinalWaypoint = false;
 }

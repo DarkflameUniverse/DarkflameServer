@@ -168,12 +168,6 @@ public:
 	bool Warp(const NiPoint3& point);
 
 	/**
-	 * Returns the time it will take to reach the final waypoint according to the current speed
-	 * @return the time it will take to reach the final waypoint according to the current speed
-	 */
-	float GetTimer() const { return m_Timer; }
-
-	/**
 	 * Returns if the entity is at its final waypoint
 	 * @return if the entity is at its final waypoint
 	 */
@@ -242,7 +236,7 @@ private:
 	/**
 	 * The time it will take to reach the next waypoint using the current speed
 	 */
-	float m_Timer;
+	float m_TimeTravelled;
 
 	/**
 	 * The path this entity is currently traversing
@@ -268,6 +262,11 @@ private:
 	 * The distance between the current position and the target waypoint to consider it reached (to not ghost into it).
 	 */
 	float m_HaltDistance;
+
+	/**
+	 * The total time it will take to reach the waypoint form its starting point
+	 */
+	float m_TimeToTravel;
 
 	/**
 	 * The base speed this entity has
