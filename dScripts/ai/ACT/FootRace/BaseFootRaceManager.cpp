@@ -1,6 +1,7 @@
 #include "BaseFootRaceManager.h"
 #include "EntityManager.h"
 #include "Character.h"
+#include "Entity.h"
 
 void BaseFootRaceManager::OnStartup(Entity* self) {
 	// TODO: Add to FootRaceStarter group
@@ -11,7 +12,7 @@ void BaseFootRaceManager::OnFireEventServerSide(Entity* self, Entity* sender, st
 	if (splitArguments.size() > 1) {
 
 		const auto eventName = splitArguments[0];
-		const auto player = EntityManager::Instance()->GetEntity(std::stoull(splitArguments[1]));
+		const auto player = Game::entityManager->GetEntity(std::stoull(splitArguments[1]));
 
 		if (player != nullptr) {
 			if (eventName == "updatePlayer") {
@@ -40,6 +41,7 @@ void BaseFootRaceManager::OnFireEventServerSide(Entity* self, Entity* sender, st
 					}
 
 					StopActivity(self, player->GetObjectID(), 0, param1);
+					SaveScore(self, player->GetObjectID(), static_cast<float>(param1), static_cast<float>(param2), static_cast<float>(param3));
 				}
 			}
 		}

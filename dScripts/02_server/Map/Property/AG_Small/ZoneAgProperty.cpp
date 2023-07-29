@@ -61,7 +61,7 @@ void ZoneAgProperty::OnPlayerLoaded(Entity* self, Entity* player) {
 		self->SetVar<int32_t>(u"numberOfPlayers", numberOfPlayers + 1);
 	}
 
-	if (dZoneManager::Instance()->GetZone()->GetZoneID().GetMapID() == 1102) {
+	if (Game::zoneManager->GetZone()->GetZoneID().GetMapID() == 1102) {
 		GameMessages::SendPlay2DAmbientSound(player, GUIDMaelstrom);
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"maelstromSkyOn", 0, 0,
 			LWOOBJID_EMPTY, "", player->GetSystemAddress());
@@ -93,7 +93,7 @@ void ZoneAgProperty::OnZoneLoadedInfo(Entity* self) {
 void ZoneAgProperty::LoadInstance(Entity* self) {
 	SetGameVariables(self);
 
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(self->GetVar<std::string>(InstancerSpawner))) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(self->GetVar<std::string>(InstancerSpawner))) {
 		for (auto* spawnerNode : spawner->m_Info.nodes) {
 			spawnerNode->config.push_back(
 				new LDFData<std::string>(u"custom_script_server",
@@ -128,13 +128,13 @@ void ZoneAgProperty::KillSpots(Entity* self) {
 	}
 
 	for (const auto& groupName : self->GetVar<std::vector<std::string>>(ROFTargetsGroup)) {
-		for (auto* spot : EntityManager::Instance()->GetEntitiesInGroup(groupName)) {
+		for (auto* spot : Game::entityManager->GetEntitiesInGroup(groupName)) {
 			spot->Kill();
 		}
 	}
 
 	DeactivateSpawner(self->GetVar<std::string>(LandTargetSpawner));
-	for (auto* landTarget : EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(LandTargetSpawner))) {
+	for (auto* landTarget : Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(LandTargetSpawner))) {
 		landTarget->Kill();
 	}
 }
@@ -180,7 +180,7 @@ void ZoneAgProperty::StartMaelstrom(Entity* self, Entity* player) {
 }
 
 uint32_t ZoneAgProperty::RetrieveSpawnerId(Entity* self, const std::string& spawner) {
-	auto spawnerIDs = dZoneManager::Instance()->GetSpawnersByName(spawner);
+	auto spawnerIDs = Game::zoneManager->GetSpawnersByName(spawner);
 	if (spawnerIDs.empty())
 		return 0;
 
@@ -193,24 +193,24 @@ void ZoneAgProperty::OnTimerDone(Entity* self, std::string timerName) {
 
 void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 	if (timerName == "GuardFlyAway") {
-		const auto zoneId = dZoneManager::Instance()->GetZone()->GetWorldID();
+		const auto zoneId = Game::zoneManager->GetZone()->GetWorldID();
 		if (zoneId != 1150)
 			return;
 
-		const auto entities = EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(GuardGroup));
+		const auto entities = Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(GuardGroup));
 		if (entities.empty())
 			return;
 
 		auto* entity = entities[0];
 
-		GameMessages::SendNotifyClientObject(EntityManager::Instance()->GetZoneControlEntity()->GetObjectID(), u"GuardChat", 0, 0, entity->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::SendNotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(), u"GuardChat", 0, 0, entity->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		LoadProperty(self);
 
 		self->AddTimer("KillGuard", 5);
 	} else if (timerName == "KillGuard") {
 		KillGuard(self);
 	} else if (timerName == "tornadoOff") {
-		for (auto* entity : EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup))) {
+		for (auto* entity : Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup))) {
 			auto* renderComponent = entity->GetComponent<RenderComponent>();
 			if (renderComponent != nullptr) {
 				renderComponent->StopEffect("TornadoDebris", false);
@@ -222,7 +222,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		self->AddTimer("ShowVendor", 1.2f);
 		self->AddTimer("ShowClearEffects", 2);
 	} else if (timerName == "ShowClearEffects") {
-		for (auto* entity : EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup))) {
+		for (auto* entity : Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup))) {
 			auto* renderComponent = entity->GetComponent<RenderComponent>();
 			if (renderComponent != nullptr) {
 				renderComponent->PlayEffect(-1, u"beamOn", "beam");
@@ -236,7 +236,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SkyOff", 0, 0, LWOOBJID_EMPTY,
 			"", UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == "killSpider") {
-		for (auto* entity : EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(EnemiesGroup))) {
+		for (auto* entity : Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(EnemiesGroup))) {
 			entity->Kill();
 		}
 
@@ -257,7 +257,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 		DeactivateSpawner(self->GetVar<std::string>(SpiderScreamSpawner));
 		DestroySpawner(self->GetVar<std::string>(SpiderScreamSpawner));
 
-		for (auto* player : EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CHARACTER)) {
+		for (auto* player : Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CHARACTER)) {
 			GameMessages::SendStop2DAmbientSound(player, true, GUIDMaelstrom);
 			GameMessages::SendPlay2DAmbientSound(player, GUIDPeaceful);
 		}
@@ -274,7 +274,7 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 	} else if (timerName == "pollTornadoFX") {
 		StartTornadoFx(self);
 	} else if (timerName == "killFXObject") {
-		for (auto* entity : EntityManager::Instance()->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup))) {
+		for (auto* entity : Game::entityManager->GetEntitiesInGroup(self->GetVar<std::string>(FXManagerGroup))) {
 			auto* renderComponent = entity->GetComponent<RenderComponent>();
 			if (renderComponent != nullptr) {
 				renderComponent->StopEffect("beam");
@@ -385,7 +385,7 @@ void ZoneAgProperty::RemovePlayerRef(Entity* self) {
 void ZoneAgProperty::BaseOnFireEventServerSide(Entity* self, Entity* sender, std::string args) {
 	if (args == "propertyRented") {
 		const auto playerId = self->GetVar<LWOOBJID>(u"playerID");
-		auto* player = EntityManager::Instance()->GetEntity(playerId);
+		auto* player = Game::entityManager->GetEntity(playerId);
 		if (player == nullptr)
 			return;
 
@@ -409,7 +409,7 @@ void ZoneAgProperty::BaseOnFireEventServerSide(Entity* self, Entity* sender, std
 		sender->SetNetworkVar<std::string>(u"PropertyOwnerID", std::to_string(self->GetVar<LWOOBJID>(u"PropertyOwner")));
 	} else if (args == "ClearProperty") {
 		const auto playerId = self->GetVar<LWOOBJID>(u"playerID");
-		auto* player = EntityManager::Instance()->GetEntity(playerId);
+		auto* player = Game::entityManager->GetEntity(playerId);
 		if (player == nullptr)
 			return;
 

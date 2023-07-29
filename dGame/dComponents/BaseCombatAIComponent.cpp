@@ -173,7 +173,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	}
 
 	if (m_SoftTimer <= 0.0f) {
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		Game::entityManager->SerializeEntity(m_Parent);
 
 		m_SoftTimer = 5.0f;
 	} else {
@@ -305,7 +305,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 			}
 
 			if (serilizationRequired) {
-				EntityManager::Instance()->SerializeEntity(m_Parent);
+				Game::entityManager->SerializeEntity(m_Parent);
 			}
 
 			GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 6270, u"tether", "tether");
@@ -410,7 +410,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	float biggestThreat = 0;
 
 	for (const auto& entry : possibleTargets) {
-		auto* entity = EntityManager::Instance()->GetEntity(entry);
+		auto* entity = Game::entityManager->GetEntity(entry);
 
 		if (entity == nullptr) {
 			continue;
@@ -456,7 +456,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	std::vector<LWOOBJID> deadThreats{};
 
 	for (const auto& threatTarget : m_ThreatEntries) {
-		auto* entity = EntityManager::Instance()->GetEntity(threatTarget.first);
+		auto* entity = Game::entityManager->GetEntity(threatTarget.first);
 
 		if (entity == nullptr) {
 			deadThreats.push_back(threatTarget.first);
@@ -495,7 +495,7 @@ std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 	std::vector<LWOOBJID> targets;
 
 	for (auto id : m_Parent->GetTargetsInPhantom()) {
-		auto* other = EntityManager::Instance()->GetEntity(id);
+		auto* other = Game::entityManager->GetEntity(id);
 
 		const auto distance = Vector3::DistanceSquared(m_Parent->GetPosition(), other->GetPosition());
 
@@ -533,11 +533,11 @@ void BaseCombatAIComponent::SetAiState(AiState newState) {
 	if (newState == this->m_State) return;
 	this->m_State = newState;
 	m_DirtyStateOrTarget = true;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
-	auto* entity = EntityManager::Instance()->GetEntity(target);
+	auto* entity = Game::entityManager->GetEntity(target);
 
 	if (entity == nullptr) {
 		Game::logger->Log("BaseCombatAIComponent", "Invalid entity for checking validity (%llu)!", target);
@@ -586,11 +586,11 @@ void BaseCombatAIComponent::SetTarget(const LWOOBJID target) {
 	if (this->m_Target == target) return;
 	m_Target = target;
 	m_DirtyStateOrTarget = true;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 Entity* BaseCombatAIComponent::GetTargetEntity() const {
-	return EntityManager::Instance()->GetEntity(m_Target);
+	return Game::entityManager->GetEntity(m_Target);
 }
 
 void BaseCombatAIComponent::Taunt(LWOOBJID offender, float threat) {

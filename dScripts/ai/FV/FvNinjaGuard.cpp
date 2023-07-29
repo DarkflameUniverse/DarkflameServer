@@ -22,13 +22,13 @@ void FvNinjaGuard::OnEmoteReceived(Entity* self, const int32_t emote, Entity* ta
 	RenderComponent::PlayAnimation(self, u"scared");
 
 	if (self->GetLOT() == 7412) {
-		auto* rightGuard = EntityManager::Instance()->GetEntity(m_RightGuard);
+		auto* rightGuard = Game::entityManager->GetEntity(m_RightGuard);
 
 		if (rightGuard != nullptr) {
 			RenderComponent::PlayAnimation(rightGuard, u"laugh_rt");
 		}
 	} else if (self->GetLOT() == 11128) {
-		auto* leftGuard = EntityManager::Instance()->GetEntity(m_LeftGuard);
+		auto* leftGuard = Game::entityManager->GetEntity(m_LeftGuard);
 
 		if (leftGuard != nullptr) {
 			RenderComponent::PlayAnimation(leftGuard, u"laugh_lt");

@@ -9,9 +9,9 @@ void FvFacilityBrick::OnStartup(Entity* self) {
 }
 
 void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
-	auto* brickSpawner = dZoneManager::Instance()->GetSpawnersByName("ImaginationBrick")[0];
-	auto* bugSpawner = dZoneManager::Instance()->GetSpawnersByName("MaelstromBug")[0];
-	auto* canisterSpawner = dZoneManager::Instance()->GetSpawnersByName("BrickCanister")[0];
+	auto* brickSpawner = Game::zoneManager->GetSpawnersByName("ImaginationBrick")[0];
+	auto* bugSpawner = Game::zoneManager->GetSpawnersByName("MaelstromBug")[0];
+	auto* canisterSpawner = Game::zoneManager->GetSpawnersByName("BrickCanister")[0];
 
 	if (name == "ConsoleLeftUp") {
 		GameMessages::SendStopFXEffect(self, true, "LeftPipeOff");
@@ -46,14 +46,14 @@ void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::st
 	}
 
 	if (self->GetVar<bool>(u"ConsoleLEFTActive") && self->GetVar<bool>(u"ConsoleRIGHTActive")) {
-		auto* object = EntityManager::Instance()->GetEntitiesInGroup("Brick")[0];
+		auto* object = Game::entityManager->GetEntitiesInGroup("Brick")[0];
 
 		if (object != nullptr) {
 			GameMessages::SendPlayFXEffect(object->GetObjectID(), 122, u"create", "bluebrick");
 			GameMessages::SendPlayFXEffect(object->GetObjectID(), 1034, u"cast", "imaginationexplosion");
 		}
 
-		object = EntityManager::Instance()->GetEntitiesInGroup("Canister")[0];
+		object = Game::entityManager->GetEntitiesInGroup("Canister")[0];
 
 		if (object != nullptr) {
 			object->Smash(self->GetObjectID(), eKillType::SILENT);
@@ -64,7 +64,7 @@ void FvFacilityBrick::OnNotifyObject(Entity* self, Entity* sender, const std::st
 	} else if (self->GetVar<bool>(u"ConsoleLEFTActive") || self->GetVar<bool>(u"ConsoleRIGHTActive")) {
 		brickSpawner->Activate();
 
-		auto* object = EntityManager::Instance()->GetEntitiesInGroup("Brick")[0];
+		auto* object = Game::entityManager->GetEntitiesInGroup("Brick")[0];
 
 		if (object != nullptr) {
 			GameMessages::SendStopFXEffect(object, true, "bluebrick");

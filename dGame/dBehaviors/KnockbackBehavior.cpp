@@ -21,7 +21,7 @@ void KnockbackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 void KnockbackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	bool blocked = false;
 
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target != nullptr) {
 		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
