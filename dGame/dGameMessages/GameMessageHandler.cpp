@@ -48,11 +48,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	if (!entity) {
 		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!", objectID, messageID);
-
 		return;
 	}
 
-	Game::logger->LogDebug("GameMessageHandler", "received game message ID: %i", messageID);
+	if (messageID != eGameMessageType::READY_FOR_UPDATES) Game::logger->LogDebug("GameMessageHandler", "received game message ID: %i", messageID);
+
 	switch (messageID) {
 
 	case eGameMessageType::UN_USE_BBB_MODEL: {
