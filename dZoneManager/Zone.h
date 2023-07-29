@@ -182,17 +182,17 @@ struct Path {
 
 class Zone {
 public:
-	enum class ZoneFileFormatVersion : uint32_t { //Times are guessed.
-		PrePreAlpha = 0x1e,
-		PreAlpha = 0x20,
-		LatePreAlpha = 0x21,
-		EarlyAlpha = 0x23,
-		Alpha = 0x24,
-		LateAlpha = 0x25,
-		Beta = 0x26,
-		Launch = 0x27,
-		Auramar = 0x28,
-		Latest = 0x29
+	enum class FileFormatVersion : uint32_t { //Times are guessed.
+		PrePreAlpha = 30,
+		PreAlpha = 32,
+		LatePreAlpha = 33,
+		EarlyAlpha = 35,
+		Alpha = 36,
+		LateAlpha = 37,
+		Beta = 38,
+		Launch = 39,
+		Auramar = 40,
+		Latest = 41
 	};
 
 public:
@@ -228,7 +228,7 @@ private:
 	uint32_t m_NumberOfScenesLoaded;
 	uint32_t m_NumberOfObjectsLoaded;
 	uint32_t m_NumberOfSceneTransitionsLoaded;
-	ZoneFileFormatVersion m_ZoneFileFormatVersion;
+	FileFormatVersion m_FileFormatVersion;
 	uint32_t m_CheckSum;
 	uint32_t m_WorldID; //should be equal to the MapID
 	NiPoint3 m_Spawnpoint;

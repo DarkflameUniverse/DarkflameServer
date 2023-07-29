@@ -54,22 +54,22 @@ void Zone::LoadZoneIntoMemory() {
 
 	std::istream file(&buffer);
 	if (file) {
-		BinaryIO::BinaryRead(file, m_ZoneFileFormatVersion);
+		BinaryIO::BinaryRead(file, m_FileFormatVersion);
 
 		uint32_t mapRevision = 0;
-		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
+		if (m_FileFormatVersion >= Zone::FileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
 
 		BinaryIO::BinaryRead(file, m_WorldID);
 		if ((uint16_t)m_WorldID != m_ZoneID.GetMapID()) Game::logger->Log("Zone", "WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
 
 		AddRevision(LWOSCENEID_INVALID, mapRevision);
 
-		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::Beta) {
+		if (m_FileFormatVersion >= Zone::FileFormatVersion::Beta) {
 			BinaryIO::BinaryRead(file, m_Spawnpoint);
 			BinaryIO::BinaryRead(file, m_SpawnpointRotation);
 		}
 
-		if (m_ZoneFileFormatVersion <= Zone::ZoneFileFormatVersion::LateAlpha) {
+		if (m_FileFormatVersion <= Zone::FileFormatVersion::LateAlpha) {
 			uint8_t sceneCount;
 			BinaryIO::BinaryRead(file, sceneCount);
 			m_SceneCount = sceneCount;
@@ -93,14 +93,14 @@ void Zone::LoadZoneIntoMemory() {
 		BinaryIO::BinaryRead(file, stringLength);
 		m_ZoneDesc = BinaryIO::ReadString(file, stringLength);
 
-		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::PreAlpha) {
+		if (m_FileFormatVersion >= Zone::FileFormatVersion::PreAlpha) {
 			BinaryIO::BinaryRead(file, m_NumberOfSceneTransitionsLoaded);
 			for (uint32_t i = 0; i < m_NumberOfSceneTransitionsLoaded; ++i) {
 				LoadSceneTransition(file);
 			}
 		}
 
-		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::EarlyAlpha) {
+		if (m_FileFormatVersion >= Zone::FileFormatVersion::EarlyAlpha) {
 			BinaryIO::BinaryRead(file, m_PathDataLength);
 			BinaryIO::BinaryRead(file, m_PathChunkVersion); // always should be 1
 
@@ -244,11 +244,11 @@ void Zone::LoadScene(std::istream& file) {
 		scene.triggers.insert({ trigger->id, trigger });
 	}
 
-	if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::LatePreAlpha || m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::PrePreAlpha) {
+	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha || m_FileFormatVersion < Zone::FileFormatVersion::PrePreAlpha) {
 		BinaryIO::BinaryRead(file, scene.id);
 		lwoSceneID.SetSceneID(scene.id);
 	}
-	if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::LatePreAlpha) {
+	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
 		BinaryIO::BinaryRead(file, scene.sceneType);
 		lwoSceneID.SetLayerID(scene.sceneType);
 
@@ -257,12 +257,12 @@ void Zone::LoadScene(std::istream& file) {
 		scene.name = BinaryIO::ReadString(file, sceneNameLength);
 	}
 
-	if (m_ZoneFileFormatVersion == Zone::ZoneFileFormatVersion::LatePreAlpha){
+	if (m_FileFormatVersion == Zone::FileFormatVersion::LatePreAlpha){
 		BinaryIO::BinaryRead(file, scene.unknown1);
 		BinaryIO::BinaryRead(file, scene.unknown2);
 	}
 
-	if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::LatePreAlpha) {
+	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
 		BinaryIO::BinaryRead(file, scene.color_r);
 		BinaryIO::BinaryRead(file, scene.color_b);
 		BinaryIO::BinaryRead(file, scene.color_g);
@@ -358,7 +358,7 @@ const Path* Zone::GetPath(std::string name) const {
 
 void Zone::LoadSceneTransition(std::istream& file) {
 	SceneTransition sceneTrans;
-	if (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::Auramar) {
+	if (m_FileFormatVersion < Zone::FileFormatVersion::Auramar) {
 		uint8_t length;
 		BinaryIO::BinaryRead(file, length);
 		sceneTrans.name = BinaryIO::ReadString(file, length);
@@ -366,7 +366,7 @@ void Zone::LoadSceneTransition(std::istream& file) {
 	}
 
 	//BR�THER MAY I HAVE SOME L��PS?
-	uint8_t loops = (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::EarlyAlpha || m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::Launch) ? 2 : 5;
+	uint8_t loops = (m_FileFormatVersion <= Zone::FileFormatVersion::LatePreAlpha || m_FileFormatVersion >= Zone::FileFormatVersion::Launch) ? 2 : 5;
 
 	for (uint8_t i = 0; i < loops; ++i) {
 		sceneTrans.points.push_back(LoadSceneTransitionInfo(file));
