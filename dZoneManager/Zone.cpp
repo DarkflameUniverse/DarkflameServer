@@ -414,7 +414,7 @@ void Zone::LoadPath(std::istream& file) {
 	} else if (path.pathType == PathType::Property) {
 		BinaryIO::BinaryRead(file, path.property.pathType);
 		BinaryIO::BinaryRead(file, path.property.price);
-		BinaryIO::BinaryRead(file, path.property.rentalTimeUnit);
+		BinaryIO::BinaryRead(file, path.property.rentalTime);
 		BinaryIO::BinaryRead(file, path.property.associatedZone);
 
 		if (path.pathVersion >= 5) {
@@ -439,7 +439,7 @@ void Zone::LoadPath(std::istream& file) {
 		if (path.pathVersion >= 7) {
 			BinaryIO::BinaryRead(file, path.property.cloneLimit);
 			BinaryIO::BinaryRead(file, path.property.repMultiplier);
-			BinaryIO::BinaryRead(file, path.property.rentalTimeUnit);
+			BinaryIO::BinaryRead(file, path.property.rentalPeriod);
 		}
 
 		if (path.pathVersion >= 8) {

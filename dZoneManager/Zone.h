@@ -105,7 +105,7 @@ enum class PropertyType : int32_t {
 	Headspace = 3
 };
 
-enum class PropertyRentalTimeUnit : uint32_t {
+enum class PropertyRentalPerion : uint32_t {
 	Forever = 0,
 	Seconds = 1,
 	Minutes = 2,
@@ -138,13 +138,14 @@ struct MovingPlatformPath {
 struct PropertyPath {
 	PropertyPathType pathType;
 	int32_t price;
-	PropertyRentalTimeUnit rentalTimeUnit;
+	uint32_t rentalTime;
 	uint64_t associatedZone;
 	std::string displayName;
 	std::string displayDesc;
 	PropertyType type;
 	uint32_t cloneLimit;
 	float repMultiplier;
+	PropertyRentalPerion rentalPeriod;
 	PropertyAchievmentRequired achievementRequired;
 	NiPoint3 playerZoneCoords;
 	float maxBuildHeight;
