@@ -52,12 +52,6 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		if (newEntity) {
 			EntityManager::Instance()->ConstructEntity(newEntity);
 			newEntity->GetGroups().push_back("BabySpider");
-
-			/*
-			auto* movementAi = newEntity->GetComponent<MovementAIComponent>();
-
-			movementAi->SetDestination(newEntity->GetPosition());
-			*/
 		}
 
 		self->ScheduleKillAfterUpdate();

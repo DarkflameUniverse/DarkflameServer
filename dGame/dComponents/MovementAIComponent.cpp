@@ -23,7 +23,7 @@ namespace {
 
 MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : Component(parent) {
 	m_Info = info;
-	m_Done = true;
+	m_AtFinalWaypoint = true;
 
 	m_BaseCombatAI = nullptr;
 
@@ -38,18 +38,17 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 
 	m_NextWaypoint = m_Parent->GetPosition();
 	m_Acceleration = 0.4f;
-	m_Interrupted = false;
+	m_PullingToPoint = false;
 	m_PullPoint = NiPoint3::ZERO;
 	m_HaltDistance = 0;
 	m_Timer = 0;
 	m_CurrentSpeed = 0;
-	m_Speed = 0;
-	m_TotalTime = 0;
+	m_MaxSpeed = 0;
 	m_LockRotation = false;
 }
 
 void MovementAIComponent::Update(const float deltaTime) {
-	if (m_Interrupted) {
+	if (m_PullingToPoint) {
 		const auto source = GetCurrentWaypoint();
 
 		const auto speed = deltaTime * 2.5f;
@@ -63,7 +62,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		SetPosition(source + velocity);
 
 		if (Vector3::DistanceSquared(m_Parent->GetPosition(), m_PullPoint) < std::pow(2, 2)) {
-			m_Interrupted = false;
+			m_PullingToPoint = false;
 		}
 
 		return;
@@ -80,13 +79,9 @@ void MovementAIComponent::Update(const float deltaTime) {
 		}
 	}
 
-	if (m_Timer > 0) {
-		m_Timer -= deltaTime;
-
-		if (m_Timer > 0) return;
-
-		m_Timer = 0;
-	}
+	m_Timer -= deltaTime;
+	if (m_Timer > 0.0f) return;
+	m_Timer = 0;
 
 	const auto source = GetCurrentWaypoint();
 
@@ -104,21 +99,19 @@ void MovementAIComponent::Update(const float deltaTime) {
 			goto nextAction;
 		}
 
-		if (m_CurrentSpeed < m_Speed) {
+		if (m_CurrentSpeed < m_MaxSpeed) {
 			m_CurrentSpeed += m_Acceleration;
 		}
 
-		if (m_CurrentSpeed > m_Speed) {
-			m_CurrentSpeed = m_Speed;
+		if (m_CurrentSpeed > m_MaxSpeed) {
+			m_CurrentSpeed = m_MaxSpeed;
 		}
 
 		const auto speed = m_CurrentSpeed * m_BaseSpeed;
-
 		const auto delta = m_NextWaypoint - source;
 
 		// Normalize the vector
 		const auto length = delta.Length();
-
 		if (length > 0) {
 			velocity.x = (delta.x / length) * speed;
 			velocity.y = (delta.y / length) * speed;
@@ -127,15 +120,14 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 		// Calclute the time it will take to reach the next waypoint with the current speed
 		m_Timer = length / speed;
-		m_TotalTime = m_Timer;
 
 		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 	} else {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
-		if (!m_Stack.empty()) {
-			SetDestination(m_Stack.top());
+		if (!m_InterpolatedWaypoints.empty()) {
+			SetDestination(m_InterpolatedWaypoints.top());
 
-			m_Stack.pop();
+			m_InterpolatedWaypoints.pop();
 		} else {
 			// We have reached our final waypoint
 			Stop();
@@ -212,17 +204,18 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 }
 
 void MovementAIComponent::Stop() {
-	if (m_Done) return;
+	if (m_AtFinalWaypoint) return;
 
-	SetPosition(ApproximateLocation());
+	SetPosition(m_Parent->GetPosition());
 
 	SetVelocity(NiPoint3::ZERO);
 
-	m_TotalTime = m_Timer = 0;
+	m_Timer = 0;
 
-	m_Done = true;
+	m_AtFinalWaypoint = true;
 
 	m_CurrentPath.clear();
+	while (!m_InterpolatedWaypoints.empty()) m_InterpolatedWaypoints.pop();
 
 	m_PathIndex = 0;
 
@@ -234,18 +227,18 @@ void MovementAIComponent::Stop() {
 void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 	Stop();
 
-	m_Interrupted = true;
+	m_PullingToPoint = true;
 	m_PullPoint = point;
 }
 
 void MovementAIComponent::SetPath(std::vector<NiPoint3> path) {
 	std::for_each(path.rbegin(), path.rend(), [this](const NiPoint3& point) {
-		this->m_Stack.push(point);
+		this->m_InterpolatedWaypoints.push(point);
 	});
 
-	SetDestination(m_Stack.top());
+	SetDestination(m_InterpolatedWaypoints.top());
 
-	m_Stack.pop();
+	m_InterpolatedWaypoints.pop();
 }
 
 float MovementAIComponent::GetBaseSpeed(LOT lot) {
@@ -307,7 +300,7 @@ void MovementAIComponent::SetVelocity(const NiPoint3& value) {
 }
 
 void MovementAIComponent::SetDestination(const NiPoint3& destination) {
-	if (m_Interrupted) return;
+	if (m_PullingToPoint) return;
 
 	const auto location = ApproximateLocation();
 
@@ -357,16 +350,14 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 
 	m_Timer = 0;
 
-	m_TotalTime = m_Timer;
-
-	m_Done = false;
+	m_AtFinalWaypoint = false;
 }
 
 NiPoint3 MovementAIComponent::GetDestination() const {
 	return m_CurrentPath.empty() ? m_Parent->GetPosition() : m_CurrentPath.back();
 }
 
-void MovementAIComponent::SetSpeed(const float value) {
-	m_Speed = value;
+void MovementAIComponent::SetMaxSpeed(const float value) {
+	m_MaxSpeed = value;
 	m_Acceleration = value / 5;
 }

@@ -466,7 +466,7 @@ skipTresure:
 
 	m_MovementAI->SetHaltDistance(haltDistance);
 
-	m_MovementAI->SetSpeed(2.5f);
+	m_MovementAI->SetMaxSpeed(2.5f);
 
 	m_MovementAI->SetDestination(destination);
 
@@ -828,7 +828,7 @@ void PetComponent::Wander() {
 		return;
 	}
 
-	m_MovementAI->SetSpeed(info.wanderSpeed);
+	m_MovementAI->SetMaxSpeed(info.wanderSpeed);
 
 	m_MovementAI->SetDestination(destination);
 

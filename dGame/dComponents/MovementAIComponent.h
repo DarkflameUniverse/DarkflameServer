@@ -1,6 +1,6 @@
 /*
  * Darkflame Universe
- * Copyright 2018
+ * Copyright 2023
  */
 
 #ifndef MOVEMENTAICOMPONENT_H
@@ -85,13 +85,7 @@ public:
 	 * Sets the max speed at which this entity may run
 	 * @param value the speed value to set
 	 */
-	void SetSpeed(float value);
-
-	/**
-	 * Returns the max speed at which this entity may run
-	 * @return the max speed at which this entity may run
-	 */
-	float GetSpeed() const { return m_Speed; };
+	void SetMaxSpeed(float value);
 
 	/**
 	 * Sets how fast the entity will accelerate when not running at full speed
@@ -183,7 +177,7 @@ public:
 	 * Returns if the entity is at its final waypoint
 	 * @return if the entity is at its final waypoint
 	 */
-	bool AtFinalWaypoint() const { return m_Done; }
+	bool AtFinalWaypoint() const { return m_AtFinalWaypoint; }
 
 	/**
 	 * Renders the entity stationary
@@ -243,17 +237,12 @@ private:
 	/**
 	 * The max speed this entity may move at
 	 */
-	float m_Speed;
+	float m_MaxSpeed;
 
 	/**
 	 * The time it will take to reach the next waypoint using the current speed
 	 */
 	float m_Timer;
-
-	/**
-	 * The total time it will take to reach the waypoint form its starting point
-	 */
-	float m_TotalTime;
 
 	/**
 	 * The path this entity is currently traversing
@@ -263,7 +252,7 @@ private:
 	/**
 	 * If the entity has reached it last waypoint
 	 */
-	bool m_Done;
+	bool m_AtFinalWaypoint;
 
 	/**
 	 * The speed the entity is currently moving at
@@ -288,7 +277,7 @@ private:
 	/**
 	 * If the AI is currently turned of (e.g. when teleporting to some location)
 	 */
-	bool m_Interrupted;
+	bool m_PullingToPoint;
 
 	/**
 	 * A position that the entity is currently moving towards while being interrupted
@@ -311,9 +300,9 @@ private:
 	std::vector<NiPoint3> m_CurrentPath;
 
 	/**
-	 * Stack of positions to traverse
+	 * The path from the current position to the destination.
 	 */
-	std::stack<NiPoint3> m_Stack;
+	std::stack<NiPoint3> m_InterpolatedWaypoints;
 };
 
 #endif // MOVEMENTAICOMPONENT_H
