@@ -6242,7 +6242,6 @@ void GameMessages::HandleAddDonationItem(RakNet::BitStream* inStream, Entity* en
 void GameMessages::HandleRemoveDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	bool confirmed = false;
 	inStream->Read(confirmed);
-	Game::logger->Log("GameMessages", "confirmed %i", confirmed);
 	uint32_t count = 1;
 	bool hasCount = false;
 	inStream->Read(hasCount);
