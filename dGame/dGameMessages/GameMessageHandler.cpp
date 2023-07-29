@@ -252,7 +252,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		}*/
 		break;
 	}
-	case eGameMessageType::HANDLE_HOT_PROPERTY_DATA: {
+	case eGameMessageType::GET_HOT_PROPERTY_DATA: {
 		GameMessages::HandleGetHotPropertyData(inStream, entity, sysAddr);
 		break;
 	}
@@ -547,7 +547,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleBBBSaveRequest(inStream, entity, sysAddr);
 		break;
 
-	case eGameMessageType::CONTROL_BEHAVIOR:
+	case eGameMessageType::CONTROL_BEHAVIORS:
 		GameMessages::HandleControlBehaviors(inStream, entity, sysAddr);
 		break;
 
@@ -596,11 +596,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleRequestDie(inStream, entity, sysAddr);
 		break;
 
-	case eGameMessageType::VEHICLE_NOTIFY_SERVER_ADD_PASSIVE_BOOST_ACTION:
+	case eGameMessageType::NOTIFY_SERVER_VEHICLE_ADD_PASSIVE_BOOST_ACTION:
 		GameMessages::HandleVehicleNotifyServerAddPassiveBoostAction(inStream, entity, sysAddr);
 		break;
 
-	case eGameMessageType::VEHICLE_NOTIFY_SERVER_REMOVE_PASSIVE_BOOST_ACTION:
+	case eGameMessageType::NOTIFY_SERVER_VEHICLE_REMOVE_PASSIVE_BOOST_ACTION:
 		GameMessages::HandleVehicleNotifyServerRemovePassiveBoostAction(inStream, entity, sysAddr);
 		break;
 
@@ -668,7 +668,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	case eGameMessageType::DISMOUNT_COMPLETE:
 		GameMessages::HandleDismountComplete(inStream, entity, sysAddr);
 		break;
-	case eGameMessageType::DEACTIVATE_BUBBLE_BUFF:
+	case eGameMessageType::DECTIVATE_BUBBLE_BUFF:
 		GameMessages::HandleDeactivateBubbleBuff(inStream, entity);
 		break;
 	case eGameMessageType::ACTIVATE_BUBBLE_BUFF:
