@@ -620,3 +620,17 @@ bool MissionComponent::HasCollectible(int32_t collectibleID) {
 bool MissionComponent::HasMission(uint32_t missionId) {
 	return GetMission(missionId) != nullptr;
 }
+
+void MissionComponent::FixPropertyVistingMissions(){
+	auto missionIDsToCheck = {1199, 1200, 1201, 1202, 1739};
+	for (auto& missionID : missionIDsToCheck){
+		auto mission = GetMission(missionID);
+		if (!mission || mission->GetMissionState() == eMissionState::COMPLETE) continue;
+		auto tasks = mission->GetTasks();
+		if (tasks.empty()) continue;;
+		for (auto& task :tasks) {
+			task->SetProgress(0, false);
+			task->SetUnique();
+		}
+	}
+}

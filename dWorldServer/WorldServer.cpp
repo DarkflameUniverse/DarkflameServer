@@ -59,6 +59,7 @@
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
 #include "LevelProgressionComponent.h"
+#include "MissionComponent.h"
 #include "eBlueprintSaveResponseType.h"
 #include "Amf3.h"
 #include "NiPoint3.h"
@@ -1035,6 +1036,8 @@ void HandlePacket(Packet* packet) {
 				// Do charxml fixes here
 				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
 				if (!levelComponent) return;
+				auto* missionComponent = player->GetComponent<MissionComponent>();
+				if (!missionComponent) return;
 
 				auto version = levelComponent->GetCharacterVersion();
 				switch(version) {
@@ -1051,6 +1054,10 @@ void HandlePacket(Packet* packet) {
 					case eCharacterVersion::VAULT_SIZE:
 						Game::logger->Log("WorldServer", "Updaing Speedbase");
 						levelComponent->SetRetroactiveBaseSpeed();
+						levelComponent->SetCharacterVersion(eCharacterVersion::SPEED_BASE);
+					case eCharacterVersion::SPEED_BASE:
+						Game::logger->Log("WorldServer", "Fixing Properties Visited");
+						missionComponent->FixPropertyVistingMissions();
 						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
 					case eCharacterVersion::UP_TO_DATE:
 						break;

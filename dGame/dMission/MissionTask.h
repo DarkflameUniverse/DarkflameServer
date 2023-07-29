@@ -87,7 +87,7 @@ public:
 	 * Sets the uniquely visited list of locations
 	 * @param value the uniquely visited list of locations
 	 */
-	void SetUnique(const std::vector<uint32_t>& value);
+	void SetUnique(const std::vector<uint32_t>& value = {});
 
 	/**
 	 * Returns the possibly target values for this mission task for progression

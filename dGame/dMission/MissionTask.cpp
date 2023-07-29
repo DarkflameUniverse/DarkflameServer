@@ -332,12 +332,12 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	case eMissionTaskType::VISIT_PROPERTY:
 	{
 		if (!InAllTargets(value)) break;
-
-		if (std::find(unique.begin(), unique.end(), static_cast<uint32_t>(associate)) != unique.end()) break;
+		uint64_t key = (static_cast<uint64_t>(value) << 31U) | associate;
+		if (std::find(unique.begin(), unique.end(), static_cast<uint32_t>(key)) != unique.end()) break;
 
 		AddProgress(count);
 
-		unique.push_back(associate);
+		unique.push_back(key);
 
 		break;
 	}

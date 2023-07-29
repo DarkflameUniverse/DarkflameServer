@@ -170,6 +170,11 @@ public:
 	 */
 	bool HasMission(uint32_t missionId);
 
+	/**
+	 * Clears property visitng missions if they have not been completed
+	 */
+	void FixPropertyVistingMissions();
+
 private:
 	/**
 	 * All the missions owned by this entity, mapped by mission ID
