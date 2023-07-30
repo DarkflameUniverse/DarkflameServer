@@ -149,8 +149,80 @@ void VanityUtilities::SpawnVanity() {
 	}
 }
 
+#include "Spawner.h"
+#include "dZoneManager.h"
+
 Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoint3& position,
 	const NiQuaternion& rotation, const std::vector<LOT>& inventory, const std::vector<LDFBaseData*>& ldf) {
+	if (lot == 176) { //Spawner
+		SpawnerInfo spawnInfo = SpawnerInfo();
+		SpawnerNode* node = new SpawnerNode();
+		spawnInfo.templateID = lot;
+		spawnInfo.spawnerID = 3702484;
+		spawnInfo.templateScale = 1.0;
+		node->position = position;
+		node->rotation = rotation;
+		node->config = ldf;
+		spawnInfo.nodes.push_back(node);
+		for (LDFBaseData* data : node->config) {
+			if (data) {
+				if (data->GetKey() == u"spawntemplate") {
+					spawnInfo.templateID = std::stoi(data->GetValueAsString());
+				}
+
+				if (data->GetKey() == u"spawner_node_id") {
+					node->nodeID = std::stoi(data->GetValueAsString());
+				}
+
+				if (data->GetKey() == u"spawner_name") {
+					spawnInfo.name = data->GetValueAsString();
+				}
+
+				if (data->GetKey() == u"max_to_spawn") {
+					spawnInfo.maxToSpawn = std::stoi(data->GetValueAsString());
+				}
+
+				if (data->GetKey() == u"spawner_active_on_load") {
+					spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
+				}
+
+				if (data->GetKey() == u"active_on_load") {
+					spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
+				}
+
+				if (data->GetKey() == u"respawn") {
+					if (data->GetValueType() == eLDFType::LDF_TYPE_FLOAT) // Floats are in seconds
+					{
+						spawnInfo.respawnTime = std::stof(data->GetValueAsString());
+					} else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms?
+					{
+						spawnInfo.respawnTime = std::stoul(data->GetValueAsString()) / 1000;
+					}
+				}
+				if (data->GetKey() == u"spawnsGroupOnSmash") {
+					spawnInfo.spawnsOnSmash = std::stoi(data->GetValueAsString());
+				}
+				if (data->GetKey() == u"spawnNetNameForSpawnGroupOnSmash") {
+					spawnInfo.spawnOnSmashGroupName = data->GetValueAsString();
+				}
+				if (data->GetKey() == u"groupID") { // Load object groups
+					std::string groupStr = data->GetValueAsString();
+					spawnInfo.groups = GeneralUtils::SplitString(groupStr, ';');
+					spawnInfo.groups.erase(spawnInfo.groups.end() - 1);
+				}
+				if (data->GetKey() == u"no_auto_spawn") {
+					spawnInfo.noAutoSpawn = static_cast<LDFData<bool>*>(data)->GetValue();
+				}
+				if (data->GetKey() == u"no_timed_spawn") {
+					spawnInfo.noTimedSpawn = static_cast<LDFData<bool>*>(data)->GetValue();
+				}
+				if (data->GetKey() == u"spawnActivator") {
+					spawnInfo.spawnActivator = static_cast<LDFData<bool>*>(data)->GetValue();
+				}
+			}
+		}
+		Game::zoneManager->AddSpawner(spawnInfo.spawnerID, new Spawner(spawnInfo));
+	}
 	EntityInfo info;
 	info.lot = lot;
 	info.pos = position;
@@ -334,7 +406,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 		std::vector<std::u16string> keys = {};
 
 		std::vector<LDFBaseData*> ldf = {};
-		if(ldfElement) {
+		if (ldfElement) {
 			for (auto* entry = ldfElement->FirstChildElement("entry"); entry != nullptr;
 				entry = entry->NextSiblingElement("entry")) {
 				// Get the ldf data
