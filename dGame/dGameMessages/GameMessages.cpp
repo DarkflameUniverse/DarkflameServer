@@ -974,7 +974,7 @@ void GameMessages::SendStop2DAmbientSound(Entity* entity, bool force, std::strin
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write<uint16_t>(832);
+	bitStream.Write((uint16_t)eGameMessageType::PLAY2_DAMBIENT_SOUND);
 
 	uint32_t audioGUIDSize = audioGUID.size();
 

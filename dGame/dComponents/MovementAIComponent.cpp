@@ -10,6 +10,8 @@
 #include "EntityManager.h"
 #include "SimplePhysicsComponent.h"
 #include "CDClientManager.h"
+#include "Game.h"
+#include "dZoneManager.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
@@ -54,11 +56,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 		const auto speed = deltaTime * 2.5f;
 
-		NiPoint3 velocity(
-			(m_PullPoint.x - source.x) * speed,
-			(m_PullPoint.y - source.y) * speed,
-			(m_PullPoint.z - source.z) * speed
-		);
+		NiPoint3 velocity = (m_PullPoint - source) * speed;
 
 		SetPosition(source + velocity);
 
@@ -95,7 +93,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		m_NextWaypoint = GetCurrentWaypoint();
 
 		if (m_NextWaypoint == source) {
-			m_TimeTravelled = 0.0f;
+			m_TimeToTravel = 0.0f;
 
 			goto nextAction;
 		}
@@ -108,17 +106,15 @@ void MovementAIComponent::Update(const float deltaTime) {
 			m_CurrentSpeed = m_MaxSpeed;
 		}
 
-		const auto speed = m_CurrentSpeed * m_BaseSpeed;
+		const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed
+
 		const auto delta = m_NextWaypoint - source;
 
 		// Normalize the vector
 		const auto length = delta.Length();
 		if (length > 0) {
-			velocity.x = (delta.x / length) * speed;
-			velocity.y = (delta.y / length) * speed;
-			velocity.z = (delta.z / length) * speed;
+			velocity = (delta / length) * speed;
 		}
-		Game::logger->Log("MovementAIComponent", "vel %f %f %f", velocity.x, velocity.y, velocity.z);
 
 		// Calclute the time it will take to reach the next waypoint with the current speed
 		m_TimeTravelled = 0.0f;
@@ -127,16 +123,14 @@ void MovementAIComponent::Update(const float deltaTime) {
 		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 	} else {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
-		if (!m_InterpolatedWaypoints.empty()) {
-			SetDestination(m_InterpolatedWaypoints.top());
-
-			m_InterpolatedWaypoints.pop();
-		} else {
-			// We have reached our final waypoint
+		if (m_CurrentPath.empty()) {
 			Stop();
 
 			return;
 		}
+		SetDestination(m_CurrentPath.top());
+
+		m_CurrentPath.pop();
 	}
 
 nextAction:
@@ -151,7 +145,7 @@ const MovementAIInfo& MovementAIComponent::GetInfo() const {
 }
 
 bool MovementAIComponent::AdvanceWaypointIndex() {
-	if (m_PathIndex >= m_CurrentPath.size()) {
+	if (m_PathIndex >= m_InterpolatedWaypoints.size()) {
 		return false;
 	}
 
@@ -161,7 +155,7 @@ bool MovementAIComponent::AdvanceWaypointIndex() {
 }
 
 NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
-	return m_PathIndex >= m_CurrentPath.size() ? m_Parent->GetPosition() : m_CurrentPath[m_PathIndex];
+	return m_PathIndex >= m_InterpolatedWaypoints.size() ? m_Parent->GetPosition() : m_InterpolatedWaypoints[m_PathIndex];
 }
 
 NiPoint3 MovementAIComponent::ApproximateLocation() const {
@@ -214,8 +208,8 @@ void MovementAIComponent::Stop() {
 
 	m_AtFinalWaypoint = true;
 
-	m_CurrentPath.clear();
-	while (!m_InterpolatedWaypoints.empty()) m_InterpolatedWaypoints.pop();
+	m_InterpolatedWaypoints.clear();
+	while (!m_CurrentPath.empty()) m_CurrentPath.pop();
 
 	m_PathIndex = 0;
 
@@ -233,12 +227,12 @@ void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 
 void MovementAIComponent::SetPath(std::vector<NiPoint3> path) {
 	std::for_each(path.rbegin(), path.rend(), [this](const NiPoint3& point) {
-		this->m_InterpolatedWaypoints.push(point);
-	});
+		this->m_CurrentPath.push(point);
+		});
 
-	SetDestination(m_InterpolatedWaypoints.top());
+	SetDestination(m_CurrentPath.top());
 
-	m_InterpolatedWaypoints.pop();
+	m_CurrentPath.pop();
 }
 
 float MovementAIComponent::GetBaseSpeed(LOT lot) {
@@ -309,10 +303,12 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 	}
 
 	std::vector<NiPoint3> computedPath;
-
 	if (dpWorld::Instance().IsLoaded()) {
 		computedPath = dpWorld::Instance().GetNavMesh()->GetPath(m_Parent->GetPosition(), destination, m_Info.wanderSpeed);
-	} else {
+	}
+
+	// Somehow failed
+	if (computedPath.empty()) {
 		// Than take 10 points between the current position and the destination and make that the path
 
 		auto start = location;
@@ -327,13 +323,8 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 			computedPath.push_back(start);
 		}
 	}
-	
-	// Somehow failed
-	if (computedPath.empty()) return;
 
-	m_CurrentPath.clear();
-
-	m_CurrentPath.push_back(location);
+	m_InterpolatedWaypoints.clear();
 
 	// Simply path
 	for (auto& point : computedPath) {
@@ -341,10 +332,8 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 			point.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(point);
 		}
 
-		m_CurrentPath.push_back(point);
+		m_InterpolatedWaypoints.push_back(point);
 	}
-
-	m_CurrentPath.push_back(computedPath.back());
 
 	m_PathIndex = 0;
 
@@ -355,10 +344,11 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 }
 
 NiPoint3 MovementAIComponent::GetDestination() const {
-	return m_CurrentPath.empty() ? m_Parent->GetPosition() : m_CurrentPath.back();
+	return m_InterpolatedWaypoints.empty() ? m_Parent->GetPosition() : m_InterpolatedWaypoints.back();
 }
 
 void MovementAIComponent::SetMaxSpeed(const float value) {
+	if (value == m_MaxSpeed) return;
 	m_MaxSpeed = value;
 	m_Acceleration = value / 5;
 }

@@ -296,12 +296,12 @@ private:
 	/**
 	 * The path the entity is currently following
 	 */
-	std::vector<NiPoint3> m_CurrentPath;
+	std::vector<NiPoint3> m_InterpolatedWaypoints;
 
 	/**
 	 * The path from the current position to the destination.
 	 */
-	std::stack<NiPoint3> m_InterpolatedWaypoints;
+	std::stack<NiPoint3> m_CurrentPath;
 };
 
 #endif // MOVEMENTAICOMPONENT_H
