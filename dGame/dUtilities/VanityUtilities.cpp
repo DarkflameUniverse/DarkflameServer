@@ -150,6 +150,7 @@ void VanityUtilities::SpawnVanity() {
 }
 
 #include "Spawner.h"
+#include "../dWorldServer/ObjectIDManager.h"
 #include "dZoneManager.h"
 
 Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoint3& position,
@@ -158,7 +159,7 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 		SpawnerInfo spawnInfo = SpawnerInfo();
 		SpawnerNode* node = new SpawnerNode();
 		spawnInfo.templateID = lot;
-		spawnInfo.spawnerID = 3702484;
+		spawnInfo.spawnerID = ObjectIDManager::Instance()->GenerateObjectID();
 		spawnInfo.templateScale = 1.0;
 		node->position = position;
 		node->rotation = rotation;
