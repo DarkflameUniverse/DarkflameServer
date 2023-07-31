@@ -197,9 +197,9 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 }
 
 void MovementAIComponent::Stop() {
-	if (m_AtFinalWaypoint) return;
+	if (AtFinalWaypoint()) return;
 
-	SetPosition(m_Parent->GetPosition());
+	SetPosition(ApproximateLocation());
 
 	SetVelocity(NiPoint3::ZERO);
 
@@ -226,13 +226,12 @@ void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 }
 
 void MovementAIComponent::SetPath(std::vector<NiPoint3> path) {
-	std::for_each(path.rbegin(), path.rend(), [this](const NiPoint3& point) {
+	if (path.empty()) return;
+	std::for_each(path.rbegin(), path.rend() - 1, [this](const NiPoint3& point) {
 		this->m_CurrentPath.push(point);
 		});
 
-	SetDestination(m_CurrentPath.top());
-
-	m_CurrentPath.pop();
+	SetDestination(path.front());
 }
 
 float MovementAIComponent::GetBaseSpeed(LOT lot) {
@@ -318,7 +317,8 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 		auto step = delta / 10.0f;
 
 		for (int i = 0; i < 10; i++) {
-			start += step;
+			// TODO: Replace this with += when the NiPoint3::operator+= is fixed
+			start = start + step;
 
 			computedPath.push_back(start);
 		}
