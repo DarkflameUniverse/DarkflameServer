@@ -1294,7 +1294,7 @@ void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& s
 	bitStream.Write(bUpdateOnly);
 	bitStream.Write<uint32_t>(vendorItems.size());
 
-	for (auto item : vendorItems) {
+	for (const auto item : vendorItems) {
 		bitStream.Write(item.lot);
 		bitStream.Write(item.sortPriority);
 	}
