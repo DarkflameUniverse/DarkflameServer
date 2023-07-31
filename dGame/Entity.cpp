@@ -561,6 +561,7 @@ void Entity::Initialize() {
 
 			if (activityID > 0) {
 				comp->SetActivityId(activityID);
+				Loot::CacheMatrix(activityID);
 			}
 
 			const auto compTime = GetVar<float>(u"compTime");
