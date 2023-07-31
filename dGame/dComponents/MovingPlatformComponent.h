@@ -6,96 +6,82 @@
 #ifndef MOVINGPLATFORMCOMPONENT_H
 #define MOVINGPLATFORMCOMPONENT_H
 
-#include "RakNetTypes.h"
 #include "NiPoint3.h"
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "dCommonVars.h"
-#include "EntityManager.h"
 #include "Component.h"
 #include "eMovementPlatformState.h"
 #include "eReplicaComponentType.h"
 
 class Path;
 
- /**
-  * Different types of available platforms
-  */
+/**
+ * Different types of available platforms
+ */
 enum class eMoverSubComponentType : uint32_t {
-	mover = 4,
-
-	/**
-	 * Used in NJ
-	 */
-	 simpleMover = 5,
+	None = 0,
+	Mover = 4,
+	SimpleMover = 5,
+	Rotator = 6
 };
 
-/**
- * Sub component for moving platforms that determine the actual current movement state
- */
-class MoverSubComponent {
+class PlatformSubComponent {
 public:
-	MoverSubComponent(const NiPoint3& startPos);
-	~MoverSubComponent();
+	PlatformSubComponent();
+	virtual ~PlatformSubComponent() = default;
+	virtual void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate);
+	virtual eMoverSubComponentType GetPlatformType() { return eMoverSubComponentType::None; };
+	bool GetIsDirty() const { return m_IsDirty; }
+protected:
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) const;
-
+#ifdef _MOVING_PLATFORM_TEST
+public:
+#endif
 	/**
 	 * The state the platform is currently in
 	 */
-	eMovementPlatformState mState = eMovementPlatformState::Stationary;
-
-	/**
-	 * The waypoint this platform currently wants to traverse to
-	 */
-	int32_t mDesiredWaypointIndex = 0;
-
-	/**
-	 * Whether the platform is currently reversing away from the desired waypoint
-	 */
-	bool mInReverse = false;
-
-	/**
-	 * Whether the platform should stop moving when reaching the desired waypoint
-	 */
-	bool mShouldStopAtDesiredWaypoint = false;
-
-	/**
-	 * The percentage of the way between the last point and the desired point
-	 */
-	float mPercentBetweenPoints = 0;
-
-	/**
-	 * The current position of the platofrm
-	 */
-	NiPoint3 mPosition{};
-
-	/**
-	 * The waypoint the platform is (was) at
-	 */
-	uint32_t mCurrentWaypointIndex;
-
-	/**
-	 * The waypoint the platform is attempting to go to
-	 */
-	uint32_t mNextWaypointIndex;
-
-	/**
-	 * The timer that handles the time before stopping idling and continue platform movement
-	 */
-	float mIdleTimeElapsed = 0;
-
-	/**
-	 * The speed the platform is currently moving at
-	 */
-	float mSpeed = 0;
-
-	/**
-	 * The time to wait before continuing movement
-	 */
-	float mWaitTime = 0;
+	eMovementPlatformState m_State = eMovementPlatformState::Stopped | eMovementPlatformState::ReachedDesiredWaypoint;
+	int32_t m_DesiredWaypointIndex = 0;
+	float m_PercentBetweenPoints = 0;
+	NiPoint3 m_Position;
+	uint32_t m_CurrentWaypointIndex;
+	uint32_t m_NextWaypointIndex;
+	float m_IdleTimeElapsed = 0;
+	float m_Speed = 0;
+	float m_WaitTime = 0;
+	float m_MoveTimeElapsed = 0;
+	bool m_IsDirty = false;
+	bool m_InReverse = false;
+	bool m_ShouldStopAtDesiredWaypoint = false;
 };
 
+class MoverPlatformSubComponent : public PlatformSubComponent {
+public:
+	MoverPlatformSubComponent() : PlatformSubComponent() {};
+	~MoverPlatformSubComponent() override = default;
+	eMoverSubComponentType GetPlatformType() override { return eMoverSubComponentType::Mover; }
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override { PlatformSubComponent::Serialize(outBitStream, bIsInitialUpdate); };
+};
+
+class RotatorPlatformSubComponent : public PlatformSubComponent {
+public:
+	RotatorPlatformSubComponent() : PlatformSubComponent() {};
+	~RotatorPlatformSubComponent() override = default;
+	eMoverSubComponentType GetPlatformType() override { return eMoverSubComponentType::Rotator; }
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override { PlatformSubComponent::Serialize(outBitStream, bIsInitialUpdate); };
+};
+
+// Only moves. Has NO path.
+class SimpleMoverPlatformSubComponent : public PlatformSubComponent {
+public:
+	SimpleMoverPlatformSubComponent() : PlatformSubComponent() {};
+	~SimpleMoverPlatformSubComponent() override = default;
+	eMoverSubComponentType GetPlatformType() override { return eMoverSubComponentType::SimpleMover; }
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override { PlatformSubComponent::Serialize(outBitStream, bIsInitialUpdate); };
+};
 
 /**
  * Represents entities that may be moving platforms, indicating how they should move through the world.
@@ -109,7 +95,6 @@ public:
 	static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
 	MovingPlatformComponent(Entity* parent, const std::string& pathName);
-	~MovingPlatformComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -181,19 +166,22 @@ public:
 	 */
 	size_t GetLastWaypointIndex() const;
 
+#ifdef _MOVING_PLATFORM_TEST
 	/**
-	 * Returns the sub component that actually defines how the platform moves around (speeds, etc).
-	 * @return the sub component that actually defines how the platform moves around
+	 * Only used for testing. Do not call in production code. Let the constructor take care of this.
+	 * 
+	 * @param platformSubComponent 
 	 */
-	MoverSubComponent* GetMoverSubComponent() const;
+	void _AddPlatformSubComponent(std::unique_ptr<PlatformSubComponent> platformSubComponent) {
+		m_Platforms.push_back(std::move(platformSubComponent));
+	}
 
+	void _SetPath(const std::u16string& path) {
+		m_PathName = path;
+		m_DirtyPathInfo = true;
+	}
+#endif
 private:
-
-	/**
-	 * The path this platform is currently on
-	 */
-	const Path* m_Path = nullptr;
-
 	/**
 	 * The name of the path this platform is currently on
 	 */
@@ -205,14 +193,9 @@ private:
 	bool m_PathingStopped = false;
 
 	/**
-	 * The type of the subcomponent
-	 */
-	eMoverSubComponentType m_MoverSubComponentType;
-
-	/**
 	 * The mover sub component that belongs to this platform
 	 */
-	void* m_MoverSubComponent;
+	std::vector<std::unique_ptr<PlatformSubComponent>> m_Platforms;
 
 	/**
 	 * Whether the platform shouldn't auto start
@@ -223,6 +206,8 @@ private:
 	 * Whether to serialize the entity on the next update
 	 */
 	bool m_Serialize = false;
+
+	bool m_DirtyPathInfo = false;
 };
 
 #endif // MOVINGPLATFORMCOMPONENT_H

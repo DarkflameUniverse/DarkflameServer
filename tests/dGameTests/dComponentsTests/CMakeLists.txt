@@ -1,5 +1,6 @@
 set(DCOMPONENTS_TESTS
 	"DestroyableComponentTests.cpp"
+	"MovingPlatformComponentTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above

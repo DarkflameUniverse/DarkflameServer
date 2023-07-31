@@ -4,13 +4,19 @@
 #include <cstdint>
 
 /**
- * The different types of platform movement state, supposedly a bitmap
+ * The different types of platform movement state
  */
 enum class eMovementPlatformState : uint32_t
 {
-	Moving = 0b00010,
-	Stationary = 0b11001,
-	Stopped = 0b01100
+	Waiting = 1 << 0U,
+	Travelling = 1 << 1U,
+	Stopped = 1 << 2U,
+	ReachedDesiredWaypoint = 1 << 3U,
+	ReachedFinalWaypoint = 1 << 4U,
+};
+
+inline constexpr eMovementPlatformState operator|(eMovementPlatformState a, eMovementPlatformState b) {
+	return static_cast<eMovementPlatformState>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
 };
 
 #endif  //!__EMOVEMENTPLATFORMSTATE__H__
