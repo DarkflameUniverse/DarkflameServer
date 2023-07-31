@@ -554,11 +554,7 @@ void Zone::LoadPath(std::istream& file) {
 				if (ldfConfig) waypoint.config.push_back(ldfConfig);
 			}
 		}
-
 		path.pathWaypoints.push_back(waypoint);
 	}
-
-
-
 	m_Paths.push_back(path);
 }

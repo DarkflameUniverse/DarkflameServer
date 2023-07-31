@@ -105,7 +105,7 @@ enum class PropertyType : int32_t {
 	Headspace = 3
 };
 
-enum class PropertyRentalPerion : uint32_t {
+enum class PropertyRentalPeriod : uint32_t {
 	Forever = 0,
 	Seconds = 1,
 	Minutes = 2,
@@ -145,7 +145,7 @@ struct PropertyPath {
 	PropertyType type;
 	uint32_t cloneLimit;
 	float repMultiplier;
-	PropertyRentalPerion rentalPeriod;
+	PropertyRentalPeriod rentalPeriod;
 	PropertyAchievmentRequired achievementRequired;
 	NiPoint3 playerZoneCoords;
 	float maxBuildHeight;
