@@ -16,13 +16,7 @@ struct MusicCue {
 		this->boredomTime = boredomTime;
 	};
 
-	void Serialize(RakNet::BitStream* outBitStream){
-		outBitStream->Write<uint8_t>(name.size());
-		outBitStream->Write(name.c_str(), name.size());
-		outBitStream->Write(result);
-		outBitStream->Write(boredomTime);
-	}
-
+	void Serialize(RakNet::BitStream* outBitStream);
 };
 
 struct MusicParameter {
@@ -34,12 +28,7 @@ struct MusicParameter {
 		this->value = value;
 	}
 
-	void Serialize(RakNet::BitStream* outBitStream){
-		outBitStream->Write<uint8_t>(name.size());
-		outBitStream->Write(name.c_str(), name.size());
-		outBitStream->Write(value);
-	}
-
+	void Serialize(RakNet::BitStream* outBitStream);
 };
 
 struct GUIDResults{
@@ -51,10 +40,7 @@ struct GUIDResults{
 		this->result = result;
 	}
 
-	void Serialize(RakNet::BitStream* outBitStream){
-		guid.Serialize(outBitStream);
-		outBitStream->Write(result);
-	}
+	void Serialize(RakNet::BitStream* outBitStream);
 };
 
 struct MixerProgram{
@@ -66,11 +52,7 @@ struct MixerProgram{
 		this->result = result;
 	}
 
-	void Serialize(RakNet::BitStream* outBitStream){
-		outBitStream->Write<uint8_t>(name.size());
-		outBitStream->Write(name.c_str(), name.size());
-		outBitStream->Write(result);
-	}
+	void Serialize(RakNet::BitStream* outBitStream);
 };
 
 

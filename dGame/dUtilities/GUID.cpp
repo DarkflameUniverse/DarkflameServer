@@ -1,5 +1,9 @@
 #include "GUID.h"
 
+namespace {
+	const std::string EMPTY_GUID = "{00000000-0000-0000-0000-000000000000}";
+}
+
 GUID::GUID(const std::string& guid) {
 	if(guid == EMPTY_GUID) return;
 	sscanf(guid.c_str(),

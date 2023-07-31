@@ -2,6 +2,29 @@
 #include "Game.h"
 #include "dLogger.h"
 
+void MusicCue::Serialize(RakNet::BitStream* outBitStream){
+	outBitStream->Write<uint8_t>(name.size());
+	outBitStream->Write(name.c_str(), name.size());
+	outBitStream->Write(result);
+	outBitStream->Write(boredomTime);
+}
+
+void MusicParameter::Serialize(RakNet::BitStream* outBitStream){
+	outBitStream->Write<uint8_t>(name.size());
+	outBitStream->Write(name.c_str(), name.size());
+	outBitStream->Write(value);
+}
+
+void GUIDResults::Serialize(RakNet::BitStream* outBitStream){
+	guid.Serialize(outBitStream);
+	outBitStream->Write(result);
+}
+
+void MixerProgram::Serialize(RakNet::BitStream* outBitStream){
+	outBitStream->Write<uint8_t>(name.size());
+	outBitStream->Write(name.c_str(), name.size());
+	outBitStream->Write(result);
+}
 SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent) {
 
 	const auto musicCueName = parent->GetVar<std::string>(u"NDAudioMusicCue_Name");
