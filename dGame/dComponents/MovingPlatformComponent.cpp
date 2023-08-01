@@ -123,6 +123,8 @@ void SimpleMoverPlatformSubComponent::LoadDataFromTemplate() {
 
 	NiPoint3 platformMove = platformEntry->platformMove;
 	float moveTime = platformEntry->moveTime;
+	m_PlatformMove = platformMove;
+	m_MoveTime = moveTime;
 }
 
 SimpleMoverPlatformSubComponent::SimpleMoverPlatformSubComponent(MovingPlatformComponent* parentComponent, const NiPoint3& platformMove, const bool startsInReverse) : PlatformSubComponent(parentComponent) {
@@ -141,6 +143,10 @@ SimpleMoverPlatformSubComponent::SimpleMoverPlatformSubComponent(MovingPlatformC
 
 MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::string& pathName) : Component(parent) {
 
+}
+
+void MovingPlatformComponent::LoadDataFromTemplate() {
+	std::for_each(m_Platforms.begin(), m_Platforms.end(), [](const std::unique_ptr<PlatformSubComponent>& platform) { platform->LoadDataFromTemplate(); });
 }
 
 void MovingPlatformComponent::LoadConfigData() {
@@ -212,6 +218,7 @@ void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint) 
 }
 
 void MovingPlatformComponent::StartPathing() {
+	// state == Travelling
 	// //GameMessages::SendStartPathing(m_Parent);
 	// m_PathingStopped = false;
 
@@ -263,6 +270,7 @@ void MovingPlatformComponent::StartPathing() {
 }
 
 void MovingPlatformComponent::ContinuePathing() {
+	// state == Travelling
 	// auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
 
 	// subComponent->mState = eMovementPlatformState::Stationary;
@@ -373,6 +381,7 @@ void MovingPlatformComponent::ContinuePathing() {
 }
 
 void MovingPlatformComponent::StopPathing() {
+	// state == Stopped
 	//m_Parent->CancelCallbackTimers();
 
 	// auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
@@ -386,10 +395,6 @@ void MovingPlatformComponent::StopPathing() {
 	// Game::entityManager->SerializeEntity(m_Parent);
 
 	//GameMessages::SendPlatformResync(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
-}
-
-void MovingPlatformComponent::SetSerialized(bool value) {
-	// m_Serialize = value;
 }
 
 bool MovingPlatformComponent::GetNoAutoStart() const {

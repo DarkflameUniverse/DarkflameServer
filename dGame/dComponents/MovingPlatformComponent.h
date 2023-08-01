@@ -37,6 +37,8 @@ public:
 	virtual void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate);
 	virtual eMoverSubComponentType GetPlatformType() { return eMoverSubComponentType::None; };
 	bool GetIsDirty() const { return m_IsDirty; }
+	virtual void LoadDataFromTemplate() {};
+	virtual void LoadConfigData() {};
 protected:
 
 #ifdef _MOVING_PLATFORM_TEST
@@ -85,8 +87,8 @@ public:
 	SimpleMoverPlatformSubComponent(MovingPlatformComponent* parentComponent, const NiPoint3& platformMove, const bool startAtEnd);
 	~SimpleMoverPlatformSubComponent() override = default;
 	eMoverSubComponentType GetPlatformType() override { return eMoverSubComponentType::SimpleMover; }
-	void LoadConfigData();
-	void LoadDataFromTemplate();
+	void LoadConfigData() override;
+	void LoadDataFromTemplate() override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	bool m_HasStartingPoint = false;
 	bool m_DirtyStartingPoint = false;
@@ -110,6 +112,7 @@ public:
 
 	MovingPlatformComponent(Entity* parent, const std::string& pathName);
 
+	void LoadDataFromTemplate();
 	void LoadConfigData();
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
