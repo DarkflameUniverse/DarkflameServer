@@ -16,7 +16,9 @@ enum class eMovementPlatformState : uint32_t
 };
 
 inline constexpr eMovementPlatformState operator|(eMovementPlatformState a, eMovementPlatformState b) {
-	return static_cast<eMovementPlatformState>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+	return static_cast<eMovementPlatformState>(
+		static_cast<std::underlying_type<eMovementPlatformState>::type>(a) |
+		static_cast<std::underlying_type<eMovementPlatformState>::type>(b));
 };
 
 #endif  //!__EMOVEMENTPLATFORMSTATE__H__

@@ -12,10 +12,15 @@
 #include "GameMessages.h"
 #include "CppScripts.h"
 #include "SimplePhysicsComponent.h"
+#include "CDClientManager.h"
+#include "CDMovingPlatformComponentTable.h"
 #include "Zone.h"
 
-PlatformSubComponent::PlatformSubComponent() {
+ //------------- PlatformSubComponent begin --------------
+
+PlatformSubComponent::PlatformSubComponent(MovingPlatformComponent* parentComponent) {
 	m_Position = NiPoint3::ZERO;
+	m_ParentComponent = parentComponent;
 
 	m_State = eMovementPlatformState::Stopped | eMovementPlatformState::ReachedDesiredWaypoint;
 	m_DesiredWaypointIndex = 0;
@@ -31,8 +36,8 @@ PlatformSubComponent::PlatformSubComponent() {
 }
 
 void PlatformSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(m_IsDirty);
-	if (!m_IsDirty) return;
+	outBitStream->Write(bIsInitialUpdate || m_IsDirty);
+	if (!(bIsInitialUpdate || m_IsDirty)) return;
 	outBitStream->Write(m_State);
 	outBitStream->Write(m_DesiredWaypointIndex);
 	outBitStream->Write(m_ShouldStopAtDesiredWaypoint);
@@ -48,22 +53,105 @@ void PlatformSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 	if (!bIsInitialUpdate) m_IsDirty = false;
 }
 
-//------------- MovingPlatformComponent below --------------
+//------------- PlatformSubComponent end --------------
+
+//------------- MoverPlatformSubComponent begin --------------
+
+MoverPlatformSubComponent::MoverPlatformSubComponent(MovingPlatformComponent* parentComponent) : PlatformSubComponent(parentComponent) {
+
+}
+
+//------------- MoverPlatformSubComponent end --------------
+
+//------------- RotatorPlatformSubComponent begin --------------
+
+RotatorPlatformSubComponent::RotatorPlatformSubComponent(MovingPlatformComponent* parentComponent) : PlatformSubComponent(parentComponent) {
+
+}
+
+//------------- RotatorPlatformSubComponent end --------------
+
+//------------- SimpleMoverPlatformSubComponent begin --------------
+
+void SimpleMoverPlatformSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+	outBitStream->Write(bIsInitialUpdate || m_DirtyStartingPoint);
+	if (bIsInitialUpdate || m_DirtyStartingPoint) {
+		outBitStream->Write(m_HasStartingPoint);
+		if (m_HasStartingPoint) {
+			outBitStream->Write(m_StartingPoint.x);
+			outBitStream->Write(m_StartingPoint.y);
+			outBitStream->Write(m_StartingPoint.z);
+			outBitStream->Write(m_StartingRotation.w);
+			outBitStream->Write(m_StartingRotation.x);
+			outBitStream->Write(m_StartingRotation.y);
+			outBitStream->Write(m_StartingRotation.z);
+		}
+		if (!bIsInitialUpdate) m_DirtyStartingPoint = false;
+	}
+
+	outBitStream->Write(bIsInitialUpdate || m_IsDirty);
+	if (bIsInitialUpdate || m_IsDirty) {
+		outBitStream->Write(m_State);
+		outBitStream->Write(m_CurrentWaypointIndex);
+		outBitStream->Write(m_InReverse);
+		if (!bIsInitialUpdate) m_IsDirty = false;
+	}
+}
+
+void SimpleMoverPlatformSubComponent::LoadConfigData() {
+	if (m_ParentComponent->GetParent()->GetVar<bool>(u"dbonly")) return;
+	NiPoint3 platformMove(
+		m_ParentComponent->GetParent()->GetVar<float>(u"platformMoveX"),
+		m_ParentComponent->GetParent()->GetVar<float>(u"platformMoveY"),
+		m_ParentComponent->GetParent()->GetVar<float>(u"platformMoveZ")
+	);
+	m_PlatformMove = platformMove;
+	m_MoveTime = m_ParentComponent->GetParent()->GetVar<float>(u"platformMoveTime");
+	// idk either. client does it!
+	m_StartAtEnd = m_ParentComponent->GetParent()->GetVar<uint32_t>(u"attached_path_start") != 0;
+	m_StartAtEnd = m_ParentComponent->GetParent()->GetVar<bool>(u"platformStartAtEnd");
+}
+
+void SimpleMoverPlatformSubComponent::LoadDataFromTemplate() {
+	if (!m_ParentComponent->GetParent()->GetVar<bool>(u"dbonly")) return;
+
+	auto* movingPlatformTable = CDClientManager::Instance().GetTable<CDMovingPlatformComponentTable>();
+	if (movingPlatformTable == nullptr) return;
+
+	const auto& platformEntry = movingPlatformTable->GetPlatformEntry(m_ParentComponent->GetComponentId());
+	if (!platformEntry || !platformEntry->platformIsSimpleMover) return;
+
+	NiPoint3 platformMove = platformEntry->platformMove;
+	float moveTime = platformEntry->moveTime;
+}
+
+SimpleMoverPlatformSubComponent::SimpleMoverPlatformSubComponent(MovingPlatformComponent* parentComponent, const NiPoint3& platformMove, const bool startsInReverse) : PlatformSubComponent(parentComponent) {
+	m_PlatformMove = platformMove;
+	m_InReverse = startsInReverse;
+	m_HasStartingPoint = true;
+	m_DirtyStartingPoint = true;
+	m_IsDirty = true;
+	m_StartingPoint = m_ParentComponent->GetParent()->GetPosition();
+	m_StartingRotation = m_ParentComponent->GetParent()->GetRotation();
+}
+
+//------------- SimpleMoverPlatformSubComponent end --------------
+
+//------------- MovingPlatformComponent begin --------------
 
 MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::string& pathName) : Component(parent) {
-	if (Game::zoneManager == nullptr) return;
-	auto path = Game::zoneManager->GetZone()->GetPath(pathName);
-	if (!path) return;
-	Game::logger->Log("MovingPlatformComponent", "Path found: %s", pathName.c_str());
 
+}
+
+void MovingPlatformComponent::LoadConfigData() {
 	if (m_Parent->GetVar<bool>(u"platformIsSimpleMover")) {
-		m_Platforms.push_back(std::make_unique<SimpleMoverPlatformSubComponent>());
+		AddMovingPlatform<SimpleMoverPlatformSubComponent>(NiPoint3::ZERO, false);
 	}
 	if (m_Parent->GetVar<bool>(u"platformIsMover")) {
-		m_Platforms.push_back(std::make_unique<MoverPlatformSubComponent>());
+		AddMovingPlatform<MoverPlatformSubComponent>();
 	}
 	if (m_Parent->GetVar<bool>(u"platformIsRotater")) {
-		m_Platforms.push_back(std::make_unique<RotatorPlatformSubComponent>());
+		AddMovingPlatform<RotatorPlatformSubComponent>();
 	}
 	m_DirtyPathInfo = true;
 }
@@ -80,11 +168,12 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 			for (const auto& c : m_PathName) {
 				outBitStream->Write(static_cast<uint16_t>(c));
 			}
-			outBitStream->Write<uint32_t>(1); // Starting waypoint
-			outBitStream->Write1(); // is in reverse
+			outBitStream->Write(m_StartingWaypointIndex);
+			outBitStream->Write(m_StartsIsInReverse);
 		}
 		if (!bIsInitialUpdate) m_DirtyPathInfo = false;
 	}
+	if (m_Platforms.empty()) return;
 
 	for (const auto& platform : m_Platforms) {
 		outBitStream->Write1(); // Has platform to write
@@ -325,3 +414,5 @@ size_t MovingPlatformComponent::GetLastWaypointIndex() const {
 	return 0;
 	// return m_Path->pathWaypoints.size() - 1;
 }
+
+//------------- MovingPlatformComponent end --------------

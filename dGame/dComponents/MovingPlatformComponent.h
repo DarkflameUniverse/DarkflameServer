@@ -28,9 +28,11 @@ enum class eMoverSubComponentType : uint32_t {
 	Rotator = 6
 };
 
+class MovingPlatformComponent;
+
 class PlatformSubComponent {
 public:
-	PlatformSubComponent();
+	PlatformSubComponent(MovingPlatformComponent* parentComponent);
 	virtual ~PlatformSubComponent() = default;
 	virtual void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate);
 	virtual eMoverSubComponentType GetPlatformType() { return eMoverSubComponentType::None; };
@@ -40,6 +42,7 @@ protected:
 #ifdef _MOVING_PLATFORM_TEST
 public:
 #endif
+	MovingPlatformComponent* m_ParentComponent = nullptr;
 	/**
 	 * The state the platform is currently in
 	 */
@@ -60,27 +63,38 @@ public:
 
 class MoverPlatformSubComponent : public PlatformSubComponent {
 public:
-	MoverPlatformSubComponent() : PlatformSubComponent() {};
+	inline static const eMoverSubComponentType SubComponentType = eMoverSubComponentType::Mover;
+	MoverPlatformSubComponent(MovingPlatformComponent* parentComponent);
 	~MoverPlatformSubComponent() override = default;
 	eMoverSubComponentType GetPlatformType() override { return eMoverSubComponentType::Mover; }
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override { PlatformSubComponent::Serialize(outBitStream, bIsInitialUpdate); };
 };
 
 class RotatorPlatformSubComponent : public PlatformSubComponent {
 public:
-	RotatorPlatformSubComponent() : PlatformSubComponent() {};
+	inline static const eMoverSubComponentType SubComponentType = eMoverSubComponentType::Rotator;
+	RotatorPlatformSubComponent(MovingPlatformComponent* parentComponent);
 	~RotatorPlatformSubComponent() override = default;
 	eMoverSubComponentType GetPlatformType() override { return eMoverSubComponentType::Rotator; }
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override { PlatformSubComponent::Serialize(outBitStream, bIsInitialUpdate); };
 };
 
-// Only moves. Has NO path.
+// Only moves. Has NO path. This moving platform gets its initial position and rotation from the server on serialization.
 class SimpleMoverPlatformSubComponent : public PlatformSubComponent {
 public:
-	SimpleMoverPlatformSubComponent() : PlatformSubComponent() {};
+	inline static const eMoverSubComponentType SubComponentType = eMoverSubComponentType::SimpleMover;
+	SimpleMoverPlatformSubComponent(MovingPlatformComponent* parentComponent, const NiPoint3& platformMove, const bool startAtEnd);
 	~SimpleMoverPlatformSubComponent() override = default;
 	eMoverSubComponentType GetPlatformType() override { return eMoverSubComponentType::SimpleMover; }
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override { PlatformSubComponent::Serialize(outBitStream, bIsInitialUpdate); };
+	void LoadConfigData();
+	void LoadDataFromTemplate();
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	bool m_HasStartingPoint = false;
+	bool m_DirtyStartingPoint = false;
+	NiPoint3 m_StartingPoint;
+	NiQuaternion m_StartingRotation;
+	NiPoint3 m_PlatformMove;
+	float m_MoveTime;
+	bool m_StartAtEnd;
 };
 
 /**
@@ -95,6 +109,8 @@ public:
 	static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
 	MovingPlatformComponent(Entity* parent, const std::string& pathName);
+
+	void LoadConfigData();
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -166,6 +182,19 @@ public:
 	 */
 	size_t GetLastWaypointIndex() const;
 
+	template<typename MovingPlatform, typename ...ConstructorValues>
+	void AddMovingPlatform(ConstructorValues... arguments) {
+		static_assert(std::is_base_of<PlatformSubComponent, MovingPlatform>::value, "MovingPlatform must derive from PlatformSubComponent");
+		auto hasPlatform = std::find_if(m_Platforms.begin(), m_Platforms.end(), [](const std::unique_ptr<PlatformSubComponent>& platform) {
+			return platform->GetPlatformType() == MovingPlatform::SubComponentType;
+		}) != m_Platforms.end();
+		if (!hasPlatform) {
+			m_Platforms.push_back(std::make_unique<MovingPlatform>(this, std::forward<ConstructorValues>(arguments)...));
+		}
+	}
+
+	int32_t GetComponentId() const { return componentId; }
+
 #ifdef _MOVING_PLATFORM_TEST
 	/**
 	 * Only used for testing. Do not call in production code. Let the constructor take care of this.
@@ -191,6 +220,12 @@ private:
 	 * Whether the platform has stopped pathing
 	 */
 	bool m_PathingStopped = false;
+
+	uint32_t m_StartingWaypointIndex = 0;
+
+	bool m_StartsIsInReverse = false;
+
+	int32_t componentId = -1;;
 
 	/**
 	 * The mover sub component that belongs to this platform

@@ -7,6 +7,7 @@
 #define _MOVING_PLATFORM_TEST
 #include "MovingPlatformComponent.h"
 #undef _MOVING_PLATFORM_TEST
+#include "SimplePhysicsComponent.h"
 #include "eReplicaComponentType.h"
 
 class MovingPlatformComponentTests : public GameDependenciesTest {
@@ -17,9 +18,19 @@ protected:
 	void SetUp() override {
 		SetUpDependencies();
 		baseEntity = std::make_unique<Entity>(15, GameDependenciesTest::info);
+		baseEntity->SetVar<bool>(u"dbonly", false);
+		baseEntity->SetVar<float>(u"platformMoveX", 23);
+		baseEntity->SetVar<float>(u"platformMoveY", 453);
+		baseEntity->SetVar<float>(u"platformMoveZ", 523);
+		baseEntity->SetVar<float>(u"platformMoveTime", 5724);
+		baseEntity->SetVar<bool>(u"platformStartAtEnd", true);
 		auto* movingPlatformComponent = new MovingPlatformComponent(baseEntity.get(), "");
+		auto* simplePhysicsComponent = new SimplePhysicsComponent(1, baseEntity.get());
 		baseEntity->AddComponent(eReplicaComponentType::MOVING_PLATFORM, movingPlatformComponent);
-		auto moverPlatformSubComponent = std::make_unique<MoverPlatformSubComponent>();
+		baseEntity->AddComponent(eReplicaComponentType::SIMPLE_PHYSICS, simplePhysicsComponent);
+		baseEntity->SetPosition(NiPoint3(25, 26, 27));
+		baseEntity->SetRotation(NiQuaternion(28, 29, 30, 31));
+		auto moverPlatformSubComponent = std::make_unique<MoverPlatformSubComponent>(movingPlatformComponent);
 		moverPlatformSubComponent->m_State = eMovementPlatformState::Stopped | eMovementPlatformState::ReachedDesiredWaypoint;
 		moverPlatformSubComponent->m_DesiredWaypointIndex = 1;
 		moverPlatformSubComponent->m_PercentBetweenPoints = 2;
@@ -32,7 +43,7 @@ protected:
 		moverPlatformSubComponent->m_InReverse = true;
 		moverPlatformSubComponent->m_ShouldStopAtDesiredWaypoint = true;
 
-		auto rotatorPlatformSubComponent = std::make_unique<RotatorPlatformSubComponent>();
+		auto rotatorPlatformSubComponent = std::make_unique<RotatorPlatformSubComponent>(movingPlatformComponent);
 		rotatorPlatformSubComponent->m_State = eMovementPlatformState::Travelling;
 		rotatorPlatformSubComponent->m_DesiredWaypointIndex = 12;
 		rotatorPlatformSubComponent->m_PercentBetweenPoints = 13;
@@ -45,18 +56,20 @@ protected:
 		rotatorPlatformSubComponent->m_InReverse = true;
 		rotatorPlatformSubComponent->m_ShouldStopAtDesiredWaypoint = true;
 
-		auto simpleMoverPlatformSubComponent = std::make_unique<SimpleMoverPlatformSubComponent>();
+		auto simpleMoverPlatformSubComponent = std::make_unique<SimpleMoverPlatformSubComponent>(movingPlatformComponent, NiPoint3(), true);
 		simpleMoverPlatformSubComponent->m_State = eMovementPlatformState::Waiting | eMovementPlatformState::ReachedDesiredWaypoint | eMovementPlatformState::ReachedFinalWaypoint;
 		simpleMoverPlatformSubComponent->m_DesiredWaypointIndex = 23;
 		simpleMoverPlatformSubComponent->m_PercentBetweenPoints = 24;
-		simpleMoverPlatformSubComponent->m_Position = NiPoint3(25, 26, 27);
 		simpleMoverPlatformSubComponent->m_CurrentWaypointIndex = 28;
 		simpleMoverPlatformSubComponent->m_NextWaypointIndex = 29;
 		simpleMoverPlatformSubComponent->m_IdleTimeElapsed = 30;
 		simpleMoverPlatformSubComponent->m_MoveTimeElapsed = 33;
 		simpleMoverPlatformSubComponent->m_IsDirty = true;
 		simpleMoverPlatformSubComponent->m_InReverse = true;
+		simpleMoverPlatformSubComponent->m_DirtyStartingPoint = true;
+		simpleMoverPlatformSubComponent->m_HasStartingPoint = true;
 		simpleMoverPlatformSubComponent->m_ShouldStopAtDesiredWaypoint = true;
+		simpleMoverPlatformSubComponent->LoadConfigData();
 
 		movingPlatformComponent->_AddPlatformSubComponent(std::move(moverPlatformSubComponent));
 		movingPlatformComponent->_AddPlatformSubComponent(std::move(rotatorPlatformSubComponent));
@@ -95,11 +108,11 @@ protected:
 
 		uint32_t pathStartIndex;
 		bitStream.Read(pathStartIndex);
-		ASSERT_EQ(pathStartIndex, 1);
+		ASSERT_EQ(pathStartIndex, 0);
 
 		bool isInReverse;
 		bitStream.Read(isInReverse);
-		ASSERT_TRUE(isInReverse);
+		ASSERT_FALSE(isInReverse);
 
 		bool hasPlatformData;
 		bitStream.Read(hasPlatformData);
@@ -217,51 +230,42 @@ protected:
 		bitStream.Read(platformType3);
 		ASSERT_EQ(platformType3, eMoverSubComponentType::SimpleMover);
 
-		bool isDirty3;
-		bitStream.Read(isDirty3);
-		ASSERT_TRUE(isDirty3);
+		bool dirtyStartingPoint;
+		bitStream.Read(dirtyStartingPoint);
+		ASSERT_TRUE(dirtyStartingPoint);
+
+		bool hasStartingPoint;
+		bitStream.Read(hasStartingPoint);
+		ASSERT_TRUE(hasStartingPoint);
+
+		NiPoint3 startingPoint;
+		bitStream.Read(startingPoint.x);
+		bitStream.Read(startingPoint.y);
+		bitStream.Read(startingPoint.z);
+		ASSERT_EQ(startingPoint, NiPoint3(25, 26, 27));
+
+		NiQuaternion startingRotation;
+		bitStream.Read(startingRotation.w);
+		bitStream.Read(startingRotation.x);
+		bitStream.Read(startingRotation.y);
+		bitStream.Read(startingRotation.z);
+		ASSERT_EQ(startingRotation, NiQuaternion(28, 29, 30, 31));
+
+		bool isDirty4;
+		bitStream.Read(isDirty4);
+		ASSERT_TRUE(isDirty4);
 
 		eMovementPlatformState state3;
 		bitStream.Read(state3);
 		ASSERT_EQ(state3, eMovementPlatformState::Waiting | eMovementPlatformState::ReachedDesiredWaypoint | eMovementPlatformState::ReachedFinalWaypoint);
 
-		int32_t desiredWaypointIndex3;
-		bitStream.Read(desiredWaypointIndex3);
-		ASSERT_EQ(desiredWaypointIndex3, 23);
-
-		bool shouldStopAtDesiredWaypoint3;
-		bitStream.Read(shouldStopAtDesiredWaypoint3);
-		ASSERT_TRUE(shouldStopAtDesiredWaypoint3);
+		int32_t currentWaypointIndex3;
+		bitStream.Read(currentWaypointIndex3);
+		ASSERT_EQ(currentWaypointIndex3, 28);
 
 		bool isInReverse4;
 		bitStream.Read(isInReverse4);
 		ASSERT_TRUE(isInReverse4);
-
-		float percentBetweenPoints3;
-		bitStream.Read(percentBetweenPoints3);
-		ASSERT_EQ(percentBetweenPoints3, 24);
-
-		NiPoint3 position3;
-		bitStream.Read(position3.x);
-		bitStream.Read(position3.y);
-		bitStream.Read(position3.z);
-		ASSERT_EQ(position3, NiPoint3(25, 26, 27));
-
-		uint32_t currentWaypointIndex3;
-		bitStream.Read(currentWaypointIndex3);
-		ASSERT_EQ(currentWaypointIndex3, 28);
-
-		uint32_t nextWaypointIndex3;
-		bitStream.Read(nextWaypointIndex3);
-		ASSERT_EQ(nextWaypointIndex3, 29);
-
-		float idleTimeElapsed3;
-		bitStream.Read(idleTimeElapsed3);
-		ASSERT_EQ(idleTimeElapsed3, 30);
-
-		float moveTimeElapsed3;
-		bitStream.Read(moveTimeElapsed3);
-		ASSERT_EQ(moveTimeElapsed3, 33);
 
 		bool hasPlatformSubComponents2;
 		bitStream.Read(hasPlatformSubComponents2);
