@@ -331,6 +331,8 @@ int main(int argc, char** argv) {
 	ObjectIDManager::Instance()->Initialize(Game::logger);
 	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
 
+	CDClientManager::Instance()->LoadHost();
+
 	//Depending on the config, start up servers:
 	if (Game::config->GetValue("prestart_servers") != "" && Game::config->GetValue("prestart_servers") == "1") {
 		StartChatServer();

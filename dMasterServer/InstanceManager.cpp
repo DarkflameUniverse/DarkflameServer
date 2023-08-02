@@ -69,13 +69,14 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	}
 #endif
 
-	cmd.append(std::to_string(mapID));
-	cmd.append(" -port ");
-	cmd.append(std::to_string(port));
-	cmd.append(" -instance ");
-	cmd.append(std::to_string(m_LastInstanceID));
-	cmd.append(" -maxclients ");
-	cmd.append(std::to_string(maxPlayers));
+    cmd.append(" -zone ");
+    cmd.append(std::to_string(mapID));
+    cmd.append(" -port ");
+    cmd.append(std::to_string(port));
+    cmd.append(" -instance ");
+    cmd.append(std::to_string(m_LastInstanceID));
+    cmd.append(" -maxclients ");
+    cmd.append(std::to_string(maxPlayers));
 
 	cmd.append(" -clone ");
 	cmd.append(std::to_string(cloneID));

@@ -78,3 +78,11 @@ CDClientManager::CDClientManager() {
 	CDFeatureGatingTable::Instance();
 	CDRailActivatorComponentTable::Instance();
 }
+
+void CDClientManager::LoadHost() {
+	for (auto itr = this->tables.begin(); itr != this->tables.end(); ++itr) {
+		itr->second->LoadHost();
+	}
+
+	CDTable::InitalizeHost();
+}

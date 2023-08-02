@@ -13,14 +13,20 @@ void NpcCombatSkillBehavior::Calculate(BehaviorContext* context, RakNet::BitStre
 
 void NpcCombatSkillBehavior::Load() {
 	this->m_npcSkillTime = GetFloat("npc skill time");
+	
+	std::string ss = "behavior ";
 
-	const auto parameters = GetParameterNames();
+	int i = 1;
 
-	for (const auto& parameter : parameters) {
-		if (parameter.first.rfind("behavior", 0) == 0) {
-			auto* action = GetAction(parameter.second);
+	while (true) {
+		std::string s = ss + std::to_string(i);
 
-			this->m_behaviors.push_back(action);
+		if (GetInt(s, 0) == 0) {
+			break;
 		}
+
+		m_behaviors.push_back(GetAction(s));
+
+		++i;
 	}
 }

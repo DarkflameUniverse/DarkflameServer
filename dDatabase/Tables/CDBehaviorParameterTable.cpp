@@ -21,10 +21,7 @@ CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
 		entry.value = tableData.getFloatField("value", -1.0f);
 
 		m_Entries.insert(std::make_pair(hash, entry));
-
-		tableData.nextRow();
 	}
-	tableData.finalize();
 }
 
 float CDBehaviorParameterTable::GetValue(const uint32_t behaviorID, const std::string& name, const float defaultValue) {

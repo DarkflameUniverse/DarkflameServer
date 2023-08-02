@@ -6,10 +6,10 @@
 #include <unordered_set>
 
 struct CDBehaviorTemplate {
-	unsigned int behaviorID;                                         //!< The Behavior ID
-	unsigned int templateID;                                         //!< The Template ID (LOT)
-	unsigned int effectID;                                           //!< The Effect ID attached
-	std::unordered_set<std::string>::iterator effectHandle;          //!< The effect handle
+    unsigned int behaviorID;                                         //!< The Behavior ID
+    unsigned int templateID;                                         //!< The Template ID (LOT)
+    unsigned int effectID;                                           //!< The Effect ID attached
+    size_t effectHandle;                                             //!< The effect handle
 };
 
 

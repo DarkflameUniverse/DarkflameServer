@@ -3,8 +3,12 @@
 #include "Game.h"
 #include "dLogger.h"
 
-void AndBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
-	for (auto* behavior : this->m_behaviors) {
+#include <sstream>
+
+void AndBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch)
+{
+	for (auto* behavior : this->m_behaviors)
+	{
 		behavior->Handle(context, bitStream, branch);
 	}
 }
@@ -21,14 +25,21 @@ void AndBehavior::UnCast(BehaviorContext* context, const BehaviorBranchContext b
 	}
 }
 
-void AndBehavior::Load() {
-	const auto parameters = GetParameterNames();
+void AndBehavior::Load()
+{
+	std::string ss = "behavior ";
 
-	for (const auto& parameter : parameters) {
-		if (parameter.first.rfind("behavior", 0) == 0) {
-			auto* action = GetAction(parameter.second);
+	int i = 1;
 
-			this->m_behaviors.push_back(action);
+	while (true) {
+		std::string s = ss + std::to_string(i);
+
+		if (GetInt(s, 0) == 0) {
+			break;
 		}
+
+		m_behaviors.push_back(GetAction(s));
+
+		++i;
 	}
 }

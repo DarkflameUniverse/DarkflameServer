@@ -322,6 +322,15 @@ link_directories(${PROJECT_BINARY_DIR})
 # Load all of our third party directories
 add_subdirectory(thirdparty)
 
+# Include Boost
+find_package(Boost COMPONENTS interprocess)
+
+if(Boost_FOUND)
+    include_directories(${Boost_INCLUDE_DIRS}) 
+
+    target_link_libraries(dGame ${Boost_LIBRARIES})
+endif()
+
 # Glob together all headers that need to be precompiled
 file(
 	GLOB HEADERS_DDATABASE

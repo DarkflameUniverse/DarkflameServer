@@ -439,7 +439,7 @@ Behavior::Behavior(const uint32_t behaviorId) {
 
 	this->m_effectId = templateInDatabase.effectID;
 
-	this->m_effectHandle = *templateInDatabase.effectHandle != "" ? new std::string(*templateInDatabase.effectHandle) : nullptr;
+	this->m_effectHandle = new std::string(CDTable::GetString(templateInDatabase.effectHandle));
 }
 
 
@@ -471,14 +471,8 @@ Behavior* Behavior::GetAction(float value) const {
 }
 
 std::map<std::string, float> Behavior::GetParameterNames() const {
-	std::map<std::string, float> templatesInDatabase;
-	// Find behavior template by its behavior id.
 	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance().GetTable<CDBehaviorParameterTable>();
-	if (BehaviorParameterTable) {
-		templatesInDatabase = BehaviorParameterTable->GetParametersByBehaviorID(this->m_behaviorId);
-	}
-
-	return templatesInDatabase;
+	return BehaviorParameterTable->GetParametersByBehaviorID(this->m_behaviorId);
 }
 
 void Behavior::Load() {
