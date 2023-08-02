@@ -668,6 +668,15 @@
         </zone>
     </npc>
 
+	<!--Crux Prime loot drop physics hack-->
+	<npc lot="30025">
+        <zone id="1800">
+            <locations>
+                <location x="0" y="0" z="0" rw="1.00" rx="0.00" ry="0.00" rz="0.00" />
+            </locations>
+        </zone>
+    </npc>
+
 	<!--SPAWNER TEST-->
 	<npc lot="176">
         <ldf>
