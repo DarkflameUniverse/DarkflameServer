@@ -17,6 +17,7 @@
 #include "eReplicaComponentType.h"
 #include "RenderComponent.h"
 #include "eGameActivity.h"
+#include "MovingPlatformComponent.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	Game::logger->Log("SGCannon", "OnStartup");
@@ -314,7 +315,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			// Save the enemy and tell it to start pathing
 			if (enemy != nullptr) {
 				const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
-				GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS);
+				GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS, eMovementPlatformState::Travelling);
 			}
 		}
 	} else if (name == EndGameBufferTimer) {

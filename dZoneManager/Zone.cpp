@@ -381,7 +381,7 @@ void Zone::LoadPath(std::istream& file) {
 		BinaryIO::BinaryRead(file, character);
 		path.pathName.push_back(character);
 	}
-
+	Game::logger->Log("Zone", "pathname: %s", path.pathName.c_str());
 	BinaryIO::BinaryRead(file, path.pathType);
 	BinaryIO::BinaryRead(file, path.flags);
 	BinaryIO::BinaryRead(file, path.pathBehavior);
@@ -479,6 +479,7 @@ void Zone::LoadPath(std::istream& file) {
 		if (path.pathType == PathType::MovingPlatform) {
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.lockPlayer);
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.speed);
+			Game::logger->Log("Zone", "speed: %f", waypoint.movingPlatform.speed);
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.wait);
 			if (path.pathVersion >= 13) {
 				uint8_t count1;

@@ -13,10 +13,21 @@
 
 #include "dCommonVars.h"
 #include "Component.h"
-#include "eMovementPlatformState.h"
 #include "eReplicaComponentType.h"
 
 class Path;
+
+/**
+ * The different types of platform movement state
+ */
+enum eMovementPlatformState : uint32_t
+{
+	Waiting = 1 << 0U,
+	Travelling = 1 << 1U,
+	Stopped = 1 << 2U,
+	ReachedDesiredWaypoint = 1 << 3U,
+	ReachedFinalWaypoint = 1 << 4U,
+};
 
 /**
  * Different types of available platforms
@@ -39,16 +50,21 @@ public:
 	bool GetIsDirty() const { return m_IsDirty; }
 	virtual void LoadDataFromTemplate() {};
 	virtual void LoadConfigData() {};
+	virtual void StartPathing();
+	virtual void ResumePathing();
+	virtual void StopPathing();
+	virtual void Update(float deltaTime);
 protected:
 
 #ifdef _MOVING_PLATFORM_TEST
 public:
 #endif
 	MovingPlatformComponent* m_ParentComponent = nullptr;
+
 	/**
 	 * The state the platform is currently in
 	 */
-	eMovementPlatformState m_State = eMovementPlatformState::Stopped | eMovementPlatformState::ReachedDesiredWaypoint;
+	uint32_t m_State = eMovementPlatformState::Stopped | eMovementPlatformState::ReachedDesiredWaypoint;
 	int32_t m_DesiredWaypointIndex = 0;
 	float m_PercentBetweenPoints = 0;
 	NiPoint3 m_Position;
@@ -61,6 +77,9 @@ public:
 	bool m_IsDirty = false;
 	bool m_InReverse = false;
 	bool m_ShouldStopAtDesiredWaypoint = false;
+	NiPoint3 m_LinearVelocity;
+	NiPoint3 m_AngularVelocity;
+	bool m_TimeBasedMovement = false;
 };
 
 class MoverPlatformSubComponent : public PlatformSubComponent {
@@ -159,7 +178,7 @@ public:
 	 * Determines if the entity should be serialized on the next update
 	 * @param value whether to serialize the entity or not
 	 */
-	void SetSerialized(bool value);
+	void SetSerialized(bool value) {};
 
 	/**
 	 * Returns if this platform will start automatically after spawn

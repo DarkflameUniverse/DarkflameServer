@@ -53,6 +53,44 @@ void PlatformSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 	if (!bIsInitialUpdate) m_IsDirty = false;
 }
 
+void PlatformSubComponent::StartPathing() {
+	m_State |= eMovementPlatformState::Travelling;
+	m_State &= ~eMovementPlatformState::Stopped;
+	m_State &= ~eMovementPlatformState::Waiting;
+}
+
+void PlatformSubComponent::ResumePathing() {
+	if (m_State & eMovementPlatformState::Stopped && (m_State & eMovementPlatformState::ReachedDesiredWaypoint) == 0) {
+		StartPathing();
+	}
+	if (m_State & eMovementPlatformState::Travelling == 0) {
+		m_State |= eMovementPlatformState::Waiting;
+		m_State &= ~eMovementPlatformState::Stopped;
+		m_State &= ~eMovementPlatformState::Travelling;
+	} else {
+		m_State &= eMovementPlatformState::Waiting;
+		m_State &= eMovementPlatformState::Travelling;
+		m_State &= eMovementPlatformState::Stopped;
+		// Set the velocities
+	}
+}
+
+void PlatformSubComponent::StopPathing() {
+	m_State |= eMovementPlatformState::Stopped;
+	m_State &= ~eMovementPlatformState::Travelling;
+	m_State &= ~eMovementPlatformState::Waiting;
+	m_LinearVelocity = NiPoint3::ZERO;
+	m_AngularVelocity = NiPoint3::ZERO;
+}
+
+void PlatformSubComponent::Update(float deltaTime) {
+	if (m_TimeBasedMovement && m_State & eMovementPlatformState::Travelling) {
+		m_MoveTimeElapsed += deltaTime;
+	}
+	if (m_State == 0) return;
+	
+}
+
 //------------- PlatformSubComponent end --------------
 
 //------------- MoverPlatformSubComponent begin --------------
@@ -218,6 +256,9 @@ void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint) 
 }
 
 void MovingPlatformComponent::StartPathing() {
+	std::for_each(m_Platforms.begin(), m_Platforms.end(), [](const std::unique_ptr<PlatformSubComponent>& platform) {
+		platform->StartPathing();
+		});
 	// state == Travelling
 	// //GameMessages::SendStartPathing(m_Parent);
 	// m_PathingStopped = false;

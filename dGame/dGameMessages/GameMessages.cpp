@@ -26,7 +26,6 @@
 #include "ChatPackets.h"
 #include "RocketLaunchLupComponent.h"
 #include "eUnequippableActiveType.h"
-#include "eMovementPlatformState.h"
 #include "LeaderboardManager.h"
 #include "Amf3.h"
 #include "Loot.h"
@@ -349,9 +348,9 @@ void GameMessages::SendStartPathing(Entity* entity) {
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
-	int iIndex, int iDesiredWaypointIndex, int nextIndex,
-	eMovementPlatformState movementState) {
+void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr,
+		eMovementPlatformState movementState, bool bStopAtDesiredWaypoint,
+	int iIndex, int iDesiredWaypointIndex, int nextIndex) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -362,7 +361,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 		iIndex = 0;
 		nextIndex = 0;
 		bStopAtDesiredWaypoint = true;
-		movementState = eMovementPlatformState::Waiting | eMovementPlatformState::ReachedDesiredWaypoint | eMovementPlatformState::ReachedFinalWaypoint;
+		movementState = static_cast<eMovementPlatformState>(
+			eMovementPlatformState::Waiting | eMovementPlatformState::ReachedDesiredWaypoint | eMovementPlatformState::ReachedFinalWaypoint);
 	}
 
 	bitStream.Write(entity->GetObjectID());
@@ -5005,7 +5005,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 
 void GameMessages::HandleRequestPlatformResync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	if (entity->GetLOT() == 6267 || entity->GetLOT() == 16141) return;
-	GameMessages::SendPlatformResync(entity, sysAddr);
+	GameMessages::SendPlatformResync(entity, sysAddr, eMovementPlatformState::Travelling);
 }
 
 void GameMessages::HandleRebuildCancel(RakNet::BitStream* inStream, Entity* entity) {
