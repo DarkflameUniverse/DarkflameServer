@@ -672,7 +672,7 @@
 	<npc lot="30025">
         <zone id="1800">
             <locations>
-                <location x="0" y="0" z="0" rw="1.00" rx="0.00" ry="0.00" rz="0.00" />
+                <location x="0.00" y="0.00" z="0.00" rw="1.00" rx="0.00" ry="0.00" rz="0.00" />
             </locations>
         </zone>
     </npc>
