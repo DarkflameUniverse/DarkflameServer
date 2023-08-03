@@ -85,6 +85,7 @@ public:
 	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates; }
 
 	bool GetIsGhostingCandidate() const;
+	bool SetIsGhostingCandidate(bool value) {m_IsGhostingCandidate = value;};
 
 	int8_t GetObservers() const;
 
