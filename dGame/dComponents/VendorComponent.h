@@ -2,7 +2,6 @@
 #ifndef VENDORCOMPONENT_H
 #define VENDORCOMPONENT_H
 
-#include <functional>
 #include "CDClientManager.h"
 #include "Component.h"
 #include "Entity.h"
