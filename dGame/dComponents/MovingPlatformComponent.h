@@ -15,6 +15,7 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
+class PathWaypoint;
 class Path;
 
 /**
@@ -54,10 +55,20 @@ public:
 	virtual void ResumePathing();
 	virtual void StopPathing();
 	virtual void Update(float deltaTime);
+	float CalculateSpeed() const;
+	const PathWaypoint GetNextWaypoint() const;
+	const PathWaypoint GetCurrentWaypoint() const;
+	void SetupPath(const std::string& pathName, uint32_t startingWaypointIndex, bool startsInReverse);
+	void AdvanceToNextWaypoint();
+	void AdvanceToNextReverseWaypoint();
+	NiPoint3 CalculateLinearVelocity();
 protected:
 
 #ifdef _MOVING_PLATFORM_TEST
 public:
+	void _SetPath(const Path* path) {
+		m_Path = path;
+	}
 #endif
 	MovingPlatformComponent* m_ParentComponent = nullptr;
 
@@ -66,10 +77,10 @@ public:
 	 */
 	uint32_t m_State = eMovementPlatformState::Stopped | eMovementPlatformState::ReachedDesiredWaypoint;
 	int32_t m_DesiredWaypointIndex = 0;
-	float m_PercentBetweenPoints = 0;
+	float m_PercentUntilNextWaypoint = 0;
 	NiPoint3 m_Position;
-	uint32_t m_CurrentWaypointIndex;
-	uint32_t m_NextWaypointIndex;
+	int32_t m_CurrentWaypointIndex;
+	int32_t m_NextWaypointIndex;
 	float m_IdleTimeElapsed = 0;
 	float m_Speed = 0;
 	float m_WaitTime = 0;
@@ -80,6 +91,7 @@ public:
 	NiPoint3 m_LinearVelocity;
 	NiPoint3 m_AngularVelocity;
 	bool m_TimeBasedMovement = false;
+	const Path* m_Path = nullptr;
 };
 
 class MoverPlatformSubComponent : public PlatformSubComponent {
@@ -209,10 +221,10 @@ public:
 		static_assert(std::is_base_of<PlatformSubComponent, MovingPlatform>::value, "MovingPlatform must derive from PlatformSubComponent");
 		auto hasPlatform = std::find_if(m_Platforms.begin(), m_Platforms.end(), [](const std::unique_ptr<PlatformSubComponent>& platform) {
 			return platform->GetPlatformType() == MovingPlatform::SubComponentType;
-		}) != m_Platforms.end();
-		if (!hasPlatform) {
-			m_Platforms.push_back(std::make_unique<MovingPlatform>(this, std::forward<ConstructorValues>(arguments)...));
-		}
+			}) != m_Platforms.end();
+			if (!hasPlatform) {
+				m_Platforms.push_back(std::make_unique<MovingPlatform>(this, std::forward<ConstructorValues>(arguments)...));
+			}
 	}
 
 	int32_t GetComponentId() const { return componentId; }
@@ -220,8 +232,8 @@ public:
 #ifdef _MOVING_PLATFORM_TEST
 	/**
 	 * Only used for testing. Do not call in production code. Let the constructor take care of this.
-	 * 
-	 * @param platformSubComponent 
+	 *
+	 * @param platformSubComponent
 	 */
 	void _AddPlatformSubComponent(std::unique_ptr<PlatformSubComponent> platformSubComponent) {
 		m_Platforms.push_back(std::move(platformSubComponent));
@@ -230,7 +242,7 @@ public:
 	void _SetPath(const std::u16string& path) {
 		m_PathName = path;
 		m_DirtyPathInfo = true;
-	}
+}
 #endif
 private:
 	/**

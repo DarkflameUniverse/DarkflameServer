@@ -7,6 +7,7 @@
 #define _MOVING_PLATFORM_TEST
 #include "MovingPlatformComponent.h"
 #undef _MOVING_PLATFORM_TEST
+#include "Zone.h"
 #include "SimplePhysicsComponent.h"
 #include "eReplicaComponentType.h"
 
@@ -15,8 +16,22 @@ protected:
 	std::unique_ptr<Entity> baseEntity;
 	CBITSTREAM;
 	uint32_t flags = 0;
+	Path path;
 	void SetUp() override {
 		SetUpDependencies();
+		path.movingPlatform.timeBasedMovement = false;
+		path.pathBehavior = PathBehavior::Once;
+		PathWaypoint waypointStart;
+		waypointStart.position = NiPoint3(1, 2, 3);
+		waypointStart.rotation = NiQuaternion(4, 5, 6, 7);
+
+		PathWaypoint waypointEnd;
+		waypointEnd.position = NiPoint3(4, 5, 6);
+		waypointEnd.rotation = NiQuaternion(7, 8, 9, 10);
+
+		path.pathWaypoints.push_back(waypointStart);
+		path.pathWaypoints.push_back(waypointEnd);
+
 		baseEntity = std::make_unique<Entity>(15, GameDependenciesTest::info);
 		baseEntity->SetVar<bool>(u"dbonly", false);
 		baseEntity->SetVar<float>(u"platformMoveX", 23);
@@ -33,7 +48,7 @@ protected:
 		auto moverPlatformSubComponent = std::make_unique<MoverPlatformSubComponent>(movingPlatformComponent);
 		moverPlatformSubComponent->m_State = eMovementPlatformState::Stopped | eMovementPlatformState::ReachedDesiredWaypoint;
 		moverPlatformSubComponent->m_DesiredWaypointIndex = 1;
-		moverPlatformSubComponent->m_PercentBetweenPoints = 2;
+		moverPlatformSubComponent->m_PercentUntilNextWaypoint = 2;
 		moverPlatformSubComponent->m_Position = NiPoint3(3, 4, 5);
 		moverPlatformSubComponent->m_CurrentWaypointIndex = 6;
 		moverPlatformSubComponent->m_NextWaypointIndex = 7;
@@ -46,7 +61,7 @@ protected:
 		auto rotatorPlatformSubComponent = std::make_unique<RotatorPlatformSubComponent>(movingPlatformComponent);
 		rotatorPlatformSubComponent->m_State = eMovementPlatformState::Travelling;
 		rotatorPlatformSubComponent->m_DesiredWaypointIndex = 12;
-		rotatorPlatformSubComponent->m_PercentBetweenPoints = 13;
+		rotatorPlatformSubComponent->m_PercentUntilNextWaypoint = 13;
 		rotatorPlatformSubComponent->m_Position = NiPoint3(14, 15, 16);
 		rotatorPlatformSubComponent->m_CurrentWaypointIndex = 17;
 		rotatorPlatformSubComponent->m_NextWaypointIndex = 18;
@@ -59,7 +74,7 @@ protected:
 		auto simpleMoverPlatformSubComponent = std::make_unique<SimpleMoverPlatformSubComponent>(movingPlatformComponent, NiPoint3(), true);
 		simpleMoverPlatformSubComponent->m_State = eMovementPlatformState::Waiting | eMovementPlatformState::ReachedDesiredWaypoint | eMovementPlatformState::ReachedFinalWaypoint;
 		simpleMoverPlatformSubComponent->m_DesiredWaypointIndex = 23;
-		simpleMoverPlatformSubComponent->m_PercentBetweenPoints = 24;
+		simpleMoverPlatformSubComponent->m_PercentUntilNextWaypoint = 24;
 		simpleMoverPlatformSubComponent->m_CurrentWaypointIndex = 28;
 		simpleMoverPlatformSubComponent->m_NextWaypointIndex = 29;
 		simpleMoverPlatformSubComponent->m_IdleTimeElapsed = 30;
@@ -279,4 +294,70 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformConstructionTest) {
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformSerializationTest) {
 	TestSerialization();
+}
+
+TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceForwardTest) {
+	MoverPlatformSubComponent moverPlatformSubComponent(nullptr);
+	moverPlatformSubComponent._SetPath(&path);
+	moverPlatformSubComponent.m_CurrentWaypointIndex = 0;
+	moverPlatformSubComponent.m_NextWaypointIndex = 1;
+	moverPlatformSubComponent.m_InReverse = false;
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 1);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 0);
+	ASSERT_FALSE(moverPlatformSubComponent.m_InReverse);
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 1);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 0);
+	ASSERT_FALSE(moverPlatformSubComponent.m_InReverse);
+	path.pathBehavior = PathBehavior::Bounce;
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 0);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 1);
+	ASSERT_TRUE(moverPlatformSubComponent.m_InReverse);
+}
+
+TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceReverseTest) {
+	MoverPlatformSubComponent moverPlatformSubComponent(nullptr);
+	moverPlatformSubComponent._SetPath(&path);
+	moverPlatformSubComponent.m_CurrentWaypointIndex = 1;
+	moverPlatformSubComponent.m_NextWaypointIndex = 0;
+	moverPlatformSubComponent.m_InReverse = true;
+	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 0);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 0);
+	ASSERT_TRUE(moverPlatformSubComponent.m_InReverse);
+	path.pathBehavior = PathBehavior::Bounce;
+	moverPlatformSubComponent.m_CurrentWaypointIndex = 1;
+	moverPlatformSubComponent.m_NextWaypointIndex = 0;
+	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 0);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 1);
+	ASSERT_TRUE(moverPlatformSubComponent.m_InReverse);
+	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 1);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 0);
+	ASSERT_FALSE(moverPlatformSubComponent.m_InReverse);
+}
+
+TEST_F(MovingPlatformComponentTests, MovingPlatformMoverSpeedCalculationTest) {
+	MoverPlatformSubComponent moverPlatformSubComponent(nullptr);
+	path.pathWaypoints.at(0).position = NiPoint3(99.296440, 419.293335, 207.219498);
+	path.pathWaypoints.at(0).movingPlatform.speed = 16.0f;
+	
+	path.pathWaypoints.at(1).position = NiPoint3(141.680099, 419.990051, 208.680450);
+	path.pathWaypoints.at(1).movingPlatform.speed = 16.0f;
+	path.pathBehavior = PathBehavior::Bounce;
+	moverPlatformSubComponent._SetPath(&path);
+	moverPlatformSubComponent.m_Speed = 16.0f;
+	moverPlatformSubComponent.m_TimeBasedMovement = false;
+	moverPlatformSubComponent.m_InReverse = false;
+	moverPlatformSubComponent.m_CurrentWaypointIndex = 0;
+	moverPlatformSubComponent.m_NextWaypointIndex = 1;
+	ASSERT_EQ(moverPlatformSubComponent.CalculateSpeed(), 16.0f);
+	NiPoint3 r = moverPlatformSubComponent.CalculateLinearVelocity();
+	ASSERT_FLOAT_EQ(r.x, 15.988346099854);
+	ASSERT_FLOAT_EQ(r.y, 0.26282161474228);
+	ASSERT_FLOAT_EQ(r.z, 0.5511137843132);
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
 }

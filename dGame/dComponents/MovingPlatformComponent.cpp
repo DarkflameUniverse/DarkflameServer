@@ -27,12 +27,86 @@ PlatformSubComponent::PlatformSubComponent(MovingPlatformComponent* parentCompon
 	m_InReverse = false;
 	m_ShouldStopAtDesiredWaypoint = false;
 
-	m_PercentBetweenPoints = 0.0f;
+	m_PercentUntilNextWaypoint = 0.0f;
 
 	m_CurrentWaypointIndex = 0;
 	m_NextWaypointIndex = 0;
 
 	m_IdleTimeElapsed = 0.0f;
+}
+
+void PlatformSubComponent::AdvanceToNextWaypoint() {
+	uint32_t numWaypoints = m_Path->pathWaypoints.size();
+	m_CurrentWaypointIndex = m_NextWaypointIndex;
+	uint32_t nextWaypointIndex = m_CurrentWaypointIndex;
+	if (numWaypoints <= nextWaypointIndex) {
+		PathBehavior behavior = m_Path->pathBehavior;
+		if (behavior == PathBehavior::Once) {
+			nextWaypointIndex = m_Path->pathWaypoints.size() - 1;
+		} else if (behavior == PathBehavior::Bounce) {
+			nextWaypointIndex = m_Path->pathWaypoints.size() - 2;
+			m_InReverse = true;
+		} else {
+			m_NextWaypointIndex = 0;
+		}
+	}
+	m_NextWaypointIndex = nextWaypointIndex;
+}
+
+void PlatformSubComponent::AdvanceToNextReverseWaypoint() {
+	uint32_t numWaypoints = m_Path->pathWaypoints.size();
+	m_CurrentWaypointIndex = m_NextWaypointIndex;
+	int32_t nextWaypointIndex = m_CurrentWaypointIndex;
+	if (nextWaypointIndex < 0) {
+		PathBehavior behavior = m_Path->pathBehavior;
+		if (behavior == PathBehavior::Once) {
+			nextWaypointIndex = 0;
+		} else if (behavior == PathBehavior::Bounce) {
+			nextWaypointIndex = 1;
+			m_InReverse = false;
+		} else {
+			nextWaypointIndex = m_Path->pathWaypoints.size() - 1;
+		}
+	}
+	m_NextWaypointIndex = nextWaypointIndex;
+}
+
+void PlatformSubComponent::SetupPath(const std::string& pathName, uint32_t startingWaypointIndex, bool startsInReverse) {
+	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
+	if (!m_Path) {
+		Game::logger->Log("MovingPlatformComponent", "Failed to find path (%s)", pathName.c_str());
+		return;
+	}
+	m_InReverse = startsInReverse;
+	m_CurrentWaypointIndex = startingWaypointIndex;
+	m_TimeBasedMovement = m_Path->movingPlatform.timeBasedMovement;
+}
+
+const PathWaypoint PlatformSubComponent::GetNextWaypoint() const {
+	DluAssert(m_Path != nullptr);
+	if (m_NextWaypointIndex >= m_Path->pathWaypoints.size()) return PathWaypoint();
+	return m_Path->pathWaypoints.at(m_NextWaypointIndex);
+}
+
+const PathWaypoint PlatformSubComponent::GetCurrentWaypoint() const {
+	DluAssert(m_Path != nullptr);
+	if (m_CurrentWaypointIndex >= m_Path->pathWaypoints.size()) return PathWaypoint();
+	return m_Path->pathWaypoints.at(m_CurrentWaypointIndex);
+}
+
+float PlatformSubComponent::CalculateSpeed() const {
+	float speed;
+	if (m_TimeBasedMovement) {
+		float unitizedDirection = 1.0f / (GetNextWaypoint().position - GetCurrentWaypoint().position).Length();
+		speed = unitizedDirection / GetCurrentWaypoint().movingPlatform.speed;
+	} else {
+		speed = (GetNextWaypoint().movingPlatform.speed - GetCurrentWaypoint().movingPlatform.speed) * m_PercentUntilNextWaypoint + GetCurrentWaypoint().movingPlatform.speed;
+	}
+	return speed;
+}
+
+NiPoint3 PlatformSubComponent::CalculateLinearVelocity() {
+	return (GetNextWaypoint().position - GetCurrentWaypoint().position).Unitize() * CalculateSpeed();
 }
 
 void PlatformSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
@@ -42,7 +116,7 @@ void PlatformSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 	outBitStream->Write(m_DesiredWaypointIndex);
 	outBitStream->Write(m_ShouldStopAtDesiredWaypoint);
 	outBitStream->Write(m_InReverse);
-	outBitStream->Write(m_PercentBetweenPoints);
+	outBitStream->Write(m_PercentUntilNextWaypoint);
 	outBitStream->Write(m_Position.x);
 	outBitStream->Write(m_Position.y);
 	outBitStream->Write(m_Position.z);
@@ -145,8 +219,6 @@ void SimpleMoverPlatformSubComponent::LoadConfigData() {
 	);
 	m_PlatformMove = platformMove;
 	m_MoveTime = m_ParentComponent->GetParent()->GetVar<float>(u"platformMoveTime");
-	// idk either. client does it!
-	m_StartAtEnd = m_ParentComponent->GetParent()->GetVar<uint32_t>(u"attached_path_start") != 0;
 	m_StartAtEnd = m_ParentComponent->GetParent()->GetVar<bool>(u"platformStartAtEnd");
 }
 
@@ -197,6 +269,8 @@ void MovingPlatformComponent::LoadConfigData() {
 	if (m_Parent->GetVar<bool>(u"platformIsRotater")) {
 		AddMovingPlatform<RotatorPlatformSubComponent>();
 	}
+	m_StartingWaypointIndex = m_Parent->GetVar<uint32_t>(u"attached_path_start");
+	m_StartsIsInReverse = false;
 	m_DirtyPathInfo = true;
 }
 
