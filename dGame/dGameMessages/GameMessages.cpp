@@ -1286,21 +1286,21 @@ void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& s
 	VendorComponent* vendor = static_cast<VendorComponent*>(entity->GetComponent(eReplicaComponentType::VENDOR));
 	if (!vendor) return;
 
-	std::map<LOT, int> vendorItems = vendor->GetInventory();
+	auto vendorItems = vendor->GetInventory();
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(eGameMessageType::VENDOR_STATUS_UPDATE);
 
 	bitStream.Write(bUpdateOnly);
-	bitStream.Write(static_cast<uint32_t>(vendorItems.size()));
+	bitStream.Write<uint32_t>(vendorItems.size());
 
-	for (std::pair<LOT, int> item : vendorItems) {
-		bitStream.Write(static_cast<int>(item.first));
-		bitStream.Write(static_cast<int>(item.second));
+	for (const auto& item : vendorItems) {
+		bitStream.Write(item.lot);
+		bitStream.Write(item.sortPriority);
 	}
 
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
-		SEND_PACKET;
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
 }
 
 void GameMessages::SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr) {
