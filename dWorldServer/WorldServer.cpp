@@ -262,48 +262,49 @@ int main(int argc, char** argv) {
 		Game::zoneManager->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
 
-		// pre calculate the FDB checksum
-		if (Game::config->GetValue("check_fdb") == "1") {
-			std::ifstream fileStream;
-
-			static const std::vector<std::string> aliases = {
-				"CDServers.fdb",
-				"cdserver.fdb",
-				"CDClient.fdb",
-				"cdclient.fdb",
-			};
-
-			for (const auto& file : aliases) {
-				fileStream.open(Game::assetManager->GetResPath() / file, std::ios::binary | std::ios::in);
-				if (fileStream.is_open()) {
-					break;
-				}
-			}
-
-			const int32_t bufferSize = 1024;
-			MD5* md5 = new MD5();
-
-			char fileStreamBuffer[1024] = {};
-
-			while (!fileStream.eof()) {
-				memset(fileStreamBuffer, 0, bufferSize);
-				fileStream.read(fileStreamBuffer, bufferSize);
-				md5->update(fileStreamBuffer, fileStream.gcount());
-			}
-
-			fileStream.close();
-
-			const char* nullTerminateBuffer = "\0";
-			md5->update(nullTerminateBuffer, 1); // null terminate the data
-			md5->finalize();
-			databaseChecksum = md5->hexdigest();
-
-			delete md5;
-
-			Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s", databaseChecksum.c_str());
-		}
 	} else {
 		Game::entityManager->Initialize();
+	}
+
+	// pre calculate the FDB checksum
+	if (Game::config->GetValue("check_fdb") == "1") {
+		std::ifstream fileStream;
+
+		static const std::vector<std::string> aliases = {
+			"CDServers.fdb",
+			"cdserver.fdb",
+			"CDClient.fdb",
+			"cdclient.fdb",
+		};
+
+		for (const auto& file : aliases) {
+			fileStream.open(Game::assetManager->GetResPath() / file, std::ios::binary | std::ios::in);
+			if (fileStream.is_open()) {
+				break;
+			}
+		}
+
+		const int32_t bufferSize = 1024;
+		MD5* md5 = new MD5();
+
+		char fileStreamBuffer[1024] = {};
+
+		while (!fileStream.eof()) {
+			memset(fileStreamBuffer, 0, bufferSize);
+			fileStream.read(fileStreamBuffer, bufferSize);
+			md5->update(fileStreamBuffer, fileStream.gcount());
+		}
+
+		fileStream.close();
+
+		const char* nullTerminateBuffer = "\0";
+		md5->update(nullTerminateBuffer, 1); // null terminate the data
+		md5->finalize();
+		databaseChecksum = md5->hexdigest();
+
+		delete md5;
+
+		Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s", databaseChecksum.c_str());
 	}
 
 	uint32_t currentFrameDelta = highFrameDelta;
