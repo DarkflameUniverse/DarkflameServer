@@ -285,7 +285,7 @@ void dZoneManager::LoadWorldConfig() {
 	m_WorldConfig->characterMaxSlope = worldConfig.getFloatField("character_max_slope");
 	m_WorldConfig->defaultRespawnTime = worldConfig.getFloatField("defaultrespawntime");
 	m_WorldConfig->missionTooltipTimeout = worldConfig.getFloatField("mission_tooltip_timeout");
-	m_WorldConfig->vendorBuyMultiplier = worldConfig.getFloatField("vendor_buy_multiplier");
+	m_WorldConfig->vendorBuyMultiplier = worldConfig.getFloatField("vendor_buy_multiplier", 0.1);
 	m_WorldConfig->petFollowRadius = worldConfig.getFloatField("pet_follow_radius");
 	m_WorldConfig->characterEyeHeight = worldConfig.getFloatField("character_eye_height");
 	m_WorldConfig->flightVerticalVelocity = worldConfig.getFloatField("flight_vertical_velocity");

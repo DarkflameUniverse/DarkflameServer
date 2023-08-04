@@ -276,6 +276,10 @@ public:
 	 */
 	void UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const;
 
+	void SetCurrentInteracting(LWOOBJID objectID) {m_CurrentInteracting = objectID;};
+
+	LWOOBJID GetCurrentInteracting() {return m_CurrentInteracting;};
+
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
 	 */
@@ -560,6 +564,8 @@ private:
 	 * ID of the last rocket used
 	 */
 	LWOOBJID m_LastRocketItemID = LWOOBJID_EMPTY;
+
+	LWOOBJID m_CurrentInteracting = LWOOBJID_EMPTY;
 };
 
 #endif // CHARACTERCOMPONENT_H

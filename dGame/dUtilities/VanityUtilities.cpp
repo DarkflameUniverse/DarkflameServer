@@ -80,10 +80,10 @@ void VanityUtilities::SpawnVanity() {
 
 			// Spawn the NPC
 			auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
-
-			npcEntity->SetVar<std::vector<std::string>>(u"chats", m_PartyPhrases);
-
-			SetupNPCTalk(npcEntity);
+			if (!npc.m_Phrases.empty()) {
+				npcEntity->SetVar<std::vector<std::string>>(u"chats", m_PartyPhrases);
+				SetupNPCTalk(npcEntity);
+			}
 		}
 
 		return;
@@ -114,21 +114,21 @@ void VanityUtilities::SpawnVanity() {
 
 		// Spawn the NPC
 		auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
+		if (!npc.m_Phrases.empty()){
+			npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
 
-		npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
+			auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
 
-		auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
+			if (scriptComponent && !npc.m_Script.empty()) {
+				scriptComponent->SetScript(npc.m_Script);
+				scriptComponent->SetSerialized(false);
 
-		if (scriptComponent && !npc.m_Script.empty()) {
-			scriptComponent->SetScript(npc.m_Script);
-			scriptComponent->SetSerialized(false);
-
-			for (const auto& npc : npc.m_Flags) {
-				npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
+				for (const auto& npc : npc.m_Flags) {
+					npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
+				}
 			}
+			SetupNPCTalk(npcEntity);
 		}
-
-		SetupNPCTalk(npcEntity);
 	}
 
 	if (zoneID == 1200) {
@@ -233,6 +233,7 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 
 	auto* entity = Game::entityManager->CreateEntity(info);
 	entity->SetVar(u"npcName", name);
+	if (entity->GetVar<bool>(u"noGhosting")) entity->SetIsGhostingCandidate(false);
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
