@@ -349,7 +349,7 @@ void Zone::LoadSceneTransition(std::istream& file) {
 		uint8_t length;
 		BinaryIO::BinaryRead(file, length);
 		sceneTrans.name = BinaryIO::ReadString(file, length);
-		file.ignore(4);
+		BinaryIO::BinaryRead(file, sceneTrans.width);
 	}
 
 	//BR�THER MAY I HAVE SOME L��PS?

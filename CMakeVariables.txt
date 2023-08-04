@@ -1,12 +1,8 @@
 PROJECT_VERSION_MAJOR=1
-PROJECT_VERSION_MINOR=1
-PROJECT_VERSION_PATCH=0
+PROJECT_VERSION_MINOR=0
+PROJECT_VERSION_PATCH=1
 # LICENSE
 LICENSE=AGPL-3.0
-# The network version.
-# 171023 - Darkflame Universe client
-# 171022 - Unmodded client
-NET_VERSION=171022
 # Debugging
 # Set __dynamic to 1 to enable the -rdynamic flag for the linker, yielding some symbols in crashlogs.
 __dynamic=1

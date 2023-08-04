@@ -12,3 +12,12 @@ TEST(dCommonTests, NiPoint3Test) {
 	// Check what unitize does to a vector of length 0
 	ASSERT_EQ(NiPoint3::ZERO.Unitize(), NiPoint3::ZERO);
 }
+
+TEST(dCommonTests, NiPoint3OperatorTest) {
+	NiPoint3 a(1, 2, 3);
+	NiPoint3 b(4, 5, 6);
+	a += b;
+	EXPECT_FLOAT_EQ(a.x, 5);
+	EXPECT_FLOAT_EQ(a.y, 7);
+	EXPECT_FLOAT_EQ(a.z, 9);
+}

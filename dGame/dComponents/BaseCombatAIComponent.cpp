@@ -318,7 +318,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		// Speed towards start position
 		if (m_MovementAI != nullptr) {
 			m_MovementAI->SetHaltDistance(0);
-			m_MovementAI->SetSpeed(m_PursuitSpeed);
+			m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 			m_MovementAI->SetDestination(m_StartPosition);
 		}
 
@@ -382,8 +382,6 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 }
 
 LWOOBJID BaseCombatAIComponent::FindTarget() {
-	//const auto reference = m_MovementAI == nullptr ? m_StartPosition : m_MovementAI->ApproximateLocation();
-
 	NiPoint3 reference = m_StartPosition;
 
 	if (m_MovementAI) reference = m_MovementAI->ApproximateLocation();
@@ -660,17 +658,17 @@ void BaseCombatAIComponent::Wander() {
 		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
-	if (Vector3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {
+	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {
 		m_MovementAI->Stop();
 
 		return;
 	}
 
-	m_MovementAI->SetSpeed(m_TetherSpeed);
+	m_MovementAI->SetMaxSpeed(m_TetherSpeed);
 
 	m_MovementAI->SetDestination(destination);
 
-	m_Timer += (m_MovementAI->GetCurrentPosition().x - destination.x) / m_TetherSpeed;
+	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / m_TetherSpeed;
 }
 
 void BaseCombatAIComponent::OnAggro() {
@@ -685,21 +683,21 @@ void BaseCombatAIComponent::OnAggro() {
 	m_MovementAI->SetHaltDistance(m_AttackRadius);
 
 	NiPoint3 targetPos = target->GetPosition();
-	NiPoint3 currentPos = m_MovementAI->GetCurrentPosition();
+	NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
 
 	// If the player's position is within range, attack
 	if (Vector3::DistanceSquared(currentPos, targetPos) <= m_AttackRadius * m_AttackRadius) {
 		m_MovementAI->Stop();
 	} else if (Vector3::DistanceSquared(m_StartPosition, targetPos) > m_HardTetherRadius * m_HardTetherRadius) //Return to spawn if we're too far
 	{
-		m_MovementAI->SetSpeed(m_PursuitSpeed);
+		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(m_StartPosition);
 	} else //Chase the player's new position
 	{
 		if (IsMech() && Vector3::DistanceSquared(targetPos, currentPos) > m_AttackRadius * m_AttackRadius * 3 * 3) return;
 
-		m_MovementAI->SetSpeed(m_PursuitSpeed);
+		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(targetPos);
 
@@ -725,7 +723,7 @@ void BaseCombatAIComponent::OnTether() {
 		m_MovementAI->Stop();
 	} else if (Vector3::DistanceSquared(m_StartPosition, targetPos) > m_HardTetherRadius * m_HardTetherRadius) //Return to spawn if we're too far
 	{
-		m_MovementAI->SetSpeed(m_PursuitSpeed);
+		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(m_StartPosition);
 
@@ -733,7 +731,7 @@ void BaseCombatAIComponent::OnTether() {
 	} else {
 		if (IsMech() && Vector3::DistanceSquared(targetPos, currentPos) > m_AttackRadius * m_AttackRadius * 3 * 3) return;
 
-		m_MovementAI->SetSpeed(m_PursuitSpeed);
+		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(targetPos);
 	}
