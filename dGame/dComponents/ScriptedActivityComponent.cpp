@@ -36,7 +36,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 
 	for (CDActivities activity : activities) {
 		m_ActivityInfo = activity;
-		if (static_cast<LeaderboardType>(activity.leaderboardType) == LeaderboardType::Racing && Game::config->GetValue("solo_racing") == "1") {
+		if (static_cast<Leaderboard::Type>(activity.leaderboardType) == Leaderboard::Type::Racing && Game::config->GetValue("solo_racing") == "1") {
 			m_ActivityInfo.minTeamSize = 1;
 			m_ActivityInfo.minTeams = 1;
 		}
@@ -137,7 +137,7 @@ void ScriptedActivityComponent::PlayerJoin(Entity* player) {
 		instance->AddParticipant(player);
 	}
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
@@ -149,7 +149,7 @@ void ScriptedActivityComponent::PlayerJoinLobby(Entity* player) {
 
 	auto* character = player->GetCharacter();
 	if (character != nullptr)
-		character->SetLastNonInstanceZoneID(dZoneManager::Instance()->GetZone()->GetWorldID());
+		character->SetLastNonInstanceZoneID(Game::zoneManager->GetZone()->GetWorldID());
 
 	for (Lobby* lobby : m_Queue) {
 		if (lobby->players.size() < m_ActivityInfo.maxTeamSize || m_ActivityInfo.maxTeamSize == 1 && lobby->players.size() < m_ActivityInfo.maxTeams) {
@@ -310,7 +310,7 @@ bool ScriptedActivityComponent::IsValidActivity(Entity* player) {
 		}
 
 		ChatPackets::SendSystemMessage(player->GetSystemAddress(), u"Sorry, this activity is not ready.");
-		static_cast<Player*>(player)->SendToZone(dZoneManager::Instance()->GetZone()->GetWorldID()); // Gets them out of this stuck state
+		static_cast<Player*>(player)->SendToZone(Game::zoneManager->GetZone()->GetWorldID()); // Gets them out of this stuck state
 
 		return false;
 	}*/
@@ -445,7 +445,7 @@ void ScriptedActivityComponent::RemoveActivityPlayerData(LWOOBJID playerID) {
 			m_ActivityPlayers[i] = nullptr;
 
 			m_ActivityPlayers.erase(m_ActivityPlayers.begin() + i);
-			EntityManager::Instance()->SerializeEntity(m_Parent);
+			Game::entityManager->SerializeEntity(m_Parent);
 
 			return;
 		}
@@ -458,7 +458,7 @@ ActivityPlayer* ScriptedActivityComponent::AddActivityPlayerData(LWOOBJID player
 		return data;
 
 	m_ActivityPlayers.push_back(new ActivityPlayer{ playerID, {} });
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	return GetActivityPlayerData(playerID);
 }
@@ -480,7 +480,7 @@ void ScriptedActivityComponent::SetActivityValue(LWOOBJID playerID, uint32_t ind
 		data->values[std::min(index, (uint32_t)9)] = value;
 	}
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void ScriptedActivityComponent::PlayerRemove(LWOOBJID playerID) {
@@ -535,7 +535,7 @@ void ActivityInstance::StartZone() {
 		const auto objid = player->GetObjectID();
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, m_ActivityInfo.instanceMapID, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 
-			auto* player = EntityManager::Instance()->GetEntity(objid);
+			auto* player = Game::entityManager->GetEntity(objid);
 			if (player == nullptr)
 				return;
 
@@ -585,7 +585,7 @@ std::vector<Entity*> ActivityInstance::GetParticipants() const {
 	entities.reserve(m_Participants.size());
 
 	for (const auto& id : m_Participants) {
-		auto* entity = EntityManager::Instance()->GetEntity(id);
+		auto* entity = Game::entityManager->GetEntity(id);
 		if (entity != nullptr)
 			entities.push_back(entity);
 	}
@@ -617,5 +617,5 @@ void ActivityInstance::SetScore(uint32_t score) {
 }
 
 Entity* LobbyPlayer::GetEntity() const {
-	return EntityManager::Instance()->GetEntity(entityID);
+	return Game::entityManager->GetEntity(entityID);
 }

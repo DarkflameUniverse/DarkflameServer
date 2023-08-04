@@ -31,10 +31,10 @@ void AgPropGuard::OnMissionDialogueOK(Entity* self, Entity* target, int missionI
 		(missionID == 320 && state == eMissionState::AVAILABLE) /*||
 		(state == eMissionState::COMPLETE && missionID == 891 && missionState == eMissionState::READY_TO_COMPLETE)*/
 		) {
-		//GameMessages::SendNotifyClientObject(EntityManager::Instance()->GetZoneControlEntity()->GetObjectID(), u"GuardChat", target->GetObjectID(), 0, target->GetObjectID(), "", target->GetSystemAddress());
+		//GameMessages::SendNotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(), u"GuardChat", target->GetObjectID(), 0, target->GetObjectID(), "", target->GetSystemAddress());
 
 		target->GetCharacter()->SetPlayerFlag(113, true);
 
-		EntityManager::Instance()->GetZoneControlEntity()->AddTimer("GuardFlyAway", 1.0f);
+		Game::entityManager->GetZoneControlEntity()->AddTimer("GuardFlyAway", 1.0f);
 	}
 }

@@ -15,7 +15,7 @@ void GfApeSmashingQB::OnTimerDone(Entity* self, std::string timerName) {
 }
 
 void GfApeSmashingQB::OnRebuildComplete(Entity* self, Entity* target) {
-	auto* ape = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"ape"));
+	auto* ape = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"ape"));
 	if (ape != nullptr) {
 		ape->OnFireEventServerSide(target, "rebuildDone");
 		RenderComponent::PlayAnimation(self, u"smash", 1.7f);

@@ -20,7 +20,7 @@ void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 		GameMessages::SendPlayCinematic(target->GetObjectID(), u"MissionCam", target->GetSystemAddress());
 	} else if (missionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
 		// Makes the guard disappear once the mission has been completed
-		const auto zoneControlID = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
+		const auto zoneControlID = Game::entityManager->GetZoneControlEntity()->GetObjectID();
 		GameMessages::SendNotifyClientObject(zoneControlID, u"GuardChat", 0, 0, self->GetObjectID(),
 			"", UNASSIGNED_SYSTEM_ADDRESS);
 
@@ -29,7 +29,7 @@ void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 			if (spawnerName.empty())
 				spawnerName = "Guard";
 
-			auto spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+			auto spawners = Game::zoneManager->GetSpawnersByName(spawnerName);
 			for (auto* spawner : spawners) {
 				spawner->Deactivate();
 			}

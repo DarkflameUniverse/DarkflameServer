@@ -81,7 +81,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	GameMessages::SendChangeObjectWorldState(rocket->GetId(), eObjectWorldState::ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
 
-	EntityManager::Instance()->SerializeEntity(originator);
+	Game::entityManager->SerializeEntity(originator);
 }
 
 void RocketLaunchpadControlComponent::OnUse(Entity* originator) {

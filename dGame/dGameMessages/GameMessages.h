@@ -364,7 +364,7 @@ namespace GameMessages {
 	//Pets:
 	void SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId, LWOOBJID playerTamingId, bool bForceTeleport, ePetTamingNotifyType notifyType, NiPoint3 petsDestPos, NiPoint3 telePos, NiQuaternion teleRot, const SystemAddress& sysAddr);
 
-	void SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, std::vector<Brick>& bricks, const SystemAddress& sysAddr);
+	void SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, const std::vector<Brick>& bricks, const SystemAddress& sysAddr);
 
 	void SendNotifyTamingModelLoadedOnServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
@@ -649,6 +649,12 @@ namespace GameMessages {
 
 	void HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity);
 	void HandleRequestActivityExit(RakNet::BitStream* inStream, Entity* entity);
+
+	// Donation vendor
+	void HandleAddDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRemoveDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity);
+	void HandleCancelDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity);
 };
 
 #endif // GAMEMESSAGES_H

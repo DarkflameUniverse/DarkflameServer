@@ -25,7 +25,7 @@ void AgFans::OnStartup(Entity* self) {
 
 void AgFans::ToggleFX(Entity* self, bool hit) {
 	std::string fanGroup = self->GetGroups()[0];
-	std::vector<Entity*> fanVolumes = EntityManager::Instance()->GetEntitiesInGroup(fanGroup);
+	std::vector<Entity*> fanVolumes = Game::entityManager->GetEntitiesInGroup(fanGroup);
 
 	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 
@@ -45,9 +45,9 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(false);
-			EntityManager::Instance()->SerializeEntity(volume);
+			Game::entityManager->SerializeEntity(volume);
 			if (!hit) {
-				Entity* fxObj = EntityManager::Instance()->GetEntitiesInGroup(fanGroup + "fx")[0];
+				Entity* fxObj = Game::entityManager->GetEntitiesInGroup(fanGroup + "fx")[0];
 				RenderComponent::PlayAnimation(fxObj, u"trigger");
 			}
 		}
@@ -61,9 +61,9 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(true);
-			EntityManager::Instance()->SerializeEntity(volume);
+			Game::entityManager->SerializeEntity(volume);
 			if (!hit) {
-				Entity* fxObj = EntityManager::Instance()->GetEntitiesInGroup(fanGroup + "fx")[0];
+				Entity* fxObj = Game::entityManager->GetEntitiesInGroup(fanGroup + "fx")[0];
 				RenderComponent::PlayAnimation(fxObj, u"idle");
 			}
 		}

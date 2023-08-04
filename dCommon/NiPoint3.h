@@ -136,7 +136,7 @@ public:
 	NiPoint3 operator+(const NiPoint3& point) const;
 
 	//! Operator for addition of vectors
-	NiPoint3 operator+=(const NiPoint3& point) const;
+	NiPoint3& operator+=(const NiPoint3& point);
 
 	//! Operator for subtraction of vectors
 	NiPoint3 operator-(const NiPoint3& point) const;

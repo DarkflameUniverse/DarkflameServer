@@ -12,7 +12,7 @@ void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 	);
 	inUse = true;
 
-	auto entities = EntityManager::Instance()->GetEntitiesInGroup("Jet_FX");
+	auto entities = Game::entityManager->GetEntitiesInGroup("Jet_FX");
 	if (entities.empty()) return;
 	GameMessages::SendPlayFXEffect(entities.at(0), 641, u"create", "radarDish", LWOOBJID_EMPTY, 1, 1, true);
 	self->AddTimer("radarDish", 2.0f);
@@ -22,7 +22,7 @@ void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 
 void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target) {
 	if (self->GetLOT() != 6209) return;
-	auto entities = EntityManager::Instance()->GetEntitiesInGroup("Jet_FX");
+	auto entities = Game::entityManager->GetEntitiesInGroup("Jet_FX");
 	if (entities.empty()) return;
 	RenderComponent::PlayAnimation(entities.at(0), u"jetFX");
 
@@ -40,7 +40,7 @@ void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "radarDish") {
 		GameMessages::SendStopFXEffect(self, true, "radarDish");
 	} else if (timerName == "PlayEffect") {
-		auto entities = EntityManager::Instance()->GetEntitiesInGroup("mortarMain");
+		auto entities = Game::entityManager->GetEntitiesInGroup("mortarMain");
 		if (entities.empty()) return;
 
 		const auto selected = GeneralUtils::GenerateRandomNumber<int>(0, entities.size() - 1);

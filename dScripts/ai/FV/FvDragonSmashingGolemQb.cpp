@@ -21,7 +21,7 @@ void FvDragonSmashingGolemQb::OnRebuildNotifyState(Entity* self, eRebuildState s
 
 		const auto dragonId = self->GetVar<LWOOBJID>(u"Dragon");
 
-		auto* dragon = EntityManager::Instance()->GetEntity(dragonId);
+		auto* dragon = Game::entityManager->GetEntity(dragonId);
 
 		if (dragon != nullptr) {
 			dragon->OnFireEventServerSide(self, "rebuildDone");

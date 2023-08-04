@@ -42,7 +42,7 @@ void NsConcertQuickBuild::OnStartup(Entity* self) {
 
 	// Get the manager of the crate of this quick build
 	const auto groupNumber = std::stoi(splitGroup.at(3));
-	const auto managerObjects = EntityManager::Instance()->GetEntitiesInGroup("CB_" + std::to_string(groupNumber));
+	const auto managerObjects = Game::entityManager->GetEntitiesInGroup("CB_" + std::to_string(groupNumber));
 	if (managerObjects.empty())
 		return;
 
@@ -67,7 +67,7 @@ float NsConcertQuickBuild::GetBlinkTime(float time) {
 }
 
 void NsConcertQuickBuild::OnDie(Entity* self, Entity* killer) {
-	auto* managerObject = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"managerObject"));
+	auto* managerObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"managerObject"));
 	if (managerObject) {
 		managerObject->CancelAllTimers();
 		managerObject->AddCallbackTimer(1.0f, [managerObject]() {
@@ -90,7 +90,7 @@ void NsConcertQuickBuild::OnRebuildComplete(Entity* self, Entity* target) {
 	// Find all the quick build objects of the same lot
 	auto finishedQuickBuildObjects = std::vector<Entity*>();
 	for (auto quickBuildID : finishedQuickBuilds) {
-		const auto quickBuildObject = EntityManager::Instance()->GetEntity(quickBuildID);
+		const auto quickBuildObject = Game::entityManager->GetEntity(quickBuildID);
 		if (quickBuildObject && quickBuildObject->GetLOT() == self->GetLOT()) {
 			quickBuildObject->SetVar<LWOOBJID>(u"Player_" + (GeneralUtils::to_u16string(groupNumber)), target->GetObjectID());
 			finishedQuickBuildObjects.push_back(quickBuildObject);
@@ -101,7 +101,7 @@ void NsConcertQuickBuild::OnRebuildComplete(Entity* self, Entity* target) {
 	if (finishedQuickBuildObjects.size() >= 4) {
 
 		// Move all the platforms so the user can collect the imagination brick
-		const auto movingPlatforms = EntityManager::Instance()->GetEntitiesInGroup("ConcertPlatforms");
+		const auto movingPlatforms = Game::entityManager->GetEntitiesInGroup("ConcertPlatforms");
 		for (auto* movingPlatform : movingPlatforms) {
 			auto* component = movingPlatform->GetComponent<MovingPlatformComponent>();
 			if (component) {
@@ -184,7 +184,7 @@ void NsConcertQuickBuild::ProgressLicensedTechnician(Entity* self) {
 	for (auto i = 1; i < 5; i++) {
 		const auto playerID = self->GetVar<LWOOBJID>(u"Player_" + (GeneralUtils::to_u16string(i)));
 		if (playerID != LWOOBJID_EMPTY) {
-			const auto player = EntityManager::Instance()->GetEntity(playerID);
+			const auto player = Game::entityManager->GetEntity(playerID);
 			if (player) {
 				auto playerMissionComponent = player->GetComponent<MissionComponent>();
 				if (playerMissionComponent)
@@ -202,7 +202,7 @@ void NsConcertQuickBuild::UpdateEffects(Entity* self) {
 		return;
 
 	for (const auto& effectName : setIterator->second.effects) {
-		const auto effectObjects = EntityManager::Instance()->GetEntitiesInGroup(quickBuildFX.at(effectName));
+		const auto effectObjects = Game::entityManager->GetEntitiesInGroup(quickBuildFX.at(effectName));
 		for (auto* effectObject : effectObjects) {
 			GameMessages::SendPlayFXEffect(effectObject, 0, GeneralUtils::ASCIIToUTF16(effectName),
 				effectName + "Effect", LWOOBJID_EMPTY, 1, 1, true);
@@ -216,7 +216,7 @@ void NsConcertQuickBuild::CancelEffects(Entity* self) {
 		return;
 
 	for (const auto& effectName : setIterator->second.effects) {
-		const auto effectObjects = EntityManager::Instance()->GetEntitiesInGroup(quickBuildFX.at(effectName));
+		const auto effectObjects = Game::entityManager->GetEntitiesInGroup(quickBuildFX.at(effectName));
 		for (auto* effectObject : effectObjects) {
 			GameMessages::SendStopFXEffect(effectObject, true, effectName + "Effect");
 		}

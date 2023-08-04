@@ -173,7 +173,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	}
 
 	if (m_SoftTimer <= 0.0f) {
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		Game::entityManager->SerializeEntity(m_Parent);
 
 		m_SoftTimer = 5.0f;
 	} else {
@@ -305,7 +305,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 			}
 
 			if (serilizationRequired) {
-				EntityManager::Instance()->SerializeEntity(m_Parent);
+				Game::entityManager->SerializeEntity(m_Parent);
 			}
 
 			GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 6270, u"tether", "tether");
@@ -318,7 +318,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		// Speed towards start position
 		if (m_MovementAI != nullptr) {
 			m_MovementAI->SetHaltDistance(0);
-			m_MovementAI->SetSpeed(m_PursuitSpeed);
+			m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 			m_MovementAI->SetDestination(m_StartPosition);
 		}
 
@@ -382,8 +382,6 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 }
 
 LWOOBJID BaseCombatAIComponent::FindTarget() {
-	//const auto reference = m_MovementAI == nullptr ? m_StartPosition : m_MovementAI->ApproximateLocation();
-
 	NiPoint3 reference = m_StartPosition;
 
 	if (m_MovementAI) reference = m_MovementAI->ApproximateLocation();
@@ -412,7 +410,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	float biggestThreat = 0;
 
 	for (const auto& entry : possibleTargets) {
-		auto* entity = EntityManager::Instance()->GetEntity(entry);
+		auto* entity = Game::entityManager->GetEntity(entry);
 
 		if (entity == nullptr) {
 			continue;
@@ -458,7 +456,7 @@ LWOOBJID BaseCombatAIComponent::FindTarget() {
 	std::vector<LWOOBJID> deadThreats{};
 
 	for (const auto& threatTarget : m_ThreatEntries) {
-		auto* entity = EntityManager::Instance()->GetEntity(threatTarget.first);
+		auto* entity = Game::entityManager->GetEntity(threatTarget.first);
 
 		if (entity == nullptr) {
 			deadThreats.push_back(threatTarget.first);
@@ -497,7 +495,7 @@ std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 	std::vector<LWOOBJID> targets;
 
 	for (auto id : m_Parent->GetTargetsInPhantom()) {
-		auto* other = EntityManager::Instance()->GetEntity(id);
+		auto* other = Game::entityManager->GetEntity(id);
 
 		const auto distance = Vector3::DistanceSquared(m_Parent->GetPosition(), other->GetPosition());
 
@@ -535,11 +533,11 @@ void BaseCombatAIComponent::SetAiState(AiState newState) {
 	if (newState == this->m_State) return;
 	this->m_State = newState;
 	m_DirtyStateOrTarget = true;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
-	auto* entity = EntityManager::Instance()->GetEntity(target);
+	auto* entity = Game::entityManager->GetEntity(target);
 
 	if (entity == nullptr) {
 		Game::logger->Log("BaseCombatAIComponent", "Invalid entity for checking validity (%llu)!", target);
@@ -588,11 +586,11 @@ void BaseCombatAIComponent::SetTarget(const LWOOBJID target) {
 	if (this->m_Target == target) return;
 	m_Target = target;
 	m_DirtyStateOrTarget = true;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 Entity* BaseCombatAIComponent::GetTargetEntity() const {
-	return EntityManager::Instance()->GetEntity(m_Target);
+	return Game::entityManager->GetEntity(m_Target);
 }
 
 void BaseCombatAIComponent::Taunt(LWOOBJID offender, float threat) {
@@ -660,17 +658,17 @@ void BaseCombatAIComponent::Wander() {
 		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
-	if (Vector3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {
+	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {
 		m_MovementAI->Stop();
 
 		return;
 	}
 
-	m_MovementAI->SetSpeed(m_TetherSpeed);
+	m_MovementAI->SetMaxSpeed(m_TetherSpeed);
 
 	m_MovementAI->SetDestination(destination);
 
-	m_Timer += (m_MovementAI->GetCurrentPosition().x - destination.x) / m_TetherSpeed;
+	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / m_TetherSpeed;
 }
 
 void BaseCombatAIComponent::OnAggro() {
@@ -685,21 +683,21 @@ void BaseCombatAIComponent::OnAggro() {
 	m_MovementAI->SetHaltDistance(m_AttackRadius);
 
 	NiPoint3 targetPos = target->GetPosition();
-	NiPoint3 currentPos = m_MovementAI->GetCurrentPosition();
+	NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
 
 	// If the player's position is within range, attack
 	if (Vector3::DistanceSquared(currentPos, targetPos) <= m_AttackRadius * m_AttackRadius) {
 		m_MovementAI->Stop();
 	} else if (Vector3::DistanceSquared(m_StartPosition, targetPos) > m_HardTetherRadius * m_HardTetherRadius) //Return to spawn if we're too far
 	{
-		m_MovementAI->SetSpeed(m_PursuitSpeed);
+		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(m_StartPosition);
 	} else //Chase the player's new position
 	{
 		if (IsMech() && Vector3::DistanceSquared(targetPos, currentPos) > m_AttackRadius * m_AttackRadius * 3 * 3) return;
 
-		m_MovementAI->SetSpeed(m_PursuitSpeed);
+		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(targetPos);
 
@@ -725,7 +723,7 @@ void BaseCombatAIComponent::OnTether() {
 		m_MovementAI->Stop();
 	} else if (Vector3::DistanceSquared(m_StartPosition, targetPos) > m_HardTetherRadius * m_HardTetherRadius) //Return to spawn if we're too far
 	{
-		m_MovementAI->SetSpeed(m_PursuitSpeed);
+		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(m_StartPosition);
 
@@ -733,7 +731,7 @@ void BaseCombatAIComponent::OnTether() {
 	} else {
 		if (IsMech() && Vector3::DistanceSquared(targetPos, currentPos) > m_AttackRadius * m_AttackRadius * 3 * 3) return;
 
-		m_MovementAI->SetSpeed(m_PursuitSpeed);
+		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(targetPos);
 	}
