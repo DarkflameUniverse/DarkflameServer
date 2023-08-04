@@ -29,6 +29,7 @@ namespace Game {
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
 	bool shouldShutdown = false;
+	std::mt19937 randomEngine;
 }
 
 dLogger* SetupLogger();
@@ -82,6 +83,8 @@ int main(int argc, char** argv) {
 
 	delete res;
 	delete stmt;
+
+	Game::randomEngine = std::mt19937(time(0));
 
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
 	uint32_t maxClients = 50;

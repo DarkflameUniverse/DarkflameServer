@@ -150,7 +150,7 @@ void SGCannon::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button
 			if (IsPlayerInActivity(self, player->GetObjectID())) return;
 			self->SetNetworkVar<bool>(ClearVariable, true);
 			StartGame(self);
-		} else if (button == 0 && ((identifier == u"Shooting_Gallery_Retry" || identifier == u"RePlay"))){
+		} else if (button == 0 && ((identifier == u"Shooting_Gallery_Retry" || identifier == u"RePlay"))) {
 			RemovePlayer(player->GetObjectID());
 			UpdatePlayer(self, player->GetObjectID(), true);
 		} else if (button == 1 && identifier == u"Shooting_Gallery_Exit") {
@@ -291,7 +291,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 
 			enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
 
-			movementAI->SetSpeed(toSpawn.initialSpeed);
+			movementAI->SetMaxSpeed(toSpawn.initialSpeed);
 			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
 			movementAI->SetHaltDistance(0.0f);
 
@@ -341,7 +341,7 @@ void SGCannon::StartGame(Entity* self) {
 
 	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 	if (player != nullptr) {
-		GetLeaderboardData(self, player->GetObjectID(), GetActivityID(self));
+		GetLeaderboardData(self, player->GetObjectID(), GetActivityID(self), 1);
 		Game::logger->Log("SGCannon", "Sending ActivityStart");
 		GameMessages::SendActivityStart(self->GetObjectID(), player->GetSystemAddress());
 
@@ -436,8 +436,8 @@ void SGCannon::RemovePlayer(LWOOBJID playerID) {
 	}
 }
 
-void SGCannon::OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled){
-	if (canceled){
+void SGCannon::OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled) {
+	if (canceled) {
 		StopGame(self, canceled);
 		RemovePlayer(player);
 	}
@@ -546,7 +546,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 	// The player won, store all the score and send rewards
 	if (!cancel) {
-		auto percentage = 0;
+		int32_t percentage = 0.0f;
 		auto misses = self->GetVar<uint32_t>(MissesVariable);
 		auto fired = self->GetVar<uint32_t>(ShotsFiredVariable);
 
@@ -564,6 +564,9 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 		LootGenerator::Instance().GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
 
+		SaveScore(self, player->GetObjectID(),
+			static_cast<float>(self->GetVar<uint32_t>(TotalScoreVariable)), static_cast<float>(self->GetVar<uint32_t>(MaxStreakVariable)), percentage);
+
 		StopActivity(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable), self->GetVar<uint32_t>(MaxStreakVariable), percentage);
 		self->SetNetworkVar<bool>(AudioFinalWaveDoneVariable, true);
 
@@ -577,17 +580,6 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 		self->SetNetworkVar<std::u16string>(u"UI_Rewards",
 			GeneralUtils::to_u16string(self->GetVar<uint32_t>(TotalScoreVariable)) + u"_0_0_0_0_0_0"
-		);
-
-		GameMessages::SendRequestActivitySummaryLeaderboardData(
-			player->GetObjectID(),
-			self->GetObjectID(),
-			player->GetSystemAddress(),
-			GetGameID(self),
-			1,
-			10,
-			0,
-			false
 		);
 	}
 

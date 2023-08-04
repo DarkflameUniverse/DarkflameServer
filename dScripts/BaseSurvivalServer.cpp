@@ -8,6 +8,8 @@
 #include "eMissionState.h"
 #include "MissionComponent.h"
 #include "Character.h"
+#include "Game.h"
+#include "dConfig.h"
 
 void BaseSurvivalServer::SetGameVariables(Entity* self) {
 	this->constants = std::move(GetConstants());
@@ -354,6 +356,7 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 
 		const auto score = GetActivityValue(self, playerID, 0);
 		const auto time = GetActivityValue(self, playerID, 1);
+		SaveScore(self, playerID, score, time);
 
 		GameMessages::SendNotifyClientZoneObject(self->GetObjectID(), u"Update_ScoreBoard", time, 0,
 			playerID, std::to_string(score), UNASSIGNED_SYSTEM_ADDRESS);
@@ -469,7 +472,7 @@ std::vector<uint32_t> BaseSurvivalServer::GetRandomMobSet(SpawnerNetworkCollecti
 	if (mobSets.sets.find(spawnerNetworkCollection.mobSetName) != mobSets.sets.end()) {
 		auto mobSet = mobSets.sets.at(spawnerNetworkCollection.mobSetName);
 		if (setNumber < mobSet.size()) {
-			return mobSet.at(setNumber).at(rand() % mobSet.at(setNumber).size());
+			return mobSet.at(setNumber).at(GeneralUtils::GenerateRandomNumber<int32_t>(0, mobSet.at(setNumber).size() - 1));
 		}
 	}
 
@@ -484,7 +487,7 @@ SpawnerNetwork BaseSurvivalServer::GetRandomSpawner(SpawnerNetworkCollection& sp
 	}
 
 	if (!validSpawners.empty()) {
-		auto spawner = validSpawners.at(rand() % validSpawners.size());
+		auto spawner = validSpawners.at(GeneralUtils::GenerateRandomNumber<int32_t>(0, validSpawners.size() - 1));
 		spawner.isActive = true;
 		return spawner;
 	}

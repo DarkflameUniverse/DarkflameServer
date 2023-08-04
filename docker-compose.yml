@@ -12,6 +12,7 @@ services:
       - DATABASE_USER=${MARIADB_USER:-darkflame}
       - DATABASE_PASSWORD=${MARIADB_PASSWORD:-darkflame}
       - EXTERNAL_IP=${EXTERNAL_IP:-darkflame}
+      - BUILD_VERSION=${BUILD_VERSION:?171022}
     volumes:
       - ${CLIENT_PATH:?missing_client_path}:/client
       - shared_configs:/docker/

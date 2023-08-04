@@ -30,6 +30,7 @@ struct SceneTransitionInfo {
 struct SceneTransition {
 	std::string name;
 	std::vector<SceneTransitionInfo> points;
+	float width;
 };
 
 struct MovingPlatformPathWaypoint {

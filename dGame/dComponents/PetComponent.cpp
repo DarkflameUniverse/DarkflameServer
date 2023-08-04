@@ -395,7 +395,7 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	auto destination = owner->GetPosition();
-	NiPoint3 position = m_MovementAI->GetCurrentPosition();
+	NiPoint3 position = m_MovementAI->GetParent()->GetPosition();
 
 	float distanceToOwner = Vector3::DistanceSquared(position, destination);
 
@@ -449,7 +449,7 @@ void PetComponent::Update(float deltaTime) {
 
 		NiPoint3 tresurePosition = closestTresure->GetPosition();
 		float distance = Vector3::DistanceSquared(position, tresurePosition);
-		if (distance < 3 * 3) {
+		if (distance < 5 * 5) {
 			m_Interaction = closestTresure->GetObjectID();
 
 			Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, 202, true);
@@ -466,7 +466,7 @@ skipTresure:
 
 	m_MovementAI->SetHaltDistance(haltDistance);
 
-	m_MovementAI->SetSpeed(2.5f);
+	m_MovementAI->SetMaxSpeed(2.5f);
 
 	m_MovementAI->SetDestination(destination);
 
@@ -822,17 +822,17 @@ void PetComponent::Wander() {
 		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
-	if (Vector3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {
+	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {
 		m_MovementAI->Stop();
 
 		return;
 	}
 
-	m_MovementAI->SetSpeed(info.wanderSpeed);
+	m_MovementAI->SetMaxSpeed(info.wanderSpeed);
 
 	m_MovementAI->SetDestination(destination);
 
-	m_Timer += (m_MovementAI->GetCurrentPosition().x - destination.x) / info.wanderSpeed;
+	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / info.wanderSpeed;
 }
 
 void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
