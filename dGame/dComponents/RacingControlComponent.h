@@ -111,7 +111,7 @@ public:
 	~RacingControlComponent();
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
-	void Update(float deltaTime);
+	void Update(float deltaTime) override;
 
 	/**
 	 * Invoked when a player loads into the zone.
