@@ -1164,7 +1164,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 	DonationVendorComponent* donationVendorComponent;
 	if (TryGetComponent(eReplicaComponentType::DONATION_VENDOR, donationVendorComponent)) {
-		donationVendorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		donationVendorComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	BouncerComponent* bouncerComponent;
