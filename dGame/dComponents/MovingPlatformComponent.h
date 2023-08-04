@@ -62,6 +62,7 @@ public:
 	void AdvanceToNextWaypoint();
 	void AdvanceToNextReverseWaypoint();
 	NiPoint3 CalculateLinearVelocity();
+	void UpdateLinearVelocity();
 protected:
 
 #ifdef _MOVING_PLATFORM_TEST

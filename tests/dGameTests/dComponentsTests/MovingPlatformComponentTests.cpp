@@ -30,7 +30,7 @@ protected:
 		waypointMiddle.rotation = NiQuaternion(7, 8, 9, 10);
 
 		PathWaypoint waypointEnd;
-		waypointEnd.position = NiPoint3(4, 5, 6);
+		waypointEnd.position = NiPoint3(4, 5, 7);
 		waypointEnd.rotation = NiQuaternion(7, 8, 9, 10);
 
 		path.pathWaypoints.push_back(waypointStart);
@@ -375,7 +375,7 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformMoverSpeedCalculationTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(nullptr);
 	path.pathWaypoints.at(0).position = NiPoint3(99.296440, 419.293335, 207.219498);
 	path.pathWaypoints.at(0).movingPlatform.speed = 16.0f;
-	
+
 	path.pathWaypoints.at(1).position = NiPoint3(141.680099, 419.990051, 208.680450);
 	path.pathWaypoints.at(1).movingPlatform.speed = 16.0f;
 	path.pathBehavior = PathBehavior::Bounce;
@@ -391,4 +391,38 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformMoverSpeedCalculationTest) {
 	ASSERT_FLOAT_EQ(r.y, 0.26282161474228);
 	ASSERT_FLOAT_EQ(r.z, 0.5511137843132);
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
+}
+
+TEST_F(MovingPlatformComponentTests, MovingPlatformNextAndCurrentWaypointAccess) {
+	MoverPlatformSubComponent moverPlatformSubComponent(nullptr);
+	moverPlatformSubComponent._SetPath(&path);
+	moverPlatformSubComponent.m_CurrentWaypointIndex = 0;
+	moverPlatformSubComponent.m_NextWaypointIndex = 1;
+	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypoint().position, NiPoint3(1, 2, 3));
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypoint().position, NiPoint3(4, 5, 6));
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypoint().position, NiPoint3(4, 5, 6));
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypoint().position, NiPoint3(4, 5, 7));
+}
+
+TEST_F(MovingPlatformComponentTests, MovingPlatformRunTest) {
+	MoverPlatformSubComponent moverPlatformSubComponent(nullptr);
+	moverPlatformSubComponent._SetPath(&path);
+	path.pathWaypoints.at(0).position = NiPoint3(99.296440f, 419.293335f, 207.219498f);
+	path.pathWaypoints.at(0).movingPlatform.speed = 16.0f;
+	path.pathWaypoints.at(1).position = NiPoint3(141.680099f, 419.990051f, 208.680450f);
+	path.pathWaypoints.at(1).movingPlatform.speed = 16.0f;
+	moverPlatformSubComponent.m_State = 0;
+	moverPlatformSubComponent.m_TimeBasedMovement = false;
+	moverPlatformSubComponent.m_State = eMovementPlatformState::Travelling;
+	moverPlatformSubComponent.m_CurrentWaypointIndex = 0;
+	moverPlatformSubComponent.m_NextWaypointIndex = 1;
+	moverPlatformSubComponent.m_Speed = 16.0f;
+	moverPlatformSubComponent.m_Position = path.pathWaypoints.at(0).position;
+	moverPlatformSubComponent.Update(2.65f);
+
+	// just check that its close enough
+	EXPECT_LT(141.680099f - moverPlatformSubComponent.m_Position.x, 0.1f);
+	EXPECT_LT(419.990051f - moverPlatformSubComponent.m_Position.y, 0.1f);
+	EXPECT_LT(208.680450f - moverPlatformSubComponent.m_Position.z, 0.1f);
 }

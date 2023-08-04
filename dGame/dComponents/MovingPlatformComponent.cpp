@@ -35,6 +35,26 @@ PlatformSubComponent::PlatformSubComponent(MovingPlatformComponent* parentCompon
 	m_IdleTimeElapsed = 0.0f;
 }
 
+void PlatformSubComponent::Update(float deltaTime) {
+	if (m_State == 0) return;
+	if (m_State & eMovementPlatformState::Travelling) {
+		m_MoveTimeElapsed += deltaTime;
+
+		// Only need to recalculate the linear velocity if the speed is changing between waypoints
+		// Unfortunately for the poor client, they chose to, instead of change the speed once at the start of the waypoint,
+		// the speed is changed over the course of the waypoint. This means we have to recalculate the linear velocity every frame.
+		// yay.
+		if (GetCurrentWaypoint().movingPlatform.speed != GetNextWaypoint().movingPlatform.speed) {
+			UpdateLinearVelocity();
+		}
+		m_Position += m_LinearVelocity * deltaTime;
+	}
+}
+
+void PlatformSubComponent::UpdateLinearVelocity() {
+	m_LinearVelocity = CalculateLinearVelocity();
+}
+
 void PlatformSubComponent::AdvanceToNextWaypoint() {
 	uint32_t numWaypoints = m_Path->pathWaypoints.size();
 	m_CurrentWaypointIndex = m_NextWaypointIndex;
@@ -51,6 +71,7 @@ void PlatformSubComponent::AdvanceToNextWaypoint() {
 		}
 	}
 	m_NextWaypointIndex = nextWaypointIndex;
+	UpdateLinearVelocity();
 }
 
 void PlatformSubComponent::AdvanceToNextReverseWaypoint() {
@@ -69,6 +90,7 @@ void PlatformSubComponent::AdvanceToNextReverseWaypoint() {
 		}
 	}
 	m_NextWaypointIndex = nextWaypointIndex;
+	UpdateLinearVelocity();
 }
 
 void PlatformSubComponent::SetupPath(const std::string& pathName, uint32_t startingWaypointIndex, bool startsInReverse) {
@@ -155,14 +177,6 @@ void PlatformSubComponent::StopPathing() {
 	m_State &= ~eMovementPlatformState::Waiting;
 	m_LinearVelocity = NiPoint3::ZERO;
 	m_AngularVelocity = NiPoint3::ZERO;
-}
-
-void PlatformSubComponent::Update(float deltaTime) {
-	if (m_TimeBasedMovement && m_State & eMovementPlatformState::Travelling) {
-		m_MoveTimeElapsed += deltaTime;
-	}
-	if (m_State == 0) return;
-	
 }
 
 //------------- PlatformSubComponent end --------------
