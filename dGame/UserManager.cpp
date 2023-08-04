@@ -224,6 +224,8 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 		chars[i]->SaveXMLToDatabase();
 
 		chars[i]->GetEntity()->SetCharacter(nullptr);
+		
+		delete chars[i];
 	}
 
 	chars.clear();
