@@ -33,6 +33,7 @@ namespace Game {
 	dChatFilter* chatFilter = nullptr;
 	AssetManager* assetManager = nullptr;
 	bool shouldShutdown = false;
+	std::mt19937 randomEngine;
 }
 
 
@@ -114,6 +115,8 @@ int main(int argc, char** argv) {
 	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::shouldShutdown);
 
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
+	
+	Game::randomEngine = std::mt19937(time(0));
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
