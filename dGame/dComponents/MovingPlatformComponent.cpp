@@ -38,7 +38,7 @@ PlatformSubComponent::PlatformSubComponent(MovingPlatformComponent* parentCompon
 void PlatformSubComponent::AdvanceToNextWaypoint() {
 	uint32_t numWaypoints = m_Path->pathWaypoints.size();
 	m_CurrentWaypointIndex = m_NextWaypointIndex;
-	uint32_t nextWaypointIndex = m_CurrentWaypointIndex;
+	uint32_t nextWaypointIndex = m_CurrentWaypointIndex + 1;
 	if (numWaypoints <= nextWaypointIndex) {
 		PathBehavior behavior = m_Path->pathBehavior;
 		if (behavior == PathBehavior::Once) {
@@ -56,7 +56,7 @@ void PlatformSubComponent::AdvanceToNextWaypoint() {
 void PlatformSubComponent::AdvanceToNextReverseWaypoint() {
 	uint32_t numWaypoints = m_Path->pathWaypoints.size();
 	m_CurrentWaypointIndex = m_NextWaypointIndex;
-	int32_t nextWaypointIndex = m_CurrentWaypointIndex;
+	int32_t nextWaypointIndex = m_CurrentWaypointIndex - 1;
 	if (nextWaypointIndex < 0) {
 		PathBehavior behavior = m_Path->pathBehavior;
 		if (behavior == PathBehavior::Once) {

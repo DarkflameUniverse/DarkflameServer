@@ -25,11 +25,16 @@ protected:
 		waypointStart.position = NiPoint3(1, 2, 3);
 		waypointStart.rotation = NiQuaternion(4, 5, 6, 7);
 
+		PathWaypoint waypointMiddle;
+		waypointMiddle.position = NiPoint3(4, 5, 6);
+		waypointMiddle.rotation = NiQuaternion(7, 8, 9, 10);
+
 		PathWaypoint waypointEnd;
 		waypointEnd.position = NiPoint3(4, 5, 6);
 		waypointEnd.rotation = NiQuaternion(7, 8, 9, 10);
 
 		path.pathWaypoints.push_back(waypointStart);
+		path.pathWaypoints.push_back(waypointMiddle);
 		path.pathWaypoints.push_back(waypointEnd);
 
 		baseEntity = std::make_unique<Entity>(15, GameDependenciesTest::info);
@@ -304,15 +309,14 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceForwar
 	moverPlatformSubComponent.m_InReverse = false;
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 1);
-	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 0);
-	ASSERT_FALSE(moverPlatformSubComponent.m_InReverse);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 2);
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
-	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 1);
-	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 0);
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 2);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 2);
 	ASSERT_FALSE(moverPlatformSubComponent.m_InReverse);
 	path.pathBehavior = PathBehavior::Bounce;
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
-	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 0);
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 2);
 	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 1);
 	ASSERT_TRUE(moverPlatformSubComponent.m_InReverse);
 }
@@ -320,23 +324,50 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceForwar
 TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceReverseTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(nullptr);
 	moverPlatformSubComponent._SetPath(&path);
-	moverPlatformSubComponent.m_CurrentWaypointIndex = 1;
-	moverPlatformSubComponent.m_NextWaypointIndex = 0;
+	moverPlatformSubComponent.m_CurrentWaypointIndex = 2;
+	moverPlatformSubComponent.m_NextWaypointIndex = 1;
 	moverPlatformSubComponent.m_InReverse = true;
+	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 1);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 0);
+	ASSERT_TRUE(moverPlatformSubComponent.m_InReverse);
 	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 0);
 	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 0);
 	ASSERT_TRUE(moverPlatformSubComponent.m_InReverse);
 	path.pathBehavior = PathBehavior::Bounce;
-	moverPlatformSubComponent.m_CurrentWaypointIndex = 1;
-	moverPlatformSubComponent.m_NextWaypointIndex = 0;
-	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 0);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 1);
+	ASSERT_TRUE(moverPlatformSubComponent.m_InReverse);
+}
+
+TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceTest) {
+	MoverPlatformSubComponent moverPlatformSubComponent(nullptr);
+	moverPlatformSubComponent._SetPath(&path);
+	path.pathBehavior = PathBehavior::Bounce;
+	moverPlatformSubComponent.m_CurrentWaypointIndex = 0;
+	moverPlatformSubComponent.m_NextWaypointIndex = 1;
+	moverPlatformSubComponent.m_InReverse = false;
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 1);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 2);
+	ASSERT_FALSE(moverPlatformSubComponent.m_InReverse);
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 2);
 	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 1);
 	ASSERT_TRUE(moverPlatformSubComponent.m_InReverse);
 	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 1);
 	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 0);
+	ASSERT_TRUE(moverPlatformSubComponent.m_InReverse);
+	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 0);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 1);
+	ASSERT_FALSE(moverPlatformSubComponent.m_InReverse);
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.m_CurrentWaypointIndex, 1);
+	ASSERT_EQ(moverPlatformSubComponent.m_NextWaypointIndex, 2);
 	ASSERT_FALSE(moverPlatformSubComponent.m_InReverse);
 }
 
