@@ -9,7 +9,7 @@ uint64_t GetKey(const uint32_t behaviorID, const uint32_t parameterID) {
 	return key;
 }
 
-CDBehaviorParameterTable::CDBehaviorParameterTable() {
+void CDBehaviorParameterTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorParameter");
 	while (!tableData.eof()) {
 		uint32_t behaviorID = tableData.getIntField("behaviorID", -1);
