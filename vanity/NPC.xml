@@ -468,6 +468,7 @@
 	<npc lot="30003">
         <ldf>
             <entry data="CheckPrecondition=0:1003|1004"/>
+			<entry data="noGhosting=7:1"/>
         </ldf>
         <zone id="1200">
             <locations>
@@ -492,6 +493,7 @@
 	<npc lot="30003">
         <ldf>
             <entry data="CheckPrecondition=0:1003|1004"/>
+			<entry data="noGhosting=7:1"/>
         </ldf>
         <zone id="1900">
             <locations>
@@ -670,6 +672,9 @@
 
 	<!--Crux Prime loot drop physics hack-->
 	<npc lot="30025">
+        <ldf>
+            <entry data="noGhosting=7:1"/>
+        </ldf>
         <zone id="1800">
             <locations>
                 <location x="0.00" y="0.00" z="0.00" rw="1.00" rx="0.00" ry="0.00" rz="0.00" />
