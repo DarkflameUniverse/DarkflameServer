@@ -974,7 +974,7 @@ void GameMessages::SendStop2DAmbientSound(Entity* entity, bool force, std::strin
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::PLAY2_DAMBIENT_SOUND);
+	bitStream.Write((uint16_t)eGameMessageType::STOP2_D_AMBIENT_SOUND);
 
 	uint32_t audioGUIDSize = audioGUID.size();
 
@@ -997,7 +997,7 @@ void GameMessages::SendPlay2DAmbientSound(Entity* entity, std::string audioGUID,
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::PLAY2_DAMBIENT_SOUND);
+	bitStream.Write((uint16_t)eGameMessageType::PLAY2_D_AMBIENT_SOUND);
 
 	uint32_t audioGUIDSize = audioGUID.size();
 
@@ -1016,7 +1016,7 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::SET_NETWORK_SCRIPT_VAR);
+	bitStream.Write((uint16_t)eGameMessageType::SCRIPT_NETWORK_VAR_UPDATE);
 
 	// FIXME: this is a bad place to need to do a conversion because we have no clue whether data is utf8 or plain ascii
 	// an this has performance implications
@@ -2115,7 +2115,7 @@ void GameMessages::SendUGCEquipPreCreateBasedOnEditMode(LWOOBJID objectId, const
 	CMSGHEADER;
 
 	bitStream.Write(objectId);
-	bitStream.Write(eGameMessageType::HANDLE_UGC_EQUIP_PRE_CREATE_BASED_ON_EDIT_MODE);
+	bitStream.Write(eGameMessageType::HANDLE_UGC_POST_CREATE_BASED_ON_EDIT_MODE);
 
 	bitStream.Write(modelCount);
 	bitStream.Write(model);
@@ -2129,7 +2129,7 @@ void GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(LWOOBJID objectId, cons
 	CMSGHEADER;
 
 	bitStream.Write(objectId);
-	bitStream.Write(eGameMessageType::HANDLE_UGC_EQUIP_POST_DELETE_BASED_ON_EDIT_MODE);
+	bitStream.Write(eGameMessageType::HANDLE_UGC_POST_DELETE_BASED_ON_EDIT_MODE);
 
 	bitStream.Write(inventoryItem);
 
@@ -2458,7 +2458,7 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(eGameMessageType::UNSMASH);
+	bitStream.Write(eGameMessageType::UN_SMASH);
 
 	bitStream.Write(builderID != LWOOBJID_EMPTY);
 	if (builderID != LWOOBJID_EMPTY) bitStream.Write(builderID);
@@ -3461,7 +3461,7 @@ void GameMessages::SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, const st
 	CMSGHEADER;
 
 	bitStream.Write(objectId);
-	bitStream.Write(eGameMessageType::NOTIFY_PET_TAMING_PUZZLE_SELECTED);
+	bitStream.Write(eGameMessageType::NOTIFY_TAMING_PUZZLE_SELECTED);
 
 	bitStream.Write(static_cast<uint32_t>(bricks.size()));
 	for (const auto& brick : bricks) {
