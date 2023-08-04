@@ -116,6 +116,9 @@ Inventory* InventoryComponent::GetInventory(const eInventoryType type) {
 	case eInventoryType::VENDOR_BUYBACK:
 		size = 27u;
 		break;
+	case eInventoryType::DONATION:
+		size = 24u;
+		break;
 	default:
 		break;
 	}
