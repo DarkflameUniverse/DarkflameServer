@@ -48,9 +48,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	if (!entity) {
 		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!", objectID, messageID);
-
 		return;
 	}
+
+	if (messageID != eGameMessageType::READY_FOR_UPDATES) Game::logger->LogDebug("GameMessageHandler", "received game message ID: %i", messageID);
 
 	switch (messageID) {
 
@@ -680,8 +681,20 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	case eGameMessageType::REQUEST_ACTIVITY_EXIT:
 		GameMessages::HandleRequestActivityExit(inStream, entity);
 		break;
+	case eGameMessageType::ADD_DONATION_ITEM:
+		GameMessages::HandleAddDonationItem(inStream, entity, sysAddr);
+		break;
+	case eGameMessageType::REMOVE_DONATION_ITEM:
+		GameMessages::HandleRemoveDonationItem(inStream, entity, sysAddr);
+		break;
+	case eGameMessageType::CONFIRM_DONATION_ON_PLAYER:
+		GameMessages::HandleConfirmDonationOnPlayer(inStream, entity);
+		break;
+	case eGameMessageType::CANCEL_DONATION_ON_PLAYER:
+		GameMessages::HandleCancelDonationOnPlayer(inStream, entity);
+		break;
 	default:
-		// Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i", messageID);
+		Game::logger->LogDebug("GameMessageHandler", "Unknown game message ID: %i", messageID);
 		break;
 	}
 }
