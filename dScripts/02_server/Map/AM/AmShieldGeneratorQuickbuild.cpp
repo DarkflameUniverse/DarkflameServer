@@ -194,7 +194,7 @@ void AmShieldGeneratorQuickbuild::EnemyEnteredShield(Entity* self, Entity* intru
 
 	// TODO: Figure out how todo knockback, I'll stun them for now
 
-	if (NiPoint3::DistanceSquared(self->GetPosition(), movementAIComponent->GetCurrentPosition()) < 20 * 20) {
+	if (NiPoint3::DistanceSquared(self->GetPosition(), intruder->GetPosition()) < 20 * 20) {
 		baseCombatAIComponent->Stun(2.0f);
 		movementAIComponent->SetDestination(baseCombatAIComponent->GetStartPosition());
 	}

@@ -48,9 +48,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	if (!entity) {
 		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!", objectID, messageID);
-
 		return;
 	}
+
+	if (messageID != eGameMessageType::READY_FOR_UPDATES) Game::logger->LogDebug("GameMessageHandler", "received game message ID: %i", messageID);
 
 	switch (messageID) {
 
@@ -73,11 +74,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		break;
 	}
 
-	case eGameMessageType::EQUIP_ITEM:
+	case eGameMessageType::EQUIP_INVENTORY:
 		GameMessages::HandleEquipItem(inStream, entity);
 		break;
 
-	case eGameMessageType::UN_EQUIP_ITEM:
+	case eGameMessageType::UN_EQUIP_INVENTORY:
 		GameMessages::HandleUnequipItem(inStream, entity);
 		break;
 
@@ -252,7 +253,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		}*/
 		break;
 	}
-	case eGameMessageType::HANDLE_HOT_PROPERTY_DATA: {
+	case eGameMessageType::GET_HOT_PROPERTY_DATA: {
 		GameMessages::HandleGetHotPropertyData(inStream, entity, sysAddr);
 		break;
 	}
@@ -547,7 +548,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleBBBSaveRequest(inStream, entity, sysAddr);
 		break;
 
-	case eGameMessageType::CONTROL_BEHAVIOR:
+	case eGameMessageType::CONTROL_BEHAVIORS:
 		GameMessages::HandleControlBehaviors(inStream, entity, sysAddr);
 		break;
 
@@ -596,11 +597,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleRequestDie(inStream, entity, sysAddr);
 		break;
 
-	case eGameMessageType::VEHICLE_NOTIFY_SERVER_ADD_PASSIVE_BOOST_ACTION:
+	case eGameMessageType::NOTIFY_SERVER_VEHICLE_ADD_PASSIVE_BOOST_ACTION:
 		GameMessages::HandleVehicleNotifyServerAddPassiveBoostAction(inStream, entity, sysAddr);
 		break;
 
-	case eGameMessageType::VEHICLE_NOTIFY_SERVER_REMOVE_PASSIVE_BOOST_ACTION:
+	case eGameMessageType::NOTIFY_SERVER_VEHICLE_REMOVE_PASSIVE_BOOST_ACTION:
 		GameMessages::HandleVehicleNotifyServerRemovePassiveBoostAction(inStream, entity, sysAddr);
 		break;
 
@@ -668,7 +669,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	case eGameMessageType::DISMOUNT_COMPLETE:
 		GameMessages::HandleDismountComplete(inStream, entity, sysAddr);
 		break;
-	case eGameMessageType::DEACTIVATE_BUBBLE_BUFF:
+	case eGameMessageType::DECTIVATE_BUBBLE_BUFF:
 		GameMessages::HandleDeactivateBubbleBuff(inStream, entity);
 		break;
 	case eGameMessageType::ACTIVATE_BUBBLE_BUFF:
@@ -680,8 +681,20 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	case eGameMessageType::REQUEST_ACTIVITY_EXIT:
 		GameMessages::HandleRequestActivityExit(inStream, entity);
 		break;
+	case eGameMessageType::ADD_DONATION_ITEM:
+		GameMessages::HandleAddDonationItem(inStream, entity, sysAddr);
+		break;
+	case eGameMessageType::REMOVE_DONATION_ITEM:
+		GameMessages::HandleRemoveDonationItem(inStream, entity, sysAddr);
+		break;
+	case eGameMessageType::CONFIRM_DONATION_ON_PLAYER:
+		GameMessages::HandleConfirmDonationOnPlayer(inStream, entity);
+		break;
+	case eGameMessageType::CANCEL_DONATION_ON_PLAYER:
+		GameMessages::HandleCancelDonationOnPlayer(inStream, entity);
+		break;
 	default:
-		// Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i", messageID);
+		Game::logger->LogDebug("GameMessageHandler", "Unknown game message ID: %i", messageID);
 		break;
 	}
 }

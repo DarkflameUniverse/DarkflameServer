@@ -472,7 +472,7 @@ std::vector<uint32_t> BaseSurvivalServer::GetRandomMobSet(SpawnerNetworkCollecti
 	if (mobSets.sets.find(spawnerNetworkCollection.mobSetName) != mobSets.sets.end()) {
 		auto mobSet = mobSets.sets.at(spawnerNetworkCollection.mobSetName);
 		if (setNumber < mobSet.size()) {
-			return mobSet.at(setNumber).at(rand() % mobSet.at(setNumber).size());
+			return mobSet.at(setNumber).at(GeneralUtils::GenerateRandomNumber<int32_t>(0, mobSet.at(setNumber).size() - 1));
 		}
 	}
 
@@ -487,7 +487,7 @@ SpawnerNetwork BaseSurvivalServer::GetRandomSpawner(SpawnerNetworkCollection& sp
 	}
 
 	if (!validSpawners.empty()) {
-		auto spawner = validSpawners.at(rand() % validSpawners.size());
+		auto spawner = validSpawners.at(GeneralUtils::GenerateRandomNumber<int32_t>(0, validSpawners.size() - 1));
 		spawner.isActive = true;
 		return spawner;
 	}
