@@ -905,7 +905,7 @@ void HandlePacket(Packet* packet) {
 			delete res;
 
 			// Developers may skip this check
-			if (clientDatabaseChecksum.string != databaseChecksum) {
+			if (gmLevel < 8 && clientDatabaseChecksum.string != databaseChecksum) {
 				Game::logger->Log("WorldServer", "Client's database checksum does not match the server's, aborting connection.");
 				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::WRONG_GAME_VERSION);
 				return;

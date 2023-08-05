@@ -104,6 +104,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	uint32_t spacing{};
 	inStream.Read(spacing);
 	LUWString playerName(33);
+	inStream.Read(playerName);
 
 	char isBestFriendRequest{};
 	inStream.Read(isBestFriendRequest);
