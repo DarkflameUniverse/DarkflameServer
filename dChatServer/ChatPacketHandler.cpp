@@ -118,7 +118,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	// Check if player is online first
 	if (isBestFriendRequest && !requestee) {
 		for (auto friendDataCandidate : requestor->friends) {
-			if (friendDataCandidate.friendName == playerName) {
+			if (friendDataCandidate.friendName == playerName.GetAsString()) {
 				requestee.reset(new PlayerData());
 				// Setup the needed info since you can add a best friend offline.
 				requestee->playerID = friendDataCandidate.friendID;
@@ -142,11 +142,11 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	// Send the response code that corresponds to what the error is.
 	if (!requestee) {
 		std::unique_ptr<sql::PreparedStatement> nameQuery(Database::CreatePreppedStmt("SELECT name from charinfo where name = ?;"));
-		nameQuery->setString(1, playerName);
+		nameQuery->setString(1, playerName.GetAsString());
 		std::unique_ptr<sql::ResultSet> result(nameQuery->executeQuery());
 
 		requestee.reset(new PlayerData());
-		requestee->playerName = playerName;
+		requestee->playerName = playerName.GetAsString();
 
 		SendFriendResponse(requestor, requestee.get(), result->next() ? eAddFriendResponseType::NOTONLINE : eAddFriendResponseType::INVALIDCHARACTER);
 		return;
