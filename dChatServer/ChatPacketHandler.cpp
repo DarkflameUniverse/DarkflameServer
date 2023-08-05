@@ -241,7 +241,7 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
 	inStream.Read(playerID);
-
+	inStream.IgnoreBytes(4);
 	eAddFriendResponseCode clientResponseCode;
 	inStream.Read(clientResponseCode);
 	LUWString friendName(33);
@@ -318,6 +318,7 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
 	inStream.Read(playerID);
+	inStream.IgnoreBytes(4);
 	LUWString friendName(33);
 	inStream.Read(friendName);
 
@@ -386,11 +387,11 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 
 	const auto senderName = std::string(sender->playerName.c_str());
 
-	inStream.SetReadOffset(0x14 * 8);
-
+	inStream.IgnoreBytes(20);
 	uint8_t channel = 0;
 	inStream.Read(channel);
 
+	inStream.IgnoreBytes(77);
 	LUWString message(512);
 	inStream.Read(message);
 
@@ -435,6 +436,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID senderID;
 	inStream.Read(senderID);
+	inStream.IgnoreBytes(78);
 	LUWString receiverName(33);
 	inStream.Read(receiverName);
 	LUWString message(512);
@@ -467,7 +469,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 		bitStream.Write(LUWString(goonBName));
 		bitStream.Write<uint8_t>(0); //not mythran for receiver
 		bitStream.Write<uint8_t>(0); //success
-		bitStream.Write(LUWString(message.string, 512));
+		bitStream.Write(message);
 
 		SystemAddress sysAddr = goonA->sysAddr;
 		SEND_PACKET;
@@ -501,6 +503,7 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
 	inStream.Read(playerID);
+	inStream.IgnoreBytes(4);
 	LUWString invitedPlayer(33);
 	inStream.Read(invitedPlayer);
 
