@@ -303,7 +303,7 @@ int main(int argc, char** argv) {
 		databaseChecksum = md5->hexdigest();
 
 		delete md5;
-    
+
 		Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s", databaseChecksum.c_str());
 	}
 
@@ -1045,23 +1045,23 @@ void HandlePacket(Packet* packet) {
 				if (!levelComponent) return;
 
 				auto version = levelComponent->GetCharacterVersion();
-				switch(version) {
-					case eCharacterVersion::RELEASE:
-						// TODO: Implement, super low priority
-					case eCharacterVersion::LIVE:
-						Game::logger->Log("WorldServer", "Updating Character Flags");
-						c->SetRetroactiveFlags();
-						levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
-					case eCharacterVersion::PLAYER_FACTION_FLAGS:
-						Game::logger->Log("WorldServer", "Updating Vault Size");
-						player->RetroactiveVaultSize();
-						levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
-					case eCharacterVersion::VAULT_SIZE:
-						Game::logger->Log("WorldServer", "Updaing Speedbase");
-						levelComponent->SetRetroactiveBaseSpeed();
-						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
-					case eCharacterVersion::UP_TO_DATE:
-						break;
+				switch (version) {
+				case eCharacterVersion::RELEASE:
+					// TODO: Implement, super low priority
+				case eCharacterVersion::LIVE:
+					Game::logger->Log("WorldServer", "Updating Character Flags");
+					c->SetRetroactiveFlags();
+					levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
+				case eCharacterVersion::PLAYER_FACTION_FLAGS:
+					Game::logger->Log("WorldServer", "Updating Vault Size");
+					player->RetroactiveVaultSize();
+					levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
+				case eCharacterVersion::VAULT_SIZE:
+					Game::logger->Log("WorldServer", "Updaing Speedbase");
+					levelComponent->SetRetroactiveBaseSpeed();
+					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+				case eCharacterVersion::UP_TO_DATE:
+					break;
 				}
 
 				player->GetCharacter()->SetTargetScene("");
