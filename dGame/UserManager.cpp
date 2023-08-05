@@ -11,7 +11,7 @@
 #include <WorldPackets.h>
 #include "Character.h"
 #include <BitStream.h>
-#include "PacketUtils.h"
+#include "BitstreamUtils.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "dLogger.h"
 #include "GeneralUtils.h"
@@ -248,30 +248,44 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
+	CINSTREAM;
+	LUWString name(33);
+	inStream.Read(name);
 
-	std::string name = PacketUtils::ReadString(8, packet, true);
-
-	uint32_t firstNameIndex = PacketUtils::ReadPacketU32(74, packet);
-	uint32_t middleNameIndex = PacketUtils::ReadPacketU32(78, packet);
-	uint32_t lastNameIndex = PacketUtils::ReadPacketU32(82, packet);
+	uint32_t firstNameIndex;
+	inStream.Read(firstNameIndex);
+	uint32_t middleNameIndex;
+	inStream.Read(middleNameIndex);
+	uint32_t lastNameIndex;
+	inStream.Read(lastNameIndex);
 	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
 
-	uint32_t shirtColor = PacketUtils::ReadPacketU32(95, packet);
-	uint32_t shirtStyle = PacketUtils::ReadPacketU32(99, packet);
-	uint32_t pantsColor = PacketUtils::ReadPacketU32(103, packet);
-	uint32_t hairStyle = PacketUtils::ReadPacketU32(107, packet);
-	uint32_t hairColor = PacketUtils::ReadPacketU32(111, packet);
-	uint32_t lh = PacketUtils::ReadPacketU32(115, packet);
-	uint32_t rh = PacketUtils::ReadPacketU32(119, packet);
-	uint32_t eyebrows = PacketUtils::ReadPacketU32(123, packet);
-	uint32_t eyes = PacketUtils::ReadPacketU32(127, packet);
-	uint32_t mouth = PacketUtils::ReadPacketU32(131, packet);
+	uint32_t shirtColor;
+	inStream.Read(shirtColor);
+	uint32_t shirtStyle;
+	inStream.Read(shirtStyle);
+	uint32_t pantsColor;
+	inStream.Read(pantsColor);
+	uint32_t hairStyle;
+	inStream.Read(hairStyle);
+	uint32_t hairColor;
+	inStream.Read(hairColor);
+	uint32_t lh;
+	inStream.Read(lh);
+	uint32_t rh;
+	inStream.Read(rh);
+	uint32_t eyebrows;
+	inStream.Read(eyebrows);
+	uint32_t eyes;
+	inStream.Read(eyes);
+	uint32_t mouth;
+	inStream.Read(mouth);
 
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
 	LOT pantsLOT = FindCharPantsID(pantsColor);
 
-	if (name != "" && !UserManager::IsNameAvailable(name)) {
-		Game::logger->Log("UserManager", "AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
+	if (name.GetAsString() != "" && !UserManager::IsNameAvailable(name.GetAsString())) {
+		Game::logger->Log("UserManager", "AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.GetAsString().c_str());
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::CUSTOM_NAME_IN_USE);
 		return;
 	}
@@ -282,10 +296,10 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		return;
 	}
 
-	if (name == "") {
+	if (name.GetAsString() == "") {
 		Game::logger->Log("UserManager", "AccountID: %i is creating a character with predefined name: %s", u->GetAccountID(), predefinedName.c_str());
 	} else {
-		Game::logger->Log("UserManager", "AccountID: %i is creating a character with name: %s (temporary: %s)", u->GetAccountID(), name.c_str(), predefinedName.c_str());
+		Game::logger->Log("UserManager", "AccountID: %i is creating a character with name: %s (temporary: %s)", u->GetAccountID(), name.GetAsString().c_str(), predefinedName.c_str());
 	}
 
 	//Now that the name is ok, we can get an objectID from Master:
@@ -334,20 +348,20 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				xml3 << "</in></items></inv><lvl l=\"1\" cv=\"1\" sb=\"500\"/><flag></flag></obj>";
 
 				//Check to see if our name was pre-approved:
-				bool nameOk = IsNamePreapproved(name);
+				bool nameOk = IsNamePreapproved(name.GetAsString());
 				if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
-				if (name != "") {
+				if (name.GetAsString() != "") {
 					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
 					stmt->setUInt(1, objectID);
 					stmt->setUInt(2, u->GetAccountID());
 					stmt->setString(3, predefinedName.c_str());
-					stmt->setString(4, name.c_str());
+					stmt->setString(4, name.GetAsString().c_str());
 					stmt->setBoolean(5, false);
 					stmt->setUInt64(6, time(NULL));
 
 					if (nameOk) {
-						stmt->setString(3, name.c_str());
+						stmt->setString(3, name.GetAsString().c_str());
 						stmt->setString(4, "");
 					}
 
@@ -386,8 +400,9 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		Game::logger->Log("UserManager", "Couldn't get user to delete character");
 		return;
 	}
-
-	LWOOBJID objectID = PacketUtils::ReadPacketS64(8, packet);
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID objectID;
+	inStream.Read(objectID);
 	uint32_t charID = static_cast<uint32_t>(objectID);
 
 	Game::logger->Log("UserManager", "Received char delete req for ID: %llu (%u)", objectID, charID);
@@ -423,7 +438,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			stmt->execute();
 			delete stmt;
 			CBITSTREAM;
-			PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+			BitstreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
 			bitStream.Write(objectID);
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
@@ -482,15 +497,17 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		Game::logger->Log("UserManager", "Couldn't get user to delete character");
 		return;
 	}
-
-	LWOOBJID objectID = PacketUtils::ReadPacketS64(8, packet);
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID objectID;
+	inStream.Read(objectID);
 	GeneralUtils::ClearBit(objectID, eObjectBits::CHARACTER);
 	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 
 	uint32_t charID = static_cast<uint32_t>(objectID);
 	Game::logger->Log("UserManager", "Received char rename request for ID: %llu (%u)", objectID, charID);
 
-	std::string newName = PacketUtils::ReadString(16, packet, true);
+	LUWString newName(33);
+	inStream.Read(newName);
 
 	Character* character = nullptr;
 
@@ -505,32 +522,32 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		Game::logger->Log("UserManager", "User %i tried to rename a character that it does not own!", u->GetAccountID());
 		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
 	} else if (hasCharacter && character) {
-		if (newName == character->GetName()) {
+		if (newName.GetAsString() == character->GetName()) {
 			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_UNAVAILABLE);
 			return;
 		}
 
-		if (IsNameAvailable(newName)) {
-			if (IsNamePreapproved(newName)) {
+		if (IsNameAvailable(newName.GetAsString())) {
+			if (IsNamePreapproved(newName.GetAsString())) {
 				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET name=?, pending_name='', needs_rename=0, last_login=? WHERE id=? LIMIT 1");
-				stmt->setString(1, newName);
+				stmt->setString(1, newName.GetAsString());
 				stmt->setUInt64(2, time(NULL));
 				stmt->setUInt(3, character->GetID());
 				stmt->execute();
 				delete stmt;
 
-				Game::logger->Log("UserManager", "Character %s now known as %s", character->GetName().c_str(), newName.c_str());
+				Game::logger->Log("UserManager", "Character %s now known as %s", character->GetName().c_str(), newName.GetAsString().c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
 				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET pending_name=?, needs_rename=0, last_login=? WHERE id=? LIMIT 1");
-				stmt->setString(1, newName);
+				stmt->setString(1, newName.GetAsString());
 				stmt->setUInt64(2, time(NULL));
 				stmt->setUInt(3, character->GetID());
 				stmt->execute();
 				delete stmt;
 
-				Game::logger->Log("UserManager", "Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
+				Game::logger->Log("UserManager", "Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.GetAsString().c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			}

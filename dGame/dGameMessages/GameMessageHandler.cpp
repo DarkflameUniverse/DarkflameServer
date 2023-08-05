@@ -5,7 +5,7 @@
 
 #include "GameMessageHandler.h"
 #include "MissionComponent.h"
-#include "PacketUtils.h"
+#include "BitstreamUtils.h"
 #include "dServer.h"
 #include "../thirdparty/raknet/Source/RakNetworkFactory.h"
 #include <future>
@@ -314,7 +314,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		if (success) {
 			//Broadcast our startSkill:
 			RakNet::BitStream bitStreamLocal;
-			PacketUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+			BitstreamUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			bitStreamLocal.Write(entity->GetObjectID());
 
 			EchoStartSkill echoStartSkill;
@@ -336,7 +336,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	case eGameMessageType::SYNC_SKILL: {
 		RakNet::BitStream bitStreamLocal;
-		PacketUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+		BitstreamUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 		bitStreamLocal.Write(entity->GetObjectID());
 		//bitStreamLocal.Write((unsigned short)eGameMessageType::ECHO_SYNC_SKILL);
 		//bitStreamLocal.Write(inStream);

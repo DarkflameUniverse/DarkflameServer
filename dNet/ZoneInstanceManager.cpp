@@ -3,7 +3,7 @@
 
 // Custom Classes
 #include "MasterPackets.h"
-#include "PacketUtils.h"
+#include "BitstreamUtils.h"
 #include "dServer.h"
 
 // C++
@@ -26,19 +26,29 @@ void ZoneInstanceManager::RequestZoneTransfer(dServer* server, uint32_t zoneID, 
 
 //! Handles a zone transfer response
 void ZoneInstanceManager::HandleRequestZoneTransferResponse(uint64_t requestID, Packet* packet) {
-
-	bool mythranShift = static_cast<bool>(packet->data[16]);
-	uint32_t zoneID = PacketUtils::ReadPacketU32(17, packet);
-	uint32_t zoneInstance = PacketUtils::ReadPacketU32(21, packet);
-	uint32_t zoneClone = PacketUtils::ReadPacketU32(25, packet);
-	uint16_t serverPort = PacketUtils::ReadPacketU16(29, packet);
-	std::string serverIP = PacketUtils::ReadString(31, packet, false);
+	CINSTREAM_SKIP_HEADER;
+	uint64_t requestIDAgain;
+	inStream.Read(requestIDAgain);
+	bool mythranShift;
+	uint8_t tmp;
+	inStream.Read(tmp);
+	mythranShift = tmp > 0;
+	uint32_t zoneID;
+	inStream.Read(zoneID);
+	uint32_t zoneInstance;
+	inStream.Read(zoneInstance);
+	uint32_t zoneClone;
+	inStream.Read(zoneClone);
+	uint16_t serverPort;
+	inStream.Read(serverPort);
+	LUString serverIP(255);
+	inStream.Read(serverIP);
 
 	for (uint32_t i = 0; i < this->requests.size(); ++i) {
 		if (this->requests[i]->requestID == requestID) {
 
 			// Call the request callback
-			this->requests[i]->callback(mythranShift, zoneID, zoneInstance, zoneClone, serverIP, serverPort);
+			this->requests[i]->callback(mythranShift, zoneID, zoneInstance, zoneClone, serverIP.string, serverPort);
 
 			delete this->requests[i];
 			this->requests.erase(this->requests.begin() + i);

@@ -40,7 +40,7 @@
 #include "InstanceManager.h"
 #include "MasterPackets.h"
 #include "ObjectIDManager.h"
-#include "PacketUtils.h"
+#include "BitstreamUtils.h"
 #include "FdbToSqlite.h"
 
 namespace Game {
@@ -561,13 +561,19 @@ void HandlePacket(Packet* packet) {
 			uint32_t theirZoneID = 0;
 			uint32_t theirInstanceID = 0;
 			ServerType theirServerType;
+			uint32_t theirIPSize;
 			std::string theirIP = "";
 
 			inStream.Read(theirPort);
 			inStream.Read(theirZoneID);
 			inStream.Read(theirInstanceID);
 			inStream.Read(theirServerType);
-			theirIP = PacketUtils::ReadString(24, packet, false); //24 is the current offset
+			inStream.Read(theirIPSize);
+			char character;
+			while(theirIPSize-- > 0) {
+				inStream.Read(character);
+				theirIP.push_back(character);
+			}
 
 			if (theirServerType == ServerType::World && !Game::im->IsPortInUse(theirPort)) {
 				Instance* in = new Instance(theirIP, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
@@ -608,23 +614,21 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case eMasterMessageType::SET_SESSION_KEY: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 			uint32_t sessionKey = 0;
-			std::string username;
-
 			inStream.Read(sessionKey);
-			username = PacketUtils::ReadString(12, packet, false);
+			LUString username(33);
+			inStream.Read(username);
 
 			for (auto it : activeSessions) {
-				if (it.second == username) {
+				if (it.second == username.string) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
+					BitstreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
-					bitStream.Write<uint32_t>(username.size());
-					for (auto character : username) {
+					bitStream.Write<uint32_t>(username.string.size());
+					for (auto character : username.string) {
 						bitStream.Write(character);
 					}
 					SEND_PACKET_BROADCAST;
@@ -633,22 +637,22 @@ void HandlePacket(Packet* packet) {
 				}
 			}
 
-			activeSessions.insert(std::make_pair(sessionKey, username));
-			Game::logger->Log("MasterServer", "Got sessionKey %i for user %s", sessionKey, username.c_str());
+			activeSessions.insert(std::make_pair(sessionKey, username.string));
+			Game::logger->Log("MasterServer", "Got sessionKey %i for user %s", sessionKey, username.string.c_str());
 			break;
 		}
 
 		case eMasterMessageType::REQUEST_SESSION_KEY: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
-			std::string username = PacketUtils::ReadString(8, packet, false);
+			CINSTREAM_SKIP_HEADER
+			LUWString username(33);
+			inStream.Read(username);
 
 			for (auto key : activeSessions) {
-				if (key.second == username) {
+				if (key.second == username.GetAsString()) {
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
+					BitstreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
-					PacketUtils::WriteString(bitStream, key.second, 64);
+					bitStream.Write(LUString(key.second, 64));
 					Game::server->Send(&bitStream, packet->systemAddress, false);
 					break;
 				}
@@ -892,7 +896,7 @@ void ShutdownSequence(int32_t signal) {
 
 	{
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
+		BitstreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 		Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		Game::logger->Log("MasterServer", "Triggered master shutdown");
 	}

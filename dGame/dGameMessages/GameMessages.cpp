@@ -2,6 +2,7 @@
 #include "User.h"
 #include "Entity.h"
 #include "PacketUtils.h"
+#include "BitstreamUtils.h"
 #include "BitStream.h"
 #include "Game.h"
 #include "SlashCommandHandler.h"
@@ -172,7 +173,7 @@ void GameMessages::SendPlayAnimation(Entity* entity, const std::u16string& anima
 	bitStream.Write(eGameMessageType::PLAY_ANIMATION);
 
 	bitStream.Write(animationIDLength);
-	PacketUtils::WriteWString(bitStream, animationName, animationIDLength);
+	bitStream.Write(animationName);
 
 	bitStream.Write(bExpectAnimToExist);
 
@@ -325,7 +326,7 @@ void GameMessages::SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& s
 		bitStream.Write(static_cast<char>(audioGUID[k]));
 	}
 
-	//PacketUtils::WriteString(bitStream, audioGUID, audioGUID.size());
+	//BitstreamUtils::WriteString(bitStream, audioGUID, audioGUID.size());
 
 	//bitStream.Write(uint32_t(audioGUID.size()));
 	//for (char character : audioGUID) {
@@ -2179,7 +2180,7 @@ void GameMessages::HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity,
 
 	if (unknown) {
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
+		BitstreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
 		bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
 		bitStream.Write(eBlueprintSaveResponseType::PlacementFailed); // Sending a non-zero error code here prevents the client from deleting its in progress build for some reason?
 		bitStream.Write<uint32_t>(0);
@@ -2431,7 +2432,7 @@ void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream* inStream, Entity*
 
 void GameMessages::SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_LOAD_RESPONSE_ITEMID);
+	BitstreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_LOAD_RESPONSE_ITEMID);
 	bitStream.Write(static_cast<uint8_t>(success));
 	bitStream.Write<LWOOBJID>(oldItemId);
 	bitStream.Write<LWOOBJID>(newItemId);
@@ -2679,7 +2680,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 				//Tell the client their model is saved: (this causes us to actually pop out of our current state):
 				CBITSTREAM;
-				PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
+				BitstreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
 				bitStream.Write(localId);
 				bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
 				bitStream.Write<uint32_t>(1);

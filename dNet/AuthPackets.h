@@ -7,7 +7,22 @@
 
 enum class ServerType : uint32_t;
 enum class eLoginResponse : uint8_t;
+enum class eStamps : uint32_t;
 class dServer;
+
+struct Stamp {
+	eStamps type;
+	uint32_t value;
+	uint64_t timestamp;
+
+	Stamp(eStamps type, uint32_t value, uint64_t timestamp){
+		this->type = type;
+		this->value = value;
+		this->timestamp = timestamp;
+	}
+
+	void Serialize(RakNet::BitStream* outBitStream);
+};
 
 namespace AuthPackets {
 	void HandleHandshake(dServer* server, Packet* packet);
