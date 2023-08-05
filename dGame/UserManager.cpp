@@ -248,10 +248,9 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LUWString name(33);
 	inStream.Read(name);
-
 	uint32_t firstNameIndex;
 	inStream.Read(firstNameIndex);
 	uint32_t middleNameIndex;
@@ -259,7 +258,8 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	uint32_t lastNameIndex;
 	inStream.Read(lastNameIndex);
 	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
-
+	// unknown 9 bytes
+	inStream.SetReadOffset(inStream.GetReadOffset() + BYTES_TO_BITS(9));
 	uint32_t shirtColor;
 	inStream.Read(shirtColor);
 	uint32_t shirtStyle;
