@@ -439,6 +439,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	inStream.IgnoreBytes(78);
 	LUWString receiverName(33);
 	inStream.Read(receiverName);
+	inStream.IgnoreBytes(2);
 	LUWString message(512);
 	inStream.Read(message);
 
