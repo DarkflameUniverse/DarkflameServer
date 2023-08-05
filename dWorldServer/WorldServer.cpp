@@ -303,7 +303,7 @@ int main(int argc, char** argv) {
 		databaseChecksum = md5->hexdigest();
 
 		delete md5;
-
+    
 		Game::logger->Log("WorldServer", "FDB Checksum calculated as: %s", databaseChecksum.c_str());
 	}
 
