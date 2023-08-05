@@ -29,25 +29,6 @@
 #include "eMasterMessageType.h"
 #include "eStamps.h"
 
-enum class ClientOS : uint8_t {
-	UNKNOWN,
-	WINDOWS,
-	MACOS
-};
-
-enum class LCID : uint16_t {
-	en_US = 0x0409,
-	de_DE = 0x0407,
-	en_GB = 0x0809
-};
-
-enum class Language : uint32_t {
-	en_US,
-	pl_US,
-	de_DE,
-	en_GB,
-};
-
 void Stamp::Serialize(RakNet::BitStream* outBitStream){
 	outBitStream->Write(type);
 	outBitStream->Write(value);
@@ -109,7 +90,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	LUWString password(41);
 	inStream.Read(password);
 
-	LCID locale_id;
+	LanguageCodeID locale_id;
 	inStream.Read(locale_id);
 	Game::logger->Log("AuthPackets", "Locale ID: %i", locale_id);
 
