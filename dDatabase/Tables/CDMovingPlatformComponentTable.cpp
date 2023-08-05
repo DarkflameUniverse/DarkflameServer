@@ -1,7 +1,7 @@
 #include "CDMovingPlatformComponentTable.h"
 
 CDMovingPlatformComponentTable::CDMovingPlatformComponentTable() {
-	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MovementAIComponent");
+	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MovingPlatforms");
 	while (!tableData.eof()) {
 		CDMovingPlatformTableEntry entry;
 		entry.platformIsSimpleMover = tableData.getIntField("platformIsSimpleMover", 0) == 1;
@@ -17,7 +17,7 @@ CDMovingPlatformComponentTable::CDMovingPlatformComponentTable() {
 }
 
 void CDMovingPlatformComponentTable::CachePlatformEntry(ComponentID id) {
-	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM MovementAIComponent WHERE id = ?;");
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM MovingPlatforms WHERE id = ?;");
 	query.bind(1, static_cast<int32_t>(id));
 
 	auto tableData = query.execQuery();

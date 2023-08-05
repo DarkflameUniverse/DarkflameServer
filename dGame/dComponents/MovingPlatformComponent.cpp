@@ -19,24 +19,31 @@
  //------------- PlatformSubComponent begin --------------
 
 PlatformSubComponent::PlatformSubComponent(MovingPlatformComponent* parentComponent) {
-	m_Position = NiPoint3::ZERO;
+	DluAssert(parentComponent != nullptr);
 	m_ParentComponent = parentComponent;
+	m_Position = parentComponent->GetParent()->GetPosition();
+	m_Rotation = parentComponent->GetParent()->GetRotation();
 
 	m_State = eMovementPlatformState::Stopped | eMovementPlatformState::ReachedDesiredWaypoint;
-	m_DesiredWaypointIndex = 0;
+	m_DesiredWaypointIndex = -1;
+	m_PercentUntilNextWaypoint = 0.0f;
+	m_CurrentWaypointIndex = 0;
+	m_NextWaypointIndex = -1;
+	m_IdleTimeElapsed = 0.0f;
+	m_Speed = 0.0f;
+	m_WaitTime = 0.0f;
+	m_MoveTimeElapsed = 0.0f;
+	m_IsDirty = false;
 	m_InReverse = false;
 	m_ShouldStopAtDesiredWaypoint = false;
-
-	m_PercentUntilNextWaypoint = 0.0f;
-
-	m_CurrentWaypointIndex = 0;
-	m_NextWaypointIndex = 0;
-
-	m_IdleTimeElapsed = 0.0f;
+	m_LinearVelocity = NiPoint3::ZERO;
+	m_AngularVelocity = NiPoint3::ZERO;
+	m_TimeBasedMovement = false;
+	m_Path = nullptr; 
 }
 
 void PlatformSubComponent::Update(float deltaTime) {
-	if (m_State == 0) return;
+	if (m_State == 0 || !m_Path) return;
 	if (m_State & eMovementPlatformState::Travelling) {
 		m_MoveTimeElapsed += deltaTime;
 
@@ -44,11 +51,32 @@ void PlatformSubComponent::Update(float deltaTime) {
 		// Unfortunately for the poor client, they chose to, instead of change the speed once at the start of the waypoint,
 		// the speed is changed over the course of the waypoint. This means we have to recalculate the linear velocity every frame.
 		// yay.
-		if (GetCurrentWaypoint().movingPlatform.speed != GetNextWaypoint().movingPlatform.speed) {
+		if (m_Speed == 0.0f || (GetCurrentWaypoint().movingPlatform.speed != GetNextWaypoint().movingPlatform.speed)) {
 			UpdateLinearVelocity();
+			m_IsDirty = true;
 		}
 		m_Position += m_LinearVelocity * deltaTime;
+		if (CalculatePercentToNextWaypoint() > 0.99) {
+			m_MoveTimeElapsed = 0;
+			m_ParentComponent->GetParent()->SetPosition(m_Position);
+			m_InReverse ? AdvanceToNextReverseWaypoint() : AdvanceToNextWaypoint();
+			m_IsDirty = true;
+			Game::entityManager->SerializeEntity(m_ParentComponent->GetParent());
+		}
 	}
+}
+
+float PlatformSubComponent::CalculatePercentToNextWaypoint() {
+	if (m_TimeBasedMovement) return 0;
+	float distanceToNextWaypoint = (GetNextWaypoint().position - GetCurrentWaypoint().position).Length();
+	if (distanceToNextWaypoint == 0.0f) return 0;
+	float distanceToCurrentWaypoint = (m_Position - GetCurrentWaypoint().position).Length();
+	return distanceToCurrentWaypoint / distanceToNextWaypoint;
+}
+
+void PlatformSubComponent::UpdateAngularVelocity() {
+	// Update the angular velocity
+	// This one is sure to be fun...
 }
 
 void PlatformSubComponent::UpdateLinearVelocity() {
@@ -58,6 +86,8 @@ void PlatformSubComponent::UpdateLinearVelocity() {
 void PlatformSubComponent::AdvanceToNextWaypoint() {
 	uint32_t numWaypoints = m_Path->pathWaypoints.size();
 	m_CurrentWaypointIndex = m_NextWaypointIndex;
+	m_ParentComponent->GetParent()->SetPosition(GetCurrentWaypoint().position);
+	m_ParentComponent->GetParent()->SetRotation(GetCurrentWaypoint().rotation);
 	uint32_t nextWaypointIndex = m_CurrentWaypointIndex + 1;
 	if (numWaypoints <= nextWaypointIndex) {
 		PathBehavior behavior = m_Path->pathBehavior;
@@ -71,11 +101,16 @@ void PlatformSubComponent::AdvanceToNextWaypoint() {
 		}
 	}
 	m_NextWaypointIndex = nextWaypointIndex;
+	m_DesiredWaypointIndex = nextWaypointIndex;
 	UpdateLinearVelocity();
+	UpdateAngularVelocity();
+	m_IsDirty = true;
 }
 
 void PlatformSubComponent::AdvanceToNextReverseWaypoint() {
 	uint32_t numWaypoints = m_Path->pathWaypoints.size();
+	m_ParentComponent->GetParent()->SetPosition(GetCurrentWaypoint().position);
+	m_ParentComponent->GetParent()->SetRotation(GetCurrentWaypoint().rotation);
 	m_CurrentWaypointIndex = m_NextWaypointIndex;
 	int32_t nextWaypointIndex = m_CurrentWaypointIndex - 1;
 	if (nextWaypointIndex < 0) {
@@ -90,11 +125,15 @@ void PlatformSubComponent::AdvanceToNextReverseWaypoint() {
 		}
 	}
 	m_NextWaypointIndex = nextWaypointIndex;
+	m_DesiredWaypointIndex = nextWaypointIndex;
 	UpdateLinearVelocity();
+	UpdateAngularVelocity();
+	m_IsDirty = true;
 }
 
 void PlatformSubComponent::SetupPath(const std::string& pathName, uint32_t startingWaypointIndex, bool startsInReverse) {
 	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
+	Game::logger->Log("MovingPlatformComponent", "setting up path %s", pathName.c_str());
 	if (!m_Path) {
 		Game::logger->Log("MovingPlatformComponent", "Failed to find path (%s)", pathName.c_str());
 		return;
@@ -104,15 +143,13 @@ void PlatformSubComponent::SetupPath(const std::string& pathName, uint32_t start
 	m_TimeBasedMovement = m_Path->movingPlatform.timeBasedMovement;
 }
 
-const PathWaypoint PlatformSubComponent::GetNextWaypoint() const {
+const PathWaypoint& PlatformSubComponent::GetNextWaypoint() const {
 	DluAssert(m_Path != nullptr);
-	if (m_NextWaypointIndex >= m_Path->pathWaypoints.size()) return PathWaypoint();
 	return m_Path->pathWaypoints.at(m_NextWaypointIndex);
 }
 
-const PathWaypoint PlatformSubComponent::GetCurrentWaypoint() const {
+const PathWaypoint& PlatformSubComponent::GetCurrentWaypoint() const {
 	DluAssert(m_Path != nullptr);
-	if (m_CurrentWaypointIndex >= m_Path->pathWaypoints.size()) return PathWaypoint();
 	return m_Path->pathWaypoints.at(m_CurrentWaypointIndex);
 }
 
@@ -146,6 +183,7 @@ void PlatformSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 	outBitStream->Write(m_NextWaypointIndex);
 	outBitStream->Write(m_IdleTimeElapsed);
 	outBitStream->Write(m_MoveTimeElapsed);
+
 	if (!bIsInitialUpdate) m_IsDirty = false;
 }
 
@@ -153,6 +191,11 @@ void PlatformSubComponent::StartPathing() {
 	m_State |= eMovementPlatformState::Travelling;
 	m_State &= ~eMovementPlatformState::Stopped;
 	m_State &= ~eMovementPlatformState::Waiting;
+	m_IsDirty = true;
+	m_CurrentWaypointIndex = m_ParentComponent->GetStartingWaypointIndex();
+	m_InReverse = m_ParentComponent->GetStartsIsInReverse();
+	m_NextWaypointIndex = m_InReverse ? m_CurrentWaypointIndex - 1 : m_CurrentWaypointIndex + 1;
+	Game::entityManager->SerializeEntity(m_ParentComponent->GetParent());
 }
 
 void PlatformSubComponent::ResumePathing() {
@@ -163,11 +206,14 @@ void PlatformSubComponent::ResumePathing() {
 		m_State |= eMovementPlatformState::Waiting;
 		m_State &= ~eMovementPlatformState::Stopped;
 		m_State &= ~eMovementPlatformState::Travelling;
+		m_IsDirty = true;
 	} else {
 		m_State &= eMovementPlatformState::Waiting;
 		m_State &= eMovementPlatformState::Travelling;
 		m_State &= eMovementPlatformState::Stopped;
-		// Set the velocities
+		m_IsDirty = true;
+		UpdateLinearVelocity();
+		UpdateAngularVelocity();
 	}
 }
 
@@ -266,7 +312,7 @@ SimpleMoverPlatformSubComponent::SimpleMoverPlatformSubComponent(MovingPlatformC
 //------------- MovingPlatformComponent begin --------------
 
 MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::string& pathName) : Component(parent) {
-
+	m_PathName = GeneralUtils::ASCIIToUTF16(pathName);
 }
 
 void MovingPlatformComponent::LoadDataFromTemplate() {
@@ -274,11 +320,11 @@ void MovingPlatformComponent::LoadDataFromTemplate() {
 }
 
 void MovingPlatformComponent::LoadConfigData() {
-	if (m_Parent->GetVar<bool>(u"platformIsSimpleMover")) {
-		AddMovingPlatform<SimpleMoverPlatformSubComponent>(NiPoint3::ZERO, false);
-	}
 	if (m_Parent->GetVar<bool>(u"platformIsMover")) {
 		AddMovingPlatform<MoverPlatformSubComponent>();
+	}
+	if (m_Parent->GetVar<bool>(u"platformIsSimpleMover")) {
+		AddMovingPlatform<SimpleMoverPlatformSubComponent>(NiPoint3::ZERO, false);
 	}
 	if (m_Parent->GetVar<bool>(u"platformIsRotater")) {
 		AddMovingPlatform<RotatorPlatformSubComponent>();
@@ -286,6 +332,11 @@ void MovingPlatformComponent::LoadConfigData() {
 	m_StartingWaypointIndex = m_Parent->GetVar<uint32_t>(u"attached_path_start");
 	m_StartsIsInReverse = false;
 	m_DirtyPathInfo = true;
+	m_StartOnload = m_Parent->GetVar<bool>(u"startPathingOnLoad");
+}
+
+void MovingPlatformComponent::Update(float deltaTime) {
+	std::for_each(m_Platforms.begin(), m_Platforms.end(), [deltaTime](const std::unique_ptr<PlatformSubComponent>& platform) { platform->Update(deltaTime); });
 }
 
 void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -326,227 +377,39 @@ void MovingPlatformComponent::OnCompleteRebuild() {
 }
 
 void MovingPlatformComponent::SetMovementState(eMovementPlatformState value) {
-	// auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-
-	// subComponent->mState = value;
-
-	// Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint) {
-	// auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-
-	// subComponent->mDesiredWaypointIndex = index;
-	// subComponent->mNextWaypointIndex = index;
-	// subComponent->mShouldStopAtDesiredWaypoint = stopAtWaypoint;
-
-	// StartPathing();
 }
 
 void MovingPlatformComponent::StartPathing() {
 	std::for_each(m_Platforms.begin(), m_Platforms.end(), [](const std::unique_ptr<PlatformSubComponent>& platform) {
 		platform->StartPathing();
 		});
-	// state == Travelling
-	// //GameMessages::SendStartPathing(m_Parent);
-	// m_PathingStopped = false;
-
-	// auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-
-	// subComponent->mShouldStopAtDesiredWaypoint = true;
-	// subComponent->mState = eMovementPlatformState::Stationary;
-
-	// NiPoint3 targetPosition;
-
-	// if (m_Path != nullptr) {
-	// 	const auto& currentWaypoint = m_Path->pathWaypoints[subComponent->mCurrentWaypointIndex];
-	// 	const auto& nextWaypoint = m_Path->pathWaypoints[subComponent->mNextWaypointIndex];
-
-	// 	subComponent->mPosition = currentWaypoint.position;
-	// 	subComponent->mSpeed = currentWaypoint.movingPlatform.speed;
-	// 	subComponent->mWaitTime = currentWaypoint.movingPlatform.wait;
-
-	// 	targetPosition = nextWaypoint.position;
-	// } else {
-	// 	subComponent->mPosition = m_Parent->GetPosition();
-	// 	subComponent->mSpeed = 1.0f;
-	// 	subComponent->mWaitTime = 2.0f;
-
-	// 	targetPosition = m_Parent->GetPosition() + NiPoint3(0.0f, 10.0f, 0.0f);
-	// }
-
-	// m_Parent->AddCallbackTimer(subComponent->mWaitTime, [this] {
-	// 	SetMovementState(eMovementPlatformState::Moving);
-	// 	});
-
-	// const auto travelTime = Vector3::Distance(targetPosition, subComponent->mPosition) / subComponent->mSpeed + 1.5f;
-
-	// const auto travelNext = subComponent->mWaitTime + travelTime;
-
-	// m_Parent->AddCallbackTimer(travelTime, [subComponent, this] {
-	// 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-	// 		script->OnWaypointReached(m_Parent, subComponent->mNextWaypointIndex);
-	// 	}
-	// 	});
-
-	// m_Parent->AddCallbackTimer(travelNext, [this] {
-	// 	ContinuePathing();
-	// 	});
-
-	// //GameMessages::SendPlatformResync(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
-
-	// Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovingPlatformComponent::ContinuePathing() {
-	// state == Travelling
-	// auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
 
-	// subComponent->mState = eMovementPlatformState::Stationary;
-
-	// subComponent->mCurrentWaypointIndex = subComponent->mNextWaypointIndex;
-
-	// NiPoint3 targetPosition;
-	// uint32_t pathSize;
-	// PathBehavior behavior;
-
-	// if (m_Path != nullptr) {
-	// 	const auto& currentWaypoint = m_Path->pathWaypoints[subComponent->mCurrentWaypointIndex];
-	// 	const auto& nextWaypoint = m_Path->pathWaypoints[subComponent->mNextWaypointIndex];
-
-	// 	subComponent->mPosition = currentWaypoint.position;
-	// 	subComponent->mSpeed = currentWaypoint.movingPlatform.speed;
-	// 	subComponent->mWaitTime = currentWaypoint.movingPlatform.wait; // + 2;
-
-	// 	pathSize = m_Path->pathWaypoints.size() - 1;
-
-	// 	behavior = static_cast<PathBehavior>(m_Path->pathBehavior);
-
-	// 	targetPosition = nextWaypoint.position;
-	// } else {
-	// 	subComponent->mPosition = m_Parent->GetPosition();
-	// 	subComponent->mSpeed = 1.0f;
-	// 	subComponent->mWaitTime = 2.0f;
-
-	// 	targetPosition = m_Parent->GetPosition() + NiPoint3(0.0f, 10.0f, 0.0f);
-
-	// 	pathSize = 1;
-	// 	behavior = PathBehavior::Loop;
-	// }
-
-	// if (m_Parent->GetLOT() == 9483) {
-	// 	behavior = PathBehavior::Bounce;
-	// } else {
-	// 	return;
-	// }
-
-	// if (subComponent->mCurrentWaypointIndex >= pathSize) {
-	// 	subComponent->mCurrentWaypointIndex = pathSize;
-	// 	switch (behavior) {
-	// 	case PathBehavior::Once:
-	// 		Game::entityManager->SerializeEntity(m_Parent);
-	// 		return;
-
-	// 	case PathBehavior::Bounce:
-	// 		subComponent->mInReverse = true;
-	// 		break;
-
-	// 	case PathBehavior::Loop:
-	// 		subComponent->mNextWaypointIndex = 0;
-	// 		break;
-
-	// 	default:
-	// 		break;
-	// 	}
-	// } else if (subComponent->mCurrentWaypointIndex == 0) {
-	// 	subComponent->mInReverse = false;
-	// }
-
-	// if (subComponent->mInReverse) {
-	// 	subComponent->mNextWaypointIndex = subComponent->mCurrentWaypointIndex - 1;
-	// } else {
-	// 	subComponent->mNextWaypointIndex = subComponent->mCurrentWaypointIndex + 1;
-	// }
-
-	// /*
-	// subComponent->mNextWaypointIndex = 0;
-	// subComponent->mCurrentWaypointIndex = 1;
-	// */
-
-	// //GameMessages::SendPlatformResync(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
-
-	// if (subComponent->mCurrentWaypointIndex == subComponent->mDesiredWaypointIndex) {
-	// 	// TODO: Send event?
-	// 	StopPathing();
-
-	// 	return;
-	// }
-
-	// m_Parent->CancelCallbackTimers();
-
-	// m_Parent->AddCallbackTimer(subComponent->mWaitTime, [this] {
-	// 	SetMovementState(eMovementPlatformState::Moving);
-	// 	});
-
-	// auto travelTime = Vector3::Distance(targetPosition, subComponent->mPosition) / subComponent->mSpeed + 1.5;
-
-	// if (m_Parent->GetLOT() == 9483) {
-	// 	travelTime += 20;
-	// }
-
-	// const auto travelNext = subComponent->mWaitTime + travelTime;
-
-	// m_Parent->AddCallbackTimer(travelTime, [subComponent, this] {
-	// 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-	// 		script->OnWaypointReached(m_Parent, subComponent->mNextWaypointIndex);
-	// 	}
-	// 	});
-
-	// m_Parent->AddCallbackTimer(travelNext, [this] {
-	// 	ContinuePathing();
-	// 	});
-
-	// Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovingPlatformComponent::StopPathing() {
-	// state == Stopped
-	//m_Parent->CancelCallbackTimers();
 
-	// auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-
-	// m_PathingStopped = true;
-
-	// subComponent->mState = eMovementPlatformState::Stopped;
-	// subComponent->mDesiredWaypointIndex = -1;
-	// subComponent->mShouldStopAtDesiredWaypoint = false;
-
-	// Game::entityManager->SerializeEntity(m_Parent);
-
-	//GameMessages::SendPlatformResync(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 bool MovingPlatformComponent::GetNoAutoStart() const {
 	return false;
-	// return m_NoAutoStart;
 }
 
 void MovingPlatformComponent::SetNoAutoStart(const bool value) {
-	// m_NoAutoStart = value;
+
 }
 
 void MovingPlatformComponent::WarpToWaypoint(size_t index) {
-	// const auto& waypoint = m_Path->pathWaypoints[index];
 
-	// m_Parent->SetPosition(waypoint.position);
-	// m_Parent->SetRotation(waypoint.rotation);
-
-	// Game::entityManager->SerializeEntity(m_Parent);
 }
 
 size_t MovingPlatformComponent::GetLastWaypointIndex() const {
 	return 0;
-	// return m_Path->pathWaypoints.size() - 1;
 }
 
 //------------- MovingPlatformComponent end --------------

@@ -42,6 +42,8 @@ enum class eMoverSubComponentType : uint32_t {
 
 class MovingPlatformComponent;
 
+// In the context of a platform that is TimeBasedMovement, 
+// the speed member from the Path is used as the time to go between waypoints.
 class PlatformSubComponent {
 public:
 	PlatformSubComponent(MovingPlatformComponent* parentComponent);
@@ -56,43 +58,61 @@ public:
 	virtual void StopPathing();
 	virtual void Update(float deltaTime);
 	float CalculateSpeed() const;
-	const PathWaypoint GetNextWaypoint() const;
-	const PathWaypoint GetCurrentWaypoint() const;
+	const PathWaypoint& GetNextWaypoint() const;
+	const PathWaypoint& GetCurrentWaypoint() const;
 	void SetupPath(const std::string& pathName, uint32_t startingWaypointIndex, bool startsInReverse);
 	void AdvanceToNextWaypoint();
 	void AdvanceToNextReverseWaypoint();
 	NiPoint3 CalculateLinearVelocity();
 	void UpdateLinearVelocity();
-protected:
+	void UpdateAngularVelocity();
+	float CalculatePercentToNextWaypoint();
 
-#ifdef _MOVING_PLATFORM_TEST
-public:
-	void _SetPath(const Path* path) {
-		m_Path = path;
-	}
-#endif
-	MovingPlatformComponent* m_ParentComponent = nullptr;
+	// Write all the getters for the below members
+	bool GetTimeBasedMovement() const { return m_TimeBasedMovement; }
+	const Path* GetPath() const { return m_Path; }
+	float GetSpeed() const { return m_Speed; }
+	float GetWaitTime() const { return m_WaitTime; }
+	float GetMoveTimeElapsed() const { return m_MoveTimeElapsed; }
+	float GetPercentUntilNextWaypoint() const { return m_PercentUntilNextWaypoint; }
+	int32_t GetCurrentWaypointIndex() const { return m_CurrentWaypointIndex; }
+	int32_t GetNextWaypointIndex() const { return m_NextWaypointIndex; }
+	bool GetInReverse() const { return m_InReverse; }
+	bool GetShouldStopAtDesiredWaypoint() const { return m_ShouldStopAtDesiredWaypoint; }
+	int32_t GetDesiredWaypointIndex() const { return m_DesiredWaypointIndex; }
+	uint32_t GetState() const { return m_State; }
+	const NiPoint3& GetPosition() const { return m_Position; }
+	const NiQuaternion& GetRotation() const { return m_Rotation; }
+	const NiPoint3& GetLinearVelocity() const { return m_LinearVelocity; }
+	const NiPoint3& GetAngularVelocity() const { return m_AngularVelocity; }
+	const MovingPlatformComponent* GetParentComponent() const { return m_ParentComponent; }
+	const float GetIdleTimeElapsed() const { return m_IdleTimeElapsed; }
+
+
+protected:
+	MovingPlatformComponent* m_ParentComponent;
 
 	/**
 	 * The state the platform is currently in
 	 */
-	uint32_t m_State = eMovementPlatformState::Stopped | eMovementPlatformState::ReachedDesiredWaypoint;
-	int32_t m_DesiredWaypointIndex = 0;
-	float m_PercentUntilNextWaypoint = 0;
+	uint32_t m_State;
+	int32_t m_DesiredWaypointIndex;
+	float m_PercentUntilNextWaypoint;
 	NiPoint3 m_Position;
 	int32_t m_CurrentWaypointIndex;
 	int32_t m_NextWaypointIndex;
-	float m_IdleTimeElapsed = 0;
-	float m_Speed = 0;
-	float m_WaitTime = 0;
-	float m_MoveTimeElapsed = 0;
-	bool m_IsDirty = false;
-	bool m_InReverse = false;
-	bool m_ShouldStopAtDesiredWaypoint = false;
+	float m_IdleTimeElapsed;
+	float m_Speed;
+	float m_WaitTime;
+	float m_MoveTimeElapsed;
+	bool m_IsDirty;
+	bool m_InReverse;
+	bool m_ShouldStopAtDesiredWaypoint;
 	NiPoint3 m_LinearVelocity;
 	NiPoint3 m_AngularVelocity;
-	bool m_TimeBasedMovement = false;
-	const Path* m_Path = nullptr;
+	bool m_TimeBasedMovement;
+	const Path* m_Path;
+	NiQuaternion m_Rotation;
 };
 
 class MoverPlatformSubComponent : public PlatformSubComponent {
@@ -146,6 +166,7 @@ public:
 
 	void LoadDataFromTemplate();
 	void LoadConfigData();
+	void Update(float deltaTime) override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 
@@ -228,23 +249,32 @@ public:
 			}
 	}
 
-	int32_t GetComponentId() const { return componentId; }
+	bool HasPlatform() { return !m_Platforms.empty(); }
 
-#ifdef _MOVING_PLATFORM_TEST
-	/**
-	 * Only used for testing. Do not call in production code. Let the constructor take care of this.
-	 *
-	 * @param platformSubComponent
-	 */
-	void _AddPlatformSubComponent(std::unique_ptr<PlatformSubComponent> platformSubComponent) {
-		m_Platforms.push_back(std::move(platformSubComponent));
+	const PlatformSubComponent& GetPlatform() const {
+		return *m_Platforms.at(0);
 	}
 
-	void _SetPath(const std::u16string& path) {
-		m_PathName = path;
-		m_DirtyPathInfo = true;
-}
-#endif
+	int32_t GetComponentId() const { return componentId; }
+	
+	// Make 
+	const std::u16string& GetPathName() const { return m_PathName; }
+	void SetPathName(const std::u16string& pathName) { m_PathName = pathName; }
+
+	bool GetPathingStopped() const { return m_PathingStopped; }
+	void SetPathingStopped(bool value) { m_PathingStopped = value; }
+
+	uint32_t GetStartingWaypointIndex() const { return m_StartingWaypointIndex; }
+	void SetStartingWaypointIndex(uint32_t value) { m_StartingWaypointIndex = value; }
+
+	bool GetStartsIsInReverse() const { return m_StartsIsInReverse; }
+	void SetStartsIsInReverse(bool value) { m_StartsIsInReverse = value; }
+
+	bool GetStartOnload() const { return m_StartOnload; }
+	void SetStartOnload(bool value) { m_StartOnload = value; }
+
+	bool GetDirtyPathInfo() const { return m_DirtyPathInfo; }
+
 private:
 	/**
 	 * The name of the path this platform is currently on
@@ -260,7 +290,7 @@ private:
 
 	bool m_StartsIsInReverse = false;
 
-	int32_t componentId = -1;;
+	int32_t componentId = -1;
 
 	/**
 	 * The mover sub component that belongs to this platform
@@ -272,12 +302,8 @@ private:
 	 */
 	bool m_NoAutoStart;
 
-	/**
-	 * Whether to serialize the entity on the next update
-	 */
-	bool m_Serialize = false;
-
 	bool m_DirtyPathInfo = false;
+	bool m_StartOnload = false;
 };
 
 #endif // MOVINGPLATFORMCOMPONENT_H
