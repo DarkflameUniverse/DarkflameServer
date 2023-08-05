@@ -909,7 +909,7 @@ void HandlePacket(Packet* packet) {
 				Game::logger->Log("WorldServer", "Client's database checksum does not match the server's, aborting connection.");
 				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::WRONG_GAME_VERSION);
 				return;
-			} else Game::logger->Log("WorldServer", "checksum was good");
+			}
 		}
 
 		//Request the session info from Master:
