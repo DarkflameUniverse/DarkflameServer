@@ -113,6 +113,17 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
+	uint32_t clientNetVersion = 0;
+	if (!GeneralUtils::TryParse(Game::config->GetValue("client_net_version"), clientNetVersion)) {
+		Game::logger->Log("MasterServer", "Failed to parse (%s) as net version. Cannot start server as no clients could connect.",Game::config->GetValue("client_net_version").c_str());
+		Game::logger->Log("MasterServer", "As of version 1.1.1, client_net_version is required to be defined in sharedconfig.ini as opposed to in CMakeVariables.txt as NET_VERSION.");
+		Game::logger->Log("MasterServer", "Rerun cmake to ensure all config values exist. If client_net_version already exists in sharedconfig.ini, please ensure it is a valid number.");
+		Game::logger->Log("MasterServer", "like 171022");
+		return EXIT_FAILURE;
+	}
+
+	Game::logger->Log("MasterServer", "Using net version %s", Game::config->GetValue("client_net_version").c_str());
+
 	Game::logger->Log("MasterServer", "Starting Master server...");
 	Game::logger->Log("MasterServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("MasterServer", "Compiled on: %s", __TIMESTAMP__);

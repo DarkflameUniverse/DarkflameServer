@@ -179,7 +179,7 @@ void RebuildComponent::Update(float deltaTime) {
 	{
 		Entity* builder = GetBuilder();
 
-		if (builder == nullptr) {
+		if (!builder) {
 			ResetRebuild(false);
 
 			return;
@@ -197,16 +197,16 @@ void RebuildComponent::Update(float deltaTime) {
 			if (!destComp) break;
 
 			int newImagination = destComp->GetImagination();
-			if (newImagination <= 0) {
-				CancelRebuild(builder, eQuickBuildFailReason::OUT_OF_IMAGINATION, true);
-				break;
-			}
 
 			++m_DrainedImagination;
 			--newImagination;
 			destComp->SetImagination(newImagination);
 			Game::entityManager->SerializeEntity(builder);
 
+			if (newImagination <= 0) {
+				CancelRebuild(builder, eQuickBuildFailReason::OUT_OF_IMAGINATION, true);
+				break;
+			}
 
 		}
 
@@ -481,7 +481,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 					if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 				}
 			}
-		} else{
+		} else {
 			auto* missionComponent = builder->GetComponent<MissionComponent>();
 			if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 		}

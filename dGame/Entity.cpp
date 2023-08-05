@@ -50,6 +50,7 @@
 #include "BuildBorderComponent.h"
 #include "MovementAIComponent.h"
 #include "VendorComponent.h"
+#include "DonationVendorComponent.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyComponent.h"
 #include "BaseCombatAIComponent.h"
@@ -577,6 +578,9 @@ void Entity::Initialize() {
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VENDOR) > 0)) {
 		VendorComponent* comp = new VendorComponent(this);
 		m_Components.insert(std::make_pair(eReplicaComponentType::VENDOR, comp));
+	} else if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1) != -1)) {
+		DonationVendorComponent* comp = new DonationVendorComponent(this);
+		m_Components.insert(std::make_pair(eReplicaComponentType::DONATION_VENDOR, comp));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_VENDOR, -1) != -1) {
@@ -1157,6 +1161,11 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	VendorComponent* vendorComponent;
 	if (TryGetComponent(eReplicaComponentType::VENDOR, vendorComponent)) {
 		vendorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+	}
+
+	DonationVendorComponent* donationVendorComponent;
+	if (TryGetComponent(eReplicaComponentType::DONATION_VENDOR, donationVendorComponent)) {
+		donationVendorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
 	}
 
 	BouncerComponent* bouncerComponent;

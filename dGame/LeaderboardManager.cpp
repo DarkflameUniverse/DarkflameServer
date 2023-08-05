@@ -131,8 +131,8 @@ void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
 			// Time:1
 			break;
 		case Type::Donations:
-			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("primaryScore")));
-			// Score:1				
+			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("primaryScore")));
+			// Score:1
 			break;
 		case Type::None:
 			// This type is included here simply to resolve a compiler warning on mac about unused enum types
@@ -170,32 +170,32 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 	resultEnd++;
 	// We need everything except 1 column so i'm selecting * from leaderboard
 	const std::string queryBase =
-		R"QUERY( 
-		WITH leaderboardsRanked AS ( 
-			SELECT leaderboard.*, charinfo.name, 
-				RANK() OVER 
-				( 
+		R"QUERY(
+		WITH leaderboardsRanked AS (
+			SELECT leaderboard.*, charinfo.name,
+				RANK() OVER
+				(
 				ORDER BY %s, UNIX_TIMESTAMP(last_played) ASC, id DESC
-			) AS ranking 
-				FROM leaderboard JOIN charinfo on charinfo.id = leaderboard.character_id 
-				WHERE game_id = ? %s 
-		), 
-		myStanding AS ( 
-			SELECT 
-				ranking as myRank 
-			FROM leaderboardsRanked 
-			WHERE id = ? 
-		), 
-		lowestRanking AS ( 
-			SELECT MAX(ranking) AS lowestRank 
-				FROM leaderboardsRanked 
-		) 
-		SELECT leaderboardsRanked.*, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking 
-		WHERE leaderboardsRanked.ranking 
-		BETWEEN 
-		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), lowestRanking.lowestRank - 9) 
-		AND 
-		LEAST(GREATEST(myRank + 5, %i), lowestRanking.lowestRank) 
+			) AS ranking
+				FROM leaderboard JOIN charinfo on charinfo.id = leaderboard.character_id
+				WHERE game_id = ? %s
+		),
+		myStanding AS (
+			SELECT
+				ranking as myRank
+			FROM leaderboardsRanked
+			WHERE id = ?
+		),
+		lowestRanking AS (
+			SELECT MAX(ranking) AS lowestRank
+				FROM leaderboardsRanked
+		)
+		SELECT leaderboardsRanked.*, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking
+		WHERE leaderboardsRanked.ranking
+		BETWEEN
+		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), lowestRanking.lowestRank - 9)
+		AND
+		LEAST(GREATEST(myRank + 5, %i), lowestRanking.lowestRank)
 		ORDER BY ranking ASC;
 	)QUERY";
 
@@ -277,15 +277,15 @@ std::string FormatInsert(const Leaderboard::Type& type, const Score& score, cons
 	if (useUpdate) {
 		insertStatement =
 			R"QUERY(
-			UPDATE leaderboard 
-			SET primaryScore = %f, secondaryScore = %f, tertiaryScore = %f, 
+			UPDATE leaderboard
+			SET primaryScore = %f, secondaryScore = %f, tertiaryScore = %f,
 			timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;
 			)QUERY";
 	} else {
 		insertStatement =
 			R"QUERY(
-			INSERT leaderboard SET 
-			primaryScore = %f, secondaryScore = %f, tertiaryScore = %f, 
+			INSERT leaderboard SET
+			primaryScore = %f, secondaryScore = %f, tertiaryScore = %f,
 			character_id = ?, game_id = ?;
 			)QUERY";
 	}
@@ -300,9 +300,8 @@ std::string FormatInsert(const Leaderboard::Type& type, const Score& score, cons
 
 void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore, const float tertiaryScore) {
 	const Leaderboard::Type leaderboardType = GetLeaderboardType(activityId);
-	auto* lookup = "SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;";
 
-	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookup));
+	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt("SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;"));
 	query->setInt(1, playerID);
 	query->setInt(2, activityId);
 	std::unique_ptr<sql::ResultSet> myScoreResult(query->executeQuery());
@@ -337,6 +336,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 		case Leaderboard::Type::UnusedLeaderboard4:
 		case Leaderboard::Type::Donations: {
 			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
+			newScore.SetPrimaryScore(oldScore.GetPrimaryScore() + newScore.GetPrimaryScore());
 			break;
 		}
 		case Leaderboard::Type::Racing: {
@@ -382,7 +382,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 	saveStatement->setInt(1, playerID);
 	saveStatement->setInt(2, activityId);
 	saveStatement->execute();
-	
+
 	// track wins separately
 	if (leaderboardType == Leaderboard::Type::Racing && tertiaryScore != 0.0f) {
 		std::unique_ptr<sql::PreparedStatement> winUpdate(Database::CreatePreppedStmt("UPDATE leaderboard SET numWins = numWins + 1 WHERE character_id = ? AND game_id = ?;"));
