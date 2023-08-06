@@ -549,8 +549,8 @@ void Zone::LoadPath(std::istream& file) {
 		// the waypoint is located near 0 height, 
 		if (path.pathType == PathType::Movement) {
 			if (dpWorld::Instance().IsLoaded()) {
-				// 1000 should be large enough for every world.
-				waypoint.position.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(waypoint.position, 1000.0f);
+				// 2000 should be large enough for every world.
+				waypoint.position.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(waypoint.position, 2000.0f);
 			}
 		}
 		path.pathWaypoints.push_back(waypoint);
