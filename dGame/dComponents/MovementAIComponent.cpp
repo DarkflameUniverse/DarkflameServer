@@ -317,8 +317,7 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 		auto step = delta / 10.0f;
 
 		for (int i = 0; i < 10; i++) {
-			// TODO: Replace this with += when the NiPoint3::operator+= is fixed
-			start = start + step;
+			start += step;
 
 			computedPath.push_back(start);
 		}
