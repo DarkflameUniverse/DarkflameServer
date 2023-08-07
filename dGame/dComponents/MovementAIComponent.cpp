@@ -25,6 +25,7 @@ namespace {
 
 MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : Component(parent) {
 	m_Info = info;
+	m_IsPaused = true;
 	m_AtFinalWaypoint = true;
 
 	m_BaseCombatAI = nullptr;
@@ -70,8 +71,8 @@ void MovementAIComponent::Update(const float deltaTime) {
 		return;
 	}
 
-	// Are we done?
-	if (AtFinalWaypoint()) return;
+	// Are we done or paused?
+	if (AtFinalWaypoint() || IsPaused()) return;
 
 	if (m_HaltDistance > 0) {
 		// Prevent us from hugging the target
@@ -205,6 +206,25 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	return true;
+}
+
+void MovementAIComponent::Pause() {
+	if (AtFinalWaypoint() || IsPaused()) return;
+	SetPosition(ApproximateLocation());
+	SetVelocity(NiPoint3::ZERO);
+
+	// Clear this as we may be somewhere else when we resume movement.
+	m_InterpolatedWaypoints.clear();
+	m_IsPaused = true;
+	m_PathIndex = 0;
+	m_TimeToTravel = 0;
+	m_TimeTravelled = 0;
+}
+
+void MovementAIComponent::Resume() {
+	if (AtFinalWaypoint() || !IsPaused()) return;
+	m_IsPaused = false;
+	SetDestination(GetCurrentPathWaypoint());
 }
 
 void MovementAIComponent::Stop() {
@@ -363,6 +383,7 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 	m_TimeToTravel = 0;
 
 	m_AtFinalWaypoint = false;
+	m_IsPaused = false;
 }
 
 NiPoint3 MovementAIComponent::GetDestination() const {

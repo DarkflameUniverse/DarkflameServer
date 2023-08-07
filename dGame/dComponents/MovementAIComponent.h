@@ -173,6 +173,12 @@ public:
 	 */
 	bool AtFinalWaypoint() const { return m_AtFinalWaypoint; }
 
+	bool IsPaused() const { return m_IsPaused; }
+
+	void Pause();
+
+	void Resume();
+
 	/**
 	 * Renders the entity stationary
 	 */
@@ -322,6 +328,11 @@ private:
 	 * Whether or not the path is being read in reverse 
 	 */
 	bool m_IsInReverse;
+
+	/**
+	 * Whether or not the current movement via pathing is paused.
+	 */
+	bool m_IsPaused;
 };
 
 #endif // MOVEMENTAICOMPONENT_H
