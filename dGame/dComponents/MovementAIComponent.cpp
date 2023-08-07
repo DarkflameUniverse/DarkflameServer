@@ -49,6 +49,8 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_MaxSpeed = 0;
 	m_CurrentPathWaypointIndex = 0;
 	m_LockRotation = false;
+	m_IsInReverse = false;
+	m_NextPathWaypointIndex = 0;
 }
 
 void MovementAIComponent::Update(const float deltaTime) {
@@ -124,7 +126,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 	} else {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
-		if (AdvancePathWaypointIndex()) {
+		if (!AdvancePathWaypointIndex()) {
 			Stop();
 			return;
 		}
@@ -139,8 +141,14 @@ nextAction:
 }
 
 bool MovementAIComponent::AdvancePathWaypointIndex() {
-	if (m_CurrentPathWaypointIndex < m_CurrentPath.size()) m_CurrentPathWaypointIndex++;
-	return m_CurrentPathWaypointIndex < m_CurrentPath.size();
+	m_CurrentPathWaypointIndex = m_NextPathWaypointIndex;
+	if (m_IsInReverse) {
+		if (m_CurrentPathWaypointIndex > 0) m_NextPathWaypointIndex--;
+		return m_NextPathWaypointIndex >= 0;
+	} else {
+		if (m_CurrentPathWaypointIndex < m_CurrentPath.size()) m_NextPathWaypointIndex++;
+		return m_CurrentPathWaypointIndex < m_CurrentPath.size();
+	}
 }
 
 const MovementAIInfo& MovementAIComponent::GetInfo() const {
@@ -229,12 +237,16 @@ void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 	m_PullPoint = point;
 }
 
-void MovementAIComponent::SetPath(std::vector<NiPoint3> path) {
+void MovementAIComponent::SetPath(std::vector<NiPoint3> path, bool startInReverse) {
 	if (path.empty()) return;
 	m_CurrentPath = path;
+	m_IsInReverse = startInReverse;
 
-	m_CurrentPathWaypointIndex = 0;
-
+	// Start the Entity out at the first waypoint with their next waypoint being the same one.
+	// This is so AdvancePathWaypointIndex can do the recovery from effectively a paused state.
+	m_CurrentPathWaypointIndex = m_IsInReverse ? m_CurrentPath.size() - 1 : 0;
+	m_NextPathWaypointIndex = m_IsInReverse ? m_CurrentPath.size() - 1 : 0;
+	AdvancePathWaypointIndex();
 	SetDestination(m_CurrentPath.front());
 }
 

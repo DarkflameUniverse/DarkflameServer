@@ -189,8 +189,9 @@ public:
 	 * Sets a path to follow for the AI
 	 * @param path the path to follow
 	 */
-	void SetPath(std::vector<NiPoint3> path);
+	void SetPath(std::vector<NiPoint3> path, bool startsInReverse = false);
 
+	// Advance the path waypoint index and return if there is a next waypoint
 	bool AdvancePathWaypointIndex();
 
 	const NiPoint3& GetCurrentPathWaypoint() const { return m_CurrentPathWaypointIndex < m_CurrentPath.size() ? m_CurrentPath.at(m_CurrentPathWaypointIndex) : m_Parent->GetPosition(); }
@@ -311,6 +312,13 @@ private:
 	 * The index of the current waypoint in the path
 	 */
 	uint32_t m_CurrentPathWaypointIndex;
+
+	/**
+	 * The index of the current waypoint in the path
+	 */
+	uint32_t m_NextPathWaypointIndex;
+
+	bool m_IsInReverse;
 };
 
 #endif // MOVEMENTAICOMPONENT_H
