@@ -47,6 +47,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_TimeTravelled = 0;
 	m_CurrentSpeed = 0;
 	m_MaxSpeed = 0;
+	m_CurrentPathWaypointIndex = 0;
 	m_LockRotation = false;
 }
 
@@ -123,14 +124,11 @@ void MovementAIComponent::Update(const float deltaTime) {
 		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 	} else {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
-		if (m_CurrentPath.empty()) {
+		if (AdvancePathWaypointIndex()) {
 			Stop();
-
 			return;
 		}
-		SetDestination(m_CurrentPath.top());
-
-		m_CurrentPath.pop();
+		SetDestination(GetCurrentPathWaypoint());
 	}
 
 nextAction:
@@ -138,6 +136,11 @@ nextAction:
 	SetVelocity(velocity);
 
 	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+bool MovementAIComponent::AdvancePathWaypointIndex() {
+	if (m_CurrentPathWaypointIndex < m_CurrentPath.size()) m_CurrentPathWaypointIndex++;
+	return m_CurrentPathWaypointIndex < m_CurrentPath.size();
 }
 
 const MovementAIInfo& MovementAIComponent::GetInfo() const {
@@ -209,11 +212,12 @@ void MovementAIComponent::Stop() {
 	m_AtFinalWaypoint = true;
 
 	m_InterpolatedWaypoints.clear();
-	while (!m_CurrentPath.empty()) m_CurrentPath.pop();
+	m_CurrentPath.clear();
 
 	m_PathIndex = 0;
 
 	m_CurrentSpeed = 0;
+	m_CurrentPathWaypointIndex = 0;
 
 	Game::entityManager->SerializeEntity(m_Parent);
 }
@@ -227,11 +231,11 @@ void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 
 void MovementAIComponent::SetPath(std::vector<NiPoint3> path) {
 	if (path.empty()) return;
-	std::for_each(path.rbegin(), path.rend() - 1, [this](const NiPoint3& point) {
-		this->m_CurrentPath.push(point);
-		});
+	m_CurrentPath = path;
 
-	SetDestination(path.front());
+	m_CurrentPathWaypointIndex = 0;
+
+	SetDestination(m_CurrentPath.front());
 }
 
 float MovementAIComponent::GetBaseSpeed(LOT lot) {

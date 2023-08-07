@@ -301,9 +301,9 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 				pathWaypoints.push_back(waypoint.position);
 			}
 
-			if (GeneralUtils::GenerateRandomNumber<float_t>(0, 1) < 0.5f) {
-				std::reverse(pathWaypoints.begin(), pathWaypoints.end());
-			}
+			// if (GeneralUtils::GenerateRandomNumber<float_t>(0, 1) < 0.5f) {
+			// 	std::reverse(pathWaypoints.begin(), pathWaypoints.end());
+			// }
 
 			movementAI->SetPath(pathWaypoints);
 

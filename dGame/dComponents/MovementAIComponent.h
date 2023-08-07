@@ -191,6 +191,10 @@ public:
 	 */
 	void SetPath(std::vector<NiPoint3> path);
 
+	bool AdvancePathWaypointIndex();
+
+	const NiPoint3& GetCurrentPathWaypoint() const { return m_CurrentPathWaypointIndex < m_CurrentPath.size() ? m_CurrentPath.at(m_CurrentPathWaypointIndex) : m_Parent->GetPosition(); }
+
 	/**
 	 * Returns the base speed from the DB for a given LOT
 	 * @param lot the lot to check for
@@ -301,7 +305,12 @@ private:
 	/**
 	 * The path from the current position to the destination.
 	 */
-	std::stack<NiPoint3> m_CurrentPath;
+	std::vector<NiPoint3> m_CurrentPath;
+
+	/**
+	 * The index of the current waypoint in the path
+	 */
+	uint32_t m_CurrentPathWaypointIndex;
 };
 
 #endif // MOVEMENTAICOMPONENT_H
