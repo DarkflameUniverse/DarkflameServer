@@ -301,7 +301,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 				pathWaypoints.push_back(waypoint.position);
 			}
 
-			movementAI->SetPath(pathWaypoints, true);
+			movementAI->SetPath(pathWaypoints, GeneralUtils::GenerateRandomNumber<float>(0, 1) > 0.5f);
 
 			enemy->AddDieCallback([this, self, enemy, name]() {
 				RegisterHit(self, enemy, name);

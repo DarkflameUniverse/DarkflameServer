@@ -143,10 +143,10 @@ nextAction:
 bool MovementAIComponent::AdvancePathWaypointIndex() {
 	m_CurrentPathWaypointIndex = m_NextPathWaypointIndex;
 	if (m_IsInReverse) {
-		if (m_CurrentPathWaypointIndex > 0) m_NextPathWaypointIndex--;
-		return m_NextPathWaypointIndex >= 0;
+		if (m_CurrentPathWaypointIndex >= 0) m_NextPathWaypointIndex--;
+		return m_CurrentPathWaypointIndex >= 0;
 	} else {
-		if (m_CurrentPathWaypointIndex < m_CurrentPath.size()) m_NextPathWaypointIndex++;
+		if (m_CurrentPathWaypointIndex <= m_CurrentPath.size()) m_NextPathWaypointIndex++;
 		return m_CurrentPathWaypointIndex < m_CurrentPath.size();
 	}
 }
@@ -237,6 +237,13 @@ void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 	m_PullPoint = point;
 }
 
+const NiPoint3& MovementAIComponent::GetCurrentPathWaypoint() const {
+	if (m_CurrentPathWaypointIndex >= m_CurrentPath.size() || m_CurrentPathWaypointIndex < 0) {
+		return m_Parent->GetPosition();
+	}
+	return m_CurrentPath.at(m_CurrentPathWaypointIndex);
+}
+
 void MovementAIComponent::SetPath(std::vector<NiPoint3> path, bool startInReverse) {
 	if (path.empty()) return;
 	m_CurrentPath = path;
@@ -247,7 +254,7 @@ void MovementAIComponent::SetPath(std::vector<NiPoint3> path, bool startInRevers
 	m_CurrentPathWaypointIndex = m_IsInReverse ? m_CurrentPath.size() - 1 : 0;
 	m_NextPathWaypointIndex = m_IsInReverse ? m_CurrentPath.size() - 1 : 0;
 	AdvancePathWaypointIndex();
-	SetDestination(m_CurrentPath.front());
+	SetDestination(GetCurrentPathWaypoint());
 }
 
 float MovementAIComponent::GetBaseSpeed(LOT lot) {

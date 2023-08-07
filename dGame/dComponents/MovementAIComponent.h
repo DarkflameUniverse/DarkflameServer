@@ -194,7 +194,7 @@ public:
 	// Advance the path waypoint index and return if there is a next waypoint
 	bool AdvancePathWaypointIndex();
 
-	const NiPoint3& GetCurrentPathWaypoint() const { return m_CurrentPathWaypointIndex < m_CurrentPath.size() ? m_CurrentPath.at(m_CurrentPathWaypointIndex) : m_Parent->GetPosition(); }
+	const NiPoint3& GetCurrentPathWaypoint() const;
 
 	/**
 	 * Returns the base speed from the DB for a given LOT
@@ -311,13 +311,16 @@ private:
 	/**
 	 * The index of the current waypoint in the path
 	 */
-	uint32_t m_CurrentPathWaypointIndex;
+	int32_t m_CurrentPathWaypointIndex;
 
 	/**
 	 * The index of the current waypoint in the path
 	 */
-	uint32_t m_NextPathWaypointIndex;
+	int32_t m_NextPathWaypointIndex;
 
+	/**
+	 * Whether or not the path is being read in reverse 
+	 */
 	bool m_IsInReverse;
 };
 
