@@ -378,57 +378,60 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
 	inStream.Read(playerID);
-
 	auto* sender = playerContainer.GetPlayerData(playerID);
-
 	if (sender == nullptr) return;
-
 	if (playerContainer.GetIsMuted(sender)) return;
-
 	const auto senderName = std::string(sender->playerName.c_str());
 
 	inStream.IgnoreBytes(20);
-	uint8_t channel = 0;
-	inStream.Read(channel);
-
-	inStream.IgnoreBytes(77);
+	eChatChannel chatchannel;
+	inStream.Read(chatchannel);
+	LUWString senderNameLU(33);
+	inStream.Read(senderNameLU);
+	LWOOBJID senderID;
+	inStream.Read(senderID);
+	uint16_t sourceID;
+	inStream.Read(sourceID);
+	uint8_t senderGMLevel;
+	inStream.Read(senderGMLevel);
 	LUWString message(512);
 	inStream.Read(message);
+	Game::logger->Log("ChatPacketHandler", "channel %i sender %s, senderID %llu and %llu, sourceID %i, sendergmlevel %i, message %s", chatchannel, senderNameLU.GetAsString().c_str(), playerID, senderID,sourceID, senderGMLevel, message.GetAsString().c_str());
 
-	Game::logger->Log("ChatPacketHandler", "Got a message from (%s) [%d]: %s", senderName.c_str(), channel, message.GetAsString().c_str());
 
-	if (channel != 8) return;
+	Game::logger->Log("ChatPacketHandler", "Got a message from (%s) [%d]: %s", senderName.c_str(), chatchannel, message.GetAsString().c_str());
 
-	auto* team = playerContainer.GetTeam(playerID);
+	if (chatchannel != eChatChannel::Team) {
+		auto* team = playerContainer.GetTeam(playerID);
+		if (team == nullptr) return;
 
-	if (team == nullptr) return;
+		for (const auto memberId : team->memberIDs) {
+			auto* otherMember = playerContainer.GetPlayerData(memberId);
 
-	for (const auto memberId : team->memberIDs) {
-		auto* otherMember = playerContainer.GetPlayerData(memberId);
+			if (otherMember == nullptr) return;
 
-		if (otherMember == nullptr) return;
+			const auto otherName = std::string(otherMember->playerName.c_str());
 
-		const auto otherName = std::string(otherMember->playerName.c_str());
+			CBITSTREAM;
+			BitstreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
+			bitStream.Write(otherMember->playerID);
 
-		CBITSTREAM;
-		BitstreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
-		bitStream.Write(otherMember->playerID);
+			BitstreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
+			bitStream.Write(otherMember->playerID);
+			bitStream.Write(eChatChannel::Team);
+			bitStream.Write<unsigned int>(69);
+			bitStream.Write(LUWString(senderName));
+			bitStream.Write(sender->playerID);
+			bitStream.Write<uint16_t>(0);
+			bitStream.Write<uint8_t>(0); //not mythran nametag
+			bitStream.Write(LUWString(otherName));
+			bitStream.Write<uint8_t>(0); //not mythran for receiver
+			bitStream.Write(eChatMessageResponseCode::Sent);
+			bitStream.Write(message);
 
-		BitstreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
-		bitStream.Write(otherMember->playerID);
-		bitStream.Write<uint8_t>(8);
-		bitStream.Write<unsigned int>(69);
-		bitStream.Write(LUWString(senderName));
-		bitStream.Write(sender->playerID);
-		bitStream.Write<uint16_t>(0);
-		bitStream.Write<uint8_t>(0); //not mythran nametag
-		bitStream.Write(LUWString(otherName));
-		bitStream.Write<uint8_t>(0); //not mythran for receiver
-		bitStream.Write<uint8_t>(0); //teams?
-		bitStream.Write(message);
-
-		SystemAddress sysAddr = otherMember->sysAddr;
-		SEND_PACKET;
+			SystemAddress sysAddr = otherMember->sysAddr;
+			SEND_PACKET;
+		}
 	}
 }
 
@@ -436,13 +439,29 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID senderID;
 	inStream.Read(senderID);
-	inStream.IgnoreBytes(78);
+	inStream.IgnoreBytes(4);
+
+	eChatChannel chatchannel;
+	inStream.Read(chatchannel);
+	// is there something extra here?
+	LUWString senderName(33);
+	inStream.Read(senderName);
+	LWOOBJID senderID2;
+	inStream.Read(senderID2);
+	uint16_t sourceID;
+	inStream.Read(sourceID);
+	uint8_t senderGMLevel;
+	inStream.Read(senderGMLevel);
 	LUWString receiverName(33);
 	inStream.Read(receiverName);
-	inStream.IgnoreBytes(2);
+	uint8_t receiverGMLevel;
+	inStream.Read(receiverGMLevel);
+	eChatMessageResponseCode responseCode;
+	inStream.Read(responseCode);
 	LUWString message(512);
 	inStream.Read(message);
-
+	Game::logger->Log("ChatPacketHandler", "channel %i sender %s, senderID %llu and %llu, sourceID %i, sendergmlevel %i", chatchannel, senderName.GetAsString().c_str(), senderID, senderID2,sourceID, senderGMLevel);
+	Game::logger->Log("ChatPacketHandler", "receiver %s, receivergmlevel %i, responsecode  %i, message %s", receiverName.GetAsString().c_str(), receiverGMLevel, responseCode, message.GetAsString().c_str());
 	//Get the bois:
 	auto goonA = playerContainer.GetPlayerData(senderID);
 	auto goonB = playerContainer.GetPlayerData(receiverName.GetAsString());
@@ -461,7 +480,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 
 		BitstreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
 		bitStream.Write(goonA->playerID);
-		bitStream.Write<uint8_t>(7);
+		bitStream.Write(eChatChannel::Private);
 		bitStream.Write<unsigned int>(69);
 		bitStream.Write(LUWString(goonAName));
 		bitStream.Write(goonA->playerID);
@@ -469,7 +488,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 		bitStream.Write<uint8_t>(0); //not mythran nametag
 		bitStream.Write(LUWString(goonBName));
 		bitStream.Write<uint8_t>(0); //not mythran for receiver
-		bitStream.Write<uint8_t>(0); //success
+		bitStream.Write(eChatMessageResponseCode::Sent);
 		bitStream.Write(message);
 
 		SystemAddress sysAddr = goonA->sysAddr;
@@ -484,7 +503,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 
 		BitstreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
 		bitStream.Write(goonA->playerID);
-		bitStream.Write<uint8_t>(7);
+		bitStream.Write(eChatChannel::Private);
 		bitStream.Write<unsigned int>(69);
 		bitStream.Write(LUWString(goonAName));
 		bitStream.Write(goonA->playerID);
@@ -492,7 +511,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 		bitStream.Write<uint8_t>(0); //not mythran nametag
 		bitStream.Write(LUWString(goonBName));
 		bitStream.Write<uint8_t>(0); //not mythran for receiver
-		bitStream.Write<uint8_t>(3); //new whisper
+		bitStream.Write(eChatMessageResponseCode::ReceivedNewWhisper);
 		bitStream.Write(LUWString(message.string, 512));
 
 		SystemAddress sysAddr = goonB->sysAddr;
