@@ -1064,7 +1064,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 	RacingSoundTriggerComponent* racingSoundTriggerComponent;
 	if (TryGetComponent(eReplicaComponentType::RACING_SOUND_TRIGGER, racingSoundTriggerComponent)) {
-		racingSoundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		racingSoundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	BuffComponent* buffComponent;
