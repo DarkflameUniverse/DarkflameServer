@@ -127,6 +127,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 	} else {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
+		HandleWaypointArrived();
 		if (!AdvancePathWaypointIndex()) {
 			Stop();
 			return;
@@ -247,6 +248,7 @@ void MovementAIComponent::Stop() {
 	m_TimeTravelled = 0;
 
 	m_AtFinalWaypoint = true;
+	m_IsPaused = true;
 
 	m_InterpolatedWaypoints.clear();
 	m_CurrentPath.clear();
@@ -403,4 +405,8 @@ void MovementAIComponent::SetMaxSpeed(const float value) {
 	if (value == m_MaxSpeed) return;
 	m_MaxSpeed = value;
 	m_Acceleration = value / 5;
+}
+
+void MovementAIComponent::HandleWaypointArrived() {
+
 }

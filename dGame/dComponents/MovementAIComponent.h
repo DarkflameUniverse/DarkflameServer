@@ -193,6 +193,8 @@ public:
 
 	void ReversePath();
 
+	void HandleWaypointArrived();
+
 	/**
 	 * Stops the current movement and moves the entity to a certain point. Will continue until it's close enough,
 	 * after which its AI is enabled again.
