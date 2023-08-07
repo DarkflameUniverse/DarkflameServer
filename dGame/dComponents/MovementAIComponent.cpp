@@ -141,6 +141,15 @@ nextAction:
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
+void MovementAIComponent::ReversePath() {
+	if (m_CurrentPath.empty()) return;
+	if (m_NextPathWaypointIndex < 0) m_NextPathWaypointIndex = 0;
+	if (m_NextPathWaypointIndex >= m_CurrentPath.size()) m_NextPathWaypointIndex = m_CurrentPath.size() - 1;
+	m_CurrentPathWaypointIndex = m_NextPathWaypointIndex;
+	m_IsInReverse = !m_IsInReverse;
+	AdvancePathWaypointIndex();
+}
+
 bool MovementAIComponent::AdvancePathWaypointIndex() {
 	m_CurrentPathWaypointIndex = m_NextPathWaypointIndex;
 	if (m_IsInReverse) {

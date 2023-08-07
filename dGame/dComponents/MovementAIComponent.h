@@ -175,14 +175,23 @@ public:
 
 	bool IsPaused() const { return m_IsPaused; }
 
+	/**
+	 * Pauses the current pathing of this entity. The current path waypoint will be saved for resuming later.
+	 */
 	void Pause();
 
+	/**
+	 * Resumes pathing from the current position to the destination that was set
+	 * when the entity was paused.
+	 */
 	void Resume();
 
 	/**
 	 * Renders the entity stationary
 	 */
 	void Stop();
+
+	void ReversePath();
 
 	/**
 	 * Stops the current movement and moves the entity to a certain point. Will continue until it's close enough,
