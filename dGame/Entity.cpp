@@ -708,7 +708,6 @@ void Entity::Initialize() {
 			MovingPlatformComponent* plat = new MovingPlatformComponent(this, pathName);
 			m_Components.insert(std::make_pair(eReplicaComponentType::MOVING_PLATFORM, plat));
 		} else if (path->pathType == PathType::Movement) {
-			Game::logger->Log("Entity", "is movement %i", GetLOT());
 			auto movementAIcomp = GetComponent<MovementAIComponent>();
 			if (!movementAIcomp) {
 				movementAIcomp = new MovementAIComponent(this, {});
