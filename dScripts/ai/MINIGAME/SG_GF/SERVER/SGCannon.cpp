@@ -289,7 +289,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 
 			auto* movementAI = enemy->GetComponent<MovementAIComponent>();
 			if (!movementAI) {
-				movementAI = new MovementAIComponent(enemy, {});
+				movementAI = new MovementAIComponent(enemy, MovementAIInfo());
 				enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
 			}
 

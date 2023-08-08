@@ -710,7 +710,7 @@ void Entity::Initialize() {
 		} else if (path->pathType == PathType::Movement) {
 			auto movementAIcomp = GetComponent<MovementAIComponent>();
 			if (!movementAIcomp) {
-				movementAIcomp = new MovementAIComponent(this, {});
+				movementAIcomp = new MovementAIComponent(this, MovementAIInfo());
 				m_Components.insert(std::make_pair(eReplicaComponentType::MOVEMENT_AI, movementAIcomp));
 			}
 			movementAIcomp->SetupPath(pathName);
