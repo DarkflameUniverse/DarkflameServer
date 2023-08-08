@@ -702,20 +702,20 @@ void Entity::Initialize() {
 	const Path* path = Game::zoneManager->GetZone()->GetPath(pathName);
 
 	//Check to see if we have an attached path and add the appropiate component to handle it:
-	if (path){
+	if (path) {
 		// if we have a moving platform path, then we need a moving platform component
 		if (path->pathType == PathType::MovingPlatform) {
 			MovingPlatformComponent* plat = new MovingPlatformComponent(this, pathName);
 			m_Components.insert(std::make_pair(eReplicaComponentType::MOVING_PLATFORM, plat));
-		// else if we are a movement path
-		} /*else if (path->pathType == PathType::Movement) {
+		} else if (path->pathType == PathType::Movement) {
+			Game::logger->Log("Entity", "is movement %i", GetLOT());
 			auto movementAIcomp = GetComponent<MovementAIComponent>();
-			if (movementAIcomp){
-				// TODO: set path in existing movementAIComp
-			} else {
-				// TODO: create movementAIcomp and set path
+			if (!movementAIcomp) {
+				movementAIcomp = new MovementAIComponent(this, {});
+				m_Components.insert(std::make_pair(eReplicaComponentType::MOVEMENT_AI, movementAIcomp));
 			}
-		}*/
+			movementAIcomp->SetupPath(pathName);
+		}
 	} else {
 		// else we still need to setup moving platform if it has a moving platform comp but no path
 		int32_t movingPlatformComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);
