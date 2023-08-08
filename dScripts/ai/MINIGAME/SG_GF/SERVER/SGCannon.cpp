@@ -787,208 +787,447 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 	self->SetVar<bool>(SuperChargeActiveVariable, enable);
 }
 
-std::vector<std::vector<SGEnemy>> SGCannon::GetWaves() {
-	return {
-		// Wave 1
-		{
-			// Ship 1
-			{
-				std::vector<std::string> { "Wave_1_Ship_1", "Wave_1_Ship_3" },
-				6015, 0.0, 2.0, true, 0.0, 2.0,
-				2.0, 1500, false, 0.0, 1.0,
-				1.0, false, true
+std::vector<std::vector<SGEnemy>> GetWaves() {
+	return
+	std::vector<std::vector<SGEnemy>>{
+		std::vector<SGEnemy>{
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Ship_1", "Wave_1_Ship_3"},
+			.lot = 6015,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 1500,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
 			},
 
-		// Ship 2
-		{
-			std::vector<std::string> { "Wave_1_Ship_2", "Wave_1_Ship_4" },
-			6300, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 500, false, 0.0, 1.0,
-			1.0, false, true
-		},
-
-		// Sub 1
-		{
-			std::vector<std::string> { "Wave_1_Sub_1", "Wave_1_Sub_2" },
-			6016, 0.0, 2.0, true, 0.0, 2.0,
-			10.0, 1000, false, 0.0, 1.0,
-			1.0, true, true
-		},
-
-		// Sub 2
-		{
-			std::vector<std::string> { "Wave_2_Sub_1", "Wave_2_Sub_2" },
-			6016, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 1000, false, 0.0, 1.0,
-			1.0, true, true
-		},
-
-		// Friendly
-		{
-			std::vector<std::string> { "Wave_3_FShip_1", "Wave_3_FShip_2" },
-			2168,0.0,5.0,true, 2.0, 5.0,
-			1.0, -1000, false, 0.0, 1.0,
-			1.0, false,true
-		}
-	},
-
-		// Wave 2
-		{
-			// Ship 1
-			{
-				std::vector<std::string> { "Wave_1_Ship_1", "Wave_1_Ship_3" },
-				6015, 0.0, 2.0, true, 0.0, 2.0,
-				2.0, 1500, false, 0.0, 1.0,
-				1.0, false, true
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Ship_2", "Wave_1_Ship_4"},
+			.lot = 6300,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 500,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
 			},
 
-		// Ship 2
-		{
-			std::vector<std::string> { "Wave_1_Ship_2", "Wave_1_Ship_4" },
-			6300, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 500, false, 0.0, 1.0,
-			1.0, false, true
-		},
-
-		// Ship 3
-		{
-			std::vector<std::string> { "Wave_2_Ship_1" },
-			6300, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 500, false, 0.0, 1.0,
-			1.0, false, true
-		},
-
-		// Ship 4
-		{
-			std::vector<std::string> { "Wave_2_Ship_2" },
-			6015, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 500, false, 0.0, 1.0,
-			1.0, false, true
-		},
-
-		// Sub 1
-		{
-			std::vector<std::string> { "Wave_1_Sub_1", "Wave_1_Sub_2" },
-			6016, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 1000, false, 0.0, 1.0,
-			1.0, true, true
-		},
-
-		// Sub 2
-		{
-			std::vector<std::string> { "Wave_2_Sub_1", "Wave_2_Sub_2" },
-			6016, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 1000, false, 0.0, 1.0,
-			1.0, true, true
-		},
-
-		// Duck
-		{
-			std::vector<std::string> { "Wave_1_Duck_1", "Wave_1_Duck_2" },
-			5946, 5.0, 10.0, true, 5.0, 10.0,
-			4.0, 5000, false, 0.0, 1.0,
-			1.0, false, true
-		},
-
-		// Friendly
-		{
-			std::vector<std::string> { "Wave_3_FShip_1", "Wave_3_FShip_2" },
-			2168,0.0,5.0,true, 2.0, 5.0,
-			1.0, -1000, false, 0.0, 1.0,
-			1.0, false,true
-		}
-	},
-
-		// Wave 3
-		{
-			// Ship 1
-			{
-				std::vector<std::string> { "Wave_1_Ship_1", "Wave_1_Ship_3" },
-				6015, 0.0, 2.0, true, 0.0, 2.0,
-				2.0, 1500, false, 0.0, 1.0,
-				1.0, false, true
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Sub_1", "Wave_1_Sub_2"},
+			.lot = 6016,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 10.0,
+			.score = 1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = true,
+			.despawnOnLastWaypoint = true
 			},
 
-		// Ship 2
-		{
-			std::vector<std::string> { "Wave_1_Ship_2", "Wave_1_Ship_4" },
-			6300, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 500, false, 0.0, 1.0,
-			1.0, false, true
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_2_Sub_1", "Wave_2_Sub_2"},
+			.lot = 6016,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = true,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_3_FShip_1", "Wave_3_FShip_2"},
+			.lot = 2168,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 5.0,
+			.respawns = true,
+			.minRespawnTime = 2.0,
+			.maxRespawnTime = 5.0,
+			.initialSpeed = 1.0,
+			.score = -1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			}
 		},
 
-		// Ship 3
-		{
-			std::vector<std::string> { "Wave_2_Ship_1", "Wave_2_Ship_2" },
-			6015, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 500, false, 0.0, 1.0,
-			1.0, false, true
+		std::vector<SGEnemy>{
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Ship_1", "Wave_1_Ship_3"},
+			.lot = 6015,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 1500,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Ship_2", "Wave_1_Ship_4"},
+			.lot = 6300,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 500,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_2_Ship_1"},
+			.lot = 6300,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 500,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_2_Ship_2"},
+			.lot = 6015,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 500,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Sub_1", "Wave_1_Sub_2"},
+			.lot = 6016,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = true,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_2_Sub_1", "Wave_2_Sub_2"},
+			.lot = 6016,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = true,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Duck_1", "Wave_1_Duck_2"},
+			.lot = 5946,
+			.minSpawnTime = 5.0,
+			.maxSpawnTime = 10.0,
+			.respawns = true,
+			.minRespawnTime = 5.0,
+			.maxRespawnTime = 10.0,
+			.initialSpeed = 4.0,
+			.score = 5000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_3_FShip_1", "Wave_3_FShip_2"},
+			.lot = 2168,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 5.0,
+			.respawns = true,
+			.minRespawnTime = 2.0,
+			.maxRespawnTime = 5.0,
+			.initialSpeed = 1.0,
+			.score = -1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			}
 		},
 
-		// Ship 4
-		{
-			std::vector<std::string> { "Wave_3_Ship_1", "Wave_3_Ship_2" },
-			6300, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 1500, false, 0.0, 1.0,
-			1.0, false, true
-		},
+		std::vector<SGEnemy>{
 
-		// Sub 1
-		{
-			std::vector<std::string> { "Wave_1_Sub_1", "Wave_1_Sub_2" },
-			6016, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 1000, false, 0.0, 1.0,
-			1.0, true, true
-		},
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Ship_1", "Wave_1_Ship_3"},
+			.lot = 6015,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 1500,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
 
-		// Sub 2
-		{
-			std::vector<std::string> { "Wave_2_Sub_1", "Wave_2_Sub_2" },
-			6016, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 1000, false, 0.0, 1.0,
-			1.0, true, true
-		},
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Ship_2", "Wave_1_Ship_4"},
+			.lot = 6300,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 500,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
 
-		// Sub 3
-		{
-			std::vector<std::string> { "Wave_3_Sub_1", "Wave_3_Sub_2" },
-			6016, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 1000, false, 0.0, 1.0,
-			1.0, true, true
-		},
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_2_Ship_1", "Wave_2_Ship_2"},
+			.lot = 6015,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 500,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
 
-		// Duck
-		{
-			std::vector<std::string> { "Wave_1_Duck_1", "Wave_1_Duck_2" },
-			5946, 5.0, 10.0, true, 5.0, 10.0,
-			4.0, 5000, false, 0.0, 1.0,
-			1.0, false, true
-		},
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_3_Ship_1", "Wave_3_Ship_2"},
+			.lot = 6300,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 1500,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
 
-		// Ness
-		{
-			std::vector<std::string> { "Wave_1_Ness_1", "Wave_1_Ness_2", "Wave_2_Ness_1" },
-			2565, 10.0, 15.0, true, 10.0, 15.0,
-			2.0, 10000, false, 0.0, 1.0,
-			1.0, true, true
-		},
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Sub_1", "Wave_1_Sub_2"},
+			.lot = 6016,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = true,
+			.despawnOnLastWaypoint = true
+			},
 
-		// Friendly 1
-		{
-			std::vector<std::string> { "Wave_3_FShip_1", "Wave_3_FShip_2" },
-			2168,0.0,5.0,true, 2.0, 5.0,
-			1.0, -1000, false, 0.0, 1.0,
-			1.0, false,true
-		},
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_2_Sub_1", "Wave_2_Sub_2"},
+			.lot = 6016,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = true,
+			.despawnOnLastWaypoint = true
+			},
 
-		// Friendly 2
-		{
-			std::vector<std::string> { "Wave_3_FShip_1", "Wave_3_FShip_2" },
-			2168,0.0,5.0,true, 2.0, 5.0,
-			1.0, -1000, false, 0.0, 1.0,
-			1.0, false,true
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_3_Sub_1", "Wave_3_Sub_2"},
+			.lot = 6016,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 2.0,
+			.respawns = true,
+			.minRespawnTime = 0.0,
+			.maxRespawnTime = 2.0,
+			.initialSpeed = 2.0,
+			.score = 1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = true,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Duck_1", "Wave_1_Duck_2"},
+			.lot = 5946,
+			.minSpawnTime = 5.0,
+			.maxSpawnTime = 10.0,
+			.respawns = true,
+			.minRespawnTime = 5.0,
+			.maxRespawnTime = 10.0,
+			.initialSpeed = 4.0,
+			.score = 5000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_1_Ness_1", "Wave_1_Ness_2", "Wave_2_Ness_1"},
+			.lot = 2565,
+			.minSpawnTime = 10.0,
+			.maxSpawnTime = 15.0,
+			.respawns = true,
+			.minRespawnTime = 10.0,
+			.maxRespawnTime = 15.0,
+			.initialSpeed = 2.0,
+			.score = 10000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = true,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_3_FShip_1", "Wave_3_FShip_2"},
+			.lot = 2168,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 5.0,
+			.respawns = true,
+			.minRespawnTime = 2.0,
+			.maxRespawnTime = 5.0,
+			.initialSpeed = 1.0,
+			.score = -1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			},
+
+			SGEnemy{
+			.spawnPaths = std::vector<std::string>{"Wave_3_FShip_1", "Wave_3_FShip_2"},
+			.lot = 2168,
+			.minSpawnTime = 0.0,
+			.maxSpawnTime = 5.0,
+			.respawns = true,
+			.minRespawnTime = 2.0,
+			.maxRespawnTime = 5.0,
+			.initialSpeed = 1.0,
+			.score = -1000,
+			.changeSpeedAtWaypoint = false,
+			.speedChangeChance = 0.0,
+			.minSpeed = 1.0,
+			.maxSpeed = 1.0,
+			.isMovingPlatform = false,
+			.despawnOnLastWaypoint = true
+			}
 		}
-	}
 	};
 }
 
