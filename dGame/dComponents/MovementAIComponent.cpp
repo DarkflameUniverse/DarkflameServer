@@ -54,6 +54,21 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_NextPathWaypointIndex = 0;
 }
 
+void MovementAIComponent::SetupPath(const std::string& pathname) {
+	std::string path = pathname;
+	if (path.empty()) path = m_Parent->GetVarAsString(u"attached_path");
+	if (path.empty()) {
+		Game::logger->Log("MovementAIComponent", "No path to load for %i:%llu", m_Parent->GetLOT(), m_Parent->GetObjectID());
+		return;
+	}
+	const Path* pathData = Game::zoneManager->GetZone()->GetPath(path);
+	if (pathData) {
+		Game::logger->Log("MovementAIComponent", "found path %s", path.c_str());
+	} else {
+		Game::logger->Log("MovementAIComponent", "No path found for %i:%llu", m_Parent->GetLOT(), m_Parent->GetObjectID());
+	}
+}
+
 void MovementAIComponent::Update(const float deltaTime) {
 	if (m_PullingToPoint) {
 		const auto source = GetCurrentWaypoint();
@@ -407,6 +422,4 @@ void MovementAIComponent::SetMaxSpeed(const float value) {
 	m_Acceleration = value / 5;
 }
 
-void MovementAIComponent::HandleWaypointArrived() {
-
-}
+#include "MovementAIComponentAronwk.cpp"

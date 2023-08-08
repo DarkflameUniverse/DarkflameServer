@@ -53,7 +53,7 @@ struct MovementAIInfo {
 
 /**
  * Component that handles the movement settings of an entity. Not to be confused with the BaseCombatAI component that
- * actually handles attackig and following enemy entities.
+ * actually handles attacking and following enemy entities.
  */
 class MovementAIComponent : public Component {
 public:
@@ -194,6 +194,8 @@ public:
 	void ReversePath();
 
 	void HandleWaypointArrived();
+	
+	void SetupPath(const std::string& pathname);
 
 	/**
 	 * Stops the current movement and moves the entity to a certain point. Will continue until it's close enough,
