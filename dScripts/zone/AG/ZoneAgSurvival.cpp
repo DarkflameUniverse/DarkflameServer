@@ -2,18 +2,18 @@
 
 Constants ZoneAgSurvival::GetConstants() {
 	return Constants{
-		60,
-		2,
-		7,
-		5,
-		10,
-		5,
-		15,
-		10,
-		0,
-		true,
-		std::vector<uint32_t> {8, 13, 18, 23, 28, 32},
-		std::vector<uint32_t> {2, 10, 15, 20, 25, 30}
+		.acceptedDelay = 60,
+		.startDelay = 2,
+		.waveTime = 7,
+		.rewardInterval = 5,
+		.coolDownTime = 10,
+		.mobSet2Wave = 5,
+		.mobSet3Wave = 15,
+		.unlockNetwork3 = 10,
+		.lotPhase = 0,
+		.useMobLots = true,
+		.baseMobsStartTier = std::vector<uint32_t> {8, 13, 18, 23, 28, 32},
+		.randMobsStartTier = std::vector<uint32_t> {2, 10, 15, 20, 25, 30}
 	};
 }
 
@@ -48,58 +48,58 @@ MobSets ZoneAgSurvival::GetMobSets() {
 SpawnerNetworks ZoneAgSurvival::GetSpawnerNetworks() {
 	return SpawnerNetworks{
 		SpawnerNetworkCollection {
-			BaseMobSet,
-			{
+			.mobSetName = BaseMobSet,
+			.networks = {
 				SpawnerNetwork {
-					std::vector<std::string> { "Base_MobA", "Base_MobB", "Base_MobC" },
-					"",
-					false,
-					false
+					.names = std::vector<std::string> { "Base_MobA", "Base_MobB", "Base_MobC" },
+					.number = "",
+					.isLocked = false,
+					.isActive = false
 				},
 			}
 		},
 		SpawnerNetworkCollection {
-			RandMobSet,
-			{
+			.mobSetName = RandMobSet,
+			.networks = {
 				SpawnerNetwork {
-					std::vector<std::string> {"MobA_", "MobB_", "MobC_"},
-					"01",
-					false,
-					false
+					.names = std::vector<std::string> {"MobA_", "MobB_", "MobC_"},
+					.number = "01",
+					.isLocked = false,
+					.isActive = false
 				},
 				SpawnerNetwork {
-					std::vector<std::string> {"MobA_", "MobB_", "MobC_"},
-					"02",
-					false,
-					false
+					.names = std::vector<std::string> {"MobA_", "MobB_", "MobC_"},
+					.number = "02",
+					.isLocked = false,
+					.isActive = false
 				},
 				SpawnerNetwork {
-					std::vector<std::string> {"MobA_", "MobB_", "MobC_"},
-					"03",
-					true,
-					false
-				},
-			}
-		},
-		SpawnerNetworkCollection {
-			"",
-			{
-				SpawnerNetwork {
-					std::vector<std::string> { "Rewards_" },
-					"01",
-					false,
-					false
+					.names = std::vector<std::string> {"MobA_", "MobB_", "MobC_"},
+					.number = "03",
+					.isLocked = true,
+					.isActive = false
 				},
 			}
 		},
 		SpawnerNetworkCollection {
-			"",
-			{
+			.mobSetName = "",
+			.networks = {
 				SpawnerNetwork {
-					std::vector<std::string> { "Smash_" },
-					"01",
-					false,
-					false
+					.names = std::vector<std::string> { "Rewards_" },
+					.number = "01",
+					.isLocked = false,
+					.isActive = false
+				},
+			}
+		},
+		SpawnerNetworkCollection {
+			.mobSetName = "",
+			.networks = {
+				SpawnerNetwork {
+					.names = std::vector<std::string> { "Smash_" },
+					.number = "01",
+					.isLocked = false,
+					.isActive = false
 				},
 			}
 		}
@@ -107,6 +107,7 @@ SpawnerNetworks ZoneAgSurvival::GetSpawnerNetworks() {
 }
 
 std::map<uint32_t, uint32_t> ZoneAgSurvival::GetMissionsToUpdate() {
+	// Mission : time to complete mission
 	return std::map<uint32_t, uint32_t> {
 		{ 479, 60 },
 		{ 1153, 180 },

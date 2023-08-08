@@ -1,13 +1,13 @@
 #include "ZoneNsWaves.h"
 
 WaveConstants ZoneNsWaves::GetConstants() {
-	return {
-		60,
-		2,
-		6,
-		2,
-		"surprise",
-		"intro"
+	return WaveConstants{
+		.acceptedDelay = 60,
+		.startDelay = 2,
+		.waveTime = 6,
+		.waveCompleteDelay = 2,
+		.eventGroup = "surprise",
+		.introCelebration = "intro"
 	};
 }
 
@@ -42,405 +42,455 @@ std::vector<std::string> ZoneNsWaves::GetSpawnerNames() {
 
 std::vector<WaveMission> ZoneNsWaves::GetWaveMissions() {
 	return {
-		{190, 7, 1242},
-		{240, 7, 1226},
-		{450, 15, 1243},
-		{600, 15, 1227},
-		{720, 22, 1244},
-		{840, 22, 1228},
-		{1080, 29, 1245},
-		{1200, 29, 1229},
+		WaveMission{
+			.time = 190,
+			.wave = 7,
+			.missionID = 1242
+		},
+		WaveMission{
+			.time = 240,
+			.wave = 7,
+			.missionID = 1226
+		},
+		WaveMission{
+			.time = 450,
+			.wave = 15,
+			.missionID = 1243
+		},
+		WaveMission{
+			.time = 600,
+			.wave = 15,
+			.missionID = 1227
+		},
+		WaveMission{
+			.time = 720,
+			.wave = 22,
+			.missionID = 1244
+		},
+		WaveMission{
+			.time = 840,
+			.wave = 22,
+			.missionID = 1228
+		},
+		WaveMission{
+			.time = 1080,
+			.wave = 29,
+			.missionID = 1245
+		},
+		WaveMission{
+			.time = 1200,
+			.wave = 29,
+			.missionID = 1229
+		},
 	};
 }
 
 std::vector<Wave> ZoneNsWaves::GetWaves() {
-	return {
+	return std::vector<Wave>{
 		// Wave 1
-		Wave {
+		Wave{
 			std::vector<MobDefinition> {
-				{ SpawnLOTS::stromling_minifig, 8, GetSpawnerName(SpawnerName::interior_A) },
-				{ SpawnLOTS::stromling_minifig, 2, GetSpawnerName(SpawnerName::ag_A) },
-				{ SpawnLOTS::stromling_minifig, 2, GetSpawnerName(SpawnerName::concert_A) },
-				{ SpawnLOTS::stromling_minifig, 2, GetSpawnerName(SpawnerName::gf_A) },
+				{ .lot = SpawnLOTS::stromling_minifig, .amountToSpawn = 8, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+				{ .lot = SpawnLOTS::stromling_minifig, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+				{ .lot = SpawnLOTS::stromling_minifig, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+				{ .lot = SpawnLOTS::stromling_minifig, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
 			}
 		},
 
-		// Wave 2
-		Wave {
-			std::vector<MobDefinition> {
-				{ SpawnLOTS::stromling, 8, GetSpawnerName(SpawnerName::interior_A) },
-				{ SpawnLOTS::stromling, 2, GetSpawnerName(SpawnerName::ag_A) },
-				{ SpawnLOTS::stromling, 2, GetSpawnerName(SpawnerName::concert_A) },
-				{ SpawnLOTS::stromling, 2, GetSpawnerName(SpawnerName::gf_A) },
-			}
+			// Wave 2
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 8, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+				}
 		},
 
 			// Wave 3
-			Wave {
+			Wave{
 				std::vector<MobDefinition> {
-					{ SpawnLOTS::stromling, 4, GetSpawnerName(SpawnerName::interior_A) },
-					{ SpawnLOTS::mech, 2, GetSpawnerName(SpawnerName::interior_B) },
-					{ SpawnLOTS::stromling, 3, GetSpawnerName(SpawnerName::ag_A) },
-					{ SpawnLOTS::stromling, 3, GetSpawnerName(SpawnerName::concert_A) },
-					{ SpawnLOTS::stromling, 3, GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 4, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
 				},
-			},
+		},
 
 			// Wave 4
-			Wave {
+			Wave{
 				std::vector<MobDefinition> {
-					{ SpawnLOTS::stromling, 3, GetSpawnerName(SpawnerName::interior_A) },
-					{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::interior_B) },
-					{ SpawnLOTS::stromling, 2, GetSpawnerName(SpawnerName::ag_A) },
-					{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::ag_B) },
-					{ SpawnLOTS::stromling, 2, GetSpawnerName(SpawnerName::concert_A) },
-					{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::concert_B) },
-					{ SpawnLOTS::stromling, 2, GetSpawnerName(SpawnerName::gf_A) },
-					{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::gf_B) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
 				}
-			},
+		},
 
-						// Wave 5
-						Wave {
-							std::vector<MobDefinition> {
-								{ SpawnLOTS::stromling, 2, GetSpawnerName(SpawnerName::interior_A) },
-								{ SpawnLOTS::spiderling, 1, GetSpawnerName(SpawnerName::interior_C) },
-								{ SpawnLOTS::hammerling_melee, 2, GetSpawnerName(SpawnerName::ag_A) },
-								{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::ag_B) },
-								{ SpawnLOTS::stromling, 1, GetSpawnerName(SpawnerName::concert_A) },
-								{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::concert_B) },
-								{ SpawnLOTS::stromling, 1, GetSpawnerName(SpawnerName::gf_A) },
-								{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::gf_B) },
-							}
-						},
+			// Wave 5
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::interior_C) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+				}
+		},
 
-				// Wave 6
-				Wave {
-					std::vector<MobDefinition> {
-						{ SpawnLOTS::hammerling_melee, 1, GetSpawnerName(SpawnerName::interior_A) },
-						{ SpawnLOTS::mech, 2, GetSpawnerName(SpawnerName::interior_B) },
-						{ SpawnLOTS::spiderling, 1, GetSpawnerName(SpawnerName::interior_C) },
-						{ SpawnLOTS::hammerling_melee, 2, GetSpawnerName(SpawnerName::ag_A) },
-						{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::ag_B) },
-						{ SpawnLOTS::spiderling, 1, GetSpawnerName(SpawnerName::ag_C) },
-						{ SpawnLOTS::stromling, 2, GetSpawnerName(SpawnerName::concert_A) },
-						{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::concert_B) },
-						{ SpawnLOTS::stromling, 2, GetSpawnerName(SpawnerName::gf_A) },
-						{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::gf_B) },
-					}
+			// Wave 6
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::interior_C) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_C) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::stromling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+				}
+		},
+
+			// Wave 7
+			Wave{
+				.waveMobs = std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::stromling_boss, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::Boss) },
 				},
+				.soloMissions = {1885},
+				.missions = {},
+				.cinematic = "Stromling_Boss",
+				.cinematicLength = 5.0f
+		},
 
-							// Wave 7
-							Wave {
-								std::vector<MobDefinition> {
-									{ SpawnLOTS::stromling_boss, 1, GetSpawnerName(SpawnerName::Boss) },
-								},
-								{1885},
-								{},
-								"Stromling_Boss",
-								5.0f
-							},
+			// Wave 8
+			Wave{
+				.waveMobs = std::vector<MobDefinition> {
+					{.lot = SpawnLOTS::mushroom, .amountToSpawn = 6, .spawnerName = GetSpawnerName(SpawnerName::Reward_01) },
+					{.lot = SpawnLOTS::mushroom, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::interior_Reward) },
+				},
+				.soloMissions = {},
+				.missions = {},
+				.cinematic = "",
+				.cinematicLength = -1.0f,
+				.timeLimit = 25,
+		},
 
-					// Wave 8
-					Wave {
-						std::vector<MobDefinition> {
-							{SpawnLOTS::mushroom, 6, GetSpawnerName(SpawnerName::Reward_01) },
-							{SpawnLOTS::mushroom, 3, GetSpawnerName(SpawnerName::interior_Reward) },
-						}, {}, {}, "", -1.0f,
-						25,
-					},
+			// Wave 9
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 4, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+				}
+		},
 
-										// Wave 9
-										Wave {
-											std::vector<MobDefinition> {
-												{ SpawnLOTS::pirate, 4, GetSpawnerName(SpawnerName::interior_A) },
-												{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::concert_A) },
-												{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::gf_A) },
-												{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::gf_B) },
-											}
-										},
+			// Wave 10
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 4, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+				}
+		},
 
-								// Wave 10
-								Wave {
-									std::vector<MobDefinition> {
-										{ SpawnLOTS::pirate, 4, GetSpawnerName(SpawnerName::interior_A) },
-										{ SpawnLOTS::mech, 2, GetSpawnerName(SpawnerName::interior_B) },
-										{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::ag_A) },
-										{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::ag_B) },
-										{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::concert_A) },
-										{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::concert_B) },
-										{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::gf_A) },
-										{ SpawnLOTS::admiral, 2, GetSpawnerName(SpawnerName::gf_B) },
-									}
-								},
+			// Wave 11
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 4, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_C) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_C) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_C) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_C) },
+				}
+		},
 
-											// Wave 11
-											Wave {
-												std::vector<MobDefinition> {
-													{ SpawnLOTS::pirate, 4, GetSpawnerName(SpawnerName::interior_A) },
-													{ SpawnLOTS::spiderling, 2, GetSpawnerName(SpawnerName::interior_C) },
-													{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::ag_A) },
-													{ SpawnLOTS::spiderling, 1, GetSpawnerName(SpawnerName::ag_C) },
-													{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::concert_A) },
-													{ SpawnLOTS::spiderling, 1, GetSpawnerName(SpawnerName::concert_C) },
-													{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::gf_A) },
-													{ SpawnLOTS::spiderling, 1, GetSpawnerName(SpawnerName::gf_C) },
-												}
-											},
+			// Wave 12
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 4, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_C) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_C) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_C) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_C) },
+				}
+		},
 
-									// Wave 12
-									Wave {
-										std::vector<MobDefinition> {
-											{ SpawnLOTS::pirate, 4, GetSpawnerName(SpawnerName::interior_A) },
-											{ SpawnLOTS::hammerling, 2, GetSpawnerName(SpawnerName::interior_B) },
-											{ SpawnLOTS::spiderling, 2, GetSpawnerName(SpawnerName::interior_C) },
-											{ SpawnLOTS::mech, 2, GetSpawnerName(SpawnerName::ag_B) },
-											{ SpawnLOTS::spiderling, 1, GetSpawnerName(SpawnerName::ag_C) },
-											{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::concert_A) },
-											{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::concert_C) },
-											{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::gf_A) },
-											{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::gf_C) },
-										}
-									},
+			// Wave 13
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+				}
+		},
 
-												// Wave 13
-												Wave {
-													std::vector<MobDefinition> {
-														{ SpawnLOTS::pirate, 3, GetSpawnerName(SpawnerName::interior_A) },
-														{ SpawnLOTS::admiral, 2, GetSpawnerName(SpawnerName::interior_B) },
-														{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::ag_A) },
-														{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::ag_B) },
-														{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::concert_A) },
-														{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::concert_B) },
-														{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::gf_A) },
-														{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::gf_B) },
-													}
-												},
+			// Wave 14
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_C) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_C) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_C) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+					{ .lot = SpawnLOTS::mech, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_C) },
+				}
+		},
 
-										// Wave 14
-										Wave {
-											std::vector<MobDefinition> {
-												{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::interior_A) },
-												{ SpawnLOTS::admiral, 2, GetSpawnerName(SpawnerName::interior_B) },
-												{ SpawnLOTS::mech, 2, GetSpawnerName(SpawnerName::interior_C) },
-												{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::ag_A) },
-												{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::ag_B) },
-												{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::ag_C) },
-												{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::concert_A) },
-												{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::concert_B) },
-												{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::concert_C) },
-												{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::gf_A) },
-												{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::gf_B) },
-												{ SpawnLOTS::mech, 1, GetSpawnerName(SpawnerName::gf_C) },
-											}
-										},
+			// Wave 15
+			Wave{
+				.waveMobs = std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::ape_boss, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::Ape_Boss) },
 
-													// Wave 15
-													Wave {
-														std::vector<MobDefinition> {
-															{ SpawnLOTS::ape_boss, 1, GetSpawnerName(SpawnerName::Ape_Boss) },
+				},
+				.soloMissions = {1886},
+				.missions = {},
+				.cinematic = "Gorilla_Boss",
+				.cinematicLength = 5.0f
+		},
 
-														},
-														{1886},
-														{},
-														"Gorilla_Boss",
-														5.0f
-													},
+			// Wave 16
+			Wave{
+				.waveMobs = std::vector<MobDefinition> {
+					{.lot = SpawnLOTS::outhouse, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::interior_Reward) },
+					{.lot = SpawnLOTS::mushroom, .amountToSpawn = 6, .spawnerName = GetSpawnerName(SpawnerName::Reward_01) },
+				},
+				.soloMissions = {},
+				.missions = {},
+				.cinematic = "",
+				.cinematicLength = -1.0f,
+				.timeLimit = 25,
+		},
 
-											// Wave 16
-											Wave {
-												std::vector<MobDefinition> {
-													{SpawnLOTS::outhouse, 3, GetSpawnerName(SpawnerName::interior_Reward) },
-													{SpawnLOTS::mushroom, 6, GetSpawnerName(SpawnerName::Reward_01) },
-												}, {}, {}, "", -1.0f,
-												25,
-											},
+			// Wave 17
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+				}
+		},
 
-																// Wave 17
-																Wave {
-																	std::vector<MobDefinition> {
-																		{ SpawnLOTS::hammerling_melee, 2, GetSpawnerName(SpawnerName::interior_A) },
-																		{ SpawnLOTS::hammerling_melee, 2, GetSpawnerName(SpawnerName::interior_B) },
-																		{ SpawnLOTS::hammerling_melee, 1, GetSpawnerName(SpawnerName::ag_A) },
-																		{ SpawnLOTS::hammerling_melee, 2, GetSpawnerName(SpawnerName::ag_B) },
-																		{ SpawnLOTS::hammerling_melee, 1, GetSpawnerName(SpawnerName::concert_A) },
-																		{ SpawnLOTS::hammerling_melee, 2, GetSpawnerName(SpawnerName::concert_B) },
-																		{ SpawnLOTS::hammerling_melee, 1, GetSpawnerName(SpawnerName::gf_A) },
-																		{ SpawnLOTS::hammerling_melee, 2, GetSpawnerName(SpawnerName::gf_B) },
-																	}
-																},
+			// Wave 18
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 4, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::hammerling_melee, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+				}
+		},
 
-														// Wave 18
-														Wave {
-															std::vector<MobDefinition> {
-																{ SpawnLOTS::hammerling_melee, 4, GetSpawnerName(SpawnerName::interior_A) },
-																{ SpawnLOTS::hammerling, 2, GetSpawnerName(SpawnerName::interior_B) },
-																{ SpawnLOTS::hammerling_melee, 2, GetSpawnerName(SpawnerName::concert_A) },
-																{ SpawnLOTS::hammerling, 1, GetSpawnerName(SpawnerName::concert_B) },
-																{ SpawnLOTS::hammerling_melee, 2, GetSpawnerName(SpawnerName::ag_A) },
-																{ SpawnLOTS::hammerling, 1, GetSpawnerName(SpawnerName::ag_B) },
-																{ SpawnLOTS::hammerling_melee, 2, GetSpawnerName(SpawnerName::gf_A) },
-																{ SpawnLOTS::hammerling, 1, GetSpawnerName(SpawnerName::gf_B) },
-															}
-														},
+			// Wave 19
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 4, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::sentry, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::sentry, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::sentry, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::sentry, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+				}
+		},
 
-																	// Wave 19
-																	Wave {
-																		std::vector<MobDefinition> {
-																			{ SpawnLOTS::hammerling, 4, GetSpawnerName(SpawnerName::interior_A) },
-																			{ SpawnLOTS::sentry, 2, GetSpawnerName(SpawnerName::interior_B) },
-																			{ SpawnLOTS::hammerling, 2, GetSpawnerName(SpawnerName::ag_A) },
-																			{ SpawnLOTS::sentry, 1, GetSpawnerName(SpawnerName::ag_B) },
-																			{ SpawnLOTS::hammerling, 2, GetSpawnerName(SpawnerName::concert_A) },
-																			{ SpawnLOTS::sentry, 1, GetSpawnerName(SpawnerName::concert_B) },
-																			{ SpawnLOTS::hammerling, 2, GetSpawnerName(SpawnerName::gf_A) },
-																			{ SpawnLOTS::sentry, 1, GetSpawnerName(SpawnerName::gf_B) },
-																		}
-																	},
+			// Wave 20
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::sentry, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::interior_C) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::sentry, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_C) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::sentry, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_C) },
+					{ .lot = SpawnLOTS::hammerling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::sentry, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_C) },
+				}
+		},
 
-															// Wave 20
-															Wave {
-																std::vector<MobDefinition> {
-																	{ SpawnLOTS::ronin, 3, GetSpawnerName(SpawnerName::interior_A) },
-																	{ SpawnLOTS::sentry, 2, GetSpawnerName(SpawnerName::interior_B) },
-																	{ SpawnLOTS::spiderling_ve, 1, GetSpawnerName(SpawnerName::interior_C) },
-																	{ SpawnLOTS::hammerling, 1, GetSpawnerName(SpawnerName::ag_A) },
-																	{ SpawnLOTS::sentry, 1, GetSpawnerName(SpawnerName::ag_B) },
-																	{ SpawnLOTS::spiderling_ve, 1, GetSpawnerName(SpawnerName::ag_C) },
-																	{ SpawnLOTS::hammerling, 1, GetSpawnerName(SpawnerName::concert_A) },
-																	{ SpawnLOTS::sentry, 1, GetSpawnerName(SpawnerName::concert_B) },
-																	{ SpawnLOTS::spiderling_ve, 1, GetSpawnerName(SpawnerName::concert_C) },
-																	{ SpawnLOTS::hammerling, 1, GetSpawnerName(SpawnerName::gf_A) },
-																	{ SpawnLOTS::sentry, 1, GetSpawnerName(SpawnerName::gf_B) },
-																	{ SpawnLOTS::spiderling_ve, 1, GetSpawnerName(SpawnerName::gf_C) },
-																}
-															},
+			// Wave 21
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_C) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_C) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_C) },
+					{ .lot = SpawnLOTS::admiral, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_C) },
+				}
+		},
 
-																		// Wave 21
-																		Wave {
-																			std::vector<MobDefinition> {
-																				{ SpawnLOTS::admiral, 2, GetSpawnerName(SpawnerName::interior_A) },
-																				{ SpawnLOTS::ronin, 2, GetSpawnerName(SpawnerName::interior_B) },
-																				{ SpawnLOTS::spiderling_ve, 2, GetSpawnerName(SpawnerName::interior_C) },
-																				{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::ag_A) },
-																				{ SpawnLOTS::ronin, 1, GetSpawnerName(SpawnerName::ag_B) },
-																				{ SpawnLOTS::spiderling_ve, 1, GetSpawnerName(SpawnerName::ag_C) },
-																				{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::concert_A) },
-																				{ SpawnLOTS::ronin, 1, GetSpawnerName(SpawnerName::concert_B) },
-																				{ SpawnLOTS::spiderling_ve, 1, GetSpawnerName(SpawnerName::concert_C) },
-																				{ SpawnLOTS::admiral, 1, GetSpawnerName(SpawnerName::gf_A) },
-																				{ SpawnLOTS::ronin, 1, GetSpawnerName(SpawnerName::gf_B) },
-																				{ SpawnLOTS::spiderling_ve, 1, GetSpawnerName(SpawnerName::gf_C) },
-																			}
-																		},
+			// Wave 22
+			Wave{
+				.waveMobs = std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::spiderling_boss, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::Cavalry_Boss) },
+				},
+				.soloMissions = {1887},
+				.missions = {},
+				.cinematic = "Spiderling_Boss",
+				.cinematicLength = 5.0f
+		},
 
-																// Wave 22
-																Wave {
-																	std::vector<MobDefinition> {
-																		{ SpawnLOTS::spiderling_boss, 1, GetSpawnerName(SpawnerName::Cavalry_Boss) },
-																	},
-																	{1887},
-																	{},
-																	"Spiderling_Boss",
-																	5.0f
-																},
+			// Wave 23
+			Wave{
+				.waveMobs = std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::outhouse, .amountToSpawn = 6, .spawnerName = GetSpawnerName(SpawnerName::Reward_01) },
+					{ .lot = SpawnLOTS::outhouse, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::interior_Reward) },
+					{ .lot = SpawnLOTS::maelstrom_chest, .amountToSpawn = 4, .spawnerName = GetSpawnerName(SpawnerName::Obstacle) },
+				},
+				.soloMissions = {},
+				.missions = {},
+				.cinematic = "",
+				.cinematicLength = -1.0f,
+				.timeLimit = 25,
+		},
 
-																			// Wave 23
-																			Wave {
-																				std::vector<MobDefinition> {
-																					{ SpawnLOTS::outhouse, 6, GetSpawnerName(SpawnerName::Reward_01) },
-																					{ SpawnLOTS::outhouse, 3, GetSpawnerName(SpawnerName::interior_Reward) },
-																					{ SpawnLOTS::maelstrom_chest, 4, GetSpawnerName(SpawnerName::Obstacle) },
-																				}, {}, {}, "", -1.0f,
-																				25,
-																			},
+			// Wave 24
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::pirate, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+				}
+		},
 
-																			// Wave 24
-																			Wave {
-																				std::vector<MobDefinition> {
-																					{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::gf_A) },
-																					{ SpawnLOTS::pirate, 2, GetSpawnerName(SpawnerName::concert_A) },
-																					{ SpawnLOTS::pirate, 3, GetSpawnerName(SpawnerName::ag_A) },
-																					{ SpawnLOTS::ronin, 3, GetSpawnerName(SpawnerName::interior_A) },
-																					{ SpawnLOTS::ronin, 2, GetSpawnerName(SpawnerName::interior_B) },
-																				}
-																			},
+			// Wave 25
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::cavalry, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::cavalry, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::admiral_cp, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::admiral_cp, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+					{ .lot = SpawnLOTS::admiral_cp, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_A) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::concert_A) },
+					{ .lot = SpawnLOTS::spiderling, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_A) },
+				}
+		},
 
-																						// Wave 25
-																						Wave {
-																							std::vector<MobDefinition> {
-																								{ SpawnLOTS::cavalry, 2, GetSpawnerName(SpawnerName::interior_A) },
-																								{ SpawnLOTS::cavalry, 1, GetSpawnerName(SpawnerName::interior_B) },
-																								{ SpawnLOTS::admiral_cp, 1, GetSpawnerName(SpawnerName::ag_B) },
-																								{ SpawnLOTS::admiral_cp, 1, GetSpawnerName(SpawnerName::gf_B) },
-																								{ SpawnLOTS::admiral_cp, 1, GetSpawnerName(SpawnerName::concert_B) },
-																								{ SpawnLOTS::spiderling, 2, GetSpawnerName(SpawnerName::gf_A) },
-																								{ SpawnLOTS::spiderling, 2, GetSpawnerName(SpawnerName::concert_A) },
-																								{ SpawnLOTS::spiderling, 1, GetSpawnerName(SpawnerName::ag_A) },
-																							}
-																						},
+			// Wave 26
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 3, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+					{ .lot = SpawnLOTS::spiderling_ve, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+					{ .lot = SpawnLOTS::admiral_cp, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::gf_C) },
+					{ .lot = SpawnLOTS::admiral_cp, .amountToSpawn = 2, .spawnerName = GetSpawnerName(SpawnerName::ag_C) },
+					{ .lot = SpawnLOTS::admiral_cp, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_C) },
+				}
+		},
 
-																				// Wave 26
-																				Wave {
-																					std::vector<MobDefinition> {
-																						{ SpawnLOTS::ronin, 3, GetSpawnerName(SpawnerName::interior_A) },
-																						{ SpawnLOTS::ronin, 3, GetSpawnerName(SpawnerName::interior_B) },
-																						{ SpawnLOTS::spiderling_ve, 1, GetSpawnerName(SpawnerName::ag_B) },
-																						{ SpawnLOTS::spiderling_ve, 1, GetSpawnerName(SpawnerName::gf_B) },
-																						{ SpawnLOTS::spiderling_ve, 1, GetSpawnerName(SpawnerName::concert_B) },
-																						{ SpawnLOTS::admiral_cp, 2, GetSpawnerName(SpawnerName::gf_C) },
-																						{ SpawnLOTS::admiral_cp, 2, GetSpawnerName(SpawnerName::ag_C) },
-																						{ SpawnLOTS::admiral_cp, 1, GetSpawnerName(SpawnerName::concert_C) },
-																					}
-																				},
+			// Wave 27
+			Wave{
+				std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 5, .spawnerName = GetSpawnerName(SpawnerName::interior_A) },
+					{ .lot = SpawnLOTS::ronin, .amountToSpawn = 4, .spawnerName = GetSpawnerName(SpawnerName::interior_B) },
+					{ .lot = SpawnLOTS::cavalry, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_C) },
+					{ .lot = SpawnLOTS::cavalry, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_C) },
+					{ .lot = SpawnLOTS::cavalry, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_C) },
+					{ .lot = SpawnLOTS::admiral_cp, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::ag_B) },
+					{ .lot = SpawnLOTS::admiral_cp, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::gf_B) },
+					{ .lot = SpawnLOTS::admiral_cp, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::concert_B) },
+				}
+		},
 
-																							// Wave 27
-																							Wave {
-																								std::vector<MobDefinition> {
-																									{ SpawnLOTS::ronin, 5, GetSpawnerName(SpawnerName::interior_A) },
-																									{ SpawnLOTS::ronin, 4, GetSpawnerName(SpawnerName::interior_B) },
-																									{ SpawnLOTS::cavalry, 1, GetSpawnerName(SpawnerName::ag_C) },
-																									{ SpawnLOTS::cavalry, 1, GetSpawnerName(SpawnerName::gf_C) },
-																									{ SpawnLOTS::cavalry, 1, GetSpawnerName(SpawnerName::concert_C) },
-																									{ SpawnLOTS::admiral_cp, 1, GetSpawnerName(SpawnerName::ag_B) },
-																									{ SpawnLOTS::admiral_cp, 1, GetSpawnerName(SpawnerName::gf_B) },
-																									{ SpawnLOTS::admiral_cp, 1, GetSpawnerName(SpawnerName::concert_B) },
-																								}
-																							},
+			// Wave 28
+			Wave{
+				.waveMobs = std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::dragon_statue, .amountToSpawn = 12, .spawnerName = GetSpawnerName(SpawnerName::Reward_01) },
+				},
+				.soloMissions = {},
+				.missions = {},
+				.cinematic = "",
+				.cinematicLength = -1.0f,
+				.timeLimit = 30,
+		},
 
-																					// Wave 28
-																					Wave {
-																						std::vector<MobDefinition> {
-																							{ SpawnLOTS::dragon_statue, 12, GetSpawnerName(SpawnerName::Reward_01) },
-																						}, {}, {}, "", -1.0f,
-																						30,
-																					},
+			// Wave 29
+			Wave{
+				.waveMobs = std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::horseman_boss01, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::Horseman_01) },
+					{ .lot = SpawnLOTS::horseman_boss02, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::Horseman_02) },
+					{ .lot = SpawnLOTS::horseman_boss03, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::Horseman_03) },
+					{ .lot = SpawnLOTS::horseman_boss04, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::Horseman_04) },
+				},
+				.soloMissions = {1888},
+				.missions = {1236, 1237, 1249},
+				.cinematic = "Horsemen_Boss",
+				.cinematicLength = 5.0f
+		},
 
-																								// Wave 29
-																								Wave {
-																									std::vector<MobDefinition> {
-																										{ SpawnLOTS::horseman_boss01, 1, GetSpawnerName(SpawnerName::Horseman_01) },
-																										{ SpawnLOTS::horseman_boss02, 1, GetSpawnerName(SpawnerName::Horseman_02) },
-																										{ SpawnLOTS::horseman_boss03, 1, GetSpawnerName(SpawnerName::Horseman_03) },
-																										{ SpawnLOTS::horseman_boss04, 1, GetSpawnerName(SpawnerName::Horseman_04) },
-																									},
-																									{1888},
-																									{1236, 1237, 1249},
-																									"Horsemen_Boss",
-																									5.0f
-																								},
-
-																								// Wave 30 (treasure)
-																								Wave {
-																									std::vector<MobDefinition> {
-																										{ SpawnLOTS::treasure_chest, 1, GetSpawnerName(SpawnerName::Treasure_01) },
-																									}, {}, {},
-																									"Treasure_Camera",
-																									5.0f,
-																									(uint32_t)-1,
-																									true,
-																									60,
-																								},
+			// Wave 30 (treasure)
+			Wave{
+				.waveMobs = std::vector<MobDefinition> {
+					{ .lot = SpawnLOTS::treasure_chest, .amountToSpawn = 1, .spawnerName = GetSpawnerName(SpawnerName::Treasure_01) },
+				},
+				.soloMissions = {},
+				.missions = {},
+				.cinematic = "Treasure_Camera",
+				.cinematicLength = 5.0f,
+				.timeLimit = (uint32_t)-1,
+				.notifyWin = true,
+				.winDelay = 60,
+		},
 	};
 }
 

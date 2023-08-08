@@ -787,7 +787,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 	self->SetVar<bool>(SuperChargeActiveVariable, enable);
 }
 
-std::vector<std::vector<SGEnemy>> GetWaves() {
+std::vector<std::vector<SGEnemy>> SGCannon::GetWaves() {
 	return
 	std::vector<std::vector<SGEnemy>>{
 		std::vector<SGEnemy>{
@@ -1265,41 +1265,41 @@ void SGCannon::ResetVars(Entity* self) {
 }
 
 SGConstants SGCannon::GetConstants() {
-	return {
-		Vector3 { -908.542480, 229.773178, -908.542480 },
-		Quaternion { 0.91913521289825, 0, 0.39394217729568, 0 },
-		1864,
-		34,
-		1822,
-		Vector3 { 6.652, -2, 1.5 },
-		157,
-		129.0,
-		30.0,
-		800.0,
-		Vector3 { 0, 4.3, 9 },
-		6297,
-		1822,
-		249,
-		228,
-		-1,
-		58.6,
-		true,
-		2,
-		10,
-		25000,
-		"QBRewardGroup",
-		1864,
-		50000,
-		157,
-		100000,
-		187,
-		200000,
-		188,
-		400000,
-		189,
-		800000,
-		190,
-		4.0,
-		7.0
+	return SGConstants{
+		.playerStartPosition = Vector3 { -908.542480, 229.773178, -908.542480 },
+		.playerStartRotation = Quaternion { 0.91913521289825, 0, 0.39394217729568, 0 },
+		.cannonLot = 1864,
+		.impactSkillID = 34,
+		.projectileLot = 1822,
+		.playerOffset = Vector3 { 6.652, -2, 1.5 },
+		.rewardModelMatrix = 157,
+		.cannonVelocity = 129.0,
+		.cannonMinDistance = 30.0,
+		.cannonRefireRate = 800.0,
+		.cannonBarrelOffset = Vector3 { 0, 4.3, 9 },
+		.cannonSuperchargedProjectileLot = 6297,
+		.cannonProjectileLot = 1822,
+		.cannonSuperChargeSkill = 249,
+		.cannonSkill = 228,
+		.cannonTimeout = -1,
+		.cannonFOV = 58.6,
+		.useLeaderboards = true,
+		.streakModifier = 2,
+		.chargedTime = 10,
+		.chargedPoints = 25000,
+		.rewardModelGroup = "QBRewardGroup",
+		.activityID = 1864,
+		.scoreReward1 = 50000,
+		.scoreLootMatrix1 = 157,
+		.scoreReward2 = 100000,
+		.scoreLootMatrix2 = 187,
+		.scoreReward3 = 200000,
+		.scoreLootMatrix3 = 188,
+		.scoreReward4 = 400000,
+		.scoreLootMatrix4 = 189,
+		.scoreReward5 = 800000,
+		.scoreLootMatrix5 = 190,
+		.firstWaveStartTime = 4.0,
+		.inBetweenWavePause = 7.0
 	};
 }
