@@ -143,11 +143,13 @@ float dNavMesh::GetHeightAtPoint(const NiPoint3& location, const float halfExten
 	}
 #endif
 	if (toReturn == 0.0f) {
-		toReturn = location.y;
-	// If we were unable to get the poly height, but the query returned a success, just use the height of the nearest point.
-	// This is what seems to happen anyways and it is better than returning zero.
-	} else if (hasPoly == DT_SUCCESS) {
-		toReturn = nearestPoint[1];
+		// If we were unable to get the poly height, but the query returned a success, just use the height of the nearest point.
+		// This is what seems to happen anyways and it is better than returning zero.
+		if (hasPoly == DT_SUCCESS) {
+			toReturn = nearestPoint[1];
+		} else {
+			toReturn = location.y;
+		}
 	}
 	// If we failed to even find a poly, do not change the height since we have no idea what it should be.
 
