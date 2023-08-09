@@ -18,6 +18,7 @@
 
 class ControllablePhysicsComponent;
 class BaseCombatAIComponent;
+class Path;
 
 /**
  * Information that describes the different variables used to make an entity move around
@@ -265,7 +266,7 @@ private:
 	/**
 	 * The path this entity is currently traversing
 	 */
-	uint32_t m_PathIndex;
+	int32_t m_PathIndex;
 
 	/**
 	 * If the entity has reached it last waypoint
@@ -346,6 +347,11 @@ private:
 	 * Whether or not the current movement via pathing is paused.
 	 */
 	bool m_IsPaused;
+
+	/**
+	 * The optional path this component will follow.
+	 */
+	const Path* m_Path = nullptr;
 };
 
 #endif // MOVEMENTAICOMPONENT_H

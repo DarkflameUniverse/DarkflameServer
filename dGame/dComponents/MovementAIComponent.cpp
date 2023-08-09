@@ -63,7 +63,14 @@ void MovementAIComponent::SetupPath(const std::string& pathname) {
 	}
 	const Path* pathData = Game::zoneManager->GetZone()->GetPath(path);
 	if (pathData) {
-		Game::logger->Log("MovementAIComponent", "found path %s", path.c_str());
+		Game::logger->Log("MovementAIComponent", "found path %i %s", m_Parent->GetLOT(), path.c_str());
+		m_Path = pathData;
+		std::vector<NiPoint3> waypoints;
+		for (auto& waypoint : m_Path->pathWaypoints) {
+			waypoints.push_back(waypoint.position);
+		}
+		SetPath(waypoints);
+		SetMaxSpeed(3.0f);
 	} else {
 		Game::logger->Log("MovementAIComponent", "No path found for %i:%llu", m_Parent->GetLOT(), m_Parent->GetObjectID());
 	}
@@ -144,7 +151,16 @@ void MovementAIComponent::Update(const float deltaTime) {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
 		HandleWaypointArrived();
 		if (!AdvancePathWaypointIndex()) {
-			Stop();
+			if (m_Path && m_Path->pathBehavior == PathBehavior::Bounce) {
+				ReversePath(); // untested.
+			} else if (m_Path && m_Path->pathBehavior == PathBehavior::Loop) {
+				m_CurrentPathWaypointIndex = 0;
+				m_NextPathWaypointIndex = 0;
+				AdvancePathWaypointIndex();
+				SetDestination(GetCurrentPathWaypoint());
+			} else {
+				Stop();
+			}
 			return;
 		}
 		SetDestination(GetCurrentPathWaypoint());

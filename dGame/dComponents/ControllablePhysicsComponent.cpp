@@ -71,7 +71,10 @@ ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 }
 
 void ControllablePhysicsComponent::Update(float deltaTime) {
-
+	if (m_Velocity == NiPoint3::ZERO) return;
+	m_Position += m_Velocity * deltaTime;
+	m_DirtyPosition = true;
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
@@ -153,6 +156,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		}
 
 		outBitStream->Write0();
+		if (!bIsInitialUpdate) m_DirtyPosition = false;
 	}
 
 	if (!bIsInitialUpdate) {
