@@ -10,6 +10,7 @@
 #include "BinaryPathFinder.h"
 
 #include "dZoneManager.h"
+#include "DluAssert.h"
 
 dNavMesh::dNavMesh(uint32_t zoneId) {
 	m_ZoneId = zoneId;
@@ -130,15 +131,25 @@ float dNavMesh::GetHeightAtPoint(const NiPoint3& location, const float halfExten
 	pos[2] = location.z;
 
 	dtPolyRef nearestRef = 0;
-	float polyPickExt[3] = { 32.0f, halfExtentsHeight, 32.0f };
+	float polyPickExt[3] = { 0.0f, halfExtentsHeight, 0.0f };
+	float nearestPoint[3] = { 0.0f, 0.0f, 0.0f };
 	dtQueryFilter filter{};
 
-	m_NavQuery->findNearestPoly(pos, polyPickExt, &filter, &nearestRef, 0);
+	auto hasPoly = m_NavQuery->findNearestPoly(pos, polyPickExt, &filter, &nearestRef, nearestPoint);
 	m_NavQuery->getPolyHeight(nearestRef, pos, &toReturn);
-
+#ifdef _DEBUG
+	if (toReturn != 0.0f) {
+		DluAssert(toReturn == nearestPoint[1]);
+	}
+#endif
 	if (toReturn == 0.0f) {
 		toReturn = location.y;
+	// If we were unable to get the poly height, but the query returned a success, just use the height of the nearest point.
+	// This is what seems to happen anyways and it is better than returning zero.
+	} else if (hasPoly == DT_SUCCESS) {
+		toReturn = nearestPoint[1];
 	}
+	// If we failed to even find a poly, do not change the height since we have no idea what it should be.
 
 	return toReturn;
 }
