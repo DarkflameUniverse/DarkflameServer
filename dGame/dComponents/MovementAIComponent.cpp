@@ -151,13 +151,17 @@ void MovementAIComponent::Update(const float deltaTime) {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
 		HandleWaypointArrived();
 		if (!AdvancePathWaypointIndex()) {
-			if (m_Path && m_Path->pathBehavior == PathBehavior::Bounce) {
-				ReversePath();
-			} else if (m_Path && m_Path->pathBehavior == PathBehavior::Loop) {
-				m_CurrentPathWaypointIndex = 0;
-				m_NextPathWaypointIndex = 0;
-				AdvancePathWaypointIndex();
-				SetDestination(GetCurrentPathWaypoint());
+			if (m_Path) {
+				if (m_Path->pathBehavior == PathBehavior::Bounce) {
+					ReversePath();
+				} else if (m_Path->pathBehavior == PathBehavior::Loop) {
+					m_CurrentPathWaypointIndex = 0;
+					m_NextPathWaypointIndex = 0;
+					AdvancePathWaypointIndex();
+					SetDestination(GetCurrentPathWaypoint());
+				} else {
+					Stop();
+				}
 			} else {
 				Stop();
 			}
