@@ -26,7 +26,7 @@ void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 
 	destroyable->SetIsShielded(true);
 
-	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
+	if (branch.duration > 0.0f) context->RegisterTimerBehavior(this, branch, target->GetObjectID());
 }
 
 void DamageAbsorptionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {

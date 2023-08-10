@@ -24,7 +24,7 @@ void DamageReductionBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 
 	destroyable->SetDamageReduction(m_ReductionAmount);
 
-	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
+	if (branch.duration > 0.0f) context->RegisterTimerBehavior(this, branch, target->GetObjectID());
 }
 
 void DamageReductionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
