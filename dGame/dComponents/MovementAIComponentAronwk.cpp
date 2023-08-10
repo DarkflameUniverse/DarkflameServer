@@ -4,6 +4,7 @@
 #include "eWaypointCommandType.h"
 
 void MovementAIComponent::HandleWaypointArrived() {
+	if (!m_Path) return;
 	if (m_Path->pathWaypoints[m_CurrentPathWaypointIndex].commands.empty()) return;
 	for(auto [command, data] : m_Path->pathWaypoints[m_CurrentPathWaypointIndex].commands){
 		switch(command){
@@ -75,6 +76,7 @@ void MovementAIComponent::HandleWaypointArrived() {
 				Game::logger->Log("MovementAIComponentAronwk", "Unusable Command %i", command);
 				break;
 			case eWaypointCommandType::INVALID:
+			default:
 				Game::logger->LogDebug("MovementAIComponentAronwk", "Got invalid waypoint command %i", command);
 				break;
 		}

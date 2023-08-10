@@ -70,7 +70,7 @@ void MovementAIComponent::SetupPath(const std::string& pathname) {
 			waypoints.push_back(waypoint.position);
 		}
 		SetPath(waypoints);
-		SetMaxSpeed(3.0f);
+		SetMaxSpeed(30.0f);
 	} else {
 		Game::logger->Log("MovementAIComponent", "No path found for %i:%llu", m_Parent->GetLOT(), m_Parent->GetObjectID());
 	}
@@ -152,7 +152,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		HandleWaypointArrived();
 		if (!AdvancePathWaypointIndex()) {
 			if (m_Path && m_Path->pathBehavior == PathBehavior::Bounce) {
-				ReversePath(); // untested.
+				ReversePath();
 			} else if (m_Path && m_Path->pathBehavior == PathBehavior::Loop) {
 				m_CurrentPathWaypointIndex = 0;
 				m_NextPathWaypointIndex = 0;
