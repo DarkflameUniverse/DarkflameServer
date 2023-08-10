@@ -17,6 +17,7 @@
 
 #include "eTriggerCommandType.h"
 #include "eTriggerEventType.h"
+#include "eWaypointCommandType.h"
 
 Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) :
 	m_ZoneID(mapID, instanceID, cloneID) {
@@ -537,16 +538,16 @@ void Zone::LoadPath(std::istream& file) {
 
 				LDFBaseData* ldfConfig = nullptr;
 				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
-					ldfConfig = LDFBaseData::DataFromString(parameter + "=0:" + value);
+					waypoint.commands.push_back(WaypointCommand(WaypointCommandType::StringToWaypointCommandType(parameter), value));
 				} else {
 					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
+					if (ldfConfig) waypoint.config.push_back(ldfConfig);
 				}
-				if (ldfConfig) waypoint.config.push_back(ldfConfig);
 			}
 		}
 
 		// We verify the waypoint heights against the navmesh because in many movement paths,
-		// the waypoint is located near 0 height, 
+		// the waypoint is located near 0 height,
 		if (path.pathType == PathType::Movement) {
 			if (dpWorld::Instance().IsLoaded()) {
 				// 2000 should be large enough for every world.

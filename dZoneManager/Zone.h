@@ -13,6 +13,16 @@ namespace LUTriggers {
 
 class Level;
 
+enum class eWaypointCommandType : uint32_t;
+struct WaypointCommand {
+	eWaypointCommandType command;
+	std::string data;
+	WaypointCommand(eWaypointCommandType command, std::string data){
+		this->command = command;
+		this->data = data;
+	}
+};
+
 struct SceneRef {
 	std::string filename;
 	uint32_t id;
@@ -69,6 +79,7 @@ struct PathWaypoint {
 	RacingPathWaypoint racing;
 	RailPathWaypoint rail;
 	std::vector<LDFBaseData*> config;
+	std::vector<WaypointCommand> commands;
 };
 
 enum class PathType : uint32_t {
