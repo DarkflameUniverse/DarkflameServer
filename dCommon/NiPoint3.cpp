@@ -136,6 +136,13 @@ NiPoint3& NiPoint3::operator+=(const NiPoint3& point) {
 	return *this;
 }
 
+NiPoint3& NiPoint3::operator*=(const float scalar) {
+	this->x *= scalar;
+	this->y *= scalar;
+	this->z *= scalar;
+	return *this;
+}
+
 //! Operator for subtraction of vectors
 NiPoint3 NiPoint3::operator-(const NiPoint3& point) const {
 	return NiPoint3(this->x - point.x, this->y - point.y, this->z - point.z);
