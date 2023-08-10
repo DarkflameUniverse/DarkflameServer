@@ -25,8 +25,6 @@ enum class eWaypointCommandType : uint32_t {
 	PLAY_SOUND,
 };
 
-
-
 class WaypointCommandType {
 public:
 	static eWaypointCommandType StringToWaypointCommandType(std::string commandString) {
