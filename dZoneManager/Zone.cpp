@@ -538,6 +538,7 @@ void Zone::LoadPath(std::istream& file) {
 
 				LDFBaseData* ldfConfig = nullptr;
 				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
+					// :+1:
 					waypoint.commands.push_back(WaypointCommand(WaypointCommandType::StringToWaypointCommandType(parameter), value));
 				} else {
 					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
