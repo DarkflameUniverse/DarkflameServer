@@ -38,8 +38,8 @@ void DonationVendorComponent::SubmitDonation(uint32_t count) {
 	m_DirtyDonationVendor = true;
 }
 
-void DonationVendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	VendorComponent::Serialize(outBitStream, bIsInitialUpdate, flags);
+void DonationVendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+	VendorComponent::Serialize(outBitStream, bIsInitialUpdate);
 	outBitStream->Write(bIsInitialUpdate || m_DirtyDonationVendor);
 	if (bIsInitialUpdate || m_DirtyDonationVendor) {
 		outBitStream->Write(m_PercentComplete);

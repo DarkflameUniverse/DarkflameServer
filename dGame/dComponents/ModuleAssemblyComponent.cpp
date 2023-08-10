@@ -46,7 +46,7 @@ const std::u16string& ModuleAssemblyComponent::GetAssemblyPartsLOTs() const {
 	return m_AssemblyPartsLOTs;
 }
 
-void ModuleAssemblyComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void ModuleAssemblyComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
 		outBitStream->Write1();
 
