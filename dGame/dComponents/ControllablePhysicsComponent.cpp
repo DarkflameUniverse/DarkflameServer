@@ -72,16 +72,11 @@ ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 
 void ControllablePhysicsComponent::Update(float deltaTime) {
 	if (m_Velocity == NiPoint3::ZERO) return;
-	m_Position += m_Velocity * deltaTime;
-	m_DirtyPosition = true;
+	SetPosition(m_Position + (m_Velocity * deltaTime));
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	//If this is a creation, then we assume the position is dirty, even when it isn't.
-	//This is because new clients will still need to receive the position.
-	//if (bIsInitialUpdate) m_DirtyPosition = true;
-
 	if (bIsInitialUpdate) {
 		outBitStream->Write(m_InJetpackMode);
 		if (m_InJetpackMode) {
@@ -107,14 +102,14 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write(m_GravityScale);
 		outBitStream->Write(m_SpeedMultiplier);
 
-		m_DirtyCheats = false;
+		if (!bIsInitialUpdate) m_DirtyCheats = false;
 	}
 
 	outBitStream->Write(m_DirtyEquippedItemInfo);
 	if (m_DirtyEquippedItemInfo) {
 		outBitStream->Write(m_PickupRadius);
 		outBitStream->Write(m_InJetpackMode);
-		m_DirtyEquippedItemInfo = false;
+		if (!bIsInitialUpdate) m_DirtyEquippedItemInfo = false;
 	}
 
 	outBitStream->Write(m_DirtyBubble);
@@ -124,7 +119,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 			outBitStream->Write(m_BubbleType);
 			outBitStream->Write(m_SpecialAnims);
 		}
-		m_DirtyBubble = false;
+		if (!bIsInitialUpdate) m_DirtyBubble = false;
 	}
 
 	outBitStream->Write(m_DirtyPosition || bIsInitialUpdate);
@@ -146,6 +141,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 			outBitStream->Write(m_Velocity.x);
 			outBitStream->Write(m_Velocity.y);
 			outBitStream->Write(m_Velocity.z);
+			m_DirtyVelocity = false;
 		}
 
 		outBitStream->Write(m_DirtyAngularVelocity);
@@ -153,6 +149,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 			outBitStream->Write(m_AngularVelocity.x);
 			outBitStream->Write(m_AngularVelocity.y);
 			outBitStream->Write(m_AngularVelocity.z);
+			m_DirtyAngularVelocity = false;
 		}
 
 		outBitStream->Write0();
@@ -212,7 +209,7 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 }
 
 void ControllablePhysicsComponent::SetPosition(const NiPoint3& pos) {
-	if (m_Static) {
+	if (m_Static || m_Position == pos) {
 		return;
 	}
 
@@ -225,7 +222,7 @@ void ControllablePhysicsComponent::SetPosition(const NiPoint3& pos) {
 }
 
 void ControllablePhysicsComponent::SetRotation(const NiQuaternion& rot) {
-	if (m_Static) {
+	if (m_Static || m_Rotation == rot) {
 		return;
 	}
 
@@ -236,7 +233,7 @@ void ControllablePhysicsComponent::SetRotation(const NiQuaternion& rot) {
 }
 
 void ControllablePhysicsComponent::SetVelocity(const NiPoint3& vel) {
-	if (m_Static) {
+	if (m_Static || m_Velocity == vel) {
 		return;
 	}
 
@@ -248,7 +245,7 @@ void ControllablePhysicsComponent::SetVelocity(const NiPoint3& vel) {
 }
 
 void ControllablePhysicsComponent::SetAngularVelocity(const NiPoint3& vel) {
-	if (m_Static) {
+	if (m_Static || m_AngularVelocity == vel) {
 		return;
 	}
 
@@ -258,11 +255,13 @@ void ControllablePhysicsComponent::SetAngularVelocity(const NiPoint3& vel) {
 }
 
 void ControllablePhysicsComponent::SetIsOnGround(bool val) {
+	if (val == m_IsOnGround) return;
 	m_DirtyPosition = true;
 	m_IsOnGround = val;
 }
 
 void ControllablePhysicsComponent::SetIsOnRail(bool val) {
+	if (val == m_IsOnRail) return;
 	m_DirtyPosition = true;
 	m_IsOnRail = val;
 }

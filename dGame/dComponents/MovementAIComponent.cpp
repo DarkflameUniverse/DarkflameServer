@@ -80,12 +80,14 @@ void MovementAIComponent::Update(const float deltaTime) {
 	if (m_PullingToPoint) {
 		const auto source = GetCurrentWaypoint();
 
+		// Just a guess at the speed...
 		const auto speed = deltaTime * 2.5f;
 
 		NiPoint3 velocity = (m_PullPoint - source) * speed;
 
 		SetPosition(source + velocity);
 
+		// We are close enough to the pulled to point, stop pulling
 		if (Vector3::DistanceSquared(m_Parent->GetPosition(), m_PullPoint) < std::pow(2, 2)) {
 			m_PullingToPoint = false;
 		}
@@ -114,7 +116,10 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	NiPoint3 velocity = NiPoint3::ZERO;
 
-	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) // Do we have another waypoint to seek?
+	// If we have no acceleration, then we have no max speed.
+	// If we have no base speed, then we cannot scale the speed by it.
+	// Do we have another waypoint to seek?
+	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex())
 	{
 		m_NextWaypoint = GetCurrentWaypoint();
 
@@ -132,7 +137,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 			m_CurrentSpeed = m_MaxSpeed;
 		}
 
-		const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed
+		const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed * current speed
 
 		const auto delta = m_NextWaypoint - source;
 
@@ -149,6 +154,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 	} else {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
+		// All checks for how to progress when you arrive at a waypoint will be handled in this else block.
 		HandleWaypointArrived();
 		if (!AdvancePathWaypointIndex()) {
 			if (m_Path) {
