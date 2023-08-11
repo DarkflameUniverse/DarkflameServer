@@ -1,7 +1,6 @@
-
 #include "CDPropertyEntranceComponentTable.h"
 
-CDPropertyEntranceComponentTable::CDPropertyEntranceComponentTable() {
+void CDPropertyEntranceComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	size_t size = 0;

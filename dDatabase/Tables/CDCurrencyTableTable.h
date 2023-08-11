@@ -23,9 +23,9 @@ private:
 	std::vector<CDCurrencyTable> entries;
 
 public:
-	CDCurrencyTableTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDCurrencyTable> Query(std::function<bool(CDCurrencyTable)> predicate);
 
-	std::vector<CDCurrencyTable> GetEntries(void) const;
+	const std::vector<CDCurrencyTable>& GetEntries() const;
 };

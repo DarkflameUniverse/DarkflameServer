@@ -20,9 +20,9 @@ private:
 	std::vector<CDMissionEmail> entries;
 
 public:
-	CDMissionEmailTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissionEmail> Query(std::function<bool(CDMissionEmail)> predicate);
 
-	std::vector<CDMissionEmail> GetEntries(void) const;
+	const std::vector<CDMissionEmail>& GetEntries() const;
 };

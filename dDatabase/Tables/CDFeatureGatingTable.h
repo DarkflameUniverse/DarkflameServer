@@ -16,11 +16,12 @@ private:
 	std::vector<CDFeatureGating> entries;
 
 public:
-	CDFeatureGatingTable();
+	void LoadValuesFromDatabase();
+
 	// Queries the table with a custom "where" clause
 	std::vector<CDFeatureGating> Query(std::function<bool(CDFeatureGating)> predicate);
 
 	bool FeatureUnlocked(const std::string& feature) const;
 
-	std::vector<CDFeatureGating> GetEntries(void) const;
+	const std::vector<CDFeatureGating>& GetEntries(void) const;
 };
