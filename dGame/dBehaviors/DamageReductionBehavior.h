@@ -19,5 +19,7 @@ public:
 
 	void Timer(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) override;
 
+	void UnCast(BehaviorContext* context, BehaviorBranchContext branch) override;
+
 	void Load() override;
 };
