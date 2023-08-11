@@ -25,9 +25,9 @@ private:
 	std::vector<CDDestructibleComponent> entries;
 
 public:
-	CDDestructibleComponentTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDDestructibleComponent> Query(std::function<bool(CDDestructibleComponent)> predicate);
 
-	std::vector<CDDestructibleComponent> GetEntries(void) const;
+	const std::vector<CDDestructibleComponent>& GetEntries(void) const;
 };

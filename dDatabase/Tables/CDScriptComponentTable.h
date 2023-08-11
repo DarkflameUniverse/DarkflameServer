@@ -15,7 +15,7 @@ private:
 	CDScriptComponent m_ToReturnWhenNoneFound;
 
 public:
-	CDScriptComponentTable();
+	void LoadValuesFromDatabase();
 	// Gets an entry by scriptID
 	const CDScriptComponent& GetByID(unsigned int id);
 };

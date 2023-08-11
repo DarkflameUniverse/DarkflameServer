@@ -16,7 +16,7 @@ VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
 	RefreshInventory(true);
 }
 
-void VendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void VendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(bIsInitialUpdate || m_DirtyVendor);
 	if (bIsInitialUpdate || m_DirtyVendor) {
 		outBitStream->Write(m_HasStandardCostItems);

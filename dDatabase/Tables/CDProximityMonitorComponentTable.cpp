@@ -1,7 +1,6 @@
 #include "CDProximityMonitorComponentTable.h"
 
-//! Constructor
-CDProximityMonitorComponentTable::CDProximityMonitorComponentTable(void) {
+void CDProximityMonitorComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -33,7 +32,6 @@ CDProximityMonitorComponentTable::CDProximityMonitorComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Queries the table with a custom "where" clause
 std::vector<CDProximityMonitorComponent> CDProximityMonitorComponentTable::Query(std::function<bool(CDProximityMonitorComponent)> predicate) {
 
 	std::vector<CDProximityMonitorComponent> data = cpplinq::from(this->entries)
@@ -43,8 +41,7 @@ std::vector<CDProximityMonitorComponent> CDProximityMonitorComponentTable::Query
 	return data;
 }
 
-//! Gets all the entries in the table
-std::vector<CDProximityMonitorComponent> CDProximityMonitorComponentTable::GetEntries(void) const {
+const std::vector<CDProximityMonitorComponent>& CDProximityMonitorComponentTable::GetEntries() const {
 	return this->entries;
 }
 

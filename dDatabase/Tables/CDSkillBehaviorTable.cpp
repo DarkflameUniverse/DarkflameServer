@@ -1,8 +1,6 @@
 #include "CDSkillBehaviorTable.h"
-//#include "Logger.hpp"
 
-//! Constructor
-CDSkillBehaviorTable::CDSkillBehaviorTable(void) {
+void CDSkillBehaviorTable::LoadValuesFromDatabase() {
 	m_empty = CDSkillBehavior();
 
 	// First, get the size of the table
@@ -51,13 +49,6 @@ CDSkillBehaviorTable::CDSkillBehaviorTable(void) {
 	tableData.finalize();
 }
 
-//! Queries the table with a custom "where" clause
-std::vector<CDSkillBehavior> CDSkillBehaviorTable::Query(std::function<bool(CDSkillBehavior)> predicate) {
-	std::vector<CDSkillBehavior> data; //So MSVC shuts up
-	return data;
-}
-
-//! Gets an entry by ID
 const CDSkillBehavior& CDSkillBehaviorTable::GetSkillByID(unsigned int skillID) {
 	std::map<unsigned int, CDSkillBehavior>::iterator it = this->entries.find(skillID);
 	if (it != this->entries.end()) {

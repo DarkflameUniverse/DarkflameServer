@@ -14,11 +14,11 @@ private:
 	std::vector<CDItemSetSkills> entries;
 
 public:
-	CDItemSetSkillsTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDItemSetSkills> Query(std::function<bool(CDItemSetSkills)> predicate);
 
-	std::vector<CDItemSetSkills> GetEntries(void) const;
+	const std::vector<CDItemSetSkills>& GetEntries() const;
 
 	std::vector<CDItemSetSkills> GetBySkillID(unsigned int SkillSetID);
 };

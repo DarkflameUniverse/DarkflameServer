@@ -1,7 +1,6 @@
 #include "CDRarityTableTable.h"
 
-//! Constructor
-CDRarityTableTable::CDRarityTableTable(void) {
+void CDRarityTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -44,7 +43,7 @@ std::vector<CDRarityTable> CDRarityTableTable::Query(std::function<bool(CDRarity
 }
 
 //! Gets all the entries in the table
-const std::vector<CDRarityTable>& CDRarityTableTable::GetEntries(void) const {
+const std::vector<CDRarityTable>& CDRarityTableTable::GetEntries() const {
 	return this->entries;
 }
 
