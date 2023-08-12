@@ -7,8 +7,8 @@
 
 void MovementAIComponent::HandleWaypointArrived() {
 	if (!m_Path) return;
-	if (m_Path->pathWaypoints[m_CurrentPathWaypointIndex].commands.empty()) return;
-	for(auto [command, data] : m_Path->pathWaypoints[m_CurrentPathWaypointIndex].commands){
+	if (m_Path->pathWaypoints.at(m_CurrentPathWaypointIndex).commands.empty()) return;
+	for(auto [command, data] : m_Path->pathWaypoints.at(m_CurrentPathWaypointIndex).commands){
 		switch(command){
 			case eWaypointCommandType::STOP:
 				Stop();
@@ -102,20 +102,20 @@ void MovementAIComponent::HandleWaypointCommandUnequipInventory(std::string data
 }
 void MovementAIComponent::HandleWaypointCommandDelay(std::string data) {
 	Pause();
-	std::remove_if(data.begin(), data.end(), isspace);
+	std::remove_if(data.begin(), data.end(), ::isspace);
 	// delay for time
 }
 void MovementAIComponent::HandleWaypointCommandEmote(std::string data) {
-	// pause fore animation time
+	// pause for animation time
 	auto delay = RenderComponent::PlayAnimation(m_Parent, data);
 }
 void MovementAIComponent::HandleWaypointCommandTeleport(std::string data) {
 	auto posString = GeneralUtils::SplitString(data, ',');
 	if (posString.size() == 0) return;
 	auto newPos = NiPoint3();
-	if (posString.size() == 1) GeneralUtils::TryParse<float>(posString[0], newPos.x);
-	if (posString.size() == 2) GeneralUtils::TryParse<float>(posString[1], newPos.y);
-	if (posString.size() == 3) GeneralUtils::TryParse<float>(posString[2], newPos.z);
+	if (posString.size() == 1) GeneralUtils::TryParse<float>(posString.at(0), newPos.x);
+	if (posString.size() == 2) GeneralUtils::TryParse<float>(posString.at(1), newPos.y);
+	if (posString.size() == 3) GeneralUtils::TryParse<float>(posString.at(2), newPos.z);
 	GameMessages::SendTeleport(m_Parent->GetObjectID(), newPos, NiQuaternion::IDENTITY, UNASSIGNED_SYSTEM_ADDRESS);
 }
 void MovementAIComponent::HandleWaypointCommandPathSpeed(std::string data) {

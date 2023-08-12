@@ -399,6 +399,9 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 	std::vector<NiPoint3> computedPath;
 	if (dpWorld::Instance().IsLoaded()) {
 		computedPath = dpWorld::Instance().GetNavMesh()->GetPath(m_Parent->GetPosition(), destination, m_Info.wanderSpeed);
+	} else {
+		// If we do not have a navmesh, we do not want an AI to be going towards points that are far below or above the map.
+		// 
 	}
 
 	// Somehow failed

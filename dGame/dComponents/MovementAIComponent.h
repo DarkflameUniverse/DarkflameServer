@@ -223,8 +223,11 @@ public:
 	 */
 	static float GetBaseSpeed(LOT lot);
 
-	void SetCurrentPathWaypointIndex(uint32_t value) { m_CurrentPathWaypointIndex = value; };
-	void SetNextPathWaypointIndex(uint32_t value) { m_NextPathWaypointIndex = value; };
+private:
+
+	// TODO: Advance properly
+	void SetCurrentPathWaypointIndex(uint32_t value) {  };
+	void SetNextPathWaypointIndex(uint32_t value) {  };
 	void HandleWaypointCommandGroupEmote(std::string data);
 	void HandleWaypointCommandSetVariable(std::string data);
 	void HandleWaypointCommandCastSkill(std::string data);
@@ -237,8 +240,6 @@ public:
 	void HandleWaypointCommandRemoveNPC(std::string data);
 	void HandleWaypointCommandChangeWaypoint(std::string data);
 	void HandleWaypointCommandSpawnObject(std::string data);
-
-private:
 
 	/**
 	 * Sets the current position of the entity
