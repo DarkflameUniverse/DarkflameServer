@@ -95,25 +95,23 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write(m_ImmuneToStunInteractCount);
 	}
 
-	if (m_IgnoreMultipliers) m_DirtyCheats = false;
-
-	outBitStream->Write(m_DirtyCheats);
-	if (m_DirtyCheats) {
+	outBitStream->Write(m_DirtyCheats || bIsInitialUpdate);
+	if (m_DirtyCheats || bIsInitialUpdate) {
 		outBitStream->Write(m_GravityScale);
 		outBitStream->Write(m_SpeedMultiplier);
 
 		if (!bIsInitialUpdate) m_DirtyCheats = false;
 	}
 
-	outBitStream->Write(m_DirtyEquippedItemInfo);
-	if (m_DirtyEquippedItemInfo) {
+	outBitStream->Write(m_DirtyEquippedItemInfo || bIsInitialUpdate);
+	if (m_DirtyEquippedItemInfo || bIsInitialUpdate) {
 		outBitStream->Write(m_PickupRadius);
 		outBitStream->Write(m_InJetpackMode);
 		if (!bIsInitialUpdate) m_DirtyEquippedItemInfo = false;
 	}
 
-	outBitStream->Write(m_DirtyBubble);
-	if (m_DirtyBubble) {
+	outBitStream->Write(m_DirtyBubble || bIsInitialUpdate);
+	if (m_DirtyBubble || bIsInitialUpdate) {
 		outBitStream->Write(m_IsInBubble);
 		if (m_IsInBubble) {
 			outBitStream->Write(m_BubbleType);
@@ -152,13 +150,12 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 			m_DirtyAngularVelocity = false;
 		}
 
-		outBitStream->Write0();
-		if (!bIsInitialUpdate) m_DirtyPosition = false;
-	}
-
-	if (!bIsInitialUpdate) {
-		outBitStream->Write(m_IsTeleporting);
-		m_IsTeleporting = false;
+		outBitStream->Write0(); // LocalSpaceInfo
+		if (!bIsInitialUpdate) {
+			m_DirtyPosition = false;
+			outBitStream->Write(m_IsTeleporting);
+			m_IsTeleporting = false;
+		}
 	}
 }
 
@@ -333,7 +330,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims){
+void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims) {
 	if (m_IsInBubble) {
 		Game::logger->Log("ControllablePhysicsComponent", "Already in bubble");
 		return;
@@ -345,7 +342,7 @@ void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bo
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void ControllablePhysicsComponent::DeactivateBubbleBuff(){
+void ControllablePhysicsComponent::DeactivateBubbleBuff() {
 	m_DirtyBubble = true;
 	m_IsInBubble = false;
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -360,9 +357,9 @@ void ControllablePhysicsComponent::SetStunImmunity(
 	const bool bImmuneToStunJump,
 	const bool bImmuneToStunMove,
 	const bool bImmuneToStunTurn,
-	const bool bImmuneToStunUseItem){
+	const bool bImmuneToStunUseItem) {
 
-	if (state == eStateChangeType::POP){
+	if (state == eStateChangeType::POP) {
 		if (bImmuneToStunAttack && m_ImmuneToStunAttackCount > 0) 		m_ImmuneToStunAttackCount -= 1;
 		if (bImmuneToStunEquip && m_ImmuneToStunEquipCount > 0) 		m_ImmuneToStunEquipCount -= 1;
 		if (bImmuneToStunInteract && m_ImmuneToStunInteractCount > 0) 	m_ImmuneToStunInteractCount -= 1;
