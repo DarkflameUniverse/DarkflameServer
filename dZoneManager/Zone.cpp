@@ -13,6 +13,7 @@
 #include "CDZoneTableTable.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
+#include "dpWorld.h"
 
 #include "eTriggerCommandType.h"
 #include "eTriggerEventType.h"
@@ -552,6 +553,14 @@ void Zone::LoadPath(std::istream& file) {
 					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
 				}
 				if (ldfConfig) waypoint.config.push_back(ldfConfig);
+			}
+		}
+		// We verify the waypoint heights against the navmesh because in many movement paths,
+		// the waypoint is located near 0 height, 
+		if (path.pathType == PathType::Movement) {
+			if (dpWorld::Instance().IsLoaded()) {
+				// 2000 should be large enough for every world.
+				waypoint.position.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(waypoint.position, 2000.0f);
 			}
 		}
 		path.pathWaypoints.push_back(waypoint);
