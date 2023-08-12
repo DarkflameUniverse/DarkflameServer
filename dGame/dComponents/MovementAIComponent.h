@@ -195,7 +195,7 @@ public:
 	void ReversePath();
 
 	void HandleWaypointArrived();
-	
+
 	void SetupPath(const std::string& pathname);
 
 	/**
@@ -222,6 +222,21 @@ public:
 	 * @return the base speed of the lot
 	 */
 	static float GetBaseSpeed(LOT lot);
+
+	void SetCurrentPathWaypointIndex(uint32_t value) { m_CurrentPathWaypointIndex = value; };
+	void SetNextPathWaypointIndex(uint32_t value) { m_NextPathWaypointIndex = value; };
+	void HandleWaypointCommandGroupEmote(std::string data);
+	void HandleWaypointCommandSetVariable(std::string data);
+	void HandleWaypointCommandCastSkill(std::string data);
+	void HandleWaypointCommandEquipInventory(std::string data);
+	void HandleWaypointCommandUnequipInventory(std::string data);
+	void HandleWaypointCommandDelay(std::string data);
+	void HandleWaypointCommandEmote(std::string data);
+	void HandleWaypointCommandTeleport(std::string data);
+	void HandleWaypointCommandPathSpeed(std::string data);
+	void HandleWaypointCommandRemoveNPC(std::string data);
+	void HandleWaypointCommandChangeWaypoint(std::string data);
+	void HandleWaypointCommandSpawnObject(std::string data);
 
 private:
 
@@ -334,12 +349,12 @@ private:
 	int32_t m_CurrentPathWaypointIndex;
 
 	/**
-	 * The index of the current waypoint in the path
+	 * The index of the next waypoint in the path
 	 */
 	int32_t m_NextPathWaypointIndex;
 
 	/**
-	 * Whether or not the path is being read in reverse 
+	 * Whether or not the path is being read in reverse
 	 */
 	bool m_IsInReverse;
 

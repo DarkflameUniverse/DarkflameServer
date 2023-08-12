@@ -20,7 +20,6 @@ enum class eWaypointCommandType : uint32_t {
 	CHANGE_WAYPOINT,
 	DELETE_SELF,
 	KILL_SELF,
-	REMOVE_SELF,
 	SPAWN_OBJECT,
 	PLAY_SOUND,
 };
@@ -45,7 +44,7 @@ public:
 			{"changeWP", eWaypointCommandType::CHANGE_WAYPOINT},
 			{"DeleteSelf", eWaypointCommandType::DELETE_SELF},
 			{"killself", eWaypointCommandType::KILL_SELF},
-			{"removeself", eWaypointCommandType::REMOVE_SELF},
+			{"removeself", eWaypointCommandType::DELETE_SELF},
 			{"spawnOBJ", eWaypointCommandType::SPAWN_OBJECT},
 			{"playSound", eWaypointCommandType::PLAY_SOUND},
 		};

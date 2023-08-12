@@ -317,8 +317,8 @@ void GameMessages::SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& s
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write((uint16_t)eGameMessageType::PLAY_ND_AUDIO_EMITTER);
-	bitStream.Write0();
-	bitStream.Write0();
+	bitStream.Write0(); // callback message data {lwoobjid}
+	bitStream.Write0(); // audio emmitterid {uint32_t}}
 
 	uint32_t length = audioGUID.size();
 	bitStream.Write(length);
@@ -326,16 +326,9 @@ void GameMessages::SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& s
 		bitStream.Write(static_cast<char>(audioGUID[k]));
 	}
 
-	//PacketUtils::WriteString(bitStream, audioGUID, audioGUID.size());
-
-	//bitStream.Write(uint32_t(audioGUID.size()));
-	//for (char character : audioGUID) {
-	//	bitStream.Write(character);
-	//}
-
-	bitStream.Write(uint32_t(0));
-	bitStream.Write0();
-	bitStream.Write0();
+	bitStream.Write(uint32_t(0)); // size of NDAudioMetaEventName (then print he string like the guid)
+	bitStream.Write0(); //result {bool}
+	bitStream.Write0(); // m_TargetObjectIDForNDAudioCallbackMessages {lwoobjid}
 
 	SEND_PACKET_BROADCAST;
 }
