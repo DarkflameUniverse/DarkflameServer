@@ -70,7 +70,7 @@ bool CharacterComponent::LandingAnimDisabled(int zoneID) {
 CharacterComponent::~CharacterComponent() {
 }
 
-void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 
 	if (bIsInitialUpdate) {
 		outBitStream->Write0();

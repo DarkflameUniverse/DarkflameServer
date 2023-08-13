@@ -55,7 +55,7 @@ SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent)
 	if (!mixerName.empty()) this->m_MixerPrograms.push_back(MixerProgram(mixerName));
 }
 
-void SoundTriggerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void SoundTriggerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(this->m_Dirty || bIsInitialUpdate);
 	if (this->m_Dirty || bIsInitialUpdate) {
 		outBitStream->Write<uint8_t>(this->m_MusicCues.size());

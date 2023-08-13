@@ -76,7 +76,7 @@ void ControllablePhysicsComponent::Update(float deltaTime) {
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
 		outBitStream->Write(m_InJetpackMode);
 		if (m_InJetpackMode) {
@@ -177,12 +177,6 @@ void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	character->QueryAttribute("lzrw", &m_Rotation.w);
 
 	m_DirtyPosition = true;
-}
-
-void ControllablePhysicsComponent::ResetFlags() {
-	m_DirtyAngularVelocity = false;
-	m_DirtyPosition = false;
-	m_DirtyVelocity = false;
 }
 
 void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {

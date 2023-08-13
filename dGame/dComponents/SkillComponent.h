@@ -64,7 +64,7 @@ public:
 	explicit SkillComponent(Entity* parent);
 	~SkillComponent() override;
 
-	static void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Computes skill updates. Invokes CalculateUpdate.

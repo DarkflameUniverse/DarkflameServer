@@ -583,12 +583,6 @@ bool EntityManager::GetGhostingEnabled() const {
 	return m_GhostingEnabled;
 }
 
-void EntityManager::ResetFlags() {
-	for (const auto& e : m_Entities) {
-		e.second->ResetFlags();
-	}
-}
-
 void EntityManager::ScheduleForKill(Entity* entity) {
 	// Deactivate switches if they die
 	if (!entity)

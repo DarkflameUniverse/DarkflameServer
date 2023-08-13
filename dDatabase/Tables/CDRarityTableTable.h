@@ -31,7 +31,7 @@ private:
 	std::vector<CDRarityTable> entries;
 
 public:
-	CDRarityTableTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDRarityTable> Query(std::function<bool(CDRarityTable)> predicate);
 

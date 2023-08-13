@@ -1,15 +1,15 @@
 #include "CDBehaviorParameterTable.h"
 #include "GeneralUtils.h"
 
-uint64_t GetHash(const uint32_t behaviorID, const uint32_t parameterID) {
-	uint64_t hash = behaviorID;
-	hash <<= 31U;
-	hash |= parameterID;
+uint64_t GetKey(const uint32_t behaviorID, const uint32_t parameterID) {
+	uint64_t key = behaviorID;
+	key <<= 31U;
+	key |= parameterID;
 
-	return hash;
+	return key;
 }
 
-CDBehaviorParameterTable::CDBehaviorParameterTable() {
+void CDBehaviorParameterTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorParameter");
 	while (!tableData.eof()) {
 		uint32_t behaviorID = tableData.getIntField("behaviorID", -1);
@@ -21,7 +21,7 @@ CDBehaviorParameterTable::CDBehaviorParameterTable() {
 		} else {
 			parameterId = m_ParametersList.insert(std::make_pair(candidateStringToAdd, m_ParametersList.size())).first->second;
 		}
-		uint64_t hash = GetHash(behaviorID, parameterId);
+		uint64_t hash = GetKey(behaviorID, parameterId);
 		float value = tableData.getFloatField("value", -1.0f);
 
 		m_Entries.insert(std::make_pair(hash, value));
@@ -34,7 +34,7 @@ CDBehaviorParameterTable::CDBehaviorParameterTable() {
 float CDBehaviorParameterTable::GetValue(const uint32_t behaviorID, const std::string& name, const float defaultValue) {
 	auto parameterID = this->m_ParametersList.find(name);
 	if (parameterID == this->m_ParametersList.end()) return defaultValue;
-	auto hash = GetHash(behaviorID, parameterID->second);
+	auto hash = GetKey(behaviorID, parameterID->second);
 
 	// Search for specific parameter
 	auto it = m_Entries.find(hash);
@@ -45,7 +45,7 @@ std::map<std::string, float> CDBehaviorParameterTable::GetParametersByBehaviorID
 	uint64_t hashBase = behaviorID;
 	std::map<std::string, float> returnInfo;
 	for (auto& [parameterString, parameterId] : m_ParametersList) {
-		uint64_t hash = GetHash(hashBase, parameterId);
+		uint64_t hash = GetKey(hashBase, parameterId);
 		auto infoCandidate = m_Entries.find(hash);
 		if (infoCandidate != m_Entries.end()) {
 			returnInfo.insert(std::make_pair(parameterString, infoCandidate->second));

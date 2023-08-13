@@ -17,7 +17,7 @@ void ShootingGalleryComponent::SetDynamicParams(const DynamicShootingGalleryPara
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void ShootingGalleryComponent::Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate, uint32_t& flags) const {
+void ShootingGalleryComponent::Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate) {
 	// Start ScriptedActivityComponent
 	outBitStream->Write<bool>(true);
 	if (m_CurrentPlayerID == LWOOBJID_EMPTY) {

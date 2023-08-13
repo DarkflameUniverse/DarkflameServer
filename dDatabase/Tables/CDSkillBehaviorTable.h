@@ -31,9 +31,7 @@ private:
 	CDSkillBehavior m_empty;
 
 public:
-	CDSkillBehaviorTable();
-	// Queries the table with a custom "where" clause
-	std::vector<CDSkillBehavior> Query(std::function<bool(CDSkillBehavior)> predicate);
+	void LoadValuesFromDatabase();
 
 	// Gets an entry by skillID
 	const CDSkillBehavior& GetSkillByID(unsigned int skillID);
