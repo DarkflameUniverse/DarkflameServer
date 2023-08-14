@@ -1,6 +1,6 @@
 #include "CDBehaviorTemplateTable.h"
 
-CDBehaviorTemplateTable::CDBehaviorTemplateTable(void) {
+void CDBehaviorTemplateTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -48,7 +48,7 @@ std::vector<CDBehaviorTemplate> CDBehaviorTemplateTable::Query(std::function<boo
 	return data;
 }
 
-std::vector<CDBehaviorTemplate> CDBehaviorTemplateTable::GetEntries(void) const {
+const std::vector<CDBehaviorTemplate>& CDBehaviorTemplateTable::GetEntries() const {
 	return this->entries;
 }
 
@@ -64,4 +64,3 @@ const CDBehaviorTemplate CDBehaviorTemplateTable::GetByBehaviorID(uint32_t behav
 		return entry->second;
 	}
 }
-

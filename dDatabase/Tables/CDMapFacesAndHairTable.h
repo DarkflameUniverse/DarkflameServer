@@ -17,7 +17,7 @@ class CDMapFacesAndHairTable : public CDTable<CDMapFacesAndHairTable> {
     std::vector<CDMapFacesAndHair> entries;
 
   public:
-	CDMapFacesAndHairTable();
+	void LoadValuesFromDatabase();
 
     CDMapFacesAndHair GetByLot(LOT lot);
     CDMapFacesAndHair GetByEyes(uint32_t id);

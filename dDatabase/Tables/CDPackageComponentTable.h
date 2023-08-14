@@ -14,9 +14,9 @@ private:
 	std::vector<CDPackageComponent> entries;
 
 public:
-	CDPackageComponentTable(void);
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDPackageComponent> Query(std::function<bool(CDPackageComponent)> predicate);
 
-	std::vector<CDPackageComponent> GetEntries(void) const;
+	const std::vector<CDPackageComponent>& GetEntries() const;
 };

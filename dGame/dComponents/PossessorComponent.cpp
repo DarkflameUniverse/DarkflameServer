@@ -26,7 +26,7 @@ PossessorComponent::~PossessorComponent() {
 	}
 }
 
-void PossessorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void PossessorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_DirtyPossesor || bIsInitialUpdate);
 	if (m_DirtyPossesor || bIsInitialUpdate) {
 		m_DirtyPossesor = false;

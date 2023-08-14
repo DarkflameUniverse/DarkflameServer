@@ -19,10 +19,10 @@ private:
 	std::vector<CDMovementAIComponent> entries;
 
 public:
-	CDMovementAIComponentTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDMovementAIComponent> Query(std::function<bool(CDMovementAIComponent)> predicate);
 
 	// Gets all the entries in the table
-	std::vector<CDMovementAIComponent> GetEntries(void) const;
+	const std::vector<CDMovementAIComponent>& GetEntries() const;
 };

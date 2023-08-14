@@ -306,7 +306,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 	m_HasCreatedPhysics = true;
 }
 
-void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_PositionInfoDirty || bIsInitialUpdate);
 	if (m_PositionInfoDirty || bIsInitialUpdate) {
 		outBitStream->Write(m_Position.x);
@@ -346,11 +346,6 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 
 		m_EffectInfoDirty = false;
 	}
-}
-
-void PhantomPhysicsComponent::ResetFlags() {
-	m_EffectInfoDirty = false;
-	m_PositionInfoDirty = false;
 }
 
 void PhantomPhysicsComponent::Update(float deltaTime) {

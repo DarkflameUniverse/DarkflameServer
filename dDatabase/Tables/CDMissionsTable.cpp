@@ -2,8 +2,7 @@
 
 CDMissions CDMissionsTable::Default = {};
 
-//! Constructor
-CDMissionsTable::CDMissionsTable(void) {
+void CDMissionsTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;

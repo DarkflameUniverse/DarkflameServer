@@ -54,7 +54,7 @@ RenderComponent::~RenderComponent() {
 	m_Effects.clear();
 }
 
-void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
 
 	outBitStream->Write<uint32_t>(m_Effects.size());

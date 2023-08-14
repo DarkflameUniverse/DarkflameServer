@@ -485,7 +485,7 @@ SkillComponent::~SkillComponent() {
 	Reset();
 }
 
-void SkillComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void SkillComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) outBitStream->Write0();
 }
 

@@ -22,7 +22,7 @@ BouncerComponent::BouncerComponent(Entity* parent) : Component(parent) {
 BouncerComponent::~BouncerComponent() {
 }
 
-void BouncerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void BouncerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_PetEnabled);
 	if (m_PetEnabled) {
 		outBitStream->Write(m_PetBouncerEnabled);

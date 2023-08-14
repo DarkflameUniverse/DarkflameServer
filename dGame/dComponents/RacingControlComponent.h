@@ -110,8 +110,8 @@ public:
 	RacingControlComponent(Entity* parentEntity);
 	~RacingControlComponent();
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-	void Update(float deltaTime);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Update(float deltaTime) override;
 
 	/**
 	 * Invoked when a player loads into the zone.

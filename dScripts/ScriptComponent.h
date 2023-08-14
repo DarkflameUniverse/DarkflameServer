@@ -24,7 +24,7 @@ public:
 	ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
 	~ScriptComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Returns the script that's attached to this entity
