@@ -1,6 +1,6 @@
 #include "CDMapFacesAndHairTable.h"
 
-CDMapFacesAndHairTable::CDMapFacesAndHairTable(void) {
+void CDMapFacesAndHairTable::LoadValuesFromDatabase() {
     unsigned int size = 0;
     auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM mapFacesAndHair");
     while (!tableSize.eof()) {
