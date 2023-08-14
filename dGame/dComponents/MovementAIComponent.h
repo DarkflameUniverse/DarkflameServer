@@ -194,7 +194,7 @@ public:
 
 	void ReversePath();
 
-	void HandleWaypointArrived();
+	void HandleWaypointArrived(uint32_t commandIndex);
 
 	void SetupPath(const std::string& pathname);
 
@@ -228,18 +228,17 @@ private:
 	// TODO: Advance properly
 	void SetCurrentPathWaypointIndex(uint32_t value) {  };
 	void SetNextPathWaypointIndex(uint32_t value) {  };
-	void HandleWaypointCommandGroupEmote(std::string data);
-	void HandleWaypointCommandSetVariable(std::string data);
-	void HandleWaypointCommandCastSkill(std::string data);
-	void HandleWaypointCommandEquipInventory(std::string data);
-	void HandleWaypointCommandUnequipInventory(std::string data);
-	void HandleWaypointCommandDelay(std::string data);
-	void HandleWaypointCommandEmote(std::string data);
-	void HandleWaypointCommandTeleport(std::string data);
-	void HandleWaypointCommandPathSpeed(std::string data);
-	void HandleWaypointCommandRemoveNPC(std::string data);
-	void HandleWaypointCommandChangeWaypoint(std::string data);
-	void HandleWaypointCommandSpawnObject(std::string data);
+	float HandleWaypointCommandGroupEmote(const std::string& data);
+	void HandleWaypointCommandSetVariable(const std::string& data);
+	void HandleWaypointCommandCastSkill(const std::string& data);
+	void HandleWaypointCommandEquipInventory(const std::string& data);
+	void HandleWaypointCommandUnequipInventory(const std::string& data);
+	float HandleWaypointCommandDelay(const std::string& data);
+	void HandleWaypointCommandTeleport(const std::string& data);
+	void HandleWaypointCommandPathSpeed(const std::string& data);
+	void HandleWaypointCommandRemoveNPC(const std::string& data);
+	void HandleWaypointCommandChangeWaypoint(const std::string& data);
+	void HandleWaypointCommandSpawnObject(const std::string& data);
 
 	/**
 	 * Sets the current position of the entity

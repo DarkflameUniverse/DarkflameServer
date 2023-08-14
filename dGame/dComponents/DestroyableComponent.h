@@ -310,6 +310,7 @@ public:
 	 */
 	const std::vector<int32_t>& GetFactionIDs() const { return m_FactionIDs; }
 
+	const bool BelongsToFaction(int32_t factionID) const {return std::find(m_FactionIDs.begin(), m_FactionIDs.end(), factionID) != m_FactionIDs.end(); }
 	/**
 	 * Returns all the faction IDs that this entity considers an enemy
 	 * @return all the faction IDs that this entity considers an enemy

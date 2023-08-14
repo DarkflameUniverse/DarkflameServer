@@ -155,7 +155,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 	} else {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
 		// All checks for how to progress when you arrive at a waypoint will be handled in this else block.
-		HandleWaypointArrived();
+		HandleWaypointArrived(0);
 		if (!AdvancePathWaypointIndex()) {
 			if (m_Path) {
 				if (m_Path->pathBehavior == PathBehavior::Bounce) {
@@ -401,7 +401,7 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 		computedPath = dpWorld::Instance().GetNavMesh()->GetPath(m_Parent->GetPosition(), destination, m_Info.wanderSpeed);
 	} else {
 		// If we do not have a navmesh, we do not want an AI to be going towards points that are far below or above the map.
-		// 
+		//
 	}
 
 	// Somehow failed
