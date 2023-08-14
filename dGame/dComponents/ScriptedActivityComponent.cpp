@@ -82,7 +82,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 ScriptedActivityComponent::~ScriptedActivityComponent()
 = default;
 
-void ScriptedActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) const {
+void ScriptedActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(true);
 	outBitStream->Write<uint32_t>(m_ActivityPlayers.size());
 

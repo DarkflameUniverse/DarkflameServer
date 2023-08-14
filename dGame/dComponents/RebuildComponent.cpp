@@ -57,7 +57,7 @@ RebuildComponent::~RebuildComponent() {
 	DespawnActivator();
 }
 
-void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (m_Parent->GetComponent(eReplicaComponentType::DESTROYABLE) == nullptr) {
 		if (bIsInitialUpdate) {
 			outBitStream->Write(false);

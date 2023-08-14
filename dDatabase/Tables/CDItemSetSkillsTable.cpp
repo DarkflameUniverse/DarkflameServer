@@ -1,7 +1,6 @@
 #include "CDItemSetSkillsTable.h"
 
-//! Constructor
-CDItemSetSkillsTable::CDItemSetSkillsTable(void) {
+void CDItemSetSkillsTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -41,7 +40,7 @@ std::vector<CDItemSetSkills> CDItemSetSkillsTable::Query(std::function<bool(CDIt
 	return data;
 }
 
-std::vector<CDItemSetSkills> CDItemSetSkillsTable::GetEntries(void) const {
+const std::vector<CDItemSetSkills>& CDItemSetSkillsTable::GetEntries() const {
 	return this->entries;
 }
 

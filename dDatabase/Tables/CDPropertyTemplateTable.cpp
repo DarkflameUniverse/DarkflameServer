@@ -1,6 +1,6 @@
 #include "CDPropertyTemplateTable.h"
 
-CDPropertyTemplateTable::CDPropertyTemplateTable() {
+void CDPropertyTemplateTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	size_t size = 0;

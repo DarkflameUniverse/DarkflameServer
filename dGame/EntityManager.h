@@ -57,8 +57,6 @@ public:
 	Entity* GetGhostCandidate(int32_t id);
 	bool GetGhostingEnabled() const;
 
-	void ResetFlags();
-
 	void ScheduleForKill(Entity* entity);
 
 	void ScheduleForDeletion(LWOOBJID entity);

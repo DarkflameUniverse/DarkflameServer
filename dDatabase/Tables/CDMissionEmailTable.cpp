@@ -1,7 +1,6 @@
 #include "CDMissionEmailTable.h"
 
-//! Constructor
-CDMissionEmailTable::CDMissionEmailTable(void) {
+void CDMissionEmailTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -48,7 +47,7 @@ std::vector<CDMissionEmail> CDMissionEmailTable::Query(std::function<bool(CDMiss
 }
 
 //! Gets all the entries in the table
-std::vector<CDMissionEmail> CDMissionEmailTable::GetEntries(void) const {
+const std::vector<CDMissionEmail>& CDMissionEmailTable::GetEntries() const {
 	return this->entries;
 }
 

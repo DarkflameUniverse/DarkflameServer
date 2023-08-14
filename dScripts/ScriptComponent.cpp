@@ -17,7 +17,7 @@ ScriptComponent::~ScriptComponent() {
 
 }
 
-void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
 		const auto& networkSettings = m_Parent->GetNetworkSettings();
 		auto hasNetworkSettings = !networkSettings.empty();

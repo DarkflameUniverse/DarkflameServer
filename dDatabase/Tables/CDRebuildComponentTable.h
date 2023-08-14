@@ -21,10 +21,10 @@ private:
 	std::vector<CDRebuildComponent> entries;
 
 public:
-	CDRebuildComponentTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDRebuildComponent> Query(std::function<bool(CDRebuildComponent)> predicate);
 
-	std::vector<CDRebuildComponent> GetEntries() const;
+	const std::vector<CDRebuildComponent>& GetEntries() const;
 };
 
