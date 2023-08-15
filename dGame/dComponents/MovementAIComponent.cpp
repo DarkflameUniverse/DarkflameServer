@@ -119,8 +119,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 	// If we have no acceleration, then we have no max speed.
 	// If we have no base speed, then we cannot scale the speed by it.
 	// Do we have another waypoint to seek?
-	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex())
-	{
+	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) {
 		m_NextWaypoint = GetCurrentWaypoint();
 
 		if (m_NextWaypoint == source) {
