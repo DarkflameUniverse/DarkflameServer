@@ -48,6 +48,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_TimeTravelled = 0;
 	m_CurrentSpeed = 0;
 	m_MaxSpeed = 0;
+	m_StartingWaypointIndex = 0;
 	m_CurrentPathWaypointIndex = 0;
 	m_LockRotation = false;
 	m_IsInReverse = false;
@@ -65,12 +66,21 @@ void MovementAIComponent::SetupPath(const std::string& pathname) {
 	if (pathData) {
 		Game::logger->Log("MovementAIComponent", "found path %i %s", m_Parent->GetLOT(), path.c_str());
 		m_Path = pathData;
+		if (!HasAttachedPathStart() && m_Parent->HasVar(u"attached_path_start")) m_StartingWaypointIndex = m_Parent->GetVar<uint32_t>(u"attached_path_start");
+		if (m_Path && HasAttachedPathStart() && (m_StartingWaypointIndex < 0 || m_StartingWaypointIndex >= m_Path->pathWaypoints.size())) {
+			Game::logger->Log(
+				"MovementAIComponent",
+				"WARNING: attached path start is out of bounds for %i:%llu, defaulting path start to 0",
+				m_Parent->GetLOT(), m_Parent->GetObjectID());
+			m_StartingWaypointIndex = 0;
+		}
+		if (m_Parent->GetLOT() == 12215) m_StartingWaypointIndex = 3;
 		std::vector<NiPoint3> waypoints;
 		for (auto& waypoint : m_Path->pathWaypoints) {
 			waypoints.push_back(waypoint.position);
 		}
 		SetPath(waypoints);
-		SetMaxSpeed(30.0f);
+		SetMaxSpeed(3.0f);
 	} else {
 		Game::logger->Log("MovementAIComponent", "No path found for %i:%llu", m_Parent->GetLOT(), m_Parent->GetObjectID());
 	}
@@ -324,6 +334,13 @@ void MovementAIComponent::SetPath(std::vector<NiPoint3> path, bool startInRevers
 	// This is so AdvancePathWaypointIndex can do the recovery from effectively a paused state.
 	m_CurrentPathWaypointIndex = m_IsInReverse ? m_CurrentPath.size() - 1 : 0;
 	m_NextPathWaypointIndex = m_IsInReverse ? m_CurrentPath.size() - 1 : 0;
+
+	if (HasAttachedPathStart()) {
+		m_CurrentPathWaypointIndex = m_StartingWaypointIndex;
+		m_NextPathWaypointIndex = m_StartingWaypointIndex;
+		m_Parent->SetPosition(m_CurrentPath.at(m_CurrentPathWaypointIndex));
+	}
+
 	AdvancePathWaypointIndex();
 	SetDestination(GetCurrentPathWaypoint());
 }

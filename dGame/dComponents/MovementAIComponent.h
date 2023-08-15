@@ -216,6 +216,10 @@ public:
 
 	const NiPoint3& GetCurrentPathWaypoint() const;
 
+	void SetPathStartingWaypointIndex(int32_t value) { m_StartingWaypointIndex = value; }
+
+	bool HasAttachedPathStart() const { return m_StartingWaypointIndex != -1; }
+
 	/**
 	 * Returns the base speed from the DB for a given LOT
 	 * @param lot the lot to check for
@@ -367,6 +371,11 @@ private:
 	 * The optional path this component will follow.
 	 */
 	const Path* m_Path = nullptr;
+
+	/**
+	 * The starting index for the provided path
+	 */
+	int32_t m_StartingWaypointIndex = -1;
 };
 
 #endif // MOVEMENTAICOMPONENT_H
