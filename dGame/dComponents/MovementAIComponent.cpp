@@ -74,7 +74,6 @@ void MovementAIComponent::SetupPath(const std::string& pathname) {
 				m_Parent->GetLOT(), m_Parent->GetObjectID());
 			m_StartingWaypointIndex = 0;
 		}
-		if (m_Parent->GetLOT() == 12215) m_StartingWaypointIndex = 3;
 		std::vector<NiPoint3> waypoints;
 		for (auto& waypoint : m_Path->pathWaypoints) {
 			waypoints.push_back(waypoint.position);
