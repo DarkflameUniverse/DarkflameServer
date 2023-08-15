@@ -377,7 +377,7 @@ void BaseWavesServer::GameOver(Entity* self, bool won) {
 			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, time, self->GetObjectID(), self->GetVar<std::string>(MissionTypeVariable));
 		}
 
-		StopActivity(self, playerID, wave, time, score);
+		StopActivity(self, playerID, wave, time, score, false, false);
 		SaveScore(self, playerID, wave, time);
 	}
 }
