@@ -279,6 +279,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/client/ai/PR"
 	"dScripts/zone/AG"
 	"dScripts/zone/LUPs"
+	"dScripts/zone/LUPs/RobotCity_Intro"
 	"dScripts/zone/PROPERTY"
 	"dScripts/zone/PROPERTY/FV"
 	"dScripts/zone/PROPERTY/GF"

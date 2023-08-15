@@ -1,5 +1,6 @@
 set(DSCRIPTS_SOURCES_AI_WILD
 	"AllCrateChicken.cpp"
+	"LupGenericInteract.cpp"
 	"WildAmbients.cpp"
 	"WildAmbientCrab.cpp"
 	"WildAndScared.cpp"

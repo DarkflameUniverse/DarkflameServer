@@ -1,4 +1,4 @@
-set(DSCRIPTS_SOURCES_02_SERVER_MAP_AM 
+set(DSCRIPTS_SOURCES_02_SERVER_MAP_AM
 	"AmConsoleTeleportServer.cpp"
 	"RandomSpawnerFin.cpp"
 	"RandomSpawnerPit.cpp"
@@ -16,4 +16,5 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_AM
 	"AmSkullkinTower.cpp"
 	"AmBlueX.cpp"
 	"AmTeapotServer.cpp"
+	"WanderingVendor.cpp"
 	PARENT_SCOPE)
