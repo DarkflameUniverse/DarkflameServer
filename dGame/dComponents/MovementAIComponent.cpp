@@ -337,7 +337,6 @@ void MovementAIComponent::SetPath(std::vector<NiPoint3> path, bool startInRevers
 	if (HasAttachedPathStart()) {
 		m_CurrentPathWaypointIndex = m_StartingWaypointIndex;
 		m_NextPathWaypointIndex = m_StartingWaypointIndex;
-		m_Parent->SetPosition(m_CurrentPath.at(m_CurrentPathWaypointIndex));
 	}
 
 	AdvancePathWaypointIndex();
