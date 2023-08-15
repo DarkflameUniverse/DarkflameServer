@@ -83,8 +83,7 @@ void MovementAIComponent::HandleWaypointArrived(uint32_t commandIndex) {
 	}
 
 	m_Parent->AddCallbackTimer(delay, [this, commandIndex](){
-		auto newCommandIndex = commandIndex + 1;
-		this->HandleWaypointArrived(newCommandIndex);
+		this->HandleWaypointArrived(commandIndex + 1);
 		}
 	);
 }
@@ -205,10 +204,8 @@ void MovementAIComponent::HandleWaypointCommandChangeWaypoint(const std::string&
 	} else path_string = data;
 
 	if (path_string != "") {
+		SetPathStartingWaypointIndex(index);
 		SetupPath(path_string);
-		// TODO: do better? talk to emo
-		SetCurrentPathWaypointIndex(index);
-		SetNextPathWaypointIndex(index);
 	}
 }
 

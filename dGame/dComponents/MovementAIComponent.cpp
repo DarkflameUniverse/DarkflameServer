@@ -48,7 +48,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_TimeTravelled = 0;
 	m_CurrentSpeed = 0;
 	m_MaxSpeed = 0;
-	m_StartingWaypointIndex = 0;
+	m_StartingWaypointIndex = -1;
 	m_CurrentPathWaypointIndex = 0;
 	m_LockRotation = false;
 	m_IsInReverse = false;

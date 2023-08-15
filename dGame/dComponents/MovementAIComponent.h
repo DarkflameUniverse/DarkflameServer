@@ -228,10 +228,6 @@ public:
 	static float GetBaseSpeed(LOT lot);
 
 private:
-
-	// TODO: Advance properly
-	void SetCurrentPathWaypointIndex(uint32_t value) {  };
-	void SetNextPathWaypointIndex(uint32_t value) {  };
 	float HandleWaypointCommandGroupEmote(const std::string& data);
 	void HandleWaypointCommandSetVariable(const std::string& data);
 	void HandleWaypointCommandCastSkill(const std::string& data);
