@@ -13,17 +13,22 @@
 #include "EntityManager.h"
 #include "CDFeatureGatingTable.h"
 #include "CDClientManager.h"
+#include "AssetManager.h"
 
 Level::Level(Zone* parentZone, const std::string& filepath) {
 	m_ParentZone = parentZone;
-	std::ifstream file(filepath, std::ios_base::in | std::ios_base::binary);
-	if (file) {
-		ReadChunks(file);
-	} else {
+
+	auto buffer = Game::assetManager->GetFileAsBuffer(filepath.c_str());
+
+	if (!buffer.m_Success) {
 		Game::logger->Log("Level", "Failed to load %s", filepath.c_str());
+		return;
 	}
 
-	file.close();
+	std::istream file(&buffer);
+	ReadChunks(file);
+
+	buffer.close();
 }
 
 Level::~Level() {
@@ -41,7 +46,7 @@ const void Level::PrintAllObjects() {
 	}
 }
 
-void Level::ReadChunks(std::ifstream& file) {
+void Level::ReadChunks(std::istream& file) {
 	const uint32_t CHNK_HEADER = ('C' + ('H' << 8) + ('N' << 16) + ('K' << 24));
 
 	while (!file.eof()) {
@@ -139,7 +144,7 @@ void Level::ReadChunks(std::ifstream& file) {
 	}
 }
 
-void Level::ReadFileInfoChunk(std::ifstream& file, Header& header) {
+void Level::ReadFileInfoChunk(std::istream& file, Header& header) {
 	FileInfoChunk* fi = new FileInfoChunk;
 	BinaryIO::BinaryRead(file, fi->version);
 	BinaryIO::BinaryRead(file, fi->revision);
@@ -152,12 +157,12 @@ void Level::ReadFileInfoChunk(std::ifstream& file, Header& header) {
 	if (header.fileInfo->revision == 3452816845 && m_ParentZone->GetZoneID().GetMapID() == 1100) header.fileInfo->revision = 26;
 }
 
-void Level::ReadSceneObjectDataChunk(std::ifstream& file, Header& header) {
+void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 	SceneObjectDataChunk* chunk = new SceneObjectDataChunk;
 	uint32_t objectsCount = 0;
 	BinaryIO::BinaryRead(file, objectsCount);
 
-	CDFeatureGatingTable* featureGatingTable = CDClientManager::Instance()->GetTable<CDFeatureGatingTable>("FeatureGating");
+	CDFeatureGatingTable* featureGatingTable = CDClientManager::Instance().GetTable<CDFeatureGatingTable>();
 
 	for (uint32_t i = 0; i < objectsCount; ++i) {
 		SceneObject obj;
@@ -174,8 +179,8 @@ void Level::ReadSceneObjectDataChunk(std::ifstream& file, Header& header) {
 		//This is a little bit of a bodge, but because the alpha client (HF) doesn't store the
 		//spawn position / rotation like the later versions do, we need to check the LOT for the spawn pos & set it.
 		if (obj.lot == LOT_MARKER_PLAYER_START) {
-			dZoneManager::Instance()->GetZone()->SetSpawnPos(obj.position);
-			dZoneManager::Instance()->GetZone()->SetSpawnRot(obj.rotation);
+			Game::zoneManager->GetZone()->SetSpawnPos(obj.position);
+			Game::zoneManager->GetZone()->SetSpawnRot(obj.rotation);
 		}
 
 		std::u16string ldfString = u"";
@@ -266,7 +271,7 @@ void Level::ReadSceneObjectDataChunk(std::ifstream& file, Header& header) {
 							spawnInfo.respawnTime = std::stof(data->GetValueAsString());
 						} else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms?
 						{
-							spawnInfo.respawnTime = std::stoi(data->GetValueAsString()) / 1000;
+							spawnInfo.respawnTime = std::stoul(data->GetValueAsString()) / 1000;
 						}
 					}
 					if (data->GetKey() == u"spawnsGroupOnSmash") {
@@ -292,7 +297,7 @@ void Level::ReadSceneObjectDataChunk(std::ifstream& file, Header& header) {
 				}
 			}
 			Spawner* spawner = new Spawner(spawnInfo);
-			dZoneManager::Instance()->AddSpawner(obj.id, spawner);
+			Game::zoneManager->AddSpawner(obj.id, spawner);
 		} else { //Regular object
 			EntityInfo info;
 			info.spawnerID = 0;
@@ -323,11 +328,11 @@ void Level::ReadSceneObjectDataChunk(std::ifstream& file, Header& header) {
 			if (!clientOnly) {
 
 				// We should never have more than 1 zone control object
-				const auto zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
+				const auto zoneControlObject = Game::zoneManager->GetZoneControlObject();
 				if (zoneControlObject != nullptr && info.lot == zoneControlObject->GetLOT())
 					goto deleteSettings;
 
-				EntityManager::Instance()->CreateEntity(info, nullptr);
+				Game::entityManager->CreateEntity(info, nullptr);
 			} else {
 			deleteSettings:
 

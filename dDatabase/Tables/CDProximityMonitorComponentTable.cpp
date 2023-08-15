@@ -21,24 +21,16 @@ CDProximityMonitorComponentTable::CDProximityMonitorComponentTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ProximityMonitorComponent");
 	while (!tableData.eof()) {
 		CDProximityMonitorComponent entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.Proximities = tableData.getStringField(1, "");
-		entry.LoadOnClient = tableData.getIntField(2, -1);
-		entry.LoadOnServer = tableData.getIntField(3, -1);
+		entry.id = tableData.getIntField("id", -1);
+		entry.Proximities = tableData.getStringField("Proximities", "");
+		entry.LoadOnClient = tableData.getIntField("LoadOnClient", -1);
+		entry.LoadOnServer = tableData.getIntField("LoadOnServer", -1);
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
 	}
 
 	tableData.finalize();
-}
-
-//! Destructor
-CDProximityMonitorComponentTable::~CDProximityMonitorComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDProximityMonitorComponentTable::GetName(void) const {
-	return "ProximityMonitorComponent";
 }
 
 //! Queries the table with a custom "where" clause
@@ -55,3 +47,4 @@ std::vector<CDProximityMonitorComponent> CDProximityMonitorComponentTable::Query
 std::vector<CDProximityMonitorComponent> CDProximityMonitorComponentTable::GetEntries(void) const {
 	return this->entries;
 }
+

@@ -30,12 +30,6 @@ public:
 	struct SceneObjectDataChunk {
 		std::map<LWOOBJID, SceneObject> objects;
 
-		SceneObject& GetObject(LWOOBJID id) {
-			for (std::map<LWOOBJID, SceneObject>::iterator it = objects.begin(); it != objects.end(); ++it) {
-				if (it->first == id) return it->second;
-			}
-		}
-
 		const void PrintAllObjects() {
 			for (std::map<LWOOBJID, SceneObject>::iterator it = objects.begin(); it != objects.end(); ++it) {
 				std::cout << "\t ID: " << it->first << " LOT: " << it->second.lot << std::endl;
@@ -67,7 +61,7 @@ private:
 	Zone* m_ParentZone;
 
 	//private functions:
-	void ReadChunks(std::ifstream& file);
-	void ReadFileInfoChunk(std::ifstream& file, Header& header);
-	void ReadSceneObjectDataChunk(std::ifstream& file, Header& header);
+	void ReadChunks(std::istream& file);
+	void ReadFileInfoChunk(std::istream& file, Header& header);
+	void ReadSceneObjectDataChunk(std::istream& file, Header& header);
 };

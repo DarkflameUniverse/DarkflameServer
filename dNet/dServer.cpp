@@ -2,12 +2,15 @@
 #include "dServer.h"
 #include "dNetCommon.h"
 #include "dLogger.h"
+#include "dConfig.h"
 
 #include "RakNetworkFactory.h"
 #include "MessageIdentifiers.h"
+#include "eConnectionType.h"
+#include "eServerMessageType.h"
+#include "eMasterMessageType.h"
 
 #include "PacketUtils.h"
-#include "dMessageIdentifiers.h"
 #include "MasterPackets.h"
 #include "ZoneInstanceManager.h"
 
@@ -35,7 +38,7 @@ public:
 	}
 } ReceiveDownloadCompleteCB;
 
-dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, unsigned int zoneID) {
+dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
 	mIP = ip;
 	mPort = port;
 	mZoneID = zoneID;
@@ -50,7 +53,8 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mNetIDManager = nullptr;
 	mReplicaManager = nullptr;
 	mServerType = serverType;
-
+	mConfig = config;
+	mShouldShutdown = shouldShutdown;
 	//Attempt to start our server here:
 	mIsOkay = Startup();
 
@@ -116,15 +120,18 @@ Packet* dServer::ReceiveFromMaster() {
 		}
 
 		if (packet->data[0] == ID_USER_PACKET_ENUM) {
-			if (packet->data[1] == MASTER) {
-				switch (packet->data[3]) {
-				case MSG_MASTER_REQUEST_ZONE_TRANSFER_RESPONSE: {
+			if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
+				switch (static_cast<eMasterMessageType>(packet->data[3])) {
+				case eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE: {
 					uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
 					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
 					break;
 				}
+				case eMasterMessageType::SHUTDOWN:
+					*mShouldShutdown = true;
+					break;
 
-															  //When we handle these packets in World instead dServer, we just return the packet's pointer.
+				//When we handle these packets in World instead dServer, we just return the packet's pointer.
 				default:
 
 					return packet;
@@ -159,9 +166,9 @@ void dServer::SendToMaster(RakNet::BitStream* bitStream) {
 	mMasterPeer->Send(bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, mMasterSystemAddress, false);
 }
 
-void dServer::Disconnect(const SystemAddress& sysAddr, uint32_t disconNotifyID) {
+void dServer::Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, SERVER, MSG_SERVER_DISCONNECT_NOTIFY);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::DISCONNECT_NOTIFY);
 	bitStream.Write(disconNotifyID);
 	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, false);
 
@@ -182,7 +189,8 @@ bool dServer::Startup() {
 	if (mIsInternal) {
 		mPeer->SetIncomingPassword("3.25 DARKFLAME1", 15);
 	} else {
-		//mPeer->SetPerConnectionOutgoingBandwidthLimit(800000); //100Kb/s
+		UpdateBandwidthLimit();
+		UpdateMaximumMtuSize();
 		mPeer->SetIncomingPassword("3.25 ND1", 8);
 	}
 
@@ -192,8 +200,21 @@ bool dServer::Startup() {
 	return true;
 }
 
+void dServer::UpdateMaximumMtuSize() {
+	auto maxMtuSize = mConfig->GetValue("maximum_mtu_size");
+	mPeer->SetMTUSize(maxMtuSize.empty() ? 1228 : std::stoi(maxMtuSize));
+}
+
+void dServer::UpdateBandwidthLimit() {
+	auto newBandwidth = mConfig->GetValue("maximum_outgoing_bandwidth");
+	mPeer->SetPerConnectionOutgoingBandwidthLimit(!newBandwidth.empty() ? std::stoi(newBandwidth) : 0);
+}
+
 void dServer::Shutdown() {
-	mPeer->Shutdown(1000);
+	if (mPeer) {
+		mPeer->Shutdown(1000);
+		RakNetworkFactory::DestroyRakPeerInterface(mPeer);
+	}
 
 	if (mNetIDManager) {
 		delete mNetIDManager;
@@ -205,10 +226,9 @@ void dServer::Shutdown() {
 		mReplicaManager = nullptr;
 	}
 
-	//RakNetworkFactory::DestroyRakPeerInterface(mPeer); //Not needed, we already called Shutdown ourselves.
-	if (mServerType != ServerType::Master) {
+	if (mServerType != ServerType::Master && mMasterPeer) {
 		mMasterPeer->Shutdown(1000);
-		//RakNetworkFactory::DestroyRakPeerInterface(mMasterPeer);
+		RakNetworkFactory::DestroyRakPeerInterface(mMasterPeer);
 	}
 }
 

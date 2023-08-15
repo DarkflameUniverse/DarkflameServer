@@ -1,7 +1,6 @@
 #include "dCommonVars.h"
 #include "WorldPackets.h"
 #include "BitStream.h"
-#include "dMessageIdentifiers.h"
 #include "PacketUtils.h"
 #include "GeneralUtils.h"
 #include "User.h"
@@ -14,12 +13,13 @@
 #include "dZoneManager.h"
 #include "CharacterComponent.h"
 #include "ZCompression.h"
+#include "eConnectionType.h"
 
 void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_LOAD_STATIC_ZONE);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::LOAD_STATIC_ZONE);
 
-	auto zone = dZoneManager::Instance()->GetZone()->GetZoneID();
+	auto zone = Game::zoneManager->GetZone()->GetZoneID();
 	bitStream.Write(static_cast<uint16_t>(zone.GetMapID()));
 	bitStream.Write(static_cast<uint16_t>(zone.GetInstanceID()));
 	//bitStream.Write(static_cast<uint32_t>(zone.GetCloneID()));
@@ -41,7 +41,7 @@ void WorldPackets::SendCharacterList(const SystemAddress& sysAddr, User* user) {
 	if (!user) return;
 
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHARACTER_LIST_RESPONSE);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHARACTER_LIST_RESPONSE);
 
 	std::vector<Character*> characters = user->GetCharacters();
 	bitStream.Write(static_cast<uint8_t>(characters.size()));
@@ -88,30 +88,30 @@ void WorldPackets::SendCharacterList(const SystemAddress& sysAddr, User* user) {
 	SEND_PACKET;
 }
 
-void WorldPackets::SendCharacterCreationResponse(const SystemAddress& sysAddr, eCreationResponse response) {
+void WorldPackets::SendCharacterCreationResponse(const SystemAddress& sysAddr, eCharacterCreationResponse response) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHARACTER_CREATE_RESPONSE);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHARACTER_CREATE_RESPONSE);
 	bitStream.Write(response);
 	SEND_PACKET;
 }
 
 void WorldPackets::SendCharacterRenameResponse(const SystemAddress& sysAddr, eRenameResponse response) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHARACTER_RENAME_RESPONSE);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHARACTER_RENAME_RESPONSE);
 	bitStream.Write(response);
 	SEND_PACKET;
 }
 
 void WorldPackets::SendCharacterDeleteResponse(const SystemAddress& sysAddr, bool response) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_DELETE_CHARACTER_RESPONSE);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::DELETE_CHARACTER_RESPONSE);
 	bitStream.Write(static_cast<uint8_t>(response));
 	SEND_PACKET;
 }
 
 void WorldPackets::SendTransferToWorld(const SystemAddress& sysAddr, const std::string& serverIP, uint32_t serverPort, bool mythranShift) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_TRANSFER_TO_WORLD);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::TRANSFER_TO_WORLD);
 
 	PacketUtils::WriteString(bitStream, serverIP, 33);
 	bitStream.Write(static_cast<uint16_t>(serverPort));
@@ -122,14 +122,14 @@ void WorldPackets::SendTransferToWorld(const SystemAddress& sysAddr, const std::
 
 void WorldPackets::SendServerState(const SystemAddress& sysAddr) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_SERVER_STATES);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::SERVER_STATES);
 	bitStream.Write(static_cast<uint8_t>(1)); //If the server is receiving this request, it probably is ready anyway.
 	SEND_PACKET;
 }
 
-void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* entity, const std::string& xmlData, const std::u16string& username, int32_t gm) {
+void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* entity, const std::string& xmlData, const std::u16string& username, eGameMasterLevel gm) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CREATE_CHARACTER);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CREATE_CHARACTER);
 
 	RakNet::BitStream data;
 	data.Write<uint32_t>(7); //LDF key count
@@ -144,8 +144,8 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 	LDFData<LOT>* lot = new LDFData<LOT>(u"template", 1);
 	LDFData<std::string>* xmlConfigData = new LDFData<std::string>(u"xmlData", xmlData);
 	LDFData<std::u16string>* name = new LDFData<std::u16string>(u"name", username);
-	LDFData<int32_t>* gmlevel = new LDFData<int32_t>(u"gmlevel", gm);
-	LDFData<int32_t>* chatmode = new LDFData<int32_t>(u"chatmode", gm);
+	LDFData<int32_t>* gmlevel = new LDFData<int32_t>(u"gmlevel", static_cast<int32_t>(gm));
+	LDFData<int32_t>* chatmode = new LDFData<int32_t>(u"chatmode", static_cast<int32_t>(gm));
 	LDFData<int64_t>* reputation = new LDFData<int64_t>(u"reputation", character->GetReputation());
 
 	objid->WriteToPacket(&data);
@@ -164,33 +164,41 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 	delete name;
 	delete reputation;
 
-#ifdef _WIN32
-	bitStream.Write<uint32_t>(data.GetNumberOfBytesUsed() + 1);
-	bitStream.Write<uint8_t>(0);
-	bitStream.Write((char*)data.GetData(), data.GetNumberOfBytesUsed());
-#else
 	//Compress the data before sending:
-	const int reservedSize = 5 * 1024 * 1024;
-	uint8_t compressedData[reservedSize];
+    const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());
+    uint8_t* compressedData = new uint8_t[reservedSize];
+
+	// TODO There should be better handling here for not enough memory...
+	if (!compressedData) return;
+
 	size_t size = ZCompression::Compress(data.GetData(), data.GetNumberOfBytesUsed(), compressedData, reservedSize);
+
+	assert(size <= reservedSize);
 
 	bitStream.Write<uint32_t>(size + 9); //size of data + header bytes (8)
 	bitStream.Write<uint8_t>(1);         //compressed boolean, true
 	bitStream.Write<uint32_t>(data.GetNumberOfBytesUsed());
 	bitStream.Write<uint32_t>(size);
 
+	/**
+	 * In practice, this warning serves no purpose for us.  We allocate the max memory needed on the heap
+	 * and then compress the data.  In the off chance that the compression actually increases the size,
+	 * an assertion is done to prevent bad data from being saved or sent.
+	 */
+#pragma warning(disable:6385) // C6385 Reading invalid data from 'compressedData'.
 	for (size_t i = 0; i < size; i++)
 		bitStream.Write(compressedData[i]);
-#endif
+#pragma warning(default:6385)
 
-	PacketUtils::SavePacket("chardata.bin", (const char*)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
+	// PacketUtils::SavePacket("chardata.bin", (const char*)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
 	SEND_PACKET;
+	delete[] compressedData;
 	Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu", entity->GetObjectID());
 }
 
 void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::vector<std::pair<uint8_t, uint8_t>> unacceptedItems) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_CHAT_MODERATION_STRING);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHAT_MODERATION_STRING);
 
 	bitStream.Write<uint8_t>(unacceptedItems.empty()); // Is sentence ok?
 	bitStream.Write<uint16_t>(0x16); // Source ID, unknown
@@ -212,14 +220,14 @@ void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool
 	SEND_PACKET;
 }
 
-void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success, uint8_t highestLevel, uint8_t prevLevel, uint8_t newLevel) {
+void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success, eGameMasterLevel highestLevel, eGameMasterLevel prevLevel, eGameMasterLevel newLevel) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, CLIENT, MSG_CLIENT_MAKE_GM_RESPONSE);
+	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAKE_GM_RESPONSE);
 
 	bitStream.Write<uint8_t>(success);
-	bitStream.Write<uint16_t>(highestLevel);
-	bitStream.Write<uint16_t>(prevLevel);
-	bitStream.Write<uint16_t>(newLevel);
+	bitStream.Write(static_cast<uint16_t>(highestLevel));
+	bitStream.Write(static_cast<uint16_t>(prevLevel));
+	bitStream.Write(static_cast<uint16_t>(newLevel));
 
 	SEND_PACKET;
 }

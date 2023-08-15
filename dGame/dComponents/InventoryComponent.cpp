@@ -27,6 +27,16 @@
 #include "dConfig.h"
 #include "eItemType.h"
 #include "eUnequippableActiveType.h"
+#include "CppScripts.h"
+#include "eMissionTaskType.h"
+#include "eStateChangeType.h"
+#include "eUseItemResponse.h"
+
+#include "CDComponentsRegistryTable.h"
+#include "CDInventoryComponentTable.h"
+#include "CDScriptComponentTable.h"
+#include "CDObjectSkillsTable.h"
+#include "CDSkillBehaviorTable.h"
 
 InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent) {
 	this->m_Dirty = true;
@@ -45,10 +55,10 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 		return;
 	}
 
-	auto* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
-	const auto componentId = compRegistryTable->GetByIDAndType(lot, COMPONENT_TYPE_INVENTORY);
+	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	const auto componentId = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::INVENTORY);
 
-	auto* inventoryComponentTable = CDClientManager::Instance()->GetTable<CDInventoryComponentTable>("InventoryComponent");
+	auto* inventoryComponentTable = CDClientManager::Instance().GetTable<CDInventoryComponentTable>();
 	auto items = inventoryComponentTable->Query([=](const CDInventoryComponent entry) { return entry.id == componentId; });
 
 	auto slot = 0u;
@@ -105,6 +115,9 @@ Inventory* InventoryComponent::GetInventory(const eInventoryType type) {
 		break;
 	case eInventoryType::VENDOR_BUYBACK:
 		size = 27u;
+		break;
+	case eInventoryType::DONATION:
+		size = 24u;
 		break;
 	default:
 		break;
@@ -179,7 +192,7 @@ void InventoryComponent::AddItem(
 		inventoryType = Inventory::FindInventoryTypeForLot(lot);
 	}
 
-	auto* missions = static_cast<MissionComponent*>(this->m_Parent->GetComponent(COMPONENT_TYPE_MISSION));
+	auto* missions = static_cast<MissionComponent*>(this->m_Parent->GetComponent(eReplicaComponentType::MISSION));
 
 	auto* inventory = GetInventory(inventoryType);
 
@@ -195,7 +208,7 @@ void InventoryComponent::AddItem(
 		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound, lootSourceType);
 
 		if (missions != nullptr && !IsTransferInventory(inventoryType)) {
-			missions->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, lot, LWOOBJID_EMPTY, "", count, IsTransferInventory(inventorySourceType));
+			missions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", count, IsTransferInventory(inventorySourceType));
 		}
 
 		return;
@@ -209,9 +222,11 @@ void InventoryComponent::AddItem(
 
 	auto stack = static_cast<uint32_t>(info.stackSize);
 
+	bool isBrick = inventoryType == eInventoryType::BRICKS || (stack == 0 && info.itemType == 1);
+
 	// info.itemType of 1 is item type brick
-	if (inventoryType == eInventoryType::BRICKS || (stack == 0 && info.itemType == 1)) {
-		stack = 999;
+	if (isBrick) {
+		stack = UINT32_MAX;
 	} else if (stack == 0) {
 		stack = 1;
 	}
@@ -232,7 +247,8 @@ void InventoryComponent::AddItem(
 		}
 	}
 
-	while (left > 0) {
+	// If we have some leftover and we aren't bricks, make a new stack
+	while (left > 0 && (!isBrick || (isBrick && !existing))) {
 		const auto size = std::min(left, stack);
 
 		left -= size;
@@ -280,7 +296,7 @@ void InventoryComponent::AddItem(
 	}
 
 	if (missions != nullptr && !IsTransferInventory(inventoryType)) {
-		missions->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, lot, LWOOBJID_EMPTY, "", count - outOfSpace, IsTransferInventory(inventorySourceType));
+		missions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", count - outOfSpace, IsTransferInventory(inventorySourceType));
 	}
 }
 
@@ -327,7 +343,9 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 	const auto lot = item->GetLot();
 
-	if (item->GetConfig().empty() && !item->GetBound() || (item->GetBound() && item->GetInfo().isBOP)) {
+	const auto subkey = item->GetSubKey();
+
+	if (subkey == LWOOBJID_EMPTY && item->GetConfig().empty() && (!item->GetBound() || (item->GetBound() && item->GetInfo().isBOP))) {
 		auto left = std::min<uint32_t>(count, origin->GetLotCount(lot));
 
 		while (left > 0) {
@@ -343,7 +361,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 			left -= delta;
 
-			AddItem(lot, delta, eLootSourceType::LOOT_SOURCE_NONE, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot);
+			AddItem(lot, delta, eLootSourceType::NONE, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot);
 
 			item->SetCount(item->GetCount() - delta, false, false);
 
@@ -358,7 +376,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 		const auto delta = std::min<uint32_t>(item->GetCount(), count);
 
-		AddItem(lot, delta, eLootSourceType::LOOT_SOURCE_NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, item->GetBound(), preferredSlot);
+		AddItem(lot, delta, eLootSourceType::NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, subkey, origin->GetType(), 0, item->GetBound(), preferredSlot);
 
 		item->SetCount(item->GetCount() - delta, false, false);
 	}
@@ -367,7 +385,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 	if (missionComponent != nullptr) {
 		if (IsTransferInventory(inventory)) {
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_ITEM_COLLECTION, lot, LWOOBJID_EMPTY, "", -static_cast<int32_t>(count));
+			missionComponent->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", -static_cast<int32_t>(count));
 		}
 	}
 }
@@ -605,16 +623,17 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 		return;
 	}
 
-	std::vector<Inventory*> inventories;
+	std::vector<Inventory*> inventoriesToSave;
 
+	// Need to prevent some transfer inventories from being saved
 	for (const auto& pair : this->m_Inventories) {
 		auto* inventory = pair.second;
 
-		if (inventory->GetType() == VENDOR_BUYBACK) {
+		if (inventory->GetType() == VENDOR_BUYBACK || inventory->GetType() == eInventoryType::MODELS_IN_BBB) {
 			continue;
 		}
 
-		inventories.push_back(inventory);
+		inventoriesToSave.push_back(inventory);
 	}
 
 	inventoryElement->SetAttribute("csl", m_Consumable);
@@ -629,7 +648,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 
 	bags->DeleteChildren();
 
-	for (const auto* inventory : inventories) {
+	for (const auto* inventory : inventoriesToSave) {
 		auto* bag = document->NewElement("b");
 
 		bag->SetAttribute("t", inventory->GetType());
@@ -648,7 +667,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 
 	items->DeleteChildren();
 
-	for (auto* inventory : inventories) {
+	for (auto* inventory : inventoriesToSave) {
 		if (inventory->GetSize() == 0) {
 			continue;
 		}
@@ -810,18 +829,26 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 	if (character != nullptr && !skipChecks) {
 		// Hacky proximity rocket
 		if (item->GetLot() == 6416) {
-			const auto rocketLauchPads = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_ROCKET_LAUNCH);
+			const auto rocketLauchPads = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::ROCKET_LAUNCH);
 
 			const auto position = m_Parent->GetPosition();
 
-			for (auto* lauchPad : rocketLauchPads) {
-				if (Vector3::DistanceSquared(lauchPad->GetPosition(), position) > 13 * 13) continue;
+			for (auto* launchPad : rocketLauchPads) {
+				if (!launchPad) continue;
+
+				auto prereq = launchPad->GetVarAsString(u"rocketLaunchPreCondition");
+				if (!prereq.empty()) {
+					PreconditionExpression expression(prereq);
+					if (!expression.Check(m_Parent)) continue;
+				}
+
+				if (Vector3::DistanceSquared(launchPad->GetPosition(), position) > 13 * 13) continue;
 
 				auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 
 				if (characterComponent != nullptr) characterComponent->SetLastRocketItemID(item->GetId());
 
-				lauchPad->OnUse(m_Parent);
+				launchPad->OnUse(m_Parent);
 
 				break;
 			}
@@ -834,9 +861,9 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 		const auto type = static_cast<eItemType>(item->GetInfo().itemType);
 
 
-		if (!building && (item->GetLot() == 6086 || type == eItemType::ITEM_TYPE_LOOT_MODEL || type == eItemType::ITEM_TYPE_VEHICLE)) return;
+		if (!building && (item->GetLot() == 6086 || type == eItemType::LOOT_MODEL || type == eItemType::VEHICLE)) return;
 
-		if (type != eItemType::ITEM_TYPE_LOOT_MODEL && type != eItemType::ITEM_TYPE_MODEL) {
+		if (type != eItemType::LOOT_MODEL && type != eItemType::MODEL) {
 			if (!item->GetBound() && !item->GetPreconditionExpression()->Check(m_Parent)) {
 				return;
 			}
@@ -861,7 +888,9 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 
 	AddItemSkills(item->GetLot());
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	EquipScripts(item);
+
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void InventoryComponent::UnEquipItem(Item* item) {
@@ -889,12 +918,45 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 	PurgeProxies(item);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	UnequipScripts(item);
+
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Trigger property event
 	if (PropertyManagementComponent::Instance() != nullptr && item->GetCount() > 0 && Inventory::FindInventoryTypeForLot(item->GetLot()) == MODELS) {
 		PropertyManagementComponent::Instance()->GetParent()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
-		dZoneManager::Instance()->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
+		Game::zoneManager->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
+	}
+}
+
+
+void InventoryComponent::EquipScripts(Item* equippedItem) {
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	if (!compRegistryTable) return;
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(equippedItem->GetLot(), eReplicaComponentType::SCRIPT, -1);
+	if (scriptComponentID > -1) {
+		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
+		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
+		if (!itemScript) {
+			Game::logger->Log("InventoryComponent", "null script?");
+		}
+		itemScript->OnFactionTriggerItemEquipped(m_Parent, equippedItem->GetId());
+	}
+}
+
+void InventoryComponent::UnequipScripts(Item* unequippedItem) {
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	if (!compRegistryTable) return;
+	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(unequippedItem->GetLot(), eReplicaComponentType::SCRIPT, -1);
+	if (scriptComponentID > -1) {
+		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
+		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
+		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
+		if (!itemScript) {
+			Game::logger->Log("InventoryComponent", "null script?");
+		}
+		itemScript->OnFactionTriggerItemUnequipped(m_Parent, unequippedItem->GetId());
 	}
 }
 
@@ -909,7 +971,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 	if (possessorComponent->GetIsDismounting()) return;
 
 	// Check to see if we are already mounting something
-	auto* currentlyPossessedEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+	auto* currentlyPossessedEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 	auto currentlyPossessedItem = possessorComponent->GetMountItemID();
 
 	if (currentlyPossessedItem) {
@@ -917,7 +979,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 		return;
 	}
 
-	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStunState::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
+	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStateChangeType::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 
 	// Set the mount Item ID so that we know what were handling
 	possessorComponent->SetMountItemID(item->GetId());
@@ -932,26 +994,15 @@ void InventoryComponent::HandlePossession(Item* item) {
 	info.rot = startRotation;
 	info.spawnerID = m_Parent->GetObjectID();
 
-	auto* mount = EntityManager::Instance()->CreateEntity(info, nullptr, m_Parent);
+	auto* mount = Game::entityManager->CreateEntity(info, nullptr, m_Parent);
 
 	// Check to see if the mount is a vehicle, if so, flip it
 	auto* vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
-	if (vehicleComponent) {
-		auto angles = startRotation.GetEulerAngles();
-		// Make it right side up
-		angles.x -= PI;
-		// Make it going in the direction of the player
-		angles.y -= PI;
-		startRotation = NiQuaternion::FromEulerAngles(angles);
-		mount->SetRotation(startRotation);
-		// We're pod racing now
-		characterComponent->SetIsRacing(true);
-	}
+	if (vehicleComponent) characterComponent->SetIsRacing(true);
 
 	// Setup the destroyable stats
 	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
 	if (destroyableComponent) {
-		destroyableComponent->SetIsSmashable(false);
 		destroyableComponent->SetIsImmune(true);
 	}
 
@@ -968,9 +1019,9 @@ void InventoryComponent::HandlePossession(Item* item) {
 	GameMessages::SendSetJetPackMode(m_Parent, false);
 
 	// Make it go to the client
-	EntityManager::Instance()->ConstructEntity(mount);
+	Game::entityManager->ConstructEntity(mount);
 	// Update the possessor
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	// have to unlock the input so it vehicle can be driven
 	if (vehicleComponent) GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_Parent->GetSystemAddress());
@@ -985,6 +1036,7 @@ void InventoryComponent::ApplyBuff(Item* item) const {
 	}
 }
 
+// TODO Something needs to send the remove buff GameMessage as well when it is unequipping items that would remove buffs.
 void InventoryComponent::RemoveBuff(Item* item) const {
 	const auto buffs = FindBuffs(item, false);
 
@@ -1031,7 +1083,7 @@ void InventoryComponent::PopEquippedItems() {
 		destroyableComponent->SetHealth(static_cast<int32_t>(destroyableComponent->GetMaxHealth()));
 		destroyableComponent->SetArmor(static_cast<int32_t>(destroyableComponent->GetMaxArmor()));
 		destroyableComponent->SetImagination(static_cast<int32_t>(destroyableComponent->GetMaxImagination()));
-		EntityManager::Instance()->SerializeEntity(m_Parent);
+		Game::entityManager->SerializeEntity(m_Parent);
 	}
 
 	m_Dirty = true;
@@ -1153,20 +1205,20 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	}
 }
 
-void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger) {
+void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target) {
 	for (auto* set : m_Itemsets) {
-		set->TriggerPassiveAbility(trigger);
+		set->TriggerPassiveAbility(trigger, target);
 	}
 }
 
-bool InventoryComponent::HasAnyPassive(const std::vector<ItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const {
+bool InventoryComponent::HasAnyPassive(const std::vector<eItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const {
 	for (auto* set : m_Itemsets) {
 		if (set->GetEquippedCount() < equipmentRequirement) {
 			continue;
 		}
 
 		// Check if the set has any of the passive abilities
-		if (std::find(passiveIDs.begin(), passiveIDs.end(), static_cast<ItemSetPassiveAbilityID>(set->GetID())) != passiveIDs.end()) {
+		if (std::find(passiveIDs.begin(), passiveIDs.end(), static_cast<eItemSetPassiveAbilityID>(set->GetID())) != passiveIDs.end()) {
 			return true;
 		}
 	}
@@ -1197,7 +1249,7 @@ void InventoryComponent::SpawnPet(Item* item) {
 	auto destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
 
 	if (Game::config->GetValue("pets_take_imagination") == "1" && destroyableComponent && destroyableComponent->GetImagination() <= 0) {
-		GameMessages::SendUseItemRequirementsResponse(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), UseItemResponse::NoImaginationForPet);
+		GameMessages::SendUseItemRequirementsResponse(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
 		return;
 	}
 
@@ -1207,7 +1259,7 @@ void InventoryComponent::SpawnPet(Item* item) {
 	info.rot = NiQuaternion::IDENTITY;
 	info.spawnerID = m_Parent->GetObjectID();
 
-	auto* pet = EntityManager::Instance()->CreateEntity(info);
+	auto* pet = Game::entityManager->CreateEntity(info);
 
 	auto* petComponent = pet->GetComponent<PetComponent>();
 
@@ -1215,7 +1267,7 @@ void InventoryComponent::SpawnPet(Item* item) {
 		petComponent->Activate(item);
 	}
 
-	EntityManager::Instance()->ConstructEntity(pet);
+	Game::entityManager->ConstructEntity(pet);
 }
 
 void InventoryComponent::SetDatabasePet(LWOOBJID id, const DatabasePet& data) {
@@ -1242,15 +1294,15 @@ void InventoryComponent::RemoveDatabasePet(LWOOBJID id) {
 
 BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
 	switch (type) {
-	case eItemType::ITEM_TYPE_HAT:
+	case eItemType::HAT:
 		return BehaviorSlot::Head;
-	case eItemType::ITEM_TYPE_NECK:
+	case eItemType::NECK:
 		return BehaviorSlot::Neck;
-	case eItemType::ITEM_TYPE_LEFT_HAND:
+	case eItemType::LEFT_HAND:
 		return BehaviorSlot::Offhand;
-	case eItemType::ITEM_TYPE_RIGHT_HAND:
+	case eItemType::RIGHT_HAND:
 		return BehaviorSlot::Primary;
-	case eItemType::ITEM_TYPE_CONSUMABLE:
+	case eItemType::CONSUMABLE:
 		return BehaviorSlot::Consumable;
 	default:
 		return BehaviorSlot::Invalid;
@@ -1258,11 +1310,11 @@ BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
 }
 
 bool InventoryComponent::IsTransferInventory(eInventoryType type) {
-	return type == VENDOR_BUYBACK || type == VAULT_ITEMS || type == VAULT_MODELS || type == TEMP_ITEMS || type == TEMP_MODELS;
+	return type == VENDOR_BUYBACK || type == VAULT_ITEMS || type == VAULT_MODELS || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB;
 }
 
 uint32_t InventoryComponent::FindSkill(const LOT lot) {
-	auto* table = CDClientManager::Instance()->GetTable<CDObjectSkillsTable>("ObjectSkills");
+	auto* table = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
 
 	const auto results = table->Query([=](const CDObjectSkills& entry) {
 		return entry.objectTemplate == static_cast<unsigned int>(lot);
@@ -1280,14 +1332,14 @@ uint32_t InventoryComponent::FindSkill(const LOT lot) {
 std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip) const {
 	std::vector<uint32_t> buffs;
 	if (item == nullptr) return buffs;
-	auto* table = CDClientManager::Instance()->GetTable<CDObjectSkillsTable>("ObjectSkills");
-	auto* behaviors = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+	auto* table = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
+	auto* behaviors = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
 	const auto results = table->Query([=](const CDObjectSkills& entry) {
 		return entry.objectTemplate == static_cast<unsigned int>(item->GetLot());
 		});
 
-	auto* missions = static_cast<MissionComponent*>(m_Parent->GetComponent(COMPONENT_TYPE_MISSION));
+	auto* missions = static_cast<MissionComponent*>(m_Parent->GetComponent(eReplicaComponentType::MISSION));
 
 	for (const auto& result : results) {
 		if (result.castOnType == 1) {
@@ -1300,7 +1352,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 			}
 
 			if (missions != nullptr && castOnEquip) {
-				missions->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, result.skillID);
+				missions->Progress(eMissionTaskType::USE_SKILL, result.skillID);
 			}
 
 			// If item is not a proxy, add its buff to the added buffs.
@@ -1324,7 +1376,7 @@ void InventoryComponent::SetNPCItems(const std::vector<LOT>& items) {
 		UpdateSlot(info.equipLocation, { id, static_cast<LOT>(item), 1, slot++ }, true);
 	}
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 InventoryComponent::~InventoryComponent() {

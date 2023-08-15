@@ -1,7 +1,5 @@
 #include "ZCompression.h"
 
-#ifndef _WIN32
-
 #include <zlib.h>
 
 namespace ZCompression {
@@ -27,7 +25,6 @@ namespace ZCompression {
 		}
 		deflateEnd(&zInfo);    // zlib function
 		return(nRet);
-
 	}
 
 	int32_t Decompress(const uint8_t* abSrc, int32_t nLenSrc, uint8_t* abDst, int32_t nLenDst, int32_t& nErr) {
@@ -48,26 +45,6 @@ namespace ZCompression {
 		}
 		inflateEnd(&zInfo); // zlib function
 		return(nRet);
-
-		/*
-		z_stream zInfo = { 0 };
-		zInfo.total_in = zInfo.avail_in = nLenSrc;
-		zInfo.total_out = zInfo.avail_out = nLenDst;
-		zInfo.next_in = const_cast<Bytef*>(abSrc);
-		zInfo.next_out = const_cast<Bytef*>(abDst);
-
-		int nRet = -1;
-		nErr = inflateInit(&zInfo);               // zlib function
-		if (nErr == Z_OK) {
-			nErr = inflate(&zInfo, Z_FINISH);     // zlib function
-			if (nErr == Z_STREAM_END) {
-				nRet = zInfo.total_out;
-			}
-		}
-		inflateEnd(&zInfo);   // zlib function
-		return(nRet); // -1 or len of output
-		*/
 	}
 }
 
-#endif

@@ -1,34 +1,17 @@
 #pragma once
+
 #include "dZMCommon.h"
 #include "LDFFormat.h"
-#include "../thirdparty/tinyxml2/tinyxml2.h"
+#include "tinyxml2.h"
 #include <string>
 #include <vector>
 #include <map>
 
-class Level;
-
-class LUTriggers {
-public:
-
-	struct Command {
-		std::string id;
-		std::string target;
-		std::string targetName;
-		std::string args;
-	};
-
-	struct Event {
-		std::string eventID;
-		std::vector<Command*> commands;
-	};
-
-	struct Trigger {
-		uint32_t id;
-		bool enabled;
-		std::vector<Event*> events;
-	};
+namespace LUTriggers {
+	struct Trigger;
 };
+
+class Level;
 
 struct SceneRef {
 	std::string filename;
@@ -47,6 +30,7 @@ struct SceneTransitionInfo {
 struct SceneTransition {
 	std::string name;
 	std::vector<SceneTransitionInfo> points;
+	float width;
 };
 
 struct MovingPlatformPathWaypoint {
@@ -59,9 +43,22 @@ struct MovingPlatformPathWaypoint {
 
 struct CameraPathWaypoint {
 	float time;
+	float fov;
 	float tension;
 	float continuity;
 	float bias;
+};
+
+struct RacingPathWaypoint {
+	uint8_t isResetNode;
+	uint8_t isNonHorizontalCamera;
+	float planeWidth;
+	float planeHeight;
+	float shortestDistanceToEnd;
+};
+
+struct RailPathWaypoint {
+	float speed;
 };
 
 struct PathWaypoint {
@@ -69,6 +66,8 @@ struct PathWaypoint {
 	NiQuaternion rotation; // not included in all, but it's more convenient here
 	MovingPlatformPathWaypoint movingPlatform;
 	CameraPathWaypoint camera;
+	RacingPathWaypoint racing;
+	RailPathWaypoint rail;
 	std::vector<LDFBaseData*> config;
 };
 
@@ -87,6 +86,19 @@ enum class PathBehavior : uint32_t {
 	Loop = 0,
 	Bounce = 1,
 	Once = 2
+};
+
+enum class PropertyPathType : int32_t {
+	Path = 0,
+	EntireZone = 1,
+	GenetatedRectangle = 2
+};
+
+enum class PropertyType : int32_t {
+	Premiere = 0,
+	Prize = 1,
+	LUP = 2,
+	Headspace = 3
 };
 
 enum class PropertyRentalTimeUnit : int32_t {
@@ -116,17 +128,19 @@ enum class PropertyAchievmentRequired : int32_t {
 
 struct MovingPlatformPath {
 	std::string platformTravelSound;
+	uint8_t timeBasedMovement;
 };
 
 struct PropertyPath {
+	PropertyPathType pathType;
 	int32_t price;
-	int32_t rentalTime;
+	PropertyRentalTimeUnit rentalTimeUnit;
 	uint64_t associatedZone;
 	std::string displayName;
 	std::string displayDesc;
+	PropertyType type;
 	int32_t cloneLimit;
 	float repMultiplier;
-	PropertyRentalTimeUnit rentalTimeUnit;
 	PropertyAchievmentRequired achievementRequired;
 	NiPoint3 playerZoneCoords;
 	float maxBuildHeight;
@@ -134,6 +148,7 @@ struct PropertyPath {
 
 struct CameraPath {
 	std::string nextPath;
+	uint8_t rotatePlayer;
 };
 
 struct SpawnerPath {
@@ -150,6 +165,7 @@ struct Path {
 	uint32_t pathVersion;
 	PathType pathType;
 	std::string pathName;
+	uint32_t flags;
 	PathBehavior pathBehavior;
 	uint32_t waypointCount;
 	std::vector<PathWaypoint> pathWaypoints;
@@ -190,7 +206,7 @@ public:
 
 	uint32_t GetWorldID() const { return m_WorldID; }
 	[[nodiscard]] std::string GetZoneName() const { return m_ZoneName; }
-	std::string GetZoneRawPath() const { return m_ZoneRawPath;}
+	std::string GetZoneRawPath() const { return m_ZoneRawPath; }
 	std::string GetZonePath() const { return m_ZonePath; }
 
 	const NiPoint3& GetSpawnPos() const { return m_Spawnpoint; }
@@ -219,15 +235,17 @@ private:
 
 	std::map<LWOSCENEID, SceneRef, mapCompareLwoSceneIDs> m_Scenes;
 	std::vector<SceneTransition> m_SceneTransitions;
+
 	uint32_t m_PathDataLength;
-	//std::vector<char> m_PathData; //Binary path data
+	uint32_t m_PathChunkVersion;
 	std::vector<Path> m_Paths;
+
 	std::map<LWOSCENEID, uint32_t, mapCompareLwoSceneIDs> m_MapRevisions; //rhs is the revision!
 
 	//private ("helper") functions:
-	void LoadScene(std::ifstream& file);
+	void LoadScene(std::istream& file);
 	std::vector<LUTriggers::Trigger*> LoadLUTriggers(std::string triggerFile, LWOSCENEID sceneID);
-	void LoadSceneTransition(std::ifstream& file);
-	SceneTransitionInfo LoadSceneTransitionInfo(std::ifstream& file);
-	void LoadPath(std::ifstream& file);
+	void LoadSceneTransition(std::istream& file);
+	SceneTransitionInfo LoadSceneTransitionInfo(std::istream& file);
+	void LoadPath(std::istream& file);
 };

@@ -9,13 +9,14 @@
 #include "BouncerComponent.h"
 #include <algorithm>
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * A component for switches in game, including pet triggered switches.
  */
 class SwitchComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_SWITCH;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
 
 	SwitchComponent(Entity* parent);
 	~SwitchComponent() override;

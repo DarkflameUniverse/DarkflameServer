@@ -5,8 +5,8 @@
 #include "CppScripts.h"
 
 void SkillEventBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
-	auto* caster = EntityManager::Instance()->GetEntity(context->originator);
+	auto* target = Game::entityManager->GetEntity(branch.target);
+	auto* caster = Game::entityManager->GetEntity(context->originator);
 
 	if (caster != nullptr && target != nullptr && this->m_effectHandle != nullptr && !this->m_effectHandle->empty()) {
 		for (CppScripts::Script* script : CppScripts::GetEntityScripts(target)) {
@@ -17,8 +17,8 @@ void SkillEventBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit
 
 void
 SkillEventBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
-	auto* caster = EntityManager::Instance()->GetEntity(context->originator);
+	auto* target = Game::entityManager->GetEntity(branch.target);
+	auto* caster = Game::entityManager->GetEntity(context->originator);
 
 	if (caster != nullptr && target != nullptr && this->m_effectHandle != nullptr && !this->m_effectHandle->empty()) {
 		for (CppScripts::Script* script : CppScripts::GetEntityScripts(target)) {

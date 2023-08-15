@@ -30,12 +30,12 @@ public:
 	 * Attempts to trigger a passive ability for this item set, if this is the wrong trigger this is a no-op
 	 * @param trigger the trigger to attempt to fire
 	 */
-	void Trigger(PassiveAbilityTrigger trigger);
+	void Trigger(PassiveAbilityTrigger trigger, Entity* target = nullptr);
 
 	/**
 	 * Activates the passive ability
 	 */
-	void Activate();
+	void Activate(Entity* target = nullptr);
 
 	/**
 	 * Finds all the passive abilities associated with a certain item set
@@ -47,7 +47,7 @@ public:
 	static std::vector<ItemSetPassiveAbility> FindAbilities(uint32_t itemSetID, Entity* parent, ItemSet* itemSet);
 
 private:
-	void OnEnemySmshed();
+	void OnEnemySmshed(Entity* target = nullptr);
 
 	/**
 	 * The means of triggering this ability

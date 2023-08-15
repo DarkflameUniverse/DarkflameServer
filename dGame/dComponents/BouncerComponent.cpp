@@ -7,6 +7,7 @@
 #include "dLogger.h"
 #include "GameMessages.h"
 #include <BitStream.h>
+#include "eTriggerEventType.h"
 
 BouncerComponent::BouncerComponent(Entity* parent) : Component(parent) {
 	m_PetEnabled = false;
@@ -35,7 +36,7 @@ Entity* BouncerComponent::GetParentEntity() const {
 void BouncerComponent::SetPetEnabled(bool value) {
 	m_PetEnabled = value;
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void BouncerComponent::SetPetBouncerEnabled(bool value) {
@@ -43,11 +44,13 @@ void BouncerComponent::SetPetBouncerEnabled(bool value) {
 
 	GameMessages::SendBouncerActiveStatus(m_Parent->GetObjectID(), value, UNASSIGNED_SYSTEM_ADDRESS);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	if (value) {
+		m_Parent->TriggerEvent(eTriggerEventType::PET_ON_SWITCH, m_Parent);
 		GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 1513, u"create", "PetOnSwitch", LWOOBJID_EMPTY, 1, 1, true);
 	} else {
+		m_Parent->TriggerEvent(eTriggerEventType::PET_OFF_SWITCH, m_Parent);
 		GameMessages::SendStopFXEffect(m_Parent, true, "PetOnSwitch");
 	}
 
@@ -65,7 +68,7 @@ void BouncerComponent::LookupPetSwitch() {
 	const auto& groups = m_Parent->GetGroups();
 
 	for (const auto& group : groups) {
-		const auto& entities = EntityManager::Instance()->GetEntitiesInGroup(group);
+		const auto& entities = Game::entityManager->GetEntitiesInGroup(group);
 
 		for (auto* entity : entities) {
 			auto* switchComponent = entity->GetComponent<SwitchComponent>();
@@ -76,7 +79,7 @@ void BouncerComponent::LookupPetSwitch() {
 				m_PetSwitchLoaded = true;
 				m_PetEnabled = true;
 
-				EntityManager::Instance()->SerializeEntity(m_Parent);
+				Game::entityManager->SerializeEntity(m_Parent);
 
 				Game::logger->Log("BouncerComponent", "Loaded pet bouncer");
 			}

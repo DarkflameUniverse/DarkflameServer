@@ -9,6 +9,8 @@
 #include "SkillComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
+#include "CDClientManager.h"
+#include "CDSkillBehaviorTable.h"
 
 std::unordered_map<int32_t, std::vector<BuffParameter>> BuffComponent::m_Cache{};
 
@@ -100,7 +102,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	const auto& parameters = GetBuffParameters(id);
 	for (const auto& parameter : parameters) {
 		if (parameter.name == "overtime") {
-			auto* behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+			auto* behaviorTemplateTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
 			behaviorID = behaviorTemplateTable->GetSkillByID(parameter.values[0]).behaviorID;
 			stacks = static_cast<int32_t>(parameter.values[1]);
@@ -123,12 +125,14 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	m_Buffs.emplace(id, buff);
 }
 
-void BuffComponent::RemoveBuff(int32_t id) {
+void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity) {
 	const auto& iter = m_Buffs.find(id);
 
 	if (iter == m_Buffs.end()) {
 		return;
 	}
+
+	GameMessages::SendRemoveBuff(m_Parent, fromUnEquip, removeImmunity, id);
 
 	m_Buffs.erase(iter);
 
@@ -167,17 +171,10 @@ void BuffComponent::ApplyBuffEffect(int32_t id) {
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() + maxImagination);
 		} else if (parameter.name == "speed") {
-			const auto speed = parameter.value;
-
 			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
-
-			if (controllablePhysicsComponent == nullptr) return;
-
-			const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-
-			controllablePhysicsComponent->SetSpeedMultiplier(current + ((speed - 500.0f) / 500.0f));
-
-			EntityManager::Instance()->SerializeEntity(this->GetParent());
+			if (!controllablePhysicsComponent) return;
+			const auto speed = parameter.value;
+			controllablePhysicsComponent->AddSpeedboost(speed);
 		}
 	}
 }
@@ -210,17 +207,10 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() - maxImagination);
 		} else if (parameter.name == "speed") {
-			const auto speed = parameter.value;
-
 			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
-
-			if (controllablePhysicsComponent == nullptr) return;
-
-			const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-
-			controllablePhysicsComponent->SetSpeedMultiplier(current - ((speed - 500.0f) / 500.0f));
-
-			EntityManager::Instance()->SerializeEntity(this->GetParent());
+			if (!controllablePhysicsComponent) return;
+			const auto speed = parameter.value;
+			controllablePhysicsComponent->RemoveSpeedboost(speed);
 		}
 	}
 }

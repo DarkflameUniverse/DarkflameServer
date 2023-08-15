@@ -13,6 +13,9 @@
 #include "VehiclePhysicsComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
+#include "Amf3.h"
+#include "eGameMasterLevel.h"
+#include "eGameActivity.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
@@ -33,7 +36,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_EditorLevel = m_GMLevel;
 	m_Reputation = 0;
 
-	m_CurrentActivity = 0;
+	m_CurrentActivity = eGameActivity::NONE;
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
 }
@@ -42,11 +45,11 @@ bool CharacterComponent::LandingAnimDisabled(int zoneID) {
 	switch (zoneID) {
 	case 0:
 	case 556:
-	case 1001:
 	case 1101:
 	case 1202:
 	case 1203:
 	case 1204:
+	case 1261:
 	case 1301:
 	case 1302:
 	case 1303:
@@ -164,9 +167,9 @@ void CharacterComponent::SetPvpEnabled(const bool value) {
 	m_PvpEnabled = value;
 }
 
-void CharacterComponent::SetGMLevel(int gmlevel) {
+void CharacterComponent::SetGMLevel(eGameMasterLevel gmlevel) {
 	m_DirtyGMInfo = true;
-	if (gmlevel > 0) m_IsGM = true;
+	if (gmlevel > eGameMasterLevel::CIVILIAN) m_IsGM = true;
 	else m_IsGM = false;
 	m_GMLevel = gmlevel;
 }
@@ -238,7 +241,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	// End custom attributes
 	//
 
-	if (m_GMLevel > 0) {
+	if (m_GMLevel > eGameMasterLevel::CIVILIAN) {
 		m_IsGM = true;
 		m_DirtyGMInfo = true;
 		m_EditorLevel = m_GMLevel;
@@ -416,7 +419,7 @@ void CharacterComponent::TrackMissionCompletion(bool isAchievement) {
 
 	// Achievements are tracked separately for the zone
 	if (isAchievement) {
-		const auto mapID = dZoneManager::Instance()->GetZoneID().GetMapID();
+		const auto mapID = Game::zoneManager->GetZoneID().GetMapID();
 		GetZoneStatisticsForMap(mapID).m_AchievementsCollected++;
 	}
 }
@@ -477,7 +480,7 @@ void CharacterComponent::TrackArmorDelta(int32_t armor) {
 void CharacterComponent::TrackRebuildComplete() {
 	UpdatePlayerStatistic(QuickBuildsCompleted);
 
-	const auto mapID = dZoneManager::Instance()->GetZoneID().GetMapID();
+	const auto mapID = Game::zoneManager->GetZoneID().GetMapID();
 	GetZoneStatisticsForMap(mapID).m_QuickBuildsCompleted++;
 }
 
@@ -731,6 +734,6 @@ void CharacterComponent::RemoveVentureVisionEffect(std::string ventureVisionType
 void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const {
 	if (!m_Parent) return;
 	AMFArrayValue arrayToSend;
-	arrayToSend.InsertValue(ventureVisionType, showFaction ? static_cast<AMFValue*>(new AMFTrueValue()) : static_cast<AMFValue*>(new AMFFalseValue()));
-	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", &arrayToSend);
+	arrayToSend.Insert(ventureVisionType, showFaction);
+	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", arrayToSend);
 }

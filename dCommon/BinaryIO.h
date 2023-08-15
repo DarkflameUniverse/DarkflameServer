@@ -10,16 +10,15 @@ namespace BinaryIO {
 
 	template<typename T>
 	std::istream& BinaryRead(std::istream& stream, T& value) {
-		if (!stream.good())
-			printf("bla");
+		if (!stream.good()) throw std::runtime_error("Failed to read from istream.");
 
 		return stream.read(reinterpret_cast<char*>(&value), sizeof(T));
 	}
 
 	void WriteString(const std::string& stringToWrite, std::ofstream& outstream);
-	std::string ReadString(std::ifstream& instream);
-	std::string ReadString(std::ifstream& instream, size_t size);
-	std::string ReadWString(std::ifstream& instream);
+	std::string ReadString(std::istream& instream);
+	std::string ReadString(std::istream& instream, size_t size);
+	std::string ReadWString(std::istream& instream);
 
 	inline bool DoesFileExist(const std::string& name) {
 		std::ifstream f(name.c_str());

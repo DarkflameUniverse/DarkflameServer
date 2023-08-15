@@ -19,10 +19,17 @@
 #include "BaseCombatAIComponent.h"
 #include "ScriptComponent.h"
 #include "BuffComponent.h"
-
+#include "EchoStartSkill.h"
+#include "DoClientProjectileImpact.h"
+#include "CDClientManager.h"
+#include "CDSkillBehaviorTable.h"
+#include "eConnectionType.h"
+#include "eClientMessageType.h"
 
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
+
+std::unordered_map<uint32_t, uint32_t> SkillComponent::m_skillBehaviorCache = {};
 
 bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream* bitStream, const LWOOBJID target, uint32_t skillID) {
 	auto* context = new BehaviorContext(this->m_Parent->GetObjectID());
@@ -123,8 +130,12 @@ void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, Behav
 }
 
 void SkillComponent::Update(const float deltaTime) {
-	if (!m_Parent->HasComponent(COMPONENT_TYPE_BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
+	if (!m_Parent->HasComponent(eReplicaComponentType::BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
 		CalculateUpdate(deltaTime);
+	}
+
+	if (m_Parent->IsPlayer()) {
+		for (const auto& pair : this->m_managedBehaviors) pair.second->UpdatePlayerSyncs(deltaTime);
 	}
 
 	std::map<uint32_t, BehaviorContext*> keep{};
@@ -181,17 +192,19 @@ void SkillComponent::Reset() {
 }
 
 void SkillComponent::Interrupt() {
-	if (m_Parent->IsPlayer()) return;
-
+	// TODO: need to check immunities on the destroyable component, but they aren't implemented
 	auto* combat = m_Parent->GetComponent<BaseCombatAIComponent>();
-
-	if (combat != nullptr && combat->GetStunImmune()) {
-		return;
-	}
+	if (combat != nullptr && combat->GetStunImmune()) return;
 
 	for (const auto& behavior : this->m_managedBehaviors) {
+		for (const auto& behaviorEndEntry : behavior.second->endEntries) {
+			behaviorEndEntry.behavior->End(behavior.second, behaviorEndEntry.branchContext, behaviorEndEntry.second);
+		}
+		behavior.second->endEntries.clear();
+		if (m_Parent->IsPlayer()) continue;
 		behavior.second->Interrupt();
 	}
+
 }
 
 void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, BehaviorContext* context, const BehaviorBranchContext& branch, const LOT lot, const float maxTime,
@@ -214,6 +227,29 @@ void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, B
 	this->m_managedProjectiles.push_back(entry);
 }
 
+bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID) {
+	uint32_t behaviorId = -1;
+	// try to find it via the cache
+	const auto& pair = m_skillBehaviorCache.find(skillId);
+
+	// if it's not in the cache look it up and cache it
+	if (pair == m_skillBehaviorCache.end()) {
+		auto skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+		behaviorId = skillTable->GetSkillByID(skillId).behaviorID;
+		m_skillBehaviorCache.insert_or_assign(skillId, behaviorId);
+	} else {
+		behaviorId = pair->second;
+	}
+
+	// check to see if we got back a valid behavior
+	if (behaviorId == -1) {
+		Game::logger->LogDebug("SkillComponent", "Tried to cast skill %i but found no behavior", skillId);
+		return false;
+	}
+
+	return CalculateBehavior(skillId, behaviorId, target, false, false, optionalOriginatorID).success;
+}
+
 
 SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, const uint32_t behaviorId, const LWOOBJID target, const bool ignoreTarget, const bool clientInitalized, const LWOOBJID originatorOverride) {
 	auto* bitStream = new RakNet::BitStream();
@@ -223,6 +259,8 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 	auto* context = new BehaviorContext(originatorOverride != LWOOBJID_EMPTY ? originatorOverride : this->m_Parent->GetObjectID(), true);
 
 	context->caster = m_Parent->GetObjectID();
+
+	context->skillID = skillId;
 
 	context->clientInitalized = clientInitalized;
 
@@ -246,14 +284,15 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	if (!clientInitalized) {
 		// Echo start skill
-		GameMessages::EchoStartSkill start;
+		EchoStartSkill start;
 
 		start.iCastType = 0;
 		start.skillID = skillId;
 		start.uiSkillHandle = context->skillUId;
 		start.optionalOriginatorID = context->originator;
+		start.optionalTargetID = target;
 
-		auto* originator = EntityManager::Instance()->GetEntity(context->originator);
+		auto* originator = Game::entityManager->GetEntity(context->originator);
 
 		if (originator != nullptr) {
 			start.originatorRot = originator->GetRotation();
@@ -265,7 +304,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		// Write message
 		RakNet::BitStream message;
 
-		PacketUtils::WriteHeader(message, CLIENT, MSG_CLIENT_GAME_MSG);
+		PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 		message.Write(this->m_Parent->GetObjectID());
 		start.Serialize(&message);
 
@@ -299,7 +338,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 
 		entry.time += deltaTime;
 
-		auto* origin = EntityManager::Instance()->GetEntity(entry.context->originator);
+		auto* origin = Game::entityManager->GetEntity(entry.context->originator);
 
 		if (origin == nullptr) {
 			continue;
@@ -310,7 +349,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 		const auto position = entry.startPosition + (entry.velocity * entry.time);
 
 		for (const auto& targetId : targets) {
-			auto* target = EntityManager::Instance()->GetEntity(targetId);
+			auto* target = Game::entityManager->GetEntity(targetId);
 
 			const auto targetPosition = target->GetPosition();
 
@@ -319,34 +358,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 			const auto distance = Vector3::DistanceSquared(targetPosition, closestPoint);
 
 			if (distance > 3 * 3) {
-				/*
-				if (entry.TrackTarget && distance <= entry.TrackRadius)
-				{
-					const auto rotation = NiQuaternion::LookAtUnlocked(position, targetPosition);
-
-					const auto speed = entry.Velocity.Length();
-
-					const auto homingTarget = rotation.GetForwardVector() * speed;
-
-					Vector3 homing;
-
-					// Move towards
-
-					const auto difference = homingTarget - entry.Velocity;
-					const auto mag = difference.Length();
-					if (mag <= speed || mag == 0)
-					{
-						homing = homingTarget;
-					}
-					else
-					{
-						entry.Velocity + homingTarget / mag * speed;
-					}
-
-					entry.Velocity = homing;
-				}
-				*/
-
+				// TODO There is supposed to be an implementation for homing projectiles here
 				continue;
 			}
 
@@ -385,7 +397,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 
 
 void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry) const {
-	auto* other = EntityManager::Instance()->GetEntity(entry.branchContext.target);
+	auto* other = Game::entityManager->GetEntity(entry.branchContext.target);
 
 	if (other == nullptr) {
 		if (entry.branchContext.target != LWOOBJID_EMPTY) {
@@ -416,7 +428,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	behavior->Calculate(entry.context, bitStream, entry.branchContext);
 
-	GameMessages::DoClientProjectileImpact projectileImpact;
+	DoClientProjectileImpact projectileImpact;
 
 	projectileImpact.sBitStream.assign((char*)bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
 	projectileImpact.i64OwnerID = this->m_Parent->GetObjectID();
@@ -425,7 +437,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	RakNet::BitStream message;
 
-	PacketUtils::WriteHeader(message, CLIENT, MSG_CLIENT_GAME_MSG);
+	PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 	message.Write(this->m_Parent->GetObjectID());
 	projectileImpact.Serialize(&message);
 
@@ -465,7 +477,7 @@ void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID targ
 	delete context;
 }
 
-SkillComponent::SkillComponent(Entity* parent) : Component(parent) {
+SkillComponent::SkillComponent(Entity* parent): Component(parent) {
 	this->m_skillUid = 0;
 }
 

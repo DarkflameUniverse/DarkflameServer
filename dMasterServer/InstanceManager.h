@@ -128,6 +128,7 @@ public:
 
 	Instance* CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password);
 	Instance* FindPrivateInstance(const std::string& password);
+	void SetIsShuttingDown(bool value) { this->m_IsShuttingDown = value; };
 
 private:
 	dLogger* mLogger;
@@ -135,6 +136,11 @@ private:
 	std::vector<Instance*> m_Instances;
 	unsigned short m_LastPort;
 	LWOINSTANCEID m_LastInstanceID;
+
+	/**
+	 * Whether or not the master server is currently shutting down.
+	 */
+	bool m_IsShuttingDown = false;
 
 	//Private functions:
 	bool IsInstanceFull(Instance* instance, bool isFriendTransfer);

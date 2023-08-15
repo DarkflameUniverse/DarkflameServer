@@ -11,6 +11,9 @@
 #include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
+
+#include "CDActivitiesTable.h"
 
  /**
   * Represents an instance of an activity, having participants and score
@@ -153,7 +156,7 @@ struct ActivityPlayer {
  */
 class ScriptedActivityComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_SCRIPTED_ACTIVITY;
+	static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPTED_ACTIVITY;
 
 	ScriptedActivityComponent(Entity* parent, int activityID);
 	~ScriptedActivityComponent() override;
@@ -277,6 +280,12 @@ public:
 	ActivityInstance* GetInstance(const LWOOBJID playerID);
 
 	/**
+	 * @brief Reloads the config settings for this component
+	 *
+	 */
+	void ReloadConfig();
+
+	/**
 	 * Removes all the instances
 	 */
 	void ClearInstances();
@@ -361,6 +370,12 @@ private:
 	 * LMIs for team sizes
 	 */
 	std::unordered_map<uint32_t, uint32_t> m_ActivityLootMatrices;
+
+	/**
+	 * The activity id
+	 *
+	 */
+	int32_t m_ActivityID;
 };
 
 #endif // SCRIPTEDACTIVITYCOMPONENT_H

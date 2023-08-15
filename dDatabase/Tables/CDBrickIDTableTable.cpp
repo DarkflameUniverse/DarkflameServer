@@ -1,6 +1,5 @@
 #include "CDBrickIDTableTable.h"
 
-//! Constructor
 CDBrickIDTableTable::CDBrickIDTableTable(void) {
 
 	// First, get the size of the table
@@ -21,8 +20,8 @@ CDBrickIDTableTable::CDBrickIDTableTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BrickIDTable");
 	while (!tableData.eof()) {
 		CDBrickIDTable entry;
-		entry.NDObjectID = tableData.getIntField(0, -1);
-		entry.LEGOBrickID = tableData.getIntField(1, -1);
+		entry.NDObjectID = tableData.getIntField("NDObjectID", -1);
+		entry.LEGOBrickID = tableData.getIntField("LEGOBrickID", -1);
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -31,15 +30,6 @@ CDBrickIDTableTable::CDBrickIDTableTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDBrickIDTableTable::~CDBrickIDTableTable(void) {}
-
-//! Returns the table's name
-std::string CDBrickIDTableTable::GetName(void) const {
-	return "BrickIDTable";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDBrickIDTable> CDBrickIDTableTable::Query(std::function<bool(CDBrickIDTable)> predicate) {
 
 	std::vector<CDBrickIDTable> data = cpplinq::from(this->entries)
@@ -49,7 +39,7 @@ std::vector<CDBrickIDTable> CDBrickIDTableTable::Query(std::function<bool(CDBric
 	return data;
 }
 
-//! Gets all the entries in the table
 std::vector<CDBrickIDTable> CDBrickIDTableTable::GetEntries(void) const {
 	return this->entries;
 }
+

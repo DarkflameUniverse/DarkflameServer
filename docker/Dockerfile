@@ -1,4 +1,4 @@
-FROM gcc:11 as build
+FROM gcc:12 as build
 
 WORKDIR /build
 
@@ -6,7 +6,7 @@ RUN --mount=type=cache,id=build-apt-cache,target=/var/cache/apt \
     echo "Install build dependencies" && \
     apt update && \
     apt remove -y libmysqlcppconn7v5 libmysqlcppconn-dev && \
-    apt install cmake zlib1g zlib1g-dev unzip -yqq --no-install-recommends && \
+    apt install cmake zlib1g zlib1g-dev -yqq --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
 COPY dAuthServer/ /build/dAuthServer
@@ -32,16 +32,14 @@ COPY .clang-* CMake* LICENSE /build/
 ARG BUILD_THREADS=1
 ARG BUILD_VERSION=171022
 
-RUN echo "Build server" && \
-    mkdir -p cmake_build && \
-    cd cmake_build && \
-    sed -i -e "s/171022/${BUILD_VERSION}/g" ../CMakeVariables.txt && \
-    cmake .. -DCMAKE_BUILD_RPATH_USE_ORIGIN=TRUE && \
-    make -j $BUILD_THREADS
+RUN echo "Build server"
+RUN sed -i -e "s/__maria_db_connector_compile_jobs__=.*/__maria_db_connector_compile_jobs__=${BUILD_THREADS}/g" CMakeVariables.txt
+RUN mkdir -p cmake_build
+RUN cd cmake_build && \
+	cmake .. -DCMAKE_BUILD_RPATH_USE_ORIGIN=TRUE && \
+	make -j$BUILD_THREADS
 
-RUN unzip /build/resources/navmeshes.zip -d /build/cmake_build/res/maps
-
-FROM gcc:11 as runtime
+FROM gcc:12 as runtime
 
 RUN --mount=type=cache,id=runtime-apt-cache,target=/var/cache/apt \
     apt update && \
