@@ -293,6 +293,8 @@
 
 // WBL scripts
 #include "WblGenericZone.h"
+#include "LupGenericInteract.h"
+#include "WblRobotCitizen.h"
 
 // Alpha Scripts
 #include "TriggerGas.h"
@@ -874,6 +876,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	// WBL
 	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
 		script = new WblGenericZone();
+	else if (scriptName == "scripts\\ai\\WILD\\L_LUP_generic_interact.lua")
+		script = new LupGenericInteract();
+	else if (scriptName.rfind("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizen", 0) == 0)
+		script = new WblRobotCitizen();
 
 	// Alpha
 	if (scriptName == "scripts\\ai\\FV\\L_TRIGGER_GAS.lua")
