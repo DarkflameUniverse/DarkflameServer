@@ -11,16 +11,15 @@
 #include "DestroyableComponent.h"
 
 void MovementAIComponent::HandleWaypointArrived(uint32_t commandIndex) {
-	Pause();
 	if (!m_Path){
-		Resume();
+		if(IsPaused()) Resume();
 		return;
 	}
 	if (commandIndex >= m_Path->pathWaypoints.at(m_CurrentPathWaypointIndex).commands.size()){
-		Resume();
+		if(IsPaused()) Resume();
 		return;
 	}
-
+	if(!IsPaused()) Pause();
 	const auto& data = m_Path->pathWaypoints.at(m_CurrentPathWaypointIndex).commands.at(commandIndex).data;
 	const auto& command = m_Path->pathWaypoints.at(m_CurrentPathWaypointIndex).commands.at(commandIndex).command;
 	float delay = 0.0f;
@@ -150,7 +149,7 @@ void MovementAIComponent::HandleWaypointCommandUnequipInventory(const std::strin
 float MovementAIComponent::HandleWaypointCommandDelay(const std::string& data) {
 	float delay = 0.0f;
 	std::string delayString = data;
-	std::remove_if(delayString.begin(), delayString.end(), ::isspace);
+	delayString.erase(std::remove_if(delayString.begin(), delayString.end(), isspace), delayString.end());
 	GeneralUtils::TryParse<float>(delayString, delay);
 	return delay;
 }
