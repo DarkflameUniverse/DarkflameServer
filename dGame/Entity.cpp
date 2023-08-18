@@ -30,7 +30,7 @@
 #include "Component.h"
 #include "ControllablePhysicsComponent.h"
 #include "RenderComponent.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "CharacterComponent.h"
 #include "DestroyableComponent.h"
 #include "BuffComponent.h"
@@ -451,9 +451,9 @@ void Entity::Initialize() {
 		m_Components.insert(std::make_pair(eReplicaComponentType::INVENTORY, comp));
 	}
 	// if this component exists, then we initialize it. it's value is always 0
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROCKET_LAUNCH_LUP, -1) != -1) {
-		auto comp = new RocketLaunchLupComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::ROCKET_LAUNCH_LUP, comp));
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MULTI_ZONE_ENTRANCE, -1) != -1) {
+		auto comp = new MultiZoneEntranceComponent(this);
+		m_Components.insert(std::make_pair(eReplicaComponentType::MULTI_ZONE_ENTRANCE, comp));
 	}
 
 	/**

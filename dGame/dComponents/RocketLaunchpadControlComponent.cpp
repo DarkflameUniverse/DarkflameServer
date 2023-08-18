@@ -13,7 +13,7 @@
 #include "ChatPackets.h"
 #include "MissionComponent.h"
 #include "PropertyEntranceComponent.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "dServer.h"
 #include "PacketUtils.h"
 #include "eObjectWorldState.h"
@@ -94,7 +94,7 @@ void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	auto* rocketLaunchLUP = m_Parent->GetComponent<RocketLaunchLupComponent>();
+	auto* rocketLaunchLUP = m_Parent->GetComponent<MultiZoneEntranceComponent>();
 	if (rocketLaunchLUP) {
 		return;
 	}
