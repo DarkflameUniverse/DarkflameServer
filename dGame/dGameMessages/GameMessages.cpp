@@ -24,7 +24,7 @@
 #include "dConfig.h"
 #include "TeamManager.h"
 #include "ChatPackets.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "eUnequippableActiveType.h"
 #include "eMovementPlatformState.h"
 #include "LeaderboardManager.h"
@@ -2795,9 +2795,9 @@ void GameMessages::HandleEnterProperty(RakNet::BitStream* inStream, Entity* enti
 		return;
 	}
 
-	auto rocketLaunchLupComponent = entity->GetComponent<RocketLaunchLupComponent>();
-	if (rocketLaunchLupComponent != nullptr) {
-		rocketLaunchLupComponent->OnSelectWorld(player, index);
+	auto multiZoneEntranceComponent = entity->GetComponent<MultiZoneEntranceComponent>();
+	if (multiZoneEntranceComponent != nullptr) {
+		multiZoneEntranceComponent->OnSelectWorld(player, index);
 	}
 }
 
