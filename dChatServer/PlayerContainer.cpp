@@ -207,6 +207,11 @@ TeamData* PlayerContainer::GetTeam(LWOOBJID playerID) {
 }
 
 void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
+	if (team->memberIDs.size() >= 4){
+		Game::logger->Log("PlayerContainer", "Tried to add player to team that already had 4 players");
+		return;
+	}
+
 	const auto index = std::find(team->memberIDs.begin(), team->memberIDs.end(), playerID);
 
 	if (index != team->memberIDs.end()) return;
