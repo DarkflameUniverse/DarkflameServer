@@ -2,8 +2,8 @@
 #define __BITSTREAMUTILS__H__
 
 #include "GeneralUtils.h"
-#include <MessageIdentifiers.h>
-#include <BitStream.h>
+#include "MessageIdentifiers.h"
+#include "BitStream.h"
 #include <string>
 
 enum class eConnectionType : uint16_t;
