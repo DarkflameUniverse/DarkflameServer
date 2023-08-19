@@ -56,60 +56,26 @@ namespace BitStreamUtils {
 }
 
 namespace RakNet {
+#ifndef __BITSTREAM_NATIVE_END
+#error No definition for big endian reading of LUString
+#endif
+
 	template <>
 	inline bool RakNet::BitStream::Read<LUString>(LUString& value) {
-		bool noMoreLetters = false;
-		char character;
-		for (uint32_t j = 0; j < value.size; j++) {
-			if (!Read(character)) return false;
-			if (character == '\0') noMoreLetters = true;
-			if (!noMoreLetters) value.string.push_back(character);
-		}
-		return true;
+		value.string.resize(value.size);
+		bool res = ReadBits(reinterpret_cast<unsigned char*>(value.string.data()), BYTES_TO_BITS(value.string.size()), true);
+		if (!res) return false;
+		value.string.erase(std::find(value.string.begin(), value.string.end(), '\0'), value.string.end());
+		return res;
 	}
 
 	template <>
 	inline bool RakNet::BitStream::Read<LUWString>(LUWString& value) {
-		bool noMoreLetters = false;
-		char16_t character;
-		for (uint32_t j = 0; j < value.size; j++) {
-			if (!Read(character)) return false;
-			if (character == '\0') noMoreLetters = true;
-			if (!noMoreLetters) value.string.push_back(character);
-		}
-		return true;
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<LUString>(LUString value) {
-		uint32_t size = value.string.size();
-		uint32_t emptySize = value.size - size;
-
-		if (size > value.size) size = value.size;
-
-		for (uint32_t i = 0; i < size; i++) {
-			this->Write(static_cast<char>(value.string[i]));
-		}
-
-		for (uint32_t i = 0; i < emptySize; i++) {
-			this->Write(static_cast<char>(0));
-		}
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<LUWString>(LUWString value) {
-		uint32_t size = static_cast<uint32_t>(value.string.length());
-		uint32_t remSize = static_cast<uint32_t>(value.size - size);
-
-		if (size > value.size) size = value.size;
-
-		for (uint32_t i = 0; i < size; ++i) {
-			this->Write(static_cast<uint16_t>(value.string[i]));
-		}
-
-		for (uint32_t j = 0; j < remSize; ++j) {
-			this->Write(static_cast<uint16_t>(0));
-		}
+		value.string.resize(value.size);
+		bool res = ReadBits(reinterpret_cast<unsigned char*>(value.string.data()), BYTES_TO_BITS(value.string.size()) * sizeof(std::u16string::value_type), true);
+		if (!res) return false;
+		value.string.erase(std::find(value.string.begin(), value.string.end(), u'\0'), value.string.end());
+		return res;
 	}
 
 	template <>
@@ -119,7 +85,19 @@ namespace RakNet {
 
 	template <>
 	inline void RakNet::BitStream::Write<std::u16string>(std::u16string value) {
-		this->WriteBits(reinterpret_cast<const unsigned char*>(value.data()), BYTES_TO_BITS(value.size()) * 2);
+		this->WriteBits(reinterpret_cast<const unsigned char*>(value.data()), BYTES_TO_BITS(value.size()) * sizeof(std::u16string::value_type));
+	}
+
+	template <>
+	inline void RakNet::BitStream::Write<LUString>(LUString value) {
+		value.string.resize(value.size);
+		this->Write(value.string);
+	}
+
+	template <>
+	inline void RakNet::BitStream::Write<LUWString>(LUWString value) {
+		value.string.resize(value.size);
+		this->Write(value.string);
 	}
 };
 
