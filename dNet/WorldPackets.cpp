@@ -114,7 +114,7 @@ void WorldPackets::SendTransferToWorld(const SystemAddress& sysAddr, const std::
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::TRANSFER_TO_WORLD);
 
-	bitStream.Write(LUString(serverIP, 33));
+	bitStream.Write(LUString(serverIP));
 	bitStream.Write(static_cast<uint16_t>(serverPort));
 	bitStream.Write(static_cast<uint8_t>(mythranShift));
 
