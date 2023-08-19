@@ -243,7 +243,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 
 	packet.Write(static_cast<uint8_t>(false)); // Just upgraded from F2P
 	packet.Write(static_cast<uint8_t>(false)); // User is F2P
-	packet.Write(static_cast<uint64_t>(0)); // Time Remaining in F2p
+	packet.Write(static_cast<uint64_t>(0)); // Time Remaining in F2P
 
 	// Write custom error message
 	packet.Write(static_cast<uint16_t>(errorMsg.length()));
