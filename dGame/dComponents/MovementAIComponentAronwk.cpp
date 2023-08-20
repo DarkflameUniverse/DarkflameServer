@@ -149,7 +149,9 @@ void MovementAIComponent::HandleWaypointCommandUnequipInventory(const std::strin
 float MovementAIComponent::HandleWaypointCommandDelay(const std::string& data) {
 	float delay = 0.0f;
 	std::string delayString = data;
-	if (!GeneralUtils::TryParse<float>(delayString, delay)) return;
+	if (!GeneralUtils::TryParse<float>(delayString, delay)){
+		Game::logger->LogDebug("MovementAIComponentAronwk", "Failed to parse delay %s", data.c_str());
+	}
 	return delay;
 }
 
