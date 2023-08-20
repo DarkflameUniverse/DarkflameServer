@@ -24,8 +24,6 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 	m_IsOnGround = true;
 	m_IsOnRail = false;
 	m_DirtyPosition = true;
-	m_DirtyVelocity = true;
-	m_DirtyAngularVelocity = true;
 	m_dpEntity = nullptr;
 	m_Static = false;
 	m_SpeedMultiplier = 1;
@@ -134,20 +132,20 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write(m_IsOnGround);
 		outBitStream->Write(m_IsOnRail);
 
-		outBitStream->Write(m_DirtyVelocity);
-		if (m_DirtyVelocity) {
+		bool isVelocityZero = m_Velocity != NiPoint3::ZERO;
+		outBitStream->Write(isVelocityZero);
+		if (isVelocityZero) {
 			outBitStream->Write(m_Velocity.x);
 			outBitStream->Write(m_Velocity.y);
 			outBitStream->Write(m_Velocity.z);
-			m_DirtyVelocity = false;
 		}
 
-		outBitStream->Write(m_DirtyAngularVelocity);
-		if (m_DirtyAngularVelocity) {
+		bool isAngularVelocityZero = m_AngularVelocity != NiPoint3::ZERO;
+		outBitStream->Write(isAngularVelocityZero);
+		if (isAngularVelocityZero) {
 			outBitStream->Write(m_AngularVelocity.x);
 			outBitStream->Write(m_AngularVelocity.y);
 			outBitStream->Write(m_AngularVelocity.z);
-			m_DirtyAngularVelocity = false;
 		}
 
 		outBitStream->Write0(); // LocalSpaceInfo
@@ -230,7 +228,6 @@ void ControllablePhysicsComponent::SetVelocity(const NiPoint3& vel) {
 
 	m_Velocity = vel;
 	m_DirtyPosition = true;
-	m_DirtyVelocity = true;
 
 	if (m_dpEntity) m_dpEntity->SetVelocity(vel);
 }
@@ -242,7 +239,6 @@ void ControllablePhysicsComponent::SetAngularVelocity(const NiPoint3& vel) {
 
 	m_AngularVelocity = vel;
 	m_DirtyPosition = true;
-	m_DirtyAngularVelocity = true;
 }
 
 void ControllablePhysicsComponent::SetIsOnGround(bool val) {
@@ -259,14 +255,6 @@ void ControllablePhysicsComponent::SetIsOnRail(bool val) {
 
 void ControllablePhysicsComponent::SetDirtyPosition(bool val) {
 	m_DirtyPosition = val;
-}
-
-void ControllablePhysicsComponent::SetDirtyVelocity(bool val) {
-	m_DirtyVelocity = val;
-}
-
-void ControllablePhysicsComponent::SetDirtyAngularVelocity(bool val) {
-	m_DirtyAngularVelocity = val;
 }
 
 void ControllablePhysicsComponent::AddPickupRadiusScale(float value) {

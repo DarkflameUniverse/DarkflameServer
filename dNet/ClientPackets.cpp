@@ -182,9 +182,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				vehiclePhysicsComponent->SetIsOnGround(onGround);
 				vehiclePhysicsComponent->SetIsOnRail(onRail);
 				vehiclePhysicsComponent->SetVelocity(velocity);
-				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
 				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
-				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 				vehiclePhysicsComponent->SetRemoteInputInfo(remoteInput);
 			} else {
 				// Need to get the mount's controllable physics
@@ -195,9 +193,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				controllablePhysicsComponent->SetIsOnGround(onGround);
 				controllablePhysicsComponent->SetIsOnRail(onRail);
 				controllablePhysicsComponent->SetVelocity(velocity);
-				controllablePhysicsComponent->SetDirtyVelocity(velocityFlag);
 				controllablePhysicsComponent->SetAngularVelocity(angVelocity);
-				controllablePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 			}
 			Game::entityManager->SerializeEntity(possassableEntity);
 		}
@@ -221,9 +217,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	comp->SetIsOnGround(onGround);
 	comp->SetIsOnRail(onRail);
 	comp->SetVelocity(velocity);
-	comp->SetDirtyVelocity(velocityFlag);
 	comp->SetAngularVelocity(angVelocity);
-	comp->SetDirtyAngularVelocity(angVelocityFlag);
 
 	auto* player = static_cast<Player*>(entity);
 	player->SetGhostReferencePoint(position);
