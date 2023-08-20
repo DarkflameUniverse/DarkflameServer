@@ -168,7 +168,7 @@ void MovementAIComponent::HandleWaypointCommandTeleport(const std::string& data)
 void MovementAIComponent::HandleWaypointCommandPathSpeed(const std::string& data) {
 	float speed = 0.0;
 	if (!GeneralUtils::TryParse<float>(data, speed)) return;
-	SetCurrentSpeed(speed);
+	SetMaxSpeed(speed);
 }
 
 void MovementAIComponent::HandleWaypointCommandRemoveNPC(const std::string& data) {
