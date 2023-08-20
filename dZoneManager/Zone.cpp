@@ -550,9 +550,10 @@ void Zone::LoadPath(std::istream& file) {
 				LDFBaseData* ldfConfig = nullptr;
 				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
 					// cause NetDevil puts spaces in things that don't need spaces
-					parameter.erase(std::remove_if(parameter.begin(), parameter.end(), isspace), parameter.end());
+					parameter.erase(std::remove_if(parameter.begin(), parameter.end(), ::isspace), parameter.end());
 					auto waypointCommand = WaypointCommandType::StringToWaypointCommandType(parameter);
-					if(waypointCommand != eWaypointCommandType::INVALID) waypoint.commands.push_back(WaypointCommand(waypointCommand, value));
+					if (waypointCommand == eWaypointCommandType::DELAY) value.erase(std::remove_if(value.begin(), value.end(), ::isspace), value.end());
+					if (waypointCommand != eWaypointCommandType::INVALID) waypoint.commands.push_back(WaypointCommand(waypointCommand, value));
 					else Game::logger->Log("Zone", "Tried to load invalid waypoint command '%s'", parameter.c_str());
 				} else {
 					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);

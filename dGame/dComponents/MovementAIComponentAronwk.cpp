@@ -73,7 +73,7 @@ void MovementAIComponent::HandleWaypointArrived(uint32_t commandIndex) {
 			GameMessages::SendPlayNDAudioEmitter(m_Parent, UNASSIGNED_SYSTEM_ADDRESS, data);
 			break;
 		case eWaypointCommandType::BOUNCE:
-			Game::logger->LogDebug("MovementAIComponent", "Unable to process bounce waypoint command server side");
+			Game::logger->LogDebug("MovementAIComponent", "Unable to process bounce waypoint command server side!");
 			break;
 		case eWaypointCommandType::INVALID:
 		default:
@@ -111,7 +111,7 @@ void MovementAIComponent::HandleWaypointCommandCastSkill(const std::string& data
 		return;
 	}
 	uint32_t skillId = 0;
-	GeneralUtils::TryParse<uint32_t>(data, skillId);
+	if (!GeneralUtils::TryParse<uint32_t>(data, skillId)) return;
 	if (skillId != 0) skillComponent->CastSkill(skillId);
 	return;
 }
@@ -149,8 +149,9 @@ void MovementAIComponent::HandleWaypointCommandUnequipInventory(const std::strin
 float MovementAIComponent::HandleWaypointCommandDelay(const std::string& data) {
 	float delay = 0.0f;
 	std::string delayString = data;
-	delayString.erase(std::remove_if(delayString.begin(), delayString.end(), isspace), delayString.end());
-	GeneralUtils::TryParse<float>(delayString, delay);
+	if (!GeneralUtils::TryParse<float>(delayString, delay)){
+		Game::logger->LogDebug("MovementAIComponentAronwk", "Failed to parse delay %s", data.c_str());
+	}
 	return delay;
 }
 
@@ -166,7 +167,7 @@ void MovementAIComponent::HandleWaypointCommandTeleport(const std::string& data)
 
 void MovementAIComponent::HandleWaypointCommandPathSpeed(const std::string& data) {
 	float speed = 0.0;
-	GeneralUtils::TryParse<float>(data, speed);
+	if (!GeneralUtils::TryParse<float>(data, speed)) return;
 	SetCurrentSpeed(speed);
 }
 
@@ -187,7 +188,7 @@ void MovementAIComponent::HandleWaypointCommandRemoveNPC(const std::string& data
 			return;
 		}
 		uint32_t factionID = -1;
-		GeneralUtils::TryParse<uint32_t>(data, factionID);
+		if (!GeneralUtils::TryParse<uint32_t>(data, factionID)) return;
 		if (destroyableComponent->BelongsToFaction(factionID)) m_Parent->Kill();
 	}
 }
@@ -199,7 +200,7 @@ void MovementAIComponent::HandleWaypointCommandChangeWaypoint(const std::string&
 	if (data.find(",") != std::string::npos){
 		auto datas = GeneralUtils::SplitString(data, ',');
 		path_string = datas.at(0);
-		GeneralUtils::TryParse(datas.at(1), index);
+		if (!GeneralUtils::TryParse(datas.at(1), index)) return;
 	} else path_string = data;
 
 	if (path_string != "") {
@@ -210,7 +211,7 @@ void MovementAIComponent::HandleWaypointCommandChangeWaypoint(const std::string&
 
 void MovementAIComponent::HandleWaypointCommandSpawnObject(const std::string& data) {
 	LOT newObjectLOT = 0;
-	GeneralUtils::TryParse(data, newObjectLOT);
+	if (!GeneralUtils::TryParse(data, newObjectLOT)) return;
 	EntityInfo info{};
 	info.lot = newObjectLOT;
 	info.pos = m_Parent->GetPosition();
