@@ -55,6 +55,13 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_NextPathWaypointIndex = 0;
 }
 
+float MovementAIComponent::GetCurrentPathWaypointSpeed() const {
+	if (!m_Path || m_CurrentPathWaypointIndex >= m_CurrentPath.size() || m_CurrentPathWaypointIndex < 0) {
+		return 1.0f;
+	}
+	return m_Path->pathWaypoints.at(m_CurrentPathWaypointIndex).speed;
+}
+
 void MovementAIComponent::SetupPath(const std::string& pathname) {
 	std::string path = pathname;
 	if (path.empty()) path = m_Parent->GetVarAsString(u"attached_path");
@@ -79,7 +86,6 @@ void MovementAIComponent::SetupPath(const std::string& pathname) {
 			waypoints.push_back(waypoint.position);
 		}
 		SetPath(waypoints);
-		SetMaxSpeed(3.0f);
 	} else {
 		Game::logger->Log("MovementAIComponent", "No path found for %i:%llu", m_Parent->GetLOT(), m_Parent->GetObjectID());
 	}
@@ -134,14 +140,14 @@ void MovementAIComponent::Update(const float deltaTime) {
 		if (m_NextWaypoint == source) {
 			m_TimeToTravel = 0.0f;
 
-			goto nextAction;
+			return;
 		}
+
+		// if (m_CurrentSpeed < m_MaxSpeed) {
+		// 	m_CurrentSpeed += m_Acceleration;
+		// }
 
 		if (m_CurrentSpeed < m_MaxSpeed) {
-			m_CurrentSpeed += m_Acceleration;
-		}
-
-		if (m_CurrentSpeed > m_MaxSpeed) {
 			m_CurrentSpeed = m_MaxSpeed;
 		}
 
@@ -152,7 +158,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		// Normalize the vector
 		const auto length = delta.Length();
 		if (length > 0) {
-			velocity = (delta / length) * speed;
+			velocity = (delta / length).Unitize() * speed;
 		}
 
 		// Calclute the time it will take to reach the next waypoint with the current speed
@@ -164,24 +170,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
 		// All checks for how to progress when you arrive at a waypoint will be handled in this else block.
 		HandleWaypointArrived(0);
-		if (!AdvancePathWaypointIndex()) {
-			if (m_Path) {
-				if (m_Path->pathBehavior == PathBehavior::Bounce) {
-					ReversePath();
-				} else if (m_Path->pathBehavior == PathBehavior::Loop) {
-					m_CurrentPathWaypointIndex = 0;
-					m_NextPathWaypointIndex = 0;
-					AdvancePathWaypointIndex();
-					SetDestination(GetCurrentPathWaypoint());
-				} else {
-					Stop();
-				}
-			} else {
-				Stop();
-			}
-			return;
-		}
-		SetDestination(GetCurrentPathWaypoint());
+		return;
 	}
 
 nextAction:
@@ -231,15 +220,11 @@ NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
 
 NiPoint3 MovementAIComponent::ApproximateLocation() const {
 	auto source = m_Parent->GetPosition();
-
 	if (AtFinalWaypoint()) return source;
 
-	auto destination = m_NextWaypoint;
-
+	auto destination = GetNextWaypoint();
 	auto percentageToWaypoint = m_TimeToTravel > 0 ? m_TimeTravelled / m_TimeToTravel : 0;
-
 	auto approximation = source + ((destination - source) * percentageToWaypoint);
-
 	if (dpWorld::Instance().IsLoaded()) {
 		approximation.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(approximation);
 	}
@@ -284,6 +269,7 @@ void MovementAIComponent::Resume() {
 	if (AtFinalWaypoint() || !IsPaused()) return;
 	m_IsPaused = false;
 	SetDestination(GetCurrentPathWaypoint());
+	SetMaxSpeed(GetCurrentPathWaypointSpeed());
 }
 
 void MovementAIComponent::Stop() {
@@ -341,6 +327,7 @@ void MovementAIComponent::SetPath(std::vector<NiPoint3> path, bool startInRevers
 
 	AdvancePathWaypointIndex();
 	SetDestination(GetCurrentPathWaypoint());
+	SetMaxSpeed(GetCurrentPathWaypointSpeed());
 }
 
 float MovementAIComponent::GetBaseSpeed(LOT lot) {

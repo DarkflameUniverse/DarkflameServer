@@ -154,6 +154,19 @@ public:
 	 */
 	NiPoint3 GetNextWaypoint() const { return m_NextWaypoint; }
 
+	NiPoint3 GetNextPathWaypoint() const {
+		if (m_CurrentPath.empty()) return GetNextWaypoint();
+		if (m_IsInReverse) {
+			return m_CurrentPathWaypointIndex - 1 < 0 ?
+				m_CurrentPath.front() :
+				m_CurrentPath.at(m_CurrentPathWaypointIndex - 1);
+		} else {
+			return m_CurrentPathWaypointIndex + 1 >= m_CurrentPath.size() ?
+				m_CurrentPath.back() :
+				m_CurrentPath.at(m_CurrentPathWaypointIndex + 1);
+		}
+	}
+
 	/**
 	 * Returns the approximate current location of the entity, including y coordinates
 	 * @return the approximate current location of the entity
@@ -197,6 +210,8 @@ public:
 	void HandleWaypointArrived(uint32_t commandIndex);
 
 	void SetupPath(const std::string& pathname);
+
+	float GetCurrentPathWaypointSpeed() const;
 
 	/**
 	 * Stops the current movement and moves the entity to a certain point. Will continue until it's close enough,

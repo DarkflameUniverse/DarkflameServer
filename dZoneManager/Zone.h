@@ -50,7 +50,6 @@ struct SceneTransition {
 
 struct MovingPlatformPathWaypoint {
 	uint8_t lockPlayer;
-	float speed;
 	float wait;
 	std::string departSound;
 	std::string arriveSound;
@@ -72,17 +71,13 @@ struct RacingPathWaypoint {
 	float shortestDistanceToEnd;
 };
 
-struct RailPathWaypoint {
-	float speed;
-};
-
 struct PathWaypoint {
 	NiPoint3 position;
 	NiQuaternion rotation; // not included in all, but it's more convenient here
 	MovingPlatformPathWaypoint movingPlatform;
 	CameraPathWaypoint camera;
 	RacingPathWaypoint racing;
-	RailPathWaypoint rail;
+	float speed = 1.0f;
 	std::vector<LDFBaseData*> config;
 	std::vector<WaypointCommand> commands;
 };
