@@ -143,11 +143,11 @@ void MovementAIComponent::Update(const float deltaTime) {
 			return;
 		}
 
-		// if (m_CurrentSpeed < m_MaxSpeed) {
-		// 	m_CurrentSpeed += m_Acceleration;
-		// }
-
 		if (m_CurrentSpeed < m_MaxSpeed) {
+			m_CurrentSpeed += m_Acceleration;
+		}
+
+		if (m_CurrentSpeed > m_MaxSpeed) {
 			m_CurrentSpeed = m_MaxSpeed;
 		}
 
@@ -221,10 +221,15 @@ NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
 NiPoint3 MovementAIComponent::ApproximateLocation() const {
 	auto source = m_Parent->GetPosition();
 	if (AtFinalWaypoint()) return source;
+	NiPoint3 approximation = source;
 
-	auto destination = GetNextWaypoint();
-	auto percentageToWaypoint = m_TimeToTravel > 0 ? m_TimeTravelled / m_TimeToTravel : 0;
-	auto approximation = source + ((destination - source) * percentageToWaypoint);
+	// Only have physics sim for controllable physics
+	if (!m_Parent->HasComponent(ControllablePhysicsComponent::ComponentType)) {
+		auto destination = GetNextWaypoint();
+		auto percentageToWaypoint = m_TimeToTravel > 0 ? m_TimeTravelled / m_TimeToTravel : 0;
+		approximation = source + ((destination - source) * percentageToWaypoint);
+	}
+
 	if (dpWorld::Instance().IsLoaded()) {
 		approximation.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(approximation);
 	}
