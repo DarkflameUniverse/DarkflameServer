@@ -335,7 +335,7 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 		}
 
 		// handle targeting the caster
-		if ((candidate == caster)){
+		if (candidate == caster){
 			// if we aren't targeting self, erase, otherise increment and continue
 			if (!targetSelf) index = targets.erase(index);
 			else index++;
