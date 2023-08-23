@@ -226,7 +226,7 @@ void TacArcBehavior::Load() {
 	this->m_blockedAction = GetAction("blocked action");
 
 	this->m_maxTargets = GetInt("max targets", 100);
-	if (this->m_maxTargets == 0) this->m_maxTargets == 100;
+	if (this->m_maxTargets == 0) this->m_maxTargets = 100;
 
 	this->m_farHeight = GetFloat("far_height", 5.0f);
 	this->m_farWidth = GetFloat("far_width", 5.0f);
