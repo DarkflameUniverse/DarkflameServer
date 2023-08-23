@@ -83,7 +83,7 @@ void GfCampfire::OnTimerDone(Entity* self, std::string timerName) {
 
 		const auto targetId = self->GetVar<LWOOBJID>("target");
 
-		auto* entering = EntityManager::Instance()->GetEntity(targetId);
+		auto* entering = Game::entityManager->GetEntity(targetId);
 
 		if (entering == nullptr)
 		{

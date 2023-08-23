@@ -1,7 +1,6 @@
 #include "CDItemSetsTable.h"
 
-//! Constructor
-CDItemSetsTable::CDItemSetsTable(void) {
+void CDItemSetsTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -53,7 +52,7 @@ std::vector<CDItemSets> CDItemSetsTable::Query(std::function<bool(CDItemSets)> p
 	return data;
 }
 
-std::vector<CDItemSets> CDItemSetsTable::GetEntries(void) const {
+const std::vector<CDItemSets>& CDItemSetsTable::GetEntries() const {
 	return this->entries;
 }
 

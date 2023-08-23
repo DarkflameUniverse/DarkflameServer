@@ -9,7 +9,7 @@
 
 void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	if (context->unmanaged) {
-		auto* entity = EntityManager::Instance()->GetEntity(branch.target);
+		auto* entity = Game::entityManager->GetEntity(branch.target);
 
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
@@ -38,7 +38,7 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 }
 
 void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* targetEntity = EntityManager::Instance()->GetEntity(branch.target);
+	auto* targetEntity = Game::entityManager->GetEntity(branch.target);
 	if (!targetEntity) {
 		Game::logger->Log("BasicAttackBehavior", "Target targetEntity %llu not found.", branch.target);
 		return;
@@ -61,7 +61,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 
 	if (isBlocked) {
 		destroyableComponent->SetAttacksToBlock(std::min(destroyableComponent->GetAttacksToBlock() - 1, 0U));
-		EntityManager::Instance()->SerializeEntity(targetEntity);
+		Game::entityManager->SerializeEntity(targetEntity);
 		this->m_OnFailBlocked->Handle(context, bitStream, branch);
 		return;
 	}
@@ -155,7 +155,7 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 }
 
 void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* targetEntity = EntityManager::Instance()->GetEntity(branch.target);
+	auto* targetEntity = Game::entityManager->GetEntity(branch.target);
 	if (!targetEntity) {
 		Game::logger->Log("BasicAttackBehavior", "Target entity %llu is null!", branch.target);
 		return;
@@ -173,7 +173,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 
 	if (isBlocking) {
 		destroyableComponent->SetAttacksToBlock(destroyableComponent->GetAttacksToBlock() - 1);
-		EntityManager::Instance()->SerializeEntity(targetEntity);
+		Game::entityManager->SerializeEntity(targetEntity);
 		this->m_OnFailBlocked->Calculate(context, bitStream, branch);
 		return;
 	}

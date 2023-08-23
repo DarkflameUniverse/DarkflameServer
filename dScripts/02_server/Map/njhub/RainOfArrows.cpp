@@ -18,9 +18,9 @@ void RainOfArrows::OnRebuildComplete(Entity* self, Entity* target) {
 	info.rot = myRot;
 	info.spawnerID = self->GetObjectID();
 
-	auto* entity = EntityManager::Instance()->CreateEntity(info);
+	auto* entity = Game::entityManager->CreateEntity(info);
 
-	EntityManager::Instance()->ConstructEntity(entity);
+	Game::entityManager->ConstructEntity(entity);
 
 	self->SetVar<LWOOBJID>(u"ChildFX", entity->GetObjectID());
 	self->SetVar<LWOOBJID>(u"playerID", target->GetObjectID());
@@ -30,11 +30,11 @@ void RainOfArrows::OnRebuildComplete(Entity* self, Entity* target) {
 }
 
 void RainOfArrows::OnTimerDone(Entity* self, std::string timerName) {
-	auto* child = EntityManager::Instance()->GetEntity(
+	auto* child = Game::entityManager->GetEntity(
 		self->GetVar<LWOOBJID>(u"ChildFX")
 	);
 
-	auto* player = EntityManager::Instance()->GetEntity(
+	auto* player = Game::entityManager->GetEntity(
 		self->GetVar<LWOOBJID>(u"playerID")
 	);
 

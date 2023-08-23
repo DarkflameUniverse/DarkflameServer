@@ -4,7 +4,7 @@
 #include "Amf3.h"
 
 void NsLupTeleport::OnStartup(Entity* self) {
-	self->SetVar(u"currentZone", (int32_t)dZoneManager::Instance()->GetZoneID().GetMapID());
+	self->SetVar(u"currentZone", (int32_t)Game::zoneManager->GetZoneID().GetMapID());
 	self->SetVar(u"choiceZone", m_ChoiceZoneID);
 	self->SetVar(u"teleportAnim", m_TeleportAnim);
 	self->SetVar(u"teleportString", m_TeleportString);

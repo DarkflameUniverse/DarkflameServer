@@ -5,14 +5,14 @@
 
 void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	Entity* sourceEntity;
-	if (this->m_orientCaster) sourceEntity = EntityManager::Instance()->GetEntity(context->originator);
-	else sourceEntity = EntityManager::Instance()->GetEntity(branch.target);
+	if (this->m_orientCaster) sourceEntity = Game::entityManager->GetEntity(context->originator);
+	else sourceEntity = Game::entityManager->GetEntity(branch.target);
 	if (!sourceEntity) return;
 
 	if (this->m_toTarget) {
 		Entity* destinationEntity;
-		if (this->m_orientCaster) destinationEntity = EntityManager::Instance()->GetEntity(branch.target);
-		else destinationEntity = EntityManager::Instance()->GetEntity(context->originator);
+		if (this->m_orientCaster) destinationEntity = Game::entityManager->GetEntity(branch.target);
+		else destinationEntity = Game::entityManager->GetEntity(context->originator);
 		if (!destinationEntity) return;
 
 		sourceEntity->SetRotation(
@@ -23,7 +23,7 @@ void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitS
 		if (this->m_relative) baseAngle += sourceEntity->GetRotation().GetForwardVector();
 		sourceEntity->SetRotation(NiQuaternion::FromEulerAngles(baseAngle));
 	} else return;
-	EntityManager::Instance()->SerializeEntity(sourceEntity);
+	Game::entityManager->SerializeEntity(sourceEntity);
 	return;
 }
 

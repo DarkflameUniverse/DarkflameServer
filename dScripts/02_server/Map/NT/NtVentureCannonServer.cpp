@@ -1,6 +1,9 @@
 #include "NtVentureCannonServer.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "Entity.h"
+#include "GeneralUtils.h"
+#include "RenderComponent.h"
 #include "eEndBehavior.h"
 #include "eTerminateType.h"
 #include "eStateChangeType.h"
@@ -29,7 +32,7 @@ void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 
 	GameMessages::SendTeleport(playerID, destPosition, destRotation, player->GetSystemAddress(), true);
 
-	GameMessages::SendPlayAnimation(player, u"scale-down", 4.0f);
+	RenderComponent::PlayAnimation(player, u"scale-down", 4.0f);
 
 	const auto enterCinematicUname = enterCinematic;
 	GameMessages::SendPlayCinematic(player->GetObjectID(), enterCinematicUname, player->GetSystemAddress());
@@ -41,7 +44,7 @@ void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 		});
 
 	self->AddCallbackTimer(1.5f, [this, self, playerID]() {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (player == nullptr) {
 			return;
@@ -54,7 +57,7 @@ void NtVentureCannonServer::OnUse(Entity* self, Entity* user) {
 void NtVentureCannonServer::EnterCannonEnded(Entity* self, Entity* player) {
 	const auto playerID = player->GetObjectID();
 
-	const auto& cannonEffectGroup = EntityManager::Instance()->GetEntitiesInGroup("cannonEffect");
+	const auto& cannonEffectGroup = Game::entityManager->GetEntitiesInGroup("cannonEffect");
 
 	if (!cannonEffectGroup.empty()) {
 		auto* cannonEffect = cannonEffectGroup[0];
@@ -80,7 +83,7 @@ void NtVentureCannonServer::EnterCannonEnded(Entity* self, Entity* player) {
 	);
 
 	self->AddCallbackTimer(1.5f, [this, self, playerID]() {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (player == nullptr) {
 			return;
@@ -109,7 +112,7 @@ void NtVentureCannonServer::FirePlayer(Entity* self, Entity* player) {
 	auto* destination = self;
 
 	if (!destinationGroup.empty()) {
-		const auto& groupObjs = EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(destinationGroup));
+		const auto& groupObjs = Game::entityManager->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(destinationGroup));
 
 		if (!groupObjs.empty()) {
 			destination = groupObjs[0];
@@ -121,5 +124,5 @@ void NtVentureCannonServer::FirePlayer(Entity* self, Entity* player) {
 
 	GameMessages::SendTeleport(player->GetObjectID(), destPosition, destRotation, player->GetSystemAddress(), true);
 
-	GameMessages::SendPlayAnimation(player, u"venture-cannon-out", 4.0f);
+	RenderComponent::PlayAnimation(player, u"venture-cannon-out", 4.0f);
 }

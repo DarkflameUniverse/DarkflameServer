@@ -10,6 +10,7 @@
 #include "Database.h"
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
+#include "ChatPackets.h"
 
 PlayerContainer::PlayerContainer() {
 }
@@ -207,6 +208,14 @@ TeamData* PlayerContainer::GetTeam(LWOOBJID playerID) {
 }
 
 void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
+	if (team->memberIDs.size() >= 4){
+		Game::logger->Log("PlayerContainer", "Tried to add player to team that already had 4 players");
+		auto* player = GetPlayerData(playerID);
+		if (!player) return;
+		ChatPackets::SendSystemMessage(player->sysAddr, u"The teams is full! You have not been added to a team!");
+		return;
+	}
+
 	const auto index = std::find(team->memberIDs.begin(), team->memberIDs.end(), playerID);
 
 	if (index != team->memberIDs.end()) return;

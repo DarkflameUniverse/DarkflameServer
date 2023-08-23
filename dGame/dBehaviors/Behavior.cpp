@@ -314,7 +314,7 @@ BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
 
 // For use with enemies, to display the correct damage animations on the players
 void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID secondary) {
-	auto* targetEntity = EntityManager::Instance()->GetEntity(target);
+	auto* targetEntity = Game::entityManager->GetEntity(target);
 
 	if (targetEntity == nullptr) {
 		return;

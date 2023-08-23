@@ -15,7 +15,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 	std::vector<Entity*> targets = {};
 
 	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY) {
-		auto target = EntityManager::Instance()->GetEntity(branch.target);
+		auto target = Game::entityManager->GetEntity(branch.target);
 		if (!target) Game::logger->Log("TacArcBehavior", "target %llu is null", branch.target);
 		else {
 			targets.push_back(target);
@@ -68,7 +68,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 			};
 
 			if (id != LWOOBJID_EMPTY) {
-				auto* canidate = EntityManager::Instance()->GetEntity(id);
+				auto* canidate = Game::entityManager->GetEntity(id);
 				if (canidate) targets.push_back(canidate);
 			} else {
 				Game::logger->Log("TacArcBehavior", "Bitstream has LWOOBJID_EMPTY as a target!");
@@ -83,7 +83,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 }
 
 void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* self = EntityManager::Instance()->GetEntity(context->originator);
+	auto* self = Game::entityManager->GetEntity(context->originator);
 	if (self == nullptr) {
 		Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!", context->originator);
 		return;
@@ -91,7 +91,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 
 	std::vector<Entity*> targets = {};
 	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY) {
-		auto target = EntityManager::Instance()->GetEntity(branch.target);
+		auto target = Game::entityManager->GetEntity(branch.target);
 		targets.push_back(target);
 		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 		if (!targets.empty()) {
@@ -108,7 +108,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 
 	targets.clear();
 
-	std::vector<Entity*> validTargets = EntityManager::Instance()->GetEntitiesByProximity(reference, this->m_maxRange);
+	std::vector<Entity*> validTargets = Game::entityManager->GetEntitiesByProximity(reference, this->m_maxRange);
 
 	// filter all valid targets, based on whether we target enemies or friends
 	context->FilterTargets(validTargets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);

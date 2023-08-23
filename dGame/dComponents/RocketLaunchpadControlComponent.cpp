@@ -13,7 +13,7 @@
 #include "ChatPackets.h"
 #include "MissionComponent.h"
 #include "PropertyEntranceComponent.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "dServer.h"
 #include "PacketUtils.h"
 #include "eObjectWorldState.h"
@@ -81,7 +81,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	GameMessages::SendChangeObjectWorldState(rocket->GetId(), eObjectWorldState::ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
 
-	EntityManager::Instance()->SerializeEntity(originator);
+	Game::entityManager->SerializeEntity(originator);
 }
 
 void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
@@ -94,7 +94,7 @@ void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	auto* rocketLaunchLUP = m_Parent->GetComponent<RocketLaunchLupComponent>();
+	auto* rocketLaunchLUP = m_Parent->GetComponent<MultiZoneEntranceComponent>();
 	if (rocketLaunchLUP) {
 		return;
 	}

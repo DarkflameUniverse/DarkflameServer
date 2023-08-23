@@ -220,7 +220,7 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 				skillComponent->Reset();
 			}
 
-			EntityManager::Instance()->DestroyEntity(chars[i]->GetEntity());
+			Game::entityManager->DestroyEntity(chars[i]->GetEntity());
 
 			chars[i]->SaveXMLToDatabase();
 

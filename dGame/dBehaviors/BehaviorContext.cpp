@@ -28,7 +28,7 @@ BehaviorEndEntry::BehaviorEndEntry() {
 }
 
 uint32_t BehaviorContext::GetUniqueSkillId() const {
-	auto* entity = EntityManager::Instance()->GetEntity(this->originator);
+	auto* entity = Game::entityManager->GetEntity(this->originator);
 
 	if (entity == nullptr) {
 		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!", this->originator);
@@ -95,11 +95,11 @@ void BehaviorContext::ScheduleUpdate(const LWOOBJID id) {
 
 void BehaviorContext::ExecuteUpdates() {
 	for (const auto& id : this->scheduledUpdates) {
-		auto* entity = EntityManager::Instance()->GetEntity(id);
+		auto* entity = Game::entityManager->GetEntity(id);
 
 		if (entity == nullptr) continue;
 
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 	}
 
 	this->scheduledUpdates.clear();
@@ -317,7 +317,7 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 	}
 
 	// if the caster is not there, return empty targets list
-	auto* caster = EntityManager::Instance()->GetEntity(this->caster);
+	auto* caster = Game::entityManager->GetEntity(this->caster);
 	if (!caster) {
 		Game::logger->LogDebug("BehaviorContext", "Invalid caster for (%llu)!", this->originator);
 		targets.clear();

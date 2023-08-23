@@ -74,7 +74,7 @@ void ControllablePhysicsComponent::Update(float deltaTime) {
 
 }
 
-void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	//If this is a creation, then we assume the position is dirty, even when it isn't.
 	//This is because new clients will still need to receive the position.
 	//if (bIsInitialUpdate) m_DirtyPosition = true;
@@ -181,12 +181,6 @@ void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	m_DirtyPosition = true;
 }
 
-void ControllablePhysicsComponent::ResetFlags() {
-	m_DirtyAngularVelocity = false;
-	m_DirtyPosition = false;
-	m_DirtyVelocity = false;
-}
-
 void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
@@ -194,7 +188,7 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 
-	auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
+	auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
 
 	if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
 		character->SetAttribute("lzx", m_Position.x);
@@ -300,7 +294,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 		auto candidateRadius = m_ActivePickupRadiusScales[i];
 		if (m_PickupRadius < candidateRadius) m_PickupRadius = candidateRadius;
 	}
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void ControllablePhysicsComponent::AddSpeedboost(float value) {
@@ -327,7 +321,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 		m_SpeedBoost = m_ActiveSpeedBoosts.back();
 	}
 	SetSpeedMultiplier(m_SpeedBoost / 500.0f); // 500 being the base speed
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims){
@@ -339,13 +333,13 @@ void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bo
 	m_IsInBubble = true;
 	m_DirtyBubble = true;
 	m_SpecialAnims = specialAnims;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void ControllablePhysicsComponent::DeactivateBubbleBuff(){
 	m_DirtyBubble = true;
 	m_IsInBubble = false;
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 };
 
 void ControllablePhysicsComponent::SetStunImmunity(

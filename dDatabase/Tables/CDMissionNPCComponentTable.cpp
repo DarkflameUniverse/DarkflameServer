@@ -1,7 +1,6 @@
 #include "CDMissionNPCComponentTable.h"
 
-//! Constructor
-CDMissionNPCComponentTable::CDMissionNPCComponentTable(void) {
+void CDMissionNPCComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -45,7 +44,7 @@ std::vector<CDMissionNPCComponent> CDMissionNPCComponentTable::Query(std::functi
 }
 
 //! Gets all the entries in the table
-std::vector<CDMissionNPCComponent> CDMissionNPCComponentTable::GetEntries(void) const {
+const std::vector<CDMissionNPCComponent>& CDMissionNPCComponentTable::GetEntries() const {
 	return this->entries;
 }
 

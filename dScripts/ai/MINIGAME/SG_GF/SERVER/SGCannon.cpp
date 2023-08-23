@@ -15,6 +15,7 @@
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
+#include "RenderComponent.h"
 #include "eGameActivity.h"
 
 void SGCannon::OnStartup(Entity* self) {
@@ -77,7 +78,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 	const std::u16string& stringValue) {
 	Game::logger->Log("SGCannon", "Got activity state change request: %s", GeneralUtils::UTF16ToWTF8(stringValue).c_str());
 	if (stringValue == u"clientready") {
-		auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+		auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 		if (player != nullptr) {
 			Game::logger->Log("SGCannon", "Player is ready");
 			/*GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
@@ -94,7 +95,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 
 				Game::logger->Log("SGCannon", "Setting player ID");
 
-				EntityManager::Instance()->SerializeEntity(self);
+				Game::entityManager->SerializeEntity(self);
 			} else {
 				Game::logger->Log("SGCannon", "Shooting gallery component is null");
 			}
@@ -110,7 +111,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 					possessor->SetPossessableType(ePossessionType::NO_POSSESSION);
 				}
 
-				EntityManager::Instance()->SerializeEntity(player);
+				Game::entityManager->SerializeEntity(player);
 			}
 
 			self->SetNetworkVar<bool>(HideScoreBoardVariable, true);
@@ -136,12 +137,12 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 }
 
 void SGCannon::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {
-	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 	if (!player) return;
 
 	if (identifier == u"Scoreboardinfo") {
 		GameMessages::SendDisplayMessageBox(player->GetObjectID(), true,
-			dZoneManager::Instance()->GetZoneControlObject()->GetObjectID(),
+			Game::zoneManager->GetZoneControlObject()->GetObjectID(),
 			u"Shooting_Gallery_Retry", 2, u"Retry?",
 			u"", player->GetSystemAddress());
 	} else {
@@ -149,7 +150,7 @@ void SGCannon::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button
 			if (IsPlayerInActivity(self, player->GetObjectID())) return;
 			self->SetNetworkVar<bool>(ClearVariable, true);
 			StartGame(self);
-		} else if (button == 0 && ((identifier == u"Shooting_Gallery_Retry" || identifier == u"RePlay"))){
+		} else if (button == 0 && ((identifier == u"Shooting_Gallery_Retry" || identifier == u"RePlay"))) {
 			RemovePlayer(player->GetObjectID());
 			UpdatePlayer(self, player->GetObjectID(), true);
 		} else if (button == 1 && identifier == u"Shooting_Gallery_Exit") {
@@ -192,7 +193,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 				ActivityTimerStart(self, EndWaveTimer, timeLimit, timeLimit);
 			}
 
-			const auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+			const auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 			if (player != nullptr) {
 				GameMessages::SendPlayFXEffect(player->GetObjectID(), -1, u"SG-start", "");
 
@@ -233,13 +234,13 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			PauseChargeCannon(self);
 		}
 	} else if (name == GameOverTimer) {
-		auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+		auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 		if (player != nullptr) {
 			Game::logger->Log("SGCannon", "Sending ActivityPause true");
 
 			GameMessages::SendActivityPause(self->GetObjectID(), true, player->GetSystemAddress());
 
-			/*const auto leftoverCannonballs = EntityManager::Instance()->GetEntitiesInGroup("cannonball");
+			/*const auto leftoverCannonballs = Game::entityManager->GetEntitiesInGroup("cannonball");
 			if (leftoverCannonballs.empty()) {
 				RecordPlayerScore(self);
 
@@ -261,7 +262,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			}
 			const auto& toSpawn = activeSpawns.at(spawnNumber);
 			const auto pathIndex = GeneralUtils::GenerateRandomNumber<float_t>(0, toSpawn.spawnPaths.size() - 1);
-			const auto* path = dZoneManager::Instance()->GetZone()->GetPath(toSpawn.spawnPaths.at(pathIndex));
+			const auto* path = Game::zoneManager->GetZone()->GetPath(toSpawn.spawnPaths.at(pathIndex));
 			if (!path) {
 				Game::logger->Log("SGCannon", "Path %s at index %i is null", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
 				return;
@@ -283,14 +284,14 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 
 			Game::logger->Log("SGCannon", "Spawning enemy %i on path %s", toSpawn.lot, path->pathName.c_str());
 
-			auto* enemy = EntityManager::Instance()->CreateEntity(info, nullptr, self);
-			EntityManager::Instance()->ConstructEntity(enemy);
+			auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
+			Game::entityManager->ConstructEntity(enemy);
 
 			auto* movementAI = new MovementAIComponent(enemy, {});
 
 			enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
 
-			movementAI->SetSpeed(toSpawn.initialSpeed);
+			movementAI->SetMaxSpeed(toSpawn.initialSpeed);
 			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
 			movementAI->SetHaltDistance(0.0f);
 
@@ -333,14 +334,14 @@ void SGCannon::StartGame(Entity* self) {
 	self->SetNetworkVar<bool>(AudioStartIntroVariable, true);
 	self->SetVar<LOT>(CurrentRewardVariable, LOT_NULL);
 
-	auto rewardObjects = EntityManager::Instance()->GetEntitiesInGroup(constants.rewardModelGroup);
+	auto rewardObjects = Game::entityManager->GetEntitiesInGroup(constants.rewardModelGroup);
 	for (auto* reward : rewardObjects) {
 		reward->OnFireEventServerSide(self, ModelToBuildEvent);
 	}
 
-	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 	if (player != nullptr) {
-		GetLeaderboardData(self, player->GetObjectID(), GetActivityID(self));
+		GetLeaderboardData(self, player->GetObjectID(), GetActivityID(self), 1);
 		Game::logger->Log("SGCannon", "Sending ActivityStart");
 		GameMessages::SendActivityStart(self->GetObjectID(), player->GetSystemAddress());
 
@@ -383,9 +384,9 @@ void SGCannon::SpawnNewModel(Entity* self) {
 		self->SetNetworkVar<int32_t>(RewardAddedVariable, currentReward);
 	}
 
-	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 	if (player != nullptr) {
-		for (auto* rewardModel : EntityManager::Instance()->GetEntitiesInGroup(constants.rewardModelGroup)) {
+		for (auto* rewardModel : Game::entityManager->GetEntitiesInGroup(constants.rewardModelGroup)) {
 			uint32_t lootMatrix;
 			switch (self->GetVar<uint32_t>(MatrixVariable)) {
 			case 1:
@@ -421,7 +422,7 @@ void SGCannon::SpawnNewModel(Entity* self) {
 }
 
 void SGCannon::RemovePlayer(LWOOBJID playerID) {
-	auto* player = EntityManager::Instance()->GetEntity(playerID);
+	auto* player = Game::entityManager->GetEntity(playerID);
 	if (player == nullptr)
 		return;
 
@@ -435,8 +436,8 @@ void SGCannon::RemovePlayer(LWOOBJID playerID) {
 	}
 }
 
-void SGCannon::OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled){
-	if (canceled){
+void SGCannon::OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled) {
+	if (canceled) {
 		StopGame(self, canceled);
 		RemovePlayer(player);
 	}
@@ -507,18 +508,18 @@ void SGCannon::RecordPlayerScore(Entity* self) {
 }
 
 void SGCannon::PlaySceneAnimation(Entity* self, const std::u16string& animationName, bool onCannon, bool onPlayer, float_t priority) {
-	for (auto* cannon : EntityManager::Instance()->GetEntitiesInGroup("cannongroup")) {
-		GameMessages::SendPlayAnimation(cannon, animationName, priority);
+	for (auto* cannon : Game::entityManager->GetEntitiesInGroup("cannongroup")) {
+		RenderComponent::PlayAnimation(cannon, animationName, priority);
 	}
 
 	if (onCannon) {
-		GameMessages::SendPlayAnimation(self, animationName, priority);
+		RenderComponent::PlayAnimation(self, animationName, priority);
 	}
 
 	if (onPlayer) {
-		auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+		auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 		if (player != nullptr) {
-			GameMessages::SendPlayAnimation(player, animationName, priority);
+			RenderComponent::PlayAnimation(player, animationName, priority);
 		}
 	}
 }
@@ -537,7 +538,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 	self->SetNetworkVar<bool>(ReSetSuperChargeVariable, true);
 	self->SetNetworkVar<bool>(HideSuperChargeVariable, true);
 
-	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 	if (player == nullptr)
 		return;
 
@@ -545,7 +546,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 	// The player won, store all the score and send rewards
 	if (!cancel) {
-		auto percentage = 0;
+		int32_t percentage = 0.0f;
 		auto misses = self->GetVar<uint32_t>(MissesVariable);
 		auto fired = self->GetVar<uint32_t>(ShotsFiredVariable);
 
@@ -563,6 +564,9 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 		LootGenerator::Instance().GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
 
+		SaveScore(self, player->GetObjectID(),
+			static_cast<float>(self->GetVar<uint32_t>(TotalScoreVariable)), static_cast<float>(self->GetVar<uint32_t>(MaxStreakVariable)), percentage);
+
 		StopActivity(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable), self->GetVar<uint32_t>(MaxStreakVariable), percentage);
 		self->SetNetworkVar<bool>(AudioFinalWaveDoneVariable, true);
 
@@ -577,17 +581,6 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		self->SetNetworkVar<std::u16string>(u"UI_Rewards",
 			GeneralUtils::to_u16string(self->GetVar<uint32_t>(TotalScoreVariable)) + u"_0_0_0_0_0_0"
 		);
-
-		GameMessages::SendRequestActivitySummaryLeaderboardData(
-			player->GetObjectID(),
-			self->GetObjectID(),
-			player->GetSystemAddress(),
-			GetGameID(self),
-			1,
-			10,
-			0,
-			false
-		);
 	}
 
 	GameMessages::SendActivityStop(self->GetObjectID(), false, cancel, player->GetSystemAddress());
@@ -595,7 +588,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 	ActivityTimerStopAllTimers(self);
 
 	// Destroy all spawners
-	for (auto* entity : EntityManager::Instance()->GetEntitiesInGroup("SGEnemy")) {
+	for (auto* entity : Game::entityManager->GetEntitiesInGroup("SGEnemy")) {
 		entity->Kill();
 	}
 
@@ -662,7 +655,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 
 	self->SetNetworkVar<std::u16string>(u"beatHighScore", GeneralUtils::to_u16string(newScore));
 
-	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 	if (player == nullptr) return;
 
 	auto missionComponent = player->GetComponent<MissionComponent>();
@@ -712,7 +705,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 	if (enable && self->GetVar<bool>(SuperChargeActiveVariable))
 		return;
 
-	auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 
 	if (player == nullptr) {
 		Game::logger->Log("SGCannon", "Player not found in toggle super charge");
@@ -787,8 +780,8 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 	shootingGalleryComponent->SetDynamicParams(properties);
 
-	EntityManager::Instance()->SerializeEntity(self);
-	EntityManager::Instance()->SerializeEntity(player);
+	Game::entityManager->SerializeEntity(self);
+	Game::entityManager->SerializeEntity(player);
 
 	self->SetNetworkVar<uint64_t>(CannonBallSkillIDVariable, skillID);
 	self->SetVar<bool>(SuperChargeActiveVariable, enable);

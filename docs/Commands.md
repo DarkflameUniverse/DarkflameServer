@@ -105,13 +105,12 @@ These commands are primarily for development and testing. The usage of many of t
 |unlock-emote|`/unlock-emote <emote id>`|Unlocks for your character the emote of the given id.|8|
 |Set Level|`/setlevel <requested_level> (username)`|Sets the using entities level to the requested level.  Takes an optional parameter of an in-game players username to set the level of.|8|
 |crash|`/crash`|Crashes the server.|9|
-|rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Rolls loot matrix.|9|
+|rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Given a `loot matrix index`, look for `item id` in that matrix `amount` times and print to the chat box statistics of rolling that loot matrix.|9|
 |castskill|`/castskill <skill id>`|Casts the skill as the player|9|
 |setskillslot|`/setskillslot <slot> <skill id>`||8|
 |setfaction|`/setfaction <faction id>`|Clears the users current factions and sets it|8|
 |addfaction|`/addfaction <faction id>`|Add the faction to the users list of factions|8|
 |getfactions|`/getfactions`|Shows the player's factions|8|
-
 ## Detailed `/inspect` Usage
 
 `/inspect <component> (-m <waypoint> | -a <animation> | -s | -p | -f (faction) | -t)`

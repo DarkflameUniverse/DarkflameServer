@@ -55,21 +55,21 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 }
 
 void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
+	auto* caster = Game::entityManager->GetEntity(context->caster);
 	if (!caster) return;
 
 	// determine the position we are casting the AOE from
 	auto reference = branch.isProjectile ? branch.referencePosition : caster->GetPosition();
 	if (this->m_useTargetPosition) {
 		if (branch.target == LWOOBJID_EMPTY) return;
-		auto branchTarget = EntityManager::Instance()->GetEntity(branch.target);
+		auto branchTarget = Game::entityManager->GetEntity(branch.target);
 		if (branchTarget) reference = branchTarget->GetPosition();
 	}
 
 	reference += this->m_offset;
 
 	std::vector<Entity*> targets {};
-	targets = EntityManager::Instance()->GetEntitiesByProximity(reference, this->m_radius);
+	targets = Game::entityManager->GetEntitiesByProximity(reference, this->m_radius);
 	context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 
 	// sort by distance

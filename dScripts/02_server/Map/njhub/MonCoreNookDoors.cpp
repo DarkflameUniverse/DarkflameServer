@@ -12,7 +12,7 @@ void MonCoreNookDoors::SpawnDoor(Entity* self) {
 		return;
 	}
 
-	const auto spawners = dZoneManager::Instance()->GetSpawnersByName("MonCoreNookDoor0" + doorNum);
+	const auto spawners = Game::zoneManager->GetSpawnersByName("MonCoreNookDoor0" + doorNum);
 
 	if (spawners.empty()) {
 		return;

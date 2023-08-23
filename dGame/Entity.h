@@ -85,6 +85,7 @@ public:
 	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates; }
 
 	bool GetIsGhostingCandidate() const;
+	void SetIsGhostingCandidate(bool value) { m_IsGhostingCandidate = value; };
 
 	int8_t GetObservers() const;
 
@@ -173,7 +174,6 @@ public:
 
 	void WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
 	void WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
-	void ResetFlags();
 	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
 	void Update(float deltaTime);
 

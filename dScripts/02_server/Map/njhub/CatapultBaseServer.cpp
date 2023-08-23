@@ -1,6 +1,8 @@
 #include "CatapultBaseServer.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "Entity.h"
+#include "RenderComponent.h"
 
 void CatapultBaseServer::OnNotifyObject(Entity* self, Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
 	if (name == "BouncerBuilt") {
@@ -17,11 +19,11 @@ void CatapultBaseServer::OnNotifyObject(Entity* self, Entity* sender, const std:
 void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "PlatAnim") {
 		// get the arm asset
-		const auto arm = EntityManager::Instance()->GetEntitiesInGroup(self->GetVarAsString(u"ArmGroup"));
+		const auto arm = Game::entityManager->GetEntitiesInGroup(self->GetVarAsString(u"ArmGroup"));
 
 		// tell the arm to the play the platform animation, which is just the arm laying there but with bouncer
 		for (auto* obj : arm) {
-			GameMessages::SendPlayAnimation(obj, u"idle-platform");
+			RenderComponent::PlayAnimation(obj, u"idle-platform");
 			GameMessages::SendPlayNDAudioEmitter(obj, UNASSIGNED_SYSTEM_ADDRESS, "{8cccf912-69e3-4041-a20b-63e4afafc993}");
 			// set the art so we can use it again
 			self->SetVar(u"Arm", obj->GetObjectID());
@@ -32,15 +34,15 @@ void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 		self->AddTimer("bounce", 3);
 	} else if (timerName == "launchAnim") {
 		// get the arm asset
-		auto* arm = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"Arm"));
+		auto* arm = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Arm"));
 		if (arm == nullptr) return;
 
 		// tell the arm to player the launcher animation
 		auto animTime = 1;
 		self->AddTimer("resetArm", animTime);
-		GameMessages::SendPlayAnimation(arm, u"launch");
+		RenderComponent::PlayAnimation(arm, u"launch");
 	} else if (timerName == "bounce") {
-		auto* bouncer = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"Bouncer"));
+		auto* bouncer = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Bouncer"));
 		if (bouncer == nullptr) return;
 
 		// bounce all players
@@ -48,13 +50,13 @@ void CatapultBaseServer::OnTimerDone(Entity* self, std::string timerName) {
 		// add a delay to play the animation
 		self->AddTimer("launchAnim", .3);
 	} else if (timerName == "resetArm") {
-		auto* arm = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"Arm"));
+		auto* arm = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Arm"));
 		if (arm == nullptr) return;
 
 		// set the arm back to natural state
-		GameMessages::SendPlayAnimation(arm, u"idle");
+		RenderComponent::PlayAnimation(arm, u"idle");
 
-		auto* bouncer = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"Bouncer"));
+		auto* bouncer = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Bouncer"));
 		if (bouncer == nullptr) return;
 
 		// kill the bouncer

@@ -26,10 +26,10 @@ private:
 	std::vector<CDItemSets> entries;
 
 public:
-	CDItemSetsTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDItemSets> Query(std::function<bool(CDItemSets)> predicate);
 
-	std::vector<CDItemSets> GetEntries(void) const;
+	const std::vector<CDItemSets>& GetEntries(void) const;
 };
 

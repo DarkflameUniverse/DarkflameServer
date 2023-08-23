@@ -4,7 +4,7 @@
 #include "GameMessages.h"
 
 void ActNinjaSensei::OnStartup(Entity* self) {
-	auto students = EntityManager::Instance()->GetEntitiesInGroup(this->m_StudentGroup);
+	auto students = Game::entityManager->GetEntitiesInGroup(this->m_StudentGroup);
 	std::vector<Entity*> validStudents = {};
 	for (auto* student : students) {
 		if (student && student->GetLOT() == this->m_StudentLOT) validStudents.push_back(student);
