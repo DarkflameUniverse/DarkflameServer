@@ -242,6 +242,8 @@ public:
 	 */
 	static float GetBaseSpeed(LOT lot);
 
+	const bool GetIsInReverse(){ return m_IsInReverse; };
+
 private:
 	float HandleWaypointCommandGroupEmote(const std::string& data);
 	void HandleWaypointCommandSetVariable(const std::string& data);

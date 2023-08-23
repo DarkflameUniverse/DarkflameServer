@@ -12,8 +12,8 @@
 #include "Player.h"
 #include "RebuildComponent.h"
 #include "SkillComponent.h"
+#include "MovementAIComponent.h"
 #include "eEndBehavior.h"
-
 
 TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo): Component(parent) {
 	m_Parent = parent;
@@ -69,7 +69,9 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 			case eTriggerCommandType::RESET_REBUILD:
 				HandleResetRebuild(targetEntity, command->args);
 				break;
-			case eTriggerCommandType::SET_PATH: break;
+			case eTriggerCommandType::SET_PATH:
+				HandleSetPath(targetEntity, argArray);
+				break;
 			case eTriggerCommandType::SET_PICK_TYPE: break;
 			case eTriggerCommandType::MOVE_OBJECT:
 				HandleMoveObject(targetEntity, argArray);
@@ -100,11 +102,21 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 				break;
 			case eTriggerCommandType::SET_BOUNCER_STATE: break;
 			case eTriggerCommandType::BOUNCE_ALL_ON_BOUNCER: break;
-			case eTriggerCommandType::TURN_AROUND_ON_PATH: break;
-			case eTriggerCommandType::GO_FORWARD_ON_PATH: break;
-			case eTriggerCommandType::GO_BACKWARD_ON_PATH: break;
-			case eTriggerCommandType::STOP_PATHING: break;
-			case eTriggerCommandType::START_PATHING: break;
+			case eTriggerCommandType::TURN_AROUND_ON_PATH:
+				HandleTurnAroundOnPath(targetEntity);
+				break;
+			case eTriggerCommandType::GO_FORWARD_ON_PATH:
+				HandleGoForwardOnPath(targetEntity);
+				break;
+			case eTriggerCommandType::GO_BACKWARD_ON_PATH:
+				HandleGoBackwardOnPath(targetEntity);
+				break;
+			case eTriggerCommandType::STOP_PATHING:
+				HandleStopPathing(targetEntity);
+				break;
+			case eTriggerCommandType::START_PATHING:
+				HandleStartPathing(targetEntity);
+				break;
 			case eTriggerCommandType::LOCK_OR_UNLOCK_CONTROLS: break;
 			case eTriggerCommandType::PLAY_EFFECT:
 				HandlePlayEffect(targetEntity, argArray);
@@ -211,6 +223,18 @@ void TriggerComponent::HandleResetRebuild(Entity* targetEntity, std::string args
 		return;
 	}
 	rebuildComponent->ResetRebuild(args == "1");
+}
+
+void TriggerComponent::HandleSetPath(Entity* targetEntity, std::vector<std::string> argArray){
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	if (!movementAIComponent) return;
+	movementAIComponent->SetupPath(argArray.at(0));
+	if (argArray.size() >= 2) {
+		int32_t index = 0;
+		if (!GeneralUtils::TryParse(argArray.at(1), index)) return;
+		movementAIComponent->SetPathStartingWaypointIndex(index);
+	}
+	if (argArray.size() >= 3 && argArray.at(2) == "1") movementAIComponent->ReversePath();
 }
 
 void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::string> argArray){
@@ -340,6 +364,36 @@ void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std
 		return;
 	}
 	missionComponent->Progress(eMissionTaskType::EXPLORE, 0, 0, argArray.at(4));
+}
+
+void TriggerComponent::HandleTurnAroundOnPath(Entity* targetEntity){
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	if (!movementAIComponent) return;
+	movementAIComponent->ReversePath();
+}
+
+void TriggerComponent::HandleGoForwardOnPath(Entity* targetEntity){
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	if (!movementAIComponent) return;
+	if (movementAIComponent->GetIsInReverse()) movementAIComponent->ReversePath();
+}
+
+void TriggerComponent::HandleGoBackwardOnPath(Entity* targetEntity){
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	if (!movementAIComponent) return;
+	if (!movementAIComponent->GetIsInReverse()) movementAIComponent->ReversePath();
+}
+
+void TriggerComponent::HandleStopPathing(Entity* targetEntity){
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	if (!movementAIComponent) return;
+	movementAIComponent->Pause();
+}
+
+void TriggerComponent::HandleStartPathing(Entity* targetEntity){
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	if (!movementAIComponent) return;
+	movementAIComponent->Resume();
 }
 
 void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::string> argArray) {
