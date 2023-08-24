@@ -148,13 +148,18 @@ foreach (resource_file ${RESOURCE_FILES})
 endforeach()
 message(STATUS "Resource file integrity check complete")
 
+# if navmeshes directory does not exist, create it
+if (NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes)
+	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/navmeshes)
+endif()
+
 # Copy navmesh data on first build and extract it
 configure_file(
 	${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip
 	COPYONLY
 )
 
-file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip)
+file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip DESTINATION ${PROJECT_BINARY_DIR}/navmeshes)
 file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
 
 # Copy vanity files on first build
