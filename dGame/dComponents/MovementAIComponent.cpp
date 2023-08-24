@@ -197,6 +197,7 @@ void MovementAIComponent::ReversePath() {
 }
 
 bool MovementAIComponent::AdvancePathWaypointIndex() {
+	if (m_CurrentPath.empty()) return false;
 	m_CurrentPathWaypointIndex = m_NextPathWaypointIndex;
 	if (m_IsInReverse) {
 		if (m_CurrentPathWaypointIndex >= 0) m_NextPathWaypointIndex--;
@@ -469,7 +470,8 @@ void MovementAIComponent::HandleWaypointArrived(uint32_t commandIndex) {
 	m_Parent->TriggerEvent(eTriggerEventType::ARRIVED_AT_DESIRED_WAYPOINT);
 	if (!m_Path || commandIndex >= m_Path->pathWaypoints.at(m_CurrentPathWaypointIndex).commands.size()) {
 		if (!AdvancePathWaypointIndex()) {
-			if (m_Path) {
+			// We only want to handle path logic if we actually have a path setup for following
+			if (m_Path && !m_CurrentPath.empty()) {
 				if (m_Path->pathBehavior == PathBehavior::Bounce) {
 					ReversePath();
 				} else if (m_Path->pathBehavior == PathBehavior::Loop) {

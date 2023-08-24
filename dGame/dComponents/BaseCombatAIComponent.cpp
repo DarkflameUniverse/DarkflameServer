@@ -648,7 +648,7 @@ void BaseCombatAIComponent::Wander() {
 	const NiPoint3 delta =
 	{
 		radius * cos(theta),
-		0,
+		m_Parent->GetPosition().y,
 		radius * sin(theta)
 	};
 
