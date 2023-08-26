@@ -101,7 +101,7 @@ enum class eReplicaComponentType : uint32_t {
 	TRADE,
 	USER_CONTROL,
 	IGNORE_LIST,
-	ROCKET_LAUNCH_LUP,
+	MULTI_ZONE_ENTRANCE,
 	BUFF_REAL, // the real buff component, should just be name BUFF
 	INTERACTION_MANAGER,
 	DONATION_VENDOR,
