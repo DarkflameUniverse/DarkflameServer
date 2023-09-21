@@ -13,6 +13,7 @@
 #include "Entity.h"
 #include "Character.h"
 #include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "dLogger.h"
 #include "EntityManager.h"
 #include "InventoryComponent.h"
@@ -283,7 +284,7 @@ void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sys
 	sql::ResultSet* res = stmt->executeQuery();
 
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::MailData));
 	bitStream.Write(int(0));
 
@@ -406,7 +407,7 @@ void Mail::HandleNotificationRequest(const SystemAddress& sysAddr, uint32_t obje
 
 void Mail::SendSendResponse(const SystemAddress& sysAddr, MailSendResponse response) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::SendResponse));
 	bitStream.Write(int(response));
 	Game::server->Send(&bitStream, sysAddr, false);
@@ -414,7 +415,7 @@ void Mail::SendSendResponse(const SystemAddress& sysAddr, MailSendResponse respo
 
 void Mail::SendNotification(const SystemAddress& sysAddr, int mailCount) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	uint64_t messageType = 2;
 	uint64_t s1 = 0;
 	uint64_t s2 = 0;
@@ -433,7 +434,7 @@ void Mail::SendNotification(const SystemAddress& sysAddr, int mailCount) {
 
 void Mail::SendAttachmentRemoveConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::AttachmentCollectConfirm));
 	bitStream.Write(int(0)); //unknown
 	bitStream.Write(mailID);
@@ -442,7 +443,7 @@ void Mail::SendAttachmentRemoveConfirm(const SystemAddress& sysAddr, uint64_t ma
 
 void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOOBJID playerID) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::MailDeleteConfirm));
 	bitStream.Write(int(0)); //unknown
 	bitStream.Write(mailID);
@@ -456,7 +457,7 @@ void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOO
 
 void Mail::SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::MailReadConfirm));
 	bitStream.Write(int(0)); //unknown
 	bitStream.Write(mailID);
