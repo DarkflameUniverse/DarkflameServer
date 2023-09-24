@@ -4909,13 +4909,6 @@ void GameMessages::HandleParseChatMessage(RakNet::BitStream* inStream, Entity* e
 		inStream->Read(character);
 		wsString.push_back(character);
 	}
-	
-	auto player = Player::GetPlayer(sysAddr);
-	if (!player || !player->GetCharacter()) return;
-	if (player->GetObjectID() != entity->GetObjectID()) {
-		Game::logger->Log("GameMessages", "Player %s is trying to send a chat message from an entity %llu they do not own!", player->GetCharacter()->GetName().c_str(), entity->GetObjectID());
-		return;
-	}
 
 	if (wsString[0] == L'/') {
 		SlashCommandHandler::HandleChatCommand(wsString, entity, sysAddr);

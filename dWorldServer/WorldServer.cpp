@@ -73,6 +73,7 @@
 #include "eGameMessageType.h"
 #include "ZCompression.h"
 #include "EntityManager.h"
+#include "CheatDetection.h"
 
 namespace Game {
 	dLogger* logger = nullptr;
@@ -957,7 +958,15 @@ void HandlePacket(Packet* packet) {
 		RakNet::BitStream dataStream;
 		bitStream.Read(dataStream, bitStream.GetNumberOfUnreadBits());
 
-		GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, messageID);
+		auto isSender = CheatDetection::VerifyLwoobjidIsSender(
+			objectID,
+			packet->systemAddress,
+			CheckType::Entity,
+			"Sending GM with a sending player that does not match their own. GM ID: %i",
+			static_cast<int32_t>(messageID)
+			);
+
+		if (isSender) GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, messageID);
 		break;
 	}
 
@@ -972,6 +981,17 @@ void HandlePacket(Packet* packet) {
 
 		LWOOBJID playerID = 0;
 		inStream.Read(playerID);
+
+		bool valid = CheatDetection::VerifyLwoobjidIsSender(
+			playerID,
+			packet->systemAddress,
+			CheckType::User,
+			"Sending login request with a sending player that does not match their own. Player ID: %llu",
+			playerID
+			);
+
+		if (!valid) return;
+
 		GeneralUtils::ClearBit(playerID, eObjectBits::CHARACTER);
 		GeneralUtils::ClearBit(playerID, eObjectBits::PERSISTENT);
 
@@ -1204,6 +1224,7 @@ void HandlePacket(Packet* packet) {
 
 	case eWorldMessageType::MAIL: {
 		RakNet::BitStream bitStream(packet->data, packet->length, false);
+		// FIXME: Change this to the macro to skip the header...
 		LWOOBJID space;
 		bitStream.Read(space);
 		Mail::HandleMailStuff(&bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());

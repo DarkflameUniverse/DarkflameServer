@@ -29,6 +29,7 @@
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
 #include "BitStreamUtils.h"
+#include "CheatDetection.h"
 
 UserManager* UserManager::m_Address = nullptr;
 
@@ -393,15 +394,14 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	Game::logger->Log("UserManager", "Received char delete req for ID: %llu (%u)", objectID, charID);
 
-	//Check if this user has this character:
-	bool hasCharacter = false;
-	std::vector<Character*>& characters = u->GetCharacters();
-	for (size_t i = 0; i < characters.size(); ++i) {
-		if (characters[i]->GetID() == charID) { hasCharacter = true; }
-	}
+	bool hasCharacter = CheatDetection::VerifyLwoobjidIsSender(
+		objectID,
+		sysAddr,
+		CheckType::User,
+		"User %i tried to delete a character that it does not own!",
+		u->GetAccountID());
 
 	if (!hasCharacter) {
-		Game::logger->Log("UserManager", "User %i tried to delete a character that it does not own!", u->GetAccountID());
 		WorldPackets::SendCharacterDeleteResponse(sysAddr, false);
 	} else {
 		Game::logger->Log("UserManager", "Deleting character %i", charID);
@@ -478,6 +478,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 }
 
 void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) {
+	PacketUtils::SavePacket("RenameCharacter.bin", (const char*)packet->data, packet->length);
 	User* u = GetUser(sysAddr);
 	if (!u) {
 		Game::logger->Log("UserManager", "Couldn't get user to delete character");
@@ -496,16 +497,24 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	Character* character = nullptr;
 
 	//Check if this user has this character:
-	bool hasCharacter = false;
-	std::vector<Character*>& characters = u->GetCharacters();
-	for (size_t i = 0; i < characters.size(); ++i) {
-		if (characters[i]->GetID() == charID) { hasCharacter = true; character = characters[i]; }
-	}
+	bool ownsCharacter = CheatDetection::VerifyLwoobjidIsSender(
+		objectID,
+		sysAddr,
+		CheckType::User,
+		"User %i tried to rename a character that it does not own!",
+		u->GetAccountID());
 
-	if (!hasCharacter || !character) {
-		Game::logger->Log("UserManager", "User %i tried to rename a character that it does not own!", u->GetAccountID());
+	std::find_if(u->GetCharacters().begin(), u->GetCharacters().end(), [&](Character* c) {
+		if (c->GetID() == charID) {
+			character = c;
+			return true;
+		}
+		return false;
+		});
+
+	if (!ownsCharacter || !character) {
 		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
-	} else if (hasCharacter && character) {
+	} else if (ownsCharacter && character) {
 		if (newName == character->GetName()) {
 			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_UNAVAILABLE);
 			return;
