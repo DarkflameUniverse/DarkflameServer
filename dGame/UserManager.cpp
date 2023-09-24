@@ -478,7 +478,6 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 }
 
 void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) {
-	PacketUtils::SavePacket("RenameCharacter.bin", (const char*)packet->data, packet->length);
 	User* u = GetUser(sysAddr);
 	if (!u) {
 		Game::logger->Log("UserManager", "Couldn't get user to delete character");
