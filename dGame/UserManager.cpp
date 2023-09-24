@@ -204,40 +204,38 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 	stmt->setUInt(1, u->GetAccountID());
 
 	sql::ResultSet* res = stmt->executeQuery();
-	if (res->rowsCount() > 0) {
-		std::vector<Character*>& chars = u->GetCharacters();
+	std::vector<Character*>& chars = u->GetCharacters();
 
-		for (size_t i = 0; i < chars.size(); ++i) {
-			if (chars[i]->GetEntity() == nullptr) // We don't have entity data to save
-			{
-				delete chars[i];
-
-				continue;
-			}
-
-			auto* skillComponent = chars[i]->GetEntity()->GetComponent<SkillComponent>();
-
-			if (skillComponent != nullptr) {
-				skillComponent->Reset();
-			}
-
-			Game::entityManager->DestroyEntity(chars[i]->GetEntity());
-
-			chars[i]->SaveXMLToDatabase();
-
-			chars[i]->GetEntity()->SetCharacter(nullptr);
-
+	for (size_t i = 0; i < chars.size(); ++i) {
+		if (chars[i]->GetEntity() == nullptr) // We don't have entity data to save
+		{
 			delete chars[i];
+
+			continue;
 		}
 
-		chars.clear();
+		auto* skillComponent = chars[i]->GetEntity()->GetComponent<SkillComponent>();
 
-		while (res->next()) {
-			LWOOBJID objID = res->getUInt64(1);
-			Character* character = new Character(uint32_t(objID), u);
-			character->SetIsNewLogin();
-			chars.push_back(character);
+		if (skillComponent != nullptr) {
+			skillComponent->Reset();
 		}
+
+		Game::entityManager->DestroyEntity(chars[i]->GetEntity());
+
+		chars[i]->SaveXMLToDatabase();
+
+		chars[i]->GetEntity()->SetCharacter(nullptr);
+		
+		delete chars[i];
+	}
+
+	chars.clear();
+
+	while (res->next()) {
+		LWOOBJID objID = res->getUInt64(1);
+		Character* character = new Character(uint32_t(objID), u);
+		character->SetIsNewLogin();
+		chars.push_back(character);
 	}
 
 	delete res;
