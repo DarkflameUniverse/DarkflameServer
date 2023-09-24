@@ -8,6 +8,7 @@
 #include "Character.h"
 #include "User.h"
 #include "UserManager.h"
+#include "dConfig.h"
 
 Entity* GetPossessedEntity(const LWOOBJID& objId) {
 	auto* entity = Game::entityManager->GetEntity(objId);
@@ -36,7 +37,7 @@ void ReportCheat(User* user, const SystemAddress& sysAddr, const char* messageIf
 	vsnprintf(buffer, bufSize, messageIfNotSender, args);
 
 	stmt->setString(3, buffer);
-	stmt->setString(4, sysAddr.ToString());
+	stmt->setString(4, Game::config->GetValue("log_ip_addresses_for_anti_cheat") == "1" ? sysAddr.ToString() : "IP logging disabled.");
 	stmt->execute();
 	Game::logger->Log("CheatDetection", "Anti-cheat message: %s", buffer);
 }
