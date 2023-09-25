@@ -21,7 +21,7 @@ void MultiZoneEntranceComponent::OnUse(Entity* originator) {
 	if (!rocket) return;
 
 	// the LUP world menu is just the property menu, the client knows how to handle it
-	GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), m_Parent->GetSystemAddress());
+	GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), originator->GetSystemAddress());
 }
 
 void MultiZoneEntranceComponent::OnSelectWorld(Entity* originator, uint32_t index) {

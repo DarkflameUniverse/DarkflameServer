@@ -28,6 +28,7 @@
 #include "eRenameResponse.h"
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
+#include "BitStreamUtils.h"
 
 UserManager* UserManager::m_Address = nullptr;
 
@@ -203,40 +204,38 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 	stmt->setUInt(1, u->GetAccountID());
 
 	sql::ResultSet* res = stmt->executeQuery();
-	if (res->rowsCount() > 0) {
-		std::vector<Character*>& chars = u->GetCharacters();
+	std::vector<Character*>& chars = u->GetCharacters();
 
-		for (size_t i = 0; i < chars.size(); ++i) {
-			if (chars[i]->GetEntity() == nullptr) // We don't have entity data to save
-			{
-				delete chars[i];
-
-				continue;
-			}
-
-			auto* skillComponent = chars[i]->GetEntity()->GetComponent<SkillComponent>();
-
-			if (skillComponent != nullptr) {
-				skillComponent->Reset();
-			}
-
-			Game::entityManager->DestroyEntity(chars[i]->GetEntity());
-
-			chars[i]->SaveXMLToDatabase();
-
-			chars[i]->GetEntity()->SetCharacter(nullptr);
-
+	for (size_t i = 0; i < chars.size(); ++i) {
+		if (chars[i]->GetEntity() == nullptr) // We don't have entity data to save
+		{
 			delete chars[i];
+
+			continue;
 		}
 
-		chars.clear();
+		auto* skillComponent = chars[i]->GetEntity()->GetComponent<SkillComponent>();
 
-		while (res->next()) {
-			LWOOBJID objID = res->getUInt64(1);
-			Character* character = new Character(uint32_t(objID), u);
-			character->SetIsNewLogin();
-			chars.push_back(character);
+		if (skillComponent != nullptr) {
+			skillComponent->Reset();
 		}
+
+		Game::entityManager->DestroyEntity(chars[i]->GetEntity());
+
+		chars[i]->SaveXMLToDatabase();
+
+		chars[i]->GetEntity()->SetCharacter(nullptr);
+		
+		delete chars[i];
+	}
+
+	chars.clear();
+
+	while (res->next()) {
+		LWOOBJID objID = res->getUInt64(1);
+		Character* character = new Character(uint32_t(objID), u);
+		character->SetIsNewLogin();
+		chars.push_back(character);
 	}
 
 	delete res;
@@ -251,21 +250,21 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	std::string name = PacketUtils::ReadString(8, packet, true);
 
-	uint32_t firstNameIndex = PacketUtils::ReadPacketU32(74, packet);
-	uint32_t middleNameIndex = PacketUtils::ReadPacketU32(78, packet);
-	uint32_t lastNameIndex = PacketUtils::ReadPacketU32(82, packet);
+	uint32_t firstNameIndex = PacketUtils::ReadU32(74, packet);
+	uint32_t middleNameIndex = PacketUtils::ReadU32(78, packet);
+	uint32_t lastNameIndex = PacketUtils::ReadU32(82, packet);
 	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
 
-	uint32_t shirtColor = PacketUtils::ReadPacketU32(95, packet);
-	uint32_t shirtStyle = PacketUtils::ReadPacketU32(99, packet);
-	uint32_t pantsColor = PacketUtils::ReadPacketU32(103, packet);
-	uint32_t hairStyle = PacketUtils::ReadPacketU32(107, packet);
-	uint32_t hairColor = PacketUtils::ReadPacketU32(111, packet);
-	uint32_t lh = PacketUtils::ReadPacketU32(115, packet);
-	uint32_t rh = PacketUtils::ReadPacketU32(119, packet);
-	uint32_t eyebrows = PacketUtils::ReadPacketU32(123, packet);
-	uint32_t eyes = PacketUtils::ReadPacketU32(127, packet);
-	uint32_t mouth = PacketUtils::ReadPacketU32(131, packet);
+	uint32_t shirtColor = PacketUtils::ReadU32(95, packet);
+	uint32_t shirtStyle = PacketUtils::ReadU32(99, packet);
+	uint32_t pantsColor = PacketUtils::ReadU32(103, packet);
+	uint32_t hairStyle = PacketUtils::ReadU32(107, packet);
+	uint32_t hairColor = PacketUtils::ReadU32(111, packet);
+	uint32_t lh = PacketUtils::ReadU32(115, packet);
+	uint32_t rh = PacketUtils::ReadU32(119, packet);
+	uint32_t eyebrows = PacketUtils::ReadU32(123, packet);
+	uint32_t eyes = PacketUtils::ReadU32(127, packet);
+	uint32_t mouth = PacketUtils::ReadU32(131, packet);
 
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
 	LOT pantsLOT = FindCharPantsID(pantsColor);
@@ -387,7 +386,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		return;
 	}
 
-	LWOOBJID objectID = PacketUtils::ReadPacketS64(8, packet);
+	LWOOBJID objectID = PacketUtils::ReadS64(8, packet);
 	uint32_t charID = static_cast<uint32_t>(objectID);
 
 	Game::logger->Log("UserManager", "Received char delete req for ID: %llu (%u)", objectID, charID);
@@ -423,7 +422,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			stmt->execute();
 			delete stmt;
 			CBITSTREAM;
-			PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
 			bitStream.Write(objectID);
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
@@ -483,7 +482,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		return;
 	}
 
-	LWOOBJID objectID = PacketUtils::ReadPacketS64(8, packet);
+	LWOOBJID objectID = PacketUtils::ReadS64(8, packet);
 	GeneralUtils::ClearBit(objectID, eObjectBits::CHARACTER);
 	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 
