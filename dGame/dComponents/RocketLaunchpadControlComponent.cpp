@@ -15,7 +15,7 @@
 #include "PropertyEntranceComponent.h"
 #include "MultiZoneEntranceComponent.h"
 #include "dServer.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "eObjectWorldState.h"
 #include "eConnectionType.h"
 #include "eMasterMessageType.h"
@@ -137,7 +137,7 @@ LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) 
 
 void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PREP_ZONE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PREP_ZONE);
 	bitStream.Write(zoneID);
 	Game::server->SendToMaster(&bitStream);
 }

@@ -6,7 +6,7 @@
 #include "dLogger.h"
 #include "ChatPacketHandler.h"
 #include "GeneralUtils.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "Database.h"
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
@@ -147,7 +147,7 @@ void PlayerContainer::CreateTeamServer(Packet* packet) {
 
 void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
 
 	bitStream.Write(player);
 	bitStream.Write(time);
@@ -354,7 +354,7 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 
 void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::TEAM_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::TEAM_UPDATE);
 
 	bitStream.Write(team->teamID);
 	bitStream.Write(deleteTeam);
