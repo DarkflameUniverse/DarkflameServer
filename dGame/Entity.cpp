@@ -76,6 +76,10 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
+#include "ZoneControlComponent.h"
+#include "RacingStatsComponent.h"
+#include "CollectibleComponent.h"
+#include "ItemComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
