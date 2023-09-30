@@ -59,7 +59,7 @@ struct SkillExecutionResult {
  */
 class SkillComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
 
 	explicit SkillComponent(Entity* parent);
 	~SkillComponent() override;

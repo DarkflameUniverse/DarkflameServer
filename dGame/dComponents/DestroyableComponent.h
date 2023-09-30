@@ -19,7 +19,7 @@ enum class eStateChangeType : uint32_t;
  */
 class DestroyableComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
 	DestroyableComponent(Entity* parentEntity);
 	~DestroyableComponent() override;

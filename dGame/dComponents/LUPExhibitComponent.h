@@ -11,7 +11,7 @@
 class LUPExhibitComponent : public Component
 {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::EXHIBIT;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::EXHIBIT;
 
 	LUPExhibitComponent(Entity* parent);
 	~LUPExhibitComponent();
