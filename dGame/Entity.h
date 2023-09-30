@@ -66,7 +66,7 @@ public:
 
 	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
 
-	uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
+	uint8_t GetCollectibleID() const;
 
 	Entity* GetParentEntity() const { return m_ParentEntity; }
 
