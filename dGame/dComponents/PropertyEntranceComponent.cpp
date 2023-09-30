@@ -15,7 +15,7 @@
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 
-PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent) {
+PropertyEntranceComponent::PropertyEntranceComponent(Entity* parent, uint32_t componentID) : Component(parent) {
 	this->propertyQueries = {};
 
 	auto table = CDClientManager::Instance().GetTable<CDPropertyEntranceComponentTable>();
