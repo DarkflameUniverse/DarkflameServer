@@ -36,6 +36,14 @@ protected:
 	}
 };
 
+TEST_F(DestroyableTest, PlacementNewAddComponentTest) {
+	ASSERT_NE(destroyableComponent, nullptr);
+	ASSERT_EQ(destroyableComponent->GetArmor(), 7);
+	baseEntity->AddComponent<DestroyableComponent>();
+	ASSERT_NE(baseEntity->GetComponent<DestroyableComponent>(), nullptr);
+	ASSERT_EQ(destroyableComponent->GetArmor(), 0);
+}
+
 /**
  * Test Construction of a DestroyableComponent
  */

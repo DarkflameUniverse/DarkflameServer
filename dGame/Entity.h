@@ -523,6 +523,10 @@ inline ComponentType* Entity::AddComponent(VaArgs... args) {
 	// If it doesn't exist, create it and forward the arguments to the constructor
 	if (!componentToReturn) {
 		componentToReturn = new ComponentType(this, std::forward<VaArgs>(args)...);
+	} else {
+		// In this case the block is already allocated and ready for use
+		// so we use a placement new to construct the component again as was requested by the caller.
+		new(componentToReturn) ComponentType(this, std::forward<VaArgs>(args)...);
 	}
 
 	// Finally return the created or already existing component.
