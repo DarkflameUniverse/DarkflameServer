@@ -38,7 +38,7 @@ private:
 	std::map<unsigned int, CDZoneTable> m_Entries;
 
 public:
-	CDZoneTableTable();
+	void LoadValuesFromDatabase();
 
 	// Queries the table with a zoneID to find.
 	const CDZoneTable* Query(unsigned int zoneID);

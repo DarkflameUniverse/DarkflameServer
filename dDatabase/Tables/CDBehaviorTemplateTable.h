@@ -19,11 +19,12 @@ private:
 	std::unordered_map<uint32_t, CDBehaviorTemplate> entriesMappedByBehaviorID;
 	std::unordered_set<std::string> m_EffectHandles;
 public:
-	CDBehaviorTemplateTable();
+	void LoadValuesFromDatabase();
+
 	// Queries the table with a custom "where" clause
 	std::vector<CDBehaviorTemplate> Query(std::function<bool(CDBehaviorTemplate)> predicate);
 
-	std::vector<CDBehaviorTemplate> GetEntries(void) const;
+	const std::vector<CDBehaviorTemplate>& GetEntries(void) const;
 
 	const CDBehaviorTemplate GetByBehaviorID(uint32_t behaviorID);
 };

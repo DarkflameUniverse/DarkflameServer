@@ -138,6 +138,8 @@ public:
 	//! Operator for addition of vectors
 	NiPoint3& operator+=(const NiPoint3& point);
 
+	NiPoint3& operator*=(const float scalar);
+
 	//! Operator for subtraction of vectors
 	NiPoint3 operator-(const NiPoint3& point) const;
 

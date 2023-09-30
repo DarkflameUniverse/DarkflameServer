@@ -1,5 +1,5 @@
 PROJECT_VERSION_MAJOR=1
-PROJECT_VERSION_MINOR=0
+PROJECT_VERSION_MINOR=1
 PROJECT_VERSION_PATCH=1
 # LICENSE
 LICENSE=AGPL-3.0
@@ -18,3 +18,5 @@ __maria_db_connector_compile_jobs__=1
 __enable_testing__=1
 # The path to OpenSSL.  Change this if your OpenSSL install path is different than the default.
 OPENSSL_ROOT_DIR=/usr/local/opt/openssl@3/
+# Uncomment the below line to cache the entire CDClient into memory
+# CDCLIENT_CACHE_ALL=1

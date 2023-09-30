@@ -1,7 +1,6 @@
 #include "CDScriptComponentTable.h"
 
-//! Constructor
-CDScriptComponentTable::CDScriptComponentTable(void) {
+void CDScriptComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;

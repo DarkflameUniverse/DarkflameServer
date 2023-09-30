@@ -1,7 +1,6 @@
 #include "CDZoneTableTable.h"
 
-//! Constructor
-CDZoneTableTable::CDZoneTableTable(void) {
+void CDZoneTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;

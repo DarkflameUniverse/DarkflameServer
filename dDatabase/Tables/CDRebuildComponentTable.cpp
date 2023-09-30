@@ -1,7 +1,6 @@
 #include "CDRebuildComponentTable.h"
 
-//! Constructor
-CDRebuildComponentTable::CDRebuildComponentTable(void) {
+void CDRebuildComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -39,7 +38,6 @@ CDRebuildComponentTable::CDRebuildComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Queries the table with a custom "where" clause
 std::vector<CDRebuildComponent> CDRebuildComponentTable::Query(std::function<bool(CDRebuildComponent)> predicate) {
 
 	std::vector<CDRebuildComponent> data = cpplinq::from(this->entries)
@@ -49,8 +47,7 @@ std::vector<CDRebuildComponent> CDRebuildComponentTable::Query(std::function<boo
 	return data;
 }
 
-//! Gets all the entries in the table
-std::vector<CDRebuildComponent> CDRebuildComponentTable::GetEntries(void) const {
+const std::vector<CDRebuildComponent>& CDRebuildComponentTable::GetEntries() const {
 	return this->entries;
 }
 

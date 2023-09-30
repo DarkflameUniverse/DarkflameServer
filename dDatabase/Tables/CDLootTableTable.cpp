@@ -1,7 +1,6 @@
 #include "CDLootTableTable.h"
 
-//! Constructor
-CDLootTableTable::CDLootTableTable(void) {
+void CDLootTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -46,7 +45,7 @@ std::vector<CDLootTable> CDLootTableTable::Query(std::function<bool(CDLootTable)
 }
 
 //! Gets all the entries in the table
-const std::vector<CDLootTable>& CDLootTableTable::GetEntries(void) const {
+const std::vector<CDLootTable>& CDLootTableTable::GetEntries() const {
 	return this->entries;
 }
 
