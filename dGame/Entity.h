@@ -274,6 +274,9 @@ public:
 	template<typename T>
 	T GetVarAs(const std::u16string& name) const;
 
+	template<typename ComponentType, typename... VaArgs>
+	ComponentType* AddComponent(VaArgs... args);
+
 	/**
 	 * Get the LDF data.
 	 */
@@ -500,4 +503,30 @@ T Entity::GetNetworkVar(const std::u16string& name) {
 	}
 
 	return LDFData<T>::Default;
+}
+
+/**
+ * @brief Adds a component of type ComponentType to this entity and forwards the arguments to the constructor.
+ *
+ * @tparam ComponentType The component class type to add. Must derive from Component.
+ * @tparam VaArgs The argument types to forward to the constructor.
+ * @param args The arguments to forward to the constructor. The first argument passed to the ComponentType constructor will be this entity.
+ * @return ComponentType* The added component. Will never return null.
+ */
+template<typename ComponentType, typename... VaArgs>
+inline ComponentType* Entity::AddComponent(VaArgs... args) {
+	static_assert(std::is_base_of_v<Component, ComponentType>, "ComponentType must be a Component");
+
+	// Get the component if it already exists, or default construct a nullptr
+	auto*& componentToReturn = m_Components[ComponentType::ComponentType];
+
+	// If it doesn't exist, create it and forward the arguments to the constructor
+	if (!componentToReturn) {
+		componentToReturn = new ComponentType(this, std::forward<VaArgs>(args)...);
+	}
+
+	// Finally return the created or already existing component.
+	// Because of the assert above, this should always be a ComponentType* but I need a way to guarantee the map cannot be modifed outside this function
+	// To allow a static cast here instead of a dynamic one.
+	return dynamic_cast<ComponentType*>(componentToReturn);
 }
