@@ -51,9 +51,9 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
-	Game::logger->Log("AuthServer", "Starting Auth server...");
-	Game::logger->Log("AuthServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("AuthServer", "Compiled on: %s", __TIMESTAMP__);
+	LOG("Starting Auth server...");
+	LOG("AuthServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	LOG("AuthServer", "Compiled on: %s", __TIMESTAMP__);
 
 	//Connect to the MySQL Database
 	std::string mysql_host = Game::config->GetValue("mysql_host");

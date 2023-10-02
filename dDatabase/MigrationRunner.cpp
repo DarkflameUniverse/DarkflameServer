@@ -8,7 +8,7 @@
 #include "Logger.h"
 #include "BinaryPathFinder.h"
 
-#include <istream>
+#include <fstream>
 
 Migration LoadMigration(std::string path) {
 	Migration migration{};

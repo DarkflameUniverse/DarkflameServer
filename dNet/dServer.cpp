@@ -60,7 +60,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mIsOkay = Startup();
 
 	//Forcibly log to both the console and our file what ip, port and possibly zoneID / instanceID we're running on:
-	bool prevLogSetting = mLogger->GetIsLoggingToConsole();
+	bool prevLogSetting = mLogger->GetLogToConsole();
 	mLogger->SetLogToConsole(true);
 
 	if (mIsOkay) {

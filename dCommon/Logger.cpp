@@ -1,110 +1,98 @@
 #include "Logger.h"
 
-Logger::Logger(const std::string& outpath, bool logToConsole, bool logDebugStatements) {
-	m_logToConsole = logToConsole;
-	m_logDebugStatements = logDebugStatements;
-	m_outpath = outpath;
+#include <algorithm>
+#include <ctime>
+#include <filesystem>
+#include <stdarg.h>
 
-#ifdef _WIN32
-	mFile = std::ofstream(m_outpath);
-	if (!mFile) { printf("Couldn't open %s for writing!\n", outpath.c_str()); }
-#else
-	fp = fopen(outpath.c_str(), "wt");
-	if (fp == NULL) { printf("Couldn't open %s for writing!\n", outpath.c_str()); }
-#endif
+FileWriter::FileWriter(const char* outpath) {
+	m_Outfile = fopen(outpath, "wt");
+	if (m_Outfile == NULL) printf("Couldn't open %s for writing!\n", outpath);
+	m_Outpath = outpath;
+}
+
+FileWriter::~FileWriter() {
+	if (m_Outfile == NULL) return;
+
+	fclose(m_Outfile);
+	m_Outfile = NULL;
+}
+
+void FileWriter::Log(const char* time, const char* message) {
+	if (m_Outfile == NULL) return;
+
+	fputs(time, m_Outfile);
+	fputs(message, m_Outfile);
+}
+
+void FileWriter::Flush() {
+	if (m_Outfile == NULL) return;
+	fflush(m_Outfile);
+}
+
+void ConsoleWriter::Log(const char* time, const char* message) {
+	fputs(time, stdout);
+	fputs(message, stdout);
+}
+
+Logger::Logger(const std::string& outpath, bool logToConsole, bool logDebugStatements) {
+	m_logDebugStatements = logDebugStatements;
+	std::filesystem::path outpathPath(outpath);
+	if (!std::filesystem::exists(outpathPath.parent_path())) std::filesystem::create_directories(outpathPath.parent_path());
+	m_Writers.push_back(new FileWriter(outpath));
+	m_Writers.push_back(new ConsoleWriter(logToConsole));
 }
 
 Logger::~Logger() {
-#ifdef _WIN32
-	mFile.close();
-#else
-	if (fp != nullptr) {
-		fclose(fp);
-		fp = nullptr;
-	}
-#endif
+	std::for_each(m_Writers.begin(), m_Writers.end(), [](Writer* writer) {
+		if (writer) delete writer;
+		});
 }
 
 void Logger::vLog(const char* format, va_list args) {
-#ifdef _WIN32
-	time_t t = time(NULL);
-	struct tm time;
-	localtime_s(&time, &t);
-	char timeStr[70];
-	strftime(timeStr, sizeof(timeStr), "%d-%m-%y %H:%M:%S", &time);
-	char message[2048];
-	vsnprintf(message, 2048, format, args);
-
-	if (m_logToConsole) std::cout << "[" << timeStr << "] " << message;
-	mFile << "[" << timeStr << "] " << message;
-#else
 	time_t t = time(NULL);
 	struct tm* time = localtime(&t);
 	char timeStr[70];
-	strftime(timeStr, sizeof(timeStr), "%d-%m-%y %H:%M:%S", time);
+	strftime(timeStr, sizeof(timeStr), "[%d-%m-%y %H:%M:%S ", time);
 	char message[2048];
 	vsnprintf(message, 2048, format, args);
-
-	if (m_logToConsole) {
-		fputs("[", stdout);
-		fputs(timeStr, stdout);
-		fputs("] ", stdout);
-		fputs(message, stdout);
-	}
-
-	if (fp != nullptr) {
-		fputs("[", fp);
-		fputs(timeStr, fp);
-		fputs("] ", fp);
-		fputs(message, fp);
-	} else {
-		printf("Logger not initialized!\n");
-	}
-#endif
-}
-
-void Logger::LogBasic(const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	vLog(format, args);
-	va_end(args);
-}
-
-void Logger::LogBasic(const std::string& message) {
-	LogBasic(message.c_str());
+	std::for_each(m_Writers.begin(), m_Writers.end(), [&](Writer* writer) {
+		writer->Log(timeStr, message);
+		});
 }
 
 void Logger::Log(const char* className, const char* format, ...) {
 	va_list args;
-	std::string log = "[" + std::string(className) + "] " + std::string(format) + "\n";
+	std::string log = std::string(className) + "] " + std::string(format) + "\n";
 	va_start(args, format);
 	vLog(log.c_str(), args);
 	va_end(args);
-}
-
-void Logger::Log(const std::string& className, const std::string& message) {
-	Log(className.c_str(), message.c_str());
 }
 
 void Logger::LogDebug(const char* className, const char* format, ...) {
 	if (!m_logDebugStatements) return;
 	va_list args;
-	std::string log = "[" + std::string(className) + "] " + std::string(format) + "\n";
+	std::string log = std::string(className) + "] " + std::string(format) + "\n";
 	va_start(args, format);
 	vLog(log.c_str(), args);
 	va_end(args);
 }
 
-void Logger::LogDebug(const std::string& className, const std::string& message) {
-	LogDebug(className.c_str(), message.c_str());
+void Logger::Flush() {
+	std::for_each(m_Writers.begin(), m_Writers.end(), [](Writer* writer) {
+		writer->Flush();
+		});
 }
 
-void Logger::Flush() {
-#ifdef _WIN32
-	mFile.flush();
-#else
-	if (fp != nullptr) {
-		std::fflush(fp);
-	}
-#endif
+void Logger::SetLogToConsole(bool logToConsole) {
+	std::for_each(m_Writers.begin(), m_Writers.end(), [&](Writer* writer) {
+		if (writer->IsConsoleWriter()) writer->SetEnabled(logToConsole);
+		});
+}
+
+bool Logger::GetLogToConsole() const {
+	return std::find_if(m_Writers.begin(), m_Writers.end(), [](Writer* writer) {
+		if (writer->IsConsoleWriter()) return writer->GetEnabled();
+		return false;
+		}) != m_Writers.end();
 }
