@@ -52,7 +52,7 @@ User::User(const SystemAddress& sysAddr, const std::string& username, const std:
 				LWOOBJID objID = res->getUInt64(1);
 				Character* character = new Character(uint32_t(objID), this);
 				m_Characters.push_back(character);
-				Game::logger->Log("User", "Loaded %llu as it is the last used char", objID);
+				LOG("Loaded %llu as it is the last used char", objID);
 			}
 		}
 
@@ -127,7 +127,7 @@ void User::UserOutOfSync() {
 	m_AmountOfTimesOutOfSync++;
 	if (m_AmountOfTimesOutOfSync > m_MaxDesyncAllowed) {
 		//YEET
-		Game::logger->Log("User", "User %s was out of sync %i times out of %i, disconnecting for suspected speedhacking.", m_Username.c_str(), m_AmountOfTimesOutOfSync, m_MaxDesyncAllowed);
+		LOG("User %s was out of sync %i times out of %i, disconnecting for suspected speedhacking.", m_Username.c_str(), m_AmountOfTimesOutOfSync, m_MaxDesyncAllowed);
 		Game::server->Disconnect(this->m_SystemAddress, eServerDisconnectIdentifiers::PLAY_SCHEDULE_TIME_DONE);
 	}
 }

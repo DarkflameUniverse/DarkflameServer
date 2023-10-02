@@ -153,7 +153,7 @@ void Mail::HandleMailStuff(RakNet::BitStream* packet, const SystemAddress& sysAd
 			Mail::HandleSendMail(packet, sysAddr, entity);
 			break;
 		default:
-			Game::logger->Log("Mail", "Unhandled and possibly undefined MailStuffID: %i", int(stuffID));
+			LOG("Unhandled and possibly undefined MailStuffID: %i", int(stuffID));
 		}
 		});
 }
@@ -262,10 +262,10 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::Success);
 	entity->GetCharacter()->SetCoins(entity->GetCharacter()->GetCoins() - mailCost, eLootSourceType::MAIL);
 
-	Game::logger->Log("Mail", "Seeing if we need to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
+	LOG("Seeing if we need to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
 
 	if (inv && itemLOT != 0 && attachmentCount > 0 && item) {
-		Game::logger->Log("Mail", "Trying to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
+		LOG("Trying to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
 		inv->RemoveItem(itemLOT, attachmentCount, INVALID, true);
 
 		auto* missionCompoent = entity->GetComponent<MissionComponent>();

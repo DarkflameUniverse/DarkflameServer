@@ -63,7 +63,7 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::stri
 	m_NoAutoStart = false;
 
 	if (m_Path == nullptr) {
-		Game::logger->Log("MovingPlatformComponent", "Path not found: %s", pathName.c_str());
+		LOG("Path not found: %s", pathName.c_str());
 	}
 }
 

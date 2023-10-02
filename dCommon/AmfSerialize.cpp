@@ -29,7 +29,7 @@ void RakNet::BitStream::Write<AMFBaseValue&>(AMFBaseValue& value) {
 		break;
 	}
 	default: {
-		Game::logger->Log("AmfSerialize", "Encountered unwritable AMFType %i!", type);
+		LOG("Encountered unwritable AMFType %i!", type);
 	}
 	case eAmf::Undefined:
 	case eAmf::Null:

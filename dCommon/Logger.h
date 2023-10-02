@@ -23,8 +23,8 @@ constexpr const char* GetFileNameFromAbsolutePath(const char* path) {
     return file;
 }
 
-#define LOG(message, ...) do { constexpr auto str = FILENAME_AND_LINE; Game::logger->Log(str, message, ##__VA_ARGS__); } while(0);
-#define LOG_DEBUG(message, ...) do { constexpr auto str = FILENAME_AND_LINE; Game::logger->LogDebug(str, message, ##__VA_ARGS__); } while(0);
+#define LOG(message, ...) do { constexpr auto str = FILENAME_AND_LINE; Game::logger->Log(str, message, ##__VA_ARGS__); } while(0)
+#define LOG_DEBUG(message, ...) do { constexpr auto str = FILENAME_AND_LINE; Game::logger->LogDebug(str, message, ##__VA_ARGS__); } while(0)
 
 // Writer class for writing data.
 

@@ -19,7 +19,7 @@
 #include "eGameActivity.h"
 
 void SGCannon::OnStartup(Entity* self) {
-	Game::logger->Log("SGCannon", "OnStartup");
+	LOG("OnStartup");
 
 	m_Waves = GetWaves();
 	constants = GetConstants();
@@ -65,7 +65,7 @@ void SGCannon::OnStartup(Entity* self) {
 }
 
 void SGCannon::OnPlayerLoaded(Entity* self, Entity* player) {
-	Game::logger->Log("SGCannon", "Player loaded");
+	LOG("Player loaded");
 	self->SetVar<LWOOBJID>(PlayerIDVariable, player->GetObjectID());
 }
 
@@ -76,15 +76,15 @@ void SGCannon::OnFireEventServerSide(Entity* self, Entity* sender, std::string a
 
 void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int32_t value1, int32_t value2,
 	const std::u16string& stringValue) {
-	Game::logger->Log("SGCannon", "Got activity state change request: %s", GeneralUtils::UTF16ToWTF8(stringValue).c_str());
+	LOG("Got activity state change request: %s", GeneralUtils::UTF16ToWTF8(stringValue).c_str());
 	if (stringValue == u"clientready") {
 		auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 		if (player != nullptr) {
-			Game::logger->Log("SGCannon", "Player is ready");
+			LOG("Player is ready");
 			/*GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
 										 true, true, true, true, true, true, true);*/
 
-			Game::logger->Log("SGCannon", "Sending ActivityEnter");
+			LOG("Sending ActivityEnter");
 
 			GameMessages::SendActivityEnter(self->GetObjectID(), player->GetSystemAddress());
 
@@ -93,11 +93,11 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 			if (shootingGalleryComponent != nullptr) {
 				shootingGalleryComponent->SetCurrentPlayerID(player->GetObjectID());
 
-				Game::logger->Log("SGCannon", "Setting player ID");
+				LOG("Setting player ID");
 
 				Game::entityManager->SerializeEntity(self);
 			} else {
-				Game::logger->Log("SGCannon", "Shooting gallery component is null");
+				LOG("Shooting gallery component is null");
 			}
 
 			auto* characterComponent = player->GetComponent<CharacterComponent>();
@@ -129,7 +129,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 
 			//GameMessages::SendRequestActivityEnter(self->GetObjectID(), player->GetSystemAddress(), false, player->GetObjectID());
 		} else {
-			Game::logger->Log("SGCannon", "Player not found");
+			LOG("Player not found");
 		}
 	} else if (value1 == 1200) {
 		StartGame(self);
@@ -183,7 +183,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 				SpawnObject(self, enemyToSpawn, true);
 			}
 
-			Game::logger->Log("SGCannon", "Current wave spawn: %i/%i", wave, m_Waves.size());
+			LOG("Current wave spawn: %i/%i", wave, m_Waves.size());
 
 			// All waves completed
 			const auto timeLimit = (float_t)self->GetVar<uint32_t>(TimeLimitVariable);
@@ -198,7 +198,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 				GameMessages::SendPlayFXEffect(player->GetObjectID(), -1, u"SG-start", "");
 
 				GameMessages::SendStartActivityTime(self->GetObjectID(), timeLimit, player->GetSystemAddress());
-				Game::logger->Log("SGCannon", "Sending ActivityPause false");
+				LOG("Sending ActivityPause false");
 
 				GameMessages::SendActivityPause(self->GetObjectID(), false, player->GetSystemAddress());
 			}
@@ -219,7 +219,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 		self->SetNetworkVar<uint32_t>(WaveNumVariable, self->GetVar<uint32_t>(ThisWaveVariable) + 1);
 		self->SetNetworkVar<uint32_t>(WaveStrVariable, self->GetVar<uint32_t>(TimeLimitVariable));
 
-		Game::logger->Log("SGCannon", "Current wave: %i/%i", self->GetVar<uint32_t>(ThisWaveVariable), m_Waves.size());
+		LOG("Current wave: %i/%i", self->GetVar<uint32_t>(ThisWaveVariable), m_Waves.size());
 
 		if (self->GetVar<uint32_t>(ThisWaveVariable) >= m_Waves.size()) {
 			ActivityTimerStart(self, GameOverTimer, 0.1, 0.1);
@@ -227,7 +227,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			ActivityTimerStart(self, SpawnWaveTimer, constants.inBetweenWavePause, constants.inBetweenWavePause);
 		}
 
-		Game::logger->Log("SGCannon", "Sending ActivityPause true");
+		LOG("Sending ActivityPause true");
 
 		GameMessages::SendActivityPause(self->GetObjectID(), true);
 		if (self->GetVar<bool>(SuperChargeActiveVariable) && !self->GetVar<bool>(SuperChargePausedVariable)) {
@@ -236,7 +236,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 	} else if (name == GameOverTimer) {
 		auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 		if (player != nullptr) {
-			Game::logger->Log("SGCannon", "Sending ActivityPause true");
+			LOG("Sending ActivityPause true");
 
 			GameMessages::SendActivityPause(self->GetObjectID(), true, player->GetSystemAddress());
 
@@ -257,14 +257,14 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			const auto spawnNumber = (uint32_t)std::stoi(name.substr(7));
 			const auto& activeSpawns = self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable);
 			if (activeSpawns.size() < spawnNumber) {
-				Game::logger->Log("SGCannon", "Trying to spawn %i when spawns size is only %i", spawnNumber, activeSpawns.size());
+				LOG("Trying to spawn %i when spawns size is only %i", spawnNumber, activeSpawns.size());
 				return;
 			}
 			const auto& toSpawn = activeSpawns.at(spawnNumber);
 			const auto pathIndex = GeneralUtils::GenerateRandomNumber<float_t>(0, toSpawn.spawnPaths.size() - 1);
 			const auto* path = Game::zoneManager->GetZone()->GetPath(toSpawn.spawnPaths.at(pathIndex));
 			if (!path) {
-				Game::logger->Log("SGCannon", "Path %s at index %i is null", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
+				LOG("Path %s at index %i is null", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
 				return;
 			}
 
@@ -282,7 +282,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 				new LDFData<std::u16string>(u"groupID", u"SGEnemy")
 			};
 
-			Game::logger->Log("SGCannon", "Spawning enemy %i on path %s", toSpawn.lot, path->pathName.c_str());
+			LOG("Spawning enemy %i on path %s", toSpawn.lot, path->pathName.c_str());
 
 			auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
 			Game::entityManager->ConstructEntity(enemy);
@@ -342,7 +342,7 @@ void SGCannon::StartGame(Entity* self) {
 	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 	if (player != nullptr) {
 		GetLeaderboardData(self, player->GetObjectID(), GetActivityID(self), 1);
-		Game::logger->Log("SGCannon", "Sending ActivityStart");
+		LOG("Sending ActivityStart");
 		GameMessages::SendActivityStart(self->GetObjectID(), player->GetSystemAddress());
 
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), -1, u"start", "");
@@ -624,7 +624,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 
 	auto scScore = self->GetVar<uint32_t>(TotalScoreVariable) - lastSuperTotal;
 
-	Game::logger->Log("SGCannon", "LastSuperTotal: %i, scScore: %i, constants.chargedPoints: %i",
+	LOG("LastSuperTotal: %i, scScore: %i, constants.chargedPoints: %i",
 		lastSuperTotal, scScore, constants.chargedPoints
 	);
 
@@ -708,7 +708,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 
 	if (player == nullptr) {
-		Game::logger->Log("SGCannon", "Player not found in toggle super charge");
+		LOG("Player not found in toggle super charge");
 		return;
 	}
 
@@ -716,7 +716,7 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 	auto equippedItems = inventoryComponent->GetEquippedItems();
 
-	Game::logger->Log("SGCannon", "Player has %d equipped items", equippedItems.size());
+	LOG("Player has %d equipped items", equippedItems.size());
 
 	auto skillID = constants.cannonSkill;
 	auto cooldown = constants.cannonRefireRate;
@@ -724,12 +724,12 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 	auto* selfInventoryComponent = self->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
-		Game::logger->Log("SGCannon", "Inventory component not found");
+		LOG("Inventory component not found");
 		return;
 	}
 
 	if (enable) {
-		Game::logger->Log("SGCannon", "Player is activating super charge");
+		LOG("Player is activating super charge");
 		selfInventoryComponent->UpdateSlot("greeble_r", { ObjectIDManager::GenerateRandomObjectID(), 6505, 1, 0 });
 		selfInventoryComponent->UpdateSlot("greeble_l", { ObjectIDManager::GenerateRandomObjectID(), 6506, 1, 0 });
 
@@ -742,19 +742,19 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 		self->SetNetworkVar<float>(u"SuperChargeBar", 0);
 
-		Game::logger->Log("SGCannon", "Player disables super charge");
+		LOG("Player disables super charge");
 
 		// TODO: Unequip items
 		for (const auto& equipped : equippedItems) {
 			if (equipped.first == "special_r" || equipped.first == "special_l") {
-				Game::logger->Log("SGCannon", "Trying to unequip a weapon, %i", equipped.second.lot);
+				LOG("Trying to unequip a weapon, %i", equipped.second.lot);
 
 				auto* item = inventoryComponent->FindItemById(equipped.second.id);
 
 				if (item != nullptr) {
 					inventoryComponent->UnEquipItem(item);
 				} else {
-					Game::logger->Log("SGCannon", "Item not found, %i", equipped.second.lot);
+					LOG("Item not found, %i", equipped.second.lot);
 				}
 			}
 		}

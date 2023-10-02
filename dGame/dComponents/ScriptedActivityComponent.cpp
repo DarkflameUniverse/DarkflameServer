@@ -273,7 +273,7 @@ void ScriptedActivityComponent::Update(float deltaTime) {
 
 		// The timer has elapsed, start the instance
 		if (lobby->timer <= 0.0f) {
-			Game::logger->Log("ScriptedActivityComponent", "Setting up instance.");
+			LOG("Setting up instance.");
 			ActivityInstance* instance = NewInstance();
 			LoadPlayersIntoInstance(instance, lobby->players);
 			instance->StartZone();
@@ -539,7 +539,7 @@ void ActivityInstance::StartZone() {
 			if (player == nullptr)
 				return;
 
-			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", player->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", player->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			if (player->GetCharacter()) {
 				player->GetCharacter()->SetZoneID(zoneID);
 				player->GetCharacter()->SetZoneInstance(zoneInstance);

@@ -58,9 +58,9 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
-	Game::logger->Log("ChatServer", "Starting Chat server...");
-	Game::logger->Log("ChatServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("ChatServer", "Compiled on: %s", __TIMESTAMP__);
+	LOG("Starting Chat server...");
+	LOG("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	try {
 		std::string clientPathStr = Game::config->GetValue("client_location");
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
 
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
-		Game::logger->Log("ChatServer", "Got an error while setting up assets: %s", ex.what());
+		LOG("Got an error while setting up assets: %s", ex.what());
 
 		return EXIT_FAILURE;
 	}
@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
-		Game::logger->Log("ChatServer", "Got an error while connecting to the database: %s", ex.what());
+		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("ChatServer");
 		delete Game::server;
 		delete Game::logger;
@@ -199,11 +199,11 @@ Logger* SetupLogger() {
 
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-		Game::logger->Log("ChatServer", "A server has disconnected, erasing their connected players from the list.");
+		LOG("A server has disconnected, erasing their connected players from the list.");
 	}
 
 	if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {
-		Game::logger->Log("ChatServer", "A server is connecting, awaiting user list.");
+		LOG("A server is connecting, awaiting user list.");
 	}
 
 	if (packet->length < 4) return; // Nothing left to process.  Need 4 bytes to continue.
@@ -234,7 +234,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown CHAT_INTERNAL id: %i", int(packet->data[3]));
+			LOG("Unknown CHAT_INTERNAL id: %i", int(packet->data[3]));
 		}
 	}
 
@@ -245,7 +245,7 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		case eChatMessageType::GET_IGNORE_LIST:
-			Game::logger->Log("ChatServer", "Asked for ignore list, but is unimplemented right now.");
+			LOG("Asked for ignore list, but is unimplemented right now.");
 			break;
 
 		case eChatMessageType::TEAM_GET_STATUS:
@@ -303,19 +303,19 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown CHAT id: %i", int(packet->data[3]));
+			LOG("Unknown CHAT id: %i", int(packet->data[3]));
 		}
 	}
 
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::WORLD) {
 		switch (static_cast<eWorldMessageType>(packet->data[3])) {
 		case eWorldMessageType::ROUTE_PACKET: {
-			Game::logger->Log("ChatServer", "Routing packet from world");
+			LOG("Routing packet from world");
 			break;
 		}
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown World id: %i", int(packet->data[3]));
+			LOG("Unknown World id: %i", int(packet->data[3]));
 		}
 	}
 }

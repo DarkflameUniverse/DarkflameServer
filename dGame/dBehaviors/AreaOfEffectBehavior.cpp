@@ -16,7 +16,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 	uint32_t targetCount{};
 
 	if (!bitStream->Read(targetCount)) {
-		Game::logger->Log("AreaOfEffectBehavior", "Unable to read targetCount from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read targetCount from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
 
@@ -32,7 +32,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 		LWOOBJID target{};
 
 		if (!bitStream->Read(target)) {
-			Game::logger->Log("AreaOfEffectBehavior", "failed to read in target %i from bitStream, aborting target Handle!", i);
+			LOG("failed to read in target %i from bitStream, aborting target Handle!", i);
 			return;
 		};
 
@@ -49,7 +49,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* self = Game::entityManager->GetEntity(context->caster);
 	if (self == nullptr) {
-		Game::logger->Log("AreaOfEffectBehavior", "Invalid self for (%llu)!", context->originator);
+		LOG("Invalid self for (%llu)!", context->originator);
 
 		return;
 	}
@@ -78,7 +78,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 		auto* entity = Game::entityManager->GetEntity(validTarget);
 
 		if (entity == nullptr) {
-			Game::logger->Log("AreaOfEffectBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);
+			LOG("Invalid target (%llu) for (%llu)!", validTarget, context->originator);
 
 			continue;
 		}

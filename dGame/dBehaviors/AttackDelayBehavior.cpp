@@ -8,7 +8,7 @@ void AttackDelayBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 	uint32_t handle{};
 
 	if (!bitStream->Read(handle)) {
-		Game::logger->Log("AttackDelayBehavior", "Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 

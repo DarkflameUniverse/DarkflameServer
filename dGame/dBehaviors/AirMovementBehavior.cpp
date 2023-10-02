@@ -9,7 +9,7 @@ void AirMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 	uint32_t handle{};
 
 	if (!bitStream->Read(handle)) {
-		Game::logger->Log("AirMovementBehavior", "Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
 
@@ -26,14 +26,14 @@ void AirMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitS
 	uint32_t behaviorId{};
 
 	if (!bitStream->Read(behaviorId)) {
-		Game::logger->Log("AirMovementBehavior", "Unable to read behaviorId from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read behaviorId from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
 
 	LWOOBJID target{};
 
 	if (!bitStream->Read(target)) {
-		Game::logger->Log("AirMovementBehavior", "Unable to read target from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
 

@@ -260,7 +260,7 @@ void Player::SetDroppedCoins(uint64_t value) {
 }
 
 Player::~Player() {
-	Game::logger->Log("Player", "Deleted player");
+	LOG("Deleted player");
 
 	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++) {
 		const auto id = m_ObservedEntities[i];

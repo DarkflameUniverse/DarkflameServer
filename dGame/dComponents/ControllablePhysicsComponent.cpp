@@ -55,7 +55,7 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 		return;
 
 	if (entity->GetLOT() == 1) {
-		Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics");
+		LOG("Using patch to load minifig physics");
 
 		float radius = 1.5f;
 		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), radius, false);
@@ -164,7 +164,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag!");
+		LOG("Failed to find char tag!");
 		return;
 	}
 
@@ -184,7 +184,7 @@ void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag while updating XML!");
+		LOG("Failed to find char tag while updating XML!");
 		return;
 	}
 
@@ -283,7 +283,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 	if (pos != m_ActivePickupRadiusScales.end()) {
 		m_ActivePickupRadiusScales.erase(pos);
 	} else {
-		Game::logger->LogDebug("ControllablePhysicsComponent", "Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.", value, m_ActivePickupRadiusScales.size());
+		LOG_DEBUG("Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.", value, m_ActivePickupRadiusScales.size());
 		return;
 	}
 
@@ -308,7 +308,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	if (pos != m_ActiveSpeedBoosts.end()) {
 		m_ActiveSpeedBoosts.erase(pos);
 	} else {
-		Game::logger->LogDebug("ControllablePhysicsComponent", "Warning: Could not find speedboost %f in list of active speedboosts.  List has %i active speedboosts.", value, m_ActiveSpeedBoosts.size());
+		LOG_DEBUG("Warning: Could not find speedboost %f in list of active speedboosts.  List has %i active speedboosts.", value, m_ActiveSpeedBoosts.size());
 		return;
 	}
 
@@ -326,7 +326,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 
 void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims){
 	if (m_IsInBubble) {
-		Game::logger->Log("ControllablePhysicsComponent", "Already in bubble");
+		LOG("Already in bubble");
 		return;
 	}
 	m_BubbleType = bubbleType;

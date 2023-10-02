@@ -28,14 +28,13 @@ InstanceManager::~InstanceManager() {
 }
 
 Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID) {
-	mLogger->Log("InstanceManager", "Searching for an instance for mapID %i/%i", mapID, cloneID);
+	LOG("Searching for an instance for mapID %i/%i", mapID, cloneID);
 	Instance* instance = FindInstance(mapID, isFriendTransfer, cloneID);
 	if (instance) return instance;
 
 	// If we are shutting down, return a nullptr so a new instance is not created.
 	if (m_IsShuttingDown) {
-		Game::logger->Log("InstanceManager",
-		"Tried to create a new instance map/instance/clone %i/%i/%i, but Master is shutting down.",
+		LOG("Tried to create a new instance map/instance/clone %i/%i/%i, but Master is shutting down.",
 		mapID,
 		m_LastInstanceID + 1,
 		cloneID);
@@ -89,9 +88,9 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	m_Instances.push_back(instance);
 
 	if (instance) {
-		mLogger->Log("InstanceManager", "Created new instance: %i/%i/%i with min/max %i/%i", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
+		LOG("Created new instance: %i/%i/%i with min/max %i/%i", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
 		return instance;
-	} else mLogger->Log("InstanceManager", "Failed to create a new instance!");
+	} else LOG("Failed to create a new instance!");
 
 	return nullptr;
 }
@@ -179,7 +178,7 @@ void InstanceManager::ReadyInstance(Instance* instance) {
 	for (const auto& request : pending) {
 		const auto& zoneId = instance->GetZoneID();
 
-		Game::logger->Log("InstanceManager", "Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
+		LOG("Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
 
 		MasterPackets::SendZoneTransferResponse(
 			Game::server,
@@ -208,7 +207,7 @@ void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstan
 
 	Game::server->Send(&bitStream, instance->GetSysAddr(), false);
 
-	Game::logger->Log("MasterServer", "Sent affirmation request %llu to %i/%i", request.id,
+	LOG("Sent affirmation request %llu to %i/%i", request.id,
 		static_cast<int>(instance->GetZoneID().GetMapID()),
 		static_cast<int>(instance->GetZoneID().GetCloneID())
 	);
@@ -306,8 +305,7 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	}
 
 	if (m_IsShuttingDown) {
-		Game::logger->Log("InstanceManager",
-		"Tried to create a new private instance map/instance/clone %i/%i/%i, but Master is shutting down.",
+		LOG("Tried to create a new private instance map/instance/clone %i/%i/%i, but Master is shutting down.",
 		mapID,
 		m_LastInstanceID + 1,
 		cloneID);
@@ -346,7 +344,7 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	m_Instances.push_back(instance);
 
 	if (instance) return instance;
-	else mLogger->Log("InstanceManager", "Failed to create a new instance!");
+	else LOG("Failed to create a new instance!");
 
 	return instance;
 }
@@ -359,7 +357,7 @@ Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
 			continue;
 		}
 
-		mLogger->Log("InstanceManager", "Password: %s == %s => %d", password.c_str(), instance->GetPassword().c_str(), password == instance->GetPassword());
+		LOG("Password: %s == %s => %d", password.c_str(), instance->GetPassword().c_str(), password == instance->GetPassword());
 
 		if (instance->GetPassword() == password) {
 			return instance;
@@ -410,5 +408,5 @@ void Instance::Shutdown() {
 
 	Game::server->Send(&bitStream, this->m_SysAddr, false);
 
-	Game::logger->Log("Instance", "Triggered world shutdown for zone/clone/instance %i/%i/%i", GetMapID(), GetCloneID(), GetInstanceID());
+	LOG("Triggered world shutdown for zone/clone/instance %i/%i/%i", GetMapID(), GetCloneID(), GetInstanceID());
 }

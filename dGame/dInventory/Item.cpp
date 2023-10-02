@@ -98,7 +98,7 @@ Item::Item(
 	if (isModMoveAndEquip) {
 		Equip();
 
-		Game::logger->Log("Item", "Move and equipped (%i) from (%i)", this->lot, this->inventory->GetType());
+		LOG("Move and equipped (%i) from (%i)", this->lot, this->inventory->GetType());
 
 		Game::entityManager->SerializeEntity(inventory->GetComponent()->GetParent());
 	}
@@ -260,7 +260,7 @@ bool Item::Consume() {
 		}
 	}
 
-	Game::logger->LogDebug("Item", "Consumed LOT (%i) itemID (%llu).  Success=(%d)", lot, id, success);
+	LOG_DEBUG("Consumed LOT (%i) itemID (%llu).  Success=(%d)", lot, id, success);
 
 	GameMessages::SendUseItemResult(inventory->GetComponent()->GetParent(), lot, success);
 
@@ -274,19 +274,19 @@ bool Item::Consume() {
 void Item::UseNonEquip(Item* item) {
 	LOT thisLot = this->GetLot();
 	if (!GetInventory()) {
-		Game::logger->LogDebug("Item", "item %i has no inventory??", this->GetLot());
+		LOG_DEBUG("item %i has no inventory??", this->GetLot());
 		return;
 	}
 
 	auto* playerInventoryComponent = GetInventory()->GetComponent();
 	if (!playerInventoryComponent) {
-		Game::logger->LogDebug("Item", "no inventory component attached to item id %llu lot %i", this->GetId(), this->GetLot());
+		LOG_DEBUG("no inventory component attached to item id %llu lot %i", this->GetId(), this->GetLot());
 		return;
 	}
 
 	auto* playerEntity = playerInventoryComponent->GetParent();
 	if (!playerEntity) {
-		Game::logger->LogDebug("Item", "no player entity attached to inventory? item id is %llu", this->GetId());
+		LOG_DEBUG("no player entity attached to inventory? item id is %llu", this->GetId());
 		return;
 	}
 
@@ -346,7 +346,7 @@ void Item::UseNonEquip(Item* item) {
 				}
 			}
 		}
-		Game::logger->LogDebug("Item", "Player %llu %s used item %i", playerEntity->GetObjectID(), success ? "successfully" : "unsuccessfully", thisLot);
+		LOG_DEBUG("Player %llu %s used item %i", playerEntity->GetObjectID(), success ? "successfully" : "unsuccessfully", thisLot);
 		GameMessages::SendUseItemResult(playerInventoryComponent->GetParent(), thisLot, success);
 	}
 }
@@ -411,7 +411,7 @@ void Item::DisassembleModel() {
 	auto buffer = Game::assetManager->GetFileAsBuffer(lxfmlPath.c_str());
 
 	if (!buffer.m_Success) {
-		Game::logger->Log("Item", "Failed to load %s to disassemble model into bricks, check that this file exists", lxfmlPath.c_str());
+		LOG("Failed to load %s to disassemble model into bricks, check that this file exists", lxfmlPath.c_str());
 		return;
 	}
 

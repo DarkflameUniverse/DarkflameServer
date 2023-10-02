@@ -7,7 +7,7 @@ void ChainBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	uint32_t chainIndex{};
 
 	if (!bitStream->Read(chainIndex)) {
-		Game::logger->Log("ChainBehavior", "Unable to read chainIndex from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read chainIndex from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
 
@@ -16,7 +16,7 @@ void ChainBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	if (chainIndex < this->m_behaviors.size()) {
 		this->m_behaviors.at(chainIndex)->Handle(context, bitStream, branch);
 	} else {
-		Game::logger->Log("ChainBehavior", "chainIndex out of bounds, aborting handle of chain %i bits unread %i", chainIndex, bitStream->GetNumberOfUnreadBits());
+		LOG("chainIndex out of bounds, aborting handle of chain %i bits unread %i", chainIndex, bitStream->GetNumberOfUnreadBits());
 	}
 }
 

@@ -57,7 +57,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	auto* rocket = characterComponent->GetRocket(originator);
 	if (!rocket) {
-		Game::logger->Log("RocketLaunchpadControlComponent", "Unable to find rocket!");
+		LOG("Unable to find rocket!");
 		return;
 	}
 

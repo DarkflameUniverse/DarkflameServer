@@ -237,7 +237,7 @@ TEST_F(LDFTests, LDFParseEdgeCaseTest) {
 		"key=Garbage:value", // invalid LDF type
 	};
 	for (auto testString : tests) {
-		Game::logger->Log("LDFTests", "Testing LDF Parsing of invalid string (%s)", testString.c_str());
+		LOG("Testing LDF Parsing of invalid string (%s)", testString.c_str());
 		EXPECT_NO_THROW(LDFBaseData::DataFromString(testString));
 	}
 }

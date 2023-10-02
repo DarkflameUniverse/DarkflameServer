@@ -21,9 +21,9 @@ dNavMesh::dNavMesh(uint32_t zoneId) {
 		m_NavQuery = dtAllocNavMeshQuery();
 		m_NavQuery->init(m_NavMesh, 2048);
 
-		Game::logger->Log("dNavMesh", "Navmesh loaded successfully!");
+		LOG("Navmesh loaded successfully!");
 	} else {
-		Game::logger->Log("dNavMesh", "Navmesh loading failed (This may be intended).");
+		LOG("Navmesh loading failed (This may be intended).");
 	}
 }
 

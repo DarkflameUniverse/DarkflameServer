@@ -3,6 +3,7 @@
 // Custom Classes
 #include "Database.h"
 #include "Logger.h"
+#include "Game.h"
 
 // Static Variables
 ObjectIDManager* ObjectIDManager::m_Address = nullptr;
@@ -39,9 +40,8 @@ void ObjectIDManager::Initialize(Logger* logger) {
 		delete result;
 		delete stmt;
 	} catch (sql::SQLException& e) {
-		mLogger->Log("ObjectIDManager", "Unable to fetch max persistent object "
-			"ID in use. Defaulting to 1.");
-		mLogger->Log("ObjectIDManager", "SQL error: %s", e.what());
+		LOG("Unable to fetch max persistent object ID in use. Defaulting to 1.");
+		LOG("SQL error: %s", e.what());
 		this->currentPersistentID = 1;
 	}
 }

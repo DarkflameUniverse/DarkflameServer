@@ -11,7 +11,7 @@ void DamageReductionBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->Log("DamageReductionBehavior", "Failed to find target (%llu)!", branch.target);
+		LOG("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -35,7 +35,7 @@ void DamageReductionBehavior::Timer(BehaviorContext* context, BehaviorBranchCont
 	auto* target = Game::entityManager->GetEntity(second);
 
 	if (target == nullptr) {
-		Game::logger->Log("DamageReductionBehavior", "Failed to find target (%llu)!", second);
+		LOG("Failed to find target (%llu)!", second);
 
 		return;
 	}

@@ -44,7 +44,7 @@ bool FdbToSqlite::Convert::ConvertDatabase(AssetMemoryBuffer& buffer) {
 
 		CDClientDatabase::ExecuteQuery("COMMIT;");
 	} catch (CppSQLite3Exception& e) {
-		Game::logger->Log("FdbToSqlite", "Encountered error %s converting FDB to SQLite", e.errorMessage());
+		LOG("Encountered error %s converting FDB to SQLite", e.errorMessage());
 		return false;
 	}
 

@@ -10,7 +10,7 @@ void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->Log("TauntBehavior", "Failed to find target (%llu)!", branch.target);
+		LOG("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -26,7 +26,7 @@ void TauntBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitSt
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->Log("TauntBehavior", "Failed to find target (%llu)!", branch.target);
+		LOG("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}

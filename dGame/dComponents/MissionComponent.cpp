@@ -363,7 +363,7 @@ bool MissionComponent::LookForAchievements(eMissionTaskType type, int32_t value,
 						break;
 					}
 				} catch (std::invalid_argument& exception) {
-					Game::logger->Log("MissionComponent", "Failed to parse target (%s): (%s)!", token.c_str(), exception.what());
+					LOG("Failed to parse target (%s): (%s)!", token.c_str(), exception.what());
 				}
 			}
 

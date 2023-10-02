@@ -334,7 +334,7 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 
 					param.values.push_back(value);
 				} catch (std::invalid_argument& exception) {
-					Game::logger->Log("BuffComponent", "Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
+					LOG("Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
 				}
 			}
 		}
