@@ -4,7 +4,7 @@
 
 #include "dNetCommon.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Database.h"
 #include "ZoneInstanceManager.h"
 #include "MD5.h"

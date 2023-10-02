@@ -4,7 +4,7 @@
 #include "InventoryComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Item.h"
 #include "Character.h"
 #include "CharacterComponent.h"

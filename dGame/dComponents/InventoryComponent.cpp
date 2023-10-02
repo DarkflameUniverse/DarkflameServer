@@ -5,7 +5,7 @@
 #include "Entity.h"
 #include "Item.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDClientManager.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "MissionComponent.h"

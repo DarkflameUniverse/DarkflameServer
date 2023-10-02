@@ -4,7 +4,7 @@
 #include "GameMessages.h"
 #include "Entity.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "InventoryComponent.h"
 #include "Item.h"
 #include "PropertyManagementComponent.h"

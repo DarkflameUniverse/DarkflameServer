@@ -2,7 +2,7 @@
 #include "Entity.h"
 #include "CDClientManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include <PacketUtils.h>
 #include <functional>
 #include "CDDestructibleComponentTable.h"

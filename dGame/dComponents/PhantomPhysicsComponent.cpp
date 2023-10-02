@@ -9,7 +9,7 @@
 #include "PhantomPhysicsComponent.h"
 #include "Game.h"
 #include "LDFFormat.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Entity.h"
 #include "EntityManager.h"
 #include "ControllablePhysicsComponent.h"

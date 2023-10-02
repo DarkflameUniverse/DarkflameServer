@@ -3,7 +3,7 @@
 #include "RawFile.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dPlatforms.h"
 #include "NiPoint3.h"
 #include "BinaryIO.h"

@@ -1,7 +1,7 @@
 #include "BaseRandomServer.h"
 #include "dZoneManager.h"
 #include "Spawner.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Entity.h"
 
 void BaseRandomServer::BaseStartup(Entity* self) {

@@ -4,7 +4,7 @@
 #include "dZoneManager.h"
 #include "SwitchComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
 #include <BitStream.h>
 #include "eTriggerEventType.h"

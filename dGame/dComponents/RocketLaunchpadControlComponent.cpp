@@ -8,7 +8,7 @@
 #include "EntityManager.h"
 #include "Item.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDClientDatabase.h"
 #include "ChatPackets.h"
 #include "MissionComponent.h"

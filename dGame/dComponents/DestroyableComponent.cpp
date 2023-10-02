@@ -1,6 +1,6 @@
 #include "DestroyableComponent.h"
 #include <BitStream.h>
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 #include "dConfig.h"
 

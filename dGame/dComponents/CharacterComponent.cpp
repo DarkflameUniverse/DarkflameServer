@@ -2,7 +2,7 @@
 #include <BitStream.h>
 #include "tinyxml2.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GeneralUtils.h"
 #include "dServer.h"
 #include "dZoneManager.h"

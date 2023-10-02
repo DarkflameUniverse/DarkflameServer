@@ -3,7 +3,7 @@
 #include "DestroyableComponent.h"
 #include "dpWorld.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 #include "eReplicaComponentType.h"
 

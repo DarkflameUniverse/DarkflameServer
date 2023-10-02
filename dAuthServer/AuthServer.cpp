@@ -7,7 +7,7 @@
 //DLU Includes:
 #include "dCommonVars.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Database.h"
 #include "dConfig.h"
 #include "Diagnostics.h"
@@ -25,14 +25,14 @@
 
 #include "Game.h"
 namespace Game {
-	dLogger* logger = nullptr;
+	Logger* logger = nullptr;
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
 	bool shouldShutdown = false;
 	std::mt19937 randomEngine;
 }
 
-dLogger* SetupLogger();
+Logger* SetupLogger();
 void HandlePacket(Packet* packet);
 
 int main(int argc, char** argv) {
@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-dLogger* SetupLogger() {
+Logger* SetupLogger() {
 	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/AuthServer_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
@@ -170,7 +170,7 @@ dLogger* SetupLogger() {
 	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole, logDebugStatements);
+	return new Logger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {

@@ -4,7 +4,7 @@
 #include "BehaviorContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 
 void DamageReductionBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {

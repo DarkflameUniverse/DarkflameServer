@@ -1,7 +1,7 @@
 #include "ChainBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void ChainBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	uint32_t chainIndex{};

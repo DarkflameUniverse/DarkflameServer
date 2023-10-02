@@ -12,7 +12,7 @@
 #include "dServer.h"
 #include "tinyxml2.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BinaryPathFinder.h"
 #include "EntityInfo.h"
 

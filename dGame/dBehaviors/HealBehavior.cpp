@@ -1,7 +1,7 @@
 #include "HealBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 #include "DestroyableComponent.h"
 #include "eReplicaComponentType.h"

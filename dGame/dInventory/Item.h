@@ -4,7 +4,7 @@
 #include "Inventory.h"
 #include "LDFFormat.h"
 #include "CDClientManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Preconditions.h"
 #include "eInventoryType.h"
 #include "eLootSourceType.h"

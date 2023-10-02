@@ -1,6 +1,6 @@
-#include "dLogger.h"
+#include "Logger.h"
 
-dLogger::dLogger(const std::string& outpath, bool logToConsole, bool logDebugStatements) {
+Logger::Logger(const std::string& outpath, bool logToConsole, bool logDebugStatements) {
 	m_logToConsole = logToConsole;
 	m_logDebugStatements = logDebugStatements;
 	m_outpath = outpath;
@@ -14,7 +14,7 @@ dLogger::dLogger(const std::string& outpath, bool logToConsole, bool logDebugSta
 #endif
 }
 
-dLogger::~dLogger() {
+Logger::~Logger() {
 #ifdef _WIN32
 	mFile.close();
 #else
@@ -25,7 +25,7 @@ dLogger::~dLogger() {
 #endif
 }
 
-void dLogger::vLog(const char* format, va_list args) {
+void Logger::vLog(const char* format, va_list args) {
 #ifdef _WIN32
 	time_t t = time(NULL);
 	struct tm time;
@@ -63,18 +63,18 @@ void dLogger::vLog(const char* format, va_list args) {
 #endif
 }
 
-void dLogger::LogBasic(const char* format, ...) {
+void Logger::LogBasic(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
 	vLog(format, args);
 	va_end(args);
 }
 
-void dLogger::LogBasic(const std::string& message) {
+void Logger::LogBasic(const std::string& message) {
 	LogBasic(message.c_str());
 }
 
-void dLogger::Log(const char* className, const char* format, ...) {
+void Logger::Log(const char* className, const char* format, ...) {
 	va_list args;
 	std::string log = "[" + std::string(className) + "] " + std::string(format) + "\n";
 	va_start(args, format);
@@ -82,11 +82,11 @@ void dLogger::Log(const char* className, const char* format, ...) {
 	va_end(args);
 }
 
-void dLogger::Log(const std::string& className, const std::string& message) {
+void Logger::Log(const std::string& className, const std::string& message) {
 	Log(className.c_str(), message.c_str());
 }
 
-void dLogger::LogDebug(const char* className, const char* format, ...) {
+void Logger::LogDebug(const char* className, const char* format, ...) {
 	if (!m_logDebugStatements) return;
 	va_list args;
 	std::string log = "[" + std::string(className) + "] " + std::string(format) + "\n";
@@ -95,11 +95,11 @@ void dLogger::LogDebug(const char* className, const char* format, ...) {
 	va_end(args);
 }
 
-void dLogger::LogDebug(const std::string& className, const std::string& message) {
+void Logger::LogDebug(const std::string& className, const std::string& message) {
 	LogDebug(className.c_str(), message.c_str());
 }
 
-void dLogger::Flush() {
+void Logger::Flush() {
 #ifdef _WIN32
 	mFile.flush();
 #else

@@ -7,7 +7,7 @@
 #include "Game.h"
 #include "dServer.h"
 #include "GeneralUtils.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "eAddFriendResponseCode.h"
 #include "eAddFriendResponseType.h"
 #include "RakString.h"

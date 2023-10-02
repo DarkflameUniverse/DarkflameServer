@@ -6,7 +6,7 @@
 #include <string>
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 
 void dpWorld::Initialize(unsigned int zoneID, bool generateNewNavMesh) {

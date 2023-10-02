@@ -9,7 +9,7 @@
 #include "CDClientDatabase.h"
 #include "GeneralUtils.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "AssetManager.h"
 
 #include "eSqliteDataType.h"

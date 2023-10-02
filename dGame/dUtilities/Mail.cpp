@@ -14,7 +14,7 @@
 #include "Character.h"
 #include "PacketUtils.h"
 #include "BitStreamUtils.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"

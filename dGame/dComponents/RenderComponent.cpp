@@ -10,7 +10,7 @@
 #include "CDClientManager.h"
 #include "GameMessages.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDAnimationsTable.h"
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};

@@ -4,7 +4,7 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CharacterComponent.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"

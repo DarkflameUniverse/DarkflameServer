@@ -7,7 +7,7 @@
 #include <string>
 
 #include "MissionComponent.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDClientManager.h"
 #include "CDMissionTasksTable.h"
 #include "InventoryComponent.h"

@@ -6,7 +6,7 @@
 #include "dZoneManager.h"
 #include "ZoneInstanceManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include <WorldPackets.h>
 #include "EntityManager.h"
 #include "ChatPackets.h"

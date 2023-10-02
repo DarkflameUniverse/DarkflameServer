@@ -8,7 +8,7 @@
 #include "SlashCommandHandler.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GeneralUtils.h"
 #include "Character.h"
 #include "EntityManager.h"

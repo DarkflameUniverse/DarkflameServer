@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include "DestroyableComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
 #include "SkillComponent.h"
 #include "ControllablePhysicsComponent.h"

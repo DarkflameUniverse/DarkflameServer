@@ -6,7 +6,7 @@
 #include "GameMessages.h"
 #include "ModelComponent.h"
 #include "../../dWorldServer/ObjectIDManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BehaviorStates.h"
 #include "AssetManager.h"
 #include "BlockDefinition.h"

@@ -7,7 +7,7 @@
 #include "Entity.h"
 #include "ScriptComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "InvalidScript.h"
 
 //VE / AG scripts:

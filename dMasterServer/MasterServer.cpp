@@ -23,7 +23,7 @@
 #include "Diagnostics.h"
 #include "dCommonVars.h"
 #include "dConfig.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
@@ -45,7 +45,7 @@
 #include "BitStreamUtils.h"
 
 namespace Game {
-	dLogger* logger = nullptr;
+	Logger* logger = nullptr;
 	dServer* server = nullptr;
 	InstanceManager* im = nullptr;
 	dConfig* config = nullptr;
@@ -57,7 +57,7 @@ namespace Game {
 bool shutdownSequenceStarted = false;
 void ShutdownSequence(int32_t signal = -1);
 int32_t FinalizeShutdown(int32_t signal = -1);
-dLogger* SetupLogger();
+Logger* SetupLogger();
 void StartAuthServer();
 void StartChatServer();
 void HandlePacket(Packet* packet);
@@ -450,7 +450,7 @@ int main(int argc, char** argv) {
 	return FinalizeShutdown(EXIT_SUCCESS);
 }
 
-dLogger* SetupLogger() {
+Logger* SetupLogger() {
 	std::string logPath =
 		(BinaryPathFinder::GetBinaryDir() / ("logs/MasterServer_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
@@ -460,7 +460,7 @@ dLogger* SetupLogger() {
 	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole, logDebugStatements);
+	return new Logger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {

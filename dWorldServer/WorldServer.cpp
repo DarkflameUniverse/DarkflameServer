@@ -9,7 +9,7 @@
 //DLU Includes:
 #include "dCommonVars.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Database.h"
 #include "dConfig.h"
 #include "dpWorld.h"
@@ -76,7 +76,7 @@
 #include "CheatDetection.h"
 
 namespace Game {
-	dLogger* logger = nullptr;
+	Logger* logger = nullptr;
 	dServer* server = nullptr;
 	dpWorld* physicsWorld = nullptr;
 	dChatFilter* chatFilter = nullptr;
@@ -98,7 +98,7 @@ void WorldShutdownProcess(uint32_t zoneId);
 void FinalizeShutdown();
 void SendShutdownMessageToMaster();
 
-dLogger* SetupLogger(uint32_t zoneID, uint32_t instanceID);
+Logger* SetupLogger(uint32_t zoneID, uint32_t instanceID);
 void HandlePacketChat(Packet* packet);
 void HandlePacket(Packet* packet);
 
@@ -534,7 +534,7 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-dLogger* SetupLogger(uint32_t zoneID, uint32_t instanceID) {
+Logger* SetupLogger(uint32_t zoneID, uint32_t instanceID) {
 	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
@@ -543,7 +543,7 @@ dLogger* SetupLogger(uint32_t zoneID, uint32_t instanceID) {
 	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole, logDebugStatements);
+	return new Logger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacketChat(Packet* packet) {

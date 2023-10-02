@@ -1,6 +1,6 @@
 #include "Diagnostics.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 // If we're on Win32, we'll include our minidump writer
 #ifdef _WIN32
@@ -9,7 +9,7 @@
 #include <Dbghelp.h>
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void make_minidump(EXCEPTION_POINTERS* e) {
 	auto hDbgHelp = LoadLibraryA("dbghelp");

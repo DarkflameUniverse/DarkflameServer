@@ -29,7 +29,7 @@
 #include "GeneralUtils.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "WorldPackets.h"
 #include "GameMessages.h"
 #include "CDClientDatabase.h"

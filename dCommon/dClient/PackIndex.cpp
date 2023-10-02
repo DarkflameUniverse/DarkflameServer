@@ -1,7 +1,7 @@
 #include "PackIndex.h"
 #include "BinaryIO.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 PackIndex::PackIndex(const std::filesystem::path& filePath) {
 	m_FileStream = std::ifstream(filePath / "versions" / "primary.pki", std::ios::in | std::ios::binary);

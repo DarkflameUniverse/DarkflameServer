@@ -7,7 +7,7 @@
 #include "GameMessages.h"
 #include "Entity.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 #include "RenderComponent.h"
 #include "PossessableComponent.h"

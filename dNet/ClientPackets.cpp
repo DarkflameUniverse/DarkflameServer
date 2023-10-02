@@ -11,7 +11,7 @@
 #include "Entity.h"
 #include "ControllablePhysicsComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "WorldPackets.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"

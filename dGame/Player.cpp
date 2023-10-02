@@ -7,7 +7,7 @@
 #include "MissionComponent.h"
 #include "UserManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "ZoneInstanceManager.h"
 #include "WorldPackets.h"
 #include "dZoneManager.h"

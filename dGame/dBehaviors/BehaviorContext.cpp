@@ -4,7 +4,7 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
 #include "BitStreamUtils.h"
 

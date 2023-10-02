@@ -1,7 +1,7 @@
 #include "MovementSwitchBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void MovementSwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	uint32_t movementType{};

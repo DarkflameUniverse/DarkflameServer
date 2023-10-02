@@ -4,7 +4,7 @@
 #include "LeaderboardManager.h"
 #include "GameMessages.h"
 #include <algorithm>
-#include "dLogger.h"
+#include "Logger.h"
 #include "Loot.h"
 
 bool ActivityManager::IsPlayerInActivity(Entity* self, LWOOBJID playerID) {

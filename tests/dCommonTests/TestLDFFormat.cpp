@@ -4,7 +4,7 @@
 
 #include "Game.h"
 #include "dCommonDependencies.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 class LDFTests : public dCommonDependenciesTest {
 protected:

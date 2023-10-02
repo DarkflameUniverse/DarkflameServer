@@ -7,7 +7,7 @@
 #include "GameMessages.h"
 #include "DestroyableComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void KnockbackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	bool unknown{};

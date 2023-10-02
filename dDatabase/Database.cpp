@@ -1,7 +1,7 @@
 #include "Database.h"
 #include "Game.h"
 #include "dConfig.h"
-#include "dLogger.h"
+#include "Logger.h"
 using namespace std;
 
 #pragma warning (disable:4251) //Disables SQL warnings

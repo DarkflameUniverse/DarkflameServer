@@ -3,7 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GeneralUtils.h"
 #include "BinaryIO.h"
 #include "LUTriggers.h"

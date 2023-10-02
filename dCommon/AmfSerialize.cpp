@@ -1,7 +1,7 @@
 #include "AmfSerialize.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 // Writes an AMFValue pointer to a RakNet::BitStream
 template<>

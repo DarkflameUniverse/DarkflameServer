@@ -2,7 +2,7 @@
 #include "Database.h"
 #include "Character.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 #include "dZoneManager.h"
 #include "eServerDisconnectIdentifiers.h"

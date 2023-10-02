@@ -6,7 +6,7 @@
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "PropertyManagementComponent.h"
 #include "UserManager.h"
 

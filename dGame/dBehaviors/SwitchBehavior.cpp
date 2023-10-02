@@ -1,7 +1,7 @@
 #include "SwitchBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 #include "BehaviorContext.h"
 #include "BuffComponent.h"

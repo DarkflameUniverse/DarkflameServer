@@ -2,13 +2,13 @@
 
 // Custom Classes
 #include "Database.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 // Static Variables
 ObjectIDManager* ObjectIDManager::m_Address = nullptr;
 
 //! Initializes the manager
-void ObjectIDManager::Initialize(dLogger* logger) {
+void ObjectIDManager::Initialize(Logger* logger) {
 	this->mLogger = logger;
 	this->currentPersistentID = 1;
 

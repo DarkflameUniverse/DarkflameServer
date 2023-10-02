@@ -5,10 +5,10 @@
 #include <fstream>
 #include <iostream>
 
-class dLogger {
+class Logger {
 public:
-	dLogger(const std::string& outpath, bool logToConsole, bool logDebugStatements);
-	~dLogger();
+	Logger(const std::string& outpath, bool logToConsole, bool logDebugStatements);
+	~Logger();
 
 	void SetLogToConsole(bool logToConsole) { m_logToConsole = logToConsole; }
 	void SetLogDebugStatements(bool logDebugStatements) { m_logDebugStatements = logDebugStatements; }

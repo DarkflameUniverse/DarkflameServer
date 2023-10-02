@@ -6,14 +6,14 @@
 
 #include "Database.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "User.h"
 #include <WorldPackets.h>
 #include "Character.h"
 #include <BitStream.h>
 #include "PacketUtils.h"
 #include "../dWorldServer/ObjectIDManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GeneralUtils.h"
 #include "ZoneInstanceManager.h"
 #include "dServer.h"

@@ -13,7 +13,7 @@
 #include "NiPoint3.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 enum eInventoryType : uint32_t;
 enum class eObjectBits : size_t;

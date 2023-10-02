@@ -1,7 +1,7 @@
 #define _VARIADIC_MAX 10
 #include "dServer.h"
 #include "dNetCommon.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 
 #include "RakNetworkFactory.h"
@@ -39,7 +39,7 @@ public:
 	}
 } ReceiveDownloadCompleteCB;
 
-dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
+dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, Logger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
 	mIP = ip;
 	mPort = port;
 	mZoneID = zoneID;

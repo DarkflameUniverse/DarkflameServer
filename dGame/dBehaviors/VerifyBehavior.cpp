@@ -4,7 +4,7 @@
 #include "NiPoint3.h"
 #include "BehaviorContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 
 void VerifyBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {

@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 #include "BinaryIO.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
 #include "GeneralUtils.h"

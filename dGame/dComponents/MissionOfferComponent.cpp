@@ -11,7 +11,7 @@
 #include "GameMessages.h"
 #include "Entity.h"
 #include "MissionComponent.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 #include "MissionPrerequisites.h"
 #include "eMissionState.h"

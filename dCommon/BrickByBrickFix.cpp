@@ -9,7 +9,7 @@
 #include "Database.h"
 #include "Game.h"
 #include "ZCompression.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 //! Forward declarations
 

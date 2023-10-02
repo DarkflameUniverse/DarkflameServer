@@ -4,7 +4,7 @@
 #include "BehaviorBranchContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 
 void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {

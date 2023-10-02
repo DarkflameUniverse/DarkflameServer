@@ -5,7 +5,7 @@
 #include "BehaviorContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 #include "eReplicaComponentType.h"
 

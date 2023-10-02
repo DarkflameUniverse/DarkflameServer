@@ -3,7 +3,7 @@
 #include "BehaviorContext.h"
 #include "BaseCombatAIComponent.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 
 void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {

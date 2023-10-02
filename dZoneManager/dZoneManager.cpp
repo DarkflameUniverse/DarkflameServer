@@ -2,7 +2,7 @@
 #include "dCommonVars.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 #include "InventoryComponent.h"
 #include "DestroyableComponent.h"

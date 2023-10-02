@@ -10,7 +10,7 @@
 #include "RocketLaunchpadControlComponent.h"
 #include "CharacterComponent.h"
 #include "UserManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Amf3.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"

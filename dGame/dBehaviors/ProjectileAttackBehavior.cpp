@@ -3,7 +3,7 @@
 #include "BehaviorContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "SkillComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
 #include "eObjectBits.h"

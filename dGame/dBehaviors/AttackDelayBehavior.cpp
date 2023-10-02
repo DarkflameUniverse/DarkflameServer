@@ -2,7 +2,7 @@
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void AttackDelayBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	uint32_t handle{};

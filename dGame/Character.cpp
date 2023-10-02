@@ -2,7 +2,7 @@
 #include "User.h"
 #include "Database.h"
 #include "GeneralUtils.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BitStream.h"
 #include "Game.h"
 #include <chrono>

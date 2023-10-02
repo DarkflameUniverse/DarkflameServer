@@ -1,7 +1,7 @@
 #include "PacketUtils.h"
 #include <vector>
 #include <fstream>
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 
 uint16_t PacketUtils::ReadU16(uint32_t startLoc, Packet* packet) {

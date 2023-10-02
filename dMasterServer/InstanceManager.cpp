@@ -2,7 +2,7 @@
 #include <string>
 #include "Game.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
@@ -13,7 +13,7 @@
 #include "eConnectionType.h"
 #include "eMasterMessageType.h"
 
-InstanceManager::InstanceManager(dLogger* logger, const std::string& externalIP) {
+InstanceManager::InstanceManager(Logger* logger, const std::string& externalIP) {
 	mLogger = logger;
 	mExternalIP = externalIP;
 	m_LastPort = std::atoi(Game::config->GetValue("world_port_start").c_str());

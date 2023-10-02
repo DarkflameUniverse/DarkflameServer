@@ -4,13 +4,13 @@
 
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	uint32_t targetCount{};

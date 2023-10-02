@@ -8,7 +8,7 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
 #include "CppScripts.h"
 #include "SimplePhysicsComponent.h"

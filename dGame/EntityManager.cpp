@@ -16,7 +16,7 @@
 #include "dZoneManager.h"
 #include "MissionComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "MessageIdentifiers.h"
 #include "dConfig.h"
 #include "eTriggerEventType.h"

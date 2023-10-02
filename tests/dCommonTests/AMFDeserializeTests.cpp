@@ -6,7 +6,7 @@
 #include "Amf3.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 /**
  * Helper method that all tests use to get their respective AMF.

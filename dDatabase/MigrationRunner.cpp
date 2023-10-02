@@ -5,7 +5,7 @@
 #include "Database.h"
 #include "Game.h"
 #include "GeneralUtils.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BinaryPathFinder.h"
 
 #include <istream>
