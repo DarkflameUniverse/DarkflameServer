@@ -97,6 +97,7 @@ void WorldShutdownSequence();
 void WorldShutdownProcess(uint32_t zoneId);
 void FinalizeShutdown();
 void SendShutdownMessageToMaster();
+void HandleMasterPacket(Packet* packet);
 
 dLogger* SetupLogger(uint32_t zoneID, uint32_t instanceID);
 void HandlePacketChat(Packet* packet);
@@ -413,7 +414,7 @@ int main(int argc, char** argv) {
 		//Check for packets here:
 		packet = Game::server->ReceiveFromMaster();
 		if (packet) { //We can get messages not handle-able by the dServer class, so handle them if we returned anything.
-			HandlePacket(packet);
+			HandleMasterPacket(packet);
 			Game::server->DeallocateMasterPacket(packet);
 		}
 
@@ -677,64 +678,7 @@ void HandlePacketChat(Packet* packet) {
 	}
 }
 
-void HandlePacket(Packet* packet) {
-	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
-		if (!user) return;
-
-		auto c = user->GetLastUsedChar();
-		if (!c) {
-			UserManager::Instance()->DeleteUser(packet->systemAddress);
-			return;
-		}
-
-		auto* entity = Game::entityManager->GetEntity(c->GetObjectID());
-
-		if (!entity) {
-			entity = Player::GetPlayer(packet->systemAddress);
-		}
-
-		if (entity) {
-			auto* skillComponent = entity->GetComponent<SkillComponent>();
-
-			if (skillComponent != nullptr) {
-				skillComponent->Reset();
-			}
-
-			entity->GetCharacter()->SaveXMLToDatabase();
-
-			Game::logger->Log("WorldServer", "Deleting player %llu", entity->GetObjectID());
-
-			Game::entityManager->DestroyEntity(entity);
-		}
-
-		{
-			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
-			bitStream.Write(user->GetLoggedInChar());
-			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
-		}
-
-		UserManager::Instance()->DeleteUser(packet->systemAddress);
-
-		if (PropertyManagementComponent::Instance() != nullptr) {
-			PropertyManagementComponent::Instance()->Save();
-		}
-
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_REMOVED);
-		bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-		bitStream.Write((LWOINSTANCEID)instanceID);
-		Game::server->SendToMaster(&bitStream);
-	}
-
-	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
-	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
-		if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
-			AuthPackets::HandleHandshake(Game::server, packet);
-		}
-	}
-
+void HandleMasterPacket(Packet* packet) {
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
 		switch (static_cast<eMasterMessageType>(packet->data[3])) {
 		case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
@@ -873,6 +817,65 @@ void HandlePacket(Packet* packet) {
 
 		return;
 	}
+}
+
+void HandlePacket(Packet* packet) {
+	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
+		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
+		if (!user) return;
+
+		auto c = user->GetLastUsedChar();
+		if (!c) {
+			UserManager::Instance()->DeleteUser(packet->systemAddress);
+			return;
+		}
+
+		auto* entity = Game::entityManager->GetEntity(c->GetObjectID());
+
+		if (!entity) {
+			entity = Player::GetPlayer(packet->systemAddress);
+		}
+
+		if (entity) {
+			auto* skillComponent = entity->GetComponent<SkillComponent>();
+
+			if (skillComponent != nullptr) {
+				skillComponent->Reset();
+			}
+
+			entity->GetCharacter()->SaveXMLToDatabase();
+
+			Game::logger->Log("WorldServer", "Deleting player %llu", entity->GetObjectID());
+
+			Game::entityManager->DestroyEntity(entity);
+		}
+
+		{
+			CBITSTREAM;
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+			bitStream.Write(user->GetLoggedInChar());
+			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		}
+
+		UserManager::Instance()->DeleteUser(packet->systemAddress);
+
+		if (PropertyManagementComponent::Instance() != nullptr) {
+			PropertyManagementComponent::Instance()->Save();
+		}
+
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_REMOVED);
+		bitStream.Write((LWOMAPID)Game::server->GetZoneID());
+		bitStream.Write((LWOINSTANCEID)instanceID);
+		Game::server->SendToMaster(&bitStream);
+	}
+
+	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
+	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
+		if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
+			AuthPackets::HandleHandshake(Game::server, packet);
+		}
+	}
 
 	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::WORLD) return;
 
@@ -964,7 +967,7 @@ void HandlePacket(Packet* packet) {
 			CheckType::Entity,
 			"Sending GM with a sending player that does not match their own. GM ID: %i",
 			static_cast<int32_t>(messageID)
-			);
+		);
 
 		if (isSender) GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, messageID);
 		break;
@@ -988,7 +991,7 @@ void HandlePacket(Packet* packet) {
 			CheckType::User,
 			"Sending login request with a sending player that does not match their own. Player ID: %llu",
 			playerID
-			);
+		);
 
 		if (!valid) return;
 
@@ -1059,23 +1062,23 @@ void HandlePacket(Packet* packet) {
 				if (!levelComponent) return;
 
 				auto version = levelComponent->GetCharacterVersion();
-				switch(version) {
-					case eCharacterVersion::RELEASE:
-						// TODO: Implement, super low priority
-					case eCharacterVersion::LIVE:
-						Game::logger->Log("WorldServer", "Updating Character Flags");
-						c->SetRetroactiveFlags();
-						levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
-					case eCharacterVersion::PLAYER_FACTION_FLAGS:
-						Game::logger->Log("WorldServer", "Updating Vault Size");
-						player->RetroactiveVaultSize();
-						levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
-					case eCharacterVersion::VAULT_SIZE:
-						Game::logger->Log("WorldServer", "Updaing Speedbase");
-						levelComponent->SetRetroactiveBaseSpeed();
-						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
-					case eCharacterVersion::UP_TO_DATE:
-						break;
+				switch (version) {
+				case eCharacterVersion::RELEASE:
+					// TODO: Implement, super low priority
+				case eCharacterVersion::LIVE:
+					Game::logger->Log("WorldServer", "Updating Character Flags");
+					c->SetRetroactiveFlags();
+					levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
+				case eCharacterVersion::PLAYER_FACTION_FLAGS:
+					Game::logger->Log("WorldServer", "Updating Vault Size");
+					player->RetroactiveVaultSize();
+					levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
+				case eCharacterVersion::VAULT_SIZE:
+					Game::logger->Log("WorldServer", "Updaing Speedbase");
+					levelComponent->SetRetroactiveBaseSpeed();
+					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+				case eCharacterVersion::UP_TO_DATE:
+					break;
 				}
 
 				player->GetCharacter()->SetTargetScene("");
