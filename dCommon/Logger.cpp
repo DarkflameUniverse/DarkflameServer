@@ -30,6 +30,10 @@ void FileWriter::Flush() {
 	fflush(m_Outfile);
 }
 
+ConsoleWriter::~ConsoleWriter() {
+	fflush(stdout);
+}
+
 void ConsoleWriter::Log(const char* time, const char* message) {
 	fputs(time, stdout);
 	fputs(message, stdout);
@@ -39,14 +43,8 @@ Logger::Logger(const std::string& outpath, bool logToConsole, bool logDebugState
 	m_logDebugStatements = logDebugStatements;
 	std::filesystem::path outpathPath(outpath);
 	if (!std::filesystem::exists(outpathPath.parent_path())) std::filesystem::create_directories(outpathPath.parent_path());
-	m_Writers.push_back(new FileWriter(outpath));
-	m_Writers.push_back(new ConsoleWriter(logToConsole));
-}
-
-Logger::~Logger() {
-	std::for_each(m_Writers.begin(), m_Writers.end(), [](Writer* writer) {
-		if (writer) delete writer;
-		});
+	m_Writers.push_back(std::make_unique<FileWriter>(outpath));
+	m_Writers.push_back(std::make_unique<ConsoleWriter>(logToConsole));
 }
 
 void Logger::vLog(const char* format, va_list args) {
@@ -56,7 +54,7 @@ void Logger::vLog(const char* format, va_list args) {
 	strftime(timeStr, sizeof(timeStr), "[%d-%m-%y %H:%M:%S ", time);
 	char message[2048];
 	vsnprintf(message, 2048, format, args);
-	std::for_each(m_Writers.begin(), m_Writers.end(), [&](Writer* writer) {
+	std::for_each(m_Writers.begin(), m_Writers.end(), [&](const std::unique_ptr<Writer>& writer) {
 		writer->Log(timeStr, message);
 		});
 }
@@ -79,19 +77,19 @@ void Logger::LogDebug(const char* className, const char* format, ...) {
 }
 
 void Logger::Flush() {
-	std::for_each(m_Writers.begin(), m_Writers.end(), [](Writer* writer) {
+	std::for_each(m_Writers.begin(), m_Writers.end(), [](const std::unique_ptr<Writer>& writer) {
 		writer->Flush();
 		});
 }
 
 void Logger::SetLogToConsole(bool logToConsole) {
-	std::for_each(m_Writers.begin(), m_Writers.end(), [&](Writer* writer) {
+	std::for_each(m_Writers.begin(), m_Writers.end(), [&](const std::unique_ptr<Writer>& writer) {
 		if (writer->IsConsoleWriter()) writer->SetEnabled(logToConsole);
 		});
 }
 
 bool Logger::GetLogToConsole() const {
-	return std::find_if(m_Writers.begin(), m_Writers.end(), [](Writer* writer) {
+	return std::find_if(m_Writers.begin(), m_Writers.end(), [](const std::unique_ptr<Writer>& writer) {
 		if (writer->IsConsoleWriter()) return writer->GetEnabled();
 		return false;
 		}) != m_Writers.end();

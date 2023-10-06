@@ -478,8 +478,10 @@ std::string VanityUtilities::ParseMarkdown(const std::string& file) {
 	while (std::getline(ss, line)) {
 
 #define TOSTRING(x) #x
-#define STRINGIFY(x) TOSTRING(x)
 
+#ifndef STRINGIFY
+#define STRINGIFY(x) TOSTRING(x)
+#endif
 		// Replace "__TIMESTAMP__" with the __TIMESTAMP__
 		GeneralUtils::ReplaceInString(line, "__TIMESTAMP__", __TIMESTAMP__);
 		// Replace "__VERSION__" wit'h the PROJECT_VERSION
