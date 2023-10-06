@@ -180,7 +180,7 @@ void InstanceManager::ReadyInstance(Instance* instance) {
 		const auto& zoneId = instance->GetZoneID();
 
 		Game::logger->Log("InstanceManager", "Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
-
+		Game::logger->Log("InstanceManager", "%s", request.sysAddr.ToString());
 		MasterPackets::SendZoneTransferResponse(
 			Game::server,
 			request.sysAddr,

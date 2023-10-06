@@ -25,6 +25,9 @@
 //RakNet includes:
 #include "RakNetDefines.h"
 #include <MessageIdentifiers.h>
+#include "eMasterMessageType.h"
+#include "PacketUtils.h"
+#include "ZoneInstanceManager.h"
 
 namespace Game {
 	dLogger* logger = nullptr;
@@ -115,7 +118,7 @@ int main(int argc, char** argv) {
 	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::shouldShutdown);
 
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
-	
+
 	Game::randomEngine = std::mt19937(time(0));
 
 	//Run it until server gets a kill message from Master:
@@ -139,7 +142,13 @@ int main(int argc, char** argv) {
 		//In world we'd update our other systems here.
 
 		//Check for packets here:
-		Game::server->ReceiveFromMaster(); //ReceiveFromMaster also handles the master packets if needed.
+		packet = Game::server->ReceiveFromMaster();
+		if (packet) {
+			HandlePacket(packet);
+			Game::server->DeallocatePacket(packet);
+			packet = nullptr;
+		}
+
 		packet = Game::server->Receive();
 		if (packet) {
 			HandlePacket(packet);
@@ -207,7 +216,22 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (packet->length < 4) return; // Nothing left to process.  Need 4 bytes to continue.
+	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
+		switch (static_cast<eMasterMessageType>(packet->data[3])) {
+		case eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE: {
+			uint64_t requestID = PacketUtils::ReadU64(8, packet);
+			ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
+			break;
+		}
 
+
+		case eMasterMessageType::SHUTDOWN: {
+			Game::shouldShutdown = true;
+			Game::logger->Log("ChatServer", "Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
+			break;
+		}
+		}
+	}
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
 		switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
 		case eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION:

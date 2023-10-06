@@ -22,6 +22,9 @@
 #include "eConnectionType.h"
 #include "eServerMessageType.h"
 #include "eAuthMessageType.h"
+#include "eMasterMessageType.h"
+#include "PacketUtils.h"
+#include "ZoneInstanceManager.h"
 
 #include "Game.h"
 namespace Game {
@@ -115,7 +118,13 @@ int main(int argc, char** argv) {
 		//In world we'd update our other systems here.
 
 		//Check for packets here:
-		Game::server->ReceiveFromMaster(); //ReceiveFromMaster also handles the master packets if needed.
+		packet = Game::server->ReceiveFromMaster();
+		if (packet) {
+			HandlePacket(packet);
+			Game::server->DeallocatePacket(packet);
+			packet = nullptr;
+		}
+
 		packet = Game::server->Receive();
 		if (packet) {
 			HandlePacket(packet);
@@ -184,6 +193,21 @@ void HandlePacket(Packet* packet) {
 		} else if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::AUTH) {
 			if (static_cast<eAuthMessageType>(packet->data[3]) == eAuthMessageType::LOGIN_REQUEST) {
 				AuthPackets::HandleLoginRequest(Game::server, packet);
+			}
+		} else if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
+			switch (static_cast<eMasterMessageType>(packet->data[3])) {
+			case eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE: {
+				uint64_t requestID = PacketUtils::ReadU64(8, packet);
+				ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
+				break;
+			}
+
+
+			case eMasterMessageType::SHUTDOWN: {
+				Game::shouldShutdown = true;
+				Game::logger->Log("AuthServer", "Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
+				break;
+			}
 			}
 		}
 	}

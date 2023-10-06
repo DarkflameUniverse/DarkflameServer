@@ -434,6 +434,7 @@ int main(int argc, char** argv) {
 		for (uint32_t curPacket = 0; curPacket < maxPacketsToProcess && timeSpent < maxPacketProcessingTime; curPacket++) {
 			packet = Game::server->Receive();
 			if (packet) {
+				Game::logger->Log("WorldServer", "packet sysAddr %s", packet->systemAddress.ToString());
 				auto t1 = std::chrono::high_resolution_clock::now();
 				HandlePacket(packet);
 				auto t2 = std::chrono::high_resolution_clock::now();
