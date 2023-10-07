@@ -102,7 +102,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 			totalDamageDealt = this->m_MinDamage;
 		}
 
-		auto* source = EntityManager::Instance()->GetEntity(context->originator);
+		auto* source = Game::entityManager->GetEntity(context->originator);
 
 		auto* damageProfile = DamageProfile::FindDamageProfile(context->skillID);
 
@@ -206,7 +206,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 
 	auto damage = this->m_MinDamage;
 
-	auto* source = EntityManager::Instance()->GetEntity(context->originator);
+	auto* source = Game::entityManager->GetEntity(context->originator);
 
 	auto* damageProfile = DamageProfile::FindDamageProfile(context->skillID);
 

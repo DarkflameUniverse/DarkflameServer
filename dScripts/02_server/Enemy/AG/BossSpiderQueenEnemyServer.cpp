@@ -41,7 +41,7 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 	destroyable->GetInfo().armor = 330;
 	destroyable->ComputeBaseStats(true);
 
-	EntityManager::Instance()->SerializeEntity(self);
+	Game::entityManager->SerializeEntity(self);
 
 	// Determine Spider Boss health transition thresholds
 	int spiderBossHealth = destroyable->GetMaxHealth();
@@ -160,10 +160,6 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 
 		//Reset the current wave death counter
 		m_DeathCounter = 0;
-
-		auto* destroyable = self->GetComponent<DestroyableComponent>();
-
-		destroyable->SetArmor(destroyable->GetMaxArmor() / 3);
 
 		auto* destroyable = self->GetComponent<DestroyableComponent>();
 
@@ -366,9 +362,9 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 					info.pos = entity->GetPosition();
 					info.spawnerID = entity->GetObjectID();
 
-					auto* spawned = EntityManager::Instance()->CreateEntity(info);
+					auto* spawned = Game::entityManager->CreateEntity(info);
 
-					EntityManager::Instance()->ConstructEntity(spawned);
+					Game::entityManager->ConstructEntity(spawned);
 			});
 		}
 		else
@@ -388,9 +384,9 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 					info.pos = entity->GetPosition() + NiPoint3(x, 0, z);
 					info.spawnerID = entity->GetObjectID();
 
-					auto* spawned = EntityManager::Instance()->CreateEntity(info);
+					auto* spawned = Game::entityManager->CreateEntity(info);
 
-					EntityManager::Instance()->ConstructEntity(spawned);
+					Game::entityManager->ConstructEntity(spawned);
 				});
 			}
 			
@@ -647,7 +643,7 @@ void BossSpiderQueenEnemyServer::OnPlayerDied(Entity* self, Entity* player) {
 	ply->SendToZone(1100);
 
 	self->AddCallbackTimer(10, [] () {
-		dZoneManager::Instance()->GetZoneControlObject()->SetVar(u"shutdown", true);
+		Game::zoneManager->GetZoneControlObject()->SetVar(u"shutdown", true);
 	});
 }
 

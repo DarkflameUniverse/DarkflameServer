@@ -3,5 +3,6 @@ set(DZONEMANAGER_SOURCES "dZoneManager.cpp"
 	"Spawner.cpp"
 	"Zone.cpp")
 
+set(DZONEMANAGER_SOURCES ${DZONEMANAGER_SOURCES} PARENT_SCOPE)
 add_library(dZoneManager STATIC ${DZONEMANAGER_SOURCES})
-target_link_libraries(dZoneManager dPhysics) 
+# target_link_libraries(dZoneManager dPhysics) 

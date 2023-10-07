@@ -166,100 +166,11 @@ Entity* Spawner::Spawn(std::vector<SpawnerNode*> freeNodes, const bool force) {
 							m_LotsToCheck.push_back(spawn);
 						}
 
-						Entity* rezdE = EntityManager::Instance()->CreateEntity(copy, nullptr);
+						Entity* rezdE = Game::entityManager->CreateEntity(copy, nullptr);
 
 						rezdE->GetGroups() = m_Info.groups;
 
-						EntityManager::Instance()->ConstructEntity(rezdE);
-
-						m_Entities.insert({ rezdE->GetObjectID(), spawnNode });
-
-						spawnNode->entities.push_back(rezdE->GetObjectID());
-
-						for (const auto& cb : m_EntitySpawnedCallbacks) {
-							cb(rezdE);
-						}
-
-						if (first == nullptr) {
-							first = rezdE;
-						}
-
-						break;
-					}
-
-					usedSpawnPattern = true;
-
-					if (m_Entities.size() == m_Info.amountMaintained) {
-						m_NeedsUpdate = false;
-					}
-					
-					return first;
-				}
-			}
-		}
-
-		bool usedSpawnPattern = false;
-		
-		if (m_SpawnPattern != nullptr) {
-			auto pattern = m_SpawnPattern->GetSpawnPatterns();
-
-			// Check the area rating
-			// std::map<LOT, std::vector<std::pair<NiPoint3, float>>> m_Ratings
-			for (const auto& lot : m_LotsToCheck)
-			{
-				const auto& it = m_Ratings.find(lot);
-
-				int32_t rating = 0;
-
-				if (it != m_Ratings.end()) {
-					// Check if we are within 50units of a rating
-					for (const auto& ratingIt : it->second)
-					{
-						if (NiPoint3::DistanceSquared(ratingIt.first, m_EntityInfo.pos) <= 100.0f * 100.0f)
-						{
-							rating = ratingIt.second;
-							break;
-						}
-					}
-				}
-
-				for (const auto& it : pattern)
-				{
-					if (it.first > rating) continue;
-
-					// Random number between 0 and 1
-					float random = GeneralUtils::GenerateRandomNumber<float>(0, 1);
-
-					const auto& change = it.second.first;
-
-					if (random >= change) continue;
-
-					usedSpawnPattern = true;
-
-					Entity* first = nullptr;
-
-					for (const auto& spawn : it.second.second)
-					{
-						float angle = GeneralUtils::GenerateRandomNumber<float>(0, 360) * M_PI / 180.0f;
-						float radius = GeneralUtils::GenerateRandomNumber<float>(0, 6);
-
-						float x = radius * cos(angle);
-						float z = radius * sin(angle);
-
-						auto copy = m_EntityInfo;
-						copy.pos.x += x;
-						copy.pos.z += z;
-						copy.lot = spawn;
-
-						if (std::find(m_LotsToCheck.begin(), m_LotsToCheck.end(), spawn) == m_LotsToCheck.end()) {
-							m_LotsToCheck.push_back(spawn);
-						}
-
-						Entity* rezdE = EntityManager::Instance()->CreateEntity(copy, nullptr);
-
-						rezdE->GetGroups() = m_Info.groups;
-
-						EntityManager::Instance()->ConstructEntity(rezdE);
+						Game::entityManager->ConstructEntity(rezdE);
 
 						m_Entities.insert({ rezdE->GetObjectID(), spawnNode });
 

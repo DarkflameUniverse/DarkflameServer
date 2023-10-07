@@ -535,7 +535,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		auto* controller = dZoneManager::Instance()->GetZoneControlObject();
+		auto* controller = Game::zoneManager->GetZoneControlObject();
 
 		if (controller != nullptr && controller->HasVar(u"shutdown") && controller->GetVar<bool>(u"shutdown")) {
 			Game::shouldShutdown = true;

@@ -833,7 +833,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 			}
 		}
 		
-		std::vector<Entity*> scripts = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
+		std::vector<Entity*> scripts = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
 		for (Entity* scriptEntity : scripts) {
 			// Prevent double triggering
 			if (scriptEntity->GetObjectID() == zoneControl->GetObjectID()) continue;
@@ -1135,7 +1135,7 @@ void DestroyableComponent::ComputeBaseStats(bool refill) {
 	if (currentArmor > maxArmor || refill) SetArmor(maxArmor);
 	else SetArmor(currentArmor);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 std::map<eStatTypes, float> DestroyableComponent::ComputeDamage(uint32_t baseDamage, Entity* source, DamageProfile* damageProfile) {
