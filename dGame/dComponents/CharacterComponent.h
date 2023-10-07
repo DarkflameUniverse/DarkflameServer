@@ -70,7 +70,7 @@ public:
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Updates the rocket configuration using a LOT string separated by commas
@@ -275,6 +275,10 @@ public:
 	 * Update the client minimap to reveal the specified factions
 	 */
 	void UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const;
+
+	void SetCurrentInteracting(LWOOBJID objectID) {m_CurrentInteracting = objectID;};
+
+	LWOOBJID GetCurrentInteracting() {return m_CurrentInteracting;};
 
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
@@ -560,6 +564,8 @@ private:
 	 * ID of the last rocket used
 	 */
 	LWOOBJID m_LastRocketItemID = LWOOBJID_EMPTY;
+
+	LWOOBJID m_CurrentInteracting = LWOOBJID_EMPTY;
 };
 
 #endif // CHARACTERCOMPONENT_H

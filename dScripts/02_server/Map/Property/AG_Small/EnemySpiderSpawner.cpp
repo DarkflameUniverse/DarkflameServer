@@ -19,7 +19,7 @@ void EnemySpiderSpawner::OnFireEventServerSide(Entity* self, Entity* sender, std
 		if (dest) {
 			dest->SetFaction(-1);
 		}
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 
 		// Keep track of who prepped me
 		self->SetI64(u"SpawnOwner", sender->GetObjectID());
@@ -49,16 +49,10 @@ void EnemySpiderSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		info.spawnerID = self->GetI64(u"SpawnOwner");
 		info.spawnerNodeID = 0;
 
-		Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);
+		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		if (newEntity) {
-			EntityManager::Instance()->ConstructEntity(newEntity);
+			Game::entityManager->ConstructEntity(newEntity);
 			newEntity->GetGroups().push_back("BabySpider");
-
-			/*
-			auto* movementAi = newEntity->GetComponent<MovementAIComponent>();
-
-			movementAi->SetDestination(newEntity->GetPosition());
-			*/
 		}
 		
 		self->AddTimer("StartSpawnTime", 5);

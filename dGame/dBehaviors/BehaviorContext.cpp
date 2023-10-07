@@ -6,7 +6,7 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "dServer.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 
 #include <sstream>
 
@@ -27,7 +27,7 @@ BehaviorEndEntry::BehaviorEndEntry() {
 }
 
 uint32_t BehaviorContext::GetUniqueSkillId() const {
-	auto* entity = EntityManager::Instance()->GetEntity(this->originator);
+	auto* entity = Game::entityManager->GetEntity(this->originator);
 
 	if (entity == nullptr) {
 		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!", this->originator);
@@ -94,11 +94,11 @@ void BehaviorContext::ScheduleUpdate(const LWOOBJID id) {
 
 void BehaviorContext::ExecuteUpdates() {
 	for (const auto& id : this->scheduledUpdates) {
-		auto* entity = EntityManager::Instance()->GetEntity(id);
+		auto* entity = Game::entityManager->GetEntity(id);
 
 		if (entity == nullptr) continue;
 
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 	}
 
 	this->scheduledUpdates.clear();
@@ -253,7 +253,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 			// Write message
 			RakNet::BitStream message;
 
-			PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+			BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			message.Write(this->originator);
 			echo.Serialize(&message);
 
@@ -308,7 +308,7 @@ void BehaviorContext::Reset() {
 }
 
 std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, int32_t includeFaction, bool targetSelf, bool targetEnemy, bool targetFriend) const {
-	auto* entity = EntityManager::Instance()->GetEntity(this->caster);
+	auto* entity = Game::entityManager->GetEntity(this->caster);
 
 	std::vector<LWOOBJID> targets;
 
@@ -320,7 +320,7 @@ std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, in
 
 	if (!ignoreFaction && !includeFaction) {
 		for (auto entry : entity->GetTargetsInPhantom()) {
-			auto* instance = EntityManager::Instance()->GetEntity(entry);
+			auto* instance = Game::entityManager->GetEntity(entry);
 
 			if (instance == nullptr) {
 				continue;
@@ -336,7 +336,7 @@ std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, in
 			return targets;
 		}
 
-		auto entities = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS);
+		auto entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS);
 		for (auto* candidate : entities) {
 			const auto id = candidate->GetObjectID();
 

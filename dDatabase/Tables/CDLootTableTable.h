@@ -16,10 +16,10 @@ private:
 	std::vector<CDLootTable> entries;
 
 public:
-	CDLootTableTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDLootTable> Query(std::function<bool(CDLootTable)> predicate);
 
-	const std::vector<CDLootTable>& GetEntries(void) const;
+	const std::vector<CDLootTable>& GetEntries() const;
 };
 

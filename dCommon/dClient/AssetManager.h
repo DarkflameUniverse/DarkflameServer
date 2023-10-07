@@ -42,7 +42,7 @@ struct AssetMemoryBuffer : std::streambuf {
 	}
 
 	void close() {
-		delete m_Base;
+		free(m_Base);
 	}
 };
 

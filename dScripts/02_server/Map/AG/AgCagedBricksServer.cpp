@@ -8,7 +8,7 @@
 
 void AgCagedBricksServer::OnUse(Entity* self, Entity* user) {
 	//Tell the client to spawn the baby spiderling:
-	auto spooders = EntityManager::Instance()->GetEntitiesInGroup("cagedSpider");
+	auto spooders = Game::entityManager->GetEntitiesInGroup("cagedSpider");
 	for (auto spodder : spooders) {
 		GameMessages::SendFireEventClientSide(spodder->GetObjectID(), user->GetSystemAddress(), u"toggle", LWOOBJID_EMPTY, 0, 0, user->GetObjectID());
 	}

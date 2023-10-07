@@ -1,11 +1,12 @@
 #ifndef ENTITYMANAGER_H
 #define ENTITYMANAGER_H
 
-#include "dCommonVars.h"
 #include <map>
 #include <stack>
 #include <vector>
 #include <unordered_map>
+
+#include "dCommonVars.h"
 
 class Entity;
 class EntityInfo;
@@ -17,18 +18,7 @@ struct SystemAddress;
 
 class EntityManager {
 public:
-	static EntityManager* Instance() {
-		if (!m_Address) {
-			m_Address = new EntityManager();
-			m_Address->Initialize();
-		}
-
-		return m_Address;
-	}
-
 	void Initialize();
-
-	~EntityManager();
 
 	void UpdateEntities(float deltaTime);
 	Entity* CreateEntity(EntityInfo info, User* user = nullptr, Entity* parentEntity = nullptr, bool controller = false, LWOOBJID explicitId = LWOOBJID_EMPTY);
@@ -69,8 +59,6 @@ public:
 	Entity* GetGhostCandidate(int32_t id);
 	bool GetGhostingEnabled() const;
 
-	void ResetFlags();
-
 	void ScheduleForKill(Entity* entity);
 
 	void ScheduleForDeletion(LWOOBJID entity);
@@ -89,7 +77,6 @@ private:
 	void KillEntities();
 	void DeleteEntities();
 
-	static EntityManager* m_Address; //For singleton method
 	static std::vector<LWOMAPID> m_GhostingExcludedZones;
 	static std::vector<LOT> m_GhostingExcludedLOTs;
 

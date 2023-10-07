@@ -15,9 +15,9 @@ private:
 	std::vector<CDProximityMonitorComponent> entries;
 
 public:
-	CDProximityMonitorComponentTable(void);
+	void LoadValuesFromDatabase();
 	//! Queries the table with a custom "where" clause
 	std::vector<CDProximityMonitorComponent> Query(std::function<bool(CDProximityMonitorComponent)> predicate);
 
-	std::vector<CDProximityMonitorComponent> GetEntries(void) const;
+	const std::vector<CDProximityMonitorComponent>& GetEntries() const;
 };

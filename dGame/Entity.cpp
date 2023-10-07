@@ -31,7 +31,7 @@
 #include "Component.h"
 #include "ControllablePhysicsComponent.h"
 #include "RenderComponent.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "CharacterComponent.h"
 #include "DestroyableComponent.h"
 #include "BuffComponent.h"
@@ -52,6 +52,7 @@
 #include "BuildBorderComponent.h"
 #include "MovementAIComponent.h"
 #include "VendorComponent.h"
+#include "DonationVendorComponent.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyComponent.h"
 #include "BaseCombatAIComponent.h"
@@ -71,6 +72,7 @@
 #include "ShootingGalleryComponent.h"
 #include "RailActivatorComponent.h"
 #include "LUPExhibitComponent.h"
+#include "RacingSoundTriggerComponent.h"
 #include "TriggerComponent.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
@@ -264,17 +266,17 @@ void Entity::Initialize() {
 				NiQuaternion rot;
 
 				const auto& targetSceneName = m_Character->GetTargetScene();
-				auto* targetScene = EntityManager::Instance()->GetSpawnPointEntity(targetSceneName);
+				auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
 
 				if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
 					pos = m_Character->GetRespawnPoint(mapID);
-					rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+					rot = Game::zoneManager->GetZone()->GetSpawnRot();
 				} else if (targetScene != nullptr) {
 					pos = targetScene->GetPosition();
 					rot = targetScene->GetRotation();
 				} else {
-					pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
-					rot = dZoneManager::Instance()->GetZone()->GetSpawnRot();
+					pos = Game::zoneManager->GetZone()->GetSpawnPos();
+					rot = Game::zoneManager->GetZone()->GetSpawnRot();
 				}
 
 				controllablePhysics->SetPosition(pos);
@@ -318,6 +320,9 @@ void Entity::Initialize() {
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_TRIGGER, -1) != -1) {
 		auto* comp = new SoundTriggerComponent(this);
 		m_Components.insert(std::make_pair(eReplicaComponentType::SOUND_TRIGGER, comp));
+	} else if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_SOUND_TRIGGER, -1) != -1) {
+		auto* comp = new RacingSoundTriggerComponent(this);
+		m_Components.insert(std::make_pair(eReplicaComponentType::RACING_SOUND_TRIGGER, comp));
 	}
 
 	//Also check for the collectible id:
@@ -468,9 +473,9 @@ void Entity::Initialize() {
 		m_Components.insert(std::make_pair(eReplicaComponentType::INVENTORY, comp));
 	}
 	// if this component exists, then we initialize it. it's value is always 0
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROCKET_LAUNCH_LUP, -1) != -1) {
-		auto comp = new RocketLaunchLupComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::ROCKET_LAUNCH_LUP, comp));
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MULTI_ZONE_ENTRANCE, -1) != -1) {
+		auto comp = new MultiZoneEntranceComponent(this);
+		m_Components.insert(std::make_pair(eReplicaComponentType::MULTI_ZONE_ENTRANCE, comp));
 	}
 
 	/**
@@ -527,7 +532,7 @@ void Entity::Initialize() {
 	// ZoneControl script
 	if (m_TemplateID == 2365) {
 		CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
-		const auto zoneID = dZoneManager::Instance()->GetZoneID();
+		const auto zoneID = Game::zoneManager->GetZoneID();
 		const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
 
 		if (zoneData != nullptr) {
@@ -600,6 +605,9 @@ void Entity::Initialize() {
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VENDOR) > 0)) {
 		VendorComponent* comp = new VendorComponent(this);
 		m_Components.insert(std::make_pair(eReplicaComponentType::VENDOR, comp));
+	} else if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1) != -1)) {
+		DonationVendorComponent* comp = new DonationVendorComponent(this);
+		m_Components.insert(std::make_pair(eReplicaComponentType::DONATION_VENDOR, comp));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_VENDOR, -1) != -1) {
@@ -713,7 +721,7 @@ void Entity::Initialize() {
 	}
 
 	std::string pathName = GetVarAsString(u"attached_path");
-	const Path* path = dZoneManager::Instance()->GetZone()->GetPath(pathName);
+	const Path* path = Game::zoneManager->GetZone()->GetPath(pathName);
 
 	//Check to see if we have an attached path and add the appropiate component to handle it:
 	if (path){
@@ -757,7 +765,7 @@ void Entity::Initialize() {
 		}
 		});
 
-	if (!m_Character && EntityManager::Instance()->GetGhostingEnabled()) {
+	if (!m_Character && Game::entityManager->GetGhostingEnabled()) {
 		// Don't ghost what is likely large scene elements
 		if (HasComponent(eReplicaComponentType::SIMPLE_PHYSICS) && HasComponent(eReplicaComponentType::RENDER) && (m_Components.size() == 2 || (HasComponent(eReplicaComponentType::TRIGGER) && m_Components.size() == 3))) {
 			goto no_ghosting;
@@ -1034,57 +1042,60 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	 */
 
 	bool destroyableSerialized = false;
-	bool bIsInitialUpdate = false;
-	if (packetType == eReplicaPacketType::CONSTRUCTION) bIsInitialUpdate = true;
-	unsigned int flags = 0;
+	bool bIsInitialUpdate = packetType == eReplicaPacketType::CONSTRUCTION;
 
 	PossessableComponent* possessableComponent;
 	if (TryGetComponent(eReplicaComponentType::POSSESSABLE, possessableComponent)) {
-		possessableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		possessableComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ModuleAssemblyComponent* moduleAssemblyComponent;
 	if (TryGetComponent(eReplicaComponentType::MODULE_ASSEMBLY, moduleAssemblyComponent)) {
-		moduleAssemblyComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		moduleAssemblyComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ControllablePhysicsComponent* controllablePhysicsComponent;
 	if (TryGetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS, controllablePhysicsComponent)) {
-		controllablePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		controllablePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	SimplePhysicsComponent* simplePhysicsComponent;
 	if (TryGetComponent(eReplicaComponentType::SIMPLE_PHYSICS, simplePhysicsComponent)) {
-		simplePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		simplePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	RigidbodyPhantomPhysicsComponent* rigidbodyPhantomPhysics;
 	if (TryGetComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS, rigidbodyPhantomPhysics)) {
-		rigidbodyPhantomPhysics->Serialize(outBitStream, bIsInitialUpdate, flags);
+		rigidbodyPhantomPhysics->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	VehiclePhysicsComponent* vehiclePhysicsComponent;
 	if (TryGetComponent(eReplicaComponentType::VEHICLE_PHYSICS, vehiclePhysicsComponent)) {
-		vehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		vehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	PhantomPhysicsComponent* phantomPhysicsComponent;
 	if (TryGetComponent(eReplicaComponentType::PHANTOM_PHYSICS, phantomPhysicsComponent)) {
-		phantomPhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		phantomPhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	SoundTriggerComponent* soundTriggerComponent;
 	if (TryGetComponent(eReplicaComponentType::SOUND_TRIGGER, soundTriggerComponent)) {
-		soundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		soundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate);
+	}
+
+	RacingSoundTriggerComponent* racingSoundTriggerComponent;
+	if (TryGetComponent(eReplicaComponentType::RACING_SOUND_TRIGGER, racingSoundTriggerComponent)) {
+		racingSoundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	BuffComponent* buffComponent;
 	if (TryGetComponent(eReplicaComponentType::BUFF, buffComponent)) {
-		buffComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		buffComponent->Serialize(outBitStream, bIsInitialUpdate);
 
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent)) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 		destroyableSerialized = true;
 	}
@@ -1092,7 +1103,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	if (HasComponent(eReplicaComponentType::COLLECTIBLE)) {
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 		destroyableSerialized = true;
 		outBitStream->Write(m_CollectibleID); // Collectable component
@@ -1100,7 +1111,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 	PetComponent* petComponent;
 	if (TryGetComponent(eReplicaComponentType::PET, petComponent)) {
-		petComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		petComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	CharacterComponent* characterComponent;
@@ -1108,7 +1119,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 		PossessorComponent* possessorComponent;
 		if (TryGetComponent(eReplicaComponentType::POSSESSOR, possessorComponent)) {
-			possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			possessorComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
@@ -1116,7 +1127,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 		LevelProgressionComponent* levelProgressionComponent;
 		if (TryGetComponent(eReplicaComponentType::LEVEL_PROGRESSION, levelProgressionComponent)) {
-			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
@@ -1124,13 +1135,13 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 		PlayerForcedMovementComponent* playerForcedMovementComponent;
 		if (TryGetComponent(eReplicaComponentType::PLAYER_FORCED_MOVEMENT, playerForcedMovementComponent)) {
-			playerForcedMovementComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			playerForcedMovementComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
 		}
 
-		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		characterComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	if (HasComponent(eReplicaComponentType::ITEM)) {
@@ -1139,88 +1150,93 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 	InventoryComponent* inventoryComponent;
 	if (TryGetComponent(eReplicaComponentType::INVENTORY, inventoryComponent)) {
-		inventoryComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		inventoryComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ScriptComponent* scriptComponent;
 	if (TryGetComponent(eReplicaComponentType::SCRIPT, scriptComponent)) {
-		scriptComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		scriptComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	SkillComponent* skillComponent;
 	if (TryGetComponent(eReplicaComponentType::SKILL, skillComponent)) {
-		skillComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		skillComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	BaseCombatAIComponent* baseCombatAiComponent;
 	if (TryGetComponent(eReplicaComponentType::BASE_COMBAT_AI, baseCombatAiComponent)) {
-		baseCombatAiComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		baseCombatAiComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	RebuildComponent* rebuildComponent;
 	if (TryGetComponent(eReplicaComponentType::QUICK_BUILD, rebuildComponent)) {
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 		destroyableSerialized = true;
-		rebuildComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		rebuildComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	MovingPlatformComponent* movingPlatformComponent;
 	if (TryGetComponent(eReplicaComponentType::MOVING_PLATFORM, movingPlatformComponent)) {
-		movingPlatformComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		movingPlatformComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	SwitchComponent* switchComponent;
 	if (TryGetComponent(eReplicaComponentType::SWITCH, switchComponent)) {
-		switchComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		switchComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	VendorComponent* vendorComponent;
 	if (TryGetComponent(eReplicaComponentType::VENDOR, vendorComponent)) {
-		vendorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		vendorComponent->Serialize(outBitStream, bIsInitialUpdate);
+	}
+
+	DonationVendorComponent* donationVendorComponent;
+	if (TryGetComponent(eReplicaComponentType::DONATION_VENDOR, donationVendorComponent)) {
+		donationVendorComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	BouncerComponent* bouncerComponent;
 	if (TryGetComponent(eReplicaComponentType::BOUNCER, bouncerComponent)) {
-		bouncerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		bouncerComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ScriptedActivityComponent* scriptedActivityComponent;
 	if (TryGetComponent(eReplicaComponentType::SCRIPTED_ACTIVITY, scriptedActivityComponent)) {
-		scriptedActivityComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		scriptedActivityComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ShootingGalleryComponent* shootingGalleryComponent;
 	if (TryGetComponent(eReplicaComponentType::SHOOTING_GALLERY, shootingGalleryComponent)) {
-		shootingGalleryComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		shootingGalleryComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	RacingControlComponent* racingControlComponent;
 	if (TryGetComponent(eReplicaComponentType::RACING_CONTROL, racingControlComponent)) {
-		racingControlComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		racingControlComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	LUPExhibitComponent* lupExhibitComponent;
 	if (TryGetComponent(eReplicaComponentType::LUP_EXHIBIT, lupExhibitComponent)) {
-		lupExhibitComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		lupExhibitComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ModelComponent* modelComponent;
 	if (TryGetComponent(eReplicaComponentType::MODEL, modelComponent)) {
-		modelComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		modelComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	RenderComponent* renderComponent;
 	if (TryGetComponent(eReplicaComponentType::RENDER, renderComponent)) {
-		renderComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		renderComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	if (modelComponent) {
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
 			destroyableSerialized = true;
 		}
 	}
@@ -1233,10 +1249,6 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	// Need to to write0 so that is serialized correctly
 	// TODO: Implement BBB Component
 	outBitStream->Write0();
-}
-
-void Entity::ResetFlags() {
-	// Unused
 }
 
 void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
@@ -1306,12 +1318,12 @@ void Entity::Update(const float deltaTime) {
 	}
 
 	if (m_ShouldDestroyAfterUpdate) {
-		EntityManager::Instance()->DestroyEntity(this->GetObjectID());
+		Game::entityManager->DestroyEntity(this->GetObjectID());
 	}
 }
 
 void Entity::OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxName, const std::string& status) {
-	Entity* other = EntityManager::Instance()->GetEntity(otherEntity);
+	Entity* other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
@@ -1325,7 +1337,7 @@ void Entity::OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxN
 }
 
 void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
-	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
+	auto* other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
@@ -1372,7 +1384,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 }
 
 void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
-	auto* other = EntityManager::Instance()->GetEntity(otherEntity);
+	auto* other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
@@ -1526,13 +1538,13 @@ void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u
 
 	auto* destroyableComponent = GetComponent<DestroyableComponent>();
 	if (destroyableComponent == nullptr) {
-		Kill(EntityManager::Instance()->GetEntity(source));
+		Kill(Game::entityManager->GetEntity(source));
 		return;
 	}
 	auto* possessorComponent = GetComponent<PossessorComponent>();
 	if (possessorComponent) {
 		if (possessorComponent->GetPossessable() != LWOOBJID_EMPTY) {
-			auto* mount = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+			auto* mount = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 			if (mount) possessorComponent->Dismount(mount, true);
 		}
 	}
@@ -1560,20 +1572,20 @@ void Entity::Kill(Entity* murderer) {
 	}
 
 	if (!IsPlayer()) {
-		EntityManager::Instance()->DestroyEntity(this);
+		Game::entityManager->DestroyEntity(this);
 	}
 
 	const auto& grpNameQBShowBricks = GetVar<std::string>(u"grpNameQBShowBricks");
 
 	if (!grpNameQBShowBricks.empty()) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(grpNameQBShowBricks);
+		auto spawners = Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks);
 
 		Spawner* spawner = nullptr;
 
 		if (!spawners.empty()) {
 			spawner = spawners[0];
 		} else {
-			spawners = dZoneManager::Instance()->GetSpawnersInGroup(grpNameQBShowBricks);
+			spawners = Game::zoneManager->GetSpawnersInGroup(grpNameQBShowBricks);
 
 			if (!spawners.empty()) {
 				spawner = spawners[0];
@@ -1741,7 +1753,7 @@ void Entity::CancelCallbackTimers() {
 
 void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
 	//if (m_Info.spawner) m_Info.spawner->ScheduleKill(this);
-	EntityManager::Instance()->ScheduleForKill(this);
+	Game::entityManager->ScheduleForKill(this);
 
 	if (murderer) m_ScheduleKiller = murderer;
 }
@@ -1785,7 +1797,7 @@ void Entity::TriggerEvent(eTriggerEventType event, Entity* optionalTarget) {
 
 Entity* Entity::GetOwner() const {
 	if (m_OwnerOverride != LWOOBJID_EMPTY) {
-		auto* other = EntityManager::Instance()->GetEntity(m_OwnerOverride);
+		auto* other = Game::entityManager->GetEntity(m_OwnerOverride);
 
 		if (other != nullptr) {
 			return other->GetOwner();
@@ -1929,7 +1941,7 @@ void Entity::SetPosition(NiPoint3 position) {
 		vehicel->SetPosition(position);
 	}
 
-	EntityManager::Instance()->SerializeEntity(this);
+	Game::entityManager->SerializeEntity(this);
 }
 
 void Entity::SetRotation(NiQuaternion rotation) {
@@ -1957,7 +1969,7 @@ void Entity::SetRotation(NiQuaternion rotation) {
 		vehicel->SetRotation(rotation);
 	}
 
-	EntityManager::Instance()->SerializeEntity(this);
+	Game::entityManager->SerializeEntity(this);
 }
 
 bool Entity::GetBoolean(const std::u16string& name) const {
@@ -2009,7 +2021,7 @@ std::vector<LWOOBJID>& Entity::GetTargetsInPhantom() {
 	for (auto i = 0u; i < m_TargetsInPhantom.size(); ++i) {
 		const auto id = m_TargetsInPhantom.at(i);
 
-		auto* entity = EntityManager::Instance()->GetEntity(id);
+		auto* entity = Game::entityManager->GetEntity(id);
 
 		if (entity == nullptr) {
 			continue;

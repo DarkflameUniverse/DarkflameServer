@@ -179,7 +179,7 @@ If you would like to build the server faster, append `-j<number>` where number i
 ### Notes
 Depending on your operating system, you may need to adjust some pre-processor defines in [CMakeVariables.txt](./CMakeVariables.txt) before building:
 * If you are on MacOS, ensure OPENSSL_ROOT_DIR is pointing to the openssl root directory.
-* If you are using a Darkflame Universe client, ensure NET_VERSION is changed to 171023.
+* If you are using a Darkflame Universe client, ensure `client_net_version` in `build/sharedconfig.ini` is changed to 171023.
 
 ## Configuring your server
 This server has a few steps that need to be taken to configure the server for your use case.
@@ -338,7 +338,7 @@ This is a Work in Progress, but below are some quick links to documentaion for s
 ## Former Contributors
 * TheMachine
 * Matthew
-* [Raine](https://github.com/Rainebannister)
+* [Raine](https://github.com/uwainium)
 * Bricknave
 
 ## Special Thanks

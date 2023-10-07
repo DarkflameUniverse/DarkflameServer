@@ -33,6 +33,7 @@
 #include "Database.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
+#include "CheatDetection.h"
 
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
@@ -65,8 +66,18 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 
 	std::string playerName = user->GetLastUsedChar()->GetName();
 	bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
-
-	if (!user->GetLastChatMessageApproved() && !isMythran) return;
+	bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(message), user->GetLastUsedChar()->GetGMLevel()).empty();
+	Game::logger->LogDebug("ClientPackets", "Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(message).c_str(), user->GetLastChatMessageApproved());
+	if (!isOk) {
+		// Add a limit to the string converted by general utils because it is a user received string and may be a bad actor.
+		CheatDetection::ReportCheat(
+			user,
+			sysAddr,
+			"Player %s attempted to bypass chat filter with message: %s",
+			playerName.c_str(),
+			GeneralUtils::UTF16ToWTF8(message, 512).c_str());
+	}
+	if (!isOk && !isMythran) return;
 
 	std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
 	Game::logger->Log("Chat", "%s: %s", playerName.c_str(), sMessage.c_str());
@@ -82,7 +93,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 	CINSTREAM_SKIP_HEADER;
 
-	Entity* entity = EntityManager::Instance()->GetEntity(user->GetLastUsedChar()->GetObjectID());
+	Entity* entity = Game::entityManager->GetEntity(user->GetLastUsedChar()->GetObjectID());
 	if (!entity) return;
 
 	ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
@@ -95,7 +106,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		comp->SetVelocity(zeroVel);
 		comp->SetAngularVelocity(zeroVel);
 		comp->SetIsOnGround(true); //probably8
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 		return;
 	}
 	*/
@@ -136,10 +147,37 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		inStream.Read(angVelocity.z);
 	}
 
+	// TODO figure out how to use these. Ignoring for now, but reading in if they exist.
+	bool hasLocalSpaceInfo{};
+	LWOOBJID objectId{};
+	NiPoint3 localSpacePosition{};
+	bool hasLinearVelocity{};
+	NiPoint3 linearVelocity{};
+	if (inStream.Read(hasLocalSpaceInfo) && hasLocalSpaceInfo) {
+		inStream.Read(objectId);
+		inStream.Read(localSpacePosition.x);
+		inStream.Read(localSpacePosition.y);
+		inStream.Read(localSpacePosition.z);
+		if (inStream.Read(hasLinearVelocity) && hasLinearVelocity) {
+			inStream.Read(linearVelocity.x);
+			inStream.Read(linearVelocity.y);
+			inStream.Read(linearVelocity.z);
+		}
+	}
+	bool hasRemoteInputInfo{};
+	RemoteInputInfo remoteInput{};
+
+	if (inStream.Read(hasRemoteInputInfo) && hasRemoteInputInfo) {
+		inStream.Read(remoteInput.m_RemoteInputX);
+		inStream.Read(remoteInput.m_RemoteInputY);
+		inStream.Read(remoteInput.m_IsPowersliding);
+		inStream.Read(remoteInput.m_IsModified);
+	}
+
 	bool updateChar = true;
 
 	if (possessorComponent != nullptr) {
-		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 		if (possassableEntity != nullptr) {
 			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
@@ -150,9 +188,6 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 			if (vehiclePhysicsComponent != nullptr) {
-				// This is flipped for whatever reason
-				rotation = NiQuaternion(rotation.z, rotation.y, rotation.x, rotation.w);
-
 				vehiclePhysicsComponent->SetPosition(position);
 				vehiclePhysicsComponent->SetRotation(rotation);
 				vehiclePhysicsComponent->SetIsOnGround(onGround);
@@ -161,6 +196,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
 				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
 				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
+				vehiclePhysicsComponent->SetRemoteInputInfo(remoteInput);
 			} else {
 				// Need to get the mount's controllable physics
 				auto* controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
@@ -174,7 +210,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				controllablePhysicsComponent->SetAngularVelocity(angVelocity);
 				controllablePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 			}
-			EntityManager::Instance()->SerializeEntity(possassableEntity);
+			Game::entityManager->SerializeEntity(possassableEntity);
 		}
 	}
 
@@ -202,9 +238,9 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 	auto* player = static_cast<Player*>(entity);
 	player->SetGhostReferencePoint(position);
-	EntityManager::Instance()->QueueGhostUpdate(player->GetObjectID());
+	Game::entityManager->QueueGhostUpdate(player->GetObjectID());
 
-	if (updateChar) EntityManager::Instance()->SerializeEntity(entity);
+	if (updateChar) Game::entityManager->SerializeEntity(entity);
 
 	//TODO: add moving platform stuffs
 	/*bool movingPlatformFlag;
@@ -242,7 +278,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 			continue;
 		}
 
-		EntityManager::Instance()->SerializeEntity(entity, player);
+		Game::entityManager->SerializeEntity(entity, player);
 	}
 	*/
 }

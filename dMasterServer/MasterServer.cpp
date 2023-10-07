@@ -42,6 +42,7 @@
 #include "ObjectIDManager.h"
 #include "PacketUtils.h"
 #include "FdbToSqlite.h"
+#include "BitStreamUtils.h"
 
 namespace Game {
 	dLogger* logger = nullptr;
@@ -112,6 +113,17 @@ int main(int argc, char** argv) {
 	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "masterconfig.ini").string());
 	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
+
+	uint32_t clientNetVersion = 0;
+	if (!GeneralUtils::TryParse(Game::config->GetValue("client_net_version"), clientNetVersion)) {
+		Game::logger->Log("MasterServer", "Failed to parse (%s) as net version. Cannot start server as no clients could connect.",Game::config->GetValue("client_net_version").c_str());
+		Game::logger->Log("MasterServer", "As of version 1.1.1, client_net_version is required to be defined in sharedconfig.ini as opposed to in CMakeVariables.txt as NET_VERSION.");
+		Game::logger->Log("MasterServer", "Rerun cmake to ensure all config values exist. If client_net_version already exists in sharedconfig.ini, please ensure it is a valid number.");
+		Game::logger->Log("MasterServer", "like 171022");
+		return EXIT_FAILURE;
+	}
+
+	Game::logger->Log("MasterServer", "Using net version %s", Game::config->GetValue("client_net_version").c_str());
 
 	Game::logger->Log("MasterServer", "Starting Master server...");
 	Game::logger->Log("MasterServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
@@ -621,7 +633,7 @@ void HandlePacket(Packet* packet) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
 					bitStream.Write<uint32_t>(username.size());
 					for (auto character : username) {
@@ -646,9 +658,9 @@ void HandlePacket(Packet* packet) {
 			for (auto key : activeSessions) {
 				if (key.second == username) {
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
-					PacketUtils::WriteString(bitStream, key.second, 64);
+					bitStream.Write(LUString(key.second, 64));
 					Game::server->Send(&bitStream, packet->systemAddress, false);
 					break;
 				}
@@ -892,7 +904,7 @@ void ShutdownSequence(int32_t signal) {
 
 	{
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 		Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		Game::logger->Log("MasterServer", "Triggered master shutdown");
 	}

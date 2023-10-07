@@ -40,7 +40,7 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 
 		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 	} else if (identifier == u"player_dialog_start_course" && button == 1) {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"start_timer", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 
@@ -54,7 +54,7 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 
 		data->values[1] = *(float*)&startTime;
 
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 	} else if (identifier == u"FootRaceCancel") {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stop_timer", 0, 0, LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 
@@ -68,15 +68,12 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 	}
 }
 
-void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2,
-	int32_t param3) {
+void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {
 	auto* scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
-	if (scriptedActivityComponent == nullptr)
-		return;
+	if (scriptedActivityComponent == nullptr) return;
 
 	auto* data = scriptedActivityComponent->GetActivityPlayerData(sender->GetObjectID());
-	if (data == nullptr)
-		return;
+	if (data == nullptr) return;
 
 	if (args == "course_cancel") {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"cancel_timer", 0, 0,
@@ -95,9 +92,8 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 				"performact_time");
 		}
 
-		EntityManager::Instance()->SerializeEntity(self);
-		LeaderboardManager::SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(),
-			0, (uint32_t)finish);
+		Game::entityManager->SerializeEntity(self);
+		LeaderboardManager::SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(), static_cast<float>(finish));
 
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard",
 			scriptedActivityComponent->GetActivityID(), 0, sender->GetObjectID(),

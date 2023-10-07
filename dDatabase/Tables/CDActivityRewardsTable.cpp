@@ -1,6 +1,6 @@
 #include "CDActivityRewardsTable.h"
 
-CDActivityRewardsTable::CDActivityRewardsTable(void) {
+void CDActivityRewardsTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -43,8 +43,3 @@ std::vector<CDActivityRewards> CDActivityRewardsTable::Query(std::function<bool(
 
 	return data;
 }
-
-std::vector<CDActivityRewards> CDActivityRewardsTable::GetEntries(void) const {
-	return this->entries;
-}
-

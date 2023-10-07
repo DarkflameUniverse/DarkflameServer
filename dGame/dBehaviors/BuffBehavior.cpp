@@ -10,7 +10,7 @@
 void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	const auto target = branch.target != LWOOBJID_EMPTY ? branch.target : context->originator;
 
-	auto* entity = EntityManager::Instance()->GetEntity(target);
+	auto* entity = Game::entityManager->GetEntity(target);
 
 	if (entity == nullptr) {
 		Game::logger->Log("BuffBehavior", "Invalid target (%llu)!", target);
@@ -37,7 +37,7 @@ void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 	*/
 	component->SetMaxImagination(component->GetMaxImagination() + this->m_imagination);
 
-	EntityManager::Instance()->SerializeEntity(entity);
+	Game::entityManager->SerializeEntity(entity);
 
 	if (!context->unmanaged) {
 		if (branch.duration > 0) {
@@ -51,7 +51,7 @@ void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 void BuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
 	const auto target = branch.target != LWOOBJID_EMPTY ? branch.target : context->originator;
 
-	auto* entity = EntityManager::Instance()->GetEntity(target);
+	auto* entity = Game::entityManager->GetEntity(target);
 
 	if (entity == nullptr) {
 		Game::logger->Log("BuffBehavior", "Invalid target (%llu)!", target);
@@ -78,7 +78,7 @@ void BuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch
 	*/
 	component->SetMaxImagination(component->GetMaxImagination() - this->m_imagination);
 
-	EntityManager::Instance()->SerializeEntity(entity);
+	Game::entityManager->SerializeEntity(entity);
 }
 
 void BuffBehavior::Timer(BehaviorContext* context, const BehaviorBranchContext branch, LWOOBJID second) {

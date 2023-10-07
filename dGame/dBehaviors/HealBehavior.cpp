@@ -9,7 +9,7 @@
 
 
 void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
-	auto* entity = EntityManager::Instance()->GetEntity(branch.target);
+	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	if (entity == nullptr) {
 		Game::logger->Log("HealBehavior", "Failed to find entity for (%llu)!", branch.target);

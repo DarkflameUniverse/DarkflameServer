@@ -17,8 +17,6 @@
 
 #include "../dWorldServer/ObjectIDManager.h"
 
-dZoneManager* dZoneManager::m_Address = nullptr;
-
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 
@@ -39,8 +37,8 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 			zoneControlTemplate = zone->zoneControlTemplate != -1 ? zone->zoneControlTemplate : 2365;
 			const auto min = zone->ghostdistance_min != -1.0f ? zone->ghostdistance_min : 100;
 			const auto max = zone->ghostdistance != -1.0f ? zone->ghostdistance : 100;
-			EntityManager::Instance()->SetGhostDistanceMax(max + min);
-			EntityManager::Instance()->SetGhostDistanceMin(max);
+			Game::entityManager->SetGhostDistanceMax(max + min);
+			Game::entityManager->SetGhostDistanceMin(max);
 			m_PlayerLoseCoinsOnDeath = zone->PlayerLoseCoinsOnDeath;
 		}
 	}
@@ -48,10 +46,15 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	Game::logger->Log("dZoneManager", "Creating zone control object %i", zoneControlTemplate);
 
 	// Create ZoneControl object
+	if (!Game::entityManager) {
+		Game::logger->Log("dZoneManager", "ERROR: No entity manager loaded. Cannot proceed.");
+		throw std::invalid_argument("No entity manager loaded. Cannot proceed.");
+	}
+	Game::entityManager->Initialize();
 	EntityInfo info;
 	info.lot = zoneControlTemplate;
 	info.id = 70368744177662;
-	Entity* zoneControl = EntityManager::Instance()->CreateEntity(info, nullptr, nullptr, true);
+	Entity* zoneControl = Game::entityManager->CreateEntity(info, nullptr, nullptr, true);
 	m_ZoneControlObject = zoneControl;
 
 	m_pZone->Initalize();
@@ -148,9 +151,9 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 	entityInfo.id = objectId;
 	entityInfo.lot = 176;
 
-	auto* entity = EntityManager::Instance()->CreateEntity(entityInfo, nullptr, nullptr, false, objectId);
+	auto* entity = Game::entityManager->CreateEntity(entityInfo, nullptr, nullptr, false, objectId);
 
-	EntityManager::Instance()->ConstructEntity(entity);
+	Game::entityManager->ConstructEntity(entity);
 
 	AddSpawner(objectId, spawner);
 
@@ -175,7 +178,7 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 		return;
 	}
 
-	auto* entity = EntityManager::Instance()->GetEntity(id);
+	auto* entity = Game::entityManager->GetEntity(id);
 
 	if (entity != nullptr) {
 		entity->Kill();
@@ -274,7 +277,7 @@ void dZoneManager::LoadWorldConfig() {
 	m_WorldConfig->characterMaxSlope = worldConfig.getFloatField("character_max_slope");
 	m_WorldConfig->defaultRespawnTime = worldConfig.getFloatField("defaultrespawntime");
 	m_WorldConfig->missionTooltipTimeout = worldConfig.getFloatField("mission_tooltip_timeout");
-	m_WorldConfig->vendorBuyMultiplier = worldConfig.getFloatField("vendor_buy_multiplier");
+	m_WorldConfig->vendorBuyMultiplier = worldConfig.getFloatField("vendor_buy_multiplier", 0.1);
 	m_WorldConfig->petFollowRadius = worldConfig.getFloatField("pet_follow_radius");
 	m_WorldConfig->characterEyeHeight = worldConfig.getFloatField("character_eye_height");
 	m_WorldConfig->flightVerticalVelocity = worldConfig.getFloatField("flight_vertical_velocity");

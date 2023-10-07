@@ -13,9 +13,9 @@ struct CDComponentsRegistry {
 
 class CDComponentsRegistryTable : public CDTable<CDComponentsRegistryTable> {
 private:
-	std::map<uint64_t, uint32_t> mappedEntries; //id, component_type, component_id
+	std::unordered_map<uint64_t, uint32_t> mappedEntries; //id, component_type, component_id
 
 public:
-	CDComponentsRegistryTable();
+	void LoadValuesFromDatabase();
 	int32_t GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue = 0);
 };

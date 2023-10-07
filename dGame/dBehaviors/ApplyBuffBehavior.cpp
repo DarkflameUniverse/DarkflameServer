@@ -6,7 +6,7 @@
 
 
 void ApplyBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* entity = EntityManager::Instance()->GetEntity(branch.target == LWOOBJID_EMPTY ? context->originator : branch.target);
+	auto* entity = Game::entityManager->GetEntity(branch.target == LWOOBJID_EMPTY ? context->originator : branch.target);
 
 	if (entity == nullptr) return;
 
@@ -19,7 +19,7 @@ void ApplyBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 }
 
 void ApplyBuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
-	auto* entity = EntityManager::Instance()->GetEntity(branch.target);
+	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	if (entity == nullptr) return;
 

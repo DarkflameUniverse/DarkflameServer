@@ -15,9 +15,9 @@ void AgSpaceStuff::OnStartup(Entity* self) {
 	info.lot = 33;
 	info.spawnerID = self->GetObjectID();
 
-	auto* ref = EntityManager::Instance()->CreateEntity(info);
+	auto* ref = Game::entityManager->CreateEntity(info);
 
-	EntityManager::Instance()->ConstructEntity(ref);
+	Game::entityManager->ConstructEntity(ref);
 
 	self->SetVar(u"ShakeObject", ref->GetObjectID());
 
@@ -47,7 +47,7 @@ void AgSpaceStuff::OnTimerDone(Entity* self, std::string timerName) {
 void AgSpaceStuff::DoShake(Entity* self, bool explodeIdle) {
 
 	if (!explodeIdle) {
-		auto* ref = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"ShakeObject"));
+		auto* ref = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"ShakeObject"));
 
 		const auto randomTime = self->GetVar<int>(u"RandomTime");
 		auto time = GeneralUtils::GenerateRandomNumber<int>(0, randomTime + 1);
@@ -92,7 +92,7 @@ void AgSpaceStuff::DoShake(Entity* self, bool explodeIdle) {
 }
 
 Entity* AgSpaceStuff::GetEntityInGroup(const std::string& group) {
-	auto entities = EntityManager::Instance()->GetEntitiesInGroup(group);
+	auto entities = Game::entityManager->GetEntitiesInGroup(group);
 	Entity* en = nullptr;
 
 	for (auto entity : entities) {

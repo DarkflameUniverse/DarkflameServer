@@ -102,7 +102,7 @@ Item::Item(
 
 		Game::logger->Log("Item", "Move and equipped (%i) from (%i)", this->lot, this->inventory->GetType());
 
-		EntityManager::Instance()->SerializeEntity(inventory->GetComponent()->GetParent());
+		Game::entityManager->SerializeEntity(inventory->GetComponent()->GetParent());
 	}
 
 	if (parent != LWOOBJID_EMPTY) return;

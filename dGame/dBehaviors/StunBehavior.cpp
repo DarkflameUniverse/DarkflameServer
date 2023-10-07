@@ -21,7 +21,7 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 		return;
 	};
 
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
 		Game::logger->Log("StunBehavior", "Failed to find target (%llu)!", branch.target);
@@ -44,7 +44,7 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 
 void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	if (this->m_stunCaster || branch.target == context->originator) {
-		auto* self = EntityManager::Instance()->GetEntity(context->originator);
+		auto* self = Game::entityManager->GetEntity(context->originator);
 
 		if (self == nullptr) {
 			Game::logger->Log("StunBehavior", "Invalid self entity (%llu)!", context->originator);
@@ -69,7 +69,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 
 	bool blocked = false;
 
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target != nullptr) {
 		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();

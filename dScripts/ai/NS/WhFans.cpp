@@ -23,7 +23,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 		fanGroup = "";
 	}
 
-	std::vector<Entity*> fanVolumes = EntityManager::Instance()->GetEntitiesInGroup(fanGroup);
+	std::vector<Entity*> fanVolumes = Game::entityManager->GetEntitiesInGroup(fanGroup);
 
 	auto* renderComponent = self->GetComponent<RenderComponent>();
 
@@ -41,7 +41,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 			auto volumePhys = volume->GetComponent<PhantomPhysicsComponent>();
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(false);
-			EntityManager::Instance()->SerializeEntity(volume);
+			Game::entityManager->SerializeEntity(volume);
 		}
 	} else if (!self->GetVar<bool>(u"on") && self->GetVar<bool>(u"alive")) {
 		RenderComponent::PlayAnimation(self, u"fan-on");
@@ -52,7 +52,7 @@ void WhFans::ToggleFX(Entity* self, bool hit) {
 			auto volumePhys = volume->GetComponent<PhantomPhysicsComponent>();
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(true);
-			EntityManager::Instance()->SerializeEntity(volume);
+			Game::entityManager->SerializeEntity(volume);
 		}
 	}
 }

@@ -33,7 +33,7 @@ FvHorsemenTrigger::OnFireEventServerSide(Entity* self, Entity* sender, std::stri
 
 	if (args == "HorsemenDeath") {
 		for (const auto& playerId : self->GetVar<std::vector<LWOOBJID>>(u"players")) {
-			auto* player = EntityManager::Instance()->GetEntity(playerId);
+			auto* player = Game::entityManager->GetEntity(playerId);
 
 			if (player == nullptr) {
 				continue;

@@ -8,7 +8,7 @@
 #include "DestroyableComponent.h"
 
 void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
 		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
@@ -34,7 +34,7 @@ void DamageAbsorptionBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 }
 
 void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, const LWOOBJID second) {
-	auto* target = EntityManager::Instance()->GetEntity(second);
+	auto* target = Game::entityManager->GetEntity(second);
 
 	if (target == nullptr) {
 		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", second);

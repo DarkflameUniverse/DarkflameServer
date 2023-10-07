@@ -9,7 +9,7 @@ void MonCoreSmashableDoors::OnDie(Entity* self, Entity* killer) {
 	auto triggerGroup = "CoreNookTrig0" + myNum;
 
 	// Get the trigger
-	auto triggers = EntityManager::Instance()->GetEntitiesInGroup(triggerGroup);
+	auto triggers = Game::entityManager->GetEntitiesInGroup(triggerGroup);
 
 	if (triggers.empty()) {
 		return;
