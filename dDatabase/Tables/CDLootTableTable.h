@@ -15,6 +15,7 @@ typedef std::vector<CDLootTable> LootTableEntries;
 
 class CDLootTableTable : public CDTable<CDLootTableTable> {
 private:
+	CDLootTable ReadRow(CppSQLite3Query& tableData) const;
 	std::unordered_map<LootTableIndex, LootTableEntries> entries;
 
 public:
