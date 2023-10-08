@@ -61,6 +61,7 @@
 #include "SpeedBehavior.h"
 #include "DamageReductionBehavior.h"
 #include "JetPackBehavior.h"
+#include "FallSpeedBehavior.h"
 #include "ChangeIdleFlagsBehavior.h"
 #include "DarkInspirationBehavior.h"
 
@@ -73,13 +74,14 @@
 #include "EntityManager.h"
 #include "RenderComponent.h"
 #include "DestroyableComponent.h"
+#include "CDBehaviorTemplateTable.h"
 
 std::unordered_map<uint32_t, Behavior*> Behavior::Cache = {};
 CDBehaviorParameterTable* Behavior::BehaviorParameterTable = nullptr;
 
 Behavior* Behavior::GetBehavior(const uint32_t behaviorId) {
 	if (BehaviorParameterTable == nullptr) {
-		BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
+		BehaviorParameterTable = CDClientManager::Instance().GetTable<CDBehaviorParameterTable>();
 	}
 
 	const auto pair = Cache.find(behaviorId);
@@ -163,7 +165,9 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_CAR_BOOST:
 		behavior = new CarBoostBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_FALL_SPEED: break;
+	case BehaviorTemplates::BEHAVIOR_FALL_SPEED:
+		behavior = new FallSpeedBehavior(behaviorId);
+		break;
 	case BehaviorTemplates::BEHAVIOR_SHIELD: break;
 	case BehaviorTemplates::BEHAVIOR_REPAIR_ARMOR:
 		behavior = new RepairBehavior(behaviorId);
@@ -290,7 +294,7 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 }
 
 BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
-	auto behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDBehaviorTemplateTable>("BehaviorTemplate");
+	auto behaviorTemplateTable = CDClientManager::Instance().GetTable<CDBehaviorTemplateTable>();
 
 	BehaviorTemplates templateID = BehaviorTemplates::BEHAVIOR_EMPTY;
 	// Find behavior template by its behavior id.  Default to 0.
@@ -310,7 +314,7 @@ BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
 
 // For use with enemies, to display the correct damage animations on the players
 void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID secondary) {
-	auto* targetEntity = EntityManager::Instance()->GetEntity(target);
+	auto* targetEntity = Game::entityManager->GetEntity(target);
 
 	if (targetEntity == nullptr) {
 		return;
@@ -398,7 +402,7 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 }
 
 Behavior::Behavior(const uint32_t behaviorId) {
-	auto behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDBehaviorTemplateTable>("BehaviorTemplate");
+	auto behaviorTemplateTable = CDClientManager::Instance().GetTable<CDBehaviorTemplateTable>();
 
 	CDBehaviorTemplate templateInDatabase{};
 
@@ -441,7 +445,7 @@ Behavior::Behavior(const uint32_t behaviorId) {
 
 float Behavior::GetFloat(const std::string& name, const float defaultValue) const {
 	// Get the behavior parameter entry and return its value.
-	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
+	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance().GetTable<CDBehaviorParameterTable>();
 	return BehaviorParameterTable->GetValue(this->m_behaviorId, name, defaultValue);
 }
 
@@ -469,7 +473,7 @@ Behavior* Behavior::GetAction(float value) const {
 std::map<std::string, float> Behavior::GetParameterNames() const {
 	std::map<std::string, float> templatesInDatabase;
 	// Find behavior template by its behavior id.
-	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance()->GetTable<CDBehaviorParameterTable>("BehaviorParameter");
+	if (!BehaviorParameterTable) BehaviorParameterTable = CDClientManager::Instance().GetTable<CDBehaviorParameterTable>();
 	if (BehaviorParameterTable) {
 		templatesInDatabase = BehaviorParameterTable->GetParametersByBehaviorID(this->m_behaviorId);
 	}

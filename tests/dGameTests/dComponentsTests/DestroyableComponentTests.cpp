@@ -5,6 +5,7 @@
 #include "DestroyableComponent.h"
 #include "Entity.h"
 #include "eReplicaComponentType.h"
+#include "eStateChangeType.h"
 
 class DestroyableTest : public GameDependenciesTest {
 protected:
@@ -40,7 +41,7 @@ protected:
  * Test Construction of a DestroyableComponent
  */
 TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
-	destroyableComponent->Serialize(&bitStream, true, flags);
+	destroyableComponent->Serialize(&bitStream, true);
 	// Assert that the full number of bits are present
 	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 748);
 	{
@@ -170,7 +171,7 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
 	destroyableComponent->SetMaxHealth(1233.0f);
 
 	// Now we test a serialization for correctness.
-	destroyableComponent->Serialize(&bitStream, false, flags);
+	destroyableComponent->Serialize(&bitStream, false);
 	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 422);
 	{
 		// Now read in the full serialized BitStream

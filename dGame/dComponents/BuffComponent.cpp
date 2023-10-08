@@ -10,6 +10,7 @@
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
 #include "CDClientManager.h"
+#include "CDSkillBehaviorTable.h"
 
 std::unordered_map<int32_t, std::vector<BuffParameter>> BuffComponent::m_Cache{};
 
@@ -19,7 +20,7 @@ BuffComponent::BuffComponent(Entity* parent) : Component(parent) {
 BuffComponent::~BuffComponent() {
 }
 
-void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
 	if (m_Buffs.empty()) {
 		outBitStream->Write0();
@@ -101,7 +102,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	const auto& parameters = GetBuffParameters(id);
 	for (const auto& parameter : parameters) {
 		if (parameter.name == "overtime") {
-			auto* behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+			auto* behaviorTemplateTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
 			behaviorID = behaviorTemplateTable->GetSkillByID(parameter.values[0]).behaviorID;
 			stacks = static_cast<int32_t>(parameter.values[1]);

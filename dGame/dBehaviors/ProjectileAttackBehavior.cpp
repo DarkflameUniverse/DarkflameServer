@@ -6,6 +6,7 @@
 #include "dLogger.h"
 #include "SkillComponent.h"
 #include "../dWorldServer/ObjectIDManager.h"
+#include "eObjectBits.h"
 
 void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	LWOOBJID target{};
@@ -15,7 +16,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		return;
 	};
 
-	auto* entity = EntityManager::Instance()->GetEntity(context->originator);
+	auto* entity = Game::entityManager->GetEntity(context->originator);
 
 	if (entity == nullptr) {
 		Game::logger->Log("ProjectileAttackBehavior", "Failed to find originator (%llu)!", context->originator);
@@ -39,7 +40,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		};
 	}
 
-	auto* targetEntity = EntityManager::Instance()->GetEntity(target);
+	auto* targetEntity = Game::entityManager->GetEntity(target);
 
 	for (auto i = 0u; i < this->m_projectileCount; ++i) {
 		LWOOBJID projectileId{};
@@ -60,7 +61,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	bitStream->Write(branch.target);
 
-	auto* entity = EntityManager::Instance()->GetEntity(context->originator);
+	auto* entity = Game::entityManager->GetEntity(context->originator);
 
 	if (entity == nullptr) {
 		Game::logger->Log("ProjectileAttackBehavior", "Failed to find originator (%llu)!", context->originator);
@@ -77,7 +78,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 
 	}
 
-	auto* other = EntityManager::Instance()->GetEntity(branch.target);
+	auto* other = Game::entityManager->GetEntity(branch.target);
 
 	if (other == nullptr) {
 		Game::logger->Log("ProjectileAttackBehavior", "Invalid projectile target (%llu)!", branch.target);
@@ -107,7 +108,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 	for (auto i = 0u; i < this->m_projectileCount; ++i) {
 		auto id = static_cast<LWOOBJID>(ObjectIDManager::Instance()->GenerateObjectID());
 
-		id = GeneralUtils::SetBit(id, OBJECT_BIT_SPAWNED);
+		GeneralUtils::SetBit(id, eObjectBits::SPAWNED);
 
 		bitStream->Write(id);
 

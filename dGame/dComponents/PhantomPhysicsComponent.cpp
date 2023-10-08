@@ -14,6 +14,7 @@
 #include "EntityManager.h"
 #include "ControllablePhysicsComponent.h"
 #include "GameMessages.h"
+#include "ePhysicsEffectType.h"
 
 #include "CDClientManager.h"
 #include "CDComponentsRegistryTable.h"
@@ -36,7 +37,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	m_PositionInfoDirty = false;
 
 	m_IsPhysicsEffectActive = false;
-	m_EffectType = 0;
+	m_EffectType = ePhysicsEffectType::PUSH;
 	m_DirectionalMultiplier = 0.0f;
 
 	m_MinMax = false;
@@ -143,10 +144,10 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 	*/
 
 	if (!m_HasCreatedPhysics) {
-		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
-		CDPhysicsComponentTable* physComp = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
+		CDPhysicsComponentTable* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
 		if (physComp == nullptr) return;
 
@@ -215,6 +216,13 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : Component(par
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
+		} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx"){
+			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
+			m_dpEntity->SetScale(m_Scale);
+			m_dpEntity->SetRotation(m_Rotation);
+			m_Position.y -= (111.467964f * m_Scale) / 2;
+			m_dpEntity->SetPosition(m_Position);
+			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else {
 			//Game::logger->Log("PhantomPhysicsComponent", "This one is supposed to have %s", info->physicsAsset.c_str());
 
@@ -253,10 +261,10 @@ void PhantomPhysicsComponent::CreatePhysics() {
 		y = m_Parent->GetVar<float>(u"primitiveModelValueY");
 		z = m_Parent->GetVar<float>(u"primitiveModelValueZ");
 	} else {
-		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
-		CDPhysicsComponentTable* physComp = CDClientManager::Instance()->GetTable<CDPhysicsComponentTable>("PhysicsComponent");
+		CDPhysicsComponentTable* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 
 		if (physComp == nullptr) return;
 
@@ -298,7 +306,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 	m_HasCreatedPhysics = true;
 }
 
-void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_PositionInfoDirty || bIsInitialUpdate);
 	if (m_PositionInfoDirty || bIsInitialUpdate) {
 		outBitStream->Write(m_Position.x);
@@ -340,11 +348,6 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 	}
 }
 
-void PhantomPhysicsComponent::ResetFlags() {
-	m_EffectInfoDirty = false;
-	m_PositionInfoDirty = false;
-}
-
 void PhantomPhysicsComponent::Update(float deltaTime) {
 	if (!m_dpEntity) return;
 
@@ -354,7 +357,7 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 
 		//If we are a respawn volume, inform the client:
 		if (m_IsRespawnVolume) {
-			auto entity = EntityManager::Instance()->GetEntity(en->GetObjectID());
+			auto entity = Game::entityManager->GetEntity(en->GetObjectID());
 
 			if (entity) {
 				GameMessages::SendPlayerReachedRespawnCheckpoint(entity, m_RespawnPos, m_RespawnRot);
@@ -395,8 +398,8 @@ void PhantomPhysicsComponent::SpawnVertices() {
 		info.spawnerID = m_Parent->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);
-		EntityManager::Instance()->ConstructEntity(newEntity);
+		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+		Game::entityManager->ConstructEntity(newEntity);
 	}
 }
 
@@ -405,7 +408,7 @@ void PhantomPhysicsComponent::SetDirectionalMultiplier(float mul) {
 	m_EffectInfoDirty = true;
 }
 
-void PhantomPhysicsComponent::SetEffectType(uint32_t type) {
+void PhantomPhysicsComponent::SetEffectType(ePhysicsEffectType type) {
 	m_EffectType = type;
 	m_EffectInfoDirty = true;
 }

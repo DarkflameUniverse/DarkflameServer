@@ -14,6 +14,7 @@
 
 class Entity;
 class dpEntity;
+enum class eStateChangeType : uint32_t;
 
 /**
  * Handles the movement of controllable Entities, e.g. enemies and players
@@ -26,9 +27,8 @@ public:
 	~ControllablePhysicsComponent() override;
 
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
-	void ResetFlags();
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
 	/**
@@ -275,7 +275,7 @@ public:
 	 * The speed boosts of this component.
 	 * @return All active Speed boosts for this component.
 	 */
-	std::vector<float> GetActiveSpeedboosts() { return m_ActivePickupRadiusScales; };
+	std::vector<float> GetActiveSpeedboosts() { return m_ActiveSpeedBoosts; };
 
 	/**
 	* Activates the Bubble Buff

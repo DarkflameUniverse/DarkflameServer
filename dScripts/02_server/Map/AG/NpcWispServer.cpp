@@ -19,7 +19,7 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	// For the daily we add the maelstrom vacuum if the player doesn't have it yet
 	if (missionID == 1883 && (missionState == eMissionState::AVAILABLE || missionState == eMissionState::COMPLETE_AVAILABLE)
 		&& maelstromVacuum == nullptr) {
-		inventory->AddItem(maelstromVacuumLot, 1, eLootSourceType::LOOT_SOURCE_NONE);
+		inventory->AddItem(maelstromVacuumLot, 1, eLootSourceType::NONE);
 	} else if (missionState == eMissionState::READY_TO_COMPLETE || missionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
 		inventory->RemoveItem(maelstromVacuumLot, 1);
 	}
@@ -35,7 +35,7 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	: std::vector<std::string>{ "MaelstromSamples", "MaelstromSamples2ndary1", "MaelstromSamples2ndary2" };
 
 	for (const auto& group : groups) {
-		auto samples = EntityManager::Instance()->GetEntitiesInGroup(group);
+		auto samples = Game::entityManager->GetEntitiesInGroup(group);
 		for (auto* sample : samples) {
 			GameMessages::SendNotifyClientObject(sample->GetObjectID(), u"SetVisibility", visible, 0,
 				target->GetObjectID(), "", target->GetSystemAddress());

@@ -10,6 +10,7 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "LDFFormat.h"
+#include "eKillType.h"
 
 namespace Loot {
 	class Info;
@@ -31,7 +32,10 @@ class Item;
 class Character;
 class EntityCallbackTimer;
 enum class eTriggerEventType;
+enum class eGameMasterLevel : uint8_t;
 enum class eReplicaComponentType : uint32_t;
+enum class eReplicaPacketType : uint8_t;
+enum class eCinematicEvent : uint32_t;
 
 namespace CppScripts {
 	class Script;
@@ -60,7 +64,7 @@ public:
 
 	Character* GetCharacter() const { return m_Character; }
 
-	uint8_t GetGMLevel() const { return m_GMLevel; }
+	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
 
 	uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
 
@@ -81,6 +85,7 @@ public:
 	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates; }
 
 	bool GetIsGhostingCandidate() const;
+	void SetIsGhostingCandidate(bool value) { m_IsGhostingCandidate = value; };
 
 	int8_t GetObservers() const;
 
@@ -108,7 +113,7 @@ public:
 
 	void SetCharacter(Character* value) { m_Character = value; }
 
-	void SetGMLevel(uint8_t value);
+	void SetGMLevel(eGameMasterLevel value);
 
 	void SetOwnerOverride(LWOOBJID value);
 
@@ -169,7 +174,6 @@ public:
 
 	void WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
 	void WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
-	void ResetFlags();
 	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
 	void Update(float deltaTime);
 
@@ -203,6 +207,7 @@ public:
 
 	void OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData);
 	void OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);
+	void RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled);
 
 	void Smash(const LWOOBJID source = LWOOBJID_EMPTY, const eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
 	void Kill(Entity* murderer = nullptr);
@@ -308,7 +313,7 @@ protected:
 
 	Entity* m_ParentEntity; //For spawners and the like
 	std::vector<Entity*> m_ChildEntities;
-	uint8_t m_GMLevel;
+	eGameMasterLevel m_GMLevel;
 	uint16_t m_CollectibleID;
 	std::vector<std::string> m_Groups;
 	uint16_t m_NetworkID;

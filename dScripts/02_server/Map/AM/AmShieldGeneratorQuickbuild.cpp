@@ -69,7 +69,7 @@ void AmShieldGeneratorQuickbuild::OnProximityUpdate(Entity* self, Entity* enteri
 void AmShieldGeneratorQuickbuild::OnDie(Entity* self, Entity* killer) {
 	self->CancelAllTimers();
 
-	auto* child = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"Child"));
+	auto* child = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Child"));
 
 	if (child != nullptr) {
 		child->Kill();
@@ -89,7 +89,7 @@ void AmShieldGeneratorQuickbuild::OnTimerDone(Entity* self, std::string timerNam
 		auto enemiesInProximity = self->GetVar<std::vector<LWOOBJID>>(u"Enemies");
 
 		for (const auto enemyID : enemiesInProximity) {
-			auto* enemy = EntityManager::Instance()->GetEntity(enemyID);
+			auto* enemy = Game::entityManager->GetEntity(enemyID);
 
 			if (enemy != nullptr) {
 				EnemyEnteredShield(self, enemy);
@@ -106,7 +106,7 @@ void AmShieldGeneratorQuickbuild::OnRebuildComplete(Entity* self, Entity* target
 	auto enemiesInProximity = self->GetVar<std::vector<LWOOBJID>>(u"Enemies");
 
 	for (const auto enemyID : enemiesInProximity) {
-		auto* enemy = EntityManager::Instance()->GetEntity(enemyID);
+		auto* enemy = Game::entityManager->GetEntity(enemyID);
 
 		if (enemy != nullptr) {
 			enemy->Smash();
@@ -116,7 +116,7 @@ void AmShieldGeneratorQuickbuild::OnRebuildComplete(Entity* self, Entity* target
 	auto entitiesInProximity = self->GetVar<std::vector<LWOOBJID>>(u"Players");
 
 	for (const auto playerID : entitiesInProximity) {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (player == nullptr) {
 			continue;
@@ -146,7 +146,7 @@ void AmShieldGeneratorQuickbuild::StartShield(Entity* self) {
 	info.rot = myRot;
 	info.spawnerID = self->GetObjectID();
 
-	auto* child = EntityManager::Instance()->CreateEntity(info);
+	auto* child = Game::entityManager->CreateEntity(info);
 
 	self->SetVar(u"Child", child->GetObjectID());
 
@@ -163,7 +163,7 @@ void AmShieldGeneratorQuickbuild::BuffPlayers(Entity* self) {
 	auto entitiesInProximity = self->GetVar<std::vector<LWOOBJID>>(u"Players");
 
 	for (const auto playerID : entitiesInProximity) {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (player == nullptr) {
 			return;
@@ -176,7 +176,7 @@ void AmShieldGeneratorQuickbuild::BuffPlayers(Entity* self) {
 void AmShieldGeneratorQuickbuild::EnemyEnteredShield(Entity* self, Entity* intruder) {
 	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-	if (rebuildComponent == nullptr || rebuildComponent->GetState() != REBUILD_COMPLETED) {
+	if (rebuildComponent == nullptr || rebuildComponent->GetState() != eRebuildState::COMPLETED) {
 		return;
 	}
 
@@ -194,7 +194,7 @@ void AmShieldGeneratorQuickbuild::EnemyEnteredShield(Entity* self, Entity* intru
 
 	// TODO: Figure out how todo knockback, I'll stun them for now
 
-	if (NiPoint3::DistanceSquared(self->GetPosition(), movementAIComponent->GetCurrentPosition()) < 20 * 20) {
+	if (NiPoint3::DistanceSquared(self->GetPosition(), intruder->GetPosition()) < 20 * 20) {
 		baseCombatAIComponent->Stun(2.0f);
 		movementAIComponent->SetDestination(baseCombatAIComponent->GetStartPosition());
 	}

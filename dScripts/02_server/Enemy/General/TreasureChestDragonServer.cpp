@@ -29,7 +29,7 @@ void TreasureChestDragonServer::OnUse(Entity* self, Entity* user) {
 		rating = team->members.size();
 
 		for (const auto member : team->members) {
-			auto* memberObject = EntityManager::Instance()->GetEntity(member);
+			auto* memberObject = Game::entityManager->GetEntity(member);
 
 			if (memberObject == nullptr) continue;
 

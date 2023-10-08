@@ -110,8 +110,8 @@ public:
 	RacingControlComponent(Entity* parentEntity);
 	~RacingControlComponent();
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-	void Update(float deltaTime);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Update(float deltaTime) override;
 
 	/**
 	 * Invoked when a player loads into the zone.
@@ -144,7 +144,7 @@ public:
 	/**
 	 * Invoked when the player responds to the GUI.
 	 */
-	void HandleMessageBoxResponse(Entity* player, const std::string& id);
+	void HandleMessageBoxResponse(Entity* player, int32_t button, const std::string& id);
 
 	/**
 	 * Get the racing data from a player's LWOOBJID.
@@ -246,4 +246,9 @@ private:
 	float m_EmptyTimer;
 
 	bool m_SoloRacing;
+
+	/**
+	 * Value for message box response to know if we are exiting the race via the activity dialogue
+	 */
+	const int32_t m_ActivityExitConfirm = 1;
 };

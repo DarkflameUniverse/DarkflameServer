@@ -1,7 +1,6 @@
-
 #include "CDPropertyEntranceComponentTable.h"
 
-CDPropertyEntranceComponentTable::CDPropertyEntranceComponentTable() {
+void CDPropertyEntranceComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	size_t size = 0;
@@ -30,12 +29,6 @@ CDPropertyEntranceComponentTable::CDPropertyEntranceComponentTable() {
 	}
 
 	tableData.finalize();
-}
-
-CDPropertyEntranceComponentTable::~CDPropertyEntranceComponentTable(void) = default;
-
-std::string CDPropertyEntranceComponentTable::GetName() const {
-	return "PropertyEntranceComponent";
 }
 
 CDPropertyEntranceComponent CDPropertyEntranceComponentTable::GetByID(uint32_t id) {

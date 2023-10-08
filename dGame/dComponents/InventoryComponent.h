@@ -21,6 +21,7 @@
 #include "PossessorComponent.h"
 #include "eInventoryType.h"
 #include "eReplicaComponentType.h"
+#include "eLootSourceType.h"
 
 class Entity;
 class ItemSet;
@@ -41,10 +42,9 @@ public:
 	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
 
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void LoadXml(tinyxml2::XMLDocument* document);
 	void UpdateXml(tinyxml2::XMLDocument* document) override;
-	void ResetFlags();
 
 	/**
 	 * Returns an inventory of the specified type, if it exists
@@ -99,7 +99,7 @@ public:
 	void AddItem(
 		LOT lot,
 		uint32_t count,
-		eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE,
+		eLootSourceType lootSourceType = eLootSourceType::NONE,
 		eInventoryType inventoryType = INVALID,
 		const std::vector<LDFBaseData*>& config = {},
 		LWOOBJID parent = LWOOBJID_EMPTY,

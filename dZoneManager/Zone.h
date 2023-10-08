@@ -18,6 +18,11 @@ struct SceneRef {
 	uint32_t id;
 	uint32_t sceneType; //0 = general, 1 = audio?
 	std::string name;
+	NiPoint3 unknown1;
+	float unknown2;
+	uint8_t color_r;
+	uint8_t color_g;
+	uint8_t color_b;
 	Level* level;
 	std::map<uint32_t, LUTriggers::Trigger*> triggers;
 };
@@ -30,6 +35,7 @@ struct SceneTransitionInfo {
 struct SceneTransition {
 	std::string name;
 	std::vector<SceneTransitionInfo> points;
+	float width;
 };
 
 struct MovingPlatformPathWaypoint {
@@ -100,7 +106,7 @@ enum class PropertyType : int32_t {
 	Headspace = 3
 };
 
-enum class PropertyRentalTimeUnit : int32_t {
+enum class PropertyRentalPeriod : uint32_t {
 	Forever = 0,
 	Seconds = 1,
 	Minutes = 2,
@@ -111,7 +117,7 @@ enum class PropertyRentalTimeUnit : int32_t {
 	Years = 7
 };
 
-enum class PropertyAchievmentRequired : int32_t {
+enum class PropertyAchievmentRequired : uint32_t {
 	None = 0,
 	Builder = 1,
 	Craftsman = 2,
@@ -133,13 +139,14 @@ struct MovingPlatformPath {
 struct PropertyPath {
 	PropertyPathType pathType;
 	int32_t price;
-	PropertyRentalTimeUnit rentalTimeUnit;
+	uint32_t rentalTime;
 	uint64_t associatedZone;
 	std::string displayName;
 	std::string displayDesc;
 	PropertyType type;
-	int32_t cloneLimit;
+	uint32_t cloneLimit;
 	float repMultiplier;
+	PropertyRentalPeriod rentalPeriod;
 	PropertyAchievmentRequired achievementRequired;
 	NiPoint3 playerZoneCoords;
 	float maxBuildHeight;
@@ -176,15 +183,17 @@ struct Path {
 
 class Zone {
 public:
-	enum class ZoneFileFormatVersion : uint32_t { //Times are guessed.
-		PreAlpha = 0x20,
-		EarlyAlpha = 0x23,
-		Alpha = 0x24,
-		LateAlpha = 0x25,
-		Beta = 0x26,
-		Launch = 0x27,
-		Auramar = 0x28,
-		Latest = 0x29
+	enum class FileFormatVersion : uint32_t { //Times are guessed.
+		PrePreAlpha = 30,
+		PreAlpha = 32,
+		LatePreAlpha = 33,
+		EarlyAlpha = 35,
+		Alpha = 36,
+		LateAlpha = 37,
+		Beta = 38,
+		Launch = 39,
+		Auramar = 40,
+		Latest = 41
 	};
 
 public:
@@ -220,7 +229,7 @@ private:
 	uint32_t m_NumberOfScenesLoaded;
 	uint32_t m_NumberOfObjectsLoaded;
 	uint32_t m_NumberOfSceneTransitionsLoaded;
-	ZoneFileFormatVersion m_ZoneFileFormatVersion;
+	FileFormatVersion m_FileFormatVersion;
 	uint32_t m_CheckSum;
 	uint32_t m_WorldID; //should be equal to the MapID
 	NiPoint3 m_Spawnpoint;

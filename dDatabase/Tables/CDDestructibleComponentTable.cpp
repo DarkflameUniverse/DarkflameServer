@@ -1,8 +1,6 @@
 #include "CDDestructibleComponentTable.h"
 
-//! Constructor
-CDDestructibleComponentTable::CDDestructibleComponentTable(void) {
-
+void CDDestructibleComponentTable::LoadValuesFromDatabase() {
 	// First, get the size of the table
 	unsigned int size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM DestructibleComponent");
@@ -43,15 +41,6 @@ CDDestructibleComponentTable::CDDestructibleComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDDestructibleComponentTable::~CDDestructibleComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDDestructibleComponentTable::GetName(void) const {
-	return "DestructibleComponent";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDDestructibleComponent> CDDestructibleComponentTable::Query(std::function<bool(CDDestructibleComponent)> predicate) {
 
 	std::vector<CDDestructibleComponent> data = cpplinq::from(this->entries)
@@ -61,8 +50,7 @@ std::vector<CDDestructibleComponent> CDDestructibleComponentTable::Query(std::fu
 	return data;
 }
 
-//! Gets all the entries in the table
-std::vector<CDDestructibleComponent> CDDestructibleComponentTable::GetEntries(void) const {
+const std::vector<CDDestructibleComponent>& CDDestructibleComponentTable::GetEntries() const {
 	return this->entries;
 }
 

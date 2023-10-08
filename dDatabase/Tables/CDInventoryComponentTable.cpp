@@ -1,7 +1,6 @@
 #include "CDInventoryComponentTable.h"
 
-//! Constructor
-CDInventoryComponentTable::CDInventoryComponentTable(void) {
+void CDInventoryComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -33,15 +32,6 @@ CDInventoryComponentTable::CDInventoryComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDInventoryComponentTable::~CDInventoryComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDInventoryComponentTable::GetName(void) const {
-	return "InventoryComponent";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDInventoryComponent> CDInventoryComponentTable::Query(std::function<bool(CDInventoryComponent)> predicate) {
 
 	std::vector<CDInventoryComponent> data = cpplinq::from(this->entries)
@@ -51,8 +41,7 @@ std::vector<CDInventoryComponent> CDInventoryComponentTable::Query(std::function
 	return data;
 }
 
-//! Gets all the entries in the table
-std::vector<CDInventoryComponent> CDInventoryComponentTable::GetEntries(void) const {
+const std::vector<CDInventoryComponent>& CDInventoryComponentTable::GetEntries() const {
 	return this->entries;
 }
 

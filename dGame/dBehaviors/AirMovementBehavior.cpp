@@ -13,7 +13,7 @@ void AirMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		return;
 	}
 
-	context->RegisterSyncBehavior(handle, this, branch);
+	context->RegisterSyncBehavior(handle, this, branch, this->m_Timeout);
 }
 
 void AirMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
@@ -39,7 +39,7 @@ void AirMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitS
 
 	auto* behavior = CreateBehavior(behaviorId);
 
-	if (EntityManager::Instance()->GetEntity(target) != nullptr) {
+	if (Game::entityManager->GetEntity(target) != nullptr) {
 		branch.target = target;
 	}
 
@@ -47,4 +47,5 @@ void AirMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitS
 }
 
 void AirMovementBehavior::Load() {
+	this->m_Timeout = (GetFloat("timeout_ms") / 1000.0f);
 }

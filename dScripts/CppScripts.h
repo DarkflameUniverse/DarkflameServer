@@ -8,6 +8,8 @@ class User;
 class Entity;
 class NiPoint3;
 enum class eMissionState : int32_t;
+enum class ePetTamingNotifyType : uint32_t;
+enum class eRebuildState : uint32_t;
 
 namespace CppScripts {
 	/**
@@ -43,6 +45,13 @@ namespace CppScripts {
 		 * Equivalent to 'function onCollisionPhantom(self, msg)'
 		 */
 		virtual void OnCollisionPhantom(Entity* self, Entity* target) {};
+
+		/**
+		 * Invoked upon an entity leaving the phantom collider on self.
+		 *
+		 * Equivalent to 'function onOffCollisionPhantom(self, msg)'
+		 */
+		virtual void OnOffCollisionPhantom(Entity* self, Entity* target) {};
 
 		/**
 		 * Invoked when a player accepted a mission.
@@ -262,7 +271,7 @@ namespace CppScripts {
 		 *
 		 * Equivalent to 'function onNotifyPetTamingMinigame(self, msg)'
 		 */
-		virtual void OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, eNotifyType type) {};
+		virtual void OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTamingNotifyType type) {};
 
 		/**
 		 * Invoked when a player responded to a message box.
@@ -340,6 +349,15 @@ namespace CppScripts {
 		 * @param itemObjId The items Object ID
 		 */
 		virtual void OnFactionTriggerItemUnequipped(Entity* itemOwner, LWOOBJID itemObjId) {};
+
+		/**
+		 * Handles exiting a scripted activity
+		 *
+		 * @param sender
+		 * @param player the player to remove
+		 * @param canceled if it was done via the cancel button
+		 */
+		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled){};
 	};
 
 	Script* GetScript(Entity* parent, const std::string& scriptName);

@@ -42,7 +42,7 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 
 	if (branch.target == context->originator) return;
 
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) return;
 
@@ -67,7 +67,7 @@ void InterruptBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* b
 
 	if (branch.target == context->originator) return;
 
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) return;
 

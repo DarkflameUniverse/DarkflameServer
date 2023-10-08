@@ -1,7 +1,7 @@
 #include "CDRailActivatorComponent.h"
 #include "GeneralUtils.h"
 
-CDRailActivatorComponentTable::CDRailActivatorComponentTable() {
+void CDRailActivatorComponentTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM RailActivatorComponent;");
 	while (!tableData.eof()) {
 		CDRailActivatorComponent entry;
@@ -43,12 +43,6 @@ CDRailActivatorComponentTable::CDRailActivatorComponentTable() {
 	tableData.finalize();
 }
 
-CDRailActivatorComponentTable::~CDRailActivatorComponentTable() = default;
-
-std::string CDRailActivatorComponentTable::GetName() const {
-	return "RailActivatorComponent";
-}
-
 CDRailActivatorComponent CDRailActivatorComponentTable::GetEntryByID(int32_t id) const {
 	for (const auto& entry : m_Entries) {
 		if (entry.id == id)
@@ -58,7 +52,7 @@ CDRailActivatorComponent CDRailActivatorComponentTable::GetEntryByID(int32_t id)
 	return {};
 }
 
-std::vector<CDRailActivatorComponent> CDRailActivatorComponentTable::GetEntries() const {
+const std::vector<CDRailActivatorComponent>& CDRailActivatorComponentTable::GetEntries() const {
 	return m_Entries;
 }
 

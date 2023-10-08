@@ -10,11 +10,13 @@
 #include <type_traits>
 #include <stdexcept>
 #include <BitStream.h>
+#include "NiPoint3.h"
 
 #include "Game.h"
 #include "dLogger.h"
 
 enum eInventoryType : uint32_t;
+enum class eObjectBits : size_t;
 enum class eReplicaComponentType : uint32_t;
 
 /*!
@@ -65,9 +67,9 @@ namespace GeneralUtils {
 
 	//! Sets a bit on a numerical value
 	template <typename T>
-	void SetBit(T& value, size_t index) {
+	inline void SetBit(T& value, eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-
+		auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8) - 1) {
 			return;
 		}
@@ -77,9 +79,9 @@ namespace GeneralUtils {
 
 	//! Clears a bit on a numerical value
 	template <typename T>
-	void ClearBit(T& value, size_t index) {
+	inline void ClearBit(T& value, eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-
+		auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8 - 1)) {
 			return;
 		}
@@ -109,36 +111,13 @@ namespace GeneralUtils {
 	 */
 	bool CheckBit(int64_t value, uint32_t index);
 
-	// MARK: Random Number Generation
-
-	//! Generates a random number
-	/*!
-	  \param min The minimum the generate from
-	  \param max The maximum to generate to
-	 */
-	template <typename T>
-	inline T GenerateRandomNumber(std::size_t min, std::size_t max) {
-		// Make sure it is a numeric type
-		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-
-		if constexpr (std::is_integral_v<T>) {  // constexpr only necessary on first statement
-			std::uniform_int_distribution<T> distribution(min, max);
-			return distribution(Game::randomEngine);
-		} else if (std::is_floating_point_v<T>) {
-			std::uniform_real_distribution<T> distribution(min, max);
-			return distribution(Game::randomEngine);
-		}
-
-		return T();
-	}
-
 	bool ReplaceInString(std::string& str, const std::string& from, const std::string& to);
 
 	std::u16string ReadWString(RakNet::BitStream* inStream);
 
 	std::vector<std::wstring> SplitString(std::wstring& str, wchar_t delimiter);
 
-	std::vector<std::u16string> SplitString(std::u16string& str, char16_t delimiter);
+	std::vector<std::u16string> SplitString(const std::u16string& str, char16_t delimiter);
 
 	std::vector<std::string> SplitString(const std::string& str, char delimiter);
 
@@ -208,6 +187,8 @@ namespace GeneralUtils {
 		return TryParse<T>(value.c_str(), dst);
 	}
 
+	bool TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst);
+
 	template<typename T>
 	std::u16string to_u16string(T value) {
 		return GeneralUtils::ASCIIToUTF16(std::to_string(value));
@@ -218,5 +199,43 @@ namespace GeneralUtils {
 	void hash_combine(std::size_t& s, const T& v) {
 		std::hash<T> h;
 		s ^= h(v) + 0x9e3779b9 + (s << 6) + (s >> 2);
+	}
+
+	// MARK: Random Number Generation
+
+	//! Generates a random number
+	/*!
+	  \param min The minimum the generate from
+	  \param max The maximum to generate to
+	 */
+	template <typename T>
+	inline T GenerateRandomNumber(std::size_t min, std::size_t max) {
+		// Make sure it is a numeric type
+		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
+
+		if constexpr (std::is_integral_v<T>) {  // constexpr only necessary on first statement
+			std::uniform_int_distribution<T> distribution(min, max);
+			return distribution(Game::randomEngine);
+		} else if (std::is_floating_point_v<T>) {
+			std::uniform_real_distribution<T> distribution(min, max);
+			return distribution(Game::randomEngine);
+		}
+
+		return T();
+	}
+
+// on Windows we need to undef these or else they conflict with our numeric limits calls
+// DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS
+#ifdef _WIN32
+#undef min
+#undef max
+#endif
+
+	template <typename T>
+	inline T GenerateRandomNumber() {
+		// Make sure it is a numeric type
+		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
+		
+		return GenerateRandomNumber<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 	}
 }

@@ -26,7 +26,7 @@ void AgQbElevator::OnProximityUpdate(Entity* self, Entity* entering, std::string
 	if (self->GetBoolean(u"qbPlayerRdy")) return;
 
 	if (status == "ENTER") {
-		Entity* builder = EntityManager::Instance()->GetEntity(self->GetI64(u"qbPlayer"));
+		Entity* builder = Game::entityManager->GetEntity(self->GetI64(u"qbPlayer"));
 		if (builder && builder == entering) {
 			//the builder has entered so cancel the start timer and just start moving
 			self->SetBoolean(u"qbPlayerRdy", true);
@@ -49,7 +49,7 @@ void AgQbElevator::OnTimerDone(Entity* self, std::string timerName) {
 	} else if (timerName == "startKillTimer") {
 		killTimerStartup(self);
 	} else if (timerName == "KillTimer") {
-		self->Smash(self->GetObjectID(), VIOLENT);
+		self->Smash(self->GetObjectID(), eKillType::VIOLENT);
 	}
 }
 

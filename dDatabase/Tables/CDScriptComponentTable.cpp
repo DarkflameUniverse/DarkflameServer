@@ -1,7 +1,6 @@
 #include "CDScriptComponentTable.h"
 
-//! Constructor
-CDScriptComponentTable::CDScriptComponentTable(void) {
+void CDScriptComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -27,14 +26,6 @@ CDScriptComponentTable::CDScriptComponentTable(void) {
 	}
 
 	tableData.finalize();
-}
-
-//! Destructor
-CDScriptComponentTable::~CDScriptComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDScriptComponentTable::GetName(void) const {
-	return "ScriptComponent";
 }
 
 const CDScriptComponent& CDScriptComponentTable::GetByID(unsigned int id) {

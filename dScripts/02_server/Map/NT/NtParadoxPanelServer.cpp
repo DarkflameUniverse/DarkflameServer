@@ -4,6 +4,9 @@
 #include "EntityManager.h"
 #include "Character.h"
 #include "eMissionState.h"
+#include "RenderComponent.h"
+#include "eTerminateType.h"
+#include "eStateChangeType.h"
 
 void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"bActive", 1, 0, user->GetObjectID(), "", user->GetSystemAddress());
@@ -22,7 +25,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 		}
 
 		self->AddCallbackTimer(2, [this, self, playerID]() {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 
 			if (player == nullptr) {
 				return;
@@ -32,18 +35,18 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 
 			player->GetCharacter()->SetPlayerFlag(flag, true);
 
-			GameMessages::SendPlayAnimation(player, u"rebuild-celebrate");
+			RenderComponent::PlayAnimation(player, u"rebuild-celebrate");
 
 			GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SparkStop", 0, 0, player->GetObjectID(), "", player->GetSystemAddress());
 			GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY, false, false, true, false, true, true, false, false, true);
 			self->SetVar(u"bActive", false);
 			});
-		GameMessages::SendPlayAnimation(user, u"nexus-powerpanel", 6.0f);
+		RenderComponent::PlayAnimation(user, u"nexus-powerpanel", 6.0f);
 		GameMessages::SendSetStunned(user->GetObjectID(), eStateChangeType::PUSH, user->GetSystemAddress(), LWOOBJID_EMPTY, false, false, true, false, true, true, false, false, true);
 		return;
 	}
 
-	GameMessages::SendPlayAnimation(user, shockAnim);
+	RenderComponent::PlayAnimation(user, shockAnim);
 
 	const auto dir = self->GetRotation().GetRightVector();
 
@@ -52,7 +55,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 	GameMessages::SendPlayFXEffect(self, 6432, u"create", "console_sparks", LWOOBJID_EMPTY, 1.0, 1.0, true);
 
 	self->AddCallbackTimer(2, [this, self, playerID]() {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (player == nullptr) {
 			return;

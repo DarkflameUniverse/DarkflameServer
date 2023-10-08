@@ -46,9 +46,9 @@ Spawner::Spawner(const SpawnerInfo info) {
 	}
 
 	if (m_Info.spawnOnSmashGroupName != "") {
-		std::vector<Entity*> spawnSmashEntities = EntityManager::Instance()->GetEntitiesInGroup(m_Info.spawnOnSmashGroupName);
-		std::vector<Spawner*> spawnSmashSpawners = dZoneManager::Instance()->GetSpawnersInGroup(m_Info.spawnOnSmashGroupName);
-		std::vector<Spawner*> spawnSmashSpawnersN = dZoneManager::Instance()->GetSpawnersByName(m_Info.spawnOnSmashGroupName);
+		std::vector<Entity*> spawnSmashEntities = Game::entityManager->GetEntitiesInGroup(m_Info.spawnOnSmashGroupName);
+		std::vector<Spawner*> spawnSmashSpawners = Game::zoneManager->GetSpawnersInGroup(m_Info.spawnOnSmashGroupName);
+		std::vector<Spawner*> spawnSmashSpawnersN = Game::zoneManager->GetSpawnersByName(m_Info.spawnOnSmashGroupName);
 		for (Entity* ssEntity : spawnSmashEntities) {
 			m_SpawnSmashFoundGroup = true;
 			ssEntity->AddDieCallback([=]() {
@@ -102,11 +102,11 @@ Entity* Spawner::Spawn(std::vector<SpawnerNode*> freeNodes, const bool force) {
 			m_EntityInfo.spawnerID = m_Info.spawnerID;
 		}
 
-		Entity* rezdE = EntityManager::Instance()->CreateEntity(m_EntityInfo, nullptr);
+		Entity* rezdE = Game::entityManager->CreateEntity(m_EntityInfo, nullptr);
 
 		rezdE->GetGroups() = m_Info.groups;
 
-		EntityManager::Instance()->ConstructEntity(rezdE);
+		Game::entityManager->ConstructEntity(rezdE);
 
 		m_Entities.insert({ rezdE->GetObjectID(), spawnNode });
 		spawnNode->entities.push_back(rezdE->GetObjectID());
@@ -134,22 +134,21 @@ void Spawner::AddEntitySpawnedCallback(std::function<void(Entity*)> callback) {
 
 void Spawner::Reset() {
 	m_Start = true;
-
-	for (auto* node : m_Info.nodes) {
-		for (const auto& spawned : node->entities) {
-			auto* entity = EntityManager::Instance()->GetEntity(spawned);
-
-			if (entity == nullptr) continue;
-
-			entity->Kill();
-		}
-
-		node->entities.clear();
-	}
-
+	DestroyAllEntities();
 	m_Entities.clear();
 	m_AmountSpawned = 0;
 	m_NeedsUpdate = true;
+}
+
+void Spawner::DestroyAllEntities(){
+	for (auto* node : m_Info.nodes) {
+		for (const auto& element : node->entities) {
+			auto* entity = Game::entityManager->GetEntity(element);
+			if (entity == nullptr) continue;
+			entity->Kill();
+		}
+		node->entities.clear();
+	}
 }
 
 void Spawner::SoftReset() {

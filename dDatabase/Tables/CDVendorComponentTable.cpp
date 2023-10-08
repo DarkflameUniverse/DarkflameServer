@@ -1,7 +1,6 @@
 #include "CDVendorComponentTable.h"
 
-//! Constructor
-CDVendorComponentTable::CDVendorComponentTable(void) {
+void CDVendorComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -22,7 +21,7 @@ CDVendorComponentTable::CDVendorComponentTable(void) {
 	while (!tableData.eof()) {
 		CDVendorComponent entry;
 		entry.id = tableData.getIntField("id", -1);
-		entry.buyScalar = tableData.getFloatField("buyScalar", -1.0f);
+		entry.buyScalar = tableData.getFloatField("buyScalar", 0.0f);
 		entry.sellScalar = tableData.getFloatField("sellScalar", -1.0f);
 		entry.refreshTimeSeconds = tableData.getFloatField("refreshTimeSeconds", -1.0f);
 		entry.LootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
@@ -32,14 +31,6 @@ CDVendorComponentTable::CDVendorComponentTable(void) {
 	}
 
 	tableData.finalize();
-}
-
-//! Destructor
-CDVendorComponentTable::~CDVendorComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDVendorComponentTable::GetName(void) const {
-	return "VendorComponent";
 }
 
 //! Queries the table with a custom "where" clause
@@ -53,7 +44,7 @@ std::vector<CDVendorComponent> CDVendorComponentTable::Query(std::function<bool(
 }
 
 //! Gets all the entries in the table
-std::vector<CDVendorComponent> CDVendorComponentTable::GetEntries(void) const {
+const std::vector<CDVendorComponent>& CDVendorComponentTable::GetEntries() const {
 	return this->entries;
 }
 

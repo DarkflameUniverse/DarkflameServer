@@ -1,7 +1,6 @@
 #include "CDItemSetsTable.h"
 
-//! Constructor
-CDItemSetsTable::CDItemSetsTable(void) {
+void CDItemSetsTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -44,15 +43,6 @@ CDItemSetsTable::CDItemSetsTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDItemSetsTable::~CDItemSetsTable(void) {}
-
-//! Returns the table's name
-std::string CDItemSetsTable::GetName(void) const {
-	return "ItemSets";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDItemSets> CDItemSetsTable::Query(std::function<bool(CDItemSets)> predicate) {
 
 	std::vector<CDItemSets> data = cpplinq::from(this->entries)
@@ -62,8 +52,7 @@ std::vector<CDItemSets> CDItemSetsTable::Query(std::function<bool(CDItemSets)> p
 	return data;
 }
 
-//! Gets all the entries in the table
-std::vector<CDItemSets> CDItemSetsTable::GetEntries(void) const {
+const std::vector<CDItemSets>& CDItemSetsTable::GetEntries() const {
 	return this->entries;
 }
 

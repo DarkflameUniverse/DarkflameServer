@@ -7,14 +7,14 @@
 #include "Loot.h"
 
 void BootyDigServer::OnStartup(Entity* self) {
-	auto* zoneControlObject = EntityManager::Instance()->GetZoneControlEntity();
+	auto* zoneControlObject = Game::entityManager->GetZoneControlEntity();
 	if (zoneControlObject != nullptr) {
 		zoneControlObject->OnFireEventServerSide(self, "CheckForPropertyOwner");
 	}
 }
 
 void BootyDigServer::OnPlayerLoaded(Entity* self, Entity* player) {
-	auto* zoneControlObject = EntityManager::Instance()->GetZoneControlEntity();
+	auto* zoneControlObject = Game::entityManager->GetZoneControlEntity();
 	if (zoneControlObject != nullptr) {
 		zoneControlObject->OnFireEventServerSide(self, "CheckForPropertyOwner");
 	}
@@ -30,7 +30,7 @@ BootyDigServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string 
 		return;
 
 	if (args == "ChestReady" && (propertyOwner == std::to_string(LWOOBJID_EMPTY) || player->GetVar<bool>(u"bootyDug"))) {
-		self->Smash(self->GetObjectID(), SILENT);
+		self->Smash(self->GetObjectID(), eKillType::SILENT);
 	} else if (args == "ChestOpened") {
 		// Make sure players only dig up one booty per instance
 		player->SetVar<bool>(u"bootyDug", true);
@@ -49,6 +49,6 @@ BootyDigServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string 
 			}
 		}
 	} else if (args == "ChestDead") {
-		self->Smash(player->GetObjectID(), SILENT);
+		self->Smash(player->GetObjectID(), eKillType::SILENT);
 	}
 }

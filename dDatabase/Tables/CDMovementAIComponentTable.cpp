@@ -1,7 +1,6 @@
 #include "CDMovementAIComponentTable.h"
 
-//! Constructor
-CDMovementAIComponentTable::CDMovementAIComponentTable(void) {
+void CDMovementAIComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -37,15 +36,6 @@ CDMovementAIComponentTable::CDMovementAIComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDMovementAIComponentTable::~CDMovementAIComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDMovementAIComponentTable::GetName(void) const {
-	return "MovementAIComponent";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDMovementAIComponent> CDMovementAIComponentTable::Query(std::function<bool(CDMovementAIComponent)> predicate) {
 
 	std::vector<CDMovementAIComponent> data = cpplinq::from(this->entries)
@@ -55,8 +45,7 @@ std::vector<CDMovementAIComponent> CDMovementAIComponentTable::Query(std::functi
 	return data;
 }
 
-//! Gets all the entries in the table
-std::vector<CDMovementAIComponent> CDMovementAIComponentTable::GetEntries(void) const {
+const std::vector<CDMovementAIComponent>& CDMovementAIComponentTable::GetEntries(void) const {
 	return this->entries;
 }
 

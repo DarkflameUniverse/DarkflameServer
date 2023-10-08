@@ -161,7 +161,7 @@ bool MissionPrerequisites::CheckPrerequisites(uint32_t missionId, const std::uno
 		return index->second->Execute(missions);
 	}
 
-	auto* missionsTable = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
+	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
 	const auto missionEntries = missionsTable->Query([=](const CDMissions& entry) {
 		return entry.id == static_cast<int>(missionId);
 		});

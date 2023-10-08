@@ -15,10 +15,13 @@
 
 //RakNet includes:
 #include "RakNetDefines.h"
+#include <MessageIdentifiers.h>
 
 //Auth includes:
 #include "AuthPackets.h"
-#include "dMessageIdentifiers.h"
+#include "eConnectionType.h"
+#include "eServerMessageType.h"
+#include "eAuthMessageType.h"
 
 #include "Game.h"
 namespace Game {
@@ -26,6 +29,7 @@ namespace Game {
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
 	bool shouldShutdown = false;
+	std::mt19937 randomEngine;
 }
 
 dLogger* SetupLogger();
@@ -79,6 +83,8 @@ int main(int argc, char** argv) {
 
 	delete res;
 	delete stmt;
+
+	Game::randomEngine = std::mt19937(time(0));
 
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
 	uint32_t maxClients = 50;
@@ -168,13 +174,15 @@ dLogger* SetupLogger() {
 }
 
 void HandlePacket(Packet* packet) {
+	if (packet->length < 4) return;
+
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
-		if (packet->data[1] == SERVER) {
-			if (packet->data[3] == MSG_SERVER_VERSION_CONFIRM) {
+		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
+			if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
 				AuthPackets::HandleHandshake(Game::server, packet);
 			}
-		} else if (packet->data[1] == AUTH) {
-			if (packet->data[3] == MSG_AUTH_LOGIN_REQUEST) {
+		} else if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::AUTH) {
+			if (static_cast<eAuthMessageType>(packet->data[3]) == eAuthMessageType::LOGIN_REQUEST) {
 				AuthPackets::HandleLoginRequest(Game::server, packet);
 			}
 		}

@@ -1,6 +1,6 @@
 #include "CDPropertyTemplateTable.h"
 
-CDPropertyTemplateTable::CDPropertyTemplateTable() {
+void CDPropertyTemplateTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	size_t size = 0;
@@ -28,12 +28,6 @@ CDPropertyTemplateTable::CDPropertyTemplateTable() {
 	}
 
 	tableData.finalize();
-}
-
-CDPropertyTemplateTable::~CDPropertyTemplateTable() = default;
-
-std::string CDPropertyTemplateTable::GetName() const {
-	return "PropertyTemplate";
 }
 
 CDPropertyTemplate CDPropertyTemplateTable::GetByMapID(uint32_t mapID) {

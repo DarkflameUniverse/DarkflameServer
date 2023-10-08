@@ -5,6 +5,24 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
+struct RemoteInputInfo {
+	void operator=(const RemoteInputInfo& other) {
+		m_RemoteInputX = other.m_RemoteInputX;
+		m_RemoteInputY = other.m_RemoteInputY;
+		m_IsPowersliding = other.m_IsPowersliding;
+		m_IsModified = other.m_IsModified;
+	}
+
+	bool operator==(const RemoteInputInfo& other) {
+		return m_RemoteInputX == other.m_RemoteInputX && m_RemoteInputY == other.m_RemoteInputY && m_IsPowersliding == other.m_IsPowersliding && m_IsModified == other.m_IsModified;
+	}
+
+	float m_RemoteInputX;
+	float m_RemoteInputY;
+	bool m_IsPowersliding;
+	bool m_IsModified;
+};
+
 /**
  * Physics component for vehicles.
  */
@@ -15,7 +33,7 @@ public:
 	VehiclePhysicsComponent(Entity* parentEntity);
 	~VehiclePhysicsComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	void Update(float deltaTime) override;
 
@@ -94,6 +112,7 @@ public:
 	void SetDirtyPosition(bool val);
 	void SetDirtyVelocity(bool val);
 	void SetDirtyAngularVelocity(bool val);
+	void SetRemoteInputInfo(const RemoteInputInfo&);
 
 private:
 	bool m_DirtyPosition;
@@ -109,4 +128,7 @@ private:
 	bool m_IsOnRail;
 
 	float m_SoftUpdate = 0;
+	uint32_t m_EndBehavior;
+	RemoteInputInfo m_RemoteInputInfo;
+	bool m_DirtyRemoteInput;
 };

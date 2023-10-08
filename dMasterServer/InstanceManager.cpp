@@ -7,10 +7,11 @@
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
 #include "CDZoneTableTable.h"
-#include "dMessageIdentifiers.h"
 #include "MasterPackets.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "BinaryPathFinder.h"
+#include "eConnectionType.h"
+#include "eMasterMessageType.h"
 
 InstanceManager::InstanceManager(dLogger* logger, const std::string& externalIP) {
 	mLogger = logger;
@@ -201,7 +202,7 @@ void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstan
 
 	CBITSTREAM;
 
-	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_AFFIRM_TRANSFER_REQUEST);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_REQUEST);
 
 	bitStream.Write(request.id);
 
@@ -369,7 +370,7 @@ Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
 }
 
 int InstanceManager::GetSoftCap(LWOMAPID mapID) {
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	if (zoneTable) {
 		const CDZoneTable* zone = zoneTable->Query(mapID);
 
@@ -382,7 +383,7 @@ int InstanceManager::GetSoftCap(LWOMAPID mapID) {
 }
 
 int InstanceManager::GetHardCap(LWOMAPID mapID) {
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	if (zoneTable) {
 		const CDZoneTable* zone = zoneTable->Query(mapID);
 
@@ -405,7 +406,7 @@ bool Instance::GetShutdownComplete() const {
 void Instance::Shutdown() {
 	CBITSTREAM;
 
-	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 
 	Game::server->Send(&bitStream, this->m_SysAddr, false);
 

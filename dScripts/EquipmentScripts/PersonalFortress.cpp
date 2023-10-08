@@ -4,6 +4,7 @@
 #include "DestroyableComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
+#include "eStateChangeType.h"
 
 void PersonalFortress::OnStartup(Entity* self) {
 	auto* owner = self->GetOwner();
@@ -25,7 +26,7 @@ void PersonalFortress::OnStartup(Entity* self) {
 		true, true, true, true, true, true, true, true, true
 	);
 
-	EntityManager::Instance()->SerializeEntity(owner);
+	Game::entityManager->SerializeEntity(owner);
 }
 
 void PersonalFortress::OnDie(Entity* self, Entity* killer) {
@@ -46,7 +47,7 @@ void PersonalFortress::OnDie(Entity* self, Entity* killer) {
 		true, true, true, true, true, true, true, true, true
 	);
 
-	EntityManager::Instance()->SerializeEntity(owner);
+	Game::entityManager->SerializeEntity(owner);
 }
 
 void PersonalFortress::OnTimerDone(Entity* self, std::string timerName) {

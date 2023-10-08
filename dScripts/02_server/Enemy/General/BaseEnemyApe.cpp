@@ -6,6 +6,8 @@
 #include "EntityInfo.h"
 #include "SkillComponent.h"
 #include "eAninmationFlags.h"
+#include "RenderComponent.h"
+#include "eStateChangeType.h"
 
 void BaseEnemyApe::OnStartup(Entity* self) {
 	self->SetVar<uint32_t>(u"timesStunned", 2);
@@ -13,9 +15,9 @@ void BaseEnemyApe::OnStartup(Entity* self) {
 }
 
 void BaseEnemyApe::OnDie(Entity* self, Entity* killer) {
-	auto* anchor = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"QB"));
+	auto* anchor = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"QB"));
 	if (anchor != nullptr && !anchor->GetIsDead()) {
-		anchor->Smash(self->GetObjectID(), SILENT);
+		anchor->Smash(self->GetObjectID(), eKillType::SILENT);
 	}
 }
 
@@ -37,7 +39,7 @@ void BaseEnemyApe::OnHit(Entity* self, Entity* attacker) {
 		if (skillComponent) {
 			skillComponent->Reset();
 		}
-		GameMessages::SendPlayAnimation(self, u"disable", 1.7f);
+		RenderComponent::PlayAnimation(self, u"disable", 1.7f);
 		GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_NONE, eAnimationFlags::IDLE_COMBAT, UNASSIGNED_SYSTEM_ADDRESS);
 		const auto reviveTime = self->GetVar<float_t>(u"reviveTime") != 0.0f
 			? self->GetVar<float_t>(u"reviveTime") : 12.0f;
@@ -54,7 +56,7 @@ void BaseEnemyApe::OnTimerDone(Entity* self, std::string timerName) {
 		if (destroyableComponent != nullptr) {
 			destroyableComponent->SetArmor(destroyableComponent->GetMaxArmor() / timesStunned);
 		}
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 		GameMessages::SendChangeIdleFlags(self->GetObjectID(), eAnimationFlags::IDLE_COMBAT, eAnimationFlags::IDLE_NONE, UNASSIGNED_SYSTEM_ADDRESS);
 		self->SetVar<uint32_t>(u"timesStunned", timesStunned + 1);
 		StunApe(self, false);
@@ -90,14 +92,14 @@ void BaseEnemyApe::OnTimerDone(Entity* self, std::string timerName) {
 			new LDFData<LWOOBJID>(u"ape", self->GetObjectID())
 		};
 
-		auto* anchor = EntityManager::Instance()->CreateEntity(entityInfo);
-		EntityManager::Instance()->ConstructEntity(anchor);
+		auto* anchor = Game::entityManager->CreateEntity(entityInfo);
+		Game::entityManager->ConstructEntity(anchor);
 		self->SetVar<LWOOBJID>(u"QB", anchor->GetObjectID());
 
 	} else if (timerName == "anchorDamageTimer") {
 
 		// Attacks the ape with some god skill
-		const auto* player = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"smasher"));
+		const auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"smasher"));
 		if (player == nullptr) {
 			return;
 		}

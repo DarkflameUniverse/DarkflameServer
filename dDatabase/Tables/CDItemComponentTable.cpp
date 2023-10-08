@@ -3,11 +3,7 @@
 
 CDItemComponent CDItemComponentTable::Default = {};
 
-//! Constructor
-CDItemComponentTable::CDItemComponentTable(void) {
-	Default = CDItemComponent();
-
-#ifdef CDCLIENT_CACHE_ALL
+void CDItemComponentTable::LoadValuesFromDatabase() {
 	// First, get the size of the table
 	unsigned int size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM ItemComponent");
@@ -55,13 +51,13 @@ CDItemComponentTable::CDItemComponentTable(void) {
 		entry.currencyLOT = tableData.getIntField("currencyLOT", -1);
 		entry.altCurrencyCost = tableData.getIntField("altCurrencyCost", -1);
 		entry.subItems = tableData.getStringField("subItems", "");
-		entry.audioEventUse = tableData.getStringField("audioEventUse", "");
+		UNUSED_COLUMN(entry.audioEventUse = tableData.getStringField("audioEventUse", ""));
 		entry.noEquipAnimation = tableData.getIntField("noEquipAnimation", -1) == 1 ? true : false;
 		entry.commendationLOT = tableData.getIntField("commendationLOT", -1);
 		entry.commendationCost = tableData.getIntField("commendationCost", -1);
-		entry.audioEquipMetaEventSet = tableData.getStringField("audioEquipMetaEventSet", "");
+		UNUSED_COLUMN(entry.audioEquipMetaEventSet = tableData.getStringField("audioEquipMetaEventSet", ""));
 		entry.currencyCosts = tableData.getStringField("currencyCosts", "");
-		entry.ingredientInfo = tableData.getStringField("ingredientInfo", "");
+		UNUSED_COLUMN(entry.ingredientInfo = tableData.getStringField("ingredientInfo", ""));
 		entry.locStatus = tableData.getIntField("locStatus", -1);
 		entry.forgeType = tableData.getIntField("forgeType", -1);
 		entry.SellMultiplier = tableData.getFloatField("SellMultiplier", -1.0f);
@@ -71,15 +67,6 @@ CDItemComponentTable::CDItemComponentTable(void) {
 	}
 
 	tableData.finalize();
-#endif
-}
-
-//! Destructor
-CDItemComponentTable::~CDItemComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDItemComponentTable::GetName(void) const {
-	return "ItemComponent";
 }
 
 const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int skillID) {
@@ -88,12 +75,10 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int s
 		return it->second;
 	}
 
-#ifndef CDCLIENT_CACHE_ALL
-	std::stringstream query;
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM ItemComponent WHERE id = ?;");
+	query.bind(1, static_cast<int32_t>(skillID));
 
-	query << "SELECT * FROM ItemComponent WHERE id = " << std::to_string(skillID);
-
-	auto tableData = CDClientDatabase::ExecuteQuery(query.str());
+	auto tableData = query.execQuery();
 	if (tableData.eof()) {
 		entries.insert(std::make_pair(skillID, Default));
 		return Default;
@@ -152,7 +137,6 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int s
 	if (it2 != this->entries.end()) {
 		return it2->second;
 	}
-#endif
 
 	return Default;
 }

@@ -1,20 +1,17 @@
 #include "AgMonumentLaserServer.h"
+#include "EntityManager.h"
 
 void AgMonumentLaserServer::OnStartup(Entity* self) {
-	/*
-	self->SetProximityRadius(m_Radius, "MonumentLaser");
-
-	std::cout << "Monument Laser " << self->GetObjectID() << " is at " << self->GetPosition().GetX()
-		<< ","<< self->GetPosition().GetY() << "," << self->GetPosition().GetZ() << std::endl;
-	*/
+	auto lasers = Game::entityManager->GetEntitiesInGroup(self->GetVarAsString(u"volGroup"));
+	for (auto laser : lasers) {
+		if (laser) laser->SetBoolean(u"active", true);
+	}
 }
 
-void AgMonumentLaserServer::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
-	/*
-	if (status == "ENTER") {
-
-		std::cout << "Monument laser ID: " << self->GetObjectID() << std::endl;
+void AgMonumentLaserServer::OnDie(Entity* self, Entity* killer) {
+	auto lasers = Game::entityManager->GetEntitiesInGroup(self->GetVarAsString(u"volGroup"));
+	for (auto laser : lasers) {
+		if (laser) laser->SetBoolean(u"active", false);
 	}
-	*/
 }
 

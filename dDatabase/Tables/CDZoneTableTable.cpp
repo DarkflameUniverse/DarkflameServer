@@ -1,7 +1,6 @@
 #include "CDZoneTableTable.h"
 
-//! Constructor
-CDZoneTableTable::CDZoneTableTable(void) {
+void CDZoneTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -51,14 +50,6 @@ CDZoneTableTable::CDZoneTableTable(void) {
 	}
 
 	tableData.finalize();
-}
-
-//! Destructor
-CDZoneTableTable::~CDZoneTableTable(void) {}
-
-//! Returns the table's name
-std::string CDZoneTableTable::GetName(void) const {
-	return "ZoneTable";
 }
 
 //! Queries the table with a zoneID to find.

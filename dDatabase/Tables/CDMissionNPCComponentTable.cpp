@@ -1,7 +1,6 @@
 #include "CDMissionNPCComponentTable.h"
 
-//! Constructor
-CDMissionNPCComponentTable::CDMissionNPCComponentTable(void) {
+void CDMissionNPCComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -34,14 +33,6 @@ CDMissionNPCComponentTable::CDMissionNPCComponentTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDMissionNPCComponentTable::~CDMissionNPCComponentTable(void) {}
-
-//! Returns the table's name
-std::string CDMissionNPCComponentTable::GetName(void) const {
-	return "MissionNPCComponent";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDMissionNPCComponent> CDMissionNPCComponentTable::Query(std::function<bool(CDMissionNPCComponent)> predicate) {
 
@@ -53,7 +44,7 @@ std::vector<CDMissionNPCComponent> CDMissionNPCComponentTable::Query(std::functi
 }
 
 //! Gets all the entries in the table
-std::vector<CDMissionNPCComponent> CDMissionNPCComponentTable::GetEntries(void) const {
+const std::vector<CDMissionNPCComponent>& CDMissionNPCComponentTable::GetEntries() const {
 	return this->entries;
 }
 

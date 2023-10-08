@@ -195,7 +195,7 @@ void BaseWavesServer::OnActivityTimerDone(Entity* self, const std::string& name)
 		ActivityTimerStart(self, PlaySpawnSoundTimer, 3, 3);
 	} else if (name == PlaySpawnSoundTimer) {
 		for (const auto& playerID : state.players) {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 			if (player != nullptr) {
 				GameMessages::SendPlayNDAudioEmitter(player, player->GetSystemAddress(), spawnSoundGUID);
 			}
@@ -216,7 +216,7 @@ void BaseWavesServer::OnActivityTimerDone(Entity* self, const std::string& name)
 	} else if (name == GameOverWinTimer) {
 		GameOver(self, true);
 	} else if (name == CinematicDoneTimer) {
-		for (auto* boss : EntityManager::Instance()->GetEntitiesInGroup("boss")) {
+		for (auto* boss : Game::entityManager->GetEntitiesInGroup("boss")) {
 			boss->OnFireEventServerSide(self, "startAI");
 		}
 	}
@@ -224,7 +224,7 @@ void BaseWavesServer::OnActivityTimerDone(Entity* self, const std::string& name)
 
 // Done
 void BaseWavesServer::ResetStats(LWOOBJID playerID) {
-	auto* player = EntityManager::Instance()->GetEntity(playerID);
+	auto* player = Game::entityManager->GetEntity(playerID);
 	if (player != nullptr) {
 
 		// Boost all the player stats when loading in
@@ -284,7 +284,7 @@ void BaseWavesServer::StartWaves(Entity* self) {
 	state.waitingPlayers.clear();
 
 	for (const auto& playerID : state.players) {
-		const auto player = EntityManager::Instance()->GetEntity(playerID);
+		const auto player = Game::entityManager->GetEntity(playerID);
 		if (player != nullptr) {
 			state.waitingPlayers.push_back(playerID);
 
@@ -309,7 +309,7 @@ bool BaseWavesServer::CheckAllPlayersDead() {
 	auto deadPlayers = 0;
 
 	for (const auto& playerID : state.players) {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player == nullptr || player->GetIsDead()) {
 			deadPlayers++;
 		}
@@ -322,9 +322,9 @@ bool BaseWavesServer::CheckAllPlayersDead() {
 void BaseWavesServer::SetPlayerSpawnPoints(const LWOOBJID& specificPlayerID) {
 	auto spawnerIndex = 1;
 	for (const auto& playerID : state.players) {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player != nullptr && (specificPlayerID == LWOOBJID_EMPTY || playerID == specificPlayerID)) {
-			auto possibleSpawners = EntityManager::Instance()->GetEntitiesInGroup("P" + std::to_string(spawnerIndex) + "_Spawn");
+			auto possibleSpawners = Game::entityManager->GetEntitiesInGroup("P" + std::to_string(spawnerIndex) + "_Spawn");
 			if (!possibleSpawners.empty()) {
 				auto* spawner = possibleSpawners.at(0);
 				GameMessages::SendTeleport(playerID, spawner->GetPosition(), spawner->GetRotation(), player->GetSystemAddress(), true);
@@ -353,7 +353,7 @@ void BaseWavesServer::GameOver(Entity* self, bool won) {
 	ClearSpawners();
 
 	for (const auto& playerID : state.players) {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player == nullptr)
 			continue;
 
@@ -378,6 +378,7 @@ void BaseWavesServer::GameOver(Entity* self, bool won) {
 		}
 
 		StopActivity(self, playerID, wave, time, score);
+		SaveScore(self, playerID, wave, time);
 	}
 }
 
@@ -392,7 +393,7 @@ void BaseWavesServer::GameWon(Entity* self) {
 
 // Done
 void BaseWavesServer::SpawnNow(const std::string& spawnerName, uint32_t amount, LOT spawnLot) {
-	const auto spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+	const auto spawners = Game::zoneManager->GetSpawnersByName(spawnerName);
 	for (auto* spawner : spawners) {
 		if (spawnLot != LOT_NULL) {
 			spawner->SetSpawnLot(spawnLot);
@@ -429,8 +430,8 @@ void BaseWavesServer::SpawnWave(Entity* self) {
 		}
 
 		for (const auto& playerID : state.players) {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
-			if (player != nullptr) {
+			auto* player = Game::entityManager->GetEntity(playerID);
+			if (player && player->GetIsDead()) {
 				player->Resurrect();
 			}
 		}
@@ -471,7 +472,7 @@ bool BaseWavesServer::UpdateSpawnedEnemies(Entity* self, LWOOBJID enemyID, uint3
 
 	state.currentSpawned--;
 
-	auto* enemy = EntityManager::Instance()->GetEntity(enemyID);
+	auto* enemy = Game::entityManager->GetEntity(enemyID);
 	if (enemy != nullptr && enemy->IsPlayer() && IsPlayerInActivity(self, enemyID)) {
 		SetActivityValue(self, enemyID, 0, GetActivityValue(self, enemyID, 0) + score);
 	}
@@ -499,7 +500,7 @@ bool BaseWavesServer::UpdateSpawnedEnemies(Entity* self, LWOOBJID enemyID, uint3
 		const auto soloWaveMissions = waves.at(completedWave).soloMissions;
 
 		for (const auto& playerID : state.players) {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 			if (player != nullptr && !player->GetIsDead()) {
 				SetActivityValue(self, playerID, 1, currentTime);
 				SetActivityValue(self, playerID, 2, state.waveNumber);
@@ -558,7 +559,7 @@ bool BaseWavesServer::UpdateSpawnedEnemies(Entity* self, LWOOBJID enemyID, uint3
 // Done
 void BaseWavesServer::UpdateMissionForAllPlayers(Entity* self, uint32_t missionID) {
 	for (const auto& playerID : state.players) {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player != nullptr) {
 			auto* missionComponent = player->GetComponent<MissionComponent>();
 			if (missionComponent == nullptr) return;
@@ -581,7 +582,7 @@ void BaseWavesServer::UpdateMissionForAllPlayers(Entity* self, uint32_t missionI
 
 void BaseWavesServer::ClearSpawners() {
 	for (const auto& spawnerName : spawners) {
-		const auto spawnerObjects = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+		const auto spawnerObjects = Game::zoneManager->GetSpawnersByName(spawnerName);
 
 		for (auto* spawnerObject : spawnerObjects) {
 			spawnerObject->Reset();

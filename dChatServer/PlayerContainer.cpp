@@ -6,9 +6,11 @@
 #include "dLogger.h"
 #include "ChatPacketHandler.h"
 #include "GeneralUtils.h"
-#include "dMessageIdentifiers.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "Database.h"
+#include "eConnectionType.h"
+#include "eChatInternalMessageType.h"
+#include "ChatPackets.h"
 
 PlayerContainer::PlayerContainer() {
 }
@@ -18,9 +20,8 @@ PlayerContainer::~PlayerContainer() {
 }
 
 void PlayerContainer::InsertPlayer(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	PlayerData* data = new PlayerData();
-	inStream.SetReadOffset(inStream.GetReadOffset() + 64);
 	inStream.Read(data->playerID);
 
 	uint32_t len;
@@ -51,9 +52,8 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 }
 
 void PlayerContainer::RemovePlayer(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
-	inStream.Read(playerID); //skip header
 	inStream.Read(playerID);
 
 	//Before they get kicked, we need to also send a message to their friends saying that they disconnected.
@@ -96,9 +96,8 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 }
 
 void PlayerContainer::MuteUpdate(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
-	inStream.Read(playerID); //skip header
 	inStream.Read(playerID);
 	time_t expire = 0;
 	inStream.Read(expire);
@@ -117,9 +116,8 @@ void PlayerContainer::MuteUpdate(Packet* packet) {
 }
 
 void PlayerContainer::CreateTeamServer(Packet* packet) {
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
-	inStream.Read(playerID); //skip header
 	inStream.Read(playerID);
 	size_t membersSize = 0;
 	inStream.Read(membersSize);
@@ -149,7 +147,7 @@ void PlayerContainer::CreateTeamServer(Packet* packet) {
 
 void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_MUTE_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
 
 	bitStream.Write(player);
 	bitStream.Write(time);
@@ -210,6 +208,14 @@ TeamData* PlayerContainer::GetTeam(LWOOBJID playerID) {
 }
 
 void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
+	if (team->memberIDs.size() >= 4){
+		Game::logger->Log("PlayerContainer", "Tried to add player to team that already had 4 players");
+		auto* player = GetPlayerData(playerID);
+		if (!player) return;
+		ChatPackets::SendSystemMessage(player->sysAddr, u"The teams is full! You have not been added to a team!");
+		return;
+	}
+
 	const auto index = std::find(team->memberIDs.begin(), team->memberIDs.end(), playerID);
 
 	if (index != team->memberIDs.end()) return;
@@ -348,7 +354,7 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 
 void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_TEAM_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::TEAM_UPDATE);
 
 	bitStream.Write(team->teamID);
 	bitStream.Write(deleteTeam);

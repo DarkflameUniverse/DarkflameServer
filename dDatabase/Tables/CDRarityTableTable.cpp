@@ -1,7 +1,6 @@
 #include "CDRarityTableTable.h"
 
-//! Constructor
-CDRarityTableTable::CDRarityTableTable(void) {
+void CDRarityTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -33,14 +32,6 @@ CDRarityTableTable::CDRarityTableTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDRarityTableTable::~CDRarityTableTable(void) {}
-
-//! Returns the table's name
-std::string CDRarityTableTable::GetName(void) const {
-	return "RarityTable";
-}
-
 //! Queries the table with a custom "where" clause
 std::vector<CDRarityTable> CDRarityTableTable::Query(std::function<bool(CDRarityTable)> predicate) {
 
@@ -52,7 +43,7 @@ std::vector<CDRarityTable> CDRarityTableTable::Query(std::function<bool(CDRarity
 }
 
 //! Gets all the entries in the table
-const std::vector<CDRarityTable>& CDRarityTableTable::GetEntries(void) const {
+const std::vector<CDRarityTable>& CDRarityTableTable::GetEntries() const {
 	return this->entries;
 }
 

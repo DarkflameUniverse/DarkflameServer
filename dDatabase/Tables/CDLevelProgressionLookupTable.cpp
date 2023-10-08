@@ -1,7 +1,6 @@
 #include "CDLevelProgressionLookupTable.h"
 
-//! Constructor
-CDLevelProgressionLookupTable::CDLevelProgressionLookupTable(void) {
+void CDLevelProgressionLookupTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -32,15 +31,6 @@ CDLevelProgressionLookupTable::CDLevelProgressionLookupTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDLevelProgressionLookupTable::~CDLevelProgressionLookupTable(void) {}
-
-//! Returns the table's name
-std::string CDLevelProgressionLookupTable::GetName(void) const {
-	return "LevelProgressionLookup";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDLevelProgressionLookup> CDLevelProgressionLookupTable::Query(std::function<bool(CDLevelProgressionLookup)> predicate) {
 
 	std::vector<CDLevelProgressionLookup> data = cpplinq::from(this->entries)
@@ -50,8 +40,7 @@ std::vector<CDLevelProgressionLookup> CDLevelProgressionLookupTable::Query(std::
 	return data;
 }
 
-//! Gets all the entries in the table
-std::vector<CDLevelProgressionLookup> CDLevelProgressionLookupTable::GetEntries(void) const {
+const std::vector<CDLevelProgressionLookup>& CDLevelProgressionLookupTable::GetEntries() const {
 	return this->entries;
 }
 

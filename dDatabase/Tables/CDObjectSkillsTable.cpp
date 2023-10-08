@@ -1,7 +1,6 @@
 #include "CDObjectSkillsTable.h"
 
-//! Constructor
-CDObjectSkillsTable::CDObjectSkillsTable(void) {
+void CDObjectSkillsTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -33,15 +32,6 @@ CDObjectSkillsTable::CDObjectSkillsTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDObjectSkillsTable::~CDObjectSkillsTable(void) {}
-
-//! Returns the table's name
-std::string CDObjectSkillsTable::GetName(void) const {
-	return "ObjectSkills";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDObjectSkills> CDObjectSkillsTable::Query(std::function<bool(CDObjectSkills)> predicate) {
 
 	std::vector<CDObjectSkills> data = cpplinq::from(this->entries)
@@ -51,8 +41,6 @@ std::vector<CDObjectSkills> CDObjectSkillsTable::Query(std::function<bool(CDObje
 	return data;
 }
 
-//! Gets all the entries in the table
-std::vector<CDObjectSkills> CDObjectSkillsTable::GetEntries(void) const {
+const std::vector<CDObjectSkills>& CDObjectSkillsTable::GetEntries() const {
 	return this->entries;
 }
-

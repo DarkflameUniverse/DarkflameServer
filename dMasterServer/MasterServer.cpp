@@ -27,6 +27,8 @@
 #include "dServer.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
+#include "eConnectionType.h"
+#include "eMasterMessageType.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -39,8 +41,8 @@
 #include "MasterPackets.h"
 #include "ObjectIDManager.h"
 #include "PacketUtils.h"
-#include "dMessageIdentifiers.h"
 #include "FdbToSqlite.h"
+#include "BitStreamUtils.h"
 
 namespace Game {
 	dLogger* logger = nullptr;
@@ -49,6 +51,7 @@ namespace Game {
 	dConfig* config = nullptr;
 	AssetManager* assetManager = nullptr;
 	bool shouldShutdown = false;
+	std::mt19937 randomEngine;
 } //namespace Game
 
 bool shutdownSequenceStarted = false;
@@ -110,6 +113,17 @@ int main(int argc, char** argv) {
 	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "masterconfig.ini").string());
 	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
+
+	uint32_t clientNetVersion = 0;
+	if (!GeneralUtils::TryParse(Game::config->GetValue("client_net_version"), clientNetVersion)) {
+		Game::logger->Log("MasterServer", "Failed to parse (%s) as net version. Cannot start server as no clients could connect.",Game::config->GetValue("client_net_version").c_str());
+		Game::logger->Log("MasterServer", "As of version 1.1.1, client_net_version is required to be defined in sharedconfig.ini as opposed to in CMakeVariables.txt as NET_VERSION.");
+		Game::logger->Log("MasterServer", "Rerun cmake to ensure all config values exist. If client_net_version already exists in sharedconfig.ini, please ensure it is a valid number.");
+		Game::logger->Log("MasterServer", "like 171022");
+		return EXIT_FAILURE;
+	}
+
+	Game::logger->Log("MasterServer", "Using net version %s", Game::config->GetValue("client_net_version").c_str());
 
 	Game::logger->Log("MasterServer", "Starting Master server...");
 	Game::logger->Log("MasterServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
@@ -193,7 +207,7 @@ int main(int argc, char** argv) {
 
 	//Get CDClient initial information
 	try {
-		CDClientManager::Instance()->Initialize();
+		CDClientManager::Instance();
 	} catch (CppSQLite3Exception& e) {
 		Game::logger->Log("WorldServer", "Failed to initialize CDServer SQLite Database");
 		Game::logger->Log("WorldServer", "May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
@@ -212,46 +226,85 @@ int main(int argc, char** argv) {
 		std::cout << "Enter a username: ";
 		std::cin >> username;
 
+		std::unique_ptr<sql::PreparedStatement> userLookupStatement(Database::CreatePreppedStmt("SELECT id FROM accounts WHERE name=? LIMIT 1;"));
+		userLookupStatement->setString(1, username.c_str());
+		std::unique_ptr<sql::ResultSet> res(userLookupStatement->executeQuery());
+		if (res->rowsCount() > 0) {
+			Game::logger->Log("MasterServer", "Account with name \"%s\" already exists", username.c_str());
+			std::cout << "Do you want to change the password of that account? [y/n]?";
+			std::string prompt = "";
+			std::cin >> prompt;
+			if (prompt == "y" || prompt == "yes"){
+				uint32_t accountId = 0;
+				res->next();
+				accountId = res->getUInt(1);
+				if (accountId == 0) return EXIT_FAILURE;
+
+				//Read the password from the console without echoing it.
+				#ifdef __linux__
+						//This function is obsolete, but it only meant to be used by the
+						//sysadmin to create their first account.
+						password = getpass("Enter a password: ");
+				#else
+						std::cout << "Enter a password: ";
+						std::cin >> password;
+				#endif
+
+				// Regenerate hash based on new password
+				char salt[BCRYPT_HASHSIZE];
+				char hash[BCRYPT_HASHSIZE];
+				int32_t bcryptState = ::bcrypt_gensalt(12, salt);
+				assert(bcryptState == 0);
+				bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
+				assert(bcryptState == 0);
+
+				std::unique_ptr<sql::PreparedStatement> userUpdateStatement(Database::CreatePreppedStmt("UPDATE accounts SET password = ? WHERE id = ?;"));
+				userUpdateStatement->setString(1, std::string(hash, BCRYPT_HASHSIZE).c_str());
+				userUpdateStatement->setUInt(2, accountId);
+				userUpdateStatement->execute();
+
+				Game::logger->Log("MasterServer", "Account \"%s\" password updated successfully!", username.c_str());
+			} else {
+				Game::logger->Log("MasterServer", "Account \"%s\" was not updated.", username.c_str());
+			}
+			return EXIT_SUCCESS;
+		}
+
 		//Read the password from the console without echoing it.
-#ifdef __linux__
-		//This function is obsolete, but it only meant to be used by the
-		//sysadmin to create their first account.
-		password = getpass("Enter a password: ");
-#else
-		std::cout << "Enter a password: ";
-		std::cin >> password;
-#endif
+		#ifdef __linux__
+				//This function is obsolete, but it only meant to be used by the
+				//sysadmin to create their first account.
+				password = getpass("Enter a password: ");
+		#else
+				std::cout << "Enter a password: ";
+				std::cin >> password;
+		#endif
 
 		//Generate new hash for bcrypt
-
 		char salt[BCRYPT_HASHSIZE];
 		char hash[BCRYPT_HASHSIZE];
-
 		int32_t bcryptState = ::bcrypt_gensalt(12, salt);
-
 		assert(bcryptState == 0);
-
 		bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-
 		assert(bcryptState == 0);
 
 		//Create account
+		try {
+			std::unique_ptr<sql::PreparedStatement> statement(Database::CreatePreppedStmt("INSERT INTO accounts (name, password, gm_level) VALUES (?, ?, ?);"));
+			statement->setString(1, username.c_str());
+			statement->setString(2, std::string(hash, BCRYPT_HASHSIZE).c_str());
+			statement->setInt(3, 9);
+			statement->execute();
+		} catch(sql::SQLException& e) {
+			Game::logger->Log("MasterServer", "A SQL error occurred!:\n %s",  e.what());
+			return EXIT_FAILURE;
+		}
 
-		auto* statement = Database::CreatePreppedStmt("INSERT INTO accounts (name, password, ""gm_level) VALUES (?, ?, ?);");
-		statement->setString(1, username.c_str());
-		statement->setString(2, std::string(hash, BCRYPT_HASHSIZE).c_str());
-		statement->setInt(3, 9);
-
-		statement->execute();
-
-		delete statement;
-
-		std::cout << "Account created successfully!\n";
-
-
+		Game::logger->Log("MasterServer", "Account created successfully!");
 		return EXIT_SUCCESS;
 	}
 
+	Game::randomEngine = std::mt19937(time(0));
 	uint32_t maxClients = 999;
 	uint32_t ourPort = 1000;
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
@@ -296,7 +349,6 @@ int main(int argc, char** argv) {
 
 		Game::im->GetInstance(0, false, 0);
 		Game::im->GetInstance(1000, false, 0);
-
 		StartAuthServer();
 	}
 
@@ -456,9 +508,11 @@ void HandlePacket(Packet* packet) {
 		}
 	}
 
-	if (packet->data[1] == MASTER) {
-		switch (packet->data[3]) {
-		case MSG_MASTER_REQUEST_PERSISTENT_ID: {
+	if (packet->length < 4) return;
+
+	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
+		switch (static_cast<eMasterMessageType>(packet->data[3])) {
+		case eMasterMessageType::REQUEST_PERSISTENT_ID: {
 			Game::logger->Log("MasterServer", "A persistent ID req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
@@ -470,7 +524,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_REQUEST_ZONE_TRANSFER: {
+		case eMasterMessageType::REQUEST_ZONE_TRANSFER: {
 			Game::logger->Log("MasterServer", "Received zone transfer req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
@@ -506,7 +560,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_SERVER_INFO: {
+		case eMasterMessageType::SERVER_INFO: {
 			//MasterPackets::HandleServerInfo(packet);
 
 			//This is here because otherwise we'd have to include IM in
@@ -565,7 +619,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_SET_SESSION_KEY: {
+		case eMasterMessageType::SET_SESSION_KEY: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 			uint32_t sessionKey = 0;
@@ -579,7 +633,7 @@ void HandlePacket(Packet* packet) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_NEW_SESSION_ALERT);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
 					bitStream.Write<uint32_t>(username.size());
 					for (auto character : username) {
@@ -596,7 +650,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_REQUEST_SESSION_KEY: {
+		case eMasterMessageType::REQUEST_SESSION_KEY: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 			std::string username = PacketUtils::ReadString(8, packet, false);
@@ -604,9 +658,9 @@ void HandlePacket(Packet* packet) {
 			for (auto key : activeSessions) {
 				if (key.second == username) {
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SESSION_KEY_RESPONSE);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
-					PacketUtils::WriteString(bitStream, key.second, 64);
+					bitStream.Write(LUString(key.second, 64));
 					Game::server->Send(&bitStream, packet->systemAddress, false);
 					break;
 				}
@@ -614,7 +668,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_PLAYER_ADDED: {
+		case eMasterMessageType::PLAYER_ADDED: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -634,7 +688,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_PLAYER_REMOVED: {
+		case eMasterMessageType::PLAYER_REMOVED: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -652,7 +706,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_CREATE_PRIVATE_ZONE: {
+		case eMasterMessageType::CREATE_PRIVATE_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -676,7 +730,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_REQUEST_PRIVATE_ZONE: {
+		case eMasterMessageType::REQUEST_PRIVATE_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -711,7 +765,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_WORLD_READY: {
+		case eMasterMessageType::WORLD_READY: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -735,7 +789,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_PREP_ZONE: {
+		case eMasterMessageType::PREP_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -751,7 +805,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_AFFIRM_TRANSFER_RESPONSE: {
+		case eMasterMessageType::AFFIRM_TRANSFER_RESPONSE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -771,7 +825,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_SHUTDOWN_RESPONSE: {
+		case eMasterMessageType::SHUTDOWN_RESPONSE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -786,7 +840,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case MSG_MASTER_SHUTDOWN_UNIVERSE: {
+		case eMasterMessageType::SHUTDOWN_UNIVERSE: {
 			Game::logger->Log("MasterServer", "Received shutdown universe command, shutting down in 10 minutes.");
 			Game::shouldShutdown = true;
 			break;
@@ -850,7 +904,7 @@ void ShutdownSequence(int32_t signal) {
 
 	{
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 		Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		Game::logger->Log("MasterServer", "Triggered master shutdown");
 	}

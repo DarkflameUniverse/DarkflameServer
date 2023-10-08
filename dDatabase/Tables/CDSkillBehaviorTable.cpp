@@ -1,8 +1,6 @@
 #include "CDSkillBehaviorTable.h"
-//#include "Logger.hpp"
 
-//! Constructor
-CDSkillBehaviorTable::CDSkillBehaviorTable(void) {
+void CDSkillBehaviorTable::LoadValuesFromDatabase() {
 	m_empty = CDSkillBehavior();
 
 	// First, get the size of the table
@@ -51,29 +49,6 @@ CDSkillBehaviorTable::CDSkillBehaviorTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDSkillBehaviorTable::~CDSkillBehaviorTable(void) {}
-
-//! Returns the table's name
-std::string CDSkillBehaviorTable::GetName(void) const {
-	return "SkillBehavior";
-}
-
-//! Queries the table with a custom "where" clause
-std::vector<CDSkillBehavior> CDSkillBehaviorTable::Query(std::function<bool(CDSkillBehavior)> predicate) {
-
-	/*std::vector<CDSkillBehavior> data = cpplinq::from(this->entries)
-	>> cpplinq::where(predicate)
-	>> cpplinq::to_vector();
-
-	return data;*/
-
-	//Logger::LogDebug("CDSkillBehaviorTable", "The 'Query' function is no longer working! Please use GetSkillByID instead!");
-	std::vector<CDSkillBehavior> data; //So MSVC shuts up
-	return data;
-}
-
-//! Gets an entry by ID
 const CDSkillBehavior& CDSkillBehaviorTable::GetSkillByID(unsigned int skillID) {
 	std::map<unsigned int, CDSkillBehavior>::iterator it = this->entries.find(skillID);
 	if (it != this->entries.end()) {

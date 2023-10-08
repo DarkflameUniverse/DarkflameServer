@@ -6,13 +6,14 @@
 #include "Game.h"
 #include "dZoneManager.h"
 #include "eServerDisconnectIdentifiers.h"
+#include "eGameMasterLevel.h"
 
 User::User(const SystemAddress& sysAddr, const std::string& username, const std::string& sessionKey) {
 	m_AccountID = 0;
 	m_Username = "";
 	m_SessionKey = "";
 
-	m_MaxGMLevel = 0; //The max GM level this account can assign to it's characters
+	m_MaxGMLevel = eGameMasterLevel::CIVILIAN; //The max GM level this account can assign to it's characters
 	m_LastCharID = 0;
 
 	m_SessionKey = sessionKey;
@@ -33,7 +34,7 @@ User::User(const SystemAddress& sysAddr, const std::string& username, const std:
 	sql::ResultSet* res = stmt->executeQuery();
 	while (res->next()) {
 		m_AccountID = res->getUInt(1);
-		m_MaxGMLevel = res->getInt(2);
+		m_MaxGMLevel = static_cast<eGameMasterLevel>(res->getInt(2));
 		m_MuteExpire = 0; //res->getUInt64(3);
 	}
 

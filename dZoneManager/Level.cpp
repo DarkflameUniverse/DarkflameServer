@@ -162,7 +162,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 	uint32_t objectsCount = 0;
 	BinaryIO::BinaryRead(file, objectsCount);
 
-	CDFeatureGatingTable* featureGatingTable = CDClientManager::Instance()->GetTable<CDFeatureGatingTable>("FeatureGating");
+	CDFeatureGatingTable* featureGatingTable = CDClientManager::Instance().GetTable<CDFeatureGatingTable>();
 
 	for (uint32_t i = 0; i < objectsCount; ++i) {
 		SceneObject obj;
@@ -179,8 +179,8 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		//This is a little bit of a bodge, but because the alpha client (HF) doesn't store the
 		//spawn position / rotation like the later versions do, we need to check the LOT for the spawn pos & set it.
 		if (obj.lot == LOT_MARKER_PLAYER_START) {
-			dZoneManager::Instance()->GetZone()->SetSpawnPos(obj.position);
-			dZoneManager::Instance()->GetZone()->SetSpawnRot(obj.rotation);
+			Game::zoneManager->GetZone()->SetSpawnPos(obj.position);
+			Game::zoneManager->GetZone()->SetSpawnRot(obj.rotation);
 		}
 
 		std::u16string ldfString = u"";
@@ -297,7 +297,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 				}
 			}
 			Spawner* spawner = new Spawner(spawnInfo);
-			dZoneManager::Instance()->AddSpawner(obj.id, spawner);
+			Game::zoneManager->AddSpawner(obj.id, spawner);
 		} else { //Regular object
 			EntityInfo info;
 			info.spawnerID = 0;
@@ -328,11 +328,11 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 			if (!clientOnly) {
 
 				// We should never have more than 1 zone control object
-				const auto zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
+				const auto zoneControlObject = Game::zoneManager->GetZoneControlObject();
 				if (zoneControlObject != nullptr && info.lot == zoneControlObject->GetLOT())
 					goto deleteSettings;
 
-				EntityManager::Instance()->CreateEntity(info, nullptr);
+				Game::entityManager->CreateEntity(info, nullptr);
 			} else {
 			deleteSettings:
 

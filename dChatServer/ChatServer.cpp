@@ -9,19 +9,23 @@
 #include "dLogger.h"
 #include "Database.h"
 #include "dConfig.h"
-#include "dMessageIdentifiers.h"
 #include "dChatFilter.h"
 #include "Diagnostics.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
-
+#include "eConnectionType.h"
 #include "PlayerContainer.h"
 #include "ChatPacketHandler.h"
+#include "eChatMessageType.h"
+#include "eChatInternalMessageType.h"
+#include "eWorldMessageType.h"
 
 #include "Game.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
+#include <MessageIdentifiers.h>
+
 namespace Game {
 	dLogger* logger = nullptr;
 	dServer* server = nullptr;
@@ -29,6 +33,7 @@ namespace Game {
 	dChatFilter* chatFilter = nullptr;
 	AssetManager* assetManager = nullptr;
 	bool shouldShutdown = false;
+	std::mt19937 randomEngine;
 }
 
 
@@ -68,7 +73,7 @@ int main(int argc, char** argv) {
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		Game::logger->Log("ChatServer", "Got an error while setting up assets: %s", ex.what());
-		
+
 		return EXIT_FAILURE;
 	}
 
@@ -110,6 +115,8 @@ int main(int argc, char** argv) {
 	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::shouldShutdown);
 
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
+	
+	Game::randomEngine = std::mt19937(time(0));
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -199,25 +206,27 @@ void HandlePacket(Packet* packet) {
 		Game::logger->Log("ChatServer", "A server is connecting, awaiting user list.");
 	}
 
-	if (packet->data[1] == CHAT_INTERNAL) {
-		switch (packet->data[3]) {
-		case MSG_CHAT_INTERNAL_PLAYER_ADDED_NOTIFICATION:
+	if (packet->length < 4) return; // Nothing left to process.  Need 4 bytes to continue.
+
+	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
+		switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
+		case eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION:
 			playerContainer.InsertPlayer(packet);
 			break;
 
-		case MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION:
+		case eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION:
 			playerContainer.RemovePlayer(packet);
 			break;
 
-		case MSG_CHAT_INTERNAL_MUTE_UPDATE:
+		case eChatInternalMessageType::MUTE_UPDATE:
 			playerContainer.MuteUpdate(packet);
 			break;
 
-		case MSG_CHAT_INTERNAL_CREATE_TEAM:
+		case eChatInternalMessageType::CREATE_TEAM:
 			playerContainer.CreateTeamServer(packet);
 			break;
 
-		case MSG_CHAT_INTERNAL_ANNOUNCEMENT: {
+		case eChatInternalMessageType::ANNOUNCEMENT: {
 			//we just forward this packet to every connected server
 			CINSTREAM;
 			Game::server->Send(&inStream, packet->systemAddress, true); //send to everyone except origin
@@ -229,67 +238,67 @@ void HandlePacket(Packet* packet) {
 		}
 	}
 
-	if (packet->data[1] == CHAT) {
-		switch (packet->data[3]) {
-		case MSG_CHAT_GET_FRIENDS_LIST:
+	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
+		switch (static_cast<eChatMessageType>(packet->data[3])) {
+		case eChatMessageType::GET_FRIENDS_LIST:
 			ChatPacketHandler::HandleFriendlistRequest(packet);
 			break;
 
-		case MSG_CHAT_GET_IGNORE_LIST:
+		case eChatMessageType::GET_IGNORE_LIST:
 			Game::logger->Log("ChatServer", "Asked for ignore list, but is unimplemented right now.");
 			break;
 
-		case MSG_CHAT_TEAM_GET_STATUS:
+		case eChatMessageType::TEAM_GET_STATUS:
 			ChatPacketHandler::HandleTeamStatusRequest(packet);
 			break;
 
-		case MSG_CHAT_ADD_FRIEND_REQUEST:
+		case eChatMessageType::ADD_FRIEND_REQUEST:
 			//this involves someone sending the initial request, the response is below, response as in from the other player.
 			//We basically just check to see if this player is online or not and route the packet.
 			ChatPacketHandler::HandleFriendRequest(packet);
 			break;
 
-		case MSG_CHAT_ADD_FRIEND_RESPONSE:
+		case eChatMessageType::ADD_FRIEND_RESPONSE:
 			//This isn't the response a server sent, rather it is a player's response to a received request.
 			//Here, we'll actually have to add them to eachother's friend lists depending on the response code.
 			ChatPacketHandler::HandleFriendResponse(packet);
 			break;
 
-		case MSG_CHAT_REMOVE_FRIEND:
+		case eChatMessageType::REMOVE_FRIEND:
 			ChatPacketHandler::HandleRemoveFriend(packet);
 			break;
 
-		case MSG_CHAT_GENERAL_CHAT_MESSAGE:
+		case eChatMessageType::GENERAL_CHAT_MESSAGE:
 			ChatPacketHandler::HandleChatMessage(packet);
 			break;
 
-		case MSG_CHAT_PRIVATE_CHAT_MESSAGE:
+		case eChatMessageType::PRIVATE_CHAT_MESSAGE:
 			//This message is supposed to be echo'd to both the sender and the receiver
 			//BUT: they have to have different responseCodes, so we'll do some of the ol hacky wacky to fix that right up.
 			ChatPacketHandler::HandlePrivateChatMessage(packet);
 			break;
 
-		case MSG_CHAT_TEAM_INVITE:
+		case eChatMessageType::TEAM_INVITE:
 			ChatPacketHandler::HandleTeamInvite(packet);
 			break;
 
-		case MSG_CHAT_TEAM_INVITE_RESPONSE:
+		case eChatMessageType::TEAM_INVITE_RESPONSE:
 			ChatPacketHandler::HandleTeamInviteResponse(packet);
 			break;
 
-		case MSG_CHAT_TEAM_LEAVE:
+		case eChatMessageType::TEAM_LEAVE:
 			ChatPacketHandler::HandleTeamLeave(packet);
 			break;
 
-		case MSG_CHAT_TEAM_SET_LEADER:
+		case eChatMessageType::TEAM_SET_LEADER:
 			ChatPacketHandler::HandleTeamPromote(packet);
 			break;
 
-		case MSG_CHAT_TEAM_KICK:
+		case eChatMessageType::TEAM_KICK:
 			ChatPacketHandler::HandleTeamKick(packet);
 			break;
 
-		case MSG_CHAT_TEAM_SET_LOOT:
+		case eChatMessageType::TEAM_SET_LOOT:
 			ChatPacketHandler::HandleTeamLootOption(packet);
 			break;
 
@@ -298,9 +307,9 @@ void HandlePacket(Packet* packet) {
 		}
 	}
 
-	if (packet->data[1] == WORLD) {
-		switch (packet->data[3]) {
-		case MSG_WORLD_CLIENT_ROUTE_PACKET: {
+	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::WORLD) {
+		switch (static_cast<eWorldMessageType>(packet->data[3])) {
+		case eWorldMessageType::ROUTE_PACKET: {
 			Game::logger->Log("ChatServer", "Routing packet from world");
 			break;
 		}

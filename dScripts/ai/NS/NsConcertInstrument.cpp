@@ -9,6 +9,7 @@
 #include "MissionComponent.h"
 #include "eMissionState.h"
 #include "eMissionTaskType.h"
+#include "RenderComponent.h"
 
 // Constants are at the bottom
 
@@ -20,7 +21,7 @@ void NsConcertInstrument::OnStartup(Entity* self) {
 }
 
 void NsConcertInstrument::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == REBUILD_RESETTING || state == REBUILD_OPEN) {
+	if (state == eRebuildState::RESETTING || state == eRebuildState::OPEN) {
 		self->SetVar<LWOOBJID>(u"activePlayer", LWOOBJID_EMPTY);
 	}
 }
@@ -48,7 +49,7 @@ void NsConcertInstrument::OnFireEventServerSide(Entity* self, Entity* sender, st
 		if (activePlayerID == LWOOBJID_EMPTY)
 			return;
 
-		const auto activePlayer = EntityManager::Instance()->GetEntity(activePlayerID);
+		const auto activePlayer = Game::entityManager->GetEntity(activePlayerID);
 		if (activePlayer == nullptr)
 			return;
 
@@ -62,7 +63,7 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 		return;
 
 	// If for some reason the player becomes null (for example an unexpected leave), we need to clean up
-	const auto activePlayer = EntityManager::Instance()->GetEntity(activePlayerID);
+	const auto activePlayer = Game::entityManager->GetEntity(activePlayerID);
 	if (activePlayer == nullptr && name != "cleanupAfterStop") {
 		StopPlayingInstrument(self, nullptr);
 		return;
@@ -96,7 +97,7 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 		if (rebuildComponent != nullptr)
 			rebuildComponent->ResetRebuild(false);
 
-		self->Smash(self->GetObjectID(), VIOLENT);
+		self->Smash(self->GetObjectID(), eKillType::VIOLENT);
 		self->SetVar<LWOOBJID>(u"activePlayer", LWOOBJID_EMPTY);
 	} else if (activePlayer != nullptr && name == "achievement") {
 		auto* missionComponent = activePlayer->GetComponent<MissionComponent>();
@@ -122,10 +123,10 @@ void NsConcertInstrument::StartPlayingInstrument(Entity* self, Entity* player) {
 		player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 	GameMessages::SendPlayCinematic(player->GetObjectID(), cinematics.at(instrumentLot), UNASSIGNED_SYSTEM_ADDRESS);
 	self->AddCallbackTimer(1.0f, [player, instrumentLot]() {
-		GameMessages::SendPlayAnimation(player, animations.at(instrumentLot), 2.0f);
+		RenderComponent::PlayAnimation(player, animations.at(instrumentLot), 2.0f);
 		});
 
-	for (auto* soundBox : EntityManager::Instance()->GetEntitiesInGroup("Audio-Concert")) {
+	for (auto* soundBox : Game::entityManager->GetEntitiesInGroup("Audio-Concert")) {
 		auto* soundTrigger = soundBox->GetComponent<SoundTriggerComponent>();
 		if (soundTrigger != nullptr) {
 			soundTrigger->ActivateMusicCue(music.at(instrumentLot));
@@ -153,14 +154,14 @@ void NsConcertInstrument::StopPlayingInstrument(Entity* self, Entity* player) {
 		}
 
 		GameMessages::SendEndCinematic(player->GetObjectID(), cinematics.at(instrumentLot), UNASSIGNED_SYSTEM_ADDRESS, 1.0f);
-		GameMessages::SendPlayAnimation(player, smashAnimations.at(instrumentLot), 2.0f);
+		RenderComponent::PlayAnimation(player, smashAnimations.at(instrumentLot), 2.0f);
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stopCheckingMovement", 0, 0,
 			player->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	self->SetVar<bool>(u"beingPlayed", false);
 
-	for (auto* soundBox : EntityManager::Instance()->GetEntitiesInGroup("Audio-Concert")) {
+	for (auto* soundBox : Game::entityManager->GetEntitiesInGroup("Audio-Concert")) {
 		auto* soundTrigger = soundBox->GetComponent<SoundTriggerComponent>();
 		if (soundTrigger != nullptr) {
 			soundTrigger->DeactivateMusicCue(music.at(instrumentLot));
@@ -199,7 +200,7 @@ void NsConcertInstrument::EquipInstruments(Entity* self, Entity* player) {
 		// Equip the left hand instrument
 		const auto leftInstrumentLot = instrumentLotLeft.find(GetInstrumentLot(self))->second;
 		if (leftInstrumentLot != LOT_NULL) {
-			inventory->AddItem(leftInstrumentLot, 1, eLootSourceType::LOOT_SOURCE_NONE, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
+			inventory->AddItem(leftInstrumentLot, 1, eLootSourceType::NONE, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
 			auto* leftInstrument = inventory->FindItemByLot(leftInstrumentLot, TEMP_ITEMS);
 			leftInstrument->Equip();
 		}
@@ -207,7 +208,7 @@ void NsConcertInstrument::EquipInstruments(Entity* self, Entity* player) {
 		// Equip the right hand instrument
 		const auto rightInstrumentLot = instrumentLotRight.find(GetInstrumentLot(self))->second;
 		if (rightInstrumentLot != LOT_NULL) {
-			inventory->AddItem(rightInstrumentLot, 1, eLootSourceType::LOOT_SOURCE_NONE, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
+			inventory->AddItem(rightInstrumentLot, 1, eLootSourceType::NONE, TEMP_ITEMS, {}, LWOOBJID_EMPTY, false);
 			auto* rightInstrument = inventory->FindItemByLot(rightInstrumentLot, TEMP_ITEMS);
 			rightInstrument->Equip();
 		}

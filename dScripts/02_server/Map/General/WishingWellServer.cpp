@@ -3,6 +3,7 @@
 #include "GameMessages.h"
 #include "Loot.h"
 #include "EntityManager.h"
+#include "eTerminateType.h"
 
 void WishingWellServer::OnStartup(Entity* self) {
 }
@@ -32,7 +33,7 @@ void WishingWellServer::OnUse(Entity* self, Entity* user) {
 	const auto userID = user->GetObjectID();
 
 	self->AddCallbackTimer(10, [self, userID]() {
-		auto* user = EntityManager::Instance()->GetEntity(userID);
+		auto* user = Game::entityManager->GetEntity(userID);
 
 		if (user == nullptr) return;
 

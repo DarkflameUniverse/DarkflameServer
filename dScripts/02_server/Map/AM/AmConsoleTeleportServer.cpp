@@ -1,6 +1,6 @@
 #include "AmConsoleTeleportServer.h"
 #include "ChooseYourDestinationNsToNt.h"
-#include "AMFFormat.h"
+#include "Amf3.h"
 
 void AmConsoleTeleportServer::OnStartup(Entity* self) {
 	self->SetVar(u"teleportAnim", m_TeleportAnim);

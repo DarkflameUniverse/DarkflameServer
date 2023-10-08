@@ -1,7 +1,6 @@
 #include "CDBrickIDTableTable.h"
 
-//! Constructor
-CDBrickIDTableTable::CDBrickIDTableTable(void) {
+void CDBrickIDTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -31,15 +30,6 @@ CDBrickIDTableTable::CDBrickIDTableTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDBrickIDTableTable::~CDBrickIDTableTable(void) {}
-
-//! Returns the table's name
-std::string CDBrickIDTableTable::GetName(void) const {
-	return "BrickIDTable";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDBrickIDTable> CDBrickIDTableTable::Query(std::function<bool(CDBrickIDTable)> predicate) {
 
 	std::vector<CDBrickIDTable> data = cpplinq::from(this->entries)
@@ -49,8 +39,7 @@ std::vector<CDBrickIDTable> CDBrickIDTableTable::Query(std::function<bool(CDBric
 	return data;
 }
 
-//! Gets all the entries in the table
-std::vector<CDBrickIDTable> CDBrickIDTableTable::GetEntries(void) const {
+const std::vector<CDBrickIDTable>& CDBrickIDTableTable::GetEntries() const {
 	return this->entries;
 }
 

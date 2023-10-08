@@ -76,7 +76,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 }
 
 void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* self = EntityManager::Instance()->GetEntity(context->originator);
+	auto* self = Game::entityManager->GetEntity(context->originator);
 	if (self == nullptr) {
 		Game::logger->Log("TacArcBehavior", "Invalid self for (%llu)!", context->originator);
 		return;
@@ -85,7 +85,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	const auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
 
 	if ((this->m_usePickedTarget || context->clientInitalized) && branch.target > 0) {
-		const auto* target = EntityManager::Instance()->GetEntity(branch.target);
+		const auto* target = Game::entityManager->GetEntity(branch.target);
 
 		if (target == nullptr) {
 			return;
@@ -120,7 +120,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	// Find all valid targets, based on whether we target enemies or friends
 	for (const auto& contextTarget : context->GetValidTargets()) {
 		if (destroyableComponent != nullptr) {
-			const auto* targetEntity = EntityManager::Instance()->GetEntity(contextTarget);
+			const auto* targetEntity = Game::entityManager->GetEntity(contextTarget);
 
 			if (m_targetEnemy && destroyableComponent->IsEnemy(targetEntity)
 				|| m_targetFriend && destroyableComponent->IsFriend(targetEntity)) {
@@ -136,7 +136,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			break;
 		}
 
-		auto* entity = EntityManager::Instance()->GetEntity(validTarget);
+		auto* entity = Game::entityManager->GetEntity(validTarget);
 
 		if (entity == nullptr) {
 			Game::logger->Log("TacArcBehavior", "Invalid target (%llu) for (%llu)!", validTarget, context->originator);

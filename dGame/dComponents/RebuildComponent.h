@@ -10,8 +10,10 @@
 #include "Preconditions.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include "eRebuildState.h"
 
 class Entity;
+enum class eQuickBuildFailReason : uint32_t;
 
 /**
  * Component that handles entities that can be built into other entities using the quick build mechanic. Generally
@@ -25,7 +27,7 @@ public:
 	RebuildComponent(Entity* entity);
 	~RebuildComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
 
 	/**
@@ -215,7 +217,7 @@ public:
 	 * @param failReason the reason the rebuild was cancelled
 	 * @param skipChecks whether or not to skip the check for the rebuild not being completed
 	 */
-	void CancelRebuild(Entity* builder, eFailReason failReason, bool skipChecks = false);
+	void CancelRebuild(Entity* builder, eQuickBuildFailReason failReason, bool skipChecks = false);
 private:
 	/**
 	 * Whether or not the quickbuild state has been changed since we last serialized it.
@@ -225,7 +227,7 @@ private:
 	/**
 	 * The state the rebuild is currently in
 	 */
-	eRebuildState m_State = eRebuildState::REBUILD_OPEN;
+	eRebuildState m_State = eRebuildState::OPEN;
 
 	/**
 	 * The time that has passed since initiating the rebuild

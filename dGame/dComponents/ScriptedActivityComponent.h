@@ -13,6 +13,8 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
+#include "CDActivitiesTable.h"
+
  /**
   * Represents an instance of an activity, having participants and score
   */
@@ -160,7 +162,7 @@ public:
 	~ScriptedActivityComponent() override;
 
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) const;
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Makes some entity join the minigame, if it's a lobbied one, the entity will be placed in the lobby

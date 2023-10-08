@@ -1,4 +1,11 @@
-set(DSCRIPTS_SOURCES_AI_WILD 
+set(DSCRIPTS_SOURCES_AI_WILD
 	"AllCrateChicken.cpp"
 	"WildAmbients.cpp"
+	"WildAmbientCrab.cpp"
+	"WildAndScared.cpp"
+	"WildGfGlowbug.cpp"
+	"WildNinjaBricks.cpp"
+	"WildNinjaStudent.cpp"
+	"WildNinjaSensei.cpp"
+	"WildPants.cpp"
 	PARENT_SCOPE)

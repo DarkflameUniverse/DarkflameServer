@@ -17,6 +17,7 @@
 class LDFBaseData;
 class Entity;
 class dpEntity;
+enum class ePhysicsEffectType : uint32_t ;
 
 /**
  * Allows the creation of phantom physics for an entity: a physics object that is generally invisible but can be
@@ -31,8 +32,7 @@ public:
 	PhantomPhysicsComponent(Entity* parent);
 	~PhantomPhysicsComponent() override;
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-	void ResetFlags();
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Creates the physics shape for this entity based on LDF data
@@ -103,13 +103,13 @@ public:
 	 * Returns the effect that's currently active, defaults to 0
 	 * @return the effect that's currently active
 	 */
-	uint32_t GetEffectType() const { return m_EffectType; }
+	ePhysicsEffectType GetEffectType() const { return m_EffectType; }
 
 	/**
 	 * Sets the effect that's currently active
 	 * @param type the effect to set
 	 */
-	void SetEffectType(uint32_t type);
+	void SetEffectType(ePhysicsEffectType type);
 
 	/**
 	 * Returns the Physics entity for the component
@@ -168,7 +168,7 @@ private:
 	/**
 	 * The physics effect that's currently active, defaults to 0
 	 */
-	uint32_t m_EffectType;
+	ePhysicsEffectType m_EffectType;
 
 	/**
 	 * A scaling multiplier to add to the directional vector

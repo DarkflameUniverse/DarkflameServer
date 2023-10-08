@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "SimplePhysicsComponent.h"
+#include "eTerminateType.h"
 
 void AmDrawBridge::OnStartup(Entity* self) {
 	self->SetNetworkVar(u"InUse", false);
@@ -25,7 +26,7 @@ void AmDrawBridge::OnUse(Entity* self, Entity* user) {
 
 	auto* player = user;
 
-	GameMessages::SendTerminateInteraction(player->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+	GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 }
 
 void AmDrawBridge::OnTimerDone(Entity* self, std::string timerName) {
@@ -67,7 +68,7 @@ void AmDrawBridge::OnTimerDone(Entity* self, std::string timerName) {
 
 		simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
 
-		EntityManager::Instance()->SerializeEntity(bridge);
+		Game::entityManager->SerializeEntity(bridge);
 	}
 }
 
@@ -102,7 +103,7 @@ void AmDrawBridge::MoveBridgeDown(Entity* self, Entity* bridge, bool down) {
 
 	simplePhysicsComponent->SetAngularVelocity(forwardVect);
 
-	EntityManager::Instance()->SerializeEntity(bridge);
+	Game::entityManager->SerializeEntity(bridge);
 
 	self->AddTimer("rotateBridgeDown", travelTime);
 }
@@ -117,5 +118,5 @@ void AmDrawBridge::NotifyDie(Entity* self, Entity* other) {
 Entity* AmDrawBridge::GetBridge(Entity* self) {
 	const auto bridgeID = self->GetVar<LWOOBJID>(u"BridgeID");
 
-	return EntityManager::Instance()->GetEntity(bridgeID);
+	return Game::entityManager->GetEntity(bridgeID);
 }

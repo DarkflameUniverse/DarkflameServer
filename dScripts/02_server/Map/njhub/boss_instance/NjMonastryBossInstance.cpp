@@ -9,6 +9,7 @@
 #include "SkillComponent.h"
 #include "TeamManager.h"
 #include <algorithm>
+#include "RenderComponent.h"
 
 // // // // // // //
 // Event handling //
@@ -21,7 +22,7 @@ void NjMonastryBossInstance::OnStartup(Entity* self) {
 
 	// Add a notification request for all the spawned entities, corresponds to notifySpawnedObjectLoaded
 	for (const auto& spawnerName : spawnerNames) {
-		for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(spawnerName)) {
+		for (auto* spawner : Game::zoneManager->GetSpawnersByName(spawnerName)) {
 			spawner->AddEntitySpawnedCallback([self, this](Entity* entity) {
 				const auto lot = entity->GetLOT();
 				switch (lot) {
@@ -121,7 +122,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 	if (timerName == WaitingForPlayersTimer) {
 		StartFight(self);
 	} else if (timerName == SpawnNextWaveTimer) {
-		auto* frakjaw = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
+		auto* frakjaw = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
 		if (frakjaw != nullptr) {
 			SummonWave(self, frakjaw);
 		}
@@ -144,7 +145,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 			}
 		}
 	} else if (timerName + TimerSplitChar == UnstunTimer) {
-		auto* entity = EntityManager::Instance()->GetEntity(objectID);
+		auto* entity = Game::entityManager->GetEntity(objectID);
 		if (entity != nullptr) {
 			auto* combatAI = entity->GetComponent<BaseCombatAIComponent>();
 			if (combatAI != nullptr) {
@@ -152,7 +153,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 			}
 		}
 	} else if (timerName == SpawnCounterWeightTimer) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(CounterweightSpawner);
+		auto spawners = Game::zoneManager->GetSpawnersByName(CounterweightSpawner);
 		if (!spawners.empty()) {
 			// Spawn the counter weight at a specific waypoint, there's one for each round
 			auto* spawner = spawners.front();
@@ -163,7 +164,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 		}
 	} else if (timerName == LowerFrakjawCamTimer) {
 		// Destroy the frakjaw on the ledge
-		auto* ledgeFrakjaw = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
+		auto* ledgeFrakjaw = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
 		if (ledgeFrakjaw != nullptr) {
 			ledgeFrakjaw->Kill();
 		}
@@ -172,7 +173,7 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
 			LWOOBJID_EMPTY, BottomFrakSpawn, UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (timerName == SpawnLowerFrakjawTimer) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(LowerFrakjawSpawner);
+		auto spawners = Game::zoneManager->GetSpawnersByName(LowerFrakjawSpawner);
 		if (!spawners.empty()) {
 			auto* spawner = spawners.front();
 			spawner->Activate();
@@ -181,13 +182,13 @@ void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
 			LWOOBJID_EMPTY, FireRailSpawn, UNASSIGNED_SYSTEM_ADDRESS);
 
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(FireRailSpawner);
+		auto spawners = Game::zoneManager->GetSpawnersByName(FireRailSpawner);
 		if (!spawners.empty()) {
 			auto* spawner = spawners.front();
 			spawner->Activate();
 		}
 	} else if (timerName + TimerSplitChar == FrakjawSpawnInTimer) {
-		auto* lowerFrakjaw = EntityManager::Instance()->GetEntity(objectID);
+		auto* lowerFrakjaw = Game::entityManager->GetEntity(objectID);
 		if (lowerFrakjaw != nullptr) {
 			LowerFrakjawSummon(self, lowerFrakjaw);
 		}
@@ -209,7 +210,7 @@ void NjMonastryBossInstance::StartFight(Entity* self) {
 	self->SetVar<bool>(FightStartedVariable, true);
 
 	// Activate the frakjaw spawner
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(LedgeFrakjawSpawner)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(LedgeFrakjawSpawner)) {
 		spawner->Activate();
 	}
 }
@@ -225,21 +226,21 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 		rebuildComponent->AddRebuildStateCallback([this, self, counterWeight](eRebuildState state) {
 
 			switch (state) {
-			case REBUILD_BUILDING:
+			case eRebuildState::BUILDING:
 				GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification,
 					0, 0, counterWeight->GetObjectID(),
 					BaseCounterweightQB + std::to_string(self->GetVar<uint32_t>(WaveNumberVariable)),
 					UNASSIGNED_SYSTEM_ADDRESS);
 				return;
-			case REBUILD_INCOMPLETE:
+			case eRebuildState::INCOMPLETE:
 				GameMessages::SendNotifyClientObject(self->GetObjectID(), EndCinematicNotification,
 					0, 0, LWOOBJID_EMPTY, "",
 					UNASSIGNED_SYSTEM_ADDRESS);
 				return;
-			case REBUILD_RESETTING:
+			case eRebuildState::RESETTING:
 				ActivityTimerStart(self, SpawnCounterWeightTimer, 0.0f, 0.0f);
 				return;
-			case REBUILD_COMPLETED: {
+			case eRebuildState::COMPLETED: {
 				// TODO: Move the platform?
 
 				// The counterweight is actually a moving platform and we should listen to the last waypoint event here
@@ -249,7 +250,7 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 						counterWeight->Kill();
 					}
 
-					auto* frakjaw = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
+					auto* frakjaw = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(LedgeFrakjawVariable));
 					if (frakjaw == nullptr) {
 						GameMessages::SendNotifyClientObject(self->GetObjectID(), u"LedgeFrakjawDead", 0,
 							0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
@@ -261,7 +262,7 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 						skillComponent->CalculateBehavior(1635, 39097, frakjaw->GetObjectID(), true, false);
 					}
 
-					GameMessages::SendPlayAnimation(frakjaw, StunnedAnimation);
+					RenderComponent::PlayAnimation(frakjaw, StunnedAnimation);
 					GameMessages::SendPlayNDAudioEmitter(frakjaw, UNASSIGNED_SYSTEM_ADDRESS, CounterSmashAudio);
 
 					// Before wave 4 we should lower frakjaw from the ledge
@@ -281,7 +282,7 @@ void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* co
 }
 
 void NjMonastryBossInstance::HandleLowerFrakjawSpawned(Entity* self, Entity* lowerFrakjaw) {
-	GameMessages::SendPlayAnimation(lowerFrakjaw, TeleportInAnimation);
+	RenderComponent::PlayAnimation(lowerFrakjaw, TeleportInAnimation);
 	self->SetVar<LWOOBJID>(LowerFrakjawVariable, lowerFrakjaw->GetObjectID());
 
 	auto* combatAI = lowerFrakjaw->GetComponent<BaseCombatAIComponent>();
@@ -341,7 +342,7 @@ void NjMonastryBossInstance::HandleLowerFrakjawHit(Entity* self, Entity* lowerFr
 		std::vector<LWOOBJID> newTrashMobs = {};
 
 		for (const auto& trashMobID : trashMobsAlive) {
-			auto* trashMob = EntityManager::Instance()->GetEntity(trashMobID);
+			auto* trashMob = Game::entityManager->GetEntity(trashMobID);
 			if (trashMob != nullptr) {
 				newTrashMobs.push_back(trashMobID);
 
@@ -392,7 +393,7 @@ void NjMonastryBossInstance::HandleWaveEnemyDied(Entity* self, Entity* waveEnemy
 }
 
 void NjMonastryBossInstance::TeleportPlayer(Entity* player, uint32_t position) {
-	for (const auto* spawnPoint : EntityManager::Instance()->GetEntitiesInGroup("SpawnPoint" + std::to_string(position))) {
+	for (const auto* spawnPoint : Game::entityManager->GetEntitiesInGroup("SpawnPoint" + std::to_string(position))) {
 		GameMessages::SendTeleport(player->GetObjectID(), spawnPoint->GetPosition(), spawnPoint->GetRotation(),
 			player->GetSystemAddress(), true);
 	}
@@ -401,7 +402,7 @@ void NjMonastryBossInstance::TeleportPlayer(Entity* player, uint32_t position) {
 void NjMonastryBossInstance::SummonWave(Entity* self, Entity* frakjaw) {
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0, LWOOBJID_EMPTY,
 		LedgeFrakSummon, UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendPlayAnimation(frakjaw, SummonAnimation);
+	RenderComponent::PlayAnimation(frakjaw, SummonAnimation);
 
 	// Stop the music for the first, fourth and fifth wave
 	const auto wave = self->GetVar<uint32_t>(WaveNumberVariable);
@@ -425,14 +426,14 @@ void NjMonastryBossInstance::LowerFrakjawSummon(Entity* self, Entity* frakjaw) {
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
 		LWOOBJID_EMPTY, BottomFrakSummon, UNASSIGNED_SYSTEM_ADDRESS);
 	ActivityTimerStart(self, SpawnWaveTimer, 2.0f, 2.0f);
-	GameMessages::SendPlayAnimation(frakjaw, SummonAnimation);
+	RenderComponent::PlayAnimation(frakjaw, SummonAnimation);
 }
 
 void NjMonastryBossInstance::RemovePoison(Entity* self) {
 	const auto& totalPlayer = self->GetVar<std::vector<LWOOBJID>>(TotalPlayersLoadedVariable);
 	for (const auto& playerID : totalPlayer) {
 
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 		if (player != nullptr) {
 
 			auto* buffComponent = player->GetComponent<BuffComponent>();
@@ -444,7 +445,7 @@ void NjMonastryBossInstance::RemovePoison(Entity* self) {
 }
 
 void NjMonastryBossInstance::LowerFrakjaw(Entity* self, Entity* frakjaw) {
-	GameMessages::SendPlayAnimation(frakjaw, TeleportOutAnimation);
+	RenderComponent::PlayAnimation(frakjaw, TeleportOutAnimation);
 	ActivityTimerStart(self, LowerFrakjawCamTimer, 2.0f, 2.0f);
 
 	GameMessages::SendNotifyClientObject(frakjaw->GetObjectID(), StopMusicNotification, 0, 0,
@@ -454,7 +455,7 @@ void NjMonastryBossInstance::LowerFrakjaw(Entity* self, Entity* frakjaw) {
 }
 
 void NjMonastryBossInstance::SpawnOnNetwork(Entity* self, const LOT& toSpawn, const uint32_t& numberToSpawn, const std::string& spawnerName) {
-	auto spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+	auto spawners = Game::zoneManager->GetSpawnersByName(spawnerName);
 	if (spawners.empty() || numberToSpawn <= 0)
 		return;
 
@@ -484,7 +485,7 @@ void NjMonastryBossInstance::FightOver(Entity* self) {
 
 	// Remove all the enemies from the battlefield
 	for (auto i = 1; i < 5; i++) {
-		auto spawners = dZoneManager::Instance()->GetSpawnersByName(BaseEnemiesSpawner + std::to_string(i));
+		auto spawners = Game::zoneManager->GetSpawnersByName(BaseEnemiesSpawner + std::to_string(i));
 		if (!spawners.empty()) {
 			auto* spawner = spawners.front();
 			spawner->Deactivate();
@@ -504,7 +505,7 @@ void NjMonastryBossInstance::FightOver(Entity* self) {
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification, 0, 0,
 		LWOOBJID_EMPTY, TreasureChestSpawning, UNASSIGNED_SYSTEM_ADDRESS);
 
-	auto treasureChests = EntityManager::Instance()->GetEntitiesInGroup(ChestSpawnpointGroup);
+	auto treasureChests = Game::entityManager->GetEntitiesInGroup(ChestSpawnpointGroup);
 	for (auto* treasureChest : treasureChests) {
 		auto info = EntityInfo{};
 
@@ -517,7 +518,7 @@ void NjMonastryBossInstance::FightOver(Entity* self) {
 		};
 
 		// Finally spawn a treasure chest at the correct spawn point
-		auto* chestObject = EntityManager::Instance()->CreateEntity(info);
-		EntityManager::Instance()->ConstructEntity(chestObject);
+		auto* chestObject = Game::entityManager->CreateEntity(info);
+		Game::entityManager->ConstructEntity(chestObject);
 	}
 }

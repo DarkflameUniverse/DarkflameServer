@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDLootMatrixTable.hpp
- \brief Contains data for the ObjectSkills table
- */
-
- //! LootMatrix Struct
 struct CDLootMatrix {
 	unsigned int LootMatrixIndex;           //!< The Loot Matrix Index
 	unsigned int LootTableIndex;            //!< The Loot Table Index
@@ -21,36 +15,15 @@ struct CDLootMatrix {
 	UNUSED(std::string gate_version);          //!< The Gate Version
 };
 
-//! MissionNPCComponent table
-class CDLootMatrixTable : public CDTable {
+class CDLootMatrixTable : public CDTable<CDLootMatrixTable> {
 private:
 	std::vector<CDLootMatrix> entries;
 
 public:
-
-	//! Constructor
-	CDLootMatrixTable(void);
-
-	//! Destructor
-	~CDLootMatrixTable(void);
-
-	//! Returns the table's name
-	/*!
-	 \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	 \param predicate The predicate
-	 */
+	void LoadValuesFromDatabase();
+	// Queries the table with a custom "where" clause
 	std::vector<CDLootMatrix> Query(std::function<bool(CDLootMatrix)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
-	const std::vector<CDLootMatrix>& GetEntries(void) const;
-
+	const std::vector<CDLootMatrix>& GetEntries() const;
 };
 

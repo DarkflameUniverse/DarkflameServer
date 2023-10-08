@@ -1,7 +1,6 @@
 #include "CDLootMatrixTable.h"
 
-//! Constructor
-CDLootMatrixTable::CDLootMatrixTable(void) {
+void CDLootMatrixTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -38,15 +37,6 @@ CDLootMatrixTable::CDLootMatrixTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDLootMatrixTable::~CDLootMatrixTable(void) {}
-
-//! Returns the table's name
-std::string CDLootMatrixTable::GetName(void) const {
-	return "LootMatrix";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDLootMatrix> CDLootMatrixTable::Query(std::function<bool(CDLootMatrix)> predicate) {
 
 	std::vector<CDLootMatrix> data = cpplinq::from(this->entries)
@@ -56,8 +46,7 @@ std::vector<CDLootMatrix> CDLootMatrixTable::Query(std::function<bool(CDLootMatr
 	return data;
 }
 
-//! Gets all the entries in the table
-const std::vector<CDLootMatrix>& CDLootMatrixTable::GetEntries(void) const {
+const std::vector<CDLootMatrix>& CDLootMatrixTable::GetEntries() const {
 	return this->entries;
 }
 

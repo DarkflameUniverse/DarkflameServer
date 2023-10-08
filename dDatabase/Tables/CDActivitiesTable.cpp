@@ -1,8 +1,6 @@
 #include "CDActivitiesTable.h"
 
-//! Constructor
-CDActivitiesTable::CDActivitiesTable(void) {
-
+void CDActivitiesTable::LoadValuesFromDatabase() {
 	// First, get the size of the table
 	unsigned int size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Activities");
@@ -48,15 +46,6 @@ CDActivitiesTable::CDActivitiesTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDActivitiesTable::~CDActivitiesTable(void) {}
-
-//! Returns the table's name
-std::string CDActivitiesTable::GetName(void) const {
-	return "Activities";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDActivities> CDActivitiesTable::Query(std::function<bool(CDActivities)> predicate) {
 
 	std::vector<CDActivities> data = cpplinq::from(this->entries)
@@ -65,9 +54,3 @@ std::vector<CDActivities> CDActivitiesTable::Query(std::function<bool(CDActiviti
 
 	return data;
 }
-
-//! Gets all the entries in the table
-std::vector<CDActivities> CDActivitiesTable::GetEntries(void) const {
-	return this->entries;
-}
-
