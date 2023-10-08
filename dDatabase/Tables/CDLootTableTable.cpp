@@ -1,6 +1,21 @@
 #include "CDLootTableTable.h"
 
 void CDLootTableTable::LoadValuesFromDatabase() {
+
+	// First, get the size of the table
+	unsigned int size = 0;
+	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM LootTable");
+	while (!tableSize.eof()) {
+		size = tableSize.getIntField(0, 0);
+
+		tableSize.nextRow();
+	}
+
+	tableSize.finalize();
+
+	// Reserve the size
+	this->entries.reserve(size);
+
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM LootTable");
 	while (!tableData.eof()) {

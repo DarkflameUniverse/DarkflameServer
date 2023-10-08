@@ -30,7 +30,7 @@
 #include "Component.h"
 #include "ControllablePhysicsComponent.h"
 #include "RenderComponent.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "CharacterComponent.h"
 #include "DestroyableComponent.h"
 #include "BuffComponent.h"
@@ -51,6 +51,7 @@
 #include "BuildBorderComponent.h"
 #include "MovementAIComponent.h"
 #include "VendorComponent.h"
+#include "DonationVendorComponent.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyComponent.h"
 #include "BaseCombatAIComponent.h"
@@ -70,6 +71,7 @@
 #include "ShootingGalleryComponent.h"
 #include "RailActivatorComponent.h"
 #include "LUPExhibitComponent.h"
+#include "RacingSoundTriggerComponent.h"
 #include "TriggerComponent.h"
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
@@ -317,6 +319,9 @@ void Entity::Initialize() {
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_TRIGGER, -1) != -1) {
 		auto* comp = new SoundTriggerComponent(this);
 		m_Components.insert(std::make_pair(eReplicaComponentType::SOUND_TRIGGER, comp));
+	} else if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_SOUND_TRIGGER, -1) != -1) {
+		auto* comp = new RacingSoundTriggerComponent(this);
+		m_Components.insert(std::make_pair(eReplicaComponentType::RACING_SOUND_TRIGGER, comp));
 	}
 
 	//Also check for the collectible id:
@@ -447,9 +452,9 @@ void Entity::Initialize() {
 		m_Components.insert(std::make_pair(eReplicaComponentType::INVENTORY, comp));
 	}
 	// if this component exists, then we initialize it. it's value is always 0
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ROCKET_LAUNCH_LUP, -1) != -1) {
-		auto comp = new RocketLaunchLupComponent(this);
-		m_Components.insert(std::make_pair(eReplicaComponentType::ROCKET_LAUNCH_LUP, comp));
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MULTI_ZONE_ENTRANCE, -1) != -1) {
+		auto comp = new MultiZoneEntranceComponent(this);
+		m_Components.insert(std::make_pair(eReplicaComponentType::MULTI_ZONE_ENTRANCE, comp));
 	}
 
 	/**
@@ -580,6 +585,9 @@ void Entity::Initialize() {
 	if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VENDOR) > 0)) {
 		VendorComponent* comp = new VendorComponent(this);
 		m_Components.insert(std::make_pair(eReplicaComponentType::VENDOR, comp));
+	} else if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1) != -1)) {
+		DonationVendorComponent* comp = new DonationVendorComponent(this);
+		m_Components.insert(std::make_pair(eReplicaComponentType::DONATION_VENDOR, comp));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_VENDOR, -1) != -1) {
@@ -1014,57 +1022,60 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	 */
 
 	bool destroyableSerialized = false;
-	bool bIsInitialUpdate = false;
-	if (packetType == eReplicaPacketType::CONSTRUCTION) bIsInitialUpdate = true;
-	unsigned int flags = 0;
+	bool bIsInitialUpdate = packetType == eReplicaPacketType::CONSTRUCTION;
 
 	PossessableComponent* possessableComponent;
 	if (TryGetComponent(eReplicaComponentType::POSSESSABLE, possessableComponent)) {
-		possessableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		possessableComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ModuleAssemblyComponent* moduleAssemblyComponent;
 	if (TryGetComponent(eReplicaComponentType::MODULE_ASSEMBLY, moduleAssemblyComponent)) {
-		moduleAssemblyComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		moduleAssemblyComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ControllablePhysicsComponent* controllablePhysicsComponent;
 	if (TryGetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS, controllablePhysicsComponent)) {
-		controllablePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		controllablePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	SimplePhysicsComponent* simplePhysicsComponent;
 	if (TryGetComponent(eReplicaComponentType::SIMPLE_PHYSICS, simplePhysicsComponent)) {
-		simplePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		simplePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	RigidbodyPhantomPhysicsComponent* rigidbodyPhantomPhysics;
 	if (TryGetComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS, rigidbodyPhantomPhysics)) {
-		rigidbodyPhantomPhysics->Serialize(outBitStream, bIsInitialUpdate, flags);
+		rigidbodyPhantomPhysics->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	VehiclePhysicsComponent* vehiclePhysicsComponent;
 	if (TryGetComponent(eReplicaComponentType::VEHICLE_PHYSICS, vehiclePhysicsComponent)) {
-		vehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		vehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	PhantomPhysicsComponent* phantomPhysicsComponent;
 	if (TryGetComponent(eReplicaComponentType::PHANTOM_PHYSICS, phantomPhysicsComponent)) {
-		phantomPhysicsComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		phantomPhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	SoundTriggerComponent* soundTriggerComponent;
 	if (TryGetComponent(eReplicaComponentType::SOUND_TRIGGER, soundTriggerComponent)) {
-		soundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		soundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate);
+	}
+
+	RacingSoundTriggerComponent* racingSoundTriggerComponent;
+	if (TryGetComponent(eReplicaComponentType::RACING_SOUND_TRIGGER, racingSoundTriggerComponent)) {
+		racingSoundTriggerComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	BuffComponent* buffComponent;
 	if (TryGetComponent(eReplicaComponentType::BUFF, buffComponent)) {
-		buffComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		buffComponent->Serialize(outBitStream, bIsInitialUpdate);
 
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent)) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 		destroyableSerialized = true;
 	}
@@ -1072,7 +1083,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	if (HasComponent(eReplicaComponentType::COLLECTIBLE)) {
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 		destroyableSerialized = true;
 		outBitStream->Write(m_CollectibleID); // Collectable component
@@ -1080,7 +1091,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 	PetComponent* petComponent;
 	if (TryGetComponent(eReplicaComponentType::PET, petComponent)) {
-		petComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		petComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	CharacterComponent* characterComponent;
@@ -1088,7 +1099,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 		PossessorComponent* possessorComponent;
 		if (TryGetComponent(eReplicaComponentType::POSSESSOR, possessorComponent)) {
-			possessorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			possessorComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
@@ -1096,7 +1107,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 		LevelProgressionComponent* levelProgressionComponent;
 		if (TryGetComponent(eReplicaComponentType::LEVEL_PROGRESSION, levelProgressionComponent)) {
-			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
@@ -1104,13 +1115,13 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 		PlayerForcedMovementComponent* playerForcedMovementComponent;
 		if (TryGetComponent(eReplicaComponentType::PLAYER_FORCED_MOVEMENT, playerForcedMovementComponent)) {
-			playerForcedMovementComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			playerForcedMovementComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
 			outBitStream->Write0();
 		}
 
-		characterComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		characterComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	if (HasComponent(eReplicaComponentType::ITEM)) {
@@ -1119,88 +1130,93 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 
 	InventoryComponent* inventoryComponent;
 	if (TryGetComponent(eReplicaComponentType::INVENTORY, inventoryComponent)) {
-		inventoryComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		inventoryComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ScriptComponent* scriptComponent;
 	if (TryGetComponent(eReplicaComponentType::SCRIPT, scriptComponent)) {
-		scriptComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		scriptComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	SkillComponent* skillComponent;
 	if (TryGetComponent(eReplicaComponentType::SKILL, skillComponent)) {
-		skillComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		skillComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	BaseCombatAIComponent* baseCombatAiComponent;
 	if (TryGetComponent(eReplicaComponentType::BASE_COMBAT_AI, baseCombatAiComponent)) {
-		baseCombatAiComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		baseCombatAiComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	RebuildComponent* rebuildComponent;
 	if (TryGetComponent(eReplicaComponentType::QUICK_BUILD, rebuildComponent)) {
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 		destroyableSerialized = true;
-		rebuildComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		rebuildComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	MovingPlatformComponent* movingPlatformComponent;
 	if (TryGetComponent(eReplicaComponentType::MOVING_PLATFORM, movingPlatformComponent)) {
-		movingPlatformComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		movingPlatformComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	SwitchComponent* switchComponent;
 	if (TryGetComponent(eReplicaComponentType::SWITCH, switchComponent)) {
-		switchComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		switchComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	VendorComponent* vendorComponent;
 	if (TryGetComponent(eReplicaComponentType::VENDOR, vendorComponent)) {
-		vendorComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		vendorComponent->Serialize(outBitStream, bIsInitialUpdate);
+	}
+
+	DonationVendorComponent* donationVendorComponent;
+	if (TryGetComponent(eReplicaComponentType::DONATION_VENDOR, donationVendorComponent)) {
+		donationVendorComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	BouncerComponent* bouncerComponent;
 	if (TryGetComponent(eReplicaComponentType::BOUNCER, bouncerComponent)) {
-		bouncerComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		bouncerComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ScriptedActivityComponent* scriptedActivityComponent;
 	if (TryGetComponent(eReplicaComponentType::SCRIPTED_ACTIVITY, scriptedActivityComponent)) {
-		scriptedActivityComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		scriptedActivityComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ShootingGalleryComponent* shootingGalleryComponent;
 	if (TryGetComponent(eReplicaComponentType::SHOOTING_GALLERY, shootingGalleryComponent)) {
-		shootingGalleryComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		shootingGalleryComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	RacingControlComponent* racingControlComponent;
 	if (TryGetComponent(eReplicaComponentType::RACING_CONTROL, racingControlComponent)) {
-		racingControlComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		racingControlComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	LUPExhibitComponent* lupExhibitComponent;
 	if (TryGetComponent(eReplicaComponentType::LUP_EXHIBIT, lupExhibitComponent)) {
-		lupExhibitComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		lupExhibitComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	ModelComponent* modelComponent;
 	if (TryGetComponent(eReplicaComponentType::MODEL, modelComponent)) {
-		modelComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		modelComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	RenderComponent* renderComponent;
 	if (TryGetComponent(eReplicaComponentType::RENDER, renderComponent)) {
-		renderComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+		renderComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	if (modelComponent) {
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
-			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate, flags);
+			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
 			destroyableSerialized = true;
 		}
 	}
@@ -1213,10 +1229,6 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	// Need to to write0 so that is serialized correctly
 	// TODO: Implement BBB Component
 	outBitStream->Write0();
-}
-
-void Entity::ResetFlags() {
-	// Unused
 }
 
 void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {

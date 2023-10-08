@@ -33,7 +33,7 @@ public:
 	VehiclePhysicsComponent(Entity* parentEntity);
 	~VehiclePhysicsComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	void Update(float deltaTime) override;
 

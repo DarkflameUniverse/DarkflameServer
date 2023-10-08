@@ -23,7 +23,7 @@ public:
 	PossessorComponent(Entity* parent);
 	~PossessorComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * @brief Mounts the entity

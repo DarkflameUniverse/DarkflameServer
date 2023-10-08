@@ -107,7 +107,7 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	result.finalize();
 }
 
-void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	const bool tamed = m_Owner != LWOOBJID_EMPTY;
 
 	outBitStream->Write1(); // Always serialize as dirty for now
@@ -395,7 +395,7 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	auto destination = owner->GetPosition();
-	NiPoint3 position = m_MovementAI->GetCurrentPosition();
+	NiPoint3 position = m_MovementAI->GetParent()->GetPosition();
 
 	float distanceToOwner = Vector3::DistanceSquared(position, destination);
 
@@ -466,7 +466,7 @@ skipTresure:
 
 	m_MovementAI->SetHaltDistance(haltDistance);
 
-	m_MovementAI->SetSpeed(2.5f);
+	m_MovementAI->SetMaxSpeed(2.5f);
 
 	m_MovementAI->SetDestination(destination);
 
@@ -822,17 +822,17 @@ void PetComponent::Wander() {
 		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
-	if (Vector3::DistanceSquared(destination, m_MovementAI->GetCurrentPosition()) < 2 * 2) {
+	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {
 		m_MovementAI->Stop();
 
 		return;
 	}
 
-	m_MovementAI->SetSpeed(info.wanderSpeed);
+	m_MovementAI->SetMaxSpeed(info.wanderSpeed);
 
 	m_MovementAI->SetDestination(destination);
 
-	m_Timer += (m_MovementAI->GetCurrentPosition().x - destination.x) / info.wanderSpeed;
+	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / info.wanderSpeed;
 }
 
 void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {

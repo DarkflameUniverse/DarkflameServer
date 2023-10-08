@@ -119,7 +119,7 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 	}
 }
 
-void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, uint32_t& flags) {
+void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
 		outBitStream->Write1(); // always write these on construction
 		outBitStream->Write(m_ImmuneToBasicAttackCount);

@@ -649,6 +649,12 @@ namespace GameMessages {
 
 	void HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity);
 	void HandleRequestActivityExit(RakNet::BitStream* inStream, Entity* entity);
+
+	// Donation vendor
+	void HandleAddDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRemoveDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity);
+	void HandleCancelDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity);
 };
 
 #endif // GAMEMESSAGES_H

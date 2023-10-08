@@ -11,7 +11,7 @@
 #include "EntityManager.h"
 #include "ChatPackets.h"
 #include "Player.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "dServer.h"
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
@@ -82,7 +82,7 @@ ScriptedActivityComponent::ScriptedActivityComponent(Entity* parent, int activit
 ScriptedActivityComponent::~ScriptedActivityComponent()
 = default;
 
-void ScriptedActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) const {
+void ScriptedActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(true);
 	outBitStream->Write<uint32_t>(m_ActivityPlayers.size());
 
@@ -516,7 +516,7 @@ void ActivityInstance::StartZone() {
 	// only make a team if we have more than one participant
 	if (participants.size() > 1) {
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::CREATE_TEAM);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::CREATE_TEAM);
 
 		bitStream.Write(leader->GetObjectID());
 		bitStream.Write(m_Participants.size());

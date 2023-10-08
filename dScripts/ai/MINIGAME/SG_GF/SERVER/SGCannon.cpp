@@ -291,7 +291,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 
 			enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
 
-			movementAI->SetSpeed(toSpawn.initialSpeed);
+			movementAI->SetMaxSpeed(toSpawn.initialSpeed);
 			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
 			movementAI->SetHaltDistance(0.0f);
 

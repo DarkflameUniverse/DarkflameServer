@@ -1,6 +1,21 @@
 #include "CDLootMatrixTable.h"
 
 void CDLootMatrixTable::LoadValuesFromDatabase() {
+
+	// First, get the size of the table
+	unsigned int size = 0;
+	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM LootMatrix");
+	while (!tableSize.eof()) {
+		size = tableSize.getIntField(0, 0);
+
+		tableSize.nextRow();
+	}
+
+	tableSize.finalize();
+
+	// Reserve the size
+	this->entries.reserve(size);
+
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM LootMatrix");
 	while (!tableData.eof()) {
