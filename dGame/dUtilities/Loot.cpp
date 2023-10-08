@@ -20,14 +20,14 @@
 #include "eReplicaComponentType.h"
 
 namespace {
-	std::unordered_set<uint32_t> CACHED_MATRICES;
+	std::unordered_set<uint32_t> CachedMatrices;
 }
 
 void Loot::CacheMatrix(uint32_t matrixIndex) {
-	if (CACHED_MATRICES.find(matrixIndex) != CACHED_MATRICES.end()) {
+	if (CachedMatrices.find(matrixIndex) != CachedMatrices.end()) {
 		return;
 	}
-	CACHED_MATRICES.insert(matrixIndex);
+	CachedMatrices.insert(matrixIndex);
 	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
 	CDLootMatrixTable* lootMatrixTable = CDClientManager::Instance().GetTable<CDLootMatrixTable>();

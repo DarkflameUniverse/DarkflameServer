@@ -23,6 +23,7 @@ public:
 	// Gets a matrix by ID or inserts a blank one if none existed.
 	const LootMatrixEntries& GetMatrix(uint32_t matrixId);
 private:
+	CDLootMatrix ReadRow(CppSQLite3Query& tableData) const;
 	std::unordered_map<LootMatrixIndex, LootMatrixEntries> entries;
 };
 
