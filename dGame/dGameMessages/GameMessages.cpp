@@ -1159,7 +1159,7 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	SEND_PACKET;
 }
 
-void GameMessages::SendAddSkill(Entity* entity, TSkillID skillID, int slotID) {
+void GameMessages::SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot slotID) {
 	int AICombatWeight = 0;
 	bool bFromSkillSet = false;
 	int castType = 0;
@@ -1189,8 +1189,8 @@ void GameMessages::SendAddSkill(Entity* entity, TSkillID skillID, int slotID) {
 
 	bitStream.Write(skillID);
 
-	bitStream.Write(slotID != -1);
-	if (slotID != -1) bitStream.Write(slotID);
+	bitStream.Write(slotID != BehaviorSlot::Invalid);
+	if (slotID != BehaviorSlot::Invalid) bitStream.Write(slotID);
 
 	bitStream.Write(temporary);
 
