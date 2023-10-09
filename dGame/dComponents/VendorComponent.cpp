@@ -42,7 +42,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	}
 
 	auto* lootMatrixTable = CDClientManager::Instance().GetTable<CDLootMatrixTable>();
-	const auto lootMatrices = lootMatrixTable->Query([=](CDLootMatrix entry) { return (entry.LootMatrixIndex == m_LootMatrixID); });
+	const auto& lootMatrices = lootMatrixTable->GetMatrix(m_LootMatrixID);
 
 	if (lootMatrices.empty()) return;
 
@@ -51,8 +51,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
 	for (const auto& lootMatrix : lootMatrices) {
-		int lootTableID = lootMatrix.LootTableIndex;
-		auto vendorItems = lootTableTable->Query([=](CDLootTable entry) { return (entry.LootTableIndex == lootTableID); });
+		auto vendorItems = lootTableTable->GetTable(lootMatrix.LootTableIndex);
 		if (lootMatrix.maxToDrop == 0 || lootMatrix.minToDrop == 0) {
 			for (const auto& item : vendorItems) {
 				if (!m_HasStandardCostItems || !m_HasMultiCostItems) {

@@ -1,5 +1,18 @@
 #include "CDLootMatrixTable.h"
 
+CDLootMatrix CDLootMatrixTable::ReadRow(CppSQLite3Query& tableData) const {
+	CDLootMatrix entry{};
+	if (tableData.eof()) return entry;
+	entry.LootTableIndex = tableData.getIntField("LootTableIndex", -1);
+	entry.RarityTableIndex = tableData.getIntField("RarityTableIndex", -1);
+	entry.percent = tableData.getFloatField("percent", -1.0f);
+	entry.minToDrop = tableData.getIntField("minToDrop", -1);
+	entry.maxToDrop = tableData.getIntField("maxToDrop", -1);
+	entry.flagID = tableData.getIntField("flagID", -1);
+	UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
+	return entry;
+}
+
 void CDLootMatrixTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
@@ -11,8 +24,6 @@ void CDLootMatrixTable::LoadValuesFromDatabase() {
 		tableSize.nextRow();
 	}
 
-	tableSize.finalize();
-
 	// Reserve the size
 	this->entries.reserve(size);
 
@@ -20,33 +31,28 @@ void CDLootMatrixTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM LootMatrix");
 	while (!tableData.eof()) {
 		CDLootMatrix entry;
-		entry.LootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
-		entry.LootTableIndex = tableData.getIntField("LootTableIndex", -1);
-		entry.RarityTableIndex = tableData.getIntField("RarityTableIndex", -1);
-		entry.percent = tableData.getFloatField("percent", -1.0f);
-		entry.minToDrop = tableData.getIntField("minToDrop", -1);
-		entry.maxToDrop = tableData.getIntField("maxToDrop", -1);
-		entry.id = tableData.getIntField("id", -1);
-		entry.flagID = tableData.getIntField("flagID", -1);
-		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
+		uint32_t lootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
 
-		this->entries.push_back(entry);
+		this->entries[lootMatrixIndex].push_back(ReadRow(tableData));
+		tableData.nextRow();
+	}
+}
+
+const LootMatrixEntries& CDLootMatrixTable::GetMatrix(uint32_t matrixId) {
+	auto itr = this->entries.find(matrixId);
+	if (itr != this->entries.end()) {
+		return itr->second;
+	}
+
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM LootMatrix where LootMatrixIndex = ?;");
+	query.bind(1, static_cast<int32_t>(matrixId));
+
+	auto tableData = query.execQuery();
+	while (!tableData.eof()) {
+		this->entries[matrixId].push_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
 
-	tableData.finalize();
-}
-
-std::vector<CDLootMatrix> CDLootMatrixTable::Query(std::function<bool(CDLootMatrix)> predicate) {
-
-	std::vector<CDLootMatrix> data = cpplinq::from(this->entries)
-		>> cpplinq::where(predicate)
-		>> cpplinq::to_vector();
-
-	return data;
-}
-
-const std::vector<CDLootMatrix>& CDLootMatrixTable::GetEntries() const {
-	return this->entries;
+	return this->entries[matrixId];
 }
 
