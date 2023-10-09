@@ -8,7 +8,7 @@ struct ActivityTimer {
 	float_t runTime = 0;
 };
 
-class ActivityManager : public CppScripts::Script {
+class ActivityManager : virtual public CppScripts::Script {
 public:
 	static bool IsPlayerInActivity(Entity* self, LWOOBJID playerID);
 	static void UpdatePlayer(Entity* self, LWOOBJID playerID, bool remove = false);

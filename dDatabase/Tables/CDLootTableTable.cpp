@@ -1,5 +1,14 @@
 #include "CDLootTableTable.h"
 
+CDLootTable CDLootTableTable::ReadRow(CppSQLite3Query& tableData) const {
+	CDLootTable entry{};
+	if (tableData.eof()) return entry;
+	entry.itemid = tableData.getIntField("itemid", -1);
+	entry.MissionDrop = tableData.getIntField("MissionDrop", -1) == 1 ? true : false;
+	entry.sortPriority = tableData.getIntField("sortPriority", -1);
+	return entry;
+}
+
 void CDLootTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
@@ -11,8 +20,6 @@ void CDLootTableTable::LoadValuesFromDatabase() {
 		tableSize.nextRow();
 	}
 
-	tableSize.finalize();
-
 	// Reserve the size
 	this->entries.reserve(size);
 
@@ -20,32 +27,28 @@ void CDLootTableTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM LootTable");
 	while (!tableData.eof()) {
 		CDLootTable entry;
-		entry.id = tableData.getIntField("id", -1);
-		entry.itemid = tableData.getIntField("itemid", -1);
-		entry.LootTableIndex = tableData.getIntField("LootTableIndex", -1);
-		entry.id = tableData.getIntField("id", -1);
-		entry.MissionDrop = tableData.getIntField("MissionDrop", -1) == 1 ? true : false;
-		entry.sortPriority = tableData.getIntField("sortPriority", -1);
+		uint32_t lootTableIndex = tableData.getIntField("LootTableIndex", -1);
 
-		this->entries.push_back(entry);
+		this->entries[lootTableIndex].push_back(ReadRow(tableData));
+		tableData.nextRow();
+	}
+}
+
+const LootTableEntries& CDLootTableTable::GetTable(uint32_t tableId) {
+	auto itr = this->entries.find(tableId);
+	if (itr != this->entries.end()) {
+		return itr->second;
+	}
+
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM LootTable WHERE LootTableIndex = ?;");
+	query.bind(1, static_cast<int32_t>(tableId));
+	auto tableData = query.execQuery();
+
+	while (!tableData.eof()) {
+		CDLootTable entry;
+		this->entries[tableId].push_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
 
-	tableData.finalize();
+	return this->entries[tableId];
 }
-
-//! Queries the table with a custom "where" clause
-std::vector<CDLootTable> CDLootTableTable::Query(std::function<bool(CDLootTable)> predicate) {
-
-	std::vector<CDLootTable> data = cpplinq::from(this->entries)
-		>> cpplinq::where(predicate)
-		>> cpplinq::to_vector();
-
-	return data;
-}
-
-//! Gets all the entries in the table
-const std::vector<CDLootTable>& CDLootTableTable::GetEntries() const {
-	return this->entries;
-}
-

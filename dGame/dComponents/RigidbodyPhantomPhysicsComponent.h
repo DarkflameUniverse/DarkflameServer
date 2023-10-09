@@ -1,71 +1,29 @@
 /*
  * Darkflame Universe
- * Copyright 2019
+ * Copyright 2023
  */
 
-#ifndef RIGIDBODYPHANTOMPHYSICS_H
-#define RIGIDBODYPHANTOMPHYSICS_H
+#ifndef __RIGIDBODYPHANTOMPHYSICS_H__
+#define __RIGIDBODYPHANTOMPHYSICS_H__
 
 #include "BitStream.h"
 #include "dCommonVars.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
-#include "Component.h"
+#include "PhysicsComponent.h"
 #include "eReplicaComponentType.h"
 
  /**
   * Component that handles rigid bodies that can be interacted with, mostly client-side rendered. An example is the
   * bananas that fall from trees in GF.
   */
-class RigidbodyPhantomPhysicsComponent : public Component {
+class RigidbodyPhantomPhysicsComponent : public PhysicsComponent {
 public:
 	static const eReplicaComponentType ComponentType = eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS;
 
 	RigidbodyPhantomPhysicsComponent(Entity* parent);
-	~RigidbodyPhantomPhysicsComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
-
-	/**
-	 * Returns the position of this entity
-	 * @return the position of this entity
-	 */
-	NiPoint3& GetPosition() { return m_Position; }
-
-	/**
-	 * Sets the position of this entity
-	 * @param pos the position to set
-	 */
-	void SetPosition(const NiPoint3& pos) { m_Position = pos; m_IsDirty = true; }
-
-	/**
-	 * Returns the rotation of this entity
-	 * @return the rotation of this entity
-	 */
-	NiQuaternion& GetRotation() { return m_Rotation; }
-
-	/**
-	 * Sets the rotation for this entity
-	 * @param rot the rotation to tset
-	 */
-	void SetRotation(const NiQuaternion& rot) { m_Rotation = rot; m_IsDirty = true; }
-
-private:
-
-	/**
-	 * The position of this entity
-	 */
-	NiPoint3 m_Position;
-
-	/**
-	 * The rotation of this entity
-	 */
-	NiQuaternion m_Rotation;
-
-	/**
-	 * Whether or not the component should be serialized
-	 */
-	bool m_IsDirty;
 };
 
-#endif // RIGIDBODYPHANTOMPHYSICS_H
+#endif // __RIGIDBODYPHANTOMPHYSICS_H__

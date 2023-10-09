@@ -55,7 +55,7 @@ CDClientManager::CDClientManager() {
 	CDBehaviorParameterTable::Instance().LoadValuesFromDatabase();
 	CDBehaviorTemplateTable::Instance().LoadValuesFromDatabase();
 	CDBrickIDTableTable::Instance().LoadValuesFromDatabase();
-	CDComponentsRegistryTable::Instance().LoadValuesFromDatabase();
+	CDCLIENT_DONT_CACHE_TABLE(CDComponentsRegistryTable::Instance().LoadValuesFromDatabase());
 	CDCurrencyTableTable::Instance().LoadValuesFromDatabase();
 	CDDestructibleComponentTable::Instance().LoadValuesFromDatabase();
 	CDEmoteTableTable::Instance().LoadValuesFromDatabase();
@@ -65,9 +65,9 @@ CDClientManager::CDClientManager() {
 	CDItemSetSkillsTable::Instance().LoadValuesFromDatabase();
 	CDItemSetsTable::Instance().LoadValuesFromDatabase();
 	CDLevelProgressionLookupTable::Instance().LoadValuesFromDatabase();
-	CDLootMatrixTable::Instance().LoadValuesFromDatabase();
-	CDLootTableTable::Instance().LoadValuesFromDatabase();
 	CDMapFacesAndHairTable::Instance().LoadValuesFromDatabase();
+	CDCLIENT_DONT_CACHE_TABLE(CDLootMatrixTable::Instance().LoadValuesFromDatabase());
+	CDCLIENT_DONT_CACHE_TABLE(CDLootTableTable::Instance().LoadValuesFromDatabase());
 	CDMissionEmailTable::Instance().LoadValuesFromDatabase();
 	CDMissionNPCComponentTable::Instance().LoadValuesFromDatabase();
 	CDMissionTasksTable::Instance().LoadValuesFromDatabase();
