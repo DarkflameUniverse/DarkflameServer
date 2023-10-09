@@ -2,7 +2,7 @@
 
 #include "BitStream.h"
 #include "Entity.h"
-#include "Component.h"
+#include "PhysicsComponent.h"
 #include "eReplicaComponentType.h"
 
 struct RemoteInputInfo {
@@ -26,40 +26,15 @@ struct RemoteInputInfo {
 /**
  * Physics component for vehicles.
  */
-class VehiclePhysicsComponent : public Component {
+class VehiclePhysicsComponent : public PhysicsComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::VEHICLE_PHYSICS;
 
 	VehiclePhysicsComponent(Entity* parentEntity);
-	~VehiclePhysicsComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	void Update(float deltaTime) override;
-
-	/**
-	 * Sets the position
-	 * @param pos the new position
-	 */
-	void SetPosition(const NiPoint3& pos);
-
-	/**
-	 * Gets the position
-	 * @return the position
-	 */
-	const NiPoint3& GetPosition() const { return m_Position; }
-
-	/**
-	 * Sets the rotation
-	 * @param rot the new rotation
-	 */
-	void SetRotation(const NiQuaternion& rot);
-
-	/**
-	 * Gets the rotation
-	 * @return the rotation
-	 */
-	const NiQuaternion& GetRotation() const { return m_Rotation; }
 
 	/**
 	 * Sets the velocity
@@ -115,10 +90,6 @@ public:
 	void SetRemoteInputInfo(const RemoteInputInfo&);
 
 private:
-	bool m_DirtyPosition;
-	NiPoint3 m_Position;
-	NiQuaternion m_Rotation;
-
 	bool m_DirtyVelocity;
 	NiPoint3 m_Velocity;
 

@@ -1,9 +1,7 @@
 #include "VehiclePhysicsComponent.h"
 #include "EntityManager.h"
 
-VehiclePhysicsComponent::VehiclePhysicsComponent(Entity* parent) : Component(parent) {
-	m_Position = NiPoint3::ZERO;
-	m_Rotation = NiQuaternion::IDENTITY;
+VehiclePhysicsComponent::VehiclePhysicsComponent(Entity* parent) : PhysicsComponent(parent) {
 	m_Velocity = NiPoint3::ZERO;
 	m_AngularVelocity = NiPoint3::ZERO;
 	m_IsOnGround = true;
@@ -12,22 +10,6 @@ VehiclePhysicsComponent::VehiclePhysicsComponent(Entity* parent) : Component(par
 	m_DirtyVelocity = true;
 	m_DirtyAngularVelocity = true;
 	m_EndBehavior = GeneralUtils::GenerateRandomNumber<uint32_t>(0, 7);
-}
-
-VehiclePhysicsComponent::~VehiclePhysicsComponent() {
-
-}
-
-void VehiclePhysicsComponent::SetPosition(const NiPoint3& pos) {
-	if (pos == m_Position) return;
-	m_DirtyPosition = true;
-	m_Position = pos;
-}
-
-void VehiclePhysicsComponent::SetRotation(const NiQuaternion& rot) {
-	if (rot == m_Rotation) return;
-	m_DirtyPosition = true;
-	m_Rotation = rot;
 }
 
 void VehiclePhysicsComponent::SetVelocity(const NiPoint3& vel) {
@@ -58,10 +40,6 @@ void VehiclePhysicsComponent::SetRemoteInputInfo(const RemoteInputInfo& remoteIn
 	if (m_RemoteInputInfo == remoteInputInfo) return;
 	this->m_RemoteInputInfo = remoteInputInfo;
 	m_DirtyRemoteInput = true;
-}
-
-void VehiclePhysicsComponent::SetDirtyPosition(bool val) {
-	m_DirtyPosition = val;
 }
 
 void VehiclePhysicsComponent::SetDirtyVelocity(bool val) {

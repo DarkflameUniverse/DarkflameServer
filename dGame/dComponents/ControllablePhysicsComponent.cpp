@@ -15,15 +15,12 @@
 #include "LevelProgressionComponent.h"
 #include "eStateChangeType.h"
 
-ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Component(entity) {
-	m_Position = {};
-	m_Rotation = NiQuaternion::IDENTITY;
+ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : PhysicsComponent(entity) {
 	m_Velocity = {};
 	m_AngularVelocity = {};
 	m_InJetpackMode = false;
 	m_IsOnGround = true;
 	m_IsOnRail = false;
-	m_DirtyPosition = true;
 	m_DirtyVelocity = true;
 	m_DirtyAngularVelocity = true;
 	m_dpEntity = nullptr;
@@ -202,26 +199,14 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 }
 
 void ControllablePhysicsComponent::SetPosition(const NiPoint3& pos) {
-	if (m_Static) {
-		return;
-	}
-
-	m_Position.x = pos.x;
-	m_Position.y = pos.y;
-	m_Position.z = pos.z;
-	m_DirtyPosition = true;
-
+	if (m_Static) return;
+	PhysicsComponent::SetPosition(pos);
 	if (m_dpEntity) m_dpEntity->SetPosition(pos);
 }
 
 void ControllablePhysicsComponent::SetRotation(const NiQuaternion& rot) {
-	if (m_Static) {
-		return;
-	}
-
-	m_Rotation = rot;
-	m_DirtyPosition = true;
-
+	if (m_Static) return;
+	PhysicsComponent::SetRotation(rot);
 	if (m_dpEntity) m_dpEntity->SetRotation(rot);
 }
 

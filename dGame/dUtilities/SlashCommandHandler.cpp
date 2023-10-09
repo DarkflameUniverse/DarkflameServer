@@ -1841,6 +1841,86 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		ChatPackets::SendSystemMessage(sysAddr, u"Deleted inventory " + GeneralUtils::UTF8ToUTF16(args[0]));
 	}
 
+	if (chatCommand == "castskill" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		auto* skillComponent = entity->GetComponent<SkillComponent>();
+		if (skillComponent){
+			uint32_t skillId;
+
+			if (!GeneralUtils::TryParse(args[0], skillId)) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Error getting skill ID.");
+				return;
+			} else {
+				skillComponent->CastSkill(skillId, entity->GetObjectID(), entity->GetObjectID());
+				ChatPackets::SendSystemMessage(sysAddr, u"Cast skill");
+			}
+		}
+	}
+
+	if (chatCommand == "setskillslot" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 2) {
+		uint32_t skillId;
+		int slot;
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+		if (inventoryComponent){
+			if (!GeneralUtils::TryParse(args[0], slot)) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Error getting slot.");
+				return;
+			} else {
+				if (!GeneralUtils::TryParse(args[1], skillId)) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error getting skill.");
+					return;
+				} else {
+					if(inventoryComponent->SetSkill(slot, skillId)) ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot successfully");
+					else ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot failed");
+				}
+			}
+		}
+	}
+
+	if (chatCommand == "setfaction" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		if (destroyableComponent){
+			int32_t faction;
+
+			if (!GeneralUtils::TryParse(args[0], faction)) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Error getting faction.");
+				return;
+			} else {
+				destroyableComponent->SetFaction(faction);
+				ChatPackets::SendSystemMessage(sysAddr, u"Set faction and updated enemies list");
+			}
+		}
+	}
+
+	if (chatCommand == "addfaction" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		if (destroyableComponent){
+			int32_t faction;
+
+			if (!GeneralUtils::TryParse(args[0], faction)) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Error getting faction.");
+				return;
+			} else {
+				destroyableComponent->AddFaction(faction);
+				ChatPackets::SendSystemMessage(sysAddr, u"Added faction and updated enemies list");
+			}
+		}
+	}
+
+	if (chatCommand == "getfactions" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+		if (destroyableComponent){
+			ChatPackets::SendSystemMessage(sysAddr, u"Friendly factions:");
+			for (const auto entry : destroyableComponent->GetFactionIDs()) {
+				ChatPackets::SendSystemMessage(sysAddr, (GeneralUtils::to_u16string(entry)));
+			}
+
+			ChatPackets::SendSystemMessage(sysAddr, u"Enemy factions:");
+			for (const auto entry : destroyableComponent->GetEnemyFactionsIDs()) {
+				ChatPackets::SendSystemMessage(sysAddr, (GeneralUtils::to_u16string(entry)));
+			}
+		}
+	}
+
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
 		Entity* closest = nullptr;
 
@@ -1980,6 +2060,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					destuctable->SetFaction(-1);
 					destuctable->AddFaction(faction, true);
 				}
+			} else if (args[1] == "-cf") {
+				auto* destuctable = entity->GetComponent<DestroyableComponent>();
+				if (!destuctable) {
+					ChatPackets::SendSystemMessage(sysAddr, u"No destroyable component on this entity!");
+					return;
+				}
+				if (destuctable->IsEnemy(closest)) ChatPackets::SendSystemMessage(sysAddr, u"They are our enemy");
+				else ChatPackets::SendSystemMessage(sysAddr, u"They are NOT our enemy");
 			} else if (args[1] == "-t") {
 				auto* phantomPhysicsComponent = closest->GetComponent<PhantomPhysicsComponent>();
 

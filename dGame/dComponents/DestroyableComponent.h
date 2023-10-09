@@ -372,14 +372,6 @@ public:
 	Entity* GetKiller() const;
 
 	/**
-	 * Checks if the target ID is a valid enemy of this entity
-	 * @param target the target ID to check for
-	 * @param ignoreFactions whether or not check for the factions, e.g. just return true if the entity cannot be smashed
-	 * @return if the target ID is a valid enemy
-	 */
-	bool CheckValidity(LWOOBJID target, bool ignoreFactions = false, bool targetEnemy = true, bool targetFriend = false) const;
-
-	/**
 	 * Attempt to damage this entity, handles everything from health and armor to absorption, immunity and callbacks.
 	 * @param damage the damage to attempt to apply
 	 * @param source the attacker that caused this damage
