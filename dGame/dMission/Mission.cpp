@@ -24,8 +24,17 @@
 #include "eMissionTaskType.h"
 #include "eMissionLockState.h"
 #include "eReplicaComponentType.h"
-
 #include "CDMissionEmailTable.h"
+
+Mission::Mission() {
+	m_MissionComponent = nullptr;
+	m_Completions = 0;
+	m_Timestamp = 0;
+	m_Reward = 0;
+	m_UniqueMissionID = 0;
+	m_State = eMissionState::UNKNOWN;
+	info = nullptr;
+}
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	m_MissionComponent = missionComponent;
@@ -205,7 +214,7 @@ bool Mission::IsValidMission(const uint32_t missionId, CDMissions& info) {
 }
 
 Entity* Mission::GetAssociate() const {
-	return m_MissionComponent->GetParent();
+	return m_MissionComponent != nullptr? m_MissionComponent->GetParent() : nullptr;
 }
 
 User* Mission::GetUser() const {
