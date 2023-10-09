@@ -49,7 +49,7 @@
 #include "dpWorld.h"
 #include "Item.h"
 #include "PropertyManagementComponent.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "Loot.h"
 #include "EntityInfo.h"
 #include "LUTriggers.h"
@@ -761,7 +761,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "shutdownuniverse" && entity->GetGMLevel() == eGameMasterLevel::OPERATOR) {
 		//Tell the master server that we're going to be shutting down whole "universe":
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_UNIVERSE);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_UNIVERSE);
 		Game::server->SendToMaster(&bitStream);
 		ChatPackets::SendSystemMessage(sysAddr, u"Sent universe shutdown notification to master.");
 
@@ -1092,7 +1092,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			//Notify chat about it
 			CBITSTREAM;
-			PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
 
 			bitStream.Write(characterId);
 			bitStream.Write(expire);
@@ -2101,7 +2101,7 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 
 	//Notify chat about it
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ANNOUNCEMENT);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ANNOUNCEMENT);
 
 	bitStream.Write<uint32_t>(title.size());
 	for (auto character : title) {

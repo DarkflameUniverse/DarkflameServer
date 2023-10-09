@@ -11,7 +11,7 @@
 #include "EntityManager.h"
 #include "ChatPackets.h"
 #include "Player.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "dServer.h"
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
@@ -516,7 +516,7 @@ void ActivityInstance::StartZone() {
 	// only make a team if we have more than one participant
 	if (participants.size() > 1) {
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::CREATE_TEAM);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::CREATE_TEAM);
 
 		bitStream.Write(leader->GetObjectID());
 		bitStream.Write(m_Participants.size());

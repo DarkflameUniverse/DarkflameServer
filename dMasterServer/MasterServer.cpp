@@ -42,6 +42,7 @@
 #include "ObjectIDManager.h"
 #include "PacketUtils.h"
 #include "FdbToSqlite.h"
+#include "BitStreamUtils.h"
 
 namespace Game {
 	dLogger* logger = nullptr;
@@ -632,7 +633,7 @@ void HandlePacket(Packet* packet) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
 					bitStream.Write<uint32_t>(username.size());
 					for (auto character : username) {
@@ -657,9 +658,9 @@ void HandlePacket(Packet* packet) {
 			for (auto key : activeSessions) {
 				if (key.second == username) {
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
-					PacketUtils::WriteString(bitStream, key.second, 64);
+					bitStream.Write(LUString(key.second, 64));
 					Game::server->Send(&bitStream, packet->systemAddress, false);
 					break;
 				}
@@ -903,7 +904,7 @@ void ShutdownSequence(int32_t signal) {
 
 	{
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 		Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		Game::logger->Log("MasterServer", "Triggered master shutdown");
 	}

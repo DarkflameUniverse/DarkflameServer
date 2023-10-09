@@ -6,7 +6,7 @@
 #include "Game.h"
 #include "dLogger.h"
 #include "dServer.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 
 #include <sstream>
 
@@ -254,7 +254,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 			// Write message
 			RakNet::BitStream message;
 
-			PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+			BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			message.Write(this->originator);
 			echo.Serialize(&message);
 
