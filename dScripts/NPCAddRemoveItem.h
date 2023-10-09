@@ -10,7 +10,7 @@ struct ItemSetting {
 /**
  * Scripts that allows for the addition and removal of sets of items by an NPC
  */
-class NPCAddRemoveItem : public CppScripts::Script {
+class NPCAddRemoveItem : virtual public CppScripts::Script {
 protected:
 	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) override;
 	virtual std::map<uint32_t, std::vector<ItemSetting>> GetSettings();

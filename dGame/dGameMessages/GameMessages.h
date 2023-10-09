@@ -36,6 +36,7 @@ enum class ePetTamingNotifyType : uint32_t;
 enum class eUseItemResponse : uint32_t;
 enum class eQuickBuildFailReason : uint32_t;
 enum class eRebuildState : uint32_t;
+enum class BehaviorSlot : int32_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -119,7 +120,7 @@ namespace GameMessages {
 	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
 	void SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPoint3& position, const NiQuaternion& rotation);
 
-	void SendAddSkill(Entity* entity, TSkillID skillID, int slotID);
+	void SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot slotID);
 	void SendRemoveSkill(Entity* entity, TSkillID skillID);
 
 	void SendFinishArrangingWithItem(Entity* entity, const LWOOBJID& buildAreaID);

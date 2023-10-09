@@ -71,8 +71,7 @@ void ActivityManager::StopActivity(Entity* self, const LWOOBJID playerID, const 
 		SetActivityValue(self, playerID, 1, value1);
 		SetActivityValue(self, playerID, 2, value2);
 
-		if (givingLoot) LootGenerator::Instance().GiveActivityLoot(player, self, gameID, CalculateActivityRating(self, playerID));
-
+		if (givingLoot) Loot::GiveActivityLoot(player, self, gameID, CalculateActivityRating(self, playerID));
 		if (sac != nullptr) {
 			sac->PlayerRemove(player->GetObjectID());
 		}
