@@ -312,22 +312,17 @@
 #include "WildNinjaSensei.h"
 #include "WildNinjaBricks.h"
 
-//Big bad global bc this is a namespace and not a class:
-InvalidScript* invalidToReturn = new InvalidScript();
-std::map<std::string, CppScripts::Script*> m_Scripts;
-
-// yeah sorry darwin ill fix the global later
+namespace {
+	InvalidScript* invalidToReturn = new InvalidScript();
+	std::map<std::string, CppScripts::Script*> m_Scripts;
+};
 
 CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scriptName) {
-	Script* script;
-
 	if (m_Scripts.find(scriptName) != m_Scripts.end()) {
-		script = m_Scripts[scriptName];
-
-		return script;
+		return m_Scripts[scriptName];
 	}
 
-	script = invalidToReturn;
+	Script* script = invalidToReturn;
 
 	//VE / AG:
 	if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua")
@@ -411,7 +406,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Map\\AG\\L__AG_MONUMENT_RACE_CANCEL.lua")
 		script = new AgMonumentRaceCancel();
 	else if (scriptName == "scripts\\02_server\\Map\\AG_Spider_Queen\\L_ZONE_AG_SPIDER_QUEEN.lua")
-		script = (ZoneAgProperty*)new ZoneAgSpiderQueen();
+		script = new ZoneAgSpiderQueen();
 	else if (scriptName == "scripts\\02_server\\Map\\AG_Spider_Queen\\L_SPIDER_BOSS_TREASURE_CHEST_SERVER.lua")
 		script = new SpiderBossTreasureChestServer();
 	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_COWBOY_SERVER.lua")
@@ -475,7 +470,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_HAMMERLING_ENEMY_SERVER.lua")
 		script = new WaveBossHammerling();
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_APE_ENEMY_SERVER.lua")
-		script = (BaseEnemyApe*) new WaveBossApe();
+		script = new WaveBossApe();
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_DARK_SPIDERLING_ENEMY_SERVER.lua")
 		script = new WaveBossSpiderling();
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_HORESEMEN_ENEMY_SERVER.lua")
@@ -636,7 +631,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_PROP_PLATFORM.lua")
 		script = new PropertyPlatform();
 	else if (scriptName == "scripts\\02_server\\Map\\VE\\L_VE_BRICKSAMPLE_SERVER.lua")
-		return new VeBricksampleServer();
+		script = new VeBricksampleServer();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua")
 		script = new MailBoxServer();
 	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
@@ -771,7 +766,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_COLE_NPC.lua")
 		script = new NjColeNPC();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_JAY_MISSION_ITEMS.lua")
-		script = (NjNPCMissionSpinjitzuServer*) new NjJayMissionItems();
+		script = new NjJayMissionItems();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_NPC_MISSION_SPINJITZU_SERVER.lua")
 		script = new NjNPCMissionSpinjitzuServer();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_ENEMY_SKELETON_SPAWNER.lua")
@@ -951,12 +946,4 @@ std::vector<CppScripts::Script*> CppScripts::GetEntityScripts(Entity* entity) {
 		}
 	}
 	return scripts;
-}
-
-CppScripts::Script::Script() {
-
-}
-
-CppScripts::Script::~Script() {
-
 }

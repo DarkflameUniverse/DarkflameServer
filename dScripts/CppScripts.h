@@ -29,9 +29,6 @@ namespace CppScripts {
 	 */
 	class Script {
 	public:
-		Script();
-		~Script();
-
 		/**
 		 * Invoked one frame after the script is loaded.
 		 *
