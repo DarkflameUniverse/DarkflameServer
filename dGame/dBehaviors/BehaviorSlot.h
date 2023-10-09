@@ -2,9 +2,9 @@
 
 #ifndef BEHAVIORSLOT_H
 #define BEHAVIORSLOT_H
+#include <cstdint>
 
-enum class BehaviorSlot
-{
+enum class BehaviorSlot : int32_t {
 	Invalid = -1,
 	Primary,
 	Offhand,

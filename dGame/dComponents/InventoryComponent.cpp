@@ -1185,7 +1185,7 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	if (slot == BehaviorSlot::Primary) {
 		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
 
-		GameMessages::SendAddSkill(m_Parent, 1, static_cast<int>(BehaviorSlot::Primary));
+		GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
 	}
 }
 
@@ -1617,7 +1617,7 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument* document) {
 }
 
 
-bool InventoryComponent::SetSkill(int slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId){
 	BehaviorSlot behaviorSlot = BehaviorSlot::Invalid;
 	if (slot == 1 ) behaviorSlot = BehaviorSlot::Primary;
 	else if (slot == 2 ) behaviorSlot = BehaviorSlot::Offhand;
@@ -1636,7 +1636,7 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
 		GameMessages::SendRemoveSkill(m_Parent, old);
 	}
 
-	GameMessages::SendAddSkill(m_Parent, skillId, static_cast<int>(slot));
+	GameMessages::SendAddSkill(m_Parent, skillId, slot);
 	m_Skills.insert_or_assign(slot, skillId);
 	return true;
 }
