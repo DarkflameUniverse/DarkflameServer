@@ -28,10 +28,10 @@ void ZoneInstanceManager::RequestZoneTransfer(dServer* server, uint32_t zoneID, 
 void ZoneInstanceManager::HandleRequestZoneTransferResponse(uint64_t requestID, Packet* packet) {
 
 	bool mythranShift = static_cast<bool>(packet->data[16]);
-	uint32_t zoneID = PacketUtils::ReadPacketU32(17, packet);
-	uint32_t zoneInstance = PacketUtils::ReadPacketU32(21, packet);
-	uint32_t zoneClone = PacketUtils::ReadPacketU32(25, packet);
-	uint16_t serverPort = PacketUtils::ReadPacketU16(29, packet);
+	uint32_t zoneID = PacketUtils::ReadU32(17, packet);
+	uint32_t zoneInstance = PacketUtils::ReadU32(21, packet);
+	uint32_t zoneClone = PacketUtils::ReadU32(25, packet);
+	uint16_t serverPort = PacketUtils::ReadU16(29, packet);
 	std::string serverIP = PacketUtils::ReadString(31, packet, false);
 
 	for (uint32_t i = 0; i < this->requests.size(); ++i) {

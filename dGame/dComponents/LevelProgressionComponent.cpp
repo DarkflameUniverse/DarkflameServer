@@ -37,7 +37,7 @@ void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	m_CharacterVersion = static_cast<eCharacterVersion>(characterVersion);
 }
 
-void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(bIsInitialUpdate || m_DirtyLevelInfo);
 	if (bIsInitialUpdate || m_DirtyLevelInfo) outBitStream->Write(m_Level);
 	m_DirtyLevelInfo = false;
@@ -56,19 +56,19 @@ void LevelProgressionComponent::HandleLevelUp() {
 	// Tell the client we beginning to send level rewards.
 	if (rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, rewardingItem);
 
-	for (auto* reward : rewards) {
-		switch (reward->rewardType) {
+	for (const auto& reward : rewards) {
+		switch (reward.rewardType) {
 		case 0:
-			inventoryComponent->AddItem(reward->value, reward->count, eLootSourceType::LEVEL_REWARD);
+			inventoryComponent->AddItem(reward.value, reward.count, eLootSourceType::LEVEL_REWARD);
 			break;
 		case 4:
 		{
 			auto* items = inventoryComponent->GetInventory(eInventoryType::ITEMS);
-			items->SetSize(items->GetSize() + reward->value);
+			items->SetSize(items->GetSize() + reward.value);
 		}
 		break;
 		case 9:
-			SetSpeedBase(static_cast<float>(reward->value) );
+			SetSpeedBase(static_cast<float>(reward.value) );
 			controllablePhysicsComponent->SetSpeedMultiplier(GetSpeedBase() / 500.0f);
 			break;
 		case 11:

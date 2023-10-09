@@ -16,12 +16,12 @@ private:
 	std::vector<CDMissionNPCComponent> entries;
 
 public:
-	CDMissionNPCComponentTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissionNPCComponent> Query(std::function<bool(CDMissionNPCComponent)> predicate);
 
 	// Gets all the entries in the table
-	std::vector<CDMissionNPCComponent> GetEntries(void) const;
+	const std::vector<CDMissionNPCComponent>& GetEntries() const;
 
 };
 

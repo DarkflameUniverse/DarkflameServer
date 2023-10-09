@@ -33,7 +33,7 @@ SimplePhysicsComponent::SimplePhysicsComponent(uint32_t componentID, Entity* par
 SimplePhysicsComponent::~SimplePhysicsComponent() {
 }
 
-void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
 		outBitStream->Write(m_ClimbableType != eClimbableType::CLIMBABLE_TYPE_NOT);
 		outBitStream->Write(m_ClimbableType);

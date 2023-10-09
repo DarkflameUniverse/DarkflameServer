@@ -38,7 +38,7 @@ void LUPExhibitComponent::NextExhibit() {
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void LUPExhibitComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, uint32_t& flags) {
+void LUPExhibitComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write1(); // Dirty flag?
 	outBitStream->Write(m_Exhibit);
 }

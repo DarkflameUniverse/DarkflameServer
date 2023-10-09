@@ -74,7 +74,7 @@ void ControllablePhysicsComponent::Update(float deltaTime) {
 
 }
 
-void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	//If this is a creation, then we assume the position is dirty, even when it isn't.
 	//This is because new clients will still need to receive the position.
 	//if (bIsInitialUpdate) m_DirtyPosition = true;
@@ -179,12 +179,6 @@ void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	character->QueryAttribute("lzrw", &m_Rotation.w);
 
 	m_DirtyPosition = true;
-}
-
-void ControllablePhysicsComponent::ResetFlags() {
-	m_DirtyAngularVelocity = false;
-	m_DirtyPosition = false;
-	m_DirtyVelocity = false;
 }
 
 void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {

@@ -13,9 +13,9 @@
 #include "ChatPackets.h"
 #include "MissionComponent.h"
 #include "PropertyEntranceComponent.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "dServer.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "eObjectWorldState.h"
 #include "eConnectionType.h"
 #include "eMasterMessageType.h"
@@ -94,7 +94,7 @@ void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	auto* rocketLaunchLUP = m_Parent->GetComponent<RocketLaunchLupComponent>();
+	auto* rocketLaunchLUP = m_Parent->GetComponent<MultiZoneEntranceComponent>();
 	if (rocketLaunchLUP) {
 		return;
 	}
@@ -137,7 +137,7 @@ LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) 
 
 void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PREP_ZONE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PREP_ZONE);
 	bitStream.Write(zoneID);
 	Game::server->SendToMaster(&bitStream);
 }

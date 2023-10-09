@@ -72,7 +72,7 @@ void VehiclePhysicsComponent::SetDirtyAngularVelocity(bool val) {
 	m_DirtyAngularVelocity = val;
 }
 
-void VehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void VehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(bIsInitialUpdate || m_DirtyPosition);
 
 	if (bIsInitialUpdate || m_DirtyPosition) {

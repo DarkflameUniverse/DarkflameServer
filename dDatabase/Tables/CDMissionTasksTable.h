@@ -24,12 +24,12 @@ private:
 	std::vector<CDMissionTasks> entries;
 
 public:
-	CDMissionTasksTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissionTasks> Query(std::function<bool(CDMissionTasks)> predicate);
 
 	std::vector<CDMissionTasks*> GetByMissionID(uint32_t missionID);
 
-	const std::vector<CDMissionTasks>& GetEntries(void) const;
+	const std::vector<CDMissionTasks>& GetEntries() const;
 };
 

@@ -1,7 +1,6 @@
 #include "CDFeatureGatingTable.h"
 
-//! Constructor
-CDFeatureGatingTable::CDFeatureGatingTable(void) {
+void CDFeatureGatingTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -53,7 +52,7 @@ bool CDFeatureGatingTable::FeatureUnlocked(const std::string& feature) const {
 	return false;
 }
 
-std::vector<CDFeatureGating> CDFeatureGatingTable::GetEntries(void) const {
+const std::vector<CDFeatureGating>& CDFeatureGatingTable::GetEntries() const {
 	return this->entries;
 }
 

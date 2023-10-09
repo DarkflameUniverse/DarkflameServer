@@ -2,6 +2,7 @@
 #include "User.h"
 #include "Entity.h"
 #include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "BitStream.h"
 #include "Game.h"
 #include "SlashCommandHandler.h"
@@ -24,7 +25,7 @@
 #include "dConfig.h"
 #include "TeamManager.h"
 #include "ChatPackets.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "eUnequippableActiveType.h"
 #include "eMovementPlatformState.h"
 #include "LeaderboardManager.h"
@@ -173,7 +174,7 @@ void GameMessages::SendPlayAnimation(Entity* entity, const std::u16string& anima
 	bitStream.Write(eGameMessageType::PLAY_ANIMATION);
 
 	bitStream.Write(animationIDLength);
-	PacketUtils::WriteWString(bitStream, animationName, animationIDLength);
+	bitStream.Write(LUWString(animationName, animationIDLength));
 
 	bitStream.Write(bExpectAnimToExist);
 
@@ -325,13 +326,6 @@ void GameMessages::SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& s
 	for (uint32_t k = 0; k < length; k++) {
 		bitStream.Write(static_cast<char>(audioGUID[k]));
 	}
-
-	//PacketUtils::WriteString(bitStream, audioGUID, audioGUID.size());
-
-	//bitStream.Write(uint32_t(audioGUID.size()));
-	//for (char character : audioGUID) {
-	//	bitStream.Write(character);
-	//}
 
 	bitStream.Write(uint32_t(0));
 	bitStream.Write0();
@@ -2181,7 +2175,7 @@ void GameMessages::HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity,
 
 	if (unknown) {
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
 		bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
 		bitStream.Write(eBlueprintSaveResponseType::PlacementFailed); // Sending a non-zero error code here prevents the client from deleting its in progress build for some reason?
 		bitStream.Write<uint32_t>(0);
@@ -2433,7 +2427,7 @@ void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream* inStream, Entity*
 
 void GameMessages::SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_LOAD_RESPONSE_ITEMID);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_LOAD_RESPONSE_ITEMID);
 	bitStream.Write(static_cast<uint8_t>(success));
 	bitStream.Write<LWOOBJID>(oldItemId);
 	bitStream.Write<LWOOBJID>(newItemId);
@@ -2681,7 +2675,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 				//Tell the client their model is saved: (this causes us to actually pop out of our current state):
 				CBITSTREAM;
-				PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
+				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
 				bitStream.Write(localId);
 				bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
 				bitStream.Write<uint32_t>(1);
@@ -2795,9 +2789,9 @@ void GameMessages::HandleEnterProperty(RakNet::BitStream* inStream, Entity* enti
 		return;
 	}
 
-	auto rocketLaunchLupComponent = entity->GetComponent<RocketLaunchLupComponent>();
-	if (rocketLaunchLupComponent != nullptr) {
-		rocketLaunchLupComponent->OnSelectWorld(player, index);
+	auto multiZoneEntranceComponent = entity->GetComponent<MultiZoneEntranceComponent>();
+	if (multiZoneEntranceComponent != nullptr) {
+		multiZoneEntranceComponent->OnSelectWorld(player, index);
 	}
 }
 
