@@ -1790,7 +1790,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		for (uint32_t i = 0; i < loops; i++) {
 			while (true) {
-				auto lootRoll = LootGenerator::Instance().RollLootMatrix(lootMatrixIndex);
+				auto lootRoll = Loot::RollLootMatrix(lootMatrixIndex);
 				totalRuns += 1;
 				bool doBreak = false;
 				for (const auto& kv : lootRoll) {

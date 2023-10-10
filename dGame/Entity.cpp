@@ -359,6 +359,7 @@ void Entity::Initialize() {
 					comp->SetIsSmashable(destCompData[0].isSmashable);
 
 					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
+					Loot::CacheMatrix(destCompData[0].LootMatrixIndex);
 
 					// Now get currency information
 					uint32_t npcMinLevel = destCompData[0].level;
@@ -535,6 +536,8 @@ void Entity::Initialize() {
 
 			if (activityID > 0) {
 				rebuildComponent->SetActivityId(activityID);
+				comp->SetActivityId(activityID);
+				Loot::CacheMatrix(activityID);
 			}
 
 			const auto compTime = GetVar<float>(u"compTime");

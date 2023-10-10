@@ -486,7 +486,7 @@ void RebuildComponent::CompleteRebuild(Entity* user) {
 			auto* missionComponent = builder->GetComponent<MissionComponent>();
 			if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 		}
-		LootGenerator::Instance().DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
+		Loot::DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
 	}
 
 	// Notify scripts
