@@ -5,38 +5,36 @@
 #include <filesystem>
 #include <stdarg.h>
 
-FileWriter::FileWriter(const char* outpath) {
-	m_Outfile = fopen(outpath, "wt");
-	if (m_Outfile == NULL) printf("Couldn't open %s for writing!\n", outpath);
-	m_Outpath = outpath;
-}
-
-FileWriter::~FileWriter() {
-	if (m_Outfile == NULL) return;
+Writer::~Writer() {
+	if (!m_Outfile) return;
 
 	fclose(m_Outfile);
 	m_Outfile = NULL;
 }
 
-void FileWriter::Log(const char* time, const char* message) {
-	if (m_Outfile == NULL) return;
+void Writer::Log(const char* time, const char* message) {
+	if (!m_Outfile) return;
 
 	fputs(time, m_Outfile);
 	fputs(message, m_Outfile);
 }
 
-void FileWriter::Flush() {
-	if (m_Outfile == NULL) return;
+void Writer::Flush() {
+	if (!m_Outfile) return;
 	fflush(m_Outfile);
 }
 
-ConsoleWriter::~ConsoleWriter() {
-	fflush(stdout);
+FileWriter::FileWriter(const char* outpath) {
+	m_Outfile = fopen(outpath, "wt");
+	if (!m_Outfile) printf("Couldn't open %s for writing!\n", outpath);
+	m_Outpath = outpath;
+	m_IsConsoleWriter = false;
 }
 
-void ConsoleWriter::Log(const char* time, const char* message) {
-	fputs(time, stdout);
-	fputs(message, stdout);
+ConsoleWriter::ConsoleWriter(bool enabled) {
+	m_Enabled = enabled;
+	m_Outfile = stdout;
+	m_IsConsoleWriter = true;
 }
 
 Logger::Logger(const std::string& outpath, bool logToConsole, bool logDebugStatements) {
@@ -54,9 +52,9 @@ void Logger::vLog(const char* format, va_list args) {
 	strftime(timeStr, sizeof(timeStr), "[%d-%m-%y %H:%M:%S ", time);
 	char message[2048];
 	vsnprintf(message, 2048, format, args);
-	std::for_each(m_Writers.begin(), m_Writers.end(), [&](const std::unique_ptr<Writer>& writer) {
+	for (const auto& writer : m_Writers) {
 		writer->Log(timeStr, message);
-		});
+	}
 }
 
 void Logger::Log(const char* className, const char* format, ...) {
@@ -77,20 +75,21 @@ void Logger::LogDebug(const char* className, const char* format, ...) {
 }
 
 void Logger::Flush() {
-	std::for_each(m_Writers.begin(), m_Writers.end(), [](const std::unique_ptr<Writer>& writer) {
+	for (const auto& writer : m_Writers) {
 		writer->Flush();
-		});
+	}
 }
 
 void Logger::SetLogToConsole(bool logToConsole) {
-	std::for_each(m_Writers.begin(), m_Writers.end(), [&](const std::unique_ptr<Writer>& writer) {
+	for (const auto& writer : m_Writers) {
 		if (writer->IsConsoleWriter()) writer->SetEnabled(logToConsole);
-		});
+	}
 }
 
 bool Logger::GetLogToConsole() const {
-	return std::find_if(m_Writers.begin(), m_Writers.end(), [](const std::unique_ptr<Writer>& writer) {
-		if (writer->IsConsoleWriter()) return writer->GetEnabled();
-		return false;
-		}) != m_Writers.end();
+	bool toReturn = false;
+	for (const auto& writer : m_Writers) {
+		if (writer->IsConsoleWriter()) toReturn |= writer->GetEnabled();
+	}
+	return toReturn;
 }

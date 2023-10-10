@@ -32,32 +32,23 @@ constexpr const char* GetFileNameFromAbsolutePath(const char* path) {
 #define LOG(message, ...) do { auto str = FILENAME_AND_LINE; Game::logger->Log(str, message, ##__VA_ARGS__); } while(0)
 #define LOG_DEBUG(message, ...) do { auto str = FILENAME_AND_LINE; Game::logger->LogDebug(str, message, ##__VA_ARGS__); } while(0)
 
-// Writer class for writing data.
-
-enum class WriterType : uint32_t {
-	Writer,
-	FileWriter,
-	ConsoleWriter
-};
-
+// Writer class for writing data to files.
 class Writer {
 public:
 	Writer(bool enabled = true) : m_Enabled(enabled) {};
-	virtual ~Writer() = default;
+	virtual ~Writer();
 
-	virtual void Log(const char* time, const char* message) = 0;
-	virtual void Flush() {};
+	virtual void Log(const char* time, const char* message);
+	virtual void Flush();
 
 	void SetEnabled(bool disabled) { m_Enabled = disabled; }
 	bool GetEnabled() const { return m_Enabled; }
 
-	virtual WriterType GetType() { return WriterType::Writer; }
-
-	bool IsConsoleWriter() {
-		return GetType() == WriterType::ConsoleWriter;
-	}
+	bool IsConsoleWriter() { return m_IsConsoleWriter; }
 public:
 	bool m_Enabled = true;
+	bool m_IsConsoleWriter = false;
+	FILE* m_Outfile;
 };
 
 // FileWriter class for writing data to a file on a disk.
@@ -65,26 +56,14 @@ class FileWriter : public Writer {
 public:
 	FileWriter(const char* outpath);
 	FileWriter(const std::string& outpath) : FileWriter(outpath.c_str()) {};
-
-	virtual ~FileWriter() override;
-
-	void Log(const char* time, const char* message) override;
-	void Flush() override;
-
-	WriterType GetType() override { return WriterType::FileWriter; }
-protected:
+private:
 	std::string m_Outpath;
-	FILE* m_Outfile;
 };
 
 // ConsoleWriter class for writing data to the console.
 class ConsoleWriter : public Writer {
 public:
-	ConsoleWriter(bool enabled) : Writer(enabled) {};
-	~ConsoleWriter() override;
-	void Log(const char* time, const char* message) override;
-
-	WriterType GetType() override { return WriterType::ConsoleWriter; }
+	ConsoleWriter(bool enabled);
 };
 
 class Logger {
