@@ -26,39 +26,16 @@ Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
 	m_ID = id;
 
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
-		"SELECT name, pending_name, needs_rename, prop_clone_id, permission_map FROM charinfo WHERE id=? LIMIT 1;"
-	);
+	// Load the character
+	auto character = Database::Connection->GetCharacterByID(m_ID);
+	m_Name = character.Name;
+	m_UnapprovedName = character.PendingName;
+	m_NameRejected = character.NameRejected;
+	m_PropertyCloneID = character.PropertyCloneID;
+	m_PermissionMap = character.PermissionMap;
 
-	stmt->setInt64(1, id);
-
-	sql::ResultSet* res = stmt->executeQuery();
-
-	while (res->next()) {
-		m_Name = res->getString(1).c_str();
-		m_UnapprovedName = res->getString(2).c_str();
-		m_NameRejected = res->getBoolean(3);
-		m_PropertyCloneID = res->getUInt(4);
-		m_PermissionMap = static_cast<ePermissionMap>(res->getUInt64(5));
-	}
-
-	delete res;
-	delete stmt;
-
-	//Load the xmlData now:
-	sql::PreparedStatement* xmlStmt = Database::CreatePreppedStmt(
-		"SELECT xml_data FROM charxml WHERE id=? LIMIT 1;"
-	);
-
-	xmlStmt->setInt64(1, id);
-
-	sql::ResultSet* xmlRes = xmlStmt->executeQuery();
-	while (xmlRes->next()) {
-		m_XMLData = xmlRes->getString(1).c_str();
-	}
-
-	delete xmlRes;
-	delete xmlStmt;
+	// Load the xmlData now
+	m_XMLData = Database::Connection->GetCharacterXMLByID(m_ID);
 
 	m_ZoneID = 0; //TEMP! Set back to 0 when done. This is so we can see loading screen progress for testing.
 	m_ZoneInstanceID = 0; //These values don't really matter, these are only used on the char select screen and seem unused.
@@ -85,38 +62,16 @@ Character::~Character() {
 }
 
 void Character::UpdateFromDatabase() {
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
-		"SELECT name, pending_name, needs_rename, prop_clone_id, permission_map FROM charinfo WHERE id=? LIMIT 1;"
-	);
+	// Load the character
+	auto character = Database::Connection->GetCharacterByID(m_ID);
+	m_Name = character.Name;
+	m_UnapprovedName = character.PendingName;
+	m_NameRejected = character.NameRejected;
+	m_PropertyCloneID = character.PropertyCloneID;
+	m_PermissionMap = character.PermissionMap;
 
-	stmt->setInt64(1, m_ID);
-
-	sql::ResultSet* res = stmt->executeQuery();
-
-	while (res->next()) {
-		m_Name = res->getString(1).c_str();
-		m_UnapprovedName = res->getString(2).c_str();
-		m_NameRejected = res->getBoolean(3);
-		m_PropertyCloneID = res->getUInt(4);
-		m_PermissionMap = static_cast<ePermissionMap>(res->getUInt64(5));
-	}
-
-	delete res;
-	delete stmt;
-
-	//Load the xmlData now:
-	sql::PreparedStatement* xmlStmt = Database::CreatePreppedStmt(
-		"SELECT xml_data FROM charxml WHERE id=? LIMIT 1;"
-	);
-	xmlStmt->setInt64(1, m_ID);
-
-	sql::ResultSet* xmlRes = xmlStmt->executeQuery();
-	while (xmlRes->next()) {
-		m_XMLData = xmlRes->getString(1).c_str();
-	}
-
-	delete xmlRes;
-	delete xmlStmt;
+	// Load the xmlData now
+	m_XMLData = Database::Connection->GetCharacterXMLByID(m_ID);
 
 	m_ZoneID = 0; //TEMP! Set back to 0 when done. This is so we can see loading screen progress for testing.
 	m_ZoneInstanceID = 0; //These values don't really matter, these are only used on the char select screen and seem unused.
@@ -404,18 +359,13 @@ void Character::SetIsNewLogin() {
 }
 
 void Character::WriteToDatabase() {
-	//Dump our xml into m_XMLData:
+	// Dump our xml into m_XMLData:
 	auto* printer = new tinyxml2::XMLPrinter(0, true, 0);
 	m_Doc->Print(printer);
 	m_XMLData = printer->CStr();
 
-	//Finally, save to db:
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charxml SET xml_data=? WHERE id=?");
-	stmt->setString(1, m_XMLData.c_str());
-	stmt->setUInt(2, m_ID);
-	stmt->execute();
-	delete stmt;
-	delete printer;
+	// Save to DB
+	Database::Connection->WriteCharacterXMl(m_ID, m_XMLData);
 }
 
 void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {

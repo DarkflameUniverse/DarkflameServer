@@ -41,14 +41,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	mPlayers.insert(std::make_pair(data->playerID, data));
 	Game::logger->Log("PlayerContainer", "Added user: %s (%llu), zone: %i", data->playerName.c_str(), data->playerID, data->zoneID.GetMapID());
 
-	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
-
-	insertLog->setInt(1, data->playerID);
-	insertLog->setInt(2, 0);
-	insertLog->setUInt64(3, time(nullptr));
-	insertLog->setInt(4, data->zoneID.GetMapID());
-
-	insertLog->executeUpdate();
+	Database::Connection->InsertIntoActivityLog(data->playerID, 0, time(nullptr), data->zoneID.GetMapID());
 }
 
 void PlayerContainer::RemovePlayer(Packet* packet) {
@@ -85,14 +78,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	Game::logger->Log("PlayerContainer", "Removed user: %llu", playerID);
 	mPlayers.erase(playerID);
 
-	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
-
-	insertLog->setInt(1, playerID);
-	insertLog->setInt(2, 1);
-	insertLog->setUInt64(3, time(nullptr));
-	insertLog->setInt(4, player->zoneID.GetMapID());
-
-	insertLog->executeUpdate();
+	Database::Connection->InsertIntoActivityLog(playerID, 1, time(nullptr), player->zoneID.GetMapID());
 }
 
 void PlayerContainer::MuteUpdate(Packet* packet) {

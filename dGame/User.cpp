@@ -27,37 +27,21 @@ User::User(const SystemAddress& sysAddr, const std::string& username, const std:
 	//This needs to be re-enabled / updated whenever the mute stuff is moved to another table.
 	//This was only done because otherwise the website's account page dies and the website is waiting on a migration to wordpress.
 
-	//sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id, gmlevel, mute_expire FROM accounts WHERE name=? LIMIT 1;");
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id, gm_level FROM accounts WHERE name=? LIMIT 1;");
-	stmt->setString(1, username.c_str());
+	auto account = Database::Connection->GetAccountByName(username);
 
-	sql::ResultSet* res = stmt->executeQuery();
-	while (res->next()) {
-		m_AccountID = res->getUInt(1);
-		m_MaxGMLevel = static_cast<eGameMasterLevel>(res->getInt(2));
-		m_MuteExpire = 0; //res->getUInt64(3);
-	}
-
-	delete res;
-	delete stmt;
+	m_AccountID = account.ID;
+	m_MaxGMLevel = static_cast<eGameMasterLevel>(account.MaxGMLevel);
+	m_MuteExpire = 0;
 
 	//If we're loading a zone, we'll load the last used (aka current) character:
 	if (Game::server->GetZoneID() != 0) {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE account_id=? ORDER BY last_login DESC LIMIT 1;");
-		stmt->setUInt(1, m_AccountID);
+		uint32_t characterId = Database::Connection->GetLatestCharacterOfAccount(m_AccountID);
 
-		sql::ResultSet* res = stmt->executeQuery();
-		if (res->rowsCount() > 0) {
-			while (res->next()) {
-				LWOOBJID objID = res->getUInt64(1);
-				Character* character = new Character(uint32_t(objID), this);
-				m_Characters.push_back(character);
-				Game::logger->Log("User", "Loaded %llu as it is the last used char", objID);
-			}
+		if (characterId != 0) {
+			Character* character = new Character(characterId, this);
+			m_Characters.push_back(character);
+			Game::logger->Log("User", "Loaded %u as it is the last used char", characterId);
 		}
-
-		delete res;
-		delete stmt;
 	}
 }
 

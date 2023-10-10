@@ -77,34 +77,10 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
+	Database::Connect(Game::config);
 
-	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-	} catch (sql::SQLException& ex) {
-		Game::logger->Log("ChatServer", "Got an error while connecting to the database: %s", ex.what());
-		Database::Destroy("ChatServer");
-		delete Game::server;
-		delete Game::logger;
-		return EXIT_FAILURE;
-	}
-
-	//Find out the master's IP:
-	std::string masterIP;
-	uint32_t masterPort = 1000;
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		masterIP = res->getString(1).c_str();
-		masterPort = res->getInt(2);
-	}
-
-	delete res;
-	delete stmt;
+	// Get Master server IP and port
+	SocketDescriptor masterSock = Database::Connection->GetMasterServerIP();
 
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
 	uint32_t maxClients = 50;
@@ -112,7 +88,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::shouldShutdown);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterSock.hostAddress, masterSock.port, ServerType::Chat, Game::config, &Game::shouldShutdown);
 
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 	
@@ -155,18 +131,7 @@ int main(int argc, char** argv) {
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
 		if (framesSinceLastSQLPing >= sqlPingTime) {
-			//Find out the master's IP for absolutely no reason:
-			std::string masterIP;
-			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
-			}
-
-			delete res;
-			delete stmt;
+			Database::Connection->GetMasterServerIP();
 
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
@@ -176,8 +141,8 @@ int main(int argc, char** argv) {
 		std::this_thread::sleep_until(t);
 	}
 
-	//Delete our objects here:
-	Database::Destroy("ChatServer");
+	// Delete our objects here:
+	Database::Destroy();
 	delete Game::server;
 	delete Game::logger;
 	delete Game::config;

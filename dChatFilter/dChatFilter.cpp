@@ -31,16 +31,13 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 		ReadWordlistDCF("blacklist.dcf", false);
 	}
 
-	//Read player names that are ok as well:
-	auto stmt = Database::CreatePreppedStmt("select name from charinfo;");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		std::string line = res->getString(1).c_str();
-		std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
-		m_ApprovedWords.push_back(CalculateHash(line));
+	// Read player names that are ok as well:
+	auto names = Database::Connection->GetAllCharacterNames();
+
+	for (auto& name : names) {
+		std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+		m_ApprovedWords.push_back(CalculateHash(name));
 	}
-	delete res;
-	delete stmt;
 }
 
 dChatFilter::~dChatFilter() {

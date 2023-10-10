@@ -180,43 +180,21 @@ int main(int argc, char** argv) {
 
 	CDClientManager::Instance();
 
-	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
-
 	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
 
 	if (!Game::config->GetValue("dump_folder").empty()) {
 		Diagnostics::SetOutDirectory(Game::config->GetValue("dump_folder"));
 	}
 
-	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-	} catch (sql::SQLException& ex) {
-		Game::logger->Log("WorldServer", "Got an error while connecting to the database: %s", ex.what());
-		return EXIT_FAILURE;
-	}
+	Database::Connect(Game::config);
 
-	//Find out the master's IP:
-	std::string masterIP = "localhost";
-	uint32_t masterPort = 1000;
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		masterIP = res->getString(1).c_str();
-		masterPort = res->getInt(2);
-	}
-
-	delete res;
-	delete stmt;
+	auto masterSock = Database::Connection->GetMasterServerIP();
 
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 
-	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::shouldShutdown, zoneID);
+	Game::server = new dServer(masterSock.hostAddress, ourPort, instanceID, maxClients, false, true, Game::logger, masterSock.hostAddress, masterSock.port, ServerType::World, Game::config, &Game::shouldShutdown, zoneID);
 
 	//Connect to the chat server:
 	uint32_t chatPort = 1501;
@@ -225,7 +203,7 @@ int main(int argc, char** argv) {
 	auto chatSock = SocketDescriptor(uint16_t(ourPort + 2), 0);
 	Game::chatServer = RakNetworkFactory::GetRakPeerInterface();
 	Game::chatServer->Startup(1, 30, &chatSock, 1);
-	Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
+	Game::chatServer->Connect(masterSock.hostAddress, chatPort, "3.25 ND1", 8);
 
 	//Set up other things:
 	Game::randomEngine = std::mt19937(time(0));
@@ -380,7 +358,7 @@ int main(int argc, char** argv) {
 			if (framesSinceChatDisconnect >= chatReconnectionTime) {
 				framesSinceChatDisconnect = 0;
 
-				Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
+				Game::chatServer->Connect(masterSock.hostAddress, chatPort, "3.25 ND1", 8);
 			}
 		} else framesSinceChatDisconnect = 0;
 
@@ -482,18 +460,7 @@ int main(int argc, char** argv) {
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
 		if (framesSinceLastSQLPing >= sqlPingTime) {
-			//Find out the master's IP for absolutely no reason:
-			std::string masterIP;
-			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
-			}
-
-			delete res;
-			delete stmt;
+			Database::Connection->GetMasterServerIP();
 
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
@@ -886,20 +853,10 @@ void HandlePacket(Packet* packet) {
 
 		// If the check is turned on, validate the client's database checksum.
 		if (Game::config->GetValue("check_fdb") == "1" && !databaseChecksum.empty()) {
-			uint32_t gmLevel = 0;
-			auto* stmt = Database::CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
-			stmt->setString(1, username.c_str());
+			auto account = Database::Connection->GetAccountByName(username);
 
-			auto* res = stmt->executeQuery();
-			while (res->next()) {
-				gmLevel = res->getInt(1);
-			}
-
-			delete stmt;
-			delete res;
-
-			// Developers may skip this check
-			if (gmLevel < 8 && clientDatabaseChecksum != databaseChecksum) {
+			// Operators may skip this check
+			if (account.MaxGMLevel < 8 && clientDatabaseChecksum != databaseChecksum) {
 				Game::logger->Log("WorldServer", "Client's database checksum does not match the server's, aborting connection.");
 				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::WRONG_GAME_VERSION);
 				return;
@@ -1354,7 +1311,8 @@ void FinalizeShutdown() {
 
 	//Delete our objects here:
 	Metrics::Clear();
-	Database::Destroy("WorldServer");
+	Database::Destroy();
+	
 	if (Game::chatFilter) delete Game::chatFilter;
 	if (Game::zoneManager) delete Game::zoneManager;
 	if (Game::server) delete Game::server;

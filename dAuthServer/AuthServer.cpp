@@ -55,34 +55,10 @@ int main(int argc, char** argv) {
 	Game::logger->Log("AuthServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("AuthServer", "Compiled on: %s", __TIMESTAMP__);
 
-	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
+	Database::Connect(Game::config);
 
-	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-	} catch (sql::SQLException& ex) {
-		Game::logger->Log("AuthServer", "Got an error while connecting to the database: %s", ex.what());
-		Database::Destroy("AuthServer");
-		delete Game::server;
-		delete Game::logger;
-		return EXIT_FAILURE;
-	}
-
-	//Find out the master's IP:
-	std::string masterIP;
-	uint32_t masterPort = 1500;
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		masterIP = res->getString(1).c_str();
-		masterPort = res->getInt(2);
-	}
-
-	delete res;
-	delete stmt;
+	// Get Master server IP and port
+	SocketDescriptor masterSock = Database::Connection->GetMasterServerIP();
 
 	Game::randomEngine = std::mt19937(time(0));
 
@@ -92,7 +68,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::shouldShutdown);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterSock.hostAddress, masterSock.port, ServerType::Auth, Game::config, &Game::shouldShutdown);
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -131,18 +107,7 @@ int main(int argc, char** argv) {
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
 		if (framesSinceLastSQLPing >= sqlPingTime) {
-			//Find out the master's IP for absolutely no reason:
-			std::string masterIP;
-			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
-			}
-
-			delete res;
-			delete stmt;
+			Database::Connection->GetMasterServerIP();
 
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
@@ -151,9 +116,7 @@ int main(int argc, char** argv) {
 		t += std::chrono::milliseconds(authFrameDelta); //Auth can run at a lower "fps"
 		std::this_thread::sleep_until(t);
 	}
-
-	//Delete our objects here:
-	Database::Destroy("AuthServer");
+	
 	delete Game::server;
 	delete Game::logger;
 	delete Game::config;

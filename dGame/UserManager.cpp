@@ -159,17 +159,7 @@ void UserManager::DeletePendingRemovals() {
 }
 
 bool UserManager::IsNameAvailable(const std::string& requestedName) {
-	bool toReturn = false; //To allow for a clean exit
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE name=? OR pending_name=? LIMIT 1;");
-	stmt->setString(1, requestedName.c_str());
-	stmt->setString(2, requestedName.c_str());
-
-	sql::ResultSet* res = stmt->executeQuery();
-	if (res->rowsCount() == 0) toReturn = true;
-
-	delete stmt;
-	delete res;
-	return toReturn;
+	return Database::Connection->IsCharacterNameAvailable(requestedName);
 }
 
 std::string UserManager::GetPredefinedName(uint32_t firstNameIndex, uint32_t middleNameIndex, uint32_t lastNameIndex) {
@@ -201,10 +191,8 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
 
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE account_id=? ORDER BY last_login DESC LIMIT 4;");
-	stmt->setUInt(1, u->GetAccountID());
+	auto charInfos = Database::Connection->GetAllCharactersByAccountID(u->GetAccountID());
 
-	sql::ResultSet* res = stmt->executeQuery();
 	std::vector<Character*>& chars = u->GetCharacters();
 
 	for (size_t i = 0; i < chars.size(); ++i) {
@@ -232,15 +220,11 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 
 	chars.clear();
 
-	while (res->next()) {
-		LWOOBJID objID = res->getUInt64(1);
-		Character* character = new Character(uint32_t(objID), u);
+	for (const auto& info : charInfos) {
+		Character* character = new Character(info.ID, u);
 		character->SetIsNewLogin();
 		chars.push_back(character);
 	}
-
-	delete res;
-	delete stmt;
 
 	WorldPackets::SendCharacterList(sysAddr, u);
 }
@@ -290,12 +274,8 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	//Now that the name is ok, we can get an objectID from Master:
 	ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t objectID) {
-		sql::PreparedStatement* overlapStmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE id = ?");
-		overlapStmt->setUInt(1, objectID);
-
-		auto* overlapResult = overlapStmt->executeQuery();
-
-		if (overlapResult->next()) {
+		auto character = Database::Connection->GetCharacterInfoByID(objectID);
+		if (character.AccountID != 0) {
 			Game::logger->Log("UserManager", "Character object id unavailable, check objectidtracker!");
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
 			return;
@@ -333,45 +313,32 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 				xml3 << "</in></items></inv><lvl l=\"1\" cv=\"1\" sb=\"500\"/><flag></flag></obj>";
 
-				//Check to see if our name was pre-approved:
+				// Check to see if our name was pre-approved
 				bool nameOk = IsNamePreapproved(name);
-				if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
+				if (u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
 				if (name != "") {
-					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
-					stmt->setUInt(1, objectID);
-					stmt->setUInt(2, u->GetAccountID());
-					stmt->setString(3, predefinedName.c_str());
-					stmt->setString(4, name.c_str());
-					stmt->setBoolean(5, false);
-					stmt->setUInt64(6, time(NULL));
-
-					if (nameOk) {
-						stmt->setString(3, name.c_str());
-						stmt->setString(4, "");
-					}
-
-					stmt->execute();
-					delete stmt;
+					Database::Connection->CreateCharacter(
+						objectID,
+						u->GetAccountID(),
+						nameOk ? name : predefinedName,
+						nameOk ? "" : name,
+						false,
+						time(NULL)
+					);
 				} else {
-					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
-					stmt->setUInt(1, objectID);
-					stmt->setUInt(2, u->GetAccountID());
-					stmt->setString(3, predefinedName.c_str());
-					stmt->setString(4, "");
-					stmt->setBoolean(5, false);
-					stmt->setUInt64(6, time(NULL));
-
-					stmt->execute();
-					delete stmt;
+					Database::Connection->CreateCharacter(
+						objectID,
+						u->GetAccountID(),
+						predefinedName,
+						"",
+						false,
+						time(NULL)
+					);
 				}
 
-				//Now finally insert our character xml:
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charxml`(`id`, `xml_data`) VALUES (?,?)");
-				stmt->setUInt(1, objectID);
-				stmt->setString(2, xml3.str().c_str());
-				stmt->execute();
-				delete stmt;
+				// Now finally insert our character xml
+				Database::Connection->CreateCharacterXML(objectID, xml3.str());
 
 				WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
@@ -403,73 +370,13 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		WorldPackets::SendCharacterDeleteResponse(sysAddr, false);
 	} else {
 		Game::logger->Log("UserManager", "Deleting character %i", charID);
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM charxml WHERE id=? LIMIT 1;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM command_log WHERE character_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM friends WHERE player_id=? OR friend_id=?;");
-			stmt->setUInt(1, charID);
-			stmt->setUInt(2, charID);
-			stmt->execute();
-			delete stmt;
-			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
-			bitStream.Write(objectID);
-			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM leaderboard WHERE character_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
-				"DELETE FROM properties_contents WHERE property_id IN (SELECT id FROM properties WHERE owner_id=?);"
-			);
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM properties WHERE owner_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM ugc WHERE character_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM activity_log WHERE character_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM mail WHERE receiver_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM charinfo WHERE id=? LIMIT 1;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
+
+		Database::Connection->DeleteCharacter(charID);
+
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+		bitStream.Write(objectID);
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 
 		WorldPackets::SendCharacterDeleteResponse(sysAddr, true);
 	}

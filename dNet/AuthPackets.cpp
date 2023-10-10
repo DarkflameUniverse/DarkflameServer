@@ -64,122 +64,57 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	const char* szUsername = username.c_str();
 
 	// Fetch account details
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT password, banned, locked, play_key_id, gm_level FROM accounts WHERE name=? LIMIT 1;");
-	stmt->setString(1, szUsername);
+	auto account = Database::Connection->GetAccountByName(username);
 
-	sql::ResultSet* res = stmt->executeQuery();
-
-	if (res->rowsCount() == 0) {
+	if (account.ID == 0) {
 		server->GetLogger()->Log("AuthPackets", "No user found!");
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::INVALID_USER, "", "", 2001, username);
 		return;
 	}
-
-	std::string sqlPass = "";
-	bool sqlBanned = false;
-	bool sqlLocked = false;
-	uint32_t sqlPlayKey = 0;
-	uint32_t sqlGmLevel = 0;
-
-	while (res->next()) {
-		sqlPass = res->getString(1).c_str();
-		sqlBanned = res->getBoolean(2);
-		sqlLocked = res->getBoolean(3);
-		sqlPlayKey = res->getInt(4);
-		sqlGmLevel = res->getInt(5);
-	}
-
-	delete stmt;
-	delete res;
+	
 
 	//If we aren't running in live mode, then only GMs are allowed to enter:
 	const auto& closedToNonDevs = Game::config->GetValue("closed_to_non_devs");
-	if (closedToNonDevs.size() > 0 && bool(std::stoi(closedToNonDevs)) && sqlGmLevel == 0) {
+	if (closedToNonDevs.size() > 0 && bool(std::stoi(closedToNonDevs)) && account.MaxGMLevel == 0) {
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "The server is currently only open to developers.", "", 2001, username);
 		return;
 	}
 
 	if (Game::config->GetValue("dont_use_keys") != "1") {
-		//Check to see if we have a play key:
-		if (sqlPlayKey == 0 && sqlGmLevel == 0) {
+		// Check to see if we have a play key
+		if (account.PlayKeyID == 0 && account.MaxGMLevel == 0) {
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
 			server->GetLogger()->Log("AuthPackets", "User %s tried to log in, but they don't have a play key.", username.c_str());
 			return;
 		}
 
-		//Check if the play key is _valid_:
-		auto keyCheckStmt = Database::CreatePreppedStmt("SELECT active FROM `play_keys` WHERE id=?");
-		keyCheckStmt->setInt(1, sqlPlayKey);
-		auto keyRes = keyCheckStmt->executeQuery();
-		bool isKeyActive = false;
+		// Check if the play key is _valid_
+		bool isKeyActive = Database::Connection->IsKeyActive(account.PlayKeyID);
 
-		if (keyRes->rowsCount() == 0 && sqlGmLevel == 0) {
+		if (!isKeyActive && account.MaxGMLevel == 0) {
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
-			return;
-		}
-
-		while (keyRes->next()) {
-			isKeyActive = (bool)keyRes->getInt(1);
-		}
-
-		if (!isKeyActive && sqlGmLevel == 0) {
-			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your play key has been disabled.", "", 2001, username);
-			server->GetLogger()->Log("AuthPackets", "User %s tried to log in, but their play key was disabled", username.c_str());
+			server->GetLogger()->Log("AuthPackets", "User %s tried to log in, but they lacked a play key", username.c_str());
 			return;
 		}
 	}
 
-	if (sqlBanned) {
+	if (account.Banned) {
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::BANNED, "", "", 2001, username); return;
 	}
 
-	if (sqlLocked) {
+	if (account.Locked) {
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::ACCOUNT_LOCKED, "", "", 2001, username); return;
 	}
 
-	/*
-	 * Updated hashing method:
-	 * First attempt bcrypt.
-	 * If that fails, fallback to old method and setup bcrypt for new login.
-	 */
-
-	bool loginSuccess = true;
-
-	int32_t bcryptState = ::bcrypt_checkpw(password.c_str(), sqlPass.c_str());
-
-	if (bcryptState != 0) {
-		// Fallback on old method
-
-		std::string oldPassword = sha512(password + username);
-
-		if (sqlPass != oldPassword) {
-			loginSuccess = false;
-		} else {
-			// Generate new hash for bcrypt
-
-			char salt[BCRYPT_HASHSIZE];
-			char hash[BCRYPT_HASHSIZE];
-
-			bcryptState = ::bcrypt_gensalt(12, salt);
-
-			assert(bcryptState == 0);
-
-			bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-
-			assert(bcryptState == 0);
-
-			sql::PreparedStatement* accountUpdate = Database::CreatePreppedStmt("UPDATE accounts SET password = ? WHERE name = ? LIMIT 1;");
-
-			accountUpdate->setString(1, std::string(hash, BCRYPT_HASHSIZE).c_str());
-			accountUpdate->setString(2, szUsername);
-
-			accountUpdate->executeUpdate();
+	if (!account.Password.empty()) {
+		if (account.Password[0] != '$') {
+			Game::logger->Log("AuthPackets", "Invalid password being parsed for user %s", username.c_str());
 		}
-	} else {
-		// Login success with bcrypt
 	}
 
-	if (!loginSuccess) {
+	int32_t bcryptState = ::bcrypt_checkpw(password.c_str(), account.Password.c_str());
+
+	if (bcryptState != 0) {
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::WRONG_PASS, "", "", 2001, username);
 		server->GetLogger()->Log("AuthPackets", "Wrong password used");
 	} else {

@@ -360,11 +360,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	// Log command to database
-	auto stmt = Database::CreatePreppedStmt("INSERT INTO command_log (character_id, command) VALUES (?, ?);");
-	stmt->setInt(1, entity->GetCharacter()->GetID());
-	stmt->setString(2, GeneralUtils::UTF16ToWTF8(command).c_str());
-	stmt->execute();
-	delete stmt;
+	Database::Connection->InsertIntoCommandLog(entity->GetCharacter()->GetID(), GeneralUtils::UTF16ToWTF8(command));
 
 	if (chatCommand == "setminifig" && args.size() == 2 && entity->GetGMLevel() >= eGameMasterLevel::FORUM_MODERATOR) { // could break characters so only allow if GM > 0
 		int32_t minifigItemId;
@@ -816,18 +812,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "mailitem" && entity->GetGMLevel() >= eGameMasterLevel::MODERATOR && args.size() >= 2) {
 		const auto& playerName = args[0];
-
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id from charinfo WHERE name=? LIMIT 1;");
-		stmt->setString(1, playerName);
-		sql::ResultSet* res = stmt->executeQuery();
-		uint32_t receiverID = 0;
-
-		if (res->rowsCount() > 0) {
-			while (res->next()) receiverID = res->getUInt(1);
-		}
-
-		delete stmt;
-		delete res;
+		
+		auto character = Database::Connection->GetCharacterByName(playerName);
+		uint32_t receiverID = character.AccountID;
 
 		if (receiverID == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Failed to find that player");
@@ -1016,26 +1003,15 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			LWOOBJID characterId = 0;
 
 			if (player == nullptr) {
-				auto* accountQuery = Database::CreatePreppedStmt("SELECT account_id, id FROM charinfo WHERE name=? LIMIT 1;");
+				auto character = Database::Connection->GetCharacterByName(args[0]);
 
-				accountQuery->setString(1, args[0]);
-
-				auto result = accountQuery->executeQuery();
-
-				if (result->rowsCount() > 0) {
-					while (result->next()) {
-						accountId = result->getUInt(1);
-						characterId = result->getUInt64(2);
-
-						GeneralUtils::SetBit(characterId, eObjectBits::CHARACTER);
-						GeneralUtils::SetBit(characterId, eObjectBits::PERSISTENT);
-					}
-				}
-
-				delete accountQuery;
-				delete result;
-
-				if (accountId == 0) {
+				if (accountId != 0) {
+					accountId = character.AccountID;
+					characterId = character.ID;
+					
+					GeneralUtils::SetBit(characterId, eObjectBits::CHARACTER);
+					GeneralUtils::SetBit(characterId, eObjectBits::PERSISTENT);
+				} else {
 					ChatPackets::SendSystemMessage(sysAddr, u"Count not find player of name: " + GeneralUtils::UTF8ToUTF16(args[0]));
 
 					return;
@@ -1128,20 +1104,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			uint32_t accountId = 0;
 
 			if (player == nullptr) {
-				auto* accountQuery = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE name=? LIMIT 1;");
+				auto character = Database::Connection->GetCharacterInfoByName(args[0]);
+				accountId = character.AccountID;
 
-				accountQuery->setString(1, args[0]);
-
-				auto result = accountQuery->executeQuery();
-
-				if (result->rowsCount() > 0) {
-					while (result->next()) accountId = result->getUInt(1);
-				}
-
-				delete accountQuery;
-				delete result;
-
-				if (accountId == 0) {
+				if (character.AccountID == 0) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Count not find player of name: " + GeneralUtils::UTF8ToUTF16(args[0]));
 
 					return;

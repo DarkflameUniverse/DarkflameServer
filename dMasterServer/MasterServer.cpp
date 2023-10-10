@@ -129,19 +129,7 @@ int main(int argc, char** argv) {
 	Game::logger->Log("MasterServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	Game::logger->Log("MasterServer", "Compiled on: %s", __TIMESTAMP__);
 
-	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
-
-	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
-	} catch (sql::SQLException& ex) {
-		Game::logger->Log("MasterServer", "Got an error while connecting to the database: %s", ex.what());
-		Game::logger->Log("MigrationRunner", "Migrations not run");
-		return EXIT_FAILURE;
-	}
+	Database::Connect(Game::config);
 
 	try {
 		std::string clientPathStr = Game::config->GetValue("client_location");
@@ -313,8 +301,7 @@ int main(int argc, char** argv) {
 	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::shouldShutdown);
 
 	//Query for the database for a server labeled "master"
-	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");
-	auto* result = masterLookupStatement->executeQuery();
+	auto masterServerSock = Database::Connection->GetMasterServerIP();
 
 	auto master_server_ip = Game::config->GetValue("master_ip");
 
@@ -323,20 +310,11 @@ int main(int argc, char** argv) {
 	}
 
 	//If we found a server, update it's IP and port to the current one.
-	if (result->next()) {
-		auto* updateStatement = Database::CreatePreppedStmt("UPDATE `servers` SET `ip` = ?, `port` = ? WHERE `id` = ?");
-		updateStatement->setString(1, master_server_ip.c_str());
-		updateStatement->setInt(2, Game::server->GetPort());
-		updateStatement->setInt(3, result->getInt("id"));
-		updateStatement->execute();
-		delete updateStatement;
+	if (masterServerSock.port != 0) {
+		Database::Connection->SetServerIpAndPortByName("master", master_server_ip, Game::server->GetPort());
 	} else {
-		//If we didn't find a server, create one.
-		auto* insertStatement = Database::CreatePreppedStmt("INSERT INTO `servers` (`name`, `ip`, `port`, `state`, `version`) VALUES ('master', ?, ?, 0, 171023)");
-		insertStatement->setString(1, master_server_ip.c_str());
-		insertStatement->setInt(2, Game::server->GetPort());
-		insertStatement->execute();
-		delete insertStatement;
+		// If we didn't find a server, create one.
+		Database::Connection->CreateServer("master", master_server_ip, Game::server->GetPort(), 0, 171023);
 	}
 
 	//Create additional objects here:
@@ -382,18 +360,7 @@ int main(int argc, char** argv) {
 
 		//Every 10 min we ping our sql server to keep it alive hopefully:
 		if (framesSinceLastSQLPing >= sqlPingTime) {
-			//Find out the master's IP for absolutely no reason:
-			std::string masterIP;
-			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
-			}
-
-			delete res;
-			delete stmt;
+			Database::Connection->GetMasterServerIP();
 
 			framesSinceLastSQLPing = 0;
 		} else
@@ -973,8 +940,8 @@ void ShutdownSequence(int32_t signal) {
 }
 
 int32_t FinalizeShutdown(int32_t signal) {
-	//Delete our objects here:
-	Database::Destroy("MasterServer");
+	// Delete our objects here
+	Database::Destroy();
 	if (Game::config) delete Game::config;
 	if (Game::im) delete Game::im;
 	if (Game::server) delete Game::server;
