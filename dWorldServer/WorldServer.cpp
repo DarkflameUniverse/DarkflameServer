@@ -1061,35 +1061,19 @@ void HandlePacket(Packet* packet) {
 						goto noBBB;
 					}
 
-					//Check for BBB models:
-					auto stmt = Database::CreatePreppedStmt("SELECT ugc_id FROM properties_contents WHERE lot=14 AND property_id=?");
-
-					int32_t templateId = result.getIntField(0);
+					uint64_t propertyId = Database::Connection->GetPropertyFromTemplateAndClone(result.getIntField(0), g_CloneID);
 
 					result.finalize();
 
-					auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
+					// Check for BBB models
+					auto models = Database::Connection->GetBBBModlesForProperty(propertyId);
 
-					propertyLookup->setInt(1, templateId);
-					propertyLookup->setInt64(2, g_CloneID);
+					for (const auto& modelId : models) {
+						Game::logger->Log("UGC", "Getting lxfml ugcID: %u", modelId);
 
-					auto* propertyEntry = propertyLookup->executeQuery();
-					uint64_t propertyId = 0;
-
-					if (propertyEntry->next()) {
-						propertyId = propertyEntry->getUInt64(1);
-					}
-
-					delete propertyLookup;
-
-					stmt->setUInt64(1, propertyId);
-					auto res = stmt->executeQuery();
-					while (res->next()) {
-						Game::logger->Log("UGC", "Getting lxfml ugcID: %u", res->getUInt(1));
-
-						//Get lxfml:
+						// Get lxfml data
 						auto stmtL = Database::CreatePreppedStmt("SELECT lxfml from ugc where id=?");
-						stmtL->setUInt(1, res->getUInt(1));
+						stmtL->setUInt(1, modelId);
 
 						auto lxres = stmtL->executeQuery();
 
@@ -1100,15 +1084,15 @@ void HandlePacket(Packet* packet) {
 							size_t lxfmlSize = lxfml->tellg();
 							lxfml->seekg(0);
 
-							//Send message:
+							// Send message
 							{
-								LWOOBJID blueprintID = res->getUInt(1);
+								LWOOBJID blueprintID = modelId;
 								GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
 								GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 								CBITSTREAM;
 								BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
-								bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
+								bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); // always zero so that a check on the client passes
 								bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
 								bitStream.Write<uint32_t>(1);
 								bitStream.Write(blueprintID);
@@ -1120,7 +1104,7 @@ void HandlePacket(Packet* packet) {
 
 								SystemAddress sysAddr = packet->systemAddress;
 								SEND_PACKET;
-								PacketUtils::SavePacket("lxfml packet " + std::to_string(res->getUInt(1)) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+								PacketUtils::SavePacket("lxfml packet " + std::to_string(modelId) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 							}
 						}
 

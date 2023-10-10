@@ -90,6 +90,11 @@ public:
 
 	// Mail Delete
 	virtual void DeleteMail(uint64_t id) = 0;
+
+	// Property Get
+	virtual uint64_t GetPropertyFromTemplateAndClone(uint32_t templateId, uint32_t cloneId) = 0;
+	virtual std::vector<uint32_t> GetBBBModlesForProperty(uint32_t propertyId) = 0;
+	virtual std::istream GetLXFMLFromID(uint32_t id) = 0;
 private:
 
 };

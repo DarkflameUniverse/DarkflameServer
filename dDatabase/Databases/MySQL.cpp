@@ -102,7 +102,8 @@ std::unique_ptr<sql::PreparedStatement> MySQLDatabase::CreatePreppedStmtUnique(c
 }
 
 std::unique_ptr<sql::ResultSet> MySQLDatabase::GetResultsOfStatement(sql::Statement* stmt) {
-	std::unique_ptr<sql::ResultSet> result(stmt->executeQuery());
+	auto* res = stmt->executeQuery();
+	std::unique_ptr<sql::ResultSet> result(res);
 	return result;
 }
 
@@ -604,4 +605,47 @@ void MySQLDatabase::RemoveAttachmentFromMail(uint64_t id) {
 	auto stmt = CreatePreppedStmtUnique("UPDATE mail SET attachment_lot = 0 WHERE id = ?;");
 	stmt->setUInt64(1, id);
 	stmt->execute();
+}
+
+uint64_t MySQLDatabase::GetPropertyFromTemplateAndClone(uint32_t templateId, uint32_t cloneId) {
+	auto stmt = CreatePreppedStmtUnique("SELECT id FROM properties WHERE template_id = ? AND clone_id = ? LIMIT 1;");
+	stmt->setUInt(1, templateId);
+	stmt->setUInt(2, cloneId);
+
+	auto res = GetResultsOfStatement(stmt.get());
+
+	while (res->next()) {
+		return res->getUInt64("id");
+	}
+
+	return 0;
+}
+
+std::vector<uint32_t> MySQLDatabase::GetBBBModlesForProperty(uint32_t propertyId) {
+	auto stmt = CreatePreppedStmtUnique("SELECT ugc_id FROM properties_contents WHERE lot = 14 AND property_id = ?;");
+	stmt->setUInt(1, propertyId);
+
+	auto res = GetResultsOfStatement(stmt.get());
+
+	std::vector<uint32_t> models;
+
+	while (res->next()) {
+		models.push_back(res->getUInt("ugc_id"));
+	}
+
+	return models;
+}
+
+std::istream* MySQLDatabase::GetLXFMLFromID(uint32_t id) {
+	auto stmt = CreatePreppedStmtUnique("SELECT lxfml FROM ugc WHERE id = ? LIMIT 1;");
+	stmt->setUInt(1, id);
+
+	auto res = GetResultsOfStatement(stmt.get());
+
+	while (res->next()) {
+		std::istream* blob = res->getBlob("lxfml");
+		return blob;
+	}
+
+	return new std::istream();
 }

@@ -83,6 +83,10 @@ public:
 	void RemoveAttachmentFromMail(uint64_t id) override;
 
 	void DeleteMail(uint64_t id) override;
+
+	uint64_t GetPropertyFromTemplateAndClone(uint32_t templateId, uint32_t cloneId) override;
+	std::vector<uint32_t> GetBBBModlesForProperty(uint32_t propertyId) override;
+	std::istream GetLXFMLFromID(uint32_t id) override;
 private:
 	std::string m_Host;
 	std::string m_Database;
