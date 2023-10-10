@@ -6,7 +6,8 @@
 #include <stdarg.h>
 
 Writer::~Writer() {
-	if (!m_Outfile) return;
+	// Dont try to close stdcout...
+	if (!m_Outfile || m_IsConsoleWriter) return;
 
 	fclose(m_Outfile);
 	m_Outfile = NULL;
