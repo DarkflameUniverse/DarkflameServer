@@ -363,9 +363,10 @@ void DestroyableComponent::SetIsShielded(bool value) {
 
 void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignoreChecks) {
 	// Ignore factionID -1
-	if (factionID == -1 && !ignoreChecks) {
-		return;
-	}
+	if (factionID == -1 && !ignoreChecks) return;
+
+	// if we already have that faction, don't add it again
+	if (std::find(m_FactionIDs.begin(), m_FactionIDs.end(), factionID) != m_FactionIDs.end()) return;
 
 	m_FactionIDs.push_back(factionID);
 	m_DirtyHealth = true;
@@ -407,6 +408,14 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 }
 
 bool DestroyableComponent::IsEnemy(const Entity* other) const {
+	if (m_Parent->IsPlayer() && other->IsPlayer()){
+		auto* thisCharacterComponent = m_Parent->GetComponent<CharacterComponent>();
+		if (!thisCharacterComponent) return false;
+		auto* otherCharacterComponent = other->GetComponent<CharacterComponent>();
+		if (!otherCharacterComponent) return false;
+		if (thisCharacterComponent->GetPvpEnabled() && otherCharacterComponent->GetPvpEnabled()) return true;
+		return false;
+	}
 	const auto* otherDestroyableComponent = other->GetComponent<DestroyableComponent>();
 	if (otherDestroyableComponent != nullptr) {
 		for (const auto enemyFaction : m_EnemyFactionIDs) {
@@ -484,43 +493,6 @@ LWOOBJID DestroyableComponent::GetKillerID() const {
 Entity* DestroyableComponent::GetKiller() const {
 	return Game::entityManager->GetEntity(m_KillerID);
 }
-
-bool DestroyableComponent::CheckValidity(const LWOOBJID target, const bool ignoreFactions, const bool targetEnemy, const bool targetFriend) const {
-	auto* targetEntity = Game::entityManager->GetEntity(target);
-
-	if (targetEntity == nullptr) {
-		LOG("Invalid entity for checking validity (%llu)!", target);
-		return false;
-	}
-
-	auto* targetDestroyable = targetEntity->GetComponent<DestroyableComponent>();
-
-	if (targetDestroyable == nullptr) {
-		return false;
-	}
-
-	auto* targetQuickbuild = targetEntity->GetComponent<RebuildComponent>();
-
-	if (targetQuickbuild != nullptr) {
-		const auto state = targetQuickbuild->GetState();
-
-		if (state != eRebuildState::COMPLETED) {
-			return false;
-		}
-	}
-
-	if (ignoreFactions) {
-		return true;
-	}
-
-	// Get if the target entity is an enemy and friend
-	bool isEnemy = IsEnemy(targetEntity);
-	bool isFriend = IsFriend(targetEntity);
-
-	// Return true if the target type matches what we are targeting
-	return (isEnemy && targetEnemy) || (isFriend && targetFriend);
-}
-
 
 void DestroyableComponent::Heal(const uint32_t health) {
 	auto current = static_cast<uint32_t>(GetHealth());
@@ -763,18 +735,18 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 					auto* member = Game::entityManager->GetEntity(specificOwner);
 
-					if (member) LootGenerator::Instance().DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins());
+					if (member) Loot::DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins());
 				} else {
 					for (const auto memberId : team->members) { // Free for all
 						auto* member = Game::entityManager->GetEntity(memberId);
 
 						if (member == nullptr) continue;
 
-						LootGenerator::Instance().DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins());
+						Loot::DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins());
 					}
 				}
 			} else { // drop loot for non team user
-				LootGenerator::Instance().DropLoot(owner, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
+				Loot::DropLoot(owner, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
 			}
 		}
 	} else {
@@ -792,7 +764,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 				coinsTotal -= coinsToLose;
 
-				LootGenerator::Instance().DropLoot(m_Parent, m_Parent, -1, coinsToLose, coinsToLose);
+				Loot::DropLoot(m_Parent, m_Parent, -1, coinsToLose, coinsToLose);
 				character->SetCoins(coinsTotal, eLootSourceType::PICKUP);
 			}
 		}

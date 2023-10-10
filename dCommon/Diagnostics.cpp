@@ -107,7 +107,7 @@ static void ErrorCallback(void* data, const char* msg, int errnum) {
 }
 #endif
 
-#include "Type.h"
+#include "Demangler.h"
 
 void GenerateDump() {
 	std::string cmd = "sudo gcore " + std::to_string(getpid());
@@ -122,41 +122,43 @@ void CatchUnhandled(int sig) {
 	if (Diagnostics::GetProduceMemoryDump()) {
 		GenerateDump();
 	}
-
-	void* array[10];
+	constexpr uint8_t MaxStackTrace = 32;
+	void* array[MaxStackTrace];
 	size_t size;
 
 	// get void*'s for all entries on the stack
-	size = backtrace(array, 10);
+	size = backtrace(array, MaxStackTrace);
 
-#if defined(__GNUG__) and defined(__dynamic)
+#  if defined(__GNUG__)
 
 	// Loop through the returned addresses, and get the symbols to be demangled
 	char** strings = backtrace_symbols(array, size);
 
 	// Print the stack trace
 	for (size_t i = 0; i < size; i++) {
-		// Take a string like './WorldServer(_ZN19SlashCommandHandler17HandleChatCommandERKSbIDsSt11char_traitsIDsESaIDsEEP6EntityRK13SystemAddress+0x6187) [0x55869c44ecf7]' and extract the function name
+		// Take a string like './WorldServer(_ZN19SlashCommandHandler17HandleChatCommandERKSbIDsSt11char_traitsIDsESaIDsEEP6EntityRK13SystemAddress+0x6187) [0x55869c44ecf7]'
+		// and extract '_ZN19SlashCommandHandler17HandleChatCommandERKSbIDsSt11char_traitsIDsESaIDsEEP6EntityRK13SystemAddress' from it to be demangled into a proper name
 		std::string functionName = strings[i];
 		std::string::size_type start = functionName.find('(');
 		std::string::size_type end = functionName.find('+');
 		if (start != std::string::npos && end != std::string::npos) {
 			std::string demangled = functionName.substr(start + 1, end - start - 1);
 
-			demangled = demangle(functionName.c_str());
+			demangled = Demangler::Demangle(demangled.c_str());
 
-			if (demangled.empty()) {
-				LOG("[%02zu] %s", i, demangled.c_str());
-			} else {
-				LOG("[%02zu] %s", i, functionName.c_str());
+			// If the demangled string is not empty, then we can replace the mangled string with the demangled one
+			if (!demangled.empty()) {
+				demangled.push_back('(');
+				demangled += functionName.substr(end);
+				functionName = demangled;
 			}
-		} else {
-			LOG("[%02zu] %s", i, functionName.c_str());
 		}
+
+		LOG("[%02zu] %s", i, functionName.c_str());
 	}
-#else
+#  else // defined(__GNUG__)
 	backtrace_symbols_fd(array, size, STDOUT_FILENO);
-#endif
+#  endif // defined(__GNUG__)
 
 	FILE* file = fopen(fileName.c_str(), "w+");
 	if (file != NULL) {
@@ -166,7 +168,7 @@ void CatchUnhandled(int sig) {
 		fclose(file);
 	}
 
-#else
+#else // __include_backtrace__
 
 	struct backtrace_state* state = backtrace_create_state(
 		Diagnostics::GetProcessFileName().c_str(),
@@ -177,7 +179,7 @@ void CatchUnhandled(int sig) {
 	struct bt_ctx ctx = { state, 0 };
 	Bt(state);
 
-#endif
+#endif // __include_backtrace__
 
 	exit(EXIT_FAILURE);
 }

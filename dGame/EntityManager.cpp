@@ -298,6 +298,16 @@ std::vector<Entity*> EntityManager::GetEntitiesByLOT(const LOT& lot) const {
 	return entities;
 }
 
+std::vector<Entity*> EntityManager::GetEntitiesByProximity(NiPoint3 reference, float radius) const{
+	std::vector<Entity*> entities = {};
+	if (radius > 1000.0f) return entities;
+	for (const auto& entity : m_Entities) {
+		if (NiPoint3::Distance(reference, entity.second->GetPosition()) <= radius) entities.push_back(entity.second);
+	}
+	return entities;
+}
+
+
 Entity* EntityManager::GetZoneControlEntity() const {
 	return m_ZoneControlEntity;
 }

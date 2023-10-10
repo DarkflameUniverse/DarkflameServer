@@ -175,7 +175,7 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_SPEED:
 		behavior = new SpeedBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION: 
+	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION:
 		behavior = new DarkInspirationBehavior(behaviorId);
 		break;
 	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF:

@@ -62,23 +62,27 @@ RacingControlComponent::RacingControlComponent(Entity* parent)
 RacingControlComponent::~RacingControlComponent() {}
 
 void RacingControlComponent::OnPlayerLoaded(Entity* player) {
-	// If the race has already started, send the player back to the main world.
-	if (m_Loaded) {
-		auto* playerInstance = dynamic_cast<Player*>(player);
-
-		playerInstance->SendToZone(m_MainWorld);
-
+	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) {
 		return;
 	}
 
-	const auto objectID = player->GetObjectID();
+	auto* vehicle = inventoryComponent->FindItemByLot(8092);
+
+	// If the race has already started, send the player back to the main world.
+	if (m_Loaded || !vehicle) {
+		auto* playerInstance = dynamic_cast<Player*>(player);
+		if(playerInstance){
+			playerInstance->SendToZone(m_MainWorld);
+		}
+		return;
+	}
 
 	m_LoadedPlayers++;
 
 	LOG("Loading player %i",
 		m_LoadedPlayers);
-
-	m_LobbyPlayers.push_back(objectID);
+	m_LobbyPlayers.push_back(player->GetObjectID());
 }
 
 void RacingControlComponent::LoadPlayerVehicle(Entity* player,
@@ -101,8 +105,13 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 
 	if (item == nullptr) {
 		LOG("Failed to find item");
-
+		auto* playerInstance = dynamic_cast<Player*>(player);
+		if(playerInstance){
+			m_LoadedPlayers--;
+			playerInstance->SendToZone(m_MainWorld);
+		}
 		return;
+		
 	}
 
 	// Calculate the vehicle's starting position.
@@ -380,7 +389,7 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 		}
 
         const auto score = playersRating * 10 + data->finished;
-		LootGenerator::Instance().GiveActivityLoot(player, m_Parent, m_ActivityID, score);
+		Loot::GiveActivityLoot(player, m_Parent, m_ActivityID, score);
 
 		// Giving rewards
 		GameMessages::SendNotifyRacingClient(

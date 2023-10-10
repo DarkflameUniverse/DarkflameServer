@@ -12,7 +12,7 @@ set(DCOMMON_SOURCES
 		"NiPoint3.cpp"
 		"NiQuaternion.cpp"
 		"SHA512.cpp"
-		"Type.cpp"
+		"Demangler.cpp"
 		"ZCompression.cpp"
 		"BrickByBrickFix.cpp"
 		"BinaryPathFinder.cpp"

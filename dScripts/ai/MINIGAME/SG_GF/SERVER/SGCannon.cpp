@@ -160,166 +160,198 @@ void SGCannon::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button
 	}
 }
 
-void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
-	if (name == SuperChargeTimer && !self->GetVar<bool>(SuperChargePausedVariable)) {
-		if (self->GetVar<bool>(WaveStatusVariable) || self->GetVar<uint32_t>(CurrentSuperChargedTimeVariable) < 1) {
-			self->SetNetworkVar<uint32_t>(ChargeCountingVariable, 99);
-			self->SetNetworkVar<uint32_t>(SuperChargeBarVariable, 0);
-			ToggleSuperCharge(self, false);
+void SGCannon::SuperChargeTimerFunc(Entity* self) {
+	if (self->GetVar<bool>(WaveStatusVariable) || self->GetVar<uint32_t>(CurrentSuperChargedTimeVariable) < 1) {
+		self->SetNetworkVar<uint32_t>(ChargeCountingVariable, 99);
+		self->SetNetworkVar<uint32_t>(SuperChargeBarVariable, 0);
+		ToggleSuperCharge(self, false);
+	}
+}
+
+void SGCannon::SpawnWaveTimerFunc(Entity* self) {
+	if (self->GetVar<bool>(GameStartedVariable)) {
+		self->SetVar<bool>(WaveStatusVariable, true);
+		const auto wave = (int32_t)self->GetVar<uint32_t>(ThisWaveVariable);
+
+		if (wave != 0 && self->GetVar<bool>(SuperChargePausedVariable)) {
+			StartChargedCannon(self, self->GetVar<uint32_t>(CurrentSuperChargedTimeVariable));
+			self->SetVar<uint32_t>(CurrentSuperChargedTimeVariable, 0);
 		}
-	} else if (name == SpawnWaveTimer) {
-		if (self->GetVar<bool>(GameStartedVariable)) {
-			self->SetVar<bool>(WaveStatusVariable, true);
-			const auto wave = (int32_t)self->GetVar<uint32_t>(ThisWaveVariable);
 
-			if (wave != 0 && self->GetVar<bool>(SuperChargePausedVariable)) {
-				StartChargedCannon(self, self->GetVar<uint32_t>(CurrentSuperChargedTimeVariable));
-				self->SetVar<uint32_t>(CurrentSuperChargedTimeVariable, 0);
-			}
+		TimerToggle(self, true);
 
-			TimerToggle(self, true);
-
-			for (const auto& enemyToSpawn : m_Waves.at(self->GetVar<uint32_t>(ThisWaveVariable))) {
-				SpawnObject(self, enemyToSpawn, true);
-			}
-
-			LOG("Current wave spawn: %i/%i", wave, m_Waves.size());
-
-			// All waves completed
-			const auto timeLimit = (float_t)self->GetVar<uint32_t>(TimeLimitVariable);
-			if (wave >= m_Waves.size()) {
-				ActivityTimerStart(self, GameOverTimer, timeLimit, timeLimit);
-			} else {
-				ActivityTimerStart(self, EndWaveTimer, timeLimit, timeLimit);
-			}
-
-			const auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
-			if (player != nullptr) {
-				GameMessages::SendPlayFXEffect(player->GetObjectID(), -1, u"SG-start", "");
-
-				GameMessages::SendStartActivityTime(self->GetObjectID(), timeLimit, player->GetSystemAddress());
-				LOG("Sending ActivityPause false");
-
-				GameMessages::SendActivityPause(self->GetObjectID(), false, player->GetSystemAddress());
-			}
+		for (const auto& enemyToSpawn : m_Waves.at(self->GetVar<uint32_t>(ThisWaveVariable))) {
+			SpawnObject(self, enemyToSpawn, true);
 		}
-	} else if (name == EndWaveTimer) {
-		self->SetVar<bool>(WaveStatusVariable, false);
+
+		LOG("Current wave spawn: %i/%i", wave, m_Waves.size());
+
+		// All waves completed
+		const auto timeLimit = (float_t)self->GetVar<uint32_t>(TimeLimitVariable);
+		if (wave >= m_Waves.size()) {
+			ActivityTimerStart(self, GameOverTimer, timeLimit, timeLimit);
+		} else {
+			ActivityTimerStart(self, EndWaveTimer, timeLimit, timeLimit);
+		}
+
+		const auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+		if (player != nullptr) {
+			GameMessages::SendPlayFXEffect(player->GetObjectID(), -1, u"SG-start", "");
+
+			GameMessages::SendStartActivityTime(self->GetObjectID(), timeLimit, player->GetSystemAddress());
+			LOG("Sending ActivityPause false");
+
+			GameMessages::SendActivityPause(self->GetObjectID(), false, player->GetSystemAddress());
+		}
+	}
+}
+
+void SGCannon::EndWaveTimerFunc(Entity* self) {
+	self->SetVar<bool>(WaveStatusVariable, false);
+	TimerToggle(self);
+	RecordPlayerScore(self);
+
+	if (self->GetVar<uint32_t>(ThisWaveVariable) >= 2) {
+		GameMessages::SendActivityPause(self->GetObjectID(), true);
+		ActivityTimerStart(self, GameOverTimer, 0.1, 0.1);
+		return;
+	}
+
+	self->SetVar<uint32_t>(ThisWaveVariable, self->GetVar<uint32_t>(ThisWaveVariable) + 1);
+	PlaySceneAnimation(self, u"wave" + GeneralUtils::to_u16string(self->GetVar<uint32_t>(ThisWaveVariable)), true, true, 1.7f);
+	self->SetNetworkVar<uint32_t>(WaveNumVariable, self->GetVar<uint32_t>(ThisWaveVariable) + 1);
+	self->SetNetworkVar<uint32_t>(WaveStrVariable, self->GetVar<uint32_t>(TimeLimitVariable));
+
+	LOG("Current wave: %i/%i", self->GetVar<uint32_t>(ThisWaveVariable), m_Waves.size());
+
+	if (self->GetVar<uint32_t>(ThisWaveVariable) >= m_Waves.size()) {
+		ActivityTimerStart(self, GameOverTimer, 0.1, 0.1);
+	} else {
+		ActivityTimerStart(self, SpawnWaveTimer, constants.inBetweenWavePause, constants.inBetweenWavePause);
+	}
+
+	LOG("Sending ActivityPause true");
+
+	GameMessages::SendActivityPause(self->GetObjectID(), true);
+	if (self->GetVar<bool>(SuperChargeActiveVariable) && !self->GetVar<bool>(SuperChargePausedVariable)) {
+		PauseChargeCannon(self);
+	}
+}
+
+void SGCannon::GameOverTimerFunc(Entity* self) {
+	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
+	if (player != nullptr) {
+		LOG_DEBUG("Sending ActivityPause true");
+
+		GameMessages::SendActivityPause(self->GetObjectID(), true, player->GetSystemAddress());
+
+		/*const auto leftoverCannonballs = Game::entityManager->GetEntitiesInGroup("cannonball");
+		if (leftoverCannonballs.empty()) {
+			RecordPlayerScore(self);
+
+		} else {
+			ActivityTimerStart(self, EndGameBufferTimer, 1, leftoverCannonballs.size());
+		}*/
+
+		ActivityTimerStart(self, EndGameBufferTimer, 1, 1);
+
 		TimerToggle(self);
-		RecordPlayerScore(self);
+	}
+}
 
-		if (self->GetVar<uint32_t>(ThisWaveVariable) >= 2) {
-			GameMessages::SendActivityPause(self->GetObjectID(), true);
-			ActivityTimerStart(self, GameOverTimer, 0.1, 0.1);
+void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
+	if (self->GetVar<bool>(GameStartedVariable)) {
+		LOG_DEBUG("time name %s %s", name.c_str(), name.substr(7).c_str());
+		const auto spawnNumber = (uint32_t)std::stoi(name.substr(7));
+		const auto& activeSpawns = self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable);
+		LOG_DEBUG("size %i, %i", activeSpawns.size(), spawnNumber);
+		if (activeSpawns.size() <= spawnNumber) {
+			LOG_DEBUG("Trying to spawn %i when spawns size is only %i", spawnNumber, activeSpawns.size());
 			return;
 		}
 
-		self->SetVar<uint32_t>(ThisWaveVariable, self->GetVar<uint32_t>(ThisWaveVariable) + 1);
-		PlaySceneAnimation(self, u"wave" + GeneralUtils::to_u16string(self->GetVar<uint32_t>(ThisWaveVariable)), true, true, 1.7f);
-		self->SetNetworkVar<uint32_t>(WaveNumVariable, self->GetVar<uint32_t>(ThisWaveVariable) + 1);
-		self->SetNetworkVar<uint32_t>(WaveStrVariable, self->GetVar<uint32_t>(TimeLimitVariable));
-
-		LOG("Current wave: %i/%i", self->GetVar<uint32_t>(ThisWaveVariable), m_Waves.size());
-
-		if (self->GetVar<uint32_t>(ThisWaveVariable) >= m_Waves.size()) {
-			ActivityTimerStart(self, GameOverTimer, 0.1, 0.1);
-		} else {
-			ActivityTimerStart(self, SpawnWaveTimer, constants.inBetweenWavePause, constants.inBetweenWavePause);
+		const auto& toSpawn = activeSpawns.at(spawnNumber);
+		LOG_DEBUG("toSpawn %i", toSpawn.spawnPaths.size());
+		const auto pathIndex = GeneralUtils::GenerateRandomNumber<float_t>(0, toSpawn.spawnPaths.size() - 1);
+		LOG_DEBUG("index %f", pathIndex);
+		LOG_DEBUG("%s", toSpawn.spawnPaths.at(pathIndex).c_str());
+		const auto* path = Game::zoneManager->GetZone()->GetPath(toSpawn.spawnPaths.at(pathIndex));
+		if (!path) {
+			LOG_DEBUG("Path %s at index %i is null", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
+			return;
 		}
 
-		LOG("Sending ActivityPause true");
+		LOG_DEBUG("%s", path->pathName.c_str());
 
-		GameMessages::SendActivityPause(self->GetObjectID(), true);
-		if (self->GetVar<bool>(SuperChargeActiveVariable) && !self->GetVar<bool>(SuperChargePausedVariable)) {
-			PauseChargeCannon(self);
+		auto info = EntityInfo{};
+		info.lot = toSpawn.lot;
+		info.spawnerID = self->GetObjectID();
+		info.pos = path->pathWaypoints.at(0).position;
+
+		info.settings = {
+			new LDFData<SGEnemy>(u"SpawnData", toSpawn),
+			new LDFData<std::string>(u"custom_script_server", "scripts/ai/ACT/SG_TARGET.lua"),
+			new LDFData<std::string>(u"custom_script_client", "scripts/client/ai/SG_TARGET_CLIENT.lua"),
+			new LDFData<std::string>(u"attached_path", path->pathName),
+			new LDFData<uint32_t>(u"attached_path_start", 0),
+			new LDFData<std::u16string>(u"groupID", u"SGEnemy")
+		};
+
+		LOG_DEBUG("Spawning enemy %i on path %s", toSpawn.lot, path->pathName.c_str());
+
+		auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
+		Game::entityManager->ConstructEntity(enemy);
+
+		auto* movementAI = new MovementAIComponent(enemy, {});
+
+		enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
+
+		movementAI->SetMaxSpeed(toSpawn.initialSpeed);
+		movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
+		movementAI->SetHaltDistance(0.0f);
+
+		std::vector<NiPoint3> pathWaypoints;
+
+		for (const auto& waypoint : path->pathWaypoints) {
+			pathWaypoints.push_back(waypoint.position);
 		}
+
+		if (GeneralUtils::GenerateRandomNumber<float_t>(0, 1) < 0.5f) {
+			std::reverse(pathWaypoints.begin(), pathWaypoints.end());
+		}
+
+		movementAI->SetPath(pathWaypoints);
+
+		enemy->AddDieCallback([this, self, enemy, name]() {
+			RegisterHit(self, enemy, name);
+			});
+
+		// Save the enemy and tell it to start pathing
+		if (enemy != nullptr) {
+			const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
+			GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS);
+		}
+	}
+}
+
+void SGCannon::EndGameBufferTimerFunc(Entity* self) {
+	RecordPlayerScore(self);
+	StopGame(self, false);
+}
+
+void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
+	if (name == SuperChargeTimer && !self->GetVar<bool>(SuperChargePausedVariable)) {
+		SuperChargeTimerFunc(self);
+	} else if (name == SpawnWaveTimer) {
+		SpawnWaveTimerFunc(self);
+	} else if (name == EndWaveTimer) {
+		EndWaveTimerFunc(self);
 	} else if (name == GameOverTimer) {
-		auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
-		if (player != nullptr) {
-			LOG("Sending ActivityPause true");
-
-			GameMessages::SendActivityPause(self->GetObjectID(), true, player->GetSystemAddress());
-
-			/*const auto leftoverCannonballs = Game::entityManager->GetEntitiesInGroup("cannonball");
-			if (leftoverCannonballs.empty()) {
-				RecordPlayerScore(self);
-
-			} else {
-				ActivityTimerStart(self, EndGameBufferTimer, 1, leftoverCannonballs.size());
-			}*/
-
-			ActivityTimerStart(self, EndGameBufferTimer, 1, 1);
-
-			TimerToggle(self);
-		}
+		GameOverTimerFunc(self);
 	} else if (name.rfind(DoSpawnTimer, 0) == 0) {
-		if (self->GetVar<bool>(GameStartedVariable)) {
-			const auto spawnNumber = (uint32_t)std::stoi(name.substr(7));
-			const auto& activeSpawns = self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable);
-			if (activeSpawns.size() < spawnNumber) {
-				LOG("Trying to spawn %i when spawns size is only %i", spawnNumber, activeSpawns.size());
-				return;
-			}
-			const auto& toSpawn = activeSpawns.at(spawnNumber);
-			const auto pathIndex = GeneralUtils::GenerateRandomNumber<float_t>(0, toSpawn.spawnPaths.size() - 1);
-			const auto* path = Game::zoneManager->GetZone()->GetPath(toSpawn.spawnPaths.at(pathIndex));
-			if (!path) {
-				LOG("Path %s at index %i is null", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
-				return;
-			}
-
-			auto info = EntityInfo{};
-			info.lot = toSpawn.lot;
-			info.spawnerID = self->GetObjectID();
-			info.pos = path->pathWaypoints.at(0).position;
-
-			info.settings = {
-				new LDFData<SGEnemy>(u"SpawnData", toSpawn),
-				new LDFData<std::string>(u"custom_script_server", "scripts/ai/ACT/SG_TARGET.lua"),
-				new LDFData<std::string>(u"custom_script_client", "scripts/client/ai/SG_TARGET_CLIENT.lua"),
-				new LDFData<std::string>(u"attached_path", path->pathName),
-				new LDFData<uint32_t>(u"attached_path_start", 0),
-				new LDFData<std::u16string>(u"groupID", u"SGEnemy")
-			};
-
-			LOG("Spawning enemy %i on path %s", toSpawn.lot, path->pathName.c_str());
-
-			auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
-			Game::entityManager->ConstructEntity(enemy);
-
-			auto* movementAI = new MovementAIComponent(enemy, {});
-
-			enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
-
-			movementAI->SetMaxSpeed(toSpawn.initialSpeed);
-			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
-			movementAI->SetHaltDistance(0.0f);
-
-			std::vector<NiPoint3> pathWaypoints;
-
-			for (const auto& waypoint : path->pathWaypoints) {
-				pathWaypoints.push_back(waypoint.position);
-			}
-
-			if (GeneralUtils::GenerateRandomNumber<float_t>(0, 1) < 0.5f) {
-				std::reverse(pathWaypoints.begin(), pathWaypoints.end());
-			}
-
-			movementAI->SetPath(pathWaypoints);
-
-			enemy->AddDieCallback([this, self, enemy, name]() {
-				RegisterHit(self, enemy, name);
-				});
-
-			// Save the enemy and tell it to start pathing
-			if (enemy != nullptr) {
-				const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
-				GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS);
-			}
-		}
+		DoSpawnTimerFunc(self, name);
 	} else if (name == EndGameBufferTimer) {
-		RecordPlayerScore(self);
-		StopGame(self, false);
+		EndGameBufferTimerFunc(self);
 	}
 }
 
@@ -410,7 +442,7 @@ void SGCannon::SpawnNewModel(Entity* self) {
 
 			if (lootMatrix != 0) {
 				std::unordered_map<LOT, int32_t> toDrop = {};
-				toDrop = LootGenerator::Instance().RollLootMatrix(player, lootMatrix);
+				toDrop = Loot::RollLootMatrix(player, lootMatrix);
 
 				for (auto drop : toDrop) {
 					rewardModel->OnFireEventServerSide(self, ModelToBuildEvent, drop.first);
@@ -562,7 +594,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 			missionComponent->Progress(eMissionTaskType::ACTIVITY, m_CannonLot, 0, "", self->GetVar<uint32_t>(TotalScoreVariable));
 		}
 
-		LootGenerator::Instance().GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
+		Loot::GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
 
 		SaveScore(self, player->GetObjectID(),
 			static_cast<float>(self->GetVar<uint32_t>(TotalScoreVariable)), static_cast<float>(self->GetVar<uint32_t>(MaxStreakVariable)), percentage);

@@ -17,7 +17,7 @@ protected:
 	}
 };
 
-#define LdfUniquePtr std::unique_ptr<LDFBaseData>  
+typedef std::unique_ptr<LDFBaseData> LdfUniquePtr;  
 
 // Suite of tests for parsing LDF values
 
