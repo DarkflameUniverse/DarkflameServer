@@ -31,3 +31,19 @@ struct PetName {
 	std::string Name;
 	bool Approved;
 };
+
+struct MailInfo {
+	uint64_t ID;
+	uint32_t SenderID;
+	std::string SenderName; 
+	uint32_t ReceiverID;
+	std::string ReceiverName;
+	uint64_t TimeSent;
+	std::string Subject;
+	std::string Body;
+	uint32_t AttachmentID;
+	uint32_t AttachmentLOT;
+	uint64_t AttachmentSubkey;
+	uint32_t AttachmentCount;
+	bool WasRead;
+};

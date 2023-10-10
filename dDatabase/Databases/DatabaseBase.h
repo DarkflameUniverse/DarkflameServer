@@ -56,6 +56,10 @@ public:
 	virtual AccountInfo GetAccountByID(uint32_t id) = 0;
 	virtual uint32_t GetLatestCharacterOfAccount(uint32_t id) = 0;
 
+	// Account Set
+	virtual void BanAccount(uint32_t id) = 0;
+	virtual void MuteAccount(uint32_t id, uint64_t muteExpireDate) = 0;
+
 	// Pet Write
 	virtual void CreatePetName(uint64_t id, const std::string& name, bool approved) = 0;
 
@@ -73,6 +77,19 @@ public:
 
 	// Object ID tracker Set
 	virtual void SetObjectIDTracker(uint32_t id) = 0;
+
+	// Mail Get
+	virtual MailInfo GetMailByID(uint64_t id) = 0;
+	virtual std::vector<MailInfo> GetAllRecentMailOfUser(uint32_t id) = 0;
+	virtual uint32_t GetUnreadMailCountForUser(uint32_t id) = 0;
+
+	// Mail Write
+	virtual void WriteMail(uint32_t senderId, const std::string& senderName, uint32_t receiverId, const std::string& receiverName, uint64_t sendTime, const std::string& subject, const std::string& body, uint32_t attachmentId = 0, uint32_t attachmentLot = 0, uint64_t attachmentSubkey = 0, uint32_t attachmentCount = 0, bool wasRead = false) = 0;
+	virtual void SetMailAsRead(uint64_t id) = 0;
+	virtual void RemoveAttachmentFromMail(uint64_t id) = 0;
+
+	// Mail Delete
+	virtual void DeleteMail(uint64_t id) = 0;
 private:
 
 };

@@ -59,6 +59,9 @@ public:
 	AccountInfo GetAccountByID(uint32_t id) override;
 	uint32_t GetLatestCharacterOfAccount(uint32_t id) override;
 
+	void BanAccount(uint32_t id) override;
+	void MuteAccount(uint32_t id, uint64_t muteExpireDate) override;
+
 	void CreatePetName(uint64_t id, const std::string& name, bool approved) override;
 	
 	void DeletePetName(uint64_t id) override;
@@ -70,6 +73,16 @@ public:
 	uint32_t GetObjectIDTracker() override;
 
 	void SetObjectIDTracker(uint32_t id) override;
+
+	MailInfo GetMailByID(uint64_t id) override;
+	std::vector<MailInfo> GetAllRecentMailOfUser(uint32_t id) override;
+	uint32_t GetUnreadMailCountForUser(uint32_t id) override;
+
+	void WriteMail(uint32_t senderId, const std::string& senderName, uint32_t receiverId, const std::string& receiverName, uint64_t sendTime, const std::string& subject, const std::string& body, uint32_t attachmentId = 0, uint32_t attachmentLot = 0, uint64_t attachmentSubkey = 0, uint32_t attachmentCount = 0, bool wasRead = false) override;
+	void SetMailAsRead(uint64_t id) override;
+	void RemoveAttachmentFromMail(uint64_t id) override;
+
+	void DeleteMail(uint64_t id) override;
 private:
 	std::string m_Host;
 	std::string m_Database;

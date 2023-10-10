@@ -404,6 +404,19 @@ AccountInfo MySQLDatabase::GetAccountByID(uint32_t id) {
 	return AccountInfo{};
 }
 
+void MySQLDatabase::BanAccount(uint32_t id) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE accounts SET banned = 1 WHERE id = ?;");
+	stmt->setUInt(1, id);
+	stmt->execute();
+}
+
+void MySQLDatabase::MuteAccount(uint32_t id, uint64_t muteExpireDate) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE accounts SET mute_expire = ? WHERE id = ?;");
+	stmt->setUInt64(1, muteExpireDate);
+	stmt->setUInt(2, id);
+	stmt->execute();
+}
+
 std::vector<CharacterInfo> MySQLDatabase::GetAllCharactersByAccountID(uint32_t accountId) {
 	auto stmt = CreatePreppedStmtUnique("SELECT id FROM charinfo WHERE account_id = ? LIMIT 4;");
 	stmt->setUInt(1, accountId);
@@ -483,5 +496,112 @@ uint32_t MySQLDatabase::GetObjectIDTracker() {
 void MySQLDatabase::SetObjectIDTracker(uint32_t id) {
 	auto stmt = CreatePreppedStmtUnique("UPDATE object_id_tracker SET last_object_id = ?;");
 	stmt->setUInt(1, id);
+	stmt->execute();
+}
+
+MailInfo MySQLDatabase::GetMailByID(uint64_t id) {
+	auto stmt = CreatePreppedStmtUnique("SELECT * FROM mail WHERE id = ?;");
+	stmt->setUInt64(1, id);
+
+	auto res = GetResultsOfStatement(stmt.get());
+
+	if (res->next()) {
+		MailInfo mail{};
+		mail.ID = id;
+		mail.SenderID = res->getUInt("sender_id");
+		mail.SenderName = res->getString("sender_name");
+		mail.ReceiverID = res->getUInt("receiver_id");
+		mail.ReceiverName = res->getString("receiver_name");
+		mail.TimeSent = res->getUInt64("time_sent");
+		mail.Subject = res->getString("subject");
+		mail.Body = res->getString("body");
+		mail.AttachmentID = res->getUInt("attachment_id");
+		mail.AttachmentLOT = res->getUInt("attachment_lot");
+		mail.AttachmentSubkey = res->getUInt64("attachment_subkey");
+		mail.AttachmentCount = res->getUInt("attachment_count");
+		mail.WasRead = res->getBoolean("was_read");
+
+		return mail;
+	}
+
+	return MailInfo{};
+}
+
+std::vector<MailInfo> MySQLDatabase::GetAllRecentMailOfUser(uint32_t id) {
+	auto stmt = CreatePreppedStmtUnique("SELECT * FROM mail WHERE receiver_id = ? LIMIT 20;");
+	stmt->setUInt(1, id);
+
+	auto res = GetResultsOfStatement(stmt.get());
+
+	std::vector<MailInfo> mail;
+
+	while (res->next()) {
+		MailInfo mailInfo{};
+		mailInfo.ID = res->getUInt64("id");
+		mailInfo.SenderID = res->getUInt("sender_id");
+		mailInfo.SenderName = res->getString("sender_name");
+		mailInfo.ReceiverID = res->getUInt("receiver_id");
+		mailInfo.ReceiverName = res->getString("receiver_name");
+		mailInfo.TimeSent = res->getUInt64("time_sent");
+		mailInfo.Subject = res->getString("subject");
+		mailInfo.Body = res->getString("body");
+		mailInfo.AttachmentID = res->getUInt("attachment_id");
+		mailInfo.AttachmentLOT = res->getUInt("attachment_lot");
+		mailInfo.AttachmentSubkey = res->getUInt64("attachment_subkey");
+		mailInfo.AttachmentCount = res->getUInt("attachment_count");
+		mailInfo.WasRead = res->getBoolean("was_read");
+
+		mail.push_back(mailInfo);
+	}
+
+	return mail;
+}
+
+uint32_t MySQLDatabase::GetUnreadMailCountForUser(uint32_t id) {
+	auto stmt = CreatePreppedStmtUnique("SELECT COUNT(*) FROM mail WHERE receiver_id = ? AND was_read = 0;");
+	stmt->setUInt(1, id);
+
+	auto res = GetResultsOfStatement(stmt.get());
+
+	while (res->next()) {
+		return res->getUInt(1);
+	}
+
+	return 0;
+}
+
+void MySQLDatabase::WriteMail(uint32_t senderId, const std::string& senderName, uint32_t receiverId, const std::string& receiverName, uint64_t sendTime, const std::string& subject, const std::string& body, uint32_t attachmentId, uint32_t attachmentLot, uint64_t attachmentSubkey, uint32_t attachmentCount, bool wasRead) { 
+	auto stmt = CreatePreppedStmtUnique("INSERT INTO mail (sender_id, sender_name, receiver_id, receiver_name, time_sent, subject, body, attachment_id, attachment_lot, attachment_subkey, attachment_count, was_read) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+	stmt->setUInt(1, senderId);
+	stmt->setString(2, senderName);
+	stmt->setUInt(3, receiverId);
+	stmt->setString(4, receiverName);
+	stmt->setUInt64(5, sendTime);
+	stmt->setString(6, subject);
+	stmt->setString(7, body);
+	stmt->setUInt(8, attachmentId);
+	stmt->setUInt(9, attachmentLot);
+	stmt->setUInt64(10, attachmentSubkey);
+	stmt->setUInt(11, attachmentCount);
+	stmt->setBoolean(12, wasRead);
+
+	stmt->execute();
+}
+
+void MySQLDatabase::DeleteMail(uint64_t id) {
+	auto stmt = CreatePreppedStmtUnique("DELETE FROM mail WHERE id = ?;");
+	stmt->setUInt64(1, id);
+	stmt->execute();
+}
+
+void MySQLDatabase::SetMailAsRead(uint64_t id) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE mail SET was_read = 1 WHERE id = ?;");
+	stmt->setUInt64(1, id);
+	stmt->execute();
+}
+
+void MySQLDatabase::RemoveAttachmentFromMail(uint64_t id) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE mail SET attachment_lot = 0 WHERE id = ?;");
+	stmt->setUInt64(1, id);
 	stmt->execute();
 }
