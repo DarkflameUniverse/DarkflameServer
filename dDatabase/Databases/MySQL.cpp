@@ -47,21 +47,7 @@ MySQLDatabase::~MySQLDatabase() {
 }
 
 void MySQLDatabase::Connect() {
-	try {
-		this->m_Driver = get_m_Driver_instance();
-		this->m_Properties["hostName"] = this->m_Host;
-		this->m_Properties["userName"] = this->m_Username;
-		this->m_Properties["password"] = this->m_Password;
-		this->m_Properties["OPT_RECONNECT"] = true;
-		
-		this->m_Connection = this->m_Driver->connect(this->props);
-		this->m_Connection->setSchema(this->m_Database);
-		
-	} catch (sql::SQLException& e) {
-		throw MySqlException(e.what());
-	}
-
-	if (this->m_Properties.find("localSocket") != this->m_Properties.end() || this->m_Properties.find("pipe") != Database::props.end()) {
+	if (this->m_Properties.find("localSocket") != this->m_Properties.end() || this->m_Properties.find("pipe") != this->m_Properties.end()) {
 		this->m_Connection = m_Driver->connect(this->m_Properties);
 	} else {
 		this->m_Connection = m_Driver->connect(
@@ -82,7 +68,7 @@ void MySQLDatabase::Destroy() {
 }
 
 sql::Statement* MySQLDatabase::CreateStmt() {
-	sql::Statement* toReturn = con->createStatement();
+	sql::Statement* toReturn = this->m_Connection->createStatement();
 	return toReturn;
 }
 
@@ -96,7 +82,7 @@ sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& quer
 		Game::logger->Log("Database", "Trying to reconnect to MySQL");
 	}
 
-	if (!con->isValid() || con->isClosed()) {
+	if (!this->m_Connection->isValid() || this->m_Connection->isClosed()) {
 		delete this->m_Connection;
 
 		this->m_Connection = nullptr;
@@ -111,7 +97,8 @@ sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& quer
 }
 
 std::unique_ptr<sql::PreparedStatement> MySQLDatabase::CreatePreppedStmtUnique(const std::string& query) {
-	return CreatePreppedStmt(query);
+	std::unique_ptr<sql::PreparedStatement> stmt(CreatePreppedStmt(query));
+	return stmt;
 }
 
 std::unique_ptr<sql::ResultSet> MySQLDatabase::GetResultsOfStatement(sql::Statement* stmt) {
@@ -121,7 +108,7 @@ std::unique_ptr<sql::ResultSet> MySQLDatabase::GetResultsOfStatement(sql::Statem
 
 
 void MySQLDatabase::Commit() {
-	Database::con->commit();
+	this->m_Connection->commit();
 }
 
 bool MySQLDatabase::GetAutoCommit() {
@@ -174,7 +161,7 @@ std::vector<std::string> MySQLDatabase::GetAllCharacterNames() {
 	std::vector<std::string> names;
 
 	while (res->next()) {
-		names.push_back(res->getString("name"));
+		names.push_back(res->getString("name").c_str());
 	}
 
 	return names;
@@ -224,7 +211,7 @@ CharacterInfo MySQLDatabase::GetCharacterInfoByID(uint32_t id) {
 		info.PendingName = res->getString("pending_name");
 		info.NameRejected = res->getBoolean("needs_rename");
 		info.PropertyCloneID = res->getUInt("prop_clone_id");
-		info.PermissionMap = res->getUInt("permission_map");
+		info.PermissionMap = (ePermissionMap)res->getUInt("permission_map");
 
 		return info;
 	}
@@ -239,7 +226,7 @@ CharacterInfo MySQLDatabase::GetCharacterInfoByName(const std::string& name) {
 	auto res = GetResultsOfStatement(stmt.get());
 
 	while (res->next()) {
-		return GetCharacterByID(res->getUInt("id"));
+		return GetCharacterInfoByID(res->getUInt("id"));
 	}
 
 	return CharacterInfo{};
@@ -265,38 +252,61 @@ std::string MySQLDatabase::GetCharacterXMLByID(uint32_t id) {
 	auto res = GetResultsOfStatement(stmt.get());
 
 	while (res->next()) {
-		return res->getString("xml_data");
+		return res->getString("xml_data").c_str();
 	}
 
 	return "";
 }
 
 void MySQLDatabase::CreateCharacterXML(uint32_t id, const std::string& xml) {
-	auto replaceStmt = CreatePreppedStmtUnique("INSERT INTO charxml (id, xml_data) VALUES (?, ?);");
-	replaceStmt->setUInt(1, id);
-	replaceStmt->setString(2, xml);
+	auto stmt = CreatePreppedStmtUnique("INSERT INTO charxml (id, xml_data) VALUES (?, ?);");
+	stmt->setUInt(1, id);
+	stmt->setString(2, xml);
 
 	stmt->executeUpdate();
 }
 
 void MySQLDatabase::UpdateCharacterXML(uint32_t id, const std::string& xml) {
-	auto replaceStmt = CreatePreppedStmtUnique("UPDATE charxml SET xml_data = ? WHERE id = ?;");
-	replaceStmt->setString(1, xml);
-	replaceStmt->setUInt(2, id);
+	auto stmt = CreatePreppedStmtUnique("UPDATE charxml SET xml_data = ? WHERE id = ?;");
+	stmt->setString(1, xml);
+	stmt->setUInt(2, id);
 
 	stmt->executeUpdate();
 }
 
 void MySQLDatabase::CreateCharacter(uint32_t id, uint32_t account_id, const std::string& name, const std::string& pending_name, bool needs_rename, uint64_t last_login) {
-	auto replaceStmt = CreatePreppedStmtUnique("INSERT INTO charinfo (id, account_id, name, pending_name, needs_rename, last_login) VALUES (?, ?, ?, ?, ?, ?);");
-	replaceStmt->setUInt(1, id);
-	replaceStmt->setUInt(2, account_id);
-	replaceStmt->setString(3, name);
-	replaceStmt->setString(4, pending_name);
-	replaceStmt->setBoolean(5, needs_rename);
-	replaceStmt->setUInt64(6, last_login);
+	auto stmt = CreatePreppedStmtUnique("INSERT INTO charinfo (id, account_id, name, pending_name, needs_rename, last_login) VALUES (?, ?, ?, ?, ?, ?);");
+	stmt->setUInt(1, id);
+	stmt->setUInt(2, account_id);
+	stmt->setString(3, name);
+	stmt->setString(4, pending_name);
+	stmt->setBoolean(5, needs_rename);
+	stmt->setUInt64(6, last_login);
 
-	replaceStmt->executeUpdate();
+	stmt->execute();
+}
+
+void MySQLDatabase::ApproveCharacterName(uint32_t id, const std::string& newName) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE charinfo SET name = ?, pending_name = '', needs_rename = 0, last_login = ? WHERE id = ? LIMIT 1");
+	stmt->setString(1, newName);
+	stmt->setUInt64(2, time(NULL));
+	stmt->setUInt(3, id);
+	stmt->execute();
+}
+
+void MySQLDatabase::SetPendingCharacterName(uint32_t id, const std::string& pendingName) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE charinfo SET pending_name=?, needs_rename=0, last_login=? WHERE id=? LIMIT 1;");
+	stmt->setString(1, pendingName);
+	stmt->setUInt64(2, time(NULL));
+	stmt->setUInt(3, id);
+	stmt->execute();
+}
+
+void MySQLDatabase::UpdateCharacterLastLogin(uint32_t id, uint64_t time) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE charinfo SET last_login = ? WHERE id = ? LIMIT 1;");
+	stmt->setUInt64(1, time);
+	stmt->setUInt(2, id);
+	stmt->execute();
 }
 
 void MySQLDatabase::DeleteCharacter(uint32_t id) {
@@ -381,7 +391,7 @@ AccountInfo MySQLDatabase::GetAccountByID(uint32_t id) {
 		info.ID = id;
 		info.Name = res->getString("name");
 		info.Password = res->getString("password");
-		info.GMLevel = res->getUInt("gm_level");
+		info.MaxGMLevel = res->getUInt("gm_level");
 		info.Locked = res->getBoolean("locked");
 		info.Banned = res->getBoolean("banned");
 		info.PlayKeyID = res->getUInt("play_key_id");
@@ -403,7 +413,7 @@ std::vector<CharacterInfo> MySQLDatabase::GetAllCharactersByAccountID(uint32_t a
 	std::vector<CharacterInfo> characters;
 
 	while (res->next()) {
-		characters.push_back(GetCharacterByID(res->getUInt("id")));
+		characters.push_back(GetCharacterInfoByID(res->getUInt("id")));
 	}
 
 	return characters;

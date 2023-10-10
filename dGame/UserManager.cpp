@@ -426,23 +426,13 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 		if (IsNameAvailable(newName)) {
 			if (IsNamePreapproved(newName)) {
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET name=?, pending_name='', needs_rename=0, last_login=? WHERE id=? LIMIT 1");
-				stmt->setString(1, newName);
-				stmt->setUInt64(2, time(NULL));
-				stmt->setUInt(3, character->GetID());
-				stmt->execute();
-				delete stmt;
+				Database::Connection->ApproveCharacterName(character->GetID(), newName);
 
 				Game::logger->Log("UserManager", "Character %s now known as %s", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET pending_name=?, needs_rename=0, last_login=? WHERE id=? LIMIT 1");
-				stmt->setString(1, newName);
-				stmt->setUInt64(2, time(NULL));
-				stmt->setUInt(3, character->GetID());
-				stmt->execute();
-				delete stmt;
+				Database::Connection->SetPendingCharacterName(character->GetID(), newName);
 
 				Game::logger->Log("UserManager", "Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
@@ -473,11 +463,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 	}
 
 	if (hasCharacter && character) {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET last_login=? WHERE id=? LIMIT 1");
-		stmt->setUInt64(1, time(NULL));
-		stmt->setUInt(2, playerID);
-		stmt->execute();
-		delete stmt;
+		Database::Connection->UpdateCharacterLastLogin(playerID, time(NULL));
 
 		uint32_t zoneID = character->GetZoneID();
 		if (zoneID == LWOZONEID_INVALID) zoneID = 1000; //Send char to VE

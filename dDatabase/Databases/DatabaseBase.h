@@ -41,6 +41,9 @@ public:
 	virtual void CreateCharacterXML(uint32_t id, const std::string& xml) = 0;
 	virtual void UpdateCharacterXML(uint32_t id, const std::string& xml) = 0;
 	virtual void CreateCharacter(uint32_t id, uint32_t account_id, const std::string& name, const std::string& pending_name, bool needs_rename, uint64_t last_login) = 0;
+	virtual void ApproveCharacterName(uint32_t id, const std::string& newName) = 0;
+	virtual void SetPendingCharacterName(uint32_t id, const std::string& pendingName) = 0;
+	virtual void UpdateCharacterLastLogin(uint32_t id, uint64_t time) = 0;
 
 	// Character Delete
 	virtual void DeleteCharacter(uint32_t id) = 0;

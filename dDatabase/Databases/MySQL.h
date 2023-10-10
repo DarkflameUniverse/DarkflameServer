@@ -25,9 +25,9 @@ public:
 	std::unique_ptr<sql::PreparedStatement> CreatePreppedStmtUnique(const std::string& query);
 	std::unique_ptr<sql::ResultSet> GetResultsOfStatement(sql::Statement* stmt);
 
-	void Commit() override;
-	bool GetAutoCommit() override;
-	void SetAutoCommit(bool value) override;
+	void Commit();
+	bool GetAutoCommit();
+	void SetAutoCommit(bool value);
 
 	SocketDescriptor GetMasterServerIP() override;
 
@@ -47,6 +47,9 @@ public:
 	void CreateCharacterXML(uint32_t id, const std::string& xml) override;
 	void UpdateCharacterXML(uint32_t id, const std::string& xml) override;
 	void CreateCharacter(uint32_t id, uint32_t account_id, const std::string& name, const std::string& pending_name, bool needs_rename, uint64_t last_login) override;
+	void ApproveCharacterName(uint32_t id, const std::string& newName) override;
+	void SetPendingCharacterName(uint32_t id, const std::string& pendingName) override;
+	void UpdateCharacterLastLogin(uint32_t id, uint64_t time) override;
 
 	void DeleteCharacter(uint32_t id) override;
 
