@@ -536,7 +536,6 @@ void Entity::Initialize() {
 
 			if (activityID > 0) {
 				rebuildComponent->SetActivityId(activityID);
-				comp->SetActivityId(activityID);
 				Loot::CacheMatrix(activityID);
 			}
 
