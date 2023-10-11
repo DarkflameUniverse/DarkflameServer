@@ -1,0 +1,3 @@
+set(DSCRIPTS_SOURCES_NEWCONTENT_SERVER 
+	"SpawnSkeletonOnDeath.cpp"
+	PARENT_SCOPE)

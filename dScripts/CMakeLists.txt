@@ -51,4 +51,10 @@ foreach(file ${DSCRIPTS_SOURCES_ZONE})
 	set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} "zone/${file}")
 endforeach()
 
+add_subdirectory(newcontent)
+
+foreach(file ${DSCRIPTS_SOURCES_NEWCONTENT})
+	set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} "newcontent/${file}")
+endforeach()
+
 set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} PARENT_SCOPE)

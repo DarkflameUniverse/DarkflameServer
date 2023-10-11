@@ -289,6 +289,8 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/ai/RACING/OBJECTS"
 	"dScripts/client/ai"
 	"dScripts/client/ai/PR"
+	"dScripts/newcontent"
+	"dScripts/newcontent/server"
 	"dScripts/zone/AG"
 	"dScripts/zone/LUPs"
 	"dScripts/zone/PROPERTY"

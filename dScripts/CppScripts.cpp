@@ -314,6 +314,9 @@
 #include "WildNinjaBricks.h"
 #include "RubyScepterDrop.h"
 
+// Wonderland
+#include "SpawnSkeletonOnDeath.h"
+
 namespace {
 	InvalidScript* invalidToReturn = new InvalidScript();
 	std::map<std::string, CppScripts::Script*> m_Scripts;
@@ -927,6 +930,10 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new WildNinjaStudent();
 	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_SENSEI.lua")
 		script = new WildNinjaSensei();
+
+	// newcontent
+	if (scriptName == "scripts\\newcontent\\server\\spawnskeletonondeath.lua")
+		script = new SpawnSkeletonOnDeath();
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
