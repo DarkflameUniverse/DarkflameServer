@@ -27,7 +27,7 @@ Character::Character(uint32_t id, User* parentUser) {
 	m_ID = id;
 
 	// Load the character
-	auto character = Database::Connection->GetCharacterByID(m_ID);
+	auto character = Database::Connection->GetCharacterInfoByID(m_ID);
 	m_Name = character.Name;
 	m_UnapprovedName = character.PendingName;
 	m_NameRejected = character.NameRejected;
@@ -63,7 +63,7 @@ Character::~Character() {
 
 void Character::UpdateFromDatabase() {
 	// Load the character
-	auto character = Database::Connection->GetCharacterByID(m_ID);
+	auto character = Database::Connection->GetCharacterInfoByID(m_ID);
 	m_Name = character.Name;
 	m_UnapprovedName = character.PendingName;
 	m_NameRejected = character.NameRejected;
@@ -365,7 +365,7 @@ void Character::WriteToDatabase() {
 	m_XMLData = printer->CStr();
 
 	// Save to DB
-	Database::Connection->WriteCharacterXMl(m_ID, m_XMLData);
+	Database::Connection->UpdateCharacterXML(m_ID, m_XMLData);
 }
 
 void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {

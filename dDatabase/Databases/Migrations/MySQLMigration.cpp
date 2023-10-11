@@ -1,35 +1,93 @@
-#include "BrickByBrickFix.h"
+#include "MySQLMigration.h"
 
-#include <memory>
-#include <iostream>
-#include <sstream>
+#include <istream>
 
+#include "CDClientDatabase.h"
+#include "Game.h"
+#include "GeneralUtils.h"
+#include "dLogger.h"
+#include "BinaryPathFinder.h"
+#include "ZCompression.h"
 #include "tinyxml2.h"
 
-#include "Database.h"
-#include "Game.h"
-#include "ZCompression.h"
-#include "dLogger.h"
+#include "../MySQL.h"
 
-//! Forward declarations
+void MigrationRunner::RunMigrations(DatabaseBase* db) {
+	auto database = dynamic_cast<MySQLDatabase*>(db);
 
-std::unique_ptr<sql::ResultSet> GetModelsFromDatabase();
-void WriteSd0Magic(char* input, uint32_t chunkSize);
-bool CheckSd0Magic(sql::Blob* streamToCheck);
+	auto* stmt = database->CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP());");
+	stmt->execute();
+	delete stmt;
 
-/**
- * @brief Truncates all models with broken data from the database.
- *
- * @return The number of models deleted
- */
-uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
+	sql::SQLString finalSQL = "";
+	bool runSd0Migrations = false;
+	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/mysql").string())) {
+		auto migration = Migration::LoadMigration("dlu", "mysql", entry);
+
+		if (migration.data.empty()) {
+			continue;
+		}
+
+		stmt = database->CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
+		stmt->setString(1, migration.name.c_str());
+		auto* res = stmt->executeQuery();
+		bool doExit = res->next();
+		delete res;
+		delete stmt;
+		if (doExit) continue;
+
+		Game::logger->Log("MigrationRunner", "Running migration: %s", migration.name.c_str());
+		if (migration.name == "dlu/5_brick_model_sd0.sql") {
+			runSd0Migrations = true;
+		} else {
+			finalSQL.append(migration.data.c_str());
+		}
+
+		stmt = database->CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
+		stmt->setString(1, migration.name.c_str());
+		stmt->execute();
+		delete stmt;
+	}
+
+	if (finalSQL.empty() && !runSd0Migrations) {
+		Game::logger->Log("MigrationRunner", "Server database is up to date.");
+		return;
+	}
+
+	if (!finalSQL.empty()) {
+		auto migration = GeneralUtils::SplitString(static_cast<std::string>(finalSQL), ';');
+		std::unique_ptr<sql::Statement> simpleStatement(Database::CreateStmt());
+		for (auto& query : migration) {
+			try {
+				if (query.empty()) continue;
+				simpleStatement->execute(query.c_str());
+			} catch (sql::SQLException& e) {
+				Game::logger->Log("MigrationRunner", "Encountered error running migration: %s", e.what());
+			}
+		}
+	}
+
+	// Do this last on the off chance none of the other migrations have been run yet.
+	if (runSd0Migrations) {
+		uint32_t numberOfUpdatedModels = UpdateBrickByBrickModelsToSd0();
+		Game::logger->Log("MasterServer", "%i models were updated from zlib to sd0.", numberOfUpdatedModels);
+		
+		uint32_t numberOfTruncatedModels = TruncateBrokenBrickByBrickXml();
+		Game::logger->Log("MasterServer", "%i models were truncated from the database.", numberOfTruncatedModels);
+	}
+}
+
+
+uint32_t TruncateBrokenBrickByBrickXml(MySQLDatabase* database) {
 	uint32_t modelsTruncated{};
-	auto modelsToTruncate = GetModelsFromDatabase();
-	bool previousCommitValue = Database::GetAutoCommit();
-	Database::SetAutoCommit(false);
+	auto modelsToTruncate = GetModelsFromDatabase(database);
+	
+	bool previousCommitValue = database->GetAutoCommit();
+	database->SetAutoCommit(false);
+	
 	while (modelsToTruncate->next()) {
-		std::unique_ptr<sql::PreparedStatement> ugcModelToDelete(Database::CreatePreppedStmt("DELETE FROM ugc WHERE ugc.id = ?;"));
-		std::unique_ptr<sql::PreparedStatement> pcModelToDelete(Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE ugc_id = ?;"));
+		std::unique_ptr<sql::PreparedStatement> ugcModelToDelete(database->CreatePreppedStmt("DELETE FROM ugc WHERE ugc.id = ?;"));
+		std::unique_ptr<sql::PreparedStatement> pcModelToDelete(database->CreatePreppedStmt("DELETE FROM properties_contents WHERE ugc_id = ?;"));
 		std::string completeUncompressedModel{};
 		uint32_t chunkCount{};
 		uint64_t modelId = modelsToTruncate->getInt(1);
@@ -95,8 +153,8 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 		}
 	}
 
-	Database::Commit();
-	Database::SetAutoCommit(previousCommitValue);
+	database->Commit();
+	database->SetAutoCommit(previousCommitValue);
 	return modelsTruncated;
 }
 
@@ -106,12 +164,14 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
  *
  * @return The number of models updated to SD0
  */
-uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
+uint32_t UpdateBrickByBrickModelsToSd0(MySQLDatabase* database) {
 	uint32_t updatedModels = 0;
 	auto modelsToUpdate = GetModelsFromDatabase();
-	auto previousAutoCommitState = Database::GetAutoCommit();
-	Database::SetAutoCommit(false);
-	std::unique_ptr<sql::PreparedStatement> insertionStatement(Database::CreatePreppedStmt("UPDATE ugc SET lxfml = ? WHERE id = ?;"));
+	
+	auto previousAutoCommitState = database->GetAutoCommit();
+	database->SetAutoCommit(false);
+	
+	std::unique_ptr<sql::PreparedStatement> insertionStatement(database->CreatePreppedStmt("UPDATE ugc SET lxfml = ? WHERE id = ?;"));
 	while (modelsToUpdate->next()) {
 		int64_t modelId = modelsToUpdate->getInt64(1);
 		std::unique_ptr<sql::Blob> oldLxfml(modelsToUpdate->getBlob(2));
@@ -150,13 +210,14 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 			}
 		}
 	}
-	Database::Commit();
-	Database::SetAutoCommit(previousAutoCommitState);
+	
+	database->Commit();
+	database->SetAutoCommit(previousAutoCommitState);
 	return updatedModels;
 }
 
-std::unique_ptr<sql::ResultSet> GetModelsFromDatabase() {
-	std::unique_ptr<sql::PreparedStatement> modelsRawDataQuery(Database::CreatePreppedStmt("SELECT id, lxfml FROM ugc;"));
+std::unique_ptr<sql::ResultSet> GetModelsFromDatabase(MySQLDatabase* database) {
+	std::unique_ptr<sql::PreparedStatement> modelsRawDataQuery(database->CreatePreppedStmt("SELECT id, lxfml FROM ugc;"));
 	return std::unique_ptr<sql::ResultSet>(modelsRawDataQuery->executeQuery());
 }
 

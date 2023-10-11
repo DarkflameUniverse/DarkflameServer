@@ -1,7 +1,6 @@
 set(DDATABASE_SOURCES "CDClientDatabase.cpp"
 		"CDClientManager.cpp"
-		"Database.cpp"
-		"MigrationRunner.cpp")
+		"Database.cpp")
 
 add_subdirectory(Tables)
 
@@ -13,6 +12,12 @@ add_subdirectory(Databases)
 
 foreach (file ${DDATABASE_DATABASES_SOURCES})
 	set(DDATABASE_SOURCES ${DDATABASE_SOURCES} "Databases/${file}")
+endforeach()
+
+add_subdirectory(Databases/Migrations)
+
+foreach (file ${DDATABASE_DATABASES_MIGRATIONS_SOURCES})
+	set(DDATABASE_SOURCES ${DDATABASE_SOURCES} "Databases/Migrations/${file}")
 endforeach()
 
 add_library(dDatabase STATIC ${DDATABASE_SOURCES})

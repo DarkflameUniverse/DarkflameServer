@@ -14,7 +14,6 @@ set(DCOMMON_SOURCES
 		"SHA512.cpp"
 		"Demangler.cpp"
 		"ZCompression.cpp"
-		"BrickByBrickFix.cpp"
 		"BinaryPathFinder.cpp"
 		"FdbToSqlite.cpp"
 )
