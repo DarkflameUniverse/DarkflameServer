@@ -10,7 +10,10 @@ void SpawnSkeletonOnDeath::OnDie(Entity* self, Entity* killer) {
 		EntityInfo info{};
 		info.lot = 20083;
 		info.pos = self->GetPosition();
-		info.spawnerID = self->GetParentEntity()->GetObjectID();
-		Game::entityManager->CreateEntity(info, nullptr, self->GetParentEntity());
+		info.rot = self->GetRotation();
+		info.spawnerID = killer->GetObjectID();
+		auto skellyboi = Game::entityManager->CreateEntity(info, nullptr, killer);
+		Game::entityManager->ConstructEntity(skellyboi);
+
 	}
 }
