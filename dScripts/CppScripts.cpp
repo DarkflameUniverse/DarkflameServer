@@ -316,6 +316,7 @@
 
 // Wonderland
 #include "SpawnSkeletonOnDeath.h"
+#include "DieAfterXSeconds.h"
 
 namespace {
 	InvalidScript* invalidToReturn = new InvalidScript();
@@ -934,6 +935,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	// newcontent
 	if (scriptName == "scripts\\newcontent\\server\\spawnskeletonondeath.lua")
 		script = new SpawnSkeletonOnDeath();
+	else if (scriptName == "scripts\\newcontent\\server\\dieafter20seconds.lua")
+		script = new DieAfterXSeconds(20);
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
