@@ -935,8 +935,18 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	// newcontent
 	if (scriptName == "scripts\\newcontent\\server\\spawnskeletonondeath.lua")
 		script = new SpawnSkeletonOnDeath();
+	else if (scriptName == "scripts\\newcontent\\server\\dieafter10seconds.lua")
+		script = new DieAfterXSeconds(10);
 	else if (scriptName == "scripts\\newcontent\\server\\dieafter20seconds.lua")
 		script = new DieAfterXSeconds(20);
+	else if (scriptName == "scripts\\newcontent\\server\\dieafter30seconds.lua")
+		script = new DieAfterXSeconds(30);
+	else if (scriptName == "scripts\\newcontent\\server\\dieafter40seconds.lua")
+		script = new DieAfterXSeconds(40);
+	else if (scriptName == "scripts\\newcontent\\server\\dieafter50seconds.lua")
+		script = new DieAfterXSeconds(50);
+	else if (scriptName == "scripts\\newcontent\\server\\dieafter60seconds.lua")
+		script = new DieAfterXSeconds(60);
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
