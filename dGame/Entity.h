@@ -528,6 +528,7 @@ inline ComponentType* Entity::AddComponent(VaArgs... args) {
 		// so we use a placement new to construct the component again as was requested by the caller.
 		// Placement new means we already have memory allocated for the object, so this just calls its constructor again.
 		// This is useful for when we want to create a new object in the same memory location as an old one.
+		componentToReturn->~Component();
 		new(componentToReturn) ComponentType(this, std::forward<VaArgs>(args)...);
 	}
 
