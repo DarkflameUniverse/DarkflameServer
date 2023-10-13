@@ -745,6 +745,49 @@
 		</zone>
 	</npc>
 	
+	<!--NS Plaza FV Giant Fog Effect-->
+	<npc lot="20086">
+		<ldf>
+			<entry data="noGhosting=7:1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-147.30" y="61.51" z="11.64" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<!--NS Plaza Ravine Fog Effect-->
+	<npc lot="20087">
+		<ldf>
+			<entry data="noGhosting=7:1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-12.82" y="325.20" z="-124.92" rw="0.00" rx="0.00" ry="0.00" rz="0.00" />
+			</locations>
+		</zone>
+	</npc>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	<!--BIG BATS-->
 	<npc lot="176">
 		<ldf>
