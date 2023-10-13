@@ -1289,6 +1289,564 @@
 		</zone>
 	</npc>
 	
+	<!--GRAVEYARD GATE HALF-->
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21515"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-30.526512145996094" y="288.80999755859375" z="-71.91361999511719" rw="0.9914447069168091" rx="0.0" ry="-0.13052746653556824" rz="0.0" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21515"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-24.55164337158203" y="288.80999755859375" z="-69.48445129394531" rw="0.13052599132061005" rx="0.0" ry="0.9914448857307434" rz="0.0" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<!--GRAVEYARD PARTY-->
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21516"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-95.34113311767578" y="291.5400085449219" z="-108.15277862548828" rw="0.6684759855270386" rx="0.0" ry="0.7437337636947632" rz="0.0" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21516"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="55.693565368652344" y="291.4896240234375" z="-138.17306518554688" rw="0.7181210517883301" rx="0.0" ry="-0.6959182024002075" rz="0.0" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<!--MUTANT PUMPKIN PLANT-->
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21517"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="50.93339538574219" y="291.25054931640625" z="-107.17608642578125" rw="0.9245449900627136" rx="0.0" ry="-0.3810729682445526" rz="0.0" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<!--PUMPKIN GIANT-->
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21518"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-66.6054458618164" y="290.0362854003906" z="-59.77595901489258" rw="0.6374146342277527" rx="0.0" ry="0.7705209851264954" rz="0.0" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21518"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="69.005615234375" y="291.38922119140625" z="-108.86075592041016" rw="0.6487815976142883" rx="0.0" ry="-0.760974645614624" rz="0.0" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<!--PUMPKIN GUILLOTINE-->
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21519"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-79.23529815673828" y="291.489990234375" z="-132.00596618652344" rw="0.9922235012054443" rx="0.0" ry="0.12446903437376022" rz="0.0" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<!--PUMPKIN PUMPKIN LARGE-->
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21520"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-67.52925109863281" y="289.7012939453125" z="-53.39900207519531" rw="0.9714683294296265" rx="0.059764523059129715" ry="-0.22208844125270844" rz="-0.05791535601019859" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21520"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="30.26497459411621" y="294.23394775390625" z="-194.797119140625" rw="0.46919649839401245" rx="0.8170832991600037" ry="0.28370851278305054" rz="0.1781546026468277" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21520"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-73.25043487548828" y="290.7135009765625" z="-60.987640380859375" rw="0.9369967579841614" rx="-0.15178608894348145" ry="-0.29536765813827515" rz="0.10842499881982803" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21520"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-14.4050931930542" y="289.9306640625" z="-190.1283416748047" rw="0.5378201007843018" rx="0.12241151183843613" ry="0.8226314783096313" rz="0.1379942148923874" />
+			</locations>
+		</zone>
+	</npc>
+	
 	
 	
 	
