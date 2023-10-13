@@ -669,7 +669,7 @@
 			</locations>
 		</zone>
 	</npc>
-
+	
 	<!--Crux Prime loot drop physics hack-->
 	<npc lot="30025">
 		<ldf>
@@ -681,7 +681,7 @@
 			</locations>
 		</zone>
 	</npc>
-
+	
 	<!--SPAWNER TEST-->
 	<npc lot="176">
 		<ldf>
@@ -731,9 +731,8 @@
 	
 	
 	
-	<!-- S T A R T   H A L L O W E E N -->
+	<!--HALLOWEEN HALLOWEEN HALLOWEEN HALLOWEEN HALLOWEEN-->
 	
-
 	<!--NS Plaza Bats Effect-->
 	<npc lot="20084">
 		<ldf>
@@ -745,8 +744,8 @@
 			</locations>
 		</zone>
 	</npc>
-
-	<!--NS Plaza Smashable Test-->
+	
+	<!--BIG BATS-->
 	<npc lot="176">
 		<ldf>
 			<entry data="CheckPrecondition=0:"/>
@@ -779,21 +778,137 @@
 			<entry data="sceneIDOverrideEnabled=7:0"/>
 			<entry data="sceneLayerIDOverride=5:0"/>
 			<entry data="set_faction=13:6 "/>
-			<entry data="smashable_loot_matrix=1:473"/>
+			<entry data="smashable_loot_matrix=1:666666"/>
 			<entry data="smashable_loot_matrix_set=7:0"/>
 			<entry data="spawner_active_on_load=7:1"/>
-			<entry data="spawntemplate=1:21513"/>
+			<entry data="spawntemplate=1:21511"/>
 			<entry data="startsQBActivator=7:0"/>
 			<entry data="template=1:-1"/>
 		</ldf>
 		<zone id="1200">
 			<locations>
-				<location x="-46.400001525878906" y="291.6000061035156" z="-200.0" rw="0.9887563586235046" rx="0.00" ry="0.14953568577766418" rz="0.00" />
+				<location x="54.993064880371094" y="317.8067932128906" z="-135.6239471435547" rw="3.268722181815065e-08" rx="-0.6639243960380554" ry="-2.9021066438872367e-08" rz="0.7477996945381165" />
 			</locations>
 		</zone>
 	</npc>
 	
-	<!-- E N D   H A L L O W E E N -->
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21511"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="11.634742736816406" y="317.6069030761719" z="-193.76425170898438" rw="4.358831517947692e-08" rx="-0.07497866451740265" ry="-3.277405458135263e-09" rz="0.997185230255127" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<npc lot="176">
+		<ldf>
+			<entry data="CheckPrecondition=0:"/>
+			<entry data="SmashableDoesNotCutNavmesh=7:0"/>
+			<entry data="add_to_navmesh=7:1"/>
+			<entry data="bounding_radius_override=3:0"/>
+			<entry data="camGradSnap=7:0"/>
+			<entry data="camPrefersToFadeObject=7:1"/>
+			<entry data="carver_only=7:0"/>
+			<entry data="create_physics=7:1"/>
+			<entry data="custom_config_names=0:"/>
+			<entry data="explode_factor=3:1"/>
+			<entry data="friction=3:1.5"/>
+			<entry data="fxpriority=1:0"/>
+			<entry data="gravFactor=3:1"/>
+			<entry data="grpNameQBShowBricks=0:"/>
+			<entry data="ignoreCameraCollision=7:0"/>
+			<entry data="interaction_distance=3:16"/>
+			<entry data="is_smashable=7:1"/>
+			<entry data="loadOnClientOnly=7:0"/>
+			<entry data="max_to_spawn=1:-1"/>
+			<entry data="navmesh_carver=7:0"/>
+			<entry data="no_auto_spawn=7:1"/>
+			<entry data="no_timed_spawn=7:1"/>
+			<entry data="override_faction=7:0"/>
+			<entry data="radius=3:0"/>
+			<entry data="renderCullingGroup=5:0"/>
+			<entry data="respawn=5:20000"/>
+			<entry data="sceneIDOverride=1:255"/>
+			<entry data="sceneIDOverrideEnabled=7:0"/>
+			<entry data="sceneLayerIDOverride=5:0"/>
+			<entry data="set_faction=13:6 "/>
+			<entry data="smashable_loot_matrix=1:666666"/>
+			<entry data="smashable_loot_matrix_set=7:0"/>
+			<entry data="spawner_active_on_load=7:1"/>
+			<entry data="spawntemplate=1:21511"/>
+			<entry data="startsQBActivator=7:0"/>
+			<entry data="template=1:-1"/>
+		</ldf>
+		<zone id="1200">
+			<locations>
+				<location x="-61.44023895263672" y="311.9865417480469" z="-165.69715881347656" rw="4.0889482022521406e-08" rx="0.3534751832485199" ry="1.545086902865478e-08" rz="0.9354438781738281" />
+			</locations>
+		</zone>
+	</npc>
+	
+	<!--CRYPT-->
+	<npc lot="11512">
+		<zone id="1200">
+			<locations>
+				<location x="-12.819999694824219" y="291.70001220703125" z="-124.91999816894531" rw="0.9921146631240845" rx="0.0" ry="-0.12533347308635712" rz="0.0" />
+			</locations>
+		</zone>
+	</npc>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<!--END HALLOWEEN-->
 
 
 	
