@@ -109,6 +109,8 @@ namespace GameMessages {
 
 	void SendSetInventorySize(Entity* entity, int invType, int size);
 
+	void SendSetGravityScale(const LWOOBJID& target, const float effectScale, const SystemAddress& sysAddr);
+
 	void SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID);
 	void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
 	void SendResurrect(Entity* entity);
