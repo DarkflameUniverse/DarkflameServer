@@ -704,12 +704,12 @@ void Entity::Initialize() {
 	const Path* path = Game::zoneManager->GetZone()->GetPath(pathName);
 
 	//Check to see if we have an attached path and add the appropiate component to handle it:
-	if (path){
+	if (path) {
 		// if we have a moving platform path, then we need a moving platform component
 		if (path->pathType == PathType::MovingPlatform) {
 			MovingPlatformComponent* plat = new MovingPlatformComponent(this, pathName);
 			m_Components.insert(std::make_pair(eReplicaComponentType::MOVING_PLATFORM, plat));
-		// else if we are a movement path
+			// else if we are a movement path
 		} /*else if (path->pathType == PathType::Movement) {
 			auto movementAIcomp = GetComponent<MovementAIComponent>();
 			if (movementAIcomp){
@@ -924,10 +924,20 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			outBitStream->Write1(); //ldf data
 
 			RakNet::BitStream settingStream;
-			settingStream.Write<uint32_t>(m_Settings.size());
+			int32_t numberOfValidKeys = m_Settings.size();
+
+			// Writing keys value pairs the client does not expect to receive or interpret will result in undefined behavior,
+			// so we need to filter out any keys that are not valid and fix the number of valid keys to be correct.
+			// TODO should make this more efficient so that we dont waste loops evaluating the same condition twice
+			for (LDFBaseData* data : m_Settings) {
+				if (!data || data->GetValueType() == eLDFType::LDF_TYPE_UNKNOWN) {
+					numberOfValidKeys--;
+				}
+			}
+			settingStream.Write<uint32_t>(numberOfValidKeys);
 
 			for (LDFBaseData* data : m_Settings) {
-				if (data) {
+				if (data && data->GetValueType() != eLDFType::LDF_TYPE_UNKNOWN) {
 					data->WriteToPacket(&settingStream);
 				}
 			}
@@ -946,7 +956,6 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 			RakNet::BitStream settingStream;
 			settingStream.Write<uint32_t>(ldfData.size());
-
 			for (LDFBaseData* data : ldfData) {
 				if (data) {
 					data->WriteToPacket(&settingStream);
