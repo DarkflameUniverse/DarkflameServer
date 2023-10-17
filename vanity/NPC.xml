@@ -760,7 +760,6 @@
 	-->
 	
 	<!--NS Plaza Ravine Fog Effect-->
-	<!--
 	<npc lot="20087">
 		<ldf>
 			<entry data="noGhosting=7:1"/>
@@ -771,7 +770,6 @@
 			</locations>
 		</zone>
 	</npc>
-	-->
 	
 	
 	
