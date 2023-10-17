@@ -736,7 +736,7 @@
 	<!--NS Plaza Bats Effect-->
 	<npc lot="20084">
 		<ldf>
-			<entry data="noGhosting=7:1"/>
+			<entry data="dummy=7:1"/>
 		</ldf>
 		<zone id="1200">
 			<locations>
