@@ -373,6 +373,7 @@ void Entity::Initialize() {
 					comp->SetMaxHealth(destCompData[0].life);
 					comp->SetMaxImagination(destCompData[0].imagination);
 					comp->SetMaxArmor(destCompData[0].armor);
+					comp->SetDeathBehavior(destCompData[0].death_behavior);
 
 					comp->SetIsSmashable(destCompData[0].isSmashable);
 
@@ -1561,7 +1562,17 @@ void Entity::Kill(Entity* murderer) {
 	}
 
 	if (!IsPlayer()) {
-		Game::entityManager->DestroyEntity(this);
+		auto* destroyableComponent = GetComponent<DestroyableComponent>();
+		bool waitForDeathAnimation = false;
+
+		if (destroyableComponent) {
+			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0;
+		}
+
+		// Live waited a hard coded 12 seconds for death animations of type 0 before networking destruction!
+		constexpr float DelayDeathTime = 12.0f;
+		if (waitForDeathAnimation) AddCallbackTimer(DelayDeathTime, [this]() { Game::entityManager->DestroyEntity(this); });
+		else Game::entityManager->DestroyEntity(this);
 	}
 
 	const auto& grpNameQBShowBricks = GetVar<std::string>(u"grpNameQBShowBricks");
