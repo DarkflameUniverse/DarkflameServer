@@ -27,7 +27,7 @@ std::map<LWOMAPID, PerformanceProfile> PerformanceManager::m_Profiles = {
 	{ 1151, PROPERTY },
 
 	// NS
-	{ 1200, SOCIAL_HUB },
+	{ 1200, BATTLE },
 	{ 1201, SOCIAL },
 	{ 1203, RACE },
 	{ 1204, BATTLE_INSTANCE },
