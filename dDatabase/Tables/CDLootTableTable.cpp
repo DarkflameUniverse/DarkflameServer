@@ -1,4 +1,33 @@
 #include "CDLootTableTable.h"
+#include "CDClientManager.h"
+#include "CDComponentsRegistryTable.h"
+#include "CDItemComponentTable.h"
+#include "eReplicaComponentType.h"
+
+// Sort the tables by their rarity so the highest rarity items are first.
+void SortTable(LootTableEntries& table) {
+	auto* componentsRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	auto* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
+	// We modify the table in place so the outer loop keeps track of what is sorted
+	// and the inner loop finds the highest rarity item and swaps it with the current position
+	// of the outer loop.
+	for (auto oldItrOuter = table.begin(); oldItrOuter != table.end(); oldItrOuter++) {
+		auto lootToInsert = oldItrOuter;
+		// Its fine if this starts at 0, even if this doesnt match lootToInsert as the actual highest will
+		// either be found and overwrite these values, or the original is somehow zero and is still the highest rarity.
+		uint32_t highestLootRarity = 0;
+		for (auto oldItrInner = oldItrOuter; oldItrInner != table.end(); oldItrInner++) {
+			uint32_t itemComponentId = componentsRegistryTable->GetByIDAndType(oldItrInner->itemid, eReplicaComponentType::ITEM);
+			uint32_t rarity = itemComponentTable->GetItemComponentByID(itemComponentId).rarity;
+			if (rarity > highestLootRarity) {
+				highestLootRarity = rarity;
+				lootToInsert = oldItrInner;
+			}
+		}
+		Game::logger->LogDebug("CDLootTableTable", "highest rarity %i item id %i", highestLootRarity, lootToInsert->itemid);
+		std::swap(*oldItrOuter, *lootToInsert);
+	}
+}
 
 CDLootTable CDLootTableTable::ReadRow(CppSQLite3Query& tableData) const {
 	CDLootTable entry{};
@@ -32,6 +61,9 @@ void CDLootTableTable::LoadValuesFromDatabase() {
 		this->entries[lootTableIndex].push_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
+	for (auto& [id, table] : this->entries) {
+		SortTable(table);
+	}
 }
 
 const LootTableEntries& CDLootTableTable::GetTable(uint32_t tableId) {
@@ -49,6 +81,7 @@ const LootTableEntries& CDLootTableTable::GetTable(uint32_t tableId) {
 		this->entries[tableId].push_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
+	SortTable(this->entries[tableId]);
 
 	return this->entries[tableId];
 }
