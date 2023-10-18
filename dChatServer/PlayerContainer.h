@@ -18,6 +18,7 @@ struct PlayerData {
 };
 
 struct TeamData {
+	TeamData();
 	LWOOBJID teamID = LWOOBJID_EMPTY; // Internal use
 	LWOOBJID leaderID = LWOOBJID_EMPTY;
 	std::vector<LWOOBJID> memberIDs{};
