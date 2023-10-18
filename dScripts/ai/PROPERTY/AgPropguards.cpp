@@ -18,7 +18,7 @@ void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 		&& !character->GetPlayerFlag(flag)) {
 		// If the player just started the mission, play a cinematic highlighting the target
 		GameMessages::SendPlayCinematic(target->GetObjectID(), u"MissionCam", target->GetSystemAddress());
-	} else if (missionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
+	} else if (missionState == eMissionState::READY_TO_COMPLETE) {
 		// Makes the guard disappear once the mission has been completed
 		const auto zoneControlID = Game::entityManager->GetZoneControlEntity()->GetObjectID();
 		GameMessages::SendNotifyClientObject(zoneControlID, u"GuardChat", 0, 0, self->GetObjectID(),
