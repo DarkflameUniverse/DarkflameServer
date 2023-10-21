@@ -327,16 +327,17 @@ void Entity::Initialize() {
 	int buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUFF);
 	int rebuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
 
-	int componentID = 0;
+	int componentID = -1;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;
 	if (rebuildComponentID > 0) componentID = rebuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
 	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
-
-	if (buffComponentID > 0 || collectibleComponentID > 0) {
-		auto* comp = AddComponent<DestroyableComponent>();
+  
+	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
+	if (buffComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
+		DestroyableComponent* comp = new DestroyableComponent(this);
 		if (m_Character) {
 			comp->LoadFromXml(m_Character->GetXMLDoc());
 		} else {
@@ -355,6 +356,7 @@ void Entity::Initialize() {
 					comp->SetMaxHealth(destCompData[0].life);
 					comp->SetMaxImagination(destCompData[0].imagination);
 					comp->SetMaxArmor(destCompData[0].armor);
+					comp->SetDeathBehavior(destCompData[0].death_behavior);
 
 					comp->SetIsSmashable(destCompData[0].isSmashable);
 
@@ -375,7 +377,7 @@ void Entity::Initialize() {
 					}
 
 					// extraInfo overrides. Client ORs the database smashable and the luz smashable.
-					comp->SetIsSmashable(comp->GetIsSmashable() | (GetVarAs<int32_t>(u"is_smashable") != 0));
+					comp->SetIsSmashable(comp->GetIsSmashable() | isSmashable);
 				}
 			} else {
 				comp->SetHealth(1);
@@ -407,6 +409,21 @@ void Entity::Initialize() {
 				}
 			}
 		}
+
+		// override the factions if needed.
+		auto setFaction = GetVarAsString(u"set_faction");
+		if (!setFaction.empty()) {
+			// TODO also split on space here however we do not have a general util for splitting on multiple characters yet.
+			std::vector<std::string> factionsToAdd = GeneralUtils::SplitString(setFaction, ';');
+			int32_t factionToAdd;
+			for (const auto faction : factionsToAdd) {
+				if (GeneralUtils::TryParse(faction, factionToAdd)) {
+					comp->AddFaction(factionToAdd, true);
+				}
+			}
+		}
+
+		m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, comp));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHARACTER) > 0 || m_Character) {
@@ -867,10 +884,20 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			outBitStream->Write1(); //ldf data
 
 			RakNet::BitStream settingStream;
-			settingStream.Write<uint32_t>(m_Settings.size());
+			int32_t numberOfValidKeys = m_Settings.size();
+
+			// Writing keys value pairs the client does not expect to receive or interpret will result in undefined behavior,
+			// so we need to filter out any keys that are not valid and fix the number of valid keys to be correct.
+			// TODO should make this more efficient so that we dont waste loops evaluating the same condition twice
+			for (LDFBaseData* data : m_Settings) {
+				if (!data || data->GetValueType() == eLDFType::LDF_TYPE_UNKNOWN) {
+					numberOfValidKeys--;
+				}
+			}
+			settingStream.Write<uint32_t>(numberOfValidKeys);
 
 			for (LDFBaseData* data : m_Settings) {
-				if (data) {
+				if (data && data->GetValueType() != eLDFType::LDF_TYPE_UNKNOWN) {
 					data->WriteToPacket(&settingStream);
 				}
 			}
@@ -889,7 +916,6 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 			RakNet::BitStream settingStream;
 			settingStream.Write<uint32_t>(ldfData.size());
-
 			for (LDFBaseData* data : ldfData) {
 				if (data) {
 					data->WriteToPacket(&settingStream);
@@ -1158,7 +1184,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		renderComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
-	if (modelComponent) {
+	if (modelComponent || !destroyableSerialized) {
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
 			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
@@ -1498,7 +1524,17 @@ void Entity::Kill(Entity* murderer) {
 	}
 
 	if (!IsPlayer()) {
-		Game::entityManager->DestroyEntity(this);
+		auto* destroyableComponent = GetComponent<DestroyableComponent>();
+		bool waitForDeathAnimation = false;
+
+		if (destroyableComponent) {
+			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0;
+		}
+
+		// Live waited a hard coded 12 seconds for death animations of type 0 before networking destruction!
+		constexpr float DelayDeathTime = 12.0f;
+		if (waitForDeathAnimation) AddCallbackTimer(DelayDeathTime, [this]() { Game::entityManager->DestroyEntity(this); });
+		else Game::entityManager->DestroyEntity(this);
 	}
 
 	const auto& grpNameQBShowBricks = GetVar<std::string>(u"grpNameQBShowBricks");
