@@ -943,7 +943,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
-	});
+		});
 
 
 	auto cont = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
@@ -2964,14 +2964,14 @@ void GameMessages::SendSetStunned(LWOOBJID objectId, eStateChangeType stateChang
 }
 
 void GameMessages::SendSetStunImmunity(LWOOBJID target, eStateChangeType state, const SystemAddress& sysAddr,
-		LWOOBJID originator,
-		bool bImmuneToStunAttack,
-		bool bImmuneToStunEquip,
-		bool bImmuneToStunInteract,
-		bool bImmuneToStunJump,
-		bool bImmuneToStunMove,
-		bool bImmuneToStunTurn,
-		bool bImmuneToStunUseItem) {
+	LWOOBJID originator,
+	bool bImmuneToStunAttack,
+	bool bImmuneToStunEquip,
+	bool bImmuneToStunInteract,
+	bool bImmuneToStunJump,
+	bool bImmuneToStunMove,
+	bool bImmuneToStunTurn,
+	bool bImmuneToStunUseItem) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -2996,15 +2996,15 @@ void GameMessages::SendSetStunImmunity(LWOOBJID target, eStateChangeType state, 
 }
 
 void GameMessages::SendSetStatusImmunity(LWOOBJID objectId, eStateChangeType state, const SystemAddress& sysAddr,
-		bool bImmuneToBasicAttack,
-		bool bImmuneToDamageOverTime,
-		bool bImmuneToKnockback,
-		bool bImmuneToInterrupt,
-		bool bImmuneToSpeed,
-		bool bImmuneToImaginationGain,
-		bool bImmuneToImaginationLoss,
-		bool bImmuneToQuickbuildInterrupt,
-		bool bImmuneToPullToPoint) {
+	bool bImmuneToBasicAttack,
+	bool bImmuneToDamageOverTime,
+	bool bImmuneToKnockback,
+	bool bImmuneToInterrupt,
+	bool bImmuneToSpeed,
+	bool bImmuneToImaginationGain,
+	bool bImmuneToImaginationLoss,
+	bool bImmuneToQuickbuildInterrupt,
+	bool bImmuneToPullToPoint) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -5473,6 +5473,18 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 	}
 }
 
+void GameMessages::SendSetGravityScale(const LWOOBJID& target, const float effectScale, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(target);
+	bitStream.Write(eGameMessageType::SET_GRAVITY_SCALE);
+
+	bitStream.Write(effectScale);
+
+	SEND_PACKET;
+}
+
 void GameMessages::HandleMoveItemInInventory(RakNet::BitStream* inStream, Entity* entity) {
 	bool destInvTypeIsDefault = false;
 	int32_t destInvType = eInventoryType::INVALID;
@@ -6269,7 +6281,7 @@ void GameMessages::HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, En
 	auto* donationEntity = Game::entityManager->GetEntity(characterComponent->GetCurrentInteracting());
 	if (!donationEntity) return;
 	auto* donationVendorComponent = donationEntity->GetComponent<DonationVendorComponent>();
-	if(!donationVendorComponent) return;
+	if (!donationVendorComponent) return;
 	if (donationVendorComponent->GetActivityID() == 0) {
 		LOG("WARNING: Trying to dontate to a vendor with no activity");
 		return;
@@ -6279,7 +6291,7 @@ void GameMessages::HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, En
 	auto items = inventory->GetItems();
 	if (!items.empty()) {
 		uint32_t count = 0;
-		for (auto& [itemID, item] : items){
+		for (auto& [itemID, item] : items) {
 			count += item->GetCount();
 			item->RemoveFromInventory();
 		}
@@ -6297,7 +6309,7 @@ void GameMessages::HandleCancelDonationOnPlayer(RakNet::BitStream* inStream, Ent
 	auto* inventory = inventoryComponent->GetInventory(eInventoryType::DONATION);
 	if (!inventory) return;
 	auto items = inventory->GetItems();
-	for (auto& [itemID, item] : items){
+	for (auto& [itemID, item] : items) {
 		inventoryComponent->MoveItemToInventory(item, eInventoryType::BRICKS, item->GetCount(), false, false, true);
 	}
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();

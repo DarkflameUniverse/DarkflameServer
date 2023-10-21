@@ -215,7 +215,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
-		} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx"){
+		} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
@@ -336,11 +336,37 @@ void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 	}
 }
 
+// Even if we were to implement Friction server side,
+// it also defaults to 1.0f in the last argument, so we dont need two functions to do the same thing.
+void ApplyCollisionEffect(const LWOOBJID& target, const ePhysicsEffectType effectType, const float effectScale) {
+	switch (effectType) {
+	case ePhysicsEffectType::GRAVITY_SCALE: {
+		auto* targetEntity = Game::entityManager->GetEntity(target);
+		if (targetEntity) {
+			auto* controllablePhysicsComponent = targetEntity->GetComponent<ControllablePhysicsComponent>();
+			// dont want to apply an effect to nothing.
+			if (!controllablePhysicsComponent) return;
+			controllablePhysicsComponent->SetGravityScale(effectScale);
+			GameMessages::SendSetGravityScale(target, effectScale, targetEntity->GetSystemAddress());
+		}
+	}
+	// The other types are not handled by the server
+	case ePhysicsEffectType::ATTRACT:
+	case ePhysicsEffectType::FRICTION:
+	case ePhysicsEffectType::PUSH:
+	case ePhysicsEffectType::REPULSE:
+	default:
+		break;
+	}
+}
+
 void PhantomPhysicsComponent::Update(float deltaTime) {
 	if (!m_dpEntity) return;
 
 	//Process enter events
 	for (auto en : m_dpEntity->GetNewObjects()) {
+		if (!en) continue;
+		ApplyCollisionEffect(en->GetObjectID(), m_EffectType, m_DirectionalMultiplier);
 		m_Parent->OnCollisionPhantom(en->GetObjectID());
 
 		//If we are a respawn volume, inform the client:
@@ -357,6 +383,8 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 
 	//Process exit events
 	for (auto en : m_dpEntity->GetRemovedObjects()) {
+		if (!en) continue;
+		ApplyCollisionEffect(en->GetObjectID(), m_EffectType, 1.0f);
 		m_Parent->OnCollisionLeavePhantom(en->GetObjectID());
 	}
 }

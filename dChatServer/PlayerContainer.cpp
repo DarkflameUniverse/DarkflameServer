@@ -11,12 +11,17 @@
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
 #include "ChatPackets.h"
+#include "dConfig.h"
 
 PlayerContainer::PlayerContainer() {
 }
 
 PlayerContainer::~PlayerContainer() {
 	mPlayers.clear();
+}
+
+TeamData::TeamData() {
+	lootFlag = Game::config->GetValue("default_team_loot") == "0" ? 0 : 1;
 }
 
 void PlayerContainer::InsertPlayer(Packet* packet) {
