@@ -337,7 +337,7 @@ void Entity::Initialize() {
   
 	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
 	if (buffComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
-		DestroyableComponent* comp = new DestroyableComponent(this);
+		DestroyableComponent* comp = AddComponent<DestroyableComponent>();
 		if (m_Character) {
 			comp->LoadFromXml(m_Character->GetXMLDoc());
 		} else {
@@ -422,8 +422,6 @@ void Entity::Initialize() {
 				}
 			}
 		}
-
-		m_Components.insert(std::make_pair(eReplicaComponentType::DESTROYABLE, comp));
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CHARACTER) > 0 || m_Character) {
