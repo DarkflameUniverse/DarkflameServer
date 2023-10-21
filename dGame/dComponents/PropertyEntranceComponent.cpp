@@ -10,7 +10,7 @@
 #include "RocketLaunchpadControlComponent.h"
 #include "CharacterComponent.h"
 #include "UserManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Amf3.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
@@ -219,7 +219,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 			delete nameLookup;
 			nameLookup = nullptr;
 
-			Game::logger->Log("PropertyEntranceComponent", "Failed to find property owner name for %llu!", cloneId);
+			LOG("Failed to find property owner name for %llu!", cloneId);
 
 			continue;
 		} else {

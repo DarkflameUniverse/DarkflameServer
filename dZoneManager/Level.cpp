@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 #include "BinaryIO.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
 #include "GeneralUtils.h"
@@ -21,7 +21,7 @@ Level::Level(Zone* parentZone, const std::string& filepath) {
 	auto buffer = Game::assetManager->GetFileAsBuffer(filepath.c_str());
 
 	if (!buffer.m_Success) {
-		Game::logger->Log("Level", "Failed to load %s", filepath.c_str());
+		LOG("Failed to load %s", filepath.c_str());
 		return;
 	}
 

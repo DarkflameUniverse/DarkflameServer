@@ -29,7 +29,7 @@
 #include "GeneralUtils.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "WorldPackets.h"
 #include "GameMessages.h"
 #include "CDClientDatabase.h"
@@ -142,7 +142,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			WorldPackets::SendGMLevelChange(sysAddr, success, user->GetMaxGMLevel(), entity->GetGMLevel(), level);
 			GameMessages::SendChatModeUpdate(entity->GetObjectID(), level);
 			entity->SetGMLevel(level);
-			Game::logger->Log("SlashCommandHandler", "User %s (%i) has changed their GM level to %i for charID %llu", user->GetUsername().c_str(), user->GetAccountID(), level, entity->GetObjectID());
+			LOG("User %s (%i) has changed their GM level to %i for charID %llu", user->GetUsername().c_str(), user->GetAccountID(), level, entity->GetObjectID());
 		}
 	}
 
@@ -179,7 +179,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto* character = entity->GetComponent<CharacterComponent>();
 
 		if (character == nullptr) {
-			Game::logger->Log("SlashCommandHandler", "Failed to find character component!");
+			LOG("Failed to find character component!");
 			return;
 		}
 
@@ -263,7 +263,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			args.Insert("visible", true);
 			args.Insert("text", customText);
 
-			Game::logger->Log("SlashCommandHandler", "Sending %s", customText.c_str());
+			LOG("Sending %s", customText.c_str());
 
 			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "ToggleStoryBox", args);
 			});
@@ -297,7 +297,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			const auto sysAddr = entity->GetSystemAddress();
 
-			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", entity->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", entity->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 			if (entity->GetCharacter()) {
 				entity->GetCharacter()->SetZoneID(zoneID);
@@ -316,7 +316,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		const auto& password = args[0];
 
 		ZoneInstanceManager::Instance()->RequestPrivateZone(Game::server, false, password, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 			if (entity->GetCharacter()) {
 				entity->GetCharacter()->SetZoneID(zoneID);
@@ -908,7 +908,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			pos.SetY(y);
 			pos.SetZ(z);
 
-			Game::logger->Log("SlashCommandHandler", "Teleporting objectID: %llu to %f, %f, %f", entity->GetObjectID(), pos.x, pos.y, pos.z);
+			LOG("Teleporting objectID: %llu to %f, %f, %f", entity->GetObjectID(), pos.x, pos.y, pos.z);
 			GameMessages::SendTeleport(entity->GetObjectID(), pos, NiQuaternion(), sysAddr);
 		} else if (args.size() == 2) {
 
@@ -928,7 +928,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			pos.SetY(0.0f);
 			pos.SetZ(z);
 
-			Game::logger->Log("SlashCommandHandler", "Teleporting objectID: %llu to X: %f, Z: %f", entity->GetObjectID(), pos.x, pos.z);
+			LOG("Teleporting objectID: %llu to X: %f, Z: %f", entity->GetObjectID(), pos.x, pos.z);
 			GameMessages::SendTeleport(entity->GetObjectID(), pos, NiQuaternion(), sysAddr);
 		} else {
 			ChatPackets::SendSystemMessage(sysAddr, u"Correct usage: /teleport <x> (<y>) <z> - if no Y given, will teleport to the height of the terrain (or any physics object).");
@@ -1552,7 +1552,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 				ChatPackets::SendSystemMessage(sysAddr, u"Transfering map...");
 
-				Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+				LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 				if (entity->GetCharacter()) {
 					entity->GetCharacter()->SetZoneID(zoneID);
 					entity->GetCharacter()->SetZoneInstance(zoneInstance);
@@ -1819,7 +1819,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (!GeneralUtils::TryParse(args[0], inventoryType)) {
 			// In this case, we treat the input as a string and try to find it in the reflection list
 			std::transform(args[0].begin(), args[0].end(), args[0].begin(), ::toupper);
-			Game::logger->Log("SlashCommandHandler", "looking for inventory %s", args[0].c_str());
+			LOG("looking for inventory %s", args[0].c_str());
 			for (uint32_t index = 0; index < NUMBER_OF_INVENTORIES; index++) {
 				if (std::string_view(args[0]) == std::string_view(InventoryType::InventoryTypeToString(static_cast<eInventoryType>(index)))) inventoryType = static_cast<eInventoryType>(index);
 			}
@@ -1837,7 +1837,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (!inventoryToDelete) return;
 
 		inventoryToDelete->DeleteAllItems();
-		Game::logger->Log("SlashCommandHandler", "Deleted inventory %s for user %llu", args[0].c_str(), entity->GetObjectID());
+		LOG("Deleted inventory %s for user %llu", args[0].c_str(), entity->GetObjectID());
 		ChatPackets::SendSystemMessage(sysAddr, u"Deleted inventory " + GeneralUtils::UTF8ToUTF16(args[0]));
 	}
 

@@ -2,7 +2,7 @@
 
 #include "AssetManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 #include <zlib.h>
 

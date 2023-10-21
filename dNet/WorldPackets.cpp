@@ -5,7 +5,7 @@
 #include "GeneralUtils.h"
 #include "User.h"
 #include "Character.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include <iostream>
 #include "Game.h"
 #include "LDFFormat.h"
@@ -137,7 +137,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 
 	auto character = entity->GetComponent<CharacterComponent>();
 	if (!character) {
-		Game::logger->Log("WorldPackets", "Entity is not a character?? what??");
+		LOG("Entity is not a character?? what??");
 		return;
 	}
 
@@ -194,7 +194,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 	// PacketUtils::SavePacket("chardata.bin", (const char*)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
 	SEND_PACKET;
 	delete[] compressedData;
-	Game::logger->Log("WorldPackets", "Sent CreateCharacter for ID: %llu", entity->GetObjectID());
+	LOG("Sent CreateCharacter for ID: %llu", entity->GetObjectID());
 }
 
 void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::vector<std::pair<uint8_t, uint8_t>> unacceptedItems) {

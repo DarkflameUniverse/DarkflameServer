@@ -2,7 +2,7 @@
 #include "InventoryComponent.h"
 #include "SkillComponent.h"
 #include "Entity.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 
 void TriggerGas::OnStartup(Entity* self) {

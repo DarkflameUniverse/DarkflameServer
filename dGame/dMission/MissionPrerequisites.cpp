@@ -4,7 +4,7 @@
 #include <ctime>
 
 #include "CDClientManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 
 PrerequisiteExpression::PrerequisiteExpression(const std::string& str) {

@@ -5,10 +5,10 @@
 #include "Database.h"
 #include "Game.h"
 #include "GeneralUtils.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BinaryPathFinder.h"
 
-#include <istream>
+#include <fstream>
 
 Migration LoadMigration(std::string path) {
 	Migration migration{};
@@ -53,7 +53,7 @@ void MigrationRunner::RunMigrations() {
 		delete stmt;
 		if (doExit) continue;
 
-		Game::logger->Log("MigrationRunner", "Running migration: %s", migration.name.c_str());
+		LOG("Running migration: %s", migration.name.c_str());
 		if (migration.name == "dlu/5_brick_model_sd0.sql") {
 			runSd0Migrations = true;
 		} else {
@@ -67,7 +67,7 @@ void MigrationRunner::RunMigrations() {
 	}
 
 	if (finalSQL.empty() && !runSd0Migrations) {
-		Game::logger->Log("MigrationRunner", "Server database is up to date.");
+		LOG("Server database is up to date.");
 		return;
 	}
 
@@ -79,7 +79,7 @@ void MigrationRunner::RunMigrations() {
 				if (query.empty()) continue;
 				simpleStatement->execute(query.c_str());
 			} catch (sql::SQLException& e) {
-				Game::logger->Log("MigrationRunner", "Encountered error running migration: %s", e.what());
+				LOG("Encountered error running migration: %s", e.what());
 			}
 		}
 	}
@@ -87,9 +87,9 @@ void MigrationRunner::RunMigrations() {
 	// Do this last on the off chance none of the other migrations have been run yet.
 	if (runSd0Migrations) {
 		uint32_t numberOfUpdatedModels = BrickByBrickFix::UpdateBrickByBrickModelsToSd0();
-		Game::logger->Log("MasterServer", "%i models were updated from zlib to sd0.", numberOfUpdatedModels);
+		LOG("%i models were updated from zlib to sd0.", numberOfUpdatedModels);
 		uint32_t numberOfTruncatedModels = BrickByBrickFix::TruncateBrokenBrickByBrickXml();
-		Game::logger->Log("MasterServer", "%i models were truncated from the database.", numberOfTruncatedModels);
+		LOG("%i models were truncated from the database.", numberOfTruncatedModels);
 	}
 }
 
@@ -135,14 +135,14 @@ void MigrationRunner::RunSQLiteMigrations() {
 
 		// Doing these 1 migration at a time since one takes a long time and some may think it is crashing.
 		// This will at the least guarentee that the full migration needs to be run in order to be counted as "migrated".
-		Game::logger->Log("MigrationRunner", "Executing migration: %s.  This may take a while.  Do not shut down server.", migration.name.c_str());
+		LOG("Executing migration: %s.  This may take a while.  Do not shut down server.", migration.name.c_str());
 		CDClientDatabase::ExecuteQuery("BEGIN TRANSACTION;");
 		for (const auto& dml : GeneralUtils::SplitString(migration.data, ';')) {
 			if (dml.empty()) continue;
 			try {
 				CDClientDatabase::ExecuteDML(dml.c_str());
 			} catch (CppSQLite3Exception& e) {
-				Game::logger->Log("MigrationRunner", "Encountered error running DML command: (%i) : %s", e.errorCode(), e.errorMessage());
+				LOG("Encountered error running DML command: (%i) : %s", e.errorCode(), e.errorMessage());
 			}
 		}
 
@@ -154,5 +154,5 @@ void MigrationRunner::RunSQLiteMigrations() {
 		CDClientDatabase::ExecuteQuery("COMMIT;");
 	}
 
-	Game::logger->Log("MigrationRunner", "CDServer database is up to date.");
+	LOG("CDServer database is up to date.");
 }
