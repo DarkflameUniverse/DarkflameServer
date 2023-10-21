@@ -68,6 +68,12 @@ public:
 	void OnActivityTimerDone(Entity* self, const std::string& name) override;
 	void OnActivityTimerUpdate(Entity* self, const std::string& name, float_t timeRemaining, float_t elapsedTime) override;
 	void OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled) override;
+	void SuperChargeTimerFunc(Entity* self);
+	void SpawnWaveTimerFunc(Entity* self);
+	void EndWaveTimerFunc(Entity* self);
+	void GameOverTimerFunc(Entity* self);
+	void DoSpawnTimerFunc(Entity* self, const std::string& name);
+	void EndGameBufferTimerFunc(Entity* self);
 private:
 	static std::vector<std::vector<SGEnemy>> GetWaves();
 	static SGConstants GetConstants();

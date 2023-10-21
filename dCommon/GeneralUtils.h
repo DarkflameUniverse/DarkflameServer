@@ -127,6 +127,11 @@ namespace GeneralUtils {
 	T Parse(const char* value);
 
 	template <>
+	inline bool Parse(const char* value) {
+		return std::stoi(value);
+	}
+
+	template <>
 	inline int32_t Parse(const char* value) {
 		return std::stoi(value);
 	}

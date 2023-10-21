@@ -372,14 +372,6 @@ public:
 	Entity* GetKiller() const;
 
 	/**
-	 * Checks if the target ID is a valid enemy of this entity
-	 * @param target the target ID to check for
-	 * @param ignoreFactions whether or not check for the factions, e.g. just return true if the entity cannot be smashed
-	 * @return if the target ID is a valid enemy
-	 */
-	bool CheckValidity(LWOOBJID target, bool ignoreFactions = false, bool targetEnemy = true, bool targetFriend = false) const;
-
-	/**
 	 * Attempt to damage this entity, handles everything from health and armor to absorption, immunity and callbacks.
 	 * @param damage the damage to attempt to apply
 	 * @param source the attacker that caused this damage
@@ -423,6 +415,9 @@ public:
 	const bool GetImmuneToImaginationLoss() {return m_ImmuneToImaginationLossCount > 0;};
 	const bool GetImmuneToQuickbuildInterrupt() {return m_ImmuneToQuickbuildInterruptCount > 0;};
 	const bool GetImmuneToPullToPoint() {return m_ImmuneToPullToPointCount > 0;};
+
+	int32_t GetDeathBehavior() const { return m_DeathBehavior; }
+	void SetDeathBehavior(int32_t value) { m_DeathBehavior = value; }
 
 	/**
 	 * Utility to reset all stats to the default stats based on items and completed missions
@@ -605,6 +600,11 @@ private:
 	uint32_t m_ImmuneToImaginationLossCount;
 	uint32_t m_ImmuneToQuickbuildInterruptCount;
 	uint32_t m_ImmuneToPullToPointCount;
+
+	/**
+	 * Death behavior type.  If 0, the client plays a death animation as opposed to a smash animation.
+	 */
+	int32_t m_DeathBehavior;
 };
 
 #endif // DESTROYABLECOMPONENT_H

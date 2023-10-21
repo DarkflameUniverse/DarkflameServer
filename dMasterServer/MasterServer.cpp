@@ -42,6 +42,7 @@
 #include "ObjectIDManager.h"
 #include "PacketUtils.h"
 #include "FdbToSqlite.h"
+#include "BitStreamUtils.h"
 
 namespace Game {
 	dLogger* logger = nullptr;
@@ -115,7 +116,7 @@ int main(int argc, char** argv) {
 
 	uint32_t clientNetVersion = 0;
 	if (!GeneralUtils::TryParse(Game::config->GetValue("client_net_version"), clientNetVersion)) {
-		Game::logger->Log("MasterServer", "Failed to parse (%s) as net version. Cannot start server as no clients could connect.",Game::config->GetValue("client_net_version").c_str());
+		Game::logger->Log("MasterServer", "Failed to parse (%s) as net version. Cannot start server as no clients could connect.", Game::config->GetValue("client_net_version").c_str());
 		Game::logger->Log("MasterServer", "As of version 1.1.1, client_net_version is required to be defined in sharedconfig.ini as opposed to in CMakeVariables.txt as NET_VERSION.");
 		Game::logger->Log("MasterServer", "Rerun cmake to ensure all config values exist. If client_net_version already exists in sharedconfig.ini, please ensure it is a valid number.");
 		Game::logger->Log("MasterServer", "like 171022");
@@ -233,21 +234,21 @@ int main(int argc, char** argv) {
 			std::cout << "Do you want to change the password of that account? [y/n]?";
 			std::string prompt = "";
 			std::cin >> prompt;
-			if (prompt == "y" || prompt == "yes"){
+			if (prompt == "y" || prompt == "yes") {
 				uint32_t accountId = 0;
 				res->next();
 				accountId = res->getUInt(1);
 				if (accountId == 0) return EXIT_FAILURE;
 
 				//Read the password from the console without echoing it.
-				#ifdef __linux__
-						//This function is obsolete, but it only meant to be used by the
-						//sysadmin to create their first account.
-						password = getpass("Enter a password: ");
-				#else
-						std::cout << "Enter a password: ";
-						std::cin >> password;
-				#endif
+#ifdef __linux__
+		//This function is obsolete, but it only meant to be used by the
+		//sysadmin to create their first account.
+				password = getpass("Enter a password: ");
+#else
+				std::cout << "Enter a password: ";
+				std::cin >> password;
+#endif
 
 				// Regenerate hash based on new password
 				char salt[BCRYPT_HASHSIZE];
@@ -270,14 +271,14 @@ int main(int argc, char** argv) {
 		}
 
 		//Read the password from the console without echoing it.
-		#ifdef __linux__
-				//This function is obsolete, but it only meant to be used by the
-				//sysadmin to create their first account.
-				password = getpass("Enter a password: ");
-		#else
-				std::cout << "Enter a password: ";
-				std::cin >> password;
-		#endif
+#ifdef __linux__
+		//This function is obsolete, but it only meant to be used by the
+		//sysadmin to create their first account.
+		password = getpass("Enter a password: ");
+#else
+		std::cout << "Enter a password: ";
+		std::cin >> password;
+#endif
 
 		//Generate new hash for bcrypt
 		char salt[BCRYPT_HASHSIZE];
@@ -294,8 +295,8 @@ int main(int argc, char** argv) {
 			statement->setString(2, std::string(hash, BCRYPT_HASHSIZE).c_str());
 			statement->setInt(3, 9);
 			statement->execute();
-		} catch(sql::SQLException& e) {
-			Game::logger->Log("MasterServer", "A SQL error occurred!:\n %s",  e.what());
+		} catch (sql::SQLException& e) {
+			Game::logger->Log("MasterServer", "A SQL error occurred!:\n %s", e.what());
 			return EXIT_FAILURE;
 		}
 
@@ -580,20 +581,22 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(theirServerType);
 			theirIP = PacketUtils::ReadString(24, packet, false); //24 is the current offset
 
-			if (theirServerType == ServerType::World && !Game::im->IsPortInUse(theirPort)) {
-				Instance* in = new Instance(theirIP, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
+			if (theirServerType == ServerType::World) {
+				if (!Game::im->IsPortInUse(theirPort)) {
+					Instance* in = new Instance(theirIP, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 
-				SystemAddress copy;
-				copy.binaryAddress = packet->systemAddress.binaryAddress;
-				copy.port = packet->systemAddress.port;
+					SystemAddress copy;
+					copy.binaryAddress = packet->systemAddress.binaryAddress;
+					copy.port = packet->systemAddress.port;
 
-				in->SetSysAddr(copy);
-				Game::im->AddInstance(in);
-			} else {
-				auto instance = Game::im->FindInstance(
-					theirZoneID, static_cast<uint16_t>(theirInstanceID));
-				if (instance) {
-					instance->SetSysAddr(packet->systemAddress);
+					in->SetSysAddr(copy);
+					Game::im->AddInstance(in);
+				} else {
+					auto instance = Game::im->FindInstance(
+						theirZoneID, static_cast<uint16_t>(theirInstanceID));
+					if (instance) {
+						instance->SetSysAddr(packet->systemAddress);
+					}
 				}
 			}
 
@@ -632,7 +635,7 @@ void HandlePacket(Packet* packet) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
 					bitStream.Write<uint32_t>(username.size());
 					for (auto character : username) {
@@ -657,9 +660,9 @@ void HandlePacket(Packet* packet) {
 			for (auto key : activeSessions) {
 				if (key.second == username) {
 					CBITSTREAM;
-					PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
-					PacketUtils::WriteString(bitStream, key.second, 64);
+					bitStream.Write(LUString(key.second, 64));
 					Game::server->Send(&bitStream, packet->systemAddress, false);
 					break;
 				}
@@ -903,7 +906,7 @@ void ShutdownSequence(int32_t signal) {
 
 	{
 		CBITSTREAM;
-		PacketUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 		Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		Game::logger->Log("MasterServer", "Triggered master shutdown");
 	}

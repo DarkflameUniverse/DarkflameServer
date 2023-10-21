@@ -36,6 +36,7 @@ enum class ePetTamingNotifyType : uint32_t;
 enum class eUseItemResponse : uint32_t;
 enum class eQuickBuildFailReason : uint32_t;
 enum class eRebuildState : uint32_t;
+enum class BehaviorSlot : int32_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -108,6 +109,8 @@ namespace GameMessages {
 
 	void SendSetInventorySize(Entity* entity, int invType, int size);
 
+	void SendSetGravityScale(const LWOOBJID& target, const float effectScale, const SystemAddress& sysAddr);
+
 	void SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID);
 	void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
 	void SendResurrect(Entity* entity);
@@ -119,7 +122,7 @@ namespace GameMessages {
 	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
 	void SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPoint3& position, const NiQuaternion& rotation);
 
-	void SendAddSkill(Entity* entity, TSkillID skillID, int slotID);
+	void SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot slotID);
 	void SendRemoveSkill(Entity* entity, TSkillID skillID);
 
 	void SendFinishArrangingWithItem(Entity* entity, const LWOOBJID& buildAreaID);

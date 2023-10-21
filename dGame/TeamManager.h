@@ -2,16 +2,15 @@
 
 #include "Entity.h"
 
-struct Team
-{
+struct Team {
+	Team();
 	LWOOBJID teamID = LWOOBJID_EMPTY;
 	char lootOption = 0;
 	std::vector<LWOOBJID> members{};
 	char lootRound = 0;
 };
 
-class TeamManager
-{
+class TeamManager {
 public:
 	static TeamManager* Instance() {
 		if (!m_Address) {

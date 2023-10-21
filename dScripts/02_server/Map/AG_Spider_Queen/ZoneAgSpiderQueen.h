@@ -2,7 +2,7 @@
 #include "ActivityManager.h"
 #include "ZoneAgProperty.h"
 
-class ZoneAgSpiderQueen : ZoneAgProperty, ActivityManager {
+class ZoneAgSpiderQueen : public ZoneAgProperty, ActivityManager {
 public:
 	void OnStartup(Entity* self) override;
 	void OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2,
