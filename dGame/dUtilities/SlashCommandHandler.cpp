@@ -86,6 +86,9 @@
 #include "CDObjectsTable.h"
 #include "CDZoneTableTable.h"
 
+#include "Recorder.h"
+#include "ServerPreconditions.hpp"
+
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	auto commandCopy = command;
 	// Sanity check that a command was given
@@ -711,6 +714,33 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
+	if (chatCommand == "removemission" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		if (args.size() == 0) return;
+
+		uint32_t missionID;
+
+		if (!GeneralUtils::TryParse(args[0], missionID)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid mission id.");
+			return;
+		}
+
+		auto* comp = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
+
+		if (comp == nullptr) {
+			return;
+		}
+
+		auto* mission = comp->GetMission(missionID);
+
+		if (mission == nullptr) {
+			return;
+		}
+
+		comp->RemoveMission(missionID);
+
+		return;
+	}
+
 	if (chatCommand == "playeffect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 3) {
 		int32_t effectID = 0;
 
@@ -881,6 +911,86 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		GameMessages::SendSetName(entity->GetObjectID(), GeneralUtils::UTF8ToUTF16(name), UNASSIGNED_SYSTEM_ADDRESS);
+	}
+
+	if (chatCommand == "record-act" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		EntityInfo info;
+		info.lot = 2097253;
+		info.pos = entity->GetPosition();
+		info.rot = entity->GetRotation();
+		info.scale = 1;
+		info.spawner = nullptr;
+		info.spawnerID = entity->GetObjectID();
+		info.spawnerNodeID = 0;
+		info.settings = {
+			new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
+			new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
+		};
+
+		// If there is an argument, set the lot
+		if (args.size() > 0) {
+			if (!GeneralUtils::TryParse(args[0], info.lot)) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid lot.");
+				return;
+			}
+		}
+
+		// Spawn it
+		auto* actor = Game::entityManager->CreateEntity(info);
+
+		// If there is an argument, set the actors name
+		if (args.size() > 1) {
+			actor->SetVar(u"npcName", args[1]);
+		}
+
+		// Construct it
+		Game::entityManager->ConstructEntity(actor);
+
+		auto* record = Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+		if (record) {
+			record->Act(actor);
+		} else {
+			Game::logger->Log("SlashCommandHandler", "Failed to get recorder for objectID: %llu", entity->GetObjectID());
+		}
+	}
+
+	if (chatCommand == "record-start" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		Recording::Recorder::StartRecording(entity->GetObjectID());
+
+		auto* record = Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+		if (record) {
+			if (args.size() > 0 && args[0] == "clear") {
+				record->AddRecord(new Recording::ClearEquippedRecord());
+			}
+		} else {
+			Game::logger->Log("SlashCommandHandler", "Failed to get recorder for objectID: %llu", entity->GetObjectID());
+		}
+	}
+
+	if (chatCommand == "record-stop" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		Recording::Recorder::StopRecording(entity->GetObjectID());
+	}
+
+	if (chatCommand == "record-save" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
+		auto* record = Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+		if (record) {
+			record->SaveToFile(args[0]);
+		} else {
+			Game::logger->Log("SlashCommandHandler", "Failed to get recorder for objectID: %llu", entity->GetObjectID());
+		}
+	}
+
+	if (chatCommand == "record-load" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
+		auto* record = Recording::Recorder::LoadFromFile(args[0]);
+
+		if (record) {
+			Recording::Recorder::AddRecording(entity->GetObjectID(), record);
+		} else {
+			Game::logger->Log("SlashCommandHandler", "Failed to load recording from file: %s", args[0].c_str());
+		}
 	}
 
 	if ((chatCommand == "teleport" || chatCommand == "tele") && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_MODERATOR) {

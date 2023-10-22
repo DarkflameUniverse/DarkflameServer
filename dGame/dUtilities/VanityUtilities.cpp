@@ -117,17 +117,22 @@ void VanityUtilities::SpawnVanity() {
 		if (!npc.m_Phrases.empty()){
 			npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
 
-			auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
-
-			if (scriptComponent && !npc.m_Script.empty()) {
-				scriptComponent->SetScript(npc.m_Script);
-				scriptComponent->SetSerialized(false);
-
-				for (const auto& npc : npc.m_Flags) {
-					npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
-				}
-			}
 			SetupNPCTalk(npcEntity);
+		}
+
+		auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
+
+		Game::logger->Log("VanityUtilities", "Script: %s", npc.m_Script.c_str());
+
+		if (scriptComponent && !npc.m_Script.empty()) {
+			scriptComponent->SetScript(npc.m_Script);
+			scriptComponent->SetSerialized(false);
+
+			Game::logger->Log("VanityUtilities", "Setting script to %s", npc.m_Script.c_str());
+
+			for (const auto& npc : npc.m_Flags) {
+				npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
+			}
 		}
 	}
 
@@ -162,6 +167,9 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 	entity->SetVar(u"npcName", name);
 	if (entity->GetVar<bool>(u"noGhosting")) entity->SetIsGhostingCandidate(false);
 
+	// Debug print
+	Game::logger->Log("VanityUtilities", "Spawning NPC %s (%i) at %f, %f, %f", name.c_str(), lot, position.x, position.y, position.z);
+
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent && !inventory.empty()) {
@@ -175,6 +183,15 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 		destroyableComponent->SetMaxHealth(0);
 		destroyableComponent->SetHealth(0);
 	}
+
+	auto* scriptComponent = entity->GetComponent<ScriptComponent>();
+
+	if (scriptComponent == nullptr)
+	{
+		entity->AddComponent(eReplicaComponentType::SCRIPT, new ScriptComponent(entity, "", false));
+	}
+
+	Game::logger->Log("VanityUtilities", "NPC has script component? %s", (entity->GetComponent<ScriptComponent>() != nullptr) ? "true" : "false");
 
 	Game::entityManager->ConstructEntity(entity);
 

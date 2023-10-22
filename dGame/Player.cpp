@@ -32,9 +32,6 @@ Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Enti
 	m_GhostReferencePoint = NiPoint3::ZERO;
 	m_GhostOverridePoint = NiPoint3::ZERO;
 	m_GhostOverride = false;
-	m_ObservedEntitiesLength = 256;
-	m_ObservedEntitiesUsed = 0;
-	m_ObservedEntities.resize(m_ObservedEntitiesLength);
 
 	m_Character->SetEntity(this);
 
@@ -180,41 +177,21 @@ bool Player::GetGhostOverride() const {
 }
 
 void Player::ObserveEntity(int32_t id) {
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++) {
-		if (m_ObservedEntities[i] == 0 || m_ObservedEntities[i] == id) {
-			m_ObservedEntities[i] = id;
-
-			return;
-		}
-	}
-
-	const auto index = m_ObservedEntitiesUsed++;
-
-	if (m_ObservedEntitiesUsed > m_ObservedEntitiesLength) {
-		m_ObservedEntities.resize(m_ObservedEntitiesLength + m_ObservedEntitiesLength);
-
-		m_ObservedEntitiesLength = m_ObservedEntitiesLength + m_ObservedEntitiesLength;
-	}
-
-	m_ObservedEntities[index] = id;
+	m_ObservedEntities.emplace(id);
 }
 
 bool Player::IsObserved(int32_t id) {
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++) {
-		if (m_ObservedEntities[i] == id) {
-			return true;
-		}
-	}
-
-	return false;
+	return m_ObservedEntities.find(id) != m_ObservedEntities.end();
 }
 
 void Player::GhostEntity(int32_t id) {
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++) {
-		if (m_ObservedEntities[i] == id) {
-			m_ObservedEntities[i] = 0;
-		}
+	const auto& iter = m_ObservedEntities.find(id);
+
+	if (iter == m_ObservedEntities.end()) {
+		return;
 	}
+
+	m_ObservedEntities.erase(iter);
 }
 
 Player* Player::GetPlayer(const SystemAddress& sysAddr) {
@@ -262,9 +239,8 @@ void Player::SetDroppedCoins(uint64_t value) {
 Player::~Player() {
 	Game::logger->Log("Player", "Deleted player");
 
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++) {
-		const auto id = m_ObservedEntities[i];
-
+	for (const auto& id : m_ObservedEntities)
+	{
 		if (id == 0) {
 			continue;
 		}

@@ -34,6 +34,7 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "CheatDetection.h"
+#include "Recorder.h"
 
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
@@ -82,6 +83,12 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 	std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
 	Game::logger->Log("Chat", "%s: %s", playerName.c_str(), sMessage.c_str());
 	ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
+
+	auto* recorder = Recording::Recorder::GetRecorder(user->GetLoggedInChar());
+
+	if (recorder != nullptr) {
+		recorder->AddRecord(new Recording::SpeakRecord(sMessage));
+	}
 }
 
 void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Packet* packet) {
@@ -235,6 +242,20 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	comp->SetDirtyVelocity(velocityFlag);
 	comp->SetAngularVelocity(angVelocity);
 	comp->SetDirtyAngularVelocity(angVelocityFlag);
+
+	auto* recorder = Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+	if (recorder != nullptr) {
+		recorder->AddRecord(new Recording::MovementRecord(
+			position,
+			rotation,
+			velocity,
+			angVelocity,
+			onGround,
+			velocityFlag,
+			angVelocityFlag
+		));
+	}
 
 	auto* player = static_cast<Player*>(entity);
 	player->SetGhostReferencePoint(position);

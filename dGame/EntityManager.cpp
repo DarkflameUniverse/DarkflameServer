@@ -24,6 +24,7 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
+#include "ServerPreconditions.hpp"
 
 // Configure which zones have ghosting disabled, mostly small worlds.
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
@@ -515,13 +516,15 @@ void EntityManager::UpdateGhosting(Player* player) {
 			ghostingDistanceMax = ghostingDistanceMin;
 		}
 
-		if (observed && distance > ghostingDistanceMax && !isOverride) {
+		auto condition = ServerPreconditions::CheckPreconditions(entity, player);
+
+		if (observed && ((distance > ghostingDistanceMax && !isOverride) || !condition)) {
 			player->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
 			entity->SetObservers(entity->GetObservers() - 1);
-		} else if (!observed && ghostingDistanceMin > distance) {
+		} else if (!observed && ghostingDistanceMin > distance && condition) {
 			// Check collectables, don't construct if it has been collected
 			uint32_t collectionId = entity->GetCollectibleID();
 
@@ -563,13 +566,15 @@ void EntityManager::CheckGhosting(Entity* entity) {
 
 		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
 
-		if (observed && distance > ghostingDistanceMax) {
+		const auto precondition = ServerPreconditions::CheckPreconditions(entity, player);
+
+		if (observed && (distance > ghostingDistanceMax || !precondition)) {
 			player->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
 			entity->SetObservers(entity->GetObservers() - 1);
-		} else if (!observed && ghostingDistanceMin > distance) {
+		} else if (!observed && (ghostingDistanceMin > distance && precondition)) {
 			player->ObserveEntity(id);
 
 			ConstructEntity(entity, player->GetSystemAddress());

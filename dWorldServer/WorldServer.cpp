@@ -75,6 +75,8 @@
 #include "EntityManager.h"
 #include "CheatDetection.h"
 
+#include "ServerPreconditions.hpp"
+
 namespace Game {
 	dLogger* logger = nullptr;
 	dServer* server = nullptr;
@@ -254,6 +256,8 @@ int main(int argc, char** argv) {
 	auto ghostingLastTime = std::chrono::high_resolution_clock::now();
 
 	PerformanceManager::SelectProfile(zoneID);
+
+	ServerPreconditions::LoadPreconditions("vanity/preconditions.xml");
 
 	Game::entityManager = new EntityManager();
 	Game::zoneManager = new dZoneManager();

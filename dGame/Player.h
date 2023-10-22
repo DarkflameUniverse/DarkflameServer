@@ -2,6 +2,8 @@
 
 #include "Entity.h"
 
+#include <unordered_set>
+
 /**
  * Extended Entity for player data and behavior.
  *
@@ -120,11 +122,7 @@ private:
 
 	bool m_GhostOverride;
 
-	std::vector<int32_t> m_ObservedEntities;
-
-	int32_t m_ObservedEntitiesLength;
-
-	int32_t m_ObservedEntitiesUsed;
+	std::unordered_set<int32_t> m_ObservedEntities;
 
 	std::vector<LWOOBJID> m_LimboConstructions;
 

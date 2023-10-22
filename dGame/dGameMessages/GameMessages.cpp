@@ -99,6 +99,8 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
 
+#include "Recorder.h"
+
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -189,6 +191,12 @@ void GameMessages::SendPlayAnimation(Entity* entity, const std::u16string& anima
 	if (fScale != 1.0f) bitStream.Write(fScale);
 
 	SEND_PACKET_BROADCAST;
+
+	auto* recorder = Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+	if (recorder != nullptr) {
+		recorder->AddRecord(new Recording::AnimationRecord(GeneralUtils::UTF16ToWTF8(animationName)));
+	}
 }
 
 void GameMessages::SendPlayerReady(Entity* entity, const SystemAddress& sysAddr) {
@@ -5166,6 +5174,17 @@ void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* e
 	inStream->Read(isDefaultReward);
 	if (isDefaultReward) inStream->Read(reward);
 
+	Entity* offerer = Game::entityManager->GetEntity(receiverID);
+
+	if (offerer == nullptr) {
+		Game::logger->Log("GameMessages", "Unable to get receiver entity %llu for RespondToMission", receiverID);
+		return;
+	}
+
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(offerer)) {
+		script->OnRespondToMission(offerer, missionID, Game::entityManager->GetEntity(playerID), reward);
+	}
+
 	MissionComponent* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
 	if (!missionComponent) {
 		Game::logger->Log("GameMessages", "Unable to get mission component for entity %llu to handle RespondToMission", playerID);
@@ -5177,17 +5196,6 @@ void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* e
 		mission->SetReward(reward);
 	} else {
 		Game::logger->Log("GameMessages", "Unable to get mission %i for entity %llu to update reward in RespondToMission", missionID, playerID);
-	}
-
-	Entity* offerer = Game::entityManager->GetEntity(receiverID);
-
-	if (offerer == nullptr) {
-		Game::logger->Log("GameMessages", "Unable to get receiver entity %llu for RespondToMission", receiverID);
-		return;
-	}
-
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(offerer)) {
-		script->OnRespondToMission(offerer, missionID, Game::entityManager->GetEntity(playerID), reward);
 	}
 }
 
@@ -5359,6 +5367,12 @@ void GameMessages::HandleEquipItem(RakNet::BitStream* inStream, Entity* entity) 
 	item->Equip();
 
 	Game::entityManager->SerializeEntity(entity);
+
+	auto* recorder = Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+	if (recorder != nullptr) {
+		recorder->AddRecord(new Recording::EquipRecord(item->GetLot()));
+	}
 }
 
 void GameMessages::HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity) {
@@ -5379,6 +5393,12 @@ void GameMessages::HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity
 	item->UnEquip();
 
 	Game::entityManager->SerializeEntity(entity);
+
+	auto* recorder = Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+	if (recorder != nullptr) {
+		recorder->AddRecord(new Recording::UnequipRecord(item->GetLot()));
+	}
 }
 
 void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
