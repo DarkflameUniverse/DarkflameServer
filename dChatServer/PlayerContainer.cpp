@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "ChatPacketHandler.h"
 #include "GeneralUtils.h"
 #include "BitStreamUtils.h"
@@ -44,7 +44,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	mNames[data->playerID] = GeneralUtils::UTF8ToUTF16(data->playerName);
 
 	mPlayers.insert(std::make_pair(data->playerID, data));
-	Game::logger->Log("PlayerContainer", "Added user: %s (%llu), zone: %i", data->playerName.c_str(), data->playerID, data->zoneID.GetMapID());
+	LOG("Added user: %s (%llu), zone: %i", data->playerName.c_str(), data->playerID, data->zoneID.GetMapID());
 
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
@@ -87,7 +87,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 		}
 	}
 
-	Game::logger->Log("PlayerContainer", "Removed user: %llu", playerID);
+	LOG("Removed user: %llu", playerID);
 	mPlayers.erase(playerID);
 
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
@@ -110,7 +110,7 @@ void PlayerContainer::MuteUpdate(Packet* packet) {
 	auto* player = this->GetPlayerData(playerID);
 
 	if (player == nullptr) {
-		Game::logger->Log("PlayerContainer", "Failed to find user: %llu", playerID);
+		LOG("Failed to find user: %llu", playerID);
 
 		return;
 	}
@@ -214,7 +214,7 @@ TeamData* PlayerContainer::GetTeam(LWOOBJID playerID) {
 
 void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
 	if (team->memberIDs.size() >= 4){
-		Game::logger->Log("PlayerContainer", "Tried to add player to team that already had 4 players");
+		LOG("Tried to add player to team that already had 4 players");
 		auto* player = GetPlayerData(playerID);
 		if (!player) return;
 		ChatPackets::SendSystemMessage(player->sysAddr, u"The teams is full! You have not been added to a team!");

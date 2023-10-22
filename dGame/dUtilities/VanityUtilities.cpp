@@ -12,7 +12,7 @@
 #include "dServer.h"
 #include "tinyxml2.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BinaryPathFinder.h"
 #include "EntityInfo.h"
 
@@ -49,7 +49,7 @@ void VanityUtilities::SpawnVanity() {
 		std::vector<VanityNPC> npcList = m_NPCs;
 		std::vector<uint32_t> taken = {};
 
-		Game::logger->Log("VanityUtilities", "Spawning party with %i locations", party.m_Locations.size());
+		LOG("Spawning party with %i locations", party.m_Locations.size());
 
 		// Loop through all locations
 		for (const auto& location : party.m_Locations) {
@@ -70,7 +70,7 @@ void VanityUtilities::SpawnVanity() {
 			taken.push_back(npcIndex);
 
 			// Spawn the NPC
-			Game::logger->Log("VanityUtilities", "ldf size is %i", npc.ldf.size());
+			LOG("ldf size is %i", npc.ldf.size());
 			if (npc.ldf.empty()) {
 				npc.ldf = {
 					new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
@@ -211,7 +211,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 	auto* npcs = doc.FirstChildElement("npcs");
 
 	if (npcs == nullptr) {
-		Game::logger->Log("VanityUtilities", "Failed to parse NPCs");
+		LOG("Failed to parse NPCs");
 		return;
 	}
 
@@ -235,7 +235,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 		auto* locations = party->FirstChildElement("locations");
 
 		if (locations == nullptr) {
-			Game::logger->Log("VanityUtilities", "Failed to parse party locations");
+			LOG("Failed to parse party locations");
 			continue;
 		}
 
@@ -252,7 +252,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 
 			if (x == nullptr || y == nullptr || z == nullptr || rw == nullptr || rx == nullptr || ry == nullptr
 				|| rz == nullptr) {
-				Game::logger->Log("VanityUtilities", "Failed to parse party location data");
+				LOG("Failed to parse party location data");
 				continue;
 			}
 
@@ -270,7 +270,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 	auto* partyPhrases = npcs->FirstChildElement("partyphrases");
 
 	if (partyPhrases == nullptr) {
-		Game::logger->Log("VanityUtilities", "Failed to parse party phrases");
+		LOG("Failed to parse party phrases");
 		return;
 	}
 
@@ -280,7 +280,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 		auto* text = phrase->GetText();
 
 		if (text == nullptr) {
-			Game::logger->Log("VanityUtilities", "Failed to parse party phrase");
+			LOG("Failed to parse party phrase");
 			continue;
 		}
 
@@ -297,7 +297,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 		auto* lot = npc->Attribute("lot");
 
 		if (lot == nullptr) {
-			Game::logger->Log("VanityUtilities", "Failed to parse NPC lot");
+			LOG("Failed to parse NPC lot");
 			continue;
 		}
 
@@ -331,7 +331,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 				// Get the phrase
 				auto* text = phrase->GetText();
 				if (text == nullptr) {
-					Game::logger->Log("VanityUtilities", "Failed to parse NPC phrase");
+					LOG("Failed to parse NPC phrase");
 					continue;
 				}
 				phraseList.push_back(text);
@@ -384,7 +384,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 				auto* name = flag->Attribute("name");
 
 				if (name == nullptr) {
-					Game::logger->Log("VanityUtilities", "Failed to parse NPC flag name");
+					LOG("Failed to parse NPC flag name");
 					continue;
 				}
 
@@ -392,7 +392,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 				auto* value = flag->Attribute("value");
 
 				if (value == nullptr) {
-					Game::logger->Log("VanityUtilities", "Failed to parse NPC flag value");
+					LOG("Failed to parse NPC flag value");
 					continue;
 				}
 
@@ -406,7 +406,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 			auto* zoneID = zone->Attribute("id");
 
 			if (zoneID == nullptr) {
-				Game::logger->Log("VanityUtilities", "Failed to parse NPC zone ID");
+				LOG("Failed to parse NPC zone ID");
 				continue;
 			}
 
@@ -414,7 +414,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 			auto* locations = zone->FirstChildElement("locations");
 
 			if (locations == nullptr) {
-				Game::logger->Log("VanityUtilities", "Failed to parse NPC locations");
+				LOG("Failed to parse NPC locations");
 				continue;
 			}
 
@@ -431,7 +431,7 @@ void VanityUtilities::ParseXML(const std::string& file) {
 
 				if (x == nullptr || y == nullptr || z == nullptr || rw == nullptr || rx == nullptr || ry == nullptr
 					|| rz == nullptr) {
-					Game::logger->Log("VanityUtilities", "Failed to parse NPC location data");
+					LOG("Failed to parse NPC location data");
 					continue;
 				}
 
@@ -495,8 +495,10 @@ std::string VanityUtilities::ParseMarkdown(const std::string& file) {
 	while (std::getline(ss, line)) {
 
 #define TOSTRING(x) #x
-#define STRINGIFY(x) TOSTRING(x)
 
+#ifndef STRINGIFY
+#define STRINGIFY(x) TOSTRING(x)
+#endif
 		// Replace "__TIMESTAMP__" with the __TIMESTAMP__
 		GeneralUtils::ReplaceInString(line, "__TIMESTAMP__", __TIMESTAMP__);
 		// Replace "__VERSION__" wit'h the PROJECT_VERSION

@@ -7,7 +7,7 @@
 #include "MissionComponent.h"
 #include "UserManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "ZoneInstanceManager.h"
 #include "WorldPackets.h"
 #include "dZoneManager.h"
@@ -237,7 +237,7 @@ void Player::SetDroppedCoins(uint64_t value) {
 }
 
 Player::~Player() {
-	Game::logger->Log("Player", "Deleted player");
+	LOG("Deleted player");
 
 	for (const auto& id : m_ObservedEntities)
 	{

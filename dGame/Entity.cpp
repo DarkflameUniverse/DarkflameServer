@@ -2,7 +2,7 @@
 #include "Entity.h"
 #include "CDClientManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include <PacketUtils.h>
 #include <functional>
 #include "CDDestructibleComponentTable.h"
@@ -345,7 +345,7 @@ void Entity::Initialize() {
 	int buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUFF);
 	int rebuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
 
-	int componentID = 0;
+	int componentID = -1;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;
 	if (rebuildComponentID > 0) componentID = rebuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
@@ -353,7 +353,8 @@ void Entity::Initialize() {
 	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
-	if (buffComponentID > 0 || collectibleComponentID > 0) {
+	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
+	if (buffComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
 		DestroyableComponent* comp = new DestroyableComponent(this);
 		if (m_Character) {
 			comp->LoadFromXml(m_Character->GetXMLDoc());
@@ -394,7 +395,7 @@ void Entity::Initialize() {
 					}
 
 					// extraInfo overrides. Client ORs the database smashable and the luz smashable.
-					comp->SetIsSmashable(comp->GetIsSmashable() | (GetVarAs<int32_t>(u"is_smashable") != 0));
+					comp->SetIsSmashable(comp->GetIsSmashable() | isSmashable);
 				}
 			} else {
 				comp->SetHealth(1);
@@ -423,6 +424,19 @@ void Entity::Initialize() {
 
 				if (token != "") {
 					comp->AddFaction(std::stoi(token));
+				}
+			}
+		}
+
+		// override the factions if needed.
+		auto setFaction = GetVarAsString(u"set_faction");
+		if (!setFaction.empty()) {
+			// TODO also split on space here however we do not have a general util for splitting on multiple characters yet.
+			std::vector<std::string> factionsToAdd = GeneralUtils::SplitString(setFaction, ';');
+			int32_t factionToAdd;
+			for (const auto faction : factionsToAdd) {
+				if (GeneralUtils::TryParse(faction, factionToAdd)) {
+					comp->AddFaction(factionToAdd, true);
 				}
 			}
 		}
@@ -1223,7 +1237,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		renderComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
-	if (modelComponent) {
+	if (modelComponent || !destroyableSerialized) {
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
 			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);

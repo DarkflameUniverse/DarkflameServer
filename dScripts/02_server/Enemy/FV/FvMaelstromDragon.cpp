@@ -67,7 +67,7 @@ void FvMaelstromDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_
 		auto weakpoint = self->GetVar<int32_t>(u"weakpoint");
 
 		if (weakpoint == 0) {
-			Game::logger->Log("FvMaelstromDragon", "Activating weakpoint");
+			LOG("Activating weakpoint");
 
 			self->AddTimer("ReviveTimer", 12);
 

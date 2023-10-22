@@ -9,7 +9,7 @@
 #include "Database.h"
 #include "Game.h"
 #include "ZCompression.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 //! Forward declarations
 
@@ -59,14 +59,14 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 					completeUncompressedModel.append((char*)uncompressedChunk.get());
 					completeUncompressedModel.resize(previousSize + actualUncompressedSize);
 				} else {
-					Game::logger->Log("BrickByBrickFix", "Failed to inflate chunk %i for model %llu.  Error: %i", chunkCount, modelId, err);
+					LOG("Failed to inflate chunk %i for model %llu.  Error: %i", chunkCount, modelId, err);
 					break;
 				}
 				chunkCount++;
 			}
 			std::unique_ptr<tinyxml2::XMLDocument> document = std::make_unique<tinyxml2::XMLDocument>();
 			if (!document) {
-				Game::logger->Log("BrickByBrickFix", "Failed to initialize tinyxml document.  Aborting.");
+				LOG("Failed to initialize tinyxml document.  Aborting.");
 				return 0;
 			}
 
@@ -75,8 +75,7 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 					"</LXFML>",
 					completeUncompressedModel.length() >= 15 ? completeUncompressedModel.length() - 15 : 0) == std::string::npos
 					) {
-					Game::logger->Log("BrickByBrickFix",
-						"Brick-by-brick model %llu will be deleted!", modelId);
+					LOG("Brick-by-brick model %llu will be deleted!", modelId);
 					ugcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
 					pcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
 					ugcModelToDelete->execute();
@@ -85,8 +84,7 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 				}
 			}
 		} else {
-			Game::logger->Log("BrickByBrickFix",
-				"Brick-by-brick model %llu will be deleted!", modelId);
+			LOG("Brick-by-brick model %llu will be deleted!", modelId);
 			ugcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
 			pcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
 			ugcModelToDelete->execute();
@@ -140,12 +138,10 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 			insertionStatement->setInt64(2, modelId);
 			try {
 				insertionStatement->executeUpdate();
-				Game::logger->Log("BrickByBrickFix", "Updated model %i to sd0", modelId);
+				LOG("Updated model %i to sd0", modelId);
 				updatedModels++;
 			} catch (sql::SQLException exception) {
-				Game::logger->Log(
-					"BrickByBrickFix",
-					"Failed to update model %i.  This model should be inspected manually to see why."
+				LOG("Failed to update model %i.  This model should be inspected manually to see why."
 					"The database error is %s", modelId, exception.what());
 			}
 		}

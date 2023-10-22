@@ -3,7 +3,7 @@
 #include "RawFile.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dPlatforms.h"
 #include "NiPoint3.h"
 #include "BinaryIO.h"
@@ -21,9 +21,9 @@ dNavMesh::dNavMesh(uint32_t zoneId) {
 		m_NavQuery = dtAllocNavMeshQuery();
 		m_NavQuery->init(m_NavMesh, 2048);
 
-		Game::logger->Log("dNavMesh", "Navmesh loaded successfully!");
+		LOG("Navmesh loaded successfully!");
 	} else {
-		Game::logger->Log("dNavMesh", "Navmesh loading failed (This may be intended).");
+		LOG("Navmesh loading failed (This may be intended).");
 	}
 }
 

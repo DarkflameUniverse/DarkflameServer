@@ -7,7 +7,7 @@
 #include "Entity.h"
 #include "ScriptComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "InvalidScript.h"
 
 //VE / AG scripts:
@@ -933,7 +933,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 			(scriptName =="scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
 			(scriptName == "scripts\\ai\\WILD\\L_WILD_GF_FROG.lua") ||
 			(scriptName == "scripts\\empty.lua")
-			)) Game::logger->LogDebug("CppScripts", "LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
+			)) LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
 	m_Scripts[scriptName] = script;

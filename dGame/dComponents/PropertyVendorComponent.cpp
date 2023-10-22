@@ -6,7 +6,7 @@
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "PropertyManagementComponent.h"
 #include "UserManager.h"
 
@@ -19,7 +19,7 @@ void PropertyVendorComponent::OnUse(Entity* originator) {
 	OnQueryPropertyData(originator, originator->GetSystemAddress());
 
 	if (PropertyManagementComponent::Instance()->GetOwnerId() == LWOOBJID_EMPTY) {
-		Game::logger->Log("PropertyVendorComponent", "Property vendor opening!");
+		LOG("Property vendor opening!");
 
 		GameMessages::SendOpenPropertyVendor(m_Parent->GetObjectID(), originator->GetSystemAddress());
 
@@ -37,7 +37,7 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 	if (PropertyManagementComponent::Instance() == nullptr) return;
 
 	if (PropertyManagementComponent::Instance()->Claim(originator->GetObjectID()) == false) {
-		Game::logger->Log("PropertyVendorComponent", "FAILED TO CLAIM PROPERTY.  PLAYER ID IS %llu", originator->GetObjectID());
+		LOG("FAILED TO CLAIM PROPERTY.  PLAYER ID IS %llu", originator->GetObjectID());
 		return;
 	}
 
@@ -51,6 +51,6 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 
 	PropertyManagementComponent::Instance()->OnQueryPropertyData(originator, originator->GetSystemAddress());
 
-	Game::logger->Log("PropertyVendorComponent", "Fired event; (%d) (%i) (%i)", confirmed, lot, count);
+	LOG("Fired event; (%d) (%i) (%i)", confirmed, lot, count);
 }
 
