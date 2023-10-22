@@ -5174,17 +5174,6 @@ void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* e
 	inStream->Read(isDefaultReward);
 	if (isDefaultReward) inStream->Read(reward);
 
-	Entity* offerer = Game::entityManager->GetEntity(receiverID);
-
-	if (offerer == nullptr) {
-		Game::logger->Log("GameMessages", "Unable to get receiver entity %llu for RespondToMission", receiverID);
-		return;
-	}
-
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(offerer)) {
-		script->OnRespondToMission(offerer, missionID, Game::entityManager->GetEntity(playerID), reward);
-	}
-
 	MissionComponent* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
 	if (!missionComponent) {
 		LOG("Unable to get mission component for entity %llu to handle RespondToMission", playerID);
