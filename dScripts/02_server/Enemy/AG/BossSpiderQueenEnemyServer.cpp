@@ -52,7 +52,7 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 }
 
 void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
-	if (Game::zoneManager->GetZoneID().GetMapID() == instanceZoneID) {
+	if (Game::zoneManager->GetZoneID().GetMapID() == instanceZoneID && killer) {
 		auto* missionComponent = killer->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr)
 			return;
