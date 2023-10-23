@@ -8,7 +8,7 @@
 #include <regex>
 
 #include "dCommonVars.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 #include "Database.h"
 #include "Game.h"

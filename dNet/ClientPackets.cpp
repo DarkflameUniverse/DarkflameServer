@@ -11,7 +11,7 @@
 #include "Entity.h"
 #include "ControllablePhysicsComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "WorldPackets.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -38,7 +38,7 @@
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse chat message");
+		LOG("Unable to get user to parse chat message");
 		return;
 	}
 
@@ -67,7 +67,7 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 	std::string playerName = user->GetLastUsedChar()->GetName();
 	bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
 	bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(message), user->GetLastUsedChar()->GetGMLevel()).empty();
-	Game::logger->LogDebug("ClientPackets", "Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(message).c_str(), user->GetLastChatMessageApproved());
+	LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(message).c_str(), user->GetLastChatMessageApproved());
 	if (!isOk) {
 		// Add a limit to the string converted by general utils because it is a user received string and may be a bad actor.
 		CheatDetection::ReportCheat(
@@ -80,14 +80,14 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 	if (!isOk && !isMythran) return;
 
 	std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
-	Game::logger->Log("Chat", "%s: %s", playerName.c_str(), sMessage.c_str());
+	LOG("%s: %s", playerName.c_str(), sMessage.c_str());
 	ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
 }
 
 void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse position update");
+		LOG("Unable to get user to parse position update");
 		return;
 	}
 
@@ -286,14 +286,14 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse chat moderation request");
+		LOG("Unable to get user to parse chat moderation request");
 		return;
 	}
 
 	auto* entity = Player::GetPlayer(sysAddr);
 
 	if (entity == nullptr) {
-		Game::logger->Log("ClientPackets", "Unable to get player to parse chat moderation request");
+		LOG("Unable to get player to parse chat moderation request");
 		return;
 	}
 

@@ -7,7 +7,7 @@
 #include "Game.h"
 #include "dServer.h"
 #include "GeneralUtils.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "eAddFriendResponseCode.h"
 #include "eAddFriendResponseType.h"
 #include "RakString.h"
@@ -397,7 +397,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 
 	std::string message = PacketUtils::ReadString(0x66, packet, true, 512);
 
-	Game::logger->Log("ChatPacketHandler", "Got a message from (%s) [%d]: %s", senderName.c_str(), channel, message.c_str());
+	LOG("Got a message from (%s) [%d]: %s", senderName.c_str(), channel, message.c_str());
 
 	if (channel != 8) return;
 
@@ -527,13 +527,13 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 	if (team->memberIDs.size() > 3) {
 		// no more teams greater than 4
 
-		Game::logger->Log("ChatPacketHandler", "Someone tried to invite a 5th player to a team");
+		LOG("Someone tried to invite a 5th player to a team");
 		return;
 	}
 
 	SendTeamInvite(other, player);
 
-	Game::logger->Log("ChatPacketHandler", "Got team invite: %llu -> %s", playerID, invitedPlayer.c_str());
+	LOG("Got team invite: %llu -> %s", playerID, invitedPlayer.c_str());
 }
 
 void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
@@ -547,7 +547,7 @@ void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
 	LWOOBJID leaderID = LWOOBJID_EMPTY;
 	inStream.Read(leaderID);
 
-	Game::logger->Log("ChatPacketHandler", "Accepted invite: %llu -> %llu (%d)", playerID, leaderID, declined);
+	LOG("Accepted invite: %llu -> %llu (%d)", playerID, leaderID, declined);
 
 	if (declined) {
 		return;
@@ -556,13 +556,13 @@ void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
 	auto* team = playerContainer.GetTeam(leaderID);
 
 	if (team == nullptr) {
-		Game::logger->Log("ChatPacketHandler", "Failed to find team for leader (%llu)", leaderID);
+		LOG("Failed to find team for leader (%llu)", leaderID);
 
 		team = playerContainer.GetTeam(playerID);
 	}
 
 	if (team == nullptr) {
-		Game::logger->Log("ChatPacketHandler", "Failed to find team for player (%llu)", playerID);
+		LOG("Failed to find team for player (%llu)", playerID);
 		return;
 	}
 
@@ -578,7 +578,7 @@ void ChatPacketHandler::HandleTeamLeave(Packet* packet) {
 
 	auto* team = playerContainer.GetTeam(playerID);
 
-	Game::logger->Log("ChatPacketHandler", "(%llu) leaving team", playerID);
+	LOG("(%llu) leaving team", playerID);
 
 	if (team != nullptr) {
 		playerContainer.RemoveMember(team, playerID, false, false, true);
@@ -592,7 +592,7 @@ void ChatPacketHandler::HandleTeamKick(Packet* packet) {
 
 	std::string kickedPlayer = PacketUtils::ReadString(0x14, packet, true);
 
-	Game::logger->Log("ChatPacketHandler", "(%llu) kicking (%s) from team", playerID, kickedPlayer.c_str());
+	LOG("(%llu) kicking (%s) from team", playerID, kickedPlayer.c_str());
 
 	auto* kicked = playerContainer.GetPlayerData(kickedPlayer);
 
@@ -622,7 +622,7 @@ void ChatPacketHandler::HandleTeamPromote(Packet* packet) {
 
 	std::string promotedPlayer = PacketUtils::ReadString(0x14, packet, true);
 
-	Game::logger->Log("ChatPacketHandler", "(%llu) promoting (%s) to team leader", playerID, promotedPlayer.c_str());
+	LOG("(%llu) promoting (%s) to team leader", playerID, promotedPlayer.c_str());
 
 	auto* promoted = playerContainer.GetPlayerData(promotedPlayer);
 

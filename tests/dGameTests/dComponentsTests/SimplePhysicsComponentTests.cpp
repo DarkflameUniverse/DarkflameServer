@@ -15,8 +15,7 @@ protected:
 	void SetUp() override {
 		SetUpDependencies();
 		baseEntity = std::make_unique<Entity>(15, GameDependenciesTest::info);
-		simplePhysicsComponent = new SimplePhysicsComponent(1, baseEntity.get());
-		baseEntity->AddComponent(SimplePhysicsComponent::ComponentType, simplePhysicsComponent);
+		simplePhysicsComponent = baseEntity->AddComponent<SimplePhysicsComponent>(1);
 		simplePhysicsComponent->SetClimbableType(eClimbableType::CLIMBABLE_TYPE_WALL);
 		simplePhysicsComponent->SetPosition(NiPoint3(1.0f, 2.0f, 3.0f));
 		simplePhysicsComponent->SetRotation(NiQuaternion(1.0f, 2.0f, 3.0f, 4.0f));

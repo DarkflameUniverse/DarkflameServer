@@ -4,7 +4,7 @@ set(DCOMMON_SOURCES
 		"BinaryIO.cpp"
 		"dConfig.cpp"
 		"Diagnostics.cpp"
-		"dLogger.cpp"
+		"Logger.cpp"
 		"GeneralUtils.cpp"
 		"LDFFormat.cpp"
 		"MD5.cpp"

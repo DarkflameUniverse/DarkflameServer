@@ -1,7 +1,7 @@
 #include "GameDependencies.h"
 
 namespace Game {
-	dLogger* logger = nullptr;
+	Logger* logger = nullptr;
 	dServer* server = nullptr;
 	dZoneManager* zoneManager = nullptr;
 	dChatFilter* chatFilter = nullptr;

@@ -19,7 +19,7 @@
   */
 class RigidbodyPhantomPhysicsComponent : public PhysicsComponent {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS;
 
 	RigidbodyPhantomPhysicsComponent(Entity* parent);
 

@@ -11,7 +11,7 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
 #include <vector>
@@ -57,7 +57,7 @@ struct MovementAIInfo {
  */
 class MovementAIComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
 
 	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
 

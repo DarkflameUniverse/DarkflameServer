@@ -52,7 +52,7 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 }
 
 void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
-	if (Game::zoneManager->GetZoneID().GetMapID() == instanceZoneID) {
+	if (Game::zoneManager->GetZoneID().GetMapID() == instanceZoneID && killer) {
 		auto* missionComponent = killer->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr)
 			return;
@@ -309,7 +309,7 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 		impactList.erase(impactList.begin());
 
 		if (entity == nullptr) {
-			Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find impact!");
+			LOG("Failed to find impact!");
 
 			return;
 		}
@@ -317,7 +317,7 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 		auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 		if (skillComponent == nullptr) {
-			Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find impact skill component!");
+			LOG("Failed to find impact skill component!");
 
 			return;
 		}
@@ -366,7 +366,7 @@ void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
 	}
 
 	if (targets.empty()) {
-		Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find RFS targets");
+		LOG("Failed to find RFS targets");
 
 		self->AddTimer("RFS", GeneralUtils::GenerateRandomNumber<float>(5, 10));
 

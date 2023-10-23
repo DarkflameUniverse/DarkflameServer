@@ -1,6 +1,6 @@
 #include "DestroyableComponent.h"
 #include <BitStream.h>
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 #include "dConfig.h"
 
@@ -182,7 +182,7 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
-		Game::logger->Log("DestroyableComponent", "Failed to find dest tag!");
+		LOG("Failed to find dest tag!");
 		return;
 	}
 
@@ -204,7 +204,7 @@ void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
-		Game::logger->Log("DestroyableComponent", "Failed to find dest tag!");
+		LOG("Failed to find dest tag!");
 		return;
 	}
 
@@ -643,19 +643,19 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 
 void DestroyableComponent::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd) {
 	m_SubscribedScripts.insert(std::make_pair(scriptObjId, scriptToAdd));
-	Game::logger->LogDebug("DestroyableComponent", "Added script %llu to entity %llu", scriptObjId, m_Parent->GetObjectID());
-	Game::logger->LogDebug("DestroyableComponent", "Number of subscribed scripts %i", m_SubscribedScripts.size());
+	LOG_DEBUG("Added script %llu to entity %llu", scriptObjId, m_Parent->GetObjectID());
+	LOG_DEBUG("Number of subscribed scripts %i", m_SubscribedScripts.size());
 }
 
 void DestroyableComponent::Unsubscribe(LWOOBJID scriptObjId) {
 	auto foundScript = m_SubscribedScripts.find(scriptObjId);
 	if (foundScript != m_SubscribedScripts.end()) {
 		m_SubscribedScripts.erase(foundScript);
-		Game::logger->LogDebug("DestroyableComponent", "Removed script %llu from entity %llu", scriptObjId, m_Parent->GetObjectID());
+		LOG_DEBUG("Removed script %llu from entity %llu", scriptObjId, m_Parent->GetObjectID());
 	} else {
-		Game::logger->LogDebug("DestroyableComponent", "Tried to remove a script for Entity %llu but script %llu didnt exist", m_Parent->GetObjectID(), scriptObjId);
+		LOG_DEBUG("Tried to remove a script for Entity %llu but script %llu didnt exist", m_Parent->GetObjectID(), scriptObjId);
 	}
-	Game::logger->LogDebug("DestroyableComponent", "Number of subscribed scripts %i", m_SubscribedScripts.size());
+	LOG_DEBUG("Number of subscribed scripts %i", m_SubscribedScripts.size());
 }
 
 void DestroyableComponent::NotifySubscribers(Entity* attacker, uint32_t damage) {

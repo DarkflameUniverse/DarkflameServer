@@ -57,7 +57,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 				if (!m_HasStandardCostItems || !m_HasMultiCostItems) {
 					auto itemComponentID = compRegistryTable->GetByIDAndType(item.itemid, eReplicaComponentType::ITEM, -1);
 					if (itemComponentID == -1) {
-						Game::logger->Log("VendorComponent", "Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
+						LOG("Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
 						continue;
 					}
 					auto itemComponent = itemComponentTable->GetItemComponentByID(itemComponentID);
@@ -77,7 +77,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 				if (!m_HasStandardCostItems || !m_HasMultiCostItems) {
 					auto itemComponentID = compRegistryTable->GetByIDAndType(randomItem.itemid, eReplicaComponentType::ITEM, -1);
 					if (itemComponentID == -1) {
-						Game::logger->Log("VendorComponent", "Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
+						LOG("Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
 						continue;
 					}
 					auto itemComponent = itemComponentTable->GetItemComponentByID(itemComponentID);

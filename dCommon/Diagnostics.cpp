@@ -1,6 +1,6 @@
 #include "Diagnostics.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 // If we're on Win32, we'll include our minidump writer
 #ifdef _WIN32
@@ -9,7 +9,7 @@
 #include <Dbghelp.h>
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void make_minidump(EXCEPTION_POINTERS* e) {
 	auto hDbgHelp = LoadLibraryA("dbghelp");
@@ -28,7 +28,7 @@ void make_minidump(EXCEPTION_POINTERS* e) {
 			"_%4d%02d%02d_%02d%02d%02d.dmp",
 			t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
 	}
-	Game::logger->Log("Diagnostics", "Creating crash dump %s", name);
+	LOG("Creating crash dump %s", name);
 	auto hFile = CreateFileA(name, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return;
@@ -83,7 +83,7 @@ struct bt_ctx {
 
 static inline void Bt(struct backtrace_state* state) {
 	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
-	Game::logger->Log("Diagnostics", "backtrace is enabled, crash dump located at %s", fileName.c_str());
+	LOG("backtrace is enabled, crash dump located at %s", fileName.c_str());
 	FILE* file = fopen(fileName.c_str(), "w+");
 	if (file != nullptr) {
 		backtrace_print(state, 2, file);
@@ -118,7 +118,7 @@ void CatchUnhandled(int sig) {
 #ifndef __include_backtrace__
 
 	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
-	Game::logger->Log("Diagnostics", "Encountered signal %i, creating crash dump %s", sig, fileName.c_str());
+	LOG("Encountered signal %i, creating crash dump %s", sig, fileName.c_str());
 	if (Diagnostics::GetProduceMemoryDump()) {
 		GenerateDump();
 	}
@@ -134,6 +134,10 @@ void CatchUnhandled(int sig) {
 	// Loop through the returned addresses, and get the symbols to be demangled
 	char** strings = backtrace_symbols(array, size);
 
+	FILE* file = fopen(fileName.c_str(), "w+");
+	if (file != NULL) {
+		fprintf(file, "Error: signal %d:\n", sig);
+	}
 	// Print the stack trace
 	for (size_t i = 0; i < size; i++) {
 		// Take a string like './WorldServer(_ZN19SlashCommandHandler17HandleChatCommandERKSbIDsSt11char_traitsIDsESaIDsEEP6EntityRK13SystemAddress+0x6187) [0x55869c44ecf7]'
@@ -154,19 +158,14 @@ void CatchUnhandled(int sig) {
 			}
 		}
 
-		Game::logger->Log("Diagnostics", "[%02zu] %s", i, functionName.c_str());
+		LOG("[%02zu] %s", i, functionName.c_str());
+		if (file != NULL) {
+			fprintf(file, "[%02zu] %s\n", i, functionName.c_str());
+		}
 	}
 #  else // defined(__GNUG__)
 	backtrace_symbols_fd(array, size, STDOUT_FILENO);
 #  endif // defined(__GNUG__)
-
-	FILE* file = fopen(fileName.c_str(), "w+");
-	if (file != NULL) {
-		// print out all the frames to stderr
-		fprintf(file, "Error: signal %d:\n", sig);
-		backtrace_symbols_fd(array, size, fileno(file));
-		fclose(file);
-	}
 
 #else // __include_backtrace__
 

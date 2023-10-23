@@ -9,7 +9,7 @@
 #include "PhantomPhysicsComponent.h"
 #include "Game.h"
 #include "LDFFormat.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Entity.h"
 #include "EntityManager.h"
 #include "ControllablePhysicsComponent.h"
@@ -223,7 +223,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 			m_dpEntity->SetPosition(m_Position);
 			dpWorld::Instance().AddEntity(m_dpEntity);
 		} else {
-			//Game::logger->Log("PhantomPhysicsComponent", "This one is supposed to have %s", info->physicsAsset.c_str());
+			//LOG("This one is supposed to have %s", info->physicsAsset.c_str());
 
 			//add fallback cube:
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);

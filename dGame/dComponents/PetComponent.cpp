@@ -240,7 +240,7 @@ void PetComponent::OnUse(Entity* originator) {
 
 	if (bricks.empty()) {
 		ChatPackets::SendSystemMessage(originator->GetSystemAddress(), u"Failed to load the puzzle minigame for this pet.");
-		Game::logger->Log("PetComponent", "Couldn't find %s for minigame!", buildFile.c_str());
+		LOG("Couldn't find %s for minigame!", buildFile.c_str());
 
 		return;
 	}
@@ -647,7 +647,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		return;
 	}
 
-	Game::logger->Log("PetComponent", "Got set pet name (%s)", GeneralUtils::UTF16ToWTF8(name).c_str());
+	LOG("Got set pet name (%s)", GeneralUtils::UTF16ToWTF8(name).c_str());
 
 	auto* inventoryComponent = tamer->GetComponent<InventoryComponent>();
 
@@ -923,7 +923,7 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 	// Set this to a variable so when this is called back from the player the timer doesn't fire off.
 	m_Parent->AddCallbackTimer(imaginationDrainRate, [playerDestroyableComponent, this, item]() {
 		if (!playerDestroyableComponent) {
-			Game::logger->Log("PetComponent", "No petComponent and/or no playerDestroyableComponent");
+			LOG("No petComponent and/or no playerDestroyableComponent");
 			return;
 		}
 

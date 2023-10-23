@@ -73,7 +73,7 @@ struct StaticShootingGalleryParams {
  */
 class ShootingGalleryComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SHOOTING_GALLERY;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SHOOTING_GALLERY;
 
 	explicit ShootingGalleryComponent(Entity* parent);
 	~ShootingGalleryComponent();

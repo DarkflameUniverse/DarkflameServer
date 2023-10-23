@@ -12,7 +12,7 @@
  */
 class ModuleAssemblyComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODULE_ASSEMBLY;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MODULE_ASSEMBLY;
 
 	ModuleAssemblyComponent(Entity* parent);
 	~ModuleAssemblyComponent() override;
