@@ -15,7 +15,7 @@ void NtFactionSpyServer::OnStartup(Entity* self) {
 	// Set the proximity to sense later
 	auto* proximityMonitor = self->GetComponent<ProximityMonitorComponent>();
 	if (proximityMonitor == nullptr) {
-		self->AddComponent<ProximityMonitorComponent>(-1, -1);
+		proximityMonitor = self->AddComponent<ProximityMonitorComponent>(-1, -1);
 	}
 
 	proximityMonitor->SetProximityRadius(self->GetVar<float_t>(m_SpyProximityVariable), m_ProximityName);
