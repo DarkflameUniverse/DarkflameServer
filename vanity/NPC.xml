@@ -437,6 +437,18 @@
 		</zone>
 	</npc>
 	
+	<!--Brick Vendor in Pet Cove-->
+	<npc lot="20088">
+		<ldf>
+			<entry data="dummy=7:1"/>
+		</ldf>
+		<zone id="1201">
+			<locations>
+				<location x="67.200" y="176.419" z="37.150" rw="0.437076" rx="0.00" ry="0.899425" rz="0.00" />
+			</locations>
+		</zone>
+	</npc>
+	
 	<!--NS Frostburgh Launchpad-->
 	<npc lot="12442">
 		<ldf>
