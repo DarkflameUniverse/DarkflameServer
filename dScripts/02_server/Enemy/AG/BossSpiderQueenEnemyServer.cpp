@@ -196,7 +196,7 @@ void BossSpiderQueenEnemyServer::SpiderWaveManager(Entity* self) {
 			for (auto en : hatchList) {
 				if (en == randomEgg) {
 					randomEggLoc++;
-					randomEgg = spiderEggs[randomEggLoc];
+					randomEgg = spiderEggs.at(randomEggLoc % spiderEggs.size());
 				}
 			}
 
@@ -288,7 +288,7 @@ void BossSpiderQueenEnemyServer::RunRainOfFire(Entity* self) {
 
 		if (index == 0) {
 			impactList.insert(impactList.end(), spawned.begin(), spawned.end());
-		} else {
+		} else if (!spawned.empty()) {
 			const auto randomIndex = GeneralUtils::GenerateRandomNumber<int32_t>(0, spawned.size() - 1);
 
 			impactList.push_back(spawned[randomIndex]);
