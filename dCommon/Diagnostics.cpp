@@ -134,6 +134,10 @@ void CatchUnhandled(int sig) {
 	// Loop through the returned addresses, and get the symbols to be demangled
 	char** strings = backtrace_symbols(array, size);
 
+	FILE* file = fopen(fileName.c_str(), "w+");
+	if (file != NULL) {
+		fprintf(file, "Error: signal %d:\n", sig);
+	}
 	// Print the stack trace
 	for (size_t i = 0; i < size; i++) {
 		// Take a string like './WorldServer(_ZN19SlashCommandHandler17HandleChatCommandERKSbIDsSt11char_traitsIDsESaIDsEEP6EntityRK13SystemAddress+0x6187) [0x55869c44ecf7]'
@@ -155,18 +159,13 @@ void CatchUnhandled(int sig) {
 		}
 
 		LOG("[%02zu] %s", i, functionName.c_str());
+		if (file != NULL) {
+			fprintf(file, "[%02zu] %s\n", i, functionName.c_str());
+		}
 	}
 #  else // defined(__GNUG__)
 	backtrace_symbols_fd(array, size, STDOUT_FILENO);
 #  endif // defined(__GNUG__)
-
-	FILE* file = fopen(fileName.c_str(), "w+");
-	if (file != NULL) {
-		// print out all the frames to stderr
-		fprintf(file, "Error: signal %d:\n", sig);
-		backtrace_symbols_fd(array, size, fileno(file));
-		fclose(file);
-	}
 
 #else // __include_backtrace__
 
