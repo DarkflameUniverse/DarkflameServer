@@ -827,7 +827,8 @@ void Entity::Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationNa
 }
 
 void Entity::SetProximityRadius(float proxRadius, std::string name) {
-	ProximityMonitorComponent* proxMon = AddComponent<ProximityMonitorComponent>();
+	auto* proxMon = GetComponent<ProximityMonitorComponent>();
+	if (!proxMon) proxMon = AddComponent<ProximityMonitorComponent>();
 	proxMon->SetProximityRadius(proxRadius, name);
 }
 
