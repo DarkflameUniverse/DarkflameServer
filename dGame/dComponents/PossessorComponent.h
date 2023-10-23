@@ -18,7 +18,7 @@ enum class ePossessionType : uint8_t {
  */
 class PossessorComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSOR;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSOR;
 
 	PossessorComponent(Entity* parent);
 	~PossessorComponent() override;

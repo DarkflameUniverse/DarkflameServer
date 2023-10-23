@@ -13,7 +13,7 @@
 
 #include "Entity.h"
 
-SimplePhysicsComponent::SimplePhysicsComponent(uint32_t componentID, Entity* parent) : PhysicsComponent(parent) {
+SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, uint32_t componentID) : PhysicsComponent(parent) {
 	m_Position = m_Parent->GetDefaultPosition();
 	m_Rotation = m_Parent->GetDefaultRotation();
 

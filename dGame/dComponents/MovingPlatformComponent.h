@@ -106,7 +106,7 @@ public:
  */
 class MovingPlatformComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
 	MovingPlatformComponent(Entity* parent, const std::string& pathName);
 	~MovingPlatformComponent() override;

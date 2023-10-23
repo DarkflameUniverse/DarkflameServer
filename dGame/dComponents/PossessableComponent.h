@@ -14,7 +14,7 @@
  */
 class PossessableComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSABLE;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSABLE;
 
 	PossessableComponent(Entity* parentEntity, uint32_t componentId);
 

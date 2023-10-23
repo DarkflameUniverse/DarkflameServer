@@ -13,7 +13,7 @@ class Entity;
  */
 class ModelComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
 
 	ModelComponent(Entity* parent);
 

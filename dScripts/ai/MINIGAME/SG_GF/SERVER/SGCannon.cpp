@@ -302,9 +302,7 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 		auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
 		Game::entityManager->ConstructEntity(enemy);
 
-		auto* movementAI = new MovementAIComponent(enemy, {});
-
-		enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
+		auto* movementAI = enemy->AddComponent<MovementAIComponent>(MovementAIInfo{});
 
 		movementAI->SetMaxSpeed(toSpawn.initialSpeed);
 		movementAI->SetCurrentSpeed(toSpawn.initialSpeed);

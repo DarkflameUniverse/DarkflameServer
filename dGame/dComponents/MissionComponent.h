@@ -27,7 +27,7 @@ class AchievementCacheKey;
 class MissionComponent : public Component
 {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION;
 
 	explicit MissionComponent(Entity* parent);
 	~MissionComponent() override;
