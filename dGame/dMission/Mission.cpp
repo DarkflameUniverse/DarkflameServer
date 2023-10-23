@@ -14,7 +14,7 @@
 #include "Mail.h"
 #include "MissionComponent.h"
 #include "eRacingTaskParam.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
 #include "dZoneManager.h"
 #include "InventoryComponent.h"
@@ -48,7 +48,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	info = *mis;
 
 	if (mis == &CDMissionsTable::Default) {
-		Game::logger->Log("Missions", "Failed to find mission (%i)!", missionId);
+		LOG("Failed to find mission (%i)!", missionId);
 
 		return;
 	}

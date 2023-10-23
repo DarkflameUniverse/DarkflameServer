@@ -2,7 +2,7 @@
 #include "User.h"
 #include "Database.h"
 #include "GeneralUtils.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BitStream.h"
 #include "Game.h"
 #include <chrono>
@@ -145,16 +145,16 @@ void Character::DoQuickXMLDataParse() {
 	if (!m_Doc) return;
 
 	if (m_Doc->Parse(m_XMLData.c_str(), m_XMLData.size()) == 0) {
-		Game::logger->Log("Character", "Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
+		LOG("Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
 	} else {
-		Game::logger->Log("Character", "Failed to load xmlData!");
+		LOG("Failed to load xmlData!");
 		//Server::rakServer->CloseConnection(m_ParentUser->GetSystemAddress(), true);
 		return;
 	}
 
 	tinyxml2::XMLElement* mf = m_Doc->FirstChildElement("obj")->FirstChildElement("mf");
 	if (!mf) {
-		Game::logger->Log("Character", "Failed to find mf tag!");
+		LOG("Failed to find mf tag!");
 		return;
 	}
 
@@ -173,14 +173,14 @@ void Character::DoQuickXMLDataParse() {
 
 	tinyxml2::XMLElement* inv = m_Doc->FirstChildElement("obj")->FirstChildElement("inv");
 	if (!inv) {
-		Game::logger->Log("Character", "Char has no inv!");
+		LOG("Char has no inv!");
 		return;
 	}
 
 	tinyxml2::XMLElement* bag = inv->FirstChildElement("items")->FirstChildElement("in");
 
 	if (!bag) {
-		Game::logger->Log("Character", "Couldn't find bag0!");
+		LOG("Couldn't find bag0!");
 		return;
 	}
 
@@ -373,7 +373,7 @@ void Character::SaveXMLToDatabase() {
 
 	//Call upon the entity to update our xmlDoc:
 	if (!m_OurEntity) {
-		Game::logger->Log("Character", "%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
+		LOG("%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
 		return;
 	}
 
@@ -384,7 +384,7 @@ void Character::SaveXMLToDatabase() {
 	//For metrics, log the time it took to save:
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed = end - start;
-	Game::logger->Log("Character", "%i:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
+	LOG("%i:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
 }
 
 void Character::SetIsNewLogin() {
@@ -396,7 +396,7 @@ void Character::SetIsNewLogin() {
 	while (currentChild) {
 		if (currentChild->Attribute("si")) {
 			flags->DeleteChild(currentChild);
-			Game::logger->Log("Character", "Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
+			LOG("Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
 			WriteToDatabase();
 		}
 		currentChild = currentChild->NextSiblingElement();

@@ -105,7 +105,7 @@ struct RacingPlayerInfo {
  */
 class RacingControlComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
 	RacingControlComponent(Entity* parentEntity);
 	~RacingControlComponent();

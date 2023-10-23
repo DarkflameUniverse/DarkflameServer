@@ -55,7 +55,7 @@ void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syn
 	const auto index = this->m_managedBehaviors.find(skillUid);
 
 	if (index == this->m_managedBehaviors.end()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill with uid (%i)!", skillUid, syncId);
+		LOG("Failed to find skill with uid (%i)!", skillUid, syncId);
 
 		return;
 	}
@@ -80,7 +80,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	}
 
 	if (index == -1) {
-		Game::logger->Log("SkillComponent", "Failed to find projectile id (%llu)!", projectileId);
+		LOG("Failed to find projectile id (%llu)!", projectileId);
 
 		return;
 	}
@@ -94,7 +94,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	auto result = query.execQuery();
 
 	if (result.eof()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!", sync_entry.lot);
+		LOG("Failed to find skill id for (%i)!", sync_entry.lot);
 
 		return;
 	}
@@ -243,7 +243,7 @@ bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LW
 
 	// check to see if we got back a valid behavior
 	if (behaviorId == -1) {
-		Game::logger->LogDebug("SkillComponent", "Tried to cast skill %i but found no behavior", skillId);
+		LOG_DEBUG("Tried to cast skill %i but found no behavior", skillId);
 		return false;
 	}
 
@@ -401,7 +401,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	if (other == nullptr) {
 		if (entry.branchContext.target != LWOOBJID_EMPTY) {
-			Game::logger->Log("SkillComponent", "Invalid projectile target (%llu)!", entry.branchContext.target);
+			LOG("Invalid projectile target (%llu)!", entry.branchContext.target);
 		}
 
 		return;
@@ -413,7 +413,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	auto result = query.execQuery();
 
 	if (result.eof()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!", entry.lot);
+		LOG("Failed to find skill id for (%i)!", entry.lot);
 
 		return;
 	}

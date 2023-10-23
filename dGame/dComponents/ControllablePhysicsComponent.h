@@ -21,7 +21,7 @@ enum class eStateChangeType : uint32_t;
  */
 class ControllablePhysicsComponent : public PhysicsComponent {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::CONTROLLABLE_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::CONTROLLABLE_PHYSICS;
 
 	ControllablePhysicsComponent(Entity* entity);
 	~ControllablePhysicsComponent() override;

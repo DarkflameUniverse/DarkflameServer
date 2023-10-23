@@ -3,7 +3,7 @@
 #include <random>
 
 class dServer;
-class dLogger;
+class Logger;
 class InstanceManager;
 class dChatFilter;
 class dConfig;
@@ -14,7 +14,7 @@ class EntityManager;
 class dZoneManager;
 
 namespace Game {
-	extern dLogger* logger;
+	extern Logger* logger;
 	extern dServer* server;
 	extern InstanceManager* im;
 	extern dChatFilter* chatFilter;

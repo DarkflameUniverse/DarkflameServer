@@ -1,6 +1,6 @@
 #include "Spawner.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 #include <sstream>
 #include <functional>

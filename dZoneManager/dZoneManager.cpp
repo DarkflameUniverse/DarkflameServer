@@ -2,7 +2,7 @@
 #include "dCommonVars.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 #include "InventoryComponent.h"
 #include "DestroyableComponent.h"
@@ -19,7 +19,7 @@
 #include "../dWorldServer/ObjectIDManager.h"
 
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
-	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
+	LOG("Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 
 	int64_t startTime = 0;
 	int64_t endTime = 0;
@@ -44,11 +44,11 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 		}
 	}
 
-	Game::logger->Log("dZoneManager", "Creating zone control object %i", zoneControlTemplate);
+	LOG("Creating zone control object %i", zoneControlTemplate);
 
 	// Create ZoneControl object
 	if (!Game::entityManager) {
-		Game::logger->Log("dZoneManager", "ERROR: No entity manager loaded. Cannot proceed.");
+		LOG("ERROR: No entity manager loaded. Cannot proceed.");
 		throw std::invalid_argument("No entity manager loaded. Cannot proceed.");
 	}
 	Game::entityManager->Initialize();
@@ -64,7 +64,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LoadWorldConfig();
 
-	Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms", (endTime - startTime));
+	LOG("Zone prepared in: %llu ms", (endTime - startTime));
 
 	VanityUtilities::SpawnVanity();
 	// m_RandomQBManager = new RandomQBManager();
@@ -106,7 +106,7 @@ void dZoneManager::NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& obj
 	case dZoneNotifier::SpawnedChildObjectDestroyed:
 		break;
 	case dZoneNotifier::ReloadZone:
-		Game::logger->Log("dZoneManager", "Forcing reload of zone %i", m_ZoneID.GetMapID());
+		LOG("Forcing reload of zone %i", m_ZoneID.GetMapID());
 		LoadZone(m_ZoneID);
 
 		m_pZone->Initalize();
@@ -119,10 +119,10 @@ void dZoneManager::NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& obj
 		m_pZone->PrintAllGameObjects();
 		break;
 	case dZoneNotifier::InvalidNotifier:
-		Game::logger->Log("dZoneManager", "Got an invalid zone notifier.");
+		LOG("Got an invalid zone notifier.");
 		break;
 	default:
-		Game::logger->Log("dZoneManager", "Unknown zone notifier: %i", int(notifier));
+		LOG("Unknown zone notifier: %i", int(notifier));
 	}
 }
 
@@ -182,7 +182,7 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 	auto* spawner = GetSpawner(id);
 
 	if (spawner == nullptr) {
-		Game::logger->Log("dZoneManager", "Failed to find spawner (%llu)", id);
+		LOG("Failed to find spawner (%llu)", id);
 		return;
 	}
 
@@ -192,14 +192,14 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 		entity->Kill();
 	} else {
 
-		Game::logger->Log("dZoneManager", "Failed to find spawner entity (%llu)", id);
+		LOG("Failed to find spawner entity (%llu)", id);
 	}
 
 	spawner->DestroyAllEntities();
 
 	spawner->Deactivate();
 
-	Game::logger->Log("dZoneManager", "Destroying spawner (%llu)", id);
+	LOG("Destroying spawner (%llu)", id);
 
 	m_Spawners.erase(id);
 
@@ -252,14 +252,14 @@ bool dZoneManager::CheckIfAccessibleZone(LWOMAPID zoneID) {
 }
 
 void dZoneManager::LoadWorldConfig() {
-	Game::logger->Log("dZoneManager", "Loading WorldConfig into memory");
+	LOG("Loading WorldConfig into memory");
 
 	auto worldConfig = CDClientDatabase::ExecuteQuery("SELECT * FROM WorldConfig;");
 
 	if (!m_WorldConfig) m_WorldConfig = new WorldConfig();
 
 	if (worldConfig.eof()) {
-		Game::logger->Log("dZoneManager", "WorldConfig table is empty.  Is this intended?");
+		LOG("WorldConfig table is empty.  Is this intended?");
 		return;
 	}
 
@@ -322,5 +322,5 @@ void dZoneManager::LoadWorldConfig() {
 	m_WorldConfig->characterVersion = worldConfig.getIntField("CharacterVersion");
 	m_WorldConfig->levelCapCurrencyConversion = worldConfig.getIntField("LevelCapCurrencyConversion");
 	worldConfig.finalize();
-	Game::logger->Log("dZoneManager", "Loaded WorldConfig into memory");
+	LOG("Loaded WorldConfig into memory");
 }
