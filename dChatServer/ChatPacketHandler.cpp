@@ -118,6 +118,11 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	inStream.Read(isBestFriendRequest);
 
 	auto requestor = playerContainer.GetPlayerData(requestorPlayerID);
+	if (!requestor) {
+		LOG("No requestor player %llu sent to %s found.", requestorPlayerID, playerName.c_str());
+		return;
+	}
+
 	if (requestor->playerName == playerName) {
 		SendFriendResponse(requestor, requestor, eAddFriendResponseType::MYTHRAN);
 		return;
