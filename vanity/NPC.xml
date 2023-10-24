@@ -449,6 +449,18 @@
 		</zone>
 	</npc>
 	
+	<!--Mailbox in Pet Cove-->
+	<npc lot="3964">
+		<ldf>
+			<entry data="dummy=7:1"/>
+		</ldf>
+		<zone id="1201">
+			<locations>
+				<location x="122.000656" y="173.867813" z="60.823181" rw="0.981356" rx="0.00" ry="0.192200" rz="0.00" />
+			</locations>
+		</zone>
+	</npc>
+	
 	<!--NS Frostburgh Launchpad-->
 	<npc lot="12442">
 		<ldf>
