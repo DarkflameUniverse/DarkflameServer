@@ -394,12 +394,13 @@ void Character::SetIsNewLogin() {
 
 	auto* currentChild = flags->FirstChildElement();
 	while (currentChild) {
+		auto* nextChild = currentChild->NextSiblingElement();
 		if (currentChild->Attribute("si")) {
 			flags->DeleteChild(currentChild);
 			LOG("Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
 			WriteToDatabase();
 		}
-		currentChild = currentChild->NextSiblingElement();
+		currentChild = nextChild;
 	}
 }
 
