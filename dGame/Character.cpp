@@ -555,15 +555,6 @@ void Character::OnZoneLoad() {
 		return;
 	}
 
-	/**
-	 * Restrict old character to 1 million coins
-	 */
-	if (HasPermission(ePermissionMap::Old)) {
-		if (GetCoins() > 1000000) {
-			SetCoins(1000000, eLootSourceType::NONE);
-		}
-	}
-
 	auto* inventoryComponent = m_OurEntity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
